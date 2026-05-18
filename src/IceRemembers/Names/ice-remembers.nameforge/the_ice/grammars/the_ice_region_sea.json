@@ -1,0 +1,38 @@
+{
+  "id": "the_ice_region_sea",
+  "description": "Ice-held sea region names.",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "reference_name": [
+      [
+        "domain:the_ice_domain~cap"
+      ],
+      [
+        "slot:the_ice_marks~cap",
+        "domain:the_ice_domain~cap"
+      ]
+    ],
+    "name": [
+      [
+        "context:reference_name",
+        "slot:the_ice_sea_forms~cap"
+      ],
+      [
+        "slot:the_ice_temper~cap",
+        "slot:the_ice_sea_forms~cap",
+        "beyond",
+        "context:reference_name"
+      ],
+      [
+        "context:reference_name^,",
+        "where",
+        "blackwater",
+        "answers"
+      ]
+    ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
+  }
+}

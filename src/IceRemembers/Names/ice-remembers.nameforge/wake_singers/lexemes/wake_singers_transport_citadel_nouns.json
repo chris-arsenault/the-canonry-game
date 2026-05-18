@@ -10,13 +10,13 @@
     "Gulletship",
     "Hullkeep",
     "Wardhull",
-    "Bone-Tower",
-    "Tow-Hold",
+    "BoneTower",
+    "TowHold",
     "Anchorback",
     "Massivehull",
-    "Reef-Castle",
-    "Pressure-Vault",
-    "Tide-Throne"
+    "ReefCastle",
+    "PressureVault",
+    "TideThrone"
   ],
   "source": "manual"
 }

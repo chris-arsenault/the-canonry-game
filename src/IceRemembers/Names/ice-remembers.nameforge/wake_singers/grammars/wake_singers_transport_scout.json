@@ -28,18 +28,18 @@
         "slot:wake_singers_transport_scout_nouns"
       ],
       [
-        "slot:orca_territory_glyph^-^slot:wake_singers_transport_scout_nouns"
+        "slot:orca_territory_glyph^slot:wake_singers_transport_scout_nouns"
       ],
       [
         "domain:wake_singers_domain_short",
-        "slot:orca_territory_glyph^-^slot:wake_singers_transport_scout_nouns"
+        "slot:orca_territory_glyph^slot:wake_singers_transport_scout_nouns"
       ],
       [
-        "slot:orca_role_glyph^-^slot:orca_deed_root^-^slot:wake_singers_transport_scout_nouns"
+        "slot:orca_role_glyph^slot:orca_deed_root^slot:wake_singers_transport_scout_nouns"
       ],
       [
         "domain:wake_singers_domain_short",
-        "slot:orca_role_glyph^-^slot:orca_deed_root^-^slot:wake_singers_transport_scout_nouns"
+        "slot:orca_role_glyph^slot:orca_deed_root^slot:wake_singers_transport_scout_nouns"
       ]
     ]
   }

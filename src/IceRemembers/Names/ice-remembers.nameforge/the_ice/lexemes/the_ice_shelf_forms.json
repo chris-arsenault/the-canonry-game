@@ -1,0 +1,15 @@
+{
+  "id": "the_ice_shelf_forms",
+  "description": "Held shelves, floes, and ledges.",
+  "entries": [
+    "shelf",
+    "ledge",
+    "plate",
+    "floebed",
+    "hold",
+    "overhang",
+    "rind",
+    "icefield"
+  ],
+  "source": "manual"
+}

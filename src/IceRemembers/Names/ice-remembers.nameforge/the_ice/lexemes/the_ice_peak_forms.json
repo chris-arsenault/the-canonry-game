@@ -1,0 +1,15 @@
+{
+  "id": "the_ice_peak_forms",
+  "description": "Peaks and raised ice spires.",
+  "entries": [
+    "peak",
+    "spire",
+    "horn",
+    "rise",
+    "tooth",
+    "crown",
+    "needle",
+    "highcut"
+  ],
+  "source": "manual"
+}

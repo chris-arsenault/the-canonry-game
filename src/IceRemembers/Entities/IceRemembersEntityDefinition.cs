@@ -20,6 +20,7 @@ public enum IceRemembersLifecycleBand
     Brief,
     Standard,
     Enduring,
+    WorldAnchor,
 }
 
 public sealed class IceRemembersEntityDefinition
@@ -336,6 +337,7 @@ public static class IceRemembersEntities
             IceRemembersLifecycleBand.Brief => 500f,
             IceRemembersLifecycleBand.Standard => 800f,
             IceRemembersLifecycleBand.Enduring => 1200f,
+            IceRemembersLifecycleBand.WorldAnchor => 5000f,
             _ => throw new ArgumentOutOfRangeException(nameof(lifespan), lifespan, null),
         };
 

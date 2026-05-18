@@ -18,6 +18,10 @@ public sealed class IceRemembersEntityNameSynthesizerTests
     [InlineData("monster", "wraith", "nightshelf")]
     [InlineData("transport", "trade", "wake_singers")]
     [InlineData("occurrence", "war", "wake_singers")]
+    [InlineData("region", "face", "the_ice")]
+    [InlineData("point_of_interest", "vent", "the_ice")]
+    [InlineData("monster", "wraith", "the_ice")]
+    [InlineData("penguin", "warden", "the_ice")]
     public void SynthesizeName_WithSeededContext_IsDeterministic(string kind, string subtype, string culture)
     {
         var context = CreateContext(kind, subtype, culture, entityId: 10, nameSeed: 42);

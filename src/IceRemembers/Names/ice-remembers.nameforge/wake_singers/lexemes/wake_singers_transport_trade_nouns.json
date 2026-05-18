@@ -12,11 +12,11 @@
     "Tidefreighter",
     "Conveyhull",
     "Routekeel",
-    "Ledger-Hull",
+    "LedgerHull",
     "Cargoback",
     "Bartertow",
     "Pressurefreight",
-    "Brine-Cart"
+    "BrineCart"
   ],
   "source": "manual"
 }

@@ -1,0 +1,15 @@
+{
+  "id": "the_ice_face_forms",
+  "description": "Exposed outer faces and wind-struck ice walls.",
+  "entries": [
+    "face",
+    "wall",
+    "front",
+    "glare",
+    "rampart",
+    "brink",
+    "whitewall",
+    "windface"
+  ],
+  "source": "manual"
+}

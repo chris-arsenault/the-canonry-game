@@ -1,0 +1,15 @@
+{
+  "id": "the_ice_shoal_forms",
+  "description": "Shoals and shallow hunting-water features.",
+  "entries": [
+    "shoal",
+    "shallows",
+    "reef",
+    "lowwater",
+    "bar",
+    "skerry",
+    "tideflat",
+    "icebank"
+  ],
+  "source": "manual"
+}

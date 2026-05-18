@@ -838,10 +838,12 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         var selectedEntityId = 0;
         influence = 0f;
         var world = simulation.World;
+        var actorCultureId = world.EntityCultureId(entityId);
         for (var otherEntityId = 1; otherEntityId <= world.EntityHighWatermark; otherEntityId++)
         {
             if (otherEntityId == entityId ||
                 !world.EntityIsActive(otherEntityId) ||
+                world.EntityCultureId(otherEntityId) == actorCultureId ||
                 world.InfluenceCellCount(otherEntityId, planeCode) == 0)
             {
                 continue;

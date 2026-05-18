@@ -1,0 +1,143 @@
+{
+  "id": "the_ice_domain",
+  "phonology": {
+    "consonants": [
+      "s",
+      "sh",
+      "h",
+      "hr",
+      "m",
+      "n",
+      "ng",
+      "v",
+      "r",
+      "rr",
+      "l",
+      "k",
+      "th",
+      "kh"
+    ],
+    "vowels": [
+      "a",
+      "o",
+      "u",
+      "aa",
+      "oo",
+      "i"
+    ],
+    "syllableTemplates": [
+      "CV",
+      "CVC",
+      "VCV",
+      "CVCC"
+    ],
+    "lengthRange": [
+      2,
+      2
+    ],
+    "favoredClusters": [
+      "hr",
+      "rr",
+      "ng",
+      "sh",
+      "rrn",
+      "mhn",
+      "shn",
+      "lhr",
+      "kh",
+      "th"
+    ],
+    "forbiddenClusters": [
+      "aaa",
+      "ooo",
+      "uuu",
+      "iii",
+      "aao",
+      "aau",
+      "ooa",
+      "oou",
+      "uua",
+      "uuo",
+      "uoo",
+      "oau",
+      "hh",
+      "mm",
+      "nn",
+      "ss",
+      "ngng",
+      "rrrr",
+      "khkh",
+      "thth"
+    ],
+    "favoredClusterBoost": 1.35,
+    "consonantWeights": [
+      1.1,
+      1.25,
+      1.05,
+      1.35,
+      1.0,
+      1.05,
+      1.0,
+      1.05,
+      1.2,
+      1.15,
+      1.0,
+      1.25,
+      1.2,
+      1.1
+    ],
+    "vowelWeights": [
+      1.05,
+      1.1,
+      1.0,
+      1.35,
+      1.3,
+      0.75
+    ],
+    "templateWeights": [
+      1.1,
+      1.45,
+      0.65,
+      0.95
+    ]
+  },
+  "morphology": {
+    "prefixes": [],
+    "suffixes": [
+      "rrn",
+      "oor",
+      "aar",
+      "mhn",
+      "shn",
+      "lhr",
+      "kh"
+    ],
+    "structure": [
+      "root",
+      "root-suffix"
+    ],
+    "structureWeights": [
+      0.7,
+      0.3
+    ]
+  },
+  "style": {
+    "capitalization": "title",
+    "apostropheRate": 0.25,
+    "hyphenRate": 0,
+    "preferredEndings": [
+      "rr",
+      "rrn",
+      "oor",
+      "aar",
+      "mhn",
+      "shn",
+      "lhr"
+    ],
+    "preferredEndingBoost": 1.45,
+    "rhythmBias": "flowing"
+  },
+  "appliesTo": {
+    "kind": []
+  }
+}

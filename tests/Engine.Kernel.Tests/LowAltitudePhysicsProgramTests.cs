@@ -196,8 +196,8 @@ public sealed class LowAltitudePhysicsProgramTests
         simulation.World.SetMapRadius(1);
         SeedPhysicalNeighborhood(simulation, terrainId);
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        var favoredInfluencerId = simulation.CreateEntity(favoredKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        var otherInfluencerId = simulation.CreateEntity(otherKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        var favoredInfluencerId = simulation.CreateEntity(favoredKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
+        var otherInfluencerId = simulation.CreateEntity(otherKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
         simulation.SetCellInfluence(favoredInfluencerId, PlaneCodes.Physical, 1, 0, 100f, tick: 0);
         simulation.SetCellInfluence(otherInfluencerId, PlaneCodes.Physical, -1, 0, 100f, tick: 0);
         RegisterForeignInfluenceAffordance(simulation, actorKindId, favoredKindId);
@@ -245,8 +245,8 @@ public sealed class LowAltitudePhysicsProgramTests
         simulation.World.SetMapRadius(1);
         SeedPhysicalNeighborhood(simulation, terrainId);
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        var hostileInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        var unrelatedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        var hostileInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
+        var unrelatedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
         simulation.SetCellInfluence(hostileInfluencerId, PlaneCodes.Physical, 1, 0, 20f, tick: 0);
         simulation.SetCellInfluence(unrelatedInfluencerId, PlaneCodes.Physical, -1, 0, 40f, tick: 0);
         _ = simulation.CreateRelationship(
@@ -278,8 +278,8 @@ public sealed class LowAltitudePhysicsProgramTests
         simulation.World.SetMapRadius(1);
         SeedPhysicalNeighborhood(simulation, terrainId);
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        var alliedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        var overextendedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        var alliedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
+        var overextendedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
         simulation.SetCellInfluence(alliedInfluencerId, PlaneCodes.Physical, 1, 0, 100f, tick: 0);
         simulation.SetCellInfluence(overextendedInfluencerId, PlaneCodes.Physical, -1, 0, 60f, tick: 0);
         _ = simulation.CreateRelationship(
@@ -311,8 +311,8 @@ public sealed class LowAltitudePhysicsProgramTests
         simulation.World.SetMapRadius(1);
         SeedPhysicalNeighborhood(simulation, terrainId);
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        var mixedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        var overextendedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        var mixedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
+        var overextendedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
         simulation.SetCellInfluence(mixedInfluencerId, PlaneCodes.Physical, 1, 0, 100f, tick: 0);
         simulation.SetCellInfluence(overextendedInfluencerId, PlaneCodes.Physical, -1, 0, 60f, tick: 0);
         _ = simulation.CreateRelationship(
@@ -416,8 +416,8 @@ public sealed class LowAltitudePhysicsProgramTests
         const int factionKindId = 2;
         const int verbId = 100;
         simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
-        simulation.World.SetMapRadius(1);
-        SeedPhysicalNeighborhood(simulation, terrainId);
+        simulation.World.SetMapRadius(0);
+        simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
         var settlementId = simulation.CreateEntity(settlementKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         var factionId = simulation.CreateEntity(factionKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         simulation.SetCellInfluence(factionId, PlaneCodes.Physical, 0, 0, 20f, tick: 0);
@@ -463,8 +463,10 @@ public sealed class LowAltitudePhysicsProgramTests
 
         simulation.AdvanceTicks(2);
 
-        Assert.True(simulation.World.GetCellInfluence(entityId, PlaneCodes.Semantic, 2, -1) >= 45f);
-        Assert.Equal(0f, simulation.World.GetCellInfluence(entityId, PlaneCodes.Physical, 2, -1));
+        var targetQ = simulation.LowAltitudeVerbs.State.TargetQ(entityId);
+        var targetR = simulation.LowAltitudeVerbs.State.TargetR(entityId);
+        Assert.True(simulation.World.GetCellInfluence(entityId, PlaneCodes.Semantic, targetQ, targetR) > 0f);
+        Assert.Equal(0f, simulation.World.GetCellInfluence(entityId, PlaneCodes.Physical, targetQ, targetR));
     }
 
     [Fact]
@@ -475,8 +477,8 @@ public sealed class LowAltitudePhysicsProgramTests
         const int kindId = 1;
         const int verbId = 104;
         simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
-        simulation.World.SetMapRadius(1);
-        SeedPhysicalNeighborhood(simulation, terrainId);
+        simulation.World.SetMapRadius(0);
+        simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         simulation.SetCellInfluence(entityId, PlaneCodes.Physical, 0, 0, 10f, tick: 0);
         var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
@@ -597,8 +599,8 @@ public sealed class LowAltitudePhysicsProgramTests
         const int settlementKindId = 1;
         const int verbId = 101;
         simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
-        simulation.World.SetMapRadius(1);
-        SeedPhysicalNeighborhood(simulation, terrainId);
+        simulation.World.SetMapRadius(0);
+        simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
         var settlementId = simulation.CreateEntity(settlementKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         simulation.LowAltitudeVerbs.RegisterInitialInfluence(settlementKindId, PlaneCodes.Physical, 35f);
         RegisterInfluenceVerb(
@@ -614,7 +616,9 @@ public sealed class LowAltitudePhysicsProgramTests
 
         simulation.AdvanceTicks(2);
 
-        Assert.Equal(settlementId, simulation.World.CoverageOwnerAt(0, 0));
+        var targetQ = simulation.LowAltitudeVerbs.State.TargetQ(settlementId);
+        var targetR = simulation.LowAltitudeVerbs.State.TargetR(settlementId);
+        Assert.Equal(settlementId, simulation.World.CoverageOwnerAt(targetQ, targetR));
     }
 
     [Fact]

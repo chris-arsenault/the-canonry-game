@@ -1,0 +1,15 @@
+{
+  "id": "the_ice_vent_forms",
+  "description": "Vents and warm ruptures through the ice.",
+  "entries": [
+    "vent",
+    "steamhold",
+    "warmcut",
+    "breathhole",
+    "thawmouth",
+    "fumarole",
+    "heatwell",
+    "smokeice"
+  ],
+  "source": "manual"
+}

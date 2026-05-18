@@ -404,6 +404,7 @@ public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNamesSy
             "aurora_stack" or "aurora-stack" => "aurora_stack",
             "nightshelf" => "nightshelf",
             "wake_singers" or "orca" => "wake_singers",
+            "the_ice" => "the_ice",
             _ => string.Empty,
         };
 

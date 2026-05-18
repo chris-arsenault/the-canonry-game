@@ -1,0 +1,19 @@
+{
+  "id": "the_ice_entity_forms",
+  "description": "Generic forms the Ice assigns to things that belong to it.",
+  "entries": [
+    "echo",
+    "witness",
+    "debt",
+    "sign",
+    "memory",
+    "relic",
+    "mark",
+    "voice",
+    "remnant",
+    "burial",
+    "answer",
+    "wake"
+  ],
+  "source": "manual"
+}

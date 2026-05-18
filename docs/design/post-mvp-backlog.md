@@ -51,9 +51,11 @@ through a given teacher/student relationship.
   inert telemetry
 - culture innovation and spread
 - culture-specific medium-term goals that give each culture explicit strategic
-  pressure beyond static slot occupation; these should be authored, visible,
+  priorities beyond static slot occupation; these should be authored, visible,
   and eventually readable by generators/gambits, but are deferred until the
   cultural static slot system exists
+- cultural cohesion/gravity behavior that makes influence expansion prefer
+  connected cultural masses and frontiers instead of forming isolated pockets
 - better procedural map/seed diversity
 
 ## Map And UI

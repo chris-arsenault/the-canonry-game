@@ -1,0 +1,19 @@
+{
+  "id": "the_ice_monster_forms",
+  "description": "Monster forms spoken by the Ice rather than by a social culture.",
+  "entries": [
+    "hunger",
+    "maw",
+    "wound",
+    "breaker",
+    "undertongue",
+    "oldblood",
+    "riftmouth",
+    "pressure",
+    "blackwake",
+    "coldtooth",
+    "graveback",
+    "thawbeast"
+  ],
+  "source": "manual"
+}

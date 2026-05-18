@@ -461,7 +461,46 @@ public sealed class LowAltitudeVerbSelectionTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal((3, 0), (simulation.LowAltitudeVerbs.State.TargetQ(actorId), simulation.LowAltitudeVerbs.State.TargetR(actorId)));
+        var targetQ = simulation.LowAltitudeVerbs.State.TargetQ(actorId);
+        var targetR = simulation.LowAltitudeVerbs.State.TargetR(actorId);
+        Assert.True(HexDistance(targetQ, targetR, 3, 0) <= 1);
+    }
+
+    [Fact]
+    public void OwnInfluenceCandidateSelection_CanTargetAdjacentCulturalFrontier()
+    {
+        var simulation = NewSimulation(seed: 2, opportunityRate: 0f);
+        SeedRadius3Neighborhood(simulation);
+        var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
+        {
+            simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+        }
+
+        var slot = simulation.LowAltitudeVerbs.RegisterVerb(
+            ActorKindId,
+            verbId: 813,
+            PlaneCodes.Physical,
+            ProgramOpcodeCodes.AddOwnedCellScalar,
+            TargetSelectorCodes.SelfMapValue,
+            targetKindId: 0,
+            relationshipKindId: 0,
+            relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
+            minCommitmentTicks: 5,
+            maxCommitmentTicks: 5,
+            dwellTicks: 0,
+            targetRadius: 0,
+            candidateSampleCount: 1,
+            weight: 1f,
+            influenceDelta: 1f,
+            influenceRadius: 0);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.AddOwnedCellScalar, 0, 0f);
+
+        simulation.AdvanceTicks(1);
+
+        var targetQ = simulation.LowAltitudeVerbs.State.TargetQ(actorId);
+        var targetR = simulation.LowAltitudeVerbs.State.TargetR(actorId);
+        Assert.Equal(1, HexDistance(targetQ, targetR, 0, 0));
     }
 
     [Fact]
@@ -470,7 +509,7 @@ public sealed class LowAltitudeVerbSelectionTests
         var simulation = NewSimulation(seed: 1, opportunityRate: 0f);
         SeedRadius3Neighborhood(simulation);
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
-        var influencerId = simulation.CreateEntity(TargetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+        var influencerId = simulation.CreateEntity(TargetKindId, 1, 2, 1, 0, 0, 0, 0, 0);
         using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
         {
             simulation.SetCellInfluence(influencerId, PlaneCodes.Physical, 3, 0, 40f, tick: 0);
@@ -757,4 +796,13 @@ public sealed class LowAltitudeVerbSelectionTests
         4 => 1,
         _ => 1,
     };
+
+    private static int HexDistance(int aq, int ar, int bq, int br)
+    {
+        var asCoord = -aq - ar;
+        var bsCoord = -bq - br;
+        return (Abs(aq - bq) + Abs(ar - br) + Abs(asCoord - bsCoord)) / 2;
+    }
+
+    private static int Abs(int value) => value < 0 ? -value : value;
 }

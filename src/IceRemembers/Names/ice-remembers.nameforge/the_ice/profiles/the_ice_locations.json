@@ -1,0 +1,286 @@
+{
+  "id": "the_ice_locations",
+  "name": "The Ice Locations",
+  "entityKinds": [
+    "region",
+    "point_of_interest",
+    "settlement",
+    "faction",
+    "penguin",
+    "artifact",
+    "orca",
+    "ability",
+    "monster",
+    "transport",
+    "occurrence"
+  ],
+  "strategyGroups": [
+    {
+      "name": "Face Region Names",
+      "priority": 90,
+      "conditions": {
+        "entityKinds": [
+          "region"
+        ],
+        "subtypes": [
+          "face"
+        ]
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "the_ice_region_face"
+        }
+      ]
+    },
+    {
+      "name": "Shelf Region Names",
+      "priority": 90,
+      "conditions": {
+        "entityKinds": [
+          "region"
+        ],
+        "subtypes": [
+          "shelf"
+        ]
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "the_ice_region_shelf"
+        }
+      ]
+    },
+    {
+      "name": "Depth Region Names",
+      "priority": 90,
+      "conditions": {
+        "entityKinds": [
+          "region"
+        ],
+        "subtypes": [
+          "depths"
+        ]
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "the_ice_region_depths"
+        }
+      ]
+    },
+    {
+      "name": "Reach Region Names",
+      "priority": 90,
+      "conditions": {
+        "entityKinds": [
+          "region"
+        ],
+        "subtypes": [
+          "reach"
+        ]
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "the_ice_region_reach"
+        }
+      ]
+    },
+    {
+      "name": "Sea Region Names",
+      "priority": 90,
+      "conditions": {
+        "entityKinds": [
+          "region"
+        ],
+        "subtypes": [
+          "sea"
+        ]
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "the_ice_region_sea"
+        }
+      ]
+    },
+    {
+      "name": "Scar Region Names",
+      "priority": 90,
+      "conditions": {
+        "entityKinds": [
+          "region"
+        ],
+        "subtypes": [
+          "scar"
+        ]
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "the_ice_region_scar"
+        }
+      ]
+    },
+    {
+      "name": "Vent Point Names",
+      "priority": 88,
+      "conditions": {
+        "entityKinds": [
+          "point_of_interest"
+        ],
+        "subtypes": [
+          "vent"
+        ]
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "the_ice_point_vent"
+        }
+      ]
+    },
+    {
+      "name": "Peak Point Names",
+      "priority": 88,
+      "conditions": {
+        "entityKinds": [
+          "point_of_interest"
+        ],
+        "subtypes": [
+          "peak"
+        ]
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "the_ice_point_peak"
+        }
+      ]
+    },
+    {
+      "name": "Bloom Point Names",
+      "priority": 88,
+      "conditions": {
+        "entityKinds": [
+          "point_of_interest"
+        ],
+        "subtypes": [
+          "bloom"
+        ]
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "the_ice_point_bloom"
+        }
+      ]
+    },
+    {
+      "name": "Shoal Point Names",
+      "priority": 88,
+      "conditions": {
+        "entityKinds": [
+          "point_of_interest"
+        ],
+        "subtypes": [
+          "shoal"
+        ]
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "the_ice_point_shoal"
+        }
+      ]
+    },
+    {
+      "name": "Monster Names",
+      "priority": 70,
+      "conditions": {
+        "entityKinds": [
+          "monster"
+        ]
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "the_ice_monster"
+        }
+      ]
+    },
+    {
+      "name": "Agent Names",
+      "priority": 60,
+      "conditions": {
+        "entityKinds": [
+          "penguin",
+          "orca",
+          "faction"
+        ]
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "the_ice_agent"
+        }
+      ]
+    },
+    {
+      "name": "Generic Region Names",
+      "priority": 10,
+      "conditions": {
+        "entityKinds": [
+          "region"
+        ]
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "the_ice_region"
+        }
+      ]
+    },
+    {
+      "name": "Generic Point Names",
+      "priority": 10,
+      "conditions": {
+        "entityKinds": [
+          "point_of_interest"
+        ]
+      },
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "the_ice_point"
+        }
+      ]
+    },
+    {
+      "name": "Generic Ice Entity Names",
+      "priority": 1,
+      "strategies": [
+        {
+          "type": "grammar",
+          "weight": 1,
+          "grammarId": "the_ice_entity"
+        }
+      ]
+    }
+  ]
+}

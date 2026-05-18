@@ -1,0 +1,15 @@
+{
+  "id": "the_ice_sea_forms",
+  "description": "Open water, sounds, and ice-edge seas.",
+  "entries": [
+    "sea",
+    "sound",
+    "water",
+    "wake",
+    "current",
+    "lead",
+    "blackwater",
+    "farwater"
+  ],
+  "source": "manual"
+}

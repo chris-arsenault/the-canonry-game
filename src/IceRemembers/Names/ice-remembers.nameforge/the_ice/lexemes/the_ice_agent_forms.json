@@ -1,0 +1,17 @@
+{
+  "id": "the_ice_agent_forms",
+  "description": "Agent roles when living entities remain culturally held by the Ice.",
+  "entries": [
+    "stray",
+    "listener",
+    "bearer",
+    "walker",
+    "keeper",
+    "mouth",
+    "witness",
+    "returner",
+    "claimless",
+    "icebound"
+  ],
+  "source": "manual"
+}

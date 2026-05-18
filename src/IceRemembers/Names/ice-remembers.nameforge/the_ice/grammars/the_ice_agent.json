@@ -1,0 +1,38 @@
+{
+  "id": "the_ice_agent",
+  "description": "Ice-culture names for living or organized agents that remain claimless.",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "reference_name": [
+      [
+        "domain:the_ice_domain~cap"
+      ],
+      [
+        "slot:the_ice_marks~cap",
+        "domain:the_ice_domain~cap"
+      ]
+    ],
+    "name": [
+      [
+        "context:reference_name",
+        "slot:the_ice_agent_forms~cap"
+      ],
+      [
+        "slot:the_ice_temper~cap",
+        "slot:the_ice_agent_forms~cap",
+        "called",
+        "context:reference_name"
+      ],
+      [
+        "context:reference_name^,",
+        "the",
+        "Ice",
+        "keeps"
+      ]
+    ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
+  }
+}

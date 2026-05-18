@@ -1,0 +1,32 @@
+{
+  "id": "the_ice_point",
+  "description": "Generic Ice-held point-of-interest names.",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "reference_name": [
+      [
+        "domain:the_ice_domain~cap"
+      ],
+      [
+        "slot:the_ice_temper~cap",
+        "domain:the_ice_domain~cap"
+      ]
+    ],
+    "name": [
+      [
+        "context:reference_name",
+        "slot:the_ice_marks~cap"
+      ],
+      [
+        "slot:the_ice_temper~cap",
+        "slot:the_ice_marks~cap",
+        "at",
+        "context:reference_name"
+      ]
+    ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
+  }
+}

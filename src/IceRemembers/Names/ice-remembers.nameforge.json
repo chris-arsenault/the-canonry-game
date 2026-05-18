@@ -1709,6 +1709,175 @@
       "type": "grammar",
       "cultureId": "wake_singers",
       "path": "ice-remembers.nameforge/wake_singers/grammars/wake_singers_artifact_relic.json"
+    },
+    {
+      "type": "culture",
+      "path": "ice-remembers.nameforge/the_ice/culture.json"
+    },
+    {
+      "type": "domain",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/domains/the_ice_domain.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/lexemes/the_ice_temper.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/lexemes/the_ice_verbs.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/lexemes/the_ice_marks.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/lexemes/the_ice_face_forms.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/lexemes/the_ice_shelf_forms.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/lexemes/the_ice_depth_forms.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/lexemes/the_ice_reach_forms.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/lexemes/the_ice_sea_forms.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/lexemes/the_ice_scar_forms.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/lexemes/the_ice_vent_forms.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/lexemes/the_ice_peak_forms.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/lexemes/the_ice_bloom_forms.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/lexemes/the_ice_shoal_forms.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/lexemes/the_ice_entity_forms.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/lexemes/the_ice_agent_forms.json"
+    },
+    {
+      "type": "lexemeList",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/lexemes/the_ice_monster_forms.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/grammars/the_ice_region.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/grammars/the_ice_region_face.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/grammars/the_ice_region_shelf.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/grammars/the_ice_region_depths.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/grammars/the_ice_region_reach.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/grammars/the_ice_region_sea.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/grammars/the_ice_region_scar.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/grammars/the_ice_point.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/grammars/the_ice_point_vent.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/grammars/the_ice_point_peak.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/grammars/the_ice_point_bloom.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/grammars/the_ice_point_shoal.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/grammars/the_ice_entity.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/grammars/the_ice_agent.json"
+    },
+    {
+      "type": "grammar",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/grammars/the_ice_monster.json"
+    },
+    {
+      "type": "profile",
+      "cultureId": "the_ice",
+      "path": "ice-remembers.nameforge/the_ice/profiles/the_ice_locations.json"
     }
   ]
 }

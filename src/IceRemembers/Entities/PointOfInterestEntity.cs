@@ -24,7 +24,7 @@ internal static class PointOfInterestEntity
         HealthAttribute = Attr.Presence,
         HealthDisplayName = "Presence",
         PrimaryPlane = PrimaryPlane.Semantic,
-        LifecycleBand = IceRemembersLifecycleBand.Enduring,
+        LifecycleBand = IceRemembersLifecycleBand.WorldAnchor,
         Description = "A named natural feature with localized significance - a thermal vent, a peak, a krill bloom, a shoal. Smaller than a region, distinct from a settlement, never built.",
         Traits =
         [

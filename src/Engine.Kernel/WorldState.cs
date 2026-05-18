@@ -1039,6 +1039,8 @@ internal sealed partial class WorldState
 
     public int EntityHighWatermark => _entityHighWatermark;
 
+    internal int CultureHighWatermark => _cultureHighWatermark;
+
     internal int RelationshipHighWatermark => _relationshipHighWatermark;
 
     public bool RelationshipIsActive(int relationshipId)

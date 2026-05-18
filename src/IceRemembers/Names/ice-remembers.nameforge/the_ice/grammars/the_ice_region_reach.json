@@ -1,0 +1,39 @@
+{
+  "id": "the_ice_region_reach",
+  "description": "Ice-held reach region names.",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "reference_name": [
+      [
+        "domain:the_ice_domain~cap"
+      ],
+      [
+        "slot:the_ice_temper~cap",
+        "domain:the_ice_domain~cap"
+      ]
+    ],
+    "name": [
+      [
+        "context:reference_name",
+        "slot:the_ice_reach_forms~cap"
+      ],
+      [
+        "slot:the_ice_temper~cap",
+        "slot:the_ice_reach_forms~cap",
+        "to",
+        "context:reference_name"
+      ],
+      [
+        "context:reference_name^,",
+        "where",
+        "the",
+        "Ice",
+        "waits"
+      ]
+    ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
+  }
+}

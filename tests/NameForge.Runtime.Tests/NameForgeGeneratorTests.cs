@@ -253,6 +253,19 @@ public sealed class NameForgeGeneratorTests
     [InlineData("wake_singers", "monster", "wraith")]
     [InlineData("wake_singers", "monster", "beast")]
     [InlineData("wake_singers", "monster", "revenant")]
+    [InlineData("the_ice", "region", "face")]
+    [InlineData("the_ice", "region", "shelf")]
+    [InlineData("the_ice", "region", "depths")]
+    [InlineData("the_ice", "region", "reach")]
+    [InlineData("the_ice", "region", "sea")]
+    [InlineData("the_ice", "region", "scar")]
+    [InlineData("the_ice", "point_of_interest", "vent")]
+    [InlineData("the_ice", "point_of_interest", "peak")]
+    [InlineData("the_ice", "point_of_interest", "bloom")]
+    [InlineData("the_ice", "point_of_interest", "shoal")]
+    [InlineData("the_ice", "monster", "wraith")]
+    [InlineData("the_ice", "penguin", "warden")]
+    [InlineData("the_ice", "artifact", "weapon")]
     public void IceRemembersProject_CoversCurrentKinds(string culture, string kind, string subtype)
     {
         var project = LoadIceRemembersProject();
@@ -292,6 +305,39 @@ public sealed class NameForgeGeneratorTests
         {
             Assert.True(HasNightshelfIncompleteMarker(name), $"Nightshelf {kind}/{subtype} name was too complete: {name}");
         }
+    }
+
+    [Theory]
+    [InlineData("region", "face", "the_ice_region_face")]
+    [InlineData("region", "shelf", "the_ice_region_shelf")]
+    [InlineData("region", "depths", "the_ice_region_depths")]
+    [InlineData("region", "reach", "the_ice_region_reach")]
+    [InlineData("region", "sea", "the_ice_region_sea")]
+    [InlineData("region", "scar", "the_ice_region_scar")]
+    [InlineData("point_of_interest", "vent", "the_ice_point_vent")]
+    [InlineData("point_of_interest", "peak", "the_ice_point_peak")]
+    [InlineData("point_of_interest", "bloom", "the_ice_point_bloom")]
+    [InlineData("point_of_interest", "shoal", "the_ice_point_shoal")]
+    public void IceRemembersProject_TheIceUsesSubtypeSpecificLocationRoutes(
+        string kind,
+        string subtype,
+        string grammarId)
+    {
+        var project = LoadIceRemembersProject();
+        var generator = new NameForgeGenerator(project);
+
+        var result = generator.Generate(new NameForgeGenerateRequest
+        {
+            CultureId = "the_ice",
+            Kind = kind,
+            Subtype = subtype,
+            Count = 1,
+            Seed = $"the-ice-route:{kind}:{subtype}",
+        });
+
+        Assert.Equal(grammarId, result.DebugInfo[0].GrammarId);
+        Assert.False(string.IsNullOrWhiteSpace(result.Names[0]));
+        Assert.InRange(result.Names[0].Length, 1, 96);
     }
 
     [Theory]

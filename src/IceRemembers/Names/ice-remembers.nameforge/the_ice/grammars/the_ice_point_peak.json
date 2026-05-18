@@ -1,0 +1,40 @@
+{
+  "id": "the_ice_point_peak",
+  "description": "Ice-held peak point names.",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "reference_name": [
+      [
+        "domain:the_ice_domain~cap"
+      ],
+      [
+        "slot:the_ice_temper~cap",
+        "domain:the_ice_domain~cap"
+      ]
+    ],
+    "name": [
+      [
+        "context:reference_name",
+        "slot:the_ice_peak_forms~cap"
+      ],
+      [
+        "slot:the_ice_temper~cap",
+        "slot:the_ice_peak_forms~cap",
+        "above",
+        "context:reference_name"
+      ],
+      [
+        "context:reference_name^,",
+        "the",
+        "Ice",
+        "raises",
+        "a",
+        "tooth"
+      ]
+    ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
+  }
+}

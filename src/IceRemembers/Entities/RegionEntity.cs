@@ -24,7 +24,7 @@ internal static class RegionEntity
         HealthAttribute = Attr.Stability,
         HealthDisplayName = "Stability",
         PrimaryPlane = PrimaryPlane.Semantic,
-        LifecycleBand = IceRemembersLifecycleBand.Standard,
+        LifecycleBand = IceRemembersLifecycleBand.WorldAnchor,
         Description = "A geographically connected area of the world. A region's semantic alignment is the spirit or animist ideals of the place itself - the land's own tendencies - distinct from the people, factions, or settlements that happen to occupy it.",
         Traits =
         [

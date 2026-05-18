@@ -1,0 +1,39 @@
+{
+  "id": "the_ice_point_vent",
+  "description": "Ice-held vent point names.",
+  "start": "name",
+  "capitalization": "titleWords",
+  "rules": {
+    "reference_name": [
+      [
+        "domain:the_ice_domain~cap"
+      ],
+      [
+        "slot:the_ice_marks~cap",
+        "domain:the_ice_domain~cap"
+      ]
+    ],
+    "name": [
+      [
+        "context:reference_name",
+        "slot:the_ice_vent_forms~cap"
+      ],
+      [
+        "slot:the_ice_temper~cap",
+        "slot:the_ice_vent_forms~cap",
+        "at",
+        "context:reference_name"
+      ],
+      [
+        "context:reference_name^,",
+        "where",
+        "the",
+        "Ice",
+        "breathes"
+      ]
+    ]
+  },
+  "generatedContext": {
+    "reference_name": "reference_name"
+  }
+}

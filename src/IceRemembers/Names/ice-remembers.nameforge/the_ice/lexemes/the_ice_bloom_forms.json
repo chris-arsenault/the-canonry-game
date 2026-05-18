@@ -1,0 +1,15 @@
+{
+  "id": "the_ice_bloom_forms",
+  "description": "Blooms, harvest sites, and living breaks in the ice.",
+  "entries": [
+    "bloom",
+    "greenbreak",
+    "underflower",
+    "feedhole",
+    "thawgarden",
+    "kelpglow",
+    "softwater",
+    "livingice"
+  ],
+  "source": "manual"
+}

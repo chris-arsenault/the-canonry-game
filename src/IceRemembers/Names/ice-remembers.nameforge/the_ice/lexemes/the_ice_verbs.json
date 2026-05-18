@@ -1,0 +1,19 @@
+{
+  "id": "the_ice_verbs",
+  "description": "Actions the Ice takes in names.",
+  "entries": [
+    "keeps",
+    "answers",
+    "presses",
+    "swallows",
+    "remembers",
+    "seals",
+    "cuts",
+    "waits",
+    "leans",
+    "listens",
+    "buries",
+    "returns"
+  ],
+  "source": "manual"
+}

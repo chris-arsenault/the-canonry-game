@@ -622,11 +622,11 @@ public class DomainConfigTests
 
         AssertNearNominalDrain(config.Lifecycles[TestKinds.Penguin], targetTicks: 500f);
         AssertNearNominalDrain(config.Lifecycles[TestKinds.Faction], targetTicks: 800f);
-        AssertNearNominalDrain(config.Lifecycles[TestKinds.Region], targetTicks: 800f);
+        AssertNearNominalDrain(config.Lifecycles[TestKinds.Region], targetTicks: 5000f);
         AssertNearNominalDrain(config.Lifecycles[TestKinds.Settlement], targetTicks: 1200f);
         AssertNearNominalDrain(config.Lifecycles[TestKinds.Artifact], targetTicks: 1200f);
         AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Orca], targetTicks: 800f);
-        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.PointOfInterest], targetTicks: 1200f);
+        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.PointOfInterest], targetTicks: 5000f);
         AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Ability], targetTicks: 800f);
         AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Monster], targetTicks: 1200f);
     }
