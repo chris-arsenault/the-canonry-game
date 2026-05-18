@@ -534,6 +534,7 @@ public enum IceRemembersGambitId
     OrcaRaidsTradeRoute,
     MonsterStealsArtifact,
     PenguinSlaysMonster,
+    PenguinSlaysOrca,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -560,6 +561,7 @@ public static class IceRemembersGambitIdExtensions
         "orca_raids_trade_route",
         "monster_steals_artifact",
         "penguin_slays_monster",
+        "penguin_slays_orca",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)

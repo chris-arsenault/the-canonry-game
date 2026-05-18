@@ -60,6 +60,9 @@ public static partial class IceRemembersGeneratorDefinition
 
     private static string L(Rel relationship) => relationship.ToDomainName();
 
+    private static SemanticEntityQuery SameCultureAsTarget() =>
+        new() { TargetCultureMatch = QueryTargetCultureMatch.SameAsTarget };
+
     private static SemanticGeneratorConfig IceSettlesAccounts() => new()
     {
         Id = "ice_settles_accounts",
@@ -109,7 +112,7 @@ public static partial class IceRemembersGeneratorDefinition
         Target = TargetWithIncomingAndWithoutIncoming(K.Region, Rel.CleansedBy, Rel.Memorializes),
         SecondaryTargets =
         [
-            new SemanticGeneratorBindingTarget { Ref = "$patron", Kind = K.Faction },
+            new SemanticGeneratorBindingTarget { Ref = "$patron", Kind = K.Faction, Query = SameCultureAsTarget() },
         ],
         Produces =
         [
@@ -449,7 +452,7 @@ public static partial class IceRemembersGeneratorDefinition
             Rel.HomeBase),
         SecondaryTargets =
         [
-            new SemanticGeneratorBindingTarget { Ref = "$caller", Kind = K.Orca },
+            new SemanticGeneratorBindingTarget { Ref = "$caller", Kind = K.Orca, Query = SameCultureAsTarget() },
         ],
         Produces =
         [

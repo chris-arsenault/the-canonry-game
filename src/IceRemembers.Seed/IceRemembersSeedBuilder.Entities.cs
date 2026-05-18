@@ -58,12 +58,13 @@ internal static partial class IceRemembersSeedBuilder
 
         CreatePenguins(seed, random, takenPhysical, takenSemantic, allSettlements, factions);
         CreateStormcleaver(seed, random, takenPhysical, takenSemantic, coreSettlements.AuroraStack);
+        CreateNightshelfWeapon(seed, random, takenPhysical, takenSemantic, coreSettlements.All[1]);
 
         CreateOrcas(seed, random, takenPhysical, takenSemantic, factions.WakeSingers);
         CreatePointsOfInterest(seed, random, takenPhysical, takenSemantic);
         CreateAbilities(seed, random, takenPhysical, takenSemantic, regions);
-        CreateTransports(seed, random, takenPhysical, takenSemantic, regions, factions.Council);
-        CreateOccurrences(seed, random, takenPhysical, takenSemantic, coreSettlements.AuroraStack);
+        CreateTransports(seed, random, takenPhysical, takenSemantic, coreSettlements, factions);
+        CreateOccurrences(seed, random, takenPhysical, takenSemantic, coreSettlements);
 
         CreateLeadershipRelationships(seed, factions);
         CreateCanonicalLinks(seed, random, takenPhysical, takenSemantic, factions);
@@ -511,6 +512,35 @@ internal static partial class IceRemembersSeedBuilder
         CreateRelationship(seed, "anchored", RelationshipPolarity.Neutral, artifact.SeedEntityId, auroraStack.SeedEntityId, 1f);
     }
 
+    private static void CreateNightshelfWeapon(
+        SeedAssembly seed,
+        Random random,
+        HashSet<HexCoord> takenPhysical,
+        HashSet<SemanticHexCoord> takenSemantic,
+        SeedEntity nightfallShelf)
+    {
+        var nyla = FindEntityByName(seed, "Shadow-Broker Nyla");
+        var artifactCoord = ChoosePhysicalCoordinate(
+            seed,
+            random,
+            takenPhysical,
+            K.Artifact,
+            "weapon",
+            C(IceRemembersCulture.Nightshelf),
+            minimumDistance: 0,
+            origin: nightfallShelf.Coordinates,
+            searchRadius: 5);
+        var artifact = CreateEntity(
+            seed,
+            K.Artifact, "weapon", "The Black Harpoon", C(IceRemembersCulture.Nightshelf),
+            coordinates: (artifactCoord.Q, artifactCoord.R));
+        takenPhysical.Add(artifactCoord);
+        SetSemanticNaturalNear(seed, artifact, nightfallShelf, random, takenSemantic, searchRadius: 10);
+
+        CreateRelationship(seed, "anchored", RelationshipPolarity.Neutral, artifact.SeedEntityId, nightfallShelf.SeedEntityId, 1f);
+        CreateRelationship(seed, "holds", RelationshipPolarity.Neutral, nyla.SeedEntityId, artifact.SeedEntityId, 1f);
+    }
+
     private static HexCoord ChooseAnchor(
         SeedAssembly seed,
         Random random,
@@ -790,38 +820,80 @@ internal static partial class IceRemembersSeedBuilder
         Random random,
         HashSet<HexCoord> takenPhysical,
         HashSet<SemanticHexCoord> takenSemantic,
-        Dictionary<string, MapCoverage> regions,
-        SeedEntity northernCompact)
+        (List<SeedEntity> All, SeedEntity AuroraStack) settlements,
+        (SeedEntity Council, SeedEntity Exchange, SeedEntity Claws, SeedEntity WakeSingers) factions)
     {
-        var anchorCoord = seed.Entity(regions["heartlands"].OwnerEntityId).Coordinates;
+        CreateSeedTransport(
+            seed,
+            random,
+            takenPhysical,
+            takenSemantic,
+            "Aurora Charter",
+            "battleship",
+            IceRemembersCulture.AuroraStack,
+            factions.Council,
+            settlements.AuroraStack,
+            searchRadius: 8);
+        CreateSeedTransport(
+            seed,
+            random,
+            takenPhysical,
+            takenSemantic,
+            "Nightfall Cutter",
+            "scout",
+            IceRemembersCulture.Nightshelf,
+            factions.Claws,
+            settlements.All[1],
+            searchRadius: 8);
+    }
+
+    private static void CreateSeedTransport(
+        SeedAssembly seed,
+        Random random,
+        HashSet<HexCoord> takenPhysical,
+        HashSet<SemanticHexCoord> takenSemantic,
+        string name,
+        string subtype,
+        IceRemembersCulture culture,
+        SeedEntity holder,
+        SeedEntity anchor,
+        int searchRadius)
+    {
         var coord = ChoosePhysicalCoordinate(
             seed,
             random,
             takenPhysical,
             K.Transport,
-            "battleship",
-            C(IceRemembersCulture.AuroraStack),
+            subtype,
+            C(culture),
             minimumDistance: 0,
-            origin: anchorCoord,
-            searchRadius: 8);
-        ReservePhysical(coord, takenPhysical, "Aurora Charter");
+            origin: anchor.Coordinates,
+            searchRadius);
+        ReservePhysical(coord, takenPhysical, name);
 
         var transport = CreateEntity(
             seed,
             K.Transport,
-            "battleship",
-            "Aurora Charter",
-            C(IceRemembersCulture.AuroraStack),
+            subtype,
+            name,
+            C(culture),
             coordinates: (coord.Q, coord.R));
-        SetSemanticNaturalNear(seed, transport, northernCompact, random, takenSemantic, searchRadius: 10);
+        SetSemanticNaturalNear(seed, transport, holder, random, takenSemantic, searchRadius: 10);
 
         CreateRelationship(
             seed,
             "holds",
             RelationshipPolarity.Neutral,
-            northernCompact.SeedEntityId,
+            holder.SeedEntityId,
             transport.SeedEntityId,
             1f);
+        CreateRelationship(
+            seed,
+            "native_to",
+            RelationshipPolarity.Positive,
+            transport.SeedEntityId,
+            anchor.SeedEntityId,
+            0.9f);
     }
 
     private static void CreateOccurrences(
@@ -829,35 +901,68 @@ internal static partial class IceRemembersSeedBuilder
         Random random,
         HashSet<HexCoord> takenPhysical,
         HashSet<SemanticHexCoord> takenSemantic,
-        SeedEntity frosthaven)
+        (List<SeedEntity> All, SeedEntity AuroraStack) settlements)
+    {
+        CreateSeedOccurrence(
+            seed,
+            random,
+            takenPhysical,
+            takenSemantic,
+            "Lantern Vigil",
+            "festival",
+            IceRemembersCulture.AuroraStack,
+            settlements.AuroraStack,
+            searchRadius: 6);
+        CreateSeedOccurrence(
+            seed,
+            random,
+            takenPhysical,
+            takenSemantic,
+            "Cinder Muster",
+            "festival",
+            IceRemembersCulture.Nightshelf,
+            settlements.All[1],
+            searchRadius: 6);
+    }
+
+    private static void CreateSeedOccurrence(
+        SeedAssembly seed,
+        Random random,
+        HashSet<HexCoord> takenPhysical,
+        HashSet<SemanticHexCoord> takenSemantic,
+        string name,
+        string subtype,
+        IceRemembersCulture culture,
+        SeedEntity anchor,
+        int searchRadius)
     {
         var coord = ChoosePhysicalCoordinate(
             seed,
             random,
             takenPhysical,
             K.Occurrence,
-            "festival",
-            C(IceRemembersCulture.AuroraStack),
+            subtype,
+            C(culture),
             minimumDistance: 0,
-            origin: frosthaven.Coordinates,
-            searchRadius: 6);
-        ReservePhysical(coord, takenPhysical, "Lantern Vigil");
+            origin: anchor.Coordinates,
+            searchRadius);
+        ReservePhysical(coord, takenPhysical, name);
 
         var occurrence = CreateEntity(
             seed,
             K.Occurrence,
-            "festival",
-            "Lantern Vigil",
-            C(IceRemembersCulture.AuroraStack),
+            subtype,
+            name,
+            C(culture),
             coordinates: (coord.Q, coord.R));
-        SetSemanticNaturalNear(seed, occurrence, frosthaven, random, takenSemantic, searchRadius: 10);
+        SetSemanticNaturalNear(seed, occurrence, anchor, random, takenSemantic, searchRadius: 10);
 
         CreateRelationship(
             seed,
             "home_base",
             RelationshipPolarity.Neutral,
             occurrence.SeedEntityId,
-            frosthaven.SeedEntityId,
+            anchor.SeedEntityId,
             1f);
     }
 }

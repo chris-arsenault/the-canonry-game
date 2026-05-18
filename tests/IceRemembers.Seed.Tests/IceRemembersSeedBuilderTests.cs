@@ -171,7 +171,9 @@ public sealed class IceRemembersSeedBuilderTests
         Assert.Equal(4, EntitiesByKind(K.Settlement).Length);
         Assert.Equal(4, EntitiesByKind(K.Faction).Length);
         Assert.Equal(3, EntitiesByKind(K.Penguin).Length);
-        Assert.Equal(3, EntitiesByKind(K.Artifact).Length);
+        Assert.Equal(4, EntitiesByKind(K.Artifact).Length);
+        Assert.Equal(2, EntitiesByKind(K.Transport).Length);
+        Assert.Equal(2, EntitiesByKind(K.Occurrence).Length);
 
         var names = Seed.Entities.Select(entity => entity.DisplayName).ToHashSet(StringComparer.Ordinal);
         Assert.Contains("Northlands", names);
@@ -192,8 +194,13 @@ public sealed class IceRemembersSeedBuilderTests
         Assert.Contains("Grandmother Deep", names);
         Assert.Contains("Tidescream", names);
         Assert.Contains("The Radiant Ring", names);
+        Assert.Contains("The Black Harpoon", names);
         Assert.Contains("The Hollows Chart", names);
         Assert.Contains("The Dreaming Tooth", names);
+        Assert.Contains("Aurora Charter", names);
+        Assert.Contains("Nightfall Cutter", names);
+        Assert.Contains("Lantern Vigil", names);
+        Assert.Contains("Cinder Muster", names);
     }
 
     [Fact]

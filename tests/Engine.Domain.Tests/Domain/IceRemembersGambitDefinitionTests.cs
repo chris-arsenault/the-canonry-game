@@ -14,7 +14,7 @@ public sealed class IceRemembersGambitDefinitionTests
         var config = IceRemembersDefinition.Create();
         var gambitIds = config.Gambits.Select(gambit => gambit.Id).ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(20, gambitIds.Count);
+        Assert.Equal(21, gambitIds.Count);
         Assert.Contains(IceRemembersGambitId.AbilitySharesPractice.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactBindsMonster.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactCleansesScar.ToGambitId(), gambitIds);
@@ -35,6 +35,7 @@ public sealed class IceRemembersGambitDefinitionTests
         Assert.Contains(IceRemembersGambitId.OrcaRaidsTradeRoute.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.MonsterStealsArtifact.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.PenguinSlaysMonster.ToGambitId(), gambitIds);
+        Assert.Contains(IceRemembersGambitId.PenguinSlaysOrca.ToGambitId(), gambitIds);
     }
 
     [Fact]
@@ -81,6 +82,8 @@ public sealed class IceRemembersGambitDefinitionTests
             gambit.GambitId == compiled.Ids.GambitIdOf(IceRemembersGambitId.MonsterStealsArtifact.ToGambitId()).Value);
         Assert.Contains(compiled.Programs.Gambits.Gambits, gambit =>
             gambit.GambitId == compiled.Ids.GambitIdOf(IceRemembersGambitId.PenguinSlaysMonster.ToGambitId()).Value);
+        Assert.Contains(compiled.Programs.Gambits.Gambits, gambit =>
+            gambit.GambitId == compiled.Ids.GambitIdOf(IceRemembersGambitId.PenguinSlaysOrca.ToGambitId()).Value);
     }
 
     [Fact]
@@ -122,9 +125,13 @@ public sealed class IceRemembersGambitDefinitionTests
         var slayMonster = Assert.Single(compiled.Programs.Gambits.Gambits, gambit => gambit.GambitId == slayMonsterId);
         Assert.Contains(slayMonster.Steps, step =>
             step.Operation == BehaviorProgramOperation.SetHistorical);
+        var slayOrcaId = compiled.Ids.GambitIdOf(IceRemembersGambitId.PenguinSlaysOrca.ToGambitId()).Value;
+        var slayOrca = Assert.Single(compiled.Programs.Gambits.Gambits, gambit => gambit.GambitId == slayOrcaId);
+        Assert.Contains(slayOrca.Steps, step =>
+            step.Operation == BehaviorProgramOperation.SetHistorical);
         Assert.DoesNotContain(
             compiled.Programs.Gambits.Gambits
-                .Where(gambit => gambit.GambitId != slayMonsterId)
+                .Where(gambit => gambit.GambitId != slayMonsterId && gambit.GambitId != slayOrcaId)
                 .SelectMany(gambit => gambit.Steps),
             step => step.Operation == BehaviorProgramOperation.SetHistorical);
     }

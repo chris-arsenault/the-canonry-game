@@ -25,7 +25,7 @@ public static partial class IceRemembersGeneratorDefinition
             Rel.FoundedFrom),
         SecondaryTargets =
         [
-            new SemanticGeneratorBindingTarget { Ref = "$patron", Kind = K.Faction },
+            new SemanticGeneratorBindingTarget { Ref = "$patron", Kind = K.Faction, Query = SameCultureAsTarget() },
         ],
         Produces =
         [
@@ -88,7 +88,7 @@ public static partial class IceRemembersGeneratorDefinition
             Rel.FoundedFrom),
         SecondaryTargets =
         [
-            new SemanticGeneratorBindingTarget { Ref = "$port", Kind = K.Settlement },
+            new SemanticGeneratorBindingTarget { Ref = "$port", Kind = K.Settlement, Query = SameCultureAsTarget() },
         ],
         Produces =
         [
@@ -123,7 +123,7 @@ public static partial class IceRemembersGeneratorDefinition
             Rel.FoundedFrom),
         SecondaryTargets =
         [
-            new SemanticGeneratorBindingTarget { Ref = "$patron", Kind = K.Faction },
+            new SemanticGeneratorBindingTarget { Ref = "$patron", Kind = K.Faction, Query = SameCultureAsTarget() },
         ],
         Produces =
         [

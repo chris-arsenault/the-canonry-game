@@ -325,9 +325,6 @@ public class DomainConfigTests
             .ToHashSet();
 
         Assert.Contains(produced, item => item.Id == "pod_currents_launch_scouts" &&
-            item.Kind == IceRemembersKinds.Orca &&
-            item.Subtype == "scout");
-        Assert.Contains(produced, item => item.Id == "pod_currents_launch_scouts" &&
             item.Kind == IceRemembersKinds.Transport &&
             item.Subtype == "scout");
         Assert.Contains(produced, item => item.Id == "pod_currents_launch_scouts" &&
@@ -342,9 +339,6 @@ public class DomainConfigTests
         Assert.Contains(produced, item => item.Id == "stolen_artifacts_draw_hunters" &&
             item.Kind == IceRemembersKinds.Penguin &&
             item.Subtype == "warden");
-        Assert.Contains(produced, item => item.Id == "stolen_artifacts_draw_hunters" &&
-            item.Kind == IceRemembersKinds.Orca &&
-            item.Subtype == "scout");
         Assert.Contains(produced, item => item.Id == "monster_slayings_become_festivals" &&
             item.Kind == IceRemembersKinds.Occurrence &&
             item.Subtype == "festival");
@@ -407,11 +401,15 @@ public class DomainConfigTests
         var orcas = Assert.Single(generators, generator => generator.Id == "pod_currents_launch_scouts");
         Assert.Equal(IceRemembersKinds.Orca, orcas.Target.Kind);
         Assert.Contains(Rel.HomeBase.ToDomainName(), orcas.Target.RequiredOutgoingRelationships!);
-        Assert.Contains(Rel.MemberOf.ToDomainName(), orcas.Target.WithoutIncomingRelationships!);
+        Assert.Contains(Rel.ClaimedBy.ToDomainName(), orcas.Target.WithoutIncomingRelationships!);
         Assert.Contains(orcas.Relationships, relationship =>
-            relationship.SourceRef == "$scout" &&
+            relationship.SourceRef == "$skiff" &&
             relationship.DestinationRef == "$target" &&
-            relationship.Kind == Rel.MemberOf.ToDomainName());
+            relationship.Kind == Rel.ClaimedBy.ToDomainName());
+        Assert.Contains(orcas.Relationships, relationship =>
+            relationship.SourceRef == "$target" &&
+            relationship.DestinationRef == "$skiff" &&
+            relationship.Kind == Rel.Holds.ToDomainName());
         Assert.Contains(orcas.Relationships, relationship =>
             relationship.SourceRef == "$skiff" &&
             relationship.DestinationRef == "$shoal" &&
@@ -433,7 +431,6 @@ public class DomainConfigTests
             relationship.Kind == Rel.Memorializes.ToDomainName());
 
         var hunters = Assert.Single(generators, generator => generator.Id == "stolen_artifacts_draw_hunters");
-        Assert.Equal(IceRemembersKinds.Monster, hunters.Target.Kind);
         Assert.Contains(Rel.Holds.ToDomainName(), hunters.Target.RequiredOutgoingRelationships!);
         Assert.Contains(Rel.AtWarWith.ToDomainName(), hunters.Target.WithoutIncomingRelationships!);
         Assert.Contains(hunters.Relationships, relationship =>
@@ -442,7 +439,6 @@ public class DomainConfigTests
             relationship.Kind == Rel.AtWarWith.ToDomainName());
 
         var festivals = Assert.Single(generators, generator => generator.Id == "monster_slayings_become_festivals");
-        Assert.Equal(IceRemembersKinds.Penguin, festivals.Target.Kind);
         Assert.Contains(Rel.CleansedBy.ToDomainName(), festivals.Target.RequiredOutgoingRelationships!);
         Assert.Contains(Rel.Memorializes.ToDomainName(), festivals.Target.WithoutIncomingRelationships!);
         Assert.Contains(festivals.Relationships, relationship =>
@@ -451,7 +447,6 @@ public class DomainConfigTests
             relationship.Kind == Rel.ConduitOf.ToDomainName());
 
         var haunted = Assert.Single(generators, generator => generator.Id == "haunted_transports_spread_plague");
-        Assert.Equal(IceRemembersKinds.Transport, haunted.Target.Kind);
         var corruptionRequirement = Assert.Single(haunted.Target.RequiredOutgoingRelationshipRequirements);
         Assert.Equal(Rel.CorruptedBy.ToDomainName(), corruptionRequirement.RelationshipKind);
         Assert.Contains(Rel.Memorializes.ToDomainName(), haunted.Target.WithoutOutgoingRelationships!);

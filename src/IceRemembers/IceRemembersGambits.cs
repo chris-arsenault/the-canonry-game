@@ -41,6 +41,7 @@ public static partial class IceRemembersDefinition
         OrcaRaidsTradeRoute(),
         MonsterStealsArtifact(),
         PenguinSlaysMonster(),
+        PenguinSlaysOrca(),
     ];
 
     private static GambitDefinition PenguinWieldsArtifact()
@@ -703,6 +704,43 @@ public static partial class IceRemembersDefinition
         gambit.Mutations.Add(new RemoveContextRelationshipMutation(TransferEndpoint.Target, TransferEndpoint.Self, L(Rel.AtWarWith)));
         gambit.Mutations.Add(new SetTargetHistoricalMutation());
         gambit.Description = "A penguin already bound into a monster hunt closes the hunt. The monster becomes historical, the war edge is cleared, and the penguin carries an active cleansing mark that can seed celebration.";
+        return gambit;
+    }
+
+    private static GambitDefinition PenguinSlaysOrca()
+    {
+        var gambit = NewGambit(
+            GambitId.PenguinSlaysOrca,
+            "Drive Off an Orca",
+            K.Penguin,
+            K.Orca,
+            All(
+                new TargetIsNotSelf(),
+                new SelfHasRelationshipToTarget(L(Rel.AtWarWith)),
+                new TargetHasRelationshipToSelf(L(Rel.AtWarWith)),
+                Not(new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.Holds), maximumExclusive: 1, minStrength: 0.7f)),
+                new WithinPlaneDistancePrecondition(18, PrimaryPlane.Physical),
+                new SelfAttributeThreshold(A(Attr.Vitality), min: 28f, max: null, behaviorRelevant: false),
+                new TargetAttributeThreshold(A(Attr.Endurance), min: 20f, max: null, behaviorRelevant: false)),
+            scoreExpression: GambitScore(
+                baseline: 0.7f,
+                dynamicRange: 6f,
+                Weighted3(
+                    (DistanceFalloff(8f), 0.35f),
+                    (Normalized(Expr.Self(A(Attr.Vitality))), 0.35f),
+                    (InverseNormalized(Expr.Target(A(Attr.Endurance))), 0.30f))),
+            success: InitialGambitSuccessChance,
+            cooldown: 85,
+            entityCooldown: 12);
+        AddRelationshipWrite(gambit, Rel.CleansedBy, K.Orca);
+        gambit.Reads.Add(AttributeRef.Self(A(Attr.Vitality), K.Penguin));
+        gambit.Reads.Add(AttributeRef.Target(A(Attr.Endurance), K.Orca));
+        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.CleansedBy, RelationshipPolarity.Positive, 0.78f));
+        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Self, Rel.CleansedBy, RelationshipPolarity.Positive, 0.62f));
+        gambit.Mutations.Add(new RemoveContextRelationshipMutation(TransferEndpoint.Self, TransferEndpoint.Target, L(Rel.AtWarWith)));
+        gambit.Mutations.Add(new RemoveContextRelationshipMutation(TransferEndpoint.Target, TransferEndpoint.Self, L(Rel.AtWarWith)));
+        gambit.Mutations.Add(new SetTargetHistoricalMutation());
+        gambit.Description = "An artifact-bearing penguin already in a reciprocal orca war closes the raid. The orca becomes historical, the war edge is cleared, and the penguin carries a cleansing mark.";
         return gambit;
     }
 

@@ -17,23 +17,21 @@ public static partial class IceRemembersGeneratorDefinition
     {
         Id = "pod_currents_launch_scouts",
         Name = "Pod Currents Launch Scouts",
-        Description = "An orca with a settled hunting ground can launch a scout, a carried skiff, and a newly named shoal. The scout inherits a claimable place instead of depending on settlements to make route infrastructure.",
-        CausalLimit = "Depends on an orca home-base edge and no incoming member-of edge; creates incoming member-of on the parent orca as the repeat lock.",
-        Target = TargetWithOutgoingAndWithoutIncoming(K.Orca, Rel.HomeBase, Rel.MemberOf),
+        Description = "An orca with a settled hunting ground can launch a carried skiff and a newly named shoal. The current expands route topology without adding another orca body.",
+        CausalLimit = "Depends on an orca home-base edge and no incoming claimed-by edge on the orca; creates a claimed skiff lock on the parent orca.",
+        Target = TargetWithOutgoingAndWithoutIncoming(K.Orca, Rel.HomeBase, Rel.ClaimedBy),
         Produces =
         [
-            Required("$scout", K.Orca, "scout", "$target", "$target"),
             Required("$skiff", K.Transport, "scout", "$target", "$target"),
             Required("$shoal", K.PointOfInterest, "shoal", "$target", "$target"),
         ],
         Relationships =
         [
-            R("$scout", "$target", Rel.MemberOf, 0.78f),
-            R("$target", "$scout", Rel.AlliedWith, 0.72f),
-            R("$scout", "$skiff", Rel.Holds, 1f),
+            R("$target", "$skiff", Rel.Holds, 1f),
+            R("$skiff", "$target", Rel.ClaimedBy, 0.78f),
             R("$skiff", "$shoal", Rel.NativeTo, 0.84f),
             R("$skiff", "$shoal", Rel.ConduitOf, 0.74f),
-            R("$shoal", "$scout", Rel.ClaimedBy, 0.70f),
+            R("$shoal", "$target", Rel.ClaimedBy, 0.70f),
         ],
         Triggers = TriggerOn(K.Orca),
         PulseWeight = 4,
@@ -88,20 +86,17 @@ public static partial class IceRemembersGeneratorDefinition
     {
         Id = "stolen_artifacts_draw_hunters",
         Name = "Stolen Artifacts Draw Hunters",
-        Description = "A monster carrying a stolen artifact draws a penguin hunter and sometimes an orca sounder into the same hunt. The theft becomes war topology instead of a static possession.",
+        Description = "A monster carrying a stolen artifact draws a penguin hunter into the hunt. The theft becomes war topology instead of a static possession.",
         CausalLimit = "Depends on monster-held artifact topology and no incoming at-war lock on the monster; creates incoming at-war hunt edges on the monster.",
         Target = TargetWithOutgoingAndWithoutIncoming(K.Monster, Rel.Holds, Rel.AtWarWith),
         Produces =
         [
             Required("$hunter", K.Penguin, "warden", "$target", "$target"),
-            Optional("$sounder", K.Orca, "scout", "$target", "$target", chance: 0.35f),
         ],
         Relationships =
         [
             R("$hunter", "$target", Rel.AtWarWith, 0.76f),
             R("$target", "$hunter", Rel.AtWarWith, 0.76f),
-            R("$sounder", "$target", Rel.AtWarWith, 0.68f),
-            R("$sounder", "$hunter", Rel.AlliedWith, 0.70f),
         ],
         Triggers = TriggerOn(K.Monster),
         PulseWeight = 6,
