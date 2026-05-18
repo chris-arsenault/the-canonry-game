@@ -230,6 +230,7 @@ internal static class KernelQuery
     {
         return TryEvaluateSimplePredicate(world, predicate, binding, out var result) ||
             TryEvaluateRangePredicate(world, predicate, binding, out result) ||
+            TryEvaluateCulturePredicate(world, predicate, binding, out result) ||
             TryEvaluateRelationshipPredicate(world, predicate, binding, out result)
             ? result
             : throw new global::System.InvalidOperationException();
@@ -368,6 +369,29 @@ internal static class KernelQuery
 
         result = false;
         return false;
+    }
+
+    private static bool TryEvaluateCulturePredicate(
+        WorldState world,
+        in QueryPredicate predicate,
+        in QueryBinding binding,
+        out bool result)
+    {
+        result = predicate.Code == BehaviorPreconditionCodes.EndpointCultureIs &&
+            EndpointCulturePasses(world, binding, predicate.A, predicate.B);
+        return predicate.Code == BehaviorPreconditionCodes.EndpointCultureIs;
+    }
+
+    private static bool EndpointCulturePasses(
+        WorldState world,
+        in QueryBinding binding,
+        int endpointCode,
+        int cultureId)
+    {
+        var entityId = endpointCode == BehaviorEndpointCodes.Target
+            ? binding.TargetId
+            : binding.ActorId;
+        return world.EntityCultureId(entityId) == cultureId;
     }
 
     private static bool TryEvaluateDirectedRelationshipPredicate(

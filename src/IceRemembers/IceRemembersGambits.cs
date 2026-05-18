@@ -8,6 +8,7 @@ using Engine.Graph;
 using Engine.Wiring;
 
 using Attr = IceRemembers.IceRemembersAttributeId;
+using Culture = IceRemembers.IceRemembersCulture;
 using GambitId = IceRemembers.IceRemembersGambitId;
 using K = IceRemembers.IceRemembersKinds;
 using Rel = IceRemembers.IceRemembersRelationship;
@@ -243,6 +244,8 @@ public static partial class IceRemembersDefinition
             K.PointOfInterest,
             All(
                 new TargetIsNotSelf(),
+                new EndpointCultureIs(TransferEndpoint.Target, C(Culture.TheIce)),
+                Not(new EndpointCultureIs(TransferEndpoint.Self, C(Culture.TheIce))),
                 new WithinPlaneDistancePrecondition(18, PrimaryPlane.Physical),
                 new EndpointRelationshipCountBelow(TransferEndpoint.Target, L(Rel.ClaimedBy), maximumExclusive: 2),
                 Not(new TargetHasRelationshipToSelf(L(Rel.ClaimedBy))),
@@ -262,7 +265,8 @@ public static partial class IceRemembersDefinition
         gambit.Reads.Add(AttributeRef.Self(A(Attr.Cohesion), K.Faction));
         gambit.Reads.Add(AttributeRef.Target(A(Attr.Presence), K.PointOfInterest));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Target, TransferEndpoint.Self, Rel.ClaimedBy, RelationshipPolarity.Neutral, 0.74f));
-        gambit.Description = "A faction with enough cohesion names a nearby feature as part of its holdings. Place claims stay graph topology; low altitude only maintains their strength.";
+        gambit.Mutations.Add(new SetTargetCultureFromSelfMutation());
+        gambit.Description = "A faction with enough cohesion claims an Ice-held named feature. The place enters the faction's culture and cannot be claimed again by another culture through this gambit.";
         return gambit;
     }
 
@@ -275,6 +279,8 @@ public static partial class IceRemembersDefinition
             K.PointOfInterest,
             All(
                 new TargetIsNotSelf(),
+                new EndpointCultureIs(TransferEndpoint.Target, C(Culture.TheIce)),
+                Not(new EndpointCultureIs(TransferEndpoint.Self, C(Culture.TheIce))),
                 new WithinPlaneDistancePrecondition(10, PrimaryPlane.Physical),
                 new EndpointRelationshipCountBelow(TransferEndpoint.Target, L(Rel.ClaimedBy), maximumExclusive: 2),
                 Not(new TargetHasRelationshipToSelf(L(Rel.ClaimedBy))),
@@ -294,7 +300,8 @@ public static partial class IceRemembersDefinition
         gambit.Reads.Add(AttributeRef.Self(A(Attr.Endurance), K.Orca));
         gambit.Reads.Add(AttributeRef.Target(A(Attr.Presence), K.PointOfInterest));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Target, TransferEndpoint.Self, Rel.ClaimedBy, RelationshipPolarity.Neutral, 0.72f));
-        gambit.Description = "A strong orca marks a named water-place as hunting ground. The same claim term can later be contested or maintained by ordinary relationship-strength verbs.";
+        gambit.Mutations.Add(new SetTargetCultureFromSelfMutation());
+        gambit.Description = "A strong orca marks an Ice-held named water-place as hunting ground. The place enters the orca's culture and is no longer open wilderness.";
         return gambit;
     }
 
@@ -467,6 +474,8 @@ public static partial class IceRemembersDefinition
             K.Region,
             All(
                 new TargetIsNotSelf(),
+                new EndpointCultureIs(TransferEndpoint.Target, C(Culture.TheIce)),
+                Not(new EndpointCultureIs(TransferEndpoint.Self, C(Culture.TheIce))),
                 new SelfHasOutgoingRelationship(L(Rel.NativeTo)),
                 new WithinPlaneDistancePrecondition(14, PrimaryPlane.Physical),
                 new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.ConduitOf), maximumExclusive: 4),
@@ -487,7 +496,8 @@ public static partial class IceRemembersDefinition
         gambit.Reads.Add(AttributeRef.Self(A(Attr.Integrity), K.Transport));
         gambit.Reads.Add(AttributeRef.Target(A(Attr.Stability), K.Region));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.ConduitOf, RelationshipPolarity.Positive, 0.68f));
-        gambit.Description = "A ported transport surveys a region into the route graph. This gives generated depths and older regions the same conduit language used by points of interest.";
+        gambit.Mutations.Add(new SetTargetCultureFromSelfMutation());
+        gambit.Description = "A ported transport surveys an Ice-held region into the route graph. The region enters the transport's culture and stops being claimable wilderness.";
         return gambit;
     }
 

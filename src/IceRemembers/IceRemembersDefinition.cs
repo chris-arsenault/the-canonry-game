@@ -445,6 +445,7 @@ public static partial class IceRemembersDefinition
         CreateAuroraStackCulture(),
         CreateNightshelfCulture(),
         CreateWakeSingersCulture(),
+        CreateTheIceCulture(),
     ];
 
     private static CultureConfig CreateAuroraStackCulture() =>
@@ -539,6 +540,12 @@ public static partial class IceRemembersDefinition
                     Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.9f, Rel.RivalOf), Score(CultureSlotScoreSignal.OutgoingRelationshipStrength, 0.9f, Rel.BetrayedBy),
                 ], "The trailing rupture that bends every song around it.", entityBenefit: 0.035f),
             ]);
+
+    private static CultureConfig CreateTheIceCulture() =>
+        CultureDefinition(
+            Culture.TheIce,
+            "The Ice",
+            []);
 
     private static CultureConfig CultureDefinition(
         Culture culture,

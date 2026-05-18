@@ -473,7 +473,8 @@ public static partial class DomainCompiler
         if (TryCompileCompositePrecondition(ops, precondition, ids) ||
             TryCompileSimplePrecondition(ops, precondition) ||
             TryCompileRangePrecondition(ops, precondition, ids) ||
-            TryCompileRelationshipPrecondition(ops, precondition, ids))
+            TryCompileRelationshipPrecondition(ops, precondition, ids) ||
+            TryCompileCulturePrecondition(ops, precondition, ids))
         {
             return;
         }
@@ -603,6 +604,16 @@ public static partial class DomainCompiler
             default:
                 return false;
         }
+    }
+
+    private static bool TryCompileCulturePrecondition(
+        List<BehaviorProgramPreconditionOp> ops,
+        IPrecondition precondition,
+        DomainIdRegistry ids)
+    {
+        if (precondition is not EndpointCultureIs culture) { return false; }
+        ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.EndpointCultureIs, (int)EndpointCode(culture.Endpoint), ids.CultureIdOf(culture.Culture).Value));
+        return true;
     }
 
     private static void AddAttributeRangePrecondition(
@@ -894,6 +905,9 @@ public static partial class DomainCompiler
                 steps.Add(new BehaviorProgramStepRule(
                     BehaviorProgramOperation.SetHistorical,
                     B: (int)BehaviorProgramEndpoint.Target));
+                return true;
+            case SetTargetCultureFromSelfMutation:
+                steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.SetTargetCultureFromSelf));
                 return true;
             default:
                 return false;

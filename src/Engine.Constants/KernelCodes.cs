@@ -41,6 +41,7 @@ public static class BehaviorOperationCodes
     public const int SetTargetCoverageTerrain = 29;
     public const int RemoveEndpointRelationship = 30;
     public const int BuildTravelStructureLine = 31;
+    public const int SetTargetCultureFromSelf = 32;
 }
 
 public static class BehaviorTargetModeCodes
@@ -78,6 +79,7 @@ public static class BehaviorPreconditionCodes
     public const int SelfHasOutgoingRelationship = 20;
     public const int SharedInfluence = 21;
     public const int EndpointRelationshipCountBelow = 22;
+    public const int EndpointCultureIs = 23;
 }
 
 public static class BehaviorExpressionCodes
@@ -423,6 +425,7 @@ public static class ProvenanceOutputKindCodes
     public const int EntityMoved = 3;
     public const int AttributeChanged = 4;
     public const int TraitAssigned = 5;
+    public const int EntityCultureChanged = 6;
     public const int RelationshipChanged = 7;
     public const int CellChanged = 8;
     public const int CellInfluenceChanged = 9;

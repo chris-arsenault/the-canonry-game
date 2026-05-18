@@ -1,0 +1,67 @@
+OK now I actually know what's in the code. The hierarchy already exists. I've been hallucinating gaps.
+
+## What's actually there
+
+**Relationship catalog** (`src/IceRemembers/IceRemembersSchema.cs:109-134` and definitions at `IceRemembers/IceRemembersDefinition.cs:112-127`) already includes the full affiliation web:
+
+- `ControlledBy` — spatial→agency, exclusive, has maintenance (settlement under a faction)
+- `HomeBase` — agency→spatial, exclusive (penguin/monster's home)
+- `MemberOf` — agency→agency, has maintenance (membership in faction)
+- `LedBy` — agency→agency, exclusive (faction leadership)
+- `AlliedWith`, `RivalOf`, `ClaimedBy`, `NativeTo`, `PartOf` — all present
+
+**Seed** (`src/IceRemembers.Seed/IceRemembersSeedBuilder.Entities.cs`) actually builds the hierarchy at startup:
+
+- 4 factions: Council, Exchange, Claws, Wake-Singers (lines 378-381)
+- Each faction `led_by` a specific named penguin (lines 138-143)
+- Settlements `controlled_by` factions with varying strength: 1.0 for primary, 0.4/0.1 for partial/contested (lines 400-404)
+- Penguins `member_of` factions with loyalty as strength, `home_base` at host settlements (lines 440-444)
+
+**Generators maintain the hierarchy on new entities.** Every generator I looked at in `IceRemembersGeneratorDefinition*.cs` bundles affiliation edges into its output:
+
+- When a generator makes a new settlement, it ships with `controlled_by` to a faction
+- When it makes a new penguin, it ships with `home_base` and `member_of`
+- When it makes a new monster, it ships with `home_base` to its lair region
+- New entities come pre-wired into the hierarchy
+
+**Gambits modify it.** `FactionChartersSettlement` writes `ControlledBy`. Trait/maintenance rules drift the strengths over time.
+
+## What's actually missing
+
+The simulation is producing the hierarchy. The projection and UI aren't reading it.
+
+`EntityBrowser.cs` is a flat virtualized scrolling list of all active entities, filterable only by which generator made them or whether they're on-screen. There's no grouping by affiliation. No "top of hierarchy." No ranking.
+
+`UiProjectionState` already maintains incoming/outgoing relationship indexes per entity (`_activeIncomingRelationshipsByEntity`, `_activeOutgoingRelationshipsByEntity`). The data is there. Nothing aggregates it into significance, ranks within altitude, or surfaces a stage.
+
+That's the whole gap. The hierarchy lives in the graph. The UI shows entities as if it doesn't.
+
+## What the change actually is
+
+A projection extension and a UI surface. Specifically:
+
+**One projection addition.** Add fields to `UiProjectionState` that derive, per entity, a graph-weight score from its existing relationship indexes — count and strength of incoming affiliation edges, weighted by the score of what they connect to, settled over a small fixed number of iterations. Recompute on the same version triggers that already drive `EntityBrowserVersion`. This is read-side code that walks data the projection already keeps.
+
+**Altitude tagging on kinds.** In `IceRemembersDefinition.cs` (or alongside `IceRemembersKinds.cs`), tag each kind with an altitude label: Faction → realm, Settlement and Region → place, Penguin/Monster/Transport/Artifact/Orca → life. Single declarative pass. The projection groups by this tag when ranking.
+
+**A new UI panel or a mode on `EntityBrowser`.** Show the top-N per altitude — the Stage. Could be a separate panel alongside the existing browser, or a mode toggle on the existing one. Existing `EntityBrowserVersion` change signal already invalidates it correctly. Reuses the same row scenes (`EntityRow.tscn`, `EntityKindHeader.tscn`).
+
+**Hierarchy navigation in entity detail.** The `EntityCard` (or whatever surfaces entity detail) already reads relationships. Show the entity's hierarchy context — its parent (the faction it's `member_of`, the settlement it has `home_base` at), its siblings, its children (for a faction: its members and controlled settlements). Pure read across data already in the projection.
+
+## What this does not require
+
+- No new entity kinds. The 11 in `IceRemembersKinds.cs` are sufficient.
+- No new relationship kinds. The 23 in `IceRemembersSchema.cs` cover the affiliation web.
+- No new attributes. The per-kind health scalar isn't being repurposed; the new score is derived in the projection, not stored.
+- No new gambits or generators. Content authoring round can continue as planned — broader affiliation coverage helps, but isn't gated on this work.
+- No kernel changes. No new events. No new buffers.
+
+## What this fixes
+
+The "twenty diffuse settlements" complaint: settlements that have many strong `controlled_by`/`member_of`/`home_base`/`trade_route` edges around them rank high. Those become the Stage's Places. Settlements with few or weak edges fade into the chorus.
+
+The "cities don't grow" complaint: a settlement does grow — its incoming affiliation edge count and strength increase as the simulation adds penguins with `home_base`, factions chartering it, etc. We're just not showing that growth. The projection makes the growth visible by ranking on it.
+
+The "no reason to spotlight one over another" question: there is now. The Stage promotes the entities the graph itself says are central.
+
+This is one projection's worth of code and one or two UI panels. The simulation work was already done.

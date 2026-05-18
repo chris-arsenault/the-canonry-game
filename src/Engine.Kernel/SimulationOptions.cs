@@ -43,6 +43,7 @@ internal sealed record SimulationOptions
     public int AttributeIdCapacity { get; init; } = 1024;
     public int TraitIdCapacity { get; init; } = 1024;
     public int KindIdCapacity { get; init; } = 256;
+    public int CultureIdCapacity { get; init; } = 256;
     public int TerrainIdCapacity { get; init; } = 128;
     public int RelationshipRuleCapacity { get; init; } = 256;
     public int RelationshipKindIdCapacity { get; init; } = 256;

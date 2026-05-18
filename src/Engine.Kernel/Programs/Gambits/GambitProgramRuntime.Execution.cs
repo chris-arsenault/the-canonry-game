@@ -181,6 +181,9 @@ internal sealed partial class GambitProgramRuntime
             case BehaviorOperationCodes.SetHistorical:
                 KernelEffectExecutor.SetEntityStatus(simulation, HistoricalEntityId(entityId, targetId, step), EntityStatusCodes.Historical);
                 return true;
+            case BehaviorOperationCodes.SetTargetCultureFromSelf:
+                KernelEffectExecutor.SetEntityCulture(simulation, targetId, world.EntityCultureId(entityId));
+                return true;
             case BehaviorOperationCodes.AddRelatedEntitiesAttribute:
                 AddRelatedEntitiesAttribute(simulation, world, entityId, targetId, tick, step);
                 return true;

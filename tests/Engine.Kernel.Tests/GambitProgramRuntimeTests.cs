@@ -314,6 +314,65 @@ public sealed class GambitProgramRuntimeTests
     }
 
     [Fact]
+    public void SuccessfulGambitCanClaimTargetCultureFromSelfWhenTargetCultureMatches()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int actorCultureId = 2;
+        const int iceCultureId = 4;
+        _ = simulation.CreateEntity(actorKindId, 1, actorCultureId, 0, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(targetKindId, 1, iceCultureId, 1, 0, 0, 0, 0, 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId: 105,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.EndpointCultureIs, BehaviorEndpointCodes.Target, iceCultureId);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.SetTargetCultureFromSelf);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(actorCultureId, simulation.World.EntityCultureId(target));
+        Assert.Equal(actorCultureId, LastEvent<EntityCultureChangedKernelEvent>(
+            simulation,
+            KernelEventType.EntityCultureChanged,
+            static evt => evt.AsEntityCultureChanged()).CurrentCultureId);
+    }
+
+    [Fact]
+    public void EndpointCulturePreconditionBlocksAlreadyClaimedTarget()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int actorCultureId = 2;
+        const int iceCultureId = 4;
+        _ = simulation.CreateEntity(actorKindId, 1, actorCultureId, 0, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(targetKindId, 1, actorCultureId, 1, 0, 0, 0, 0, 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId: 106,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.EndpointCultureIs, BehaviorEndpointCodes.Target, iceCultureId);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.SetTargetCultureFromSelf);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(actorCultureId, simulation.World.EntityCultureId(target));
+        Assert.DoesNotContain(
+            ReadAvailableEvents(simulation, simulation.Events.CreateCursor(KernelEventCursorStart.EarliestAvailable)),
+            evt => evt.EventType == KernelEventType.EntityCultureChanged);
+    }
+
+    [Fact]
     public void ContestedInfluencePreconditionRequiresOverlap()
     {
         var simulation = CreateSimulation(seed: 1);

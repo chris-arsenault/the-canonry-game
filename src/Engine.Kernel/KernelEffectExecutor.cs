@@ -28,6 +28,9 @@ internal static class KernelEffectExecutor
     public static void SetEntityStatus(Simulation simulation, int entityId, int statusCode) =>
         simulation.SetEntityStatus(entityId, statusCode, simulation.CurrentTick);
 
+    public static void SetEntityCulture(Simulation simulation, int entityId, int cultureId) =>
+        simulation.SetEntityCulture(entityId, cultureId, simulation.CurrentTick);
+
     public static void MovePhysical(
         Simulation simulation,
         int entityId,

@@ -59,6 +59,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
             case KernelEventType.AttributeChanged:
                 OnAttributeChanged(kernelEvent.Sequence, evt.AsAttributeChanged());
                 break;
+            case KernelEventType.EntityCultureChanged:
+                OnEntityCultureChanged(kernelEvent.Sequence, evt.AsEntityCultureChanged());
+                break;
             case KernelEventType.TraitAssigned:
                 OnTraitAssigned(kernelEvent.Sequence, evt.AsTraitAssigned());
                 break;
@@ -193,6 +196,10 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnAttributeChanged(long sequence, in AttributeChangedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnEntityCultureChanged(long sequence, in EntityCultureChangedKernelEvent evt)
     {
     }
 

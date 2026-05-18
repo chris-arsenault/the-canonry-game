@@ -176,12 +176,14 @@ public enum IceRemembersCulture
     AuroraStack,
     Nightshelf,
     WakeSingers,
+    TheIce,
 }
 
 public static class IceRemembersCultureExtensions
 {
     public static string ToDomainName(this IceRemembersCulture culture) => culture switch
     {
+        IceRemembersCulture.TheIce => "the_ice",
         IceRemembersCulture.AuroraStack => "aurora_stack",
         IceRemembersCulture.Nightshelf => "nightshelf",
         IceRemembersCulture.WakeSingers => "wake_singers",

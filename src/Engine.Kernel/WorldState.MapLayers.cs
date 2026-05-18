@@ -420,9 +420,11 @@ internal sealed partial class WorldState
             return;
         }
 
-        for (var entityId = 1; entityId <= _entityHighWatermark; entityId++)
+        for (var entityId = FirstEntityOfCulture(cultureId);
+             entityId > 0;
+             entityId = NextEntityOfCulture(entityId))
         {
-            if (EntityIsActive(entityId) && _entityCultureId[entityId] == cultureId)
+            if (EntityIsActive(entityId))
             {
                 UpdateCultureInfluenceForEntityMultiplierChange(
                     entityId,
@@ -504,6 +506,69 @@ internal sealed partial class WorldState
                 q,
                 r,
                 global::System.MathF.Max(0f, raw + (influence * multiplier * sign)));
+            RecalculateCultureInfluenceAtCell(planeCode, q, r, key, tick, context);
+        }
+    }
+
+    private void UpdateCultureInfluenceForEntityCultureChange(
+        int entityId,
+        int previousCultureId,
+        float previousMultiplier,
+        int currentCultureId,
+        float currentMultiplier,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        UpdateCultureInfluenceForEntityCultureChange(
+            entityId,
+            previousCultureId,
+            PlaneCodes.Physical,
+            -previousMultiplier,
+            tick,
+            context);
+        UpdateCultureInfluenceForEntityCultureChange(
+            entityId,
+            previousCultureId,
+            PlaneCodes.Semantic,
+            -previousMultiplier,
+            tick,
+            context);
+        UpdateCultureInfluenceForEntityCultureChange(
+            entityId,
+            currentCultureId,
+            PlaneCodes.Physical,
+            currentMultiplier,
+            tick,
+            context);
+        UpdateCultureInfluenceForEntityCultureChange(
+            entityId,
+            currentCultureId,
+            PlaneCodes.Semantic,
+            currentMultiplier,
+            tick,
+            context);
+    }
+
+    private void UpdateCultureInfluenceForEntityCultureChange(
+        int entityId,
+        int cultureId,
+        int planeCode,
+        float multiplier,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        var cursor = _mapLayers.Influence.CellsOfValue(entityId, planeCode);
+        while (_mapLayers.Influence.MoveNextCell(ref cursor, out var q, out var r, out var influence))
+        {
+            var key = CoordinateKey(q, r);
+            var raw = _mapLayers.RawCultureInfluence.ValueAt(cultureId, planeCode, key);
+            _mapLayers.RawCultureInfluence.SetValue(
+                cultureId,
+                planeCode,
+                key,
+                q,
+                r,
+                global::System.MathF.Max(0f, raw + (influence * multiplier)));
             RecalculateCultureInfluenceAtCell(planeCode, q, r, key, tick, context);
         }
     }

@@ -133,6 +133,14 @@ public sealed class SetTargetHistoricalMutation : IMutation
 }
 
 /// <summary>
+/// Changes the resolved target's culture to the current actor's culture.
+/// </summary>
+public sealed class SetTargetCultureFromSelfMutation : IMutation
+{
+    public string Describe() => "set_target_culture_from_self";
+}
+
+/// <summary>
 /// Modifies the current entity's attribute by a delta with optional variance.
 /// Actual delta = delta * (1 + random(-variance, +variance)).
 /// </summary>

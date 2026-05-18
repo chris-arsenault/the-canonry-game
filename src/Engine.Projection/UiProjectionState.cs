@@ -187,6 +187,20 @@ public sealed class UiProjectionState : KernelEventProjector
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
+    protected override void OnEntityCultureChanged(long sequence, in EntityCultureChangedKernelEvent evt)
+    {
+        var entity = GetOrCreateEntity(evt.EntityId);
+        entity.KindId = evt.KindId;
+        entity.SubtypeId = evt.SubtypeId;
+        entity.CultureId = evt.CurrentCultureId;
+        entity.LastUpdatedTick = evt.Tick;
+        entity.WorldVersion = evt.WorldVersion;
+        EntityBrowserVersion++;
+        EntityDetailVersion++;
+        EntityMapVersion++;
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+    }
+
     protected override void OnEntityStatusChanged(long sequence, in EntityStatusChangedKernelEvent evt)
     {
         var entity = GetOrCreateEntity(evt.EntityId);

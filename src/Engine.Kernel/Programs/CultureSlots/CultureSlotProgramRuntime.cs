@@ -96,13 +96,11 @@ internal sealed class CultureSlotProgramRuntime :
     {
         var best = BestCandidate(simulation.World, slot);
         var currentEntityId = State.OccupantEntityId(slot);
-        var currentScore = currentEntityId > 0 && simulation.World.EntityIsActive(currentEntityId)
-            ? ScoreEntity(simulation.World, currentEntityId, slot)
-            : 0f;
 
         if (best.EntityId <= 0 || best.Score < Data.MinimumScore(slot))
         {
-            TryVacate(simulation, slot, currentEntityId, currentScore, tick);
+            var vacatingScore = CurrentOccupantScore(simulation.World, currentEntityId, slot);
+            TryVacate(simulation, slot, currentEntityId, vacatingScore, tick);
             return;
         }
 
@@ -112,6 +110,7 @@ internal sealed class CultureSlotProgramRuntime :
             return;
         }
 
+        var currentScore = CurrentOccupantScore(simulation.World, currentEntityId, slot);
         if (currentEntityId > 0 &&
             !CanDisplace(slot, currentScore, best.Score, tick))
         {
@@ -122,35 +121,71 @@ internal sealed class CultureSlotProgramRuntime :
         ChangeOccupant(simulation, slot, currentEntityId, best.EntityId, currentScore, best.Score, tick);
     }
 
+    private float CurrentOccupantScore(WorldState world, int currentEntityId, int slot)
+    {
+        return currentEntityId > 0 && world.EntityIsActive(currentEntityId)
+            ? ScoreEntity(world, currentEntityId, slot)
+            : 0f;
+    }
+
     private (int EntityId, float Score) BestCandidate(WorldState world, int slot)
     {
         var cultureId = Data.CultureId(slot);
         var bestEntityId = 0;
         var bestScore = 0f;
-        for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
+        var allowedKindCount = Data.AllowedKindCount(slot);
+        if (allowedKindCount == 0)
         {
-            if (!CandidateAllowed(world, entityId, cultureId, slot))
+            for (var entityId = world.FirstEntityOfCulture(cultureId);
+                 entityId > 0;
+                 entityId = world.NextEntityOfCulture(entityId))
             {
-                continue;
+                ConsiderCandidate(world, slot, entityId, cultureId, ref bestEntityId, ref bestScore);
             }
 
-            var score = ScoreEntity(world, entityId, slot);
-            if (score > bestScore ||
-                (score == bestScore && bestEntityId > 0 && entityId < bestEntityId))
+            return (bestEntityId, bestScore);
+        }
+
+        for (var offset = 0; offset < allowedKindCount; offset++)
+        {
+            var kindId = Data.AllowedKindId(slot, offset);
+            for (var entityId = world.FirstEntityOfKind(kindId);
+                 entityId > 0;
+                 entityId = world.NextEntityOfKind(entityId))
             {
-                bestEntityId = entityId;
-                bestScore = score;
+                ConsiderCandidate(world, slot, entityId, cultureId, ref bestEntityId, ref bestScore);
             }
         }
 
         return (bestEntityId, bestScore);
     }
 
-    private bool CandidateAllowed(WorldState world, int entityId, int cultureId, int slot)
+    private void ConsiderCandidate(
+        WorldState world,
+        int slot,
+        int entityId,
+        int cultureId,
+        ref int bestEntityId,
+        ref float bestScore)
+    {
+        if (!CandidateAllowed(world, entityId, cultureId))
+        {
+            return;
+        }
+
+        var score = ScoreEntity(world, entityId, slot);
+        if (score > bestScore ||
+            (score == bestScore && bestEntityId > 0 && entityId < bestEntityId))
+        {
+            bestEntityId = entityId;
+            bestScore = score;
+        }
+    }
+
+    private static bool CandidateAllowed(WorldState world, int entityId, int cultureId)
     {
         return world.EntityIsActive(entityId) &&
-            world.EntityCultureId(entityId) == cultureId &&
-            Data.KindAllowed(slot, world.EntityKindId(entityId));
+            world.EntityCultureId(entityId) == cultureId;
     }
 
     private float ScoreEntity(WorldState world, int entityId, int slot)

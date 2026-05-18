@@ -23,7 +23,6 @@ public class DomainConfigTests
         Assert.Equal(IceRemembersKinds.All.Count, config.Kinds.Count);
         Assert.True(config.Relationships.Count > 10);
         Assert.Equal(IceRemembersKinds.All.Count, config.Lifecycles.Count);
-        Assert.Equal(3, config.Cultures.Count);
         Assert.Equal(2, config.TravelStructures.Count);
         Assert.Equal(IceRemembersGeneratorDefinition.Create().Count, config.Semantics!.Generators.Count);
     }

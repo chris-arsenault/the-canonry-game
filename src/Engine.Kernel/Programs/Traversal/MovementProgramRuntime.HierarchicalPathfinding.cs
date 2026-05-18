@@ -417,6 +417,23 @@ internal sealed partial class MovementProgramRuntime
         out float edgeCost)
     {
         edgeCost = float.PositiveInfinity;
+        var topologyEpoch = State.PathingTopologyEpoch;
+        var roadEpoch = State.RoadMarkEpoch;
+        if (TryGetSegmentEdgeCostCache(
+                planeCode,
+                movementProfileId,
+                context.SegmentSize,
+                fromSegment,
+                toSegment,
+                topologyEpoch,
+                roadEpoch,
+                out var cachedFound,
+                out var cachedCost))
+        {
+            edgeCost = cachedCost;
+            return cachedFound;
+        }
+
         if (!TrySegmentBounds(
                 context.Radius,
                 context.SegmentSize,
@@ -443,10 +460,111 @@ internal sealed partial class MovementProgramRuntime
             maxR,
             movementProfileId,
             edgeBaseCost,
-            ref found,
-            ref edgeCost);
+                ref found,
+                ref edgeCost);
 
+        StoreSegmentEdgeCostCache(
+            planeCode,
+            movementProfileId,
+            context.SegmentSize,
+            fromSegment,
+            toSegment,
+            topologyEpoch,
+            roadEpoch,
+            found,
+            edgeCost);
         return found;
+    }
+
+    private bool TryGetSegmentEdgeCostCache(
+        int planeCode,
+        int movementProfileId,
+        int segmentSize,
+        int fromSegment,
+        int toSegment,
+        int topologyEpoch,
+        int roadEpoch,
+        out bool found,
+        out float edgeCost)
+    {
+        var slot = SegmentEdgeCostCacheSlot(
+            planeCode,
+            movementProfileId,
+            segmentSize,
+            fromSegment,
+            toSegment,
+            topologyEpoch,
+            roadEpoch);
+        if (Scratch.SegmentEdgeCacheOccupied[slot] &&
+            Scratch.SegmentEdgeCachePlaneCodes[slot] == planeCode &&
+            Scratch.SegmentEdgeCacheProfileIds[slot] == movementProfileId &&
+            Scratch.SegmentEdgeCacheLevelSizes[slot] == segmentSize &&
+            Scratch.SegmentEdgeCacheFromSegments[slot] == fromSegment &&
+            Scratch.SegmentEdgeCacheToSegments[slot] == toSegment &&
+            Scratch.SegmentEdgeCacheTopologyEpochs[slot] == topologyEpoch &&
+            Scratch.SegmentEdgeCacheRoadEpochs[slot] == roadEpoch)
+        {
+            found = Scratch.SegmentEdgeCacheFound[slot];
+            edgeCost = Scratch.SegmentEdgeCacheCosts[slot];
+            return true;
+        }
+
+        found = false;
+        edgeCost = float.PositiveInfinity;
+        return false;
+    }
+
+    private void StoreSegmentEdgeCostCache(
+        int planeCode,
+        int movementProfileId,
+        int segmentSize,
+        int fromSegment,
+        int toSegment,
+        int topologyEpoch,
+        int roadEpoch,
+        bool found,
+        float edgeCost)
+    {
+        var slot = SegmentEdgeCostCacheSlot(
+            planeCode,
+            movementProfileId,
+            segmentSize,
+            fromSegment,
+            toSegment,
+            topologyEpoch,
+            roadEpoch);
+        Scratch.SegmentEdgeCacheOccupied[slot] = true;
+        Scratch.SegmentEdgeCachePlaneCodes[slot] = planeCode;
+        Scratch.SegmentEdgeCacheProfileIds[slot] = movementProfileId;
+        Scratch.SegmentEdgeCacheLevelSizes[slot] = segmentSize;
+        Scratch.SegmentEdgeCacheFromSegments[slot] = fromSegment;
+        Scratch.SegmentEdgeCacheToSegments[slot] = toSegment;
+        Scratch.SegmentEdgeCacheTopologyEpochs[slot] = topologyEpoch;
+        Scratch.SegmentEdgeCacheRoadEpochs[slot] = roadEpoch;
+        Scratch.SegmentEdgeCacheFound[slot] = found;
+        Scratch.SegmentEdgeCacheCosts[slot] = edgeCost;
+    }
+
+    private int SegmentEdgeCostCacheSlot(
+        int planeCode,
+        int movementProfileId,
+        int segmentSize,
+        int fromSegment,
+        int toSegment,
+        int topologyEpoch,
+        int roadEpoch)
+    {
+        unchecked
+        {
+            var hash = (uint)planeCode * 2654435761u;
+            hash ^= (uint)movementProfileId * 2246822519u;
+            hash ^= (uint)segmentSize * 3266489917u;
+            hash ^= (uint)fromSegment * 668265263u;
+            hash ^= (uint)toSegment * 374761393u;
+            hash ^= (uint)topologyEpoch * 1274126177u;
+            hash ^= (uint)roadEpoch * 1597334677u;
+            return (int)(hash % (uint)Scratch.SegmentEdgeCacheOccupied.Length);
+        }
     }
 
     private void EvaluateSegmentPortalBoundary(
@@ -696,14 +814,15 @@ internal sealed partial class MovementProgramRuntime
         int movementProfileId,
         out float terrainCost)
     {
-        terrainCost = float.PositiveInfinity;
-        if (!world.CellIsKnown(planeCode, q, r))
-        {
-            return false;
-        }
-
-        terrainCost = SurfaceBaseTravelCost(simulation, planeCode, movementProfileId, q, r);
-        return terrainCost > 0f;
+        return TrySurfaceBaseTravelCost(
+            simulation,
+            world,
+            planeCode,
+            movementProfileId,
+            q,
+            r,
+            out terrainCost,
+            out _);
     }
 
     private static float RoadMarkCostMultiplier(int mark)

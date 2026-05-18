@@ -134,6 +134,17 @@ public sealed class EndpointRelationshipCountBelow(
 }
 
 /// <summary>
+/// Checks that the selected behavior endpoint currently belongs to a culture.
+/// </summary>
+public sealed class EndpointCultureIs(TransferEndpoint endpoint, string culture) : IPrecondition
+{
+    public TransferEndpoint Endpoint { get; } = endpoint;
+    public string Culture { get; } = culture;
+
+    public string Describe() => $"{Endpoint}_culture == {Culture}";
+}
+
+/// <summary>
 /// Checks whether the entity reached the resolved target through a named relationship.
 /// </summary>
 public sealed class RelatedEntityMatchesTarget(string relationshipKind, bool behaviorRelevant = true) : IPrecondition

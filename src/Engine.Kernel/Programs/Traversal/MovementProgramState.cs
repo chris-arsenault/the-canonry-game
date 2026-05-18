@@ -374,15 +374,18 @@ internal sealed partial class MovementProgramState : IKernelProgramState
 
     private float DecayedRoadQuality(int planeCode, int key, int tick, float roadDecayPerTick)
     {
-        var roadQuality = _roadQuality.GetOrDefault(planeCode, key);
+        if (!_roadQuality.TryGet(planeCode, key, out var roadQuality))
+        {
+            return 0f;
+        }
+
         var floor = _roadQualityFloors.GetOrDefault(planeCode, key);
-        var lastRoadTick = _lastRoadTicks.GetOrDefault(planeCode, key);
-        var elapsedTicks = tick - lastRoadTick;
         if (roadQuality <= 0f)
         {
             return floor > roadQuality ? floor : roadQuality;
         }
 
+        var elapsedTicks = tick - _lastRoadTicks.GetOrDefault(planeCode, key);
         if (elapsedTicks <= 0)
         {
             return floor > roadQuality ? floor : roadQuality;

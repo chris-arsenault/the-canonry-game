@@ -8,9 +8,10 @@ A static, domain-defined classification that describes innate tendencies, naming
 
 Culture is a non-spatially-bound, overarching construct that defines an entity's identity foundation. It is:
 
-- **Static per entity.** An entity's culture is set at creation and does not
-  change during the active runtime. A penguin born into one culture remains
-  that culture.
+- **Normally static per entity.** An entity's culture is set at creation. Most
+  living/social entities keep that culture for their lifetime. Authored domain
+  rules may explicitly change the culture of claimable world-place entities
+  such as regions and points of interest.
 - **Static per domain.** The list of available cultures is defined by the narrative domain, similar to how entity kinds are registered by the domain. Cultures are not created, destroyed, or merged during a run. They exist as a fixed taxonomy.
 - **Not equivalent to morphology, location, or faction.** Wake-Singers are not the orca kind; they are a culture mostly associated with orcas. Penguins can share Wake-Singer culture, and orcas can defect from it. Culture and body/kind are orthogonal.
 - **An identity tendency.** Each culture can define baseline tendencies on
@@ -33,7 +34,10 @@ Culture is a non-spatially-bound, overarching construct that defines an entity's
   entities regardless of where they are. Cultural influence on the map, if
   implemented, is computed from entities present there, not from culture
   entities.
-- **Not dynamic.** The culture list doesn't change during a run. No new cultures emerge, no cultures go extinct. Cultural dynamics (influence spread, friction between cultures) operate on the ENTITIES that have culture, not on culture itself.
+- **Not a dynamic taxonomy.** The culture list doesn't change during a run. No
+  new cultures emerge, no cultures go extinct. Cultural dynamics (influence
+  spread, friction between cultures, and authored place claims) operate on the
+  ENTITIES that have culture, not on culture itself.
 - **Not a card target.** Cards don't target "Culture Y." They target entities
   with culture, trait, relationship, or locality filters. "Entities of culture
   Y" is a filter on entity queries, not a reference to a culture entity.
@@ -58,6 +62,14 @@ Each narrative domain defines its culture list. The Ice Remembers currently uses
 - `aurora_stack`
 - `nightshelf`
 - `wake_singers`
+- `the_ice`
+
+`the_ice` is the authored wilderness/substrate culture for unclaimed regions
+and points of interest. It is not the compiler fallback culture `none`.
+Ice-held places can be claimed by authored actions from Aurora Stack,
+Nightshelf, or Wake-Singers entities. The first claim changes the place's
+culture away from `the_ice`; current claim actions do not allow one authored
+culture to steal a place from another authored culture.
 
 Each culture definition specifies:
 
@@ -74,9 +86,10 @@ Each culture definition specifies:
 
 ## Current Constraints
 
-- Culture is immutable after creation.
+- Culture is immutable after creation except where an explicit domain-authored
+  mutation changes the culture of a claimable place.
 - Each entity has exactly one culture.
 - Culture count is a domain authoring choice; Ice Remembers currently has
-  three.
+  three social cultures plus the authored `the_ice` substrate.
 - Naming is deterministic and procedural, using the culture as an input rather
   than runtime generated prose.

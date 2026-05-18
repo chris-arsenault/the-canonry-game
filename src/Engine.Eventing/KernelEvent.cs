@@ -7,6 +7,7 @@ public enum KernelEventType
     EntityStatusChanged = 2,
     EntityMoved = 3,
     AttributeChanged = 4,
+    EntityCultureChanged = 5,
     RelationshipChanged = 6,
     TraitAssigned = 7,
     GoalGenerated = 9,
@@ -121,6 +122,23 @@ public readonly record struct AttributeChangedKernelEvent(
     float OldValue,
     [KernelEventFloatSlot(1, "new_value", KernelEventSemanticKind.RawScalar)]
     float NewValue);
+
+[KernelEventLayout(KernelEventType.EntityCultureChanged, schemaMinor: 0)]
+public readonly record struct EntityCultureChangedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "entity_id", KernelEventSemanticKind.EntityId)]
+    int EntityId,
+    [KernelEventIntSlot(1, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
+    int SourceCodeId,
+    [KernelEventIntSlot(2, "kind_id", KernelEventSemanticKind.KindId)]
+    int KindId,
+    [KernelEventIntSlot(3, "subtype_id", KernelEventSemanticKind.SubtypeId)]
+    int SubtypeId,
+    [KernelEventIntSlot(4, "previous_culture_id", KernelEventSemanticKind.CultureId)]
+    int PreviousCultureId,
+    [KernelEventIntSlot(5, "current_culture_id", KernelEventSemanticKind.CultureId)]
+    int CurrentCultureId);
 
 [KernelEventLayout(KernelEventType.TraitAssigned, schemaMinor: 0)]
 public readonly record struct TraitAssignedKernelEvent(

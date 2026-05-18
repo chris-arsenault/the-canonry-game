@@ -58,6 +58,9 @@ public sealed class KernelEventPayloadTests
         var attributeChanged = new AttributeChangedKernelEvent(4, 5, 6, 7, 8, 1.25f, 2.5f);
         Assert.Equal(attributeChanged, KernelEvent.From(attributeChanged).AsAttributeChanged());
 
+        var entityCultureChanged = new EntityCultureChangedKernelEvent(5, 6, 7, 8, 9, 10, 11, 12);
+        Assert.Equal(entityCultureChanged, KernelEvent.From(entityCultureChanged).AsEntityCultureChanged());
+
         var relationshipChanged = new RelationshipChangedKernelEvent(
             6, 7, 8, 9, 10, InvalidPolarityCode, 11, 12, 13, 0.125f, 0.875f);
         Assert.Equal(relationshipChanged, KernelEvent.From(relationshipChanged).AsRelationshipChanged());

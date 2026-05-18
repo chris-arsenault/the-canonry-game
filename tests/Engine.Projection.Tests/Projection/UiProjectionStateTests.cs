@@ -113,6 +113,47 @@ public sealed class UiProjectionStateTests
     }
 
     [Fact]
+    public void Projection_UpdatesEntityCultureChanges()
+    {
+        var log = new KernelEventLog(capacity: 16);
+        var projection = new UiProjectionState();
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
+
+        Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
+            Tick: 1,
+            WorldVersion: 1,
+            EntityId: 10,
+            SourceCodeId: 40,
+            KindId: 2,
+            SubtypeId: 3,
+            CultureId: 4,
+            PhysicalQ: 0,
+            PhysicalR: 0,
+            SemanticQ: 0,
+            SemanticR: 0,
+            SemanticS: 0))));
+        Assert.True(log.TryWrite(KernelEvent.From(new EntityCultureChangedKernelEvent(
+            Tick: 2,
+            WorldVersion: 2,
+            EntityId: 10,
+            SourceCodeId: 40,
+            KindId: 2,
+            SubtypeId: 3,
+            PreviousCultureId: 4,
+            CurrentCultureId: 5))));
+
+        pump.DrainAvailable();
+
+        var entity = projection.Entities[10];
+        Assert.Equal(5, entity.CultureId);
+        Assert.Equal(2, entity.LastUpdatedTick);
+        Assert.Equal(2, entity.WorldVersion);
+    }
+
+    [Fact]
     public void Projection_ReplaysPrimitiveEntityAndMutationEventsIntoUiState()
     {
         var log = new KernelEventLog(capacity: 16);

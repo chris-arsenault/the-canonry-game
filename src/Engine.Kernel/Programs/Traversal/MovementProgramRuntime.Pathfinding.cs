@@ -373,6 +373,7 @@ internal sealed partial class MovementProgramRuntime
             segmentGridWidth,
             firstSegment,
             secondSegment,
+            secondSegment >= 0,
             out nextQ,
             out nextR);
     }
@@ -396,6 +397,7 @@ internal sealed partial class MovementProgramRuntime
         int segmentGridWidth,
         int firstAllowedSegment,
         int secondAllowedSegment,
+        bool requiresSegmentFilter,
         out int nextQ,
         out int nextR)
     {
@@ -442,6 +444,7 @@ internal sealed partial class MovementProgramRuntime
                     segmentGridWidth,
                     firstAllowedSegment,
                     secondAllowedSegment,
+                    requiresSegmentFilter,
                     ref openCount))
             {
                 return false;
@@ -494,6 +497,7 @@ internal sealed partial class MovementProgramRuntime
         int segmentGridWidth,
         int firstAllowedSegment,
         int secondAllowedSegment,
+        bool requiresSegmentFilter,
         ref int openCount)
     {
         var currentQ = PathQ(pathMinQ, pathWidthR, currentIndex);
@@ -521,6 +525,7 @@ internal sealed partial class MovementProgramRuntime
                     segmentGridWidth,
                     firstAllowedSegment,
                     secondAllowedSegment,
+                    requiresSegmentFilter,
                     ref openCount))
             {
                 return false;
@@ -551,6 +556,7 @@ internal sealed partial class MovementProgramRuntime
         int segmentGridWidth,
         int firstAllowedSegment,
         int secondAllowedSegment,
+        bool requiresSegmentFilter,
         ref int openCount)
     {
         var neighborQ = currentQ + DirectionQ(direction);
@@ -561,8 +567,9 @@ internal sealed partial class MovementProgramRuntime
             return true;
         }
 
-        if (!world.CellIsKnown(planeCode, neighborQ, neighborR) ||
-            !PathSegmentAllowed(radius, segmentSize, segmentGridWidth, neighborQ, neighborR, firstAllowedSegment, secondAllowedSegment))
+        if ((requiresSegmentFilter &&
+                !PathSegmentAllowed(radius, segmentSize, segmentGridWidth, neighborQ, neighborR, firstAllowedSegment, secondAllowedSegment)) ||
+            !world.CellIsKnown(planeCode, neighborQ, neighborR))
         {
             return true;
         }

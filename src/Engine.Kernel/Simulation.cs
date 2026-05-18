@@ -566,6 +566,11 @@ internal sealed partial class Simulation : IKernel
         World.SetEntityStatus(entityId, statusCode, tick, _executionContext);
     }
 
+    internal void SetEntityCulture(int entityId, int cultureId, int tick)
+    {
+        World.SetEntityCulture(entityId, cultureId, tick, _executionContext);
+    }
+
     internal void MoveEntityPhysical(int entityId, int q, int r, int tick)
     {
         _ = Movement.Place(this, entityId, PlaneCodes.Physical, q, r, tick, MovementCauseCodes.Forced);

@@ -36,6 +36,7 @@ public enum BehaviorProgramOperation
     MoveTargetToSelfPhysical,
     SetTargetCoverageTerrain,
     BuildTravelStructureLine,
+    SetTargetCultureFromSelf,
 }
 
 public enum BehaviorProgramEndpoint
@@ -74,6 +75,7 @@ public enum BehaviorProgramPrecondition
     ContestedInfluence,
     SharedInfluence,
     EndpointRelationshipCountBelow,
+    EndpointCultureIs,
 }
 
 public enum BehaviorProgramExpression

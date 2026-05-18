@@ -209,6 +209,23 @@ internal sealed partial class CultureSlotProgramData : IKernelProgramData
         return false;
     }
 
+    public int AllowedKindCount(int slot)
+    {
+        EnsureSlot(slot);
+        return _allowedKindCounts[slot];
+    }
+
+    public int AllowedKindId(int slot, int offset)
+    {
+        EnsureSlot(slot);
+        if ((uint)offset >= (uint)_allowedKindCounts[slot])
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(offset));
+        }
+
+        return _allowedKindIds[_allowedKindStarts[slot] + offset];
+    }
+
     public int RuleCount(int slot)
     {
         EnsureSlot(slot);

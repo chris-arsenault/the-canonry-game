@@ -611,6 +611,7 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramOperation.CreateEntity => BehaviorOperationCodes.CreateEntity,
             BehaviorProgramOperation.SetHistorical => BehaviorOperationCodes.SetHistorical,
             BehaviorProgramOperation.AddRelatedEntitiesAttribute => BehaviorOperationCodes.AddRelatedEntitiesAttribute,
+            BehaviorProgramOperation.SetTargetCultureFromSelf => BehaviorOperationCodes.SetTargetCultureFromSelf,
             _ => -1,
         };
         return code >= 0;
@@ -706,6 +707,7 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramPrecondition.HasColocatedEntity => BehaviorPreconditionCodes.HasColocatedEntity,
             BehaviorProgramPrecondition.ContestedInfluence => BehaviorPreconditionCodes.ContestedInfluence,
             BehaviorProgramPrecondition.SharedInfluence => BehaviorPreconditionCodes.SharedInfluence,
+            BehaviorProgramPrecondition.EndpointCultureIs => BehaviorPreconditionCodes.EndpointCultureIs,
             _ => -1,
         };
         return code >= 0;

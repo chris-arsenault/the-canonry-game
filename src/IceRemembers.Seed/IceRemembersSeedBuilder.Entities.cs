@@ -13,13 +13,13 @@ internal static partial class IceRemembersSeedBuilder
     private static Dictionary<string, MapCoverage> CreateRegionEntities(SeedAssembly seed)
     {
         var northlands = new MapCoverage("Northlands",
-            CreateEntity(seed, K.Region, "face", "Northlands", "none").SeedEntityId);
+            CreateEntity(seed, K.Region, "face", "Northlands", C(IceRemembersCulture.TheIce)).SeedEntityId);
         var heartlands = new MapCoverage("Heartlands",
-            CreateEntity(seed, K.Region, "reach", "Heartlands", "none").SeedEntityId);
+            CreateEntity(seed, K.Region, "reach", "Heartlands", C(IceRemembersCulture.TheIce)).SeedEntityId);
         var coastlands = new MapCoverage("Coastlands",
-            CreateEntity(seed, K.Region, "shelf", "Coastlands", "none").SeedEntityId);
+            CreateEntity(seed, K.Region, "shelf", "Coastlands", C(IceRemembersCulture.TheIce)).SeedEntityId);
         var farwake = new MapCoverage("Farwake",
-            CreateEntity(seed, K.Region, "sea", "Farwake", "none").SeedEntityId);
+            CreateEntity(seed, K.Region, "sea", "Farwake", C(IceRemembersCulture.TheIce)).SeedEntityId);
 
         return new Dictionary<string, MapCoverage>(StringComparer.Ordinal)
         {
@@ -165,7 +165,7 @@ internal static partial class IceRemembersSeedBuilder
             takenPhysical,
             K.Region,
             "face",
-            "none",
+            C(IceRemembersCulture.TheIce),
             minimumDistance: 10,
             cell => RegionNorthlandsContextScore(cell) +
                 SuperregionAffinity(seed.SubdivisionMap, NorthlandsSuperregionId, cell.Coord, 80f));
@@ -175,7 +175,7 @@ internal static partial class IceRemembersSeedBuilder
             takenPhysical,
             K.Region,
             "reach",
-            "none",
+            C(IceRemembersCulture.TheIce),
             minimumDistance: 10,
             cell => RegionHeartlandsContextScore(cell) +
                 SuperregionAffinity(seed.SubdivisionMap, HeartlandsSuperregionId, cell.Coord, 80f));
@@ -185,7 +185,7 @@ internal static partial class IceRemembersSeedBuilder
             takenPhysical,
             K.Region,
             "shelf",
-            "none",
+            C(IceRemembersCulture.TheIce),
             minimumDistance: 10,
             cell => RegionCoastlandsContextScore(cell) +
                 SuperregionAffinity(seed.SubdivisionMap, CoastlandsSuperregionId, cell.Coord, 80f));
@@ -195,7 +195,7 @@ internal static partial class IceRemembersSeedBuilder
             takenPhysical,
             K.Region,
             "sea",
-            "none",
+            C(IceRemembersCulture.TheIce),
             minimumDistance: 14,
             cell => RegionCoastlandsContextScore(cell) +
                 SuperregionAffinity(seed.SubdivisionMap, FarwakeSuperregionId, cell.Coord, 100f));
@@ -668,7 +668,7 @@ internal static partial class IceRemembersSeedBuilder
                 takenPhysical,
                 K.PointOfInterest,
                 subtype,
-                "none",
+                C(IceRemembersCulture.TheIce),
                 minimumDistance: 3,
                 cell => NamedTerrainAffinity(cell, terrain));
             ReservePhysical(coord, takenPhysical, name);
@@ -678,7 +678,7 @@ internal static partial class IceRemembersSeedBuilder
                 K.PointOfInterest,
                 subtype,
                 name,
-                "none",
+                C(IceRemembersCulture.TheIce),
                 coordinates: (coord.Q, coord.R));
             SetSemanticNatural(seed, poi, random, takenSemantic);
         }

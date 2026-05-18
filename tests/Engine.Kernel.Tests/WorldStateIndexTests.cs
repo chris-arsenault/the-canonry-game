@@ -33,6 +33,27 @@ public sealed class WorldStateIndexTests
     }
 
     [Fact]
+    public void MaintainsEntityCultureIndexAcrossCultureChanges()
+    {
+        var simulation = CreateSimulation();
+        var first = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        var second = simulation.CreateEntity(1, 1, 1, 0, 0, 1, 0, -1, 0);
+        var third = simulation.CreateEntity(2, 1, 2, 1, 0, 2, 0, -2, 0);
+
+        Assert.Equal(second, simulation.World.FirstEntityOfCulture(1));
+        Assert.Equal(first, simulation.World.NextEntityOfCulture(second));
+        Assert.Equal(0, simulation.World.NextEntityOfCulture(first));
+        Assert.Equal(third, simulation.World.FirstEntityOfCulture(2));
+
+        simulation.World.SetEntityCulture(second, 2, tick: 1);
+
+        Assert.Equal(first, simulation.World.FirstEntityOfCulture(1));
+        Assert.Equal(0, simulation.World.NextEntityOfCulture(first));
+        Assert.Equal(second, simulation.World.FirstEntityOfCulture(2));
+        Assert.Equal(third, simulation.World.NextEntityOfCulture(second));
+    }
+
+    [Fact]
     public void MaintainsTypedRelationshipCsrRowsInStableRelationshipOrder()
     {
         var simulation = CreateSimulation();
@@ -312,6 +333,23 @@ public sealed class WorldStateIndexTests
         Assert.Equal(100f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
         Assert.Equal(0f, simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0), precision: 3);
         Assert.Equal(0, simulation.World.CultureInfluenceCellCount(2, PlaneCodes.Physical));
+    }
+
+    [Fact]
+    public void CultureInfluenceRollupMovesEntityContributionWhenCultureChanges()
+    {
+        var simulation = CreateSimulation();
+        var place = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        var rival = simulation.CreateEntity(1, 1, 2, 0, 1, 0, 0, 0, 0);
+        simulation.SetCellInfluence(place, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+        simulation.SetCellInfluence(rival, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+
+        simulation.SetEntityCulture(place, 3, tick: 1);
+
+        Assert.Equal(0f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(50f, simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(50f, simulation.World.GetCellCultureInfluence(3, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(0, simulation.World.CultureInfluenceCellCount(1, PlaneCodes.Physical));
     }
 
     private static Simulation CreateSimulation()

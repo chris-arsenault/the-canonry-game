@@ -78,8 +78,15 @@ internal sealed partial class MovementProgramRuntime :
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         return simulation.ProgramIsEnabled(KernelProgramCodes.Movement) &&
-            simulation.World.CellIsKnown(planeCode, q, r) &&
-            SurfaceBaseTravelCost(simulation, planeCode, movementProfileId, q, r) > 0f;
+            TrySurfaceBaseTravelCost(
+                simulation,
+                simulation.World,
+                planeCode,
+                movementProfileId,
+                q,
+                r,
+                out _,
+                out _);
     }
 
     public float PhysicalTravelCost(Simulation simulation, int entityId, int q, int r, int tick)
@@ -484,13 +491,19 @@ internal sealed partial class MovementProgramRuntime :
         int r,
         int tick)
     {
-        var baseCost = SurfaceBaseTravelCost(simulation, planeCode, movementProfileId, q, r);
-        if (baseCost <= 0f)
+        if (!TrySurfaceBaseTravelCost(
+                simulation,
+                simulation.World,
+                planeCode,
+                movementProfileId,
+                q,
+                r,
+                out var baseCost,
+                out var terrainId))
         {
             return float.PositiveInfinity;
         }
 
-        var terrainId = simulation.World.CellTerrainId(planeCode, q, r);
         var normalizedRoadQuality = Clamp01(RoadQuality(planeCode, q, r, tick) / 100f);
         var roadSpeed = 1f + ((simulation.KernelData.Terrain.RoadSpeedMultiplier(terrainId) - 1f) * normalizedRoadQuality);
         return baseCost / roadSpeed;
@@ -503,19 +516,44 @@ internal sealed partial class MovementProgramRuntime :
         int q,
         int r)
     {
-        if (!simulation.World.CellIsKnown(planeCode, q, r))
+        return TrySurfaceBaseTravelCost(
+            simulation,
+            simulation.World,
+            planeCode,
+            movementProfileId,
+            q,
+            r,
+            out var baseCost,
+            out _)
+            ? baseCost
+            : 0f;
+    }
+
+    private bool TrySurfaceBaseTravelCost(
+        Simulation simulation,
+        WorldState world,
+        int planeCode,
+        int movementProfileId,
+        int q,
+        int r,
+        out float baseCost,
+        out int terrainId)
+    {
+        baseCost = 0f;
+        terrainId = 0;
+        if (!world.CellIsKnown(planeCode, q, r))
         {
-            return 0f;
+            return false;
         }
 
-        var terrainCost = simulation.KernelData.Terrain.TravelCost(
-            simulation.World.CellTerrainId(planeCode, q, r),
-            movementProfileId);
+        terrainId = world.CellTerrainId(planeCode, q, r);
+        var terrainCost = simulation.KernelData.Terrain.TravelCost(terrainId, movementProfileId);
         var structureCost = Data.TravelStructureCost(
             State.TravelStructureId(planeCode, q, r),
             planeCode,
             movementProfileId);
-        return SelectSurfaceBaseCost(terrainCost, structureCost);
+        baseCost = SelectSurfaceBaseCost(terrainCost, structureCost);
+        return baseCost > 0f;
     }
 
     private static float SelectSurfaceBaseCost(float terrainCost, float structureCost)

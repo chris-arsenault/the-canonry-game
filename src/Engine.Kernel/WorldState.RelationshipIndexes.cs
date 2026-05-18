@@ -42,6 +42,38 @@ internal sealed partial class WorldState
         _firstEntityByKind[kindId] = entityId;
     }
 
+    private void InsertEntityCultureIndex(int entityId, int cultureId)
+    {
+        EnsureCultureIndex(cultureId);
+        _nextEntityByCulture[entityId] = _firstEntityByCulture[cultureId];
+        _firstEntityByCulture[cultureId] = entityId;
+    }
+
+    private void RemoveEntityCultureIndex(int entityId, int cultureId)
+    {
+        EnsureCultureIndex(cultureId);
+        var current = _firstEntityByCulture[cultureId];
+        if (current == entityId)
+        {
+            _firstEntityByCulture[cultureId] = _nextEntityByCulture[entityId];
+            _nextEntityByCulture[entityId] = 0;
+            return;
+        }
+
+        while (current > 0)
+        {
+            var next = _nextEntityByCulture[current];
+            if (next == entityId)
+            {
+                _nextEntityByCulture[current] = _nextEntityByCulture[entityId];
+                _nextEntityByCulture[entityId] = 0;
+                return;
+            }
+
+            current = next;
+        }
+    }
+
     private void InsertPhysicalOccupant(int entityId, int q, int r)
     {
         var key = CoordinateKey(q, r);
@@ -449,6 +481,15 @@ internal sealed partial class WorldState
     {
         ValidatePositive(kindId);
         if ((uint)kindId >= (uint)_firstEntityByKind.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+    }
+
+    private void EnsureCultureIndex(int cultureId)
+    {
+        ValidatePositive(cultureId);
+        if ((uint)cultureId >= (uint)_firstEntityByCulture.Length)
         {
             throw new global::System.InvalidOperationException();
         }

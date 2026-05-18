@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 35;
+    private const int FormatVersion = 36;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -121,6 +121,7 @@ internal static class KernelSnapshotOptions
         writer.Write(options.AttributeIdCapacity);
         writer.Write(options.TraitIdCapacity);
         writer.Write(options.KindIdCapacity);
+        writer.Write(options.CultureIdCapacity);
         writer.Write(options.TerrainIdCapacity);
         writer.Write(options.RelationshipRuleCapacity);
         writer.Write(options.RelationshipKindIdCapacity);
@@ -258,6 +259,7 @@ internal static class KernelSnapshotOptions
         values.AttributeIdCapacity = reader.ReadInt32();
         values.TraitIdCapacity = reader.ReadInt32();
         values.KindIdCapacity = reader.ReadInt32();
+        values.CultureIdCapacity = reader.ReadInt32();
         values.TerrainIdCapacity = reader.ReadInt32();
         values.RelationshipRuleCapacity = reader.ReadInt32();
         values.RelationshipKindIdCapacity = reader.ReadInt32();
@@ -391,6 +393,7 @@ internal static class KernelSnapshotOptions
             AttributeIdCapacity = values.AttributeIdCapacity,
             TraitIdCapacity = values.TraitIdCapacity,
             KindIdCapacity = values.KindIdCapacity,
+            CultureIdCapacity = values.CultureIdCapacity,
             TerrainIdCapacity = values.TerrainIdCapacity,
             RelationshipRuleCapacity = values.RelationshipRuleCapacity,
             RelationshipKindIdCapacity = values.RelationshipKindIdCapacity,
@@ -503,6 +506,7 @@ internal static class KernelSnapshotOptions
         public int AttributeIdCapacity;
         public int TraitIdCapacity;
         public int KindIdCapacity;
+        public int CultureIdCapacity;
         public int TerrainIdCapacity;
         public int RelationshipRuleCapacity;
         public int RelationshipKindIdCapacity;

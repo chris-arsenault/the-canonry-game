@@ -32,6 +32,8 @@ internal sealed partial class WorldState
     private int[] _entityUpdatedAt = [];
     private int[] _firstEntityByKind = [];
     private int[] _nextEntityByKind = [];
+    private int[] _firstEntityByCulture = [];
+    private int[] _nextEntityByCulture = [];
     private PrimitiveIntTable _firstPhysicalEntityAtCell = null!;
     private PrimitiveIntTable _firstSemanticEntityAtCell = null!;
     private int[] _nextPhysicalEntityAtCell = [];
@@ -124,7 +126,7 @@ internal sealed partial class WorldState
         _entitySubtypeId = new int[options.EntityCapacity + 1];
         _entityCultureId = new int[options.EntityCapacity + 1];
         _entityCultureInfluenceMultiplierDeltas = new float[options.EntityCapacity + 1];
-        _cultureInfluenceMultiplierDeltas = new float[options.EntityCapacity + 1];
+        _cultureInfluenceMultiplierDeltas = new float[options.CultureIdCapacity + 1];
         _entityPhysicalQ = new int[options.EntityCapacity + 1];
         _entityPhysicalR = new int[options.EntityCapacity + 1];
         _entitySemanticQ = new int[options.EntityCapacity + 1];
@@ -134,6 +136,8 @@ internal sealed partial class WorldState
         _entityUpdatedAt = new int[options.EntityCapacity + 1];
         _firstEntityByKind = new int[options.KindIdCapacity + 1];
         _nextEntityByKind = new int[options.EntityCapacity + 1];
+        _firstEntityByCulture = new int[options.CultureIdCapacity + 1];
+        _nextEntityByCulture = new int[options.EntityCapacity + 1];
         _firstPhysicalEntityAtCell = new PrimitiveIntTable(options.MapCellCapacity);
         _firstSemanticEntityAtCell = new PrimitiveIntTable(options.EntityCapacity);
         _nextPhysicalEntityAtCell = new int[options.EntityCapacity + 1];
@@ -207,7 +211,7 @@ internal sealed partial class WorldState
     {
         ValidateRelationshipKindIndex(kindId);
         ValidatePositive(subtypeId);
-        ValidatePositive(cultureId);
+        EnsureCultureIndex(cultureId);
         if (entityId == 0)
         {
             entityId = FindEntitySlot();
@@ -232,6 +236,7 @@ internal sealed partial class WorldState
         _entityCreatedAt[entityId] = tick;
         _entityUpdatedAt[entityId] = tick;
         InsertEntityKindIndex(entityId, kindId);
+        InsertEntityCultureIndex(entityId, cultureId);
         InsertPhysicalOccupant(entityId, physicalQ, physicalR);
         InsertSemanticOccupant(entityId, semanticQ, semanticR);
         if (entityId > _entityHighWatermark)
@@ -285,6 +290,61 @@ internal sealed partial class WorldState
         if (wasActive != isActive)
         {
             UpdateCultureInfluenceForEntityStatusChange(entityId, isActive, tick, context);
+        }
+    }
+
+    public void SetEntityCulture(int entityId, int cultureId, int tick) =>
+        SetEntityCulture(entityId, cultureId, tick, new KernelExecutionContext(0, _defaultSourceCodeId));
+
+    public void SetEntityCulture(int entityId, int cultureId, int tick, in KernelExecutionContext context)
+    {
+        ValidatePositive(context.SourceCodeId);
+        EnsureEntity(entityId);
+        EnsureCultureIndex(cultureId);
+        var previous = _entityCultureId[entityId];
+        if (previous == cultureId)
+        {
+            return;
+        }
+
+        var isActive = _entityStatus[entityId] == EntityStatusCodes.Active;
+        var previousMultiplier = isActive ? EffectiveCultureInfluenceMultiplier(entityId) : 0f;
+        EnsureProvenanceOutputCapacity(context);
+        RemoveEntityCultureIndex(entityId, previous);
+        _entityCultureId[entityId] = cultureId;
+        _cultureHighWatermark = global::System.Math.Max(_cultureHighWatermark, cultureId);
+        InsertEntityCultureIndex(entityId, cultureId);
+        var currentMultiplier = isActive ? EffectiveCultureInfluenceMultiplier(entityId) : 0f;
+        _entityUpdatedAt[entityId] = tick;
+        AdvanceWorldVersion();
+        RecordProvenanceOutput(
+            context,
+            ProvenanceOutputKindCodes.EntityCultureChanged,
+            entityId,
+            entityId,
+            0,
+            cultureId,
+            ProvenanceOutputKindCodes.EntityCultureChanged);
+        Write(KernelEvent.From(new EntityCultureChangedKernelEvent(
+            tick,
+            WorldVersion,
+            entityId,
+            context.SourceCodeId,
+            _entityKindId[entityId],
+            _entitySubtypeId[entityId],
+            previous,
+            cultureId)),
+            context);
+        if (isActive)
+        {
+            UpdateCultureInfluenceForEntityCultureChange(
+                entityId,
+                previous,
+                previousMultiplier,
+                cultureId,
+                currentMultiplier,
+                tick,
+                context);
         }
     }
 
@@ -672,6 +732,18 @@ internal sealed partial class WorldState
     {
         EnsureEntity(entityId);
         return _nextEntityByKind[entityId];
+    }
+
+    public int FirstEntityOfCulture(int cultureId)
+    {
+        EnsureCultureIndex(cultureId);
+        return _firstEntityByCulture[cultureId];
+    }
+
+    public int NextEntityOfCulture(int entityId)
+    {
+        EnsureEntity(entityId);
+        return _nextEntityByCulture[entityId];
     }
 
     public int FirstPhysicalEntityAt(int q, int r)

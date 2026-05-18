@@ -143,26 +143,27 @@ internal sealed class MapScalarEntityLayer
     internal void SetValue(int entityId, int planeCode, int cellKey, int q, int r, float value)
     {
         var entityPlaneKey = EntityPlaneKey(entityId, planeCode);
-        _values.Set(entityPlaneKey, cellKey, value);
-
         var rowKey = _rowKeysByEntityPlaneCell.GetOrDefault(entityPlaneKey, cellKey);
-        if (value > 0f)
+        if (value <= 0f)
         {
-            if (rowKey == 0)
+            if (rowKey > 0)
             {
-                rowKey = AllocateRowKey();
-                _rowKeysByEntityPlaneCell.Set(entityPlaneKey, cellKey, rowKey);
-                _cellKeysByRowKey[rowKey] = cellKey;
+                _values.Set(entityPlaneKey, cellKey, value);
+                _cellsByEntityPlane.SetValue(rowKey, q, r, value: 0);
             }
 
-            _cellsByEntityPlane.SetValue(rowKey, q, r, entityPlaneKey);
             return;
         }
 
-        if (rowKey > 0)
+        _values.Set(entityPlaneKey, cellKey, value);
+        if (rowKey == 0)
         {
-            _cellsByEntityPlane.SetValue(rowKey, q, r, value: 0);
+            rowKey = AllocateRowKey();
+            _rowKeysByEntityPlaneCell.Set(entityPlaneKey, cellKey, rowKey);
+            _cellKeysByRowKey[rowKey] = cellKey;
         }
+
+        _cellsByEntityPlane.SetValue(rowKey, q, r, entityPlaneKey);
     }
 
     internal int ValueCellCount(int entityId, int planeCode)

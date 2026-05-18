@@ -14,6 +14,16 @@ internal sealed class MovementProgramScratch
     internal EpochStampedArray<int> SegmentCameFrom;
     internal EpochStampedArray<float> SegmentGScore;
     internal EpochStampedArray<float> SegmentFScore;
+    internal readonly int[] SegmentEdgeCachePlaneCodes;
+    internal readonly int[] SegmentEdgeCacheProfileIds;
+    internal readonly int[] SegmentEdgeCacheLevelSizes;
+    internal readonly int[] SegmentEdgeCacheFromSegments;
+    internal readonly int[] SegmentEdgeCacheToSegments;
+    internal readonly int[] SegmentEdgeCacheTopologyEpochs;
+    internal readonly int[] SegmentEdgeCacheRoadEpochs;
+    internal readonly float[] SegmentEdgeCacheCosts;
+    internal readonly bool[] SegmentEdgeCacheFound;
+    internal readonly bool[] SegmentEdgeCacheOccupied;
 
     public MovementProgramScratch(int pathCapacity)
     {
@@ -30,6 +40,16 @@ internal sealed class MovementProgramScratch
         SegmentCameFrom = new EpochStampedArray<int>(pathCapacity);
         SegmentGScore = new EpochStampedArray<float>(pathCapacity);
         SegmentFScore = new EpochStampedArray<float>(pathCapacity);
+        SegmentEdgeCachePlaneCodes = new int[pathCapacity];
+        SegmentEdgeCacheProfileIds = new int[pathCapacity];
+        SegmentEdgeCacheLevelSizes = new int[pathCapacity];
+        SegmentEdgeCacheFromSegments = new int[pathCapacity];
+        SegmentEdgeCacheToSegments = new int[pathCapacity];
+        SegmentEdgeCacheTopologyEpochs = new int[pathCapacity];
+        SegmentEdgeCacheRoadEpochs = new int[pathCapacity];
+        SegmentEdgeCacheCosts = new float[pathCapacity];
+        SegmentEdgeCacheFound = new bool[pathCapacity];
+        SegmentEdgeCacheOccupied = new bool[pathCapacity];
     }
 
     internal int PathCapacity => PathOpenSet.Length;
