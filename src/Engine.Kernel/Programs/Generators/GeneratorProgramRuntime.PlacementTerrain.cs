@@ -11,12 +11,17 @@ internal sealed partial class GeneratorProgramRuntime
     private const int PlacementDistantPreferredNeighborScore = 15;
     private const int PlacementOriginBonusBase = 260;
     private const int PlacementOriginBonusStep = 22;
+    private const int PlacementCultureDominantScore = 700;
+    private const int PlacementCulturePresentScore = 420;
+    private const int PlacementCultureAdjacentScore = 180;
+    private const int PlacementForeignDominantPenalty = 350;
 
     private bool FindTerrainAwareHex(
         Simulation simulation,
         int planeCode,
         int producedSlot,
         int movementProfileId,
+        int producedCultureId,
         int originQ,
         int originR,
         int minRadius,
@@ -38,6 +43,7 @@ internal sealed partial class GeneratorProgramRuntime
                 planeCode,
                 producedSlot,
                 movementProfileId,
+                producedCultureId,
                 originQ,
                 originR,
                 radius,
@@ -59,6 +65,7 @@ internal sealed partial class GeneratorProgramRuntime
         int planeCode,
         int producedSlot,
         int movementProfileId,
+        int producedCultureId,
         int originQ,
         int originR,
         int radius,
@@ -77,6 +84,7 @@ internal sealed partial class GeneratorProgramRuntime
                 planeCode,
                 producedSlot,
                 movementProfileId,
+                producedCultureId,
                 originQ,
                 originR,
                 radius,
@@ -97,6 +105,7 @@ internal sealed partial class GeneratorProgramRuntime
         int planeCode,
         int producedSlot,
         int movementProfileId,
+        int producedCultureId,
         int originQ,
         int originR,
         int radius,
@@ -120,6 +129,7 @@ internal sealed partial class GeneratorProgramRuntime
                 planeCode,
                 producedSlot,
                 movementProfileId,
+                producedCultureId,
                 candidateQ,
                 candidateR,
                 originQ,
@@ -141,6 +151,7 @@ internal sealed partial class GeneratorProgramRuntime
         int planeCode,
         int producedSlot,
         int movementProfileId,
+        int producedCultureId,
         int coverageOwnerId,
         int originQ,
         int originR,
@@ -167,6 +178,7 @@ internal sealed partial class GeneratorProgramRuntime
                     planeCode,
                     producedSlot,
                     movementProfileId,
+                    producedCultureId,
                     cq,
                     cr,
                     originQ,
@@ -191,6 +203,7 @@ internal sealed partial class GeneratorProgramRuntime
         int planeCode,
         int producedSlot,
         int movementProfileId,
+        int producedCultureId,
         int candidateQ,
         int candidateR,
         int originQ,
@@ -220,7 +233,15 @@ internal sealed partial class GeneratorProgramRuntime
         }
 
         var found = true;
-        var score = ScorePlacementCell(simulation, planeCode, producedSlot, candidateQ, candidateR, originQ, originR);
+        var score = ScorePlacementCell(
+            simulation,
+            planeCode,
+            producedSlot,
+            producedCultureId,
+            candidateQ,
+            candidateR,
+            originQ,
+            originR);
         SelectPlacementCandidate(
             simulation,
             candidateQ,
@@ -281,6 +302,7 @@ internal sealed partial class GeneratorProgramRuntime
         Simulation simulation,
         int planeCode,
         int producedSlot,
+        int producedCultureId,
         int q,
         int r,
         int originQ,
@@ -289,10 +311,81 @@ internal sealed partial class GeneratorProgramRuntime
         var terrainId = simulation.World.CellTerrainId(planeCode, q, r);
         var score = TerrainBasePlacementScore(planeCode, producedSlot, terrainId);
         score += PreferredNeighborPlacementScore(simulation.World, planeCode, producedSlot, q, r);
+        score += CulturePlacementScore(simulation.World, planeCode, producedSlot, producedCultureId, q, r);
         score -= KernelQuery.HexDistance(0, 0, q, r);
         score += global::System.Math.Max(0, PlacementOriginBonusBase - (KernelQuery.HexDistance(originQ, originR, q, r) * PlacementOriginBonusStep));
         return score;
     }
+
+    private int CulturePlacementScore(
+        WorldState world,
+        int planeCode,
+        int producedSlot,
+        int producedCultureId,
+        int q,
+        int r)
+    {
+        if (_producedCulturePlacementCodes[producedSlot] != GeneratorCulturePlacementCodes.PreferInheritedCulture ||
+            producedCultureId <= 0)
+        {
+            return 0;
+        }
+
+        var ownInfluence = world.GetCellCultureInfluence(producedCultureId, planeCode, q, r);
+        var foreignInfluence = StrongestOtherCultureInfluence(world, producedCultureId, planeCode, q, r);
+        if (ownInfluence >= foreignInfluence && ownInfluence >= 25f)
+        {
+            return PlacementCultureDominantScore;
+        }
+
+        if (ownInfluence > 0f)
+        {
+            return PlacementCulturePresentScore;
+        }
+
+        if (HasAdjacentCultureInfluence(world, producedCultureId, planeCode, q, r))
+        {
+            return PlacementCultureAdjacentScore;
+        }
+
+        return foreignInfluence >= 50f ? -PlacementForeignDominantPenalty : 0;
+    }
+
+    private static float StrongestOtherCultureInfluence(
+        WorldState world,
+        int ownCultureId,
+        int planeCode,
+        int q,
+        int r)
+    {
+        var influence = 0f;
+        for (var otherCultureId = 1; otherCultureId <= world.CultureHighWatermark; otherCultureId++)
+        {
+            if (otherCultureId == ownCultureId)
+            {
+                continue;
+            }
+
+            influence = global::System.MathF.Max(
+                influence,
+                world.GetCellCultureInfluence(otherCultureId, planeCode, q, r));
+        }
+
+        return influence;
+    }
+
+    private static bool HasAdjacentCultureInfluence(
+        WorldState world,
+        int cultureId,
+        int planeCode,
+        int q,
+        int r) =>
+        world.GetCellCultureInfluence(cultureId, planeCode, q + 1, r) > 0f ||
+        world.GetCellCultureInfluence(cultureId, planeCode, q + 1, r - 1) > 0f ||
+        world.GetCellCultureInfluence(cultureId, planeCode, q, r - 1) > 0f ||
+        world.GetCellCultureInfluence(cultureId, planeCode, q - 1, r) > 0f ||
+        world.GetCellCultureInfluence(cultureId, planeCode, q - 1, r + 1) > 0f ||
+        world.GetCellCultureInfluence(cultureId, planeCode, q, r + 1) > 0f;
 
     private int TerrainBasePlacementScore(int planeCode, int producedSlot, int terrainId)
     {

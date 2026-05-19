@@ -24,6 +24,7 @@ internal sealed partial class GeneratorProgramRuntime
     private bool ResolvePlacement(
         Simulation simulation,
         int anchorEntityId,
+        int producedCultureId,
         int planeCode,
         int producedSlot,
         int producedSubtypeId,
@@ -51,6 +52,7 @@ internal sealed partial class GeneratorProgramRuntime
                 planeCode,
                 producedSlot,
                 movementProfileId,
+                producedCultureId,
                 anchorEntityId,
                 originQ,
                 originR,
@@ -67,6 +69,7 @@ internal sealed partial class GeneratorProgramRuntime
                 planeCode,
                 producedSlot,
                 movementProfileId,
+                producedCultureId,
                 originQ,
                 originR,
                 minRadius,
@@ -83,6 +86,7 @@ internal sealed partial class GeneratorProgramRuntime
     private bool ResolveProducedPlacement(
         Simulation simulation,
         int anchorEntityId,
+        int producedCultureId,
         int produced,
         int producedSubtypeId,
         out int physicalQ,
@@ -93,6 +97,7 @@ internal sealed partial class GeneratorProgramRuntime
         if (!ResolvePlacement(
                 simulation,
                 anchorEntityId,
+                producedCultureId,
                 PlaneCodes.Physical,
                 produced,
                 producedSubtypeId,
@@ -110,6 +115,7 @@ internal sealed partial class GeneratorProgramRuntime
         return ResolvePlacement(
             simulation,
             anchorEntityId,
+            producedCultureId,
             PlaneCodes.Semantic,
             produced,
             producedSubtypeId,

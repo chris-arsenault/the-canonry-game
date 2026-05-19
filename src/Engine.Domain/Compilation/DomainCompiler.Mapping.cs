@@ -382,6 +382,7 @@ public static partial class DomainCompiler
                 CompileOptionalTerrainId(produced.SemanticPlacementFallbackTerrain, terrainByName, ids),
                 refCodes[produced.PlacementRef],
                 refCodes[produced.InheritCultureFrom],
+                ToGeneratorCulturePlacement(produced.CulturePlacement),
                 produced.CreateChance,
                 CompileGeneratorCoverage(produced.Coverage, terrainByName, refCodes, ids)));
         }
@@ -629,6 +630,13 @@ public static partial class DomainCompiler
             GeneratorProgramPlacement.Locality,
             GeneratorProgramConstants.DefaultPlacementMinRadius,
             GeneratorProgramConstants.UnboundedPlacementMaxRadius),
+        _ => throw new ArgumentOutOfRangeException(nameof(placement), placement, null),
+    };
+
+    private static GeneratorProgramCulturePlacement ToGeneratorCulturePlacement(GeneratorCulturePlacement placement) => placement switch
+    {
+        GeneratorCulturePlacement.Ignore => GeneratorProgramCulturePlacement.Ignore,
+        GeneratorCulturePlacement.PreferInheritedCulture => GeneratorProgramCulturePlacement.PreferInheritedCulture,
         _ => throw new ArgumentOutOfRangeException(nameof(placement), placement, null),
     };
 

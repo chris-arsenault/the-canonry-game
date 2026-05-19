@@ -181,6 +181,8 @@ public static class EffectConditionCodes
     public const int LocalNegativeSignal = 4;
     public const int LocalCrowdingLoadSignal = 5;
     public const int LocalComfortSignal = 6;
+    public const int LocalCultureMapValue = 7;
+    public const int CultureSlotOccupancy = 8;
 }
 
 public static class RelationshipMatchDirectionCodes
@@ -222,6 +224,12 @@ public static class GeneratorCultureMatchCodes
     public const int Any = 1;
     public const int SameAsTarget = 2;
     public const int DifferentFromTarget = 3;
+}
+
+public static class GeneratorCulturePlacementCodes
+{
+    public const int Ignore = 1;
+    public const int PreferInheritedCulture = 2;
 }
 
 public static class GeneratorCoverageModeCodes

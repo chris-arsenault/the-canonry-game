@@ -79,6 +79,13 @@ Prefer narrow authored-domain tuning when the diagnosed issue is balance or
 content. Change engine runtime only when the runtime model itself is the
 diagnosed cause.
 
+New IceRemembers startup seed entity names should be generated or selected
+through `tools/NameForge` for the entity's culture, kind, and subtype. Preserve
+hand-authored names only for deliberate culture anchors or canonical lore
+figures/artifacts, not as a default shortcut. Every startup seed entity also
+needs an explicit short reference/inheritable name for generated descendants and
+provenance contexts.
+
 Do not add helpers, abstractions, tests, telemetry, docs, or architecture unless
 they are explicitly part of the approved proposal.
 

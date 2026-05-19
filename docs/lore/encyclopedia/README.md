@@ -22,6 +22,11 @@ generator outcomes.
   entries to depend on those eras remaining fixed in the final setting.
 - Leave seed-specific people, places, and artifacts for later seed entries unless
   they are needed to explain a major culture or world force.
+- New startup seed names should be generated or selected through NameForge for
+  the seed's culture, kind, and subtype. Hand-authored names are reserved for
+  deliberate culture anchors or canonical lore exceptions. Each startup seed
+  entity also needs a short reference/inheritable name for generated descendants
+  and provenance contexts.
 
 ## General Entries
 

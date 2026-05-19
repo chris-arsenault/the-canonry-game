@@ -47,6 +47,56 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
 
     public int ResolveAttributeId(string attribute) => _ids.AttributeIdOf(attribute).Value;
 
+    public int ResolveCultureId(string culture) => _ids.CultureIdOf(culture).Value;
+
+    public int ResolveCultureSlotId(string? culture, string slot, string context)
+    {
+        if (!string.IsNullOrWhiteSpace(culture))
+        {
+            foreach (var candidate in _config.Cultures)
+            {
+                if (!string.Equals(candidate.Id, culture, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                var slotId = ResolveCultureSlotId(candidate, slot);
+                if (slotId > 0)
+                {
+                    return slotId;
+                }
+
+                throw new InvalidOperationException($"{context} references unknown culture slot '{slot}' in culture '{culture}'.");
+            }
+
+            throw new InvalidOperationException($"{context} references unknown culture '{culture}'.");
+        }
+
+        var resolved = 0;
+        var resolvedCulture = string.Empty;
+        foreach (var candidate in _config.Cultures)
+        {
+            var slotId = ResolveCultureSlotId(candidate, slot);
+            if (slotId <= 0)
+            {
+                continue;
+            }
+
+            if (resolved > 0)
+            {
+                throw new InvalidOperationException(
+                    $"{context} references ambiguous culture slot '{slot}' in cultures '{resolvedCulture}' and '{candidate.Id}'.");
+            }
+
+            resolved = slotId;
+            resolvedCulture = candidate.Id;
+        }
+
+        return resolved > 0
+            ? resolved
+            : throw new InvalidOperationException($"{context} references unknown culture slot '{slot}'.");
+    }
+
     public int ResolveTraitId(string trait) => _ids.TraitIdOf(trait).Value;
 
     public bool TerrainExists(string terrain) =>
@@ -231,6 +281,21 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
 
     private string VerbPlane(LowAltitudeVerbConfig verb) =>
         verb.Plane ?? PlaneName(_config.Kinds[ResolveKind(verb.Kind, $"Low-altitude verb '{verb.Id}' kind")].PrimaryPlane);
+
+    private static int ResolveCultureSlotId(CultureConfig culture, string slot)
+    {
+        var slotId = 0;
+        foreach (var candidate in culture.Slots)
+        {
+            slotId++;
+            if (string.Equals(candidate.Id, slot, StringComparison.Ordinal))
+            {
+                return slotId;
+            }
+        }
+
+        return 0;
+    }
 
     private void AddGambitRelationshipAffordances(
         List<AffordanceDefinition> affordances,

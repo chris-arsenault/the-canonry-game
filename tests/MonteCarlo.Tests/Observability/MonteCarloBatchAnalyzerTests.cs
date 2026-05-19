@@ -563,6 +563,29 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, PlaneCodes.Semantic, seed.OceanTerrainId, 8, 0, 0));
         batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 12, 0, 0, 2, PlaneCodes.Physical, 2, 0, 0f, 18f, 18f));
         batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 13, 0, 0, 2, PlaneCodes.Physical, 3, 0, 0f, 12f, 12f));
+        batch.CellCultureInfluenceEvents.Add(new CellCultureInfluenceEventRow(
+            seed.RunId,
+            12,
+            0,
+            seed.CultureId,
+            PlaneCodes.Physical,
+            2,
+            0,
+            0f,
+            100f,
+            100f));
+        batch.CellCultureInfluenceEvents.Add(new CellCultureInfluenceEventRow(
+            seed.RunId,
+            13,
+            0,
+            seed.CultureId,
+            PlaneCodes.Physical,
+            3,
+            0,
+            0f,
+            100f,
+            100f));
+        AddCultureSlotTelemetry(batch, seed);
         batch.CellRoadEvents.Add(new CellRoadEventRow(seed.RunId, 20, 0, PlaneCodes.Physical, 1, 0, 1, 0f, 30f, 30f));
         batch.CellRoadEvents.Add(new CellRoadEventRow(seed.RunId, 22, 0, PlaneCodes.Physical, 1, 0, 2, 30f, 48f, 18f));
         batch.CellRoadEvents.Add(new CellRoadEventRow(seed.RunId, 23, 0, PlaneCodes.Semantic, 1, 0, 1, 0f, 28f, 28f));
@@ -586,6 +609,21 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             description.Id,
             reason.Id,
             true));
+    }
+
+    private static void AddCultureSlotTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)
+    {
+        batch.CultureSlotOccupancyEvents.Add(new CultureSlotOccupancyEventRow(
+            seed.RunId,
+            18,
+            0,
+            seed.CultureId,
+            SlotId: 7,
+            PolarityCode: RelationshipPolarityCodes.Positive,
+            PreviousEntityId: 0,
+            CurrentEntityId: 2,
+            PreviousScore: 0f,
+            CurrentScore: 4.5f));
     }
 
     private static void AddLifecycleTelemetry(TelemetryBatch batch, SyntheticBatchSeed seed)

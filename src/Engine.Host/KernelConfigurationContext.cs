@@ -184,7 +184,10 @@ internal sealed class KernelConfigurationContext
         float minimumRelationshipStrength,
         float deltaPerTick,
         int requiredTargetTraitId = 0,
-        int requiredRelatedTraitId = 0) =>
+        int requiredRelatedTraitId = 0,
+        int cultureId = 0,
+        int cultureSlotId = 0,
+        int cultureSlotPolarityCode = -1) =>
         _kernel.Effects.RegisterAttributeDeltaEffect(
             kindId,
             attributeId.Value,
@@ -197,7 +200,10 @@ internal sealed class KernelConfigurationContext
             minimumRelationshipStrength,
             deltaPerTick,
             requiredTargetTraitId,
-            requiredRelatedTraitId);
+            requiredRelatedTraitId,
+            cultureId,
+            cultureSlotId,
+            cultureSlotPolarityCode);
 
     public int RegisterCultureSlot(
         int cultureId,
@@ -568,7 +574,8 @@ internal sealed class KernelConfigurationContext
         int physicalPlacementMinRadius,
         int physicalPlacementMaxRadius,
         int semanticPlacementMinRadius,
-        int semanticPlacementMaxRadius) =>
+        int semanticPlacementMaxRadius,
+        int culturePlacementCode) =>
         _kernel.Generators.AddProduced(
             generatorSlot,
             refCode,
@@ -593,7 +600,8 @@ internal sealed class KernelConfigurationContext
             physicalPlacementMinRadius,
             physicalPlacementMaxRadius,
             semanticPlacementMinRadius,
-            semanticPlacementMaxRadius);
+            semanticPlacementMaxRadius,
+            culturePlacementCode);
 
     public void AddGeneratorProducedSubtypeChoice(int producedSlot, int subtypeId) =>
         _kernel.Generators.AddProducedSubtypeChoice(producedSlot, subtypeId);

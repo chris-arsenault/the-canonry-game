@@ -55,6 +55,47 @@ public sealed class LowAltitudePhysicsProgramTests
     }
 
     [Fact]
+    public void LowAltitudeVerbProgram_MovementCanLeaveOwnedInfluenceOnTravelPath()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 31 });
+        const int terrainId = 1;
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        const int verbId = 90;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(1);
+        SeedPhysicalNeighborhood(simulation, terrainId);
+        var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 1, 0, 0, 0, 0, tick: 0);
+        var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
+            actorKindId,
+            verbId,
+            PlaneCodes.Physical,
+            ProgramOpcodeCodes.MoveActor,
+            TargetSelectorCodes.EntityKind,
+            targetKindId,
+            relationshipKindId: 0,
+            relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
+            minCommitmentTicks: 3,
+            maxCommitmentTicks: 3,
+            dwellTicks: 0,
+            targetRadius: 0,
+            candidateSampleCount: 1,
+            weight: 1f,
+            influenceDelta: 2f,
+            influenceRadius: 0,
+            coverageGrowthChance: 0f,
+            headquartersMoveChance: 0f,
+            requiredInfluence: 0f);
+        AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.MoveActor);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal((1, 0), (simulation.World.EntityPhysicalQ(actorId), simulation.World.EntityPhysicalR(actorId)));
+        Assert.Equal(2f, simulation.World.GetCellInfluence(actorId, PlaneCodes.Physical, 1, 0));
+    }
+
+    [Fact]
     public void LowAltitudeVerbProgram_SemanticMovementUsesWorldMapRadius()
     {
         var simulation = new Simulation(new SimulationOptions { Seed = 29 });

@@ -183,11 +183,45 @@ public static class GameplayValidator
                 $"Low-altitude verb '{verb.Id}' operation '{verb.Operation}' requires positive influence delta."));
         }
 
-        if (!shape.RequiresInfluenceDelta && (verb.InfluenceDelta != 0f || verb.InfluenceRadius != 0))
+        if (!shape.RequiresInfluenceDelta &&
+            !shape.AllowsOptionalInfluenceDelta &&
+            (verb.InfluenceDelta != 0f || verb.InfluenceRadius != 0))
         {
             errors.Add(new GameplayValidationError(
                 "InvalidInfluenceFields",
                 $"Low-altitude verb '{verb.Id}' operation '{verb.Operation}' cannot carry influence delta/radius fields."));
+        }
+
+        if (shape.AllowsOptionalInfluenceDelta)
+        {
+            ValidateOptionalInfluenceDelta(verb, errors);
+        }
+    }
+
+    private static void ValidateOptionalInfluenceDelta(
+        LowAltitudeVerbConfig verb,
+        List<GameplayValidationError> errors)
+    {
+        if (verb.InfluenceDelta < 0f)
+        {
+            errors.Add(new GameplayValidationError(
+                "InvalidInfluenceFields",
+                $"Low-altitude verb '{verb.Id}' operation '{verb.Operation}' cannot carry negative influence delta."));
+        }
+
+        if (verb.InfluenceRadius < 0)
+        {
+            errors.Add(new GameplayValidationError(
+                "InvalidInfluenceFields",
+                $"Low-altitude verb '{verb.Id}' operation '{verb.Operation}' cannot carry negative influence radius."));
+        }
+
+        if (verb.InfluenceDelta == 0f &&
+            verb.InfluenceRadius != 0)
+        {
+            errors.Add(new GameplayValidationError(
+                "InvalidInfluenceFields",
+                $"Low-altitude verb '{verb.Id}' operation '{verb.Operation}' cannot carry influence radius without influence delta."));
         }
     }
 

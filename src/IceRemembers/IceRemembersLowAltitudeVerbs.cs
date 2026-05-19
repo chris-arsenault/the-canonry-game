@@ -72,15 +72,19 @@ public static partial class IceRemembersDefinition
         MovementVerb(Verb.PointOfInterestYieldBounty, "Yield Bounty", K.PointOfInterest, Mode.Terrain,
             terrains: MaritimeTerrains(), ticks: (50, 140), dwell: 16, radius: 1, samples: 20, weight: 0.5f, opportunityBonusOverride: 0.4f),
         MovementVerb(Verb.TransportSailTheShelf, "Sail the Shelf", K.Transport, Mode.Terrain,
-            terrains: MaritimeTerrains(), ticks: (35, 110), dwell: 12, radius: 1, samples: 28, weight: 1.0f, opportunityBonusOverride: 0.4f),
+            terrains: MaritimeTerrains(), ticks: (35, 110), dwell: 12, radius: 1, samples: 28, weight: 1.0f, opportunityBonusOverride: 0.4f,
+            travelInfluence: (0.6f, 0)),
         MovementVerb(Verb.TransportMakePort, "Make Port", K.Transport, Mode.EntityKind,
             targetKind: K.Settlement, ticks: (35, 110), dwell: 18, radius: 1, samples: 12, weight: 0.85f, opportunityBonusOverride: 0.6f,
-            fitnessRelationshipKind: L(Rel.Holds), fitnessDirection: LowAltitudeVerbRelationshipDirection.Incoming, fitnessWeight: 1.5f),
+            fitnessRelationshipKind: L(Rel.Holds), fitnessDirection: LowAltitudeVerbRelationshipDirection.Incoming, fitnessWeight: 1.5f,
+            travelInfluence: (0.6f, 0)),
         MovementVerb(Verb.TransportPatrolTheReach, "Patrol the Reach", K.Transport, Mode.Explore,
-            ticks: (45, 130), dwell: 8, samples: 24, weight: 0.9f, opportunityBonusOverride: 0.3f),
+            ticks: (45, 130), dwell: 8, samples: 24, weight: 0.9f, opportunityBonusOverride: 0.3f,
+            travelInfluence: (0.6f, 0)),
         MovementVerb(Verb.TransportAnswerTheCaptain, "Answer the Captain", K.Transport, Mode.RelationshipTarget,
             relationshipKind: L(Rel.Holds), ticks: (25, 75), dwell: 14, radius: 1, weight: 0.55f, opportunityBonusOverride: 0.5f,
-            fitnessRelationshipKind: L(Rel.Holds), fitnessDirection: LowAltitudeVerbRelationshipDirection.Incoming, fitnessWeight: 1.7f),
+            fitnessRelationshipKind: L(Rel.Holds), fitnessDirection: LowAltitudeVerbRelationshipDirection.Incoming, fitnessWeight: 1.7f,
+            travelInfluence: (0.6f, 0)),
     ];
 
     private static IReadOnlyList<LowAltitudeVerbConfig> CreateSemanticMovementVerbs() =>
@@ -131,6 +135,7 @@ public static partial class IceRemembersDefinition
     private static IReadOnlyList<LowAltitudeVerbConfig> CreateRelationshipStrengthMutationVerbs() =>
     [
         ..CreateAgencyAndPracticeStrengthVerbs(),
+        ..CreateCulturalContinuityStrengthVerbs(),
         ..CreatePointOfInterestClaimStrengthVerbs(),
         ..CreateRecoveryAndConduitStrengthVerbs(),
         ..CreateMonsterAndOccurrenceStrengthVerbs(),
@@ -174,6 +179,37 @@ public static partial class IceRemembersDefinition
         RelationshipStrengthVerb(Verb.PenguinPressMonsterHunt, "Press Monster Hunt", K.Penguin, L(Rel.AtWarWith),
             LowAltitudeVerbRelationshipDirection.Either, ticks: (32, 95), dwell: 10, delta: 0.0038f, radius: 1, samples: 12,
             weight: 0.42f, opportunityBonusOverride: 0.46f, fitnessWeight: 0.76f, plane: PrimaryPlane.Semantic),
+    ];
+
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreateCulturalContinuityStrengthVerbs() =>
+    [
+        RelationshipStrengthVerb(Verb.SettlementRenewCharter, "Renew Charter", K.Settlement, L(Rel.ControlledBy),
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 105), dwell: 12, delta: 0.0040f, radius: 1, samples: 12,
+            weight: 0.44f, opportunityBonusOverride: 0.50f, fitnessWeight: 0.8f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.PointOfInterestHoldControlMark, "Hold the Control Mark", K.PointOfInterest, L(Rel.ControlledBy),
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 105), dwell: 12, delta: 0.0038f, radius: 1, samples: 10,
+            weight: 0.40f, opportunityBonusOverride: 0.46f, fitnessWeight: 0.78f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.FactionTendSeatControl, "Tend Seat Control", K.Faction, L(Rel.ControlledBy),
+            LowAltitudeVerbRelationshipDirection.Incoming, ticks: (35, 105), dwell: 12, delta: 0.0038f, radius: 1, samples: 10,
+            weight: 0.40f, opportunityBonusOverride: 0.46f, fitnessWeight: 0.78f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.ArtifactHoldItsAnchor, "Hold Its Anchor", K.Artifact, L(Rel.Anchored),
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 105), dwell: 12, delta: 0.0036f, radius: 1, samples: 10,
+            weight: 0.40f, opportunityBonusOverride: 0.44f, fitnessWeight: 0.76f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.RegionKeepMemorial, "Keep Memorial", K.Region, L(Rel.Memorializes),
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (40, 120), dwell: 14, delta: 0.0034f, radius: 1, samples: 10,
+            weight: 0.36f, opportunityBonusOverride: 0.40f, fitnessWeight: 0.72f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.OccurrenceHoldAssembly, "Hold Assembly", K.Occurrence, L(Rel.MemberOf),
+            LowAltitudeVerbRelationshipDirection.Incoming, ticks: (35, 105), dwell: 12, delta: 0.0040f, radius: 1, samples: 12,
+            weight: 0.44f, opportunityBonusOverride: 0.48f, fitnessWeight: 0.8f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.PenguinKeepTheOath, "Keep the Oath", K.Penguin, L(Rel.MemberOf),
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 100), dwell: 10, delta: 0.0036f, radius: 1, samples: 10,
+            weight: 0.38f, opportunityBonusOverride: 0.42f, fitnessWeight: 0.75f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.PenguinCarryMandate, "Carry Mandate", K.Penguin, L(Rel.LedBy),
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 100), dwell: 10, delta: 0.0037f, radius: 1, samples: 10,
+            weight: 0.36f, opportunityBonusOverride: 0.42f, fitnessWeight: 0.75f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.OrcaCarryOldVoice, "Carry Old Voice", K.Orca, L(Rel.LedBy),
+            LowAltitudeVerbRelationshipDirection.Incoming, ticks: (35, 100), dwell: 10, delta: 0.0037f, radius: 1, samples: 10,
+            weight: 0.36f, opportunityBonusOverride: 0.42f, fitnessWeight: 0.75f, plane: PrimaryPlane.Semantic),
     ];
 
     private static IReadOnlyList<LowAltitudeVerbConfig> CreateRecoveryAndConduitStrengthVerbs() =>
@@ -421,6 +457,7 @@ public static partial class IceRemembersDefinition
         string? fitnessRelationshipKind = null,
         LowAltitudeVerbRelationshipDirection fitnessDirection = LowAltitudeVerbRelationshipDirection.Either,
         float fitnessWeight = 0f,
+        (float Delta, int Radius)? travelInfluence = null,
         PrimaryPlane plane = PrimaryPlane.Physical) =>
         new()
         {
@@ -442,6 +479,8 @@ public static partial class IceRemembersDefinition
             FitnessRelationshipKind = fitnessRelationshipKind,
             FitnessRelationshipDirection = fitnessDirection,
             FitnessWeight = fitnessWeight,
+            TravelInfluenceDelta = travelInfluence?.Delta ?? 0f,
+            TravelInfluenceRadius = travelInfluence?.Radius ?? 0,
         };
 
     private static int ScaleMovementTicks(int ticks) => ticks * MovementCommitmentScale;

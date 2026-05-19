@@ -70,6 +70,48 @@ public sealed class GeneratorProgramRuntimeTests
     }
 
     [Fact]
+    public void SlotFillingGeneratorsReceivePulseSelectionWeightBonus()
+    {
+        const int slotFillingKindId = 3;
+        const int slotFillingSubtypeId = 12;
+        var simulation = CreateSimulation(seed: 5);
+        SeedMap(simulation);
+        CreateTarget(simulation);
+
+        RegisterGeneratorWithProduced(
+            simulation,
+            generatorId: 101,
+            createdKindId: CreatedKindId,
+            createdSubtypeId: CreatedSubtypeId,
+            pulseWeight: 5);
+        RegisterGeneratorWithProduced(
+            simulation,
+            generatorId: 102,
+            createdKindId: slotFillingKindId,
+            createdSubtypeId: slotFillingSubtypeId,
+            pulseWeight: 1);
+        var slot = simulation.CultureSlots.RegisterSlot(
+            CultureId,
+            slotId: 1,
+            RelationshipPolarityCodes.Positive,
+            minimumScore: 0.5f,
+            minimumTenureTicks: 0,
+            displacementMargin: 0f,
+            entityInfluenceMultiplierDelta: 0f,
+            cultureInfluenceMultiplierDelta: 0f);
+        simulation.CultureSlots.AddAllowedKind(slot, slotFillingKindId);
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.ActiveEntity, relationshipKindId: 0, weight: 1f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(slotFillingKindId, simulation.World.EntityKindId(2));
+
+        simulation.AdvanceTicks(9);
+
+        Assert.Equal(2, simulation.CultureSlots.OccupantEntityId(CultureId, slotId: 1));
+    }
+
+    [Fact]
     public void Snapshot_RestoresPulseBudget()
     {
         var simulation = CreateSimulation(pulseWidthTicks: 3, firesPerPulse: 1);
@@ -660,6 +702,42 @@ public sealed class GeneratorProgramRuntimeTests
         }
 
         return slot;
+    }
+
+    private static void RegisterGeneratorWithProduced(
+        Simulation simulation,
+        int generatorId,
+        int createdKindId,
+        int createdSubtypeId,
+        int pulseWeight)
+    {
+        var slot = simulation.Generators.RegisterGenerator(
+            generatorId,
+            TargetKindId,
+            pulseWeight,
+            maxRuns: 0);
+        simulation.Generators.AddTrigger(slot, TargetKindId);
+        simulation.Generators.AddProduced(
+            slot,
+            CreatedRef,
+            createdKindId,
+            createdSubtypeId,
+            createIfMissing: 1,
+            hasQuery: 0,
+            queryAdjacentToTarget: 0,
+            queryCultureMatchCode: GeneratorCultureMatchCodes.Any,
+            physicalPlacementCode: GeneratorPlacementCodes.Area,
+            semanticPlacementCode: GeneratorPlacementCodes.Area,
+            placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
+            cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
+            createChance: 1f,
+            coverageModeCode: GeneratorCoverageModeCodes.None,
+            coverageSourceRefCode: 0,
+            coverageDesiredCellCount: 0,
+            coverageMinimumCellCount: 0,
+            coverageMinimumSourceRemainingCellCount: 0,
+            coverageRespectTerrainBoundaries: 0,
+            coverageTransformTerrainId: 0);
     }
 
     private static void AddProducedEntity(Simulation simulation, int generatorSlot, float createChance)

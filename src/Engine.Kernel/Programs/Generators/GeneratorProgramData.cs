@@ -70,6 +70,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] ProducedPlacementFallbackTerrainIds = [];
     internal int[] ProducedPlacementRefCodes = [];
     internal int[] ProducedCultureRefCodes = [];
+    internal int[] ProducedCulturePlacementCodes = [];
     internal float[] ProducedCreateChances = [];
     internal int[] ProducedSubtypeChoiceStarts = [];
     internal int[] ProducedSubtypeChoiceCounts = [];
@@ -231,6 +232,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         InitializeProducedPlacementTerrainArrays(itemCapacity);
         ProducedPlacementRefCodes = new int[itemCapacity + 1];
         ProducedCultureRefCodes = new int[itemCapacity + 1];
+        ProducedCulturePlacementCodes = new int[itemCapacity + 1];
         ProducedCreateChances = new float[itemCapacity + 1];
         ProducedSubtypeChoiceStarts = new int[itemCapacity + 1];
         ProducedSubtypeChoiceCounts = new int[itemCapacity + 1];

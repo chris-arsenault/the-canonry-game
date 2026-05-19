@@ -16,6 +16,9 @@ internal sealed partial class EffectsProgramData : IKernelProgramData
     internal readonly float[] AttributeDeltaDeltas;
     internal readonly int[] AttributeDeltaRequiredTargetTraitIds;
     internal readonly int[] AttributeDeltaRequiredRelatedTraitIds;
+    internal readonly int[] AttributeDeltaCultureIds;
+    internal readonly int[] AttributeDeltaCultureSlotIds;
+    internal readonly int[] AttributeDeltaCultureSlotPolarityCodes;
     internal int AttributeDeltaRuleCount;
 
     public EffectsProgramData(int effectRuleCapacity)
@@ -33,9 +36,12 @@ internal sealed partial class EffectsProgramData : IKernelProgramData
         AttributeDeltaDeltas = new float[effectRuleCapacity + 1];
         AttributeDeltaRequiredTargetTraitIds = new int[effectRuleCapacity + 1];
         AttributeDeltaRequiredRelatedTraitIds = new int[effectRuleCapacity + 1];
+        AttributeDeltaCultureIds = new int[effectRuleCapacity + 1];
+        AttributeDeltaCultureSlotIds = new int[effectRuleCapacity + 1];
+        AttributeDeltaCultureSlotPolarityCodes = new int[effectRuleCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.Effects;
 
-    public int SchemaVersion => 1;
+    public int SchemaVersion => 2;
 }

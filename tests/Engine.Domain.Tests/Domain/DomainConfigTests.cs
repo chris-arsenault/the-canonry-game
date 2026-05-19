@@ -325,6 +325,9 @@ public class DomainConfigTests
             .ToHashSet();
 
         Assert.Contains(produced, item => item.Id == "pod_currents_launch_scouts" &&
+            item.Kind == IceRemembersKinds.Orca &&
+            item.Subtype == "scout");
+        Assert.Contains(produced, item => item.Id == "pod_currents_launch_scouts" &&
             item.Kind == IceRemembersKinds.Transport &&
             item.Subtype == "scout");
         Assert.Contains(produced, item => item.Id == "pod_currents_launch_scouts" &&
@@ -401,13 +404,13 @@ public class DomainConfigTests
         var orcas = Assert.Single(generators, generator => generator.Id == "pod_currents_launch_scouts");
         Assert.Equal(IceRemembersKinds.Orca, orcas.Target.Kind);
         Assert.Contains(Rel.HomeBase.ToDomainName(), orcas.Target.RequiredOutgoingRelationships!);
-        Assert.Contains(Rel.ClaimedBy.ToDomainName(), orcas.Target.WithoutIncomingRelationships!);
+        Assert.Contains(Rel.MemberOf.ToDomainName(), orcas.Target.WithoutIncomingRelationships!);
         Assert.Contains(orcas.Relationships, relationship =>
-            relationship.SourceRef == "$skiff" &&
+            relationship.SourceRef == "$scout" &&
             relationship.DestinationRef == "$target" &&
-            relationship.Kind == Rel.ClaimedBy.ToDomainName());
+            relationship.Kind == Rel.MemberOf.ToDomainName());
         Assert.Contains(orcas.Relationships, relationship =>
-            relationship.SourceRef == "$target" &&
+            relationship.SourceRef == "$scout" &&
             relationship.DestinationRef == "$skiff" &&
             relationship.Kind == Rel.Holds.ToDomainName());
         Assert.Contains(orcas.Relationships, relationship =>

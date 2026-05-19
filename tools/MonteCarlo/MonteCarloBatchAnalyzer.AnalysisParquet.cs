@@ -116,7 +116,9 @@ internal sealed partial class MonteCarloBatchAnalyzer
             SELECT 22, COUNT(*) FROM raw_lifecycle_reason_events UNION ALL
             SELECT 23, COUNT(*) FROM raw_cell_influence_events UNION ALL
             SELECT 24, COUNT(*) FROM raw_gambit_events UNION ALL
-            SELECT 25, COUNT(*) FROM raw_cell_road_events
+            SELECT 25, COUNT(*) FROM raw_cell_road_events UNION ALL
+            SELECT 26, COUNT(*) FROM raw_cell_culture_influence_events UNION ALL
+            SELECT 27, COUNT(*) FROM raw_culture_slot_occupancy_events
         ),
         features(feature_code, source_table_code) AS (
             VALUES
@@ -124,7 +126,8 @@ internal sealed partial class MonteCarloBatchAnalyzer
                 (6, 6), (7, 7), (8, 8), (9, 9), (10, 10),
                 (11, 11), (12, 12), (13, 13), (14, 14), (15, 15),
                 (16, 16), (17, 17), (18, 18), (19, 19), (20, 20),
-                (21, 21), (22, 22), (23, 23), (24, 24), (25, 25)
+                (21, 21), (22, 22), (23, 23), (24, 24), (25, 25),
+                (26, 26), (27, 27)
         )
         SELECT
             feature_code,

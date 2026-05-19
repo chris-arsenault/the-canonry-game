@@ -320,6 +320,32 @@ public sealed class WorldStateIndexTests
     }
 
     [Fact]
+    public void CultureSlotBenefitReweightsExistingCultureInfluence()
+    {
+        var simulation = CreateSimulation();
+        var aurora = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        var wake = simulation.CreateEntity(1, 1, 2, 0, 1, 0, 0, 0, 0);
+        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+        simulation.SetCellInfluence(wake, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+        var slot = simulation.CultureSlots.RegisterSlot(
+            cultureId: 1,
+            slotId: 1,
+            polarityCode: RelationshipPolarityCodes.Positive,
+            minimumScore: 0.5f,
+            minimumTenureTicks: 0,
+            displacementMargin: 0f,
+            entityInfluenceMultiplierDelta: 1f,
+            cultureInfluenceMultiplierDelta: 0f);
+        simulation.CultureSlots.AddAllowedKind(slot, 1);
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.ActiveEntity, relationshipKindId: 0, weight: 1f);
+
+        simulation.AdvanceTicks(10);
+
+        Assert.Equal(66.667f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(33.333f, simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0), precision: 3);
+    }
+
+    [Fact]
     public void CultureInfluenceRollupRemovesHistoricalEntityContribution()
     {
         var simulation = CreateSimulation();

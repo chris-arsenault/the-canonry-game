@@ -344,6 +344,15 @@ public enum IceRemembersVerbId
     TransportTightenTheWard,
     OrcaPressRouteWar,
     PenguinPressMonsterHunt,
+    PointOfInterestHoldControlMark,
+    SettlementRenewCharter,
+    ArtifactHoldItsAnchor,
+    RegionKeepMemorial,
+    OccurrenceHoldAssembly,
+    PenguinKeepTheOath,
+    PenguinCarryMandate,
+    OrcaCarryOldVoice,
+    FactionTendSeatControl,
 }
 
 public static class IceRemembersVerbIdExtensions
@@ -501,6 +510,15 @@ public static class IceRemembersVerbIdExtensions
         "transport_tighten_the_ward",
         "orca_press_route_war",
         "penguin_press_monster_hunt",
+        "point_of_interest_hold_control_mark",
+        "settlement_renew_charter",
+        "artifact_hold_its_anchor",
+        "region_keep_memorial",
+        "occurrence_hold_assembly",
+        "penguin_keep_the_oath",
+        "penguin_carry_mandate",
+        "orca_carry_old_voice",
+        "faction_tend_seat_control",
     ];
 
     public static string ToVerbId(this IceRemembersVerbId verbId)

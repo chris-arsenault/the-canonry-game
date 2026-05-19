@@ -12,14 +12,14 @@ internal static partial class IceRemembersSeedBuilder
 {
     private static Dictionary<string, MapCoverage> CreateRegionEntities(SeedAssembly seed)
     {
-        var northlands = new MapCoverage("Northlands",
-            CreateEntity(seed, K.Region, "face", "Northlands", C(IceRemembersCulture.TheIce)).SeedEntityId);
-        var heartlands = new MapCoverage("Heartlands",
-            CreateEntity(seed, K.Region, "reach", "Heartlands", C(IceRemembersCulture.TheIce)).SeedEntityId);
-        var coastlands = new MapCoverage("Coastlands",
-            CreateEntity(seed, K.Region, "shelf", "Coastlands", C(IceRemembersCulture.TheIce)).SeedEntityId);
-        var farwake = new MapCoverage("Farwake",
-            CreateEntity(seed, K.Region, "sea", "Farwake", C(IceRemembersCulture.TheIce)).SeedEntityId);
+        var northlands = new MapCoverage("Haakkaa, Where The Ice Returns",
+            CreateEntity(seed, K.Region, "face", "Haakkaa, Where The Ice Returns", "Haakkaa", C(IceRemembersCulture.TheIce)).SeedEntityId);
+        var heartlands = new MapCoverage("Ha'rroothoor, Where The Ice Waits",
+            CreateEntity(seed, K.Region, "reach", "Ha'rroothoor, Where The Ice Waits", "Ha'rroothoor", C(IceRemembersCulture.TheIce)).SeedEntityId);
+        var coastlands = new MapCoverage("Thookarraa, The Ledge",
+            CreateEntity(seed, K.Region, "shelf", "Thookarraa, The Ledge", "Thookarraa", C(IceRemembersCulture.TheIce)).SeedEntityId);
+        var farwake = new MapCoverage("Undertow Thoomvlu, Where Blackwater Answers",
+            CreateEntity(seed, K.Region, "sea", "Undertow Thoomvlu, Where Blackwater Answers", "Thoomvlu", C(IceRemembersCulture.TheIce)).SeedEntityId);
 
         return new Dictionary<string, MapCoverage>(StringComparer.Ordinal)
         {
@@ -62,9 +62,10 @@ internal static partial class IceRemembersSeedBuilder
 
         CreateOrcas(seed, random, takenPhysical, takenSemantic, factions.WakeSingers);
         CreatePointsOfInterest(seed, random, takenPhysical, takenSemantic);
+        var wakeReefhold = CreateWakeReefhold(seed, random, takenPhysical, takenSemantic, factions.WakeSingers);
         CreateAbilities(seed, random, takenPhysical, takenSemantic, regions);
-        CreateTransports(seed, random, takenPhysical, takenSemantic, coreSettlements, factions);
-        CreateOccurrences(seed, random, takenPhysical, takenSemantic, coreSettlements);
+        CreateTransports(seed, random, takenPhysical, takenSemantic, coreSettlements, factions, wakeReefhold);
+        CreateOccurrences(seed, random, takenPhysical, takenSemantic, coreSettlements, wakeReefhold);
 
         CreateLeadershipRelationships(seed, factions);
         CreateCanonicalLinks(seed, random, takenPhysical, takenSemantic, factions);
@@ -77,8 +78,8 @@ internal static partial class IceRemembersSeedBuilder
         HashSet<SemanticHexCoord> takenSemantic,
         (SeedEntity Council, SeedEntity Exchange, SeedEntity Claws, SeedEntity WakeSingers) factions)
     {
-        var hollows = FindEntityByName(seed, "Keeper Hollows");
-        var drownedLedge = FindEntityByName(seed, "The Drowned Ledge");
+        var hollows = FindEntityByName(seed, "Smokeheld Luscoa☽");
+        var drownedLedge = FindEntityByName(seed, "Codex∴lockhold");
         CreateRelationship(seed, "home_base", RelationshipPolarity.Neutral, hollows.SeedEntityId, drownedLedge.SeedEntityId, 1f);
 
         var hollowsChartCoord = ChoosePhysicalCoordinate(
@@ -93,18 +94,19 @@ internal static partial class IceRemembersSeedBuilder
             searchRadius: 4);
         var hollowsChart = CreateEntity(
             seed,
-            K.Artifact, "tome", "The Hollows Chart", C(IceRemembersCulture.Nightshelf),
+            K.Artifact, "tome", "The Silence-fed Compendium", "Compendium", C(IceRemembersCulture.Nightshelf),
             coordinates: (hollowsChartCoord.Q, hollowsChartCoord.R));
         takenPhysical.Add(hollowsChartCoord);
         SetSemanticNaturalNear(seed, hollowsChart, drownedLedge, random, takenSemantic, searchRadius: 10);
         CreateRelationship(seed, "anchored", RelationshipPolarity.Neutral, hollowsChart.SeedEntityId, drownedLedge.SeedEntityId, 1f);
         CreateRelationship(seed, "holds", RelationshipPolarity.Neutral, hollows.SeedEntityId, hollowsChart.SeedEntityId, 1f);
 
-        var corpseCurrent = FindEntityByName(seed, "The Corpse Current");
+        var corpseCurrent = FindEntityByName(seed, "Gulletbloom");
         CreateRelationship(seed, "controlled_by", RelationshipPolarity.Neutral, corpseCurrent.SeedEntityId, factions.WakeSingers.SeedEntityId, 1f);
+        CreateRelationship(seed, "claimed_by", RelationshipPolarity.Neutral, corpseCurrent.SeedEntityId, factions.WakeSingers.SeedEntityId, 0.88f);
 
         var grandmotherDeep = FindEntityByName(seed, "Grandmother Deep");
-        var tidescream = FindEntityByName(seed, "Tidescream");
+        var tidescream = FindEntityByName(seed, "Khrarnd Grendbrund");
         CreateRelationship(seed, "home_base", RelationshipPolarity.Neutral, grandmotherDeep.SeedEntityId, corpseCurrent.SeedEntityId, 1f);
         CreateRelationship(seed, "home_base", RelationshipPolarity.Neutral, tidescream.SeedEntityId, corpseCurrent.SeedEntityId, 1f);
 
@@ -120,7 +122,7 @@ internal static partial class IceRemembersSeedBuilder
             searchRadius: 4);
         var dreamingTooth = CreateEntity(
             seed,
-            K.Artifact, "relic", "The Dreaming Tooth", C(IceRemembersCulture.WakeSingers),
+            K.Artifact, "relic", "Firstkilltooth Of Grund", "Firstkilltooth", C(IceRemembersCulture.WakeSingers),
             coordinates: (dreamingToothCoord.Q, dreamingToothCoord.R));
         takenPhysical.Add(dreamingToothCoord);
         SetSemanticNaturalNear(seed, dreamingTooth, corpseCurrent, random, takenSemantic, searchRadius: 12);
@@ -287,7 +289,7 @@ internal static partial class IceRemembersSeedBuilder
             seed,
             random,
             takenPhysical,
-            "Nightfall Shelf",
+            "Nightshelf",
             "harbor",
             C(IceRemembersCulture.Nightshelf),
             6,
@@ -297,7 +299,7 @@ internal static partial class IceRemembersSeedBuilder
             seed,
             random,
             takenPhysical,
-            "The Drowned Ledge",
+            "Codex∴lockhold",
             "holdfast",
             C(IceRemembersCulture.Nightshelf),
             6,
@@ -307,7 +309,7 @@ internal static partial class IceRemembersSeedBuilder
             seed,
             random,
             takenPhysical,
-            "The Still Pools",
+            "The Heihua Rampart Hearth (frost)",
             "sanctuary",
             C(IceRemembersCulture.AuroraStack),
             14,
@@ -350,10 +352,10 @@ internal static partial class IceRemembersSeedBuilder
         Random random,
         HashSet<SemanticHexCoord> takenSemantic)
     {
-        var auroraStack = CreateEntity(seed, K.Settlement, "rookery", "Aurora Stack", C(IceRemembersCulture.AuroraStack), (coords.AuroraStack.Q, coords.AuroraStack.R));
-        var nightfallShelf = CreateEntity(seed, K.Settlement, "harbor", "Nightfall Shelf", C(IceRemembersCulture.Nightshelf), (coords.NightfallShelf.Q, coords.NightfallShelf.R));
-        var drownedLedge = CreateEntity(seed, K.Settlement, "holdfast", "The Drowned Ledge", C(IceRemembersCulture.Nightshelf), (coords.DrownedLedge.Q, coords.DrownedLedge.R));
-        var stillPools = CreateEntity(seed, K.Settlement, "sanctuary", "The Still Pools", C(IceRemembersCulture.AuroraStack), (coords.StillPools.Q, coords.StillPools.R));
+        var auroraStack = CreateEntity(seed, K.Settlement, "rookery", "Aurora Stack", "Aurora", C(IceRemembersCulture.AuroraStack), (coords.AuroraStack.Q, coords.AuroraStack.R));
+        var nightfallShelf = CreateEntity(seed, K.Settlement, "harbor", "Nightshelf", "Nightshelf", C(IceRemembersCulture.Nightshelf), (coords.NightfallShelf.Q, coords.NightfallShelf.R));
+        var drownedLedge = CreateEntity(seed, K.Settlement, "holdfast", "Codex∴lockhold", "Codex", C(IceRemembersCulture.Nightshelf), (coords.DrownedLedge.Q, coords.DrownedLedge.R));
+        var stillPools = CreateEntity(seed, K.Settlement, "sanctuary", "The Heihua Rampart Hearth (frost)", "Heihua Hearth", C(IceRemembersCulture.AuroraStack), (coords.StillPools.Q, coords.StillPools.R));
 
         SetSemanticNatural(seed, auroraStack, random, takenSemantic, minimumDistance: 6);
         SetSemanticNatural(seed, nightfallShelf, random, takenSemantic, minimumDistance: 6);
@@ -376,10 +378,10 @@ internal static partial class IceRemembersSeedBuilder
         SeedEntity auroraStack,
         SeedEntity nightfallShelf)
     {
-        var council = CreateEntity(seed, K.Faction, "compact", "Council of Luminaries", C(IceRemembersCulture.AuroraStack));
-        var exchange = CreateEntity(seed, K.Faction, "compact", "The Icebound Exchange", C(IceRemembersCulture.AuroraStack));
-        var claws = CreateEntity(seed, K.Faction, "order", "Midnight Claws", C(IceRemembersCulture.Nightshelf));
-        var wakeSingers = CreateEntity(seed, K.Faction, "choir", "The Wake-Singers", C(IceRemembersCulture.WakeSingers));
+        var council = CreateEntity(seed, K.Faction, "compact", "The Meridian (starlight-bound)", "Meridian", C(IceRemembersCulture.AuroraStack));
+        var exchange = CreateEntity(seed, K.Faction, "compact", "The Icebound Exchange", "Icebound Exchange", C(IceRemembersCulture.AuroraStack));
+        var claws = CreateEntity(seed, K.Faction, "order", "Midnight Claws", "Midnight Claws", C(IceRemembersCulture.Nightshelf));
+        var wakeSingers = CreateEntity(seed, K.Faction, "choir", "The Wake-Singers", "Wake-Singers", C(IceRemembersCulture.WakeSingers));
 
         SetPhysicalNaturalNear(seed, council, settlementCoords.AuroraStack, random, takenPhysical, searchRadius: 8);
         SetPhysicalNaturalNear(seed, exchange, settlementCoords.AuroraStack, random, takenPhysical, searchRadius: 6);
@@ -424,7 +426,7 @@ internal static partial class IceRemembersSeedBuilder
         var plans = CreateBasePenguinPlans(factions.Council, factions.Claws);
 
         var npcIndex = 0;
-        foreach (var (subtype, name, culture, factionId, loyalty) in plans)
+        foreach (var (subtype, name, referenceName, culture, factionId, loyalty) in plans)
         {
             var hostSettlements = hostSettlementsByFaction[factionId];
             var host = hostSettlements[npcIndex % hostSettlements.Length];
@@ -433,7 +435,7 @@ internal static partial class IceRemembersSeedBuilder
 
             var npc = CreateEntity(
                 seed,
-                K.Penguin, subtype, name, culture,
+                K.Penguin, subtype, name, referenceName, culture,
                 coordinates: (hex.Q, hex.R));
 
             AssignPenguinSemanticPosition(seed, npc, seed.Entity(factionId), random, takenSemantic);
@@ -447,14 +449,14 @@ internal static partial class IceRemembersSeedBuilder
         }
     }
 
-    private static List<(string Subtype, string Name, string Culture, int Faction, float Loyalty)> CreateBasePenguinPlans(
+    private static List<(string Subtype, string Name, string ReferenceName, string Culture, int Faction, float Loyalty)> CreateBasePenguinPlans(
         SeedEntity factionA,
         SeedEntity factionB) =>
         new()
         {
-            ("witness", "High-Beak Auditor Selka", C(IceRemembersCulture.AuroraStack), factionA.SeedEntityId, 1f),
-            ("broker", "Shadow-Broker Nyla", C(IceRemembersCulture.Nightshelf), factionB.SeedEntityId, 1f),
-            ("exile", "Keeper Hollows", C(IceRemembersCulture.Nightshelf), factionB.SeedEntityId, 0.4f),
+            ("witness", "High-Beak Auditor Selka", "Selka", C(IceRemembersCulture.AuroraStack), factionA.SeedEntityId, 1f),
+            ("broker", "Shadow-Broker Nyla", "Nyla", C(IceRemembersCulture.Nightshelf), factionB.SeedEntityId, 1f),
+            ("exile", "Smokeheld Luscoa☽", "Luscoa", C(IceRemembersCulture.Nightshelf), factionB.SeedEntityId, 0.4f),
         };
 
     private static HexCoord SelectPenguinHex(
@@ -504,7 +506,7 @@ internal static partial class IceRemembersSeedBuilder
             searchRadius: 5);
         var artifact = CreateEntity(
             seed,
-            K.Artifact, "weapon", "The Radiant Ring", C(IceRemembersCulture.AuroraStack),
+            K.Artifact, "weapon", "The Celestial Lightlance Of Haven", "Lightlance", C(IceRemembersCulture.AuroraStack),
             coordinates: (artifactCoord.Q, artifactCoord.R));
         takenPhysical.Add(artifactCoord);
         SetSemanticNaturalNear(seed, artifact, auroraStack, random, takenSemantic, searchRadius: 10);
@@ -532,7 +534,7 @@ internal static partial class IceRemembersSeedBuilder
             searchRadius: 5);
         var artifact = CreateEntity(
             seed,
-            K.Artifact, "weapon", "The Black Harpoon", C(IceRemembersCulture.Nightshelf),
+            K.Artifact, "weapon", "The Hushed Romphaea", "Romphaea", C(IceRemembersCulture.Nightshelf),
             coordinates: (artifactCoord.Q, artifactCoord.R));
         takenPhysical.Add(artifactCoord);
         SetSemanticNaturalNear(seed, artifact, nightfallShelf, random, takenSemantic, searchRadius: 10);
@@ -612,23 +614,31 @@ internal static partial class IceRemembersSeedBuilder
         return Math.Max(0f, nearbyBonus - nearest);
     }
 
-    private static readonly (string Name, string Subtype)[] OrcaPlans =
+    private static readonly (string Name, string ReferenceName, string Subtype)[] OrcaPlans =
     [
-        ("Grandmother Deep", "matriarch"),
-        ("Grandfather Blood", "elder"),
-        ("Tidescream", "scout"),
+        ("Grandmother Deep", "Grandmother Deep", "matriarch"),
+        ("Ghakhrath Gnurlgath Skarn", "Ghakhrath", "elder"),
+        ("Khrarnd Grendbrund", "Khrarnd", "scout"),
     ];
 
-    private static readonly (string Name, string Subtype, IceRemembersTerrain Terrain)[] PointOfInterestPlans =
+    private readonly record struct PointOfInterestPlan(
+        string Name,
+        string ReferenceName,
+        string Subtype,
+        IceRemembersTerrain Terrain,
+        IceRemembersCulture Culture);
+
+    private static readonly PointOfInterestPlan[] PointOfInterestPlans =
     [
-        ("The Veil Vents", "vent", IceRemembersTerrain.HotSprings),
-        ("The Glow-Fissure", "vent", IceRemembersTerrain.Crags),
-        ("The Forgotten Shore", "shoal", IceRemembersTerrain.Shelf),
-        ("The Corpse Current", "bloom", IceRemembersTerrain.Ocean),
+        new("Hroolhroos, Where The Ice Breathes", "Hroolhroos", "vent", IceRemembersTerrain.HotSprings, IceRemembersCulture.TheIce),
+        new("Roorrsthaa Warmcut", "Roorrsthaa", "vent", IceRemembersTerrain.Crags, IceRemembersCulture.TheIce),
+        new("Starved Hrah'moon, Where The Water Remembers", "Hrah'moon", "shoal", IceRemembersTerrain.Shelf, IceRemembersCulture.TheIce),
+        new("Gulletbloom", "Gulletbloom", "bloom", IceRemembersTerrain.Ocean, IceRemembersCulture.WakeSingers),
     ];
 
     private readonly record struct AbilityPlan(
         string Name,
+        string ReferenceName,
         string Subtype,
         IceRemembersCulture Culture,
         string AnchorRegionKey,
@@ -637,9 +647,9 @@ internal static partial class IceRemembersSeedBuilder
 
     private static readonly AbilityPlan[] AbilityPlans =
     [
-        new("Ice-Reading", "craft", IceRemembersCulture.AuroraStack, "heartlands", "High-Beak Auditor Selka", "Grandmother Deep"),
-        new("Fire-Core Craft", "craft", IceRemembersCulture.Nightshelf, "coastlands", "Shadow-Broker Nyla", "Keeper Hollows"),
-        new("Wake-Song", "rite", IceRemembersCulture.WakeSingers, "farwake", "Tidescream", "Grandmother Deep"),
+        new("Zhei's Compass Freeze", "Compass Freeze", "craft", IceRemembersCulture.AuroraStack, "heartlands", "High-Beak Auditor Selka", "Grandmother Deep"),
+        new("Wane∴chill", "Wane", "craft", IceRemembersCulture.Nightshelf, "coastlands", "Shadow-Broker Nyla", "Smokeheld Luscoa☽"),
+        new("Kzundkhrrak Way", "Kzundkhrrak", "rite", IceRemembersCulture.WakeSingers, "farwake", "Khrarnd Grendbrund", "Grandmother Deep"),
     ];
 
     private static void CreateOrcas(
@@ -649,7 +659,7 @@ internal static partial class IceRemembersSeedBuilder
         HashSet<SemanticHexCoord> takenSemantic,
         SeedEntity farwakeFaction)
     {
-        foreach (var (name, subtype) in OrcaPlans)
+        foreach (var (name, referenceName, subtype) in OrcaPlans)
         {
             var coord = ChooseAnchor(
                 seed,
@@ -667,6 +677,7 @@ internal static partial class IceRemembersSeedBuilder
                 K.Orca,
                 subtype,
                 name,
+                referenceName,
                 C(IceRemembersCulture.WakeSingers),
                 coordinates: (coord.Q, coord.R));
             SetSemanticNaturalNear(seed, orca, farwakeFaction, random, takenSemantic, searchRadius: 12);
@@ -690,28 +701,65 @@ internal static partial class IceRemembersSeedBuilder
         HashSet<HexCoord> takenPhysical,
         HashSet<SemanticHexCoord> takenSemantic)
     {
-        foreach (var (name, subtype, terrain) in PointOfInterestPlans)
+        foreach (var plan in PointOfInterestPlans)
         {
             var coord = ChooseAnchor(
                 seed,
                 random,
                 takenPhysical,
                 K.PointOfInterest,
-                subtype,
-                C(IceRemembersCulture.TheIce),
+                plan.Subtype,
+                C(plan.Culture),
                 minimumDistance: 3,
-                cell => NamedTerrainAffinity(cell, terrain));
-            ReservePhysical(coord, takenPhysical, name);
+                cell => NamedTerrainAffinity(cell, plan.Terrain));
+            ReservePhysical(coord, takenPhysical, plan.Name);
 
             var poi = CreateEntity(
                 seed,
                 K.PointOfInterest,
-                subtype,
-                name,
-                C(IceRemembersCulture.TheIce),
+                plan.Subtype,
+                plan.Name,
+                plan.ReferenceName,
+                C(plan.Culture),
                 coordinates: (coord.Q, coord.R));
             SetSemanticNatural(seed, poi, random, takenSemantic);
         }
+    }
+
+    private static SeedEntity CreateWakeReefhold(
+        SeedAssembly seed,
+        Random random,
+        HashSet<HexCoord> takenPhysical,
+        HashSet<SemanticHexCoord> takenSemantic,
+        SeedEntity wakeSingers)
+    {
+        var corpseCurrent = FindEntityByName(seed, "Gulletbloom");
+        var coord = ChoosePhysicalCoordinate(
+            seed,
+            random,
+            takenPhysical,
+            K.Settlement,
+            "reefhold",
+            C(IceRemembersCulture.WakeSingers),
+            minimumDistance: 0,
+            origin: corpseCurrent.Coordinates,
+            searchRadius: 6);
+        ReservePhysical(coord, takenPhysical, "Singgrundreef");
+
+        var reefhold = CreateEntity(
+            seed,
+            K.Settlement,
+            "reefhold",
+            "Singgrundreef",
+            "Singgrundreef",
+            C(IceRemembersCulture.WakeSingers),
+            coordinates: (coord.Q, coord.R));
+        SetSemanticNaturalNear(seed, reefhold, wakeSingers, random, takenSemantic, searchRadius: 10);
+
+        CreateRelationship(seed, "controlled_by", RelationshipPolarity.Neutral, reefhold.SeedEntityId, wakeSingers.SeedEntityId, 0.86f);
+        CreateRelationship(seed, "founded_from", RelationshipPolarity.Positive, reefhold.SeedEntityId, corpseCurrent.SeedEntityId, 0.90f);
+        CreateRelationship(seed, "home_base", RelationshipPolarity.Neutral, wakeSingers.SeedEntityId, reefhold.SeedEntityId, 1f);
+        return reefhold;
     }
 
     private static float NamedTerrainAffinity(HexCell cell, IceRemembersTerrain preferredTerrain) =>
@@ -745,6 +793,7 @@ internal static partial class IceRemembersSeedBuilder
                 K.Ability,
                 plan.Subtype,
                 plan.Name,
+                plan.ReferenceName,
                 C(plan.Culture),
                 coordinates: (coord.Q, coord.R));
             SetSemanticNatural(seed, ability, random, takenSemantic);
@@ -821,14 +870,16 @@ internal static partial class IceRemembersSeedBuilder
         HashSet<HexCoord> takenPhysical,
         HashSet<SemanticHexCoord> takenSemantic,
         (List<SeedEntity> All, SeedEntity AuroraStack) settlements,
-        (SeedEntity Council, SeedEntity Exchange, SeedEntity Claws, SeedEntity WakeSingers) factions)
+        (SeedEntity Council, SeedEntity Exchange, SeedEntity Claws, SeedEntity WakeSingers) factions,
+        SeedEntity wakeReefhold)
     {
         CreateSeedTransport(
             seed,
             random,
             takenPhysical,
             takenSemantic,
-            "Aurora Charter",
+            "Xialong Sanctum-shield (sun)",
+            "Xialong Shield",
             "battleship",
             IceRemembersCulture.AuroraStack,
             factions.Council,
@@ -839,11 +890,24 @@ internal static partial class IceRemembersSeedBuilder
             random,
             takenPhysical,
             takenSemantic,
-            "Nightfall Cutter",
+            "Shade Skiff☽",
+            "Shade Skiff",
             "scout",
             IceRemembersCulture.Nightshelf,
             factions.Claws,
             settlements.All[1],
+            searchRadius: 8);
+        CreateSeedTransport(
+            seed,
+            random,
+            takenPhysical,
+            takenSemantic,
+            "Mawwakerunner",
+            "Mawwakerunner",
+            "scout",
+            IceRemembersCulture.WakeSingers,
+            factions.WakeSingers,
+            wakeReefhold,
             searchRadius: 8);
     }
 
@@ -853,6 +917,7 @@ internal static partial class IceRemembersSeedBuilder
         HashSet<HexCoord> takenPhysical,
         HashSet<SemanticHexCoord> takenSemantic,
         string name,
+        string referenceName,
         string subtype,
         IceRemembersCulture culture,
         SeedEntity holder,
@@ -876,6 +941,7 @@ internal static partial class IceRemembersSeedBuilder
             K.Transport,
             subtype,
             name,
+            referenceName,
             C(culture),
             coordinates: (coord.Q, coord.R));
         SetSemanticNaturalNear(seed, transport, holder, random, takenSemantic, searchRadius: 10);
@@ -901,14 +967,16 @@ internal static partial class IceRemembersSeedBuilder
         Random random,
         HashSet<HexCoord> takenPhysical,
         HashSet<SemanticHexCoord> takenSemantic,
-        (List<SeedEntity> All, SeedEntity AuroraStack) settlements)
+        (List<SeedEntity> All, SeedEntity AuroraStack) settlements,
+        SeedEntity wakeReefhold)
     {
         CreateSeedOccurrence(
             seed,
             random,
             takenPhysical,
             takenSemantic,
-            "Lantern Vigil",
+            "Confluence (aurora-touched)",
+            "Confluence",
             "festival",
             IceRemembersCulture.AuroraStack,
             settlements.AuroraStack,
@@ -918,10 +986,22 @@ internal static partial class IceRemembersSeedBuilder
             random,
             takenPhysical,
             takenSemantic,
-            "Cinder Muster",
+            "☽'whisper Vigil",
+            "Whisper Vigil",
             "festival",
             IceRemembersCulture.Nightshelf,
             settlements.All[1],
+            searchRadius: 6);
+        CreateSeedOccurrence(
+            seed,
+            random,
+            takenPhysical,
+            takenSemantic,
+            "Zrag Crush Feast",
+            "Zrag Feast",
+            "festival",
+            IceRemembersCulture.WakeSingers,
+            wakeReefhold,
             searchRadius: 6);
     }
 
@@ -931,6 +1011,7 @@ internal static partial class IceRemembersSeedBuilder
         HashSet<HexCoord> takenPhysical,
         HashSet<SemanticHexCoord> takenSemantic,
         string name,
+        string referenceName,
         string subtype,
         IceRemembersCulture culture,
         SeedEntity anchor,
@@ -953,6 +1034,7 @@ internal static partial class IceRemembersSeedBuilder
             K.Occurrence,
             subtype,
             name,
+            referenceName,
             C(culture),
             coordinates: (coord.Q, coord.R));
         SetSemanticNaturalNear(seed, occurrence, anchor, random, takenSemantic, searchRadius: 10);

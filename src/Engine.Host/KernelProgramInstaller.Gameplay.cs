@@ -186,7 +186,10 @@ internal static partial class KernelProgramInstaller
                 effect.MinimumRelationshipStrength,
                 effect.DeltaPerTick,
                 effect.RequiredTargetTraitId,
-                effect.RequiredRelatedTraitId);
+                effect.RequiredRelatedTraitId,
+                effect.CultureId,
+                effect.CultureSlotId,
+                effect.CultureSlotPolarityCode);
         }
     }
 }

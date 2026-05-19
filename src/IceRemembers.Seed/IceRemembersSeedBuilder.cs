@@ -24,12 +24,14 @@ internal static partial class IceRemembersSeedBuilder
         EntityKind kind,
         string subtype,
         string name,
+        string referenceName,
         string culture,
         (int Q, int R)? coordinates = null) =>
         seed.CreateEntity(
             kind,
             subtype,
             name,
+            referenceName,
             culture,
             coordinates);
 

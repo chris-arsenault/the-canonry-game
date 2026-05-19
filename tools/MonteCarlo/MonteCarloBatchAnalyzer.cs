@@ -62,6 +62,38 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             WHERE FALSE
             """),
         new(
+            "cell_culture_influence_events",
+            """
+            SELECT
+                CAST(NULL AS BIGINT) AS run_id,
+                CAST(NULL AS BIGINT) AS tick,
+                CAST(NULL AS BIGINT) AS source_code_id,
+                CAST(NULL AS BIGINT) AS culture_id,
+                CAST(NULL AS BIGINT) AS plane_code,
+                CAST(NULL AS BIGINT) AS q,
+                CAST(NULL AS BIGINT) AS r,
+                CAST(NULL AS DOUBLE) AS previous_share,
+                CAST(NULL AS DOUBLE) AS current_share,
+                CAST(NULL AS DOUBLE) AS delta
+            WHERE FALSE
+            """),
+        new(
+            "culture_slot_occupancy_events",
+            """
+            SELECT
+                CAST(NULL AS BIGINT) AS run_id,
+                CAST(NULL AS BIGINT) AS tick,
+                CAST(NULL AS BIGINT) AS source_code_id,
+                CAST(NULL AS BIGINT) AS culture_id,
+                CAST(NULL AS BIGINT) AS slot_id,
+                CAST(NULL AS BIGINT) AS polarity_code,
+                CAST(NULL AS BIGINT) AS previous_entity_id,
+                CAST(NULL AS BIGINT) AS current_entity_id,
+                CAST(NULL AS DOUBLE) AS previous_score,
+                CAST(NULL AS DOUBLE) AS current_score
+            WHERE FALSE
+            """),
+        new(
             "cell_road_events",
             """
             SELECT

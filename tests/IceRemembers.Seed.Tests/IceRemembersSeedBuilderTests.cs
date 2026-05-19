@@ -168,39 +168,33 @@ public sealed class IceRemembersSeedBuilderTests
     public void SeedRoster_KeepsFixedAnchorsAndExpectedCounts()
     {
         Assert.Equal(4, EntitiesByKind(K.Region).Length);
-        Assert.Equal(4, EntitiesByKind(K.Settlement).Length);
+        Assert.Equal(5, EntitiesByKind(K.Settlement).Length);
         Assert.Equal(4, EntitiesByKind(K.Faction).Length);
         Assert.Equal(3, EntitiesByKind(K.Penguin).Length);
         Assert.Equal(4, EntitiesByKind(K.Artifact).Length);
-        Assert.Equal(2, EntitiesByKind(K.Transport).Length);
-        Assert.Equal(2, EntitiesByKind(K.Occurrence).Length);
+        Assert.Equal(3, EntitiesByKind(K.Transport).Length);
+        Assert.Equal(3, EntitiesByKind(K.Occurrence).Length);
+
+        Assert.All(Seed.Entities, entity =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(entity.DisplayName));
+            Assert.False(string.IsNullOrWhiteSpace(entity.ReferenceName));
+        });
 
         var names = Seed.Entities.Select(entity => entity.DisplayName).ToHashSet(StringComparer.Ordinal);
-        Assert.Contains("Northlands", names);
-        Assert.Contains("Heartlands", names);
-        Assert.Contains("Coastlands", names);
-        Assert.Contains("Farwake", names);
         Assert.Contains("Aurora Stack", names);
-        Assert.Contains("Nightfall Shelf", names);
-        Assert.Contains("The Drowned Ledge", names);
-        Assert.Contains("The Still Pools", names);
-        Assert.Contains("Council of Luminaries", names);
+        Assert.Contains("Nightshelf", names);
         Assert.Contains("The Icebound Exchange", names);
         Assert.Contains("Midnight Claws", names);
         Assert.Contains("The Wake-Singers", names);
         Assert.Contains("High-Beak Auditor Selka", names);
         Assert.Contains("Shadow-Broker Nyla", names);
-        Assert.Contains("Keeper Hollows", names);
         Assert.Contains("Grandmother Deep", names);
-        Assert.Contains("Tidescream", names);
-        Assert.Contains("The Radiant Ring", names);
-        Assert.Contains("The Black Harpoon", names);
-        Assert.Contains("The Hollows Chart", names);
-        Assert.Contains("The Dreaming Tooth", names);
-        Assert.Contains("Aurora Charter", names);
-        Assert.Contains("Nightfall Cutter", names);
-        Assert.Contains("Lantern Vigil", names);
-        Assert.Contains("Cinder Muster", names);
+
+        Assert.Equal("Aurora", EntityNamed(K.Settlement.Value, "Aurora Stack").ReferenceName);
+        Assert.Equal("Nightshelf", EntityNamed(K.Settlement.Value, "Nightshelf").ReferenceName);
+        Assert.Equal("Selka", EntityNamed(K.Penguin.Value, "High-Beak Auditor Selka").ReferenceName);
+        Assert.Equal("Nyla", EntityNamed(K.Penguin.Value, "Shadow-Broker Nyla").ReferenceName);
     }
 
     [Fact]
@@ -243,12 +237,17 @@ public sealed class IceRemembersSeedBuilderTests
     }
 
     [Fact]
-    public void DreamingTooth_IsClaimedWithoutBeingPhysicallyHeld()
+    public void Firstkilltooth_IsClaimedWithoutBeingPhysicallyHeld()
     {
-        var dreamingTooth = EntityNamed(K.Artifact.Value, "The Dreaming Tooth");
-        var corpseCurrent = EntityNamed(K.PointOfInterest.Value, "The Corpse Current");
+        var dreamingTooth = EntityNamed(K.Artifact.Value, "Firstkilltooth Of Grund");
+        var corpseCurrent = EntityNamed(K.PointOfInterest.Value, "Gulletbloom");
         var wakeSingers = EntityNamed(K.Faction.Value, "The Wake-Singers");
 
+        Assert.Equal(IceRemembersCulture.WakeSingers.ToDomainName(), corpseCurrent.Culture);
+        Assert.Contains(Seed.Relationships, relationship =>
+            relationship.RelationshipKind == "claimed_by" &&
+            relationship.SourceSeedEntityId == corpseCurrent.SeedEntityId &&
+            relationship.TargetSeedEntityId == wakeSingers.SeedEntityId);
         Assert.Contains(Seed.Relationships, relationship =>
             relationship.RelationshipKind == "anchored" &&
             relationship.SourceSeedEntityId == dreamingTooth.SeedEntityId &&
@@ -276,7 +275,7 @@ public sealed class IceRemembersSeedBuilderTests
         Assert.True(rSpan >= 20, $"Expected settlement r-span >= 20, got {rSpan}.");
         Assert.True(NamedCoverageIsSparse());
 
-        foreach (var settlementName in new[] { "Nightfall Shelf", "The Drowned Ledge" })
+        foreach (var settlementName in new[] { "Nightshelf", "Codex∴lockhold" })
         {
             var settlement = EntityNamed(K.Settlement.Value, settlementName);
             var coord = Coord(settlement);
@@ -387,7 +386,7 @@ public sealed class IceRemembersSeedBuilderTests
     [Fact]
     public void SeedCivilizations_HaveTwoNearbyClustersAndOneRemoteCluster()
     {
-        var council = EntityNamed(K.Faction.Value, "Council of Luminaries");
+        var council = EntityNamed(K.Faction.Value, "The Meridian (starlight-bound)");
         var claws = EntityNamed(K.Faction.Value, "Midnight Claws");
         var wakeSingers = EntityNamed(K.Faction.Value, "The Wake-Singers");
 

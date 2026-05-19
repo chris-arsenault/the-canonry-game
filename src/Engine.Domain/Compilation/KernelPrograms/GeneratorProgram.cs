@@ -76,6 +76,7 @@ public sealed record GeneratorProducedEntityRule(
     int SemanticPlacementFallbackTerrainId,
     int PlacementRefCode,
     int CultureRefCode,
+    GeneratorProgramCulturePlacement CulturePlacement,
     float CreateChance,
     GeneratorCoverageRule? Coverage);
 
@@ -115,6 +116,12 @@ public enum GeneratorProgramCultureMatch
     Any,
     SameAsTarget,
     DifferentFromTarget,
+}
+
+public enum GeneratorProgramCulturePlacement
+{
+    Ignore,
+    PreferInheritedCulture,
 }
 
 public enum GeneratorProgramCoverageMode

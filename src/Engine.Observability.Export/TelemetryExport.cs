@@ -110,6 +110,8 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("map_generation_events");
         ExportTable("map_cell_events");
         ExportTable("cell_influence_events");
+        ExportTable("cell_culture_influence_events");
+        ExportTable("culture_slot_occupancy_events");
         ExportTable("cell_road_events");
         ExportTable("map_snapshots");
         ExportTable("coverage_snapshots");
@@ -166,6 +168,8 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("map_generation_events", typeof(MapGenerationEventRow));
         EnsureTable("map_cell_events", typeof(MapCellEventRow));
         EnsureTable("cell_influence_events", typeof(CellInfluenceEventRow));
+        EnsureTable("cell_culture_influence_events", typeof(CellCultureInfluenceEventRow));
+        EnsureTable("culture_slot_occupancy_events", typeof(CultureSlotOccupancyEventRow));
         EnsureTable("cell_road_events", typeof(CellRoadEventRow));
         EnsureTable("map_snapshots", typeof(MapSnapshotRow));
         EnsureTable("coverage_snapshots", typeof(CoverageSnapshotRow));
@@ -220,6 +224,8 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("map_generation_events", _pending.MapGenerationEvents);
         AppendTable("map_cell_events", _pending.MapCellEvents);
         AppendTable("cell_influence_events", _pending.CellInfluenceEvents);
+        AppendTable("cell_culture_influence_events", _pending.CellCultureInfluenceEvents);
+        AppendTable("culture_slot_occupancy_events", _pending.CultureSlotOccupancyEvents);
         AppendTable("cell_road_events", _pending.CellRoadEvents);
         AppendTable("map_snapshots", _pending.MapSnapshots);
         AppendTable("coverage_snapshots", _pending.CoverageSnapshots);
@@ -303,6 +309,8 @@ internal static class TelemetryBatchExtensions
         batch.MapGenerationEvents.Count +
         batch.MapCellEvents.Count +
         batch.CellInfluenceEvents.Count +
+        batch.CellCultureInfluenceEvents.Count +
+        batch.CultureSlotOccupancyEvents.Count +
         batch.CellRoadEvents.Count +
         batch.MapSnapshots.Count +
         batch.CoverageSnapshots.Count +
@@ -352,6 +360,8 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.MapGenerationEvents, source.MapGenerationEvents);
         AppendRows(destination.MapCellEvents, source.MapCellEvents);
         AppendRows(destination.CellInfluenceEvents, source.CellInfluenceEvents);
+        AppendRows(destination.CellCultureInfluenceEvents, source.CellCultureInfluenceEvents);
+        AppendRows(destination.CultureSlotOccupancyEvents, source.CultureSlotOccupancyEvents);
         AppendRows(destination.CellRoadEvents, source.CellRoadEvents);
         AppendRows(destination.MapSnapshots, source.MapSnapshots);
         AppendRows(destination.CoverageSnapshots, source.CoverageSnapshots);

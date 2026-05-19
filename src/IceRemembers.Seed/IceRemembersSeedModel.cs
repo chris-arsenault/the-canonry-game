@@ -50,14 +50,19 @@ internal sealed class SeedAssembly
         EntityKind kind,
         string subtype,
         string name,
+        string referenceName,
         string culture,
         (int Q, int R)? coordinates = null)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(name);
+        ArgumentException.ThrowIfNullOrWhiteSpace(referenceName);
+
         var entity = new SeedEntity(
             _entities.Count,
             kind,
             subtype,
             name,
+            referenceName,
             culture,
             coordinates is { } coord ? new HexCoord(coord.Q, coord.R) : new HexCoord(0, 0));
         _entities.Add(entity);
@@ -147,7 +152,8 @@ internal sealed class SeedAssembly
                 entity.SemanticPosition.Q,
                 entity.SemanticPosition.R,
                 SemanticS(entity.SemanticPosition),
-                entity.Name))
+                entity.Name,
+                entity.ReferenceName))
             .ToArray();
 
     private DomainSeedCell[] CreateStartupCells()
@@ -188,6 +194,7 @@ internal sealed class SeedEntity(
     EntityKind kind,
     string subtype,
     string name,
+    string referenceName,
     string culture,
     HexCoord coordinates)
 {
@@ -198,6 +205,8 @@ internal sealed class SeedEntity(
     public string Subtype { get; } = subtype;
 
     public string Name { get; } = name;
+
+    public string ReferenceName { get; } = referenceName;
 
     public string Culture { get; } = culture;
 

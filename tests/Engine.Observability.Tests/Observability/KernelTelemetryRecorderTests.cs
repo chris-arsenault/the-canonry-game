@@ -134,6 +134,28 @@ public sealed class KernelTelemetryRecorderTests
             TravelCount: 2,
             PreviousQuality: 30f,
             CurrentQuality: 45f))));
+        Assert.True(log.TryWrite(KernelEvent.From(new CellInfluenceChangedKernelEvent(
+            Tick: 2,
+            WorldVersion: 5,
+            Q: 2,
+            R: -1,
+            SourceCodeId: 5,
+            PlaneCode: PlaneCodes.Physical,
+            EntityId: 100,
+            ActionId: 11,
+            PreviousInfluence: 10f,
+            CurrentInfluence: 30f))));
+        Assert.True(log.TryWrite(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
+            Tick: 2,
+            WorldVersion: 5,
+            Q: 2,
+            R: -1,
+            SourceCodeId: 5,
+            PlaneCode: PlaneCodes.Physical,
+            CultureId: 3,
+            PreviousShare: 25f,
+            CurrentShare: 75f))));
+        WriteCultureSlotOccupancyChanged(log);
         Assert.True(log.TryWrite(KernelEvent.From(new CellChangedKernelEvent(
             Tick: 3,
             WorldVersion: 8,
@@ -175,6 +197,21 @@ public sealed class KernelTelemetryRecorderTests
             CurrentOwnerEntityId: currentOwnerEntityId,
             SuperregionId: superregionId,
             ContinentId: continentId))));
+    }
+
+    private static void WriteCultureSlotOccupancyChanged(KernelEventLog log)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new CultureSlotOccupancyChangedKernelEvent(
+            Tick: 2,
+            WorldVersion: 5,
+            SourceCodeId: 5,
+            CultureId: 3,
+            SlotId: 9,
+            PolarityCode: RelationshipPolarityCodes.Positive,
+            PreviousEntityId: 0,
+            CurrentEntityId: 100,
+            PreviousScore: 0f,
+            CurrentScore: 4.25f))));
     }
 
     private static void WriteActionAndGeneratorEvents(KernelEventLog log)
@@ -261,6 +298,17 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(45f, road.CurrentQuality);
         Assert.Equal(15f, road.Delta);
 
+        var influence = Assert.Single(batch.CellInfluenceEvents);
+        Assert.Equal(100, influence.EntityId);
+        Assert.Equal(11, influence.ActionId);
+        Assert.Equal(20f, influence.Delta);
+
+        var cultureInfluence = Assert.Single(batch.CellCultureInfluenceEvents);
+        Assert.Equal(3, cultureInfluence.CultureId);
+        Assert.Equal(50f, cultureInfluence.Delta);
+
+        AssertCultureSlotOccupancyRows(batch);
+
         AssertMapCellRows(batch);
 
         var relationship = Assert.Single(batch.RelationshipEvents);
@@ -323,6 +371,17 @@ public sealed class KernelTelemetryRecorderTests
             row.PlaneCode == PlaneCodes.Semantic &&
             row.Q == 4 &&
             row.R == -2);
+    }
+
+    private static void AssertCultureSlotOccupancyRows(TelemetryBatch batch)
+    {
+        var cultureSlot = Assert.Single(batch.CultureSlotOccupancyEvents);
+        Assert.Equal(3, cultureSlot.CultureId);
+        Assert.Equal(9, cultureSlot.SlotId);
+        Assert.Equal(RelationshipPolarityCodes.Positive, cultureSlot.PolarityCode);
+        Assert.Equal(0, cultureSlot.PreviousEntityId);
+        Assert.Equal(100, cultureSlot.CurrentEntityId);
+        Assert.Equal(4.25f, cultureSlot.CurrentScore);
     }
 
     private static void AssertGeneratedAndTickRows(TelemetryBatch batch)

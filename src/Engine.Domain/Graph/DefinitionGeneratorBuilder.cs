@@ -212,6 +212,7 @@ public static class DefinitionGeneratorBuilder
             SemanticPlacementFallbackTerrain = produced.SemanticPlacementFallbackTerrain,
             PlacementRef = produced.PlacementRef,
             InheritCultureFrom = produced.InheritCultureFrom,
+            CulturePlacement = produced.CulturePlacement,
             Query = BuildQuery(graph, produced.Kind, produced.Query),
             Coverage = BuildCoverage(produced.Coverage),
         };

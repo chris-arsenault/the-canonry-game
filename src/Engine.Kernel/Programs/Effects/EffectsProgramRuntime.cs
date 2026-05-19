@@ -14,6 +14,9 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     private float[] _attributeDeltaDeltas => Data.AttributeDeltaDeltas;
     private int[] _attributeDeltaRequiredTargetTraitIds => Data.AttributeDeltaRequiredTargetTraitIds;
     private int[] _attributeDeltaRequiredRelatedTraitIds => Data.AttributeDeltaRequiredRelatedTraitIds;
+    private int[] _attributeDeltaCultureIds => Data.AttributeDeltaCultureIds;
+    private int[] _attributeDeltaCultureSlotIds => Data.AttributeDeltaCultureSlotIds;
+    private int[] _attributeDeltaCultureSlotPolarityCodes => Data.AttributeDeltaCultureSlotPolarityCodes;
     private ref int _attributeDeltaRuleCount => ref Data.AttributeDeltaRuleCount;
 
     public EffectsProgramRuntime(EffectsProgramData data, EffectsProgramState state)
@@ -42,7 +45,10 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         float minimumRelationshipStrength,
         float deltaPerTick,
         int requiredTargetTraitId = 0,
-        int requiredRelatedTraitId = 0)
+        int requiredRelatedTraitId = 0,
+        int cultureId = 0,
+        int cultureSlotId = 0,
+        int cultureSlotPolarityCode = -1)
     {
         ValidatePositive(kindId);
         ValidatePositive(attributeId);
@@ -55,6 +61,9 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(minimumRelationshipStrength);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(requiredTargetTraitId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(requiredRelatedTraitId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(cultureId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(cultureSlotId);
+        global::System.ArgumentOutOfRangeException.ThrowIfLessThan(cultureSlotPolarityCode, -1);
         if (_attributeDeltaRuleCount + 1 >= _attributeDeltaKindIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -74,6 +83,9 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         _attributeDeltaDeltas[slot] = deltaPerTick;
         _attributeDeltaRequiredTargetTraitIds[slot] = requiredTargetTraitId;
         _attributeDeltaRequiredRelatedTraitIds[slot] = requiredRelatedTraitId;
+        _attributeDeltaCultureIds[slot] = cultureId;
+        _attributeDeltaCultureSlotIds[slot] = cultureSlotId;
+        _attributeDeltaCultureSlotPolarityCodes[slot] = cultureSlotPolarityCode;
         return slot;
     }
 
@@ -152,11 +164,47 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
                 _attributeDeltaThresholds[rule]);
         }
 
-        return conditionCode == EffectConditionCodes.LocalComfortSignal
-            ? KernelQuery.ThresholdEvidence(
+        if (conditionCode == EffectConditionCodes.LocalComfortSignal)
+        {
+            return KernelQuery.ThresholdEvidence(
                 simulation.MapSignals.EntityCrowdingComfort(entityId, _attributeDeltaPlaneCodes[rule]),
-                _attributeDeltaThresholds[rule])
+                _attributeDeltaThresholds[rule]);
+        }
+
+        if (conditionCode == EffectConditionCodes.LocalCultureMapValue)
+        {
+            return OwnCultureInfluenceEvidence(simulation.World, entityId, rule);
+        }
+
+        return conditionCode == EffectConditionCodes.CultureSlotOccupancy
+            ? CultureSlotOccupancyEvidence(simulation, entityId, rule)
             : 0f;
+    }
+
+    private float OwnCultureInfluenceEvidence(WorldState world, int entityId, int rule)
+    {
+        var cultureId = world.EntityCultureId(entityId);
+        if (cultureId <= 0)
+        {
+            return 0f;
+        }
+
+        var planeCode = _attributeDeltaPlaneCodes[rule];
+        var q = KernelQuery.CurrentQ(world, entityId, planeCode);
+        var r = KernelQuery.CurrentR(world, entityId, planeCode);
+        return KernelQuery.ThresholdEvidence(
+            world.GetCellCultureInfluence(cultureId, planeCode, q, r),
+            _attributeDeltaThresholds[rule]);
+    }
+
+    private float CultureSlotOccupancyEvidence(Simulation simulation, int entityId, int rule)
+    {
+        return simulation.CultureSlots.OccupancyEvidence(
+            entityId,
+            _attributeDeltaCultureIds[rule],
+            _attributeDeltaCultureSlotIds[rule],
+            _attributeDeltaCultureSlotPolarityCodes[rule],
+            _attributeDeltaThresholds[rule]);
     }
 
     private float RelatedInfluenceEvidence(WorldState world, int entityId, int rule)

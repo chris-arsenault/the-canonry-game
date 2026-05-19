@@ -32,6 +32,8 @@ public sealed class TelemetryBatch
     public Collection<MapGenerationEventRow> MapGenerationEvents { get; } = [];
     public Collection<MapCellEventRow> MapCellEvents { get; } = [];
     public Collection<CellInfluenceEventRow> CellInfluenceEvents { get; } = [];
+    public Collection<CellCultureInfluenceEventRow> CellCultureInfluenceEvents { get; } = [];
+    public Collection<CultureSlotOccupancyEventRow> CultureSlotOccupancyEvents { get; } = [];
     public Collection<CellRoadEventRow> CellRoadEvents { get; } = [];
     public Collection<MapSnapshotRow> MapSnapshots { get; } = [];
     public Collection<CoverageSnapshotRow> CoverageSnapshots { get; } = [];
@@ -342,6 +344,30 @@ public sealed record CellInfluenceEventRow(
     float PreviousInfluence,
     float CurrentInfluence,
     float Delta);
+
+public sealed record CellCultureInfluenceEventRow(
+    int RunId,
+    int Tick,
+    int SourceCodeId,
+    int CultureId,
+    int PlaneCode,
+    int Q,
+    int R,
+    float PreviousShare,
+    float CurrentShare,
+    float Delta);
+
+public sealed record CultureSlotOccupancyEventRow(
+    int RunId,
+    int Tick,
+    int SourceCodeId,
+    int CultureId,
+    int SlotId,
+    int PolarityCode,
+    int PreviousEntityId,
+    int CurrentEntityId,
+    float PreviousScore,
+    float CurrentScore);
 
 public sealed record CellRoadEventRow(
     int RunId,

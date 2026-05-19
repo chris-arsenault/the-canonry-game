@@ -295,6 +295,13 @@ public sealed class KernelHostBuilderTests
             auroraStack.CultureId,
             auroraStack.NameSeed));
         Assert.Equal("Aurora Stack", displayName);
+        var referenceName = host.Symbols.ResolveEntityReferenceName(new ProjectionEntityNameKey(
+            auroraStack.EntityId,
+            auroraStack.KindId,
+            auroraStack.SubtypeId,
+            auroraStack.CultureId,
+            auroraStack.NameSeed));
+        Assert.Equal("Aurora", referenceName);
 
         var startupSourceCodeId = host.DomainIds.SourceCodeIdOf(DomainRuntimeNames.StartupSourceCode).Value;
         Assert.NotEmpty(auroraStack.Attributes);

@@ -1,5 +1,7 @@
 namespace Engine.Gameplay;
 
+using Engine.Constants;
+
 public sealed class EffectsConfig
 {
     public IReadOnlyList<AttributeDeltaEffectConfig> AttributeDeltaEffects { get; init; } = [];
@@ -30,6 +32,13 @@ public sealed class AttributeDeltaEffectConfig
 
     public float MinimumRelationshipStrength { get; init; } = 0.1f;
 
+    public string? Culture { get; init; }
+
+    public string? CultureSlot { get; init; }
+
+    public EffectCultureSlotPolarity CultureSlotPolarity { get; init; } =
+        EffectCultureSlotPolarity.Any;
+
     public required float DeltaPerTick { get; init; }
 }
 
@@ -41,6 +50,8 @@ public enum EffectCondition
     MapThreatAtLocation,
     MapCrowdingLoad,
     MapCrowdingComfort,
+    OwnCultureInfluenceAtLocation,
+    CultureSlotOccupancy,
 }
 
 public enum EffectRelationshipDirection
@@ -48,4 +59,12 @@ public enum EffectRelationshipDirection
     Outgoing,
     Incoming,
     Either,
+}
+
+public enum EffectCultureSlotPolarity
+{
+    Any = -1,
+    Positive = RelationshipPolarityCodes.Positive,
+    Neutral = RelationshipPolarityCodes.Neutral,
+    Negative = RelationshipPolarityCodes.Negative,
 }

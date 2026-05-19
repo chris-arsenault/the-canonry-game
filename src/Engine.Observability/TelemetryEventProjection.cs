@@ -519,6 +519,38 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         MarkProjected(sequence);
     }
 
+    protected override void OnCellCultureInfluenceChanged(long sequence, in CellCultureInfluenceChangedKernelEvent evt)
+    {
+        _batch.CellCultureInfluenceEvents.Add(new CellCultureInfluenceEventRow(
+            _runId,
+            evt.Tick,
+            evt.SourceCodeId,
+            evt.CultureId,
+            evt.PlaneCode,
+            evt.Q,
+            evt.R,
+            evt.PreviousShare,
+            evt.CurrentShare,
+            evt.CurrentShare - evt.PreviousShare));
+        MarkProjected(sequence);
+    }
+
+    protected override void OnCultureSlotOccupancyChanged(long sequence, in CultureSlotOccupancyChangedKernelEvent evt)
+    {
+        _batch.CultureSlotOccupancyEvents.Add(new CultureSlotOccupancyEventRow(
+            _runId,
+            evt.Tick,
+            evt.SourceCodeId,
+            evt.CultureId,
+            evt.SlotId,
+            evt.PolarityCode,
+            evt.PreviousEntityId,
+            evt.CurrentEntityId,
+            evt.PreviousScore,
+            evt.CurrentScore));
+        MarkProjected(sequence);
+    }
+
     protected override void OnCellRoadChanged(long sequence, in CellRoadChangedKernelEvent evt)
     {
         _batch.CellRoadEvents.Add(new CellRoadEventRow(

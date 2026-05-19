@@ -314,7 +314,12 @@ public static class GameplayCompiler
                 effect.MinimumRelationshipStrength,
                 effect.DeltaPerTick,
                 RequiredTargetTraitId: 0,
-                RequiredRelatedTraitId: 0));
+                RequiredRelatedTraitId: 0,
+                CultureId: effect.Culture is null ? 0 : context.ResolveCultureId(effect.Culture),
+                CultureSlotId: effect.CultureSlot is null
+                    ? 0
+                    : context.ResolveCultureSlotId(effect.Culture, effect.CultureSlot, $"Attribute delta effect '{effect.Kind}.{effect.Attribute}'"),
+                CultureSlotPolarityCode: CultureSlotPolarityCode(effect.CultureSlotPolarity)));
         }
 
         rules.AddRange(CompileTraitAttributeDeltaEffects(context));
@@ -443,7 +448,18 @@ public static class GameplayCompiler
         EffectCondition.MapThreatAtLocation => EffectConditionCodes.LocalNegativeSignal,
         EffectCondition.MapCrowdingLoad => EffectConditionCodes.LocalCrowdingLoadSignal,
         EffectCondition.MapCrowdingComfort => EffectConditionCodes.LocalComfortSignal,
+        EffectCondition.OwnCultureInfluenceAtLocation => EffectConditionCodes.LocalCultureMapValue,
+        EffectCondition.CultureSlotOccupancy => EffectConditionCodes.CultureSlotOccupancy,
         _ => throw new ArgumentOutOfRangeException(nameof(condition), condition, null),
+    };
+
+    private static int CultureSlotPolarityCode(EffectCultureSlotPolarity polarity) => polarity switch
+    {
+        EffectCultureSlotPolarity.Any => -1,
+        EffectCultureSlotPolarity.Positive => RelationshipPolarityCodes.Positive,
+        EffectCultureSlotPolarity.Neutral => RelationshipPolarityCodes.Neutral,
+        EffectCultureSlotPolarity.Negative => RelationshipPolarityCodes.Negative,
+        _ => throw new ArgumentOutOfRangeException(nameof(polarity), polarity, null),
     };
 
     private static int PlaneCode(string plane) =>
@@ -473,6 +489,8 @@ public interface IGameplayCompilationContext
     int ResolveTerrainId(string terrain);
     int ResolveRelationshipKindId(string relationship);
     int ResolveAttributeId(string attribute);
+    int ResolveCultureId(string culture);
+    int ResolveCultureSlotId(string? culture, string slot, string context);
     bool TerrainExists(string terrain);
     bool RelationshipExists(string relationship);
     int ResolveTraitId(string trait);

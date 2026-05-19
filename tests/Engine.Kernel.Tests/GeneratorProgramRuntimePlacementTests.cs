@@ -9,7 +9,7 @@ public sealed class GeneratorProgramRuntimePlacementTests
     private const int CreatedKindId = 2;
     private const int TargetSubtypeId = 10;
     private const int CreatedSubtypeId = 11;
-    private const int CultureId = 20;
+    private const int CultureId = 2;
     private const int GeneratorId = 100;
     private const int CreatedRef = 2;
 
@@ -141,6 +141,29 @@ public sealed class GeneratorProgramRuntimePlacementTests
             semanticMinRadius: 1,
             semanticMaxRadius: 1);
         simulation.Generators.AddProducedPlacementPreferredTerrain(producedSlot, PlaneCodes.Physical, terrainId: 2);
+
+        simulation.AdvanceTicks(1);
+
+        var created = simulation.World.EntityHighWatermark;
+        Assert.Equal(-1, simulation.World.EntityPhysicalQ(created));
+        Assert.Equal(0, simulation.World.EntityPhysicalR(created));
+    }
+
+    [Fact]
+    public void Fire_WithProducedCulturePlacement_PrefersOwnCultureInfluence()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        var target = CreateTarget(simulation);
+        simulation.SetCellInfluence(target, PlaneCodes.Physical, -1, 0, 100f, tick: 0);
+        var slot = RegisterGenerator(simulation, includeProduced: false);
+        AddAreaProducedEntity(
+            simulation,
+            slot,
+            physicalMinRadius: 1,
+            physicalMaxRadius: 1,
+            semanticMinRadius: 1,
+            semanticMaxRadius: 1);
 
         simulation.AdvanceTicks(1);
 

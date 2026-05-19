@@ -4,6 +4,7 @@ internal sealed class GeneratorProgramScratch
 {
     internal readonly int[] PulseStatusCodes;
     internal readonly int[] PulseCandidateCounts;
+    internal readonly int[] PulseSelectionWeights;
     internal readonly int[] PulseSelectedTargetIds;
     internal readonly int[] PulseFailedFireCounts;
     internal readonly int[] Q;
@@ -34,6 +35,7 @@ internal sealed class GeneratorProgramScratch
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(retryTargetCapacity);
         PulseStatusCodes = new int[generatorCapacity + 1];
         PulseCandidateCounts = new int[generatorCapacity + 1];
+        PulseSelectionWeights = new int[generatorCapacity + 1];
         PulseSelectedTargetIds = new int[generatorCapacity + 1];
         PulseFailedFireCounts = new int[generatorCapacity + 1];
         Q = new int[scratchCellCapacity];

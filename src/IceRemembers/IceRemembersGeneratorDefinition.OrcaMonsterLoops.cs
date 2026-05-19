@@ -17,21 +17,23 @@ public static partial class IceRemembersGeneratorDefinition
     {
         Id = "pod_currents_launch_scouts",
         Name = "Pod Currents Launch Scouts",
-        Description = "An orca with a settled hunting ground can launch a carried skiff and a newly named shoal. The current expands route topology without adding another orca body.",
-        CausalLimit = "Depends on an orca home-base edge and no incoming claimed-by edge on the orca; creates a claimed skiff lock on the parent orca.",
-        Target = TargetWithOutgoingAndWithoutIncoming(K.Orca, Rel.HomeBase, Rel.ClaimedBy),
+        Description = "An orca with a settled hunting ground can launch a successor scout, a carried skiff, and a newly named shoal. The current creates a replacement path through claimed waters instead of free-floating orca bodies.",
+        CausalLimit = "Depends on an orca home-base edge and no incoming member-of edge on the orca; creates a successor membership lock on the parent orca.",
+        Target = TargetWithOutgoingAndWithoutIncoming(K.Orca, Rel.HomeBase, Rel.MemberOf),
         Produces =
         [
+            Required("$scout", K.Orca, "scout", "$target", "$target"),
             Required("$skiff", K.Transport, "scout", "$target", "$target"),
             Required("$shoal", K.PointOfInterest, "shoal", "$target", "$target"),
         ],
         Relationships =
         [
-            R("$target", "$skiff", Rel.Holds, 1f),
-            R("$skiff", "$target", Rel.ClaimedBy, 0.78f),
+            R("$scout", "$target", Rel.MemberOf, 0.78f),
+            R("$target", "$scout", Rel.AlliedWith, 0.72f),
+            R("$scout", "$skiff", Rel.Holds, 1f),
             R("$skiff", "$shoal", Rel.NativeTo, 0.84f),
             R("$skiff", "$shoal", Rel.ConduitOf, 0.74f),
-            R("$shoal", "$target", Rel.ClaimedBy, 0.70f),
+            R("$shoal", "$scout", Rel.ClaimedBy, 0.70f),
         ],
         Triggers = TriggerOn(K.Orca),
         PulseWeight = 4,

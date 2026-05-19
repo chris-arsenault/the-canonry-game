@@ -69,6 +69,7 @@ public sealed class SemanticProducedEntity
     public string? SemanticPlacementFallbackTerrain { get; init; }
     public string PlacementRef { get; init; } = "$target";
     public required string InheritCultureFrom { get; init; }
+    public GeneratorCulturePlacement CulturePlacement { get; init; } = GeneratorCulturePlacement.PreferInheritedCulture;
     public SemanticEntityQuery? Query { get; init; }
     public SemanticRegionCoverage? Coverage { get; init; }
 }
@@ -107,6 +108,12 @@ public enum QueryTargetCultureMatch
     Any,
     SameAsTarget,
     DifferentFromTarget,
+}
+
+public enum GeneratorCulturePlacement
+{
+    Ignore,
+    PreferInheritedCulture,
 }
 
 public interface ISemanticGeneratorEffect

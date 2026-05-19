@@ -20,6 +20,8 @@ using Verb = IceRemembers.IceRemembersVerbId;
 /// </summary>
 public static partial class IceRemembersDefinition
 {
+    private const float CultureSlotCultureInfluenceBenefitScale = 10f;
+
     public static DomainConfig Create()
     {
         var kinds = CreateKinds();
@@ -258,13 +260,22 @@ public static partial class IceRemembersDefinition
             InfluenceShelter(kind, attribute, Rel.HomeBase, EffectRelationshipDirection.Outgoing, 0.05f, threshold: 40f, plane: plane),
             InfluenceShelter(kind, attribute, Rel.Anchored, EffectRelationshipDirection.Outgoing, 0.05f, threshold: 40f, plane: plane),
             InfluenceShelter(kind, attribute, Rel.ControlledBy, EffectRelationshipDirection.Either, 0.04f, threshold: 45f, plane: plane),
+            InfluenceShelter(kind, attribute, Rel.ClaimedBy, EffectRelationshipDirection.Either, 0.035f, threshold: 35f, plane: plane),
+            InfluenceShelter(kind, attribute, Rel.MemberOf, EffectRelationshipDirection.Either, 0.035f, threshold: 35f, plane: plane),
+            InfluenceShelter(kind, attribute, Rel.LedBy, EffectRelationshipDirection.Either, 0.035f, threshold: 35f, plane: plane),
             InfluenceShelter(kind, attribute, Rel.TradeRoute, EffectRelationshipDirection.Either, 0.025f, threshold: 35f, plane: plane),
+            InfluenceShelter(kind, attribute, Rel.Memorializes, EffectRelationshipDirection.Either, 0.025f, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.RivalOf, -0.07f, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.AtWarWith, -0.10f, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.CorruptedBy, -0.08f, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.BetrayedBy, -0.06f, threshold: 35f, plane: plane),
             RelationshipSupport(kind, attribute, Rel.AlliedWith, 0.035f, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.Anchored, 0.025f, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.ClaimedBy, 0.02f, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.MemberOf, 0.02f, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.LedBy, 0.02f, maxDistance: 1, plane: plane),
             RelationshipSupport(kind, attribute, Rel.TradeRoute, 0.025f, maxDistance: 2, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.Memorializes, 0.02f, maxDistance: 1, plane: plane),
             RelationshipSupport(kind, attribute, Rel.CleansedBy, 0.025f, maxDistance: 1, plane: plane),
             RelationshipSupport(kind, attribute, Rel.ConduitOf, 0.025f, maxDistance: 1, plane: plane),
             RelationshipStress(kind, attribute, Rel.RivalOf, -0.04f, maxDistance: 2, plane: plane),
@@ -272,6 +283,10 @@ public static partial class IceRemembersDefinition
             RelationshipStress(kind, attribute, Rel.CorruptedBy, -0.05f, maxDistance: 2, plane: plane),
             RelationshipStress(kind, attribute, Rel.BetrayedBy, -0.045f, maxDistance: 1, plane: plane),
             RelationshipStress(kind, attribute, Rel.WardAgainst, -0.03f, maxDistance: 1, plane: plane),
+            CultureInfluenceShelter(kind, attribute, 0.03f, threshold: 35f, plane: plane),
+            CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Positive, 0.085f, threshold: 2.4f, plane: plane),
+            CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Neutral, 0.04f, threshold: 2.4f, plane: plane),
+            CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Negative, -0.035f, threshold: 2.4f, plane: plane),
             MapSignalEffect(kind, attribute, Effect.MapSupportAtLocation, 0.035f, threshold: 5f, plane: plane),
             MapSignalEffect(kind, attribute, Effect.MapCrowdingComfort, 0.025f, threshold: 0.5f, plane: plane),
             MapSignalEffect(kind, attribute, Effect.MapThreatAtLocation, -0.04f, threshold: 4f, plane: plane),
@@ -292,7 +307,11 @@ public static partial class IceRemembersDefinition
                 RelationshipSignal(Rel.HomeBase, support: 2.5f, threat: 0f),
                 RelationshipSignal(Rel.Anchored, support: 2.0f, threat: 0f),
                 RelationshipSignal(Rel.ControlledBy, support: 1.2f, threat: 0f),
+                RelationshipSignal(Rel.ClaimedBy, support: 1.0f, threat: 0f),
+                RelationshipSignal(Rel.MemberOf, support: 1.1f, threat: 0f),
+                RelationshipSignal(Rel.LedBy, support: 1.0f, threat: 0f),
                 RelationshipSignal(Rel.TradeRoute, support: 1.4f, threat: 0f),
+                RelationshipSignal(Rel.Memorializes, support: 1.1f, threat: 0f),
                 RelationshipSignal(Rel.CleansedBy, support: 1.5f, threat: 0f),
                 RelationshipSignal(Rel.ConduitOf, support: 1.2f, threat: 0f),
                 RelationshipSignal(Rel.RivalOf, support: 0f, threat: 1.5f),
@@ -359,6 +378,40 @@ public static partial class IceRemembersDefinition
             Plane = GameplayPlaneName(plane),
             Threshold = threshold,
             MinimumRelationshipStrength = 0.15f,
+            DeltaPerTick = deltaPerTick,
+        };
+
+    private static AttributeDeltaEffectConfig CultureInfluenceShelter(
+        EntityKind kind,
+        Attr attribute,
+        float deltaPerTick,
+        float threshold,
+        PrimaryPlane plane) =>
+        new()
+        {
+            Kind = kind.Value,
+            Attribute = A(attribute),
+            Condition = Effect.OwnCultureInfluenceAtLocation,
+            Plane = GameplayPlaneName(plane),
+            Threshold = threshold,
+            DeltaPerTick = deltaPerTick,
+        };
+
+    private static AttributeDeltaEffectConfig CultureSlotEffect(
+        EntityKind kind,
+        Attr attribute,
+        EffectCultureSlotPolarity polarity,
+        float deltaPerTick,
+        float threshold,
+        PrimaryPlane plane) =>
+        new()
+        {
+            Kind = kind.Value,
+            Attribute = A(attribute),
+            Condition = Effect.CultureSlotOccupancy,
+            Plane = GameplayPlaneName(plane),
+            CultureSlotPolarity = polarity,
+            Threshold = threshold,
             DeltaPerTick = deltaPerTick,
         };
 
@@ -587,7 +640,7 @@ public static partial class IceRemembersDefinition
             Benefits = new CultureSlotBenefitConfig
             {
                 EntityInfluenceMultiplierDelta = entityBenefit,
-                CultureInfluenceMultiplierDelta = cultureBenefit,
+                CultureInfluenceMultiplierDelta = cultureBenefit * CultureSlotCultureInfluenceBenefitScale,
             },
         };
 

@@ -30,12 +30,24 @@ public partial class HexCell : Node2D
 {
     private const float LightRoadThreshold = 0.25f;
     private const float HeavyRoadThreshold = 0.75f;
+    private const float GeometryCacheScale = 1000f;
 
+    private static readonly Dictionary<int, HexGeometry> GeometryCache = [];
     private HexCellRenderItem? _data;
+    private HexCellRenderFingerprint? _lastFingerprint;
 
     public void Bind(HexCellRenderItem data)
     {
+        global::System.ArgumentNullException.ThrowIfNull(data);
+
+        var fingerprint = HexCellRenderFingerprint.From(data);
         _data = data;
+        if (_lastFingerprint == fingerprint)
+        {
+            return;
+        }
+
+        _lastFingerprint = fingerprint;
         QueueRedraw();
     }
 
@@ -56,25 +68,25 @@ public partial class HexCell : Node2D
 
     private void DrawBase(HexCellRenderItem data)
     {
-        var points = GetHexPoints(data.HexSize);
+        var geometry = GetHexGeometry(data.HexSize);
         var tile = AssetLibrary.Terrain(data.TerrainStableName);
         if (tile is null)
         {
-            DrawColoredPolygon(points, data.TerrainColor);
+            DrawColoredPolygon(geometry.Points, data.TerrainColor);
         }
         else
         {
-            DrawColoredPolygon(points, Colors.White, BuildHexUvs(points, data.HexSize), tile);
+            DrawColoredPolygon(geometry.Points, Colors.White, geometry.Uvs, tile);
         }
 
         if (data.Plane == PlaneMode.Semantic)
         {
             DrawOverlayTexture(AssetLibrary.SemanticCellOverlay, data.HexSize, new Color(1f, 1f, 1f, 0.18f));
-            DrawPolyline([.. points, points[0]], UiTokens.Hairline, 1f);
+            DrawPolyline(geometry.ClosedPoints, UiTokens.Hairline, 1f);
             return;
         }
 
-        DrawPolyline([.. points, points[0]], UiTokens.Hairline, 1f);
+        DrawPolyline(geometry.ClosedPoints, UiTokens.Hairline, 1f);
     }
 
     private void DrawTerritory(HexCellRenderItem data)
@@ -85,7 +97,7 @@ public partial class HexCell : Node2D
         }
 
         var alpha = data.Plane == PlaneMode.Semantic ? 0.28f : 0.36f;
-        DrawColoredPolygon(GetHexPoints(data.HexSize * 0.85f), new Color(ownerColor, alpha));
+        DrawColoredPolygon(GetHexGeometry(data.HexSize * 0.85f).Points, new Color(ownerColor, alpha));
     }
 
     private void DrawInfluence(HexCellRenderItem data)
@@ -105,9 +117,9 @@ public partial class HexCell : Node2D
             }
 
             var alpha = 0.08f + Mathf.Clamp(influence.Value / 100f, 0f, 1f) * 0.24f;
-            var points = GetHexPoints(size);
-            DrawColoredPolygon(points, new Color(influence.Color, alpha));
-            DrawPolyline([.. points, points[0]], new Color(influence.Color, alpha + 0.08f), 1.2f, antialiased: true);
+            var geometry = GetHexGeometry(size);
+            DrawColoredPolygon(geometry.Points, new Color(influence.Color, alpha));
+            DrawPolyline(geometry.ClosedPoints, new Color(influence.Color, alpha + 0.08f), 1.2f, antialiased: true);
             band++;
         }
     }
@@ -121,7 +133,7 @@ public partial class HexCell : Node2D
 
         var dominant = data.CultureInfluences[0];
         var fillAlpha = 0.08f + Mathf.Clamp(dominant.Share / 100f, 0f, 1f) * 0.18f;
-        DrawColoredPolygon(GetHexPoints(data.HexSize * 0.92f), new Color(dominant.Color, fillAlpha));
+        DrawColoredPolygon(GetHexGeometry(data.HexSize * 0.92f).Points, new Color(dominant.Color, fillAlpha));
 
         var radius = data.HexSize * 0.76f;
         var width = MathF.Max(2.4f, data.HexSize * 0.12f);
@@ -241,20 +253,22 @@ public partial class HexCell : Node2D
             modulate ?? Colors.White);
     }
 
-    private static Vector2[] BuildHexUvs(Vector2[] points, float hexSize)
+    private static HexGeometry GetHexGeometry(float size)
     {
-        var uvs = new Vector2[points.Length];
-        for (var i = 0; i < points.Length; i++)
+        var key = (int)MathF.Round(
+            size * GeometryCacheScale,
+            global::System.MidpointRounding.AwayFromZero);
+        if (GeometryCache.TryGetValue(key, out var geometry))
         {
-            uvs[i] = new Vector2(
-                0.5f + points[i].X / (hexSize * 2f),
-                0.5f + points[i].Y / (hexSize * 2f));
+            return geometry;
         }
 
-        return uvs;
+        geometry = BuildHexGeometry(size);
+        GeometryCache[key] = geometry;
+        return geometry;
     }
 
-    private static Vector2[] GetHexPoints(float size)
+    private static HexGeometry BuildHexGeometry(float size)
     {
         var points = new Vector2[6];
         for (var i = 0; i < 6; i++)
@@ -263,6 +277,125 @@ public partial class HexCell : Node2D
             points[i] = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * size;
         }
 
-        return points;
+        var closedPoints = new Vector2[7];
+        for (var i = 0; i < points.Length; i++)
+        {
+            closedPoints[i] = points[i];
+        }
+
+        closedPoints[^1] = points[0];
+
+        var uvs = new Vector2[points.Length];
+        for (var i = 0; i < points.Length; i++)
+        {
+            uvs[i] = new Vector2(
+                0.5f + points[i].X / (size * 2f),
+                0.5f + points[i].Y / (size * 2f));
+        }
+
+        return new HexGeometry(points, closedPoints, uvs);
+    }
+
+    private sealed record HexGeometry(Vector2[] Points, Vector2[] ClosedPoints, Vector2[] Uvs);
+
+    private readonly record struct HexCellRenderFingerprint(
+        int HexId,
+        PlaneMode Plane,
+        int HexSizeKey,
+        string TerrainStableName,
+        string? TravelStructureStableName,
+        Color TerrainColor,
+        Color? OwnerColor,
+        bool ShowTerritory,
+        bool ShowCultureInfluence,
+        bool ShowInfluence,
+        bool ShowRoads,
+        bool ShowMapFeatures,
+        int RoadBucket,
+        int TravelStructureId,
+        int Influence0EntityId,
+        int Influence0Value,
+        int Influence1EntityId,
+        int Influence1Value,
+        int Influence2EntityId,
+        int Influence2Value,
+        int Influence3EntityId,
+        int Influence3Value,
+        int Culture0Id,
+        int Culture0Share,
+        int Culture1Id,
+        int Culture1Share,
+        int Culture2Id,
+        int Culture2Share,
+        int Culture3Id,
+        int Culture3Share)
+    {
+        public static HexCellRenderFingerprint From(HexCellRenderItem data)
+        {
+            var influence0 = InfluenceAt(data.Influences, 0);
+            var influence1 = InfluenceAt(data.Influences, 1);
+            var influence2 = InfluenceAt(data.Influences, 2);
+            var influence3 = InfluenceAt(data.Influences, 3);
+            var culture0 = CultureAt(data.CultureInfluences, 0);
+            var culture1 = CultureAt(data.CultureInfluences, 1);
+            var culture2 = CultureAt(data.CultureInfluences, 2);
+            var culture3 = CultureAt(data.CultureInfluences, 3);
+            return new HexCellRenderFingerprint(
+                data.Cell.HexId,
+                data.Plane,
+                (int)MathF.Round(
+                    data.HexSize * GeometryCacheScale,
+                    global::System.MidpointRounding.AwayFromZero),
+                data.TerrainStableName,
+                data.TravelStructureStableName,
+                data.TerrainColor,
+                data.OwnerColor,
+                data.ShowTerritory,
+                data.ShowCultureInfluence,
+                data.ShowInfluence,
+                data.ShowRoads,
+                data.ShowMapFeatures,
+                ComputeRoadBucket(data.Cell.RoadQuality),
+                data.Cell.TravelStructureId,
+                influence0.EntityId,
+                influence0.Value,
+                influence1.EntityId,
+                influence1.Value,
+                influence2.EntityId,
+                influence2.Value,
+                influence3.EntityId,
+                influence3.Value,
+                culture0.CultureId,
+                culture0.Share,
+                culture1.CultureId,
+                culture1.Share,
+                culture2.CultureId,
+                culture2.Share,
+                culture3.CultureId,
+                culture3.Share);
+        }
+
+        private static (int EntityId, int Value) InfluenceAt(IReadOnlyList<HexInfluenceRenderItem> influences, int index) =>
+            index < influences.Count
+                ? (influences[index].EntityId, PercentBucket(influences[index].Value))
+                : default;
+
+        private static (int CultureId, int Share) CultureAt(IReadOnlyList<HexCultureInfluenceRenderItem> influences, int index) =>
+            index < influences.Count
+                ? (influences[index].CultureId, PercentBucket(influences[index].Share))
+                : default;
+
+        private static int PercentBucket(float value) =>
+            (int)MathF.Round(
+                Math.Clamp(value, 0f, 100f),
+                global::System.MidpointRounding.AwayFromZero);
+
+        private static int ComputeRoadBucket(float quality) =>
+            quality switch
+            {
+                > HeavyRoadThreshold * 100f => 2,
+                > LightRoadThreshold * 100f => 1,
+                _ => 0,
+            };
     }
 }

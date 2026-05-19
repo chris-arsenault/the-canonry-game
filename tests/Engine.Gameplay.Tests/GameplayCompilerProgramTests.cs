@@ -83,6 +83,8 @@ public sealed class GameplayCompilerProgramTests
                     CandidateSampleCount = 7,
                     Weight = 1.2f,
                     OpportunityBonusOverride = 0.8f,
+                    TravelInfluenceDelta = 0.75f,
+                    TravelInfluenceRadius = 1,
                 },
                 new MovementLowAltitudeVerbConfig
                 {
@@ -110,6 +112,8 @@ public sealed class GameplayCompilerProgramTests
         Assert.Equal(7, relationshipVerb.CandidateSampleCount);
         Assert.Equal(1.2f, relationshipVerb.Weight);
         Assert.Equal(0.8f, relationshipVerb.OpportunityBonusOverride);
+        Assert.Equal(0.75f, relationshipVerb.InfluenceDelta);
+        Assert.Equal(1, relationshipVerb.InfluenceRadius);
 
         var terrainVerb = result.Programs.LowAltitudeVerbs.Verbs[1];
         Assert.Equal(TargetSelectorCodes.Terrain, terrainVerb.TargetModeCode);
@@ -348,6 +352,52 @@ public sealed class GameplayCompilerProgramTests
         Assert.Equal(EffectConditionCodes.LocalNegativeSignal, mapEffect.ConditionCode);
         Assert.Equal(0, mapEffect.RelationshipKindId);
         Assert.Equal(PlaneCodes.Physical, mapEffect.PlaneCode);
+    }
+
+    [Fact]
+    public void CompileGameplay_CompilesCulturalAttributeEffects()
+    {
+        var result = GameplayCompiler.CompileGameplay(new GameplayDefinition
+        {
+            Effects = new EffectsConfig
+            {
+                AttributeDeltaEffects =
+                [
+                    new AttributeDeltaEffectConfig
+                    {
+                        Kind = "actor",
+                        Attribute = "health",
+                        Condition = EffectCondition.OwnCultureInfluenceAtLocation,
+                        Plane = "semantic",
+                        Threshold = 35f,
+                        DeltaPerTick = 0.03f,
+                    },
+                    new AttributeDeltaEffectConfig
+                    {
+                        Kind = "actor",
+                        Attribute = "health",
+                        Condition = EffectCondition.CultureSlotOccupancy,
+                        Culture = "culture",
+                        CultureSlot = "seat",
+                        CultureSlotPolarity = EffectCultureSlotPolarity.Positive,
+                        Threshold = 2.4f,
+                        DeltaPerTick = 0.08f,
+                    },
+                ],
+            },
+        }, new ConfigurableGameplayContext());
+
+        var influenceEffect = result.Programs.Effects.AttributeDeltaEffects[0];
+        Assert.Equal(EffectConditionCodes.LocalCultureMapValue, influenceEffect.ConditionCode);
+        Assert.Equal(PlaneCodes.Semantic, influenceEffect.PlaneCode);
+        Assert.Equal(0, influenceEffect.CultureId);
+        Assert.Equal(0, influenceEffect.CultureSlotId);
+
+        var slotEffect = result.Programs.Effects.AttributeDeltaEffects[1];
+        Assert.Equal(EffectConditionCodes.CultureSlotOccupancy, slotEffect.ConditionCode);
+        Assert.Equal(80, slotEffect.CultureId);
+        Assert.Equal(90, slotEffect.CultureSlotId);
+        Assert.Equal(RelationshipPolarityCodes.Positive, slotEffect.CultureSlotPolarityCode);
     }
 
     [Fact]
@@ -614,6 +664,18 @@ public sealed class GameplayCompilerProgramTests
             "ranging" => 50,
             "restorative" => 50,
             _ => 59,
+        };
+
+        public int ResolveCultureId(string culture) => culture switch
+        {
+            "culture" => 80,
+            _ => 89,
+        };
+
+        public int ResolveCultureSlotId(string? culture, string slot, string context) => slot switch
+        {
+            "seat" => 90,
+            _ => 99,
         };
 
         public bool TerrainExists(string terrain) => _terrainExists;

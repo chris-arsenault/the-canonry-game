@@ -51,6 +51,7 @@ public class SemanticGeneratorConfigTests
         Assert.True(config.Produces[0].CreateIfMissing);
         Assert.Equal(SemanticPlacement.Near, config.Produces[0].PhysicalPlacement);
         Assert.Equal(SemanticPlacement.Near, config.Produces[0].SemanticPlacement);
+        Assert.Equal(GeneratorCulturePlacement.PreferInheritedCulture, config.Produces[0].CulturePlacement);
         Assert.Null(config.Produces[0].Subtypes);
         Assert.Null(config.Produces[0].Query);
     }

@@ -204,8 +204,12 @@ public partial class HexMapRenderer : Node2D
         var ownerColor = cell.OwnerEntityId > 0 && ownerColors.TryGetValue(cell.OwnerEntityId, out var resolvedOwner)
             ? resolvedOwner
             : (Color?)null;
-        var influences = BuildInfluenceRenderItems(cell, ownerColors);
-        var cultureInfluences = BuildCultureInfluenceRenderItems(cell, _symbols);
+        var influences = ShowInfluence
+            ? BuildInfluenceRenderItems(cell, ownerColors)
+            : [];
+        var cultureInfluences = ShowCultureInfluence
+            ? BuildCultureInfluenceRenderItems(cell, _symbols)
+            : [];
         var travelStructureStableName = cell.TravelStructureId > 0
             ? ResolveStableName(
                 ProjectionSymbolKind.TravelStructure,
@@ -235,8 +239,13 @@ public partial class HexMapRenderer : Node2D
         IReadOnlyDictionary<int, Color> ownerColors)
     {
         var items = new List<HexInfluenceRenderItem>(4);
-        foreach (var influence in cell.Influences.Where(influence => influence.Value > 0f))
+        foreach (var influence in cell.Influences)
         {
+            if (influence.Value <= 0f)
+            {
+                continue;
+            }
+
             if (!ownerColors.TryGetValue(influence.EntityId, out var color))
             {
                 continue;
@@ -257,8 +266,13 @@ public partial class HexMapRenderer : Node2D
         IProjectionSymbolCatalog? symbols)
     {
         var items = new List<HexCultureInfluenceRenderItem>(4);
-        foreach (var influence in cell.CultureInfluences.Where(influence => influence.Share > 0f))
+        foreach (var influence in cell.CultureInfluences)
         {
+            if (influence.Share <= 0f)
+            {
+                continue;
+            }
+
             var cultureStableName = ProjectionDisplay.StableName(
                 symbols,
                 ProjectionSymbolKind.Culture,

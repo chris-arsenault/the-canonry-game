@@ -10,6 +10,7 @@ internal sealed class LowAltitudeVerbShape
     public bool PhysicalAllowed { get; init; }
     public bool SemanticAllowed { get; init; }
     public bool RequiresInfluenceDelta { get; init; }
+    public bool AllowsOptionalInfluenceDelta { get; init; }
     public bool AllowsCoverageGrowth { get; init; }
     public bool AllowsRelocation { get; init; }
     public bool RequiresMapValue { get; init; }
@@ -47,6 +48,7 @@ internal sealed class LowAltitudeVerbShape
         },
         PhysicalAllowed = true,
         SemanticAllowed = true,
+        AllowsOptionalInfluenceDelta = true,
         PrimitiveSteps = [Step(ProgramOpcodeCodes.MoveActor)],
     };
 

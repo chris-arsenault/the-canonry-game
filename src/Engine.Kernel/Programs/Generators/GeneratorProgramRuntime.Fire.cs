@@ -321,6 +321,7 @@ internal sealed partial class GeneratorProgramRuntime
     {
         var subtypeId = ResolveProducedSubtype(simulation, produced);
         var cultureSourceId = ResolveRef(refCodes, refEntityIds, refCount, _producedCultureRefCodes[produced]);
+        var producedCultureId = cultureSourceId == 0 ? 0 : world.EntityCultureId(cultureSourceId);
         if (subtypeId == 0 || cultureSourceId == 0)
         {
             MarkCreatedEntitiesHistorical(simulation, world, createdEntityIds, createdEntityCount, tick);
@@ -336,6 +337,7 @@ internal sealed partial class GeneratorProgramRuntime
         if (!ResolveProducedPlacement(
                 simulation,
                 placementAnchorId,
+                producedCultureId,
                 produced,
                 subtypeId,
                 out var physicalQ,
@@ -351,7 +353,7 @@ internal sealed partial class GeneratorProgramRuntime
             simulation,
             _producedKindIds[produced],
             subtypeId,
-            world.EntityCultureId(cultureSourceId),
+            producedCultureId,
             physicalQ,
             physicalR,
             semanticQ,

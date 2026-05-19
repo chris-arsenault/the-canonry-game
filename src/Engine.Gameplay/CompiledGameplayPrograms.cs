@@ -138,4 +138,7 @@ public sealed record AttributeDeltaEffectRule(
     float MinimumRelationshipStrength,
     float DeltaPerTick,
     int RequiredTargetTraitId,
-    int RequiredRelatedTraitId);
+    int RequiredRelatedTraitId,
+    int CultureId = 0,
+    int CultureSlotId = 0,
+    int CultureSlotPolarityCode = -1);

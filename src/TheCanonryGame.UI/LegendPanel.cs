@@ -11,8 +11,11 @@ namespace TheCanonryGame.UI;
 
 public partial class LegendPanel : PanelContainer
 {
+    private const ulong MinimumRefreshIntervalMs = 500;
+
     private VBoxContainer? _column;
     private LegendState? _lastState;
+    private ulong _lastRenderedAtMs;
 
     public override void _Ready()
     {
@@ -31,10 +34,11 @@ public partial class LegendPanel : PanelContainer
         PlaneMode plane)
     {
         var state = new LegendState(
+            map is null ? 0 : global::System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(map),
             map?.CellVersion ?? -1,
             projection?.EntityMapVersion ?? -1,
             plane);
-        if (_lastState == state)
+        if (!ShouldRender(state, Time.GetTicksMsec()))
         {
             return;
         }
@@ -42,6 +46,23 @@ public partial class LegendPanel : PanelContainer
         _lastState = state;
         Render(map, projection, symbols, plane);
     }
+
+    private bool ShouldRender(LegendState state, ulong now)
+    {
+        if (_lastState == state || IsRefreshThrottled(state, now))
+        {
+            return false;
+        }
+
+        _lastRenderedAtMs = now;
+        return true;
+    }
+
+    private bool IsRefreshThrottled(LegendState state, ulong now) =>
+        _lastState is { } last &&
+        last.MapIdentity == state.MapIdentity &&
+        last.Plane == state.Plane &&
+        now - _lastRenderedAtMs < MinimumRefreshIntervalMs;
 
     private void Render(
         HexMapProjection? map,
@@ -391,5 +412,9 @@ public partial class LegendPanel : PanelContainer
     private static float CultureShare(HexProjection cell, int cultureId) =>
         cell.CultureInfluences.FirstOrDefault(influence => influence.CultureId == cultureId)?.Share ?? 0f;
 
-    private readonly record struct LegendState(long CellVersion, long EntityMapVersion, PlaneMode Plane);
+    private readonly record struct LegendState(
+        int MapIdentity,
+        long CellVersion,
+        long EntityMapVersion,
+        PlaneMode Plane);
 }

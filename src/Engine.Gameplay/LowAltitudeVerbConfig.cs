@@ -51,7 +51,12 @@ public sealed class ForeignInfluenceTargetingConfig
 
 public sealed class MovementLowAltitudeVerbConfig : LowAltitudeVerbConfig
 {
+    public float TravelInfluenceDelta { get; init; }
+    public int TravelInfluenceRadius { get; init; }
+
     public override LowAltitudeVerbOperation Operation => LowAltitudeVerbOperation.Move;
+    public override float InfluenceDelta => TravelInfluenceDelta;
+    public override int InfluenceRadius => TravelInfluenceRadius;
 }
 
 public sealed class InfluenceLowAltitudeVerbConfig : LowAltitudeVerbConfig

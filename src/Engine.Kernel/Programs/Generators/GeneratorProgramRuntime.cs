@@ -6,6 +6,9 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
 {
     private const int MaxResolvedReferences = 32;
     private const int MaxScratchCells = 4096;
+    private const int SlotFillBasePulseWeightBonus = 8;
+    private const int SlotFillAdditionalPulseWeightBonus = 2;
+    private const int SlotFillMaxPulseWeightBonus = 16;
     private readonly GeneratorProgramScratch _scratch;
     private int[] _generatorIds => Data.GeneratorIds;
     private int[] _targetKindIds => Data.TargetKindIds;
@@ -41,6 +44,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _effectCounts => Data.EffectCounts;
     private int[] _pulseStatusCodes => _scratch.PulseStatusCodes;
     private int[] _pulseCandidateCounts => _scratch.PulseCandidateCounts;
+    private int[] _pulseSelectionWeights => _scratch.PulseSelectionWeights;
     private int[] _pulseSelectedTargetIds => _scratch.PulseSelectedTargetIds;
     private int[] _pulseFailedFireCounts => _scratch.PulseFailedFireCounts;
     private int[] _subtypeIds => Data.SubtypeIds;
@@ -81,6 +85,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _producedPlacementFallbackTerrainIds => Data.ProducedPlacementFallbackTerrainIds;
     private int[] _producedPlacementRefCodes => Data.ProducedPlacementRefCodes;
     private int[] _producedCultureRefCodes => Data.ProducedCultureRefCodes;
+    private int[] _producedCulturePlacementCodes => Data.ProducedCulturePlacementCodes;
     private float[] _producedCreateChances => Data.ProducedCreateChances;
     private int[] _producedSubtypeChoiceStarts => Data.ProducedSubtypeChoiceStarts;
     private int[] _producedSubtypeChoiceCounts => Data.ProducedSubtypeChoiceCounts;
@@ -416,7 +421,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         int physicalPlacementMinRadius = GeneratorProgramConstants.DefaultPlacementMinRadius,
         int physicalPlacementMaxRadius = GeneratorProgramConstants.DefaultPlacementMaxRadius,
         int semanticPlacementMinRadius = GeneratorProgramConstants.DefaultPlacementMinRadius,
-        int semanticPlacementMaxRadius = GeneratorProgramConstants.DefaultPlacementMaxRadius)
+        int semanticPlacementMaxRadius = GeneratorProgramConstants.DefaultPlacementMaxRadius,
+        int culturePlacementCode = GeneratorCulturePlacementCodes.PreferInheritedCulture)
     {
         EnsureOpenGenerator(generatorSlot);
         ValidatePositive(refCode);
@@ -425,18 +431,14 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         ValidatePositive(queryCultureMatchCode);
         ValidatePositive(physicalPlacementCode);
         ValidatePositive(semanticPlacementCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(physicalPlacementMinRadius);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(physicalPlacementMaxRadius);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(semanticPlacementMinRadius);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(semanticPlacementMaxRadius);
-        if (physicalPlacementMaxRadius < physicalPlacementMinRadius ||
-            semanticPlacementMaxRadius < semanticPlacementMinRadius)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
+        ValidateProducedPlacementRadii(
+            physicalPlacementMinRadius,
+            physicalPlacementMaxRadius,
+            semanticPlacementMinRadius,
+            semanticPlacementMaxRadius);
         ValidatePositive(placementRefCode);
         ValidatePositive(cultureRefCode);
+        ValidatePositive(culturePlacementCode);
         if (createChance < 0f || createChance > 1f)
         {
             throw new global::System.InvalidOperationException();
@@ -472,10 +474,28 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             physicalPlacementMinRadius,
             physicalPlacementMaxRadius,
             semanticPlacementMinRadius,
-            semanticPlacementMaxRadius);
+            semanticPlacementMaxRadius,
+            culturePlacementCode);
         _producedCounts[generatorSlot]++;
         _openProducedSlot = _producedCount;
         return _producedCount;
+    }
+
+    private static void ValidateProducedPlacementRadii(
+        int physicalPlacementMinRadius,
+        int physicalPlacementMaxRadius,
+        int semanticPlacementMinRadius,
+        int semanticPlacementMaxRadius)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(physicalPlacementMinRadius);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(physicalPlacementMaxRadius);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(semanticPlacementMinRadius);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(semanticPlacementMaxRadius);
+        if (physicalPlacementMaxRadius < physicalPlacementMinRadius ||
+            semanticPlacementMaxRadius < semanticPlacementMinRadius)
+        {
+            throw new global::System.InvalidOperationException();
+        }
     }
 
     private void StoreProducedDefinition(
@@ -502,7 +522,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         int physicalPlacementMinRadius,
         int physicalPlacementMaxRadius,
         int semanticPlacementMinRadius,
-        int semanticPlacementMaxRadius)
+        int semanticPlacementMaxRadius,
+        int culturePlacementCode)
     {
         _producedRefCodes[producedSlot] = refCode;
         _producedKindIds[producedSlot] = kindId;
@@ -517,6 +538,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _producedSemanticPlacementMaxRadii[producedSlot] = semanticPlacementMaxRadius;
         _producedPlacementRefCodes[producedSlot] = placementRefCode;
         _producedCultureRefCodes[producedSlot] = cultureRefCode;
+        _producedCulturePlacementCodes[producedSlot] = culturePlacementCode;
         _producedCreateChances[producedSlot] = createChance;
         _producedQueryAdjacentToTarget[producedSlot] = queryAdjacentToTarget;
         _producedQueryCultureMatchCodes[producedSlot] = queryCultureMatchCode;
@@ -655,6 +677,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         {
             _pulseStatusCodes[slot] = GeneratorStatusCodes.NotEvaluated;
             _pulseCandidateCounts[slot] = 0;
+            _pulseSelectionWeights[slot] = 0;
             _pulseSelectedTargetIds[slot] = 0;
             _pulseFailedFireCounts[slot] = 0;
             if (!_enabled[slot] || tick <= 0)
@@ -761,8 +784,9 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             return;
         }
 
-        var candidateCount = CountEligibleTargets(simulation.World, slot);
+        var (candidateCount, slotFillBonus) = CountEligibleTargetsAndSlotFillBonus(simulation, slot);
         _pulseCandidateCounts[slot] = candidateCount;
+        _pulseSelectionWeights[slot] = candidateCount == 0 ? 0 : _pulseWeights[slot] + slotFillBonus;
         _pulseStatusCodes[slot] = candidateCount == 0
             ? GeneratorStatusCodes.Blocked
             : GeneratorStatusCodes.Eligible;
@@ -776,7 +800,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         {
             if (_pulseStatusCodes[slot] == GeneratorStatusCodes.Eligible)
             {
-                totalWeight += _pulseWeights[slot];
+                totalWeight += _pulseSelectionWeights[slot];
             }
         }
 
@@ -793,21 +817,25 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
                 continue;
             }
 
-            if (roll < _pulseWeights[slot])
+            if (roll < _pulseSelectionWeights[slot])
             {
                 selectedGeneratorSlot = slot;
                 return true;
             }
 
-            roll -= _pulseWeights[slot];
+            roll -= _pulseSelectionWeights[slot];
         }
 
         return false;
     }
 
-    private int CountEligibleTargets(WorldState world, int generatorSlot)
+    private (int CandidateCount, int SlotFillBonus) CountEligibleTargetsAndSlotFillBonus(
+        Simulation simulation,
+        int generatorSlot)
     {
         var count = 0;
+        var maxSlotFitCount = 0;
+        var world = simulation.World;
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
         KernelQuery.ForEachActiveEntityOfKind(
@@ -815,15 +843,69 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             _targetKindIds[generatorSlot],
             entityId =>
             {
-                if (TargetPasses(world, generatorSlot, entityId, refCodes, refEntityIds, out _))
+                if (TargetPasses(world, generatorSlot, entityId, refCodes, refEntityIds, out var refCount))
                 {
                     count++;
+                    var slotFitCount = ProducedUnoccupiedSlotFitCount(
+                        simulation,
+                        generatorSlot,
+                        refCodes,
+                        refEntityIds,
+                        refCount);
+                    if (slotFitCount > maxSlotFitCount)
+                    {
+                        maxSlotFitCount = slotFitCount;
+                    }
                 }
 
                 return true;
             });
 
+        return (count, SlotFillPulseWeightBonus(maxSlotFitCount));
+    }
+
+    private int ProducedUnoccupiedSlotFitCount(
+        Simulation simulation,
+        int generatorSlot,
+        int[] refCodes,
+        int[] refEntityIds,
+        int refCount)
+    {
+        var count = 0;
+        var world = simulation.World;
+        var firstProduced = _producedStarts[generatorSlot];
+        var endProduced = firstProduced + _producedCounts[generatorSlot];
+        for (var produced = firstProduced; produced < endProduced; produced++)
+        {
+            if (_producedCreateIfMissing[produced] == 0 || _producedCreateChances[produced] <= 0f)
+            {
+                continue;
+            }
+
+            var cultureSourceId = ResolveRef(refCodes, refEntityIds, refCount, _producedCultureRefCodes[produced]);
+            if (cultureSourceId <= 0)
+            {
+                continue;
+            }
+
+            count += simulation.CultureSlots.UnoccupiedSlotFitCount(
+                world.EntityCultureId(cultureSourceId),
+                _producedKindIds[produced]);
+        }
+
         return count;
+    }
+
+    private static int SlotFillPulseWeightBonus(int slotFitCount)
+    {
+        if (slotFitCount <= 0)
+        {
+            return 0;
+        }
+
+        return global::System.Math.Min(
+            SlotFillMaxPulseWeightBonus,
+            SlotFillBasePulseWeightBonus + ((slotFitCount - 1) * SlotFillAdditionalPulseWeightBonus));
     }
 
     private int SelectEligibleTarget(Simulation simulation, int generatorSlot)

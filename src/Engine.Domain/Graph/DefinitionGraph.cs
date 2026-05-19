@@ -284,6 +284,7 @@ public sealed class DefinitionProducedEntity
     public string? SemanticPlacementFallbackTerrain { get; init; }
     public string PlacementRef { get; init; } = "$target";
     public required string InheritCultureFrom { get; init; }
+    public GeneratorCulturePlacement CulturePlacement { get; init; } = GeneratorCulturePlacement.PreferInheritedCulture;
     public DefinitionEntityQuery? Query { get; init; }
     public DefinitionRegionCoverage? Coverage { get; init; }
 }

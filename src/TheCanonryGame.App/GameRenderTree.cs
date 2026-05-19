@@ -332,6 +332,7 @@ internal sealed class GameRenderTree
         {
             var state = MapRenderState.From(renderer, map);
             var cellState = state with { FrameVersion = 0 };
+            var frameState = state with { CellVersion = 0 };
             if (_lastCells is null || CellLayoutChanged(_lastCells.Value, cellState))
             {
                 renderer.RefreshCells();
@@ -345,10 +346,10 @@ internal sealed class GameRenderTree
                 _lastCells = cellState;
             }
 
-            if (_lastFrame != state)
+            if (_lastFrame != frameState)
             {
                 renderer.RefreshFrame();
-                _lastFrame = state;
+                _lastFrame = frameState;
             }
         }
 

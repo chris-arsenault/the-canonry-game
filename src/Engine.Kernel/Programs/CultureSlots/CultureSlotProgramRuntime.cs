@@ -47,6 +47,87 @@ internal sealed class CultureSlotProgramRuntime :
         return slot > 0 ? State.OccupantEntityId(slot) : 0;
     }
 
+    public float OccupancyEvidence(
+        int entityId,
+        int cultureId,
+        int slotId,
+        int polarityCode,
+        float threshold)
+    {
+        if (entityId <= 0)
+        {
+            return 0f;
+        }
+
+        var best = 0f;
+        for (var slot = 1; slot <= Data.SlotCount; slot++)
+        {
+            if (!SlotMatchesOccupancyFilter(slot, entityId, cultureId, slotId, polarityCode))
+            {
+                continue;
+            }
+
+            var evidence = KernelQuery.ThresholdEvidence(State.OccupantScore(slot), threshold);
+            if (evidence >= 1f)
+            {
+                return 1f;
+            }
+
+            if (evidence > best)
+            {
+                best = evidence;
+            }
+        }
+
+        return best;
+    }
+
+    public int UnoccupiedSlotFitCount(int cultureId, int kindId)
+    {
+        if (cultureId <= 0 || kindId <= 0)
+        {
+            return 0;
+        }
+
+        var count = 0;
+        for (var slot = 1; slot <= Data.SlotCount; slot++)
+        {
+            if (Data.CultureId(slot) == cultureId &&
+                State.OccupantEntityId(slot) == 0 &&
+                Data.KindAllowed(slot, kindId))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private bool SlotMatchesOccupancyFilter(
+        int slot,
+        int entityId,
+        int cultureId,
+        int slotId,
+        int polarityCode)
+    {
+        if (State.OccupantEntityId(slot) != entityId)
+        {
+            return false;
+        }
+
+        if (cultureId > 0 && Data.CultureId(slot) != cultureId)
+        {
+            return false;
+        }
+
+        if (slotId > 0 && Data.SlotId(slot) != slotId)
+        {
+            return false;
+        }
+
+        return polarityCode < 0 || Data.PolarityCode(slot) == polarityCode;
+    }
+
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);

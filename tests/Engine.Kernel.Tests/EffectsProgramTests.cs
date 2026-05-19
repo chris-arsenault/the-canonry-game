@@ -279,6 +279,71 @@ public sealed class EffectsProgramTests
         Assert.Equal(52f, simulation.World.GetAttribute(entity, healthAttributeId));
     }
 
+    [Fact]
+    public void AttributeDeltaEffect_OwnCultureInfluenceAtLocationAddsHealth()
+    {
+        const int kindId = 1;
+        const int healthAttributeId = 1;
+        var simulation = CreateSimulation();
+        simulation.RegisterAttribute(kindId, healthAttributeId, minimum: 0f, maximum: 100f, defaultValue: 50f);
+        simulation.Effects.RegisterAttributeDeltaEffect(
+            kindId,
+            healthAttributeId,
+            EffectConditionCodes.LocalCultureMapValue,
+            0,
+            RelationshipMatchDirectionCodes.Either,
+            PlaneCodes.Physical,
+            maxDistance: 0,
+            threshold: 50f,
+            minimumRelationshipStrength: 0f,
+            deltaPerTick: 2f);
+        var entity = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
+        simulation.SetCellInfluence(entity, PlaneCodes.Physical, 0, 0, 40f, tick: 0);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(52f, simulation.World.GetAttribute(entity, healthAttributeId));
+    }
+
+    [Fact]
+    public void AttributeDeltaEffect_CultureSlotOccupancyAddsHealth()
+    {
+        const int kindId = 1;
+        const int healthAttributeId = 1;
+        const int cultureId = 2;
+        const int slotId = 1;
+        var simulation = CreateSimulation();
+        simulation.RegisterAttribute(kindId, healthAttributeId, minimum: 0f, maximum: 100f, defaultValue: 50f);
+        simulation.Effects.RegisterAttributeDeltaEffect(
+            kindId,
+            healthAttributeId,
+            EffectConditionCodes.CultureSlotOccupancy,
+            0,
+            RelationshipMatchDirectionCodes.Either,
+            PlaneCodes.Physical,
+            maxDistance: 0,
+            threshold: 1f,
+            minimumRelationshipStrength: 0f,
+            deltaPerTick: 2f,
+            cultureSlotPolarityCode: RelationshipPolarityCodes.Positive);
+        var slot = simulation.CultureSlots.RegisterSlot(
+            cultureId,
+            slotId,
+            RelationshipPolarityCodes.Positive,
+            minimumScore: 0.5f,
+            minimumTenureTicks: 0,
+            displacementMargin: 0f,
+            entityInfluenceMultiplierDelta: 0f,
+            cultureInfluenceMultiplierDelta: 0f);
+        simulation.CultureSlots.AddAllowedKind(slot, kindId);
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.ActiveEntity, relationshipKindId: 0, weight: 1f);
+        var entity = simulation.CreateEntity(kindId, subtypeId: 1, cultureId, 0, 0, 0, 0, 0, tick: 0);
+
+        simulation.AdvanceTicks(11);
+
+        Assert.Equal(52f, simulation.World.GetAttribute(entity, healthAttributeId));
+    }
+
     private static Simulation CreateSimulation() =>
         new(new SimulationOptions
         {

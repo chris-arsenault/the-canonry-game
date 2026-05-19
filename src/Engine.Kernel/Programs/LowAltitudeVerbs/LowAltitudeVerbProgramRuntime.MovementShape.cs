@@ -132,6 +132,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var result = simulation.Movement.Navigate(simulation, entityId, planeCode, targetQ, targetR, tick);
         if (result.Moved)
         {
+            ApplyTravelInfluence(simulation, entityId, rule, result, tick);
             State.MarkStepped(entityId, tick, result.StepCost);
             return;
         }
@@ -167,8 +168,33 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             localityRadius);
         if (result.Moved)
         {
+            ApplyTravelInfluence(simulation, entityId, rule, result, tick);
             State.MarkStepped(entityId, tick, result.StepCost);
         }
+    }
+
+    private void ApplyTravelInfluence(
+        Simulation simulation,
+        int entityId,
+        int rule,
+        MovementMoveResult result,
+        int tick)
+    {
+        var delta = Data.InfluenceDelta(rule);
+        if (delta <= 0f)
+        {
+            return;
+        }
+
+        ApplyInfluenceAround(
+            simulation,
+            entityId,
+            result.PlaneCode,
+            result.ToQ,
+            result.ToR,
+            Data.InfluenceRadius(rule),
+            delta,
+            tick);
     }
 
     private int DwellLocalityRadius(int rule)

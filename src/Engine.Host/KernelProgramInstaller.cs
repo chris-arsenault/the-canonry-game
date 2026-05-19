@@ -383,7 +383,8 @@ internal static partial class KernelProgramInstaller
             produced.PhysicalPlacementMinRadius,
             produced.PhysicalPlacementMaxRadius,
             produced.SemanticPlacementMinRadius,
-            produced.SemanticPlacementMaxRadius);
+            produced.SemanticPlacementMaxRadius,
+            GeneratorCulturePlacementCode(produced.CulturePlacement));
         InstallGeneratorProducedSubtypeChoices(context, producedSlot, produced);
         InstallGeneratorProducedPlacementTerrains(context, producedSlot, produced);
         if (query is not null)
@@ -789,6 +790,13 @@ internal static partial class KernelProgramInstaller
         GeneratorProgramCultureMatch.SameAsTarget => GeneratorCultureMatchCodes.SameAsTarget,
         GeneratorProgramCultureMatch.DifferentFromTarget => GeneratorCultureMatchCodes.DifferentFromTarget,
         _ => throw new ArgumentOutOfRangeException(nameof(cultureMatch), cultureMatch, null),
+    };
+
+    private static int GeneratorCulturePlacementCode(GeneratorProgramCulturePlacement culturePlacement) => culturePlacement switch
+    {
+        GeneratorProgramCulturePlacement.Ignore => GeneratorCulturePlacementCodes.Ignore,
+        GeneratorProgramCulturePlacement.PreferInheritedCulture => GeneratorCulturePlacementCodes.PreferInheritedCulture,
+        _ => throw new ArgumentOutOfRangeException(nameof(culturePlacement), culturePlacement, null),
     };
 
     private static int GeneratorCoverageModeCode(GeneratorProgramCoverageMode mode) => mode switch
