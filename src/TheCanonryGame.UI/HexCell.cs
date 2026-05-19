@@ -141,18 +141,19 @@ public partial class HexCell : Node2D
         foreach (var influence in data.CultureInfluences)
         {
             var share = Mathf.Clamp(influence.Share / 100f, 0f, 1f);
-            if (share <= 0f)
+            var end = start + (Mathf.Tau * share);
+            if (share < 0.02f)
             {
+                start = end;
                 continue;
             }
 
-            var end = start + (Mathf.Tau * share);
             DrawArc(
                 Vector2.Zero,
                 radius,
                 start,
                 end,
-                Math.Max(8, (int)MathF.Ceiling(42 * share)),
+                Math.Max(5, (int)MathF.Ceiling(18 * share)),
                 new Color(influence.Color, 0.88f),
                 width,
                 antialiased: true);

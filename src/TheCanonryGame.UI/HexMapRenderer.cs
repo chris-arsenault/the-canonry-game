@@ -21,6 +21,7 @@ public enum PlaneMode
 public partial class HexMapRenderer : Node2D
 {
     private readonly Dictionary<int, HexCell> _cellNodes = [];
+    private readonly Dictionary<int, Vector2> _cellPositions = [];
     private readonly Dictionary<int, Color> _ownerColors = [];
     private HexMapProjection? _map;
     private IProjectionSymbolCatalog? _symbols;
@@ -167,7 +168,13 @@ public partial class HexMapRenderer : Node2D
             _cellNodes[cell.HexId] = node;
         }
 
-        node.Position = HexToPixel(cell.Coord);
+        var position = HexToPixel(cell.Coord);
+        if (!_cellPositions.TryGetValue(cell.HexId, out var previousPosition) || previousPosition != position)
+        {
+            node.Position = position;
+            _cellPositions[cell.HexId] = position;
+        }
+
         node.Bind(BuildCellRenderItem(cell, ownerColors));
         return node;
     }
@@ -180,6 +187,7 @@ public partial class HexMapRenderer : Node2D
         }
 
         _cellNodes.Remove(hexId);
+        _cellPositions.Remove(hexId);
         node.QueueFree();
     }
 
@@ -191,6 +199,7 @@ public partial class HexMapRenderer : Node2D
         }
 
         _cellNodes.Clear();
+        _cellPositions.Clear();
     }
 
     private HexCellRenderItem BuildCellRenderItem(

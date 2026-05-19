@@ -11,11 +11,13 @@ namespace TheCanonryGame.UI;
 
 public partial class LegendPanel : PanelContainer
 {
-    private const ulong MinimumRefreshIntervalMs = 500;
+    private const long MinimumRefreshIntervalMs = 500;
 
     private VBoxContainer? _column;
     private LegendState? _lastState;
-    private ulong _lastRenderedAtMs;
+    private HexMapProjection? _lastMap;
+    private long _lastRenderedAtMs;
+    private int _mapGeneration;
 
     public override void _Ready()
     {
@@ -27,29 +29,42 @@ public partial class LegendPanel : PanelContainer
         Render(null, null, null, PlaneMode.Physical);
     }
 
-    public void BindCultureOverview(
+    public bool BindCultureOverview(
         HexMapProjection? map,
         UiProjectionState? projection,
         IProjectionSymbolCatalog? symbols,
         PlaneMode plane)
     {
+        if (!ReferenceEquals(_lastMap, map))
+        {
+            _lastMap = map;
+            _mapGeneration++;
+        }
+
         var state = new LegendState(
-            map is null ? 0 : global::System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(map),
+            _mapGeneration,
             map?.CellVersion ?? -1,
             projection?.EntityMapVersion ?? -1,
             plane);
-        if (!ShouldRender(state, Time.GetTicksMsec()))
+        if (!ShouldRender(state))
         {
-            return;
+            return false;
         }
 
         _lastState = state;
         Render(map, projection, symbols, plane);
+        return true;
     }
 
-    private bool ShouldRender(LegendState state, ulong now)
+    private bool ShouldRender(LegendState state)
     {
-        if (_lastState == state || IsRefreshThrottled(state, now))
+        if (_lastState == state)
+        {
+            return false;
+        }
+
+        var now = System.Environment.TickCount64;
+        if (IsRefreshThrottled(state, now))
         {
             return false;
         }
@@ -58,9 +73,9 @@ public partial class LegendPanel : PanelContainer
         return true;
     }
 
-    private bool IsRefreshThrottled(LegendState state, ulong now) =>
+    private bool IsRefreshThrottled(LegendState state, long now) =>
         _lastState is { } last &&
-        last.MapIdentity == state.MapIdentity &&
+        last.MapGeneration == state.MapGeneration &&
         last.Plane == state.Plane &&
         now - _lastRenderedAtMs < MinimumRefreshIntervalMs;
 
@@ -413,7 +428,7 @@ public partial class LegendPanel : PanelContainer
         cell.CultureInfluences.FirstOrDefault(influence => influence.CultureId == cultureId)?.Share ?? 0f;
 
     private readonly record struct LegendState(
-        int MapIdentity,
+        int MapGeneration,
         long CellVersion,
         long EntityMapVersion,
         PlaneMode Plane);

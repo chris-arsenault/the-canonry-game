@@ -22,6 +22,7 @@ public partial class MapArea : Control
     private CheckBox? _cultureLayerCheckBox;
     private CheckBox? _influenceLayerCheckBox;
     private LegendPanel? _legendPanel;
+    private OverlayLayoutState? _lastOverlayLayout;
     private bool _updatingLayerControls;
 
     [Signal]
@@ -128,8 +129,10 @@ public partial class MapArea : Control
         Engine.Projection.IProjectionSymbolCatalog? symbols,
         PlaneMode plane)
     {
-        _legendPanel?.BindCultureOverview(map, projection, symbols, plane);
-        PositionOverlays();
+        if (_legendPanel?.BindCultureOverview(map, projection, symbols, plane) == true)
+        {
+            PositionOverlays();
+        }
     }
 
     private CheckBox AddLayerCheckBox(VBoxContainer box, string text, string layerKey)
@@ -157,25 +160,48 @@ public partial class MapArea : Control
 
     private void PositionOverlays()
     {
+        var areaSize = Size;
+        var layerPanelSize = _layersPanel?.GetCombinedMinimumSize() ?? Vector2.Zero;
+        var legendSize = _legendPanel?.GetCombinedMinimumSize() ?? Vector2.Zero;
+        var state = new OverlayLayoutState(
+            areaSize,
+            layerPanelSize,
+            legendSize,
+            _planeToggleButton is not null,
+            _layersPanel is not null,
+            _legendPanel is not null);
+        if (_lastOverlayLayout == state)
+        {
+            return;
+        }
+
         if (_planeToggleButton is not null)
         {
-            _planeToggleButton.Position = new Vector2(UiTokens.Space4, Size.Y - UiTokens.Space6 - UiTokens.Space2);
+            _planeToggleButton.Position = new Vector2(UiTokens.Space4, areaSize.Y - UiTokens.Space6 - UiTokens.Space2);
         }
 
         if (_layersPanel is not null)
         {
-            var panelSize = _layersPanel.GetCombinedMinimumSize();
             _layersPanel.Position = new Vector2(
                 UiTokens.Space4,
-                Size.Y - UiTokens.Space6 - UiTokens.Space2 - 34f - panelSize.Y - UiTokens.Space2);
+                areaSize.Y - UiTokens.Space6 - UiTokens.Space2 - 34f - layerPanelSize.Y - UiTokens.Space2);
         }
 
         if (_legendPanel is not null)
         {
-            var legendSize = _legendPanel.GetCombinedMinimumSize();
             _legendPanel.Position = new Vector2(
-                Size.X - legendSize.X - UiTokens.Space4,
-                Size.Y - legendSize.Y - UiTokens.Space6 - UiTokens.Space2);
+                areaSize.X - legendSize.X - UiTokens.Space4,
+                areaSize.Y - legendSize.Y - UiTokens.Space6 - UiTokens.Space2);
         }
+
+        _lastOverlayLayout = state;
     }
+
+    private readonly record struct OverlayLayoutState(
+        Vector2 AreaSize,
+        Vector2 LayerPanelSize,
+        Vector2 LegendSize,
+        bool HasPlaneToggle,
+        bool HasLayersPanel,
+        bool HasLegendPanel);
 }

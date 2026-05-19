@@ -15,6 +15,8 @@ namespace TheCanonryGame.App;
 
 internal sealed class GameRenderTree
 {
+    private const long TooltipRefreshIntervalMs = 100;
+
     private readonly HexMapRenderer _mapRenderer;
     private readonly EntityLayer _entityLayer;
     private readonly EntityBrowser _browser;
@@ -44,8 +46,14 @@ internal sealed class GameRenderTree
     private IProjectionSymbolCatalog? _symbols;
     private IGameChronicleFeed? _chronicle;
     private AttributeGraphPanel? _attributeGraph;
+    private HexMapProjection? _lastCultureOverviewMap;
+    private PlaneMode? _lastCultureOverviewPlane;
+    private bool _tableauVisible;
     private int _seed;
     private int _seedAttempt;
+    private int _lastCultureOverviewTick = -1;
+    private bool _tooltipPollingEnabled;
+    private double _tooltipRefreshElapsedMs = TooltipRefreshIntervalMs;
 
     internal GameRenderTree(
         HexMapRenderer mapRenderer,
@@ -98,7 +106,12 @@ internal sealed class GameRenderTree
 
     public void CloseOpenCards() => _cardLayer.CloseAll();
 
-    public void ClearTooltip() => _hexTooltipPanel.ClearTooltip();
+    public void ClearTooltip()
+    {
+        _tooltipPollingEnabled = false;
+        _tooltipRefreshElapsedMs = TooltipRefreshIntervalMs;
+        _hexTooltipPanel.ClearTooltip();
+    }
 
     public void Present(int currentTick, string timeState)
     {
@@ -110,17 +123,54 @@ internal sealed class GameRenderTree
         _chronicle.Refresh();
         _topBarRender.Present(_topBar, _ui, currentTick, timeState, _seed, _seedAttempt);
         _mapRender.Present(_mapRenderer, _map);
-        _mapArea.BindCultureOverview(_map, _ui, _symbols, _mapRenderer.CurrentPlane);
+        PresentCultureOverview(currentTick);
         _browserRender.Present(_browser, _ui);
         _entityMapRender.Present(_entityLayer, _ui, _browser);
         _cardLayerRender.Present(_cardLayer, _ui);
         _attributeGraphRender.Present(ActiveAttributeGraph(), _ui);
         _chronicleRender.Present(_chroniclePanel, _chronicle);
-        _tableauRender.Present(_tableauPanel, _ui);
-        _floatingHudLayoutRender.Present(_mapArea, _tableauPanel);
+        _tableauRender.Present(_tableauPanel, _ui, _tableauVisible);
+        _floatingHudLayoutRender.Present(_mapArea, _tableauPanel, _tableauVisible);
     }
 
-    public void PresentTooltip() => _hexTooltipPanel.UpdateTooltip();
+    public void PresentTooltip(double delta)
+    {
+        if (!_tooltipPollingEnabled)
+        {
+            return;
+        }
+
+        _tooltipRefreshElapsedMs += Math.Max(0d, delta * 1000d);
+        if (_tooltipRefreshElapsedMs < TooltipRefreshIntervalMs)
+        {
+            return;
+        }
+
+        _tooltipRefreshElapsedMs = 0d;
+        _tooltipPollingEnabled = _hexTooltipPanel.UpdateTooltip();
+    }
+
+    public void NotifyPointerMoved()
+    {
+        _tooltipPollingEnabled = true;
+        _tooltipRefreshElapsedMs = TooltipRefreshIntervalMs;
+    }
+
+    private void PresentCultureOverview(int currentTick)
+    {
+        var plane = _mapRenderer.CurrentPlane;
+        if (_lastCultureOverviewTick == currentTick &&
+            _lastCultureOverviewPlane == plane &&
+            ReferenceEquals(_lastCultureOverviewMap, _map))
+        {
+            return;
+        }
+
+        _mapArea.BindCultureOverview(_map, _ui, _symbols, plane);
+        _lastCultureOverviewTick = currentTick;
+        _lastCultureOverviewPlane = plane;
+        _lastCultureOverviewMap = _map;
+    }
 
     public void ToggleEntityNames()
     {
@@ -217,8 +267,9 @@ internal sealed class GameRenderTree
 
     public void ToggleTableauVisibility()
     {
-        _tableauPanel.Visible = !_tableauPanel.Visible;
-        _bottomBar.SetTableauVisible(_tableauPanel.Visible);
+        _tableauVisible = !_tableauVisible;
+        _tableauPanel.Visible = _tableauVisible;
+        _bottomBar.SetTableauVisible(_tableauVisible);
         _floatingHudLayoutRender.Invalidate();
         _tableauRender.Invalidate();
     }
@@ -240,18 +291,22 @@ internal sealed class GameRenderTree
         _chroniclePanel.Clear();
         _hexTooltipPanel.Initialize(_map, _ui, _symbols, _mapRenderer, _worldCanvas, [_rootColumn, _mapArea, _uiRoot]);
         _tableauPanel.Initialize(_runtime?.Tableau);
+        _tableauVisible = _tableauPanel.Visible;
         _mapArea.SetPlane(_mapRenderer.CurrentPlane);
         _mapArea.SetLayerVisible(MapArea.LayerRoads, _mapRenderer.ShowRoads);
         _mapArea.SetLayerVisible(MapArea.LayerMapFeatures, _mapRenderer.ShowMapFeatures);
         _mapArea.SetLayerVisible(MapArea.LayerCultureInfluence, _mapRenderer.ShowCultureInfluence);
         _mapArea.SetLayerVisible(MapArea.LayerInfluence, _mapRenderer.ShowInfluence);
         _mapArea.BindCultureOverview(_map, _ui, _symbols, _mapRenderer.CurrentPlane);
-        _bottomBar.SetTableauVisible(_tableauPanel.Visible);
+        _bottomBar.SetTableauVisible(_tableauVisible);
         _bottomBar.SetReadingsVisible(_attributeGraph is not null);
     }
 
     private void ResetPresenters()
     {
+        _lastCultureOverviewTick = -1;
+        _lastCultureOverviewPlane = null;
+        _lastCultureOverviewMap = null;
         _topBarRender.Reset();
         _mapRender.Reset();
         _entityMapRender.Reset();
@@ -491,16 +546,16 @@ internal sealed class GameRenderTree
 
         public void Invalidate() => Reset();
 
-        public void Present(TableauPanel panel, UiProjectionState ui)
+        public void Present(TableauPanel panel, UiProjectionState ui, bool visible)
         {
-            var state = new TableauState(panel.Visible, ui.TableauVersion);
+            var state = new TableauState(visible, ui.TableauVersion);
             if (_lastState == state)
             {
                 return;
             }
 
             _lastState = state;
-            if (panel.Visible)
+            if (visible)
             {
                 panel.Refresh();
             }
@@ -520,9 +575,9 @@ internal sealed class GameRenderTree
 
         public void Invalidate() => _dirty = true;
 
-        public void Present(MapArea mapArea, TableauPanel tableauPanel)
+        public void Present(MapArea mapArea, TableauPanel tableauPanel, bool tableauVisible)
         {
-            if (!tableauPanel.Visible)
+            if (!tableauVisible)
             {
                 return;
             }

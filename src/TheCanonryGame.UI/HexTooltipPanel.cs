@@ -12,7 +12,7 @@ namespace TheCanonryGame.UI;
 
 public partial class HexTooltipPanel : PanelContainer
 {
-    private const ulong TooltipDelayMs = 500;
+    private const long TooltipDelayMs = 500;
 
     private readonly List<Control> _passThroughControls = [];
     private HexMapProjection? _map;
@@ -23,7 +23,7 @@ public partial class HexTooltipPanel : PanelContainer
     private Label? _label;
     private HexCoord? _hoveredHex;
     private Vector2 _hoverScreenPosition;
-    private ulong _hoverStartedAtMs;
+    private long _hoverStartedAtMs;
     private TooltipTextState? _lastTextState;
     private TooltipPositionState? _lastPositionState;
 
@@ -62,18 +62,18 @@ public partial class HexTooltipPanel : PanelContainer
         ClearTooltip();
     }
 
-    public void UpdateTooltip()
+    public bool UpdateTooltip()
     {
         if (_renderer is null || _label is null || _worldCanvas is null)
         {
-            return;
+            return false;
         }
 
         var hoveredControl = GetViewport().GuiGetHoveredControl();
         if (ShouldSuppressHexTooltip(hoveredControl))
         {
             ClearTooltip();
-            return;
+            return false;
         }
 
         var screenPos = GetViewport().GetMousePosition();
@@ -82,28 +82,30 @@ public partial class HexTooltipPanel : PanelContainer
         if (pointedHex is null)
         {
             ClearTooltip();
-            return;
+            return false;
         }
 
+        var now = System.Environment.TickCount64;
         _hoverScreenPosition = screenPos;
         if (_hoveredHex is null || _hoveredHex.Value != pointedHex.Value)
         {
             _hoveredHex = pointedHex.Value;
-            _hoverStartedAtMs = Time.GetTicksMsec();
+            _hoverStartedAtMs = now;
             _lastTextState = null;
             _lastPositionState = null;
             Visible = false;
-            return;
+            return true;
         }
 
-        if (!Visible && Time.GetTicksMsec() - _hoverStartedAtMs < TooltipDelayMs)
+        if (!Visible && now - _hoverStartedAtMs < TooltipDelayMs)
         {
-            return;
+            return true;
         }
 
         PresentTooltipText(pointedHex.Value);
         Visible = true;
         PositionTooltip(_hoverScreenPosition);
+        return true;
     }
 
     public void ClearTooltip()

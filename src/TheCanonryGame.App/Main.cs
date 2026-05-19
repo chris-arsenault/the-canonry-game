@@ -34,6 +34,10 @@ public partial class Main : Node2D
     private Godot.Theme? _theme;
     private double _displayTicksPerSecond = NormalTicksPerSecond;
     private bool _displayPaused;
+    private bool _moveLeft;
+    private bool _moveRight;
+    private bool _moveUp;
+    private bool _moveDown;
 
     public override void _ExitTree()
     {
@@ -70,7 +74,7 @@ public partial class Main : Node2D
 
         _renderTree?.Present(currentTick, FormatKernelTimeState());
         HandleCameraMovement((float)delta);
-        _renderTree?.PresentTooltip();
+        _renderTree?.PresentTooltip(delta);
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -86,12 +90,23 @@ public partial class Main : Node2D
 
     private void HandleKeyboardInput(InputEvent @event)
     {
-        if (@event is not InputEventKey { Pressed: true } key)
+        if (@event is not InputEventKey key)
         {
             return;
         }
 
-        switch (key.Keycode)
+        TrackCameraMovementKey(key);
+        if (!key.Pressed)
+        {
+            return;
+        }
+
+        HandlePressedShortcut(key.Keycode);
+    }
+
+    private void HandlePressedShortcut(Key keycode)
+    {
+        switch (keycode)
         {
             case Key.Space:
                 TogglePause();
@@ -120,8 +135,33 @@ public partial class Main : Node2D
         }
     }
 
+    private void TrackCameraMovementKey(InputEventKey key)
+    {
+        switch (key.Keycode)
+        {
+            case Key.A:
+                _moveLeft = key.Pressed;
+                break;
+            case Key.D:
+                _moveRight = key.Pressed;
+                break;
+            case Key.W:
+                _moveUp = key.Pressed;
+                break;
+            case Key.S:
+                _moveDown = key.Pressed;
+                break;
+        }
+    }
+
     private void HandleMouseInput(InputEvent @event)
     {
+        if (@event is InputEventMouseMotion)
+        {
+            _renderTree?.NotifyPointerMoved();
+            return;
+        }
+
         if (@event is not InputEventMouseButton { Pressed: true } mouse || _camera is null)
         {
             return;
@@ -361,16 +401,13 @@ public partial class Main : Node2D
             return;
         }
 
-        var speed = 200f / _camera.Zoom.X;
-        var direction = Vector2.Zero;
-
-        if (Input.IsKeyPressed(Key.A)) direction.X -= 1;
-        if (Input.IsKeyPressed(Key.D)) direction.X += 1;
-        if (Input.IsKeyPressed(Key.W)) direction.Y -= 1;
-        if (Input.IsKeyPressed(Key.S)) direction.Y += 1;
+        var direction = new Vector2(
+            (_moveRight ? 1f : 0f) - (_moveLeft ? 1f : 0f),
+            (_moveDown ? 1f : 0f) - (_moveUp ? 1f : 0f));
 
         if (direction != Vector2.Zero)
         {
+            var speed = 200f / _camera.Zoom.X;
             _camera.Position += direction.Normalized() * speed * delta;
         }
     }
