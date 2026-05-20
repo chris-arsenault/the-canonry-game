@@ -35,6 +35,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] SubtypeIds = [];
     internal int[] RelationshipKindFilterIds = [];
     internal float[] RelationshipKindFilterMinimumStrengths = [];
+    internal int[] RelationshipKindFilterAllowsSlotCausalLimitMultiplier = [];
     internal int[] TerrainFilterIds = [];
     internal int[] TargetTerrainRequirementTerrainIds = [];
     internal int[] TargetTerrainRequirementRadii = [];
@@ -191,6 +192,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         SubtypeIds = new int[itemCapacity + 1];
         RelationshipKindFilterIds = new int[itemCapacity + 1];
         RelationshipKindFilterMinimumStrengths = new float[itemCapacity + 1];
+        RelationshipKindFilterAllowsSlotCausalLimitMultiplier = new int[itemCapacity + 1];
         TerrainFilterIds = new int[itemCapacity + 1];
         TargetTerrainRequirementTerrainIds = new int[itemCapacity + 1];
         TargetTerrainRequirementRadii = new int[itemCapacity + 1];
@@ -280,6 +282,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.Generators;
 
-    public int SchemaVersion => 14;
+    public int SchemaVersion => 15;
 
 }

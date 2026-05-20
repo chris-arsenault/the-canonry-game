@@ -29,8 +29,14 @@ internal sealed class RelationshipProgramRuntime :
 
     public int Count => Data.Count;
 
-    public int RegisterRelationshipKind(int kindId, float cullThreshold, bool targetFollowsSourcePhysical = false) =>
-        Data.RegisterRelationshipKind(kindId, cullThreshold, targetFollowsSourcePhysical);
+    public int RegisterRelationshipKind(
+        int kindId,
+        float cullThreshold,
+        bool targetFollowsSourcePhysical = false,
+        bool isExclusive = false) =>
+        Data.RegisterRelationshipKind(kindId, cullThreshold, targetFollowsSourcePhysical, isExclusive);
+
+    public bool KindIsExclusive(int kindId) => Data.KindIsExclusive(kindId);
 
     public int AddMaintenanceRule(
         int kindId,

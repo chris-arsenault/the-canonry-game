@@ -168,8 +168,8 @@ internal sealed class RunLogger : IDisposable
             Summary(evt.Tick).Actions++;
             var gambit = ResolveDisplayName(ProjectionSymbolKind.Gambit, evt.GambitId, $"gambit_{evt.GambitId}");
             var actor = ResolveEntityTarget(evt.ActorId);
-            var target = evt.AffectedEntityCount > 0 && evt.AffectedEntityId0 != evt.ActorId
-                ? $" tgt={ResolveEntityTarget(evt.AffectedEntityId0)}" : string.Empty;
+            var target = evt.AffectedEntityCount > 1 && evt.AffectedEntityId1 > 0
+                ? $" tgt={ResolveEntityTarget(evt.AffectedEntityId1)}" : string.Empty;
             Add(
                 _actionLinesByTick,
                 evt.Tick,

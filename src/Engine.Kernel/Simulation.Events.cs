@@ -86,7 +86,9 @@ internal sealed partial class Simulation
         int generatorId,
         int selectedTargetEntityId,
         int createdEntityCount,
-        int createdRelationshipCount)
+        int createdRelationshipCount,
+        int relationshipSpendCount,
+        int outputLockRelationshipCreatedCount)
     {
         WriteKernelEvent(KernelEvent.From(new GeneratorFiredKernelEvent(
             tick,
@@ -94,7 +96,57 @@ internal sealed partial class Simulation
             generatorId,
             selectedTargetEntityId,
             createdEntityCount,
-            createdRelationshipCount)));
+            createdRelationshipCount,
+            relationshipSpendCount,
+            outputLockRelationshipCreatedCount)));
+    }
+
+    internal void EmitGeneratorTargetEvaluated(
+        int tick,
+        int generatorId,
+        int targetEntityId,
+        int targetKindId,
+        int targetSubtypeId,
+        int targetCultureId,
+        int physicalQ,
+        int physicalR,
+        int semanticQ,
+        int semanticR,
+        int semanticS,
+        int statusCode,
+        int rejectionReasonCode,
+        int physicalFieldBandCode,
+        int physicalCellKindCode,
+        int semanticFieldBandCode,
+        int semanticCellKindCode,
+        float physicalLocalRawMass,
+        float physicalConnectedRawMass,
+        float semanticLocalRawMass,
+        float semanticConnectedRawMass)
+    {
+        WriteKernelEvent(KernelEvent.From(new GeneratorTargetEvaluatedKernelEvent(
+            tick,
+            WorldVersion,
+            generatorId,
+            targetEntityId,
+            targetKindId,
+            targetSubtypeId,
+            targetCultureId,
+            physicalQ,
+            physicalR,
+            semanticQ,
+            semanticR,
+            semanticS,
+            statusCode,
+            rejectionReasonCode,
+            physicalFieldBandCode,
+            physicalCellKindCode,
+            semanticFieldBandCode,
+            semanticCellKindCode,
+            physicalLocalRawMass,
+            physicalConnectedRawMass,
+            semanticLocalRawMass,
+            semanticConnectedRawMass)));
     }
 
     internal void EmitProvenanceInvocationRecorded(

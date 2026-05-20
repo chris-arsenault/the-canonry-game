@@ -173,13 +173,16 @@ internal sealed partial class GeneratorProgramRuntime
         int slot,
         int selectedTargetEntityId,
         int createdEntityCount,
-        int createdRelationshipCount)
+        int createdRelationshipCount,
+        int relationshipSpendCount)
     {
         simulation.EmitGeneratorFired(
             tick,
             simulation.Generators._generatorIds[slot],
             selectedTargetEntityId,
             createdEntityCount,
+            createdRelationshipCount,
+            relationshipSpendCount,
             createdRelationshipCount);
     }
 
@@ -195,10 +198,18 @@ internal sealed partial class GeneratorProgramRuntime
         _subtypeIds[_subtypeCount] = subtypeId;
     }
 
-    private void AddRelationshipKindFilterId(int relationshipKindId) =>
-        AddRelationshipKindFilter(relationshipKindId, minimumStrength: 0f);
+    private void AddRelationshipKindFilterId(
+        int relationshipKindId,
+        bool allowSlotCausalLimitMultiplier = false) =>
+        AddRelationshipKindFilter(
+            relationshipKindId,
+            minimumStrength: 0f,
+            allowSlotCausalLimitMultiplier);
 
-    private void AddRelationshipKindFilter(int relationshipKindId, float minimumStrength)
+    private void AddRelationshipKindFilter(
+        int relationshipKindId,
+        float minimumStrength,
+        bool allowSlotCausalLimitMultiplier = false)
     {
         ValidatePositive(relationshipKindId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(minimumStrength);
@@ -210,6 +221,8 @@ internal sealed partial class GeneratorProgramRuntime
         _relationshipKindFilterCount++;
         _relationshipKindFilterIds[_relationshipKindFilterCount] = relationshipKindId;
         _relationshipKindFilterMinimumStrengths[_relationshipKindFilterCount] = minimumStrength;
+        _relationshipKindFilterAllowsSlotCausalLimitMultiplier[_relationshipKindFilterCount] =
+            allowSlotCausalLimitMultiplier ? 1 : 0;
     }
 
     private void AddTerrainFilterId(int terrainId)

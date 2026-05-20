@@ -85,6 +85,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
             case KernelEventType.GeneratorFired:
                 OnGeneratorFired(kernelEvent.Sequence, evt.AsGeneratorFired());
                 break;
+            case KernelEventType.GeneratorTargetEvaluated:
+                OnGeneratorTargetEvaluated(kernelEvent.Sequence, evt.AsGeneratorTargetEvaluated());
+                break;
             case KernelEventType.GambitEvaluated:
                 OnGambitEvaluated(kernelEvent.Sequence, evt.AsGambitEvaluated());
                 break;
@@ -220,6 +223,10 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnGeneratorFired(long sequence, in GeneratorFiredKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnGeneratorTargetEvaluated(long sequence, in GeneratorTargetEvaluatedKernelEvent evt)
     {
     }
 

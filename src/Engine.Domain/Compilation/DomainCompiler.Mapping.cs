@@ -37,7 +37,8 @@ public static partial class DomainCompiler
             relationships.Add(new RelationshipRuntimeRule(
                 relationshipKindId,
                 relationship.CullThreshold,
-                relationship.TargetFollowsSourcePhysical));
+                relationship.TargetFollowsSourcePhysical,
+                relationship.IsExclusive));
             foreach (var maintenance in relationship.Maintenance)
             {
                 maintenanceRules.Add(new RelationshipMaintenanceRuntimeRule(

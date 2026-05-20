@@ -154,6 +154,7 @@ internal static class TelemetrySymbolIds
         AddKernelEventType(symbols, KernelEventType.RelationshipChanged, "relationship_changed", "Relationship Changed");
         AddKernelEventType(symbols, KernelEventType.GeneratorEvaluated, "generator_evaluated", "Generator Evaluated");
         AddKernelEventType(symbols, KernelEventType.GeneratorFired, "generator_fired", "Generator Fired");
+        AddKernelEventType(symbols, KernelEventType.GeneratorTargetEvaluated, "generator_target_evaluated", "Generator Target Evaluated");
         AddKernelEventType(symbols, KernelEventType.CellCreated, "cell_created", "Cell Created");
         AddKernelEventType(symbols, KernelEventType.CellChanged, "cell_changed", "Cell Changed");
         AddKernelEventType(symbols, KernelEventType.CellInfluenceChanged, "cell_influence_changed", "Cell Influence Changed");

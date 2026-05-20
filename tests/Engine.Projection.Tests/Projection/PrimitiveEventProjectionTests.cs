@@ -6,6 +6,34 @@ using Engine.Projection;
 public sealed class PrimitiveEventProjectionTests
 {
     [Fact]
+    public void UiChronicleProjection_UsesSelectedTargetSlotForGambitTarget()
+    {
+        var log = new KernelEventLog(capacity: 4);
+        var projection = new UiChronicleProjection(symbols: null);
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
+
+        Assert.True(log.TryWrite(KernelEvent.From(new GambitExecutedKernelEvent(
+            Tick: 7,
+            WorldVersion: 8,
+            ActorId: 10,
+            ActorKindId: 2,
+            GambitId: 3,
+            AffectedEntityId0: 10,
+            AffectedEntityId1: 20,
+            AffectedEntityCount: 2,
+            State: KernelEventState.Succeeded))));
+
+        pump.DrainAvailable();
+
+        var line = Assert.Single(projection.Lines);
+        Assert.Contains("[color=#E7E3D5]E10[/color]", line, StringComparison.Ordinal);
+        Assert.EndsWith("[color=#E7E3D5]E20[/color]", line, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PrimitiveProjectionPump_ReplacesObjectMessageSubscription()
     {
         var log = new KernelEventLog(capacity: 5);

@@ -146,8 +146,16 @@ internal sealed class KernelConfigurationContext
         float assignmentChance) =>
         _kernel.RegisterTrait(kindId, traitId.Value, assignmentChance);
 
-    public int RegisterRelationshipKind(RelationshipKindRuntimeId kindId, float cullThreshold, bool targetFollowsSourcePhysical = false) =>
-        _kernel.Relationships.RegisterRelationshipKind(kindId.Value, cullThreshold, targetFollowsSourcePhysical);
+    public int RegisterRelationshipKind(
+        RelationshipKindRuntimeId kindId,
+        float cullThreshold,
+        bool targetFollowsSourcePhysical = false,
+        bool isExclusive = false) =>
+        _kernel.Relationships.RegisterRelationshipKind(
+            kindId.Value,
+            cullThreshold,
+            targetFollowsSourcePhysical,
+            isExclusive);
 
     public int AddRelationshipMaintenanceRule(
         RelationshipKindRuntimeId kindId,

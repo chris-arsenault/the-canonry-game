@@ -28,6 +28,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     private readonly HashSet<int> _exportedEntityNameSymbols = [];
     private readonly List<PendingGeneratorFire> _pendingGeneratorFires = [];
     private int _totalGeneratorFires;
+    private int _currentProvenanceInvocationId;
 
     public TelemetryEventProjection(
         int runId,
@@ -70,6 +71,11 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     {
         DroppedEvents += droppedEventCount;
         LastProjectedSequence = Math.Max(LastProjectedSequence, nextSequence - 1);
+    }
+
+    protected override void OnProjectingEvent(in SequencedKernelEvent kernelEvent)
+    {
+        _currentProvenanceInvocationId = kernelEvent.Event.ProvenanceInvocationId;
     }
 
     public void RecordTickSnapshot(int tick)
@@ -374,7 +380,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.PreviousStrength,
             evt.NewStrength,
             evt.ActionId,
-            CauseId: 0));
+            _currentProvenanceInvocationId));
         MarkProjected(sequence);
     }
 
@@ -594,7 +600,9 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     protected override void OnGeneratorFired(long sequence, in GeneratorFiredKernelEvent evt)
     {
         _totalGeneratorFires++;
-        var causeId = (int)Math.Min(sequence + 1, int.MaxValue);
+        var causeId = _currentProvenanceInvocationId == 0
+            ? (int)Math.Min(sequence + 1, int.MaxValue)
+            : _currentProvenanceInvocationId;
         var state = GetGeneratorState(evt.GeneratorId);
         state.RunCount++;
         state.LastRunTick = evt.Tick;
@@ -614,7 +622,10 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.TargetEntityId == 0 ? null : evt.TargetEntityId,
             evt.CreatedEntityCount,
             evt.CreatedRelationshipCount,
-            causeId));
+            causeId,
+            CreatedMapCellCount: 0,
+            RelationshipSpendCount: evt.RelationshipSpendCount,
+            OutputLockRelationshipCreatedCount: evt.OutputLockRelationshipCreatedCount));
 
         for (var i = 0; i < evt.CreatedRelationshipCount; i++)
         {
@@ -640,6 +651,42 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             AssignGeneratedEntities(evt.Tick);
         }
 
+        MarkProjected(sequence);
+    }
+
+    protected override void OnGeneratorTargetEvaluated(long sequence, in GeneratorTargetEvaluatedKernelEvent evt)
+    {
+        var physicalComponent = CultureFieldComponentAt(evt.TargetCultureId, PlaneCodes.Physical, evt.PhysicalQ, evt.PhysicalR);
+        var semanticComponent = CultureFieldComponentAt(evt.TargetCultureId, PlaneCodes.Semantic, evt.SemanticQ, evt.SemanticR);
+        _batch.GeneratorTargetEvaluations.Add(new GeneratorTargetEvaluationRow(
+            _runId,
+            evt.Tick,
+            evt.GeneratorId,
+            evt.TargetEntityId,
+            evt.TargetKindId,
+            evt.TargetSubtypeId,
+            evt.TargetCultureId,
+            evt.PhysicalQ,
+            evt.PhysicalR,
+            evt.SemanticQ,
+            evt.SemanticR,
+            evt.SemanticS,
+            evt.StatusCode,
+            evt.RejectionReasonCode,
+            evt.PhysicalFieldBandCode,
+            evt.PhysicalCellKindCode,
+            evt.PhysicalLocalRawMass,
+            evt.PhysicalConnectedRawMass,
+            evt.SemanticFieldBandCode,
+            evt.SemanticCellKindCode,
+            evt.SemanticLocalRawMass,
+            evt.SemanticConnectedRawMass,
+            physicalComponent.ComponentId,
+            physicalComponent.CellCount,
+            physicalComponent.RawMass,
+            semanticComponent.ComponentId,
+            semanticComponent.CellCount,
+            semanticComponent.RawMass));
         MarkProjected(sequence);
     }
 

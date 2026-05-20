@@ -29,6 +29,7 @@ public enum KernelEventType
     CellTravelStructureChanged = 27,
     CellCultureInfluenceChanged = 28,
     CultureSlotOccupancyChanged = 29,
+    GeneratorTargetEvaluated = 30,
     Trace = 120,
 }
 
@@ -206,7 +207,7 @@ public readonly record struct GeneratorEvaluatedKernelEvent(
     [KernelEventIntSlot(4, "failed_fire_count", KernelEventSemanticKind.Count)]
     int FailedFireCount);
 
-[KernelEventLayout(KernelEventType.GeneratorFired, schemaMinor: 0)]
+[KernelEventLayout(KernelEventType.GeneratorFired, schemaMinor: 1)]
 public readonly record struct GeneratorFiredKernelEvent(
     int Tick,
     long WorldVersion,
@@ -217,7 +218,56 @@ public readonly record struct GeneratorFiredKernelEvent(
     [KernelEventIntSlot(2, "created_entity_count", KernelEventSemanticKind.Count)]
     int CreatedEntityCount,
     [KernelEventIntSlot(3, "created_relationship_count", KernelEventSemanticKind.Count)]
-    int CreatedRelationshipCount);
+    int CreatedRelationshipCount,
+    [KernelEventIntSlot(4, "relationship_spend_count", KernelEventSemanticKind.Count)]
+    int RelationshipSpendCount = 0,
+    [KernelEventIntSlot(5, "output_lock_relationship_created_count", KernelEventSemanticKind.Count)]
+    int OutputLockRelationshipCreatedCount = 0);
+
+[KernelEventLayout(KernelEventType.GeneratorTargetEvaluated, schemaMinor: 0)]
+public readonly record struct GeneratorTargetEvaluatedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "generator_id", KernelEventSemanticKind.GeneratorId)]
+    int GeneratorId,
+    [KernelEventIntSlot(1, "target_entity_id", KernelEventSemanticKind.EntityId)]
+    int TargetEntityId,
+    [KernelEventIntSlot(2, "target_kind_id", KernelEventSemanticKind.KindId)]
+    int TargetKindId,
+    [KernelEventIntSlot(3, "target_subtype_id", KernelEventSemanticKind.SubtypeId)]
+    int TargetSubtypeId,
+    [KernelEventIntSlot(4, "target_culture_id", KernelEventSemanticKind.CultureId)]
+    int TargetCultureId,
+    [KernelEventIntSlot(5, "physical_q", KernelEventSemanticKind.Coordinate)]
+    int PhysicalQ,
+    [KernelEventIntSlot(6, "physical_r", KernelEventSemanticKind.Coordinate)]
+    int PhysicalR,
+    [KernelEventIntSlot(7, "semantic_q", KernelEventSemanticKind.Coordinate)]
+    int SemanticQ,
+    [KernelEventIntSlot(8, "semantic_r", KernelEventSemanticKind.Coordinate)]
+    int SemanticR,
+    [KernelEventIntSlot(9, "semantic_s", KernelEventSemanticKind.Coordinate)]
+    int SemanticS,
+    [KernelEventIntSlot(10, "status_code", KernelEventSemanticKind.StatusCode)]
+    int StatusCode,
+    [KernelEventIntSlot(11, "rejection_reason_code", KernelEventSemanticKind.StatusCode)]
+    int RejectionReasonCode,
+    [KernelEventIntSlot(12, "physical_field_band_code", KernelEventSemanticKind.StatusCode)]
+    int PhysicalFieldBandCode,
+    [KernelEventIntSlot(13, "physical_cell_kind_code", KernelEventSemanticKind.StatusCode)]
+    int PhysicalCellKindCode,
+    [KernelEventIntSlot(14, "semantic_field_band_code", KernelEventSemanticKind.StatusCode)]
+    int SemanticFieldBandCode,
+    [KernelEventIntSlot(15, "semantic_cell_kind_code", KernelEventSemanticKind.StatusCode)]
+    int SemanticCellKindCode,
+    [KernelEventFloatSlot(0, "physical_local_raw_mass", KernelEventSemanticKind.RawScalar)]
+    float PhysicalLocalRawMass,
+    [KernelEventFloatSlot(1, "physical_connected_raw_mass", KernelEventSemanticKind.RawScalar)]
+    float PhysicalConnectedRawMass,
+    [KernelEventFloatSlot(2, "semantic_local_raw_mass", KernelEventSemanticKind.RawScalar)]
+    float SemanticLocalRawMass,
+    [KernelEventFloatSlot(3, "semantic_connected_raw_mass", KernelEventSemanticKind.RawScalar)]
+    float SemanticConnectedRawMass);
 
 [KernelEventLayout(KernelEventType.GambitEvaluated, schemaMinor: 0)]
 public readonly record struct GambitEvaluatedKernelEvent(

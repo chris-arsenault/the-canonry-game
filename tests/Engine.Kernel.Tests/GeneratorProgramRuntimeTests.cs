@@ -243,6 +243,50 @@ public sealed class GeneratorProgramRuntimeTests
     }
 
     [Fact]
+    public void TargetWithoutOutgoingRelationship_AllowsOneExistingRelationshipForSlotOccupant()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        var target = CreateTarget(simulation);
+        MakeSlotOccupant(simulation, target);
+        var firstDestination = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
+        simulation.CreateRelationship(RelationshipKindId, 0, target, firstDestination, 0.8f, tick: 0);
+        var slot = RegisterGenerator(simulation);
+        simulation.Generators.AddTargetWithoutOutgoingRelationship(slot, RelationshipKindId);
+
+        simulation.AdvanceTicks(1);
+        Assert.Equal(3, simulation.World.EntityHighWatermark);
+
+        var secondDestination = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 1);
+        simulation.CreateRelationship(RelationshipKindId, 0, target, secondDestination, 0.8f, tick: 1);
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(4, simulation.World.EntityHighWatermark);
+    }
+
+    [Fact]
+    public void TargetWithoutOutgoingRelationship_DoesNotApplySlotMultiplierToExclusiveKinds()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        simulation.Relationships.RegisterRelationshipKind(RelationshipKindId, cullThreshold: 0.05f, isExclusive: true);
+        var target = CreateTarget(simulation);
+        MakeSlotOccupant(simulation, target);
+        var destination = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
+        var relationship = simulation.CreateRelationship(RelationshipKindId, 0, target, destination, 0.8f, tick: 0);
+        var slot = RegisterGenerator(simulation);
+        simulation.Generators.AddTargetWithoutOutgoingRelationship(slot, RelationshipKindId);
+
+        simulation.AdvanceTicks(1);
+        Assert.Equal(2, simulation.World.EntityHighWatermark);
+
+        simulation.World.CullRelationship(relationship, tick: 1);
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(3, simulation.World.EntityHighWatermark);
+    }
+
+    [Fact]
     public void TargetWithoutIncomingRelationship_BlocksUntilRelationshipIsGone()
     {
         var simulation = CreateSimulation();
@@ -454,6 +498,32 @@ public sealed class GeneratorProgramRuntimeTests
         Assert.Equal(0.42f, simulation.World.RelationshipStrength(trigger), precision: 4);
         Assert.Equal(0.42f, simulation.World.RelationshipStrength(reciprocal), precision: 4);
         Assert.Equal(0.85f, simulation.World.RelationshipStrength(unrelated), precision: 4);
+    }
+
+    [Fact]
+    public void AdjustTargetRelationshipStrengthEffect_HalvesNegativeSpendForSlotOccupant()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        var target = CreateTarget(simulation);
+        MakeSlotOccupant(simulation, target);
+        var routeTarget = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
+        var trigger = simulation.CreateRelationship(RelationshipKindId, 0, target, routeTarget, 0.72f, tick: 0);
+        var reciprocal = simulation.CreateRelationship(RelationshipKindId, 0, routeTarget, target, 0.72f, tick: 0);
+        var slot = RegisterGenerator(simulation);
+        simulation.Generators.AddTargetRequiredOutgoingRelationship(slot, RelationshipKindId, minimumStrength: 0.7f);
+        simulation.Generators.AddEffect(
+            slot,
+            GeneratorEffectTypeCodes.AdjustTargetRelationshipStrength,
+            RelationshipKindId,
+            GeneratorRelationshipInstanceSelectionCodes.TriggerRelationship,
+            optionCode: 1,
+            value: -0.3f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(0.57f, simulation.World.RelationshipStrength(trigger), precision: 4);
+        Assert.Equal(0.57f, simulation.World.RelationshipStrength(reciprocal), precision: 4);
     }
 
     [Fact]
@@ -803,6 +873,20 @@ public sealed class GeneratorProgramRuntimeTests
 
     private static int CreateTarget(Simulation simulation, int physicalQ, int physicalR) =>
         simulation.CreateEntity(TargetKindId, TargetSubtypeId, CultureId, physicalQ, physicalR, 0, 0, 0, tick: 0);
+
+    private static void MakeSlotOccupant(Simulation simulation, int entityId)
+    {
+        var slot = simulation.CultureSlots.RegisterSlot(
+            CultureId,
+            slotId: 2,
+            RelationshipPolarityCodes.Neutral,
+            minimumScore: 0f,
+            minimumTenureTicks: 0,
+            displacementMargin: 0f,
+            entityInfluenceMultiplierDelta: 0f,
+            cultureInfluenceMultiplierDelta: 0f);
+        simulation.CultureSlots.State.SetOccupant(slot, entityId, score: 1f, tick: 0);
+    }
 
     private static int CreateSparseCoverageTarget(Simulation simulation)
     {

@@ -296,6 +296,7 @@ internal static class MonteCarloCli
         batch.RelationshipEvents.Count +
         batch.RelationshipSnapshots.Count +
         batch.GeneratorEvents.Count +
+        batch.GeneratorTargetEvaluations.Count +
         batch.GeneratorOutputs.Count +
         batch.GeneratorStateSnapshots.Count +
         batch.GeneratedEntities.Count +

@@ -30,6 +30,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         "relationship_snapshots",
         "gambit_events",
         "generator_events",
+        "generator_target_evaluations",
         "generator_outputs",
         "generator_state_snapshots",
         "lifecycle_events",

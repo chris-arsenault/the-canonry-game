@@ -50,6 +50,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _subtypeIds => Data.SubtypeIds;
     private int[] _relationshipKindFilterIds => Data.RelationshipKindFilterIds;
     private float[] _relationshipKindFilterMinimumStrengths => Data.RelationshipKindFilterMinimumStrengths;
+    private int[] _relationshipKindFilterAllowsSlotCausalLimitMultiplier => Data.RelationshipKindFilterAllowsSlotCausalLimitMultiplier;
     private int[] _terrainFilterIds => Data.TerrainFilterIds;
     private int[] _targetTerrainRequirementTerrainIds => Data.TargetTerrainRequirementTerrainIds;
     private int[] _targetTerrainRequirementRadii => Data.TargetTerrainRequirementRadii;
@@ -296,7 +297,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             _targetWithoutOutgoingStarts[generatorSlot] = _relationshipKindFilterCount + 1;
         }
 
-        AddRelationshipKindFilterId(relationshipKindId);
+        AddRelationshipKindFilterId(relationshipKindId, allowSlotCausalLimitMultiplier: true);
         _targetWithoutOutgoingCounts[generatorSlot]++;
     }
 
@@ -308,7 +309,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             _targetWithoutIncomingStarts[generatorSlot] = _relationshipKindFilterCount + 1;
         }
 
-        AddRelationshipKindFilterId(relationshipKindId);
+        AddRelationshipKindFilterId(relationshipKindId, allowSlotCausalLimitMultiplier: true);
         _targetWithoutIncomingCounts[generatorSlot]++;
     }
 
@@ -709,7 +710,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         }
 
         _pulseSelectedTargetIds[selectedGeneratorSlot] = targetId;
-        if (Fire(simulation, selectedGeneratorSlot, targetId, tick))
+        if (Fire(simulation, selectedGeneratorSlot, targetId, tick, out var failureReasonCode))
         {
             _pulseStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.Fired;
             MarkEligibleGeneratorsNotSelected();
@@ -717,6 +718,12 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             return true;
         }
 
+        PublishGeneratorTargetEvaluation(
+            simulation,
+            selectedGeneratorSlot,
+            targetId,
+            GeneratorStatusCodes.FireFailed,
+            failureReasonCode);
         _pulseFailedFireCounts[selectedGeneratorSlot]++;
         _pulseStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.FireFailed;
         return false;
@@ -739,7 +746,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             }
 
             _pulseSelectedTargetIds[selectedGeneratorSlot] = targetId;
-            if (Fire(simulation, selectedGeneratorSlot, targetId, tick))
+            if (Fire(simulation, selectedGeneratorSlot, targetId, tick, out var failureReasonCode))
             {
                 _pulseStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.Fired;
                 MarkEligibleGeneratorsNotSelected();
@@ -747,6 +754,12 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
                 return true;
             }
 
+            PublishGeneratorTargetEvaluation(
+                simulation,
+                selectedGeneratorSlot,
+                targetId,
+                GeneratorStatusCodes.FireFailed,
+                failureReasonCode);
             _pulseFailedFireCounts[selectedGeneratorSlot]++;
             if (rejectedTargetCount >= _retryRejectedTargetIds.Length)
             {
@@ -843,7 +856,21 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             _targetKindIds[generatorSlot],
             entityId =>
             {
-                if (TargetPasses(world, generatorSlot, entityId, refCodes, refEntityIds, out var refCount))
+                var passes = TargetPasses(
+                    simulation,
+                    generatorSlot,
+                    entityId,
+                    refCodes,
+                    refEntityIds,
+                    out var refCount,
+                    out var rejectionReasonCode);
+                PublishGeneratorTargetEvaluation(
+                    simulation,
+                    generatorSlot,
+                    entityId,
+                    passes ? GeneratorStatusCodes.Eligible : GeneratorStatusCodes.Blocked,
+                    rejectionReasonCode);
+                if (passes)
                 {
                     count++;
                     var slotFitCount = ProducedUnoccupiedSlotFitCount(
@@ -921,7 +948,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             _targetKindIds[generatorSlot],
             entityId =>
             {
-                if (!TargetPasses(world, generatorSlot, entityId, refCodes, refEntityIds, out _))
+                if (!TargetPasses(simulation, generatorSlot, entityId, refCodes, refEntityIds, out _))
                 {
                     return true;
                 }
@@ -951,7 +978,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         }
 
         var candidateCount = CountEligibleTargetsExcluding(
-            simulation.World,
+            simulation,
             generatorSlot,
             rejectedTargetIds,
             rejectedTargetCount);
@@ -972,7 +999,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             entityId =>
             {
                 if (RejectedTargetContains(entityId, rejectedTargetIds, rejectedTargetCount) ||
-                    !TargetPasses(world, generatorSlot, entityId, refCodes, refEntityIds, out _))
+                    !TargetPasses(simulation, generatorSlot, entityId, refCodes, refEntityIds, out _))
                 {
                     return true;
                 }
@@ -991,12 +1018,13 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     }
 
     private int CountEligibleTargetsExcluding(
-        WorldState world,
+        Simulation simulation,
         int generatorSlot,
         int[] rejectedTargetIds,
         int rejectedTargetCount)
     {
         var count = 0;
+        var world = simulation.World;
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
         KernelQuery.ForEachActiveEntityOfKind(
@@ -1005,7 +1033,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             entityId =>
             {
                 if (!RejectedTargetContains(entityId, rejectedTargetIds, rejectedTargetCount) &&
-                    TargetPasses(world, generatorSlot, entityId, refCodes, refEntityIds, out _))
+                    TargetPasses(simulation, generatorSlot, entityId, refCodes, refEntityIds, out _))
                 {
                     count++;
                 }

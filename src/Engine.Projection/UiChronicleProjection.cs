@@ -48,8 +48,8 @@ public sealed class UiChronicleProjection : KernelEventProjector
 
         var gambit = Resolve(ProjectionSymbolKind.Gambit, evt.GambitId, $"gambit {evt.GambitId}");
         var actor = ResolveEntity(evt.ActorId);
-        var target = evt.AffectedEntityCount > 0 && evt.AffectedEntityId0 > 0
-            ? ResolveEntity(evt.AffectedEntityId0)
+        var target = evt.AffectedEntityCount > 1 && evt.AffectedEntityId1 > 0
+            ? ResolveEntity(evt.AffectedEntityId1)
             : null;
 
         var line = target is null

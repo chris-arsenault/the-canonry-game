@@ -353,13 +353,43 @@ public sealed class KernelTelemetryRecorderTests
             AdjustedWeight: 1.5f,
             AffordanceScore: 0f,
             AffordanceBonus: 0f))));
+        WriteGeneratorTargetEvaluated(log);
         Assert.True(log.TryWrite(KernelEvent.From(new GeneratorFiredKernelEvent(
             Tick: 3,
             WorldVersion: 6,
             GeneratorId: 10,
             TargetEntityId: 200,
             CreatedEntityCount: 1,
-            CreatedRelationshipCount: 2))));
+            CreatedRelationshipCount: 2,
+            RelationshipSpendCount: 1,
+            OutputLockRelationshipCreatedCount: 2))));
+    }
+
+    private static void WriteGeneratorTargetEvaluated(KernelEventLog log)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new GeneratorTargetEvaluatedKernelEvent(
+            Tick: 3,
+            WorldVersion: 6,
+            GeneratorId: 10,
+            TargetEntityId: 200,
+            TargetKindId: 1,
+            TargetSubtypeId: 2,
+            TargetCultureId: 3,
+            PhysicalQ: 2,
+            PhysicalR: -1,
+            SemanticQ: 1,
+            SemanticR: 0,
+            SemanticS: -1,
+            StatusCode: GeneratorStatusCodes.Blocked,
+            RejectionReasonCode: GeneratorTargetRejectionReasonCodes.RelationshipAbsence,
+            PhysicalFieldBandCode: CultureFieldStrengthBandCodes.Strong,
+            PhysicalCellKindCode: CultureFieldCellKindCodes.Interior,
+            SemanticFieldBandCode: CultureFieldStrengthBandCodes.Trace,
+            SemanticCellKindCode: CultureFieldCellKindCodes.Border,
+            PhysicalLocalRawMass: 60f,
+            PhysicalConnectedRawMass: 90f,
+            SemanticLocalRawMass: 10f,
+            SemanticConnectedRawMass: 25f))));
     }
 
     private static void AssertTelemetryBatch(TelemetryBatch batch)
@@ -495,6 +525,15 @@ public sealed class KernelTelemetryRecorderTests
         var generator = Assert.Single(batch.GeneratorEvents);
         Assert.Equal(10, generator.GeneratorId);
         Assert.Equal(1, generator.CreatedEntityCount);
+        Assert.Equal(1, generator.RelationshipSpendCount);
+        Assert.Equal(2, generator.OutputLockRelationshipCreatedCount);
+
+        var targetEvaluation = Assert.Single(batch.GeneratorTargetEvaluations);
+        Assert.Equal(10, targetEvaluation.GeneratorId);
+        Assert.Equal(200, targetEvaluation.TargetEntityId);
+        Assert.Equal(GeneratorTargetRejectionReasonCodes.RelationshipAbsence, targetEvaluation.RejectionReasonCode);
+        Assert.Equal(CultureFieldCellKindCodes.Interior, targetEvaluation.PhysicalCellKindCode);
+        Assert.Equal(90f, targetEvaluation.PhysicalConnectedRawMass);
 
         var generated = Assert.Single(batch.GeneratedEntities);
         Assert.Equal(101, generated.EntityId);

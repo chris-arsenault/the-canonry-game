@@ -64,6 +64,8 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "gambit_success_rate.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "stock_dynamics.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "map_spread.parquet")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "generator_post_fire_eligibility_decay.parquet")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "generator_component_fire_windows.parquet")));
         Assert.False(File.Exists(Path.Combine(analysisDirectory, "generator_balance.csv")));
 
         var summary = File.ReadAllText(Path.Combine(analysisDirectory, "summary.md"));

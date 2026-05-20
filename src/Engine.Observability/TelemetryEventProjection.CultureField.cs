@@ -20,6 +20,11 @@ internal sealed partial class TelemetryEventProjection
         int IsolatedCellCount,
         int ContestedCellCount);
 
+    private readonly record struct CultureFieldComponent(
+        int ComponentId,
+        int CellCount,
+        float RawMass);
+
     private readonly record struct CultureFieldNeighborhood(
         float AdjacentRaw,
         float RingTwoRaw,
@@ -151,6 +156,68 @@ internal sealed partial class TelemetryEventProjection
         return size;
     }
 
+    private CultureFieldComponent CultureFieldComponentAt(int cultureId, int planeCode, int q, int r)
+    {
+        if (cultureId <= 0)
+        {
+            return default;
+        }
+
+        var start = new ObservedMapCellKey(planeCode, q, r);
+        var startFieldKey = new ObservedCultureFieldKey(cultureId, planeCode, q, r);
+        if (!_cultureFields.ContainsKey(startFieldKey))
+        {
+            return default;
+        }
+
+        return BuildCultureFieldComponent(cultureId, start);
+    }
+
+    private CultureFieldComponent BuildCultureFieldComponent(int cultureId, ObservedMapCellKey start)
+    {
+        var visited = new HashSet<ObservedMapCellKey>();
+        var queue = new Queue<ObservedMapCellKey>();
+        var cellCount = 0;
+        var rawMass = 0f;
+        var minQ = start.Q;
+        var minR = start.R;
+        visited.Add(start);
+        queue.Enqueue(start);
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+            AddCultureFieldComponentCell(cultureId, current, ref cellCount, ref rawMass, ref minQ, ref minR);
+            foreach (var neighbor in Neighbors(current))
+            {
+                var fieldKey = new ObservedCultureFieldKey(cultureId, neighbor.PlaneCode, neighbor.Q, neighbor.R);
+                if (_cultureFields.ContainsKey(fieldKey) && visited.Add(neighbor))
+                {
+                    queue.Enqueue(neighbor);
+                }
+            }
+        }
+
+        return new CultureFieldComponent(BuildComponentId(minQ, minR), cellCount, rawMass);
+    }
+
+    private void AddCultureFieldComponentCell(
+        int cultureId,
+        ObservedMapCellKey key,
+        ref int cellCount,
+        ref float rawMass,
+        ref int minQ,
+        ref int minR)
+    {
+        cellCount++;
+        var fieldKey = new ObservedCultureFieldKey(cultureId, key.PlaneCode, key.Q, key.R);
+        rawMass += _cultureFields.TryGetValue(fieldKey, out var field) ? field.CurrentRawInfluence : 0f;
+        if (key.Q < minQ || (key.Q == minQ && key.R < minR))
+        {
+            minQ = key.Q;
+            minR = key.R;
+        }
+    }
+
     private static IEnumerable<ObservedMapCellKey> Neighbors(ObservedMapCellKey key)
     {
         yield return new ObservedMapCellKey(key.PlaneCode, key.Q + 1, key.R);
@@ -159,6 +226,17 @@ internal sealed partial class TelemetryEventProjection
         yield return new ObservedMapCellKey(key.PlaneCode, key.Q - 1, key.R);
         yield return new ObservedMapCellKey(key.PlaneCode, key.Q - 1, key.R + 1);
         yield return new ObservedMapCellKey(key.PlaneCode, key.Q, key.R + 1);
+    }
+
+    private static int BuildComponentId(int q, int r)
+    {
+        unchecked
+        {
+            var hash = (uint)q * 2654435761u;
+            hash ^= (uint)r * 2246822519u;
+            var value = (int)(hash & 2147483647u);
+            return value == 0 ? 1 : value;
+        }
     }
 
     private Dictionary<ObservedMapCellKey, int> ActiveEntitiesByPlaneCell()

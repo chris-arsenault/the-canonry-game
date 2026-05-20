@@ -158,6 +158,18 @@ public sealed class IceRemembersGambitDefinitionTests
     }
 
     [Fact]
+    public void SettlementOpensTradeRouteRequiresNearbySemanticTarget()
+    {
+        var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
+        var trade = Gambit(compiled, IceRemembersGambitId.SettlementOpensTradeRoute);
+
+        Assert.Contains(trade.Preconditions, precondition =>
+            precondition.Code == BehaviorProgramPrecondition.PlaneDistance &&
+            precondition.A == 12 &&
+            precondition.B == PlaneCodes.Semantic);
+    }
+
+    [Fact]
     public void IceRemembers_CleansingScarTransformsTargetCoverageTerrain()
     {
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());

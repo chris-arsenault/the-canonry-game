@@ -18,6 +18,7 @@ using TravelStructure = IceRemembers.IceRemembersTravelStructure;
 public static partial class IceRemembersDefinition
 {
     private const float InitialGambitSuccessChance = 0.25f;
+    private const int SettlementTradeRouteMaxSemanticDistance = 12;
 
     private static IReadOnlyList<GambitDefinition> CreateGambits() =>
     [
@@ -108,6 +109,7 @@ public static partial class IceRemembersDefinition
             K.Settlement,
             All(
                 new TargetIsNotSelf(),
+                new WithinPlaneDistancePrecondition(SettlementTradeRouteMaxSemanticDistance, PrimaryPlane.Semantic),
                 new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.TradeRoute), maximumExclusive: 2),
                 new EndpointRelationshipCountBelow(TransferEndpoint.Target, L(Rel.TradeRoute), maximumExclusive: 2),
                 Not(new SelfHasRelationshipToTarget(L(Rel.TradeRoute))),

@@ -213,6 +213,19 @@ public static class GeneratorStatusCodes
     public const int NotEvaluated = 9;
 }
 
+public static class GeneratorTargetRejectionReasonCodes
+{
+    public const int None = 0;
+    public const int InactiveOrKind = 1;
+    public const int Subtype = 2;
+    public const int RequiredRelationship = 3;
+    public const int RelationshipAbsence = 4;
+    public const int Terrain = 5;
+    public const int Trigger = 6;
+    public const int SecondaryBinding = 7;
+    public const int Placement = 8;
+}
+
 public static class GeneratorPlacementCodes
 {
     public const int Area = 1;

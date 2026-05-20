@@ -146,6 +146,24 @@ internal sealed class CultureSlotProgramRuntime :
         return count;
     }
 
+    public int CausalSpendLimitMultiplier(int entityId)
+    {
+        if (entityId <= 0)
+        {
+            return 1;
+        }
+
+        for (var slot = 1; slot <= Data.SlotCount; slot++)
+        {
+            if (State.OccupantEntityId(slot) == entityId)
+            {
+                return 2;
+            }
+        }
+
+        return 1;
+    }
+
     private bool SlotMatchesOccupancyFilter(
         int slot,
         int entityId,

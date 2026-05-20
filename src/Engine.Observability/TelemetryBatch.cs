@@ -24,6 +24,7 @@ public sealed class TelemetryBatch
     public Collection<RelationshipSnapshotRow> RelationshipSnapshots { get; } = [];
     public Collection<GambitEventRow> GambitEvents { get; } = [];
     public Collection<GeneratorEventRow> GeneratorEvents { get; } = [];
+    public Collection<GeneratorTargetEvaluationRow> GeneratorTargetEvaluations { get; } = [];
     public Collection<GeneratorOutputRow> GeneratorOutputs { get; } = [];
     public Collection<GeneratorStateSnapshotRow> GeneratorStateSnapshots { get; } = [];
     public Collection<GeneratedEntityRow> GeneratedEntities { get; } = [];
@@ -251,7 +252,39 @@ public sealed record GeneratorEventRow(
     int CreatedEntityCount,
     int CreatedRelationshipCount,
     int CauseId = 0,
-    int CreatedMapCellCount = 0);
+    int CreatedMapCellCount = 0,
+    int RelationshipSpendCount = 0,
+    int OutputLockRelationshipCreatedCount = 0);
+
+public sealed record GeneratorTargetEvaluationRow(
+    int RunId,
+    int Tick,
+    int GeneratorId,
+    int TargetEntityId,
+    int TargetKindId,
+    int TargetSubtypeId,
+    int TargetCultureId,
+    int PhysicalQ,
+    int PhysicalR,
+    int SemanticQ,
+    int SemanticR,
+    int SemanticS,
+    int StatusCode,
+    int RejectionReasonCode,
+    int PhysicalFieldBandCode,
+    int PhysicalCellKindCode,
+    float PhysicalLocalRawMass,
+    float PhysicalConnectedRawMass,
+    int SemanticFieldBandCode,
+    int SemanticCellKindCode,
+    float SemanticLocalRawMass,
+    float SemanticConnectedRawMass,
+    int PhysicalComponentId = 0,
+    int PhysicalComponentCellCount = 0,
+    float PhysicalComponentRawMass = 0f,
+    int SemanticComponentId = 0,
+    int SemanticComponentCellCount = 0,
+    float SemanticComponentRawMass = 0f);
 
 public sealed record GeneratorOutputRow(
     int RunId,

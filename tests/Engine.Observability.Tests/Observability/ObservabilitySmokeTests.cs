@@ -79,6 +79,45 @@ public sealed class ObservabilitySmokeTests
     }
 
     [Fact]
+    public void RunLogger_UsesSelectedTargetSlotForGambitTarget()
+    {
+        var logPath = Path.Combine(
+            Path.GetTempPath(),
+            $"canonry-gambit-runlogger-target-{Guid.NewGuid():N}.log");
+
+        try
+        {
+            var log = new KernelEventLog(capacity: 8);
+            using var logger = new RunLogger(logPath, log);
+
+            Assert.True(log.TryWrite(KernelEvent.From(new GambitExecutedKernelEvent(
+                Tick: 1,
+                WorldVersion: 1,
+                ActorId: 10,
+                ActorKindId: 2,
+                GambitId: 3,
+                AffectedEntityId0: 10,
+                AffectedEntityId1: 20,
+                AffectedEntityCount: 2,
+                State: KernelEventState.Succeeded))));
+            logger.OnTickEnded(1);
+
+            var lines = File.ReadAllLines(logPath);
+            Assert.Contains(
+                lines,
+                line => line.Contains("E10:E10", StringComparison.Ordinal) &&
+                    line.Contains("tgt=E20:E20", StringComparison.Ordinal));
+        }
+        finally
+        {
+            if (File.Exists(logPath))
+            {
+                File.Delete(logPath);
+            }
+        }
+    }
+
+    [Fact]
     public void TelemetryRecorder_CapturesStructuredTelemetryAcrossKernelEvents()
     {
         using var runtime = CreateRuntime(seed: 7100);

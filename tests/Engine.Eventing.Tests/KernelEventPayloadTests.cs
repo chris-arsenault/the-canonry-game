@@ -68,14 +68,23 @@ public sealed class KernelEventPayloadTests
 
     private static void AssertRuntimeEventsRoundTrip()
     {
+        AssertBehaviorRuntimeEventsRoundTrip();
+        AssertWorldRuntimeEventsRoundTrip();
+        AssertInfrastructureRuntimeEventsRoundTrip();
+    }
+
+    private static void AssertBehaviorRuntimeEventsRoundTrip()
+    {
         var goalGenerated = new GoalGeneratedKernelEvent(9, 10, 11, 12, 13, 14, KernelEventState.Truncated);
         Assert.Equal(goalGenerated, KernelEvent.From(goalGenerated).AsGoalGenerated());
 
         var generatorEvaluated = new GeneratorEvaluatedKernelEvent(11, 12, 13, 14, 15, 16, 17);
         Assert.Equal(generatorEvaluated, KernelEvent.From(generatorEvaluated).AsGeneratorEvaluated());
 
-        var generatorFired = new GeneratorFiredKernelEvent(12, 13, 14, 15, 16, 17);
+        var generatorFired = new GeneratorFiredKernelEvent(12, 13, 14, 15, 16, 17, 18, 19);
         Assert.Equal(generatorFired, KernelEvent.From(generatorFired).AsGeneratorFired());
+
+        AssertGeneratorTargetEvaluatedRoundTrips();
 
         var gambitEvaluated = new GambitEvaluatedKernelEvent(13, 14, 15, 16, 17, 18, KernelEventState.Succeeded);
         Assert.Equal(gambitEvaluated, KernelEvent.From(gambitEvaluated).AsGambitEvaluated());
@@ -88,7 +97,10 @@ public sealed class KernelEventPayloadTests
 
         var commandRejected = new CommandRejectedKernelEvent(15, 16, 17, 18, 19, 20);
         Assert.Equal(commandRejected, KernelEvent.From(commandRejected).AsCommandRejected());
+    }
 
+    private static void AssertWorldRuntimeEventsRoundTrip()
+    {
         var tickCompleted = new TickCompletedKernelEvent(16, 17);
         Assert.Equal(tickCompleted, KernelEvent.From(tickCompleted).AsTickCompleted());
 
@@ -115,7 +127,10 @@ public sealed class KernelEventPayloadTests
 
         var cellTravelStructureChanged = new CellTravelStructureChangedKernelEvent(20, 21, PlaneCodes.Physical, -3, 3, 4, 5, 6);
         Assert.Equal(cellTravelStructureChanged, KernelEvent.From(cellTravelStructureChanged).AsCellTravelStructureChanged());
+    }
 
+    private static void AssertInfrastructureRuntimeEventsRoundTrip()
+    {
         var provenanceInvocationRecorded = new ProvenanceInvocationRecordedKernelEvent(21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31);
         Assert.Equal(provenanceInvocationRecorded, KernelEvent.From(provenanceInvocationRecorded).AsProvenanceInvocationRecorded());
 
@@ -124,5 +139,33 @@ public sealed class KernelEventPayloadTests
 
         var trace = new TraceKernelEvent(23, 24, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0, 0, 0, 3, 8, 2, 1, 1, 1, 2, 1.25f, 2.5f, 3.75f, 5f, 0f, 0f);
         Assert.Equal(trace, KernelEvent.From(trace).AsTrace());
+    }
+
+    private static void AssertGeneratorTargetEvaluatedRoundTrips()
+    {
+        var evt = new GeneratorTargetEvaluatedKernelEvent(
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            1.25f,
+            2.5f,
+            3.75f,
+            5f);
+        Assert.Equal(evt, KernelEvent.From(evt).AsGeneratorTargetEvaluated());
     }
 }

@@ -10,7 +10,8 @@ public sealed class RelationshipProgram
 public sealed record RelationshipRuntimeRule(
     int RelationshipKindId,
     float CullThreshold,
-    bool TargetFollowsSourcePhysical);
+    bool TargetFollowsSourcePhysical,
+    bool IsExclusive);
 
 public sealed record RelationshipMaintenanceRuntimeRule(
     int RelationshipKindId,
