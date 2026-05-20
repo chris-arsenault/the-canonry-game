@@ -173,6 +173,36 @@ public sealed class GeneratorProgramRuntimePlacementTests
     }
 
     [Fact]
+    public void Fire_WithProducedCulturePlacement_IgnoresTraceCultureInfluence()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        simulation.RegisterTerrain(2, boundaryGroupId: 1);
+        simulation.World.SetCellTerrain(-1, 0, terrainId: 2);
+        simulation.World.SetCellTerrain(-1, 1, terrainId: 2);
+        simulation.World.SetCellTerrain(0, -1, terrainId: 2);
+        simulation.World.SetCellTerrain(0, 1, terrainId: 2);
+        simulation.World.SetCellTerrain(1, -1, terrainId: 2);
+        var target = CreateTarget(simulation);
+        simulation.SetCellInfluence(target, PlaneCodes.Physical, -1, 0, 0.6f, tick: 0);
+        var slot = RegisterGenerator(simulation, includeProduced: false);
+        var producedSlot = AddAreaProducedEntity(
+            simulation,
+            slot,
+            physicalMinRadius: 1,
+            physicalMaxRadius: 1,
+            semanticMinRadius: 1,
+            semanticMaxRadius: 1);
+        simulation.Generators.AddProducedPlacementAvoidedTerrain(producedSlot, PlaneCodes.Physical, terrainId: 2);
+
+        simulation.AdvanceTicks(1);
+
+        var created = simulation.World.EntityHighWatermark;
+        Assert.Equal(1, simulation.World.EntityPhysicalQ(created));
+        Assert.Equal(0, simulation.World.EntityPhysicalR(created));
+    }
+
+    [Fact]
     public void Fire_WithSemanticPlacement_UsesSeedStyleTerrainPreferenceInsteadOfTravelCost()
     {
         var simulation = CreateSimulation();

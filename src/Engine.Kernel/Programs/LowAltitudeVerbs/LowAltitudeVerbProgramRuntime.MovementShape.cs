@@ -180,7 +180,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         MovementMoveResult result,
         int tick)
     {
-        var delta = Data.InfluenceDelta(rule);
+        var delta = EffectiveInfluenceDelta(simulation, entityId, rule, reducingForeign: false);
         if (delta <= 0f)
         {
             return;

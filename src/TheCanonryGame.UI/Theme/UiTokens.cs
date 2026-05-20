@@ -49,10 +49,20 @@ public static class UiTokens
 
     // Culture accents. These are used both on the cultural map roll-up and on
     // entity action rings so cause and territory read as the same signal.
-    public static readonly Color CultureAuroraStack = Hex(0x78C9B2);
-    public static readonly Color CultureNightshelf = Hex(0x8E7CC3);
-    public static readonly Color CultureWakeSingers = Hex(0xC9A96B);
+    public static readonly Color CultureAuroraStack = Hex(0x00C28A);
+    public static readonly Color CultureNightshelf = Hex(0x7C4DFF);
+    public static readonly Color CultureWakeSingers = Hex(0xF2A900);
     public static readonly Color CultureNone = Hex(0x6F7684);
+
+    public static readonly Color[] CulturePalette =
+    [
+        Hex(0x00C28A), // aurora green
+        Hex(0x7C4DFF), // saturated violet
+        Hex(0xF2A900), // amber
+        Hex(0xE84A5F), // coral red
+        Hex(0x00A6D6), // clear cyan
+        Hex(0xD86AD8), // magenta
+    ];
 
     // Terrain — muted realistic palette.
     public static readonly Color TerrainWastes = Hex(0x8C8A80);
@@ -182,7 +192,7 @@ public static class UiTokens
         "nightshelf" => CultureNightshelf,
         "wake_singers" => CultureWakeSingers,
         "none" => CultureNone,
-        _ => FactionPalette[StablePaletteIndex(cultureId)],
+        _ => CulturePalette[StablePaletteIndex(cultureId, CulturePalette.Length)],
     };
 
     public static Color TerrainColor(string stableName) =>
@@ -197,7 +207,7 @@ public static class UiTokens
             ((rgb >> 8) & 0xFF) / 255f,
             (rgb & 0xFF) / 255f);
 
-    private static int StablePaletteIndex(string value)
+    private static int StablePaletteIndex(string value, int paletteLength)
     {
         unchecked
         {
@@ -207,7 +217,7 @@ public static class UiTokens
                 hash = (hash * 31) + value[i];
             }
 
-            return (hash & 0x7FFFFFFF) % FactionPalette.Length;
+            return (hash & 0x7FFFFFFF) % paletteLength;
         }
     }
 }

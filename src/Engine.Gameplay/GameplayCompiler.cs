@@ -44,6 +44,7 @@ public static class GameplayCompiler
                 context.ResolveVerbId(verb.Id),
                 ownerPlaneCode,
                 shape.OperationCode,
+                shape.InfluenceTargetingCode,
                 TargetModeCode(verb.TargetMode),
                 verb.TargetKind is null
                     ? 0

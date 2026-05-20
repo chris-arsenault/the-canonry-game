@@ -262,6 +262,26 @@ public static class CultureSlotScoreSignalCodes
     public const int SemanticCoverage = 5;
     public const int OutgoingRelationshipStrength = 6;
     public const int IncomingRelationshipStrength = 7;
+    public const int PhysicalCultureSupport = 8;
+    public const int SemanticCultureSupport = 9;
+    public const int PhysicalInfluenceProduction = 10;
+    public const int SemanticInfluenceProduction = 11;
+}
+
+public static class CultureFieldCellKindCodes
+{
+    public const int None = 0;
+    public const int Interior = 1;
+    public const int Border = 2;
+    public const int Isolated = 3;
+    public const int Contested = 4;
+}
+
+public static class CultureFieldStrengthBandCodes
+{
+    public const int None = 0;
+    public const int Trace = 1;
+    public const int Strong = 2;
 }
 
 public static class MovementCauseCodes
@@ -304,6 +324,14 @@ public static class ProgramOpcodeCodes
     public const int TryClaimCell = 4;
     public const int TryRelocateEntity = 5;
     public const int AdjustRelationshipStrength = 6;
+}
+
+public static class LowAltitudeInfluenceTargetingCodes
+{
+    public const int None = 0;
+    public const int Spread = 1;
+    public const int Reinforce = 2;
+    public const int Contest = 3;
 }
 
 public static class LowAltitudeVerbRelationshipDirectionCodes

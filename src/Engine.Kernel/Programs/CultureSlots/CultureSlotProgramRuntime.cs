@@ -5,6 +5,10 @@ using Engine.Constants;
 internal sealed class CultureSlotProgramRuntime :
     IKernelProgramRuntime<CultureSlotProgramData, CultureSlotProgramState>
 {
+    private const int AnyPolarityFilterCode = -1;
+    private const float CultureSupportScoreScale = 30f;
+    private const float InfluenceProductionScoreScale = 100f;
+
     public CultureSlotProgramRuntime(CultureSlotProgramData data, CultureSlotProgramState state)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
@@ -80,6 +84,45 @@ internal sealed class CultureSlotProgramRuntime :
         }
 
         return best;
+    }
+
+    public void OccupancyEvidenceByPolarity(
+        int entityId,
+        int cultureId,
+        float threshold,
+        out float positive,
+        out float neutral,
+        out float negative)
+    {
+        positive = 0f;
+        neutral = 0f;
+        negative = 0f;
+        if (entityId <= 0)
+        {
+            return;
+        }
+
+        for (var slot = 1; slot <= Data.SlotCount; slot++)
+        {
+            if (!SlotMatchesOccupancyFilter(slot, entityId, cultureId, slotId: 0, polarityCode: AnyPolarityFilterCode))
+            {
+                continue;
+            }
+
+            var evidence = KernelQuery.ThresholdEvidence(State.OccupantScore(slot), threshold);
+            switch (Data.PolarityCode(slot))
+            {
+                case RelationshipPolarityCodes.Positive:
+                    positive = global::System.MathF.Max(positive, evidence);
+                    break;
+                case RelationshipPolarityCodes.Neutral:
+                    neutral = global::System.MathF.Max(neutral, evidence);
+                    break;
+                case RelationshipPolarityCodes.Negative:
+                    negative = global::System.MathF.Max(negative, evidence);
+                    break;
+            }
+        }
     }
 
     public int UnoccupiedSlotFitCount(int cultureId, int kindId)
@@ -283,13 +326,10 @@ internal sealed class CultureSlotProgramRuntime :
 
     private float ScoreSignal(WorldState world, int entityId, int rule)
     {
-        return Data.RuleSignalCode(rule) switch
+        var signalCode = Data.RuleSignalCode(rule);
+        return signalCode switch
         {
             CultureSlotScoreSignalCodes.ActiveEntity => 1f,
-            CultureSlotScoreSignalCodes.PhysicalInfluence => SumInfluence(world, entityId, PlaneCodes.Physical),
-            CultureSlotScoreSignalCodes.SemanticInfluence => SumInfluence(world, entityId, PlaneCodes.Semantic),
-            CultureSlotScoreSignalCodes.PhysicalCoverage => world.CoverageOwnerCellCount(entityId, PlaneCodes.Physical),
-            CultureSlotScoreSignalCodes.SemanticCoverage => world.CoverageOwnerCellCount(entityId, PlaneCodes.Semantic),
             CultureSlotScoreSignalCodes.OutgoingRelationshipStrength => SumRelationships(
                 world,
                 entityId,
@@ -300,8 +340,45 @@ internal sealed class CultureSlotProgramRuntime :
                 entityId,
                 Data.RuleRelationshipKindId(rule),
                 outgoing: false),
+            _ => ScorePlaneSignal(world, entityId, signalCode),
+        };
+    }
+
+    private static float ScorePlaneSignal(WorldState world, int entityId, int signalCode)
+    {
+        return signalCode switch
+        {
+            CultureSlotScoreSignalCodes.PhysicalInfluence => SumInfluence(world, entityId, PlaneCodes.Physical),
+            CultureSlotScoreSignalCodes.SemanticInfluence => SumInfluence(world, entityId, PlaneCodes.Semantic),
+            CultureSlotScoreSignalCodes.PhysicalCoverage => world.CoverageOwnerCellCount(entityId, PlaneCodes.Physical),
+            CultureSlotScoreSignalCodes.SemanticCoverage => world.CoverageOwnerCellCount(entityId, PlaneCodes.Semantic),
+            CultureSlotScoreSignalCodes.PhysicalCultureSupport => CultureSupportScore(world, entityId, PlaneCodes.Physical),
+            CultureSlotScoreSignalCodes.SemanticCultureSupport => CultureSupportScore(world, entityId, PlaneCodes.Semantic),
+            CultureSlotScoreSignalCodes.PhysicalInfluenceProduction => InfluenceProductionScore(world, entityId, PlaneCodes.Physical),
+            CultureSlotScoreSignalCodes.SemanticInfluenceProduction => InfluenceProductionScore(world, entityId, PlaneCodes.Semantic),
             _ => 0f,
         };
+    }
+
+    private static float CultureSupportScore(WorldState world, int entityId, int planeCode)
+    {
+        var cultureId = world.EntityCultureId(entityId);
+        if (cultureId <= 0)
+        {
+            return 0f;
+        }
+
+        var q = planeCode == PlaneCodes.Semantic ? world.EntitySemanticQ(entityId) : world.EntityPhysicalQ(entityId);
+        var r = planeCode == PlaneCodes.Semantic ? world.EntitySemanticR(entityId) : world.EntityPhysicalR(entityId);
+        var field = world.CultureFieldAt(cultureId, planeCode, q, r);
+        return global::System.MathF.Min(10f, field.ConnectedRawMass / CultureSupportScoreScale);
+    }
+
+    private static float InfluenceProductionScore(WorldState world, int entityId, int planeCode)
+    {
+        return global::System.MathF.Min(
+            10f,
+            world.EntityInfluenceProduction(entityId, planeCode) / InfluenceProductionScoreScale);
     }
 
     private static float SumInfluence(WorldState world, int entityId, int planeCode)

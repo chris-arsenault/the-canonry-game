@@ -8,6 +8,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private int[] _verbIds = [];
     private int[] _planeCodes = [];
     private int[] _operationCodes = [];
+    private int[] _influenceTargetingCodes = [];
     private int[] _targetModeCodes = [];
     private int[] _targetKindIds = [];
     private int[] _relationshipKindIds = [];
@@ -94,6 +95,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _verbIds = new int[ruleLength];
         _planeCodes = new int[ruleLength];
         _operationCodes = new int[ruleLength];
+        _influenceTargetingCodes = new int[ruleLength];
     }
 
     private void InitializeTargetAndTerrainArrays(int ruleLength, int itemLength)
@@ -187,7 +189,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.LowAltitudeVerbs;
 
-    public int SchemaVersion => 8;
+    public int SchemaVersion => 9;
 
     public int RuleCount => _ruleCount;
 
@@ -205,6 +207,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
             registration.VerbId,
             registration.PlaneCode,
             registration.OperationCode,
+            registration.InfluenceTargetingCode,
             registration.TargetModeCode);
 
         if (_ruleCount + 1 >= _kindIds.Length)
@@ -218,6 +221,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _verbIds[slot] = registration.VerbId;
         _planeCodes[slot] = registration.PlaneCode;
         _operationCodes[slot] = registration.OperationCode;
+        _influenceTargetingCodes[slot] = registration.InfluenceTargetingCode;
         _targetModeCodes[slot] = registration.TargetModeCode;
         _targetKindIds[slot] = registration.TargetKindId;
         _relationshipKindIds[slot] = registration.RelationshipKindId;
@@ -380,6 +384,8 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public int OperationCode(int rule) => _operationCodes[rule];
 
+    public int InfluenceTargetingCode(int rule) => _influenceTargetingCodes[rule];
+
     public int TargetModeCode(int rule) => _targetModeCodes[rule];
 
     public int TargetKindId(int rule) => _targetKindIds[rule];
@@ -524,12 +530,14 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         int verbId,
         int planeCode,
         int operationCode,
+        int influenceTargetingCode,
         int targetModeCode)
     {
         ValidatePositive(kindId);
         ValidatePositive(verbId);
         ValidatePlaneCode(planeCode);
         ValidateOperationCode(operationCode);
+        ValidateInfluenceTargetingCode(influenceTargetingCode);
         ValidateTargetModeCode(targetModeCode);
     }
 
@@ -585,6 +593,17 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
             not ProgramOpcodeCodes.AdjustRelationshipStrength)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(operationCode));
+        }
+    }
+
+    private static void ValidateInfluenceTargetingCode(int influenceTargetingCode)
+    {
+        if (influenceTargetingCode is not LowAltitudeInfluenceTargetingCodes.None and
+            not LowAltitudeInfluenceTargetingCodes.Spread and
+            not LowAltitudeInfluenceTargetingCodes.Reinforce and
+            not LowAltitudeInfluenceTargetingCodes.Contest)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(influenceTargetingCode));
         }
     }
 

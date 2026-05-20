@@ -306,6 +306,10 @@ internal static class MonteCarloCli
         batch.CellInfluenceEvents.Count +
         batch.CellCultureInfluenceEvents.Count +
         batch.CultureSlotOccupancyEvents.Count +
+        batch.CultureFieldComponentSnapshots.Count +
+        batch.CultureEntityFieldSnapshots.Count +
+        batch.CultureEntityBirthFieldEvents.Count +
+        batch.CultureInfluenceActionFieldEvents.Count +
         batch.CellRoadEvents.Count +
         batch.MapSnapshots.Count +
         batch.CoverageSnapshots.Count +

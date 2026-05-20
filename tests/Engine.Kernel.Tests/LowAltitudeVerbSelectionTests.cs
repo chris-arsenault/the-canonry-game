@@ -504,6 +504,78 @@ public sealed class LowAltitudeVerbSelectionTests
     }
 
     [Fact]
+    public void OwnInfluenceCandidateSelection_ReinforcementStaysOnExistingCultureMass()
+    {
+        var simulation = NewSimulation(seed: 3, opportunityRate: 0f);
+        SeedRadius3Neighborhood(simulation);
+        var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
+        {
+            simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, 15f, tick: 0);
+        }
+
+        var slot = simulation.LowAltitudeVerbs.RegisterVerb(
+            ActorKindId,
+            verbId: 814,
+            PlaneCodes.Physical,
+            ProgramOpcodeCodes.AddOwnedCellScalar,
+            TargetSelectorCodes.SelfMapValue,
+            targetKindId: 0,
+            relationshipKindId: 0,
+            relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
+            minCommitmentTicks: 5,
+            maxCommitmentTicks: 5,
+            dwellTicks: 0,
+            targetRadius: 0,
+            candidateSampleCount: 1,
+            weight: 1f,
+            influenceDelta: 1f,
+            influenceRadius: 0,
+            influenceTargetingCode: LowAltitudeInfluenceTargetingCodes.Reinforce);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.AddOwnedCellScalar, 0, 0f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal((0, 0), (simulation.LowAltitudeVerbs.State.TargetQ(actorId), simulation.LowAltitudeVerbs.State.TargetR(actorId)));
+    }
+
+    [Fact]
+    public void OwnInfluenceCandidateSelection_SpreadIgnoresUnsupportedTraceInfluence()
+    {
+        var simulation = NewSimulation(seed: 4, opportunityRate: 0f);
+        SeedRadius3Neighborhood(simulation);
+        var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
+        {
+            simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 1, 0, 0.6f, tick: 0);
+        }
+
+        var slot = simulation.LowAltitudeVerbs.RegisterVerb(
+            ActorKindId,
+            verbId: 815,
+            PlaneCodes.Physical,
+            ProgramOpcodeCodes.AddOwnedCellScalar,
+            TargetSelectorCodes.SelfMapValue,
+            targetKindId: 0,
+            relationshipKindId: 0,
+            relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
+            minCommitmentTicks: 5,
+            maxCommitmentTicks: 5,
+            dwellTicks: 0,
+            targetRadius: 0,
+            candidateSampleCount: 1,
+            weight: 1f,
+            influenceDelta: 1f,
+            influenceRadius: 0,
+            influenceTargetingCode: LowAltitudeInfluenceTargetingCodes.Spread);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.AddOwnedCellScalar, 0, 0f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(0, simulation.LowAltitudeVerbs.State.ActiveVerbSlot(actorId));
+    }
+
+    [Fact]
     public void ForeignInfluenceCandidateSelection_DoesNotDependOnUniformRandomHit()
     {
         var simulation = NewSimulation(seed: 1, opportunityRate: 0f);
@@ -512,6 +584,7 @@ public sealed class LowAltitudeVerbSelectionTests
         var influencerId = simulation.CreateEntity(TargetKindId, 1, 2, 1, 0, 0, 0, 0, 0);
         using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
         {
+            simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 2, 0, 30f, tick: 0);
             simulation.SetCellInfluence(influencerId, PlaneCodes.Physical, 3, 0, 40f, tick: 0);
         }
 

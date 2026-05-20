@@ -112,6 +112,10 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("cell_influence_events");
         ExportTable("cell_culture_influence_events");
         ExportTable("culture_slot_occupancy_events");
+        ExportTable("culture_field_component_snapshots");
+        ExportTable("culture_entity_field_snapshots");
+        ExportTable("culture_entity_birth_field_events");
+        ExportTable("culture_influence_action_field_events");
         ExportTable("cell_road_events");
         ExportTable("map_snapshots");
         ExportTable("coverage_snapshots");
@@ -170,6 +174,10 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("cell_influence_events", typeof(CellInfluenceEventRow));
         EnsureTable("cell_culture_influence_events", typeof(CellCultureInfluenceEventRow));
         EnsureTable("culture_slot_occupancy_events", typeof(CultureSlotOccupancyEventRow));
+        EnsureTable("culture_field_component_snapshots", typeof(CultureFieldComponentSnapshotRow));
+        EnsureTable("culture_entity_field_snapshots", typeof(CultureEntityFieldSnapshotRow));
+        EnsureTable("culture_entity_birth_field_events", typeof(CultureEntityBirthFieldEventRow));
+        EnsureTable("culture_influence_action_field_events", typeof(CultureInfluenceActionFieldEventRow));
         EnsureTable("cell_road_events", typeof(CellRoadEventRow));
         EnsureTable("map_snapshots", typeof(MapSnapshotRow));
         EnsureTable("coverage_snapshots", typeof(CoverageSnapshotRow));
@@ -226,6 +234,10 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("cell_influence_events", _pending.CellInfluenceEvents);
         AppendTable("cell_culture_influence_events", _pending.CellCultureInfluenceEvents);
         AppendTable("culture_slot_occupancy_events", _pending.CultureSlotOccupancyEvents);
+        AppendTable("culture_field_component_snapshots", _pending.CultureFieldComponentSnapshots);
+        AppendTable("culture_entity_field_snapshots", _pending.CultureEntityFieldSnapshots);
+        AppendTable("culture_entity_birth_field_events", _pending.CultureEntityBirthFieldEvents);
+        AppendTable("culture_influence_action_field_events", _pending.CultureInfluenceActionFieldEvents);
         AppendTable("cell_road_events", _pending.CellRoadEvents);
         AppendTable("map_snapshots", _pending.MapSnapshots);
         AppendTable("coverage_snapshots", _pending.CoverageSnapshots);
@@ -311,6 +323,10 @@ internal static class TelemetryBatchExtensions
         batch.CellInfluenceEvents.Count +
         batch.CellCultureInfluenceEvents.Count +
         batch.CultureSlotOccupancyEvents.Count +
+        batch.CultureFieldComponentSnapshots.Count +
+        batch.CultureEntityFieldSnapshots.Count +
+        batch.CultureEntityBirthFieldEvents.Count +
+        batch.CultureInfluenceActionFieldEvents.Count +
         batch.CellRoadEvents.Count +
         batch.MapSnapshots.Count +
         batch.CoverageSnapshots.Count +
@@ -362,6 +378,10 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.CellInfluenceEvents, source.CellInfluenceEvents);
         AppendRows(destination.CellCultureInfluenceEvents, source.CellCultureInfluenceEvents);
         AppendRows(destination.CultureSlotOccupancyEvents, source.CultureSlotOccupancyEvents);
+        AppendRows(destination.CultureFieldComponentSnapshots, source.CultureFieldComponentSnapshots);
+        AppendRows(destination.CultureEntityFieldSnapshots, source.CultureEntityFieldSnapshots);
+        AppendRows(destination.CultureEntityBirthFieldEvents, source.CultureEntityBirthFieldEvents);
+        AppendRows(destination.CultureInfluenceActionFieldEvents, source.CultureInfluenceActionFieldEvents);
         AppendRows(destination.CellRoadEvents, source.CellRoadEvents);
         AppendRows(destination.MapSnapshots, source.MapSnapshots);
         AppendRows(destination.CoverageSnapshots, source.CoverageSnapshots);

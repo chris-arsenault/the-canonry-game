@@ -14,6 +14,7 @@ public sealed record LowAltitudeVerbRule(
     int VerbId,
     int PlaneCode,
     int OperationCode,
+    int InfluenceTargetingCode,
     int TargetModeCode,
     int TargetKindId,
     int RelationshipKindId,

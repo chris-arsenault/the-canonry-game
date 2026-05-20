@@ -284,6 +284,10 @@ public enum CultureSlotScoreSignal
     SemanticCoverage = CultureSlotScoreSignalCodes.SemanticCoverage,
     OutgoingRelationshipStrength = CultureSlotScoreSignalCodes.OutgoingRelationshipStrength,
     IncomingRelationshipStrength = CultureSlotScoreSignalCodes.IncomingRelationshipStrength,
+    PhysicalCultureSupport = CultureSlotScoreSignalCodes.PhysicalCultureSupport,
+    SemanticCultureSupport = CultureSlotScoreSignalCodes.SemanticCultureSupport,
+    PhysicalInfluenceProduction = CultureSlotScoreSignalCodes.PhysicalInfluenceProduction,
+    SemanticInfluenceProduction = CultureSlotScoreSignalCodes.SemanticInfluenceProduction,
 }
 
 public sealed class CultureSlotConfig

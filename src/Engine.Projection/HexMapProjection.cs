@@ -137,6 +137,14 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
 
     public long OwnerColorVersion { get; private set; }
 
+    public long CultureOverlayVersion { get; private set; }
+
+    public long InfluenceOverlayVersion { get; private set; }
+
+    public long RoadNetworkVersion { get; private set; }
+
+    public long RouteNetworkVersion { get; private set; }
+
     public IReadOnlyList<int> OwnerColorEntityIds => _ownerColorEntityIds;
 
     public long DroppedEvents { get; private set; }
@@ -306,6 +314,7 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         };
         UpdateOwnerColorMembership(entityId, influenceWasActive, influenceIsActive);
         CellVersion++;
+        InfluenceOverlayVersion++;
         MarkCellDirty(evt.PlaneCode, existing.HexId);
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
@@ -322,6 +331,7 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             Sequence = sequence,
         };
         CellVersion++;
+        CultureOverlayVersion++;
         MarkCellDirty(evt.PlaneCode, existing.HexId);
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
@@ -353,6 +363,7 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             Sequence = sequence,
         };
         CellVersion++;
+        RoadNetworkVersion++;
         MarkCellDirty(evt.PlaneCode, existing.HexId);
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
@@ -368,6 +379,7 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             Sequence = sequence,
         };
         CellVersion++;
+        RouteNetworkVersion++;
         MarkCellDirty(evt.PlaneCode, existing.HexId);
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }

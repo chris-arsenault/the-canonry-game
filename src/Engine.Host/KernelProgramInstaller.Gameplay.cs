@@ -146,7 +146,8 @@ internal static partial class KernelProgramInstaller
             verb.ForeignInfluenceAllowNegativeRelationships ? 1 : 0,
             verb.ForeignInfluenceMinimumRelationshipStrength,
             verb.ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove,
-            verb.RelationshipStrengthDelta);
+            verb.RelationshipStrengthDelta,
+            verb.InfluenceTargetingCode);
         foreach (var terrainId in verb.TerrainIds)
         {
             context.AddLowAltitudeVerbTerrainFilter(slot, terrainId);

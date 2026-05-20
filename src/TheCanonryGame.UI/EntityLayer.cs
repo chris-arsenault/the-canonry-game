@@ -16,6 +16,7 @@ public partial class EntityLayer : Node2D
     private HashSet<int>? _visibleEntityIds;
     private PackedScene? _entityScene;
     private int? _highlightedEntityId;
+    private bool _showEntityNamesForZoom;
 
     [Signal]
     public delegate void EntitySelectedEventHandler(int entityIdValue);
@@ -26,7 +27,9 @@ public partial class EntityLayer : Node2D
 
     public int CurrentPlaneCode => PlaneCodeForCurrentPlane();
 
-    public bool ShowEntityNames { get; private set; } = true;
+    public bool ShowEntityNames { get; private set; }
+
+    public bool EffectiveShowEntityNames => ShowEntityNames || _showEntityNamesForZoom;
 
     public int? HighlightedEntityId => _highlightedEntityId;
 
@@ -62,6 +65,17 @@ public partial class EntityLayer : Node2D
         }
 
         ShowEntityNames = showEntityNames;
+        return true;
+    }
+
+    public bool SetShowEntityNamesForZoom(bool showEntityNamesForZoom)
+    {
+        if (_showEntityNamesForZoom == showEntityNamesForZoom)
+        {
+            return false;
+        }
+
+        _showEntityNamesForZoom = showEntityNamesForZoom;
         return true;
     }
 
@@ -216,7 +230,7 @@ public partial class EntityLayer : Node2D
         }
 
         _renderedCoordsByEntity[entity.EntityId] = coord;
-        node.BindTo(entity, _symbols, ShowEntityNames, _projection?.CurrentTick ?? 0, entity.EntityId == _highlightedEntityId);
+        node.BindTo(entity, _symbols, EffectiveShowEntityNames, _projection?.CurrentTick ?? 0, entity.EntityId == _highlightedEntityId);
         node.ZIndex = entity.EntityId == _highlightedEntityId ? 20 : 0;
         node.MoveTo(worldPosition);
     }
@@ -234,7 +248,7 @@ public partial class EntityLayer : Node2D
             return;
         }
 
-        node.BindTo(entity, _symbols, ShowEntityNames, _projection.CurrentTick, id == _highlightedEntityId);
+        node.BindTo(entity, _symbols, EffectiveShowEntityNames, _projection.CurrentTick, id == _highlightedEntityId);
         node.ZIndex = id == _highlightedEntityId ? 20 : 0;
     }
 

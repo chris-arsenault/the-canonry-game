@@ -6,6 +6,7 @@ internal readonly struct LowAltitudeVerbRegistration
     public int VerbId { get; init; }
     public int PlaneCode { get; init; }
     public int OperationCode { get; init; }
+    public int InfluenceTargetingCode { get; init; }
     public int TargetModeCode { get; init; }
     public int TargetKindId { get; init; }
     public int RelationshipKindId { get; init; }

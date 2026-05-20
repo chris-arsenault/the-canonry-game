@@ -18,7 +18,11 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     private readonly Dictionary<int, ObservedEntityProjection> _entities = [];
     private readonly Dictionary<ObservedRelationshipKey, ObservedRelationshipProjection> _relationships = [];
     private readonly Dictionary<ObservedMapCellKey, ObservedMapCellProjection> _mapCells = [];
+    private readonly Dictionary<ObservedCultureFieldKey, ObservedCultureFieldProjection> _cultureFields = [];
+    private readonly Dictionary<ObservedMapCellKey, HashSet<ObservedCultureFieldKey>> _cultureFieldKeysByCell = [];
+    private readonly Dictionary<ObservedEntityPlaneKey, float> _entityInfluenceProduction = [];
     private readonly Dictionary<int, GeneratorStateProjection> _generatorStates = [];
+    private readonly Dictionary<int, int> _occupiedCultureSlotCountByEntity = [];
     private readonly HashSet<int> _recordedMapSnapshotTicks = [];
     private readonly Dictionary<int, Queue<PendingCreatedEntity>> _unassignedCreatedEntitiesByTick = [];
     private readonly HashSet<int> _exportedEntityNameSymbols = [];
@@ -144,6 +148,9 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
                     attribute.Key,
                     attribute.Value));
             }
+
+            RecordCultureEntityFieldSnapshot(tick, entity, PlaneCodes.Physical);
+            RecordCultureEntityFieldSnapshot(tick, entity, PlaneCodes.Semantic);
         }
     }
 
@@ -190,6 +197,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         }
 
         RecordCoverageSnapshots(tick, activeEntitiesByCell);
+        RecordCultureFieldComponentSnapshots(tick);
         RecordGeneratorStateSnapshots(tick);
     }
 
@@ -199,70 +207,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         IsActiveStatus(source.StatusCode) &&
         _entities.TryGetValue(relationship.Key.TargetEntityId, out var target) &&
         IsActiveStatus(target.StatusCode);
-
-    private void RecordCoverageSnapshots(
-        int tick,
-        Dictionary<ObservedMapCellKey, int> activeEntitiesByCell)
-    {
-        foreach (var group in _mapCells.Values
-                     .Where(cell => cell.OwnerEntityId > 0)
-                     .GroupBy(cell => (cell.Key.PlaneCode, cell.OwnerEntityId)))
-        {
-            var cells = group.ToList();
-            _batch.CoverageSnapshots.Add(new CoverageSnapshotRow(
-                _runId,
-                tick,
-                group.Key.PlaneCode,
-                group.Key.OwnerEntityId,
-                CoverageKindCode: 1,
-                cells.Count,
-                cells.Min(cell => cell.Key.Q),
-                cells.Max(cell => cell.Key.Q),
-                cells.Min(cell => cell.Key.R),
-                cells.Max(cell => cell.Key.R),
-                cells.Sum(cell => activeEntitiesByCell.GetValueOrDefault(cell.Key))));
-
-            foreach (var terrain in cells.GroupBy(cell => cell.TerrainId))
-            {
-                _batch.CoverageTerrainSnapshots.Add(new CoverageTerrainSnapshotRow(
-                    _runId,
-                    tick,
-                    group.Key.PlaneCode,
-                    group.Key.OwnerEntityId,
-                    terrain.Key,
-                    terrain.Count()));
-            }
-        }
-    }
-
-    private Dictionary<ObservedMapCellKey, int> ActiveEntitiesByPlaneCell()
-    {
-        var activeEntities = _entities.Values.Where(entity => IsActiveStatus(entity.StatusCode)).ToList();
-        return activeEntities
-            .SelectMany(entity => new[]
-            {
-                new ObservedMapCellKey(PlaneCodes.Physical, entity.PhysicalQ, entity.PhysicalR),
-                new ObservedMapCellKey(PlaneCodes.Semantic, entity.SemanticQ, entity.SemanticR),
-            })
-            .GroupBy(key => key)
-            .ToDictionary(group => group.Key, group => group.Count());
-    }
-
-    private void RecordGeneratorStateSnapshots(int tick)
-    {
-        foreach (var state in _generatorStates.Values)
-        {
-            _batch.GeneratorStateSnapshots.Add(new GeneratorStateSnapshotRow(
-                _runId,
-                tick,
-                state.GeneratorId,
-                state.Enabled,
-                Cadence: 0,
-                CooldownRemaining: 0,
-                state.RunCount,
-                state.LastRunTick));
-        }
-    }
 
     protected override void OnEntityCreated(long sequence, in EntityCreatedKernelEvent evt)
     {
@@ -299,6 +243,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.SemanticR,
             evt.SemanticS));
 
+        RecordCultureEntityBirthField(evt.Tick, entity);
         TrackCreatedEntityForGeneratorAttribution(evt);
         MarkProjected(sequence);
     }
@@ -504,6 +449,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
     protected override void OnCellInfluenceChanged(long sequence, in CellInfluenceChangedKernelEvent evt)
     {
+        RecordCultureInfluenceActionField(evt);
         _batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(
             _runId,
             evt.Tick,
@@ -531,12 +477,18 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.R,
             evt.PreviousShare,
             evt.CurrentShare,
-            evt.CurrentShare - evt.PreviousShare));
+            evt.CurrentShare - evt.PreviousShare,
+            evt.PreviousRawInfluence,
+            evt.CurrentRawInfluence,
+            evt.CurrentTotalRawInfluence));
+        UpdateCultureField(evt);
         MarkProjected(sequence);
     }
 
     protected override void OnCultureSlotOccupancyChanged(long sequence, in CultureSlotOccupancyChangedKernelEvent evt)
     {
+        AdjustCultureSlotOccupancy(evt.PreviousEntityId, -1);
+        AdjustCultureSlotOccupancy(evt.CurrentEntityId, 1);
         _batch.CultureSlotOccupancyEvents.Add(new CultureSlotOccupancyEventRow(
             _runId,
             evt.Tick,

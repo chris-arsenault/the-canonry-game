@@ -20,6 +20,112 @@ public sealed class KernelTelemetryRecorderTests
         AssertTelemetryBatch(recorder.Batch);
     }
 
+    [Fact]
+    public void Recorder_ProjectsCultureFieldEmergenceMetrics()
+    {
+        var log = new KernelEventLog(capacity: 64);
+        var symbols = CreateTestSymbols();
+        using var recorder = new KernelTelemetryRecorder(log, "run-culture-field", symbols, seed: 44, domain: "test");
+
+        WriteCultureFieldMetricEvents(log);
+
+        recorder.RecordSnapshots(tick: 3);
+
+        AssertCultureFieldMetricRows(recorder.Batch);
+    }
+
+    private static void WriteCultureFieldMetricEvents(KernelEventLog log)
+    {
+        WriteCultureFieldMetricEntity(log);
+        WriteCultureFieldMetricCells(log);
+        WriteCultureSlotOccupancyChanged(log);
+        WriteCultureFieldMetricAction(log);
+    }
+
+    private static void AssertCultureFieldMetricRows(TelemetryBatch batch)
+    {
+        var component = Assert.Single(batch.CultureFieldComponentSnapshots);
+        Assert.Equal(3, component.CultureId);
+        Assert.Equal(2, component.InfluencedCellCount);
+        Assert.Equal(1, component.ComponentCount);
+        Assert.Equal(2, component.LargestComponentCellCount);
+        Assert.Equal(100f, component.LargestComponentShare);
+
+        var birth = Assert.Single(batch.CultureEntityBirthFieldEvents);
+        Assert.Equal(100, birth.EntityId);
+        Assert.Equal(CultureFieldStrengthBandCodes.None, birth.PhysicalFieldBandCode);
+
+        var action = Assert.Single(batch.CultureInfluenceActionFieldEvents);
+        Assert.Equal(100, action.EntityId);
+        Assert.True(action.SlotOccupied);
+        Assert.True(action.LocalRawMass > 0f);
+        Assert.Equal(25f, action.Delta);
+
+        var entityField = Assert.Single(batch.CultureEntityFieldSnapshots, row => row.EntityId == 100 && row.PlaneCode == PlaneCodes.Physical);
+        Assert.True(entityField.SlotOccupied);
+        Assert.True(entityField.LocalRawMass > 0f);
+    }
+
+    private static void WriteCultureFieldMetricEntity(KernelEventLog log)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
+            Tick: 1,
+            WorldVersion: 1,
+            EntityId: 100,
+            SourceCodeId: 5,
+            KindId: 1,
+            SubtypeId: 2,
+            CultureId: 3,
+            PhysicalQ: 0,
+            PhysicalR: 0,
+            SemanticQ: 0,
+            SemanticR: 0,
+            SemanticS: 0))));
+    }
+
+    private static void WriteCultureFieldMetricCells(KernelEventLog log)
+    {
+        WriteCultureInfluenceChanged(log, worldVersion: 2, q: 0, currentShare: 80f, currentRaw: 60f);
+        WriteCultureInfluenceChanged(log, worldVersion: 3, q: 1, currentShare: 75f, currentRaw: 40f);
+    }
+
+    private static void WriteCultureInfluenceChanged(
+        KernelEventLog log,
+        long worldVersion,
+        int q,
+        float currentShare,
+        float currentRaw)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
+            Tick: 1,
+            WorldVersion: worldVersion,
+            Q: q,
+            R: 0,
+            SourceCodeId: 5,
+            PlaneCode: PlaneCodes.Physical,
+            CultureId: 3,
+            PreviousShare: 0f,
+            CurrentShare: currentShare,
+            PreviousRawInfluence: 0f,
+            CurrentRawInfluence: currentRaw,
+            CurrentTotalRawInfluence: currentRaw))));
+    }
+
+    private static void WriteCultureFieldMetricAction(KernelEventLog log)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new CellInfluenceChangedKernelEvent(
+            Tick: 2,
+            WorldVersion: 4,
+            Q: 1,
+            R: 0,
+            SourceCodeId: 5,
+            PlaneCode: PlaneCodes.Physical,
+            EntityId: 100,
+            ActionId: 11,
+            PreviousInfluence: 10f,
+            CurrentInfluence: 35f))));
+    }
+
     private static ProjectionSymbolCatalog CreateTestSymbols() =>
         new ProjectionSymbolCatalog()
             .RegisterSymbol(ProjectionSymbolKind.Kind, 1, "settlement", "Settlement")

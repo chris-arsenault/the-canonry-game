@@ -54,6 +54,7 @@ internal sealed class GameRenderTree
     private int _lastCultureOverviewTick = -1;
     private bool _tooltipPollingEnabled;
     private double _tooltipRefreshElapsedMs = TooltipRefreshIntervalMs;
+    private string _mapLensKey = MapArea.LensDefault;
 
     internal GameRenderTree(
         HexMapRenderer mapRenderer,
@@ -125,7 +126,7 @@ internal sealed class GameRenderTree
         _mapRender.Present(_mapRenderer, _map);
         PresentCultureOverview(currentTick);
         _browserRender.Present(_browser, _ui);
-        _entityMapRender.Present(_entityLayer, _ui, _browser);
+        _entityMapRender.Present(_entityLayer, _ui, _browser, EntityNamesVisibleForZoom());
         _cardLayerRender.Present(_cardLayer, _ui);
         _attributeGraphRender.Present(ActiveAttributeGraph(), _ui);
         _chronicleRender.Present(_chroniclePanel, _chronicle);
@@ -196,49 +197,55 @@ internal sealed class GameRenderTree
 
     public void SetMapLayerVisible(string layerKey, bool visible)
     {
-        switch (layerKey)
+        if (!ApplyMapLayerVisibility(layerKey, visible))
         {
-            case MapArea.LayerRoads:
-                if (_mapRenderer.ShowRoads == visible)
-                {
-                    return;
-                }
-
-                _mapRenderer.ShowRoads = visible;
-                _mapArea.SetLayerVisible(layerKey, visible);
-                _mapRender.InvalidateCells();
-                break;
-            case MapArea.LayerMapFeatures:
-                if (_mapRenderer.ShowMapFeatures == visible)
-                {
-                    return;
-                }
-
-                _mapRenderer.ShowMapFeatures = visible;
-                _mapArea.SetLayerVisible(layerKey, visible);
-                _mapRender.Invalidate();
-                break;
-            case MapArea.LayerInfluence:
-                if (_mapRenderer.ShowInfluence == visible)
-                {
-                    return;
-                }
-
-                _mapRenderer.ShowInfluence = visible;
-                _mapArea.SetLayerVisible(layerKey, visible);
-                _mapRender.InvalidateCells();
-                break;
-            case MapArea.LayerCultureInfluence:
-                if (_mapRenderer.ShowCultureInfluence == visible)
-                {
-                    return;
-                }
-
-                _mapRenderer.ShowCultureInfluence = visible;
-                _mapArea.SetLayerVisible(layerKey, visible);
-                _mapRender.InvalidateCells();
-                break;
+            return;
         }
+
+        _mapLensKey = MapArea.LensCustom;
+        _mapArea.SetLensKey(_mapLensKey);
+        _mapArea.SetLayerVisible(layerKey, visible);
+        _mapRender.InvalidateFrame();
+    }
+
+    private bool ApplyMapLayerVisibility(string layerKey, bool visible) => layerKey switch
+    {
+        MapArea.LayerRoads => SetLayerVisibility(_mapRenderer.ShowRoads, visible, value => _mapRenderer.ShowRoads = value),
+        MapArea.LayerRoutes => SetLayerVisibility(_mapRenderer.ShowRoutes, visible, value => _mapRenderer.ShowRoutes = value),
+        MapArea.LayerBorders => SetLayerVisibility(_mapRenderer.ShowBorders, visible, value => _mapRenderer.ShowBorders = value),
+        MapArea.LayerLabels => SetLayerVisibility(_mapRenderer.ShowLabels, visible, value => _mapRenderer.ShowLabels = value),
+        MapArea.LayerTerritory => SetLayerVisibility(_mapRenderer.ShowTerritory, visible, value => _mapRenderer.ShowTerritory = value),
+        MapArea.LayerInfluence => SetLayerVisibility(_mapRenderer.ShowInfluence, visible, value => _mapRenderer.ShowInfluence = value),
+        MapArea.LayerCultureInfluence => SetLayerVisibility(
+            _mapRenderer.ShowCultureInfluence,
+            visible,
+            value => _mapRenderer.ShowCultureInfluence = value),
+        _ => false,
+    };
+
+    private static bool SetLayerVisibility(bool current, bool visible, Action<bool> apply)
+    {
+        ArgumentNullException.ThrowIfNull(apply);
+        if (current == visible)
+        {
+            return false;
+        }
+
+        apply(visible);
+        return true;
+    }
+
+    public void SetMapLens(string lensKey)
+    {
+        _mapLensKey = lensKey switch
+        {
+            MapArea.LensCulture => MapArea.LensCulture,
+            MapArea.LensControl => MapArea.LensControl,
+            MapArea.LensInfluence => MapArea.LensInfluence,
+            _ => MapArea.LensDefault,
+        };
+        ApplyMapLens();
+        _mapRender.InvalidateFrame();
     }
 
     public void ToggleAttributeGraph()
@@ -293,13 +300,45 @@ internal sealed class GameRenderTree
         _tableauPanel.Initialize(_runtime?.Tableau);
         _tableauVisible = _tableauPanel.Visible;
         _mapArea.SetPlane(_mapRenderer.CurrentPlane);
-        _mapArea.SetLayerVisible(MapArea.LayerRoads, _mapRenderer.ShowRoads);
-        _mapArea.SetLayerVisible(MapArea.LayerMapFeatures, _mapRenderer.ShowMapFeatures);
-        _mapArea.SetLayerVisible(MapArea.LayerCultureInfluence, _mapRenderer.ShowCultureInfluence);
-        _mapArea.SetLayerVisible(MapArea.LayerInfluence, _mapRenderer.ShowInfluence);
+        ApplyMapLens();
         _mapArea.BindCultureOverview(_map, _ui, _symbols, _mapRenderer.CurrentPlane);
         _bottomBar.SetTableauVisible(_tableauVisible);
         _bottomBar.SetReadingsVisible(_attributeGraph is not null);
+    }
+
+    private void ApplyMapLens()
+    {
+        if (!string.Equals(_mapLensKey, MapArea.LensCustom, StringComparison.Ordinal))
+        {
+            var settings = MapLensSettings.For(_mapLensKey);
+            _mapRenderer.ShowRoads = settings.Roads;
+            _mapRenderer.ShowRoutes = settings.Routes;
+            _mapRenderer.ShowBorders = settings.Borders;
+            _mapRenderer.ShowLabels = settings.Labels;
+            _mapRenderer.ShowTerritory = settings.Territory;
+            _mapRenderer.ShowCultureInfluence = settings.Culture;
+            _mapRenderer.ShowInfluence = settings.Influence;
+        }
+
+        _mapArea.SetLensKey(_mapLensKey);
+        SyncLayerControls();
+    }
+
+    private void SyncLayerControls()
+    {
+        _mapArea.SetLayerVisible(MapArea.LayerRoads, _mapRenderer.ShowRoads);
+        _mapArea.SetLayerVisible(MapArea.LayerRoutes, _mapRenderer.ShowRoutes);
+        _mapArea.SetLayerVisible(MapArea.LayerBorders, _mapRenderer.ShowBorders);
+        _mapArea.SetLayerVisible(MapArea.LayerLabels, _mapRenderer.ShowLabels);
+        _mapArea.SetLayerVisible(MapArea.LayerTerritory, _mapRenderer.ShowTerritory);
+        _mapArea.SetLayerVisible(MapArea.LayerCultureInfluence, _mapRenderer.ShowCultureInfluence);
+        _mapArea.SetLayerVisible(MapArea.LayerInfluence, _mapRenderer.ShowInfluence);
+    }
+
+    private bool EntityNamesVisibleForZoom()
+    {
+        var camera = _worldCanvas.GetViewport()?.GetCamera2D();
+        return camera is not null && MathF.Max(camera.Zoom.X, camera.Zoom.Y) >= 3.1f;
     }
 
     private void ResetPresenters()
@@ -381,13 +420,28 @@ internal sealed class GameRenderTree
 
         public void Invalidate() => Reset();
 
-        public void InvalidateCells() => _lastCells = null;
+        public void InvalidateFrame() => _lastFrame = null;
 
         public void Present(HexMapRenderer renderer, HexMapProjection map)
         {
             var state = MapRenderState.From(renderer, map);
-            var cellState = state with { FrameVersion = 0 };
-            var frameState = state with { CellVersion = 0 };
+            var cellState = state with
+            {
+                FrameVersion = 0,
+                OwnerColorVersion = 0,
+                CultureOverlayVersion = 0,
+                InfluenceOverlayVersion = 0,
+                RoadNetworkVersion = 0,
+                RouteNetworkVersion = 0,
+                ShowTerritory = false,
+                ShowCultureInfluence = false,
+                ShowInfluence = false,
+                ShowRoads = false,
+                ShowRoutes = false,
+                ShowBorders = false,
+                ShowLabels = false,
+            };
+            var frameState = FrameState(state);
             if (_lastCells is null || CellLayoutChanged(_lastCells.Value, cellState))
             {
                 renderer.RefreshCells();
@@ -414,8 +468,48 @@ internal sealed class GameRenderTree
             previous.ShowCultureInfluence != current.ShowCultureInfluence ||
             previous.ShowInfluence != current.ShowInfluence ||
             previous.ShowRoads != current.ShowRoads ||
-            previous.ShowMapFeatures != current.ShowMapFeatures ||
+            previous.ShowRoutes != current.ShowRoutes ||
+            previous.ShowBorders != current.ShowBorders ||
+            previous.ShowLabels != current.ShowLabels ||
             previous.HexSize != current.HexSize;
+
+        private static MapRenderState FrameState(MapRenderState state)
+        {
+            return state with
+            {
+                CellVersion = 0,
+                FrameVersion = ActiveFrameVersion(state),
+                OwnerColorVersion = ActiveOwnerColorVersion(state),
+                CultureOverlayVersion = ActiveLayerVersion(state.ShowCultureInfluence, state.CultureOverlayVersion),
+                InfluenceOverlayVersion = ActiveLayerVersion(state.ShowInfluence, state.InfluenceOverlayVersion),
+                RoadNetworkVersion = ActiveLayerVersion(state.ShowRoads, state.RoadNetworkVersion),
+                RouteNetworkVersion = ActiveLayerVersion(state.ShowRoutes, state.RouteNetworkVersion),
+            };
+        }
+
+        private static long ActiveFrameVersion(MapRenderState state) =>
+            FrameGeometryVisible(state) ? state.FrameVersion : 0;
+
+        private static long ActiveOwnerColorVersion(MapRenderState state) =>
+            state.ShowTerritory || state.ShowInfluence ? state.OwnerColorVersion : 0;
+
+        private static long ActiveLayerVersion(bool visible, long version) =>
+            visible ? version : 0;
+
+        private static bool FrameGeometryVisible(MapRenderState state) =>
+            AreaLayerVisible(state) ||
+            NetworkLayerVisible(state) ||
+            AnnotationLayerVisible(state) ||
+            state.Plane == PlaneMode.Semantic;
+
+        private static bool AreaLayerVisible(MapRenderState state) =>
+            state.ShowTerritory || state.ShowCultureInfluence || state.ShowInfluence;
+
+        private static bool NetworkLayerVisible(MapRenderState state) =>
+            state.ShowRoads || state.ShowRoutes;
+
+        private static bool AnnotationLayerVisible(MapRenderState state) =>
+            state.ShowBorders || state.ShowLabels;
     }
 
     private sealed class EntityMapRender
@@ -426,12 +520,13 @@ internal sealed class GameRenderTree
 
         public void Invalidate() => Reset();
 
-        public void Present(EntityLayer layer, UiProjectionState ui, EntityBrowser browser)
+        public void Present(EntityLayer layer, UiProjectionState ui, EntityBrowser browser, bool showNamesForZoom)
         {
+            var zoomNamesChanged = layer.SetShowEntityNamesForZoom(showNamesForZoom);
             var state = new EntityMapState(
                 ui.EntityMapVersion,
                 layer.CurrentPlane,
-                layer.ShowEntityNames,
+                layer.EffectiveShowEntityNames,
                 ui.CurrentTick / 20,
                 browser.FilterVersion,
                 browser.FilterMapToBrowser,
@@ -446,7 +541,8 @@ internal sealed class GameRenderTree
                 _lastState.Value.Plane != state.Plane ||
                 _lastState.Value.ShowNames != state.ShowNames ||
                 _lastState.Value.ActionPulseBucket != state.ActionPulseBucket ||
-                filterChanged;
+                filterChanged ||
+                zoomNamesChanged;
             _lastState = state;
             if (shouldFullRefresh)
             {
@@ -624,27 +720,85 @@ internal sealed class GameRenderTree
     private readonly record struct MapRenderState(
         long CellVersion,
         long FrameVersion,
+        long OwnerColorVersion,
+        long CultureOverlayVersion,
+        long InfluenceOverlayVersion,
+        long RoadNetworkVersion,
+        long RouteNetworkVersion,
         PlaneMode Plane,
         bool ShowTerritory,
         bool ShowCultureInfluence,
         bool ShowInfluence,
         bool ShowRoads,
-        bool ShowMapFeatures,
-        bool ShowRegionBorders,
+        bool ShowRoutes,
+        bool ShowBorders,
+        bool ShowLabels,
         float HexSize)
     {
         public static MapRenderState From(HexMapRenderer renderer, HexMapProjection map) =>
             new(
                 map.CellVersion,
                 map.FrameVersion,
+                map.OwnerColorVersion,
+                map.CultureOverlayVersion,
+                map.InfluenceOverlayVersion,
+                map.RoadNetworkVersion,
+                map.RouteNetworkVersion,
                 renderer.CurrentPlane,
                 renderer.ShowTerritory,
                 renderer.ShowCultureInfluence,
                 renderer.ShowInfluence,
                 renderer.ShowRoads,
-                renderer.ShowMapFeatures,
-                renderer.ShowRegionBorders,
+                renderer.ShowRoutes,
+                renderer.ShowBorders,
+                renderer.ShowLabels,
                 renderer.HexSize);
+    }
+
+    private readonly record struct MapLensSettings(
+        bool Roads,
+        bool Routes,
+        bool Borders,
+        bool Labels,
+        bool Territory,
+        bool Culture,
+        bool Influence)
+    {
+        public static MapLensSettings For(string lensKey) => lensKey switch
+        {
+            MapArea.LensCulture => new(
+                Roads: false,
+                Routes: false,
+                Borders: true,
+                Labels: false,
+                Territory: false,
+                Culture: true,
+                Influence: false),
+            MapArea.LensControl => new(
+                Roads: true,
+                Routes: true,
+                Borders: true,
+                Labels: true,
+                Territory: true,
+                Culture: false,
+                Influence: false),
+            MapArea.LensInfluence => new(
+                Roads: false,
+                Routes: false,
+                Borders: false,
+                Labels: false,
+                Territory: false,
+                Culture: false,
+                Influence: true),
+            _ => new(
+                Roads: true,
+                Routes: true,
+                Borders: true,
+                Labels: false,
+                Territory: false,
+                Culture: false,
+                Influence: false),
+        };
     }
 
     private readonly record struct EntityMapState(

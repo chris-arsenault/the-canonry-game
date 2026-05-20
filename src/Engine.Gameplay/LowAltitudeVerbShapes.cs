@@ -6,6 +6,7 @@ internal sealed class LowAltitudeVerbShape
 {
     public required LowAltitudeVerbOperation Operation { get; init; }
     public required int OperationCode { get; init; }
+    public int InfluenceTargetingCode { get; init; }
     public required IReadOnlySet<LowAltitudeVerbTargetMode> TargetModes { get; init; }
     public bool PhysicalAllowed { get; init; }
     public bool SemanticAllowed { get; init; }
@@ -56,6 +57,7 @@ internal sealed class LowAltitudeVerbShape
     {
         Operation = LowAltitudeVerbOperation.GrowInfluence,
         OperationCode = ProgramOpcodeCodes.AddOwnedCellScalar,
+        InfluenceTargetingCode = LowAltitudeInfluenceTargetingCodes.Spread,
         TargetModes = new HashSet<LowAltitudeVerbTargetMode>
         {
             LowAltitudeVerbTargetMode.OwnInfluence,
@@ -71,6 +73,7 @@ internal sealed class LowAltitudeVerbShape
     {
         Operation = LowAltitudeVerbOperation.ConsolidateInfluence,
         OperationCode = ProgramOpcodeCodes.AddOwnedCellScalar,
+        InfluenceTargetingCode = LowAltitudeInfluenceTargetingCodes.Reinforce,
         TargetModes = new HashSet<LowAltitudeVerbTargetMode>
         {
             LowAltitudeVerbTargetMode.OwnInfluence,
@@ -85,6 +88,7 @@ internal sealed class LowAltitudeVerbShape
     {
         Operation = LowAltitudeVerbOperation.ReduceInfluence,
         OperationCode = ProgramOpcodeCodes.SubtractOtherCellScalar,
+        InfluenceTargetingCode = LowAltitudeInfluenceTargetingCodes.Contest,
         TargetModes = new HashSet<LowAltitudeVerbTargetMode>
         {
             LowAltitudeVerbTargetMode.ForeignInfluence,
@@ -99,6 +103,7 @@ internal sealed class LowAltitudeVerbShape
     {
         Operation = LowAltitudeVerbOperation.ExpandCoverage,
         OperationCode = ProgramOpcodeCodes.TryClaimCell,
+        InfluenceTargetingCode = LowAltitudeInfluenceTargetingCodes.Spread,
         TargetModes = new HashSet<LowAltitudeVerbTargetMode>
         {
             LowAltitudeVerbTargetMode.OwnInfluence,
@@ -118,6 +123,7 @@ internal sealed class LowAltitudeVerbShape
     {
         Operation = LowAltitudeVerbOperation.MoveHeadquarters,
         OperationCode = ProgramOpcodeCodes.TryRelocateEntity,
+        InfluenceTargetingCode = LowAltitudeInfluenceTargetingCodes.Reinforce,
         TargetModes = new HashSet<LowAltitudeVerbTargetMode>
         {
             LowAltitudeVerbTargetMode.OwnInfluence,

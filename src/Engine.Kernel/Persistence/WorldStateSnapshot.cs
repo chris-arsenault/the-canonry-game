@@ -250,6 +250,7 @@ internal sealed partial class WorldState
             if (value > 0f &&
                 TryResolveCoordinateKey(coordinateKey, planeCode == PlaneCodes.Semantic ? 4 : 0, out var q, out var r))
             {
+                var raw = PositiveCultureInfluenceRaw(cultureId, planeCode, coordinateKey);
                 Write(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
                     tick,
                     version,
@@ -259,7 +260,10 @@ internal sealed partial class WorldState
                     planeCode,
                     cultureId,
                     0f,
-                    value)),
+                    value,
+                    0f,
+                    raw,
+                    CultureRawTotalAt(planeCode, coordinateKey))),
                     context);
             }
         });

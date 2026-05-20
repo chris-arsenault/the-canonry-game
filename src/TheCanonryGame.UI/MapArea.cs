@@ -10,26 +10,42 @@ namespace TheCanonryGame.UI;
 public partial class MapArea : Control
 {
     public const string LayerRoads = "roads";
-    public const string LayerMapFeatures = "map_features";
+    public const string LayerRoutes = "routes";
+    public const string LayerBorders = "borders";
+    public const string LayerLabels = "labels";
+    public const string LayerTerritory = "territory";
     public const string LayerInfluence = "influence";
     public const string LayerCultureInfluence = "culture_influence";
+    public const string LensDefault = "default";
+    public const string LensCulture = "culture";
+    public const string LensControl = "control";
+    public const string LensInfluence = "influence";
+    public const string LensCustom = "custom";
 
+    private readonly Dictionary<string, Button> _lensButtons = [];
     private Button? _planeToggleButton;
     private Button? _influenceToggleButton;
     private PanelContainer? _layersPanel;
     private CheckBox? _roadsLayerCheckBox;
-    private CheckBox? _featuresLayerCheckBox;
+    private CheckBox? _routesLayerCheckBox;
+    private CheckBox? _bordersLayerCheckBox;
+    private CheckBox? _labelsLayerCheckBox;
+    private CheckBox? _territoryLayerCheckBox;
     private CheckBox? _cultureLayerCheckBox;
     private CheckBox? _influenceLayerCheckBox;
     private LegendPanel? _legendPanel;
     private OverlayLayoutState? _lastOverlayLayout;
     private bool _updatingLayerControls;
+    private bool _updatingLensControls;
 
     [Signal]
     public delegate void PlaneToggleRequestedEventHandler();
 
     [Signal]
     public delegate void MapLayerVisibilityChangedEventHandler(string layerKey, bool visible);
+
+    [Signal]
+    public delegate void MapLensRequestedEventHandler(string lensKey);
 
     public override void _Ready()
     {
@@ -78,7 +94,10 @@ public partial class MapArea : Control
         var checkbox = layerKey switch
         {
             LayerRoads => _roadsLayerCheckBox,
-            LayerMapFeatures => _featuresLayerCheckBox,
+            LayerRoutes => _routesLayerCheckBox,
+            LayerBorders => _bordersLayerCheckBox,
+            LayerLabels => _labelsLayerCheckBox,
+            LayerTerritory => _territoryLayerCheckBox,
             LayerCultureInfluence => _cultureLayerCheckBox,
             LayerInfluence => _influenceLayerCheckBox,
             _ => null,
@@ -94,6 +113,17 @@ public partial class MapArea : Control
         _updatingLayerControls = false;
     }
 
+    public void SetLensKey(string lensKey)
+    {
+        _updatingLensControls = true;
+        foreach (var (key, button) in _lensButtons)
+        {
+            button.ButtonPressed = string.Equals(key, lensKey, StringComparison.Ordinal);
+        }
+
+        _updatingLensControls = false;
+    }
+
     private void AddLayerPanel()
     {
         _layersPanel = new PanelContainer
@@ -106,6 +136,36 @@ public partial class MapArea : Control
         box.AddThemeConstantOverride("separation", UiTokens.Space1);
         _layersPanel.AddChild(box);
 
+        var lensLabel = new Label
+        {
+            Text = "Map Lens",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        lensLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
+        lensLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        lensLabel.AddThemeColorOverride("font_color", UiTokens.Whisper);
+        box.AddChild(lensLabel);
+
+        var lensGrid = new GridContainer
+        {
+            Columns = 2,
+        };
+        lensGrid.AddThemeConstantOverride("h_separation", UiTokens.Space1);
+        lensGrid.AddThemeConstantOverride("v_separation", UiTokens.Space1);
+        box.AddChild(lensGrid);
+        AddLensButton(lensGrid, "Default", LensDefault);
+        AddLensButton(lensGrid, "Culture", LensCulture);
+        AddLensButton(lensGrid, "Control", LensControl);
+        AddLensButton(lensGrid, "Influence", LensInfluence);
+
+        box.AddChild(new ColorRect
+        {
+            Color = UiTokens.Hairline,
+            CustomMinimumSize = new Vector2(0, 1),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            MouseFilter = MouseFilterEnum.Ignore,
+        });
+
         var label = new Label
         {
             Text = "Map Layers",
@@ -117,9 +177,12 @@ public partial class MapArea : Control
         box.AddChild(label);
 
         _roadsLayerCheckBox = AddLayerCheckBox(box, "Roads", LayerRoads);
-        _featuresLayerCheckBox = AddLayerCheckBox(box, "Features", LayerMapFeatures);
+        _routesLayerCheckBox = AddLayerCheckBox(box, "Routes", LayerRoutes);
+        _bordersLayerCheckBox = AddLayerCheckBox(box, "Borders", LayerBorders);
+        _labelsLayerCheckBox = AddLayerCheckBox(box, "Labels", LayerLabels);
+        _territoryLayerCheckBox = AddLayerCheckBox(box, "Control", LayerTerritory);
         _cultureLayerCheckBox = AddLayerCheckBox(box, "Culture", LayerCultureInfluence);
-        _influenceLayerCheckBox = AddLayerCheckBox(box, "Entities", LayerInfluence);
+        _influenceLayerCheckBox = AddLayerCheckBox(box, "Influence", LayerInfluence);
         AddChild(_layersPanel);
     }
 
@@ -135,6 +198,21 @@ public partial class MapArea : Control
         }
     }
 
+    private void AddLensButton(GridContainer grid, string text, string lensKey)
+    {
+        var button = new Button
+        {
+            Text = text,
+            ToggleMode = true,
+            CustomMinimumSize = new Vector2(70, 26),
+            TooltipText = $"{text} lens",
+        };
+        button.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        button.Pressed += () => OnLensPressed(lensKey);
+        _lensButtons[lensKey] = button;
+        grid.AddChild(button);
+    }
+
     private CheckBox AddLayerCheckBox(VBoxContainer box, string text, string layerKey)
     {
         var checkbox = new CheckBox
@@ -146,6 +224,16 @@ public partial class MapArea : Control
         checkbox.Toggled += visible => OnLayerToggled(layerKey, visible);
         box.AddChild(checkbox);
         return checkbox;
+    }
+
+    private void OnLensPressed(string lensKey)
+    {
+        if (_updatingLensControls)
+        {
+            return;
+        }
+
+        EmitSignal(SignalName.MapLensRequested, lensKey);
     }
 
     private void OnLayerToggled(string layerKey, bool visible)

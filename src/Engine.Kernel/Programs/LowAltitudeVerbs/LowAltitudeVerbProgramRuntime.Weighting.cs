@@ -3,6 +3,8 @@ namespace Engine.Kernel;
 internal sealed partial class LowAltitudeVerbProgramRuntime
 {
     private const int AffordanceOverlapCap = 6;
+    private const float CultureSlotAgencyEvidenceThreshold = 2.4f;
+    private const float CultureSlotForeignReductionPositiveAgencyWeight = 7f / 20f;
 
     private static readonly float[] AffordanceDiminishingFactors =
     [
@@ -35,10 +37,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         };
     }
 
-    private EffectiveVerbScalars EffectiveScalars(WorldState world, int entityId, int rule)
+    private EffectiveVerbScalars EffectiveScalars(Simulation simulation, int entityId, int rule)
     {
-        var totals = TraitTotals(world, entityId, rule);
-        var weight = Data.Weight(rule) + totals.Weight;
+        var totals = TraitTotals(simulation.World, entityId, rule);
+        var weight = (Data.Weight(rule) + totals.Weight) *
+            CultureSlotAgencyMultiplier(simulation, entityId, rule);
         var globalBonus = Tuning.LowAltitudeVerbs.OpportunityBonus;
         var verbOverride = Data.OpportunityBonusOverride(rule);
         var opportunityBonus = (verbOverride > 0f ? verbOverride : globalBonus) + totals.OpportunityBonus;
@@ -48,6 +51,72 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             weight < 0.01f ? 0.01f : weight,
             opportunityBonus < 0f ? 0f : opportunityBonus,
             fitnessWeight < 0f ? 0f : fitnessWeight);
+    }
+
+    private float CultureSlotAgencyMultiplier(Simulation simulation, int entityId, int rule)
+    {
+        var operationCode = Data.OperationCode(rule);
+        var hasTravelInfluence = operationCode == ProgramOpcodeCodes.MoveActor &&
+            Data.InfluenceDelta(rule) > 0f;
+        if (!hasTravelInfluence &&
+            !OperationBuildsOwnedInfluence(operationCode) &&
+            operationCode != ProgramOpcodeCodes.SubtractOtherCellScalar &&
+            operationCode != ProgramOpcodeCodes.AdjustRelationshipStrength)
+        {
+            return 1f;
+        }
+
+        var cultureId = simulation.World.EntityCultureId(entityId);
+        if (cultureId <= 0)
+        {
+            return 1f;
+        }
+
+        simulation.CultureSlots.OccupancyEvidenceByPolarity(
+            entityId,
+            cultureId,
+            CultureSlotAgencyEvidenceThreshold,
+            out var positive,
+            out var neutral,
+            out var negative);
+
+        if (OperationBuildsOwnedInfluence(operationCode) || hasTravelInfluence)
+        {
+            return 1f + (0.85f * positive) + (0.45f * neutral) + (0.15f * negative);
+        }
+
+        if (operationCode == ProgramOpcodeCodes.SubtractOtherCellScalar)
+        {
+            return 1f + (CultureSlotForeignReductionPositiveAgencyWeight * positive) + (0.2f * neutral) + (0.65f * negative);
+        }
+
+        var best = global::System.MathF.Max(positive, global::System.MathF.Max(neutral, negative));
+        return 1f + (0.25f * best);
+    }
+
+    private float CultureSlotInfluenceEffectivenessMultiplier(
+        Simulation simulation,
+        int entityId,
+        int rule,
+        bool reducingForeign)
+    {
+        var cultureId = simulation.World.EntityCultureId(entityId);
+        if (cultureId <= 0)
+        {
+            return 1f;
+        }
+
+        simulation.CultureSlots.OccupancyEvidenceByPolarity(
+            entityId,
+            cultureId,
+            CultureSlotAgencyEvidenceThreshold,
+            out var positive,
+            out var neutral,
+            out var negative);
+
+        return reducingForeign
+            ? 1f + (0.15f * positive) + (0.1f * neutral) + (0.25f * negative)
+            : 1f + (0.25f * positive) + (0.15f * neutral) + (0.05f * negative);
     }
 
     private LowAltitudeDecisionModifierTotals TraitTotals(WorldState world, int entityId, int rule)
@@ -82,6 +151,16 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var factor = Tuning.LowAltitudeVerbs.CellSaturationFactor;
         return 1f / (1f + (occupancyOneRing * factor));
     }
+
+    private float InfluenceTargetSaturationDivisor(
+        Simulation simulation,
+        int targetingCode,
+        int planeCode,
+        int q,
+        int r) =>
+        targetingCode == LowAltitudeInfluenceTargetingCodes.Reinforce
+            ? 1f
+            : CellSaturationDivisor(simulation, planeCode, q, r);
 
     private float ComputeRecencyMultiplier(int entityId, int tick, long targetKey)
     {

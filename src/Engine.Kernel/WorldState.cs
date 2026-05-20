@@ -22,6 +22,8 @@ internal sealed partial class WorldState
     private int[] _entitySubtypeId = [];
     private int[] _entityCultureId = [];
     private float[] _entityCultureInfluenceMultiplierDeltas = [];
+    private float[] _entityPhysicalInfluenceProduction = [];
+    private float[] _entitySemanticInfluenceProduction = [];
     private float[] _cultureInfluenceMultiplierDeltas = [];
     private int[] _entityPhysicalQ = [];
     private int[] _entityPhysicalR = [];
@@ -126,6 +128,8 @@ internal sealed partial class WorldState
         _entitySubtypeId = new int[options.EntityCapacity + 1];
         _entityCultureId = new int[options.EntityCapacity + 1];
         _entityCultureInfluenceMultiplierDeltas = new float[options.EntityCapacity + 1];
+        _entityPhysicalInfluenceProduction = new float[options.EntityCapacity + 1];
+        _entitySemanticInfluenceProduction = new float[options.EntityCapacity + 1];
         _cultureInfluenceMultiplierDeltas = new float[options.CultureIdCapacity + 1];
         _entityPhysicalQ = new int[options.EntityCapacity + 1];
         _entityPhysicalR = new int[options.EntityCapacity + 1];

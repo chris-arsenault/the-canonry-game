@@ -239,6 +239,7 @@ public sealed class LowAltitudePhysicsProgramTests
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         var favoredInfluencerId = simulation.CreateEntity(favoredKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
         var otherInfluencerId = simulation.CreateEntity(otherKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
+        simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, 30f, tick: 0);
         simulation.SetCellInfluence(favoredInfluencerId, PlaneCodes.Physical, 1, 0, 100f, tick: 0);
         simulation.SetCellInfluence(otherInfluencerId, PlaneCodes.Physical, -1, 0, 100f, tick: 0);
         RegisterForeignInfluenceAffordance(simulation, actorKindId, favoredKindId);
@@ -288,6 +289,7 @@ public sealed class LowAltitudePhysicsProgramTests
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         var hostileInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
         var unrelatedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
+        simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, 30f, tick: 0);
         simulation.SetCellInfluence(hostileInfluencerId, PlaneCodes.Physical, 1, 0, 20f, tick: 0);
         simulation.SetCellInfluence(unrelatedInfluencerId, PlaneCodes.Physical, -1, 0, 40f, tick: 0);
         _ = simulation.CreateRelationship(
@@ -321,6 +323,7 @@ public sealed class LowAltitudePhysicsProgramTests
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         var alliedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
         var overextendedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
+        simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, 30f, tick: 0);
         simulation.SetCellInfluence(alliedInfluencerId, PlaneCodes.Physical, 1, 0, 100f, tick: 0);
         simulation.SetCellInfluence(overextendedInfluencerId, PlaneCodes.Physical, -1, 0, 60f, tick: 0);
         _ = simulation.CreateRelationship(
@@ -354,6 +357,7 @@ public sealed class LowAltitudePhysicsProgramTests
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         var mixedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
         var overextendedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
+        simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, 30f, tick: 0);
         simulation.SetCellInfluence(mixedInfluencerId, PlaneCodes.Physical, 1, 0, 100f, tick: 0);
         simulation.SetCellInfluence(overextendedInfluencerId, PlaneCodes.Physical, -1, 0, 60f, tick: 0);
         _ = simulation.CreateRelationship(

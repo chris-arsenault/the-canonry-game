@@ -33,17 +33,19 @@ public partial class HexMapRenderer : Node2D
 
     [Export] public float HexSize { get; set; } = 30f;
 
-    [Export] public bool ShowTerritory { get; set; } = true;
+    [Export] public bool ShowTerritory { get; set; }
 
-    [Export] public bool ShowCultureInfluence { get; set; } = true;
+    [Export] public bool ShowCultureInfluence { get; set; }
 
-    [Export] public bool ShowInfluence { get; set; } = true;
+    [Export] public bool ShowInfluence { get; set; }
 
     [Export] public bool ShowRoads { get; set; } = true;
 
-    [Export] public bool ShowMapFeatures { get; set; } = true;
+    [Export] public bool ShowRoutes { get; set; } = true;
 
-    [Export] public bool ShowRegionBorders { get; set; } = true;
+    [Export] public bool ShowBorders { get; set; } = true;
+
+    [Export] public bool ShowLabels { get; set; }
 
     public PlaneMode CurrentPlane { get; set; } = PlaneMode.Physical;
 
@@ -92,13 +94,12 @@ public partial class HexMapRenderer : Node2D
             return;
         }
 
-        var ownerColors = ResolveOwnerColors();
         var planeCode = PlaneCodeForCurrentPlane();
         foreach (var hexId in dirtyHexIds)
         {
             if (_map.TryGetHex(planeCode, hexId, out var cell))
             {
-                UpdateCell(cell, ownerColors);
+                UpdateCell(cell);
                 continue;
             }
 
@@ -109,7 +110,19 @@ public partial class HexMapRenderer : Node2D
     public void RefreshFrame()
     {
         _backdropLayer?.Bind(_map, CurrentPlane, HexSize);
-        _frameLayer?.Bind(_map, _symbols, CurrentPlane, HexSize, ShowRegionBorders && ShowMapFeatures);
+        _frameLayer?.Bind(
+            _map,
+            _symbols,
+            CurrentPlane,
+            HexSize,
+            ShowBorders,
+            ShowLabels,
+            ShowTerritory,
+            ShowCultureInfluence,
+            ShowInfluence,
+            ShowRoads,
+            ShowRoutes,
+            ResolveOwnerColors());
     }
 
     public Vector2 GetHexCenter(HexCoord coord) => HexToPixel(coord);
@@ -135,13 +148,12 @@ public partial class HexMapRenderer : Node2D
             return;
         }
 
-        var ownerColors = ResolveOwnerColors();
         var currentIds = new HashSet<int>();
         var index = 0;
         foreach (var cell in OrderedHexes(PlaneCodeForCurrentPlane()))
         {
             currentIds.Add(cell.HexId);
-            var node = UpdateCell(cell, ownerColors);
+            var node = UpdateCell(cell);
             if (node.GetParent() == _cellLayer && _cellLayer.GetChild(index) != node)
             {
                 _cellLayer.MoveChild(node, index);
@@ -156,9 +168,7 @@ public partial class HexMapRenderer : Node2D
         }
     }
 
-    private HexCell UpdateCell(
-        HexProjection cell,
-        IReadOnlyDictionary<int, Color> ownerColors)
+    private HexCell UpdateCell(HexProjection cell)
     {
         if (!_cellNodes.TryGetValue(cell.HexId, out var node))
         {
@@ -175,7 +185,7 @@ public partial class HexMapRenderer : Node2D
             _cellPositions[cell.HexId] = position;
         }
 
-        node.Bind(BuildCellRenderItem(cell, ownerColors));
+        node.Bind(BuildCellRenderItem(cell));
         return node;
     }
 
@@ -202,102 +212,19 @@ public partial class HexMapRenderer : Node2D
         _cellPositions.Clear();
     }
 
-    private HexCellRenderItem BuildCellRenderItem(
-        HexProjection cell,
-        IReadOnlyDictionary<int, Color> ownerColors)
+    private HexCellRenderItem BuildCellRenderItem(HexProjection cell)
     {
         var terrainStableName = ResolveStableName(
             ProjectionSymbolKind.Terrain,
             cell.TerrainId,
             $"Terrain {cell.TerrainId}");
-        var ownerColor = cell.OwnerEntityId > 0 && ownerColors.TryGetValue(cell.OwnerEntityId, out var resolvedOwner)
-            ? resolvedOwner
-            : (Color?)null;
-        var influences = ShowInfluence
-            ? BuildInfluenceRenderItems(cell, ownerColors)
-            : [];
-        var cultureInfluences = ShowCultureInfluence
-            ? BuildCultureInfluenceRenderItems(cell, _symbols)
-            : [];
-        var travelStructureStableName = cell.TravelStructureId > 0
-            ? ResolveStableName(
-                ProjectionSymbolKind.TravelStructure,
-                cell.TravelStructureId,
-                $"travel-structure-{cell.TravelStructureId}")
-            : null;
 
         return new HexCellRenderItem(
             cell,
             CurrentPlane,
             HexSize,
             terrainStableName,
-            travelStructureStableName,
-            UiTokens.TerrainColor(terrainStableName),
-            ownerColor,
-            influences,
-            cultureInfluences,
-            ShowTerritory,
-            ShowCultureInfluence,
-            ShowInfluence,
-            ShowRoads,
-            ShowMapFeatures);
-    }
-
-    private static HexInfluenceRenderItem[] BuildInfluenceRenderItems(
-        HexProjection cell,
-        IReadOnlyDictionary<int, Color> ownerColors)
-    {
-        var items = new List<HexInfluenceRenderItem>(4);
-        foreach (var influence in cell.Influences)
-        {
-            if (influence.Value <= 0f)
-            {
-                continue;
-            }
-
-            if (!ownerColors.TryGetValue(influence.EntityId, out var color))
-            {
-                continue;
-            }
-
-            items.Add(new HexInfluenceRenderItem(influence.EntityId, influence.Value, color));
-            if (items.Count == 4)
-            {
-                break;
-            }
-        }
-
-        return [.. items];
-    }
-
-    private static HexCultureInfluenceRenderItem[] BuildCultureInfluenceRenderItems(
-        HexProjection cell,
-        IProjectionSymbolCatalog? symbols)
-    {
-        var items = new List<HexCultureInfluenceRenderItem>(4);
-        foreach (var influence in cell.CultureInfluences)
-        {
-            if (influence.Share <= 0f)
-            {
-                continue;
-            }
-
-            var cultureStableName = ProjectionDisplay.StableName(
-                symbols,
-                ProjectionSymbolKind.Culture,
-                influence.CultureId,
-                influence.CultureId == 0 ? "none" : $"culture-{influence.CultureId}");
-            items.Add(new HexCultureInfluenceRenderItem(
-                influence.CultureId,
-                influence.Share,
-                UiTokens.CultureColor(cultureStableName)));
-            if (items.Count == 4)
-            {
-                break;
-            }
-        }
-
-        return [.. items];
+            UiTokens.TerrainColor(terrainStableName));
     }
 
     private Dictionary<int, Color> ResolveOwnerColors()

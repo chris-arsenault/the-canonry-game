@@ -276,6 +276,7 @@ public partial class Main : Node2D
         {
             _mapArea.PlaneToggleRequested += OnTogglePlanePressed;
             _mapArea.MapLayerVisibilityChanged += OnMapLayerVisibilityChanged;
+            _mapArea.MapLensRequested += OnMapLensRequested;
         }
 
         if (_entityLayer is not null)
@@ -319,6 +320,9 @@ public partial class Main : Node2D
 
     private void OnMapLayerVisibilityChanged(string layerKey, bool visible) =>
         _renderTree?.SetMapLayerVisible(layerKey, visible);
+
+    private void OnMapLensRequested(string lensKey) =>
+        _renderTree?.SetMapLens(lensKey);
 
     private void OnBrowserEntityFilterChanged() => _renderTree?.InvalidateEntityMap();
 

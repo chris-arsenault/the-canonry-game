@@ -371,7 +371,13 @@ public readonly record struct CellCultureInfluenceChangedKernelEvent(
     [KernelEventFloatSlot(0, "previous_share", KernelEventSemanticKind.RawScalar)]
     float PreviousShare,
     [KernelEventFloatSlot(1, "current_share", KernelEventSemanticKind.RawScalar)]
-    float CurrentShare);
+    float CurrentShare,
+    [KernelEventFloatSlot(2, "previous_raw_influence", KernelEventSemanticKind.RawScalar)]
+    float PreviousRawInfluence = 0f,
+    [KernelEventFloatSlot(3, "current_raw_influence", KernelEventSemanticKind.RawScalar)]
+    float CurrentRawInfluence = 0f,
+    [KernelEventFloatSlot(4, "current_total_raw_influence", KernelEventSemanticKind.RawScalar)]
+    float CurrentTotalRawInfluence = 0f);
 
 [KernelEventLayout(KernelEventType.CultureSlotOccupancyChanged, schemaMinor: 0)]
 public readonly record struct CultureSlotOccupancyChangedKernelEvent(

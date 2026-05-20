@@ -96,31 +96,28 @@ public partial class Entity : Node2D
 
     public override void _Draw()
     {
-        var cultureRadius = _glyphSize * (_isHighlighted ? 2.8f : 2.35f);
-        DrawCircle(Vector2.Zero, cultureRadius, new Color(_cultureAccent, _isHighlighted ? 0.38f : 0.24f));
-        DrawArc(Vector2.Zero, cultureRadius, 0f, Mathf.Tau, 72, new Color(_cultureAccent, 0.82f), 2.2f, antialiased: true);
+        var tokenRadius = _glyphSize * (_isHighlighted ? 2.45f : 2.02f);
+        DrawCircle(Vector2.Zero, tokenRadius, new Color(UiTokens.Ink.R, UiTokens.Ink.G, UiTokens.Ink.B, _isHighlighted ? 0.56f : 0.34f));
+        DrawArc(Vector2.Zero, tokenRadius, 0f, Mathf.Tau, 64, new Color(_cultureAccent, _isHighlighted ? 0.82f : 0.58f), 1.35f, antialiased: true);
 
         if (_cultureSlotCount > 0)
         {
             var slotColor = SlotPolarityColor(_cultureSlotPolarityCode);
-            var slotRadius = cultureRadius + (_glyphSize * 0.45f);
-            var sweep = Mathf.Min(1f, 0.28f + (_cultureSlotCount * 0.14f)) * Mathf.Tau;
-            DrawArc(Vector2.Zero, slotRadius, -Mathf.Pi / 2f, (-Mathf.Pi / 2f) + sweep, 72, new Color(slotColor, 0.96f), 3.1f, antialiased: true);
-            DrawSlotPips(slotRadius, slotColor);
+            DrawSlotPips(tokenRadius + (_glyphSize * 0.18f), slotColor);
         }
 
         if (_actionIntensity > 0f)
         {
-            var actionRadius = cultureRadius + (_glyphSize * 0.95f);
-            var alpha = 0.18f + (_actionIntensity * 0.46f);
-            DrawArc(Vector2.Zero, actionRadius, -Mathf.Pi / 2f, Mathf.Tau * 0.82f, 72, new Color(_cultureAccent, alpha), 3.2f, antialiased: true);
+            var actionRadius = tokenRadius + (_glyphSize * 0.32f);
+            var alpha = 0.16f + (_actionIntensity * 0.34f);
+            DrawArc(Vector2.Zero, actionRadius, -Mathf.Pi / 2f, Mathf.Tau * 0.72f, 56, new Color(UiTokens.Gilt, alpha), 1.8f, antialiased: true);
         }
 
         if (_isHighlighted)
         {
-            var radius = _glyphSize * 3.25f;
-            DrawCircle(Vector2.Zero, radius + 2f, new Color(UiTokens.Ink.R, UiTokens.Ink.G, UiTokens.Ink.B, 0.7f));
-            DrawArc(Vector2.Zero, radius, 0f, Mathf.Tau, 72, UiTokens.Gilt, 3.5f, antialiased: true);
+            var radius = tokenRadius + (_glyphSize * 0.58f);
+            DrawCircle(Vector2.Zero, radius + 1.5f, new Color(UiTokens.Ink.R, UiTokens.Ink.G, UiTokens.Ink.B, 0.62f));
+            DrawArc(Vector2.Zero, radius, 0f, Mathf.Tau, 72, UiTokens.Gilt, 2.6f, antialiased: true);
         }
 
         if (!_hasTexture)
@@ -128,6 +125,8 @@ public partial class Entity : Node2D
             var glyphSize = _isHighlighted ? _glyphSize * 1.28f : _glyphSize;
             KindGlyph.Draw(this, _kindStableName, Vector2.Zero, glyphSize, _accent);
         }
+
+        DrawCultureBadge(tokenRadius);
     }
 
     private void DrawSlotPips(float slotRadius, Color slotColor)
@@ -135,11 +134,19 @@ public partial class Entity : Node2D
         var pipCount = Math.Min(_cultureSlotCount, 4);
         for (var i = 0; i < pipCount; i++)
         {
-            var angle = (-Mathf.Pi / 2f) + ((i - ((pipCount - 1) * 0.5f)) * 0.34f);
+            var angle = (-Mathf.Pi / 2f) + ((i - ((pipCount - 1) * 0.5f)) * 0.24f);
             var offset = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * slotRadius;
-            DrawCircle(offset, 2.4f, UiTokens.Ink);
-            DrawCircle(offset, 1.65f, slotColor);
+            DrawCircle(offset, 1.95f, UiTokens.Ink);
+            DrawCircle(offset, 1.25f, slotColor);
         }
+    }
+
+    private void DrawCultureBadge(float tokenRadius)
+    {
+        var offset = new Vector2(tokenRadius * 0.68f, tokenRadius * 0.70f);
+        var badgeRadius = _isHighlighted ? 4.6f : 3.6f;
+        DrawCircle(offset, badgeRadius + 1.2f, UiTokens.Ink);
+        DrawCircle(offset, badgeRadius, new Color(_cultureAccent, 0.94f));
     }
 
     private static float RecentActionIntensity(UiEntityProjection entity, int currentTick)
@@ -209,7 +216,7 @@ public partial class Entity : Node2D
         }
 
         _nameLabel.Text = entityName;
-        _nameLabel.Visible = showName;
+        _nameLabel.Visible = showName || _isHighlighted;
         _nameLabel.Size = new Vector2(160, 20);
         _nameLabel.Position = new Vector2(-80, -_glyphSize - (_isHighlighted ? 34f : 26f));
     }

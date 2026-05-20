@@ -16,6 +16,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     private readonly float[] _foreignInfluenceValueScratch = new float[ForeignInfluenceScratchCapacity];
     private readonly int[] _foreignInfluenceRelationshipEpochScratch;
     private readonly int[] _foreignInfluenceRelationshipCodeScratch;
+    private readonly CultureInfluenceComponentScratch _cultureInfluenceComponents = new();
     private int _foreignInfluenceScratchEpoch;
     private int _foreignInfluenceRelationshipScratchEpoch;
 
@@ -77,13 +78,15 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int foreignInfluenceAllowNegativeRelationships = 0,
         float foreignInfluenceMinimumRelationshipStrength = 0f,
         float foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = -1f,
-        float relationshipStrengthDelta = 0f) =>
+        float relationshipStrengthDelta = 0f,
+        int influenceTargetingCode = LowAltitudeInfluenceTargetingCodes.None) =>
         Data.RegisterVerb(new LowAltitudeVerbRegistration
         {
             KindId = kindId,
             VerbId = verbId,
             PlaneCode = planeCode,
             OperationCode = operationCode,
+            InfluenceTargetingCode = influenceTargetingCode,
             TargetModeCode = targetModeCode,
             TargetKindId = targetKindId,
             RelationshipKindId = relationshipKindId,
@@ -541,10 +544,27 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
                 MoveTowardIntent(simulation, entityId, rule, tick);
                 break;
             case ProgramOpcodeCodes.AddOwnedCellScalar:
-                ApplyInfluenceAround(simulation, entityId, planeCode, targetQ, targetR, Data.InfluenceRadius(rule), Data.InfluenceDelta(rule), tick);
+                ApplyInfluenceAround(
+                    simulation,
+                    entityId,
+                    planeCode,
+                    targetQ,
+                    targetR,
+                    Data.InfluenceRadius(rule),
+                    EffectiveInfluenceDelta(simulation, entityId, rule, reducingForeign: false),
+                    tick);
                 break;
             case ProgramOpcodeCodes.SubtractOtherCellScalar:
-                ReduceForeignInfluenceAround(simulation, entityId, rule, planeCode, targetQ, targetR, Data.InfluenceRadius(rule), Data.InfluenceDelta(rule), tick);
+                ReduceForeignInfluenceAround(
+                    simulation,
+                    entityId,
+                    rule,
+                    planeCode,
+                    targetQ,
+                    targetR,
+                    Data.InfluenceRadius(rule),
+                    EffectiveInfluenceDelta(simulation, entityId, rule, reducingForeign: true),
+                    tick);
                 break;
             case ProgramOpcodeCodes.TryClaimCell:
                 TryClaimCellFromProgramStep(simulation, entityId, rule, targetQ, targetR, tick);
@@ -557,6 +577,13 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
                 break;
         }
     }
+
+    private float EffectiveInfluenceDelta(
+        Simulation simulation,
+        int entityId,
+        int rule,
+        bool reducingForeign) =>
+        Data.InfluenceDelta(rule) * CultureSlotInfluenceEffectivenessMultiplier(simulation, entityId, rule, reducingForeign);
 
     private void ApplyInfluenceAround(
         Simulation simulation,

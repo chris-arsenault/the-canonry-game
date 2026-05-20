@@ -266,7 +266,8 @@ internal sealed class KernelConfigurationContext
         int foreignInfluenceAllowNegativeRelationships = 0,
         float foreignInfluenceMinimumRelationshipStrength = 0f,
         float foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = -1f,
-        float relationshipStrengthDelta = 0f) =>
+        float relationshipStrengthDelta = 0f,
+        int influenceTargetingCode = LowAltitudeInfluenceTargetingCodes.None) =>
         _kernel.LowAltitudeVerbs.RegisterVerb(
             kindId,
             verbId,
@@ -299,7 +300,8 @@ internal sealed class KernelConfigurationContext
             foreignInfluenceAllowNegativeRelationships,
             foreignInfluenceMinimumRelationshipStrength,
             foreignInfluenceAllowUnrelatedInfluenceAtOrAbove,
-            relationshipStrengthDelta);
+            relationshipStrengthDelta,
+            influenceTargetingCode);
 
     public void AddLowAltitudeVerbPrimitiveStep(
         int verbSlot,

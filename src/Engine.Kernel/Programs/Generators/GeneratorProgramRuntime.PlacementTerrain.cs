@@ -11,10 +11,14 @@ internal sealed partial class GeneratorProgramRuntime
     private const int PlacementDistantPreferredNeighborScore = 15;
     private const int PlacementOriginBonusBase = 260;
     private const int PlacementOriginBonusStep = 22;
-    private const int PlacementCultureDominantScore = 700;
-    private const int PlacementCulturePresentScore = 420;
-    private const int PlacementCultureAdjacentScore = 180;
+    private const int PlacementCultureDominantScore = 980;
+    private const int PlacementCulturePresentScore = 620;
+    private const int PlacementCultureTraceScore = 0;
+    private const int PlacementCultureAdjacentScore = 260;
     private const int PlacementForeignDominantPenalty = 350;
+    private const float PlacementCultureTraceRawInfluence = 2.5f;
+    private const float PlacementCultureSupportedRawInfluence = 12f;
+    private const float PlacementCultureDominantRawInfluence = 30f;
 
     private bool FindTerrainAwareHex(
         Simulation simulation,
@@ -332,24 +336,55 @@ internal sealed partial class GeneratorProgramRuntime
         }
 
         var ownInfluence = world.GetCellCultureInfluence(producedCultureId, planeCode, q, r);
+        var ownRawInfluence = world.GetCellCultureInfluenceRaw(producedCultureId, planeCode, q, r);
         var foreignInfluence = StrongestOtherCultureInfluence(world, producedCultureId, planeCode, q, r);
-        if (ownInfluence >= foreignInfluence && ownInfluence >= 25f)
+        var adjacentRawInfluence = AdjacentCultureRawInfluence(world, producedCultureId, planeCode, q, r, out var strongestAdjacentRawInfluence);
+        var connectedRawInfluence = ownRawInfluence + adjacentRawInfluence;
+        if (CulturePlacementIsDominant(ownInfluence, ownRawInfluence, foreignInfluence))
         {
-            return PlacementCultureDominantScore;
+            return PlacementCultureDominantScore + CulturePlacementConnectedBonus(connectedRawInfluence);
         }
 
-        if (ownInfluence > 0f)
+        if (CulturePlacementIsPresent(ownInfluence, ownRawInfluence, foreignInfluence))
         {
-            return PlacementCulturePresentScore;
+            return PlacementCulturePresentScore + CulturePlacementConnectedBonus(connectedRawInfluence);
         }
 
-        if (HasAdjacentCultureInfluence(world, producedCultureId, planeCode, q, r))
+        if (ownRawInfluence >= PlacementCultureTraceRawInfluence)
         {
-            return PlacementCultureAdjacentScore;
+            return PlacementCultureTraceScore;
+        }
+
+        if (CulturePlacementHasSupportedAdjacency(adjacentRawInfluence, strongestAdjacentRawInfluence))
+        {
+            return PlacementCultureAdjacentScore + CulturePlacementConnectedBonus(connectedRawInfluence);
         }
 
         return foreignInfluence >= 50f ? -PlacementForeignDominantPenalty : 0;
     }
+
+    private static int CulturePlacementConnectedBonus(float connectedRawInfluence) =>
+        (int)(global::System.MathF.Min(1f, connectedRawInfluence / 180f) * 240f);
+
+    private static bool CulturePlacementIsDominant(
+        float ownInfluence,
+        float ownRawInfluence,
+        float foreignInfluence) =>
+        ownInfluence >= foreignInfluence &&
+        ownRawInfluence >= PlacementCultureDominantRawInfluence;
+
+    private static bool CulturePlacementIsPresent(
+        float ownInfluence,
+        float ownRawInfluence,
+        float foreignInfluence) =>
+        ownRawInfluence >= PlacementCultureSupportedRawInfluence &&
+        ownInfluence >= foreignInfluence * 0.75f;
+
+    private static bool CulturePlacementHasSupportedAdjacency(
+        float adjacentRawInfluence,
+        float strongestAdjacentRawInfluence) =>
+        strongestAdjacentRawInfluence >= PlacementCultureDominantRawInfluence ||
+        adjacentRawInfluence >= PlacementCultureDominantRawInfluence;
 
     private static float StrongestOtherCultureInfluence(
         WorldState world,
@@ -374,18 +409,29 @@ internal sealed partial class GeneratorProgramRuntime
         return influence;
     }
 
-    private static bool HasAdjacentCultureInfluence(
+    private static float AdjacentCultureRawInfluence(
         WorldState world,
         int cultureId,
         int planeCode,
         int q,
-        int r) =>
-        world.GetCellCultureInfluence(cultureId, planeCode, q + 1, r) > 0f ||
-        world.GetCellCultureInfluence(cultureId, planeCode, q + 1, r - 1) > 0f ||
-        world.GetCellCultureInfluence(cultureId, planeCode, q, r - 1) > 0f ||
-        world.GetCellCultureInfluence(cultureId, planeCode, q - 1, r) > 0f ||
-        world.GetCellCultureInfluence(cultureId, planeCode, q - 1, r + 1) > 0f ||
-        world.GetCellCultureInfluence(cultureId, planeCode, q, r + 1) > 0f;
+        int r,
+        out float strongestRawInfluence)
+    {
+        strongestRawInfluence = 0f;
+        var total = 0f;
+        for (var direction = 0; direction < 6; direction++)
+        {
+            var raw = world.GetCellCultureInfluenceRaw(
+                cultureId,
+                planeCode,
+                q + DirectionQ(direction),
+                r + DirectionR(direction));
+            total += raw;
+            strongestRawInfluence = global::System.MathF.Max(strongestRawInfluence, raw);
+        }
+
+        return total;
+    }
 
     private int TerrainBasePlacementScore(int planeCode, int producedSlot, int terrainId)
     {

@@ -320,6 +320,117 @@ public sealed class WorldStateIndexTests
     }
 
     [Fact]
+    public void CultureInfluenceRollup_RequiresEnoughRawInfluenceForFullStrength()
+    {
+        var simulation = CreateSimulation();
+        var aurora = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+
+        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, 0.6f, tick: 0);
+
+        Assert.Equal(0f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
+
+        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, 3f, tick: 1);
+
+        var influence = simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0);
+        Assert.True(influence > 0f);
+        Assert.NotEqual(100f, influence, precision: 3);
+    }
+
+    [Fact]
+    public void CultureFieldQuery_ClassifiesInteriorBorderIsolatedAndContestedCells()
+    {
+        var simulation = CreateSimulation();
+        simulation.World.SetMapRadius(3);
+        var aurora = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        var rival = simulation.CreateEntity(1, 1, 2, 1, 0, 0, 0, 0, 0);
+
+        foreach (var (q, r) in new[] { (0, 0), (1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1) })
+        {
+            simulation.SetCellInfluence(aurora, PlaneCodes.Physical, q, r, 100f, tick: 0);
+        }
+
+        var interior = simulation.World.CultureFieldAt(1, PlaneCodes.Physical, 0, 0);
+        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 3, -3, 100f, tick: 0);
+        simulation.SetCellInfluence(rival, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+
+        var border = simulation.World.CultureFieldAt(1, PlaneCodes.Physical, 1, 0);
+        var isolated = simulation.World.CultureFieldAt(1, PlaneCodes.Physical, 3, -3);
+        var contestedInterior = simulation.World.CultureFieldAt(1, PlaneCodes.Physical, 0, 0);
+        var contested = simulation.World.CultureFieldAt(2, PlaneCodes.Physical, 0, 0);
+
+        Assert.Equal(CultureFieldCellKindCodes.Interior, interior.CellKindCode);
+        Assert.Equal(CultureFieldCellKindCodes.Contested, contestedInterior.CellKindCode);
+        Assert.Equal(CultureFieldCellKindCodes.Border, border.CellKindCode);
+        Assert.Equal(CultureFieldCellKindCodes.Isolated, isolated.CellKindCode);
+        Assert.Equal(CultureFieldCellKindCodes.Contested, contested.CellKindCode);
+        Assert.True(border.ConnectedRawMass > border.LocalRawMass);
+        Assert.True(contested.ForeignShare > 0f);
+    }
+
+    [Fact]
+    public void CultureSlotScoringPrefersCandidatesInsideStrongLocalCultureField()
+    {
+        var simulation = CreateSimulation();
+        simulation.World.SetMapRadius(3);
+        var unsupported = simulation.CreateEntity(1, 1, 1, -3, 0, 0, 0, 0, 0);
+        var supported = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        var fieldMaker = simulation.CreateEntity(2, 1, 1, 0, 0, 0, 0, 0, 0);
+        foreach (var (q, r) in new[] { (0, 0), (1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1) })
+        {
+            simulation.SetCellInfluence(fieldMaker, PlaneCodes.Physical, q, r, 100f, tick: 0);
+        }
+
+        var slot = simulation.CultureSlots.RegisterSlot(
+            cultureId: 1,
+            slotId: 1,
+            polarityCode: RelationshipPolarityCodes.Positive,
+            minimumScore: 1f,
+            minimumTenureTicks: 0,
+            displacementMargin: 0f,
+            entityInfluenceMultiplierDelta: 0f,
+            cultureInfluenceMultiplierDelta: 0f);
+        simulation.CultureSlots.AddAllowedKind(slot, 1);
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.ActiveEntity, relationshipKindId: 0, weight: 1f);
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.PhysicalCultureSupport, relationshipKindId: 0, weight: 1f);
+
+        simulation.AdvanceTicks(10);
+
+        Assert.NotEqual(unsupported, simulation.CultureSlots.OccupantEntityId(1, slotId: 1));
+        Assert.Equal(supported, simulation.CultureSlots.OccupantEntityId(1, slotId: 1));
+    }
+
+    [Fact]
+    public void CultureSlotScoringUsesInfluenceProductionHistoryNotOnlyCurrentInfluence()
+    {
+        var simulation = CreateSimulation();
+        var quiet = simulation.CreateEntity(1, 1, 1, -1, 0, 0, 0, 0, 0);
+        var producer = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+
+        simulation.SetCellInfluence(producer, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+        simulation.SetCellInfluence(producer, PlaneCodes.Physical, 0, 0, 0f, tick: 1);
+
+        var slot = simulation.CultureSlots.RegisterSlot(
+            cultureId: 1,
+            slotId: 1,
+            polarityCode: RelationshipPolarityCodes.Positive,
+            minimumScore: 1f,
+            minimumTenureTicks: 0,
+            displacementMargin: 0f,
+            entityInfluenceMultiplierDelta: 0f,
+            cultureInfluenceMultiplierDelta: 0f);
+        simulation.CultureSlots.AddAllowedKind(slot, 1);
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.ActiveEntity, relationshipKindId: 0, weight: 1f);
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.PhysicalInfluenceProduction, relationshipKindId: 0, weight: 0.1f);
+
+        simulation.AdvanceTicks(10);
+
+        Assert.Equal(0f, simulation.World.GetCellInfluence(producer, PlaneCodes.Physical, 0, 0));
+        Assert.True(simulation.World.EntityInfluenceProduction(producer, PlaneCodes.Physical) > 0f);
+        Assert.NotEqual(quiet, simulation.CultureSlots.OccupantEntityId(1, slotId: 1));
+        Assert.Equal(producer, simulation.CultureSlots.OccupantEntityId(1, slotId: 1));
+    }
+
+    [Fact]
     public void CultureSlotBenefitReweightsExistingCultureInfluence()
     {
         var simulation = CreateSimulation();

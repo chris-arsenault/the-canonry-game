@@ -47,6 +47,19 @@ internal readonly record struct ObservedRelationshipKey(
 
 internal readonly record struct ObservedMapCellKey(int PlaneCode, int Q, int R);
 
+internal readonly record struct ObservedEntityPlaneKey(int EntityId, int PlaneCode);
+
+internal readonly record struct ObservedCultureFieldKey(int CultureId, int PlaneCode, int Q, int R);
+
+internal readonly record struct ObservedCultureFieldCell(
+    float Share,
+    float RawMass,
+    float TotalRawMass,
+    float ForeignShare,
+    float LocalRawMass,
+    float ConnectedRawMass,
+    int CellKindCode);
+
 internal sealed class GeneratorStateProjection(int generatorId)
 {
     public int GeneratorId { get; } = generatorId;
@@ -80,6 +93,21 @@ internal sealed class ObservedMapCellProjection(
     public int LastUpdatedTick { get; } = lastUpdatedTick;
 
     public long WorldVersion { get; } = worldVersion;
+}
+
+internal sealed class ObservedCultureFieldProjection(
+    ObservedCultureFieldKey key,
+    float currentShare,
+    float currentRawInfluence,
+    float currentTotalRawInfluence)
+{
+    public ObservedCultureFieldKey Key { get; } = key;
+
+    public float CurrentShare { get; } = currentShare;
+
+    public float CurrentRawInfluence { get; } = currentRawInfluence;
+
+    public float CurrentTotalRawInfluence { get; } = currentTotalRawInfluence;
 }
 
 internal sealed class ObservedRelationshipProjection(

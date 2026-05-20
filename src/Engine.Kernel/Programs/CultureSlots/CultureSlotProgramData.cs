@@ -280,7 +280,7 @@ internal sealed partial class CultureSlotProgramData : IKernelProgramData
 
     private static void ValidateScoreSignal(int signalCode)
     {
-        if (signalCode is >= CultureSlotScoreSignalCodes.ActiveEntity and <= CultureSlotScoreSignalCodes.IncomingRelationshipStrength)
+        if (signalCode is >= CultureSlotScoreSignalCodes.ActiveEntity and <= CultureSlotScoreSignalCodes.SemanticInfluenceProduction)
         {
             return;
         }

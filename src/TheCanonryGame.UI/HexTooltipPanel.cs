@@ -164,13 +164,7 @@ public partial class HexTooltipPanel : PanelContainer
     private string FormatSemanticHexTooltip(HexCoord coord)
     {
         var s = -coord.Q - coord.R;
-        var occupants = _projection!.ActiveOccupants(PlaneCodes.Semantic, coord)
-            .Order()
-            .Select(entityId => _projection.Entities.TryGetValue(entityId, out var entity) ? entity : null)
-            .OfType<UiEntityProjection>()
-            .Select(FormatProjectedEntityLine)
-            .ToList();
-        var occupantsLine = occupants.Count == 0 ? "uninhabited" : string.Join('\n', occupants);
+        var occupantsLine = FormatOccupants(PlaneCodes.Semantic, coord);
         if (!_map!.TryGetHex(PlaneCodes.Semantic, coord, out var cell))
         {
             return $"autonomy {coord.Q,3}    resonance {coord.R,3}    tradition {s,3}\n{occupantsLine}";
@@ -200,11 +194,13 @@ public partial class HexTooltipPanel : PanelContainer
         var owner = FormatOwner(cell);
         var continent = FormatSubdivision(ProjectionSymbolKind.Continent, cell.ContinentId);
         var superregion = FormatSubdivision(ProjectionSymbolKind.Superregion, cell.SuperregionId);
+        var occupantsLine = FormatOccupants(PlaneCodes.Physical, coord);
         return
             $"{coord.Q,3} , {coord.R,3}   {terrain,-10}   {owner}   {FormatSurface(cell)}\n" +
             $"{continent}   {superregion}\n" +
             $"{FormatCultureInfluence(cell)}\n" +
-            FormatInfluence(cell);
+            $"{FormatInfluence(cell)}\n" +
+            occupantsLine;
     }
 
     private string FormatTerrain(HexProjection cell) =>
@@ -306,6 +302,17 @@ public partial class HexTooltipPanel : PanelContainer
             entity.KindId,
             $"Kind {entity.KindId}");
         return $"{name}  {kind}";
+    }
+
+    private string FormatOccupants(int planeCode, HexCoord coord)
+    {
+        var occupants = _projection!.ActiveOccupants(planeCode, coord)
+            .Order()
+            .Select(entityId => _projection.Entities.TryGetValue(entityId, out var entity) ? entity : null)
+            .OfType<UiEntityProjection>()
+            .Select(FormatProjectedEntityLine)
+            .ToList();
+        return occupants.Count == 0 ? "uninhabited" : string.Join('\n', occupants);
     }
 
     private void PositionTooltip(Vector2 screenPos)

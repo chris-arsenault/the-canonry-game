@@ -167,6 +167,40 @@ public sealed class PrimitiveEventProjectionTests
     }
 
     [Fact]
+    public void HexMapProjection_TracksOverlaySpecificVersions()
+    {
+        var log = new KernelEventLog(capacity: 8);
+        var projection = new HexMapProjection();
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
+
+        WritePhysicalCellCreated(log, ownerEntityId: 100);
+        pump.DrainAvailable();
+
+        var frameVersion = projection.FrameVersion;
+        AssertOverlayVersions(projection, culture: 0, influence: 0, road: 0, route: 0);
+
+        WritePhysicalInfluenceChanged(log, entityId: 200, value: 35f, worldVersion: 2);
+        pump.DrainAvailable();
+
+        Assert.Equal(frameVersion, projection.FrameVersion);
+        AssertOverlayVersions(projection, culture: 0, influence: 1, road: 0, route: 0);
+
+        WritePhysicalCultureChanged(log);
+        pump.DrainAvailable();
+
+        AssertOverlayVersions(projection, culture: 1, influence: 1, road: 0, route: 0);
+
+        WritePhysicalRoadChanged(log);
+        WritePhysicalTravelStructureChanged(log);
+        pump.DrainAvailable();
+
+        AssertOverlayVersions(projection, culture: 1, influence: 1, road: 1, route: 1);
+    }
+
+    [Fact]
     public void HexMapProjection_ProjectsSemanticCellsInfluenceAndRoads()
     {
         var log = new KernelEventLog(capacity: 4);
@@ -345,5 +379,59 @@ public sealed class PrimitiveEventProjectionTests
             ActionId: 0,
             PreviousInfluence: 0f,
             CurrentInfluence: value))));
+    }
+
+    private static void WritePhysicalCultureChanged(KernelEventLog log)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
+            Tick: 3,
+            WorldVersion: 3,
+            Q: 0,
+            R: 0,
+            SourceCodeId: 6,
+            PlaneCode: PlaneCodes.Physical,
+            CultureId: 10,
+            PreviousShare: 0f,
+            CurrentShare: 80f))));
+    }
+
+    private static void WritePhysicalRoadChanged(KernelEventLog log)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new CellRoadChangedKernelEvent(
+            Tick: 4,
+            WorldVersion: 4,
+            PlaneCode: PlaneCodes.Physical,
+            Q: 0,
+            R: 0,
+            SourceCodeId: 7,
+            TravelCount: 1,
+            PreviousQuality: 0f,
+            CurrentQuality: 60f))));
+    }
+
+    private static void WritePhysicalTravelStructureChanged(KernelEventLog log)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new CellTravelStructureChangedKernelEvent(
+            Tick: 5,
+            WorldVersion: 5,
+            PlaneCode: PlaneCodes.Physical,
+            Q: 0,
+            R: 0,
+            SourceCodeId: 8,
+            PreviousTravelStructureId: 0,
+            CurrentTravelStructureId: 12))));
+    }
+
+    private static void AssertOverlayVersions(
+        HexMapProjection projection,
+        long culture,
+        long influence,
+        long road,
+        long route)
+    {
+        Assert.Equal(culture, projection.CultureOverlayVersion);
+        Assert.Equal(influence, projection.InfluenceOverlayVersion);
+        Assert.Equal(road, projection.RoadNetworkVersion);
+        Assert.Equal(route, projection.RouteNetworkVersion);
     }
 }
