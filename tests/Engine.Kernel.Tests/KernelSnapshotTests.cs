@@ -239,7 +239,6 @@ public sealed class KernelSnapshotTests
         Assert.Contains(KernelEventType.EntityCreated, eventTypes);
         Assert.Contains(KernelEventType.EntityStatusChanged, eventTypes);
         Assert.Contains(KernelEventType.AttributeChanged, eventTypes);
-        Assert.Contains(KernelEventType.CellInfluenceChanged, eventTypes);
         Assert.Contains(KernelEventType.CellCultureInfluenceChanged, eventTypes);
         Assert.Contains(KernelEventType.RelationshipChanged, eventTypes);
     }

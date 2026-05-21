@@ -267,8 +267,6 @@ internal sealed partial class WorldState
             return;
         }
 
-        var wasActive = previous == EntityStatusCodes.Active;
-        var isActive = statusCode == EntityStatusCodes.Active;
         EnsureProvenanceOutputCapacity(context);
         _entityStatus[entityId] = statusCode;
         _entityUpdatedAt[entityId] = tick;
@@ -291,10 +289,6 @@ internal sealed partial class WorldState
             previous,
             statusCode)),
             context);
-        if (wasActive != isActive)
-        {
-            UpdateCultureInfluenceForEntityStatusChange(entityId, isActive, tick, context);
-        }
     }
 
     public void SetEntityCulture(int entityId, int cultureId, int tick) =>
@@ -311,14 +305,11 @@ internal sealed partial class WorldState
             return;
         }
 
-        var isActive = _entityStatus[entityId] == EntityStatusCodes.Active;
-        var previousMultiplier = isActive ? EffectiveCultureInfluenceMultiplier(entityId) : 0f;
         EnsureProvenanceOutputCapacity(context);
         RemoveEntityCultureIndex(entityId, previous);
         _entityCultureId[entityId] = cultureId;
         _cultureHighWatermark = global::System.Math.Max(_cultureHighWatermark, cultureId);
         InsertEntityCultureIndex(entityId, cultureId);
-        var currentMultiplier = isActive ? EffectiveCultureInfluenceMultiplier(entityId) : 0f;
         _entityUpdatedAt[entityId] = tick;
         AdvanceWorldVersion();
         RecordProvenanceOutput(
@@ -339,17 +330,6 @@ internal sealed partial class WorldState
             previous,
             cultureId)),
             context);
-        if (isActive)
-        {
-            UpdateCultureInfluenceForEntityCultureChange(
-                entityId,
-                previous,
-                previousMultiplier,
-                cultureId,
-                currentMultiplier,
-                tick,
-                context);
-        }
     }
 
     public void MoveEntityPhysical(int entityId, int q, int r, int tick) =>

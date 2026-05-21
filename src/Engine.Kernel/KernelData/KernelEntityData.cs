@@ -116,6 +116,14 @@ internal sealed partial class KernelEntityData
         return value;
     }
 
+    public float AttributeMaximum(int attributeId)
+    {
+        ValidatePositive(attributeId);
+        return (uint)attributeId < (uint)_attributeBoundsRegistered.Length && _attributeBoundsRegistered[attributeId]
+            ? _attributeMaximums[attributeId]
+            : 0f;
+    }
+
     public void InitializeEntity(Simulation simulation, int entityId, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);

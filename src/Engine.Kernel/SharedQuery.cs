@@ -1,6 +1,7 @@
 namespace Engine.Kernel;
 
 internal delegate int QueryRecentActionCounter(int actorId, int actionId, int sinceTick);
+internal delegate int QueryEntityWorkTierReader(int entityId);
 
 internal readonly struct QueryBinding
 {
@@ -13,7 +14,8 @@ internal readonly struct QueryBinding
         int targetOriginR = 0,
         int[]? refEntityIds = null,
         int refCount = 0,
-        QueryRecentActionCounter? recentActionCounter = null)
+        QueryRecentActionCounter? recentActionCounter = null,
+        QueryEntityWorkTierReader? entityWorkTierReader = null)
     {
         ActorId = actorId;
         TargetId = targetId;
@@ -24,6 +26,7 @@ internal readonly struct QueryBinding
         RefEntityIds = refEntityIds;
         RefCount = refCount;
         RecentActionCounter = recentActionCounter;
+        EntityWorkTierReader = entityWorkTierReader;
     }
 
     public int ActorId { get; }
@@ -43,6 +46,8 @@ internal readonly struct QueryBinding
     public int RefCount { get; }
 
     public QueryRecentActionCounter? RecentActionCounter { get; }
+
+    public QueryEntityWorkTierReader? EntityWorkTierReader { get; }
 
     public bool ReferenceAlreadyBound(int entityId)
     {
@@ -64,6 +69,9 @@ internal readonly struct QueryBinding
 
     public int RecentActionCount(int sinceTick) =>
         RecentActionCounter is null ? 0 : RecentActionCounter(ActorId, ActionId, sinceTick);
+
+    public int EntityWorkTier(int entityId) =>
+        EntityWorkTierReader is null ? 0 : EntityWorkTierReader(entityId);
 }
 
 internal readonly struct QueryPredicate

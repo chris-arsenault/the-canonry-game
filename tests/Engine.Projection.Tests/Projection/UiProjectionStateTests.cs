@@ -204,6 +204,52 @@ public sealed class UiProjectionStateTests
     }
 
     [Fact]
+    public void Projection_ReplaysMinorActorActivityEvents()
+    {
+        var log = new KernelEventLog(capacity: 16);
+        var projection = new UiProjectionState();
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
+
+        Assert.True(log.TryWrite(KernelEvent.From(new MinorActorVerbExecutedKernelEvent(
+            Tick: 7,
+            WorldVersion: 8,
+            ActorId: 9,
+            SourceEntityId: 10,
+            SourceRuleId: 11,
+            SourceWorkTier: 2,
+            EffectiveRadius: 5,
+            CultureId: 12,
+            VerbId: 13,
+            PurposeCode: MinorActorPurposeCodes.CulturalLabor,
+            ActionCode: MinorActorActionCodes.CultureExpansion,
+            TargetingCode: MinorActorVerbTargetingCodes.ExtendConnectedBorder,
+            PlaneCode: PlaneCodes.Physical,
+            Q: -2,
+            R: 3,
+            StatusCode: TraceStatusCodes.Selected,
+            CellKindCode: CultureFieldCellKindCodes.Border,
+            LocalRawMass: 14.5f,
+            ConnectedRawMass: 21.5f,
+            Score: 3.25f,
+            Delta: 1.5f))));
+
+        pump.DrainAvailable();
+
+        var activity = Assert.Single(projection.MinorActorActivities);
+        Assert.Equal(1, projection.MinorActorActivityVersion);
+        Assert.Equal(7, projection.CurrentTick);
+        Assert.Equal(12, activity.CultureId);
+        Assert.Equal(MinorActorActionCodes.CultureExpansion, activity.ActionCode);
+        Assert.Equal(PlaneCodes.Physical, activity.PlaneCode);
+        Assert.Equal(-2, activity.Q);
+        Assert.Equal(TraceStatusCodes.Selected, activity.StatusCode);
+        Assert.Equal(1.5f, activity.Delta);
+    }
+
+    [Fact]
     public void Projection_AttributesGeneratedEntitiesBySameTickFire()
     {
         var log = new KernelEventLog(capacity: 16);

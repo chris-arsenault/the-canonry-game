@@ -16,6 +16,7 @@ public partial class MapArea : Control
     public const string LayerTerritory = "territory";
     public const string LayerInfluence = "influence";
     public const string LayerCultureInfluence = "culture_influence";
+    public const string LayerLabor = "labor";
     public const string LensDefault = "default";
     public const string LensCulture = "culture";
     public const string LensControl = "control";
@@ -23,16 +24,10 @@ public partial class MapArea : Control
     public const string LensCustom = "custom";
 
     private readonly Dictionary<string, Button> _lensButtons = [];
+    private readonly Dictionary<string, CheckBox> _layerCheckBoxes = [];
     private Button? _planeToggleButton;
     private Button? _influenceToggleButton;
     private PanelContainer? _layersPanel;
-    private CheckBox? _roadsLayerCheckBox;
-    private CheckBox? _routesLayerCheckBox;
-    private CheckBox? _bordersLayerCheckBox;
-    private CheckBox? _labelsLayerCheckBox;
-    private CheckBox? _territoryLayerCheckBox;
-    private CheckBox? _cultureLayerCheckBox;
-    private CheckBox? _influenceLayerCheckBox;
     private LegendPanel? _legendPanel;
     private OverlayLayoutState? _lastOverlayLayout;
     private bool _updatingLayerControls;
@@ -91,19 +86,7 @@ public partial class MapArea : Control
 
     public void SetLayerVisible(string layerKey, bool visible)
     {
-        var checkbox = layerKey switch
-        {
-            LayerRoads => _roadsLayerCheckBox,
-            LayerRoutes => _routesLayerCheckBox,
-            LayerBorders => _bordersLayerCheckBox,
-            LayerLabels => _labelsLayerCheckBox,
-            LayerTerritory => _territoryLayerCheckBox,
-            LayerCultureInfluence => _cultureLayerCheckBox,
-            LayerInfluence => _influenceLayerCheckBox,
-            _ => null,
-        };
-
-        if (checkbox is null)
+        if (!_layerCheckBoxes.TryGetValue(layerKey, out var checkbox))
         {
             return;
         }
@@ -176,13 +159,14 @@ public partial class MapArea : Control
         label.AddThemeColorOverride("font_color", UiTokens.Whisper);
         box.AddChild(label);
 
-        _roadsLayerCheckBox = AddLayerCheckBox(box, "Roads", LayerRoads);
-        _routesLayerCheckBox = AddLayerCheckBox(box, "Routes", LayerRoutes);
-        _bordersLayerCheckBox = AddLayerCheckBox(box, "Borders", LayerBorders);
-        _labelsLayerCheckBox = AddLayerCheckBox(box, "Labels", LayerLabels);
-        _territoryLayerCheckBox = AddLayerCheckBox(box, "Control", LayerTerritory);
-        _cultureLayerCheckBox = AddLayerCheckBox(box, "Culture", LayerCultureInfluence);
-        _influenceLayerCheckBox = AddLayerCheckBox(box, "Influence", LayerInfluence);
+        _ = AddLayerCheckBox(box, "Roads", LayerRoads);
+        _ = AddLayerCheckBox(box, "Routes", LayerRoutes);
+        _ = AddLayerCheckBox(box, "Borders", LayerBorders);
+        _ = AddLayerCheckBox(box, "Labels", LayerLabels);
+        _ = AddLayerCheckBox(box, "Control", LayerTerritory);
+        _ = AddLayerCheckBox(box, "Culture", LayerCultureInfluence);
+        _ = AddLayerCheckBox(box, "Influence", LayerInfluence);
+        _ = AddLayerCheckBox(box, "Labor", LayerLabor);
         AddChild(_layersPanel);
     }
 
@@ -222,6 +206,7 @@ public partial class MapArea : Control
             TooltipText = $"Toggle {text} layer",
         };
         checkbox.Toggled += visible => OnLayerToggled(layerKey, visible);
+        _layerCheckBoxes[layerKey] = checkbox;
         box.AddChild(checkbox);
         return checkbox;
     }

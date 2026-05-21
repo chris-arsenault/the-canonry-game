@@ -40,6 +40,7 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     private static bool IsWorldEvent(KernelEventType eventType) =>
+        eventType == KernelEventType.MinorActorVerbExecuted ||
         eventType is >= KernelEventType.TickCompleted and <= KernelEventType.CultureSlotOccupancyChanged and not KernelEventType.GambitEvaluated;
 
     private void ProjectEntityEvent(in SequencedKernelEvent kernelEvent)
@@ -109,6 +110,12 @@ public abstract class KernelEventProjector : IKernelEventProjection
         if (eventType == KernelEventType.CultureSlotOccupancyChanged)
         {
             OnCultureSlotOccupancyChanged(kernelEvent.Sequence, kernelEvent.Event.AsCultureSlotOccupancyChanged());
+            return;
+        }
+
+        if (eventType == KernelEventType.MinorActorVerbExecuted)
+        {
+            OnMinorActorVerbExecuted(kernelEvent.Sequence, kernelEvent.Event.AsMinorActorVerbExecuted());
             return;
         }
 
@@ -263,6 +270,10 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnCultureSlotOccupancyChanged(long sequence, in CultureSlotOccupancyChangedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnMinorActorVerbExecuted(long sequence, in MinorActorVerbExecutedKernelEvent evt)
     {
     }
 

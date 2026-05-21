@@ -48,6 +48,7 @@ internal sealed class GameRenderTree
     private AttributeGraphPanel? _attributeGraph;
     private HexMapProjection? _lastCultureOverviewMap;
     private PlaneMode? _lastCultureOverviewPlane;
+    private long _lastCultureOverviewActivityVersion = -1;
     private bool _tableauVisible;
     private int _seed;
     private int _seedAttempt;
@@ -123,7 +124,7 @@ internal sealed class GameRenderTree
 
         _chronicle.Refresh();
         _topBarRender.Present(_topBar, _ui, currentTick, timeState, _seed, _seedAttempt);
-        _mapRender.Present(_mapRenderer, _map);
+        _mapRender.Present(_mapRenderer, _map, _ui);
         PresentCultureOverview(currentTick);
         _browserRender.Present(_browser, _ui);
         _entityMapRender.Present(_entityLayer, _ui, _browser, EntityNamesVisibleForZoom());
@@ -159,18 +160,26 @@ internal sealed class GameRenderTree
 
     private void PresentCultureOverview(int currentTick)
     {
-        var plane = _mapRenderer.CurrentPlane;
-        if (_lastCultureOverviewTick == currentTick &&
-            _lastCultureOverviewPlane == plane &&
-            ReferenceEquals(_lastCultureOverviewMap, _map))
+        var ui = _ui;
+        if (ui is null)
         {
             return;
         }
 
-        _mapArea.BindCultureOverview(_map, _ui, _symbols, plane);
+        var plane = _mapRenderer.CurrentPlane;
+        if (_lastCultureOverviewTick == currentTick &&
+            _lastCultureOverviewPlane == plane &&
+            ReferenceEquals(_lastCultureOverviewMap, _map) &&
+            _lastCultureOverviewActivityVersion == ui.MinorActorActivityVersion)
+        {
+            return;
+        }
+
+        _mapArea.BindCultureOverview(_map, ui, _symbols, plane);
         _lastCultureOverviewTick = currentTick;
         _lastCultureOverviewPlane = plane;
         _lastCultureOverviewMap = _map;
+        _lastCultureOverviewActivityVersion = ui.MinorActorActivityVersion;
     }
 
     public void ToggleEntityNames()
@@ -216,6 +225,7 @@ internal sealed class GameRenderTree
         MapArea.LayerLabels => SetLayerVisibility(_mapRenderer.ShowLabels, visible, value => _mapRenderer.ShowLabels = value),
         MapArea.LayerTerritory => SetLayerVisibility(_mapRenderer.ShowTerritory, visible, value => _mapRenderer.ShowTerritory = value),
         MapArea.LayerInfluence => SetLayerVisibility(_mapRenderer.ShowInfluence, visible, value => _mapRenderer.ShowInfluence = value),
+        MapArea.LayerLabor => SetLayerVisibility(_mapRenderer.ShowMinorActors, visible, value => _mapRenderer.ShowMinorActors = value),
         MapArea.LayerCultureInfluence => SetLayerVisibility(
             _mapRenderer.ShowCultureInfluence,
             visible,
@@ -289,7 +299,7 @@ internal sealed class GameRenderTree
 
     private void BindNodesToRuntime()
     {
-        _mapRenderer.Initialize(_map!, _symbols);
+        _mapRenderer.Initialize(_map!, _ui, _symbols);
         _entityLayer.Initialize(_ui, _symbols, _mapRenderer.HexSize);
         _ = _entityLayer.SetPlane(_mapRenderer.CurrentPlane);
         _browser.Initialize(_ui, _symbols);
@@ -318,6 +328,7 @@ internal sealed class GameRenderTree
             _mapRenderer.ShowTerritory = settings.Territory;
             _mapRenderer.ShowCultureInfluence = settings.Culture;
             _mapRenderer.ShowInfluence = settings.Influence;
+            _mapRenderer.ShowMinorActors = settings.Labor;
         }
 
         _mapArea.SetLensKey(_mapLensKey);
@@ -333,6 +344,7 @@ internal sealed class GameRenderTree
         _mapArea.SetLayerVisible(MapArea.LayerTerritory, _mapRenderer.ShowTerritory);
         _mapArea.SetLayerVisible(MapArea.LayerCultureInfluence, _mapRenderer.ShowCultureInfluence);
         _mapArea.SetLayerVisible(MapArea.LayerInfluence, _mapRenderer.ShowInfluence);
+        _mapArea.SetLayerVisible(MapArea.LayerLabor, _mapRenderer.ShowMinorActors);
     }
 
     private bool EntityNamesVisibleForZoom()
@@ -346,6 +358,7 @@ internal sealed class GameRenderTree
         _lastCultureOverviewTick = -1;
         _lastCultureOverviewPlane = null;
         _lastCultureOverviewMap = null;
+        _lastCultureOverviewActivityVersion = -1;
         _topBarRender.Reset();
         _mapRender.Reset();
         _entityMapRender.Reset();
@@ -422,20 +435,23 @@ internal sealed class GameRenderTree
 
         public void InvalidateFrame() => _lastFrame = null;
 
-        public void Present(HexMapRenderer renderer, HexMapProjection map)
+        public void Present(HexMapRenderer renderer, HexMapProjection map, UiProjectionState ui)
         {
-            var state = MapRenderState.From(renderer, map);
+            var state = MapRenderState.From(renderer, map, ui);
             var cellState = state with
             {
                 FrameVersion = 0,
                 OwnerColorVersion = 0,
                 CultureOverlayVersion = 0,
                 InfluenceOverlayVersion = 0,
+                MinorActorActivityVersion = 0,
+                MinorActorActivityBucket = 0,
                 RoadNetworkVersion = 0,
                 RouteNetworkVersion = 0,
                 ShowTerritory = false,
                 ShowCultureInfluence = false,
                 ShowInfluence = false,
+                ShowMinorActors = false,
                 ShowRoads = false,
                 ShowRoutes = false,
                 ShowBorders = false,
@@ -482,6 +498,8 @@ internal sealed class GameRenderTree
                 OwnerColorVersion = ActiveOwnerColorVersion(state),
                 CultureOverlayVersion = ActiveLayerVersion(state.ShowCultureInfluence, state.CultureOverlayVersion),
                 InfluenceOverlayVersion = ActiveLayerVersion(state.ShowInfluence, state.InfluenceOverlayVersion),
+                MinorActorActivityVersion = ActiveLayerVersion(state.ShowMinorActors, state.MinorActorActivityVersion),
+                MinorActorActivityBucket = state.ShowMinorActors ? state.MinorActorActivityBucket : 0,
                 RoadNetworkVersion = ActiveLayerVersion(state.ShowRoads, state.RoadNetworkVersion),
                 RouteNetworkVersion = ActiveLayerVersion(state.ShowRoutes, state.RouteNetworkVersion),
             };
@@ -509,7 +527,7 @@ internal sealed class GameRenderTree
             state.ShowRoads || state.ShowRoutes;
 
         private static bool AnnotationLayerVisible(MapRenderState state) =>
-            state.ShowBorders || state.ShowLabels;
+            state.ShowBorders || state.ShowLabels || state.ShowMinorActors;
     }
 
     private sealed class EntityMapRender
@@ -723,31 +741,37 @@ internal sealed class GameRenderTree
         long OwnerColorVersion,
         long CultureOverlayVersion,
         long InfluenceOverlayVersion,
+        long MinorActorActivityVersion,
+        int MinorActorActivityBucket,
         long RoadNetworkVersion,
         long RouteNetworkVersion,
         PlaneMode Plane,
         bool ShowTerritory,
         bool ShowCultureInfluence,
         bool ShowInfluence,
+        bool ShowMinorActors,
         bool ShowRoads,
         bool ShowRoutes,
         bool ShowBorders,
         bool ShowLabels,
         float HexSize)
     {
-        public static MapRenderState From(HexMapRenderer renderer, HexMapProjection map) =>
+        public static MapRenderState From(HexMapRenderer renderer, HexMapProjection map, UiProjectionState ui) =>
             new(
                 map.CellVersion,
                 map.FrameVersion,
                 map.OwnerColorVersion,
                 map.CultureOverlayVersion,
                 map.InfluenceOverlayVersion,
+                ui.MinorActorActivityVersion,
+                ui.CurrentTick / 10,
                 map.RoadNetworkVersion,
                 map.RouteNetworkVersion,
                 renderer.CurrentPlane,
                 renderer.ShowTerritory,
                 renderer.ShowCultureInfluence,
                 renderer.ShowInfluence,
+                renderer.ShowMinorActors,
                 renderer.ShowRoads,
                 renderer.ShowRoutes,
                 renderer.ShowBorders,
@@ -762,7 +786,8 @@ internal sealed class GameRenderTree
         bool Labels,
         bool Territory,
         bool Culture,
-        bool Influence)
+        bool Influence,
+        bool Labor)
     {
         public static MapLensSettings For(string lensKey) => lensKey switch
         {
@@ -773,7 +798,8 @@ internal sealed class GameRenderTree
                 Labels: false,
                 Territory: false,
                 Culture: true,
-                Influence: false),
+                Influence: false,
+                Labor: true),
             MapArea.LensControl => new(
                 Roads: true,
                 Routes: true,
@@ -781,7 +807,8 @@ internal sealed class GameRenderTree
                 Labels: true,
                 Territory: true,
                 Culture: false,
-                Influence: false),
+                Influence: false,
+                Labor: false),
             MapArea.LensInfluence => new(
                 Roads: false,
                 Routes: false,
@@ -789,7 +816,8 @@ internal sealed class GameRenderTree
                 Labels: false,
                 Territory: false,
                 Culture: false,
-                Influence: true),
+                Influence: true,
+                Labor: false),
             _ => new(
                 Roads: true,
                 Routes: true,
@@ -797,7 +825,8 @@ internal sealed class GameRenderTree
                 Labels: false,
                 Territory: false,
                 Culture: false,
-                Influence: false),
+                Influence: false,
+                Labor: false),
         };
     }
 

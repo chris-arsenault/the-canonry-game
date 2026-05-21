@@ -5,21 +5,17 @@ using Engine.Constants;
 internal sealed class MapLayerSet
 {
     private readonly MapUniqueEntityLayer _coverage;
-    private readonly MapScalarEntityLayer _influence;
     private readonly MapScalarEntityLayer _rawCultureInfluence;
     private readonly MapScalarEntityLayer _cultureInfluence;
 
     internal MapLayerSet(int entityCapacity, int mapCellCapacity, int mapInfluenceCapacity)
     {
         _coverage = new MapUniqueEntityLayer(entityCapacity, mapCellCapacity);
-        _influence = new MapScalarEntityLayer(entityCapacity, mapInfluenceCapacity);
         _rawCultureInfluence = new MapScalarEntityLayer(entityCapacity, mapInfluenceCapacity);
         _cultureInfluence = new MapScalarEntityLayer(entityCapacity, mapInfluenceCapacity);
     }
 
     internal MapUniqueEntityLayer Coverage => _coverage;
-
-    internal MapScalarEntityLayer Influence => _influence;
 
     internal MapScalarEntityLayer RawCultureInfluence => _rawCultureInfluence;
 
@@ -28,7 +24,6 @@ internal sealed class MapLayerSet
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
     {
         _coverage.WriteSnapshot(writer);
-        _influence.WriteSnapshot(writer);
         _rawCultureInfluence.WriteSnapshot(writer);
         _cultureInfluence.WriteSnapshot(writer);
     }
@@ -36,7 +31,6 @@ internal sealed class MapLayerSet
     internal void ReadSnapshot(global::System.IO.BinaryReader reader)
     {
         _coverage.ReadSnapshot(reader);
-        _influence.ReadSnapshot(reader);
         _rawCultureInfluence.ReadSnapshot(reader);
         _cultureInfluence.ReadSnapshot(reader);
     }

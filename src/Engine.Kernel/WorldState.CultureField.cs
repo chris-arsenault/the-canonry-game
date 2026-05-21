@@ -19,11 +19,8 @@ internal readonly record struct CultureFieldCell(
 
 internal sealed partial class WorldState
 {
-    private const float CultureFieldTraceRawMass = 2.5f;
-    private const float CultureFieldSupportedRawMass = 12f;
-    private const float CultureFieldStrongRawMass = 30f;
     private const float CultureFieldRingTwoConnectionWeight = 7f / 20f;
-    private const float CultureFieldForeignContestShare = 5f;
+    private const float CultureFieldContestMarginShare = 35f;
 
     private readonly record struct CultureFieldNeighborhood(
         float AdjacentRawTotal,
@@ -46,6 +43,7 @@ internal sealed partial class WorldState
         var cellKindCode = CultureFieldCellKind(
             ownRaw,
             ownShare,
+            foreignRaw,
             foreignShare,
             neighborhood.SupportedAdjacentCount,
             connectedRaw);
@@ -61,7 +59,7 @@ internal sealed partial class WorldState
             foreignRaw,
             localRaw,
             connectedRaw,
-            global::System.MathF.Max(0f, 100f - ownShare),
+            global::System.MathF.Max(0f, CultureFullRawMass - ownRaw),
             neighborhood.SupportedAdjacentCount,
             neighborhood.SupportedRingTwoCount,
             cellKindCode);
@@ -140,12 +138,27 @@ internal sealed partial class WorldState
 
     internal static int CultureFieldStrengthBand(float rawMass)
     {
-        if (rawMass >= CultureFieldStrongRawMass)
+        if (rawMass >= CultureNexusRawMass)
         {
-            return CultureFieldStrengthBandCodes.Strong;
+            return CultureFieldStrengthBandCodes.Nexus;
         }
 
-        return rawMass >= CultureFieldTraceRawMass
+        if (rawMass >= CultureEntrenchedRawMass)
+        {
+            return CultureFieldStrengthBandCodes.Entrenched;
+        }
+
+        if (rawMass >= CultureControlledRawMass)
+        {
+            return CultureFieldStrengthBandCodes.Controlled;
+        }
+
+        if (rawMass >= CultureClaimedRawMass)
+        {
+            return CultureFieldStrengthBandCodes.Claimed;
+        }
+
+        return rawMass >= CultureTraceRawMass
             ? CultureFieldStrengthBandCodes.Trace
             : CultureFieldStrengthBandCodes.None;
     }
@@ -153,6 +166,7 @@ internal sealed partial class WorldState
     private static int CultureFieldCellKind(
         float ownRaw,
         float ownShare,
+        float foreignRaw,
         float foreignShare,
         int supportedAdjacentCount,
         float connectedRaw)
@@ -162,7 +176,7 @@ internal sealed partial class WorldState
             return CultureFieldCellKindCodes.None;
         }
 
-        if (CultureFieldIsContested(ownRaw, foreignShare))
+        if (CultureFieldIsContested(ownRaw, ownShare, foreignRaw, foreignShare))
         {
             return CultureFieldCellKindCodes.Contested;
         }
@@ -183,22 +197,24 @@ internal sealed partial class WorldState
     }
 
     private static bool CultureFieldIsEmpty(float ownRaw, float ownShare, float connectedRaw) =>
-        ownRaw < CultureFieldTraceRawMass && ownShare <= 0f && connectedRaw < CultureFieldSupportedRawMass;
+        ownRaw < CultureTraceRawMass && ownShare <= 0f && connectedRaw < CultureClaimedRawMass;
 
-    private static bool CultureFieldIsContested(float ownRaw, float foreignShare) =>
-        ownRaw >= CultureFieldTraceRawMass && foreignShare >= CultureFieldForeignContestShare;
+    private static bool CultureFieldIsContested(float ownRaw, float ownShare, float foreignRaw, float foreignShare) =>
+        ownRaw >= CultureTraceRawMass &&
+        foreignRaw >= CultureClaimedRawMass &&
+        ownShare - foreignShare < CultureFieldContestMarginShare;
 
     private static bool CultureFieldIsInterior(float ownRaw, int supportedAdjacentCount) =>
-        ownRaw >= CultureFieldStrongRawMass && supportedAdjacentCount >= 5;
+        ownRaw >= CultureControlledRawMass && supportedAdjacentCount >= 5;
 
     private static bool CultureFieldIsIsolated(float ownRaw, int supportedAdjacentCount) =>
-        ownRaw >= CultureFieldTraceRawMass && supportedAdjacentCount == 0;
+        ownRaw >= CultureTraceRawMass && supportedAdjacentCount == 0;
 
     private static bool CultureFieldIsBorder(float ownRaw, int supportedAdjacentCount) =>
-        ownRaw >= CultureFieldTraceRawMass || supportedAdjacentCount > 0;
+        ownRaw >= CultureTraceRawMass || supportedAdjacentCount > 0;
 
     private static int CultureFieldSupportedCellCount(float raw) =>
-        raw >= CultureFieldSupportedRawMass ? 1 : 0;
+        raw >= CultureClaimedRawMass ? 1 : 0;
 
     private float CultureRawTotalAt(int planeCode, int key)
     {

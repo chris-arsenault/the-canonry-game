@@ -242,6 +242,56 @@ internal sealed class KernelConfigurationContext
         float weight) =>
         _kernel.CultureSlots.AddScoreRule(slot, signalCode, relationshipKindId, weight);
 
+    public int RegisterMinorActorEmitterRule(
+        int sourceKindId,
+        int sourceSubtypeId,
+        int purposeCode,
+        int actorKindCode,
+        int actionCode,
+        int planeCode,
+        int ttlPulses,
+        int emitCadencePulses,
+        int maxActivePerSource,
+        int spawnRadius,
+        int moveChancePermille,
+        int actionCadencePulses,
+        float workDelta) =>
+        _kernel.MinorActors.RegisterEmitterRule(
+            sourceKindId,
+            sourceSubtypeId,
+            purposeCode,
+            actorKindCode,
+            actionCode,
+            planeCode,
+            ttlPulses,
+            emitCadencePulses,
+            maxActivePerSource,
+            spawnRadius,
+            moveChancePermille,
+            actionCadencePulses,
+            workDelta);
+
+    public int RegisterMinorActorVerb(
+        int sourceRuleSlot,
+        int verbId,
+        int actionCode,
+        int targetingCode,
+        int planeCode,
+        int radius,
+        int sampleCount,
+        float weight,
+        float workDeltaMultiplier) =>
+        _kernel.MinorActors.RegisterVerb(
+            sourceRuleSlot,
+            verbId,
+            actionCode,
+            targetingCode,
+            planeCode,
+            radius,
+            sampleCount,
+            weight,
+            workDeltaMultiplier);
+
     public int RegisterLowAltitudeVerb(
         int kindId,
         int verbId,

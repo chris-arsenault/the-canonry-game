@@ -17,6 +17,7 @@ internal sealed partial class Simulation
         MapSignalsProgramSnapshot.Write(writer, MapSignals);
         EffectsProgramSnapshot.Write(writer, Effects);
         CultureSlotProgramSnapshot.Write(writer, CultureSlots);
+        MinorActorProgramSnapshot.Write(writer, MinorActors);
         UpkeepProgramSnapshot.Write(writer, Upkeep);
         RelationshipProgramSnapshot.Write(writer, Relationships);
         GambitProgramSnapshot.Write(writer, Gambits);
@@ -36,6 +37,7 @@ internal sealed partial class Simulation
         MapSignalsProgramSnapshot.Read(reader, MapSignals);
         EffectsProgramSnapshot.Read(reader, Effects);
         CultureSlotProgramSnapshot.Read(reader, CultureSlots);
+        MinorActorProgramSnapshot.Read(reader, MinorActors);
         UpkeepProgramSnapshot.Read(reader, Upkeep);
         RelationshipProgramSnapshot.Read(reader, Relationships);
         GambitProgramSnapshot.Read(reader, Gambits);

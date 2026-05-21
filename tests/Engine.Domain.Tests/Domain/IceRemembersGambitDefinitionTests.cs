@@ -14,7 +14,7 @@ public sealed class IceRemembersGambitDefinitionTests
         var config = IceRemembersDefinition.Create();
         var gambitIds = config.Gambits.Select(gambit => gambit.Id).ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(21, gambitIds.Count);
+        Assert.Equal(21 + IceRemembersEntities.All.Count, gambitIds.Count);
         Assert.Contains(IceRemembersGambitId.AbilitySharesPractice.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactBindsMonster.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactCleansesScar.ToGambitId(), gambitIds);
@@ -36,6 +36,9 @@ public sealed class IceRemembersGambitDefinitionTests
         Assert.Contains(IceRemembersGambitId.MonsterStealsArtifact.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.PenguinSlaysMonster.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.PenguinSlaysOrca.ToGambitId(), gambitIds);
+        Assert.Contains(IceRemembersGambitId.SettlementDeepensTheHolding.ToGambitId(), gambitIds);
+        Assert.Contains(IceRemembersGambitId.FactionDeepensTheHolding.ToGambitId(), gambitIds);
+        Assert.Contains(IceRemembersGambitId.TransportDeepensTheHolding.ToGambitId(), gambitIds);
     }
 
     [Fact]
@@ -84,6 +87,8 @@ public sealed class IceRemembersGambitDefinitionTests
             gambit.GambitId == compiled.Ids.GambitIdOf(IceRemembersGambitId.PenguinSlaysMonster.ToGambitId()).Value);
         Assert.Contains(compiled.Programs.Gambits.Gambits, gambit =>
             gambit.GambitId == compiled.Ids.GambitIdOf(IceRemembersGambitId.PenguinSlaysOrca.ToGambitId()).Value);
+        Assert.Contains(compiled.Programs.Gambits.Gambits, gambit =>
+            gambit.GambitId == compiled.Ids.GambitIdOf(IceRemembersGambitId.SettlementDeepensTheHolding.ToGambitId()).Value);
     }
 
     [Fact]
@@ -91,7 +96,16 @@ public sealed class IceRemembersGambitDefinitionTests
     {
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
 
-        Assert.All(compiled.Programs.Gambits.Gambits, gambit => Assert.Equal(0.25f, gambit.SuccessChance));
+        var workTierGambitIds = new HashSet<int>(
+            Enum.GetValues<IceRemembersGambitId>()
+                .Where(id => id.ToGambitId().EndsWith("_deepens_the_holding", StringComparison.Ordinal))
+                .Select(id => compiled.Ids.GambitIdOf(id.ToGambitId()).Value));
+
+        Assert.All(compiled.Programs.Gambits.Gambits, gambit =>
+        {
+            var expected = workTierGambitIds.Contains(gambit.GambitId) ? 0.75f : 0.25f;
+            Assert.Equal(expected, gambit.SuccessChance);
+        });
     }
 
     [Fact]
@@ -214,6 +228,27 @@ public sealed class IceRemembersGambitDefinitionTests
             step.A == controlledById &&
             step.B == (int)BehaviorProgramEndpoint.Target &&
             step.C == (int)BehaviorProgramEndpoint.Self);
+    }
+
+    [Fact]
+    public void IceRemembers_WorkTierGambitsUseSelfCultureMassOnNonMobilePlane()
+    {
+        var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
+        var settlement = Gambit(compiled, IceRemembersGambitId.SettlementDeepensTheHolding);
+        var transport = Gambit(compiled, IceRemembersGambitId.TransportDeepensTheHolding);
+
+        Assert.Equal(BehaviorProgramTargetMode.Self, settlement.TargetMode);
+        Assert.Contains(settlement.Preconditions, precondition =>
+            precondition.Code == BehaviorProgramPrecondition.SelfCultureMass &&
+            precondition.A == PlaneCodes.Physical);
+        Assert.DoesNotContain(settlement.Preconditions, precondition =>
+            precondition.Code == BehaviorProgramPrecondition.SelfWorkTierBelow);
+        Assert.Contains(settlement.Steps, step =>
+            step.Operation == BehaviorProgramOperation.IncreaseWorkTier &&
+            step.A == 0);
+        Assert.Contains(transport.Preconditions, precondition =>
+            precondition.Code == BehaviorProgramPrecondition.SelfCultureMass &&
+            precondition.A == PlaneCodes.Semantic);
     }
 
     [Fact]

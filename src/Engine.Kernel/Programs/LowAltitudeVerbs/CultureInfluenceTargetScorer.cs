@@ -4,21 +4,23 @@ internal readonly record struct CultureInfluenceTargetScoreInput(
     int TargetingCode,
     float OwnShare,
     float OwnRaw,
-    float EntityInfluence,
     float ForeignShare,
+    float ForeignRaw,
     float AttachedComponentMass,
     int AdjacentSupportedCount,
     int AttachedComponentCount);
 
 internal static class CultureInfluenceTargetScorer
 {
-    private const float SupportedRawInfluence = 12f;
-    private const float StrongRawInfluence = 30f;
-    private const float NexusRawInfluence = 90f;
+    private const float ClaimedRawInfluence = WorldState.CultureClaimedRawMass;
+    private const float ControlledRawInfluence = WorldState.CultureControlledRawMass;
+    private const float FullRawInfluence = WorldState.CultureFullRawMass;
     private const float ComponentMassScale = 6f;
     private const float AttachmentScale = 2f;
     private const float BridgeBonusPerComponent = 0.2f;
     private const float BridgeBonusCap = 7f / 20f;
+    private const float ForeignTraceToleranceShare = 10f;
+    private const float ForeignContestScaleShare = 45f;
 
     internal static float Score(in CultureInfluenceTargetScoreInput input)
     {
@@ -49,7 +51,7 @@ internal static class CultureInfluenceTargetScorer
         if (attachedComponentMass <= 0f &&
             input.TargetingCode != LowAltitudeInfluenceTargetingCodes.Contest)
         {
-            attachedComponentMass = Clamp01(global::System.MathF.Max(input.OwnRaw, input.EntityInfluence) / StrongRawInfluence);
+            attachedComponentMass = Clamp01(input.OwnRaw / ControlledRawInfluence);
             adjacentSupportedCount = attachedComponentMass > 0f ? 1 : 0;
             attachedComponentCount = adjacentSupportedCount;
         }
@@ -69,34 +71,73 @@ internal static class CultureInfluenceTargetScorer
 
     private static float SpreadUtility(in CultureInfluenceTargetScoreInput input)
     {
-        var cultureHeadroom = Clamp01((100f - input.OwnShare) / 100f);
-        var entityHeadroom = Clamp01((100f - input.EntityInfluence) / 100f);
-        var headroom = global::System.MathF.Max(cultureHeadroom, entityHeadroom * 0.5f);
+        var headroom = Clamp01((ControlledRawInfluence - input.OwnRaw) / ControlledRawInfluence);
         if (headroom <= 0f)
         {
             return 0f;
         }
 
-        var rawShortfall = Clamp01((StrongRawInfluence - input.OwnRaw) / StrongRawInfluence);
-        return global::System.MathF.Pow(headroom, 1.25f) * ((7f / 20f) + ((13f / 20f) * rawShortfall));
+        var rawShortfall = Clamp01((ControlledRawInfluence - input.OwnRaw) / ControlledRawInfluence);
+        return global::System.MathF.Pow(headroom, 1.25f) *
+            ((7f / 20f) + ((13f / 20f) * rawShortfall)) *
+            ExpansionForeignDrag(input);
     }
 
     private static float ReinforceUtility(in CultureInfluenceTargetScoreInput input)
     {
-        var ownPresence = Saturating(global::System.MathF.Max(input.OwnRaw, input.EntityInfluence), SupportedRawInfluence);
+        var ownPresence = Saturating(input.OwnRaw, ClaimedRawInfluence);
         if (ownPresence <= 0f)
         {
             return 0f;
         }
 
-        var rawShortfall = Clamp01((NexusRawInfluence - input.OwnRaw) / NexusRawInfluence);
-        return ownPresence * rawShortfall;
+        var rawShortfall = Clamp01((FullRawInfluence - input.OwnRaw) / FullRawInfluence);
+        return ownPresence * rawShortfall * ExpansionForeignDrag(input);
     }
 
     private static float ContestUtility(in CultureInfluenceTargetScoreInput input)
     {
-        var foreignPresence = Clamp01(input.ForeignShare / 100f);
-        return foreignPresence <= 0f ? 0f : foreignPresence;
+        var foreignPresence = ForeignCleanupSignal(input.ForeignShare, input.ForeignRaw);
+        if (foreignPresence <= 0f)
+        {
+            return 0f;
+        }
+
+        var ownAnchor = global::System.MathF.Max(
+            Clamp01(input.OwnShare / 100f),
+            Saturating(input.OwnRaw, ClaimedRawInfluence));
+        return foreignPresence * (0.5f + ownAnchor) * (0.75f + (0.5f * ownAnchor));
+    }
+
+    private static float ExpansionForeignDrag(in CultureInfluenceTargetScoreInput input)
+    {
+        var foreignCompetition = ForeignContestSignal(input.ForeignShare);
+        if (foreignCompetition <= 0f)
+        {
+            return 1f;
+        }
+
+        var ownBoundary = global::System.MathF.Max(
+            Clamp01(input.OwnShare / 100f),
+            Saturating(input.OwnRaw, ControlledRawInfluence));
+        return 1f - (0.7f * foreignCompetition * (1f - ownBoundary));
+    }
+
+    private static float ForeignCleanupSignal(float foreignShare, float foreignRaw)
+    {
+        var shareSignal = ForeignContestSignal(foreignShare);
+        var rawSignal = Saturating(foreignRaw, ClaimedRawInfluence) * 0.65f;
+        return global::System.MathF.Max(shareSignal, rawSignal);
+    }
+
+    private static float ForeignContestSignal(float foreignShare)
+    {
+        if (foreignShare <= ForeignTraceToleranceShare)
+        {
+            return 0f;
+        }
+
+        return Clamp01((foreignShare - ForeignTraceToleranceShare) / ForeignContestScaleShare);
     }
 
     private static float Saturating(float value, float scale) =>

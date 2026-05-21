@@ -3,6 +3,8 @@ namespace Engine.Kernel;
 internal sealed class MapSignalsProgramRuntime :
     IKernelProgramRuntime<MapSignalsProgramData, MapSignalsProgramState>
 {
+    private const float CultureMaturityCapacityScale = 0.4f;
+
     public MapSignalsProgramRuntime(MapSignalsProgramData data, MapSignalsProgramState state)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
@@ -263,7 +265,12 @@ internal sealed class MapSignalsProgramRuntime :
         var mass = Data.KindBaseAttractorMass(kindId);
         mass += world.CoverageOwnerCellCount(entityId, planeCode) * Data.KindCoverageAttractorScale(kindId);
 
-        mass += world.GetCellInfluence(entityId, planeCode, q, r) * Data.KindInfluenceAttractorScale(kindId);
+        var cultureId = world.EntityCultureId(entityId);
+        if (cultureId > 0)
+        {
+            mass += world.GetCellCultureMaturity(cultureId, planeCode, q, r) *
+                Data.KindInfluenceAttractorScale(kindId);
+        }
 
         mass += simulation.MapActivity.Heat(planeCode, q, r, tick) * Data.KindActivityAttractorScale(kindId);
         mass += AttractorScalarMass(world, entityId, kindId);
@@ -322,21 +329,19 @@ internal sealed class MapSignalsProgramRuntime :
             capacity += Data.KindCapacityEmission(world.EntityKindId(ownerId));
         }
 
-        for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
-        {
-            if (!world.EntityIsActive(entityId))
-            {
-                continue;
-            }
+        capacity += DominantCultureMaturityAt(world, planeCode, q, r) * CultureMaturityCapacityScale;
+        return capacity;
+    }
 
-            var influence = world.GetCellInfluence(entityId, planeCode, q, r);
-            if (influence > 0f)
-            {
-                capacity += Data.KindCapacityEmission(world.EntityKindId(entityId)) * (influence / 100f);
-            }
+    private static float DominantCultureMaturityAt(WorldState world, int planeCode, int q, int r)
+    {
+        var maturity = 0f;
+        for (var cultureId = 1; cultureId <= world.CultureHighWatermark; cultureId++)
+        {
+            maturity = global::System.MathF.Max(maturity, world.GetCellCultureMaturity(cultureId, planeCode, q, r));
         }
 
-        return capacity;
+        return maturity;
     }
 
     private float BaseCapacityAt(WorldState world, int planeCode, int q, int r)

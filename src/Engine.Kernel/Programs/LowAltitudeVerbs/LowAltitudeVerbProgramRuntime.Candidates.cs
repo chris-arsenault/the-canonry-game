@@ -447,16 +447,18 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         ref VerbTargetCandidate selected)
     {
         var world = simulation.World;
-        var entityInfluence = world.GetCellInfluence(entityId, planeCode, q, r);
         var ownCultureInfluence = world.GetCellCultureInfluence(cultureId, planeCode, q, r);
         var neighborhood = CultureNeighborhood(world, cultureId, planeCode, q, r);
         var targetingCode = EffectiveInfluenceTargetingCode(rule);
-        if (!OwnCultureExpansionTargetAllowed(targetingCode, ownCultureInfluence, neighborhood.CenterRaw, entityInfluence, neighborhood))
+        if (!OwnCultureExpansionTargetAllowed(targetingCode, neighborhood.CenterRaw, neighborhood))
         {
             return;
         }
 
-        var foreignCultureInfluence = StrongestOtherCultureInfluence(world, cultureId, planeCode, q, r, out _);
+        var foreignCultureInfluence = StrongestOtherCultureInfluence(world, cultureId, planeCode, q, r, out var foreignCultureId);
+        var foreignCultureRaw = foreignCultureId > 0
+            ? world.GetCellCultureInfluenceRaw(foreignCultureId, planeCode, q, r)
+            : 0f;
         var candidate = ScoreOwnInfluenceCell(
             simulation,
             entityId,
@@ -468,8 +470,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             TargetS(planeCode, q, r),
             ownCultureInfluence,
             foreignCultureInfluence,
+            foreignCultureRaw,
             neighborhood.CenterRaw,
-            entityInfluence,
             neighborhood,
             _cultureInfluenceComponents.AttachmentAt(q, r),
             scalars,
@@ -490,9 +492,22 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int planeCode,
         int q,
         int r,
-        int tick) =>
-        Data.OperationCode(rule) != ProgramOpcodeCodes.MoveActor ||
-        simulation.Movement.CanReach(simulation, entityId, planeCode, q, r, tick);
+        int tick)
+    {
+        if (Data.OperationCode(rule) != ProgramOpcodeCodes.MoveActor)
+        {
+            return true;
+        }
+
+        var targetMode = Data.TargetModeCode(rule);
+        if (targetMode == TargetSelectorCodes.Explore ||
+            targetMode == TargetSelectorCodes.Terrain)
+        {
+            return true;
+        }
+
+        return simulation.Movement.CanReach(simulation, entityId, planeCode, q, r, tick);
+    }
 
     private VerbTargetCandidate ScoreOwnInfluenceCell(
         Simulation simulation,
@@ -505,8 +520,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int s,
         float ownCultureInfluence,
         float foreignCultureInfluence,
+        float foreignCultureRaw,
         float ownCultureRaw,
-        float entityInfluence,
         CultureInfluenceNeighborhood neighborhood,
         CultureInfluenceAttachment attachment,
         EffectiveVerbScalars scalars,
@@ -520,8 +535,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             targetingCode,
             ownCultureInfluence,
             foreignCultureInfluence,
+            foreignCultureRaw,
             ownCultureRaw,
-            entityInfluence,
             neighborhood,
             attachment);
         if (culturalExpansionDrive <= 0f)
@@ -560,29 +575,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var actorQ = CurrentQ(world, entityId, planeCode);
         var actorR = CurrentR(world, entityId, planeCode);
         var searchRadius = CellTargetSearchRadius(world, rule, TargetSelectorCodes.OtherMapValue);
-        var filter = BuildForeignInfluenceFilter(world, entityId, rule);
         if (actorCultureId > 0)
         {
             _cultureInfluenceComponents.Build(world, actorCultureId, planeCode);
-        }
-
-        var scratchWidth = (searchRadius * 2) + 1;
-        if ((long)scratchWidth * scratchWidth <= ForeignInfluenceScratchCapacity)
-        {
-            return TryBuildForeignInfluenceCandidateFromInfluenceCells(
-                simulation,
-                entityId,
-                rule,
-                tick,
-                planeCode,
-                actorKindId,
-                actorCultureId,
-                scalars,
-                actorQ,
-                actorR,
-                searchRadius,
-                scratchWidth,
-                filter);
         }
 
         return TryBuildForeignInfluenceCandidateFromSearchCells(
@@ -596,8 +591,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             scalars,
             actorQ,
             actorR,
-            searchRadius,
-            filter);
+            searchRadius);
     }
 
     private CandidateBuildResult TryBuildForeignInfluenceCandidateFromSearchCells(
@@ -611,8 +605,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         EffectiveVerbScalars scalars,
         int actorQ,
         int actorR,
-        int searchRadius,
-        ForeignInfluenceFilter filter)
+        int searchRadius)
     {
         var totalWeight = 0f;
         var sumAffordanceScore = 0f;
@@ -640,7 +633,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                     entityId,
                     rule,
                     tick,
-                    filter,
                     planeCode,
                     actorKindId,
                     actorCultureId,
@@ -663,7 +655,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int entityId,
         int rule,
         int tick,
-        ForeignInfluenceFilter filter,
         int planeCode,
         int actorKindId,
         int actorCultureId,
@@ -676,294 +667,15 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         ref float sumAffordanceScore,
         ref VerbTargetCandidate selected)
     {
-        var influencerId = StrongestAllowedOtherInfluencerAt(
-            simulation,
-            entityId,
-            rule,
-            filter,
-            planeCode,
-            q,
-            r,
-            out var influence);
-        if (influencerId == 0)
-        {
-            return;
-        }
-
-        AddForeignInfluenceCandidate(
-            simulation,
-            entityId,
-            rule,
-            planeCode,
-            actorKindId,
-            actorCultureId,
-            scalars,
-            actorQ,
-            actorR,
-            q,
-            r,
-            influencerId,
-            influence,
-            tick,
-            ref totalWeight,
-            ref sumAffordanceScore,
-            ref selected);
-    }
-
-    private CandidateBuildResult TryBuildForeignInfluenceCandidateFromInfluenceCells(
-        Simulation simulation,
-        int entityId,
-        int rule,
-        int tick,
-        int planeCode,
-        int actorKindId,
-        int actorCultureId,
-        EffectiveVerbScalars scalars,
-        int actorQ,
-        int actorR,
-        int searchRadius,
-        int scratchWidth,
-        ForeignInfluenceFilter filter)
-    {
-        var epoch = BeginForeignInfluenceScratchEpoch();
-        var touchedCount = PopulateForeignInfluenceScratch(
+        _ = rule;
+        var influence = StrongestOtherCultureInfluence(
             simulation.World,
-            entityId,
-            rule,
-            filter,
             actorCultureId,
             planeCode,
-            actorQ,
-            actorR,
-            searchRadius,
-            scratchWidth,
-            epoch);
-        return ScoreForeignInfluenceScratch(
-            simulation,
-            entityId,
-            rule,
-            tick,
-            planeCode,
-            actorKindId,
-            actorCultureId,
-            scalars,
-            actorQ,
-            actorR,
-            searchRadius,
-            scratchWidth,
-            epoch,
-            touchedCount);
-    }
-
-    private int BeginForeignInfluenceScratchEpoch()
-    {
-        if (_foreignInfluenceScratchEpoch == int.MaxValue)
-        {
-            global::System.Array.Clear(_foreignInfluenceEpochScratch);
-            _foreignInfluenceScratchEpoch = 0;
-        }
-
-        _foreignInfluenceScratchEpoch++;
-        return _foreignInfluenceScratchEpoch;
-    }
-
-    private int PopulateForeignInfluenceScratch(
-        WorldState world,
-        int entityId,
-        int rule,
-        ForeignInfluenceFilter filter,
-        int actorCultureId,
-        int planeCode,
-        int actorQ,
-        int actorR,
-        int searchRadius,
-        int scratchWidth,
-        int epoch)
-    {
-        var touchedCount = 0;
-        for (var otherEntityId = 1; otherEntityId <= world.EntityHighWatermark; otherEntityId++)
-        {
-            if (otherEntityId == entityId ||
-                !world.EntityIsActive(otherEntityId) ||
-                world.EntityCultureId(otherEntityId) == actorCultureId ||
-                world.InfluenceCellCount(otherEntityId, planeCode) == 0)
-            {
-                continue;
-            }
-
-            AddForeignInfluenceCellsForEntity(
-                world,
-                otherEntityId,
-                filter,
-                planeCode,
-                actorQ,
-                actorR,
-                searchRadius,
-                scratchWidth,
-                epoch,
-                ref touchedCount);
-        }
-
-        return touchedCount;
-    }
-
-    private void AddForeignInfluenceCellsForEntity(
-        WorldState world,
-        int otherEntityId,
-        ForeignInfluenceFilter filter,
-        int planeCode,
-        int actorQ,
-        int actorR,
-        int searchRadius,
-        int scratchWidth,
-        int epoch,
-        ref int touchedCount)
-    {
-        var cursor = world.InfluenceCells(otherEntityId, planeCode);
-        while (world.MoveNextInfluenceCell(ref cursor, out var q, out var r, out var candidateInfluence))
-        {
-            if (!ForeignInfluenceScratchCellAllowed(world, planeCode, actorQ, actorR, q, r, searchRadius))
-            {
-                continue;
-            }
-
-            var slot = ForeignInfluenceScratchSlot(actorQ, actorR, q, r, searchRadius, scratchWidth);
-            var slotTouched = _foreignInfluenceEpochScratch[slot] == epoch;
-            if (slotTouched && candidateInfluence <= _foreignInfluenceValueScratch[slot])
-            {
-                continue;
-            }
-
-            if (!ForeignInfluenceTargetAllowed(otherEntityId, filter, candidateInfluence))
-            {
-                continue;
-            }
-
-            if (!slotTouched)
-            {
-                _foreignInfluenceTouchedSlotScratch[touchedCount] = slot;
-                touchedCount++;
-            }
-
-            _foreignInfluenceEpochScratch[slot] = epoch;
-            _foreignInfluenceEntityScratch[slot] = otherEntityId;
-            _foreignInfluenceValueScratch[slot] = candidateInfluence;
-        }
-    }
-
-    private bool ForeignInfluenceScratchCellAllowed(
-        WorldState world,
-        int planeCode,
-        int actorQ,
-        int actorR,
-        int q,
-        int r,
-        int searchRadius)
-    {
-        var dq = q - actorQ;
-        if (dq < -searchRadius || dq > searchRadius)
-        {
-            return false;
-        }
-
-        var dr = r - actorR;
-        if (dr < -searchRadius || dr > searchRadius)
-        {
-            return false;
-        }
-
-        var ds = -dq - dr;
-        return ds >= -searchRadius &&
-            ds <= searchRadius &&
-            CellTargetCoordinateAllowed(world, planeCode, q, r);
-    }
-
-    private static int ForeignInfluenceScratchSlot(
-        int actorQ,
-        int actorR,
-        int q,
-        int r,
-        int searchRadius,
-        int scratchWidth)
-    {
-        var scratchQ = q - actorQ + searchRadius;
-        var scratchR = r - actorR + searchRadius;
-        return (scratchQ * scratchWidth) + scratchR;
-    }
-
-    private CandidateBuildResult ScoreForeignInfluenceScratch(
-        Simulation simulation,
-        int entityId,
-        int rule,
-        int tick,
-        int planeCode,
-        int actorKindId,
-        int actorCultureId,
-        EffectiveVerbScalars scalars,
-        int actorQ,
-        int actorR,
-        int searchRadius,
-        int scratchWidth,
-        int epoch,
-        int touchedCount)
-    {
-        var totalWeight = 0f;
-        var sumAffordanceScore = 0f;
-        var selected = default(VerbTargetCandidate);
-        for (var i = 0; i < touchedCount; i++)
-        {
-            AddForeignInfluenceScratchCandidate(
-                simulation,
-                entityId,
-                rule,
-                tick,
-                planeCode,
-                actorKindId,
-                actorCultureId,
-                scalars,
-                actorQ,
-                actorR,
-                _foreignInfluenceTouchedSlotScratch[i],
-                searchRadius,
-                scratchWidth,
-                epoch,
-                ref totalWeight,
-                ref sumAffordanceScore,
-                ref selected);
-        }
-
-        return new CandidateBuildResult(selected, sumAffordanceScore);
-    }
-
-    private void AddForeignInfluenceScratchCandidate(
-        Simulation simulation,
-        int entityId,
-        int rule,
-        int tick,
-        int planeCode,
-        int actorKindId,
-        int actorCultureId,
-        EffectiveVerbScalars scalars,
-        int actorQ,
-        int actorR,
-        int slot,
-        int searchRadius,
-        int scratchWidth,
-        int epoch,
-        ref float totalWeight,
-        ref float sumAffordanceScore,
-        ref VerbTargetCandidate selected)
-    {
-        if (_foreignInfluenceEpochScratch[slot] != epoch)
-        {
-            return;
-        }
-
-        var scratchQ = slot / scratchWidth;
-        var scratchR = slot - (scratchQ * scratchWidth);
-        var q = actorQ + scratchQ - searchRadius;
-        var r = actorR + scratchR - searchRadius;
-        if (!MovementTargetReachable(simulation, entityId, rule, planeCode, q, r, tick))
+            q,
+            r,
+            out var foreignCultureId);
+        if (foreignCultureId == 0)
         {
             return;
         }
@@ -980,8 +692,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             actorR,
             q,
             r,
-            _foreignInfluenceEntityScratch[slot],
-            _foreignInfluenceValueScratch[slot],
+            0,
+            influence,
             tick,
             ref totalWeight,
             ref sumAffordanceScore,

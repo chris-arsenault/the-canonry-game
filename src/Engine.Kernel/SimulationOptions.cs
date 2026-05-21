@@ -38,6 +38,9 @@ internal sealed record SimulationOptions
     public int CultureSlotCapacity { get; init; } = 64;
     public int CultureSlotAllowedKindCapacity { get; init; } = 256;
     public int CultureSlotScoreRuleCapacity { get; init; } = 512;
+    public int MinorActorCapacity { get; init; } = 4096;
+    public int MinorActorRuleCapacity { get; init; } = 64;
+    public int MinorActorSourceRuleCapacity { get; init; } = 16384;
     public int EntityAttributeCapacity { get; init; } = 512;
     public int EntityTraitCapacity { get; init; } = 512;
     public int AttributeIdCapacity { get; init; } = 1024;
@@ -65,6 +68,7 @@ internal sealed record KernelProgramTuningOptions
     public UpkeepProgramTuningOptions Upkeep { get; init; } = new();
     public GeneratorProgramTuningOptions Generators { get; init; } = new();
     public LowAltitudeVerbTuningOptions LowAltitudeVerbs { get; init; } = new();
+    public MinorActorProgramTuningOptions MinorActors { get; init; } = new();
 }
 
 internal sealed record ProgramEnabledTuningOptions
@@ -79,6 +83,7 @@ internal sealed record ProgramEnabledTuningOptions
     public int Gambits { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Relationships { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
     public int Generators { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
+    public int MinorActors { get; init; } = ProgramEnabledOverrideCodes.Unspecified;
 }
 
 internal sealed record UpkeepProgramTuningOptions
@@ -108,4 +113,9 @@ internal sealed record LowAltitudeVerbTuningOptions
     public float ForeignInfluenceDistanceScale { get; init; } = 6f;
     public float InfluenceShortfallSamplingFactor { get; init; } = 1f;
     public float ForeignInfluencePresenceSamplingFactor { get; init; } = 1f;
+}
+
+internal sealed record MinorActorProgramTuningOptions
+{
+    public int TicksPerKernelTick { get; init; } = 5;
 }

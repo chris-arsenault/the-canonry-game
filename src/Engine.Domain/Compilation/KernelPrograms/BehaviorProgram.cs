@@ -37,6 +37,7 @@ public enum BehaviorProgramOperation
     SetTargetCoverageTerrain,
     BuildTravelStructureLine,
     SetTargetCultureFromSelf,
+    IncreaseWorkTier,
 }
 
 public enum BehaviorProgramEndpoint
@@ -76,6 +77,8 @@ public enum BehaviorProgramPrecondition
     SharedInfluence,
     EndpointRelationshipCountBelow,
     EndpointCultureIs,
+    SelfCultureMass,
+    SelfWorkTierBelow,
 }
 
 public enum BehaviorProgramExpression

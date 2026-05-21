@@ -140,6 +140,16 @@ public sealed class SetTargetCultureFromSelfMutation : IMutation
     public string Describe() => "set_target_culture_from_self";
 }
 
+/// <summary>Raises the current entity's minor-labor work tier by one. A max tier of zero means uncapped.</summary>
+public sealed class IncreaseWorkTierMutation(int maxTier = 0) : IMutation
+{
+    public int MaxTier { get; } = maxTier;
+
+    public string Describe() => MaxTier > 0
+        ? $"increase_work_tier(max={MaxTier})"
+        : "increase_work_tier";
+}
+
 /// <summary>
 /// Modifies the current entity's attribute by a delta with optional variance.
 /// Actual delta = delta * (1 + random(-variance, +variance)).

@@ -119,6 +119,12 @@ public sealed class KernelEventPayloadTests
         var cellCultureInfluenceChanged = new CellCultureInfluenceChangedKernelEvent(20, 21, -3, 3, 4, PlaneCodes.Physical, 5, 10f, 25f);
         Assert.Equal(cellCultureInfluenceChanged, KernelEvent.From(cellCultureInfluenceChanged).AsCellCultureInfluenceChanged());
 
+        var cultureSlotOccupancyChanged = new CultureSlotOccupancyChangedKernelEvent(20, 21, 22, 23, 24, 25, 26, 27, 1.25f, 2.5f);
+        Assert.Equal(cultureSlotOccupancyChanged, KernelEvent.From(cultureSlotOccupancyChanged).AsCultureSlotOccupancyChanged());
+
+        var minorActorVerbExecuted = new MinorActorVerbExecutedKernelEvent(20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, PlaneCodes.Physical, -3, 3, 32, 33, 1.25f, 2.5f, 3.75f, 5f);
+        Assert.Equal(minorActorVerbExecuted, KernelEvent.From(minorActorVerbExecuted).AsMinorActorVerbExecuted());
+
         var mapCellStateChanged = new MapCellStateChangedKernelEvent(20, 21, PlaneCodes.Semantic, -3, 3, 4, 5, 6, 7, 8, 9, 10);
         Assert.Equal(mapCellStateChanged, KernelEvent.From(mapCellStateChanged).AsMapCellStateChanged());
 

@@ -383,8 +383,8 @@ public sealed class GambitProgramRuntimeTests
         simulation.World.SetCell(0, 0, terrainId: 1);
         simulation.RegisterAttribute(actorKindId, attributeId, 0f, 100f, 10f);
         var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
-        var target = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
-        simulation.SetCellInfluence(actor, PlaneCodes.Physical, 0, 0, 15f, tick: 0);
+        var target = simulation.CreateEntity(targetKindId, 1, 2, 1, 0, 0, 0, 0, 0);
+        simulation.SetCellInfluence(actor, PlaneCodes.Physical, 1, 0, 15f, tick: 0);
         simulation.SetCellInfluence(target, PlaneCodes.Physical, 0, 0, 60f, tick: 0);
 
         var gambit = simulation.Gambits.RegisterGambit(
@@ -419,7 +419,7 @@ public sealed class GambitProgramRuntimeTests
         simulation.World.SetCell(1, 0, terrainId: 1);
         simulation.RegisterAttribute(actorKindId, attributeId, 0f, 100f, 10f);
         var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
-        var target = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(targetKindId, 1, 2, 1, 0, 0, 0, 0, 0);
         simulation.SetCellInfluence(actor, PlaneCodes.Physical, 0, 0, 15f, tick: 0);
         simulation.SetCellInfluence(target, PlaneCodes.Physical, 1, 0, 60f, tick: 0);
 
@@ -647,8 +647,8 @@ public sealed class GambitProgramRuntimeTests
         simulation.World.SetCell(0, 0, terrainId: 1);
         simulation.RegisterAttribute(actorKindId, attributeId, 0f, 100f, 10f);
         var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
-        var target = simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
-        simulation.SetCellInfluence(actor, PlaneCodes.Physical, 0, 0, 25f, tick: 0);
+        var target = simulation.CreateEntity(targetKindId, 1, 2, 1, 0, 0, 0, 0, 0);
+        simulation.SetCellInfluence(actor, PlaneCodes.Physical, 1, 0, 25f, tick: 0);
         simulation.SetCellInfluence(target, PlaneCodes.Physical, 0, 0, 25f, tick: 0);
 
         var gambit = simulation.Gambits.RegisterGambit(
@@ -669,6 +669,73 @@ public sealed class GambitProgramRuntimeTests
         simulation.AdvanceTicks(1);
 
         Assert.Equal(30f, simulation.World.GetAttribute(actor, attributeId));
+    }
+
+    [Fact]
+    public void WorkTierGambitRequiresSelfCultureMassAndIncrementsTier()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int kindId = 1;
+        const int gambitId = 122;
+        simulation.World.SetMapRadius(2);
+        simulation.World.SetCell(0, 0, terrainId: 1);
+        var actor = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        foreach (var cell in new[] { (0, 0), (1, 0), (1, -1), (0, -1) })
+        {
+            simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, cell.Item1, cell.Item2, 30f, tick: 0);
+        }
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            kindId,
+            gambitId,
+            targetMode: BehaviorTargetModeCodes.Self,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsSelf);
+        simulation.Gambits.AddPrecondition(
+            gambit,
+            BehaviorPreconditionCodes.SelfCultureMass,
+            PlaneCodes.Physical,
+            x: 12f,
+            y: 90f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.SelfWorkTierBelow, 1);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.IncreaseWorkTier, 1);
+
+        simulation.AdvanceTicks(1);
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(1, simulation.MinorActors.WorkTier(actor));
+    }
+
+    [Fact]
+    public void WorkTierGambitRejectsEntityOutsideCultureMass()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int kindId = 1;
+        const int gambitId = 123;
+        simulation.World.SetMapRadius(1);
+        simulation.World.SetCell(0, 0, terrainId: 1);
+        var actor = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            kindId,
+            gambitId,
+            targetMode: BehaviorTargetModeCodes.Self,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsSelf);
+        simulation.Gambits.AddPrecondition(
+            gambit,
+            BehaviorPreconditionCodes.SelfCultureMass,
+            PlaneCodes.Physical,
+            x: 12f,
+            y: 90f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.SelfWorkTierBelow, 1);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.IncreaseWorkTier, 1);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(0, simulation.MinorActors.WorkTier(actor));
     }
 
     [Fact]

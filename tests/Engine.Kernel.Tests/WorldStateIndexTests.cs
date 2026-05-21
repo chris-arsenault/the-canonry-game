@@ -205,37 +205,37 @@ public sealed class WorldStateIndexTests
     }
 
     [Fact]
-    public void MapLayerSetStoresExclusiveCoverageAndOverlappingInfluence()
+    public void MapLayerSetStoresExclusiveCoverageAndOverlappingCultureInfluence()
     {
         var layers = new MapLayerSet(entityCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
         const int cellKey = 1;
 
         layers.Coverage.SetValue(PlaneCodes.Physical, cellKey, 0, 0, value: 1);
-        layers.Influence.SetValue(entityId: 1, PlaneCodes.Physical, cellKey, q: 0, r: 0, value: 40f);
-        layers.Influence.SetValue(entityId: 2, PlaneCodes.Physical, cellKey, q: 0, r: 0, value: 60f);
+        layers.RawCultureInfluence.SetValue(entityId: 1, PlaneCodes.Physical, cellKey, q: 0, r: 0, value: 40f);
+        layers.RawCultureInfluence.SetValue(entityId: 2, PlaneCodes.Physical, cellKey, q: 0, r: 0, value: 60f);
 
         Assert.Equal(1, layers.Coverage.ValueAt(PlaneCodes.Physical, cellKey));
-        Assert.Equal(40f, layers.Influence.ValueAt(entityId: 1, PlaneCodes.Physical, cellKey));
-        Assert.Equal(60f, layers.Influence.ValueAt(entityId: 2, PlaneCodes.Physical, cellKey));
-        Assert.Equal(0f, layers.Influence.ValueAt(entityId: 1, PlaneCodes.Semantic, cellKey));
+        Assert.Equal(40f, layers.RawCultureInfluence.ValueAt(entityId: 1, PlaneCodes.Physical, cellKey));
+        Assert.Equal(60f, layers.RawCultureInfluence.ValueAt(entityId: 2, PlaneCodes.Physical, cellKey));
+        Assert.Equal(0f, layers.RawCultureInfluence.ValueAt(entityId: 1, PlaneCodes.Semantic, cellKey));
 
         layers.Coverage.SetValue(PlaneCodes.Physical, cellKey, 0, 0, value: 2);
 
         Assert.Equal(2, layers.Coverage.ValueAt(PlaneCodes.Physical, cellKey));
         Assert.Equal(0, layers.Coverage.ValueCellCount(1, PlaneCodes.Physical));
         Assert.Equal(1, layers.Coverage.ValueCellCount(2, PlaneCodes.Physical));
-        Assert.Equal(40f, layers.Influence.ValueAt(entityId: 1, PlaneCodes.Physical, cellKey));
-        Assert.Equal(60f, layers.Influence.ValueAt(entityId: 2, PlaneCodes.Physical, cellKey));
+        Assert.Equal(40f, layers.RawCultureInfluence.ValueAt(entityId: 1, PlaneCodes.Physical, cellKey));
+        Assert.Equal(60f, layers.RawCultureInfluence.ValueAt(entityId: 2, PlaneCodes.Physical, cellKey));
     }
 
     [Fact]
-    public void MapLayerSetSnapshotRestoresCoverageAndInfluenceTogether()
+    public void MapLayerSetSnapshotRestoresCoverageAndCultureInfluenceTogether()
     {
         var layers = new MapLayerSet(entityCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
         var loaded = new MapLayerSet(entityCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
         const int cellKey = 2;
         layers.Coverage.SetValue(PlaneCodes.Semantic, cellKey, 1, -1, value: 3);
-        layers.Influence.SetValue(entityId: 3, PlaneCodes.Semantic, cellKey, q: 1, r: -1, value: 75f);
+        layers.RawCultureInfluence.SetValue(entityId: 3, PlaneCodes.Semantic, cellKey, q: 1, r: -1, value: 75f);
 
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
@@ -250,49 +250,51 @@ public sealed class WorldStateIndexTests
         }
 
         Assert.Equal(3, loaded.Coverage.ValueAt(PlaneCodes.Semantic, cellKey));
-        Assert.Equal(75f, loaded.Influence.ValueAt(entityId: 3, PlaneCodes.Semantic, cellKey));
-        Assert.Equal([(1, -1, 75f)], InfluenceCellsOf(loaded.Influence, entityId: 3, PlaneCodes.Semantic));
+        Assert.Equal(75f, loaded.RawCultureInfluence.ValueAt(entityId: 3, PlaneCodes.Semantic, cellKey));
+        Assert.Equal([(1, -1, 75f)], InfluenceCellsOf(loaded.RawCultureInfluence, entityId: 3, PlaneCodes.Semantic));
     }
 
     [Fact]
-    public void MaintainsInfluenceLayerReverseIndexByEntityAndPlane()
+    public void MaintainsCultureInfluenceLayerReverseIndexByCultureAndPlane()
     {
         var simulation = CreateSimulation();
-        var influencerA = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
-        var influencerB = simulation.CreateEntity(1, 1, 1, 1, 0, 0, 0, 0, 0);
-        simulation.SetCellInfluence(influencerA, PlaneCodes.Physical, 0, 0, 40f, tick: 0);
-        simulation.SetCellInfluence(influencerA, PlaneCodes.Physical, 1, 0, 55f, tick: 0);
-        simulation.SetCellInfluence(influencerA, PlaneCodes.Semantic, 2, -1, 65f, tick: 0);
-        simulation.SetCellInfluence(influencerB, PlaneCodes.Physical, 0, 0, 75f, tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0, 40f, tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 1, 0, 55f, tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Semantic, 2, -1, 65f, tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(2, PlaneCodes.Physical, 0, 0, 75f, tick: 0);
 
-        Assert.Equal(2, simulation.World.InfluenceCellCount(influencerA, PlaneCodes.Physical));
-        Assert.Equal([(0, 0, 40f), (1, 0, 55f)], InfluenceCellsOf(simulation.World, influencerA, PlaneCodes.Physical));
-        Assert.Equal([(2, -1, 65f)], InfluenceCellsOf(simulation.World, influencerA, PlaneCodes.Semantic));
-        Assert.Equal([(0, 0, 75f)], InfluenceCellsOf(simulation.World, influencerB, PlaneCodes.Physical));
+        Assert.Equal(2, simulation.World.CultureInfluenceCellCount(1, PlaneCodes.Physical));
+        var physicalCultureOne = CultureInfluenceCellsOf(simulation.World, 1, PlaneCodes.Physical);
+        Assert.Equal(2, physicalCultureOne.Length);
+        Assert.Contains(physicalCultureOne, cell => cell is { Q: 0, R: 0 } && cell.Value > 34f && cell.Value < 35f);
+        Assert.Contains(physicalCultureOne, cell => cell is { Q: 1, R: 0 } && cell.Value == 100f);
+        Assert.Equal([(2, -1, 100f)], CultureInfluenceCellsOf(simulation.World, 1, PlaneCodes.Semantic));
+        var physicalCultureTwo = Assert.Single(CultureInfluenceCellsOf(simulation.World, 2, PlaneCodes.Physical));
+        Assert.Equal((0, 0), (physicalCultureTwo.Q, physicalCultureTwo.R));
+        Assert.True(physicalCultureTwo.Value > 65f && physicalCultureTwo.Value < 66f);
 
-        simulation.SetCellInfluence(influencerA, PlaneCodes.Physical, 0, 0, 0f, tick: 1);
+        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0, -40f, tick: 1);
 
-        Assert.Equal(1, simulation.World.InfluenceCellCount(influencerA, PlaneCodes.Physical));
-        Assert.Equal([(1, 0, 55f)], InfluenceCellsOf(simulation.World, influencerA, PlaneCodes.Physical));
-        Assert.Equal(0f, simulation.World.GetCellInfluence(influencerA, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(1, simulation.World.CultureInfluenceCellCount(1, PlaneCodes.Physical));
+        Assert.Equal([(1, 0, 100f)], CultureInfluenceCellsOf(simulation.World, 1, PlaneCodes.Physical));
+        Assert.Equal(0f, simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
     }
 
     [Fact]
-    public void InfluenceLayerIteratesEntityPlaneCellsAfterPageBoundaryRemoval()
+    public void CultureInfluenceLayerIteratesCulturePlaneCellsAfterPageBoundaryRemoval()
     {
         var simulation = CreateSimulation();
-        var influencer = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
         for (var i = 0; i < 20; i++)
         {
-            simulation.SetCellInfluence(influencer, PlaneCodes.Physical, i, -i, 25f + i, tick: 0);
+            simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, i, -i, 25f + i, tick: 0);
         }
 
-        simulation.SetCellInfluence(influencer, PlaneCodes.Physical, 0, 0, 0f, tick: 1);
+        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0, -25f, tick: 1);
 
-        var cells = InfluenceCellsOf(simulation.World, influencer, PlaneCodes.Physical);
+        var cells = CultureInfluenceCellsOf(simulation.World, 1, PlaneCodes.Physical);
         Assert.Equal(19, cells.Length);
-        Assert.DoesNotContain((0, 0, 25f), cells);
-        Assert.Contains((19, -19, 44f), cells);
+        Assert.DoesNotContain(cells, cell => cell is { Q: 0, R: 0 });
+        Assert.Contains((19, -19, 100f), cells);
     }
 
     [Fact]
@@ -320,20 +322,21 @@ public sealed class WorldStateIndexTests
     }
 
     [Fact]
-    public void CultureInfluenceRollup_RequiresEnoughRawInfluenceForFullStrength()
+    public void CultureInfluenceTracksDominanceSeparatelyFromRawMaturity()
     {
         var simulation = CreateSimulation();
         var aurora = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
 
         simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, 0.6f, tick: 0);
 
-        Assert.Equal(0f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(100f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(0.06f, simulation.World.GetCellCultureMaturity(1, PlaneCodes.Physical, 0, 0), precision: 3);
 
-        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, 3f, tick: 1);
+        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, 6f, tick: 1);
 
         var influence = simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0);
-        Assert.True(influence > 0f);
-        Assert.NotEqual(100f, influence, precision: 3);
+        Assert.Equal(100f, influence, precision: 3);
+        Assert.Equal(0.6f, simulation.World.GetCellCultureMaturity(1, PlaneCodes.Physical, 0, 0), precision: 3);
     }
 
     [Fact]
@@ -351,6 +354,7 @@ public sealed class WorldStateIndexTests
 
         var interior = simulation.World.CultureFieldAt(1, PlaneCodes.Physical, 0, 0);
         simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 3, -3, 100f, tick: 0);
+        simulation.SetCellInfluence(rival, PlaneCodes.Physical, 1, 0, 20f, tick: 0);
         simulation.SetCellInfluence(rival, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
 
         var border = simulation.World.CultureFieldAt(1, PlaneCodes.Physical, 1, 0);
@@ -431,7 +435,7 @@ public sealed class WorldStateIndexTests
     }
 
     [Fact]
-    public void CultureSlotBenefitReweightsExistingCultureInfluence()
+    public void CultureSlotBenefitDoesNotReweightExistingCultureInfluence()
     {
         var simulation = CreateSimulation();
         var aurora = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
@@ -452,12 +456,12 @@ public sealed class WorldStateIndexTests
 
         simulation.AdvanceTicks(10);
 
-        Assert.Equal(66.667f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
-        Assert.Equal(33.333f, simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(50f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(50f, simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0), precision: 3);
     }
 
     [Fact]
-    public void CultureInfluenceRollupRemovesHistoricalEntityContribution()
+    public void CultureInfluencePersistsWhenEntityBecomesHistorical()
     {
         var simulation = CreateSimulation();
         var aurora = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
@@ -467,13 +471,13 @@ public sealed class WorldStateIndexTests
 
         simulation.SetEntityStatus(wake, EntityStatusCodes.Historical, tick: 1);
 
-        Assert.Equal(100f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
-        Assert.Equal(0f, simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0), precision: 3);
-        Assert.Equal(0, simulation.World.CultureInfluenceCellCount(2, PlaneCodes.Physical));
+        Assert.Equal(50f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(50f, simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(1, simulation.World.CultureInfluenceCellCount(2, PlaneCodes.Physical));
     }
 
     [Fact]
-    public void CultureInfluenceRollupMovesEntityContributionWhenCultureChanges()
+    public void CultureInfluenceDoesNotMoveWhenEntityCultureChanges()
     {
         var simulation = CreateSimulation();
         var place = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
@@ -483,10 +487,10 @@ public sealed class WorldStateIndexTests
 
         simulation.SetEntityCulture(place, 3, tick: 1);
 
-        Assert.Equal(0f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(50f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
         Assert.Equal(50f, simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0), precision: 3);
-        Assert.Equal(50f, simulation.World.GetCellCultureInfluence(3, PlaneCodes.Physical, 0, 0), precision: 3);
-        Assert.Equal(0, simulation.World.CultureInfluenceCellCount(1, PlaneCodes.Physical));
+        Assert.Equal(0f, simulation.World.GetCellCultureInfluence(3, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(1, simulation.World.CultureInfluenceCellCount(1, PlaneCodes.Physical));
     }
 
     private static Simulation CreateSimulation()
@@ -536,20 +540,6 @@ public sealed class WorldStateIndexTests
         while (world.MoveNextCoverageCell(ref cursor, out var q, out var r))
         {
             result[count++] = (q, r);
-        }
-
-        Array.Sort(result, 0, count);
-        return result[..count];
-    }
-
-    private static (int Q, int R, float Value)[] InfluenceCellsOf(WorldState world, int entityId, int planeCode)
-    {
-        var result = new (int Q, int R, float Value)[64];
-        var count = 0;
-        var cursor = world.InfluenceCells(entityId, planeCode);
-        while (world.MoveNextInfluenceCell(ref cursor, out var q, out var r, out var value))
-        {
-            result[count++] = (q, r, value);
         }
 
         Array.Sort(result, 0, count);

@@ -160,6 +160,7 @@ internal static class TelemetrySymbolIds
         AddKernelEventType(symbols, KernelEventType.CellInfluenceChanged, "cell_influence_changed", "Cell Influence Changed");
         AddKernelEventType(symbols, KernelEventType.CellCultureInfluenceChanged, "cell_culture_influence_changed", "Cell Culture Influence Changed");
         AddKernelEventType(symbols, KernelEventType.CultureSlotOccupancyChanged, "culture_slot_occupancy_changed", "Culture Slot Occupancy Changed");
+        AddKernelEventType(symbols, KernelEventType.MinorActorVerbExecuted, "minor_actor_verb_executed", "Minor Actor Verb Executed");
         AddKernelEventType(symbols, KernelEventType.MapCellStateChanged, "map_cell_state_changed", "Map Cell State Changed");
         AddKernelEventType(symbols, KernelEventType.CellRoadChanged, "cell_road_changed", "Cell Road Changed");
         AddKernelEventType(symbols, KernelEventType.CellTravelStructureChanged, "cell_travel_structure_changed", "Cell Travel Structure Changed");

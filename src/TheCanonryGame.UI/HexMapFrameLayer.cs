@@ -15,9 +15,12 @@ public partial class HexMapFrameLayer : Node2D
     private const float CultureFillAlphaRange = 0.28f;
     private const float CultureStrokeAlphaBase = 0.54f;
     private const float CultureStrokeAlphaRange = 0.24f;
+    private const int MinorActorActivityWindowTicks = 160;
+    private const int MinorActorActivityGroupLimit = 96;
 
     private readonly Dictionary<int, Color> _ownerColors = [];
     private HexMapProjection? _map;
+    private UiProjectionState? _projection;
     private IProjectionSymbolCatalog? _symbols;
     private PlaneMode _plane;
     private float _hexSize = 30f;
@@ -26,6 +29,7 @@ public partial class HexMapFrameLayer : Node2D
     private bool _showTerritory = true;
     private bool _showCultureInfluence = true;
     private bool _showInfluence = true;
+    private bool _showMinorActors;
     private bool _showRoads = true;
     private bool _showRoutes = true;
     private AreaGeometryCache? _territoryAreaCache;
@@ -34,6 +38,7 @@ public partial class HexMapFrameLayer : Node2D
 
     public void Bind(
         HexMapProjection? map,
+        UiProjectionState? projection,
         IProjectionSymbolCatalog? symbols,
         PlaneMode plane,
         float hexSize,
@@ -42,6 +47,7 @@ public partial class HexMapFrameLayer : Node2D
         bool showTerritory,
         bool showCultureInfluence,
         bool showInfluence,
+        bool showMinorActors,
         bool showRoads,
         bool showRoutes,
         IReadOnlyDictionary<int, Color> ownerColors)
@@ -54,6 +60,7 @@ public partial class HexMapFrameLayer : Node2D
         }
 
         _map = map;
+        _projection = projection;
         _symbols = symbols;
         _plane = plane;
         _hexSize = hexSize;
@@ -62,6 +69,7 @@ public partial class HexMapFrameLayer : Node2D
         _showTerritory = showTerritory;
         _showCultureInfluence = showCultureInfluence;
         _showInfluence = showInfluence;
+        _showMinorActors = showMinorActors;
         _showRoads = showRoads;
         _showRoutes = showRoutes;
         _ownerColors.Clear();
@@ -92,6 +100,11 @@ public partial class HexMapFrameLayer : Node2D
         if (_showRoads)
         {
             DrawRoadNetwork(cells);
+        }
+
+        if (_showMinorActors)
+        {
+            DrawMinorActorActivity(planeCode);
         }
 
         if (_showBorders)
@@ -211,6 +224,124 @@ public partial class HexMapFrameLayer : Node2D
                 strokeAlpha: strength => 0.12f + (Mathf.Clamp(strength / 100f, 0f, 1f) * 0.18f),
                 strokeWidth: 0.9f),
             []);
+    }
+
+    private void DrawMinorActorActivity(int planeCode)
+    {
+        if (_projection is null || _map is null)
+        {
+            return;
+        }
+
+        var currentTick = _projection.CurrentTick;
+        var groups = _projection.MinorActorActivities
+            .Where(activity => MinorActorActivityIsVisible(activity, planeCode, currentTick))
+            .GroupBy(activity => new MinorActorActivityKey(
+                activity.Q,
+                activity.R,
+                activity.CultureId,
+                activity.ActionCode))
+            .Select(BuildMinorActorActivityGroup)
+            .OrderByDescending(group => group.NewestTick)
+            .ThenByDescending(group => group.TotalDelta)
+            .Take(MinorActorActivityGroupLimit)
+            .OrderBy(group => group.NewestTick);
+
+        foreach (var group in groups)
+        {
+            if (group.ActionCode == MinorActorActionCodes.RoadMaintenance)
+            {
+                DrawMinorActorRoadActivity(group, currentTick);
+                continue;
+            }
+
+            DrawMinorActorCultureActivity(group, currentTick);
+        }
+    }
+
+    private bool MinorActorActivityIsVisible(UiMinorActorActivityProjection activity, int planeCode, int currentTick)
+    {
+        if (activity.StatusCode != TraceStatusCodes.Selected ||
+            activity.PlaneCode != planeCode ||
+            activity.CultureId <= 0 ||
+            currentTick - activity.Tick > MinorActorActivityWindowTicks)
+        {
+            return false;
+        }
+
+        return _map?.TryGetHex(planeCode, new HexCoord(activity.Q, activity.R), out _) == true;
+    }
+
+    private static MinorActorActivityGroup BuildMinorActorActivityGroup(
+        IGrouping<MinorActorActivityKey, UiMinorActorActivityProjection> group)
+    {
+        var count = 0;
+        var newestTick = 0;
+        var totalDelta = 0f;
+        foreach (var activity in group)
+        {
+            count++;
+            newestTick = Math.Max(newestTick, activity.Tick);
+            totalDelta += activity.Delta;
+        }
+
+        return new MinorActorActivityGroup(
+            new HexCoord(group.Key.Q, group.Key.R),
+            group.Key.CultureId,
+            group.Key.ActionCode,
+            count,
+            newestTick,
+            totalDelta);
+    }
+
+    private void DrawMinorActorCultureActivity(MinorActorActivityGroup group, int currentTick)
+    {
+        var alpha = MinorActorActivityAlpha(group, currentTick);
+        if (alpha <= 0.05f)
+        {
+            return;
+        }
+
+        var center = HexToPixel(group.Coord);
+        var color = CultureColor(group.CultureId);
+        var scale = Mathf.Clamp(0.11f + (MathF.Log2(group.Count + 1f) * 0.030f), 0.11f, 0.23f);
+        var size = _hexSize * scale;
+        var diamond = new[]
+        {
+            center + new Vector2(0f, -size),
+            center + new Vector2(size * 0.72f, 0f),
+            center + new Vector2(0f, size),
+            center + new Vector2(-size * 0.72f, 0f),
+        };
+
+        DrawColoredPolygon(diamond, new Color(color, 0.14f + (alpha * 0.30f)));
+        DrawClosedPolyline(diamond, new Color(color, 0.50f + (alpha * 0.38f)), 0.85f + MathF.Min(group.Count, 6) * 0.08f);
+    }
+
+    private void DrawMinorActorRoadActivity(MinorActorActivityGroup group, int currentTick)
+    {
+        var alpha = MinorActorActivityAlpha(group, currentTick);
+        if (alpha <= 0.05f)
+        {
+            return;
+        }
+
+        var center = HexToPixel(group.Coord);
+        var axis = DashAxis(group.Coord);
+        var length = _hexSize * Mathf.Clamp(0.20f + (MathF.Log2(group.Count + 1f) * 0.035f), 0.20f, 0.36f);
+        var width = Mathf.Clamp(0.70f + (MathF.Min(group.Count, 7) * 0.08f), 0.70f, 1.35f);
+        var start = center - (axis * length);
+        var end = center + (axis * length);
+        DrawLine(start, end, new Color(UiTokens.Ink, 0.34f + (alpha * 0.24f)), width + 0.95f, antialiased: true);
+        DrawLine(start, end, new Color(UiTokens.Gilt, 0.48f + (alpha * 0.36f)), width, antialiased: true);
+    }
+
+    private static float MinorActorActivityAlpha(MinorActorActivityGroup group, int currentTick)
+    {
+        var age = Math.Max(0, currentTick - group.NewestTick);
+        var freshness = 1f - Mathf.Clamp(age / (float)MinorActorActivityWindowTicks, 0f, 1f);
+        var density = Mathf.Clamp(0.55f + (MathF.Log2(group.Count + 1f) * 0.12f), 0.55f, 0.95f);
+        return freshness * density;
     }
 
     private static AreaGeometryCache GetAreaGeometry(
@@ -847,6 +978,16 @@ public partial class HexMapFrameLayer : Node2D
     }
 
     private readonly record struct AreaCell(int Key, HexProjection Cell, Color Color, float Strength);
+
+    private readonly record struct MinorActorActivityKey(int Q, int R, int CultureId, int ActionCode);
+
+    private readonly record struct MinorActorActivityGroup(
+        HexCoord Coord,
+        int CultureId,
+        int ActionCode,
+        int Count,
+        int NewestTick,
+        float TotalDelta);
 
     private readonly record struct AreaGeometryCacheKey(
         int PlaneCode,

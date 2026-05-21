@@ -4,21 +4,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     IKernelProgramRuntime<LowAltitudeVerbProgramData, LowAltitudeVerbProgramState>
 {
     private const int VerbBucketCapacity = 64;
-    private const int ForeignInfluenceScratchCapacity = 4096;
-    private const int ForeignInfluenceRelationshipAllowed = 1;
-    private const int ForeignInfluenceRelationshipBlocked = 2;
 
     private readonly VerbTargetCandidate[] _verbCandidateScratch = new VerbTargetCandidate[VerbBucketCapacity];
     private readonly float[] _verbAffordanceSumScratch = new float[VerbBucketCapacity];
-    private readonly int[] _foreignInfluenceEpochScratch = new int[ForeignInfluenceScratchCapacity];
-    private readonly int[] _foreignInfluenceEntityScratch = new int[ForeignInfluenceScratchCapacity];
-    private readonly int[] _foreignInfluenceTouchedSlotScratch = new int[ForeignInfluenceScratchCapacity];
-    private readonly float[] _foreignInfluenceValueScratch = new float[ForeignInfluenceScratchCapacity];
-    private readonly int[] _foreignInfluenceRelationshipEpochScratch;
-    private readonly int[] _foreignInfluenceRelationshipCodeScratch;
     private readonly CultureInfluenceComponentScratch _cultureInfluenceComponents = new();
-    private int _foreignInfluenceScratchEpoch;
-    private int _foreignInfluenceRelationshipScratchEpoch;
 
     public LowAltitudeVerbProgramRuntime(LowAltitudeVerbProgramData data, LowAltitudeVerbProgramState state)
         : this(data, state, new KernelProgramTuningOptions())
@@ -36,8 +25,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         Data = data;
         State = state;
         Tuning = tuning;
-        _foreignInfluenceRelationshipEpochScratch = new int[state.EntityCapacity + 1];
-        _foreignInfluenceRelationshipCodeScratch = new int[state.EntityCapacity + 1];
     }
 
     public LowAltitudeVerbProgramData Data { get; }
@@ -153,22 +140,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             threshold,
             weight);
 
-    private readonly struct ForeignInfluenceFilter
-    {
-        public ForeignInfluenceFilter(int enabled, int relationshipEpoch, float unrelatedInfluenceThreshold)
-        {
-            Enabled = enabled;
-            RelationshipEpoch = relationshipEpoch;
-            UnrelatedInfluenceThreshold = unrelatedInfluenceThreshold;
-        }
-
-        public int Enabled { get; }
-
-        public int RelationshipEpoch { get; }
-
-        public float UnrelatedInfluenceThreshold { get; }
-    }
-
     public int RegisterTraitWeightModifier(
         int kindId,
         int traitId,
@@ -246,13 +217,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         }
 
         var influenceValue = Data.InitialInfluenceValue(rule);
-        if (simulation.World.GetCellInfluence(entityId, planeCode, q, r) < influenceValue)
-        {
-            simulation.SetCellInfluence(entityId, planeCode, q, r, influenceValue, tick);
-            return true;
-        }
-
-        return false;
+        simulation.ModifyCellCultureInfluenceRawFromEntity(entityId, planeCode, q, r, influenceValue, tick);
+        return true;
     }
 
     private bool ShouldChooseIntent(Simulation simulation, int entityId, int tick)
@@ -605,7 +571,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
                 var r = centerR + dr;
                 if (simulation.World.CellIsKnown(planeCode, q, r))
                 {
-                    simulation.ModifyCellInfluence(
+                    simulation.ModifyCellCultureInfluenceRawFromEntity(
                         entityId,
                         planeCode,
                         q,
@@ -628,7 +594,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         float delta,
         int tick)
     {
-        var filter = BuildForeignInfluenceFilter(simulation.World, entityId, rule);
+        _ = rule;
         for (var dq = -radius; dq <= radius; dq++)
         {
             var minDr = global::System.Math.Max(-radius, -dq - radius);
@@ -642,27 +608,41 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
                     continue;
                 }
 
-                var targetEntityId = StrongestAllowedOtherInfluencerAt(
+                ReduceAllowedOtherSourcesAt(
                     simulation,
                     entityId,
-                    rule,
-                    filter,
                     planeCode,
                     q,
                     r,
-                    out _);
-                if (targetEntityId != 0)
-                {
-                    simulation.ModifyCellInfluence(
-                        targetEntityId,
-                        planeCode,
-                        q,
-                        r,
-                        -TerrainAdjustedInfluenceDelta(simulation, entityId, planeCode, q, r, delta),
-                        tick);
-                }
+                    TerrainAdjustedInfluenceDelta(simulation, entityId, planeCode, q, r, delta),
+                    tick);
             }
         }
+    }
+
+    private void ReduceAllowedOtherSourcesAt(
+        Simulation simulation,
+        int entityId,
+        int planeCode,
+        int q,
+        int r,
+        float delta,
+        int tick)
+    {
+        if (delta <= 0f)
+        {
+            return;
+        }
+
+        var world = simulation.World;
+        var actorCultureId = world.EntityCultureId(entityId);
+        if (actorCultureId <= 0)
+        {
+            return;
+        }
+
+        _ = world;
+        _ = simulation.ReduceOtherCultureSourcesAtCell(actorCultureId, planeCode, q, r, delta, tick);
     }
 
     private void TryClaimCellFromProgramStep(
@@ -678,7 +658,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         var claimChance = Data.CoverageGrowthChance(rule) * simulation.TerrainClaimChanceMultiplier(planeCode, actorKindId, q, r);
         var requiredInfluence = Data.RequiredInfluence(rule) * simulation.TerrainClaimCostMultiplier(planeCode, actorKindId, q, r);
         if (simulation.NextFloat() > claimChance ||
-            simulation.World.GetCellInfluence(entityId, planeCode, q, r) < requiredInfluence ||
+            OwnCultureRawAt(simulation.World, entityId, planeCode, q, r) < requiredInfluence ||
             !CellCanBeClaimedFromEntity(simulation.World, planeCode, entityId, q, r) ||
             simulation.World.CoverageOwnerAt(planeCode, q, r) == entityId)
         {
@@ -705,6 +685,12 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         return delta * simulation.TerrainInfluenceMultiplier(planeCode, simulation.World.EntityKindId(entityId), q, r);
     }
 
+    private static float OwnCultureRawAt(WorldState world, int entityId, int planeCode, int q, int r)
+    {
+        var cultureId = world.EntityCultureId(entityId);
+        return cultureId <= 0 ? 0f : world.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r);
+    }
+
     private void TryRelocateEntityFromProgramStep(
         Simulation simulation,
         int entityId,
@@ -714,7 +700,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int tick)
     {
         if (simulation.NextFloat() > Data.HeadquartersMoveChance(rule) ||
-            simulation.World.GetCellInfluence(entityId, PlaneCodes.Physical, q, r) < Data.RequiredInfluence(rule))
+            OwnCultureRawAt(simulation.World, entityId, PlaneCodes.Physical, q, r) < Data.RequiredInfluence(rule))
         {
             return;
         }
@@ -744,174 +730,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         }
 
         return false;
-    }
-
-    private ForeignInfluenceFilter BuildForeignInfluenceFilter(WorldState world, int entityId, int rule)
-    {
-        if (!Data.ForeignInfluenceFilterEnabled(rule))
-        {
-            return default;
-        }
-
-        var relationshipEpoch = 0;
-        if (Data.ForeignInfluenceBlocksPositiveRelationships(rule) ||
-            Data.ForeignInfluenceAllowsNegativeRelationships(rule))
-        {
-            relationshipEpoch = BeginForeignInfluenceRelationshipScratchEpoch();
-            PopulateForeignInfluenceRelationshipScratch(world, entityId, rule, relationshipEpoch);
-        }
-
-        return new ForeignInfluenceFilter(
-            enabled: 1,
-            relationshipEpoch,
-            Data.ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove(rule));
-    }
-
-    private int BeginForeignInfluenceRelationshipScratchEpoch()
-    {
-        if (_foreignInfluenceRelationshipScratchEpoch == int.MaxValue)
-        {
-            global::System.Array.Clear(_foreignInfluenceRelationshipEpochScratch);
-            _foreignInfluenceRelationshipScratchEpoch = 0;
-        }
-
-        _foreignInfluenceRelationshipScratchEpoch++;
-        return _foreignInfluenceRelationshipScratchEpoch;
-    }
-
-    private void PopulateForeignInfluenceRelationshipScratch(
-        WorldState world,
-        int entityId,
-        int rule,
-        int epoch)
-    {
-        var blockPositive = Data.ForeignInfluenceBlocksPositiveRelationships(rule);
-        var allowNegative = Data.ForeignInfluenceAllowsNegativeRelationships(rule);
-        var minimumStrength = Data.ForeignInfluenceMinimumRelationshipStrength(rule);
-        for (var relationshipId = 1; relationshipId <= world.RelationshipHighWatermark; relationshipId++)
-        {
-            if (!world.RelationshipIsActive(relationshipId) ||
-                world.RelationshipStrength(relationshipId) < minimumStrength)
-            {
-                continue;
-            }
-
-            var sourceId = world.RelationshipSourceId(relationshipId);
-            var targetId = world.RelationshipTargetId(relationshipId);
-            var counterpartId = ForeignInfluenceRelationshipCounterpart(entityId, sourceId, targetId);
-            if (counterpartId == 0)
-            {
-                continue;
-            }
-
-            RecordForeignInfluenceRelationshipCode(
-                counterpartId,
-                epoch,
-                world.RelationshipPolarityCode(relationshipId),
-                blockPositive,
-                allowNegative);
-        }
-    }
-
-    private static int ForeignInfluenceRelationshipCounterpart(int entityId, int sourceId, int targetId)
-    {
-        if (sourceId == entityId)
-        {
-            return targetId;
-        }
-
-        return targetId == entityId ? sourceId : 0;
-    }
-
-    private void RecordForeignInfluenceRelationshipCode(
-        int counterpartId,
-        int epoch,
-        int polarityCode,
-        bool blockPositive,
-        bool allowNegative)
-    {
-        if (blockPositive && polarityCode == RelationshipPolarityCodes.Positive)
-        {
-            _foreignInfluenceRelationshipEpochScratch[counterpartId] = epoch;
-            _foreignInfluenceRelationshipCodeScratch[counterpartId] = ForeignInfluenceRelationshipBlocked;
-            return;
-        }
-
-        if (!allowNegative ||
-            polarityCode != RelationshipPolarityCodes.Negative ||
-            ForeignInfluenceRelationshipBlockedFor(counterpartId, epoch))
-        {
-            return;
-        }
-
-        _foreignInfluenceRelationshipEpochScratch[counterpartId] = epoch;
-        _foreignInfluenceRelationshipCodeScratch[counterpartId] = ForeignInfluenceRelationshipAllowed;
-    }
-
-    private bool ForeignInfluenceRelationshipBlockedFor(int targetEntityId, int epoch) =>
-        _foreignInfluenceRelationshipEpochScratch[targetEntityId] == epoch &&
-        _foreignInfluenceRelationshipCodeScratch[targetEntityId] == ForeignInfluenceRelationshipBlocked;
-
-    private int StrongestAllowedOtherInfluencerAt(
-        Simulation simulation,
-        int entityId,
-        int rule,
-        ForeignInfluenceFilter filter,
-        int planeCode,
-        int q,
-        int r,
-        out float influence)
-    {
-        var selectedEntityId = 0;
-        influence = 0f;
-        var world = simulation.World;
-        var actorCultureId = world.EntityCultureId(entityId);
-        for (var otherEntityId = 1; otherEntityId <= world.EntityHighWatermark; otherEntityId++)
-        {
-            if (otherEntityId == entityId ||
-                !world.EntityIsActive(otherEntityId) ||
-                world.EntityCultureId(otherEntityId) == actorCultureId ||
-                world.InfluenceCellCount(otherEntityId, planeCode) == 0)
-            {
-                continue;
-            }
-
-            var candidateInfluence = world.GetCellInfluence(otherEntityId, planeCode, q, r);
-            if (candidateInfluence <= influence ||
-                !ForeignInfluenceTargetAllowed(otherEntityId, filter, candidateInfluence))
-            {
-                continue;
-            }
-
-            influence = candidateInfluence;
-            selectedEntityId = otherEntityId;
-        }
-
-        return selectedEntityId;
-    }
-
-    private bool ForeignInfluenceTargetAllowed(
-        int targetEntityId,
-        ForeignInfluenceFilter filter,
-        float influence)
-    {
-        if (filter.Enabled == 0)
-        {
-            return true;
-        }
-
-        if (filter.RelationshipEpoch > 0 &&
-            _foreignInfluenceRelationshipEpochScratch[targetEntityId] == filter.RelationshipEpoch)
-        {
-            return _foreignInfluenceRelationshipCodeScratch[targetEntityId] switch
-            {
-                ForeignInfluenceRelationshipBlocked => false,
-                ForeignInfluenceRelationshipAllowed => true,
-                _ => filter.UnrelatedInfluenceThreshold >= 0f && influence >= filter.UnrelatedInfluenceThreshold,
-            };
-        }
-
-        return filter.UnrelatedInfluenceThreshold >= 0f && influence >= filter.UnrelatedInfluenceThreshold;
     }
 
 }

@@ -268,7 +268,8 @@ public sealed class LowAltitudePhysicsProgramTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(favoredInfluencerId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        _ = favoredInfluencerId;
+        Assert.Equal(0, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
         Assert.Equal((1, 0), (
             simulation.LowAltitudeVerbs.State.TargetQ(actorId),
             simulation.LowAltitudeVerbs.State.TargetR(actorId)));
@@ -299,13 +300,68 @@ public sealed class LowAltitudePhysicsProgramTests
             hostileInfluencerId,
             0.5f,
             tick: 0);
+        var hostileBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 1, 0);
+        var unrelatedBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, -1, 0);
         RegisterFilteredReduceVerb(simulation, actorKindId, verbId);
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(hostileInfluencerId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
-        Assert.True(simulation.World.GetCellInfluence(hostileInfluencerId, PlaneCodes.Physical, 1, 0) < 20f);
-        Assert.Equal(40f, simulation.World.GetCellInfluence(unrelatedInfluencerId, PlaneCodes.Physical, -1, 0));
+        _ = unrelatedInfluencerId;
+        Assert.Equal(0, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        AssertSelectedForeignCultureCellReduced(
+            simulation,
+            actorId,
+            cultureId: 2,
+            (1, 0, hostileBefore),
+            (-1, 0, unrelatedBefore));
+    }
+
+    [Fact]
+    public void LowAltitudeVerbProgram_ReduceInfluenceReducesEveryOtherSourceAtTargetCell()
+    {
+        var simulation = new Simulation(new SimulationOptions { Seed = 28 });
+        const int terrainId = 1;
+        const int actorKindId = 1;
+        const int foreignKindId = 2;
+        const int ownKindId = 3;
+        const int verbId = 91;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(1);
+        SeedPhysicalNeighborhood(simulation, terrainId);
+        var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        var foreignAId = simulation.CreateEntity(foreignKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
+        var foreignBId = simulation.CreateEntity(foreignKindId, subtypeId: 1, cultureId: 3, 0, 0, 0, 0, 0, tick: 0);
+        var ownSourceId = simulation.CreateEntity(ownKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, 30f, tick: 0);
+        simulation.SetCellInfluence(foreignAId, PlaneCodes.Physical, 1, 0, 20f, tick: 0);
+        simulation.SetCellInfluence(foreignBId, PlaneCodes.Physical, 1, 0, 18f, tick: 0);
+        simulation.SetCellInfluence(ownSourceId, PlaneCodes.Physical, 1, 0, 16f, tick: 0);
+        simulation.ModifyCellCultureLaborInfluenceRaw(2, PlaneCodes.Physical, 1, 0, 9f, tick: 0);
+        simulation.ModifyCellCultureLaborInfluenceRaw(1, PlaneCodes.Physical, 1, 0, 8f, tick: 0);
+        var foreignCultureTwoBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 1, 0);
+        var foreignCultureThreeBefore = simulation.World.GetCellCultureInfluenceRaw(3, PlaneCodes.Physical, 1, 0);
+        var ownCultureBefore = simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 1, 0);
+        RegisterInfluenceVerb(
+            simulation,
+            actorKindId,
+            verbId,
+            ProgramOpcodeCodes.SubtractOtherCellScalar,
+            TargetSelectorCodes.OtherMapValue,
+            targetKindId: 0,
+            influenceDelta: 5f,
+            influenceRadius: 0);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal((1, 0), (
+            simulation.LowAltitudeVerbs.State.TargetQ(actorId),
+            simulation.LowAltitudeVerbs.State.TargetR(actorId)));
+        _ = foreignAId;
+        _ = foreignBId;
+        _ = ownSourceId;
+        Assert.True(simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 1, 0) < foreignCultureTwoBefore);
+        Assert.True(simulation.World.GetCellCultureInfluenceRaw(3, PlaneCodes.Physical, 1, 0) < foreignCultureThreeBefore);
+        Assert.Equal(ownCultureBefore, simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 1, 0));
     }
 
     [Fact]
@@ -333,13 +389,21 @@ public sealed class LowAltitudePhysicsProgramTests
             alliedInfluencerId,
             0.5f,
             tick: 0);
+        var alliedBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 1, 0);
+        var overextendedBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, -1, 0);
         RegisterFilteredReduceVerb(simulation, actorKindId, verbId);
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(overextendedInfluencerId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
-        Assert.Equal(100f, simulation.World.GetCellInfluence(alliedInfluencerId, PlaneCodes.Physical, 1, 0));
-        Assert.True(simulation.World.GetCellInfluence(overextendedInfluencerId, PlaneCodes.Physical, -1, 0) < 60f);
+        _ = alliedInfluencerId;
+        _ = overextendedInfluencerId;
+        Assert.Equal(0, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        AssertSelectedForeignCultureCellReduced(
+            simulation,
+            actorId,
+            cultureId: 2,
+            (1, 0, alliedBefore),
+            (-1, 0, overextendedBefore));
     }
 
     [Fact]
@@ -374,13 +438,21 @@ public sealed class LowAltitudePhysicsProgramTests
             actorId,
             0.5f,
             tick: 0);
+        var mixedBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 1, 0);
+        var overextendedBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, -1, 0);
         RegisterFilteredReduceVerb(simulation, actorKindId, verbId);
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(overextendedInfluencerId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
-        Assert.Equal(100f, simulation.World.GetCellInfluence(mixedInfluencerId, PlaneCodes.Physical, 1, 0));
-        Assert.True(simulation.World.GetCellInfluence(overextendedInfluencerId, PlaneCodes.Physical, -1, 0) < 60f);
+        _ = mixedInfluencerId;
+        _ = overextendedInfluencerId;
+        Assert.Equal(0, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        AssertSelectedForeignCultureCellReduced(
+            simulation,
+            actorId,
+            cultureId: 2,
+            (1, 0, mixedBefore),
+            (-1, 0, overextendedBefore));
     }
 
     [Fact]
@@ -480,7 +552,8 @@ public sealed class LowAltitudePhysicsProgramTests
         simulation.AdvanceTicks(2);
 
         Assert.True(simulation.World.GetCellInfluence(settlementId, PlaneCodes.Physical, 0, 0) >= 45f);
-        Assert.Equal(20f, simulation.World.GetCellInfluence(factionId, PlaneCodes.Physical, 0, 0));
+        _ = factionId;
+        Assert.True(simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0) >= 65f);
         Assert.Equal(0, simulation.World.CoverageOwnerAt(0, 0));
         AssertCellInfluenceAction(simulation, cursor, settlementId, verbId);
     }
@@ -840,6 +913,18 @@ public sealed class LowAltitudePhysicsProgramTests
         simulation.LowAltitudeVerbs.AddPrimitiveStep(verbSlot, operationCode, 0, 0f);
     }
 
+    private static void AssertSelectedForeignCultureCellReduced(
+        Simulation simulation,
+        int actorId,
+        int cultureId,
+        params (int Q, int R, float Before)[] candidates)
+    {
+        var target = (simulation.LowAltitudeVerbs.State.TargetQ(actorId), simulation.LowAltitudeVerbs.State.TargetR(actorId));
+        Assert.Contains(candidates, candidate => (candidate.Q, candidate.R) == target);
+        var before = candidates.First(candidate => (candidate.Q, candidate.R) == target).Before;
+        Assert.True(simulation.World.GetCellCultureInfluenceRaw(cultureId, PlaneCodes.Physical, target.Item1, target.Item2) < before);
+    }
+
     private static (int Dwell, int Step, int Looseness, int Q, int R) MovementShape(Simulation simulation, int entityId) =>
         (
             simulation.LowAltitudeVerbs.State.IntentDwellTicks(entityId),
@@ -882,26 +967,28 @@ public sealed class LowAltitudePhysicsProgramTests
         int entityId,
         int actionId)
     {
+        _ = actionId;
+        var cultureId = simulation.World.EntityCultureId(entityId);
         while (simulation.Events.TryRead(cursor, out var read))
         {
-            if (read.Event.EventType != KernelEventType.CellInfluenceChanged)
+            if (read.Event.EventType != KernelEventType.CellCultureInfluenceChanged)
             {
                 continue;
             }
 
-            var changed = read.Event.AsCellInfluenceChanged();
-            if (changed.EntityId != entityId || changed.ActionId != actionId)
+            var changed = read.Event.AsCellCultureInfluenceChanged();
+            if (changed.CultureId != cultureId)
             {
                 continue;
             }
 
             Assert.Equal(KernelProgramCodes.LowAltitudeVerbs, read.Event.ProgramId);
             Assert.Equal(simulation.LowAltitudeVerbSourceCodeId, read.Event.SourceCodeId);
-            Assert.True(changed.CurrentInfluence > changed.PreviousInfluence);
+            Assert.True(changed.CurrentRawInfluence > changed.PreviousRawInfluence);
             return;
         }
 
-        Assert.Fail("Expected cell influence event attributed to the low-altitude verb action.");
+        Assert.Fail("Expected cell culture influence event attributed to the low-altitude verb program.");
     }
 
     private static void RegisterForeignInfluenceAffordance(Simulation simulation, int actorKindId, int favoredKindId) =>

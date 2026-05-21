@@ -118,6 +118,11 @@ public static partial class DomainCompiler
             RegisterOnceStrict(state.Verbs, verb.Id, state.Registry.RegisterVerb, "verb");
         }
 
+        foreach (var verb in config.MinorActors.SelectMany(rule => rule.Verbs))
+        {
+            RegisterOnceStrict(state.Verbs, verb.Id, state.Registry.RegisterVerb, "verb");
+        }
+
         foreach (var gambit in config.Gambits)
         {
             RegisterOnceStrict(state.Gambits, gambit.Id, state.Registry.RegisterGambit, "gambit");

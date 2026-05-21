@@ -257,7 +257,10 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
                     return true;
                 }
 
-                var influence = world.GetCellInfluence(otherEntityId, planeCode, q, r);
+                var otherCultureId = world.EntityCultureId(otherEntityId);
+                var influence = otherCultureId <= 0
+                    ? 0f
+                    : world.GetCellCultureInfluenceRaw(otherCultureId, planeCode, q, r);
                 if (influence <= 0f)
                 {
                     return true;

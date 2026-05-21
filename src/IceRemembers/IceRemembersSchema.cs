@@ -553,6 +553,17 @@ public enum IceRemembersGambitId
     MonsterStealsArtifact,
     PenguinSlaysMonster,
     PenguinSlaysOrca,
+    RegionDeepensTheHolding,
+    SettlementDeepensTheHolding,
+    FactionDeepensTheHolding,
+    PenguinDeepensTheHolding,
+    ArtifactDeepensTheHolding,
+    OrcaDeepensTheHolding,
+    PointOfInterestDeepensTheHolding,
+    AbilityDeepensTheHolding,
+    MonsterDeepensTheHolding,
+    TransportDeepensTheHolding,
+    OccurrenceDeepensTheHolding,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -580,6 +591,17 @@ public static class IceRemembersGambitIdExtensions
         "monster_steals_artifact",
         "penguin_slays_monster",
         "penguin_slays_orca",
+        "region_deepens_the_holding",
+        "settlement_deepens_the_holding",
+        "faction_deepens_the_holding",
+        "penguin_deepens_the_holding",
+        "artifact_deepens_the_holding",
+        "orca_deepens_the_holding",
+        "point_of_interest_deepens_the_holding",
+        "ability_deepens_the_holding",
+        "monster_deepens_the_holding",
+        "transport_deepens_the_holding",
+        "occurrence_deepens_the_holding",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)

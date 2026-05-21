@@ -8,7 +8,9 @@ internal sealed partial class TelemetryEventProjection
     private const float CultureFieldSupportedRawMass = 12f;
     private const float CultureFieldStrongRawMass = 30f;
     private const float CultureFieldRingTwoConnectionWeight = 7f / 20f;
-    private const float CultureFieldForeignContestShare = 5f;
+    private const float CultureFieldForeignContestShare = 25f;
+    private const float CultureFieldDominantOwnShare = 65f;
+    private const float CultureFieldMajorForeignContestShare = 35f;
 
     private readonly record struct CultureFieldComponentStats(
         int ComponentCount,
@@ -531,7 +533,7 @@ internal sealed partial class TelemetryEventProjection
             return CultureFieldCellKindCodes.None;
         }
 
-        if (CultureFieldIsContested(raw, foreignShare))
+        if (CultureFieldIsContested(raw, share, foreignShare))
         {
             return CultureFieldCellKindCodes.Contested;
         }
@@ -554,8 +556,10 @@ internal sealed partial class TelemetryEventProjection
     private static bool CultureFieldIsEmpty(float raw, float share, float connectedRaw) =>
         raw < CultureFieldTraceRawMass && share <= 0f && connectedRaw < CultureFieldSupportedRawMass;
 
-    private static bool CultureFieldIsContested(float raw, float foreignShare) =>
-        raw >= CultureFieldTraceRawMass && foreignShare >= CultureFieldForeignContestShare;
+    private static bool CultureFieldIsContested(float raw, float share, float foreignShare) =>
+        raw >= CultureFieldTraceRawMass &&
+        foreignShare >= CultureFieldForeignContestShare &&
+        (share < CultureFieldDominantOwnShare || foreignShare >= CultureFieldMajorForeignContestShare);
 
     private static bool CultureFieldIsInterior(float raw, int supportedAdjacentCount) =>
         raw >= CultureFieldStrongRawMass && supportedAdjacentCount >= 5;

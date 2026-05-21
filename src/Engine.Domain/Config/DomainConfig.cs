@@ -32,6 +32,9 @@ public sealed class DomainConfig
     /// <summary>Non-entity, non-terrain travel structures that can alter movement over cells.</summary>
     public IReadOnlyList<TravelStructureConfig> TravelStructures { get; init; } = [];
 
+    /// <summary>Rules for short-lived non-graph actors emitted by named entities.</summary>
+    public IReadOnlyList<MinorActorRuleConfig> MinorActors { get; init; } = [];
+
     /// <summary>Discrete movement capability classes used by route planning and terrain traversal.</summary>
     public IReadOnlyList<MovementProfileConfig> MovementProfiles { get; init; } = [];
 
@@ -249,6 +252,37 @@ public sealed class TravelStructureMovementProfileConfig
 {
     public required string Profile { get; init; }
     public required float MovementCost { get; init; }
+}
+
+public sealed class MinorActorRuleConfig
+{
+    public required EntityKind SourceKind { get; init; }
+    public string? SourceSubtype { get; init; }
+    public int PurposeCode { get; init; } = MinorActorPurposeCodes.CulturalLabor;
+    public int ActorKindCode { get; init; } = MinorActorKindCodes.Worker;
+    public int ActionCode { get; init; } = MinorActorActionCodes.CultureExpansion;
+    public int PlaneCode { get; init; } = PlaneCodes.Physical;
+    public int TtlPulses { get; init; } = 80;
+    public int EmitCadencePulses { get; init; } = 60;
+    public int MaxActivePerSource { get; init; } = 1;
+    public int SpawnRadius { get; init; } = 1;
+    public int MoveChancePermille { get; init; } = 250;
+    public int ActionCadencePulses { get; init; } = 8;
+    public float WorkDelta { get; init; } = 0.25f;
+    public IReadOnlyList<MinorActorVerbConfig> Verbs { get; init; } = [];
+}
+
+public sealed class MinorActorVerbConfig
+{
+    public required string Id { get; init; }
+    public string? DisplayName { get; init; }
+    public int ActionCode { get; init; } = MinorActorActionCodes.CultureExpansion;
+    public int TargetingCode { get; init; } = MinorActorVerbTargetingCodes.ReinforceHomeMass;
+    public int PlaneCode { get; init; } = PlaneCodes.None;
+    public int Radius { get; init; } = 4;
+    public int SampleCount { get; init; } = 32;
+    public float Weight { get; init; } = 1f;
+    public float WorkDeltaMultiplier { get; init; } = 1f;
 }
 
 public sealed class TerrainKindProfileConfig

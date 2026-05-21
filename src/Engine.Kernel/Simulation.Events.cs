@@ -238,6 +238,52 @@ internal sealed partial class Simulation
             currentScore)));
     }
 
+    internal void EmitMinorActorVerbExecuted(
+        int tick,
+        int actorId,
+        int sourceEntityId,
+        int sourceRuleId,
+        int sourceWorkTier,
+        int effectiveRadius,
+        int cultureId,
+        int verbId,
+        int purposeCode,
+        int actionCode,
+        int targetingCode,
+        int planeCode,
+        int q,
+        int r,
+        int statusCode,
+        int cellKindCode,
+        float localRawMass,
+        float connectedRawMass,
+        float score,
+        float delta)
+    {
+        WriteKernelEvent(KernelEvent.From(new MinorActorVerbExecutedKernelEvent(
+            tick,
+            WorldVersion,
+            actorId,
+            sourceEntityId,
+            sourceRuleId,
+            sourceWorkTier,
+            effectiveRadius,
+            cultureId,
+            verbId,
+            purposeCode,
+            actionCode,
+            targetingCode,
+            planeCode,
+            q,
+            r,
+            statusCode,
+            cellKindCode,
+            localRawMass,
+            connectedRawMass,
+            score,
+            delta)));
+    }
+
     internal bool TraceEnabled() => Options.TraceEnabled;
 
     internal void EmitTrace(

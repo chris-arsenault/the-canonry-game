@@ -42,6 +42,7 @@ public static class BehaviorOperationCodes
     public const int RemoveEndpointRelationship = 30;
     public const int BuildTravelStructureLine = 31;
     public const int SetTargetCultureFromSelf = 32;
+    public const int IncreaseWorkTier = 33;
 }
 
 public static class BehaviorTargetModeCodes
@@ -80,6 +81,8 @@ public static class BehaviorPreconditionCodes
     public const int SharedInfluence = 21;
     public const int EndpointRelationshipCountBelow = 22;
     public const int EndpointCultureIs = 23;
+    public const int SelfCultureMass = 24;
+    public const int SelfWorkTierBelow = 25;
 }
 
 public static class BehaviorExpressionCodes
@@ -264,6 +267,38 @@ public static class KernelProgramCodes
     public const int Effects = 12;
     public const int MapSignals = 13;
     public const int CultureSlots = 14;
+    public const int MinorActors = 15;
+}
+
+public static class MinorActorKindCodes
+{
+    public const int Worker = 1;
+    public const int Soldier = 2;
+    public const int Carrier = 3;
+}
+
+public static class MinorActorActionCodes
+{
+    public const int CultureExpansion = 1;
+    public const int RoadMaintenance = 2;
+    public const int CultureCleanup = 3;
+    public const int LifecycleMaintenance = 4;
+}
+
+public static class MinorActorPurposeCodes
+{
+    public const int CulturalLabor = 1;
+    public const int RoadLabor = 2;
+}
+
+public static class MinorActorVerbTargetingCodes
+{
+    public const int ReinforceHomeMass = 1;
+    public const int ExtendConnectedBorder = 2;
+    public const int MaintainRoad = 3;
+    public const int BridgeGap = 4;
+    public const int ReduceOtherCulture = 5;
+    public const int MaintainSourceLifecycle = 6;
 }
 
 public static class CultureSlotScoreSignalCodes
@@ -294,7 +329,11 @@ public static class CultureFieldStrengthBandCodes
 {
     public const int None = 0;
     public const int Trace = 1;
-    public const int Strong = 2;
+    public const int Claimed = 2;
+    public const int Controlled = 3;
+    public const int Entrenched = 4;
+    public const int Nexus = 5;
+    public const int Strong = Controlled;
 }
 
 public static class MovementCauseCodes
@@ -365,6 +404,7 @@ public static class ActionFamilyCodes
 {
     public const int Gambit = 1;
     public const int LowAltitudeVerb = 2;
+    public const int MinorActorVerb = 3;
 }
 
 public static class TraceSubjectCodes
@@ -478,6 +518,7 @@ public static class ProvenanceOutputKindCodes
     public const int RelationshipChanged = 7;
     public const int CellChanged = 8;
     public const int CellInfluenceChanged = 9;
+    public const int CellCultureInfluenceChanged = 10;
 }
 
 public static class KernelCapacityCodes

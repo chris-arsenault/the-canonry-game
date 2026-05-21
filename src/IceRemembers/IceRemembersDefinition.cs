@@ -34,6 +34,7 @@ public static partial class IceRemembersDefinition
             Lifecycles = CreateLifecycles(),
             Terrains = IceRemembersTerrainCatalog.DomainTerrains,
             TravelStructures = IceRemembersTravelStructures.DomainTravelStructures,
+            MinorActors = CreateMinorActorRules(),
             MovementProfiles = IceRemembersMovementProfiles.DomainProfiles,
             Cultures = CreateCultures(),
             Gameplay = CreateGameplayDefinition(),

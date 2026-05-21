@@ -10,6 +10,8 @@ public sealed record UiProjectionMigrationItem(
 
 public sealed class UiProjectionState : KernelEventProjector
 {
+    private const int MinorActorActivityCapacity = 320;
+
     private readonly Dictionary<int, UiEntityProjection> _entities = [];
     private readonly Dictionary<UiRelationshipKey, UiRelationshipProjection> _relationships = [];
     private readonly Dictionary<int, HashSet<UiRelationshipKey>> _activeOutgoingRelationshipsByEntity = [];
@@ -24,6 +26,7 @@ public sealed class UiProjectionState : KernelEventProjector
     private IReadOnlyDictionary<UiCultureSlotKey, UiCultureSlotDefinitionProjection> _cultureSlotDefinitions =
         new Dictionary<UiCultureSlotKey, UiCultureSlotDefinitionProjection>();
     private readonly Dictionary<UiCultureSlotKey, UiCultureSlotOccupancyProjection> _cultureSlots = [];
+    private readonly List<UiMinorActorActivityProjection> _minorActorActivities = [];
 
     private IReadOnlyDictionary<int, EntityTier> _tierByKindId = new Dictionary<int, EntityTier>();
     private IReadOnlySet<int> _affiliationRelationshipKindIds = new HashSet<int>();
@@ -63,6 +66,8 @@ public sealed class UiProjectionState : KernelEventProjector
 
     public IReadOnlyDictionary<UiCultureSlotKey, UiCultureSlotOccupancyProjection> CultureSlots => _cultureSlots;
 
+    public IReadOnlyList<UiMinorActorActivityProjection> MinorActorActivities => _minorActorActivities;
+
     public long LastProjectedSequence { get; private set; } = -1;
 
     public int CurrentTick { get; private set; }
@@ -82,6 +87,8 @@ public sealed class UiProjectionState : KernelEventProjector
     public long RelationshipVersion { get; private set; }
 
     public long TableauVersion { get; private set; }
+
+    public long MinorActorActivityVersion { get; private set; }
 
     public long DroppedEvents { get; private set; }
 
@@ -313,6 +320,39 @@ public sealed class UiProjectionState : KernelEventProjector
         EntityMapVersion++;
         EntityBrowserVersion++;
         EntityDetailVersion++;
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+    }
+
+    protected override void OnMinorActorVerbExecuted(long sequence, in MinorActorVerbExecutedKernelEvent evt)
+    {
+        _minorActorActivities.Add(new UiMinorActorActivityProjection(
+            sequence,
+            evt.Tick,
+            evt.ActorId,
+            evt.SourceEntityId,
+            evt.SourceRuleId,
+            evt.CultureId,
+            evt.VerbId,
+            evt.PurposeCode,
+            evt.ActionCode,
+            evt.TargetingCode,
+            evt.PlaneCode,
+            evt.Q,
+            evt.R,
+            evt.StatusCode,
+            evt.CellKindCode,
+            evt.LocalRawMass,
+            evt.ConnectedRawMass,
+            evt.Score,
+            evt.Delta,
+            evt.WorldVersion));
+
+        if (_minorActorActivities.Count > MinorActorActivityCapacity)
+        {
+            _minorActorActivities.RemoveRange(0, _minorActorActivities.Count - MinorActorActivityCapacity);
+        }
+
+        MinorActorActivityVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -905,6 +945,28 @@ public sealed record UiCultureSlotOccupancyProjection(
     int CurrentEntityId,
     float CurrentScore,
     int Tick,
+    long WorldVersion);
+
+public sealed record UiMinorActorActivityProjection(
+    long Sequence,
+    int Tick,
+    int ActorId,
+    int SourceEntityId,
+    int SourceRuleId,
+    int CultureId,
+    int VerbId,
+    int PurposeCode,
+    int ActionCode,
+    int TargetingCode,
+    int PlaneCode,
+    int Q,
+    int R,
+    int StatusCode,
+    int CellKindCode,
+    float LocalRawMass,
+    float ConnectedRawMass,
+    float Score,
+    float Delta,
     long WorldVersion);
 
 public sealed record UiAttributeProjection(

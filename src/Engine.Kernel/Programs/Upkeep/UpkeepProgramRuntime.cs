@@ -35,6 +35,47 @@ internal sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgram
 
     public int LifecycleRuleCount => _lifecycleRuleCount;
 
+    public bool TryGetLifecycleMaintenanceNeed(
+        Simulation simulation,
+        int entityId,
+        int tick,
+        out int attributeId,
+        out float ageDrainComponent,
+        out float healthShortfall)
+    {
+        attributeId = 0;
+        ageDrainComponent = 0f;
+        healthShortfall = 0f;
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        var world = simulation.World;
+        if (entityId <= 0 || !world.EntityIsActive(entityId))
+        {
+            return false;
+        }
+
+        var kindId = world.EntityKindId(entityId);
+        for (var rule = 1; rule <= _lifecycleRuleCount; rule++)
+        {
+            if (_lifecycleKindIds[rule] != kindId)
+            {
+                continue;
+            }
+
+            attributeId = _lifecycleAttributeIds[rule];
+            var age = tick - world.EntityCreatedAt(entityId);
+            ageDrainComponent = LifecycleAgeDrainComponent(rule, age);
+            var maximum = simulation.KernelData.Entities.AttributeMaximum(attributeId);
+            if (maximum > 0f)
+            {
+                healthShortfall = KernelQuery.Clamp01((maximum - world.GetAttribute(entityId, attributeId)) / maximum);
+            }
+
+            return ageDrainComponent > 0f && healthShortfall > 0f;
+        }
+
+        return false;
+    }
+
     public int RegisterLifecycle(
         int kindId,
         int healthAttributeId,
@@ -146,11 +187,21 @@ internal sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgram
     {
         if (Tuning.Upkeep.AgingModelCode != UpkeepAgingModelCodes.LateLife)
         {
-            return _lifecycleBaseRates[rule] + (age * _lifecycleAgeCoefficients[rule]);
+            return _lifecycleBaseRates[rule] + LifecycleAgeDrainComponent(rule, age);
+        }
+
+        return (_lifecycleBaseRates[rule] * 0.5f) + LifecycleAgeDrainComponent(rule, age);
+    }
+
+    private float LifecycleAgeDrainComponent(int rule, int age)
+    {
+        if (Tuning.Upkeep.AgingModelCode != UpkeepAgingModelCodes.LateLife)
+        {
+            return age * _lifecycleAgeCoefficients[rule];
         }
 
         var scaledAge = (age * age) / 500f;
-        return (_lifecycleBaseRates[rule] * 0.5f) + (scaledAge * _lifecycleAgeCoefficients[rule]);
+        return scaledAge * _lifecycleAgeCoefficients[rule];
     }
 
     private bool IsLifecycleAttribute(int kindId, int attributeId)

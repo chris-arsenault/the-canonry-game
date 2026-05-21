@@ -366,8 +366,8 @@ internal sealed class CultureSlotProgramRuntime :
     {
         return signalCode switch
         {
-            CultureSlotScoreSignalCodes.PhysicalInfluence => SumInfluence(world, entityId, PlaneCodes.Physical),
-            CultureSlotScoreSignalCodes.SemanticInfluence => SumInfluence(world, entityId, PlaneCodes.Semantic),
+            CultureSlotScoreSignalCodes.PhysicalInfluence => CultureSupportScore(world, entityId, PlaneCodes.Physical),
+            CultureSlotScoreSignalCodes.SemanticInfluence => CultureSupportScore(world, entityId, PlaneCodes.Semantic),
             CultureSlotScoreSignalCodes.PhysicalCoverage => world.CoverageOwnerCellCount(entityId, PlaneCodes.Physical),
             CultureSlotScoreSignalCodes.SemanticCoverage => world.CoverageOwnerCellCount(entityId, PlaneCodes.Semantic),
             CultureSlotScoreSignalCodes.PhysicalCultureSupport => CultureSupportScore(world, entityId, PlaneCodes.Physical),
@@ -397,18 +397,6 @@ internal sealed class CultureSlotProgramRuntime :
         return global::System.MathF.Min(
             10f,
             world.EntityInfluenceProduction(entityId, planeCode) / InfluenceProductionScoreScale);
-    }
-
-    private static float SumInfluence(WorldState world, int entityId, int planeCode)
-    {
-        var sum = 0f;
-        var cursor = world.InfluenceCells(entityId, planeCode);
-        while (world.MoveNextInfluenceCell(ref cursor, out _, out _, out var value))
-        {
-            sum += value;
-        }
-
-        return sum;
     }
 
     private static float SumRelationships(WorldState world, int entityId, int relationshipKindId, bool outgoing)

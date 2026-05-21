@@ -22,6 +22,7 @@ internal static partial class KernelProgramInstaller
         InstallRelationships(context, programs.Relationships);
         InstallGenerators(context, programs.Generators);
         InstallCultureSlots(context, programs.CultureSlots);
+        InstallMinorActors(context, programs.MinorActors);
 
         context.SetProgramEnabled(
             KernelProgramCodes.Movement,
@@ -53,6 +54,44 @@ internal static partial class KernelProgramInstaller
         context.SetProgramEnabled(
             KernelProgramCodes.Generators,
             programConfig.IsEnabled(KernelProgramCodes.Generators, programs.Generators.EnabledByDefault));
+        context.SetProgramEnabled(
+            KernelProgramCodes.MinorActors,
+            programConfig.IsEnabled(KernelProgramCodes.MinorActors, programs.MinorActors.EnabledByDefault));
+    }
+
+    private static void InstallMinorActors(KernelConfigurationContext context, MinorActorProgram program)
+    {
+        foreach (var rule in program.EmitterRules)
+        {
+            var ruleSlot = context.RegisterMinorActorEmitterRule(
+                rule.SourceKindId,
+                rule.SourceSubtypeId,
+                rule.PurposeCode,
+                rule.ActorKindCode,
+                rule.ActionCode,
+                rule.PlaneCode,
+                rule.TtlPulses,
+                rule.EmitCadencePulses,
+                rule.MaxActivePerSource,
+                rule.SpawnRadius,
+                rule.MoveChancePermille,
+                rule.ActionCadencePulses,
+                rule.WorkDelta);
+
+            foreach (var verb in rule.Verbs)
+            {
+                _ = context.RegisterMinorActorVerb(
+                    ruleSlot,
+                    verb.VerbId,
+                    verb.ActionCode,
+                    verb.TargetingCode,
+                    verb.PlaneCode,
+                    verb.Radius,
+                    verb.SampleCount,
+                    verb.Weight,
+                    verb.WorkDeltaMultiplier);
+            }
+        }
     }
 
     private static void InstallCultureSlots(KernelConfigurationContext context, CultureSlotProgram program)
@@ -614,6 +653,7 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramOperation.SetHistorical => BehaviorOperationCodes.SetHistorical,
             BehaviorProgramOperation.AddRelatedEntitiesAttribute => BehaviorOperationCodes.AddRelatedEntitiesAttribute,
             BehaviorProgramOperation.SetTargetCultureFromSelf => BehaviorOperationCodes.SetTargetCultureFromSelf,
+            BehaviorProgramOperation.IncreaseWorkTier => BehaviorOperationCodes.IncreaseWorkTier,
             _ => -1,
         };
         return code >= 0;
@@ -650,7 +690,8 @@ internal static partial class KernelProgramInstaller
         if (TryAttributePreconditionCode(precondition, out var code) ||
             TryRelationshipPreconditionCode(precondition, out code) ||
             TryCompositionPreconditionCode(precondition, out code) ||
-            TryContextPreconditionCode(precondition, out code))
+            TryContextPreconditionCode(precondition, out code) ||
+            TryKernelStatePreconditionCode(precondition, out code))
         {
             return code;
         }
@@ -710,6 +751,17 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramPrecondition.ContestedInfluence => BehaviorPreconditionCodes.ContestedInfluence,
             BehaviorProgramPrecondition.SharedInfluence => BehaviorPreconditionCodes.SharedInfluence,
             BehaviorProgramPrecondition.EndpointCultureIs => BehaviorPreconditionCodes.EndpointCultureIs,
+            _ => -1,
+        };
+        return code >= 0;
+    }
+
+    private static bool TryKernelStatePreconditionCode(BehaviorProgramPrecondition precondition, out int code)
+    {
+        code = precondition switch
+        {
+            BehaviorProgramPrecondition.SelfCultureMass => BehaviorPreconditionCodes.SelfCultureMass,
+            BehaviorProgramPrecondition.SelfWorkTierBelow => BehaviorPreconditionCodes.SelfWorkTierBelow,
             _ => -1,
         };
         return code >= 0;

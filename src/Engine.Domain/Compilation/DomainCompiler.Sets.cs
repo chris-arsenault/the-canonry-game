@@ -30,6 +30,49 @@ public static partial class DomainCompiler
             Relationships = BuildRelationshipProgram(config, ids),
             Generators = BuildGeneratorProgram(config, ids, graph),
             CultureSlots = BuildCultureSlotProgram(graph),
+            MinorActors = BuildMinorActorProgram(config, ids),
+        };
+    }
+
+    private static MinorActorProgram BuildMinorActorProgram(DomainConfig config, DomainIdRegistry ids)
+    {
+        var rules = new List<MinorActorEmitterRule>();
+        foreach (var rule in config.MinorActors)
+        {
+            var planeCode = rule.PlaneCode;
+            rules.Add(new MinorActorEmitterRule(
+                ids.KindIdOf(rule.SourceKind).Value,
+                string.IsNullOrWhiteSpace(rule.SourceSubtype)
+                    ? 0
+                    : ids.SubtypeIdOf(rule.SourceSubtype).Value,
+                rule.PurposeCode,
+                rule.ActorKindCode,
+                rule.ActionCode,
+                planeCode,
+                rule.TtlPulses,
+                rule.EmitCadencePulses,
+                rule.MaxActivePerSource,
+                rule.SpawnRadius,
+                rule.MoveChancePermille,
+                rule.ActionCadencePulses,
+                rule.WorkDelta,
+                rule.Verbs
+                    .Select(verb => new MinorActorVerbRule(
+                        ids.VerbIdOf(verb.Id).Value,
+                        verb.ActionCode,
+                        verb.TargetingCode,
+                        verb.PlaneCode == Engine.Constants.PlaneCodes.None ? planeCode : verb.PlaneCode,
+                        verb.Radius,
+                        verb.SampleCount,
+                        verb.Weight,
+                        verb.WorkDeltaMultiplier))
+                    .ToArray()));
+        }
+
+        return new MinorActorProgram
+        {
+            EnabledByDefault = rules.Count > 0,
+            EmitterRules = rules,
         };
     }
 

@@ -35,6 +35,7 @@ public sealed class TelemetryBatch
     public Collection<CellInfluenceEventRow> CellInfluenceEvents { get; } = [];
     public Collection<CellCultureInfluenceEventRow> CellCultureInfluenceEvents { get; } = [];
     public Collection<CultureSlotOccupancyEventRow> CultureSlotOccupancyEvents { get; } = [];
+    public Collection<MinorActorVerbEventRow> MinorActorVerbEvents { get; } = [];
     public Collection<CultureFieldComponentSnapshotRow> CultureFieldComponentSnapshots { get; } = [];
     public Collection<CultureEntityFieldSnapshotRow> CultureEntityFieldSnapshots { get; } = [];
     public Collection<CultureEntityBirthFieldEventRow> CultureEntityBirthFieldEvents { get; } = [];
@@ -408,6 +409,29 @@ public sealed record CultureSlotOccupancyEventRow(
     int CurrentEntityId,
     float PreviousScore,
     float CurrentScore);
+
+public sealed record MinorActorVerbEventRow(
+    int RunId,
+    int Tick,
+    int ActorId,
+    int SourceEntityId,
+    int SourceRuleId,
+    int SourceWorkTier,
+    int EffectiveRadius,
+    int CultureId,
+    int VerbId,
+    int PurposeCode,
+    int ActionCode,
+    int TargetingCode,
+    int PlaneCode,
+    int Q,
+    int R,
+    int StatusCode,
+    int CellKindCode,
+    float LocalRawMass,
+    float ConnectedRawMass,
+    float Score,
+    float Delta);
 
 public sealed record CultureFieldComponentSnapshotRow(
     int RunId,

@@ -30,6 +30,7 @@ public enum KernelEventType
     CellCultureInfluenceChanged = 28,
     CultureSlotOccupancyChanged = 29,
     GeneratorTargetEvaluated = 30,
+    MinorActorVerbExecuted = 31,
     Trace = 120,
 }
 
@@ -449,6 +450,49 @@ public readonly record struct CultureSlotOccupancyChangedKernelEvent(
     float PreviousScore,
     [KernelEventFloatSlot(1, "current_score", KernelEventSemanticKind.RawScalar)]
     float CurrentScore);
+
+[KernelEventLayout(KernelEventType.MinorActorVerbExecuted, schemaMinor: 1)]
+public readonly record struct MinorActorVerbExecutedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "actor_id", KernelEventSemanticKind.RawScalar)]
+    int ActorId,
+    [KernelEventIntSlot(1, "source_entity_id", KernelEventSemanticKind.EntityId)]
+    int SourceEntityId,
+    [KernelEventIntSlot(2, "source_rule_id", KernelEventSemanticKind.RawScalar)]
+    int SourceRuleId,
+    [KernelEventIntSlot(3, "source_work_tier", KernelEventSemanticKind.RawScalar)]
+    int SourceWorkTier,
+    [KernelEventIntSlot(4, "effective_radius", KernelEventSemanticKind.RawScalar)]
+    int EffectiveRadius,
+    [KernelEventIntSlot(5, "culture_id", KernelEventSemanticKind.CultureId)]
+    int CultureId,
+    [KernelEventIntSlot(6, "verb_id", KernelEventSemanticKind.ActionId)]
+    int VerbId,
+    [KernelEventIntSlot(7, "purpose_code", KernelEventSemanticKind.RawScalar)]
+    int PurposeCode,
+    [KernelEventIntSlot(8, "action_code", KernelEventSemanticKind.ActionId)]
+    int ActionCode,
+    [KernelEventIntSlot(9, "targeting_code", KernelEventSemanticKind.RawScalar)]
+    int TargetingCode,
+    [KernelEventIntSlot(10, "plane_code", KernelEventSemanticKind.PlaneCode)]
+    int PlaneCode,
+    [KernelEventIntSlot(11, "q", KernelEventSemanticKind.Coordinate)]
+    int Q,
+    [KernelEventIntSlot(12, "r", KernelEventSemanticKind.Coordinate)]
+    int R,
+    [KernelEventIntSlot(13, "status_code", KernelEventSemanticKind.StatusCode)]
+    int StatusCode,
+    [KernelEventIntSlot(14, "cell_kind_code", KernelEventSemanticKind.RawScalar)]
+    int CellKindCode,
+    [KernelEventFloatSlot(0, "local_raw_mass", KernelEventSemanticKind.RawScalar)]
+    float LocalRawMass,
+    [KernelEventFloatSlot(1, "connected_raw_mass", KernelEventSemanticKind.RawScalar)]
+    float ConnectedRawMass,
+    [KernelEventFloatSlot(2, "score", KernelEventSemanticKind.RawScalar)]
+    float Score,
+    [KernelEventFloatSlot(3, "delta", KernelEventSemanticKind.RawScalar)]
+    float Delta);
 
 [KernelEventLayout(KernelEventType.MapCellStateChanged, schemaMinor: 0)]
 public readonly record struct MapCellStateChangedKernelEvent(

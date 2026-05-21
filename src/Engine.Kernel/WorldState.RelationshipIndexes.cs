@@ -564,16 +564,6 @@ internal sealed partial class WorldState
         }
     }
 
-    private static float ClampInfluence(float value)
-    {
-        if (value < 0f)
-        {
-            return 0f;
-        }
-
-        return value > 100f ? 100f : value;
-    }
-
     private static void ValidateRelationshipThreshold(float minimumStrength)
     {
         if (global::System.Single.IsNaN(minimumStrength))

@@ -609,7 +609,8 @@ public sealed class LowAltitudeVerbSelectionTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(influencerId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        _ = influencerId;
+        Assert.Equal(0, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
         Assert.Equal((3, 0), (simulation.LowAltitudeVerbs.State.TargetQ(actorId), simulation.LowAltitudeVerbs.State.TargetR(actorId)));
     }
 

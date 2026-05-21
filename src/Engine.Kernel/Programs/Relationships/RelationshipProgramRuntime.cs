@@ -264,12 +264,15 @@ internal sealed class RelationshipProgramRuntime :
                 return true;
             }
 
+            var sourceCultureId = world.EntityCultureId(sourceId);
             evidence = InfluenceEvidence(
-                world.GetCellInfluence(
-                    sourceId,
-                    planeCode,
-                    CurrentQ(world, targetId, planeCode),
-                    CurrentR(world, targetId, planeCode)),
+                sourceCultureId <= 0
+                    ? 0f
+                    : world.GetCellCultureInfluenceRaw(
+                        sourceCultureId,
+                        planeCode,
+                        CurrentQ(world, targetId, planeCode),
+                        CurrentR(world, targetId, planeCode)),
                 Data.MaintenanceThreshold(rule));
             return true;
         }
@@ -283,12 +286,15 @@ internal sealed class RelationshipProgramRuntime :
                 return true;
             }
 
+            var targetCultureId = world.EntityCultureId(targetId);
             evidence = InfluenceEvidence(
-                world.GetCellInfluence(
-                    targetId,
-                    planeCode,
-                    CurrentQ(world, sourceId, planeCode),
-                    CurrentR(world, sourceId, planeCode)),
+                targetCultureId <= 0
+                    ? 0f
+                    : world.GetCellCultureInfluenceRaw(
+                        targetCultureId,
+                        planeCode,
+                        CurrentQ(world, sourceId, planeCode),
+                        CurrentR(world, sourceId, planeCode)),
                 Data.MaintenanceThreshold(rule));
             return true;
         }

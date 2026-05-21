@@ -474,7 +474,8 @@ public static partial class DomainCompiler
             TryCompileSimplePrecondition(ops, precondition) ||
             TryCompileRangePrecondition(ops, precondition, ids) ||
             TryCompileRelationshipPrecondition(ops, precondition, ids) ||
-            TryCompileCulturePrecondition(ops, precondition, ids))
+            TryCompileCulturePrecondition(ops, precondition, ids) ||
+            TryCompileKernelStatePrecondition(ops, precondition))
         {
             return;
         }
@@ -846,6 +847,7 @@ public static partial class DomainCompiler
         if (TryCompileCreateStep(steps, mutation, ids) ||
             TryCompileAttributeStep(steps, mutation, ids) ||
             TryCompileVariableStep(steps, mutation, ids) ||
+            TryCompileKernelStateStep(steps, mutation) ||
             TryCompileMapStep(steps, mutation, ids) ||
             TryCompileMovementStep(steps, mutation))
         {

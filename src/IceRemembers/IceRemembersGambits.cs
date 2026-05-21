@@ -18,32 +18,94 @@ using TravelStructure = IceRemembers.IceRemembersTravelStructure;
 public static partial class IceRemembersDefinition
 {
     private const float InitialGambitSuccessChance = 0.25f;
+    private const float WorkTierGambitSuccessChance = 0.75f;
+    private const float CulturalWorkTierMinimumRawMass = 12f;
+    private const float CulturalWorkTierMinimumConnectedRawMass = 90f;
     private const int SettlementTradeRouteMaxSemanticDistance = 12;
+    private static readonly Dictionary<EntityKind, GambitId> WorkTierGambitIds = new()
+    {
+        [K.Region] = GambitId.RegionDeepensTheHolding,
+        [K.Settlement] = GambitId.SettlementDeepensTheHolding,
+        [K.Faction] = GambitId.FactionDeepensTheHolding,
+        [K.Penguin] = GambitId.PenguinDeepensTheHolding,
+        [K.Artifact] = GambitId.ArtifactDeepensTheHolding,
+        [K.Orca] = GambitId.OrcaDeepensTheHolding,
+        [K.PointOfInterest] = GambitId.PointOfInterestDeepensTheHolding,
+        [K.Ability] = GambitId.AbilityDeepensTheHolding,
+        [K.Monster] = GambitId.MonsterDeepensTheHolding,
+        [K.Transport] = GambitId.TransportDeepensTheHolding,
+        [K.Occurrence] = GambitId.OccurrenceDeepensTheHolding,
+    };
 
-    private static IReadOnlyList<GambitDefinition> CreateGambits() =>
-    [
-        PenguinWieldsArtifact(),
-        FactionDeclaresTerritorialWar(),
-        SettlementOpensTradeRoute(),
-        SettlementRaisesCauseway(),
-        ArtifactCleansesScar(),
-        FactionSuesForPeace(),
-        FactionClaimsPointOfInterest(),
-        OrcaClaimsHuntingGround(),
-        AbilitySharesPractice(),
-        TransportOpensConduit(),
-        FactionJoinsOccurrence(),
-        ArtifactBindsMonster(),
-        FactionChartersSettlement(),
-        TransportSurveysRegion(),
-        OrcaLaysDeepCurrent(),
-        TransportWardsMonster(),
-        MonsterHauntsTransport(),
-        OrcaRaidsTradeRoute(),
-        MonsterStealsArtifact(),
-        PenguinSlaysMonster(),
-        PenguinSlaysOrca(),
-    ];
+    private static List<GambitDefinition> CreateGambits()
+    {
+        var gambits = new List<GambitDefinition>
+        {
+            PenguinWieldsArtifact(),
+            FactionDeclaresTerritorialWar(),
+            SettlementOpensTradeRoute(),
+            SettlementRaisesCauseway(),
+            ArtifactCleansesScar(),
+            FactionSuesForPeace(),
+            FactionClaimsPointOfInterest(),
+            OrcaClaimsHuntingGround(),
+            AbilitySharesPractice(),
+            TransportOpensConduit(),
+            FactionJoinsOccurrence(),
+            ArtifactBindsMonster(),
+            FactionChartersSettlement(),
+            TransportSurveysRegion(),
+            OrcaLaysDeepCurrent(),
+            TransportWardsMonster(),
+            MonsterHauntsTransport(),
+            OrcaRaidsTradeRoute(),
+            MonsterStealsArtifact(),
+            PenguinSlaysMonster(),
+            PenguinSlaysOrca(),
+        };
+        gambits.AddRange(CreateWorkTierGambits());
+        return gambits;
+    }
+
+    private static IEnumerable<GambitDefinition> CreateWorkTierGambits()
+    {
+        foreach (var entity in IceRemembersEntities.All)
+        {
+            yield return EntityDeepensTheHolding(entity);
+        }
+    }
+
+    private static GambitDefinition EntityDeepensTheHolding(IceRemembersEntityDefinition entity)
+    {
+        var health = A(entity.HealthAttribute);
+        var gambit = new GambitDefinition(
+            G(WorkTierGambitId(entity.Kind)),
+            "Deepen the Holding",
+            entity.Kind,
+            All(
+                new TargetIsSelf(),
+                new SelfCultureMassPrecondition(
+                    NonMobilePrimaryPlane(entity.PrimaryPlane),
+                    CulturalWorkTierMinimumRawMass,
+                    CulturalWorkTierMinimumConnectedRawMass),
+                new SelfAttributeThreshold(health, min: 45f, max: null, behaviorRelevant: false)),
+            scoreExpression: GambitScore(
+                baseline: 0.35f,
+                dynamicRange: 4f,
+                Normalized(Expr.Self(health))))
+        {
+            SuccessChance = WorkTierGambitSuccessChance,
+            Cooldown = 260,
+            EntityCooldown = 80,
+            Description = "A durable entity inside a strong cultural mass deepens its holding, increasing the workers it can support and how far those workers can operate.",
+        };
+        gambit.Reads.Add(AttributeRef.Self(health, entity.Kind));
+        gambit.Reads.Add(AttributeRef.Coordinates(entity.Kind));
+        gambit.Reads.Add(AttributeRef.StructuralFact("work_tier", entity.Kind));
+        gambit.Writes.Add(AttributeRef.StructuralFact("work_tier", entity.Kind));
+        gambit.Mutations.Add(new IncreaseWorkTierMutation());
+        return gambit;
+    }
 
     private static GambitDefinition PenguinWieldsArtifact()
     {
@@ -818,4 +880,16 @@ public static partial class IceRemembersDefinition
         RelationshipPolarity polarity,
         float strength) =>
         new(source, target, L(relationship), polarity, strength);
+
+    private static PrimaryPlane NonMobilePrimaryPlane(PrimaryPlane primaryPlane) =>
+        primaryPlane == PrimaryPlane.Physical
+            ? PrimaryPlane.Semantic
+            : PrimaryPlane.Physical;
+
+    private static GambitId WorkTierGambitId(EntityKind kind)
+    {
+        return WorkTierGambitIds.TryGetValue(kind, out var gambitId)
+            ? gambitId
+            : throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown Ice Remembers entity kind.");
+    }
 }

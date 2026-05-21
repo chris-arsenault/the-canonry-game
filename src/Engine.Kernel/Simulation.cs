@@ -6,6 +6,7 @@ using Engine.Kernel.Programs;
 internal sealed partial class Simulation : IKernel
 {
     private readonly int[] _systemCadences;
+    private readonly int[] _systemTicksPerKernelTick;
     private readonly int[] _systemProgramIds;
     private readonly int[] _systemSourceCodeIds;
     private readonly ISimulationSystem?[] _systems;
@@ -43,10 +44,12 @@ internal sealed partial class Simulation : IKernel
         Generators = CreateGeneratorRuntime(options);
         Upkeep = CreateUpkeepRuntime(options);
         Relationships = CreateRelationshipRuntime(options);
+        MinorActors = CreateMinorActorRuntime(options);
         AssignRuntimeCodes(options.RuntimeCodes);
         _executionContext = new KernelExecutionContext(0, StartupSourceCodeId);
         _random = new RandomSource(options.Seed);
         _systemCadences = new int[options.SystemCapacity];
+        _systemTicksPerKernelTick = new int[options.SystemCapacity];
         _systemProgramIds = new int[options.SystemCapacity];
         _systemSourceCodeIds = new int[options.SystemCapacity];
         _systems = new ISimulationSystem[options.SystemCapacity];
@@ -108,6 +111,14 @@ internal sealed partial class Simulation : IKernel
                 options.CultureSlotScoreRuleCapacity),
             new CultureSlotProgramState(options.CultureSlotCapacity));
 
+    private static MinorActorProgramRuntime CreateMinorActorRuntime(SimulationOptions options) =>
+        new(
+            new MinorActorProgramData(options.MinorActorRuleCapacity),
+            new MinorActorProgramState(
+                options.MinorActorCapacity,
+                options.MinorActorSourceRuleCapacity,
+                options.EntityCapacity));
+
     private static GambitProgramRuntime CreateGambitRuntime(SimulationOptions options) =>
         new(
             new GambitProgramData(
@@ -159,6 +170,11 @@ internal sealed partial class Simulation : IKernel
         RegisterProgram(KernelProgramCodes.Gambits, 1, Gambits);
         RegisterProgram(KernelProgramCodes.Generators, 1, Generators);
         RegisterProgram(KernelProgramCodes.CultureSlots, 10, CultureSlots);
+        RegisterProgram(
+            KernelProgramCodes.MinorActors,
+            1,
+            MinorActors,
+            Options.KernelTuning.Programs.MinorActors.TicksPerKernelTick);
         ValidateProgramDependencies();
     }
 
@@ -302,6 +318,7 @@ internal sealed partial class Simulation : IKernel
     internal GeneratorProgramRuntime Generators { get; }
     internal UpkeepProgramRuntime Upkeep { get; }
     internal RelationshipProgramRuntime Relationships { get; }
+    internal MinorActorProgramRuntime MinorActors { get; }
     internal int GambitSourceCodeId { get; private set; }
     internal int UpkeepSourceCodeId { get; private set; }
     internal int StartupSourceCodeId { get; private set; }
@@ -613,14 +630,19 @@ internal sealed partial class Simulation : IKernel
         World.MoveEntitySemantic(entityId, q, r, s, tick, _executionContext);
     }
 
-    internal void SetCellInfluence(int entityId, int planeCode, int q, int r, float value, int tick)
+    internal void ModifyCellCultureInfluenceRaw(int cultureId, int planeCode, int q, int r, float delta, int tick)
     {
-        World.SetCellInfluence(entityId, planeCode, q, r, value, tick, _executionContext);
+        World.ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, delta, tick, _executionContext);
     }
 
-    internal void ModifyCellInfluence(int entityId, int planeCode, int q, int r, float delta, int tick)
+    internal void ModifyCellCultureInfluenceRawFromEntity(int entityId, int planeCode, int q, int r, float delta, int tick)
     {
-        World.ModifyCellInfluence(entityId, planeCode, q, r, delta, tick, _executionContext);
+        World.ModifyCellCultureInfluenceRawFromEntity(entityId, planeCode, q, r, delta, tick, _executionContext);
+    }
+
+    internal float ReduceOtherCultureSourcesAtCell(int ownCultureId, int planeCode, int q, int r, float delta, int tick)
+    {
+        return World.ReduceOtherCultureSourcesAtCell(ownCultureId, planeCode, q, r, delta, tick, _executionContext);
     }
 
     internal int CreateRelationship(
@@ -656,13 +678,15 @@ internal sealed partial class Simulation : IKernel
         World.CullOutgoingRelationshipsOfKind(sourceEntityId, kindId, tick, _executionContext);
     }
 
-    internal int RegisterSystem(int cadence, ISimulationSystem system)
+    internal int RegisterSystem(int cadence, ISimulationSystem system, int ticksPerKernelTick = 1)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cadence);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ticksPerKernelTick);
         global::System.ArgumentNullException.ThrowIfNull(system);
 
         var slot = FindSystemSlot();
         _systemCadences[slot] = cadence;
+        _systemTicksPerKernelTick[slot] = ticksPerKernelTick;
         _systemProgramIds[slot] = 0;
         _systemSourceCodeIds[slot] = 0;
         _systems[slot] = system;
@@ -675,7 +699,11 @@ internal sealed partial class Simulation : IKernel
         return slot;
     }
 
-    internal int RegisterProgram(int programId, int cadence, ISimulationSystem system)
+    internal int RegisterProgram(
+        int programId,
+        int cadence,
+        ISimulationSystem system,
+        int ticksPerKernelTick = 1)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(programId);
         var sourceCodeId = SourceCodeIdForProgram(programId);
@@ -684,7 +712,7 @@ internal sealed partial class Simulation : IKernel
             throw new global::System.InvalidOperationException();
         }
 
-        var handle = RegisterSystem(cadence, system);
+        var handle = RegisterSystem(cadence, system, ticksPerKernelTick);
         _systemProgramIds[handle] = programId;
         _systemSourceCodeIds[handle] = sourceCodeId;
         _programs.Register(programId, handle);
@@ -980,12 +1008,20 @@ internal sealed partial class Simulation : IKernel
                 using var scope = EnterExecutionContext(
                     _systemSourceCodeIds[i],
                     _systemProgramIds[i]);
-                system.Tick(this, CurrentTick);
+                TickSystemSubsteps(system, _systemTicksPerKernelTick[i]);
             }
             else
             {
-                system.Tick(this, CurrentTick);
+                TickSystemSubsteps(system, _systemTicksPerKernelTick[i]);
             }
+        }
+    }
+
+    private void TickSystemSubsteps(ISimulationSystem system, int ticksPerKernelTick)
+    {
+        for (var substep = 0; substep < ticksPerKernelTick; substep++)
+        {
+            system.Tick(this, CurrentTick);
         }
     }
 
@@ -1003,6 +1039,7 @@ internal sealed partial class Simulation : IKernel
         KernelProgramCodes.MapSignals => MapSignalsSourceCodeId,
         KernelProgramCodes.Effects => EffectsSourceCodeId,
         KernelProgramCodes.CultureSlots => MapSignalsSourceCodeId,
+        KernelProgramCodes.MinorActors => MapActivitySourceCodeId,
         _ => 0,
     };
 

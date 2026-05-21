@@ -311,10 +311,12 @@ internal static class KernelQuery
         {
             BehaviorPreconditionCodes.CooldownElapsed => binding.RecentActionCount(binding.Tick - predicate.A + 1) == 0,
             BehaviorPreconditionCodes.EntityCountAtLeast => ActiveEntityCountOfKind(world, predicate.A) >= predicate.B,
+            BehaviorPreconditionCodes.SelfWorkTierBelow => binding.EntityWorkTier(binding.ActorId) < predicate.A,
             _ => false,
         };
         return predicate.Code is BehaviorPreconditionCodes.CooldownElapsed or
-            BehaviorPreconditionCodes.EntityCountAtLeast;
+            BehaviorPreconditionCodes.EntityCountAtLeast or
+            BehaviorPreconditionCodes.SelfWorkTierBelow;
     }
 
     private static bool TryEvaluateAttributePredicate(
@@ -377,9 +379,14 @@ internal static class KernelQuery
         in QueryBinding binding,
         out bool result)
     {
-        result = predicate.Code == BehaviorPreconditionCodes.EndpointCultureIs &&
-            EndpointCulturePasses(world, binding, predicate.A, predicate.B);
-        return predicate.Code == BehaviorPreconditionCodes.EndpointCultureIs;
+        result = predicate.Code switch
+        {
+            BehaviorPreconditionCodes.EndpointCultureIs => EndpointCulturePasses(world, binding, predicate.A, predicate.B),
+            BehaviorPreconditionCodes.SelfCultureMass => SelfCultureMassPasses(world, binding.ActorId, predicate.A, predicate.X, predicate.Y),
+            _ => false,
+        };
+        return predicate.Code is BehaviorPreconditionCodes.EndpointCultureIs or
+            BehaviorPreconditionCodes.SelfCultureMass;
     }
 
     private static bool EndpointCulturePasses(
@@ -392,6 +399,36 @@ internal static class KernelQuery
             ? binding.TargetId
             : binding.ActorId;
         return world.EntityCultureId(entityId) == cultureId;
+    }
+
+    private static bool SelfCultureMassPasses(
+        WorldState world,
+        int entityId,
+        int planeCode,
+        float minimumRawMass,
+        float minimumConnectedRawMass)
+    {
+        if (!world.EntityIsActive(entityId))
+        {
+            return false;
+        }
+
+        var cultureId = world.EntityCultureId(entityId);
+        if (cultureId <= 0)
+        {
+            return false;
+        }
+
+        var q = CurrentQ(world, entityId, planeCode);
+        var r = CurrentR(world, entityId, planeCode);
+        if (!world.CellIsKnown(planeCode, q, r))
+        {
+            return false;
+        }
+
+        var field = world.CultureFieldAt(cultureId, planeCode, q, r);
+        return field.RawMass >= minimumRawMass &&
+            field.ConnectedRawMass >= minimumConnectedRawMass;
     }
 
     private static bool TryEvaluateDirectedRelationshipPredicate(
@@ -837,16 +874,24 @@ internal static class KernelQuery
         float selfMinimum,
         float targetMinimum)
     {
-        var selfCellCount = world.InfluenceCellCount(entityId, planeCode);
-        var targetCellCount = world.InfluenceCellCount(targetId, planeCode);
-        if (selfCellCount == 0 || targetCellCount == 0)
+        var selfCultureId = world.EntityCultureId(entityId);
+        var targetCultureId = world.EntityCultureId(targetId);
+        if (selfCultureId <= 0 || targetCultureId <= 0)
         {
             return false;
         }
 
-        return selfCellCount <= targetCellCount
-            ? InfluenceOverlapPassesFromCursor(world, entityId, targetId, planeCode, selfMinimum, targetMinimum)
-            : InfluenceOverlapPassesFromCursor(world, targetId, entityId, planeCode, targetMinimum, selfMinimum);
+        var selfAtTarget = world.GetCellCultureInfluenceRaw(
+            selfCultureId,
+            planeCode,
+            CurrentQ(world, targetId, planeCode),
+            CurrentR(world, targetId, planeCode));
+        var targetAtSelf = world.GetCellCultureInfluenceRaw(
+            targetCultureId,
+            planeCode,
+            CurrentQ(world, entityId, planeCode),
+            CurrentR(world, entityId, planeCode));
+        return selfAtTarget >= selfMinimum && targetAtSelf >= targetMinimum;
     }
 
     public static float ThresholdEvidence(float value, float threshold)
@@ -924,28 +969,6 @@ internal static class KernelQuery
     {
         var relationshipId = FindRelationship(world, sourceId, targetId, relationshipKindId);
         return relationshipId == 0 ? 0f : RelationshipStrength(world, relationshipId);
-    }
-
-    private static bool InfluenceOverlapPassesFromCursor(
-        WorldState world,
-        int cursorEntityId,
-        int otherEntityId,
-        int planeCode,
-        float cursorMinimum,
-        float otherMinimum)
-    {
-        var cursor = world.InfluenceCells(cursorEntityId, planeCode);
-        while (world.MoveNextInfluenceCell(ref cursor, out var q, out var r, out var influence))
-        {
-            if (influence >= cursorMinimum &&
-                world.CellIsKnown(planeCode, q, r) &&
-                world.GetCellInfluence(otherEntityId, planeCode, q, r) >= otherMinimum)
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private static bool SharedQueryMatchesCandidate(

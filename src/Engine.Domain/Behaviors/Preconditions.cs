@@ -261,6 +261,31 @@ public sealed class SharedInfluencePrecondition(
         $"shared_influence({Plane}, self >= {SelfMinimum}, target >= {TargetMinimum})";
 }
 
+/// <summary>
+/// Requires self to stand inside its own culture's mass on the selected plane.
+/// This reads the derived culture field rather than a domain-specific entity kind.
+/// </summary>
+public sealed class SelfCultureMassPrecondition(
+    Engine.Domain.Config.PrimaryPlane plane,
+    float minimumRawMass,
+    float minimumConnectedRawMass) : IPrecondition
+{
+    public Engine.Domain.Config.PrimaryPlane Plane { get; } = plane;
+    public float MinimumRawMass { get; } = minimumRawMass;
+    public float MinimumConnectedRawMass { get; } = minimumConnectedRawMass;
+
+    public string Describe() =>
+        $"self_culture_mass({Plane}, raw >= {MinimumRawMass}, connected >= {MinimumConnectedRawMass})";
+}
+
+/// <summary>Requires self's minor-labor work tier to be below a maximum.</summary>
+public sealed class SelfWorkTierBelowPrecondition(int maximumExclusive) : IPrecondition
+{
+    public int MaximumExclusive { get; } = maximumExclusive;
+
+    public string Describe() => $"self_work_tier < {MaximumExclusive}";
+}
+
 /// <summary>Inverts the result of a wrapped precondition.</summary>
 public sealed class NotPrecondition(IPrecondition inner) : IPrecondition
 {

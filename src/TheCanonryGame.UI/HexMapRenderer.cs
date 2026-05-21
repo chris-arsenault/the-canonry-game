@@ -24,6 +24,7 @@ public partial class HexMapRenderer : Node2D
     private readonly Dictionary<int, Vector2> _cellPositions = [];
     private readonly Dictionary<int, Color> _ownerColors = [];
     private HexMapProjection? _map;
+    private UiProjectionState? _ui;
     private IProjectionSymbolCatalog? _symbols;
     private PackedScene? _cellScene;
     private Node2D? _cellLayer;
@@ -38,6 +39,8 @@ public partial class HexMapRenderer : Node2D
     [Export] public bool ShowCultureInfluence { get; set; }
 
     [Export] public bool ShowInfluence { get; set; }
+
+    [Export] public bool ShowMinorActors { get; set; }
 
     [Export] public bool ShowRoads { get; set; } = true;
 
@@ -59,9 +62,10 @@ public partial class HexMapRenderer : Node2D
         _frameLayer = GetNodeOrNull<HexMapFrameLayer>("FrameLayer");
     }
 
-    public void Initialize(HexMapProjection map, IProjectionSymbolCatalog? symbols)
+    public void Initialize(HexMapProjection map, UiProjectionState? ui, IProjectionSymbolCatalog? symbols)
     {
         _map = map;
+        _ui = ui;
         _symbols = symbols;
         _ownerColors.Clear();
         _ownerColorVersion = -1;
@@ -112,6 +116,7 @@ public partial class HexMapRenderer : Node2D
         _backdropLayer?.Bind(_map, CurrentPlane, HexSize);
         _frameLayer?.Bind(
             _map,
+            _ui,
             _symbols,
             CurrentPlane,
             HexSize,
@@ -120,6 +125,7 @@ public partial class HexMapRenderer : Node2D
             ShowTerritory,
             ShowCultureInfluence,
             ShowInfluence,
+            ShowMinorActors,
             ShowRoads,
             ShowRoutes,
             ResolveOwnerColors());

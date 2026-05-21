@@ -199,6 +199,7 @@ public sealed class KernelRuntimeFactory
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Gambits, enabled.Gambits);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Relationships, enabled.Relationships);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Generators, enabled.Generators);
+        ApplyProgramEnabledOverride(programs, KernelProgramCodes.MinorActors, enabled.MinorActors);
     }
 
     private static void ApplyProgramEnabledOverride(

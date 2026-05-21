@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 36;
+    private const int FormatVersion = 37;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -116,6 +116,9 @@ internal static class KernelSnapshotOptions
         writer.Write(options.CultureSlotCapacity);
         writer.Write(options.CultureSlotAllowedKindCapacity);
         writer.Write(options.CultureSlotScoreRuleCapacity);
+        writer.Write(options.MinorActorCapacity);
+        writer.Write(options.MinorActorRuleCapacity);
+        writer.Write(options.MinorActorSourceRuleCapacity);
         writer.Write(options.EntityAttributeCapacity);
         writer.Write(options.EntityTraitCapacity);
         writer.Write(options.AttributeIdCapacity);
@@ -168,6 +171,7 @@ internal static class KernelSnapshotOptions
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ForeignInfluenceDistanceScale);
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.InfluenceShortfallSamplingFactor);
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ForeignInfluencePresenceSamplingFactor);
+        writer.Write(kernelTuning.Programs.MinorActors.TicksPerKernelTick);
     }
 
     private static void WriteProgramEnabledOverrides(
@@ -184,6 +188,7 @@ internal static class KernelSnapshotOptions
         writer.Write(enabled.Gambits);
         writer.Write(enabled.Relationships);
         writer.Write(enabled.Generators);
+        writer.Write(enabled.MinorActors);
     }
 
     public static SimulationOptions Read(
@@ -254,6 +259,9 @@ internal static class KernelSnapshotOptions
         values.CultureSlotCapacity = reader.ReadInt32();
         values.CultureSlotAllowedKindCapacity = reader.ReadInt32();
         values.CultureSlotScoreRuleCapacity = reader.ReadInt32();
+        values.MinorActorCapacity = reader.ReadInt32();
+        values.MinorActorRuleCapacity = reader.ReadInt32();
+        values.MinorActorSourceRuleCapacity = reader.ReadInt32();
         values.EntityAttributeCapacity = reader.ReadInt32();
         values.EntityTraitCapacity = reader.ReadInt32();
         values.AttributeIdCapacity = reader.ReadInt32();
@@ -298,6 +306,7 @@ internal static class KernelSnapshotOptions
         values.GambitsProgramEnabled = reader.ReadInt32();
         values.RelationshipsProgramEnabled = reader.ReadInt32();
         values.GeneratorsProgramEnabled = reader.ReadInt32();
+        values.MinorActorsProgramEnabled = reader.ReadInt32();
         values.UpkeepAgingModelCode = reader.ReadInt32();
         values.GeneratorRetryFireTargets = reader.ReadBoolean();
         values.GeneratorPulseWidthTicks = reader.ReadInt32();
@@ -315,6 +324,7 @@ internal static class KernelSnapshotOptions
         values.LowAltitudeForeignInfluenceDistanceScale = reader.ReadSingle();
         values.LowAltitudeInfluenceShortfallSamplingFactor = reader.ReadSingle();
         values.LowAltitudeForeignInfluencePresenceSamplingFactor = reader.ReadSingle();
+        values.MinorActorTicksPerKernelTick = reader.ReadInt32();
     }
 
     private static void ApplyEventCapacityFloor(ref SnapshotOptionValues values, int eventCount)
@@ -388,6 +398,9 @@ internal static class KernelSnapshotOptions
             CultureSlotCapacity = values.CultureSlotCapacity,
             CultureSlotAllowedKindCapacity = values.CultureSlotAllowedKindCapacity,
             CultureSlotScoreRuleCapacity = values.CultureSlotScoreRuleCapacity,
+            MinorActorCapacity = values.MinorActorCapacity,
+            MinorActorRuleCapacity = values.MinorActorRuleCapacity,
+            MinorActorSourceRuleCapacity = values.MinorActorSourceRuleCapacity,
             EntityAttributeCapacity = values.EntityAttributeCapacity,
             EntityTraitCapacity = values.EntityTraitCapacity,
             AttributeIdCapacity = values.AttributeIdCapacity,
@@ -436,6 +449,7 @@ internal static class KernelSnapshotOptions
                     Gambits = values.GambitsProgramEnabled,
                     Relationships = values.RelationshipsProgramEnabled,
                     Generators = values.GeneratorsProgramEnabled,
+                    MinorActors = values.MinorActorsProgramEnabled,
                 },
                 Upkeep = new UpkeepProgramTuningOptions
                 {
@@ -462,6 +476,10 @@ internal static class KernelSnapshotOptions
                     ForeignInfluenceDistanceScale = values.LowAltitudeForeignInfluenceDistanceScale,
                     InfluenceShortfallSamplingFactor = values.LowAltitudeInfluenceShortfallSamplingFactor,
                     ForeignInfluencePresenceSamplingFactor = values.LowAltitudeForeignInfluencePresenceSamplingFactor,
+                },
+                MinorActors = new MinorActorProgramTuningOptions
+                {
+                    TicksPerKernelTick = values.MinorActorTicksPerKernelTick,
                 },
             },
         };
@@ -501,6 +519,9 @@ internal static class KernelSnapshotOptions
         public int CultureSlotCapacity;
         public int CultureSlotAllowedKindCapacity;
         public int CultureSlotScoreRuleCapacity;
+        public int MinorActorCapacity;
+        public int MinorActorRuleCapacity;
+        public int MinorActorSourceRuleCapacity;
         public int EntityAttributeCapacity;
         public int EntityTraitCapacity;
         public int AttributeIdCapacity;
@@ -533,6 +554,7 @@ internal static class KernelSnapshotOptions
         public int GambitsProgramEnabled;
         public int RelationshipsProgramEnabled;
         public int GeneratorsProgramEnabled;
+        public int MinorActorsProgramEnabled;
         public int UpkeepAgingModelCode;
         public bool GeneratorRetryFireTargets;
         public int GeneratorPulseWidthTicks;
@@ -550,6 +572,7 @@ internal static class KernelSnapshotOptions
         public float LowAltitudeForeignInfluenceDistanceScale;
         public float LowAltitudeInfluenceShortfallSamplingFactor;
         public float LowAltitudeForeignInfluencePresenceSamplingFactor;
+        public int MinorActorTicksPerKernelTick;
         public int Seed;
     }
 }

@@ -21,6 +21,8 @@ internal static class KernelStartupConfigLoader
         new("KERNELTUNING.PROGRAMS.GAMBITS", KernelProgramCodes.Gambits),
         new("KERNELTUNING.PROGRAMS.RELATIONSHIPS", KernelProgramCodes.Relationships),
         new("KERNELTUNING.PROGRAMS.GENERATORS", KernelProgramCodes.Generators),
+        new("KERNELTUNING.PROGRAMS.MINORACTORS", KernelProgramCodes.MinorActors),
+        new("KERNELTUNING.PROGRAMS.MINOR_ACTORS", KernelProgramCodes.MinorActors),
     ];
 
     public static KernelTuningOptions LoadKernelTuning(string? configFilePath)
@@ -76,6 +78,7 @@ internal static class KernelStartupConfigLoader
         tuning = ApplyJsonUpkeepTuning(programs, tuning);
         tuning = ApplyJsonGeneratorTuning(programs, tuning);
         tuning = ApplyJsonLowAltitudeVerbTuning(programs, tuning);
+        tuning = ApplyJsonMinorActorTuning(programs, tuning);
         return ApplyJsonProgramEnabledTuning(programs, tuning);
     }
 
@@ -89,7 +92,8 @@ internal static class KernelStartupConfigLoader
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Upkeep, "upkeep");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Gambits, "gambits");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Relationships, "relationships");
-        return ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Generators, "generators");
+        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Generators, "generators");
+        return ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.MinorActors, "minorActors", "minor_actors");
     }
 
     private static KernelTuningOptions ApplyJsonProgramEnabledValue(
@@ -226,6 +230,17 @@ internal static class KernelStartupConfigLoader
         return WithAgingModel(tuning, agingModelCode);
     }
 
+    private static KernelTuningOptions ApplyJsonMinorActorTuning(JsonElement programs, KernelTuningOptions tuning)
+    {
+        if (!TryGetObject(programs, out var minorActors, "minorActors", "minor_actors") ||
+            !TryGetInt(minorActors, out var ticksPerKernelTick, "ticksPerKernelTick", "ticks_per_kernel_tick"))
+        {
+            return tuning;
+        }
+
+        return WithMinorActorTicksPerKernelTick(tuning, ticksPerKernelTick);
+    }
+
     private static KernelTuningOptions ApplyToml(string[] lines, KernelTuningOptions tuning)
     {
         var section = string.Empty;
@@ -279,6 +294,11 @@ internal static class KernelStartupConfigLoader
         if (string.Equals(section, "KERNELTUNING.PROGRAMS.LOWALTITUDEVERBS", StringComparison.Ordinal))
         {
             return ApplyTomlProgramEnabledValue(section, key, value, ApplyTomlLowAltitudeVerbValue(key, value, tuning));
+        }
+
+        if (string.Equals(section, "KERNELTUNING.PROGRAMS.MINORACTORS", StringComparison.Ordinal))
+        {
+            return ApplyTomlProgramEnabledValue(section, key, value, ApplyTomlMinorActorValue(key, value, tuning));
         }
 
         var scalar = ReadBareTomlValue(value);
@@ -349,6 +369,7 @@ internal static class KernelStartupConfigLoader
             KernelProgramCodes.Effects => options with { Effects = code },
             KernelProgramCodes.Upkeep => options with { Upkeep = code },
             KernelProgramCodes.Gambits => options with { Gambits = code },
+            KernelProgramCodes.MinorActors => options with { MinorActors = code },
             _ => options,
         };
         return !ReferenceEquals(options, updated);
@@ -389,6 +410,21 @@ internal static class KernelStartupConfigLoader
             int.TryParse(scalar, CultureInfo.InvariantCulture, out var firesPerPulse))
         {
             return WithGeneratorFiresPerPulse(tuning, firesPerPulse);
+        }
+
+        return tuning;
+    }
+
+    private static KernelTuningOptions ApplyTomlMinorActorValue(
+        string key,
+        string value,
+        KernelTuningOptions tuning)
+    {
+        var scalar = ReadBareTomlValue(value);
+        if (string.Equals(key, "TICKSPERKERNELTICK", StringComparison.Ordinal) &&
+            int.TryParse(scalar, CultureInfo.InvariantCulture, out var ticksPerKernelTick))
+        {
+            return WithMinorActorTicksPerKernelTick(tuning, ticksPerKernelTick);
         }
 
         return tuning;
@@ -628,6 +664,15 @@ internal static class KernelStartupConfigLoader
             Programs = tuning.Programs with
             {
                 LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { ForeignInfluenceDistanceScale = value },
+            },
+        };
+
+    private static KernelTuningOptions WithMinorActorTicksPerKernelTick(KernelTuningOptions tuning, int value) =>
+        tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                MinorActors = tuning.Programs.MinorActors with { TicksPerKernelTick = value },
             },
         };
 

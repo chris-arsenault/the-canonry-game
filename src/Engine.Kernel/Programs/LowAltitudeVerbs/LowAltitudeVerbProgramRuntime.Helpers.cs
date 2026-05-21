@@ -117,8 +117,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var scaledRadius = distanceScale > 0f
             ? (int)global::System.MathF.Ceiling(distanceScale * 2f)
             : 1;
-        var authoredBreadth = Data.CandidateSampleCount(rule);
-        var radius = global::System.Math.Max(1, global::System.Math.Max(scaledRadius, authoredBreadth));
+        var radius = global::System.Math.Max(1, global::System.Math.Max(scaledRadius, Data.TargetRadius(rule)));
         return global::System.Math.Min(planeRadius, radius);
     }
 

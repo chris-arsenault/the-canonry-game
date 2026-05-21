@@ -56,7 +56,7 @@ public sealed class MapSignalsProgramTests
         simulation.AdvanceTicks(1);
 
         Assert.Equal(11f, simulation.MapSignals.EntityCapacity(entity, PlaneCodes.Physical));
-        Assert.Equal(36f, simulation.MapSignals.EntityAttractorMass(entity, PlaneCodes.Physical));
+        Assert.Equal(13.5f, simulation.MapSignals.EntityAttractorMass(entity, PlaneCodes.Physical));
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public sealed class MapSignalsProgramTests
         simulation.AdvanceTicks(1);
 
         Assert.Equal(8f, simulation.MapSignals.EntityCapacity(entity, PlaneCodes.Semantic));
-        Assert.Equal(27f, simulation.MapSignals.EntityAttractorMass(entity, PlaneCodes.Semantic));
+        Assert.Equal(4.5f, simulation.MapSignals.EntityAttractorMass(entity, PlaneCodes.Semantic));
     }
 
     [Fact]

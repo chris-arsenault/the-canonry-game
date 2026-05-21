@@ -36,7 +36,6 @@ internal sealed partial class WorldState
 
         count += _attributes.Count;
         count += _traits.Count;
-        count += _mapLayers.Influence.Count;
         count += _mapLayers.CultureInfluence.Count;
         for (var relationshipId = 1; relationshipId <= _relationshipHighWatermark; relationshipId++)
         {
@@ -219,28 +218,11 @@ internal sealed partial class WorldState
         });
     }
 
-    private void EmitSnapshotInfluence(KernelExecutionContext context, int tick, long version)
+    private static void EmitSnapshotInfluence(KernelExecutionContext context, int tick, long version)
     {
-        _mapLayers.Influence.ForEach((entityId, planeCode, coordinateKey, value) =>
-        {
-            if (value > 0f &&
-                _entityAllocated[entityId] &&
-                TryResolveCoordinateKey(coordinateKey, planeCode == PlaneCodes.Semantic ? 4 : 0, out var q, out var r))
-            {
-                Write(KernelEvent.From(new CellInfluenceChangedKernelEvent(
-                    tick,
-                    version,
-                    q,
-                    r,
-                    context.SourceCodeId,
-                    planeCode,
-                    entityId,
-                    context.ActionId,
-                    0f,
-                    value)),
-                    context);
-            }
-        });
+        _ = context;
+        _ = tick;
+        _ = version;
     }
 
     private void EmitSnapshotCultureInfluence(KernelExecutionContext context, int tick, long version)

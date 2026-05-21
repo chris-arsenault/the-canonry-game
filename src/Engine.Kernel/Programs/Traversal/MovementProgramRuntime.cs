@@ -120,6 +120,49 @@ internal sealed partial class MovementProgramRuntime :
 
     public int TravelStructureId(int planeCode, int q, int r) => State.TravelStructureId(planeCode, q, r);
 
+    internal bool ReinforceRoad(
+        Simulation simulation,
+        int planeCode,
+        int q,
+        int r,
+        float amount,
+        int tick)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        ValidatePlane(planeCode);
+        if (!simulation.ProgramIsEnabled(KernelProgramCodes.Movement) ||
+            amount <= 0f ||
+            !simulation.World.CellIsKnown(planeCode, q, r))
+        {
+            return false;
+        }
+
+        var terrainId = simulation.World.CellTerrainId(planeCode, q, r);
+        var previousQuality = RoadQuality(planeCode, q, r, tick);
+        State.RecordTravel(
+            planeCode,
+            q,
+            r,
+            tick,
+            amount * simulation.KernelData.Terrain.RoadBuildMultiplier(terrainId),
+            Data.RoadDecayPerTick);
+        var currentQuality = RoadQuality(planeCode, q, r, tick);
+        if (global::System.MathF.Abs(currentQuality - previousQuality) <= 0.0001f)
+        {
+            return false;
+        }
+
+        simulation.EmitCellRoadChanged(
+            tick,
+            planeCode,
+            q,
+            r,
+            previousQuality,
+            currentQuality,
+            RoadTravelCount(planeCode, q, r));
+        return true;
+    }
+
     public bool SetTravelStructure(
         Simulation simulation,
         int planeCode,

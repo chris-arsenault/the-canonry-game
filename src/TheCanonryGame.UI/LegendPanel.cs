@@ -12,6 +12,7 @@ namespace TheCanonryGame.UI;
 public partial class LegendPanel : PanelContainer
 {
     private const long MinimumRefreshIntervalMs = 500;
+    private const int MinorActorActivityWindowTicks = 160;
 
     private VBoxContainer? _column;
     private LegendState? _lastState;
@@ -41,11 +42,7 @@ public partial class LegendPanel : PanelContainer
             _mapGeneration++;
         }
 
-        var state = new LegendState(
-            _mapGeneration,
-            map?.CellVersion ?? -1,
-            projection?.EntityMapVersion ?? -1,
-            plane);
+        var state = CreateState(map, projection, plane);
         if (!ShouldRender(state))
         {
             return false;
@@ -54,6 +51,21 @@ public partial class LegendPanel : PanelContainer
         _lastState = state;
         Render(map, projection, symbols, plane);
         return true;
+    }
+
+    private LegendState CreateState(HexMapProjection? map, UiProjectionState? projection, PlaneMode plane)
+    {
+        var cellVersion = map is null ? -1 : map.CellVersion;
+        var entityMapVersion = projection is null ? -1 : projection.EntityMapVersion;
+        var minorActorActivityVersion = projection is null ? -1 : projection.MinorActorActivityVersion;
+        var minorActorActivityBucket = projection is null ? -1 : projection.CurrentTick / 10;
+        return new LegendState(
+            _mapGeneration,
+            cellVersion,
+            entityMapVersion,
+            minorActorActivityVersion,
+            minorActorActivityBucket,
+            plane);
     }
 
     private bool ShouldRender(LegendState state)
@@ -137,6 +149,7 @@ public partial class LegendPanel : PanelContainer
                     ? $"{summary.ControlledCells} held / {summary.MismatchedControl} contested  avg {summary.AverageShare:0}%"
                     : $"avg {summary.AverageShare:0}%");
             AddCultureSlotRows(culture.Id, projection, symbols);
+            AddMinorActorActivityRow(culture.Id, projection, planeCode);
         }
     }
 
@@ -185,6 +198,18 @@ public partial class LegendPanel : PanelContainer
             AddMutedLine(
                 $"{dominant} / {rival}: {theater.CellCount} cells, {theater.ContestedCellCount} contested, {theater.ControlMismatchCellCount} held against influence");
         }
+    }
+
+    private void AddMinorActorActivityRow(int cultureId, UiProjectionState projection, int planeCode)
+    {
+        var summary = MinorActorActivitySummary.For(cultureId, projection, planeCode);
+        if (summary.TotalActions == 0)
+        {
+            return;
+        }
+
+        AddMutedLine(
+            $"labor: {summary.CultureActions} culture / {summary.RoadActions} road  latest {summary.LatestAge(projection.CurrentTick)}t");
     }
 
     private void AddTitle(string text)
@@ -431,5 +456,45 @@ public partial class LegendPanel : PanelContainer
         int MapGeneration,
         long CellVersion,
         long EntityMapVersion,
+        long MinorActorActivityVersion,
+        int MinorActorActivityBucket,
         PlaneMode Plane);
+
+    private readonly record struct MinorActorActivitySummary(
+        int CultureActions,
+        int RoadActions,
+        int LatestTick)
+    {
+        public int TotalActions => CultureActions + RoadActions;
+
+        public int LatestAge(int currentTick) => Math.Max(0, currentTick - LatestTick);
+
+        public static MinorActorActivitySummary For(int cultureId, UiProjectionState projection, int planeCode)
+        {
+            var cultureActions = 0;
+            var roadActions = 0;
+            var latestTick = 0;
+            foreach (var activity in projection.MinorActorActivities)
+            {
+                if (activity.StatusCode != TraceStatusCodes.Selected ||
+                    activity.CultureId != cultureId ||
+                    activity.PlaneCode != planeCode ||
+                    projection.CurrentTick - activity.Tick > MinorActorActivityWindowTicks)
+                {
+                    continue;
+                }
+
+                latestTick = Math.Max(latestTick, activity.Tick);
+                if (activity.ActionCode == MinorActorActionCodes.RoadMaintenance)
+                {
+                    roadActions++;
+                    continue;
+                }
+
+                cultureActions++;
+            }
+
+            return new MinorActorActivitySummary(cultureActions, roadActions, latestTick);
+        }
+    }
 }
