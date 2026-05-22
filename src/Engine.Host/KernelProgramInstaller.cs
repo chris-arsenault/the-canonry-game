@@ -849,6 +849,7 @@ internal static partial class KernelProgramInstaller
     {
         GeneratorProgramCulturePlacement.Ignore => GeneratorCulturePlacementCodes.Ignore,
         GeneratorProgramCulturePlacement.PreferInheritedCulture => GeneratorCulturePlacementCodes.PreferInheritedCulture,
+        GeneratorProgramCulturePlacement.HostileIntrusion => GeneratorCulturePlacementCodes.HostileIntrusion,
         _ => throw new ArgumentOutOfRangeException(nameof(culturePlacement), culturePlacement, null),
     };
 

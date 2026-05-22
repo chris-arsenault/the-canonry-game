@@ -7,7 +7,7 @@ public sealed class MapSignalsProgramTests
     [Fact]
     public void MapSignalsProgram_ComputesCrowdingLoadAndComfortFromDynamicCapacity()
     {
-        var simulation = new Simulation();
+        var simulation = KernelTestSimulation.Create();
         const int terrainId = 1;
         const int kindId = 1;
         simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
@@ -28,7 +28,7 @@ public sealed class MapSignalsProgramTests
     [Fact]
     public void MapSignalsProgram_InfluenceAndCoverageRaiseCapacityAndAttractorMass()
     {
-        var simulation = new Simulation();
+        var simulation = KernelTestSimulation.Create();
         const int terrainId = 1;
         const int kindId = 1;
         const int healthAttributeId = 1;
@@ -62,7 +62,7 @@ public sealed class MapSignalsProgramTests
     [Fact]
     public void MapSignalsProgram_SemanticInfluenceRaisesSemanticCapacityAndAttractorMass()
     {
-        var simulation = new Simulation();
+        var simulation = KernelTestSimulation.Create();
         const int terrainId = 1;
         const int kindId = 1;
         simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
@@ -91,7 +91,7 @@ public sealed class MapSignalsProgramTests
     [Fact]
     public void EffectsProgram_CanUseMapSupportAndCrowdingSignalsForHealth()
     {
-        var simulation = new Simulation();
+        var simulation = KernelTestSimulation.Create();
         const int terrainId = 1;
         const int targetKindId = 1;
         const int supportKindId = 2;

@@ -32,6 +32,15 @@ internal sealed partial class TelemetryEventProjection
         float RingTwoRaw,
         int SupportedAdjacentCount);
 
+    private readonly record struct CultureFieldComponentCacheKey(
+        int CultureId,
+        int PlaneCode,
+        int Q,
+        int R);
+
+    private readonly Dictionary<CultureFieldComponentCacheKey, CultureFieldComponent> _cultureFieldComponentCache = [];
+    private int _cultureFieldComponentCacheTick = -1;
+
     private void RecordCoverageSnapshots(
         int tick,
         Dictionary<ObservedMapCellKey, int> activeEntitiesByCell)
@@ -158,11 +167,23 @@ internal sealed partial class TelemetryEventProjection
         return size;
     }
 
-    private CultureFieldComponent CultureFieldComponentAt(int cultureId, int planeCode, int q, int r)
+    private CultureFieldComponent CultureFieldComponentAt(int cultureId, int planeCode, int q, int r, int tick)
     {
         if (cultureId <= 0)
         {
             return default;
+        }
+
+        if (_cultureFieldComponentCacheTick != tick)
+        {
+            _cultureFieldComponentCache.Clear();
+            _cultureFieldComponentCacheTick = tick;
+        }
+
+        var cacheKey = new CultureFieldComponentCacheKey(cultureId, planeCode, q, r);
+        if (_cultureFieldComponentCache.TryGetValue(cacheKey, out var cached))
+        {
+            return cached;
         }
 
         var start = new ObservedMapCellKey(planeCode, q, r);
@@ -199,7 +220,14 @@ internal sealed partial class TelemetryEventProjection
             }
         }
 
-        return new CultureFieldComponent(BuildComponentId(minQ, minR), cellCount, rawMass);
+        var component = new CultureFieldComponent(BuildComponentId(minQ, minR), cellCount, rawMass);
+        foreach (var key in visited)
+        {
+            _cultureFieldComponentCache[new CultureFieldComponentCacheKey(cultureId, key.PlaneCode, key.Q, key.R)] =
+                component;
+        }
+
+        return component;
     }
 
     private void AddCultureFieldComponentCell(
@@ -335,6 +363,9 @@ internal sealed partial class TelemetryEventProjection
 
     private void UpdateCultureField(in CellCultureInfluenceChangedKernelEvent evt)
     {
+        _cultureFieldComponentCache.Clear();
+        _cultureFieldComponentCacheTick = -1;
+
         var key = new ObservedCultureFieldKey(evt.CultureId, evt.PlaneCode, evt.Q, evt.R);
         var cellKey = new ObservedMapCellKey(evt.PlaneCode, evt.Q, evt.R);
         if (evt.CurrentShare <= 0f && evt.CurrentRawInfluence <= 0f)
@@ -580,8 +611,13 @@ internal sealed partial class TelemetryEventProjection
         return (Math.Abs(aq - bq) + Math.Abs(ar - br) + Math.Abs(asCoord - bsCoord)) / 2;
     }
 
-    private void RecordGeneratorStateSnapshots(int tick)
+    public void RecordGeneratorStateSnapshots(int tick)
     {
+        if (!_recordedGeneratorSnapshotTicks.Add(tick))
+        {
+            return;
+        }
+
         foreach (var state in _generatorStates.Values)
         {
             _batch.GeneratorStateSnapshots.Add(new GeneratorStateSnapshotRow(

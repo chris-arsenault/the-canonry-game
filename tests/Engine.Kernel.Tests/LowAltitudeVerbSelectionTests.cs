@@ -710,6 +710,7 @@ public sealed class LowAltitudeVerbSelectionTests
             {
                 Programs = new KernelProgramTuningOptions
                 {
+                    MinorActorMainTickRatio = 1,
                     LowAltitudeVerbs = new LowAltitudeVerbTuningOptions
                     {
                         OpportunityRate = opportunityRate,

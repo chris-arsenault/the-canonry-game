@@ -24,6 +24,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     private readonly Dictionary<int, GeneratorStateProjection> _generatorStates = [];
     private readonly Dictionary<int, int> _occupiedCultureSlotCountByEntity = [];
     private readonly HashSet<int> _recordedMapSnapshotTicks = [];
+    private readonly HashSet<int> _recordedGeneratorSnapshotTicks = [];
     private readonly Dictionary<int, Queue<PendingCreatedEntity>> _unassignedCreatedEntitiesByTick = [];
     private readonly HashSet<int> _exportedEntityNameSymbols = [];
     private readonly List<PendingGeneratorFire> _pendingGeneratorFires = [];
@@ -76,33 +77,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     protected override void OnProjectingEvent(in SequencedKernelEvent kernelEvent)
     {
         _currentProvenanceInvocationId = kernelEvent.Event.ProvenanceInvocationId;
-    }
-
-    public void RecordTickSnapshot(int tick)
-    {
-        var activeEntities = _entities.Values.Where(entity => IsActiveStatus(entity.StatusCode)).ToList();
-        var historicalCount = _entities.Values.Count(entity => IsHistoricalStatus(entity.StatusCode));
-        var activeRelationships = _relationships.Values.Where(RelationshipIsHotActive).ToList();
-        var physicalCells = _mapCells.Values.Where(cell => cell.Key.PlaneCode == PlaneCodes.Physical).ToList();
-        var coveredCells = physicalCells.Count(cell => cell.OwnerEntityId > 0);
-        var coverageCount = _mapCells.Values
-            .Where(cell => cell.Key.PlaneCode == PlaneCodes.Physical && cell.OwnerEntityId > 0)
-            .Select(cell => cell.OwnerEntityId)
-            .Distinct()
-            .Count();
-
-        _batch.TickSnapshots.Add(new TickSnapshotRow(
-            _runId,
-            tick,
-            activeEntities.Count,
-            historicalCount,
-            _totalGeneratorFires,
-            activeRelationships.Count,
-            coverageCount,
-            coveredCells,
-            physicalCells.Count - coveredCells,
-            ComputePhysicalSpread(activeEntities),
-            ComputeSemanticSpread(activeEntities)));
     }
 
     public void RecordKindSnapshots(int tick)
@@ -178,7 +152,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         }
     }
 
-    public void RecordMapSnapshots(int tick)
+    public void RecordMapSnapshots(int tick, bool includeGeneratorState = true)
     {
         if (!_recordedMapSnapshotTicks.Add(tick))
         {
@@ -204,7 +178,10 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
         RecordCoverageSnapshots(tick, activeEntitiesByCell);
         RecordCultureFieldComponentSnapshots(tick);
-        RecordGeneratorStateSnapshots(tick);
+        if (includeGeneratorState)
+        {
+            RecordGeneratorStateSnapshots(tick);
+        }
     }
 
     private bool RelationshipIsHotActive(ObservedRelationshipProjection relationship) =>
@@ -683,8 +660,18 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
     protected override void OnGeneratorTargetEvaluated(long sequence, in GeneratorTargetEvaluatedKernelEvent evt)
     {
-        var physicalComponent = CultureFieldComponentAt(evt.TargetCultureId, PlaneCodes.Physical, evt.PhysicalQ, evt.PhysicalR);
-        var semanticComponent = CultureFieldComponentAt(evt.TargetCultureId, PlaneCodes.Semantic, evt.SemanticQ, evt.SemanticR);
+        var physicalComponent = CultureFieldComponentAt(
+            evt.TargetCultureId,
+            PlaneCodes.Physical,
+            evt.PhysicalQ,
+            evt.PhysicalR,
+            evt.Tick);
+        var semanticComponent = CultureFieldComponentAt(
+            evt.TargetCultureId,
+            PlaneCodes.Semantic,
+            evt.SemanticQ,
+            evt.SemanticR,
+            evt.Tick);
         _batch.GeneratorTargetEvaluations.Add(new GeneratorTargetEvaluationRow(
             _runId,
             evt.Tick,
@@ -983,48 +970,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             ? AxialDistance(evt.FromQ, evt.FromR, evt.ToQ, evt.ToR)
             : CubeDistance(evt.FromQ, evt.FromR, evt.FromS, evt.ToQ, evt.ToR, evt.ToS);
 
-    private static float ComputePhysicalSpread(List<ObservedEntityProjection> entities)
-    {
-        var max = 0;
-        for (var i = 0; i < entities.Count; i++)
-        {
-            for (var j = i + 1; j < entities.Count; j++)
-            {
-                max = Math.Max(
-                    max,
-                    AxialDistance(
-                        entities[i].PhysicalQ,
-                        entities[i].PhysicalR,
-                        entities[j].PhysicalQ,
-                        entities[j].PhysicalR));
-            }
-        }
-
-        return max;
-    }
-
-    private static float ComputeSemanticSpread(List<ObservedEntityProjection> entities)
-    {
-        var max = 0;
-        for (var i = 0; i < entities.Count; i++)
-        {
-            for (var j = i + 1; j < entities.Count; j++)
-            {
-                max = Math.Max(
-                    max,
-                    CubeDistance(
-                        entities[i].SemanticQ,
-                        entities[i].SemanticR,
-                        entities[i].SemanticS,
-                        entities[j].SemanticQ,
-                        entities[j].SemanticR,
-                        entities[j].SemanticS));
-            }
-        }
-
-        return max;
-    }
-
     private static int AxialDistance(int fromQ, int fromR, int toQ, int toR)
     {
         var fromS = -fromQ - fromR;
@@ -1034,4 +979,5 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
     private static int CubeDistance(int fromQ, int fromR, int fromS, int toQ, int toR, int toS) =>
         (Math.Abs(fromQ - toQ) + Math.Abs(fromR - toR) + Math.Abs(fromS - toS)) / 2;
+
 }

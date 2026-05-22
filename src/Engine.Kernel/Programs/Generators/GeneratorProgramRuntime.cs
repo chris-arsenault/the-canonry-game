@@ -658,7 +658,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             return;
         }
 
-        var pulseIndex = (tick - 1) / Tuning.Generators.PulseWidthTicks;
+        var pulseIndex = (tick - 1) / Tuning.ScaleMainTicks(Tuning.Generators.PulseWidthTicks);
         if (_currentPulseIndex == pulseIndex)
         {
             return;

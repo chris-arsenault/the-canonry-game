@@ -6,7 +6,6 @@ using Engine.Kernel.Programs;
 internal sealed partial class Simulation : IKernel
 {
     private readonly int[] _systemCadences;
-    private readonly int[] _systemTicksPerKernelTick;
     private readonly int[] _systemProgramIds;
     private readonly int[] _systemSourceCodeIds;
     private readonly ISimulationSystem?[] _systems;
@@ -24,6 +23,11 @@ internal sealed partial class Simulation : IKernel
     public Simulation(SimulationOptions? options = null)
     {
         options ??= new SimulationOptions();
+        if (options.KernelTuning.Programs.MinorActorMainTickRatio <= 0)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(options));
+        }
+
         Options = options;
         Events = new KernelEventLog(
             options.EventCapacity,
@@ -49,7 +53,6 @@ internal sealed partial class Simulation : IKernel
         _executionContext = new KernelExecutionContext(0, StartupSourceCodeId);
         _random = new RandomSource(options.Seed);
         _systemCadences = new int[options.SystemCapacity];
-        _systemTicksPerKernelTick = new int[options.SystemCapacity];
         _systemProgramIds = new int[options.SystemCapacity];
         _systemSourceCodeIds = new int[options.SystemCapacity];
         _systems = new ISimulationSystem[options.SystemCapacity];
@@ -83,12 +86,14 @@ internal sealed partial class Simulation : IKernel
         new(
             new MovementProgramData(options.MovementProfileRuleCapacity),
             new MovementProgramState(options.MovementCellCapacity),
-            new MovementProgramScratch(options.MapCellCapacity));
+            new MovementProgramScratch(options.MapCellCapacity),
+            options.KernelTuning.Programs);
 
     private static MapActivityProgramRuntime CreateMapActivityRuntime(SimulationOptions options) =>
         new(
             new MapActivityProgramData(),
-            new MapActivityProgramState(options.MapActivityCellCapacity));
+            new MapActivityProgramState(options.MapActivityCellCapacity),
+            options.KernelTuning.Programs);
 
     private static MapSignalsProgramRuntime CreateMapSignalsRuntime(SimulationOptions options) =>
         new(
@@ -109,7 +114,8 @@ internal sealed partial class Simulation : IKernel
                 options.CultureSlotCapacity,
                 options.CultureSlotAllowedKindCapacity,
                 options.CultureSlotScoreRuleCapacity),
-            new CultureSlotProgramState(options.CultureSlotCapacity));
+            new CultureSlotProgramState(options.CultureSlotCapacity),
+            options.KernelTuning.Programs);
 
     private static MinorActorProgramRuntime CreateMinorActorRuntime(SimulationOptions options) =>
         new(
@@ -160,21 +166,21 @@ internal sealed partial class Simulation : IKernel
 
     private void RegisterDefaultPrograms()
     {
-        RegisterProgram(KernelProgramCodes.Movement, 1, Movement);
-        RegisterProgram(KernelProgramCodes.LowAltitudeVerbs, 1, LowAltitudeVerbs);
-        RegisterProgram(KernelProgramCodes.MapActivity, 1, MapActivity);
-        RegisterProgram(KernelProgramCodes.MapSignals, 1, MapSignals);
-        RegisterProgram(KernelProgramCodes.Relationships, 1, Relationships);
-        RegisterProgram(KernelProgramCodes.Effects, 1, Effects);
-        RegisterProgram(KernelProgramCodes.Upkeep, 1, Upkeep);
-        RegisterProgram(KernelProgramCodes.Gambits, 1, Gambits);
-        RegisterProgram(KernelProgramCodes.Generators, 1, Generators);
-        RegisterProgram(KernelProgramCodes.CultureSlots, 10, CultureSlots);
+        var mainCadence = MainTickRatio;
+        RegisterProgram(KernelProgramCodes.Movement, mainCadence, Movement);
+        RegisterProgram(KernelProgramCodes.LowAltitudeVerbs, mainCadence, LowAltitudeVerbs);
+        RegisterProgram(KernelProgramCodes.MapActivity, mainCadence, MapActivity);
+        RegisterProgram(KernelProgramCodes.MapSignals, mainCadence, MapSignals);
+        RegisterProgram(KernelProgramCodes.Relationships, mainCadence, Relationships);
+        RegisterProgram(KernelProgramCodes.Effects, mainCadence, Effects);
+        RegisterProgram(KernelProgramCodes.Upkeep, mainCadence, Upkeep);
+        RegisterProgram(KernelProgramCodes.Gambits, mainCadence, Gambits);
+        RegisterProgram(KernelProgramCodes.Generators, mainCadence, Generators);
+        RegisterProgram(KernelProgramCodes.CultureSlots, 10 * mainCadence, CultureSlots);
         RegisterProgram(
             KernelProgramCodes.MinorActors,
             1,
-            MinorActors,
-            Options.KernelTuning.Programs.MinorActors.TicksPerKernelTick);
+            MinorActors);
         ValidateProgramDependencies();
     }
 
@@ -330,6 +336,7 @@ internal sealed partial class Simulation : IKernel
     internal int EffectsSourceCodeId { get; private set; }
     internal KernelExecutionContext ExecutionContext => _executionContext;
     public int CurrentTick { get; private set; }
+    internal int MainTickRatio => Options.KernelTuning.Programs.MinorActorMainTickRatio;
     public long CurrentVersion => WorldVersion;
     public long WorldVersion => World.WorldVersion;
     internal SimulationOptions Options { get; }
@@ -678,15 +685,13 @@ internal sealed partial class Simulation : IKernel
         World.CullOutgoingRelationshipsOfKind(sourceEntityId, kindId, tick, _executionContext);
     }
 
-    internal int RegisterSystem(int cadence, ISimulationSystem system, int ticksPerKernelTick = 1)
+    internal int RegisterSystem(int cadence, ISimulationSystem system)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cadence);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ticksPerKernelTick);
         global::System.ArgumentNullException.ThrowIfNull(system);
 
         var slot = FindSystemSlot();
         _systemCadences[slot] = cadence;
-        _systemTicksPerKernelTick[slot] = ticksPerKernelTick;
         _systemProgramIds[slot] = 0;
         _systemSourceCodeIds[slot] = 0;
         _systems[slot] = system;
@@ -702,8 +707,7 @@ internal sealed partial class Simulation : IKernel
     internal int RegisterProgram(
         int programId,
         int cadence,
-        ISimulationSystem system,
-        int ticksPerKernelTick = 1)
+        ISimulationSystem system)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(programId);
         var sourceCodeId = SourceCodeIdForProgram(programId);
@@ -712,7 +716,7 @@ internal sealed partial class Simulation : IKernel
             throw new global::System.InvalidOperationException();
         }
 
-        var handle = RegisterSystem(cadence, system, ticksPerKernelTick);
+        var handle = RegisterSystem(cadence, system);
         _systemProgramIds[handle] = programId;
         _systemSourceCodeIds[handle] = sourceCodeId;
         _programs.Register(programId, handle);
@@ -1008,20 +1012,12 @@ internal sealed partial class Simulation : IKernel
                 using var scope = EnterExecutionContext(
                     _systemSourceCodeIds[i],
                     _systemProgramIds[i]);
-                TickSystemSubsteps(system, _systemTicksPerKernelTick[i]);
+                system.Tick(this, CurrentTick);
             }
             else
             {
-                TickSystemSubsteps(system, _systemTicksPerKernelTick[i]);
+                system.Tick(this, CurrentTick);
             }
-        }
-    }
-
-    private void TickSystemSubsteps(ISimulationSystem system, int ticksPerKernelTick)
-    {
-        for (var substep = 0; substep < ticksPerKernelTick; substep++)
-        {
-            system.Tick(this, CurrentTick);
         }
     }
 

@@ -64,11 +64,34 @@ internal sealed record KernelTuningOptions
 
 internal sealed record KernelProgramTuningOptions
 {
+    public int MinorActorMainTickRatio { get; init; } = 5;
     public ProgramEnabledTuningOptions Enabled { get; init; } = new();
     public UpkeepProgramTuningOptions Upkeep { get; init; } = new();
     public GeneratorProgramTuningOptions Generators { get; init; } = new();
     public LowAltitudeVerbTuningOptions LowAltitudeVerbs { get; init; } = new();
-    public MinorActorProgramTuningOptions MinorActors { get; init; } = new();
+
+    public int ScaleMainTicks(int ticks)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(ticks);
+        if (MinorActorMainTickRatio <= 0)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        return ticks == 0 ? 0 : checked(ticks * MinorActorMainTickRatio);
+    }
+
+    public int MainTickAge(int startedTick, int currentTick)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(startedTick);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(currentTick);
+        if (MinorActorMainTickRatio <= 0)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        return currentTick <= startedTick ? 0 : (currentTick - startedTick) / MinorActorMainTickRatio;
+    }
 }
 
 internal sealed record ProgramEnabledTuningOptions
@@ -113,9 +136,4 @@ internal sealed record LowAltitudeVerbTuningOptions
     public float ForeignInfluenceDistanceScale { get; init; } = 6f;
     public float InfluenceShortfallSamplingFactor { get; init; } = 1f;
     public float ForeignInfluencePresenceSamplingFactor { get; init; } = 1f;
-}
-
-internal sealed record MinorActorProgramTuningOptions
-{
-    public int TicksPerKernelTick { get; init; } = 5;
 }

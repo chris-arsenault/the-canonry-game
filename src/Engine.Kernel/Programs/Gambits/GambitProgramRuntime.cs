@@ -193,7 +193,9 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
 
         _preconditionCount++;
         _preconditionCodes[_preconditionCount] = preconditionCode;
-        _preA[_preconditionCount] = a;
+        _preA[_preconditionCount] = preconditionCode == BehaviorPreconditionCodes.CooldownElapsed
+            ? Tuning.ScaleMainTicks(a)
+            : a;
         _preB[_preconditionCount] = b;
         _preC[_preconditionCount] = c;
         _preD[_preconditionCount] = d;
@@ -470,13 +472,13 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         int gambitId,
         int tick)
     {
-        var cooldown = _gambitCooldownTicks[selectedGambitSlot];
+        var cooldown = Tuning.ScaleMainTicks(_gambitCooldownTicks[selectedGambitSlot]);
         if (cooldown > 0)
         {
             _cooldowns.Set(entityId, gambitId, tick + CooldownWithJitter(simulation, cooldown));
         }
 
-        var entityCooldown = _gambitEntityCooldownTicks[selectedGambitSlot];
+        var entityCooldown = Tuning.ScaleMainTicks(_gambitEntityCooldownTicks[selectedGambitSlot]);
         if (entityCooldown > 0)
         {
             _entityCooldowns.Set(entityId, 1, tick + CooldownWithJitter(simulation, entityCooldown));

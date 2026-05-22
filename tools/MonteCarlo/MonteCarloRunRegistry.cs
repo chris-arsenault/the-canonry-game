@@ -356,6 +356,7 @@ internal sealed class MonteCarloRunRegistry : IDisposable
             entitySnapshotCadence = options.EntitySnapshotCadence,
             skipAnalysis = options.SkipAnalysis,
             disableEntitySnapshots = options.DisableEntitySnapshots,
+            simulationOnly = options.SimulationOnly,
             traceEnabled = options.TraceEnabled,
             configFilePath = options.ConfigFilePath,
         };

@@ -62,7 +62,7 @@ internal sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgram
             }
 
             attributeId = _lifecycleAttributeIds[rule];
-            var age = tick - world.EntityCreatedAt(entityId);
+            var age = Tuning.MainTickAge(world.EntityCreatedAt(entityId), tick);
             ageDrainComponent = LifecycleAgeDrainComponent(rule, age);
             var maximum = simulation.KernelData.Entities.AttributeMaximum(attributeId);
             if (maximum > 0f)
@@ -163,7 +163,7 @@ internal sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgram
                 continue;
             }
 
-            var age = tick - simulation.World.EntityCreatedAt(entityId);
+            var age = Tuning.MainTickAge(simulation.World.EntityCreatedAt(entityId), tick);
             var drain = LifecycleBaseDrain(rule, age);
             var variance = _lifecycleVariances[rule];
             if (variance > 0f)

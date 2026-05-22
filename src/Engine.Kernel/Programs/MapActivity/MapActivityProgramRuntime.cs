@@ -4,19 +4,31 @@ internal sealed class MapActivityProgramRuntime :
     IKernelProgramRuntime<MapActivityProgramData, MapActivityProgramState>
 {
     public MapActivityProgramRuntime(MapActivityProgramData data, MapActivityProgramState state)
+        : this(data, state, new KernelProgramTuningOptions())
+    {
+    }
+
+    public MapActivityProgramRuntime(
+        MapActivityProgramData data,
+        MapActivityProgramState state,
+        KernelProgramTuningOptions tuning)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
+        global::System.ArgumentNullException.ThrowIfNull(tuning);
         Data = data;
         State = state;
+        Tuning = tuning;
     }
 
     public MapActivityProgramData Data { get; }
 
     public MapActivityProgramState State { get; }
 
+    public KernelProgramTuningOptions Tuning { get; }
+
     public float Heat(int planeCode, int q, int r, int tick) =>
-        State.Heat(planeCode, q, r, tick, Data.HeatDecayPerTick);
+        State.Heat(planeCode, q, r, tick, Data.HeatDecayPerTick, Tuning.MinorActorMainTickRatio);
 
     public int VisitCount(int planeCode, int q, int r) => State.VisitCount(planeCode, q, r);
 
@@ -43,7 +55,8 @@ internal sealed class MapActivityProgramRuntime :
                 tick,
                 Data.PresenceHeat,
                 Data.HeatDecayPerTick,
-                Data.HeatEmaAlpha);
+                Data.HeatEmaAlpha,
+                Tuning.MinorActorMainTickRatio);
             State.RecordPresence(
                 PlaneCodes.Semantic,
                 world.EntitySemanticQ(entityId),
@@ -51,7 +64,8 @@ internal sealed class MapActivityProgramRuntime :
                 tick,
                 Data.PresenceHeat,
                 Data.HeatDecayPerTick,
-                Data.HeatEmaAlpha);
+                Data.HeatEmaAlpha,
+                Tuning.MinorActorMainTickRatio);
         }
     }
 }

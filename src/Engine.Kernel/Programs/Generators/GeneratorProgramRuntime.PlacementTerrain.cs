@@ -16,9 +16,10 @@ internal sealed partial class GeneratorProgramRuntime
     private const int PlacementCultureTraceScore = 0;
     private const int PlacementCultureAdjacentScore = 260;
     private const int PlacementForeignDominantPenalty = 350;
-    private const float PlacementCultureTraceRawInfluence = 2.5f;
-    private const float PlacementCultureSupportedRawInfluence = 12f;
-    private const float PlacementCultureDominantRawInfluence = 30f;
+    private const float PlacementCultureTraceRawInfluence = WorldState.CultureTraceRawMass;
+    private const float PlacementCultureSupportedRawInfluence = WorldState.CultureControlledRawMass;
+    private const float PlacementCultureDominantRawInfluence = WorldState.CultureEntrenchedRawMass;
+    private const float PlacementCultureConnectedBonusRawInfluence = WorldState.CultureNexusRawMass;
 
     private bool FindTerrainAwareHex(
         Simulation simulation,
@@ -225,6 +226,7 @@ internal sealed partial class GeneratorProgramRuntime
                 planeCode,
                 producedSlot,
                 movementProfileId,
+                producedCultureId,
                 candidateQ,
                 candidateR,
                 originQ,
@@ -264,6 +266,7 @@ internal sealed partial class GeneratorProgramRuntime
         int planeCode,
         int producedSlot,
         int movementProfileId,
+        int producedCultureId,
         int q,
         int r,
         int originQ,
@@ -277,7 +280,24 @@ internal sealed partial class GeneratorProgramRuntime
             distance >= minRadius &&
             distance <= maxRadius &&
             PlacementCellIsFree(simulation.World, planeCode, q, r) &&
+            PlacementCellAllowsCulture(simulation.World, planeCode, producedSlot, producedCultureId, q, r) &&
             PlacementTerrainIsAllowed(simulation, planeCode, producedSlot, movementProfileId, q, r);
+    }
+
+    private bool PlacementCellAllowsCulture(
+        WorldState world,
+        int planeCode,
+        int producedSlot,
+        int producedCultureId,
+        int q,
+        int r)
+    {
+        if (_producedCulturePlacementCodes[producedSlot] == GeneratorCulturePlacementCodes.HostileIntrusion)
+        {
+            return true;
+        }
+
+        return StrongestOtherCultureRawInfluence(world, producedCultureId, planeCode, q, r) < WorldState.CultureEntrenchedRawMass;
     }
 
     private bool PlacementCellIsFree(WorldState world, int planeCode, int q, int r)
@@ -364,7 +384,7 @@ internal sealed partial class GeneratorProgramRuntime
     }
 
     private static int CulturePlacementConnectedBonus(float connectedRawInfluence) =>
-        (int)(global::System.MathF.Min(1f, connectedRawInfluence / 180f) * 240f);
+        (int)(global::System.MathF.Min(1f, connectedRawInfluence / PlacementCultureConnectedBonusRawInfluence) * 240f);
 
     private static bool CulturePlacementIsDominant(
         float ownInfluence,
@@ -407,6 +427,29 @@ internal sealed partial class GeneratorProgramRuntime
         }
 
         return influence;
+    }
+
+    private static float StrongestOtherCultureRawInfluence(
+        WorldState world,
+        int ownCultureId,
+        int planeCode,
+        int q,
+        int r)
+    {
+        var rawInfluence = 0f;
+        for (var otherCultureId = 1; otherCultureId <= world.CultureHighWatermark; otherCultureId++)
+        {
+            if (otherCultureId == ownCultureId)
+            {
+                continue;
+            }
+
+            rawInfluence = global::System.MathF.Max(
+                rawInfluence,
+                world.GetCellCultureInfluenceRaw(otherCultureId, planeCode, q, r));
+        }
+
+        return rawInfluence;
     }
 
     private static float AdjacentCultureRawInfluence(

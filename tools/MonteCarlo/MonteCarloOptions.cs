@@ -24,6 +24,7 @@ internal sealed partial record MonteCarloOptions(
     string ArtifactRoot,
     bool SkipAnalysis,
     bool DisableEntitySnapshots,
+    bool SimulationOnly,
     bool TraceEnabled,
     string? ConfigFilePath,
     IReadOnlyList<MonteCarloStatInput> Stats)
@@ -33,7 +34,7 @@ internal sealed partial record MonteCarloOptions(
         : Path.Combine(ArtifactRoot, RunId);
 
     public string RegistryPath => Path.Combine(ArtifactRoot, "registry.duckdb");
-    public bool ShouldAnalyze => Command == MonteCarloCommandKind.Run && !SkipAnalysis;
+    public bool ShouldAnalyze => Command == MonteCarloCommandKind.Run && !SkipAnalysis && !SimulationOnly;
 
     public static MonteCarloOptions Parse(string[] args)
     {
@@ -53,6 +54,12 @@ internal sealed partial record MonteCarloOptions(
             "--artifact-root",
             Path.Combine(".artifacts", "monte-carlo"))!;
         var stats = ReadStats(optionArgs, command);
+        var simulationOnly = HasFlag(optionArgs, "--simulation-only");
+        var traceEnabled = HasFlag(optionArgs, "--trace");
+        if (simulationOnly && traceEnabled)
+        {
+            throw new ArgumentException("--simulation-only cannot be combined with --trace.", nameof(args));
+        }
 
         if (RequiresRunId(command) && runId is null)
         {
@@ -69,7 +76,8 @@ internal sealed partial record MonteCarloOptions(
             ArtifactRoot: artifactRoot,
             SkipAnalysis: HasFlag(optionArgs, "--no-analysis"),
             DisableEntitySnapshots: HasFlag(optionArgs, "--disable-entity-snapshots"),
-            TraceEnabled: HasFlag(optionArgs, "--trace"),
+            SimulationOnly: simulationOnly,
+            TraceEnabled: traceEnabled,
             ConfigFilePath: ReadString(optionArgs, "--config-file", null),
             Stats: stats);
     }

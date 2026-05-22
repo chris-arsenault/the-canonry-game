@@ -7,8 +7,8 @@ internal readonly record struct CultureInfluenceAttachment(
 
 internal sealed class CultureInfluenceComponentScratch
 {
-    private const float SupportedRawInfluence = 12f;
-    private const float StrongRawInfluence = 30f;
+    private const float DefaultSupportedRawInfluence = 12f;
+    private const float DefaultStrongRawInfluence = 30f;
     private const int CoordinateOffset = 32768;
     private const int CoordinateMask = 65535;
     private const int CellCapacity = 4096;
@@ -24,6 +24,8 @@ internal sealed class CultureInfluenceComponentScratch
     private readonly int[] _lookupKeys = new int[LookupCapacity];
     private readonly int[] _lookupComponentIds = new int[LookupCapacity];
     private readonly int[] _usedLookupBuckets = new int[CellCapacity];
+    private float _supportedRawInfluence = DefaultSupportedRawInfluence;
+    private float _strongRawInfluence = DefaultStrongRawInfluence;
     private int _cellCount;
     private int _componentCount;
     private int _pendingHead;
@@ -32,11 +34,23 @@ internal sealed class CultureInfluenceComponentScratch
 
     internal void Build(WorldState world, int cultureId, int planeCode)
     {
+        Build(world, cultureId, planeCode, DefaultSupportedRawInfluence, DefaultStrongRawInfluence);
+    }
+
+    internal void Build(
+        WorldState world,
+        int cultureId,
+        int planeCode,
+        float supportedRawInfluence,
+        float strongRawInfluence)
+    {
         if (_componentCount > 0)
         {
             global::System.Array.Clear(_componentMasses, 1, _componentCount);
         }
 
+        _supportedRawInfluence = supportedRawInfluence;
+        _strongRawInfluence = strongRawInfluence;
         ClearLookup();
         _cellCount = 0;
         _componentCount = 0;
@@ -263,10 +277,10 @@ internal sealed class CultureInfluenceComponentScratch
         return true;
     }
 
-    private static bool CellSupported(WorldState world, int cultureId, int planeCode, int q, int r) =>
-        world.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r) >= SupportedRawInfluence;
+    private bool CellSupported(WorldState world, int cultureId, int planeCode, int q, int r) =>
+        world.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r) >= _supportedRawInfluence;
 
-    private static float CellMass(float raw) => Clamp01(raw / StrongRawInfluence);
+    private float CellMass(float raw) => Clamp01(raw / _strongRawInfluence);
 
     private static int Pack(int q, int r) =>
         ((q + CoordinateOffset) << 16) | ((r + CoordinateOffset) & CoordinateMask);

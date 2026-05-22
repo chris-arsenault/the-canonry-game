@@ -1,5 +1,6 @@
 namespace MonteCarloTool;
 
+using System.Diagnostics;
 using System.Globalization;
 
 using Engine.Constants;
@@ -121,6 +122,13 @@ internal static class MonteCarloCli
     private static MonteCarloAnalysisReport? RunBatch(MonteCarloOptions options, MonteCarloBatchAnalyzer analyzer)
     {
         ResetOutputDirectory(options.OutputDirectory);
+        if (options.SimulationOnly)
+        {
+            ExecuteSimulationOnlyRuns(options);
+            Console.WriteLine("simulation-only Monte Carlo run complete; telemetry export skipped.");
+            return null;
+        }
+
         using var stateStore = new DuckDbTelemetryStore(options.OutputDirectory);
 
         ExecuteRuns(options, stateStore);
@@ -149,6 +157,27 @@ internal static class MonteCarloCli
         }
     }
 
+    private static void ExecuteSimulationOnlyRuns(MonteCarloOptions options)
+    {
+        for (var runIndex = 0; runIndex < options.Runs; runIndex++)
+        {
+            var seed = options.Seed + runIndex;
+            using var run = MonteCarloKernelRunFactory.Create(seed, traceEnabled: false, options.ConfigFilePath);
+            var elapsed = Stopwatch.StartNew();
+            var processedTicks = AdvanceTicks(run, options.Ticks);
+            elapsed.Stop();
+            PrintRunSummary(
+                options,
+                runIndex,
+                seed,
+                new MonteCarloRunExecutionResult(
+                    StateRowsWritten: 0,
+                    processedTicks,
+                    elapsed.Elapsed,
+                    default));
+        }
+    }
+
     private static void PrintRunSummary(
         MonteCarloOptions options,
         int runIndex,
@@ -159,9 +188,11 @@ internal static class MonteCarloCli
         var droppedSuffix = result.Summary.DroppedSummaryEvents > 0
             ? string.Create(CultureInfo.InvariantCulture, $" summary_events_dropped={result.Summary.DroppedSummaryEvents}")
             : string.Empty;
+        var elapsedSeconds = result.Elapsed.TotalSeconds;
+        var ticksPerSecond = result.ProcessedTicks / Math.Max(elapsedSeconds, double.Epsilon);
         Console.WriteLine(string.Create(
             CultureInfo.InvariantCulture,
-            $"run {runIndex + 1}/{options.Runs}: seed={seed} ticks={result.ProcessedTicks} fires={result.Summary.GeneratorFireCount} map_degenerate={degenerateAttempts}{droppedSuffix}"));
+            $"run {runIndex + 1}/{options.Runs}: seed={seed} ticks={result.ProcessedTicks} elapsed_seconds={elapsedSeconds:G17} ticks_per_second={ticksPerSecond:G17} rows={result.StateRowsWritten} fires={result.Summary.GeneratorFireCount} map_degenerate={degenerateAttempts}{droppedSuffix}"));
     }
 
     private static MonteCarloRunExecutionResult ExecuteKernelRun(
@@ -178,14 +209,34 @@ internal static class MonteCarloCli
         using var summaryRecorder = new MonteCarloRunSummaryRecorder(run);
         using var stateRecorder = CreateStateRecorder(run, options, runId, seed);
 
+        var elapsed = Stopwatch.StartNew();
         var processedTicks = AdvanceTicks(run, options, summaryRecorder, stateRecorder);
         var summary = summaryRecorder.Snapshot();
         var stateRowsWritten = FlushStateTelemetry(stateRecorder, stateStore);
+        elapsed.Stop();
 
         return new MonteCarloRunExecutionResult(
             stateRowsWritten,
             processedTicks,
+            elapsed.Elapsed,
             summary);
+    }
+
+    private static int AdvanceTicks(MonteCarloKernelRun run, int ticks)
+    {
+        var processedTicks = 0;
+        for (var tickIndex = 0; tickIndex < ticks; tickIndex++)
+        {
+            var advanced = run.Host.Time.AdvanceSingleStep(1);
+            if (advanced == 0)
+            {
+                break;
+            }
+
+            processedTicks += advanced;
+        }
+
+        return processedTicks;
     }
 
     private static KernelTelemetryRecorder CreateStateRecorder(

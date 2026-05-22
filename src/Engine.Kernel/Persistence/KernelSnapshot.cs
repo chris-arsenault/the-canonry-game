@@ -154,6 +154,7 @@ internal static class KernelSnapshotOptions
         KernelTuningOptions kernelTuning)
     {
         WriteProgramEnabledOverrides(writer, kernelTuning.Programs.Enabled);
+        writer.Write(kernelTuning.Programs.MinorActorMainTickRatio);
         writer.Write(kernelTuning.Programs.Upkeep.AgingModelCode);
         writer.Write(kernelTuning.Programs.Generators.RetryFireTargets);
         writer.Write(kernelTuning.Programs.Generators.PulseWidthTicks);
@@ -171,7 +172,6 @@ internal static class KernelSnapshotOptions
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ForeignInfluenceDistanceScale);
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.InfluenceShortfallSamplingFactor);
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ForeignInfluencePresenceSamplingFactor);
-        writer.Write(kernelTuning.Programs.MinorActors.TicksPerKernelTick);
     }
 
     private static void WriteProgramEnabledOverrides(
@@ -307,6 +307,7 @@ internal static class KernelSnapshotOptions
         values.RelationshipsProgramEnabled = reader.ReadInt32();
         values.GeneratorsProgramEnabled = reader.ReadInt32();
         values.MinorActorsProgramEnabled = reader.ReadInt32();
+        values.MinorActorMainTickRatio = reader.ReadInt32();
         values.UpkeepAgingModelCode = reader.ReadInt32();
         values.GeneratorRetryFireTargets = reader.ReadBoolean();
         values.GeneratorPulseWidthTicks = reader.ReadInt32();
@@ -324,7 +325,6 @@ internal static class KernelSnapshotOptions
         values.LowAltitudeForeignInfluenceDistanceScale = reader.ReadSingle();
         values.LowAltitudeInfluenceShortfallSamplingFactor = reader.ReadSingle();
         values.LowAltitudeForeignInfluencePresenceSamplingFactor = reader.ReadSingle();
-        values.MinorActorTicksPerKernelTick = reader.ReadInt32();
     }
 
     private static void ApplyEventCapacityFloor(ref SnapshotOptionValues values, int eventCount)
@@ -451,6 +451,7 @@ internal static class KernelSnapshotOptions
                     Generators = values.GeneratorsProgramEnabled,
                     MinorActors = values.MinorActorsProgramEnabled,
                 },
+                MinorActorMainTickRatio = values.MinorActorMainTickRatio,
                 Upkeep = new UpkeepProgramTuningOptions
                 {
                     AgingModelCode = values.UpkeepAgingModelCode,
@@ -476,10 +477,6 @@ internal static class KernelSnapshotOptions
                     ForeignInfluenceDistanceScale = values.LowAltitudeForeignInfluenceDistanceScale,
                     InfluenceShortfallSamplingFactor = values.LowAltitudeInfluenceShortfallSamplingFactor,
                     ForeignInfluencePresenceSamplingFactor = values.LowAltitudeForeignInfluencePresenceSamplingFactor,
-                },
-                MinorActors = new MinorActorProgramTuningOptions
-                {
-                    TicksPerKernelTick = values.MinorActorTicksPerKernelTick,
                 },
             },
         };
@@ -555,6 +552,7 @@ internal static class KernelSnapshotOptions
         public int RelationshipsProgramEnabled;
         public int GeneratorsProgramEnabled;
         public int MinorActorsProgramEnabled;
+        public int MinorActorMainTickRatio;
         public int UpkeepAgingModelCode;
         public bool GeneratorRetryFireTargets;
         public int GeneratorPulseWidthTicks;
@@ -572,7 +570,6 @@ internal static class KernelSnapshotOptions
         public float LowAltitudeForeignInfluenceDistanceScale;
         public float LowAltitudeInfluenceShortfallSamplingFactor;
         public float LowAltitudeForeignInfluencePresenceSamplingFactor;
-        public int MinorActorTicksPerKernelTick;
         public int Seed;
     }
 }

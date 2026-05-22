@@ -498,7 +498,10 @@ internal sealed partial class GambitProgramRuntime
 
         var score = EvaluateScore(simulation.World, gambitSlot, entityId, targetId) +
             GambitScoreDecisionDelta(simulation.World, _gambitIds[gambitSlot], entityId, targetId);
-        var recentActionCount = CountRecentActions(entityId, _gambitIds[gambitSlot], tick - RecencyWindow);
+        var recentActionCount = CountRecentActions(
+            entityId,
+            _gambitIds[gambitSlot],
+            tick - Tuning.ScaleMainTicks(RecencyWindow));
         for (var i = 0; i < recentActionCount; i++)
         {
             score *= RecencyDecayFactor;

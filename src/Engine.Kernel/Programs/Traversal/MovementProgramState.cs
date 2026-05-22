@@ -71,8 +71,8 @@ internal sealed partial class MovementProgramState : IKernelProgramState
 
     internal int RouteCacheCount => _routeCacheCount;
 
-    public float RoadQuality(int planeCode, int q, int r, int tick, float roadDecayPerTick) =>
-        DecayedRoadQuality(planeCode, CoordinateKey(q, r), tick, roadDecayPerTick);
+    public float RoadQuality(int planeCode, int q, int r, int tick, float roadDecayPerTick, int mainTickRatio) =>
+        DecayedRoadQuality(planeCode, CoordinateKey(q, r), tick, roadDecayPerTick, mainTickRatio);
 
     public int RoadTravelCount(int planeCode, int q, int r) =>
         _roadTravelCounts.GetOrDefault(planeCode, CoordinateKey(q, r));
@@ -99,10 +99,11 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         int r,
         int tick,
         float roadBuild,
-        float roadDecayPerTick)
+        float roadDecayPerTick,
+        int mainTickRatio)
     {
         var key = CoordinateKey(q, r);
-        var decayedQuality = DecayedRoadQuality(planeCode, key, tick, roadDecayPerTick);
+        var decayedQuality = DecayedRoadQuality(planeCode, key, tick, roadDecayPerTick, mainTickRatio);
         var nextQuality = Clamp(decayedQuality + roadBuild, 0f, 100f);
         var nextFloor = QualityFloor(nextQuality);
         if (nextFloor > _roadQualityFloors.GetOrDefault(planeCode, key))
@@ -372,7 +373,7 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         }
     }
 
-    private float DecayedRoadQuality(int planeCode, int key, int tick, float roadDecayPerTick)
+    private float DecayedRoadQuality(int planeCode, int key, int tick, float roadDecayPerTick, int mainTickRatio)
     {
         if (!_roadQuality.TryGet(planeCode, key, out var roadQuality))
         {
@@ -385,7 +386,7 @@ internal sealed partial class MovementProgramState : IKernelProgramState
             return floor > roadQuality ? floor : roadQuality;
         }
 
-        var elapsedTicks = tick - _lastRoadTicks.GetOrDefault(planeCode, key);
+        var elapsedTicks = MainTickAge(_lastRoadTicks.GetOrDefault(planeCode, key), tick, mainTickRatio);
         if (elapsedTicks <= 0)
         {
             return floor > roadQuality ? floor : roadQuality;
@@ -393,6 +394,12 @@ internal sealed partial class MovementProgramState : IKernelProgramState
 
         var decayed = roadQuality * (float)global::System.Math.Pow(Clamp(roadDecayPerTick, 0f, 1f), elapsedTicks);
         return floor > decayed ? floor : decayed;
+    }
+
+    private static int MainTickAge(int startedTick, int currentTick, int mainTickRatio)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(mainTickRatio);
+        return currentTick <= startedTick ? 0 : (currentTick - startedTick) / mainTickRatio;
     }
 
     private static float QualityFloor(float roadQuality)

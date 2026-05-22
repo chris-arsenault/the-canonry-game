@@ -203,7 +203,7 @@ public sealed class RelationshipProgramRuntimeTests
         Assert.True(sawRelationshipMutation);
     }
 
-    private static Simulation CreateSimulation() => new(new SimulationOptions
+    private static Simulation CreateSimulation() => KernelTestSimulation.Create(new SimulationOptions
     {
         EntityCapacity = 8,
         RelationshipCapacity = 8,

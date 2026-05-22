@@ -58,7 +58,7 @@ public sealed class KernelSnapshotTests
         var target = simulation.CreateEntity(1, 3, 4, 0, 0, 0, 0, 0, tick: 0);
         RegisterProvenanceSnapshotGenerator(simulation);
 
-        simulation.AdvanceTicks(1);
+        simulation.AdvanceTicks(7);
 
         var created = simulation.World.EntityHighWatermark;
         var relationship = simulation.World.FindRelationship(created, target, 6);
@@ -159,6 +159,7 @@ public sealed class KernelSnapshotTests
         {
             Programs = new KernelProgramTuningOptions
             {
+                MinorActorMainTickRatio = 7,
                 Upkeep = new UpkeepProgramTuningOptions
                 {
                     AgingModelCode = UpkeepAgingModelCodes.LateLife,
@@ -208,6 +209,7 @@ public sealed class KernelSnapshotTests
         Assert.False(loaded.ProgramIsEnabled(KernelProgramCodes.Generators));
         Assert.True(loaded.Generators.TryGetGeneratorEnabledById(50, out var generatorEnabled));
         Assert.False(generatorEnabled);
+        Assert.Equal(7, loaded.Options.KernelTuning.Programs.MinorActorMainTickRatio);
         Assert.Equal(UpkeepAgingModelCodes.LateLife, loaded.Options.KernelTuning.Programs.Upkeep.AgingModelCode);
         Assert.False(loaded.Options.KernelTuning.Programs.Generators.RetryFireTargets);
         Assert.Equal(17, loaded.Options.KernelTuning.Programs.Generators.PulseWidthTicks);

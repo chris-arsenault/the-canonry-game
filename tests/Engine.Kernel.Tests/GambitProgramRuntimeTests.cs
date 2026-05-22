@@ -841,7 +841,7 @@ public sealed class GambitProgramRuntimeTests
 
     private static Simulation CreateSimulation(int seed)
     {
-        return new Simulation(new SimulationOptions
+        return KernelTestSimulation.Create(new SimulationOptions
         {
             EntityCapacity = 8,
             RelationshipCapacity = 8,

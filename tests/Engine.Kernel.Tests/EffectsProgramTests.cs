@@ -12,7 +12,7 @@ public sealed class EffectsProgramTests
         const int attributeId = 1;
         const int relationshipKindId = 7;
         const int effectsSourceCodeId = 42;
-        var simulation = new Simulation(new SimulationOptions
+        var simulation = KernelTestSimulation.Create(new SimulationOptions
         {
             RuntimeCodes = new KernelRuntimeCodes(
                 RelationshipCreatedCodeId: 1,
@@ -345,7 +345,7 @@ public sealed class EffectsProgramTests
     }
 
     private static Simulation CreateSimulation() =>
-        new(new SimulationOptions
+        KernelTestSimulation.Create(new SimulationOptions
         {
             EntityCapacity = 8,
             RelationshipCapacity = 16,

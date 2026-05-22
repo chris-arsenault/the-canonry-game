@@ -1,5 +1,6 @@
 namespace Engine.Kernel.Driver.Tests;
 
+using Engine.Constants;
 using Engine.Kernel;
 
 public sealed class KernelSchedulingTests
@@ -175,6 +176,75 @@ public sealed class KernelSchedulingTests
         _ = simulation.AdvanceTicks(3);
 
         Assert.Equal([1, 2, 3], receivedTicks);
+    }
+
+    [Fact]
+    public void DefaultProgramsRunMinorActorsEveryTickAndMainProgramsOnRatioBoundary()
+    {
+        var simulation = new Simulation(new SimulationOptions { MinorActorCapacity = 8 });
+        simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
+        simulation.SeedEntity(
+            entityId: 1,
+            kindId: 1,
+            subtypeId: 1,
+            cultureId: 1,
+            physicalQ: 0,
+            physicalR: 0,
+            semanticQ: 0,
+            semanticR: 0,
+            semanticS: 0);
+        _ = simulation.LowAltitudeVerbs.RegisterInitialInfluence(1, PlaneCodes.Physical, 10f);
+        _ = simulation.MinorActors.Spawn(
+            cultureId: 1,
+            sourceEntityId: 0,
+            sourceRuleId: 0,
+            actorKindCode: MinorActorKindCodes.Worker,
+            actionCode: MinorActorActionCodes.CultureExpansion,
+            planeCode: PlaneCodes.Physical,
+            q: 0,
+            r: 0,
+            ttlPulses: 10,
+            moveChancePermille: 0,
+            actionCadencePulses: 1,
+            workDelta: 0f,
+            tick: 0);
+
+        _ = simulation.AdvanceTicks(4);
+
+        Assert.Equal(4, simulation.MinorActors.State.Pulse);
+        Assert.Equal(0f, simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
+
+        _ = simulation.AdvanceTicks(1);
+
+        Assert.Equal(5, simulation.MinorActors.State.Pulse);
+        Assert.Equal(10f, simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
+    }
+
+    [Fact]
+    public void GeneratorPulseWidthScalesFromMainTicksToMinorActorTicks()
+    {
+        var simulation = new Simulation(new SimulationOptions
+        {
+            KernelTuning = new KernelTuningOptions
+            {
+                Programs = new KernelProgramTuningOptions
+                {
+                    MinorActorMainTickRatio = 5,
+                    Generators = new GeneratorProgramTuningOptions
+                    {
+                        PulseWidthTicks = 2,
+                    },
+                },
+            },
+        });
+
+        _ = simulation.AdvanceTicks(10);
+
+        Assert.Equal(0, simulation.Generators.State.CurrentPulseIndex);
+
+        _ = simulation.AdvanceTicks(5);
+
+        Assert.Equal(1, simulation.Generators.State.CurrentPulseIndex);
     }
 
     private sealed class RecordingSystem(Action<Simulation, int> onTick) : ISimulationSystem

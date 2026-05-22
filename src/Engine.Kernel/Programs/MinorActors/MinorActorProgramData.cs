@@ -17,6 +17,8 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
     internal readonly int[] MoveChancePermille;
     internal readonly int[] ActionCadencePulses;
     internal readonly float[] WorkDeltas;
+    internal readonly bool[] RuleHasVerbs;
+    internal readonly int[] RuleMaxVerbRadii;
     internal readonly int[] VerbSourceRuleIds;
     internal readonly int[] VerbIds;
     internal readonly int[] VerbActionCodes;
@@ -44,6 +46,8 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         MoveChancePermille = new int[ruleCapacity + 1];
         ActionCadencePulses = new int[ruleCapacity + 1];
         WorkDeltas = new float[ruleCapacity + 1];
+        RuleHasVerbs = new bool[ruleCapacity + 1];
+        RuleMaxVerbRadii = new int[ruleCapacity + 1];
         VerbSourceRuleIds = new int[verbCapacity + 1];
         VerbIds = new int[verbCapacity + 1];
         VerbActionCodes = new int[verbCapacity + 1];
@@ -156,6 +160,8 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         VerbSampleCounts[verb] = sampleCount;
         VerbWeights[verb] = weight;
         VerbWorkDeltaMultipliers[verb] = workDeltaMultiplier;
+        RuleHasVerbs[sourceRuleId] = true;
+        RuleMaxVerbRadii[sourceRuleId] = global::System.Math.Max(RuleMaxVerbRadii[sourceRuleId], radius);
         return verb;
     }
 

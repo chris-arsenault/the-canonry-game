@@ -49,6 +49,7 @@ public sealed class KernelRuntimeFactoryTests
             {
               "kernelTuning": {
                 "programs": {
+                  "minorActorMainTickRatio": 7,
                   "lowAltitudeVerbs": {
                     "enabled": false,
                     "opportunityRate": 0.35,
@@ -101,6 +102,9 @@ public sealed class KernelRuntimeFactoryTests
             retry_fire_targets = false
             pulse_width_ticks = 17
             fires_per_pulse = 2
+
+            [kernel_tuning.programs]
+            minor_actor_main_tick_ratio = 7
 
             [kernel_tuning.programs.movement]
             enabled = false
@@ -208,6 +212,7 @@ public sealed class KernelRuntimeFactoryTests
     private static void AssertConfiguredTuningOptions(SimulationOptions options)
     {
         Assert.False(options.KernelTuning.Programs.Generators.RetryFireTargets);
+        Assert.Equal(7, options.KernelTuning.Programs.MinorActorMainTickRatio);
         Assert.Equal(17, options.KernelTuning.Programs.Generators.PulseWidthTicks);
         Assert.Equal(2, options.KernelTuning.Programs.Generators.FiresPerPulse);
         Assert.Equal(ProgramEnabledOverrideCodes.Disabled, options.KernelTuning.Programs.Enabled.LowAltitudeVerbs);

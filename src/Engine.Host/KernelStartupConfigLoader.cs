@@ -78,7 +78,7 @@ internal static class KernelStartupConfigLoader
         tuning = ApplyJsonUpkeepTuning(programs, tuning);
         tuning = ApplyJsonGeneratorTuning(programs, tuning);
         tuning = ApplyJsonLowAltitudeVerbTuning(programs, tuning);
-        tuning = ApplyJsonMinorActorTuning(programs, tuning);
+        tuning = ApplyJsonMainTickRatioTuning(programs, tuning);
         return ApplyJsonProgramEnabledTuning(programs, tuning);
     }
 
@@ -230,15 +230,20 @@ internal static class KernelStartupConfigLoader
         return WithAgingModel(tuning, agingModelCode);
     }
 
-    private static KernelTuningOptions ApplyJsonMinorActorTuning(JsonElement programs, KernelTuningOptions tuning)
+    private static KernelTuningOptions ApplyJsonMainTickRatioTuning(JsonElement programs, KernelTuningOptions tuning)
     {
+        if (TryGetInt(programs, out var ratio, "minorActorMainTickRatio", "minor_actor_main_tick_ratio"))
+        {
+            return WithMinorActorMainTickRatio(tuning, ratio);
+        }
+
         if (!TryGetObject(programs, out var minorActors, "minorActors", "minor_actors") ||
-            !TryGetInt(minorActors, out var ticksPerKernelTick, "ticksPerKernelTick", "ticks_per_kernel_tick"))
+            !TryGetInt(minorActors, out ratio, "minorActorMainTickRatio", "minor_actor_main_tick_ratio"))
         {
             return tuning;
         }
 
-        return WithMinorActorTicksPerKernelTick(tuning, ticksPerKernelTick);
+        return WithMinorActorMainTickRatio(tuning, ratio);
     }
 
     private static KernelTuningOptions ApplyToml(string[] lines, KernelTuningOptions tuning)
@@ -299,6 +304,13 @@ internal static class KernelStartupConfigLoader
         if (string.Equals(section, "KERNELTUNING.PROGRAMS.MINORACTORS", StringComparison.Ordinal))
         {
             return ApplyTomlProgramEnabledValue(section, key, value, ApplyTomlMinorActorValue(key, value, tuning));
+        }
+
+        if (string.Equals(section, "KERNELTUNING.PROGRAMS", StringComparison.Ordinal) &&
+            string.Equals(key, "MINORACTORMAINTICKRATIO", StringComparison.Ordinal) &&
+            int.TryParse(ReadBareTomlValue(value), CultureInfo.InvariantCulture, out var ratio))
+        {
+            return WithMinorActorMainTickRatio(tuning, ratio);
         }
 
         var scalar = ReadBareTomlValue(value);
@@ -421,10 +433,10 @@ internal static class KernelStartupConfigLoader
         KernelTuningOptions tuning)
     {
         var scalar = ReadBareTomlValue(value);
-        if (string.Equals(key, "TICKSPERKERNELTICK", StringComparison.Ordinal) &&
-            int.TryParse(scalar, CultureInfo.InvariantCulture, out var ticksPerKernelTick))
+        if (string.Equals(key, "MINORACTORMAINTICKRATIO", StringComparison.Ordinal) &&
+            int.TryParse(scalar, CultureInfo.InvariantCulture, out var ratio))
         {
-            return WithMinorActorTicksPerKernelTick(tuning, ticksPerKernelTick);
+            return WithMinorActorMainTickRatio(tuning, ratio);
         }
 
         return tuning;
@@ -667,12 +679,12 @@ internal static class KernelStartupConfigLoader
             },
         };
 
-    private static KernelTuningOptions WithMinorActorTicksPerKernelTick(KernelTuningOptions tuning, int value) =>
+    private static KernelTuningOptions WithMinorActorMainTickRatio(KernelTuningOptions tuning, int value) =>
         tuning with
         {
             Programs = tuning.Programs with
             {
-                MinorActors = tuning.Programs.MinorActors with { TicksPerKernelTick = value },
+                MinorActorMainTickRatio = value,
             },
         };
 

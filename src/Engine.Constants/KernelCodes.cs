@@ -246,6 +246,7 @@ public static class GeneratorCulturePlacementCodes
 {
     public const int Ignore = 1;
     public const int PreferInheritedCulture = 2;
+    public const int HostileIntrusion = 3;
 }
 
 public static class GeneratorCoverageModeCodes

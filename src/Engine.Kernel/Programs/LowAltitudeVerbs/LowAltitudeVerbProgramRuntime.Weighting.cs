@@ -169,7 +169,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             return 1f;
         }
 
-        var cooldown = Tuning.LowAltitudeVerbs.RecentTargetCooldownTicks;
+        var cooldown = Tuning.ScaleMainTicks(Tuning.LowAltitudeVerbs.RecentTargetCooldownTicks);
         if (cooldown <= 0)
         {
             return 1f;

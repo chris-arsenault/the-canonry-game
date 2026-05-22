@@ -7,7 +7,7 @@ public sealed class TerrainAwareMapTests
     [Fact]
     public void MovementOverTerrainBuildsRoadQualityThatReducesEffectiveTravelCost()
     {
-        var simulation = new Simulation();
+        var simulation = KernelTestSimulation.Create();
         const int terrainId = 1;
         const int kindId = 1;
         simulation.RegisterTerrain(
@@ -35,7 +35,7 @@ public sealed class TerrainAwareMapTests
     [Fact]
     public void PlacementMovementDoesNotBuildRoadQuality()
     {
-        var simulation = new Simulation();
+        var simulation = KernelTestSimulation.Create();
         const int terrainId = 1;
         const int kindId = 1;
         simulation.RegisterTerrain(
@@ -61,7 +61,7 @@ public sealed class TerrainAwareMapTests
     [Fact]
     public void WanderUsesEnterableNeighborsWithoutRoadAdjustedPacing()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 11 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 11 });
         const int terrainId = 1;
         const int kindId = 1;
         simulation.RegisterTerrain(
@@ -97,7 +97,7 @@ public sealed class TerrainAwareMapTests
     [Fact]
     public void MovementRoadQualityRoundTripsThroughSnapshot()
     {
-        var simulation = new Simulation();
+        var simulation = KernelTestSimulation.Create();
         const int terrainId = 1;
         const int kindId = 1;
         simulation.RegisterTerrain(
@@ -131,7 +131,7 @@ public sealed class TerrainAwareMapTests
     [InlineData(80f, 75f)]
     public void RoadQualityDoesNotDecayBelowReachedCheckpoint(float roadBuildPerTravel, float expectedFloor)
     {
-        var simulation = new Simulation();
+        var simulation = KernelTestSimulation.Create();
         const int terrainId = 1;
         const int kindId = 1;
         simulation.Movement.Data.RoadBuildPerTravel = roadBuildPerTravel;
@@ -159,7 +159,7 @@ public sealed class TerrainAwareMapTests
     [Fact]
     public void SemanticMovementUsesTerrainCostAndBuildsCellRoadQuality()
     {
-        var simulation = new Simulation();
+        var simulation = KernelTestSimulation.Create();
         const int terrainId = 1;
         const int kindId = 1;
         simulation.RegisterTerrain(
@@ -216,7 +216,7 @@ public sealed class TerrainAwareMapTests
     [Fact]
     public void SameRegionalSegmentMovementUsesConcretePathToTarget()
     {
-        var simulation = new Simulation(new SimulationOptions
+        var simulation = KernelTestSimulation.Create(new SimulationOptions
         {
             EntityCapacity = 4,
             MapCellCapacity = 1024,
@@ -354,7 +354,7 @@ public sealed class TerrainAwareMapTests
     [Fact]
     public void MovementProfilesResolveKindDefaultSubtypeAndTraitRules()
     {
-        var simulation = new Simulation(new SimulationOptions
+        var simulation = KernelTestSimulation.Create(new SimulationOptions
         {
             EntityCapacity = 8,
             MapCellCapacity = 16,
@@ -455,7 +455,7 @@ public sealed class TerrainAwareMapTests
     [Fact]
     public void SemanticCellStateAndCoverageAreIsolatedFromPhysicalCells()
     {
-        var simulation = new Simulation();
+        var simulation = KernelTestSimulation.Create();
         const int terrainId = 1;
         const int semanticTerrainId = 2;
         simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
@@ -477,7 +477,7 @@ public sealed class TerrainAwareMapTests
     [Fact]
     public void SemanticCellStateRoundTripsThroughSnapshot()
     {
-        var simulation = new Simulation();
+        var simulation = KernelTestSimulation.Create();
         const int terrainId = 1;
         const int semanticTerrainId = 2;
         simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
@@ -500,7 +500,7 @@ public sealed class TerrainAwareMapTests
     [Fact]
     public void GeneratorSetTerrainPatchEffectTransformsBoundedLocalPatch()
     {
-        var simulation = new Simulation();
+        var simulation = KernelTestSimulation.Create();
         const int originalTerrainId = 1;
         const int transformedTerrainId = 2;
         const int targetKindId = 1;
@@ -536,7 +536,7 @@ public sealed class TerrainAwareMapTests
     [Fact]
     public void GeneratorSetTerrainPatchEffectCanTransformSemanticPatchWithoutChangingPhysicalCells()
     {
-        var simulation = new Simulation();
+        var simulation = KernelTestSimulation.Create();
         const int originalTerrainId = 1;
         const int transformedTerrainId = 2;
         const int targetKindId = 1;
@@ -581,7 +581,7 @@ public sealed class TerrainAwareMapTests
 
     private static (Simulation Simulation, int EntityId) CreateLargePathingSimulation(float roadBuildPerTravel)
     {
-        var simulation = new Simulation(new SimulationOptions
+        var simulation = KernelTestSimulation.Create(new SimulationOptions
         {
             EntityCapacity = 4,
             MapCellCapacity = 512,
@@ -618,7 +618,7 @@ public sealed class TerrainAwareMapTests
 
     private static Simulation CreateWaterBarrierSimulation(out int entityId, out int targetQ, out int targetR)
     {
-        var simulation = new Simulation();
+        var simulation = KernelTestSimulation.Create();
         const int landTerrainId = 1;
         const int waterTerrainId = 2;
         const int kindId = 1;

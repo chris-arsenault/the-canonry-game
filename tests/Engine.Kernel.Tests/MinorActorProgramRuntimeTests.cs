@@ -42,16 +42,6 @@ public sealed class MinorActorProgramRuntimeTests
         var simulation = new Simulation(new SimulationOptions
         {
             MinorActorCapacity = 8,
-            KernelTuning = new KernelTuningOptions
-            {
-                Programs = new KernelProgramTuningOptions
-                {
-                    MinorActors = new MinorActorProgramTuningOptions
-                    {
-                        TicksPerKernelTick = 1,
-                    },
-                },
-            },
         });
         simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
         _ = simulation.MinorActors.Spawn(
@@ -77,7 +67,7 @@ public sealed class MinorActorProgramRuntimeTests
     }
 
     [Fact]
-    public void ConfiguredTickMultiplierRunsMinorActorsMultiplePulsesPerKernelTick()
+    public void ConfiguredMainTickRatioDoesNotCreateMinorActorSubsteps()
     {
         var simulation = new Simulation(new SimulationOptions
         {
@@ -86,10 +76,7 @@ public sealed class MinorActorProgramRuntimeTests
             {
                 Programs = new KernelProgramTuningOptions
                 {
-                    MinorActors = new MinorActorProgramTuningOptions
-                    {
-                        TicksPerKernelTick = 3,
-                    },
+                    MinorActorMainTickRatio = 3,
                 },
             },
         });
@@ -109,6 +96,11 @@ public sealed class MinorActorProgramRuntimeTests
             tick: 0);
 
         _ = simulation.AdvanceTicks(1);
+
+        Assert.Equal(1, simulation.MinorActors.State.Pulse);
+        Assert.Equal(1, simulation.MinorActors.State.ActiveCount);
+
+        _ = simulation.AdvanceTicks(2);
 
         Assert.Equal(3, simulation.MinorActors.State.Pulse);
         Assert.Equal(0, simulation.MinorActors.State.ActiveCount);
@@ -136,8 +128,8 @@ public sealed class MinorActorProgramRuntimeTests
 
         _ = simulation.AdvanceTicks(1);
 
-        Assert.Equal(5, simulation.MinorActors.State.Pulse);
-        Assert.Equal(5f, simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(1, simulation.MinorActors.State.Pulse);
+        Assert.Equal(1f, simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
     }
 
     [Fact]
@@ -178,7 +170,7 @@ public sealed class MinorActorProgramRuntimeTests
     [Fact]
     public void WorkTierAddsWorkerCapacityPerSource()
     {
-        var simulation = CreateVerbSimulation(ticksPerKernelTick: 1);
+        var simulation = CreateVerbSimulation(mainTickRatio: 1);
         simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
         SeedSourceEntity(simulation);
         var rule = simulation.MinorActors.RegisterEmitterRule(
@@ -219,7 +211,7 @@ public sealed class MinorActorProgramRuntimeTests
     [Fact]
     public void WorkTierExtendsMinorActorVerbOperatingRadius()
     {
-        var simulation = CreateVerbSimulation(ticksPerKernelTick: 1);
+        var simulation = CreateVerbSimulation(mainTickRatio: 1);
         SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 4);
         SeedSourceEntity(simulation);
         var rule = RegisterCultureEmitter(simulation);
@@ -341,9 +333,57 @@ public sealed class MinorActorProgramRuntimeTests
     }
 
     [Fact]
+    public void CultureVerbReinforcesEntrenchedCoreBelowFullRawCap()
+    {
+        var simulation = CreateVerbSimulation(mainTickRatio: 1);
+        SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 1);
+        SeedSourceEntity(simulation);
+        var rule = RegisterCultureEmitter(simulation);
+        _ = simulation.MinorActors.RegisterVerb(
+            rule,
+            CultureVerbId,
+            MinorActorActionCodes.CultureExpansion,
+            MinorActorVerbTargetingCodes.ReinforceHomeMass,
+            PlaneCodes.Physical,
+            radius: 1,
+            sampleCount: 64,
+            weight: 1f,
+            workDeltaMultiplier: 1f);
+        simulation.ModifyCellCultureInfluenceRaw(
+            CultureId,
+            PlaneCodes.Physical,
+            0,
+            0,
+            WorldState.CultureEntrenchedRawMass,
+            tick: 0);
+        _ = simulation.MinorActors.Spawn(
+            cultureId: CultureId,
+            sourceEntityId: SourceEntityId,
+            sourceRuleId: rule,
+            actorKindCode: MinorActorKindCodes.Worker,
+            actionCode: MinorActorActionCodes.CultureExpansion,
+            planeCode: PlaneCodes.Physical,
+            q: 0,
+            r: 0,
+            ttlPulses: 4,
+            moveChancePermille: 0,
+            actionCadencePulses: 1,
+            workDelta: 5f,
+            tick: 0);
+        var before = simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0);
+
+        _ = simulation.AdvanceTicks(1);
+
+        var evt = Assert.Single(ReadMinorActorVerbEvents(simulation));
+        Assert.Equal(TraceStatusCodes.Selected, evt.StatusCode);
+        Assert.Equal((0, 0), (evt.Q, evt.R));
+        Assert.True(simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0) > before);
+    }
+
+    [Fact]
     public void CultureVerbActsLocallyInsteadOfTeleportingToBestFarMass()
     {
-        var simulation = CreateVerbSimulation(ticksPerKernelTick: 1);
+        var simulation = CreateVerbSimulation(mainTickRatio: 1);
         SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 7);
         SeedSourceEntity(simulation);
         var rule = RegisterCultureEmitter(simulation);
@@ -406,7 +446,13 @@ public sealed class MinorActorProgramRuntimeTests
         var supportedCells = new[] { (0, 0), (1, 0), (1, -1) };
         foreach (var (q, r) in supportedCells)
         {
-            simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, q, r, 30f, tick: 0);
+            simulation.ModifyCellCultureInfluenceRaw(
+                CultureId,
+                PlaneCodes.Physical,
+                q,
+                r,
+                WorldState.CultureEntrenchedRawMass,
+                tick: 0);
         }
 
         var borderCells = new[] { (-1, 0), (-1, 1), (0, 1), (1, -2), (2, -1), (2, 0) };
@@ -421,7 +467,7 @@ public sealed class MinorActorProgramRuntimeTests
     [Fact]
     public void CultureVerbBridgesGapBetweenNearbyComponents()
     {
-        var simulation = CreateVerbSimulation(ticksPerKernelTick: 1);
+        var simulation = CreateVerbSimulation(mainTickRatio: 1);
         SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 4);
         SeedSourceEntity(simulation);
         var rule = RegisterCultureEmitter(simulation);
@@ -435,8 +481,20 @@ public sealed class MinorActorProgramRuntimeTests
             sampleCount: 128,
             weight: 1f,
             workDeltaMultiplier: 1f);
-        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 1, 0, 30f, tick: 0);
-        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, -1, 0, 30f, tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(
+            CultureId,
+            PlaneCodes.Physical,
+            1,
+            0,
+            WorldState.CultureEntrenchedRawMass,
+            tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(
+            CultureId,
+            PlaneCodes.Physical,
+            -1,
+            0,
+            WorldState.CultureEntrenchedRawMass,
+            tick: 0);
         _ = simulation.MinorActors.Spawn(
             cultureId: CultureId,
             sourceEntityId: SourceEntityId,
@@ -461,7 +519,7 @@ public sealed class MinorActorProgramRuntimeTests
     [Fact]
     public void CultureCleanupVerbReducesEveryOtherCultureSourceInsideSupportedMass()
     {
-        var simulation = CreateVerbSimulation(ticksPerKernelTick: 1);
+        var simulation = CreateVerbSimulation(mainTickRatio: 1);
         SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 4);
         var rule = RegisterCultureEmitter(simulation);
         _ = simulation.MinorActors.RegisterVerb(
@@ -523,7 +581,7 @@ public sealed class MinorActorProgramRuntimeTests
     [Fact]
     public void CultureCleanupVerbRequiresOwnCultureSupport()
     {
-        var simulation = CreateVerbSimulation(ticksPerKernelTick: 1);
+        var simulation = CreateVerbSimulation(mainTickRatio: 1);
         SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 4);
         var rule = RegisterCultureEmitter(simulation);
         _ = simulation.MinorActors.RegisterVerb(
@@ -563,7 +621,7 @@ public sealed class MinorActorProgramRuntimeTests
     [Fact]
     public void LifecycleMaintenanceVerbRepairsSourceFromAgeLoadInsideSupportedMass()
     {
-        var simulation = CreateVerbSimulation(ticksPerKernelTick: 1);
+        var simulation = CreateVerbSimulation(mainTickRatio: 1);
         const int healthAttributeId = 10;
         simulation.RegisterAttribute(SourceKindId, healthAttributeId, minimum: 0f, maximum: 100f, defaultValue: 50f);
         simulation.Upkeep.RegisterLifecycle(SourceKindId, healthAttributeId, baseRate: 0f, ageCoefficient: 1f, variance: 0f);
@@ -615,7 +673,7 @@ public sealed class MinorActorProgramRuntimeTests
     [Fact]
     public void LifecycleMaintenanceVerbRequiresSupportedCultureMass()
     {
-        var simulation = CreateVerbSimulation(ticksPerKernelTick: 1);
+        var simulation = CreateVerbSimulation(mainTickRatio: 1);
         const int healthAttributeId = 10;
         simulation.RegisterAttribute(SourceKindId, healthAttributeId, minimum: 0f, maximum: 100f, defaultValue: 50f);
         simulation.Upkeep.RegisterLifecycle(SourceKindId, healthAttributeId, baseRate: 0f, ageCoefficient: 1f, variance: 0f);
@@ -659,7 +717,7 @@ public sealed class MinorActorProgramRuntimeTests
     [Fact]
     public void TransportRouteCultureVerbPrefersTraveledRouteCell()
     {
-        var simulation = CreateVerbSimulation(ticksPerKernelTick: 1);
+        var simulation = CreateVerbSimulation(mainTickRatio: 1);
         simulation.World.SetMapRadius(2);
         simulation.RegisterTerrain(
             terrainId: 1,
@@ -737,7 +795,7 @@ public sealed class MinorActorProgramRuntimeTests
         Assert.True(evt.ConnectedRawMass > 0f);
     }
 
-    private static Simulation CreateVerbSimulation(int ticksPerKernelTick = 1) =>
+    private static Simulation CreateVerbSimulation(int mainTickRatio = 1) =>
         new(new SimulationOptions
         {
             MinorActorCapacity = 8,
@@ -747,10 +805,7 @@ public sealed class MinorActorProgramRuntimeTests
             {
                 Programs = new KernelProgramTuningOptions
                 {
-                    MinorActors = new MinorActorProgramTuningOptions
-                    {
-                        TicksPerKernelTick = ticksPerKernelTick,
-                    },
+                    MinorActorMainTickRatio = mainTickRatio,
                 },
             },
         });

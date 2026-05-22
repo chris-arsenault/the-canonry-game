@@ -7,13 +7,24 @@ internal sealed partial class MovementProgramRuntime :
         MovementProgramData data,
         MovementProgramState state,
         MovementProgramScratch scratch)
+        : this(data, state, scratch, new KernelProgramTuningOptions())
+    {
+    }
+
+    public MovementProgramRuntime(
+        MovementProgramData data,
+        MovementProgramState state,
+        MovementProgramScratch scratch,
+        KernelProgramTuningOptions tuning)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
         global::System.ArgumentNullException.ThrowIfNull(scratch);
+        global::System.ArgumentNullException.ThrowIfNull(tuning);
         Data = data;
         State = state;
         Scratch = scratch;
+        Tuning = tuning;
     }
 
     public MovementProgramData Data { get; }
@@ -21,6 +32,8 @@ internal sealed partial class MovementProgramRuntime :
     public MovementProgramState State { get; }
 
     public MovementProgramScratch Scratch { get; }
+
+    public KernelProgramTuningOptions Tuning { get; }
 
     public void RegisterDefaultMovementProfile(
         int kindId,
@@ -114,7 +127,7 @@ internal sealed partial class MovementProgramRuntime :
     }
 
     public float RoadQuality(int planeCode, int q, int r, int tick) =>
-        State.RoadQuality(planeCode, q, r, tick, Data.RoadDecayPerTick);
+        State.RoadQuality(planeCode, q, r, tick, Data.RoadDecayPerTick, Tuning.MinorActorMainTickRatio);
 
     public int RoadTravelCount(int planeCode, int q, int r) => State.RoadTravelCount(planeCode, q, r);
 
@@ -145,7 +158,8 @@ internal sealed partial class MovementProgramRuntime :
             r,
             tick,
             amount * simulation.KernelData.Terrain.RoadBuildMultiplier(terrainId),
-            Data.RoadDecayPerTick);
+            Data.RoadDecayPerTick,
+            Tuning.MinorActorMainTickRatio);
         var currentQuality = RoadQuality(planeCode, q, r, tick);
         if (global::System.MathF.Abs(currentQuality - previousQuality) <= 0.0001f)
         {
@@ -514,7 +528,8 @@ internal sealed partial class MovementProgramRuntime :
             r,
             tick,
             Data.RoadBuildPerTravel * simulation.KernelData.Terrain.RoadBuildMultiplier(terrainId),
-            Data.RoadDecayPerTick);
+            Data.RoadDecayPerTick,
+            Tuning.MinorActorMainTickRatio);
         var currentQuality = RoadQuality(planeCode, q, r, tick);
         simulation.EmitCellRoadChanged(
             tick,

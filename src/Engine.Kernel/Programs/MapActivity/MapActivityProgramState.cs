@@ -21,8 +21,8 @@ internal sealed partial class MapActivityProgramState : IKernelProgramState
 
     public int SchemaVersion => 1;
 
-    public float Heat(int planeCode, int q, int r, int tick, float heatDecayPerTick) =>
-        DecayedHeat(planeCode, CoordinateKey(q, r), tick, heatDecayPerTick);
+    public float Heat(int planeCode, int q, int r, int tick, float heatDecayPerTick, int mainTickRatio) =>
+        DecayedHeat(planeCode, CoordinateKey(q, r), tick, heatDecayPerTick, mainTickRatio);
 
     public int VisitCount(int planeCode, int q, int r) =>
         _visitCounts.GetOrDefault(planeCode, CoordinateKey(q, r));
@@ -45,10 +45,11 @@ internal sealed partial class MapActivityProgramState : IKernelProgramState
         int tick,
         float heat,
         float heatDecayPerTick,
-        float heatEmaAlpha)
+        float heatEmaAlpha,
+        int mainTickRatio)
     {
         var key = CoordinateKey(q, r);
-        var decayedHeat = DecayedHeat(planeCode, key, tick, heatDecayPerTick);
+        var decayedHeat = DecayedHeat(planeCode, key, tick, heatDecayPerTick, mainTickRatio);
         var targetHeat = Clamp(heat, 0f, 1f) * 100f;
         var nextHeat = decayedHeat + ((targetHeat - decayedHeat) * Clamp(heatEmaAlpha, 0f, 1f));
         _heat.Set(planeCode, key, nextHeat);
@@ -57,17 +58,23 @@ internal sealed partial class MapActivityProgramState : IKernelProgramState
         _currentOccupancy.Add(planeCode, key, 1);
     }
 
-    private float DecayedHeat(int planeCode, int key, int tick, float heatDecayPerTick)
+    private float DecayedHeat(int planeCode, int key, int tick, float heatDecayPerTick, int mainTickRatio)
     {
         var heat = _heat.GetOrDefault(planeCode, key);
         var lastVisitedTick = _lastVisitedTicks.GetOrDefault(planeCode, key);
-        var elapsedTicks = tick - lastVisitedTick;
+        var elapsedTicks = MainTickAge(lastVisitedTick, tick, mainTickRatio);
         if (heat <= 0f || elapsedTicks <= 0)
         {
             return heat;
         }
 
         return heat * (float)global::System.Math.Pow(Clamp(heatDecayPerTick, 0f, 1f), elapsedTicks);
+    }
+
+    private static int MainTickAge(int startedTick, int currentTick, int mainTickRatio)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(mainTickRatio);
+        return currentTick <= startedTick ? 0 : (currentTick - startedTick) / mainTickRatio;
     }
 
     private static float Clamp(float value, float minimum, float maximum)

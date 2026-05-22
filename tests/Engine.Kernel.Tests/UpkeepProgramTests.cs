@@ -29,7 +29,7 @@ public sealed class UpkeepProgramTests
     }
 
     private static Simulation CreateSimulation(KernelTuningOptions? tuning = null) =>
-        new(new SimulationOptions
+        KernelTestSimulation.Create(new SimulationOptions
         {
             EntityCapacity = 8,
             RelationshipCapacity = 16,

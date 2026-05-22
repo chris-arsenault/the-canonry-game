@@ -495,7 +495,7 @@ public sealed class WorldStateIndexTests
 
     private static Simulation CreateSimulation()
     {
-        return new Simulation(new SimulationOptions
+        return KernelTestSimulation.Create(new SimulationOptions
         {
             EntityCapacity = 8,
             RelationshipCapacity = 8,

@@ -122,6 +122,7 @@ public enum GeneratorProgramCulturePlacement
 {
     Ignore,
     PreferInheritedCulture,
+    HostileIntrusion,
 }
 
 public enum GeneratorProgramCoverageMode

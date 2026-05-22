@@ -7,6 +7,8 @@ using Engine.Projection;
 internal sealed class KernelTelemetryRecorder : IDisposable
 {
     private readonly KernelEventProjectionPump _pump;
+    private readonly int _mapSnapshotCadence;
+    private readonly int _generatorSnapshotCadence;
     private bool _disposed;
 
     public KernelTelemetryRecorder(
@@ -48,6 +50,8 @@ internal sealed class KernelTelemetryRecorder : IDisposable
             mapSnapshotCadence,
             generatorSnapshotCadence));
 
+        _mapSnapshotCadence = mapSnapshotCadence;
+        _generatorSnapshotCadence = generatorSnapshotCadence;
         EventProjection = new TelemetryEventProjection(RunId, Batch, symbols);
         _pump = new KernelEventProjectionPump(
             eventLog,
@@ -84,12 +88,24 @@ internal sealed class KernelTelemetryRecorder : IDisposable
         EventProjection.RecordTickSnapshot(tick);
         EventProjection.RecordKindSnapshots(tick);
         EventProjection.RecordRelationshipSnapshots(tick);
-        EventProjection.RecordMapSnapshots(tick);
+        var includeGeneratorSnapshot = ShouldRecordSnapshot(tick, _generatorSnapshotCadence);
+        if (ShouldRecordSnapshot(tick, _mapSnapshotCadence))
+        {
+            EventProjection.RecordMapSnapshots(tick, includeGeneratorSnapshot);
+        }
+        else if (includeGeneratorSnapshot)
+        {
+            EventProjection.RecordGeneratorStateSnapshots(tick);
+        }
+
         if (includeEntities)
         {
             EventProjection.RecordEntitySnapshots(tick);
         }
     }
+
+    private static bool ShouldRecordSnapshot(int tick, int cadence) =>
+        cadence <= 0 || tick % cadence == 0;
 
     public void Dispose()
     {

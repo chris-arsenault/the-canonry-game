@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace MonteCarloTool;
 
 using Engine.Eventing;
@@ -25,6 +27,7 @@ internal readonly record struct MonteCarloWorldSeed(
 internal readonly record struct MonteCarloRunExecutionResult(
     long StateRowsWritten,
     int ProcessedTicks,
+    TimeSpan Elapsed,
     MonteCarloRunSummary Summary);
 
 internal readonly record struct MonteCarloRunSummary(

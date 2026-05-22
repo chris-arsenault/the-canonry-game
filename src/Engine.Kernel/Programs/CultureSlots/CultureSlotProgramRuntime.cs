@@ -10,16 +10,28 @@ internal sealed class CultureSlotProgramRuntime :
     private const float InfluenceProductionScoreScale = 100f;
 
     public CultureSlotProgramRuntime(CultureSlotProgramData data, CultureSlotProgramState state)
+        : this(data, state, new KernelProgramTuningOptions())
+    {
+    }
+
+    public CultureSlotProgramRuntime(
+        CultureSlotProgramData data,
+        CultureSlotProgramState state,
+        KernelProgramTuningOptions tuning)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
+        global::System.ArgumentNullException.ThrowIfNull(tuning);
         Data = data;
         State = state;
+        Tuning = tuning;
     }
 
     public CultureSlotProgramData Data { get; }
 
     public CultureSlotProgramState State { get; }
+
+    public KernelProgramTuningOptions Tuning { get; }
 
     public int RegisterSlot(
         int cultureId,
@@ -35,7 +47,7 @@ internal sealed class CultureSlotProgramRuntime :
             slotId,
             polarityCode,
             minimumScore,
-            minimumTenureTicks,
+            Tuning.ScaleMainTicks(minimumTenureTicks),
             displacementMargin,
             entityInfluenceMultiplierDelta,
             cultureInfluenceMultiplierDelta);

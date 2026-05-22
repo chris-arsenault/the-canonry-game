@@ -8,7 +8,7 @@ public sealed class LowAltitudeMovementTraceTests
     [Fact]
     public void LowAltitudeVerbProgram_CommitsPhysicalTargetAndMovesWithVerbSource()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 11 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 11 });
         const int terrainId = 1;
         const int actorKindId = 1;
         const int targetKindId = 2;
@@ -38,7 +38,7 @@ public sealed class LowAltitudeMovementTraceTests
     [Fact]
     public void LowAltitudeVerbProgram_DoesNotCommitUnreachableMovementTarget()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 13 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 13 });
         const int actorKindId = 1;
         const int targetKindId = 2;
         const int verbId = 78;
@@ -57,7 +57,7 @@ public sealed class LowAltitudeMovementTraceTests
     [Fact]
     public void LowAltitudeVerbProgram_EmitsMovementIntentTraceWithAffordanceAggregateAttribution()
     {
-        var simulation = new Simulation(new SimulationOptions
+        var simulation = KernelTestSimulation.Create(new SimulationOptions
         {
             Seed = 17,
             TraceEnabled = true,

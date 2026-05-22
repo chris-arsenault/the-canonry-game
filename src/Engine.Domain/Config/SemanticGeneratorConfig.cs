@@ -114,6 +114,7 @@ public enum GeneratorCulturePlacement
 {
     Ignore,
     PreferInheritedCulture,
+    HostileIntrusion,
 }
 
 public interface ISemanticGeneratorEffect

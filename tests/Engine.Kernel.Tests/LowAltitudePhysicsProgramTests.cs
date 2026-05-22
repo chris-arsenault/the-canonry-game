@@ -8,7 +8,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_CommitsSemanticTargetAndMovesWithVerbSource()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 13 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 13 });
         const int actorKindId = 1;
         const int targetKindId = 2;
         const int terrainId = 1;
@@ -57,7 +57,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_MovementCanLeaveOwnedInfluenceOnTravelPath()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 31 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 31 });
         const int terrainId = 1;
         const int actorKindId = 1;
         const int targetKindId = 2;
@@ -98,7 +98,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_SemanticMovementUsesWorldMapRadius()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 29 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 29 });
         const int actorKindId = 1;
         const int targetKindId = 2;
         const int terrainId = 1;
@@ -142,7 +142,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_DoesNotRefreshDwellEveryTickAfterArrival()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 18 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 18 });
         const int terrainId = 1;
         const int actorKindId = 1;
         const int targetKindId = 2;
@@ -175,7 +175,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_WeightsEntityTargetsByConfiguredRelationshipFitness()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 23 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 23 });
         const int terrainId = 1;
         const int actorKindId = 1;
         const int targetKindId = 2;
@@ -227,7 +227,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_WeightsForeignInfluenceTargetsByAffordance()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 24 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 24 });
         const int terrainId = 1;
         const int actorKindId = 1;
         const int favoredKindId = 2;
@@ -278,7 +278,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_ReduceInfluenceAllowsNegativeRelationshipTargets()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 25 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 25 });
         const int terrainId = 1;
         const int actorKindId = 1;
         const int targetKindId = 2;
@@ -319,7 +319,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_ReduceInfluenceReducesEveryOtherSourceAtTargetCell()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 28 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 28 });
         const int terrainId = 1;
         const int actorKindId = 1;
         const int foreignKindId = 2;
@@ -367,7 +367,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_ReduceInfluenceBlocksPositiveRelationshipTargets()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 26 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 26 });
         const int terrainId = 1;
         const int actorKindId = 1;
         const int targetKindId = 2;
@@ -409,7 +409,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_ReduceInfluencePositiveRelationshipWinsOverNegativeRelationship()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 27 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 27 });
         const int terrainId = 1;
         const int actorKindId = 1;
         const int targetKindId = 2;
@@ -458,7 +458,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_AssignsDivergentMovementShapeToSameVerbIntents()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 21 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 21 });
         const int terrainId = 1;
         const int actorKindId = 1;
         const int targetKindId = 2;
@@ -494,7 +494,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_RoamsOneStepDuringDwellWithPullTowardTarget()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 22 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 22 });
         const int terrainId = 1;
         const int actorKindId = 1;
         const int targetKindId = 2;
@@ -527,7 +527,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_GrowsNonExclusiveCellInfluenceWithoutChangingOwner()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 19 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 19 });
         const int terrainId = 1;
         const int settlementKindId = 1;
         const int factionKindId = 2;
@@ -561,7 +561,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_GrowsSemanticInfluenceWithoutKnownPhysicalCell()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 31 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 31 });
         const int kindId = 1;
         const int terrainId = 1;
         const int verbId = 103;
@@ -590,7 +590,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_RepeatsNonMoveWorkThroughCommitmentWindow()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 32 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 32 });
         const int terrainId = 1;
         const int kindId = 1;
         const int verbId = 104;
@@ -639,7 +639,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_AdjustsRelationshipStrengthForRelationshipTarget()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 34 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 34 });
         const int terrainId = 1;
         const int actorKindId = 1;
         const int targetKindId = 2;
@@ -690,7 +690,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void MapActivityProgram_DecaysAbandonedHeatInsteadOfLeavingPermanentHotspots()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 33 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 33 });
         const int terrainId = 1;
         simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
         simulation.World.SetMapRadius(1);
@@ -712,7 +712,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_ExpandCoverageClaimsOnePhysicalCellWhenInfluenceIsEstablished()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 23 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 23 });
         const int terrainId = 1;
         const int settlementKindId = 1;
         const int verbId = 101;
@@ -742,7 +742,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_MoveHeadquartersMovesFactionPhysicalAnchorToInfluencedTarget()
     {
-        var simulation = new Simulation(new SimulationOptions { Seed = 29 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 29 });
         const int terrainId = 1;
         const int factionKindId = 1;
         const int settlementKindId = 2;
@@ -774,7 +774,7 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void UpkeepProgram_OnlyLifecycleHealthChanges()
     {
-        var simulation = new Simulation();
+        var simulation = KernelTestSimulation.Create();
         const int kindId = 1;
         const int healthAttributeId = 1;
         const int staticAttributeId = 2;

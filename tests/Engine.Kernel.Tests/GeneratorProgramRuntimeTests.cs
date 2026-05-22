@@ -329,7 +329,7 @@ public sealed class GeneratorProgramRuntimeTests
     [Fact]
     public void TargetTerrainCountBelow_ThrowsCapacityErrorWhenRequirementSpaceIsExhausted()
     {
-        var simulation = new Simulation(new SimulationOptions
+        var simulation = KernelTestSimulation.Create(new SimulationOptions
         {
             GeneratorCapacity = 1,
             GeneratorItemCapacity = 1,
@@ -976,7 +976,7 @@ public sealed class GeneratorProgramRuntimeTests
         int seed = 1,
         bool retryFireTargets = true,
         int pulseWidthTicks = GeneratorProgramConstants.DefaultPulseWidthTicks,
-        int firesPerPulse = GeneratorProgramConstants.DefaultFiresPerPulse) => new(new SimulationOptions
+        int firesPerPulse = GeneratorProgramConstants.DefaultFiresPerPulse) => KernelTestSimulation.Create(new SimulationOptions
         {
             EntityCapacity = 16,
             RelationshipCapacity = 16,

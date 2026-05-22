@@ -638,6 +638,7 @@ public static partial class DomainCompiler
     {
         GeneratorCulturePlacement.Ignore => GeneratorProgramCulturePlacement.Ignore,
         GeneratorCulturePlacement.PreferInheritedCulture => GeneratorProgramCulturePlacement.PreferInheritedCulture,
+        GeneratorCulturePlacement.HostileIntrusion => GeneratorProgramCulturePlacement.HostileIntrusion,
         _ => throw new ArgumentOutOfRangeException(nameof(placement), placement, null),
     };
 
