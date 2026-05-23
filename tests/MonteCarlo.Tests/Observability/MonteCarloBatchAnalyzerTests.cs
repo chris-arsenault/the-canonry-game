@@ -51,6 +51,23 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             row.EventCount == 1);
 
         var analysisDirectory = Path.Combine(batchDirectory, "analysis");
+        AssertAnalysisArtifacts(analysisDirectory);
+        Assert.False(File.Exists(Path.Combine(analysisDirectory, "generator_balance.csv")));
+
+        var summary = File.ReadAllText(Path.Combine(analysisDirectory, "summary.md"));
+        Assert.Contains("Monte Carlo Tuning Summary", summary, StringComparison.Ordinal);
+        Assert.Contains("Map Utilization", summary, StringComparison.Ordinal);
+        Assert.Contains("Roaming Variance", summary, StringComparison.Ordinal);
+        Assert.Contains("Low-Altitude Verb Utilization", summary, StringComparison.Ordinal);
+        Assert.Contains("Influence Dynamics", summary, StringComparison.Ordinal);
+        Assert.Contains("Gambit Success Rate", summary, StringComparison.Ordinal);
+        Assert.Contains("Generator Balance", summary, StringComparison.Ordinal);
+        Assert.Contains("Action Utilization", summary, StringComparison.Ordinal);
+        Assert.Contains("Map Generation", summary, StringComparison.Ordinal);
+    }
+
+    private static void AssertAnalysisArtifacts(string analysisDirectory)
+    {
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "summary.md")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "generator_balance.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "low_altitude_verb_utilization.parquet")));
@@ -64,20 +81,11 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "gambit_success_rate.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "stock_dynamics.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "map_spread.parquet")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "culture_boundary_components.parquet")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "culture_births_by_boundary_kind.parquet")));
+        Assert.True(File.Exists(Path.Combine(analysisDirectory, "minor_actor_actions_by_boundary_kind.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "generator_post_fire_eligibility_decay.parquet")));
         Assert.True(File.Exists(Path.Combine(analysisDirectory, "generator_component_fire_windows.parquet")));
-        Assert.False(File.Exists(Path.Combine(analysisDirectory, "generator_balance.csv")));
-
-        var summary = File.ReadAllText(Path.Combine(analysisDirectory, "summary.md"));
-        Assert.Contains("Monte Carlo Tuning Summary", summary, StringComparison.Ordinal);
-        Assert.Contains("Map Utilization", summary, StringComparison.Ordinal);
-        Assert.Contains("Roaming Variance", summary, StringComparison.Ordinal);
-        Assert.Contains("Low-Altitude Verb Utilization", summary, StringComparison.Ordinal);
-        Assert.Contains("Influence Dynamics", summary, StringComparison.Ordinal);
-        Assert.Contains("Gambit Success Rate", summary, StringComparison.Ordinal);
-        Assert.Contains("Generator Balance", summary, StringComparison.Ordinal);
-        Assert.Contains("Action Utilization", summary, StringComparison.Ordinal);
-        Assert.Contains("Map Generation", summary, StringComparison.Ordinal);
     }
 
     [Fact]

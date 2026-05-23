@@ -18,28 +18,37 @@ does not change the deterministic tick sequence.
 ## Current Program Order
 
 ```text
+Movement
 LowAltitudeVerbs
 MapActivity
 MapSignals
+CultureBoundaries
 Relationships
 Effects
 Upkeep
 Gambits
 Generators
+CultureSlots
+MinorActors
 ```
 
 Important dependency notes:
 
+- `Movement` owns route execution and road/travel-surface state.
 - `LowAltitudeVerbs` reads previous-tick map activity and map signals.
 - `MapActivity` records the current physical and semantic presence state.
 - `MapSignals` reads same-tick map activity and writes support, threat,
   crowding, capacity, and attractor fields.
-- `Relationships` can use same-tick position, influence, contact memory, and
-  relationship maintenance config.
-- `Effects` reads same-tick map signals and relationship/influence evidence.
+- `CultureBoundaries` derives culture components and boundary classifications
+  from durable culture tile influence.
+- `Relationships` can use same-tick position, culture influence, contact
+  memory, and relationship maintenance config.
+- `Effects` reads same-tick map signals and relationship/culture evidence.
 - `Upkeep` applies lifecycle drain and moves dead entities to historical status.
 - `Gambits` and `Generators` see the low-altitude state created before them in
   the same tick.
+- `MinorActors` stores unnamed worker cohorts and runs on the simulation-tick
+  cadence.
 
 ## Cadence
 
@@ -48,6 +57,17 @@ tick. A program with cadence `5` keeps its registration order but only runs on
 eligible ticks.
 
 Cadence is a performance and pacing tool, not a separate simulation phase.
+
+Current default cadence:
+
+- `MinorActors`: every simulation tick.
+- Main graph programs (`Movement` through `Generators`): every
+  `MinorActorMainTickRatio` ticks, currently `5`.
+- `CultureSlots`: every ten main cadences.
+
+Generator pulse windows and main-cadence age calculations are scaled by
+`MinorActorMainTickRatio`. With the current default, a configured generator
+pulse width of `25` main ticks spans `125` simulation ticks.
 
 ## Calendar Mapping
 

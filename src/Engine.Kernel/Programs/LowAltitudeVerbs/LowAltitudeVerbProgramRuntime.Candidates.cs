@@ -72,7 +72,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 var saturationDivisor = CellSaturationDivisor(simulation, planeCode, q, r);
                 var recencyKey = LowAltitudeVerbProgramState.PackCellTargetKey(planeCode, q, r);
                 var recency = ComputeRecencyMultiplier(entityId, tick, recencyKey);
-                var routeDrive = TravelCultureRouteMultiplier(simulation.World, entityId, rule, planeCode, q, r);
+                var routeDrive = TravelCultureRouteMultiplier(simulation, entityId, rule, planeCode, q, r);
                 var baseWeight = scalars.Weight * distance * saturationDivisor * recency * routeDrive;
                 var affordance = default(AffordanceContribution);
                 var candidate = Candidate(rule, planeCode, 0, 0, q, r, TargetS(planeCode, q, r), baseWeight, affordance, scalars.OpportunityBonus);
@@ -122,7 +122,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 var saturationDivisor = CellSaturationDivisor(simulation, planeCode, q, r);
                 var recencyKey = LowAltitudeVerbProgramState.PackCellTargetKey(planeCode, q, r);
                 var recency = ComputeRecencyMultiplier(entityId, tick, recencyKey);
-                var routeDrive = TravelCultureRouteMultiplier(simulation.World, entityId, rule, planeCode, q, r);
+                var routeDrive = TravelCultureRouteMultiplier(simulation, entityId, rule, planeCode, q, r);
                 var baseWeight = scalars.Weight * distance * saturationDivisor * recency * routeDrive;
                 var affordance = default(AffordanceContribution);
                 var candidate = Candidate(rule, planeCode, 0, 0, q, r, TargetS(planeCode, q, r), baseWeight, affordance, scalars.OpportunityBonus);
@@ -154,7 +154,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var totalWeight = 0f;
         var sumAffordanceScore = 0f;
         var selected = default(VerbTargetCandidate);
-        if (!TryPrepareCultureInfluenceComponentsForRule(world, entityId, rule, planeCode))
+        if (!ActorCanBuildOwnedInfluence(world, entityId, rule))
         {
             return CandidateBuildResult.Empty;
         }
@@ -197,7 +197,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         return new CandidateBuildResult(selected, sumAffordanceScore);
     }
 
-    private bool TryPrepareCultureInfluenceComponentsForRule(WorldState world, int entityId, int rule, int planeCode)
+    private bool ActorCanBuildOwnedInfluence(WorldState world, int entityId, int rule)
     {
         if (!OperationBuildsOwnedInfluence(Data.OperationCode(rule)))
         {
@@ -210,8 +210,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             return false;
         }
 
-        _cultureInfluenceComponents.Build(world, cultureId, planeCode);
-        return true;
+        return cultureId > 0;
     }
 
     private void AddEntityKindCandidate(
@@ -239,9 +238,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var saturationDivisor = CellSaturationDivisor(simulation, planeCode, targetQ, targetR);
         var recencyKey = LowAltitudeVerbProgramState.PackEntityTargetKey(targetEntityId);
         var recency = ComputeRecencyMultiplier(entityId, tick, recencyKey);
-        var routeDrive = TravelCultureRouteMultiplier(world, entityId, rule, planeCode, targetQ, targetR);
+        var routeDrive = TravelCultureRouteMultiplier(simulation, entityId, rule, planeCode, targetQ, targetR);
         var baseWeight = scalars.Weight * distance * fitness * saturationDivisor * recency * routeDrive;
-        if (!TryApplyEntityKindCultureExpansionDrive(world, entityId, rule, planeCode, targetQ, targetR, ref baseWeight))
+        if (!TryApplyEntityKindCultureExpansionDrive(simulation, entityId, rule, planeCode, targetQ, targetR, ref baseWeight))
         {
             return;
         }
@@ -253,7 +252,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     }
 
     private bool TryApplyEntityKindCultureExpansionDrive(
-        WorldState world,
+        Simulation simulation,
         int entityId,
         int rule,
         int planeCode,
@@ -267,14 +266,13 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         }
 
         var expansionDrive = OwnCultureExpansionDriveAround(
-            world,
+            simulation,
             entityId,
             rule,
             planeCode,
             targetQ,
             targetR,
-            Data.InfluenceRadius(rule),
-            _cultureInfluenceComponents);
+            Data.InfluenceRadius(rule));
         if (expansionDrive <= 0f)
         {
             return false;
@@ -356,7 +354,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             var fitness = RelationshipFitness(world, entityId, targetEntityId, rule, scalars);
             var recencyKey = LowAltitudeVerbProgramState.PackEntityTargetKey(targetEntityId);
             var recency = ComputeRecencyMultiplier(entityId, tick, recencyKey);
-            var routeDrive = TravelCultureRouteMultiplier(world, entityId, rule, planeCode, targetQ, targetR);
+            var routeDrive = TravelCultureRouteMultiplier(simulation, entityId, rule, planeCode, targetQ, targetR);
             var baseWeight = scalars.Weight * fitness * recency * routeDrive;
             var targetKindId = world.EntityKindId(targetEntityId);
             var affordance = CombineAffordancesForRelationshipTarget(
@@ -391,7 +389,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var actorQ = CurrentQ(world, entityId, planeCode);
         var actorR = CurrentR(world, entityId, planeCode);
         var searchRadius = CellTargetSearchRadius(world, rule, TargetSelectorCodes.SelfMapValue);
-        _cultureInfluenceComponents.Build(world, cultureId, planeCode);
         var totalWeight = 0f;
         var sumAffordanceScore = 0f;
         var selected = default(VerbTargetCandidate);
@@ -446,19 +443,14 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         ref float sumAffordanceScore,
         ref VerbTargetCandidate selected)
     {
-        var world = simulation.World;
-        var ownCultureInfluence = world.GetCellCultureInfluence(cultureId, planeCode, q, r);
-        var neighborhood = CultureNeighborhood(world, cultureId, planeCode, q, r);
+        var boundary = simulation.CultureBoundaries.CellAt(simulation.World, cultureId, planeCode, q, r);
+        var neighborhood = CultureNeighborhood(boundary);
         var targetingCode = EffectiveInfluenceTargetingCode(rule);
-        if (!OwnCultureExpansionTargetAllowed(targetingCode, neighborhood.CenterRaw, neighborhood))
+        if (!OwnCultureExpansionTargetAllowed(targetingCode, boundary.RawMass, neighborhood))
         {
             return;
         }
 
-        var foreignCultureInfluence = StrongestOtherCultureInfluence(world, cultureId, planeCode, q, r, out var foreignCultureId);
-        var foreignCultureRaw = foreignCultureId > 0
-            ? world.GetCellCultureInfluenceRaw(foreignCultureId, planeCode, q, r)
-            : 0f;
         var candidate = ScoreOwnInfluenceCell(
             simulation,
             entityId,
@@ -468,12 +460,12 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             q,
             r,
             TargetS(planeCode, q, r),
-            ownCultureInfluence,
-            foreignCultureInfluence,
-            foreignCultureRaw,
-            neighborhood.CenterRaw,
+            boundary.Share,
+            boundary.ForeignShare,
+            boundary.ForeignRawMass,
+            boundary.RawMass,
             neighborhood,
-            _cultureInfluenceComponents.AttachmentAt(q, r),
+            CultureAttachment(boundary),
             scalars,
             out var affordanceScore);
         if (candidate.RuleSlot == 0)
@@ -575,11 +567,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var actorQ = CurrentQ(world, entityId, planeCode);
         var actorR = CurrentR(world, entityId, planeCode);
         var searchRadius = CellTargetSearchRadius(world, rule, TargetSelectorCodes.OtherMapValue);
-        if (actorCultureId > 0)
-        {
-            _cultureInfluenceComponents.Build(world, actorCultureId, planeCode);
-        }
-
         return TryBuildForeignInfluenceCandidateFromSearchCells(
             simulation,
             entityId,
@@ -668,8 +655,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         ref VerbTargetCandidate selected)
     {
         _ = rule;
-        var influence = StrongestOtherCultureInfluence(
-            simulation.World,
+        var influence = ForeignCultureInfluenceAt(
+            simulation,
             actorCultureId,
             planeCode,
             q,

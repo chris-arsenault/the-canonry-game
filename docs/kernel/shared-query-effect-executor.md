@@ -45,7 +45,7 @@ Caller-local policy still owns:
   binding order;
 - gambit actor/target scheduling, score expressions, direct target selection,
   and ordered operation sequencing;
-- low-altitude movement, influence policy, and target selection.
+- low-altitude movement, culture influence policy, and target selection.
 
 That split is intentional. The shared layer answers "what does this predicate
 mean?" and "how is this mutation applied?" The caller answers "when do I ask?"
@@ -60,12 +60,12 @@ and "what do I do with the score?"
 - A new authored effect should compile to the shared effect path.
 - A new authored scoring or weighting modifier should use `DecisionModifier`.
 - Relationship strength is the default numeric gate for generator and gambit
-  conditions unless the subject is health, a map signal, influence, coverage,
-  or locality.
+  conditions unless the subject is health, a map signal, culture influence,
+  coverage, or locality.
 - Health is reserved for survival, damage, decay, repair, recovery, and
   lifecycle.
-- Locality-based queries are valid when proximity, containment, influence, or
-  regional map state is the actual condition.
+- Locality-based queries are valid when proximity, containment, culture
+  influence, or regional map state is the actual condition.
 - Do not introduce pressure or another macro aggregate as a shortcut around
   graph, health, map-signal, or locality state.
 
@@ -77,7 +77,7 @@ A broad aggregate such as pressure makes generator and gambit gates easy to
 write but hard to inspect. It hides the actual source of tension behind a
 single number, and future systems can begin depending on that number instead of
 the entity graph. The current architecture uses relationship strength, health,
-traits, map signals, influence, coverage, and locality directly so
+traits, map signals, culture influence, coverage, and locality directly so
 events can be explained from visible world state.
 
 ### Why Not Caller-Local Query Interpreters

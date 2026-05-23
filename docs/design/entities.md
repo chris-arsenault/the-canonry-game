@@ -60,9 +60,10 @@ life:
 
 - mobile entities commit to short movement verbs
 - entities dwell and roam rather than synchronize perfectly
-- settlements and factions exert influence instead of walking physically
-- all primary entities can exert semantic influence
-- relationships strengthen or decay from proximity, influence, culture, and
+- static entities exert culture influence and emit minor labor instead of
+  walking physically
+- all primary entities can exert culture influence on their non-mobile plane
+- relationships strengthen or decay from proximity, culture influence, culture, and
   contact memory
 
 ## High-Altitude Role

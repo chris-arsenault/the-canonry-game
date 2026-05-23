@@ -122,7 +122,13 @@ internal sealed partial class Simulation
         float physicalLocalRawMass,
         float physicalConnectedRawMass,
         float semanticLocalRawMass,
-        float semanticConnectedRawMass)
+        float semanticConnectedRawMass,
+        int physicalComponentId,
+        int physicalComponentCellCount,
+        float physicalComponentRawMass,
+        int semanticComponentId,
+        int semanticComponentCellCount,
+        float semanticComponentRawMass)
     {
         WriteKernelEvent(KernelEvent.From(new GeneratorTargetEvaluatedKernelEvent(
             tick,
@@ -146,7 +152,13 @@ internal sealed partial class Simulation
             physicalLocalRawMass,
             physicalConnectedRawMass,
             semanticLocalRawMass,
-            semanticConnectedRawMass)));
+            semanticConnectedRawMass,
+            physicalComponentId,
+            physicalComponentCellCount,
+            semanticComponentId,
+            semanticComponentCellCount,
+            physicalComponentRawMass,
+            semanticComponentRawMass)));
     }
 
     internal void EmitProvenanceInvocationRecorded(

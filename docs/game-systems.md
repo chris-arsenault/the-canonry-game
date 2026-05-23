@@ -16,8 +16,8 @@ The map has physical and semantic planes. The physical plane is a hex grid with
 terrain and named coverage. Regions and settlements are not a separate
 abstraction from map coverage: they are named coverage over physical space. The
 semantic plane is an analogous bounded axial q/r map with `s = -q-r`, its own
-semantic terrain, influence, roads, and placement. It is not a coordinate copy
-of the physical plane.
+semantic terrain, culture influence, roads, and placement. It is not a
+coordinate copy of the physical plane.
 
 Domain content is authored in `DomainConfig` and Ice Remembers-specific files.
 Reusable gameplay vocabulary lives in `Engine.Gameplay` and compiles down into
@@ -30,6 +30,11 @@ Low altitude is always-on per-tick physics. It keeps the world visibly alive,
 ages entities, drifts existing relationship strength, and writes map signals
 that later systems can read. It does not create named entities or declare major
 story outcomes.
+
+Minor actors are the low-salience labor layer. They are unnamed cohorts stored
+inside a kernel program, not graph entities. They act more frequently than the
+main graph cadence and do bounded local work for their source entity and
+culture.
 
 Gambits are high-stakes entity actions. A gambit has an actor, target, intrinsic
 success criteria, and effects such as creating or changing relationships. A
@@ -54,34 +59,48 @@ The low-altitude rewrite replaced the old process deck with first-class kernel
 programs:
 
 - `LowAltitudeVerbs`: multi-tick movement, semantic movement, relationship
-  strength mutation, influence growth/reduction, coverage expansion, and
-  anchor relocation.
+  strength mutation, culture influence growth/reduction, coverage expansion,
+  anchor relocation, and work-tier growth.
+- `Movement`: route planning, movement execution, road quality, and travel
+  structures.
 - `MapActivity`: physical and semantic presence heat, visit counts, and
   occupancy.
 - `MapSignals`: terrain, entity, relationship, activity, crowding, support,
   threat, and attractor fields.
+- `CultureBoundaries`: derived culture components, interiors, borders,
+  contested cells, isolated pockets, holes, and strength bands.
 - `Relationships`: existing relationship strength drift and culling.
 - `Effects`: health modifiers derived from relationship,
-  influence, distance, support, threat, and crowding evidence.
+  culture influence, distance, support, threat, and crowding evidence.
 - `Upkeep`: lifecycle drain and historical-status transition on death.
+- `MinorActors`: unnamed worker cohorts that maintain culture, roads, and
+  source lifecycle without adding graph nodes.
 
 The current default tick order is:
 
 ```text
+Movement
 LowAltitudeVerbs
 MapActivity
 MapSignals
+CultureBoundaries
 Relationships
 Effects
 Upkeep
 Gambits
 Generators
+CultureSlots
+MinorActors
 ```
 
 `LowAltitudeVerbs` intentionally reads previous-tick map activity and map
 signals so same-tick ordering does not create feedback loops. `MapSignals`,
-`Relationships`, and `Effects` read same-tick state after movement and activity
-have been materialized.
+`CultureBoundaries`, `Relationships`, and `Effects` read same-tick state after
+movement and activity have been materialized.
+
+By default, minor actors run every simulation tick. The main graph programs run
+every `MinorActorMainTickRatio` ticks, currently `5`; generator pulse widths
+and main-cadence ages are scaled by the same ratio.
 
 ## High-Altitude Systems
 
@@ -140,4 +159,5 @@ kernel tick advanced. Current UI presentation principles are recorded in
 - [18 Action Executor](./systems/18-action-executor.md)
 - [19 Narrative Domain](./systems/19-narrative-domain.md)
 - [20 Generator Causal Limits](./systems/20-generator-causal-limits.md)
+- [21 Minor Actors](./systems/21-minor-actors.md)
 - [UI Principles](./design/ui-principles.md)

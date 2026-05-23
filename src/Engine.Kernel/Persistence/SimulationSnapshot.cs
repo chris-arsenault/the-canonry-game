@@ -15,6 +15,7 @@ internal sealed partial class Simulation
         LowAltitudeVerbProgramSnapshot.Write(writer, LowAltitudeVerbs);
         MapActivityProgramSnapshot.Write(writer, MapActivity);
         MapSignalsProgramSnapshot.Write(writer, MapSignals);
+        CultureBoundaryProgramSnapshot.Write(writer, CultureBoundaries);
         EffectsProgramSnapshot.Write(writer, Effects);
         CultureSlotProgramSnapshot.Write(writer, CultureSlots);
         MinorActorProgramSnapshot.Write(writer, MinorActors);
@@ -35,6 +36,7 @@ internal sealed partial class Simulation
         LowAltitudeVerbProgramSnapshot.Read(reader, LowAltitudeVerbs);
         MapActivityProgramSnapshot.Read(reader, MapActivity);
         MapSignalsProgramSnapshot.Read(reader, MapSignals);
+        CultureBoundaryProgramSnapshot.Read(reader, CultureBoundaries);
         EffectsProgramSnapshot.Read(reader, Effects);
         CultureSlotProgramSnapshot.Read(reader, CultureSlots);
         MinorActorProgramSnapshot.Read(reader, MinorActors);

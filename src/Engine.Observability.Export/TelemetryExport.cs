@@ -403,6 +403,11 @@ internal static class TelemetryBatchExtensions
         System.Collections.ObjectModel.Collection<T> destination,
         System.Collections.ObjectModel.Collection<T> source)
     {
+        if (destination is TelemetryRowCollection<T> rows)
+        {
+            rows.EnsureAdditionalCapacity(source.Count);
+        }
+
         foreach (var row in source)
         {
             destination.Add(row);

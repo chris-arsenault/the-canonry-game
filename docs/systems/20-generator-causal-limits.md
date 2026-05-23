@@ -5,6 +5,12 @@ cooldown table, or boutique gate. They are authored gameplay
 feedback: when a generator fires, the world state that justified the fire must
 be consumed, relieved, transformed, or locked by ordinary graph state.
 
+Slot occupants receive a kernel-level causal-spend limit multiplier. That
+multiplier raises the amount of ordinary causal spend a slot occupant can
+absorb before becoming ineligible, but it does not remove the causal-limit
+contract: every generator still needs a meaningful cause, spend/transform, and
+reopen path.
+
 ## Problem
 
 A generator can stay eligible after it fires. If nothing about the eligible
@@ -106,19 +112,14 @@ visible during review without adding a second semantic validator.
 - Lower a broad class of relationships because the runtime cannot select the
   specific causal relationship.
 
-## Current Ice Remembers Catalog
+## Ice Remembers Catalog
 
-| Generator | Causal limit |
-| --- | --- |
-| `ice_settles_accounts` | Depends on an `at_war_with` relationship and an offered penguin; marks the penguin historical and removes the selected war relationship. |
-| `what_the_spring_remembers` | Depends on an incoming `cleansed_by` relationship and absence of incoming `memorializes`; creates an anchored memorial relic on the region. |
-| `war_breaks_the_land` | Depends on an `at_war_with` relationship and fewer than eight local waste cells; creates a scar region that turns finite nearby land into wastes. |
-| `routes_draw_readers` | Depends on high `trade_route` strength and reduces the selected trade route strength. |
-| `what_the_artifact_knows` | Depends on a held artifact and absence of `home_base`; creates a home-base relationship for the penguin. |
+The active Ice Remembers generator catalog is source of truth for individual
+causal-limit declarations. Do not maintain a parallel generator table in this
+document; it goes stale as authored content changes. The durable invariant is
+that every active generator has non-empty `CausalLimit` text and that reviewers
+apply the decision procedure above when changing generator causes or outputs.
 
-## Removed Warden Generator
-
-The removed warden generator exposed the distinction. "Find an available
-recruit" and "find an existing settlement" are only extra targets if the
-generator leaves the war pressure and the found target unchanged. The generator
-was deleted rather than kept as a repeat-prone entity spawn.
+Historical removed generators are useful examples during design review, but
+they should stay in commit history or research notes rather than this current
+system contract.

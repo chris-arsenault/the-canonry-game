@@ -52,16 +52,15 @@ through a given teacher/student relationship.
 - culture innovation and spread
 - culture-specific medium-term goals that give each culture explicit strategic
   priorities beyond static slot occupation; these should be authored, visible,
-  and eventually readable by generators/gambits, but are deferred until the
-  cultural static slot system exists
-- cultural cohesion/gravity behavior that makes influence expansion prefer
-  connected cultural masses and frontiers instead of forming isolated pockets
+  and eventually readable by generators/gambits
+- deeper cultural cohesion and front behavior on top of the current boundary,
+  slot, low-altitude culture influence, and minor actor systems
 - better procedural map/seed diversity
 
 ## Map And UI
 
-- stronger map overlays for influence, activity, relationship networks, and
-  generator/gambit affordances
+- stronger map overlays for culture influence, activity, relationship networks,
+  and generator/gambit affordances
 - post-run summaries
 - entity search and bookmarks
 - replay and branch comparison tools

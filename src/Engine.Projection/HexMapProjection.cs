@@ -1,5 +1,6 @@
 namespace Engine.Projection;
 
+using Engine.Constants;
 using Engine.Eventing;
 
 public readonly record struct HexCoord(int Q, int R)
@@ -80,7 +81,17 @@ public sealed record HexCultureInfluenceProjection(
     int CultureId,
     float Share,
     int Tick,
-    long Sequence);
+    long Sequence,
+    float RawMass = 0f,
+    float TotalRawMass = 0f,
+    int ForeignCultureId = 0,
+    float ForeignShare = 0f,
+    float ForeignRawMass = 0f,
+    int CellKindCode = 0,
+    int StrengthBandCode = 0,
+    int ComponentId = 0,
+    int ComponentCellCount = 0,
+    float ComponentRawMass = 0f);
 
 public sealed record CultureTheaterProjection(
     int PlaneCode,
@@ -334,6 +345,46 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         CultureOverlayVersion++;
         MarkCellDirty(evt.PlaneCode, existing.HexId);
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+    }
+
+    public void SetCultureInfluencesFromBoundaries(
+        int planeCode,
+        HexCoord coord,
+        IReadOnlyList<HexCultureInfluenceProjection> cultureInfluences,
+        int tick,
+        long worldVersion)
+    {
+        var existing = EnsureCell(
+            existingSequence(planeCode, coord),
+            tick,
+            worldVersion,
+            planeCode,
+            coord.Q,
+            coord.R);
+        var ordered = cultureInfluences
+            .Where(influence => influence.Share > 0f || influence.RawMass > 0f)
+            .OrderByDescending(influence => influence.Share)
+            .ThenByDescending(influence => influence.RawMass)
+            .ThenBy(influence => influence.CultureId)
+            .ToArray();
+        if (CultureInfluencesEqual(existing.CultureInfluences, ordered))
+        {
+            return;
+        }
+
+        GetSurface(planeCode).HexesById[existing.HexId] = existing with
+        {
+            CultureInfluences = ordered,
+            Tick = tick,
+            WorldVersion = worldVersion,
+            Sequence = existing.Sequence,
+        };
+        CellVersion++;
+        CultureOverlayVersion++;
+        MarkCellDirty(planeCode, existing.HexId);
+
+        long existingSequence(int targetPlaneCode, HexCoord targetCoord) =>
+            TryGetHex(targetPlaneCode, targetCoord, out var current) ? current.Sequence : 0;
     }
 
     protected override void OnMapCellStateChanged(long sequence, in MapCellStateChangedKernelEvent evt)
@@ -682,6 +733,62 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             .ToArray();
     }
 
+    private static bool CultureInfluencesEqual(
+        IReadOnlyList<HexCultureInfluenceProjection> existing,
+        HexCultureInfluenceProjection[] replacement)
+    {
+        if (existing.Count != replacement.Length)
+        {
+            return false;
+        }
+
+        for (var i = 0; i < existing.Count; i++)
+        {
+            var left = existing[i];
+            var right = replacement[i];
+            if (!CultureInfluenceCoreEqual(left, right) ||
+                !CultureInfluenceForeignEqual(left, right) ||
+                !CultureInfluenceBoundaryEqual(left, right) ||
+                !CultureInfluenceComponentEqual(left, right))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool CultureInfluenceCoreEqual(
+        HexCultureInfluenceProjection left,
+        HexCultureInfluenceProjection right) =>
+        left.CultureId == right.CultureId &&
+        FloatEqual(left.Share, right.Share) &&
+        FloatEqual(left.RawMass, right.RawMass) &&
+        FloatEqual(left.TotalRawMass, right.TotalRawMass);
+
+    private static bool CultureInfluenceForeignEqual(
+        HexCultureInfluenceProjection left,
+        HexCultureInfluenceProjection right) =>
+        left.ForeignCultureId == right.ForeignCultureId &&
+        FloatEqual(left.ForeignShare, right.ForeignShare) &&
+        FloatEqual(left.ForeignRawMass, right.ForeignRawMass);
+
+    private static bool CultureInfluenceBoundaryEqual(
+        HexCultureInfluenceProjection left,
+        HexCultureInfluenceProjection right) =>
+        left.CellKindCode == right.CellKindCode &&
+        left.StrengthBandCode == right.StrengthBandCode;
+
+    private static bool CultureInfluenceComponentEqual(
+        HexCultureInfluenceProjection left,
+        HexCultureInfluenceProjection right) =>
+        left.ComponentId == right.ComponentId &&
+        left.ComponentCellCount == right.ComponentCellCount &&
+        FloatEqual(left.ComponentRawMass, right.ComponentRawMass);
+
+    private static bool FloatEqual(float left, float right) =>
+        Math.Abs(left - right) <= 0.0001f;
+
     private static bool CellHasCultureContest(
         HexProjection cell,
         Func<int, int> ownerCultureResolver)
@@ -692,6 +799,16 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         }
 
         var dominant = cell.CultureInfluences[0];
+        if (dominant.CellKindCode == CultureFieldCellKindCodes.Contested)
+        {
+            return true;
+        }
+
+        if (dominant.CellKindCode != CultureFieldCellKindCodes.None)
+        {
+            return CellHasControlMismatch(cell, dominant.CultureId, ownerCultureResolver);
+        }
+
         var runnerUp = cell.CultureInfluences.Count > 1 ? cell.CultureInfluences[1] : null;
         var margin = dominant.Share - (runnerUp?.Share ?? 0f);
         if (dominant.Share < 60f || margin < 25f)
@@ -827,7 +944,10 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             var dominant = cell.CultureInfluences[0];
             var runnerUpShare = cell.CultureInfluences.Count > 1 ? cell.CultureInfluences[1].Share : 0f;
             var margin = dominant.Share - runnerUpShare;
-            _contested += dominant.Share < 60f || margin < 25f ? 1 : 0;
+            var contested = dominant.CellKindCode == CultureFieldCellKindCodes.None
+                ? dominant.Share < 60f || margin < 25f
+                : dominant.CellKindCode == CultureFieldCellKindCodes.Contested;
+            _contested += contested ? 1 : 0;
             _mismatch += CellHasControlMismatch(cell, dominant.CultureId, ownerCultureResolver) ? 1 : 0;
             _dominantShareTotal += dominant.Share;
             _marginTotal += margin;

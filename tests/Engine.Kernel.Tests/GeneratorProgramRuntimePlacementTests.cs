@@ -203,7 +203,7 @@ public sealed class GeneratorProgramRuntimePlacementTests
     }
 
     [Fact]
-    public void Fire_WithProducedCulturePlacement_RejectsForeignEntrenchedPlacement()
+    public void Fire_WithProducedCulturePlacement_RejectsForeignNexusPlacement()
     {
         var simulation = CreateSimulation();
         SeedMap(simulation);
@@ -212,7 +212,7 @@ public sealed class GeneratorProgramRuntimePlacementTests
         simulation.World.SetCellTerrain(-1, 0, terrainId: 2);
         simulation.World.SetCellTerrain(1, 0, terrainId: 3);
         CreateTarget(simulation);
-        simulation.ModifyCellCultureInfluenceRaw(3, PlaneCodes.Physical, -1, 0, WorldState.CultureEntrenchedRawMass, tick: 0);
+        AddForeignNexus(simulation, cultureId: 3, q: -1, r: 0);
         var slot = RegisterGenerator(simulation, includeProduced: false);
         var producedSlot = AddAreaProducedEntity(
             simulation,
@@ -233,7 +233,7 @@ public sealed class GeneratorProgramRuntimePlacementTests
     }
 
     [Fact]
-    public void Fire_WithHostileIntrusionCulturePlacement_AllowsForeignEntrenchedPlacement()
+    public void Fire_WithHostileIntrusionCulturePlacement_AllowsForeignBoundaryPlacement()
     {
         var simulation = CreateSimulation();
         SeedMap(simulation);
@@ -242,7 +242,11 @@ public sealed class GeneratorProgramRuntimePlacementTests
         simulation.World.SetCellTerrain(-1, 0, terrainId: 2);
         simulation.World.SetCellTerrain(1, 0, terrainId: 3);
         CreateTarget(simulation);
-        simulation.ModifyCellCultureInfluenceRaw(3, PlaneCodes.Physical, -1, 0, WorldState.CultureEntrenchedRawMass, tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(3, PlaneCodes.Physical, -1, 0, WorldState.CultureNexusRawMass, tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(3, PlaneCodes.Physical, -2, 0, WorldState.CultureControlledRawMass, tick: 0);
+        var foreignBoundary = simulation.CultureBoundaries.CellAt(simulation.World, 3, PlaneCodes.Physical, -1, 0);
+        Assert.Equal(CultureFieldCellKindCodes.Border, foreignBoundary.CellKindCode);
+        Assert.Equal(CultureFieldStrengthBandCodes.Nexus, foreignBoundary.StrengthBandCode);
         var slot = RegisterGenerator(simulation, includeProduced: false);
         var producedSlot = AddAreaProducedEntity(
             simulation,
@@ -505,6 +509,21 @@ public sealed class GeneratorProgramRuntimePlacementTests
     private static int CreateTarget(Simulation simulation) =>
         simulation.CreateEntity(TargetKindId, TargetSubtypeId, CultureId, 0, 0, 0, 0, 0, tick: 0);
 
+    private static void AddForeignNexus(Simulation simulation, int cultureId, int q, int r)
+    {
+        simulation.ModifyCellCultureInfluenceRaw(cultureId, PlaneCodes.Physical, q, r, WorldState.CultureNexusRawMass, tick: 0);
+        foreach (var (neighborQ, neighborR) in NeighborCells(q, r))
+        {
+            simulation.ModifyCellCultureInfluenceRaw(
+                cultureId,
+                PlaneCodes.Physical,
+                neighborQ,
+                neighborR,
+                WorldState.CultureControlledRawMass,
+                tick: 0);
+        }
+    }
+
     private static void SeedMap(Simulation simulation)
     {
         simulation.RegisterTerrain(1, boundaryGroupId: 1);
@@ -527,6 +546,16 @@ public sealed class GeneratorProgramRuntimePlacementTests
         var bsCoord = -bq - br;
         return (Math.Abs(aq - bq) + Math.Abs(ar - br) + Math.Abs(asCoord - bsCoord)) / 2;
     }
+
+    private static (int Q, int R)[] NeighborCells(int q, int r) =>
+    [
+        (q + 1, r),
+        (q + 1, r - 1),
+        (q, r - 1),
+        (q - 1, r),
+        (q - 1, r + 1),
+        (q, r + 1),
+    ];
 
     private static Simulation CreateSimulation(
         int seed = 1,

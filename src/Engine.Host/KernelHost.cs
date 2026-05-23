@@ -7,7 +7,7 @@ using Engine.Kernel;
 using Engine.Kernel.Driver;
 using Engine.Projection;
 
-public sealed class KernelHost : IDisposable
+public sealed partial class KernelHost : IDisposable
 {
     private readonly Simulation _kernel;
     private readonly KernelCommandCompletionPump _commandCompletions;

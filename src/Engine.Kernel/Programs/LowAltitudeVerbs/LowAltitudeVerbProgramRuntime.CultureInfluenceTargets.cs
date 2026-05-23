@@ -7,21 +7,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     private const float CultureStrongRawInfluence = WorldState.CultureControlledRawMass;
     private const float CultureNexusRawInfluence = WorldState.CultureNexusRawMass;
     private const float CultureFieldRawInfluence = WorldState.CultureFullRawMass;
-    private const float CultureRingTwoConnectionWeight = 7f / 20f;
     private const float CultureRouteBorderSupportWeight = 7f / 20f;
-    private const int CultureAdjacentNeighborCount = 6;
-
-    private static readonly int[] CultureNeighborDq =
-    [
-        1, 1, 0, -1, -1, 0,
-        2, 2, 2, 1, 0, -1, -2, -2, -2, -1, 0, 1,
-    ];
-
-    private static readonly int[] CultureNeighborDr =
-    [
-        0, -1, -1, 0, 1, 1,
-        0, -1, -2, -2, -2, -1, 0, 1, 2, 2, 2, 1,
-    ];
 
     private readonly struct CultureInfluenceNeighborhood
     {
@@ -32,7 +18,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             int supportedAdjacentCount,
             float ringTwoRawTotal,
             float strongestRingTwoRaw,
-            int supportedRingTwoCount)
+            int supportedRingTwoCount,
+            float connectedRaw)
         {
             CenterRaw = centerRaw;
             AdjacentRawTotal = adjacentRawTotal;
@@ -41,6 +28,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             RingTwoRawTotal = ringTwoRawTotal;
             StrongestRingTwoRaw = strongestRingTwoRaw;
             SupportedRingTwoCount = supportedRingTwoCount;
+            ConnectedRaw = connectedRaw;
         }
 
         public float CenterRaw { get; }
@@ -57,20 +45,37 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
         public int SupportedRingTwoCount { get; }
 
-        public float ConnectedRaw => CenterRaw + AdjacentRawTotal + (RingTwoRawTotal * CultureRingTwoConnectionWeight);
+        public float ConnectedRaw { get; }
+    }
+
+    private readonly record struct CultureInfluenceAttachment(
+        float ComponentMass,
+        int AdjacentSupportedCount,
+        int ComponentCount);
+
+    private static CultureInfluenceNeighborhood CultureNeighborhood(in CultureBoundaryCell boundary)
+    {
+        return new CultureInfluenceNeighborhood(
+            boundary.RawMass,
+            boundary.LocalRawMass - boundary.RawMass,
+            boundary.StrongestAdjacentRawMass,
+            boundary.SupportedAdjacentCount,
+            boundary.RingTwoRawMass,
+            boundary.StrongestRingTwoRawMass,
+            boundary.SupportedRingTwoCount,
+            boundary.ConnectedRawMass);
     }
 
     private float OwnCultureExpansionDriveAround(
-        WorldState world,
+        Simulation simulation,
         int entityId,
         int rule,
         int planeCode,
         int centerQ,
         int centerR,
-        int radius,
-        CultureInfluenceComponentScratch components)
+        int radius)
     {
-        var cultureId = world.EntityCultureId(entityId);
+        var cultureId = simulation.World.EntityCultureId(entityId);
         if (cultureId <= 0)
         {
             return 0f;
@@ -87,14 +92,13 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 best = global::System.MathF.Max(
                     best,
                     OwnCultureExpansionDriveAt(
-                        world,
+                        simulation,
                         entityId,
                         cultureId,
                         targetingCode,
                         planeCode,
                         centerQ + dq,
-                        centerR + dr,
-                        components));
+                        centerR + dr));
             }
         }
 
@@ -102,7 +106,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     }
 
     private float TravelCultureRouteMultiplier(
-        WorldState world,
+        Simulation simulation,
         int entityId,
         int rule,
         int planeCode,
@@ -115,6 +119,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             return 1f;
         }
 
+        var world = simulation.World;
         var cultureId = world.EntityCultureId(entityId);
         if (cultureId <= 0 ||
             !CellTargetCoordinateAllowed(world, planeCode, q, r))
@@ -122,9 +127,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             return 1f;
         }
 
-        var ownCultureInfluence = world.GetCellCultureInfluence(cultureId, planeCode, q, r);
-        var foreignCultureInfluence = StrongestOtherCultureInfluence(world, cultureId, planeCode, q, r, out _);
-        var neighborhood = CultureNeighborhood(world, cultureId, planeCode, q, r);
+        var boundary = simulation.CultureBoundaries.CellAt(world, cultureId, planeCode, q, r);
+        var ownCultureInfluence = boundary.Share;
+        var foreignCultureInfluence = boundary.ForeignShare;
+        var neighborhood = CultureNeighborhood(boundary);
         var connectedSupport = CultureConnectedSupport(neighborhood);
         var borderSupport = CultureEdgeSupport(neighborhood);
         var culturePresence = Clamp01(ownCultureInfluence / 100f);
@@ -137,39 +143,35 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     }
 
     private float OwnCultureExpansionDriveAt(
-        WorldState world,
+        Simulation simulation,
         int entityId,
         int cultureId,
         int targetingCode,
         int planeCode,
         int q,
-        int r,
-        CultureInfluenceComponentScratch components)
+        int r)
     {
+        var world = simulation.World;
         if (!CellTargetCoordinateAllowed(world, planeCode, q, r))
         {
             return 0f;
         }
 
-        var ownCultureInfluence = world.GetCellCultureInfluence(cultureId, planeCode, q, r);
-        var neighborhood = CultureNeighborhood(world, cultureId, planeCode, q, r);
-        if (!OwnCultureExpansionTargetAllowed(targetingCode, neighborhood.CenterRaw, neighborhood))
+        var boundary = simulation.CultureBoundaries.CellAt(world, cultureId, planeCode, q, r);
+        var neighborhood = CultureNeighborhood(boundary);
+        if (!OwnCultureExpansionTargetAllowed(targetingCode, boundary.RawMass, neighborhood))
         {
             return 0f;
         }
 
-        var foreignCultureInfluence = StrongestOtherCultureInfluence(world, cultureId, planeCode, q, r, out var foreignCultureId);
-        var foreignCultureRaw = foreignCultureId > 0
-            ? world.GetCellCultureInfluenceRaw(foreignCultureId, planeCode, q, r)
-            : 0f;
         return OwnCultureExpansionDrive(
             targetingCode,
-            ownCultureInfluence,
-            foreignCultureInfluence,
-            foreignCultureRaw,
-            neighborhood.CenterRaw,
+            boundary.Share,
+            boundary.ForeignShare,
+            boundary.ForeignRawMass,
+            boundary.RawMass,
             neighborhood,
-            components.AttachmentAt(q, r));
+            CultureAttachment(boundary));
     }
 
     private static bool OwnCultureExpansionTargetAllowed(
@@ -213,75 +215,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             neighborhood.RingTwoRawTotal >= CultureNexusRawInfluence;
     }
 
-    private static CultureInfluenceNeighborhood CultureNeighborhood(
-        WorldState world,
-        int cultureId,
-        int planeCode,
-        int q,
-        int r)
-    {
-        var centerRaw = world.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r);
-        var adjacentRawTotal = 0f;
-        var strongestAdjacentRaw = 0f;
-        var supportedAdjacentCount = 0;
-        var ringTwoRawTotal = 0f;
-        var strongestRingTwoRaw = 0f;
-        var supportedRingTwoCount = 0;
-        for (var i = 0; i < CultureNeighborDq.Length; i++)
-        {
-            if (i < CultureAdjacentNeighborCount)
-            {
-                AddCultureRaw(
-                    world,
-                    cultureId,
-                    planeCode,
-                    q + CultureNeighborDq[i],
-                    r + CultureNeighborDr[i],
-                    ref adjacentRawTotal,
-                    ref strongestAdjacentRaw,
-                    ref supportedAdjacentCount);
-                continue;
-            }
-
-            AddCultureRaw(
-                world,
-                cultureId,
-                planeCode,
-                q + CultureNeighborDq[i],
-                r + CultureNeighborDr[i],
-                ref ringTwoRawTotal,
-                ref strongestRingTwoRaw,
-                ref supportedRingTwoCount);
-        }
-
-        return new CultureInfluenceNeighborhood(
-            centerRaw,
-            adjacentRawTotal,
-            strongestAdjacentRaw,
-            supportedAdjacentCount,
-            ringTwoRawTotal,
-            strongestRingTwoRaw,
-            supportedRingTwoCount);
-    }
-
-    private static void AddCultureRaw(
-        WorldState world,
-        int cultureId,
-        int planeCode,
-        int q,
-        int r,
-        ref float adjacentRawTotal,
-        ref float strongestAdjacentRaw,
-        ref int supportedAdjacentCount)
-    {
-        var raw = world.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r);
-        adjacentRawTotal += raw;
-        strongestAdjacentRaw = global::System.MathF.Max(strongestAdjacentRaw, raw);
-        if (raw >= CultureTraceRawInfluence)
-        {
-            supportedAdjacentCount++;
-        }
-    }
+    private static CultureInfluenceAttachment CultureAttachment(in CultureBoundaryCell boundary) =>
+        new(
+            boundary.AttachedComponentScoreMass,
+            boundary.SupportedAdjacentCount,
+            boundary.AttachedComponentCount);
 
     private float OwnCultureExpansionDrive(
         int targetingCode,
@@ -366,6 +304,24 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         return influence;
     }
 
+    private static float ForeignCultureInfluenceAt(
+        Simulation simulation,
+        int ownCultureId,
+        int planeCode,
+        int q,
+        int r,
+        out int foreignCultureId)
+    {
+        if (ownCultureId > 0)
+        {
+            var boundary = simulation.CultureBoundaries.CellAt(simulation.World, ownCultureId, planeCode, q, r);
+            foreignCultureId = boundary.ForeignCultureId;
+            return boundary.ForeignShare;
+        }
+
+        return StrongestOtherCultureInfluence(simulation.World, ownCultureId, planeCode, q, r, out foreignCultureId);
+    }
+
     private void AddForeignInfluenceCandidate(
         Simulation simulation,
         int entityId,
@@ -385,13 +341,13 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         ref float sumAffordanceScore,
         ref VerbTargetCandidate selected)
     {
-        var foreignCultureInfluence = StrongestOtherCultureInfluence(
-            simulation.World,
+        var foreignCultureInfluence = ForeignCultureInfluenceAt(
+            simulation,
             actorCultureId,
             planeCode,
             q,
             r,
-            out var foreignCultureId);
+            out _);
         if (foreignCultureInfluence <= 0f)
         {
             return;
@@ -400,18 +356,14 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var contestSupport = 0f;
         if (actorCultureId > 0)
         {
-            var ownCultureInfluence = simulation.World.GetCellCultureInfluence(actorCultureId, planeCode, q, r);
-            var ownCultureRaw = simulation.World.GetCellCultureInfluenceRaw(actorCultureId, planeCode, q, r);
-            var foreignCultureRaw = foreignCultureId > 0
-                ? simulation.World.GetCellCultureInfluenceRaw(foreignCultureId, planeCode, q, r)
-                : 0f;
-            var attachment = _cultureInfluenceComponents.AttachmentAt(q, r);
+            var boundary = simulation.CultureBoundaries.CellAt(simulation.World, actorCultureId, planeCode, q, r);
+            var attachment = CultureAttachment(boundary);
             var input = new CultureInfluenceTargetScoreInput(
                 LowAltitudeInfluenceTargetingCodes.Contest,
-                ownCultureInfluence,
-                ownCultureRaw,
-                foreignCultureInfluence,
-                foreignCultureRaw,
+                boundary.Share,
+                boundary.RawMass,
+                boundary.ForeignShare,
+                boundary.ForeignRawMass,
                 attachment.ComponentMass,
                 attachment.AdjacentSupportedCount,
                 attachment.ComponentCount);

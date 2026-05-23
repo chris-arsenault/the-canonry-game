@@ -8,43 +8,76 @@ using System.Collections.ObjectModel;
 /// </summary>
 public sealed class TelemetryBatch
 {
-    public Collection<SymbolRow> Symbols { get; } = [];
-    public Collection<EntityNameSymbolRow> EntityNameSymbols { get; } = [];
-    public Collection<RunRow> Runs { get; } = [];
-    public Collection<TickSnapshotRow> TickSnapshots { get; } = [];
-    public Collection<KindSnapshotRow> KindSnapshots { get; } = [];
-    public Collection<EntitySnapshotRow> EntitySnapshots { get; } = [];
-    public Collection<EntityAttributeSnapshotRow> EntityAttributeSnapshots { get; } = [];
-    public Collection<EntityEventRow> EntityEvents { get; } = [];
-    public Collection<ExperimentVariantRow> ExperimentVariants { get; } = [];
-    public Collection<TraceRow> TraceEvents { get; } = [];
-    public Collection<AttributeEventRow> AttributeEvents { get; } = [];
-    public Collection<MovementEventRow> MovementEvents { get; } = [];
-    public Collection<RelationshipEventRow> RelationshipEvents { get; } = [];
-    public Collection<RelationshipSnapshotRow> RelationshipSnapshots { get; } = [];
-    public Collection<GambitEventRow> GambitEvents { get; } = [];
-    public Collection<GeneratorEventRow> GeneratorEvents { get; } = [];
-    public Collection<GeneratorTargetEvaluationRow> GeneratorTargetEvaluations { get; } = [];
-    public Collection<GeneratorOutputRow> GeneratorOutputs { get; } = [];
-    public Collection<GeneratorStateSnapshotRow> GeneratorStateSnapshots { get; } = [];
-    public Collection<GeneratedEntityRow> GeneratedEntities { get; } = [];
-    public Collection<LifecycleEventRow> LifecycleEvents { get; } = [];
-    public Collection<LifecycleReasonEventRow> LifecycleReasonEvents { get; } = [];
-    public Collection<MapGenerationEventRow> MapGenerationEvents { get; } = [];
-    public Collection<MapCellEventRow> MapCellEvents { get; } = [];
-    public Collection<CellInfluenceEventRow> CellInfluenceEvents { get; } = [];
-    public Collection<CellCultureInfluenceEventRow> CellCultureInfluenceEvents { get; } = [];
-    public Collection<CultureSlotOccupancyEventRow> CultureSlotOccupancyEvents { get; } = [];
-    public Collection<MinorActorVerbEventRow> MinorActorVerbEvents { get; } = [];
-    public Collection<CultureFieldComponentSnapshotRow> CultureFieldComponentSnapshots { get; } = [];
-    public Collection<CultureEntityFieldSnapshotRow> CultureEntityFieldSnapshots { get; } = [];
-    public Collection<CultureEntityBirthFieldEventRow> CultureEntityBirthFieldEvents { get; } = [];
-    public Collection<CultureInfluenceActionFieldEventRow> CultureInfluenceActionFieldEvents { get; } = [];
-    public Collection<CellRoadEventRow> CellRoadEvents { get; } = [];
-    public Collection<MapSnapshotRow> MapSnapshots { get; } = [];
-    public Collection<CoverageSnapshotRow> CoverageSnapshots { get; } = [];
-    public Collection<CoverageTerrainSnapshotRow> CoverageTerrainSnapshots { get; } = [];
-    public Collection<PlacementEventRow> PlacementEvents { get; } = [];
+    public Collection<SymbolRow> Symbols { get; } = Rows<SymbolRow>();
+    public Collection<EntityNameSymbolRow> EntityNameSymbols { get; } = Rows<EntityNameSymbolRow>();
+    public Collection<RunRow> Runs { get; } = Rows<RunRow>();
+    public Collection<TickSnapshotRow> TickSnapshots { get; } = Rows<TickSnapshotRow>();
+    public Collection<KindSnapshotRow> KindSnapshots { get; } = Rows<KindSnapshotRow>();
+    public Collection<EntitySnapshotRow> EntitySnapshots { get; } = Rows<EntitySnapshotRow>();
+    public Collection<EntityAttributeSnapshotRow> EntityAttributeSnapshots { get; } = Rows<EntityAttributeSnapshotRow>();
+    public Collection<EntityEventRow> EntityEvents { get; } = Rows<EntityEventRow>();
+    public Collection<ExperimentVariantRow> ExperimentVariants { get; } = Rows<ExperimentVariantRow>();
+    public Collection<TraceRow> TraceEvents { get; } = Rows<TraceRow>();
+    public Collection<AttributeEventRow> AttributeEvents { get; } = Rows<AttributeEventRow>();
+    public Collection<MovementEventRow> MovementEvents { get; } = Rows<MovementEventRow>();
+    public Collection<RelationshipEventRow> RelationshipEvents { get; } = Rows<RelationshipEventRow>();
+    public Collection<RelationshipSnapshotRow> RelationshipSnapshots { get; } = Rows<RelationshipSnapshotRow>();
+    public Collection<GambitEventRow> GambitEvents { get; } = Rows<GambitEventRow>();
+    public Collection<GeneratorEventRow> GeneratorEvents { get; } = Rows<GeneratorEventRow>();
+    public Collection<GeneratorTargetEvaluationRow> GeneratorTargetEvaluations { get; } = Rows<GeneratorTargetEvaluationRow>();
+    public Collection<GeneratorOutputRow> GeneratorOutputs { get; } = Rows<GeneratorOutputRow>();
+    public Collection<GeneratorStateSnapshotRow> GeneratorStateSnapshots { get; } = Rows<GeneratorStateSnapshotRow>();
+    public Collection<GeneratedEntityRow> GeneratedEntities { get; } = Rows<GeneratedEntityRow>();
+    public Collection<LifecycleEventRow> LifecycleEvents { get; } = Rows<LifecycleEventRow>();
+    public Collection<LifecycleReasonEventRow> LifecycleReasonEvents { get; } = Rows<LifecycleReasonEventRow>();
+    public Collection<MapGenerationEventRow> MapGenerationEvents { get; } = Rows<MapGenerationEventRow>();
+    public Collection<MapCellEventRow> MapCellEvents { get; } = Rows<MapCellEventRow>();
+    public Collection<CellInfluenceEventRow> CellInfluenceEvents { get; } = Rows<CellInfluenceEventRow>();
+    public Collection<CellCultureInfluenceEventRow> CellCultureInfluenceEvents { get; } = Rows<CellCultureInfluenceEventRow>();
+    public Collection<CultureSlotOccupancyEventRow> CultureSlotOccupancyEvents { get; } = Rows<CultureSlotOccupancyEventRow>();
+    public Collection<MinorActorVerbEventRow> MinorActorVerbEvents { get; } = Rows<MinorActorVerbEventRow>();
+    public Collection<CultureFieldComponentSnapshotRow> CultureFieldComponentSnapshots { get; } = Rows<CultureFieldComponentSnapshotRow>();
+    public Collection<CultureEntityFieldSnapshotRow> CultureEntityFieldSnapshots { get; } = Rows<CultureEntityFieldSnapshotRow>();
+    public Collection<CultureEntityBirthFieldEventRow> CultureEntityBirthFieldEvents { get; } = Rows<CultureEntityBirthFieldEventRow>();
+    public Collection<CultureInfluenceActionFieldEventRow> CultureInfluenceActionFieldEvents { get; } = Rows<CultureInfluenceActionFieldEventRow>();
+    public Collection<CellRoadEventRow> CellRoadEvents { get; } = Rows<CellRoadEventRow>();
+    public Collection<MapSnapshotRow> MapSnapshots { get; } = Rows<MapSnapshotRow>();
+    public Collection<CoverageSnapshotRow> CoverageSnapshots { get; } = Rows<CoverageSnapshotRow>();
+    public Collection<CoverageTerrainSnapshotRow> CoverageTerrainSnapshots { get; } = Rows<CoverageTerrainSnapshotRow>();
+    public Collection<PlacementEventRow> PlacementEvents { get; } = Rows<PlacementEventRow>();
+
+    private static TelemetryRowCollection<T> Rows<T>() => new();
+}
+
+public sealed class TelemetryRowCollection<T> : Collection<T>
+{
+    private readonly List<T> _items;
+
+    public TelemetryRowCollection()
+        : this(new List<T>())
+    {
+    }
+
+    public TelemetryRowCollection(int capacity)
+        : this(new List<T>(capacity))
+    {
+    }
+
+    private TelemetryRowCollection(List<T> items)
+        : base(items)
+    {
+        _items = items;
+    }
+
+    public void EnsureAdditionalCapacity(int additionalCount)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(additionalCount);
+        var requiredCapacity = Count + additionalCount;
+        if (_items.Capacity < requiredCapacity)
+        {
+            _items.Capacity = requiredCapacity;
+        }
+    }
 }
 
 public sealed record SymbolRow(
@@ -445,7 +478,8 @@ public sealed record CultureFieldComponentSnapshotRow(
     int InteriorCellCount,
     int BorderCellCount,
     int IsolatedCellCount,
-    int ContestedCellCount);
+    int ContestedCellCount,
+    int HoleCellCount = 0);
 
 public sealed record CultureEntityFieldSnapshotRow(
     int RunId,
@@ -457,7 +491,16 @@ public sealed record CultureEntityFieldSnapshotRow(
     bool SlotOccupied,
     float LocalRawMass,
     float ConnectedRawMass,
-    float InfluenceProduction);
+    float InfluenceProduction,
+    int StrengthBandCode = 0,
+    float RawMass = 0f,
+    float TotalRawMass = 0f,
+    int ComponentId = 0,
+    int ComponentCellCount = 0,
+    float ComponentRawMass = 0f,
+    int ForeignCultureId = 0,
+    float ForeignShare = 0f,
+    float ForeignRawMass = 0f);
 
 public sealed record CultureEntityBirthFieldEventRow(
     int RunId,

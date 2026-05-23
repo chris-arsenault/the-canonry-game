@@ -381,6 +381,57 @@ public sealed class MinorActorProgramRuntimeTests
     }
 
     [Fact]
+    public void CultureVerbRepairsInteriorHoleInsideSupportedMass()
+    {
+        var simulation = CreateVerbSimulation(mainTickRatio: 1);
+        SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 1);
+        SeedSourceEntity(simulation);
+        var rule = RegisterCultureEmitter(simulation);
+        _ = simulation.MinorActors.RegisterVerb(
+            rule,
+            CultureVerbId,
+            MinorActorActionCodes.CultureExpansion,
+            MinorActorVerbTargetingCodes.ReinforceHomeMass,
+            PlaneCodes.Physical,
+            radius: 1,
+            sampleCount: 64,
+            weight: 1f,
+            workDeltaMultiplier: 1f);
+        foreach (var cell in new[] { (1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1) })
+        {
+            simulation.ModifyCellCultureInfluenceRaw(
+                CultureId,
+                PlaneCodes.Physical,
+                cell.Item1,
+                cell.Item2,
+                WorldState.CultureFullRawMass,
+                tick: 0);
+        }
+
+        _ = simulation.MinorActors.Spawn(
+            cultureId: CultureId,
+            sourceEntityId: SourceEntityId,
+            sourceRuleId: rule,
+            actorKindCode: MinorActorKindCodes.Worker,
+            actionCode: MinorActorActionCodes.CultureExpansion,
+            planeCode: PlaneCodes.Physical,
+            q: 0,
+            r: 0,
+            ttlPulses: 4,
+            moveChancePermille: 0,
+            actionCadencePulses: 1,
+            workDelta: 5f,
+            tick: 0);
+
+        _ = simulation.AdvanceTicks(1);
+
+        var evt = Assert.Single(ReadMinorActorVerbEvents(simulation));
+        Assert.Equal(TraceStatusCodes.Selected, evt.StatusCode);
+        Assert.Equal((0, 0), (evt.Q, evt.R));
+        Assert.True(simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0) > 0f);
+    }
+
+    [Fact]
     public void CultureVerbActsLocallyInsteadOfTeleportingToBestFarMass()
     {
         var simulation = CreateVerbSimulation(mainTickRatio: 1);
@@ -429,7 +480,7 @@ public sealed class MinorActorProgramRuntimeTests
     [Fact]
     public void CultureVerbExtendsSupportedBorderInsteadOfUnsupportedIsland()
     {
-        var simulation = CreateVerbSimulation();
+        var simulation = CreateVerbSimulation(mainTickRatio: 1);
         SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 5);
         SeedSourceEntity(simulation);
         var rule = RegisterCultureEmitter(simulation);
@@ -457,8 +508,22 @@ public sealed class MinorActorProgramRuntimeTests
 
         var borderCells = new[] { (-1, 0), (-1, 1), (0, 1), (1, -2), (2, -1), (2, 0) };
         var borderBefore = SumCultureRaw(simulation, borderCells);
+        _ = simulation.MinorActors.Spawn(
+            cultureId: CultureId,
+            sourceEntityId: SourceEntityId,
+            sourceRuleId: rule,
+            actorKindCode: MinorActorKindCodes.Worker,
+            actionCode: MinorActorActionCodes.CultureExpansion,
+            planeCode: PlaneCodes.Physical,
+            q: 0,
+            r: 0,
+            ttlPulses: 40,
+            moveChancePermille: 0,
+            actionCadencePulses: 1,
+            workDelta: 5f,
+            tick: 0);
 
-        _ = simulation.AdvanceTicks(1);
+        _ = simulation.AdvanceTicks(30);
 
         Assert.True(SumCultureRaw(simulation, borderCells) > borderBefore);
         Assert.Equal(0f, simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, -4, 0));
@@ -671,6 +736,64 @@ public sealed class MinorActorProgramRuntimeTests
     }
 
     [Fact]
+    public void VerbLayerSamplesWeightedCandidatesInsteadOfAlwaysTakingHighestScore()
+    {
+        var simulation = CreateVerbSimulation(mainTickRatio: 1);
+        SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 1);
+        SeedSourceEntity(simulation);
+        var rule = RegisterCultureEmitter(simulation);
+        _ = simulation.MinorActors.RegisterVerb(
+            rule,
+            CultureVerbId,
+            MinorActorActionCodes.CultureExpansion,
+            MinorActorVerbTargetingCodes.ReinforceHomeMass,
+            PlaneCodes.Physical,
+            radius: 1,
+            sampleCount: 64,
+            weight: 1f,
+            workDeltaMultiplier: 0.01f);
+        _ = simulation.MinorActors.RegisterVerb(
+            rule,
+            CultureVerbId + 1,
+            MinorActorActionCodes.CultureCleanup,
+            MinorActorVerbTargetingCodes.ReduceOtherCulture,
+            PlaneCodes.Physical,
+            radius: 1,
+            sampleCount: 64,
+            weight: 1f,
+            workDeltaMultiplier: 0.01f);
+        foreach (var cell in new[] { (0, 0), (1, 0), (0, -1), (-1, 0), (0, 1), (1, -1), (-1, 1) })
+        {
+            simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, cell.Item1, cell.Item2, 100f, tick: 0);
+            simulation.ModifyCellCultureInfluenceRaw(2, PlaneCodes.Physical, cell.Item1, cell.Item2, 100f, tick: 0);
+        }
+
+        _ = simulation.MinorActors.Spawn(
+            cultureId: CultureId,
+            sourceEntityId: SourceEntityId,
+            sourceRuleId: rule,
+            actorKindCode: MinorActorKindCodes.Worker,
+            actionCode: MinorActorActionCodes.CultureExpansion,
+            planeCode: PlaneCodes.Physical,
+            q: 0,
+            r: 0,
+            ttlPulses: 60,
+            moveChancePermille: 0,
+            actionCadencePulses: 1,
+            workDelta: 5f,
+            tick: 0);
+
+        _ = simulation.AdvanceTicks(50);
+
+        var selectedActions = ReadMinorActorVerbEvents(simulation)
+            .Where(e => e.StatusCode == TraceStatusCodes.Selected)
+            .Select(e => e.ActionCode)
+            .ToHashSet();
+        Assert.Contains(MinorActorActionCodes.CultureExpansion, selectedActions);
+        Assert.Contains(MinorActorActionCodes.CultureCleanup, selectedActions);
+    }
+
+    [Fact]
     public void LifecycleMaintenanceVerbRequiresSupportedCultureMass()
     {
         var simulation = CreateVerbSimulation(mainTickRatio: 1);
@@ -793,6 +916,62 @@ public sealed class MinorActorProgramRuntimeTests
         Assert.True(evt.Score > 0f);
         Assert.True(evt.Delta > 0f);
         Assert.True(evt.ConnectedRawMass > 0f);
+    }
+
+    [Fact]
+    public void VerbLayerReadsTargetCultureFieldsFromBoundaryProgramCache()
+    {
+        var simulation = CreateVerbSimulation(mainTickRatio: 1);
+        SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 1);
+        SeedSourceEntity(simulation);
+        var rule = RegisterCultureEmitter(simulation);
+        _ = simulation.MinorActors.RegisterVerb(
+            rule,
+            CultureVerbId,
+            MinorActorActionCodes.CultureExpansion,
+            MinorActorVerbTargetingCodes.ReinforceHomeMass,
+            PlaneCodes.Physical,
+            radius: 1,
+            sampleCount: 64,
+            weight: 1f,
+            workDeltaMultiplier: 1f);
+        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, 80f, tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 1, 0, 40f, tick: 0);
+        _ = simulation.MinorActors.Spawn(
+            cultureId: CultureId,
+            sourceEntityId: SourceEntityId,
+            sourceRuleId: rule,
+            actorKindCode: MinorActorKindCodes.Worker,
+            actionCode: MinorActorActionCodes.CultureExpansion,
+            planeCode: PlaneCodes.Physical,
+            q: 0,
+            r: 0,
+            ttlPulses: 4,
+            moveChancePermille: 0,
+            actionCadencePulses: 1,
+            workDelta: 0f,
+            tick: 0);
+
+        Assert.Equal(0, simulation.CultureBoundaries.RebuildCount);
+
+        _ = simulation.AdvanceTicks(1);
+
+        var evt = Assert.Single(ReadMinorActorVerbEvents(simulation));
+        Assert.Equal(TraceStatusCodes.NoReward, evt.StatusCode);
+        var rebuildCount = simulation.CultureBoundaries.RebuildCount;
+        Assert.True(rebuildCount > 0);
+
+        var boundary = simulation.CultureBoundaries.CellAt(
+            simulation.World,
+            CultureId,
+            PlaneCodes.Physical,
+            evt.Q,
+            evt.R);
+
+        Assert.Equal(rebuildCount, simulation.CultureBoundaries.RebuildCount);
+        Assert.Equal(boundary.CellKindCode, evt.CellKindCode);
+        Assert.Equal(boundary.LocalRawMass, evt.LocalRawMass);
+        Assert.Equal(boundary.ConnectedRawMass, evt.ConnectedRawMass);
     }
 
     private static Simulation CreateVerbSimulation(int mainTickRatio = 1) =>

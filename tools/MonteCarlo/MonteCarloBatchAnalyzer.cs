@@ -75,7 +75,10 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
                 CAST(NULL AS BIGINT) AS r,
                 CAST(NULL AS DOUBLE) AS previous_share,
                 CAST(NULL AS DOUBLE) AS current_share,
-                CAST(NULL AS DOUBLE) AS delta
+                CAST(NULL AS DOUBLE) AS delta,
+                CAST(NULL AS DOUBLE) AS previous_raw_influence,
+                CAST(NULL AS DOUBLE) AS current_raw_influence,
+                CAST(NULL AS DOUBLE) AS current_total_raw_influence
             WHERE FALSE
             """),
         new(
@@ -92,6 +95,70 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
                 CAST(NULL AS BIGINT) AS current_entity_id,
                 CAST(NULL AS DOUBLE) AS previous_score,
                 CAST(NULL AS DOUBLE) AS current_score
+            WHERE FALSE
+            """),
+        new(
+            "minor_actor_verb_events",
+            """
+            SELECT
+                CAST(NULL AS BIGINT) AS run_id,
+                CAST(NULL AS BIGINT) AS tick,
+                CAST(NULL AS BIGINT) AS actor_id,
+                CAST(NULL AS BIGINT) AS source_entity_id,
+                CAST(NULL AS BIGINT) AS source_rule_id,
+                CAST(NULL AS BIGINT) AS source_work_tier,
+                CAST(NULL AS BIGINT) AS effective_radius,
+                CAST(NULL AS BIGINT) AS culture_id,
+                CAST(NULL AS BIGINT) AS verb_id,
+                CAST(NULL AS BIGINT) AS purpose_code,
+                CAST(NULL AS BIGINT) AS action_code,
+                CAST(NULL AS BIGINT) AS targeting_code,
+                CAST(NULL AS BIGINT) AS plane_code,
+                CAST(NULL AS BIGINT) AS q,
+                CAST(NULL AS BIGINT) AS r,
+                CAST(NULL AS BIGINT) AS status_code,
+                CAST(NULL AS BIGINT) AS cell_kind_code,
+                CAST(NULL AS DOUBLE) AS local_raw_mass,
+                CAST(NULL AS DOUBLE) AS connected_raw_mass,
+                CAST(NULL AS DOUBLE) AS score,
+                CAST(NULL AS DOUBLE) AS delta
+            WHERE FALSE
+            """),
+        new(
+            "culture_field_component_snapshots",
+            """
+            SELECT
+                CAST(NULL AS BIGINT) AS run_id,
+                CAST(NULL AS BIGINT) AS tick,
+                CAST(NULL AS BIGINT) AS plane_code,
+                CAST(NULL AS BIGINT) AS culture_id,
+                CAST(NULL AS BIGINT) AS influenced_cell_count,
+                CAST(NULL AS BIGINT) AS component_count,
+                CAST(NULL AS BIGINT) AS largest_component_cell_count,
+                CAST(NULL AS DOUBLE) AS largest_component_share,
+                CAST(NULL AS BIGINT) AS interior_cell_count,
+                CAST(NULL AS BIGINT) AS border_cell_count,
+                CAST(NULL AS BIGINT) AS isolated_cell_count,
+                CAST(NULL AS BIGINT) AS contested_cell_count,
+                CAST(NULL AS BIGINT) AS hole_cell_count
+            WHERE FALSE
+            """),
+        new(
+            "culture_entity_birth_field_events",
+            """
+            SELECT
+                CAST(NULL AS BIGINT) AS run_id,
+                CAST(NULL AS BIGINT) AS tick,
+                CAST(NULL AS BIGINT) AS entity_id,
+                CAST(NULL AS BIGINT) AS culture_id,
+                CAST(NULL AS BIGINT) AS physical_field_band_code,
+                CAST(NULL AS BIGINT) AS physical_cell_kind_code,
+                CAST(NULL AS DOUBLE) AS physical_local_raw_mass,
+                CAST(NULL AS DOUBLE) AS physical_connected_raw_mass,
+                CAST(NULL AS BIGINT) AS semantic_field_band_code,
+                CAST(NULL AS BIGINT) AS semantic_cell_kind_code,
+                CAST(NULL AS DOUBLE) AS semantic_local_raw_mass,
+                CAST(NULL AS DOUBLE) AS semantic_connected_raw_mass
             WHERE FALSE
             """),
         new(

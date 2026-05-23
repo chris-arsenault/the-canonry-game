@@ -2,6 +2,7 @@
 #pragma warning disable CA1305
 #pragma warning disable CA2000
 #pragma warning disable CA2213
+using Engine.Constants;
 using Engine.Projection;
 
 using Godot;
@@ -272,8 +273,7 @@ public partial class HexTooltipPanel : PanelContainer
 
         var cultures = cell.CultureInfluences
             .Take(3)
-            .Select(influence =>
-                $"{ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Culture, influence.CultureId, $"Culture {influence.CultureId}")} {influence.Share:0}%")
+            .Select(FormatCultureBoundary)
             .ToArray();
         var dominantCultureId = cell.CultureInfluences[0].CultureId;
         var ownerCultureId = cell.OwnerEntityId > 0 &&
@@ -283,8 +283,59 @@ public partial class HexTooltipPanel : PanelContainer
         var mismatch = ownerCultureId > 0 && ownerCultureId != dominantCultureId
             ? "  control mismatch"
             : string.Empty;
-        return $"culture {string.Join(" | ", cultures)}{mismatch}";
+        var runnerUp = FormatRunnerUpCulture(cell);
+        return $"culture {string.Join(" | ", cultures)}{runnerUp}{mismatch}";
     }
+
+    private string FormatCultureBoundary(HexCultureInfluenceProjection influence)
+    {
+        var cultureName = ProjectionDisplay.DisplayName(
+            _symbols,
+            ProjectionSymbolKind.Culture,
+            influence.CultureId,
+            $"Culture {influence.CultureId}");
+        var kind = CultureCellKindName(influence.CellKindCode);
+        var band = CultureStrengthBandName(influence.StrengthBandCode);
+        var component = influence.ComponentId > 0
+            ? $" c{influence.ComponentId}/{influence.ComponentCellCount}"
+            : string.Empty;
+        return $"{cultureName} {influence.Share:0}% raw {influence.RawMass:0} {kind}/{band}{component}";
+    }
+
+    private string FormatRunnerUpCulture(HexProjection cell)
+    {
+        if (cell.CultureInfluences.Count <= 1)
+        {
+            return string.Empty;
+        }
+
+        var runnerUp = cell.CultureInfluences[1];
+        var cultureName = ProjectionDisplay.DisplayName(
+            _symbols,
+            ProjectionSymbolKind.Culture,
+            runnerUp.CultureId,
+            $"Culture {runnerUp.CultureId}");
+        return $"  runner-up {cultureName} {runnerUp.Share:0}% raw {runnerUp.RawMass:0}";
+    }
+
+    private static string CultureCellKindName(int code) => code switch
+    {
+        CultureFieldCellKindCodes.Interior => "interior",
+        CultureFieldCellKindCodes.Border => "border",
+        CultureFieldCellKindCodes.Isolated => "isolated",
+        CultureFieldCellKindCodes.Contested => "contested",
+        _ => "none",
+    };
+
+    private static string CultureStrengthBandName(int code) => code switch
+    {
+        CultureFieldStrengthBandCodes.Nexus => "nexus",
+        CultureFieldStrengthBandCodes.Entrenched => "entrenched",
+        CultureFieldStrengthBandCodes.Controlled => "controlled",
+        CultureFieldStrengthBandCodes.Claimed => "claimed",
+        CultureFieldStrengthBandCodes.Trace => "trace",
+        _ => "none",
+    };
 
     private string FormatEntityName(int entityId)
     {

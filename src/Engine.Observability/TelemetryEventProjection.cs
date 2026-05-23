@@ -18,11 +18,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     private readonly Dictionary<int, ObservedEntityProjection> _entities = [];
     private readonly Dictionary<ObservedRelationshipKey, ObservedRelationshipProjection> _relationships = [];
     private readonly Dictionary<ObservedMapCellKey, ObservedMapCellProjection> _mapCells = [];
-    private readonly Dictionary<ObservedCultureFieldKey, ObservedCultureFieldProjection> _cultureFields = [];
-    private readonly Dictionary<ObservedMapCellKey, HashSet<ObservedCultureFieldKey>> _cultureFieldKeysByCell = [];
-    private readonly Dictionary<ObservedEntityPlaneKey, float> _entityInfluenceProduction = [];
     private readonly Dictionary<int, GeneratorStateProjection> _generatorStates = [];
-    private readonly Dictionary<int, int> _occupiedCultureSlotCountByEntity = [];
     private readonly HashSet<int> _recordedMapSnapshotTicks = [];
     private readonly HashSet<int> _recordedGeneratorSnapshotTicks = [];
     private readonly Dictionary<int, Queue<PendingCreatedEntity>> _unassignedCreatedEntitiesByTick = [];
@@ -129,8 +125,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
                     attribute.Value));
             }
 
-            RecordCultureEntityFieldSnapshot(tick, entity, PlaneCodes.Physical);
-            RecordCultureEntityFieldSnapshot(tick, entity, PlaneCodes.Semantic);
         }
     }
 
@@ -177,7 +171,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         }
 
         RecordCoverageSnapshots(tick, activeEntitiesByCell);
-        RecordCultureFieldComponentSnapshots(tick);
         if (includeGeneratorState)
         {
             RecordGeneratorStateSnapshots(tick);
@@ -226,7 +219,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.SemanticR,
             evt.SemanticS));
 
-        RecordCultureEntityBirthField(evt.Tick, entity);
         TrackCreatedEntityForGeneratorAttribution(evt);
         MarkProjected(sequence);
     }
@@ -432,7 +424,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
     protected override void OnCellInfluenceChanged(long sequence, in CellInfluenceChangedKernelEvent evt)
     {
-        RecordCultureInfluenceActionField(evt);
         _batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(
             _runId,
             evt.Tick,
@@ -464,14 +455,11 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.PreviousRawInfluence,
             evt.CurrentRawInfluence,
             evt.CurrentTotalRawInfluence));
-        UpdateCultureField(evt);
         MarkProjected(sequence);
     }
 
     protected override void OnCultureSlotOccupancyChanged(long sequence, in CultureSlotOccupancyChangedKernelEvent evt)
     {
-        AdjustCultureSlotOccupancy(evt.PreviousEntityId, -1);
-        AdjustCultureSlotOccupancy(evt.CurrentEntityId, 1);
         _batch.CultureSlotOccupancyEvents.Add(new CultureSlotOccupancyEventRow(
             _runId,
             evt.Tick,
@@ -660,18 +648,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
     protected override void OnGeneratorTargetEvaluated(long sequence, in GeneratorTargetEvaluatedKernelEvent evt)
     {
-        var physicalComponent = CultureFieldComponentAt(
-            evt.TargetCultureId,
-            PlaneCodes.Physical,
-            evt.PhysicalQ,
-            evt.PhysicalR,
-            evt.Tick);
-        var semanticComponent = CultureFieldComponentAt(
-            evt.TargetCultureId,
-            PlaneCodes.Semantic,
-            evt.SemanticQ,
-            evt.SemanticR,
-            evt.Tick);
         _batch.GeneratorTargetEvaluations.Add(new GeneratorTargetEvaluationRow(
             _runId,
             evt.Tick,
@@ -695,12 +671,12 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.SemanticCellKindCode,
             evt.SemanticLocalRawMass,
             evt.SemanticConnectedRawMass,
-            physicalComponent.ComponentId,
-            physicalComponent.CellCount,
-            physicalComponent.RawMass,
-            semanticComponent.ComponentId,
-            semanticComponent.CellCount,
-            semanticComponent.RawMass));
+            evt.PhysicalComponentId,
+            evt.PhysicalComponentCellCount,
+            evt.PhysicalComponentRawMass,
+            evt.SemanticComponentId,
+            evt.SemanticComponentCellCount,
+            evt.SemanticComponentRawMass));
         MarkProjected(sequence);
     }
 

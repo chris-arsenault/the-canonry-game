@@ -225,7 +225,7 @@ public readonly record struct GeneratorFiredKernelEvent(
     [KernelEventIntSlot(5, "output_lock_relationship_created_count", KernelEventSemanticKind.Count)]
     int OutputLockRelationshipCreatedCount = 0);
 
-[KernelEventLayout(KernelEventType.GeneratorTargetEvaluated, schemaMinor: 0)]
+[KernelEventLayout(KernelEventType.GeneratorTargetEvaluated, schemaMinor: 1)]
 public readonly record struct GeneratorTargetEvaluatedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -268,7 +268,19 @@ public readonly record struct GeneratorTargetEvaluatedKernelEvent(
     [KernelEventFloatSlot(2, "semantic_local_raw_mass", KernelEventSemanticKind.RawScalar)]
     float SemanticLocalRawMass,
     [KernelEventFloatSlot(3, "semantic_connected_raw_mass", KernelEventSemanticKind.RawScalar)]
-    float SemanticConnectedRawMass);
+    float SemanticConnectedRawMass,
+    [KernelEventIntSlot(16, "physical_component_id", KernelEventSemanticKind.RawScalar)]
+    int PhysicalComponentId = 0,
+    [KernelEventIntSlot(17, "physical_component_cell_count", KernelEventSemanticKind.Count)]
+    int PhysicalComponentCellCount = 0,
+    [KernelEventIntSlot(18, "semantic_component_id", KernelEventSemanticKind.RawScalar)]
+    int SemanticComponentId = 0,
+    [KernelEventIntSlot(19, "semantic_component_cell_count", KernelEventSemanticKind.Count)]
+    int SemanticComponentCellCount = 0,
+    [KernelEventFloatSlot(4, "physical_component_raw_mass", KernelEventSemanticKind.RawScalar)]
+    float PhysicalComponentRawMass = 0f,
+    [KernelEventFloatSlot(5, "semantic_component_raw_mass", KernelEventSemanticKind.RawScalar)]
+    float SemanticComponentRawMass = 0f);
 
 [KernelEventLayout(KernelEventType.GambitEvaluated, schemaMinor: 0)]
 public readonly record struct GambitEvaluatedKernelEvent(

@@ -10,6 +10,7 @@ internal sealed partial class Simulation : IKernel
     private readonly int[] _systemSourceCodeIds;
     private readonly ISimulationSystem?[] _systems;
     private readonly bool[] _systemActive;
+    private readonly int[] _dirtyCultureScratch;
     private readonly KernelProgramRegistry _programs;
     private int _systemCount;
 #if DEBUG
@@ -38,6 +39,8 @@ internal sealed partial class Simulation : IKernel
             new KernelEntityData(options.EntityAttributeCapacity, options.AttributeIdCapacity, options.EntityTraitCapacity),
             new KernelTerrainData(options.TerrainIdCapacity));
         World = new WorldState(Events, options, KernelData);
+        CultureBoundaries = CreateCultureBoundaryRuntime(options);
+        World.AttachCultureBoundaries(CultureBoundaries);
         LowAltitudeVerbs = CreateLowAltitudeVerbRuntime(options);
         Movement = CreateMovementRuntime(options);
         MapActivity = CreateMapActivityRuntime(options);
@@ -57,6 +60,7 @@ internal sealed partial class Simulation : IKernel
         _systemSourceCodeIds = new int[options.SystemCapacity];
         _systems = new ISimulationSystem[options.SystemCapacity];
         _systemActive = new bool[options.SystemCapacity];
+        _dirtyCultureScratch = new int[options.CultureIdCapacity + 1];
         _programs = new KernelProgramRegistry(options.SystemCapacity);
         RegisterDefaultPrograms();
     }
@@ -73,6 +77,13 @@ internal sealed partial class Simulation : IKernel
         LowAltitudeVerbSourceCodeId = codes.LowAltitudeVerbSourceCodeId;
         EffectsSourceCodeId = codes.EffectsSourceCodeId;
     }
+
+    private static CultureBoundaryProgramRuntime CreateCultureBoundaryRuntime(SimulationOptions options) =>
+        new(
+            new CultureBoundaryProgramData(),
+            new CultureBoundaryProgramState(),
+            options.MapInfluenceCapacity,
+            options.CultureIdCapacity);
 
     private static LowAltitudeVerbProgramRuntime CreateLowAltitudeVerbRuntime(SimulationOptions options) =>
         new(
@@ -171,6 +182,7 @@ internal sealed partial class Simulation : IKernel
         RegisterProgram(KernelProgramCodes.LowAltitudeVerbs, mainCadence, LowAltitudeVerbs);
         RegisterProgram(KernelProgramCodes.MapActivity, mainCadence, MapActivity);
         RegisterProgram(KernelProgramCodes.MapSignals, mainCadence, MapSignals);
+        RegisterProgram(KernelProgramCodes.CultureBoundaries, mainCadence, CultureBoundaries);
         RegisterProgram(KernelProgramCodes.Relationships, mainCadence, Relationships);
         RegisterProgram(KernelProgramCodes.Effects, mainCadence, Effects);
         RegisterProgram(KernelProgramCodes.Upkeep, mainCadence, Upkeep);
@@ -318,6 +330,7 @@ internal sealed partial class Simulation : IKernel
     internal MovementProgramRuntime Movement { get; }
     internal MapActivityProgramRuntime MapActivity { get; }
     internal MapSignalsProgramRuntime MapSignals { get; }
+    internal CultureBoundaryProgramRuntime CultureBoundaries { get; }
     internal EffectsProgramRuntime Effects { get; }
     internal CultureSlotProgramRuntime CultureSlots { get; }
     internal GambitProgramRuntime Gambits { get; }
@@ -637,19 +650,47 @@ internal sealed partial class Simulation : IKernel
         World.MoveEntitySemantic(entityId, q, r, s, tick, _executionContext);
     }
 
-    internal void ModifyCellCultureInfluenceRaw(int cultureId, int planeCode, int q, int r, float delta, int tick)
+    internal float ModifyCellCultureInfluenceRaw(int cultureId, int planeCode, int q, int r, float delta, int tick)
     {
-        World.ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, delta, tick, _executionContext);
+        var applied = World.ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, delta, tick, _executionContext);
+        if (applied != 0f)
+        {
+            CultureBoundaries.MarkDirty(cultureId, planeCode);
+        }
+
+        return applied;
     }
 
-    internal void ModifyCellCultureInfluenceRawFromEntity(int entityId, int planeCode, int q, int r, float delta, int tick)
+    internal float ModifyCellCultureInfluenceRawFromEntity(int entityId, int planeCode, int q, int r, float delta, int tick)
     {
-        World.ModifyCellCultureInfluenceRawFromEntity(entityId, planeCode, q, r, delta, tick, _executionContext);
+        var applied = World.ModifyCellCultureInfluenceRawFromEntity(entityId, planeCode, q, r, delta, tick, _executionContext);
+        var cultureId = World.EntityCultureId(entityId);
+        if (cultureId > 0 && applied != 0f)
+        {
+            CultureBoundaries.MarkDirty(cultureId, planeCode);
+        }
+
+        return applied;
     }
 
     internal float ReduceOtherCultureSourcesAtCell(int ownCultureId, int planeCode, int q, int r, float delta, int tick)
     {
-        return World.ReduceOtherCultureSourcesAtCell(ownCultureId, planeCode, q, r, delta, tick, _executionContext);
+        var removed = World.ReduceOtherCultureSourcesAtCell(
+            ownCultureId,
+            planeCode,
+            q,
+            r,
+            delta,
+            tick,
+            _executionContext,
+            _dirtyCultureScratch,
+            out var changedCultureCount);
+        for (var i = 0; i < changedCultureCount; i++)
+        {
+            CultureBoundaries.MarkDirty(_dirtyCultureScratch[i], planeCode);
+        }
+
+        return removed;
     }
 
     internal int CreateRelationship(
@@ -1033,6 +1074,7 @@ internal sealed partial class Simulation : IKernel
         KernelProgramCodes.Generators => GeneratorSourceCodeId,
         KernelProgramCodes.Movement => MapActivitySourceCodeId,
         KernelProgramCodes.MapSignals => MapSignalsSourceCodeId,
+        KernelProgramCodes.CultureBoundaries => MapSignalsSourceCodeId,
         KernelProgramCodes.Effects => EffectsSourceCodeId,
         KernelProgramCodes.CultureSlots => MapSignalsSourceCodeId,
         KernelProgramCodes.MinorActors => MapActivitySourceCodeId,

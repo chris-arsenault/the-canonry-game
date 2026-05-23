@@ -16,6 +16,7 @@ internal sealed partial class WorldState
     private readonly MapLayerSet _mapLayers;
     private readonly KernelDataSet _kernelData;
     private readonly KernelGrowableStoragePolicy _growableStoragePolicy;
+    private CultureBoundaryProgramRuntime? _cultureBoundaries;
     private bool[] _entityAllocated = [];
     private int[] _entityStatus = [];
     private int[] _entityKindId = [];
@@ -112,7 +113,11 @@ internal sealed partial class WorldState
         _mapCellTerrainIds = new PrimitiveIntTable(options.MapCellCapacity);
         _mapCellSuperregionIds = new PrimitiveIntTable(options.MapCellCapacity);
         _mapCellContinentIds = new PrimitiveIntTable(options.MapCellCapacity);
-        _mapLayers = new MapLayerSet(options.EntityCapacity, options.MapCellCapacity, options.MapInfluenceCapacity);
+        _mapLayers = new MapLayerSet(
+            options.EntityCapacity,
+            options.CultureIdCapacity,
+            options.MapCellCapacity,
+            options.MapInfluenceCapacity);
         InitializeEntityStorage(options);
         InitializeRelationshipStorage(options);
         InitializeRelationshipGraphStorage(options);
@@ -194,6 +199,13 @@ internal sealed partial class WorldState
     public long WorldVersion { get; private set; }
     public int EntityCapacity => _entityAllocated.Length - 1;
     public int RelationshipCapacity => _relationshipAllocated.Length - 1;
+
+    internal void AttachCultureBoundaries(CultureBoundaryProgramRuntime cultureBoundaries)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(cultureBoundaries);
+        _cultureBoundaries = cultureBoundaries;
+    }
+
     public void BeginTick(int tick)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(tick);

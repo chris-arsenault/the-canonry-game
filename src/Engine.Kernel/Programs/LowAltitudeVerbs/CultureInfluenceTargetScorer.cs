@@ -19,6 +19,9 @@ internal static class CultureInfluenceTargetScorer
     private const float AttachmentScale = 2f;
     private const float BridgeBonusPerComponent = 0.2f;
     private const float BridgeBonusCap = 7f / 20f;
+    private const int InteriorHoleAdjacentSupportThreshold = 4;
+    private const float InteriorHoleComponentMassScale = 4f;
+    private const float InteriorHoleUtilityMultiplier = 2f;
     private const float ForeignTraceToleranceShare = 10f;
     private const float ForeignContestScaleShare = 45f;
 
@@ -78,21 +81,25 @@ internal static class CultureInfluenceTargetScorer
         }
 
         var rawShortfall = Clamp01((ControlledRawInfluence - input.OwnRaw) / ControlledRawInfluence);
-        return global::System.MathF.Pow(headroom, 1.25f) *
+        return InteriorHoleBoost(input) *
+            global::System.MathF.Pow(headroom, 1.25f) *
             ((7f / 20f) + ((13f / 20f) * rawShortfall)) *
             ExpansionForeignDrag(input);
     }
 
     private static float ReinforceUtility(in CultureInfluenceTargetScoreInput input)
     {
-        var ownPresence = Saturating(input.OwnRaw, ClaimedRawInfluence);
+        var interiorHoleSupport = InteriorHoleSupport(input);
+        var ownPresence = global::System.MathF.Max(
+            Saturating(input.OwnRaw, ClaimedRawInfluence),
+            interiorHoleSupport * 0.75f);
         if (ownPresence <= 0f)
         {
             return 0f;
         }
 
         var rawShortfall = Clamp01((FullRawInfluence - input.OwnRaw) / FullRawInfluence);
-        return ownPresence * rawShortfall * ExpansionForeignDrag(input);
+        return InteriorHoleBoost(interiorHoleSupport) * ownPresence * rawShortfall * ExpansionForeignDrag(input);
     }
 
     private static float ContestUtility(in CultureInfluenceTargetScoreInput input)
@@ -104,8 +111,10 @@ internal static class CultureInfluenceTargetScorer
         }
 
         var ownAnchor = global::System.MathF.Max(
-            Clamp01(input.OwnShare / 100f),
-            Saturating(input.OwnRaw, ClaimedRawInfluence));
+            global::System.MathF.Max(
+                Clamp01(input.OwnShare / 100f),
+                Saturating(input.OwnRaw, ClaimedRawInfluence)),
+            InteriorHoleSupport(input));
         return foreignPresence * (0.5f + ownAnchor) * (0.75f + (0.5f * ownAnchor));
     }
 
@@ -118,10 +127,38 @@ internal static class CultureInfluenceTargetScorer
         }
 
         var ownBoundary = global::System.MathF.Max(
-            Clamp01(input.OwnShare / 100f),
-            Saturating(input.OwnRaw, ControlledRawInfluence));
+            global::System.MathF.Max(
+                Clamp01(input.OwnShare / 100f),
+                Saturating(input.OwnRaw, ControlledRawInfluence)),
+            InteriorHoleSupport(input));
         return 1f - (0.7f * foreignCompetition * (1f - ownBoundary));
     }
+
+    internal static float InteriorHoleSupport(float ownRaw, float attachedComponentMass, int adjacentSupportedCount)
+    {
+        if (ownRaw >= ControlledRawInfluence ||
+            adjacentSupportedCount < InteriorHoleAdjacentSupportThreshold ||
+            attachedComponentMass <= 0f)
+        {
+            return 0f;
+        }
+
+        var adjacentSupport = Clamp01(
+            (adjacentSupportedCount - (InteriorHoleAdjacentSupportThreshold - 1)) /
+            (float)(7 - InteriorHoleAdjacentSupportThreshold));
+        var componentSupport = Saturating(attachedComponentMass, InteriorHoleComponentMassScale);
+        var rawHeadroom = Clamp01((ControlledRawInfluence - ownRaw) / ControlledRawInfluence);
+        return adjacentSupport * componentSupport * rawHeadroom;
+    }
+
+    private static float InteriorHoleSupport(in CultureInfluenceTargetScoreInput input) =>
+        InteriorHoleSupport(input.OwnRaw, input.AttachedComponentMass, input.AdjacentSupportedCount);
+
+    private static float InteriorHoleBoost(in CultureInfluenceTargetScoreInput input) =>
+        InteriorHoleBoost(InteriorHoleSupport(input));
+
+    private static float InteriorHoleBoost(float support) =>
+        1f + (InteriorHoleUtilityMultiplier * support);
 
     private static float ForeignCleanupSignal(float foreignShare, float foreignRaw)
     {

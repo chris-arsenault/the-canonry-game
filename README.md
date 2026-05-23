@@ -108,6 +108,10 @@ To play in Godot:
   durable simulation quality goals and analysis criteria.
 - [docs/systems/06-entity-behaviors.md](docs/systems/06-entity-behaviors.md):
   current low-altitude verbs and gambits boundary.
+- [docs/systems/culture.md](docs/systems/culture.md): culture identity,
+  influence, boundaries, slots, and labor.
+- [docs/systems/21-minor-actors.md](docs/systems/21-minor-actors.md): unnamed
+  worker cohorts and minor labor cadence.
 - [docs/systems/16-generator-executor.md](docs/systems/16-generator-executor.md):
   generator model.
 - [docs/systems/18-action-executor.md](docs/systems/18-action-executor.md):

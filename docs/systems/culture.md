@@ -6,7 +6,8 @@ A static, domain-defined classification that describes innate tendencies, naming
 
 ## What Culture Is
 
-Culture is a non-spatially-bound, overarching construct that defines an entity's identity foundation. It is:
+Culture is an overarching construct that defines an entity's identity
+foundation and can also accumulate as culture map influence. It is:
 
 - **Normally static per entity.** An entity's culture is set at creation. Most
   living/social entities keep that culture for their lifetime. Authored domain
@@ -30,14 +31,13 @@ Culture is a non-spatially-bound, overarching construct that defines an entity's
 - **Not an entity kind.** Culture does not exist as an entity in the graph.
   There is no "Culture Y" node with health, traits, relationships, and
   behaviors.
-- **Not spatial.** Culture is not tied to regions or cells. It is a property of
-  entities regardless of where they are. Cultural influence on the map, if
-  implemented, is computed from entities present there, not from culture
-  entities.
+- **Not a map entity.** Culture is not represented by a graph node. Cultural
+  influence is map-owned tile state derived from actions and authored startup
+  state, then classified by the kernel boundary program.
 - **Not a dynamic taxonomy.** The culture list doesn't change during a run. No
-  new cultures emerge, no cultures go extinct. Cultural dynamics (influence
-  spread, friction between cultures, and authored place claims) operate on the
-  ENTITIES that have culture, not on culture itself.
+  new cultures emerge, no cultures go extinct. Cultural dynamics operate
+  through entities and map tile layers keyed by culture id; culture itself does
+  not have graph state or lifecycle.
 - **Not a card target.** Cards don't target "Culture Y." They target entities
   with culture, trait, relationship, or locality filters. "Entities of culture
   Y" is a filter on entity queries, not a reference to a culture entity.
@@ -52,8 +52,73 @@ Culture is a non-spatially-bound, overarching construct that defines an entity's
 | Relationships (#7) | Shared culture is a factor in relationship strength modification (same culture trends positive). Cultural difference feeds into disposition calculation via semantic plane distance. |
 | Map Signals (#4) | Cultural distribution is available as locality and semantic-map evidence. |
 | Narrative Domain (#19) | Culture list and per-culture definitions (tendencies, naming rules, modifiers) are defined by the domain. |
-| Map Visualization (#10) | Cultural distribution can be visualized as an overlay, computed from entities at each location. |
+| Map Visualization (#10) | Cultural distribution can be visualized as an overlay using kernel boundary classifications. |
 | Generator Executor (#16) | New entities inherit culture from context (location, parent entity, domain rules). |
+
+## Cultural Influence And Boundaries
+
+Cultural influence is stored as a kernel tile layer, not as per-entity influence
+and not as authored culture objects. The `CultureBoundaries` kernel program
+derives the shared boundary model from that layer:
+
+- raw culture mass, capped at `1000` per culture/cell/plane;
+- dominance share, recalculated from all raw culture mass at the cell;
+- per-culture connected components on the physical and semantic planes;
+- cell kind: none, interior, border, isolated, or contested;
+- strength band: none, trace, claimed, controlled, entrenched, or nexus;
+- component size and raw mass;
+- strongest foreign culture/share at the cell;
+- interior holes as derived component gaps.
+
+Consumers should query the kernel boundary program or a projection populated
+from it. Minor actors, low-altitude influence verbs, generator placement,
+culture slots, MC telemetry, and UI overlays should not reimplement their own
+boundary/component formulas.
+
+The current strength thresholds are:
+
+| Band | Raw mass |
+| --- | ---: |
+| trace | `5+` |
+| claimed | `30+` |
+| controlled | `100+` |
+| entrenched | `300+` |
+| nexus | `700+` |
+
+Cleanup actions reduce raw mass for all non-own cultures at the target cell.
+They never write the derived share layer directly.
+
+Entity-level influence production is still tracked as attribution and scoring
+evidence, especially for culture slots. It is not the durable territorial layer.
+
+## Cultural Slots, Work Tiers, And Labor
+
+The kernel has a static cultural slot program. The domain registers the slot
+vocabulary, allowed entity kinds, polarity (`positive`, `neutral`, or
+`negative`), scoring signals, and benefits. A slot is occupied by a specific
+entity only when that entity scores well enough and survives hysteresis against
+the incumbent. Slots are not faction-only: settlements, factions, regions,
+points of interest, artifacts, penguins, transports, occurrences, abilities, or
+other authored kinds may be eligible depending on the slot definition.
+
+Slot occupation matters mechanically:
+
+- it contributes to entity health/effects;
+- it raises culture influence production through slot benefits;
+- it raises the causal-spend limit for generator targets;
+- it increases minor actor emission/effective work through the same multiplier.
+
+Entities inside a supported cultural mass can use the domain-authored
+`Deepen the Holding` gambit to increase work tier. Work tier has no authored
+maximum in the current Ice Remembers config. Each tier increases the worker cap
+and operating radius for that source entity.
+
+Minor actors are unnamed worker cohorts stored in the kernel, not graph
+entities. They are emitted by active named entities and perform local culture
+labor: reinforcing home mass, extending connected borders, bridging holes,
+cleaning foreign traces, maintaining roads, and sustaining the source's
+lifecycle. This gives culture a low-salience metabolic layer without adding
+more named entities for the player to track.
 
 ## Culture in the Domain Package
 

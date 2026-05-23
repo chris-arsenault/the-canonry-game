@@ -9,7 +9,7 @@ set.
 | Kind | Category | Primary Plane | Current Role |
 | --- | --- | --- | --- |
 | `region` | Spatial | Semantic | Named geographic or mythic area; owns map coverage. |
-| `settlement` | Spatial | Semantic | Built locality; grows influence and sometimes coverage. |
+| `settlement` | Spatial | Semantic | Built locality; grows culture influence and sometimes coverage. |
 | `point_of_interest` | Spatial | Semantic | Named natural feature — vent, peak, krill bloom, shoal. Smaller than a region, never built. |
 | `faction` | Agency | Semantic | Organized doctrine, office, compact, cell, or choir. |
 | `penguin` | Agency | Physical | Named individual penguin; mobile actor. |

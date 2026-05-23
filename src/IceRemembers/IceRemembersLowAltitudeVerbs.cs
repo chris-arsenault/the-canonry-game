@@ -69,8 +69,6 @@ public static partial class IceRemembersDefinition
             targetKind: K.PointOfInterest, ticks: (45, 130), dwell: 14, radius: 1, samples: 12, weight: 0.55f, opportunityBonusOverride: 1.1f),
         MovementVerb(Verb.AbilitySurfaceInTheReach, "Surface in the Reach", K.Ability, Mode.Explore,
             ticks: (60, 160), dwell: 6, samples: 22, weight: 0.5f, opportunityBonusOverride: 0.3f),
-        MovementVerb(Verb.PointOfInterestYieldBounty, "Yield Bounty", K.PointOfInterest, Mode.Terrain,
-            terrains: MaritimeTerrains(), ticks: (50, 140), dwell: 16, radius: 1, samples: 20, weight: 0.5f, opportunityBonusOverride: 0.4f),
         MovementVerb(Verb.TransportSailTheShelf, "Sail the Shelf", K.Transport, Mode.Terrain,
             terrains: MaritimeTerrains(), ticks: (35, 110), dwell: 12, radius: 1, samples: 28, weight: 1.0f, opportunityBonusOverride: 0.4f,
             travelInfluence: (0.6f, 0)),

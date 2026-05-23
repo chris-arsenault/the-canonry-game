@@ -13,49 +13,38 @@ Current verb families:
 - movement on the physical plane;
 - movement on the semantic plane;
 - relationship strength mutation on existing relationships;
-- growing owned influence;
-- consolidating owned influence;
-- reducing targetable foreign influence;
+- growing owned culture influence;
+- consolidating owned culture influence;
+- reducing targetable foreign culture influence;
 - rare coverage expansion;
 - rare anchor relocation.
 
 All active entity kinds can participate. Mobile entities make the map live by
 moving. Static or semantic-primary entities make the map live by moving on the
-semantic plane and by projecting influence over cells or semantic coordinates.
+semantic plane, projecting culture influence, or emitting minor labor.
 
 The domain config supplies kind, plane, operation, target mode, timing, base
 weight, opportunity bonus, relationship fitness, relationship-strength delta,
-influence parameters, and targeting filters.
+culture influence parameters, and targeting filters.
 `Engine.Gameplay` validates the authored shape and compiles it into primitive
 kernel program data. `Engine.Kernel` executes only ids, opcodes, numeric
 weights, and fixed arrays.
 
 ## Authored Taxonomy
 
-The Ice Remembers domain currently authors 98 low-altitude verbs:
+The Ice Remembers domain authors low-altitude verbs across movement,
+relationship strength, culture influence, coverage, relocation, and work-tier
+growth. Counts are intentionally not part of the durable design contract; when
+checking exact coverage, inspect the authored catalog in
+`src/IceRemembers/IceRemembersLowAltitudeVerbs.cs`.
 
-- Physical movement, 22 verbs: penguin exploration/visiting/fishing/relic
-  following; artifact circulation/bearer/shrine/scar/sea movement; orca hunt,
-  patrol, and pod calls; monster stirring/heat/fissure motion; ability and
-  point-of-interest surfacing/yielding; transport sailing, port, patrol, and
-  captain-following.
-- Semantic movement, 18 verbs: settlement deliberation/gossip; faction
-  preaching/quarreling; region communing/dreaming; orca deed-name motion;
-  point-of-interest resonance/calling/echoing; ability bearer/region/lineage
-  movement; monster semantic reach; transport charter motion; occurrence
-  word-spreading and faction-drawing.
-- Relationship strength mutation, 13 verbs: factions strengthen or fray
-  alliances, factions inflame or cool rivalries, settlements tend trade
-  routes, abilities reinforce practice, let practice fade, or charge conduits,
-  orcas reinforce pod ties, points of interest loosen claims, monsters deepen
-  corruption, transports overstrain conduits, and occurrences exhaust wars.
-  These mutate only existing relationship strength; they do not create
-  relationship topology.
-- Semantic influence, 28 verbs: entities grow, consolidate, or reduce semantic
-  influence around themselves, related targets, or foreign influence.
-- Physical influence, 15 ordinary verbs plus 2 rare structural verbs: entities
-  grow, consolidate, or reduce physical influence; settlements can expand
-  coverage; factions can relocate their physical seat.
+Movement verbs create physical and semantic travel around entity-local,
+relationship-local, terrain, and culture targets. Relationship-strength verbs
+mutate only existing relationship strength; they do not create relationship
+topology. Culture influence verbs grow, consolidate, spread, or clean up the
+actor's culture field on the relevant plane. Structural verbs remain rare:
+settlements can expand coverage, factions can relocate their physical seat, and
+entities inside a supported culture mass can deepen their work tier.
 
 ## Targeting
 
@@ -71,9 +60,10 @@ Candidate scores can consider:
 - previous-tick cell saturation;
 - recent-target cooldown;
 - relationship fitness against authored deficit or surplus thresholds;
-- influence shortfall or foreign influence presence;
+- culture-boundary state, connected mass, headroom, and foreign culture
+  presence;
 - generator and gambit affordance rows compiled into the verb data;
-- terrain, entity-kind, relationship, and foreign-influence filters.
+- terrain, entity-kind, relationship, and foreign-culture influence filters.
 
 Affordances are target-level pressure, not a separate action type. Matching
 affordance rows are combined with diminishing returns, multiply the candidate
@@ -91,10 +81,10 @@ trait-name or kind-name special cases inside the low-altitude runtime.
 
 Generator and gambit affordances may only point at things low-altitude verbs
 can actually do. Some generator and gambit preconditions are intentionally met
-through low-altitude behavior, such as moving to a locality, growing influence,
-or changing strength on an existing relationship. Other preconditions are only
-created by generators or gambits, and that breakpoint is part of the layer
-model.
+through low-altitude behavior, such as moving to a locality, growing culture
+influence, or changing strength on an existing relationship. Other
+preconditions are only created by generators or gambits, and that breakpoint is
+part of the layer model.
 
 Low-altitude verbs may mutate existing relationship strength, but they do not
 create or remove relationship topology. A relationship-existence precondition
@@ -110,15 +100,31 @@ The goal is not perfect local optimality. The goal is map life: entities should
 commit to plausible medium-term behavior, wander and dwell around targets, and
 produce activity that later systems can read.
 
-## Map Influence
+## Culture Influence
 
-Influence is non-exclusive. Multiple entities can influence the same cell or
-semantic point. Physical coverage ownership is separate and rare; influence can
-grow without claiming ownership.
+The low-altitude influence verbs now write culture tile influence, not a
+durable per-entity territorial layer. The acting entity's culture determines
+which culture receives raw mass. Targeting uses the kernel culture-boundary
+model so actions prefer connected mass, borders, holes, and contested cells
+instead of sampling unrelated cells.
 
-Settlements and factions use influence to make static entities visible on the
-map. Penguins and artifacts can exert semantic influence even when their primary
-movement is physical.
+Reducing foreign influence removes raw mass from every non-own culture at the
+targeted cell. This keeps contested cells resolvable without mutating a
+derived share cache.
+
+Entity influence production is still tracked as attribution: a slot occupant or
+long-lived entity can be credited for producing culture influence, and that
+history can feed slot scoring or telemetry.
+
+## Minor Actors
+
+Minor actors are not graph entities, but they are part of behavior. They are
+unnamed worker cohorts emitted by active entities. They run at the simulation
+tick cadence, move or operate through local neighborhoods, and execute a small
+verb set for culture reinforcement, border extension, gap bridging, foreign
+trace cleanup, road maintenance, and source lifecycle support.
+
+See [21 Minor Actors](./21-minor-actors.md).
 
 ## Gambits
 

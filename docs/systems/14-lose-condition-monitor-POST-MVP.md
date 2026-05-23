@@ -15,8 +15,8 @@ used for simulation tuning:
 ## Candidate Failure Modes
 
 - **Extinction:** too few active entities remain.
-- **Stagnation:** entities exist but movement, influence, relationships, and
-  gambits stop changing.
+- **Stagnation:** entities exist but movement, culture influence, minor labor,
+  relationships, and gambits stop changing.
 - **Monoculture:** one culture, faction, settlement cluster, or relationship
   component dominates everything.
 - **Spatial collapse:** active entities cluster in a narrow corridor or small

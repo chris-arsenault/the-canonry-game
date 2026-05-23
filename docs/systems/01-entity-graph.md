@@ -18,8 +18,8 @@ historical rather than being erased.
   Runtime event history and provenance describe how those edges came to exist
   or change.
 - The graph topology is sparse and meaningful. Generators and gambits create or
-  change relationships. Low-altitude physics mainly moves entities, changes map
-  influence, changes health, and adjusts relationship strengths.
+  change relationships. Low-altitude physics mainly moves entities, changes
+  culture influence, changes health, and adjusts relationship strengths.
 - Relationship absence is meaningful. A generator or gambit can require that an
   edge is absent.
 - Historical entities remain queryable so later generators, gambits, and UI
@@ -32,8 +32,8 @@ historical rather than being erased.
   topology.
 - Physical and semantic placement are entity state used by map and relationship
   programs.
-- Map coverage and influence are map-owned spatial state, even when attached to
-  named regions, settlements, or factions.
+- Map coverage and culture influence are map-owned spatial state, even when
+  attached to named regions, settlements, or factions.
 - Kernel programs must see compiled IDs, not domain strings.
 
 ## Current Writers
@@ -44,7 +44,7 @@ historical rather than being erased.
 | Gambits | Create or invert significant relationships, modify status, or apply major effects. |
 | Lifecycle | Transitions entities out of active simulation when health reaches terminal states. |
 | Relationship maintenance | Changes relationship strength, not topology. |
-| Low-altitude verbs | Move entities and alter influence/coverage, not graph topology. |
+| Low-altitude verbs | Move entities and alter culture influence/coverage, not graph topology. |
 
 ## Quality Rules
 

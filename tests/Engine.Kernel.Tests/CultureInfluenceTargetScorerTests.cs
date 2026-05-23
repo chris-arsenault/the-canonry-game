@@ -131,6 +131,78 @@ public sealed class CultureInfluenceTargetScorerTests
     }
 
     [Fact]
+    public void Reinforce_RepairsInteriorHoleWithNoOwnRaw()
+    {
+        var interiorHole = Score(
+            LowAltitudeInfluenceTargetingCodes.Reinforce,
+            ownShare: 0f,
+            ownRaw: 0f,
+            entityInfluence: 0f,
+            foreignShare: 0f,
+            attachedMass: 24f,
+            adjacentSupportedCount: 6,
+            attachedComponentCount: 1);
+        var unsupportedGap = Score(
+            LowAltitudeInfluenceTargetingCodes.Reinforce,
+            ownShare: 0f,
+            ownRaw: 0f,
+            entityInfluence: 0f,
+            foreignShare: 0f,
+            attachedMass: 0f,
+            adjacentSupportedCount: 0,
+            attachedComponentCount: 0);
+
+        Assert.True(interiorHole > 0f);
+        Assert.Equal(0f, unsupportedGap);
+    }
+
+    [Fact]
+    public void Spread_InteriorHoleBeatsEquivalentOuterFrontier()
+    {
+        var interiorHole = ScoreSpread(
+            ownShare: 0f,
+            ownRaw: 0f,
+            attachedMass: 24f,
+            adjacentSupportedCount: 6,
+            attachedComponentCount: 1);
+        var outerFrontier = ScoreSpread(
+            ownShare: 0f,
+            ownRaw: 0f,
+            attachedMass: 24f,
+            adjacentSupportedCount: 1,
+            attachedComponentCount: 1);
+
+        Assert.True(interiorHole > outerFrontier * 3f);
+    }
+
+    [Fact]
+    public void Contest_InteriorHoleUsesAdjacentMassAsCleanupAnchor()
+    {
+        var interiorHole = Score(
+            LowAltitudeInfluenceTargetingCodes.Contest,
+            ownShare: 0f,
+            ownRaw: 0f,
+            entityInfluence: 0f,
+            foreignShare: 100f,
+            foreignRaw: 100f,
+            attachedMass: 24f,
+            adjacentSupportedCount: 6,
+            attachedComponentCount: 1);
+        var weakBorder = Score(
+            LowAltitudeInfluenceTargetingCodes.Contest,
+            ownShare: 8f,
+            ownRaw: 8f,
+            entityInfluence: 0f,
+            foreignShare: 100f,
+            foreignRaw: 100f,
+            attachedMass: 1f,
+            adjacentSupportedCount: 1,
+            attachedComponentCount: 1);
+
+        Assert.True(interiorHole > weakBorder * 4f);
+    }
+
+    [Fact]
     public void Spread_AllowsWeakSelfBootstrapButKeepsItBelowComponentFrontier()
     {
         var bootstrap = ScoreSpread(
@@ -229,7 +301,7 @@ public sealed class CultureInfluenceTargetScorerTests
     }
 
     [Fact]
-    public void ComponentScratch_AttachmentUsesWholeConnectedComponents()
+    public void BoundaryAttachment_UsesWholeConnectedComponents()
     {
         var simulation = new Simulation(new SimulationOptions { Seed = 77 });
         simulation.World.SetMapRadius(4);
@@ -242,14 +314,11 @@ public sealed class CultureInfluenceTargetScorerTests
             simulation.SetCellInfluence(entityId, PlaneCodes.Physical, 0, -1, 30f, tick: 0);
         }
 
-        var scratch = new CultureInfluenceComponentScratch();
-        scratch.Build(simulation.World, cultureId: 1, PlaneCodes.Physical);
+        var attachment = simulation.CultureBoundaries.CellAt(simulation.World, 1, PlaneCodes.Physical, 0, 1);
 
-        var mainAttachment = scratch.AttachmentAt(0, 1);
-
-        Assert.True(mainAttachment.ComponentMass >= 4f);
-        Assert.True(mainAttachment.AdjacentSupportedCount >= 2);
-        Assert.Equal(1, mainAttachment.ComponentCount);
+        Assert.True(attachment.AttachedComponentScoreMass >= 1f);
+        Assert.True(attachment.SupportedAdjacentCount >= 2);
+        Assert.Equal(1, attachment.AttachedComponentCount);
     }
 
     private static float ScoreSpread(

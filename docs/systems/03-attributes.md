@@ -49,7 +49,7 @@ or decision-modifier primitives.
 Current operation primitives:
 
 - `TraitAttributeDeltaOperationConfig`: per-tick health delta gated by map
-  signal, relationship distance, relationship influence, and optional
+  signal, relationship distance, related culture influence, and optional
   target/related trait bearer. These rules execute through the shared effect
   path.
 - `TraitLowAltitudeWeightOperationConfig`: modifies low-altitude verb weights,

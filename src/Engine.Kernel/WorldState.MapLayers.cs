@@ -366,7 +366,7 @@ internal sealed partial class WorldState
         return current - previous;
     }
 
-    internal void ModifyCellCultureInfluenceRawFromEntity(
+    internal float ModifyCellCultureInfluenceRawFromEntity(
         int entityId,
         int planeCode,
         int q,
@@ -379,7 +379,7 @@ internal sealed partial class WorldState
         var cultureId = EntityCultureId(entityId);
         if (cultureId <= 0)
         {
-            return;
+            return 0f;
         }
 
         var weightedDelta = delta * EffectiveCultureInfluenceMultiplier(entityId);
@@ -395,6 +395,8 @@ internal sealed partial class WorldState
         {
             AddEntityInfluenceProduction(entityId, planeCode, applied);
         }
+
+        return applied;
     }
 
     internal float ReduceOtherCultureSourcesAtCell(
@@ -404,11 +406,14 @@ internal sealed partial class WorldState
         int r,
         float delta,
         int tick,
-        in KernelExecutionContext context)
+        in KernelExecutionContext context,
+        global::System.Span<int> changedCultureIds,
+        out int changedCultureCount)
     {
         ValidatePositive(ownCultureId);
         ValidateInfluencePlaneCode(planeCode);
         ValidatePositive(context.SourceCodeId);
+        changedCultureCount = 0;
         if (delta <= 0f)
         {
             return 0f;
@@ -429,8 +434,15 @@ internal sealed partial class WorldState
             }
 
             var appliedDelta = global::System.MathF.Min(delta, influence);
-            _ = ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, -appliedDelta, tick, context);
-            removed += appliedDelta;
+            var applied = ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, -appliedDelta, tick, context);
+            if (applied == 0f)
+            {
+                continue;
+            }
+
+            changedCultureIds[changedCultureCount] = cultureId;
+            changedCultureCount++;
+            removed -= applied;
         }
 
         return removed;

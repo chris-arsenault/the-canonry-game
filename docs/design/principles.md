@@ -43,11 +43,12 @@ possible.
 
 ### 1. The world is always alive
 
-Game systems always run. Entities move or exert influence. Relationships
-shift. Artifacts degrade and resonate. Entities age and die. Map activity,
-support, threat, crowding, and influence accumulate as evidence. These are
-the physics of the world — not configurable, not optional, always on. The
-world doesn't need the player to exist. It needs the player to have a nature.
+Game systems always run. Entities move, shape culture influence, or emit minor
+labor. Relationships shift. Artifacts degrade and resonate. Entities age and
+die. Map activity, support, threat, crowding, and culture evidence accumulate.
+These are the physics of the world — not configurable, not optional, always on.
+The world doesn't need the player to exist. It needs the player to have a
+nature.
 
 ### 2. The deck defines nature, not state
 

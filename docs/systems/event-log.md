@@ -11,8 +11,8 @@ analysis remains in parquet telemetry.
 
 ## Event Sources
 
-- Low-altitude verbs: movement commitments, influence changes, coverage growth,
-  headquarters moves when surfaced.
+- Low-altitude verbs: movement commitments, culture influence changes, coverage
+  growth, work-tier growth, and headquarters moves when surfaced.
 - Relationship maintenance: significant relationship strength changes or culls.
 - Effects/upkeep/lifecycle: health changes, aging, death, collapse, historical
   transitions.

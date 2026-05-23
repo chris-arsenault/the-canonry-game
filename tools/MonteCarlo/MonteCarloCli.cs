@@ -208,9 +208,11 @@ internal static class MonteCarloCli
 
         using var summaryRecorder = new MonteCarloRunSummaryRecorder(run);
         using var stateRecorder = CreateStateRecorder(run, options, runId, seed);
+        var boundaryBirthEntityIds = new HashSet<int>();
+        RecordStateSnapshots(run, stateRecorder, run.Host.CurrentTick, options, boundaryBirthEntityIds);
 
         var elapsed = Stopwatch.StartNew();
-        var processedTicks = AdvanceTicks(run, options, summaryRecorder, stateRecorder);
+        var processedTicks = AdvanceTicks(run, options, summaryRecorder, stateRecorder, boundaryBirthEntityIds);
         var summary = summaryRecorder.Snapshot();
         var stateRowsWritten = FlushStateTelemetry(stateRecorder, stateStore);
         elapsed.Stop();
@@ -255,7 +257,6 @@ internal static class MonteCarloCli
             mapSnapshotCadence: options.EntitySnapshotCadence,
             generatorSnapshotCadence: options.EntitySnapshotCadence);
         RecordMapGenerationAccepted(recorder.Batch, recorder.RunId, run.WorldSeed);
-        RecordStateSnapshots(recorder, run.Host.CurrentTick, options);
         return recorder;
     }
 
@@ -263,7 +264,8 @@ internal static class MonteCarloCli
         MonteCarloKernelRun run,
         MonteCarloOptions options,
         MonteCarloRunSummaryRecorder summaryRecorder,
-        KernelTelemetryRecorder stateRecorder)
+        KernelTelemetryRecorder stateRecorder,
+        ISet<int> boundaryBirthEntityIds)
     {
         var processedTicks = 0;
         for (var tickIndex = 0; tickIndex < options.Ticks; tickIndex++)
@@ -277,7 +279,7 @@ internal static class MonteCarloCli
             processedTicks += advanced;
             var currentTick = run.Host.CurrentTick;
             summaryRecorder.DrainAvailable();
-            RecordStateSnapshots(stateRecorder, currentTick, options);
+            RecordStateSnapshots(run, stateRecorder, currentTick, options, boundaryBirthEntityIds);
         }
 
         return processedTicks;
@@ -292,12 +294,23 @@ internal static class MonteCarloCli
     }
 
     private static void RecordStateSnapshots(
+        MonteCarloKernelRun run,
         KernelTelemetryRecorder recorder,
         int tick,
-        MonteCarloOptions options)
+        MonteCarloOptions options,
+        ISet<int> boundaryBirthEntityIds)
     {
-        recorder.RecordSnapshots(tick, IncludeEntitySnapshot(options, tick));
+        var includeEntities = IncludeEntitySnapshot(options, tick);
+        recorder.RecordSnapshots(tick, includeEntities);
+        run.Host.RecordCultureBoundaryBirthTelemetry(recorder.Batch, recorder.RunId, boundaryBirthEntityIds);
+        if (ShouldRecordSnapshot(tick, options.EntitySnapshotCadence))
+        {
+            run.Host.RecordCultureBoundaryTelemetry(recorder.Batch, recorder.RunId, tick, includeEntities);
+        }
     }
+
+    private static bool ShouldRecordSnapshot(int tick, int cadence) =>
+        cadence <= 0 || tick % cadence == 0;
 
     private static bool IncludeEntitySnapshot(MonteCarloOptions options, int tick) =>
         !options.DisableEntitySnapshots &&

@@ -280,24 +280,50 @@ internal sealed partial class GeneratorProgramRuntime
             distance >= minRadius &&
             distance <= maxRadius &&
             PlacementCellIsFree(simulation.World, planeCode, q, r) &&
-            PlacementCellAllowsCulture(simulation.World, planeCode, producedSlot, producedCultureId, q, r) &&
+            PlacementCellAllowsCulture(simulation, planeCode, producedSlot, producedCultureId, q, r) &&
             PlacementTerrainIsAllowed(simulation, planeCode, producedSlot, movementProfileId, q, r);
     }
 
     private bool PlacementCellAllowsCulture(
-        WorldState world,
+        Simulation simulation,
         int planeCode,
         int producedSlot,
         int producedCultureId,
         int q,
         int r)
     {
-        if (_producedCulturePlacementCodes[producedSlot] == GeneratorCulturePlacementCodes.HostileIntrusion)
+        return _producedCulturePlacementCodes[producedSlot] switch
         {
-            return true;
+            GeneratorCulturePlacementCodes.HostileIntrusion => true,
+            GeneratorCulturePlacementCodes.PreferInheritedCulture or GeneratorCulturePlacementCodes.Ignore =>
+                PlacementCellAllowsNonHostileCulture(simulation, planeCode, producedCultureId, q, r),
+            _ => PlacementCellAllowsNonHostileCulture(simulation, planeCode, producedCultureId, q, r),
+        };
+    }
+
+    private bool PlacementCellAllowsNonHostileCulture(
+        Simulation simulation,
+        int planeCode,
+        int producedCultureId,
+        int q,
+        int r)
+    {
+        if (producedCultureId > 0)
+        {
+            var boundary = simulation.CultureBoundaries.CellAt(simulation.World, producedCultureId, planeCode, q, r);
+            return boundary.ForeignRawMass < WorldState.CultureEntrenchedRawMass;
         }
 
-        return StrongestOtherCultureRawInfluence(world, producedCultureId, planeCode, q, r) < WorldState.CultureEntrenchedRawMass;
+        for (var cultureId = 1; cultureId <= simulation.World.CultureHighWatermark; cultureId++)
+        {
+            var boundary = simulation.CultureBoundaries.CellAt(simulation.World, cultureId, planeCode, q, r);
+            if (boundary.RawMass >= WorldState.CultureEntrenchedRawMass)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private bool PlacementCellIsFree(WorldState world, int planeCode, int q, int r)
@@ -335,14 +361,14 @@ internal sealed partial class GeneratorProgramRuntime
         var terrainId = simulation.World.CellTerrainId(planeCode, q, r);
         var score = TerrainBasePlacementScore(planeCode, producedSlot, terrainId);
         score += PreferredNeighborPlacementScore(simulation.World, planeCode, producedSlot, q, r);
-        score += CulturePlacementScore(simulation.World, planeCode, producedSlot, producedCultureId, q, r);
+        score += CulturePlacementScore(simulation, planeCode, producedSlot, producedCultureId, q, r);
         score -= KernelQuery.HexDistance(0, 0, q, r);
         score += global::System.Math.Max(0, PlacementOriginBonusBase - (KernelQuery.HexDistance(originQ, originR, q, r) * PlacementOriginBonusStep));
         return score;
     }
 
     private int CulturePlacementScore(
-        WorldState world,
+        Simulation simulation,
         int planeCode,
         int producedSlot,
         int producedCultureId,
@@ -355,33 +381,33 @@ internal sealed partial class GeneratorProgramRuntime
             return 0;
         }
 
-        var ownInfluence = world.GetCellCultureInfluence(producedCultureId, planeCode, q, r);
-        var ownRawInfluence = world.GetCellCultureInfluenceRaw(producedCultureId, planeCode, q, r);
-        var foreignInfluence = StrongestOtherCultureInfluence(world, producedCultureId, planeCode, q, r);
-        var adjacentRawInfluence = AdjacentCultureRawInfluence(world, producedCultureId, planeCode, q, r, out var strongestAdjacentRawInfluence);
-        var connectedRawInfluence = ownRawInfluence + adjacentRawInfluence;
-        if (CulturePlacementIsDominant(ownInfluence, ownRawInfluence, foreignInfluence))
+        var boundary = simulation.CultureBoundaries.CellAt(simulation.World, producedCultureId, planeCode, q, r);
+        var connectedRawInfluence = CulturePlacementConnectedMass(boundary);
+        if (CulturePlacementIsDominant(boundary.Share, boundary.RawMass, boundary.ForeignShare))
         {
             return PlacementCultureDominantScore + CulturePlacementConnectedBonus(connectedRawInfluence);
         }
 
-        if (CulturePlacementIsPresent(ownInfluence, ownRawInfluence, foreignInfluence))
+        if (CulturePlacementIsPresent(boundary.Share, boundary.RawMass, boundary.ForeignShare))
         {
             return PlacementCulturePresentScore + CulturePlacementConnectedBonus(connectedRawInfluence);
         }
 
-        if (ownRawInfluence >= PlacementCultureTraceRawInfluence)
+        if (boundary.RawMass >= PlacementCultureTraceRawInfluence)
         {
             return PlacementCultureTraceScore;
         }
 
-        if (CulturePlacementHasSupportedAdjacency(adjacentRawInfluence, strongestAdjacentRawInfluence))
+        if (CulturePlacementHasSupportedAdjacency(boundary))
         {
             return PlacementCultureAdjacentScore + CulturePlacementConnectedBonus(connectedRawInfluence);
         }
 
-        return foreignInfluence >= 50f ? -PlacementForeignDominantPenalty : 0;
+        return boundary.ForeignShare >= 50f ? -PlacementForeignDominantPenalty : 0;
     }
+
+    private static float CulturePlacementConnectedMass(CultureBoundaryCell boundary) =>
+        global::System.MathF.Max(boundary.ConnectedRawMass, boundary.AttachedComponentScoreMass);
 
     private static int CulturePlacementConnectedBonus(float connectedRawInfluence) =>
         (int)(global::System.MathF.Min(1f, connectedRawInfluence / PlacementCultureConnectedBonusRawInfluence) * 240f);
@@ -400,81 +426,10 @@ internal sealed partial class GeneratorProgramRuntime
         ownRawInfluence >= PlacementCultureSupportedRawInfluence &&
         ownInfluence >= foreignInfluence * 0.75f;
 
-    private static bool CulturePlacementHasSupportedAdjacency(
-        float adjacentRawInfluence,
-        float strongestAdjacentRawInfluence) =>
-        strongestAdjacentRawInfluence >= PlacementCultureDominantRawInfluence ||
-        adjacentRawInfluence >= PlacementCultureDominantRawInfluence;
-
-    private static float StrongestOtherCultureInfluence(
-        WorldState world,
-        int ownCultureId,
-        int planeCode,
-        int q,
-        int r)
-    {
-        var influence = 0f;
-        for (var otherCultureId = 1; otherCultureId <= world.CultureHighWatermark; otherCultureId++)
-        {
-            if (otherCultureId == ownCultureId)
-            {
-                continue;
-            }
-
-            influence = global::System.MathF.Max(
-                influence,
-                world.GetCellCultureInfluence(otherCultureId, planeCode, q, r));
-        }
-
-        return influence;
-    }
-
-    private static float StrongestOtherCultureRawInfluence(
-        WorldState world,
-        int ownCultureId,
-        int planeCode,
-        int q,
-        int r)
-    {
-        var rawInfluence = 0f;
-        for (var otherCultureId = 1; otherCultureId <= world.CultureHighWatermark; otherCultureId++)
-        {
-            if (otherCultureId == ownCultureId)
-            {
-                continue;
-            }
-
-            rawInfluence = global::System.MathF.Max(
-                rawInfluence,
-                world.GetCellCultureInfluenceRaw(otherCultureId, planeCode, q, r));
-        }
-
-        return rawInfluence;
-    }
-
-    private static float AdjacentCultureRawInfluence(
-        WorldState world,
-        int cultureId,
-        int planeCode,
-        int q,
-        int r,
-        out float strongestRawInfluence)
-    {
-        strongestRawInfluence = 0f;
-        var total = 0f;
-        for (var direction = 0; direction < 6; direction++)
-        {
-            var raw = world.GetCellCultureInfluenceRaw(
-                cultureId,
-                planeCode,
-                q + DirectionQ(direction),
-                r + DirectionR(direction));
-            total += raw;
-            strongestRawInfluence = global::System.MathF.Max(strongestRawInfluence, raw);
-        }
-
-        return total;
-    }
+    private static bool CulturePlacementHasSupportedAdjacency(CultureBoundaryCell boundary) =>
+        boundary.StrongestAdjacentRawMass >= PlacementCultureDominantRawInfluence ||
+        boundary.LocalRawMass - boundary.RawMass >= PlacementCultureDominantRawInfluence ||
+        boundary.AttachedComponentScoreMass >= PlacementCultureDominantRawInfluence;
 
     private int TerrainBasePlacementScore(int planeCode, int producedSlot, int terrainId)
     {

@@ -25,7 +25,8 @@ entities, initial relationships, and initial physical/semantic placement.
 
 `Engine.Kernel` is the deterministic simulation runtime: fixed-capacity state,
 primitive events, program execution, movement, relationships, generators,
-gambits, effects, upkeep, map activity, and map signals.
+gambits, effects, upkeep, map activity, map signals, culture boundaries,
+culture slots, and minor actors.
 
 `Engine.Gameplay` is the reusable authored-rules vocabulary that compiles domain
 configuration into primitive kernel program data.
@@ -34,7 +35,11 @@ configuration into primitive kernel program data.
 relationships, verbs, gambits, generators, lifecycles, effects, and seed data.
 
 Low-altitude verbs are committed entity behaviors that create ordinary movement,
-influence, relationship-strength changes, and other per-entity world churn.
+culture influence, relationship-strength changes, and other entity-driven world
+churn.
+
+Minor actors are unnamed worker cohorts in kernel state, not graph entities.
+They provide frequent local labor for culture, roads, and lifecycle support.
 
 Map activity and map signals summarize where entities act and emit support,
 threat, capacity, and attraction pressures over physical and semantic space.
@@ -126,8 +131,9 @@ analysis:
 - Do not write one-off C# analysis scripts unless the task is product/tooling
   implementation.
 - Do not introduce CSV as the analysis format.
-- Lead low-altitude analysis with map utilization, roaming variance, influence
-  shape, lifecycle churn, and relationship dynamics, not generator fire counts.
+- Lead low-altitude analysis with map utilization, roaming variance, culture
+  shape, minor actor labor, lifecycle churn, and relationship dynamics, not
+  generator fire counts.
 - Every Monte Carlo evidence run must use the MC CLI registry workflow with a
   unique human-readable `--run-id`; cite run ids in findings, not only paths.
 - Do not create, rename, edit, or delete Monte Carlo registry or manifest files

@@ -8,11 +8,11 @@ internal sealed class MapLayerSet
     private readonly MapScalarEntityLayer _rawCultureInfluence;
     private readonly MapScalarEntityLayer _cultureInfluence;
 
-    internal MapLayerSet(int entityCapacity, int mapCellCapacity, int mapInfluenceCapacity)
+    internal MapLayerSet(int entityCapacity, int cultureIdCapacity, int mapCellCapacity, int mapInfluenceCapacity)
     {
         _coverage = new MapUniqueEntityLayer(entityCapacity, mapCellCapacity);
-        _rawCultureInfluence = new MapScalarEntityLayer(entityCapacity, mapInfluenceCapacity);
-        _cultureInfluence = new MapScalarEntityLayer(entityCapacity, mapInfluenceCapacity);
+        _rawCultureInfluence = new MapScalarEntityLayer(cultureIdCapacity, mapInfluenceCapacity);
+        _cultureInfluence = new MapScalarEntityLayer(cultureIdCapacity, mapInfluenceCapacity);
     }
 
     internal MapUniqueEntityLayer Coverage => _coverage;

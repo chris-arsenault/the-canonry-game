@@ -22,7 +22,7 @@ Useful precondition families:
 - health threshold
 - trait presence or absence
 - physical or semantic distance
-- map coverage or influence
+- map coverage or culture influence
 - map-signal threshold
 - cooldown / cadence
 - target availability

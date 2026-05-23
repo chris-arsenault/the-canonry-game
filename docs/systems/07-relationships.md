@@ -31,7 +31,7 @@ low-altitude verbs on making those edges stronger or weaker.
 
 | Relationship | Strength? | Source / sink posture |
 | --- | --- | --- |
-| `controlled_by` | Yes | Faction influence and contact can strengthen control; decay weakens it. |
+| `controlled_by` | Yes | Culture influence and contact can strengthen control; decay weakens it. |
 | `home_base` | No | Home is a binary attachment; move or replace the edge instead. |
 | `allied_with` | Yes | Factions can tend or fray alliances through low altitude. |
 | `rival_of` | Yes | Factions can inflame or cool rivalries through low altitude. |
@@ -40,7 +40,7 @@ low-altitude verbs on making those edges stronger or weaker.
 | `holds` | No | Possession is a binary attachment; create, move, or remove the edge instead. |
 | `created_by` | No | Provenance is historical, not a live intensity. |
 | `memorializes` | Yes | Semantic proximity/contact can strengthen memory; decay weakens it. |
-| `claimed_by` | Yes | Claimant influence/contact can strengthen a claim; points of interest can loosen claims; decay weakens it. |
+| `claimed_by` | Yes | Claimant culture influence/contact can strengthen a claim; points of interest can loosen claims; decay weakens it. |
 | `trade_route` | Yes | Settlements can tend routes; route-drawing generators can spend route strength. |
 | `founded_from` | No | Provenance is historical, not a live intensity. |
 | `native_to` | No | Origin identity is binary. |
@@ -64,8 +64,8 @@ into the relationship kernel program. Rules can read:
 - configured plane co-presence;
 - configured plane contact memory;
 - same or different culture;
-- source influence at target;
-- target influence at source.
+- source culture influence at target;
+- target culture influence at source.
 
 The rule plane is semantic meaning, not relationship type. A semantic
 relationship may strengthen through physical closeness if encounters matter. A
@@ -96,7 +96,8 @@ explicit relationship-strength mutation.
 Map signals use relationships to emit support or threat around related
 entities.
 
-Effects use relationships, influence, and distance to modify health.
+Effects use relationships, culture influence, culture slot occupancy, and
+distance to modify health.
 
 Gambits and generators use relationships as preconditions and outputs.
 

@@ -12,7 +12,10 @@ and dirty sets, while Godot render components own node mutation.
 - Render terrain and region coverage.
 - Render physical entity positions and movement.
 - Render semantic position in the bounded semantic plane.
-- Render influence overlays by entity and plane.
+- Render legacy/entity-attribution influence overlays when the projection has
+  event data for them.
+- Render cultural influence and boundary overlays from kernel boundary
+  projection data.
 - Render activity and signal overlays when useful for debugging or play.
 - Show active entities by default.
 - Keep historical/dead entities available for explicit history views rather
@@ -26,8 +29,10 @@ The map should help answer these questions quickly:
 
 - Where are entities actually spending time?
 - Which areas are empty or underused?
-- Which settlements, factions, or artifacts are exerting influence?
-- Are influence fields blob-like enough to read, or degenerating into thin
+- Which cultures dominate, contest, or barely trace a cell?
+- Where are cultural interiors, borders, isolated pockets, contested cells, and
+  nexuses?
+- Are culture fields blob-like enough to read, or degenerating into thin
   disconnected spider legs?
 - Which regions, settlements, and relationships explain a generator or gambit
   becoming available?
@@ -42,8 +47,10 @@ The map should help answer these questions quickly:
 
 Useful overlays for tuning:
 
-- physical influence by entity
-- semantic influence by entity
+- legacy/entity-attribution physical influence
+- legacy/entity-attribution semantic influence
+- cultural boundary kind and strength band
+- cultural component id and size
 - recent movement trails
 - recent verb commitments
 - map activity heat

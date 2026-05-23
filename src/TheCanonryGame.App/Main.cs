@@ -193,8 +193,9 @@ public partial class Main : Node2D
 
     private void AdjustZoom(float factor)
     {
-        _camera!.Zoom *= factor;
-        _camera.Zoom = _camera.Zoom.Clamp(new Vector2(0.3f, 0.3f), new Vector2(5f, 5f));
+        var zoom = (_camera!.Zoom * factor).Clamp(new Vector2(0.3f, 0.3f), new Vector2(5f, 5f));
+        _camera.Zoom = zoom;
+        _renderTree?.SetCameraZoom(zoom);
     }
 
     private void CacheSceneNodes()
@@ -247,6 +248,7 @@ public partial class Main : Node2D
             _tableauPanel!,
             _hexTooltipPanel!,
             this,
+            _camera!.Zoom,
             _theme);
     }
 
@@ -361,7 +363,9 @@ public partial class Main : Node2D
 
         _camera.Position = worldPosition;
         var zoom = MathF.Max(_camera.Zoom.X, 2.25f);
-        _camera.Zoom = new Vector2(zoom, zoom).Clamp(new Vector2(0.3f, 0.3f), new Vector2(5f, 5f));
+        var clampedZoom = new Vector2(zoom, zoom).Clamp(new Vector2(0.3f, 0.3f), new Vector2(5f, 5f));
+        _camera.Zoom = clampedZoom;
+        _renderTree?.SetCameraZoom(clampedZoom);
     }
 
     private void PauseKernelDriver()

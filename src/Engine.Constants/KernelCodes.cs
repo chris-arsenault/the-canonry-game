@@ -269,6 +269,7 @@ public static class KernelProgramCodes
     public const int MapSignals = 13;
     public const int CultureSlots = 14;
     public const int MinorActors = 15;
+    public const int CultureBoundaries = 16;
 }
 
 public static class MinorActorKindCodes

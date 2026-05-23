@@ -10,34 +10,13 @@ internal sealed partial class MinorActorProgramRuntime :
     private const float CultureSupportedRawInfluence = WorldState.CultureControlledRawMass;
     private const float CultureStrongRawInfluence = WorldState.CultureEntrenchedRawMass;
     private const float CultureFieldRawInfluence = WorldState.CultureFullRawMass;
-    private const float CultureRingTwoConnectionWeight = 7f / 20f;
     private const float CultureForeignTraceToleranceShare = 10f;
     private const float CultureForeignContestScaleShare = 45f;
-    private const float CultureFieldForeignContestShare = 25f;
-    private const float CultureFieldDominantOwnShare = 65f;
-    private const float CultureFieldMajorForeignContestShare = 35f;
     private const float LifecycleMaintenanceCoverageScale = 0.03f;
-    private const int CultureAdjacentNeighborCount = 6;
-    private const int CultureInfluenceComponentCacheCapacity = 64;
+    private const float LifecycleMaintenanceEarlyNeedScale = 0.20f;
+    private const float LifecycleMaintenanceScoreScale = 1.35f;
     private static readonly int[] NeighborDQ = [1, 1, 0, -1, -1, 0];
     private static readonly int[] NeighborDR = [0, -1, -1, 0, 1, 1];
-    private static readonly int[] CultureNeighborDQ =
-    [
-        1, 1, 0, -1, -1, 0,
-        2, 2, 2, 1, 0, -1, -2, -2, -2, -1, 0, 1,
-    ];
-
-    private static readonly int[] CultureNeighborDR =
-    [
-        0, -1, -1, 0, 1, 1,
-        0, -1, -2, -2, -2, -1, 0, 1, 2, 2, 2, 1,
-    ];
-
-    private readonly CultureInfluenceComponentScratch _fallbackCultureInfluenceComponents = new();
-    private readonly CultureInfluenceComponentScratch[] _cultureInfluenceComponentCaches =
-        CreateCultureInfluenceComponentCaches();
-    private readonly int[] _cultureInfluenceComponentCacheTickTokens =
-        new int[CultureInfluenceComponentCacheCapacity];
     private readonly MinorActorCellTarget[] _verbTargetCells = new MinorActorCellTarget[7];
 
     public MinorActorProgramRuntime(MinorActorProgramData data, MinorActorProgramState state)
@@ -383,7 +362,7 @@ internal sealed partial class MinorActorProgramRuntime :
         out MinorActorVerbCandidate selected)
     {
         selected = default;
-        var bestScore = 0f;
+        var totalScore = 0f;
         var sourceRule = State.SourceRuleId(actorId);
         var processedPlaneMask = 0;
         for (var verb = 1; verb <= Data.VerbCount; verb++)
@@ -406,74 +385,17 @@ internal sealed partial class MinorActorProgramRuntime :
                 continue;
             }
 
-            if (candidate.Score > bestScore)
+            if (TrySelectWeightedCandidate(simulation, candidate, ref totalScore))
             {
                 selected = candidate;
-                bestScore = candidate.Score;
             }
         }
 
-        return bestScore > 0f;
+        return totalScore > 0f;
     }
 
     private static int PlaneBit(int planeCode) =>
         planeCode == PlaneCodes.Physical ? 1 : 2;
-
-    private CultureInfluenceComponentScratch CultureInfluenceComponentsFor(
-        WorldState world,
-        int cultureId,
-        int planeCode,
-        int tick)
-    {
-        var cacheIndex = CultureInfluenceComponentCacheIndex(cultureId, planeCode);
-        if ((uint)cacheIndex >= (uint)_cultureInfluenceComponentCaches.Length)
-        {
-            _fallbackCultureInfluenceComponents.Build(
-                world,
-                cultureId,
-                planeCode,
-                CultureSupportedRawInfluence,
-                CultureStrongRawInfluence);
-            return _fallbackCultureInfluenceComponents;
-        }
-
-        var tickToken = tick + 1;
-        var scratch = _cultureInfluenceComponentCaches[cacheIndex];
-        if (_cultureInfluenceComponentCacheTickTokens[cacheIndex] != tickToken)
-        {
-            scratch.Build(
-                world,
-                cultureId,
-                planeCode,
-                CultureSupportedRawInfluence,
-                CultureStrongRawInfluence);
-            _cultureInfluenceComponentCacheTickTokens[cacheIndex] = tickToken;
-        }
-
-        return scratch;
-    }
-
-    private static CultureInfluenceComponentScratch[] CreateCultureInfluenceComponentCaches()
-    {
-        var caches = new CultureInfluenceComponentScratch[CultureInfluenceComponentCacheCapacity];
-        for (var i = 0; i < caches.Length; i++)
-        {
-            caches[i] = new CultureInfluenceComponentScratch();
-        }
-
-        return caches;
-    }
-
-    private static int CultureInfluenceComponentCacheIndex(int cultureId, int planeCode)
-    {
-        if (cultureId <= 0)
-        {
-            return -1;
-        }
-
-        var planeOffset = planeCode == PlaneCodes.Physical ? 0 : 1;
-        return ((cultureId - 1) * 2) + planeOffset;
-    }
 
     private bool TrySelectVerbCandidateForPlane(
         Simulation simulation,
@@ -500,11 +422,9 @@ internal sealed partial class MinorActorProgramRuntime :
         var sourceWorkTier = State.WorkTier(State.SourceEntityId(actorId));
         var maxOperatingRadius = MaxVerbOperatingRadius(sourceRule, planeCode, sourceWorkTier);
         var cultureId = State.CultureId(actorId);
-        var components = CultureInfluenceComponentsFor(simulation.World, cultureId, planeCode, tick);
         var targetCount = BuildVerbTargetCells(
             simulation,
             cultureId,
-            components,
             planeCode,
             actorQ,
             actorR,
@@ -539,7 +459,7 @@ internal sealed partial class MinorActorProgramRuntime :
         out MinorActorVerbCandidate selected)
     {
         selected = default;
-        var bestScore = 0f;
+        var totalScore = 0f;
         for (var verb = 1; verb <= Data.VerbCount; verb++)
         {
             if (!VerbSelectableForRule(verb, sourceRule) ||
@@ -565,15 +485,28 @@ internal sealed partial class MinorActorProgramRuntime :
                     target,
                     operatingRadius,
                     tick);
-                if (candidate.Score > bestScore)
+                if (TrySelectWeightedCandidate(simulation, candidate, ref totalScore))
                 {
                     selected = candidate;
-                    bestScore = candidate.Score;
                 }
             }
         }
 
-        return bestScore > 0f;
+        return totalScore > 0f;
+    }
+
+    private static bool TrySelectWeightedCandidate(
+        Simulation simulation,
+        in MinorActorVerbCandidate candidate,
+        ref float totalScore)
+    {
+        if (candidate.Score <= 0f)
+        {
+            return false;
+        }
+
+        totalScore += candidate.Score;
+        return simulation.NextFloat() * totalScore <= candidate.Score;
     }
 
     private bool VerbSelectableForRule(int verb, int sourceRule) =>
@@ -597,7 +530,6 @@ internal sealed partial class MinorActorProgramRuntime :
     private int BuildVerbTargetCells(
         Simulation simulation,
         int cultureId,
-        CultureInfluenceComponentScratch components,
         int planeCode,
         int actorQ,
         int actorR,
@@ -628,9 +560,8 @@ internal sealed partial class MinorActorProgramRuntime :
                 }
 
                 targets[count] = BuildVerbTargetCell(
-                    simulation.World,
+                    simulation,
                     cultureId,
-                    components,
                     planeCode,
                     q,
                     r,
@@ -651,36 +582,37 @@ internal sealed partial class MinorActorProgramRuntime :
     }
 
     private MinorActorCellTarget BuildVerbTargetCell(
-        WorldState world,
+        Simulation simulation,
         int cultureId,
-        CultureInfluenceComponentScratch components,
         int planeCode,
         int q,
         int r,
         int distanceFromActor,
         int distanceFromSource)
     {
-        var ownShare = world.GetCellCultureInfluence(cultureId, planeCode, q, r);
-        var ownRaw = world.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r);
-        var neighborhood = CultureNeighborhood(world, cultureId, planeCode, q, r);
-        var attachment = components.AttachmentAt(q, r);
-        var foreignShare = StrongestOtherCultureInfluence(world, cultureId, planeCode, q, r, out var foreignCultureId);
-        var foreignRaw = foreignCultureId > 0
-            ? world.GetCellCultureInfluenceRaw(foreignCultureId, planeCode, q, r)
-            : StrongestOtherCultureRaw(world, cultureId, planeCode, q, r, out _);
-        var cellKindCode = CultureFieldCellKind(ownRaw, ownShare, foreignShare, neighborhood.SupportedAdjacentCount, neighborhood.ConnectedRaw);
+        var boundary = simulation.CultureBoundaries.CellAt(simulation.World, cultureId, planeCode, q, r);
+        var cultureField = new MinorActorCultureField(
+            boundary.RawMass,
+            boundary.LocalRawMass,
+            boundary.ConnectedRawMass,
+            boundary.SupportedAdjacentCount,
+            boundary.SupportedRingTwoCount);
+        var attachment = new MinorActorCultureAttachment(
+            boundary.AttachedComponentScoreMass,
+            boundary.SupportedAdjacentCount,
+            boundary.AttachedComponentCount);
         return new MinorActorCellTarget(
             q,
             r,
             distanceFromActor,
             distanceFromSource,
-            ownShare,
-            ownRaw,
-            foreignShare,
-            foreignRaw,
-            neighborhood,
+            boundary.Share,
+            boundary.RawMass,
+            boundary.ForeignShare,
+            boundary.ForeignRawMass,
+            cultureField,
             attachment,
-            cellKindCode);
+            boundary.CellKindCode);
     }
 
     private MinorActorVerbCandidate ScoreVerbTarget(
@@ -703,7 +635,7 @@ internal sealed partial class MinorActorProgramRuntime :
             target.OwnRaw,
             target.ForeignShare,
             target.ForeignRaw,
-            target.Neighborhood,
+            target.CultureField,
             target.Attachment,
             tick);
 
@@ -723,8 +655,8 @@ internal sealed partial class MinorActorProgramRuntime :
             target.R,
             target.CellKindCode,
             effectiveRadius,
-            target.Neighborhood.LocalRaw,
-            target.Neighborhood.ConnectedRaw,
+            target.CultureField.LocalRaw,
+            target.CultureField.ConnectedRaw,
             score,
             Data.VerbWorkDeltaMultipliers[verb]);
     }
@@ -775,14 +707,13 @@ internal sealed partial class MinorActorProgramRuntime :
             return delta;
         }
 
-        return simulation.World.ModifyCellCultureInfluenceRaw(
+        return simulation.ModifyCellCultureInfluenceRaw(
             State.CultureId(actorId),
             planeCode,
             q,
             r,
             delta,
-            tick,
-            simulation.ExecutionContext);
+            tick);
     }
 
     private static float ReduceOtherCultureSources(
@@ -955,9 +886,13 @@ internal sealed partial class MinorActorProgramRuntime :
                     continue;
                 }
 
-                var raw = simulation.World.GetCellCultureInfluenceRaw(cultureId, planeCode, candidateQ, candidateR);
-                var neighborhood = CultureNeighborhood(simulation.World, cultureId, planeCode, candidateQ, candidateR);
-                var score = raw + neighborhood.AdjacentRawTotal + (neighborhood.RingTwoRawTotal * CultureRingTwoConnectionWeight);
+                var field = simulation.CultureBoundaries.CellAt(
+                    simulation.World,
+                    cultureId,
+                    planeCode,
+                    candidateQ,
+                    candidateR);
+                var score = field.ConnectedRawMass;
                 if (score > bestScore)
                 {
                     q = candidateQ;

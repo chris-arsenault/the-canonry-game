@@ -430,6 +430,40 @@ public sealed class LowAltitudeVerbSelectionTests
     }
 
     [Fact]
+    public void MovementRouteCultureScoringReadsBoundaryProgramCache()
+    {
+        var simulation = NewSimulation(seed: 2, opportunityRate: 0f);
+        SeedNeighborhood(simulation);
+        var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 1, 0, WorldState.CultureControlledRawMass, tick: 0);
+        var slot = simulation.LowAltitudeVerbs.RegisterVerb(
+            ActorKindId,
+            verbId: 811,
+            PlaneCodes.Physical,
+            ProgramOpcodeCodes.MoveActor,
+            TargetSelectorCodes.Explore,
+            targetKindId: 0,
+            relationshipKindId: 0,
+            relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
+            minCommitmentTicks: 5,
+            maxCommitmentTicks: 5,
+            dwellTicks: 0,
+            targetRadius: 0,
+            candidateSampleCount: 8,
+            weight: 1f,
+            influenceDelta: 1f,
+            influenceRadius: 0);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.MoveActor, 0, 0f);
+
+        Assert.Equal(0, simulation.CultureBoundaries.RebuildCount);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.True(simulation.LowAltitudeVerbs.State.ActiveVerbSlot(actorId) > 0);
+        Assert.True(simulation.CultureBoundaries.RebuildCount > 0);
+    }
+
+    [Fact]
     public void OwnInfluenceCandidateSelection_DoesNotDependOnUniformRandomHit()
     {
         var simulation = NewSimulation(seed: 1, opportunityRate: 0f);

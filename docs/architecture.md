@@ -79,19 +79,32 @@ advances the world version.
 Current default program order:
 
 ```text
+Movement
 LowAltitudeVerbs
 MapActivity
 MapSignals
+CultureBoundaries
 Relationships
 Effects
 Upkeep
 Gambits
 Generators
+CultureSlots
+MinorActors
 ```
 
 The program dependency metadata makes the load-bearing ordering explicit.
 `LowAltitudeVerbs` consumes previous-tick activity/signals. `MapSignals`
-consumes same-tick activity. `Effects` consumes same-tick map signals.
+consumes same-tick activity. `CultureBoundaries` rebuilds derived culture
+component caches from durable culture tile influence. `Effects` consumes
+same-tick map signals and culture evidence.
+
+The default cadence separates high-frequency minor labor from the main graph
+cadence. `MinorActors` runs every simulation tick. The main graph programs run
+every `MinorActorMainTickRatio` ticks, currently `5`, while `CultureSlots` runs
+every ten main cadences. Generator pulse widths and other main-cadence tuning
+are scaled through the same ratio so changing the ratio does not silently
+retune graph pacing.
 
 ## Runtime State
 
@@ -99,8 +112,8 @@ The kernel world contains:
 
 - entities, health, traits, status, physical and semantic coordinates;
 - relationships and relationship strength;
-- physical and semantic map cells, terrain, named coverage, roads, and map
-  influence layers;
+- physical and semantic map cells, terrain, named coverage, roads, culture
+  influence tile layers, and derived culture boundary caches;
 - provenance invocation/output history for high-altitude and authored effects;
 - program data/state/scratch for each registered kernel program.
 
@@ -113,13 +126,20 @@ state; the definition graph is the authored-domain contract.
 Low-altitude programs produce map life, relationship-strength drift, and slow
 state mutation:
 
-- low-altitude verbs for movement, influence, coverage, anchor relocation, and
-  explicit relationship-strength mutation;
+- movement routing and road reinforcement;
+- low-altitude verbs for movement, culture influence, coverage, anchor
+  relocation, work-tier growth, and explicit relationship-strength mutation;
 - map activity;
 - map signals;
+- culture boundary derivation;
 - relationship maintenance;
 - health effects;
 - upkeep/lifecycle.
+
+Minor actors are a separate low-salience runtime layer. They are not graph
+entities and do not create narrative events; they are unnamed cohorts emitted by
+major entities to perform frequent local labor such as cultural reinforcement,
+foreign-trace cleanup, road maintenance, and lifecycle support.
 
 High-altitude programs produce significant graph changes:
 
@@ -129,7 +149,7 @@ High-altitude programs produce significant graph changes:
 The former macro aggregate layer has been removed. Generator, gambit, trait,
 and card work use shared query, effect, and decision-modifier primitives.
 Relationship strength and locality queries are the default numeric gates when
-health, influence, coverage, or map signals are not the actual subject.
+health, culture influence, coverage, or map signals are not the actual subject.
 
 The detailed execution boundary is recorded in
 [shared-query-effect-executor.md](./kernel/shared-query-effect-executor.md).

@@ -391,6 +391,56 @@ public sealed class TerrainAwareMapTests
     }
 
     [Fact]
+    public void MovementAccessDoesNotRejectForeignCulturalInterior()
+    {
+        var simulation = KernelTestSimulation.Create();
+        const int terrainId = 1;
+        const int kindId = 1;
+        const int actorCultureId = 1;
+        const int foreignCultureId = 2;
+        simulation.RegisterTerrain(
+            terrainId,
+            boundaryGroupId: 1,
+            movementCost: 1f,
+            influenceMultiplier: 1f,
+            claimCostMultiplier: 1f,
+            claimChanceMultiplier: 1f,
+            roadBuildMultiplier: 1f,
+            roadSpeedMultiplier: 1f);
+        simulation.World.SetMapRadius(2);
+        SeedHexMap(simulation, radius: 2, terrainId);
+        var entityId = simulation.CreateEntity(kindId, subtypeId: 1, actorCultureId, 0, 0, 0, 0, 0, tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(
+            foreignCultureId,
+            PlaneCodes.Physical,
+            1,
+            0,
+            WorldState.CultureNexusRawMass,
+            tick: 0);
+        for (var direction = 0; direction < 6; direction++)
+        {
+            simulation.ModifyCellCultureInfluenceRaw(
+                foreignCultureId,
+                PlaneCodes.Physical,
+                1 + DirectionQ(direction),
+                DirectionR(direction),
+                WorldState.CultureControlledRawMass,
+                tick: 0);
+        }
+
+        var boundary = simulation.CultureBoundaries.CellAt(simulation.World, foreignCultureId, PlaneCodes.Physical, 1, 0);
+        var canEnter = simulation.Movement.CanEnter(simulation, entityId, 1, 0);
+        var canReach = simulation.Movement.CanReach(simulation, entityId, PlaneCodes.Physical, 1, 0, tick: 0);
+        var result = simulation.MoveEntityPhysical(entityId, 1, 0, tick: 0, MovementCauseCodes.Travel);
+
+        Assert.Equal(CultureFieldCellKindCodes.Interior, boundary.CellKindCode);
+        Assert.Equal(CultureFieldStrengthBandCodes.Nexus, boundary.StrengthBandCode);
+        Assert.True(canEnter);
+        Assert.True(canReach);
+        Assert.True(result.Moved);
+    }
+
+    [Fact]
     public void MovementReachabilityRejectsLandTargetAcrossImpassableWaterBarrier()
     {
         var simulation = CreateWaterBarrierSimulation(out var entityId, out var targetQ, out var targetR);

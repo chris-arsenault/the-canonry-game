@@ -49,12 +49,20 @@ If no legal placement candidate exists, the generator fire fails cleanly and
 does not consume pulse budget. This keeps invalid placement from suppressing
 later valid fires inside the same pulse window.
 
+Generator culture placement uses the kernel culture-boundary model. Normal
+placement prefers same-culture support and avoids another culture's
+entrenched/nexus fields. Hostile intrusion is an explicit placement mode for
+content that should appear in a foreign cultural field; it is not the default
+for wilderness or ordinary across-map placement.
+
 ## Pulse Budget
 
-Generators are evaluated every tick, but fire budget is reset by pulse windows.
-The default tuning is `PulseWidthTicks = 25` and `FiresPerPulse = 1`. A
-generator can fire on any tick inside the current pulse window while budget
-remains, instead of only on an exact modulo boundary.
+Generators run on the main graph cadence, not every minor-actor tick. Fire
+budget is reset by pulse windows. The default tuning is `PulseWidthTicks = 25`
+main ticks and `FiresPerPulse = 1`. With the current
+`MinorActorMainTickRatio = 5`, the default pulse width spans `125` simulation
+ticks. A generator can fire on any eligible generator tick inside the current
+pulse window while budget remains, instead of only on an exact modulo boundary.
 
 When multiple generators are eligible, selection is weighted by authored pulse
 weight. Fire budget limits how many successful fires can occur in one window;

@@ -11,17 +11,17 @@ Procedural generation creates terrain-aware seeds rather than full-cover
 placeholder partitions.
 
 The semantic plane is an analogous map model, not a mirror of the physical
-map. It has the same plane-aware storage, movement, influence, road, coverage,
-superregion, and continent surfaces, but its coordinates and terrain mean
-conceptual position rather than physical location. Physical `(6, 5)` and
+map. It has the same plane-aware storage, movement, culture influence, road,
+coverage, superregion, and continent surfaces, but its coordinates and terrain
+mean conceptual position rather than physical location. Physical `(6, 5)` and
 semantic `(6, 5)` have no direct implied relationship.
 
 Semantic terrain is first-class Ice Remembers terrain: lineage, yoke, witness,
 silence, severance, breakaway, beacon spire, taboo ridge, cave pocket, open
 field, and related authored media. Semantic terrain changes movement cost,
-enterability, influence propagation, claim viability, and road formation just
-as physical terrain does, with semantic interpretation instead of physical
-material.
+enterability, culture influence propagation, claim viability, and road
+formation just as physical terrain does, with semantic interpretation instead
+of physical material.
 
 Named regions are physical coverage. There is no separate concept of anonymous
 partition plus local named coverage. A region is the named geographic coverage.
@@ -38,21 +38,47 @@ Map coverage is a first-class map abstraction:
 - New coverage can optionally change terrain when the narrative requires it,
   such as a scar.
 
-## Influence
+## Culture Influence
 
-Influence is a per-entity, per-cell scalar layer. Multiple entities can influence
-the same cell. Only one coverage owner can own a cell.
+Culture influence is a culture-owned tile layer on both planes. The durable
+value is raw culture mass per `(culture, plane, cell)`, capped at `1000`.
+Dominance share is recalculated from the raw culture totals at a cell, so two
+cultures cannot both own 100% of the same cell. The raw scale lets a cell that
+has been reinforced for hundreds of ticks differ from a fresh peripheral claim.
 
-Current physical influence uses:
+Current strength bands are:
 
-- `GrowInfluence`: extend local influence outward.
-- `ConsolidateInfluence`: strengthen existing influence.
-- `ReduceInfluence`: weaken foreign influence that is hostile or unaffiliated.
-- `ExpandCoverage`: rarely turn strong settlement influence into owned coverage.
-- `MoveHeadquarters`: rarely move a faction's physical anchor.
+| Band | Raw mass |
+| --- | ---: |
+| trace | `5+` |
+| claimed | `30+` |
+| controlled | `100+` |
+| entrenched | `300+` |
+| nexus | `700+` |
 
-Semantic influence mirrors this on the semantic plane for ideas, doctrine,
-memory, and affinity.
+The `CultureBoundaries` kernel program derives interiors, borders, contested
+cells, isolated pockets, holes, and connected components from this tile layer.
+Consumers should query the boundary program or projection output rather than
+recomputing their own component math.
+
+Current culture influence sources:
+
+- low-altitude influence verbs from named entities;
+- minor actor culture expansion and cleanup verbs;
+- culture slot multipliers that make slot occupants stronger influence
+  producers;
+- authored startup state.
+
+Cleanup reduces all non-own cultures' raw mass at the targeted cell. It does
+not mutate the dominance-share cache directly.
+
+Entity-level influence production is retained as attribution and scoring
+evidence for systems such as culture slots. It is not the durable territorial
+influence layer.
+
+Coverage ownership is separate and rarer than culture influence. Only one
+coverage owner can own a cell, and generator placement/coverage rules still
+use named coverage where the narrative requires a concrete region or settlement.
 
 ## Movement Routing
 
@@ -104,7 +130,10 @@ semantically.
 
 Placement is terrain-aware on both planes. Authored allowed terrain is a hard
 filter. Authored preferred terrain biases scored placement after locality,
-radius, occupancy, semantic bounds, and coverage constraints are applied.
+radius, occupancy, semantic bounds, culture-boundary gates, and coverage
+constraints are applied. Normal or wilderness placement should not drop a new
+entity into another culture's entrenched/nexus field; hostile-intrusion
+placement is the explicit escape hatch for content that means to do that.
 Generator placement failure rejects the fire instead of consuming generator
 pulse budget.
 
@@ -116,5 +145,5 @@ Map quality is evaluated by utilization, not by movement volume alone:
 - activity entropy and top-cell share
 - largest strict empty hex radius
 - bounding-box fill
-- influence component count and discontinuity
+- culture component count and discontinuity
 - per-entity roam radius and unique cells visited

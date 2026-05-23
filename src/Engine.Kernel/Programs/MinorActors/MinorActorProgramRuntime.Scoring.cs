@@ -15,8 +15,8 @@ internal sealed partial class MinorActorProgramRuntime
         float ownRaw,
         float foreignShare,
         float foreignRaw,
-        in CultureInfluenceNeighborhood neighborhood,
-        in CultureInfluenceAttachment attachment,
+        in MinorActorCultureField neighborhood,
+        in MinorActorCultureAttachment attachment,
         int tick)
     {
         if (Data.VerbActionCodes[verb] == MinorActorActionCodes.RoadMaintenance)
@@ -59,8 +59,8 @@ internal sealed partial class MinorActorProgramRuntime
         float ownRaw,
         float foreignShare,
         float foreignRaw,
-        in CultureInfluenceNeighborhood neighborhood,
-        in CultureInfluenceAttachment attachment)
+        in MinorActorCultureField neighborhood,
+        in MinorActorCultureAttachment attachment)
     {
         return targetingCode switch
         {
@@ -83,8 +83,8 @@ internal sealed partial class MinorActorProgramRuntime
         int sourceEntityId,
         float ownShare,
         float ownRaw,
-        in CultureInfluenceNeighborhood neighborhood,
-        in CultureInfluenceAttachment attachment,
+        in MinorActorCultureField neighborhood,
+        in MinorActorCultureAttachment attachment,
         int tick)
     {
         if (!simulation.Upkeep.TryGetLifecycleMaintenanceNeed(
@@ -109,30 +109,38 @@ internal sealed partial class MinorActorProgramRuntime
         var ownPresence = global::System.MathF.Max(
             Clamp01(ownShare / 100f),
             Saturating(ownRaw, CultureSupportedRawInfluence));
-        var ageLoad = Saturating(ageDrainComponent, 0.25f);
-        return healthShortfall *
-            ageLoad *
+        var ageLoad = Saturating(ageDrainComponent, 0.20f);
+        var maintenanceNeed = Clamp01(healthShortfall + (LifecycleMaintenanceEarlyNeedScale * ageLoad));
+        return maintenanceNeed *
+            (0.50f + ageLoad) *
             connectedSupport *
-            (0.35f + ownPresence);
+            (0.50f + ownPresence) *
+            LifecycleMaintenanceScoreScale;
     }
 
     private static float ReinforceCoreScore(
         float ownShare,
         float ownRaw,
         float foreignShare,
-        in CultureInfluenceNeighborhood neighborhood,
-        in CultureInfluenceAttachment attachment)
+        in MinorActorCultureField neighborhood,
+        in MinorActorCultureAttachment attachment)
     {
-        if (ownRaw < CultureTraceRawInfluence)
+        var interiorHoleSupport = InteriorHoleSupport(ownRaw, attachment);
+        if (ownRaw < CultureTraceRawInfluence && interiorHoleSupport <= 0f)
         {
             return 0f;
         }
 
-        var ownPresence = Saturating(ownRaw, CultureSupportedRawInfluence);
-        var componentSupport = Saturating(attachment.ComponentMass, 4f);
+        var ownPresence = global::System.MathF.Max(
+            Saturating(ownRaw, CultureSupportedRawInfluence),
+            interiorHoleSupport * 0.75f);
+        var componentSupport = global::System.MathF.Max(
+            Saturating(attachment.ComponentMass, 4f),
+            interiorHoleSupport);
         var neighborSupport = Clamp01(neighborhood.SupportedAdjacentCount / 5f);
         var rawHeadroom = Clamp01((CultureFieldRawInfluence - ownRaw) / CultureFieldRawInfluence);
-        return ownPresence *
+        return InteriorHoleBoost(interiorHoleSupport) *
+            ownPresence *
             (0.35f + componentSupport) *
             (0.45f + neighborSupport) *
             (0.25f + rawHeadroom) *
@@ -143,7 +151,7 @@ internal sealed partial class MinorActorProgramRuntime
         float ownShare,
         float ownRaw,
         float foreignShare,
-        in CultureInfluenceAttachment attachment)
+        in MinorActorCultureAttachment attachment)
     {
         if (attachment.ComponentMass <= 0f ||
             attachment.AdjacentSupportedCount <= 0 ||
@@ -157,7 +165,8 @@ internal sealed partial class MinorActorProgramRuntime
         var componentSupport = Saturating(attachment.ComponentMass, 4f);
         var edgeSupport = Saturating(attachment.AdjacentSupportedCount, 2f);
         var contestBoost = 1f + (0.35f * Clamp01(foreignShare / 100f));
-        return componentSupport *
+        return InteriorHoleBoost(InteriorHoleSupport(ownRaw, attachment)) *
+            componentSupport *
             edgeSupport *
             shareHeadroom *
             (0.25f + rawShortfall) *
@@ -169,7 +178,7 @@ internal sealed partial class MinorActorProgramRuntime
         float ownShare,
         float ownRaw,
         float foreignShare,
-        in CultureInfluenceAttachment attachment)
+        in MinorActorCultureAttachment attachment)
     {
         if (attachment.ComponentCount < 2 ||
             ownRaw >= CultureSupportedRawInfluence)
@@ -180,7 +189,11 @@ internal sealed partial class MinorActorProgramRuntime
         var shareHeadroom = Clamp01((100f - ownShare) / 100f);
         var componentSupport = Saturating(attachment.ComponentMass, 4f);
         var bridgeSupport = 1f + (0.45f * global::System.Math.Min(3, attachment.ComponentCount - 1));
-        return componentSupport * shareHeadroom * bridgeSupport * ExpansionForeignDrag(ownShare, ownRaw, foreignShare);
+        return InteriorHoleBoost(InteriorHoleSupport(ownRaw, attachment)) *
+            componentSupport *
+            shareHeadroom *
+            bridgeSupport *
+            ExpansionForeignDrag(ownShare, ownRaw, foreignShare);
     }
 
     private static float ReduceOtherCultureScore(
@@ -188,8 +201,8 @@ internal sealed partial class MinorActorProgramRuntime
         float ownRaw,
         float foreignShare,
         float foreignRaw,
-        in CultureInfluenceNeighborhood neighborhood,
-        in CultureInfluenceAttachment attachment)
+        in MinorActorCultureField neighborhood,
+        in MinorActorCultureAttachment attachment)
     {
         if (foreignRaw <= 0f && foreignShare <= 0f)
         {
@@ -198,18 +211,36 @@ internal sealed partial class MinorActorProgramRuntime
 
         var componentSupport = Saturating(attachment.ComponentMass, 4f);
         var connectedSupport = Clamp01(neighborhood.ConnectedRaw / CultureFieldRawInfluence);
-        var support = global::System.MathF.Max(componentSupport, connectedSupport);
+        var interiorHoleSupport = InteriorHoleSupport(ownRaw, attachment);
+        var support = global::System.MathF.Max(
+            global::System.MathF.Max(componentSupport, connectedSupport),
+            interiorHoleSupport);
         if (support <= 0f)
         {
             return 0f;
         }
 
         var ownPresence = global::System.MathF.Max(
-            Clamp01(ownShare / 100f),
-            Saturating(ownRaw, CultureSupportedRawInfluence));
+            global::System.MathF.Max(
+                Clamp01(ownShare / 100f),
+                Saturating(ownRaw, CultureSupportedRawInfluence)),
+            interiorHoleSupport);
         var foreignPresence = ForeignCleanupSignal(foreignShare, foreignRaw);
-        return foreignPresence * support * (0.35f + ownPresence) * (0.75f + (0.5f * ownPresence));
+        return InteriorHoleBoost(interiorHoleSupport) *
+            foreignPresence *
+            support *
+            (0.35f + ownPresence) *
+            (0.75f + (0.5f * ownPresence));
     }
+
+    private static float InteriorHoleSupport(float ownRaw, in MinorActorCultureAttachment attachment) =>
+        CultureInfluenceTargetScorer.InteriorHoleSupport(
+            ownRaw,
+            attachment.ComponentMass,
+            attachment.AdjacentSupportedCount);
+
+    private static float InteriorHoleBoost(float support) =>
+        1f + (2f * support);
 
     private static float ExpansionForeignDrag(float ownShare, float ownRaw, float foreignShare)
     {
@@ -248,8 +279,8 @@ internal sealed partial class MinorActorProgramRuntime
         int q,
         int r,
         float ownRaw,
-        in CultureInfluenceNeighborhood neighborhood,
-        in CultureInfluenceAttachment attachment,
+        in MinorActorCultureField neighborhood,
+        in MinorActorCultureAttachment attachment,
         int tick)
     {
         var roadQuality = simulation.Movement.RoadQuality(planeCode, q, r, tick);
@@ -273,7 +304,7 @@ internal sealed partial class MinorActorProgramRuntime
         int planeCode,
         int q,
         int r,
-        in CultureInfluenceNeighborhood neighborhood,
+        in MinorActorCultureField neighborhood,
         int tick)
     {
         var roadQuality = simulation.Movement.RoadQuality(planeCode, q, r, tick);

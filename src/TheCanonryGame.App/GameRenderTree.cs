@@ -54,6 +54,7 @@ internal sealed class GameRenderTree
     private int _seedAttempt;
     private int _lastCultureOverviewTick = -1;
     private bool _tooltipPollingEnabled;
+    private bool _entityNamesVisibleForZoom;
     private double _tooltipRefreshElapsedMs = TooltipRefreshIntervalMs;
     private string _mapLensKey = MapArea.LensDefault;
 
@@ -71,6 +72,7 @@ internal sealed class GameRenderTree
         TableauPanel tableauPanel,
         HexTooltipPanel hexTooltipPanel,
         Node2D worldCanvas,
+        Vector2 cameraZoom,
         Godot.Theme? theme)
     {
         _mapRenderer = mapRenderer;
@@ -87,6 +89,7 @@ internal sealed class GameRenderTree
         _hexTooltipPanel = hexTooltipPanel;
         _worldCanvas = worldCanvas;
         _theme = theme;
+        SetCameraZoom(cameraZoom);
         _mapArea.Resized += _floatingHudLayoutRender.Invalidate;
         _tableauPanel.VisibilityChanged += _floatingHudLayoutRender.Invalidate;
     }
@@ -127,7 +130,7 @@ internal sealed class GameRenderTree
         _mapRender.Present(_mapRenderer, _map, _ui);
         PresentCultureOverview(currentTick);
         _browserRender.Present(_browser, _ui);
-        _entityMapRender.Present(_entityLayer, _ui, _browser, EntityNamesVisibleForZoom());
+        _entityMapRender.Present(_entityLayer, _ui, _browser, _entityNamesVisibleForZoom);
         _cardLayerRender.Present(_cardLayer, _ui);
         _attributeGraphRender.Present(ActiveAttributeGraph(), _ui);
         _chronicleRender.Present(_chroniclePanel, _chronicle);
@@ -203,6 +206,11 @@ internal sealed class GameRenderTree
     }
 
     public void InvalidateEntityMap() => _entityMapRender.Invalidate();
+
+    public void SetCameraZoom(Vector2 zoom)
+    {
+        _entityNamesVisibleForZoom = MathF.Max(zoom.X, zoom.Y) >= 3.1f;
+    }
 
     public void SetMapLayerVisible(string layerKey, bool visible)
     {
@@ -345,12 +353,6 @@ internal sealed class GameRenderTree
         _mapArea.SetLayerVisible(MapArea.LayerCultureInfluence, _mapRenderer.ShowCultureInfluence);
         _mapArea.SetLayerVisible(MapArea.LayerInfluence, _mapRenderer.ShowInfluence);
         _mapArea.SetLayerVisible(MapArea.LayerLabor, _mapRenderer.ShowMinorActors);
-    }
-
-    private bool EntityNamesVisibleForZoom()
-    {
-        var camera = _worldCanvas.GetViewport()?.GetCamera2D();
-        return camera is not null && MathF.Max(camera.Zoom.X, camera.Zoom.Y) >= 3.1f;
     }
 
     private void ResetPresenters()

@@ -9,10 +9,11 @@ entity-authored high-stakes actions.
 Gambits let entities do meaningful things that are too large for low-altitude
 physics and too small for generators.
 
-Low altitude creates the live substrate: movement, influence, support, threat,
-health loss/recovery, and relationship drift. Gambits read that world state and
-attempt discrete actions. Generators later read the resulting graph and create
-new named entities when major event conditions are met.
+Low altitude creates the live substrate: movement, culture influence, support,
+threat, health loss/recovery, minor labor, and relationship drift. Gambits read
+that world state and attempt discrete actions. Generators later read the
+resulting graph and create new named entities when major event conditions are
+met.
 
 ## Runtime Shape
 

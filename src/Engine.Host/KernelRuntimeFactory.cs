@@ -269,6 +269,7 @@ public sealed class KernelUiRuntime : IDisposable
 {
     private readonly KernelRuntime _runtime;
     private readonly RunLogger? _runLogger;
+    private long _lastCultureBoundaryRevision = -1;
     private bool _disposed;
 
     internal KernelUiRuntime(
@@ -291,6 +292,7 @@ public sealed class KernelUiRuntime : IDisposable
         Provenance = provenance;
         Chronicle = chronicle;
         _runLogger = runLogger;
+        RefreshCultureBoundariesIfChanged();
     }
 
     public HexMapProjection Map { get; }
@@ -322,6 +324,8 @@ public sealed class KernelUiRuntime : IDisposable
         var previousTick = Ui.CurrentTick;
         _runtime.Host.DrainConsumers();
         var currentTick = Ui.CurrentTick;
+        RefreshCultureBoundariesIfChanged();
+
         if (_runLogger is not null)
         {
             _runLogger.DrainAvailable();
@@ -332,6 +336,18 @@ public sealed class KernelUiRuntime : IDisposable
         }
 
         return new KernelRuntimePulse(previousTick, currentTick);
+    }
+
+    private void RefreshCultureBoundariesIfChanged()
+    {
+        var revision = _runtime.Host.CultureBoundaryRevision;
+        if (_lastCultureBoundaryRevision == revision)
+        {
+            return;
+        }
+
+        _runtime.Host.RefreshCultureBoundaries(Map, incremental: _lastCultureBoundaryRevision >= 0);
+        _lastCultureBoundaryRevision = revision;
     }
 
     public void Dispose()

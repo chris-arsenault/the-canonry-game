@@ -248,12 +248,12 @@ internal sealed class CultureSlotProgramRuntime :
 
     private void TickSlot(Simulation simulation, int slot, int tick)
     {
-        var best = BestCandidate(simulation.World, slot);
+        var best = BestCandidate(simulation, slot);
         var currentEntityId = State.OccupantEntityId(slot);
 
         if (best.EntityId <= 0 || best.Score < Data.MinimumScore(slot))
         {
-            var vacatingScore = CurrentOccupantScore(simulation.World, currentEntityId, slot);
+            var vacatingScore = CurrentOccupantScore(simulation, currentEntityId, slot);
             TryVacate(simulation, slot, currentEntityId, vacatingScore, tick);
             return;
         }
@@ -264,7 +264,7 @@ internal sealed class CultureSlotProgramRuntime :
             return;
         }
 
-        var currentScore = CurrentOccupantScore(simulation.World, currentEntityId, slot);
+        var currentScore = CurrentOccupantScore(simulation, currentEntityId, slot);
         if (currentEntityId > 0 &&
             !CanDisplace(slot, currentScore, best.Score, tick))
         {
@@ -275,15 +275,17 @@ internal sealed class CultureSlotProgramRuntime :
         ChangeOccupant(simulation, slot, currentEntityId, best.EntityId, currentScore, best.Score, tick);
     }
 
-    private float CurrentOccupantScore(WorldState world, int currentEntityId, int slot)
+    private float CurrentOccupantScore(Simulation simulation, int currentEntityId, int slot)
     {
+        var world = simulation.World;
         return currentEntityId > 0 && world.EntityIsActive(currentEntityId)
-            ? ScoreEntity(world, currentEntityId, slot)
+            ? ScoreEntity(simulation, currentEntityId, slot)
             : 0f;
     }
 
-    private (int EntityId, float Score) BestCandidate(WorldState world, int slot)
+    private (int EntityId, float Score) BestCandidate(Simulation simulation, int slot)
     {
+        var world = simulation.World;
         var cultureId = Data.CultureId(slot);
         var bestEntityId = 0;
         var bestScore = 0f;
@@ -294,7 +296,7 @@ internal sealed class CultureSlotProgramRuntime :
                  entityId > 0;
                  entityId = world.NextEntityOfCulture(entityId))
             {
-                ConsiderCandidate(world, slot, entityId, cultureId, ref bestEntityId, ref bestScore);
+                ConsiderCandidate(simulation, slot, entityId, cultureId, ref bestEntityId, ref bestScore);
             }
 
             return (bestEntityId, bestScore);
@@ -307,7 +309,7 @@ internal sealed class CultureSlotProgramRuntime :
                  entityId > 0;
                  entityId = world.NextEntityOfKind(entityId))
             {
-                ConsiderCandidate(world, slot, entityId, cultureId, ref bestEntityId, ref bestScore);
+                ConsiderCandidate(simulation, slot, entityId, cultureId, ref bestEntityId, ref bestScore);
             }
         }
 
@@ -315,19 +317,20 @@ internal sealed class CultureSlotProgramRuntime :
     }
 
     private void ConsiderCandidate(
-        WorldState world,
+        Simulation simulation,
         int slot,
         int entityId,
         int cultureId,
         ref int bestEntityId,
         ref float bestScore)
     {
+        var world = simulation.World;
         if (!CandidateAllowed(world, entityId, cultureId))
         {
             return;
         }
 
-        var score = ScoreEntity(world, entityId, slot);
+        var score = ScoreEntity(simulation, entityId, slot);
         if (score > bestScore ||
             (score == bestScore && bestEntityId > 0 && entityId < bestEntityId))
         {
@@ -342,21 +345,22 @@ internal sealed class CultureSlotProgramRuntime :
             world.EntityCultureId(entityId) == cultureId;
     }
 
-    private float ScoreEntity(WorldState world, int entityId, int slot)
+    private float ScoreEntity(Simulation simulation, int entityId, int slot)
     {
         var score = 0f;
         for (var offset = 0; offset < Data.RuleCount(slot); offset++)
         {
             var rule = Data.RuleIndex(slot, offset);
-            score += Data.RuleWeight(rule) * ScoreSignal(world, entityId, rule);
+            score += Data.RuleWeight(rule) * ScoreSignal(simulation, entityId, rule);
         }
 
         return score;
     }
 
-    private float ScoreSignal(WorldState world, int entityId, int rule)
+    private float ScoreSignal(Simulation simulation, int entityId, int rule)
     {
         var signalCode = Data.RuleSignalCode(rule);
+        var world = simulation.World;
         return signalCode switch
         {
             CultureSlotScoreSignalCodes.ActiveEntity => 1f,
@@ -370,28 +374,30 @@ internal sealed class CultureSlotProgramRuntime :
                 entityId,
                 Data.RuleRelationshipKindId(rule),
                 outgoing: false),
-            _ => ScorePlaneSignal(world, entityId, signalCode),
+            _ => ScorePlaneSignal(simulation, entityId, signalCode),
         };
     }
 
-    private static float ScorePlaneSignal(WorldState world, int entityId, int signalCode)
+    private static float ScorePlaneSignal(Simulation simulation, int entityId, int signalCode)
     {
+        var world = simulation.World;
         return signalCode switch
         {
-            CultureSlotScoreSignalCodes.PhysicalInfluence => CultureSupportScore(world, entityId, PlaneCodes.Physical),
-            CultureSlotScoreSignalCodes.SemanticInfluence => CultureSupportScore(world, entityId, PlaneCodes.Semantic),
+            CultureSlotScoreSignalCodes.PhysicalInfluence => CultureSupportScore(simulation, entityId, PlaneCodes.Physical),
+            CultureSlotScoreSignalCodes.SemanticInfluence => CultureSupportScore(simulation, entityId, PlaneCodes.Semantic),
             CultureSlotScoreSignalCodes.PhysicalCoverage => world.CoverageOwnerCellCount(entityId, PlaneCodes.Physical),
             CultureSlotScoreSignalCodes.SemanticCoverage => world.CoverageOwnerCellCount(entityId, PlaneCodes.Semantic),
-            CultureSlotScoreSignalCodes.PhysicalCultureSupport => CultureSupportScore(world, entityId, PlaneCodes.Physical),
-            CultureSlotScoreSignalCodes.SemanticCultureSupport => CultureSupportScore(world, entityId, PlaneCodes.Semantic),
+            CultureSlotScoreSignalCodes.PhysicalCultureSupport => CultureSupportScore(simulation, entityId, PlaneCodes.Physical),
+            CultureSlotScoreSignalCodes.SemanticCultureSupport => CultureSupportScore(simulation, entityId, PlaneCodes.Semantic),
             CultureSlotScoreSignalCodes.PhysicalInfluenceProduction => InfluenceProductionScore(world, entityId, PlaneCodes.Physical),
             CultureSlotScoreSignalCodes.SemanticInfluenceProduction => InfluenceProductionScore(world, entityId, PlaneCodes.Semantic),
             _ => 0f,
         };
     }
 
-    private static float CultureSupportScore(WorldState world, int entityId, int planeCode)
+    private static float CultureSupportScore(Simulation simulation, int entityId, int planeCode)
     {
+        var world = simulation.World;
         var cultureId = world.EntityCultureId(entityId);
         if (cultureId <= 0)
         {
@@ -400,8 +406,8 @@ internal sealed class CultureSlotProgramRuntime :
 
         var q = planeCode == PlaneCodes.Semantic ? world.EntitySemanticQ(entityId) : world.EntityPhysicalQ(entityId);
         var r = planeCode == PlaneCodes.Semantic ? world.EntitySemanticR(entityId) : world.EntityPhysicalR(entityId);
-        var field = world.CultureFieldAt(cultureId, planeCode, q, r);
-        return global::System.MathF.Min(10f, field.ConnectedRawMass / CultureSupportScoreScale);
+        var boundary = simulation.CultureBoundaries.CellAt(world, cultureId, planeCode, q, r);
+        return global::System.MathF.Min(10f, boundary.ConnectedRawMass / CultureSupportScoreScale);
     }
 
     private static float InfluenceProductionScore(WorldState world, int entityId, int planeCode)

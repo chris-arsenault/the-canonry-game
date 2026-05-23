@@ -21,7 +21,7 @@ public sealed class KernelTelemetryRecorderTests
     }
 
     [Fact]
-    public void Recorder_ProjectsCultureFieldEmergenceMetrics()
+    public void Recorder_DoesNotRecomputeCultureBoundaryMetricsFromEventLog()
     {
         var log = new KernelEventLog(capacity: 64);
         var symbols = CreateTestSymbols();
@@ -31,7 +31,11 @@ public sealed class KernelTelemetryRecorderTests
 
         recorder.RecordSnapshots(tick: 3);
 
-        AssertCultureFieldMetricRows(recorder.Batch);
+        Assert.Empty(recorder.Batch.CultureFieldComponentSnapshots);
+        Assert.Empty(recorder.Batch.CultureEntityFieldSnapshots);
+        Assert.Empty(recorder.Batch.CultureEntityBirthFieldEvents);
+        Assert.Empty(recorder.Batch.CultureInfluenceActionFieldEvents);
+        Assert.Equal(2, recorder.Batch.CellCultureInfluenceEvents.Count);
     }
 
     private static void WriteCultureFieldMetricEvents(KernelEventLog log)
@@ -40,30 +44,6 @@ public sealed class KernelTelemetryRecorderTests
         WriteCultureFieldMetricCells(log);
         WriteCultureSlotOccupancyChanged(log);
         WriteCultureFieldMetricAction(log);
-    }
-
-    private static void AssertCultureFieldMetricRows(TelemetryBatch batch)
-    {
-        var component = Assert.Single(batch.CultureFieldComponentSnapshots);
-        Assert.Equal(3, component.CultureId);
-        Assert.Equal(2, component.InfluencedCellCount);
-        Assert.Equal(1, component.ComponentCount);
-        Assert.Equal(2, component.LargestComponentCellCount);
-        Assert.Equal(100f, component.LargestComponentShare);
-
-        var birth = Assert.Single(batch.CultureEntityBirthFieldEvents);
-        Assert.Equal(100, birth.EntityId);
-        Assert.Equal(CultureFieldStrengthBandCodes.None, birth.PhysicalFieldBandCode);
-
-        var action = Assert.Single(batch.CultureInfluenceActionFieldEvents);
-        Assert.Equal(100, action.EntityId);
-        Assert.True(action.SlotOccupied);
-        Assert.True(action.LocalRawMass > 0f);
-        Assert.Equal(25f, action.Delta);
-
-        var entityField = Assert.Single(batch.CultureEntityFieldSnapshots, row => row.EntityId == 100 && row.PlaneCode == PlaneCodes.Physical);
-        Assert.True(entityField.SlotOccupied);
-        Assert.True(entityField.LocalRawMass > 0f);
     }
 
     private static void WriteCultureFieldMetricEntity(KernelEventLog log)

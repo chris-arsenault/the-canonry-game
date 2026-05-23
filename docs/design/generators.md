@@ -5,19 +5,19 @@ intermittently bring **new named entities** into being. They are creation, not
 an aggregate release valve. The deck of generators the player runs is a
 statement about what kinds of worlds are allowed to come into being.
 
-This document is the canonical generator design: system rules, authoring
-invariants, and the current catalog. Implementation is in
+This document is the generator design: system rules and authoring invariants.
+The active catalog is source code, not a parallel table here. Implementation is in
 `src/Engine.Kernel/Programs/Generators/` and the IceRemembers domain
 content is in `src/IceRemembers/IceRemembersGeneratorDefinition.cs`.
 
 ## What generators are
 
 A generator is a **world event that spawns a pre-wired package of entities
-inside a pulse-window budget**. The runtime evaluates generators every tick and
-fires an applicable generator while the current pulse window still has fire
-budget. Generators are the mechanism by which the simulation introduces new
-actors, factions, settlements, and artifacts over time, rather than starting
-with a fixed census and only losing pieces.
+inside a pulse-window budget**. The runtime evaluates generators on the main
+graph cadence and fires an applicable generator while the current pulse window
+still has fire budget. Generators are the mechanism by which the simulation
+introduces new actors, factions, settlements, and artifacts over time, rather
+than starting with a fixed census and only losing pieces.
 
 A generator is not just "spawn a penguin" — it spawns **a bundle** (entities +
 relationships + placement), because the interesting narrative units are
@@ -27,8 +27,8 @@ not three lonely pieces.
 ### Simulation altitudes
 
 * **Low altitude** — continuous simulation of named entities already in the
-world: movement, influence, map signals, relationship maintenance, health,
-aging, and death.
+world: movement, culture influence, minor actor labor, map signals,
+relationship maintenance, health, aging, and death.
 * **Mid altitude** — systematic change in the graph: wars hardening,
 alliances fraying, corruption spreading, sanctity stabilizing.
 * **High altitude** — generators. Major world events that intermittently
@@ -71,11 +71,11 @@ bounds, and coverage constraints pass.
 
 ## Pulse model
 
-* The generator runtime evaluates every tick.
+* The generator runtime evaluates on the main graph cadence.
 * A pulse window resets fire budget. Default tuning is
-`PulseWidthTicks = 25` and `FiresPerPulse = 1`.
-* A generator may fire on any tick inside the current pulse window while
-fire budget remains.
+`PulseWidthTicks = 25` main ticks and `FiresPerPulse = 1`.
+* A generator may fire on any eligible generator tick inside the current pulse
+window while fire budget remains.
 * Applicable = on the tableau AND has at least one target entity whose
 gates pass.
 * Within available fire budget, one eligible generator candidate is selected

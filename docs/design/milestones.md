@@ -14,8 +14,8 @@ Done means:
 
 - The Ice Remembers domain runs with at least the core MVP kind slice: region,
   settlement, faction, penguin, artifact.
-- Low-altitude physics creates visible movement, influence, relationship drift,
-  aging, and death.
+- Low-altitude physics creates visible movement, culture influence, minor labor,
+  relationship drift, aging, and death.
 - Generators create named connected bundles.
 - A small set of gambits creates meaningful relationship/status changes.
 - The map, tableau, entity details, and event log make behavior observable.

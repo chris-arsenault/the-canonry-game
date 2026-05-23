@@ -13,8 +13,9 @@ The simulation is healthy when three broad outcomes hold together.
    should not collapse into one repeated agency-heavy pattern.
 2. The map is well used. Activity should expand away from the seed zone, avoid
    single-corridor degeneracy, and produce readable territorial shape.
-3. The map looks alive per tick. Entities should move, exert influence, age,
-   die, and change relationship strengths even when no generator fires.
+3. The map looks alive per tick. Entities should move, shape culture
+   influence, age, die, and change relationship strengths even when no
+   generator fires.
 
 These goals are coupled. A map can look busy while the graph is poor; a graph
 can be diverse while every entity sits in one cluster. Tuning should measure all
@@ -23,9 +24,9 @@ three before declaring success.
 ## Altitude Boundaries
 
 Low altitude is the per-tick substrate. It may move entities, change health,
-read traits, write map activity and influence, and drift existing relationship
-strengths. It should not create named entities, introduce relationship kinds, or
-declare major narrative outcomes.
+read traits, write map activity and culture influence, run minor labor, and
+drift existing relationship strengths. It should not create named entities,
+introduce relationship kinds, or declare major narrative outcomes.
 
 Gambits are entity-authored high-stakes actions. They are rarer than low
 altitude verbs and can create, strengthen, weaken, or reverse relationships.
@@ -42,12 +43,14 @@ produces useful roaming, activity spread, and generator/gambit affordances.
 
 Locality is an implementation ingredient, not a primary success criterion.
 Do not optimize for "more local actions" unless doing so improves map use,
-entity roaming, influence shape, relationship dynamics, or lifecycle churn.
+entity roaming, culture influence shape, relationship dynamics, or lifecycle
+churn.
 
 Resources are not primary low-altitude drivers today. The former macro
 aggregate layer has been removed rather than retained as telemetry. Current
-low-altitude quality should be judged through movement, influence, map signals,
-health effects, upkeep, relationships, gambits, and generators.
+low-altitude quality should be judged through movement, culture influence, map
+signals, minor actor labor, health effects, upkeep, relationships, gambits, and
+generators.
 
 Health provides lifecycle state. Traits provide mostly static individual
 variance. Neither should force a recovery treadmill where entities spend the
@@ -65,12 +68,14 @@ Useful physical and semantic metrics include:
 - largest strict empty hex radius;
 - bounding-box fill.
 
-For influence, watch component quality per influencing entity:
+For culture influence, watch component quality per culture and plane:
 
 - component count above a threshold;
 - largest-component share;
 - isolated influenced-cell count;
-- mean and p95 distance from anchor.
+- contested-cell share;
+- hole count;
+- mean and p95 distance from culture anchors or long-lived source entities.
 
 Thin tendrils are acceptable when one dominant component remains. Many detached
 islands are a tuning problem.
@@ -89,7 +94,7 @@ Judge roaming per entity and per plane:
 
 High movement with low unique destinations is not meaningful map life. Low
 movement by static entities can still be healthy if they visibly affect the map
-through influence or coverage.
+through culture influence, minor actor labor, or coverage.
 
 ## Verb And Gambit Metrics
 
@@ -122,8 +127,8 @@ analysis language.
 
 Do not lead tuning analysis with generator fire counts unless the current task
 is generator behavior. Generator counts are a downstream symptom. For
-low-altitude tuning, lead with map utilization, roaming variance, influence
-shape, lifecycle churn, and relationship strength dynamics.
+low-altitude tuning, lead with map utilization, roaming variance, culture
+shape, minor actor labor, lifecycle churn, and relationship strength dynamics.
 
 Road behavior should be judged from the Monte Carlo parquet contract:
 

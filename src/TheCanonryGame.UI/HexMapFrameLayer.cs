@@ -1,3 +1,4 @@
+using Engine.Constants;
 using Engine.Projection;
 
 using Godot;
@@ -194,7 +195,7 @@ public partial class HexMapFrameLayer : Node2D
                     dominant.CultureId,
                     cell,
                     CultureColor(dominant.CultureId),
-                    dominant.Share);
+                    CultureOverlayStrength(dominant));
             });
         return new AreaOverlayGeometry(
             BuildAreaPolygons(
@@ -706,8 +707,17 @@ public partial class HexMapFrameLayer : Node2D
         }
 
         var dominant = cell.CultureInfluences[0];
-        var runnerUpShare = cell.CultureInfluences.Count > 1 ? cell.CultureInfluences[1].Share : 0f;
-        return dominant.Share < 60f || dominant.Share - runnerUpShare < 25f;
+        return dominant.CellKindCode == CultureFieldCellKindCodes.Contested;
+    }
+
+    private static float CultureOverlayStrength(HexCultureInfluenceProjection influence)
+    {
+        if (influence.RawMass > 0f)
+        {
+            return Mathf.Clamp(influence.RawMass / 10f, 0f, 100f);
+        }
+
+        return influence.Share;
     }
 
     private void DrawMapBorders(int planeCode, IReadOnlyCollection<HexProjection> cells)

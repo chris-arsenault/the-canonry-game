@@ -13,6 +13,8 @@ The domain owns:
 - relationship kinds;
 - terrain and map-generation terms;
 - low-altitude gameplay config;
+- minor actor emitter and verb config;
+- culture slot definitions and scoring;
 - gambits;
 - generators;
 - narrative presentation data.

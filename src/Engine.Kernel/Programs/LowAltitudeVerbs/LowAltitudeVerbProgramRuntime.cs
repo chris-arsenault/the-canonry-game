@@ -7,7 +7,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
     private readonly VerbTargetCandidate[] _verbCandidateScratch = new VerbTargetCandidate[VerbBucketCapacity];
     private readonly float[] _verbAffordanceSumScratch = new float[VerbBucketCapacity];
-    private readonly CultureInfluenceComponentScratch _cultureInfluenceComponents = new();
 
     public LowAltitudeVerbProgramRuntime(LowAltitudeVerbProgramData data, LowAltitudeVerbProgramState state)
         : this(data, state, new KernelProgramTuningOptions())

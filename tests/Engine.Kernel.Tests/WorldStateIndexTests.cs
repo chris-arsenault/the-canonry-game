@@ -207,7 +207,7 @@ public sealed class WorldStateIndexTests
     [Fact]
     public void MapLayerSetStoresExclusiveCoverageAndOverlappingCultureInfluence()
     {
-        var layers = new MapLayerSet(entityCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
+        var layers = new MapLayerSet(entityCapacity: 4, cultureIdCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
         const int cellKey = 1;
 
         layers.Coverage.SetValue(PlaneCodes.Physical, cellKey, 0, 0, value: 1);
@@ -231,8 +231,8 @@ public sealed class WorldStateIndexTests
     [Fact]
     public void MapLayerSetSnapshotRestoresCoverageAndCultureInfluenceTogether()
     {
-        var layers = new MapLayerSet(entityCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
-        var loaded = new MapLayerSet(entityCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
+        var layers = new MapLayerSet(entityCapacity: 4, cultureIdCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
+        var loaded = new MapLayerSet(entityCapacity: 4, cultureIdCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
         const int cellKey = 2;
         layers.Coverage.SetValue(PlaneCodes.Semantic, cellKey, 1, -1, value: 3);
         layers.RawCultureInfluence.SetValue(entityId: 3, PlaneCodes.Semantic, cellKey, q: 1, r: -1, value: 75f);
@@ -372,6 +372,50 @@ public sealed class WorldStateIndexTests
     }
 
     [Fact]
+    public void CultureFieldQuery_DelegatesToBoundaryProgramCache()
+    {
+        var simulation = CreateSimulation();
+        var aurora = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+
+        Assert.Equal(0, simulation.CultureBoundaries.RebuildCount);
+
+        var field = simulation.World.CultureFieldAt(1, PlaneCodes.Physical, 0, 0);
+        var firstRebuildCount = simulation.CultureBoundaries.RebuildCount;
+        var boundary = simulation.CultureBoundaries.CellAt(simulation.World, 1, PlaneCodes.Physical, 0, 0);
+
+        Assert.True(firstRebuildCount > 0);
+        Assert.Equal(boundary.RawMass, field.RawMass);
+        Assert.Equal(boundary.TotalRawMass, field.TotalRawMass);
+        Assert.Equal(boundary.ForeignRawMass, field.ForeignRawMass);
+        Assert.Equal(boundary.ConnectedRawMass, field.ConnectedRawMass);
+        Assert.Equal(boundary.CellKindCode, field.CellKindCode);
+
+        _ = simulation.World.CultureFieldAt(1, PlaneCodes.Physical, 0, 0);
+
+        Assert.Equal(firstRebuildCount, simulation.CultureBoundaries.RebuildCount);
+
+        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 1, 0, 100f, tick: 1);
+        _ = simulation.World.CultureFieldAt(1, PlaneCodes.Physical, 1, 0);
+
+        Assert.True(simulation.CultureBoundaries.RebuildCount > firstRebuildCount);
+    }
+
+    [Fact]
+    public void CultureFieldQuery_SupportsCultureIdsAboveEntityCapacity()
+    {
+        var simulation = CreateSimulation();
+        var cultureId = simulation.World.EntityCapacity + 10;
+        var aurora = simulation.CreateEntity(1, 1, cultureId, 0, 0, 0, 0, 0, 0);
+        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+
+        var field = simulation.World.CultureFieldAt(cultureId, PlaneCodes.Physical, 0, 0);
+
+        Assert.Equal(100f, field.RawMass);
+        Assert.Equal(1, simulation.CultureBoundaries.ComponentCount(simulation.World, cultureId, PlaneCodes.Physical));
+    }
+
+    [Fact]
     public void CultureSlotScoringPrefersCandidatesInsideStrongLocalCultureField()
     {
         var simulation = CreateSimulation();
@@ -401,6 +445,42 @@ public sealed class WorldStateIndexTests
 
         Assert.NotEqual(unsupported, simulation.CultureSlots.OccupantEntityId(1, slotId: 1));
         Assert.Equal(supported, simulation.CultureSlots.OccupantEntityId(1, slotId: 1));
+    }
+
+    [Fact]
+    public void CultureSlotScoringReadsSupportFromBoundaryInteriorHoles()
+    {
+        var simulation = CreateSimulation();
+        simulation.World.SetMapRadius(3);
+        var unsupported = simulation.CreateEntity(1, 1, 1, -3, 0, 0, 0, 0, 0);
+        var supportedHole = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        foreach (var (q, r) in NeighborCells(0, 0))
+        {
+            simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, q, r, WorldState.CultureControlledRawMass, tick: 0);
+        }
+
+        var boundary = simulation.CultureBoundaries.CellAt(simulation.World, 1, PlaneCodes.Physical, 0, 0);
+        Assert.True(boundary.IsInteriorHole);
+        Assert.Equal(0f, boundary.RawMass);
+        Assert.True(boundary.ConnectedRawMass > 0f);
+
+        var slot = simulation.CultureSlots.RegisterSlot(
+            cultureId: 1,
+            slotId: 1,
+            polarityCode: RelationshipPolarityCodes.Positive,
+            minimumScore: 1f,
+            minimumTenureTicks: 0,
+            displacementMargin: 0f,
+            entityInfluenceMultiplierDelta: 0f,
+            cultureInfluenceMultiplierDelta: 0f);
+        simulation.CultureSlots.AddAllowedKind(slot, 1);
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.ActiveEntity, relationshipKindId: 0, weight: 1f);
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.PhysicalCultureSupport, relationshipKindId: 0, weight: 1f);
+
+        simulation.AdvanceTicks(10);
+
+        Assert.NotEqual(unsupported, simulation.CultureSlots.OccupantEntityId(1, slotId: 1));
+        Assert.Equal(supportedHole, simulation.CultureSlots.OccupantEntityId(1, slotId: 1));
     }
 
     [Fact]
@@ -637,6 +717,16 @@ public sealed class WorldStateIndexTests
         var cursor = world.IncomingRelationshipsOfKind(target, kindId);
         return world.MoveNextRelationship(ref cursor, out var relationshipId) ? relationshipId : 0;
     }
+
+    private static (int Q, int R)[] NeighborCells(int q, int r) =>
+    [
+        (q + 1, r),
+        (q + 1, r - 1),
+        (q, r - 1),
+        (q - 1, r),
+        (q - 1, r + 1),
+        (q, r + 1),
+    ];
 
     private struct RecordingTraversalVisitor : IRelationshipTraversalVisitor
     {

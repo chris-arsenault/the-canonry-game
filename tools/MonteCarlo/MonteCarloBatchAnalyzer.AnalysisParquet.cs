@@ -51,6 +51,9 @@ internal sealed partial class MonteCarloBatchAnalyzer
         ExportAnalysisTable(connection, analysisDirectory, "map_spread", MapSpreadSql);
         ExportAnalysisTable(connection, analysisDirectory, "coverage_development", CoverageDevelopmentSql);
         ExportAnalysisTable(connection, analysisDirectory, "terrain_occupancy", TerrainOccupancySql);
+        ExportAnalysisTable(connection, analysisDirectory, "culture_boundary_components", CultureBoundaryComponentsSql);
+        ExportAnalysisTable(connection, analysisDirectory, "culture_births_by_boundary_kind", CultureBirthsByBoundaryKindSql);
+        ExportAnalysisTable(connection, analysisDirectory, "minor_actor_actions_by_boundary_kind", MinorActorActionsByBoundaryKindSql);
     }
 
     private static void ExportAnalysisTable(
