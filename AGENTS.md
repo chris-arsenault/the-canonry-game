@@ -1,6 +1,6 @@
-# CODEX.md
+# Agent Instructions
 
-Codex operating rules for this repository.
+Repository operating rules for this project.
 
 ## Current Runtime Model
 
