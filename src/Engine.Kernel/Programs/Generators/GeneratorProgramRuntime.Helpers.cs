@@ -101,6 +101,7 @@ internal sealed partial class GeneratorProgramRuntime
     private int SelectSharedEntity(
         WorldState world,
         Simulation? simulation,
+        bool selectRandom,
         int kindId,
         int targetId,
         int targetOriginQ,
@@ -111,6 +112,7 @@ internal sealed partial class GeneratorProgramRuntime
         int subtypeCount,
         int adjacentToTarget,
         int cultureMatchCode,
+        int samePhysicalCultureComponentAsTarget,
         int withoutOutgoingStart,
         int withoutOutgoingCount,
         int withoutIncomingStart,
@@ -135,14 +137,101 @@ internal sealed partial class GeneratorProgramRuntime
             targetOriginR: targetOriginR,
             refEntityIds: refEntityIds,
             refCount: refCount);
-        var count = KernelQuery.EvaluateSharedQuery(world, query, binding, selectedOrdinal: -1).Count;
+        var count = EvaluateSharedEntityQuery(
+            world,
+            simulation,
+            query,
+            binding,
+            samePhysicalCultureComponentAsTarget,
+            selectedOrdinal: -1).Count;
         if (count == 0)
         {
             return 0;
         }
 
-        var selectedOrdinal = simulation is null ? 0 : simulation.NextInt(count);
-        return KernelQuery.EvaluateSharedQuery(world, query, binding, selectedOrdinal).SelectedEntityId;
+        var selectedOrdinal = selectRandom && simulation is not null ? simulation.NextInt(count) : 0;
+        return EvaluateSharedEntityQuery(
+            world,
+            simulation,
+            query,
+            binding,
+            samePhysicalCultureComponentAsTarget,
+            selectedOrdinal).SelectedEntityId;
+    }
+
+    private QueryEvaluation EvaluateSharedEntityQuery(
+        WorldState world,
+        Simulation? simulation,
+        in SharedQuery query,
+        in QueryBinding binding,
+        int samePhysicalCultureComponentAsTarget,
+        int selectedOrdinal)
+    {
+        if (samePhysicalCultureComponentAsTarget == 0)
+        {
+            return KernelQuery.EvaluateSharedQuery(world, query, binding, selectedOrdinal);
+        }
+
+        if (simulation is null)
+        {
+            return new QueryEvaluation(0, 0);
+        }
+
+        var queryValue = query;
+        var bindingValue = binding;
+        var count = 0;
+        var selectedEntityId = 0;
+        KernelQuery.ForEachActiveEntity(
+            world,
+            entityId =>
+            {
+                if (!KernelQuery.SharedQueryMatchesCandidate(world, queryValue, bindingValue, entityId) ||
+                    !SharedEntityMatchesTargetCultureComponent(simulation, bindingValue.TargetId, entityId))
+                {
+                    return true;
+                }
+
+                if (count == selectedOrdinal)
+                {
+                    selectedEntityId = entityId;
+                }
+
+                count++;
+                return selectedEntityId == 0;
+            });
+        return new QueryEvaluation(count, selectedEntityId);
+    }
+
+    private bool SharedEntityMatchesTargetCultureComponent(
+        Simulation simulation,
+        int targetId,
+        int entityId)
+    {
+        var world = simulation.World;
+        var cultureId = world.EntityCultureId(targetId);
+        if (cultureId <= 0 || world.EntityCultureId(entityId) != cultureId)
+        {
+            return false;
+        }
+
+        var targetBoundary = simulation.CultureBoundaries.CellAt(
+            world,
+            cultureId,
+            PlaneCodes.Physical,
+            world.EntityPhysicalQ(targetId),
+            world.EntityPhysicalR(targetId));
+        if (targetBoundary.ComponentId <= 0)
+        {
+            return false;
+        }
+
+        var candidateBoundary = simulation.CultureBoundaries.CellAt(
+            world,
+            cultureId,
+            PlaneCodes.Physical,
+            world.EntityPhysicalQ(entityId),
+            world.EntityPhysicalR(entityId));
+        return candidateBoundary.ComponentId == targetBoundary.ComponentId;
     }
 
     private void PublishGeneratorEvaluationStats(Simulation simulation, int tick)

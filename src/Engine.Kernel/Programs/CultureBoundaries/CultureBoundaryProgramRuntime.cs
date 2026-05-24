@@ -6,12 +6,34 @@ internal sealed class CultureBoundaryProgramRuntime :
     internal const int InteriorHoleAdjacentSupportThreshold = 4;
 
     private const int CacheSlotCount = 16;
+    private const int DirtyCoordinateOffset = 32768;
+    private const int DirtyCoordinateMask = 65535;
+    private const int DirtyLocalDependencyRadius = 2;
+    private const int DirtyComponentDependencyRadius = 1;
     private const float CultureFieldRingTwoConnectionWeight = 7f / 20f;
     private const float CultureFieldContestMarginShare = 35f;
+    private static readonly int[] NeighborQOffsets = [1, 1, 0, -1, -1, 0];
+    private static readonly int[] NeighborROffsets = [0, -1, -1, 0, 1, 1];
+    private static readonly int[] RingTwoQOffsets = [2, 2, 2, 1, 0, -1, -2, -2, -2, -1, 0, 1];
+    private static readonly int[] RingTwoROffsets = [0, -1, -2, -2, -2, -1, 0, 1, 2, 2, 2, 1];
 
     private readonly CultureBoundaryComponentCache[] _caches;
     private readonly int[] _physicalVersions;
     private readonly int[] _semanticVersions;
+    private readonly CultureBoundaryDirtySource[] _dirtySources;
+    private readonly long[] _dirtySourceLookupKeys;
+    private readonly int[] _dirtySourceLookupIndexes;
+    private readonly int[] _dirtySourceUsedBuckets;
+    private readonly long[] _dirtyCellLookupKeys;
+    private readonly int[] _dirtyCellLookupIndexes;
+    private readonly int[] _dirtyCellUsedBuckets;
+    private readonly int[] _dirtyComponentIdScratch = new int[7];
+    private readonly int _dirtySourceLookupMask;
+    private readonly int _dirtyCellLookupMask;
+    private int _dirtySourceCount;
+    private int _dirtySourceUsedBucketCount;
+    private int _dirtyCellCount;
+    private int _dirtyCellUsedBucketCount;
     private long _revision;
     private int _rebuildCount;
 
@@ -34,6 +56,19 @@ internal sealed class CultureBoundaryProgramRuntime :
         {
             _caches[i] = new CultureBoundaryComponentCache(cellCapacity);
         }
+
+        var dirtySourceCapacity = cellCapacity * 2 * cultureIdCapacity;
+        _dirtySources = new CultureBoundaryDirtySource[dirtySourceCapacity];
+        var dirtySourceLookupCapacity = NextPowerOfTwo(dirtySourceCapacity * 2);
+        _dirtySourceLookupKeys = new long[dirtySourceLookupCapacity];
+        _dirtySourceLookupIndexes = new int[dirtySourceLookupCapacity];
+        _dirtySourceUsedBuckets = new int[dirtySourceLookupCapacity];
+        _dirtySourceLookupMask = dirtySourceLookupCapacity - 1;
+        var dirtyCellLookupCapacity = NextPowerOfTwo(cellCapacity * 2);
+        _dirtyCellLookupKeys = new long[dirtyCellLookupCapacity];
+        _dirtyCellLookupIndexes = new int[dirtyCellLookupCapacity];
+        _dirtyCellUsedBuckets = new int[dirtyCellLookupCapacity];
+        _dirtyCellLookupMask = dirtyCellLookupCapacity - 1;
     }
 
     public CultureBoundaryProgramData Data { get; }
@@ -71,6 +106,113 @@ internal sealed class CultureBoundaryProgramRuntime :
                 cache.Invalidate();
             }
         }
+    }
+
+    internal void MarkDirty(
+        int cultureId,
+        int planeCode,
+        int q,
+        int r,
+        float previousRaw,
+        float currentRaw,
+        bool topologyMayHaveChanged)
+    {
+        ValidateCultureAndPlane(cultureId, planeCode);
+        if (topologyMayHaveChanged)
+        {
+            MarkDirty(cultureId, planeCode);
+        }
+        else
+        {
+            ApplyStableMassChange(cultureId, planeCode, q, r, previousRaw, currentRaw);
+            _revision++;
+        }
+
+        var key = PackDirtySourceKey(cultureId, planeCode, q, r);
+        var index = DirtySourceIndexOf(key);
+        if (index >= 0)
+        {
+            if (topologyMayHaveChanged && !_dirtySources[index].TopologyMayHaveChanged)
+            {
+                _dirtySources[index] = _dirtySources[index] with { TopologyMayHaveChanged = true };
+            }
+
+            return;
+        }
+
+        if (_dirtySourceCount >= _dirtySources.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _dirtySources[_dirtySourceCount] = new CultureBoundaryDirtySource(
+            key,
+            cultureId,
+            planeCode,
+            q,
+            r,
+            topologyMayHaveChanged);
+        AddDirtySourceLookup(key, _dirtySourceCount);
+        _dirtySourceCount++;
+    }
+
+    private void ApplyStableMassChange(int cultureId, int planeCode, int q, int r, float previousRaw, float currentRaw)
+    {
+        var cache = _caches[CacheIndex(cultureId, planeCode)];
+        if (cache.CultureId != cultureId ||
+            cache.PlaneCode != planeCode ||
+            cache.BoundaryVersion != VersionFor(cultureId, planeCode))
+        {
+            return;
+        }
+
+        cache.ApplyStableMassChange(q, r, previousRaw, currentRaw);
+    }
+
+    internal int DrainDirtyCells(
+        WorldState world,
+        int planeCode,
+        CultureBoundaryDirtyCell[] destination)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(world);
+        global::System.ArgumentNullException.ThrowIfNull(destination);
+        if (planeCode != PlaneCodes.Physical && planeCode != PlaneCodes.Semantic)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(planeCode));
+        }
+
+        ResetDirtyCellLookup();
+        ResetDirtySourceLookup();
+        var originalSourceCount = _dirtySourceCount;
+        var remainingSourceCount = 0;
+        for (var i = 0; i < originalSourceCount; i++)
+        {
+            var source = _dirtySources[i];
+            if (source.PlaneCode != planeCode)
+            {
+                _dirtySources[remainingSourceCount] = source;
+                AddDirtySourceLookup(source.Key, remainingSourceCount);
+                remainingSourceCount++;
+                continue;
+            }
+
+            AddDirtyCellsInRadius(
+                world,
+                source.PlaneCode,
+                source.Q,
+                source.R,
+                DirtyLocalDependencyRadius,
+                destination);
+            if (source.TopologyMayHaveChanged)
+            {
+                AddAffectedComponentCells(world, source, destination);
+            }
+        }
+
+        _dirtySourceCount = remainingSourceCount;
+        var dirtyCellCount = _dirtyCellCount;
+        ResetDirtyCellLookup();
+        return dirtyCellCount;
     }
 
     internal CultureBoundaryCell CellAt(WorldState world, int cultureId, int planeCode, int q, int r)
@@ -220,30 +362,28 @@ internal sealed class CultureBoundaryProgramRuntime :
         var strongestRingTwoRaw = 0f;
         var supportedAdjacentCount = 0;
         var supportedRingTwoCount = 0;
-        for (var dq = -2; dq <= 2; dq++)
+        for (var i = 0; i < NeighborQOffsets.Length; i++)
         {
-            var minDr = global::System.Math.Max(-2, -dq - 2);
-            var maxDr = global::System.Math.Min(2, -dq + 2);
-            for (var dr = minDr; dr <= maxDr; dr++)
-            {
-                if (dq == 0 && dr == 0)
-                {
-                    continue;
-                }
+            var raw = world.GetCellCultureInfluenceRaw(
+                cultureId,
+                planeCode,
+                q + NeighborQOffsets[i],
+                r + NeighborROffsets[i]);
+            adjacentRawTotal += raw;
+            strongestAdjacentRaw = global::System.MathF.Max(strongestAdjacentRaw, raw);
+            supportedAdjacentCount += CultureFieldSupportedCellCount(raw);
+        }
 
-                var raw = world.GetCellCultureInfluenceRaw(cultureId, planeCode, q + dq, r + dr);
-                if (HexDistance(0, 0, dq, dr) == 1)
-                {
-                    adjacentRawTotal += raw;
-                    strongestAdjacentRaw = global::System.MathF.Max(strongestAdjacentRaw, raw);
-                    supportedAdjacentCount += CultureFieldSupportedCellCount(raw);
-                    continue;
-                }
-
-                ringTwoRawTotal += raw;
-                strongestRingTwoRaw = global::System.MathF.Max(strongestRingTwoRaw, raw);
-                supportedRingTwoCount += CultureFieldSupportedCellCount(raw);
-            }
+        for (var i = 0; i < RingTwoQOffsets.Length; i++)
+        {
+            var raw = world.GetCellCultureInfluenceRaw(
+                cultureId,
+                planeCode,
+                q + RingTwoQOffsets[i],
+                r + RingTwoROffsets[i]);
+            ringTwoRawTotal += raw;
+            strongestRingTwoRaw = global::System.MathF.Max(strongestRingTwoRaw, raw);
+            supportedRingTwoCount += CultureFieldSupportedCellCount(raw);
         }
 
         return new CultureBoundaryNeighborhood(
@@ -373,13 +513,236 @@ internal sealed class CultureBoundaryProgramRuntime :
     private static int CultureFieldSupportedCellCount(float raw) =>
         raw >= WorldState.CultureClaimedRawMass ? 1 : 0;
 
-    private static int HexDistance(int aq, int ar, int bq, int br)
+    private void AddAffectedComponentCells(
+        WorldState world,
+        CultureBoundaryDirtySource source,
+        CultureBoundaryDirtyCell[] destination)
     {
-        var asCoord = -aq - ar;
-        var bsCoord = -bq - br;
-        return (global::System.Math.Abs(aq - bq) +
-            global::System.Math.Abs(ar - br) +
-            global::System.Math.Abs(asCoord - bsCoord)) / 2;
+        var cache = EnsureCache(world, source.CultureId, source.PlaneCode);
+        var componentCount = 0;
+        AddComponentId(cache.ComponentIdAt(source.Q, source.R), _dirtyComponentIdScratch, ref componentCount);
+        for (var direction = 0; direction < 6; direction++)
+        {
+            AddComponentId(
+                cache.ComponentIdAt(
+                    source.Q + DirectionQ(direction),
+                    source.R + DirectionR(direction)),
+                _dirtyComponentIdScratch,
+                ref componentCount);
+        }
+
+        for (var i = 0; i < componentCount; i++)
+        {
+            cache.ForEachComponentCell(
+                _dirtyComponentIdScratch[i],
+                (q, r) => AddDirtyCellsInRadius(
+                    world,
+                    source.PlaneCode,
+                    q,
+                    r,
+                    DirtyComponentDependencyRadius,
+                    destination));
+        }
+    }
+
+    private static void AddComponentId(int componentId, int[] componentIds, ref int componentCount)
+    {
+        if (componentId <= 0)
+        {
+            return;
+        }
+
+        for (var i = 0; i < componentCount; i++)
+        {
+            if (componentIds[i] == componentId)
+            {
+                return;
+            }
+        }
+
+        componentIds[componentCount] = componentId;
+        componentCount++;
+    }
+
+    private void AddDirtyCellsInRadius(
+        WorldState world,
+        int planeCode,
+        int centerQ,
+        int centerR,
+        int radius,
+        CultureBoundaryDirtyCell[] destination)
+    {
+        for (var dq = -radius; dq <= radius; dq++)
+        {
+            var minDr = global::System.Math.Max(-radius, -dq - radius);
+            var maxDr = global::System.Math.Min(radius, -dq + radius);
+            for (var dr = minDr; dr <= maxDr; dr++)
+            {
+                AddDirtyCell(world, planeCode, centerQ + dq, centerR + dr, destination);
+            }
+        }
+    }
+
+    private void AddDirtyCell(
+        WorldState world,
+        int planeCode,
+        int q,
+        int r,
+        CultureBoundaryDirtyCell[] destination)
+    {
+        if (!world.CellIsKnown(planeCode, q, r))
+        {
+            return;
+        }
+
+        if (!TryAddDirtyCellKey(PackDirtyCellKey(planeCode, q, r)))
+        {
+            return;
+        }
+
+        if (_dirtyCellCount >= destination.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        destination[_dirtyCellCount] = new CultureBoundaryDirtyCell(planeCode, q, r);
+        _dirtyCellCount++;
+    }
+
+    private int DirtySourceIndexOf(long key)
+    {
+        var bucket = LookupBucket(key, _dirtySourceLookupMask);
+        for (var probe = 0; probe < _dirtySourceLookupIndexes.Length; probe++)
+        {
+            var index = _dirtySourceLookupIndexes[bucket];
+            if (index == 0)
+            {
+                return -1;
+            }
+
+            if (_dirtySourceLookupKeys[bucket] == key)
+            {
+                return index - 1;
+            }
+
+            bucket = (bucket + 1) & _dirtySourceLookupMask;
+        }
+
+        return -1;
+    }
+
+    private void AddDirtySourceLookup(long key, int sourceIndex)
+    {
+        var bucket = LookupBucket(key, _dirtySourceLookupMask);
+        for (var probe = 0; probe < _dirtySourceLookupIndexes.Length; probe++)
+        {
+            if (_dirtySourceLookupIndexes[bucket] == 0)
+            {
+                if (_dirtySourceUsedBucketCount >= _dirtySourceUsedBuckets.Length)
+                {
+                    throw new global::System.InvalidOperationException();
+                }
+
+                _dirtySourceLookupKeys[bucket] = key;
+                _dirtySourceLookupIndexes[bucket] = sourceIndex + 1;
+                _dirtySourceUsedBuckets[_dirtySourceUsedBucketCount] = bucket;
+                _dirtySourceUsedBucketCount++;
+                return;
+            }
+
+            if (_dirtySourceLookupKeys[bucket] == key)
+            {
+                _dirtySourceLookupIndexes[bucket] = sourceIndex + 1;
+                return;
+            }
+
+            bucket = (bucket + 1) & _dirtySourceLookupMask;
+        }
+
+        throw new global::System.InvalidOperationException();
+    }
+
+    private void ResetDirtySourceLookup()
+    {
+        for (var i = 0; i < _dirtySourceUsedBucketCount; i++)
+        {
+            _dirtySourceLookupIndexes[_dirtySourceUsedBuckets[i]] = 0;
+        }
+
+        _dirtySourceUsedBucketCount = 0;
+    }
+
+    private bool TryAddDirtyCellKey(long key)
+    {
+        var bucket = LookupBucket(key, _dirtyCellLookupMask);
+        for (var probe = 0; probe < _dirtyCellLookupIndexes.Length; probe++)
+        {
+            var index = _dirtyCellLookupIndexes[bucket];
+            if (index == 0)
+            {
+                if (_dirtyCellUsedBucketCount >= _dirtyCellUsedBuckets.Length)
+                {
+                    throw new global::System.InvalidOperationException();
+                }
+
+                _dirtyCellLookupKeys[bucket] = key;
+                _dirtyCellLookupIndexes[bucket] = _dirtyCellCount + 1;
+                _dirtyCellUsedBuckets[_dirtyCellUsedBucketCount] = bucket;
+                _dirtyCellUsedBucketCount++;
+                return true;
+            }
+
+            if (_dirtyCellLookupKeys[bucket] == key)
+            {
+                return false;
+            }
+
+            bucket = (bucket + 1) & _dirtyCellLookupMask;
+        }
+
+        throw new global::System.InvalidOperationException();
+    }
+
+    private void ResetDirtyCellLookup()
+    {
+        for (var i = 0; i < _dirtyCellUsedBucketCount; i++)
+        {
+            _dirtyCellLookupIndexes[_dirtyCellUsedBuckets[i]] = 0;
+        }
+
+        _dirtyCellUsedBucketCount = 0;
+        _dirtyCellCount = 0;
+    }
+
+    private static long PackDirtySourceKey(int cultureId, int planeCode, int q, int r) =>
+        ((long)cultureId << 34) | ((long)planeCode << 32) | (uint)PackDirtyCoordinateKey(q, r);
+
+    private static long PackDirtyCellKey(int planeCode, int q, int r) =>
+        ((long)planeCode << 32) | (uint)PackDirtyCoordinateKey(q, r);
+
+    private static int PackDirtyCoordinateKey(int q, int r) =>
+        ((q + DirtyCoordinateOffset) << 16) | ((r + DirtyCoordinateOffset) & DirtyCoordinateMask);
+
+    private static int LookupBucket(long key, int mask)
+    {
+        var hash = (ulong)key;
+        hash ^= hash >> 33;
+        hash *= 0xff51afd7ed558ccdUL;
+        hash ^= hash >> 33;
+        hash *= 0xc4ceb9fe1a85ec53UL;
+        hash ^= hash >> 33;
+        return (int)(hash & (uint)mask);
+    }
+
+    private static int NextPowerOfTwo(int value)
+    {
+        var result = 1;
+        while (result < value)
+        {
+            result <<= 1;
+        }
+
+        return result;
     }
 
     private static int CacheIndex(int cultureId, int planeCode)
@@ -437,4 +800,12 @@ internal sealed class CultureBoundaryProgramRuntime :
         float StrongestRingTwoRaw,
         int SupportedAdjacentCount,
         int SupportedRingTwoCount);
+
+    private readonly record struct CultureBoundaryDirtySource(
+        long Key,
+        int CultureId,
+        int PlaneCode,
+        int Q,
+        int R,
+        bool TopologyMayHaveChanged);
 }

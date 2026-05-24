@@ -55,6 +55,21 @@ entrenched/nexus fields. Hostile intrusion is an explicit placement mode for
 content that should appear in a foreign cultural field; it is not the default
 for wilderness or ordinary across-map placement.
 
+Culture placement intent is authored per produced entity. The default
+`PreferInheritedCulture` is a soft same-culture bias. `CultureInterior`,
+`CultureFrontier`, and `CultureRoute` express stronger geography preferences
+against the same culture-boundary field; `Wilderness` prefers low-culture cells;
+`HostileIntrusion` bypasses the normal foreign-entrenchment rejection. These
+intents affect both final placement scoring and the weighted selection of
+eligible generator targets, so culturally supported loci are more likely to
+receive generator activity before placement begins.
+
+Region coverage created by generators uses the same culture placement intent as
+the generated owner. Coverage seed and patch selection still respect terrain and
+coverage rules, but supported same-culture cells are preferred and foreign
+entrenched fields are rejected unless the produced entity explicitly uses
+hostile intrusion.
+
 ## Pulse Budget
 
 Generators run on the main graph cadence, not every minor-actor tick. Fire
@@ -90,6 +105,11 @@ Generator target gates, relationship gates, terrain gates, and produced entity
 binding queries use the shared kernel query path.
 Generator-specific code still owns pulse budgeting, target choice, production
 orchestration, placement, and reference binding order.
+
+Secondary binding queries may require the candidate to be in the same physical
+culture component as the target. This is stricter than same-culture matching and
+is intended for local patrons, ports, hosts, or callers whose support should be
+physically grounded in the same cultural mass.
 
 ## Effects
 

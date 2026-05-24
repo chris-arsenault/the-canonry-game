@@ -404,6 +404,7 @@ public static partial class DomainCompiler
         return new GeneratorEntityQueryRule(
             CompileGeneratorSubtypeIds(subtypeSource ?? query.Subtypes, ids),
             query.AdjacentToTarget,
+            query.SamePhysicalCultureComponentAsTarget,
             ToGeneratorCultureMatch(query.TargetCultureMatch),
             CompileRelationshipKindIds(query.WithoutOutgoingRelationships, ids),
             CompileRelationshipKindIds(query.WithoutIncomingRelationships, ids));
@@ -639,6 +640,10 @@ public static partial class DomainCompiler
         GeneratorCulturePlacement.Ignore => GeneratorProgramCulturePlacement.Ignore,
         GeneratorCulturePlacement.PreferInheritedCulture => GeneratorProgramCulturePlacement.PreferInheritedCulture,
         GeneratorCulturePlacement.HostileIntrusion => GeneratorProgramCulturePlacement.HostileIntrusion,
+        GeneratorCulturePlacement.CultureInterior => GeneratorProgramCulturePlacement.CultureInterior,
+        GeneratorCulturePlacement.CultureFrontier => GeneratorProgramCulturePlacement.CultureFrontier,
+        GeneratorCulturePlacement.CultureRoute => GeneratorProgramCulturePlacement.CultureRoute,
+        GeneratorCulturePlacement.Wilderness => GeneratorProgramCulturePlacement.Wilderness,
         _ => throw new ArgumentOutOfRangeException(nameof(placement), placement, null),
     };
 

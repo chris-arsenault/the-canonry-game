@@ -60,8 +60,12 @@ public static partial class IceRemembersGeneratorDefinition
 
     private static string L(Rel relationship) => relationship.ToDomainName();
 
-    private static SemanticEntityQuery SameCultureAsTarget() =>
-        new() { TargetCultureMatch = QueryTargetCultureMatch.SameAsTarget };
+    private static SemanticEntityQuery SameCultureAsTarget(bool samePhysicalComponent = false) =>
+        new()
+        {
+            TargetCultureMatch = QueryTargetCultureMatch.SameAsTarget,
+            SamePhysicalCultureComponentAsTarget = samePhysicalComponent,
+        };
 
     private static SemanticGeneratorConfig IceSettlesAccounts() => new()
     {
@@ -112,7 +116,12 @@ public static partial class IceRemembersGeneratorDefinition
         Target = TargetWithIncomingAndWithoutIncoming(K.Region, Rel.CleansedBy, Rel.Memorializes),
         SecondaryTargets =
         [
-            new SemanticGeneratorBindingTarget { Ref = "$patron", Kind = K.Faction, Query = SameCultureAsTarget() },
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$patron",
+                Kind = K.Faction,
+                Query = SameCultureAsTarget(samePhysicalComponent: true),
+            },
         ],
         Produces =
         [
@@ -406,7 +415,7 @@ public static partial class IceRemembersGeneratorDefinition
             {
                 Ref = "$patron",
                 Kind = K.Faction,
-                Query = new SemanticEntityQuery { TargetCultureMatch = QueryTargetCultureMatch.SameAsTarget },
+                Query = SameCultureAsTarget(samePhysicalComponent: true),
             },
         ],
         Produces =
@@ -452,7 +461,12 @@ public static partial class IceRemembersGeneratorDefinition
             Rel.HomeBase),
         SecondaryTargets =
         [
-            new SemanticGeneratorBindingTarget { Ref = "$caller", Kind = K.Orca, Query = SameCultureAsTarget() },
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$caller",
+                Kind = K.Orca,
+                Query = SameCultureAsTarget(samePhysicalComponent: true),
+            },
         ],
         Produces =
         [
@@ -630,7 +644,7 @@ public static partial class IceRemembersGeneratorDefinition
             {
                 Ref = "$host",
                 Kind = K.Settlement,
-                Query = new SemanticEntityQuery { TargetCultureMatch = QueryTargetCultureMatch.SameAsTarget },
+                Query = SameCultureAsTarget(samePhysicalComponent: true),
             },
         ],
         Produces =
@@ -905,6 +919,7 @@ public static partial class IceRemembersGeneratorDefinition
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
             PlacementRef = placementRef,
             InheritCultureFrom = cultureRef,
+            CulturePlacement = CulturePlacementFor(kind),
         };
     }
 
@@ -936,6 +951,7 @@ public static partial class IceRemembersGeneratorDefinition
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
             PlacementRef = placementRef,
             InheritCultureFrom = cultureRef,
+            CulturePlacement = CulturePlacementFor(kind),
         };
     }
 
@@ -959,6 +975,7 @@ public static partial class IceRemembersGeneratorDefinition
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
             PlacementRef = placementRef,
             InheritCultureFrom = placementRef,
+            CulturePlacement = GeneratorCulturePlacement.CultureRoute,
         };
     }
 
@@ -982,6 +999,7 @@ public static partial class IceRemembersGeneratorDefinition
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
             PlacementRef = "$target",
             InheritCultureFrom = cultureRef,
+            CulturePlacement = GeneratorCulturePlacement.CultureFrontier,
             Coverage = new SemanticRegionCoverage
             {
                 Mode = CoveragePlacementMode.CreateNew,
@@ -990,6 +1008,19 @@ public static partial class IceRemembersGeneratorDefinition
                 TransformTerrain = Terrain.Wastes.ToDomainName(),
             },
         };
+    }
+
+    private static GeneratorCulturePlacement CulturePlacementFor(EntityKind kind)
+    {
+        if (kind == K.Settlement ||
+            kind == K.Faction ||
+            kind == K.PointOfInterest ||
+            kind == K.Region)
+        {
+            return GeneratorCulturePlacement.CultureInterior;
+        }
+
+        return GeneratorCulturePlacement.PreferInheritedCulture;
     }
 
     private static SemanticGeneratorRelationship R(

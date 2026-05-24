@@ -160,12 +160,13 @@ internal sealed partial class GeneratorProgramRuntime
             }
         }
 
-        if (!FindCoverageSeedCell(world, producedSlot, originQ, originR, sourceOwnerId, out anchorQ, out anchorR))
+        var ownerCultureId = world.EntityCultureId(ownerEntityId);
+        if (!FindCoverageSeedCell(simulation, producedSlot, ownerCultureId, originQ, originR, sourceOwnerId, out anchorQ, out anchorR))
         {
             return false;
         }
 
-        var claimedCount = BuildCoveragePatch(world, producedSlot, anchorQ, anchorR, sourceOwnerId);
+        var claimedCount = BuildCoveragePatch(simulation, producedSlot, ownerCultureId, anchorQ, anchorR, sourceOwnerId);
         if (claimedCount < _producedCoverageMinimumCellCounts[producedSlot])
         {
             return false;
@@ -194,21 +195,23 @@ internal sealed partial class GeneratorProgramRuntime
     }
 
     private bool FindCoverageSeedCell(
-        WorldState world,
+        Simulation simulation,
         int producedSlot,
+        int producedCultureId,
         int originQ,
         int originR,
         int sourceOwnerId,
         out int seedQ,
         out int seedR)
     {
+        var world = simulation.World;
         var boundaryGroupId = 0;
         if (world.CellIsKnown(originQ, originR))
         {
             boundaryGroupId = world.TerrainBoundaryGroupId(world.CellTerrainId(originQ, originR));
         }
 
-        if (SearchCoverageSeedCell(world, producedSlot, originQ, originR, sourceOwnerId, boundaryGroupId, out seedQ, out seedR))
+        if (SearchCoverageSeedCell(simulation, producedSlot, producedCultureId, originQ, originR, sourceOwnerId, boundaryGroupId, out seedQ, out seedR))
         {
             return true;
         }
@@ -218,12 +221,13 @@ internal sealed partial class GeneratorProgramRuntime
             return false;
         }
 
-        return SearchCoverageSeedCell(world, producedSlot, originQ, originR, sourceOwnerId, boundaryGroupId: 0, out seedQ, out seedR);
+        return SearchCoverageSeedCell(simulation, producedSlot, producedCultureId, originQ, originR, sourceOwnerId, boundaryGroupId: 0, out seedQ, out seedR);
     }
 
     private bool SearchCoverageSeedCell(
-        WorldState world,
+        Simulation simulation,
         int producedSlot,
+        int producedCultureId,
         int originQ,
         int originR,
         int sourceOwnerId,
@@ -234,11 +238,14 @@ internal sealed partial class GeneratorProgramRuntime
         seedQ = 0;
         seedR = 0;
         var bestScore = int.MaxValue;
+        var found = false;
+        var world = simulation.World;
         for (var radius = 0; radius <= world.MapRadius; radius++)
         {
-            if (TrySearchCoverageSeedRadius(
-                    world,
+            found = TrySearchCoverageSeedRadius(
+                    simulation,
                     producedSlot,
+                    producedCultureId,
                     originQ,
                     originR,
                     radius,
@@ -246,18 +253,16 @@ internal sealed partial class GeneratorProgramRuntime
                     boundaryGroupId,
                     ref bestScore,
                     ref seedQ,
-                    ref seedR))
-            {
-                return true;
-            }
+                    ref seedR) || found;
         }
 
-        return false;
+        return found;
     }
 
     private bool TrySearchCoverageSeedRadius(
-        WorldState world,
+        Simulation simulation,
         int producedSlot,
+        int producedCultureId,
         int originQ,
         int originR,
         int radius,
@@ -271,8 +276,9 @@ internal sealed partial class GeneratorProgramRuntime
         for (var dq = -radius; dq <= radius; dq++)
         {
             found = SearchCoverageSeedColumn(
-                world,
+                simulation,
                 producedSlot,
+                producedCultureId,
                 originQ,
                 originR,
                 radius,
@@ -288,8 +294,9 @@ internal sealed partial class GeneratorProgramRuntime
     }
 
     private bool SearchCoverageSeedColumn(
-        WorldState world,
+        Simulation simulation,
         int producedSlot,
+        int producedCultureId,
         int originQ,
         int originR,
         int radius,
@@ -306,8 +313,9 @@ internal sealed partial class GeneratorProgramRuntime
         for (var dr = minDr; dr <= maxDr; dr++)
         {
             found = SelectCoverageSeedCandidate(
-                world,
+                simulation,
                 producedSlot,
+                producedCultureId,
                 originQ,
                 originR,
                 radius,
@@ -324,8 +332,9 @@ internal sealed partial class GeneratorProgramRuntime
     }
 
     private bool SelectCoverageSeedCandidate(
-        WorldState world,
+        Simulation simulation,
         int producedSlot,
+        int producedCultureId,
         int originQ,
         int originR,
         int radius,
@@ -339,12 +348,18 @@ internal sealed partial class GeneratorProgramRuntime
     {
         var q = originQ + dq;
         var r = originR + dr;
+        var world = simulation.World;
         if (!CoverageSeedCandidateMatches(world, producedSlot, q, r, originQ, originR, radius, sourceOwnerId, boundaryGroupId))
         {
             return false;
         }
 
-        var score = ScoreCoverageCell(world, producedSlot, q, r, originQ, originR, boundaryGroupId);
+        if (!PlacementCellAllowsCulture(simulation, PlaneCodes.Physical, producedSlot, producedCultureId, q, r))
+        {
+            return false;
+        }
+
+        var score = ScoreCoverageCell(simulation, producedSlot, producedCultureId, q, r, originQ, originR, boundaryGroupId);
         if (score >= bestScore)
         {
             return true;
@@ -372,12 +387,14 @@ internal sealed partial class GeneratorProgramRuntime
     }
 
     private int BuildCoveragePatch(
-        WorldState world,
+        Simulation simulation,
         int producedSlot,
+        int producedCultureId,
         int anchorQ,
         int anchorR,
         int sourceOwnerId)
     {
+        var world = simulation.World;
         var frontierCount = 1;
         var visitedCount = 0;
         var claimedCount = 0;
@@ -387,56 +404,137 @@ internal sealed partial class GeneratorProgramRuntime
         var desiredCount = _producedCoverageDesiredCellCounts[producedSlot];
         while (frontierCount > 0 && claimedCount < desiredCount)
         {
-            var selected = SelectBestFrontierCell(world, producedSlot, frontierCount, anchorQ, anchorR, boundaryGroupId);
+            var selected = SelectBestFrontierCell(
+                simulation,
+                producedSlot,
+                producedCultureId,
+                frontierCount,
+                anchorQ,
+                anchorR,
+                boundaryGroupId);
             var currentQ = _scratchQ[selected];
             var currentR = _scratchR[selected];
-            frontierCount--;
-            _scratchQ[selected] = _scratchQ[frontierCount];
-            _scratchR[selected] = _scratchR[frontierCount];
+            RemoveCoverageFrontierCell(selected, ref frontierCount);
 
-            if (ScratchContains(_scratchVisitedQ, _scratchVisitedR, visitedCount, currentQ, currentR))
+            if (!TryClaimCoveragePatchCell(
+                    simulation,
+                    producedSlot,
+                    producedCultureId,
+                    sourceOwnerId,
+                    boundaryGroupId,
+                    currentQ,
+                    currentR,
+                    ref visitedCount,
+                    ref claimedCount))
             {
                 continue;
             }
 
-            _scratchVisitedQ[visitedCount] = currentQ;
-            _scratchVisitedR[visitedCount] = currentR;
-            visitedCount++;
-
-            if (!CoverageCellIsEligible(world, producedSlot, currentQ, currentR, sourceOwnerId, boundaryGroupId, claimedCount))
-            {
-                continue;
-            }
-
-            _scratchClaimedQ[claimedCount] = currentQ;
-            _scratchClaimedR[claimedCount] = currentR;
-            claimedCount++;
-
-            for (var direction = 0; direction < 6; direction++)
-            {
-                var q = currentQ + DirectionQ(direction);
-                var r = currentR + DirectionR(direction);
-                if (frontierCount >= _scratchQ.Length)
-                {
-                    throw new global::System.InvalidOperationException();
-                }
-
-                if (world.CellIsKnown(q, r) &&
-                    !ScratchContains(_scratchVisitedQ, _scratchVisitedR, visitedCount, q, r))
-                {
-                    _scratchQ[frontierCount] = q;
-                    _scratchR[frontierCount] = r;
-                    frontierCount++;
-                }
-            }
+            AddCoveragePatchNeighbors(world, currentQ, currentR, visitedCount, ref frontierCount);
         }
 
         return claimedCount;
     }
 
-    private int SelectBestFrontierCell(
-        WorldState world,
+    private void RemoveCoverageFrontierCell(int selected, ref int frontierCount)
+    {
+        frontierCount--;
+        _scratchQ[selected] = _scratchQ[frontierCount];
+        _scratchR[selected] = _scratchR[frontierCount];
+    }
+
+    private bool TryClaimCoveragePatchCell(
+        Simulation simulation,
         int producedSlot,
+        int producedCultureId,
+        int sourceOwnerId,
+        int boundaryGroupId,
+        int currentQ,
+        int currentR,
+        ref int visitedCount,
+        ref int claimedCount)
+    {
+        if (ScratchContains(_scratchVisitedQ, _scratchVisitedR, visitedCount, currentQ, currentR))
+        {
+            return false;
+        }
+
+        _scratchVisitedQ[visitedCount] = currentQ;
+        _scratchVisitedR[visitedCount] = currentR;
+        visitedCount++;
+        if (!CoverageCellCanBeClaimed(
+                simulation,
+                producedSlot,
+                producedCultureId,
+                sourceOwnerId,
+                boundaryGroupId,
+                currentQ,
+                currentR,
+                claimedCount))
+        {
+            return false;
+        }
+
+        _scratchClaimedQ[claimedCount] = currentQ;
+        _scratchClaimedR[claimedCount] = currentR;
+        claimedCount++;
+        return true;
+    }
+
+    private bool CoverageCellCanBeClaimed(
+        Simulation simulation,
+        int producedSlot,
+        int producedCultureId,
+        int sourceOwnerId,
+        int boundaryGroupId,
+        int q,
+        int r,
+        int claimedCount) =>
+        CoverageCellIsEligible(simulation.World, producedSlot, q, r, sourceOwnerId, boundaryGroupId, claimedCount) &&
+        PlacementCellAllowsCulture(simulation, PlaneCodes.Physical, producedSlot, producedCultureId, q, r);
+
+    private void AddCoveragePatchNeighbors(
+        WorldState world,
+        int currentQ,
+        int currentR,
+        int visitedCount,
+        ref int frontierCount)
+    {
+        for (var direction = 0; direction < 6; direction++)
+        {
+            var q = currentQ + DirectionQ(direction);
+            var r = currentR + DirectionR(direction);
+            AddCoveragePatchNeighborIfEligible(world, q, r, visitedCount, ref frontierCount);
+        }
+    }
+
+    private void AddCoveragePatchNeighborIfEligible(
+        WorldState world,
+        int q,
+        int r,
+        int visitedCount,
+        ref int frontierCount)
+    {
+        if (frontierCount >= _scratchQ.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        if (!world.CellIsKnown(q, r) ||
+            ScratchContains(_scratchVisitedQ, _scratchVisitedR, visitedCount, q, r))
+        {
+            return;
+        }
+
+        _scratchQ[frontierCount] = q;
+        _scratchR[frontierCount] = r;
+        frontierCount++;
+    }
+
+    private int SelectBestFrontierCell(
+        Simulation simulation,
+        int producedSlot,
+        int producedCultureId,
         int frontierCount,
         int anchorQ,
         int anchorR,
@@ -446,7 +544,15 @@ internal sealed partial class GeneratorProgramRuntime
         var bestScore = int.MaxValue;
         for (var i = 0; i < frontierCount; i++)
         {
-            var score = ScoreCoverageCell(world, producedSlot, _scratchQ[i], _scratchR[i], anchorQ, anchorR, boundaryGroupId);
+            var score = ScoreCoverageCell(
+                simulation,
+                producedSlot,
+                producedCultureId,
+                _scratchQ[i],
+                _scratchR[i],
+                anchorQ,
+                anchorR,
+                boundaryGroupId);
             _scratchScore[i] = score;
             if (score < bestScore)
             {
@@ -681,14 +787,16 @@ internal sealed partial class GeneratorProgramRuntime
     }
 
     private int ScoreCoverageCell(
-        WorldState world,
+        Simulation simulation,
         int producedSlot,
+        int producedCultureId,
         int q,
         int r,
         int originQ,
         int originR,
         int boundaryGroupId)
     {
+        var world = simulation.World;
         if (!world.CellIsKnown(q, r))
         {
             return int.MaxValue;
@@ -708,7 +816,24 @@ internal sealed partial class GeneratorProgramRuntime
             score += 100;
         }
 
+        score -= CoverageCulturePlacementDiscount(simulation, producedSlot, producedCultureId, q, r);
         return score;
+    }
+
+    private int CoverageCulturePlacementDiscount(
+        Simulation simulation,
+        int producedSlot,
+        int producedCultureId,
+        int q,
+        int r)
+    {
+        var score = CulturePlacementScore(simulation, PlaneCodes.Physical, producedSlot, producedCultureId, q, r);
+        if (score <= 0)
+        {
+            return score / 8;
+        }
+
+        return global::System.Math.Min(60, score / 8);
     }
 
     private bool TerrainInFilter(int terrainId, int start, int count, bool emptyPasses)

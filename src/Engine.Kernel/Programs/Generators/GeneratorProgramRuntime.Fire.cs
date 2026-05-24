@@ -317,6 +317,7 @@ internal sealed partial class GeneratorProgramRuntime
         return SelectSharedEntity(
             world,
             simulation,
+            true,
             _producedKindIds[produced],
             targetId,
             targetOriginQ,
@@ -327,6 +328,7 @@ internal sealed partial class GeneratorProgramRuntime
             _producedQuerySubtypeCounts[produced],
             _producedQueryAdjacentToTarget[produced],
             _producedQueryCultureMatchCodes[produced],
+            _producedQuerySamePhysicalCultureComponentAsTarget[produced],
             _producedQueryWithoutOutgoingStarts[produced],
             _producedQueryWithoutOutgoingCounts[produced],
             _producedQueryWithoutIncomingStarts[produced],

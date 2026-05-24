@@ -65,6 +65,7 @@ internal sealed record KernelTuningOptions
 internal sealed record KernelProgramTuningOptions
 {
     public int MinorActorMainTickRatio { get; init; } = 5;
+    public float CultureInfluenceActionScale { get; init; } = 0.15f;
     public ProgramEnabledTuningOptions Enabled { get; init; } = new();
     public UpkeepProgramTuningOptions Upkeep { get; init; } = new();
     public GeneratorProgramTuningOptions Generators { get; init; } = new();

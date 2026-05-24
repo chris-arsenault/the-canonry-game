@@ -971,7 +971,7 @@ internal static class KernelQuery
         return relationshipId == 0 ? 0f : RelationshipStrength(world, relationshipId);
     }
 
-    private static bool SharedQueryMatchesCandidate(
+    internal static bool SharedQueryMatchesCandidate(
         WorldState world,
         in SharedQuery query,
         in QueryBinding binding,

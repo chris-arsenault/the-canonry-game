@@ -3,7 +3,7 @@ namespace Engine.Kernel.Tests;
 using Engine.Eventing;
 using Engine.Kernel;
 
-public sealed class LowAltitudePhysicsProgramTests
+public sealed partial class LowAltitudePhysicsProgramTests
 {
     [Fact]
     public void LowAltitudeVerbProgram_CommitsSemanticTargetAndMovesWithVerbSource()
@@ -57,7 +57,11 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_MovementCanLeaveOwnedInfluenceOnTravelPath()
     {
-        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 31 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions
+        {
+            Seed = 31,
+            KernelTuning = CultureInfluenceActionScaleTuning(1f),
+        });
         const int terrainId = 1;
         const int actorKindId = 1;
         const int targetKindId = 2;
@@ -527,7 +531,11 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_GrowsNonExclusiveCellInfluenceWithoutChangingOwner()
     {
-        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 19 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions
+        {
+            Seed = 19,
+            KernelTuning = CultureInfluenceActionScaleTuning(1f),
+        });
         const int terrainId = 1;
         const int settlementKindId = 1;
         const int factionKindId = 2;
@@ -590,7 +598,11 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_RepeatsNonMoveWorkThroughCommitmentWindow()
     {
-        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 32 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions
+        {
+            Seed = 32,
+            KernelTuning = CultureInfluenceActionScaleTuning(1f),
+        });
         const int terrainId = 1;
         const int kindId = 1;
         const int verbId = 104;
@@ -712,7 +724,11 @@ public sealed class LowAltitudePhysicsProgramTests
     [Fact]
     public void LowAltitudeVerbProgram_ExpandCoverageClaimsOnePhysicalCellWhenInfluenceIsEstablished()
     {
-        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 23 });
+        var simulation = KernelTestSimulation.Create(new SimulationOptions
+        {
+            Seed = 23,
+            KernelTuning = CultureInfluenceActionScaleTuning(1f),
+        });
         const int terrainId = 1;
         const int settlementKindId = 1;
         const int verbId = 101;
@@ -797,6 +813,15 @@ public sealed class LowAltitudePhysicsProgramTests
             simulation.SeedCell(DirectionQ(direction), DirectionR(direction), terrainId, ownerEntityId: 0);
         }
     }
+
+    private static KernelTuningOptions CultureInfluenceActionScaleTuning(float scale) =>
+        new()
+        {
+            Programs = new KernelProgramTuningOptions
+            {
+                CultureInfluenceActionScale = scale,
+            },
+        };
 
     private static void RegisterInfluenceVerb(
         Simulation simulation,

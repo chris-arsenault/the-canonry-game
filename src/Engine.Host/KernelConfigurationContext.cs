@@ -593,13 +593,15 @@ internal sealed class KernelConfigurationContext
         int refCode,
         int kindId,
         bool adjacentToTarget,
-        int cultureMatchCode) =>
+        int cultureMatchCode,
+        bool samePhysicalCultureComponentAsTarget) =>
         _kernel.Generators.AddSecondaryBinding(
             generatorSlot,
             refCode,
             kindId,
             adjacentToTarget ? 1 : 0,
-            cultureMatchCode);
+            cultureMatchCode,
+            samePhysicalCultureComponentAsTarget ? 1 : 0);
 
     public void AddGeneratorBindingSubtype(int bindingSlot, int subtypeId) =>
         _kernel.Generators.AddBindingSubtype(bindingSlot, subtypeId);
@@ -635,7 +637,8 @@ internal sealed class KernelConfigurationContext
         int physicalPlacementMaxRadius,
         int semanticPlacementMinRadius,
         int semanticPlacementMaxRadius,
-        int culturePlacementCode) =>
+        int culturePlacementCode,
+        bool querySamePhysicalCultureComponentAsTarget) =>
         _kernel.Generators.AddProduced(
             generatorSlot,
             refCode,
@@ -661,7 +664,8 @@ internal sealed class KernelConfigurationContext
             physicalPlacementMaxRadius,
             semanticPlacementMinRadius,
             semanticPlacementMaxRadius,
-            culturePlacementCode);
+            culturePlacementCode,
+            querySamePhysicalCultureComponentAsTarget ? 1 : 0);
 
     public void AddGeneratorProducedSubtypeChoice(int producedSlot, int subtypeId) =>
         _kernel.Generators.AddProducedSubtypeChoice(producedSlot, subtypeId);

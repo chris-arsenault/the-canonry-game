@@ -319,7 +319,14 @@ internal sealed partial class MinorActorProgramRuntime :
         switch (selected.ActionCode)
         {
             case MinorActorActionCodes.CultureExpansion:
-                return ApplyCultureExpansion(simulation, actorId, selected.PlaneCode, selected.Q, selected.R, delta, tick);
+                return ApplyCultureExpansion(
+                    simulation,
+                    actorId,
+                    selected.PlaneCode,
+                    selected.Q,
+                    selected.R,
+                    CultureInfluenceActionDelta(simulation, delta),
+                    tick);
             case MinorActorActionCodes.RoadMaintenance:
                 _ = simulation.Movement.ReinforceRoad(
                     simulation,
@@ -336,7 +343,7 @@ internal sealed partial class MinorActorProgramRuntime :
                     selected.PlaneCode,
                     selected.Q,
                     selected.R,
-                    delta,
+                    CultureInfluenceActionDelta(simulation, delta),
                     tick);
             case MinorActorActionCodes.LifecycleMaintenance:
                 return ApplyLifecycleMaintenance(
@@ -680,16 +687,33 @@ internal sealed partial class MinorActorProgramRuntime :
         switch (State.ActionCode(actorId))
         {
             case MinorActorActionCodes.CultureExpansion:
-                _ = ApplyCultureExpansion(simulation, actorId, planeCode, q, r, workDelta, tick);
+                _ = ApplyCultureExpansion(
+                    simulation,
+                    actorId,
+                    planeCode,
+                    q,
+                    r,
+                    CultureInfluenceActionDelta(simulation, workDelta),
+                    tick);
                 break;
             case MinorActorActionCodes.RoadMaintenance:
                 _ = simulation.Movement.ReinforceRoad(simulation, planeCode, q, r, workDelta, tick);
                 break;
             case MinorActorActionCodes.CultureCleanup:
-                _ = ReduceOtherCultureSources(simulation, State.CultureId(actorId), planeCode, q, r, workDelta, tick);
+                _ = ReduceOtherCultureSources(
+                    simulation,
+                    State.CultureId(actorId),
+                    planeCode,
+                    q,
+                    r,
+                    CultureInfluenceActionDelta(simulation, workDelta),
+                    tick);
                 break;
         }
     }
+
+    private static float CultureInfluenceActionDelta(Simulation simulation, float delta) =>
+        delta * simulation.Options.KernelTuning.Programs.CultureInfluenceActionScale;
 
     private float ApplyCultureExpansion(
         Simulation simulation,

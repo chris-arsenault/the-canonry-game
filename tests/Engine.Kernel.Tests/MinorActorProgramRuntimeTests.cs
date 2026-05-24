@@ -4,7 +4,7 @@ using Engine.Constants;
 using Engine.Eventing;
 using Engine.Kernel;
 
-public sealed class MinorActorProgramRuntimeTests
+public sealed partial class MinorActorProgramRuntimeTests
 {
     private const int CultureId = 1;
     private const int SourceEntityId = 1;
@@ -42,6 +42,7 @@ public sealed class MinorActorProgramRuntimeTests
         var simulation = new Simulation(new SimulationOptions
         {
             MinorActorCapacity = 8,
+            KernelTuning = CultureInfluenceActionScaleTuning(1f),
         });
         simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
         _ = simulation.MinorActors.Spawn(
@@ -64,72 +65,6 @@ public sealed class MinorActorProgramRuntimeTests
         Assert.Equal(2f, simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
         Assert.Equal(2f, simulation.World.GetCellCultureLaborInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
         Assert.Equal(0, simulation.World.EntityHighWatermark);
-    }
-
-    [Fact]
-    public void ConfiguredMainTickRatioDoesNotCreateMinorActorSubsteps()
-    {
-        var simulation = new Simulation(new SimulationOptions
-        {
-            MinorActorCapacity = 8,
-            KernelTuning = new KernelTuningOptions
-            {
-                Programs = new KernelProgramTuningOptions
-                {
-                    MinorActorMainTickRatio = 3,
-                },
-            },
-        });
-        _ = simulation.MinorActors.Spawn(
-            cultureId: 1,
-            sourceEntityId: 0,
-            sourceRuleId: 0,
-            actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
-            planeCode: PlaneCodes.Physical,
-            q: 0,
-            r: 0,
-            ttlPulses: 3,
-            moveChancePermille: 0,
-            actionCadencePulses: 1,
-            workDelta: 0f,
-            tick: 0);
-
-        _ = simulation.AdvanceTicks(1);
-
-        Assert.Equal(1, simulation.MinorActors.State.Pulse);
-        Assert.Equal(1, simulation.MinorActors.State.ActiveCount);
-
-        _ = simulation.AdvanceTicks(2);
-
-        Assert.Equal(3, simulation.MinorActors.State.Pulse);
-        Assert.Equal(0, simulation.MinorActors.State.ActiveCount);
-    }
-
-    [Fact]
-    public void DefaultCadenceRunsMinorActorsAsHighFrequencyLabor()
-    {
-        var simulation = new Simulation(new SimulationOptions { MinorActorCapacity = 8 });
-        simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
-        _ = simulation.MinorActors.Spawn(
-            cultureId: 1,
-            sourceEntityId: 0,
-            sourceRuleId: 0,
-            actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
-            planeCode: PlaneCodes.Physical,
-            q: 0,
-            r: 0,
-            ttlPulses: 10,
-            moveChancePermille: 0,
-            actionCadencePulses: 1,
-            workDelta: 1f,
-            tick: 0);
-
-        _ = simulation.AdvanceTicks(1);
-
-        Assert.Equal(1, simulation.MinorActors.State.Pulse);
-        Assert.Equal(1f, simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
     }
 
     [Fact]
@@ -988,6 +923,15 @@ public sealed class MinorActorProgramRuntimeTests
                 },
             },
         });
+
+    private static KernelTuningOptions CultureInfluenceActionScaleTuning(float scale) =>
+        new()
+        {
+            Programs = new KernelProgramTuningOptions
+            {
+                CultureInfluenceActionScale = scale,
+            },
+        };
 
     private static void SeedSourceEntity(Simulation simulation) =>
         simulation.SeedEntity(

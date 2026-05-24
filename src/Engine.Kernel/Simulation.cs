@@ -29,6 +29,14 @@ internal sealed partial class Simulation : IKernel
             throw new global::System.ArgumentOutOfRangeException(nameof(options));
         }
 
+        var cultureInfluenceActionScale = options.KernelTuning.Programs.CultureInfluenceActionScale;
+        if (float.IsNaN(cultureInfluenceActionScale) ||
+            float.IsInfinity(cultureInfluenceActionScale) ||
+            cultureInfluenceActionScale < 0f)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(options));
+        }
+
         Options = options;
         Events = new KernelEventLog(
             options.EventCapacity,
@@ -648,49 +656,6 @@ internal sealed partial class Simulation : IKernel
     internal void MoveEntitySemanticUnchecked(int entityId, int q, int r, int s, int tick)
     {
         World.MoveEntitySemantic(entityId, q, r, s, tick, _executionContext);
-    }
-
-    internal float ModifyCellCultureInfluenceRaw(int cultureId, int planeCode, int q, int r, float delta, int tick)
-    {
-        var applied = World.ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, delta, tick, _executionContext);
-        if (applied != 0f)
-        {
-            CultureBoundaries.MarkDirty(cultureId, planeCode);
-        }
-
-        return applied;
-    }
-
-    internal float ModifyCellCultureInfluenceRawFromEntity(int entityId, int planeCode, int q, int r, float delta, int tick)
-    {
-        var applied = World.ModifyCellCultureInfluenceRawFromEntity(entityId, planeCode, q, r, delta, tick, _executionContext);
-        var cultureId = World.EntityCultureId(entityId);
-        if (cultureId > 0 && applied != 0f)
-        {
-            CultureBoundaries.MarkDirty(cultureId, planeCode);
-        }
-
-        return applied;
-    }
-
-    internal float ReduceOtherCultureSourcesAtCell(int ownCultureId, int planeCode, int q, int r, float delta, int tick)
-    {
-        var removed = World.ReduceOtherCultureSourcesAtCell(
-            ownCultureId,
-            planeCode,
-            q,
-            r,
-            delta,
-            tick,
-            _executionContext,
-            _dirtyCultureScratch,
-            out var changedCultureCount);
-        for (var i = 0; i < changedCultureCount; i++)
-        {
-            CultureBoundaries.MarkDirty(_dirtyCultureScratch[i], planeCode);
-        }
-
-        return removed;
     }
 
     internal int CreateRelationship(

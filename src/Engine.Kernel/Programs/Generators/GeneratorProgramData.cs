@@ -45,6 +45,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] BindingKindIds = [];
     internal int[] BindingAdjacentToTarget = [];
     internal int[] BindingCultureMatchCodes = [];
+    internal int[] BindingSamePhysicalCultureComponentAsTarget = [];
     internal int[] BindingSubtypeStarts = [];
     internal int[] BindingSubtypeCounts = [];
     internal int[] BindingWithoutOutgoingStarts = [];
@@ -79,6 +80,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] ProducedQuerySubtypeCounts = [];
     internal int[] ProducedQueryAdjacentToTarget = [];
     internal int[] ProducedQueryCultureMatchCodes = [];
+    internal int[] ProducedQuerySamePhysicalCultureComponentAsTarget = [];
     internal int[] ProducedQueryWithoutOutgoingStarts = [];
     internal int[] ProducedQueryWithoutOutgoingCounts = [];
     internal int[] ProducedQueryWithoutIncomingStarts = [];
@@ -210,6 +212,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         BindingKindIds = new int[itemCapacity + 1];
         BindingAdjacentToTarget = new int[itemCapacity + 1];
         BindingCultureMatchCodes = new int[itemCapacity + 1];
+        BindingSamePhysicalCultureComponentAsTarget = new int[itemCapacity + 1];
         BindingSubtypeStarts = new int[itemCapacity + 1];
         BindingSubtypeCounts = new int[itemCapacity + 1];
         BindingWithoutOutgoingStarts = new int[itemCapacity + 1];
@@ -242,6 +245,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         ProducedQuerySubtypeCounts = new int[itemCapacity + 1];
         ProducedQueryAdjacentToTarget = new int[itemCapacity + 1];
         ProducedQueryCultureMatchCodes = new int[itemCapacity + 1];
+        ProducedQuerySamePhysicalCultureComponentAsTarget = new int[itemCapacity + 1];
         ProducedQueryWithoutOutgoingStarts = new int[itemCapacity + 1];
         ProducedQueryWithoutOutgoingCounts = new int[itemCapacity + 1];
         ProducedQueryWithoutIncomingStarts = new int[itemCapacity + 1];

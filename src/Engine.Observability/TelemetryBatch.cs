@@ -46,6 +46,47 @@ public sealed class TelemetryBatch
     public Collection<CoverageTerrainSnapshotRow> CoverageTerrainSnapshots { get; } = Rows<CoverageTerrainSnapshotRow>();
     public Collection<PlacementEventRow> PlacementEvents { get; } = Rows<PlacementEventRow>();
 
+    public void ClearRows()
+    {
+        Symbols.Clear();
+        EntityNameSymbols.Clear();
+        Runs.Clear();
+        TickSnapshots.Clear();
+        KindSnapshots.Clear();
+        EntitySnapshots.Clear();
+        EntityAttributeSnapshots.Clear();
+        EntityEvents.Clear();
+        ExperimentVariants.Clear();
+        TraceEvents.Clear();
+        AttributeEvents.Clear();
+        MovementEvents.Clear();
+        RelationshipEvents.Clear();
+        RelationshipSnapshots.Clear();
+        GambitEvents.Clear();
+        GeneratorEvents.Clear();
+        GeneratorTargetEvaluations.Clear();
+        GeneratorOutputs.Clear();
+        GeneratorStateSnapshots.Clear();
+        GeneratedEntities.Clear();
+        LifecycleEvents.Clear();
+        LifecycleReasonEvents.Clear();
+        MapGenerationEvents.Clear();
+        MapCellEvents.Clear();
+        CellInfluenceEvents.Clear();
+        CellCultureInfluenceEvents.Clear();
+        CultureSlotOccupancyEvents.Clear();
+        MinorActorVerbEvents.Clear();
+        CultureFieldComponentSnapshots.Clear();
+        CultureEntityFieldSnapshots.Clear();
+        CultureEntityBirthFieldEvents.Clear();
+        CultureInfluenceActionFieldEvents.Clear();
+        CellRoadEvents.Clear();
+        MapSnapshots.Clear();
+        CoverageSnapshots.Clear();
+        CoverageTerrainSnapshots.Clear();
+        PlacementEvents.Clear();
+    }
+
     private static TelemetryRowCollection<T> Rows<T>() => new();
 }
 

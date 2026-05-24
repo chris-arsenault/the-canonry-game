@@ -52,3 +52,8 @@ internal readonly record struct CultureBoundaryAttachment(
     int CellCount,
     float RawMass,
     float ScoreMass);
+
+internal readonly record struct CultureBoundaryDirtyCell(
+    int PlaneCode,
+    int Q,
+    int R);

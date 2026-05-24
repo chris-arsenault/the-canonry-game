@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 38;
+    private const int FormatVersion = 39;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -155,6 +155,7 @@ internal static class KernelSnapshotOptions
     {
         WriteProgramEnabledOverrides(writer, kernelTuning.Programs.Enabled);
         writer.Write(kernelTuning.Programs.MinorActorMainTickRatio);
+        writer.Write(kernelTuning.Programs.CultureInfluenceActionScale);
         writer.Write(kernelTuning.Programs.Upkeep.AgingModelCode);
         writer.Write(kernelTuning.Programs.Generators.RetryFireTargets);
         writer.Write(kernelTuning.Programs.Generators.PulseWidthTicks);
@@ -308,6 +309,7 @@ internal static class KernelSnapshotOptions
         values.GeneratorsProgramEnabled = reader.ReadInt32();
         values.MinorActorsProgramEnabled = reader.ReadInt32();
         values.MinorActorMainTickRatio = reader.ReadInt32();
+        values.CultureInfluenceActionScale = reader.ReadSingle();
         values.UpkeepAgingModelCode = reader.ReadInt32();
         values.GeneratorRetryFireTargets = reader.ReadBoolean();
         values.GeneratorPulseWidthTicks = reader.ReadInt32();
@@ -452,6 +454,7 @@ internal static class KernelSnapshotOptions
                     MinorActors = values.MinorActorsProgramEnabled,
                 },
                 MinorActorMainTickRatio = values.MinorActorMainTickRatio,
+                CultureInfluenceActionScale = values.CultureInfluenceActionScale,
                 Upkeep = new UpkeepProgramTuningOptions
                 {
                     AgingModelCode = values.UpkeepAgingModelCode,
@@ -553,6 +556,7 @@ internal static class KernelSnapshotOptions
         public int GeneratorsProgramEnabled;
         public int MinorActorsProgramEnabled;
         public int MinorActorMainTickRatio;
+        public float CultureInfluenceActionScale;
         public int UpkeepAgingModelCode;
         public bool GeneratorRetryFireTargets;
         public int GeneratorPulseWidthTicks;

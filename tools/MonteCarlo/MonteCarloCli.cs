@@ -11,6 +11,8 @@ using IceRemembers.Seed;
 
 internal static class MonteCarloCli
 {
+    private const long TelemetryFlushRowThreshold = 5_000_000;
+
     public static int Run(string[] args)
     {
         ArgumentNullException.ThrowIfNull(args);
@@ -211,14 +213,22 @@ internal static class MonteCarloCli
         var boundaryBirthEntityIds = new HashSet<int>();
         RecordStateSnapshots(run, stateRecorder, run.Host.CurrentTick, options, boundaryBirthEntityIds);
 
+        var rowsWritten = 0L;
         var elapsed = Stopwatch.StartNew();
-        var processedTicks = AdvanceTicks(run, options, summaryRecorder, stateRecorder, boundaryBirthEntityIds);
+        var processedTicks = AdvanceTicks(
+            run,
+            options,
+            summaryRecorder,
+            stateRecorder,
+            stateStore,
+            boundaryBirthEntityIds,
+            ref rowsWritten);
         var summary = summaryRecorder.Snapshot();
-        var stateRowsWritten = FlushStateTelemetry(stateRecorder, stateStore);
+        rowsWritten += FlushStateTelemetry(stateRecorder, stateStore);
         elapsed.Stop();
 
         return new MonteCarloRunExecutionResult(
-            stateRowsWritten,
+            rowsWritten,
             processedTicks,
             elapsed.Elapsed,
             summary);
@@ -265,7 +275,9 @@ internal static class MonteCarloCli
         MonteCarloOptions options,
         MonteCarloRunSummaryRecorder summaryRecorder,
         KernelTelemetryRecorder stateRecorder,
-        ISet<int> boundaryBirthEntityIds)
+        DuckDbTelemetryStore stateStore,
+        ISet<int> boundaryBirthEntityIds,
+        ref long rowsWritten)
     {
         var processedTicks = 0;
         for (var tickIndex = 0; tickIndex < options.Ticks; tickIndex++)
@@ -280,6 +292,7 @@ internal static class MonteCarloCli
             var currentTick = run.Host.CurrentTick;
             summaryRecorder.DrainAvailable();
             RecordStateSnapshots(run, stateRecorder, currentTick, options, boundaryBirthEntityIds);
+            rowsWritten += FlushStateTelemetryIfNeeded(stateRecorder, stateStore);
         }
 
         return processedTicks;
@@ -290,7 +303,21 @@ internal static class MonteCarloCli
         recorder.DrainAvailable();
         var rowsWritten = CountRows(recorder.Batch);
         store.Append(recorder.Batch);
+        recorder.Batch.ClearRows();
         return rowsWritten;
+    }
+
+    private static long FlushStateTelemetryIfNeeded(KernelTelemetryRecorder recorder, DuckDbTelemetryStore store)
+    {
+        var rows = CountRows(recorder.Batch);
+        if (rows < TelemetryFlushRowThreshold)
+        {
+            return 0L;
+        }
+
+        store.Append(recorder.Batch);
+        recorder.Batch.ClearRows();
+        return rows;
     }
 
     private static void RecordStateSnapshots(
@@ -371,6 +398,7 @@ internal static class MonteCarloCli
         batch.CellInfluenceEvents.Count +
         batch.CellCultureInfluenceEvents.Count +
         batch.CultureSlotOccupancyEvents.Count +
+        batch.MinorActorVerbEvents.Count +
         batch.CultureFieldComponentSnapshots.Count +
         batch.CultureEntityFieldSnapshots.Count +
         batch.CultureEntityBirthFieldEvents.Count +

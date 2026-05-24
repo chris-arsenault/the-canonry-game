@@ -16,6 +16,10 @@ internal sealed partial class GeneratorProgramRuntime
     private const int PlacementCultureTraceScore = 0;
     private const int PlacementCultureAdjacentScore = 260;
     private const int PlacementForeignDominantPenalty = 350;
+    private const int PlacementCultureInteriorBonus = 420;
+    private const int PlacementCultureFrontierBonus = 360;
+    private const int PlacementCultureRouteBonus = 280;
+    private const int PlacementWildernessBaseScore = 320;
     private const float PlacementCultureTraceRawInfluence = WorldState.CultureTraceRawMass;
     private const float PlacementCultureSupportedRawInfluence = WorldState.CultureControlledRawMass;
     private const float PlacementCultureDominantRawInfluence = WorldState.CultureEntrenchedRawMass;
@@ -375,13 +379,40 @@ internal sealed partial class GeneratorProgramRuntime
         int q,
         int r)
     {
-        if (_producedCulturePlacementCodes[producedSlot] != GeneratorCulturePlacementCodes.PreferInheritedCulture ||
+        var placementCode = _producedCulturePlacementCodes[producedSlot];
+        if (placementCode == GeneratorCulturePlacementCodes.Ignore ||
+            placementCode == GeneratorCulturePlacementCodes.HostileIntrusion ||
             producedCultureId <= 0)
         {
             return 0;
         }
 
         var boundary = simulation.CultureBoundaries.CellAt(simulation.World, producedCultureId, planeCode, q, r);
+        if (placementCode == GeneratorCulturePlacementCodes.CultureInterior)
+        {
+            return CultureInteriorPlacementScore(boundary);
+        }
+
+        if (placementCode == GeneratorCulturePlacementCodes.CultureFrontier)
+        {
+            return CultureFrontierPlacementScore(boundary);
+        }
+
+        if (placementCode == GeneratorCulturePlacementCodes.CultureRoute)
+        {
+            return CultureRoutePlacementScore(boundary);
+        }
+
+        if (placementCode == GeneratorCulturePlacementCodes.Wilderness)
+        {
+            return WildernessPlacementScore(boundary);
+        }
+
+        return PreferInheritedCulturePlacementScore(boundary);
+    }
+
+    private static int PreferInheritedCulturePlacementScore(CultureBoundaryCell boundary)
+    {
         var connectedRawInfluence = CulturePlacementConnectedMass(boundary);
         if (CulturePlacementIsDominant(boundary.Share, boundary.RawMass, boundary.ForeignShare))
         {
@@ -404,6 +435,73 @@ internal sealed partial class GeneratorProgramRuntime
         }
 
         return boundary.ForeignShare >= 50f ? -PlacementForeignDominantPenalty : 0;
+    }
+
+    private static int CultureInteriorPlacementScore(CultureBoundaryCell boundary)
+    {
+        var score = PreferInheritedCulturePlacementScore(boundary);
+        if (boundary.RawMass < PlacementCultureSupportedRawInfluence)
+        {
+            return score - PlacementForeignDominantPenalty;
+        }
+
+        if (boundary.CellKindCode == CultureFieldCellKindCodes.Interior)
+        {
+            score += PlacementCultureInteriorBonus;
+        }
+
+        if (boundary.IsLargestComponent)
+        {
+            score += PlacementCultureInteriorBonus / 2;
+        }
+
+        return score;
+    }
+
+    private static int CultureFrontierPlacementScore(CultureBoundaryCell boundary)
+    {
+        var score = PreferInheritedCulturePlacementScore(boundary);
+        if (boundary.CellKindCode == CultureFieldCellKindCodes.Border ||
+            boundary.CellKindCode == CultureFieldCellKindCodes.Contested)
+        {
+            score += PlacementCultureFrontierBonus;
+        }
+
+        if (boundary.RawMass < PlacementCultureDominantRawInfluence &&
+            CulturePlacementHasSupportedAdjacency(boundary))
+        {
+            score += PlacementCultureFrontierBonus / 2;
+        }
+
+        return score;
+    }
+
+    private static int CultureRoutePlacementScore(CultureBoundaryCell boundary)
+    {
+        var score = PreferInheritedCulturePlacementScore(boundary);
+        if (boundary.RawMass >= PlacementCultureSupportedRawInfluence ||
+            CulturePlacementHasSupportedAdjacency(boundary))
+        {
+            score += PlacementCultureRouteBonus;
+        }
+
+        return score;
+    }
+
+    private static int WildernessPlacementScore(CultureBoundaryCell boundary)
+    {
+        if (boundary.TotalRawMass <= PlacementCultureTraceRawInfluence)
+        {
+            return PlacementWildernessBaseScore;
+        }
+
+        if (boundary.RawMass >= PlacementCultureSupportedRawInfluence ||
+            boundary.ForeignRawMass >= PlacementCultureSupportedRawInfluence)
+        {
+            return -PlacementForeignDominantPenalty;
+        }
+
+        return 0;
     }
 
     private static float CulturePlacementConnectedMass(CultureBoundaryCell boundary) =>

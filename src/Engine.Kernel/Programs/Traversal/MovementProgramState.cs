@@ -31,6 +31,8 @@ internal sealed partial class MovementProgramState : IKernelProgramState
     private int _pathingTopologyEpoch = 1;
     private int _roadMarkEpoch = 1;
     private int _routeCacheCount;
+    private bool _localRoadMarksDirty;
+    private bool _regionalRoadMarksDirty;
 
     public MovementProgramState(int cellCapacity)
     {
@@ -59,7 +61,7 @@ internal sealed partial class MovementProgramState : IKernelProgramState
 
     public int ProgramId => KernelProgramCodes.Movement;
 
-    public int SchemaVersion => 5;
+    public int SchemaVersion => 6;
 
     internal int RoadCellCount => _roadQuality.Count;
 
@@ -105,6 +107,8 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         var key = CoordinateKey(q, r);
         var decayedQuality = DecayedRoadQuality(planeCode, key, tick, roadDecayPerTick, mainTickRatio);
         var nextQuality = Clamp(decayedQuality + roadBuild, 0f, 100f);
+        var previousMark = RoadMarkForQuality(decayedQuality);
+        var nextMark = RoadMarkForQuality(nextQuality);
         var nextFloor = QualityFloor(nextQuality);
         if (nextFloor > _roadQualityFloors.GetOrDefault(planeCode, key))
         {
@@ -114,6 +118,11 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         _roadQuality.Set(planeCode, key, nextQuality);
         _roadTravelCounts.Add(planeCode, key, 1);
         _lastRoadTicks.Set(planeCode, key, tick);
+        if (nextMark > previousMark)
+        {
+            _localRoadMarksDirty = true;
+            _regionalRoadMarksDirty = true;
+        }
     }
 
     internal void RecordTopologyChanged()
@@ -125,6 +134,20 @@ internal sealed partial class MovementProgramState : IKernelProgramState
     internal int RoadMark(int planeCode, int segmentSize, int segment)
     {
         return RoadMarkTable(segmentSize).GetOrDefault(planeCode, segment);
+    }
+
+    internal bool RoadMarksDirty(int segmentSize) =>
+        segmentSize == 5 ? _localRoadMarksDirty : _regionalRoadMarksDirty;
+
+    internal void MarkRoadMarksClean(int segmentSize)
+    {
+        if (segmentSize == 5)
+        {
+            _localRoadMarksDirty = false;
+            return;
+        }
+
+        _regionalRoadMarksDirty = false;
     }
 
     internal void BeginRoadMarkReconciliation(int segmentSize)
@@ -412,6 +435,18 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         return roadQuality >= LowRoadQualityCheckpoint
             ? LowRoadQualityCheckpoint
             : 0f;
+    }
+
+    internal static int RoadMarkForQuality(float roadQuality)
+    {
+        if (roadQuality >= HighRoadQualityCheckpoint)
+        {
+            return RoadMarkHigh;
+        }
+
+        return roadQuality >= LowRoadQualityCheckpoint
+            ? RoadMarkLow
+            : RoadMarkNone;
     }
 
     private static float Clamp(float value, float minimum, float maximum)

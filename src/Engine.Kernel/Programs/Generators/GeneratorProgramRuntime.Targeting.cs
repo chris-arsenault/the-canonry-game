@@ -49,7 +49,7 @@ internal sealed partial class GeneratorProgramRuntime
             refEntityIds,
             ref refCount,
             selectRandom: false,
-            simulation: null))
+            simulation: simulation))
         {
             rejectionReasonCode = GeneratorTargetRejectionReasonCodes.SecondaryBinding;
             return false;
@@ -256,7 +256,8 @@ internal sealed partial class GeneratorProgramRuntime
         {
             var entityId = SelectSharedEntity(
                 world,
-                selectRandom ? simulation : null,
+                simulation,
+                selectRandom,
                 _bindingKindIds[binding],
                 targetId,
                 targetOriginQ,
@@ -267,6 +268,7 @@ internal sealed partial class GeneratorProgramRuntime
                 _bindingSubtypeCounts[binding],
                 _bindingAdjacentToTarget[binding],
                 _bindingCultureMatchCodes[binding],
+                _bindingSamePhysicalCultureComponentAsTarget[binding],
                 _bindingWithoutOutgoingStarts[binding],
                 _bindingWithoutOutgoingCounts[binding],
                 _bindingWithoutIncomingStarts[binding],

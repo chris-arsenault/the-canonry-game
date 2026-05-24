@@ -83,6 +83,7 @@ public sealed record GeneratorProducedEntityRule(
 public sealed record GeneratorEntityQueryRule(
     IReadOnlyList<int> SubtypeIds,
     bool AdjacentToTarget,
+    bool SamePhysicalCultureComponentAsTarget,
     GeneratorProgramCultureMatch CultureMatch,
     IReadOnlyList<int> WithoutOutgoingRelationshipKindIds,
     IReadOnlyList<int> WithoutIncomingRelationshipKindIds);
@@ -123,6 +124,10 @@ public enum GeneratorProgramCulturePlacement
     Ignore,
     PreferInheritedCulture,
     HostileIntrusion,
+    CultureInterior,
+    CultureFrontier,
+    CultureRoute,
+    Wilderness,
 }
 
 public enum GeneratorProgramCoverageMode

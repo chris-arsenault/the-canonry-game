@@ -1,9 +1,11 @@
+RESTORE_FLAGS ?= /p:NuGetAudit=false
+
 .PHONY: ci build test lint analyzer-lint format-check clean domain-check
 
 ci: lint test domain-check
 
 build:
-	dotnet restore
+	dotnet restore $(RESTORE_FLAGS)
 	dotnet build -c Release --no-restore
 
 test:
@@ -12,8 +14,8 @@ test:
 lint: analyzer-lint format-check
 
 analyzer-lint:
-	dotnet restore
-	dotnet build TheCanonryGame.slnx -c Release --no-restore -warnaserror /p:RunAnalyzers=true /p:RunAnalyzersDuringBuild=true /p:EnforceCodeStyleInBuild=true
+	dotnet restore $(RESTORE_FLAGS)
+	dotnet build TheCanonryGame.slnx -c Release --no-restore -warnaserror $(RESTORE_FLAGS) /p:RunAnalyzers=true /p:RunAnalyzersDuringBuild=true /p:EnforceCodeStyleInBuild=true
 
 format-check:
 	dotnet format whitespace TheCanonryGame.slnx --verify-no-changes --no-restore --verbosity minimal

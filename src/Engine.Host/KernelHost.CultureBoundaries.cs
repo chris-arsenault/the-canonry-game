@@ -7,16 +7,11 @@ using Engine.Projection;
 
 public sealed partial class KernelHost
 {
-    private const int CultureBoundaryIncrementalRefreshRadius = 2;
-
     private static readonly int[] CultureBoundaryPlaneCodes =
     [
         PlaneCodes.Physical,
         PlaneCodes.Semantic,
     ];
-
-    private readonly HashSet<(int PlaneCode, int Q, int R)> _cultureBoundaryRefreshCellSet = [];
-    private readonly List<(int PlaneCode, int Q, int R)> _cultureBoundaryRefreshCells = [];
 
     public long CultureBoundaryRevision => _kernel.CultureBoundaries.Revision;
 
@@ -49,47 +44,12 @@ public sealed partial class KernelHost
         List<HexCultureInfluenceProjection> influences,
         int planeCode)
     {
-        _cultureBoundaryRefreshCellSet.Clear();
-        _cultureBoundaryRefreshCells.Clear();
-        foreach (var hexId in map.DirtyCellIds(planeCode))
-        {
-            if (!map.TryGetHex(planeCode, hexId, out var hex))
-            {
-                continue;
-            }
+        var dirtyCellCount = _kernel.CultureBoundaries.DrainDirtyCells(world, planeCode, _cultureBoundaryRefreshCells);
 
-            AddCultureBoundaryRefreshCells(world, planeCode, hex.Coord.Q, hex.Coord.R);
-        }
-
-        for (var i = 0; i < _cultureBoundaryRefreshCells.Count; i++)
+        for (var i = 0; i < dirtyCellCount; i++)
         {
             var cell = _cultureBoundaryRefreshCells[i];
             RefreshCultureBoundaryCell(map, world, influences, cell.PlaneCode, cell.Q, cell.R);
-        }
-    }
-
-    private void AddCultureBoundaryRefreshCells(WorldState world, int planeCode, int centerQ, int centerR)
-    {
-        for (var dq = -CultureBoundaryIncrementalRefreshRadius; dq <= CultureBoundaryIncrementalRefreshRadius; dq++)
-        {
-            var minDr = Math.Max(
-                -CultureBoundaryIncrementalRefreshRadius,
-                -dq - CultureBoundaryIncrementalRefreshRadius);
-            var maxDr = Math.Min(
-                CultureBoundaryIncrementalRefreshRadius,
-                -dq + CultureBoundaryIncrementalRefreshRadius);
-            for (var dr = minDr; dr <= maxDr; dr++)
-            {
-                var q = centerQ + dq;
-                var r = centerR + dr;
-                if (!world.CellIsKnown(planeCode, q, r) ||
-                    !_cultureBoundaryRefreshCellSet.Add((planeCode, q, r)))
-                {
-                    continue;
-                }
-
-                _cultureBoundaryRefreshCells.Add((planeCode, q, r));
-            }
         }
     }
 

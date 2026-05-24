@@ -548,7 +548,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int entityId,
         int rule,
         bool reducingForeign) =>
-        Data.InfluenceDelta(rule) * CultureSlotInfluenceEffectivenessMultiplier(simulation, entityId, rule, reducingForeign);
+        Data.InfluenceDelta(rule) *
+        CultureSlotInfluenceEffectivenessMultiplier(simulation, entityId, rule, reducingForeign) *
+        Tuning.CultureInfluenceActionScale;
 
     private void ApplyInfluenceAround(
         Simulation simulation,

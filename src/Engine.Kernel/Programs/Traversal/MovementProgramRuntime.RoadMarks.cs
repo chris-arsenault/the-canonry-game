@@ -9,6 +9,11 @@ internal sealed partial class MovementProgramRuntime
 
     private void ReconcileRoadMarks(Simulation simulation, int tick, int segmentSize)
     {
+        if (!State.RoadMarksDirty(segmentSize))
+        {
+            return;
+        }
+
         var world = simulation.World;
         var segmentGridWidth = SegmentGridWidth(world.MapRadius, segmentSize);
         if (segmentGridWidth <= 0)
@@ -27,6 +32,7 @@ internal sealed partial class MovementProgramRuntime
         }
 
         State.CommitRoadMarkReconciliation(segmentSize);
+        State.MarkRoadMarksClean(segmentSize);
     }
 
     private void ReconcileRoadMarkCell(
@@ -46,7 +52,7 @@ internal sealed partial class MovementProgramRuntime
             return;
         }
 
-        var mark = RoadMarkForQuality(RoadQuality(planeCode, q, r, tick));
+        var mark = MovementProgramState.RoadMarkForQuality(RoadQuality(planeCode, q, r, tick));
         if (mark == MovementProgramState.RoadMarkNone)
         {
             return;
@@ -57,17 +63,5 @@ internal sealed partial class MovementProgramRuntime
         {
             State.AccumulateRoadMark(planeCode, segmentSize, segment, mark);
         }
-    }
-
-    private static int RoadMarkForQuality(float roadQuality)
-    {
-        if (roadQuality >= MovementProgramState.HighRoadQualityCheckpoint)
-        {
-            return MovementProgramState.RoadMarkHigh;
-        }
-
-        return roadQuality >= MovementProgramState.LowRoadQualityCheckpoint
-            ? MovementProgramState.RoadMarkLow
-            : MovementProgramState.RoadMarkNone;
     }
 }

@@ -100,6 +100,24 @@ internal sealed class CultureBoundaryComponentCache
             componentId == _largestComponentId);
     }
 
+    public void ApplyStableMassChange(int q, int r, float previousRaw, float currentRaw)
+    {
+        if (previousRaw < WorldState.CultureClaimedRawMass ||
+            currentRaw < WorldState.CultureClaimedRawMass)
+        {
+            return;
+        }
+
+        var componentId = ComponentIdAt(q, r);
+        if (componentId <= 0 || componentId > _componentCount)
+        {
+            return;
+        }
+
+        _componentRawMasses[componentId] += currentRaw - previousRaw;
+        _componentScoreMasses[componentId] += CellScoreMass(currentRaw) - CellScoreMass(previousRaw);
+    }
+
     public CultureBoundaryAttachment AttachmentAt(int q, int r)
     {
         var componentCount = 0;
@@ -126,6 +144,27 @@ internal sealed class CultureBoundaryComponentCache
         }
 
         return new CultureBoundaryAttachment(componentCount, cellCount, rawMass, scoreMass);
+    }
+
+    public void ForEachComponentCell(int componentId, ComponentCellVisitor visitor)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(visitor);
+        if (componentId <= 0 || componentId > _componentCount)
+        {
+            return;
+        }
+
+        for (var i = 0; i < _usedLookupBucketCount; i++)
+        {
+            var bucket = _usedLookupBuckets[i];
+            if (_lookupComponentIds[bucket] != componentId)
+            {
+                continue;
+            }
+
+            var key = _lookupKeys[bucket];
+            visitor(UnpackQ(key), UnpackR(key));
+        }
     }
 
     private void Clear()
@@ -369,4 +408,6 @@ internal sealed class CultureBoundaryComponentCache
         4 => 1,
         _ => 1,
     };
+
+    public delegate void ComponentCellVisitor(int q, int r);
 }

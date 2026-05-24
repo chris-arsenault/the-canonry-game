@@ -379,7 +379,8 @@ internal static partial class KernelProgramInstaller
                 binding.RefCode,
                 binding.KindId,
                 query?.AdjacentToTarget == true,
-                GeneratorCultureMatchCode(query?.CultureMatch ?? GeneratorProgramCultureMatch.Any));
+                GeneratorCultureMatchCode(query?.CultureMatch ?? GeneratorProgramCultureMatch.Any),
+                query?.SamePhysicalCultureComponentAsTarget == true);
             if (query is not null)
             {
                 InstallGeneratorBindingQuery(context, bindingSlot, query);
@@ -424,7 +425,8 @@ internal static partial class KernelProgramInstaller
             produced.PhysicalPlacementMaxRadius,
             produced.SemanticPlacementMinRadius,
             produced.SemanticPlacementMaxRadius,
-            GeneratorCulturePlacementCode(produced.CulturePlacement));
+            GeneratorCulturePlacementCode(produced.CulturePlacement),
+            QuerySamePhysicalCultureComponentAsTarget(query));
         InstallGeneratorProducedSubtypeChoices(context, producedSlot, produced);
         InstallGeneratorProducedPlacementTerrains(context, producedSlot, produced);
         if (query is not null)
@@ -485,6 +487,9 @@ internal static partial class KernelProgramInstaller
     }
 
     private static bool QueryAdjacentToTarget(GeneratorEntityQueryRule? query) => query is not null && query.AdjacentToTarget;
+
+    private static bool QuerySamePhysicalCultureComponentAsTarget(GeneratorEntityQueryRule? query) =>
+        query is not null && query.SamePhysicalCultureComponentAsTarget;
 
     private static int QueryCultureMatchCode(GeneratorEntityQueryRule? query) =>
         GeneratorCultureMatchCode(query?.CultureMatch ?? GeneratorProgramCultureMatch.Any);
@@ -850,6 +855,10 @@ internal static partial class KernelProgramInstaller
         GeneratorProgramCulturePlacement.Ignore => GeneratorCulturePlacementCodes.Ignore,
         GeneratorProgramCulturePlacement.PreferInheritedCulture => GeneratorCulturePlacementCodes.PreferInheritedCulture,
         GeneratorProgramCulturePlacement.HostileIntrusion => GeneratorCulturePlacementCodes.HostileIntrusion,
+        GeneratorProgramCulturePlacement.CultureInterior => GeneratorCulturePlacementCodes.CultureInterior,
+        GeneratorProgramCulturePlacement.CultureFrontier => GeneratorCulturePlacementCodes.CultureFrontier,
+        GeneratorProgramCulturePlacement.CultureRoute => GeneratorCulturePlacementCodes.CultureRoute,
+        GeneratorProgramCulturePlacement.Wilderness => GeneratorCulturePlacementCodes.Wilderness,
         _ => throw new ArgumentOutOfRangeException(nameof(culturePlacement), culturePlacement, null),
     };
 

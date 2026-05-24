@@ -50,6 +50,7 @@ public sealed class KernelRuntimeFactoryTests
               "kernelTuning": {
                 "programs": {
                   "minorActorMainTickRatio": 7,
+                  "cultureInfluenceActionScale": 0.25,
                   "lowAltitudeVerbs": {
                     "enabled": false,
                     "opportunityRate": 0.35,
@@ -105,6 +106,7 @@ public sealed class KernelRuntimeFactoryTests
 
             [kernel_tuning.programs]
             minor_actor_main_tick_ratio = 7
+            culture_influence_action_scale = 0.25
 
             [kernel_tuning.programs.movement]
             enabled = false
@@ -213,6 +215,7 @@ public sealed class KernelRuntimeFactoryTests
     {
         Assert.False(options.KernelTuning.Programs.Generators.RetryFireTargets);
         Assert.Equal(7, options.KernelTuning.Programs.MinorActorMainTickRatio);
+        Assert.Equal(0.25f, options.KernelTuning.Programs.CultureInfluenceActionScale);
         Assert.Equal(17, options.KernelTuning.Programs.Generators.PulseWidthTicks);
         Assert.Equal(2, options.KernelTuning.Programs.Generators.FiresPerPulse);
         Assert.Equal(ProgramEnabledOverrideCodes.Disabled, options.KernelTuning.Programs.Enabled.LowAltitudeVerbs);

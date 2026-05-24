@@ -25,7 +25,12 @@ public static partial class IceRemembersGeneratorDefinition
             Rel.FoundedFrom),
         SecondaryTargets =
         [
-            new SemanticGeneratorBindingTarget { Ref = "$patron", Kind = K.Faction, Query = SameCultureAsTarget() },
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$patron",
+                Kind = K.Faction,
+                Query = SameCultureAsTarget(samePhysicalComponent: true),
+            },
         ],
         Produces =
         [
@@ -88,7 +93,12 @@ public static partial class IceRemembersGeneratorDefinition
             Rel.FoundedFrom),
         SecondaryTargets =
         [
-            new SemanticGeneratorBindingTarget { Ref = "$port", Kind = K.Settlement, Query = SameCultureAsTarget() },
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$port",
+                Kind = K.Settlement,
+                Query = SameCultureAsTarget(samePhysicalComponent: true),
+            },
         ],
         Produces =
         [
@@ -123,7 +133,12 @@ public static partial class IceRemembersGeneratorDefinition
             Rel.FoundedFrom),
         SecondaryTargets =
         [
-            new SemanticGeneratorBindingTarget { Ref = "$patron", Kind = K.Faction, Query = SameCultureAsTarget() },
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$patron",
+                Kind = K.Faction,
+                Query = SameCultureAsTarget(samePhysicalComponent: true),
+            },
         ],
         Produces =
         [
@@ -188,6 +203,7 @@ public static partial class IceRemembersGeneratorDefinition
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
             PlacementRef = placementRef,
             InheritCultureFrom = cultureRef,
+            CulturePlacement = GeneratorCulturePlacement.CultureInterior,
             Coverage = new SemanticRegionCoverage
             {
                 Mode = CoveragePlacementMode.CreateNew,

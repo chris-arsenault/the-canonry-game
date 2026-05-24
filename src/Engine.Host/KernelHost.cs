@@ -11,6 +11,7 @@ public sealed partial class KernelHost : IDisposable
 {
     private readonly Simulation _kernel;
     private readonly KernelCommandCompletionPump _commandCompletions;
+    private readonly CultureBoundaryDirtyCell[] _cultureBoundaryRefreshCells;
     private bool _disposed;
 
     internal KernelHost(
@@ -25,6 +26,7 @@ public sealed partial class KernelHost : IDisposable
         CompiledDomain? compiledDomain = null)
     {
         _kernel = kernel;
+        _cultureBoundaryRefreshCells = new CultureBoundaryDirtyCell[kernel.Options.MapCellCapacity];
         Events = kernel.Events;
         DomainIds = domainIds;
         Symbols = symbols;

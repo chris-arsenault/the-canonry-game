@@ -91,6 +91,7 @@ public sealed class SemanticEntityQuery
 {
     public IReadOnlySet<string>? Subtypes { get; init; }
     public bool AdjacentToTarget { get; init; }
+    public bool SamePhysicalCultureComponentAsTarget { get; init; }
     public IReadOnlySet<string>? WithoutOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? WithoutIncomingRelationships { get; init; }
     public QueryTargetCultureMatch TargetCultureMatch { get; init; } = QueryTargetCultureMatch.Any;
@@ -115,6 +116,10 @@ public enum GeneratorCulturePlacement
     Ignore,
     PreferInheritedCulture,
     HostileIntrusion,
+    CultureInterior,
+    CultureFrontier,
+    CultureRoute,
+    Wilderness,
 }
 
 public interface ISemanticGeneratorEffect

@@ -79,6 +79,7 @@ internal static class KernelStartupConfigLoader
         tuning = ApplyJsonGeneratorTuning(programs, tuning);
         tuning = ApplyJsonLowAltitudeVerbTuning(programs, tuning);
         tuning = ApplyJsonMainTickRatioTuning(programs, tuning);
+        tuning = ApplyJsonCultureInfluenceActionScaleTuning(programs, tuning);
         return ApplyJsonProgramEnabledTuning(programs, tuning);
     }
 
@@ -246,6 +247,13 @@ internal static class KernelStartupConfigLoader
         return WithMinorActorMainTickRatio(tuning, ratio);
     }
 
+    private static KernelTuningOptions ApplyJsonCultureInfluenceActionScaleTuning(JsonElement programs, KernelTuningOptions tuning)
+    {
+        return TryGetFloat(programs, out var scale, "cultureInfluenceActionScale", "culture_influence_action_scale")
+            ? WithCultureInfluenceActionScale(tuning, scale)
+            : tuning;
+    }
+
     private static KernelTuningOptions ApplyToml(string[] lines, KernelTuningOptions tuning)
     {
         var section = string.Empty;
@@ -306,11 +314,9 @@ internal static class KernelStartupConfigLoader
             return ApplyTomlProgramEnabledValue(section, key, value, ApplyTomlMinorActorValue(key, value, tuning));
         }
 
-        if (string.Equals(section, "KERNELTUNING.PROGRAMS", StringComparison.Ordinal) &&
-            string.Equals(key, "MINORACTORMAINTICKRATIO", StringComparison.Ordinal) &&
-            int.TryParse(ReadBareTomlValue(value), CultureInfo.InvariantCulture, out var ratio))
+        if (string.Equals(section, "KERNELTUNING.PROGRAMS", StringComparison.Ordinal))
         {
-            return WithMinorActorMainTickRatio(tuning, ratio);
+            return ApplyTomlProgramRootValue(key, value, tuning);
         }
 
         var scalar = ReadBareTomlValue(value);
@@ -321,6 +327,24 @@ internal static class KernelStartupConfigLoader
         }
 
         return ApplyTomlProgramEnabledValue(section, key, value, tuning);
+    }
+
+    private static KernelTuningOptions ApplyTomlProgramRootValue(
+        string key,
+        string value,
+        KernelTuningOptions tuning)
+    {
+        var scalar = ReadBareTomlValue(value);
+        if (string.Equals(key, "MINORACTORMAINTICKRATIO", StringComparison.Ordinal) &&
+            int.TryParse(scalar, CultureInfo.InvariantCulture, out var ratio))
+        {
+            return WithMinorActorMainTickRatio(tuning, ratio);
+        }
+
+        return string.Equals(key, "CULTUREINFLUENCEACTIONSCALE", StringComparison.Ordinal) &&
+            float.TryParse(scalar, NumberStyles.Float, CultureInfo.InvariantCulture, out var scale)
+            ? WithCultureInfluenceActionScale(tuning, scale)
+            : tuning;
     }
 
     private static KernelTuningOptions ApplyTomlProgramEnabledValue(
@@ -685,6 +709,15 @@ internal static class KernelStartupConfigLoader
             Programs = tuning.Programs with
             {
                 MinorActorMainTickRatio = value,
+            },
+        };
+
+    private static KernelTuningOptions WithCultureInfluenceActionScale(KernelTuningOptions tuning, float value) =>
+        tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                CultureInfluenceActionScale = value,
             },
         };
 

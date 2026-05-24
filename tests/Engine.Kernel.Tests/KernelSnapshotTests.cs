@@ -160,6 +160,7 @@ public sealed class KernelSnapshotTests
             Programs = new KernelProgramTuningOptions
             {
                 MinorActorMainTickRatio = 7,
+                CultureInfluenceActionScale = 0.25f,
                 Upkeep = new UpkeepProgramTuningOptions
                 {
                     AgingModelCode = UpkeepAgingModelCodes.LateLife,
@@ -210,6 +211,7 @@ public sealed class KernelSnapshotTests
         Assert.True(loaded.Generators.TryGetGeneratorEnabledById(50, out var generatorEnabled));
         Assert.False(generatorEnabled);
         Assert.Equal(7, loaded.Options.KernelTuning.Programs.MinorActorMainTickRatio);
+        Assert.Equal(0.25f, loaded.Options.KernelTuning.Programs.CultureInfluenceActionScale);
         Assert.Equal(UpkeepAgingModelCodes.LateLife, loaded.Options.KernelTuning.Programs.Upkeep.AgingModelCode);
         Assert.False(loaded.Options.KernelTuning.Programs.Generators.RetryFireTargets);
         Assert.Equal(17, loaded.Options.KernelTuning.Programs.Generators.PulseWidthTicks);

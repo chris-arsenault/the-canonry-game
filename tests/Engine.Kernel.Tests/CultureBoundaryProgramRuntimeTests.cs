@@ -114,6 +114,25 @@ public sealed class CultureBoundaryProgramRuntimeTests
     }
 
     [Fact]
+    public void QueryCache_UpdatesMassWithoutRebuildWhenSupportTopologyDoesNotChange()
+    {
+        var simulation = CreateSimulation();
+        AddCulture(simulation, CultureId, 0, 0, WorldState.CultureControlledRawMass);
+        AddCulture(simulation, CultureId, 1, 0, WorldState.CultureControlledRawMass);
+
+        var initial = simulation.CultureBoundaries.CellAt(simulation.World, CultureId, PlaneCodes.Physical, 0, 0);
+        var firstRebuildCount = simulation.CultureBoundaries.RebuildCount;
+
+        AddCulture(simulation, CultureId, 1, 0, 10f);
+
+        var updated = simulation.CultureBoundaries.CellAt(simulation.World, CultureId, PlaneCodes.Physical, 0, 0);
+
+        Assert.Equal(firstRebuildCount, simulation.CultureBoundaries.RebuildCount);
+        Assert.Equal(210f, updated.ComponentRawMass);
+        Assert.Equal(initial.ComponentId, updated.ComponentId);
+    }
+
+    [Fact]
     public void SnapshotRestore_RebuildsBoundaryCacheFromCultureInfluence()
     {
         var simulation = CreateSimulation();
@@ -134,6 +153,70 @@ public sealed class CultureBoundaryProgramRuntimeTests
         Assert.Equal(1, loaded.CultureBoundaries.RebuildCount);
     }
 
+    [Fact]
+    public void DrainDirtyCells_SupportRemovalRefreshesSplitComponents()
+    {
+        var simulation = CreateSimulation();
+        CreateKnownMap(simulation, radius: 6);
+        for (var q = 0; q <= 6; q++)
+        {
+            AddCulture(simulation, CultureId, q, 0, WorldState.CultureClaimedRawMass);
+        }
+
+        DrainDirtyCells(simulation);
+
+        AddCulture(simulation, CultureId, 3, 0, -WorldState.CultureClaimedRawMass);
+        var dirty = DrainDirtyCells(simulation);
+
+        Assert.Contains(new CultureBoundaryDirtyCell(PlaneCodes.Physical, 0, 0), dirty);
+        Assert.Contains(new CultureBoundaryDirtyCell(PlaneCodes.Physical, 6, 0), dirty);
+    }
+
+    [Fact]
+    public void DrainDirtyCells_SupportAdditionRefreshesMergedComponent()
+    {
+        var simulation = CreateSimulation();
+        CreateKnownMap(simulation, radius: 6);
+        for (var q = 0; q <= 2; q++)
+        {
+            AddCulture(simulation, CultureId, q, 0, WorldState.CultureClaimedRawMass);
+        }
+
+        for (var q = 4; q <= 6; q++)
+        {
+            AddCulture(simulation, CultureId, q, 0, WorldState.CultureClaimedRawMass);
+        }
+
+        DrainDirtyCells(simulation);
+
+        AddCulture(simulation, CultureId, 3, 0, WorldState.CultureClaimedRawMass);
+        var dirty = DrainDirtyCells(simulation);
+
+        Assert.Contains(new CultureBoundaryDirtyCell(PlaneCodes.Physical, 0, 0), dirty);
+        Assert.Contains(new CultureBoundaryDirtyCell(PlaneCodes.Physical, 6, 0), dirty);
+    }
+
+    [Fact]
+    public void DrainDirtyCells_NonTopologyChangesStayLocal()
+    {
+        var simulation = CreateSimulation();
+        CreateKnownMap(simulation, radius: 6);
+        for (var q = 0; q <= 6; q++)
+        {
+            AddCulture(simulation, CultureId, q, 0, WorldState.CultureClaimedRawMass);
+        }
+
+        DrainDirtyCells(simulation);
+
+        AddCulture(simulation, CultureId, 3, 0, 1f);
+        var dirty = DrainDirtyCells(simulation);
+
+        Assert.Contains(new CultureBoundaryDirtyCell(PlaneCodes.Physical, 1, 0), dirty);
+        Assert.Contains(new CultureBoundaryDirtyCell(PlaneCodes.Physical, 5, 0), dirty);
+        Assert.DoesNotContain(new CultureBoundaryDirtyCell(PlaneCodes.Physical, 0, 0), dirty);
+        Assert.DoesNotContain(new CultureBoundaryDirtyCell(PlaneCodes.Physical, 6, 0), dirty);
+    }
+
     private static Simulation CreateSimulation() =>
         new(new SimulationOptions
         {
@@ -147,6 +230,37 @@ public sealed class CultureBoundaryProgramRuntimeTests
     private static void AddCulture(Simulation simulation, int cultureId, int q, int r, float raw)
     {
         simulation.ModifyCellCultureInfluenceRaw(cultureId, PlaneCodes.Physical, q, r, raw, tick: 0);
+    }
+
+    private static List<CultureBoundaryDirtyCell> DrainDirtyCells(Simulation simulation)
+    {
+        var buffer = new CultureBoundaryDirtyCell[simulation.Options.MapCellCapacity];
+        var count = simulation.CultureBoundaries.DrainDirtyCells(
+            simulation.World,
+            PlaneCodes.Physical,
+            buffer);
+        var dirty = new List<CultureBoundaryDirtyCell>();
+        for (var i = 0; i < count; i++)
+        {
+            dirty.Add(buffer[i]);
+        }
+
+        return dirty;
+    }
+
+    private static void CreateKnownMap(Simulation simulation, int radius)
+    {
+        simulation.World.SetMapRadius(radius);
+        simulation.RegisterTerrain(terrainId: 1, boundaryGroupId: 1);
+        for (var q = -radius; q <= radius; q++)
+        {
+            var minR = Math.Max(-radius, -q - radius);
+            var maxR = Math.Min(radius, -q + radius);
+            for (var r = minR; r <= maxR; r++)
+            {
+                simulation.CreateCell(q, r, terrainId: 1, ownerEntityId: 0);
+            }
+        }
     }
 
     private static (int Q, int R)[] NeighborCells(int q, int r) =>

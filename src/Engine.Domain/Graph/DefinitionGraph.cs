@@ -306,6 +306,7 @@ public sealed class DefinitionEntityQuery
 {
     public IReadOnlySet<string>? Subtypes { get; init; }
     public bool AdjacentToTarget { get; init; }
+    public bool SamePhysicalCultureComponentAsTarget { get; init; }
     public IReadOnlySet<string>? WithoutOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? WithoutIncomingRelationships { get; init; }
     public QueryTargetCultureMatch TargetCultureMatch { get; init; } = QueryTargetCultureMatch.Any;

@@ -60,6 +60,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _bindingKindIds => Data.BindingKindIds;
     private int[] _bindingAdjacentToTarget => Data.BindingAdjacentToTarget;
     private int[] _bindingCultureMatchCodes => Data.BindingCultureMatchCodes;
+    private int[] _bindingSamePhysicalCultureComponentAsTarget => Data.BindingSamePhysicalCultureComponentAsTarget;
     private int[] _bindingSubtypeStarts => Data.BindingSubtypeStarts;
     private int[] _bindingSubtypeCounts => Data.BindingSubtypeCounts;
     private int[] _bindingWithoutOutgoingStarts => Data.BindingWithoutOutgoingStarts;
@@ -94,6 +95,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _producedQuerySubtypeCounts => Data.ProducedQuerySubtypeCounts;
     private int[] _producedQueryAdjacentToTarget => Data.ProducedQueryAdjacentToTarget;
     private int[] _producedQueryCultureMatchCodes => Data.ProducedQueryCultureMatchCodes;
+    private int[] _producedQuerySamePhysicalCultureComponentAsTarget => Data.ProducedQuerySamePhysicalCultureComponentAsTarget;
     private int[] _producedQueryWithoutOutgoingStarts => Data.ProducedQueryWithoutOutgoingStarts;
     private int[] _producedQueryWithoutOutgoingCounts => Data.ProducedQueryWithoutOutgoingCounts;
     private int[] _producedQueryWithoutIncomingStarts => Data.ProducedQueryWithoutIncomingStarts;
@@ -353,7 +355,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         int refCode,
         int kindId,
         int adjacentToTarget,
-        int cultureMatchCode)
+        int cultureMatchCode,
+        int samePhysicalCultureComponentAsTarget = 0)
     {
         EnsureOpenGenerator(generatorSlot);
         ValidatePositive(refCode);
@@ -369,6 +372,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _bindingKindIds[_bindingCount] = kindId;
         _bindingAdjacentToTarget[_bindingCount] = adjacentToTarget;
         _bindingCultureMatchCodes[_bindingCount] = cultureMatchCode;
+        _bindingSamePhysicalCultureComponentAsTarget[_bindingCount] = samePhysicalCultureComponentAsTarget;
         _bindingSubtypeStarts[_bindingCount] = _subtypeCount + 1;
         _bindingWithoutOutgoingStarts[_bindingCount] = _relationshipKindFilterCount + 1;
         _bindingWithoutIncomingStarts[_bindingCount] = _relationshipKindFilterCount + 1;
@@ -423,7 +427,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         int physicalPlacementMaxRadius = GeneratorProgramConstants.DefaultPlacementMaxRadius,
         int semanticPlacementMinRadius = GeneratorProgramConstants.DefaultPlacementMinRadius,
         int semanticPlacementMaxRadius = GeneratorProgramConstants.DefaultPlacementMaxRadius,
-        int culturePlacementCode = GeneratorCulturePlacementCodes.PreferInheritedCulture)
+        int culturePlacementCode = GeneratorCulturePlacementCodes.PreferInheritedCulture,
+        int querySamePhysicalCultureComponentAsTarget = 0)
     {
         EnsureOpenGenerator(generatorSlot);
         ValidatePositive(refCode);
@@ -476,7 +481,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             physicalPlacementMaxRadius,
             semanticPlacementMinRadius,
             semanticPlacementMaxRadius,
-            culturePlacementCode);
+            culturePlacementCode,
+            querySamePhysicalCultureComponentAsTarget);
         _producedCounts[generatorSlot]++;
         _openProducedSlot = _producedCount;
         return _producedCount;
@@ -524,7 +530,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         int physicalPlacementMaxRadius,
         int semanticPlacementMinRadius,
         int semanticPlacementMaxRadius,
-        int culturePlacementCode)
+        int culturePlacementCode,
+        int querySamePhysicalCultureComponentAsTarget)
     {
         _producedRefCodes[producedSlot] = refCode;
         _producedKindIds[producedSlot] = kindId;
@@ -543,6 +550,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _producedCreateChances[producedSlot] = createChance;
         _producedQueryAdjacentToTarget[producedSlot] = queryAdjacentToTarget;
         _producedQueryCultureMatchCodes[producedSlot] = queryCultureMatchCode;
+        _producedQuerySamePhysicalCultureComponentAsTarget[producedSlot] = querySamePhysicalCultureComponentAsTarget;
         _producedCoverageModeCodes[producedSlot] = coverageModeCode;
         _producedCoverageSourceRefCodes[producedSlot] = coverageSourceRefCode;
         _producedCoverageDesiredCellCounts[producedSlot] = coverageDesiredCellCount;
@@ -937,29 +945,28 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
 
     private int SelectEligibleTarget(Simulation simulation, int generatorSlot)
     {
-        var selectedOrdinal = simulation.NextInt(_pulseCandidateCounts[generatorSlot]);
-        var seen = 0;
         var world = simulation.World;
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
         var selectedTargetId = 0;
+        var totalWeight = 0;
         KernelQuery.ForEachActiveEntityOfKind(
             world,
             _targetKindIds[generatorSlot],
             entityId =>
             {
-                if (!TargetPasses(simulation, generatorSlot, entityId, refCodes, refEntityIds, out _))
+                if (!TargetPasses(simulation, generatorSlot, entityId, refCodes, refEntityIds, out var refCount))
                 {
                     return true;
                 }
 
-                if (seen == selectedOrdinal)
+                var targetWeight = TargetSelectionWeight(simulation, generatorSlot, refCodes, refEntityIds, refCount);
+                totalWeight += targetWeight;
+                if (simulation.NextInt(totalWeight) < targetWeight)
                 {
                     selectedTargetId = entityId;
-                    return false;
                 }
 
-                seen++;
                 return true;
             });
 
@@ -987,30 +994,29 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             return 0;
         }
 
-        var selectedOrdinal = simulation.NextInt(candidateCount);
-        var seen = 0;
         var world = simulation.World;
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
         var selectedTargetId = 0;
+        var totalWeight = 0;
         KernelQuery.ForEachActiveEntityOfKind(
             world,
             _targetKindIds[generatorSlot],
             entityId =>
             {
                 if (RejectedTargetContains(entityId, rejectedTargetIds, rejectedTargetCount) ||
-                    !TargetPasses(simulation, generatorSlot, entityId, refCodes, refEntityIds, out _))
+                    !TargetPasses(simulation, generatorSlot, entityId, refCodes, refEntityIds, out var refCount))
                 {
                     return true;
                 }
 
-                if (seen == selectedOrdinal)
+                var targetWeight = TargetSelectionWeight(simulation, generatorSlot, refCodes, refEntityIds, refCount);
+                totalWeight += targetWeight;
+                if (simulation.NextInt(totalWeight) < targetWeight)
                 {
                     selectedTargetId = entityId;
-                    return false;
                 }
 
-                seen++;
                 return true;
             });
 

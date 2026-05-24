@@ -708,6 +708,7 @@ public static class DefinitionGeneratorBuilder
                 ? null
                 : new HashSet<string>(query.Subtypes, StringComparer.Ordinal),
             AdjacentToTarget = query.AdjacentToTarget,
+            SamePhysicalCultureComponentAsTarget = query.SamePhysicalCultureComponentAsTarget,
             WithoutOutgoingRelationships = query.WithoutOutgoingRelationships is null
                 ? null
                 : new HashSet<string>(query.WithoutOutgoingRelationships, StringComparer.Ordinal),
