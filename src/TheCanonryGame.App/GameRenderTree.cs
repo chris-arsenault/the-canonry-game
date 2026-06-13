@@ -313,6 +313,7 @@ internal sealed class GameRenderTree
         _browser.Initialize(_ui, _symbols);
         _attributeGraph?.Initialize(_ui, _symbols);
         _cardLayer.Initialize(_ui, _symbols, _theme);
+        _chroniclePanel.Initialize(_symbols);
         _chroniclePanel.Clear();
         _hexTooltipPanel.Initialize(_map, _ui, _symbols, _mapRenderer, _worldCanvas, [_rootColumn, _mapArea, _uiRoot]);
         _tableauPanel.Initialize(_runtime?.Tableau);
@@ -597,19 +598,20 @@ internal sealed class GameRenderTree
 
     private sealed class ChronicleRender
     {
-        private long _lastVersion = -1;
+        private ChronicleState? _lastState;
 
-        public void Reset() => _lastVersion = -1;
+        public void Reset() => _lastState = null;
 
         public void Present(ChroniclePanel panel, IGameChronicleFeed chronicle)
         {
-            if (_lastVersion == chronicle.Version)
+            var state = new ChronicleState(chronicle.Version, panel.FilterVersion);
+            if (_lastState == state)
             {
                 return;
             }
 
-            _lastVersion = chronicle.Version;
-            panel.SetLines(chronicle.Lines);
+            _lastState = state;
+            panel.SetEntries(chronicle.Entries);
         }
     }
 
@@ -842,6 +844,8 @@ internal sealed class GameRenderTree
         int SelectedGeneratorFilterId);
 
     private readonly record struct BrowserState(long Version);
+
+    private readonly record struct ChronicleState(long Version, long FilterVersion);
 
     private readonly record struct CardLayerState(long CardVersion, long EntityDetailVersion, long RelationshipVersion);
 

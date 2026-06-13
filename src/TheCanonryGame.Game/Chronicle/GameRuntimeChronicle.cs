@@ -1,5 +1,7 @@
 namespace TheCanonryGame.Game.Chronicle;
 
+using Engine.Constants;
+using Engine.Eventing;
 using Engine.Projection;
 
 using TheCanonryGame.Game.Domain;
@@ -19,7 +21,8 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
     private readonly GameDomainKnowledge _knowledge;
     private readonly HashSet<int> _emittedChainInvocationIds = [];
     private readonly List<ProvenanceInvocationProjection> _pendingChainCandidates = [];
-    private readonly List<string> _chainLines = [];
+    private readonly List<UiChronicleEntry> _chainEntries = [];
+    private IReadOnlyList<UiChronicleEntry> _cachedEntries = [];
     private IReadOnlyList<string> _cachedLines = [];
     private int _nextInvocationIndex;
     private long _lastBaseChronicleVersion = -1;
@@ -46,6 +49,15 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
 
     public long Version { get; private set; }
 
+    public IReadOnlyList<UiChronicleEntry> Entries
+    {
+        get
+        {
+            Refresh();
+            return _cachedEntries;
+        }
+    }
+
     public IReadOnlyList<string> Lines
     {
         get
@@ -70,7 +82,8 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
             return;
         }
 
-        _cachedLines = CombinedLines();
+        _cachedEntries = CombinedEntries();
+        _cachedLines = _cachedEntries.Select(static entry => entry.Text).ToArray();
         _lastBaseChronicleVersion = _baseChronicle.Version;
         _lastCombinedChainVersion = _chainVersion;
         Version++;
@@ -152,13 +165,13 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
         }
 
         _emittedChainInvocationIds.Add(child.InvocationId);
-        _chainLines.Add(FormatChainLine(child, parent, trigger));
+        _chainEntries.Add(FormatChainEntry(child, parent, trigger));
         _chainVersion++;
-        TrimChainLines();
+        TrimChainEntries();
         return true;
     }
 
-    private string FormatChainLine(
+    private UiChronicleEntry FormatChainEntry(
         ProvenanceInvocationProjection child,
         ProvenanceInvocationProjection parent,
         ProvenanceRelationshipTriggerProjection trigger)
@@ -170,10 +183,19 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
             trigger.RelationshipKindId,
             $"relationship {trigger.RelationshipKindId}");
 
-        return $"{TickPrefix(child.Tick)}[b][color=#{ChainColor}]history chain[/color][/b] " +
+        var text = $"{TickPrefix(child.Tick)}[b][color=#{ChainColor}]history chain[/color][/b] " +
             $"[color=#{EntityColor}]{parentName}[/color] [color=#{ConnectorColor}]->[/color] " +
             $"[color=#{EntityColor}]{childName}[/color] [color=#{ConnectorColor}]via[/color] " +
             $"[color=#{EntityColor}]{relationshipName}[/color]";
+        return new UiChronicleEntry(
+            child.Sequence,
+            child.Tick,
+            UiChronicleEntryType.HistoryChain,
+            child.ProducerKindCode,
+            child.ProducerId,
+            KernelEventState.Succeeded,
+            EntityRefs(trigger.SourceEntityId, trigger.TargetEntityId),
+            text);
     }
 
     private static bool MatchesProducer(
@@ -200,29 +222,46 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
     private static string TickPrefix(int tick) =>
         $"[color=#{TickColor}]t{tick,4}[/color]  ";
 
-    private void TrimChainLines()
+    private List<UiChronicleEntityRef> EntityRefs(params int[] entityIds)
     {
-        if (_chainLines.Count > MaxLines)
+        var refs = new List<UiChronicleEntityRef>(entityIds.Length);
+        var seen = new HashSet<int>();
+        foreach (var entityId in entityIds)
         {
-            _chainLines.RemoveRange(0, _chainLines.Count - MaxLines);
+            if (entityId <= 0 || !seen.Add(entityId))
+            {
+                continue;
+            }
+
+            refs.Add(_baseChronicle.EntityRef(entityId));
+        }
+
+        return refs;
+    }
+
+    private void TrimChainEntries()
+    {
+        if (_chainEntries.Count > MaxLines)
+        {
+            _chainEntries.RemoveRange(0, _chainEntries.Count - MaxLines);
         }
     }
 
-    private IReadOnlyList<string> CombinedLines()
+    private IReadOnlyList<UiChronicleEntry> CombinedEntries()
     {
-        var totalCount = _baseChronicle.Lines.Count + _chainLines.Count;
+        var totalCount = _baseChronicle.Entries.Count + _chainEntries.Count;
         if (totalCount <= MaxLines)
         {
-            return _baseChronicle.Lines.Concat(_chainLines).ToArray();
+            return _baseChronicle.Entries.Concat(_chainEntries).ToArray();
         }
 
         var skip = totalCount - MaxLines;
-        var lines = new List<string>(MaxLines);
-        foreach (var line in _baseChronicle.Lines.Concat(_chainLines).Skip(skip))
+        var entries = new List<UiChronicleEntry>(MaxLines);
+        foreach (var entry in _baseChronicle.Entries.Concat(_chainEntries).Skip(skip))
         {
-            lines.Add(line);
+            entries.Add(entry);
         }
 
-        return lines;
+        return entries;
     }
 }

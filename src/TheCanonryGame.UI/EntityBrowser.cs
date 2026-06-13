@@ -1,4 +1,5 @@
 #pragma warning disable CA1303
+#pragma warning disable CA1305
 #pragma warning disable CA2000
 #pragma warning disable CA2213
 using Engine.Kinds;
@@ -11,29 +12,77 @@ using TheCanonryGame.UI.Theme;
 namespace TheCanonryGame.UI;
 
 /// <summary>
-/// Left sidebar registry. Renders active entities as a nested tree grouped by
-/// realm and place affiliation. Realms appear at the top level, their controlled
-/// places nest below them, and the lives anchored to each place nest beneath
-/// it. Entities with no affiliation roll up into a "Wild" section at the bottom.
-/// Clicking a row opens that entity's floating card.
+/// Left sidebar listing entities in the flat registry model. The default view
+/// matches the pre-tree browser: active entities grouped by kind, virtualized
+/// for long runs, with controls for narrowing and sorting the list.
 /// </summary>
 public partial class EntityBrowser : PanelContainer
 {
-    private const int IndentStepPx = 14;
-    private const string WildSectionLabel = "Wild";
-    private const string UnaffiliatedPlacesLabel = "Unbound Places";
-    private const string UntieredSectionLabel = "Untiered";
+    private const float HeaderHeight = 24f;
+    private const float HeaderLeadingGapHeight = 12f;
+    private const float EntityRowHeight = 46f;
+    private const int OverscanItemCount = 4;
+    private const int AllFilterId = 0;
+    private const int AllGeneratorFilterId = 0;
+    private const int SeedGeneratorFilterId = -1;
+    private const int AnyWorkTierFilterId = -1;
+    private const int StatusActiveFilterId = 1;
+    private const int StatusHistoricalFilterId = 2;
+    private const int SlotOccupiedFilterId = 1;
+    private const int SlotEmptyFilterId = 2;
+    private const int SlotPositiveFilterId = 3;
+    private const int SlotNeutralFilterId = 4;
+    private const int SlotNegativeFilterId = 5;
 
-    private readonly List<EntityRow> _rowPool = [];
-    private readonly List<EntityKindHeader> _headerPool = [];
-    private readonly List<Label> _labelPool = [];
-    private readonly List<MarginContainer> _activeWrappers = [];
-
+    private readonly List<RegistryItemData> _items = [];
+    private readonly List<float> _itemOffsets = [];
+    private readonly Dictionary<RegistryItemKey, Control> _visibleNodes = [];
+    private readonly Stack<EntityRow> _rowPool = [];
+    private readonly Stack<EntityKindHeader> _headerPool = [];
+    private readonly List<RegistryItemKey> _releaseKeys = [];
     private UiProjectionState? _projection;
     private IProjectionSymbolCatalog? _symbols;
+    private ScrollContainer? _scroll;
     private VBoxContainer? _listContainer;
+    private VBoxContainer? _visibleContainer;
+    private Control? _topSpacer;
+    private Control? _bottomSpacer;
+    private LineEdit? _searchEdit;
+    private OptionButton? _kindFilterOption;
+    private OptionButton? _cultureFilterOption;
+    private OptionButton? _statusFilterOption;
+    private OptionButton? _slotFilterOption;
+    private OptionButton? _workTierFilterOption;
+    private OptionButton? _sortOption;
+    private OptionButton? _generatorFilterOption;
+    private CheckBox? _filterMapCheckBox;
+    private Label? _filterSummaryLabel;
     private PackedScene? _entityRowScene;
     private PackedScene? _kindHeaderScene;
+    private float _totalHeight;
+    private bool _visibleRefreshQueued;
+    private bool _updatingFilterControls;
+    private int _selectedKindFilterId = AllFilterId;
+    private int _selectedCultureFilterId = AllFilterId;
+    private int _selectedStatusFilterId = StatusActiveFilterId;
+    private int _selectedSlotFilterId = AllFilterId;
+    private int _selectedWorkTierFilterId = AnyWorkTierFilterId;
+    private int _selectedGeneratorFilterId = AllGeneratorFilterId;
+    private RegistrySortMode _selectedSortMode = RegistrySortMode.Kind;
+    private string _searchText = string.Empty;
+
+    private static readonly Dictionary<RegistrySortMode, Func<EntityBrowser, IEnumerable<UiEntityProjection>, IOrderedEnumerable<UiEntityProjection>>> Sorters =
+        new Dictionary<RegistrySortMode, Func<EntityBrowser, IEnumerable<UiEntityProjection>, IOrderedEnumerable<UiEntityProjection>>>
+        {
+            [RegistrySortMode.Name] = static (browser, entities) => browser.SortByName(entities),
+            [RegistrySortMode.Culture] = static (browser, entities) => browser.SortByCulture(entities),
+            [RegistrySortMode.HealthLow] = static (browser, entities) => browser.SortByHealthLow(entities),
+            [RegistrySortMode.HealthHigh] = static (browser, entities) => browser.SortByHealthHigh(entities),
+            [RegistrySortMode.AgeOldest] = static (browser, entities) => browser.SortByAgeOldest(entities),
+            [RegistrySortMode.AgeYoungest] = static (browser, entities) => browser.SortByAgeYoungest(entities),
+            [RegistrySortMode.WorkTier] = static (browser, entities) => browser.SortByWorkTier(entities),
+            [RegistrySortMode.RecentActivity] = static (browser, entities) => browser.SortByRecentActivity(entities),
+        };
 
     [Signal]
     public delegate void EntitySelectedEventHandler(int entityIdValue);
@@ -41,17 +90,11 @@ public partial class EntityBrowser : PanelContainer
     [Signal]
     public delegate void EntityFilterChangedEventHandler();
 
-    /// <summary>Legacy filter API — the registry no longer filters; always 0.</summary>
-    public long FilterVersion => 0;
+    public long FilterVersion { get; private set; }
 
-    /// <summary>Legacy filter API — the registry no longer filters; always false.</summary>
-    public bool FilterMapToBrowser => false;
+    public bool FilterMapToBrowser => _filterMapCheckBox?.ButtonPressed == true;
 
-    /// <summary>Legacy filter API — the registry no longer filters; always 0.</summary>
-    public int SelectedGeneratorFilterId => 0;
-
-    /// <summary>Legacy filter API — the registry no longer filters; always null.</summary>
-    public HashSet<int>? VisibleEntityIdsForMap() => null;
+    public int SelectedGeneratorFilterId => _selectedGeneratorFilterId;
 
     public void Initialize(UiProjectionState? projection, IProjectionSymbolCatalog? symbols)
     {
@@ -64,7 +107,7 @@ public partial class EntityBrowser : PanelContainer
     {
         _entityRowScene = GD.Load<PackedScene>("res://scenes/ui/EntityRow.tscn");
         _kindHeaderScene = GD.Load<PackedScene>("res://scenes/ui/EntityKindHeader.tscn");
-        CustomMinimumSize = new Vector2(260, 0);
+        CustomMinimumSize = new Vector2(280, 0);
         SizeFlagsVertical = SizeFlags.ExpandFill;
         AddThemeStyleboxOverride("panel", UiTheme.RailPanelStyle(onLeft: true));
 
@@ -73,44 +116,43 @@ public partial class EntityBrowser : PanelContainer
         AddChild(vbox);
 
         AddHeader(vbox);
-        AddScrollList(vbox);
+        AddVirtualizedList(vbox);
         Refresh();
     }
 
     public void Refresh()
     {
-        if (_projection is null || _listContainer is null)
+        if (_projection is null || _listContainer is null || _visibleContainer is null)
         {
+            ClearVirtualizedItems();
             return;
         }
 
-        ReleaseActiveWrappers();
-        var tree = BuildTree();
-        RenderTree(tree);
+        RebuildFilterOptions();
+        RebuildSnapshot();
+        UpdateFilterSummary();
+        PresentVisibleItems();
+        QueueVisibleRefresh();
+    }
+
+    public HashSet<int>? VisibleEntityIdsForMap()
+    {
+        if (!FilterMapToBrowser || _projection is null)
+        {
+            return null;
+        }
+
+        return FilteredEntities()
+            .Where(static entity => entity.StatusCode == EntityStatusCodes.Active)
+            .Select(static entity => entity.EntityId)
+            .ToHashSet();
     }
 
     private void AddHeader(VBoxContainer vbox)
     {
-        var title = new Label
-        {
-            Text = "Registry",
-            HorizontalAlignment = HorizontalAlignment.Center,
-        };
-        title.AddThemeFontOverride("font", UiTheme.DisplayFont);
-        title.AddThemeFontSizeOverride("font_size", UiTokens.SizeTitleMedium);
-        title.AddThemeColorOverride("font_color", UiTokens.Vellum);
-        vbox.AddChild(title);
-
-        var subtitle = new Label
-        {
-            Text = "BY AFFILIATION",
-            HorizontalAlignment = HorizontalAlignment.Center,
-        };
-        subtitle.AddThemeFontOverride("font", UiTheme.BodyFont);
-        subtitle.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);
-        subtitle.AddThemeColorOverride("font_color", UiTokens.Whisper);
-        vbox.AddChild(subtitle);
-
+        vbox.AddChild(CreateHeaderLabel("Registry", UiTokens.SizeTitleMedium, UiTokens.Vellum));
+        vbox.AddChild(CreateHeaderLabel("FLAT ENTITY LIST", UiTokens.SizeMicro, UiTokens.Whisper));
+        AddFilterControls(vbox);
         vbox.AddChild(new ColorRect
         {
             Color = UiTokens.Hairline,
@@ -119,282 +161,675 @@ public partial class EntityBrowser : PanelContainer
         });
     }
 
-    private void AddScrollList(VBoxContainer vbox)
+    private static Label CreateHeaderLabel(string text, int size, Color color)
     {
-        var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
-        vbox.AddChild(scroll);
+        var label = new Label
+        {
+            Text = text,
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        label.AddThemeFontOverride("font", size == UiTokens.SizeTitleMedium ? UiTheme.DisplayFont : UiTheme.BodyFont);
+        label.AddThemeFontSizeOverride("font_size", size);
+        label.AddThemeColorOverride("font_color", color);
+        return label;
+    }
+
+    private void AddFilterControls(VBoxContainer vbox)
+    {
+        var controls = new VBoxContainer
+        {
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        controls.AddThemeConstantOverride("separation", UiTokens.Space1);
+        AddSearchControl(controls);
+        AddFilterOptionRows(controls);
+        AddMapFilterRow(controls);
+        WireFilterEvents();
+        vbox.AddChild(controls);
+    }
+
+    private void AddSearchControl(VBoxContainer controls)
+    {
+        _searchEdit = new LineEdit
+        {
+            PlaceholderText = "Search",
+            CustomMinimumSize = new Vector2(0, 26),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            TooltipText = "Filter by entity, kind, subtype, culture, or id.",
+        };
+        _searchEdit.TextChanged += OnSearchTextChanged;
+        controls.AddChild(_searchEdit);
+    }
+
+    private void AddFilterOptionRows(VBoxContainer controls)
+    {
+        _kindFilterOption = CreateOptionButton("Filter by kind.");
+        _cultureFilterOption = CreateOptionButton("Filter by culture.");
+        controls.AddChild(CreateOptionPairRow(_kindFilterOption, _cultureFilterOption));
+
+        _statusFilterOption = CreateOptionButton("Filter active or historical entities.");
+        _slotFilterOption = CreateOptionButton("Filter culture slot occupancy.");
+        controls.AddChild(CreateOptionPairRow(_statusFilterOption, _slotFilterOption));
+
+        _workTierFilterOption = CreateOptionButton("Filter by worker tier.");
+        _sortOption = CreateOptionButton("Sort the registry.");
+        controls.AddChild(CreateOptionPairRow(_workTierFilterOption, _sortOption));
+
+        _generatorFilterOption = CreateOptionButton("Filter entities by the generator that spawned them.");
+        controls.AddChild(_generatorFilterOption);
+    }
+
+    private void AddMapFilterRow(VBoxContainer controls)
+    {
+        _filterMapCheckBox = new CheckBox
+        {
+            Text = "Filter map",
+            TooltipText = "Only draw browser-matched active entities on the map.",
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        };
+        _filterMapCheckBox.Toggled += OnFilterMapToggled;
+
+        _filterSummaryLabel = new Label
+        {
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Center,
+            CustomMinimumSize = new Vector2(72, 0),
+        };
+        _filterSummaryLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
+        _filterSummaryLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        _filterSummaryLabel.AddThemeColorOverride("font_color", UiTokens.Whisper);
+        var mapRow = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        mapRow.AddThemeConstantOverride("separation", UiTokens.Space1);
+        mapRow.AddChild(_filterMapCheckBox);
+        mapRow.AddChild(_filterSummaryLabel);
+        controls.AddChild(mapRow);
+    }
+
+    private void WireFilterEvents()
+    {
+        _kindFilterOption!.ItemSelected += OnKindFilterSelected;
+        _cultureFilterOption!.ItemSelected += OnCultureFilterSelected;
+        _statusFilterOption!.ItemSelected += OnStatusFilterSelected;
+        _slotFilterOption!.ItemSelected += OnSlotFilterSelected;
+        _workTierFilterOption!.ItemSelected += OnWorkTierFilterSelected;
+        _sortOption!.ItemSelected += OnSortSelected;
+        _generatorFilterOption!.ItemSelected += OnGeneratorFilterSelected;
+    }
+
+    private static OptionButton CreateOptionButton(string tooltip) => new()
+    {
+        SizeFlagsHorizontal = SizeFlags.ExpandFill,
+        CustomMinimumSize = new Vector2(0, 26),
+        TooltipText = tooltip,
+    };
+
+    private static HBoxContainer CreateOptionPairRow(Control left, Control right)
+    {
+        var row = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        row.AddThemeConstantOverride("separation", UiTokens.Space1);
+        row.AddChild(left);
+        row.AddChild(right);
+        return row;
+    }
+
+    private void AddVirtualizedList(VBoxContainer vbox)
+    {
+        _scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill };
+        vbox.AddChild(_scroll);
 
         _listContainer = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        _listContainer.AddThemeConstantOverride("separation", 2);
-        scroll.AddChild(_listContainer);
+        _listContainer.AddThemeConstantOverride("separation", 0);
+        _scroll.AddChild(_listContainer);
+
+        _topSpacer = new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        _visibleContainer = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        _visibleContainer.AddThemeConstantOverride("separation", 2);
+        _bottomSpacer = new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill };
+        _listContainer.AddChild(_topSpacer);
+        _listContainer.AddChild(_visibleContainer);
+        _listContainer.AddChild(_bottomSpacer);
+
+        _scroll.GetVScrollBar().ValueChanged += OnScrollValueChanged;
+        _scroll.Resized += QueueVisibleRefresh;
+        Resized += QueueVisibleRefresh;
     }
 
-    private RegistryTree BuildTree()
+    private void RebuildFilterOptions()
     {
-        var tree = new RegistryTree();
         if (_projection is null)
         {
-            return tree;
+            return;
         }
 
-        var byTier = _projection.Entities.Values
-            .Where(e => e.StatusCode == EntityStatusCodes.Active)
-            .GroupBy(e => _projection.EntityTierOf(e.EntityId))
-            .ToDictionary(g => g.Key, g => g.ToList());
+        _updatingFilterControls = true;
+        RebuildKindFilterOptions();
+        RebuildCultureFilterOptions();
+        RebuildStatusFilterOptions();
+        RebuildSlotFilterOptions();
+        RebuildWorkTierFilterOptions();
+        RebuildSortOptions();
+        RebuildGeneratorFilterOptions();
+        if (_searchEdit is not null && !string.Equals(_searchEdit.Text, _searchText, StringComparison.Ordinal))
+        {
+            _searchEdit.Text = _searchText;
+        }
 
-        tree.Realms = byTier.GetValueOrDefault(EntityTier.Realm, []);
-        tree.Untiered = byTier.GetValueOrDefault(EntityTier.None, []);
-        var places = byTier.GetValueOrDefault(EntityTier.Place, []);
-        var lives = byTier.GetValueOrDefault(EntityTier.Life, []);
-        var realmIds = tree.Realms.Select(r => r.EntityId).ToHashSet();
-        var placeIds = places.Select(p => p.EntityId).ToHashSet();
-
-        AssignPlacesToRealms(places, realmIds, tree);
-        AssignLivesToPlacesAndRealms(lives, placeIds, realmIds, tree);
-        return tree;
+        _updatingFilterControls = false;
     }
 
-    private void AssignPlacesToRealms(
-        List<UiEntityProjection> places,
-        HashSet<int> realmIds,
-        RegistryTree tree)
+    private void RebuildKindFilterOptions()
     {
-        foreach (var place in places)
-        {
-            var realmId = FirstAffiliationTarget(place.EntityId, realmIds);
-            if (realmId is { } id)
-            {
-                AppendChild(tree.PlacesByRealm, id, place);
-            }
-            else
-            {
-                tree.OrphanPlaces.Add(place);
-            }
-        }
-    }
-
-    private void AssignLivesToPlacesAndRealms(
-        List<UiEntityProjection> lives,
-        HashSet<int> placeIds,
-        HashSet<int> realmIds,
-        RegistryTree tree)
-    {
-        foreach (var life in lives)
-        {
-            var placeId = FirstAffiliationTarget(life.EntityId, placeIds);
-            if (placeId is { } pid)
-            {
-                AppendChild(tree.LivesByPlace, pid, life);
-                continue;
-            }
-
-            var realmId = FirstAffiliationTarget(life.EntityId, realmIds);
-            if (realmId is { } rid)
-            {
-                AppendChild(tree.LivesByRealm, rid, life);
-                continue;
-            }
-
-            tree.OrphanLives.Add(life);
-        }
-    }
-
-    private static void AppendChild(
-        Dictionary<int, List<UiEntityProjection>> map,
-        int key,
-        UiEntityProjection entity)
-    {
-        if (!map.TryGetValue(key, out var list))
-        {
-            list = [];
-            map[key] = list;
-        }
-
-        list.Add(entity);
-    }
-
-    private int? FirstAffiliationTarget(int entityId, HashSet<int> candidateTargets)
-    {
-        foreach (var rel in _projection!.ActiveOutgoingRelationships(entityId))
-        {
-            if (!_projection.IsAffiliationRelationship(rel.Key.RelationshipKindId))
-            {
-                continue;
-            }
-
-            if (candidateTargets.Contains(rel.Key.TargetEntityId))
-            {
-                return rel.Key.TargetEntityId;
-            }
-        }
-
-        return null;
-    }
-
-    private void RenderTree(RegistryTree tree)
-    {
-        foreach (var realm in tree.Realms.OrderBy(NameOf, StringComparer.Ordinal))
-        {
-            RenderRealmSubtree(realm, tree);
-        }
-
-        RenderOrphanSection(UnaffiliatedPlacesLabel, tree.OrphanPlaces, tree, includeLivesUnderPlaces: true);
-        RenderOrphanLives(tree.OrphanLives);
-        RenderUntiered(tree.Untiered);
-    }
-
-    private void RenderRealmSubtree(UiEntityProjection realm, RegistryTree tree)
-    {
-        AddEntityRow(realm, indentLevel: 0);
-
-        foreach (var place in tree.PlacesByRealm.GetValueOrDefault(realm.EntityId, []).OrderBy(NameOf, StringComparer.Ordinal))
-        {
-            AddEntityRow(place, indentLevel: 1);
-            RenderLivesInPlace(place, tree);
-        }
-
-        foreach (var life in tree.LivesByRealm.GetValueOrDefault(realm.EntityId, []).OrderBy(NameOf, StringComparer.Ordinal))
-        {
-            AddEntityRow(life, indentLevel: 1);
-        }
-    }
-
-    private void RenderLivesInPlace(UiEntityProjection place, RegistryTree tree)
-    {
-        foreach (var life in tree.LivesByPlace.GetValueOrDefault(place.EntityId, []).OrderBy(NameOf, StringComparer.Ordinal))
-        {
-            AddEntityRow(life, indentLevel: 2);
-        }
-    }
-
-    private void RenderOrphanSection(
-        string label,
-        List<UiEntityProjection> orphanPlaces,
-        RegistryTree tree,
-        bool includeLivesUnderPlaces)
-    {
-        if (orphanPlaces.Count == 0)
+        if (_kindFilterOption is null || _projection is null)
         {
             return;
         }
 
-        AddSectionHeader(label, leadingGap: true);
-        foreach (var place in orphanPlaces.OrderBy(NameOf, StringComparer.Ordinal))
+        var entities = _projection.Entities.Values.ToArray();
+        var options = entities
+            .GroupBy(static entity => entity.KindId)
+            .Select(group => new OptionData(
+                group.Key,
+                $"{ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Kind, group.Key, $"Kind {group.Key}")} ({group.Count()})"))
+            .OrderBy(static option => option.Text, StringComparer.Ordinal)
+            .ToList();
+        options.Insert(0, new OptionData(AllFilterId, $"All kinds ({entities.Length})"));
+        _selectedKindFilterId = RebuildOption(_kindFilterOption, options, _selectedKindFilterId, AllFilterId);
+    }
+
+    private void RebuildCultureFilterOptions()
+    {
+        if (_cultureFilterOption is null || _projection is null)
         {
-            AddEntityRow(place, indentLevel: 1);
-            if (includeLivesUnderPlaces)
+            return;
+        }
+
+        var entities = _projection.Entities.Values.ToArray();
+        var options = entities
+            .GroupBy(static entity => entity.CultureId)
+            .Select(group => new OptionData(
+                group.Key,
+                $"{ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Culture, group.Key, $"Culture {group.Key}")} ({group.Count()})"))
+            .OrderBy(static option => option.Text, StringComparer.Ordinal)
+            .ToList();
+        options.Insert(0, new OptionData(AllFilterId, $"All cultures ({entities.Length})"));
+        _selectedCultureFilterId = RebuildOption(_cultureFilterOption, options, _selectedCultureFilterId, AllFilterId);
+    }
+
+    private void RebuildStatusFilterOptions()
+    {
+        if (_statusFilterOption is null || _projection is null)
+        {
+            return;
+        }
+
+        var entities = _projection.Entities.Values.ToArray();
+        var active = entities.Count(static entity => entity.StatusCode == EntityStatusCodes.Active);
+        var historical = entities.Length - active;
+        var options = new List<OptionData>
+        {
+            new(AllFilterId, $"All states ({entities.Length})"),
+            new(StatusActiveFilterId, $"Active ({active})"),
+            new(StatusHistoricalFilterId, $"Historical ({historical})"),
+        };
+        _selectedStatusFilterId = RebuildOption(_statusFilterOption, options, _selectedStatusFilterId, StatusActiveFilterId);
+    }
+
+    private void RebuildSlotFilterOptions()
+    {
+        if (_slotFilterOption is null || _projection is null)
+        {
+            return;
+        }
+
+        var entities = _projection.Entities.Values.ToArray();
+        var occupied = entities.Count(static entity => entity.CultureSlotCount > 0);
+        var options = new List<OptionData>
+        {
+            new(AllFilterId, $"Any slot ({entities.Length})"),
+            new(SlotOccupiedFilterId, $"Slotted ({occupied})"),
+            new(SlotEmptyFilterId, $"Unslotted ({entities.Length - occupied})"),
+            new(SlotPositiveFilterId, $"Positive ({entities.Count(static entity => entity.CultureSlotPolarityCode == RelationshipPolarityCodes.Positive)})"),
+            new(SlotNeutralFilterId, $"Neutral ({entities.Count(static entity => entity.CultureSlotPolarityCode == RelationshipPolarityCodes.Neutral)})"),
+            new(SlotNegativeFilterId, $"Negative ({entities.Count(static entity => entity.CultureSlotPolarityCode == RelationshipPolarityCodes.Negative)})"),
+        };
+        _selectedSlotFilterId = RebuildOption(_slotFilterOption, options, _selectedSlotFilterId, AllFilterId);
+    }
+
+    private void RebuildWorkTierFilterOptions()
+    {
+        if (_workTierFilterOption is null || _projection is null)
+        {
+            return;
+        }
+
+        var entities = _projection.Entities.Values.ToArray();
+        var options = entities
+            .GroupBy(static entity => entity.WorkTier)
+            .OrderBy(static group => group.Key)
+            .Select(group => new OptionData(group.Key, $"Work {group.Key} ({group.Count()})"))
+            .ToList();
+        options.Insert(0, new OptionData(AnyWorkTierFilterId, $"Any work ({entities.Length})"));
+        _selectedWorkTierFilterId = RebuildOption(
+            _workTierFilterOption,
+            options,
+            _selectedWorkTierFilterId,
+            AnyWorkTierFilterId);
+    }
+
+    private void RebuildSortOptions()
+    {
+        if (_sortOption is null)
+        {
+            return;
+        }
+
+        var options = new List<OptionData>
+        {
+            new((int)RegistrySortMode.Kind, "Sort: kind"),
+            new((int)RegistrySortMode.Name, "Sort: name"),
+            new((int)RegistrySortMode.Culture, "Sort: culture"),
+            new((int)RegistrySortMode.HealthLow, "Health: low"),
+            new((int)RegistrySortMode.HealthHigh, "Health: high"),
+            new((int)RegistrySortMode.AgeOldest, "Age: old"),
+            new((int)RegistrySortMode.AgeYoungest, "Age: young"),
+            new((int)RegistrySortMode.WorkTier, "Work: high"),
+            new((int)RegistrySortMode.RecentActivity, "Recent"),
+        };
+        var selected = RebuildOption(_sortOption, options, (int)_selectedSortMode, (int)RegistrySortMode.Kind);
+        _selectedSortMode = (RegistrySortMode)selected;
+    }
+
+    private void RebuildGeneratorFilterOptions()
+    {
+        if (_generatorFilterOption is null || _projection is null)
+        {
+            return;
+        }
+
+        var entities = _projection.Entities.Values.ToArray();
+        var countsByGenerator = entities
+            .Where(static entity => entity.CreatedByGeneratorId is not null)
+            .GroupBy(static entity => entity.CreatedByGeneratorId!.Value)
+            .ToDictionary(static group => group.Key, static group => group.Count());
+        var seedCount = entities.Count(static entity => entity.CreatedByGeneratorId is null);
+        var options = countsByGenerator.Keys
+            .Select(generatorId => new OptionData(
+                generatorId,
+                $"{ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Generator, generatorId, $"Generator {generatorId}")} ({countsByGenerator[generatorId]})"))
+            .OrderBy(static option => option.Text, StringComparer.Ordinal)
+            .ToList();
+        options.Insert(0, new OptionData(SeedGeneratorFilterId, $"Seeded ({seedCount})"));
+        options.Insert(0, new OptionData(AllGeneratorFilterId, $"All sources ({entities.Length})"));
+        _selectedGeneratorFilterId = RebuildOption(
+            _generatorFilterOption,
+            options,
+            _selectedGeneratorFilterId,
+            AllGeneratorFilterId);
+    }
+
+    private static int RebuildOption(
+        OptionButton option,
+        IReadOnlyList<OptionData> options,
+        int selectedId,
+        int fallbackId)
+    {
+        var hasSelected = options.Any(candidate => candidate.Id == selectedId);
+        var effectiveSelected = hasSelected ? selectedId : fallbackId;
+        option.Clear();
+        foreach (var candidate in options)
+        {
+            option.AddItem(candidate.Text, candidate.Id);
+        }
+
+        var selectedIndex = FindOptionIndexById(option, effectiveSelected);
+        if (selectedIndex < 0)
+        {
+            selectedIndex = 0;
+            effectiveSelected = option.ItemCount > 0 ? option.GetItemId(0) : fallbackId;
+        }
+
+        if (selectedIndex >= 0)
+        {
+            option.Select(selectedIndex);
+        }
+
+        return effectiveSelected;
+    }
+
+    private static int FindOptionIndexById(OptionButton option, int id)
+    {
+        for (var i = 0; i < option.ItemCount; i++)
+        {
+            if (option.GetItemId(i) == id)
             {
-                RenderLivesInPlace(place, tree);
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    private void RebuildSnapshot()
+    {
+        _items.Clear();
+        _itemOffsets.Clear();
+        _totalHeight = 0f;
+
+        var entities = SortedEntities(FilteredEntities()).ToArray();
+        if (_selectedSortMode == RegistrySortMode.Kind)
+        {
+            AddKindGroupedSnapshot(entities);
+            return;
+        }
+
+        foreach (var entity in entities)
+        {
+            AddSnapshotItem(RegistryItemData.ForEntity(
+                new RegistryItemKey(RegistryItemType.EntityRow, entity.KindId, entity.EntityId),
+                entity));
+        }
+    }
+
+    private void AddKindGroupedSnapshot(IReadOnlyList<UiEntityProjection> entities)
+    {
+        var firstKind = true;
+        foreach (var group in entities.GroupBy(static entity => entity.KindId))
+        {
+            var kindStableName = ProjectionDisplay.StableName(_symbols, ProjectionSymbolKind.Kind, group.Key, $"kind-{group.Key}");
+            var displayName = ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Kind, group.Key, kindStableName);
+            var groupEntities = group.ToArray();
+            AddSnapshotItem(RegistryItemData.Header(
+                new RegistryItemKey(RegistryItemType.KindHeader, group.Key, 0),
+                displayName,
+                UiTokens.KindAccent(kindStableName),
+                groupEntities.Length,
+                hasLeadingGap: !firstKind));
+            firstKind = false;
+
+            foreach (var entity in groupEntities)
+            {
+                AddSnapshotItem(RegistryItemData.ForEntity(
+                    new RegistryItemKey(RegistryItemType.EntityRow, entity.KindId, entity.EntityId),
+                    entity));
             }
         }
     }
 
-    private void RenderOrphanLives(List<UiEntityProjection> orphanLives)
+    private IEnumerable<UiEntityProjection> FilteredEntities() =>
+        _projection!.Entities.Values.Where(EntityMatchesFilters);
+
+    private bool EntityMatchesFilters(UiEntityProjection entity) =>
+        EntityMatchesStatusFilter(entity) &&
+        (_selectedKindFilterId == AllFilterId || entity.KindId == _selectedKindFilterId) &&
+        (_selectedCultureFilterId == AllFilterId || entity.CultureId == _selectedCultureFilterId) &&
+        EntityMatchesSlotFilter(entity) &&
+        (_selectedWorkTierFilterId == AnyWorkTierFilterId || entity.WorkTier == _selectedWorkTierFilterId) &&
+        EntityMatchesGeneratorFilter(entity) &&
+        EntityMatchesSearch(entity);
+
+    private bool EntityMatchesStatusFilter(UiEntityProjection entity) => _selectedStatusFilterId switch
     {
-        if (orphanLives.Count == 0)
+        AllFilterId => true,
+        StatusActiveFilterId => entity.StatusCode == EntityStatusCodes.Active,
+        StatusHistoricalFilterId => entity.StatusCode != EntityStatusCodes.Active,
+        _ => true,
+    };
+
+    private bool EntityMatchesSlotFilter(UiEntityProjection entity) => _selectedSlotFilterId switch
+    {
+        AllFilterId => true,
+        SlotOccupiedFilterId => entity.CultureSlotCount > 0,
+        SlotEmptyFilterId => entity.CultureSlotCount == 0,
+        SlotPositiveFilterId => entity.CultureSlotPolarityCode == RelationshipPolarityCodes.Positive,
+        SlotNeutralFilterId => entity.CultureSlotPolarityCode == RelationshipPolarityCodes.Neutral,
+        SlotNegativeFilterId => entity.CultureSlotPolarityCode == RelationshipPolarityCodes.Negative,
+        _ => true,
+    };
+
+    private bool EntityMatchesGeneratorFilter(UiEntityProjection entity) =>
+        _selectedGeneratorFilterId switch
         {
-            return;
+            AllGeneratorFilterId => true,
+            SeedGeneratorFilterId => entity.CreatedByGeneratorId is null,
+            _ => entity.CreatedByGeneratorId == _selectedGeneratorFilterId,
+        };
+
+    private bool EntityMatchesSearch(UiEntityProjection entity)
+    {
+        if (string.IsNullOrWhiteSpace(_searchText))
+        {
+            return true;
         }
 
-        AddSectionHeader(WildSectionLabel, leadingGap: true);
-        foreach (var life in orphanLives.OrderBy(NameOf, StringComparer.Ordinal))
-        {
-            AddEntityRow(life, indentLevel: 1);
-        }
+        var query = _searchText.Trim();
+        return ProjectionDisplay.EntityName(_symbols, entity).Contains(query, StringComparison.OrdinalIgnoreCase) ||
+            ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Kind, entity.KindId, $"Kind {entity.KindId}")
+                .Contains(query, StringComparison.OrdinalIgnoreCase) ||
+            ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Subtype, entity.SubtypeId, $"Subtype {entity.SubtypeId}")
+                .Contains(query, StringComparison.OrdinalIgnoreCase) ||
+            ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Culture, entity.CultureId, $"Culture {entity.CultureId}")
+                .Contains(query, StringComparison.OrdinalIgnoreCase) ||
+            entity.EntityId.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                .Contains(query, StringComparison.OrdinalIgnoreCase);
     }
 
-    private void RenderUntiered(List<UiEntityProjection> untiered)
-    {
-        if (untiered.Count == 0)
-        {
-            return;
-        }
+    private IOrderedEnumerable<UiEntityProjection> SortedEntities(IEnumerable<UiEntityProjection> entities) =>
+        Sorters.TryGetValue(_selectedSortMode, out var sorter)
+            ? sorter(this, entities)
+            : SortByKind(entities);
 
-        AddSectionHeader(UntieredSectionLabel, leadingGap: true);
-        foreach (var entity in untiered.OrderBy(NameOf, StringComparer.Ordinal))
-        {
-            AddEntityRow(entity, indentLevel: 1);
-        }
-    }
+    private IOrderedEnumerable<UiEntityProjection> SortByKind(IEnumerable<UiEntityProjection> entities) =>
+        entities
+            .OrderBy(KindName, StringComparer.Ordinal)
+            .ThenBy(EntityName, StringComparer.Ordinal)
+            .ThenBy(static entity => entity.EntityId);
 
-    private string NameOf(UiEntityProjection entity) =>
+    private IOrderedEnumerable<UiEntityProjection> SortByName(IEnumerable<UiEntityProjection> entities) =>
+        entities
+            .OrderBy(EntityName, StringComparer.Ordinal)
+            .ThenBy(static entity => entity.EntityId);
+
+    private IOrderedEnumerable<UiEntityProjection> SortByCulture(IEnumerable<UiEntityProjection> entities) =>
+        entities
+            .OrderBy(CultureName, StringComparer.Ordinal)
+            .ThenBy(EntityName, StringComparer.Ordinal)
+            .ThenBy(static entity => entity.EntityId);
+
+    private IOrderedEnumerable<UiEntityProjection> SortByHealthLow(IEnumerable<UiEntityProjection> entities) =>
+        entities
+            .OrderBy(HealthSortLow)
+            .ThenBy(EntityName, StringComparer.Ordinal)
+            .ThenBy(static entity => entity.EntityId);
+
+    private IOrderedEnumerable<UiEntityProjection> SortByHealthHigh(IEnumerable<UiEntityProjection> entities) =>
+        entities
+            .OrderByDescending(HealthSortHigh)
+            .ThenBy(EntityName, StringComparer.Ordinal)
+            .ThenBy(static entity => entity.EntityId);
+
+    private IOrderedEnumerable<UiEntityProjection> SortByAgeOldest(IEnumerable<UiEntityProjection> entities) =>
+        entities
+            .OrderBy(static entity => entity.CreatedTick ?? int.MaxValue)
+            .ThenBy(EntityName, StringComparer.Ordinal)
+            .ThenBy(static entity => entity.EntityId);
+
+    private IOrderedEnumerable<UiEntityProjection> SortByAgeYoungest(IEnumerable<UiEntityProjection> entities) =>
+        entities
+            .OrderByDescending(static entity => entity.CreatedTick ?? int.MinValue)
+            .ThenBy(EntityName, StringComparer.Ordinal)
+            .ThenBy(static entity => entity.EntityId);
+
+    private IOrderedEnumerable<UiEntityProjection> SortByWorkTier(IEnumerable<UiEntityProjection> entities) =>
+        entities
+            .OrderByDescending(static entity => entity.WorkTier)
+            .ThenBy(EntityName, StringComparer.Ordinal)
+            .ThenBy(static entity => entity.EntityId);
+
+    private IOrderedEnumerable<UiEntityProjection> SortByRecentActivity(IEnumerable<UiEntityProjection> entities) =>
+        entities
+            .OrderByDescending(RecentActivityTick)
+            .ThenBy(EntityName, StringComparer.Ordinal)
+            .ThenBy(static entity => entity.EntityId);
+
+    private string EntityName(UiEntityProjection entity) =>
         ProjectionDisplay.EntityName(_symbols, entity);
 
-    private void AddSectionHeader(string text, bool leadingGap)
+    private string KindName(UiEntityProjection entity) =>
+        ProjectionDisplay.StableName(_symbols, ProjectionSymbolKind.Kind, entity.KindId, $"kind-{entity.KindId}");
+
+    private string CultureName(UiEntityProjection entity) =>
+        ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Culture, entity.CultureId, $"Culture {entity.CultureId}");
+
+    private float HealthSortLow(UiEntityProjection entity) =>
+        _projection?.HealthRatioOf(entity) ?? float.PositiveInfinity;
+
+    private float HealthSortHigh(UiEntityProjection entity) =>
+        _projection?.HealthRatioOf(entity) ?? float.NegativeInfinity;
+
+    private static int RecentActivityTick(UiEntityProjection entity)
     {
-        var header = RentHeader();
-        var wrapper = WrapWithIndent(header, indentLevel: 0);
-        _listContainer!.AddChild(wrapper);
-        header.BindTo(text, UiTokens.Parchment, count: 0, hasLeadingGap: leadingGap);
+        var last = entity.LastUpdatedTick;
+        if (entity.LastMove is { } move)
+        {
+            last = Math.Max(last, move.Tick);
+        }
+
+        if (entity.LastGambitExecution is { } gambit)
+        {
+            last = Math.Max(last, gambit.Tick);
+        }
+
+        if (entity.CreatedByGeneratorTick is { } generatorTick)
+        {
+            last = Math.Max(last, generatorTick);
+        }
+
+        return last;
     }
 
-    private void AddEntityRow(UiEntityProjection entity, int indentLevel)
+    private void AddSnapshotItem(RegistryItemData data)
     {
-        var row = RentRow();
-        var wrapper = WrapWithIndent(row, indentLevel);
-        _listContainer!.AddChild(wrapper);
-        row.BindTo(entity, _symbols);
+        _itemOffsets.Add(_totalHeight);
+        _items.Add(data);
+        _totalHeight += data.Height;
     }
 
-    private MarginContainer WrapWithIndent(Control content, int indentLevel)
+    private void UpdateFilterSummary()
     {
-        var wrapper = new MarginContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
-        wrapper.AddThemeConstantOverride("margin_left", indentLevel * IndentStepPx);
-        wrapper.AddChild(content);
-        _activeWrappers.Add(wrapper);
-        return wrapper;
-    }
-
-    private void ReleaseActiveWrappers()
-    {
-        if (_listContainer is null)
+        if (_filterSummaryLabel is null || _projection is null)
         {
             return;
         }
 
-        foreach (var wrapper in _activeWrappers)
-        {
-            if (wrapper.GetChildCount() > 0)
-            {
-                var content = wrapper.GetChild<Control>(0);
-                wrapper.RemoveChild(content);
-                ReturnControlToPool(content);
-            }
-
-            if (wrapper.GetParent() == _listContainer)
-            {
-                _listContainer.RemoveChild(wrapper);
-            }
-
-            wrapper.QueueFree();
-        }
-
-        _activeWrappers.Clear();
+        _filterSummaryLabel.Text = $"{FilteredEntities().Count()} shown";
     }
 
-    private void ReturnControlToPool(Control control)
+    private void PresentVisibleItems()
     {
-        switch (control)
+        if (_scroll is null ||
+            _visibleContainer is null ||
+            _topSpacer is null ||
+            _bottomSpacer is null)
         {
-            case EntityRow row:
-                _rowPool.Add(row);
-                break;
-            case EntityKindHeader header:
-                _headerPool.Add(header);
-                break;
-            case Label label:
-                _labelPool.Add(label);
-                break;
+            return;
+        }
+
+        if (_items.Count == 0)
+        {
+            ReleaseAllVisibleNodes();
+            SetSpacerHeights(0f, 0f);
+            return;
+        }
+
+        var range = VisibleRange();
+        ReleaseNodesOutside(range.First, range.Last);
+        SetSpacerHeights(_itemOffsets[range.First], BottomSpacerHeight(range.Last));
+        PresentRange(range.First, range.Last);
+    }
+
+    private (int First, int Last) VisibleRange()
+    {
+        var viewportHeight = Math.Max(1f, _scroll?.Size.Y ?? 1f);
+        var scrollTop = Math.Max(0f, _scroll?.ScrollVertical ?? 0);
+        var overscan = EntityRowHeight * OverscanItemCount;
+        var first = FindFirstVisibleIndex(Math.Max(0f, scrollTop - overscan));
+        var endOffset = scrollTop + viewportHeight + overscan;
+        var last = first;
+        while (last < _items.Count && _itemOffsets[last] < endOffset)
+        {
+            last++;
+        }
+
+        return (first, Math.Max(first + 1, last));
+    }
+
+    private int FindFirstVisibleIndex(float offset)
+    {
+        var low = 0;
+        var high = _items.Count - 1;
+        var result = _items.Count - 1;
+        while (low <= high)
+        {
+            var mid = low + ((high - low) / 2);
+            if (_itemOffsets[mid] + _items[mid].Height >= offset)
+            {
+                result = mid;
+                high = mid - 1;
+                continue;
+            }
+
+            low = mid + 1;
+        }
+
+        return result;
+    }
+
+    private void PresentRange(int first, int last)
+    {
+        for (var i = first; i < last; i++)
+        {
+            var data = _items[i];
+            var node = GetOrCreateVisibleNode(data);
+            BindNode(node, data);
+            node.CustomMinimumSize = new Vector2(0, data.Height);
+            if (node.GetParent() != _visibleContainer)
+            {
+                _visibleContainer!.AddChild(node);
+            }
+
+            if (_visibleContainer!.GetChild(i - first) != node)
+            {
+                _visibleContainer.MoveChild(node, i - first);
+            }
         }
     }
+
+    private Control GetOrCreateVisibleNode(RegistryItemData data)
+    {
+        if (_visibleNodes.TryGetValue(data.Key, out var existing))
+        {
+            return existing;
+        }
+
+        var node = data.ItemType == RegistryItemType.KindHeader
+            ? (Control)RentHeader()
+            : RentRow();
+        node.Visible = true;
+        _visibleNodes[data.Key] = node;
+        return node;
+    }
+
+    private EntityKindHeader RentHeader() =>
+        _headerPool.Count > 0
+            ? _headerPool.Pop()
+            : _kindHeaderScene?.Instantiate<EntityKindHeader>()
+                ?? throw new InvalidOperationException("EntityKindHeader scene is not loaded.");
 
     private EntityRow RentRow()
     {
         if (_rowPool.Count > 0)
         {
-            var pooled = _rowPool[^1];
-            _rowPool.RemoveAt(_rowPool.Count - 1);
-            return pooled;
+            return _rowPool.Pop();
         }
 
         var row = _entityRowScene?.Instantiate<EntityRow>()
@@ -403,30 +838,312 @@ public partial class EntityBrowser : PanelContainer
         return row;
     }
 
-    private EntityKindHeader RentHeader()
+    private void BindNode(Control node, RegistryItemData data)
     {
-        if (_headerPool.Count > 0)
+        if (data.ItemType == RegistryItemType.KindHeader && node is EntityKindHeader header)
         {
-            var pooled = _headerPool[^1];
-            _headerPool.RemoveAt(_headerPool.Count - 1);
-            return pooled;
+            header.BindTo(data.DisplayName, data.Accent, data.Count, data.HasLeadingGap);
+        }
+        else if (data.Entity is not null && node is EntityRow row)
+        {
+            row.BindTo(data.Entity, _symbols);
+        }
+    }
+
+    private void ReleaseNodesOutside(int first, int last)
+    {
+        _releaseKeys.Clear();
+        foreach (var key in _visibleNodes.Keys)
+        {
+            if (!IsInVisibleRange(key, first, last))
+            {
+                _releaseKeys.Add(key);
+            }
         }
 
-        return _kindHeaderScene?.Instantiate<EntityKindHeader>()
-            ?? throw new InvalidOperationException("EntityKindHeader scene is not loaded.");
+        foreach (var key in _releaseKeys)
+        {
+            ReleaseVisibleNode(key);
+        }
+
+        _releaseKeys.Clear();
+    }
+
+    private bool IsInVisibleRange(RegistryItemKey key, int first, int last)
+    {
+        for (var i = first; i < last; i++)
+        {
+            if (_items[i].Key == key)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void ReleaseAllVisibleNodes()
+    {
+        foreach (var key in _visibleNodes.Keys.ToArray())
+        {
+            ReleaseVisibleNode(key);
+        }
+    }
+
+    private void ReleaseVisibleNode(RegistryItemKey key)
+    {
+        if (!_visibleNodes.TryGetValue(key, out var node))
+        {
+            return;
+        }
+
+        _visibleNodes.Remove(key);
+        if (node.GetParent() == _visibleContainer)
+        {
+            _visibleContainer?.RemoveChild(node);
+        }
+
+        node.Visible = false;
+        if (node is EntityRow row)
+        {
+            _rowPool.Push(row);
+        }
+        else if (node is EntityKindHeader header)
+        {
+            _headerPool.Push(header);
+        }
+    }
+
+    private void ClearVirtualizedItems()
+    {
+        ReleaseAllVisibleNodes();
+        FreePool(_rowPool);
+        FreePool(_headerPool);
+        _items.Clear();
+        _itemOffsets.Clear();
+        _totalHeight = 0f;
+        SetSpacerHeights(0f, 0f);
+    }
+
+    private static void FreePool<TNode>(Stack<TNode> pool)
+        where TNode : Node
+    {
+        while (pool.Count > 0)
+        {
+            pool.Pop().QueueFree();
+        }
+    }
+
+    private float BottomSpacerHeight(int last)
+    {
+        var end = _itemOffsets[last - 1] + _items[last - 1].Height;
+        return Math.Max(0f, _totalHeight - end);
+    }
+
+    private void SetSpacerHeights(float top, float bottom)
+    {
+        if (_topSpacer is not null)
+        {
+            _topSpacer.CustomMinimumSize = new Vector2(0, top);
+        }
+
+        if (_bottomSpacer is not null)
+        {
+            _bottomSpacer.CustomMinimumSize = new Vector2(0, bottom);
+        }
+    }
+
+    private void QueueVisibleRefresh()
+    {
+        if (_visibleRefreshQueued)
+        {
+            return;
+        }
+
+        _visibleRefreshQueued = true;
+        CallDeferred(nameof(PresentVisibleItemsDeferred));
+    }
+
+    private void PresentVisibleItemsDeferred()
+    {
+        _visibleRefreshQueued = false;
+        PresentVisibleItems();
+    }
+
+    private void OnScrollValueChanged(double value)
+    {
+        _ = value;
+        PresentVisibleItems();
     }
 
     private void OnRowEntitySelected(int entityIdValue) =>
         EmitSignal(SignalName.EntitySelected, entityIdValue);
 
-    private sealed class RegistryTree
+    private void OnSearchTextChanged(string text)
     {
-        public List<UiEntityProjection> Realms { get; set; } = [];
-        public Dictionary<int, List<UiEntityProjection>> PlacesByRealm { get; set; } = [];
-        public Dictionary<int, List<UiEntityProjection>> LivesByPlace { get; set; } = [];
-        public Dictionary<int, List<UiEntityProjection>> LivesByRealm { get; set; } = [];
-        public List<UiEntityProjection> OrphanPlaces { get; set; } = [];
-        public List<UiEntityProjection> OrphanLives { get; set; } = [];
-        public List<UiEntityProjection> Untiered { get; set; } = [];
+        if (_updatingFilterControls)
+        {
+            return;
+        }
+
+        _searchText = text;
+        ApplyFilterChange(resetScroll: true);
+    }
+
+    private void OnKindFilterSelected(long selectedIndex)
+    {
+        if (TryReadSelectedId(_kindFilterOption, selectedIndex, _selectedKindFilterId, out var selected))
+        {
+            _selectedKindFilterId = selected;
+            ApplyFilterChange(resetScroll: true);
+        }
+    }
+
+    private void OnCultureFilterSelected(long selectedIndex)
+    {
+        if (TryReadSelectedId(_cultureFilterOption, selectedIndex, _selectedCultureFilterId, out var selected))
+        {
+            _selectedCultureFilterId = selected;
+            ApplyFilterChange(resetScroll: true);
+        }
+    }
+
+    private void OnStatusFilterSelected(long selectedIndex)
+    {
+        if (TryReadSelectedId(_statusFilterOption, selectedIndex, _selectedStatusFilterId, out var selected))
+        {
+            _selectedStatusFilterId = selected;
+            ApplyFilterChange(resetScroll: true);
+        }
+    }
+
+    private void OnSlotFilterSelected(long selectedIndex)
+    {
+        if (TryReadSelectedId(_slotFilterOption, selectedIndex, _selectedSlotFilterId, out var selected))
+        {
+            _selectedSlotFilterId = selected;
+            ApplyFilterChange(resetScroll: true);
+        }
+    }
+
+    private void OnWorkTierFilterSelected(long selectedIndex)
+    {
+        if (TryReadSelectedId(_workTierFilterOption, selectedIndex, _selectedWorkTierFilterId, out var selected))
+        {
+            _selectedWorkTierFilterId = selected;
+            ApplyFilterChange(resetScroll: true);
+        }
+    }
+
+    private void OnSortSelected(long selectedIndex)
+    {
+        if (TryReadSelectedId(_sortOption, selectedIndex, (int)_selectedSortMode, out var selected))
+        {
+            _selectedSortMode = (RegistrySortMode)selected;
+            ApplyFilterChange(resetScroll: true);
+        }
+    }
+
+    private void OnGeneratorFilterSelected(long selectedIndex)
+    {
+        if (TryReadSelectedId(_generatorFilterOption, selectedIndex, _selectedGeneratorFilterId, out var selected))
+        {
+            _selectedGeneratorFilterId = selected;
+            ApplyFilterChange(resetScroll: true);
+        }
+    }
+
+    private bool TryReadSelectedId(OptionButton? option, long selectedIndex, int current, out int selected)
+    {
+        selected = current;
+        if (_updatingFilterControls || option is null)
+        {
+            return false;
+        }
+
+        var next = option.GetItemId((int)selectedIndex);
+        if (next == current)
+        {
+            return false;
+        }
+
+        selected = next;
+        return true;
+    }
+
+    private void OnFilterMapToggled(bool pressed)
+    {
+        _ = pressed;
+        if (_updatingFilterControls)
+        {
+            return;
+        }
+
+        ApplyFilterChange(resetScroll: false);
+    }
+
+    private void ApplyFilterChange(bool resetScroll)
+    {
+        FilterVersion++;
+        if (resetScroll && _scroll is not null)
+        {
+            _scroll.ScrollVertical = 0;
+        }
+
+        Refresh();
+        EmitSignal(SignalName.EntityFilterChanged);
+    }
+
+    private readonly record struct OptionData(int Id, string Text);
+
+    private readonly record struct RegistryItemKey(RegistryItemType ItemType, int KindId, int EntityId);
+
+    private enum RegistryItemType
+    {
+        KindHeader,
+        EntityRow,
+    }
+
+    private enum RegistrySortMode
+    {
+        Kind = 1,
+        Name = 2,
+        Culture = 3,
+        HealthLow = 4,
+        HealthHigh = 5,
+        AgeOldest = 6,
+        AgeYoungest = 7,
+        WorkTier = 8,
+        RecentActivity = 9,
+    }
+
+    private sealed record RegistryItemData(
+        RegistryItemKey Key,
+        RegistryItemType ItemType,
+        UiEntityProjection? Entity,
+        string DisplayName,
+        Color Accent,
+        int Count,
+        bool HasLeadingGap,
+        float Height)
+    {
+        public static RegistryItemData Header(
+            RegistryItemKey key,
+            string displayName,
+            Color accent,
+            int count,
+            bool hasLeadingGap) =>
+            new(
+                key,
+                RegistryItemType.KindHeader,
+                null,
+                displayName,
+                accent,
+                count,
+                hasLeadingGap,
+                HeaderHeight + (hasLeadingGap ? HeaderLeadingGapHeight : 0f));
+
+        public static RegistryItemData ForEntity(RegistryItemKey key, UiEntityProjection entity) =>
+            new(key, RegistryItemType.EntityRow, entity, string.Empty, default, 0, false, EntityRowHeight);
     }
 }

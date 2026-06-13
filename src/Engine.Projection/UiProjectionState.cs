@@ -29,6 +29,7 @@ public sealed class UiProjectionState : KernelEventProjector
     private readonly List<UiMinorActorActivityProjection> _minorActorActivities = [];
 
     private IReadOnlyDictionary<int, EntityTier> _tierByKindId = new Dictionary<int, EntityTier>();
+    private Dictionary<int, UiHealthAttributeDefinitionProjection> _healthAttributeByKindId = [];
     private IReadOnlySet<int> _affiliationRelationshipKindIds = new HashSet<int>();
 
     public static IReadOnlyList<UiProjectionMigrationItem> FutureMigrationItems { get; } =
@@ -65,6 +66,9 @@ public sealed class UiProjectionState : KernelEventProjector
         _cultureSlotDefinitions;
 
     public IReadOnlyDictionary<UiCultureSlotKey, UiCultureSlotOccupancyProjection> CultureSlots => _cultureSlots;
+
+    public IReadOnlyDictionary<int, UiHealthAttributeDefinitionProjection> HealthAttributesByKindId =>
+        _healthAttributeByKindId;
 
     public IReadOnlyList<UiMinorActorActivityProjection> MinorActorActivities => _minorActorActivities;
 
@@ -156,6 +160,43 @@ public sealed class UiProjectionState : KernelEventProjector
         ArgumentNullException.ThrowIfNull(slots);
         _cultureSlotDefinitions = slots.ToDictionary(
             slot => new UiCultureSlotKey(slot.CultureId, slot.SlotId));
+    }
+
+    public void ConfigureHealthAttributes(IEnumerable<UiHealthAttributeDefinitionProjection> healthAttributes)
+    {
+        ArgumentNullException.ThrowIfNull(healthAttributes);
+        _healthAttributeByKindId = healthAttributes.ToDictionary(attribute => attribute.KindId);
+    }
+
+    public float? HealthValueOf(UiEntityProjection entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        if (!_healthAttributeByKindId.TryGetValue(entity.KindId, out var health))
+        {
+            return null;
+        }
+
+        return entity.Attributes.TryGetValue(health.AttributeId, out var value)
+            ? value.NewValue
+            : health.DefaultValue;
+    }
+
+    public float? HealthRatioOf(UiEntityProjection entity)
+    {
+        ArgumentNullException.ThrowIfNull(entity);
+        if (!_healthAttributeByKindId.TryGetValue(entity.KindId, out var health))
+        {
+            return null;
+        }
+
+        var range = health.Maximum - health.Minimum;
+        if (range <= 0f)
+        {
+            return null;
+        }
+
+        var value = HealthValueOf(entity);
+        return value is null ? null : Math.Clamp((value.Value - health.Minimum) / range, 0f, 1f);
     }
 
     public override void OnEventsDropped(long droppedEventCount, long nextSequence)
@@ -325,12 +366,21 @@ public sealed class UiProjectionState : KernelEventProjector
 
     protected override void OnMinorActorVerbExecuted(long sequence, in MinorActorVerbExecutedKernelEvent evt)
     {
+        var browserChanged = false;
+        if (_entities.TryGetValue(evt.SourceEntityId, out var source) &&
+            source.WorkTier != evt.SourceWorkTier)
+        {
+            source.WorkTier = evt.SourceWorkTier;
+            browserChanged = true;
+        }
+
         _minorActorActivities.Add(new UiMinorActorActivityProjection(
             sequence,
             evt.Tick,
             evt.ActorId,
             evt.SourceEntityId,
             evt.SourceRuleId,
+            evt.SourceWorkTier,
             evt.CultureId,
             evt.VerbId,
             evt.PurposeCode,
@@ -353,6 +403,12 @@ public sealed class UiProjectionState : KernelEventProjector
         }
 
         MinorActorActivityVersion++;
+        if (browserChanged)
+        {
+            EntityBrowserVersion++;
+            EntityDetailVersion++;
+        }
+
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -897,6 +953,8 @@ public sealed class UiEntityProjection(int entityId)
     public int CultureSlotCount { get; internal set; }
 
     public int CultureSlotPolarityCode { get; internal set; }
+
+    public int WorkTier { get; internal set; }
 }
 
 public sealed class UiGeneratorProjection(int generatorId)
@@ -930,6 +988,13 @@ public readonly record struct UiRelationshipKey(
 
 public readonly record struct UiCultureSlotKey(int CultureId, int SlotId);
 
+public sealed record UiHealthAttributeDefinitionProjection(
+    int KindId,
+    int AttributeId,
+    float Minimum,
+    float Maximum,
+    float DefaultValue);
+
 public sealed record UiCultureSlotDefinitionProjection(
     UiCultureSlotKey Key,
     int CultureId,
@@ -953,6 +1018,7 @@ public sealed record UiMinorActorActivityProjection(
     int ActorId,
     int SourceEntityId,
     int SourceRuleId,
+    int SourceWorkTier,
     int CultureId,
     int VerbId,
     int PurposeCode,

@@ -11,6 +11,8 @@ internal interface IGameChronicleFeed
 {
     long Version { get; }
 
+    IReadOnlyList<UiChronicleEntry> Entries { get; }
+
     IReadOnlyList<string> Lines { get; }
 
     void Refresh();
@@ -28,6 +30,7 @@ internal sealed class GameRuntimeReadModels
         Chronicle = new GameRuntimeChronicle(runtime.Chronicle, runtime.Provenance, runtime.Symbols, Knowledge);
         ConfigureHierarchyTags(runtime);
         ConfigureCultureSlots(runtime);
+        ConfigureHealthAttributes(runtime);
     }
 
     public HexMapProjection Map { get; }
@@ -94,5 +97,33 @@ internal sealed class GameRuntimeReadModels
         }
 
         Entities.ConfigureCultureSlots(slots);
+    }
+
+    private void ConfigureHealthAttributes(KernelUiRuntime runtime)
+    {
+        var compiled = runtime.CompiledDomain;
+        if (compiled is null)
+        {
+            return;
+        }
+
+        var healthAttributes = new List<UiHealthAttributeDefinitionProjection>();
+        foreach (var kind in compiled.DefinitionGraph.Kinds.Values)
+        {
+            if (kind.HealthAttribute is not { } healthAttribute ||
+                !kind.Attributes.TryGetValue(healthAttribute, out var attribute))
+            {
+                continue;
+            }
+
+            healthAttributes.Add(new UiHealthAttributeDefinitionProjection(
+                kind.RuntimeId,
+                compiled.Ids.AttributeIdOf(healthAttribute.Value).Value,
+                attribute.SourceConfig.Min,
+                attribute.SourceConfig.Max,
+                attribute.SourceConfig.Default));
+        }
+
+        Entities.ConfigureHealthAttributes(healthAttributes);
     }
 }
