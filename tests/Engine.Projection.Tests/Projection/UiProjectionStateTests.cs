@@ -39,7 +39,9 @@ public sealed class UiProjectionStateTests
             FromS: 0,
             ToQ: 1,
             ToR: 0,
-            ToS: 0))));
+            ToS: 0,
+            FromZ: 0,
+            ToZ: 0))));
         Assert.True(log.TryWrite(KernelEvent.From(new EntityMovedKernelEvent(
             Tick: 3,
             WorldVersion: 3,
@@ -51,7 +53,9 @@ public sealed class UiProjectionStateTests
             FromS: 0,
             ToQ: 0,
             ToR: 1,
-            ToS: -1))));
+            ToS: -1,
+            FromZ: 0,
+            ToZ: 0))));
 
         pump.DrainAvailable();
 
@@ -444,7 +448,9 @@ public sealed class UiProjectionStateTests
             FromS: 0,
             ToQ: 1,
             ToR: 0,
-            ToS: 0))));
+            ToS: 0,
+            FromZ: 0,
+            ToZ: 0))));
     }
 
     private static void WriteVersionTestRelationshipChanged(KernelEventLog log)
@@ -520,7 +526,9 @@ public sealed class UiProjectionStateTests
             FromS: -fromQ - fromR,
             ToQ: toQ,
             ToR: toR,
-            ToS: -toQ - toR))));
+            ToS: -toQ - toR,
+            FromZ: 0,
+            ToZ: 0))));
     }
 
     private static void WriteEntityStatusChanged(
@@ -586,7 +594,9 @@ public sealed class UiProjectionStateTests
             FromS: 0,
             ToQ: 7,
             ToR: 8,
-            ToS: 0))));
+            ToS: 0,
+            FromZ: 0,
+            ToZ: 0))));
         Assert.True(log.TryWrite(KernelEvent.From(new AttributeChangedKernelEvent(
             Tick: 3,
             WorldVersion: 3,

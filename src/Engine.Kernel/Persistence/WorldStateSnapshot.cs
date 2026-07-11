@@ -76,17 +76,26 @@ internal sealed partial class WorldState
             var maxR = global::System.Math.Min(_mapRadius, -q + _mapRadius);
             for (var r = minR; r <= maxR; r++)
             {
-                if (!CellIsKnown(planeCode, q, r))
-                {
-                    continue;
-                }
-
-                count++;
-                if (emitLegacyPhysicalEvents)
-                {
-                    count++;
-                }
+                count += SnapshotCellColumnEventCount(planeCode, q, r, emitLegacyPhysicalEvents);
             }
+        }
+
+        return count;
+    }
+
+    private int SnapshotCellColumnEventCount(int planeCode, int q, int r, bool emitLegacyPhysicalEvents)
+    {
+        var count = 0;
+        var minZ = planeCode == PlaneCodes.Physical ? MinCellZ : 0;
+        var maxZ = planeCode == PlaneCodes.Physical ? MaxCellZ : 0;
+        for (var z = minZ; z <= maxZ; z++)
+        {
+            if (!CellIsKnown(planeCode, q, r, z))
+            {
+                continue;
+            }
+
+            count += emitLegacyPhysicalEvents ? 2 : 1;
         }
 
         return count;
@@ -99,46 +108,66 @@ internal sealed partial class WorldState
         int planeCode,
         bool emitLegacyPhysicalEvents)
     {
+        var minZ = planeCode == PlaneCodes.Physical ? MinCellZ : 0;
+        var maxZ = planeCode == PlaneCodes.Physical ? MaxCellZ : 0;
         for (var q = -_mapRadius; q <= _mapRadius; q++)
         {
             var minR = global::System.Math.Max(-_mapRadius, -q - _mapRadius);
             var maxR = global::System.Math.Min(_mapRadius, -q + _mapRadius);
             for (var r = minR; r <= maxR; r++)
             {
-                if (!CellIsKnown(planeCode, q, r))
+                for (var z = minZ; z <= maxZ; z++)
                 {
-                    continue;
-                }
-
-                Write(KernelEvent.From(new MapCellStateChangedKernelEvent(
-                    tick,
-                    version,
-                    planeCode,
-                    q,
-                    r,
-                    context.SourceCodeId,
-                    0,
-                    CellTerrainId(planeCode, q, r),
-                    0,
-                    CoverageOwnerAt(planeCode, q, r),
-                    CellSuperregionId(planeCode, q, r),
-                    CellContinentId(planeCode, q, r))),
-                    context);
-                if (emitLegacyPhysicalEvents)
-                {
-                    Write(KernelEvent.From(new CellCreatedKernelEvent(
-                        tick,
-                        version,
-                        q,
-                        r,
-                        context.SourceCodeId,
-                        CellTerrainId(q, r),
-                        CoverageOwnerAt(q, r),
-                        CellSuperregionId(q, r),
-                        CellContinentId(q, r))),
-                        context);
+                    EmitSnapshotCell(context, tick, version, planeCode, q, r, z, emitLegacyPhysicalEvents);
                 }
             }
+        }
+    }
+
+    private void EmitSnapshotCell(
+        KernelExecutionContext context,
+        int tick,
+        long version,
+        int planeCode,
+        int q,
+        int r,
+        int z,
+        bool emitLegacyPhysicalEvents)
+    {
+        if (!CellIsKnown(planeCode, q, r, z))
+        {
+            return;
+        }
+
+        Write(KernelEvent.From(new MapCellStateChangedKernelEvent(
+            tick,
+            version,
+            planeCode,
+            q,
+            r,
+            context.SourceCodeId,
+            0,
+            CellTerrainId(planeCode, q, r, z),
+            0,
+            _mapLayers.Coverage.ValueAt(planeCode, CoordinateKey(q, r, z)),
+            _mapCellSuperregionIds.GetOrDefault(CoordinateKey(q, r, z), planeCode),
+            _mapCellContinentIds.GetOrDefault(CoordinateKey(q, r, z), planeCode),
+            z)),
+            context);
+        if (emitLegacyPhysicalEvents)
+        {
+            Write(KernelEvent.From(new CellCreatedKernelEvent(
+                tick,
+                version,
+                q,
+                r,
+                context.SourceCodeId,
+                CellTerrainId(PlaneCodes.Physical, q, r, z),
+                _mapLayers.Coverage.ValueAt(PlaneCodes.Physical, CoordinateKey(q, r, z)),
+                _mapCellSuperregionIds.GetOrDefault(CoordinateKey(q, r, z), PlaneCodes.Physical),
+                _mapCellContinentIds.GetOrDefault(CoordinateKey(q, r, z), PlaneCodes.Physical),
+                z)),
+                context);
         }
     }
 
@@ -227,28 +256,46 @@ internal sealed partial class WorldState
 
     private void EmitSnapshotCultureInfluence(KernelExecutionContext context, int tick, long version)
     {
-        _mapLayers.CultureInfluence.ForEach((cultureId, planeCode, coordinateKey, value) =>
+        for (var cultureId = 1; cultureId <= _cultureHighWatermark; cultureId++)
         {
-            if (value > 0f &&
-                TryResolveCoordinateKey(coordinateKey, planeCode == PlaneCodes.Semantic ? 4 : 0, out var q, out var r))
+            EmitSnapshotCultureInfluencePlane(context, tick, version, cultureId, PlaneCodes.Physical);
+            EmitSnapshotCultureInfluencePlane(context, tick, version, cultureId, PlaneCodes.Semantic);
+        }
+    }
+
+    private void EmitSnapshotCultureInfluencePlane(
+        KernelExecutionContext context,
+        int tick,
+        long version,
+        int cultureId,
+        int planeCode)
+    {
+        var cursor = _mapLayers.CultureInfluence.CellsOfValue(cultureId, planeCode);
+        while (_mapLayers.CultureInfluence.MoveNextCell(ref cursor, out var q, out var r, out var z, out var value))
+        {
+            if (value <= 0f)
             {
-                var raw = PositiveCultureInfluenceRaw(cultureId, planeCode, coordinateKey);
-                Write(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
-                    tick,
-                    version,
-                    q,
-                    r,
-                    context.SourceCodeId,
-                    planeCode,
-                    cultureId,
-                    0f,
-                    value,
-                    0f,
-                    raw,
-                    CultureRawTotalAt(planeCode, coordinateKey))),
-                    context);
+                continue;
             }
-        });
+
+            var coordinateKey = CoordinateKey(q, r, z);
+            var raw = PositiveCultureInfluenceRaw(cultureId, planeCode, coordinateKey);
+            Write(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
+                tick,
+                version,
+                q,
+                r,
+                context.SourceCodeId,
+                planeCode,
+                cultureId,
+                z,
+                0f,
+                value,
+                0f,
+                raw,
+                CultureRawTotalAt(planeCode, coordinateKey))),
+                context);
+        }
     }
 
     private void EmitSnapshotRelationships(KernelExecutionContext context, int tick, long version)

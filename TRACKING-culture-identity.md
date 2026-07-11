@@ -2,8 +2,9 @@
 
 Date: 2026-07-11 (branch `culture-identity-round`, baseline `4cf1596`)
 
-Status: PROPOSAL. Options and sequencing below; nothing in this round is
-implemented until the scope is approved.
+Status: ACTIVE. Approved scope for this round: **Z-B (true sparse z-cells)
+now** — skipping Z-A — plus the locked culture power metrics below. B3/B1/C
+seed items remain scoped but queued behind Z-B and the ledgers.
 
 ## Redefining Balance
 
@@ -39,14 +40,32 @@ cull-and-retry cost, not a work item.
 
 ## Round 1 Scope (proposed)
 
-- [ ] **A1. Dominance ledgers.** One home metric per culture, all three
-  reported per culture in MC telemetry and the nations panel rows: Aurora =
-  physical mass / largest-component share (and later, forged height);
-  Nightshelf = semantic mass + slot occupancy + artifact/ability custody +
-  affiliation-relationship strength; Wake-Singers = wars + `ClaimedBy`
-  claims + threat presence near foreign settlements. Owning layers:
-  `Engine.Observability`, `TheCanonryGame.UI`. No simulation change. Lands
-  first so every later knob is measured.
+- [ ] **A1. Dominance ledgers — LOCKED v1 definitions.** Each ledger is the
+  culture's share (0-100%) of a world total; the balance target is that each
+  culture leads its own axis in a healthy run. Components whose world total
+  is zero are dropped from their mean. Computed host-side per snapshot
+  cadence; exported as `culture_power_snapshots`; all three axes shown per
+  culture in the nations rows.
+
+  **Witness (Aurora's axis)** — share of world physical-plane raw culture
+  mass at `z >= 0`, where each forged spire cell's mass is weighted
+  `1 + 0.25 * z`. Tunnel mass (`z < 0`) is excluded: unwitnessed presence
+  does not count.
+
+  **Shadow (Nightshelf's axis)** — mean of three shares: (1) world
+  semantic-plane raw culture mass; (2) world *hidden* physical mass at
+  `z < 0`; (3) custody — living artifacts plus abilities belonging to the
+  culture, each weighted by the summed strength of its `Holds`/`Anchored`/
+  `PracticedBy`/`ConduitOf` edges.
+
+  **Blood (Wake-Singers' axis)** — mean of two shares: (1) claims — summed
+  strength of `ClaimedBy` relationships whose claimant (target endpoint)
+  belongs to the culture; (2) war presence — summed strength of `AtWarWith`
+  relationships with at least one endpoint in the culture. (Kill/predation
+  attribution deferred until provenance-based cause-of-death is cheap.)
+
+  Owning layers: `Engine.Host` (computation), `Engine.Observability`
+  (export), `Engine.Projection` + `TheCanonryGame.UI` (nations rows).
 - [ ] **B3. Demographic floor.** Generator target scoring gains a weight
   inversely proportional to the target culture's living-population share,
   plus one authored revival loop per culture (e.g. `The Unspoken Convene`
@@ -63,8 +82,8 @@ cull-and-retry cost, not a work item.
   influence, not more settlements); Aurora keeps its settlement/physical
   start; Wake-Singers seed with claims and one live grievance so the raid
   economy boots. Owning layer: `IceRemembers.Seed`.
-- [ ] **Z-A. Forged vertical tiers (see below).** The identity centerpiece
-  of the round.
+- [ ] **Z-B. True sparse z-cells (see below).** Approved to land now,
+  skipping Z-A. Physical plane only this round; semantic z remains Z-C.
 
 Explicitly out of scope for round 1: generator pulse-budget stratification,
 the war axis (B5), true z-cells (Z-B), semantic z (Z-C).

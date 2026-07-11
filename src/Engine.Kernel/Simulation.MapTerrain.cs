@@ -128,7 +128,8 @@ internal sealed partial class Simulation
             0,
             ownerEntityId,
             superregionId,
-            continentId)));
+            continentId,
+            0)));
         if (planeCode == PlaneCodes.Physical)
         {
             WriteKernelEvent(KernelEvent.From(new CellCreatedKernelEvent(
@@ -140,7 +141,8 @@ internal sealed partial class Simulation
                 terrainId,
                 ownerEntityId,
                 superregionId,
-                continentId)));
+                continentId,
+                0)));
         }
     }
 

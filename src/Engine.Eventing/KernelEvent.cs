@@ -88,7 +88,7 @@ public readonly record struct EntityStatusChangedKernelEvent(
     [KernelEventIntSlot(5, "current_status_code", KernelEventSemanticKind.StatusCode)]
     int CurrentStatusCode);
 
-[KernelEventLayout(KernelEventType.EntityMoved, schemaMinor: 1)]
+[KernelEventLayout(KernelEventType.EntityMoved, schemaMinor: 2)]
 public readonly record struct EntityMovedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -109,7 +109,11 @@ public readonly record struct EntityMovedKernelEvent(
     [KernelEventIntSlot(7, "to_r", KernelEventSemanticKind.Coordinate)]
     int ToR,
     [KernelEventIntSlot(8, "to_s", KernelEventSemanticKind.Coordinate)]
-    int ToS);
+    int ToS,
+    [KernelEventIntSlot(9, "from_z", KernelEventSemanticKind.Coordinate)]
+    int FromZ,
+    [KernelEventIntSlot(10, "to_z", KernelEventSemanticKind.Coordinate)]
+    int ToZ);
 
 [KernelEventLayout(KernelEventType.AttributeChanged, schemaMinor: 0)]
 public readonly record struct AttributeChangedKernelEvent(
@@ -364,7 +368,7 @@ public readonly record struct GambitEnabledChangedKernelEvent(
     [KernelEventIntSlot(1, "enabled", KernelEventSemanticKind.Enabled)]
     int Enabled);
 
-[KernelEventLayout(KernelEventType.CellCreated, schemaMinor: 2)]
+[KernelEventLayout(KernelEventType.CellCreated, schemaMinor: 3)]
 public readonly record struct CellCreatedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -381,9 +385,11 @@ public readonly record struct CellCreatedKernelEvent(
     [KernelEventIntSlot(5, "superregion_id", KernelEventSemanticKind.SuperregionId)]
     int SuperregionId,
     [KernelEventIntSlot(6, "continent_id", KernelEventSemanticKind.ContinentId)]
-    int ContinentId);
+    int ContinentId,
+    [KernelEventIntSlot(7, "z", KernelEventSemanticKind.Coordinate)]
+    int Z);
 
-[KernelEventLayout(KernelEventType.CellChanged, schemaMinor: 1)]
+[KernelEventLayout(KernelEventType.CellChanged, schemaMinor: 2)]
 public readonly record struct CellChangedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -404,7 +410,9 @@ public readonly record struct CellChangedKernelEvent(
     [KernelEventIntSlot(7, "superregion_id", KernelEventSemanticKind.SuperregionId)]
     int SuperregionId,
     [KernelEventIntSlot(8, "continent_id", KernelEventSemanticKind.ContinentId)]
-    int ContinentId);
+    int ContinentId,
+    [KernelEventIntSlot(9, "z", KernelEventSemanticKind.Coordinate)]
+    int Z);
 
 [KernelEventLayout(KernelEventType.CellInfluenceChanged, schemaMinor: 2)]
 public readonly record struct CellInfluenceChangedKernelEvent(
@@ -427,7 +435,7 @@ public readonly record struct CellInfluenceChangedKernelEvent(
     [KernelEventFloatSlot(1, "current_influence", KernelEventSemanticKind.RawScalar)]
     float CurrentInfluence);
 
-[KernelEventLayout(KernelEventType.CellCultureInfluenceChanged, schemaMinor: 0)]
+[KernelEventLayout(KernelEventType.CellCultureInfluenceChanged, schemaMinor: 1)]
 public readonly record struct CellCultureInfluenceChangedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -441,6 +449,8 @@ public readonly record struct CellCultureInfluenceChangedKernelEvent(
     int PlaneCode,
     [KernelEventIntSlot(4, "culture_id", KernelEventSemanticKind.CultureId)]
     int CultureId,
+    [KernelEventIntSlot(5, "z", KernelEventSemanticKind.Coordinate)]
+    int Z,
     [KernelEventFloatSlot(0, "previous_share", KernelEventSemanticKind.RawScalar)]
     float PreviousShare,
     [KernelEventFloatSlot(1, "current_share", KernelEventSemanticKind.RawScalar)]
@@ -516,7 +526,7 @@ public readonly record struct MinorActorVerbExecutedKernelEvent(
     [KernelEventFloatSlot(3, "delta", KernelEventSemanticKind.RawScalar)]
     float Delta);
 
-[KernelEventLayout(KernelEventType.MapCellStateChanged, schemaMinor: 0)]
+[KernelEventLayout(KernelEventType.MapCellStateChanged, schemaMinor: 1)]
 public readonly record struct MapCellStateChangedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -539,7 +549,9 @@ public readonly record struct MapCellStateChangedKernelEvent(
     [KernelEventIntSlot(8, "superregion_id", KernelEventSemanticKind.SuperregionId)]
     int SuperregionId,
     [KernelEventIntSlot(9, "continent_id", KernelEventSemanticKind.ContinentId)]
-    int ContinentId);
+    int ContinentId,
+    [KernelEventIntSlot(10, "z", KernelEventSemanticKind.Coordinate)]
+    int Z);
 
 [KernelEventLayout(KernelEventType.CellRoadChanged, schemaMinor: 0)]
 public readonly record struct CellRoadChangedKernelEvent(

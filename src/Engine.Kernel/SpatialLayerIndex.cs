@@ -8,6 +8,7 @@ internal sealed partial class SpatialLayerIndex
     private readonly int[] _entryCellKeys;
     private readonly int[] _entryQ;
     private readonly int[] _entryR;
+    private readonly int[] _entryZ;
     private readonly int[] _entryValues;
     private readonly int[] _entryPages;
     private readonly int[] _entryOffsets;
@@ -31,6 +32,7 @@ internal sealed partial class SpatialLayerIndex
         _entryCellKeys = new int[cellCapacity + 1];
         _entryQ = new int[cellCapacity + 1];
         _entryR = new int[cellCapacity + 1];
+        _entryZ = new int[cellCapacity + 1];
         _entryValues = new int[cellCapacity + 1];
         _entryPages = new int[cellCapacity + 1];
         _entryOffsets = new int[cellCapacity + 1];
@@ -56,7 +58,10 @@ internal sealed partial class SpatialLayerIndex
             : 0;
     }
 
-    internal void SetValue(int cellKey, int q, int r, int value)
+    internal void SetValue(int cellKey, int q, int r, int value) =>
+        SetValue(cellKey, q, r, z: 0, value);
+
+    internal void SetValue(int cellKey, int q, int r, int z, int value)
     {
         ValidateCellKey(cellKey);
         ValidateValue(value);
@@ -77,6 +82,7 @@ internal sealed partial class SpatialLayerIndex
             _entryCellKeys[entry] = cellKey;
             _entryQ[entry] = q;
             _entryR[entry] = r;
+            _entryZ[entry] = z;
             _entryByCell.Set(cellKey, 1, entry);
             _entryValues[entry] = value;
             AddEntryToValue(entry, value);
@@ -85,6 +91,7 @@ internal sealed partial class SpatialLayerIndex
 
         _entryQ[entry] = q;
         _entryR[entry] = r;
+        _entryZ[entry] = z;
         var previousValue = _entryValues[entry];
         if (previousValue == value)
         {
@@ -122,10 +129,15 @@ internal sealed partial class SpatialLayerIndex
 
     internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int q, out int r)
     {
-        return MoveNextCell(ref cursor, out _, out q, out r);
+        return MoveNextCell(ref cursor, out _, out q, out r, out _);
     }
 
     internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int cellKey, out int q, out int r)
+    {
+        return MoveNextCell(ref cursor, out cellKey, out q, out r, out _);
+    }
+
+    internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int cellKey, out int q, out int r, out int z)
     {
         while (cursor.Page > 0)
         {
@@ -136,6 +148,7 @@ internal sealed partial class SpatialLayerIndex
                 cellKey = _entryCellKeys[entry];
                 q = _entryQ[entry];
                 r = _entryR[entry];
+                z = _entryZ[entry];
                 return true;
             }
 
@@ -146,6 +159,7 @@ internal sealed partial class SpatialLayerIndex
         cellKey = 0;
         q = 0;
         r = 0;
+        z = 0;
         return false;
     }
 
@@ -173,6 +187,7 @@ internal sealed partial class SpatialLayerIndex
             writer.Write(_entryCellKeys[entry]);
             writer.Write(_entryQ[entry]);
             writer.Write(_entryR[entry]);
+            writer.Write(_entryZ[entry]);
             writer.Write(_entryValues[entry]);
         }
     }
@@ -192,8 +207,9 @@ internal sealed partial class SpatialLayerIndex
             var cellKey = reader.ReadInt32();
             var q = reader.ReadInt32();
             var r = reader.ReadInt32();
+            var z = reader.ReadInt32();
             var value = reader.ReadInt32();
-            SetValue(cellKey, q, r, value);
+            SetValue(cellKey, q, r, z, value);
         }
     }
 
@@ -203,6 +219,7 @@ internal sealed partial class SpatialLayerIndex
         global::System.Array.Clear(_entryCellKeys);
         global::System.Array.Clear(_entryQ);
         global::System.Array.Clear(_entryR);
+        global::System.Array.Clear(_entryZ);
         global::System.Array.Clear(_entryValues);
         global::System.Array.Clear(_entryPages);
         global::System.Array.Clear(_entryOffsets);

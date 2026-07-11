@@ -50,9 +50,12 @@ internal sealed class MapUniqueEntityLayer
         return EntityIdFromPlaneValue(_values.ValueAt(PlaneCellKey(planeCode, cellKey)));
     }
 
-    internal void SetValue(int planeCode, int cellKey, int q, int r, int value)
+    internal void SetValue(int planeCode, int cellKey, int q, int r, int value) =>
+        SetValue(planeCode, cellKey, q, r, z: 0, value);
+
+    internal void SetValue(int planeCode, int cellKey, int q, int r, int z, int value)
     {
-        _values.SetValue(PlaneCellKey(planeCode, cellKey), q, r, EntityPlaneValue(value, planeCode));
+        _values.SetValue(PlaneCellKey(planeCode, cellKey), q, r, z, EntityPlaneValue(value, planeCode));
     }
 
     internal int ValueCellCount(int value, int planeCode)
@@ -134,7 +137,10 @@ internal sealed class MapScalarEntityLayer
         return _values.GetOrDefault(EntityPlaneKey(entityId, planeCode), cellKey);
     }
 
-    internal void SetValue(int entityId, int planeCode, int cellKey, int q, int r, float value)
+    internal void SetValue(int entityId, int planeCode, int cellKey, int q, int r, float value) =>
+        SetValue(entityId, planeCode, cellKey, q, r, z: 0, value);
+
+    internal void SetValue(int entityId, int planeCode, int cellKey, int q, int r, int z, float value)
     {
         var entityPlaneKey = EntityPlaneKey(entityId, planeCode);
         var rowKey = _rowKeysByEntityPlaneCell.GetOrDefault(entityPlaneKey, cellKey);
@@ -143,7 +149,7 @@ internal sealed class MapScalarEntityLayer
             if (rowKey > 0)
             {
                 _values.Set(entityPlaneKey, cellKey, value);
-                _cellsByEntityPlane.SetValue(rowKey, q, r, value: 0);
+                _cellsByEntityPlane.SetValue(rowKey, q, r, z, value: 0);
             }
 
             return;
@@ -157,7 +163,7 @@ internal sealed class MapScalarEntityLayer
             _cellKeysByRowKey[rowKey] = cellKey;
         }
 
-        _cellsByEntityPlane.SetValue(rowKey, q, r, entityPlaneKey);
+        _cellsByEntityPlane.SetValue(rowKey, q, r, z, entityPlaneKey);
     }
 
     internal int ValueCellCount(int entityId, int planeCode)
@@ -170,9 +176,12 @@ internal sealed class MapScalarEntityLayer
         return _cellsByEntityPlane.CellsOfValue(EntityPlaneKey(entityId, planeCode));
     }
 
-    internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int q, out int r, out float value)
+    internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int q, out int r, out float value) =>
+        MoveNextCell(ref cursor, out q, out r, out _, out value);
+
+    internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int q, out int r, out int z, out float value)
     {
-        if (!_cellsByEntityPlane.MoveNextCell(ref cursor, out var rowKey, out q, out r))
+        if (!_cellsByEntityPlane.MoveNextCell(ref cursor, out var rowKey, out q, out r, out z))
         {
             value = 0f;
             return false;
