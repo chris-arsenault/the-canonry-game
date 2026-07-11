@@ -14,6 +14,7 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
     private readonly float _cullFloorRawMass;
     private readonly int[] _scratchQ;
     private readonly int[] _scratchR;
+    private readonly int[] _scratchZ;
     private readonly float[] _scratchRaw;
 
     internal CultureFieldDecayProgramRuntime(CultureFieldTuningOptions tuning, int cellCapacity)
@@ -25,6 +26,7 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
         _cullFloorRawMass = tuning.CullFloorRawMass;
         _scratchQ = new int[cellCapacity];
         _scratchR = new int[cellCapacity];
+        _scratchZ = new int[cellCapacity];
         _scratchRaw = new float[cellCapacity];
     }
 
@@ -53,7 +55,7 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
         var count = 0;
         var cursor = world.RawCultureInfluenceCellsOf(cultureId, planeCode);
         while (count < _scratchQ.Length &&
-               world.MoveNextRawCultureInfluenceCell(ref cursor, out var q, out var r, out var raw))
+               world.MoveNextRawCultureInfluenceCell(ref cursor, out var q, out var r, out var z, out var raw))
         {
             if (raw <= 0f)
             {
@@ -62,6 +64,7 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
 
             _scratchQ[count] = q;
             _scratchR[count] = r;
+            _scratchZ[count] = z;
             _scratchRaw[count] = raw;
             count++;
         }
@@ -80,6 +83,7 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
                 planeCode,
                 _scratchQ[i],
                 _scratchR[i],
+                _scratchZ[i],
                 -decay,
                 tick);
         }

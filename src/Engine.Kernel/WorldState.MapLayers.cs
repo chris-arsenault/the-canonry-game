@@ -389,6 +389,16 @@ internal sealed partial class WorldState
         return _mapLayers.RawCultureInfluence.MoveNextCell(ref cursor, out q, out r, out raw);
     }
 
+    internal bool MoveNextRawCultureInfluenceCell(
+        ref SpatialLayerCellCursor cursor,
+        out int q,
+        out int r,
+        out int z,
+        out float raw)
+    {
+        return _mapLayers.RawCultureInfluence.MoveNextCell(ref cursor, out q, out r, out z, out raw);
+    }
+
     internal float ModifyCellCultureInfluenceRaw(
         int cultureId,
         int planeCode,

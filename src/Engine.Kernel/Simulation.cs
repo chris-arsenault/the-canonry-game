@@ -642,6 +642,11 @@ internal sealed partial class Simulation : IKernel
         World.MoveEntityPhysical(entityId, q, r, tick, _executionContext);
     }
 
+    internal void MoveEntityPhysicalUnchecked(int entityId, int q, int r, int z, int tick)
+    {
+        World.MoveEntityPhysical(entityId, q, r, z, tick, _executionContext);
+    }
+
     internal void MoveEntitySemantic(int entityId, int q, int r, int s, int tick)
     {
         _ = Movement.Place(this, entityId, PlaneCodes.Semantic, q, r, tick, MovementCauseCodes.Forced);
