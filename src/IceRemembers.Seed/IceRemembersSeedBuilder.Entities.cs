@@ -69,7 +69,9 @@ internal static partial class IceRemembersSeedBuilder
 
         CreateLeadershipRelationships(seed, factions);
         CreateCanonicalLinks(seed, random, takenPhysical, takenSemantic, factions);
+        CreateNightshelfCustodyAssets(seed, random, takenPhysical, takenSemantic);
     }
+
 
     private static void CreateCanonicalLinks(
         SeedAssembly seed,
@@ -457,6 +459,8 @@ internal static partial class IceRemembersSeedBuilder
             ("witness", "High-Beak Auditor Selka", "Selka", C(IceRemembersCulture.AuroraStack), factionA.SeedEntityId, 1f),
             ("broker", "Shadow-Broker Nyla", "Nyla", C(IceRemembersCulture.Nightshelf), factionB.SeedEntityId, 1f),
             ("exile", "Smokeheld Luscoa☽", "Luscoa", C(IceRemembersCulture.Nightshelf), factionB.SeedEntityId, 0.4f),
+            ("broker", "Factor Roum☽-vel", "Roum", C(IceRemembersCulture.Nightshelf), factionB.SeedEntityId, 0.9f),
+            ("broker", "Veilmonger Tutris☽", "Tutris", C(IceRemembersCulture.Nightshelf), factionB.SeedEntityId, 0.8f),
         };
 
     private static HexCoord SelectPenguinHex(
@@ -649,6 +653,7 @@ internal static partial class IceRemembersSeedBuilder
     [
         new("Zhei's Compass Freeze", "Compass Freeze", "craft", IceRemembersCulture.AuroraStack, "heartlands", "High-Beak Auditor Selka", "Grandmother Deep"),
         new("Wane∴chill", "Wane", "craft", IceRemembersCulture.Nightshelf, "coastlands", "Shadow-Broker Nyla", "Smokeheld Luscoa☽"),
+        new("Flay∴descend", "Descend", "rite", IceRemembersCulture.Nightshelf, "coastlands", "Factor Roum☽-vel", "Veilmonger Tutris☽"),
         new("Kzundkhrrak Way", "Kzundkhrrak", "rite", IceRemembersCulture.WakeSingers, "farwake", "Khrarnd Grendbrund", "Grandmother Deep"),
     ];
 
