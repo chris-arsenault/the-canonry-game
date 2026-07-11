@@ -170,8 +170,8 @@ public sealed class IceRemembersSeedBuilderTests
         Assert.Equal(4, EntitiesByKind(K.Region).Length);
         Assert.Equal(5, EntitiesByKind(K.Settlement).Length);
         Assert.Equal(4, EntitiesByKind(K.Faction).Length);
-        Assert.Equal(3, EntitiesByKind(K.Penguin).Length);
-        Assert.Equal(4, EntitiesByKind(K.Artifact).Length);
+        Assert.Equal(5, EntitiesByKind(K.Penguin).Length);
+        Assert.Equal(6, EntitiesByKind(K.Artifact).Length);
         Assert.Equal(3, EntitiesByKind(K.Transport).Length);
         Assert.Equal(3, EntitiesByKind(K.Occurrence).Length);
 

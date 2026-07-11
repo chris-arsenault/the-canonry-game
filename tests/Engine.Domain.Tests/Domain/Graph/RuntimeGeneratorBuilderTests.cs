@@ -172,7 +172,7 @@ public class RuntimeGeneratorBuilderTests
 
         var ex = Assert.Throws<DefinitionGraphException>(() => DomainLoader.BuildDefinitionGraph(WithGenerators(generator)));
 
-        Assert.Contains("must declare InheritCultureFrom", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("must declare exactly one of InheritCultureFrom or Culture", ex.Message, StringComparison.Ordinal);
     }
 
     private static SemanticGeneratorConfig CreateValidGenerator(

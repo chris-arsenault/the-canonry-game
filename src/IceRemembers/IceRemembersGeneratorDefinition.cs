@@ -56,6 +56,10 @@ public static partial class IceRemembersGeneratorDefinition
         ConduitPointsFoundReefholds(),
         DeepConduitsNameDepths(),
         WardedMonstersFoundOrders(),
+        RichHubsGrowUndermarkets(),
+        WarsFeedShadowBrokers(),
+        RecordsCastShadows(),
+        TheDeepConclave(),
     ];
 
     private static string L(Rel relationship) => relationship.ToDomainName();
