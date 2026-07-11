@@ -119,6 +119,33 @@ nexus cell emit stronger work. Generator outputs using `CultureInterior` or
 cell and are rejected in unsupported void, which prevents satellite-founding
 from fragmenting territory.
 
+## Culture Power Ledgers
+
+Landmass is not the only definition of cultural power. The host computes three
+asymmetric power ledgers per culture; each is a 0-100% share of a world total,
+and each culture is designed to lead its own axis in a healthy run:
+
+- **Witness (Aurora's axis)** — share of world physical-plane raw culture
+  mass at `z >= 0`, with each cell weighted `1 + 0.25 * z`. Tunnel mass
+  (`z < 0`) is excluded: unwitnessed presence does not count.
+- **Shadow (Nightshelf's axis)** — mean of three component shares: world
+  semantic-plane raw mass; hidden physical mass at `z < 0`; and custody, the
+  summed strength of custody relationships (`holds`, `anchored`,
+  `practiced_by`, `conduit_of`) touching living custody-kind entities
+  (artifacts, abilities) of the culture.
+- **Blood (Wake-Singers' axis)** — mean of two component shares: claims, the
+  summed strength of `claimed_by` relationships whose claimant belongs to the
+  culture; and war presence, the summed strength of `at_war_with`
+  relationships with at least one endpoint in the culture.
+
+Components whose world total is zero are dropped from their axis mean. The
+domain declares the vocabulary in `DomainConfig.CulturePower` (custody kinds,
+custody relationships, claim and war relationship names); the host resolves
+names to runtime ids through the compiled domain, so the engine stays
+domain-agnostic. Ledgers are exported to the `culture_power_snapshots`
+telemetry table on the Monte Carlo snapshot cadence and rendered per culture
+in the nations rows of the in-game legend panel.
+
 ## Cultural Slots, Work Tiers, And Labor
 
 The kernel has a static cultural slot program. The domain registers the slot

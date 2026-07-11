@@ -16,6 +16,7 @@ public partial class LegendPanel : PanelContainer
     private const int NationTrendSampleTicks = 500;
 
     private readonly Dictionary<(int CultureId, int PlaneCode), NationTrendTracker> _nationTrends = [];
+    private IReadOnlyList<CulturePowerSummary>? _culturePowers;
     private VBoxContainer? _column;
     private LegendState? _lastState;
     private HexMapProjection? _lastMap;
@@ -36,8 +37,10 @@ public partial class LegendPanel : PanelContainer
         HexMapProjection? map,
         UiProjectionState? projection,
         IProjectionSymbolCatalog? symbols,
-        PlaneMode plane)
+        PlaneMode plane,
+        IReadOnlyList<CulturePowerSummary>? culturePowers = null)
     {
+        _culturePowers = culturePowers;
         if (!ReferenceEquals(_lastMap, map))
         {
             _lastMap = map;
@@ -151,6 +154,7 @@ public partial class LegendPanel : PanelContainer
                     ? $"{summary.ControlledCells} held / {summary.MismatchedControl} contested  avg {summary.AverageShare:0}%"
                     : $"avg {summary.AverageShare:0}%");
             AddNationRow(culture.Id, cells, projection.CurrentTick, planeCode);
+            AddCulturePowerRow(culture.Id);
             AddCultureSlotRows(culture.Id, projection, symbols);
             AddMinorActorActivityRow(culture.Id, projection, planeCode);
         }
@@ -177,6 +181,28 @@ public partial class LegendPanel : PanelContainer
             $"heartland {nation.LargestComponentShare:0}%{trend.Heartland}  " +
             $"nexus {nation.NexusCells}{trend.Nexus}  " +
             $"contested {nation.ContestedCells}{trend.Contested}");
+    }
+
+    private void AddCulturePowerRow(int cultureId)
+    {
+        if (_culturePowers is not { Count: > 0 } powers)
+        {
+            return;
+        }
+
+        foreach (var power in powers)
+        {
+            if (power.CultureId != cultureId)
+            {
+                continue;
+            }
+
+            AddMutedLine(
+                $"witness {power.WitnessShare:0}%  " +
+                $"shadow {power.ShadowShare:0}%  " +
+                $"blood {power.BloodShare:0}%");
+            return;
+        }
     }
 
     private void AddCultureSlotRows(

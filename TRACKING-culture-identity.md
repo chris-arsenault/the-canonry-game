@@ -40,7 +40,14 @@ cull-and-retry cost, not a work item.
 
 ## Round 1 Scope (proposed)
 
-- [ ] **A1. Dominance ledgers — LOCKED v1 definitions.** Each ledger is the
+- [x] **A1. Dominance ledgers — LOCKED v1 definitions.** Implemented:
+  `CulturePowerConfig` on `DomainConfig` (custody kinds/relationships, claim
+  and war relationships) declared by `IceRemembersDefinition`;
+  `KernelHost.CulturePower.cs` computes the three axes host-side;
+  `culture_power_snapshots` exported per snapshot cadence from the MC CLI;
+  nations rows in `LegendPanel` show `witness/shadow/blood` per culture
+  (refreshed every 100 ticks through `KernelUiRuntime.CulturePowers()`).
+  Each ledger is the
   culture's share (0-100%) of a world total; the balance target is that each
   culture leads its own axis in a healthy run. Components whose world total
   is zero are dropped from their mean. Computed host-side per snapshot

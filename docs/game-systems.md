@@ -13,7 +13,9 @@ and relationships. Relationships are typed, directional or symmetric, polar,
 and strength-bearing.
 
 The map has physical and semantic planes. The physical plane is a hex grid with
-terrain and named coverage. Regions and settlements are not a separate
+terrain, named coverage, and an integer z axis in `[-3, +3]` whose non-surface
+cells are forged only by entity actions (Aurora spire tiers up, Nightshelf
+tunnel galleries down). Regions and settlements are not a separate
 abstraction from map coverage: they are named coverage over physical space. The
 semantic plane is an analogous bounded axial q/r map with `s = -q-r`, its own
 semantic terrain, culture influence, roads, and placement. It is not a
@@ -132,6 +134,11 @@ The kernel emits primitive events into a bounded event log. Projections,
 run logs, UI state, Monte Carlo telemetry, and parquet exports are consumers of
 that event stream. The kernel is not allowed to call UI, file I/O, console I/O,
 or string-heavy observability directly.
+
+Culture power is measured on three asymmetric ledgers (Witness, Shadow,
+Blood) computed host-side from world state, exported as
+`culture_power_snapshots`, and shown in the nations rows; see
+[culture.md](./systems/culture.md).
 
 Monte Carlo analysis should be performed against parquet output with SQL,
 DuckDB, or Python. The stable simulation-quality metrics are described in

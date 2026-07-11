@@ -245,7 +245,7 @@ internal sealed class GameRenderTree
             return;
         }
 
-        _mapArea.BindCultureOverview(_map, ui, _symbols, plane);
+        _mapArea.BindCultureOverview(_map, ui, _symbols, plane, _runtime?.ReadModels.CulturePowers());
         _lastCultureOverviewTick = currentTick;
         _lastCultureOverviewPlane = plane;
         _lastCultureOverviewMap = _map;
@@ -387,7 +387,7 @@ internal sealed class GameRenderTree
         _tableauVisible = _tableauPanel.Visible;
         _mapArea.SetPlane(_mapRenderer.CurrentPlane);
         ApplyMapLens();
-        _mapArea.BindCultureOverview(_map, _ui, _symbols, _mapRenderer.CurrentPlane);
+        _mapArea.BindCultureOverview(_map, _ui, _symbols, _mapRenderer.CurrentPlane, _runtime?.ReadModels.CulturePowers());
         _bottomBar.SetTableauVisible(_tableauVisible);
         _bottomBar.SetReadingsVisible(_attributeGraph is not null);
     }

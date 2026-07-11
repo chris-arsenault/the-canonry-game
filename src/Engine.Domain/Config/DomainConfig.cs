@@ -41,6 +41,9 @@ public sealed class DomainConfig
     /// <summary>Culture definitions.</summary>
     public required IReadOnlyList<CultureConfig> Cultures { get; init; }
 
+    /// <summary>Domain vocabulary feeding the culture power ledgers.</summary>
+    public CulturePowerConfig CulturePower { get; init; } = new();
+
     /// <summary>
     /// Reusable gameplay-system selections and authored gameplay parameters.
     /// Domain content chooses and names gameplay modules; Engine.Gameplay owns
@@ -157,6 +160,19 @@ public sealed class TraitConfig
 
     /// <summary>Independent 0..1 chance that a newly created entity of this kind receives the trait.</summary>
     public float AssignmentChance { get; init; }
+}
+
+/// <summary>
+/// Declares which domain vocabulary feeds the culture power ledgers: custody
+/// kinds and relationships for the Shadow axis, claim and war relationships
+/// for the Blood axis. Empty lists drop the corresponding ledger component.
+/// </summary>
+public sealed class CulturePowerConfig
+{
+    public IReadOnlyList<string> CustodyKinds { get; init; } = [];
+    public IReadOnlyList<string> CustodyRelationships { get; init; } = [];
+    public string? ClaimRelationship { get; init; }
+    public string? WarRelationship { get; init; }
 }
 
 /// <summary>Relationship kind configuration.</summary>

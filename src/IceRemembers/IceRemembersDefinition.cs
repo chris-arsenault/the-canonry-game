@@ -37,6 +37,7 @@ public static partial class IceRemembersDefinition
             MinorActors = CreateMinorActorRules(),
             MovementProfiles = IceRemembersMovementProfiles.DomainProfiles,
             Cultures = CreateCultures(),
+            CulturePower = CreateCulturePowerDefinition(),
             Gameplay = CreateGameplayDefinition(),
             Semantics = semantics,
             Chronicle = CreateChronicleDefinition(),
@@ -49,6 +50,21 @@ public static partial class IceRemembersDefinition
     private static string V(Verb verb) => verb.ToVerbId();
     private static string G(GambitId gambit) => gambit.ToGambitId();
     private static string TerrainName(Terrain terrain) => terrain.ToDomainName();
+
+    private static CulturePowerConfig CreateCulturePowerDefinition() =>
+        new()
+        {
+            CustodyKinds = [K.Artifact.Value, K.Ability.Value],
+            CustodyRelationships =
+            [
+                L(Rel.Holds),
+                L(Rel.Anchored),
+                L(Rel.PracticedBy),
+                L(Rel.ConduitOf),
+            ],
+            ClaimRelationship = L(Rel.ClaimedBy),
+            WarRelationship = L(Rel.AtWarWith),
+        };
 
     private static ChronicleConfig CreateChronicleDefinition() =>
         new()

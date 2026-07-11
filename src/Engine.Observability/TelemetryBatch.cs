@@ -37,6 +37,7 @@ public sealed class TelemetryBatch
     public Collection<CultureSlotOccupancyEventRow> CultureSlotOccupancyEvents { get; } = Rows<CultureSlotOccupancyEventRow>();
     public Collection<MinorActorVerbEventRow> MinorActorVerbEvents { get; } = Rows<MinorActorVerbEventRow>();
     public Collection<CultureFieldComponentSnapshotRow> CultureFieldComponentSnapshots { get; } = Rows<CultureFieldComponentSnapshotRow>();
+    public Collection<CulturePowerSnapshotRow> CulturePowerSnapshots { get; } = Rows<CulturePowerSnapshotRow>();
     public Collection<CultureEntityFieldSnapshotRow> CultureEntityFieldSnapshots { get; } = Rows<CultureEntityFieldSnapshotRow>();
     public Collection<CultureEntityBirthFieldEventRow> CultureEntityBirthFieldEvents { get; } = Rows<CultureEntityBirthFieldEventRow>();
     public Collection<CultureInfluenceActionFieldEventRow> CultureInfluenceActionFieldEvents { get; } = Rows<CultureInfluenceActionFieldEventRow>();
@@ -77,6 +78,7 @@ public sealed class TelemetryBatch
         CultureSlotOccupancyEvents.Clear();
         MinorActorVerbEvents.Clear();
         CultureFieldComponentSnapshots.Clear();
+        CulturePowerSnapshots.Clear();
         CultureEntityFieldSnapshots.Clear();
         CultureEntityBirthFieldEvents.Clear();
         CultureInfluenceActionFieldEvents.Clear();
@@ -510,6 +512,20 @@ public sealed record MinorActorVerbEventRow(
     float ConnectedRawMass,
     float Score,
     float Delta);
+
+public sealed record CulturePowerSnapshotRow(
+    int RunId,
+    int Tick,
+    int CultureId,
+    float WitnessShare,
+    float ShadowShare,
+    float BloodShare,
+    float WitnessMass,
+    float HiddenMass,
+    float SemanticMass,
+    float CustodyStrength,
+    float ClaimStrength,
+    float WarStrength);
 
 public sealed record CultureFieldComponentSnapshotRow(
     int RunId,
