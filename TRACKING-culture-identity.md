@@ -47,6 +47,12 @@ cull-and-retry cost, not a work item.
   `culture_power_snapshots` exported per snapshot cadence from the MC CLI;
   nations rows in `LegendPanel` show `witness/shadow/blood` per culture
   (refreshed every 100 ticks through `KernelUiRuntime.CulturePowers()`).
+  Pre-rebalance ledger baseline (`zb-forging-ledgers-2x25k-r2-20260711`,
+  avg over ticks >20k, run 25000): Witness Aurora 72.5 / Nightshelf 22.1 /
+  Wake-Singers 5.4; Shadow Aurora 61.6 / Nightshelf 36.7; Blood Aurora 75.5 /
+  Wake-Singers 0.0. The ledgers now *expose* the diagnosed imbalance —
+  Aurora leads every axis and Wake-Singers have no Blood at all — which is
+  exactly what the queued B3/B1/C1/C3 items must move.
   Each ledger is the
   culture's share (0-100%) of a world total; the balance target is that each
   culture leads its own axis in a healthy run. Components whose world total
@@ -89,8 +95,25 @@ cull-and-retry cost, not a work item.
   influence, not more settlements); Aurora keeps its settlement/physical
   start; Wake-Singers seed with claims and one live grievance so the raid
   economy boots. Owning layer: `IceRemembers.Seed`.
-- [ ] **Z-B. True sparse z-cells (see below).** Approved to land now,
-  skipping Z-A. Physical plane only this round; semantic z remains Z-C.
+- [x] **Z-B. True sparse z-cells (see below).** Landed. Coordinate keys hash
+  `(q, r, z)` with `z = 0` identical to the historical 2-arg hash; physical
+  cells span `z in [-3, +3]`; non-surface cells exist only when forged by
+  `ForgeCellVertical` (column extension, then creep to a known neighbor
+  column). Authored gambits: `settlement_raises_the_spire` (Aurora,
+  `spire_tier` up), `settlement_digs_the_gallery` / `faction_digs_the_gallery`
+  (Nightshelf, `tunnel_gallery` down). Movement gains vertical wander;
+  culture influence deposits at the actor's z; decay covers all z. Documented
+  simplifications: boundary components, roads, and route planning stay
+  surface-only; generators/seeds place at `z = 0`; forged mass feeds the
+  ledgers directly. Evidence (`zb-forging-ledgers-2x25k-r2-20260711`, seeds
+  25000/25001): 34/25 spire cells reaching `z = +3`, 14/12 tunnel cells
+  reaching `z = -3`, forged-cell culture mass present at every occupied z,
+  Nightshelf hidden mass feeding Shadow (avg 17 late-run), and final field
+  shape comparable to the `nexus-physics-2x25k-20260711` baseline
+  (components 5-24 vs 3-36, contested 3-32 vs 1-29 — cross-seed variance,
+  no systematic regression). A telemetry defect found during evidence review
+  (map cell projection deduplicated forged cells by `(plane, q, r)` and
+  dropped z) was fixed in the same round.
 
 Explicitly out of scope for round 1: generator pulse-budget stratification,
 the war axis (B5), true z-cells (Z-B), semantic z (Z-C).
