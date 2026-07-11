@@ -564,6 +564,9 @@ public enum IceRemembersGambitId
     MonsterDeepensTheHolding,
     TransportDeepensTheHolding,
     OccurrenceDeepensTheHolding,
+    SettlementRaisesTheSpire,
+    SettlementDigsTheGallery,
+    FactionDigsTheGallery,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -602,6 +605,9 @@ public static class IceRemembersGambitIdExtensions
         "monster_deepens_the_holding",
         "transport_deepens_the_holding",
         "occurrence_deepens_the_holding",
+        "settlement_raises_the_spire",
+        "settlement_digs_the_gallery",
+        "faction_digs_the_gallery",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)

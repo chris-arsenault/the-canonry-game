@@ -14,7 +14,7 @@ public sealed class IceRemembersGambitDefinitionTests
         var config = IceRemembersDefinition.Create();
         var gambitIds = config.Gambits.Select(gambit => gambit.Id).ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(21 + IceRemembersEntities.All.Count, gambitIds.Count);
+        Assert.Equal(24 + IceRemembersEntities.All.Count, gambitIds.Count);
         Assert.Contains(IceRemembersGambitId.AbilitySharesPractice.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactBindsMonster.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactCleansesScar.ToGambitId(), gambitIds);

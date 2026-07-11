@@ -64,7 +64,76 @@ public static partial class IceRemembersDefinition
             PenguinSlaysOrca(),
         };
         gambits.AddRange(CreateWorkTierGambits());
+        gambits.AddRange(CreateForgingGambits());
         return gambits;
+    }
+
+    private static IEnumerable<GambitDefinition> CreateForgingGambits()
+    {
+        yield return ForgingGambit(
+            GambitId.SettlementRaisesTheSpire,
+            "Raise the Spire",
+            K.Settlement,
+            Culture.AuroraStack,
+            direction: 1,
+            Terrain.SpireTier,
+            "An entrenched Aurora settlement raises a new crystalline tier above its column. Height is witnessed permanence: each tier adds ground the ice can see.");
+        yield return ForgingGambit(
+            GambitId.SettlementDigsTheGallery,
+            "Dig the Gallery",
+            K.Settlement,
+            Culture.Nightshelf,
+            direction: -1,
+            Terrain.TunnelGallery,
+            "A Nightshelf settlement cuts a new gallery beneath its column. What is carved in darkness belongs to the Shelf alone.");
+        yield return ForgingGambit(
+            GambitId.FactionDigsTheGallery,
+            "Dig the Gallery",
+            K.Faction,
+            Culture.Nightshelf,
+            direction: -1,
+            Terrain.TunnelGallery,
+            "A Nightshelf faction extends the hidden labyrinth. Tunnels are territory no surface overlay will ever show.");
+    }
+
+    private static GambitDefinition ForgingGambit(
+        GambitId gambitId,
+        string name,
+        EntityKind actorKind,
+        Culture culture,
+        int direction,
+        Terrain terrain,
+        string description)
+    {
+        var entity = IceRemembersEntities.All.First(definition => definition.Kind == actorKind);
+        var health = A(entity.HealthAttribute);
+        var gambit = new GambitDefinition(
+            G(gambitId),
+            name,
+            actorKind,
+            All(
+                new TargetIsSelf(),
+                new EndpointCultureIs(TransferEndpoint.Self, C(culture)),
+                new SelfCultureMassPrecondition(
+                    PrimaryPlane.Physical,
+                    minimumRawMass: 100f,
+                    minimumConnectedRawMass: 300f),
+                new SelfAttributeThreshold(health, min: 40f, max: null, behaviorRelevant: false)),
+            scoreExpression: GambitScore(
+                baseline: 0.6f,
+                dynamicRange: 2.5f,
+                Normalized(Expr.Self(health))))
+        {
+            SuccessChance = 0.25f,
+            Cooldown = 200,
+            EntityCooldown = 320,
+            Description = description,
+        };
+        gambit.Reads.Add(AttributeRef.Self(health, actorKind));
+        gambit.Reads.Add(AttributeRef.Coordinates(actorKind));
+        gambit.Writes.Add(AttributeRef.StructuralFact("forged_cells", actorKind));
+        gambit.Mutations.Add(new ForgeCellVerticalMutation(direction, TerrainName(terrain)));
+        return gambit;
     }
 
     private static IEnumerable<GambitDefinition> CreateWorkTierGambits()

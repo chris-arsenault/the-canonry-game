@@ -660,6 +660,7 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramOperation.AddRelatedEntitiesAttribute => BehaviorOperationCodes.AddRelatedEntitiesAttribute,
             BehaviorProgramOperation.SetTargetCultureFromSelf => BehaviorOperationCodes.SetTargetCultureFromSelf,
             BehaviorProgramOperation.IncreaseWorkTier => BehaviorOperationCodes.IncreaseWorkTier,
+            BehaviorProgramOperation.ForgeCellVertical => BehaviorOperationCodes.ForgeCellVertical,
             _ => -1,
         };
         return code >= 0;

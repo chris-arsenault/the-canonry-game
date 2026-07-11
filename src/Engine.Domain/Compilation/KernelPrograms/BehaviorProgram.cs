@@ -38,6 +38,7 @@ public enum BehaviorProgramOperation
     BuildTravelStructureLine,
     SetTargetCultureFromSelf,
     IncreaseWorkTier,
+    ForgeCellVertical,
 }
 
 public enum BehaviorProgramEndpoint

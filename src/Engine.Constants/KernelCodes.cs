@@ -43,6 +43,7 @@ public static class BehaviorOperationCodes
     public const int BuildTravelStructureLine = 31;
     public const int SetTargetCultureFromSelf = 32;
     public const int IncreaseWorkTier = 33;
+    public const int ForgeCellVertical = 34;
 }
 
 public static class BehaviorTargetModeCodes
