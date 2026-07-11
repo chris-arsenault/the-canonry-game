@@ -56,6 +56,7 @@ internal sealed partial class Simulation
     private float ApplyCellCultureInfluenceRawFromEntity(int entityId, int planeCode, int q, int r, int z, float delta, int tick)
     {
         var cultureId = World.EntityCultureId(entityId);
+        delta = CultureProductionScaled(cultureId, planeCode, delta);
         var previousRaw = cultureId > 0
             ? World.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r, z)
             : 0f;
@@ -103,6 +104,16 @@ internal sealed partial class Simulation
 
         return removed;
     }
+
+    /// <summary>
+    /// Positive entity-driven production scales by the culture's per-plane
+    /// production multiplier. Decay, cleanup, forge deposits, and player
+    /// commands are not production and stay unscaled.
+    /// </summary>
+    internal float CultureProductionScaled(int cultureId, int planeCode, float delta) =>
+        cultureId > 0 && delta > 0f
+            ? delta * KernelData.Cultures.ProductionMultiplier(cultureId, planeCode)
+            : delta;
 
     private static bool CultureBoundarySupportChanged(float previousRaw, float currentRaw) =>
         (previousRaw >= WorldState.CultureClaimedRawMass) != (currentRaw >= WorldState.CultureClaimedRawMass);

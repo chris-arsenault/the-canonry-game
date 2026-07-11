@@ -325,6 +325,16 @@ public sealed class CultureConfig
     public required string Id { get; init; }
     public required string DisplayName { get; init; }
     public IReadOnlyList<CultureSlotConfig> Slots { get; init; } = [];
+
+    /// <summary>
+    /// Multiplier on positive entity-driven culture influence production on
+    /// the physical plane. Lets a culture's identity live on its own plane
+    /// rather than tying all power to population.
+    /// </summary>
+    public float PhysicalInfluenceProductionMultiplier { get; init; } = 1f;
+
+    /// <summary>Multiplier on positive semantic-plane influence production.</summary>
+    public float SemanticInfluenceProductionMultiplier { get; init; } = 1f;
 }
 
 public enum CultureSlotPolarity

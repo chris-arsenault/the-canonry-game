@@ -215,6 +215,9 @@ internal sealed class KernelConfigurationContext
             cultureSlotId,
             cultureSlotPolarityCode);
 
+    public void RegisterCultureProduction(int cultureId, float physicalMultiplier, float semanticMultiplier) =>
+        _kernel.RegisterCultureProduction(cultureId, physicalMultiplier, semanticMultiplier);
+
     public int RegisterCultureSlot(
         int cultureId,
         int slotId,

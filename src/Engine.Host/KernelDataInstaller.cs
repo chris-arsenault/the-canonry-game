@@ -13,6 +13,18 @@ internal static class KernelDataInstaller
         InstallEntityData(context, kernelData.Entities);
         InstallMovement(context, kernelData.Movement);
         InstallTerrain(context, kernelData.Terrain);
+        InstallCultures(context, kernelData.Cultures);
+    }
+
+    private static void InstallCultures(KernelConfigurationContext context, CompiledCultureData data)
+    {
+        foreach (var culture in data.Cultures)
+        {
+            context.RegisterCultureProduction(
+                culture.CultureId,
+                culture.PhysicalInfluenceProductionMultiplier,
+                culture.SemanticInfluenceProductionMultiplier);
+        }
     }
 
     private static void InstallEntityData(KernelConfigurationContext context, CompiledEntityData data)

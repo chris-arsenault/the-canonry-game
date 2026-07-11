@@ -38,7 +38,8 @@ internal sealed partial class Simulation : IKernel
         Commands = new KernelCommandRing(options.CommandCapacity);
         KernelData = new KernelDataSet(
             new KernelEntityData(options.EntityAttributeCapacity, options.AttributeIdCapacity, options.EntityTraitCapacity),
-            new KernelTerrainData(options.TerrainIdCapacity));
+            new KernelTerrainData(options.TerrainIdCapacity),
+            new KernelCultureData(options.CultureIdCapacity));
         World = new WorldState(Events, options, KernelData);
         CultureBoundaries = CreateCultureBoundaryRuntime(options);
         World.AttachCultureBoundaries(CultureBoundaries);
@@ -422,6 +423,11 @@ internal sealed partial class Simulation : IKernel
     internal int RegisterTrait(int kindId, int traitId, float assignmentChance)
     {
         return KernelData.Entities.RegisterTrait(kindId, traitId, assignmentChance);
+    }
+
+    internal void RegisterCultureProduction(int cultureId, float physicalMultiplier, float semanticMultiplier)
+    {
+        KernelData.Cultures.RegisterCultureProduction(cultureId, physicalMultiplier, semanticMultiplier);
     }
 
     internal int RegisterTerrain(int terrainId, int boundaryGroupId)

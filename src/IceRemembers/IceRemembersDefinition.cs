@@ -522,6 +522,9 @@ public static partial class IceRemembersDefinition
         CultureDefinition(
             Culture.AuroraStack,
             "Aurora Stack",
+            physicalProduction: 1.1f,
+            semanticProduction: 0.9f,
+            slots:
             [
                 Slot("high_rookery", "High Rookery", CultureSlotPolarity.Positive, [K.Settlement], [
                     Score(CultureSlotScoreSignal.ActiveEntity, 4f), Score(CultureSlotScoreSignal.PhysicalCoverage, 0.85f),
@@ -559,6 +562,9 @@ public static partial class IceRemembersDefinition
         CultureDefinition(
             Culture.Nightshelf,
             "Nightshelf",
+            physicalProduction: 0.75f,
+            semanticProduction: 2.5f,
+            slots:
             [
                 Slot("ledger_seat", "Ledger Seat", CultureSlotPolarity.Positive, [K.Faction], [
                     Score(CultureSlotScoreSignal.ActiveEntity, 4f), Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.9f, Rel.ControlledBy),
@@ -638,12 +644,16 @@ public static partial class IceRemembersDefinition
     private static CultureConfig CultureDefinition(
         Culture culture,
         string displayName,
-        IReadOnlyList<CultureSlotConfig> slots) =>
+        IReadOnlyList<CultureSlotConfig> slots,
+        float physicalProduction = 1f,
+        float semanticProduction = 1f) =>
         new()
         {
             Id = C(culture),
             DisplayName = displayName,
             Slots = slots,
+            PhysicalInfluenceProductionMultiplier = physicalProduction,
+            SemanticInfluenceProductionMultiplier = semanticProduction,
         };
 
     private static CultureSlotConfig Slot(
