@@ -5,6 +5,7 @@ internal enum CardType
     Generator,
     System,
     Action,
+    Intervention,
 }
 
 internal sealed class CardDefinition
@@ -16,11 +17,13 @@ internal sealed class CardDefinition
         string name,
         CardType type,
         int generatorId = 0,
-        int gambitId = 0)
+        int gambitId = 0,
+        int interventionId = 0)
     {
         ArgumentException.ThrowIfNullOrEmpty(id);
         ArgumentOutOfRangeException.ThrowIfNegative(generatorId);
         ArgumentOutOfRangeException.ThrowIfNegative(gambitId);
+        ArgumentOutOfRangeException.ThrowIfNegative(interventionId);
 
         Id = id;
         RuntimeId = CardRuntimeId.FromStableName(id);
@@ -28,6 +31,7 @@ internal sealed class CardDefinition
         Type = type;
         GeneratorId = generatorId;
         GambitId = gambitId;
+        InterventionId = interventionId;
         Name = name;
     }
 
@@ -50,6 +54,8 @@ internal sealed class CardDefinition
     public int GeneratorId { get; }
 
     public int GambitId { get; }
+
+    public int InterventionId { get; }
 
     public ISet<string> Tags { get; } = new HashSet<string>(StringComparer.Ordinal);
 

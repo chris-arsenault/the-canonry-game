@@ -12,6 +12,32 @@ internal readonly record struct SetGeneratorEnabledKernelCommand(
     int SubmitterId = 0,
     int SubmitterSequence = 0);
 
+internal readonly record struct SetGambitEnabledKernelCommand(
+    int IssueVersion,
+    int GambitId,
+    int Enabled,
+    int SubmitterId = 0,
+    int SubmitterSequence = 0);
+
+internal readonly record struct BlessCellCultureKernelCommand(
+    int IssueVersion,
+    int CultureId,
+    int PlaneCode,
+    int Q,
+    int R,
+    int Radius,
+    float Amount,
+    int SubmitterId = 0,
+    int SubmitterSequence = 0);
+
+internal readonly record struct FavorEntityKernelCommand(
+    int IssueVersion,
+    int EntityId,
+    int DurationTicks,
+    float MultiplierDelta,
+    int SubmitterId = 0,
+    int SubmitterSequence = 0);
+
 internal readonly partial record struct KernelCommand
 {
     private readonly int _a;

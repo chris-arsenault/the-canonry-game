@@ -36,6 +36,38 @@ public sealed class GambitProgramRuntimeTests
     }
 
     [Fact]
+    public void SetGambitEnabledCommandDisablesGambitById()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int kindId = 1;
+        const int attributeId = 10;
+        simulation.RegisterAttribute(kindId, attributeId, 0f, 100f, 10f);
+        var entityId = simulation.CreateEntity(kindId, 1, 1, 0, 0, 0, 0, 0, 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            kindId,
+            gambitId: 100,
+            targetMode: BehaviorTargetModeCodes.Self,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsSelf);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: 20f);
+
+        Assert.True(simulation.Commands.TryEnqueue(
+            KernelCommand.From(new SetGambitEnabledKernelCommand(
+                IssueVersion: (int)simulation.WorldVersion,
+                GambitId: 100,
+                Enabled: 0)),
+            out _));
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(10f, simulation.World.GetAttribute(entityId, attributeId));
+        Assert.True(simulation.Gambits.TryGetGambitEnabledById(100, out var enabled));
+        Assert.False(enabled);
+    }
+
+    [Fact]
     public void SuccessfulGambitRecordsProvenanceInvocationAndMutationOutput()
     {
         var simulation = CreateSimulation(seed: 1);

@@ -306,6 +306,38 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         _gambitEnabled[gambitSlot] = true;
     }
 
+    public bool TrySetGambitEnabledById(int gambitId, bool enabled)
+    {
+        ValidatePositive(gambitId);
+        var found = false;
+        for (var slot = 1; slot <= _gambitCount; slot++)
+        {
+            if (_gambitIds[slot] == gambitId)
+            {
+                _gambitEnabled[slot] = enabled;
+                found = true;
+            }
+        }
+
+        return found;
+    }
+
+    public bool TryGetGambitEnabledById(int gambitId, out bool enabled)
+    {
+        ValidatePositive(gambitId);
+        for (var slot = 1; slot <= _gambitCount; slot++)
+        {
+            if (_gambitIds[slot] == gambitId)
+            {
+                enabled = _gambitEnabled[slot];
+                return true;
+            }
+        }
+
+        enabled = false;
+        return false;
+    }
+
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);

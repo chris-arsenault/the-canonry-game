@@ -176,6 +176,10 @@ public partial class Main : Node2D
         {
             AdjustZoom(1f / zoomFactor);
         }
+        else if (mouse.ButtonIndex == MouseButton.Left)
+        {
+            _ = _renderTree?.TryApplyArmedInterventionClick();
+        }
     }
 
     private void TogglePause()

@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 39;
+    private const int FormatVersion = 40;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -147,6 +147,7 @@ internal static class KernelSnapshotOptions
         writer.Write(runtimeCodes.MapSignalsSourceCodeId);
         writer.Write(runtimeCodes.LowAltitudeVerbSourceCodeId);
         writer.Write(runtimeCodes.EffectsSourceCodeId);
+        writer.Write(runtimeCodes.PlayerSourceCodeId);
     }
 
     private static void WriteKernelTuning(
@@ -173,6 +174,12 @@ internal static class KernelSnapshotOptions
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ForeignInfluenceDistanceScale);
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.InfluenceShortfallSamplingFactor);
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ForeignInfluencePresenceSamplingFactor);
+        writer.Write(kernelTuning.Programs.CultureField.DecayPerPulse);
+        writer.Write(kernelTuning.Programs.CultureField.MinimumDecayPerPulse);
+        writer.Write(kernelTuning.Programs.CultureField.CullFloorRawMass);
+        writer.Write(kernelTuning.Programs.CultureField.DecayCadenceMainTicks);
+        writer.Write(kernelTuning.Programs.CultureField.RemittanceShare);
+        writer.Write(kernelTuning.Programs.CultureField.RemittanceMinimumDistance);
     }
 
     private static void WriteProgramEnabledOverrides(
@@ -291,6 +298,7 @@ internal static class KernelSnapshotOptions
         values.MapSignalsSourceCodeId = reader.ReadInt32();
         values.LowAltitudeVerbSourceCodeId = reader.ReadInt32();
         values.EffectsSourceCodeId = reader.ReadInt32();
+        values.PlayerSourceCodeId = reader.ReadInt32();
     }
 
     private static void ReadKernelTuningValues(
@@ -327,6 +335,12 @@ internal static class KernelSnapshotOptions
         values.LowAltitudeForeignInfluenceDistanceScale = reader.ReadSingle();
         values.LowAltitudeInfluenceShortfallSamplingFactor = reader.ReadSingle();
         values.LowAltitudeForeignInfluencePresenceSamplingFactor = reader.ReadSingle();
+        values.CultureFieldDecayPerPulse = reader.ReadSingle();
+        values.CultureFieldMinimumDecayPerPulse = reader.ReadSingle();
+        values.CultureFieldCullFloorRawMass = reader.ReadSingle();
+        values.CultureFieldDecayCadenceMainTicks = reader.ReadInt32();
+        values.CultureFieldRemittanceShare = reader.ReadSingle();
+        values.CultureFieldRemittanceMinimumDistance = reader.ReadInt32();
     }
 
     private static void ApplyEventCapacityFloor(ref SnapshotOptionValues values, int eventCount)
@@ -432,7 +446,8 @@ internal static class KernelSnapshotOptions
             values.MapActivitySourceCodeId,
             values.MapSignalsSourceCodeId,
             values.LowAltitudeVerbSourceCodeId,
-            values.EffectsSourceCodeId);
+            values.EffectsSourceCodeId,
+            values.PlayerSourceCodeId);
 
     private static KernelTuningOptions CreateKernelTuning(SnapshotOptionValues values) =>
         new()
@@ -480,6 +495,15 @@ internal static class KernelSnapshotOptions
                     ForeignInfluenceDistanceScale = values.LowAltitudeForeignInfluenceDistanceScale,
                     InfluenceShortfallSamplingFactor = values.LowAltitudeInfluenceShortfallSamplingFactor,
                     ForeignInfluencePresenceSamplingFactor = values.LowAltitudeForeignInfluencePresenceSamplingFactor,
+                },
+                CultureField = new CultureFieldTuningOptions
+                {
+                    DecayPerPulse = values.CultureFieldDecayPerPulse,
+                    MinimumDecayPerPulse = values.CultureFieldMinimumDecayPerPulse,
+                    CullFloorRawMass = values.CultureFieldCullFloorRawMass,
+                    DecayCadenceMainTicks = values.CultureFieldDecayCadenceMainTicks,
+                    RemittanceShare = values.CultureFieldRemittanceShare,
+                    RemittanceMinimumDistance = values.CultureFieldRemittanceMinimumDistance,
                 },
             },
         };
@@ -544,6 +568,7 @@ internal static class KernelSnapshotOptions
         public int MapSignalsSourceCodeId;
         public int LowAltitudeVerbSourceCodeId;
         public int EffectsSourceCodeId;
+        public int PlayerSourceCodeId;
         public int MovementProgramEnabled;
         public int LowAltitudeVerbProgramEnabled;
         public int MapActivityProgramEnabled;
@@ -574,6 +599,12 @@ internal static class KernelSnapshotOptions
         public float LowAltitudeForeignInfluenceDistanceScale;
         public float LowAltitudeInfluenceShortfallSamplingFactor;
         public float LowAltitudeForeignInfluencePresenceSamplingFactor;
+        public float CultureFieldDecayPerPulse;
+        public float CultureFieldMinimumDecayPerPulse;
+        public float CultureFieldCullFloorRawMass;
+        public int CultureFieldDecayCadenceMainTicks;
+        public float CultureFieldRemittanceShare;
+        public int CultureFieldRemittanceMinimumDistance;
         public int Seed;
     }
 }

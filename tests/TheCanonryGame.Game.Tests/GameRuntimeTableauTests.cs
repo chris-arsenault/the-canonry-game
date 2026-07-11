@@ -50,8 +50,18 @@ public sealed class GameRuntimeTableauTests
                 Assert.Contains("gambit", card.Definition.Tags);
                 Assert.Contains("penguin", card.Definition.Tags);
                 Assert.Contains("kind:penguin", card.Definition.Tags);
+            },
+            card =>
+            {
+                Assert.Equal("intervention:consecrate", card.Definition.Id);
+                Assert.Equal(CardType.Intervention, card.Definition.Type);
+            },
+            card =>
+            {
+                Assert.Equal("intervention:favor", card.Definition.Id);
+                Assert.Equal(CardType.Intervention, card.Definition.Type);
             });
-        Assert.Equal(3, tableau.EnabledCardCount);
+        Assert.Equal(5, tableau.EnabledCardCount);
     }
 
     [Theory]
@@ -160,7 +170,7 @@ public sealed class GameRuntimeTableauTests
         Assert.True(gambitState.IsEnabled);
         Assert.Equal(1, gambitState.TotalFired);
         Assert.Equal(9, gambitState.LastFireTick);
-        Assert.Equal(1, tableau.EnabledCardCount);
+        Assert.Equal(3, tableau.EnabledCardCount);
     }
 
     [Fact]
@@ -177,7 +187,7 @@ public sealed class GameRuntimeTableauTests
         Assert.Equal(11, state.GeneratorId);
         Assert.Equal(0, state.TotalFired);
         Assert.Null(state.LastFireTick);
-        Assert.Equal(1, tableau.EnabledCardCount);
+        Assert.Equal(3, tableau.EnabledCardCount);
     }
 
     [Fact]
@@ -194,7 +204,7 @@ public sealed class GameRuntimeTableauTests
         Assert.Equal(0, state.GeneratorId);
         Assert.Equal(0, state.TotalFired);
         Assert.Null(state.LastFireTick);
-        Assert.Equal(1, tableau.EnabledCardCount);
+        Assert.Equal(3, tableau.EnabledCardCount);
     }
 
     [Fact]
@@ -217,7 +227,7 @@ public sealed class GameRuntimeTableauTests
     }
 
     [Fact]
-    public void RequestToggle_SubmitsInverseGeneratorStateAndRefusesGambitCards()
+    public void RequestToggle_SubmitsInverseStateForGeneratorAndGambitCards()
     {
         var projection = new UiProjectionState();
         var symbols = new ProjectionSymbolCatalog()
@@ -231,12 +241,17 @@ public sealed class GameRuntimeTableauTests
             WorldVersion: 123,
             GeneratorId: 31,
             Enabled: 1)));
+        Project(projection, 2, KernelEvent.From(new GambitEnabledChangedKernelEvent(
+            Tick: 12,
+            WorldVersion: 123,
+            GambitId: 51,
+            Enabled: 1)));
 
         var generatorCard = CardForGenerator(tableau, 31);
         var gambitCard = CardForGambit(tableau, 51);
 
         Assert.True(tableau.RequestToggle(generatorCard));
-        Assert.False(tableau.RequestToggle(gambitCard));
+        Assert.True(tableau.RequestToggle(gambitCard));
         Assert.Collection(
             commands.Commands,
             command =>
@@ -245,6 +260,15 @@ public sealed class GameRuntimeTableauTests
                 Assert.Equal(31, command.GeneratorId);
                 Assert.False(command.Enabled);
                 Assert.Equal(1, command.SubmitterSequence);
+            });
+        Assert.Collection(
+            commands.GambitCommands,
+            command =>
+            {
+                Assert.Equal(123, command.IssueVersion);
+                Assert.Equal(51, command.GambitId);
+                Assert.False(command.Enabled);
+                Assert.Equal(2, command.SubmitterSequence);
             });
     }
 
@@ -444,11 +468,34 @@ public sealed class GameRuntimeTableauTests
     {
         public List<SetGeneratorEnabledCommand> Commands { get; } = [];
 
+        public List<SetGambitEnabledCommand> GambitCommands { get; } = [];
+
         public bool NextResult { get; init; } = true;
 
         public bool TrySetGeneratorEnabled(in SetGeneratorEnabledCommand command, out CommandHandle handle)
         {
             Commands.Add(command);
+            handle = default;
+            return NextResult;
+        }
+
+        public bool TrySetGambitEnabled(in SetGambitEnabledCommand command, out CommandHandle handle)
+        {
+            GambitCommands.Add(command);
+            handle = default;
+            return NextResult;
+        }
+
+        public bool TryBlessCellCulture(in BlessCellCultureCommand command, out CommandHandle handle)
+        {
+            _ = command;
+            handle = default;
+            return NextResult;
+        }
+
+        public bool TryFavorEntity(in FavorEntityCommand command, out CommandHandle handle)
+        {
+            _ = command;
             handle = default;
             return NextResult;
         }

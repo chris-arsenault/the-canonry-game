@@ -5,6 +5,51 @@ using Engine.Kernel;
 public sealed class CultureInfluenceTargetScorerTests
 {
     [Fact]
+    public void Reinforce_LargestComponentGravityOutscoresEqualMinorComponent()
+    {
+        var largest = ScoreWithGravity(
+            LowAltitudeInfluenceTargetingCodes.Reinforce,
+            ownRaw: WorldState.CultureControlledRawMass,
+            largestComponentSupport: 1f);
+        var minor = ScoreWithGravity(
+            LowAltitudeInfluenceTargetingCodes.Reinforce,
+            ownRaw: WorldState.CultureControlledRawMass,
+            largestComponentSupport: 0f);
+
+        Assert.True(largest > minor);
+        Assert.Equal(
+            CultureInfluenceTargetScorer.ComponentGravityBoost(1f),
+            largest / minor,
+            precision: 3);
+    }
+
+    [Fact]
+    public void Reinforce_NearCapCoreCellRemainsPositiveTarget()
+    {
+        var nearCap = ScoreWithGravity(
+            LowAltitudeInfluenceTargetingCodes.Reinforce,
+            ownRaw: WorldState.CultureFullRawMass - 50f,
+            largestComponentSupport: 1f);
+
+        Assert.True(nearCap > 0f);
+    }
+
+    private static float ScoreWithGravity(int targetingCode, float ownRaw, float largestComponentSupport)
+    {
+        var input = new CultureInfluenceTargetScoreInput(
+            targetingCode,
+            OwnShare: 100f,
+            ownRaw,
+            ForeignShare: 0f,
+            ForeignRaw: 0f,
+            AttachedComponentMass: 20f,
+            AdjacentSupportedCount: 4,
+            AttachedComponentCount: 1,
+            largestComponentSupport);
+        return CultureInfluenceTargetScorer.Score(input);
+    }
+
+    [Fact]
     public void Spread_StrongAttachedComponentDominatesMinorIslandEvenWithLessHeadroom()
     {
         var strongFrontier = ScoreSpread(
@@ -105,7 +150,7 @@ public sealed class CultureInfluenceTargetScorerTests
     }
 
     [Fact]
-    public void Reinforce_UnderNexusSupportedCellScoresButNexusCellDoesNot()
+    public void Reinforce_ScoreDeclinesTowardCapButCoreCellsStayPositive()
     {
         var underNexus = Score(
             LowAltitudeInfluenceTargetingCodes.Reinforce,
@@ -116,18 +161,22 @@ public sealed class CultureInfluenceTargetScorerTests
             attachedMass: 20f,
             adjacentSupportedCount: 6,
             attachedComponentCount: 1);
-        var atNexus = Score(
+        var atCap = Score(
             LowAltitudeInfluenceTargetingCodes.Reinforce,
             ownShare: 100f,
-            ownRaw: 1000f,
+            ownRaw: WorldState.CultureFullRawMass,
             entityInfluence: 90f,
             foreignShare: 0f,
             attachedMass: 20f,
             adjacentSupportedCount: 6,
             attachedComponentCount: 1);
 
+        // Cells at the cap are excluded by the target-allowed gate, not the
+        // scorer; the scorer keeps a positive floor so cores absorb production
+        // against decay instead of leveling outward.
         Assert.True(underNexus > 0f);
-        Assert.Equal(0f, atNexus);
+        Assert.True(atCap > 0f);
+        Assert.True(underNexus > atCap);
     }
 
     [Fact]
@@ -387,7 +436,8 @@ public sealed class CultureInfluenceTargetScorerTests
             foreignRaw,
             attachedMass,
             adjacentSupportedCount,
-            attachedComponentCount);
+            attachedComponentCount,
+            LargestComponentSupport: 0f);
         return CultureInfluenceTargetScorer.Score(input);
     }
 }

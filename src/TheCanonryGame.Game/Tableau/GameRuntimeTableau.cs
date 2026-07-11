@@ -12,7 +12,16 @@ internal sealed record GameTableauCardState(
     bool IsKnown,
     bool IsEnabled,
     int TotalFired,
-    int? LastFireTick);
+    int? LastFireTick,
+    int GambitId = 0,
+    int InterventionId = 0);
+
+internal static class GameInterventionIds
+{
+    internal const int Consecrate = 1;
+    internal const int Favor = 2;
+    internal const int CooldownTicks = 2500;
+}
 
 internal sealed record GameTableauGeneratorFire(string GeneratorName, int Tick);
 
@@ -39,7 +48,10 @@ internal sealed class GameRuntimeTableau
         _knowledge = knowledge ?? GameDomainKnowledge.Empty;
         BuildGeneratorCards();
         BuildGambitCards();
+        BuildInterventionCards();
     }
+
+    private readonly Dictionary<int, int> _interventionLastUsedTick = [];
 
     public IReadOnlyList<CardInstance> Cards => _tableau.ActiveCards;
 
@@ -61,7 +73,33 @@ internal sealed class GameRuntimeTableau
             return GetGambitCardState(card, card.Definition.GambitId);
         }
 
+        if (card.Definition.InterventionId > 0)
+        {
+            return GetInterventionCardState(card, card.Definition.InterventionId);
+        }
+
         return new GameTableauCardState(card, 0, false, IsEnabled: false, TotalFired: 0, LastFireTick: null);
+    }
+
+    private GameTableauCardState GetInterventionCardState(CardInstance card, int interventionId)
+    {
+        _interventionLastUsedTick.TryGetValue(interventionId, out var lastUsed);
+        var used = _interventionLastUsedTick.ContainsKey(interventionId);
+        var ready = !used || _projection.CurrentTick - lastUsed >= GameInterventionIds.CooldownTicks;
+        return new GameTableauCardState(
+            card,
+            0,
+            IsKnown: true,
+            ready,
+            TotalFired: 0,
+            used ? lastUsed : null,
+            InterventionId: interventionId);
+    }
+
+    public void NotifyInterventionUsed(int interventionId)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(interventionId);
+        _interventionLastUsedTick[interventionId] = _projection.CurrentTick;
     }
 
     private GameTableauCardState GetGeneratorCardState(CardInstance card, int generatorId)
@@ -83,9 +121,10 @@ internal sealed class GameRuntimeTableau
             card,
             0,
             isKnown,
-            IsEnabled: true,
+            !isKnown || gambit!.IsEnabled,
             gambit?.TotalSucceeded ?? 0,
-            gambit?.LastSucceededTick);
+            gambit?.LastSucceededTick,
+            gambitId);
     }
 
     public bool RequestSetEnabled(CardInstance card, bool enabled)
@@ -93,12 +132,17 @@ internal sealed class GameRuntimeTableau
         ArgumentNullException.ThrowIfNull(card);
 
         var state = GetCardState(card);
-        if (state.GeneratorId <= 0)
+        if (state.GeneratorId > 0)
         {
-            return false;
+            return _intents.RequestGeneratorEnabled(state.GeneratorId, enabled);
         }
 
-        return _intents.RequestGeneratorEnabled(state.GeneratorId, enabled);
+        if (state.GambitId > 0)
+        {
+            return _intents.RequestGambitEnabled(state.GambitId, enabled);
+        }
+
+        return false;
     }
 
     public bool RequestToggle(CardInstance card)
@@ -106,7 +150,7 @@ internal sealed class GameRuntimeTableau
         ArgumentNullException.ThrowIfNull(card);
 
         var state = GetCardState(card);
-        return state.GeneratorId > 0 && RequestSetEnabled(card, !state.IsEnabled);
+        return (state.GeneratorId > 0 || state.GambitId > 0) && RequestSetEnabled(card, !state.IsEnabled);
     }
 
     public IReadOnlyList<GameTableauGeneratorFire> RecentGeneratorFires(int count)
@@ -144,6 +188,32 @@ internal sealed class GameRuntimeTableau
             _knowledge.GambitsById.TryGetValue(symbol.Id, out var capability);
             _tableau.PlaceCard(CreateGambitCard(symbol, capability), currentTick: 0);
         }
+    }
+
+    private void BuildInterventionCards()
+    {
+        _tableau.PlaceCard(
+            new CardDefinition(
+                "intervention:consecrate",
+                "Consecrate the Ground",
+                CardType.Intervention,
+                interventionId: GameInterventionIds.Consecrate)
+            {
+                Description = "Bless a chosen hex for its dominant culture. " +
+                    "The ground and its neighbors gain lasting cultural weight.",
+            },
+            currentTick: 0);
+        _tableau.PlaceCard(
+            new CardDefinition(
+                "intervention:favor",
+                "Favor the Bearer",
+                CardType.Intervention,
+                interventionId: GameInterventionIds.Favor)
+            {
+                Description = "Bless an entity at a chosen hex. For a season its " +
+                    "deeds carry double cultural weight.",
+            },
+            currentTick: 0);
     }
 
     private static CardDefinition CreateGeneratorCard(ProjectionSymbol symbol, GameCapabilityKnowledge? capability)

@@ -61,7 +61,7 @@ Cultural influence is stored as a kernel tile layer, not as per-entity influence
 and not as authored culture objects. The `CultureBoundaries` kernel program
 derives the shared boundary model from that layer:
 
-- raw culture mass, capped at `1000` per culture/cell/plane;
+- raw culture mass, capped at `2000` per culture/cell/plane;
 - dominance share, recalculated from all raw culture mass at the cell;
 - per-culture connected components on the physical and semantic planes;
 - cell kind: none, interior, border, isolated, or contested;
@@ -85,11 +85,39 @@ The current strength thresholds are:
 | entrenched | `300+` |
 | nexus | `700+` |
 
+The raw mass cap is `2000`, giving peaks roughly 3x the nexus threshold of
+dynamic range.
+
 Cleanup actions reduce raw mass for all non-own cultures at the target cell.
 They never write the derived share layer directly.
 
 Entity-level influence production is still tracked as attribution and scoring
 evidence, especially for culture slots. It is not the durable territorial layer.
+
+### Decay, Remittances, And Concentration
+
+Raw culture mass decays. The `CultureFieldDecay` kernel program applies a
+multiplicative decay per pulse (default `0.5%` every 5 main ticks) with a
+minimum decay floor and a cull threshold that removes near-zero cells. The
+field therefore reflects the balance of current production against loss:
+unsustained wander-trails and satellites fade, while cells near sustained
+sources persist. Decay parameters live under
+`kernelTuning.programs.cultureField` in the host startup config.
+
+Mobile production is anchored. Every entity has a per-plane culture home
+anchor, set at creation and moved when a relationship kind flagged
+`IsCultureAnchor` is created (Ice Remembers flags `HomeBase`). Positive
+influence produced farther than the remittance distance from the anchor sends
+a remittance share (default 50%) back to the anchor cell, so roaming entities
+feed their culture's center instead of painting unbounded trails.
+
+Concentration is self-reinforcing. Reinforce-style influence targeting keeps a
+positive floor near the cap and gains a gravity bonus inside the culture's
+largest connected component. Minor actor sources standing in an own-culture
+nexus cell emit stronger work. Generator outputs using `CultureInterior` or
+`CultureRoute` placement require existing own-culture support at the candidate
+cell and are rejected in unsupported void, which prevents satellite-founding
+from fragmenting territory.
 
 ## Cultural Slots, Work Tiers, And Labor
 

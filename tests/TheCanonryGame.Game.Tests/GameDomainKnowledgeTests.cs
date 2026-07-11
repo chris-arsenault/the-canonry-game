@@ -193,6 +193,27 @@ public sealed class GameDomainKnowledgeTests
             handle = default;
             return true;
         }
+
+        public bool TrySetGambitEnabled(in SetGambitEnabledCommand command, out CommandHandle handle)
+        {
+            _ = command;
+            handle = default;
+            return true;
+        }
+
+        public bool TryBlessCellCulture(in BlessCellCultureCommand command, out CommandHandle handle)
+        {
+            _ = command;
+            handle = default;
+            return true;
+        }
+
+        public bool TryFavorEntity(in FavorEntityCommand command, out CommandHandle handle)
+        {
+            _ = command;
+            handle = default;
+            return true;
+        }
     }
 
     private static ProjectionSymbolCatalog CreateSpringChainSymbols(CompiledDomain compiled) =>

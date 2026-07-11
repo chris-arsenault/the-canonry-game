@@ -25,6 +25,15 @@ internal sealed partial class Simulation
             enabled)));
     }
 
+    internal void WriteGambitEnabledChanged(int gambitId, int enabled)
+    {
+        WriteKernelEvent(KernelEvent.From(new GambitEnabledChangedKernelEvent(
+            CurrentTick,
+            WorldVersion,
+            gambitId,
+            enabled)));
+    }
+
     internal void EmitGambitEvaluated(
         int tick,
         int entityId,

@@ -80,6 +80,7 @@ internal static class KernelStartupConfigLoader
         tuning = ApplyJsonLowAltitudeVerbTuning(programs, tuning);
         tuning = ApplyJsonMainTickRatioTuning(programs, tuning);
         tuning = ApplyJsonCultureInfluenceActionScaleTuning(programs, tuning);
+        tuning = ApplyJsonCultureFieldTuning(programs, tuning);
         return ApplyJsonProgramEnabledTuning(programs, tuning);
     }
 
@@ -254,6 +255,55 @@ internal static class KernelStartupConfigLoader
             : tuning;
     }
 
+    private static KernelTuningOptions ApplyJsonCultureFieldTuning(JsonElement programs, KernelTuningOptions tuning)
+    {
+        if (!TryGetObject(programs, out var cultureField, "cultureField", "culture_field"))
+        {
+            return tuning;
+        }
+
+        if (TryGetFloat(cultureField, out var decayPerPulse, "decayPerPulse", "decay_per_pulse"))
+        {
+            tuning = WithCultureField(tuning, tuning.Programs.CultureField with { DecayPerPulse = decayPerPulse });
+        }
+
+        if (TryGetFloat(cultureField, out var minimumDecay, "minimumDecayPerPulse", "minimum_decay_per_pulse"))
+        {
+            tuning = WithCultureField(tuning, tuning.Programs.CultureField with { MinimumDecayPerPulse = minimumDecay });
+        }
+
+        if (TryGetFloat(cultureField, out var cullFloor, "cullFloorRawMass", "cull_floor_raw_mass"))
+        {
+            tuning = WithCultureField(tuning, tuning.Programs.CultureField with { CullFloorRawMass = cullFloor });
+        }
+
+        if (TryGetInt(cultureField, out var cadence, "decayCadenceMainTicks", "decay_cadence_main_ticks"))
+        {
+            tuning = WithCultureField(tuning, tuning.Programs.CultureField with { DecayCadenceMainTicks = cadence });
+        }
+
+        if (TryGetFloat(cultureField, out var remittanceShare, "remittanceShare", "remittance_share"))
+        {
+            tuning = WithCultureField(tuning, tuning.Programs.CultureField with { RemittanceShare = remittanceShare });
+        }
+
+        if (TryGetInt(cultureField, out var remittanceDistance, "remittanceMinimumDistance", "remittance_minimum_distance"))
+        {
+            tuning = WithCultureField(tuning, tuning.Programs.CultureField with { RemittanceMinimumDistance = remittanceDistance });
+        }
+
+        return tuning;
+    }
+
+    private static KernelTuningOptions WithCultureField(KernelTuningOptions tuning, CultureFieldTuningOptions cultureField) =>
+        tuning with
+        {
+            Programs = tuning.Programs with
+            {
+                CultureField = cultureField,
+            },
+        };
+
     private static KernelTuningOptions ApplyToml(string[] lines, KernelTuningOptions tuning)
     {
         var section = string.Empty;
@@ -314,6 +364,11 @@ internal static class KernelStartupConfigLoader
             return ApplyTomlProgramEnabledValue(section, key, value, ApplyTomlMinorActorValue(key, value, tuning));
         }
 
+        if (string.Equals(section, "KERNELTUNING.PROGRAMS.CULTUREFIELD", StringComparison.Ordinal))
+        {
+            return ApplyTomlCultureFieldValue(key, value, tuning);
+        }
+
         if (string.Equals(section, "KERNELTUNING.PROGRAMS", StringComparison.Ordinal))
         {
             return ApplyTomlProgramRootValue(key, value, tuning);
@@ -345,6 +400,55 @@ internal static class KernelStartupConfigLoader
             float.TryParse(scalar, NumberStyles.Float, CultureInfo.InvariantCulture, out var scale)
             ? WithCultureInfluenceActionScale(tuning, scale)
             : tuning;
+    }
+
+    private static KernelTuningOptions ApplyTomlCultureFieldValue(
+        string key,
+        string value,
+        KernelTuningOptions tuning)
+    {
+        var scalar = ReadBareTomlValue(value);
+        if (float.TryParse(scalar, NumberStyles.Float, CultureInfo.InvariantCulture, out var floatValue))
+        {
+            tuning = ApplyTomlCultureFieldFloatValue(key, floatValue, tuning);
+        }
+
+        if (int.TryParse(scalar, CultureInfo.InvariantCulture, out var intValue))
+        {
+            tuning = ApplyTomlCultureFieldIntValue(key, intValue, tuning);
+        }
+
+        return tuning;
+    }
+
+    private static KernelTuningOptions ApplyTomlCultureFieldFloatValue(
+        string key,
+        float value,
+        KernelTuningOptions tuning)
+    {
+        var cultureField = key switch
+        {
+            "DECAYPERPULSE" => tuning.Programs.CultureField with { DecayPerPulse = value },
+            "MINIMUMDECAYPERPULSE" => tuning.Programs.CultureField with { MinimumDecayPerPulse = value },
+            "CULLFLOORRAWMASS" => tuning.Programs.CultureField with { CullFloorRawMass = value },
+            "REMITTANCESHARE" => tuning.Programs.CultureField with { RemittanceShare = value },
+            _ => tuning.Programs.CultureField,
+        };
+        return WithCultureField(tuning, cultureField);
+    }
+
+    private static KernelTuningOptions ApplyTomlCultureFieldIntValue(
+        string key,
+        int value,
+        KernelTuningOptions tuning)
+    {
+        var cultureField = key switch
+        {
+            "DECAYCADENCEMAINTICKS" => tuning.Programs.CultureField with { DecayCadenceMainTicks = value },
+            "REMITTANCEMINIMUMDISTANCE" => tuning.Programs.CultureField with { RemittanceMinimumDistance = value },
+            _ => tuning.Programs.CultureField,
+        };
+        return WithCultureField(tuning, cultureField);
     }
 
     private static KernelTuningOptions ApplyTomlProgramEnabledValue(

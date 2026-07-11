@@ -36,7 +36,8 @@ internal sealed partial class MinorActorProgramRuntime
     private readonly record struct MinorActorCultureAttachment(
         float ComponentMass,
         int AdjacentSupportedCount,
-        int ComponentCount);
+        int ComponentCount,
+        float LargestComponentSupport);
 
     private readonly record struct MinorActorCellTarget(
         int Q,

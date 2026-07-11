@@ -23,6 +23,28 @@ internal sealed partial class Simulation
 
     internal float ModifyCellCultureInfluenceRawFromEntity(int entityId, int planeCode, int q, int r, float delta, int tick)
     {
+        // Positive production far from the entity's home anchor is split: a
+        // remittance share reinforces the anchor cell so roaming entities feed
+        // their culture's center instead of painting unbounded trails.
+        var remittanceShare = Options.KernelTuning.Programs.CultureField.RemittanceShare;
+        if (delta > 0f && remittanceShare > 0f)
+        {
+            var anchorQ = World.EntityCultureAnchorQ(entityId, planeCode);
+            var anchorR = World.EntityCultureAnchorR(entityId, planeCode);
+            if (KernelQuery.HexDistance(q, r, anchorQ, anchorR) >
+                Options.KernelTuning.Programs.CultureField.RemittanceMinimumDistance)
+            {
+                var remitted = delta * remittanceShare;
+                return ApplyCellCultureInfluenceRawFromEntity(entityId, planeCode, q, r, delta - remitted, tick) +
+                    ApplyCellCultureInfluenceRawFromEntity(entityId, planeCode, anchorQ, anchorR, remitted, tick);
+            }
+        }
+
+        return ApplyCellCultureInfluenceRawFromEntity(entityId, planeCode, q, r, delta, tick);
+    }
+
+    private float ApplyCellCultureInfluenceRawFromEntity(int entityId, int planeCode, int q, int r, float delta, int tick)
+    {
         var cultureId = World.EntityCultureId(entityId);
         var previousRaw = cultureId > 0
             ? World.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r)

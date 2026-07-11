@@ -13,7 +13,9 @@ public partial class LegendPanel : PanelContainer
 {
     private const long MinimumRefreshIntervalMs = 500;
     private const int MinorActorActivityWindowTicks = 160;
+    private const int NationTrendSampleTicks = 500;
 
+    private readonly Dictionary<(int CultureId, int PlaneCode), NationTrendTracker> _nationTrends = [];
     private VBoxContainer? _column;
     private LegendState? _lastState;
     private HexMapProjection? _lastMap;
@@ -148,9 +150,33 @@ public partial class LegendPanel : PanelContainer
                 summary.ControlledCells > 0
                     ? $"{summary.ControlledCells} held / {summary.MismatchedControl} contested  avg {summary.AverageShare:0}%"
                     : $"avg {summary.AverageShare:0}%");
+            AddNationRow(culture.Id, cells, projection.CurrentTick, planeCode);
             AddCultureSlotRows(culture.Id, projection, symbols);
             AddMinorActorActivityRow(culture.Id, projection, planeCode);
         }
+    }
+
+    private void AddNationRow(int cultureId, HexProjection[] cells, int currentTick, int planeCode)
+    {
+        var nation = NationSummary.For(cultureId, cells);
+        if (nation.InfluencedCells == 0)
+        {
+            return;
+        }
+
+        var key = (cultureId, planeCode);
+        if (!_nationTrends.TryGetValue(key, out var tracker))
+        {
+            tracker = new NationTrendTracker();
+            _nationTrends[key] = tracker;
+        }
+
+        var trend = tracker.Update(currentTick, NationTrendSampleTicks, nation);
+        AddMutedLine(
+            $"territory {nation.InfluencedCells}{trend.Territory}  " +
+            $"heartland {nation.LargestComponentShare:0}%{trend.Heartland}  " +
+            $"nexus {nation.NexusCells}{trend.Nexus}  " +
+            $"contested {nation.ContestedCells}{trend.Contested}");
     }
 
     private void AddCultureSlotRows(
@@ -459,6 +485,84 @@ public partial class LegendPanel : PanelContainer
         long MinorActorActivityVersion,
         int MinorActorActivityBucket,
         PlaneMode Plane);
+
+    private readonly record struct NationSummary(
+        int InfluencedCells,
+        int NexusCells,
+        int ContestedCells,
+        int LargestComponentCells)
+    {
+        public float LargestComponentShare =>
+            InfluencedCells == 0 ? 0f : LargestComponentCells * 100f / InfluencedCells;
+
+        public static NationSummary For(int cultureId, HexProjection[] cells)
+        {
+            var influenced = 0;
+            var nexus = 0;
+            var contested = 0;
+            var largestComponent = 0;
+            foreach (var cell in cells)
+            {
+                foreach (var influence in cell.CultureInfluences)
+                {
+                    if (influence.CultureId != cultureId || influence.RawMass <= 0f)
+                    {
+                        continue;
+                    }
+
+                    influenced++;
+                    nexus += influence.StrengthBandCode >= CultureFieldStrengthBandCodes.Nexus ? 1 : 0;
+                    contested += influence.CellKindCode == CultureFieldCellKindCodes.Contested ? 1 : 0;
+                    largestComponent = Math.Max(largestComponent, influence.ComponentCellCount);
+                }
+            }
+
+            return new NationSummary(influenced, nexus, contested, largestComponent);
+        }
+    }
+
+    private readonly record struct NationTrend(
+        string Territory,
+        string Heartland,
+        string Nexus,
+        string Contested);
+
+    private sealed class NationTrendTracker
+    {
+        private int _sampleTick = -1;
+        private NationSummary _sample;
+        private NationTrend _trend = new(string.Empty, string.Empty, string.Empty, string.Empty);
+
+        public NationTrend Update(int currentTick, int sampleWindowTicks, in NationSummary current)
+        {
+            if (_sampleTick < 0)
+            {
+                _sampleTick = currentTick;
+                _sample = current;
+                return _trend;
+            }
+
+            if (currentTick - _sampleTick >= sampleWindowTicks)
+            {
+                _trend = new NationTrend(
+                    Arrow(current.InfluencedCells - _sample.InfluencedCells),
+                    Arrow((int)(current.LargestComponentShare - _sample.LargestComponentShare)),
+                    Arrow(current.NexusCells - _sample.NexusCells),
+                    Arrow(current.ContestedCells - _sample.ContestedCells));
+                _sampleTick = currentTick;
+                _sample = current;
+            }
+
+            return _trend;
+        }
+
+        private static string Arrow(int delta) => delta switch
+        {
+            > 0 => "▴",
+            < 0 => "▾",
+            _ => string.Empty,
+        };
+    }
 
     private readonly record struct MinorActorActivitySummary(
         int CultureActions,

@@ -565,6 +565,14 @@ public sealed class UiProjectionState : KernelEventProjector
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
+    protected override void OnGambitEnabledChanged(long sequence, in GambitEnabledChangedKernelEvent evt)
+    {
+        var gambit = GetOrCreateGambit(evt.GambitId);
+        gambit.IsEnabled = evt.Enabled != 0;
+        TableauVersion++;
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+    }
+
     private UiEntityProjection GetOrCreateEntity(int entityId)
     {
         if (_entities.TryGetValue(entityId, out var entity))
@@ -979,6 +987,8 @@ public sealed class UiGambitProjection(int gambitId)
     public int TotalSucceeded { get; internal set; }
 
     public int? LastSucceededTick { get; internal set; }
+
+    public bool IsEnabled { get; internal set; } = true;
 }
 
 public readonly record struct UiRelationshipKey(

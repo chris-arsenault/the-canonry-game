@@ -9,7 +9,7 @@ internal sealed partial class WorldState
     internal const float CultureControlledRawMass = 100f;
     internal const float CultureEntrenchedRawMass = 300f;
     internal const float CultureNexusRawMass = 700f;
-    internal const float CultureFullRawMass = 1000f;
+    internal const float CultureFullRawMass = 2000f;
 
     public int MapRadius => _mapRadius;
 
@@ -316,6 +316,22 @@ internal sealed partial class WorldState
         return CultureMaturity(GetCellCultureInfluenceRaw(cultureId, planeCode, q, r));
     }
 
+    internal SpatialLayerCellCursor RawCultureInfluenceCellsOf(int cultureId, int planeCode)
+    {
+        ValidatePositive(cultureId);
+        ValidateInfluencePlaneCode(planeCode);
+        return _mapLayers.RawCultureInfluence.CellsOfValue(cultureId, planeCode);
+    }
+
+    internal bool MoveNextRawCultureInfluenceCell(
+        ref SpatialLayerCellCursor cursor,
+        out int q,
+        out int r,
+        out float raw)
+    {
+        return _mapLayers.RawCultureInfluence.MoveNextCell(ref cursor, out q, out r, out raw);
+    }
+
     internal float ModifyCellCultureInfluenceRaw(
         int cultureId,
         int planeCode,
@@ -586,7 +602,10 @@ internal sealed partial class WorldState
     private float EffectiveCultureInfluenceMultiplier(int entityId)
     {
         var cultureId = _entityCultureId[entityId];
-        var raw = 1f + _entityCultureInfluenceMultiplierDeltas[entityId] +
+        var favorDelta = CurrentTick < _entityFavorExpiresAtTick[entityId]
+            ? _entityFavorMultiplierDelta[entityId]
+            : 0f;
+        var raw = 1f + _entityCultureInfluenceMultiplierDeltas[entityId] + favorDelta +
             (cultureId > 0 && cultureId < _cultureInfluenceMultiplierDeltas.Length
                 ? _cultureInfluenceMultiplierDeltas[cultureId]
                 : 0f);

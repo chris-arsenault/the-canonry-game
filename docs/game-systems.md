@@ -48,7 +48,10 @@ should be shaped by the state created by low altitude and gambits.
 
 The player-facing card/tableau layer controls which generators and gambits are
 active. Cards determine what kinds of worlds can emerge; they should not be
-mistaken for the low-altitude physics itself.
+mistaken for the low-altitude physics itself. Two one-shot intervention cards
+(consecrate a hex for its dominant culture, favor an entity's influence
+production) route through kernel commands under a dedicated `player` source
+code, so player actions stay attributable in events and telemetry.
 
 See [simulation-principles.md](./systems/simulation-principles.md) for the
 quality goals used to judge whether these layers are working together.
@@ -69,6 +72,8 @@ programs:
   threat, and attractor fields.
 - `CultureBoundaries`: derived culture components, interiors, borders,
   contested cells, isolated pockets, holes, and strength bands.
+- `CultureFieldDecay`: slow global decay of raw culture mass so territory
+  reflects current production against loss instead of accumulated history.
 - `Relationships`: existing relationship strength drift and culling.
 - `Effects`: health modifiers derived from relationship,
   culture influence, distance, support, threat, and crowding evidence.
@@ -83,6 +88,7 @@ Movement
 LowAltitudeVerbs
 MapActivity
 MapSignals
+CultureFieldDecay
 CultureBoundaries
 Relationships
 Effects

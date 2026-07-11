@@ -33,10 +33,13 @@ internal sealed class RelationshipProgramRuntime :
         int kindId,
         float cullThreshold,
         bool targetFollowsSourcePhysical = false,
-        bool isExclusive = false) =>
-        Data.RegisterRelationshipKind(kindId, cullThreshold, targetFollowsSourcePhysical, isExclusive);
+        bool isExclusive = false,
+        bool isCultureAnchor = false) =>
+        Data.RegisterRelationshipKind(kindId, cullThreshold, targetFollowsSourcePhysical, isExclusive, isCultureAnchor);
 
     public bool KindIsExclusive(int kindId) => Data.KindIsExclusive(kindId);
+
+    public bool KindIsCultureAnchor(int kindId) => Data.IsCultureAnchor(kindId);
 
     public int AddMaintenanceRule(
         int kindId,

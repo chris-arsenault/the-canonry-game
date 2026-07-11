@@ -169,6 +169,16 @@ public sealed class RelationshipConfig
     public bool IsSymmetric { get; init; }
     public bool IsExclusive { get; init; }
     public bool TargetFollowsSourcePhysical { get; init; }
+
+    /// <summary>
+    /// When true, creating a relationship of this kind moves the source
+    /// entity's culture home anchor to the target entity's position. Roaming
+    /// entities remit a share of their culture influence production to their
+    /// anchor cell, so anchor kinds define where mobile entities "bank" their
+    /// cultural output.
+    /// </summary>
+    public bool IsCultureAnchor { get; init; }
+
     public float CullThreshold { get; init; } = 0.05f;
     public IReadOnlyList<RelationshipMaintenanceRuleConfig> Maintenance { get; init; } = [];
 

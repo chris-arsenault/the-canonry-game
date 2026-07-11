@@ -18,6 +18,9 @@ public partial class TableauPanel : PanelContainer
     private readonly Dictionary<CardRuntimeId, CardInstance> _cardsById = [];
     private readonly Dictionary<CardRuntimeId, int> _lastFireCounts = [];
     private GameRuntimeTableau? _tableau;
+
+    [Signal]
+    public delegate void InterventionArmRequestedEventHandler(int interventionId);
     private HFlowContainer? _rows;
     private Label? _summaryLabel;
     private Label? _recentLabel;
@@ -133,7 +136,22 @@ public partial class TableauPanel : PanelContainer
     private void OnCardToggleRequested(int cardRuntimeIdValue)
     {
         var id = new CardRuntimeId(cardRuntimeIdValue);
-        if (_cardsById.TryGetValue(id, out var card) && _tableau?.RequestToggle(card) == true)
+        if (!_cardsById.TryGetValue(id, out var card))
+        {
+            return;
+        }
+
+        if (card.Definition.InterventionId > 0)
+        {
+            if (_tableau?.GetCardState(card).IsEnabled == true)
+            {
+                EmitSignal(SignalName.InterventionArmRequested, card.Definition.InterventionId);
+            }
+
+            return;
+        }
+
+        if (_tableau?.RequestToggle(card) == true)
         {
             Refresh();
         }
@@ -153,10 +171,11 @@ public partial class TableauPanel : PanelContainer
 
     private static int CardTypeOrder(CardType type) => type switch
     {
-        CardType.Generator => 0,
-        CardType.Action => 1,
-        CardType.System => 2,
-        _ => 3,
+        CardType.Intervention => 0,
+        CardType.Generator => 1,
+        CardType.Action => 2,
+        CardType.System => 3,
+        _ => 4,
     };
 
     private static void StyleBodyLabel(Label label)

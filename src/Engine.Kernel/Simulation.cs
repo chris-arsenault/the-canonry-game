@@ -29,14 +29,7 @@ internal sealed partial class Simulation : IKernel
             throw new global::System.ArgumentOutOfRangeException(nameof(options));
         }
 
-        var cultureInfluenceActionScale = options.KernelTuning.Programs.CultureInfluenceActionScale;
-        if (float.IsNaN(cultureInfluenceActionScale) ||
-            float.IsInfinity(cultureInfluenceActionScale) ||
-            cultureInfluenceActionScale < 0f)
-        {
-            throw new global::System.ArgumentOutOfRangeException(nameof(options));
-        }
-
+        ValidateCultureTuning(options);
         Options = options;
         Events = new KernelEventLog(
             options.EventCapacity,
@@ -60,6 +53,7 @@ internal sealed partial class Simulation : IKernel
         Upkeep = CreateUpkeepRuntime(options);
         Relationships = CreateRelationshipRuntime(options);
         MinorActors = CreateMinorActorRuntime(options);
+        CultureFieldDecay = CreateCultureFieldDecayRuntime(options);
         AssignRuntimeCodes(options.RuntimeCodes);
         _executionContext = new KernelExecutionContext(0, StartupSourceCodeId);
         _random = new RandomSource(options.Seed);
@@ -84,6 +78,7 @@ internal sealed partial class Simulation : IKernel
         MapSignalsSourceCodeId = codes.MapSignalsSourceCodeId;
         LowAltitudeVerbSourceCodeId = codes.LowAltitudeVerbSourceCodeId;
         EffectsSourceCodeId = codes.EffectsSourceCodeId;
+        PlayerSourceCodeId = codes.PlayerSourceCodeId;
     }
 
     private static CultureBoundaryProgramRuntime CreateCultureBoundaryRuntime(SimulationOptions options) =>
@@ -171,6 +166,11 @@ internal sealed partial class Simulation : IKernel
             options.KernelTuning.Programs);
     }
 
+    private static CultureFieldDecayProgramRuntime CreateCultureFieldDecayRuntime(SimulationOptions options) =>
+        new(
+            options.KernelTuning.Programs.CultureField,
+            options.MapInfluenceCapacity);
+
     private static UpkeepProgramRuntime CreateUpkeepRuntime(SimulationOptions options) =>
         new(
             new UpkeepProgramData(options.LifecycleRuleCapacity),
@@ -190,6 +190,10 @@ internal sealed partial class Simulation : IKernel
         RegisterProgram(KernelProgramCodes.LowAltitudeVerbs, mainCadence, LowAltitudeVerbs);
         RegisterProgram(KernelProgramCodes.MapActivity, mainCadence, MapActivity);
         RegisterProgram(KernelProgramCodes.MapSignals, mainCadence, MapSignals);
+        RegisterProgram(
+            KernelProgramCodes.CultureFieldDecay,
+            Options.KernelTuning.Programs.CultureField.DecayCadenceMainTicks * mainCadence,
+            CultureFieldDecay);
         RegisterProgram(KernelProgramCodes.CultureBoundaries, mainCadence, CultureBoundaries);
         RegisterProgram(KernelProgramCodes.Relationships, mainCadence, Relationships);
         RegisterProgram(KernelProgramCodes.Effects, mainCadence, Effects);
@@ -346,6 +350,7 @@ internal sealed partial class Simulation : IKernel
     internal UpkeepProgramRuntime Upkeep { get; }
     internal RelationshipProgramRuntime Relationships { get; }
     internal MinorActorProgramRuntime MinorActors { get; }
+    internal CultureFieldDecayProgramRuntime CultureFieldDecay { get; }
     internal int GambitSourceCodeId { get; private set; }
     internal int UpkeepSourceCodeId { get; private set; }
     internal int StartupSourceCodeId { get; private set; }
@@ -355,6 +360,7 @@ internal sealed partial class Simulation : IKernel
     internal int MapSignalsSourceCodeId { get; private set; }
     internal int LowAltitudeVerbSourceCodeId { get; private set; }
     internal int EffectsSourceCodeId { get; private set; }
+    internal int PlayerSourceCodeId { get; private set; }
     internal KernelExecutionContext ExecutionContext => _executionContext;
     public int CurrentTick { get; private set; }
     internal int MainTickRatio => Options.KernelTuning.Programs.MinorActorMainTickRatio;
@@ -666,7 +672,7 @@ internal sealed partial class Simulation : IKernel
         float strength,
         int tick)
     {
-        return World.CreateRelationship(
+        var relationshipId = World.CreateRelationship(
             relationshipKindId,
             polarityCode,
             sourceEntityId,
@@ -674,6 +680,12 @@ internal sealed partial class Simulation : IKernel
             strength,
             tick,
             _executionContext);
+        if (relationshipId > 0 && Relationships.KindIsCultureAnchor(relationshipKindId))
+        {
+            World.SetEntityCultureAnchorToEntity(sourceEntityId, targetEntityId);
+        }
+
+        return relationshipId;
     }
 
     internal void SetRelationshipStrength(int relationshipId, float strength, int tick)
@@ -909,60 +921,6 @@ internal sealed partial class Simulation : IKernel
         throw new global::System.InvalidOperationException();
     }
 
-    private void DrainCommands()
-    {
-        while (Commands.TryRead(out var command))
-        {
-            if (command.IssueVersion != CurrentVersion && !CommandIsVersionTolerant(command.CommandType))
-            {
-                WriteCommandRejected(command, KernelCommandRejectReasonCodes.StaleVersion);
-                continue;
-            }
-
-            var result = ApplyCommand(in command);
-            if (result.Applied)
-            {
-                WriteCommandApplied(command);
-            }
-            else
-            {
-                WriteCommandRejected(command, result.ReasonCode);
-            }
-        }
-    }
-
-    private KernelCommandApplyResult ApplyCommand(in KernelCommand command)
-    {
-        if (command.CommandType == KernelCommandTypeCodes.NoOp)
-        {
-            return KernelCommandApplyResult.Success;
-        }
-
-        if (command.CommandType == KernelCommandTypeCodes.SetGeneratorEnabled)
-        {
-            var payload = command.AsSetGeneratorEnabled();
-            if (payload.GeneratorId <= 0 || (uint)payload.Enabled > 1u)
-            {
-                return new KernelCommandApplyResult(false, KernelCommandRejectReasonCodes.InvalidCommand);
-            }
-
-            if (!Generators.TrySetGeneratorEnabledById(payload.GeneratorId, payload.Enabled != 0))
-            {
-                return new KernelCommandApplyResult(false, KernelCommandRejectReasonCodes.InvalidCommand);
-            }
-
-            WriteGeneratorEnabledChanged(payload.GeneratorId, payload.Enabled);
-            return KernelCommandApplyResult.Success;
-        }
-
-        return new KernelCommandApplyResult(false, KernelCommandRejectReasonCodes.UnsupportedCommand);
-    }
-
-    private static bool CommandIsVersionTolerant(int commandType)
-    {
-        return commandType == KernelCommandTypeCodes.SetGeneratorEnabled;
-    }
-
     private void AssertStartupSeedTick()
     {
         if (CurrentTick != 0)
@@ -1027,9 +985,38 @@ internal sealed partial class Simulation : IKernel
         }
     }
 
+    private static void ValidateCultureTuning(SimulationOptions options)
+    {
+        if (!IsFiniteNonNegative(options.KernelTuning.Programs.CultureInfluenceActionScale))
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(options));
+        }
+
+        var cultureField = options.KernelTuning.Programs.CultureField;
+        if (!IsFiniteNonNegative(cultureField.DecayPerPulse) ||
+            !IsFiniteNonNegative(cultureField.MinimumDecayPerPulse) ||
+            !IsFiniteNonNegative(cultureField.CullFloorRawMass) ||
+            cultureField.DecayCadenceMainTicks <= 0 ||
+            !IsFiniteNonNegative(cultureField.RemittanceShare) ||
+            cultureField.RemittanceShare > 1f ||
+            cultureField.RemittanceMinimumDistance < 0)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(options));
+        }
+    }
+
+    private static bool IsFiniteNonNegative(float value) =>
+        !float.IsNaN(value) && !float.IsInfinity(value) && value >= 0f;
+
     private int SourceCodeIdForProgram(int programId)
     {
         var sourceCodeId = SourceCodeIdForCoreProgram(programId);
+        if (sourceCodeId > 0)
+        {
+            return sourceCodeId;
+        }
+
+        sourceCodeId = SourceCodeIdForCultureProgram(programId);
         return sourceCodeId > 0 ? sourceCodeId : SourceCodeIdForLowAltitudeProgram(programId);
     }
 
@@ -1038,11 +1025,17 @@ internal sealed partial class Simulation : IKernel
         KernelProgramCodes.Gambits => GambitSourceCodeId,
         KernelProgramCodes.Generators => GeneratorSourceCodeId,
         KernelProgramCodes.Movement => MapActivitySourceCodeId,
+        KernelProgramCodes.Effects => EffectsSourceCodeId,
+        KernelProgramCodes.MinorActors => MapActivitySourceCodeId,
+        _ => 0,
+    };
+
+    private int SourceCodeIdForCultureProgram(int programId) => programId switch
+    {
         KernelProgramCodes.MapSignals => MapSignalsSourceCodeId,
         KernelProgramCodes.CultureBoundaries => MapSignalsSourceCodeId,
-        KernelProgramCodes.Effects => EffectsSourceCodeId,
+        KernelProgramCodes.CultureFieldDecay => MapSignalsSourceCodeId,
         KernelProgramCodes.CultureSlots => MapSignalsSourceCodeId,
-        KernelProgramCodes.MinorActors => MapActivitySourceCodeId,
         _ => 0,
     };
 
@@ -1055,8 +1048,4 @@ internal sealed partial class Simulation : IKernel
         _ => 0,
     };
 
-    private readonly record struct KernelCommandApplyResult(bool Applied, int ReasonCode)
-    {
-        public static KernelCommandApplyResult Success => new(true, KernelCommandRejectReasonCodes.None);
-    }
 }

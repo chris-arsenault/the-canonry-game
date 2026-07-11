@@ -31,6 +31,7 @@ public enum KernelEventType
     CultureSlotOccupancyChanged = 29,
     GeneratorTargetEvaluated = 30,
     MinorActorVerbExecuted = 31,
+    GambitEnabledChanged = 32,
     Trace = 120,
 }
 
@@ -351,6 +352,15 @@ public readonly record struct GeneratorEnabledChangedKernelEvent(
     long WorldVersion,
     [KernelEventIntSlot(0, "generator_id", KernelEventSemanticKind.GeneratorId)]
     int GeneratorId,
+    [KernelEventIntSlot(1, "enabled", KernelEventSemanticKind.Enabled)]
+    int Enabled);
+
+[KernelEventLayout(KernelEventType.GambitEnabledChanged, schemaMinor: 0)]
+public readonly record struct GambitEnabledChangedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "gambit_id", KernelEventSemanticKind.GambitId)]
+    int GambitId,
     [KernelEventIntSlot(1, "enabled", KernelEventSemanticKind.Enabled)]
     int Enabled);
 

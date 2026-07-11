@@ -157,6 +157,7 @@ public static partial class DomainCompiler
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.MapControlSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.GameplaySourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.GameplayEffectsSourceCode, state.Registry.RegisterSourceCode, "source code");
+        RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.PlayerSourceCode, state.Registry.RegisterSourceCode, "source code");
     }
 
     private sealed class CatalogRegistrationState

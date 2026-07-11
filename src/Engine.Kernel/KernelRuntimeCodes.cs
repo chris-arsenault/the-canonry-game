@@ -12,7 +12,8 @@ internal readonly record struct KernelRuntimeCodes(
     int MapActivitySourceCodeId,
     int MapSignalsSourceCodeId,
     int LowAltitudeVerbSourceCodeId,
-    int EffectsSourceCodeId)
+    int EffectsSourceCodeId,
+    int PlayerSourceCodeId)
 {
-    public static KernelRuntimeCodes Default => new(1, 2, 3, 1, 2, 3, 4, 5, 9, 10, 11, 12);
+    public static KernelRuntimeCodes Default => new(1, 2, 3, 1, 2, 3, 4, 5, 9, 10, 11, 12, 13);
 }

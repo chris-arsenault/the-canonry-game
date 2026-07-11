@@ -15,6 +15,7 @@ internal sealed partial class MinorActorProgramRuntime :
     private const float LifecycleMaintenanceCoverageScale = 0.03f;
     private const float LifecycleMaintenanceEarlyNeedScale = 0.20f;
     private const float LifecycleMaintenanceScoreScale = 1.35f;
+    private const float NexusSourceCultureMultiplier = 1.5f;
     private static readonly int[] NeighborDQ = [1, 1, 0, -1, -1, 0];
     private static readonly int[] NeighborDR = [0, -1, -1, 0, 1, 1];
     private readonly MinorActorCellTarget[] _verbTargetCells = new MinorActorCellTarget[7];
@@ -291,7 +292,8 @@ internal sealed partial class MinorActorProgramRuntime :
         State.SetPosition(actorId, selected.Q, selected.R);
         var delta = State.WorkDelta(actorId) *
             selected.WorkDeltaMultiplier *
-            SourceSlotWorkMultiplier(simulation, State.SourceEntityId(actorId));
+            SourceSlotWorkMultiplier(simulation, State.SourceEntityId(actorId)) *
+            NexusSourceMultiplier(simulation, actorId, selected.PlaneCode);
         if (delta <= 0f)
         {
             EmitMinorActorVerb(simulation, actorId, tick, selected, TraceStatusCodes.NoReward, delta);
@@ -360,6 +362,26 @@ internal sealed partial class MinorActorProgramRuntime :
     {
         var slotMultiplier = simulation.CultureSlots.CausalSpendLimitMultiplier(sourceEntityId);
         return 1f + ((global::System.Math.Max(1, slotMultiplier) - 1) * 0.5f);
+    }
+
+    private float NexusSourceMultiplier(Simulation simulation, int actorId, int planeCode)
+    {
+        var cultureId = State.CultureId(actorId);
+        if (cultureId <= 0 ||
+            !TryResolveSourcePosition(
+                simulation.World,
+                State.SourceEntityId(actorId),
+                planeCode,
+                out var sourceQ,
+                out var sourceR))
+        {
+            return 1f;
+        }
+
+        var sourceRaw = simulation.World.GetCellCultureInfluenceRaw(cultureId, planeCode, sourceQ, sourceR);
+        return sourceRaw >= WorldState.CultureNexusRawMass
+            ? NexusSourceCultureMultiplier
+            : 1f;
     }
 
     private bool TrySelectVerbCandidate(
@@ -607,7 +629,8 @@ internal sealed partial class MinorActorProgramRuntime :
         var attachment = new MinorActorCultureAttachment(
             boundary.AttachedComponentScoreMass,
             boundary.SupportedAdjacentCount,
-            boundary.AttachedComponentCount);
+            boundary.AttachedComponentCount,
+            boundary.IsLargestComponent ? 1f : 0f);
         return new MinorActorCellTarget(
             q,
             r,

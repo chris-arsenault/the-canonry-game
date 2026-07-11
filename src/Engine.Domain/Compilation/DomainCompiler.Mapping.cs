@@ -38,7 +38,8 @@ public static partial class DomainCompiler
                 relationshipKindId,
                 relationship.CullThreshold,
                 relationship.TargetFollowsSourcePhysical,
-                relationship.IsExclusive));
+                relationship.IsExclusive,
+                relationship.IsCultureAnchor));
             foreach (var maintenance in relationship.Maintenance)
             {
                 maintenanceRules.Add(new RelationshipMaintenanceRuntimeRule(

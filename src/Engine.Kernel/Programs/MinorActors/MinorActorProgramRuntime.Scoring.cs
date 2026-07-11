@@ -144,6 +144,7 @@ internal sealed partial class MinorActorProgramRuntime
             (0.35f + componentSupport) *
             (0.45f + neighborSupport) *
             (0.25f + rawHeadroom) *
+            CultureInfluenceTargetScorer.ComponentGravityBoost(attachment.LargestComponentSupport) *
             ExpansionForeignDrag(ownShare, ownRaw, foreignShare);
     }
 

@@ -299,10 +299,36 @@ internal sealed partial class GeneratorProgramRuntime
         return _producedCulturePlacementCodes[producedSlot] switch
         {
             GeneratorCulturePlacementCodes.HostileIntrusion => true,
+            GeneratorCulturePlacementCodes.CultureRoute or GeneratorCulturePlacementCodes.CultureInterior =>
+                PlacementCellAllowsNonHostileCulture(simulation, planeCode, producedCultureId, q, r) &&
+                PlacementCellHasOwnCultureSupport(simulation, planeCode, producedCultureId, q, r),
             GeneratorCulturePlacementCodes.PreferInheritedCulture or GeneratorCulturePlacementCodes.Ignore =>
                 PlacementCellAllowsNonHostileCulture(simulation, planeCode, producedCultureId, q, r),
             _ => PlacementCellAllowsNonHostileCulture(simulation, planeCode, producedCultureId, q, r),
         };
+    }
+
+    // Interior and route outputs (settlements, factions, harbors, reefholds)
+    // may only be founded where their culture already has presence, adjacency,
+    // or connected mass. Without this gate one distant or mobile target could
+    // seed a permanent same-culture satellite in unsupported void, fragmenting
+    // the culture's territory.
+    private bool PlacementCellHasOwnCultureSupport(
+        Simulation simulation,
+        int planeCode,
+        int producedCultureId,
+        int q,
+        int r)
+    {
+        if (producedCultureId <= 0)
+        {
+            return true;
+        }
+
+        var boundary = simulation.CultureBoundaries.CellAt(simulation.World, producedCultureId, planeCode, q, r);
+        return boundary.RawMass >= WorldState.CultureTraceRawMass ||
+            boundary.StrongestAdjacentRawMass >= WorldState.CultureClaimedRawMass ||
+            boundary.ConnectedRawMass >= WorldState.CultureControlledRawMass;
     }
 
     private bool PlacementCellAllowsNonHostileCulture(

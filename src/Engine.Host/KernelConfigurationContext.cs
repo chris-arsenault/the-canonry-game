@@ -150,12 +150,14 @@ internal sealed class KernelConfigurationContext
         RelationshipKindRuntimeId kindId,
         float cullThreshold,
         bool targetFollowsSourcePhysical = false,
-        bool isExclusive = false) =>
+        bool isExclusive = false,
+        bool isCultureAnchor = false) =>
         _kernel.Relationships.RegisterRelationshipKind(
             kindId.Value,
             cullThreshold,
             targetFollowsSourcePhysical,
-            isExclusive);
+            isExclusive,
+            isCultureAnchor);
 
     public int AddRelationshipMaintenanceRule(
         RelationshipKindRuntimeId kindId,

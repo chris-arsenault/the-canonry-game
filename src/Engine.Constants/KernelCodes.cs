@@ -274,6 +274,7 @@ public static class KernelProgramCodes
     public const int CultureSlots = 14;
     public const int MinorActors = 15;
     public const int CultureBoundaries = 16;
+    public const int CultureFieldDecay = 17;
 }
 
 public static class MinorActorKindCodes
@@ -454,6 +455,9 @@ public static class KernelCommandTypeCodes
     public const int None = 0;
     public const int NoOp = 1;
     public const int SetGeneratorEnabled = 2;
+    public const int SetGambitEnabled = 3;
+    public const int BlessCellCulture = 4;
+    public const int FavorEntity = 5;
 }
 
 public static class KernelCommandRejectReasonCodes

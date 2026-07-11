@@ -55,9 +55,16 @@ public sealed class MapSignalsProgramTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(11f, simulation.MapSignals.EntityCapacity(entity, PlaneCodes.Physical));
-        Assert.Equal(13.5f, simulation.MapSignals.EntityAttractorMass(entity, PlaneCodes.Physical));
+        Assert.Equal(
+            9f + (0.4f * CultureMaturityOf(50f)),
+            simulation.MapSignals.EntityCapacity(entity, PlaneCodes.Physical));
+        Assert.Equal(
+            11f + (0.5f * CultureMaturityOf(50f)),
+            simulation.MapSignals.EntityAttractorMass(entity, PlaneCodes.Physical));
     }
+
+    private static float CultureMaturityOf(float raw) =>
+        raw * 100f / WorldState.CultureFullRawMass;
 
     [Fact]
     public void MapSignalsProgram_SemanticInfluenceRaisesSemanticCapacityAndAttractorMass()
@@ -84,8 +91,12 @@ public sealed class MapSignalsProgramTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(8f, simulation.MapSignals.EntityCapacity(entity, PlaneCodes.Semantic));
-        Assert.Equal(4.5f, simulation.MapSignals.EntityAttractorMass(entity, PlaneCodes.Semantic));
+        Assert.Equal(
+            6f + (0.4f * CultureMaturityOf(50f)),
+            simulation.MapSignals.EntityCapacity(entity, PlaneCodes.Semantic));
+        Assert.Equal(
+            2f + (0.5f * CultureMaturityOf(50f)),
+            simulation.MapSignals.EntityAttractorMass(entity, PlaneCodes.Semantic));
     }
 
     [Fact]

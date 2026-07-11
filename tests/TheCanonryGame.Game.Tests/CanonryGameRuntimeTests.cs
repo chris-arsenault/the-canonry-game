@@ -16,7 +16,8 @@ public sealed class CanonryGameRuntimeTests
             using var runtime = CanonryGameRuntimeFactory.Start(GameSeedPolicy.Requested(42), runLogPath);
             runtime.Controls.Pause();
 
-            var expectedCardCount = runtime.ReadModels.Symbols.Symbols.Values.Count(symbol =>
+            const int interventionCardCount = 2;
+            var expectedCardCount = interventionCardCount + runtime.ReadModels.Symbols.Symbols.Values.Count(symbol =>
                 symbol.Kind is ProjectionSymbolKind.Generator or ProjectionSymbolKind.Gambit);
             var generatorCard = runtime.Tableau.Cards.First(card => card.Definition.GeneratorId > 0);
 
@@ -30,7 +31,7 @@ public sealed class CanonryGameRuntimeTests
             Assert.Equal(expectedCardCount, runtime.Tableau.Cards.Count);
             Assert.All(runtime.Tableau.Cards, card =>
                 Assert.True(
-                    card.Definition.Type is CardType.Generator or CardType.Action,
+                    card.Definition.Type is CardType.Generator or CardType.Action or CardType.Intervention,
                     $"Unexpected tableau card type {card.Definition.Type} for {card.Definition.Id}."));
             Assert.True(runtime.Intents.RequestGeneratorEnabled(generatorCard.Definition.GeneratorId, enabled: false));
         }

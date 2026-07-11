@@ -7,6 +7,7 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
     private readonly int[] _kindIds;
     private readonly int[] _targetFollowsSourcePhysical;
     private readonly int[] _isExclusive;
+    private readonly int[] _isCultureAnchor;
     private readonly float[] _cullThresholds;
     private readonly int[] _maintenanceKindIds;
     private readonly int[] _maintenanceConditionCodes;
@@ -23,6 +24,7 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
         _kindIds = new int[relationshipRuleCapacity + 1];
         _targetFollowsSourcePhysical = new int[relationshipRuleCapacity + 1];
         _isExclusive = new int[relationshipRuleCapacity + 1];
+        _isCultureAnchor = new int[relationshipRuleCapacity + 1];
         _cullThresholds = new float[relationshipRuleCapacity + 1];
         var maintenanceCapacity = relationshipRuleCapacity * 4;
         _maintenanceKindIds = new int[maintenanceCapacity + 1];
@@ -47,7 +49,8 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
         int kindId,
         float cullThreshold,
         bool targetFollowsSourcePhysical = false,
-        bool isExclusive = false)
+        bool isExclusive = false,
+        bool isCultureAnchor = false)
     {
         ValidatePositive(kindId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(cullThreshold);
@@ -61,6 +64,7 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
         _kindIds[slot] = kindId;
         _targetFollowsSourcePhysical[slot] = targetFollowsSourcePhysical ? 1 : 0;
         _isExclusive[slot] = isExclusive ? 1 : 0;
+        _isCultureAnchor[slot] = isCultureAnchor ? 1 : 0;
         _cullThresholds[slot] = cullThreshold;
         return slot;
     }
@@ -149,6 +153,19 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
             if (_kindIds[rule] == kindId)
             {
                 return _targetFollowsSourcePhysical[rule] != 0;
+            }
+        }
+
+        return false;
+    }
+
+    public bool IsCultureAnchor(int kindId)
+    {
+        for (var rule = 1; rule <= _ruleCount; rule++)
+        {
+            if (_kindIds[rule] == kindId)
+            {
+                return _isCultureAnchor[rule] != 0;
             }
         }
 

@@ -330,13 +330,19 @@ public sealed class WorldStateIndexTests
         simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, 0.6f, tick: 0);
 
         Assert.Equal(100f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
-        Assert.Equal(0.06f, simulation.World.GetCellCultureMaturity(1, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(
+            0.6f * 100f / WorldState.CultureFullRawMass,
+            simulation.World.GetCellCultureMaturity(1, PlaneCodes.Physical, 0, 0),
+            precision: 3);
 
         simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, 6f, tick: 1);
 
         var influence = simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0);
         Assert.Equal(100f, influence, precision: 3);
-        Assert.Equal(0.6f, simulation.World.GetCellCultureMaturity(1, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(
+            6f * 100f / WorldState.CultureFullRawMass,
+            simulation.World.GetCellCultureMaturity(1, PlaneCodes.Physical, 0, 0),
+            precision: 3);
     }
 
     [Fact]

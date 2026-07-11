@@ -70,6 +70,7 @@ internal sealed record KernelProgramTuningOptions
     public UpkeepProgramTuningOptions Upkeep { get; init; } = new();
     public GeneratorProgramTuningOptions Generators { get; init; } = new();
     public LowAltitudeVerbTuningOptions LowAltitudeVerbs { get; init; } = new();
+    public CultureFieldTuningOptions CultureField { get; init; } = new();
 
     public int ScaleMainTicks(int ticks)
     {
@@ -113,6 +114,16 @@ internal sealed record ProgramEnabledTuningOptions
 internal sealed record UpkeepProgramTuningOptions
 {
     public int AgingModelCode { get; init; } = UpkeepAgingModelCodes.Linear;
+}
+
+internal sealed record CultureFieldTuningOptions
+{
+    public float DecayPerPulse { get; init; } = 0.005f;
+    public float MinimumDecayPerPulse { get; init; } = 0.6f;
+    public float CullFloorRawMass { get; init; } = 1f;
+    public int DecayCadenceMainTicks { get; init; } = 5;
+    public float RemittanceShare { get; init; } = 0.5f;
+    public int RemittanceMinimumDistance { get; init; } = 6;
 }
 
 internal sealed record GeneratorProgramTuningOptions

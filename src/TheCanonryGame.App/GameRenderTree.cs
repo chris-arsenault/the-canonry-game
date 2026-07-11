@@ -92,6 +92,73 @@ internal sealed class GameRenderTree
         SetCameraZoom(cameraZoom);
         _mapArea.Resized += _floatingHudLayoutRender.Invalidate;
         _tableauPanel.VisibilityChanged += _floatingHudLayoutRender.Invalidate;
+        _tableauPanel.InterventionArmRequested += ArmIntervention;
+    }
+
+    private int _armedInterventionId;
+
+    public void ArmIntervention(int interventionId)
+    {
+        _armedInterventionId = interventionId;
+    }
+
+    public bool TryApplyArmedInterventionClick()
+    {
+        if (_armedInterventionId <= 0 || _runtime is null || _map is null || _ui is null)
+        {
+            return false;
+        }
+
+        var viewport = _worldCanvas.GetViewport();
+        if (viewport.GuiGetHoveredControl() is not null)
+        {
+            return false;
+        }
+
+        var screenPos = viewport.GetMousePosition();
+        var worldPos = _worldCanvas.GetCanvasTransform().AffineInverse() * screenPos;
+        var pointedHex = _mapRenderer.GetHexAtWorldPosition(worldPos);
+        if (pointedHex is null)
+        {
+            return false;
+        }
+
+        var planeCode = _mapRenderer.CurrentPlane == PlaneMode.Physical
+            ? PlaneCodes.Physical
+            : PlaneCodes.Semantic;
+        if (!ApplyIntervention(_armedInterventionId, planeCode, pointedHex.Value))
+        {
+            return true;
+        }
+
+        _runtime.Tableau.NotifyInterventionUsed(_armedInterventionId);
+        _armedInterventionId = 0;
+        _tableauRender.Invalidate();
+        return true;
+    }
+
+    private bool ApplyIntervention(int interventionId, int planeCode, HexCoord coord)
+    {
+        if (interventionId == TheCanonryGame.Game.Tableau.GameInterventionIds.Consecrate)
+        {
+            if (!_map!.TryGetHex(planeCode, coord, out var hex) ||
+                hex.CultureInfluences.Count == 0)
+            {
+                return false;
+            }
+
+            var cultureId = hex.CultureInfluences[0].CultureId;
+            return cultureId > 0 &&
+                _runtime!.Intents.RequestConsecrate(cultureId, planeCode, coord.Q, coord.R);
+        }
+
+        if (interventionId == TheCanonryGame.Game.Tableau.GameInterventionIds.Favor)
+        {
+            var occupantId = _ui!.ActiveOccupants(planeCode, coord).FirstOrDefault();
+            return occupantId > 0 && _runtime!.Intents.RequestFavor(occupantId);
+        }
+
+        return false;
     }
 
     public void BindRuntime(CanonryGameRuntime runtime)

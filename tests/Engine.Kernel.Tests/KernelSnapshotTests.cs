@@ -185,6 +185,13 @@ public sealed class KernelSnapshotTests
                     OwnInfluenceDistanceScale = 8.5f,
                     ForeignInfluenceDistanceScale = 9.5f,
                 },
+                CultureField = new CultureFieldTuningOptions
+                {
+                    DecayPerPulse = 0.01f,
+                    MinimumDecayPerPulse = 0.9f,
+                    CullFloorRawMass = 2f,
+                    DecayCadenceMainTicks = 3,
+                },
             },
         };
 
@@ -227,6 +234,10 @@ public sealed class KernelSnapshotTests
         Assert.Equal(7.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.RelationshipTargetDistanceScale);
         Assert.Equal(8.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.OwnInfluenceDistanceScale);
         Assert.Equal(9.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.ForeignInfluenceDistanceScale);
+        Assert.Equal(0.01f, loaded.Options.KernelTuning.Programs.CultureField.DecayPerPulse);
+        Assert.Equal(0.9f, loaded.Options.KernelTuning.Programs.CultureField.MinimumDecayPerPulse);
+        Assert.Equal(2f, loaded.Options.KernelTuning.Programs.CultureField.CullFloorRawMass);
+        Assert.Equal(3, loaded.Options.KernelTuning.Programs.CultureField.DecayCadenceMainTicks);
         Assert.Equal(expectedRandom, loaded.NextInt(10000));
     }
 

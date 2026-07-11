@@ -101,7 +101,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
     private void ProjectWorldEvent(in SequencedKernelEvent kernelEvent)
     {
         var eventType = kernelEvent.Event.EventType;
-        if (eventType is KernelEventType.TickCompleted or KernelEventType.GeneratorEnabledChanged)
+        if (eventType is KernelEventType.TickCompleted or
+            KernelEventType.GeneratorEnabledChanged or
+            KernelEventType.GambitEnabledChanged)
         {
             ProjectWorldControlEvent(kernelEvent);
             return;
@@ -138,6 +140,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
                 break;
             case KernelEventType.GeneratorEnabledChanged:
                 OnGeneratorEnabledChanged(kernelEvent.Sequence, evt.AsGeneratorEnabledChanged());
+                break;
+            case KernelEventType.GambitEnabledChanged:
+                OnGambitEnabledChanged(kernelEvent.Sequence, evt.AsGambitEnabledChanged());
                 break;
         }
     }
@@ -250,6 +255,10 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnGeneratorEnabledChanged(long sequence, in GeneratorEnabledChangedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnGambitEnabledChanged(long sequence, in GambitEnabledChangedKernelEvent evt)
     {
     }
 

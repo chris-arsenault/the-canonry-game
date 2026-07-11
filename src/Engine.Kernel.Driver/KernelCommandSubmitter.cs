@@ -25,6 +25,44 @@ internal sealed class KernelCommandSubmitter : ICommandSubmitter
         return TryEnqueue(in kernelCommand, out handle);
     }
 
+    public bool TrySetGambitEnabled(in SetGambitEnabledCommand command, out CommandHandle handle)
+    {
+        var kernelCommand = KernelCommand.From(new SetGambitEnabledKernelCommand(
+            command.IssueVersion,
+            command.GambitId,
+            command.Enabled ? 1 : 0,
+            command.SubmitterId,
+            command.SubmitterSequence));
+        return TryEnqueue(in kernelCommand, out handle);
+    }
+
+    public bool TryBlessCellCulture(in BlessCellCultureCommand command, out CommandHandle handle)
+    {
+        var kernelCommand = KernelCommand.From(new BlessCellCultureKernelCommand(
+            command.IssueVersion,
+            command.CultureId,
+            command.PlaneCode,
+            command.Q,
+            command.R,
+            command.Radius,
+            command.Amount,
+            command.SubmitterId,
+            command.SubmitterSequence));
+        return TryEnqueue(in kernelCommand, out handle);
+    }
+
+    public bool TryFavorEntity(in FavorEntityCommand command, out CommandHandle handle)
+    {
+        var kernelCommand = KernelCommand.From(new FavorEntityKernelCommand(
+            command.IssueVersion,
+            command.EntityId,
+            command.DurationTicks,
+            command.MultiplierDelta,
+            command.SubmitterId,
+            command.SubmitterSequence));
+        return TryEnqueue(in kernelCommand, out handle);
+    }
+
     internal bool TryEnqueue(in KernelCommand command, out CommandHandle handle)
     {
         if (!_commands.TryEnqueue(in command, out var commandId))

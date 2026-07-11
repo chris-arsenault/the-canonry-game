@@ -920,6 +920,13 @@ public sealed partial class MinorActorProgramRuntimeTests
                 Programs = new KernelProgramTuningOptions
                 {
                     MinorActorMainTickRatio = mainTickRatio,
+                    // These tests verify verb targeting; field decay would
+                    // erode the small synthetic deltas they assert on.
+                    CultureField = new CultureFieldTuningOptions
+                    {
+                        DecayPerPulse = 0f,
+                        MinimumDecayPerPulse = 0f,
+                    },
                 },
             },
         });

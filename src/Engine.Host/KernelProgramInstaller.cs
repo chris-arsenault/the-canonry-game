@@ -144,7 +144,8 @@ internal static partial class KernelProgramInstaller
                 new RelationshipKindRuntimeId(relationship.RelationshipKindId),
                 relationship.CullThreshold,
                 relationship.TargetFollowsSourcePhysical,
-                relationship.IsExclusive);
+                relationship.IsExclusive,
+                relationship.IsCultureAnchor);
         }
 
         foreach (var rule in program.MaintenanceRules)

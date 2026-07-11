@@ -56,6 +56,8 @@ public sealed class GameIntentPortTests
     {
         public List<SetGeneratorEnabledCommand> Commands { get; } = [];
 
+        public List<SetGambitEnabledCommand> GambitCommands { get; } = [];
+
         public bool NextResult { get; set; } = true;
 
         public bool TrySetGeneratorEnabled(in SetGeneratorEnabledCommand command, out CommandHandle handle)
@@ -64,5 +66,30 @@ public sealed class GameIntentPortTests
             handle = default;
             return NextResult;
         }
+
+        public bool TrySetGambitEnabled(in SetGambitEnabledCommand command, out CommandHandle handle)
+        {
+            GambitCommands.Add(command);
+            handle = default;
+            return NextResult;
+        }
+
+        public bool TryBlessCellCulture(in BlessCellCultureCommand command, out CommandHandle handle)
+        {
+            BlessCommands.Add(command);
+            handle = default;
+            return NextResult;
+        }
+
+        public bool TryFavorEntity(in FavorEntityCommand command, out CommandHandle handle)
+        {
+            FavorCommands.Add(command);
+            handle = default;
+            return NextResult;
+        }
+
+        public List<BlessCellCultureCommand> BlessCommands { get; } = [];
+
+        public List<FavorEntityCommand> FavorCommands { get; } = [];
     }
 }

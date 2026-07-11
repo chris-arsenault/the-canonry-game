@@ -14,6 +14,7 @@ public static class DomainRuntimeNames
     public const string GameplaySourceCode = "gameplay";
     public const string MapControlSourceCode = "map_control";
     public const string GameplayEffectsSourceCode = "gameplay_effects";
+    public const string PlayerSourceCode = "player";
     public const string MapActivitySourceCode = MapControlSourceCode;
     public const string MapSignalsSourceCode = MapControlSourceCode;
     public const string LowAltitudeVerbSourceCode = GameplaySourceCode;

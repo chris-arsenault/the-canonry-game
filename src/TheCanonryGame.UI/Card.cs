@@ -155,11 +155,23 @@ public partial class Card : PanelContainer
 
         if (_toggleButton is not null)
         {
-            var toggleable = state.GeneratorId > 0;
-            _toggleButton.Visible = toggleable;
-            _toggleButton.Disabled = !toggleable;
-            _toggleButton.Text = state.IsEnabled ? "Disable" : "Enable";
-            _toggleButton.TooltipText = $"Toggle {card.Definition.Name}";
+            if (state.InterventionId > 0)
+            {
+                _toggleButton.Visible = true;
+                _toggleButton.Disabled = !state.IsEnabled;
+                _toggleButton.Text = state.IsEnabled ? "Use" : "Recharging";
+                _toggleButton.TooltipText = state.IsEnabled
+                    ? $"Use {card.Definition.Name}: click a map hex to target"
+                    : $"{card.Definition.Name} is recharging";
+            }
+            else
+            {
+                var toggleable = state.GeneratorId > 0 || state.GambitId > 0;
+                _toggleButton.Visible = toggleable;
+                _toggleButton.Disabled = !toggleable;
+                _toggleButton.Text = state.IsEnabled ? "Disable" : "Enable";
+                _toggleButton.TooltipText = $"Toggle {card.Definition.Name}";
+            }
         }
     }
 
@@ -168,6 +180,7 @@ public partial class Card : PanelContainer
         CardType.Generator => "GENERATOR",
         CardType.Action => "GAMBIT",
         CardType.System => "SYSTEM",
+        CardType.Intervention => "INTERVENTION",
         _ => "CARD",
     };
 

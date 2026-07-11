@@ -51,7 +51,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     private readonly record struct CultureInfluenceAttachment(
         float ComponentMass,
         int AdjacentSupportedCount,
-        int ComponentCount);
+        int ComponentCount,
+        float LargestComponentSupport);
 
     private static CultureInfluenceNeighborhood CultureNeighborhood(in CultureBoundaryCell boundary)
     {
@@ -219,7 +220,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         new(
             boundary.AttachedComponentScoreMass,
             boundary.SupportedAdjacentCount,
-            boundary.AttachedComponentCount);
+            boundary.AttachedComponentCount,
+            boundary.IsLargestComponent ? 1f : 0f);
 
     private float OwnCultureExpansionDrive(
         int targetingCode,
@@ -238,7 +240,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             foreignCultureRaw,
             attachment.ComponentMass,
             attachment.AdjacentSupportedCount,
-            attachment.ComponentCount);
+            attachment.ComponentCount,
+            attachment.LargestComponentSupport);
         return CultureInfluenceTargetScorer.Score(input);
     }
 
@@ -366,7 +369,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 boundary.ForeignRawMass,
                 attachment.ComponentMass,
                 attachment.AdjacentSupportedCount,
-                attachment.ComponentCount);
+                attachment.ComponentCount,
+                attachment.LargestComponentSupport);
             contestSupport = CultureInfluenceTargetScorer.Score(input);
         }
 

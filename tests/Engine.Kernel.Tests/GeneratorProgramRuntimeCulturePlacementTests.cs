@@ -28,6 +28,7 @@ public sealed class GeneratorProgramRuntimeCulturePlacementTests
             simulation.CreateEntity(TargetKindId, TargetSubtypeId, CultureId, -2, 0, -2, 0, -2, tick: 0);
             simulation.CreateEntity(TargetKindId, TargetSubtypeId, CultureId, 2, 0, 2, 0, 2, tick: 0);
             AddCulturePatch(simulation, CultureId, PlaneCodes.Physical, -2, 0, WorldState.CultureEntrenchedRawMass);
+            AddCulturePatch(simulation, CultureId, PlaneCodes.Semantic, -2, 0, WorldState.CultureEntrenchedRawMass);
             var slot = RegisterGenerator(simulation);
             AddCreatedEntity(
                 simulation,
@@ -62,6 +63,7 @@ public sealed class GeneratorProgramRuntimeCulturePlacementTests
         var target = simulation.CreateEntity(TargetKindId, TargetSubtypeId, CultureId, 0, 0, 0, 0, 0, tick: 0);
         simulation.SetCellInfluence(target, PlaneCodes.Physical, 1, 0, WorldState.CultureTraceRawMass, tick: 0);
         simulation.SetCellInfluence(target, PlaneCodes.Physical, -1, 0, WorldState.CultureEntrenchedRawMass, tick: 0);
+        simulation.SetCellInfluence(target, PlaneCodes.Semantic, -1, 0, WorldState.CultureEntrenchedRawMass, tick: 0);
         var slot = RegisterGenerator(simulation);
         var producedSlot = AddCreatedEntity(
             simulation,
@@ -78,6 +80,29 @@ public sealed class GeneratorProgramRuntimeCulturePlacementTests
         var created = simulation.World.EntityHighWatermark;
         Assert.Equal(-1, simulation.World.EntityPhysicalQ(created));
         Assert.Equal(0, simulation.World.EntityPhysicalR(created));
+    }
+
+    [Fact]
+    public void Fire_WithCultureInteriorPlacement_RejectsPlacementWithoutOwnCultureSupport()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation, radius: 2);
+        var target = simulation.CreateEntity(TargetKindId, TargetSubtypeId, CultureId, 0, 0, 0, 0, 0, tick: 0);
+        var slot = RegisterGenerator(simulation);
+        _ = AddCreatedEntity(
+            simulation,
+            slot,
+            physicalMinRadius: 1,
+            physicalMaxRadius: 1,
+            semanticMinRadius: 1,
+            semanticMaxRadius: 1,
+            culturePlacementCode: GeneratorCulturePlacementCodes.CultureInterior);
+
+        simulation.AdvanceTicks(1);
+
+        // No own-culture support exists anywhere, so the interior-mode output
+        // must not be founded; the target remains the newest entity.
+        Assert.Equal(target, simulation.World.EntityHighWatermark);
     }
 
     [Fact]
@@ -123,6 +148,7 @@ public sealed class GeneratorProgramRuntimeCulturePlacementTests
         var target = simulation.CreateEntity(TargetKindId, TargetSubtypeId, CultureId, 0, 0, 0, 0, 0, tick: 0);
         simulation.World.SetCoverageOwner(0, 0, target);
         simulation.SetCellInfluence(target, PlaneCodes.Physical, 1, 0, WorldState.CultureEntrenchedRawMass, tick: 0);
+        simulation.SetCellInfluence(target, PlaneCodes.Semantic, 1, 0, WorldState.CultureEntrenchedRawMass, tick: 0);
         var slot = RegisterGenerator(simulation);
         AddCreatedEntity(
             simulation,

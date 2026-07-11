@@ -8,7 +8,8 @@ internal readonly record struct CultureInfluenceTargetScoreInput(
     float ForeignRaw,
     float AttachedComponentMass,
     int AdjacentSupportedCount,
-    int AttachedComponentCount);
+    int AttachedComponentCount,
+    float LargestComponentSupport);
 
 internal static class CultureInfluenceTargetScorer
 {
@@ -24,6 +25,7 @@ internal static class CultureInfluenceTargetScorer
     private const float InteriorHoleUtilityMultiplier = 2f;
     private const float ForeignTraceToleranceShare = 10f;
     private const float ForeignContestScaleShare = 45f;
+    internal const float LargestComponentGravity = 0.75f;
 
     internal static float Score(in CultureInfluenceTargetScoreInput input)
     {
@@ -98,9 +100,19 @@ internal static class CultureInfluenceTargetScorer
             return 0f;
         }
 
+        // Shortfall keeps a floor so core cells stay valid reinforcement targets
+        // near the cap; largest-component gravity concentrates work on the
+        // culture's main mass instead of leveling every component equally.
         var rawShortfall = Clamp01((FullRawInfluence - input.OwnRaw) / FullRawInfluence);
-        return InteriorHoleBoost(interiorHoleSupport) * ownPresence * rawShortfall * ExpansionForeignDrag(input);
+        return InteriorHoleBoost(interiorHoleSupport) *
+            ownPresence *
+            ((3f / 10f) + ((7f / 10f) * rawShortfall)) *
+            ComponentGravityBoost(input.LargestComponentSupport) *
+            ExpansionForeignDrag(input);
     }
+
+    internal static float ComponentGravityBoost(float largestComponentSupport) =>
+        1f + (LargestComponentGravity * Clamp01(largestComponentSupport));
 
     private static float ContestUtility(in CultureInfluenceTargetScoreInput input)
     {

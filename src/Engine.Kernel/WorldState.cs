@@ -31,6 +31,12 @@ internal sealed partial class WorldState
     private int[] _entitySemanticQ = [];
     private int[] _entitySemanticR = [];
     private int[] _entitySemanticS = [];
+    private int[] _entityAnchorPhysicalQ = [];
+    private int[] _entityAnchorPhysicalR = [];
+    private int[] _entityAnchorSemanticQ = [];
+    private int[] _entityAnchorSemanticR = [];
+    private float[] _entityFavorMultiplierDelta = [];
+    private int[] _entityFavorExpiresAtTick = [];
     private int[] _entityCreatedAt = [];
     private int[] _entityUpdatedAt = [];
     private int[] _firstEntityByKind = [];
@@ -141,6 +147,12 @@ internal sealed partial class WorldState
         _entitySemanticQ = new int[options.EntityCapacity + 1];
         _entitySemanticR = new int[options.EntityCapacity + 1];
         _entitySemanticS = new int[options.EntityCapacity + 1];
+        _entityAnchorPhysicalQ = new int[options.EntityCapacity + 1];
+        _entityAnchorPhysicalR = new int[options.EntityCapacity + 1];
+        _entityAnchorSemanticQ = new int[options.EntityCapacity + 1];
+        _entityAnchorSemanticR = new int[options.EntityCapacity + 1];
+        _entityFavorMultiplierDelta = new float[options.EntityCapacity + 1];
+        _entityFavorExpiresAtTick = new int[options.EntityCapacity + 1];
         _entityCreatedAt = new int[options.EntityCapacity + 1];
         _entityUpdatedAt = new int[options.EntityCapacity + 1];
         _firstEntityByKind = new int[options.KindIdCapacity + 1];
@@ -249,6 +261,10 @@ internal sealed partial class WorldState
         _entitySemanticQ[entityId] = semanticQ;
         _entitySemanticR[entityId] = semanticR;
         _entitySemanticS[entityId] = semanticS;
+        _entityAnchorPhysicalQ[entityId] = physicalQ;
+        _entityAnchorPhysicalR[entityId] = physicalR;
+        _entityAnchorSemanticQ[entityId] = semanticQ;
+        _entityAnchorSemanticR[entityId] = semanticR;
         _entityCreatedAt[entityId] = tick;
         _entityUpdatedAt[entityId] = tick;
         InsertEntityKindIndex(entityId, kindId);

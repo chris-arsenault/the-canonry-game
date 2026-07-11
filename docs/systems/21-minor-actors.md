@@ -44,12 +44,14 @@ region can support physical culture labor.
 Transports also emit road crews on the physical plane. Road crews maintain road
 quality and can spread culture along used routes.
 
-Slots and work tier modify source productivity:
+Slots, work tier, and nexus standing modify source productivity:
 
 - a culture slot occupant gets a higher effective active-worker limit and
   faster emission cadence;
 - each work tier adds worker capacity and expands operating radius;
-- slot benefits increase worker effect through the source slot multiplier.
+- slot benefits increase worker effect through the source slot multiplier;
+- a source standing in an own-culture nexus cell on the labor plane gets a
+  1.5x work delta multiplier, making established centers self-reinforcing.
 
 ## Verb Layer
 
