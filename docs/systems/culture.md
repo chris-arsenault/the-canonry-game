@@ -138,6 +138,21 @@ and each culture is designed to lead its own axis in a healthy run:
   culture; and war presence, the summed strength of `at_war_with`
   relationships with at least one endpoint in the culture.
 
+Each culture also declares per-plane influence production multipliers
+(`CultureConfig.PhysicalInfluenceProductionMultiplier` /
+`SemanticInfluenceProductionMultiplier`), applied to positive entity-driven
+deposits so a small culture can produce outsized output on its own axis.
+Nightshelf runs semantic-heavy (2.5x semantic, 0.75x physical), Aurora mildly
+physical-heavy. Decay, cleanup, forge deposits, and player commands are not
+production and stay unscaled.
+
+Balance between the axes is not enforced by any controller that measures the
+scoreboard: cultures stay viable through theme-emergent mechanisms — the
+Nightshelf shadow economy (cross-cultural generators feeding on surface
+prosperity), authored timeline generators, seeded custody parity, and the
+plane bias above. Rejected and deferred alternatives are recorded in
+`docs/design/culture-balance-options.md`.
+
 Components whose world total is zero are dropped from their axis mean. The
 domain declares the vocabulary in `DomainConfig.CulturePower` (custody kinds,
 custody relationships, claim and war relationship names); the host resolves

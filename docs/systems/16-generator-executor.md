@@ -27,6 +27,14 @@ A generator can:
 Generated entities should usually form a connected bundle. Every generator
 should introduce relationships that the rest of the graph understands.
 
+Each produced entity declares its culture source: either `InheritCultureFrom`
+(an entity ref, usually `$target`) or an authored fixed `Culture`. Fixed
+culture enables cross-cultural generators — one culture's activity creating
+another culture's entities, such as the Nightshelf shadow economy growing
+under Aurora trade hubs. Cross-cultural outputs typically pair with
+`HostileIntrusion` culture placement so the own-culture support gate does not
+reject placement inside the host culture's territory.
+
 ## Placement
 
 Generators place entities on the physical and semantic planes. Placement may be
@@ -82,6 +90,13 @@ pulse window while budget remains, instead of only on an exact modulo boundary.
 When multiple generators are eligible, selection is weighted by authored pulse
 weight. Fire budget limits how many successful fires can occur in one window;
 it does not increase the low-altitude tick frequency.
+
+Generators with `CadenceTicks > 0` are timeline generators: they leave the
+shared pulse pool entirely and fire on their own jittered cadence
+(`CadenceTicks ± CadenceJitterTicks`), outside the pulse budget. Target
+eligibility still applies — a cadence firing with no eligible target passes
+quietly. Timelines give each culture an authored drumbeat that does not scale
+with its population, without steering outcomes toward equality.
 
 ## Preconditions
 

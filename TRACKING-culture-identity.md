@@ -84,7 +84,7 @@ cull-and-retry cost, not a work item.
   disruption and make the cultures mechanically identical. Superseded by
   the Nightshelf package v2 below; rationale and deferred alternatives in
   `docs/design/culture-balance-options.md`.
-- [ ] **NS-A. Parasitic cross-cultural generators.** Aurora activity spawns
+- [x] **NS-A. Parasitic cross-cultural generators.** Aurora activity spawns
   Nightshelf entities: smuggling cells under thriving trade hubs, war
   profiteers, counter-archives, secrets from Aurora's dead. Aurora's growth
   becomes Nightshelf's food supply — theme-emergent negative feedback, no
@@ -92,22 +92,38 @@ cull-and-retry cost, not a work item.
   culture instead of inheriting the target's (small `Engine.Domain`
   config/compiler + kernel fire-path addition). Owning layers:
   `Engine.Domain`, `Engine.Kernel` (vocabulary), `IceRemembers` (content).
-- [ ] **NS-B. Deep Conclave timeline generator.** One cadence-based
+- [x] **NS-B. Deep Conclave timeline generator.** One cadence-based
   generator (every ~N ticks, jittered, world-state preconditions) outside
   the population-proportional pulse pool. Cadence, not scarcity-gating.
   Owning layers: `Engine.Domain`/`Engine.Kernel` (cadence vocabulary),
   `IceRemembers` (the Conclave).
-- [ ] **B1/N2. Per-culture plane bias.** `CultureConfig` gains
+- [x] **B1/N2. Per-culture plane bias.** `CultureConfig` gains
   physical/semantic influence-production multipliers compiled into the
   existing per-culture multiplier path. Aurora: physical up mildly.
   Nightshelf: semantic up, physical down. Wake-Singers: neutral. Owning
   layers: `Engine.Domain` config/compiler, `Engine.Kernel` multiplier
   lookup.
-- [ ] **C1/N3. Nightshelf seed custody parity.** Nightshelf gains entity
+- [x] **C1/N3. Nightshelf seed custody parity.** Nightshelf gains entity
   parity through its own kinds (brokers/factions/artifacts/abilities with
   strong custody edges + semantic initial influence, not more settlements);
   Aurora keeps its settlement/physical start. Wake-Singers seed changes are
   out of scope for this round. Owning layer: `IceRemembers.Seed`.
+
+  **Nightshelf round evidence (`ns-shadow-economy-2x25k-20260711`, seeds
+  25000/25001, vs `zb-forging-ledgers-2x25k-r2-20260711`):** Nightshelf now
+  leads Shadow 63.7/66.8% vs Aurora 35.2/30.0% (was 36.7 vs 61.6); Aurora
+  still leads Witness 69.6/64.2%; Nightshelf living population 38 at tick 25k
+  (was 12), Aurora 81 — asymmetric ~2:1, not forced equality. NS births 144
+  (was 61) with the shadow economy as the top source (undermarkets 60
+  entities, war profiteers 16, counter-archives 8, conclave 6 in run 25000;
+  fires: 20/8/5/3). NS semantic mass now exceeds Aurora's (141k vs 108k at
+  25k; was 24k vs 187k) via the 2.5x semantic bias; custody roughly at parity
+  (12 vs 15). Nexus shape stays healthy for every culture (largest component
+  63-79%). Note: `CadenceTicks` is in main ticks and scales with
+  `MinorActorMainTickRatio` like pulse width, so the Conclave's 1200 spans
+  ~6000 simulation ticks (3-10 convenings per run). Wake-Singers (3 living,
+  Blood 0) remain the next round's subject, pending the Blood-metric rethink
+  recorded in `docs/design/culture-balance-options.md`.
 - [x] **Z-B. True sparse z-cells (see below).** Landed. Coordinate keys hash
   `(q, r, z)` with `z = 0` identical to the historical 2-arg hash; physical
   cells span `z in [-3, +3]`; non-surface cells exist only when forged by
