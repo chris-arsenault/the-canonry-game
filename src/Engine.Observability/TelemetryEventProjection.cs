@@ -357,7 +357,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
     protected override void OnCellCreated(long sequence, in CellCreatedKernelEvent evt)
     {
-        var key = new ObservedMapCellKey(PlaneCodes.Physical, evt.Q, evt.R);
+        var key = new ObservedMapCellKey(PlaneCodes.Physical, evt.Q, evt.R, evt.Z);
         if (!_mapCells.ContainsKey(key))
         {
             RecordMapCellState(
@@ -373,7 +373,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
                 previousTerrainId: 0,
                 evt.TerrainId,
                 previousOwnerEntityId: 0,
-                evt.OwnerEntityId);
+                evt.OwnerEntityId,
+                evt.Z);
         }
 
         MarkProjected(sequence);
@@ -381,7 +382,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
     protected override void OnCellChanged(long sequence, in CellChangedKernelEvent evt)
     {
-        var key = new ObservedMapCellKey(PlaneCodes.Physical, evt.Q, evt.R);
+        var key = new ObservedMapCellKey(PlaneCodes.Physical, evt.Q, evt.R, evt.Z);
         if (!_mapCells.TryGetValue(key, out var cell) ||
             cell.TerrainId != evt.CurrentTerrainId ||
             cell.OwnerEntityId != evt.CurrentOwnerEntityId)
@@ -399,7 +400,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
                 evt.PreviousTerrainId,
                 evt.CurrentTerrainId,
                 evt.PreviousOwnerEntityId,
-                evt.CurrentOwnerEntityId);
+                evt.CurrentOwnerEntityId,
+                evt.Z);
         }
 
         MarkProjected(sequence);
@@ -755,7 +757,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         int currentOwnerEntityId,
         int z = 0)
     {
-        var key = new ObservedMapCellKey(planeCode, q, r);
+        var key = new ObservedMapCellKey(planeCode, q, r, z);
         UpsertMapCell(
             key,
             currentTerrainId,
