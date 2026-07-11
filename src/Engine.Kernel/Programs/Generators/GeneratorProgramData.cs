@@ -7,6 +7,8 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] GeneratorIds = [];
     internal int[] TargetKindIds = [];
     internal int[] PulseWeights = [];
+    internal int[] CadenceTicks = [];
+    internal int[] CadenceJitterTicks = [];
     internal int[] MaxRuns = [];
     internal int[] TargetSubtypeStarts = [];
     internal int[] TargetSubtypeCounts = [];
@@ -72,6 +74,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] ProducedPlacementFallbackTerrainIds = [];
     internal int[] ProducedPlacementRefCodes = [];
     internal int[] ProducedCultureRefCodes = [];
+    internal int[] ProducedFixedCultureIds = [];
     internal int[] ProducedCulturePlacementCodes = [];
     internal float[] ProducedCreateChances = [];
     internal int[] ProducedSubtypeChoiceStarts = [];
@@ -146,6 +149,8 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         GeneratorIds = new int[generatorCapacity + 1];
         TargetKindIds = new int[generatorCapacity + 1];
         PulseWeights = new int[generatorCapacity + 1];
+        CadenceTicks = new int[generatorCapacity + 1];
+        CadenceJitterTicks = new int[generatorCapacity + 1];
         MaxRuns = new int[generatorCapacity + 1];
         TargetSubtypeStarts = new int[generatorCapacity + 1];
         TargetSubtypeCounts = new int[generatorCapacity + 1];
@@ -237,6 +242,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         InitializeProducedPlacementTerrainArrays(itemCapacity);
         ProducedPlacementRefCodes = new int[itemCapacity + 1];
         ProducedCultureRefCodes = new int[itemCapacity + 1];
+        ProducedFixedCultureIds = new int[itemCapacity + 1];
         ProducedCulturePlacementCodes = new int[itemCapacity + 1];
         ProducedCreateChances = new float[itemCapacity + 1];
         ProducedSubtypeChoiceStarts = new int[itemCapacity + 1];
@@ -286,6 +292,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.Generators;
 
-    public int SchemaVersion => 15;
+    public int SchemaVersion => 16;
 
 }

@@ -498,15 +498,14 @@ internal sealed partial class GeneratorProgramRuntime
         out int placementAnchorId)
     {
         subtypeId = ResolveProducedSubtype(simulation, produced);
-        var cultureSourceId = ResolveRef(refCodes, refEntityIds, refCount, _producedCultureRefCodes[produced]);
-        producedCultureId = cultureSourceId == 0 ? 0 : world.EntityCultureId(cultureSourceId);
+        producedCultureId = ResolveProducedCultureId(world, refCodes, refEntityIds, refCount, produced);
         placementAnchorId = ResolveRef(refCodes, refEntityIds, refCount, _producedPlacementRefCodes[produced]);
         if (placementAnchorId == 0)
         {
             placementAnchorId = targetId;
         }
 
-        return subtypeId > 0 && cultureSourceId > 0;
+        return subtypeId > 0 && producedCultureId > 0;
     }
 
     private bool ApplyProducedCoverage(

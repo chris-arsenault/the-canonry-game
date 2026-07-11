@@ -79,22 +79,35 @@ cull-and-retry cost, not a work item.
 
   Owning layers: `Engine.Host` (computation), `Engine.Observability`
   (export), `Engine.Projection` + `TheCanonryGame.UI` (nations rows).
-- [ ] **B3. Demographic floor.** Generator target scoring gains a weight
-  inversely proportional to the target culture's living-population share,
-  plus one authored revival loop per culture (e.g. `The Unspoken Convene`
-  emerges from the Deep Warrens when Nightshelf withers). Owning layers:
-  `Engine.Kernel` generator target scoring (small), `IceRemembers` authored
-  generators.
-- [ ] **B1. Per-culture plane bias.** `CultureConfig` gains
+- [ ] ~~B3. Demographic floor (inverse-population weighting).~~ REJECTED as
+  a homeostat on the outcome variable — it would compensate away player
+  disruption and make the cultures mechanically identical. Superseded by
+  the Nightshelf package v2 below; rationale and deferred alternatives in
+  `docs/design/culture-balance-options.md`.
+- [ ] **NS-A. Parasitic cross-cultural generators.** Aurora activity spawns
+  Nightshelf entities: smuggling cells under thriving trade hubs, war
+  profiteers, counter-archives, secrets from Aurora's dead. Aurora's growth
+  becomes Nightshelf's food supply — theme-emergent negative feedback, no
+  scoreboard controller. Requires produced entities to take an authored
+  culture instead of inheriting the target's (small `Engine.Domain`
+  config/compiler + kernel fire-path addition). Owning layers:
+  `Engine.Domain`, `Engine.Kernel` (vocabulary), `IceRemembers` (content).
+- [ ] **NS-B. Deep Conclave timeline generator.** One cadence-based
+  generator (every ~N ticks, jittered, world-state preconditions) outside
+  the population-proportional pulse pool. Cadence, not scarcity-gating.
+  Owning layers: `Engine.Domain`/`Engine.Kernel` (cadence vocabulary),
+  `IceRemembers` (the Conclave).
+- [ ] **B1/N2. Per-culture plane bias.** `CultureConfig` gains
   physical/semantic influence-production multipliers compiled into the
-  existing per-culture multiplier path. Aurora: physical up. Nightshelf:
-  semantic up, physical down. Wake-Singers: neutral. Owning layers:
-  `Engine.Domain` config/compiler, `Engine.Kernel` multiplier lookup.
-- [ ] **C1/C3. Seed rebalance.** Nightshelf gains entity parity through its
-  own kinds (brokers/factions/artifacts/abilities + semantic initial
-  influence, not more settlements); Aurora keeps its settlement/physical
-  start; Wake-Singers seed with claims and one live grievance so the raid
-  economy boots. Owning layer: `IceRemembers.Seed`.
+  existing per-culture multiplier path. Aurora: physical up mildly.
+  Nightshelf: semantic up, physical down. Wake-Singers: neutral. Owning
+  layers: `Engine.Domain` config/compiler, `Engine.Kernel` multiplier
+  lookup.
+- [ ] **C1/N3. Nightshelf seed custody parity.** Nightshelf gains entity
+  parity through its own kinds (brokers/factions/artifacts/abilities with
+  strong custody edges + semantic initial influence, not more settlements);
+  Aurora keeps its settlement/physical start. Wake-Singers seed changes are
+  out of scope for this round. Owning layer: `IceRemembers.Seed`.
 - [x] **Z-B. True sparse z-cells (see below).** Landed. Coordinate keys hash
   `(q, r, z)` with `z = 0` identical to the historical 2-arg hash; physical
   cells span `z in [-3, +3]`; non-surface cells exist only when forged by

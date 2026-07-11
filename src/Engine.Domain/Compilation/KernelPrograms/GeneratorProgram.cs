@@ -15,6 +15,8 @@ public sealed record CompiledGeneratorRule(
     GeneratorTargetRelationshipRequirements TargetRelationshipRequirements,
     int PulseWeight,
     int MaxRuns,
+    int CadenceTicks,
+    int CadenceJitterTicks,
     IReadOnlyList<GeneratorTriggerRule> Triggers,
     IReadOnlyList<GeneratorBindingRule> SecondaryBindings,
     IReadOnlyList<GeneratorProducedEntityRule> ProducedEntities,
@@ -76,6 +78,7 @@ public sealed record GeneratorProducedEntityRule(
     int SemanticPlacementFallbackTerrainId,
     int PlacementRefCode,
     int CultureRefCode,
+    int FixedCultureId,
     GeneratorProgramCulturePlacement CulturePlacement,
     float CreateChance,
     GeneratorCoverageRule? Coverage);

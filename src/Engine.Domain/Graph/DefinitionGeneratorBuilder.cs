@@ -64,6 +64,8 @@ public static class DefinitionGeneratorBuilder
             Triggers = triggers,
             PulseWeight = config.PulseWeight,
             MaxRunsPerSim = config.MaxRunsPerSim,
+            CadenceTicks = ValidatedCadenceTicks(config),
+            CadenceJitterTicks = config.CadenceJitterTicks,
             SourceConfig = config,
         };
     }
@@ -171,18 +173,50 @@ public static class DefinitionGeneratorBuilder
         EnsureKindDeclared(graph, produced.Kind, context);
         ValidateProducedSubtypeChoice(graph, produced, context);
         ValidateCoverage(graph, generatorId, produced);
-        ValidateRequiredCultureInheritance(generatorId, produced);
+        ValidateProducedCultureSource(generatorId, graph, produced);
         ValidateQuery(graph, produced.Kind, produced.Query, $"{context} query");
     }
 
-    private static void ValidateRequiredCultureInheritance(
-        string generatorId,
-        SemanticProducedEntity produced)
+    private static int ValidatedCadenceTicks(SemanticGeneratorConfig config)
     {
-        if (string.IsNullOrWhiteSpace(produced.InheritCultureFrom))
+        if (config.CadenceTicks < 0 || config.CadenceJitterTicks < 0)
         {
             throw new DefinitionGraphException(
-                $"Generator '{generatorId}' produce '{produced.Ref}' must declare InheritCultureFrom.");
+                $"Generator '{config.Id}' cadence values must be non-negative.");
+        }
+
+        if (config.CadenceTicks == 0 && config.CadenceJitterTicks > 0)
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{config.Id}' declares CadenceJitterTicks without CadenceTicks.");
+        }
+
+        if (config.CadenceTicks > 0 && config.CadenceJitterTicks >= config.CadenceTicks)
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{config.Id}' CadenceJitterTicks must be smaller than CadenceTicks.");
+        }
+
+        return config.CadenceTicks;
+    }
+
+    private static void ValidateProducedCultureSource(
+        string generatorId,
+        DefinitionGraph graph,
+        SemanticProducedEntity produced)
+    {
+        var hasRef = !string.IsNullOrWhiteSpace(produced.InheritCultureFrom);
+        var hasFixed = !string.IsNullOrWhiteSpace(produced.Culture);
+        if (hasRef == hasFixed)
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{generatorId}' produce '{produced.Ref}' must declare exactly one of InheritCultureFrom or Culture.");
+        }
+
+        if (hasFixed && !graph.Cultures.ContainsKey(produced.Culture!))
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{generatorId}' produce '{produced.Ref}' references undeclared culture '{produced.Culture}'.");
         }
     }
 
@@ -212,6 +246,7 @@ public static class DefinitionGeneratorBuilder
             SemanticPlacementFallbackTerrain = produced.SemanticPlacementFallbackTerrain,
             PlacementRef = produced.PlacementRef,
             InheritCultureFrom = produced.InheritCultureFrom,
+            Culture = produced.Culture,
             CulturePlacement = produced.CulturePlacement,
             Query = BuildQuery(graph, produced.Kind, produced.Query),
             Coverage = BuildCoverage(produced.Coverage),

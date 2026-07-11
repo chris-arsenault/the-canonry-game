@@ -256,7 +256,9 @@ internal static partial class KernelProgramInstaller
             generator.GeneratorId,
             generator.TargetKindId,
             generator.PulseWeight,
-            generator.MaxRuns);
+            generator.MaxRuns,
+            generator.CadenceTicks,
+            generator.CadenceJitterTicks);
         InstallGeneratorTarget(context, generatorSlot, generator);
         InstallGeneratorBindings(context, generatorSlot, generator);
         InstallGeneratorProducedEntities(context, generatorSlot, generator);
@@ -414,6 +416,7 @@ internal static partial class KernelProgramInstaller
             GeneratorPlacementCode(produced.SemanticPlacement),
             produced.PlacementRefCode,
             produced.CultureRefCode,
+            produced.FixedCultureId,
             produced.CreateChance,
             NullableCoverageModeCode(coverage),
             CoverageSourceRefCode(coverage),

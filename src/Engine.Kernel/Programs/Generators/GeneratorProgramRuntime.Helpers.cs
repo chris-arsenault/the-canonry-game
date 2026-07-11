@@ -56,6 +56,23 @@ internal sealed partial class GeneratorProgramRuntime
         refCount++;
     }
 
+    private int ResolveProducedCultureId(
+        WorldState world,
+        int[] refCodes,
+        int[] refEntityIds,
+        int refCount,
+        int produced)
+    {
+        var fixedCultureId = _producedFixedCultureIds[produced];
+        if (fixedCultureId > 0)
+        {
+            return fixedCultureId;
+        }
+
+        var cultureSourceId = ResolveRef(refCodes, refEntityIds, refCount, _producedCultureRefCodes[produced]);
+        return cultureSourceId == 0 ? 0 : world.EntityCultureId(cultureSourceId);
+    }
+
     private static int ResolveRef(int[] refCodes, int[] refEntityIds, int refCount, int refCode)
     {
         for (var i = 0; i < refCount; i++)

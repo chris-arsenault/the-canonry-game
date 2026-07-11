@@ -228,6 +228,8 @@ public static partial class DomainCompiler
                 CompileGeneratorTargetRelationshipRequirements(generator.Target, terrainByName, ids),
                 Math.Max(generator.PulseWeight, 0),
                 generator.MaxRunsPerSim ?? 0,
+                Math.Max(generator.CadenceTicks, 0),
+                Math.Max(generator.CadenceJitterTicks, 0),
                 CompileGeneratorTriggers(generator.Triggers, ids),
                 CompileGeneratorBindings(generator.SecondaryTargets, ids, refCodes),
                 CompileGeneratorProducedEntities(generator.Produces, ids, terrainByName, refCodes),
@@ -383,7 +385,8 @@ public static partial class DomainCompiler
                 CompileTerrainIds(produced.SemanticPlacementAvoidedTerrains, terrainByName, ids),
                 CompileOptionalTerrainId(produced.SemanticPlacementFallbackTerrain, terrainByName, ids),
                 refCodes[produced.PlacementRef],
-                refCodes[produced.InheritCultureFrom],
+                produced.InheritCultureFrom is null ? 0 : refCodes[produced.InheritCultureFrom],
+                produced.Culture is null ? 0 : ids.CultureIdOf(produced.Culture).Value,
                 ToGeneratorCulturePlacement(produced.CulturePlacement),
                 produced.CreateChance,
                 CompileGeneratorCoverage(produced.Coverage, terrainByName, refCodes, ids)));

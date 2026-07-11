@@ -155,6 +155,8 @@ public sealed class DefinitionGeneratorNode
     public required IReadOnlyList<DefinitionGeneratorTrigger> Triggers { get; init; }
     public int PulseWeight { get; init; }
     public int? MaxRunsPerSim { get; init; }
+    public int CadenceTicks { get; init; }
+    public int CadenceJitterTicks { get; init; }
     public required SemanticGeneratorConfig SourceConfig { get; init; }
 }
 
@@ -283,7 +285,8 @@ public sealed class DefinitionProducedEntity
     public IReadOnlySet<string>? SemanticPlacementAvoidedTerrains { get; init; }
     public string? SemanticPlacementFallbackTerrain { get; init; }
     public string PlacementRef { get; init; } = "$target";
-    public required string InheritCultureFrom { get; init; }
+    public string? InheritCultureFrom { get; init; }
+    public string? Culture { get; init; }
     public GeneratorCulturePlacement CulturePlacement { get; init; } = GeneratorCulturePlacement.PreferInheritedCulture;
     public DefinitionEntityQuery? Query { get; init; }
     public DefinitionRegionCoverage? Coverage { get; init; }

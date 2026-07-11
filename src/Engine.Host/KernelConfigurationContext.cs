@@ -546,12 +546,16 @@ internal sealed class KernelConfigurationContext
         int generatorId,
         int targetKindId,
         int pulseWeight,
-        int maxRuns) =>
+        int maxRuns,
+        int cadenceTicks = 0,
+        int cadenceJitterTicks = 0) =>
         _kernel.Generators.RegisterGenerator(
             generatorId,
             targetKindId,
             pulseWeight,
-            maxRuns);
+            maxRuns,
+            cadenceTicks,
+            cadenceJitterTicks);
 
     public void AddGeneratorTargetSubtype(int generatorSlot, int subtypeId) =>
         _kernel.Generators.AddTargetSubtype(generatorSlot, subtypeId);
@@ -627,6 +631,7 @@ internal sealed class KernelConfigurationContext
         int semanticPlacementCode,
         int placementRefCode,
         int cultureRefCode,
+        int fixedCultureId,
         float createChance,
         int coverageModeCode,
         int coverageSourceRefCode,
@@ -667,7 +672,8 @@ internal sealed class KernelConfigurationContext
             semanticPlacementMinRadius,
             semanticPlacementMaxRadius,
             culturePlacementCode,
-            querySamePhysicalCultureComponentAsTarget ? 1 : 0);
+            querySamePhysicalCultureComponentAsTarget ? 1 : 0,
+            fixedCultureId);
 
     public void AddGeneratorProducedSubtypeChoice(int producedSlot, int subtypeId) =>
         _kernel.Generators.AddProducedSubtypeChoice(producedSlot, subtypeId);
