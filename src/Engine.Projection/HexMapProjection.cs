@@ -69,7 +69,9 @@ public sealed record HexProjection(
     int TravelStructureId,
     int Tick,
     long WorldVersion,
-    long Sequence);
+    long Sequence,
+    int ForgedSpireTiers = 0,
+    int ForgedTunnelDepth = 0);
 
 public sealed record HexInfluenceProjection(
     int EntityId,
@@ -280,6 +282,12 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
 
     protected override void OnCellCreated(long sequence, in CellCreatedKernelEvent evt)
     {
+        if (evt.Z != 0)
+        {
+            UpdateForgedColumn(sequence, evt.Tick, evt.WorldVersion, PlaneCodes.Physical, evt.Q, evt.R, evt.Z);
+            return;
+        }
+
         UpsertCell(
             sequence,
             evt.Tick,
@@ -295,6 +303,12 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
 
     protected override void OnCellChanged(long sequence, in CellChangedKernelEvent evt)
     {
+        if (evt.Z != 0)
+        {
+            UpdateForgedColumn(sequence, evt.Tick, evt.WorldVersion, PlaneCodes.Physical, evt.Q, evt.R, evt.Z);
+            return;
+        }
+
         UpsertCell(
             sequence,
             evt.Tick,
@@ -306,6 +320,32 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             evt.CurrentOwnerEntityId,
             evt.SuperregionId,
             evt.ContinentId);
+    }
+
+    // Forged cells above or below the surface never overwrite the surface hex
+    // record; they only raise the column's forged tier/depth summary.
+    private void UpdateForgedColumn(long sequence, int tick, long worldVersion, int planeCode, int q, int r, int z)
+    {
+        var existing = EnsureCell(sequence, tick, worldVersion, planeCode, q, r);
+        var spireTiers = z > 0 ? Math.Max(existing.ForgedSpireTiers, z) : existing.ForgedSpireTiers;
+        var tunnelDepth = z < 0 ? Math.Max(existing.ForgedTunnelDepth, -z) : existing.ForgedTunnelDepth;
+        if (spireTiers == existing.ForgedSpireTiers && tunnelDepth == existing.ForgedTunnelDepth)
+        {
+            MarkProjected(sequence, tick, worldVersion);
+            return;
+        }
+
+        GetSurface(planeCode).HexesById[existing.HexId] = existing with
+        {
+            ForgedSpireTiers = spireTiers,
+            ForgedTunnelDepth = tunnelDepth,
+            Tick = tick,
+            WorldVersion = worldVersion,
+            Sequence = sequence,
+        };
+        CellVersion++;
+        MarkCellDirty(planeCode, existing.HexId);
+        MarkProjected(sequence, tick, worldVersion);
     }
 
     protected override void OnCellInfluenceChanged(long sequence, in CellInfluenceChangedKernelEvent evt)
@@ -332,6 +372,14 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
 
     protected override void OnCellCultureInfluenceChanged(long sequence, in CellCultureInfluenceChangedKernelEvent evt)
     {
+        if (evt.Z != 0)
+        {
+            // Forged-cell mass is a ledger concern; it must not perturb the
+            // surface culture shares this projection renders.
+            MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+            return;
+        }
+
         var existing = EnsureCell(sequence, evt.Tick, evt.WorldVersion, evt.PlaneCode, evt.Q, evt.R);
         var cultureInfluences = UpsertCultureInfluence(existing.CultureInfluences, evt.CultureId, evt.CurrentShare, evt.Tick, sequence);
         GetSurface(evt.PlaneCode).HexesById[existing.HexId] = existing with
@@ -389,6 +437,12 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
 
     protected override void OnMapCellStateChanged(long sequence, in MapCellStateChangedKernelEvent evt)
     {
+        if (evt.Z != 0)
+        {
+            UpdateForgedColumn(sequence, evt.Tick, evt.WorldVersion, evt.PlaneCode, evt.Q, evt.R, evt.Z);
+            return;
+        }
+
         UpsertCell(
             sequence,
             evt.Tick,

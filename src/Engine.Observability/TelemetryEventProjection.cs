@@ -302,7 +302,9 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.ToQ,
             evt.ToR,
             evt.ToS,
-            MovementDistance(evt)));
+            MovementDistance(evt),
+            evt.FromZ,
+            evt.ToZ));
         MarkProjected(sequence);
     }
 
@@ -418,7 +420,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.PreviousTerrainId,
             evt.CurrentTerrainId,
             evt.PreviousOwnerEntityId,
-            evt.CurrentOwnerEntityId);
+            evt.CurrentOwnerEntityId,
+            evt.Z);
         MarkProjected(sequence);
     }
 
@@ -454,7 +457,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.CurrentShare - evt.PreviousShare,
             evt.PreviousRawInfluence,
             evt.CurrentRawInfluence,
-            evt.CurrentTotalRawInfluence));
+            evt.CurrentTotalRawInfluence,
+            evt.Z));
         MarkProjected(sequence);
     }
 
@@ -748,7 +752,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         int previousTerrainId,
         int currentTerrainId,
         int previousOwnerEntityId,
-        int currentOwnerEntityId)
+        int currentOwnerEntityId,
+        int z = 0)
     {
         var key = new ObservedMapCellKey(planeCode, q, r);
         UpsertMapCell(
@@ -774,7 +779,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             currentTerrainId,
             previousOwnerEntityId,
             currentOwnerEntityId,
-            causeId));
+            causeId,
+            z));
 
         if (previousTerrainId == 0 && currentTerrainId != 0)
         {

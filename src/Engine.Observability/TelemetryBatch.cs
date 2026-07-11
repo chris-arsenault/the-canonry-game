@@ -273,7 +273,9 @@ public sealed record MovementEventRow(
     int ToQ,
     int ToR,
     int ToS,
-    int Distance);
+    int Distance,
+    int FromZ = 0,
+    int ToZ = 0);
 
 public sealed record RelationshipEventRow(
     int RunId,
@@ -442,7 +444,8 @@ public sealed record MapCellEventRow(
     int CurrentTerrainId,
     int PreviousOwnerEntityId,
     int CurrentOwnerEntityId,
-    int CauseId = 0);
+    int CauseId = 0,
+    int Z = 0);
 
 public sealed record CellInfluenceEventRow(
     int RunId,
@@ -470,7 +473,8 @@ public sealed record CellCultureInfluenceEventRow(
     float Delta,
     float PreviousRawInfluence = 0f,
     float CurrentRawInfluence = 0f,
-    float CurrentTotalRawInfluence = 0f);
+    float CurrentTotalRawInfluence = 0f,
+    int Z = 0);
 
 public sealed record CultureSlotOccupancyEventRow(
     int RunId,
