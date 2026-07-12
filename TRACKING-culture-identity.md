@@ -138,6 +138,25 @@ so it damps only the edges of the culture that caused the terror; give
 Wake-Singers the fervor-field bandwidth (deferred design); or accept
 bistability at bootstrap horizon and map the basins with a wider seed sweep.
 
+## Ability Participation (dread-songs and warding forms)
+
+Abilities are strategic actors in the conflict loop (user direction:
+abilities are a core concept and should curb the wardens).
+the_dread_song_breaks_the_watch: a Wake-Singer rite turned against a named
+warden — hero-versus-hero, the warden falls, the kill is sung to the deep.
+wardens_take_up_the_old_forms: surviving wardens practice same-culture
+abilities (custody feed, craft lineage). Evidence
+(`dread-song-2x25k-20260712`): both fire (2 dread-songs, 5 warding forms);
+mechanism verified. Regions deliberately left thin (user: not concerned).
+
+**Balance state after this round:** every authored loop demonstrably fires,
+but the ecosystem equilibrium remains trajectory-sensitive with a strong
+Aurora-dominant attractor: WS finals across recent runs {2, 10, 4, 39, 1,
+21} — the dread-song at weight 3 does not flip basins, and 2-seed batches
+are too noisy to tune against. Next decision is structural, not numeric:
+wide seed sweep (10+ seeds) to map attractor basins before further tuning,
+and/or the deferred fervor-field round for Wake-Singer loop bandwidth.
+
 Horizon framing: these 25k-tick runs test the bootstrap-into-steady-state
 phase only. Real play (SimCity mental model) extends 4x-50x, so low absolute
 map coverage is expected; judge shape, trend, and steady-state stability, not
