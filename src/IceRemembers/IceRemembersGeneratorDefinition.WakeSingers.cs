@@ -23,7 +23,7 @@ public static partial class IceRemembersGeneratorDefinition
     private const float GloryMinimumPredationStrength = 0.60f;
     private const float GloryPredationSpend = -0.20f;
     private const float ProvidesMinimumOfferingStrength = 0.50f;
-    private const float ProvidesOfferingSpend = -0.35f;
+    private const float ProvidesOfferingSpend = -0.30f;
     private const float NewSiteMinimumOfferingStrength = 0.75f;
     private const float NewSiteOfferingSpend = -0.40f;
     private const int VigilCadenceTicks = 600;
@@ -190,7 +190,7 @@ public static partial class IceRemembersGeneratorDefinition
                 GeneratorRelationshipInstanceSelection.AllTargetRelationships),
         ],
         Triggers = TriggerOn(K.PointOfInterest),
-        PulseWeight = 8,
+        PulseWeight = 10,
     };
 
     private static SemanticGeneratorConfig PilgrimsFoundNewCurrents() => new()
@@ -263,7 +263,7 @@ public static partial class IceRemembersGeneratorDefinition
             new SetBindingTagEffect("$prey", "hunted"),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 5,
+        PulseWeight = 6,
     };
 
     private static SemanticGeneratorConfig AHeroFallsToTheDeep() => new()

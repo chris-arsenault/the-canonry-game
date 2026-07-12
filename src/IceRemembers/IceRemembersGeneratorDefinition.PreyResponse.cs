@@ -16,7 +16,7 @@ using Rel = IceRemembers.IceRemembersRelationship;
 /// </summary>
 public static partial class IceRemembersGeneratorDefinition
 {
-    private const float WardenPredationDamp = -0.10f;
+    private const float WardenPredationDamp = -0.06f;
 
     private static SemanticGeneratorConfig MartyrsAreWitnessed() => new()
     {
@@ -60,7 +60,7 @@ public static partial class IceRemembersGeneratorDefinition
                 GeneratorRelationshipInstanceSelection.AllTargetRelationships),
         ],
         Triggers = TriggerOn(K.Settlement),
-        PulseWeight = 6,
+        PulseWeight = 4,
     };
 
     private static SemanticGeneratorConfig MonstersStalkTheMarches() => new()
@@ -88,7 +88,7 @@ public static partial class IceRemembersGeneratorDefinition
             new SetBindingTagEffect("$prey", "hunted"),
         ],
         Triggers = TriggerOn(K.Monster),
-        PulseWeight = 4,
+        PulseWeight = 3,
     };
 
     private static SemanticGeneratorConfig PodsHuntTheConvoys() => new()

@@ -109,6 +109,35 @@ tuned rerun):**
   amplitude runs high (54-107) — the devotion+predation engine may need a
   damper or the amplitude may be acceptable ebb-and-flow at this horizon.
 
+## Escalation Round (terror ladder + prey response + kind participation)
+
+Correction round after user review: state machines are discrete (relationship
+strength remains the only numeric). Raids set `hunted`; the_hunt_settles_in
+steps hunted->terrified while predation persists; the_fear_fades steps back
+down. Prey-side response is culture-generic: bereaved shores raise memorials
+(martyrs_are_witnessed), terrified shores raise wardens that damp the hunt.
+Kind participation widened: monsters stalk settlements, pods hunt convoys
+(`preys_on` targets spatial+asset), all through the same ladder.
+
+**Evidence (`terror-ladder-2x25k[-b][-r2]-20260712`, 6 runs):** the whole
+chain functions — hunted/terrified set AND clear on every seed, wardens and
+martyrs rise, the Accord convenes, and counter_offensive produced its first
+named escalation war. After one predator-prey rebalance (warden damp -0.06,
+monster weight 3, provides restored to 10/-0.30), seed 25001 settles the
+first true tri-polar world: populations 32/62/39 with Aurora leading Witness
+44, Nightshelf Shadow 60, Wake-Singers Wake 35.5.
+
+**Open dynamic, needs design direction:** the predator-prey system is
+seed-bistable. Roughly half the seeds settle multi-polar; the other half tip
+into an Aurora-dominant basin where the monster-driven warden response
+drains Wake-Singer predation faster than devotion can renew it, and
+Wake-Singers slide to 1-8 living (Aurora 76-88). glory_to_the_dead_god has
+still never fired (fervent + hot predation rarely coincide even at 0.6).
+Candidate directions, not taken unilaterally: separate the warden response
+so it damps only the edges of the culture that caused the terror; give
+Wake-Singers the fervor-field bandwidth (deferred design); or accept
+bistability at bootstrap horizon and map the basins with a wider seed sweep.
+
 Horizon framing: these 25k-tick runs test the bootstrap-into-steady-state
 phase only. Real play (SimCity mental model) extends 4x-50x, so low absolute
 map coverage is expected; judge shape, trend, and steady-state stability, not
