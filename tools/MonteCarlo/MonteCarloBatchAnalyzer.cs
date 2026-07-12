@@ -133,13 +133,14 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
                 CAST(NULL AS BIGINT) AS culture_id,
                 CAST(NULL AS DOUBLE) AS witness_share,
                 CAST(NULL AS DOUBLE) AS shadow_share,
-                CAST(NULL AS DOUBLE) AS blood_share,
+                CAST(NULL AS DOUBLE) AS wake_share,
                 CAST(NULL AS DOUBLE) AS witness_mass,
                 CAST(NULL AS DOUBLE) AS hidden_mass,
                 CAST(NULL AS DOUBLE) AS semantic_mass,
                 CAST(NULL AS DOUBLE) AS custody_strength,
                 CAST(NULL AS DOUBLE) AS claim_strength,
-                CAST(NULL AS DOUBLE) AS war_strength
+                CAST(NULL AS DOUBLE) AS war_strength,
+                CAST(NULL AS DOUBLE) AS offering_strength
             WHERE FALSE
             """),
         new(

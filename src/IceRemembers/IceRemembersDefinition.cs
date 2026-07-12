@@ -64,6 +64,7 @@ public static partial class IceRemembersDefinition
             ],
             ClaimRelationship = L(Rel.ClaimedBy),
             WarRelationship = L(Rel.AtWarWith),
+            OfferingRelationships = [L(Rel.OfferedTo), L(Rel.ConsignedTo)],
         };
 
     private static ChronicleConfig CreateChronicleDefinition() =>
@@ -152,6 +153,8 @@ public static partial class IceRemembersDefinition
             new() { Name = L(Rel.BetrayedBy), Polarity = RelationshipPolarity.Negative, ValidSourceCategories = agency, ValidTargetCategories = agency, Maintenance = AgencyConflictMaintenance() },
             new() { Name = L(Rel.PracticedBy), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = asset, ValidTargetCategories = agency, CullThreshold = 0.05f, Maintenance = AbilityPracticeMaintenance() },
             new() { Name = L(Rel.TaughtBy), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = agency, ValidTargetCategories = agency, CullThreshold = 0.05f, Maintenance = AgencyBondMaintenance() },
+            new() { Name = L(Rel.OfferedTo), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = agency, ValidTargetCategories = spatial, CullThreshold = 0.02f, Maintenance = OfferingMaintenance() },
+            new() { Name = L(Rel.ConsignedTo), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = asset, ValidTargetCategories = spatial, IsExclusive = true, CullThreshold = 0.02f, Maintenance = SemanticBondMaintenance() },
         ];
     }
 
@@ -191,6 +194,16 @@ public static partial class IceRemembersDefinition
         Distance(PrimaryPlane.Physical, 6, 0.0008f),
         SourceInfluenceAtTarget(50f, 0.001f),
         TargetInfluenceAtSource(50f, 0.001f),
+    ];
+
+    /// <summary>
+    /// Offerings fade unless renewed: worship is a flow, not a purchase. The
+    /// decay is what makes sacred sites ebb when a cult goes quiet.
+    /// </summary>
+    private static IReadOnlyList<RelationshipMaintenanceRuleConfig> OfferingMaintenance() =>
+    [
+        AlwaysDecay(0.0010f),
+        ContactMemory(10f, 0.0010f),
     ];
 
     private static IReadOnlyList<RelationshipMaintenanceRuleConfig> SemanticBondMaintenance() =>

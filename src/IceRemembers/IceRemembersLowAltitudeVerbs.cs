@@ -171,6 +171,9 @@ public static partial class IceRemembersDefinition
         RelationshipStrengthVerb(Verb.OrcaReinforcePodTie, "Reinforce Pod Tie", K.Orca, L(Rel.MemberOf),
             LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (30, 90), dwell: 10, delta: 0.0042f, radius: 1, samples: 10,
             weight: 0.45f, opportunityBonusOverride: 0.45f, fitnessWeight: 0.8f, plane: PrimaryPlane.Semantic),
+        RelationshipStrengthVerb(Verb.OrcaRenewTheOffering, "Renew the Offering", K.Orca, L(Rel.OfferedTo),
+            LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 100), dwell: 12, delta: 0.0040f, radius: 1, samples: 12,
+            weight: 0.5f, opportunityBonusOverride: 0.45f, fitnessWeight: 0.8f),
         RelationshipStrengthVerb(Verb.OrcaPressRouteWar, "Press Route War", K.Orca, L(Rel.AtWarWith),
             LowAltitudeVerbRelationshipDirection.Either, ticks: (32, 95), dwell: 10, delta: 0.0040f, radius: 1, samples: 12,
             weight: 0.46f, opportunityBonusOverride: 0.48f, fitnessWeight: 0.78f, plane: PrimaryPlane.Semantic),
@@ -265,6 +268,9 @@ public static partial class IceRemembersDefinition
 
     private static IReadOnlyList<LowAltitudeVerbConfig> CreatePointOfInterestClaimStrengthVerbs() =>
     [
+        RelationshipStrengthVerb(Verb.PointOfInterestDrawTheOffering, "Draw the Offering", K.PointOfInterest, L(Rel.OfferedTo),
+            LowAltitudeVerbRelationshipDirection.Either, ticks: (35, 105), dwell: 12, delta: 0.0038f, radius: 1, samples: 10,
+            weight: 0.45f, opportunityBonusOverride: 0.45f, fitnessWeight: 0.8f),
         RelationshipStrengthVerb(Verb.PointOfInterestTightenClaim, "Tighten the Claim", K.PointOfInterest, L(Rel.ClaimedBy),
             LowAltitudeVerbRelationshipDirection.Outgoing, ticks: (35, 105), dwell: 12, delta: 0.0035f, radius: 1, samples: 10,
             weight: 0.42f, opportunityBonusOverride: 0.45f, fitnessWeight: 0.8f, plane: PrimaryPlane.Semantic),

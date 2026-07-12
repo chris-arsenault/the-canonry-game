@@ -27,7 +27,7 @@ public sealed class CulturePowerTests
         {
             Assert.InRange(power.WitnessShare, 0f, 100.5f);
             Assert.InRange(power.ShadowShare, 0f, 100.5f);
-            Assert.InRange(power.BloodShare, 0f, 100.5f);
+            Assert.InRange(power.WakeShare, 0f, 100.5f);
         }
 
         // Physical mass always exists after seeding, so Witness partitions the world.
@@ -36,7 +36,7 @@ public sealed class CulturePowerTests
         // Every axis mean is built from components dropped world-wide when empty,
         // so each axis either partitions to 100% or is entirely absent.
         AssertPartitionsOrEmpty(powers.Sum(power => power.ShadowShare));
-        AssertPartitionsOrEmpty(powers.Sum(power => power.BloodShare));
+        AssertPartitionsOrEmpty(powers.Sum(power => power.WakeShare));
     }
 
     [Fact]

@@ -16,9 +16,11 @@ public sealed partial class KernelHost
         _culturePowerVocabulary ??= CulturePowerVocabulary.Resolve(CompiledDomain);
 
     /// <summary>
-    /// Computes the locked culture power ledgers (Witness/Shadow/Blood) from
-    /// current world state. Shares are 0-100 percentages of world totals;
-    /// axis components whose world total is zero are dropped from their mean.
+    /// Computes the culture power ledgers (Witness/Shadow/Wake) from current
+    /// world state. Shares are 0-100 percentages of world totals; axis
+    /// components whose world total is zero are dropped from their mean. Wake
+    /// counts claims, war presence, and devotion flow: offering-relationship
+    /// strength attributed to the receiving site's culture.
     /// </summary>
     public IReadOnlyList<CulturePowerSummary> ComputeCulturePower()
     {
@@ -45,13 +47,14 @@ public sealed partial class KernelHost
                 summary.CultureId,
                 summary.WitnessShare,
                 summary.ShadowShare,
-                summary.BloodShare,
+                summary.WakeShare,
                 summary.WitnessMass,
                 summary.HiddenMass,
                 summary.SemanticMass,
                 summary.CustodyStrength,
                 summary.ClaimStrength,
-                summary.WarStrength));
+                summary.WarStrength,
+                summary.OfferingStrength));
         }
     }
 
@@ -131,6 +134,15 @@ public sealed partial class KernelHost
         if (kindId == vocabulary.WarRelationshipKindId)
         {
             AccumulateWar(world, accumulators, relationshipId, strength);
+        }
+
+        if (vocabulary.IsOfferingRelationship(kindId))
+        {
+            var siteCultureId = ActiveEntityCultureId(world, world.RelationshipTargetId(relationshipId));
+            if (siteCultureId > 0)
+            {
+                accumulators[siteCultureId].OfferingStrength += strength;
+            }
         }
     }
 
@@ -213,21 +225,23 @@ public sealed partial class KernelHost
         shadow.Add(accumulator.HiddenMass, totals.HiddenMass);
         shadow.Add(accumulator.CustodyStrength, totals.CustodyStrength);
 
-        var blood = default(ComponentMean);
-        blood.Add(accumulator.ClaimStrength, totals.ClaimStrength);
-        blood.Add(accumulator.WarStrength, totals.WarStrength);
+        var wake = default(ComponentMean);
+        wake.Add(accumulator.ClaimStrength, totals.ClaimStrength);
+        wake.Add(accumulator.WarStrength, totals.WarStrength);
+        wake.Add(accumulator.OfferingStrength, totals.OfferingStrength);
 
         return new CulturePowerSummary(
             cultureId,
             Share(accumulator.WitnessMass, totals.WitnessMass),
             shadow.Mean,
-            blood.Mean,
+            wake.Mean,
             accumulator.WitnessMass,
             accumulator.HiddenMass,
             accumulator.SemanticMass,
             accumulator.CustodyStrength,
             accumulator.ClaimStrength,
-            accumulator.WarStrength);
+            accumulator.WarStrength,
+            accumulator.OfferingStrength);
     }
 
     private static float Share(float value, float total) =>
@@ -241,6 +255,7 @@ public sealed partial class KernelHost
         public float CustodyStrength;
         public float ClaimStrength;
         public float WarStrength;
+        public float OfferingStrength;
 
         public void AddFrom(in CulturePowerAccumulator other)
         {
@@ -250,6 +265,7 @@ public sealed partial class KernelHost
             CustodyStrength += other.CustodyStrength;
             ClaimStrength += other.ClaimStrength;
             WarStrength += other.WarStrength;
+            OfferingStrength += other.OfferingStrength;
         }
     }
 
@@ -274,21 +290,24 @@ public sealed partial class KernelHost
 
     private sealed class CulturePowerVocabulary
     {
-        private static readonly CulturePowerVocabulary Empty = new([], [], 0, 0);
+        private static readonly CulturePowerVocabulary Empty = new([], [], 0, 0, []);
 
         private readonly HashSet<int> _custodyKindIds;
         private readonly HashSet<int> _custodyRelationshipKindIds;
+        private readonly HashSet<int> _offeringRelationshipKindIds;
 
         private CulturePowerVocabulary(
             HashSet<int> custodyKindIds,
             HashSet<int> custodyRelationshipKindIds,
             int claimRelationshipKindId,
-            int warRelationshipKindId)
+            int warRelationshipKindId,
+            HashSet<int> offeringRelationshipKindIds)
         {
             _custodyKindIds = custodyKindIds;
             _custodyRelationshipKindIds = custodyRelationshipKindIds;
             ClaimRelationshipKindId = claimRelationshipKindId;
             WarRelationshipKindId = warRelationshipKindId;
+            _offeringRelationshipKindIds = offeringRelationshipKindIds;
         }
 
         public int ClaimRelationshipKindId { get; }
@@ -296,12 +315,18 @@ public sealed partial class KernelHost
         public int WarRelationshipKindId { get; }
 
         public bool HasRelationshipVocabulary =>
-            _custodyRelationshipKindIds.Count > 0 || ClaimRelationshipKindId > 0 || WarRelationshipKindId > 0;
+            _custodyRelationshipKindIds.Count > 0 ||
+            ClaimRelationshipKindId > 0 ||
+            WarRelationshipKindId > 0 ||
+            _offeringRelationshipKindIds.Count > 0;
 
         public bool IsCustodyKind(int kindId) => _custodyKindIds.Contains(kindId);
 
         public bool IsCustodyRelationship(int relationshipKindId) =>
             _custodyRelationshipKindIds.Contains(relationshipKindId);
+
+        public bool IsOfferingRelationship(int relationshipKindId) =>
+            _offeringRelationshipKindIds.Contains(relationshipKindId);
 
         public static CulturePowerVocabulary Resolve(CompiledDomain? domain)
         {
@@ -323,11 +348,18 @@ public sealed partial class KernelHost
                 custodyRelationshipKindIds.Add(domain.Ids.RelationshipKindIdOf(relationshipName).Value);
             }
 
+            var offeringRelationshipKindIds = new HashSet<int>();
+            foreach (var relationshipName in config.OfferingRelationships)
+            {
+                offeringRelationshipKindIds.Add(domain.Ids.RelationshipKindIdOf(relationshipName).Value);
+            }
+
             return new CulturePowerVocabulary(
                 custodyKindIds,
                 custodyRelationshipKindIds,
                 config.ClaimRelationship is { } claim ? domain.Ids.RelationshipKindIdOf(claim).Value : 0,
-                config.WarRelationship is { } war ? domain.Ids.RelationshipKindIdOf(war).Value : 0);
+                config.WarRelationship is { } war ? domain.Ids.RelationshipKindIdOf(war).Value : 0,
+                offeringRelationshipKindIds);
         }
     }
 }

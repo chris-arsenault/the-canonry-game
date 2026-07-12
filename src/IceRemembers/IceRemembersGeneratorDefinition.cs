@@ -60,6 +60,12 @@ public static partial class IceRemembersGeneratorDefinition
         WarsFeedShadowBrokers(),
         RecordsCastShadows(),
         TheDeepConclave(),
+        KillsSungToTheDeep(),
+        EldersDescendToTheGod(),
+        RelicsAreGivenToTheDeep(),
+        VigilsAtTheCurrent(),
+        TheCurrentProvides(),
+        PilgrimsFoundNewCurrents(),
     ];
 
     private static string L(Rel relationship) => relationship.ToDomainName();

@@ -774,6 +774,8 @@ public class DomainConfigTests
             [Rel.BetrayedBy.ToDomainName()] = true,
             [Rel.PracticedBy.ToDomainName()] = true,
             [Rel.TaughtBy.ToDomainName()] = true,
+            [Rel.OfferedTo.ToDomainName()] = true,
+            [Rel.ConsignedTo.ToDomainName()] = true,
         };
 
     private sealed record RelationshipStrengthFlowInventory(

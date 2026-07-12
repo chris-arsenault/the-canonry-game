@@ -9,10 +9,11 @@ public readonly record struct CulturePowerSummary(
     int CultureId,
     float WitnessShare,
     float ShadowShare,
-    float BloodShare,
+    float WakeShare,
     float WitnessMass,
     float HiddenMass,
     float SemanticMass,
     float CustodyStrength,
     float ClaimStrength,
-    float WarStrength);
+    float WarStrength,
+    float OfferingStrength);

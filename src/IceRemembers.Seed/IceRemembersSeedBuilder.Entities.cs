@@ -130,6 +130,15 @@ internal static partial class IceRemembersSeedBuilder
         SetSemanticNaturalNear(seed, dreamingTooth, corpseCurrent, random, takenSemantic, searchRadius: 12);
         CreateRelationship(seed, "anchored", RelationshipPolarity.Neutral, dreamingTooth.SeedEntityId, corpseCurrent.SeedEntityId, 1f);
         CreateRelationship(seed, "claimed_by", RelationshipPolarity.Neutral, dreamingTooth.SeedEntityId, factions.WakeSingers.SeedEntityId, 1f);
+
+        // The Corpse Current starts as a living sacred site: devotion edges
+        // from the choir and its elders, the Firstkilltooth already given to
+        // the deep, and one live grievance so the blood channel can boot.
+        CreateRelationship(seed, "offered_to", RelationshipPolarity.Positive, factions.WakeSingers.SeedEntityId, corpseCurrent.SeedEntityId, 0.85f);
+        CreateRelationship(seed, "offered_to", RelationshipPolarity.Positive, grandmotherDeep.SeedEntityId, corpseCurrent.SeedEntityId, 0.9f);
+        CreateRelationship(seed, "offered_to", RelationshipPolarity.Positive, tidescream.SeedEntityId, corpseCurrent.SeedEntityId, 0.7f);
+        CreateRelationship(seed, "consigned_to", RelationshipPolarity.Neutral, dreamingTooth.SeedEntityId, corpseCurrent.SeedEntityId, 0.9f);
+        CreateRelationship(seed, "at_war_with", RelationshipPolarity.Negative, factions.WakeSingers.SeedEntityId, factions.Exchange.SeedEntityId, 0.6f);
     }
 
     private static void CreateLeadershipRelationships(

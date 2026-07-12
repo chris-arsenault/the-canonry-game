@@ -200,7 +200,7 @@ public partial class LegendPanel : PanelContainer
             AddMutedLine(
                 $"witness {power.WitnessShare:0}%  " +
                 $"shadow {power.ShadowShare:0}%  " +
-                $"blood {power.BloodShare:0}%");
+                $"wake {power.WakeShare:0}%");
             return;
         }
     }

@@ -173,6 +173,13 @@ public sealed class CulturePowerConfig
     public IReadOnlyList<string> CustodyRelationships { get; init; } = [];
     public string? ClaimRelationship { get; init; }
     public string? WarRelationship { get; init; }
+
+    /// <summary>
+    /// Relationship kinds whose strength counts as devotion flow for the Wake
+    /// axis. Offering strength is attributed to the culture of the receiving
+    /// site (the relationship target).
+    /// </summary>
+    public IReadOnlyList<string> OfferingRelationships { get; init; } = [];
 }
 
 /// <summary>Relationship kind configuration.</summary>

@@ -131,6 +131,8 @@ public enum IceRemembersRelationship
     BetrayedBy,
     PracticedBy,
     TaughtBy,
+    OfferedTo,
+    ConsignedTo,
 }
 
 public static class IceRemembersRelationshipExtensions
@@ -160,6 +162,8 @@ public static class IceRemembersRelationshipExtensions
         "betrayed_by",
         "practiced_by",
         "taught_by",
+        "offered_to",
+        "consigned_to",
     ];
 
     public static string ToDomainName(this IceRemembersRelationship relationship)
@@ -353,6 +357,8 @@ public enum IceRemembersVerbId
     PenguinCarryMandate,
     OrcaCarryOldVoice,
     FactionTendSeatControl,
+    OrcaRenewTheOffering,
+    PointOfInterestDrawTheOffering,
 }
 
 public static class IceRemembersVerbIdExtensions
@@ -519,6 +525,8 @@ public static class IceRemembersVerbIdExtensions
         "penguin_carry_mandate",
         "orca_carry_old_voice",
         "faction_tend_seat_control",
+        "orca_renew_the_offering",
+        "point_of_interest_draw_the_offering",
     ];
 
     public static string ToVerbId(this IceRemembersVerbId verbId)
