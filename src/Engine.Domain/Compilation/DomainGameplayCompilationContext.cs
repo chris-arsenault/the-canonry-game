@@ -101,6 +101,8 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
 
     public int ResolveTagId(string tag) => _ids.TagIdOf(tag).Value;
 
+    public int ResolveSubtypeId(string subtype) => _ids.SubtypeIdOf(subtype).Value;
+
     public bool TerrainExists(string terrain) =>
         _config.Terrains.Any(candidate => string.Equals(candidate.Name, terrain, StringComparison.Ordinal));
 

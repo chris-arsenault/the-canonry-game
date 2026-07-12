@@ -19,6 +19,11 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     private int[] _attributeDeltaCultureSlotPolarityCodes => Data.AttributeDeltaCultureSlotPolarityCodes;
     private ref int _attributeDeltaRuleCount => ref Data.AttributeDeltaRuleCount;
     private float[] _attributeDeltaSupportScales => Data.AttributeDeltaSupportScales;
+    private int[] _attributeDeltaCoverageOwnerKindIds => Data.AttributeDeltaCoverageOwnerKindIds;
+    private int[] _attributeDeltaCoverageOwnerSubtypeIds => Data.AttributeDeltaCoverageOwnerSubtypeIds;
+    private int[] _tagRuleCoverageOwnerKindIds => Data.TagRuleCoverageOwnerKindIds;
+    private int[] _tagRuleCoverageOwnerSubtypeIds => Data.TagRuleCoverageOwnerSubtypeIds;
+    private int[] _tagRuleCoveragePlaneCodes => Data.TagRuleCoveragePlaneCodes;
     private int[] _tagRuleKindIds => Data.TagRuleKindIds;
     private int[] _tagRuleTagIds => Data.TagRuleTagIds;
     private int[] _tagRuleRelationshipKindIds => Data.TagRuleRelationshipKindIds;
@@ -57,7 +62,9 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         int cultureId = 0,
         int cultureSlotId = 0,
         int cultureSlotPolarityCode = -1,
-        float supportScale = 0f)
+        float supportScale = 0f,
+        int coverageOwnerKindId = 0,
+        int coverageOwnerSubtypeId = 0)
     {
         ValidatePositive(kindId);
         ValidatePositive(attributeId);
@@ -96,6 +103,8 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         _attributeDeltaCultureSlotIds[slot] = cultureSlotId;
         _attributeDeltaCultureSlotPolarityCodes[slot] = cultureSlotPolarityCode;
         _attributeDeltaSupportScales[slot] = supportScale;
+        _attributeDeltaCoverageOwnerKindIds[slot] = coverageOwnerKindId;
+        _attributeDeltaCoverageOwnerSubtypeIds[slot] = coverageOwnerSubtypeId;
         return slot;
     }
 
@@ -105,7 +114,10 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         int relationshipKindId,
         int relationshipDirectionCode,
         float setAtOrAbove,
-        float clearBelow)
+        float clearBelow,
+        int insideCoverageOwnerKindId = 0,
+        int insideCoverageOwnerSubtypeId = 0,
+        int insideCoveragePlaneCode = PlaneCodes.Semantic)
     {
         ValidatePositive(kindId);
         ValidatePositive(tagId);
@@ -124,6 +136,9 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         _tagRuleDirectionCodes[slot] = relationshipDirectionCode;
         _tagRuleSetThresholds[slot] = setAtOrAbove;
         _tagRuleClearThresholds[slot] = clearBelow;
+        _tagRuleCoverageOwnerKindIds[slot] = insideCoverageOwnerKindId;
+        _tagRuleCoverageOwnerSubtypeIds[slot] = insideCoverageOwnerSubtypeId;
+        _tagRuleCoveragePlaneCodes[slot] = insideCoveragePlaneCode;
         return slot;
     }
 
@@ -151,11 +166,19 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
                 continue;
             }
 
-            var sum = SummedRelationshipStrength(
+            var insideJurisdiction = InsideJurisdiction(
                 simulation.World,
                 entityId,
-                _tagRuleRelationshipKindIds[rule],
-                _tagRuleDirectionCodes[rule]);
+                _tagRuleCoverageOwnerKindIds[rule],
+                _tagRuleCoverageOwnerSubtypeIds[rule],
+                _tagRuleCoveragePlaneCodes[rule]);
+            var sum = insideJurisdiction
+                ? SummedRelationshipStrength(
+                    simulation.World,
+                    entityId,
+                    _tagRuleRelationshipKindIds[rule],
+                    _tagRuleDirectionCodes[rule])
+                : 0f;
             if (sum >= _tagRuleSetThresholds[rule])
             {
                 _ = simulation.SetEntityTag(entityId, _tagRuleTagIds[rule], assigned: true, tick);
@@ -248,32 +271,12 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             return RelatedDistanceEvidence(simulation.World, entityId, rule);
         }
 
-        if (conditionCode == EffectConditionCodes.LocalPositiveSignal)
+        if (conditionCode is EffectConditionCodes.LocalPositiveSignal
+            or EffectConditionCodes.LocalNegativeSignal
+            or EffectConditionCodes.LocalCrowdingLoadSignal
+            or EffectConditionCodes.LocalComfortSignal)
         {
-            return KernelQuery.ThresholdEvidence(
-                simulation.MapSignals.EntitySupport(entityId, _attributeDeltaPlaneCodes[rule]),
-                _attributeDeltaThresholds[rule]);
-        }
-
-        if (conditionCode == EffectConditionCodes.LocalNegativeSignal)
-        {
-            return KernelQuery.ThresholdEvidence(
-                simulation.MapSignals.EntityThreat(entityId, _attributeDeltaPlaneCodes[rule]),
-                _attributeDeltaThresholds[rule]);
-        }
-
-        if (conditionCode == EffectConditionCodes.LocalCrowdingLoadSignal)
-        {
-            return KernelQuery.ThresholdEvidence(
-                simulation.MapSignals.EntityCrowdingLoad(entityId, _attributeDeltaPlaneCodes[rule]),
-                _attributeDeltaThresholds[rule]);
-        }
-
-        if (conditionCode == EffectConditionCodes.LocalComfortSignal)
-        {
-            return KernelQuery.ThresholdEvidence(
-                simulation.MapSignals.EntityCrowdingComfort(entityId, _attributeDeltaPlaneCodes[rule]),
-                _attributeDeltaThresholds[rule]);
+            return SignalEvidence(simulation, entityId, rule, conditionCode);
         }
 
         if (conditionCode == EffectConditionCodes.LocalCultureMapValue)
@@ -281,13 +284,41 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             return OwnCultureInfluenceEvidence(simulation.World, entityId, rule);
         }
 
-        if (conditionCode == EffectConditionCodes.CrowdingBeyondCultureSupport)
+        return SpatialEvidence(simulation, entityId, rule, conditionCode);
+    }
+
+    // Violation as a state: the tag only holds while the entity stands
+    // inside coverage owned by a living entity of the declared kind.
+    private static bool InsideJurisdiction(
+        WorldState world,
+        int entityId,
+        int ownerKindId,
+        int ownerSubtypeId,
+        int planeCode)
+    {
+        if (ownerKindId <= 0)
         {
-            return CrowdingBeyondCultureSupportEvidence(simulation, entityId, rule);
+            return true;
         }
 
-        return conditionCode == EffectConditionCodes.CultureSlotOccupancy
-            ? CultureSlotOccupancyEvidence(simulation, entityId, rule)
+        var q = KernelQuery.CurrentQ(world, entityId, planeCode);
+        var r = KernelQuery.CurrentR(world, entityId, planeCode);
+        var ownerId = world.CoverageOwnerAt(planeCode, q, r);
+        return ownerId > 0 &&
+            world.EntityIsActive(ownerId) &&
+            world.EntityKindId(ownerId) == ownerKindId &&
+            (ownerSubtypeId == 0 || world.EntitySubtypeId(ownerId) == ownerSubtypeId);
+    }
+
+    private float InsideOwnedCoverageEvidence(WorldState world, int entityId, int rule)
+    {
+        return InsideJurisdiction(
+            world,
+            entityId,
+            _attributeDeltaCoverageOwnerKindIds[rule],
+            _attributeDeltaCoverageOwnerSubtypeIds[rule],
+            _attributeDeltaPlaneCodes[rule])
+            ? 1f
             : 0f;
     }
 
@@ -318,6 +349,28 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         var r = KernelQuery.CurrentR(world, entityId, planeCode);
         var mass = world.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r);
         return crowding * (supportScale / (supportScale + mass));
+    }
+
+    private float SpatialEvidence(Simulation simulation, int entityId, int rule, int conditionCode) =>
+        conditionCode switch
+        {
+            EffectConditionCodes.CrowdingBeyondCultureSupport => CrowdingBeyondCultureSupportEvidence(simulation, entityId, rule),
+            EffectConditionCodes.InsideOwnedCoverage => InsideOwnedCoverageEvidence(simulation.World, entityId, rule),
+            EffectConditionCodes.CultureSlotOccupancy => CultureSlotOccupancyEvidence(simulation, entityId, rule),
+            _ => 0f,
+        };
+
+    private float SignalEvidence(Simulation simulation, int entityId, int rule, int conditionCode)
+    {
+        var planeCode = _attributeDeltaPlaneCodes[rule];
+        var value = conditionCode switch
+        {
+            EffectConditionCodes.LocalPositiveSignal => simulation.MapSignals.EntitySupport(entityId, planeCode),
+            EffectConditionCodes.LocalNegativeSignal => simulation.MapSignals.EntityThreat(entityId, planeCode),
+            EffectConditionCodes.LocalCrowdingLoadSignal => simulation.MapSignals.EntityCrowdingLoad(entityId, planeCode),
+            _ => simulation.MapSignals.EntityCrowdingComfort(entityId, planeCode),
+        };
+        return KernelQuery.ThresholdEvidence(value, _attributeDeltaThresholds[rule]);
     }
 
     private float OwnCultureInfluenceEvidence(WorldState world, int entityId, int rule)

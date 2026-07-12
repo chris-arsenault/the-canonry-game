@@ -290,6 +290,21 @@ public static class GameplayCompiler
         var rules = new List<AttributeDeltaEffectRule>();
         foreach (var effect in definition.Effects.AttributeDeltaEffects)
         {
+            rules.Add(CompileAttributeDeltaEffect(effect, context));
+        }
+
+        rules.AddRange(CompileTraitAttributeDeltaEffects(context));
+        return new EffectsProgram
+        {
+            AttributeDeltaEffects = rules,
+            RelationshipTagRules = CompileRelationshipTagRules(definition, context),
+        };
+    }
+
+    private static AttributeDeltaEffectRule CompileAttributeDeltaEffect(
+        AttributeDeltaEffectConfig effect,
+        IGameplayCompilationContext context)
+    {
             if (!context.KindHasAttribute(effect.Kind, effect.Attribute))
             {
                 throw new InvalidOperationException(
@@ -303,7 +318,7 @@ public static class GameplayCompiler
                     $"Attribute delta effect for kind '{effect.Kind}' references unknown relationship '{effect.RelationshipKind}'.");
             }
 
-            rules.Add(new AttributeDeltaEffectRule(
+            return new AttributeDeltaEffectRule(
                 context.ResolveKindId(effect.Kind, "Attribute delta effect kind"),
                 context.ResolveAttributeId(effect.Attribute),
                 ConditionCode(effect.Condition),
@@ -321,15 +336,9 @@ public static class GameplayCompiler
                     ? 0
                     : context.ResolveCultureSlotId(effect.Culture, effect.CultureSlot, $"Attribute delta effect '{effect.Kind}.{effect.Attribute}'"),
                 CultureSlotPolarityCode: CultureSlotPolarityCode(effect.CultureSlotPolarity),
-                SupportScale: effect.SupportScale));
-        }
-
-        rules.AddRange(CompileTraitAttributeDeltaEffects(context));
-        return new EffectsProgram
-        {
-            AttributeDeltaEffects = rules,
-            RelationshipTagRules = CompileRelationshipTagRules(definition, context),
-        };
+                SupportScale: effect.SupportScale,
+                CoverageOwnerKindId: effect.CoverageOwnerKind is null ? 0 : context.ResolveKindId(effect.CoverageOwnerKind, "Effect coverage owner kind"),
+                CoverageOwnerSubtypeId: effect.CoverageOwnerSubtype is null ? 0 : context.ResolveSubtypeId(effect.CoverageOwnerSubtype));
     }
 
     private static List<RelationshipTagRule> CompileRelationshipTagRules(
@@ -356,7 +365,10 @@ public static class GameplayCompiler
                 context.ResolveRelationshipKindId(rule.RelationshipKind),
                 RelationshipDirectionCode(rule.RelationshipDirection),
                 rule.SetAtOrAbove,
-                rule.ClearBelow);
+                rule.ClearBelow,
+                rule.InsideCoverageOwnerKind is null ? 0 : context.ResolveKindId(rule.InsideCoverageOwnerKind, "Tag rule coverage owner kind"),
+                rule.InsideCoverageOwnerSubtype is null ? 0 : context.ResolveSubtypeId(rule.InsideCoverageOwnerSubtype),
+                PlaneCode(rule.InsideCoveragePlane));
         });
         return rules;
     }
@@ -486,6 +498,7 @@ public static class GameplayCompiler
         [EffectCondition.OwnCultureInfluenceAtLocation] = EffectConditionCodes.LocalCultureMapValue,
         [EffectCondition.CultureSlotOccupancy] = EffectConditionCodes.CultureSlotOccupancy,
         [EffectCondition.CrowdingBeyondCultureSupport] = EffectConditionCodes.CrowdingBeyondCultureSupport,
+        [EffectCondition.InsideOwnedCoverage] = EffectConditionCodes.InsideOwnedCoverage,
     };
 
     private static int ConditionCode(EffectCondition condition) =>
@@ -535,6 +548,7 @@ public interface IGameplayCompilationContext
     bool RelationshipExists(string relationship);
     int ResolveTraitId(string trait);
     int ResolveTagId(string tag);
+    int ResolveSubtypeId(string subtype);
     bool KindHasAttribute(string kind, string attribute);
     IReadOnlyList<AffordanceDefinition> Affordances();
     IReadOnlyList<TraitOperationDefinition> TraitOperations();

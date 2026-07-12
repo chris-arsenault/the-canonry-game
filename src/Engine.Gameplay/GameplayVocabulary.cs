@@ -31,6 +31,7 @@ public static class AttributeEffectConditions
     public static EffectCondition OwnCultureInfluenceAtLocation => EffectCondition.OwnCultureInfluenceAtLocation;
     public static EffectCondition CultureSlotOccupancy => EffectCondition.CultureSlotOccupancy;
     public static EffectCondition CrowdingBeyondCultureSupport => EffectCondition.CrowdingBeyondCultureSupport;
+    public static EffectCondition InsideOwnedCoverage => EffectCondition.InsideOwnedCoverage;
 }
 
 public static class GameplayEffectSet

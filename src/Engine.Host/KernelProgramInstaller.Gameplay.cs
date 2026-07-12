@@ -181,7 +181,10 @@ internal static partial class KernelProgramInstaller
                 rule.RelationshipKindId,
                 rule.RelationshipDirectionCode,
                 rule.SetAtOrAbove,
-                rule.ClearBelow);
+                rule.ClearBelow,
+                rule.InsideCoverageOwnerKindId,
+                rule.InsideCoverageOwnerSubtypeId,
+                rule.InsideCoveragePlaneCode);
         }
 
         foreach (var effect in program.AttributeDeltaEffects)
@@ -202,7 +205,9 @@ internal static partial class KernelProgramInstaller
                 effect.CultureId,
                 effect.CultureSlotId,
                 effect.CultureSlotPolarityCode,
-                effect.SupportScale);
+                effect.SupportScale,
+                effect.CoverageOwnerKindId,
+                effect.CoverageOwnerSubtypeId);
         }
     }
 }

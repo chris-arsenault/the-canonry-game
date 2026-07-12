@@ -211,13 +211,25 @@ names in the "The Long Dark Edict" style). Seeded: The Flipper Accord
 (accord, radius-3 semantic jurisdiction) and The Unspoken Silence
 (Nightshelf taboo) as the first named regions of idea-space.
 
+**Living under the law — v2 LANDED (including physical regions):** the
+InsideOwnedCoverage effect condition (binary membership evidence, plane-
+and owner-kind/subtype-filtered) gives named coverage its first direct
+per-tick consequences: regions sustain those within their borders
+(physical, +0.02), accords shelter (+0.03) and taboos strain (-0.03) those
+standing in their idea-ground. Violation is a state, not an interpreted
+event: jurisdiction-filtered tag rules set `oathbreaker` (outgoing war
+strength while inside accord coverage) and `profaner` (devotion flow while
+inside taboo coverage), clearing on exit — discrete states over existing
+primitives, readable by future escalation content. Deferred, named
+honestly: per-canon prohibitions, event-semantic detection,
+observance-scaled evidence, coverage-wide canon erosion.
+
 Remaining, per the approved proposal (next session): generator sources
 (accords founded when wars end, taboos from the Deep Conclave, doctrines
 from charged sites, customs from the Accord tribunal); coverage-plane
-plumbing for generator-produced canons (GeneratorCoverageRule is
-physical-implied); the coverage-membership effect condition ("living under
-the law"); semantic-map UI verification; docs. Balance guard: sweep after
-generator sources land.
+plumbing for generator-produced canons; consumers of oathbreaker/profaner;
+semantic-map UI verification; docs. Balance guard: sweep after generator
+sources land.
 
 Horizon framing: these 25k-tick runs test the bootstrap-into-steady-state
 phase only. Real play (SimCity mental model) extends 4x-50x, so low absolute

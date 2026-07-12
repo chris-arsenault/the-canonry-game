@@ -38,7 +38,7 @@ public static partial class IceRemembersDefinition
             MovementProfiles = IceRemembersMovementProfiles.DomainProfiles,
             Cultures = CreateCultures(),
             CulturePower = CreateCulturePowerDefinition(),
-            Tags = ["hunted", "terrified", "bereaved", "fervent"],
+            Tags = ["hunted", "terrified", "bereaved", "fervent", "oathbreaker", "profaner"],
             Gameplay = CreateGameplayDefinition(),
             Semantics = semantics,
             Chronicle = CreateChronicleDefinition(),
@@ -293,6 +293,30 @@ public static partial class IceRemembersDefinition
                 new RelationshipTagRuleConfig
                 {
                     Kind = K.Faction.Value,
+                    Tag = "oathbreaker",
+                    RelationshipKind = L(Rel.AtWarWith),
+                    RelationshipDirection = EffectRelationshipDirection.Outgoing,
+                    SetAtOrAbove = 0.3f,
+                    ClearBelow = 0.15f,
+                    InsideCoverageOwnerKind = K.Canon.Value,
+                    InsideCoverageOwnerSubtype = "accord",
+                    InsideCoveragePlane = "semantic",
+                },
+                new RelationshipTagRuleConfig
+                {
+                    Kind = K.Faction.Value,
+                    Tag = "profaner",
+                    RelationshipKind = L(Rel.OfferedTo),
+                    RelationshipDirection = EffectRelationshipDirection.Outgoing,
+                    SetAtOrAbove = 0.3f,
+                    ClearBelow = 0.15f,
+                    InsideCoverageOwnerKind = K.Canon.Value,
+                    InsideCoverageOwnerSubtype = "taboo",
+                    InsideCoveragePlane = "semantic",
+                },
+                new RelationshipTagRuleConfig
+                {
+                    Kind = K.Faction.Value,
                     Tag = "fervent",
                     RelationshipKind = L(Rel.OfferedTo),
                     RelationshipDirection = EffectRelationshipDirection.Outgoing,
@@ -347,6 +371,9 @@ public static partial class IceRemembersDefinition
             MapSignalEffect(kind, attribute, Effect.MapThreatAtLocation, -0.04f, threshold: 4f, plane: plane),
             MapSignalEffect(kind, attribute, Effect.MapCrowdingLoad, -0.08f, threshold: 0.5f, plane: plane),
             CarryingStrain(kind, attribute, plane),
+            JurisdictionEffect(kind, attribute, K.Region.Value, null, "physical", 0.02f),
+            JurisdictionEffect(kind, attribute, K.Canon.Value, "accord", "semantic", 0.03f),
+            JurisdictionEffect(kind, attribute, K.Canon.Value, "taboo", "semantic", -0.03f),
         ]);
     }
 
@@ -528,6 +555,29 @@ public static partial class IceRemembersDefinition
             Threshold = 0.8f,
             SupportScale = 150f,
             DeltaPerTick = -0.06f,
+        };
+
+    /// <summary>
+    /// Living under the law (or the land): entities standing inside a named
+    /// coverage patch on the given plane feel it — regions sustain their own
+    /// ground, accords shelter, taboos strain.
+    /// </summary>
+    private static AttributeDeltaEffectConfig JurisdictionEffect(
+        EntityKind kind,
+        Attr attribute,
+        string ownerKind,
+        string? ownerSubtype,
+        string plane,
+        float deltaPerTick) =>
+        new()
+        {
+            Kind = kind.Value,
+            Attribute = A(attribute),
+            Condition = Effect.InsideOwnedCoverage,
+            Plane = plane,
+            CoverageOwnerKind = ownerKind,
+            CoverageOwnerSubtype = ownerSubtype,
+            DeltaPerTick = deltaPerTick,
         };
 
     private static AttributeDeltaEffectConfig MapSignalEffect(

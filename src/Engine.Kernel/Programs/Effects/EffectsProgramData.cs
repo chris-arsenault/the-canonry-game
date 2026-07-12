@@ -20,6 +20,11 @@ internal sealed partial class EffectsProgramData : IKernelProgramData
     internal readonly int[] AttributeDeltaCultureSlotIds;
     internal readonly int[] AttributeDeltaCultureSlotPolarityCodes;
     internal readonly float[] AttributeDeltaSupportScales;
+    internal readonly int[] AttributeDeltaCoverageOwnerKindIds;
+    internal readonly int[] AttributeDeltaCoverageOwnerSubtypeIds;
+    internal readonly int[] TagRuleCoverageOwnerKindIds;
+    internal readonly int[] TagRuleCoverageOwnerSubtypeIds;
+    internal readonly int[] TagRuleCoveragePlaneCodes;
     internal int AttributeDeltaRuleCount;
     internal readonly int[] TagRuleKindIds;
     internal readonly int[] TagRuleTagIds;
@@ -33,6 +38,11 @@ internal sealed partial class EffectsProgramData : IKernelProgramData
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(effectRuleCapacity);
         AttributeDeltaSupportScales = new float[effectRuleCapacity + 1];
+        AttributeDeltaCoverageOwnerKindIds = new int[effectRuleCapacity + 1];
+        AttributeDeltaCoverageOwnerSubtypeIds = new int[effectRuleCapacity + 1];
+        TagRuleCoverageOwnerKindIds = new int[effectRuleCapacity + 1];
+        TagRuleCoverageOwnerSubtypeIds = new int[effectRuleCapacity + 1];
+        TagRuleCoveragePlaneCodes = new int[effectRuleCapacity + 1];
         TagRuleKindIds = new int[effectRuleCapacity + 1];
         TagRuleTagIds = new int[effectRuleCapacity + 1];
         TagRuleRelationshipKindIds = new int[effectRuleCapacity + 1];
@@ -58,5 +68,5 @@ internal sealed partial class EffectsProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.Effects;
 
-    public int SchemaVersion => 4;
+    public int SchemaVersion => 5;
 }

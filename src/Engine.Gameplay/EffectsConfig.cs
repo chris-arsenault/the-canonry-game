@@ -29,6 +29,19 @@ public sealed class RelationshipTagRuleConfig
     public required float SetAtOrAbove { get; init; }
 
     public required float ClearBelow { get; init; }
+
+    /// <summary>
+    /// Optional jurisdiction filter: the rule only sets the tag while the
+    /// entity's position on <see cref="InsideCoveragePlane"/> is inside
+    /// coverage owned by a living entity of this kind (and subtype, when
+    /// given). Leaving the jurisdiction clears the tag. Violation as a
+    /// state over existing primitives, not an interpreted event.
+    /// </summary>
+    public string? InsideCoverageOwnerKind { get; init; }
+
+    public string? InsideCoverageOwnerSubtype { get; init; }
+
+    public string InsideCoveragePlane { get; init; } = "semantic";
 }
 
 /// <summary>
@@ -73,6 +86,14 @@ public sealed class AttributeDeltaEffectConfig
     /// discount channel) escapes it. Steady-state design, not a limit.
     /// </summary>
     public float SupportScale { get; init; }
+
+    /// <summary>
+    /// For InsideOwnedCoverage: the owner kind (and optional subtype) whose
+    /// coverage the entity must stand inside on the rule's plane.
+    /// </summary>
+    public string? CoverageOwnerKind { get; init; }
+
+    public string? CoverageOwnerSubtype { get; init; }
 }
 
 public enum EffectCondition
@@ -86,6 +107,7 @@ public enum EffectCondition
     OwnCultureInfluenceAtLocation,
     CultureSlotOccupancy,
     CrowdingBeyondCultureSupport,
+    InsideOwnedCoverage,
 }
 
 public enum EffectRelationshipDirection

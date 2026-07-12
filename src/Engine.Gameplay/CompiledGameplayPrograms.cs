@@ -1,5 +1,7 @@
 namespace Engine.Gameplay;
 
+using Engine.Constants;
+
 public sealed class LowAltitudeVerbProgram
 {
     public bool EnabledByDefault { get; init; } = true;
@@ -134,7 +136,10 @@ public sealed record RelationshipTagRule(
     int RelationshipKindId,
     int RelationshipDirectionCode,
     float SetAtOrAbove,
-    float ClearBelow);
+    float ClearBelow,
+    int InsideCoverageOwnerKindId = 0,
+    int InsideCoverageOwnerSubtypeId = 0,
+    int InsideCoveragePlaneCode = PlaneCodes.Semantic);
 
 public sealed record AttributeDeltaEffectRule(
     int KindId,
@@ -152,4 +157,6 @@ public sealed record AttributeDeltaEffectRule(
     int CultureId = 0,
     int CultureSlotId = 0,
     int CultureSlotPolarityCode = -1,
-    float SupportScale = 0f);
+    float SupportScale = 0f,
+    int CoverageOwnerKindId = 0,
+    int CoverageOwnerSubtypeId = 0);

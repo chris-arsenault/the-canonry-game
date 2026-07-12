@@ -198,7 +198,9 @@ internal sealed class KernelConfigurationContext
         int cultureId = 0,
         int cultureSlotId = 0,
         int cultureSlotPolarityCode = -1,
-        float supportScale = 0f) =>
+        float supportScale = 0f,
+        int coverageOwnerKindId = 0,
+        int coverageOwnerSubtypeId = 0) =>
         _kernel.Effects.RegisterAttributeDeltaEffect(
             kindId,
             attributeId.Value,
@@ -215,7 +217,9 @@ internal sealed class KernelConfigurationContext
             cultureId,
             cultureSlotId,
             cultureSlotPolarityCode,
-            supportScale);
+            supportScale,
+            coverageOwnerKindId,
+            coverageOwnerSubtypeId);
 
     public void RegisterRelationshipTagRule(
         int kindId,
@@ -223,14 +227,20 @@ internal sealed class KernelConfigurationContext
         int relationshipKindId,
         int relationshipDirectionCode,
         float setAtOrAbove,
-        float clearBelow) =>
+        float clearBelow,
+        int insideCoverageOwnerKindId = 0,
+        int insideCoverageOwnerSubtypeId = 0,
+        int insideCoveragePlaneCode = PlaneCodes.Semantic) =>
         _kernel.Effects.RegisterRelationshipTagRule(
             kindId,
             tagId,
             relationshipKindId,
             relationshipDirectionCode,
             setAtOrAbove,
-            clearBelow);
+            clearBelow,
+            insideCoverageOwnerKindId,
+            insideCoverageOwnerSubtypeId,
+            insideCoveragePlaneCode);
 
     public void RegisterCultureProduction(int cultureId, float physicalMultiplier, float semanticMultiplier) =>
         _kernel.RegisterCultureProduction(cultureId, physicalMultiplier, semanticMultiplier);
