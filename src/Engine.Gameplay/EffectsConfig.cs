@@ -64,6 +64,15 @@ public sealed class AttributeDeltaEffectConfig
         EffectCultureSlotPolarity.Any;
 
     public required float DeltaPerTick { get; init; }
+
+    /// <summary>
+    /// For CrowdingBeyondCultureSupport: raw own-culture mass at which the
+    /// crowding strain is halved. Strain = crowdingEvidence *
+    /// scale / (scale + ownMass) — asymptotic, never a hard cap, and any
+    /// future mechanism that raises local culture mass (or a later authored
+    /// discount channel) escapes it. Steady-state design, not a limit.
+    /// </summary>
+    public float SupportScale { get; init; }
 }
 
 public enum EffectCondition
@@ -76,6 +85,7 @@ public enum EffectCondition
     MapCrowdingComfort,
     OwnCultureInfluenceAtLocation,
     CultureSlotOccupancy,
+    CrowdingBeyondCultureSupport,
 }
 
 public enum EffectRelationshipDirection

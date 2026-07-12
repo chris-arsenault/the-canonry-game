@@ -151,4 +151,5 @@ public sealed record AttributeDeltaEffectRule(
     int RequiredRelatedTraitId,
     int CultureId = 0,
     int CultureSlotId = 0,
-    int CultureSlotPolarityCode = -1);
+    int CultureSlotPolarityCode = -1,
+    float SupportScale = 0f);

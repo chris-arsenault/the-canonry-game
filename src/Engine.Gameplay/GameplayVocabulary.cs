@@ -30,6 +30,7 @@ public static class AttributeEffectConditions
     public static EffectCondition MapCrowdingComfort => EffectCondition.MapCrowdingComfort;
     public static EffectCondition OwnCultureInfluenceAtLocation => EffectCondition.OwnCultureInfluenceAtLocation;
     public static EffectCondition CultureSlotOccupancy => EffectCondition.CultureSlotOccupancy;
+    public static EffectCondition CrowdingBeyondCultureSupport => EffectCondition.CrowdingBeyondCultureSupport;
 }
 
 public static class GameplayEffectSet

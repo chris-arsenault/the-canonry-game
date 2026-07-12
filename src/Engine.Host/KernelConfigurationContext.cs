@@ -197,7 +197,8 @@ internal sealed class KernelConfigurationContext
         int requiredRelatedTraitId = 0,
         int cultureId = 0,
         int cultureSlotId = 0,
-        int cultureSlotPolarityCode = -1) =>
+        int cultureSlotPolarityCode = -1,
+        float supportScale = 0f) =>
         _kernel.Effects.RegisterAttributeDeltaEffect(
             kindId,
             attributeId.Value,
@@ -213,7 +214,8 @@ internal sealed class KernelConfigurationContext
             requiredRelatedTraitId,
             cultureId,
             cultureSlotId,
-            cultureSlotPolarityCode);
+            cultureSlotPolarityCode,
+            supportScale);
 
     public void RegisterRelationshipTagRule(
         int kindId,

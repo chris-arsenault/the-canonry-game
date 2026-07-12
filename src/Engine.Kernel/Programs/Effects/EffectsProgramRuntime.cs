@@ -18,6 +18,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     private int[] _attributeDeltaCultureSlotIds => Data.AttributeDeltaCultureSlotIds;
     private int[] _attributeDeltaCultureSlotPolarityCodes => Data.AttributeDeltaCultureSlotPolarityCodes;
     private ref int _attributeDeltaRuleCount => ref Data.AttributeDeltaRuleCount;
+    private float[] _attributeDeltaSupportScales => Data.AttributeDeltaSupportScales;
     private int[] _tagRuleKindIds => Data.TagRuleKindIds;
     private int[] _tagRuleTagIds => Data.TagRuleTagIds;
     private int[] _tagRuleRelationshipKindIds => Data.TagRuleRelationshipKindIds;
@@ -55,7 +56,8 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         int requiredRelatedTraitId = 0,
         int cultureId = 0,
         int cultureSlotId = 0,
-        int cultureSlotPolarityCode = -1)
+        int cultureSlotPolarityCode = -1,
+        float supportScale = 0f)
     {
         ValidatePositive(kindId);
         ValidatePositive(attributeId);
@@ -93,6 +95,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         _attributeDeltaCultureIds[slot] = cultureId;
         _attributeDeltaCultureSlotIds[slot] = cultureSlotId;
         _attributeDeltaCultureSlotPolarityCodes[slot] = cultureSlotPolarityCode;
+        _attributeDeltaSupportScales[slot] = supportScale;
         return slot;
     }
 
@@ -278,9 +281,43 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             return OwnCultureInfluenceEvidence(simulation.World, entityId, rule);
         }
 
+        if (conditionCode == EffectConditionCodes.CrowdingBeyondCultureSupport)
+        {
+            return CrowdingBeyondCultureSupportEvidence(simulation, entityId, rule);
+        }
+
         return conditionCode == EffectConditionCodes.CultureSlotOccupancy
             ? CultureSlotOccupancyEvidence(simulation, entityId, rule)
             : 0f;
+    }
+
+    // Local carrying capacity: crowding strain discounted by own-culture
+    // mass support. Asymptotic (scale / (scale + mass)), never a hard cap:
+    // growing the territory's culture mass is the built-in escape, and later
+    // mechanisms may raise support the same way age can be extended.
+    private float CrowdingBeyondCultureSupportEvidence(Simulation simulation, int entityId, int rule)
+    {
+        var planeCode = _attributeDeltaPlaneCodes[rule];
+        var crowding = KernelQuery.ThresholdEvidence(
+            simulation.MapSignals.EntityCrowdingLoad(entityId, planeCode),
+            _attributeDeltaThresholds[rule]);
+        if (crowding <= 0f)
+        {
+            return 0f;
+        }
+
+        var world = simulation.World;
+        var cultureId = world.EntityCultureId(entityId);
+        var supportScale = _attributeDeltaSupportScales[rule];
+        if (cultureId <= 0 || supportScale <= 0f)
+        {
+            return crowding;
+        }
+
+        var q = KernelQuery.CurrentQ(world, entityId, planeCode);
+        var r = KernelQuery.CurrentR(world, entityId, planeCode);
+        var mass = world.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r);
+        return crowding * (supportScale / (supportScale + mass));
     }
 
     private float OwnCultureInfluenceEvidence(WorldState world, int entityId, int rule)

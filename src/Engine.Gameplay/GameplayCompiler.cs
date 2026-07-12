@@ -320,7 +320,8 @@ public static class GameplayCompiler
                 CultureSlotId: effect.CultureSlot is null
                     ? 0
                     : context.ResolveCultureSlotId(effect.Culture, effect.CultureSlot, $"Attribute delta effect '{effect.Kind}.{effect.Attribute}'"),
-                CultureSlotPolarityCode: CultureSlotPolarityCode(effect.CultureSlotPolarity)));
+                CultureSlotPolarityCode: CultureSlotPolarityCode(effect.CultureSlotPolarity),
+                SupportScale: effect.SupportScale));
         }
 
         rules.AddRange(CompileTraitAttributeDeltaEffects(context));
@@ -474,18 +475,23 @@ public static class GameplayCompiler
         _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
     };
 
-    private static int ConditionCode(EffectCondition condition) => condition switch
+    private static readonly Dictionary<EffectCondition, int> ConditionCodes = new()
     {
-        EffectCondition.RelatedInfluenceAtLocation => EffectConditionCodes.RelationshipMapValueAtLocation,
-        EffectCondition.RelatedEntityDistance => EffectConditionCodes.RelatedEntityDistance,
-        EffectCondition.MapSupportAtLocation => EffectConditionCodes.LocalPositiveSignal,
-        EffectCondition.MapThreatAtLocation => EffectConditionCodes.LocalNegativeSignal,
-        EffectCondition.MapCrowdingLoad => EffectConditionCodes.LocalCrowdingLoadSignal,
-        EffectCondition.MapCrowdingComfort => EffectConditionCodes.LocalComfortSignal,
-        EffectCondition.OwnCultureInfluenceAtLocation => EffectConditionCodes.LocalCultureMapValue,
-        EffectCondition.CultureSlotOccupancy => EffectConditionCodes.CultureSlotOccupancy,
-        _ => throw new ArgumentOutOfRangeException(nameof(condition), condition, null),
+        [EffectCondition.RelatedInfluenceAtLocation] = EffectConditionCodes.RelationshipMapValueAtLocation,
+        [EffectCondition.RelatedEntityDistance] = EffectConditionCodes.RelatedEntityDistance,
+        [EffectCondition.MapSupportAtLocation] = EffectConditionCodes.LocalPositiveSignal,
+        [EffectCondition.MapThreatAtLocation] = EffectConditionCodes.LocalNegativeSignal,
+        [EffectCondition.MapCrowdingLoad] = EffectConditionCodes.LocalCrowdingLoadSignal,
+        [EffectCondition.MapCrowdingComfort] = EffectConditionCodes.LocalComfortSignal,
+        [EffectCondition.OwnCultureInfluenceAtLocation] = EffectConditionCodes.LocalCultureMapValue,
+        [EffectCondition.CultureSlotOccupancy] = EffectConditionCodes.CultureSlotOccupancy,
+        [EffectCondition.CrowdingBeyondCultureSupport] = EffectConditionCodes.CrowdingBeyondCultureSupport,
     };
+
+    private static int ConditionCode(EffectCondition condition) =>
+        ConditionCodes.TryGetValue(condition, out var code)
+            ? code
+            : throw new ArgumentOutOfRangeException(nameof(condition), condition, null);
 
     private static int CultureSlotPolarityCode(EffectCultureSlotPolarity polarity) => polarity switch
     {

@@ -346,6 +346,7 @@ public static partial class IceRemembersDefinition
             MapSignalEffect(kind, attribute, Effect.MapCrowdingComfort, 0.025f, threshold: 0.5f, plane: plane),
             MapSignalEffect(kind, attribute, Effect.MapThreatAtLocation, -0.04f, threshold: 4f, plane: plane),
             MapSignalEffect(kind, attribute, Effect.MapCrowdingLoad, -0.08f, threshold: 0.5f, plane: plane),
+            CarryingStrain(kind, attribute, plane),
         ]);
     }
 
@@ -507,6 +508,27 @@ public static partial class IceRemembersDefinition
         int maxDistance,
         PrimaryPlane plane) =>
         RelationshipAttributeDeltaEffect(kind, attribute, relationship, deltaPerTick, maxDistance, plane);
+
+    /// <summary>
+    /// Local carrying capacity: crowding drains health where the entity's own
+    /// culture mass does not support the density. Asymptotic discount
+    /// (scale/(scale+mass)) — never a hard cap; growing territory is the
+    /// escape, and future artifacts/abilities can raise support the same way.
+    /// </summary>
+    private static AttributeDeltaEffectConfig CarryingStrain(
+        EntityKind kind,
+        Attr attribute,
+        PrimaryPlane plane) =>
+        new()
+        {
+            Kind = kind.Value,
+            Attribute = A(attribute),
+            Condition = Effect.CrowdingBeyondCultureSupport,
+            Plane = GameplayPlaneName(plane),
+            Threshold = 0.8f,
+            SupportScale = 150f,
+            DeltaPerTick = -0.06f,
+        };
 
     private static AttributeDeltaEffectConfig MapSignalEffect(
         EntityKind kind,

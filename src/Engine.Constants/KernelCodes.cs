@@ -187,6 +187,7 @@ public static class EffectConditionCodes
     public const int LocalComfortSignal = 6;
     public const int LocalCultureMapValue = 7;
     public const int CultureSlotOccupancy = 8;
+    public const int CrowdingBeyondCultureSupport = 9;
 }
 
 public static class RelationshipMatchDirectionCodes

@@ -201,7 +201,8 @@ internal static partial class KernelProgramInstaller
                 effect.RequiredRelatedTraitId,
                 effect.CultureId,
                 effect.CultureSlotId,
-                effect.CultureSlotPolarityCode);
+                effect.CultureSlotPolarityCode,
+                effect.SupportScale);
         }
     }
 }

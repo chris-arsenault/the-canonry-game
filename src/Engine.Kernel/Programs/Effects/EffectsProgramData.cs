@@ -19,6 +19,7 @@ internal sealed partial class EffectsProgramData : IKernelProgramData
     internal readonly int[] AttributeDeltaCultureIds;
     internal readonly int[] AttributeDeltaCultureSlotIds;
     internal readonly int[] AttributeDeltaCultureSlotPolarityCodes;
+    internal readonly float[] AttributeDeltaSupportScales;
     internal int AttributeDeltaRuleCount;
     internal readonly int[] TagRuleKindIds;
     internal readonly int[] TagRuleTagIds;
@@ -31,6 +32,7 @@ internal sealed partial class EffectsProgramData : IKernelProgramData
     public EffectsProgramData(int effectRuleCapacity)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(effectRuleCapacity);
+        AttributeDeltaSupportScales = new float[effectRuleCapacity + 1];
         TagRuleKindIds = new int[effectRuleCapacity + 1];
         TagRuleTagIds = new int[effectRuleCapacity + 1];
         TagRuleRelationshipKindIds = new int[effectRuleCapacity + 1];
@@ -56,5 +58,5 @@ internal sealed partial class EffectsProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.Effects;
 
-    public int SchemaVersion => 3;
+    public int SchemaVersion => 4;
 }
