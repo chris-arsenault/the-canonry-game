@@ -136,7 +136,7 @@ that event stream. The kernel is not allowed to call UI, file I/O, console I/O,
 or string-heavy observability directly.
 
 Culture power is measured on three asymmetric ledgers (Witness, Shadow,
-Blood) computed host-side from world state, exported as
+Wake) computed host-side from world state, exported as
 `culture_power_snapshots`, and shown in the nations rows; see
 [culture.md](./systems/culture.md).
 

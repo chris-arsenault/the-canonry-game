@@ -133,10 +133,17 @@ and each culture is designed to lead its own axis in a healthy run:
   summed strength of custody relationships (`holds`, `anchored`,
   `practiced_by`, `conduit_of`) touching living custody-kind entities
   (artifacts, abilities) of the culture.
-- **Blood (Wake-Singers' axis)** — mean of two component shares: claims, the
-  summed strength of `claimed_by` relationships whose claimant belongs to the
-  culture; and war presence, the summed strength of `at_war_with`
-  relationships with at least one endpoint in the culture.
+- **Wake (Wake-Singers' axis)** — mean of three component shares: claims
+  (summed `claimed_by` strength by claimant culture), war presence (summed
+  `at_war_with` strength with either endpoint in the culture), and devotion
+  flow (summed strength of offering relationships — `offered_to`,
+  `consigned_to` — attributed to the culture of the receiving sacred site).
+  Blood is one offering channel among several: wars feed the deep, but so do
+  elder descents, consigned relics, and sung vigils, so a player-guided
+  peaceful run keeps the axis alive. Worship is carried entirely in
+  relationship strength and the spatial field — offerings accrue on sites,
+  drift down under maintenance, and are spent by generators that calve pods
+  along the corridor and found daughter sites.
 
 Each culture also declares per-plane influence production multipliers
 (`CultureConfig.PhysicalInfluenceProductionMultiplier` /

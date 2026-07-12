@@ -38,6 +38,42 @@ currently has no axis at all.
 Map degenerates (`map_degenerate=1` in run 25001) are accepted as
 cull-and-retry cost, not a work item.
 
+## Wake Round (Wake-Singers devotion economy) — IMPLEMENTED, UNSTABLE
+
+Implemented per approved design (commit `45953f0`): Wake ledger v2 (claims +
+war + offering flow attributed to the receiving site's culture), `offered_to`/
+`consigned_to` relationship kinds with maintenance drift, the Corpse Current
+seeded as a living sacred site with a live grievance, four fill channels
+(kills sung, elder descents, relic consignment, vigils), two spend loops
+(the_current_provides calving pods, pilgrims_found_new_currents), and
+low-altitude offering-renewal verbs on both sides.
+
+**Evidence (`wake-devotion-2x25k-20260712` seeds 25000/25001,
+`wake-devotion-2x25k-b-20260712` seeds 26000/26001): NOT STABLE.** Held for
+consultation per instruction — no tuning applied.
+
+- The devotion loop underfires. Offering edges equilibrate at ~0.55-0.7
+  under maintenance decay + verb renewal, below the 0.8 Provides gate:
+  the_current_provides fired 0-4 times per run; elder descents fired zero
+  times across all four runs; vigils 1-3 (repeat offerings from the same
+  singer appear blocked by duplicate-edge creation).
+- Wake-Singer survival, where it happened, came from the *war* loops ignited
+  by the seeded grievance, not from devotion (boom-ebb 10-46-19).
+- The seeded grievance destabilizes the whole bootstrap: wars metastasize
+  (1 seeded war grows to 13 active by 25k), Aurora's growth loops never
+  start (17 births in run 26000 vs ~320-380 in healthy prior runs), and
+  Aurora collapses to 1-4 living in 3 of 4 runs.
+- With Aurora gone, Nightshelf's undermarkets chain off their *own* trade
+  hubs (undermarket becomes a hub, hosts the next undermarket): 395 NS
+  births, 117-138 living, Shadow 94-97% — a latent self-parasitism runaway
+  from the Nightshelf round that Aurora's collapse exposed.
+
+Candidate fixes identified but NOT applied (user decision pending): remove
+or weaken the seeded grievance; lower the Provides gate toward the observed
+edge equilibrium or raise renewal; allow offering edges to re-strengthen on
+repeat fires (ReplaceExistingOutgoing); one-generation undermarket chains
+(target WithoutOutgoing founded_from).
+
 Horizon framing: these 25k-tick runs test the bootstrap-into-steady-state
 phase only. Real play (SimCity mental model) extends 4x-50x, so low absolute
 map coverage is expected; judge shape, trend, and steady-state stability, not
