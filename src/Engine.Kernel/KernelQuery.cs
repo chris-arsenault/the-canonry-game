@@ -980,12 +980,21 @@ internal static class KernelQuery
         return EntityIsActiveKind(world, entityId, query.KindId) &&
             entityId != binding.TargetId &&
             !binding.ReferenceAlreadyBound(entityId) &&
-            SubtypeAllowed(query.SubtypeIds, query.SubtypeStart, query.SubtypeCount, world.EntitySubtypeId(entityId)) &&
+            QueryIdentityFiltersPass(world, query, entityId) &&
             QueryCultureMatches(world, query.CultureMatchCode, entityId, binding.TargetId) &&
             QueryRelationshipFiltersPass(world, query, entityId, query.WithoutOutgoingStart, query.WithoutOutgoingCount, outgoing: true) &&
             QueryRelationshipFiltersPass(world, query, entityId, query.WithoutIncomingStart, query.WithoutIncomingCount, outgoing: false) &&
             QueryAdjacencyMatches(world, query, binding, entityId);
     }
+
+    private static bool QueryIdentityFiltersPass(WorldState world, in SharedQuery query, int entityId) =>
+        SubtypeAllowed(query.SubtypeIds, query.SubtypeStart, query.SubtypeCount, world.EntitySubtypeId(entityId)) &&
+        TagBitsPass(world.EntityTagBits(entityId), query.RequiredTagBits, query.WithoutTagBits) &&
+        (query.CultureId == 0 || world.EntityCultureId(entityId) == query.CultureId);
+
+    internal static bool TagBitsPass(int entityTagBits, int requiredTagBits, int withoutTagBits) =>
+        (entityTagBits & requiredTagBits) == requiredTagBits &&
+        (entityTagBits & withoutTagBits) == 0;
 
     private static bool QueryCultureMatches(WorldState world, int cultureMatchCode, int entityId, int targetId)
     {

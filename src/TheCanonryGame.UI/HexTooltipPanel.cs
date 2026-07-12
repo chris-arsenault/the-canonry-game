@@ -196,12 +196,26 @@ public partial class HexTooltipPanel : PanelContainer
         var continent = FormatSubdivision(ProjectionSymbolKind.Continent, cell.ContinentId);
         var superregion = FormatSubdivision(ProjectionSymbolKind.Superregion, cell.SuperregionId);
         var occupantsLine = FormatOccupants(PlaneCodes.Physical, coord);
+        var forgedLine = FormatForgedColumn(cell);
         return
             $"{coord.Q,3} , {coord.R,3}   {terrain,-10}   {owner}   {FormatSurface(cell)}\n" +
+            (forgedLine.Length > 0 ? forgedLine + "\n" : string.Empty) +
             $"{continent}   {superregion}\n" +
             $"{FormatCultureInfluence(cell)}\n" +
             $"{FormatInfluence(cell)}\n" +
             occupantsLine;
+    }
+
+    private static string FormatForgedColumn(HexProjection cell)
+    {
+        if (cell.ForgedSpireTiers <= 0 && cell.ForgedTunnelDepth <= 0)
+        {
+            return string.Empty;
+        }
+
+        var spires = cell.ForgedSpireTiers > 0 ? $"spire tiers \u25b2{cell.ForgedSpireTiers}" : string.Empty;
+        var tunnels = cell.ForgedTunnelDepth > 0 ? $"tunnels \u25bc{cell.ForgedTunnelDepth}" : string.Empty;
+        return spires.Length > 0 && tunnels.Length > 0 ? $"{spires}   {tunnels}" : spires + tunnels;
     }
 
     private string FormatTerrain(HexProjection cell) =>

@@ -64,6 +64,8 @@ public static class DefinitionGeneratorBuilder
             Triggers = triggers,
             PulseWeight = config.PulseWeight,
             MaxRunsPerSim = config.MaxRunsPerSim,
+            CadenceTicks = ValidatedCadenceTicks(config),
+            CadenceJitterTicks = config.CadenceJitterTicks,
             SourceConfig = config,
         };
     }
@@ -85,12 +87,16 @@ public static class DefinitionGeneratorBuilder
         ValidateRelationshipNames(graph, config.Target.WithoutOutgoingRelationships, $"Generator '{config.Id}' target");
         ValidateRelationshipNames(graph, config.Target.WithoutIncomingRelationships, $"Generator '{config.Id}' target");
 
+        ValidateTagNames(graph, config.Target.RequiredTags, $"Generator '{config.Id}' target");
+        ValidateTagNames(graph, config.Target.WithoutTags, $"Generator '{config.Id}' target");
         return new DefinitionGeneratorTarget
         {
             Kind = config.Target.Kind,
             Subtypes = config.Target.Subtypes is null
                 ? null
                 : new HashSet<string>(config.Target.Subtypes, StringComparer.Ordinal),
+            RequiredTags = CopyRelationshipSet(config.Target.RequiredTags),
+            WithoutTags = CopyRelationshipSet(config.Target.WithoutTags),
             RequiredOutgoingRelationships = CopyRelationshipSet(config.Target.RequiredOutgoingRelationships),
             RequiredIncomingRelationships = CopyRelationshipSet(config.Target.RequiredIncomingRelationships),
             RequiredRelationships = CopyRelationshipSet(config.Target.RequiredRelationships),
@@ -171,18 +177,50 @@ public static class DefinitionGeneratorBuilder
         EnsureKindDeclared(graph, produced.Kind, context);
         ValidateProducedSubtypeChoice(graph, produced, context);
         ValidateCoverage(graph, generatorId, produced);
-        ValidateRequiredCultureInheritance(generatorId, produced);
+        ValidateProducedCultureSource(generatorId, graph, produced);
         ValidateQuery(graph, produced.Kind, produced.Query, $"{context} query");
     }
 
-    private static void ValidateRequiredCultureInheritance(
-        string generatorId,
-        SemanticProducedEntity produced)
+    private static int ValidatedCadenceTicks(SemanticGeneratorConfig config)
     {
-        if (string.IsNullOrWhiteSpace(produced.InheritCultureFrom))
+        if (config.CadenceTicks < 0 || config.CadenceJitterTicks < 0)
         {
             throw new DefinitionGraphException(
-                $"Generator '{generatorId}' produce '{produced.Ref}' must declare InheritCultureFrom.");
+                $"Generator '{config.Id}' cadence values must be non-negative.");
+        }
+
+        if (config.CadenceTicks == 0 && config.CadenceJitterTicks > 0)
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{config.Id}' declares CadenceJitterTicks without CadenceTicks.");
+        }
+
+        if (config.CadenceTicks > 0 && config.CadenceJitterTicks >= config.CadenceTicks)
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{config.Id}' CadenceJitterTicks must be smaller than CadenceTicks.");
+        }
+
+        return config.CadenceTicks;
+    }
+
+    private static void ValidateProducedCultureSource(
+        string generatorId,
+        DefinitionGraph graph,
+        SemanticProducedEntity produced)
+    {
+        var hasRef = !string.IsNullOrWhiteSpace(produced.InheritCultureFrom);
+        var hasFixed = !string.IsNullOrWhiteSpace(produced.Culture);
+        if (hasRef == hasFixed)
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{generatorId}' produce '{produced.Ref}' must declare exactly one of InheritCultureFrom or Culture.");
+        }
+
+        if (hasFixed && !graph.Cultures.ContainsKey(produced.Culture!))
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{generatorId}' produce '{produced.Ref}' references undeclared culture '{produced.Culture}'.");
         }
     }
 
@@ -212,6 +250,7 @@ public static class DefinitionGeneratorBuilder
             SemanticPlacementFallbackTerrain = produced.SemanticPlacementFallbackTerrain,
             PlacementRef = produced.PlacementRef,
             InheritCultureFrom = produced.InheritCultureFrom,
+            Culture = produced.Culture,
             CulturePlacement = produced.CulturePlacement,
             Query = BuildQuery(graph, produced.Kind, produced.Query),
             Coverage = BuildCoverage(produced.Coverage),
@@ -326,12 +365,71 @@ public static class DefinitionGeneratorBuilder
         effect switch
         {
             SetBindingHistoricalEffect setHistorical => BuildSetBindingHistoricalEffect(generatorId, setHistorical, declaredRefs),
+            SetBindingTagEffect setTag => BuildBindingTagEffect(generatorId, setTag.BindingRef, setTag.Tag, assigned: true, graph, declaredRefs),
+            ClaimSemanticJurisdictionEffect claim => BuildClaimJurisdictionEffect(generatorId, claim, declaredRefs),
+            ClearBindingTagEffect clearTag => BuildBindingTagEffect(generatorId, clearTag.BindingRef, clearTag.Tag, assigned: false, graph, declaredRefs),
             RemoveTargetRelationshipsEffect removeRelationships => BuildRemoveTargetRelationshipsEffect(generatorId, target, removeRelationships, graph, runtimeIds),
             AdjustTargetRelationshipStrengthEffect adjustRelationship => BuildAdjustTargetRelationshipStrengthEffect(generatorId, target, adjustRelationship, graph, runtimeIds),
             SetTerrainPatchEffect setTerrainPatch => BuildSetTerrainPatchEffect(generatorId, setTerrainPatch, declaredRefs),
             _ => throw new DefinitionGraphException(
                 $"Generator '{generatorId}' unsupported effect type '{effect.GetType().Name}'."),
         };
+
+    private static DefinitionClaimSemanticJurisdictionEffect BuildClaimJurisdictionEffect(
+        string generatorId,
+        ClaimSemanticJurisdictionEffect claim,
+        HashSet<string> declaredRefs)
+    {
+        if (claim.BindingRef != "$target")
+        {
+            EnsureDeclaredRef(generatorId, claim.BindingRef, declaredRefs, "BindingRef");
+        }
+
+        if (claim.Radius is <= 0 or > 6)
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{generatorId}' jurisdiction radius must be within 1-6.");
+        }
+
+        return new DefinitionClaimSemanticJurisdictionEffect(claim.BindingRef, claim.Radius);
+    }
+
+    private static DefinitionSetBindingTagEffect BuildBindingTagEffect(
+        string generatorId,
+        string bindingRef,
+        string tag,
+        bool assigned,
+        DefinitionGraph graph,
+        HashSet<string> declaredRefs)
+    {
+        if (bindingRef != "$target")
+        {
+            EnsureDeclaredRef(generatorId, bindingRef, declaredRefs, "BindingRef");
+        }
+
+        ValidateTagName(generatorId, graph, tag);
+        return new DefinitionSetBindingTagEffect(bindingRef, tag, assigned);
+    }
+
+    private static void ValidateTagNames(DefinitionGraph graph, IReadOnlySet<string>? tags, string context)
+    {
+        foreach (var tag in tags ?? (IReadOnlySet<string>)new HashSet<string>(StringComparer.Ordinal))
+        {
+            if (!graph.Tags.Contains(tag))
+            {
+                throw new DefinitionGraphException($"{context} references undeclared tag '{tag}'.");
+            }
+        }
+    }
+
+    private static void ValidateTagName(string generatorId, DefinitionGraph graph, string tag)
+    {
+        if (!graph.Tags.Contains(tag))
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{generatorId}' references undeclared tag '{tag}'.");
+        }
+    }
 
     private static DefinitionSetBindingHistoricalEffect BuildSetBindingHistoricalEffect(
         string generatorId,
@@ -695,11 +793,18 @@ public static class DefinitionGeneratorBuilder
         EntityKind kind,
         SemanticEntityQuery? query)
     {
-        _ = graph;
         _ = kind;
         if (query is null)
         {
             return null;
+        }
+
+        ValidateTagNames(graph, query.RequiredTags, "Generator binding query");
+        ValidateTagNames(graph, query.WithoutTags, "Generator binding query");
+        if (query.Culture is not null && !graph.Cultures.ContainsKey(query.Culture))
+        {
+            throw new DefinitionGraphException(
+                $"Generator binding query references undeclared culture '{query.Culture}'.");
         }
 
         return new DefinitionEntityQuery
@@ -707,6 +812,9 @@ public static class DefinitionGeneratorBuilder
             Subtypes = query.Subtypes is null
                 ? null
                 : new HashSet<string>(query.Subtypes, StringComparer.Ordinal),
+            RequiredTags = CopyRelationshipSet(query.RequiredTags),
+            WithoutTags = CopyRelationshipSet(query.WithoutTags),
+            Culture = query.Culture,
             AdjacentToTarget = query.AdjacentToTarget,
             SamePhysicalCultureComponentAsTarget = query.SamePhysicalCultureComponentAsTarget,
             WithoutOutgoingRelationships = query.WithoutOutgoingRelationships is null

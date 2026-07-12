@@ -128,7 +128,8 @@ internal sealed partial class Simulation
             0,
             ownerEntityId,
             superregionId,
-            continentId)));
+            continentId,
+            0)));
         if (planeCode == PlaneCodes.Physical)
         {
             WriteKernelEvent(KernelEvent.From(new CellCreatedKernelEvent(
@@ -140,9 +141,125 @@ internal sealed partial class Simulation
                 terrainId,
                 ownerEntityId,
                 superregionId,
-                continentId)));
+                continentId,
+                0)));
         }
     }
+
+    internal bool TryForgeCellVertical(int entityId, int direction, int terrainId, int tick)
+    {
+        if (direction is not (1 or -1) || terrainId <= 0)
+        {
+            return false;
+        }
+
+        var world = World;
+        var q = world.EntityPhysicalQ(entityId);
+        var r = world.EntityPhysicalR(entityId);
+        if (!world.CellIsKnown(PlaneCodes.Physical, q, r))
+        {
+            return false;
+        }
+
+        if (TryForgeColumnExtension(entityId, q, r, direction, terrainId, tick))
+        {
+            return true;
+        }
+
+        return TryForgeNeighborColumn(entityId, q, r, direction, terrainId, tick);
+    }
+
+    private bool TryForgeColumnExtension(int entityId, int q, int r, int direction, int terrainId, int tick)
+    {
+        var world = World;
+        var z = direction;
+        while (z >= WorldState.MinCellZ && z <= WorldState.MaxCellZ)
+        {
+            if (!world.CellIsKnown(PlaneCodes.Physical, q, r, z))
+            {
+                ForgeCell(entityId, q, r, z, terrainId, tick);
+                return true;
+            }
+
+            z += direction;
+        }
+
+        return false;
+    }
+
+    private bool TryForgeNeighborColumn(int entityId, int q, int r, int direction, int terrainId, int tick)
+    {
+        // The actor's own column is fully forged in this direction; creep the
+        // first forged layer into an adjacent known column so galleries and
+        // spire clusters spread instead of stalling.
+        var world = World;
+        var start = NextInt(6);
+        for (var i = 0; i < 6; i++)
+        {
+            var directionIndex = (start + i) % 6;
+            var neighborQ = q + HexDirectionQ(directionIndex);
+            var neighborR = r + HexDirectionR(directionIndex);
+            if (!world.CellIsKnown(PlaneCodes.Physical, neighborQ, neighborR) ||
+                world.CellIsKnown(PlaneCodes.Physical, neighborQ, neighborR, direction))
+            {
+                continue;
+            }
+
+            ForgeCell(entityId, neighborQ, neighborR, direction, terrainId, tick);
+            return true;
+        }
+
+        return false;
+    }
+
+    private void ForgeCell(int entityId, int q, int r, int z, int terrainId, int tick)
+    {
+        World.WriteForgedCell(PlaneCodes.Physical, q, r, z, terrainId);
+        Movement.RecordTopologyChanged();
+        WriteKernelEvent(KernelEvent.From(new CellCreatedKernelEvent(
+            CurrentTick,
+            WorldVersion,
+            q,
+            r,
+            _executionContext.SourceCodeId,
+            terrainId,
+            0,
+            0,
+            0,
+            z)));
+        var cultureId = World.EntityCultureId(entityId);
+        if (cultureId > 0)
+        {
+            _ = ModifyCellCultureInfluenceRaw(
+                cultureId,
+                PlaneCodes.Physical,
+                q,
+                r,
+                z,
+                WorldState.CultureClaimedRawMass,
+                tick);
+        }
+    }
+
+    private static int HexDirectionQ(int direction) => direction switch
+    {
+        0 => 1,
+        1 => 1,
+        2 => 0,
+        3 => -1,
+        4 => -1,
+        _ => 0,
+    };
+
+    private static int HexDirectionR(int direction) => direction switch
+    {
+        0 => 0,
+        1 => -1,
+        2 => -1,
+        3 => 0,
+        4 => 1,
+        _ => 1,
+    };
 
     internal void SetCellState(int q, int r, int terrainId, int ownerEntityId, int tick)
     {

@@ -37,6 +37,8 @@ public sealed class TelemetryBatch
     public Collection<CultureSlotOccupancyEventRow> CultureSlotOccupancyEvents { get; } = Rows<CultureSlotOccupancyEventRow>();
     public Collection<MinorActorVerbEventRow> MinorActorVerbEvents { get; } = Rows<MinorActorVerbEventRow>();
     public Collection<CultureFieldComponentSnapshotRow> CultureFieldComponentSnapshots { get; } = Rows<CultureFieldComponentSnapshotRow>();
+    public Collection<CulturePowerSnapshotRow> CulturePowerSnapshots { get; } = Rows<CulturePowerSnapshotRow>();
+    public Collection<EntityTagEventRow> EntityTagEvents { get; } = Rows<EntityTagEventRow>();
     public Collection<CultureEntityFieldSnapshotRow> CultureEntityFieldSnapshots { get; } = Rows<CultureEntityFieldSnapshotRow>();
     public Collection<CultureEntityBirthFieldEventRow> CultureEntityBirthFieldEvents { get; } = Rows<CultureEntityBirthFieldEventRow>();
     public Collection<CultureInfluenceActionFieldEventRow> CultureInfluenceActionFieldEvents { get; } = Rows<CultureInfluenceActionFieldEventRow>();
@@ -77,6 +79,8 @@ public sealed class TelemetryBatch
         CultureSlotOccupancyEvents.Clear();
         MinorActorVerbEvents.Clear();
         CultureFieldComponentSnapshots.Clear();
+        CulturePowerSnapshots.Clear();
+        EntityTagEvents.Clear();
         CultureEntityFieldSnapshots.Clear();
         CultureEntityBirthFieldEvents.Clear();
         CultureInfluenceActionFieldEvents.Clear();
@@ -273,7 +277,9 @@ public sealed record MovementEventRow(
     int ToQ,
     int ToR,
     int ToS,
-    int Distance);
+    int Distance,
+    int FromZ = 0,
+    int ToZ = 0);
 
 public sealed record RelationshipEventRow(
     int RunId,
@@ -442,7 +448,8 @@ public sealed record MapCellEventRow(
     int CurrentTerrainId,
     int PreviousOwnerEntityId,
     int CurrentOwnerEntityId,
-    int CauseId = 0);
+    int CauseId = 0,
+    int Z = 0);
 
 public sealed record CellInfluenceEventRow(
     int RunId,
@@ -470,7 +477,8 @@ public sealed record CellCultureInfluenceEventRow(
     float Delta,
     float PreviousRawInfluence = 0f,
     float CurrentRawInfluence = 0f,
-    float CurrentTotalRawInfluence = 0f);
+    float CurrentTotalRawInfluence = 0f,
+    int Z = 0);
 
 public sealed record CultureSlotOccupancyEventRow(
     int RunId,
@@ -506,6 +514,29 @@ public sealed record MinorActorVerbEventRow(
     float ConnectedRawMass,
     float Score,
     float Delta);
+
+public sealed record EntityTagEventRow(
+    int RunId,
+    int Tick,
+    int EntityId,
+    int TagId,
+    bool Assigned,
+    int SourceCodeId);
+
+public sealed record CulturePowerSnapshotRow(
+    int RunId,
+    int Tick,
+    int CultureId,
+    float WitnessShare,
+    float ShadowShare,
+    float WakeShare,
+    float WitnessMass,
+    float HiddenMass,
+    float SemanticMass,
+    float CustodyStrength,
+    float ClaimStrength,
+    float WarStrength,
+    float OfferingStrength);
 
 public sealed record CultureFieldComponentSnapshotRow(
     int RunId,

@@ -666,6 +666,10 @@ public sealed class GameplayCompilerProgramTests
             _ => 59,
         };
 
+        public int ResolveTagId(string tag) => 60;
+
+        public int ResolveSubtypeId(string subtype) => 61;
+
         public int ResolveCultureId(string culture) => culture switch
         {
             "culture" => 80,

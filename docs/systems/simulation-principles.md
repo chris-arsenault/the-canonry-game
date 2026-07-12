@@ -21,6 +21,26 @@ These goals are coupled. A map can look busy while the graph is poor; a graph
 can be diverse while every entity sits in one cluster. Tuning should measure all
 three before declaring success.
 
+## Game Horizon: Bootstrap Into Steady State
+
+The mental model for play is SimCity: relaxed, guided evolution over a long
+session. Current Monte Carlo evidence runs (~25k ticks) exercise only the
+first phase of that game — the bootstrap from seed into a steady state. A
+real play session extends this horizon 4x-10x-50x depending on player
+engagement, so:
+
+- Low absolute map coverage in evidence runs is expected and is not a defect.
+  Judge territorial *shape* and *trend*, not end-state fill.
+- Steady-state health matters more than end-state totals: a mechanism that is
+  stable and self-sustaining at 25k ticks is presumed extensible; a mechanism
+  that only looks balanced because the run ended is not.
+- When a tuning decision would differ between "bootstrap phase" and "long
+  steady state" (e.g. caps, decay equilibria, cadence intervals, carrying
+  capacity), name the horizon assumption explicitly in the finding and prefer
+  the choice that stays healthy under extension.
+- Longer confirmation runs (100k+) are a legitimate ask when a mechanism's
+  failure mode is slow accumulation or slow starvation.
+
 ## Altitude Boundaries
 
 Low altitude is the per-tick substrate. It may move entities, change health,

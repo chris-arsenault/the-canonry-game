@@ -20,6 +20,7 @@ public enum DomainIdCategory
     EventCode,
     ReasonCode,
     SourceCode,
+    Tag,
 }
 
 public readonly record struct DomainIdEntry(
@@ -59,6 +60,8 @@ public sealed class DomainIdRegistry
         new(static value => new ReasonCodeId(value), static id => id.Value, "reason code");
     private readonly StableNameRegistry<SourceCodeId> _sourceCodes =
         new(static value => new SourceCodeId(value), static id => id.Value, "source code");
+    private readonly StableNameRegistry<TagRuntimeId> _tags =
+        new(static value => new TagRuntimeId(value), static id => id.Value, "tag");
 
     public KindRuntimeId RegisterKind(string stableName) => _kinds.Register(stableName);
     public KindRuntimeId RegisterKind(KindId kind) => RegisterKind(kind.Value);
@@ -125,10 +128,15 @@ public sealed class DomainIdRegistry
     public SourceCodeId SourceCodeIdOf(string stableName) => _sourceCodes.Resolve(stableName);
     public string SourceCodeNameOf(SourceCodeId id) => _sourceCodes.NameOf(id);
 
+    public TagRuntimeId RegisterTag(string stableName) => _tags.Register(stableName);
+    public TagRuntimeId TagIdOf(string stableName) => _tags.Resolve(stableName);
+    public string TagNameOf(TagRuntimeId id) => _tags.NameOf(id);
+
     public IEnumerable<DomainIdEntry> Entries()
     {
         foreach (var entry in PrimaryEntries()) yield return entry;
         foreach (var entry in SecondaryEntries()) yield return entry;
+        foreach (var entry in TertiaryEntries()) yield return entry;
     }
 
     private IEnumerable<DomainIdEntry> PrimaryEntries()
@@ -154,6 +162,11 @@ public sealed class DomainIdRegistry
         foreach (var entry in _sourceCodes.Entries(DomainIdCategory.SourceCode)) yield return entry;
     }
 
+    private IEnumerable<DomainIdEntry> TertiaryEntries()
+    {
+        foreach (var entry in _tags.Entries(DomainIdCategory.Tag)) yield return entry;
+    }
+
     public DomainIdRegistry Clone()
     {
         var clone = new DomainIdRegistry();
@@ -174,6 +187,12 @@ public sealed class DomainIdRegistry
 
         if (RegisterSecondaryCloneEntry(clone, entry))
         {
+            return;
+        }
+
+        if (entry.Category == DomainIdCategory.Tag)
+        {
+            clone.RegisterTag(entry.StableName);
             return;
         }
 

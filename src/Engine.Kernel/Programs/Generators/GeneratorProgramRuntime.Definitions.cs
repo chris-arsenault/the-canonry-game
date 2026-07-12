@@ -28,6 +28,43 @@ internal sealed partial class GeneratorProgramRuntime
         _relationshipCounts[generatorSlot]++;
     }
 
+    public int AddSecondaryBinding(
+        int generatorSlot,
+        int refCode,
+        int kindId,
+        int adjacentToTarget,
+        int cultureMatchCode,
+        int samePhysicalCultureComponentAsTarget = 0,
+        int requiredTagBits = 0,
+        int withoutTagBits = 0,
+        int cultureId = 0)
+    {
+        EnsureOpenGenerator(generatorSlot);
+        ValidatePositive(refCode);
+        ValidatePositive(kindId);
+        ValidatePositive(cultureMatchCode);
+        if (_bindingCount + 1 >= _bindingRefCodes.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _bindingCount++;
+        _bindingRefCodes[_bindingCount] = refCode;
+        _bindingKindIds[_bindingCount] = kindId;
+        _bindingAdjacentToTarget[_bindingCount] = adjacentToTarget;
+        _bindingCultureMatchCodes[_bindingCount] = cultureMatchCode;
+        _bindingSamePhysicalCultureComponentAsTarget[_bindingCount] = samePhysicalCultureComponentAsTarget;
+        _bindingRequiredTagBits[_bindingCount] = requiredTagBits;
+        _bindingWithoutTagBits[_bindingCount] = withoutTagBits;
+        _bindingCultureIds[_bindingCount] = cultureId;
+        _bindingSubtypeStarts[_bindingCount] = _subtypeCount + 1;
+        _bindingWithoutOutgoingStarts[_bindingCount] = _relationshipKindFilterCount + 1;
+        _bindingWithoutIncomingStarts[_bindingCount] = _relationshipKindFilterCount + 1;
+        _bindingCounts[generatorSlot]++;
+        _openBindingSlot = _bindingCount;
+        return _bindingCount;
+    }
+
     public int AddEffect(
         int generatorSlot,
         int effectTypeCode,

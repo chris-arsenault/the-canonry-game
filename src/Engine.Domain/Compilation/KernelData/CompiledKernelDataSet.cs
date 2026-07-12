@@ -7,4 +7,6 @@ public sealed class CompiledKernelDataSet
     public required CompiledMovementData Movement { get; init; }
 
     public required CompiledTerrainData Terrain { get; init; }
+
+    public required CompiledCultureData Cultures { get; init; }
 }

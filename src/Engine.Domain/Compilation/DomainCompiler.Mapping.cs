@@ -228,6 +228,10 @@ public static partial class DomainCompiler
                 CompileGeneratorTargetRelationshipRequirements(generator.Target, terrainByName, ids),
                 Math.Max(generator.PulseWeight, 0),
                 generator.MaxRunsPerSim ?? 0,
+                Math.Max(generator.CadenceTicks, 0),
+                Math.Max(generator.CadenceJitterTicks, 0),
+                CompileTagBits(generator.Target.RequiredTags, ids),
+                CompileTagBits(generator.Target.WithoutTags, ids),
                 CompileGeneratorTriggers(generator.Triggers, ids),
                 CompileGeneratorBindings(generator.SecondaryTargets, ids, refCodes),
                 CompileGeneratorProducedEntities(generator.Produces, ids, terrainByName, refCodes),
@@ -383,7 +387,8 @@ public static partial class DomainCompiler
                 CompileTerrainIds(produced.SemanticPlacementAvoidedTerrains, terrainByName, ids),
                 CompileOptionalTerrainId(produced.SemanticPlacementFallbackTerrain, terrainByName, ids),
                 refCodes[produced.PlacementRef],
-                refCodes[produced.InheritCultureFrom],
+                produced.InheritCultureFrom is null ? 0 : refCodes[produced.InheritCultureFrom],
+                produced.Culture is null ? 0 : ids.CultureIdOf(produced.Culture).Value,
                 ToGeneratorCulturePlacement(produced.CulturePlacement),
                 produced.CreateChance,
                 CompileGeneratorCoverage(produced.Coverage, terrainByName, refCodes, ids)));
@@ -408,7 +413,10 @@ public static partial class DomainCompiler
             query.SamePhysicalCultureComponentAsTarget,
             ToGeneratorCultureMatch(query.TargetCultureMatch),
             CompileRelationshipKindIds(query.WithoutOutgoingRelationships, ids),
-            CompileRelationshipKindIds(query.WithoutIncomingRelationships, ids));
+            CompileRelationshipKindIds(query.WithoutIncomingRelationships, ids),
+            CompileTagBits(query.RequiredTags, ids),
+            CompileTagBits(query.WithoutTags, ids),
+            query.Culture is null ? 0 : ids.CultureIdOf(query.Culture).Value);
     }
 
     private static GeneratorCoverageRule? CompileGeneratorCoverage(
@@ -493,28 +501,59 @@ public static partial class DomainCompiler
                         adjustRelationship.IncludeReciprocal ? 1 : 0,
                         adjustRelationship.Delta));
                     break;
+                case DefinitionClaimSemanticJurisdictionEffect claim:
+                    compiled.Add(new GeneratorEffectRule(
+                        GeneratorEffectTypeCodes.ClaimSemanticJurisdiction,
+                        refCodes[claim.BindingRef],
+                        claim.Radius));
+                    break;
+                case DefinitionSetBindingTagEffect setTag:
+                    compiled.Add(new GeneratorEffectRule(
+                        GeneratorEffectTypeCodes.SetBindingTag,
+                        refCodes[setTag.BindingRef],
+                        ids.TagIdOf(setTag.Tag).Value,
+                        setTag.Assigned ? 1 : 0));
+                    break;
                 case DefinitionSetTerrainPatchEffect setTerrainPatch:
-                    {
-                        var terrain = ResolveTerrain(terrainByName, setTerrainPatch.Terrain);
-                        compiled.Add(new GeneratorEffectRule(
-                            GeneratorEffectTypeCodes.SetTerrainPatch,
-                            refCodes[setTerrainPatch.CenterRef],
-                            setTerrainPatch.RespectTerrainBoundaries ? 1 : 0,
-                            ids.TerrainIdOf(terrain.Name).Value,
-                            setTerrainPatch.Chance,
-                            setTerrainPatch.Radius,
-                            setTerrainPatch.MaxCellCount,
-                            CompileTerrainIds(setTerrainPatch.PreferredTerrains, terrainByName, ids),
-                            CompileTerrainIds(setTerrainPatch.AllowedTerrains, terrainByName, ids),
-                            setTerrainPatch.PlaneCode));
-                        break;
-                    }
+                    compiled.Add(CompileTerrainPatchEffect(setTerrainPatch, terrainByName, ids, refCodes));
+                    break;
                 default:
                     throw new InvalidOperationException($"Unsupported generator effect type '{effect.GetType().Name}'.");
             }
         }
 
         return compiled;
+    }
+
+    private static int CompileTagBits(IReadOnlySet<string>? tags, DomainIdRegistry ids)
+    {
+        var bits = 0;
+        foreach (var tag in tags ?? (IReadOnlySet<string>)new HashSet<string>(StringComparer.Ordinal))
+        {
+            bits |= 1 << ids.TagIdOf(tag).Value;
+        }
+
+        return bits;
+    }
+
+    private static GeneratorEffectRule CompileTerrainPatchEffect(
+        DefinitionSetTerrainPatchEffect setTerrainPatch,
+        Dictionary<string, TerrainConfig> terrainByName,
+        DomainIdRegistry ids,
+        Dictionary<string, int> refCodes)
+    {
+        var terrain = ResolveTerrain(terrainByName, setTerrainPatch.Terrain);
+        return new GeneratorEffectRule(
+            GeneratorEffectTypeCodes.SetTerrainPatch,
+            refCodes[setTerrainPatch.CenterRef],
+            setTerrainPatch.RespectTerrainBoundaries ? 1 : 0,
+            ids.TerrainIdOf(terrain.Name).Value,
+            setTerrainPatch.Chance,
+            setTerrainPatch.Radius,
+            setTerrainPatch.MaxCellCount,
+            CompileTerrainIds(setTerrainPatch.PreferredTerrains, terrainByName, ids),
+            CompileTerrainIds(setTerrainPatch.AllowedTerrains, terrainByName, ids),
+            setTerrainPatch.PlaneCode);
     }
 
     private static List<int> CompileGeneratorSubtypeIds(

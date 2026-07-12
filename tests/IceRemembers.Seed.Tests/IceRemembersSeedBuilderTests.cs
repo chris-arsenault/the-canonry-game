@@ -92,7 +92,16 @@ public sealed class IceRemembersSeedBuilderTests
             subdivision.Level == DomainMapSubdivisionLevel.Superregion));
         Assert.Contains(startupSeed.Entities, entity => entity.DisplayName == "Aurora Stack");
         Assert.Contains(physicalCells, cell => cell.OwnerSeedEntityId is not null);
-        Assert.DoesNotContain(semanticCells, cell => cell.OwnerSeedEntityId is not null);
+        // Semantic coverage exists by design now: canon jurisdictions own
+        // patches of idea-space; any semantic owner must be a canon entity.
+        var canonIds = Seed.Entities
+            .Where(entity => entity.Kind == K.Canon.Value)
+            .Select(entity => entity.SeedEntityId)
+            .ToHashSet();
+        Assert.Contains(semanticCells, cell => cell.OwnerSeedEntityId is not null);
+        Assert.All(
+            semanticCells.Where(cell => cell.OwnerSeedEntityId is not null),
+            cell => Assert.Contains(cell.OwnerSeedEntityId!.Value, canonIds));
         Assert.All(startupSeed.Cells, cell =>
         {
             Assert.True(cell.SuperregionId > 0, $"Cell {cell.Q},{cell.R} has no superregion.");
@@ -170,8 +179,8 @@ public sealed class IceRemembersSeedBuilderTests
         Assert.Equal(4, EntitiesByKind(K.Region).Length);
         Assert.Equal(5, EntitiesByKind(K.Settlement).Length);
         Assert.Equal(4, EntitiesByKind(K.Faction).Length);
-        Assert.Equal(3, EntitiesByKind(K.Penguin).Length);
-        Assert.Equal(4, EntitiesByKind(K.Artifact).Length);
+        Assert.Equal(5, EntitiesByKind(K.Penguin).Length);
+        Assert.Equal(6, EntitiesByKind(K.Artifact).Length);
         Assert.Equal(3, EntitiesByKind(K.Transport).Length);
         Assert.Equal(3, EntitiesByKind(K.Occurrence).Length);
 

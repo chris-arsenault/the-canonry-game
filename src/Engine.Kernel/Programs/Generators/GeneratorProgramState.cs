@@ -6,6 +6,7 @@ internal sealed partial class GeneratorProgramState : IKernelProgramState
 {
     internal readonly int[] RunCounts;
     internal readonly bool[] Enabled;
+    internal readonly int[] NextCadenceFireTicks;
     internal int CurrentPulseIndex;
     internal int FiresThisPulse;
 
@@ -14,9 +15,10 @@ internal sealed partial class GeneratorProgramState : IKernelProgramState
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(generatorCapacity);
         RunCounts = new int[generatorCapacity + 1];
         Enabled = new bool[generatorCapacity + 1];
+        NextCadenceFireTicks = new int[generatorCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.Generators;
 
-    public int SchemaVersion => 2;
+    public int SchemaVersion => 3;
 }

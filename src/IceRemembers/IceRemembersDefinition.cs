@@ -37,6 +37,8 @@ public static partial class IceRemembersDefinition
             MinorActors = CreateMinorActorRules(),
             MovementProfiles = IceRemembersMovementProfiles.DomainProfiles,
             Cultures = CreateCultures(),
+            CulturePower = CreateCulturePowerDefinition(),
+            Tags = ["hunted", "terrified", "bereaved", "fervent", "oathbreaker", "profaner"],
             Gameplay = CreateGameplayDefinition(),
             Semantics = semantics,
             Chronicle = CreateChronicleDefinition(),
@@ -49,6 +51,22 @@ public static partial class IceRemembersDefinition
     private static string V(Verb verb) => verb.ToVerbId();
     private static string G(GambitId gambit) => gambit.ToGambitId();
     private static string TerrainName(Terrain terrain) => terrain.ToDomainName();
+
+    private static CulturePowerConfig CreateCulturePowerDefinition() =>
+        new()
+        {
+            CustodyKinds = [K.Artifact.Value, K.Ability.Value],
+            CustodyRelationships =
+            [
+                L(Rel.Holds),
+                L(Rel.Anchored),
+                L(Rel.PracticedBy),
+                L(Rel.ConduitOf),
+            ],
+            ClaimRelationship = L(Rel.ClaimedBy),
+            WarRelationship = L(Rel.AtWarWith),
+            OfferingRelationships = [L(Rel.OfferedTo), L(Rel.ConsignedTo)],
+        };
 
     private static ChronicleConfig CreateChronicleDefinition() =>
         new()
@@ -136,6 +154,9 @@ public static partial class IceRemembersDefinition
             new() { Name = L(Rel.BetrayedBy), Polarity = RelationshipPolarity.Negative, ValidSourceCategories = agency, ValidTargetCategories = agency, Maintenance = AgencyConflictMaintenance() },
             new() { Name = L(Rel.PracticedBy), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = asset, ValidTargetCategories = agency, CullThreshold = 0.05f, Maintenance = AbilityPracticeMaintenance() },
             new() { Name = L(Rel.TaughtBy), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = agency, ValidTargetCategories = agency, CullThreshold = 0.05f, Maintenance = AgencyBondMaintenance() },
+            new() { Name = L(Rel.OfferedTo), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = agency, ValidTargetCategories = spatial, CullThreshold = 0.02f, Maintenance = OfferingMaintenance() },
+            new() { Name = L(Rel.PreysOn), Polarity = RelationshipPolarity.Negative, ValidSourceCategories = agency, ValidTargetCategories = spatialOrAsset, CullThreshold = 0.03f, Maintenance = PredationMaintenance() },
+            new() { Name = L(Rel.ConsignedTo), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = asset, ValidTargetCategories = spatial, IsExclusive = true, CullThreshold = 0.02f, Maintenance = SemanticBondMaintenance() },
         ];
     }
 
@@ -175,6 +196,26 @@ public static partial class IceRemembersDefinition
         Distance(PrimaryPlane.Physical, 6, 0.0008f),
         SourceInfluenceAtTarget(50f, 0.001f),
         TargetInfluenceAtSource(50f, 0.001f),
+    ];
+
+    /// <summary>
+    /// Offerings fade unless renewed: worship is a flow, not a purchase. The
+    /// decay is what makes sacred sites ebb when a cult goes quiet.
+    /// </summary>
+    /// <summary>
+    /// Predation ebbs unless the hunt is pressed: the ambient conflict
+    /// substrate that ordinary raiding renews and settlements resist.
+    /// </summary>
+    private static IReadOnlyList<RelationshipMaintenanceRuleConfig> PredationMaintenance() =>
+    [
+        AlwaysDecay(0.0009f),
+        ContactMemory(8f, 0.0012f),
+    ];
+
+    private static IReadOnlyList<RelationshipMaintenanceRuleConfig> OfferingMaintenance() =>
+    [
+        AlwaysDecay(0.0010f),
+        ContactMemory(10f, 0.0010f),
     ];
 
     private static IReadOnlyList<RelationshipMaintenanceRuleConfig> SemanticBondMaintenance() =>
@@ -246,7 +287,43 @@ public static partial class IceRemembersDefinition
             AddHealthEffects(effects, entity.Kind, entity.HealthAttribute, entity.PrimaryPlane);
         }
 
-        return GameplayEffectSet.From(effects);
+        return GameplayEffectSet.From(
+            effects,
+            [
+                new RelationshipTagRuleConfig
+                {
+                    Kind = K.Faction.Value,
+                    Tag = "oathbreaker",
+                    RelationshipKind = L(Rel.AtWarWith),
+                    RelationshipDirection = EffectRelationshipDirection.Outgoing,
+                    SetAtOrAbove = 0.3f,
+                    ClearBelow = 0.15f,
+                    InsideCoverageOwnerKind = K.Canon.Value,
+                    InsideCoverageOwnerSubtype = "accord",
+                    InsideCoveragePlane = "semantic",
+                },
+                new RelationshipTagRuleConfig
+                {
+                    Kind = K.Faction.Value,
+                    Tag = "profaner",
+                    RelationshipKind = L(Rel.OfferedTo),
+                    RelationshipDirection = EffectRelationshipDirection.Outgoing,
+                    SetAtOrAbove = 0.3f,
+                    ClearBelow = 0.15f,
+                    InsideCoverageOwnerKind = K.Canon.Value,
+                    InsideCoverageOwnerSubtype = "taboo",
+                    InsideCoveragePlane = "semantic",
+                },
+                new RelationshipTagRuleConfig
+                {
+                    Kind = K.Faction.Value,
+                    Tag = "fervent",
+                    RelationshipKind = L(Rel.OfferedTo),
+                    RelationshipDirection = EffectRelationshipDirection.Outgoing,
+                    SetAtOrAbove = 0.75f,
+                    ClearBelow = 0.4f,
+                },
+            ]);
     }
 
     private static void AddHealthEffects(
@@ -268,6 +345,7 @@ public static partial class IceRemembersDefinition
             InfluenceShelter(kind, attribute, Rel.Memorializes, EffectRelationshipDirection.Either, 0.025f, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.RivalOf, -0.07f, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.AtWarWith, -0.10f, threshold: 35f, plane: plane),
+            InfluenceStress(kind, attribute, Rel.PreysOn, -0.06f, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.CorruptedBy, -0.08f, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.BetrayedBy, -0.06f, threshold: 35f, plane: plane),
             RelationshipSupport(kind, attribute, Rel.AlliedWith, 0.035f, maxDistance: 1, plane: plane),
@@ -292,6 +370,10 @@ public static partial class IceRemembersDefinition
             MapSignalEffect(kind, attribute, Effect.MapCrowdingComfort, 0.025f, threshold: 0.5f, plane: plane),
             MapSignalEffect(kind, attribute, Effect.MapThreatAtLocation, -0.04f, threshold: 4f, plane: plane),
             MapSignalEffect(kind, attribute, Effect.MapCrowdingLoad, -0.08f, threshold: 0.5f, plane: plane),
+            CarryingStrain(kind, attribute, plane),
+            JurisdictionEffect(kind, attribute, K.Region.Value, null, "physical", 0.02f),
+            JurisdictionEffect(kind, attribute, K.Canon.Value, "accord", "semantic", 0.03f),
+            JurisdictionEffect(kind, attribute, K.Canon.Value, "taboo", "semantic", -0.03f),
         ]);
     }
 
@@ -454,6 +536,50 @@ public static partial class IceRemembersDefinition
         PrimaryPlane plane) =>
         RelationshipAttributeDeltaEffect(kind, attribute, relationship, deltaPerTick, maxDistance, plane);
 
+    /// <summary>
+    /// Local carrying capacity: crowding drains health where the entity's own
+    /// culture mass does not support the density. Asymptotic discount
+    /// (scale/(scale+mass)) — never a hard cap; growing territory is the
+    /// escape, and future artifacts/abilities can raise support the same way.
+    /// </summary>
+    private static AttributeDeltaEffectConfig CarryingStrain(
+        EntityKind kind,
+        Attr attribute,
+        PrimaryPlane plane) =>
+        new()
+        {
+            Kind = kind.Value,
+            Attribute = A(attribute),
+            Condition = Effect.CrowdingBeyondCultureSupport,
+            Plane = GameplayPlaneName(plane),
+            Threshold = 0.8f,
+            SupportScale = 150f,
+            DeltaPerTick = -0.06f,
+        };
+
+    /// <summary>
+    /// Living under the law (or the land): entities standing inside a named
+    /// coverage patch on the given plane feel it — regions sustain their own
+    /// ground, accords shelter, taboos strain.
+    /// </summary>
+    private static AttributeDeltaEffectConfig JurisdictionEffect(
+        EntityKind kind,
+        Attr attribute,
+        string ownerKind,
+        string? ownerSubtype,
+        string plane,
+        float deltaPerTick) =>
+        new()
+        {
+            Kind = kind.Value,
+            Attribute = A(attribute),
+            Condition = Effect.InsideOwnedCoverage,
+            Plane = plane,
+            CoverageOwnerKind = ownerKind,
+            CoverageOwnerSubtype = ownerSubtype,
+            DeltaPerTick = deltaPerTick,
+        };
+
     private static AttributeDeltaEffectConfig MapSignalEffect(
         EntityKind kind,
         Attr attribute,
@@ -506,6 +632,9 @@ public static partial class IceRemembersDefinition
         CultureDefinition(
             Culture.AuroraStack,
             "Aurora Stack",
+            physicalProduction: 1.1f,
+            semanticProduction: 0.9f,
+            slots:
             [
                 Slot("high_rookery", "High Rookery", CultureSlotPolarity.Positive, [K.Settlement], [
                     Score(CultureSlotScoreSignal.ActiveEntity, 4f), Score(CultureSlotScoreSignal.PhysicalCoverage, 0.85f),
@@ -543,6 +672,9 @@ public static partial class IceRemembersDefinition
         CultureDefinition(
             Culture.Nightshelf,
             "Nightshelf",
+            physicalProduction: 0.75f,
+            semanticProduction: 2.5f,
+            slots:
             [
                 Slot("ledger_seat", "Ledger Seat", CultureSlotPolarity.Positive, [K.Faction], [
                     Score(CultureSlotScoreSignal.ActiveEntity, 4f), Score(CultureSlotScoreSignal.IncomingRelationshipStrength, 0.9f, Rel.ControlledBy),
@@ -622,12 +754,16 @@ public static partial class IceRemembersDefinition
     private static CultureConfig CultureDefinition(
         Culture culture,
         string displayName,
-        IReadOnlyList<CultureSlotConfig> slots) =>
+        IReadOnlyList<CultureSlotConfig> slots,
+        float physicalProduction = 1f,
+        float semanticProduction = 1f) =>
         new()
         {
             Id = C(culture),
             DisplayName = displayName,
             Slots = slots,
+            PhysicalInfluenceProductionMultiplier = physicalProduction,
+            SemanticInfluenceProductionMultiplier = semanticProduction,
         };
 
     private static CultureSlotConfig Slot(

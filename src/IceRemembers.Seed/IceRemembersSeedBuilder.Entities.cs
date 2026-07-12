@@ -69,7 +69,10 @@ internal static partial class IceRemembersSeedBuilder
 
         CreateLeadershipRelationships(seed, factions);
         CreateCanonicalLinks(seed, random, takenPhysical, takenSemantic, factions);
+        CreateNightshelfCustodyAssets(seed, random, takenPhysical, takenSemantic);
+        CreateSeedCanons(seed, random, takenPhysical, takenSemantic, factions);
     }
+
 
     private static void CreateCanonicalLinks(
         SeedAssembly seed,
@@ -128,6 +131,30 @@ internal static partial class IceRemembersSeedBuilder
         SetSemanticNaturalNear(seed, dreamingTooth, corpseCurrent, random, takenSemantic, searchRadius: 12);
         CreateRelationship(seed, "anchored", RelationshipPolarity.Neutral, dreamingTooth.SeedEntityId, corpseCurrent.SeedEntityId, 1f);
         CreateRelationship(seed, "claimed_by", RelationshipPolarity.Neutral, dreamingTooth.SeedEntityId, factions.WakeSingers.SeedEntityId, 1f);
+
+        CreateWakeDevotionSeed(seed, factions, corpseCurrent, grandmotherDeep, tidescream, dreamingTooth);
+    }
+
+    /// <summary>
+    /// The Corpse Current starts as a living sacred site: devotion edges from
+    /// the choir and its elders, the Firstkilltooth already given to the deep,
+    /// and one seeded predation mark so the blood channel can boot without a
+    /// seeded war.
+    /// </summary>
+    private static void CreateWakeDevotionSeed(
+        SeedAssembly seed,
+        (SeedEntity Council, SeedEntity Exchange, SeedEntity Claws, SeedEntity WakeSingers) factions,
+        SeedEntity corpseCurrent,
+        SeedEntity grandmotherDeep,
+        SeedEntity tidescream,
+        SeedEntity dreamingTooth)
+    {
+        CreateRelationship(seed, "offered_to", RelationshipPolarity.Positive, factions.WakeSingers.SeedEntityId, corpseCurrent.SeedEntityId, 0.85f);
+        CreateRelationship(seed, "offered_to", RelationshipPolarity.Positive, grandmotherDeep.SeedEntityId, corpseCurrent.SeedEntityId, 0.9f);
+        CreateRelationship(seed, "offered_to", RelationshipPolarity.Positive, tidescream.SeedEntityId, corpseCurrent.SeedEntityId, 0.7f);
+        CreateRelationship(seed, "consigned_to", RelationshipPolarity.Neutral, dreamingTooth.SeedEntityId, corpseCurrent.SeedEntityId, 0.9f);
+        var preyShore = FindEntityByName(seed, "Aurora Stack");
+        CreateRelationship(seed, "preys_on", RelationshipPolarity.Negative, factions.WakeSingers.SeedEntityId, preyShore.SeedEntityId, 0.55f);
     }
 
     private static void CreateLeadershipRelationships(
@@ -457,6 +484,8 @@ internal static partial class IceRemembersSeedBuilder
             ("witness", "High-Beak Auditor Selka", "Selka", C(IceRemembersCulture.AuroraStack), factionA.SeedEntityId, 1f),
             ("broker", "Shadow-Broker Nyla", "Nyla", C(IceRemembersCulture.Nightshelf), factionB.SeedEntityId, 1f),
             ("exile", "Smokeheld Luscoa☽", "Luscoa", C(IceRemembersCulture.Nightshelf), factionB.SeedEntityId, 0.4f),
+            ("broker", "Factor Roum☽-vel", "Roum", C(IceRemembersCulture.Nightshelf), factionB.SeedEntityId, 0.9f),
+            ("broker", "Veilmonger Tutris☽", "Tutris", C(IceRemembersCulture.Nightshelf), factionB.SeedEntityId, 0.8f),
         };
 
     private static HexCoord SelectPenguinHex(
@@ -618,6 +647,7 @@ internal static partial class IceRemembersSeedBuilder
     [
         ("Grandmother Deep", "Grandmother Deep", "matriarch"),
         ("Ghakhrath Gnurlgath Skarn", "Ghakhrath", "elder"),
+        ("Khukhgath Grungthrang", "Khukhgath", "elder"),
         ("Khrarnd Grendbrund", "Khrarnd", "scout"),
     ];
 
@@ -649,6 +679,7 @@ internal static partial class IceRemembersSeedBuilder
     [
         new("Zhei's Compass Freeze", "Compass Freeze", "craft", IceRemembersCulture.AuroraStack, "heartlands", "High-Beak Auditor Selka", "Grandmother Deep"),
         new("Wane∴chill", "Wane", "craft", IceRemembersCulture.Nightshelf, "coastlands", "Shadow-Broker Nyla", "Smokeheld Luscoa☽"),
+        new("Flay∴descend", "Descend", "rite", IceRemembersCulture.Nightshelf, "coastlands", "Factor Roum☽-vel", "Veilmonger Tutris☽"),
         new("Kzundkhrrak Way", "Kzundkhrrak", "rite", IceRemembersCulture.WakeSingers, "farwake", "Khrarnd Grendbrund", "Grandmother Deep"),
     ];
 

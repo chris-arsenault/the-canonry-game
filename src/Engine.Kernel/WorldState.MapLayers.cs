@@ -10,6 +10,8 @@ internal sealed partial class WorldState
     internal const float CultureEntrenchedRawMass = 300f;
     internal const float CultureNexusRawMass = 700f;
     internal const float CultureFullRawMass = 2000f;
+    internal const int MinCellZ = -3;
+    internal const int MaxCellZ = 3;
 
     public int MapRadius => _mapRadius;
 
@@ -32,23 +34,32 @@ internal sealed partial class WorldState
 
     public bool CellIsKnown(int q, int r) => CellIsKnown(PlaneCodes.Physical, q, r);
 
-    public bool CellIsKnown(int planeCode, int q, int r)
+    public bool CellIsKnown(int planeCode, int q, int r) => CellIsKnown(planeCode, q, r, z: 0);
+
+    public bool CellIsKnown(int planeCode, int q, int r, int z)
     {
         ValidateInfluencePlaneCode(planeCode);
         if (planeCode == PlaneCodes.Semantic)
         {
-            return MaxAbs(q, r, -q - r) <= _mapRadius;
+            return z == 0 && MaxAbs(q, r, -q - r) <= _mapRadius;
         }
 
-        return _mapCellTerrainIds.TryGet(CoordinateKey(q, r), PlaneCodes.Physical, out _);
+        if (z is < MinCellZ or > MaxCellZ)
+        {
+            return false;
+        }
+
+        return _mapCellTerrainIds.TryGet(CoordinateKey(q, r, z), PlaneCodes.Physical, out _);
     }
 
     public int CellTerrainId(int q, int r) => CellTerrainId(PlaneCodes.Physical, q, r);
 
-    public int CellTerrainId(int planeCode, int q, int r)
+    public int CellTerrainId(int planeCode, int q, int r) => CellTerrainId(planeCode, q, r, z: 0);
+
+    public int CellTerrainId(int planeCode, int q, int r, int z)
     {
         ValidateInfluencePlaneCode(planeCode);
-        return _mapCellTerrainIds.TryGet(CoordinateKey(q, r), planeCode, out var terrainId) ? terrainId : 1;
+        return _mapCellTerrainIds.TryGet(CoordinateKey(q, r, z), planeCode, out var terrainId) ? terrainId : 1;
     }
 
     public void SetCellTerrain(int q, int r, int terrainId)
@@ -108,14 +119,41 @@ internal sealed partial class WorldState
         int terrainId,
         int ownerEntityId,
         int superregionId,
+        int continentId) =>
+        WriteCell(planeCode, q, r, z: 0, terrainId, ownerEntityId, superregionId, continentId);
+
+    private void WriteCell(
+        int planeCode,
+        int q,
+        int r,
+        int z,
+        int terrainId,
+        int ownerEntityId,
+        int superregionId,
         int continentId)
     {
         ValidateInfluencePlaneCode(planeCode);
-        var key = CoordinateKey(q, r);
+        ValidateCellZ(z);
+        var key = CoordinateKey(q, r, z);
         _mapCellTerrainIds.Set(key, planeCode, terrainId);
         _mapCellSuperregionIds.Set(key, planeCode, superregionId);
         _mapCellContinentIds.Set(key, planeCode, continentId);
-        _mapLayers.Coverage.SetValue(planeCode, key, q, r, ownerEntityId);
+        _mapLayers.Coverage.SetValue(planeCode, key, q, r, z, ownerEntityId);
+    }
+
+    internal void WriteForgedCell(int planeCode, int q, int r, int z, int terrainId)
+    {
+        ValidatePositive(terrainId);
+        WriteCell(planeCode, q, r, z, terrainId, ownerEntityId: 0, superregionId: 0, continentId: 0);
+        AdvanceWorldVersion();
+    }
+
+    private static void ValidateCellZ(int z)
+    {
+        if (z is < MinCellZ or > MaxCellZ)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(z));
+        }
     }
 
     internal int CellSuperregionId(int q, int r) => CellSuperregionId(PlaneCodes.Physical, q, r);
@@ -187,6 +225,17 @@ internal sealed partial class WorldState
         int terrainId,
         int ownerEntityId,
         int tick,
+        in KernelExecutionContext context) =>
+        SetCellState(planeCode, q, r, z: 0, terrainId, ownerEntityId, tick, context);
+
+    internal void SetCellState(
+        int planeCode,
+        int q,
+        int r,
+        int z,
+        int terrainId,
+        int ownerEntityId,
+        int tick,
         in KernelExecutionContext context)
     {
         ValidatePositive(context.SourceCodeId);
@@ -194,22 +243,22 @@ internal sealed partial class WorldState
         ValidatePositive(terrainId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(ownerEntityId);
 
-        var previousTerrainId = CellTerrainId(planeCode, q, r);
-        var previousOwnerEntityId = CoverageOwnerAt(planeCode, q, r);
-        var superregionId = CellSuperregionId(planeCode, q, r);
-        var continentId = CellContinentId(planeCode, q, r);
+        var previousTerrainId = CellTerrainId(planeCode, q, r, z);
+        var previousOwnerEntityId = _mapLayers.Coverage.ValueAt(planeCode, CoordinateKey(q, r, z));
+        var superregionId = _mapCellSuperregionIds.GetOrDefault(CoordinateKey(q, r, z), planeCode);
+        var continentId = _mapCellContinentIds.GetOrDefault(CoordinateKey(q, r, z), planeCode);
         if (previousTerrainId == terrainId && previousOwnerEntityId == ownerEntityId)
         {
             return;
         }
 
         EnsureProvenanceOutputCapacity(context);
-        WriteCell(planeCode, q, r, terrainId, ownerEntityId, superregionId, continentId);
+        WriteCell(planeCode, q, r, z, terrainId, ownerEntityId, superregionId, continentId);
         AdvanceWorldVersion();
         RecordProvenanceOutput(
             context,
             ProvenanceOutputKindCodes.CellChanged,
-            CoordinateKey(q, r),
+            CoordinateKey(q, r, z),
             ownerEntityId,
             0,
             terrainId,
@@ -226,7 +275,8 @@ internal sealed partial class WorldState
             previousOwnerEntityId,
             ownerEntityId,
             superregionId,
-            continentId)),
+            continentId,
+            z)),
             context);
         if (planeCode == PlaneCodes.Physical)
         {
@@ -241,7 +291,8 @@ internal sealed partial class WorldState
                 previousOwnerEntityId,
                 ownerEntityId,
                 superregionId,
-                continentId)),
+                continentId,
+                z)),
                 context);
         }
     }
@@ -297,18 +348,24 @@ internal sealed partial class WorldState
         return _mapLayers.CultureInfluence.MoveNextCell(ref cursor, out q, out r, out value);
     }
 
-    public float GetCellCultureInfluence(int cultureId, int planeCode, int q, int r)
+    public float GetCellCultureInfluence(int cultureId, int planeCode, int q, int r) =>
+        GetCellCultureInfluence(cultureId, planeCode, q, r, z: 0);
+
+    public float GetCellCultureInfluence(int cultureId, int planeCode, int q, int r, int z)
     {
         ValidatePositive(cultureId);
         ValidateInfluencePlaneCode(planeCode);
-        return _mapLayers.CultureInfluence.ValueAt(cultureId, planeCode, CoordinateKey(q, r));
+        return _mapLayers.CultureInfluence.ValueAt(cultureId, planeCode, CoordinateKey(q, r, z));
     }
 
-    internal float GetCellCultureInfluenceRaw(int cultureId, int planeCode, int q, int r)
+    internal float GetCellCultureInfluenceRaw(int cultureId, int planeCode, int q, int r) =>
+        GetCellCultureInfluenceRaw(cultureId, planeCode, q, r, z: 0);
+
+    internal float GetCellCultureInfluenceRaw(int cultureId, int planeCode, int q, int r, int z)
     {
         ValidatePositive(cultureId);
         ValidateInfluencePlaneCode(planeCode);
-        return PositiveCultureInfluenceRaw(cultureId, planeCode, CoordinateKey(q, r));
+        return PositiveCultureInfluenceRaw(cultureId, planeCode, CoordinateKey(q, r, z));
     }
 
     internal float GetCellCultureMaturity(int cultureId, int planeCode, int q, int r)
@@ -332,6 +389,16 @@ internal sealed partial class WorldState
         return _mapLayers.RawCultureInfluence.MoveNextCell(ref cursor, out q, out r, out raw);
     }
 
+    internal bool MoveNextRawCultureInfluenceCell(
+        ref SpatialLayerCellCursor cursor,
+        out int q,
+        out int r,
+        out int z,
+        out float raw)
+    {
+        return _mapLayers.RawCultureInfluence.MoveNextCell(ref cursor, out q, out r, out z, out raw);
+    }
+
     internal float ModifyCellCultureInfluenceRaw(
         int cultureId,
         int planeCode,
@@ -339,17 +406,29 @@ internal sealed partial class WorldState
         int r,
         float delta,
         int tick,
+        in KernelExecutionContext context) =>
+        ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, z: 0, delta, tick, context);
+
+    internal float ModifyCellCultureInfluenceRaw(
+        int cultureId,
+        int planeCode,
+        int q,
+        int r,
+        int z,
+        float delta,
+        int tick,
         in KernelExecutionContext context)
     {
         EnsureCultureIndex(cultureId);
         ValidateInfluencePlaneCode(planeCode);
+        ValidateCellZ(z);
         ValidatePositive(context.SourceCodeId);
         if (global::System.MathF.Abs(delta) <= float.Epsilon)
         {
             return 0f;
         }
 
-        var key = CoordinateKey(q, r);
+        var key = CoordinateKey(q, r, z);
         var previous = PositiveCultureInfluenceRaw(cultureId, planeCode, key);
         var current = ClampCultureRaw(previous + delta);
         if (global::System.MathF.Abs(current - previous) <= float.Epsilon)
@@ -359,7 +438,7 @@ internal sealed partial class WorldState
 
         EnsureProvenanceOutputCapacity(context);
         _cultureHighWatermark = global::System.Math.Max(_cultureHighWatermark, cultureId);
-        _mapLayers.RawCultureInfluence.SetValue(cultureId, planeCode, key, q, r, current);
+        _mapLayers.RawCultureInfluence.SetValue(cultureId, planeCode, key, q, r, z, current);
         AdvanceWorldVersion();
         RecordProvenanceOutput(
             context,
@@ -373,6 +452,7 @@ internal sealed partial class WorldState
             planeCode,
             q,
             r,
+            z,
             key,
             cultureId,
             previous,
@@ -387,6 +467,17 @@ internal sealed partial class WorldState
         int planeCode,
         int q,
         int r,
+        float delta,
+        int tick,
+        in KernelExecutionContext context) =>
+        ModifyCellCultureInfluenceRawFromEntity(entityId, planeCode, q, r, z: 0, delta, tick, context);
+
+    internal float ModifyCellCultureInfluenceRawFromEntity(
+        int entityId,
+        int planeCode,
+        int q,
+        int r,
+        int z,
         float delta,
         int tick,
         in KernelExecutionContext context)
@@ -404,6 +495,7 @@ internal sealed partial class WorldState
             planeCode,
             q,
             r,
+            z,
             weightedDelta,
             tick,
             context);
@@ -420,6 +512,29 @@ internal sealed partial class WorldState
         int planeCode,
         int q,
         int r,
+        float delta,
+        int tick,
+        in KernelExecutionContext context,
+        global::System.Span<int> changedCultureIds,
+        out int changedCultureCount) =>
+        ReduceOtherCultureSourcesAtCell(
+            ownCultureId,
+            planeCode,
+            q,
+            r,
+            z: 0,
+            delta,
+            tick,
+            context,
+            changedCultureIds,
+            out changedCultureCount);
+
+    internal float ReduceOtherCultureSourcesAtCell(
+        int ownCultureId,
+        int planeCode,
+        int q,
+        int r,
+        int z,
         float delta,
         int tick,
         in KernelExecutionContext context,
@@ -443,14 +558,14 @@ internal sealed partial class WorldState
                 continue;
             }
 
-            var influence = GetCellCultureInfluenceRaw(cultureId, planeCode, q, r);
+            var influence = GetCellCultureInfluenceRaw(cultureId, planeCode, q, r, z);
             if (influence <= 0f)
             {
                 continue;
             }
 
             var appliedDelta = global::System.MathF.Min(delta, influence);
-            var applied = ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, -appliedDelta, tick, context);
+            var applied = ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, z, -appliedDelta, tick, context);
             if (applied == 0f)
             {
                 continue;
@@ -510,6 +625,7 @@ internal sealed partial class WorldState
         int planeCode,
         int q,
         int r,
+        int z,
         int key,
         int changedCultureId,
         float changedPreviousRaw,
@@ -539,7 +655,7 @@ internal sealed partial class WorldState
 
             if (shareChanged)
             {
-                _mapLayers.CultureInfluence.SetValue(cultureId, planeCode, key, q, r, current);
+                _mapLayers.CultureInfluence.SetValue(cultureId, planeCode, key, q, r, z, current);
             }
 
             Write(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
@@ -550,6 +666,7 @@ internal sealed partial class WorldState
                 context.SourceCodeId,
                 planeCode,
                 cultureId,
+                z,
                 previous,
                 current,
                 previousRaw,

@@ -26,6 +26,8 @@ public enum IceRemembersTerrain
     TabooRidge,
     CavePocket,
     OpenField,
+    SpireTier,
+    TunnelGallery,
 }
 
 public static class IceRemembersTerrainExtensions
@@ -50,6 +52,8 @@ public static class IceRemembersTerrainExtensions
         "taboo_ridge",
         "cave_pocket",
         "open_field",
+        "spire_tier",
+        "tunnel_gallery",
     ];
 
     public static string ToDomainName(this IceRemembersTerrain terrain)
@@ -122,6 +126,10 @@ public static class IceRemembersTerrainCatalog
             kindProfiles: HiddenSemanticProfiles()),
         DomainTerrain(IceRemembersTerrain.OpenField, "Open Field", "semantic_open", 3f, 1f, 1f, 1f, 1f, 3.6f,
             movementProfiles: SemanticMovement(commons: 2.8f, mandate: 3f, veil: 3.3f, rift: 3.2f)),
+        DomainTerrain(IceRemembersTerrain.SpireTier, "Spire Tier", "forged_height", 2.8f, 1.5f, 1.2f, 0.9f, 0f, 1f,
+            movementProfiles: PhysicalMovement(trail: 2.8f, shore: 0f, wake: 0f)),
+        DomainTerrain(IceRemembersTerrain.TunnelGallery, "Tunnel Gallery", "forged_depth", 3.2f, 1.2f, 1.1f, 0.9f, 0f, 1f,
+            movementProfiles: PhysicalMovement(trail: 3.2f, shore: 0f, wake: 0f)),
     ];
 
     public static TerrainCatalog CreateWorldGenCatalog() =>

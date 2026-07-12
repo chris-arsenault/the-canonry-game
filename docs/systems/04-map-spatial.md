@@ -25,6 +25,28 @@ of physical material.
 
 Named regions are physical coverage. There is no separate concept of anonymous
 partition plus local named coverage. A region is the named geographic coverage.
+The semantic plane has named coverage too: canons (laws, taboos, accords,
+doctrines) own jurisdictions of idea-space the same way regions own ground —
+see [canons and jurisdictions](./24-canons-and-jurisdictions.md).
+
+## The Vertical Axis
+
+Physical cells carry an integer z coordinate in `[-3, +3]`. World generation
+and startup seeding only create surface cells at `z = 0`; every non-surface
+cell is *forged* at runtime by an entity action (`ForgeCellVertical`): Aurora
+settlements raise spire tiers upward, Nightshelf settlements and factions dig
+tunnel galleries downward. Forging extends the actor's own column one layer at
+a time and, when the column is full, creeps the first layer into an adjacent
+known column, so spire clusters and gallery networks spread instead of
+stalling.
+
+Forged cells are real cells: they hold terrain (`spire_tier`,
+`tunnel_gallery`), accept culture mass, and are enterable through vertical
+wander steps. Deliberate surface simplifications: roads, travel structures,
+culture boundary components, and route planning operate on the `z = 0`
+surface only, and forged-cell culture mass feeds the culture power ledgers
+directly rather than the boundary component model. The semantic plane has no
+vertical axis yet.
 
 ## Coverage
 
@@ -41,7 +63,7 @@ Map coverage is a first-class map abstraction:
 ## Culture Influence
 
 Culture influence is a culture-owned tile layer on both planes. The durable
-value is raw culture mass per `(culture, plane, cell)`, capped at `1000`.
+value is raw culture mass per `(culture, plane, cell)`, capped at `2000`.
 Dominance share is recalculated from the raw culture totals at a cell, so two
 cultures cannot both own 100% of the same cell. The raw scale lets a cell that
 has been reinforced for hundreds of ticks differ from a fresh peripheral claim.

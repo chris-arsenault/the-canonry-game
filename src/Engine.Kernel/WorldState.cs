@@ -31,6 +31,7 @@ internal sealed partial class WorldState
     private int[] _entitySemanticQ = [];
     private int[] _entitySemanticR = [];
     private int[] _entitySemanticS = [];
+    private int[] _entityPhysicalZ = [];
     private int[] _entityAnchorPhysicalQ = [];
     private int[] _entityAnchorPhysicalR = [];
     private int[] _entityAnchorSemanticQ = [];
@@ -103,6 +104,7 @@ internal sealed partial class WorldState
     private int _relationshipGraphDeltaMergeThreshold;
     private int _entityHighWatermark;
     private int _cultureHighWatermark;
+    private int[] _entityTagBits = [];
     private int _relationshipHighWatermark;
     private int _provenanceInvocationHighWatermark;
     private int _provenanceOutputHighWatermark;
@@ -135,6 +137,7 @@ internal sealed partial class WorldState
     {
         _entityAllocated = new bool[options.EntityCapacity + 1];
         _entityStatus = new int[options.EntityCapacity + 1];
+        _entityTagBits = new int[options.EntityCapacity + 1];
         _entityKindId = new int[options.EntityCapacity + 1];
         _entitySubtypeId = new int[options.EntityCapacity + 1];
         _entityCultureId = new int[options.EntityCapacity + 1];
@@ -147,6 +150,7 @@ internal sealed partial class WorldState
         _entitySemanticQ = new int[options.EntityCapacity + 1];
         _entitySemanticR = new int[options.EntityCapacity + 1];
         _entitySemanticS = new int[options.EntityCapacity + 1];
+        _entityPhysicalZ = new int[options.EntityCapacity + 1];
         _entityAnchorPhysicalQ = new int[options.EntityCapacity + 1];
         _entityAnchorPhysicalR = new int[options.EntityCapacity + 1];
         _entityAnchorSemanticQ = new int[options.EntityCapacity + 1];
@@ -357,96 +361,6 @@ internal sealed partial class WorldState
             _entitySubtypeId[entityId],
             previous,
             cultureId)),
-            context);
-    }
-
-    public void MoveEntityPhysical(int entityId, int q, int r, int tick) =>
-        MoveEntityPhysical(entityId, q, r, tick, new KernelExecutionContext(0, _defaultSourceCodeId));
-
-    public void MoveEntityPhysical(int entityId, int q, int r, int tick, in KernelExecutionContext context)
-    {
-        ValidatePositive(context.SourceCodeId);
-        EnsureEntity(entityId);
-        var fromQ = _entityPhysicalQ[entityId];
-        var fromR = _entityPhysicalR[entityId];
-        if (fromQ == q && fromR == r)
-        {
-            return;
-        }
-
-        EnsureProvenanceOutputCapacity(context);
-        _entityPhysicalQ[entityId] = q;
-        _entityPhysicalR[entityId] = r;
-        RemovePhysicalOccupant(entityId, fromQ, fromR);
-        InsertPhysicalOccupant(entityId, q, r);
-        _entityUpdatedAt[entityId] = tick;
-        AdvanceWorldVersion();
-        RecordProvenanceOutput(
-            context,
-            ProvenanceOutputKindCodes.EntityMoved,
-            entityId,
-            entityId,
-            0,
-            PlaneCodes.Physical,
-            ProvenanceOutputKindCodes.EntityMoved);
-        Write(KernelEvent.From(new EntityMovedKernelEvent(
-            tick,
-            WorldVersion,
-            entityId,
-            context.SourceCodeId,
-            PlaneCodes.Physical,
-            fromQ,
-            fromR,
-            0,
-            q,
-            r,
-            0)),
-            context);
-    }
-
-    public void MoveEntitySemantic(int entityId, int q, int r, int s, int tick) =>
-        MoveEntitySemantic(entityId, q, r, s, tick, new KernelExecutionContext(0, _defaultSourceCodeId));
-
-    public void MoveEntitySemantic(int entityId, int q, int r, int s, int tick, in KernelExecutionContext context)
-    {
-        ValidatePositive(context.SourceCodeId);
-        EnsureEntity(entityId);
-        var fromQ = _entitySemanticQ[entityId];
-        var fromR = _entitySemanticR[entityId];
-        var fromS = _entitySemanticS[entityId];
-        if (fromQ == q && fromR == r && fromS == s)
-        {
-            return;
-        }
-
-        EnsureProvenanceOutputCapacity(context);
-        _entitySemanticQ[entityId] = q;
-        _entitySemanticR[entityId] = r;
-        _entitySemanticS[entityId] = s;
-        RemoveSemanticOccupant(entityId, fromQ, fromR);
-        InsertSemanticOccupant(entityId, q, r);
-        _entityUpdatedAt[entityId] = tick;
-        AdvanceWorldVersion();
-        RecordProvenanceOutput(
-            context,
-            ProvenanceOutputKindCodes.EntityMoved,
-            entityId,
-            entityId,
-            0,
-            PlaneCodes.Semantic,
-            ProvenanceOutputKindCodes.EntityMoved);
-        Write(KernelEvent.From(new EntityMovedKernelEvent(
-            tick,
-            WorldVersion,
-            entityId,
-            context.SourceCodeId,
-            PlaneCodes.Semantic,
-            fromQ,
-            fromR,
-            fromS,
-            q,
-            r,
-            s)),
             context);
     }
 
@@ -1013,40 +927,45 @@ internal sealed partial class WorldState
         return _entityCultureId[entityId];
     }
 
+    public bool EntityHasTag(int entityId, int tagId)
+    {
+        EnsureEntity(entityId);
+        return tagId is > 0 and < 32 && (_entityTagBits[entityId] & (1 << tagId)) != 0;
+    }
+
+    public int EntityTagBits(int entityId)
+    {
+        EnsureEntity(entityId);
+        return _entityTagBits[entityId];
+    }
+
+    internal bool SetEntityTagBit(int entityId, int tagId, bool assigned, int tick, in KernelExecutionContext context)
+    {
+        EnsureEntity(entityId);
+        if (tagId is <= 0 or >= 32)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(tagId));
+        }
+
+        var mask = 1 << tagId;
+        var current = (_entityTagBits[entityId] & mask) != 0;
+        if (current == assigned)
+        {
+            return false;
+        }
+
+        _entityTagBits[entityId] = assigned
+            ? _entityTagBits[entityId] | mask
+            : _entityTagBits[entityId] & ~mask;
+        _entityUpdatedAt[entityId] = tick;
+        AdvanceWorldVersion();
+        return true;
+    }
+
     public int EntityCreatedAt(int entityId)
     {
         EnsureEntity(entityId);
         return _entityCreatedAt[entityId];
-    }
-
-    public int EntityPhysicalQ(int entityId)
-    {
-        EnsureEntity(entityId);
-        return _entityPhysicalQ[entityId];
-    }
-
-    public int EntityPhysicalR(int entityId)
-    {
-        EnsureEntity(entityId);
-        return _entityPhysicalR[entityId];
-    }
-
-    public int EntitySemanticQ(int entityId)
-    {
-        EnsureEntity(entityId);
-        return _entitySemanticQ[entityId];
-    }
-
-    public int EntitySemanticR(int entityId)
-    {
-        EnsureEntity(entityId);
-        return _entitySemanticR[entityId];
-    }
-
-    public int EntitySemanticS(int entityId)
-    {
-        EnsureEntity(entityId);
-        return _entitySemanticS[entityId];
     }
 
     public int EntityHighWatermark => _entityHighWatermark;

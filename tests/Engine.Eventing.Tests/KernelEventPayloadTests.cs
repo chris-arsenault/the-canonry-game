@@ -52,7 +52,7 @@ public sealed class KernelEventPayloadTests
         var entityStatusChanged = new EntityStatusChangedKernelEvent(2, 3, 4, 5, 6, 7, 8, 9);
         Assert.Equal(entityStatusChanged, KernelEvent.From(entityStatusChanged).AsEntityStatusChanged());
 
-        var entityMoved = new EntityMovedKernelEvent(3, 4, 5, 6, PlaneCodes.Physical, 7, 8, -15, 9, 10, -19);
+        var entityMoved = new EntityMovedKernelEvent(3, 4, 5, 6, PlaneCodes.Physical, 7, 8, -15, 9, 10, -19, 0, 1);
         Assert.Equal(entityMoved, KernelEvent.From(entityMoved).AsEntityMoved());
 
         var attributeChanged = new AttributeChangedKernelEvent(4, 5, 6, 7, 8, 1.25f, 2.5f);
@@ -107,16 +107,16 @@ public sealed class KernelEventPayloadTests
         var generatorEnabledChanged = new GeneratorEnabledChangedKernelEvent(17, 18, 19, 1);
         Assert.Equal(generatorEnabledChanged, KernelEvent.From(generatorEnabledChanged).AsGeneratorEnabledChanged());
 
-        var cellCreated = new CellCreatedKernelEvent(18, 19, 1, -1, 2, 3, 4, 5, 6);
+        var cellCreated = new CellCreatedKernelEvent(18, 19, 1, -1, 2, 3, 4, 5, 6, -2);
         Assert.Equal(cellCreated, KernelEvent.From(cellCreated).AsCellCreated());
 
-        var cellChanged = new CellChangedKernelEvent(19, 20, 2, -2, 3, 4, 5, 6, 7, 8, 9);
+        var cellChanged = new CellChangedKernelEvent(19, 20, 2, -2, 3, 4, 5, 6, 7, 8, 9, 1);
         Assert.Equal(cellChanged, KernelEvent.From(cellChanged).AsCellChanged());
 
         var cellInfluenceChanged = new CellInfluenceChangedKernelEvent(20, 21, -3, 3, 4, PlaneCodes.Physical, 5, 6, 10f, 25f);
         Assert.Equal(cellInfluenceChanged, KernelEvent.From(cellInfluenceChanged).AsCellInfluenceChanged());
 
-        var cellCultureInfluenceChanged = new CellCultureInfluenceChangedKernelEvent(20, 21, -3, 3, 4, PlaneCodes.Physical, 5, 10f, 25f);
+        var cellCultureInfluenceChanged = new CellCultureInfluenceChangedKernelEvent(20, 21, -3, 3, 4, PlaneCodes.Physical, 5, -1, 10f, 25f);
         Assert.Equal(cellCultureInfluenceChanged, KernelEvent.From(cellCultureInfluenceChanged).AsCellCultureInfluenceChanged());
 
         var cultureSlotOccupancyChanged = new CultureSlotOccupancyChangedKernelEvent(20, 21, 22, 23, 24, 25, 26, 27, 1.25f, 2.5f);
@@ -125,7 +125,7 @@ public sealed class KernelEventPayloadTests
         var minorActorVerbExecuted = new MinorActorVerbExecutedKernelEvent(20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, PlaneCodes.Physical, -3, 3, 32, 33, 1.25f, 2.5f, 3.75f, 5f);
         Assert.Equal(minorActorVerbExecuted, KernelEvent.From(minorActorVerbExecuted).AsMinorActorVerbExecuted());
 
-        var mapCellStateChanged = new MapCellStateChangedKernelEvent(20, 21, PlaneCodes.Semantic, -3, 3, 4, 5, 6, 7, 8, 9, 10);
+        var mapCellStateChanged = new MapCellStateChangedKernelEvent(20, 21, PlaneCodes.Semantic, -3, 3, 4, 5, 6, 7, 8, 9, 10, 0);
         Assert.Equal(mapCellStateChanged, KernelEvent.From(mapCellStateChanged).AsMapCellStateChanged());
 
         var cellRoadChanged = new CellRoadChangedKernelEvent(20, 21, PlaneCodes.Physical, -3, 3, 4, 5, 0.25f, 0.75f);

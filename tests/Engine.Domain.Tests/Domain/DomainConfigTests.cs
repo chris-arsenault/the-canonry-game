@@ -716,6 +716,8 @@ public class DomainConfigTests
             TravelStructures = config.TravelStructures,
             MovementProfiles = config.MovementProfiles,
             Cultures = config.Cultures,
+            CulturePower = config.CulturePower,
+            Tags = config.Tags,
             Gameplay = config.Gameplay,
             Semantics = new SemanticDomainConfig
             {
@@ -774,6 +776,9 @@ public class DomainConfigTests
             [Rel.BetrayedBy.ToDomainName()] = true,
             [Rel.PracticedBy.ToDomainName()] = true,
             [Rel.TaughtBy.ToDomainName()] = true,
+            [Rel.OfferedTo.ToDomainName()] = true,
+            [Rel.ConsignedTo.ToDomainName()] = true,
+            [Rel.PreysOn.ToDomainName()] = true,
         };
 
     private sealed record RelationshipStrengthFlowInventory(

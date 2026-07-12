@@ -56,6 +56,23 @@ internal sealed partial class GeneratorProgramRuntime
         refCount++;
     }
 
+    private int ResolveProducedCultureId(
+        WorldState world,
+        int[] refCodes,
+        int[] refEntityIds,
+        int refCount,
+        int produced)
+    {
+        var fixedCultureId = _producedFixedCultureIds[produced];
+        if (fixedCultureId > 0)
+        {
+            return fixedCultureId;
+        }
+
+        var cultureSourceId = ResolveRef(refCodes, refEntityIds, refCount, _producedCultureRefCodes[produced]);
+        return cultureSourceId == 0 ? 0 : world.EntityCultureId(cultureSourceId);
+    }
+
     private static int ResolveRef(int[] refCodes, int[] refEntityIds, int refCount, int refCode)
     {
         for (var i = 0; i < refCount; i++)
@@ -116,7 +133,10 @@ internal sealed partial class GeneratorProgramRuntime
         int withoutOutgoingStart,
         int withoutOutgoingCount,
         int withoutIncomingStart,
-        int withoutIncomingCount)
+        int withoutIncomingCount,
+        int requiredTagBits = 0,
+        int withoutTagBits = 0,
+        int queryCultureId = 0)
     {
         var query = new SharedQuery(
             kindId,
@@ -129,7 +149,10 @@ internal sealed partial class GeneratorProgramRuntime
             withoutOutgoingStart,
             withoutOutgoingCount,
             withoutIncomingStart,
-            withoutIncomingCount);
+            withoutIncomingCount,
+            requiredTagBits,
+            withoutTagBits,
+            queryCultureId);
         var binding = new QueryBinding(
             actorId: 0,
             targetId,

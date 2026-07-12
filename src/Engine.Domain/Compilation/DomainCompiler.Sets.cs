@@ -117,7 +117,29 @@ public static partial class DomainCompiler
             Entities = BuildEntityData(config, ids),
             Movement = BuildMovementData(config, ids, movementProfileIds),
             Terrain = BuildTerrainData(config, ids, movementProfileIds),
+            Cultures = BuildCultureData(config, ids),
         };
+    }
+
+    private static CompiledCultureData BuildCultureData(DomainConfig config, DomainIdRegistry ids)
+    {
+        var cultures = new List<CompiledCultureDefinition>(config.Cultures.Count);
+        foreach (var culture in config.Cultures)
+        {
+            if (culture.PhysicalInfluenceProductionMultiplier < 0f ||
+                culture.SemanticInfluenceProductionMultiplier < 0f)
+            {
+                throw new InvalidOperationException(
+                    $"Culture '{culture.Id}' influence production multipliers must be non-negative.");
+            }
+
+            cultures.Add(new CompiledCultureDefinition(
+                ids.CultureIdOf(culture.Id).Value,
+                culture.PhysicalInfluenceProductionMultiplier,
+                culture.SemanticInfluenceProductionMultiplier));
+        }
+
+        return new CompiledCultureData { Cultures = cultures };
     }
 
     private static Dictionary<string, int> BuildMovementProfileIds(DomainConfig config)

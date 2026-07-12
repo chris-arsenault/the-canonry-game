@@ -19,11 +19,36 @@ internal sealed partial class EffectsProgramData : IKernelProgramData
     internal readonly int[] AttributeDeltaCultureIds;
     internal readonly int[] AttributeDeltaCultureSlotIds;
     internal readonly int[] AttributeDeltaCultureSlotPolarityCodes;
+    internal readonly float[] AttributeDeltaSupportScales;
+    internal readonly int[] AttributeDeltaCoverageOwnerKindIds;
+    internal readonly int[] AttributeDeltaCoverageOwnerSubtypeIds;
+    internal readonly int[] TagRuleCoverageOwnerKindIds;
+    internal readonly int[] TagRuleCoverageOwnerSubtypeIds;
+    internal readonly int[] TagRuleCoveragePlaneCodes;
     internal int AttributeDeltaRuleCount;
+    internal readonly int[] TagRuleKindIds;
+    internal readonly int[] TagRuleTagIds;
+    internal readonly int[] TagRuleRelationshipKindIds;
+    internal readonly int[] TagRuleDirectionCodes;
+    internal readonly float[] TagRuleSetThresholds;
+    internal readonly float[] TagRuleClearThresholds;
+    internal int TagRuleCount;
 
     public EffectsProgramData(int effectRuleCapacity)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(effectRuleCapacity);
+        AttributeDeltaSupportScales = new float[effectRuleCapacity + 1];
+        AttributeDeltaCoverageOwnerKindIds = new int[effectRuleCapacity + 1];
+        AttributeDeltaCoverageOwnerSubtypeIds = new int[effectRuleCapacity + 1];
+        TagRuleCoverageOwnerKindIds = new int[effectRuleCapacity + 1];
+        TagRuleCoverageOwnerSubtypeIds = new int[effectRuleCapacity + 1];
+        TagRuleCoveragePlaneCodes = new int[effectRuleCapacity + 1];
+        TagRuleKindIds = new int[effectRuleCapacity + 1];
+        TagRuleTagIds = new int[effectRuleCapacity + 1];
+        TagRuleRelationshipKindIds = new int[effectRuleCapacity + 1];
+        TagRuleDirectionCodes = new int[effectRuleCapacity + 1];
+        TagRuleSetThresholds = new float[effectRuleCapacity + 1];
+        TagRuleClearThresholds = new float[effectRuleCapacity + 1];
         AttributeDeltaKindIds = new int[effectRuleCapacity + 1];
         AttributeDeltaAttributeIds = new int[effectRuleCapacity + 1];
         AttributeDeltaConditionCodes = new int[effectRuleCapacity + 1];
@@ -43,5 +68,5 @@ internal sealed partial class EffectsProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.Effects;
 
-    public int SchemaVersion => 2;
+    public int SchemaVersion => 5;
 }

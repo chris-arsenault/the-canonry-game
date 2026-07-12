@@ -41,6 +41,7 @@ public sealed class KernelProgramStateArchitectureTests
             "src/Engine.Kernel/Programs/Gambits/GambitProgramState.cs:ActionHistoryNextSlots",
             "src/Engine.Kernel/Programs/Generators/GeneratorProgramState.cs:RunCounts",
             "src/Engine.Kernel/Programs/Generators/GeneratorProgramState.cs:Enabled",
+            "src/Engine.Kernel/Programs/Generators/GeneratorProgramState.cs:NextCadenceFireTicks",
             "src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramState.cs:_activeVerbSlots",
             "src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramState.cs:_intentIds",
             "src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramState.cs:_targetPlaneCodes",

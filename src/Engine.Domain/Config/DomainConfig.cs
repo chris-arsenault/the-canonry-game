@@ -41,6 +41,16 @@ public sealed class DomainConfig
     /// <summary>Culture definitions.</summary>
     public required IReadOnlyList<CultureConfig> Cultures { get; init; }
 
+    /// <summary>Domain vocabulary feeding the culture power ledgers.</summary>
+    public CulturePowerConfig CulturePower { get; init; } = new();
+
+    /// <summary>
+    /// Global tag catalog. Tags are discrete per-entity status bits (max 31)
+    /// used for authored state machines: set/cleared by effect rules and
+    /// generators, read by generator targeting. Not scalar stocks.
+    /// </summary>
+    public IReadOnlyList<string> Tags { get; init; } = [];
+
     /// <summary>
     /// Reusable gameplay-system selections and authored gameplay parameters.
     /// Domain content chooses and names gameplay modules; Engine.Gameplay owns
@@ -157,6 +167,26 @@ public sealed class TraitConfig
 
     /// <summary>Independent 0..1 chance that a newly created entity of this kind receives the trait.</summary>
     public float AssignmentChance { get; init; }
+}
+
+/// <summary>
+/// Declares which domain vocabulary feeds the culture power ledgers: custody
+/// kinds and relationships for the Shadow axis, claim and war relationships
+/// for the Blood axis. Empty lists drop the corresponding ledger component.
+/// </summary>
+public sealed class CulturePowerConfig
+{
+    public IReadOnlyList<string> CustodyKinds { get; init; } = [];
+    public IReadOnlyList<string> CustodyRelationships { get; init; } = [];
+    public string? ClaimRelationship { get; init; }
+    public string? WarRelationship { get; init; }
+
+    /// <summary>
+    /// Relationship kinds whose strength counts as devotion flow for the Wake
+    /// axis. Offering strength is attributed to the culture of the receiving
+    /// site (the relationship target).
+    /// </summary>
+    public IReadOnlyList<string> OfferingRelationships { get; init; } = [];
 }
 
 /// <summary>Relationship kind configuration.</summary>
@@ -309,6 +339,16 @@ public sealed class CultureConfig
     public required string Id { get; init; }
     public required string DisplayName { get; init; }
     public IReadOnlyList<CultureSlotConfig> Slots { get; init; } = [];
+
+    /// <summary>
+    /// Multiplier on positive entity-driven culture influence production on
+    /// the physical plane. Lets a culture's identity live on its own plane
+    /// rather than tying all power to population.
+    /// </summary>
+    public float PhysicalInfluenceProductionMultiplier { get; init; } = 1f;
+
+    /// <summary>Multiplier on positive semantic-plane influence production.</summary>
+    public float SemanticInfluenceProductionMultiplier { get; init; } = 1f;
 }
 
 public enum CultureSlotPolarity

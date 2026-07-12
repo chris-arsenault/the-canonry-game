@@ -30,10 +30,17 @@ public static class AttributeEffectConditions
     public static EffectCondition MapCrowdingComfort => EffectCondition.MapCrowdingComfort;
     public static EffectCondition OwnCultureInfluenceAtLocation => EffectCondition.OwnCultureInfluenceAtLocation;
     public static EffectCondition CultureSlotOccupancy => EffectCondition.CultureSlotOccupancy;
+    public static EffectCondition CrowdingBeyondCultureSupport => EffectCondition.CrowdingBeyondCultureSupport;
+    public static EffectCondition InsideOwnedCoverage => EffectCondition.InsideOwnedCoverage;
 }
 
 public static class GameplayEffectSet
 {
     public static EffectsConfig From(IReadOnlyList<AttributeDeltaEffectConfig> effects) =>
         new() { AttributeDeltaEffects = effects };
+
+    public static EffectsConfig From(
+        IReadOnlyList<AttributeDeltaEffectConfig> effects,
+        IReadOnlyList<RelationshipTagRuleConfig> relationshipTagRules) =>
+        new() { AttributeDeltaEffects = effects, RelationshipTagRules = relationshipTagRules };
 }

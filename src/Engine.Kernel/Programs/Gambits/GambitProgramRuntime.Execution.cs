@@ -160,6 +160,9 @@ internal sealed partial class GambitProgramRuntime
             case BehaviorOperationCodes.BuildTravelStructureLine:
                 BuildTravelStructureLine(simulation, world, entityId, targetId, tick, step);
                 return true;
+            case BehaviorOperationCodes.ForgeCellVertical:
+                _ = simulation.TryForgeCellVertical(entityId, _stepA[step], _stepB[step], tick);
+                return true;
             default:
                 return false;
         }

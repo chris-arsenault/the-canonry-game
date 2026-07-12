@@ -929,6 +929,12 @@ public static partial class DomainCompiler
                     BehaviorProgramOperation.SetTargetCoverageTerrain,
                     ids.TerrainIdOf(setTerrain.TerrainName).Value));
                 return true;
+            case ForgeCellVerticalMutation forge:
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.ForgeCellVertical,
+                    forge.Direction,
+                    ids.TerrainIdOf(forge.TerrainName).Value));
+                return true;
             case BuildTravelStructureLineMutation buildStructure:
                 steps.Add(new BehaviorProgramStepRule(
                     BehaviorProgramOperation.BuildTravelStructureLine,

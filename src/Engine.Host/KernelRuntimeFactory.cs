@@ -267,9 +267,13 @@ public readonly record struct KernelRuntimePulse(
 
 public sealed class KernelUiRuntime : IDisposable
 {
+    private const int CulturePowerRefreshTicks = 100;
+
     private readonly KernelRuntime _runtime;
     private readonly RunLogger? _runLogger;
     private long _lastCultureBoundaryRevision = -1;
+    private IReadOnlyList<CulturePowerSummary> _culturePowers = [];
+    private int _culturePowersTick = -1;
     private bool _disposed;
 
     internal KernelUiRuntime(
@@ -336,6 +340,20 @@ public sealed class KernelUiRuntime : IDisposable
         }
 
         return new KernelRuntimePulse(previousTick, currentTick);
+    }
+
+    public IReadOnlyList<CulturePowerSummary> CulturePowers()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        var tick = Ui.CurrentTick;
+        if (_culturePowersTick < 0 || tick - _culturePowersTick >= CulturePowerRefreshTicks)
+        {
+            _culturePowers = _runtime.Host.ComputeCulturePower();
+            _culturePowersTick = tick;
+        }
+
+        return _culturePowers;
     }
 
     private void RefreshCultureBoundariesIfChanged()

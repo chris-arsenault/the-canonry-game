@@ -332,7 +332,10 @@ internal sealed partial class GeneratorProgramRuntime
             _producedQueryWithoutOutgoingStarts[produced],
             _producedQueryWithoutOutgoingCounts[produced],
             _producedQueryWithoutIncomingStarts[produced],
-            _producedQueryWithoutIncomingCounts[produced]);
+            _producedQueryWithoutIncomingCounts[produced],
+            _producedQueryRequiredTagBits[produced],
+            _producedQueryWithoutTagBits[produced],
+            _producedQueryCultureIds[produced]);
     }
 
     private bool CreateMissingProducedEntity(
@@ -498,15 +501,14 @@ internal sealed partial class GeneratorProgramRuntime
         out int placementAnchorId)
     {
         subtypeId = ResolveProducedSubtype(simulation, produced);
-        var cultureSourceId = ResolveRef(refCodes, refEntityIds, refCount, _producedCultureRefCodes[produced]);
-        producedCultureId = cultureSourceId == 0 ? 0 : world.EntityCultureId(cultureSourceId);
+        producedCultureId = ResolveProducedCultureId(world, refCodes, refEntityIds, refCount, produced);
         placementAnchorId = ResolveRef(refCodes, refEntityIds, refCount, _producedPlacementRefCodes[produced]);
         if (placementAnchorId == 0)
         {
             placementAnchorId = targetId;
         }
 
-        return subtypeId > 0 && cultureSourceId > 0;
+        return subtypeId > 0 && producedCultureId > 0;
     }
 
     private bool ApplyProducedCoverage(
@@ -642,18 +644,73 @@ internal sealed partial class GeneratorProgramRuntime
                         triggerId);
                     break;
                 case GeneratorEffectTypeCodes.SetTerrainPatch:
-                    ExecuteSetTerrainPatch(
-                        simulation,
-                        world,
-                        e,
-                        refCodes,
-                        refEntityIds,
-                        refCount);
+                    ExecuteSetTerrainPatch(simulation, world, e, refCodes, refEntityIds, refCount);
+                    break;
+                case GeneratorEffectTypeCodes.SetBindingTag:
+                    ExecuteSetBindingTag(simulation, e, refOrKindId, refCodes, refEntityIds, refCount, tick);
+                    break;
+                case GeneratorEffectTypeCodes.ClaimSemanticJurisdiction:
+                    ExecuteClaimSemanticJurisdiction(simulation, e, refOrKindId, refCodes, refEntityIds, refCount);
                     break;
             }
         }
 
         return relationshipSpendCount;
+    }
+
+    // Claims unowned semantic cells within the radius of the ref entity's
+    // semantic position — generator-born canons taking jurisdiction.
+    private void ExecuteClaimSemanticJurisdiction(
+        Simulation simulation,
+        int effectSlot,
+        int refOrKindId,
+        int[] refCodes,
+        int[] refEntityIds,
+        int refCount)
+    {
+        var ownerId = ResolveRef(refCodes, refEntityIds, refCount, refOrKindId);
+        if (ownerId <= 0)
+        {
+            return;
+        }
+
+        var world = simulation.World;
+        var radius = _effectInstanceSelectionCodes[effectSlot];
+        var centerQ = world.EntitySemanticQ(ownerId);
+        var centerR = world.EntitySemanticR(ownerId);
+        for (var dq = -radius; dq <= radius; dq++)
+        {
+            for (var dr = global::System.Math.Max(-radius, -dq - radius); dr <= global::System.Math.Min(radius, -dq + radius); dr++)
+            {
+                var q = centerQ + dq;
+                var r = centerR + dr;
+                if (world.CellIsKnown(PlaneCodes.Semantic, q, r) &&
+                    world.CoverageOwnerAt(PlaneCodes.Semantic, q, r) == 0)
+                {
+                    KernelEffectExecutor.SetCoverageOwner(simulation, PlaneCodes.Semantic, q, r, ownerId);
+                }
+            }
+        }
+    }
+
+    private void ExecuteSetBindingTag(
+        Simulation simulation,
+        int effectSlot,
+        int refOrKindId,
+        int[] refCodes,
+        int[] refEntityIds,
+        int refCount,
+        int tick)
+    {
+        var taggedEntityId = ResolveRef(refCodes, refEntityIds, refCount, refOrKindId);
+        if (taggedEntityId > 0)
+        {
+            _ = simulation.SetEntityTag(
+                taggedEntityId,
+                _effectInstanceSelectionCodes[effectSlot],
+                _effectOptionCodes[effectSlot] != 0,
+                tick);
+        }
     }
 
     private static int RemoveTargetRelationships(

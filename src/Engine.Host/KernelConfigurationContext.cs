@@ -197,7 +197,10 @@ internal sealed class KernelConfigurationContext
         int requiredRelatedTraitId = 0,
         int cultureId = 0,
         int cultureSlotId = 0,
-        int cultureSlotPolarityCode = -1) =>
+        int cultureSlotPolarityCode = -1,
+        float supportScale = 0f,
+        int coverageOwnerKindId = 0,
+        int coverageOwnerSubtypeId = 0) =>
         _kernel.Effects.RegisterAttributeDeltaEffect(
             kindId,
             attributeId.Value,
@@ -213,7 +216,34 @@ internal sealed class KernelConfigurationContext
             requiredRelatedTraitId,
             cultureId,
             cultureSlotId,
-            cultureSlotPolarityCode);
+            cultureSlotPolarityCode,
+            supportScale,
+            coverageOwnerKindId,
+            coverageOwnerSubtypeId);
+
+    public void RegisterRelationshipTagRule(
+        int kindId,
+        int tagId,
+        int relationshipKindId,
+        int relationshipDirectionCode,
+        float setAtOrAbove,
+        float clearBelow,
+        int insideCoverageOwnerKindId = 0,
+        int insideCoverageOwnerSubtypeId = 0,
+        int insideCoveragePlaneCode = PlaneCodes.Semantic) =>
+        _kernel.Effects.RegisterRelationshipTagRule(
+            kindId,
+            tagId,
+            relationshipKindId,
+            relationshipDirectionCode,
+            setAtOrAbove,
+            clearBelow,
+            insideCoverageOwnerKindId,
+            insideCoverageOwnerSubtypeId,
+            insideCoveragePlaneCode);
+
+    public void RegisterCultureProduction(int cultureId, float physicalMultiplier, float semanticMultiplier) =>
+        _kernel.RegisterCultureProduction(cultureId, physicalMultiplier, semanticMultiplier);
 
     public int RegisterCultureSlot(
         int cultureId,
@@ -546,12 +576,20 @@ internal sealed class KernelConfigurationContext
         int generatorId,
         int targetKindId,
         int pulseWeight,
-        int maxRuns) =>
+        int maxRuns,
+        int cadenceTicks = 0,
+        int cadenceJitterTicks = 0,
+        int targetRequiredTagBits = 0,
+        int targetWithoutTagBits = 0) =>
         _kernel.Generators.RegisterGenerator(
             generatorId,
             targetKindId,
             pulseWeight,
-            maxRuns);
+            maxRuns,
+            cadenceTicks,
+            cadenceJitterTicks,
+            targetRequiredTagBits,
+            targetWithoutTagBits);
 
     public void AddGeneratorTargetSubtype(int generatorSlot, int subtypeId) =>
         _kernel.Generators.AddTargetSubtype(generatorSlot, subtypeId);
@@ -596,14 +634,20 @@ internal sealed class KernelConfigurationContext
         int kindId,
         bool adjacentToTarget,
         int cultureMatchCode,
-        bool samePhysicalCultureComponentAsTarget) =>
+        bool samePhysicalCultureComponentAsTarget,
+        int requiredTagBits = 0,
+        int withoutTagBits = 0,
+        int cultureId = 0) =>
         _kernel.Generators.AddSecondaryBinding(
             generatorSlot,
             refCode,
             kindId,
             adjacentToTarget ? 1 : 0,
             cultureMatchCode,
-            samePhysicalCultureComponentAsTarget ? 1 : 0);
+            samePhysicalCultureComponentAsTarget ? 1 : 0,
+            requiredTagBits,
+            withoutTagBits,
+            cultureId);
 
     public void AddGeneratorBindingSubtype(int bindingSlot, int subtypeId) =>
         _kernel.Generators.AddBindingSubtype(bindingSlot, subtypeId);
@@ -627,6 +671,7 @@ internal sealed class KernelConfigurationContext
         int semanticPlacementCode,
         int placementRefCode,
         int cultureRefCode,
+        int fixedCultureId,
         float createChance,
         int coverageModeCode,
         int coverageSourceRefCode,
@@ -640,7 +685,10 @@ internal sealed class KernelConfigurationContext
         int semanticPlacementMinRadius,
         int semanticPlacementMaxRadius,
         int culturePlacementCode,
-        bool querySamePhysicalCultureComponentAsTarget) =>
+        bool querySamePhysicalCultureComponentAsTarget,
+        int queryRequiredTagBits = 0,
+        int queryWithoutTagBits = 0,
+        int queryCultureId = 0) =>
         _kernel.Generators.AddProduced(
             generatorSlot,
             refCode,
@@ -667,7 +715,11 @@ internal sealed class KernelConfigurationContext
             semanticPlacementMinRadius,
             semanticPlacementMaxRadius,
             culturePlacementCode,
-            querySamePhysicalCultureComponentAsTarget ? 1 : 0);
+            querySamePhysicalCultureComponentAsTarget ? 1 : 0,
+            fixedCultureId,
+            queryRequiredTagBits,
+            queryWithoutTagBits,
+            queryCultureId);
 
     public void AddGeneratorProducedSubtypeChoice(int producedSlot, int subtypeId) =>
         _kernel.Generators.AddProducedSubtypeChoice(producedSlot, subtypeId);

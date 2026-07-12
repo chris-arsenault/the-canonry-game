@@ -80,11 +80,29 @@ internal sealed partial class MovementProgramRuntime :
         return CanEnter(simulation, PlaneCodes.Physical, entityId, q, r);
     }
 
-    public bool CanEnter(Simulation simulation, int planeCode, int entityId, int q, int r)
+    public bool CanEnter(Simulation simulation, int planeCode, int entityId, int q, int r) =>
+        CanEnter(simulation, planeCode, entityId, q, r, z: 0);
+
+    public bool CanEnter(Simulation simulation, int planeCode, int entityId, int q, int r, int z)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         var movementProfileId = Data.MovementProfileFor(simulation.World, entityId, planeCode);
-        return CanEnterProfile(simulation, planeCode, movementProfileId, q, r);
+        return z == 0
+            ? CanEnterProfile(simulation, planeCode, movementProfileId, q, r)
+            : CanEnterForgedCell(simulation, planeCode, movementProfileId, q, r, z);
+    }
+
+    private bool CanEnterForgedCell(Simulation simulation, int planeCode, int movementProfileId, int q, int r, int z)
+    {
+        if (!simulation.ProgramIsEnabled(KernelProgramCodes.Movement) ||
+            planeCode != PlaneCodes.Physical ||
+            !simulation.World.CellIsKnown(planeCode, q, r, z))
+        {
+            return false;
+        }
+
+        var terrainId = simulation.World.CellTerrainId(planeCode, q, r, z);
+        return simulation.KernelData.Terrain.TravelCost(terrainId, movementProfileId) > 0f;
     }
 
     public bool CanEnterProfile(Simulation simulation, int planeCode, int movementProfileId, int q, int r)
@@ -354,13 +372,52 @@ internal sealed partial class MovementProgramRuntime :
         var fromR = CurrentR(world, entityId, planeCode);
         var fromS = planeCode == PlaneCodes.Semantic ? -fromQ - fromR : 0;
 
+        var fromZ = CurrentZ(world, entityId, planeCode);
+        var selectedDirection = SelectWanderDirection(
+            simulation,
+            entityId,
+            planeCode,
+            fromQ,
+            fromR,
+            fromZ,
+            anchorQ,
+            anchorR,
+            maxDistanceFromAnchor);
+        if (selectedDirection < 0)
+        {
+            return new MovementMoveResult(
+                false, 0f, planeCode, fromQ, fromR, fromS, fromQ, fromR, fromS, MovementCauseCodes.Travel);
+        }
+
+        var toQ = fromQ + DirectionQ(selectedDirection);
+        var toR = fromR + DirectionR(selectedDirection);
+        var toZ = fromZ + DirectionZ(selectedDirection);
+        var stepCost = toZ == 0
+            ? BaseTravelCost(simulation, planeCode, entityId, toQ, toR)
+            : 1f;
+        return StepUnchecked(simulation, entityId, planeCode, toQ, toR, toZ, tick, MovementCauseCodes.Travel, stepCost);
+    }
+
+    private int SelectWanderDirection(
+        Simulation simulation,
+        int entityId,
+        int planeCode,
+        int fromQ,
+        int fromR,
+        int fromZ,
+        int anchorQ,
+        int anchorR,
+        int maxDistanceFromAnchor)
+    {
         var candidateCount = 0;
         var selectedDirection = -1;
-        for (var direction = 0; direction < 6; direction++)
+        var directionCount = planeCode == PlaneCodes.Physical ? 8 : 6;
+        for (var direction = 0; direction < directionCount; direction++)
         {
             var q = fromQ + DirectionQ(direction);
             var r = fromR + DirectionR(direction);
-            if (!CanEnter(simulation, planeCode, entityId, q, r))
+            var z = fromZ + DirectionZ(direction);
+            if (!CanEnter(simulation, planeCode, entityId, q, r, z))
             {
                 continue;
             }
@@ -378,16 +435,7 @@ internal sealed partial class MovementProgramRuntime :
             }
         }
 
-        if (selectedDirection < 0)
-        {
-            return new MovementMoveResult(
-                false, 0f, planeCode, fromQ, fromR, fromS, fromQ, fromR, fromS, MovementCauseCodes.Travel);
-        }
-
-        var toQ = fromQ + DirectionQ(selectedDirection);
-        var toR = fromR + DirectionR(selectedDirection);
-        var stepCost = BaseTravelCost(simulation, planeCode, entityId, toQ, toR);
-        return StepUnchecked(simulation, entityId, planeCode, toQ, toR, tick, MovementCauseCodes.Travel, stepCost);
+        return selectedDirection;
     }
 
     public MovementMoveResult Place(
@@ -431,34 +479,75 @@ internal sealed partial class MovementProgramRuntime :
         int r,
         int tick,
         int causeCode,
+        float stepCost) =>
+        StepUnchecked(
+            simulation,
+            entityId,
+            planeCode,
+            q,
+            r,
+            CurrentZ(simulation.World, entityId, planeCode),
+            tick,
+            causeCode,
+            stepCost);
+
+    private MovementMoveResult StepUnchecked(
+        Simulation simulation,
+        int entityId,
+        int planeCode,
+        int q,
+        int r,
+        int z,
+        int tick,
+        int causeCode,
         float stepCost)
     {
         var world = simulation.World;
         var fromQ = CurrentQ(world, entityId, planeCode);
         var fromR = CurrentR(world, entityId, planeCode);
+        var fromZ = CurrentZ(world, entityId, planeCode);
         var fromS = planeCode == PlaneCodes.Semantic ? -fromQ - fromR : 0;
         var toS = planeCode == PlaneCodes.Semantic ? -q - r : 0;
-        if (!MoveAllowed(simulation, planeCode, entityId, q, r, stepCost, causeCode))
+        if (!MoveAllowed(simulation, planeCode, entityId, q, r, z, stepCost, causeCode))
         {
             return new MovementMoveResult(false, stepCost, planeCode, fromQ, fromR, fromS, q, r, toS, causeCode);
         }
 
+        var moved = ApplyMove(simulation, entityId, planeCode, fromQ, fromR, fromZ, fromS, q, r, z, toS, tick, causeCode);
+        return new MovementMoveResult(moved, stepCost, planeCode, fromQ, fromR, fromS, q, r, toS, causeCode);
+    }
+
+    private bool ApplyMove(
+        Simulation simulation,
+        int entityId,
+        int planeCode,
+        int fromQ,
+        int fromR,
+        int fromZ,
+        int fromS,
+        int q,
+        int r,
+        int z,
+        int toS,
+        int tick,
+        int causeCode)
+    {
         if (planeCode == PlaneCodes.Physical)
         {
-            simulation.MoveEntityPhysicalUnchecked(entityId, q, r, tick);
+            simulation.MoveEntityPhysicalUnchecked(entityId, q, r, z, tick);
         }
         else
         {
             simulation.MoveEntitySemanticUnchecked(entityId, q, r, toS, tick);
         }
 
-        var moved = fromQ != q || fromR != r || (planeCode == PlaneCodes.Semantic && fromS != toS);
-        if (moved && causeCode == MovementCauseCodes.Travel)
+        var moved = fromQ != q || fromR != r || fromZ != z || (planeCode == PlaneCodes.Semantic && fromS != toS);
+        if (moved && causeCode == MovementCauseCodes.Travel && z == 0)
         {
             ApplyTravelSurface(simulation, planeCode, q, r, tick);
         }
 
-        return new MovementMoveResult(moved, stepCost, planeCode, fromQ, fromR, fromS, q, r, toS, causeCode);
+        return moved;
     }
 
     private float StepCostForMove(
@@ -495,6 +584,7 @@ internal sealed partial class MovementProgramRuntime :
         int entityId,
         int q,
         int r,
+        int z,
         float stepCost,
         int causeCode)
     {
@@ -510,7 +600,7 @@ internal sealed partial class MovementProgramRuntime :
 
         return !float.IsInfinity(stepCost) &&
             stepCost > 0f &&
-            CanEnter(simulation, planeCode, entityId, q, r);
+            CanEnter(simulation, planeCode, entityId, q, r, z);
     }
 
     private void ApplyTravelSurface(Simulation simulation, int planeCode, int q, int r, int tick)
@@ -639,6 +729,9 @@ internal sealed partial class MovementProgramRuntime :
     private static int CurrentQ(WorldState world, int entityId, int planeCode) =>
         planeCode == PlaneCodes.Semantic ? world.EntitySemanticQ(entityId) : world.EntityPhysicalQ(entityId);
 
+    private static int CurrentZ(WorldState world, int entityId, int planeCode) =>
+        planeCode == PlaneCodes.Semantic ? 0 : world.EntityPhysicalZ(entityId);
+
     private static int CurrentR(WorldState world, int entityId, int planeCode) =>
         planeCode == PlaneCodes.Semantic ? world.EntitySemanticR(entityId) : world.EntityPhysicalR(entityId);
 
@@ -682,6 +775,14 @@ internal sealed partial class MovementProgramRuntime :
         2 => -1,
         3 => 0,
         4 => 1,
-        _ => 1,
+        5 => 1,
+        _ => 0,
+    };
+
+    private static int DirectionZ(int direction) => direction switch
+    {
+        6 => 1,
+        7 => -1,
+        _ => 0,
     };
 }

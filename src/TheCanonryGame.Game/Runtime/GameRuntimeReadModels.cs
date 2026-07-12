@@ -20,9 +20,12 @@ internal interface IGameChronicleFeed
 
 internal sealed class GameRuntimeReadModels
 {
+    private readonly KernelUiRuntime _runtime;
+
     internal GameRuntimeReadModels(KernelUiRuntime runtime)
     {
         ArgumentNullException.ThrowIfNull(runtime);
+        _runtime = runtime;
         Map = runtime.Map;
         Entities = runtime.Ui;
         Symbols = runtime.Symbols;
@@ -42,6 +45,8 @@ internal sealed class GameRuntimeReadModels
     public IProjectionSymbolCatalog Symbols { get; }
 
     public GameDomainKnowledge Knowledge { get; }
+
+    public IReadOnlyList<CulturePowerSummary> CulturePowers() => _runtime.CulturePowers();
 
     private void ConfigureHierarchyTags(KernelUiRuntime runtime)
     {

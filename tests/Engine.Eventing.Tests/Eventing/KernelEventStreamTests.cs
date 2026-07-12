@@ -85,7 +85,9 @@ public sealed class KernelEventStreamTests
             FromS: -11,
             ToQ: 6,
             ToR: 7,
-            ToS: -13)));
+            ToS: -13,
+            FromZ: 0,
+            ToZ: 0)));
 
         Assert.True(stream.TryRead(firstCursor, out var firstRead));
         Assert.Equal(0, firstRead.Sequence);
@@ -125,7 +127,9 @@ public sealed class KernelEventStreamTests
             FromS: 0,
             ToQ: 1,
             ToR: 0,
-            ToS: -1)));
+            ToS: -1,
+            FromZ: 0,
+            ToZ: 0)));
         stream.TryWrite(KernelEvent.From(new AttributeChangedKernelEvent(
             Tick: 3,
             WorldVersion: 3,
@@ -172,7 +176,9 @@ public sealed class KernelEventStreamTests
             FromS: 0,
             ToQ: 1,
             ToR: 0,
-            ToS: -1)));
+            ToS: -1,
+            FromZ: 0,
+            ToZ: 0)));
 
         Assert.True(stream.TryRead(cursor, out var next));
         Assert.Equal(1, next.Sequence);
@@ -210,7 +216,9 @@ public sealed class KernelEventStreamTests
             FromS: -11,
             ToQ: 6,
             ToR: 7,
-            ToS: -13)));
+            ToS: -13,
+            FromZ: 0,
+            ToZ: 0)));
         stream.TryWrite(KernelEvent.From(new AttributeChangedKernelEvent(
             Tick: 3,
             WorldVersion: 3,

@@ -6,12 +6,14 @@ internal sealed partial class KernelDataSet
     {
         Entities.WriteSnapshot(writer);
         Terrain.WriteSnapshot(writer);
+        Cultures.WriteSnapshot(writer);
     }
 
     internal void ReadSnapshot(global::System.IO.BinaryReader reader)
     {
         Entities.ReadSnapshot(reader);
         Terrain.ReadSnapshot(reader);
+        Cultures.ReadSnapshot(reader);
     }
 }
 
@@ -29,6 +31,19 @@ internal sealed partial class KernelEntityData
 }
 
 internal sealed partial class KernelTerrainData
+{
+    internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
+    {
+        KernelSnapshotBinary.WriteObject(writer, this);
+    }
+
+    internal void ReadSnapshot(global::System.IO.BinaryReader reader)
+    {
+        KernelSnapshotBinary.ReadObject(reader, this);
+    }
+}
+
+internal sealed partial class KernelCultureData
 {
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
     {

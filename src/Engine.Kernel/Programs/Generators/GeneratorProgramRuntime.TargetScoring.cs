@@ -42,15 +42,9 @@ internal sealed partial class GeneratorProgramRuntime
             return 0;
         }
 
-        var cultureSourceId = ResolveRef(refCodes, refEntityIds, refCount, _producedCultureRefCodes[produced]);
+        var cultureId = ResolveProducedCultureId(simulation.World, refCodes, refEntityIds, refCount, produced);
         var anchorId = ResolveRef(refCodes, refEntityIds, refCount, _producedPlacementRefCodes[produced]);
-        if (cultureSourceId <= 0 || anchorId <= 0)
-        {
-            return 0;
-        }
-
-        var cultureId = simulation.World.EntityCultureId(cultureSourceId);
-        if (cultureId <= 0)
+        if (cultureId <= 0 || anchorId <= 0)
         {
             return 0;
         }

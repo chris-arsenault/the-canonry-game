@@ -13,6 +13,17 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _generatorIds => Data.GeneratorIds;
     private int[] _targetKindIds => Data.TargetKindIds;
     private int[] _pulseWeights => Data.PulseWeights;
+    private int[] _cadenceTicks => Data.CadenceTicks;
+    private int[] _cadenceJitterTicks => Data.CadenceJitterTicks;
+    private int[] _targetRequiredTagBits => Data.TargetRequiredTagBits;
+    private int[] _targetWithoutTagBits => Data.TargetWithoutTagBits;
+    private int[] _bindingRequiredTagBits => Data.BindingRequiredTagBits;
+    private int[] _bindingWithoutTagBits => Data.BindingWithoutTagBits;
+    private int[] _bindingCultureIds => Data.BindingCultureIds;
+    private int[] _producedQueryRequiredTagBits => Data.ProducedQueryRequiredTagBits;
+    private int[] _producedQueryWithoutTagBits => Data.ProducedQueryWithoutTagBits;
+    private int[] _producedQueryCultureIds => Data.ProducedQueryCultureIds;
+    private int[] _nextCadenceFireTicks => State.NextCadenceFireTicks;
     private int[] _maxRuns => Data.MaxRuns;
     private int[] _runCounts => State.RunCounts;
     private bool[] _enabled => State.Enabled;
@@ -87,6 +98,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _producedPlacementFallbackTerrainIds => Data.ProducedPlacementFallbackTerrainIds;
     private int[] _producedPlacementRefCodes => Data.ProducedPlacementRefCodes;
     private int[] _producedCultureRefCodes => Data.ProducedCultureRefCodes;
+    private int[] _producedFixedCultureIds => Data.ProducedFixedCultureIds;
     private int[] _producedCulturePlacementCodes => Data.ProducedCulturePlacementCodes;
     private float[] _producedCreateChances => Data.ProducedCreateChances;
     private int[] _producedSubtypeChoiceStarts => Data.ProducedSubtypeChoiceStarts;
@@ -214,12 +226,21 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         int generatorId,
         int targetKindId,
         int pulseWeight,
-        int maxRuns)
+        int maxRuns,
+        int cadenceTicks = 0,
+        int cadenceJitterTicks = 0,
+        int targetRequiredTagBits = 0,
+        int targetWithoutTagBits = 0)
     {
         ValidatePositive(generatorId);
         ValidatePositive(targetKindId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(pulseWeight);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(maxRuns);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(cadenceTicks);
+        if (cadenceJitterTicks < 0 || (cadenceTicks > 0 && cadenceJitterTicks >= cadenceTicks))
+        {
+            throw new global::System.InvalidOperationException();
+        }
         if (_generatorCount + 1 >= _generatorIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -231,6 +252,10 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _targetKindIds[slot] = targetKindId;
         _pulseWeights[slot] = pulseWeight;
         _maxRuns[slot] = maxRuns;
+        _cadenceTicks[slot] = cadenceTicks;
+        _cadenceJitterTicks[slot] = cadenceJitterTicks;
+        _targetRequiredTagBits[slot] = targetRequiredTagBits;
+        _targetWithoutTagBits[slot] = targetWithoutTagBits;
         _targetSubtypeStarts[slot] = _subtypeCount + 1;
         _targetRequiredOutgoingStarts[slot] = _relationshipKindFilterCount + 1;
         _targetRequiredIncomingStarts[slot] = _relationshipKindFilterCount + 1;
@@ -350,36 +375,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _triggerCounts[generatorSlot]++;
     }
 
-    public int AddSecondaryBinding(
-        int generatorSlot,
-        int refCode,
-        int kindId,
-        int adjacentToTarget,
-        int cultureMatchCode,
-        int samePhysicalCultureComponentAsTarget = 0)
-    {
-        EnsureOpenGenerator(generatorSlot);
-        ValidatePositive(refCode);
-        ValidatePositive(kindId);
-        ValidatePositive(cultureMatchCode);
-        if (_bindingCount + 1 >= _bindingRefCodes.Length)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _bindingCount++;
-        _bindingRefCodes[_bindingCount] = refCode;
-        _bindingKindIds[_bindingCount] = kindId;
-        _bindingAdjacentToTarget[_bindingCount] = adjacentToTarget;
-        _bindingCultureMatchCodes[_bindingCount] = cultureMatchCode;
-        _bindingSamePhysicalCultureComponentAsTarget[_bindingCount] = samePhysicalCultureComponentAsTarget;
-        _bindingSubtypeStarts[_bindingCount] = _subtypeCount + 1;
-        _bindingWithoutOutgoingStarts[_bindingCount] = _relationshipKindFilterCount + 1;
-        _bindingWithoutIncomingStarts[_bindingCount] = _relationshipKindFilterCount + 1;
-        _bindingCounts[generatorSlot]++;
-        _openBindingSlot = _bindingCount;
-        return _bindingCount;
-    }
 
     public void AddBindingSubtype(int bindingSlot, int subtypeId)
     {
@@ -428,13 +423,14 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         int semanticPlacementMinRadius = GeneratorProgramConstants.DefaultPlacementMinRadius,
         int semanticPlacementMaxRadius = GeneratorProgramConstants.DefaultPlacementMaxRadius,
         int culturePlacementCode = GeneratorCulturePlacementCodes.PreferInheritedCulture,
-        int querySamePhysicalCultureComponentAsTarget = 0)
+        int querySamePhysicalCultureComponentAsTarget = 0,
+        int fixedCultureId = 0,
+        int queryRequiredTagBits = 0,
+        int queryWithoutTagBits = 0,
+        int queryCultureId = 0)
     {
         EnsureOpenGenerator(generatorSlot);
-        ValidatePositive(refCode);
-        ValidatePositive(kindId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(subtypeId);
-        ValidatePositive(queryCultureMatchCode);
+        ValidateProducedIdentity(refCode, kindId, subtypeId, queryCultureMatchCode);
         ValidatePositive(physicalPlacementCode);
         ValidatePositive(semanticPlacementCode);
         ValidateProducedPlacementRadii(
@@ -443,7 +439,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             semanticPlacementMinRadius,
             semanticPlacementMaxRadius);
         ValidatePositive(placementRefCode);
-        ValidatePositive(cultureRefCode);
+        ValidateProducedCultureSource(cultureRefCode, fixedCultureId);
         ValidatePositive(culturePlacementCode);
         if (createChance < 0f || createChance > 1f)
         {
@@ -469,6 +465,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             semanticPlacementCode,
             placementRefCode,
             cultureRefCode,
+            fixedCultureId,
             createChance,
             coverageModeCode,
             coverageSourceRefCode,
@@ -483,9 +480,28 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             semanticPlacementMaxRadius,
             culturePlacementCode,
             querySamePhysicalCultureComponentAsTarget);
+        _producedQueryRequiredTagBits[_producedCount] = queryRequiredTagBits;
+        _producedQueryWithoutTagBits[_producedCount] = queryWithoutTagBits;
+        _producedQueryCultureIds[_producedCount] = queryCultureId;
         _producedCounts[generatorSlot]++;
         _openProducedSlot = _producedCount;
         return _producedCount;
+    }
+
+    private static void ValidateProducedIdentity(int refCode, int kindId, int subtypeId, int queryCultureMatchCode)
+    {
+        ValidatePositive(refCode);
+        ValidatePositive(kindId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(subtypeId);
+        ValidatePositive(queryCultureMatchCode);
+    }
+
+    private static void ValidateProducedCultureSource(int cultureRefCode, int fixedCultureId)
+    {
+        if (cultureRefCode <= 0 && fixedCultureId <= 0)
+        {
+            throw new global::System.InvalidOperationException();
+        }
     }
 
     private static void ValidateProducedPlacementRadii(
@@ -518,6 +534,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         int semanticPlacementCode,
         int placementRefCode,
         int cultureRefCode,
+        int fixedCultureId,
         float createChance,
         int coverageModeCode,
         int coverageSourceRefCode,
@@ -546,6 +563,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _producedSemanticPlacementMaxRadii[producedSlot] = semanticPlacementMaxRadius;
         _producedPlacementRefCodes[producedSlot] = placementRefCode;
         _producedCultureRefCodes[producedSlot] = cultureRefCode;
+        _producedFixedCultureIds[producedSlot] = fixedCultureId;
         _producedCulturePlacementCodes[producedSlot] = culturePlacementCode;
         _producedCreateChances[producedSlot] = createChance;
         _producedQueryAdjacentToTarget[producedSlot] = queryAdjacentToTarget;
@@ -642,6 +660,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         ResetPulseBudgetIfNeeded(tick);
+        TickCadenceGenerators(simulation, tick);
         if (!HasGeneratorFireBudget() || !EvaluateGenerators(simulation, tick))
         {
             return;
@@ -684,12 +703,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         var anyEvaluated = false;
         for (var slot = 1; slot <= _generatorCount; slot++)
         {
-            _pulseStatusCodes[slot] = GeneratorStatusCodes.NotEvaluated;
-            _pulseCandidateCounts[slot] = 0;
-            _pulseSelectionWeights[slot] = 0;
-            _pulseSelectedTargetIds[slot] = 0;
-            _pulseFailedFireCounts[slot] = 0;
-            if (!_enabled[slot] || tick <= 0)
+            ResetPulseScratch(slot);
+            if (!_enabled[slot] || tick <= 0 || _cadenceTicks[slot] > 0)
             {
                 continue;
             }
@@ -917,14 +932,14 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
                 continue;
             }
 
-            var cultureSourceId = ResolveRef(refCodes, refEntityIds, refCount, _producedCultureRefCodes[produced]);
-            if (cultureSourceId <= 0)
+            var producedCultureId = ResolveProducedCultureId(world, refCodes, refEntityIds, refCount, produced);
+            if (producedCultureId <= 0)
             {
                 continue;
             }
 
             count += simulation.CultureSlots.UnoccupiedSlotFitCount(
-                world.EntityCultureId(cultureSourceId),
+                producedCultureId,
                 _producedKindIds[produced]);
         }
 

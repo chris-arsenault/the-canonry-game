@@ -74,16 +74,19 @@ internal sealed partial class WorldState
         }
     }
 
-    private void InsertPhysicalOccupant(int entityId, int q, int r)
+    private void InsertPhysicalOccupant(int entityId, int q, int r) =>
+        InsertPhysicalOccupant(entityId, q, r, z: 0);
+
+    private void InsertPhysicalOccupant(int entityId, int q, int r, int z)
     {
-        var key = CoordinateKey(q, r);
+        var key = CoordinateKey(q, r, z);
         _nextPhysicalEntityAtCell[entityId] = _firstPhysicalEntityAtCell.GetOrDefault(key, 1);
         _firstPhysicalEntityAtCell.Set(key, 1, entityId);
     }
 
-    private void RemovePhysicalOccupant(int entityId, int q, int r)
+    private void RemovePhysicalOccupant(int entityId, int q, int r, int z)
     {
-        var key = CoordinateKey(q, r);
+        var key = CoordinateKey(q, r, z);
         var current = _firstPhysicalEntityAtCell.GetOrDefault(key, 1);
         if (current == entityId)
         {
@@ -540,12 +543,17 @@ internal sealed partial class WorldState
         }
     }
 
-    private static int CoordinateKey(int q, int r)
+    private static int CoordinateKey(int q, int r) => CoordinateKey(q, r, z: 0);
+
+    private static int CoordinateKey(int q, int r, int z)
     {
         unchecked
         {
+            // z == 0 contributes nothing, so surface keys stay identical to the
+            // historical two-argument hash.
             var hash = (uint)q * 2654435761u;
             hash ^= (uint)r * 2246822519u;
+            hash ^= (uint)z * 3266489917u;
             var value = (int)(hash & 2147483647u);
             return value == 0 ? 1 : value;
         }

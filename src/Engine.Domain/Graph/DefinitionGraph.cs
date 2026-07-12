@@ -19,6 +19,7 @@ public sealed class DefinitionGraph
     public required IReadOnlyDictionary<DefinitionRelationshipId, DefinitionRelationshipNode> Relationships { get; init; }
     public required IReadOnlyDictionary<EntityKind, DefinitionLifecycleNode> Lifecycles { get; init; }
     public required IReadOnlyDictionary<DefinitionAttributeKey, DefinitionAttributeNode> Attributes { get; init; }
+    public IReadOnlySet<string> Tags { get; init; } = new HashSet<string>(StringComparer.Ordinal);
     public SemanticFlowGraph SemanticFlows { get; } = new();
 }
 
@@ -155,12 +156,31 @@ public sealed class DefinitionGeneratorNode
     public required IReadOnlyList<DefinitionGeneratorTrigger> Triggers { get; init; }
     public int PulseWeight { get; init; }
     public int? MaxRunsPerSim { get; init; }
+    public int CadenceTicks { get; init; }
+    public int CadenceJitterTicks { get; init; }
     public required SemanticGeneratorConfig SourceConfig { get; init; }
 }
 
 public interface IDefinitionGeneratorEffect
 {
     string Describe();
+}
+
+public sealed class DefinitionClaimSemanticJurisdictionEffect(string bindingRef, int radius) : IDefinitionGeneratorEffect
+{
+    public string BindingRef { get; } = bindingRef;
+    public int Radius { get; } = radius;
+
+    public string Describe() => $"claim_semantic_jurisdiction({BindingRef}, r={Radius})";
+}
+
+public sealed class DefinitionSetBindingTagEffect(string bindingRef, string tag, bool assigned) : IDefinitionGeneratorEffect
+{
+    public string BindingRef { get; } = bindingRef;
+    public string Tag { get; } = tag;
+    public bool Assigned { get; } = assigned;
+
+    public string Describe() => $"set_binding_tag({BindingRef}, {Tag}, {Assigned})";
 }
 
 public sealed class DefinitionSetBindingHistoricalEffect(string bindingRef) : IDefinitionGeneratorEffect
@@ -238,6 +258,8 @@ public sealed class DefinitionGeneratorTarget
 {
     public required EntityKind Kind { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
+    public IReadOnlySet<string>? RequiredTags { get; init; }
+    public IReadOnlySet<string>? WithoutTags { get; init; }
     public IReadOnlySet<string>? RequiredOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? RequiredIncomingRelationships { get; init; }
     public IReadOnlySet<string>? RequiredRelationships { get; init; }
@@ -283,7 +305,8 @@ public sealed class DefinitionProducedEntity
     public IReadOnlySet<string>? SemanticPlacementAvoidedTerrains { get; init; }
     public string? SemanticPlacementFallbackTerrain { get; init; }
     public string PlacementRef { get; init; } = "$target";
-    public required string InheritCultureFrom { get; init; }
+    public string? InheritCultureFrom { get; init; }
+    public string? Culture { get; init; }
     public GeneratorCulturePlacement CulturePlacement { get; init; } = GeneratorCulturePlacement.PreferInheritedCulture;
     public DefinitionEntityQuery? Query { get; init; }
     public DefinitionRegionCoverage? Coverage { get; init; }
@@ -304,6 +327,9 @@ public sealed class DefinitionRegionCoverage
 
 public sealed class DefinitionEntityQuery
 {
+    public IReadOnlySet<string>? RequiredTags { get; init; }
+    public IReadOnlySet<string>? WithoutTags { get; init; }
+    public string? Culture { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
     public bool AdjacentToTarget { get; init; }
     public bool SamePhysicalCultureComponentAsTarget { get; init; }

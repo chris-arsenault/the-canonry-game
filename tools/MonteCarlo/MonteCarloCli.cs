@@ -333,6 +333,7 @@ internal static class MonteCarloCli
         if (ShouldRecordSnapshot(tick, options.EntitySnapshotCadence))
         {
             run.Host.RecordCultureBoundaryTelemetry(recorder.Batch, recorder.RunId, tick, includeEntities);
+            run.Host.RecordCulturePowerTelemetry(recorder.Batch, recorder.RunId, tick);
         }
     }
 
@@ -400,6 +401,8 @@ internal static class MonteCarloCli
         batch.CultureSlotOccupancyEvents.Count +
         batch.MinorActorVerbEvents.Count +
         batch.CultureFieldComponentSnapshots.Count +
+        batch.CulturePowerSnapshots.Count +
+        batch.EntityTagEvents.Count +
         batch.CultureEntityFieldSnapshots.Count +
         batch.CultureEntityBirthFieldEvents.Count +
         batch.CultureInfluenceActionFieldEvents.Count +

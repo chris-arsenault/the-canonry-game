@@ -13,6 +13,7 @@ public enum IceRemembersAttributeId
     Containment,
     Integrity,
     Momentum,
+    Observance,
 }
 
 public static class IceRemembersAttributeIdExtensions
@@ -30,6 +31,7 @@ public static class IceRemembersAttributeIdExtensions
         "containment",
         "integrity",
         "momentum",
+        "observance",
     ];
 
     public static string ToDomainName(this IceRemembersAttributeId attribute)
@@ -66,6 +68,8 @@ public enum IceRemembersTraitId
     TransportHiddenFault,
     OccurrenceGatheringForce,
     OccurrenceGrindingAttrition,
+    CanonDeepRooted,
+    CanonHollowLetter,
 }
 
 public static class IceRemembersTraitIdExtensions
@@ -95,6 +99,8 @@ public static class IceRemembersTraitIdExtensions
         "transport_hidden_fault",
         "occurrence_gathering_force",
         "occurrence_grinding_attrition",
+        "canon_deep_rooted",
+        "canon_hollow_letter",
     ];
 
     public static string ToDomainName(this IceRemembersTraitId trait)
@@ -131,6 +137,9 @@ public enum IceRemembersRelationship
     BetrayedBy,
     PracticedBy,
     TaughtBy,
+    OfferedTo,
+    ConsignedTo,
+    PreysOn,
 }
 
 public static class IceRemembersRelationshipExtensions
@@ -160,6 +169,9 @@ public static class IceRemembersRelationshipExtensions
         "betrayed_by",
         "practiced_by",
         "taught_by",
+        "offered_to",
+        "consigned_to",
+        "preys_on",
     ];
 
     public static string ToDomainName(this IceRemembersRelationship relationship)
@@ -353,6 +365,12 @@ public enum IceRemembersVerbId
     PenguinCarryMandate,
     OrcaCarryOldVoice,
     FactionTendSeatControl,
+    OrcaRenewTheOffering,
+    PointOfInterestDrawTheOffering,
+    FactionPressTheHunt,
+    SettlementBreakTheHunt,
+    SettlementPanicDrawsThePods,
+    FactionLeadTheRite,
 }
 
 public static class IceRemembersVerbIdExtensions
@@ -519,6 +537,12 @@ public static class IceRemembersVerbIdExtensions
         "penguin_carry_mandate",
         "orca_carry_old_voice",
         "faction_tend_seat_control",
+        "orca_renew_the_offering",
+        "point_of_interest_draw_the_offering",
+        "faction_press_the_hunt",
+        "settlement_break_the_hunt",
+        "settlement_panic_draws_the_pods",
+        "faction_lead_the_rite",
     ];
 
     public static string ToVerbId(this IceRemembersVerbId verbId)
@@ -564,6 +588,10 @@ public enum IceRemembersGambitId
     MonsterDeepensTheHolding,
     TransportDeepensTheHolding,
     OccurrenceDeepensTheHolding,
+    SettlementRaisesTheSpire,
+    SettlementDigsTheGallery,
+    FactionDigsTheGallery,
+    CanonDeepensTheHolding,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -602,6 +630,10 @@ public static class IceRemembersGambitIdExtensions
         "monster_deepens_the_holding",
         "transport_deepens_the_holding",
         "occurrence_deepens_the_holding",
+        "settlement_raises_the_spire",
+        "settlement_digs_the_gallery",
+        "faction_digs_the_gallery",
+        "canon_deepens_the_holding",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)

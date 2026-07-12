@@ -18,12 +18,26 @@ public sealed class SemanticGeneratorConfig
     public required IReadOnlyList<SemanticGeneratorTrigger> Triggers { get; init; }
     public int PulseWeight { get; init; } = 1;
     public int? MaxRunsPerSim { get; init; }
+
+    /// <summary>
+    /// When positive, this is a timeline generator: it fires on its own
+    /// cadence (roughly every CadenceTicks, offset by CadenceJitterTicks)
+    /// outside the shared population-proportional pulse pool. Target
+    /// eligibility still applies; a cadence firing with no eligible target
+    /// passes quietly.
+    /// </summary>
+    public int CadenceTicks { get; init; }
+
+    /// <summary>Uniform jitter applied to each cadence interval.</summary>
+    public int CadenceJitterTicks { get; init; }
 }
 
 public sealed class SemanticGeneratorTarget
 {
     public required EntityKind Kind { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
+    public IReadOnlySet<string>? RequiredTags { get; init; }
+    public IReadOnlySet<string>? WithoutTags { get; init; }
     public IReadOnlySet<string>? RequiredOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? RequiredIncomingRelationships { get; init; }
     public IReadOnlySet<string>? RequiredRelationships { get; init; }
@@ -68,7 +82,18 @@ public sealed class SemanticProducedEntity
     public IReadOnlySet<string>? SemanticPlacementAvoidedTerrains { get; init; }
     public string? SemanticPlacementFallbackTerrain { get; init; }
     public string PlacementRef { get; init; } = "$target";
-    public required string InheritCultureFrom { get; init; }
+    /// <summary>
+    /// Ref of the bound entity whose culture the produced entity inherits.
+    /// Exactly one of this or <see cref="Culture"/> must be set.
+    /// </summary>
+    public string? InheritCultureFrom { get; init; }
+
+    /// <summary>
+    /// Authored culture for the produced entity, independent of the target's
+    /// culture. Enables cross-cultural generators where one culture's activity
+    /// creates another culture's entities.
+    /// </summary>
+    public string? Culture { get; init; }
     public GeneratorCulturePlacement CulturePlacement { get; init; } = GeneratorCulturePlacement.PreferInheritedCulture;
     public SemanticEntityQuery? Query { get; init; }
     public SemanticRegionCoverage? Coverage { get; init; }
@@ -90,6 +115,12 @@ public sealed class SemanticRegionCoverage
 public sealed class SemanticEntityQuery
 {
     public IReadOnlySet<string>? Subtypes { get; init; }
+    public IReadOnlySet<string>? RequiredTags { get; init; }
+    public IReadOnlySet<string>? WithoutTags { get; init; }
+
+    /// <summary>Restrict matches to an authored culture (stable name).</summary>
+    public string? Culture { get; init; }
+
     public bool AdjacentToTarget { get; init; }
     public bool SamePhysicalCultureComponentAsTarget { get; init; }
     public IReadOnlySet<string>? WithoutOutgoingRelationships { get; init; }
@@ -133,6 +164,40 @@ public sealed class SetBindingHistoricalEffect(string bindingRef) : ISemanticGen
     public string BindingRef { get; } = bindingRef;
 
     public string Describe() => $"set_binding_historical({BindingRef})";
+}
+
+/// <summary>
+/// Claims all unowned semantic cells within a radius of the resolved
+/// binding's semantic position as that entity's named coverage — how
+/// generator-born canons take jurisdiction over idea-space.
+/// </summary>
+public sealed class ClaimSemanticJurisdictionEffect(string bindingRef, int radius) : ISemanticGeneratorEffect
+{
+    public string BindingRef { get; } = bindingRef;
+
+    public int Radius { get; } = radius;
+
+    public string Describe() => $"claim_semantic_jurisdiction({BindingRef}, r={Radius})";
+}
+
+/// <summary>Sets a discrete tag on a resolved binding (or "$target") after the generator fires.</summary>
+public sealed class SetBindingTagEffect(string bindingRef, string tag) : ISemanticGeneratorEffect
+{
+    public string BindingRef { get; } = bindingRef;
+
+    public string Tag { get; } = tag;
+
+    public string Describe() => $"set_binding_tag({BindingRef}, {Tag})";
+}
+
+/// <summary>Clears a discrete tag on a resolved binding (or "$target") after the generator fires.</summary>
+public sealed class ClearBindingTagEffect(string bindingRef, string tag) : ISemanticGeneratorEffect
+{
+    public string BindingRef { get; } = bindingRef;
+
+    public string Tag { get; } = tag;
+
+    public string Describe() => $"clear_binding_tag({BindingRef}, {Tag})";
 }
 
 /// <summary>Removes relationships of a kind from the target, or a selected relationship instance.</summary>

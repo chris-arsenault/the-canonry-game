@@ -319,6 +319,22 @@ public sealed class MoveTargetToSelfPhysicalMutation : IMutation
 /// <summary>
 /// Changes every map cell owned by the resolved target's named coverage to a terrain.
 /// </summary>
+/// <summary>
+/// Forges a new physical cell one layer above (direction +1, spire tier) or
+/// below (direction -1, tunnel gallery) the acting entity's column, creeping
+/// to adjacent columns once the actor's own column is fully forged.
+/// </summary>
+public sealed class ForgeCellVerticalMutation(int direction, string terrainName) : IMutation
+{
+    public int Direction { get; } = direction;
+
+    public string TerrainName { get; } = terrainName;
+
+    public string Describe() => Direction > 0
+        ? $"forge_spire_tier({TerrainName})"
+        : $"forge_tunnel_gallery({TerrainName})";
+}
+
 public sealed class SetTargetCoverageTerrainMutation(string terrainName) : IMutation
 {
     public string TerrainName { get; } = terrainName;

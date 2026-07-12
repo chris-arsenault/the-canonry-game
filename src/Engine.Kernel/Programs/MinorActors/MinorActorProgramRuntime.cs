@@ -759,7 +759,7 @@ internal sealed partial class MinorActorProgramRuntime :
             planeCode,
             q,
             r,
-            delta,
+            simulation.CultureProductionScaled(State.CultureId(actorId), planeCode, delta),
             tick);
     }
 

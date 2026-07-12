@@ -45,7 +45,7 @@ internal readonly record struct ObservedRelationshipKey(
     int TargetEntityId,
     int RelationshipKindId);
 
-internal readonly record struct ObservedMapCellKey(int PlaneCode, int Q, int R);
+internal readonly record struct ObservedMapCellKey(int PlaneCode, int Q, int R, int Z = 0);
 
 internal sealed class GeneratorStateProjection(int generatorId)
 {

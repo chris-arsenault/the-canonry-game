@@ -43,6 +43,7 @@ public static class BehaviorOperationCodes
     public const int BuildTravelStructureLine = 31;
     public const int SetTargetCultureFromSelf = 32;
     public const int IncreaseWorkTier = 33;
+    public const int ForgeCellVertical = 34;
 }
 
 public static class BehaviorTargetModeCodes
@@ -186,6 +187,8 @@ public static class EffectConditionCodes
     public const int LocalComfortSignal = 6;
     public const int LocalCultureMapValue = 7;
     public const int CultureSlotOccupancy = 8;
+    public const int CrowdingBeyondCultureSupport = 9;
+    public const int InsideOwnedCoverage = 10;
 }
 
 public static class RelationshipMatchDirectionCodes
@@ -485,6 +488,8 @@ public static class GeneratorEffectTypeCodes
     public const int RemoveTargetRelationships = 2;
     public const int AdjustTargetRelationshipStrength = 3;
     public const int SetTerrainPatch = 4;
+    public const int SetBindingTag = 5;
+    public const int ClaimSemanticJurisdiction = 6;
 }
 
 public static class GeneratorRelationshipInstanceSelectionCodes

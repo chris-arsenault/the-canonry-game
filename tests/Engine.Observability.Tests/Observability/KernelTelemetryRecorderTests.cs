@@ -84,6 +84,7 @@ public sealed class KernelTelemetryRecorderTests
             SourceCodeId: 5,
             PlaneCode: PlaneCodes.Physical,
             CultureId: 3,
+            Z: 0,
             PreviousShare: 0f,
             CurrentShare: currentShare,
             PreviousRawInfluence: 0f,
@@ -180,7 +181,9 @@ public sealed class KernelTelemetryRecorderTests
             FromS: 0,
             ToQ: 2,
             ToR: -1,
-            ToS: 0))));
+            ToS: 0,
+            FromZ: 0,
+            ToZ: 0))));
         Assert.True(log.TryWrite(KernelEvent.From(new RelationshipChangedKernelEvent(
             Tick: 2,
             WorldVersion: 6,
@@ -207,7 +210,8 @@ public sealed class KernelTelemetryRecorderTests
             TerrainId: 12,
             OwnerEntityId: 100,
             SuperregionId: 4,
-            ContinentId: 2))));
+            ContinentId: 2,
+            Z: 0))));
         WriteMapCellStateChanged(log, tick: 1, planeCode: PlaneCodes.Physical, q: 2, r: -1, previousTerrainId: 0, currentTerrainId: 12, previousOwnerEntityId: 0, currentOwnerEntityId: 100, superregionId: 4, continentId: 2);
         WriteMapCellStateChanged(log, tick: 1, planeCode: PlaneCodes.Semantic, q: 4, r: -2, previousTerrainId: 0, currentTerrainId: 14, previousOwnerEntityId: 0, currentOwnerEntityId: 100, superregionId: 0, continentId: 0);
         Assert.True(log.TryWrite(KernelEvent.From(new CellRoadChangedKernelEvent(
@@ -231,6 +235,11 @@ public sealed class KernelTelemetryRecorderTests
             ActionId: 11,
             PreviousInfluence: 10f,
             CurrentInfluence: 30f))));
+        WriteMoreMapStateEvents(log);
+    }
+
+    private static void WriteMoreMapStateEvents(KernelEventLog log)
+    {
         Assert.True(log.TryWrite(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
             Tick: 2,
             WorldVersion: 5,
@@ -239,6 +248,7 @@ public sealed class KernelTelemetryRecorderTests
             SourceCodeId: 5,
             PlaneCode: PlaneCodes.Physical,
             CultureId: 3,
+            Z: 0,
             PreviousShare: 25f,
             CurrentShare: 75f))));
         WriteCultureSlotOccupancyChanged(log);
@@ -253,7 +263,8 @@ public sealed class KernelTelemetryRecorderTests
             PreviousOwnerEntityId: 100,
             CurrentOwnerEntityId: 101,
             SuperregionId: 4,
-            ContinentId: 2))));
+            ContinentId: 2,
+            Z: 0))));
         WriteMapCellStateChanged(log, tick: 3, planeCode: PlaneCodes.Physical, q: 2, r: -1, previousTerrainId: 12, currentTerrainId: 13, previousOwnerEntityId: 100, currentOwnerEntityId: 101, superregionId: 4, continentId: 2);
     }
 
@@ -282,7 +293,8 @@ public sealed class KernelTelemetryRecorderTests
             PreviousOwnerEntityId: previousOwnerEntityId,
             CurrentOwnerEntityId: currentOwnerEntityId,
             SuperregionId: superregionId,
-            ContinentId: continentId))));
+            ContinentId: continentId,
+            Z: 0))));
     }
 
     private static void WriteCultureSlotOccupancyChanged(KernelEventLog log)

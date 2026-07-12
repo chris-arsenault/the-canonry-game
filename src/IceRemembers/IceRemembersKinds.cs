@@ -15,6 +15,7 @@ public static class IceRemembersKinds
     public static readonly KindId Monster = KindId.Register("monster");
     public static readonly KindId Transport = KindId.Register("transport");
     public static readonly KindId Occurrence = KindId.Register("occurrence");
+    public static readonly KindId Canon = KindId.Register("canon");
 
     public static IReadOnlyList<KindId> All { get; } =
     [
@@ -29,5 +30,6 @@ public static class IceRemembersKinds
         Monster,
         Transport,
         Occurrence,
+        Canon,
     ];
 }

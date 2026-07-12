@@ -174,9 +174,10 @@ public partial class MapArea : Control
         Engine.Projection.HexMapProjection? map,
         Engine.Projection.UiProjectionState? projection,
         Engine.Projection.IProjectionSymbolCatalog? symbols,
-        PlaneMode plane)
+        PlaneMode plane,
+        IReadOnlyList<Engine.Projection.CulturePowerSummary>? culturePowers = null)
     {
-        if (_legendPanel?.BindCultureOverview(map, projection, symbols, plane) == true)
+        if (_legendPanel?.BindCultureOverview(map, projection, symbols, plane, culturePowers) == true)
         {
             PositionOverlays();
         }

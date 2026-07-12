@@ -80,7 +80,8 @@ public sealed class PrimitiveEventProjectionTests
             TerrainId: 10,
             OwnerEntityId: 100,
             SuperregionId: 2,
-            ContinentId: 1))));
+            ContinentId: 1,
+            Z: 0))));
         Assert.True(log.TryWrite(KernelEvent.From(new CellChangedKernelEvent(
             Tick: 2,
             WorldVersion: 2,
@@ -92,7 +93,8 @@ public sealed class PrimitiveEventProjectionTests
             PreviousOwnerEntityId: 100,
             CurrentOwnerEntityId: 200,
             SuperregionId: 2,
-            ContinentId: 1))));
+            ContinentId: 1,
+            Z: 0))));
 
         pump.DrainAvailable();
 
@@ -124,7 +126,8 @@ public sealed class PrimitiveEventProjectionTests
             TerrainId: 10,
             OwnerEntityId: 100,
             SuperregionId: 3,
-            ContinentId: 1))));
+            ContinentId: 1,
+            Z: 0))));
         Assert.True(log.TryWrite(KernelEvent.From(new CellInfluenceChangedKernelEvent(
             Tick: 1,
             WorldVersion: 2,
@@ -174,6 +177,7 @@ public sealed class PrimitiveEventProjectionTests
             SourceCodeId: 6,
             PlaneCode: PlaneCodes.Physical,
             CultureId: 10,
+            Z: 0,
             PreviousShare: 0f,
             CurrentShare: 66.667f))));
         Assert.True(log.TryWrite(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
@@ -184,6 +188,7 @@ public sealed class PrimitiveEventProjectionTests
             SourceCodeId: 6,
             PlaneCode: PlaneCodes.Physical,
             CultureId: 20,
+            Z: 0,
             PreviousShare: 0f,
             CurrentShare: 33.333f))));
 
@@ -259,7 +264,8 @@ public sealed class PrimitiveEventProjectionTests
             PreviousOwnerEntityId: 0,
             CurrentOwnerEntityId: 100,
             SuperregionId: 3,
-            ContinentId: 1))));
+            ContinentId: 1,
+            Z: 0))));
         Assert.True(log.TryWrite(KernelEvent.From(new CellInfluenceChangedKernelEvent(
             Tick: 1,
             WorldVersion: 2,
@@ -387,7 +393,8 @@ public sealed class PrimitiveEventProjectionTests
             TerrainId: 10,
             OwnerEntityId: ownerEntityId,
             SuperregionId: 3,
-            ContinentId: 1))));
+            ContinentId: 1,
+            Z: 0))));
     }
 
     private static void WritePhysicalInfluenceChanged(
@@ -419,6 +426,7 @@ public sealed class PrimitiveEventProjectionTests
             SourceCodeId: 6,
             PlaneCode: PlaneCodes.Physical,
             CultureId: 10,
+            Z: 0,
             PreviousShare: 0f,
             CurrentShare: 80f))));
     }

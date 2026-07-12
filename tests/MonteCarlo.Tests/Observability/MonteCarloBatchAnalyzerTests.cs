@@ -328,6 +328,8 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
             TravelStructures = config.TravelStructures,
             MovementProfiles = config.MovementProfiles,
             Cultures = config.Cultures,
+            CulturePower = config.CulturePower,
+            Tags = config.Tags,
             Gameplay = config.Gameplay,
             Semantics = new SemanticDomainConfig
             {

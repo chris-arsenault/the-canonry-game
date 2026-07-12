@@ -38,7 +38,8 @@ internal sealed partial class Simulation : IKernel
         Commands = new KernelCommandRing(options.CommandCapacity);
         KernelData = new KernelDataSet(
             new KernelEntityData(options.EntityAttributeCapacity, options.AttributeIdCapacity, options.EntityTraitCapacity),
-            new KernelTerrainData(options.TerrainIdCapacity));
+            new KernelTerrainData(options.TerrainIdCapacity),
+            new KernelCultureData(options.CultureIdCapacity));
         World = new WorldState(Events, options, KernelData);
         CultureBoundaries = CreateCultureBoundaryRuntime(options);
         World.AttachCultureBoundaries(CultureBoundaries);
@@ -424,6 +425,11 @@ internal sealed partial class Simulation : IKernel
         return KernelData.Entities.RegisterTrait(kindId, traitId, assignmentChance);
     }
 
+    internal void RegisterCultureProduction(int cultureId, float physicalMultiplier, float semanticMultiplier)
+    {
+        KernelData.Cultures.RegisterCultureProduction(cultureId, physicalMultiplier, semanticMultiplier);
+    }
+
     internal int RegisterTerrain(int terrainId, int boundaryGroupId)
     {
         KernelData.Terrain.RegisterTerrain(terrainId, boundaryGroupId);
@@ -640,6 +646,11 @@ internal sealed partial class Simulation : IKernel
     internal void MoveEntityPhysicalUnchecked(int entityId, int q, int r, int tick)
     {
         World.MoveEntityPhysical(entityId, q, r, tick, _executionContext);
+    }
+
+    internal void MoveEntityPhysicalUnchecked(int entityId, int q, int r, int z, int tick)
+    {
+        World.MoveEntityPhysical(entityId, q, r, z, tick, _executionContext);
     }
 
     internal void MoveEntitySemantic(int entityId, int q, int r, int s, int tick)

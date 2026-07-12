@@ -290,41 +290,87 @@ public static class GameplayCompiler
         var rules = new List<AttributeDeltaEffectRule>();
         foreach (var effect in definition.Effects.AttributeDeltaEffects)
         {
-            if (!context.KindHasAttribute(effect.Kind, effect.Attribute))
-            {
-                throw new InvalidOperationException(
-                    $"Attribute delta effect for kind '{effect.Kind}' references unknown attribute '{effect.Attribute}'.");
-            }
-
-            if (EffectRequiresRelationship(effect.Condition) &&
-                (effect.RelationshipKind is null || !context.RelationshipExists(effect.RelationshipKind)))
-            {
-                throw new InvalidOperationException(
-                    $"Attribute delta effect for kind '{effect.Kind}' references unknown relationship '{effect.RelationshipKind}'.");
-            }
-
-            rules.Add(new AttributeDeltaEffectRule(
-                context.ResolveKindId(effect.Kind, "Attribute delta effect kind"),
-                context.ResolveAttributeId(effect.Attribute),
-                ConditionCode(effect.Condition),
-                effect.RelationshipKind is null ? 0 : context.ResolveRelationshipKindId(effect.RelationshipKind),
-                RelationshipDirectionCode(effect.RelationshipDirection),
-                PlaneCode(effect.Plane),
-                effect.MaxDistance,
-                effect.Threshold,
-                effect.MinimumRelationshipStrength,
-                effect.DeltaPerTick,
-                RequiredTargetTraitId: 0,
-                RequiredRelatedTraitId: 0,
-                CultureId: effect.Culture is null ? 0 : context.ResolveCultureId(effect.Culture),
-                CultureSlotId: effect.CultureSlot is null
-                    ? 0
-                    : context.ResolveCultureSlotId(effect.Culture, effect.CultureSlot, $"Attribute delta effect '{effect.Kind}.{effect.Attribute}'"),
-                CultureSlotPolarityCode: CultureSlotPolarityCode(effect.CultureSlotPolarity)));
+            rules.Add(CompileAttributeDeltaEffect(effect, context));
         }
 
         rules.AddRange(CompileTraitAttributeDeltaEffects(context));
-        return new EffectsProgram { AttributeDeltaEffects = rules };
+        return new EffectsProgram
+        {
+            AttributeDeltaEffects = rules,
+            RelationshipTagRules = CompileRelationshipTagRules(definition, context),
+        };
+    }
+
+    private static AttributeDeltaEffectRule CompileAttributeDeltaEffect(
+        AttributeDeltaEffectConfig effect,
+        IGameplayCompilationContext context)
+    {
+        if (!context.KindHasAttribute(effect.Kind, effect.Attribute))
+        {
+            throw new InvalidOperationException(
+                $"Attribute delta effect for kind '{effect.Kind}' references unknown attribute '{effect.Attribute}'.");
+        }
+
+        if (EffectRequiresRelationship(effect.Condition) &&
+            (effect.RelationshipKind is null || !context.RelationshipExists(effect.RelationshipKind)))
+        {
+            throw new InvalidOperationException(
+                $"Attribute delta effect for kind '{effect.Kind}' references unknown relationship '{effect.RelationshipKind}'.");
+        }
+
+        return new AttributeDeltaEffectRule(
+            context.ResolveKindId(effect.Kind, "Attribute delta effect kind"),
+            context.ResolveAttributeId(effect.Attribute),
+            ConditionCode(effect.Condition),
+            effect.RelationshipKind is null ? 0 : context.ResolveRelationshipKindId(effect.RelationshipKind),
+            RelationshipDirectionCode(effect.RelationshipDirection),
+            PlaneCode(effect.Plane),
+            effect.MaxDistance,
+            effect.Threshold,
+            effect.MinimumRelationshipStrength,
+            effect.DeltaPerTick,
+            RequiredTargetTraitId: 0,
+            RequiredRelatedTraitId: 0,
+            CultureId: effect.Culture is null ? 0 : context.ResolveCultureId(effect.Culture),
+            CultureSlotId: effect.CultureSlot is null
+                ? 0
+                : context.ResolveCultureSlotId(effect.Culture, effect.CultureSlot, $"Attribute delta effect '{effect.Kind}.{effect.Attribute}'"),
+            CultureSlotPolarityCode: CultureSlotPolarityCode(effect.CultureSlotPolarity),
+            SupportScale: effect.SupportScale,
+            CoverageOwnerKindId: effect.CoverageOwnerKind is null ? 0 : context.ResolveKindId(effect.CoverageOwnerKind, "Effect coverage owner kind"),
+            CoverageOwnerSubtypeId: effect.CoverageOwnerSubtype is null ? 0 : context.ResolveSubtypeId(effect.CoverageOwnerSubtype));
+    }
+
+    private static List<RelationshipTagRule> CompileRelationshipTagRules(
+        GameplayDefinition definition,
+        IGameplayCompilationContext context)
+    {
+        var rules = new List<RelationshipTagRuleConfig>(definition.Effects.RelationshipTagRules).ConvertAll(rule =>
+        {
+            if (!context.RelationshipExists(rule.RelationshipKind))
+            {
+                throw new InvalidOperationException(
+                    $"Relationship tag rule for kind '{rule.Kind}' references unknown relationship '{rule.RelationshipKind}'.");
+            }
+
+            if (rule.ClearBelow > rule.SetAtOrAbove)
+            {
+                throw new InvalidOperationException(
+                    $"Relationship tag rule '{rule.Kind}.{rule.Tag}' clears above its set threshold.");
+            }
+
+            return new RelationshipTagRule(
+                context.ResolveKindId(rule.Kind, "Relationship tag rule kind"),
+                context.ResolveTagId(rule.Tag),
+                context.ResolveRelationshipKindId(rule.RelationshipKind),
+                RelationshipDirectionCode(rule.RelationshipDirection),
+                rule.SetAtOrAbove,
+                rule.ClearBelow,
+                rule.InsideCoverageOwnerKind is null ? 0 : context.ResolveKindId(rule.InsideCoverageOwnerKind, "Tag rule coverage owner kind"),
+                rule.InsideCoverageOwnerSubtype is null ? 0 : context.ResolveSubtypeId(rule.InsideCoverageOwnerSubtype),
+                PlaneCode(rule.InsideCoveragePlane));
+        });
+        return rules;
     }
 
     private static List<AttributeDeltaEffectRule> CompileTraitAttributeDeltaEffects(
@@ -441,18 +487,24 @@ public static class GameplayCompiler
         _ => throw new ArgumentOutOfRangeException(nameof(direction), direction, null),
     };
 
-    private static int ConditionCode(EffectCondition condition) => condition switch
+    private static readonly Dictionary<EffectCondition, int> ConditionCodes = new()
     {
-        EffectCondition.RelatedInfluenceAtLocation => EffectConditionCodes.RelationshipMapValueAtLocation,
-        EffectCondition.RelatedEntityDistance => EffectConditionCodes.RelatedEntityDistance,
-        EffectCondition.MapSupportAtLocation => EffectConditionCodes.LocalPositiveSignal,
-        EffectCondition.MapThreatAtLocation => EffectConditionCodes.LocalNegativeSignal,
-        EffectCondition.MapCrowdingLoad => EffectConditionCodes.LocalCrowdingLoadSignal,
-        EffectCondition.MapCrowdingComfort => EffectConditionCodes.LocalComfortSignal,
-        EffectCondition.OwnCultureInfluenceAtLocation => EffectConditionCodes.LocalCultureMapValue,
-        EffectCondition.CultureSlotOccupancy => EffectConditionCodes.CultureSlotOccupancy,
-        _ => throw new ArgumentOutOfRangeException(nameof(condition), condition, null),
+        [EffectCondition.RelatedInfluenceAtLocation] = EffectConditionCodes.RelationshipMapValueAtLocation,
+        [EffectCondition.RelatedEntityDistance] = EffectConditionCodes.RelatedEntityDistance,
+        [EffectCondition.MapSupportAtLocation] = EffectConditionCodes.LocalPositiveSignal,
+        [EffectCondition.MapThreatAtLocation] = EffectConditionCodes.LocalNegativeSignal,
+        [EffectCondition.MapCrowdingLoad] = EffectConditionCodes.LocalCrowdingLoadSignal,
+        [EffectCondition.MapCrowdingComfort] = EffectConditionCodes.LocalComfortSignal,
+        [EffectCondition.OwnCultureInfluenceAtLocation] = EffectConditionCodes.LocalCultureMapValue,
+        [EffectCondition.CultureSlotOccupancy] = EffectConditionCodes.CultureSlotOccupancy,
+        [EffectCondition.CrowdingBeyondCultureSupport] = EffectConditionCodes.CrowdingBeyondCultureSupport,
+        [EffectCondition.InsideOwnedCoverage] = EffectConditionCodes.InsideOwnedCoverage,
     };
+
+    private static int ConditionCode(EffectCondition condition) =>
+        ConditionCodes.TryGetValue(condition, out var code)
+            ? code
+            : throw new ArgumentOutOfRangeException(nameof(condition), condition, null);
 
     private static int CultureSlotPolarityCode(EffectCultureSlotPolarity polarity) => polarity switch
     {
@@ -495,6 +547,8 @@ public interface IGameplayCompilationContext
     bool TerrainExists(string terrain);
     bool RelationshipExists(string relationship);
     int ResolveTraitId(string trait);
+    int ResolveTagId(string tag);
+    int ResolveSubtypeId(string subtype);
     bool KindHasAttribute(string kind, string attribute);
     IReadOnlyList<AffordanceDefinition> Affordances();
     IReadOnlyList<TraitOperationDefinition> TraitOperations();
