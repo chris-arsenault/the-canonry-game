@@ -38,6 +38,13 @@ currently has no axis at all.
 Map degenerates (`map_degenerate=1` in run 25001) are accepted as
 cull-and-retry cost, not a work item.
 
+Horizon framing: these 25k-tick runs test the bootstrap-into-steady-state
+phase only. Real play (SimCity mental model) extends 4x-50x, so low absolute
+map coverage is expected; judge shape, trend, and steady-state stability, not
+end-state totals. See "Game Horizon" in
+`docs/systems/simulation-principles.md`. This framing is established before
+the Wake-Singers round begins.
+
 ## Round 1 Scope (proposed)
 
 - [x] **A1. Dominance ledgers — LOCKED v1 definitions.** Implemented:
