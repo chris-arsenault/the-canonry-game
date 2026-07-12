@@ -166,6 +166,14 @@ public interface IDefinitionGeneratorEffect
     string Describe();
 }
 
+public sealed class DefinitionClaimSemanticJurisdictionEffect(string bindingRef, int radius) : IDefinitionGeneratorEffect
+{
+    public string BindingRef { get; } = bindingRef;
+    public int Radius { get; } = radius;
+
+    public string Describe() => $"claim_semantic_jurisdiction({BindingRef}, r={Radius})";
+}
+
 public sealed class DefinitionSetBindingTagEffect(string bindingRef, string tag, bool assigned) : IDefinitionGeneratorEffect
 {
     public string BindingRef { get; } = bindingRef;

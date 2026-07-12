@@ -366,6 +366,7 @@ public static class DefinitionGeneratorBuilder
         {
             SetBindingHistoricalEffect setHistorical => BuildSetBindingHistoricalEffect(generatorId, setHistorical, declaredRefs),
             SetBindingTagEffect setTag => BuildBindingTagEffect(generatorId, setTag.BindingRef, setTag.Tag, assigned: true, graph, declaredRefs),
+            ClaimSemanticJurisdictionEffect claim => BuildClaimJurisdictionEffect(generatorId, claim, declaredRefs),
             ClearBindingTagEffect clearTag => BuildBindingTagEffect(generatorId, clearTag.BindingRef, clearTag.Tag, assigned: false, graph, declaredRefs),
             RemoveTargetRelationshipsEffect removeRelationships => BuildRemoveTargetRelationshipsEffect(generatorId, target, removeRelationships, graph, runtimeIds),
             AdjustTargetRelationshipStrengthEffect adjustRelationship => BuildAdjustTargetRelationshipStrengthEffect(generatorId, target, adjustRelationship, graph, runtimeIds),
@@ -373,6 +374,25 @@ public static class DefinitionGeneratorBuilder
             _ => throw new DefinitionGraphException(
                 $"Generator '{generatorId}' unsupported effect type '{effect.GetType().Name}'."),
         };
+
+    private static DefinitionClaimSemanticJurisdictionEffect BuildClaimJurisdictionEffect(
+        string generatorId,
+        ClaimSemanticJurisdictionEffect claim,
+        HashSet<string> declaredRefs)
+    {
+        if (claim.BindingRef != "$target")
+        {
+            EnsureDeclaredRef(generatorId, claim.BindingRef, declaredRefs, "BindingRef");
+        }
+
+        if (claim.Radius is <= 0 or > 6)
+        {
+            throw new DefinitionGraphException(
+                $"Generator '{generatorId}' jurisdiction radius must be within 1-6.");
+        }
+
+        return new DefinitionClaimSemanticJurisdictionEffect(claim.BindingRef, claim.Radius);
+    }
 
     private static DefinitionSetBindingTagEffect BuildBindingTagEffect(
         string generatorId,

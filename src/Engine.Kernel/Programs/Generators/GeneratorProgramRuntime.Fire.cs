@@ -649,10 +649,48 @@ internal sealed partial class GeneratorProgramRuntime
                 case GeneratorEffectTypeCodes.SetBindingTag:
                     ExecuteSetBindingTag(simulation, e, refOrKindId, refCodes, refEntityIds, refCount, tick);
                     break;
+                case GeneratorEffectTypeCodes.ClaimSemanticJurisdiction:
+                    ExecuteClaimSemanticJurisdiction(simulation, e, refOrKindId, refCodes, refEntityIds, refCount);
+                    break;
             }
         }
 
         return relationshipSpendCount;
+    }
+
+    // Claims unowned semantic cells within the radius of the ref entity's
+    // semantic position — generator-born canons taking jurisdiction.
+    private void ExecuteClaimSemanticJurisdiction(
+        Simulation simulation,
+        int effectSlot,
+        int refOrKindId,
+        int[] refCodes,
+        int[] refEntityIds,
+        int refCount)
+    {
+        var ownerId = ResolveRef(refCodes, refEntityIds, refCount, refOrKindId);
+        if (ownerId <= 0)
+        {
+            return;
+        }
+
+        var world = simulation.World;
+        var radius = _effectInstanceSelectionCodes[effectSlot];
+        var centerQ = world.EntitySemanticQ(ownerId);
+        var centerR = world.EntitySemanticR(ownerId);
+        for (var dq = -radius; dq <= radius; dq++)
+        {
+            for (var dr = global::System.Math.Max(-radius, -dq - radius); dr <= global::System.Math.Min(radius, -dq + radius); dr++)
+            {
+                var q = centerQ + dq;
+                var r = centerR + dr;
+                if (world.CellIsKnown(PlaneCodes.Semantic, q, r) &&
+                    world.CoverageOwnerAt(PlaneCodes.Semantic, q, r) == 0)
+                {
+                    KernelEffectExecutor.SetCoverageOwner(simulation, PlaneCodes.Semantic, q, r, ownerId);
+                }
+            }
+        }
     }
 
     private void ExecuteSetBindingTag(

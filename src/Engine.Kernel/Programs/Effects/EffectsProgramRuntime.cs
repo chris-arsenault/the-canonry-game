@@ -244,6 +244,11 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
                 continue;
             }
 
+            if (!RuleCultureGatePasses(simulation.World, entityId, rule))
+            {
+                continue;
+            }
+
             var evidence = EffectEvidence(simulation, entityId, rule);
             if (evidence <= 0f)
             {
@@ -257,6 +262,13 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
                 _attributeDeltaDeltas[rule] * evidence);
         }
     }
+
+    // Rules with an authored culture apply only to entities of that culture
+    // (the culture-slot condition manages its own culture semantics).
+    private bool RuleCultureGatePasses(WorldState world, int entityId, int rule) =>
+        _attributeDeltaCultureIds[rule] <= 0 ||
+        _attributeDeltaConditionCodes[rule] == EffectConditionCodes.CultureSlotOccupancy ||
+        world.EntityCultureId(entityId) == _attributeDeltaCultureIds[rule];
 
     private float EffectEvidence(Simulation simulation, int entityId, int rule)
     {

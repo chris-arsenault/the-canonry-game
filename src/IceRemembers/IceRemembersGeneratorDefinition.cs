@@ -56,6 +56,8 @@ public static partial class IceRemembersGeneratorDefinition
         ConduitPointsFoundReefholds(),
         DeepConduitsNameDepths(),
         WardedMonstersFoundOrders(),
+        TheAccordHolds(),
+        TheSilenceAnswers(),
         RichHubsGrowUndermarkets(),
         WarsFeedShadowBrokers(),
         RecordsCastShadows(),
@@ -111,10 +113,12 @@ public static partial class IceRemembersGeneratorDefinition
             Required("$seal", K.Artifact, "seal", "$target", "$target"),
             Required("$witness", K.Penguin, "witness", "$target", "$target"),
             Optional("$exile", K.Penguin, "exile", "$target", "$target", chance: 0.40f),
+            ProducedCanon("$peace", "accord", "$target", culture: C(IceRemembersCulture.TheIce), inheritCultureFrom: null, chance: 0.50f),
         ],
         Effects =
         [
             new SetBindingHistoricalEffect("$offered"),
+            new ClaimSemanticJurisdictionEffect("$peace", CanonJurisdictionRadius),
             new RemoveTargetRelationshipsEffect(
                 L(Rel.AtWarWith),
                 GeneratorRelationshipInstanceSelection.TriggerRelationship,
@@ -125,6 +129,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$seal", "$target", Rel.Memorializes, 0.90f),
             R("$witness", "$target", Rel.MemberOf, 0.85f),
             R("$exile", "$target", Rel.BetrayedBy, 0.70f),
+            R("$peace", "$target", Rel.ClaimedBy, 0.50f),
         ],
         Triggers = TriggerOn(K.Faction),
         PulseWeight = 10,

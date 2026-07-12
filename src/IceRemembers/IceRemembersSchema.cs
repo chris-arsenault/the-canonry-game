@@ -370,6 +370,7 @@ public enum IceRemembersVerbId
     FactionPressTheHunt,
     SettlementBreakTheHunt,
     SettlementPanicDrawsThePods,
+    FactionLeadTheRite,
 }
 
 public static class IceRemembersVerbIdExtensions
@@ -541,6 +542,7 @@ public static class IceRemembersVerbIdExtensions
         "faction_press_the_hunt",
         "settlement_break_the_hunt",
         "settlement_panic_draws_the_pods",
+        "faction_lead_the_rite",
     ];
 
     public static string ToVerbId(this IceRemembersVerbId verbId)

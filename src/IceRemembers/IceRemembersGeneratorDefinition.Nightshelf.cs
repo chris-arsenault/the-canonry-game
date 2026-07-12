@@ -120,11 +120,17 @@ public static partial class IceRemembersGeneratorDefinition
         [
             RequiredNightshelf("$initiate", K.Penguin, "broker", "$target"),
             RequiredNightshelf("$secret", K.Artifact, "seal", "$target"),
+            ProducedCanon("$decree", "taboo", "$target", culture: C(IceRemembersCulture.Nightshelf), inheritCultureFrom: null, chance: 0.30f),
         ],
         Relationships =
         [
             R("$initiate", "$target", Rel.TaughtBy, 0.75f),
             R("$initiate", "$secret", Rel.Holds, 1f),
+            R("$decree", "$target", Rel.ClaimedBy, 0.60f),
+        ],
+        Effects =
+        [
+            new ClaimSemanticJurisdictionEffect("$decree", CanonJurisdictionRadius),
         ],
         Triggers = TriggerOn(K.Penguin),
         PulseWeight = 1,

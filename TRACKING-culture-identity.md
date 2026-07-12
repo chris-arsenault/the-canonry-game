@@ -224,12 +224,24 @@ primitives, readable by future escalation content. Deferred, named
 honestly: per-canon prohibitions, event-semantic detection,
 observance-scaled evidence, coverage-wide canon erosion.
 
-Remaining, per the approved proposal (next session): generator sources
-(accords founded when wars end, taboos from the Deep Conclave, doctrines
-from charged sites, customs from the Accord tribunal); coverage-plane
-plumbing for generator-produced canons; consumers of oathbreaker/profaner;
-semantic-map UI verification; docs. Balance guard: sweep after generator
-sources land.
+**Depth pass (user correction: no surface-level passes):** jurisdiction
+effects are now differentiated and culture-scoped via a general
+rule-culture gate in the effects program — scars strain everyone (-0.05),
+faces favor Aurora (+0.04), depths favor Nightshelf, seas favor
+Wake-Singers, shelf/reach shelter all (+0.02); accords shelter, taboos
+strain all but shelter Nightshelf back, doctrines favor Wake-Singers,
+customs shelter mildly. Breach states gained enforcement consumers:
+the_accord_holds (oathbreakers get censured, war edges damped — accords
+end wars) and the_silence_answers (profaners' devotion smothered). Canon
+generator sources landed with a radius-claim jurisdiction effect
+(ClaimSemanticJurisdiction): wars end in accords (ice_settles_accounts,
+50%), the Conclave decrees taboos (30%), pilgrims found doctrine (60%),
+the tribunal legislates customs (35%) — each connected into its bundle
+and claiming idea-ground on creation. New faction_lead_the_rite verb
+closes the offering affordance.
+
+Remaining: semantic-map UI verification; docs; balance sweep now that
+canons spawn from play.
 
 Horizon framing: these 25k-tick runs test the bootstrap-into-steady-state
 phase only. Real play (SimCity mental model) extends 4x-50x, so low absolute

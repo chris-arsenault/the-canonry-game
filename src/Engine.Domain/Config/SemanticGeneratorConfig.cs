@@ -166,6 +166,20 @@ public sealed class SetBindingHistoricalEffect(string bindingRef) : ISemanticGen
     public string Describe() => $"set_binding_historical({BindingRef})";
 }
 
+/// <summary>
+/// Claims all unowned semantic cells within a radius of the resolved
+/// binding's semantic position as that entity's named coverage — how
+/// generator-born canons take jurisdiction over idea-space.
+/// </summary>
+public sealed class ClaimSemanticJurisdictionEffect(string bindingRef, int radius) : ISemanticGeneratorEffect
+{
+    public string BindingRef { get; } = bindingRef;
+
+    public int Radius { get; } = radius;
+
+    public string Describe() => $"claim_semantic_jurisdiction({BindingRef}, r={Radius})";
+}
+
 /// <summary>Sets a discrete tag on a resolved binding (or "$target") after the generator fires.</summary>
 public sealed class SetBindingTagEffect(string bindingRef, string tag) : ISemanticGeneratorEffect
 {

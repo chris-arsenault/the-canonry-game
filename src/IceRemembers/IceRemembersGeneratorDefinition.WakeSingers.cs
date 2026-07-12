@@ -216,15 +216,18 @@ public static partial class IceRemembersGeneratorDefinition
         Produces =
         [
             RequiredWakeSingers("$newsite", K.PointOfInterest, "vent", "$target", GeneratorCulturePlacement.CultureRoute),
+            ProducedCanon("$creed", "doctrine", "$target", culture: C(IceRemembersCulture.WakeSingers), inheritCultureFrom: null, chance: 0.60f),
         ],
         Relationships =
         [
             R("$newsite", "$target", Rel.FoundedFrom, 0.85f),
             R("$newsite", "$keeper", Rel.ClaimedBy, 0.70f),
             R("$keeper", "$newsite", Rel.OfferedTo, 0.50f),
+            R("$creed", "$keeper", Rel.ClaimedBy, 0.60f),
         ],
         Effects =
         [
+            new ClaimSemanticJurisdictionEffect("$creed", CanonJurisdictionRadius),
             new AdjustTargetRelationshipStrengthEffect(
                 L(Rel.OfferedTo),
                 NewSiteOfferingSpend,
@@ -378,11 +381,18 @@ public static partial class IceRemembersGeneratorDefinition
         Description = "On the civic calendar the Flipper Accord tribunal takes up the worst of the grievances. A terrified settlement is heard, the raiders are named and warned, and the hunt is pressed back for a season.",
         CausalLimit = "Fires on an authored cadence against a terrified settlement; clears the terrified tag and damps its incoming predation edges.",
         Target = TargetWithTags(K.Settlement, new HashSet<string>(StringComparer.Ordinal) { "terrified" }),
-        Produces = [],
-        Relationships = [],
+        Relationships =
+        [
+            R("$ruling", "$target", Rel.Memorializes, 0.70f),
+        ],
+        Produces =
+        [
+            ProducedCanon("$ruling", "custom", "$target", culture: null, inheritCultureFrom: "$target", chance: 0.35f),
+        ],
         Effects =
         [
             new ClearBindingTagEffect("$target", "terrified"),
+            new ClaimSemanticJurisdictionEffect("$ruling", CanonJurisdictionRadius),
             new AdjustTargetRelationshipStrengthEffect(
                 L(Rel.PreysOn),
                 AccordPredationDamp,

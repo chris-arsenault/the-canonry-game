@@ -489,6 +489,7 @@ public static class GeneratorEffectTypeCodes
     public const int AdjustTargetRelationshipStrength = 3;
     public const int SetTerrainPatch = 4;
     public const int SetBindingTag = 5;
+    public const int ClaimSemanticJurisdiction = 6;
 }
 
 public static class GeneratorRelationshipInstanceSelectionCodes

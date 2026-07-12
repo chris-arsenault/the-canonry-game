@@ -501,6 +501,12 @@ public static partial class DomainCompiler
                         adjustRelationship.IncludeReciprocal ? 1 : 0,
                         adjustRelationship.Delta));
                     break;
+                case DefinitionClaimSemanticJurisdictionEffect claim:
+                    compiled.Add(new GeneratorEffectRule(
+                        GeneratorEffectTypeCodes.ClaimSemanticJurisdiction,
+                        refCodes[claim.BindingRef],
+                        claim.Radius));
+                    break;
                 case DefinitionSetBindingTagEffect setTag:
                     compiled.Add(new GeneratorEffectRule(
                         GeneratorEffectTypeCodes.SetBindingTag,
@@ -509,21 +515,8 @@ public static partial class DomainCompiler
                         setTag.Assigned ? 1 : 0));
                     break;
                 case DefinitionSetTerrainPatchEffect setTerrainPatch:
-                    {
-                        var terrain = ResolveTerrain(terrainByName, setTerrainPatch.Terrain);
-                        compiled.Add(new GeneratorEffectRule(
-                            GeneratorEffectTypeCodes.SetTerrainPatch,
-                            refCodes[setTerrainPatch.CenterRef],
-                            setTerrainPatch.RespectTerrainBoundaries ? 1 : 0,
-                            ids.TerrainIdOf(terrain.Name).Value,
-                            setTerrainPatch.Chance,
-                            setTerrainPatch.Radius,
-                            setTerrainPatch.MaxCellCount,
-                            CompileTerrainIds(setTerrainPatch.PreferredTerrains, terrainByName, ids),
-                            CompileTerrainIds(setTerrainPatch.AllowedTerrains, terrainByName, ids),
-                            setTerrainPatch.PlaneCode));
-                        break;
-                    }
+                    compiled.Add(CompileTerrainPatchEffect(setTerrainPatch, terrainByName, ids, refCodes));
+                    break;
                 default:
                     throw new InvalidOperationException($"Unsupported generator effect type '{effect.GetType().Name}'.");
             }
@@ -541,6 +534,26 @@ public static partial class DomainCompiler
         }
 
         return bits;
+    }
+
+    private static GeneratorEffectRule CompileTerrainPatchEffect(
+        DefinitionSetTerrainPatchEffect setTerrainPatch,
+        Dictionary<string, TerrainConfig> terrainByName,
+        DomainIdRegistry ids,
+        Dictionary<string, int> refCodes)
+    {
+        var terrain = ResolveTerrain(terrainByName, setTerrainPatch.Terrain);
+        return new GeneratorEffectRule(
+            GeneratorEffectTypeCodes.SetTerrainPatch,
+            refCodes[setTerrainPatch.CenterRef],
+            setTerrainPatch.RespectTerrainBoundaries ? 1 : 0,
+            ids.TerrainIdOf(terrain.Name).Value,
+            setTerrainPatch.Chance,
+            setTerrainPatch.Radius,
+            setTerrainPatch.MaxCellCount,
+            CompileTerrainIds(setTerrainPatch.PreferredTerrains, terrainByName, ids),
+            CompileTerrainIds(setTerrainPatch.AllowedTerrains, terrainByName, ids),
+            setTerrainPatch.PlaneCode);
     }
 
     private static List<int> CompileGeneratorSubtypeIds(
