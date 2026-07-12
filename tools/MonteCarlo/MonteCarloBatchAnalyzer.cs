@@ -125,6 +125,18 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             WHERE FALSE
             """),
         new(
+            "entity_tag_events",
+            """
+            SELECT
+                CAST(NULL AS BIGINT) AS run_id,
+                CAST(NULL AS BIGINT) AS tick,
+                CAST(NULL AS BIGINT) AS entity_id,
+                CAST(NULL AS BIGINT) AS tag_id,
+                CAST(NULL AS BOOLEAN) AS assigned,
+                CAST(NULL AS BIGINT) AS source_code_id
+            WHERE FALSE
+            """),
+        new(
             "culture_power_snapshots",
             """
             SELECT

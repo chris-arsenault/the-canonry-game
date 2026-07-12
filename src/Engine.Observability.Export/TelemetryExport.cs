@@ -116,6 +116,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("minor_actor_verb_events");
         ExportTable("culture_field_component_snapshots");
         ExportTable("culture_power_snapshots");
+        ExportTable("entity_tag_events");
         ExportTable("culture_entity_field_snapshots");
         ExportTable("culture_entity_birth_field_events");
         ExportTable("culture_influence_action_field_events");
@@ -181,6 +182,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("minor_actor_verb_events", typeof(MinorActorVerbEventRow));
         EnsureTable("culture_field_component_snapshots", typeof(CultureFieldComponentSnapshotRow));
         EnsureTable("culture_power_snapshots", typeof(CulturePowerSnapshotRow));
+        EnsureTable("entity_tag_events", typeof(EntityTagEventRow));
         EnsureTable("culture_entity_field_snapshots", typeof(CultureEntityFieldSnapshotRow));
         EnsureTable("culture_entity_birth_field_events", typeof(CultureEntityBirthFieldEventRow));
         EnsureTable("culture_influence_action_field_events", typeof(CultureInfluenceActionFieldEventRow));
@@ -244,6 +246,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("minor_actor_verb_events", _pending.MinorActorVerbEvents);
         AppendTable("culture_field_component_snapshots", _pending.CultureFieldComponentSnapshots);
         AppendTable("culture_power_snapshots", _pending.CulturePowerSnapshots);
+        AppendTable("entity_tag_events", _pending.EntityTagEvents);
         AppendTable("culture_entity_field_snapshots", _pending.CultureEntityFieldSnapshots);
         AppendTable("culture_entity_birth_field_events", _pending.CultureEntityBirthFieldEvents);
         AppendTable("culture_influence_action_field_events", _pending.CultureInfluenceActionFieldEvents);
@@ -336,6 +339,7 @@ internal static class TelemetryBatchExtensions
         batch.MinorActorVerbEvents.Count +
         batch.CultureFieldComponentSnapshots.Count +
         batch.CulturePowerSnapshots.Count +
+        batch.EntityTagEvents.Count +
         batch.CultureEntityFieldSnapshots.Count +
         batch.CultureEntityBirthFieldEvents.Count +
         batch.CultureInfluenceActionFieldEvents.Count +
@@ -394,6 +398,7 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.MinorActorVerbEvents, source.MinorActorVerbEvents);
         AppendRows(destination.CultureFieldComponentSnapshots, source.CultureFieldComponentSnapshots);
         AppendRows(destination.CulturePowerSnapshots, source.CulturePowerSnapshots);
+        AppendRows(destination.EntityTagEvents, source.EntityTagEvents);
         AppendRows(destination.CultureEntityFieldSnapshots, source.CultureEntityFieldSnapshots);
         AppendRows(destination.CultureEntityBirthFieldEvents, source.CultureEntityBirthFieldEvents);
         AppendRows(destination.CultureInfluenceActionFieldEvents, source.CultureInfluenceActionFieldEvents);

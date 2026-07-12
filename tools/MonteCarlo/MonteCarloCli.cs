@@ -402,6 +402,7 @@ internal static class MonteCarloCli
         batch.MinorActorVerbEvents.Count +
         batch.CultureFieldComponentSnapshots.Count +
         batch.CulturePowerSnapshots.Count +
+        batch.EntityTagEvents.Count +
         batch.CultureEntityFieldSnapshots.Count +
         batch.CultureEntityBirthFieldEvents.Count +
         batch.CultureInfluenceActionFieldEvents.Count +
