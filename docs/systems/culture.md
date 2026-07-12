@@ -168,6 +168,17 @@ domain-agnostic. Ledgers are exported to the `culture_power_snapshots`
 telemetry table on the Monte Carlo snapshot cadence and rendered per culture
 in the nations rows of the in-game legend panel.
 
+### Carrying Capacity And Predation
+
+Local carrying capacity (`CrowdingBeyondCultureSupport`) applies crowding
+strain discounted asymptotically by local own-culture raw mass — density is
+sustainable wherever territory supports it, growing territory is the escape,
+and no hard cap or homeostat exists. The ambient conflict substrate is
+`preys_on` (agency to spatial/asset): ordinary predation acts on the unnamed
+masses, drives the hunted/terrified tag ladder, and escalates to named wars
+only through tag-gated generators. Named-entity involvement is reserved for
+the rare heroic branch.
+
 ## Cultural Slots, Work Tiers, And Labor
 
 The kernel has a static cultural slot program. The domain registers the slot

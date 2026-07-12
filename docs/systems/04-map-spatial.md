@@ -25,6 +25,9 @@ of physical material.
 
 Named regions are physical coverage. There is no separate concept of anonymous
 partition plus local named coverage. A region is the named geographic coverage.
+The semantic plane has named coverage too: canons (laws, taboos, accords,
+doctrines) own jurisdictions of idea-space the same way regions own ground —
+see [canons and jurisdictions](./24-canons-and-jurisdictions.md).
 
 ## The Vertical Axis
 

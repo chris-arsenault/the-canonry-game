@@ -2,9 +2,16 @@
 
 Date: 2026-07-11 (branch `culture-identity-round`, baseline `4cf1596`)
 
-Status: ACTIVE. Approved scope for this round: **Z-B (true sparse z-cells)
-now** — skipping Z-A — plus the locked culture power metrics below. B3/B1/C
-seed items remain scoped but queued behind Z-B and the ledgers.
+Status: COMPLETE (2026-07-12). This tracker is the historical record of the
+culture-identity branch: Z-B z-cells, the Witness/Shadow/Wake ledgers, the
+Nightshelf shadow economy, the Wake-Singer devotion and predation economies,
+the tag/status system and terror ladder, prey-side responses, local carrying
+capacity, and canons with jurisdictions. Durable design now lives in the
+stable docs (`docs/game-systems.md`, `docs/systems/23-tags.md`,
+`docs/systems/24-canons-and-jurisdictions.md`, `docs/systems/culture.md`,
+`docs/design/culture-balance-options.md`). Open follow-ups at close:
+semantic-map UI verification for canon coverage, the deferred fervor-field
+round, Z-C, and the basin-structure taste call (coexistence band width).
 
 ## Redefining Balance
 

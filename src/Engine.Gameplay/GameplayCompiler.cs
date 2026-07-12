@@ -305,40 +305,40 @@ public static class GameplayCompiler
         AttributeDeltaEffectConfig effect,
         IGameplayCompilationContext context)
     {
-            if (!context.KindHasAttribute(effect.Kind, effect.Attribute))
-            {
-                throw new InvalidOperationException(
-                    $"Attribute delta effect for kind '{effect.Kind}' references unknown attribute '{effect.Attribute}'.");
-            }
+        if (!context.KindHasAttribute(effect.Kind, effect.Attribute))
+        {
+            throw new InvalidOperationException(
+                $"Attribute delta effect for kind '{effect.Kind}' references unknown attribute '{effect.Attribute}'.");
+        }
 
-            if (EffectRequiresRelationship(effect.Condition) &&
-                (effect.RelationshipKind is null || !context.RelationshipExists(effect.RelationshipKind)))
-            {
-                throw new InvalidOperationException(
-                    $"Attribute delta effect for kind '{effect.Kind}' references unknown relationship '{effect.RelationshipKind}'.");
-            }
+        if (EffectRequiresRelationship(effect.Condition) &&
+            (effect.RelationshipKind is null || !context.RelationshipExists(effect.RelationshipKind)))
+        {
+            throw new InvalidOperationException(
+                $"Attribute delta effect for kind '{effect.Kind}' references unknown relationship '{effect.RelationshipKind}'.");
+        }
 
-            return new AttributeDeltaEffectRule(
-                context.ResolveKindId(effect.Kind, "Attribute delta effect kind"),
-                context.ResolveAttributeId(effect.Attribute),
-                ConditionCode(effect.Condition),
-                effect.RelationshipKind is null ? 0 : context.ResolveRelationshipKindId(effect.RelationshipKind),
-                RelationshipDirectionCode(effect.RelationshipDirection),
-                PlaneCode(effect.Plane),
-                effect.MaxDistance,
-                effect.Threshold,
-                effect.MinimumRelationshipStrength,
-                effect.DeltaPerTick,
-                RequiredTargetTraitId: 0,
-                RequiredRelatedTraitId: 0,
-                CultureId: effect.Culture is null ? 0 : context.ResolveCultureId(effect.Culture),
-                CultureSlotId: effect.CultureSlot is null
-                    ? 0
-                    : context.ResolveCultureSlotId(effect.Culture, effect.CultureSlot, $"Attribute delta effect '{effect.Kind}.{effect.Attribute}'"),
-                CultureSlotPolarityCode: CultureSlotPolarityCode(effect.CultureSlotPolarity),
-                SupportScale: effect.SupportScale,
-                CoverageOwnerKindId: effect.CoverageOwnerKind is null ? 0 : context.ResolveKindId(effect.CoverageOwnerKind, "Effect coverage owner kind"),
-                CoverageOwnerSubtypeId: effect.CoverageOwnerSubtype is null ? 0 : context.ResolveSubtypeId(effect.CoverageOwnerSubtype));
+        return new AttributeDeltaEffectRule(
+            context.ResolveKindId(effect.Kind, "Attribute delta effect kind"),
+            context.ResolveAttributeId(effect.Attribute),
+            ConditionCode(effect.Condition),
+            effect.RelationshipKind is null ? 0 : context.ResolveRelationshipKindId(effect.RelationshipKind),
+            RelationshipDirectionCode(effect.RelationshipDirection),
+            PlaneCode(effect.Plane),
+            effect.MaxDistance,
+            effect.Threshold,
+            effect.MinimumRelationshipStrength,
+            effect.DeltaPerTick,
+            RequiredTargetTraitId: 0,
+            RequiredRelatedTraitId: 0,
+            CultureId: effect.Culture is null ? 0 : context.ResolveCultureId(effect.Culture),
+            CultureSlotId: effect.CultureSlot is null
+                ? 0
+                : context.ResolveCultureSlotId(effect.Culture, effect.CultureSlot, $"Attribute delta effect '{effect.Kind}.{effect.Attribute}'"),
+            CultureSlotPolarityCode: CultureSlotPolarityCode(effect.CultureSlotPolarity),
+            SupportScale: effect.SupportScale,
+            CoverageOwnerKindId: effect.CoverageOwnerKind is null ? 0 : context.ResolveKindId(effect.CoverageOwnerKind, "Effect coverage owner kind"),
+            CoverageOwnerSubtypeId: effect.CoverageOwnerSubtype is null ? 0 : context.ResolveSubtypeId(effect.CoverageOwnerSubtype));
     }
 
     private static List<RelationshipTagRule> CompileRelationshipTagRules(

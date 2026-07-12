@@ -8,8 +8,8 @@ and observability.
 ## Core Runtime State
 
 The runtime world is a graph of named entities. Each entity has a kind, subtype,
-culture, status, health, traits, physical coordinates, semantic coordinates,
-and relationships. Relationships are typed, directional or symmetric, polar,
+culture, status, health, traits, discrete status tags, physical coordinates,
+semantic coordinates, and relationships. Relationships are typed, directional or symmetric, polar,
 and strength-bearing.
 
 The map has physical and semantic planes. The physical plane is a hex grid with
@@ -136,7 +136,11 @@ that event stream. The kernel is not allowed to call UI, file I/O, console I/O,
 or string-heavy observability directly.
 
 Culture power is measured on three asymmetric ledgers (Witness, Shadow,
-Wake) computed host-side from world state, exported as
+Wake) computed host-side from world state. Balance is kept by theme-emergent
+mechanisms — parasitic cross-cultural generators, devotion and predation
+economies, prey-side responses, local carrying capacity (crowding strain
+discounted by own-culture territory) — never by scoreboard controllers.
+Ledgers are exported as
 `culture_power_snapshots`, and shown in the nations rows; see
 [culture.md](./systems/culture.md).
 
@@ -174,4 +178,6 @@ kernel tick advanced. Current UI presentation principles are recorded in
 - [20 Generator Causal Limits](./systems/20-generator-causal-limits.md)
 - [21 Minor Actors](./systems/21-minor-actors.md)
 - [22 Map Signals](./systems/22-map-signals.md)
+- [23 Tags And Status State Machines](./systems/23-tags.md)
+- [24 Canons And Jurisdictions](./systems/24-canons-and-jurisdictions.md)
 - [UI Principles](./design/ui-principles.md)
