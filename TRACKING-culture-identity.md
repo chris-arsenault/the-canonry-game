@@ -240,8 +240,15 @@ the tribunal legislates customs (35%) — each connected into its bundle
 and claiming idea-ground on creation. New faction_lead_the_rite verb
 closes the offering affordance.
 
-Remaining: semantic-map UI verification; docs; balance sweep now that
-canons spawn from play.
+**Evidence (`canon-births-2x25k-20260712`):** four canons born per run;
+semantic coverage owners grow from the 2 seeded to 6 as generator-born
+jurisdictions claim idea-ground; oathbreaker set 15x/5x and the Accord
+enforced (censure + war damping fired); profaner observed. Demography
+matches the established basin structure (92/27/4, 62/31/10 vs
+capacity-sweep 89/27/2, 78/33/2) — no balance regression from canons.
+
+Remaining: semantic-map UI verification; docs refresh (04-map-spatial,
+culture, game-systems) for canons/jurisdictions.
 
 Horizon framing: these 25k-tick runs test the bootstrap-into-steady-state
 phase only. Real play (SimCity mental model) extends 4x-50x, so low absolute
