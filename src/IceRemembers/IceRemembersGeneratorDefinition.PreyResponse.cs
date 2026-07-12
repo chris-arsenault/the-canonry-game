@@ -119,6 +119,87 @@ public static partial class IceRemembersGeneratorDefinition
         PulseWeight = 4,
     };
 
+    private static SemanticGeneratorConfig TheDreadSongBreaksTheWatch() => new()
+    {
+        Id = "the_dread_song_breaks_the_watch",
+        Name = "The Dread Song Breaks The Watch",
+        Description = "The deep-rites are not decoration. A singer turns a practiced form against a warden of the shore, the water answers, and a name the ice knew falls silent — sung, like everything else, to the deep.",
+        CausalLimit = "Depends on a living warden and a practiced Wake-Singer rite; marks the warden historical and renews the singer's offering. Hero-versus-hero: the rare, named layer of the hunt.",
+        Target = TargetSubtype(K.Penguin, "warden"),
+        SecondaryTargets =
+        [
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$rite",
+                Kind = K.Ability,
+                Query = new SemanticEntityQuery { Culture = C(IceRemembersCulture.WakeSingers) },
+            },
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$singer",
+                Kind = K.Orca,
+                Query = new SemanticEntityQuery { Culture = C(IceRemembersCulture.WakeSingers) },
+            },
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$site",
+                Kind = K.PointOfInterest,
+                Query = new SemanticEntityQuery { Culture = C(IceRemembersCulture.WakeSingers) },
+            },
+        ],
+        Produces = [],
+        Relationships =
+        [
+            R("$singer", "$site", Rel.OfferedTo, 0.60f, replaceExisting: true),
+        ],
+        Effects =
+        [
+            new SetBindingHistoricalEffect("$target"),
+        ],
+        Triggers = TriggerOn(K.Penguin),
+        PulseWeight = 3,
+    };
+
+    private static SemanticGeneratorConfig WardensTakeUpTheOldForms() => new()
+    {
+        Id = "wardens_take_up_the_old_forms",
+        Name = "Wardens Take Up The Old Forms",
+        Description = "A warden who survives long enough seeks out the old practiced forms. The ability gains a practitioner, the shore gains a harder watch, and the culture's craft stays alive in the hands that need it.",
+        CausalLimit = "Depends on a warden without a practiced form and a same-culture ability; the practiced_by edge is the repeat lock.",
+        Target = TargetSubtypeWithoutIncoming(K.Penguin, "warden", Rel.PracticedBy),
+        SecondaryTargets =
+        [
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$form",
+                Kind = K.Ability,
+                Query = SameCultureAsTarget(),
+            },
+        ],
+        Produces = [],
+        Relationships =
+        [
+            R("$form", "$target", Rel.PracticedBy, 0.70f),
+        ],
+        Triggers = TriggerOn(K.Penguin),
+        PulseWeight = 3,
+    };
+
+    private static SemanticGeneratorTarget TargetSubtype(EntityKind kind, string subtype) =>
+        new()
+        {
+            Kind = kind,
+            Subtypes = new HashSet<string>(StringComparer.Ordinal) { subtype },
+        };
+
+    private static SemanticGeneratorTarget TargetSubtypeWithoutIncoming(EntityKind kind, string subtype, Rel withoutIncoming) =>
+        new()
+        {
+            Kind = kind,
+            Subtypes = new HashSet<string>(StringComparer.Ordinal) { subtype },
+            WithoutIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(withoutIncoming) },
+        };
+
     private static SemanticGeneratorTarget TargetTaggedWithoutIncoming(
         EntityKind kind,
         string requiredTag,

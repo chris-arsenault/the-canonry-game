@@ -77,6 +77,8 @@ public static partial class IceRemembersGeneratorDefinition
         WardensRiseWhereTheHuntBites(),
         MonstersStalkTheMarches(),
         PodsHuntTheConvoys(),
+        TheDreadSongBreaksTheWatch(),
+        WardensTakeUpTheOldForms(),
     ];
 
     private static string L(Rel relationship) => relationship.ToDomainName();
