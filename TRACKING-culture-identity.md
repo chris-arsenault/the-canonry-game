@@ -157,6 +157,29 @@ are too noisy to tune against. Next decision is structural, not numeric:
 wide seed sweep (10+ seeds) to map attractor basins before further tuning,
 and/or the deferred fervor-field round for Wake-Singer loop bandwidth.
 
+## Basin Sweep (10 seeds, one build)
+
+`basin-sweep-{a..e}-2x25k-20260712`, seeds 25000-25009, current build.
+Final populations (Aurora/NS/WS): 88/31/2, 65/30/10, 7/34/69, 67/31/5,
+78/31/5, 6/89/6, 73/22/5, 87/20/2, 2/27/79, 3/91/6.
+
+**Finding: winner-take-all tri-stability with survival floors.** Three
+attractor basins — Aurora (6/10 seeds), Wake-Singers (2/10), Nightshelf
+(2/10) — and in every basin exactly one culture dominates while the other
+two are suppressed to a floor (2-10 living; no culture ever reaches zero —
+the cadence timelines and parasitic/devotion floors hold). The earlier
+"tri-polar" observation was a transient, not an attractor. Nightshelf never
+drops below 20 (parasitism feeds at any host scale). In WS basins the
+corridor becomes landmass (WS leads Witness 63-67), so axis identity
+partially collapses under dominance.
+
+Diagnosis: each culture's self-reinforcing growth loop is stronger than all
+cross-culture negative feedback, so early advantage compounds to saturation.
+Coexistence requires a leader-scaling brake — this is precisely the evidence
+the deferred local carrying capacity (Option D) was reserved for — or an
+explicit design acceptance that one culture rises per world and the player
+is the balancing force. Decision pending.
+
 Horizon framing: these 25k-tick runs test the bootstrap-into-steady-state
 phase only. Real play (SimCity mental model) extends 4x-50x, so low absolute
 map coverage is expected; judge shape, trend, and steady-state stability, not
