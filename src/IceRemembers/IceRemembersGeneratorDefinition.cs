@@ -66,6 +66,11 @@ public static partial class IceRemembersGeneratorDefinition
         VigilsAtTheCurrent(),
         TheCurrentProvides(),
         PilgrimsFoundNewCurrents(),
+        PodsMarkTheirPrey(),
+        AHeroFallsToTheDeep(),
+        GloryToTheDeadGod(),
+        CounterOffensive(),
+        TheAccordConvenes(),
     ];
 
     private static string L(Rel relationship) => relationship.ToDomainName();
@@ -694,25 +699,6 @@ public static partial class IceRemembersGeneratorDefinition
             ],
         };
 
-    private static SemanticGeneratorTarget TargetWithStrongOutgoingAndWithoutIncoming(
-        EntityKind kind,
-        Rel required,
-        float minimumStrength,
-        Rel without) =>
-        new()
-        {
-            Kind = kind,
-            RequiredOutgoingRelationshipRequirements =
-            [
-                new SemanticGeneratorRelationshipRequirement
-                {
-                    RelationshipKind = L(required),
-                    MinimumStrength = minimumStrength,
-                },
-            ],
-            WithoutIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(without) },
-        };
-
     private static SemanticGeneratorTarget TargetWithStrongIncomingAndWithoutIncoming(
         EntityKind kind,
         Rel required,
@@ -1037,12 +1023,14 @@ public static partial class IceRemembersGeneratorDefinition
         string source,
         string destination,
         Rel kind,
-        float strength) =>
+        float strength,
+        bool replaceExisting = false) =>
         new()
         {
             SourceRef = source,
             DestinationRef = destination,
             Kind = L(kind),
             Strength = strength,
+            ReplaceExistingOutgoingOfSameKind = replaceExisting,
         };
 }

@@ -173,4 +173,5 @@ kernel tick advanced. Current UI presentation principles are recorded in
 - [19 Narrative Domain](./systems/19-narrative-domain.md)
 - [20 Generator Causal Limits](./systems/20-generator-causal-limits.md)
 - [21 Minor Actors](./systems/21-minor-actors.md)
+- [22 Map Signals](./systems/22-map-signals.md)
 - [UI Principles](./design/ui-principles.md)

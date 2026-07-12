@@ -29,12 +29,13 @@ public static partial class IceRemembersGeneratorDefinition
         Id = "rich_hubs_grow_undermarkets",
         Name = "Rich Hubs Grow Undermarkets",
         Description = "A settlement whose trade grows loud enough grows a quiet floor beneath it. An undermarket takes root under the hub, a fence keeps its ledger, and goods start moving that no tally acknowledges.",
-        CausalLimit = "Depends on a strong outgoing trade route and no founding lock on the hub; creates incoming founded-from as the repeat lock.",
-        Target = TargetWithStrongOutgoingAndWithoutIncoming(
+        CausalLimit = "Depends on a strong outgoing trade route and no founding lock in either direction, so undermarkets cannot parent undermarkets; creates incoming founded-from as the repeat lock.",
+        Target = TargetWithStrongOutgoingWithoutIncomingOrOutgoing(
             K.Settlement,
             Rel.TradeRoute,
             RichHubMinimumTradeStrength,
-            Rel.FoundedFrom),
+            withoutIncoming: Rel.FoundedFrom,
+            withoutOutgoing: Rel.FoundedFrom),
         Produces =
         [
             RequiredNightshelf("$undermarket", K.Settlement, "holdfast", "$target"),

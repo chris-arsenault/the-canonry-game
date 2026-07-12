@@ -18,24 +18,29 @@ using Rel = IceRemembers.IceRemembersRelationship;
 /// </summary>
 public static partial class IceRemembersGeneratorDefinition
 {
-    private const float KillsSungMinimumWarStrength = 0.50f;
-    private const float KillsSungWarStrengthSpend = -0.08f;
-    private const float ProvidesMinimumOfferingStrength = 0.80f;
+    private const float KillsSungMinimumPredationStrength = 0.50f;
+    private const float KillsSungPredationSpend = -0.08f;
+    private const float GloryMinimumPredationStrength = 0.85f;
+    private const float GloryPredationSpend = -0.20f;
+    private const float ProvidesMinimumOfferingStrength = 0.50f;
     private const float ProvidesOfferingSpend = -0.25f;
-    private const float NewSiteMinimumOfferingStrength = 0.95f;
+    private const float NewSiteMinimumOfferingStrength = 0.75f;
     private const float NewSiteOfferingSpend = -0.40f;
     private const int VigilCadenceTicks = 600;
     private const int VigilCadenceJitterTicks = 120;
     private const int DescentCadenceTicks = 2000;
     private const int DescentCadenceJitterTicks = 400;
+    private const int AccordCadenceTicks = 1500;
+    private const int AccordCadenceJitterTicks = 300;
+    private const float AccordPredationDamp = -0.15f;
 
     private static SemanticGeneratorConfig KillsSungToTheDeep() => new()
     {
         Id = "kills_sung_to_the_deep",
         Name = "Kills Sung To The Deep",
-        Description = "A faction at war brings its kills to the sacred waters. The blood is drained, the trophy is given to the deep, and a little of the war's force ebbs into worship.",
-        CausalLimit = "Depends on a strong at-war relationship and a same-culture sacred site; spends part of the selected war strength, which self-limits repeat firing.",
-        Target = TargetWithStrongOutgoing(K.Faction, Rel.AtWarWith, KillsSungMinimumWarStrength),
+        Description = "A hunting faction brings its kills to the sacred waters. The blood is drained, the trophy is given to the deep, and a little of the hunt's force ebbs into worship.",
+        CausalLimit = "Depends on a strong outgoing predation relationship and a same-culture sacred site; spends part of the selected predation strength, which self-limits repeat firing.",
+        Target = TargetWithStrongOutgoing(K.Faction, Rel.PreysOn, KillsSungMinimumPredationStrength),
         SecondaryTargets =
         [
             new SemanticGeneratorBindingTarget
@@ -51,16 +56,15 @@ public static partial class IceRemembersGeneratorDefinition
         ],
         Relationships =
         [
-            R("$target", "$site", Rel.OfferedTo, 0.70f),
+            R("$target", "$site", Rel.OfferedTo, 0.70f, replaceExisting: true),
             R("$trophy", "$site", Rel.ConsignedTo, 0.80f),
         ],
         Effects =
         [
             new AdjustTargetRelationshipStrengthEffect(
-                L(Rel.AtWarWith),
-                KillsSungWarStrengthSpend,
-                GeneratorRelationshipInstanceSelection.TriggerRelationship,
-                includeReciprocal: true),
+                L(Rel.PreysOn),
+                KillsSungPredationSpend,
+                GeneratorRelationshipInstanceSelection.TriggerRelationship),
         ],
         Triggers = TriggerOn(K.Faction),
         PulseWeight = 8,
@@ -149,7 +153,7 @@ public static partial class IceRemembersGeneratorDefinition
         Produces = [],
         Relationships =
         [
-            R("$singer", "$target", Rel.OfferedTo, 0.55f),
+            R("$singer", "$target", Rel.OfferedTo, 0.55f, replaceExisting: true),
         ],
         Triggers = TriggerOn(K.PointOfInterest),
         PulseWeight = 1,
@@ -229,6 +233,190 @@ public static partial class IceRemembersGeneratorDefinition
         Triggers = TriggerOn(K.PointOfInterest),
         PulseWeight = 3,
     };
+
+    private static SemanticGeneratorConfig PodsMarkTheirPrey() => new()
+    {
+        Id = "pods_mark_their_prey",
+        Name = "Pods Mark Their Prey",
+        Description = "A devoted faction turns its hunger on the surface world. The pods mark a rich shore and begin taking from its unnamed masses — ordinary predation, not war.",
+        CausalLimit = "Depends on a faction with devotion flow; creates or renews a preys_on edge toward a settlement of another culture.",
+        Target = TargetWithOutgoing(K.Faction, Rel.OfferedTo),
+        SecondaryTargets =
+        [
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$prey",
+                Kind = K.Settlement,
+                Query = new SemanticEntityQuery
+                {
+                    TargetCultureMatch = QueryTargetCultureMatch.DifferentFromTarget,
+                },
+            },
+        ],
+        Produces = [],
+        Relationships =
+        [
+            R("$target", "$prey", Rel.PreysOn, 0.55f, replaceExisting: true),
+        ],
+        Triggers = TriggerOn(K.Faction),
+        PulseWeight = 7,
+    };
+
+    private static SemanticGeneratorConfig AHeroFallsToTheDeep() => new()
+    {
+        Id = "a_hero_falls_to_the_deep",
+        Name = "A Hero Falls To The Deep",
+        Description = "Rarely, the hunt takes someone whose name mattered. The settlement is bereaved, the predation deepens, and the grievance is the kind wars are made of.",
+        CausalLimit = "Depends on strong predation against a settlement with a living named penguin of its culture; marks the victim historical and sets the bereaved tag.",
+        Target = TargetWithIncomingAndWithoutIncoming(K.Settlement, Rel.PreysOn, Rel.CleansedBy),
+        SecondaryTargets =
+        [
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$victim",
+                Kind = K.Penguin,
+                Query = SameCultureAsTarget(),
+            },
+        ],
+        Produces = [],
+        Relationships = [],
+        Effects =
+        [
+            new SetBindingHistoricalEffect("$victim"),
+            new SetBindingTagEffect("$target", "bereaved"),
+        ],
+        Triggers = TriggerOn(K.Settlement),
+        PulseWeight = 2,
+    };
+
+    private static SemanticGeneratorConfig GloryToTheDeadGod() => new()
+    {
+        Id = "glory_to_the_dead_god",
+        Name = "Glory To The Dead God",
+        Description = "When the choir is fervent and the hunt runs hot, the orthodox get their way: the predation is consecrated into open war, and the war gets a name.",
+        CausalLimit = "Depends on a fervent faction with very strong predation; converts predation strength into a named at-war relationship.",
+        Target = TargetWithStrongOutgoingTagged(K.Faction, Rel.PreysOn, GloryMinimumPredationStrength, "fervent"),
+        SecondaryTargets =
+        [
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$foe",
+                Kind = K.Faction,
+                Query = new SemanticEntityQuery
+                {
+                    TargetCultureMatch = QueryTargetCultureMatch.DifferentFromTarget,
+                },
+            },
+        ],
+        Produces =
+        [
+            Required("$war", K.Occurrence, "war", "$target", "$target"),
+        ],
+        Relationships =
+        [
+            R("$target", "$foe", Rel.AtWarWith, 0.72f),
+            R("$war", "$target", Rel.AtWarWith, 0.60f),
+        ],
+        Effects =
+        [
+            new AdjustTargetRelationshipStrengthEffect(
+                L(Rel.PreysOn),
+                GloryPredationSpend,
+                GeneratorRelationshipInstanceSelection.TriggerRelationship),
+        ],
+        Triggers = TriggerOn(K.Faction),
+        PulseWeight = 4,
+    };
+
+    private static SemanticGeneratorConfig CounterOffensive() => new()
+    {
+        Id = "counter_offensive",
+        Name = "Counter-Offensive",
+        Description = "A settlement that is both terrified and bereaved stops absorbing the hunt. Its protectors declare a named war on the choir, and the grievance is answered.",
+        CausalLimit = "Depends on a terrified, bereaved settlement; creates a named at-war relationship from the defending faction and clears the bereaved tag as the repeat lock.",
+        Target = TargetWithTags(K.Settlement, new HashSet<string>(StringComparer.Ordinal) { "terrified", "bereaved" }),
+        SecondaryTargets =
+        [
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$defender",
+                Kind = K.Faction,
+                Query = SameCultureAsTarget(),
+            },
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$raider",
+                Kind = K.Faction,
+                Query = new SemanticEntityQuery { Culture = C(IceRemembersCulture.WakeSingers) },
+            },
+        ],
+        Produces =
+        [
+            Required("$war", K.Occurrence, "war", "$target", "$defender"),
+        ],
+        Relationships =
+        [
+            R("$defender", "$raider", Rel.AtWarWith, 0.70f),
+            R("$war", "$defender", Rel.AtWarWith, 0.60f),
+        ],
+        Effects =
+        [
+            new ClearBindingTagEffect("$target", "bereaved"),
+        ],
+        Triggers = TriggerOn(K.Settlement),
+        PulseWeight = 5,
+    };
+
+    private static SemanticGeneratorConfig TheAccordConvenes() => new()
+    {
+        Id = "the_accord_convenes",
+        Name = "The Accord Convenes",
+        Description = "On the civic calendar the Flipper Accord tribunal takes up the worst of the grievances. A terrified settlement is heard, the raiders are named and warned, and the hunt is pressed back for a season.",
+        CausalLimit = "Fires on an authored cadence against a terrified settlement; clears the terrified tag and damps its incoming predation edges.",
+        Target = TargetWithTags(K.Settlement, new HashSet<string>(StringComparer.Ordinal) { "terrified" }),
+        Produces = [],
+        Relationships = [],
+        Effects =
+        [
+            new ClearBindingTagEffect("$target", "terrified"),
+            new AdjustTargetRelationshipStrengthEffect(
+                L(Rel.PreysOn),
+                AccordPredationDamp,
+                GeneratorRelationshipInstanceSelection.AllTargetRelationships),
+        ],
+        Triggers = TriggerOn(K.Settlement),
+        PulseWeight = 1,
+        CadenceTicks = AccordCadenceTicks,
+        CadenceJitterTicks = AccordCadenceJitterTicks,
+    };
+
+    private static string C(IceRemembersCulture culture) => culture.ToDomainName();
+
+    private static SemanticGeneratorTarget TargetWithTags(EntityKind kind, IReadOnlySet<string> requiredTags) =>
+        new()
+        {
+            Kind = kind,
+            RequiredTags = requiredTags,
+        };
+
+    private static SemanticGeneratorTarget TargetWithStrongOutgoingTagged(
+        EntityKind kind,
+        Rel required,
+        float minimumStrength,
+        string requiredTag) =>
+        new()
+        {
+            Kind = kind,
+            RequiredTags = new HashSet<string>(StringComparer.Ordinal) { requiredTag },
+            RequiredOutgoingRelationshipRequirements =
+            [
+                new SemanticGeneratorRelationshipRequirement
+                {
+                    RelationshipKind = L(required),
+                    MinimumStrength = minimumStrength,
+                },
+            ],
+        };
 
     /// <summary>
     /// A produced entity with authored Wake-Singer culture. Calves and daughter

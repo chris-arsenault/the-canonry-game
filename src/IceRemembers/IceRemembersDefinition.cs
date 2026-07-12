@@ -38,6 +38,7 @@ public static partial class IceRemembersDefinition
             MovementProfiles = IceRemembersMovementProfiles.DomainProfiles,
             Cultures = CreateCultures(),
             CulturePower = CreateCulturePowerDefinition(),
+            Tags = ["terrified", "bereaved", "fervent"],
             Gameplay = CreateGameplayDefinition(),
             Semantics = semantics,
             Chronicle = CreateChronicleDefinition(),
@@ -154,6 +155,7 @@ public static partial class IceRemembersDefinition
             new() { Name = L(Rel.PracticedBy), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = asset, ValidTargetCategories = agency, CullThreshold = 0.05f, Maintenance = AbilityPracticeMaintenance() },
             new() { Name = L(Rel.TaughtBy), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = agency, ValidTargetCategories = agency, CullThreshold = 0.05f, Maintenance = AgencyBondMaintenance() },
             new() { Name = L(Rel.OfferedTo), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = agency, ValidTargetCategories = spatial, CullThreshold = 0.02f, Maintenance = OfferingMaintenance() },
+            new() { Name = L(Rel.PreysOn), Polarity = RelationshipPolarity.Negative, ValidSourceCategories = agency, ValidTargetCategories = spatial, CullThreshold = 0.03f, Maintenance = PredationMaintenance() },
             new() { Name = L(Rel.ConsignedTo), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = asset, ValidTargetCategories = spatial, IsExclusive = true, CullThreshold = 0.02f, Maintenance = SemanticBondMaintenance() },
         ];
     }
@@ -200,6 +202,16 @@ public static partial class IceRemembersDefinition
     /// Offerings fade unless renewed: worship is a flow, not a purchase. The
     /// decay is what makes sacred sites ebb when a cult goes quiet.
     /// </summary>
+    /// <summary>
+    /// Predation ebbs unless the hunt is pressed: the ambient conflict
+    /// substrate that ordinary raiding renews and settlements resist.
+    /// </summary>
+    private static IReadOnlyList<RelationshipMaintenanceRuleConfig> PredationMaintenance() =>
+    [
+        AlwaysDecay(0.0009f),
+        ContactMemory(8f, 0.0012f),
+    ];
+
     private static IReadOnlyList<RelationshipMaintenanceRuleConfig> OfferingMaintenance() =>
     [
         AlwaysDecay(0.0010f),
@@ -275,7 +287,28 @@ public static partial class IceRemembersDefinition
             AddHealthEffects(effects, entity.Kind, entity.HealthAttribute, entity.PrimaryPlane);
         }
 
-        return GameplayEffectSet.From(effects);
+        return GameplayEffectSet.From(
+            effects,
+            [
+                new RelationshipTagRuleConfig
+                {
+                    Kind = K.Settlement.Value,
+                    Tag = "terrified",
+                    RelationshipKind = L(Rel.PreysOn),
+                    RelationshipDirection = EffectRelationshipDirection.Incoming,
+                    SetAtOrAbove = 0.9f,
+                    ClearBelow = 0.45f,
+                },
+                new RelationshipTagRuleConfig
+                {
+                    Kind = K.Faction.Value,
+                    Tag = "fervent",
+                    RelationshipKind = L(Rel.OfferedTo),
+                    RelationshipDirection = EffectRelationshipDirection.Outgoing,
+                    SetAtOrAbove = 0.75f,
+                    ClearBelow = 0.4f,
+                },
+            ]);
     }
 
     private static void AddHealthEffects(
@@ -297,6 +330,7 @@ public static partial class IceRemembersDefinition
             InfluenceShelter(kind, attribute, Rel.Memorializes, EffectRelationshipDirection.Either, 0.025f, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.RivalOf, -0.07f, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.AtWarWith, -0.10f, threshold: 35f, plane: plane),
+            InfluenceStress(kind, attribute, Rel.PreysOn, -0.06f, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.CorruptedBy, -0.08f, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.BetrayedBy, -0.06f, threshold: 35f, plane: plane),
             RelationshipSupport(kind, attribute, Rel.AlliedWith, 0.035f, maxDistance: 1, plane: plane),

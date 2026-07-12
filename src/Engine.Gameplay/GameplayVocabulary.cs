@@ -36,4 +36,9 @@ public static class GameplayEffectSet
 {
     public static EffectsConfig From(IReadOnlyList<AttributeDeltaEffectConfig> effects) =>
         new() { AttributeDeltaEffects = effects };
+
+    public static EffectsConfig From(
+        IReadOnlyList<AttributeDeltaEffectConfig> effects,
+        IReadOnlyList<RelationshipTagRuleConfig> relationshipTagRules) =>
+        new() { AttributeDeltaEffects = effects, RelationshipTagRules = relationshipTagRules };
 }

@@ -181,7 +181,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
                 outgoing: true,
                 (relationshipId, _) =>
                 {
-                    sum += world.RelationshipStrength(relationshipId);
+                    sum += KernelQuery.RelationshipStrength(world, relationshipId);
                     return true;
                 });
         }
@@ -196,7 +196,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
                 outgoing: false,
                 (relationshipId, _) =>
                 {
-                    sum += world.RelationshipStrength(relationshipId);
+                    sum += KernelQuery.RelationshipStrength(world, relationshipId);
                     return true;
                 });
         }

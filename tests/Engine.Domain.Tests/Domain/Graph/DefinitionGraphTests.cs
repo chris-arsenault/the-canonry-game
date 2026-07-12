@@ -47,6 +47,8 @@ public class DefinitionGraphTests
             Relationships = config.Relationships,
             Lifecycles = config.Lifecycles,
             Cultures = config.Cultures,
+            CulturePower = config.CulturePower,
+            Tags = config.Tags,
             MovementProfiles = config.MovementProfiles,
             Gameplay = config.Gameplay,
         };
@@ -150,6 +152,8 @@ public class DefinitionGraphTests
             Relationships = config.Relationships,
             Lifecycles = config.Lifecycles,
             Cultures = config.Cultures,
+            CulturePower = config.CulturePower,
+            Tags = config.Tags,
             MovementProfiles = config.MovementProfiles,
             Gameplay = config.Gameplay,
             Semantics = new SemanticDomainConfig

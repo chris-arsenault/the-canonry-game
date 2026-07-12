@@ -133,6 +133,7 @@ public enum IceRemembersRelationship
     TaughtBy,
     OfferedTo,
     ConsignedTo,
+    PreysOn,
 }
 
 public static class IceRemembersRelationshipExtensions
@@ -164,6 +165,7 @@ public static class IceRemembersRelationshipExtensions
         "taught_by",
         "offered_to",
         "consigned_to",
+        "preys_on",
     ];
 
     public static string ToDomainName(this IceRemembersRelationship relationship)
@@ -359,6 +361,9 @@ public enum IceRemembersVerbId
     FactionTendSeatControl,
     OrcaRenewTheOffering,
     PointOfInterestDrawTheOffering,
+    FactionPressTheHunt,
+    SettlementBreakTheHunt,
+    SettlementPanicDrawsThePods,
 }
 
 public static class IceRemembersVerbIdExtensions
@@ -527,6 +532,9 @@ public static class IceRemembersVerbIdExtensions
         "faction_tend_seat_control",
         "orca_renew_the_offering",
         "point_of_interest_draw_the_offering",
+        "faction_press_the_hunt",
+        "settlement_break_the_hunt",
+        "settlement_panic_draws_the_pods",
     ];
 
     public static string ToVerbId(this IceRemembersVerbId verbId)
