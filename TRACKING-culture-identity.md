@@ -180,6 +180,25 @@ the deferred local carrying capacity (Option D) was reserved for — or an
 explicit design acceptance that one culture rises per world and the player
 is the balancing force. Decision pending.
 
+## Option D: Local Carrying Capacity — IMPLEMENTED
+
+`CrowdingBeyondCultureSupport` effect condition: crowding evidence
+discounted asymptotically by local own-culture raw mass
+(scale/(scale+mass), scale 150; -0.06/tick at threshold 0.8 on all kinds).
+No hard limits, no homeostat: density is sustainable wherever territory
+supports it, growing the territory is the built-in escape, and future
+artifacts/abilities can raise support the same way age extension works.
+
+**Before/after ten-seed sweep (`capacity-sweep-{a..e}` vs `basin-sweep-*`):**
+coexistence becomes reachable — 2 of 10 seeds now settle with all three
+cultures >= 15 living (25003: 17/40/29; 25004: 62/18/45), versus 0 of 10
+before. Winner-take-all persists on the other 8 seeds but all three
+single-winner basins remain represented (A x4, W x3, N x1), and winners
+still reach 80-99 where their territory carries it — confirming the strain
+is not a cap. Next lever if a wider coexistence band is wanted: raise
+strain modestly (delta or lower supportScale) and re-sweep; the mechanism
+itself is proven.
+
 Horizon framing: these 25k-tick runs test the bootstrap-into-steady-state
 phase only. Real play (SimCity mental model) extends 4x-50x, so low absolute
 map coverage is expected; judge shape, trend, and steady-state stability, not
