@@ -78,6 +78,15 @@ internal sealed partial class GeneratorProgramRuntime
             return false;
         }
 
+        if (!KernelQuery.TagBitsPass(
+                world.EntityTagBits(targetId),
+                _targetRequiredTagBits[generatorSlot],
+                _targetWithoutTagBits[generatorSlot]))
+        {
+            rejectionReasonCode = GeneratorTargetRejectionReasonCodes.Subtype;
+            return false;
+        }
+
         return TargetRelationshipAndMapGatesPass(simulation, generatorSlot, targetId, out rejectionReasonCode);
     }
 
@@ -272,7 +281,10 @@ internal sealed partial class GeneratorProgramRuntime
                 _bindingWithoutOutgoingStarts[binding],
                 _bindingWithoutOutgoingCounts[binding],
                 _bindingWithoutIncomingStarts[binding],
-                _bindingWithoutIncomingCounts[binding]);
+                _bindingWithoutIncomingCounts[binding],
+                _bindingRequiredTagBits[binding],
+                _bindingWithoutTagBits[binding],
+                _bindingCultureIds[binding]);
             if (entityId == 0)
             {
                 return false;

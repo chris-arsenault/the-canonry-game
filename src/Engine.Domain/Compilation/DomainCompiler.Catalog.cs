@@ -12,6 +12,7 @@ public static partial class DomainCompiler
         RegisterKindCatalog(config, state);
         RegisterWorldCatalog(config, state);
         RegisterCultureCatalog(config, state);
+        RegisterTagCatalog(config, state);
         RegisterGeneratorCatalog(config, state);
         RegisterBehaviorCatalog(config, state);
         RegisterRuntimeCatalog(state);
@@ -84,6 +85,20 @@ public static partial class DomainCompiler
                 structure.Name,
                 state.Registry.RegisterTravelStructure,
                 "travel structure");
+        }
+    }
+
+    private static void RegisterTagCatalog(DomainConfig config, CatalogRegistrationState state)
+    {
+        if (config.Tags.Count > 31)
+        {
+            throw new InvalidOperationException(
+                $"Tag catalog holds {config.Tags.Count} tags; the kernel supports at most 31.");
+        }
+
+        foreach (var tag in config.Tags)
+        {
+            _ = state.Registry.RegisterTag(tag);
         }
     }
 

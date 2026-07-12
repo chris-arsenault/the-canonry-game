@@ -36,6 +36,7 @@ internal sealed partial class WorldState
 
         count += _attributes.Count;
         count += _traits.Count;
+        count += SnapshotTagEventCount();
         count += _mapLayers.CultureInfluence.Count;
         for (var relationshipId = 1; relationshipId <= _relationshipHighWatermark; relationshipId++)
         {
@@ -56,6 +57,7 @@ internal sealed partial class WorldState
         EmitSnapshotEntities(context, tick, version);
         EmitSnapshotAttributes(context, tick, version);
         EmitSnapshotTraits(context, tick, version);
+        EmitSnapshotTags(context, tick, version);
         EmitSnapshotInfluence(context, tick, version);
         EmitSnapshotCultureInfluence(context, tick, version);
         EmitSnapshotRelationships(context, tick, version);
@@ -245,6 +247,46 @@ internal sealed partial class WorldState
                     context);
             }
         });
+    }
+
+    private int SnapshotTagEventCount()
+    {
+        var count = 0;
+        for (var entityId = 1; entityId <= _entityHighWatermark; entityId++)
+        {
+            if (_entityAllocated[entityId])
+            {
+                count += global::System.Numerics.BitOperations.PopCount((uint)_entityTagBits[entityId]);
+            }
+        }
+
+        return count;
+    }
+
+    private void EmitSnapshotTags(KernelExecutionContext context, int tick, long version)
+    {
+        for (var entityId = 1; entityId <= _entityHighWatermark; entityId++)
+        {
+            if (!_entityAllocated[entityId] || _entityTagBits[entityId] == 0)
+            {
+                continue;
+            }
+
+            for (var tagId = 1; tagId < 32; tagId++)
+            {
+                if ((_entityTagBits[entityId] & (1 << tagId)) != 0)
+                {
+                    Write(KernelEvent.From(new EntityTagChangedKernelEvent(
+                        tick,
+                        version,
+                        entityId,
+                        tagId,
+                        1,
+                        context.SourceCodeId)),
+                        context);
+                }
+            }
+        }
     }
 
     private static void EmitSnapshotInfluence(KernelExecutionContext context, int tick, long version)

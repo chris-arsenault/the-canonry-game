@@ -125,7 +125,16 @@ public sealed class EffectsProgram
 {
     public bool EnabledByDefault { get; init; } = true;
     public IReadOnlyList<AttributeDeltaEffectRule> AttributeDeltaEffects { get; init; } = [];
+    public IReadOnlyList<RelationshipTagRule> RelationshipTagRules { get; init; } = [];
 }
+
+public sealed record RelationshipTagRule(
+    int KindId,
+    int TagId,
+    int RelationshipKindId,
+    int RelationshipDirectionCode,
+    float SetAtOrAbove,
+    float ClearBelow);
 
 public sealed record AttributeDeltaEffectRule(
     int KindId,

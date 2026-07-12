@@ -324,7 +324,40 @@ public static class GameplayCompiler
         }
 
         rules.AddRange(CompileTraitAttributeDeltaEffects(context));
-        return new EffectsProgram { AttributeDeltaEffects = rules };
+        return new EffectsProgram
+        {
+            AttributeDeltaEffects = rules,
+            RelationshipTagRules = CompileRelationshipTagRules(definition, context),
+        };
+    }
+
+    private static List<RelationshipTagRule> CompileRelationshipTagRules(
+        GameplayDefinition definition,
+        IGameplayCompilationContext context)
+    {
+        var rules = new List<RelationshipTagRuleConfig>(definition.Effects.RelationshipTagRules).ConvertAll(rule =>
+        {
+            if (!context.RelationshipExists(rule.RelationshipKind))
+            {
+                throw new InvalidOperationException(
+                    $"Relationship tag rule for kind '{rule.Kind}' references unknown relationship '{rule.RelationshipKind}'.");
+            }
+
+            if (rule.ClearBelow > rule.SetAtOrAbove)
+            {
+                throw new InvalidOperationException(
+                    $"Relationship tag rule '{rule.Kind}.{rule.Tag}' clears above its set threshold.");
+            }
+
+            return new RelationshipTagRule(
+                context.ResolveKindId(rule.Kind, "Relationship tag rule kind"),
+                context.ResolveTagId(rule.Tag),
+                context.ResolveRelationshipKindId(rule.RelationshipKind),
+                RelationshipDirectionCode(rule.RelationshipDirection),
+                rule.SetAtOrAbove,
+                rule.ClearBelow);
+        });
+        return rules;
     }
 
     private static List<AttributeDeltaEffectRule> CompileTraitAttributeDeltaEffects(
@@ -495,6 +528,7 @@ public interface IGameplayCompilationContext
     bool TerrainExists(string terrain);
     bool RelationshipExists(string relationship);
     int ResolveTraitId(string trait);
+    int ResolveTagId(string tag);
     bool KindHasAttribute(string kind, string attribute);
     IReadOnlyList<AffordanceDefinition> Affordances();
     IReadOnlyList<TraitOperationDefinition> TraitOperations();

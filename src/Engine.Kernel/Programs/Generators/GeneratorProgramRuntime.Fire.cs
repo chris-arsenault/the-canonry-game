@@ -332,7 +332,10 @@ internal sealed partial class GeneratorProgramRuntime
             _producedQueryWithoutOutgoingStarts[produced],
             _producedQueryWithoutOutgoingCounts[produced],
             _producedQueryWithoutIncomingStarts[produced],
-            _producedQueryWithoutIncomingCounts[produced]);
+            _producedQueryWithoutIncomingCounts[produced],
+            _producedQueryRequiredTagBits[produced],
+            _producedQueryWithoutTagBits[produced],
+            _producedQueryCultureIds[produced]);
     }
 
     private bool CreateMissingProducedEntity(
@@ -641,18 +644,35 @@ internal sealed partial class GeneratorProgramRuntime
                         triggerId);
                     break;
                 case GeneratorEffectTypeCodes.SetTerrainPatch:
-                    ExecuteSetTerrainPatch(
-                        simulation,
-                        world,
-                        e,
-                        refCodes,
-                        refEntityIds,
-                        refCount);
+                    ExecuteSetTerrainPatch(simulation, world, e, refCodes, refEntityIds, refCount);
+                    break;
+                case GeneratorEffectTypeCodes.SetBindingTag:
+                    ExecuteSetBindingTag(simulation, e, refOrKindId, refCodes, refEntityIds, refCount, tick);
                     break;
             }
         }
 
         return relationshipSpendCount;
+    }
+
+    private void ExecuteSetBindingTag(
+        Simulation simulation,
+        int effectSlot,
+        int refOrKindId,
+        int[] refCodes,
+        int[] refEntityIds,
+        int refCount,
+        int tick)
+    {
+        var taggedEntityId = ResolveRef(refCodes, refEntityIds, refCount, refOrKindId);
+        if (taggedEntityId > 0)
+        {
+            _ = simulation.SetEntityTag(
+                taggedEntityId,
+                _effectInstanceSelectionCodes[effectSlot],
+                _effectOptionCodes[effectSlot] != 0,
+                tick);
+        }
     }
 
     private static int RemoveTargetRelationships(

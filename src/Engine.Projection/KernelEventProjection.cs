@@ -30,6 +30,12 @@ public abstract class KernelEventProjector : IKernelEventProjection
             return;
         }
 
+        if (eventType == KernelEventType.EntityTagChanged)
+        {
+            OnEntityTagChanged(kernelEvent.Sequence, kernelEvent.Event.AsEntityTagChanged());
+            return;
+        }
+
         if (IsWorldEvent(eventType))
         {
             ProjectWorldEvent(kernelEvent);
@@ -219,6 +225,10 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnTraitAssigned(long sequence, in TraitAssignedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnEntityTagChanged(long sequence, in EntityTagChangedKernelEvent evt)
     {
     }
 

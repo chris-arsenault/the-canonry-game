@@ -230,6 +230,8 @@ public static partial class DomainCompiler
                 generator.MaxRunsPerSim ?? 0,
                 Math.Max(generator.CadenceTicks, 0),
                 Math.Max(generator.CadenceJitterTicks, 0),
+                CompileTagBits(generator.Target.RequiredTags, ids),
+                CompileTagBits(generator.Target.WithoutTags, ids),
                 CompileGeneratorTriggers(generator.Triggers, ids),
                 CompileGeneratorBindings(generator.SecondaryTargets, ids, refCodes),
                 CompileGeneratorProducedEntities(generator.Produces, ids, terrainByName, refCodes),
@@ -411,7 +413,10 @@ public static partial class DomainCompiler
             query.SamePhysicalCultureComponentAsTarget,
             ToGeneratorCultureMatch(query.TargetCultureMatch),
             CompileRelationshipKindIds(query.WithoutOutgoingRelationships, ids),
-            CompileRelationshipKindIds(query.WithoutIncomingRelationships, ids));
+            CompileRelationshipKindIds(query.WithoutIncomingRelationships, ids),
+            CompileTagBits(query.RequiredTags, ids),
+            CompileTagBits(query.WithoutTags, ids),
+            query.Culture is null ? 0 : ids.CultureIdOf(query.Culture).Value);
     }
 
     private static GeneratorCoverageRule? CompileGeneratorCoverage(
@@ -496,6 +501,13 @@ public static partial class DomainCompiler
                         adjustRelationship.IncludeReciprocal ? 1 : 0,
                         adjustRelationship.Delta));
                     break;
+                case DefinitionSetBindingTagEffect setTag:
+                    compiled.Add(new GeneratorEffectRule(
+                        GeneratorEffectTypeCodes.SetBindingTag,
+                        refCodes[setTag.BindingRef],
+                        ids.TagIdOf(setTag.Tag).Value,
+                        setTag.Assigned ? 1 : 0));
+                    break;
                 case DefinitionSetTerrainPatchEffect setTerrainPatch:
                     {
                         var terrain = ResolveTerrain(terrainByName, setTerrainPatch.Terrain);
@@ -518,6 +530,17 @@ public static partial class DomainCompiler
         }
 
         return compiled;
+    }
+
+    private static int CompileTagBits(IReadOnlySet<string>? tags, DomainIdRegistry ids)
+    {
+        var bits = 0;
+        foreach (var tag in tags ?? (IReadOnlySet<string>)new HashSet<string>(StringComparer.Ordinal))
+        {
+            bits |= 1 << ids.TagIdOf(tag).Value;
+        }
+
+        return bits;
     }
 
     private static List<int> CompileGeneratorSubtypeIds(

@@ -115,7 +115,10 @@ internal readonly struct SharedQuery
         int withoutOutgoingStart = 0,
         int withoutOutgoingCount = 0,
         int withoutIncomingStart = 0,
-        int withoutIncomingCount = 0)
+        int withoutIncomingCount = 0,
+        int requiredTagBits = 0,
+        int withoutTagBits = 0,
+        int cultureId = 0)
     {
         KindId = kindId;
         SubtypeIds = subtypeIds;
@@ -128,6 +131,9 @@ internal readonly struct SharedQuery
         WithoutOutgoingCount = withoutOutgoingCount;
         WithoutIncomingStart = withoutIncomingStart;
         WithoutIncomingCount = withoutIncomingCount;
+        RequiredTagBits = requiredTagBits;
+        WithoutTagBits = withoutTagBits;
+        CultureId = cultureId;
     }
 
     public int KindId { get; }
@@ -151,6 +157,12 @@ internal readonly struct SharedQuery
     public int WithoutIncomingStart { get; }
 
     public int WithoutIncomingCount { get; }
+
+    public int RequiredTagBits { get; }
+
+    public int WithoutTagBits { get; }
+
+    public int CultureId { get; }
 }
 
 internal readonly struct QueryEvaluation

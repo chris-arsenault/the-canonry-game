@@ -104,6 +104,7 @@ internal sealed partial class WorldState
     private int _relationshipGraphDeltaMergeThreshold;
     private int _entityHighWatermark;
     private int _cultureHighWatermark;
+    private int[] _entityTagBits = [];
     private int _relationshipHighWatermark;
     private int _provenanceInvocationHighWatermark;
     private int _provenanceOutputHighWatermark;
@@ -136,6 +137,7 @@ internal sealed partial class WorldState
     {
         _entityAllocated = new bool[options.EntityCapacity + 1];
         _entityStatus = new int[options.EntityCapacity + 1];
+        _entityTagBits = new int[options.EntityCapacity + 1];
         _entityKindId = new int[options.EntityCapacity + 1];
         _entitySubtypeId = new int[options.EntityCapacity + 1];
         _entityCultureId = new int[options.EntityCapacity + 1];
@@ -923,6 +925,41 @@ internal sealed partial class WorldState
     {
         EnsureEntity(entityId);
         return _entityCultureId[entityId];
+    }
+
+    public bool EntityHasTag(int entityId, int tagId)
+    {
+        EnsureEntity(entityId);
+        return tagId is > 0 and < 32 && (_entityTagBits[entityId] & (1 << tagId)) != 0;
+    }
+
+    public int EntityTagBits(int entityId)
+    {
+        EnsureEntity(entityId);
+        return _entityTagBits[entityId];
+    }
+
+    internal bool SetEntityTagBit(int entityId, int tagId, bool assigned, int tick, in KernelExecutionContext context)
+    {
+        EnsureEntity(entityId);
+        if (tagId is <= 0 or >= 32)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(tagId));
+        }
+
+        var mask = 1 << tagId;
+        var current = (_entityTagBits[entityId] & mask) != 0;
+        if (current == assigned)
+        {
+            return false;
+        }
+
+        _entityTagBits[entityId] = assigned
+            ? _entityTagBits[entityId] | mask
+            : _entityTagBits[entityId] & ~mask;
+        _entityUpdatedAt[entityId] = tick;
+        AdvanceWorldVersion();
+        return true;
     }
 
     public int EntityCreatedAt(int entityId)

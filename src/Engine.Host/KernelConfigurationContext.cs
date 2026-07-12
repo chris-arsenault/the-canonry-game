@@ -215,6 +215,21 @@ internal sealed class KernelConfigurationContext
             cultureSlotId,
             cultureSlotPolarityCode);
 
+    public void RegisterRelationshipTagRule(
+        int kindId,
+        int tagId,
+        int relationshipKindId,
+        int relationshipDirectionCode,
+        float setAtOrAbove,
+        float clearBelow) =>
+        _kernel.Effects.RegisterRelationshipTagRule(
+            kindId,
+            tagId,
+            relationshipKindId,
+            relationshipDirectionCode,
+            setAtOrAbove,
+            clearBelow);
+
     public void RegisterCultureProduction(int cultureId, float physicalMultiplier, float semanticMultiplier) =>
         _kernel.RegisterCultureProduction(cultureId, physicalMultiplier, semanticMultiplier);
 
@@ -551,14 +566,18 @@ internal sealed class KernelConfigurationContext
         int pulseWeight,
         int maxRuns,
         int cadenceTicks = 0,
-        int cadenceJitterTicks = 0) =>
+        int cadenceJitterTicks = 0,
+        int targetRequiredTagBits = 0,
+        int targetWithoutTagBits = 0) =>
         _kernel.Generators.RegisterGenerator(
             generatorId,
             targetKindId,
             pulseWeight,
             maxRuns,
             cadenceTicks,
-            cadenceJitterTicks);
+            cadenceJitterTicks,
+            targetRequiredTagBits,
+            targetWithoutTagBits);
 
     public void AddGeneratorTargetSubtype(int generatorSlot, int subtypeId) =>
         _kernel.Generators.AddTargetSubtype(generatorSlot, subtypeId);
@@ -603,14 +622,20 @@ internal sealed class KernelConfigurationContext
         int kindId,
         bool adjacentToTarget,
         int cultureMatchCode,
-        bool samePhysicalCultureComponentAsTarget) =>
+        bool samePhysicalCultureComponentAsTarget,
+        int requiredTagBits = 0,
+        int withoutTagBits = 0,
+        int cultureId = 0) =>
         _kernel.Generators.AddSecondaryBinding(
             generatorSlot,
             refCode,
             kindId,
             adjacentToTarget ? 1 : 0,
             cultureMatchCode,
-            samePhysicalCultureComponentAsTarget ? 1 : 0);
+            samePhysicalCultureComponentAsTarget ? 1 : 0,
+            requiredTagBits,
+            withoutTagBits,
+            cultureId);
 
     public void AddGeneratorBindingSubtype(int bindingSlot, int subtypeId) =>
         _kernel.Generators.AddBindingSubtype(bindingSlot, subtypeId);
@@ -648,7 +673,10 @@ internal sealed class KernelConfigurationContext
         int semanticPlacementMinRadius,
         int semanticPlacementMaxRadius,
         int culturePlacementCode,
-        bool querySamePhysicalCultureComponentAsTarget) =>
+        bool querySamePhysicalCultureComponentAsTarget,
+        int queryRequiredTagBits = 0,
+        int queryWithoutTagBits = 0,
+        int queryCultureId = 0) =>
         _kernel.Generators.AddProduced(
             generatorSlot,
             refCode,
@@ -676,7 +704,10 @@ internal sealed class KernelConfigurationContext
             semanticPlacementMaxRadius,
             culturePlacementCode,
             querySamePhysicalCultureComponentAsTarget ? 1 : 0,
-            fixedCultureId);
+            fixedCultureId,
+            queryRequiredTagBits,
+            queryWithoutTagBits,
+            queryCultureId);
 
     public void AddGeneratorProducedSubtypeChoice(int producedSlot, int subtypeId) =>
         _kernel.Generators.AddProducedSubtypeChoice(producedSlot, subtypeId);

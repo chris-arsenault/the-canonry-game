@@ -32,6 +32,7 @@ public enum KernelEventType
     GeneratorTargetEvaluated = 30,
     MinorActorVerbExecuted = 31,
     GambitEnabledChanged = 32,
+    EntityTagChanged = 33,
     Trace = 120,
 }
 
@@ -156,6 +157,19 @@ public readonly record struct TraitAssignedKernelEvent(
     [KernelEventIntSlot(1, "trait_id", KernelEventSemanticKind.TraitId)]
     int TraitId,
     [KernelEventIntSlot(2, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
+    int SourceCodeId);
+
+[KernelEventLayout(KernelEventType.EntityTagChanged, schemaMinor: 0)]
+public readonly record struct EntityTagChangedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "entity_id", KernelEventSemanticKind.EntityId)]
+    int EntityId,
+    [KernelEventIntSlot(1, "tag_id", KernelEventSemanticKind.Index)]
+    int TagId,
+    [KernelEventIntSlot(2, "assigned", KernelEventSemanticKind.Enabled)]
+    int Assigned,
+    [KernelEventIntSlot(3, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
     int SourceCodeId);
 
 [KernelEventLayout(KernelEventType.RelationshipChanged, schemaMinor: 3)]

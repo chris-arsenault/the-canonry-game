@@ -69,3 +69,8 @@ public readonly record struct SourceCodeId(int Value)
 {
     public static SourceCodeId None => default;
 }
+
+public readonly record struct TagRuntimeId(int Value)
+{
+    public static TagRuntimeId None => default;
+}

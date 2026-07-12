@@ -34,6 +34,7 @@ public static class DefinitionGraphBuilder
             Relationships = relationshipNodes,
             Lifecycles = lifecycleNodes,
             Attributes = attributeIndex,
+            Tags = new HashSet<string>(config.Tags, StringComparer.Ordinal),
         };
 
         PopulateSemanticGraph(config, graph, runtimeIds, generatorNodes);

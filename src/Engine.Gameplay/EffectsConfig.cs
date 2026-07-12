@@ -5,6 +5,30 @@ using Engine.Constants;
 public sealed class EffectsConfig
 {
     public IReadOnlyList<AttributeDeltaEffectConfig> AttributeDeltaEffects { get; init; } = [];
+
+    public IReadOnlyList<RelationshipTagRuleConfig> RelationshipTagRules { get; init; } = [];
+}
+
+/// <summary>
+/// Discrete status rule: entities of a kind gain a tag while the summed
+/// strength of their relationships of a kind crosses a threshold, and lose it
+/// when the sum falls below the clear threshold (hysteresis). Entity-centric
+/// state machines built from graph evidence, not scalar stocks.
+/// </summary>
+public sealed class RelationshipTagRuleConfig
+{
+    public required string Kind { get; init; }
+
+    public required string Tag { get; init; }
+
+    public required string RelationshipKind { get; init; }
+
+    public EffectRelationshipDirection RelationshipDirection { get; init; } =
+        EffectRelationshipDirection.Incoming;
+
+    public required float SetAtOrAbove { get; init; }
+
+    public required float ClearBelow { get; init; }
 }
 
 /// <summary>

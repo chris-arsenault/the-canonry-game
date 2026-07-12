@@ -45,6 +45,13 @@ public sealed class DomainConfig
     public CulturePowerConfig CulturePower { get; init; } = new();
 
     /// <summary>
+    /// Global tag catalog. Tags are discrete per-entity status bits (max 31)
+    /// used for authored state machines: set/cleared by effect rules and
+    /// generators, read by generator targeting. Not scalar stocks.
+    /// </summary>
+    public IReadOnlyList<string> Tags { get; init; } = [];
+
+    /// <summary>
     /// Reusable gameplay-system selections and authored gameplay parameters.
     /// Domain content chooses and names gameplay modules; Engine.Gameplay owns
     /// reusable mechanics, validation, and compile-down to kernel program data.

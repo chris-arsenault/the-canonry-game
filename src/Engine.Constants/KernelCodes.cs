@@ -486,6 +486,7 @@ public static class GeneratorEffectTypeCodes
     public const int RemoveTargetRelationships = 2;
     public const int AdjustTargetRelationshipStrength = 3;
     public const int SetTerrainPatch = 4;
+    public const int SetBindingTag = 5;
 }
 
 public static class GeneratorRelationshipInstanceSelectionCodes

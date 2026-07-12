@@ -18,6 +18,13 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     private int[] _attributeDeltaCultureSlotIds => Data.AttributeDeltaCultureSlotIds;
     private int[] _attributeDeltaCultureSlotPolarityCodes => Data.AttributeDeltaCultureSlotPolarityCodes;
     private ref int _attributeDeltaRuleCount => ref Data.AttributeDeltaRuleCount;
+    private int[] _tagRuleKindIds => Data.TagRuleKindIds;
+    private int[] _tagRuleTagIds => Data.TagRuleTagIds;
+    private int[] _tagRuleRelationshipKindIds => Data.TagRuleRelationshipKindIds;
+    private int[] _tagRuleDirectionCodes => Data.TagRuleDirectionCodes;
+    private float[] _tagRuleSetThresholds => Data.TagRuleSetThresholds;
+    private float[] _tagRuleClearThresholds => Data.TagRuleClearThresholds;
+    private ref int _tagRuleCount => ref Data.TagRuleCount;
 
     public EffectsProgramRuntime(EffectsProgramData data, EffectsProgramState state)
     {
@@ -89,6 +96,34 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         return slot;
     }
 
+    public int RegisterRelationshipTagRule(
+        int kindId,
+        int tagId,
+        int relationshipKindId,
+        int relationshipDirectionCode,
+        float setAtOrAbove,
+        float clearBelow)
+    {
+        ValidatePositive(kindId);
+        ValidatePositive(tagId);
+        ValidatePositive(relationshipKindId);
+        ValidatePositive(relationshipDirectionCode);
+        if (clearBelow > setAtOrAbove || _tagRuleCount + 1 >= _tagRuleKindIds.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _tagRuleCount++;
+        var slot = _tagRuleCount;
+        _tagRuleKindIds[slot] = kindId;
+        _tagRuleTagIds[slot] = tagId;
+        _tagRuleRelationshipKindIds[slot] = relationshipKindId;
+        _tagRuleDirectionCodes[slot] = relationshipDirectionCode;
+        _tagRuleSetThresholds[slot] = setAtOrAbove;
+        _tagRuleClearThresholds[slot] = clearBelow;
+        return slot;
+    }
+
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
@@ -97,9 +132,76 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             world,
             entityId =>
             {
-                ApplyAttributeDeltaEffectsForKind(simulation, entityId, tick, world.EntityKindId(entityId));
+                var kindId = world.EntityKindId(entityId);
+                ApplyAttributeDeltaEffectsForKind(simulation, entityId, tick, kindId);
+                ApplyTagRulesForKind(simulation, entityId, tick, kindId);
                 return true;
             });
+    }
+
+    private void ApplyTagRulesForKind(Simulation simulation, int entityId, int tick, int kindId)
+    {
+        for (var rule = 1; rule <= _tagRuleCount; rule++)
+        {
+            if (_tagRuleKindIds[rule] != kindId)
+            {
+                continue;
+            }
+
+            var sum = SummedRelationshipStrength(
+                simulation.World,
+                entityId,
+                _tagRuleRelationshipKindIds[rule],
+                _tagRuleDirectionCodes[rule]);
+            if (sum >= _tagRuleSetThresholds[rule])
+            {
+                _ = simulation.SetEntityTag(entityId, _tagRuleTagIds[rule], assigned: true, tick);
+            }
+            else if (sum < _tagRuleClearThresholds[rule])
+            {
+                _ = simulation.SetEntityTag(entityId, _tagRuleTagIds[rule], assigned: false, tick);
+            }
+        }
+    }
+
+    private static float SummedRelationshipStrength(
+        WorldState world,
+        int entityId,
+        int relationshipKindId,
+        int directionCode)
+    {
+        var sum = 0f;
+        if (directionCode is RelationshipMatchDirectionCodes.Outgoing or RelationshipMatchDirectionCodes.Either)
+        {
+            KernelQuery.ForEachRelatedEndpoint(
+                world,
+                entityId,
+                relationshipKindId,
+                minimumStrength: 0f,
+                outgoing: true,
+                (relationshipId, _) =>
+                {
+                    sum += world.RelationshipStrength(relationshipId);
+                    return true;
+                });
+        }
+
+        if (directionCode is RelationshipMatchDirectionCodes.Incoming or RelationshipMatchDirectionCodes.Either)
+        {
+            KernelQuery.ForEachRelatedEndpoint(
+                world,
+                entityId,
+                relationshipKindId,
+                minimumStrength: 0f,
+                outgoing: false,
+                (relationshipId, _) =>
+                {
+                    sum += world.RelationshipStrength(relationshipId);
+                    return true;
+                });
+        }
+
+        return sum;
     }
 
     private void ApplyAttributeDeltaEffectsForKind(Simulation simulation, int entityId, int tick, int kindId)

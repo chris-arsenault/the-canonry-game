@@ -133,7 +133,10 @@ internal sealed partial class GeneratorProgramRuntime
         int withoutOutgoingStart,
         int withoutOutgoingCount,
         int withoutIncomingStart,
-        int withoutIncomingCount)
+        int withoutIncomingCount,
+        int requiredTagBits = 0,
+        int withoutTagBits = 0,
+        int queryCultureId = 0)
     {
         var query = new SharedQuery(
             kindId,
@@ -146,7 +149,10 @@ internal sealed partial class GeneratorProgramRuntime
             withoutOutgoingStart,
             withoutOutgoingCount,
             withoutIncomingStart,
-            withoutIncomingCount);
+            withoutIncomingCount,
+            requiredTagBits,
+            withoutTagBits,
+            queryCultureId);
         var binding = new QueryBinding(
             actorId: 0,
             targetId,

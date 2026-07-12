@@ -17,6 +17,8 @@ public sealed record CompiledGeneratorRule(
     int MaxRuns,
     int CadenceTicks,
     int CadenceJitterTicks,
+    int TargetRequiredTagBits,
+    int TargetWithoutTagBits,
     IReadOnlyList<GeneratorTriggerRule> Triggers,
     IReadOnlyList<GeneratorBindingRule> SecondaryBindings,
     IReadOnlyList<GeneratorProducedEntityRule> ProducedEntities,
@@ -89,7 +91,10 @@ public sealed record GeneratorEntityQueryRule(
     bool SamePhysicalCultureComponentAsTarget,
     GeneratorProgramCultureMatch CultureMatch,
     IReadOnlyList<int> WithoutOutgoingRelationshipKindIds,
-    IReadOnlyList<int> WithoutIncomingRelationshipKindIds);
+    IReadOnlyList<int> WithoutIncomingRelationshipKindIds,
+    int RequiredTagBits = 0,
+    int WithoutTagBits = 0,
+    int CultureId = 0);
 
 public sealed record GeneratorCoverageRule(
     GeneratorProgramCoverageMode Mode,

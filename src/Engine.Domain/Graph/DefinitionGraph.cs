@@ -19,6 +19,7 @@ public sealed class DefinitionGraph
     public required IReadOnlyDictionary<DefinitionRelationshipId, DefinitionRelationshipNode> Relationships { get; init; }
     public required IReadOnlyDictionary<EntityKind, DefinitionLifecycleNode> Lifecycles { get; init; }
     public required IReadOnlyDictionary<DefinitionAttributeKey, DefinitionAttributeNode> Attributes { get; init; }
+    public IReadOnlySet<string> Tags { get; init; } = new HashSet<string>(StringComparer.Ordinal);
     public SemanticFlowGraph SemanticFlows { get; } = new();
 }
 
@@ -165,6 +166,15 @@ public interface IDefinitionGeneratorEffect
     string Describe();
 }
 
+public sealed class DefinitionSetBindingTagEffect(string bindingRef, string tag, bool assigned) : IDefinitionGeneratorEffect
+{
+    public string BindingRef { get; } = bindingRef;
+    public string Tag { get; } = tag;
+    public bool Assigned { get; } = assigned;
+
+    public string Describe() => $"set_binding_tag({BindingRef}, {Tag}, {Assigned})";
+}
+
 public sealed class DefinitionSetBindingHistoricalEffect(string bindingRef) : IDefinitionGeneratorEffect
 {
     public string BindingRef { get; } = bindingRef;
@@ -240,6 +250,8 @@ public sealed class DefinitionGeneratorTarget
 {
     public required EntityKind Kind { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
+    public IReadOnlySet<string>? RequiredTags { get; init; }
+    public IReadOnlySet<string>? WithoutTags { get; init; }
     public IReadOnlySet<string>? RequiredOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? RequiredIncomingRelationships { get; init; }
     public IReadOnlySet<string>? RequiredRelationships { get; init; }
@@ -307,6 +319,9 @@ public sealed class DefinitionRegionCoverage
 
 public sealed class DefinitionEntityQuery
 {
+    public IReadOnlySet<string>? RequiredTags { get; init; }
+    public IReadOnlySet<string>? WithoutTags { get; init; }
+    public string? Culture { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
     public bool AdjacentToTarget { get; init; }
     public bool SamePhysicalCultureComponentAsTarget { get; init; }

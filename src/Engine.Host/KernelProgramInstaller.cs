@@ -258,7 +258,9 @@ internal static partial class KernelProgramInstaller
             generator.PulseWeight,
             generator.MaxRuns,
             generator.CadenceTicks,
-            generator.CadenceJitterTicks);
+            generator.CadenceJitterTicks,
+            generator.TargetRequiredTagBits,
+            generator.TargetWithoutTagBits);
         InstallGeneratorTarget(context, generatorSlot, generator);
         InstallGeneratorBindings(context, generatorSlot, generator);
         InstallGeneratorProducedEntities(context, generatorSlot, generator);
@@ -377,18 +379,31 @@ internal static partial class KernelProgramInstaller
         foreach (var binding in generator.SecondaryBindings)
         {
             var query = binding.Query;
-            var bindingSlot = context.AddGeneratorSecondaryBinding(
-                generatorSlot,
-                binding.RefCode,
-                binding.KindId,
-                query?.AdjacentToTarget == true,
-                GeneratorCultureMatchCode(query?.CultureMatch ?? GeneratorProgramCultureMatch.Any),
-                query?.SamePhysicalCultureComponentAsTarget == true);
+            var bindingSlot = AddSecondaryBinding(context, generatorSlot, binding, query);
             if (query is not null)
             {
                 InstallGeneratorBindingQuery(context, bindingSlot, query);
             }
         }
+    }
+
+    private static int AddSecondaryBinding(
+        KernelConfigurationContext context,
+        int generatorSlot,
+        GeneratorBindingRule binding,
+        GeneratorEntityQueryRule? query)
+    {
+        var resolved = query ?? new GeneratorEntityQueryRule([], false, false, GeneratorProgramCultureMatch.Any, [], []);
+        return context.AddGeneratorSecondaryBinding(
+            generatorSlot,
+            binding.RefCode,
+            binding.KindId,
+            resolved.AdjacentToTarget,
+            GeneratorCultureMatchCode(resolved.CultureMatch),
+            resolved.SamePhysicalCultureComponentAsTarget,
+            resolved.RequiredTagBits,
+            resolved.WithoutTagBits,
+            resolved.CultureId);
     }
 
     private static void InstallGeneratorProducedEntities(KernelConfigurationContext context, int generatorSlot, CompiledGeneratorRule generator)
@@ -430,7 +445,10 @@ internal static partial class KernelProgramInstaller
             produced.SemanticPlacementMinRadius,
             produced.SemanticPlacementMaxRadius,
             GeneratorCulturePlacementCode(produced.CulturePlacement),
-            QuerySamePhysicalCultureComponentAsTarget(query));
+            QuerySamePhysicalCultureComponentAsTarget(query),
+            query?.RequiredTagBits ?? 0,
+            query?.WithoutTagBits ?? 0,
+            query?.CultureId ?? 0);
         InstallGeneratorProducedSubtypeChoices(context, producedSlot, produced);
         InstallGeneratorProducedPlacementTerrains(context, producedSlot, produced);
         if (query is not null)

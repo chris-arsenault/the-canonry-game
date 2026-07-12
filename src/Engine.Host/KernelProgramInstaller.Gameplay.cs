@@ -173,6 +173,17 @@ internal static partial class KernelProgramInstaller
 
     private static void ConfigureGameplayEffects(KernelConfigurationContext context, EffectsProgram program)
     {
+        foreach (var rule in program.RelationshipTagRules)
+        {
+            context.RegisterRelationshipTagRule(
+                rule.KindId,
+                rule.TagId,
+                rule.RelationshipKindId,
+                rule.RelationshipDirectionCode,
+                rule.SetAtOrAbove,
+                rule.ClearBelow);
+        }
+
         foreach (var effect in program.AttributeDeltaEffects)
         {
             context.RegisterAttributeDeltaEffect(

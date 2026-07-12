@@ -9,6 +9,14 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] PulseWeights = [];
     internal int[] CadenceTicks = [];
     internal int[] CadenceJitterTicks = [];
+    internal int[] TargetRequiredTagBits = [];
+    internal int[] TargetWithoutTagBits = [];
+    internal int[] BindingRequiredTagBits = [];
+    internal int[] BindingWithoutTagBits = [];
+    internal int[] BindingCultureIds = [];
+    internal int[] ProducedQueryRequiredTagBits = [];
+    internal int[] ProducedQueryWithoutTagBits = [];
+    internal int[] ProducedQueryCultureIds = [];
     internal int[] MaxRuns = [];
     internal int[] TargetSubtypeStarts = [];
     internal int[] TargetSubtypeCounts = [];
@@ -151,6 +159,8 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         PulseWeights = new int[generatorCapacity + 1];
         CadenceTicks = new int[generatorCapacity + 1];
         CadenceJitterTicks = new int[generatorCapacity + 1];
+        TargetRequiredTagBits = new int[generatorCapacity + 1];
+        TargetWithoutTagBits = new int[generatorCapacity + 1];
         MaxRuns = new int[generatorCapacity + 1];
         TargetSubtypeStarts = new int[generatorCapacity + 1];
         TargetSubtypeCounts = new int[generatorCapacity + 1];
@@ -243,6 +253,8 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         ProducedPlacementRefCodes = new int[itemCapacity + 1];
         ProducedCultureRefCodes = new int[itemCapacity + 1];
         ProducedFixedCultureIds = new int[itemCapacity + 1];
+        AllocateTagFilters(itemCapacity);
+
         ProducedCulturePlacementCodes = new int[itemCapacity + 1];
         ProducedCreateChances = new float[itemCapacity + 1];
         ProducedSubtypeChoiceStarts = new int[itemCapacity + 1];
@@ -290,8 +302,18 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         RelationshipStrengths = new float[itemCapacity + 1];
     }
 
+    private void AllocateTagFilters(int itemCapacity)
+    {
+        BindingRequiredTagBits = new int[itemCapacity + 1];
+        BindingWithoutTagBits = new int[itemCapacity + 1];
+        BindingCultureIds = new int[itemCapacity + 1];
+        ProducedQueryRequiredTagBits = new int[itemCapacity + 1];
+        ProducedQueryWithoutTagBits = new int[itemCapacity + 1];
+        ProducedQueryCultureIds = new int[itemCapacity + 1];
+    }
+
     public int ProgramId => KernelProgramCodes.Generators;
 
-    public int SchemaVersion => 16;
+    public int SchemaVersion => 17;
 
 }

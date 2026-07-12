@@ -15,6 +15,14 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _pulseWeights => Data.PulseWeights;
     private int[] _cadenceTicks => Data.CadenceTicks;
     private int[] _cadenceJitterTicks => Data.CadenceJitterTicks;
+    private int[] _targetRequiredTagBits => Data.TargetRequiredTagBits;
+    private int[] _targetWithoutTagBits => Data.TargetWithoutTagBits;
+    private int[] _bindingRequiredTagBits => Data.BindingRequiredTagBits;
+    private int[] _bindingWithoutTagBits => Data.BindingWithoutTagBits;
+    private int[] _bindingCultureIds => Data.BindingCultureIds;
+    private int[] _producedQueryRequiredTagBits => Data.ProducedQueryRequiredTagBits;
+    private int[] _producedQueryWithoutTagBits => Data.ProducedQueryWithoutTagBits;
+    private int[] _producedQueryCultureIds => Data.ProducedQueryCultureIds;
     private int[] _nextCadenceFireTicks => State.NextCadenceFireTicks;
     private int[] _maxRuns => Data.MaxRuns;
     private int[] _runCounts => State.RunCounts;
@@ -220,7 +228,9 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         int pulseWeight,
         int maxRuns,
         int cadenceTicks = 0,
-        int cadenceJitterTicks = 0)
+        int cadenceJitterTicks = 0,
+        int targetRequiredTagBits = 0,
+        int targetWithoutTagBits = 0)
     {
         ValidatePositive(generatorId);
         ValidatePositive(targetKindId);
@@ -244,6 +254,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _maxRuns[slot] = maxRuns;
         _cadenceTicks[slot] = cadenceTicks;
         _cadenceJitterTicks[slot] = cadenceJitterTicks;
+        _targetRequiredTagBits[slot] = targetRequiredTagBits;
+        _targetWithoutTagBits[slot] = targetWithoutTagBits;
         _targetSubtypeStarts[slot] = _subtypeCount + 1;
         _targetRequiredOutgoingStarts[slot] = _relationshipKindFilterCount + 1;
         _targetRequiredIncomingStarts[slot] = _relationshipKindFilterCount + 1;
@@ -363,36 +375,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _triggerCounts[generatorSlot]++;
     }
 
-    public int AddSecondaryBinding(
-        int generatorSlot,
-        int refCode,
-        int kindId,
-        int adjacentToTarget,
-        int cultureMatchCode,
-        int samePhysicalCultureComponentAsTarget = 0)
-    {
-        EnsureOpenGenerator(generatorSlot);
-        ValidatePositive(refCode);
-        ValidatePositive(kindId);
-        ValidatePositive(cultureMatchCode);
-        if (_bindingCount + 1 >= _bindingRefCodes.Length)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _bindingCount++;
-        _bindingRefCodes[_bindingCount] = refCode;
-        _bindingKindIds[_bindingCount] = kindId;
-        _bindingAdjacentToTarget[_bindingCount] = adjacentToTarget;
-        _bindingCultureMatchCodes[_bindingCount] = cultureMatchCode;
-        _bindingSamePhysicalCultureComponentAsTarget[_bindingCount] = samePhysicalCultureComponentAsTarget;
-        _bindingSubtypeStarts[_bindingCount] = _subtypeCount + 1;
-        _bindingWithoutOutgoingStarts[_bindingCount] = _relationshipKindFilterCount + 1;
-        _bindingWithoutIncomingStarts[_bindingCount] = _relationshipKindFilterCount + 1;
-        _bindingCounts[generatorSlot]++;
-        _openBindingSlot = _bindingCount;
-        return _bindingCount;
-    }
 
     public void AddBindingSubtype(int bindingSlot, int subtypeId)
     {
@@ -442,7 +424,10 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         int semanticPlacementMaxRadius = GeneratorProgramConstants.DefaultPlacementMaxRadius,
         int culturePlacementCode = GeneratorCulturePlacementCodes.PreferInheritedCulture,
         int querySamePhysicalCultureComponentAsTarget = 0,
-        int fixedCultureId = 0)
+        int fixedCultureId = 0,
+        int queryRequiredTagBits = 0,
+        int queryWithoutTagBits = 0,
+        int queryCultureId = 0)
     {
         EnsureOpenGenerator(generatorSlot);
         ValidateProducedIdentity(refCode, kindId, subtypeId, queryCultureMatchCode);
@@ -495,6 +480,9 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             semanticPlacementMaxRadius,
             culturePlacementCode,
             querySamePhysicalCultureComponentAsTarget);
+        _producedQueryRequiredTagBits[_producedCount] = queryRequiredTagBits;
+        _producedQueryWithoutTagBits[_producedCount] = queryWithoutTagBits;
+        _producedQueryCultureIds[_producedCount] = queryCultureId;
         _producedCounts[generatorSlot]++;
         _openProducedSlot = _producedCount;
         return _producedCount;

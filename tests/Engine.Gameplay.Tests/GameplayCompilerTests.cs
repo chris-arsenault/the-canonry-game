@@ -327,6 +327,8 @@ public sealed class GameplayCompilerTests
         public int ResolveCultureId(string culture) => throw new NotSupportedException();
         public int ResolveCultureSlotId(string? culture, string slot, string context) => throw new NotSupportedException();
         public int ResolveTraitId(string trait) => throw new NotSupportedException();
+
+        public int ResolveTagId(string tag) => throw new NotSupportedException();
         public bool TerrainExists(string terrain) => throw new NotSupportedException();
         public bool RelationshipExists(string relationship) => throw new NotSupportedException();
         public bool KindHasAttribute(string kind, string attribute) => throw new NotSupportedException();
@@ -354,6 +356,8 @@ public sealed class GameplayCompilerTests
         public int ResolveCultureId(string culture) => 80;
         public int ResolveCultureSlotId(string? culture, string slot, string context) => 90;
         public int ResolveTraitId(string trait) => 50;
+
+        public int ResolveTagId(string tag) => 60;
         public bool TerrainExists(string terrain) => true;
         public bool RelationshipExists(string relationship) => true;
         public bool KindHasAttribute(string kind, string attribute) => true;

@@ -36,6 +36,8 @@ public sealed class SemanticGeneratorTarget
 {
     public required EntityKind Kind { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
+    public IReadOnlySet<string>? RequiredTags { get; init; }
+    public IReadOnlySet<string>? WithoutTags { get; init; }
     public IReadOnlySet<string>? RequiredOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? RequiredIncomingRelationships { get; init; }
     public IReadOnlySet<string>? RequiredRelationships { get; init; }
@@ -113,6 +115,12 @@ public sealed class SemanticRegionCoverage
 public sealed class SemanticEntityQuery
 {
     public IReadOnlySet<string>? Subtypes { get; init; }
+    public IReadOnlySet<string>? RequiredTags { get; init; }
+    public IReadOnlySet<string>? WithoutTags { get; init; }
+
+    /// <summary>Restrict matches to an authored culture (stable name).</summary>
+    public string? Culture { get; init; }
+
     public bool AdjacentToTarget { get; init; }
     public bool SamePhysicalCultureComponentAsTarget { get; init; }
     public IReadOnlySet<string>? WithoutOutgoingRelationships { get; init; }
@@ -156,6 +164,26 @@ public sealed class SetBindingHistoricalEffect(string bindingRef) : ISemanticGen
     public string BindingRef { get; } = bindingRef;
 
     public string Describe() => $"set_binding_historical({BindingRef})";
+}
+
+/// <summary>Sets a discrete tag on a resolved binding (or "$target") after the generator fires.</summary>
+public sealed class SetBindingTagEffect(string bindingRef, string tag) : ISemanticGeneratorEffect
+{
+    public string BindingRef { get; } = bindingRef;
+
+    public string Tag { get; } = tag;
+
+    public string Describe() => $"set_binding_tag({BindingRef}, {Tag})";
+}
+
+/// <summary>Clears a discrete tag on a resolved binding (or "$target") after the generator fires.</summary>
+public sealed class ClearBindingTagEffect(string bindingRef, string tag) : ISemanticGeneratorEffect
+{
+    public string BindingRef { get; } = bindingRef;
+
+    public string Tag { get; } = tag;
+
+    public string Describe() => $"clear_binding_tag({BindingRef}, {Tag})";
 }
 
 /// <summary>Removes relationships of a kind from the target, or a selected relationship instance.</summary>
