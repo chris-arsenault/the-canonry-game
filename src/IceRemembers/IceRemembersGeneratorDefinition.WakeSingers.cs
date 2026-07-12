@@ -20,10 +20,10 @@ public static partial class IceRemembersGeneratorDefinition
 {
     private const float KillsSungMinimumPredationStrength = 0.50f;
     private const float KillsSungPredationSpend = -0.08f;
-    private const float GloryMinimumPredationStrength = 0.70f;
+    private const float GloryMinimumPredationStrength = 0.60f;
     private const float GloryPredationSpend = -0.20f;
     private const float ProvidesMinimumOfferingStrength = 0.50f;
-    private const float ProvidesOfferingSpend = -0.25f;
+    private const float ProvidesOfferingSpend = -0.35f;
     private const float NewSiteMinimumOfferingStrength = 0.75f;
     private const float NewSiteOfferingSpend = -0.40f;
     private const int VigilCadenceTicks = 600;
@@ -175,7 +175,7 @@ public static partial class IceRemembersGeneratorDefinition
         Produces =
         [
             RequiredWakeSingers("$calf", K.Orca, "scout", "$target", GeneratorCulturePlacement.CultureRoute),
-            OptionalWakeSingers("$elder", K.Orca, "elder", "$target", GeneratorCulturePlacement.CultureRoute, chance: 0.30f),
+            OptionalWakeSingers("$elder", K.Orca, "elder", "$target", GeneratorCulturePlacement.CultureRoute, chance: 0.20f),
         ],
         Relationships =
         [
@@ -190,7 +190,7 @@ public static partial class IceRemembersGeneratorDefinition
                 GeneratorRelationshipInstanceSelection.AllTargetRelationships),
         ],
         Triggers = TriggerOn(K.PointOfInterest),
-        PulseWeight = 12,
+        PulseWeight = 8,
     };
 
     private static SemanticGeneratorConfig PilgrimsFoundNewCurrents() => new()
@@ -258,8 +258,12 @@ public static partial class IceRemembersGeneratorDefinition
         [
             R("$target", "$prey", Rel.PreysOn, 0.55f, replaceExisting: true),
         ],
+        Effects =
+        [
+            new SetBindingTagEffect("$prey", "hunted"),
+        ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 7,
+        PulseWeight = 5,
     };
 
     private static SemanticGeneratorConfig AHeroFallsToTheDeep() => new()
@@ -389,6 +393,65 @@ public static partial class IceRemembersGeneratorDefinition
         CadenceTicks = AccordCadenceTicks,
         CadenceJitterTicks = AccordCadenceJitterTicks,
     };
+
+    private static SemanticGeneratorConfig TheHuntSettlesIn() => new()
+    {
+        Id = "the_hunt_settles_in",
+        Name = "The Hunt Settles In",
+        Description = "A hunted shore that stays hunted stops sleeping. The raids keep coming, the counts keep coming up short, and the settlement crosses from wariness into terror.",
+        CausalLimit = "Depends on a hunted settlement still under active predation; steps the terror ladder from hunted to terrified.",
+        Target = TargetWithIncomingTagged(K.Settlement, Rel.PreysOn, "hunted", "terrified"),
+        Produces = [],
+        Relationships = [],
+        Effects =
+        [
+            new SetBindingTagEffect("$target", "terrified"),
+        ],
+        Triggers = TriggerOn(K.Settlement),
+        PulseWeight = 6,
+    };
+
+    private static SemanticGeneratorConfig TheFearFades() => new()
+    {
+        Id = "the_fear_fades",
+        Name = "The Fear Fades",
+        Description = "When the pods stop coming, the shore slowly remembers ordinary life. The watch relaxes, the terror lifts, and the hunt becomes a story.",
+        CausalLimit = "Depends on a hunted settlement with no remaining predation; steps the terror ladder back down.",
+        Target = TargetWithoutIncomingTagged(K.Settlement, Rel.PreysOn, "hunted"),
+        Produces = [],
+        Relationships = [],
+        Effects =
+        [
+            new ClearBindingTagEffect("$target", "terrified"),
+            new ClearBindingTagEffect("$target", "hunted"),
+        ],
+        Triggers = TriggerOn(K.Settlement),
+        PulseWeight = 3,
+    };
+
+    private static SemanticGeneratorTarget TargetWithIncomingTagged(
+        EntityKind kind,
+        Rel required,
+        string requiredTag,
+        string withoutTag) =>
+        new()
+        {
+            Kind = kind,
+            RequiredTags = new HashSet<string>(StringComparer.Ordinal) { requiredTag },
+            WithoutTags = new HashSet<string>(StringComparer.Ordinal) { withoutTag },
+            RequiredIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(required) },
+        };
+
+    private static SemanticGeneratorTarget TargetWithoutIncomingTagged(
+        EntityKind kind,
+        Rel withoutRelationship,
+        string requiredTag) =>
+        new()
+        {
+            Kind = kind,
+            RequiredTags = new HashSet<string>(StringComparer.Ordinal) { requiredTag },
+            WithoutIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(withoutRelationship) },
+        };
 
     private static string C(IceRemembersCulture culture) => culture.ToDomainName();
 

@@ -38,7 +38,7 @@ public static partial class IceRemembersDefinition
             MovementProfiles = IceRemembersMovementProfiles.DomainProfiles,
             Cultures = CreateCultures(),
             CulturePower = CreateCulturePowerDefinition(),
-            Tags = ["terrified", "bereaved", "fervent"],
+            Tags = ["hunted", "terrified", "bereaved", "fervent"],
             Gameplay = CreateGameplayDefinition(),
             Semantics = semantics,
             Chronicle = CreateChronicleDefinition(),
@@ -155,7 +155,7 @@ public static partial class IceRemembersDefinition
             new() { Name = L(Rel.PracticedBy), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = asset, ValidTargetCategories = agency, CullThreshold = 0.05f, Maintenance = AbilityPracticeMaintenance() },
             new() { Name = L(Rel.TaughtBy), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = agency, ValidTargetCategories = agency, CullThreshold = 0.05f, Maintenance = AgencyBondMaintenance() },
             new() { Name = L(Rel.OfferedTo), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = agency, ValidTargetCategories = spatial, CullThreshold = 0.02f, Maintenance = OfferingMaintenance() },
-            new() { Name = L(Rel.PreysOn), Polarity = RelationshipPolarity.Negative, ValidSourceCategories = agency, ValidTargetCategories = spatial, CullThreshold = 0.03f, Maintenance = PredationMaintenance() },
+            new() { Name = L(Rel.PreysOn), Polarity = RelationshipPolarity.Negative, ValidSourceCategories = agency, ValidTargetCategories = spatialOrAsset, CullThreshold = 0.03f, Maintenance = PredationMaintenance() },
             new() { Name = L(Rel.ConsignedTo), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = asset, ValidTargetCategories = spatial, IsExclusive = true, CullThreshold = 0.02f, Maintenance = SemanticBondMaintenance() },
         ];
     }
@@ -290,15 +290,6 @@ public static partial class IceRemembersDefinition
         return GameplayEffectSet.From(
             effects,
             [
-                new RelationshipTagRuleConfig
-                {
-                    Kind = K.Settlement.Value,
-                    Tag = "terrified",
-                    RelationshipKind = L(Rel.PreysOn),
-                    RelationshipDirection = EffectRelationshipDirection.Incoming,
-                    SetAtOrAbove = 0.6f,
-                    ClearBelow = 0.3f,
-                },
                 new RelationshipTagRuleConfig
                 {
                     Kind = K.Faction.Value,

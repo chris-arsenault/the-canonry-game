@@ -71,6 +71,12 @@ public static partial class IceRemembersGeneratorDefinition
         GloryToTheDeadGod(),
         CounterOffensive(),
         TheAccordConvenes(),
+        TheHuntSettlesIn(),
+        TheFearFades(),
+        MartyrsAreWitnessed(),
+        WardensRiseWhereTheHuntBites(),
+        MonstersStalkTheMarches(),
+        PodsHuntTheConvoys(),
     ];
 
     private static string L(Rel relationship) => relationship.ToDomainName();
