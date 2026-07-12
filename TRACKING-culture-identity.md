@@ -74,6 +74,41 @@ edge equilibrium or raise renewal; allow offering edges to re-strengthen on
 repeat fires (ReplaceExistingOutgoing); one-generation undermarket chains
 (target WithoutOutgoing founded_from).
 
+## Predation Round (tags + predation + escalation) — IMPLEMENTED
+
+Approved redesign after the Wake round instability (commits `6608bc4`,
+`57b6624`, `e61410d` + threshold tuning). Engine: tag/status system v1
+(catalog, per-entity bits, threshold effect rules with hysteresis, generator
+tag targeting/effects, entity_tag_events telemetry). Content: `preys_on`
+(agency->spatial) as the ambient conflict substrate acting on the unnamed
+masses; named victims only via the rare a_hero_falls branch; escalation
+generators (glory_to_the_dead_god, counter_offensive) and the Accord
+Convenes cadence; devotion tuning (Provides 0.5, pilgrims 0.75, offering
+edges re-strengthen, second elder); undermarkets can no longer parent
+undermarkets.
+
+**Evidence (`predation-escalation-2x25k-r2/b-r2/r3-20260712`, 4 seeds +
+tuned rerun):**
+
+- The world is multi-polar for the first time: final populations across
+  seeds — Aurora {40, 13, 66, 22}, Nightshelf {24, 32, 38, 29}, Wake-Singers
+  {54, 77, 22, 86}. Different cultures lead different runs; the NS runaway
+  is fixed (undermarket lock); the war-contagion Aurora collapse is fixed
+  (no seeded war).
+- Devotion economy functions: provides/relics/vigils/descents/pods all fire;
+  Wake led by Wake-Singers in 3 of 4 seeds; each culture leads its own axis
+  in the healthiest world (26000: Aurora witness 55.6, NS shadow 64.1).
+- Tags function mechanically: fervent cycles on the WS faction, bereaved
+  sets on hero-fall, terrified sets/clears after tuning (0.6/0.3).
+- Remaining gaps, deliberately left for design review rather than more
+  tuning: (1) escalation generators never fired — their coincidence
+  requirements (terrified+bereaved on one settlement; fervent + predation
+  >= 0.7 concurrently) exceed what the bootstrap horizon produces, while
+  wars (2-11 active) still arise from the pre-existing rivalry/monster
+  paths; (2) Aurora remains fragile on some seeds (13-22); (3) Wake-Singer
+  amplitude runs high (54-107) — the devotion+predation engine may need a
+  damper or the amplitude may be acceptable ebb-and-flow at this horizon.
+
 Horizon framing: these 25k-tick runs test the bootstrap-into-steady-state
 phase only. Real play (SimCity mental model) extends 4x-50x, so low absolute
 map coverage is expected; judge shape, trend, and steady-state stability, not

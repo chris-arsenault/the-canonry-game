@@ -20,7 +20,7 @@ public static partial class IceRemembersGeneratorDefinition
 {
     private const float KillsSungMinimumPredationStrength = 0.50f;
     private const float KillsSungPredationSpend = -0.08f;
-    private const float GloryMinimumPredationStrength = 0.85f;
+    private const float GloryMinimumPredationStrength = 0.70f;
     private const float GloryPredationSpend = -0.20f;
     private const float ProvidesMinimumOfferingStrength = 0.50f;
     private const float ProvidesOfferingSpend = -0.25f;

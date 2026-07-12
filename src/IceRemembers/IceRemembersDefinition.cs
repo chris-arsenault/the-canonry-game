@@ -296,8 +296,8 @@ public static partial class IceRemembersDefinition
                     Tag = "terrified",
                     RelationshipKind = L(Rel.PreysOn),
                     RelationshipDirection = EffectRelationshipDirection.Incoming,
-                    SetAtOrAbove = 0.9f,
-                    ClearBelow = 0.45f,
+                    SetAtOrAbove = 0.6f,
+                    ClearBelow = 0.3f,
                 },
                 new RelationshipTagRuleConfig
                 {
