@@ -199,6 +199,7 @@ public static class IceRemembersEntities
         MonsterEntity.Definition,
         TransportEntity.Definition,
         OccurrenceEntity.Definition,
+        CanonEntity.Definition,
     ];
 
     private static readonly Dictionary<EntityKind, IceRemembersEntityDefinition> ByKind =

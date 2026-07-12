@@ -13,6 +13,7 @@ public enum IceRemembersAttributeId
     Containment,
     Integrity,
     Momentum,
+    Observance,
 }
 
 public static class IceRemembersAttributeIdExtensions
@@ -30,6 +31,7 @@ public static class IceRemembersAttributeIdExtensions
         "containment",
         "integrity",
         "momentum",
+        "observance",
     ];
 
     public static string ToDomainName(this IceRemembersAttributeId attribute)
@@ -66,6 +68,8 @@ public enum IceRemembersTraitId
     TransportHiddenFault,
     OccurrenceGatheringForce,
     OccurrenceGrindingAttrition,
+    CanonDeepRooted,
+    CanonHollowLetter,
 }
 
 public static class IceRemembersTraitIdExtensions
@@ -95,6 +99,8 @@ public static class IceRemembersTraitIdExtensions
         "transport_hidden_fault",
         "occurrence_gathering_force",
         "occurrence_grinding_attrition",
+        "canon_deep_rooted",
+        "canon_hollow_letter",
     ];
 
     public static string ToDomainName(this IceRemembersTraitId trait)
@@ -583,6 +589,7 @@ public enum IceRemembersGambitId
     SettlementRaisesTheSpire,
     SettlementDigsTheGallery,
     FactionDigsTheGallery,
+    CanonDeepensTheHolding,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -624,6 +631,7 @@ public static class IceRemembersGambitIdExtensions
         "settlement_raises_the_spire",
         "settlement_digs_the_gallery",
         "faction_digs_the_gallery",
+        "canon_deepens_the_holding",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)

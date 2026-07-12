@@ -35,6 +35,7 @@ public static partial class IceRemembersDefinition
         [K.Monster] = GambitId.MonsterDeepensTheHolding,
         [K.Transport] = GambitId.TransportDeepensTheHolding,
         [K.Occurrence] = GambitId.OccurrenceDeepensTheHolding,
+        [K.Canon] = GambitId.CanonDeepensTheHolding,
     };
 
     private static List<GambitDefinition> CreateGambits()

@@ -199,6 +199,26 @@ is not a cap. Next lever if a wider coexistence band is wanted: raise
 strain modestly (delta or lower supportScale) and re-sweep; the mechanism
 itself is proven.
 
+## Canons: Named Law As Semantic Coverage — CORE LANDED
+
+Plane-divergence analysis (capacity-sweep run 25000 + code audit): culture
+mass/terrain/signals at parity; semantic roads thin (11:1); **named
+coverage absent on the semantic plane (19 physical owners vs zero)** —
+the substrate was plane-aware and simply never used. Feature: the `canon`
+kind (Spatial, PrimaryPlane.Semantic; subtypes custom/taboo/accord/
+doctrine; health "observance"; Deep-Rooted/Hollow Letter traits; synthesized
+names in the "The Long Dark Edict" style). Seeded: The Flipper Accord
+(accord, radius-3 semantic jurisdiction) and The Unspoken Silence
+(Nightshelf taboo) as the first named regions of idea-space.
+
+Remaining, per the approved proposal (next session): generator sources
+(accords founded when wars end, taboos from the Deep Conclave, doctrines
+from charged sites, customs from the Accord tribunal); coverage-plane
+plumbing for generator-produced canons (GeneratorCoverageRule is
+physical-implied); the coverage-membership effect condition ("living under
+the law"); semantic-map UI verification; docs. Balance guard: sweep after
+generator sources land.
+
 Horizon framing: these 25k-tick runs test the bootstrap-into-steady-state
 phase only. Real play (SimCity mental model) extends 4x-50x, so low absolute
 map coverage is expected; judge shape, trend, and steady-state stability, not

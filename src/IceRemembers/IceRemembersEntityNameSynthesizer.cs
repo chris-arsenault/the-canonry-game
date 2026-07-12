@@ -220,8 +220,32 @@ public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNamesSy
             var value when IsKind(value, IceRemembersKinds.Faction.Value) => static (_, rng) => $"The {Pick(FactionAdjectives, rng)} {Pick(FactionNouns, rng)}",
             var value when IsKind(value, IceRemembersKinds.Artifact.Value) => static (_, rng) => BuildArtifactName(rng),
             var value when IsKind(value, IceRemembersKinds.Region.Value) => BuildRegionName,
+            var value when IsKind(value, IceRemembersKinds.Canon.Value) => BuildCanonName,
             _ => null,
         };
+
+    private static readonly string[] CanonAdjectives =
+    [
+        "Long Dark", "Unspoken", "Drowned", "First-Light", "Sealed", "Hollow",
+        "Threefold", "Last Catch", "Iron-Quiet", "Wake-Bound", "Thawborn",
+    ];
+
+    private static readonly string[] CanonTabooNouns = ["Taboo", "Silence", "Prohibition"];
+    private static readonly string[] CanonAccordNouns = ["Accord", "Compact", "Truce"];
+    private static readonly string[] CanonDoctrineNouns = ["Doctrine", "Teaching", "Litany"];
+    private static readonly string[] CanonCustomNouns = ["Edict", "Custom", "Observance"];
+
+    private static string BuildCanonName(string subtype, Random rng)
+    {
+        var nouns = subtype switch
+        {
+            "taboo" => CanonTabooNouns,
+            "accord" => CanonAccordNouns,
+            "doctrine" => CanonDoctrineNouns,
+            _ => CanonCustomNouns,
+        };
+        return $"The {Pick(CanonAdjectives, rng)} {Pick(nouns, rng)}";
+    }
 
     private static bool TrySynthesizeNameForge(
         ProjectionEntityNameContext context,

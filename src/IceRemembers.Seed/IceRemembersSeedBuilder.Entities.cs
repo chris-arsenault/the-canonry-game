@@ -70,6 +70,7 @@ internal static partial class IceRemembersSeedBuilder
         CreateLeadershipRelationships(seed, factions);
         CreateCanonicalLinks(seed, random, takenPhysical, takenSemantic, factions);
         CreateNightshelfCustodyAssets(seed, random, takenPhysical, takenSemantic);
+        CreateSeedCanons(seed, random, takenPhysical, takenSemantic, factions);
     }
 
 
