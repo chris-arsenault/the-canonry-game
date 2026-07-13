@@ -62,7 +62,7 @@ internal sealed class KernelTelemetryRecorder : IDisposable
 
     public int RunId { get; }
 
-    public TelemetryBatch Batch { get; } = new();
+    public TelemetryBatch Batch { get; private set; } = new();
 
     internal TelemetryEventProjection EventProjection { get; }
 
@@ -102,6 +102,16 @@ internal sealed class KernelTelemetryRecorder : IDisposable
         {
             EventProjection.RecordEntitySnapshots(tick);
         }
+    }
+
+    public TelemetryBatch DetachBatch()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        DrainAvailable();
+        var completed = Batch;
+        Batch = new TelemetryBatch();
+        EventProjection.ReplaceBatch(Batch);
+        return completed;
     }
 
     private static bool ShouldRecordSnapshot(int tick, int cadence) =>

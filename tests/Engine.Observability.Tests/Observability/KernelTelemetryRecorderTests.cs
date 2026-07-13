@@ -8,6 +8,50 @@ using Engine.Projection;
 public sealed class KernelTelemetryRecorderTests
 {
     [Fact]
+    public void Recorder_DetachBatchPreservesProjectionStateAndRedirectsNewRows()
+    {
+        var log = new KernelEventLog(capacity: 64);
+        using var recorder = new KernelTelemetryRecorder(log, "run-detach", seed: 42, domain: "test");
+        Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
+            Tick: 1,
+            WorldVersion: 1,
+            EntityId: 100,
+            SourceCodeId: 5,
+            KindId: 1,
+            SubtypeId: 2,
+            CultureId: 3,
+            PhysicalQ: 0,
+            PhysicalR: 0,
+            SemanticQ: 0,
+            SemanticR: 0,
+            SemanticS: 0))));
+        recorder.RecordSnapshots(tick: 1);
+
+        var completed = recorder.DetachBatch();
+        Assert.True(log.TryWrite(KernelEvent.From(new EntityMovedKernelEvent(
+            Tick: 2,
+            WorldVersion: 2,
+            EntityId: 100,
+            SourceCodeId: 5,
+            PlaneCode: PlaneCodes.Physical,
+            FromQ: 0,
+            FromR: 0,
+            FromS: 0,
+            ToQ: 1,
+            ToR: 0,
+            ToS: 0,
+            FromZ: 0,
+            ToZ: 0))));
+        recorder.RecordSnapshots(tick: 2);
+
+        Assert.Single(completed.EntityEvents);
+        Assert.Empty(completed.MovementEvents);
+        Assert.Single(recorder.Batch.MovementEvents);
+        Assert.Single(recorder.Batch.EntitySnapshots);
+        Assert.Equal(1, recorder.Batch.EntitySnapshots[0].PhysicalQ);
+    }
+
+    [Fact]
     public void Recorder_ProjectsPrimitiveRowsFromEventLogWithSymbolCatalog()
     {
         var log = new KernelEventLog(capacity: 64);

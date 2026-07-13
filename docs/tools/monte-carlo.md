@@ -7,6 +7,27 @@ Use Monte Carlo output for simulation behavior and balance evidence. For CPU
 hotspot analysis, use [performance testing](../methodology/performance-testing.md)
 instead of adding profiling telemetry to the Monte Carlo batch.
 
+## Execution Model
+
+Runs within one `--runs` batch execute sequentially. The kernel remains a
+single-writer simulation: tick systems must not mutate `WorldState` from worker
+threads.
+
+Full telemetry runs can use a second core for export. At each flush boundary,
+the simulation detaches ownership of the completed `TelemetryBatch` and
+continues with a fresh batch while a dedicated worker appends the detached batch
+to DuckDB. The handoff is bounded to one in-flight batch, so export cannot build
+an unbounded memory queue. The worker owns the DuckDB connection, the reported
+run elapsed time includes the final writer drain, and Parquet export begins only
+after all batches have been appended.
+
+Safe ways to use more cores are therefore isolated work outside the mutable
+tick transaction: the bounded telemetry writer and, when independently
+orchestrated, separate Monte Carlo processes. Parallelizing entity or system
+loops inside a tick is not safe without a snapshot/intent/ordered-commit design
+because same-tick reads, RNG order, and shared state mutations are observable
+simulation behavior.
+
 ## Registered Runs
 
 Every new batch requires a unique human-readable run id:

@@ -4,7 +4,9 @@ using System.Collections.Concurrent;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using System.Text;
+using System.Threading.Channels;
 
 using DuckDB.NET.Data;
 
@@ -52,6 +54,17 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         if (_pendingRows >= _flushRowThreshold)
         {
             Flush();
+        }
+    }
+
+    public void AppendOwned(TelemetryBatch batch)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+        ThrowIfDisposed();
+        Flush();
+        if (TelemetryBatchExtensions.CountRows(batch) > 0)
+        {
+            AppendBatch(batch);
         }
     }
 
@@ -201,60 +214,65 @@ internal sealed class DuckDbTelemetryStore : IDisposable
 
     private void AppendPending()
     {
-        AppendIdentityTables();
-        AppendProcessTables();
-        AppendWorldTables();
+        AppendBatch(_pending);
     }
 
-    private void AppendIdentityTables()
+    private void AppendBatch(TelemetryBatch batch)
     {
-        AppendTable("symbols", _pending.Symbols);
-        AppendTable("entity_name_symbols", _pending.EntityNameSymbols);
-        AppendTable("runs", _pending.Runs);
-        AppendTable("tick_snapshots", _pending.TickSnapshots);
-        AppendTable("kind_snapshots", _pending.KindSnapshots);
-        AppendTable("entity_snapshots", _pending.EntitySnapshots);
-        AppendTable("entity_attribute_snapshots", _pending.EntityAttributeSnapshots);
-        AppendTable("entity_events", _pending.EntityEvents);
-        AppendTable("experiment_variants", _pending.ExperimentVariants);
+        AppendIdentityTables(batch);
+        AppendProcessTables(batch);
+        AppendWorldTables(batch);
     }
 
-    private void AppendProcessTables()
+    private void AppendIdentityTables(TelemetryBatch batch)
     {
-        AppendTable("trace_events", _pending.TraceEvents);
-        AppendTable("attribute_events", _pending.AttributeEvents);
-        AppendTable("movement_events", _pending.MovementEvents);
+        AppendTable("symbols", batch.Symbols);
+        AppendTable("entity_name_symbols", batch.EntityNameSymbols);
+        AppendTable("runs", batch.Runs);
+        AppendTable("tick_snapshots", batch.TickSnapshots);
+        AppendTable("kind_snapshots", batch.KindSnapshots);
+        AppendTable("entity_snapshots", batch.EntitySnapshots);
+        AppendTable("entity_attribute_snapshots", batch.EntityAttributeSnapshots);
+        AppendTable("entity_events", batch.EntityEvents);
+        AppendTable("experiment_variants", batch.ExperimentVariants);
     }
 
-    private void AppendWorldTables()
+    private void AppendProcessTables(TelemetryBatch batch)
     {
-        AppendTable("relationship_events", _pending.RelationshipEvents);
-        AppendTable("relationship_snapshots", _pending.RelationshipSnapshots);
-        AppendTable("gambit_events", _pending.GambitEvents);
-        AppendTable("generator_events", _pending.GeneratorEvents);
-        AppendTable("generator_target_evaluations", _pending.GeneratorTargetEvaluations);
-        AppendTable("generator_outputs", _pending.GeneratorOutputs);
-        AppendTable("generator_state_snapshots", _pending.GeneratorStateSnapshots);
-        AppendTable("generated_entities", _pending.GeneratedEntities);
-        AppendTable("lifecycle_events", _pending.LifecycleEvents);
-        AppendTable("lifecycle_reason_events", _pending.LifecycleReasonEvents);
-        AppendTable("map_generation_events", _pending.MapGenerationEvents);
-        AppendTable("map_cell_events", _pending.MapCellEvents);
-        AppendTable("cell_influence_events", _pending.CellInfluenceEvents);
-        AppendTable("cell_culture_influence_events", _pending.CellCultureInfluenceEvents);
-        AppendTable("culture_slot_occupancy_events", _pending.CultureSlotOccupancyEvents);
-        AppendTable("minor_actor_verb_events", _pending.MinorActorVerbEvents);
-        AppendTable("culture_field_component_snapshots", _pending.CultureFieldComponentSnapshots);
-        AppendTable("culture_power_snapshots", _pending.CulturePowerSnapshots);
-        AppendTable("entity_tag_events", _pending.EntityTagEvents);
-        AppendTable("culture_entity_field_snapshots", _pending.CultureEntityFieldSnapshots);
-        AppendTable("culture_entity_birth_field_events", _pending.CultureEntityBirthFieldEvents);
-        AppendTable("culture_influence_action_field_events", _pending.CultureInfluenceActionFieldEvents);
-        AppendTable("cell_road_events", _pending.CellRoadEvents);
-        AppendTable("map_snapshots", _pending.MapSnapshots);
-        AppendTable("coverage_snapshots", _pending.CoverageSnapshots);
-        AppendTable("coverage_terrain_snapshots", _pending.CoverageTerrainSnapshots);
-        AppendTable("placement_events", _pending.PlacementEvents);
+        AppendTable("trace_events", batch.TraceEvents);
+        AppendTable("attribute_events", batch.AttributeEvents);
+        AppendTable("movement_events", batch.MovementEvents);
+    }
+
+    private void AppendWorldTables(TelemetryBatch batch)
+    {
+        AppendTable("relationship_events", batch.RelationshipEvents);
+        AppendTable("relationship_snapshots", batch.RelationshipSnapshots);
+        AppendTable("gambit_events", batch.GambitEvents);
+        AppendTable("generator_events", batch.GeneratorEvents);
+        AppendTable("generator_target_evaluations", batch.GeneratorTargetEvaluations);
+        AppendTable("generator_outputs", batch.GeneratorOutputs);
+        AppendTable("generator_state_snapshots", batch.GeneratorStateSnapshots);
+        AppendTable("generated_entities", batch.GeneratedEntities);
+        AppendTable("lifecycle_events", batch.LifecycleEvents);
+        AppendTable("lifecycle_reason_events", batch.LifecycleReasonEvents);
+        AppendTable("map_generation_events", batch.MapGenerationEvents);
+        AppendTable("map_cell_events", batch.MapCellEvents);
+        AppendTable("cell_influence_events", batch.CellInfluenceEvents);
+        AppendTable("cell_culture_influence_events", batch.CellCultureInfluenceEvents);
+        AppendTable("culture_slot_occupancy_events", batch.CultureSlotOccupancyEvents);
+        AppendTable("minor_actor_verb_events", batch.MinorActorVerbEvents);
+        AppendTable("culture_field_component_snapshots", batch.CultureFieldComponentSnapshots);
+        AppendTable("culture_power_snapshots", batch.CulturePowerSnapshots);
+        AppendTable("entity_tag_events", batch.EntityTagEvents);
+        AppendTable("culture_entity_field_snapshots", batch.CultureEntityFieldSnapshots);
+        AppendTable("culture_entity_birth_field_events", batch.CultureEntityBirthFieldEvents);
+        AppendTable("culture_influence_action_field_events", batch.CultureInfluenceActionFieldEvents);
+        AppendTable("cell_road_events", batch.CellRoadEvents);
+        AppendTable("map_snapshots", batch.MapSnapshots);
+        AppendTable("coverage_snapshots", batch.CoverageSnapshots);
+        AppendTable("coverage_terrain_snapshots", batch.CoverageTerrainSnapshots);
+        AppendTable("placement_events", batch.PlacementEvents);
     }
 
     private void AppendTable<T>(string tableName, IReadOnlyCollection<T> rows)
@@ -273,6 +291,152 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         SqlFileHelpers.Execute(
             _connection,
             $"COPY {SqlFileHelpers.QuoteIdentifier(tableName)} TO {SqlFileHelpers.QuoteString(parquetPath)} (FORMAT PARQUET);");
+    }
+
+    private void ThrowIfDisposed()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+    }
+}
+
+internal sealed class BufferedDuckDbTelemetryWriter : IDisposable
+{
+    private readonly string _outputDirectory;
+    private readonly Channel<TelemetryBatch> _batches;
+    private readonly SemaphoreSlim _inFlight = new(1, 1);
+    private readonly Task _writerTask;
+    private ExceptionDispatchInfo? _failure;
+    private bool _completed;
+    private bool _exported;
+    private bool _disposed;
+
+    public BufferedDuckDbTelemetryWriter(string outputDirectory)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
+        _outputDirectory = outputDirectory;
+        _batches = Channel.CreateBounded<TelemetryBatch>(new BoundedChannelOptions(1)
+        {
+            SingleReader = true,
+            SingleWriter = true,
+            FullMode = BoundedChannelFullMode.Wait,
+        });
+        _writerTask = Task.Run(WriteBatchesAsync);
+    }
+
+    public void Append(TelemetryBatch batch)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+        ThrowIfDisposedOrCompleted();
+        ThrowIfFailed();
+        if (TelemetryBatchExtensions.CountRows(batch) == 0)
+        {
+            return;
+        }
+
+        _inFlight.Wait();
+        try
+        {
+            ThrowIfFailed();
+            _batches.Writer.WriteAsync(batch).AsTask().GetAwaiter().GetResult();
+        }
+        catch
+        {
+            _inFlight.Release();
+            throw;
+        }
+    }
+
+    public void WaitForIdle()
+    {
+        ThrowIfDisposedOrCompleted();
+        ThrowIfFailed();
+        _inFlight.Wait();
+        _inFlight.Release();
+        ThrowIfFailed();
+    }
+
+    public void CompleteAndExport()
+    {
+        ThrowIfDisposed();
+        CompleteWriter();
+        if (_exported)
+        {
+            return;
+        }
+
+        using var store = new DuckDbTelemetryStore(_outputDirectory);
+        store.ExportParquet();
+        _exported = true;
+    }
+
+    public void Dispose()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        CompleteWriter();
+        _disposed = true;
+        _inFlight.Dispose();
+    }
+
+    private async Task WriteBatchesAsync()
+    {
+        try
+        {
+            using var store = new DuckDbTelemetryStore(_outputDirectory);
+            await foreach (var batch in _batches.Reader.ReadAllAsync().ConfigureAwait(false))
+            {
+                try
+                {
+                    store.AppendOwned(batch);
+                }
+                finally
+                {
+                    _inFlight.Release();
+                }
+            }
+
+            store.Flush();
+        }
+        catch (Exception ex)
+        {
+            _failure = ExceptionDispatchInfo.Capture(ex);
+            _batches.Writer.TryComplete(ex);
+            if (_inFlight.CurrentCount == 0)
+            {
+                _inFlight.Release();
+            }
+
+            throw;
+        }
+    }
+
+    private void CompleteWriter()
+    {
+        if (!_completed)
+        {
+            _completed = true;
+            _batches.Writer.TryComplete();
+        }
+
+        _writerTask.GetAwaiter().GetResult();
+        ThrowIfFailed();
+    }
+
+    private void ThrowIfFailed()
+    {
+        _failure?.Throw();
+    }
+
+    private void ThrowIfDisposedOrCompleted()
+    {
+        ThrowIfDisposed();
+        if (_completed)
+        {
+            throw new InvalidOperationException("Telemetry writer is already complete.");
+        }
     }
 
     private void ThrowIfDisposed()
@@ -505,6 +669,7 @@ internal static class DuckDbAppenderWriter
                 break;
         }
     }
+
 }
 
 internal static class DuckDbRowSchema

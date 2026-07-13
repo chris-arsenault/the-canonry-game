@@ -133,10 +133,10 @@ internal static class MonteCarloCli
             return null;
         }
 
-        using var stateStore = new DuckDbTelemetryStore(options.OutputDirectory);
+        using var stateStore = new BufferedDuckDbTelemetryWriter(options.OutputDirectory);
 
         ExecuteRuns(options, stateStore);
-        stateStore.ExportParquet();
+        stateStore.CompleteAndExport();
         Console.WriteLine($"wrote Monte Carlo telemetry: {Path.GetFullPath(options.OutputDirectory)}");
 
         if (!options.ShouldAnalyze)
@@ -149,7 +149,7 @@ internal static class MonteCarloCli
         return report;
     }
 
-    private static void ExecuteRuns(MonteCarloOptions options, DuckDbTelemetryStore stateStore)
+    private static void ExecuteRuns(MonteCarloOptions options, BufferedDuckDbTelemetryWriter stateStore)
     {
         for (var runIndex = 0; runIndex < options.Runs; runIndex++)
         {
@@ -204,7 +204,7 @@ internal static class MonteCarloCli
         MonteCarloOptions options,
         string runId,
         int seed,
-        DuckDbTelemetryStore stateStore)
+        BufferedDuckDbTelemetryWriter stateStore)
     {
         ArgumentNullException.ThrowIfNull(run);
         ArgumentNullException.ThrowIfNull(options);
@@ -227,6 +227,7 @@ internal static class MonteCarloCli
             ref rowsWritten);
         var summary = summaryRecorder.Snapshot();
         rowsWritten += FlushStateTelemetry(stateRecorder, stateStore);
+        stateStore.WaitForIdle();
         elapsed.Stop();
 
         return new MonteCarloRunExecutionResult(
@@ -277,7 +278,7 @@ internal static class MonteCarloCli
         MonteCarloOptions options,
         MonteCarloRunSummaryRecorder summaryRecorder,
         KernelTelemetryRecorder stateRecorder,
-        DuckDbTelemetryStore stateStore,
+        BufferedDuckDbTelemetryWriter stateStore,
         ISet<int> boundaryBirthEntityIds,
         ref long rowsWritten)
     {
@@ -300,16 +301,16 @@ internal static class MonteCarloCli
         return processedTicks;
     }
 
-    private static long FlushStateTelemetry(KernelTelemetryRecorder recorder, DuckDbTelemetryStore store)
+    private static long FlushStateTelemetry(KernelTelemetryRecorder recorder, BufferedDuckDbTelemetryWriter store)
     {
         recorder.DrainAvailable();
-        var rowsWritten = CountRows(recorder.Batch);
-        store.Append(recorder.Batch);
-        recorder.Batch.ClearRows();
+        var completedBatch = recorder.DetachBatch();
+        var rowsWritten = CountRows(completedBatch);
+        store.Append(completedBatch);
         return rowsWritten;
     }
 
-    private static long FlushStateTelemetryIfNeeded(KernelTelemetryRecorder recorder, DuckDbTelemetryStore store)
+    private static long FlushStateTelemetryIfNeeded(KernelTelemetryRecorder recorder, BufferedDuckDbTelemetryWriter store)
     {
         var rows = CountRows(recorder.Batch);
         if (rows < TelemetryFlushRowThreshold)
@@ -317,8 +318,7 @@ internal static class MonteCarloCli
             return 0L;
         }
 
-        store.Append(recorder.Batch);
-        recorder.Batch.ClearRows();
+        store.Append(recorder.DetachBatch());
         return rows;
     }
 

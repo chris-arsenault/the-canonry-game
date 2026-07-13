@@ -14,8 +14,21 @@ internal sealed partial class TelemetryEventProjection
         return state;
     }
 
-    private float ObservedHealth(ObservedEntityProjection entity) =>
-        entity.Attributes.Count == 0 ? 0f : entity.Attributes.Values.Average();
+    private static float ObservedHealth(ObservedEntityProjection entity)
+    {
+        if (entity.Attributes.Count == 0)
+        {
+            return 0f;
+        }
+
+        var total = 0d;
+        foreach (var value in entity.Attributes.Values)
+        {
+            total += value;
+        }
+
+        return (float)(total / entity.Attributes.Count);
+    }
 
     private sealed class PendingGeneratorFire(int tick, int generatorId, int causeId, int remaining)
     {

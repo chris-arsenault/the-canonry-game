@@ -6,6 +6,7 @@ internal sealed partial class PrimitiveFloatTable
     private readonly int[] _secondKeys;
     private readonly float[] _values;
     private readonly int[] _occupiedSlots;
+    private readonly int _slotMask;
     private int _count;
 
     public PrimitiveFloatTable(int capacity)
@@ -15,6 +16,7 @@ internal sealed partial class PrimitiveFloatTable
         _secondKeys = new int[capacity];
         _values = new float[capacity];
         _occupiedSlots = new int[capacity];
+        _slotMask = (capacity & (capacity - 1)) == 0 ? capacity - 1 : -1;
     }
 
     public int Capacity => _firstKeys.Length;
@@ -35,6 +37,12 @@ internal sealed partial class PrimitiveFloatTable
     {
         ValidateKeys(firstKey, secondKey);
         var slot = FindSlot(firstKey, secondKey, out var found);
+        if (slot < 0)
+        {
+            value = 0f;
+            return false;
+        }
+
         if (found)
         {
             value = _values[slot];
@@ -49,6 +57,11 @@ internal sealed partial class PrimitiveFloatTable
     {
         ValidateKeys(firstKey, secondKey);
         var slot = FindSlot(firstKey, secondKey, out var found);
+        if (slot < 0)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
         if (!found)
         {
             _firstKeys[slot] = firstKey;
@@ -64,6 +77,11 @@ internal sealed partial class PrimitiveFloatTable
     {
         ValidateKeys(firstKey, secondKey);
         var slot = FindSlot(firstKey, secondKey, out var found);
+        if (slot < 0)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
         if (!found)
         {
             _firstKeys[slot] = firstKey;
@@ -171,7 +189,8 @@ internal sealed partial class PrimitiveFloatTable
             }
         }
 
-        throw new global::System.InvalidOperationException();
+        found = false;
+        return -1;
     }
 
     private int SlotIndex(int firstKey, int secondKey)
@@ -180,7 +199,9 @@ internal sealed partial class PrimitiveFloatTable
         {
             var hash = (uint)firstKey * 2654435761u;
             hash ^= (uint)secondKey * 2246822519u;
-            return (int)(hash % (uint)_firstKeys.Length);
+            return _slotMask >= 0
+                ? (int)(hash & (uint)_slotMask)
+                : (int)(hash % (uint)_firstKeys.Length);
         }
     }
 

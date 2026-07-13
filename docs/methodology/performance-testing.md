@@ -42,7 +42,7 @@ PROFILE=.artifacts/profiles/mc-trace-$(date -u +%Y%m%dT%H%M%SZ)
   --profile dotnet-sampled-thread-time \
   --output "${PROFILE}.nettrace" \
   --show-child-io \
-  -- dotnet run -c Release --no-build --project tools/MonteCarlo/MonteCarlo.csproj -- \
+  -- dotnet run -c Release --project tools/MonteCarlo/MonteCarlo.csproj -- \
     run \
     --run-id perf-trace-1x10000 \
     --runs 1 \
@@ -86,6 +86,20 @@ to dominate the profile.
 Do not infer throughput from sampled stack reports. Use the profiled workload's
 own completed-run output for elapsed time, processed ticks, row counts, and
 artifact paths.
+
+Inspect operating-system thread CPU alongside the managed trace. A large thread
+count does not imply useful parallelism: identify which threads consume CPU and
+whether they overlap. In the Monte Carlo pipeline, a simulation-only run should
+normally have one hot simulation writer, while a full run may also have one hot
+DuckDB export worker during flushes.
+
+Escalate trace length deliberately. Start with a fixed-seed 10k trace, use 25k
+when throughput changes with world growth or a capacity boundary is still
+unclear, and use 100k when long-horizon steady state or lifetime-key capacity is
+the question. Once a representative 100k trace has completed, do not repeat it
+solely as a confidence ritual: use shorter exact-output comparisons and rerun
+100k only when a subsequent change affects the hotspot, memory-growth, or
+capacity conclusion that the long trace established.
 
 ## Tick Budget
 

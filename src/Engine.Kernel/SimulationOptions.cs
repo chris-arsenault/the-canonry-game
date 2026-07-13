@@ -19,7 +19,7 @@ internal sealed record SimulationOptions
     public int GrowableStorageThresholdPermille { get; init; } = 900;
     public int GrowableStorageGrowthFactor { get; init; } = 2;
     public int MapCellCapacity { get; init; } = 16384;
-    public int MapInfluenceCapacity { get; init; } = 32768;
+    public int MapInfluenceCapacity { get; init; } = 65536;
     public int SystemCapacity { get; init; } = 32;
     public int EventCapacity { get; init; } = 65536;
     public int EventCursorCapacity { get; init; } = 32;
@@ -27,7 +27,7 @@ internal sealed record SimulationOptions
     public int CommandCapacity { get; init; } = 1024;
     public int GambitCapacity { get; init; } = 256;
     public int GambitStepCapacity { get; init; } = 2048;
-    public int GambitCooldownCapacity { get; init; } = 4096;
+    public int GambitCooldownCapacity { get; init; } = 8192;
     public int GambitProviderSelectorCapacity { get; init; } = 512;
     public int GeneratorCapacity { get; init; } = 256;
     public int GeneratorItemCapacity { get; init; } = 4096;

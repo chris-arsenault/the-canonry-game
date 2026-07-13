@@ -57,7 +57,10 @@ internal sealed class CultureBoundaryProgramRuntime :
             _caches[i] = new CultureBoundaryComponentCache(cellCapacity);
         }
 
-        var dirtySourceCapacity = cellCapacity * 2 * cultureIdCapacity;
+        // Raw culture influence is one aggregate fixed-capacity table across
+        // every culture and plane, so it also bounds the number of distinct
+        // surface keys that can be dirty at once.
+        var dirtySourceCapacity = cellCapacity;
         _dirtySources = new CultureBoundaryDirtySource[dirtySourceCapacity];
         var dirtySourceLookupCapacity = NextPowerOfTwo(dirtySourceCapacity * 2);
         _dirtySourceLookupKeys = new long[dirtySourceLookupCapacity];

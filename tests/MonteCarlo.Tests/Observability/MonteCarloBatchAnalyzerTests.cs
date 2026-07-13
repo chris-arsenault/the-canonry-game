@@ -1,5 +1,7 @@
 namespace MonteCarlo.Tests.Observability;
 
+using DuckDB.NET.Data;
+
 using Engine.Constants;
 using Engine.Domain.Config;
 using Engine.Eventing;
@@ -15,6 +17,30 @@ using MonteCarloTool;
 public sealed class MonteCarloBatchAnalyzerTests : IDisposable
 {
     private readonly List<string> _directoriesToDelete = [];
+
+    [Fact]
+    public void BufferedWriter_PersistsOwnedBatchesBeforeExport()
+    {
+        var batchDirectory = CreateTempDirectory();
+        var first = new TelemetryBatch();
+        first.TickSnapshots.Add(new TickSnapshotRow(1, 1, 2, 0, 0, 0, 0, 0, 0, 0f, 0f));
+        var second = new TelemetryBatch();
+        second.TickSnapshots.Add(new TickSnapshotRow(1, 2, 3, 0, 0, 0, 0, 0, 0, 0f, 0f));
+
+        using (var writer = new BufferedDuckDbTelemetryWriter(batchDirectory))
+        {
+            writer.Append(first);
+            writer.Append(second);
+            writer.CompleteAndExport();
+        }
+
+        Assert.True(File.Exists(Path.Combine(batchDirectory, "tick_snapshots.parquet")));
+        using var connection = new DuckDBConnection($"Data Source={Path.Combine(batchDirectory, "telemetry.duckdb")}");
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText = "SELECT count(*) FROM tick_snapshots;";
+        Assert.Equal(2L, Convert.ToInt64(command.ExecuteScalar(), System.Globalization.CultureInfo.InvariantCulture));
+    }
 
     [Fact]
     public void AnalyzeToFiles_WritesSummaryArtifactsForSyntheticBatch()

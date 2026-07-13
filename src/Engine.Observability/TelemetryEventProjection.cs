@@ -13,7 +13,7 @@ internal sealed record ObservabilityProjectionMigrationItem(
 internal sealed partial class TelemetryEventProjection : KernelEventProjector
 {
     private readonly int _runId;
-    private readonly TelemetryBatch _batch;
+    private TelemetryBatch _batch;
     private readonly IProjectionSymbolCatalog? _symbols;
     private readonly Dictionary<int, ObservedEntityProjection> _entities = [];
     private readonly Dictionary<ObservedRelationshipKey, ObservedRelationshipProjection> _relationships = [];
@@ -24,6 +24,19 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     private readonly Dictionary<int, Queue<PendingCreatedEntity>> _unassignedCreatedEntitiesByTick = [];
     private readonly HashSet<int> _exportedEntityNameSymbols = [];
     private readonly List<PendingGeneratorFire> _pendingGeneratorFires = [];
+    private readonly Dictionary<KindSnapshotKey, KindSnapshotAccumulator> _kindSnapshotAccumulators = [];
+    private readonly List<KindSnapshotKey> _kindSnapshotKeys = [];
+    private readonly Dictionary<int, RelationshipSnapshotAccumulator> _relationshipSnapshotAccumulators = [];
+    private readonly List<int> _relationshipSnapshotKeys = [];
+    private readonly Dictionary<ObservedMapCellKey, int> _activeEntitiesByCell = [];
+    private readonly Dictionary<MapSnapshotKey, MapSnapshotAccumulator> _mapSnapshotAccumulators = [];
+    private readonly List<MapSnapshotKey> _mapSnapshotKeys = [];
+    private readonly Dictionary<CoverageSnapshotKey, CoverageSnapshotAccumulator> _coverageSnapshotAccumulators = [];
+    private readonly List<CoverageSnapshotKey> _coverageSnapshotKeys = [];
+    private readonly Dictionary<CoverageTerrainSnapshotKey, int> _coverageTerrainSnapshotCounts = [];
+    private readonly List<CoverageTerrainSnapshotKey> _coverageTerrainSnapshotKeys = [];
+    private readonly List<int> _entitySnapshotIds = [];
+    private readonly List<int> _attributeSnapshotIds = [];
     private int _totalGeneratorFires;
     private int _currentProvenanceInvocationId;
 
@@ -64,6 +77,12 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
     public long DroppedEvents { get; private set; }
 
+    internal void ReplaceBatch(TelemetryBatch batch)
+    {
+        ArgumentNullException.ThrowIfNull(batch);
+        _batch = batch;
+    }
+
     public override void OnEventsDropped(long droppedEventCount, long nextSequence)
     {
         DroppedEvents += droppedEventCount;
@@ -77,29 +96,49 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
     public void RecordKindSnapshots(int tick)
     {
-        foreach (var group in _entities.Values.GroupBy(entity => (entity.KindId, entity.SubtypeId)))
+        _kindSnapshotAccumulators.Clear();
+        _kindSnapshotKeys.Clear();
+        foreach (var entity in _entities.Values)
         {
-            var healthValues = group
-                .Select(ObservedHealth)
-                .Where(value => value > 0f)
-                .ToList();
+            var key = new KindSnapshotKey(entity.KindId, entity.SubtypeId);
+            if (!_kindSnapshotAccumulators.TryGetValue(key, out var aggregate))
+            {
+                _kindSnapshotKeys.Add(key);
+            }
+
+            aggregate.Add(entity.StatusCode, ObservedHealth(entity));
+            _kindSnapshotAccumulators[key] = aggregate;
+        }
+
+        for (var i = 0; i < _kindSnapshotKeys.Count; i++)
+        {
+            var key = _kindSnapshotKeys[i];
+            var aggregate = _kindSnapshotAccumulators[key];
             _batch.KindSnapshots.Add(new KindSnapshotRow(
                 _runId,
                 tick,
-                group.Key.KindId,
-                group.Key.SubtypeId,
-                group.Count(entity => IsActiveStatus(entity.StatusCode)),
-                group.Count(entity => IsHistoricalStatus(entity.StatusCode)),
-                healthValues.Count == 0 ? 0f : healthValues.Average(),
-                healthValues.Count == 0 ? 0f : healthValues.Min(),
-                healthValues.Count == 0 ? 0f : healthValues.Max()));
+                key.KindId,
+                key.SubtypeId,
+                aggregate.ActiveCount,
+                aggregate.HistoricalCount,
+                aggregate.AverageHealth,
+                aggregate.MinimumHealth,
+                aggregate.MaximumHealth));
         }
     }
 
     public void RecordEntitySnapshots(int tick)
     {
-        foreach (var entity in _entities.Values.OrderBy(entity => entity.EntityId))
+        _entitySnapshotIds.Clear();
+        foreach (var entityId in _entities.Keys)
         {
+            _entitySnapshotIds.Add(entityId);
+        }
+
+        _entitySnapshotIds.Sort();
+        for (var entityIndex = 0; entityIndex < _entitySnapshotIds.Count; entityIndex++)
+        {
+            var entity = _entities[_entitySnapshotIds[entityIndex]];
             RegisterEntityNameSymbol(entity);
             _batch.EntitySnapshots.Add(new EntitySnapshotRow(
                 _runId,
@@ -115,34 +154,59 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
                 entity.SemanticR,
                 entity.SemanticS));
 
-            foreach (var attribute in entity.Attributes.OrderBy(attribute => attribute.Key))
+            _attributeSnapshotIds.Clear();
+            foreach (var attributeId in entity.Attributes.Keys)
             {
+                _attributeSnapshotIds.Add(attributeId);
+            }
+
+            _attributeSnapshotIds.Sort();
+            for (var attributeIndex = 0; attributeIndex < _attributeSnapshotIds.Count; attributeIndex++)
+            {
+                var attributeId = _attributeSnapshotIds[attributeIndex];
                 _batch.EntityAttributeSnapshots.Add(new EntityAttributeSnapshotRow(
                     _runId,
                     tick,
                     entity.EntityId,
-                    attribute.Key,
-                    attribute.Value));
+                    attributeId,
+                    entity.Attributes[attributeId]));
             }
-
         }
     }
 
     public void RecordRelationshipSnapshots(int tick)
     {
-        foreach (var group in _relationships.Values
-                     .Where(RelationshipIsHotActive)
-                     .GroupBy(relationship => relationship.RelationshipKindId))
+        _relationshipSnapshotAccumulators.Clear();
+        _relationshipSnapshotKeys.Clear();
+        foreach (var relationship in _relationships.Values)
         {
-            var strengths = group.Select(relationship => relationship.Strength).ToList();
+            if (!RelationshipIsHotActive(relationship))
+            {
+                continue;
+            }
+
+            var key = relationship.RelationshipKindId;
+            if (!_relationshipSnapshotAccumulators.TryGetValue(key, out var aggregate))
+            {
+                _relationshipSnapshotKeys.Add(key);
+            }
+
+            aggregate.Add(relationship.Strength);
+            _relationshipSnapshotAccumulators[key] = aggregate;
+        }
+
+        for (var i = 0; i < _relationshipSnapshotKeys.Count; i++)
+        {
+            var key = _relationshipSnapshotKeys[i];
+            var aggregate = _relationshipSnapshotAccumulators[key];
             _batch.RelationshipSnapshots.Add(new RelationshipSnapshotRow(
                 _runId,
                 tick,
-                group.Key,
-                strengths.Count,
-                strengths.Count == 0 ? 0f : strengths.Average(),
-                strengths.Count == 0 ? 0f : strengths.Min(),
-                strengths.Count == 0 ? 0f : strengths.Max()));
+                key,
+                aggregate.Count,
+                aggregate.Average,
+                aggregate.Minimum,
+                aggregate.Maximum));
         }
     }
 
@@ -154,20 +218,37 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         }
 
         var activeEntitiesByCell = ActiveEntitiesByPlaneCell();
-
-        foreach (var group in _mapCells.Values
-                     .OrderBy(cell => cell.Key.PlaneCode)
-                     .ThenBy(cell => cell.TerrainId)
-                     .GroupBy(cell => (cell.Key.PlaneCode, cell.TerrainId)))
+        _mapSnapshotAccumulators.Clear();
+        _mapSnapshotKeys.Clear();
+        foreach (var cell in _mapCells.Values)
         {
+            var key = new MapSnapshotKey(cell.Key.PlaneCode, cell.TerrainId);
+            if (!_mapSnapshotAccumulators.TryGetValue(key, out var aggregate))
+            {
+                _mapSnapshotKeys.Add(key);
+            }
+
+            aggregate.Add(cell.OwnerEntityId, activeEntitiesByCell.GetValueOrDefault(cell.Key));
+            _mapSnapshotAccumulators[key] = aggregate;
+        }
+
+        _mapSnapshotKeys.Sort(static (left, right) =>
+        {
+            var planeComparison = left.PlaneCode.CompareTo(right.PlaneCode);
+            return planeComparison != 0 ? planeComparison : left.TerrainId.CompareTo(right.TerrainId);
+        });
+        for (var i = 0; i < _mapSnapshotKeys.Count; i++)
+        {
+            var key = _mapSnapshotKeys[i];
+            var aggregate = _mapSnapshotAccumulators[key];
             _batch.MapSnapshots.Add(new MapSnapshotRow(
                 _runId,
                 tick,
-                group.Key.PlaneCode,
-                group.Key.TerrainId,
-                group.Count(),
-                group.Count(cell => cell.OwnerEntityId > 0),
-                group.Sum(cell => activeEntitiesByCell.GetValueOrDefault(cell.Key))));
+                key.PlaneCode,
+                key.TerrainId,
+                aggregate.CellCount,
+                aggregate.CoveredCellCount,
+                aggregate.ActiveEntityCount));
         }
 
         RecordCoverageSnapshots(tick, activeEntitiesByCell);
