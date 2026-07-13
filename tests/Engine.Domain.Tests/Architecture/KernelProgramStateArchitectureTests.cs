@@ -48,6 +48,7 @@ public sealed class KernelProgramStateArchitectureTests
             "src/Engine.Kernel/Programs/Stories/StoryProgramState.cs:StartTicks",
             "src/Engine.Kernel/Programs/Stories/StoryProgramState.cs:ActStartTicks",
             "src/Engine.Kernel/Programs/Stories/StoryProgramState.cs:RoleEntityIds",
+            "src/Engine.Kernel/Programs/Stories/StoryProgramState.cs:StorySequences",
             "src/Engine.Kernel/Programs/Stories/StoryProgramState.cs:ArchetypeActiveCounts",
             "src/Engine.Kernel/Programs/Stories/StoryProgramState.cs:NextCastTicks",
             "src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramState.cs:_activeVerbSlots",

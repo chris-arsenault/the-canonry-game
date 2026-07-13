@@ -12,6 +12,8 @@ internal sealed class StoryProgramState : IKernelProgramState
     internal readonly int[] StartTicks;
     internal readonly int[] ActStartTicks;
     internal readonly int[] RoleEntityIds;
+    internal readonly int[] StorySequences;
+    internal int NextStorySequence;
     internal readonly int[] ArchetypeActiveCounts;
     internal readonly int[] NextCastTicks;
     internal int HighWatermark;
@@ -26,11 +28,12 @@ internal sealed class StoryProgramState : IKernelProgramState
         StartTicks = new int[storyCapacity + 1];
         ActStartTicks = new int[storyCapacity + 1];
         RoleEntityIds = new int[((storyCapacity + 1) * StoryProgramData.MaxRolesPerArchetype) + 1];
+        StorySequences = new int[storyCapacity + 1];
         ArchetypeActiveCounts = new int[archetypeCapacity + 1];
         NextCastTicks = new int[archetypeCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.StoryDirector;
 
-    public int SchemaVersion => 1;
+    public int SchemaVersion => 2;
 }

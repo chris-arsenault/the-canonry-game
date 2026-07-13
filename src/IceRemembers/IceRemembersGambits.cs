@@ -427,7 +427,7 @@ public static partial class IceRemembersDefinition
                 // plot, and terms only come when the war strength has burned
                 // down. A fresh declaration cannot be peaced away.
                 new SelfHasRelationshipToTarget(L(Rel.AtWarWith)),
-                Not(new SelfHasRelationshipToTarget(L(Rel.AtWarWith), minStrength: 0.35f))),
+                Not(new SelfHasRelationshipToTarget(L(Rel.AtWarWith), minStrength: 0.45f))),
             scoreExpression: GambitScore(
                 baseline: 4f,
                 dynamicRange: 5f,

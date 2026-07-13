@@ -37,11 +37,15 @@ internal sealed partial class StoryProgramRuntime
         State.ActIndices[story] = 0;
         State.StartTicks[story] = tick;
         State.ActStartTicks[story] = tick;
+        State.NextStorySequence++;
+        State.StorySequences[story] = State.NextStorySequence;
         State.ArchetypeActiveCounts[archetype]++;
         if (story > State.HighWatermark)
         {
             State.HighWatermark = story;
         }
+
+        EmitStoryChanged(simulation, story, StoryEventTypeCodes.Cast, outcomeCodeId: 0, tick);
     }
 
     private int SelectPrimary(WorldState world, int archetype)

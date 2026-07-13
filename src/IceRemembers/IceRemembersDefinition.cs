@@ -378,7 +378,10 @@ public static partial class IceRemembersDefinition
             MapSignalEffect(kind, attribute, Effect.MapCrowdingComfort, 0.025f * timeScale, threshold: 0.5f, plane: plane),
             MapSignalEffect(kind, attribute, Effect.MapThreatAtLocation, -0.04f * timeScale, threshold: 4f, plane: plane),
             MapSignalEffect(kind, attribute, Effect.MapCrowdingLoad, -0.08f * timeScale, threshold: 0.5f, plane: plane),
-            CarryingStrain(kind, attribute, plane, timeScale),
+            // The carrying-capacity governor is a population-rate control, not
+            // a lifespan pacing effect: it stays at full strength so growth
+            // still equilibrates against culture support at the new time scale.
+            CarryingStrain(kind, attribute, plane, timeScale: 1f),
             JurisdictionEffect(kind, attribute, K.Region.Value, null, "physical", 0.02f * timeScale),
             JurisdictionEffect(kind, attribute, K.Canon.Value, "accord", "semantic", 0.03f * timeScale),
             JurisdictionEffect(kind, attribute, K.Canon.Value, "taboo", "semantic", -0.03f * timeScale),

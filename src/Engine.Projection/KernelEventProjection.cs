@@ -101,6 +101,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
             case KernelEventType.GambitExecuted:
                 OnGambitExecuted(kernelEvent.Sequence, evt.AsGambitExecuted());
                 break;
+            case KernelEventType.StoryChanged:
+                OnStoryChanged(kernelEvent.Sequence, evt.AsStoryChanged());
+                break;
         }
     }
 
@@ -225,6 +228,10 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnTraitAssigned(long sequence, in TraitAssignedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnStoryChanged(long sequence, in StoryChangedKernelEvent evt)
     {
     }
 

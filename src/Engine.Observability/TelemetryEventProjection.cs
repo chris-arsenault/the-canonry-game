@@ -389,6 +389,23 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         MarkProjected(sequence);
     }
 
+    protected override void OnStoryChanged(long sequence, in StoryChangedKernelEvent evt)
+    {
+        _batch.StoryEvents.Add(new StoryEventRow(
+            _runId,
+            evt.Tick,
+            evt.StorySequence,
+            evt.ArchetypeId,
+            evt.EventTypeCode,
+            evt.ActIndex,
+            evt.OutcomeCodeId,
+            evt.RoleEntityId0,
+            evt.RoleEntityId1,
+            evt.RoleEntityId2,
+            evt.RoleEntityId3));
+        MarkProjected(sequence);
+    }
+
     protected override void OnEntityTagChanged(long sequence, in EntityTagChangedKernelEvent evt)
     {
         _batch.EntityTagEvents.Add(new EntityTagEventRow(

@@ -110,6 +110,32 @@ internal sealed partial class Simulation
             outputLockRelationshipCreatedCount)));
     }
 
+    internal void EmitStoryChanged(
+        int tick,
+        int storySequence,
+        int archetypeId,
+        int eventTypeCode,
+        int actIndex,
+        int outcomeCodeId,
+        int roleEntityId0,
+        int roleEntityId1,
+        int roleEntityId2,
+        int roleEntityId3)
+    {
+        WriteKernelEvent(KernelEvent.From(new StoryChangedKernelEvent(
+            tick,
+            WorldVersion,
+            storySequence,
+            archetypeId,
+            eventTypeCode,
+            actIndex,
+            outcomeCodeId,
+            roleEntityId0,
+            roleEntityId1,
+            roleEntityId2,
+            roleEntityId3)));
+    }
+
     internal void EmitGeneratorTargetEvaluated(
         int tick,
         int generatorId,

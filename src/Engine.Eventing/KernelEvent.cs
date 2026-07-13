@@ -33,6 +33,7 @@ public enum KernelEventType
     MinorActorVerbExecuted = 31,
     GambitEnabledChanged = 32,
     EntityTagChanged = 33,
+    StoryChanged = 34,
     Trace = 120,
 }
 
@@ -171,6 +172,29 @@ public readonly record struct EntityTagChangedKernelEvent(
     int Assigned,
     [KernelEventIntSlot(3, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
     int SourceCodeId);
+
+[KernelEventLayout(KernelEventType.StoryChanged, schemaMinor: 0)]
+public readonly record struct StoryChangedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "story_sequence", KernelEventSemanticKind.Index)]
+    int StorySequence,
+    [KernelEventIntSlot(1, "archetype_id", KernelEventSemanticKind.GeneratorId)]
+    int ArchetypeId,
+    [KernelEventIntSlot(2, "event_type_code", KernelEventSemanticKind.StatusCode)]
+    int EventTypeCode,
+    [KernelEventIntSlot(3, "act_index", KernelEventSemanticKind.Index)]
+    int ActIndex,
+    [KernelEventIntSlot(4, "outcome_code_id", KernelEventSemanticKind.StatusCode)]
+    int OutcomeCodeId,
+    [KernelEventIntSlot(5, "role_entity_id_0", KernelEventSemanticKind.EntityId)]
+    int RoleEntityId0,
+    [KernelEventIntSlot(6, "role_entity_id_1", KernelEventSemanticKind.EntityId)]
+    int RoleEntityId1,
+    [KernelEventIntSlot(7, "role_entity_id_2", KernelEventSemanticKind.EntityId)]
+    int RoleEntityId2,
+    [KernelEventIntSlot(8, "role_entity_id_3", KernelEventSemanticKind.EntityId)]
+    int RoleEntityId3);
 
 [KernelEventLayout(KernelEventType.RelationshipChanged, schemaMinor: 3)]
 public readonly record struct RelationshipChangedKernelEvent(

@@ -137,6 +137,7 @@ internal sealed partial class StoryProgramRuntime : IKernelProgramRuntime<StoryP
         {
             State.ActIndices[story]++;
             State.ActStartTicks[story] = tick;
+            EmitStoryChanged(simulation, story, StoryEventTypeCodes.ActAdvanced, outcomeCodeId: 0, tick);
             return;
         }
 
@@ -174,7 +175,6 @@ internal sealed partial class StoryProgramRuntime : IKernelProgramRuntime<StoryP
 
     private void Resolve(Simulation simulation, WorldState world, int story, int tick)
     {
-        _ = tick;
         var archetype = State.ArchetypeSlots[story];
         var resolution = SelectResolution(simulation, world, story, archetype);
         if (resolution != 0)
@@ -182,8 +182,29 @@ internal sealed partial class StoryProgramRuntime : IKernelProgramRuntime<StoryP
             ApplyResolution(simulation, world, story, resolution);
         }
 
+        EmitStoryChanged(
+            simulation,
+            story,
+            StoryEventTypeCodes.Resolved,
+            resolution == 0 ? 0 : Data.ResolutionOutcomeCodeIds[resolution],
+            tick);
         State.Active[story] = false;
         State.ArchetypeActiveCounts[archetype]--;
+    }
+
+    private void EmitStoryChanged(Simulation simulation, int story, int eventTypeCode, int outcomeCodeId, int tick)
+    {
+        simulation.EmitStoryChanged(
+            tick,
+            State.StorySequences[story],
+            Data.ArchetypeIds[State.ArchetypeSlots[story]],
+            eventTypeCode,
+            State.ActIndices[story],
+            outcomeCodeId,
+            RoleEntity(story, 0),
+            RoleEntity(story, 1),
+            RoleEntity(story, 2),
+            RoleEntity(story, 3));
     }
 
     private int SelectResolution(Simulation simulation, WorldState world, int story, int archetype)

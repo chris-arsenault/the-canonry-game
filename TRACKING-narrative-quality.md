@@ -246,8 +246,11 @@ roles first and biases future events into the beats.
 - [x] R5 — Chronicle Director core (`53ae586`; evidence
   `nq-r5-director-3x25k-20260713` + live smoke: all three archetypes cast
   from real history and resolve with [story]-sourced authored endings).
-  Remaining R5 polish (separate passes): story cast/act/resolve telemetry
-  rows and the ChroniclePlan export for the illuminator.
+  Story cast/act/resolve telemetry landed as the story_events table
+  (StoryChanged kernel event with story_sequence identity, archetype,
+  event type, act index, outcome reason code, and all four role entity
+  ids). The ChroniclePlan/illuminator export is shelved indefinitely by
+  decision (2026-07-13); do not build it without an explicit ask.
 
 ## Scope notes and follow-ups discovered during R1-R4
 
@@ -266,6 +269,17 @@ roles first and biases future events into the beats.
 - Zero-history preconditions were threaded into raids (hunting-claim careers)
   and wars (rivalry escalation); scavenging/wield/practice remain legitimate
   opportunism by design.
+- Serial-styled artifact names (e.g. W9-8JT5B) are canonical precursor
+  artifacts, not a naming bug. Do not route them through NameForge.
+- War duration target updated by decision (2026-07-13): shorten from the
+  ~35y steady state but keep well above 10y so players register wars;
+  peace threshold moved 0.35 -> 0.45 aiming for roughly 15-25y medians.
+- The carrying-capacity governor (CrowdingBeyondCultureSupport) is exempt
+  from health-effect time dilation: it is a population-rate control, and
+  dilating it let growth outrun equilibrium.
+- Chronicle participation should be roughly even across entity kinds
+  (regions/canons excepted): seven archetypes now cover penguins, orcas,
+  monsters, factions, settlements, transports, and abilities.
 - Trade-route lifetimes (uniform ~630 ticks) are drift-to-cull artifacts of
   creation strength 0.1; retune alongside future trade content.
 - New reusable vocabulary added along the way: gambit-grant preconditions

@@ -284,6 +284,13 @@ public static class KernelProgramCodes
     public const int StoryDirector = 18;
 }
 
+public static class StoryEventTypeCodes
+{
+    public const int Cast = 1;
+    public const int ActAdvanced = 2;
+    public const int Resolved = 3;
+}
+
 public static class StoryConditionCodes
 {
     public const int None = 0;

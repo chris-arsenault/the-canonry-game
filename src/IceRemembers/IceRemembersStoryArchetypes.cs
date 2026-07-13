@@ -19,13 +19,17 @@ public static class IceRemembersStoryArchetypes
         TheHunt(),
         TheBloodRivalry(),
         TheTeaching(),
+        TheFlourishingRoad(),
+        TheHauntedRun(),
+        TheLivingPractice(),
+        TheTerrorOfTheCoasts(),
     ];
 
-    private static StoryBiasConfig Bias(string actor, string target, string gambit, float bonus) =>
+    private static StoryBiasConfig Bias(string actor, string target, string? gambit, float bonus) =>
         new() { ActorRole = actor, TargetRole = target, Gambit = gambit, ScoreBonus = bonus };
 
-    private static StorySustainConfig Sustain(string role, float delta) =>
-        new() { Role = role, Attribute = "vitality", DeltaPerPulse = delta };
+    private static StorySustainConfig Sustain(string role, float delta, string attribute = "vitality") =>
+        new() { Role = role, Attribute = attribute, DeltaPerPulse = delta };
 
     private static StoryResolutionRelationshipConfig Cull(string source, string target, string kind) =>
         new() { SourceRole = source, TargetRole = target, RelationshipKind = kind, Strength = 0f, Polarity = RelationshipPolarity.Negative, CullInstead = true };
@@ -261,5 +265,247 @@ public static class IceRemembersStoryArchetypes
         ],
         MaxActive = 4,
         CastingCadenceTicks = 100,
+    };
+
+    /// <summary>
+    /// Two settlements joined by a strong trade route. The road either grows
+    /// into legend or falls silent - and either way the chronicle knows which
+    /// ports mattered.
+    /// </summary>
+    private static StoryArchetypeConfig TheFlourishingRoad() => new()
+    {
+        Id = "story_flourishing_road",
+        Name = "The Flourishing Road",
+        Description = "A road between two ports, and whether it outlives its makers.",
+        PrimaryRoleRef = "$port",
+        PrimaryRole = new SemanticGeneratorTarget
+        {
+            Kind = K.Settlement,
+            RequiredOutgoingRelationshipRequirements =
+            [
+                new SemanticGeneratorRelationshipRequirement { RelationshipKind = "trade_route", MinimumStrength = 0.7f },
+            ],
+        },
+        SupportingRoles =
+        [
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$partner",
+                Kind = K.Settlement,
+                Query = new SemanticEntityQuery { RelatedToTargetRelationship = "trade_route", RelatedToTargetMinStrength = 0.7f },
+            },
+        ],
+        Acts =
+        [
+            new StoryActConfig
+            {
+                DeadlineTicks = 400,
+                Bias = [Bias("$port", "$partner", null, 1f), Bias("$partner", "$port", null, 1f)],
+                Sustain = [Sustain("$port", 0.02f, "temp_hp"), Sustain("$partner", 0.02f, "temp_hp")],
+            },
+            new StoryActConfig
+            {
+                DeadlineTicks = 400,
+                AdvanceWhen = new StoryConditionConfig { Kind = StoryConditionKind.RolePairRelationship, RoleA = "$port", RoleB = "$partner", RelationshipKind = "trade_route", MinStrength = 0.95f },
+                Sustain = [Sustain("$port", 0.02f, "temp_hp"), Sustain("$partner", 0.02f, "temp_hp")],
+            },
+        ],
+        Resolutions =
+        [
+            new StoryResolutionConfig
+            {
+                OutcomeId = "the_road_becomes_legend",
+                When = new StoryConditionConfig { Kind = StoryConditionKind.RolePairRelationship, RoleA = "$port", RoleB = "$partner", RelationshipKind = "trade_route", MinStrength = 0.9f },
+            },
+            new StoryResolutionConfig
+            {
+                OutcomeId = "the_road_falls_silent",
+                Weight = 1,
+                Relationships = [Cull("$port", "$partner", "trade_route"), Cull("$partner", "$port", "trade_route")],
+            },
+        ],
+        MaxActive = 3,
+        CastingCadenceTicks = 90,
+    };
+
+    /// <summary>
+    /// A corrupted transport and the monster haunting it. Wards are favored;
+    /// the run is either cleansed or the vessel is lost with all hands.
+    /// </summary>
+    private static StoryArchetypeConfig TheHauntedRun() => new()
+    {
+        Id = "story_haunted_run",
+        Name = "The Haunted Run",
+        Description = "A vessel, its haunt, and which of them survives the route.",
+        PrimaryRoleRef = "$vessel",
+        PrimaryRole = new SemanticGeneratorTarget
+        {
+            Kind = K.Transport,
+            RequiredOutgoingRelationshipRequirements =
+            [
+                new SemanticGeneratorRelationshipRequirement { RelationshipKind = "corrupted_by", MinimumStrength = 0.5f },
+            ],
+        },
+        SupportingRoles =
+        [
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$haunt",
+                Kind = K.Monster,
+                Query = new SemanticEntityQuery { RelatedToTargetRelationship = "corrupted_by", RelatedToTargetIncoming = true, RelatedToTargetMinStrength = 0.5f },
+            },
+        ],
+        Acts =
+        [
+            new StoryActConfig
+            {
+                DeadlineTicks = 350,
+                Bias = [Bias("$vessel", "$haunt", "transport_wards_monster", 3f)],
+                Sustain = [Sustain("$vessel", 0.02f, "integrity")],
+            },
+            new StoryActConfig
+            {
+                DeadlineTicks = 350,
+                AdvanceWhen = new StoryConditionConfig { Kind = StoryConditionKind.RolePairRelationship, RoleA = "$vessel", RoleB = "$haunt", RelationshipKind = "ward_against", MinStrength = 0.5f },
+                Bias = [Bias("$vessel", "$haunt", "transport_wards_monster", 4f)],
+            },
+        ],
+        Resolutions =
+        [
+            new StoryResolutionConfig
+            {
+                OutcomeId = "the_run_cleansed",
+                When = new StoryConditionConfig { Kind = StoryConditionKind.RolePairRelationship, RoleA = "$vessel", RoleB = "$haunt", RelationshipKind = "ward_against", MinStrength = 0.5f },
+                Relationships = [Cull("$vessel", "$haunt", "corrupted_by")],
+            },
+            new StoryResolutionConfig
+            {
+                OutcomeId = "the_vessel_is_lost",
+                Weight = 1,
+                MarkHistorical = ["$vessel"],
+            },
+        ],
+        MaxActive = 3,
+        CastingCadenceTicks = 90,
+    };
+
+    /// <summary>
+    /// An ability and its devoted keeper. The pair sustain each other; the
+    /// practice either takes root in the culture or quietly fades.
+    /// </summary>
+    private static StoryArchetypeConfig TheLivingPractice() => new()
+    {
+        Id = "story_living_practice",
+        Name = "The Living Practice",
+        Description = "A discipline and the one who keeps it alive.",
+        PrimaryRoleRef = "$practice",
+        PrimaryRole = new SemanticGeneratorTarget
+        {
+            Kind = K.Ability,
+            RequiredOutgoingRelationshipRequirements =
+            [
+                new SemanticGeneratorRelationshipRequirement { RelationshipKind = "practiced_by", MinimumStrength = 0.6f },
+            ],
+        },
+        SupportingRoles =
+        [
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$keeper",
+                Kind = K.Penguin,
+                Query = new SemanticEntityQuery { RelatedToTargetRelationship = "practiced_by", RelatedToTargetIncoming = true, RelatedToTargetMinStrength = 0.6f },
+            },
+        ],
+        Acts =
+        [
+            new StoryActConfig
+            {
+                DeadlineTicks = 450,
+                Bias = [Bias("$practice", "$keeper", null, 1f)],
+                Sustain = [Sustain("$keeper", 0.015f), Sustain("$practice", 0.02f, "clarity")],
+            },
+            new StoryActConfig
+            {
+                DeadlineTicks = 450,
+                AdvanceWhen = new StoryConditionConfig { Kind = StoryConditionKind.RolePairRelationship, RoleA = "$practice", RoleB = "$keeper", RelationshipKind = "practiced_by", MinStrength = 0.9f },
+                Sustain = [Sustain("$keeper", 0.015f), Sustain("$practice", 0.02f, "clarity")],
+            },
+        ],
+        Resolutions =
+        [
+            new StoryResolutionConfig
+            {
+                OutcomeId = "the_practice_takes_root",
+                When = new StoryConditionConfig { Kind = StoryConditionKind.RolePairRelationship, RoleA = "$practice", RoleB = "$keeper", RelationshipKind = "practiced_by", MinStrength = 0.85f },
+            },
+            new StoryResolutionConfig
+            {
+                OutcomeId = "the_practice_fades",
+                Weight = 1,
+                Relationships = [Cull("$practice", "$keeper", "practiced_by")],
+            },
+        ],
+        MaxActive = 4,
+        CastingCadenceTicks = 100,
+    };
+
+    /// <summary>
+    /// An orca at war with a named penguin becomes the terror of the coasts.
+    /// Raid and reprisal are both favored - a proper duel - until the terror
+    /// is driven off or the coast yields.
+    /// </summary>
+    private static StoryArchetypeConfig TheTerrorOfTheCoasts() => new()
+    {
+        Id = "story_terror_of_the_coasts",
+        Name = "The Terror of the Coasts",
+        Description = "A raider, a defender, and a coastline that remembers both.",
+        PrimaryRoleRef = "$terror",
+        PrimaryRole = new SemanticGeneratorTarget
+        {
+            Kind = K.Orca,
+            RequiredOutgoingRelationshipRequirements =
+            [
+                new SemanticGeneratorRelationshipRequirement { RelationshipKind = "at_war_with", MinimumStrength = 0.4f },
+            ],
+        },
+        SupportingRoles =
+        [
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$foe",
+                Kind = K.Penguin,
+                Query = new SemanticEntityQuery { RelatedToTargetRelationship = "at_war_with", RelatedToTargetMinStrength = 0.4f },
+            },
+        ],
+        Acts =
+        [
+            new StoryActConfig
+            {
+                DeadlineTicks = 350,
+                Bias = [Bias("$terror", "$foe", "orca_raids_trade_route", 2.5f), Bias("$foe", "$terror", "penguin_slays_orca", 2.5f)],
+            },
+            new StoryActConfig
+            {
+                DeadlineTicks = 400,
+                AdvanceWhen = new StoryConditionConfig { Kind = StoryConditionKind.RoleHistorical, RoleA = "$terror" },
+                Bias = [Bias("$foe", "$terror", "penguin_slays_orca", 4f)],
+            },
+        ],
+        Resolutions =
+        [
+            new StoryResolutionConfig
+            {
+                OutcomeId = "the_terror_driven_off",
+                When = new StoryConditionConfig { Kind = StoryConditionKind.RoleHistorical, RoleA = "$terror" },
+            },
+            new StoryResolutionConfig
+            {
+                OutcomeId = "the_coast_yields",
+                Weight = 1,
+                Relationships = [Cull("$terror", "$foe", "at_war_with"), Cull("$foe", "$terror", "at_war_with")],
+            },
+        ],
+        MaxActive = 3,
+        CastingCadenceTicks = 90,
     };
 }

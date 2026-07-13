@@ -39,6 +39,7 @@ public sealed class TelemetryBatch
     public Collection<CultureFieldComponentSnapshotRow> CultureFieldComponentSnapshots { get; } = Rows<CultureFieldComponentSnapshotRow>();
     public Collection<CulturePowerSnapshotRow> CulturePowerSnapshots { get; } = Rows<CulturePowerSnapshotRow>();
     public Collection<EntityTagEventRow> EntityTagEvents { get; } = Rows<EntityTagEventRow>();
+    public Collection<StoryEventRow> StoryEvents { get; } = Rows<StoryEventRow>();
     public Collection<CultureEntityFieldSnapshotRow> CultureEntityFieldSnapshots { get; } = Rows<CultureEntityFieldSnapshotRow>();
     public Collection<CultureEntityBirthFieldEventRow> CultureEntityBirthFieldEvents { get; } = Rows<CultureEntityBirthFieldEventRow>();
     public Collection<CultureInfluenceActionFieldEventRow> CultureInfluenceActionFieldEvents { get; } = Rows<CultureInfluenceActionFieldEventRow>();
@@ -81,6 +82,7 @@ public sealed class TelemetryBatch
         CultureFieldComponentSnapshots.Clear();
         CulturePowerSnapshots.Clear();
         EntityTagEvents.Clear();
+        StoryEvents.Clear();
         CultureEntityFieldSnapshots.Clear();
         CultureEntityBirthFieldEvents.Clear();
         CultureInfluenceActionFieldEvents.Clear();
@@ -514,6 +516,19 @@ public sealed record MinorActorVerbEventRow(
     float ConnectedRawMass,
     float Score,
     float Delta);
+
+public sealed record StoryEventRow(
+    int RunId,
+    int Tick,
+    int StorySequence,
+    int ArchetypeId,
+    int EventTypeCode,
+    int ActIndex,
+    int OutcomeCodeId,
+    int RoleEntityId0,
+    int RoleEntityId1,
+    int RoleEntityId2,
+    int RoleEntityId3);
 
 public sealed record EntityTagEventRow(
     int RunId,
