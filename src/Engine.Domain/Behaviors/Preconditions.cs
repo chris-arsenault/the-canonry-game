@@ -113,6 +113,33 @@ public sealed class SelfHasOutgoingRelationship(string relationshipKind, float? 
 }
 
 /// <summary>
+/// Checks that the actor has a relationship of a kind (outgoing by default,
+/// incoming when <c>incoming</c> is set) whose counterpart is a live entity
+/// of a specific kind (and optionally subtype). This is the gambit-grant
+/// gate: a gambit carrying this precondition is only available while the
+/// actor holds/practices a granting entity, and is revoked when that
+/// relationship ends.
+/// </summary>
+public sealed class SelfHasRelationshipToEntityOfSubtype(
+    string relationshipKind,
+    EntityKind targetKind,
+    string? targetSubtype = null,
+    float? minStrength = null,
+    bool incoming = false,
+    bool behaviorRelevant = false) : IPrecondition
+{
+    public string RelationshipKind { get; } = relationshipKind;
+    public EntityKind TargetKind { get; } = targetKind;
+    public string? TargetSubtype { get; } = targetSubtype;
+    public float? MinStrength { get; } = minStrength;
+    public bool Incoming { get; } = incoming;
+    public bool BehaviorRelevant { get; } = behaviorRelevant;
+
+    public string Describe() =>
+        $"self_has_relationship_to_entity_of_subtype({RelationshipKind}, {TargetKind.Value}{(TargetSubtype is null ? "" : $"/{TargetSubtype}")}{(Incoming ? ", incoming" : "")}{(MinStrength.HasValue ? $", min_strength={MinStrength}" : "")})";
+}
+
+/// <summary>
 /// Checks that the selected endpoint has fewer than N distinct counterpart
 /// entities connected by a relationship kind.
 /// </summary>
@@ -136,6 +163,15 @@ public sealed class EndpointRelationshipCountBelow(
 /// <summary>
 /// Checks that the selected behavior endpoint currently belongs to a culture.
 /// </summary>
+/// <summary>Checks that the selected endpoint entity has a specific subtype.</summary>
+public sealed class EndpointSubtypeIs(TransferEndpoint endpoint, string subtype) : IPrecondition
+{
+    public TransferEndpoint Endpoint { get; } = endpoint;
+    public string Subtype { get; } = subtype;
+
+    public string Describe() => $"endpoint_subtype_is({Endpoint}, {Subtype})";
+}
+
 public sealed class EndpointCultureIs(TransferEndpoint endpoint, string culture) : IPrecondition
 {
     public TransferEndpoint Endpoint { get; } = endpoint;

@@ -780,6 +780,7 @@ internal sealed partial class GambitProgramRuntime
         if (code != BehaviorPreconditionCodes.SelfHasRelationshipToTarget &&
             code != BehaviorPreconditionCodes.TargetHasRelationshipToSelf &&
             code != BehaviorPreconditionCodes.SelfHasOutgoingRelationship &&
+            code != BehaviorPreconditionCodes.SelfHasOutgoingRelationshipToKind &&
             code != BehaviorPreconditionCodes.EndpointRelationshipCountBelow &&
             code != BehaviorPreconditionCodes.RelatedEntityMatchesTarget &&
             code != BehaviorPreconditionCodes.RelationshipExists)

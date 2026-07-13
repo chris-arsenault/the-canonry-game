@@ -322,6 +322,11 @@ internal sealed class DomainGameplayCompilationContext : IGameplayCompilationCon
         {
             AddGambitRelationshipRequirement(affordances, seen, source, actorKind, relationship.RelationshipKind, RelationshipMatchDirectionCodes.Outgoing, relationship.MinStrength);
         }
+
+        // SelfHasRelationshipToEntityOfSubtype gates (gambit grants) are
+        // deliberately not registered as strength affordances: holding or
+        // practicing a granting entity is acquired through gambits, not
+        // worked toward through relationship-strength verbs.
     }
 
     private void AddGambitRelationshipRequirement(

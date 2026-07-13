@@ -66,6 +66,7 @@ public static partial class IceRemembersDefinition
         };
         gambits.AddRange(CreateWorkTierGambits());
         gambits.AddRange(CreateForgingGambits());
+        gambits.AddRange(CreateGrantGambits());
         return gambits;
     }
 

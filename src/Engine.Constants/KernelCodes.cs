@@ -84,6 +84,8 @@ public static class BehaviorPreconditionCodes
     public const int EndpointCultureIs = 23;
     public const int SelfCultureMass = 24;
     public const int SelfWorkTierBelow = 25;
+    public const int SelfHasOutgoingRelationshipToKind = 26;
+    public const int EndpointSubtypeIs = 27;
 }
 
 public static class BehaviorExpressionCodes

@@ -592,6 +592,18 @@ public enum IceRemembersGambitId
     SettlementDigsTheGallery,
     FactionDigsTheGallery,
     CanonDeepensTheHolding,
+    PenguinDrawsOnTheVessel,
+    OrcaDrawsOnTheVessel,
+    MonsterDrawsOnTheVessel,
+    PenguinUnmakesTheBinding,
+    PenguinCallsTheDeepCurrent,
+    PenguinTurnsTheBattle,
+    PenguinBindsWhatWasLoosed,
+    PenguinKeepsWintersPatience,
+    PenguinMendsAnother,
+    PenguinPassesTheTeaching,
+    PenguinReadsTheIce,
+    PenguinStillsTheWaters,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -634,6 +646,18 @@ public static class IceRemembersGambitIdExtensions
         "settlement_digs_the_gallery",
         "faction_digs_the_gallery",
         "canon_deepens_the_holding",
+        "penguin_draws_on_the_vessel",
+        "orca_draws_on_the_vessel",
+        "monster_draws_on_the_vessel",
+        "penguin_unmakes_the_binding",
+        "penguin_calls_the_deep_current",
+        "penguin_turns_the_battle",
+        "penguin_binds_what_was_loosed",
+        "penguin_keeps_winters_patience",
+        "penguin_mends_another",
+        "penguin_passes_the_teaching",
+        "penguin_reads_the_ice",
+        "penguin_stills_the_waters",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)

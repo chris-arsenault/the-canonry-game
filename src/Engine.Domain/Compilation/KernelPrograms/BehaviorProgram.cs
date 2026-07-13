@@ -80,6 +80,8 @@ public enum BehaviorProgramPrecondition
     EndpointCultureIs,
     SelfCultureMass,
     SelfWorkTierBelow,
+    SelfHasOutgoingRelationshipToKind,
+    EndpointSubtypeIs,
 }
 
 public enum BehaviorProgramExpression

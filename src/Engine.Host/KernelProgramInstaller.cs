@@ -748,6 +748,7 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramPrecondition.SelfHasRelationshipToTarget => BehaviorPreconditionCodes.SelfHasRelationshipToTarget,
             BehaviorProgramPrecondition.TargetHasRelationshipToSelf => BehaviorPreconditionCodes.TargetHasRelationshipToSelf,
             BehaviorProgramPrecondition.SelfHasOutgoingRelationship => BehaviorPreconditionCodes.SelfHasOutgoingRelationship,
+            BehaviorProgramPrecondition.SelfHasOutgoingRelationshipToKind => BehaviorPreconditionCodes.SelfHasOutgoingRelationshipToKind,
             BehaviorProgramPrecondition.EndpointRelationshipCountBelow => BehaviorPreconditionCodes.EndpointRelationshipCountBelow,
             BehaviorProgramPrecondition.RelatedEntityMatchesTarget => BehaviorPreconditionCodes.RelatedEntityMatchesTarget,
             BehaviorProgramPrecondition.RelationshipExists => BehaviorPreconditionCodes.RelationshipExists,
@@ -779,6 +780,7 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramPrecondition.ContestedInfluence => BehaviorPreconditionCodes.ContestedInfluence,
             BehaviorProgramPrecondition.SharedInfluence => BehaviorPreconditionCodes.SharedInfluence,
             BehaviorProgramPrecondition.EndpointCultureIs => BehaviorPreconditionCodes.EndpointCultureIs,
+            BehaviorProgramPrecondition.EndpointSubtypeIs => BehaviorPreconditionCodes.EndpointSubtypeIs,
             _ => -1,
         };
         return code >= 0;

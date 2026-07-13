@@ -14,7 +14,8 @@ public sealed class IceRemembersGambitDefinitionTests
         var config = IceRemembersDefinition.Create();
         var gambitIds = config.Gambits.Select(gambit => gambit.Id).ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(24 + IceRemembersEntities.All.Count, gambitIds.Count);
+        // 24 strategic gambits + 12 grant gambits + one work-tier gambit per kind.
+        Assert.Equal(36 + IceRemembersEntities.All.Count, gambitIds.Count);
         Assert.Contains(IceRemembersGambitId.AbilitySharesPractice.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactBindsMonster.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactCleansesScar.ToGambitId(), gambitIds);
@@ -100,9 +101,20 @@ public sealed class IceRemembersGambitDefinitionTests
             Enum.GetValues<IceRemembersGambitId>()
                 .Where(id => id.ToGambitId().EndsWith("_deepens_the_holding", StringComparison.Ordinal))
                 .Select(id => compiled.Ids.GambitIdOf(id.ToGambitId()).Value));
+        var grantGambitIds = new HashSet<int>(
+            IceRemembersDefinition.GrantGambitIds
+                .Select(id => compiled.Ids.GambitIdOf(id.ToGambitId()).Value));
 
         Assert.All(compiled.Programs.Gambits.Gambits, gambit =>
         {
+            if (grantGambitIds.Contains(gambit.GambitId))
+            {
+                // Grant gambits carry authored reliability: renewal and other
+                // granted acts are dependable by design, not baseline-tuned.
+                Assert.InRange(gambit.SuccessChance, 0.5f, 0.85f);
+                return;
+            }
+
             var expected = workTierGambitIds.Contains(gambit.GambitId) ? 0.75f : 0.25f;
             Assert.Equal(expected, gambit.SuccessChance);
         });

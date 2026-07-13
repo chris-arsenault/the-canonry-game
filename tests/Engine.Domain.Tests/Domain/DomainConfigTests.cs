@@ -22,7 +22,9 @@ public class DomainConfigTests
 
         Assert.Equal(IceRemembersKinds.All.Count, config.Kinds.Count);
         Assert.True(config.Relationships.Count > 10);
-        Assert.Equal(IceRemembersKinds.All.Count, config.Lifecycles.Count);
+        // WorldAnchor kinds (artifact, region, point of interest) are ageless
+        // and carry no lifecycle config.
+        Assert.Equal(IceRemembersKinds.All.Count - 3, config.Lifecycles.Count);
         Assert.Equal(2, config.TravelStructures.Count);
         Assert.Equal(IceRemembersGeneratorDefinition.Create().Count, config.Semantics!.Generators.Count);
     }
@@ -679,7 +681,7 @@ public class DomainConfigTests
 
         Assert.True(lifecycleConfig.HasConfig(TestKinds.Penguin));
         Assert.True(lifecycleConfig.HasConfig(TestKinds.Settlement));
-        Assert.True(lifecycleConfig.HasConfig(TestKinds.Region));
+        Assert.False(lifecycleConfig.HasConfig(TestKinds.Region));
     }
 
     private static void AssertNearNominalDrain(LifecycleConfig config, float targetTicks)

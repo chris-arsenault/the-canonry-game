@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-internal static class KernelQuery
+internal static partial class KernelQuery
 {
     public static void ForEachEntity(WorldState world, global::System.Func<int, bool> visit)
     {
@@ -382,10 +382,12 @@ internal static class KernelQuery
         result = predicate.Code switch
         {
             BehaviorPreconditionCodes.EndpointCultureIs => EndpointCulturePasses(world, binding, predicate.A, predicate.B),
+            BehaviorPreconditionCodes.EndpointSubtypeIs => EndpointSubtypePasses(world, binding, predicate.A, predicate.B),
             BehaviorPreconditionCodes.SelfCultureMass => SelfCultureMassPasses(world, binding.ActorId, predicate.A, predicate.X, predicate.Y),
             _ => false,
         };
         return predicate.Code is BehaviorPreconditionCodes.EndpointCultureIs or
+            BehaviorPreconditionCodes.EndpointSubtypeIs or
             BehaviorPreconditionCodes.SelfCultureMass;
     }
 
@@ -399,6 +401,18 @@ internal static class KernelQuery
             ? binding.TargetId
             : binding.ActorId;
         return world.EntityCultureId(entityId) == cultureId;
+    }
+
+    private static bool EndpointSubtypePasses(
+        WorldState world,
+        in QueryBinding binding,
+        int endpointCode,
+        int subtypeId)
+    {
+        var entityId = endpointCode == BehaviorEndpointCodes.Target
+            ? binding.TargetId
+            : binding.ActorId;
+        return world.EntitySubtypeId(entityId) == subtypeId;
     }
 
     private static bool SelfCultureMassPasses(
@@ -460,10 +474,12 @@ internal static class KernelQuery
         result = predicate.Code switch
         {
             BehaviorPreconditionCodes.SelfHasOutgoingRelationship => SelfOutgoingRelationshipPasses(world, binding.ActorId, predicate.A, predicate.B, predicate.X),
+            BehaviorPreconditionCodes.SelfHasOutgoingRelationshipToKind => SelfRelationshipToKindPasses(world, binding.ActorId, predicate.A, predicate.B, predicate.C, predicate.D, predicate.X),
             BehaviorPreconditionCodes.EndpointRelationshipCountBelow => EndpointRelationshipCountIsBelow(world, predicate, binding),
             _ => false,
         };
         return predicate.Code is BehaviorPreconditionCodes.SelfHasOutgoingRelationship or
+            BehaviorPreconditionCodes.SelfHasOutgoingRelationshipToKind or
             BehaviorPreconditionCodes.EndpointRelationshipCountBelow;
     }
 

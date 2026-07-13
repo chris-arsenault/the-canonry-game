@@ -538,6 +538,17 @@ public static partial class DomainCompiler
             case SelfHasOutgoingRelationship relationship:
                 AddRelationshipStrengthPrecondition(ops, relationship.RelationshipKind, relationship.MinStrength, ids, BehaviorProgramPrecondition.SelfHasOutgoingRelationship);
                 return true;
+            case SelfHasRelationshipToEntityOfSubtype relationship:
+                // B packs two flags: bit 0 = has minimum strength, bit 1 = scan
+                // incoming edges instead of outgoing.
+                ops.Add(new BehaviorProgramPreconditionOp(
+                    BehaviorProgramPrecondition.SelfHasOutgoingRelationshipToKind,
+                    ids.RelationshipKindIdOf(relationship.RelationshipKind).Value,
+                    (relationship.MinStrength.HasValue ? 1 : 0) | (relationship.Incoming ? 2 : 0),
+                    ids.KindIdOf(relationship.TargetKind.Value).Value,
+                    relationship.TargetSubtype is null ? 0 : ids.SubtypeIdOf(relationship.TargetSubtype).Value,
+                    X: relationship.MinStrength ?? 0f));
+                return true;
             case EndpointRelationshipCountBelow relationship:
                 ops.Add(new BehaviorProgramPreconditionOp(
                     BehaviorProgramPrecondition.EndpointRelationshipCountBelow,
@@ -565,9 +576,17 @@ public static partial class DomainCompiler
         IPrecondition precondition,
         DomainIdRegistry ids)
     {
-        if (precondition is not EndpointCultureIs culture) { return false; }
-        ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.EndpointCultureIs, (int)EndpointCode(culture.Endpoint), ids.CultureIdOf(culture.Culture).Value));
-        return true;
+        switch (precondition)
+        {
+            case EndpointCultureIs culture:
+                ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.EndpointCultureIs, (int)EndpointCode(culture.Endpoint), ids.CultureIdOf(culture.Culture).Value));
+                return true;
+            case EndpointSubtypeIs subtype:
+                ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.EndpointSubtypeIs, (int)EndpointCode(subtype.Endpoint), ids.SubtypeIdOf(subtype.Subtype).Value));
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static void AddAttributeRangePrecondition(
