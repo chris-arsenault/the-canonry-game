@@ -218,6 +218,12 @@ roles first and biases future events into the beats.
   storied unheld prize). Deliberately three; expansion after evidence.
 - The story table is the first consumer of historical-relationship queries;
   its query needs feed the capacity/eviction design (per the handoff).
+- **Capacity answer (from the built v1):** the Director queries only LIVE
+  relationships — role conditions use FindRelationship on active pairs and
+  resolutions write live edges. Kernel state needs no historical
+  relationship queries; the chronicle reconstructs history from telemetry.
+  Historical edges can be evicted from kernel state (archived to the event
+  stream) without breaking the Director.
 - Verify: stories cast/resolve at sane rates; resolution outcomes diverse;
   cast members show arc-shaped biographies; no runaway affordance bias
   (non-cast behavior stays healthy).
@@ -237,7 +243,11 @@ roles first and biases future events into the beats.
   58 named war casualties memorialized in death)
 - [x] R4 — memory, artifact conflict, raider careers (`3b5168a`; evidence
   `nq-r4-memory-3x25k-20260713` + `nq-r1to4-longrun-1x100k-20260713`)
-- [ ] R5 — Chronicle Director (specced above; deliberately its own round)
+- [x] R5 — Chronicle Director core (`53ae586`; evidence
+  `nq-r5-director-3x25k-20260713` + live smoke: all three archetypes cast
+  from real history and resolve with [story]-sourced authored endings).
+  Remaining R5 polish (separate passes): story cast/act/resolve telemetry
+  rows and the ChroniclePlan export for the illuminator.
 
 ## Scope notes and follow-ups discovered during R1-R4
 

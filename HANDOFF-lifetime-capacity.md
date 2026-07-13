@@ -30,6 +30,12 @@ duplicate `at_war_with` edges on every fire for the same trio (its target
 precondition stays true after firing; generator `R(...)` bundles may not
 dedupe/replace existing edges).
 
+**R5 answer (2026-07-13):** the Chronicle Director is built and it queries
+only LIVE relationships (role-pair conditions and resolution writes). No
+kernel consumer needs historical relationship slots; chronicle/provenance
+reads come from telemetry. Eviction of culled edges from kernel state is
+therefore safe - design the recycler accordingly.
+
 **Wanted:** (1) capture the uncut stack from the repro; (2) fix the actual
 exhaustion — dedupe/replace on generator relationship bundles if that's the
 leak, and/or recycle or evict historical slots; (3) design note: the
