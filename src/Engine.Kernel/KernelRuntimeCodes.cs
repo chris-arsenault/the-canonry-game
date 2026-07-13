@@ -14,7 +14,7 @@ internal readonly record struct KernelRuntimeCodes(
     int LowAltitudeVerbSourceCodeId,
     int EffectsSourceCodeId,
     int PlayerSourceCodeId,
-    int StorySourceCodeId)
+    int ChronicleSourceCodeId)
 {
     public static KernelRuntimeCodes Default => new(1, 2, 3, 1, 2, 3, 4, 5, 9, 10, 11, 12, 13, 14);
 }

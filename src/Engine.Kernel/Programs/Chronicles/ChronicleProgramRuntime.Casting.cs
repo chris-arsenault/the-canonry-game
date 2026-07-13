@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-internal sealed partial class StoryProgramRuntime
+internal sealed partial class ChronicleProgramRuntime
 {
     private static readonly int[] EmptyRefs = new int[1];
 
@@ -19,7 +19,7 @@ internal sealed partial class StoryProgramRuntime
             return;
         }
 
-        var story = FindStorySlot();
+        var story = FindChronicleSlot();
         if (story == 0)
         {
             return;
@@ -37,22 +37,29 @@ internal sealed partial class StoryProgramRuntime
         State.ActIndices[story] = 0;
         State.StartTicks[story] = tick;
         State.ActStartTicks[story] = tick;
-        State.NextStorySequence++;
-        State.StorySequences[story] = State.NextStorySequence;
+        State.NextChronicleSequence++;
+        State.ChronicleSequences[story] = State.NextChronicleSequence;
         State.ArchetypeActiveCounts[archetype]++;
         if (story > State.HighWatermark)
         {
             State.HighWatermark = story;
         }
 
-        EmitStoryChanged(simulation, story, StoryEventTypeCodes.Cast, outcomeCodeId: 0, tick);
+        EmitChronicleChanged(simulation, story, ChronicleEventTypeCodes.Cast, outcomeCodeId: 0, tick);
     }
 
+    // The provenance merge: casting consumes the causal record. Among
+    // candidates whose qualifying edge passes the archetype gate, the one
+    // whose edge was most recently authored (by gambit, generator, or a
+    // prior chronicle - the provenance invocation tick) wins the tale. The
+    // director follows the freshest causal thread, not the lowest entity id.
     private int SelectPrimary(WorldState world, int archetype)
     {
         var kindId = Data.ArchetypePrimaryKindIds[archetype];
         var relKindId = Data.ArchetypePrimaryRequiredRelKindIds[archetype];
         var minStrength = Data.ArchetypePrimaryRequiredRelMinStrengths[archetype];
+        var bestId = 0;
+        var bestCausalTick = -1;
         for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
         {
             if (!world.EntityIsActive(entityId) ||
@@ -62,16 +69,42 @@ internal sealed partial class StoryProgramRuntime
                 continue;
             }
 
-            if (relKindId != 0 &&
-                !KernelQuery.SelfOutgoingRelationshipPasses(world, entityId, relKindId, 1, minStrength))
+            if (relKindId == 0)
+            {
+                return entityId;
+            }
+
+            var causalTick = QualifyingEdgeCausalTick(world, entityId, relKindId, minStrength);
+            if (causalTick > bestCausalTick)
+            {
+                bestCausalTick = causalTick;
+                bestId = entityId;
+            }
+        }
+
+        return bestId;
+    }
+
+    private static int QualifyingEdgeCausalTick(WorldState world, int entityId, int relKindId, float minStrength)
+    {
+        var best = -1;
+        var cursor = world.OutgoingRelationshipsOfKind(entityId, relKindId);
+        while (world.MoveNextRelationship(ref cursor, out var relationshipId))
+        {
+            if (world.RelationshipStrength(relationshipId) < minStrength)
             {
                 continue;
             }
 
-            return entityId;
+            var invocationId = world.RelationshipCreatedByInvocationId(relationshipId);
+            var causalTick = invocationId > 0 ? world.ProvenanceInvocationTick(invocationId) : 0;
+            if (causalTick > best)
+            {
+                best = causalTick;
+            }
         }
 
-        return 0;
+        return best;
     }
 
     private bool RoleIsCastInArchetype(int archetype, int entityId)
@@ -83,7 +116,7 @@ internal sealed partial class StoryProgramRuntime
                 continue;
             }
 
-            for (var role = 0; role < StoryProgramData.MaxRolesPerArchetype; role++)
+            for (var role = 0; role < ChronicleProgramData.MaxRolesPerArchetype; role++)
             {
                 if (RoleEntity(story, role) == entityId)
                 {
@@ -138,9 +171,9 @@ internal sealed partial class StoryProgramRuntime
         return KernelQuery.EvaluateSharedQuery(world, query, binding, ordinal).SelectedEntityId;
     }
 
-    private int FindStorySlot()
+    private int FindChronicleSlot()
     {
-        for (var story = 1; story <= _storyCapacity; story++)
+        for (var story = 1; story <= _chronicleCapacity; story++)
         {
             if (!State.Active[story])
             {
@@ -153,7 +186,7 @@ internal sealed partial class StoryProgramRuntime
 
     private void ClearRoles(int story)
     {
-        for (var role = 0; role < StoryProgramData.MaxRolesPerArchetype; role++)
+        for (var role = 0; role < ChronicleProgramData.MaxRolesPerArchetype; role++)
         {
             SetRoleEntity(story, role, 0);
         }

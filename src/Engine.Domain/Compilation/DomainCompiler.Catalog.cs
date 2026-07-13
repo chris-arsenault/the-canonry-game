@@ -125,7 +125,7 @@ public static partial class DomainCompiler
             RegisterGeneratorSubtypes(generator, state.Subtypes, state.Registry);
         }
 
-        foreach (var archetype in config.Semantics.StoryArchetypes)
+        foreach (var archetype in config.Semantics.ChronicleArchetypes)
         {
             RegisterOnceStrict(state.Generators, archetype.Id, state.Registry.RegisterGenerator, "story archetype");
             foreach (var resolution in archetype.Resolutions)
@@ -182,7 +182,7 @@ public static partial class DomainCompiler
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.GameplaySourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.GameplayEffectsSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.PlayerSourceCode, state.Registry.RegisterSourceCode, "source code");
-        RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.StorySourceCode, state.Registry.RegisterSourceCode, "source code");
+        RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.ChronicleSourceCode, state.Registry.RegisterSourceCode, "source code");
     }
 
     private sealed class CatalogRegistrationState

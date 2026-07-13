@@ -43,9 +43,12 @@ internal sealed record SimulationOptions
     public int CultureSlotAllowedKindCapacity { get; init; } = 256;
     public int CultureSlotScoreRuleCapacity { get; init; } = 512;
     public int MinorActorCapacity { get; init; } = 4096;
-    public int StoryArchetypeCapacity { get; init; } = 16;
-    public int StoryItemCapacity { get; init; } = 256;
-    public int StoryCapacity { get; init; } = 64;
+    public int ChronicleArchetypeCapacity { get; init; } = 16;
+    public int ChronicleItemCapacity { get; init; } = 256;
+    // The global chronicle concurrency cap: the ice tells at most this many
+    // tales at once. Scarcity is the point - chronicles are player focus
+    // objects, not ambient churn.
+    public int ChronicleCapacity { get; init; } = 7;
     public int MinorActorRuleCapacity { get; init; } = 64;
     public int MinorActorSourceRuleCapacity { get; init; } = 16384;
     public int EntityAttributeCapacity { get; init; } = 512;

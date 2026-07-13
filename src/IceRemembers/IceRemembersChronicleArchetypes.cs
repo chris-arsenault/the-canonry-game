@@ -12,9 +12,9 @@ using K = IceRemembers.IceRemembersKinds;
 /// The director then biases the cast toward the plot and guarantees an
 /// ending the chronicle can retell.
 /// </summary>
-public static class IceRemembersStoryArchetypes
+public static class IceRemembersChronicleArchetypes
 {
-    public static IReadOnlyList<StoryArchetypeConfig> Create() =>
+    public static IReadOnlyList<ChronicleArchetypeConfig> Create() =>
     [
         TheHunt(),
         TheBloodRivalry(),
@@ -25,16 +25,16 @@ public static class IceRemembersStoryArchetypes
         TheTerrorOfTheCoasts(),
     ];
 
-    private static StoryBiasConfig Bias(string actor, string target, string? gambit, float bonus) =>
+    private static ChronicleBiasConfig Bias(string actor, string target, string? gambit, float bonus) =>
         new() { ActorRole = actor, TargetRole = target, Gambit = gambit, ScoreBonus = bonus };
 
-    private static StorySustainConfig Sustain(string role, float delta, string attribute = "vitality") =>
+    private static ChronicleSustainConfig Sustain(string role, float delta, string attribute = "vitality") =>
         new() { Role = role, Attribute = attribute, DeltaPerPulse = delta };
 
-    private static StoryResolutionRelationshipConfig Cull(string source, string target, string kind) =>
+    private static ChronicleResolutionRelationshipConfig Cull(string source, string target, string kind) =>
         new() { SourceRole = source, TargetRole = target, RelationshipKind = kind, Strength = 0f, Polarity = RelationshipPolarity.Negative, CullInstead = true };
 
-    private static StoryResolutionRelationshipConfig Create(string source, string target, string kind, float strength, RelationshipPolarity polarity) =>
+    private static ChronicleResolutionRelationshipConfig Create(string source, string target, string kind, float strength, RelationshipPolarity polarity) =>
         new() { SourceRole = source, TargetRole = target, RelationshipKind = kind, Strength = strength, Polarity = polarity };
 
     /// <summary>
@@ -43,11 +43,11 @@ public static class IceRemembersStoryArchetypes
     /// slaying is favored, and the tale ends either in the beast's fall or
     /// with the beast enduring and the hunt abandoned.
     /// </summary>
-    private static StoryArchetypeConfig TheHunt() => new()
+    private static ChronicleArchetypeConfig TheHunt() => new()
     {
         Acts = HuntActs(),
         Resolutions = HuntResolutions(),
-        Id = "story_the_hunt",
+        Id = "the_hunt",
         Name = "The Hunt",
         Description = "A much-provoked beast, a named hunter, and an ending one way or the other.",
         PrimaryRoleRef = "$quarry",
@@ -72,36 +72,36 @@ public static class IceRemembersStoryArchetypes
                 },
             },
         ],
-        MaxActive = 3,
-        CastingCadenceTicks = 60,
+        MaxActive = 1,
+        CastingCadenceTicks = 400,
     };
 
-    private static List<StoryActConfig> HuntActs() =>
+    private static List<ChronicleActConfig> HuntActs() =>
     [
-        new StoryActConfig
+        new ChronicleActConfig
         {
             DeadlineTicks = 300,
             Bias = [Bias("$hunter", "$quarry", "penguin_binds_what_was_loosed", 2f), Bias("$hunter", "$quarry", "penguin_slays_monster", 3f)],
             Sustain = [Sustain("$hunter", 0.02f)],
         },
-        new StoryActConfig
+        new ChronicleActConfig
         {
             DeadlineTicks = 500,
-            AdvanceWhen = new StoryConditionConfig { Kind = StoryConditionKind.RoleHistorical, RoleA = "$quarry" },
+            AdvanceWhen = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RoleHistorical, RoleA = "$quarry" },
             Bias = [Bias("$hunter", "$quarry", "penguin_slays_monster", 5f)],
             Sustain = [Sustain("$hunter", 0.02f)],
         },
     ];
 
-    private static List<StoryResolutionConfig> HuntResolutions() =>
+    private static List<ChronicleResolutionConfig> HuntResolutions() =>
     [
-        new StoryResolutionConfig
+        new ChronicleResolutionConfig
         {
             OutcomeId = "hunt_fulfilled",
-            When = new StoryConditionConfig { Kind = StoryConditionKind.RoleHistorical, RoleA = "$quarry" },
+            When = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RoleHistorical, RoleA = "$quarry" },
             Relationships = [Cull("$hunter", "$quarry", "at_war_with")],
         },
-        new StoryResolutionConfig
+        new ChronicleResolutionConfig
         {
             OutcomeId = "the_beast_endures",
             Weight = 1,
@@ -118,11 +118,11 @@ public static class IceRemembersStoryArchetypes
     /// director favors declaration and settlement between exactly this pair,
     /// and the story ends settled or curdled into lasting betrayal.
     /// </summary>
-    private static StoryArchetypeConfig TheBloodRivalry() => new()
+    private static ChronicleArchetypeConfig TheBloodRivalry() => new()
     {
         Acts = RivalryActs(),
         Resolutions = RivalryResolutions(),
-        Id = "story_blood_rivalry",
+        Id = "blood_rivalry",
         Name = "The Blood Rivalry",
         Description = "A rivalry pressed until it must resolve: settled ground or lasting hatred.",
         PrimaryRoleRef = "$challenger",
@@ -147,18 +147,18 @@ public static class IceRemembersStoryArchetypes
                 },
             },
         ],
-        MaxActive = 3,
-        CastingCadenceTicks = 80,
+        MaxActive = 1,
+        CastingCadenceTicks = 500,
     };
 
-    private static List<StoryActConfig> RivalryActs() =>
+    private static List<ChronicleActConfig> RivalryActs() =>
     [
-        new StoryActConfig
+        new ChronicleActConfig
         {
             DeadlineTicks = 1250,
-            AdvanceWhen = new StoryConditionConfig
+            AdvanceWhen = new ChronicleConditionConfig
             {
-                Kind = StoryConditionKind.RolePairRelationship,
+                Kind = ChronicleConditionKind.RolePairRelationship,
                 RoleA = "$challenger",
                 RoleB = "$rival",
                 RelationshipKind = "at_war_with",
@@ -166,16 +166,16 @@ public static class IceRemembersStoryArchetypes
             },
             Bias = [Bias("$challenger", "$rival", "faction_declares_territorial_war", 2.5f), Bias("$rival", "$challenger", "faction_declares_territorial_war", 2.5f)],
         },
-        new StoryActConfig
+        new ChronicleActConfig
         {
             DeadlineTicks = 3750,
             Bias = [Bias("$challenger", "$rival", "faction_sues_for_peace", 1.5f), Bias("$rival", "$challenger", "faction_sues_for_peace", 1.5f)],
         },
     ];
 
-    private static List<StoryResolutionConfig> RivalryResolutions() =>
+    private static List<ChronicleResolutionConfig> RivalryResolutions() =>
     [
-        new StoryResolutionConfig
+        new ChronicleResolutionConfig
         {
             OutcomeId = "rivalry_settled",
             Weight = 2,
@@ -187,7 +187,7 @@ public static class IceRemembersStoryArchetypes
                 Cull("$rival", "$challenger", "at_war_with"),
             ],
         },
-        new StoryResolutionConfig
+        new ChronicleResolutionConfig
         {
             OutcomeId = "rivalry_becomes_hatred",
             Weight = 1,
@@ -206,9 +206,9 @@ public static class IceRemembersStoryArchetypes
     /// the teaching runs; when the master dies the teaching lives on in the
     /// student, or the paths quietly diverge.
     /// </summary>
-    private static StoryArchetypeConfig TheTeaching() => new()
+    private static ChronicleArchetypeConfig TheTeaching() => new()
     {
-        Id = "story_the_teaching",
+        Id = "the_teaching",
         Name = "The Teaching",
         Description = "Master and student, and what survives of one inside the other.",
         PrimaryRoleRef = "$student",
@@ -236,35 +236,35 @@ public static class IceRemembersStoryArchetypes
         ],
         Acts =
         [
-            new StoryActConfig
+            new ChronicleActConfig
             {
                 DeadlineTicks = 500,
                 Bias = [Bias("$master", "$student", "penguin_mends_another", 1.5f), Bias("$student", "$master", "penguin_mends_another", 1.5f)],
                 Sustain = [Sustain("$student", 0.015f), Sustain("$master", 0.015f)],
             },
-            new StoryActConfig
+            new ChronicleActConfig
             {
                 DeadlineTicks = 500,
-                AdvanceWhen = new StoryConditionConfig { Kind = StoryConditionKind.RoleHistorical, RoleA = "$master" },
+                AdvanceWhen = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RoleHistorical, RoleA = "$master" },
                 Sustain = [Sustain("$student", 0.015f)],
             },
         ],
         Resolutions =
         [
-            new StoryResolutionConfig
+            new ChronicleResolutionConfig
             {
                 OutcomeId = "the_teaching_lives",
-                When = new StoryConditionConfig { Kind = StoryConditionKind.RoleHistorical, RoleA = "$master" },
+                When = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RoleHistorical, RoleA = "$master" },
             },
-            new StoryResolutionConfig
+            new ChronicleResolutionConfig
             {
                 OutcomeId = "paths_diverge",
                 Weight = 1,
                 Relationships = [Cull("$student", "$master", "taught_by")],
             },
         ],
-        MaxActive = 4,
-        CastingCadenceTicks = 100,
+        MaxActive = 1,
+        CastingCadenceTicks = 700,
     };
 
     /// <summary>
@@ -272,9 +272,9 @@ public static class IceRemembersStoryArchetypes
     /// into legend or falls silent - and either way the chronicle knows which
     /// ports mattered.
     /// </summary>
-    private static StoryArchetypeConfig TheFlourishingRoad() => new()
+    private static ChronicleArchetypeConfig TheFlourishingRoad() => new()
     {
-        Id = "story_flourishing_road",
+        Id = "flourishing_road",
         Name = "The Flourishing Road",
         Description = "A road between two ports, and whether it outlives its makers.",
         PrimaryRoleRef = "$port",
@@ -283,7 +283,7 @@ public static class IceRemembersStoryArchetypes
             Kind = K.Settlement,
             RequiredOutgoingRelationshipRequirements =
             [
-                new SemanticGeneratorRelationshipRequirement { RelationshipKind = "trade_route", MinimumStrength = 0.7f },
+                new SemanticGeneratorRelationshipRequirement { RelationshipKind = "trade_route", MinimumStrength = 0.85f },
             ],
         },
         SupportingRoles =
@@ -292,49 +292,49 @@ public static class IceRemembersStoryArchetypes
             {
                 Ref = "$partner",
                 Kind = K.Settlement,
-                Query = new SemanticEntityQuery { RelatedToTargetRelationship = "trade_route", RelatedToTargetMinStrength = 0.7f },
+                Query = new SemanticEntityQuery { RelatedToTargetRelationship = "trade_route", RelatedToTargetMinStrength = 0.85f },
             },
         ],
         Acts =
         [
-            new StoryActConfig
+            new ChronicleActConfig
             {
                 DeadlineTicks = 400,
                 Bias = [Bias("$port", "$partner", null, 1f), Bias("$partner", "$port", null, 1f)],
                 Sustain = [Sustain("$port", 0.02f, "temp_hp"), Sustain("$partner", 0.02f, "temp_hp")],
             },
-            new StoryActConfig
+            new ChronicleActConfig
             {
                 DeadlineTicks = 400,
-                AdvanceWhen = new StoryConditionConfig { Kind = StoryConditionKind.RolePairRelationship, RoleA = "$port", RoleB = "$partner", RelationshipKind = "trade_route", MinStrength = 0.95f },
+                AdvanceWhen = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RolePairRelationship, RoleA = "$port", RoleB = "$partner", RelationshipKind = "trade_route", MinStrength = 0.95f },
                 Sustain = [Sustain("$port", 0.02f, "temp_hp"), Sustain("$partner", 0.02f, "temp_hp")],
             },
         ],
         Resolutions =
         [
-            new StoryResolutionConfig
+            new ChronicleResolutionConfig
             {
                 OutcomeId = "the_road_becomes_legend",
-                When = new StoryConditionConfig { Kind = StoryConditionKind.RolePairRelationship, RoleA = "$port", RoleB = "$partner", RelationshipKind = "trade_route", MinStrength = 0.9f },
+                When = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RolePairRelationship, RoleA = "$port", RoleB = "$partner", RelationshipKind = "trade_route", MinStrength = 0.9f },
             },
-            new StoryResolutionConfig
+            new ChronicleResolutionConfig
             {
                 OutcomeId = "the_road_falls_silent",
                 Weight = 1,
                 Relationships = [Cull("$port", "$partner", "trade_route"), Cull("$partner", "$port", "trade_route")],
             },
         ],
-        MaxActive = 3,
-        CastingCadenceTicks = 140,
+        MaxActive = 1,
+        CastingCadenceTicks = 900,
     };
 
     /// <summary>
     /// A corrupted transport and the monster haunting it. Wards are favored;
     /// the run is either cleansed or the vessel is lost with all hands.
     /// </summary>
-    private static StoryArchetypeConfig TheHauntedRun() => new()
+    private static ChronicleArchetypeConfig TheHauntedRun() => new()
     {
-        Id = "story_haunted_run",
+        Id = "haunted_run",
         Name = "The Haunted Run",
         Description = "A vessel, its haunt, and which of them survives the route.",
         PrimaryRoleRef = "$vessel",
@@ -357,45 +357,45 @@ public static class IceRemembersStoryArchetypes
         ],
         Acts =
         [
-            new StoryActConfig
+            new ChronicleActConfig
             {
                 DeadlineTicks = 350,
                 Bias = [Bias("$vessel", "$haunt", "transport_wards_monster", 3f)],
                 Sustain = [Sustain("$vessel", 0.02f, "integrity")],
             },
-            new StoryActConfig
+            new ChronicleActConfig
             {
                 DeadlineTicks = 350,
-                AdvanceWhen = new StoryConditionConfig { Kind = StoryConditionKind.RolePairRelationship, RoleA = "$vessel", RoleB = "$haunt", RelationshipKind = "ward_against", MinStrength = 0.5f },
+                AdvanceWhen = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RolePairRelationship, RoleA = "$vessel", RoleB = "$haunt", RelationshipKind = "ward_against", MinStrength = 0.5f },
                 Bias = [Bias("$vessel", "$haunt", "transport_wards_monster", 4f)],
             },
         ],
         Resolutions =
         [
-            new StoryResolutionConfig
+            new ChronicleResolutionConfig
             {
                 OutcomeId = "the_run_cleansed",
-                When = new StoryConditionConfig { Kind = StoryConditionKind.RolePairRelationship, RoleA = "$vessel", RoleB = "$haunt", RelationshipKind = "ward_against", MinStrength = 0.5f },
+                When = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RolePairRelationship, RoleA = "$vessel", RoleB = "$haunt", RelationshipKind = "ward_against", MinStrength = 0.5f },
                 Relationships = [Cull("$vessel", "$haunt", "corrupted_by")],
             },
-            new StoryResolutionConfig
+            new ChronicleResolutionConfig
             {
                 OutcomeId = "the_vessel_is_lost",
                 Weight = 1,
                 MarkHistorical = ["$vessel"],
             },
         ],
-        MaxActive = 3,
-        CastingCadenceTicks = 90,
+        MaxActive = 1,
+        CastingCadenceTicks = 500,
     };
 
     /// <summary>
     /// An ability and its devoted keeper. The pair sustain each other; the
     /// practice either takes root in the culture or quietly fades.
     /// </summary>
-    private static StoryArchetypeConfig TheLivingPractice() => new()
+    private static ChronicleArchetypeConfig TheLivingPractice() => new()
     {
-        Id = "story_living_practice",
+        Id = "living_practice",
         Name = "The Living Practice",
         Description = "A discipline and the one who keeps it alive.",
         PrimaryRoleRef = "$practice",
@@ -404,7 +404,7 @@ public static class IceRemembersStoryArchetypes
             Kind = K.Ability,
             RequiredOutgoingRelationshipRequirements =
             [
-                new SemanticGeneratorRelationshipRequirement { RelationshipKind = "practiced_by", MinimumStrength = 0.6f },
+                new SemanticGeneratorRelationshipRequirement { RelationshipKind = "practiced_by", MinimumStrength = 0.8f },
             ],
         },
         SupportingRoles =
@@ -413,40 +413,40 @@ public static class IceRemembersStoryArchetypes
             {
                 Ref = "$keeper",
                 Kind = K.Penguin,
-                Query = new SemanticEntityQuery { RelatedToTargetRelationship = "practiced_by", RelatedToTargetIncoming = true, RelatedToTargetMinStrength = 0.6f },
+                Query = new SemanticEntityQuery { RelatedToTargetRelationship = "practiced_by", RelatedToTargetIncoming = true, RelatedToTargetMinStrength = 0.8f },
             },
         ],
         Acts =
         [
-            new StoryActConfig
+            new ChronicleActConfig
             {
                 DeadlineTicks = 450,
                 Bias = [Bias("$practice", "$keeper", null, 1f)],
                 Sustain = [Sustain("$keeper", 0.015f), Sustain("$practice", 0.02f, "clarity")],
             },
-            new StoryActConfig
+            new ChronicleActConfig
             {
                 DeadlineTicks = 450,
-                AdvanceWhen = new StoryConditionConfig { Kind = StoryConditionKind.RolePairRelationship, RoleA = "$practice", RoleB = "$keeper", RelationshipKind = "practiced_by", MinStrength = 0.9f },
+                AdvanceWhen = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RolePairRelationship, RoleA = "$practice", RoleB = "$keeper", RelationshipKind = "practiced_by", MinStrength = 0.9f },
                 Sustain = [Sustain("$keeper", 0.015f), Sustain("$practice", 0.02f, "clarity")],
             },
         ],
         Resolutions =
         [
-            new StoryResolutionConfig
+            new ChronicleResolutionConfig
             {
                 OutcomeId = "the_practice_takes_root",
-                When = new StoryConditionConfig { Kind = StoryConditionKind.RolePairRelationship, RoleA = "$practice", RoleB = "$keeper", RelationshipKind = "practiced_by", MinStrength = 0.85f },
+                When = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RolePairRelationship, RoleA = "$practice", RoleB = "$keeper", RelationshipKind = "practiced_by", MinStrength = 0.85f },
             },
-            new StoryResolutionConfig
+            new ChronicleResolutionConfig
             {
                 OutcomeId = "the_practice_fades",
                 Weight = 1,
                 Relationships = [Cull("$practice", "$keeper", "practiced_by")],
             },
         ],
-        MaxActive = 4,
-        CastingCadenceTicks = 140,
+        MaxActive = 1,
+        CastingCadenceTicks = 1000,
     };
 
     /// <summary>
@@ -454,9 +454,9 @@ public static class IceRemembersStoryArchetypes
     /// Raid and reprisal are both favored - a proper duel - until the terror
     /// is driven off or the coast yields.
     /// </summary>
-    private static StoryArchetypeConfig TheTerrorOfTheCoasts() => new()
+    private static ChronicleArchetypeConfig TheTerrorOfTheCoasts() => new()
     {
-        Id = "story_terror_of_the_coasts",
+        Id = "terror_of_the_coasts",
         Name = "The Terror of the Coasts",
         Description = "A raider, a defender, and a coastline that remembers both.",
         PrimaryRoleRef = "$terror",
@@ -479,33 +479,33 @@ public static class IceRemembersStoryArchetypes
         ],
         Acts =
         [
-            new StoryActConfig
+            new ChronicleActConfig
             {
                 DeadlineTicks = 350,
                 Bias = [Bias("$terror", "$foe", "orca_raids_trade_route", 2.5f), Bias("$foe", "$terror", "penguin_slays_orca", 2.5f)],
             },
-            new StoryActConfig
+            new ChronicleActConfig
             {
                 DeadlineTicks = 400,
-                AdvanceWhen = new StoryConditionConfig { Kind = StoryConditionKind.RoleHistorical, RoleA = "$terror" },
+                AdvanceWhen = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RoleHistorical, RoleA = "$terror" },
                 Bias = [Bias("$foe", "$terror", "penguin_slays_orca", 4f)],
             },
         ],
         Resolutions =
         [
-            new StoryResolutionConfig
+            new ChronicleResolutionConfig
             {
                 OutcomeId = "the_terror_driven_off",
-                When = new StoryConditionConfig { Kind = StoryConditionKind.RoleHistorical, RoleA = "$terror" },
+                When = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RoleHistorical, RoleA = "$terror" },
             },
-            new StoryResolutionConfig
+            new ChronicleResolutionConfig
             {
                 OutcomeId = "the_coast_yields",
                 Weight = 1,
                 Relationships = [Cull("$terror", "$foe", "at_war_with"), Cull("$foe", "$terror", "at_war_with")],
             },
         ],
-        MaxActive = 3,
-        CastingCadenceTicks = 90,
+        MaxActive = 1,
+        CastingCadenceTicks = 350,
     };
 }

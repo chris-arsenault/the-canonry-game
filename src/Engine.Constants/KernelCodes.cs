@@ -281,17 +281,17 @@ public static class KernelProgramCodes
     public const int MinorActors = 15;
     public const int CultureBoundaries = 16;
     public const int CultureFieldDecay = 17;
-    public const int StoryDirector = 18;
+    public const int ChronicleDirector = 18;
 }
 
-public static class StoryEventTypeCodes
+public static class ChronicleEventTypeCodes
 {
     public const int Cast = 1;
     public const int ActAdvanced = 2;
     public const int Resolved = 3;
 }
 
-public static class StoryConditionCodes
+public static class ChronicleConditionCodes
 {
     public const int None = 0;
     public const int RolePairRelationship = 1;

@@ -389,12 +389,12 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         MarkProjected(sequence);
     }
 
-    protected override void OnStoryChanged(long sequence, in StoryChangedKernelEvent evt)
+    protected override void OnChronicleChanged(long sequence, in ChronicleChangedKernelEvent evt)
     {
-        _batch.StoryEvents.Add(new StoryEventRow(
+        _batch.ChronicleEvents.Add(new ChronicleEventRow(
             _runId,
             evt.Tick,
-            evt.StorySequence,
+            evt.ChronicleSequence,
             evt.ArchetypeId,
             evt.EventTypeCode,
             evt.ActIndex,

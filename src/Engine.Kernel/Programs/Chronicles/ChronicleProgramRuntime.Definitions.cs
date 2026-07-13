@@ -1,6 +1,6 @@
 namespace Engine.Kernel;
 
-internal sealed partial class StoryProgramRuntime
+internal sealed partial class ChronicleProgramRuntime
 {
     private int _openArchetypeSlot;
 
@@ -42,7 +42,7 @@ internal sealed partial class StoryProgramRuntime
         EnsureOpenArchetype(archetypeSlot);
         ValidatePositive(kindId);
         if (Data.RoleCount + 1 >= Data.RoleKindIds.Length ||
-            Data.ArchetypeRoleCounts[archetypeSlot] >= StoryProgramData.MaxRolesPerArchetype)
+            Data.ArchetypeRoleCounts[archetypeSlot] >= ChronicleProgramData.MaxRolesPerArchetype)
         {
             throw new global::System.InvalidOperationException();
         }

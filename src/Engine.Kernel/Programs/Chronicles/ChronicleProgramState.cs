@@ -4,7 +4,7 @@ namespace Engine.Kernel;
 /// Live story table: which archetypes are running, which entities hold each
 /// role, and where each story is in its act structure.
 /// </summary>
-internal sealed class StoryProgramState : IKernelProgramState
+internal sealed class ChronicleProgramState : IKernelProgramState
 {
     internal readonly bool[] Active;
     internal readonly int[] ArchetypeSlots;
@@ -12,13 +12,13 @@ internal sealed class StoryProgramState : IKernelProgramState
     internal readonly int[] StartTicks;
     internal readonly int[] ActStartTicks;
     internal readonly int[] RoleEntityIds;
-    internal readonly int[] StorySequences;
-    internal int NextStorySequence;
+    internal readonly int[] ChronicleSequences;
+    internal int NextChronicleSequence;
     internal readonly int[] ArchetypeActiveCounts;
     internal readonly int[] NextCastTicks;
     internal int HighWatermark;
 
-    public StoryProgramState(int storyCapacity, int archetypeCapacity)
+    public ChronicleProgramState(int storyCapacity, int archetypeCapacity)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(storyCapacity);
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(archetypeCapacity);
@@ -27,13 +27,13 @@ internal sealed class StoryProgramState : IKernelProgramState
         ActIndices = new int[storyCapacity + 1];
         StartTicks = new int[storyCapacity + 1];
         ActStartTicks = new int[storyCapacity + 1];
-        RoleEntityIds = new int[((storyCapacity + 1) * StoryProgramData.MaxRolesPerArchetype) + 1];
-        StorySequences = new int[storyCapacity + 1];
+        RoleEntityIds = new int[((storyCapacity + 1) * ChronicleProgramData.MaxRolesPerArchetype) + 1];
+        ChronicleSequences = new int[storyCapacity + 1];
         ArchetypeActiveCounts = new int[archetypeCapacity + 1];
         NextCastTicks = new int[archetypeCapacity + 1];
     }
 
-    public int ProgramId => KernelProgramCodes.StoryDirector;
+    public int ProgramId => KernelProgramCodes.ChronicleDirector;
 
     public int SchemaVersion => 2;
 }

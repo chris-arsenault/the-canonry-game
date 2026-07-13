@@ -23,7 +23,7 @@ internal static partial class KernelProgramInstaller
         InstallGenerators(context, programs.Generators);
         InstallCultureSlots(context, programs.CultureSlots);
         InstallMinorActors(context, programs.MinorActors);
-        InstallStories(context, programs.Stories);
+        InstallChronicles(context, programs.Chronicles);
 
         context.SetProgramEnabled(
             KernelProgramCodes.Movement,
@@ -243,11 +243,11 @@ internal static partial class KernelProgramInstaller
         }
     }
 
-    private static void InstallStories(KernelConfigurationContext context, StoryProgram program)
+    private static void InstallChronicles(KernelConfigurationContext context, ChronicleProgram program)
     {
         foreach (var archetype in program.Archetypes)
         {
-            var archetypeSlot = context.AddStoryArchetype(
+            var archetypeSlot = context.AddChronicleArchetype(
                 archetype.ArchetypeId,
                 archetype.MaxActive,
                 archetype.CastingCadenceTicks,
@@ -256,24 +256,24 @@ internal static partial class KernelProgramInstaller
                 archetype.PrimaryRequiredRelMinStrength);
             foreach (var role in archetype.SupportingRoles)
             {
-                context.AddStoryRole(archetypeSlot, role.KindId, role.RelatedKindId, role.RelatedIncoming, role.RelatedMinStrength);
+                context.AddChronicleRole(archetypeSlot, role.KindId, role.RelatedKindId, role.RelatedIncoming, role.RelatedMinStrength);
             }
 
             foreach (var act in archetype.Acts)
             {
-                InstallStoryAct(context, archetypeSlot, act);
+                InstallChronicleAct(context, archetypeSlot, act);
             }
 
             foreach (var resolution in archetype.Resolutions)
             {
-                InstallStoryResolution(context, archetypeSlot, resolution);
+                InstallChronicleResolution(context, archetypeSlot, resolution);
             }
         }
     }
 
-    private static void InstallStoryAct(KernelConfigurationContext context, int archetypeSlot, CompiledStoryAct act)
+    private static void InstallChronicleAct(KernelConfigurationContext context, int archetypeSlot, CompiledChronicleAct act)
     {
-        var actSlot = context.AddStoryAct(
+        var actSlot = context.AddChronicleAct(
             archetypeSlot,
             act.DeadlineTicks,
             act.AdvanceConditionKind,
@@ -283,18 +283,18 @@ internal static partial class KernelProgramInstaller
             act.AdvanceMinStrength);
         foreach (var bias in act.Bias)
         {
-            context.AddStoryActBias(actSlot, bias.ActorRole, bias.TargetRole, bias.GambitId, bias.ScoreBonus);
+            context.AddChronicleActBias(actSlot, bias.ActorRole, bias.TargetRole, bias.GambitId, bias.ScoreBonus);
         }
 
         foreach (var sustain in act.Sustain)
         {
-            context.AddStoryActSustain(actSlot, sustain.Role, sustain.AttributeId, sustain.DeltaPerPulse);
+            context.AddChronicleActSustain(actSlot, sustain.Role, sustain.AttributeId, sustain.DeltaPerPulse);
         }
     }
 
-    private static void InstallStoryResolution(KernelConfigurationContext context, int archetypeSlot, CompiledStoryResolution resolution)
+    private static void InstallChronicleResolution(KernelConfigurationContext context, int archetypeSlot, CompiledChronicleResolution resolution)
     {
-        var resolutionSlot = context.AddStoryResolution(
+        var resolutionSlot = context.AddChronicleResolution(
             archetypeSlot,
             resolution.OutcomeCodeId,
             resolution.Weight,
@@ -306,7 +306,7 @@ internal static partial class KernelProgramInstaller
             resolution.HistoricalRoleMask);
         foreach (var relationship in resolution.Relationships)
         {
-            context.AddStoryResolutionRelationship(
+            context.AddChronicleResolutionRelationship(
                 resolutionSlot,
                 relationship.SourceRole,
                 relationship.TargetRole,

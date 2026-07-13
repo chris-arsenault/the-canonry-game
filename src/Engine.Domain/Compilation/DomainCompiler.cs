@@ -45,7 +45,7 @@ public static partial class DomainCompiler
                 ids.SourceCodeIdOf(DomainRuntimeNames.LowAltitudeVerbSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.EffectsSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.PlayerSourceCode),
-                ids.SourceCodeIdOf(DomainRuntimeNames.StorySourceCode)),
+                ids.SourceCodeIdOf(DomainRuntimeNames.ChronicleSourceCode)),
             KernelData = kernelData,
             Programs = programs,
             Symbols = symbols,

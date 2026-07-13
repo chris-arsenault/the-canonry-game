@@ -11,7 +11,7 @@ public sealed class SemanticDomainConfig
     public IReadOnlyList<SemanticFlowConfig> Flows { get; init; } = [];
     public IReadOnlyList<SemanticModifierConfig> Modifiers { get; init; } = [];
     public IReadOnlyList<SemanticGeneratorConfig> Generators { get; init; } = [];
-    public IReadOnlyList<StoryArchetypeConfig> StoryArchetypes { get; init; } = [];
+    public IReadOnlyList<ChronicleArchetypeConfig> ChronicleArchetypes { get; init; } = [];
 }
 
 public abstract class SemanticStockConfig

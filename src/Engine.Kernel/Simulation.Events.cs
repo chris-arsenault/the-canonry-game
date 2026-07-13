@@ -110,7 +110,7 @@ internal sealed partial class Simulation
             outputLockRelationshipCreatedCount)));
     }
 
-    internal void EmitStoryChanged(
+    internal void EmitChronicleChanged(
         int tick,
         int storySequence,
         int archetypeId,
@@ -122,7 +122,7 @@ internal sealed partial class Simulation
         int roleEntityId2,
         int roleEntityId3)
     {
-        WriteKernelEvent(KernelEvent.From(new StoryChangedKernelEvent(
+        WriteKernelEvent(KernelEvent.From(new ChronicleChangedKernelEvent(
             tick,
             WorldVersion,
             storySequence,

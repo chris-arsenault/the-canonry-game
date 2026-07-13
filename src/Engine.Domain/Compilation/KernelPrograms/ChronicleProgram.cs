@@ -1,50 +1,50 @@
 namespace Engine.Domain.Compilation.KernelPrograms;
 
 /// <summary>Compiled story archetypes for the Chronicle Director program.</summary>
-public sealed class StoryProgram
+public sealed class ChronicleProgram
 {
-    public required IReadOnlyList<CompiledStoryArchetypeRule> Archetypes { get; init; }
+    public required IReadOnlyList<CompiledChronicleArchetypeRule> Archetypes { get; init; }
 }
 
-public sealed record CompiledStoryArchetypeRule(
+public sealed record CompiledChronicleArchetypeRule(
     int ArchetypeId,
     int MaxActive,
     int CastingCadenceTicks,
     int PrimaryKindId,
     int PrimaryRequiredRelKindId,
     float PrimaryRequiredRelMinStrength,
-    IReadOnlyList<CompiledStoryRole> SupportingRoles,
-    IReadOnlyList<CompiledStoryAct> Acts,
-    IReadOnlyList<CompiledStoryResolution> Resolutions);
+    IReadOnlyList<CompiledChronicleRole> SupportingRoles,
+    IReadOnlyList<CompiledChronicleAct> Acts,
+    IReadOnlyList<CompiledChronicleResolution> Resolutions);
 
-public sealed record CompiledStoryRole(
+public sealed record CompiledChronicleRole(
     int KindId,
     int RelatedKindId,
     bool RelatedIncoming,
     float RelatedMinStrength);
 
-public sealed record CompiledStoryAct(
+public sealed record CompiledChronicleAct(
     int DeadlineTicks,
     int AdvanceConditionKind,
     int AdvanceRoleA,
     int AdvanceRoleB,
     int AdvanceRelKindId,
     float AdvanceMinStrength,
-    IReadOnlyList<CompiledStoryBias> Bias,
-    IReadOnlyList<CompiledStorySustain> Sustain);
+    IReadOnlyList<CompiledChronicleBias> Bias,
+    IReadOnlyList<CompiledChronicleSustain> Sustain);
 
-public sealed record CompiledStoryBias(
+public sealed record CompiledChronicleBias(
     int ActorRole,
     int TargetRole,
     int GambitId,
     float ScoreBonus);
 
-public sealed record CompiledStorySustain(
+public sealed record CompiledChronicleSustain(
     int Role,
     int AttributeId,
     float DeltaPerPulse);
 
-public sealed record CompiledStoryResolution(
+public sealed record CompiledChronicleResolution(
     int OutcomeCodeId,
     int Weight,
     int WhenConditionKind,
@@ -53,9 +53,9 @@ public sealed record CompiledStoryResolution(
     int WhenRelKindId,
     float WhenMinStrength,
     int HistoricalRoleMask,
-    IReadOnlyList<CompiledStoryResolutionRelationship> Relationships);
+    IReadOnlyList<CompiledChronicleResolutionRelationship> Relationships);
 
-public sealed record CompiledStoryResolutionRelationship(
+public sealed record CompiledChronicleResolutionRelationship(
     int SourceRole,
     int TargetRole,
     int RelKindId,

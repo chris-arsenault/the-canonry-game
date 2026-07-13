@@ -148,7 +148,7 @@ internal static class KernelSnapshotOptions
         writer.Write(runtimeCodes.LowAltitudeVerbSourceCodeId);
         writer.Write(runtimeCodes.EffectsSourceCodeId);
         writer.Write(runtimeCodes.PlayerSourceCodeId);
-        writer.Write(runtimeCodes.StorySourceCodeId);
+        writer.Write(runtimeCodes.ChronicleSourceCodeId);
     }
 
     private static void WriteKernelTuning(
@@ -300,7 +300,7 @@ internal static class KernelSnapshotOptions
         values.LowAltitudeVerbSourceCodeId = reader.ReadInt32();
         values.EffectsSourceCodeId = reader.ReadInt32();
         values.PlayerSourceCodeId = reader.ReadInt32();
-        values.StorySourceCodeId = reader.ReadInt32();
+        values.ChronicleSourceCodeId = reader.ReadInt32();
     }
 
     private static void ReadKernelTuningValues(
@@ -450,7 +450,7 @@ internal static class KernelSnapshotOptions
             values.LowAltitudeVerbSourceCodeId,
             values.EffectsSourceCodeId,
             values.PlayerSourceCodeId,
-            values.StorySourceCodeId);
+            values.ChronicleSourceCodeId);
 
     private static KernelTuningOptions CreateKernelTuning(SnapshotOptionValues values) =>
         new()
@@ -572,7 +572,7 @@ internal static class KernelSnapshotOptions
         public int LowAltitudeVerbSourceCodeId;
         public int EffectsSourceCodeId;
         public int PlayerSourceCodeId;
-        public int StorySourceCodeId;
+        public int ChronicleSourceCodeId;
         public int MovementProgramEnabled;
         public int LowAltitudeVerbProgramEnabled;
         public int MapActivityProgramEnabled;

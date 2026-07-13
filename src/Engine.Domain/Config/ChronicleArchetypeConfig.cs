@@ -9,7 +9,7 @@ using Engine.Graph;
 /// (role-pair gambit bias and cast sustain). Resolution is guaranteed: the
 /// final act always resolves by deadline if no condition fires first.
 /// </summary>
-public sealed class StoryArchetypeConfig
+public sealed class ChronicleArchetypeConfig
 {
     public required string Id { get; init; }
     public required string Name { get; init; }
@@ -27,13 +27,13 @@ public sealed class StoryArchetypeConfig
     /// </summary>
     public IReadOnlyList<SemanticGeneratorBindingTarget> SupportingRoles { get; init; } = [];
 
-    public required IReadOnlyList<StoryActConfig> Acts { get; init; }
+    public required IReadOnlyList<ChronicleActConfig> Acts { get; init; }
 
     /// <summary>
     /// Weighted endings evaluated at resolution. The first row whose
     /// condition holds is preferred; otherwise weights decide.
     /// </summary>
-    public required IReadOnlyList<StoryResolutionConfig> Resolutions { get; init; }
+    public required IReadOnlyList<ChronicleResolutionConfig> Resolutions { get; init; }
 
     /// <summary>Maximum concurrently active stories of this archetype.</summary>
     public int MaxActive { get; init; } = 4;
@@ -42,22 +42,22 @@ public sealed class StoryArchetypeConfig
     public int CastingCadenceTicks { get; init; } = 40;
 }
 
-public sealed class StoryActConfig
+public sealed class ChronicleActConfig
 {
     /// <summary>Main ticks before the act force-advances (final act: resolves).</summary>
     public required int DeadlineTicks { get; init; }
 
     /// <summary>Optional early-advance condition over role state.</summary>
-    public StoryConditionConfig? AdvanceWhen { get; init; }
+    public ChronicleConditionConfig? AdvanceWhen { get; init; }
 
     /// <summary>Role-pair gambit score bias active during this act.</summary>
-    public IReadOnlyList<StoryBiasConfig> Bias { get; init; } = [];
+    public IReadOnlyList<ChronicleBiasConfig> Bias { get; init; } = [];
 
     /// <summary>Per-pulse attribute sustain on cast members during this act.</summary>
-    public IReadOnlyList<StorySustainConfig> Sustain { get; init; } = [];
+    public IReadOnlyList<ChronicleSustainConfig> Sustain { get; init; } = [];
 }
 
-public enum StoryConditionKind
+public enum ChronicleConditionKind
 {
     /// <summary>A relationship of the kind exists between two roles at or above the strength.</summary>
     RolePairRelationship,
@@ -66,16 +66,16 @@ public enum StoryConditionKind
     RoleHistorical,
 }
 
-public sealed class StoryConditionConfig
+public sealed class ChronicleConditionConfig
 {
-    public required StoryConditionKind Kind { get; init; }
+    public required ChronicleConditionKind Kind { get; init; }
     public required string RoleA { get; init; }
     public string? RoleB { get; init; }
     public string? RelationshipKind { get; init; }
     public float MinStrength { get; init; } = 0.1f;
 }
 
-public sealed class StoryBiasConfig
+public sealed class ChronicleBiasConfig
 {
     /// <summary>Role whose gambit scores are biased when acting…</summary>
     public required string ActorRole { get; init; }
@@ -89,31 +89,31 @@ public sealed class StoryBiasConfig
     public required float ScoreBonus { get; init; }
 }
 
-public sealed class StorySustainConfig
+public sealed class ChronicleSustainConfig
 {
     public required string Role { get; init; }
     public required string Attribute { get; init; }
     public required float DeltaPerPulse { get; init; }
 }
 
-public sealed class StoryResolutionConfig
+public sealed class ChronicleResolutionConfig
 {
     /// <summary>Outcome code surfaced on the story_resolved provenance/telemetry row.</summary>
     public required string OutcomeId { get; init; }
 
     /// <summary>Preferred when this condition holds at resolution time.</summary>
-    public StoryConditionConfig? When { get; init; }
+    public ChronicleConditionConfig? When { get; init; }
 
     public int Weight { get; init; } = 1;
 
     /// <summary>Relationship writes applied between roles at resolution.</summary>
-    public IReadOnlyList<StoryResolutionRelationshipConfig> Relationships { get; init; } = [];
+    public IReadOnlyList<ChronicleResolutionRelationshipConfig> Relationships { get; init; } = [];
 
     /// <summary>Roles marked historical at resolution (a death that ends the tale).</summary>
     public IReadOnlyList<string> MarkHistorical { get; init; } = [];
 }
 
-public sealed class StoryResolutionRelationshipConfig
+public sealed class ChronicleResolutionRelationshipConfig
 {
     public required string SourceRole { get; init; }
     public required string TargetRole { get; init; }

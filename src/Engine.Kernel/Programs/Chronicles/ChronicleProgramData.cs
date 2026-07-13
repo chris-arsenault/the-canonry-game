@@ -4,9 +4,9 @@ namespace Engine.Kernel;
 /// Fixed-capacity story archetype definitions: cast (role queries), plot
 /// (acts with deadlines and role-state advance conditions), direction
 /// (role-pair gambit bias and cast sustain), and guaranteed resolutions.
-/// Definition-only; live stories are in StoryProgramState.
+/// Definition-only; live stories are in ChronicleProgramState.
 /// </summary>
-internal sealed partial class StoryProgramData : IKernelProgramData
+internal sealed partial class ChronicleProgramData : IKernelProgramData
 {
     internal const int MaxRolesPerArchetype = 4;
 
@@ -148,7 +148,7 @@ internal sealed partial class StoryProgramData : IKernelProgramData
         ResolutionRelCullInstead = new int[itemCapacity + 1];
     }
 
-    public int ProgramId => KernelProgramCodes.StoryDirector;
+    public int ProgramId => KernelProgramCodes.ChronicleDirector;
 
     public int SchemaVersion => 1;
 }

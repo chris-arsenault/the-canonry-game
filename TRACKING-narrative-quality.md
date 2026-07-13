@@ -280,6 +280,27 @@ roles first and biases future events into the beats.
 - Chronicle participation should be roughly even across entity kinds
   (regions/canons excepted): seven archetypes now cover penguins, orcas,
   monsters, factions, settlements, transports, and abilities.
+- **Chronicles are scarce by design (2026-07-13).** They are player focus
+  objects in the three-culture framing - signal above entity noise, detail
+  below culture focus. Global concurrency cap of 7 (SimulationOptions
+  .ChronicleCapacity), one active chronicle per archetype, long casting
+  cadences, selective casting gates. ~1000 tales per run was noise; the
+  target is a handful running at once and a followable few dozen per
+  century.
+- **Terminology unified (2026-07-13): there are only chronicles.** All
+  Story* engine/domain/telemetry names are renamed Chronicle*
+  (chronicle_events table, ChronicleChanged event, chronicle source code).
+  The pre-existing provenance causal-chain config (DomainConfig.Chronicle,
+  ChronicleQueries) is not a rival concept: it is the chronicle system's
+  causality substrate.
+- **Provenance merge v1:** the Director consumes the causal record when
+  casting - among gate-passing candidates, the one whose qualifying edge
+  has the most recent provenance invocation tick wins the tale. Deeper
+  merges (authored causal chains as casting triggers; chain evidence as
+  act-advance conditions) are the next chronicle round.
+- MC registry hygiene: superseded evidence runs are deleted to save space;
+  keep only recent runs worth referencing instead of re-running long MC
+  processes (2026-07-13 cleanup: 143G -> 21G).
 - Trade-route lifetimes (uniform ~630 ticks) are drift-to-cull artifacts of
   creation strength 0.1; retune alongside future trade content.
 - New reusable vocabulary added along the way: gambit-grant preconditions

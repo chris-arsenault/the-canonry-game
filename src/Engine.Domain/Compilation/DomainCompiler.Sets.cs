@@ -31,7 +31,7 @@ public static partial class DomainCompiler
             Generators = BuildGeneratorProgram(config, ids, graph),
             CultureSlots = BuildCultureSlotProgram(graph),
             MinorActors = BuildMinorActorProgram(config, ids),
-            Stories = BuildStoryProgram(config, ids),
+            Chronicles = BuildChronicleProgram(config, ids),
         };
     }
 

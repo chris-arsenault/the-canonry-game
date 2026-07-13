@@ -498,7 +498,7 @@ internal sealed partial class GambitProgramRuntime
 
         var score = EvaluateScore(simulation.World, gambitSlot, entityId, targetId) +
             GambitScoreDecisionDelta(simulation.World, _gambitIds[gambitSlot], entityId, targetId) +
-            simulation.Stories.ScoreBias(entityId, targetId, _gambitIds[gambitSlot]);
+            simulation.Chronicles.ScoreBias(entityId, targetId, _gambitIds[gambitSlot]);
         var recentActionCount = CountRecentActions(
             entityId,
             _gambitIds[gambitSlot],

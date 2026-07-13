@@ -8,6 +8,6 @@ public static class IceRemembersSemanticDefinition
     {
         Stocks = IceRemembersEntities.CreateSemanticStocks(),
         Generators = IceRemembersGeneratorDefinition.Create(),
-        StoryArchetypes = IceRemembersStoryArchetypes.Create(),
+        ChronicleArchetypes = IceRemembersChronicleArchetypes.Create(),
     };
 }

@@ -28,7 +28,7 @@ public sealed class EffectsProgramTests
                 LowAltitudeVerbSourceCodeId: 22,
                 EffectsSourceCodeId: effectsSourceCodeId,
                 PlayerSourceCodeId: 23,
-                StorySourceCodeId: 24),
+                ChronicleSourceCodeId: 24),
         });
 
         simulation.RegisterAttribute(kindId, attributeId, minimum: 0f, maximum: 100f, defaultValue: 50f);

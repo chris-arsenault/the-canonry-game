@@ -33,7 +33,7 @@ public enum KernelEventType
     MinorActorVerbExecuted = 31,
     GambitEnabledChanged = 32,
     EntityTagChanged = 33,
-    StoryChanged = 34,
+    ChronicleChanged = 34,
     Trace = 120,
 }
 
@@ -173,12 +173,12 @@ public readonly record struct EntityTagChangedKernelEvent(
     [KernelEventIntSlot(3, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
     int SourceCodeId);
 
-[KernelEventLayout(KernelEventType.StoryChanged, schemaMinor: 0)]
-public readonly record struct StoryChangedKernelEvent(
+[KernelEventLayout(KernelEventType.ChronicleChanged, schemaMinor: 0)]
+public readonly record struct ChronicleChangedKernelEvent(
     int Tick,
     long WorldVersion,
-    [KernelEventIntSlot(0, "story_sequence", KernelEventSemanticKind.Index)]
-    int StorySequence,
+    [KernelEventIntSlot(0, "chronicle_sequence", KernelEventSemanticKind.Index)]
+    int ChronicleSequence,
     [KernelEventIntSlot(1, "archetype_id", KernelEventSemanticKind.GeneratorId)]
     int ArchetypeId,
     [KernelEventIntSlot(2, "event_type_code", KernelEventSemanticKind.StatusCode)]

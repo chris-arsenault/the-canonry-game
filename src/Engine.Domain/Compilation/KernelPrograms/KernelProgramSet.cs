@@ -14,5 +14,5 @@ public sealed class KernelProgramSet
     public required GeneratorProgram Generators { get; init; }
     public required CultureSlotProgram CultureSlots { get; init; }
     public required MinorActorProgram MinorActors { get; init; }
-    public required StoryProgram Stories { get; init; }
+    public required ChronicleProgram Chronicles { get; init; }
 }

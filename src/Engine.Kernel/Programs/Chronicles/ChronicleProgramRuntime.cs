@@ -6,21 +6,21 @@ namespace Engine.Kernel;
 /// story runs, and guarantees a resolution by the final act's deadline. The
 /// forward-running counterpart of a chronicle plan: cast, plot, direction.
 /// </summary>
-internal sealed partial class StoryProgramRuntime : IKernelProgramRuntime<StoryProgramData, StoryProgramState>
+internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<ChronicleProgramData, ChronicleProgramState>
 {
-    private readonly int _storyCapacity;
+    private readonly int _chronicleCapacity;
 
-    public StoryProgramRuntime(SimulationOptions options)
+    public ChronicleProgramRuntime(SimulationOptions options)
     {
-        _storyCapacity = options.StoryCapacity;
-        Data = new StoryProgramData();
-        Data.Allocate(options.StoryArchetypeCapacity, options.StoryItemCapacity);
-        State = new StoryProgramState(options.StoryCapacity, options.StoryArchetypeCapacity);
+        _chronicleCapacity = options.ChronicleCapacity;
+        Data = new ChronicleProgramData();
+        Data.Allocate(options.ChronicleArchetypeCapacity, options.ChronicleItemCapacity);
+        State = new ChronicleProgramState(options.ChronicleCapacity, options.ChronicleArchetypeCapacity);
     }
 
-    public StoryProgramData Data { get; }
+    public ChronicleProgramData Data { get; }
 
-    public StoryProgramState State { get; }
+    public ChronicleProgramState State { get; }
 
     public void Tick(Simulation simulation, int tick)
     {
@@ -33,7 +33,7 @@ internal sealed partial class StoryProgramRuntime : IKernelProgramRuntime<StoryP
             }
 
             ApplySustain(simulation, world, story);
-            StepStory(simulation, world, story, tick);
+            StepChronicle(simulation, world, story, tick);
         }
 
         for (var archetype = 1; archetype <= Data.ArchetypeCount; archetype++)
@@ -57,13 +57,13 @@ internal sealed partial class StoryProgramRuntime : IKernelProgramRuntime<StoryP
                 continue;
             }
 
-            total += StoryBias(story, actorId, targetId, gambitId);
+            total += ChronicleBias(story, actorId, targetId, gambitId);
         }
 
         return total;
     }
 
-    private float StoryBias(int story, int actorId, int targetId, int gambitId)
+    private float ChronicleBias(int story, int actorId, int targetId, int gambitId)
     {
         var archetype = State.ArchetypeSlots[story];
         var act = Data.ArchetypeActStarts[archetype] + State.ActIndices[story];
@@ -90,10 +90,10 @@ internal sealed partial class StoryProgramRuntime : IKernelProgramRuntime<StoryP
     }
 
     private int RoleEntity(int story, int role) =>
-        State.RoleEntityIds[(story * StoryProgramData.MaxRolesPerArchetype) + role];
+        State.RoleEntityIds[(story * ChronicleProgramData.MaxRolesPerArchetype) + role];
 
     private void SetRoleEntity(int story, int role, int entityId) =>
-        State.RoleEntityIds[(story * StoryProgramData.MaxRolesPerArchetype) + role] = entityId;
+        State.RoleEntityIds[(story * ChronicleProgramData.MaxRolesPerArchetype) + role] = entityId;
 
     private void ApplySustain(Simulation simulation, WorldState world, int story)
     {
@@ -115,7 +115,7 @@ internal sealed partial class StoryProgramRuntime : IKernelProgramRuntime<StoryP
         }
     }
 
-    private void StepStory(Simulation simulation, WorldState world, int story, int tick)
+    private void StepChronicle(Simulation simulation, WorldState world, int story, int tick)
     {
         var archetype = State.ArchetypeSlots[story];
         var act = Data.ArchetypeActStarts[archetype] + State.ActIndices[story];
@@ -137,7 +137,7 @@ internal sealed partial class StoryProgramRuntime : IKernelProgramRuntime<StoryP
         {
             State.ActIndices[story]++;
             State.ActStartTicks[story] = tick;
-            EmitStoryChanged(simulation, story, StoryEventTypeCodes.ActAdvanced, outcomeCodeId: 0, tick);
+            EmitChronicleChanged(simulation, story, ChronicleEventTypeCodes.ActAdvanced, outcomeCodeId: 0, tick);
             return;
         }
 
@@ -155,7 +155,7 @@ internal sealed partial class StoryProgramRuntime : IKernelProgramRuntime<StoryP
     {
         switch (conditionKind)
         {
-            case StoryConditionCodes.RolePairRelationship:
+            case ChronicleConditionCodes.RolePairRelationship:
                 var sourceId = RoleEntity(story, roleA);
                 var targetId = RoleEntity(story, roleB);
                 if (sourceId <= 0 || targetId <= 0)
@@ -165,7 +165,7 @@ internal sealed partial class StoryProgramRuntime : IKernelProgramRuntime<StoryP
 
                 var relationshipId = KernelQuery.FindRelationship(world, sourceId, targetId, relKindId);
                 return relationshipId != 0 && world.RelationshipStrength(relationshipId) >= minStrength;
-            case StoryConditionCodes.RoleHistorical:
+            case ChronicleConditionCodes.RoleHistorical:
                 var entityId = RoleEntity(story, roleA);
                 return entityId > 0 && !world.EntityIsActive(entityId);
             default:
@@ -182,21 +182,21 @@ internal sealed partial class StoryProgramRuntime : IKernelProgramRuntime<StoryP
             ApplyResolution(simulation, world, story, resolution);
         }
 
-        EmitStoryChanged(
+        EmitChronicleChanged(
             simulation,
             story,
-            StoryEventTypeCodes.Resolved,
+            ChronicleEventTypeCodes.Resolved,
             resolution == 0 ? 0 : Data.ResolutionOutcomeCodeIds[resolution],
             tick);
         State.Active[story] = false;
         State.ArchetypeActiveCounts[archetype]--;
     }
 
-    private void EmitStoryChanged(Simulation simulation, int story, int eventTypeCode, int outcomeCodeId, int tick)
+    private void EmitChronicleChanged(Simulation simulation, int story, int eventTypeCode, int outcomeCodeId, int tick)
     {
-        simulation.EmitStoryChanged(
+        simulation.EmitChronicleChanged(
             tick,
-            State.StorySequences[story],
+            State.ChronicleSequences[story],
             Data.ArchetypeIds[State.ArchetypeSlots[story]],
             eventTypeCode,
             State.ActIndices[story],
@@ -214,7 +214,7 @@ internal sealed partial class StoryProgramRuntime : IKernelProgramRuntime<StoryP
         var totalWeight = 0;
         for (var resolution = start; resolution < end; resolution++)
         {
-            if (Data.ResolutionWhenKinds[resolution] != StoryConditionCodes.None &&
+            if (Data.ResolutionWhenKinds[resolution] != ChronicleConditionCodes.None &&
                 ConditionHolds(
                     world,
                     story,
@@ -227,7 +227,7 @@ internal sealed partial class StoryProgramRuntime : IKernelProgramRuntime<StoryP
                 return resolution;
             }
 
-            if (Data.ResolutionWhenKinds[resolution] == StoryConditionCodes.None)
+            if (Data.ResolutionWhenKinds[resolution] == ChronicleConditionCodes.None)
             {
                 totalWeight += Data.ResolutionWeights[resolution];
             }
@@ -241,7 +241,7 @@ internal sealed partial class StoryProgramRuntime : IKernelProgramRuntime<StoryP
         var pick = simulation.NextInt(totalWeight);
         for (var resolution = start; resolution < end; resolution++)
         {
-            if (Data.ResolutionWhenKinds[resolution] != StoryConditionCodes.None)
+            if (Data.ResolutionWhenKinds[resolution] != ChronicleConditionCodes.None)
             {
                 continue;
             }
@@ -266,7 +266,7 @@ internal sealed partial class StoryProgramRuntime : IKernelProgramRuntime<StoryP
         }
 
         var mask = Data.ResolutionHistoricalRoleMasks[resolution];
-        for (var role = 0; role < StoryProgramData.MaxRolesPerArchetype; role++)
+        for (var role = 0; role < ChronicleProgramData.MaxRolesPerArchetype; role++)
         {
             if ((mask & (1 << role)) == 0)
             {

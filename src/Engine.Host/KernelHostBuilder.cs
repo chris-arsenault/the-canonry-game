@@ -440,7 +440,7 @@ internal sealed class KernelHostBuilder
             codes.LowAltitudeVerbSourceCodeId.Value,
             codes.EffectsSourceCodeId.Value,
             codes.PlayerSourceCodeId.Value,
-            codes.StorySourceCodeId.Value);
+            codes.ChronicleSourceCodeId.Value);
 
     private static void ApplyDomainSymbols(
         KernelSymbolContext context,
