@@ -21,6 +21,21 @@ These goals are coupled. A map can look busy while the graph is poor; a graph
 can be diverse while every entity sits in one cluster. Tuning should measure all
 three before declaring success.
 
+## Time Calibration
+
+The canonical time mapping is **250 raw ticks ≈ 1 in-world year** (50 main
+ticks per year; `MinorActorMainTickRatio = 5` makes 5 raw ticks = 1 main tick,
+and all authored durations — lifecycle bands, gambit cooldowns, verb
+commitments, tenure — are main ticks converted uniformly by the kernel). A
+full simulation is on the order of 10,000 years (~2.5M raw ticks); a 25k-tick
+evidence run is roughly 100 years, or 1-3 generations.
+
+The lifespan feel target is a strong divide: ordinary mortals live decades,
+legendary entities reach centuries through active in-universe renewal (never
+through bolted-on immortality), and world anchors are effectively ageless,
+ending only by deliberate acts. When authoring or reviewing any duration,
+convert it to years and sanity-check it against fiction.
+
 ## Game Horizon: Bootstrap Into Steady State
 
 The mental model for play is SimCity: relaxed, guided evolution over a long

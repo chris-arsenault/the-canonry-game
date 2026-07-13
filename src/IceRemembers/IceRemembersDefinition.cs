@@ -284,7 +284,12 @@ public static partial class IceRemembersDefinition
         var effects = new List<AttributeDeltaEffectConfig>();
         foreach (var entity in IceRemembersEntities.All)
         {
-            AddHealthEffects(effects, entity.Kind, entity.HealthAttribute, entity.PrimaryPlane);
+            AddHealthEffects(
+                effects,
+                entity.Kind,
+                entity.HealthAttribute,
+                entity.PrimaryPlane,
+                IceRemembersEntities.HealthEffectTimeScale(entity.LifecycleBand));
         }
 
         return GameplayEffectSet.From(
@@ -330,50 +335,51 @@ public static partial class IceRemembersDefinition
         List<AttributeDeltaEffectConfig> effects,
         EntityKind kind,
         Attr attribute,
-        PrimaryPlane plane)
+        PrimaryPlane plane,
+        float timeScale)
     {
         effects.AddRange(
         [
-            InfluenceShelter(kind, attribute, Rel.AlliedWith, EffectRelationshipDirection.Either, 0.06f, threshold: 45f, plane: plane),
-            InfluenceShelter(kind, attribute, Rel.HomeBase, EffectRelationshipDirection.Outgoing, 0.05f, threshold: 40f, plane: plane),
-            InfluenceShelter(kind, attribute, Rel.Anchored, EffectRelationshipDirection.Outgoing, 0.05f, threshold: 40f, plane: plane),
-            InfluenceShelter(kind, attribute, Rel.ControlledBy, EffectRelationshipDirection.Either, 0.04f, threshold: 45f, plane: plane),
-            InfluenceShelter(kind, attribute, Rel.ClaimedBy, EffectRelationshipDirection.Either, 0.035f, threshold: 35f, plane: plane),
-            InfluenceShelter(kind, attribute, Rel.MemberOf, EffectRelationshipDirection.Either, 0.035f, threshold: 35f, plane: plane),
-            InfluenceShelter(kind, attribute, Rel.LedBy, EffectRelationshipDirection.Either, 0.035f, threshold: 35f, plane: plane),
-            InfluenceShelter(kind, attribute, Rel.TradeRoute, EffectRelationshipDirection.Either, 0.025f, threshold: 35f, plane: plane),
-            InfluenceShelter(kind, attribute, Rel.Memorializes, EffectRelationshipDirection.Either, 0.025f, threshold: 35f, plane: plane),
-            InfluenceStress(kind, attribute, Rel.RivalOf, -0.07f, threshold: 35f, plane: plane),
-            InfluenceStress(kind, attribute, Rel.AtWarWith, -0.10f, threshold: 35f, plane: plane),
-            InfluenceStress(kind, attribute, Rel.PreysOn, -0.06f, threshold: 35f, plane: plane),
-            InfluenceStress(kind, attribute, Rel.CorruptedBy, -0.08f, threshold: 35f, plane: plane),
-            InfluenceStress(kind, attribute, Rel.BetrayedBy, -0.06f, threshold: 35f, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.AlliedWith, 0.035f, maxDistance: 1, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.Anchored, 0.025f, maxDistance: 1, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.ClaimedBy, 0.02f, maxDistance: 1, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.MemberOf, 0.02f, maxDistance: 1, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.LedBy, 0.02f, maxDistance: 1, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.TradeRoute, 0.025f, maxDistance: 2, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.Memorializes, 0.02f, maxDistance: 1, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.CleansedBy, 0.025f, maxDistance: 1, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.ConduitOf, 0.025f, maxDistance: 1, plane: plane),
-            RelationshipStress(kind, attribute, Rel.RivalOf, -0.04f, maxDistance: 2, plane: plane),
-            RelationshipStress(kind, attribute, Rel.AtWarWith, -0.07f, maxDistance: 3, plane: plane),
-            RelationshipStress(kind, attribute, Rel.CorruptedBy, -0.05f, maxDistance: 2, plane: plane),
-            RelationshipStress(kind, attribute, Rel.BetrayedBy, -0.045f, maxDistance: 1, plane: plane),
-            RelationshipStress(kind, attribute, Rel.WardAgainst, -0.03f, maxDistance: 1, plane: plane),
-            CultureInfluenceShelter(kind, attribute, 0.03f, threshold: 35f, plane: plane),
-            CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Positive, 0.085f, threshold: 2.4f, plane: plane),
-            CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Neutral, 0.04f, threshold: 2.4f, plane: plane),
-            CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Negative, -0.035f, threshold: 2.4f, plane: plane),
-            MapSignalEffect(kind, attribute, Effect.MapSupportAtLocation, 0.035f, threshold: 5f, plane: plane),
-            MapSignalEffect(kind, attribute, Effect.MapCrowdingComfort, 0.025f, threshold: 0.5f, plane: plane),
-            MapSignalEffect(kind, attribute, Effect.MapThreatAtLocation, -0.04f, threshold: 4f, plane: plane),
-            MapSignalEffect(kind, attribute, Effect.MapCrowdingLoad, -0.08f, threshold: 0.5f, plane: plane),
-            CarryingStrain(kind, attribute, plane),
-            JurisdictionEffect(kind, attribute, K.Region.Value, null, "physical", 0.02f),
-            JurisdictionEffect(kind, attribute, K.Canon.Value, "accord", "semantic", 0.03f),
-            JurisdictionEffect(kind, attribute, K.Canon.Value, "taboo", "semantic", -0.03f),
+            InfluenceShelter(kind, attribute, Rel.AlliedWith, EffectRelationshipDirection.Either, 0.06f * timeScale, threshold: 45f, plane: plane),
+            InfluenceShelter(kind, attribute, Rel.HomeBase, EffectRelationshipDirection.Outgoing, 0.05f * timeScale, threshold: 40f, plane: plane),
+            InfluenceShelter(kind, attribute, Rel.Anchored, EffectRelationshipDirection.Outgoing, 0.05f * timeScale, threshold: 40f, plane: plane),
+            InfluenceShelter(kind, attribute, Rel.ControlledBy, EffectRelationshipDirection.Either, 0.04f * timeScale, threshold: 45f, plane: plane),
+            InfluenceShelter(kind, attribute, Rel.ClaimedBy, EffectRelationshipDirection.Either, 0.035f * timeScale, threshold: 35f, plane: plane),
+            InfluenceShelter(kind, attribute, Rel.MemberOf, EffectRelationshipDirection.Either, 0.035f * timeScale, threshold: 35f, plane: plane),
+            InfluenceShelter(kind, attribute, Rel.LedBy, EffectRelationshipDirection.Either, 0.035f * timeScale, threshold: 35f, plane: plane),
+            InfluenceShelter(kind, attribute, Rel.TradeRoute, EffectRelationshipDirection.Either, 0.025f * timeScale, threshold: 35f, plane: plane),
+            InfluenceShelter(kind, attribute, Rel.Memorializes, EffectRelationshipDirection.Either, 0.025f * timeScale, threshold: 35f, plane: plane),
+            InfluenceStress(kind, attribute, Rel.RivalOf, -0.07f * timeScale, threshold: 35f, plane: plane),
+            InfluenceStress(kind, attribute, Rel.AtWarWith, -0.10f * timeScale, threshold: 35f, plane: plane),
+            InfluenceStress(kind, attribute, Rel.PreysOn, -0.06f * timeScale, threshold: 35f, plane: plane),
+            InfluenceStress(kind, attribute, Rel.CorruptedBy, -0.08f * timeScale, threshold: 35f, plane: plane),
+            InfluenceStress(kind, attribute, Rel.BetrayedBy, -0.06f * timeScale, threshold: 35f, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.AlliedWith, 0.035f * timeScale, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.Anchored, 0.025f * timeScale, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.ClaimedBy, 0.02f * timeScale, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.MemberOf, 0.02f * timeScale, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.LedBy, 0.02f * timeScale, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.TradeRoute, 0.025f * timeScale, maxDistance: 2, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.Memorializes, 0.02f * timeScale, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.CleansedBy, 0.025f * timeScale, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.ConduitOf, 0.025f * timeScale, maxDistance: 1, plane: plane),
+            RelationshipStress(kind, attribute, Rel.RivalOf, -0.04f * timeScale, maxDistance: 2, plane: plane),
+            RelationshipStress(kind, attribute, Rel.AtWarWith, -0.07f * timeScale, maxDistance: 3, plane: plane),
+            RelationshipStress(kind, attribute, Rel.CorruptedBy, -0.05f * timeScale, maxDistance: 2, plane: plane),
+            RelationshipStress(kind, attribute, Rel.BetrayedBy, -0.045f * timeScale, maxDistance: 1, plane: plane),
+            RelationshipStress(kind, attribute, Rel.WardAgainst, -0.03f * timeScale, maxDistance: 1, plane: plane),
+            CultureInfluenceShelter(kind, attribute, 0.03f * timeScale, threshold: 35f, plane: plane),
+            CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Positive, 0.085f * timeScale, threshold: 2.4f, plane: plane),
+            CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Neutral, 0.04f * timeScale, threshold: 2.4f, plane: plane),
+            CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Negative, -0.035f * timeScale, threshold: 2.4f, plane: plane),
+            MapSignalEffect(kind, attribute, Effect.MapSupportAtLocation, 0.035f * timeScale, threshold: 5f, plane: plane),
+            MapSignalEffect(kind, attribute, Effect.MapCrowdingComfort, 0.025f * timeScale, threshold: 0.5f, plane: plane),
+            MapSignalEffect(kind, attribute, Effect.MapThreatAtLocation, -0.04f * timeScale, threshold: 4f, plane: plane),
+            MapSignalEffect(kind, attribute, Effect.MapCrowdingLoad, -0.08f * timeScale, threshold: 0.5f, plane: plane),
+            CarryingStrain(kind, attribute, plane, timeScale),
+            JurisdictionEffect(kind, attribute, K.Region.Value, null, "physical", 0.02f * timeScale),
+            JurisdictionEffect(kind, attribute, K.Canon.Value, "accord", "semantic", 0.03f * timeScale),
+            JurisdictionEffect(kind, attribute, K.Canon.Value, "taboo", "semantic", -0.03f * timeScale),
         ]);
     }
 
@@ -545,7 +551,8 @@ public static partial class IceRemembersDefinition
     private static AttributeDeltaEffectConfig CarryingStrain(
         EntityKind kind,
         Attr attribute,
-        PrimaryPlane plane) =>
+        PrimaryPlane plane,
+        float timeScale) =>
         new()
         {
             Kind = kind.Value,
@@ -554,7 +561,7 @@ public static partial class IceRemembersDefinition
             Plane = GameplayPlaneName(plane),
             Threshold = 0.8f,
             SupportScale = 150f,
-            DeltaPerTick = -0.06f,
+            DeltaPerTick = -0.06f * timeScale,
         };
 
     /// <summary>

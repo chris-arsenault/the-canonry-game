@@ -20,6 +20,8 @@ public enum IceRemembersLifecycleBand
     Brief,
     Standard,
     Enduring,
+    Generational,
+    Monumental,
     WorldAnchor,
 }
 
@@ -253,7 +255,11 @@ public static class IceRemembersEntities
         var result = new Dictionary<EntityKind, LifecycleConfig>();
         foreach (var entity in All)
         {
-            result.Add(entity.Kind, Lifecycle(entity.HealthAttribute, entity.LifecycleBand));
+            var lifecycle = Lifecycle(entity.HealthAttribute, entity.LifecycleBand);
+            if (lifecycle is not null)
+            {
+                result.Add(entity.Kind, lifecycle);
+            }
         }
 
         return result;
@@ -331,14 +337,27 @@ public static class IceRemembersEntities
             DefaultVariance = HealthDefaultVariance,
         };
 
-    private static LifecycleConfig Lifecycle(Attr healthAttribute, IceRemembersLifecycleBand lifespan)
+    // Band targets are main ticks (see SimulationOptions.MainTickAge; 5 raw
+    // ticks = 1 main tick) at the canonical calibration of 250 raw ticks per
+    // in-world year. Observed median lifespan lands near band x 5 x ~1.14 raw
+    // ticks (main-tick conversion plus healing surplus): Brief ~45y,
+    // Standard ~80y, Enduring ~100y, Generational ~230y, Monumental ~450y.
+    // WorldAnchor kinds are ageless: no lifecycle drain; they end only
+    // through deliberate acts (gambits/generators), never old age.
+    private static LifecycleConfig? Lifecycle(Attr healthAttribute, IceRemembersLifecycleBand lifespan)
     {
+        if (lifespan == IceRemembersLifecycleBand.WorldAnchor)
+        {
+            return null;
+        }
+
         var targetTicks = lifespan switch
         {
-            IceRemembersLifecycleBand.Brief => 500f,
-            IceRemembersLifecycleBand.Standard => 800f,
-            IceRemembersLifecycleBand.Enduring => 1200f,
-            IceRemembersLifecycleBand.WorldAnchor => 5000f,
+            IceRemembersLifecycleBand.Brief => 2000f,
+            IceRemembersLifecycleBand.Standard => 3500f,
+            IceRemembersLifecycleBand.Enduring => 4500f,
+            IceRemembersLifecycleBand.Generational => 10000f,
+            IceRemembersLifecycleBand.Monumental => 20000f,
             _ => throw new ArgumentOutOfRangeException(nameof(lifespan), lifespan, null),
         };
 
@@ -351,6 +370,25 @@ public static class IceRemembersEntities
             AgeCoefficient = ageCoefficient,
         };
     }
+
+    // Health-effect deltas were tuned against the pre-recalibration bands
+    // (Brief 500 / Standard 800 / Enduring 1200). Lifecycle drain scales as
+    // 1/target, so each kind's shelter/stress deltas must shrink by the same
+    // old/new ratio or healing overwhelms the flattened aging curve. This is
+    // time dilation: identical health dynamics, stretched onto the longer
+    // lifespan. WorldAnchor has no drain to balance and keeps full-strength
+    // effects.
+    public static float HealthEffectTimeScale(IceRemembersLifecycleBand lifespan) =>
+        lifespan switch
+        {
+            IceRemembersLifecycleBand.Brief => 500f / 2000f,
+            IceRemembersLifecycleBand.Standard => 800f / 3500f,
+            IceRemembersLifecycleBand.Enduring => 1200f / 4500f,
+            IceRemembersLifecycleBand.Generational => 800f / 10000f,
+            IceRemembersLifecycleBand.Monumental => 1200f / 20000f,
+            IceRemembersLifecycleBand.WorldAnchor => 1f,
+            _ => throw new ArgumentOutOfRangeException(nameof(lifespan), lifespan, null),
+        };
 
     internal static string GameplayPlaneName(PrimaryPlane plane) =>
         plane == PrimaryPlane.Semantic ? "semantic" : "physical";

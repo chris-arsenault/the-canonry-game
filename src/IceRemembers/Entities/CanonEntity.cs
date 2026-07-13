@@ -23,7 +23,7 @@ internal static class CanonEntity
         HealthAttribute = Attr.Observance,
         HealthDisplayName = "Observance",
         PrimaryPlane = PrimaryPlane.Semantic,
-        LifecycleBand = IceRemembersLifecycleBand.Enduring,
+        LifecycleBand = IceRemembersLifecycleBand.Monumental,
         Description = "A named body of law, custom, or prohibition living on the semantic plane — an accord signed after a war, a taboo nobody wrote down, a doctrine sung from the deep. A canon's coverage is the region of idea-space it governs; entities whose semantic position falls inside are living under it. Observance is how firmly the world still keeps it.",
         Traits =
         [

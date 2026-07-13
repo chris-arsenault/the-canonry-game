@@ -618,15 +618,22 @@ public class DomainConfigTests
     {
         var config = IceRemembersDefinition.Create();
 
-        AssertNearNominalDrain(config.Lifecycles[TestKinds.Penguin], targetTicks: 500f);
-        AssertNearNominalDrain(config.Lifecycles[TestKinds.Faction], targetTicks: 800f);
-        AssertNearNominalDrain(config.Lifecycles[TestKinds.Region], targetTicks: 5000f);
-        AssertNearNominalDrain(config.Lifecycles[TestKinds.Settlement], targetTicks: 1200f);
-        AssertNearNominalDrain(config.Lifecycles[TestKinds.Artifact], targetTicks: 1200f);
-        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Orca], targetTicks: 800f);
-        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.PointOfInterest], targetTicks: 5000f);
-        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Ability], targetTicks: 800f);
-        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Monster], targetTicks: 1200f);
+        AssertNearNominalDrain(config.Lifecycles[TestKinds.Penguin], targetTicks: 2000f);
+        AssertNearNominalDrain(config.Lifecycles[TestKinds.Faction], targetTicks: 10000f);
+        AssertNearNominalDrain(config.Lifecycles[TestKinds.Settlement], targetTicks: 20000f);
+        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Orca], targetTicks: 3500f);
+        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Ability], targetTicks: 10000f);
+        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Monster], targetTicks: 4500f);
+    }
+
+    [Fact]
+    public void IceRemembers_WorldAnchorKindsAreAgeless()
+    {
+        var config = IceRemembersDefinition.Create();
+
+        Assert.DoesNotContain(TestKinds.Artifact, config.Lifecycles.Keys);
+        Assert.DoesNotContain(TestKinds.Region, config.Lifecycles.Keys);
+        Assert.DoesNotContain(IceRemembersKinds.PointOfInterest, config.Lifecycles.Keys);
     }
 
     [Fact]

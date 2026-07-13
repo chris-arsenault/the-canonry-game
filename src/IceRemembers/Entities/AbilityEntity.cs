@@ -26,7 +26,7 @@ internal static class AbilityEntity
         HealthAttribute = Attr.Clarity,
         HealthDisplayName = "Clarity",
         PrimaryPlane = PrimaryPlane.Semantic,
-        LifecycleBand = IceRemembersLifecycleBand.Standard,
+        LifecycleBand = IceRemembersLifecycleBand.Generational,
         Description = "A combat technique, magical rite, or piece of technology. Represented as a transferable physical carrier - a book, a marking, a tool - but lives on the semantic plane and may be held by multiple bearers at once.",
         Traits =
         [

@@ -26,7 +26,7 @@ internal static class FactionEntity
         HealthAttribute = Attr.Cohesion,
         HealthDisplayName = "Cohesion",
         PrimaryPlane = PrimaryPlane.Semantic,
-        LifecycleBand = IceRemembersLifecycleBand.Standard,
+        LifecycleBand = IceRemembersLifecycleBand.Generational,
         InitialInfluencePlanes = [PrimaryPlane.Physical, PrimaryPlane.Semantic],
         Traits =
         [

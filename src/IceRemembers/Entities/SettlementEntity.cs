@@ -25,7 +25,7 @@ internal static class SettlementEntity
         HealthAttribute = Attr.TempHp,
         HealthDisplayName = "Temp HP",
         PrimaryPlane = PrimaryPlane.Semantic,
-        LifecycleBand = IceRemembersLifecycleBand.Enduring,
+        LifecycleBand = IceRemembersLifecycleBand.Monumental,
         InitialInfluencePlanes = [PrimaryPlane.Physical, PrimaryPlane.Semantic],
         SemanticStockNotes = "Temporary health. Dies at 0.",
         Traits =

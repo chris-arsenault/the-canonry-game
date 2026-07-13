@@ -24,7 +24,7 @@ internal static class OccurrenceEntity
         HealthAttribute = Attr.Momentum,
         HealthDisplayName = "Momentum",
         PrimaryPlane = PrimaryPlane.Semantic,
-        LifecycleBand = IceRemembersLifecycleBand.Standard,
+        LifecycleBand = IceRemembersLifecycleBand.Brief,
         CreatesSemanticStock = false,
         Description = "A named, active, major event - war, trade conference, plague, festival. Born by generators when relationship and locality gates cross thresholds; resolves when momentum reaches zero or a gambit ends it. Lives on the semantic plane (its primary movement is through cultural/conflict space) while anchored to the world via relationships.",
         Traits =

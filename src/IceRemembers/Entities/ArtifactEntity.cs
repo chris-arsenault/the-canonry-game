@@ -25,7 +25,7 @@ internal static class ArtifactEntity
         HealthAttribute = Attr.Condition,
         HealthDisplayName = "Condition",
         PrimaryPlane = PrimaryPlane.Physical,
-        LifecycleBand = IceRemembersLifecycleBand.Enduring,
+        LifecycleBand = IceRemembersLifecycleBand.WorldAnchor,
         Traits =
         [
             PositiveTrait(
