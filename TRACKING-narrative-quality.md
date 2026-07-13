@@ -202,8 +202,40 @@ roles first and biases future events into the beats.
 ## Status
 
 - [x] Investigation + analysis report (committed `c84f464`)
-- [ ] R1 — time recalibration
-- [ ] R2 — gambit grants
-- [ ] R3 — war and alliance package
-- [ ] R4 — memory, artifact conflict, newcomer anchoring
-- [ ] R5 — Chronicle Director
+- [x] R1 — time recalibration (`89d1faa`; evidence
+  `nq-r1-recalibration-3x25k-20260712`: penguin median 34-41y, artifacts no
+  longer age-die, institutions persist)
+- [x] R2 — gambit grants (`af6d81f`; evidence `nq-r2-grants-3x25k-20260713`:
+  all 12 grants fire, 533 renewal beats, tail ratio 1.5-1.9 under 25k
+  censoring; tail acceptance rides on the 100k long run)
+- [x] R3 — war and alliance package (`237d3de`; evidence
+  `nq-r3-warsaga-3x25k-20260713`: war median 5.9y, 6/186 under 100 ticks,
+  72 rivalries -> 97 declarations, 23 sworn alliances, 44 ally-joins-war,
+  58 named war casualties memorialized in death)
+- [x] R4 — memory, artifact conflict, raider careers (`3b5168a`; evidence
+  `nq-r4-memory-3x25k-20260713` + `nq-r1to4-longrun-1x100k-20260713`)
+- [ ] R5 — Chronicle Director (specced above; deliberately its own round)
+
+## Scope notes and follow-ups discovered during R1-R4
+
+- The lifecycle-reason telemetry channel is vestigial: `reason_code_id` is a
+  copy of `source_code_id` and symbol kind 21 has no names. Real death-reason
+  semantics need a kernel event change; documented rather than half-fixed.
+- Relationship drops on entity death emit no cull telemetry (edges soft-drop
+  via active-endpoint filtering). Observability gap, not a state bug.
+- Orca lifespan is dominated by generator consumption (median death age 0 in
+  some seeds), not aging; fixing orca longevity means retuning the orca
+  loops' spend-style retirement, not bands.
+- Memorializes retargeting was scoped down: `war_takes_its_toll` now makes
+  memorials-of-the-dead a substantial channel, and grudges decay, but the
+  full audit of living-honoree `memorializes` edges across generator bundles
+  remains backlog.
+- Zero-history preconditions were threaded into raids (hunting-claim careers)
+  and wars (rivalry escalation); scavenging/wield/practice remain legitimate
+  opportunism by design.
+- Trade-route lifetimes (uniform ~630 ticks) are drift-to-cull artifacts of
+  creation strength 0.1; retune alongside future trade content.
+- New reusable vocabulary added along the way: gambit-grant preconditions
+  (`SelfHasRelationshipToEntityOfSubtype`, `EndpointSubtypeIs`), the
+  generator `RelatedToTarget` binding filter, and the
+  `CullEndpointIncomingRelationships` operation.
