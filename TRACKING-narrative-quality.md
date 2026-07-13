@@ -195,6 +195,29 @@ roles first and biases future events into the beats.
 - Export: resolved story telemetry serializes as a ready-made ChroniclePlan
   skeleton (cast roles + contributions, beats with event ids, act sections)
   for the illuminator to render as prose.
+
+**v1 design decisions (locked before build):**
+
+- Casting reuses the generator targeting machinery (SharedQuery + the
+  RelatedToTarget filter): primary role = generator-style target selector,
+  remaining roles = secondary bindings related to the primary.
+- Act conditions are pull-based predicates over role state — no
+  cross-program event coupling. v1 condition kinds: RolePairRelationship
+  (kind + min strength between two roles), RoleHistorical(role), Deadline.
+  Every act has a deadline; the final act always resolves.
+- Direction v1 = per-act role-pair gambit score bias (flat bonus when the
+  scoring actor/target match bound roles, optionally a specific gambit) +
+  per-act cast sustain (attribute delta applied by the director pulse).
+- Resolution rows are weighted; outcomes are primitive writes:
+  relationship creates/culls between roles, optional SetHistorical on a
+  role, plus a story_resolved event carrying the outcome code.
+- Primitive events: story_cast, story_act_advanced, story_resolved (no
+  strings; projection joins names later).
+- v1 archetypes: The Hunt (hunter penguin / quarry monster), The Rivalry
+  (faction pair from pressed rival_of), The Artifact Quest (seeker penguin /
+  storied unheld prize). Deliberately three; expansion after evidence.
+- The story table is the first consumer of historical-relationship queries;
+  its query needs feed the capacity/eviction design (per the handoff).
 - Verify: stories cast/resolve at sane rates; resolution outcomes diverse;
   cast members show arc-shaped biographies; no runaway affordance bias
   (non-cast behavior stays healthy).
