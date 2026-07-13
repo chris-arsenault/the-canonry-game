@@ -439,7 +439,8 @@ internal sealed class KernelHostBuilder
             codes.MapSignalsSourceCodeId.Value,
             codes.LowAltitudeVerbSourceCodeId.Value,
             codes.EffectsSourceCodeId.Value,
-            codes.PlayerSourceCodeId.Value);
+            codes.PlayerSourceCodeId.Value,
+            codes.StorySourceCodeId.Value);
 
     private static void ApplyDomainSymbols(
         KernelSymbolContext context,

@@ -55,6 +55,7 @@ internal sealed partial class Simulation : IKernel
         Relationships = CreateRelationshipRuntime(options);
         MinorActors = CreateMinorActorRuntime(options);
         CultureFieldDecay = CreateCultureFieldDecayRuntime(options);
+        Stories = new StoryProgramRuntime(options);
         AssignRuntimeCodes(options.RuntimeCodes);
         _executionContext = new KernelExecutionContext(0, StartupSourceCodeId);
         _random = new RandomSource(options.Seed);
@@ -80,6 +81,7 @@ internal sealed partial class Simulation : IKernel
         LowAltitudeVerbSourceCodeId = codes.LowAltitudeVerbSourceCodeId;
         EffectsSourceCodeId = codes.EffectsSourceCodeId;
         PlayerSourceCodeId = codes.PlayerSourceCodeId;
+        StorySourceCodeId = codes.StorySourceCodeId;
     }
 
     private static CultureBoundaryProgramRuntime CreateCultureBoundaryRuntime(SimulationOptions options) =>
@@ -200,6 +202,7 @@ internal sealed partial class Simulation : IKernel
         RegisterProgram(KernelProgramCodes.Effects, mainCadence, Effects);
         RegisterProgram(KernelProgramCodes.Upkeep, mainCadence, Upkeep);
         RegisterProgram(KernelProgramCodes.Gambits, mainCadence, Gambits);
+        RegisterProgram(KernelProgramCodes.StoryDirector, mainCadence, Stories);
         RegisterProgram(KernelProgramCodes.Generators, mainCadence, Generators);
         RegisterProgram(KernelProgramCodes.CultureSlots, 10 * mainCadence, CultureSlots);
         RegisterProgram(
@@ -348,6 +351,8 @@ internal sealed partial class Simulation : IKernel
     internal CultureSlotProgramRuntime CultureSlots { get; }
     internal GambitProgramRuntime Gambits { get; }
     internal GeneratorProgramRuntime Generators { get; }
+
+    internal StoryProgramRuntime Stories { get; }
     internal UpkeepProgramRuntime Upkeep { get; }
     internal RelationshipProgramRuntime Relationships { get; }
     internal MinorActorProgramRuntime MinorActors { get; }
@@ -357,6 +362,8 @@ internal sealed partial class Simulation : IKernel
     internal int StartupSourceCodeId { get; private set; }
     internal int RelationshipSourceCodeId { get; private set; }
     internal int GeneratorSourceCodeId { get; private set; }
+
+    internal int StorySourceCodeId { get; private set; }
     internal int MapActivitySourceCodeId { get; private set; }
     internal int MapSignalsSourceCodeId { get; private set; }
     internal int LowAltitudeVerbSourceCodeId { get; private set; }
@@ -1040,6 +1047,7 @@ internal sealed partial class Simulation : IKernel
     {
         KernelProgramCodes.Gambits => GambitSourceCodeId,
         KernelProgramCodes.Generators => GeneratorSourceCodeId,
+        KernelProgramCodes.StoryDirector => StorySourceCodeId,
         KernelProgramCodes.Movement => MapActivitySourceCodeId,
         KernelProgramCodes.Effects => EffectsSourceCodeId,
         KernelProgramCodes.MinorActors => MapActivitySourceCodeId,

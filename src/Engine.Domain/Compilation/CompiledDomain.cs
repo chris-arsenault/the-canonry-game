@@ -59,7 +59,8 @@ public sealed record DomainRuntimeCodes(
     SourceCodeId MapSignalsSourceCodeId,
     SourceCodeId LowAltitudeVerbSourceCodeId,
     SourceCodeId EffectsSourceCodeId,
-    SourceCodeId PlayerSourceCodeId);
+    SourceCodeId PlayerSourceCodeId,
+    SourceCodeId StorySourceCodeId);
 
 public enum DomainSymbolKind
 {

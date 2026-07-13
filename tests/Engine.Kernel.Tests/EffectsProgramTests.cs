@@ -27,7 +27,8 @@ public sealed class EffectsProgramTests
                 MapSignalsSourceCodeId: 21,
                 LowAltitudeVerbSourceCodeId: 22,
                 EffectsSourceCodeId: effectsSourceCodeId,
-                PlayerSourceCodeId: 23),
+                PlayerSourceCodeId: 23,
+                StorySourceCodeId: 24),
         });
 
         simulation.RegisterAttribute(kindId, attributeId, minimum: 0f, maximum: 100f, defaultValue: 50f);

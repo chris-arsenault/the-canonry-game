@@ -23,6 +23,7 @@ internal static partial class KernelProgramInstaller
         InstallGenerators(context, programs.Generators);
         InstallCultureSlots(context, programs.CultureSlots);
         InstallMinorActors(context, programs.MinorActors);
+        InstallStories(context, programs.Stories);
 
         context.SetProgramEnabled(
             KernelProgramCodes.Movement,
@@ -239,6 +240,80 @@ internal static partial class KernelProgramInstaller
         foreach (var expression in step.Expression)
         {
             context.AddGambitStepExpressionOp(stepSlot, ExpressionCode(expression.Code), expression.A, expression.X);
+        }
+    }
+
+    private static void InstallStories(KernelConfigurationContext context, StoryProgram program)
+    {
+        foreach (var archetype in program.Archetypes)
+        {
+            var archetypeSlot = context.AddStoryArchetype(
+                archetype.ArchetypeId,
+                archetype.MaxActive,
+                archetype.CastingCadenceTicks,
+                archetype.PrimaryKindId,
+                archetype.PrimaryRequiredRelKindId,
+                archetype.PrimaryRequiredRelMinStrength);
+            foreach (var role in archetype.SupportingRoles)
+            {
+                context.AddStoryRole(archetypeSlot, role.KindId, role.RelatedKindId, role.RelatedIncoming, role.RelatedMinStrength);
+            }
+
+            foreach (var act in archetype.Acts)
+            {
+                InstallStoryAct(context, archetypeSlot, act);
+            }
+
+            foreach (var resolution in archetype.Resolutions)
+            {
+                InstallStoryResolution(context, archetypeSlot, resolution);
+            }
+        }
+    }
+
+    private static void InstallStoryAct(KernelConfigurationContext context, int archetypeSlot, CompiledStoryAct act)
+    {
+        var actSlot = context.AddStoryAct(
+            archetypeSlot,
+            act.DeadlineTicks,
+            act.AdvanceConditionKind,
+            act.AdvanceRoleA,
+            act.AdvanceRoleB,
+            act.AdvanceRelKindId,
+            act.AdvanceMinStrength);
+        foreach (var bias in act.Bias)
+        {
+            context.AddStoryActBias(actSlot, bias.ActorRole, bias.TargetRole, bias.GambitId, bias.ScoreBonus);
+        }
+
+        foreach (var sustain in act.Sustain)
+        {
+            context.AddStoryActSustain(actSlot, sustain.Role, sustain.AttributeId, sustain.DeltaPerPulse);
+        }
+    }
+
+    private static void InstallStoryResolution(KernelConfigurationContext context, int archetypeSlot, CompiledStoryResolution resolution)
+    {
+        var resolutionSlot = context.AddStoryResolution(
+            archetypeSlot,
+            resolution.OutcomeCodeId,
+            resolution.Weight,
+            resolution.WhenConditionKind,
+            resolution.WhenRoleA,
+            resolution.WhenRoleB,
+            resolution.WhenRelKindId,
+            resolution.WhenMinStrength,
+            resolution.HistoricalRoleMask);
+        foreach (var relationship in resolution.Relationships)
+        {
+            context.AddStoryResolutionRelationship(
+                resolutionSlot,
+                relationship.SourceRole,
+                relationship.TargetRole,
+                relationship.RelKindId,
+                relationship.PolarityCode,
+                relationship.Strength,
+                relationship.CullInstead);
         }
     }
 

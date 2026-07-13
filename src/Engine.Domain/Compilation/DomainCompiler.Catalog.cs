@@ -124,6 +124,15 @@ public static partial class DomainCompiler
             RegisterOnceStrict(state.Generators, generator.Id, state.Registry.RegisterGenerator, "generator");
             RegisterGeneratorSubtypes(generator, state.Subtypes, state.Registry);
         }
+
+        foreach (var archetype in config.Semantics.StoryArchetypes)
+        {
+            RegisterOnceStrict(state.Generators, archetype.Id, state.Registry.RegisterGenerator, "story archetype");
+            foreach (var resolution in archetype.Resolutions)
+            {
+                _ = state.Registry.RegisterReasonCode(resolution.OutcomeId);
+            }
+        }
     }
 
     private static void RegisterBehaviorCatalog(DomainConfig config, CatalogRegistrationState state)
@@ -173,6 +182,7 @@ public static partial class DomainCompiler
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.GameplaySourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.GameplayEffectsSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.PlayerSourceCode, state.Registry.RegisterSourceCode, "source code");
+        RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.StorySourceCode, state.Registry.RegisterSourceCode, "source code");
     }
 
     private sealed class CatalogRegistrationState

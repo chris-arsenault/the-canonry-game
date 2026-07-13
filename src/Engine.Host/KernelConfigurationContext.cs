@@ -733,6 +733,27 @@ internal sealed class KernelConfigurationContext
             queryRelatedToTargetIncoming ? 1 : 0,
             queryRelatedToTargetMinStrength);
 
+    public int AddStoryArchetype(int archetypeId, int maxActive, int castingCadenceTicks, int primaryKindId, int primaryRequiredRelKindId, float primaryRequiredRelMinStrength) =>
+        _kernel.Stories.AddArchetype(archetypeId, maxActive, castingCadenceTicks, primaryKindId, primaryRequiredRelKindId, primaryRequiredRelMinStrength);
+
+    public void AddStoryRole(int archetypeSlot, int kindId, int relatedKindId, bool relatedIncoming, float relatedMinStrength) =>
+        _kernel.Stories.AddRole(archetypeSlot, kindId, relatedKindId, relatedIncoming ? 1 : 0, relatedMinStrength);
+
+    public int AddStoryAct(int archetypeSlot, int deadlineTicks, int advanceConditionKind, int advanceRoleA, int advanceRoleB, int advanceRelKindId, float advanceMinStrength) =>
+        _kernel.Stories.AddAct(archetypeSlot, deadlineTicks, advanceConditionKind, advanceRoleA, advanceRoleB, advanceRelKindId, advanceMinStrength);
+
+    public void AddStoryActBias(int actSlot, int actorRole, int targetRole, int gambitId, float scoreBonus) =>
+        _kernel.Stories.AddActBias(actSlot, actorRole, targetRole, gambitId, scoreBonus);
+
+    public void AddStoryActSustain(int actSlot, int role, int attributeId, float deltaPerPulse) =>
+        _kernel.Stories.AddActSustain(actSlot, role, attributeId, deltaPerPulse);
+
+    public int AddStoryResolution(int archetypeSlot, int outcomeCodeId, int weight, int whenKind, int whenRoleA, int whenRoleB, int whenRelKindId, float whenMinStrength, int historicalRoleMask) =>
+        _kernel.Stories.AddResolution(archetypeSlot, outcomeCodeId, weight, whenKind, whenRoleA, whenRoleB, whenRelKindId, whenMinStrength, historicalRoleMask);
+
+    public void AddStoryResolutionRelationship(int resolutionSlot, int sourceRole, int targetRole, int relKindId, int polarityCode, float strength, bool cullInstead) =>
+        _kernel.Stories.AddResolutionRelationship(resolutionSlot, sourceRole, targetRole, relKindId, polarityCode, strength, cullInstead ? 1 : 0);
+
     public void AddGeneratorProducedSubtypeChoice(int producedSlot, int subtypeId) =>
         _kernel.Generators.AddProducedSubtypeChoice(producedSlot, subtypeId);
 

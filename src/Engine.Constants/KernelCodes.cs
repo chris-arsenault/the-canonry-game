@@ -281,6 +281,14 @@ public static class KernelProgramCodes
     public const int MinorActors = 15;
     public const int CultureBoundaries = 16;
     public const int CultureFieldDecay = 17;
+    public const int StoryDirector = 18;
+}
+
+public static class StoryConditionCodes
+{
+    public const int None = 0;
+    public const int RolePairRelationship = 1;
+    public const int RoleHistorical = 2;
 }
 
 public static class MinorActorKindCodes

@@ -43,6 +43,9 @@ internal sealed record SimulationOptions
     public int CultureSlotAllowedKindCapacity { get; init; } = 256;
     public int CultureSlotScoreRuleCapacity { get; init; } = 512;
     public int MinorActorCapacity { get; init; } = 4096;
+    public int StoryArchetypeCapacity { get; init; } = 16;
+    public int StoryItemCapacity { get; init; } = 256;
+    public int StoryCapacity { get; init; } = 64;
     public int MinorActorRuleCapacity { get; init; } = 64;
     public int MinorActorSourceRuleCapacity { get; init; } = 16384;
     public int EntityAttributeCapacity { get; init; } = 512;
