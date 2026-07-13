@@ -155,7 +155,7 @@ public static class IceRemembersStoryArchetypes
     [
         new StoryActConfig
         {
-            DeadlineTicks = 400,
+            DeadlineTicks = 1250,
             AdvanceWhen = new StoryConditionConfig
             {
                 Kind = StoryConditionKind.RolePairRelationship,
@@ -168,7 +168,7 @@ public static class IceRemembersStoryArchetypes
         },
         new StoryActConfig
         {
-            DeadlineTicks = 750,
+            DeadlineTicks = 3750,
             Bias = [Bias("$challenger", "$rival", "faction_sues_for_peace", 1.5f), Bias("$rival", "$challenger", "faction_sues_for_peace", 1.5f)],
         },
     ];
@@ -325,7 +325,7 @@ public static class IceRemembersStoryArchetypes
             },
         ],
         MaxActive = 3,
-        CastingCadenceTicks = 90,
+        CastingCadenceTicks = 140,
     };
 
     /// <summary>
@@ -446,7 +446,7 @@ public static class IceRemembersStoryArchetypes
             },
         ],
         MaxActive = 4,
-        CastingCadenceTicks = 100,
+        CastingCadenceTicks = 140,
     };
 
     /// <summary>
