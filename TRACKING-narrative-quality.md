@@ -301,6 +301,18 @@ roles first and biases future events into the beats.
 - MC registry hygiene: superseded evidence runs are deleted to save space;
   keep only recent runs worth referencing instead of re-running long MC
   processes (2026-07-13 cleanup: 143G -> 21G).
+- Scarcity verified (`nq-chronicle-scarcity-3x25k-20260713`): 76-87
+  chronicles per century per run (was ~320), max 7 concurrent, archetype
+  mix flattened (roads 69 / teachings 41 / haunted runs 37 / practices 36
+  / terrors 23 / hunts 20 / rivalries 17 across three seeds).
+- Chronicle UI (2026-07-13): the ChroniclePanel now leads with a
+  Chronicles section - unfolding tales first (archetype, act, age in
+  years, cast), then recent endings with outcomes; every cast name is a
+  link that focuses the entity on the map and opens its card; tale
+  begins/act-advances/endings also interleave into the event log with a
+  Chronicles filter. Projection: UiChronicleTale read model over
+  ChronicleChanged events; archetype and outcome display names flow
+  through the symbol catalog.
 - Trade-route lifetimes (uniform ~630 ticks) are drift-to-cull artifacts of
   creation strength 0.1; retune alongside future trade content.
 - New reusable vocabulary added along the way: gambit-grant preconditions

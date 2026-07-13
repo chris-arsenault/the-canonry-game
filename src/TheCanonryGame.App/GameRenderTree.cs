@@ -671,7 +671,7 @@ internal sealed class GameRenderTree
 
         public void Present(ChroniclePanel panel, IGameChronicleFeed chronicle)
         {
-            var state = new ChronicleState(chronicle.Version, panel.FilterVersion);
+            var state = new ChronicleState(chronicle.Version + (chronicle.TalesVersion << 20), panel.FilterVersion);
             if (_lastState == state)
             {
                 return;
@@ -679,6 +679,7 @@ internal sealed class GameRenderTree
 
             _lastState = state;
             panel.SetEntries(chronicle.Entries);
+            panel.SetTales(chronicle.Tales);
         }
     }
 

@@ -9,6 +9,7 @@ public enum UiChronicleEntryType
     Gambit = 1,
     Generator = 2,
     HistoryChain = 3,
+    Tale = 4,
 }
 
 public sealed record UiChronicleEntityRef(
@@ -17,6 +18,22 @@ public sealed record UiChronicleEntityRef(
     int SubtypeId,
     int CultureId,
     string DisplayName);
+
+/// <summary>
+/// A chronicle tale: one running or resolved story from the Chronicle
+/// Director, with its cast resolved to named, linkable entity refs.
+/// </summary>
+public sealed record UiChronicleTale(
+    int Sequence,
+    int ArchetypeId,
+    string ArchetypeName,
+    int StartTick,
+    int LastEventTick,
+    int ActIndex,
+    bool Resolved,
+    int OutcomeCodeId,
+    string OutcomeName,
+    IReadOnlyList<UiChronicleEntityRef> Cast);
 
 public sealed record UiChronicleEntry(
     long Sequence,
@@ -37,12 +54,15 @@ public sealed class UiChronicleProjection : KernelEventProjector
     private const string FailedColor = "B04646";
     private const string EntityColor = "E7E3D5";
     private const string ConnectorColor = "B8B5A6";
+    private const string TaleColor = "C9A2E0";
 
     private readonly IProjectionSymbolCatalog? _symbols;
     private readonly List<UiChronicleEntry> _entries = [];
     private readonly List<string> _lines = [];
     private readonly Dictionary<int, EntityInfo> _entityInfo = [];
     private readonly List<int> _pendingCreatedIds = [];
+    private readonly Dictionary<int, UiChronicleTale> _tales = [];
+    private readonly List<UiChronicleTale> _talesOrdered = [];
     private int _pendingTick = -1;
 
     public UiChronicleProjection(IProjectionSymbolCatalog? symbols)
@@ -51,6 +71,10 @@ public sealed class UiChronicleProjection : KernelEventProjector
     }
 
     public IReadOnlyList<UiChronicleEntry> Entries => _entries;
+
+    public IReadOnlyList<UiChronicleTale> Tales => _talesOrdered;
+
+    public long TalesVersion { get; private set; }
 
     public IReadOnlyList<string> Lines => _lines;
 
@@ -69,6 +93,86 @@ public sealed class UiChronicleProjection : KernelEventProjector
         }
 
         _pendingCreatedIds.Add(evt.EntityId);
+    }
+
+    protected override void OnChronicleChanged(long sequence, in ChronicleChangedKernelEvent evt)
+    {
+        var archetypeName = Resolve(ProjectionSymbolKind.Generator, evt.ArchetypeId, $"chronicle {evt.ArchetypeId}");
+        var cast = EntityRefs(evt.RoleEntityId0, evt.RoleEntityId1, evt.RoleEntityId2, evt.RoleEntityId3);
+        var resolved = evt.EventTypeCode == ChronicleEventTypeCodes.Resolved;
+        var outcomeName = resolved && evt.OutcomeCodeId > 0
+            ? Resolve(ProjectionSymbolKind.ReasonCode, evt.OutcomeCodeId, $"outcome {evt.OutcomeCodeId}")
+            : string.Empty;
+        var previous = _tales.GetValueOrDefault(evt.ChronicleSequence);
+        var tale = new UiChronicleTale(
+            evt.ChronicleSequence,
+            evt.ArchetypeId,
+            archetypeName,
+            previous?.StartTick ?? evt.Tick,
+            evt.Tick,
+            evt.ActIndex,
+            resolved,
+            evt.OutcomeCodeId,
+            outcomeName,
+            cast.Count > 0 ? cast : previous?.Cast ?? cast);
+        _tales[evt.ChronicleSequence] = tale;
+        RebuildTaleOrder();
+        AppendTaleEntry(sequence, evt.Tick, tale, evt.EventTypeCode);
+    }
+
+    private void RebuildTaleOrder()
+    {
+        _talesOrdered.Clear();
+        _talesOrdered.AddRange(_tales.Values
+            .OrderBy(tale => tale.Resolved ? 1 : 0)
+            .ThenByDescending(tale => tale.LastEventTick));
+        const int maxResolvedRetained = 48;
+        var resolvedSeen = 0;
+        for (var i = 0; i < _talesOrdered.Count; i++)
+        {
+            if (!_talesOrdered[i].Resolved)
+            {
+                continue;
+            }
+
+            resolvedSeen++;
+            if (resolvedSeen > maxResolvedRetained)
+            {
+                _tales.Remove(_talesOrdered[i].Sequence);
+            }
+        }
+
+        if (resolvedSeen > maxResolvedRetained)
+        {
+            _talesOrdered.RemoveRange(
+                _talesOrdered.Count - (resolvedSeen - maxResolvedRetained),
+                resolvedSeen - maxResolvedRetained);
+        }
+
+        TalesVersion++;
+    }
+
+    private void AppendTaleEntry(long sequence, int tick, UiChronicleTale tale, int eventTypeCode)
+    {
+        var verb = eventTypeCode switch
+        {
+            ChronicleEventTypeCodes.Cast => "begins",
+            ChronicleEventTypeCodes.ActAdvanced => $"enters act {tale.ActIndex + 1}",
+            _ => tale.OutcomeName.Length > 0 ? $"ends: {tale.OutcomeName}" : "ends",
+        };
+        var castText = string.Join(
+            $"[color=#{ConnectorColor}], [/color]",
+            tale.Cast.Select(entity => $"[color=#{EntityColor}]{entity.DisplayName}[/color]"));
+        var line = $"{TickPrefix(tick)}[b][color=#{TaleColor}]{tale.ArchetypeName}[/color][/b] {verb}  {castText}";
+        Append(new UiChronicleEntry(
+            sequence,
+            tick,
+            UiChronicleEntryType.Tale,
+            ProvenanceProducerKindCodes.Generator,
+            tale.ArchetypeId,
+            KernelEventState.Succeeded,
+            tale.Cast,
+            line));
     }
 
     protected override void OnGambitExecuted(long sequence, in GambitExecutedKernelEvent evt)

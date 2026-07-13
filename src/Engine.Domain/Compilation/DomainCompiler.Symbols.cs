@@ -123,6 +123,33 @@ public static partial class DomainCompiler
                 generator.Name,
                 generator.Description);
         }
+
+        foreach (var archetype in config.Semantics.ChronicleArchetypes)
+        {
+            symbols.Add(
+                DomainSymbolKind.Generator,
+                ids.GeneratorIdOf(archetype.Id).Value,
+                archetype.Id,
+                archetype.Name,
+                archetype.Description);
+            foreach (var resolution in archetype.Resolutions)
+            {
+                symbols.Add(
+                    DomainSymbolKind.ReasonCode,
+                    ids.ReasonCodeIdOf(resolution.OutcomeId).Value,
+                    resolution.OutcomeId,
+                    OutcomeDisplayName(resolution.OutcomeId));
+            }
+        }
+    }
+
+    private static string OutcomeDisplayName(string outcomeId)
+    {
+        var words = outcomeId.Split('_', StringSplitOptions.RemoveEmptyEntries);
+        return words.Length == 0
+            ? outcomeId
+            : string.Join(' ', words.Select((word, index) =>
+                index == 0 ? char.ToUpperInvariant(word[0]) + word[1..] : word));
     }
 
     private static void AddBehaviorSymbols(

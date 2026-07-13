@@ -275,6 +275,7 @@ public partial class Main : Node2D
         if (_browser is not null)
         {
             _browser.EntitySelected += OnBrowserEntitySelected;
+            _chroniclePanel!.EntitySelected += OnBrowserEntitySelected;
             _browser.EntityFilterChanged += OnBrowserEntityFilterChanged;
         }
 

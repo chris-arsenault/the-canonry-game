@@ -13,6 +13,10 @@ internal interface IGameChronicleFeed
 
     IReadOnlyList<UiChronicleEntry> Entries { get; }
 
+    IReadOnlyList<UiChronicleTale> Tales { get; }
+
+    long TalesVersion { get; }
+
     IReadOnlyList<string> Lines { get; }
 
     void Refresh();

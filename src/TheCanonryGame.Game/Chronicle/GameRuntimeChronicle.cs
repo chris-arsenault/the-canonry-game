@@ -49,6 +49,10 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
 
     public long Version { get; private set; }
 
+    public IReadOnlyList<UiChronicleTale> Tales => _baseChronicle.Tales;
+
+    public long TalesVersion => _baseChronicle.TalesVersion;
+
     public IReadOnlyList<UiChronicleEntry> Entries
     {
         get

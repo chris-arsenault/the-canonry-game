@@ -13,10 +13,14 @@ namespace TheCanonryGame.UI;
 
 public partial class ChroniclePanel : PanelContainer
 {
+    [Signal]
+    public delegate void EntitySelectedEventHandler(int entityIdValue);
+
     private const int AllFilterId = 0;
     private const int EventGambitFilterId = 1;
     private const int EventGeneratorFilterId = 2;
     private const int EventHistoryChainFilterId = 3;
+    private const int EventTaleFilterId = 4;
     private const int StateSucceededFilterId = 1;
     private const int StateFailedFilterId = 2;
     private const int TickWindowAllFilterId = 0;
@@ -29,6 +33,9 @@ public partial class ChroniclePanel : PanelContainer
     private readonly List<OptionData> _scratchOptions = [];
     private IProjectionSymbolCatalog? _symbols;
     private IReadOnlyList<UiChronicleEntry> _entries = [];
+    private IReadOnlyList<UiChronicleTale> _tales = [];
+    private RichTextLabel? _talesLabel;
+    private Label? _talesHeaderLabel;
     private RichTextLabel? _eventLogLabel;
     private LineEdit? _entitySearchEdit;
     private OptionButton? _cultureFilterOption;
@@ -78,6 +85,7 @@ public partial class ChroniclePanel : PanelContainer
 
         AddFilterControls(outer);
         GetNode<ColorRect>("Outer/Hairline").Color = UiTokens.Hairline;
+        AddTalesSection(outer);
 
         _eventLogLabel = GetNode<RichTextLabel>("Outer/Scroll/EventLogLabel");
         _eventLogLabel.AddThemeFontOverride("normal_font", UiTheme.BodyFont);
@@ -86,6 +94,134 @@ public partial class ChroniclePanel : PanelContainer
         _eventLogLabel.AddThemeFontSizeOverride("mono_font_size", UiTokens.SizeBodySmall);
         _eventLogLabel.AddThemeColorOverride("default_color", UiTokens.Vellum);
         RenderEntries();
+    }
+
+    public void SetTales(IReadOnlyList<UiChronicleTale> tales)
+    {
+        ArgumentNullException.ThrowIfNull(tales);
+        _tales = tales;
+        RenderTales();
+    }
+
+    private void AddTalesSection(VBoxContainer outer)
+    {
+        _talesHeaderLabel = new Label { Text = "Chronicles" };
+        _talesHeaderLabel.AddThemeFontOverride("font", UiTheme.DisplayFont);
+        _talesHeaderLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        _talesHeaderLabel.AddThemeColorOverride("font_color", UiTokens.Vellum);
+        outer.AddChild(_talesHeaderLabel);
+        outer.MoveChild(_talesHeaderLabel, 3);
+
+        var scroll = new ScrollContainer
+        {
+            CustomMinimumSize = new Vector2(0, 190),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+        };
+        _talesLabel = new RichTextLabel
+        {
+            BbcodeEnabled = true,
+            FitContent = true,
+            AutowrapMode = TextServer.AutowrapMode.WordSmart,
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            SizeFlagsVertical = SizeFlags.ExpandFill,
+            SelectionEnabled = true,
+        };
+        _talesLabel.AddThemeFontOverride("normal_font", UiTheme.BodyFont);
+        _talesLabel.AddThemeFontOverride("bold_font", UiTheme.DisplayFont);
+        _talesLabel.AddThemeFontSizeOverride("normal_font_size", UiTokens.SizeBodySmall);
+        _talesLabel.AddThemeFontSizeOverride("bold_font_size", UiTokens.SizeBodySmall);
+        _talesLabel.AddThemeColorOverride("default_color", UiTokens.Vellum);
+        _talesLabel.MetaClicked += OnTaleMetaClicked;
+        scroll.AddChild(_talesLabel);
+        outer.AddChild(scroll);
+        outer.MoveChild(scroll, 4);
+
+        var hairline = new ColorRect
+        {
+            CustomMinimumSize = new Vector2(0, 1),
+            Color = UiTokens.Hairline,
+        };
+        outer.AddChild(hairline);
+        outer.MoveChild(hairline, 5);
+        RenderTales();
+    }
+
+    private void OnTaleMetaClicked(Variant meta)
+    {
+        if (int.TryParse(meta.AsString(), System.Globalization.CultureInfo.InvariantCulture, out var entityId) && entityId > 0)
+        {
+            EmitSignal(SignalName.EntitySelected, entityId);
+        }
+    }
+
+    private void RenderTales()
+    {
+        if (_talesLabel is null)
+        {
+            return;
+        }
+
+        var lines = new List<string>();
+        var activeCount = 0;
+        foreach (var tale in _tales)
+        {
+            if (!tale.Resolved)
+            {
+                activeCount++;
+                lines.Add(TaleLine(tale));
+            }
+        }
+
+        var resolvedShown = 0;
+        foreach (var tale in _tales)
+        {
+            if (tale.Resolved && resolvedShown < 24)
+            {
+                resolvedShown++;
+                lines.Add(TaleLine(tale));
+            }
+        }
+
+        if (_talesHeaderLabel is not null)
+        {
+            _talesHeaderLabel.Text = $"Chronicles  ({activeCount} unfolding)";
+        }
+
+        _talesLabel.Text = lines.Count == 0
+            ? "[color=#6F7684]No chronicles yet. The ice is watching.[/color]"
+            : string.Join('\n', lines);
+    }
+
+    private static string TaleLine(UiChronicleTale tale)
+    {
+        const string taleColor = "C9A2E0";
+        const string dimColor = "6F7684";
+        const string connectorColor = "B8B5A6";
+        const string entityColor = "9BC4E8";
+        var status = tale.Resolved
+            ? $"[color=#{dimColor}]○[/color]"
+            : $"[color=#C9A2E0]●[/color]";
+        string act;
+        if (!tale.Resolved)
+        {
+            act = $"[color=#{dimColor}]act {tale.ActIndex + 1}[/color]";
+        }
+        else if (tale.OutcomeName.Length > 0)
+        {
+            act = $"[color=#{dimColor}]{tale.OutcomeName}[/color]";
+        }
+        else
+        {
+            act = $"[color=#{dimColor}]ended[/color]";
+        }
+
+        var years = (tale.LastEventTick - tale.StartTick) / 250f;
+        var age = $"[color=#{dimColor}]{years:0.#}y[/color]";
+        var cast = string.Join(
+            $"[color=#{connectorColor}] · [/color]",
+            tale.Cast.Select(entity => $"[url={entity.EntityId}][color=#{entityColor}]{entity.DisplayName}[/color][/url]"));
+        return $"{status} [b][color=#{taleColor}]{tale.ArchetypeName}[/color][/b]  {act}  {age}\n    {cast}";
     }
 
     public void SetEntries(IReadOnlyList<UiChronicleEntry> entries)
@@ -295,6 +431,7 @@ public partial class ChroniclePanel : PanelContainer
             new(EventGambitFilterId, $"Gambit ({_entries.Count(static entry => entry.EntryType == UiChronicleEntryType.Gambit)})"),
             new(EventGeneratorFilterId, $"Generator ({_entries.Count(static entry => entry.EntryType == UiChronicleEntryType.Generator)})"),
             new(EventHistoryChainFilterId, $"Chains ({_entries.Count(static entry => entry.EntryType == UiChronicleEntryType.HistoryChain)})"),
+            new(EventTaleFilterId, $"Chronicles ({_entries.Count(static entry => entry.EntryType == UiChronicleEntryType.Tale)})"),
         };
         _selectedEventFilterId = RebuildOption(_eventFilterOption, options, _selectedEventFilterId, AllFilterId);
     }
@@ -472,6 +609,7 @@ public partial class ChroniclePanel : PanelContainer
         EventGambitFilterId => entry.EntryType == UiChronicleEntryType.Gambit,
         EventGeneratorFilterId => entry.EntryType == UiChronicleEntryType.Generator,
         EventHistoryChainFilterId => entry.EntryType == UiChronicleEntryType.HistoryChain,
+        EventTaleFilterId => entry.EntryType == UiChronicleEntryType.Tale,
         _ => true,
     };
 
