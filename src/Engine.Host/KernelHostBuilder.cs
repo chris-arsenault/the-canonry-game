@@ -327,9 +327,15 @@ internal sealed class KernelHostBuilder
         KernelConsumerRegistry? consumers = null;
         KernelCommandCompletionPump? commandCompletions = null;
         KernelDriverTimeController? time = null;
+        FixedKernelWorkerPool? workerPool = null;
 
         try
         {
+            var workerCount = Math.Min(
+                simulationOptions.ParallelWorkerCount,
+                Math.Max(1, Environment.ProcessorCount));
+            workerPool = new FixedKernelWorkerPool(workerCount);
+            kernel.AttachWorkScheduler(workerPool);
             consumers = new KernelConsumerRegistry(kernel.Events);
             var completionTable = new KernelCommandCompletionTable(simulationOptions.CommandCapacity);
             var commands = new KernelCommandSubmitter(kernel.Commands, completionTable);
@@ -348,16 +354,19 @@ internal sealed class KernelHostBuilder
                 time,
                 commands,
                 commandCompletions,
+                workerPool,
                 seedEventCount,
                 _compiledDomain);
             consumers = null;
             commandCompletions = null;
+            workerPool = null;
             time = null;
             return host;
         }
         finally
         {
             time?.Dispose();
+            workerPool?.Dispose();
             commandCompletions?.Dispose();
             consumers?.Dispose();
         }

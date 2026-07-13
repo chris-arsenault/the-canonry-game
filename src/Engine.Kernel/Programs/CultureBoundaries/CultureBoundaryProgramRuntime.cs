@@ -1,7 +1,8 @@
 namespace Engine.Kernel;
 
 internal sealed class CultureBoundaryProgramRuntime :
-    IKernelProgramRuntime<CultureBoundaryProgramData, CultureBoundaryProgramState>
+    IKernelProgramRuntime<CultureBoundaryProgramData, CultureBoundaryProgramState>,
+    IKernelParallelJob
 {
     internal const int InteriorHoleAdjacentSupportThreshold = 4;
 
@@ -21,6 +22,8 @@ internal sealed class CultureBoundaryProgramRuntime :
     private readonly int[] _physicalVersions;
     private readonly int[] _semanticVersions;
     private readonly CultureBoundaryDirtySource[] _dirtySources;
+    private readonly int[] _parallelBuildCultureIds = new int[CacheSlotCount];
+    private readonly int[] _parallelBuildPlaneCodes = new int[CacheSlotCount];
     private readonly long[] _dirtySourceLookupKeys;
     private readonly int[] _dirtySourceLookupIndexes;
     private readonly int[] _dirtySourceUsedBuckets;
@@ -36,6 +39,7 @@ internal sealed class CultureBoundaryProgramRuntime :
     private int _dirtyCellUsedBucketCount;
     private long _revision;
     private int _rebuildCount;
+    private WorldState? _parallelBuildWorld;
 
     public CultureBoundaryProgramRuntime(
         CultureBoundaryProgramData data,
@@ -81,6 +85,68 @@ internal sealed class CultureBoundaryProgramRuntime :
     internal int RebuildCount => _rebuildCount;
 
     internal long Revision => _revision;
+
+    internal bool PrepareParallelReads(Simulation simulation)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        var world = simulation.World;
+        if (world.CultureHighWatermark * 2 > CacheSlotCount)
+        {
+            return false;
+        }
+
+        var buildCount = 0;
+        for (var cultureId = 1; cultureId <= world.CultureHighWatermark; cultureId++)
+        {
+            AddParallelBuildIfNeeded(world, cultureId, PlaneCodes.Physical, ref buildCount);
+            AddParallelBuildIfNeeded(world, cultureId, PlaneCodes.Semantic, ref buildCount);
+        }
+
+        if (buildCount > 0)
+        {
+            _parallelBuildWorld = world;
+            simulation.WorkScheduler.Run(
+                this,
+                startInclusive: 0,
+                endExclusive: buildCount,
+                minimumChunkSize: 1);
+            _parallelBuildWorld = null;
+        }
+
+        return true;
+    }
+
+    void IKernelParallelJob.Execute(int workerIndex, int startInclusive, int endExclusive)
+    {
+        _ = workerIndex;
+        var world = _parallelBuildWorld ?? throw new global::System.InvalidOperationException();
+        for (var index = startInclusive; index < endExclusive; index++)
+        {
+            _ = EnsureCache(
+                world,
+                _parallelBuildCultureIds[index],
+                _parallelBuildPlaneCodes[index]);
+        }
+    }
+
+    private void AddParallelBuildIfNeeded(
+        WorldState world,
+        int cultureId,
+        int planeCode,
+        ref int buildCount)
+    {
+        var cache = _caches[CacheIndex(cultureId, planeCode)];
+        if (cache.CultureId == cultureId &&
+            cache.PlaneCode == planeCode &&
+            cache.BoundaryVersion == VersionFor(cultureId, planeCode))
+        {
+            return;
+        }
+
+        _parallelBuildCultureIds[buildCount] = cultureId;
+        _parallelBuildPlaneCodes[buildCount] = planeCode;
+        buildCount++;
+    }
 
     public void Tick(Simulation simulation, int tick)
     {
@@ -319,7 +385,7 @@ internal sealed class CultureBoundaryProgramRuntime :
             cache.BoundaryVersion != version)
         {
             cache.Build(world, cultureId, planeCode, version);
-            _rebuildCount++;
+            global::System.Threading.Interlocked.Increment(ref _rebuildCount);
         }
 
         return cache;

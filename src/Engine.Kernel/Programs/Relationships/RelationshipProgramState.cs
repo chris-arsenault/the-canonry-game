@@ -18,6 +18,8 @@ internal sealed partial class RelationshipProgramState : IKernelProgramState
 
     public int SchemaVersion => 2;
 
+    internal int RelationshipCapacity => _contactTicks.Length - 1;
+
     public int ContactTicks(int relationshipId) => _contactTicks[relationshipId];
 
     public int LastContactTick(int relationshipId) => _lastContactTicks[relationshipId];
@@ -40,6 +42,16 @@ internal sealed partial class RelationshipProgramState : IKernelProgramState
         {
             _contactTicks[relationshipId]--;
         }
+    }
+
+    internal void SetContactState(int relationshipId, int contactTicks, int lastContactTick)
+    {
+        EnsureRelationship(relationshipId);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(contactTicks);
+        global::System.ArgumentOutOfRangeException.ThrowIfGreaterThan(contactTicks, 1000);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(lastContactTick);
+        _contactTicks[relationshipId] = contactTicks;
+        _lastContactTicks[relationshipId] = lastContactTick;
     }
 
     private void EnsureRelationship(int relationshipId)

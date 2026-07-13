@@ -11,14 +11,16 @@ internal static class MonteCarloKernelRunFactory
     public static MonteCarloKernelRun Create(
         int seed,
         bool traceEnabled = false,
-        string? configFilePath = null)
+        string? configFilePath = null,
+        int parallelWorkerCount = 16)
     {
         var runtime = RuntimeFactory.Start(new KernelStartRequest(
             IceRemembersRuntime.DomainName,
             StartupSeedPolicy.Requested(seed),
             KernelFunctionProfile.Batch,
             traceEnabled,
-            configFilePath));
+            configFilePath,
+            parallelWorkerCount));
 
         return new MonteCarloKernelRun(
             runtime,

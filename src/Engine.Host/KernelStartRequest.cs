@@ -54,7 +54,8 @@ public sealed record KernelStartRequest
         StartupSeedPolicy seedPolicy,
         KernelFunctionProfile functionProfile,
         bool traceEnabled = false,
-        string? configFilePath = null)
+        string? configFilePath = null,
+        int parallelWorkerCount = 16)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(domainName);
         if (configFilePath is not null)
@@ -62,11 +63,17 @@ public sealed record KernelStartRequest
             ArgumentException.ThrowIfNullOrWhiteSpace(configFilePath);
         }
 
+        if (parallelWorkerCount is < 1 or > 16)
+        {
+            throw new ArgumentOutOfRangeException(nameof(parallelWorkerCount));
+        }
+
         DomainName = domainName;
         SeedPolicy = seedPolicy;
         FunctionProfile = functionProfile;
         TraceEnabled = traceEnabled;
         ConfigFilePath = configFilePath;
+        ParallelWorkerCount = parallelWorkerCount;
     }
 
     public string DomainName { get; }
@@ -78,6 +85,8 @@ public sealed record KernelStartRequest
     public bool TraceEnabled { get; }
 
     public string? ConfigFilePath { get; }
+
+    public int ParallelWorkerCount { get; }
 }
 
 public readonly record struct DomainStartupSeedRequest

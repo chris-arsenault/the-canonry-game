@@ -2,7 +2,9 @@ namespace Engine.Kernel;
 
 using Engine.Eventing;
 
-internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramData, GambitProgramState>
+internal sealed partial class GambitProgramRuntime :
+    IKernelProgramRuntime<GambitProgramData, GambitProgramState>,
+    IKernelParallelJob
 {
     internal const int GambitHistoryLength = 60;
     private const int RecencyWindow = 10;
@@ -10,7 +12,15 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     private const int PreconditionFailed = 0;
     private const int PreconditionPassed = 1;
 
-    private readonly GambitProgramScratch _scratch;
+    [global::System.ThreadStatic]
+    private static GambitProgramScratch? _parallelScratch;
+    [global::System.ThreadStatic]
+    private static bool _parallelScratchActive;
+    private readonly GambitDecision[] _parallelDecisions;
+    private readonly GambitProgramScratch _defaultScratch;
+    private readonly GambitProgramScratch[] _workerScratch;
+    private Simulation? _parallelSimulation;
+    private int _parallelTick;
     private int[] _gambitKindIds => Data.GambitKindIds;
     private int[] _gambitIds => Data.GambitIds;
     private int[] _gambitCooldownTicks => Data.GambitCooldownTicks;
@@ -55,10 +65,12 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     private int[] _actionHistoryGambitIds => State.ActionHistoryGambitIds;
     private int[] _actionHistoryCounts => State.ActionHistoryCounts;
     private int[] _actionHistoryNextSlots => State.ActionHistoryNextSlots;
-    private bool[] _preconditionStack => _scratch.PreconditionStack;
-    private float[] _expressionStack => _scratch.ExpressionStack;
-    private int[] _variableIds => _scratch.VariableIds;
-    private float[] _variableValues => _scratch.VariableValues;
+    private GambitProgramScratch CurrentScratch =>
+        _parallelScratchActive ? _parallelScratch! : _defaultScratch;
+    private bool[] _preconditionStack => CurrentScratch.PreconditionStack;
+    private float[] _expressionStack => CurrentScratch.ExpressionStack;
+    private int[] _variableIds => CurrentScratch.VariableIds;
+    private float[] _variableValues => CurrentScratch.VariableValues;
     private int[] _providerSelectorCodes => Data.ProviderSelectorCodes;
     private int[] _providerSelectorKindIds => Data.ProviderSelectorKindIds;
     private int[] _providerSelectorValueIds => Data.ProviderSelectorValueIds;
@@ -86,14 +98,36 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         GambitProgramState state,
         GambitProgramScratch scratch,
         KernelProgramTuningOptions tuning)
+        : this(data, state, scratch, tuning, parallelWorkerCount: 1)
+    {
+    }
+
+    internal GambitProgramRuntime(
+        GambitProgramData data,
+        GambitProgramState state,
+        GambitProgramScratch scratch,
+        KernelProgramTuningOptions tuning,
+        int parallelWorkerCount)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
         global::System.ArgumentNullException.ThrowIfNull(scratch);
         global::System.ArgumentNullException.ThrowIfNull(tuning);
+        global::System.ArgumentOutOfRangeException.ThrowIfLessThan(parallelWorkerCount, 1);
+        global::System.ArgumentOutOfRangeException.ThrowIfGreaterThan(
+            parallelWorkerCount,
+            SimulationOptions.MaximumParallelWorkerCount);
         Data = data;
         State = state;
-        _scratch = scratch;
+        _defaultScratch = scratch;
+        _workerScratch = new GambitProgramScratch[parallelWorkerCount];
+        _workerScratch[0] = scratch;
+        for (var workerIndex = 1; workerIndex < parallelWorkerCount; workerIndex++)
+        {
+            _workerScratch[workerIndex] = new GambitProgramScratch(state.EntityCapacity);
+        }
+
+        _parallelDecisions = new GambitDecision[state.EntityCapacity + 1];
         Tuning = tuning;
     }
 
@@ -342,13 +376,182 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         var world = simulation.World;
-        KernelQuery.ForEachActiveEntity(
-            world,
-            entityId =>
+        _parallelSimulation = simulation;
+        _parallelTick = tick;
+        var parallelReadsReady = simulation.CultureBoundaries.PrepareParallelReads(simulation);
+        var scheduler = parallelReadsReady
+            ? simulation.WorkScheduler
+            : InlineKernelWorkScheduler.Instance;
+        scheduler.Run(
+            this,
+            startInclusive: 1,
+            endExclusive: KernelQuery.EntityRangeEndExclusive(world),
+            simulation.Options.ParallelMinimumChunkSize);
+        _parallelSimulation = null;
+        CommitGambitDecisions(simulation, tick);
+    }
+
+    void IKernelParallelJob.Execute(int workerIndex, int startInclusive, int endExclusive)
+    {
+        var simulation = _parallelSimulation ?? throw new global::System.InvalidOperationException();
+        BeginParallelScratch(_workerScratch[workerIndex]);
+        try
+        {
+            for (var entityId = startInclusive; entityId < endExclusive; entityId++)
+            {
+                _parallelDecisions[entityId] = default;
+                if (!simulation.World.EntityIsActive(entityId))
+                {
+                    continue;
+                }
+
+                Simulation.BeginParallelRandom(
+                    simulation.Options.Seed,
+                    simulation.CurrentTick,
+                    KernelPhase.StrategicDecision,
+                    KernelProgramCodes.Gambits,
+                    entityId,
+                    purposeId: 1);
+                try
+                {
+                    _parallelDecisions[entityId] = EvaluateGambitDecision(
+                        simulation,
+                        entityId,
+                        _parallelTick);
+                }
+                finally
+                {
+                    Simulation.EndParallelRandom();
+                }
+            }
+        }
+        finally
+        {
+            EndParallelScratch();
+        }
+    }
+
+    private GambitDecision EvaluateGambitDecision(Simulation simulation, int entityId, int tick)
+    {
+        if (tick < _entityCooldowns.GetOrDefault(entityId, 1))
+        {
+            return default;
+        }
+
+        var kindId = simulation.World.EntityKindId(entityId);
+        var candidateCount = 0;
+        var totalWeight = EvaluateGambitWeights(simulation, entityId, kindId, tick, ref candidateCount);
+        if (candidateCount == 0)
+        {
+            return default;
+        }
+
+        if (totalWeight <= 0f)
+        {
+            return new GambitDecision(true, true, kindId, candidateCount, 0, 0);
+        }
+
+        var roll = simulation.NextFloat() * totalWeight;
+        var selectedGambitSlot = SelectGambitSlot(
+            simulation,
+            entityId,
+            kindId,
+            tick,
+            roll,
+            out var selectedTargetId);
+        return new GambitDecision(
+            true,
+            false,
+            kindId,
+            candidateCount,
+            selectedGambitSlot,
+            selectedTargetId);
+    }
+
+    private void CommitGambitDecisions(Simulation simulation, int tick)
+    {
+        var world = simulation.World;
+        for (var entityId = KernelQuery.FirstActiveEntity(world);
+             entityId > 0;
+             entityId = KernelQuery.NextActiveEntity(world, entityId))
+        {
+            var decision = _parallelDecisions[entityId];
+            if (!decision.HasEvaluation || !world.EntityIsActive(entityId))
+            {
+                continue;
+            }
+
+            if (decision.NoPositiveWeight)
+            {
+                WriteGambitEvaluated(
+                    simulation,
+                    tick,
+                    entityId,
+                    decision.KindId,
+                    0,
+                    decision.CandidateCount,
+                    KernelEventState.None);
+                continue;
+            }
+
+            if (decision.GambitSlot == 0)
+            {
+                continue;
+            }
+
+            if (!GambitDecisionStillValid(simulation, entityId, decision, tick))
             {
                 TickEntity(simulation, entityId, tick);
-                return true;
-            });
+                continue;
+            }
+
+            RunSelectedGambit(
+                simulation,
+                entityId,
+                decision.TargetId,
+                decision.GambitSlot,
+                decision.KindId,
+                tick,
+                decision.CandidateCount);
+        }
+    }
+
+    private bool GambitDecisionStillValid(
+        Simulation simulation,
+        int entityId,
+        GambitDecision decision,
+        int tick) =>
+        tick >= _entityCooldowns.GetOrDefault(entityId, 1) &&
+        GambitCanRunForEntity(decision.GambitSlot, decision.KindId, entityId, tick) &&
+        TargetEligibleForGambit(
+            simulation.World,
+            entityId,
+            decision.GambitSlot,
+            forcedTargetId: 0,
+            decision.TargetId) &&
+        PreconditionsResult(
+            simulation,
+            decision.GambitSlot,
+            entityId,
+            decision.TargetId,
+            tick) == PreconditionPassed;
+
+    private static void BeginParallelScratch(GambitProgramScratch scratch)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(scratch);
+        if (_parallelScratchActive)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _parallelScratch = scratch;
+        _parallelScratchActive = true;
+    }
+
+    private static void EndParallelScratch()
+    {
+        _parallelScratchActive = false;
+        _parallelScratch = null;
     }
 
     private void TickEntity(Simulation simulation, int entityId, int tick)

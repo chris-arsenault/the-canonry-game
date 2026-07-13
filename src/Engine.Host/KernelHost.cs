@@ -11,6 +11,7 @@ public sealed partial class KernelHost : IDisposable
 {
     private readonly Simulation _kernel;
     private readonly KernelCommandCompletionPump _commandCompletions;
+    private readonly FixedKernelWorkerPool? _workerPool;
     private readonly CultureBoundaryDirtyCell[] _cultureBoundaryRefreshCells;
     private bool _disposed;
 
@@ -22,6 +23,7 @@ public sealed partial class KernelHost : IDisposable
         IKernelDriverTimeControl time,
         ICommandSubmitter commands,
         KernelCommandCompletionPump commandCompletions,
+        FixedKernelWorkerPool? workerPool,
         int seedEventCount,
         CompiledDomain? compiledDomain = null)
     {
@@ -34,6 +36,7 @@ public sealed partial class KernelHost : IDisposable
         Time = time;
         Commands = commands;
         _commandCompletions = commandCompletions;
+        _workerPool = workerPool;
         SeedEventCount = seedEventCount;
         CompiledDomain = compiledDomain;
     }
@@ -85,6 +88,7 @@ public sealed partial class KernelHost : IDisposable
 
         _disposed = true;
         Time.Dispose();
+        _workerPool?.Dispose();
         _commandCompletions.Dispose();
         Consumers.Dispose();
     }

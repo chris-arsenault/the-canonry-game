@@ -26,6 +26,7 @@ internal sealed partial record MonteCarloOptions(
     bool DisableEntitySnapshots,
     bool SimulationOnly,
     bool TraceEnabled,
+    int ParallelWorkerCount,
     string? ConfigFilePath,
     IReadOnlyList<MonteCarloStatInput> Stats)
 {
@@ -78,6 +79,7 @@ internal sealed partial record MonteCarloOptions(
             DisableEntitySnapshots: HasFlag(optionArgs, "--disable-entity-snapshots"),
             SimulationOnly: simulationOnly,
             TraceEnabled: traceEnabled,
+            ParallelWorkerCount: ReadInt(optionArgs, "--workers", 16),
             ConfigFilePath: ReadString(optionArgs, "--config-file", null),
             Stats: stats);
     }

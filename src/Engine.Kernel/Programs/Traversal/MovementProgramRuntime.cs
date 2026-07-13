@@ -3,6 +3,14 @@ namespace Engine.Kernel;
 internal sealed partial class MovementProgramRuntime :
     IKernelProgramRuntime<MovementProgramData, MovementProgramState>
 {
+    [global::System.ThreadStatic]
+    private static MovementProgramScratch? _parallelScratch;
+    [global::System.ThreadStatic]
+    private static bool _parallelScratchActive;
+    private readonly MovementRouteCache _parallelRouteCache;
+    private readonly MovementProgramScratch[] _workerScratch;
+    private readonly MovementProgramScratch _defaultScratch;
+
     public MovementProgramRuntime(
         MovementProgramData data,
         MovementProgramState state,
@@ -16,14 +24,36 @@ internal sealed partial class MovementProgramRuntime :
         MovementProgramState state,
         MovementProgramScratch scratch,
         KernelProgramTuningOptions tuning)
+        : this(data, state, scratch, tuning, parallelWorkerCount: 1)
+    {
+    }
+
+    internal MovementProgramRuntime(
+        MovementProgramData data,
+        MovementProgramState state,
+        MovementProgramScratch scratch,
+        KernelProgramTuningOptions tuning,
+        int parallelWorkerCount)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
         global::System.ArgumentNullException.ThrowIfNull(scratch);
         global::System.ArgumentNullException.ThrowIfNull(tuning);
+        global::System.ArgumentOutOfRangeException.ThrowIfLessThan(parallelWorkerCount, 1);
+        global::System.ArgumentOutOfRangeException.ThrowIfGreaterThan(
+            parallelWorkerCount,
+            SimulationOptions.MaximumParallelWorkerCount);
         Data = data;
         State = state;
-        Scratch = scratch;
+        _defaultScratch = scratch;
+        _parallelRouteCache = new MovementRouteCache(scratch.PathCapacity);
+        _workerScratch = new MovementProgramScratch[parallelWorkerCount];
+        _workerScratch[0] = scratch;
+        for (var workerIndex = 1; workerIndex < parallelWorkerCount; workerIndex++)
+        {
+            _workerScratch[workerIndex] = new MovementProgramScratch(scratch.PathCapacity);
+        }
+
         Tuning = tuning;
     }
 
@@ -31,9 +61,114 @@ internal sealed partial class MovementProgramRuntime :
 
     public MovementProgramState State { get; }
 
-    public MovementProgramScratch Scratch { get; }
+    public MovementProgramScratch Scratch =>
+        _parallelScratchActive ? _parallelScratch! : _defaultScratch;
 
     public KernelProgramTuningOptions Tuning { get; }
+
+    internal MovementProgramScratch ScratchForWorker(int workerIndex)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(workerIndex);
+        global::System.ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(
+            workerIndex,
+            _workerScratch.Length);
+
+        return _workerScratch[workerIndex];
+    }
+
+    internal static void BeginParallelScratch(MovementProgramScratch scratch)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(scratch);
+        if (_parallelScratchActive)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _parallelScratch = scratch;
+        _parallelScratchActive = true;
+    }
+
+    internal static void EndParallelScratch()
+    {
+        _parallelScratchActive = false;
+        _parallelScratch = null;
+    }
+
+    private bool TryGetRouteCache(
+        int planeCode,
+        int movementProfileId,
+        int segmentSize,
+        int sourceKey,
+        int targetKey,
+        int topologyEpoch,
+        int roadEpoch,
+        out int nextSegment,
+        out int portalQ,
+        out int portalR) =>
+        _parallelScratchActive
+            ? _parallelRouteCache.TryGet(
+                planeCode,
+                movementProfileId,
+                segmentSize,
+                sourceKey,
+                targetKey,
+                topologyEpoch,
+                roadEpoch,
+                out nextSegment,
+                out portalQ,
+                out portalR)
+            : State.TryGetRouteCache(
+                planeCode,
+                movementProfileId,
+                segmentSize,
+                sourceKey,
+                targetKey,
+                topologyEpoch,
+                roadEpoch,
+                out nextSegment,
+                out portalQ,
+                out portalR);
+
+    private void StoreRouteCache(
+        int planeCode,
+        int movementProfileId,
+        int segmentSize,
+        int sourceKey,
+        int targetKey,
+        int topologyEpoch,
+        int roadEpoch,
+        int nextSegment,
+        int portalQ,
+        int portalR)
+    {
+        if (_parallelScratchActive)
+        {
+            _parallelRouteCache.Store(
+                planeCode,
+                movementProfileId,
+                segmentSize,
+                sourceKey,
+                targetKey,
+                topologyEpoch,
+                roadEpoch,
+                nextSegment,
+                portalQ,
+                portalR);
+            return;
+        }
+
+        State.StoreRouteCache(
+            planeCode,
+            movementProfileId,
+            segmentSize,
+            sourceKey,
+            targetKey,
+            topologyEpoch,
+            roadEpoch,
+            nextSegment,
+            portalQ,
+            portalR);
+    }
 
     public void RegisterDefaultMovementProfile(
         int kindId,
@@ -330,23 +465,51 @@ internal sealed partial class MovementProgramRuntime :
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         ValidatePlane(planeCode);
+        var plan = PlanNavigate(simulation, entityId, planeCode, targetQ, targetR, tick);
+        return CommitPlannedMove(simulation, entityId, plan, tick, out _);
+    }
+
+    internal MovementMovePlan PlanNavigate(
+        Simulation simulation,
+        int entityId,
+        int planeCode,
+        int targetQ,
+        int targetR,
+        int tick)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        ValidatePlane(planeCode);
         var world = simulation.World;
         var fromQ = CurrentQ(world, entityId, planeCode);
         var fromR = CurrentR(world, entityId, planeCode);
+        var fromZ = CurrentZ(world, entityId, planeCode);
         var fromS = planeCode == PlaneCodes.Semantic ? -fromQ - fromR : 0;
         if (fromQ == targetQ && fromR == targetR)
         {
-            return new MovementMoveResult(
-                false, 0f, planeCode, fromQ, fromR, fromS, fromQ, fromR, fromS, MovementCauseCodes.Travel);
+            return new MovementMovePlan(
+                false, false, 0f, planeCode, fromQ, fromR, fromZ, fromS,
+                fromQ, fromR, fromZ, fromS, MovementCauseCodes.Travel);
         }
 
         if (!TryPlanNextStep(simulation, entityId, planeCode, fromQ, fromR, targetQ, targetR, tick, out var nextQ, out var nextR))
         {
-            return new MovementMoveResult(
-                false, float.PositiveInfinity, planeCode, fromQ, fromR, fromS, fromQ, fromR, fromS, MovementCauseCodes.Travel);
+            return new MovementMovePlan(
+                false, true, float.PositiveInfinity, planeCode, fromQ, fromR, fromZ, fromS,
+                fromQ, fromR, fromZ, fromS, MovementCauseCodes.Travel);
         }
 
-        return StepUnchecked(simulation, entityId, planeCode, nextQ, nextR, tick, MovementCauseCodes.Travel);
+        var stepCost = StepCostForMove(
+            simulation,
+            planeCode,
+            entityId,
+            nextQ,
+            nextR,
+            tick,
+            MovementCauseCodes.Travel);
+        var nextS = planeCode == PlaneCodes.Semantic ? -nextQ - nextR : 0;
+        return new MovementMovePlan(
+            true, false, stepCost, planeCode, fromQ, fromR, fromZ, fromS,
+            nextQ, nextR, fromZ, nextS, MovementCauseCodes.Travel);
     }
 
     public MovementMoveResult Wander(
@@ -357,6 +520,28 @@ internal sealed partial class MovementProgramRuntime :
         Wander(simulation, entityId, planeCode, tick, anchorQ: 0, anchorR: 0, maxDistanceFromAnchor: -1);
 
     public MovementMoveResult Wander(
+        Simulation simulation,
+        int entityId,
+        int planeCode,
+        int tick,
+        int anchorQ,
+        int anchorR,
+        int maxDistanceFromAnchor)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        ValidatePlane(planeCode);
+        var plan = PlanWander(
+            simulation,
+            entityId,
+            planeCode,
+            tick,
+            anchorQ,
+            anchorR,
+            maxDistanceFromAnchor);
+        return CommitPlannedMove(simulation, entityId, plan, tick, out _);
+    }
+
+    internal MovementMovePlan PlanWander(
         Simulation simulation,
         int entityId,
         int planeCode,
@@ -385,8 +570,9 @@ internal sealed partial class MovementProgramRuntime :
             maxDistanceFromAnchor);
         if (selectedDirection < 0)
         {
-            return new MovementMoveResult(
-                false, 0f, planeCode, fromQ, fromR, fromS, fromQ, fromR, fromS, MovementCauseCodes.Travel);
+            return new MovementMovePlan(
+                false, false, 0f, planeCode, fromQ, fromR, fromZ, fromS,
+                fromQ, fromR, fromZ, fromS, MovementCauseCodes.Travel);
         }
 
         var toQ = fromQ + DirectionQ(selectedDirection);
@@ -395,7 +581,49 @@ internal sealed partial class MovementProgramRuntime :
         var stepCost = toZ == 0
             ? BaseTravelCost(simulation, planeCode, entityId, toQ, toR)
             : 1f;
-        return StepUnchecked(simulation, entityId, planeCode, toQ, toR, toZ, tick, MovementCauseCodes.Travel, stepCost);
+        var toS = planeCode == PlaneCodes.Semantic ? -toQ - toR : 0;
+        return new MovementMovePlan(
+            true, false, stepCost, planeCode, fromQ, fromR, fromZ, fromS,
+            toQ, toR, toZ, toS, MovementCauseCodes.Travel);
+    }
+
+    internal MovementMoveResult CommitPlannedMove(
+        Simulation simulation,
+        int entityId,
+        MovementMovePlan plan,
+        int tick,
+        out bool sourceValid)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        var world = simulation.World;
+        sourceValid = CurrentQ(world, entityId, plan.PlaneCode) == plan.FromQ &&
+            CurrentR(world, entityId, plan.PlaneCode) == plan.FromR &&
+            CurrentZ(world, entityId, plan.PlaneCode) == plan.FromZ;
+        if (!sourceValid || !plan.HasStep)
+        {
+            return new MovementMoveResult(
+                false,
+                plan.Unreachable ? float.PositiveInfinity : plan.StepCost,
+                plan.PlaneCode,
+                plan.FromQ,
+                plan.FromR,
+                plan.FromS,
+                plan.ToQ,
+                plan.ToR,
+                plan.ToS,
+                plan.CauseCode);
+        }
+
+        return StepUnchecked(
+            simulation,
+            entityId,
+            plan.PlaneCode,
+            plan.ToQ,
+            plan.ToR,
+            plan.ToZ,
+            tick,
+            plan.CauseCode,
+            plan.StepCost);
     }
 
     private int SelectWanderDirection(

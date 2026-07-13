@@ -29,6 +29,8 @@ internal sealed partial class Simulation : IKernel
             throw new global::System.ArgumentOutOfRangeException(nameof(options));
         }
 
+        ValidateParallelOptions(options);
+
         ValidateCultureTuning(options);
         Options = options;
         Events = new KernelEventLog(
@@ -102,7 +104,8 @@ internal sealed partial class Simulation : IKernel
             new MovementProgramData(options.MovementProfileRuleCapacity),
             new MovementProgramState(options.MovementCellCapacity),
             new MovementProgramScratch(options.MapCellCapacity),
-            options.KernelTuning.Programs);
+            options.KernelTuning.Programs,
+            options.ParallelWorkerCount);
 
     private static MapActivityProgramRuntime CreateMapActivityRuntime(SimulationOptions options) =>
         new(
@@ -121,7 +124,9 @@ internal sealed partial class Simulation : IKernel
     private static EffectsProgramRuntime CreateEffectsRuntime(SimulationOptions options) =>
         new(
             new EffectsProgramData(options.EffectRuleCapacity),
-            new EffectsProgramState());
+            new EffectsProgramState(),
+            options.EntityCapacity,
+            options.ParallelWorkerCount);
 
     private static CultureSlotProgramRuntime CreateCultureSlotRuntime(SimulationOptions options) =>
         new(
@@ -151,7 +156,8 @@ internal sealed partial class Simulation : IKernel
                 options.GambitCooldownCapacity,
                 options.EntityCapacity),
             new GambitProgramScratch(options.EntityCapacity),
-            options.KernelTuning.Programs);
+            options.KernelTuning.Programs,
+            options.ParallelWorkerCount);
 
     private static GeneratorProgramRuntime CreateGeneratorRuntime(SimulationOptions options)
     {
@@ -182,7 +188,8 @@ internal sealed partial class Simulation : IKernel
         new(
             new RelationshipProgramData(options.RelationshipRuleCapacity),
             new RelationshipProgramState(options.RelationshipCapacity),
-            options.KernelTuning.Programs);
+            options.KernelTuning.Programs,
+            options.ParallelWorkerCount);
 
     private void RegisterDefaultPrograms()
     {
@@ -362,6 +369,7 @@ internal sealed partial class Simulation : IKernel
     internal int LowAltitudeVerbSourceCodeId { get; private set; }
     internal int EffectsSourceCodeId { get; private set; }
     internal int PlayerSourceCodeId { get; private set; }
+
     internal KernelExecutionContext ExecutionContext => _executionContext;
     public int CurrentTick { get; private set; }
     internal int MainTickRatio => Options.KernelTuning.Programs.MinorActorMainTickRatio;
@@ -911,17 +919,23 @@ internal sealed partial class Simulation : IKernel
 
     internal int NextInt(int exclusiveMaximum)
     {
-        return _random.NextInt(exclusiveMaximum);
+        return _parallelRandomActive
+            ? _parallelRandom.NextInt(exclusiveMaximum)
+            : _random.NextInt(exclusiveMaximum);
     }
 
     internal int NextInclusive(int minimum, int maximum)
     {
-        return _random.NextInclusive(minimum, maximum);
+        return _parallelRandomActive
+            ? _parallelRandom.NextInclusive(minimum, maximum)
+            : _random.NextInclusive(minimum, maximum);
     }
 
     internal float NextFloat()
     {
-        return _random.NextFloat();
+        return _parallelRandomActive
+            ? _parallelRandom.NextFloat()
+            : _random.NextFloat();
     }
 
     private int FindSystemSlot()
@@ -1016,6 +1030,18 @@ internal sealed partial class Simulation : IKernel
             !IsFiniteNonNegative(cultureField.RemittanceShare) ||
             cultureField.RemittanceShare > 1f ||
             cultureField.RemittanceMinimumDistance < 0)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(options));
+        }
+    }
+
+    private static void ValidateParallelOptions(SimulationOptions options)
+    {
+        if (options.ParallelWorkerCount <= 0 ||
+            options.ParallelWorkerCount > SimulationOptions.MaximumParallelWorkerCount ||
+            options.ParallelMinimumChunkSize <= 0 ||
+            options.ParallelShardCount <= 0 ||
+            options.ParallelShardCount > SimulationOptions.MaximumParallelWorkerCount)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(options));
         }

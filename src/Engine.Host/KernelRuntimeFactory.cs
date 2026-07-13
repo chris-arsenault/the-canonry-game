@@ -124,6 +124,7 @@ public sealed class KernelRuntimeFactory
                 Seed = baseSeed,
                 EventSchemaValidator = KernelEventSchemaRegistry.Validator,
                 TraceEnabled = request.TraceEnabled,
+                ParallelWorkerCount = request.ParallelWorkerCount,
                 KernelTuning = kernelTuning,
             })
             .WithDriverConfig(DriverConfigFor(request.FunctionProfile))

@@ -3,9 +3,11 @@ namespace Engine.Kernel;
 using Engine.Constants;
 
 internal sealed partial class MinorActorProgramRuntime :
-    IKernelProgramRuntime<MinorActorProgramData, MinorActorProgramState>
+    IKernelProgramRuntime<MinorActorProgramData, MinorActorProgramState>,
+    IKernelParallelJob
 {
     private const int LocalVerbStepRadius = 1;
+    private const int VerbTargetCapacity = 7;
     private const float CultureTraceRawInfluence = WorldState.CultureTraceRawMass;
     private const float CultureSupportedRawInfluence = WorldState.CultureControlledRawMass;
     private const float CultureStrongRawInfluence = WorldState.CultureEntrenchedRawMass;
@@ -18,7 +20,11 @@ internal sealed partial class MinorActorProgramRuntime :
     private const float NexusSourceCultureMultiplier = 1.5f;
     private static readonly int[] NeighborDQ = [1, 1, 0, -1, -1, 0];
     private static readonly int[] NeighborDR = [0, -1, -1, 0, 1, 1];
-    private readonly MinorActorCellTarget[] _verbTargetCells = new MinorActorCellTarget[7];
+    private readonly MinorActorCellTarget[] _verbTargetCells;
+    private readonly MinorActorDecision[] _parallelDecisions;
+    private Simulation? _parallelSimulation;
+    private int _parallelPulse;
+    private int _parallelTick;
 
     public MinorActorProgramRuntime(MinorActorProgramData data, MinorActorProgramState state)
     {
@@ -26,6 +32,9 @@ internal sealed partial class MinorActorProgramRuntime :
         global::System.ArgumentNullException.ThrowIfNull(state);
         Data = data;
         State = state;
+        _verbTargetCells = new MinorActorCellTarget[
+            SimulationOptions.MaximumParallelWorkerCount * VerbTargetCapacity];
+        _parallelDecisions = new MinorActorDecision[state.ActorCapacity + 1];
     }
 
     public MinorActorProgramData Data { get; }
@@ -236,60 +245,154 @@ internal sealed partial class MinorActorProgramRuntime :
 
     private void TickActors(Simulation simulation, int tick, int pulse)
     {
+        if (State.HighWatermark == 0)
+        {
+            return;
+        }
+
+        var parallelReadsReady = simulation.CultureBoundaries.PrepareParallelReads(simulation);
+        _parallelSimulation = simulation;
+        _parallelTick = tick;
+        _parallelPulse = pulse;
+        var scheduler = parallelReadsReady
+            ? simulation.WorkScheduler
+            : InlineKernelWorkScheduler.Instance;
+        scheduler.Run(
+            this,
+            startInclusive: 1,
+            endExclusive: State.HighWatermark + 1,
+            simulation.Options.ParallelMinimumChunkSize);
+        _parallelSimulation = null;
+
         for (var actorId = 1; actorId <= State.HighWatermark; actorId++)
         {
-            if (State.IsActive(actorId))
-            {
-                TickActor(simulation, actorId, tick, pulse);
-            }
+            ApplyActorDecision(simulation, actorId, tick, _parallelDecisions[actorId]);
         }
     }
 
-    private void TickActor(Simulation simulation, int actorId, int tick, int pulse)
+    void IKernelParallelJob.Execute(int workerIndex, int startInclusive, int endExclusive)
     {
+        var simulation = _parallelSimulation ?? throw new global::System.InvalidOperationException();
+        for (var actorId = startInclusive; actorId < endExclusive; actorId++)
+        {
+            var decision = EvaluateActorDecision(
+                simulation,
+                actorId,
+                workerIndex,
+                _parallelTick,
+                _parallelPulse);
+            _parallelDecisions[actorId] = decision;
+            ApplyActorOwnedDecision(actorId, _parallelPulse, decision);
+        }
+    }
+
+    private void ApplyActorOwnedDecision(int actorId, int pulse, in MinorActorDecision decision)
+    {
+        if (!decision.IsActive)
+        {
+            return;
+        }
+
+        if (decision.ActionDue)
+        {
+            State.SetNextActionPulse(actorId, pulse + State.ActionCadencePulses(actorId));
+            if (decision.HasVerbLayer && decision.HasSelectedVerb)
+            {
+                State.SetPosition(actorId, decision.Selected.Q, decision.Selected.R);
+            }
+        }
+
+        if (decision.Move)
+        {
+            State.SetPosition(actorId, decision.MoveQ, decision.MoveR);
+        }
+
+        State.SetRemainingPulses(actorId, global::System.Math.Max(0, decision.RemainingPulses));
+    }
+
+    private MinorActorDecision EvaluateActorDecision(
+        Simulation simulation,
+        int actorId,
+        int workerIndex,
+        int tick,
+        int pulse)
+    {
+        if (!State.IsActive(actorId))
+        {
+            return default;
+        }
+
+        var random = simulation.CreateRandomCursor(
+            KernelPhase.ActorDecision,
+            KernelProgramCodes.MinorActors,
+            actorId,
+            purposeId: 1);
         var sourceRule = State.SourceRuleId(actorId);
         var hasVerbLayer = HasVerbLayer(sourceRule);
-        if (pulse >= State.NextActionPulse(actorId))
+        var actionDue = pulse >= State.NextActionPulse(actorId);
+        var selected = default(MinorActorVerbCandidate);
+        var hasSelectedVerb = actionDue && hasVerbLayer &&
+            TrySelectVerbCandidate(simulation, actorId, tick, workerIndex, ref random, out selected);
+        var moveQ = 0;
+        var moveR = 0;
+        var move = !hasVerbLayer && TryPlanRandomMove(simulation, actorId, ref random, out moveQ, out moveR);
+        return new MinorActorDecision(
+            true,
+            actionDue,
+            hasVerbLayer,
+            hasSelectedVerb,
+            selected,
+            move,
+            moveQ,
+            moveR,
+            State.RemainingPulses(actorId) - 1);
+    }
+
+    private void ApplyActorDecision(
+        Simulation simulation,
+        int actorId,
+        int tick,
+        in MinorActorDecision decision)
+    {
+        if (!decision.IsActive)
         {
-            if (hasVerbLayer)
+            return;
+        }
+
+        if (decision.ActionDue)
+        {
+            if (decision.HasVerbLayer)
             {
-                ApplySelectedVerb(simulation, actorId, tick);
+                ApplySelectedVerb(simulation, actorId, tick, decision.HasSelectedVerb, decision.Selected);
             }
             else
             {
                 ApplyLegacyWork(simulation, actorId, tick);
             }
-
-            State.SetNextActionPulse(actorId, pulse + State.ActionCadencePulses(actorId));
         }
 
-        if (!hasVerbLayer)
-        {
-            TryMoveRandomly(simulation, actorId);
-        }
-
-        var remaining = State.RemainingPulses(actorId) - 1;
-        if (remaining <= 0)
+        if (decision.RemainingPulses <= 0)
         {
             _ = State.Deactivate(actorId);
-            return;
         }
-
-        State.SetRemainingPulses(actorId, remaining);
     }
 
     private bool HasVerbLayer(int sourceRule)
         => (uint)(sourceRule - 1) < (uint)Data.RuleCapacity && Data.RuleHasVerbs[sourceRule];
 
-    private void ApplySelectedVerb(Simulation simulation, int actorId, int tick)
+    private void ApplySelectedVerb(
+        Simulation simulation,
+        int actorId,
+        int tick,
+        bool hasSelected,
+        in MinorActorVerbCandidate selected)
     {
-        if (!TrySelectVerbCandidate(simulation, actorId, tick, out var selected))
+        if (!hasSelected)
         {
             EmitMinorActorVerb(simulation, actorId, tick, default, TraceStatusCodes.NoTarget, delta: 0f);
             return;
         }
 
-        State.SetPosition(actorId, selected.Q, selected.R);
         var delta = State.WorkDelta(actorId) *
             selected.WorkDeltaMultiplier *
             SourceSlotWorkMultiplier(simulation, State.SourceEntityId(actorId)) *
@@ -388,6 +491,8 @@ internal sealed partial class MinorActorProgramRuntime :
         Simulation simulation,
         int actorId,
         int tick,
+        int workerIndex,
+        ref KernelRandomCursor random,
         out MinorActorVerbCandidate selected)
     {
         selected = default;
@@ -409,12 +514,20 @@ internal sealed partial class MinorActorProgramRuntime :
             }
 
             processedPlaneMask |= planeBit;
-            if (!TrySelectVerbCandidateForPlane(simulation, actorId, sourceRule, planeCode, tick, out var candidate))
+            if (!TrySelectVerbCandidateForPlane(
+                    simulation,
+                    actorId,
+                    sourceRule,
+                    planeCode,
+                    tick,
+                    workerIndex,
+                    ref random,
+                    out var candidate))
             {
                 continue;
             }
 
-            if (TrySelectWeightedCandidate(simulation, candidate, ref totalScore))
+            if (TrySelectWeightedCandidate(ref random, candidate, ref totalScore))
             {
                 selected = candidate;
             }
@@ -432,6 +545,8 @@ internal sealed partial class MinorActorProgramRuntime :
         int sourceRule,
         int planeCode,
         int tick,
+        int workerIndex,
+        ref KernelRandomCursor random,
         out MinorActorVerbCandidate selected)
     {
         selected = default;
@@ -460,6 +575,7 @@ internal sealed partial class MinorActorProgramRuntime :
             sourceQ,
             sourceR,
             maxOperatingRadius,
+            workerIndex * VerbTargetCapacity,
             _verbTargetCells);
         if (targetCount == 0)
         {
@@ -474,6 +590,8 @@ internal sealed partial class MinorActorProgramRuntime :
             sourceWorkTier,
             targetCount,
             tick,
+            workerIndex * VerbTargetCapacity,
+            ref random,
             out selected);
     }
 
@@ -485,6 +603,8 @@ internal sealed partial class MinorActorProgramRuntime :
         int sourceWorkTier,
         int targetCount,
         int tick,
+        int targetOffset,
+        ref KernelRandomCursor random,
         out MinorActorVerbCandidate selected)
     {
         selected = default;
@@ -500,7 +620,7 @@ internal sealed partial class MinorActorProgramRuntime :
             var operatingRadius = Data.VerbRadii[verb] + sourceWorkTier;
             for (var i = 0; i < targetCount; i++)
             {
-                var target = _verbTargetCells[i];
+                var target = _verbTargetCells[targetOffset + i];
                 if (target.DistanceFromSource > operatingRadius)
                 {
                     continue;
@@ -514,7 +634,7 @@ internal sealed partial class MinorActorProgramRuntime :
                     target,
                     operatingRadius,
                     tick);
-                if (TrySelectWeightedCandidate(simulation, candidate, ref totalScore))
+                if (TrySelectWeightedCandidate(ref random, candidate, ref totalScore))
                 {
                     selected = candidate;
                 }
@@ -525,7 +645,7 @@ internal sealed partial class MinorActorProgramRuntime :
     }
 
     private static bool TrySelectWeightedCandidate(
-        Simulation simulation,
+        ref KernelRandomCursor random,
         in MinorActorVerbCandidate candidate,
         ref float totalScore)
     {
@@ -535,7 +655,7 @@ internal sealed partial class MinorActorProgramRuntime :
         }
 
         totalScore += candidate.Score;
-        return simulation.NextFloat() * totalScore <= candidate.Score;
+        return random.NextFloat() * totalScore <= candidate.Score;
     }
 
     private bool VerbSelectableForRule(int verb, int sourceRule) =>
@@ -565,6 +685,7 @@ internal sealed partial class MinorActorProgramRuntime :
         int sourceQ,
         int sourceR,
         int maxOperatingRadius,
+        int targetOffset,
         MinorActorCellTarget[] targets)
     {
         var radius = maxOperatingRadius <= 0 ? 0 : LocalVerbStepRadius;
@@ -588,7 +709,7 @@ internal sealed partial class MinorActorProgramRuntime :
                     continue;
                 }
 
-                targets[count] = BuildVerbTargetCell(
+                targets[targetOffset + count] = BuildVerbTargetCell(
                     simulation,
                     cultureId,
                     planeCode,
@@ -804,21 +925,25 @@ internal sealed partial class MinorActorProgramRuntime :
         return simulation.World.GetAttribute(sourceEntityId, attributeId) - previous;
     }
 
-    private void TryMoveRandomly(Simulation simulation, int actorId)
+    private bool TryPlanRandomMove(
+        Simulation simulation,
+        int actorId,
+        ref KernelRandomCursor random,
+        out int q,
+        out int r)
     {
+        q = State.Q(actorId);
+        r = State.R(actorId);
         var moveChancePermille = State.MoveChancePermille(actorId);
-        if (moveChancePermille <= 0 || simulation.NextInt(1000) >= moveChancePermille)
+        if (moveChancePermille <= 0 || random.NextInt(1000) >= moveChancePermille)
         {
-            return;
+            return false;
         }
 
-        var direction = simulation.NextInt(6);
-        var q = State.Q(actorId) + NeighborDQ[direction];
-        var r = State.R(actorId) + NeighborDR[direction];
-        if (simulation.World.CellIsKnown(State.PlaneCode(actorId), q, r))
-        {
-            State.SetPosition(actorId, q, r);
-        }
+        var direction = random.NextInt(6);
+        q += NeighborDQ[direction];
+        r += NeighborDR[direction];
+        return simulation.World.CellIsKnown(State.PlaneCode(actorId), q, r);
     }
 
     private void EmitMinorActorVerb(

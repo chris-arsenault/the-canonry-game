@@ -1,6 +1,47 @@
 # Parallel Kernel Execution Plan
 
-Status: approved for implementation on `kernel-parallel-execution`.
+Status: paused on `kernel-parallel-execution` after the first implementation
+pass. The branch is retained as an experimental checkpoint, not ready to merge.
+
+## Pause Checkpoint — 2026-07-13
+
+Implemented before the pause:
+
+- a reusable driver-owned worker pool capped at 16 workers
+- counter-keyed parallel random streams and worker-local scratch
+- parallel low-altitude intent selection and movement planning
+- parallel minor-actor, gambit, effects, relationship, and culture-cache
+  evaluation
+- fixed primitive effect-mutation buffers with serial event-safe merge
+- shared read-only movement route caching
+- fixed-array minor-actor state and actor-owned worker writes
+- Monte Carlo worker-count configuration and registry provenance
+
+The completed registered 10k checkpoint sweep, taken before the final
+culture-cache and minor-actor array changes, was:
+
+| Run id | Workers | Ticks/sec | Relative to 1 worker |
+| --- | ---: | ---: | ---: |
+| `parallel-final-w1-10k-20260713` | 1 | 254.26 | 1.000x |
+| `parallel-final-w2-10k-20260713` | 2 | 248.22 | 0.976x |
+| `parallel-final-w4-10k-20260713` | 4 | 268.26 | 1.055x |
+| `parallel-final-w8-10k-20260713` | 8 | 306.20 | 1.204x |
+| `parallel-final-w16-10k-20260713` | 16 | 308.60 | 1.214x |
+
+This does not support an expectation of a 2x speedup. Reaching that target
+requires a more fundamental shift of map activity/signals and mutation/event
+application away from coordinator replay and into shard-owned phase commits.
+
+Verification at pause:
+
+- the Release solution build passed with zero warnings and errors
+- the full repository test target passed before the final minor-actor storage
+  rewrite
+- after that rewrite, all 298 `Engine.Kernel.Tests` passed, but the aggregate
+  repository test command exited unsuccessfully in another suite; diagnosis
+  was intentionally stopped when the work was paused
+- final CI, the stabilized 10k rerun, and the planned 25k/100k evidence runs
+  were not run
 
 This plan replaces the single-writer simulation model with bounded,
 bulk-synchronous parallel execution. Before/after output equivalence with the

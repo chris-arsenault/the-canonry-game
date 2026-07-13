@@ -1,12 +1,24 @@
 namespace Engine.Kernel;
 
 internal sealed partial class LowAltitudeVerbProgramRuntime :
-    IKernelProgramRuntime<LowAltitudeVerbProgramData, LowAltitudeVerbProgramState>
+    IKernelProgramRuntime<LowAltitudeVerbProgramData, LowAltitudeVerbProgramState>,
+    IKernelParallelJob
 {
     private const int VerbBucketCapacity = 64;
 
-    private readonly VerbTargetCandidate[] _verbCandidateScratch = new VerbTargetCandidate[VerbBucketCapacity];
-    private readonly float[] _verbAffordanceSumScratch = new float[VerbBucketCapacity];
+    private readonly VerbTargetCandidate[] _verbCandidateScratch = new VerbTargetCandidate[
+        SimulationOptions.MaximumParallelWorkerCount * VerbBucketCapacity];
+    private readonly float[] _verbAffordanceSumScratch = new float[
+        SimulationOptions.MaximumParallelWorkerCount * VerbBucketCapacity];
+    private readonly LowAltitudeIntentDecision[] _parallelDecisions;
+    private readonly LowAltitudeMovementDecision[] _parallelMovementDecisions;
+    private readonly bool[] _parallelChooseIntent;
+    private readonly bool[] _parallelSkipEntity;
+    private Simulation? _parallelSimulation;
+    private int _parallelIntentSelectionCount;
+    private int _parallelMovementCount;
+    private int _parallelTick;
+    private int _parallelWorkCode;
 
     public LowAltitudeVerbProgramRuntime(LowAltitudeVerbProgramData data, LowAltitudeVerbProgramState state)
         : this(data, state, new KernelProgramTuningOptions())
@@ -24,6 +36,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         Data = data;
         State = state;
         Tuning = tuning;
+        _parallelDecisions = new LowAltitudeIntentDecision[state.EntityCapacity + 1];
+        _parallelMovementDecisions = new LowAltitudeMovementDecision[state.EntityCapacity + 1];
+        _parallelChooseIntent = new bool[state.EntityCapacity + 1];
+        _parallelSkipEntity = new bool[state.EntityCapacity + 1];
     }
 
     public LowAltitudeVerbProgramData Data { get; }
@@ -157,9 +173,23 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
+        PrepareParallelIntentSelection(simulation, tick);
+        RunParallelIntentSelection(simulation, tick);
+        CommitParallelIntentSelections(simulation, tick);
+        PrepareParallelMovementPlanning(simulation);
+        RunParallelMovementPlanning(simulation, tick);
+        CommitAndApplyParallelIntents(simulation, tick);
+    }
+
+    private void PrepareParallelIntentSelection(Simulation simulation, int tick)
+    {
+        _parallelIntentSelectionCount = 0;
         var world = simulation.World;
         for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
         {
+            _parallelDecisions[entityId] = default;
+            _parallelChooseIntent[entityId] = false;
+            _parallelSkipEntity[entityId] = false;
             if (!world.EntityIsActive(entityId))
             {
                 continue;
@@ -167,21 +197,248 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
             if (ApplyInitialInfluenceIfNeeded(simulation, entityId, tick))
             {
+                _parallelSkipEntity[entityId] = true;
                 continue;
             }
 
-            if (ShouldChooseIntent(simulation, entityId, tick))
+            _parallelChooseIntent[entityId] = ShouldChooseIntent(simulation, entityId, tick);
+            if (_parallelChooseIntent[entityId])
             {
-                ChooseIntent(simulation, entityId, tick);
+                _parallelIntentSelectionCount++;
+            }
+        }
+    }
+
+    private void RunParallelIntentSelection(Simulation simulation, int tick)
+    {
+        var parallelReadsReady = simulation.CultureBoundaries.PrepareParallelReads(simulation);
+        _parallelSimulation = simulation;
+        _parallelTick = tick;
+        _parallelWorkCode = 1;
+        var scheduler = SelectScheduler(simulation, parallelReadsReady, _parallelIntentSelectionCount);
+        scheduler.Run(
+            this,
+            startInclusive: 1,
+            endExclusive: simulation.World.EntityHighWatermark + 1,
+            simulation.Options.ParallelMinimumChunkSize);
+        _parallelSimulation = null;
+    }
+
+    void IKernelParallelJob.Execute(int workerIndex, int startInclusive, int endExclusive)
+    {
+        if (_parallelWorkCode == 1)
+        {
+            ExecuteIntentSelection(workerIndex, startInclusive, endExclusive);
+            return;
+        }
+
+        ExecuteMovementPlanning(workerIndex, startInclusive, endExclusive);
+    }
+
+    private void ExecuteIntentSelection(int workerIndex, int startInclusive, int endExclusive)
+    {
+        var simulation = _parallelSimulation ?? throw new global::System.InvalidOperationException();
+        MovementProgramRuntime.BeginParallelScratch(
+            simulation.Movement.ScratchForWorker(workerIndex));
+        try
+        {
+            for (var entityId = startInclusive; entityId < endExclusive; entityId++)
+            {
+                if (!_parallelChooseIntent[entityId])
+                {
+                    continue;
+                }
+
+                Simulation.BeginParallelRandom(
+                    simulation.Options.Seed,
+                    simulation.CurrentTick,
+                    KernelPhase.ActorDecision,
+                    KernelProgramCodes.LowAltitudeVerbs,
+                    entityId,
+                    purposeId: 1);
+                try
+                {
+                    _parallelDecisions[entityId] = SelectIntent(simulation, entityId, _parallelTick, workerIndex);
+                }
+                finally
+                {
+                    Simulation.EndParallelRandom();
+                }
+            }
+        }
+        finally
+        {
+            MovementProgramRuntime.EndParallelScratch();
+        }
+    }
+
+    private void PrepareParallelMovementPlanning(Simulation simulation)
+    {
+        _parallelMovementCount = 0;
+        var world = simulation.World;
+        for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
+        {
+            _parallelMovementDecisions[entityId] = default;
+            if (!world.EntityIsActive(entityId) || _parallelSkipEntity[entityId])
+            {
+                continue;
+            }
+
+            var rule = State.ActiveVerbSlot(entityId);
+            if (rule != 0 && Data.OperationCode(rule) == ProgramOpcodeCodes.MoveActor)
+            {
+                _parallelMovementCount++;
+            }
+        }
+    }
+
+    private void RunParallelMovementPlanning(Simulation simulation, int tick)
+    {
+        var parallelReadsReady = simulation.CultureBoundaries.PrepareParallelReads(simulation);
+        _parallelSimulation = simulation;
+        _parallelTick = tick;
+        _parallelWorkCode = 2;
+        var scheduler = SelectScheduler(simulation, parallelReadsReady, _parallelMovementCount);
+        scheduler.Run(
+            this,
+            startInclusive: 1,
+            endExclusive: simulation.World.EntityHighWatermark + 1,
+            simulation.Options.ParallelMinimumChunkSize);
+        _parallelSimulation = null;
+    }
+
+    private void ExecuteMovementPlanning(int workerIndex, int startInclusive, int endExclusive)
+    {
+        var simulation = _parallelSimulation ?? throw new global::System.InvalidOperationException();
+        MovementProgramRuntime.BeginParallelScratch(
+            simulation.Movement.ScratchForWorker(workerIndex));
+        try
+        {
+            for (var entityId = startInclusive; entityId < endExclusive; entityId++)
+            {
+                var rule = State.ActiveVerbSlot(entityId);
+                if (rule == 0 ||
+                    Data.OperationCode(rule) != ProgramOpcodeCodes.MoveActor ||
+                    !simulation.World.EntityIsActive(entityId) ||
+                    _parallelSkipEntity[entityId])
+                {
+                    continue;
+                }
+
+                Simulation.BeginParallelRandom(
+                    simulation.Options.Seed,
+                    simulation.CurrentTick,
+                    KernelPhase.ActorDecision,
+                    KernelProgramCodes.LowAltitudeVerbs,
+                    entityId,
+                    purposeId: 2);
+                try
+                {
+                    _parallelMovementDecisions[entityId] = PlanMovementIntent(
+                        simulation,
+                        entityId,
+                        rule,
+                        _parallelTick);
+                }
+                finally
+                {
+                    Simulation.EndParallelRandom();
+                }
+            }
+        }
+        finally
+        {
+            MovementProgramRuntime.EndParallelScratch();
+        }
+    }
+
+    private static IKernelWorkScheduler SelectScheduler(
+        Simulation simulation,
+        bool parallelReadsReady,
+        int workItemCount)
+    {
+        var scheduler = simulation.WorkScheduler;
+        return parallelReadsReady &&
+            scheduler.WorkerCount > 1 &&
+            workItemCount >= scheduler.WorkerCount * simulation.Options.ParallelMinimumChunkSize
+                ? scheduler
+                : InlineKernelWorkScheduler.Instance;
+    }
+
+    private LowAltitudeIntentDecision SelectIntent(
+        Simulation simulation,
+        int entityId,
+        int tick,
+        int workerIndex)
+    {
+        var bucket = BuildVerbBucket(simulation, entityId, tick, workerIndex, emitTrace: false);
+        if (bucket.VerbCount == 0)
+        {
+            return default;
+        }
+
+        var selectedIndex = PickVerbFromBucket(simulation, bucket, out var selectionBucketCode);
+        return selectedIndex < 0
+            ? default
+            : new LowAltitudeIntentDecision(
+                true,
+                _verbCandidateScratch[bucket.Offset + selectedIndex],
+                selectionBucketCode);
+    }
+
+    private void CommitParallelIntentSelections(Simulation simulation, int tick)
+    {
+        var world = simulation.World;
+        for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
+        {
+            if (!world.EntityIsActive(entityId) || _parallelSkipEntity[entityId])
+            {
+                continue;
+            }
+
+            var decision = _parallelDecisions[entityId];
+            if (decision.HasSelection)
+            {
+                CommitSelectedIntent(
+                    simulation,
+                    entityId,
+                    tick,
+                    decision.Selected,
+                    decision.SelectionBucketCode);
+            }
+        }
+    }
+
+    private void CommitAndApplyParallelIntents(Simulation simulation, int tick)
+    {
+        var world = simulation.World;
+        for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
+        {
+            if (!world.EntityIsActive(entityId) || _parallelSkipEntity[entityId])
+            {
+                continue;
             }
 
             var slot = State.ActiveVerbSlot(entityId);
             if (slot != 0)
             {
-                ApplyIntent(simulation, entityId, slot, tick);
+                if (Data.OperationCode(slot) == ProgramOpcodeCodes.MoveActor)
+                {
+                    ApplyPlannedMovementIntent(
+                        simulation,
+                        entityId,
+                        slot,
+                        tick,
+                        _parallelMovementDecisions[entityId]);
+                }
+                else
+                {
+                    ApplyIntent(simulation, entityId, slot, tick);
+                }
             }
         }
     }
+
 
     private bool ApplyInitialInfluenceIfNeeded(Simulation simulation, int entityId, int tick)
     {
@@ -293,26 +550,14 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         return LowAltitudeVerbProgramState.PackCellTargetKey(planeCode, State.TargetQ(entityId), State.TargetR(entityId));
     }
 
-    private void ChooseIntent(Simulation simulation, int entityId, int tick)
+    private VerbBucket BuildVerbBucket(
+        Simulation simulation,
+        int entityId,
+        int tick,
+        int workerIndex,
+        bool emitTrace)
     {
-        var bucket = BuildVerbBucket(simulation, entityId, tick);
-        if (bucket.VerbCount == 0)
-        {
-            return;
-        }
-
-        var selectedIndex = PickVerbFromBucket(simulation, bucket, out var selectionBucketCode);
-        if (selectedIndex < 0)
-        {
-            return;
-        }
-
-        CommitSelectedIntent(simulation, entityId, tick, _verbCandidateScratch[selectedIndex], selectionBucketCode);
-    }
-
-    private VerbBucket BuildVerbBucket(Simulation simulation, int entityId, int tick)
-    {
-        var bucket = default(VerbBucket);
+        var bucket = new VerbBucket { Offset = workerIndex * VerbBucketCapacity };
         var candidates = _verbCandidateScratch;
         var sumAffordanceScores = _verbAffordanceSumScratch;
         var kindId = simulation.World.EntityKindId(entityId);
@@ -327,13 +572,22 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             var result = TryBuildCandidate(simulation, entityId, rule, tick);
             if (!result.HasChosenCandidate)
             {
-                EmitIntentTrace(simulation, tick, entityId, rule, traceIntentId, TraceStatusCodes.NoTarget, default);
+                if (emitTrace)
+                {
+                    EmitIntentTrace(simulation, tick, entityId, rule, traceIntentId, TraceStatusCodes.NoTarget, default);
+                }
+
                 continue;
             }
 
-            EmitIntentTrace(simulation, tick, entityId, rule, traceIntentId, TraceStatusCodes.Offered, result.ChosenCandidate);
-            candidates[bucket.VerbCount] = result.ChosenCandidate;
-            sumAffordanceScores[bucket.VerbCount] = result.SumAffordanceScore;
+            if (emitTrace)
+            {
+                EmitIntentTrace(simulation, tick, entityId, rule, traceIntentId, TraceStatusCodes.Offered, result.ChosenCandidate);
+            }
+
+            var candidateIndex = bucket.Offset + bucket.VerbCount;
+            candidates[candidateIndex] = result.ChosenCandidate;
+            sumAffordanceScores[candidateIndex] = result.SumAffordanceScore;
             bucket.TotalRoutineWeight += result.ChosenCandidate.Weight;
             if (result.SumAffordanceScore > 0f)
             {
@@ -357,8 +611,18 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             ? LowAltitudeVerbSelectionBucketCodes.Opportunity
             : LowAltitudeVerbSelectionBucketCodes.Routine;
         return pickFromOpportunity
-            ? PickOpportunityIndex(simulation, _verbAffordanceSumScratch, bucket.TotalOpportunityWeight, bucket.VerbCount)
-            : PickRoutineIndex(simulation, _verbCandidateScratch, bucket.TotalRoutineWeight, bucket.VerbCount);
+            ? PickOpportunityIndex(
+                simulation,
+                _verbAffordanceSumScratch,
+                bucket.TotalOpportunityWeight,
+                bucket.Offset,
+                bucket.VerbCount)
+            : PickRoutineIndex(
+                simulation,
+                _verbCandidateScratch,
+                bucket.TotalRoutineWeight,
+                bucket.Offset,
+                bucket.VerbCount);
     }
 
     private void CommitSelectedIntent(
@@ -391,6 +655,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
     private struct VerbBucket
     {
+        public int Offset;
         public int VerbCount;
         public float TotalRoutineWeight;
         public float TotalOpportunityWeight;
@@ -401,6 +666,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         Simulation simulation,
         VerbTargetCandidate[] candidates,
         float totalWeight,
+        int offset,
         int count)
     {
         if (count == 0 || totalWeight <= 0f)
@@ -412,7 +678,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         var running = 0f;
         for (var i = 0; i < count; i++)
         {
-            running += candidates[i].Weight;
+            running += candidates[offset + i].Weight;
             if (threshold <= running)
             {
                 return i;
@@ -426,6 +692,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         Simulation simulation,
         float[] opportunityWeights,
         float totalWeight,
+        int offset,
         int count)
     {
         if (count == 0 || totalWeight <= 0f)
@@ -437,12 +704,12 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         var running = 0f;
         for (var i = 0; i < count; i++)
         {
-            if (opportunityWeights[i] <= 0f)
+            if (opportunityWeights[offset + i] <= 0f)
             {
                 continue;
             }
 
-            running += opportunityWeights[i];
+            running += opportunityWeights[offset + i];
             if (threshold <= running)
             {
                 return i;
@@ -451,7 +718,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
         for (var i = count - 1; i >= 0; i--)
         {
-            if (opportunityWeights[i] > 0f)
+            if (opportunityWeights[offset + i] > 0f)
             {
                 return i;
             }

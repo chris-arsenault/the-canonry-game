@@ -28,7 +28,7 @@ internal sealed partial class MovementProgramRuntime
 
         var topologyEpoch = State.PathingTopologyEpoch;
         var roadEpoch = State.RoadMarkEpoch;
-        if (State.TryGetRouteCache(
+        if (TryGetRouteCache(
                 planeCode,
                 movementProfileId,
                 context.SegmentSize,
@@ -110,7 +110,7 @@ internal sealed partial class MovementProgramRuntime
             return false;
         }
 
-        State.StoreRouteCache(
+        StoreRouteCache(
             planeCode,
             movementProfileId,
             context.SegmentSize,

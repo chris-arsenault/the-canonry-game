@@ -12,7 +12,6 @@ internal sealed class CultureBoundaryComponentCache
     private readonly int[] _componentCellCounts;
     private readonly float[] _componentRawMasses;
     private readonly float[] _componentScoreMasses;
-    private readonly int[] _attachmentComponentIds = new int[7];
     private readonly int _lookupMask;
     private int _usedLookupBucketCount;
     private int _pendingHead;
@@ -120,6 +119,7 @@ internal sealed class CultureBoundaryComponentCache
 
     public CultureBoundaryAttachment AttachmentAt(int q, int r)
     {
+        var attached = default(AttachedComponentSet);
         var componentCount = 0;
         var cellCount = 0;
         var rawMass = 0f;
@@ -127,7 +127,13 @@ internal sealed class CultureBoundaryComponentCache
         var centerComponentId = ComponentIdAt(q, r);
         if (centerComponentId > 0)
         {
-            AddAttachedComponent(centerComponentId, ref componentCount, ref cellCount, ref rawMass, ref scoreMass);
+            AddAttachedComponent(
+                centerComponentId,
+                ref attached,
+                ref componentCount,
+                ref cellCount,
+                ref rawMass,
+                ref scoreMass);
         }
 
         for (var direction = 0; direction < 6; direction++)
@@ -140,7 +146,13 @@ internal sealed class CultureBoundaryComponentCache
                 continue;
             }
 
-            AddAttachedComponent(componentId, ref componentCount, ref cellCount, ref rawMass, ref scoreMass);
+            AddAttachedComponent(
+                componentId,
+                ref attached,
+                ref componentCount,
+                ref cellCount,
+                ref rawMass,
+                ref scoreMass);
         }
 
         return new CultureBoundaryAttachment(componentCount, cellCount, rawMass, scoreMass);
@@ -325,24 +337,73 @@ internal sealed class CultureBoundaryComponentCache
 
     private void AddAttachedComponent(
         int componentId,
+        ref AttachedComponentSet attached,
         ref int componentCount,
         ref int cellCount,
         ref float rawMass,
         ref float scoreMass)
     {
-        for (var i = 0; i < componentCount; i++)
+        if (!attached.TryAdd(componentId))
         {
-            if (_attachmentComponentIds[i] == componentId)
-            {
-                return;
-            }
+            return;
         }
 
-        _attachmentComponentIds[componentCount] = componentId;
         componentCount++;
         cellCount += _componentCellCounts[componentId];
         rawMass += _componentRawMasses[componentId];
         scoreMass += _componentScoreMasses[componentId];
+    }
+
+    private struct AttachedComponentSet
+    {
+        private int _first;
+        private int _second;
+        private int _third;
+        private int _fourth;
+        private int _fifth;
+        private int _sixth;
+        private int _seventh;
+        private int _count;
+
+        internal bool TryAdd(int componentId)
+        {
+            for (var index = 0; index < _count; index++)
+            {
+                if (At(index) == componentId)
+                {
+                    return false;
+                }
+            }
+
+            SetAt(_count, componentId);
+            _count++;
+            return true;
+        }
+
+        private readonly int At(int index) => index switch
+        {
+            0 => _first,
+            1 => _second,
+            2 => _third,
+            3 => _fourth,
+            4 => _fifth,
+            5 => _sixth,
+            _ => _seventh,
+        };
+
+        private void SetAt(int index, int value)
+        {
+            switch (index)
+            {
+                case 0: _first = value; break;
+                case 1: _second = value; break;
+                case 2: _third = value; break;
+                case 3: _fourth = value; break;
+                case 4: _fifth = value; break;
+                case 5: _sixth = value; break;
+                default: _seventh = value; break;
+            }
+        }
     }
 
     private int LookupBucket(int key)

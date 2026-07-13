@@ -1,7 +1,15 @@
 namespace Engine.Kernel;
 
-internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgramData, EffectsProgramState>
+internal sealed class EffectsProgramRuntime :
+    IKernelProgramRuntime<EffectsProgramData, EffectsProgramState>,
+    IKernelParallelJob
 {
+    private const int BufferedMutationsPerEntity = 4;
+
+    private readonly KernelMutationBuffer _parallelMutations;
+    private readonly int[] _parallelRangeStarts;
+    private readonly int[] _parallelRangeEnds;
+    private Simulation? _parallelSimulation;
     private int[] _attributeDeltaKindIds => Data.AttributeDeltaKindIds;
     private int[] _attributeDeltaAttributeIds => Data.AttributeDeltaAttributeIds;
     private int[] _attributeDeltaConditionCodes => Data.AttributeDeltaConditionCodes;
@@ -33,11 +41,35 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     private ref int _tagRuleCount => ref Data.TagRuleCount;
 
     public EffectsProgramRuntime(EffectsProgramData data, EffectsProgramState state)
+        : this(
+            data,
+            state,
+            entityCapacity: 16384,
+            parallelWorkerCount: 1)
+    {
+    }
+
+    internal EffectsProgramRuntime(
+        EffectsProgramData data,
+        EffectsProgramState state,
+        int entityCapacity,
+        int parallelWorkerCount)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
+        global::System.ArgumentOutOfRangeException.ThrowIfLessThan(entityCapacity, 1);
+        global::System.ArgumentOutOfRangeException.ThrowIfLessThan(parallelWorkerCount, 1);
+        global::System.ArgumentOutOfRangeException.ThrowIfGreaterThan(
+            parallelWorkerCount,
+            SimulationOptions.MaximumParallelWorkerCount);
         Data = data;
         State = state;
+        var entitiesPerWorker = (entityCapacity + parallelWorkerCount - 1) / parallelWorkerCount;
+        _parallelMutations = new KernelMutationBuffer(
+            parallelWorkerCount,
+            checked((entitiesPerWorker * BufferedMutationsPerEntity) + 16));
+        _parallelRangeStarts = new int[parallelWorkerCount];
+        _parallelRangeEnds = new int[parallelWorkerCount];
     }
 
     public EffectsProgramData Data { get; }
@@ -145,16 +177,163 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
+        _parallelMutations.Reset();
+        global::System.Array.Clear(_parallelRangeStarts);
+        global::System.Array.Clear(_parallelRangeEnds);
+        _parallelSimulation = simulation;
+        simulation.WorkScheduler.Run(
+            this,
+            startInclusive: 1,
+            endExclusive: KernelQuery.EntityRangeEndExclusive(simulation.World),
+            simulation.Options.ParallelMinimumChunkSize);
+        _parallelSimulation = null;
+        CommitParallelMutations(simulation, tick);
+    }
+
+    void IKernelParallelJob.Execute(int workerIndex, int startInclusive, int endExclusive)
+    {
+        var simulation = _parallelSimulation ?? throw new global::System.InvalidOperationException();
+        _parallelRangeStarts[workerIndex] = startInclusive;
+        _parallelRangeEnds[workerIndex] = endExclusive;
         var world = simulation.World;
-        KernelQuery.ForEachActiveEntity(
-            world,
-            entityId =>
+        for (var entityId = startInclusive; entityId < endExclusive; entityId++)
+        {
+            if (!world.EntityIsActive(entityId))
             {
-                var kindId = world.EntityKindId(entityId);
-                ApplyAttributeDeltaEffectsForKind(simulation, entityId, tick, kindId);
-                ApplyTagRulesForKind(simulation, entityId, tick, kindId);
-                return true;
-            });
+                continue;
+            }
+
+            var kindId = world.EntityKindId(entityId);
+            EvaluateAttributeDeltaEffectsForKind(simulation, entityId, kindId, workerIndex);
+            if (_parallelMutations.Overflowed(workerIndex))
+            {
+                return;
+            }
+
+            EvaluateTagRulesForKind(simulation, entityId, kindId, workerIndex);
+            if (_parallelMutations.Overflowed(workerIndex))
+            {
+                return;
+            }
+        }
+    }
+
+    private void CommitParallelMutations(Simulation simulation, int tick)
+    {
+        for (var workerIndex = 0; workerIndex < _parallelMutations.WorkerCount; workerIndex++)
+        {
+            var rangeStart = _parallelRangeStarts[workerIndex];
+            var rangeEnd = _parallelRangeEnds[workerIndex];
+            if (rangeStart == 0 || rangeEnd <= rangeStart)
+            {
+                continue;
+            }
+
+            if (_parallelMutations.Overflowed(workerIndex))
+            {
+                ApplyEffectsSequential(simulation, tick, rangeStart, rangeEnd);
+                continue;
+            }
+
+            for (var index = 0; index < _parallelMutations.Count(workerIndex); index++)
+            {
+                ApplyMutation(simulation, tick, _parallelMutations.At(workerIndex, index));
+            }
+        }
+    }
+
+    private static void ApplyMutation(Simulation simulation, int tick, in KernelMutation mutation)
+    {
+        if (mutation.Code == KernelMutationCodes.ModifyAttribute)
+        {
+            KernelEffectExecutor.ModifyAttribute(
+                simulation,
+                mutation.SubjectId,
+                mutation.ValueId,
+                mutation.FloatValue);
+            return;
+        }
+
+        if (mutation.Code == KernelMutationCodes.SetEntityTag)
+        {
+            _ = simulation.SetEntityTag(
+                mutation.SubjectId,
+                mutation.ValueId,
+                mutation.IntValue != 0,
+                tick);
+            return;
+        }
+
+        throw new global::System.InvalidOperationException();
+    }
+
+    private void ApplyEffectsSequential(Simulation simulation, int tick, int startInclusive, int endExclusive)
+    {
+        var world = simulation.World;
+        for (var entityId = startInclusive; entityId < endExclusive; entityId++)
+        {
+            if (!world.EntityIsActive(entityId))
+            {
+                continue;
+            }
+
+            var kindId = world.EntityKindId(entityId);
+            ApplyAttributeDeltaEffectsForKind(simulation, entityId, tick, kindId);
+            ApplyTagRulesForKind(simulation, entityId, tick, kindId);
+        }
+    }
+
+    private void EvaluateTagRulesForKind(
+        Simulation simulation,
+        int entityId,
+        int kindId,
+        int workerIndex)
+    {
+        for (var rule = 1; rule <= _tagRuleCount; rule++)
+        {
+            if (_tagRuleKindIds[rule] != kindId)
+            {
+                continue;
+            }
+
+            var insideJurisdiction = InsideJurisdiction(
+                simulation.World,
+                entityId,
+                _tagRuleCoverageOwnerKindIds[rule],
+                _tagRuleCoverageOwnerSubtypeIds[rule],
+                _tagRuleCoveragePlaneCodes[rule]);
+            var sum = insideJurisdiction
+                ? SummedRelationshipStrength(
+                    simulation.World,
+                    entityId,
+                    _tagRuleRelationshipKindIds[rule],
+                    _tagRuleDirectionCodes[rule])
+                : 0f;
+            var assignment = -1;
+            if (sum >= _tagRuleSetThresholds[rule])
+            {
+                assignment = 1;
+            }
+            else if (sum < _tagRuleClearThresholds[rule])
+            {
+                assignment = 0;
+            }
+            if (assignment < 0)
+            {
+                continue;
+            }
+
+            var mutation = new KernelMutation(
+                KernelMutationCodes.SetEntityTag,
+                entityId,
+                _tagRuleTagIds[rule],
+                assignment,
+                0f);
+            if (!_parallelMutations.TryAppend(workerIndex, mutation))
+            {
+                return;
+            }
+        }
     }
 
     private void ApplyTagRulesForKind(Simulation simulation, int entityId, int tick, int kindId)
@@ -199,35 +378,80 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         var sum = 0f;
         if (directionCode is RelationshipMatchDirectionCodes.Outgoing or RelationshipMatchDirectionCodes.Either)
         {
-            KernelQuery.ForEachRelatedEndpoint(
+            sum += SummedRelationshipStrengthForDirection(
                 world,
                 entityId,
                 relationshipKindId,
-                minimumStrength: 0f,
-                outgoing: true,
-                (relationshipId, _) =>
-                {
-                    sum += KernelQuery.RelationshipStrength(world, relationshipId);
-                    return true;
-                });
+                outgoing: true);
         }
 
         if (directionCode is RelationshipMatchDirectionCodes.Incoming or RelationshipMatchDirectionCodes.Either)
         {
-            KernelQuery.ForEachRelatedEndpoint(
+            sum += SummedRelationshipStrengthForDirection(
                 world,
                 entityId,
                 relationshipKindId,
-                minimumStrength: 0f,
-                outgoing: false,
-                (relationshipId, _) =>
-                {
-                    sum += KernelQuery.RelationshipStrength(world, relationshipId);
-                    return true;
-                });
+                outgoing: false);
         }
 
         return sum;
+    }
+
+    private static float SummedRelationshipStrengthForDirection(
+        WorldState world,
+        int entityId,
+        int relationshipKindId,
+        bool outgoing)
+    {
+        var sum = 0f;
+        var cursor = outgoing
+            ? world.OutgoingRelationshipsOfKind(entityId, relationshipKindId)
+            : world.IncomingRelationshipsOfKind(entityId, relationshipKindId);
+        while (KernelQuery.MoveNextRelatedEndpoint(
+            world,
+            ref cursor,
+            outgoing,
+            out var relationshipId,
+            out _))
+        {
+            sum += KernelQuery.RelationshipStrength(world, relationshipId);
+        }
+
+        return sum;
+    }
+
+    private void EvaluateAttributeDeltaEffectsForKind(
+        Simulation simulation,
+        int entityId,
+        int kindId,
+        int workerIndex)
+    {
+        for (var rule = 1; rule <= _attributeDeltaRuleCount; rule++)
+        {
+            if (_attributeDeltaKindIds[rule] != kindId ||
+                !KernelQuery.TraitFilterPasses(simulation.World, entityId, _attributeDeltaRequiredTargetTraitIds[rule]) ||
+                !RuleCultureGatePasses(simulation.World, entityId, rule))
+            {
+                continue;
+            }
+
+            var evidence = EffectEvidence(simulation, entityId, rule);
+            if (evidence <= 0f)
+            {
+                continue;
+            }
+
+            var mutation = new KernelMutation(
+                KernelMutationCodes.ModifyAttribute,
+                entityId,
+                _attributeDeltaAttributeIds[rule],
+                0,
+                _attributeDeltaDeltas[rule] * evidence);
+            if (!_parallelMutations.TryAppend(workerIndex, mutation))
+            {
+                return;
+            }
+        }
     }
 
     private void ApplyAttributeDeltaEffectsForKind(Simulation simulation, int entityId, int tick, int kindId)
@@ -443,37 +667,44 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         var q = KernelQuery.CurrentQ(world, entityId, planeCode);
         var r = KernelQuery.CurrentR(world, entityId, planeCode);
         var total = 0f;
-        KernelQuery.ForEachRelatedEndpoint(
+        var cursor = outgoing
+            ? world.OutgoingRelationshipsOfKindAbove(
+                entityId,
+                _attributeDeltaRelationshipKindIds[rule],
+                _attributeDeltaMinimumRelationshipStrengths[rule])
+            : world.IncomingRelationshipsOfKindAbove(
+                entityId,
+                _attributeDeltaRelationshipKindIds[rule],
+                _attributeDeltaMinimumRelationshipStrengths[rule]);
+        while (KernelQuery.MoveNextRelatedEndpoint(
             world,
-            entityId,
-            _attributeDeltaRelationshipKindIds[rule],
-            _attributeDeltaMinimumRelationshipStrengths[rule],
+            ref cursor,
             outgoing,
-            (relationshipId, otherEntityId) =>
+            out var relationshipId,
+            out var otherEntityId))
+        {
+            if (!world.EntityIsActive(otherEntityId) ||
+                !KernelQuery.TraitFilterPasses(world, otherEntityId, _attributeDeltaRequiredRelatedTraitIds[rule]))
             {
-                if (!world.EntityIsActive(otherEntityId))
-                {
-                    return true;
-                }
+                continue;
+            }
 
-                if (!KernelQuery.TraitFilterPasses(world, otherEntityId, _attributeDeltaRequiredRelatedTraitIds[rule]))
-                {
-                    return true;
-                }
+            var otherCultureId = world.EntityCultureId(otherEntityId);
+            var influence = otherCultureId <= 0
+                ? 0f
+                : world.GetCellCultureInfluenceRaw(otherCultureId, planeCode, q, r);
+            if (influence <= 0f)
+            {
+                continue;
+            }
 
-                var otherCultureId = world.EntityCultureId(otherEntityId);
-                var influence = otherCultureId <= 0
-                    ? 0f
-                    : world.GetCellCultureInfluenceRaw(otherCultureId, planeCode, q, r);
-                if (influence <= 0f)
-                {
-                    return true;
-                }
-
-                total += KernelQuery.ThresholdEvidence(influence, _attributeDeltaThresholds[rule]) *
-                    KernelQuery.RelationshipStrength(world, relationshipId);
-                return total < 1f;
-            });
+            total += KernelQuery.ThresholdEvidence(influence, _attributeDeltaThresholds[rule]) *
+                KernelQuery.RelationshipStrength(world, relationshipId);
+            if (total >= 1f)
+            {
+                break;
+            }
+        }
 
         return total;
     }
@@ -507,30 +738,37 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         bool outgoing)
     {
         var total = 0f;
-        KernelQuery.ForEachRelatedEndpoint(
+        var cursor = outgoing
+            ? world.OutgoingRelationshipsOfKindAbove(
+                entityId,
+                _attributeDeltaRelationshipKindIds[rule],
+                _attributeDeltaMinimumRelationshipStrengths[rule])
+            : world.IncomingRelationshipsOfKindAbove(
+                entityId,
+                _attributeDeltaRelationshipKindIds[rule],
+                _attributeDeltaMinimumRelationshipStrengths[rule]);
+        while (KernelQuery.MoveNextRelatedEndpoint(
             world,
-            entityId,
-            _attributeDeltaRelationshipKindIds[rule],
-            _attributeDeltaMinimumRelationshipStrengths[rule],
+            ref cursor,
             outgoing,
-            (relationshipId, otherEntityId) =>
+            out var relationshipId,
+            out var otherEntityId))
+        {
+            if (!world.EntityIsActive(otherEntityId) ||
+                !KernelQuery.TraitFilterPasses(world, otherEntityId, _attributeDeltaRequiredRelatedTraitIds[rule]))
             {
-                if (!world.EntityIsActive(otherEntityId))
-                {
-                    return true;
-                }
+                continue;
+            }
 
-                if (!KernelQuery.TraitFilterPasses(world, otherEntityId, _attributeDeltaRequiredRelatedTraitIds[rule]))
-                {
-                    return true;
-                }
-
-                var distance = KernelQuery.PlaneDistance(world, entityId, otherEntityId, _attributeDeltaPlaneCodes[rule]);
-                var evidence = KernelQuery.DistanceEvidence(distance, _attributeDeltaMaxDistances[rule]) *
-                    KernelQuery.RelationshipStrength(world, relationshipId);
-                total += evidence;
-                return total < 1f;
-            });
+            var distance = KernelQuery.PlaneDistance(world, entityId, otherEntityId, _attributeDeltaPlaneCodes[rule]);
+            var evidence = KernelQuery.DistanceEvidence(distance, _attributeDeltaMaxDistances[rule]) *
+                KernelQuery.RelationshipStrength(world, relationshipId);
+            total += evidence;
+            if (total >= 1f)
+            {
+                break;
+            }
+        }
 
         return total;
     }

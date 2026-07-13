@@ -155,7 +155,11 @@ internal static class MonteCarloCli
         {
             var seed = options.Seed + runIndex;
             var runId = $"seed-{seed}";
-            using var run = MonteCarloKernelRunFactory.Create(seed, options.TraceEnabled, options.ConfigFilePath);
+            using var run = MonteCarloKernelRunFactory.Create(
+                seed,
+                options.TraceEnabled,
+                options.ConfigFilePath,
+                options.ParallelWorkerCount);
             var result = ExecuteKernelRun(run, options, runId, seed, stateStore);
             PrintRunSummary(options, runIndex, seed, result);
         }
@@ -166,7 +170,11 @@ internal static class MonteCarloCli
         for (var runIndex = 0; runIndex < options.Runs; runIndex++)
         {
             var seed = options.Seed + runIndex;
-            using var run = MonteCarloKernelRunFactory.Create(seed, traceEnabled: false, options.ConfigFilePath);
+            using var run = MonteCarloKernelRunFactory.Create(
+                seed,
+                traceEnabled: false,
+                options.ConfigFilePath,
+                options.ParallelWorkerCount);
             var elapsed = Stopwatch.StartNew();
             var processedTicks = AdvanceTicks(run, options.Ticks);
             elapsed.Stop();

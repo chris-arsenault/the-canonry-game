@@ -143,6 +143,103 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         }
     }
 
+    private LowAltitudeMovementDecision PlanMovementIntent(
+        Simulation simulation,
+        int entityId,
+        int rule,
+        int tick)
+    {
+        var world = simulation.World;
+        var planeCode = Data.PlaneCode(rule);
+        var targetQ = State.TargetQ(entityId);
+        var targetR = State.TargetR(entityId);
+        if (!world.CellIsKnown(planeCode, targetQ, targetR))
+        {
+            return new LowAltitudeMovementDecision(true, true, default);
+        }
+
+        var currentQ = CurrentQ(world, entityId, planeCode);
+        var currentR = CurrentR(world, entityId, planeCode);
+        if (HexDistance(currentQ, currentR, targetQ, targetR) <= Data.TargetRadius(rule))
+        {
+            var roamPlan = State.StepIsReady(entityId, tick)
+                ? simulation.Movement.PlanWander(
+                    simulation,
+                    entityId,
+                    planeCode,
+                    tick,
+                    targetQ,
+                    targetR,
+                    DwellLocalityRadius(rule))
+                : default;
+            return new LowAltitudeMovementDecision(true, true, roamPlan);
+        }
+
+        var plan = State.StepIsReady(entityId, tick)
+            ? simulation.Movement.PlanNavigate(
+                simulation,
+                entityId,
+                planeCode,
+                targetQ,
+                targetR,
+                tick)
+            : default;
+        return new LowAltitudeMovementDecision(true, false, plan);
+    }
+
+    private void ApplyPlannedMovementIntent(
+        Simulation simulation,
+        int entityId,
+        int rule,
+        int tick,
+        LowAltitudeMovementDecision decision)
+    {
+        using var actionScope = simulation.EnterActionExecutionContext(Data.VerbId(rule));
+        if (!decision.HasDecision)
+        {
+            MoveTowardIntent(simulation, entityId, rule, tick);
+            return;
+        }
+
+        if (decision.MarkReached)
+        {
+            State.MarkReached(entityId, tick, tick + State.IntentDwellTicks(entityId));
+        }
+
+        if (decision.Plan.Unreachable)
+        {
+            ClearIntentAndPushRecent(entityId, tick);
+            return;
+        }
+
+        if (!decision.Plan.HasStep)
+        {
+            return;
+        }
+
+        var result = simulation.Movement.CommitPlannedMove(
+            simulation,
+            entityId,
+            decision.Plan,
+            tick,
+            out var sourceValid);
+        if (!sourceValid)
+        {
+            MoveTowardIntent(simulation, entityId, rule, tick);
+            return;
+        }
+
+        if (result.Moved)
+        {
+            ApplyTravelInfluence(simulation, entityId, rule, result, tick);
+            State.MarkStepped(entityId, tick, result.StepCost);
+        }
+        else if (float.IsInfinity(result.StepCost))
+        {
+            ClearIntentAndPushRecent(entityId, tick);
+        }
+    }
+
     private void TryDwellRoam(
         Simulation simulation,
         int entityId,

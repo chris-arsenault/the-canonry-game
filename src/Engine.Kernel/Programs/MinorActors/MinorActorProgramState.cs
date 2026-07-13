@@ -20,11 +20,10 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
     private const int ActionCadencePulsesKey = 14;
     private const int PurposeCodeKey = 15;
     private const int SourceWorkTierKey = 1;
-    private const int WorkDeltaKey = 1;
     private const int IntFieldsPerActor = 15;
 
-    private readonly PrimitiveIntTable _actorInts;
-    private readonly PrimitiveFloatTable _actorFloats;
+    private readonly int[] _actorInts;
+    private readonly float[] _actorWorkDeltas;
     private readonly PrimitiveIntTable _sourceActiveCounts;
     private readonly PrimitiveIntTable _nextEmissionPulses;
     private readonly PrimitiveIntTable _sourceWorkTiers;
@@ -35,8 +34,8 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sourceRuleCapacity);
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sourceEntityCapacity);
         ActorCapacity = actorCapacity;
-        _actorInts = new PrimitiveIntTable(actorCapacity * IntFieldsPerActor);
-        _actorFloats = new PrimitiveFloatTable(actorCapacity);
+        _actorInts = new int[checked((actorCapacity + 1) * IntFieldsPerActor)];
+        _actorWorkDeltas = new float[actorCapacity + 1];
         _sourceActiveCounts = new PrimitiveIntTable(sourceRuleCapacity);
         _nextEmissionPulses = new PrimitiveIntTable(sourceRuleCapacity);
         _sourceWorkTiers = new PrimitiveIntTable(sourceEntityCapacity);
@@ -44,7 +43,7 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
 
     public int ProgramId => KernelProgramCodes.MinorActors;
 
-    public int SchemaVersion => 3;
+    public int SchemaVersion => 4;
 
     public int ActorCapacity { get; }
 
@@ -116,7 +115,11 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
 
     public int PurposeCode(int actorId) => GetInt(actorId, PurposeCodeKey);
 
-    public float WorkDelta(int actorId) => _actorFloats.GetOrDefault(actorId, WorkDeltaKey);
+    public float WorkDelta(int actorId)
+    {
+        EnsureActorId(actorId);
+        return _actorWorkDeltas[actorId];
+    }
 
     public int SourceActiveCount(int sourceEntityId, int sourceRuleId)
     {
@@ -194,7 +197,7 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         SetInt(actorId, MoveChancePermilleKey, moveChancePermille);
         SetInt(actorId, ActionCadencePulsesKey, actionCadencePulses);
         SetInt(actorId, PurposeCodeKey, purposeCode);
-        _actorFloats.Set(actorId, WorkDeltaKey, workDelta);
+        _actorWorkDeltas[actorId] = workDelta;
         ActiveCount++;
         TotalSpawned++;
         if (sourceEntityId > 0 && sourceRuleId > 0)
@@ -269,13 +272,13 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
     private int GetInt(int actorId, int key)
     {
         EnsureActorId(actorId);
-        return _actorInts.GetOrDefault(actorId, key);
+        return _actorInts[(actorId * IntFieldsPerActor) + key - 1];
     }
 
     private void SetInt(int actorId, int key, int value)
     {
         EnsureActorId(actorId);
-        _actorInts.Set(actorId, key, value);
+        _actorInts[(actorId * IntFieldsPerActor) + key - 1] = value;
     }
 
     private void EnsureActorId(int actorId)

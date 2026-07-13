@@ -1,8 +1,13 @@
 namespace Engine.Kernel;
 
 internal sealed class RelationshipProgramRuntime :
-    IKernelProgramRuntime<RelationshipProgramData, RelationshipProgramState>
+    IKernelProgramRuntime<RelationshipProgramData, RelationshipProgramState>,
+    IKernelParallelJob
 {
+    private readonly RelationshipDecision[] _parallelDecisions;
+    private Simulation? _parallelSimulation;
+    private int _parallelTick;
+
     public RelationshipProgramRuntime(RelationshipProgramData data, RelationshipProgramState state)
         : this(data, state, new KernelProgramTuningOptions())
     {
@@ -12,13 +17,27 @@ internal sealed class RelationshipProgramRuntime :
         RelationshipProgramData data,
         RelationshipProgramState state,
         KernelProgramTuningOptions tuning)
+        : this(data, state, tuning, parallelWorkerCount: 1)
+    {
+    }
+
+    internal RelationshipProgramRuntime(
+        RelationshipProgramData data,
+        RelationshipProgramState state,
+        KernelProgramTuningOptions tuning,
+        int parallelWorkerCount)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
         global::System.ArgumentNullException.ThrowIfNull(tuning);
+        global::System.ArgumentOutOfRangeException.ThrowIfLessThan(parallelWorkerCount, 1);
+        global::System.ArgumentOutOfRangeException.ThrowIfGreaterThan(
+            parallelWorkerCount,
+            SimulationOptions.MaximumParallelWorkerCount);
         Data = data;
         State = state;
         Tuning = tuning;
+        _parallelDecisions = new RelationshipDecision[state.RelationshipCapacity + 1];
     }
 
     public RelationshipProgramData Data { get; }
@@ -53,22 +72,47 @@ internal sealed class RelationshipProgramRuntime :
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
+        _parallelSimulation = simulation;
+        _parallelTick = tick;
+        simulation.WorkScheduler.Run(
+            this,
+            startInclusive: 1,
+            endExclusive: simulation.World.RelationshipHighWatermark + 1,
+            simulation.Options.ParallelMinimumChunkSize);
+        _parallelSimulation = null;
+        CommitDecisions(simulation, tick);
+    }
+
+    void IKernelParallelJob.Execute(int workerIndex, int startInclusive, int endExclusive)
+    {
+        _ = workerIndex;
+        var simulation = _parallelSimulation ?? throw new global::System.InvalidOperationException();
         var world = simulation.World;
-        for (var relationshipId = 1; relationshipId <= world.RelationshipHighWatermark; relationshipId++)
+        for (var relationshipId = startInclusive; relationshipId < endExclusive; relationshipId++)
         {
             if (!world.RelationshipIsActive(relationshipId))
             {
+                _parallelDecisions[relationshipId] = default;
                 continue;
             }
 
-            TickRelationship(simulation, world, relationshipId, tick);
+            _parallelDecisions[relationshipId] = EvaluateDecision(
+                world,
+                relationshipId,
+                _parallelTick);
         }
     }
 
-    private void TickRelationship(Simulation simulation, WorldState world, int relationshipId, int tick)
+    private RelationshipDecision EvaluateDecision(WorldState world, int relationshipId, int tick)
     {
         var relationshipKindId = world.RelationshipKindId(relationshipId);
-        UpdateContactMemory(world, relationshipId, relationshipKindId, tick);
+        EvaluateContactState(
+            world,
+            relationshipId,
+            relationshipKindId,
+            tick,
+            out var contactTicks,
+            out var lastContactTick);
         var sourceId = world.RelationshipSourceId(relationshipId);
         var targetId = world.RelationshipTargetId(relationshipId);
         var delta = 0f;
@@ -76,24 +120,101 @@ internal sealed class RelationshipProgramRuntime :
         {
             if (Data.MaintenanceKindId(rule) == relationshipKindId)
             {
-                delta += ComputeRuleDelta(world, relationshipId, sourceId, targetId, rule);
+                delta += ComputeRuleDelta(
+                    world,
+                    relationshipId,
+                    sourceId,
+                    targetId,
+                    rule,
+                    contactTicks);
             }
         }
 
-        if (delta != 0f)
+        var previousStrength = world.RelationshipStrength(relationshipId);
+        var strength = Clamp01(previousStrength + delta);
+        return new RelationshipDecision(
+            true,
+            contactTicks,
+            lastContactTick,
+            strength,
+            global::System.MathF.Abs(strength - previousStrength) > float.Epsilon,
+            strength <= Data.CullThreshold(relationshipKindId),
+            Data.TargetFollowsSourcePhysical(relationshipKindId));
+    }
+
+    private void CommitDecisions(Simulation simulation, int tick)
+    {
+        var world = simulation.World;
+        for (var relationshipId = 1; relationshipId <= world.RelationshipHighWatermark; relationshipId++)
         {
-            simulation.SetRelationshipStrength(relationshipId, world.RelationshipStrength(relationshipId) + delta, tick);
+            var decision = _parallelDecisions[relationshipId];
+            if (!decision.Active || !world.RelationshipIsActive(relationshipId))
+            {
+                continue;
+            }
+
+            State.SetContactState(
+                relationshipId,
+                decision.ContactTicks,
+                decision.LastContactTick);
+            if (decision.StrengthChanged)
+            {
+                simulation.SetRelationshipStrength(relationshipId, decision.Strength, tick);
+            }
+
+            if (decision.Cull)
+            {
+                simulation.CullRelationship(relationshipId, tick);
+                continue;
+            }
+
+            if (decision.FollowSource)
+            {
+                MoveTargetToSourcePhysical(
+                    simulation,
+                    world,
+                    world.RelationshipSourceId(relationshipId),
+                    world.RelationshipTargetId(relationshipId),
+                    tick);
+            }
+        }
+    }
+
+    private void EvaluateContactState(
+        WorldState world,
+        int relationshipId,
+        int relationshipKindId,
+        int tick,
+        out int contactTicks,
+        out int lastContactTick)
+    {
+        contactTicks = State.ContactTicks(relationshipId);
+        lastContactTick = State.LastContactTick(relationshipId);
+        var sawContactMemoryRule = false;
+        var sourceId = world.RelationshipSourceId(relationshipId);
+        var targetId = world.RelationshipTargetId(relationshipId);
+        for (var rule = 1; rule <= Data.MaintenanceRuleCount; rule++)
+        {
+            if (Data.MaintenanceKindId(rule) != relationshipKindId ||
+                Data.MaintenanceConditionCode(rule) != RelationshipMaintenanceConditionCodes.ContactMemory)
+            {
+                continue;
+            }
+
+            sawContactMemoryRule = true;
+            var planeCode = Data.MaintenancePlaneCode(rule);
+            if (planeCode != PlaneCodes.None &&
+                PlaneDistance(world, sourceId, targetId, planeCode) <= 1)
+            {
+                contactTicks = Min(1000, contactTicks + 1);
+                lastContactTick = tick;
+                return;
+            }
         }
 
-        if (world.RelationshipStrength(relationshipId) <= Data.CullThreshold(world.RelationshipKindId(relationshipId)))
+        if (sawContactMemoryRule)
         {
-            simulation.CullRelationship(relationshipId, tick);
-            return;
-        }
-
-        if (Data.TargetFollowsSourcePhysical(relationshipKindId))
-        {
-            MoveTargetToSourcePhysical(simulation, world, sourceId, targetId, tick);
+            contactTicks = Max(0, contactTicks - 1);
         }
     }
 
@@ -114,45 +235,15 @@ internal sealed class RelationshipProgramRuntime :
         simulation.Movement.Place(simulation, targetId, PlaneCodes.Physical, sourceQ, sourceR, tick, MovementCauseCodes.Follow);
     }
 
-    private void UpdateContactMemory(WorldState world, int relationshipId, int relationshipKindId, int tick)
-    {
-        var sourceId = world.RelationshipSourceId(relationshipId);
-        var targetId = world.RelationshipTargetId(relationshipId);
-        var sawContactMemoryRule = false;
-        for (var rule = 1; rule <= Data.MaintenanceRuleCount; rule++)
-        {
-            if (Data.MaintenanceKindId(rule) != relationshipKindId ||
-                Data.MaintenanceConditionCode(rule) != RelationshipMaintenanceConditionCodes.ContactMemory)
-            {
-                continue;
-            }
-
-            sawContactMemoryRule = true;
-            var planeCode = Data.MaintenancePlaneCode(rule);
-            if (planeCode != PlaneCodes.None &&
-                PlaneDistance(world, sourceId, targetId, planeCode) <= 1)
-            {
-                State.RecordContact(relationshipId, tick);
-                return;
-            }
-        }
-
-        if (!sawContactMemoryRule)
-        {
-            return;
-        }
-
-        State.DecayContact(relationshipId);
-    }
-
     private float ComputeRuleDelta(
         WorldState world,
         int relationshipId,
         int sourceId,
         int targetId,
-        int rule)
+        int rule,
+        int contactTicks)
     {
-        var evidence = Evidence(world, relationshipId, sourceId, targetId, rule);
+        var evidence = Evidence(world, relationshipId, sourceId, targetId, rule, contactTicks);
         return evidence <= 0f ? 0f : Data.MaintenanceDelta(rule) * evidence;
     }
 
@@ -161,7 +252,8 @@ internal sealed class RelationshipProgramRuntime :
         int relationshipId,
         int sourceId,
         int targetId,
-        int rule)
+        int rule,
+        int contactTicks)
     {
         var condition = Data.MaintenanceConditionCode(rule);
         if (condition == RelationshipMaintenanceConditionCodes.Always)
@@ -177,7 +269,7 @@ internal sealed class RelationshipProgramRuntime :
         }
 
         return condition == RelationshipMaintenanceConditionCodes.ContactMemory
-            ? ContactEvidence(relationshipId, Data.MaintenanceThreshold(rule))
+            ? ContactEvidence(contactTicks, Data.MaintenanceThreshold(rule))
             : 0f;
     }
 
@@ -331,14 +423,14 @@ internal sealed class RelationshipProgramRuntime :
         return Clamp01(influence / threshold);
     }
 
-    private float ContactEvidence(int relationshipId, float threshold)
+    private static float ContactEvidence(int contactTicks, float threshold)
     {
         if (threshold <= 0f)
         {
-            return State.ContactTicks(relationshipId) > 0 ? 1f : 0f;
+            return contactTicks > 0 ? 1f : 0f;
         }
 
-        return Clamp01(State.ContactTicks(relationshipId) / threshold);
+        return Clamp01(contactTicks / threshold);
     }
 
     private static int PhysicalDistance(WorldState world, int sourceId, int targetId) =>
@@ -385,6 +477,8 @@ internal sealed class RelationshipProgramRuntime :
     }
 
     private static int Max(int left, int right) => left >= right ? left : right;
+
+    private static int Min(int left, int right) => left <= right ? left : right;
 
     private static float Clamp01(float value)
     {

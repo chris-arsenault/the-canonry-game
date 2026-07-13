@@ -32,4 +32,6 @@ internal sealed partial class GambitProgramState : IKernelProgramState
     public int ProgramId => KernelProgramCodes.Gambits;
 
     public int SchemaVersion => 3;
+
+    internal int EntityCapacity => ActionHistoryCounts.Length - 1;
 }

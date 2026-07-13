@@ -4,6 +4,8 @@ namespace Engine.Kernel;
 
 internal sealed record SimulationOptions
 {
+    internal const int MaximumParallelWorkerCount = 16;
+
     public int EntityCapacity { get; init; } = 16384;
     // Relationship slots are lifetime totals: culled edges stay allocated as
     // the historical record, so capacity must cover every relationship ever
@@ -55,6 +57,9 @@ internal sealed record SimulationOptions
     public int RelationshipRuleCapacity { get; init; } = 256;
     public int RelationshipKindIdCapacity { get; init; } = 256;
     public int RelationshipGraphDeltaMergeThreshold { get; init; } = 1024;
+    public int ParallelWorkerCount { get; init; } = MaximumParallelWorkerCount;
+    public int ParallelMinimumChunkSize { get; init; } = 16;
+    public int ParallelShardCount { get; init; } = MaximumParallelWorkerCount;
     public KernelRuntimeCodes RuntimeCodes { get; init; } = KernelRuntimeCodes.Default;
     public KernelTuningOptions KernelTuning { get; init; } = new();
     public bool TraceEnabled { get; init; }

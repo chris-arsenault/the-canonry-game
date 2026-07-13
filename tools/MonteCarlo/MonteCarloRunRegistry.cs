@@ -358,6 +358,7 @@ internal sealed class MonteCarloRunRegistry : IDisposable
             disableEntitySnapshots = options.DisableEntitySnapshots,
             simulationOnly = options.SimulationOnly,
             traceEnabled = options.TraceEnabled,
+            parallelWorkerCount = options.ParallelWorkerCount,
             configFilePath = options.ConfigFilePath,
         };
 

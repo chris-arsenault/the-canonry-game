@@ -4,12 +4,6 @@ using Engine.Eventing;
 
 internal sealed partial class GambitProgramRuntime
 {
-    private sealed class TargetSelectionState(int candidateCount)
-    {
-        public int CandidateCount = candidateCount;
-        public int SelectedTargetId;
-    }
-
     private bool ProviderSelectorRequiresAttribute(int selector)
     {
         if (_providerSelectorValueIds[selector] == 0)
@@ -388,26 +382,22 @@ internal sealed partial class GambitProgramRuntime
         selectedTargetId = 0;
         var total = 0f;
         var world = simulation.World;
-        var state = new TargetSelectionState(candidateCount);
-        KernelQuery.ForEachActiveEntityOfKind(
-            world,
-            _gambitTargetKindIds[gambitSlot],
-            targetId =>
-            {
-                total += EvaluateTargetCandidate(
-                    simulation,
-                    gambitSlot,
-                    entityId,
-                    targetId,
-                    tick,
-                    state,
-                    selectRoll,
-                    total);
-                return state.SelectedTargetId == 0;
-            });
+        for (var targetId = KernelQuery.FirstActiveEntityOfKind(world, _gambitTargetKindIds[gambitSlot]);
+             targetId > 0 && selectedTargetId == 0;
+             targetId = KernelQuery.NextActiveEntityOfKind(world, targetId))
+        {
+            total += EvaluateTargetCandidate(
+                simulation,
+                gambitSlot,
+                entityId,
+                targetId,
+                tick,
+                ref candidateCount,
+                selectRoll,
+                total,
+                out selectedTargetId);
+        }
 
-        candidateCount = state.CandidateCount;
-        selectedTargetId = state.SelectedTargetId;
         return total;
     }
 
@@ -423,25 +413,22 @@ internal sealed partial class GambitProgramRuntime
         selectedTargetId = 0;
         var total = 0f;
         var world = simulation.World;
-        var state = new TargetSelectionState(candidateCount);
-        KernelQuery.ForEachActiveEntity(
-            world,
-            targetId =>
-            {
-                total += EvaluateTargetCandidate(
-                    simulation,
-                    gambitSlot,
-                    entityId,
-                    targetId,
-                    tick,
-                    state,
-                    selectRoll,
-                    total);
-                return state.SelectedTargetId == 0;
-            });
+        for (var targetId = KernelQuery.FirstActiveEntity(world);
+             targetId > 0 && selectedTargetId == 0;
+             targetId = KernelQuery.NextActiveEntity(world, targetId))
+        {
+            total += EvaluateTargetCandidate(
+                simulation,
+                gambitSlot,
+                entityId,
+                targetId,
+                tick,
+                ref candidateCount,
+                selectRoll,
+                total,
+                out selectedTargetId);
+        }
 
-        candidateCount = state.CandidateCount;
-        selectedTargetId = state.SelectedTargetId;
         return total;
     }
 
@@ -451,10 +438,12 @@ internal sealed partial class GambitProgramRuntime
         int entityId,
         int targetId,
         int tick,
-        TargetSelectionState state,
+        ref int candidateCount,
         float selectRoll,
-        float total)
+        float total,
+        out int selectedTargetId)
     {
+        selectedTargetId = 0;
         var world = simulation.World;
         if (!world.EntityIsActive(targetId) ||
             targetId == entityId ||
@@ -463,7 +452,7 @@ internal sealed partial class GambitProgramRuntime
             return 0f;
         }
 
-        state.CandidateCount++;
+        candidateCount++;
         var score = EvaluateCandidate(
             simulation,
             gambitSlot,
@@ -471,11 +460,7 @@ internal sealed partial class GambitProgramRuntime
             targetId,
             tick,
             selectRoll < 0f ? -1f : selectRoll - total,
-            out var selectedTargetId);
-        if (selectedTargetId > 0)
-        {
-            state.SelectedTargetId = selectedTargetId;
-        }
+            out selectedTargetId);
 
         return score;
     }
