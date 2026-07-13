@@ -69,6 +69,19 @@ public sealed class CreateContextRelationshipMutation(
 /// Removes an existing relationship between the current behavior's self/target endpoints.
 /// Missing relationships are intentionally no-ops.
 /// </summary>
+/// <summary>
+/// Culls every incoming relationship of a kind on the chosen endpoint,
+/// regardless of who the sources are. The wrest primitive: taking an
+/// artifact strips its previous holders.
+/// </summary>
+public sealed class CullEndpointIncomingRelationshipsMutation(TransferEndpoint endpoint, string relationshipKind) : IMutation
+{
+    public TransferEndpoint Endpoint { get; } = endpoint;
+    public string RelationshipKind { get; } = relationshipKind;
+
+    public string Describe() => $"cull_endpoint_incoming_relationships({Endpoint}, {RelationshipKind})";
+}
+
 public sealed class RemoveContextRelationshipMutation(
     TransferEndpoint source,
     TransferEndpoint target,

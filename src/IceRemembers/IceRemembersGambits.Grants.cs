@@ -117,6 +117,42 @@ public static partial class IceRemembersDefinition
         return gambit;
     }
 
+    private static GambitDefinition PenguinWrestsArtifact()
+    {
+        var gambit = NewGambit(
+            GambitId.PenguinWrestsArtifact,
+            "Wrest the Artifact",
+            K.Penguin,
+            K.Artifact,
+            All(
+                new TargetIsNotSelf(),
+                Not(new SelfHasRelationshipToTarget(L(Rel.Holds))),
+                // Unlike scavenging, wresting takes a HELD artifact - and
+                // makes an enemy of whoever held it.
+                Not(new EndpointRelationshipCountBelow(TransferEndpoint.Target, L(Rel.Holds), maximumExclusive: 1)),
+                new WithinPlaneDistancePrecondition(6, PrimaryPlane.Physical),
+                new SelfAttributeThreshold(A(Attr.Vitality), min: 45f, max: null, behaviorRelevant: false)),
+            scoreExpression: GambitScore(
+                baseline: 0.6f,
+                dynamicRange: 6f,
+                Weighted3(
+                    (DistanceFalloff(4f), 0.30f),
+                    (Normalized(Expr.Self(A(Attr.Vitality))), 0.40f),
+                    (Normalized(Expr.Target(A(Attr.Condition))), 0.30f))),
+            success: InitialGambitSuccessChance,
+            cooldown: 150,
+            entityCooldown: 60);
+        AddRelationshipWrite(gambit, Rel.Holds, K.Artifact);
+        gambit.Reads.Add(AttributeRef.Self(A(Attr.Vitality), K.Penguin));
+        gambit.Reads.Add(AttributeRef.Target(A(Attr.Condition), K.Artifact));
+        gambit.Mutations.Add(new CullEndpointIncomingRelationshipsMutation(TransferEndpoint.Target, L(Rel.Holds)));
+        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.Holds, RelationshipPolarity.Neutral, 1f));
+        gambit.Mutations.Add(new MoveTargetToSelfPhysicalMutation());
+        gambit.Mutations.Add(new ModifySelfAttributeMutation(A(Attr.Vitality), -6f, variance: 0.2f));
+        gambit.Description = "A penguin takes a held artifact from its bearer by force or guile. Ownership finally changes hands under conflict: the old holds are stripped, the artifact is carried off, and the dispossessed have every reason to hunt the taker.";
+        return gambit;
+    }
+
     private static GambitDefinition PenguinUnmakesTheBinding()
     {
         var gambit = NewGambit(

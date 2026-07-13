@@ -865,6 +865,12 @@ public static partial class DomainCompiler
                     (int)EndpointCode(relationshipStrength.Target),
                     X: relationshipStrength.Strength));
                 return true;
+            case CullEndpointIncomingRelationshipsMutation cullIncoming:
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.CullEndpointIncomingRelationships,
+                    ids.RelationshipKindIdOf(cullIncoming.RelationshipKind).Value,
+                    (int)EndpointCode(cullIncoming.Endpoint)));
+                return true;
             case RemoveContextRelationshipMutation removeRelationship:
                 steps.Add(new BehaviorProgramStepRule(
                     BehaviorProgramOperation.RemoveEndpointRelationship,

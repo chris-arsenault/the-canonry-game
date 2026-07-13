@@ -205,6 +205,15 @@ internal sealed partial class GambitProgramRuntime
             case BehaviorOperationCodes.CreateFixedRelationship:
                 KernelEffectExecutor.CreateRelationship(simulation, _stepA[step], _stepD[step], _stepB[step] > 0 ? _stepB[step] : entityId, _stepC[step] > 0 ? _stepC[step] : targetId, _stepX[step]);
                 return true;
+            default:
+                return ExecuteEndpointRelationshipStep(simulation, world, entityId, targetId, tick, step, operationCode);
+        }
+    }
+
+    private bool ExecuteEndpointRelationshipStep(Simulation simulation, WorldState world, int entityId, int targetId, int tick, int step, int operationCode)
+    {
+        switch (operationCode)
+        {
             case BehaviorOperationCodes.CreateEndpointRelationship:
                 CreateEndpointRelationship(simulation, entityId, targetId, tick, step);
                 return true;
@@ -213,6 +222,9 @@ internal sealed partial class GambitProgramRuntime
                 return true;
             case BehaviorOperationCodes.RemoveEndpointRelationship:
                 RemoveEndpointRelationship(simulation, world, entityId, targetId, tick, step);
+                return true;
+            case BehaviorOperationCodes.CullEndpointIncomingRelationships:
+                CullEndpointIncomingRelationships(simulation, world, entityId, targetId, step);
                 return true;
             default:
                 return false;
@@ -447,6 +459,13 @@ internal sealed partial class GambitProgramRuntime
         }
 
         KernelEffectExecutor.SetRelationshipStrength(simulation, relationshipId, _stepX[step]);
+    }
+
+    private void CullEndpointIncomingRelationships(Simulation simulation, WorldState world, int entityId, int targetId, int step)
+    {
+        _ = world;
+        var endpointId = EndpointEntityId(entityId, targetId, _stepB[step]);
+        KernelEffectExecutor.CullIncomingRelationshipsOfKind(simulation, endpointId, _stepA[step]);
     }
 
     private void RemoveEndpointRelationship(Simulation simulation, WorldState world, int entityId, int targetId, int tick, int step)

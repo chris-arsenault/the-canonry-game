@@ -131,6 +131,9 @@ internal static class KernelEffectExecutor
     public static void CullRelationship(Simulation simulation, int relationshipId) =>
         simulation.CullRelationship(relationshipId, simulation.CurrentTick);
 
+    public static void CullIncomingRelationshipsOfKind(Simulation simulation, int targetEntityId, int relationshipKindId) =>
+        simulation.CullIncomingRelationshipsOfKind(targetEntityId, relationshipKindId, simulation.CurrentTick);
+
     public static void CullOutgoingRelationshipsOfKind(Simulation simulation, int sourceEntityId, int relationshipKindId) =>
         simulation.CullOutgoingRelationshipsOfKind(sourceEntityId, relationshipKindId, simulation.CurrentTick);
 

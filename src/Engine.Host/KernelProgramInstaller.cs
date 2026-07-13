@@ -696,6 +696,7 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramOperation.CreateEndpointRelationship => BehaviorOperationCodes.CreateEndpointRelationship,
             BehaviorProgramOperation.SetEndpointRelationshipStrength => BehaviorOperationCodes.SetEndpointRelationshipStrength,
             BehaviorProgramOperation.RemoveEndpointRelationship => BehaviorOperationCodes.RemoveEndpointRelationship,
+            BehaviorProgramOperation.CullEndpointIncomingRelationships => BehaviorOperationCodes.CullEndpointIncomingRelationships,
             _ => -1,
         };
         return code >= 0;

@@ -63,6 +63,7 @@ public static partial class IceRemembersDefinition
             MonsterHauntsTransport(),
             OrcaRaidsTradeRoute(),
             MonsterStealsArtifact(),
+            PenguinWrestsArtifact(),
             PenguinSlaysMonster(),
             PenguinSlaysOrca(),
         };
@@ -823,6 +824,9 @@ public static partial class IceRemembersDefinition
             All(
                 new TargetIsNotSelf(),
                 new SelfHasOutgoingRelationship(L(Rel.HomeBase)),
+                // Raiders have careers: an orca must hold an established
+                // hunting claim before it raids. No more raiders from nowhere.
+                new SelfHasOutgoingRelationship(L(Rel.PreysOn)),
                 new WithinPlaneDistancePrecondition(12, PrimaryPlane.Physical),
                 new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.AtWarWith), maximumExclusive: 3),
                 new EndpointRelationshipCountBelow(TransferEndpoint.Target, L(Rel.AtWarWith), maximumExclusive: 3),

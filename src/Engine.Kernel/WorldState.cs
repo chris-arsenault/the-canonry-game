@@ -847,6 +847,26 @@ internal sealed partial class WorldState
         }
     }
 
+    public void CullIncomingRelationshipsOfKind(
+        int targetEntityId,
+        int kindId,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        EnsureEntity(targetEntityId);
+        ValidateRelationshipKindIndex(kindId);
+        while (true)
+        {
+            var cursor = IncomingRelationshipsOfKind(targetEntityId, kindId);
+            if (!MoveNextRelationship(ref cursor, out var relationshipId))
+            {
+                return;
+            }
+
+            CullRelationship(relationshipId, tick, context);
+        }
+    }
+
     public int TraverseOutgoingRelationshipsOfKind<TVisitor>(
         int startEntityId,
         int kindId,

@@ -709,6 +709,11 @@ internal sealed partial class Simulation : IKernel
         World.CullRelationship(relationshipId, tick, _executionContext);
     }
 
+    internal void CullIncomingRelationshipsOfKind(int targetEntityId, int kindId, int tick)
+    {
+        World.CullIncomingRelationshipsOfKind(targetEntityId, kindId, tick, _executionContext);
+    }
+
     internal void CullOutgoingRelationshipsOfKind(int sourceEntityId, int kindId, int tick)
     {
         World.CullOutgoingRelationshipsOfKind(sourceEntityId, kindId, tick, _executionContext);

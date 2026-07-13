@@ -44,6 +44,7 @@ public static class BehaviorOperationCodes
     public const int SetTargetCultureFromSelf = 32;
     public const int IncreaseWorkTier = 33;
     public const int ForgeCellVertical = 34;
+    public const int CullEndpointIncomingRelationships = 35;
 }
 
 public static class BehaviorTargetModeCodes
