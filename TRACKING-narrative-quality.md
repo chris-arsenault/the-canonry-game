@@ -239,3 +239,9 @@ roles first and biases future events into the beats.
   (`SelfHasRelationshipToEntityOfSubtype`, `EndpointSubtypeIs`), the
   generator `RelatedToTarget` binding filter, and the
   `CullEndpointIncomingRelationships` operation.
+- Relationship slots are lifetime totals (culled edges stay allocated as the
+  historical record). The recalibrated world exhausted the old 8192 cap
+  mid-run at the 100k horizon; capacities were raised (relationships 65536,
+  entities 16384) for evidence runs, but the 2.5M-tick full-game horizon
+  needs a relationship/entity history-eviction architecture. This is the
+  accretion warning made concrete.

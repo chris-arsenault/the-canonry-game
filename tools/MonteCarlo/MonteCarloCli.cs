@@ -31,7 +31,9 @@ internal static class MonteCarloCli
         }
         catch (InvalidOperationException ex)
         {
-            Console.Error.WriteLine(ex.Message);
+            // Full detail: kernel capacity/validation throws are parameterless,
+            // so the message alone cannot identify the failure site.
+            Console.Error.WriteLine(ex.ToString());
             return 2;
         }
         catch (IOException ex)

@@ -4,8 +4,12 @@ namespace Engine.Kernel;
 
 internal sealed record SimulationOptions
 {
-    public int EntityCapacity { get; init; } = 4096;
-    public int RelationshipCapacity { get; init; } = 8192;
+    public int EntityCapacity { get; init; } = 16384;
+    // Relationship slots are lifetime totals: culled edges stay allocated as
+    // the historical record, so capacity must cover every relationship ever
+    // created in a run. Sized for 100k-tick evidence horizons; the full-game
+    // horizon (~2.5M ticks) needs a history-eviction design, not bigger arrays.
+    public int RelationshipCapacity { get; init; } = 65536;
     public int AttributeCapacity { get; init; } = 65536;
     public int TraitCapacity { get; init; } = 65536;
     public int ProvenanceInvocationCapacity { get; init; } = 8192;
