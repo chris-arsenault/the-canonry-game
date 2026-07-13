@@ -118,7 +118,10 @@ internal readonly struct SharedQuery
         int withoutIncomingCount = 0,
         int requiredTagBits = 0,
         int withoutTagBits = 0,
-        int cultureId = 0)
+        int cultureId = 0,
+        int relatedToTargetKindId = 0,
+        int relatedToTargetIncoming = 0,
+        float relatedToTargetMinStrength = 0f)
     {
         KindId = kindId;
         SubtypeIds = subtypeIds;
@@ -134,6 +137,9 @@ internal readonly struct SharedQuery
         RequiredTagBits = requiredTagBits;
         WithoutTagBits = withoutTagBits;
         CultureId = cultureId;
+        RelatedToTargetKindId = relatedToTargetKindId;
+        RelatedToTargetIncoming = relatedToTargetIncoming;
+        RelatedToTargetMinStrength = relatedToTargetMinStrength;
     }
 
     public int KindId { get; }
@@ -163,6 +169,12 @@ internal readonly struct SharedQuery
     public int WithoutTagBits { get; }
 
     public int CultureId { get; }
+
+    public int RelatedToTargetKindId { get; }
+
+    public int RelatedToTargetIncoming { get; }
+
+    public float RelatedToTargetMinStrength { get; }
 }
 
 internal readonly struct QueryEvaluation

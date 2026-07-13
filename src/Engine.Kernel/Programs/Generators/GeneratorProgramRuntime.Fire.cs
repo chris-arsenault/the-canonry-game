@@ -335,7 +335,10 @@ internal sealed partial class GeneratorProgramRuntime
             _producedQueryWithoutIncomingCounts[produced],
             _producedQueryRequiredTagBits[produced],
             _producedQueryWithoutTagBits[produced],
-            _producedQueryCultureIds[produced]);
+            _producedQueryCultureIds[produced],
+            _producedQueryRelatedToTargetKindIds[produced],
+            _producedQueryRelatedToTargetIncoming[produced],
+            _producedQueryRelatedToTargetMinStrengths[produced]);
     }
 
     private bool CreateMissingProducedEntity(

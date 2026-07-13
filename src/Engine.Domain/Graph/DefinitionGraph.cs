@@ -336,6 +336,9 @@ public sealed class DefinitionEntityQuery
     public IReadOnlySet<string>? WithoutOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? WithoutIncomingRelationships { get; init; }
     public QueryTargetCultureMatch TargetCultureMatch { get; init; } = QueryTargetCultureMatch.Any;
+    public string? RelatedToTargetRelationship { get; init; }
+    public bool RelatedToTargetIncoming { get; init; }
+    public float RelatedToTargetMinStrength { get; init; } = 0.1f;
 }
 
 public sealed class DefinitionGeneratorBindingTarget

@@ -36,6 +36,8 @@ public static partial class IceRemembersGeneratorDefinition
         VigilsLeaveRelics(),
         CorruptionWakesMonsters(),
         WarsGetNames(),
+        AlliesAnswerTheCall(),
+        WarTakesItsToll(),
         TradeRoutesConveneNegotiation(),
         ClaimedWatersDrawBulls(),
         PodCurrentsLaunchScouts(),
@@ -693,23 +695,6 @@ public static partial class IceRemembersGeneratorDefinition
         {
             Kind = kind,
             RequiredOutgoingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(required) },
-        };
-
-    private static SemanticGeneratorTarget TargetWithStrongOutgoing(
-        EntityKind kind,
-        Rel required,
-        float minimumStrength) =>
-        new()
-        {
-            Kind = kind,
-            RequiredOutgoingRelationshipRequirements =
-            [
-                new SemanticGeneratorRelationshipRequirement
-                {
-                    RelationshipKind = L(required),
-                    MinimumStrength = minimumStrength,
-                },
-            ],
         };
 
     private static SemanticGeneratorTarget TargetWithStrongIncomingAndWithoutIncoming(

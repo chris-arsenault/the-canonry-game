@@ -342,6 +342,7 @@ public enum IceRemembersVerbId
     OccurrenceExhaustWar,
     FactionPressTheWar,
     FactionLetWarCool,
+    FactionRenewTheAccord,
     RegionDeepenCorruption,
     RegionCoolCorruption,
     ArtifactTightenWard,
@@ -514,6 +515,7 @@ public static class IceRemembersVerbIdExtensions
         "occurrence_exhaust_war",
         "faction_press_the_war",
         "faction_let_war_cool",
+        "faction_renew_the_accord",
         "region_deepen_corruption",
         "region_cool_corruption",
         "artifact_tighten_ward",
@@ -604,6 +606,8 @@ public enum IceRemembersGambitId
     PenguinPassesTheTeaching,
     PenguinReadsTheIce,
     PenguinStillsTheWaters,
+    FactionDeclaresRivalry,
+    FactionSwearsColdAccord,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -658,6 +662,8 @@ public static class IceRemembersGambitIdExtensions
         "penguin_passes_the_teaching",
         "penguin_reads_the_ice",
         "penguin_stills_the_waters",
+        "faction_declares_rivalry",
+        "faction_swears_cold_accord",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)

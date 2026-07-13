@@ -43,7 +43,9 @@ public static partial class IceRemembersDefinition
         var gambits = new List<GambitDefinition>
         {
             PenguinWieldsArtifact(),
+            FactionDeclaresRivalry(),
             FactionDeclaresTerritorialWar(),
+            FactionSwearsColdAccord(),
             SettlementOpensTradeRoute(),
             SettlementRaisesCauseway(),
             ArtifactCleansesScar(),
@@ -205,6 +207,66 @@ public static partial class IceRemembersDefinition
         return gambit;
     }
 
+    private static GambitDefinition FactionDeclaresRivalry()
+    {
+        var gambit = NewGambit(
+            GambitId.FactionDeclaresRivalry,
+            "Declare Rivalry",
+            K.Faction,
+            K.Faction,
+            All(
+                new TargetIsNotSelf(),
+                new ContestedInfluencePrecondition(PrimaryPlane.Physical, selfMinimum: 8f, targetMinimum: 30f),
+                Not(new SelfHasRelationshipToTarget(L(Rel.RivalOf))),
+                Not(new SelfHasRelationshipToTarget(L(Rel.AtWarWith))),
+                Not(new SelfHasRelationshipToTarget(L(Rel.AlliedWith))),
+                new SelfAttributeThreshold(A(Attr.Cohesion), min: 30f, max: null, behaviorRelevant: false)),
+            scoreExpression: GambitScore(
+                baseline: 2.5f,
+                dynamicRange: 4f,
+                Normalized(Expr.Self(A(Attr.Cohesion)))),
+            success: InitialGambitSuccessChance,
+            cooldown: 80,
+            entityCooldown: 30);
+        AddRelationshipWrite(gambit, Rel.RivalOf, K.Faction);
+        gambit.Reads.Add(AttributeRef.Self(A(Attr.Cohesion), K.Faction));
+        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.RivalOf, RelationshipPolarity.Negative, 0.6f));
+        gambit.Mutations.Add(Relationship(TransferEndpoint.Target, TransferEndpoint.Self, Rel.RivalOf, RelationshipPolarity.Negative, 0.6f));
+        gambit.Description = "Two factions contesting the same ground name each other rival. The first beat of the escalation chain: rivalry must be pressed before war can be declared, and peace buries it.";
+        return gambit;
+    }
+
+    private static GambitDefinition FactionSwearsColdAccord()
+    {
+        var gambit = NewGambit(
+            GambitId.FactionSwearsColdAccord,
+            "Swear the Cold Accord",
+            K.Faction,
+            K.Faction,
+            All(
+                new TargetIsNotSelf(),
+                new SharedInfluencePrecondition(PrimaryPlane.Physical, selfMinimum: 8f, targetMinimum: 8f),
+                Not(new SelfHasRelationshipToTarget(L(Rel.AlliedWith))),
+                Not(new SelfHasRelationshipToTarget(L(Rel.AtWarWith))),
+                Not(new SelfHasRelationshipToTarget(L(Rel.RivalOf))),
+                // Alliances are sworn under duress: both factions must be
+                // carrying at least one war.
+                Not(new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.AtWarWith), maximumExclusive: 1)),
+                Not(new EndpointRelationshipCountBelow(TransferEndpoint.Target, L(Rel.AtWarWith), maximumExclusive: 1))),
+            scoreExpression: GambitScore(
+                baseline: 3f,
+                dynamicRange: 4f,
+                InverseNormalized(Expr.Self(A(Attr.Cohesion)))),
+            success: InitialGambitSuccessChance,
+            cooldown: 120,
+            entityCooldown: 60);
+        AddRelationshipWrite(gambit, Rel.AlliedWith, K.Faction);
+        gambit.Reads.Add(AttributeRef.Self(A(Attr.Cohesion), K.Faction));
+        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.AlliedWith, RelationshipPolarity.Positive, 0.72f));
+        gambit.Description = "Two embattled factions sharing ground swear the Cold Accord. Alliances are finally entity-authored: born from shared wartime duress, sustained only if renewed.";
+        return gambit;
+    }
+
     private static GambitDefinition FactionDeclaresTerritorialWar()
     {
         var gambit = NewGambit(
@@ -215,6 +277,11 @@ public static partial class IceRemembersDefinition
             All(
                 new TargetIsNotSelf(),
                 new ContestedInfluencePrecondition(PrimaryPlane.Physical, selfMinimum: 8f, targetMinimum: 35f),
+                // War is the third beat of an escalation chain, never the
+                // first: it requires a pressed rivalry, not just contested
+                // ground. Peace clears the rivalry, so re-declaration needs
+                // full re-escalation.
+                new SelfHasRelationshipToTarget(L(Rel.RivalOf), minStrength: 0.35f),
                 Not(new SelfHasRelationshipToTarget(L(Rel.AtWarWith))),
                 Not(new TargetHasRelationshipToSelf(L(Rel.AtWarWith))),
                 new SelfAttributeThreshold(A(Attr.Cohesion), min: 34f, max: null, behaviorRelevant: false)),
@@ -223,13 +290,13 @@ public static partial class IceRemembersDefinition
                 dynamicRange: 4f,
                 Normalized(Expr.Self(A(Attr.Cohesion)))),
             success: InitialGambitSuccessChance,
-            cooldown: 65,
-            entityCooldown: 14);
+            cooldown: 200,
+            entityCooldown: 100);
         AddRelationshipWrite(gambit, Rel.AtWarWith, K.Faction);
         gambit.Reads.Add(AttributeRef.Self(A(Attr.Cohesion), K.Faction));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.AtWarWith, RelationshipPolarity.Negative, 0.88f));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Target, TransferEndpoint.Self, Rel.AtWarWith, RelationshipPolarity.Negative, 0.88f));
-        gambit.Description = "Two factions contesting the same ground formalise their conflict. War is declared in both directions; cohesion sours, the ice begins to record.";
+        gambit.Description = "A pressed rivalry over contested ground formalises into war. War is declared in both directions; cohesion sours, the ice begins to record.";
         return gambit;
     }
 
@@ -354,20 +421,27 @@ public static partial class IceRemembersDefinition
             K.Faction,
             All(
                 new TargetIsNotSelf(),
-                new SelfHasRelationshipToTarget(L(Rel.AtWarWith))),
+                // Peace requires a cooled war: the drift verbs (Press the
+                // War / Let the War Cool / Exhaust the War) are the campaign
+                // plot, and terms only come when the war strength has burned
+                // down. A fresh declaration cannot be peaced away.
+                new SelfHasRelationshipToTarget(L(Rel.AtWarWith)),
+                Not(new SelfHasRelationshipToTarget(L(Rel.AtWarWith), minStrength: 0.35f))),
             scoreExpression: GambitScore(
                 baseline: 4f,
                 dynamicRange: 5f,
                 InverseNormalized(Expr.Self(A(Attr.Cohesion)))),
             success: InitialGambitSuccessChance,
-            cooldown: 50,
-            entityCooldown: 12);
+            cooldown: 100,
+            entityCooldown: 50);
         AddRelationshipWrite(gambit, Rel.AtWarWith, K.Faction);
         gambit.Reads.Add(AttributeRef.Self(A(Attr.Cohesion), K.Faction));
         gambit.Mutations.Add(new RemoveContextRelationshipMutation(TransferEndpoint.Self, TransferEndpoint.Target, L(Rel.AtWarWith)));
         gambit.Mutations.Add(new RemoveContextRelationshipMutation(TransferEndpoint.Target, TransferEndpoint.Self, L(Rel.AtWarWith)));
-        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.BetrayedBy, RelationshipPolarity.Negative, 0.72f));
-        gambit.Description = "A faction near collapse asks for terms. The war ends; what remains is the long memory of betrayal.";
+        gambit.Mutations.Add(new RemoveContextRelationshipMutation(TransferEndpoint.Self, TransferEndpoint.Target, L(Rel.RivalOf)));
+        gambit.Mutations.Add(new RemoveContextRelationshipMutation(TransferEndpoint.Target, TransferEndpoint.Self, L(Rel.RivalOf)));
+        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.BetrayedBy, RelationshipPolarity.Negative, 0.5f));
+        gambit.Description = "An exhausted war ends in terms. The rivalry is buried with it — renewed war needs renewed grievance — but the capitulating side keeps a quieter memory of betrayal.";
         return gambit;
     }
 

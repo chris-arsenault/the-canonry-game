@@ -403,7 +403,10 @@ internal static partial class KernelProgramInstaller
             resolved.SamePhysicalCultureComponentAsTarget,
             resolved.RequiredTagBits,
             resolved.WithoutTagBits,
-            resolved.CultureId);
+            resolved.CultureId,
+            resolved.RelatedToTargetKindId,
+            resolved.RelatedToTargetIncoming,
+            resolved.RelatedToTargetMinStrength);
     }
 
     private static void InstallGeneratorProducedEntities(KernelConfigurationContext context, int generatorSlot, CompiledGeneratorRule generator)
@@ -417,6 +420,7 @@ internal static partial class KernelProgramInstaller
     private static void InstallGeneratorProducedEntity(KernelConfigurationContext context, int generatorSlot, GeneratorProducedEntityRule produced)
     {
         var query = produced.Query;
+        var resolvedQuery = query ?? new GeneratorEntityQueryRule([], false, false, GeneratorProgramCultureMatch.Any, [], []);
         var coverage = produced.Coverage;
         var producedSlot = context.AddGeneratorProduced(
             generatorSlot,
@@ -425,8 +429,8 @@ internal static partial class KernelProgramInstaller
             produced.SubtypeId,
             produced.CreateIfMissing,
             produced.HasQuery,
-            QueryAdjacentToTarget(query),
-            QueryCultureMatchCode(query),
+            resolvedQuery.AdjacentToTarget,
+            GeneratorCultureMatchCode(resolvedQuery.CultureMatch),
             GeneratorPlacementCode(produced.PhysicalPlacement),
             GeneratorPlacementCode(produced.SemanticPlacement),
             produced.PlacementRefCode,
@@ -445,10 +449,13 @@ internal static partial class KernelProgramInstaller
             produced.SemanticPlacementMinRadius,
             produced.SemanticPlacementMaxRadius,
             GeneratorCulturePlacementCode(produced.CulturePlacement),
-            QuerySamePhysicalCultureComponentAsTarget(query),
-            query?.RequiredTagBits ?? 0,
-            query?.WithoutTagBits ?? 0,
-            query?.CultureId ?? 0);
+            resolvedQuery.SamePhysicalCultureComponentAsTarget,
+            resolvedQuery.RequiredTagBits,
+            resolvedQuery.WithoutTagBits,
+            resolvedQuery.CultureId,
+            resolvedQuery.RelatedToTargetKindId,
+            resolvedQuery.RelatedToTargetIncoming,
+            resolvedQuery.RelatedToTargetMinStrength);
         InstallGeneratorProducedSubtypeChoices(context, producedSlot, produced);
         InstallGeneratorProducedPlacementTerrains(context, producedSlot, produced);
         if (query is not null)
@@ -507,14 +514,6 @@ internal static partial class KernelProgramInstaller
             context.SetGeneratorProducedPlacementFallbackTerrain(producedSlot, PlaneCodes.Semantic, produced.SemanticPlacementFallbackTerrainId);
         }
     }
-
-    private static bool QueryAdjacentToTarget(GeneratorEntityQueryRule? query) => query is not null && query.AdjacentToTarget;
-
-    private static bool QuerySamePhysicalCultureComponentAsTarget(GeneratorEntityQueryRule? query) =>
-        query is not null && query.SamePhysicalCultureComponentAsTarget;
-
-    private static int QueryCultureMatchCode(GeneratorEntityQueryRule? query) =>
-        GeneratorCultureMatchCode(query?.CultureMatch ?? GeneratorProgramCultureMatch.Any);
 
     private static int NullableCoverageModeCode(GeneratorCoverageRule? coverage) =>
         GeneratorCoverageModeCode(coverage?.Mode ?? GeneratorProgramCoverageMode.None);

@@ -2,6 +2,24 @@ namespace Engine.Kernel;
 
 internal static partial class KernelQuery
 {
+    internal static bool QueryRelatedToTargetMatches(
+        WorldState world,
+        in SharedQuery query,
+        in QueryBinding binding,
+        int entityId)
+    {
+        if (query.RelatedToTargetKindId == 0)
+        {
+            return true;
+        }
+
+        var relationshipId = query.RelatedToTargetIncoming != 0
+            ? FindRelationship(world, binding.TargetId, entityId, query.RelatedToTargetKindId)
+            : FindRelationship(world, entityId, binding.TargetId, query.RelatedToTargetKindId);
+        return relationshipId != 0 &&
+            RelationshipStrength(world, relationshipId) >= query.RelatedToTargetMinStrength;
+    }
+
     // flags: bit 0 = has minimum strength, bit 1 = scan incoming edges.
     public static bool SelfRelationshipToKindPasses(
         WorldState world,

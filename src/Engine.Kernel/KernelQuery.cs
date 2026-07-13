@@ -1000,6 +1000,7 @@ internal static partial class KernelQuery
             QueryCultureMatches(world, query.CultureMatchCode, entityId, binding.TargetId) &&
             QueryRelationshipFiltersPass(world, query, entityId, query.WithoutOutgoingStart, query.WithoutOutgoingCount, outgoing: true) &&
             QueryRelationshipFiltersPass(world, query, entityId, query.WithoutIncomingStart, query.WithoutIncomingCount, outgoing: false) &&
+            QueryRelatedToTargetMatches(world, query, binding, entityId) &&
             QueryAdjacencyMatches(world, query, binding, entityId);
     }
 

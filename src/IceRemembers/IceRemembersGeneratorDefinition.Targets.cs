@@ -46,4 +46,21 @@ public static partial class IceRemembersGeneratorDefinition
             ],
             WithoutIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(without) },
         };
+
+    private static SemanticGeneratorTarget TargetWithStrongOutgoing(
+        EntityKind kind,
+        Rel required,
+        float minimumStrength) =>
+        new()
+        {
+            Kind = kind,
+            RequiredOutgoingRelationshipRequirements =
+            [
+                new SemanticGeneratorRelationshipRequirement
+                {
+                    RelationshipKind = L(required),
+                    MinimumStrength = minimumStrength,
+                },
+            ],
+        };
 }

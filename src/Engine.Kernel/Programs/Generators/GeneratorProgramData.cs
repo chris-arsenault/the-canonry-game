@@ -14,9 +14,15 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] BindingRequiredTagBits = [];
     internal int[] BindingWithoutTagBits = [];
     internal int[] BindingCultureIds = [];
+    internal int[] BindingRelatedToTargetKindIds = [];
+    internal int[] BindingRelatedToTargetIncoming = [];
+    internal float[] BindingRelatedToTargetMinStrengths = [];
     internal int[] ProducedQueryRequiredTagBits = [];
     internal int[] ProducedQueryWithoutTagBits = [];
     internal int[] ProducedQueryCultureIds = [];
+    internal int[] ProducedQueryRelatedToTargetKindIds = [];
+    internal int[] ProducedQueryRelatedToTargetIncoming = [];
+    internal float[] ProducedQueryRelatedToTargetMinStrengths = [];
     internal int[] MaxRuns = [];
     internal int[] TargetSubtypeStarts = [];
     internal int[] TargetSubtypeCounts = [];
@@ -307,13 +313,19 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         BindingRequiredTagBits = new int[itemCapacity + 1];
         BindingWithoutTagBits = new int[itemCapacity + 1];
         BindingCultureIds = new int[itemCapacity + 1];
+        BindingRelatedToTargetKindIds = new int[itemCapacity + 1];
+        BindingRelatedToTargetIncoming = new int[itemCapacity + 1];
+        BindingRelatedToTargetMinStrengths = new float[itemCapacity + 1];
         ProducedQueryRequiredTagBits = new int[itemCapacity + 1];
         ProducedQueryWithoutTagBits = new int[itemCapacity + 1];
         ProducedQueryCultureIds = new int[itemCapacity + 1];
+        ProducedQueryRelatedToTargetKindIds = new int[itemCapacity + 1];
+        ProducedQueryRelatedToTargetIncoming = new int[itemCapacity + 1];
+        ProducedQueryRelatedToTargetMinStrengths = new float[itemCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.Generators;
 
-    public int SchemaVersion => 17;
+    public int SchemaVersion => 18;
 
 }

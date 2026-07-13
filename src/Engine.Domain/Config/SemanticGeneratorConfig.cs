@@ -126,6 +126,20 @@ public sealed class SemanticEntityQuery
     public IReadOnlySet<string>? WithoutOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? WithoutIncomingRelationships { get; init; }
     public QueryTargetCultureMatch TargetCultureMatch { get; init; } = QueryTargetCultureMatch.Any;
+
+    /// <summary>
+    /// When set, the candidate must have a live relationship of this kind
+    /// with the generator's selected target (candidate→target by default,
+    /// target→candidate when <see cref="RelatedToTargetIncoming"/> is set) at
+    /// or above <see cref="RelatedToTargetMinStrength"/>. This is the one-hop
+    /// causal filter that lets bundles bind entities already storied with the
+    /// target: an ally who answers a call, a member who falls in the war.
+    /// </summary>
+    public string? RelatedToTargetRelationship { get; init; }
+
+    public bool RelatedToTargetIncoming { get; init; }
+
+    public float RelatedToTargetMinStrength { get; init; } = 0.1f;
 }
 
 public sealed class SemanticGeneratorBindingTarget

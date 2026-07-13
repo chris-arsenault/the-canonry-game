@@ -637,7 +637,10 @@ internal sealed class KernelConfigurationContext
         bool samePhysicalCultureComponentAsTarget,
         int requiredTagBits = 0,
         int withoutTagBits = 0,
-        int cultureId = 0) =>
+        int cultureId = 0,
+        int relatedToTargetKindId = 0,
+        bool relatedToTargetIncoming = false,
+        float relatedToTargetMinStrength = 0f) =>
         _kernel.Generators.AddSecondaryBinding(
             generatorSlot,
             refCode,
@@ -647,7 +650,10 @@ internal sealed class KernelConfigurationContext
             samePhysicalCultureComponentAsTarget ? 1 : 0,
             requiredTagBits,
             withoutTagBits,
-            cultureId);
+            cultureId,
+            relatedToTargetKindId,
+            relatedToTargetIncoming ? 1 : 0,
+            relatedToTargetMinStrength);
 
     public void AddGeneratorBindingSubtype(int bindingSlot, int subtypeId) =>
         _kernel.Generators.AddBindingSubtype(bindingSlot, subtypeId);
@@ -688,7 +694,10 @@ internal sealed class KernelConfigurationContext
         bool querySamePhysicalCultureComponentAsTarget,
         int queryRequiredTagBits = 0,
         int queryWithoutTagBits = 0,
-        int queryCultureId = 0) =>
+        int queryCultureId = 0,
+        int queryRelatedToTargetKindId = 0,
+        bool queryRelatedToTargetIncoming = false,
+        float queryRelatedToTargetMinStrength = 0f) =>
         _kernel.Generators.AddProduced(
             generatorSlot,
             refCode,
@@ -719,7 +728,10 @@ internal sealed class KernelConfigurationContext
             fixedCultureId,
             queryRequiredTagBits,
             queryWithoutTagBits,
-            queryCultureId);
+            queryCultureId,
+            queryRelatedToTargetKindId,
+            queryRelatedToTargetIncoming ? 1 : 0,
+            queryRelatedToTargetMinStrength);
 
     public void AddGeneratorProducedSubtypeChoice(int producedSlot, int subtypeId) =>
         _kernel.Generators.AddProducedSubtypeChoice(producedSlot, subtypeId);

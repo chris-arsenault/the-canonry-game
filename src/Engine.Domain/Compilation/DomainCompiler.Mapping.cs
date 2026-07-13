@@ -416,7 +416,10 @@ public static partial class DomainCompiler
             CompileRelationshipKindIds(query.WithoutIncomingRelationships, ids),
             CompileTagBits(query.RequiredTags, ids),
             CompileTagBits(query.WithoutTags, ids),
-            query.Culture is null ? 0 : ids.CultureIdOf(query.Culture).Value);
+            query.Culture is null ? 0 : ids.CultureIdOf(query.Culture).Value,
+            query.RelatedToTargetRelationship is null ? 0 : ids.RelationshipKindIdOf(query.RelatedToTargetRelationship).Value,
+            query.RelatedToTargetIncoming,
+            query.RelatedToTargetMinStrength);
     }
 
     private static GeneratorCoverageRule? CompileGeneratorCoverage(

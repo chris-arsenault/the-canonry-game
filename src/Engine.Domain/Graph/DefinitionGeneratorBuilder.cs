@@ -824,6 +824,9 @@ public static class DefinitionGeneratorBuilder
                 ? null
                 : new HashSet<string>(query.WithoutIncomingRelationships, StringComparer.Ordinal),
             TargetCultureMatch = query.TargetCultureMatch,
+            RelatedToTargetRelationship = query.RelatedToTargetRelationship,
+            RelatedToTargetIncoming = query.RelatedToTargetIncoming,
+            RelatedToTargetMinStrength = query.RelatedToTargetMinStrength,
         };
     }
 

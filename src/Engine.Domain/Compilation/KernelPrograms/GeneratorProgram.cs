@@ -94,7 +94,10 @@ public sealed record GeneratorEntityQueryRule(
     IReadOnlyList<int> WithoutIncomingRelationshipKindIds,
     int RequiredTagBits = 0,
     int WithoutTagBits = 0,
-    int CultureId = 0);
+    int CultureId = 0,
+    int RelatedToTargetKindId = 0,
+    bool RelatedToTargetIncoming = false,
+    float RelatedToTargetMinStrength = 0f);
 
 public sealed record GeneratorCoverageRule(
     GeneratorProgramCoverageMode Mode,

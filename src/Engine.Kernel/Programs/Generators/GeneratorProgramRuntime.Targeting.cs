@@ -284,7 +284,10 @@ internal sealed partial class GeneratorProgramRuntime
                 _bindingWithoutIncomingCounts[binding],
                 _bindingRequiredTagBits[binding],
                 _bindingWithoutTagBits[binding],
-                _bindingCultureIds[binding]);
+                _bindingCultureIds[binding],
+                _bindingRelatedToTargetKindIds[binding],
+                _bindingRelatedToTargetIncoming[binding],
+                _bindingRelatedToTargetMinStrengths[binding]);
             if (entityId == 0)
             {
                 return false;

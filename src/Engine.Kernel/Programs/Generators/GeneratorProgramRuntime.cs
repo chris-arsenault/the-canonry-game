@@ -20,9 +20,15 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _bindingRequiredTagBits => Data.BindingRequiredTagBits;
     private int[] _bindingWithoutTagBits => Data.BindingWithoutTagBits;
     private int[] _bindingCultureIds => Data.BindingCultureIds;
+    private int[] _bindingRelatedToTargetKindIds => Data.BindingRelatedToTargetKindIds;
+    private int[] _bindingRelatedToTargetIncoming => Data.BindingRelatedToTargetIncoming;
+    private float[] _bindingRelatedToTargetMinStrengths => Data.BindingRelatedToTargetMinStrengths;
     private int[] _producedQueryRequiredTagBits => Data.ProducedQueryRequiredTagBits;
     private int[] _producedQueryWithoutTagBits => Data.ProducedQueryWithoutTagBits;
     private int[] _producedQueryCultureIds => Data.ProducedQueryCultureIds;
+    private int[] _producedQueryRelatedToTargetKindIds => Data.ProducedQueryRelatedToTargetKindIds;
+    private int[] _producedQueryRelatedToTargetIncoming => Data.ProducedQueryRelatedToTargetIncoming;
+    private float[] _producedQueryRelatedToTargetMinStrengths => Data.ProducedQueryRelatedToTargetMinStrengths;
     private int[] _nextCadenceFireTicks => State.NextCadenceFireTicks;
     private int[] _maxRuns => Data.MaxRuns;
     private int[] _runCounts => State.RunCounts;
@@ -375,7 +381,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _triggerCounts[generatorSlot]++;
     }
 
-
     public void AddBindingSubtype(int bindingSlot, int subtypeId)
     {
         EnsureOpenBinding(bindingSlot);
@@ -395,194 +400,6 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         EnsureOpenBinding(bindingSlot);
         AddRelationshipKindFilterId(relationshipKindId);
         _bindingWithoutIncomingCounts[bindingSlot]++;
-    }
-
-    public int AddProduced(
-        int generatorSlot,
-        int refCode,
-        int kindId,
-        int subtypeId,
-        int createIfMissing,
-        int hasQuery,
-        int queryAdjacentToTarget,
-        int queryCultureMatchCode,
-        int physicalPlacementCode,
-        int semanticPlacementCode,
-        int placementRefCode,
-        int cultureRefCode,
-        float createChance,
-        int coverageModeCode,
-        int coverageSourceRefCode,
-        int coverageDesiredCellCount,
-        int coverageMinimumCellCount,
-        int coverageMinimumSourceRemainingCellCount,
-        int coverageRespectTerrainBoundaries,
-        int coverageTransformTerrainId,
-        int physicalPlacementMinRadius = GeneratorProgramConstants.DefaultPlacementMinRadius,
-        int physicalPlacementMaxRadius = GeneratorProgramConstants.DefaultPlacementMaxRadius,
-        int semanticPlacementMinRadius = GeneratorProgramConstants.DefaultPlacementMinRadius,
-        int semanticPlacementMaxRadius = GeneratorProgramConstants.DefaultPlacementMaxRadius,
-        int culturePlacementCode = GeneratorCulturePlacementCodes.PreferInheritedCulture,
-        int querySamePhysicalCultureComponentAsTarget = 0,
-        int fixedCultureId = 0,
-        int queryRequiredTagBits = 0,
-        int queryWithoutTagBits = 0,
-        int queryCultureId = 0)
-    {
-        EnsureOpenGenerator(generatorSlot);
-        ValidateProducedIdentity(refCode, kindId, subtypeId, queryCultureMatchCode);
-        ValidatePositive(physicalPlacementCode);
-        ValidatePositive(semanticPlacementCode);
-        ValidateProducedPlacementRadii(
-            physicalPlacementMinRadius,
-            physicalPlacementMaxRadius,
-            semanticPlacementMinRadius,
-            semanticPlacementMaxRadius);
-        ValidatePositive(placementRefCode);
-        ValidateProducedCultureSource(cultureRefCode, fixedCultureId);
-        ValidatePositive(culturePlacementCode);
-        if (createChance < 0f || createChance > 1f)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        if (_producedCount + 1 >= _producedRefCodes.Length)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _producedCount++;
-        StoreProducedDefinition(
-            _producedCount,
-            refCode,
-            kindId,
-            subtypeId,
-            createIfMissing,
-            hasQuery,
-            queryAdjacentToTarget,
-            queryCultureMatchCode,
-            physicalPlacementCode,
-            semanticPlacementCode,
-            placementRefCode,
-            cultureRefCode,
-            fixedCultureId,
-            createChance,
-            coverageModeCode,
-            coverageSourceRefCode,
-            coverageDesiredCellCount,
-            coverageMinimumCellCount,
-            coverageMinimumSourceRemainingCellCount,
-            coverageRespectTerrainBoundaries,
-            coverageTransformTerrainId,
-            physicalPlacementMinRadius,
-            physicalPlacementMaxRadius,
-            semanticPlacementMinRadius,
-            semanticPlacementMaxRadius,
-            culturePlacementCode,
-            querySamePhysicalCultureComponentAsTarget);
-        _producedQueryRequiredTagBits[_producedCount] = queryRequiredTagBits;
-        _producedQueryWithoutTagBits[_producedCount] = queryWithoutTagBits;
-        _producedQueryCultureIds[_producedCount] = queryCultureId;
-        _producedCounts[generatorSlot]++;
-        _openProducedSlot = _producedCount;
-        return _producedCount;
-    }
-
-    private static void ValidateProducedIdentity(int refCode, int kindId, int subtypeId, int queryCultureMatchCode)
-    {
-        ValidatePositive(refCode);
-        ValidatePositive(kindId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(subtypeId);
-        ValidatePositive(queryCultureMatchCode);
-    }
-
-    private static void ValidateProducedCultureSource(int cultureRefCode, int fixedCultureId)
-    {
-        if (cultureRefCode <= 0 && fixedCultureId <= 0)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-    }
-
-    private static void ValidateProducedPlacementRadii(
-        int physicalPlacementMinRadius,
-        int physicalPlacementMaxRadius,
-        int semanticPlacementMinRadius,
-        int semanticPlacementMaxRadius)
-    {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(physicalPlacementMinRadius);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(physicalPlacementMaxRadius);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(semanticPlacementMinRadius);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(semanticPlacementMaxRadius);
-        if (physicalPlacementMaxRadius < physicalPlacementMinRadius ||
-            semanticPlacementMaxRadius < semanticPlacementMinRadius)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-    }
-
-    private void StoreProducedDefinition(
-        int producedSlot,
-        int refCode,
-        int kindId,
-        int subtypeId,
-        int createIfMissing,
-        int hasQuery,
-        int queryAdjacentToTarget,
-        int queryCultureMatchCode,
-        int physicalPlacementCode,
-        int semanticPlacementCode,
-        int placementRefCode,
-        int cultureRefCode,
-        int fixedCultureId,
-        float createChance,
-        int coverageModeCode,
-        int coverageSourceRefCode,
-        int coverageDesiredCellCount,
-        int coverageMinimumCellCount,
-        int coverageMinimumSourceRemainingCellCount,
-        int coverageRespectTerrainBoundaries,
-        int coverageTransformTerrainId,
-        int physicalPlacementMinRadius,
-        int physicalPlacementMaxRadius,
-        int semanticPlacementMinRadius,
-        int semanticPlacementMaxRadius,
-        int culturePlacementCode,
-        int querySamePhysicalCultureComponentAsTarget)
-    {
-        _producedRefCodes[producedSlot] = refCode;
-        _producedKindIds[producedSlot] = kindId;
-        _producedSubtypeIds[producedSlot] = subtypeId;
-        _producedCreateIfMissing[producedSlot] = createIfMissing;
-        _producedHasQuery[producedSlot] = hasQuery;
-        _producedPhysicalPlacementCodes[producedSlot] = physicalPlacementCode;
-        _producedSemanticPlacementCodes[producedSlot] = semanticPlacementCode;
-        _producedPhysicalPlacementMinRadii[producedSlot] = physicalPlacementMinRadius;
-        _producedPhysicalPlacementMaxRadii[producedSlot] = physicalPlacementMaxRadius;
-        _producedSemanticPlacementMinRadii[producedSlot] = semanticPlacementMinRadius;
-        _producedSemanticPlacementMaxRadii[producedSlot] = semanticPlacementMaxRadius;
-        _producedPlacementRefCodes[producedSlot] = placementRefCode;
-        _producedCultureRefCodes[producedSlot] = cultureRefCode;
-        _producedFixedCultureIds[producedSlot] = fixedCultureId;
-        _producedCulturePlacementCodes[producedSlot] = culturePlacementCode;
-        _producedCreateChances[producedSlot] = createChance;
-        _producedQueryAdjacentToTarget[producedSlot] = queryAdjacentToTarget;
-        _producedQueryCultureMatchCodes[producedSlot] = queryCultureMatchCode;
-        _producedQuerySamePhysicalCultureComponentAsTarget[producedSlot] = querySamePhysicalCultureComponentAsTarget;
-        _producedCoverageModeCodes[producedSlot] = coverageModeCode;
-        _producedCoverageSourceRefCodes[producedSlot] = coverageSourceRefCode;
-        _producedCoverageDesiredCellCounts[producedSlot] = coverageDesiredCellCount;
-        _producedCoverageMinimumCellCounts[producedSlot] = coverageMinimumCellCount;
-        _producedCoverageMinimumSourceRemainingCellCounts[producedSlot] = coverageMinimumSourceRemainingCellCount;
-        _producedCoverageRespectTerrainBoundaries[producedSlot] = coverageRespectTerrainBoundaries;
-        _producedCoverageTransformTerrainIds[producedSlot] = coverageTransformTerrainId;
-        _producedSubtypeChoiceStarts[producedSlot] = _subtypeCount + 1;
-        _producedQuerySubtypeStarts[producedSlot] = _subtypeCount + 1;
-        _producedQueryWithoutOutgoingStarts[producedSlot] = _relationshipKindFilterCount + 1;
-        _producedQueryWithoutIncomingStarts[producedSlot] = _relationshipKindFilterCount + 1;
-        InitializeProducedPlacementTerrainFilters(producedSlot);
-        _producedCoveragePreferredTerrainStarts[producedSlot] = _terrainFilterCount + 1;
-        _producedCoverageAllowedTerrainStarts[producedSlot] = _terrainFilterCount + 1;
     }
 
     public void AddProducedSubtypeChoice(int producedSlot, int subtypeId)
