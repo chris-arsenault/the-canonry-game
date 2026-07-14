@@ -10,7 +10,7 @@ using Rel = IceRemembers.IceRemembersRelationship;
 /// These generators fire only on entities the Chronicle Director vouches for
 /// (chronicle-heat and legendary-resolution gates), so remembrance flows
 /// through ordinary world authorship - the director itself writes nothing.
-/// Witness-stones rise for the cast of blazing stories; tales that resolve
+/// Remembrance-stones rise for the cast of blazing stories; tales that resolve
 /// at legendary heat enter a culture's canon as sagas.
 /// </summary>
 public static partial class IceRemembersGeneratorDefinition
@@ -30,7 +30,7 @@ public static partial class IceRemembersGeneratorDefinition
     {
         Id = "the_ice_takes_notice",
         Name = "The Ice Takes Notice",
-        Description = "A story burning hot enough is witnessed. A stone is raised for the one at its center - remembrance for the living, not the dead.",
+        Description = "A story burning hot enough does not go unmarked. A remembrance-stone is raised for the one at its center - memory for the living, not the dead.",
         CausalLimit = "Depends on the target being cast in a running chronicle at high heat; creates one memorial artifact bound to the target.",
         Target = new SemanticGeneratorTarget
         {
@@ -47,7 +47,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$stone", "$target", Rel.Memorializes, 0.75f),
         ],
         Triggers = TriggerOn(K.Penguin),
-        // Witness-stones are rare by gate (chronicle heat), not by lottery:
+        // Remembrance-stones are rare by gate (chronicle heat), not by lottery:
         // the eligibility windows are brief blazing-story moments, so when
         // one arrives the ice must not lose the pulse to routine growth.
         PulseWeight = 50,

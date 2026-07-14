@@ -300,8 +300,9 @@ roles first and biases future events into the beats.
     charge-only beats, old resolution Whens as terminal recognitions,
     dice endings dropped, fades authored — some as positive quiet endings:
     "the practice endures", "the road endures quietly").
-  - Terminology: the legend-making memory layer is named remembrance (not
-    witness); it is C3 with convergence pull/entrance beats as C2.
+  - Terminology: the legend-making memory layer is named remembrance; it
+    is C3 with convergence pull/entrance beats as C2. The word from the
+    earlier draft name is retired from all chronicle content by decision.
   - Live 12k harness after pacing tune: spans 50-4210 ticks (the fixed
     405/800/900 clusters dissolved), dramatic endings emerged from world
     facts (terror driven off x2, hunt fulfilled x2, run cleansed, rivalry
@@ -376,13 +377,13 @@ roles first and biases future events into the beats.
   ChronicleLegendaryWithinTicks (recently resolved out of a chronicle
   whose final heat reached the legendary threshold of 8 - the suppression
   ring now records final heat). Two authored generators: the_ice_takes_
-  notice (witness-stone artifact memorializing the living center of a
+  notice (remembrance-stone artifact memorializing the living center of a
   blazing story, gated heat >= 6, deduped on incoming memorializes) and
   legend_enters_the_canon (births a saga - new canon subtype with its own
   name forms - claiming semantic jurisdiction around a legend within 1500
   ticks of a legendary resolution, memorializing and claiming them).
-  Remembrance is the C3 name for the legend-making layer (witness was
-  judged too Malazan).
+  Remembrance is the C3 name for the legend-making layer; the earlier
+  draft name was judged too Malazan and is retired from chronicle content.
 
 ## Scope notes and follow-ups discovered during R1-R4
 

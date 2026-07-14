@@ -70,7 +70,7 @@ target is cast in a running chronicle at or above the heat) and
 `ChronicleLegendaryWithinTicks` (the target recently resolved out of a
 chronicle whose final heat reached the legendary threshold; the suppression
 ring records final heat for this). Ice Remembers authors two: *The Ice Takes
-Notice* raises a witness-stone (memorial artifact) for the living center of
+Notice* raises a remembrance-stone (memorial artifact) for the living center of
 a blazing story, and *The Legend Enters the Canon* births a **saga** — a new
 canon subtype — claiming semantic ground around a legend whose tale resolved
 at legendary heat, memorializing them inside the culture's law and lore.
