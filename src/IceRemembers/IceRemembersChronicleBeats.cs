@@ -184,6 +184,14 @@ internal static class Beat
     internal static ChronicleStrikeConfig OutsiderOn(string target, string? gambit = null) =>
         new() { Kind = ChronicleStrikeKind.OutsiderGambitOnRole, TargetRole = target, Gambit = gambit };
 
+    /// <summary>Entrance: the outsider acting on the role joins the open role (attempt suffices).</summary>
+    internal static ChronicleStrikeConfig OutsiderJoins(string target, string joinsRole, string? gambit = null) =>
+        new() { Kind = ChronicleStrikeKind.OutsiderGambitOnRole, TargetRole = target, Gambit = gambit, JoinsRole = joinsRole, AcceptFailure = true };
+
+    /// <summary>Entrance: the outside target of the role's deed joins the open role (on success).</summary>
+    internal static ChronicleStrikeConfig RoleDrawsIn(string actor, string gambit, string joinsRole) =>
+        new() { Kind = ChronicleStrikeKind.RoleGambit, ActorRole = actor, Gambit = gambit, JoinsRole = joinsRole };
+
     internal static ChronicleStrikeConfig RoleActs(string actor, string gambit) =>
         new() { Kind = ChronicleStrikeKind.RoleGambit, ActorRole = actor, Gambit = gambit };
 

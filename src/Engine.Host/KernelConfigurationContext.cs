@@ -739,8 +739,8 @@ internal sealed class KernelConfigurationContext
     public int AddChronicleArchetype(int archetypeId, int maxActive, int castingCadenceTicks, int primaryKindId, int primaryRequiredRelKindId, float primaryRequiredRelMinStrength, int fadeOutcomeCodeId) =>
         _kernel.Chronicles.AddArchetype(archetypeId, maxActive, castingCadenceTicks, primaryKindId, primaryRequiredRelKindId, primaryRequiredRelMinStrength, fadeOutcomeCodeId);
 
-    public void AddChronicleRole(int archetypeSlot, int kindId, int relatedKindId, bool relatedIncoming, float relatedMinStrength) =>
-        _kernel.Chronicles.AddRole(archetypeSlot, kindId, relatedKindId, relatedIncoming ? 1 : 0, relatedMinStrength);
+    public void AddChronicleRole(int archetypeSlot, int kindId, int relatedKindId, bool relatedIncoming, float relatedMinStrength, bool open = false) =>
+        _kernel.Chronicles.AddRole(archetypeSlot, kindId, relatedKindId, relatedIncoming ? 1 : 0, relatedMinStrength, open ? 1 : 0);
 
     public int AddChronicleBeat(
         int archetypeSlot,
@@ -757,6 +757,7 @@ internal sealed class KernelConfigurationContext
         int strikeTargetRole,
         int strikeGambitId,
         bool strikeAcceptFailure,
+        int strikeJoinRole,
         int strikeFactKind,
         int strikeFactRoleA,
         int strikeFactRoleB,
@@ -777,6 +778,7 @@ internal sealed class KernelConfigurationContext
             strikeTargetRole,
             strikeGambitId,
             strikeAcceptFailure ? 1 : 0,
+            strikeJoinRole,
             strikeFactKind,
             strikeFactRoleA,
             strikeFactRoleB,

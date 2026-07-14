@@ -21,7 +21,8 @@ public sealed record CompiledChronicleRole(
     int KindId,
     int RelatedKindId,
     bool RelatedIncoming,
-    float RelatedMinStrength);
+    float RelatedMinStrength,
+    bool Open = false);
 
 public sealed record CompiledChronicleBeat(
     int BeatCodeId,
@@ -33,6 +34,7 @@ public sealed record CompiledChronicleBeat(
     int StrikeTargetRole,
     int StrikeGambitId,
     bool StrikeAcceptFailure,
+    int StrikeJoinRole,
     CompiledChronicleCondition StrikeFact,
     IReadOnlyList<CompiledChronicleCharge> Charges,
     IReadOnlyList<CompiledChronicleGrant> Grants);

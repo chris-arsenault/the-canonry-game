@@ -49,7 +49,8 @@ internal sealed partial class ChronicleProgramRuntime
         {
             var ordinal = beat - beatStart;
             if (!BeatIsOpen(chronicle, ordinal) ||
-                !ExecutionStrikes(chronicle, beat, pendingKind, actorId, targetId, producerId, succeeded))
+                !ExecutionStrikes(chronicle, beat, pendingKind, actorId, targetId, producerId, succeeded) ||
+                !TryJoinOnStrike(world, chronicle, archetype, beat, actorId, targetId))
             {
                 continue;
             }
@@ -60,6 +61,53 @@ internal sealed partial class ChronicleProgramRuntime
                 return;
             }
         }
+    }
+
+    /// <summary>
+    /// Entrance beats bind the outside party into an open role; a
+    /// convergence entrance without a qualified entrant is no strike.
+    /// </summary>
+    private bool TryJoinOnStrike(WorldState world, int chronicle, int archetype, int beat, int actorId, int targetId)
+    {
+        if (Data.BeatJoinRoles[beat] == 0)
+        {
+            return true;
+        }
+
+        var joiner = JoinCandidate(world, chronicle, archetype, beat, actorId, targetId);
+        if (joiner == 0)
+        {
+            return false;
+        }
+
+        SetRoleEntity(chronicle, Data.BeatJoinRoles[beat], joiner);
+        return true;
+    }
+
+    /// <summary>
+    /// The joining party of an entrance strike: the outsider acting on a
+    /// role, or the outside target of a role's deed. Must be alive, of the
+    /// open role's kind, not already cast, and the role must be empty.
+    /// </summary>
+    private int JoinCandidate(WorldState world, int chronicle, int archetype, int beat, int actorId, int targetId)
+    {
+        var joinRole = Data.BeatJoinRoles[beat];
+        var candidate = Data.BeatStrikeKinds[beat] switch
+        {
+            ChronicleStrikeCodes.OutsiderGambitOnRole => actorId,
+            ChronicleStrikeCodes.RoleGambit => targetId,
+            _ => 0,
+        };
+        if (candidate <= 0 ||
+            !world.EntityIsActive(candidate) ||
+            CastContains(chronicle, candidate) ||
+            RoleEntity(chronicle, joinRole) != 0)
+        {
+            return 0;
+        }
+
+        var roleKindId = Data.RoleKindIds[Data.ArchetypeRoleStarts[archetype] + joinRole];
+        return world.EntityKindId(candidate) == roleKindId ? candidate : 0;
     }
 
     private bool ExecutionStrikes(int chronicle, int beat, int pendingKind, int actorId, int targetId, int producerId, bool succeeded)

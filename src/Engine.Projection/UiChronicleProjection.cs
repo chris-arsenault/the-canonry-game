@@ -36,7 +36,8 @@ public sealed record UiChronicleTale(
     bool Resolved,
     int OutcomeCodeId,
     string OutcomeName,
-    IReadOnlyList<UiChronicleEntityRef> Cast);
+    IReadOnlyList<UiChronicleEntityRef> Cast,
+    IReadOnlyList<int> RoleIds);
 
 /// <summary>
 /// A fully narrated chronicle for presentation: forged title, outcome
@@ -150,9 +151,11 @@ public sealed class UiChronicleProjection : KernelEventProjector
             struckBeats++;
         }
 
+        IReadOnlyList<int> roleIds = [evt.RoleEntityId0, evt.RoleEntityId1, evt.RoleEntityId2, evt.RoleEntityId3];
         if (cast.Count == 0 && previous is not null)
         {
             cast = new List<UiChronicleEntityRef>(previous.Cast);
+            roleIds = previous.RoleIds;
         }
 
         var tale = new UiChronicleTale(
@@ -165,7 +168,8 @@ public sealed class UiChronicleProjection : KernelEventProjector
             resolved,
             ResolvedOutcomeCodeId(evt, resolved, previous),
             ResolvedOutcomeName(evt, resolved, previous),
-            cast);
+            cast,
+            roleIds);
         _tales[evt.ChronicleSequence] = tale;
         RebuildTaleOrder();
         return tale;

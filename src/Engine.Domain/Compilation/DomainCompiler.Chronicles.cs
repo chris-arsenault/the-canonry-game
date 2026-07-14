@@ -53,6 +53,11 @@ public static partial class DomainCompiler
             indices[archetype.SupportingRoles[role].Ref] = role + 1;
         }
 
+        for (var open = 0; open < archetype.OpenRoles.Count; open++)
+        {
+            indices[archetype.OpenRoles[open].Ref] = archetype.SupportingRoles.Count + 1 + open;
+        }
+
         foreach (var (stance, roleRef) in archetype.Stances)
         {
             if (!indices.ContainsKey(roleRef))
@@ -78,6 +83,16 @@ public static partial class DomainCompiler
                 query?.RelatedToTargetMinStrength ?? 0f));
         }
 
+        foreach (var open in archetype.OpenRoles)
+        {
+            roles.Add(new CompiledChronicleRole(
+                ids.KindIdOf(open.Kind.Value).Value,
+                RelatedKindId: 0,
+                RelatedIncoming: false,
+                RelatedMinStrength: 0f,
+                Open: true));
+        }
+
         return roles;
     }
 
@@ -99,6 +114,7 @@ public static partial class DomainCompiler
             RoleIndex(archetype, strike.TargetRole, roleIndices),
             CompileStrikeProducerId(strike, ids),
             strike.AcceptFailure,
+            CompileJoinRole(archetype, beat, roleIndices),
             strike.Fact is null
                 ? new CompiledChronicleCondition(ChronicleConditionCodes.None, 0, 0, 0, 0f)
                 : CompileChronicleCondition(archetype, strike.Fact, ids, roleIndices),
@@ -131,6 +147,32 @@ public static partial class DomainCompiler
         ChronicleStrikeKind.GeneratorOnRole => strike.TargetRole is not null,
         _ => false,
     };
+
+    private static int CompileJoinRole(
+        ChronicleArchetypeConfig archetype,
+        ChronicleBeatConfig beat,
+        Dictionary<string, int> roleIndices)
+    {
+        var joinsRole = beat.Strike.JoinsRole;
+        if (joinsRole is null)
+        {
+            return 0;
+        }
+
+        if (beat.Strike.Kind is not ChronicleStrikeKind.OutsiderGambitOnRole and not ChronicleStrikeKind.RoleGambit)
+        {
+            throw new InvalidOperationException(
+                $"Chronicle beat '{beat.Id}' of archetype '{archetype.Id}' joins a role from a {beat.Strike.Kind} strike; entrances need an outside party.");
+        }
+
+        if (!archetype.OpenRoles.Any(open => string.Equals(open.Ref, joinsRole, StringComparison.Ordinal)))
+        {
+            throw new InvalidOperationException(
+                $"Chronicle beat '{beat.Id}' of archetype '{archetype.Id}' joins '{joinsRole}', which is not an open role.");
+        }
+
+        return RoleIndex(archetype, joinsRole, roleIndices);
+    }
 
     /// <summary>
     /// The strike's producer filter shares one kernel column: gambit ids for

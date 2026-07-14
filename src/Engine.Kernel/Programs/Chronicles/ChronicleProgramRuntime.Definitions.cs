@@ -41,7 +41,7 @@ internal sealed partial class ChronicleProgramRuntime
         return slot;
     }
 
-    public void AddRole(int archetypeSlot, int kindId, int relatedKindId, int relatedIncoming, float relatedMinStrength)
+    public void AddRole(int archetypeSlot, int kindId, int relatedKindId, int relatedIncoming, float relatedMinStrength, int open = 0)
     {
         EnsureOpenArchetype(archetypeSlot);
         ValidatePositive(kindId);
@@ -56,6 +56,7 @@ internal sealed partial class ChronicleProgramRuntime
         Data.RoleRelatedKindIds[Data.RoleCount] = relatedKindId;
         Data.RoleRelatedIncoming[Data.RoleCount] = relatedIncoming;
         Data.RoleRelatedMinStrengths[Data.RoleCount] = relatedMinStrength;
+        Data.RoleOpen[Data.RoleCount] = open;
         Data.ArchetypeRoleCounts[archetypeSlot]++;
     }
 
@@ -74,6 +75,7 @@ internal sealed partial class ChronicleProgramRuntime
         int strikeTargetRole,
         int strikeGambitId,
         int strikeAcceptFailure,
+        int strikeJoinRole,
         int strikeFactKind,
         int strikeFactRoleA,
         int strikeFactRoleB,
@@ -103,6 +105,7 @@ internal sealed partial class ChronicleProgramRuntime
         Data.BeatStrikeTargetRoles[beat] = strikeTargetRole;
         Data.BeatStrikeGambitIds[beat] = strikeGambitId;
         Data.BeatStrikeAcceptFailure[beat] = strikeAcceptFailure;
+        Data.BeatJoinRoles[beat] = strikeJoinRole;
         Data.BeatStrikeFactKinds[beat] = strikeFactKind;
         Data.BeatStrikeFactRoleA[beat] = strikeFactRoleA;
         Data.BeatStrikeFactRoleB[beat] = strikeFactRoleB;

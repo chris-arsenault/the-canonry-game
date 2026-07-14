@@ -90,6 +90,7 @@ public sealed class ChronicleProgramRuntimeTests
             strikeTargetRole: 0,
             strikeGambitId: SlayGambitId,
             strikeAcceptFailure: 0,
+            strikeJoinRole: 0,
             strikeFactKind: ChronicleConditionCodes.None,
             strikeFactRoleA: 0,
             strikeFactRoleB: 0,
@@ -110,6 +111,7 @@ public sealed class ChronicleProgramRuntimeTests
             strikeTargetRole: 0,
             strikeGambitId: WarGeneratorId,
             strikeAcceptFailure: 0,
+            strikeJoinRole: 0,
             strikeFactKind: ChronicleConditionCodes.None,
             strikeFactRoleA: 0,
             strikeFactRoleB: 0,
@@ -141,6 +143,53 @@ public sealed class ChronicleProgramRuntimeTests
             fadeOutcomeCodeId: FadeOutcomeCode);
         simulation.Chronicles.AddRole(archetype, PenguinKind, AtWarRel, relatedIncoming: 0, relatedMinStrength: 0.3f);
         return archetype;
+    }
+
+    [Fact]
+    public void Chronicle_EntranceBeatJoinsQualifiedOutsiderToOpenRole()
+    {
+        var simulation = CreateSimulation();
+        var (quarry, hunter) = SeedHuntWorld(simulation);
+        var second = simulation.CreateEntity(PenguinKind, 1, 1, 0, 3, 0, 0, 0, 0);
+        var archetype = DefineMinimalArchetype(simulation);
+        simulation.Chronicles.AddRole(archetype, PenguinKind, 0, relatedIncoming: 0, relatedMinStrength: 0f, open: 1);
+        _ = simulation.Chronicles.AddBeat(
+            archetype,
+            PairBeatCode,
+            heatGain: 2.5f,
+            terminalOutcomeCodeId: 0,
+            openKind: ChronicleConditionCodes.Always,
+            openRoleA: 0,
+            openRoleB: 0,
+            openRelOrAttrId: 0,
+            openValue: 0f,
+            strikeKind: ChronicleStrikeCodes.OutsiderGambitOnRole,
+            strikeActorRole: 0,
+            strikeTargetRole: 0,
+            strikeGambitId: 0,
+            strikeAcceptFailure: 1,
+            strikeJoinRole: 2,
+            strikeFactKind: ChronicleConditionCodes.None,
+            strikeFactRoleA: 0,
+            strikeFactRoleB: 0,
+            strikeFactRelOrAttrId: 0,
+            strikeFactValue: 0f);
+
+        simulation.Chronicles.Tick(simulation, tick: 20);
+        Assert.True(simulation.Chronicles.State.Active[1]);
+
+        // A wrong-kind outsider does not enter; the entrance beat holds.
+        var monsterOutsider = simulation.CreateEntity(MonsterKind, 1, 1, 0, 4, 0, 0, 0, 0);
+        simulation.Chronicles.NoteExecution(monsterOutsider, quarry, SlayGambitId, succeeded: true);
+        simulation.Chronicles.Tick(simulation, tick: 25);
+        Assert.Equal(0L, simulation.Chronicles.State.StruckMasks[1]);
+
+        // A qualified outsider penguin acting on the quarry joins the cast.
+        simulation.Chronicles.NoteExecution(second, quarry, SlayGambitId, succeeded: true);
+        simulation.Chronicles.Tick(simulation, tick: 30);
+        Assert.NotEqual(0L, simulation.Chronicles.State.StruckMasks[1]);
+        Assert.Equal(second, simulation.Chronicles.State.RoleEntityIds[ChronicleProgramData.MaxRolesPerArchetype + 2]);
+        Assert.NotEqual(hunter, second);
     }
 
     [Fact]
@@ -195,6 +244,7 @@ public sealed class ChronicleProgramRuntimeTests
             strikeTargetRole: 0,
             strikeGambitId: 0,
             strikeAcceptFailure: 0,
+            strikeJoinRole: 0,
             strikeFactKind: ChronicleConditionCodes.None,
             strikeFactRoleA: 0,
             strikeFactRoleB: 0,
@@ -217,6 +267,7 @@ public sealed class ChronicleProgramRuntimeTests
             strikeTargetRole: 0,
             strikeGambitId: 0,
             strikeAcceptFailure: 0,
+            strikeJoinRole: 0,
             strikeFactKind: ChronicleConditionCodes.RoleHistorical,
             strikeFactRoleA: 0,
             strikeFactRoleB: 0,

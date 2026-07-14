@@ -25,6 +25,9 @@ internal sealed partial class ChronicleProgramRuntime
             return;
         }
 
+        // Slots are reused; a previous tale's cast must never leak into the
+        // next one's unbound roles.
+        ClearRoles(story);
         SetRoleEntity(story, 0, primaryId);
         if (!BindSupportingRoles(simulation, world, archetype, story, primaryId))
         {
@@ -139,6 +142,12 @@ internal sealed partial class ChronicleProgramRuntime
         for (var roleIndex = 1; roleIndex < roleCount; roleIndex++)
         {
             var role = roleStart + roleIndex;
+            if (Data.RoleOpen[role] != 0)
+            {
+                SetRoleEntity(story, roleIndex, 0);
+                continue;
+            }
+
             var entityId = SelectSupportingRole(simulation, world, role, primaryId);
             if (entityId == 0)
             {

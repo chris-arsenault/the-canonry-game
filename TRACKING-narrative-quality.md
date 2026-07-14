@@ -345,6 +345,23 @@ roles first and biases future events into the beats.
   record" (observed events). Quiet tales are now honestly quiet: a
   practice tale reads as its one true telling line instead of eleven
   lines of unrelated errands.
+- [x] C2a — entrance beats and open roles (2026-07-14, after the "never
+  more than 2 cast members" finding). Convergence's first mechanism:
+  archetypes declare open roles (kind-constrained cast slots that start
+  empty), and entrance beats fill them - the outside party of the strike
+  joins the cast (the outsider acting on a role, or the outside target of
+  a role's deed). An entrance without a qualified entrant is no strike;
+  entrants must be alive, of the role's kind, and not already cast.
+  Authored entrances: the hunt's blood_calls_to_blood ($second penguin
+  answers any attempt on the quarry) and the_binding_hour ($instrument -
+  the binding artifact joins), the terror's the_coast_rises ($second),
+  the rivalry's sworn_to_the_cause (the cold-accord partner joins as
+  $ally), the haunted run's salt_and_iron ($instrument). Joined roles
+  carry their own charges (the second's slay is heat-scaled). Template
+  filling is now role-id aligned (UiChronicleTale.RoleIds) so narratives
+  fill correctly around still-empty slots. Live 12k harness: a
+  four-member hunt (quarry, hunter, second, bound artifact), grown
+  terror and haunted-run casts.
 
 ## Scope notes and follow-ups discovered during R1-R4
 

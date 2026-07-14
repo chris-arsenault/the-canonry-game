@@ -64,6 +64,11 @@ public static class IceRemembersChronicleArchetypes
                 },
             },
         ],
+        OpenRoles =
+        [
+            new ChronicleOpenRoleConfig { Ref = "$second", Kind = K.Penguin },
+            new ChronicleOpenRoleConfig { Ref = "$instrument", Kind = K.Artifact },
+        ],
         Stances = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [Prot] = "$hunter",
@@ -77,6 +82,9 @@ public static class IceRemembersChronicleArchetypes
     };
 
     private static List<ChronicleBeatConfig> HuntBeats() =>
+        [.. HuntFieldBeats(), .. HuntEntranceBeats()];
+
+    private static List<ChronicleBeatConfig> HuntFieldBeats() =>
     [
         new ChronicleBeatConfig
         {
@@ -106,13 +114,26 @@ public static class IceRemembersChronicleArchetypes
             HeatGain = 2.5f,
             Charges = [Beat.Charge("$quarry", "$hunter", null, 1.5f)],
         },
+    ];
+
+    private static List<ChronicleBeatConfig> HuntEntranceBeats() =>
+    [
         new ChronicleBeatConfig
         {
             Id = "the_binding_hour",
-            Narrative = "An old instrument is brought to bear against {$quarry}.",
+            Narrative = "{$instrument} is brought to bear against {$quarry}. The hunt has an instrument now.",
             Open = Beat.Always(),
-            Strike = Beat.OutsiderOn("$quarry", "artifact_binds_monster"),
+            Strike = Beat.OutsiderJoins("$quarry", "$instrument", "artifact_binds_monster"),
             HeatGain = 2.5f,
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "blood_calls_to_blood",
+            Narrative = "{$second} takes up the hunt beside {$hunter}. Blood calls to blood.",
+            Open = Beat.Always(),
+            Strike = Beat.OutsiderJoins("$quarry", "$second"),
+            HeatGain = 2.5f,
+            Charges = [Beat.Charge("$second", "$quarry", "penguin_slays_monster", 2f, heatScaled: true)],
         },
         new ChronicleBeatConfig
         {
@@ -197,6 +218,7 @@ public static class IceRemembersChronicleArchetypes
                 },
             },
         ],
+        OpenRoles = [new ChronicleOpenRoleConfig { Ref = "$ally", Kind = K.Faction }],
         Stances = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [Prot] = "$challenger",
@@ -210,7 +232,7 @@ public static class IceRemembersChronicleArchetypes
     };
 
     private static List<ChronicleBeatConfig> RivalryBeats() =>
-        [.. RivalryCoreBeats(), .. RivalryWarSagaBeats()];
+        [.. RivalryCoreBeats(), .. RivalryWarSagaBeats(), .. RivalryRuinBeats()];
 
     private static List<ChronicleBeatConfig> RivalryCoreBeats() =>
     [
@@ -238,6 +260,15 @@ public static class IceRemembersChronicleArchetypes
     [
         new ChronicleBeatConfig
         {
+            Id = "sworn_to_the_cause",
+            Narrative = "{$ally} swears the cold accord with {$challenger}. The rivalry is no longer a private quarrel.",
+            Open = Beat.Always(),
+            Strike = Beat.RoleDrawsIn("$challenger", "faction_swears_cold_accord", "$ally"),
+            HeatGain = 2.5f,
+            Charges = [Beat.Charge("$ally", "$rival", "faction_declares_territorial_war", 1.5f, heatScaled: true)],
+        },
+        new ChronicleBeatConfig
+        {
             Id = "the_war_is_named",
             Narrative = "The war between {$challenger} and {$rival} has earned a name of its own.",
             Open = Beat.Always(),
@@ -260,6 +291,10 @@ public static class IceRemembersChronicleArchetypes
             Strike = Beat.GeneratorOn("$rival", "war_takes_its_toll"),
             HeatGain = 2.5f,
         },
+    ];
+
+    private static List<ChronicleBeatConfig> RivalryRuinBeats() =>
+    [
         new ChronicleBeatConfig
         {
             Id = "the_ruin_of_the_challenger",
@@ -574,6 +609,7 @@ public static class IceRemembersChronicleArchetypes
                 Query = new SemanticEntityQuery { RelatedToTargetRelationship = "corrupted_by", RelatedToTargetIncoming = true, RelatedToTargetMinStrength = 0.5f },
             },
         ],
+        OpenRoles = [new ChronicleOpenRoleConfig { Ref = "$instrument", Kind = K.Artifact }],
         Stances = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [Prot] = "$vessel",
@@ -617,9 +653,9 @@ public static class IceRemembersChronicleArchetypes
         new ChronicleBeatConfig
         {
             Id = "salt_and_iron",
-            Narrative = "Salt and iron are set against {$haunt}. An instrument remembers its purpose.",
+            Narrative = "{$instrument} is set against {$haunt}. An instrument remembers its purpose.",
             Open = Beat.Always(),
-            Strike = Beat.OutsiderOn("$haunt", "artifact_binds_monster"),
+            Strike = Beat.OutsiderJoins("$haunt", "$instrument", "artifact_binds_monster"),
             HeatGain = 2.5f,
         },
         new ChronicleBeatConfig
@@ -751,6 +787,7 @@ public static class IceRemembersChronicleArchetypes
                 Query = new SemanticEntityQuery { RelatedToTargetRelationship = "at_war_with", RelatedToTargetMinStrength = 0.4f },
             },
         ],
+        OpenRoles = [new ChronicleOpenRoleConfig { Ref = "$second", Kind = K.Penguin }],
         Stances = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             [Prot] = "$foe",
@@ -764,6 +801,9 @@ public static class IceRemembersChronicleArchetypes
     };
 
     private static List<ChronicleBeatConfig> TerrorBeats() =>
+        [.. TerrorRaidBeats(), .. TerrorEndBeats()];
+
+    private static List<ChronicleBeatConfig> TerrorRaidBeats() =>
     [
         new ChronicleBeatConfig
         {
@@ -790,6 +830,19 @@ public static class IceRemembersChronicleArchetypes
             Open = Beat.Always(),
             Strike = Beat.RoleActs("$terror", "orca_raids_trade_route"),
             HeatGain = 2f,
+        },
+    ];
+
+    private static List<ChronicleBeatConfig> TerrorEndBeats() =>
+    [
+        new ChronicleBeatConfig
+        {
+            Id = "the_coast_rises",
+            Narrative = "The coast rises: {$second} joins the watch against {$terror}.",
+            Open = Beat.Always(),
+            Strike = Beat.OutsiderJoins("$terror", "$second"),
+            HeatGain = 2.5f,
+            Charges = [Beat.Charge("$second", "$terror", "penguin_slays_orca", 2f, heatScaled: true)],
         },
         new ChronicleBeatConfig
         {

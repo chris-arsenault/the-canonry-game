@@ -334,6 +334,7 @@ internal sealed class GameDomainKnowledge
         {
             var roleRefs = new List<string> { archetype.PrimaryRoleRef };
             roleRefs.AddRange(archetype.SupportingRoles.Select(static role => role.Ref));
+            roleRefs.AddRange(archetype.OpenRoles.Select(static role => role.Ref));
             var outcomeNarratives = new Dictionary<int, string>();
             var beatNarratives = new Dictionary<int, string>();
             foreach (var beat in ChronicleBeatSet.EffectiveBeats(archetype, sharedBeats))

@@ -262,7 +262,7 @@ internal static partial class KernelProgramInstaller
                 archetype.FadeOutcomeCodeId);
             foreach (var role in archetype.SupportingRoles)
             {
-                context.AddChronicleRole(archetypeSlot, role.KindId, role.RelatedKindId, role.RelatedIncoming, role.RelatedMinStrength);
+                context.AddChronicleRole(archetypeSlot, role.KindId, role.RelatedKindId, role.RelatedIncoming, role.RelatedMinStrength, role.Open);
             }
 
             foreach (var beat in archetype.Beats)
@@ -289,6 +289,7 @@ internal static partial class KernelProgramInstaller
             beat.StrikeTargetRole,
             beat.StrikeGambitId,
             beat.StrikeAcceptFailure,
+            beat.StrikeJoinRole,
             beat.StrikeFact.Kind,
             beat.StrikeFact.RoleA,
             beat.StrikeFact.RoleB,

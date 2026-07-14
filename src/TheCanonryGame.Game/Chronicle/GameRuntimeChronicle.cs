@@ -151,9 +151,21 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
         }
 
         var result = template;
-        for (var role = 0; role < archetype.RoleRefs.Count && role < tale.Cast.Count; role++)
+        for (var role = 0; role < archetype.RoleRefs.Count && role < tale.RoleIds.Count; role++)
         {
-            var name = useReferenceNames ? tale.Cast[role].ReferenceName : tale.Cast[role].DisplayName;
+            var roleId = tale.RoleIds[role];
+            if (roleId <= 0)
+            {
+                continue;
+            }
+
+            var member = tale.Cast.FirstOrDefault(candidate => candidate.EntityId == roleId);
+            if (member is null)
+            {
+                continue;
+            }
+
+            var name = useReferenceNames ? member.ReferenceName : member.DisplayName;
             result = result.Replace($"{{{archetype.RoleRefs[role]}}}", name, StringComparison.Ordinal);
         }
 

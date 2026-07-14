@@ -28,6 +28,12 @@ public sealed class ChronicleArchetypeConfig
     public IReadOnlyList<SemanticGeneratorBindingTarget> SupportingRoles { get; init; } = [];
 
     /// <summary>
+    /// Convergence slots: roles that start empty and are filled when an
+    /// entrance beat strikes - the drawn-in third party joins the cast.
+    /// </summary>
+    public IReadOnlyList<ChronicleOpenRoleConfig> OpenRoles { get; init; } = [];
+
+    /// <summary>
     /// Dramatic stance of each role, e.g. "protagonist" -> "$hunter".
     /// Cross-story beats from the domain's shared library are written against
     /// stance names; a shared beat applies to this archetype only when every
@@ -177,6 +183,13 @@ public sealed class ChronicleStrikeConfig
     /// </summary>
     public bool AcceptFailure { get; init; }
 
+    /// <summary>
+    /// Entrance: the outside party of this strike (the outsider acting on a
+    /// role, or the outside target of a role's deed) joins the named open
+    /// role. The beat only strikes when a qualified entrant joins.
+    /// </summary>
+    public string? JoinsRole { get; init; }
+
     /// <summary>The recognized fact, for StateFact strikes.</summary>
     public ChronicleConditionConfig? Fact { get; init; }
 }
@@ -202,4 +215,11 @@ public sealed class ChronicleGrantConfig
 {
     public required string Role { get; init; }
     public required string Gambit { get; init; }
+}
+
+/// <summary>An open cast slot filled by an entrance beat, not by casting.</summary>
+public sealed class ChronicleOpenRoleConfig
+{
+    public required string Ref { get; init; }
+    public required EntityKind Kind { get; init; }
 }

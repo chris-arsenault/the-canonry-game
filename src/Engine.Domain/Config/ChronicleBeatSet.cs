@@ -80,6 +80,7 @@ public static class ChronicleBeatSet
             Gambit = strike.Gambit,
             Generator = strike.Generator,
             AcceptFailure = strike.AcceptFailure,
+            JoinsRole = strike.JoinsRole,
             Fact = fact,
         };
     }

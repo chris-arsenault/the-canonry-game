@@ -1,7 +1,8 @@
 namespace Engine.Kernel;
 
 /// <summary>
-/// Fixed-capacity chronicle archetype definitions: cast (role queries) and an
+/// Fixed-capacity chronicle archetype definitions: cast (role queries plus
+/// open roles that start empty and are filled by entrance beats) and an
 /// unordered pool of beats. A beat opens on a world/heat condition, charges
 /// the world while open (gambit bias, gambit grants), and strikes on an
 /// execution pattern or state fact. Terminal beats end the chronicle with a
@@ -30,6 +31,7 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
     internal int[] RoleRelatedKindIds = [];
     internal int[] RoleRelatedIncoming = [];
     internal float[] RoleRelatedMinStrengths = [];
+    internal int[] RoleOpen = [];
 
     // Beats (flat).
     internal int[] BeatCodeIds = [];
@@ -50,6 +52,7 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
     internal int[] BeatStrikeFactRoleB = [];
     internal int[] BeatStrikeFactRelOrAttrIds = [];
     internal float[] BeatStrikeFactValues = [];
+    internal int[] BeatJoinRoles = [];
     internal int[] BeatChargeStarts = [];
     internal int[] BeatChargeCounts = [];
     internal int[] BeatGrantStarts = [];
@@ -101,6 +104,7 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
         RoleRelatedKindIds = new int[itemCapacity + 1];
         RoleRelatedIncoming = new int[itemCapacity + 1];
         RoleRelatedMinStrengths = new float[itemCapacity + 1];
+        RoleOpen = new int[itemCapacity + 1];
     }
 
     private void AllocateBeats(int itemCapacity)
@@ -123,6 +127,7 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
         BeatStrikeFactRoleB = new int[itemCapacity + 1];
         BeatStrikeFactRelOrAttrIds = new int[itemCapacity + 1];
         BeatStrikeFactValues = new float[itemCapacity + 1];
+        BeatJoinRoles = new int[itemCapacity + 1];
         BeatChargeStarts = new int[itemCapacity + 1];
         BeatChargeCounts = new int[itemCapacity + 1];
         BeatGrantStarts = new int[itemCapacity + 1];
@@ -142,5 +147,5 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.ChronicleDirector;
 
-    public int SchemaVersion => 3;
+    public int SchemaVersion => 4;
 }

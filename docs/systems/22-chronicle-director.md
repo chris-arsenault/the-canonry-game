@@ -49,9 +49,17 @@ threshold past the grace window, with no strikes inside the quiet window,
 resolves with the archetype's authored fade outcome. Fades are endings, and
 some are authored as good ones ("the road endures quietly").
 
-Planned layers: **convergence** (C2 — map-signal attraction at the story's
-locus, entrance beats that grow the cast) and **remembrance** (C3 — strikes
-strengthen memory edges; legendary resolutions arm canon birth).
+Convergence's first mechanism is live: archetypes declare **open roles**
+(kind-constrained cast slots that start empty), and **entrance beats** fill
+them — the outside party of the strike joins the cast, whether an outsider
+acting on a role (a second hunter answering blood with blood) or the outside
+target of a role's deed (the faction a challenger swears into its cause). An
+entrance without a qualified entrant is no strike. Joined roles carry their
+own charges, so the tale's pull grows with its cast.
+
+Planned layers: **convergence pull** (C2b — map-signal attraction at the
+story's locus) and **remembrance** (C3 — strikes strengthen memory edges;
+legendary resolutions arm canon birth).
 
 ## Cross-story beats and stances
 
