@@ -19,6 +19,9 @@ public partial class BottomBar : PanelContainer
     [Signal]
     public delegate void ReadingsToggleRequestedEventHandler();
 
+    [Signal]
+    public delegate void JournalToggleRequestedEventHandler();
+
     public override void _Ready()
     {
         CustomMinimumSize = new Vector2(0, 40);
@@ -34,6 +37,17 @@ public partial class BottomBar : PanelContainer
 
         _tableauToggleButton.Pressed += () => EmitSignal(SignalName.TableauToggleRequested);
         _readingsToggleButton.Pressed += () => EmitSignal(SignalName.ReadingsToggleRequested);
+
+        var journalButton = new Button
+        {
+            Text = "Journal (J)",
+            TooltipText = "The chronicle journal: the world's unfolding tales and endings.",
+        };
+        StyleButton(journalButton);
+        journalButton.Pressed += () => EmitSignal(SignalName.JournalToggleRequested);
+        var row = GetNode<HBoxContainer>("Row");
+        row.AddChild(journalButton);
+        row.MoveChild(journalButton, _readingsToggleButton.GetIndex() + 1);
 
         _hintLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
         _hintLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);

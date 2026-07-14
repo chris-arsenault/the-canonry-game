@@ -132,6 +132,9 @@ public partial class Main : Node2D
             case Key.G:
                 ToggleAttributeGraph();
                 break;
+            case Key.J:
+                ToggleChronicleJournal();
+                break;
         }
     }
 
@@ -270,6 +273,7 @@ public partial class Main : Node2D
         {
             _bottomBar.TableauToggleRequested += ToggleTableauVisibility;
             _bottomBar.ReadingsToggleRequested += ToggleAttributeGraph;
+            _bottomBar.JournalToggleRequested += ToggleChronicleJournal;
         }
 
         if (_browser is not null)
@@ -336,6 +340,8 @@ public partial class Main : Node2D
     private void OnBrowserEntityFilterChanged() => _renderTree?.InvalidateEntityMap();
 
     private void ToggleAttributeGraph() => _renderTree?.ToggleAttributeGraph();
+
+    private void ToggleChronicleJournal() => _renderTree?.ToggleChronicleJournal();
 
     private void ResetSimulation()
     {

@@ -19,4 +19,4 @@ text = "Readings"
 size_flags_horizontal = 3
 
 [node name="HintLabel" type="Label" parent="Row"]
-text = "SPACE pause   Right step   1/2/3 speed   N names   G readings   R reset   WASD pan   scroll zoom"
+text = "SPACE pause   Right step   1/2/3 speed   N names   G readings   J journal   R reset   WASD pan   scroll zoom"
