@@ -133,14 +133,14 @@ public static class UiTokens
     public const int RadiusLarge = 14;
 
     // Font sizes.
-    public const int SizeTitleLarge = 22;
-    public const int SizeTitleMedium = 18;
-    public const int SizeTitleSmall = 15;
-    public const int SizeBody = 13;
-    public const int SizeBodySmall = 11;
-    public const int SizeCaption = 10;
-    public const int SizeMicro = 9;
-    public const int SizeNumeric = 13;
+    public const int SizeTitleLarge = 33;
+    public const int SizeTitleMedium = 27;
+    public const int SizeTitleSmall = 22;
+    public const int SizeBody = 20;
+    public const int SizeBodySmall = 17;
+    public const int SizeCaption = 15;
+    public const int SizeMicro = 14;
+    public const int SizeNumeric = 20;
 
     // Font fallback chains — system fonts with graceful degradation.
     public static readonly string[] DisplayFontNames =
