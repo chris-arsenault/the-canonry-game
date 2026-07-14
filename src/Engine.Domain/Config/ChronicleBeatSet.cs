@@ -16,12 +16,15 @@ public static class ChronicleBeatSet
         ArgumentNullException.ThrowIfNull(archetype);
         ArgumentNullException.ThrowIfNull(sharedBeats);
         var beats = new List<ChronicleBeatConfig>();
-        foreach (var beat in sharedBeats)
+        if (archetype.Stances.Count > 0)
         {
-            var rewritten = TryRewriteForArchetype(beat, archetype);
-            if (rewritten is not null)
+            foreach (var beat in sharedBeats)
             {
-                beats.Add(rewritten);
+                var rewritten = TryRewriteForArchetype(beat, archetype);
+                if (rewritten is not null)
+                {
+                    beats.Add(rewritten);
+                }
             }
         }
 
@@ -76,6 +79,7 @@ public static class ChronicleBeatSet
             TargetRole = target,
             Gambit = strike.Gambit,
             Generator = strike.Generator,
+            AcceptFailure = strike.AcceptFailure,
             Fact = fact,
         };
     }

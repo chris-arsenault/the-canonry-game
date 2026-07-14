@@ -326,7 +326,7 @@ public sealed class UiChronicleProjection : KernelEventProjector
             entities,
             line);
         Append(entry);
-        AttachBeats(entry, evt.TargetEntityId);
+        AttachBeats(entry, actorEntityId: 0);
     }
 
     protected override void OnRelationshipChanged(long sequence, in RelationshipChangedKernelEvent evt)
@@ -396,14 +396,15 @@ public sealed class UiChronicleProjection : KernelEventProjector
     }
 
     /// <summary>
-    /// An event is a beat when it plays out between cast members, when a cast
-    /// member is the one acting, or when it lands on the tale's protagonist.
+    /// An observed event belongs to a tale's record only when it plays out
+    /// between cast members, or when the world acts ON a cast member (an
+    /// outsider's gambit or a generator landing on them). Cast members'
+    /// routine solo deeds elsewhere are ordinary life, not this story.
     /// </summary>
     private static bool IsBeatFor(UiChronicleTale tale, UiChronicleEntry entry, int actorEntityId)
     {
         var touched = 0;
-        var primaryTouched = false;
-        var primaryId = tale.Cast.Count > 0 ? tale.Cast[0].EntityId : 0;
+        var touchedOther = false;
         foreach (var member in entry.Entities)
         {
             if (!TaleCastContains(tale, member.EntityId))
@@ -412,7 +413,7 @@ public sealed class UiChronicleProjection : KernelEventProjector
             }
 
             touched++;
-            primaryTouched |= member.EntityId == primaryId && primaryId > 0;
+            touchedOther |= member.EntityId != actorEntityId;
         }
 
         if (touched >= 2)
@@ -420,7 +421,7 @@ public sealed class UiChronicleProjection : KernelEventProjector
             return true;
         }
 
-        return touched == 1 && (TaleCastContains(tale, actorEntityId) || primaryTouched);
+        return touched == 1 && touchedOther && !TaleCastContains(tale, actorEntityId);
     }
 
     private void AttachBeat(int chronicleSequence, UiChronicleTale tale, UiChronicleEntry entry)

@@ -60,8 +60,10 @@ public sealed class PrimitiveEventProjectionTests
             RoleEntityId3: 0))));
 
         WriteGambit(log, tick: 20, actorId: 100, targetId: 200);
+        // A cast member's routine solo deed elsewhere is not this story.
         WriteGambit(log, tick: 25, actorId: 100, targetId: 999);
-        WriteGambit(log, tick: 30, actorId: 998, targetId: 997);
+        // The world acting ON a cast member is.
+        WriteGambit(log, tick: 30, actorId: 998, targetId: 200);
         Assert.True(log.TryWrite(KernelEvent.From(new RelationshipChangedKernelEvent(
             Tick: 40,
             WorldVersion: 5,

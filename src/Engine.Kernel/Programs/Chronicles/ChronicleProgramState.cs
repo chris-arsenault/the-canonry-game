@@ -31,6 +31,7 @@ internal sealed class ChronicleProgramState : IKernelProgramState
     internal readonly int[] PendingActorIds;
     internal readonly int[] PendingTargetIds;
     internal readonly int[] PendingProducerIds;
+    internal readonly int[] PendingSucceeded;
     internal int PendingCount;
     internal int HighWatermark;
 
@@ -55,9 +56,10 @@ internal sealed class ChronicleProgramState : IKernelProgramState
         PendingActorIds = new int[PendingExecutionCapacity];
         PendingTargetIds = new int[PendingExecutionCapacity];
         PendingProducerIds = new int[PendingExecutionCapacity];
+        PendingSucceeded = new int[PendingExecutionCapacity];
     }
 
     public int ProgramId => KernelProgramCodes.ChronicleDirector;
 
-    public int SchemaVersion => 4;
+    public int SchemaVersion => 5;
 }

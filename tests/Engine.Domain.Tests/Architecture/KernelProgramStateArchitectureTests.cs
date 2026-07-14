@@ -59,6 +59,7 @@ public sealed class KernelProgramStateArchitectureTests
             "src/Engine.Kernel/Programs/Chronicles/ChronicleProgramState.cs:PendingActorIds",
             "src/Engine.Kernel/Programs/Chronicles/ChronicleProgramState.cs:PendingTargetIds",
             "src/Engine.Kernel/Programs/Chronicles/ChronicleProgramState.cs:PendingProducerIds",
+            "src/Engine.Kernel/Programs/Chronicles/ChronicleProgramState.cs:PendingSucceeded",
             "src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramState.cs:_activeVerbSlots",
             "src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramState.cs:_intentIds",
             "src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramState.cs:_targetPlaneCodes",

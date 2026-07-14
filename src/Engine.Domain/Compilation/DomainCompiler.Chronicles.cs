@@ -98,6 +98,7 @@ public static partial class DomainCompiler
             RoleIndex(archetype, strike.ActorRole, roleIndices),
             RoleIndex(archetype, strike.TargetRole, roleIndices),
             CompileStrikeProducerId(strike, ids),
+            strike.AcceptFailure,
             strike.Fact is null
                 ? new CompiledChronicleCondition(ChronicleConditionCodes.None, 0, 0, 0, 0f)
                 : CompileChronicleCondition(archetype, strike.Fact, ids, roleIndices),

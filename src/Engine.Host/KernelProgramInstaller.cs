@@ -288,6 +288,7 @@ internal static partial class KernelProgramInstaller
             beat.StrikeActorRole,
             beat.StrikeTargetRole,
             beat.StrikeGambitId,
+            beat.StrikeAcceptFailure,
             beat.StrikeFact.Kind,
             beat.StrikeFact.RoleA,
             beat.StrikeFact.RoleB,

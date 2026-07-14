@@ -170,6 +170,13 @@ public sealed class ChronicleStrikeConfig
     /// <summary>The generator whose fire strikes, for GeneratorOnRole strikes; null accepts any.</summary>
     public string? Generator { get; init; }
 
+    /// <summary>
+    /// Failed attempts strike too. Only safe for outcome-neutral narratives
+    /// ("blow answers blow"); a narrative that claims the deed succeeded must
+    /// never accept failure.
+    /// </summary>
+    public bool AcceptFailure { get; init; }
+
     /// <summary>The recognized fact, for StateFact strikes.</summary>
     public ChronicleConditionConfig? Fact { get; init; }
 }

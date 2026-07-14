@@ -480,7 +480,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         ApplyGambitCooldowns(simulation, entityId, selectedGambitSlot, gambitId, tick);
         WriteGambitEvaluated(simulation, tick, entityId, kindId, gambitId, candidateCount, KernelEventState.Succeeded);
         WriteGambitExecuted(simulation, tick, entityId, selectedTargetId, kindId, gambitId, state);
-        simulation.Chronicles.NoteExecution(entityId, selectedTargetId, gambitId);
+        simulation.Chronicles.NoteExecution(entityId, selectedTargetId, gambitId, state == KernelEventState.Succeeded);
     }
 
     private KernelProvenanceScope EnterGambitProvenance(

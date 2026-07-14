@@ -73,6 +73,7 @@ internal sealed partial class ChronicleProgramRuntime
         int strikeActorRole,
         int strikeTargetRole,
         int strikeGambitId,
+        int strikeAcceptFailure,
         int strikeFactKind,
         int strikeFactRoleA,
         int strikeFactRoleB,
@@ -101,6 +102,7 @@ internal sealed partial class ChronicleProgramRuntime
         Data.BeatStrikeActorRoles[beat] = strikeActorRole;
         Data.BeatStrikeTargetRoles[beat] = strikeTargetRole;
         Data.BeatStrikeGambitIds[beat] = strikeGambitId;
+        Data.BeatStrikeAcceptFailure[beat] = strikeAcceptFailure;
         Data.BeatStrikeFactKinds[beat] = strikeFactKind;
         Data.BeatStrikeFactRoleA[beat] = strikeFactRoleA;
         Data.BeatStrikeFactRoleB[beat] = strikeFactRoleB;

@@ -327,6 +327,24 @@ roles first and biases future events into the beats.
   7 beats (one saga: allies answer, failed slay, blow upon blow, the
   closing, Corner the Beast landing the kill the slay missed, beast at
   bay, fulfilled), haunted runs 7-10 strikes, a rivalry hit 12.
+- [x] C1c — story coherence fixes (2026-07-14, after the "this isn't a
+  coherent story" finding on a Living Practice tale). Four defects:
+  (1) strikes fired on failed gambits while narratives claimed success
+  ("Share a Practice failed" struck "finds another pair of hands") —
+  strikes now require success unless the beat is authored AcceptFailure,
+  reserved for outcome-neutral phrasings (the naming, the answer, blow
+  upon blow, the tide turns, no quarter, the beast at bay); (2) shared
+  beats with no stance references (the lull) vacuously applied to every
+  archetype — the shared library now applies only to stance-mapped
+  archetypes; (3) the observed record was polluted by cast members'
+  routine solo deeds (Deepen the Holding, deep currents at random
+  settlements, failed wrests against non-cast) — observed events now
+  require two cast members or the world acting ON a cast member;
+  (4) struck beats and raw log lines were indistinguishable — the journal
+  splits "The telling" (authored struck-beat narratives) from "From the
+  record" (observed events). Quiet tales are now honestly quiet: a
+  practice tale reads as its one true telling line instead of eleven
+  lines of unrelated errands.
 
 ## Scope notes and follow-ups discovered during R1-R4
 

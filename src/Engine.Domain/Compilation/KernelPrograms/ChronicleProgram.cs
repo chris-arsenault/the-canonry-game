@@ -32,6 +32,7 @@ public sealed record CompiledChronicleBeat(
     int StrikeActorRole,
     int StrikeTargetRole,
     int StrikeGambitId,
+    bool StrikeAcceptFailure,
     CompiledChronicleCondition StrikeFact,
     IReadOnlyList<CompiledChronicleCharge> Charges,
     IReadOnlyList<CompiledChronicleGrant> Grants);

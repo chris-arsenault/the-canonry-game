@@ -10,6 +10,7 @@ internal sealed partial class ChronicleProgramRuntime
             var actorId = State.PendingActorIds[pending];
             var targetId = State.PendingTargetIds[pending];
             var producerId = State.PendingProducerIds[pending];
+            var succeeded = State.PendingSucceeded[pending] != 0;
             for (var chronicle = 1; chronicle <= State.HighWatermark; chronicle++)
             {
                 if (!State.Active[chronicle])
@@ -17,7 +18,7 @@ internal sealed partial class ChronicleProgramRuntime
                     continue;
                 }
 
-                ApplyExecutionToChronicle(simulation, world, chronicle, kind, actorId, targetId, producerId, tick);
+                ApplyExecutionToChronicle(simulation, world, chronicle, kind, actorId, targetId, producerId, succeeded, tick);
             }
         }
 
@@ -32,6 +33,7 @@ internal sealed partial class ChronicleProgramRuntime
         int actorId,
         int targetId,
         int producerId,
+        bool succeeded,
         int tick)
     {
         if (pendingKind == ChroniclePendingKindCodes.GambitExecution &&
@@ -47,7 +49,7 @@ internal sealed partial class ChronicleProgramRuntime
         {
             var ordinal = beat - beatStart;
             if (!BeatIsOpen(chronicle, ordinal) ||
-                !ExecutionStrikes(chronicle, beat, pendingKind, actorId, targetId, producerId))
+                !ExecutionStrikes(chronicle, beat, pendingKind, actorId, targetId, producerId, succeeded))
             {
                 continue;
             }
@@ -60,10 +62,17 @@ internal sealed partial class ChronicleProgramRuntime
         }
     }
 
-    private bool ExecutionStrikes(int chronicle, int beat, int pendingKind, int actorId, int targetId, int producerId)
+    private bool ExecutionStrikes(int chronicle, int beat, int pendingKind, int actorId, int targetId, int producerId, bool succeeded)
     {
         var producerFilter = Data.BeatStrikeGambitIds[beat];
         if (producerFilter != 0 && producerFilter != producerId)
+        {
+            return false;
+        }
+
+        // A failed attempt only strikes beats authored to accept failure -
+        // narratives must never claim a deed the world refused.
+        if (!succeeded && Data.BeatStrikeAcceptFailure[beat] == 0)
         {
             return false;
         }

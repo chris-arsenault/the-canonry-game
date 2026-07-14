@@ -61,17 +61,17 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
     /// Recorded by the gambit program after every execution; consumed on the
     /// director's next pulse for ambient heat and strike detection.
     /// </summary>
-    public void NoteExecution(int actorId, int targetId, int gambitId) =>
-        NotePending(ChroniclePendingKindCodes.GambitExecution, actorId, targetId, gambitId);
+    public void NoteExecution(int actorId, int targetId, int gambitId, bool succeeded) =>
+        NotePending(ChroniclePendingKindCodes.GambitExecution, actorId, targetId, gambitId, succeeded);
 
     /// <summary>
     /// Recorded by the generator program after every fire with a selected
     /// target; the world turning its weight on a cast member is a beat.
     /// </summary>
     public void NoteGeneratorFire(int targetId, int generatorId) =>
-        NotePending(ChroniclePendingKindCodes.GeneratorFire, 0, targetId, generatorId);
+        NotePending(ChroniclePendingKindCodes.GeneratorFire, 0, targetId, generatorId, succeeded: true);
 
-    private void NotePending(int kind, int actorId, int targetId, int producerId)
+    private void NotePending(int kind, int actorId, int targetId, int producerId, bool succeeded)
     {
         if (State.PendingCount >= ChronicleProgramState.PendingExecutionCapacity)
         {
@@ -82,6 +82,7 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
         State.PendingActorIds[State.PendingCount] = actorId;
         State.PendingTargetIds[State.PendingCount] = targetId;
         State.PendingProducerIds[State.PendingCount] = producerId;
+        State.PendingSucceeded[State.PendingCount] = succeeded ? 1 : 0;
         State.PendingCount++;
     }
 

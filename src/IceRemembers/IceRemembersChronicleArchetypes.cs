@@ -127,7 +127,7 @@ public static class IceRemembersChronicleArchetypes
             Id = "the_beast_at_bay",
             Narrative = "At last {$hunter} brings {$quarry} to bay.",
             Open = Beat.Heat(5f),
-            Strike = Beat.PairGambit("$hunter", "$quarry", "penguin_corners_the_beast"),
+            Strike = Beat.PairAttempt("$hunter", "$quarry", "penguin_corners_the_beast"),
             HeatGain = 3f,
             Charges = [Beat.Charge("$hunter", "$quarry", "penguin_slays_monster", 3f, heatScaled: true)],
             Grants = [Beat.Grant("$hunter", "penguin_corners_the_beast")],

@@ -32,7 +32,7 @@ public sealed class ChronicleProgramRuntimeTests
         // reports the hunter acting on the quarry.
         simulation.Chronicles.Tick(simulation, tick: 25);
         var heatBefore = simulation.Chronicles.State.Heat[1];
-        simulation.Chronicles.NoteExecution(hunter, quarry, SlayGambitId);
+        simulation.Chronicles.NoteExecution(hunter, quarry, SlayGambitId, succeeded: true);
         simulation.Chronicles.Tick(simulation, tick: 30);
         Assert.True(simulation.Chronicles.State.Heat[1] > heatBefore);
         Assert.NotEqual(0L, simulation.Chronicles.State.StruckMasks[1]);
@@ -63,7 +63,7 @@ public sealed class ChronicleProgramRuntimeTests
         Assert.False(simulation.Chronicles.GrantsGambit(quarry, SlayGambitId));
 
         // Striking the beat closes it; its charge and grant fall away.
-        simulation.Chronicles.NoteExecution(hunter, quarry, SlayGambitId);
+        simulation.Chronicles.NoteExecution(hunter, quarry, SlayGambitId, succeeded: true);
         simulation.Chronicles.Tick(simulation, tick: 30);
         Assert.Equal(0f, simulation.Chronicles.ScoreBias(hunter, quarry, SlayGambitId));
         Assert.False(simulation.Chronicles.GrantsGambit(hunter, SlayGambitId));
@@ -89,6 +89,7 @@ public sealed class ChronicleProgramRuntimeTests
             strikeActorRole: 1,
             strikeTargetRole: 0,
             strikeGambitId: SlayGambitId,
+            strikeAcceptFailure: 0,
             strikeFactKind: ChronicleConditionCodes.None,
             strikeFactRoleA: 0,
             strikeFactRoleB: 0,
@@ -108,6 +109,7 @@ public sealed class ChronicleProgramRuntimeTests
             strikeActorRole: 0,
             strikeTargetRole: 0,
             strikeGambitId: WarGeneratorId,
+            strikeAcceptFailure: 0,
             strikeFactKind: ChronicleConditionCodes.None,
             strikeFactRoleA: 0,
             strikeFactRoleB: 0,
@@ -118,7 +120,7 @@ public sealed class ChronicleProgramRuntimeTests
         Assert.True(simulation.Chronicles.State.Active[1]);
 
         // The hunter acts on an unrelated third party: RoleGambit strikes.
-        simulation.Chronicles.NoteExecution(hunter, 999, SlayGambitId);
+        simulation.Chronicles.NoteExecution(hunter, 999, SlayGambitId, succeeded: true);
         // The wrong generator on the quarry does not strike; the right one does.
         simulation.Chronicles.NoteGeneratorFire(quarry, WarGeneratorId + 1);
         simulation.Chronicles.NoteGeneratorFire(quarry, WarGeneratorId);
@@ -192,6 +194,7 @@ public sealed class ChronicleProgramRuntimeTests
             strikeActorRole: 1,
             strikeTargetRole: 0,
             strikeGambitId: 0,
+            strikeAcceptFailure: 0,
             strikeFactKind: ChronicleConditionCodes.None,
             strikeFactRoleA: 0,
             strikeFactRoleB: 0,
@@ -213,6 +216,7 @@ public sealed class ChronicleProgramRuntimeTests
             strikeActorRole: 0,
             strikeTargetRole: 0,
             strikeGambitId: 0,
+            strikeAcceptFailure: 0,
             strikeFactKind: ChronicleConditionCodes.RoleHistorical,
             strikeFactRoleA: 0,
             strikeFactRoleB: 0,

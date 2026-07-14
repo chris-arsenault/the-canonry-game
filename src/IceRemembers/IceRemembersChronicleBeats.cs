@@ -34,7 +34,7 @@ public static class IceRemembersChronicleBeats
         Id = "the_naming",
         Narrative = "{protagonist} moves first against {adversary}. The ice takes notice.",
         Open = Beat.Always(),
-        Strike = Beat.PairGambit(Protagonist, Adversary),
+        Strike = Beat.PairAttempt(Protagonist, Adversary),
         HeatGain = 2f,
     };
 
@@ -43,7 +43,7 @@ public static class IceRemembersChronicleBeats
         Id = "the_answer",
         Narrative = "{adversary} answers in kind. This is no one-sided tale.",
         Open = Beat.Always(),
-        Strike = Beat.PairGambit(Adversary, Protagonist),
+        Strike = Beat.PairAttempt(Adversary, Protagonist),
         HeatGain = 2f,
     };
 
@@ -52,7 +52,7 @@ public static class IceRemembersChronicleBeats
         Id = "blow_upon_blow",
         Narrative = "{protagonist} presses on against {adversary}. Blow answers blow.",
         Open = Beat.Heat(3.5f),
-        Strike = Beat.PairGambit(Protagonist, Adversary),
+        Strike = Beat.PairAttempt(Protagonist, Adversary),
         HeatGain = 2f,
         Charges = [Beat.Charge(Protagonist, Adversary, null, 1f), Beat.Charge(Adversary, Protagonist, null, 1f)],
     };
@@ -62,7 +62,7 @@ public static class IceRemembersChronicleBeats
         Id = "the_tide_turns",
         Narrative = "{adversary} turns the tide against {protagonist}.",
         Open = Beat.Heat(3.5f),
-        Strike = Beat.PairGambit(Adversary, Protagonist),
+        Strike = Beat.PairAttempt(Adversary, Protagonist),
         HeatGain = 2f,
     };
 
@@ -117,7 +117,7 @@ public static class IceRemembersChronicleBeats
         Id = "no_quarter",
         Narrative = "Past this point there is no stepping back for {protagonist} or {adversary}.",
         Open = Beat.Heat(8f),
-        Strike = Beat.PairGambit(Protagonist, Adversary),
+        Strike = Beat.PairAttempt(Protagonist, Adversary),
         HeatGain = 2.5f,
         Charges =
         [
@@ -176,6 +176,10 @@ internal static class Beat
 
     internal static ChronicleStrikeConfig PairGambit(string actor, string target, string? gambit = null) =>
         new() { Kind = ChronicleStrikeKind.RolePairGambit, ActorRole = actor, TargetRole = target, Gambit = gambit };
+
+    /// <summary>For outcome-neutral narratives only: the attempt itself is the beat.</summary>
+    internal static ChronicleStrikeConfig PairAttempt(string actor, string target, string? gambit = null) =>
+        new() { Kind = ChronicleStrikeKind.RolePairGambit, ActorRole = actor, TargetRole = target, Gambit = gambit, AcceptFailure = true };
 
     internal static ChronicleStrikeConfig OutsiderOn(string target, string? gambit = null) =>
         new() { Kind = ChronicleStrikeKind.OutsiderGambitOnRole, TargetRole = target, Gambit = gambit };

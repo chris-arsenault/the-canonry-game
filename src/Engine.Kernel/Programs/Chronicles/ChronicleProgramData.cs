@@ -44,6 +44,7 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
     internal int[] BeatStrikeActorRoles = [];
     internal int[] BeatStrikeTargetRoles = [];
     internal int[] BeatStrikeGambitIds = [];
+    internal int[] BeatStrikeAcceptFailure = [];
     internal int[] BeatStrikeFactKinds = [];
     internal int[] BeatStrikeFactRoleA = [];
     internal int[] BeatStrikeFactRoleB = [];
@@ -116,6 +117,7 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
         BeatStrikeActorRoles = new int[itemCapacity + 1];
         BeatStrikeTargetRoles = new int[itemCapacity + 1];
         BeatStrikeGambitIds = new int[itemCapacity + 1];
+        BeatStrikeAcceptFailure = new int[itemCapacity + 1];
         BeatStrikeFactKinds = new int[itemCapacity + 1];
         BeatStrikeFactRoleA = new int[itemCapacity + 1];
         BeatStrikeFactRoleB = new int[itemCapacity + 1];
@@ -140,5 +142,5 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.ChronicleDirector;
 
-    public int SchemaVersion => 2;
+    public int SchemaVersion => 3;
 }

@@ -222,11 +222,13 @@ public partial class ChronicleJournal : PanelContainer
             lines.Add($"    [url={member.EntityId}][color=#{EntityColor}]{member.DisplayName}[/color][/url]");
         }
 
+        var telling = view.Beats.Where(static beat => beat.EntryType == UiChronicleEntryType.BeatStruck).ToList();
+        var record = view.Beats.Where(static beat => beat.EntryType != UiChronicleEntryType.BeatStruck).ToList();
         lines.Add(string.Empty);
-        lines.Add($"[color=#{ConnectorColor}]The beats[/color]");
-        if (view.Beats.Count > 0)
+        lines.Add($"[color=#{ConnectorColor}]The telling[/color]");
+        if (telling.Count > 0)
         {
-            foreach (var beat in view.Beats)
+            foreach (var beat in telling)
             {
                 lines.Add($"    {beat.Text}");
             }
@@ -234,6 +236,16 @@ public partial class ChronicleJournal : PanelContainer
         else
         {
             lines.Add($"    [color=#{DimColor}]The ice holds its breath - nothing yet worth telling.[/color]");
+        }
+
+        if (record.Count > 0)
+        {
+            lines.Add(string.Empty);
+            lines.Add($"[color=#{ConnectorColor}]From the record[/color]");
+            foreach (var beat in record)
+            {
+                lines.Add($"    {beat.Text}");
+            }
         }
 
         if (tale.Resolved && view.OutcomeNarrative.Length > 0)

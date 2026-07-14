@@ -21,7 +21,7 @@ chronicle makes real:
   `ChronicleGranted` are inert unless an open beat grants them to the acting
   entity's role).
 - **Strike condition** — what marks the beat as having happened: a gambit
-  executed between roles (any outcome; failures are beats too), a gambit by a
+  executed between roles, a gambit by a
   non-cast entity on a role (optionally filtered to one gambit — "an
   instrument is brought to bear"), a role executing a named gambit against
   anyone (deeds in the world, not just against the cast), a generator firing
@@ -29,7 +29,10 @@ chronicle makes real:
   state fact evaluated on the director pulse — including heat falling (lull
   beats) and attributes recovering (second-wind beats). Charge-only beats
   never strike. Openings are evaluated at cast time, so Always-open beats
-  charge and accept strikes from the first pulse.
+  charge and accept strikes from the first pulse. Execution strikes require
+  the gambit to succeed unless the beat is authored `AcceptFailure`, which is
+  reserved for outcome-neutral narratives ("blow answers blow") — a beat's
+  sentence must never claim a deed the world refused.
 - **Terminal flag** — striking a terminal beat ends the chronicle with its
   outcome code. Terminals only recognize world facts (deaths, edges culled by
   real gambits or relationship drift); every ending must be reachable through
@@ -54,7 +57,8 @@ strengthen memory edges; legendary resolutions arm canon birth).
 
 Shared beats are written against stances ("protagonist", "adversary") in the
 domain's `ChronicleSharedBeats` library. An archetype opts in with a stance
-map (`Stances`); a shared beat applies only when every stance it references
+map (`Stances`); the library applies only to archetypes with a non-empty
+stance map, and a shared beat applies only when every stance it references
 is mapped. `ChronicleBeatSet.EffectiveBeats` assembles the per-archetype pool
 (shared beats rewritten to role refs, narratives included, then archetype
 beats) and is the single assembly point used by both the domain compiler and
@@ -76,5 +80,8 @@ primary selection, global and per-archetype concurrency caps.
 
 Telemetry: `ChronicleChanged` events carry Cast / BeatStruck / Resolved, with
 beat and outcome codes in reason-code space (`chronicle_events` table). The
-UI projection accumulates durable per-tale beats — authored struck beats plus
-observed cast events — for the Chronicle Journal.
+UI projection accumulates durable per-tale beats for the Chronicle Journal,
+split into the telling (authored struck-beat narratives) and the record
+(observed events, kept only when they involve two cast members or the world
+acting on a cast member — a cast member's routine solo deeds elsewhere are
+ordinary life, not the story).
