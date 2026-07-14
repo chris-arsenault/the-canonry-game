@@ -19,6 +19,8 @@ public sealed record CompiledGeneratorRule(
     int CadenceJitterTicks,
     int TargetRequiredTagBits,
     int TargetWithoutTagBits,
+    float TargetChronicleHeatMin,
+    int TargetChronicleLegendaryWithinTicks,
     IReadOnlyList<GeneratorTriggerRule> Triggers,
     IReadOnlyList<GeneratorBindingRule> SecondaryBindings,
     IReadOnlyList<GeneratorProducedEntityRule> ProducedEntities,

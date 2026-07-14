@@ -26,6 +26,7 @@ internal sealed class ChronicleProgramState : IKernelProgramState
     internal readonly int[] NextCastTicks;
     internal readonly int[] RecentCastEntityIds;
     internal readonly int[] RecentCastTicks;
+    internal readonly float[] RecentCastHeat;
     internal int RecentCastNext;
     internal readonly int[] PendingKinds;
     internal readonly int[] PendingActorIds;
@@ -52,6 +53,7 @@ internal sealed class ChronicleProgramState : IKernelProgramState
         NextCastTicks = new int[archetypeCapacity + 1];
         RecentCastEntityIds = new int[SuppressionRingCapacity];
         RecentCastTicks = new int[SuppressionRingCapacity];
+        RecentCastHeat = new float[SuppressionRingCapacity];
         PendingKinds = new int[PendingExecutionCapacity];
         PendingActorIds = new int[PendingExecutionCapacity];
         PendingTargetIds = new int[PendingExecutionCapacity];
@@ -61,5 +63,5 @@ internal sealed class ChronicleProgramState : IKernelProgramState
 
     public int ProgramId => KernelProgramCodes.ChronicleDirector;
 
-    public int SchemaVersion => 5;
+    public int SchemaVersion => 6;
 }

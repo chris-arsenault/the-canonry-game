@@ -21,6 +21,10 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
     private const float HeatChargeSlope = 0.15f;
     private const float MaxHeatChargeMultiplier = 4f;
     private const int SuppressionTicks = 2000;
+    private const float ConvergenceHeatFloor = 4f;
+    private const float LegendaryHeatThreshold = 8f;
+    private const float ConvergencePullSlope = 0.3f;
+    private const float ConvergencePullMax = 2f;
 
     private readonly int _chronicleCapacity;
 
@@ -88,22 +92,62 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
 
     /// <summary>
     /// Direction: extra score for a gambit whose actor and target match a
-    /// charge of an open beat. Read by the gambit program during scoring.
-    /// Heat-scaled charges grow with the chronicle's heat - convergence
-    /// pushes stories toward their endings without decreeing them.
+    /// charge of an open beat, plus the convergence pull - a hot chronicle
+    /// raises the weight of any outsider's action against its cast, so power
+    /// is drawn toward running stories. Read by the gambit program during
+    /// scoring. Heat-scaled charges grow with the chronicle's heat -
+    /// convergence pushes stories toward their endings without decreeing
+    /// them.
     /// </summary>
     public float ScoreBias(int actorId, int targetId, int gambitId)
     {
         var total = 0f;
         for (var chronicle = 1; chronicle <= State.HighWatermark; chronicle++)
         {
-            if (State.Active[chronicle])
+            if (!State.Active[chronicle])
             {
-                total += ChronicleBias(chronicle, actorId, targetId, gambitId);
+                continue;
             }
+
+            total += ChronicleBias(chronicle, actorId, targetId, gambitId);
+            total += ConvergencePull(chronicle, actorId, targetId);
         }
 
         return total;
+    }
+
+    private float ConvergencePull(int chronicle, int actorId, int targetId)
+    {
+        var heat = State.Heat[chronicle];
+        if (heat < ConvergenceHeatFloor ||
+            !CastContains(chronicle, targetId) ||
+            CastContains(chronicle, actorId))
+        {
+            return 0f;
+        }
+
+        var pull = (heat - ConvergenceHeatFloor) * ConvergencePullSlope;
+        return pull > ConvergencePullMax ? ConvergencePullMax : pull;
+    }
+
+    /// <summary>
+    /// The hottest running chronicle this entity is cast in; the world's
+    /// remembrance machinery (generators) reads this to notice story-bearers.
+    /// </summary>
+    public float HeatFor(int entityId)
+    {
+        var best = 0f;
+        for (var chronicle = 1; chronicle <= State.HighWatermark; chronicle++)
+        {
+            if (State.Active[chronicle] &&
+                CastContains(chronicle, entityId) &&
+                State.Heat[chronicle] > best)
+            {
+                best = State.Heat[chronicle];
+            }
+        }
+
+        return best;
     }
 
     /// <summary>
@@ -115,6 +159,25 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
         for (var chronicle = 1; chronicle <= State.HighWatermark; chronicle++)
         {
             if (State.Active[chronicle] && ChronicleGrants(chronicle, actorId, gambitId))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// True when the entity was cast in a chronicle that resolved within the
+    /// window at legendary heat - the hook remembrance generators fire on.
+    /// </summary>
+    public bool LegendaryResolvedWithin(int entityId, int currentTick, int windowTicks)
+    {
+        for (var slot = 0; slot < ChronicleProgramState.SuppressionRingCapacity; slot++)
+        {
+            if (State.RecentCastEntityIds[slot] == entityId &&
+                currentTick - State.RecentCastTicks[slot] <= windowTicks &&
+                State.RecentCastHeat[slot] >= LegendaryHeatThreshold)
             {
                 return true;
             }

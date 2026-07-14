@@ -118,6 +118,8 @@ public static class DefinitionGeneratorBuilder
             TerrainCountRequirements = BuildTerrainCountRequirements(config.Target.TerrainCountRequirements),
             WithoutOutgoingRelationships = CopyRelationshipSet(config.Target.WithoutOutgoingRelationships),
             WithoutIncomingRelationships = CopyRelationshipSet(config.Target.WithoutIncomingRelationships),
+            ChronicleHeatMin = config.Target.ChronicleHeatMin,
+            ChronicleLegendaryWithinTicks = config.Target.ChronicleLegendaryWithinTicks,
         };
     }
 

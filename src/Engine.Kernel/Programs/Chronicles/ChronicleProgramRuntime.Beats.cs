@@ -306,6 +306,7 @@ internal sealed partial class ChronicleProgramRuntime
 
             State.RecentCastEntityIds[State.RecentCastNext] = entityId;
             State.RecentCastTicks[State.RecentCastNext] = tick;
+            State.RecentCastHeat[State.RecentCastNext] = State.Heat[chronicle];
             State.RecentCastNext = (State.RecentCastNext + 1) % ChronicleProgramState.SuppressionRingCapacity;
         }
     }

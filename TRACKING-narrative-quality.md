@@ -362,6 +362,27 @@ roles first and biases future events into the beats.
   fill correctly around still-empty slots. Live 12k harness: a
   four-member hunt (quarry, hunter, second, bound artifact), grown
   terror and haunted-run casts.
+- [x] C2b — the convergence pull (2026-07-14). The map-signal attractor
+  field was the planned carrier but has no runtime consumers, so the pull
+  was built on the surface every action already passes through: past a
+  heat floor (4), any outsider's gambit against a chronicle's cast gains
+  heat-scaled score (slope 0.3, cap 2.0). Power is drawn toward running
+  stories as one uniform Director rule - and it directly feeds entrance
+  beats. Live harness: grown casts rose from 3 to 5 in the same window,
+  hunts striking 9-11 beats.
+- [x] C3 — remembrance (2026-07-14). Flows entirely through generators;
+  the Director writes nothing. Generator targets gain chronicle-fact
+  gates: ChronicleHeatMin (cast in a running chronicle at heat) and
+  ChronicleLegendaryWithinTicks (recently resolved out of a chronicle
+  whose final heat reached the legendary threshold of 8 - the suppression
+  ring now records final heat). Two authored generators: the_ice_takes_
+  notice (witness-stone artifact memorializing the living center of a
+  blazing story, gated heat >= 6, deduped on incoming memorializes) and
+  legend_enters_the_canon (births a saga - new canon subtype with its own
+  name forms - claiming semantic jurisdiction around a legend within 1500
+  ticks of a legendary resolution, memorializing and claiming them).
+  Remembrance is the C3 name for the legend-making layer (witness was
+  judged too Malazan).
 
 ## Scope notes and follow-ups discovered during R1-R4
 

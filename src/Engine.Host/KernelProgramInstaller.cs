@@ -325,6 +325,14 @@ internal static partial class KernelProgramInstaller
             generator.CadenceJitterTicks,
             generator.TargetRequiredTagBits,
             generator.TargetWithoutTagBits);
+        if (generator.TargetChronicleHeatMin > 0f || generator.TargetChronicleLegendaryWithinTicks > 0)
+        {
+            context.SetGeneratorTargetChronicleGates(
+                generatorSlot,
+                generator.TargetChronicleHeatMin,
+                generator.TargetChronicleLegendaryWithinTicks);
+        }
+
         InstallGeneratorTarget(context, generatorSlot, generator);
         InstallGeneratorBindings(context, generatorSlot, generator);
         InstallGeneratorProducedEntities(context, generatorSlot, generator);

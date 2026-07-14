@@ -19,7 +19,7 @@ internal static class CanonEntity
         Kind = K.Canon,
         Category = EntityCategory.Spatial,
         Tier = EntityTier.Place,
-        Subtypes = Subtypes("custom", "taboo", "accord", "doctrine"),
+        Subtypes = Subtypes("custom", "taboo", "accord", "doctrine", "saga"),
         HealthAttribute = Attr.Observance,
         HealthDisplayName = "Observance",
         PrimaryPlane = PrimaryPlane.Semantic,

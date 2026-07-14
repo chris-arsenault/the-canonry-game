@@ -35,9 +35,7 @@ public static partial class IceRemembersGeneratorDefinition
         ChartersFindHarbors(),
         VigilsLeaveRelics(),
         CorruptionWakesMonsters(),
-        WarsGetNames(),
-        AlliesAnswerTheCall(),
-        WarTakesItsToll(),
+        ..WarSagaGenerators(),
         TradeRoutesConveneNegotiation(),
         ClaimedWatersDrawBulls(),
         PodCurrentsLaunchScouts(),
@@ -58,6 +56,7 @@ public static partial class IceRemembersGeneratorDefinition
         ConduitPointsFoundReefholds(),
         DeepConduitsNameDepths(),
         WardedMonstersFoundOrders(),
+        ..RemembranceGenerators(),
         TheAccordHolds(),
         TheSilenceAnswers(),
         RichHubsGrowUndermarkets(),
@@ -93,6 +92,13 @@ public static partial class IceRemembersGeneratorDefinition
             TargetCultureMatch = QueryTargetCultureMatch.SameAsTarget,
             SamePhysicalCultureComponentAsTarget = samePhysicalComponent,
         };
+
+    private static IReadOnlyList<SemanticGeneratorConfig> WarSagaGenerators() =>
+    [
+        WarsGetNames(),
+        AlliesAnswerTheCall(),
+        WarTakesItsToll(),
+    ];
 
     private static SemanticGeneratorConfig IceSettlesAccounts() => new()
     {

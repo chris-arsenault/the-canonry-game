@@ -11,6 +11,8 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] CadenceJitterTicks = [];
     internal int[] TargetRequiredTagBits = [];
     internal int[] TargetWithoutTagBits = [];
+    internal float[] TargetChronicleHeatMin = [];
+    internal int[] TargetChronicleLegendaryWithinTicks = [];
     internal int[] BindingRequiredTagBits = [];
     internal int[] BindingWithoutTagBits = [];
     internal int[] BindingCultureIds = [];
@@ -167,6 +169,8 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         CadenceJitterTicks = new int[generatorCapacity + 1];
         TargetRequiredTagBits = new int[generatorCapacity + 1];
         TargetWithoutTagBits = new int[generatorCapacity + 1];
+        TargetChronicleHeatMin = new float[generatorCapacity + 1];
+        TargetChronicleLegendaryWithinTicks = new int[generatorCapacity + 1];
         MaxRuns = new int[generatorCapacity + 1];
         TargetSubtypeStarts = new int[generatorCapacity + 1];
         TargetSubtypeCounts = new int[generatorCapacity + 1];
@@ -326,6 +330,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.Generators;
 
-    public int SchemaVersion => 18;
+    public int SchemaVersion => 19;
 
 }

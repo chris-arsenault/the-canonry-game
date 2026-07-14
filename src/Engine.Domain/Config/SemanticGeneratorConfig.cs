@@ -47,6 +47,18 @@ public sealed class SemanticGeneratorTarget
     public IReadOnlyList<SemanticGeneratorTerrainCountRequirement> TerrainCountRequirements { get; init; } = [];
     public IReadOnlySet<string>? WithoutOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? WithoutIncomingRelationships { get; init; }
+
+    /// <summary>
+    /// Remembrance gate: only target entities currently cast in a running
+    /// chronicle at or above this heat. 0 disables the gate.
+    /// </summary>
+    public float ChronicleHeatMin { get; init; }
+
+    /// <summary>
+    /// Remembrance gate: only target entities cast in a chronicle that
+    /// resolved at legendary heat within this many ticks. 0 disables.
+    /// </summary>
+    public int ChronicleLegendaryWithinTicks { get; init; }
 }
 
 public sealed class SemanticGeneratorRelationshipRequirement

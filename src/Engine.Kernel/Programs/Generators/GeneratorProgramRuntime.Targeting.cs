@@ -87,7 +87,26 @@ internal sealed partial class GeneratorProgramRuntime
             return false;
         }
 
+        if (!TargetChronicleGatesPass(simulation, generatorSlot, targetId))
+        {
+            rejectionReasonCode = GeneratorTargetRejectionReasonCodes.Trigger;
+            return false;
+        }
+
         return TargetRelationshipAndMapGatesPass(simulation, generatorSlot, targetId, out rejectionReasonCode);
+    }
+
+    private bool TargetChronicleGatesPass(Simulation simulation, int generatorSlot, int targetId)
+    {
+        var heatMin = Data.TargetChronicleHeatMin[generatorSlot];
+        if (heatMin > 0f && simulation.Chronicles.HeatFor(targetId) < heatMin)
+        {
+            return false;
+        }
+
+        var legendaryWithin = Data.TargetChronicleLegendaryWithinTicks[generatorSlot];
+        return legendaryWithin <= 0 ||
+            simulation.Chronicles.LegendaryResolvedWithin(targetId, simulation.World.CurrentTick, legendaryWithin);
     }
 
     private bool TargetSubtypePasses(WorldState world, int generatorSlot, int targetId) =>

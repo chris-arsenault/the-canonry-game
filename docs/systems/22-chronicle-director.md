@@ -49,17 +49,31 @@ threshold past the grace window, with no strikes inside the quiet window,
 resolves with the archetype's authored fade outcome. Fades are endings, and
 some are authored as good ones ("the road endures quietly").
 
-Convergence's first mechanism is live: archetypes declare **open roles**
-(kind-constrained cast slots that start empty), and **entrance beats** fill
+Convergence has two mechanisms. **Entrance beats**: archetypes declare open
+roles (kind-constrained cast slots that start empty), and entrance beats fill
 them — the outside party of the strike joins the cast, whether an outsider
 acting on a role (a second hunter answering blood with blood) or the outside
 target of a role's deed (the faction a challenger swears into its cause). An
 entrance without a qualified entrant is no strike. Joined roles carry their
-own charges, so the tale's pull grows with its cast.
+own charges, so the tale's pull grows with its cast. **The convergence pull**:
+past a heat floor, every outsider's gambit against a chronicle's cast gains
+heat-scaled score — power is drawn toward running stories as a uniform rule
+of the world, which is also what feeds the entrance beats. (The map-signal
+attractor field was considered and rejected for the pull: nothing consumes
+it at runtime, so gambit scoring — which every action already passes
+through — is the honest force.)
 
-Planned layers: **convergence pull** (C2b — map-signal attraction at the
-story's locus) and **remembrance** (C3 — strikes strengthen memory edges;
-legendary resolutions arm canon birth).
+**Remembrance** is the world's memory answering the chronicle system, and it
+flows entirely through generators — the director still writes nothing.
+Generator targets can be gated on chronicle facts: `ChronicleHeatMin` (the
+target is cast in a running chronicle at or above the heat) and
+`ChronicleLegendaryWithinTicks` (the target recently resolved out of a
+chronicle whose final heat reached the legendary threshold; the suppression
+ring records final heat for this). Ice Remembers authors two: *The Ice Takes
+Notice* raises a witness-stone (memorial artifact) for the living center of
+a blazing story, and *The Legend Enters the Canon* births a **saga** — a new
+canon subtype — claiming semantic ground around a legend whose tale resolved
+at legendary heat, memorializing them inside the culture's law and lore.
 
 ## Cross-story beats and stances
 

@@ -269,6 +269,8 @@ public sealed class DefinitionGeneratorTarget
     public IReadOnlyList<DefinitionTargetTerrainCountRequirement> TerrainCountRequirements { get; init; } = [];
     public IReadOnlySet<string>? WithoutOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? WithoutIncomingRelationships { get; init; }
+    public float ChronicleHeatMin { get; init; }
+    public int ChronicleLegendaryWithinTicks { get; init; }
 }
 
 public sealed class DefinitionTargetRelationshipRequirement

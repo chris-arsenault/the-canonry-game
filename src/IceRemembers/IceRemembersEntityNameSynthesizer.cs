@@ -234,6 +234,7 @@ public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNamesSy
     private static readonly string[] CanonAccordNouns = ["Accord", "Compact", "Truce"];
     private static readonly string[] CanonDoctrineNouns = ["Doctrine", "Teaching", "Litany"];
     private static readonly string[] CanonCustomNouns = ["Edict", "Custom", "Observance"];
+    private static readonly string[] CanonSagaNouns = ["Saga", "Telling", "Remembrance"];
 
     private static string BuildCanonName(string subtype, Random rng)
     {
@@ -242,6 +243,7 @@ public sealed class IceRemembersEntityNameSynthesizer : IProjectionEntityNamesSy
             "taboo" => CanonTabooNouns,
             "accord" => CanonAccordNouns,
             "doctrine" => CanonDoctrineNouns,
+            "saga" => CanonSagaNouns,
             _ => CanonCustomNouns,
         };
         return $"The {Pick(CanonAdjectives, rng)} {Pick(nouns, rng)}";

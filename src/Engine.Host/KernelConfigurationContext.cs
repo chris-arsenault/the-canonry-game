@@ -736,6 +736,9 @@ internal sealed class KernelConfigurationContext
             queryRelatedToTargetIncoming ? 1 : 0,
             queryRelatedToTargetMinStrength);
 
+    public void SetGeneratorTargetChronicleGates(int generatorSlot, float heatMin, int legendaryWithinTicks) =>
+        _kernel.Generators.SetTargetChronicleGates(generatorSlot, heatMin, legendaryWithinTicks);
+
     public int AddChronicleArchetype(int archetypeId, int maxActive, int castingCadenceTicks, int primaryKindId, int primaryRequiredRelKindId, float primaryRequiredRelMinStrength, int fadeOutcomeCodeId) =>
         _kernel.Chronicles.AddArchetype(archetypeId, maxActive, castingCadenceTicks, primaryKindId, primaryRequiredRelKindId, primaryRequiredRelMinStrength, fadeOutcomeCodeId);
 

@@ -55,6 +55,7 @@ public sealed class KernelProgramStateArchitectureTests
             "src/Engine.Kernel/Programs/Chronicles/ChronicleProgramState.cs:NextCastTicks",
             "src/Engine.Kernel/Programs/Chronicles/ChronicleProgramState.cs:RecentCastEntityIds",
             "src/Engine.Kernel/Programs/Chronicles/ChronicleProgramState.cs:RecentCastTicks",
+            "src/Engine.Kernel/Programs/Chronicles/ChronicleProgramState.cs:RecentCastHeat",
             "src/Engine.Kernel/Programs/Chronicles/ChronicleProgramState.cs:PendingKinds",
             "src/Engine.Kernel/Programs/Chronicles/ChronicleProgramState.cs:PendingActorIds",
             "src/Engine.Kernel/Programs/Chronicles/ChronicleProgramState.cs:PendingTargetIds",

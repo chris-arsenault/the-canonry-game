@@ -232,6 +232,8 @@ public static partial class DomainCompiler
                 Math.Max(generator.CadenceJitterTicks, 0),
                 CompileTagBits(generator.Target.RequiredTags, ids),
                 CompileTagBits(generator.Target.WithoutTags, ids),
+                generator.Target.ChronicleHeatMin,
+                generator.Target.ChronicleLegendaryWithinTicks,
                 CompileGeneratorTriggers(generator.Triggers, ids),
                 CompileGeneratorBindings(generator.SecondaryTargets, ids, refCodes),
                 CompileGeneratorProducedEntities(generator.Produces, ids, terrainByName, refCodes),

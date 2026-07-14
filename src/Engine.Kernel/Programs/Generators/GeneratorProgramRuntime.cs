@@ -310,6 +310,18 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _targetRequiredIncomingCounts[generatorSlot]++;
     }
 
+    /// <summary>
+    /// Remembrance gates: the generator only targets entities the chronicle
+    /// system vouches for - currently cast in a chronicle at or above the
+    /// heat, or recently resolved out of a legendary one.
+    /// </summary>
+    public void SetTargetChronicleGates(int generatorSlot, float heatMin, int legendaryWithinTicks)
+    {
+        EnsureGenerator(generatorSlot);
+        Data.TargetChronicleHeatMin[generatorSlot] = heatMin;
+        Data.TargetChronicleLegendaryWithinTicks[generatorSlot] = legendaryWithinTicks;
+    }
+
     public void AddTargetRequiredRelationship(int generatorSlot, int relationshipKindId, float minimumStrength = 0f)
     {
         EnsureOpenGenerator(generatorSlot);
