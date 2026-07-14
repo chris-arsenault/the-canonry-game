@@ -679,7 +679,7 @@ internal sealed class GameRenderTree
 
             _lastState = state;
             panel.SetEntries(chronicle.Entries);
-            panel.SetTales(chronicle.Tales);
+            panel.SetTaleViews(chronicle.TaleViews);
         }
     }
 

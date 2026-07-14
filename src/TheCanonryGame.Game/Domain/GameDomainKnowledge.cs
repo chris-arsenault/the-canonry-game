@@ -39,15 +39,19 @@ internal sealed class GameDomainKnowledge
     private GameDomainKnowledge(
         IReadOnlyDictionary<int, GameCapabilityKnowledge> generatorsById,
         IReadOnlyDictionary<int, GameCapabilityKnowledge> gambitsById,
-        IReadOnlyList<GameChronicleQuery> chronicleQueries)
+        IReadOnlyList<GameChronicleQuery> chronicleQueries,
+        IReadOnlyDictionary<int, GameChronicleArchetypeKnowledge>? chronicleArchetypesById = null)
     {
         GeneratorsById = generatorsById;
         GambitsById = gambitsById;
         ChronicleQueries = chronicleQueries;
+        ChronicleArchetypesById = chronicleArchetypesById ?? new Dictionary<int, GameChronicleArchetypeKnowledge>();
     }
 
     public static GameDomainKnowledge Empty { get; } =
         new(new Dictionary<int, GameCapabilityKnowledge>(), new Dictionary<int, GameCapabilityKnowledge>(), []);
+
+    public IReadOnlyDictionary<int, GameChronicleArchetypeKnowledge> ChronicleArchetypesById { get; }
 
     public IReadOnlyDictionary<int, GameCapabilityKnowledge> GeneratorsById { get; }
 
@@ -70,7 +74,8 @@ internal sealed class GameDomainKnowledge
         return new GameDomainKnowledge(
             BuildGenerators(compiledDomain, symbols),
             BuildGambits(compiledDomain, symbols, stableNames),
-            BuildChronicleQueries(compiledDomain));
+            BuildChronicleQueries(compiledDomain),
+            BuildChronicleArchetypes(compiledDomain));
     }
 
     private static GameChronicleQuery[] BuildChronicleQueries(CompiledDomain compiledDomain) =>
@@ -318,4 +323,37 @@ internal sealed class GameDomainKnowledge
             string.IsNullOrWhiteSpace(authoredName)
                 ? ProjectionSymbolCatalog.ToDisplayName(stableName)
                 : authoredName);
+
+    private static Dictionary<int, GameChronicleArchetypeKnowledge> BuildChronicleArchetypes(
+        Engine.Domain.Compilation.CompiledDomain compiledDomain)
+    {
+        var result = new Dictionary<int, GameChronicleArchetypeKnowledge>();
+        foreach (var archetype in compiledDomain.Config.Semantics?.ChronicleArchetypes ?? [])
+        {
+            var roleRefs = new List<string> { archetype.PrimaryRoleRef };
+            roleRefs.AddRange(archetype.SupportingRoles.Select(static role => role.Ref));
+            var narratives = new Dictionary<int, string>();
+            foreach (var resolution in archetype.Resolutions)
+            {
+                if (!string.IsNullOrWhiteSpace(resolution.Narrative))
+                {
+                    narratives[compiledDomain.Ids.ReasonCodeIdOf(resolution.OutcomeId).Value] = resolution.Narrative;
+                }
+            }
+
+            result[compiledDomain.Ids.GeneratorIdOf(archetype.Id).Value] = new GameChronicleArchetypeKnowledge(
+                archetype.TitleTemplate,
+                roleRefs,
+                archetype.ActNames,
+                narratives);
+        }
+
+        return result;
+    }
 }
+
+internal sealed record GameChronicleArchetypeKnowledge(
+    string? TitleTemplate,
+    IReadOnlyList<string> RoleRefs,
+    IReadOnlyList<string> ActNames,
+    IReadOnlyDictionary<int, string> OutcomeNarrativesByCodeId);

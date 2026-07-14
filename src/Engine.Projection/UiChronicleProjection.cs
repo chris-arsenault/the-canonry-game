@@ -17,7 +17,8 @@ public sealed record UiChronicleEntityRef(
     int KindId,
     int SubtypeId,
     int CultureId,
-    string DisplayName);
+    string DisplayName,
+    string ReferenceName);
 
 /// <summary>
 /// A chronicle tale: one running or resolved story from the Chronicle
@@ -34,6 +35,18 @@ public sealed record UiChronicleTale(
     int OutcomeCodeId,
     string OutcomeName,
     IReadOnlyList<UiChronicleEntityRef> Cast);
+
+/// <summary>
+/// A fully narrated chronicle for presentation: forged title, act name,
+/// outcome sentence, and the beats (event entries between cast members)
+/// that actually happened.
+/// </summary>
+public sealed record UiChronicleTaleView(
+    UiChronicleTale Tale,
+    string Title,
+    string ActName,
+    string OutcomeNarrative,
+    IReadOnlyList<UiChronicleEntry> Beats);
 
 public sealed record UiChronicleEntry(
     long Sequence,
@@ -276,22 +289,11 @@ public sealed class UiChronicleProjection : KernelEventProjector
 
     private UiChronicleEntityRef BuildEntityRef(int entityId)
     {
-        if (_entityInfo.TryGetValue(entityId, out var info))
-        {
-            var name = _symbols?.ResolveEntityName(
-                new ProjectionEntityNameKey(entityId, info.KindId, info.SubtypeId, info.CultureId, entityId),
-                $"E{entityId}") ?? $"E{entityId}";
-            return new UiChronicleEntityRef(entityId, info.KindId, info.SubtypeId, info.CultureId, name);
-        }
-
-        return new UiChronicleEntityRef(
-            entityId,
-            0,
-            0,
-            0,
-            _symbols?.ResolveEntityName(
-                new ProjectionEntityNameKey(entityId, 0, 0, 0, entityId),
-                $"E{entityId}") ?? $"E{entityId}");
+        var info = _entityInfo.GetValueOrDefault(entityId, new EntityInfo(0, 0, 0));
+        var key = new ProjectionEntityNameKey(entityId, info.KindId, info.SubtypeId, info.CultureId, entityId);
+        var name = _symbols?.ResolveEntityName(key, $"E{entityId}") ?? $"E{entityId}";
+        var reference = _symbols?.ResolveEntityReferenceName(key, name) ?? name;
+        return new UiChronicleEntityRef(entityId, info.KindId, info.SubtypeId, info.CultureId, name, reference);
     }
 
     private static string TickPrefix(int tick) =>

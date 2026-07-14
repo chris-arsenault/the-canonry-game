@@ -48,6 +48,8 @@ public static class IceRemembersChronicleArchetypes
         Acts = HuntActs(),
         Resolutions = HuntResolutions(),
         Id = "the_hunt",
+        TitleTemplate = "The Hunt of {$quarry}",
+        ActNames = ["The Naming", "The Reckoning"],
         Name = "The Hunt",
         Description = "A much-provoked beast, a named hunter, and an ending one way or the other.",
         PrimaryRoleRef = "$quarry",
@@ -123,6 +125,8 @@ public static class IceRemembersChronicleArchetypes
         Acts = RivalryActs(),
         Resolutions = RivalryResolutions(),
         Id = "blood_rivalry",
+        TitleTemplate = "The {$challenger}-{$rival} Rivalry",
+        ActNames = ["Pressed Grievances", "The War to Settle It"],
         Name = "The Blood Rivalry",
         Description = "A rivalry pressed until it must resolve: settled ground or lasting hatred.",
         PrimaryRoleRef = "$challenger",
@@ -209,6 +213,8 @@ public static class IceRemembersChronicleArchetypes
     private static ChronicleArchetypeConfig TheTeaching() => new()
     {
         Id = "the_teaching",
+        TitleTemplate = "The Teaching of {$student}",
+        ActNames = ["The Apprenticeship", "The Surpassing"],
         Name = "The Teaching",
         Description = "Master and student, and what survives of one inside the other.",
         PrimaryRoleRef = "$student",
@@ -234,8 +240,14 @@ public static class IceRemembersChronicleArchetypes
                 },
             },
         ],
-        Acts =
-        [
+        Acts = TeachingActs(),
+        Resolutions = TeachingResolutions(),
+        MaxActive = 1,
+        CastingCadenceTicks = 700,
+    };
+
+    private static List<ChronicleActConfig> TeachingActs() =>
+    [
             new ChronicleActConfig
             {
                 DeadlineTicks = 500,
@@ -248,24 +260,24 @@ public static class IceRemembersChronicleArchetypes
                 AdvanceWhen = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RoleHistorical, RoleA = "$master" },
                 Sustain = [Sustain("$student", 0.015f)],
             },
-        ],
-        Resolutions =
-        [
+    ];
+
+    private static List<ChronicleResolutionConfig> TeachingResolutions() =>
+    [
             new ChronicleResolutionConfig
             {
                 OutcomeId = "the_teaching_lives",
+                Narrative = "{$master} is gone. What {$master} knew lives on in {$student}.",
                 When = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RoleHistorical, RoleA = "$master" },
             },
             new ChronicleResolutionConfig
             {
                 OutcomeId = "paths_diverge",
+                Narrative = "{$student} and {$master} drifted apart. The teaching fades, unfinished.",
                 Weight = 1,
                 Relationships = [Cull("$student", "$master", "taught_by")],
             },
-        ],
-        MaxActive = 1,
-        CastingCadenceTicks = 700,
-    };
+    ];
 
     /// <summary>
     /// Two settlements joined by a strong trade route. The road either grows
@@ -275,6 +287,8 @@ public static class IceRemembersChronicleArchetypes
     private static ChronicleArchetypeConfig TheFlourishingRoad() => new()
     {
         Id = "flourishing_road",
+        TitleTemplate = "The {$port} Road",
+        ActNames = ["Laden Sledges", "The Proving"],
         Name = "The Flourishing Road",
         Description = "A road between two ports, and whether it outlives its makers.",
         PrimaryRoleRef = "$port",
@@ -315,11 +329,13 @@ public static class IceRemembersChronicleArchetypes
             new ChronicleResolutionConfig
             {
                 OutcomeId = "the_road_becomes_legend",
+                Narrative = "The road between {$port} and {$partner} outgrew its makers. Caravans will walk it for generations.",
                 When = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RolePairRelationship, RoleA = "$port", RoleB = "$partner", RelationshipKind = "trade_route", MinStrength = 0.9f },
             },
             new ChronicleResolutionConfig
             {
                 OutcomeId = "the_road_falls_silent",
+                Narrative = "The road between {$port} and {$partner} fell silent, and the ice took it back.",
                 Weight = 1,
                 Relationships = [Cull("$port", "$partner", "trade_route"), Cull("$partner", "$port", "trade_route")],
             },
@@ -335,6 +351,8 @@ public static class IceRemembersChronicleArchetypes
     private static ChronicleArchetypeConfig TheHauntedRun() => new()
     {
         Id = "haunted_run",
+        TitleTemplate = "The Haunting of {$vessel}",
+        ActNames = ["The Whispering Hold", "Wards and Salt"],
         Name = "The Haunted Run",
         Description = "A vessel, its haunt, and which of them survives the route.",
         PrimaryRoleRef = "$vessel",
@@ -375,12 +393,14 @@ public static class IceRemembersChronicleArchetypes
             new ChronicleResolutionConfig
             {
                 OutcomeId = "the_run_cleansed",
+                Narrative = "{$vessel} drove out {$haunt}. The run is clean, and crews sail it again.",
                 When = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RolePairRelationship, RoleA = "$vessel", RoleB = "$haunt", RelationshipKind = "ward_against", MinStrength = 0.5f },
                 Relationships = [Cull("$vessel", "$haunt", "corrupted_by")],
             },
             new ChronicleResolutionConfig
             {
                 OutcomeId = "the_vessel_is_lost",
+                Narrative = "{$vessel} was lost with all hands to {$haunt}.",
                 Weight = 1,
                 MarkHistorical = ["$vessel"],
             },
@@ -396,6 +416,8 @@ public static class IceRemembersChronicleArchetypes
     private static ChronicleArchetypeConfig TheLivingPractice() => new()
     {
         Id = "living_practice",
+        TitleTemplate = "The Keeping of {$practice}",
+        ActNames = ["Devotion", "Taking Root"],
         Name = "The Living Practice",
         Description = "A discipline and the one who keeps it alive.",
         PrimaryRoleRef = "$practice",
@@ -436,11 +458,13 @@ public static class IceRemembersChronicleArchetypes
             new ChronicleResolutionConfig
             {
                 OutcomeId = "the_practice_takes_root",
+                Narrative = "The devotion of {$keeper} took root. {$practice} will outlive its keeper.",
                 When = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RolePairRelationship, RoleA = "$practice", RoleB = "$keeper", RelationshipKind = "practiced_by", MinStrength = 0.85f },
             },
             new ChronicleResolutionConfig
             {
                 OutcomeId = "the_practice_fades",
+                Narrative = "{$keeper} faltered, and {$practice} fades from living memory.",
                 Weight = 1,
                 Relationships = [Cull("$practice", "$keeper", "practiced_by")],
             },
@@ -457,6 +481,8 @@ public static class IceRemembersChronicleArchetypes
     private static ChronicleArchetypeConfig TheTerrorOfTheCoasts() => new()
     {
         Id = "terror_of_the_coasts",
+        TitleTemplate = "{$terror}, Terror of the Coasts",
+        ActNames = ["Raids in the Dark", "The Reckoning Tide"],
         Name = "The Terror of the Coasts",
         Description = "A raider, a defender, and a coastline that remembers both.",
         PrimaryRoleRef = "$terror",
@@ -496,11 +522,13 @@ public static class IceRemembersChronicleArchetypes
             new ChronicleResolutionConfig
             {
                 OutcomeId = "the_terror_driven_off",
+                Narrative = "{$foe} drove {$terror} from the coasts for good.",
                 When = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RoleHistorical, RoleA = "$terror" },
             },
             new ChronicleResolutionConfig
             {
                 OutcomeId = "the_coast_yields",
+                Narrative = "The coast yielded. {$terror} hunts unchallenged, and {$foe} stands down.",
                 Weight = 1,
                 Relationships = [Cull("$terror", "$foe", "at_war_with"), Cull("$foe", "$terror", "at_war_with")],
             },

@@ -53,6 +53,114 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
 
     public long TalesVersion => _baseChronicle.TalesVersion;
 
+    public IReadOnlyList<UiChronicleTaleView> TaleViews
+    {
+        get
+        {
+            RefreshTaleViews();
+            return _cachedTaleViews;
+        }
+    }
+
+    private IReadOnlyList<UiChronicleTaleView> _cachedTaleViews = [];
+    private long _lastTaleViewsVersion = -1;
+    private long _lastTaleViewsEntriesVersion = -1;
+
+    private void RefreshTaleViews()
+    {
+        Refresh();
+        if (_lastTaleViewsVersion == _baseChronicle.TalesVersion && _lastTaleViewsEntriesVersion == Version)
+        {
+            return;
+        }
+
+        _lastTaleViewsVersion = _baseChronicle.TalesVersion;
+        _lastTaleViewsEntriesVersion = Version;
+        var entries = _cachedEntries;
+        _cachedTaleViews = _baseChronicle.Tales
+            .Select(tale => BuildTaleView(tale, entries))
+            .ToList();
+    }
+
+    private UiChronicleTaleView BuildTaleView(UiChronicleTale tale, IReadOnlyList<UiChronicleEntry> entries)
+    {
+        var archetype = _knowledge.ChronicleArchetypesById.GetValueOrDefault(tale.ArchetypeId);
+        var title = FillRoleTemplate(archetype?.TitleTemplate, archetype, tale, useReferenceNames: true)
+            ?? tale.ArchetypeName;
+        var actName = archetype is not null && tale.ActIndex >= 0 && tale.ActIndex < archetype.ActNames.Count
+            ? archetype.ActNames[tale.ActIndex]
+            : $"act {tale.ActIndex + 1}";
+        return new UiChronicleTaleView(
+            tale,
+            title,
+            actName,
+            OutcomeNarrative(tale, archetype),
+            TaleBeats(tale, entries));
+    }
+
+    private static string OutcomeNarrative(UiChronicleTale tale, GameChronicleArchetypeKnowledge? archetype)
+    {
+        if (!tale.Resolved)
+        {
+            return string.Empty;
+        }
+
+        if (archetype is not null &&
+            archetype.OutcomeNarrativesByCodeId.TryGetValue(tale.OutcomeCodeId, out var template))
+        {
+            return FillRoleTemplate(template, archetype, tale, useReferenceNames: false) ?? tale.OutcomeName;
+        }
+
+        return tale.OutcomeName;
+    }
+
+    private static string? FillRoleTemplate(
+        string? template,
+        GameChronicleArchetypeKnowledge? archetype,
+        UiChronicleTale tale,
+        bool useReferenceNames)
+    {
+        if (string.IsNullOrWhiteSpace(template) || archetype is null)
+        {
+            return null;
+        }
+
+        var result = template;
+        for (var role = 0; role < archetype.RoleRefs.Count && role < tale.Cast.Count; role++)
+        {
+            var name = useReferenceNames ? tale.Cast[role].ReferenceName : tale.Cast[role].DisplayName;
+            result = result.Replace($"{{{archetype.RoleRefs[role]}}}", name, StringComparison.Ordinal);
+        }
+
+        return result;
+    }
+
+    private static List<UiChronicleEntry> TaleBeats(UiChronicleTale tale, IReadOnlyList<UiChronicleEntry> entries)
+    {
+        const int maxBeats = 4;
+        var castIds = new HashSet<int>(tale.Cast.Select(static member => member.EntityId));
+        var beats = new List<UiChronicleEntry>();
+        for (var i = entries.Count - 1; i >= 0 && beats.Count < maxBeats; i--)
+        {
+            var entry = entries[i];
+            if (entry.EntryType == UiChronicleEntryType.Tale ||
+                entry.Tick < tale.StartTick ||
+                (tale.Resolved && entry.Tick > tale.LastEventTick))
+            {
+                continue;
+            }
+
+            var touched = entry.Entities.Count(member => castIds.Contains(member.EntityId));
+            if (touched >= 2)
+            {
+                beats.Add(entry);
+            }
+        }
+
+        beats.Reverse();
+        return beats;
+    }
+
     public IReadOnlyList<UiChronicleEntry> Entries
     {
         get

@@ -35,6 +35,16 @@ public sealed class ChronicleArchetypeConfig
     /// </summary>
     public required IReadOnlyList<ChronicleResolutionConfig> Resolutions { get; init; }
 
+    /// <summary>
+    /// Player-facing title template. Role refs in braces are replaced with
+    /// the cast member's reference name, e.g. "The Hunt of {$quarry}".
+    /// Game-layer presentation only; never compiled into the kernel.
+    /// </summary>
+    public string? TitleTemplate { get; init; }
+
+    /// <summary>Player-facing act names, parallel to Acts.</summary>
+    public IReadOnlyList<string> ActNames { get; init; } = [];
+
     /// <summary>Maximum concurrently active stories of this archetype.</summary>
     public int MaxActive { get; init; } = 4;
 
@@ -105,6 +115,12 @@ public sealed class ChronicleResolutionConfig
     public ChronicleConditionConfig? When { get; init; }
 
     public int Weight { get; init; } = 1;
+
+    /// <summary>
+    /// Player-facing outcome sentence template with role refs in braces,
+    /// e.g. "{$quarry} fell to {$hunter}. The hunt is fulfilled."
+    /// </summary>
+    public string? Narrative { get; init; }
 
     /// <summary>Relationship writes applied between roles at resolution.</summary>
     public IReadOnlyList<ChronicleResolutionRelationshipConfig> Relationships { get; init; } = [];

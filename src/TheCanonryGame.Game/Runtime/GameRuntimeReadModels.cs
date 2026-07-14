@@ -15,6 +15,8 @@ internal interface IGameChronicleFeed
 
     IReadOnlyList<UiChronicleTale> Tales { get; }
 
+    IReadOnlyList<UiChronicleTaleView> TaleViews { get; }
+
     long TalesVersion { get; }
 
     IReadOnlyList<string> Lines { get; }

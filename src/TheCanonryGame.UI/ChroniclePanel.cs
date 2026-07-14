@@ -33,7 +33,7 @@ public partial class ChroniclePanel : PanelContainer
     private readonly List<OptionData> _scratchOptions = [];
     private IProjectionSymbolCatalog? _symbols;
     private IReadOnlyList<UiChronicleEntry> _entries = [];
-    private IReadOnlyList<UiChronicleTale> _tales = [];
+    private IReadOnlyList<UiChronicleTaleView> _taleViews = [];
     private RichTextLabel? _talesLabel;
     private Label? _talesHeaderLabel;
     private RichTextLabel? _eventLogLabel;
@@ -96,10 +96,10 @@ public partial class ChroniclePanel : PanelContainer
         RenderEntries();
     }
 
-    public void SetTales(IReadOnlyList<UiChronicleTale> tales)
+    public void SetTaleViews(IReadOnlyList<UiChronicleTaleView> taleViews)
     {
-        ArgumentNullException.ThrowIfNull(tales);
-        _tales = tales;
+        ArgumentNullException.ThrowIfNull(taleViews);
+        _taleViews = taleViews;
         RenderTales();
     }
 
@@ -164,22 +164,22 @@ public partial class ChroniclePanel : PanelContainer
 
         var lines = new List<string>();
         var activeCount = 0;
-        foreach (var tale in _tales)
+        foreach (var view in _taleViews)
         {
-            if (!tale.Resolved)
+            if (!view.Tale.Resolved)
             {
                 activeCount++;
-                lines.Add(TaleLine(tale));
+                AppendTaleLines(lines, view);
             }
         }
 
         var resolvedShown = 0;
-        foreach (var tale in _tales)
+        foreach (var view in _taleViews)
         {
-            if (tale.Resolved && resolvedShown < 24)
+            if (view.Tale.Resolved && resolvedShown < 16)
             {
                 resolvedShown++;
-                lines.Add(TaleLine(tale));
+                AppendTaleLines(lines, view);
             }
         }
 
@@ -193,35 +193,36 @@ public partial class ChroniclePanel : PanelContainer
             : string.Join('\n', lines);
     }
 
-    private static string TaleLine(UiChronicleTale tale)
+    private static void AppendTaleLines(List<string> lines, UiChronicleTaleView view)
     {
         const string taleColor = "C9A2E0";
         const string dimColor = "6F7684";
         const string connectorColor = "B8B5A6";
         const string entityColor = "9BC4E8";
-        var status = tale.Resolved
-            ? $"[color=#{dimColor}]○[/color]"
-            : $"[color=#C9A2E0]●[/color]";
-        string act;
-        if (!tale.Resolved)
+        const string narrativeColor = "D8D4C4";
+        var tale = view.Tale;
+        var years = (tale.LastEventTick - tale.StartTick) / 250f;
+        var status = tale.Resolved ? $"[color=#{dimColor}]\u25cb[/color]" : $"[color=#{taleColor}]\u25cf[/color]";
+        var phase = tale.Resolved
+            ? $"[color=#{dimColor}]{years:0.#}y[/color]"
+            : $"[color=#{dimColor}]{view.ActName} \u00b7 {years:0.#}y[/color]";
+        lines.Add($"{status} [b][color=#{taleColor}]{view.Title}[/color][/b]  {phase}");
+
+        var cast = string.Join(
+            $"[color=#{connectorColor}] \u00b7 [/color]",
+            tale.Cast.Select(entity => $"[url={entity.EntityId}][color=#{entityColor}]{entity.DisplayName}[/color][/url]"));
+        lines.Add($"    {cast}");
+
+        if (tale.Resolved && view.OutcomeNarrative.Length > 0)
         {
-            act = $"[color=#{dimColor}]act {tale.ActIndex + 1}[/color]";
-        }
-        else if (tale.OutcomeName.Length > 0)
-        {
-            act = $"[color=#{dimColor}]{tale.OutcomeName}[/color]";
-        }
-        else
-        {
-            act = $"[color=#{dimColor}]ended[/color]";
+            lines.Add($"    [i][color=#{narrativeColor}]{view.OutcomeNarrative}[/color][/i]");
+            return;
         }
 
-        var years = (tale.LastEventTick - tale.StartTick) / 250f;
-        var age = $"[color=#{dimColor}]{years:0.#}y[/color]";
-        var cast = string.Join(
-            $"[color=#{connectorColor}] · [/color]",
-            tale.Cast.Select(entity => $"[url={entity.EntityId}][color=#{entityColor}]{entity.DisplayName}[/color][/url]"));
-        return $"{status} [b][color=#{taleColor}]{tale.ArchetypeName}[/color][/b]  {act}  {age}\n    {cast}";
+        foreach (var beat in view.Beats)
+        {
+            lines.Add($"      [color=#{dimColor}]\u2514[/color] {beat.Text}");
+        }
     }
 
     public void SetEntries(IReadOnlyList<UiChronicleEntry> entries)
