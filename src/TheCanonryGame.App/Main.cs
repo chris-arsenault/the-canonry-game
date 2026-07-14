@@ -276,6 +276,8 @@ public partial class Main : Node2D
         {
             _browser.EntitySelected += OnBrowserEntitySelected;
             _chroniclePanel!.EntitySelected += OnBrowserEntitySelected;
+            _chroniclePanel!.JournalRequested += () => _renderTree?.ToggleChronicleJournal();
+            _renderTree!.JournalEntitySelected += OnBrowserEntitySelected;
             _browser.EntityFilterChanged += OnBrowserEntityFilterChanged;
         }
 

@@ -16,6 +16,9 @@ public partial class ChroniclePanel : PanelContainer
     [Signal]
     public delegate void EntitySelectedEventHandler(int entityIdValue);
 
+    [Signal]
+    public delegate void JournalRequestedEventHandler();
+
     private const int AllFilterId = 0;
     private const int EventGambitFilterId = 1;
     private const int EventGeneratorFilterId = 2;
@@ -33,9 +36,7 @@ public partial class ChroniclePanel : PanelContainer
     private readonly List<OptionData> _scratchOptions = [];
     private IProjectionSymbolCatalog? _symbols;
     private IReadOnlyList<UiChronicleEntry> _entries = [];
-    private IReadOnlyList<UiChronicleTaleView> _taleViews = [];
-    private RichTextLabel? _talesLabel;
-    private Label? _talesHeaderLabel;
+    private Button? _journalButton;
     private RichTextLabel? _eventLogLabel;
     private LineEdit? _entitySearchEdit;
     private OptionButton? _cultureFilterOption;
@@ -85,7 +86,7 @@ public partial class ChroniclePanel : PanelContainer
 
         AddFilterControls(outer);
         GetNode<ColorRect>("Outer/Hairline").Color = UiTokens.Hairline;
-        AddTalesSection(outer);
+        AddJournalButton(outer);
 
         _eventLogLabel = GetNode<RichTextLabel>("Outer/Scroll/EventLogLabel");
         _eventLogLabel.AddThemeFontOverride("normal_font", UiTheme.BodyFont);
@@ -99,130 +100,28 @@ public partial class ChroniclePanel : PanelContainer
     public void SetTaleViews(IReadOnlyList<UiChronicleTaleView> taleViews)
     {
         ArgumentNullException.ThrowIfNull(taleViews);
-        _taleViews = taleViews;
-        RenderTales();
+        var unfolding = taleViews.Count(static view => !view.Tale.Resolved);
+        if (_journalButton is not null)
+        {
+            _journalButton.Text = unfolding > 0
+                ? $"Chronicle Journal  ({unfolding} unfolding)"
+                : "Chronicle Journal";
+        }
     }
 
-    private void AddTalesSection(VBoxContainer outer)
+    private void AddJournalButton(VBoxContainer outer)
     {
-        _talesHeaderLabel = new Label { Text = "Chronicles" };
-        _talesHeaderLabel.AddThemeFontOverride("font", UiTheme.DisplayFont);
-        _talesHeaderLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
-        _talesHeaderLabel.AddThemeColorOverride("font_color", UiTokens.Vellum);
-        outer.AddChild(_talesHeaderLabel);
-        outer.MoveChild(_talesHeaderLabel, 3);
-
-        var scroll = new ScrollContainer
+        _journalButton = new Button
         {
-            CustomMinimumSize = new Vector2(0, 190),
+            Text = "Chronicle Journal",
             SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled,
+            CustomMinimumSize = new Vector2(0, 28),
+            TooltipText = "Open the chronicle journal: the world's unfolding tales and endings.",
         };
-        _talesLabel = new RichTextLabel
-        {
-            BbcodeEnabled = true,
-            FitContent = true,
-            AutowrapMode = TextServer.AutowrapMode.WordSmart,
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            SizeFlagsVertical = SizeFlags.ExpandFill,
-            SelectionEnabled = true,
-        };
-        _talesLabel.AddThemeFontOverride("normal_font", UiTheme.BodyFont);
-        _talesLabel.AddThemeFontOverride("bold_font", UiTheme.DisplayFont);
-        _talesLabel.AddThemeFontSizeOverride("normal_font_size", UiTokens.SizeBodySmall);
-        _talesLabel.AddThemeFontSizeOverride("bold_font_size", UiTokens.SizeBodySmall);
-        _talesLabel.AddThemeColorOverride("default_color", UiTokens.Vellum);
-        _talesLabel.MetaClicked += OnTaleMetaClicked;
-        scroll.AddChild(_talesLabel);
-        outer.AddChild(scroll);
-        outer.MoveChild(scroll, 4);
-
-        var hairline = new ColorRect
-        {
-            CustomMinimumSize = new Vector2(0, 1),
-            Color = UiTokens.Hairline,
-        };
-        outer.AddChild(hairline);
-        outer.MoveChild(hairline, 5);
-        RenderTales();
-    }
-
-    private void OnTaleMetaClicked(Variant meta)
-    {
-        if (int.TryParse(meta.AsString(), System.Globalization.CultureInfo.InvariantCulture, out var entityId) && entityId > 0)
-        {
-            EmitSignal(SignalName.EntitySelected, entityId);
-        }
-    }
-
-    private void RenderTales()
-    {
-        if (_talesLabel is null)
-        {
-            return;
-        }
-
-        var lines = new List<string>();
-        var activeCount = 0;
-        foreach (var view in _taleViews)
-        {
-            if (!view.Tale.Resolved)
-            {
-                activeCount++;
-                AppendTaleLines(lines, view);
-            }
-        }
-
-        var resolvedShown = 0;
-        foreach (var view in _taleViews)
-        {
-            if (view.Tale.Resolved && resolvedShown < 16)
-            {
-                resolvedShown++;
-                AppendTaleLines(lines, view);
-            }
-        }
-
-        if (_talesHeaderLabel is not null)
-        {
-            _talesHeaderLabel.Text = $"Chronicles  ({activeCount} unfolding)";
-        }
-
-        _talesLabel.Text = lines.Count == 0
-            ? "[color=#6F7684]No chronicles yet. The ice is watching.[/color]"
-            : string.Join('\n', lines);
-    }
-
-    private static void AppendTaleLines(List<string> lines, UiChronicleTaleView view)
-    {
-        const string taleColor = "C9A2E0";
-        const string dimColor = "6F7684";
-        const string connectorColor = "B8B5A6";
-        const string entityColor = "9BC4E8";
-        const string narrativeColor = "D8D4C4";
-        var tale = view.Tale;
-        var years = (tale.LastEventTick - tale.StartTick) / 250f;
-        var status = tale.Resolved ? $"[color=#{dimColor}]\u25cb[/color]" : $"[color=#{taleColor}]\u25cf[/color]";
-        var phase = tale.Resolved
-            ? $"[color=#{dimColor}]{years:0.#}y[/color]"
-            : $"[color=#{dimColor}]{view.ActName} \u00b7 {years:0.#}y[/color]";
-        lines.Add($"{status} [b][color=#{taleColor}]{view.Title}[/color][/b]  {phase}");
-
-        var cast = string.Join(
-            $"[color=#{connectorColor}] \u00b7 [/color]",
-            tale.Cast.Select(entity => $"[url={entity.EntityId}][color=#{entityColor}]{entity.DisplayName}[/color][/url]"));
-        lines.Add($"    {cast}");
-
-        if (tale.Resolved && view.OutcomeNarrative.Length > 0)
-        {
-            lines.Add($"    [i][color=#{narrativeColor}]{view.OutcomeNarrative}[/color][/i]");
-            return;
-        }
-
-        foreach (var beat in view.Beats)
-        {
-            lines.Add($"      [color=#{dimColor}]\u2514[/color] {beat.Text}");
-        }
+        _journalButton.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        _journalButton.Pressed += () => EmitSignal(SignalName.JournalRequested);
+        outer.AddChild(_journalButton);
+        outer.MoveChild(_journalButton, 3);
     }
 
     public void SetEntries(IReadOnlyList<UiChronicleEntry> entries)

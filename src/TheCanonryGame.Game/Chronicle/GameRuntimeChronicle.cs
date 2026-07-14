@@ -137,7 +137,7 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
 
     private static List<UiChronicleEntry> TaleBeats(UiChronicleTale tale, IReadOnlyList<UiChronicleEntry> entries)
     {
-        const int maxBeats = 4;
+        const int maxBeats = 10;
         var castIds = new HashSet<int>(tale.Cast.Select(static member => member.EntityId));
         var beats = new List<UiChronicleEntry>();
         for (var i = entries.Count - 1; i >= 0 && beats.Count < maxBeats; i--)

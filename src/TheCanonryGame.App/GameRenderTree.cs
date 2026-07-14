@@ -46,6 +46,9 @@ internal sealed class GameRenderTree
     private IProjectionSymbolCatalog? _symbols;
     private IGameChronicleFeed? _chronicle;
     private AttributeGraphPanel? _attributeGraph;
+    private ChronicleJournal? _journal;
+
+    public event Action<int>? JournalEntitySelected;
     private HexMapProjection? _lastCultureOverviewMap;
     private PlaneMode? _lastCultureOverviewPlane;
     private long _lastCultureOverviewActivityVersion = -1;
@@ -331,6 +334,28 @@ internal sealed class GameRenderTree
         };
         ApplyMapLens();
         _mapRender.InvalidateFrame();
+    }
+
+    public void ToggleChronicleJournal()
+    {
+        if (_journal is not null)
+        {
+            _journal.QueueFree();
+            _journal = null;
+            _chronicleRender.Journal = null;
+            return;
+        }
+
+        _journal = new ChronicleJournal { Theme = _theme };
+        _cardLayer.AddChild(_journal);
+        _journal.Position = new Vector2(240, UiTokens.Space7);
+        _journal.EntitySelected += entityId => JournalEntitySelected?.Invoke(entityId);
+        _journal.CloseRequested += ToggleChronicleJournal;
+        _chronicleRender.Journal = _journal;
+        if (_chronicle is not null)
+        {
+            _journal.SetTaleViews(_chronicle.TaleViews);
+        }
     }
 
     public void ToggleAttributeGraph()
@@ -680,7 +705,10 @@ internal sealed class GameRenderTree
             _lastState = state;
             panel.SetEntries(chronicle.Entries);
             panel.SetTaleViews(chronicle.TaleViews);
+            Journal?.SetTaleViews(chronicle.TaleViews);
         }
+
+        public ChronicleJournal? Journal { get; set; }
     }
 
     private sealed class CardLayerRender
