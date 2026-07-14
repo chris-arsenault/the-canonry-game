@@ -302,6 +302,8 @@ public static class ChronicleConditionCodes
     public const int HeatAtLeast = 6;
     public const int RolePairWithinDistance = 7;
     public const int RolePairBeyondDistance = 8;
+    public const int RoleAttributeAtLeast = 9;
+    public const int HeatBelow = 10;
 }
 
 public static class ChronicleStrikeCodes
@@ -310,6 +312,14 @@ public static class ChronicleStrikeCodes
     public const int RolePairGambit = 1;
     public const int OutsiderGambitOnRole = 2;
     public const int StateFact = 3;
+    public const int RoleGambit = 4;
+    public const int GeneratorOnRole = 5;
+}
+
+public static class ChroniclePendingKindCodes
+{
+    public const int GambitExecution = 0;
+    public const int GeneratorFire = 1;
 }
 
 public static class MinorActorKindCodes

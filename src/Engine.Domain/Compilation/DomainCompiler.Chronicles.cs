@@ -97,7 +97,7 @@ public static partial class DomainCompiler
             (int)strike.Kind,
             RoleIndex(archetype, strike.ActorRole, roleIndices),
             RoleIndex(archetype, strike.TargetRole, roleIndices),
-            strike.Gambit is null ? 0 : ids.GambitIdOf(strike.Gambit).Value,
+            CompileStrikeProducerId(strike, ids),
             strike.Fact is null
                 ? new CompiledChronicleCondition(ChronicleConditionCodes.None, 0, 0, 0, 0f)
                 : CompileChronicleCondition(archetype, strike.Fact, ids, roleIndices),
@@ -107,26 +107,42 @@ public static partial class DomainCompiler
 
     private static void ValidateStrike(ChronicleArchetypeConfig archetype, ChronicleBeatConfig beat)
     {
-        var strike = beat.Strike;
-        var valid = strike.Kind switch
-        {
-            ChronicleStrikeKind.None => strike.Fact is null,
-            ChronicleStrikeKind.RolePairGambit => strike.ActorRole is not null && strike.TargetRole is not null,
-            ChronicleStrikeKind.OutsiderGambitOnRole => strike.TargetRole is not null,
-            ChronicleStrikeKind.StateFact => strike.Fact is not null,
-            _ => false,
-        };
-        if (!valid)
+        if (!StrikeShapeIsValid(beat.Strike))
         {
             throw new InvalidOperationException(
-                $"Chronicle beat '{beat.Id}' of archetype '{archetype.Id}' has an invalid {strike.Kind} strike.");
+                $"Chronicle beat '{beat.Id}' of archetype '{archetype.Id}' has an invalid {beat.Strike.Kind} strike.");
         }
 
-        if (beat.TerminalOutcomeId is not null && strike.Kind == ChronicleStrikeKind.None)
+        if (beat.TerminalOutcomeId is not null && beat.Strike.Kind == ChronicleStrikeKind.None)
         {
             throw new InvalidOperationException(
                 $"Chronicle beat '{beat.Id}' of archetype '{archetype.Id}' is terminal but never strikes.");
         }
+    }
+
+    private static bool StrikeShapeIsValid(ChronicleStrikeConfig strike) => strike.Kind switch
+    {
+        ChronicleStrikeKind.None => strike.Fact is null,
+        ChronicleStrikeKind.RolePairGambit => strike.ActorRole is not null && strike.TargetRole is not null,
+        ChronicleStrikeKind.OutsiderGambitOnRole => strike.TargetRole is not null,
+        ChronicleStrikeKind.StateFact => strike.Fact is not null,
+        ChronicleStrikeKind.RoleGambit => strike.ActorRole is not null && strike.Gambit is not null,
+        ChronicleStrikeKind.GeneratorOnRole => strike.TargetRole is not null,
+        _ => false,
+    };
+
+    /// <summary>
+    /// The strike's producer filter shares one kernel column: gambit ids for
+    /// execution strikes, generator ids for GeneratorOnRole strikes.
+    /// </summary>
+    private static int CompileStrikeProducerId(ChronicleStrikeConfig strike, DomainIdRegistry ids)
+    {
+        if (strike.Kind == ChronicleStrikeKind.GeneratorOnRole)
+        {
+            return strike.Generator is null ? 0 : ids.GeneratorIdOf(strike.Generator).Value;
+        }
+
+        return strike.Gambit is null ? 0 : ids.GambitIdOf(strike.Gambit).Value;
     }
 
     private static List<CompiledChronicleCharge> CompileCharges(
@@ -158,27 +174,33 @@ public static partial class DomainCompiler
         ChronicleArchetypeConfig archetype,
         ChronicleConditionConfig condition,
         DomainIdRegistry ids,
-        Dictionary<string, int> roleIndices)
-    {
-        var kind = condition.Kind switch
-        {
-            ChronicleConditionKind.Always => ChronicleConditionCodes.Always,
-            ChronicleConditionKind.RolePairRelationship => ChronicleConditionCodes.RolePairRelationship,
-            ChronicleConditionKind.RolePairRelationshipAbsent => ChronicleConditionCodes.RolePairRelationshipAbsent,
-            ChronicleConditionKind.RoleHistorical => ChronicleConditionCodes.RoleHistorical,
-            ChronicleConditionKind.RoleAttributeBelow => ChronicleConditionCodes.RoleAttributeBelow,
-            ChronicleConditionKind.HeatAtLeast => ChronicleConditionCodes.HeatAtLeast,
-            ChronicleConditionKind.RolePairWithinDistance => ChronicleConditionCodes.RolePairWithinDistance,
-            ChronicleConditionKind.RolePairBeyondDistance => ChronicleConditionCodes.RolePairBeyondDistance,
-            _ => throw new ArgumentOutOfRangeException(nameof(condition), condition.Kind, null),
-        };
-        return new CompiledChronicleCondition(
-            kind,
+        Dictionary<string, int> roleIndices) =>
+        new(
+            ChronicleConditionCode(condition.Kind),
             RoleIndex(archetype, condition.RoleA, roleIndices),
             RoleIndex(archetype, condition.RoleB, roleIndices),
             ChronicleConditionRelOrAttrId(archetype, condition, ids),
             condition.Value);
-    }
+
+    private static readonly Dictionary<ChronicleConditionKind, int> ChronicleConditionCodesByKind =
+        new()
+        {
+            [ChronicleConditionKind.Always] = ChronicleConditionCodes.Always,
+            [ChronicleConditionKind.RolePairRelationship] = ChronicleConditionCodes.RolePairRelationship,
+            [ChronicleConditionKind.RolePairRelationshipAbsent] = ChronicleConditionCodes.RolePairRelationshipAbsent,
+            [ChronicleConditionKind.RoleHistorical] = ChronicleConditionCodes.RoleHistorical,
+            [ChronicleConditionKind.RoleAttributeBelow] = ChronicleConditionCodes.RoleAttributeBelow,
+            [ChronicleConditionKind.HeatAtLeast] = ChronicleConditionCodes.HeatAtLeast,
+            [ChronicleConditionKind.RolePairWithinDistance] = ChronicleConditionCodes.RolePairWithinDistance,
+            [ChronicleConditionKind.RolePairBeyondDistance] = ChronicleConditionCodes.RolePairBeyondDistance,
+            [ChronicleConditionKind.RoleAttributeAtLeast] = ChronicleConditionCodes.RoleAttributeAtLeast,
+            [ChronicleConditionKind.HeatBelow] = ChronicleConditionCodes.HeatBelow,
+        };
+
+    private static int ChronicleConditionCode(ChronicleConditionKind kind) =>
+        ChronicleConditionCodesByKind.TryGetValue(kind, out var code)
+            ? code
+            : throw new ArgumentOutOfRangeException(nameof(kind), kind, null);
 
     private static int ChronicleConditionRelOrAttrId(
         ChronicleArchetypeConfig archetype,
@@ -194,6 +216,7 @@ public static partial class DomainCompiler
                         $"Chronicle condition in archetype '{archetype.Id}' requires a relationship kind.");
                 return ids.RelationshipKindIdOf(relationshipKind).Value;
             case ChronicleConditionKind.RoleAttributeBelow:
+            case ChronicleConditionKind.RoleAttributeAtLeast:
                 var attribute = condition.Attribute ??
                     throw new InvalidOperationException(
                         $"Chronicle condition in archetype '{archetype.Id}' requires an attribute.");

@@ -75,6 +75,7 @@ public static class ChronicleBeatSet
             ActorRole = actor,
             TargetRole = target,
             Gambit = strike.Gambit,
+            Generator = strike.Generator,
             Fact = fact,
         };
     }

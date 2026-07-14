@@ -22,8 +22,14 @@ chronicle makes real:
   entity's role).
 - **Strike condition** — what marks the beat as having happened: a gambit
   executed between roles (any outcome; failures are beats too), a gambit by a
-  non-cast entity on a role, or a recognized state fact evaluated on the
-  director pulse. Charge-only beats never strike.
+  non-cast entity on a role (optionally filtered to one gambit — "an
+  instrument is brought to bear"), a role executing a named gambit against
+  anyone (deeds in the world, not just against the cast), a generator firing
+  with a role as its selected target ("the war is named"), or a recognized
+  state fact evaluated on the director pulse — including heat falling (lull
+  beats) and attributes recovering (second-wind beats). Charge-only beats
+  never strike. Openings are evaluated at cast time, so Always-open beats
+  charge and accept strikes from the first pulse.
 - **Terminal flag** — striking a terminal beat ends the chronicle with its
   outcome code. Terminals only recognize world facts (deaths, edges culled by
   real gambits or relationship drift); every ending must be reachable through
@@ -61,8 +67,10 @@ roles, beats, charges, grants) and fixed per-chronicle state: heat, open and
 struck bitmasks (max 64 beats per archetype), role entity ids, and a
 suppression ring so resolved cast members are not immediately recast as
 primaries. The gambit program reports every execution through
-`Chronicles.NoteExecution` (a pending ring consumed on the next director
-pulse) and reads `ScoreBias`/`GrantsGambit` during candidate evaluation.
+`Chronicles.NoteExecution`, the generator program reports every targeted fire
+through `Chronicles.NoteGeneratorFire` (both land in a pending ring consumed
+on the next director pulse), and the gambit program reads
+`ScoreBias`/`GrantsGambit` during candidate evaluation.
 Casting is unchanged from R5: generator-grade queries, provenance-recency
 primary selection, global and per-archetype concurrency caps.
 

@@ -307,6 +307,26 @@ roles first and biases future events into the beats.
     facts (terror driven off x2, hunt fulfilled x2, run cleansed, rivalry
     settled, teaching broken), hunts had zero fades, hunt strike-sets
     differ per hunt, rivalries strike 3-8 beats.
+- [x] C1b — extended beat pool (2026-07-14). Three vocabulary additions
+  (all additive): a RoleGambit strike (a role executes a named gambit
+  against anyone - deeds in the world, not just against the cast), a
+  GeneratorOnRole strike (the generator program now reports fires to the
+  director, so world-authored developments landing on cast members are
+  authored beats - "the war is named", "the toll is counted"), and
+  RoleAttributeAtLeast / HeatBelow conditions (recovery and lull beats).
+  Beats now also open at cast time, so Always-open beats charge and accept
+  strikes from the first pulse. Shared library grew to eleven (added: the
+  adversary gathers, the lull - the breather beat, no quarter at heat 8);
+  archetype pools gained flavor beats grounded in real actuators: the
+  binding hour and second wind (hunt), the war is named / call to banners
+  / toll is counted / mutual-ruin pair (rivalry), teaching passes on and
+  the student's deed (teaching), raiders on the road and the two forging
+  beats (road), the conduit holds and salt and iron (haunted run), the
+  practice spreads and the keeper's grace (practice), the deep current
+  and blood in the water (terror). Live 12k harness: hunts strike up to
+  7 beats (one saga: allies answer, failed slay, blow upon blow, the
+  closing, Corner the Beast landing the kill the slay missed, beast at
+  bay, fulfilled), haunted runs 7-10 strikes, a rivalry hit 12.
 
 ## Scope notes and follow-ups discovered during R1-R4
 

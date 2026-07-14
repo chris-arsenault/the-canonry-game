@@ -302,6 +302,10 @@ internal sealed partial class GeneratorProgramRuntime
             createdRelationshipCount,
             relationshipSpendCount,
             createdRelationshipCount);
+        if (selectedTargetEntityId > 0)
+        {
+            simulation.Chronicles.NoteGeneratorFire(selectedTargetEntityId, simulation.Generators._generatorIds[slot]);
+        }
     }
 
     private void AddSubtypeId(int subtypeId)

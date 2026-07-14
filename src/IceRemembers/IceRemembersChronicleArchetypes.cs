@@ -108,6 +108,22 @@ public static class IceRemembersChronicleArchetypes
         },
         new ChronicleBeatConfig
         {
+            Id = "the_binding_hour",
+            Narrative = "An old instrument is brought to bear against {$quarry}.",
+            Open = Beat.Always(),
+            Strike = Beat.OutsiderOn("$quarry", "artifact_binds_monster"),
+            HeatGain = 2.5f,
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "second_wind",
+            Narrative = "{$hunter} rises again. The hunt is not finished.",
+            Open = Beat.AttrBelow("$hunter", "vitality", 35f),
+            Strike = Beat.OnFact(Beat.AttrAtLeast("$hunter", "vitality", 70f)),
+            HeatGain = 1.5f,
+        },
+        new ChronicleBeatConfig
+        {
             Id = "the_beast_at_bay",
             Narrative = "At last {$hunter} brings {$quarry} to bay.",
             Open = Beat.Heat(5f),
@@ -194,6 +210,9 @@ public static class IceRemembersChronicleArchetypes
     };
 
     private static List<ChronicleBeatConfig> RivalryBeats() =>
+        [.. RivalryCoreBeats(), .. RivalryWarSagaBeats()];
+
+    private static List<ChronicleBeatConfig> RivalryCoreBeats() =>
     [
         new ChronicleBeatConfig
         {
@@ -211,6 +230,50 @@ public static class IceRemembersChronicleArchetypes
             Narrative = "Grievance becomes war. {$challenger} and {$rival} will settle this in the open.",
             Open = Beat.Always(),
             Strike = Beat.OnFact(Beat.PairRel("$challenger", "$rival", "at_war_with", 0.5f)),
+            HeatGain = 3f,
+        },
+    ];
+
+    private static List<ChronicleBeatConfig> RivalryWarSagaBeats() =>
+    [
+        new ChronicleBeatConfig
+        {
+            Id = "the_war_is_named",
+            Narrative = "The war between {$challenger} and {$rival} has earned a name of its own.",
+            Open = Beat.Always(),
+            Strike = Beat.GeneratorOn("$challenger", "wars_get_names"),
+            HeatGain = 3f,
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "the_call_to_banners",
+            Narrative = "Banners answer {$challenger}. What was a grievance is becoming a war of nations.",
+            Open = Beat.Always(),
+            Strike = Beat.GeneratorOn("$challenger", "allies_answer_the_call"),
+            HeatGain = 2.5f,
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "the_toll_is_counted",
+            Narrative = "The dead of {$rival} are counted and named. Wars are paid for in penguins.",
+            Open = Beat.Always(),
+            Strike = Beat.GeneratorOn("$rival", "war_takes_its_toll"),
+            HeatGain = 2.5f,
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "the_ruin_of_the_challenger",
+            Narrative = "War hollows {$challenger}. Little remains of what the grievance was meant to defend.",
+            Open = Beat.AttrBelow("$challenger", "cohesion", 18f),
+            Strike = Beat.OnFact(Beat.AttrBelow("$challenger", "cohesion", 18f)),
+            HeatGain = 3f,
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "the_ruin_of_the_rival",
+            Narrative = "War hollows {$rival}. The ice will take back what neither side can hold.",
+            Open = Beat.AttrBelow("$rival", "cohesion", 18f),
+            Strike = Beat.OnFact(Beat.AttrBelow("$rival", "cohesion", 18f)),
             HeatGain = 3f,
         },
         new ChronicleBeatConfig
@@ -294,6 +357,9 @@ public static class IceRemembersChronicleArchetypes
     };
 
     private static List<ChronicleBeatConfig> TeachingBeats() =>
+        [.. TeachingLifeBeats(), .. TeachingEndBeats()];
+
+    private static List<ChronicleBeatConfig> TeachingLifeBeats() =>
     [
         new ChronicleBeatConfig
         {
@@ -321,6 +387,26 @@ public static class IceRemembersChronicleArchetypes
             Strike = Beat.PairGambit("$student", "$master"),
             HeatGain = 2.5f,
         },
+        new ChronicleBeatConfig
+        {
+            Id = "the_teaching_passes_on",
+            Narrative = "What was given to {$student} is given again. The lineage grows by one.",
+            Open = Beat.Always(),
+            Strike = Beat.RoleActs("$student", "penguin_passes_the_teaching"),
+            HeatGain = 3f,
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "the_students_deed",
+            Narrative = "{$student} makes a name in blood and ice. The teaching holds.",
+            Open = Beat.Always(),
+            Strike = Beat.RoleActs("$student", "penguin_slays_monster"),
+            HeatGain = 2.5f,
+        },
+    ];
+
+    private static List<ChronicleBeatConfig> TeachingEndBeats() =>
+    [
         new ChronicleBeatConfig
         {
             Id = "the_teaching_lives",
@@ -383,6 +469,9 @@ public static class IceRemembersChronicleArchetypes
     };
 
     private static List<ChronicleBeatConfig> RoadBeats() =>
+        [.. RoadTradeBeats(), .. RoadWorldBeats()];
+
+    private static List<ChronicleBeatConfig> RoadTradeBeats() =>
     [
         new ChronicleBeatConfig
         {
@@ -410,6 +499,34 @@ public static class IceRemembersChronicleArchetypes
             Narrative = "The road between {$port} and {$partner} hums with traffic. It has proven true.",
             Open = Beat.Always(),
             Strike = Beat.OnFact(Beat.PairRel("$port", "$partner", "trade_route", 0.95f)),
+            HeatGain = 2f,
+        },
+    ];
+
+    private static List<ChronicleBeatConfig> RoadWorldBeats() =>
+    [
+        new ChronicleBeatConfig
+        {
+            Id = "raiders_on_the_road",
+            Narrative = "Raiders test the road. What flows between {$port} and {$partner} is worth stealing now.",
+            Open = Beat.Always(),
+            Strike = Beat.OutsiderOn("$port", "orca_raids_trade_route"),
+            HeatGain = 2.5f,
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "the_port_builds_high",
+            Narrative = "{$port} raises a new tier above the road. Prosperity is built in the open.",
+            Open = Beat.Always(),
+            Strike = Beat.RoleActs("$port", "settlement_raises_the_spire"),
+            HeatGain = 2f,
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "the_gallery_beneath",
+            Narrative = "{$port} digs deeper beneath the road. Some prosperity prefers the dark.",
+            Open = Beat.Always(),
+            Strike = Beat.RoleActs("$port", "settlement_digs_the_gallery"),
             HeatGain = 2f,
         },
         new ChronicleBeatConfig
@@ -491,6 +608,22 @@ public static class IceRemembersChronicleArchetypes
         },
         new ChronicleBeatConfig
         {
+            Id = "the_conduit_holds",
+            Narrative = "Even haunted, {$vessel} keeps the routes alive.",
+            Open = Beat.Always(),
+            Strike = Beat.RoleActs("$vessel", "transport_opens_conduit"),
+            HeatGain = 2f,
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "salt_and_iron",
+            Narrative = "Salt and iron are set against {$haunt}. An instrument remembers its purpose.",
+            Open = Beat.Always(),
+            Strike = Beat.OutsiderOn("$haunt", "artifact_binds_monster"),
+            HeatGain = 2.5f,
+        },
+        new ChronicleBeatConfig
+        {
             Id = "the_run_cleansed",
             Narrative = "{$vessel} drove out {$haunt}. The run is clean, and crews sail it again.",
             Open = Beat.Always(),
@@ -555,6 +688,22 @@ public static class IceRemembersChronicleArchetypes
             Narrative = "The devotion of {$keeper} deepens. {$practice} is taking root.",
             Open = Beat.Always(),
             Strike = Beat.OnFact(Beat.PairRel("$practice", "$keeper", "practiced_by", 0.92f)),
+            HeatGain = 2f,
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "the_practice_spreads",
+            Narrative = "{$practice} finds another pair of hands. A discipline kept is a discipline shared.",
+            Open = Beat.Always(),
+            Strike = Beat.RoleActs("$practice", "ability_shares_practice"),
+            HeatGain = 3f,
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "the_keepers_grace",
+            Narrative = "The waters still around {$keeper}. This is what the keeping is for.",
+            Open = Beat.Always(),
+            Strike = Beat.RoleActs("$keeper", "penguin_stills_the_waters"),
             HeatGain = 2f,
         },
         new ChronicleBeatConfig
@@ -625,6 +774,22 @@ public static class IceRemembersChronicleArchetypes
                 Beat.Charge("$terror", "$foe", "orca_raids_trade_route", 2.5f),
                 Beat.Charge("$foe", "$terror", "penguin_slays_orca", 2.5f, heatScaled: true),
             ],
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "the_deep_current",
+            Narrative = "{$terror} shapes the sea itself to its hunting.",
+            Open = Beat.Always(),
+            Strike = Beat.RoleActs("$terror", "orca_lays_deep_current"),
+            HeatGain = 2.5f,
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "blood_in_the_water",
+            Narrative = "Another raid. The coast counts its dead and bars its harbors.",
+            Open = Beat.Always(),
+            Strike = Beat.RoleActs("$terror", "orca_raids_trade_route"),
+            HeatGain = 2f,
         },
         new ChronicleBeatConfig
         {

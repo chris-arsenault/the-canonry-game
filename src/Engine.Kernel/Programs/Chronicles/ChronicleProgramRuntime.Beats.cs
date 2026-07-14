@@ -6,9 +6,10 @@ internal sealed partial class ChronicleProgramRuntime
     {
         for (var pending = 0; pending < State.PendingCount; pending++)
         {
+            var kind = State.PendingKinds[pending];
             var actorId = State.PendingActorIds[pending];
             var targetId = State.PendingTargetIds[pending];
-            var gambitId = State.PendingGambitIds[pending];
+            var producerId = State.PendingProducerIds[pending];
             for (var chronicle = 1; chronicle <= State.HighWatermark; chronicle++)
             {
                 if (!State.Active[chronicle])
@@ -16,7 +17,7 @@ internal sealed partial class ChronicleProgramRuntime
                     continue;
                 }
 
-                ApplyExecutionToChronicle(simulation, world, chronicle, actorId, targetId, gambitId, tick);
+                ApplyExecutionToChronicle(simulation, world, chronicle, kind, actorId, targetId, producerId, tick);
             }
         }
 
@@ -27,12 +28,14 @@ internal sealed partial class ChronicleProgramRuntime
         Simulation simulation,
         WorldState world,
         int chronicle,
+        int pendingKind,
         int actorId,
         int targetId,
-        int gambitId,
+        int producerId,
         int tick)
     {
-        if (CastContains(chronicle, actorId) && CastContains(chronicle, targetId) && actorId != targetId)
+        if (pendingKind == ChroniclePendingKindCodes.GambitExecution &&
+            CastContains(chronicle, actorId) && CastContains(chronicle, targetId) && actorId != targetId)
         {
             AddHeat(chronicle, AmbientPairHeat);
         }
@@ -44,7 +47,7 @@ internal sealed partial class ChronicleProgramRuntime
         {
             var ordinal = beat - beatStart;
             if (!BeatIsOpen(chronicle, ordinal) ||
-                !ExecutionStrikes(chronicle, beat, actorId, targetId, gambitId))
+                !ExecutionStrikes(chronicle, beat, pendingKind, actorId, targetId, producerId))
             {
                 continue;
             }
@@ -57,15 +60,26 @@ internal sealed partial class ChronicleProgramRuntime
         }
     }
 
-    private bool ExecutionStrikes(int chronicle, int beat, int actorId, int targetId, int gambitId)
+    private bool ExecutionStrikes(int chronicle, int beat, int pendingKind, int actorId, int targetId, int producerId)
     {
-        var gambitFilter = Data.BeatStrikeGambitIds[beat];
-        if (gambitFilter != 0 && gambitFilter != gambitId)
+        var producerFilter = Data.BeatStrikeGambitIds[beat];
+        if (producerFilter != 0 && producerFilter != producerId)
         {
             return false;
         }
 
-        return Data.BeatStrikeKinds[beat] switch
+        if (pendingKind == ChroniclePendingKindCodes.GeneratorFire)
+        {
+            return Data.BeatStrikeKinds[beat] == ChronicleStrikeCodes.GeneratorOnRole &&
+                targetId > 0 &&
+                RoleEntity(chronicle, Data.BeatStrikeTargetRoles[beat]) == targetId;
+        }
+
+        return GambitStrikeMatches(chronicle, beat, actorId, targetId);
+    }
+
+    private bool GambitStrikeMatches(int chronicle, int beat, int actorId, int targetId) =>
+        Data.BeatStrikeKinds[beat] switch
         {
             ChronicleStrikeCodes.RolePairGambit =>
                 RoleEntity(chronicle, Data.BeatStrikeActorRoles[beat]) == actorId &&
@@ -73,8 +87,41 @@ internal sealed partial class ChronicleProgramRuntime
             ChronicleStrikeCodes.OutsiderGambitOnRole =>
                 RoleEntity(chronicle, Data.BeatStrikeTargetRoles[beat]) == targetId &&
                 !CastContains(chronicle, actorId),
+            ChronicleStrikeCodes.RoleGambit =>
+                RoleEntity(chronicle, Data.BeatStrikeActorRoles[beat]) == actorId,
             _ => false,
         };
+
+    /// <summary>
+    /// Evaluates openings for a freshly cast chronicle so Always-open beats
+    /// charge the world and accept strikes from the very first pulse.
+    /// </summary>
+    internal void OpenEligibleBeats(WorldState world, int chronicle)
+    {
+        var archetype = State.ArchetypeSlots[chronicle];
+        var beatStart = Data.ArchetypeBeatStarts[archetype];
+        var beatEnd = beatStart + Data.ArchetypeBeatCounts[archetype];
+        for (var beat = beatStart; beat < beatEnd; beat++)
+        {
+            var ordinal = beat - beatStart;
+            if (BeatIsOpen(chronicle, ordinal) || BeatIsStruck(chronicle, ordinal))
+            {
+                continue;
+            }
+
+            var opens = ConditionHolds(
+                world,
+                chronicle,
+                Data.BeatOpenKinds[beat],
+                Data.BeatOpenRoleA[beat],
+                Data.BeatOpenRoleB[beat],
+                Data.BeatOpenRelOrAttrIds[beat],
+                Data.BeatOpenValues[beat]);
+            if (opens)
+            {
+                State.OpenMasks[chronicle] |= 1L << ordinal;
+            }
+        }
     }
 
     private void StepChronicle(Simulation simulation, WorldState world, int chronicle, int tick)
@@ -245,6 +292,8 @@ internal sealed partial class ChronicleProgramRuntime
                 return !RolePairRelationshipHolds(world, chronicle, roleA, roleB, relOrAttrId, value);
             case ChronicleConditionCodes.HeatAtLeast:
                 return State.Heat[chronicle] >= value;
+            case ChronicleConditionCodes.HeatBelow:
+                return State.Heat[chronicle] < value;
             default:
                 return RoleConditionHolds(world, chronicle, conditionKind, roleA, roleB, relOrAttrId, value);
         }
@@ -265,10 +314,9 @@ internal sealed partial class ChronicleProgramRuntime
                 var entityId = RoleEntity(chronicle, roleA);
                 return entityId > 0 && !world.EntityIsActive(entityId);
             case ChronicleConditionCodes.RoleAttributeBelow:
-                var subjectId = RoleEntity(chronicle, roleA);
-                return subjectId > 0 &&
-                    world.EntityIsActive(subjectId) &&
-                    world.GetAttribute(subjectId, relOrAttrId) < value;
+                return RoleAttributeHolds(world, chronicle, roleA, relOrAttrId, value, below: true);
+            case ChronicleConditionCodes.RoleAttributeAtLeast:
+                return RoleAttributeHolds(world, chronicle, roleA, relOrAttrId, value, below: false);
             case ChronicleConditionCodes.RolePairWithinDistance:
                 return RolePairDistanceHolds(world, chronicle, roleA, roleB, value, within: true);
             case ChronicleConditionCodes.RolePairBeyondDistance:
@@ -276,6 +324,24 @@ internal sealed partial class ChronicleProgramRuntime
             default:
                 return false;
         }
+    }
+
+    private bool RoleAttributeHolds(
+        WorldState world,
+        int chronicle,
+        int roleA,
+        int attributeId,
+        float value,
+        bool below)
+    {
+        var subjectId = RoleEntity(chronicle, roleA);
+        if (subjectId <= 0 || !world.EntityIsActive(subjectId))
+        {
+            return false;
+        }
+
+        var current = world.GetAttribute(subjectId, attributeId);
+        return below ? current < value : current >= value;
     }
 
     private bool RolePairRelationshipHolds(

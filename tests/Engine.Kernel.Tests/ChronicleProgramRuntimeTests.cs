@@ -15,6 +15,7 @@ public sealed class ChronicleProgramRuntimeTests
     private const int DeathOutcomeCode = 103;
     private const int FadeOutcomeCode = 104;
     private const int SlayGambitId = 7;
+    private const int WarGeneratorId = 61;
 
     [Fact]
     public void Chronicle_CastsStrikesOnExecutionAndResolvesOnRecognizedDeath()
@@ -66,6 +67,78 @@ public sealed class ChronicleProgramRuntimeTests
         simulation.Chronicles.Tick(simulation, tick: 30);
         Assert.Equal(0f, simulation.Chronicles.ScoreBias(hunter, quarry, SlayGambitId));
         Assert.False(simulation.Chronicles.GrantsGambit(hunter, SlayGambitId));
+    }
+
+    [Fact]
+    public void Chronicle_RoleGambitAndGeneratorFireStrikes()
+    {
+        var simulation = CreateSimulation();
+        var (quarry, hunter) = SeedHuntWorld(simulation);
+        var archetype = DefineMinimalArchetype(simulation);
+        _ = simulation.Chronicles.AddBeat(
+            archetype,
+            PairBeatCode,
+            heatGain: 2f,
+            terminalOutcomeCodeId: 0,
+            openKind: ChronicleConditionCodes.Always,
+            openRoleA: 0,
+            openRoleB: 0,
+            openRelOrAttrId: 0,
+            openValue: 0f,
+            strikeKind: ChronicleStrikeCodes.RoleGambit,
+            strikeActorRole: 1,
+            strikeTargetRole: 0,
+            strikeGambitId: SlayGambitId,
+            strikeFactKind: ChronicleConditionCodes.None,
+            strikeFactRoleA: 0,
+            strikeFactRoleB: 0,
+            strikeFactRelOrAttrId: 0,
+            strikeFactValue: 0f);
+        _ = simulation.Chronicles.AddBeat(
+            archetype,
+            DeathBeatCode,
+            heatGain: 2f,
+            terminalOutcomeCodeId: 0,
+            openKind: ChronicleConditionCodes.Always,
+            openRoleA: 0,
+            openRoleB: 0,
+            openRelOrAttrId: 0,
+            openValue: 0f,
+            strikeKind: ChronicleStrikeCodes.GeneratorOnRole,
+            strikeActorRole: 0,
+            strikeTargetRole: 0,
+            strikeGambitId: WarGeneratorId,
+            strikeFactKind: ChronicleConditionCodes.None,
+            strikeFactRoleA: 0,
+            strikeFactRoleB: 0,
+            strikeFactRelOrAttrId: 0,
+            strikeFactValue: 0f);
+
+        simulation.Chronicles.Tick(simulation, tick: 20);
+        Assert.True(simulation.Chronicles.State.Active[1]);
+
+        // The hunter acts on an unrelated third party: RoleGambit strikes.
+        simulation.Chronicles.NoteExecution(hunter, 999, SlayGambitId);
+        // The wrong generator on the quarry does not strike; the right one does.
+        simulation.Chronicles.NoteGeneratorFire(quarry, WarGeneratorId + 1);
+        simulation.Chronicles.NoteGeneratorFire(quarry, WarGeneratorId);
+        simulation.Chronicles.Tick(simulation, tick: 25);
+
+        Assert.Equal(0b11L, simulation.Chronicles.State.StruckMasks[1]);
+    }
+
+    private static int DefineMinimalArchetype(Simulation simulation)
+    {
+        var archetype = simulation.Chronicles.AddArchetype(
+            ArchetypeId,
+            maxActive: 1,
+            castingCadenceTicks: 10,
+            primaryKindId: MonsterKind,
+            primaryRequiredRelKindId: HoldsRel,
+            primaryRequiredRelMinStrength: 0.5f,
+            fadeOutcomeCodeId: FadeOutcomeCode);
+        simulation.Chronicles.AddRole(archetype, PenguinKind, AtWarRel, relatedIncoming: 0, relatedMinStrength: 0.3f);
+        return archetype;
     }
 
     [Fact]

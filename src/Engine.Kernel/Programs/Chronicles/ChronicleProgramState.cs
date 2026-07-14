@@ -3,8 +3,9 @@ namespace Engine.Kernel;
 /// <summary>
 /// Live chronicle table: which archetypes are running, which entities hold
 /// each role, per-chronicle heat and beat open/struck masks, a suppression
-/// ring of recently chronicled cast, and the pending gambit-execution queue
-/// the director consumes each pulse for strike detection.
+/// ring of recently chronicled cast, and the pending queue of gambit
+/// executions and generator fires the director consumes each pulse for
+/// strike detection.
 /// </summary>
 internal sealed class ChronicleProgramState : IKernelProgramState
 {
@@ -26,9 +27,10 @@ internal sealed class ChronicleProgramState : IKernelProgramState
     internal readonly int[] RecentCastEntityIds;
     internal readonly int[] RecentCastTicks;
     internal int RecentCastNext;
+    internal readonly int[] PendingKinds;
     internal readonly int[] PendingActorIds;
     internal readonly int[] PendingTargetIds;
-    internal readonly int[] PendingGambitIds;
+    internal readonly int[] PendingProducerIds;
     internal int PendingCount;
     internal int HighWatermark;
 
@@ -49,12 +51,13 @@ internal sealed class ChronicleProgramState : IKernelProgramState
         NextCastTicks = new int[archetypeCapacity + 1];
         RecentCastEntityIds = new int[SuppressionRingCapacity];
         RecentCastTicks = new int[SuppressionRingCapacity];
+        PendingKinds = new int[PendingExecutionCapacity];
         PendingActorIds = new int[PendingExecutionCapacity];
         PendingTargetIds = new int[PendingExecutionCapacity];
-        PendingGambitIds = new int[PendingExecutionCapacity];
+        PendingProducerIds = new int[PendingExecutionCapacity];
     }
 
     public int ProgramId => KernelProgramCodes.ChronicleDirector;
 
-    public int SchemaVersion => 3;
+    public int SchemaVersion => 4;
 }

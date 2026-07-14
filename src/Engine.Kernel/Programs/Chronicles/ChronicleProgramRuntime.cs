@@ -61,16 +61,27 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
     /// Recorded by the gambit program after every execution; consumed on the
     /// director's next pulse for ambient heat and strike detection.
     /// </summary>
-    public void NoteExecution(int actorId, int targetId, int gambitId)
+    public void NoteExecution(int actorId, int targetId, int gambitId) =>
+        NotePending(ChroniclePendingKindCodes.GambitExecution, actorId, targetId, gambitId);
+
+    /// <summary>
+    /// Recorded by the generator program after every fire with a selected
+    /// target; the world turning its weight on a cast member is a beat.
+    /// </summary>
+    public void NoteGeneratorFire(int targetId, int generatorId) =>
+        NotePending(ChroniclePendingKindCodes.GeneratorFire, 0, targetId, generatorId);
+
+    private void NotePending(int kind, int actorId, int targetId, int producerId)
     {
         if (State.PendingCount >= ChronicleProgramState.PendingExecutionCapacity)
         {
             return;
         }
 
+        State.PendingKinds[State.PendingCount] = kind;
         State.PendingActorIds[State.PendingCount] = actorId;
         State.PendingTargetIds[State.PendingCount] = targetId;
-        State.PendingGambitIds[State.PendingCount] = gambitId;
+        State.PendingProducerIds[State.PendingCount] = producerId;
         State.PendingCount++;
     }
 

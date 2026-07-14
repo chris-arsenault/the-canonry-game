@@ -23,6 +23,9 @@ public static class IceRemembersChronicleBeats
         Flight(),
         TheClosing(),
         AlliesAnswer(),
+        TheAdversaryGathers(),
+        TheLull(),
+        NoQuarter(),
         TheGatheringStorm(),
     ];
 
@@ -91,6 +94,38 @@ public static class IceRemembersChronicleBeats
         HeatGain = 2f,
     };
 
+    private static ChronicleBeatConfig TheAdversaryGathers() => new()
+    {
+        Id = "the_adversary_gathers",
+        Narrative = "The world turns on {protagonist}. The tale darkens.",
+        Open = Beat.Always(),
+        Strike = Beat.OutsiderOn(Protagonist),
+        HeatGain = 2f,
+    };
+
+    private static ChronicleBeatConfig TheLull() => new()
+    {
+        Id = "the_lull",
+        Narrative = "They draw apart to breathe. The ice waits.",
+        Open = Beat.Heat(5.5f),
+        Strike = Beat.OnFact(Beat.HeatBelow(2.5f)),
+        HeatGain = 1f,
+    };
+
+    private static ChronicleBeatConfig NoQuarter() => new()
+    {
+        Id = "no_quarter",
+        Narrative = "Past this point there is no stepping back for {protagonist} or {adversary}.",
+        Open = Beat.Heat(8f),
+        Strike = Beat.PairGambit(Protagonist, Adversary),
+        HeatGain = 2.5f,
+        Charges =
+        [
+            Beat.Charge(Protagonist, Adversary, null, 2.5f, heatScaled: true),
+            Beat.Charge(Adversary, Protagonist, null, 2.5f, heatScaled: true),
+        ],
+    };
+
     private static ChronicleBeatConfig TheGatheringStorm() => new()
     {
         Id = "the_gathering_storm",
@@ -115,6 +150,12 @@ internal static class Beat
     internal static ChronicleConditionConfig Heat(float value) =>
         new() { Kind = ChronicleConditionKind.HeatAtLeast, Value = value };
 
+    internal static ChronicleConditionConfig HeatBelow(float value) =>
+        new() { Kind = ChronicleConditionKind.HeatBelow, Value = value };
+
+    internal static ChronicleConditionConfig AttrAtLeast(string role, string attribute, float value) =>
+        new() { Kind = ChronicleConditionKind.RoleAttributeAtLeast, RoleA = role, Attribute = attribute, Value = value };
+
     internal static ChronicleConditionConfig PairRel(string roleA, string roleB, string kind, float value) =>
         new() { Kind = ChronicleConditionKind.RolePairRelationship, RoleA = roleA, RoleB = roleB, RelationshipKind = kind, Value = value };
 
@@ -136,8 +177,14 @@ internal static class Beat
     internal static ChronicleStrikeConfig PairGambit(string actor, string target, string? gambit = null) =>
         new() { Kind = ChronicleStrikeKind.RolePairGambit, ActorRole = actor, TargetRole = target, Gambit = gambit };
 
-    internal static ChronicleStrikeConfig OutsiderOn(string target) =>
-        new() { Kind = ChronicleStrikeKind.OutsiderGambitOnRole, TargetRole = target };
+    internal static ChronicleStrikeConfig OutsiderOn(string target, string? gambit = null) =>
+        new() { Kind = ChronicleStrikeKind.OutsiderGambitOnRole, TargetRole = target, Gambit = gambit };
+
+    internal static ChronicleStrikeConfig RoleActs(string actor, string gambit) =>
+        new() { Kind = ChronicleStrikeKind.RoleGambit, ActorRole = actor, Gambit = gambit };
+
+    internal static ChronicleStrikeConfig GeneratorOn(string target, string generator) =>
+        new() { Kind = ChronicleStrikeKind.GeneratorOnRole, TargetRole = target, Generator = generator };
 
     internal static ChronicleStrikeConfig OnFact(ChronicleConditionConfig fact) =>
         new() { Kind = ChronicleStrikeKind.StateFact, Fact = fact };

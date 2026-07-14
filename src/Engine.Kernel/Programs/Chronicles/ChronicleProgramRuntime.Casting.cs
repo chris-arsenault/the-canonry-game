@@ -47,6 +47,7 @@ internal sealed partial class ChronicleProgramRuntime
             State.HighWatermark = story;
         }
 
+        OpenEligibleBeats(world, story);
         EmitChronicleChanged(simulation, story, ChronicleEventTypeCodes.Cast, beatOrdinal: 0, outcomeCodeId: 0, tick);
     }
 

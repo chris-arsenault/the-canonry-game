@@ -119,6 +119,12 @@ public enum ChronicleConditionKind
 
     /// <summary>The two roles are beyond the physical hex distance.</summary>
     RolePairBeyondDistance,
+
+    /// <summary>The role's attribute has risen to at least the value.</summary>
+    RoleAttributeAtLeast,
+
+    /// <summary>The chronicle's heat is below the value.</summary>
+    HeatBelow,
 }
 
 public sealed class ChronicleConditionConfig
@@ -144,6 +150,12 @@ public enum ChronicleStrikeKind
 
     /// <summary>A recognized world/heat fact, evaluated on the director pulse.</summary>
     StateFact,
+
+    /// <summary>The role executes the named gambit against any target.</summary>
+    RoleGambit,
+
+    /// <summary>A generator fires with a role as its selected target.</summary>
+    GeneratorOnRole,
 }
 
 public sealed class ChronicleStrikeConfig
@@ -154,6 +166,9 @@ public sealed class ChronicleStrikeConfig
 
     /// <summary>Restrict execution strikes to one gambit id; null accepts any gambit.</summary>
     public string? Gambit { get; init; }
+
+    /// <summary>The generator whose fire strikes, for GeneratorOnRole strikes; null accepts any.</summary>
+    public string? Generator { get; init; }
 
     /// <summary>The recognized fact, for StateFact strikes.</summary>
     public ChronicleConditionConfig? Fact { get; init; }
