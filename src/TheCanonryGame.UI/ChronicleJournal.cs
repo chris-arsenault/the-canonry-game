@@ -212,8 +212,8 @@ public partial class ChronicleJournal : PanelContainer
         {
             $"[b][color=#{TaleColor}]{view.Title}[/color][/b]",
             tale.Resolved
-                ? $"[color=#{DimColor}]{tale.ArchetypeName} · ended after {years:0.#} years[/color]"
-                : $"[color=#{DimColor}]{tale.ArchetypeName} · {view.ActName} · {years:0.#} years and unfolding[/color]",
+                ? $"[color=#{DimColor}]{tale.ArchetypeName} · ended after {years:0.#} years · {tale.StruckBeats} beats struck[/color]"
+                : $"[color=#{DimColor}]{tale.ArchetypeName} · {years:0.#} years and unfolding · {tale.StruckBeats} beats struck[/color]",
             string.Empty,
             $"[color=#{ConnectorColor}]The cast[/color]",
         };

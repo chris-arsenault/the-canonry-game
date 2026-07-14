@@ -14,6 +14,7 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
     private const string ChainColor = "D7B968";
     private const string EntityColor = "E7E3D5";
     private const string ConnectorColor = "B8B5A6";
+    private const string NarrativeColor = "D8D4C4";
 
     private readonly UiChronicleProjection _baseChronicle;
     private readonly ProvenanceProjection _provenance;
@@ -86,15 +87,40 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
         var archetype = _knowledge.ChronicleArchetypesById.GetValueOrDefault(tale.ArchetypeId);
         var title = FillRoleTemplate(archetype?.TitleTemplate, archetype, tale, useReferenceNames: true)
             ?? tale.ArchetypeName;
-        var actName = archetype is not null && tale.ActIndex >= 0 && tale.ActIndex < archetype.ActNames.Count
-            ? archetype.ActNames[tale.ActIndex]
-            : $"act {tale.ActIndex + 1}";
         return new UiChronicleTaleView(
             tale,
             title,
-            actName,
             OutcomeNarrative(tale, archetype),
-            _baseChronicle.BeatsFor(tale.Sequence).ToList());
+            _baseChronicle.BeatsFor(tale.Sequence)
+                .Select(beat => NarrateBeat(beat, tale, archetype))
+                .ToList());
+    }
+
+    /// <summary>
+    /// Struck beats carry authored narrative; when the archetype knows the
+    /// beat's sentence, the journal shows the telling instead of the raw log
+    /// line. Observed cast events keep their log form.
+    /// </summary>
+    private static UiChronicleEntry NarrateBeat(
+        UiChronicleEntry beat,
+        UiChronicleTale tale,
+        GameChronicleArchetypeKnowledge? archetype)
+    {
+        if (beat.EntryType != UiChronicleEntryType.BeatStruck ||
+            archetype is null ||
+            !archetype.BeatNarrativesByCodeId.TryGetValue(beat.ProducerId, out var template))
+        {
+            return beat;
+        }
+
+        var narrative = FillRoleTemplate(template, archetype, tale, useReferenceNames: false);
+        if (narrative is null)
+        {
+            return beat;
+        }
+
+        var text = $"[color=#{TickColor}]t{beat.Tick,4}[/color]  [i][color=#{NarrativeColor}]{narrative}[/color][/i]";
+        return beat with { Text = text };
     }
 
     private static string OutcomeNarrative(UiChronicleTale tale, GameChronicleArchetypeKnowledge? archetype)

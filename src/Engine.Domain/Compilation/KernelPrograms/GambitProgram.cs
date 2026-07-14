@@ -22,6 +22,7 @@ public sealed record CompiledGambitRule(
     BehaviorProgramTargetMode TargetMode,
     int TargetKindId,
     float SuccessChance,
+    bool ChronicleGranted,
     IReadOnlyList<BehaviorProgramProviderSelectorRule> ProviderSelectors,
     IReadOnlyList<BehaviorProgramPreconditionOp> Preconditions,
     IReadOnlyList<BehaviorProgramExpressionOp> ScoreExpression,

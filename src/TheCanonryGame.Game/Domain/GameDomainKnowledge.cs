@@ -3,6 +3,7 @@ namespace TheCanonryGame.Game.Domain;
 using Engine.Domain;
 using Engine.Domain.Compilation;
 using Engine.Domain.Compilation.KernelPrograms;
+using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Projection;
 
@@ -328,24 +329,37 @@ internal sealed class GameDomainKnowledge
         Engine.Domain.Compilation.CompiledDomain compiledDomain)
     {
         var result = new Dictionary<int, GameChronicleArchetypeKnowledge>();
+        var sharedBeats = compiledDomain.Config.Semantics?.ChronicleSharedBeats ?? [];
         foreach (var archetype in compiledDomain.Config.Semantics?.ChronicleArchetypes ?? [])
         {
             var roleRefs = new List<string> { archetype.PrimaryRoleRef };
             roleRefs.AddRange(archetype.SupportingRoles.Select(static role => role.Ref));
-            var narratives = new Dictionary<int, string>();
-            foreach (var resolution in archetype.Resolutions)
+            var outcomeNarratives = new Dictionary<int, string>();
+            var beatNarratives = new Dictionary<int, string>();
+            foreach (var beat in ChronicleBeatSet.EffectiveBeats(archetype, sharedBeats))
             {
-                if (!string.IsNullOrWhiteSpace(resolution.Narrative))
+                if (string.IsNullOrWhiteSpace(beat.Narrative))
                 {
-                    narratives[compiledDomain.Ids.ReasonCodeIdOf(resolution.OutcomeId).Value] = resolution.Narrative;
+                    continue;
                 }
+
+                beatNarratives[compiledDomain.Ids.ReasonCodeIdOf(beat.Id).Value] = beat.Narrative;
+                if (beat.TerminalOutcomeId is not null)
+                {
+                    outcomeNarratives[compiledDomain.Ids.ReasonCodeIdOf(beat.TerminalOutcomeId).Value] = beat.Narrative;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(archetype.FadeNarrative))
+            {
+                outcomeNarratives[compiledDomain.Ids.ReasonCodeIdOf(archetype.FadeOutcomeId).Value] = archetype.FadeNarrative;
             }
 
             result[compiledDomain.Ids.GeneratorIdOf(archetype.Id).Value] = new GameChronicleArchetypeKnowledge(
                 archetype.TitleTemplate,
                 roleRefs,
-                archetype.ActNames,
-                narratives);
+                beatNarratives,
+                outcomeNarratives);
         }
 
         return result;
@@ -355,5 +369,5 @@ internal sealed class GameDomainKnowledge
 internal sealed record GameChronicleArchetypeKnowledge(
     string? TitleTemplate,
     IReadOnlyList<string> RoleRefs,
-    IReadOnlyList<string> ActNames,
+    IReadOnlyDictionary<int, string> BeatNarrativesByCodeId,
     IReadOnlyDictionary<int, string> OutcomeNarrativesByCodeId);

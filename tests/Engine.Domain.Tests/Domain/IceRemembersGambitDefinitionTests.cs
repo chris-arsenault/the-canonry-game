@@ -14,8 +14,9 @@ public sealed class IceRemembersGambitDefinitionTests
         var config = IceRemembersDefinition.Create();
         var gambitIds = config.Gambits.Select(gambit => gambit.Id).ToHashSet(StringComparer.Ordinal);
 
-        // 27 strategic gambits + 12 grant gambits + one work-tier gambit per kind.
-        Assert.Equal(39 + IceRemembersEntities.All.Count, gambitIds.Count);
+        // 29 strategic gambits (incl. the hunt-chronicle pair) + 12 grant
+        // gambits + one work-tier gambit per kind.
+        Assert.Equal(41 + IceRemembersEntities.All.Count, gambitIds.Count);
         Assert.Contains(IceRemembersGambitId.AbilitySharesPractice.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactBindsMonster.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactCleansesScar.ToGambitId(), gambitIds);
@@ -115,6 +116,14 @@ public sealed class IceRemembersGambitDefinitionTests
                 return;
             }
 
+            if (gambit.ChronicleGranted)
+            {
+                // Chronicle-granted gambits exist only while a beat holds
+                // them open; their chance is authored to the story moment.
+                Assert.InRange(gambit.SuccessChance, 0.25f, 0.85f);
+                return;
+            }
+
             var expected = workTierGambitIds.Contains(gambit.GambitId) ? 0.75f : 0.25f;
             Assert.Equal(expected, gambit.SuccessChance);
         });
@@ -155,9 +164,10 @@ public sealed class IceRemembersGambitDefinitionTests
         var slayOrca = Assert.Single(compiled.Programs.Gambits.Gambits, gambit => gambit.GambitId == slayOrcaId);
         Assert.Contains(slayOrca.Steps, step =>
             step.Operation == BehaviorProgramOperation.SetHistorical);
+        var cornerId = compiled.Ids.GambitIdOf(IceRemembersGambitId.PenguinCornersTheBeast.ToGambitId()).Value;
         Assert.DoesNotContain(
             compiled.Programs.Gambits.Gambits
-                .Where(gambit => gambit.GambitId != slayMonsterId && gambit.GambitId != slayOrcaId)
+                .Where(gambit => gambit.GambitId != slayMonsterId && gambit.GambitId != slayOrcaId && gambit.GambitId != cornerId)
                 .SelectMany(gambit => gambit.Steps),
             step => step.Operation == BehaviorProgramOperation.SetHistorical);
     }

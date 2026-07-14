@@ -13,7 +13,7 @@ internal sealed partial class ChronicleProgramRuntime
         }
 
         State.NextCastTicks[archetype] = tick + Data.ArchetypeCastingCadenceTicks[archetype];
-        var primaryId = SelectPrimary(world, archetype);
+        var primaryId = SelectPrimary(world, archetype, tick);
         if (primaryId == 0)
         {
             return;
@@ -34,9 +34,11 @@ internal sealed partial class ChronicleProgramRuntime
 
         State.Active[story] = true;
         State.ArchetypeSlots[story] = archetype;
-        State.ActIndices[story] = 0;
         State.StartTicks[story] = tick;
-        State.ActStartTicks[story] = tick;
+        State.LastStrikeTicks[story] = tick;
+        State.Heat[story] = InitialHeat;
+        State.OpenMasks[story] = 0L;
+        State.StruckMasks[story] = 0L;
         State.NextChronicleSequence++;
         State.ChronicleSequences[story] = State.NextChronicleSequence;
         State.ArchetypeActiveCounts[archetype]++;
@@ -45,7 +47,7 @@ internal sealed partial class ChronicleProgramRuntime
             State.HighWatermark = story;
         }
 
-        EmitChronicleChanged(simulation, story, ChronicleEventTypeCodes.Cast, outcomeCodeId: 0, tick);
+        EmitChronicleChanged(simulation, story, ChronicleEventTypeCodes.Cast, beatOrdinal: 0, outcomeCodeId: 0, tick);
     }
 
     // The provenance merge: casting consumes the causal record. Among
@@ -53,7 +55,7 @@ internal sealed partial class ChronicleProgramRuntime
     // whose edge was most recently authored (by gambit, generator, or a
     // prior chronicle - the provenance invocation tick) wins the tale. The
     // director follows the freshest causal thread, not the lowest entity id.
-    private int SelectPrimary(WorldState world, int archetype)
+    private int SelectPrimary(WorldState world, int archetype, int tick)
     {
         var kindId = Data.ArchetypePrimaryKindIds[archetype];
         var relKindId = Data.ArchetypePrimaryRequiredRelKindIds[archetype];
@@ -64,7 +66,8 @@ internal sealed partial class ChronicleProgramRuntime
         {
             if (!world.EntityIsActive(entityId) ||
                 world.EntityKindId(entityId) != kindId ||
-                RoleIsCastInArchetype(archetype, entityId))
+                RoleIsCastInArchetype(archetype, entityId) ||
+                RecentlyChronicled(entityId, tick))
             {
                 continue;
             }

@@ -66,6 +66,8 @@ public static partial class IceRemembersDefinition
             PenguinWrestsArtifact(),
             PenguinSlaysMonster(),
             PenguinSlaysOrca(),
+            PenguinForsakesTheHunt(),
+            PenguinCornersTheBeast(),
         };
         gambits.AddRange(CreateWorkTierGambits());
         gambits.AddRange(CreateForgingGambits());

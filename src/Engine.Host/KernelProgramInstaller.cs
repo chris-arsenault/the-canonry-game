@@ -191,6 +191,11 @@ internal static partial class KernelProgramInstaller
             TargetModeCode(gambit.TargetMode),
             gambit.TargetKindId,
             gambit.SuccessChance);
+        if (gambit.ChronicleGranted)
+        {
+            context.MarkGambitChronicleGranted(gambitSlot);
+        }
+
         InstallGambitPreconditions(context, gambitSlot, gambit);
         InstallGambitExpressions(context, gambitSlot, gambit);
         InstallGambitProviderSelectors(context, gambitSlot, gambit);
@@ -253,67 +258,49 @@ internal static partial class KernelProgramInstaller
                 archetype.CastingCadenceTicks,
                 archetype.PrimaryKindId,
                 archetype.PrimaryRequiredRelKindId,
-                archetype.PrimaryRequiredRelMinStrength);
+                archetype.PrimaryRequiredRelMinStrength,
+                archetype.FadeOutcomeCodeId);
             foreach (var role in archetype.SupportingRoles)
             {
                 context.AddChronicleRole(archetypeSlot, role.KindId, role.RelatedKindId, role.RelatedIncoming, role.RelatedMinStrength);
             }
 
-            foreach (var act in archetype.Acts)
+            foreach (var beat in archetype.Beats)
             {
-                InstallChronicleAct(context, archetypeSlot, act);
-            }
-
-            foreach (var resolution in archetype.Resolutions)
-            {
-                InstallChronicleResolution(context, archetypeSlot, resolution);
+                InstallChronicleBeat(context, archetypeSlot, beat);
             }
         }
     }
 
-    private static void InstallChronicleAct(KernelConfigurationContext context, int archetypeSlot, CompiledChronicleAct act)
+    private static void InstallChronicleBeat(KernelConfigurationContext context, int archetypeSlot, CompiledChronicleBeat beat)
     {
-        var actSlot = context.AddChronicleAct(
+        var beatSlot = context.AddChronicleBeat(
             archetypeSlot,
-            act.DeadlineTicks,
-            act.AdvanceConditionKind,
-            act.AdvanceRoleA,
-            act.AdvanceRoleB,
-            act.AdvanceRelKindId,
-            act.AdvanceMinStrength);
-        foreach (var bias in act.Bias)
+            beat.BeatCodeId,
+            beat.HeatGain,
+            beat.TerminalOutcomeCodeId,
+            beat.Open.Kind,
+            beat.Open.RoleA,
+            beat.Open.RoleB,
+            beat.Open.RelOrAttrId,
+            beat.Open.Value,
+            beat.StrikeKind,
+            beat.StrikeActorRole,
+            beat.StrikeTargetRole,
+            beat.StrikeGambitId,
+            beat.StrikeFact.Kind,
+            beat.StrikeFact.RoleA,
+            beat.StrikeFact.RoleB,
+            beat.StrikeFact.RelOrAttrId,
+            beat.StrikeFact.Value);
+        foreach (var charge in beat.Charges)
         {
-            context.AddChronicleActBias(actSlot, bias.ActorRole, bias.TargetRole, bias.GambitId, bias.ScoreBonus);
+            context.AddChronicleBeatCharge(beatSlot, charge.ActorRole, charge.TargetRole, charge.GambitId, charge.ScoreBonus, charge.HeatScaled);
         }
 
-        foreach (var sustain in act.Sustain)
+        foreach (var grant in beat.Grants)
         {
-            context.AddChronicleActSustain(actSlot, sustain.Role, sustain.AttributeId, sustain.DeltaPerPulse);
-        }
-    }
-
-    private static void InstallChronicleResolution(KernelConfigurationContext context, int archetypeSlot, CompiledChronicleResolution resolution)
-    {
-        var resolutionSlot = context.AddChronicleResolution(
-            archetypeSlot,
-            resolution.OutcomeCodeId,
-            resolution.Weight,
-            resolution.WhenConditionKind,
-            resolution.WhenRoleA,
-            resolution.WhenRoleB,
-            resolution.WhenRelKindId,
-            resolution.WhenMinStrength,
-            resolution.HistoricalRoleMask);
-        foreach (var relationship in resolution.Relationships)
-        {
-            context.AddChronicleResolutionRelationship(
-                resolutionSlot,
-                relationship.SourceRole,
-                relationship.TargetRole,
-                relationship.RelKindId,
-                relationship.PolarityCode,
-                relationship.Strength,
-                relationship.CullInstead);
+            context.AddChronicleBeatGrant(beatSlot, grant.Role, grant.GambitId);
         }
     }
 

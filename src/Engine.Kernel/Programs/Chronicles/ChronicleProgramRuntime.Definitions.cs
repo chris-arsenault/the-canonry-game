@@ -3,6 +3,7 @@ namespace Engine.Kernel;
 internal sealed partial class ChronicleProgramRuntime
 {
     private int _openArchetypeSlot;
+    private int _openBeatSlot;
 
     public int AddArchetype(
         int archetypeId,
@@ -10,12 +11,14 @@ internal sealed partial class ChronicleProgramRuntime
         int castingCadenceTicks,
         int primaryKindId,
         int primaryRequiredRelKindId,
-        float primaryRequiredRelMinStrength)
+        float primaryRequiredRelMinStrength,
+        int fadeOutcomeCodeId)
     {
         ValidatePositive(archetypeId);
         ValidatePositive(maxActive);
         ValidatePositive(castingCadenceTicks);
         ValidatePositive(primaryKindId);
+        ValidatePositive(fadeOutcomeCodeId);
         if (Data.ArchetypeCount + 1 >= Data.ArchetypeIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -29,10 +32,11 @@ internal sealed partial class ChronicleProgramRuntime
         Data.ArchetypePrimaryKindIds[slot] = primaryKindId;
         Data.ArchetypePrimaryRequiredRelKindIds[slot] = primaryRequiredRelKindId;
         Data.ArchetypePrimaryRequiredRelMinStrengths[slot] = primaryRequiredRelMinStrength;
+        Data.ArchetypeFadeOutcomeCodeIds[slot] = fadeOutcomeCodeId;
         Data.ArchetypeRoleStarts[slot] = Data.RoleCount + 1;
-        Data.ArchetypeActStarts[slot] = Data.ActCount + 1;
-        Data.ArchetypeResolutionStarts[slot] = Data.ResolutionCount + 1;
+        Data.ArchetypeBeatStarts[slot] = Data.BeatCount + 1;
         _openArchetypeSlot = slot;
+        _openBeatSlot = 0;
         AddRole(slot, primaryKindId, 0, 0, 0f);
         return slot;
     }
@@ -55,125 +59,90 @@ internal sealed partial class ChronicleProgramRuntime
         Data.ArchetypeRoleCounts[archetypeSlot]++;
     }
 
-    public int AddAct(
+    public int AddBeat(
         int archetypeSlot,
-        int deadlineTicks,
-        int advanceConditionKind,
-        int advanceRoleA,
-        int advanceRoleB,
-        int advanceRelKindId,
-        float advanceMinStrength)
+        int beatCodeId,
+        float heatGain,
+        int terminalOutcomeCodeId,
+        int openKind,
+        int openRoleA,
+        int openRoleB,
+        int openRelOrAttrId,
+        float openValue,
+        int strikeKind,
+        int strikeActorRole,
+        int strikeTargetRole,
+        int strikeGambitId,
+        int strikeFactKind,
+        int strikeFactRoleA,
+        int strikeFactRoleB,
+        int strikeFactRelOrAttrId,
+        float strikeFactValue)
     {
         EnsureOpenArchetype(archetypeSlot);
-        ValidatePositive(deadlineTicks);
-        if (Data.ActCount + 1 >= Data.ActDeadlineTicks.Length)
+        ValidatePositive(beatCodeId);
+        if (Data.BeatCount + 1 >= Data.BeatCodeIds.Length ||
+            Data.ArchetypeBeatCounts[archetypeSlot] >= ChronicleProgramData.MaxBeatsPerArchetype)
         {
             throw new global::System.InvalidOperationException();
         }
 
-        Data.ActCount++;
-        var act = Data.ActCount;
-        Data.ActDeadlineTicks[act] = deadlineTicks;
-        Data.ActAdvanceConditionKinds[act] = advanceConditionKind;
-        Data.ActAdvanceRoleA[act] = advanceRoleA;
-        Data.ActAdvanceRoleB[act] = advanceRoleB;
-        Data.ActAdvanceRelKindIds[act] = advanceRelKindId;
-        Data.ActAdvanceMinStrengths[act] = advanceMinStrength;
-        Data.ActBiasStarts[act] = Data.BiasCount + 1;
-        Data.ActSustainStarts[act] = Data.SustainCount + 1;
-        Data.ArchetypeActCounts[archetypeSlot]++;
-        return act;
+        Data.BeatCount++;
+        var beat = Data.BeatCount;
+        Data.BeatCodeIds[beat] = beatCodeId;
+        Data.BeatHeatGains[beat] = heatGain;
+        Data.BeatTerminalOutcomeCodeIds[beat] = terminalOutcomeCodeId;
+        Data.BeatOpenKinds[beat] = openKind;
+        Data.BeatOpenRoleA[beat] = openRoleA;
+        Data.BeatOpenRoleB[beat] = openRoleB;
+        Data.BeatOpenRelOrAttrIds[beat] = openRelOrAttrId;
+        Data.BeatOpenValues[beat] = openValue;
+        Data.BeatStrikeKinds[beat] = strikeKind;
+        Data.BeatStrikeActorRoles[beat] = strikeActorRole;
+        Data.BeatStrikeTargetRoles[beat] = strikeTargetRole;
+        Data.BeatStrikeGambitIds[beat] = strikeGambitId;
+        Data.BeatStrikeFactKinds[beat] = strikeFactKind;
+        Data.BeatStrikeFactRoleA[beat] = strikeFactRoleA;
+        Data.BeatStrikeFactRoleB[beat] = strikeFactRoleB;
+        Data.BeatStrikeFactRelOrAttrIds[beat] = strikeFactRelOrAttrId;
+        Data.BeatStrikeFactValues[beat] = strikeFactValue;
+        Data.BeatChargeStarts[beat] = Data.ChargeCount + 1;
+        Data.BeatGrantStarts[beat] = Data.GrantCount + 1;
+        Data.ArchetypeBeatCounts[archetypeSlot]++;
+        _openBeatSlot = beat;
+        return beat;
     }
 
-    public void AddActBias(int actSlot, int actorRole, int targetRole, int gambitId, float scoreBonus)
+    public void AddBeatCharge(int beatSlot, int actorRole, int targetRole, int gambitId, float scoreBonus, int heatScaled)
     {
-        EnsureOpenAct(actSlot);
-        if (Data.BiasCount + 1 >= Data.BiasActorRoles.Length)
+        EnsureOpenBeat(beatSlot);
+        if (Data.ChargeCount + 1 >= Data.ChargeActorRoles.Length)
         {
             throw new global::System.InvalidOperationException();
         }
 
-        Data.BiasCount++;
-        Data.BiasActorRoles[Data.BiasCount] = actorRole;
-        Data.BiasTargetRoles[Data.BiasCount] = targetRole;
-        Data.BiasGambitIds[Data.BiasCount] = gambitId;
-        Data.BiasScoreBonuses[Data.BiasCount] = scoreBonus;
-        Data.ActBiasCounts[actSlot]++;
+        Data.ChargeCount++;
+        Data.ChargeActorRoles[Data.ChargeCount] = actorRole;
+        Data.ChargeTargetRoles[Data.ChargeCount] = targetRole;
+        Data.ChargeGambitIds[Data.ChargeCount] = gambitId;
+        Data.ChargeScoreBonuses[Data.ChargeCount] = scoreBonus;
+        Data.ChargeHeatScaled[Data.ChargeCount] = heatScaled;
+        Data.BeatChargeCounts[beatSlot]++;
     }
 
-    public void AddActSustain(int actSlot, int role, int attributeId, float deltaPerPulse)
+    public void AddBeatGrant(int beatSlot, int role, int gambitId)
     {
-        EnsureOpenAct(actSlot);
-        ValidatePositive(attributeId);
-        if (Data.SustainCount + 1 >= Data.SustainRoles.Length)
+        EnsureOpenBeat(beatSlot);
+        ValidatePositive(gambitId);
+        if (Data.GrantCount + 1 >= Data.GrantRoles.Length)
         {
             throw new global::System.InvalidOperationException();
         }
 
-        Data.SustainCount++;
-        Data.SustainRoles[Data.SustainCount] = role;
-        Data.SustainAttributeIds[Data.SustainCount] = attributeId;
-        Data.SustainDeltas[Data.SustainCount] = deltaPerPulse;
-        Data.ActSustainCounts[actSlot]++;
-    }
-
-    public int AddResolution(
-        int archetypeSlot,
-        int outcomeCodeId,
-        int weight,
-        int whenKind,
-        int whenRoleA,
-        int whenRoleB,
-        int whenRelKindId,
-        float whenMinStrength,
-        int historicalRoleMask)
-    {
-        EnsureOpenArchetype(archetypeSlot);
-        ValidatePositive(outcomeCodeId);
-        if (Data.ResolutionCount + 1 >= Data.ResolutionOutcomeCodeIds.Length)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        Data.ResolutionCount++;
-        var resolution = Data.ResolutionCount;
-        Data.ResolutionOutcomeCodeIds[resolution] = outcomeCodeId;
-        Data.ResolutionWeights[resolution] = weight;
-        Data.ResolutionWhenKinds[resolution] = whenKind;
-        Data.ResolutionWhenRoleA[resolution] = whenRoleA;
-        Data.ResolutionWhenRoleB[resolution] = whenRoleB;
-        Data.ResolutionWhenRelKindIds[resolution] = whenRelKindId;
-        Data.ResolutionWhenMinStrengths[resolution] = whenMinStrength;
-        Data.ResolutionRelStarts[resolution] = Data.ResolutionRelCount + 1;
-        Data.ResolutionHistoricalRoleMasks[resolution] = historicalRoleMask;
-        Data.ArchetypeResolutionCounts[archetypeSlot]++;
-        return resolution;
-    }
-
-    public void AddResolutionRelationship(
-        int resolutionSlot,
-        int sourceRole,
-        int targetRole,
-        int relKindId,
-        int polarityCode,
-        float strength,
-        int cullInstead)
-    {
-        EnsureOpenResolution(resolutionSlot);
-        ValidatePositive(relKindId);
-        if (Data.ResolutionRelCount + 1 >= Data.ResolutionRelKindIds.Length)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        Data.ResolutionRelCount++;
-        Data.ResolutionRelSourceRoles[Data.ResolutionRelCount] = sourceRole;
-        Data.ResolutionRelTargetRoles[Data.ResolutionRelCount] = targetRole;
-        Data.ResolutionRelKindIds[Data.ResolutionRelCount] = relKindId;
-        Data.ResolutionRelPolarities[Data.ResolutionRelCount] = polarityCode;
-        Data.ResolutionRelStrengths[Data.ResolutionRelCount] = strength;
-        Data.ResolutionRelCullInstead[Data.ResolutionRelCount] = cullInstead;
-        Data.ResolutionRelCounts[resolutionSlot]++;
+        Data.GrantCount++;
+        Data.GrantRoles[Data.GrantCount] = role;
+        Data.GrantGambitIds[Data.GrantCount] = gambitId;
+        Data.BeatGrantCounts[beatSlot]++;
     }
 
     private void EnsureOpenArchetype(int archetypeSlot)
@@ -184,17 +153,9 @@ internal sealed partial class ChronicleProgramRuntime
         }
     }
 
-    private void EnsureOpenAct(int actSlot)
+    private void EnsureOpenBeat(int beatSlot)
     {
-        if (actSlot != Data.ActCount || actSlot <= 0)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-    }
-
-    private void EnsureOpenResolution(int resolutionSlot)
-    {
-        if (resolutionSlot != Data.ResolutionCount || resolutionSlot <= 0)
+        if (beatSlot != _openBeatSlot || beatSlot <= 0 || beatSlot != Data.BeatCount)
         {
             throw new global::System.InvalidOperationException();
         }

@@ -270,6 +270,43 @@ roles first and biases future events into the beats.
   Evidence (12k-tick live harness, seed 20260714): 41/42 tales carry
   beats, median ~5, rivalries/hunts hit the 12 cap, roads now span 1250
   ticks with 4-8 beats.
+- [x] C1 — the beat engine (2026-07-14, approved plan). The act/resolution
+  model was teleological: fixed act order, deadline-forced endings, and
+  Director resolution writes that edited world state to match a chosen
+  outcome. Replaced with authored beats — the fourth authorship class
+  beside verbs, gambits, and generators. A beat opens on a world/heat
+  condition (openings may reference world state and heat, never another
+  beat's strike — heat is the only narrative memory), charges the world
+  while open (role-pair gambit bias, heat-scaled for convergence, plus
+  chronicle-granted gambits), and strikes on a real execution or a
+  recognized state fact. Terminal beats recognize endings (deaths, edges
+  culled by real gambits and drift); the Director writes nothing. A cold,
+  quiet chronicle fades (heat decay 0.99/pulse, grace 1500, quiet 1250).
+  Resolved casts enter a suppression ring (2000 ticks) so freshest-
+  provenance casting cannot immediately recast the same tale.
+  - Cross-story library (IceRemembersChronicleBeats): eight beats written
+    against stances (protagonist/adversary) — naming, answer, blow upon
+    blow, tide turns, flight, closing, allies answer, gathering storm.
+    Archetypes opt in via a stance map; hunt, terror, and haunted run map
+    stances, so most of their pools are shared, not bespoke.
+  - The Hunt is the authored showcase: wound beats on real attributes
+    (quarry containment, hunter vitality), The Beast at Bay grants the
+    chronicle-only gambit penguin_corners_the_beast, and four recognized
+    endings (fulfilled / dies with the hunter / beast endures via
+    penguin_forsakes_the_hunt or grudge decay / outlasted the telling).
+    Every ending path has a world actuator; forsake was authored to fill
+    the only gap.
+  - The other six archetypes are mechanical translations (old biases as
+    charge-only beats, old resolution Whens as terminal recognitions,
+    dice endings dropped, fades authored — some as positive quiet endings:
+    "the practice endures", "the road endures quietly").
+  - Terminology: the legend-making memory layer is named remembrance (not
+    witness); it is C3 with convergence pull/entrance beats as C2.
+  - Live 12k harness after pacing tune: spans 50-4210 ticks (the fixed
+    405/800/900 clusters dissolved), dramatic endings emerged from world
+    facts (terror driven off x2, hunt fulfilled x2, run cleansed, rivalry
+    settled, teaching broken), hunts had zero fades, hunt strike-sets
+    differ per hunt, rivalries strike 3-8 beats.
 
 ## Scope notes and follow-ups discovered during R1-R4
 

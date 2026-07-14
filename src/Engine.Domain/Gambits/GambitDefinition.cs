@@ -25,6 +25,12 @@ public sealed class GambitDefinition : BehaviorDefinition
     /// </summary>
     public float SuccessChance { get; set; } = 1f;
 
+    /// <summary>
+    /// Chronicle-granted gambits are inert unless an open beat of a running
+    /// chronicle grants them to the acting entity's role.
+    /// </summary>
+    public bool ChronicleGranted { get; set; }
+
     /// <summary>Authoring-time description of the gambit's intent.</summary>
     public string Description { get; set; } = string.Empty;
 }

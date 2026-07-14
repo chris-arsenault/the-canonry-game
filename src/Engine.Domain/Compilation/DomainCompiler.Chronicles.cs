@@ -8,21 +8,28 @@ public static partial class DomainCompiler
 {
     private static ChronicleProgram BuildChronicleProgram(DomainConfig config, DomainIdRegistry ids)
     {
+        var shared = config.Semantics?.ChronicleSharedBeats ?? [];
         var archetypes = new List<CompiledChronicleArchetypeRule>();
         foreach (var archetype in config.Semantics?.ChronicleArchetypes ?? [])
         {
-            archetypes.Add(CompileChronicleArchetype(archetype, ids));
+            archetypes.Add(CompileChronicleArchetype(archetype, shared, ids));
         }
 
         return new ChronicleProgram { Archetypes = archetypes };
     }
 
-    private static CompiledChronicleArchetypeRule CompileChronicleArchetype(ChronicleArchetypeConfig archetype, DomainIdRegistry ids)
+    private static CompiledChronicleArchetypeRule CompileChronicleArchetype(
+        ChronicleArchetypeConfig archetype,
+        IReadOnlyList<ChronicleBeatConfig> shared,
+        DomainIdRegistry ids)
     {
         var roleIndices = BuildRoleIndices(archetype);
         var primaryRequirement = archetype.PrimaryRole.RequiredOutgoingRelationshipRequirements.Count > 0
             ? archetype.PrimaryRole.RequiredOutgoingRelationshipRequirements[0]
             : null;
+        var beats = ChronicleBeatSet.EffectiveBeats(archetype, shared)
+            .Select(beat => CompileChronicleBeat(archetype, beat, ids, roleIndices))
+            .ToList();
         return new CompiledChronicleArchetypeRule(
             ids.GeneratorIdOf(archetype.Id).Value,
             archetype.MaxActive,
@@ -30,9 +37,9 @@ public static partial class DomainCompiler
             ids.KindIdOf(archetype.PrimaryRole.Kind.Value).Value,
             primaryRequirement is null ? 0 : ids.RelationshipKindIdOf(primaryRequirement.RelationshipKind).Value,
             primaryRequirement?.MinimumStrength ?? 0f,
+            ids.ReasonCodeIdOf(archetype.FadeOutcomeId).Value,
             CompileSupportingRoles(archetype, ids),
-            CompileChronicleActs(archetype, ids, roleIndices),
-            CompileChronicleResolutions(archetype, ids, roleIndices));
+            beats);
     }
 
     private static Dictionary<string, int> BuildRoleIndices(ChronicleArchetypeConfig archetype)
@@ -44,6 +51,15 @@ public static partial class DomainCompiler
         for (var role = 0; role < archetype.SupportingRoles.Count; role++)
         {
             indices[archetype.SupportingRoles[role].Ref] = role + 1;
+        }
+
+        foreach (var (stance, roleRef) in archetype.Stances)
+        {
+            if (!indices.ContainsKey(roleRef))
+            {
+                throw new InvalidOperationException(
+                    $"Chronicle archetype '{archetype.Id}' maps stance '{stance}' to unknown role '{roleRef}'.");
+            }
         }
 
         return indices;
@@ -65,103 +81,141 @@ public static partial class DomainCompiler
         return roles;
     }
 
-    private static List<CompiledChronicleAct> CompileChronicleActs(
+    private static CompiledChronicleBeat CompileChronicleBeat(
         ChronicleArchetypeConfig archetype,
+        ChronicleBeatConfig beat,
         DomainIdRegistry ids,
         Dictionary<string, int> roleIndices)
     {
-        var acts = new List<CompiledChronicleAct>();
-        foreach (var act in archetype.Acts)
-        {
-            var condition = CompileChronicleCondition(act.AdvanceWhen, ids, roleIndices);
-            acts.Add(new CompiledChronicleAct(
-                act.DeadlineTicks,
-                condition.Kind,
-                condition.RoleA,
-                condition.RoleB,
-                condition.RelKindId,
-                condition.MinStrength,
-                act.Bias
-                    .Select(bias => new CompiledChronicleBias(
-                        roleIndices[bias.ActorRole],
-                        roleIndices[bias.TargetRole],
-                        bias.Gambit is null ? 0 : ids.GambitIdOf(bias.Gambit).Value,
-                        bias.ScoreBonus))
-                    .ToList(),
-                act.Sustain
-                    .Select(sustain => new CompiledChronicleSustain(
-                        roleIndices[sustain.Role],
-                        ids.AttributeIdOf(sustain.Attribute).Value,
-                        sustain.DeltaPerPulse))
-                    .ToList()));
-        }
-
-        return acts;
+        var strike = beat.Strike;
+        ValidateStrike(archetype, beat);
+        return new CompiledChronicleBeat(
+            ids.ReasonCodeIdOf(beat.Id).Value,
+            beat.HeatGain,
+            beat.TerminalOutcomeId is null ? 0 : ids.ReasonCodeIdOf(beat.TerminalOutcomeId).Value,
+            CompileChronicleCondition(archetype, beat.Open, ids, roleIndices),
+            (int)strike.Kind,
+            RoleIndex(archetype, strike.ActorRole, roleIndices),
+            RoleIndex(archetype, strike.TargetRole, roleIndices),
+            strike.Gambit is null ? 0 : ids.GambitIdOf(strike.Gambit).Value,
+            strike.Fact is null
+                ? new CompiledChronicleCondition(ChronicleConditionCodes.None, 0, 0, 0, 0f)
+                : CompileChronicleCondition(archetype, strike.Fact, ids, roleIndices),
+            CompileCharges(archetype, beat, ids, roleIndices),
+            CompileGrants(archetype, beat, ids, roleIndices));
     }
 
-    private static List<CompiledChronicleResolution> CompileChronicleResolutions(
-        ChronicleArchetypeConfig archetype,
-        DomainIdRegistry ids,
-        Dictionary<string, int> roleIndices)
+    private static void ValidateStrike(ChronicleArchetypeConfig archetype, ChronicleBeatConfig beat)
     {
-        var resolutions = new List<CompiledChronicleResolution>();
-        foreach (var resolution in archetype.Resolutions)
+        var strike = beat.Strike;
+        var valid = strike.Kind switch
         {
-            var when = CompileChronicleCondition(resolution.When, ids, roleIndices);
-            var mask = 0;
-            foreach (var role in resolution.MarkHistorical)
-            {
-                mask |= 1 << roleIndices[role];
-            }
-
-            resolutions.Add(new CompiledChronicleResolution(
-                ids.ReasonCodeIdOf(resolution.OutcomeId).Value,
-                resolution.Weight,
-                when.Kind,
-                when.RoleA,
-                when.RoleB,
-                when.RelKindId,
-                when.MinStrength,
-                mask,
-                resolution.Relationships
-                    .Select(rel => new CompiledChronicleResolutionRelationship(
-                        roleIndices[rel.SourceRole],
-                        roleIndices[rel.TargetRole],
-                        ids.RelationshipKindIdOf(rel.RelationshipKind).Value,
-                        (int)rel.Polarity,
-                        rel.Strength,
-                        rel.CullInstead))
-                    .ToList()));
+            ChronicleStrikeKind.None => strike.Fact is null,
+            ChronicleStrikeKind.RolePairGambit => strike.ActorRole is not null && strike.TargetRole is not null,
+            ChronicleStrikeKind.OutsiderGambitOnRole => strike.TargetRole is not null,
+            ChronicleStrikeKind.StateFact => strike.Fact is not null,
+            _ => false,
+        };
+        if (!valid)
+        {
+            throw new InvalidOperationException(
+                $"Chronicle beat '{beat.Id}' of archetype '{archetype.Id}' has an invalid {strike.Kind} strike.");
         }
 
-        return resolutions;
+        if (beat.TerminalOutcomeId is not null && strike.Kind == ChronicleStrikeKind.None)
+        {
+            throw new InvalidOperationException(
+                $"Chronicle beat '{beat.Id}' of archetype '{archetype.Id}' is terminal but never strikes.");
+        }
     }
 
-    private static (int Kind, int RoleA, int RoleB, int RelKindId, float MinStrength) CompileChronicleCondition(
-        ChronicleConditionConfig? condition,
+    private static List<CompiledChronicleCharge> CompileCharges(
+        ChronicleArchetypeConfig archetype,
+        ChronicleBeatConfig beat,
+        DomainIdRegistry ids,
+        Dictionary<string, int> roleIndices) =>
+        beat.Charges
+            .Select(charge => new CompiledChronicleCharge(
+                RoleIndex(archetype, charge.ActorRole, roleIndices),
+                RoleIndex(archetype, charge.TargetRole, roleIndices),
+                charge.Gambit is null ? 0 : ids.GambitIdOf(charge.Gambit).Value,
+                charge.ScoreBonus,
+                charge.HeatScaled))
+            .ToList();
+
+    private static List<CompiledChronicleGrant> CompileGrants(
+        ChronicleArchetypeConfig archetype,
+        ChronicleBeatConfig beat,
+        DomainIdRegistry ids,
+        Dictionary<string, int> roleIndices) =>
+        beat.Grants
+            .Select(grant => new CompiledChronicleGrant(
+                RoleIndex(archetype, grant.Role, roleIndices),
+                ids.GambitIdOf(grant.Gambit).Value))
+            .ToList();
+
+    private static CompiledChronicleCondition CompileChronicleCondition(
+        ChronicleArchetypeConfig archetype,
+        ChronicleConditionConfig condition,
         DomainIdRegistry ids,
         Dictionary<string, int> roleIndices)
     {
-        if (condition is null)
+        var kind = condition.Kind switch
         {
-            return (ChronicleConditionCodes.None, 0, 0, 0, 0f);
-        }
-
-        return condition.Kind switch
-        {
-            ChronicleConditionKind.RolePairRelationship => (
-                ChronicleConditionCodes.RolePairRelationship,
-                roleIndices[condition.RoleA],
-                roleIndices[condition.RoleB ?? condition.RoleA],
-                ids.RelationshipKindIdOf(condition.RelationshipKind ?? throw new InvalidOperationException($"Story condition on role '{condition.RoleA}' requires a relationship kind.")).Value,
-                condition.MinStrength),
-            ChronicleConditionKind.RoleHistorical => (
-                ChronicleConditionCodes.RoleHistorical,
-                roleIndices[condition.RoleA],
-                0,
-                0,
-                0f),
+            ChronicleConditionKind.Always => ChronicleConditionCodes.Always,
+            ChronicleConditionKind.RolePairRelationship => ChronicleConditionCodes.RolePairRelationship,
+            ChronicleConditionKind.RolePairRelationshipAbsent => ChronicleConditionCodes.RolePairRelationshipAbsent,
+            ChronicleConditionKind.RoleHistorical => ChronicleConditionCodes.RoleHistorical,
+            ChronicleConditionKind.RoleAttributeBelow => ChronicleConditionCodes.RoleAttributeBelow,
+            ChronicleConditionKind.HeatAtLeast => ChronicleConditionCodes.HeatAtLeast,
+            ChronicleConditionKind.RolePairWithinDistance => ChronicleConditionCodes.RolePairWithinDistance,
+            ChronicleConditionKind.RolePairBeyondDistance => ChronicleConditionCodes.RolePairBeyondDistance,
             _ => throw new ArgumentOutOfRangeException(nameof(condition), condition.Kind, null),
         };
+        return new CompiledChronicleCondition(
+            kind,
+            RoleIndex(archetype, condition.RoleA, roleIndices),
+            RoleIndex(archetype, condition.RoleB, roleIndices),
+            ChronicleConditionRelOrAttrId(archetype, condition, ids),
+            condition.Value);
+    }
+
+    private static int ChronicleConditionRelOrAttrId(
+        ChronicleArchetypeConfig archetype,
+        ChronicleConditionConfig condition,
+        DomainIdRegistry ids)
+    {
+        switch (condition.Kind)
+        {
+            case ChronicleConditionKind.RolePairRelationship:
+            case ChronicleConditionKind.RolePairRelationshipAbsent:
+                var relationshipKind = condition.RelationshipKind ??
+                    throw new InvalidOperationException(
+                        $"Chronicle condition in archetype '{archetype.Id}' requires a relationship kind.");
+                return ids.RelationshipKindIdOf(relationshipKind).Value;
+            case ChronicleConditionKind.RoleAttributeBelow:
+                var attribute = condition.Attribute ??
+                    throw new InvalidOperationException(
+                        $"Chronicle condition in archetype '{archetype.Id}' requires an attribute.");
+                return ids.AttributeIdOf(attribute).Value;
+            default:
+                return 0;
+        }
+    }
+
+    private static int RoleIndex(
+        ChronicleArchetypeConfig archetype,
+        string? role,
+        Dictionary<string, int> roleIndices)
+    {
+        if (role is null)
+        {
+            return 0;
+        }
+
+        return roleIndices.TryGetValue(role, out var index)
+            ? index
+            : throw new InvalidOperationException(
+                $"Chronicle archetype '{archetype.Id}' references unknown role '{role}'.");
     }
 }

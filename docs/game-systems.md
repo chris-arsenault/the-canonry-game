@@ -48,6 +48,13 @@ Generators are intermittent high-altitude events. They create named entities
 and relationship bundles when their preconditions are met. Generator selection
 should be shaped by the state created by low altitude and gambits.
 
+Beats are the fourth authorship class, owned by the Chronicle Director. A beat
+is a dramatic potential attached to a cast chronicle: it opens on world or
+heat conditions, charges gambits between the cast while open, and strikes when
+the cast actually acts or a recognized fact occurs. Terminal beats end
+chronicles by recognizing world facts; the director never edits the world.
+See [systems/22-chronicle-director.md](./systems/22-chronicle-director.md).
+
 The player-facing card/tableau layer controls which generators and gambits are
 active. Cards determine what kinds of worlds can emerge; they should not be
 mistaken for the low-altitude physics itself. Two one-shot intervention cards

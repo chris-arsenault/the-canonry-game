@@ -125,12 +125,32 @@ public static partial class DomainCompiler
             RegisterGeneratorSubtypes(generator, state.Subtypes, state.Registry);
         }
 
+        var chronicleCodes = new HashSet<string>(StringComparer.Ordinal);
         foreach (var archetype in config.Semantics.ChronicleArchetypes)
         {
-            RegisterOnceStrict(state.Generators, archetype.Id, state.Registry.RegisterGenerator, "story archetype");
-            foreach (var resolution in archetype.Resolutions)
+            RegisterOnceStrict(state.Generators, archetype.Id, state.Registry.RegisterGenerator, "chronicle archetype");
+            chronicleCodes.Add(archetype.FadeOutcomeId);
+            CollectChronicleBeatCodes(
+                ChronicleBeatSet.EffectiveBeats(archetype, config.Semantics.ChronicleSharedBeats),
+                chronicleCodes);
+        }
+
+        foreach (var code in chronicleCodes.Order(StringComparer.Ordinal))
+        {
+            _ = state.Registry.RegisterReasonCode(code);
+        }
+    }
+
+    private static void CollectChronicleBeatCodes(
+        IReadOnlyList<ChronicleBeatConfig> beats,
+        HashSet<string> codes)
+    {
+        foreach (var beat in beats)
+        {
+            codes.Add(beat.Id);
+            if (beat.TerminalOutcomeId is not null)
             {
-                _ = state.Registry.RegisterReasonCode(resolution.OutcomeId);
+                codes.Add(beat.TerminalOutcomeId);
             }
         }
     }

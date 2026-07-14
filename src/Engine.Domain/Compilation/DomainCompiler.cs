@@ -291,6 +291,7 @@ public static partial class DomainCompiler
                 ResolveTargetMode(gambit, targetKindId),
                 targetKindId,
                 gambit.SuccessChance,
+                gambit.ChronicleGranted,
                 CompileProviderSelectors(gambit, ids),
                 CompilePreconditions(gambit.Precondition, ids),
                 CompileExpression(gambit.ScoreExpression, ids),

@@ -1,6 +1,6 @@
 namespace Engine.Domain.Compilation.KernelPrograms;
 
-/// <summary>Compiled story archetypes for the Chronicle Director program.</summary>
+/// <summary>Compiled chronicle archetypes for the Chronicle Director program.</summary>
 public sealed class ChronicleProgram
 {
     public required IReadOnlyList<CompiledChronicleArchetypeRule> Archetypes { get; init; }
@@ -13,9 +13,9 @@ public sealed record CompiledChronicleArchetypeRule(
     int PrimaryKindId,
     int PrimaryRequiredRelKindId,
     float PrimaryRequiredRelMinStrength,
+    int FadeOutcomeCodeId,
     IReadOnlyList<CompiledChronicleRole> SupportingRoles,
-    IReadOnlyList<CompiledChronicleAct> Acts,
-    IReadOnlyList<CompiledChronicleResolution> Resolutions);
+    IReadOnlyList<CompiledChronicleBeat> Beats);
 
 public sealed record CompiledChronicleRole(
     int KindId,
@@ -23,42 +23,33 @@ public sealed record CompiledChronicleRole(
     bool RelatedIncoming,
     float RelatedMinStrength);
 
-public sealed record CompiledChronicleAct(
-    int DeadlineTicks,
-    int AdvanceConditionKind,
-    int AdvanceRoleA,
-    int AdvanceRoleB,
-    int AdvanceRelKindId,
-    float AdvanceMinStrength,
-    IReadOnlyList<CompiledChronicleBias> Bias,
-    IReadOnlyList<CompiledChronicleSustain> Sustain);
+public sealed record CompiledChronicleBeat(
+    int BeatCodeId,
+    float HeatGain,
+    int TerminalOutcomeCodeId,
+    CompiledChronicleCondition Open,
+    int StrikeKind,
+    int StrikeActorRole,
+    int StrikeTargetRole,
+    int StrikeGambitId,
+    CompiledChronicleCondition StrikeFact,
+    IReadOnlyList<CompiledChronicleCharge> Charges,
+    IReadOnlyList<CompiledChronicleGrant> Grants);
 
-public sealed record CompiledChronicleBias(
+public sealed record CompiledChronicleCondition(
+    int Kind,
+    int RoleA,
+    int RoleB,
+    int RelOrAttrId,
+    float Value);
+
+public sealed record CompiledChronicleCharge(
     int ActorRole,
     int TargetRole,
     int GambitId,
-    float ScoreBonus);
+    float ScoreBonus,
+    bool HeatScaled);
 
-public sealed record CompiledChronicleSustain(
+public sealed record CompiledChronicleGrant(
     int Role,
-    int AttributeId,
-    float DeltaPerPulse);
-
-public sealed record CompiledChronicleResolution(
-    int OutcomeCodeId,
-    int Weight,
-    int WhenConditionKind,
-    int WhenRoleA,
-    int WhenRoleB,
-    int WhenRelKindId,
-    float WhenMinStrength,
-    int HistoricalRoleMask,
-    IReadOnlyList<CompiledChronicleResolutionRelationship> Relationships);
-
-public sealed record CompiledChronicleResolutionRelationship(
-    int SourceRole,
-    int TargetRole,
-    int RelKindId,
-    int PolarityCode,
-    float Strength,
-    bool CullInstead);
+    int GambitId);

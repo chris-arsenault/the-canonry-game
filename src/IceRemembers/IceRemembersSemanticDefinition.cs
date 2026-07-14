@@ -9,5 +9,6 @@ public static class IceRemembersSemanticDefinition
         Stocks = IceRemembersEntities.CreateSemanticStocks(),
         Generators = IceRemembersGeneratorDefinition.Create(),
         ChronicleArchetypes = IceRemembersChronicleArchetypes.Create(),
+        ChronicleSharedBeats = IceRemembersChronicleArchetypes.CreateSharedBeats(),
     };
 }

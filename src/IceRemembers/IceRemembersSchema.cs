@@ -609,6 +609,8 @@ public enum IceRemembersGambitId
     FactionDeclaresRivalry,
     FactionSwearsColdAccord,
     PenguinWrestsArtifact,
+    PenguinForsakesTheHunt,
+    PenguinCornersTheBeast,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -666,6 +668,8 @@ public static class IceRemembersGambitIdExtensions
         "faction_declares_rivalry",
         "faction_swears_cold_accord",
         "penguin_wrests_artifact",
+        "penguin_forsakes_the_hunt",
+        "penguin_corners_the_beast",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)

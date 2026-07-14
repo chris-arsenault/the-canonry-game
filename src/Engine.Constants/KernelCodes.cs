@@ -287,8 +287,8 @@ public static class KernelProgramCodes
 public static class ChronicleEventTypeCodes
 {
     public const int Cast = 1;
-    public const int ActAdvanced = 2;
     public const int Resolved = 3;
+    public const int BeatStruck = 4;
 }
 
 public static class ChronicleConditionCodes
@@ -296,6 +296,20 @@ public static class ChronicleConditionCodes
     public const int None = 0;
     public const int RolePairRelationship = 1;
     public const int RoleHistorical = 2;
+    public const int Always = 3;
+    public const int RolePairRelationshipAbsent = 4;
+    public const int RoleAttributeBelow = 5;
+    public const int HeatAtLeast = 6;
+    public const int RolePairWithinDistance = 7;
+    public const int RolePairBeyondDistance = 8;
+}
+
+public static class ChronicleStrikeCodes
+{
+    public const int None = 0;
+    public const int RolePairGambit = 1;
+    public const int OutsiderGambitOnRole = 2;
+    public const int StateFact = 3;
 }
 
 public static class MinorActorKindCodes

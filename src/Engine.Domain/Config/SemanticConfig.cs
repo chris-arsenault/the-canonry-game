@@ -12,6 +12,13 @@ public sealed class SemanticDomainConfig
     public IReadOnlyList<SemanticModifierConfig> Modifiers { get; init; } = [];
     public IReadOnlyList<SemanticGeneratorConfig> Generators { get; init; } = [];
     public IReadOnlyList<ChronicleArchetypeConfig> ChronicleArchetypes { get; init; } = [];
+
+    /// <summary>
+    /// Cross-story beats, written against stance names ("protagonist",
+    /// "adversary", …). Each archetype whose Stances map covers a shared
+    /// beat's stances receives that beat in its compiled pool.
+    /// </summary>
+    public IReadOnlyList<ChronicleBeatConfig> ChronicleSharedBeats { get; init; } = [];
 }
 
 public abstract class SemanticStockConfig

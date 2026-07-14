@@ -11,6 +11,7 @@ public enum UiChronicleEntryType
     HistoryChain = 3,
     Tale = 4,
     Relationship = 5,
+    BeatStruck = 6,
 }
 
 public sealed record UiChronicleEntityRef(
@@ -31,21 +32,20 @@ public sealed record UiChronicleTale(
     string ArchetypeName,
     int StartTick,
     int LastEventTick,
-    int ActIndex,
+    int StruckBeats,
     bool Resolved,
     int OutcomeCodeId,
     string OutcomeName,
     IReadOnlyList<UiChronicleEntityRef> Cast);
 
 /// <summary>
-/// A fully narrated chronicle for presentation: forged title, act name,
-/// outcome sentence, and the beats (event entries between cast members)
+/// A fully narrated chronicle for presentation: forged title, outcome
+/// sentence, and the beats - authored struck beats and observed cast events -
 /// that actually happened.
 /// </summary>
 public sealed record UiChronicleTaleView(
     UiChronicleTale Tale,
     string Title,
-    string ActName,
     string OutcomeNarrative,
     IReadOnlyList<UiChronicleEntry> Beats);
 
@@ -128,31 +128,85 @@ public sealed class UiChronicleProjection : KernelEventProjector
 
     protected override void OnChronicleChanged(long sequence, in ChronicleChangedKernelEvent evt)
     {
+        var tale = ApplyChronicleEvent(evt);
+        if (evt.EventTypeCode == ChronicleEventTypeCodes.BeatStruck)
+        {
+            AttachBeat(evt.ChronicleSequence, tale, AppendBeatStruckEntry(sequence, evt.Tick, tale, evt.OutcomeCodeId));
+            return;
+        }
+
+        AppendTaleEntry(sequence, evt.Tick, tale, evt.EventTypeCode);
+    }
+
+    private UiChronicleTale ApplyChronicleEvent(in ChronicleChangedKernelEvent evt)
+    {
         var archetypeName = Resolve(ProjectionSymbolKind.Generator, evt.ArchetypeId, $"chronicle {evt.ArchetypeId}");
         var cast = EntityRefs(evt.RoleEntityId0, evt.RoleEntityId1, evt.RoleEntityId2, evt.RoleEntityId3);
         var resolved = evt.EventTypeCode == ChronicleEventTypeCodes.Resolved;
-        var outcomeName = resolved && evt.OutcomeCodeId > 0
-            ? Resolve(ProjectionSymbolKind.ReasonCode, evt.OutcomeCodeId, $"outcome {evt.OutcomeCodeId}")
-            : string.Empty;
         var previous = _tales.GetValueOrDefault(evt.ChronicleSequence);
+        var struckBeats = previous?.StruckBeats ?? 0;
+        if (evt.EventTypeCode == ChronicleEventTypeCodes.BeatStruck)
+        {
+            struckBeats++;
+        }
+
+        if (cast.Count == 0 && previous is not null)
+        {
+            cast = new List<UiChronicleEntityRef>(previous.Cast);
+        }
+
         var tale = new UiChronicleTale(
             evt.ChronicleSequence,
             evt.ArchetypeId,
             archetypeName,
             previous?.StartTick ?? evt.Tick,
             evt.Tick,
-            evt.ActIndex,
+            struckBeats,
             resolved,
-            evt.OutcomeCodeId,
-            outcomeName,
-            cast.Count > 0 ? cast : previous?.Cast ?? cast);
+            ResolvedOutcomeCodeId(evt, resolved, previous),
+            ResolvedOutcomeName(evt, resolved, previous),
+            cast);
         _tales[evt.ChronicleSequence] = tale;
         RebuildTaleOrder();
-        var entry = AppendTaleEntry(sequence, evt.Tick, tale, evt.EventTypeCode);
-        if (evt.EventTypeCode == ChronicleEventTypeCodes.ActAdvanced)
+        return tale;
+    }
+
+    private static int ResolvedOutcomeCodeId(in ChronicleChangedKernelEvent evt, bool resolved, UiChronicleTale? previous)
+    {
+        if (resolved)
         {
-            AttachBeat(evt.ChronicleSequence, tale, entry);
+            return evt.OutcomeCodeId;
         }
+
+        return previous?.OutcomeCodeId ?? 0;
+    }
+
+    private string ResolvedOutcomeName(in ChronicleChangedKernelEvent evt, bool resolved, UiChronicleTale? previous)
+    {
+        if (resolved && evt.OutcomeCodeId > 0)
+        {
+            return Resolve(ProjectionSymbolKind.ReasonCode, evt.OutcomeCodeId, $"outcome {evt.OutcomeCodeId}");
+        }
+
+        return previous?.OutcomeName ?? string.Empty;
+    }
+
+    private UiChronicleEntry AppendBeatStruckEntry(long sequence, int tick, UiChronicleTale tale, int beatCodeId)
+    {
+        var beatName = Resolve(ProjectionSymbolKind.ReasonCode, beatCodeId, $"beat {beatCodeId}");
+        var line = $"{TickPrefix(tick)}[b][color=#{TaleColor}]{beatName}[/color][/b]  " +
+            $"[color=#{ConnectorColor}]a beat of[/color] [color=#{EntityColor}]{tale.ArchetypeName}[/color]";
+        var entry = new UiChronicleEntry(
+            sequence,
+            tick,
+            UiChronicleEntryType.BeatStruck,
+            ProvenanceProducerKindCodes.Generator,
+            beatCodeId,
+            KernelEventState.Succeeded,
+            tale.Cast,
+            line);
+        Append(entry);
+        return entry;
     }
 
     private void RebuildTaleOrder()
@@ -188,14 +242,10 @@ public sealed class UiChronicleProjection : KernelEventProjector
         TalesVersion++;
     }
 
-    private UiChronicleEntry AppendTaleEntry(long sequence, int tick, UiChronicleTale tale, int eventTypeCode)
+    private void AppendTaleEntry(long sequence, int tick, UiChronicleTale tale, int eventTypeCode)
     {
-        var verb = eventTypeCode switch
-        {
-            ChronicleEventTypeCodes.Cast => "begins",
-            ChronicleEventTypeCodes.ActAdvanced => $"enters act {tale.ActIndex + 1}",
-            _ => tale.OutcomeName.Length > 0 ? $"ends: {tale.OutcomeName}" : "ends",
-        };
+        var ending = tale.OutcomeName.Length > 0 ? $"ends: {tale.OutcomeName}" : "ends";
+        var verb = eventTypeCode == ChronicleEventTypeCodes.Cast ? "begins" : ending;
         var castText = string.Join(
             $"[color=#{ConnectorColor}], [/color]",
             tale.Cast.Select(entity => $"[color=#{EntityColor}]{entity.DisplayName}[/color]"));
@@ -210,7 +260,6 @@ public sealed class UiChronicleProjection : KernelEventProjector
             tale.Cast,
             line);
         Append(entry);
-        return entry;
     }
 
     protected override void OnGambitExecuted(long sequence, in GambitExecutedKernelEvent evt)

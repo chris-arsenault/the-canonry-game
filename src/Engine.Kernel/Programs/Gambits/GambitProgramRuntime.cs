@@ -147,6 +147,16 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         return slot;
     }
 
+    /// <summary>
+    /// Chronicle-granted gambits are inert unless an open beat of a running
+    /// chronicle grants them to the acting entity's role.
+    /// </summary>
+    public void MarkChronicleGranted(int gambitSlot)
+    {
+        EnsureOpenGambit(gambitSlot);
+        Data.GambitChronicleGranted[gambitSlot] = 1;
+    }
+
     public int RegisterTraitModifier(
         int gambitId,
         int traitId,
@@ -393,7 +403,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         var totalWeight = 0f;
         for (var gambitSlot = 1; gambitSlot <= _gambitCount; gambitSlot++)
         {
-            if (GambitCanRunForEntity(gambitSlot, kindId, entityId, tick))
+            if (GambitCanRunForEntity(simulation, gambitSlot, kindId, entityId, tick))
             {
                 totalWeight += EvaluateTargets(
                     simulation,
@@ -422,7 +432,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         selectedTargetId = 0;
         for (var gambitSlot = 1; gambitSlot <= _gambitCount; gambitSlot++)
         {
-            if (!GambitCanRunForEntity(gambitSlot, kindId, entityId, tick))
+            if (!GambitCanRunForEntity(simulation, gambitSlot, kindId, entityId, tick))
             {
                 continue;
             }
@@ -470,6 +480,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         ApplyGambitCooldowns(simulation, entityId, selectedGambitSlot, gambitId, tick);
         WriteGambitEvaluated(simulation, tick, entityId, kindId, gambitId, candidateCount, KernelEventState.Succeeded);
         WriteGambitExecuted(simulation, tick, entityId, selectedTargetId, kindId, gambitId, state);
+        simulation.Chronicles.NoteExecution(entityId, selectedTargetId, gambitId);
     }
 
     private KernelProvenanceScope EnterGambitProvenance(
@@ -517,11 +528,13 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         }
     }
 
-    private bool GambitCanRunForEntity(int gambitSlot, int kindId, int entityId, int tick)
+    private bool GambitCanRunForEntity(Simulation simulation, int gambitSlot, int kindId, int entityId, int tick)
     {
         return _gambitEnabled[gambitSlot] &&
                _gambitKindIds[gambitSlot] == kindId &&
-               tick >= _cooldowns.GetOrDefault(entityId, _gambitIds[gambitSlot]);
+               tick >= _cooldowns.GetOrDefault(entityId, _gambitIds[gambitSlot]) &&
+               (Data.GambitChronicleGranted[gambitSlot] == 0 ||
+                   simulation.Chronicles.GrantsGambit(entityId, _gambitIds[gambitSlot]));
     }
 
     private KernelEventState RollGambitState(Simulation simulation, int gambitSlot, int entityId, int targetId)

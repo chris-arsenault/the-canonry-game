@@ -19,6 +19,7 @@ internal sealed partial class GambitProgramData : IKernelProgramData
     internal int[] GambitStepCounts = [];
     internal int[] GambitProviderSelectorStarts = [];
     internal int[] GambitProviderSelectorCounts = [];
+    internal int[] GambitChronicleGranted = [];
     internal int[] PreconditionCodes = [];
     internal int[] PreA = [];
     internal int[] PreB = [];
@@ -90,6 +91,7 @@ internal sealed partial class GambitProgramData : IKernelProgramData
         GambitStepCounts = new int[gambitCapacity + 1];
         GambitProviderSelectorStarts = new int[gambitCapacity + 1];
         GambitProviderSelectorCounts = new int[gambitCapacity + 1];
+        GambitChronicleGranted = new int[gambitCapacity + 1];
     }
 
     private void InitializeStepArrays(int stepCapacity)
@@ -134,7 +136,7 @@ internal sealed partial class GambitProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.Gambits;
 
-    public int SchemaVersion => 2;
+    public int SchemaVersion => 3;
 
     internal DecisionModifier ReadDecisionModifier(int modifier) =>
         new(

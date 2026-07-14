@@ -1,27 +1,29 @@
 namespace Engine.Kernel;
 
 /// <summary>
-/// Fixed-capacity story archetype definitions: cast (role queries), plot
-/// (acts with deadlines and role-state advance conditions), direction
-/// (role-pair gambit bias and cast sustain), and guaranteed resolutions.
-/// Definition-only; live stories are in ChronicleProgramState.
+/// Fixed-capacity chronicle archetype definitions: cast (role queries) and an
+/// unordered pool of beats. A beat opens on a world/heat condition, charges
+/// the world while open (gambit bias, gambit grants), and strikes on an
+/// execution pattern or state fact. Terminal beats end the chronicle with a
+/// recognized outcome; nothing here writes world state. Definition-only;
+/// live chronicles are in ChronicleProgramState.
 /// </summary>
 internal sealed partial class ChronicleProgramData : IKernelProgramData
 {
     internal const int MaxRolesPerArchetype = 4;
+    internal const int MaxBeatsPerArchetype = 64;
 
     internal int[] ArchetypeIds = [];
     internal int[] ArchetypeMaxActive = [];
     internal int[] ArchetypeCastingCadenceTicks = [];
     internal int[] ArchetypeRoleStarts = [];
     internal int[] ArchetypeRoleCounts = [];
-    internal int[] ArchetypeActStarts = [];
-    internal int[] ArchetypeActCounts = [];
-    internal int[] ArchetypeResolutionStarts = [];
-    internal int[] ArchetypeResolutionCounts = [];
+    internal int[] ArchetypeBeatStarts = [];
+    internal int[] ArchetypeBeatCounts = [];
     internal int[] ArchetypePrimaryKindIds = [];
     internal int[] ArchetypePrimaryRequiredRelKindIds = [];
     internal float[] ArchetypePrimaryRequiredRelMinStrengths = [];
+    internal int[] ArchetypeFadeOutcomeCodeIds = [];
 
     // Roles (flat; role 0 of each archetype is the primary and carries no query).
     internal int[] RoleKindIds = [];
@@ -29,62 +31,52 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
     internal int[] RoleRelatedIncoming = [];
     internal float[] RoleRelatedMinStrengths = [];
 
-    // Acts (flat).
-    internal int[] ActDeadlineTicks = [];
-    internal int[] ActAdvanceConditionKinds = [];
-    internal int[] ActAdvanceRoleA = [];
-    internal int[] ActAdvanceRoleB = [];
-    internal int[] ActAdvanceRelKindIds = [];
-    internal float[] ActAdvanceMinStrengths = [];
-    internal int[] ActBiasStarts = [];
-    internal int[] ActBiasCounts = [];
-    internal int[] ActSustainStarts = [];
-    internal int[] ActSustainCounts = [];
+    // Beats (flat).
+    internal int[] BeatCodeIds = [];
+    internal float[] BeatHeatGains = [];
+    internal int[] BeatTerminalOutcomeCodeIds = [];
+    internal int[] BeatOpenKinds = [];
+    internal int[] BeatOpenRoleA = [];
+    internal int[] BeatOpenRoleB = [];
+    internal int[] BeatOpenRelOrAttrIds = [];
+    internal float[] BeatOpenValues = [];
+    internal int[] BeatStrikeKinds = [];
+    internal int[] BeatStrikeActorRoles = [];
+    internal int[] BeatStrikeTargetRoles = [];
+    internal int[] BeatStrikeGambitIds = [];
+    internal int[] BeatStrikeFactKinds = [];
+    internal int[] BeatStrikeFactRoleA = [];
+    internal int[] BeatStrikeFactRoleB = [];
+    internal int[] BeatStrikeFactRelOrAttrIds = [];
+    internal float[] BeatStrikeFactValues = [];
+    internal int[] BeatChargeStarts = [];
+    internal int[] BeatChargeCounts = [];
+    internal int[] BeatGrantStarts = [];
+    internal int[] BeatGrantCounts = [];
 
-    // Bias rows (flat).
-    internal int[] BiasActorRoles = [];
-    internal int[] BiasTargetRoles = [];
-    internal int[] BiasGambitIds = [];
-    internal float[] BiasScoreBonuses = [];
+    // Charge rows (flat): score weight the open beat adds to role-pair gambits.
+    internal int[] ChargeActorRoles = [];
+    internal int[] ChargeTargetRoles = [];
+    internal int[] ChargeGambitIds = [];
+    internal float[] ChargeScoreBonuses = [];
+    internal int[] ChargeHeatScaled = [];
 
-    // Sustain rows (flat).
-    internal int[] SustainRoles = [];
-    internal int[] SustainAttributeIds = [];
-    internal float[] SustainDeltas = [];
-
-    // Resolutions (flat).
-    internal int[] ResolutionOutcomeCodeIds = [];
-    internal int[] ResolutionWeights = [];
-    internal int[] ResolutionWhenKinds = [];
-    internal int[] ResolutionWhenRoleA = [];
-    internal int[] ResolutionWhenRoleB = [];
-    internal int[] ResolutionWhenRelKindIds = [];
-    internal float[] ResolutionWhenMinStrengths = [];
-    internal int[] ResolutionRelStarts = [];
-    internal int[] ResolutionRelCounts = [];
-    internal int[] ResolutionHistoricalRoleMasks = [];
-
-    // Resolution relationship writes (flat).
-    internal int[] ResolutionRelSourceRoles = [];
-    internal int[] ResolutionRelTargetRoles = [];
-    internal int[] ResolutionRelKindIds = [];
-    internal int[] ResolutionRelPolarities = [];
-    internal float[] ResolutionRelStrengths = [];
-    internal int[] ResolutionRelCullInstead = [];
+    // Grant rows (flat): chronicle-granted gambits available while the beat is open.
+    internal int[] GrantRoles = [];
+    internal int[] GrantGambitIds = [];
 
     internal int ArchetypeCount;
     internal int RoleCount;
-    internal int ActCount;
-    internal int BiasCount;
-    internal int SustainCount;
-    internal int ResolutionCount;
-    internal int ResolutionRelCount;
+    internal int BeatCount;
+    internal int ChargeCount;
+    internal int GrantCount;
 
     public void Allocate(int archetypeCapacity, int itemCapacity)
     {
         AllocateArchetypes(archetypeCapacity);
-        AllocateRolesAndActs(itemCapacity);
-        AllocateResolutions(itemCapacity);
+        AllocateRoles(itemCapacity);
+        AllocateBeats(itemCapacity);
+        AllocateChargesAndGrants(itemCapacity);
     }
 
     private void AllocateArchetypes(int archetypeCapacity)
@@ -94,61 +86,59 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
         ArchetypeCastingCadenceTicks = new int[archetypeCapacity + 1];
         ArchetypeRoleStarts = new int[archetypeCapacity + 1];
         ArchetypeRoleCounts = new int[archetypeCapacity + 1];
-        ArchetypeActStarts = new int[archetypeCapacity + 1];
-        ArchetypeActCounts = new int[archetypeCapacity + 1];
-        ArchetypeResolutionStarts = new int[archetypeCapacity + 1];
-        ArchetypeResolutionCounts = new int[archetypeCapacity + 1];
+        ArchetypeBeatStarts = new int[archetypeCapacity + 1];
+        ArchetypeBeatCounts = new int[archetypeCapacity + 1];
         ArchetypePrimaryKindIds = new int[archetypeCapacity + 1];
         ArchetypePrimaryRequiredRelKindIds = new int[archetypeCapacity + 1];
         ArchetypePrimaryRequiredRelMinStrengths = new float[archetypeCapacity + 1];
+        ArchetypeFadeOutcomeCodeIds = new int[archetypeCapacity + 1];
     }
 
-    private void AllocateRolesAndActs(int itemCapacity)
+    private void AllocateRoles(int itemCapacity)
     {
         RoleKindIds = new int[itemCapacity + 1];
         RoleRelatedKindIds = new int[itemCapacity + 1];
         RoleRelatedIncoming = new int[itemCapacity + 1];
         RoleRelatedMinStrengths = new float[itemCapacity + 1];
-        ActDeadlineTicks = new int[itemCapacity + 1];
-        ActAdvanceConditionKinds = new int[itemCapacity + 1];
-        ActAdvanceRoleA = new int[itemCapacity + 1];
-        ActAdvanceRoleB = new int[itemCapacity + 1];
-        ActAdvanceRelKindIds = new int[itemCapacity + 1];
-        ActAdvanceMinStrengths = new float[itemCapacity + 1];
-        ActBiasStarts = new int[itemCapacity + 1];
-        ActBiasCounts = new int[itemCapacity + 1];
-        ActSustainStarts = new int[itemCapacity + 1];
-        ActSustainCounts = new int[itemCapacity + 1];
-        BiasActorRoles = new int[itemCapacity + 1];
-        BiasTargetRoles = new int[itemCapacity + 1];
-        BiasGambitIds = new int[itemCapacity + 1];
-        BiasScoreBonuses = new float[itemCapacity + 1];
-        SustainRoles = new int[itemCapacity + 1];
-        SustainAttributeIds = new int[itemCapacity + 1];
-        SustainDeltas = new float[itemCapacity + 1];
     }
 
-    private void AllocateResolutions(int itemCapacity)
+    private void AllocateBeats(int itemCapacity)
     {
-        ResolutionOutcomeCodeIds = new int[itemCapacity + 1];
-        ResolutionWeights = new int[itemCapacity + 1];
-        ResolutionWhenKinds = new int[itemCapacity + 1];
-        ResolutionWhenRoleA = new int[itemCapacity + 1];
-        ResolutionWhenRoleB = new int[itemCapacity + 1];
-        ResolutionWhenRelKindIds = new int[itemCapacity + 1];
-        ResolutionWhenMinStrengths = new float[itemCapacity + 1];
-        ResolutionRelStarts = new int[itemCapacity + 1];
-        ResolutionRelCounts = new int[itemCapacity + 1];
-        ResolutionHistoricalRoleMasks = new int[itemCapacity + 1];
-        ResolutionRelSourceRoles = new int[itemCapacity + 1];
-        ResolutionRelTargetRoles = new int[itemCapacity + 1];
-        ResolutionRelKindIds = new int[itemCapacity + 1];
-        ResolutionRelPolarities = new int[itemCapacity + 1];
-        ResolutionRelStrengths = new float[itemCapacity + 1];
-        ResolutionRelCullInstead = new int[itemCapacity + 1];
+        BeatCodeIds = new int[itemCapacity + 1];
+        BeatHeatGains = new float[itemCapacity + 1];
+        BeatTerminalOutcomeCodeIds = new int[itemCapacity + 1];
+        BeatOpenKinds = new int[itemCapacity + 1];
+        BeatOpenRoleA = new int[itemCapacity + 1];
+        BeatOpenRoleB = new int[itemCapacity + 1];
+        BeatOpenRelOrAttrIds = new int[itemCapacity + 1];
+        BeatOpenValues = new float[itemCapacity + 1];
+        BeatStrikeKinds = new int[itemCapacity + 1];
+        BeatStrikeActorRoles = new int[itemCapacity + 1];
+        BeatStrikeTargetRoles = new int[itemCapacity + 1];
+        BeatStrikeGambitIds = new int[itemCapacity + 1];
+        BeatStrikeFactKinds = new int[itemCapacity + 1];
+        BeatStrikeFactRoleA = new int[itemCapacity + 1];
+        BeatStrikeFactRoleB = new int[itemCapacity + 1];
+        BeatStrikeFactRelOrAttrIds = new int[itemCapacity + 1];
+        BeatStrikeFactValues = new float[itemCapacity + 1];
+        BeatChargeStarts = new int[itemCapacity + 1];
+        BeatChargeCounts = new int[itemCapacity + 1];
+        BeatGrantStarts = new int[itemCapacity + 1];
+        BeatGrantCounts = new int[itemCapacity + 1];
+    }
+
+    private void AllocateChargesAndGrants(int itemCapacity)
+    {
+        ChargeActorRoles = new int[itemCapacity + 1];
+        ChargeTargetRoles = new int[itemCapacity + 1];
+        ChargeGambitIds = new int[itemCapacity + 1];
+        ChargeScoreBonuses = new float[itemCapacity + 1];
+        ChargeHeatScaled = new int[itemCapacity + 1];
+        GrantRoles = new int[itemCapacity + 1];
+        GrantGambitIds = new int[itemCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.ChronicleDirector;
 
-    public int SchemaVersion => 1;
+    public int SchemaVersion => 2;
 }

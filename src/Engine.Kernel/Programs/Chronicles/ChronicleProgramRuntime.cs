@@ -1,13 +1,27 @@
 namespace Engine.Kernel;
 
 /// <summary>
-/// The Chronicle Director: casts story archetypes over live entities, biases
-/// cast members' gambits toward their roles, sustains the cast while their
-/// story runs, and guarantees a resolution by the final act's deadline. The
-/// forward-running counterpart of a chronicle plan: cast, plot, direction.
+/// The Chronicle Director: casts archetypes over live entities, then watches.
+/// Each chronicle carries an unordered pool of authored beats. Beats open on
+/// world or heat conditions, charge the world while open (gambit bias and
+/// chronicle-granted gambits), and strike when the cast actually acts or the
+/// recognized fact occurs. Strikes raise heat; heat decays in quiet. Terminal
+/// beats end the chronicle by recognizing world facts; a cold, quiet
+/// chronicle fades from the telling. The director never writes world state.
 /// </summary>
 internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<ChronicleProgramData, ChronicleProgramState>
 {
+    private const float HeatDecayFactor = 0.99f;
+    private const float AmbientPairHeat = 0.25f;
+    private const float MaxHeat = 12f;
+    private const float InitialHeat = 1f;
+    private const float FadeHeatThreshold = 0.5f;
+    private const int FadeQuietTicks = 1250;
+    private const int FadeGraceTicks = 1500;
+    private const float HeatChargeSlope = 0.15f;
+    private const float MaxHeatChargeMultiplier = 4f;
+    private const int SuppressionTicks = 2000;
+
     private readonly int _chronicleCapacity;
 
     public ChronicleProgramRuntime(SimulationOptions options)
@@ -25,15 +39,16 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
     public void Tick(Simulation simulation, int tick)
     {
         var world = simulation.World;
-        for (var story = 1; story <= State.HighWatermark; story++)
+        ProcessPendingExecutions(simulation, world, tick);
+        for (var chronicle = 1; chronicle <= State.HighWatermark; chronicle++)
         {
-            if (!State.Active[story])
+            if (!State.Active[chronicle])
             {
                 continue;
             }
 
-            ApplySustain(simulation, world, story);
-            StepChronicle(simulation, world, story, tick);
+            State.Heat[chronicle] *= HeatDecayFactor;
+            StepChronicle(simulation, world, chronicle, tick);
         }
 
         for (var archetype = 1; archetype <= Data.ArchetypeCount; archetype++)
@@ -43,271 +58,184 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
     }
 
     /// <summary>
-    /// Direction: extra score for a gambit whose actor and target are bound
-    /// to biased roles of a running story's current act. Read by the gambit
-    /// program during candidate scoring.
+    /// Recorded by the gambit program after every execution; consumed on the
+    /// director's next pulse for ambient heat and strike detection.
+    /// </summary>
+    public void NoteExecution(int actorId, int targetId, int gambitId)
+    {
+        if (State.PendingCount >= ChronicleProgramState.PendingExecutionCapacity)
+        {
+            return;
+        }
+
+        State.PendingActorIds[State.PendingCount] = actorId;
+        State.PendingTargetIds[State.PendingCount] = targetId;
+        State.PendingGambitIds[State.PendingCount] = gambitId;
+        State.PendingCount++;
+    }
+
+    /// <summary>
+    /// Direction: extra score for a gambit whose actor and target match a
+    /// charge of an open beat. Read by the gambit program during scoring.
+    /// Heat-scaled charges grow with the chronicle's heat - convergence
+    /// pushes stories toward their endings without decreeing them.
     /// </summary>
     public float ScoreBias(int actorId, int targetId, int gambitId)
     {
         var total = 0f;
-        for (var story = 1; story <= State.HighWatermark; story++)
+        for (var chronicle = 1; chronicle <= State.HighWatermark; chronicle++)
         {
-            if (!State.Active[story])
+            if (State.Active[chronicle])
             {
-                continue;
+                total += ChronicleBias(chronicle, actorId, targetId, gambitId);
             }
-
-            total += ChronicleBias(story, actorId, targetId, gambitId);
         }
 
         return total;
     }
 
-    private float ChronicleBias(int story, int actorId, int targetId, int gambitId)
+    /// <summary>
+    /// True when an open beat of a running chronicle grants this gambit to
+    /// this entity's role. Chronicle-granted gambits are otherwise inert.
+    /// </summary>
+    public bool GrantsGambit(int actorId, int gambitId)
     {
-        var archetype = State.ArchetypeSlots[story];
-        var act = Data.ArchetypeActStarts[archetype] + State.ActIndices[story];
-        var biasStart = Data.ActBiasStarts[act];
-        var biasEnd = biasStart + Data.ActBiasCounts[act];
+        for (var chronicle = 1; chronicle <= State.HighWatermark; chronicle++)
+        {
+            if (State.Active[chronicle] && ChronicleGrants(chronicle, actorId, gambitId))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private float ChronicleBias(int chronicle, int actorId, int targetId, int gambitId)
+    {
         var total = 0f;
-        for (var bias = biasStart; bias < biasEnd; bias++)
+        var archetype = State.ArchetypeSlots[chronicle];
+        var beatStart = Data.ArchetypeBeatStarts[archetype];
+        var beatEnd = beatStart + Data.ArchetypeBeatCounts[archetype];
+        for (var beat = beatStart; beat < beatEnd; beat++)
         {
-            if (RoleEntity(story, Data.BiasActorRoles[bias]) != actorId ||
-                RoleEntity(story, Data.BiasTargetRoles[bias]) != targetId)
+            if (!BeatIsOpen(chronicle, beat - beatStart))
             {
                 continue;
             }
 
-            if (Data.BiasGambitIds[bias] != 0 && Data.BiasGambitIds[bias] != gambitId)
-            {
-                continue;
-            }
-
-            total += Data.BiasScoreBonuses[bias];
+            total += BeatChargeBias(chronicle, beat, actorId, targetId, gambitId);
         }
 
         return total;
     }
 
-    private int RoleEntity(int story, int role) =>
-        State.RoleEntityIds[(story * ChronicleProgramData.MaxRolesPerArchetype) + role];
-
-    private void SetRoleEntity(int story, int role, int entityId) =>
-        State.RoleEntityIds[(story * ChronicleProgramData.MaxRolesPerArchetype) + role] = entityId;
-
-    private void ApplySustain(Simulation simulation, WorldState world, int story)
+    private float BeatChargeBias(int chronicle, int beat, int actorId, int targetId, int gambitId)
     {
-        var archetype = State.ArchetypeSlots[story];
-        var act = Data.ArchetypeActStarts[archetype] + State.ActIndices[story];
-        var sustainStart = Data.ActSustainStarts[act];
-        var sustainEnd = sustainStart + Data.ActSustainCounts[act];
-        for (var sustain = sustainStart; sustain < sustainEnd; sustain++)
+        var total = 0f;
+        var chargeStart = Data.BeatChargeStarts[beat];
+        var chargeEnd = chargeStart + Data.BeatChargeCounts[beat];
+        for (var charge = chargeStart; charge < chargeEnd; charge++)
         {
-            var entityId = RoleEntity(story, Data.SustainRoles[sustain]);
-            if (entityId > 0 && world.EntityIsActive(entityId))
+            if (RoleEntity(chronicle, Data.ChargeActorRoles[charge]) != actorId ||
+                RoleEntity(chronicle, Data.ChargeTargetRoles[charge]) != targetId)
             {
-                KernelEffectExecutor.ModifyAttribute(
-                    simulation,
-                    entityId,
-                    Data.SustainAttributeIds[sustain],
-                    Data.SustainDeltas[sustain]);
+                continue;
+            }
+
+            if (Data.ChargeGambitIds[charge] != 0 && Data.ChargeGambitIds[charge] != gambitId)
+            {
+                continue;
+            }
+
+            var bonus = Data.ChargeScoreBonuses[charge];
+            if (Data.ChargeHeatScaled[charge] != 0)
+            {
+                var multiplier = 1f + (State.Heat[chronicle] * HeatChargeSlope);
+                bonus *= multiplier < MaxHeatChargeMultiplier ? multiplier : MaxHeatChargeMultiplier;
+            }
+
+            total += bonus;
+        }
+
+        return total;
+    }
+
+    private bool ChronicleGrants(int chronicle, int actorId, int gambitId)
+    {
+        var archetype = State.ArchetypeSlots[chronicle];
+        var beatStart = Data.ArchetypeBeatStarts[archetype];
+        var beatEnd = beatStart + Data.ArchetypeBeatCounts[archetype];
+        for (var beat = beatStart; beat < beatEnd; beat++)
+        {
+            if (!BeatIsOpen(chronicle, beat - beatStart))
+            {
+                continue;
+            }
+
+            var grantStart = Data.BeatGrantStarts[beat];
+            var grantEnd = grantStart + Data.BeatGrantCounts[beat];
+            for (var grant = grantStart; grant < grantEnd; grant++)
+            {
+                if (Data.GrantGambitIds[grant] == gambitId &&
+                    RoleEntity(chronicle, Data.GrantRoles[grant]) == actorId)
+                {
+                    return true;
+                }
             }
         }
+
+        return false;
     }
 
-    private void StepChronicle(Simulation simulation, WorldState world, int story, int tick)
+    private bool BeatIsOpen(int chronicle, int beatOrdinal) =>
+        (State.OpenMasks[chronicle] & (1L << beatOrdinal)) != 0;
+
+    private bool BeatIsStruck(int chronicle, int beatOrdinal) =>
+        (State.StruckMasks[chronicle] & (1L << beatOrdinal)) != 0;
+
+    private int RoleEntity(int chronicle, int role) =>
+        State.RoleEntityIds[(chronicle * ChronicleProgramData.MaxRolesPerArchetype) + role];
+
+    private void SetRoleEntity(int chronicle, int role, int entityId) =>
+        State.RoleEntityIds[(chronicle * ChronicleProgramData.MaxRolesPerArchetype) + role] = entityId;
+
+    private bool CastContains(int chronicle, int entityId)
     {
-        var archetype = State.ArchetypeSlots[story];
-        var act = Data.ArchetypeActStarts[archetype] + State.ActIndices[story];
-        var deadlineReached = tick - State.ActStartTicks[story] >= Data.ActDeadlineTicks[act];
-        var conditionMet = ConditionHolds(
-            world,
-            story,
-            Data.ActAdvanceConditionKinds[act],
-            Data.ActAdvanceRoleA[act],
-            Data.ActAdvanceRoleB[act],
-            Data.ActAdvanceRelKindIds[act],
-            Data.ActAdvanceMinStrengths[act]);
-        if (!deadlineReached && !conditionMet)
+        if (entityId <= 0)
         {
-            return;
+            return false;
         }
 
-        if (State.ActIndices[story] + 1 < Data.ArchetypeActCounts[archetype])
+        for (var role = 0; role < ChronicleProgramData.MaxRolesPerArchetype; role++)
         {
-            State.ActIndices[story]++;
-            State.ActStartTicks[story] = tick;
-            EmitChronicleChanged(simulation, story, ChronicleEventTypeCodes.ActAdvanced, outcomeCodeId: 0, tick);
-            return;
+            if (RoleEntity(chronicle, role) == entityId)
+            {
+                return true;
+            }
         }
 
-        Resolve(simulation, world, story, tick);
+        return false;
     }
 
-    private bool ConditionHolds(
-        WorldState world,
-        int story,
-        int conditionKind,
-        int roleA,
-        int roleB,
-        int relKindId,
-        float minStrength)
-    {
-        switch (conditionKind)
-        {
-            case ChronicleConditionCodes.RolePairRelationship:
-                var sourceId = RoleEntity(story, roleA);
-                var targetId = RoleEntity(story, roleB);
-                if (sourceId <= 0 || targetId <= 0)
-                {
-                    return false;
-                }
-
-                var relationshipId = KernelQuery.FindRelationship(world, sourceId, targetId, relKindId);
-                return relationshipId != 0 && world.RelationshipStrength(relationshipId) >= minStrength;
-            case ChronicleConditionCodes.RoleHistorical:
-                var entityId = RoleEntity(story, roleA);
-                return entityId > 0 && !world.EntityIsActive(entityId);
-            default:
-                return false;
-        }
-    }
-
-    private void Resolve(Simulation simulation, WorldState world, int story, int tick)
-    {
-        var archetype = State.ArchetypeSlots[story];
-        var resolution = SelectResolution(simulation, world, story, archetype);
-        if (resolution != 0)
-        {
-            ApplyResolution(simulation, world, story, resolution);
-        }
-
-        EmitChronicleChanged(
-            simulation,
-            story,
-            ChronicleEventTypeCodes.Resolved,
-            resolution == 0 ? 0 : Data.ResolutionOutcomeCodeIds[resolution],
-            tick);
-        State.Active[story] = false;
-        State.ArchetypeActiveCounts[archetype]--;
-    }
-
-    private void EmitChronicleChanged(Simulation simulation, int story, int eventTypeCode, int outcomeCodeId, int tick)
+    private void EmitChronicleChanged(
+        Simulation simulation,
+        int chronicle,
+        int eventTypeCode,
+        int beatOrdinal,
+        int outcomeCodeId,
+        int tick)
     {
         simulation.EmitChronicleChanged(
             tick,
-            State.ChronicleSequences[story],
-            Data.ArchetypeIds[State.ArchetypeSlots[story]],
+            State.ChronicleSequences[chronicle],
+            Data.ArchetypeIds[State.ArchetypeSlots[chronicle]],
             eventTypeCode,
-            State.ActIndices[story],
+            beatOrdinal,
             outcomeCodeId,
-            RoleEntity(story, 0),
-            RoleEntity(story, 1),
-            RoleEntity(story, 2),
-            RoleEntity(story, 3));
-    }
-
-    private int SelectResolution(Simulation simulation, WorldState world, int story, int archetype)
-    {
-        var start = Data.ArchetypeResolutionStarts[archetype];
-        var end = start + Data.ArchetypeResolutionCounts[archetype];
-        var totalWeight = 0;
-        for (var resolution = start; resolution < end; resolution++)
-        {
-            if (Data.ResolutionWhenKinds[resolution] != ChronicleConditionCodes.None &&
-                ConditionHolds(
-                    world,
-                    story,
-                    Data.ResolutionWhenKinds[resolution],
-                    Data.ResolutionWhenRoleA[resolution],
-                    Data.ResolutionWhenRoleB[resolution],
-                    Data.ResolutionWhenRelKindIds[resolution],
-                    Data.ResolutionWhenMinStrengths[resolution]))
-            {
-                return resolution;
-            }
-
-            if (Data.ResolutionWhenKinds[resolution] == ChronicleConditionCodes.None)
-            {
-                totalWeight += Data.ResolutionWeights[resolution];
-            }
-        }
-
-        if (totalWeight <= 0)
-        {
-            return 0;
-        }
-
-        var pick = simulation.NextInt(totalWeight);
-        for (var resolution = start; resolution < end; resolution++)
-        {
-            if (Data.ResolutionWhenKinds[resolution] != ChronicleConditionCodes.None)
-            {
-                continue;
-            }
-
-            pick -= Data.ResolutionWeights[resolution];
-            if (pick < 0)
-            {
-                return resolution;
-            }
-        }
-
-        return 0;
-    }
-
-    private void ApplyResolution(Simulation simulation, WorldState world, int story, int resolution)
-    {
-        var relStart = Data.ResolutionRelStarts[resolution];
-        var relEnd = relStart + Data.ResolutionRelCounts[resolution];
-        for (var rel = relStart; rel < relEnd; rel++)
-        {
-            ApplyResolutionRelationship(simulation, world, story, rel);
-        }
-
-        var mask = Data.ResolutionHistoricalRoleMasks[resolution];
-        for (var role = 0; role < ChronicleProgramData.MaxRolesPerArchetype; role++)
-        {
-            if ((mask & (1 << role)) == 0)
-            {
-                continue;
-            }
-
-            var entityId = RoleEntity(story, role);
-            if (entityId > 0 && world.EntityIsActive(entityId))
-            {
-                KernelEffectExecutor.SetEntityStatus(simulation, entityId, EntityStatusCodes.Historical);
-            }
-        }
-    }
-
-    private void ApplyResolutionRelationship(Simulation simulation, WorldState world, int story, int rel)
-    {
-        var sourceId = RoleEntity(story, Data.ResolutionRelSourceRoles[rel]);
-        var targetId = RoleEntity(story, Data.ResolutionRelTargetRoles[rel]);
-        if (sourceId <= 0 || targetId <= 0 ||
-            !world.EntityIsActive(sourceId) || !world.EntityIsActive(targetId))
-        {
-            return;
-        }
-
-        if (Data.ResolutionRelCullInstead[rel] != 0)
-        {
-            var relationshipId = KernelQuery.FindRelationship(world, sourceId, targetId, Data.ResolutionRelKindIds[rel]);
-            if (relationshipId != 0)
-            {
-                KernelEffectExecutor.CullRelationship(simulation, relationshipId);
-            }
-
-            return;
-        }
-
-        KernelEffectExecutor.CreateRelationship(
-            simulation,
-            Data.ResolutionRelKindIds[rel],
-            Data.ResolutionRelPolarities[rel],
-            sourceId,
-            targetId,
-            Data.ResolutionRelStrengths[rel]);
+            RoleEntity(chronicle, 0),
+            RoleEntity(chronicle, 1),
+            RoleEntity(chronicle, 2),
+            RoleEntity(chronicle, 3));
     }
 }

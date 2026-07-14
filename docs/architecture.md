@@ -146,6 +146,13 @@ High-altitude programs produce significant graph changes:
 - gambits;
 - generators.
 
+The Chronicle Director sits above both as a recognition layer: it casts story
+archetypes over live entities, arms authored beats (gambit bias and
+chronicle-granted gambits) while they are open, and records which beats the
+cast actually strikes. It never writes world state; endings are recognized
+facts or fades. See
+[22-chronicle-director.md](./systems/22-chronicle-director.md).
+
 The former macro aggregate layer has been removed. Generator, gambit, trait,
 and card work use shared query, effect, and decision-modifier primitives.
 Relationship strength and locality queries are the default numeric gates when

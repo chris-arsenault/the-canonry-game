@@ -124,6 +124,7 @@ public static partial class DomainCompiler
                 generator.Description);
         }
 
+        var chronicleCodes = new HashSet<string>(StringComparer.Ordinal);
         foreach (var archetype in config.Semantics.ChronicleArchetypes)
         {
             symbols.Add(
@@ -132,14 +133,19 @@ public static partial class DomainCompiler
                 archetype.Id,
                 archetype.Name,
                 archetype.Description);
-            foreach (var resolution in archetype.Resolutions)
-            {
-                symbols.Add(
-                    DomainSymbolKind.ReasonCode,
-                    ids.ReasonCodeIdOf(resolution.OutcomeId).Value,
-                    resolution.OutcomeId,
-                    OutcomeDisplayName(resolution.OutcomeId));
-            }
+            chronicleCodes.Add(archetype.FadeOutcomeId);
+            CollectChronicleBeatCodes(
+                ChronicleBeatSet.EffectiveBeats(archetype, config.Semantics.ChronicleSharedBeats),
+                chronicleCodes);
+        }
+
+        foreach (var code in chronicleCodes.Order(StringComparer.Ordinal))
+        {
+            symbols.Add(
+                DomainSymbolKind.ReasonCode,
+                ids.ReasonCodeIdOf(code).Value,
+                code,
+                OutcomeDisplayName(code));
         }
     }
 

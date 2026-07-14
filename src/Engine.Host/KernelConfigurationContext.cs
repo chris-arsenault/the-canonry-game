@@ -521,6 +521,9 @@ internal sealed class KernelConfigurationContext
             targetKindId,
             successChance);
 
+    public void MarkGambitChronicleGranted(int gambitSlot) =>
+        _kernel.Gambits.MarkChronicleGranted(gambitSlot);
+
     public void AddGambitPrecondition(
         int gambitSlot,
         int preconditionCode,
@@ -733,26 +736,56 @@ internal sealed class KernelConfigurationContext
             queryRelatedToTargetIncoming ? 1 : 0,
             queryRelatedToTargetMinStrength);
 
-    public int AddChronicleArchetype(int archetypeId, int maxActive, int castingCadenceTicks, int primaryKindId, int primaryRequiredRelKindId, float primaryRequiredRelMinStrength) =>
-        _kernel.Chronicles.AddArchetype(archetypeId, maxActive, castingCadenceTicks, primaryKindId, primaryRequiredRelKindId, primaryRequiredRelMinStrength);
+    public int AddChronicleArchetype(int archetypeId, int maxActive, int castingCadenceTicks, int primaryKindId, int primaryRequiredRelKindId, float primaryRequiredRelMinStrength, int fadeOutcomeCodeId) =>
+        _kernel.Chronicles.AddArchetype(archetypeId, maxActive, castingCadenceTicks, primaryKindId, primaryRequiredRelKindId, primaryRequiredRelMinStrength, fadeOutcomeCodeId);
 
     public void AddChronicleRole(int archetypeSlot, int kindId, int relatedKindId, bool relatedIncoming, float relatedMinStrength) =>
         _kernel.Chronicles.AddRole(archetypeSlot, kindId, relatedKindId, relatedIncoming ? 1 : 0, relatedMinStrength);
 
-    public int AddChronicleAct(int archetypeSlot, int deadlineTicks, int advanceConditionKind, int advanceRoleA, int advanceRoleB, int advanceRelKindId, float advanceMinStrength) =>
-        _kernel.Chronicles.AddAct(archetypeSlot, deadlineTicks, advanceConditionKind, advanceRoleA, advanceRoleB, advanceRelKindId, advanceMinStrength);
+    public int AddChronicleBeat(
+        int archetypeSlot,
+        int beatCodeId,
+        float heatGain,
+        int terminalOutcomeCodeId,
+        int openKind,
+        int openRoleA,
+        int openRoleB,
+        int openRelOrAttrId,
+        float openValue,
+        int strikeKind,
+        int strikeActorRole,
+        int strikeTargetRole,
+        int strikeGambitId,
+        int strikeFactKind,
+        int strikeFactRoleA,
+        int strikeFactRoleB,
+        int strikeFactRelOrAttrId,
+        float strikeFactValue) =>
+        _kernel.Chronicles.AddBeat(
+            archetypeSlot,
+            beatCodeId,
+            heatGain,
+            terminalOutcomeCodeId,
+            openKind,
+            openRoleA,
+            openRoleB,
+            openRelOrAttrId,
+            openValue,
+            strikeKind,
+            strikeActorRole,
+            strikeTargetRole,
+            strikeGambitId,
+            strikeFactKind,
+            strikeFactRoleA,
+            strikeFactRoleB,
+            strikeFactRelOrAttrId,
+            strikeFactValue);
 
-    public void AddChronicleActBias(int actSlot, int actorRole, int targetRole, int gambitId, float scoreBonus) =>
-        _kernel.Chronicles.AddActBias(actSlot, actorRole, targetRole, gambitId, scoreBonus);
+    public void AddChronicleBeatCharge(int beatSlot, int actorRole, int targetRole, int gambitId, float scoreBonus, bool heatScaled) =>
+        _kernel.Chronicles.AddBeatCharge(beatSlot, actorRole, targetRole, gambitId, scoreBonus, heatScaled ? 1 : 0);
 
-    public void AddChronicleActSustain(int actSlot, int role, int attributeId, float deltaPerPulse) =>
-        _kernel.Chronicles.AddActSustain(actSlot, role, attributeId, deltaPerPulse);
-
-    public int AddChronicleResolution(int archetypeSlot, int outcomeCodeId, int weight, int whenKind, int whenRoleA, int whenRoleB, int whenRelKindId, float whenMinStrength, int historicalRoleMask) =>
-        _kernel.Chronicles.AddResolution(archetypeSlot, outcomeCodeId, weight, whenKind, whenRoleA, whenRoleB, whenRelKindId, whenMinStrength, historicalRoleMask);
-
-    public void AddChronicleResolutionRelationship(int resolutionSlot, int sourceRole, int targetRole, int relKindId, int polarityCode, float strength, bool cullInstead) =>
-        _kernel.Chronicles.AddResolutionRelationship(resolutionSlot, sourceRole, targetRole, relKindId, polarityCode, strength, cullInstead ? 1 : 0);
+    public void AddChronicleBeatGrant(int beatSlot, int role, int gambitId) =>
+        _kernel.Chronicles.AddBeatGrant(beatSlot, role, gambitId);
 
     public void AddGeneratorProducedSubtypeChoice(int producedSlot, int subtypeId) =>
         _kernel.Generators.AddProducedSubtypeChoice(producedSlot, subtypeId);

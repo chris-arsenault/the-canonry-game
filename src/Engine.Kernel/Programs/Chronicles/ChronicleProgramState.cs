@@ -1,39 +1,60 @@
 namespace Engine.Kernel;
 
 /// <summary>
-/// Live story table: which archetypes are running, which entities hold each
-/// role, and where each story is in its act structure.
+/// Live chronicle table: which archetypes are running, which entities hold
+/// each role, per-chronicle heat and beat open/struck masks, a suppression
+/// ring of recently chronicled cast, and the pending gambit-execution queue
+/// the director consumes each pulse for strike detection.
 /// </summary>
 internal sealed class ChronicleProgramState : IKernelProgramState
 {
+    internal const int SuppressionRingCapacity = 64;
+    internal const int PendingExecutionCapacity = 256;
+
     internal readonly bool[] Active;
     internal readonly int[] ArchetypeSlots;
-    internal readonly int[] ActIndices;
     internal readonly int[] StartTicks;
-    internal readonly int[] ActStartTicks;
+    internal readonly int[] LastStrikeTicks;
+    internal readonly float[] Heat;
+    internal readonly long[] OpenMasks;
+    internal readonly long[] StruckMasks;
     internal readonly int[] RoleEntityIds;
     internal readonly int[] ChronicleSequences;
     internal int NextChronicleSequence;
     internal readonly int[] ArchetypeActiveCounts;
     internal readonly int[] NextCastTicks;
+    internal readonly int[] RecentCastEntityIds;
+    internal readonly int[] RecentCastTicks;
+    internal int RecentCastNext;
+    internal readonly int[] PendingActorIds;
+    internal readonly int[] PendingTargetIds;
+    internal readonly int[] PendingGambitIds;
+    internal int PendingCount;
     internal int HighWatermark;
 
-    public ChronicleProgramState(int storyCapacity, int archetypeCapacity)
+    public ChronicleProgramState(int chronicleCapacity, int archetypeCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(storyCapacity);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(chronicleCapacity);
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(archetypeCapacity);
-        Active = new bool[storyCapacity + 1];
-        ArchetypeSlots = new int[storyCapacity + 1];
-        ActIndices = new int[storyCapacity + 1];
-        StartTicks = new int[storyCapacity + 1];
-        ActStartTicks = new int[storyCapacity + 1];
-        RoleEntityIds = new int[((storyCapacity + 1) * ChronicleProgramData.MaxRolesPerArchetype) + 1];
-        ChronicleSequences = new int[storyCapacity + 1];
+        Active = new bool[chronicleCapacity + 1];
+        ArchetypeSlots = new int[chronicleCapacity + 1];
+        StartTicks = new int[chronicleCapacity + 1];
+        LastStrikeTicks = new int[chronicleCapacity + 1];
+        Heat = new float[chronicleCapacity + 1];
+        OpenMasks = new long[chronicleCapacity + 1];
+        StruckMasks = new long[chronicleCapacity + 1];
+        RoleEntityIds = new int[((chronicleCapacity + 1) * ChronicleProgramData.MaxRolesPerArchetype) + 1];
+        ChronicleSequences = new int[chronicleCapacity + 1];
         ArchetypeActiveCounts = new int[archetypeCapacity + 1];
         NextCastTicks = new int[archetypeCapacity + 1];
+        RecentCastEntityIds = new int[SuppressionRingCapacity];
+        RecentCastTicks = new int[SuppressionRingCapacity];
+        PendingActorIds = new int[PendingExecutionCapacity];
+        PendingTargetIds = new int[PendingExecutionCapacity];
+        PendingGambitIds = new int[PendingExecutionCapacity];
     }
 
     public int ProgramId => KernelProgramCodes.ChronicleDirector;
 
-    public int SchemaVersion => 2;
+    public int SchemaVersion => 3;
 }
