@@ -76,13 +76,12 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
 
         _lastTaleViewsVersion = _baseChronicle.TalesVersion;
         _lastTaleViewsEntriesVersion = Version;
-        var entries = _cachedEntries;
         _cachedTaleViews = _baseChronicle.Tales
-            .Select(tale => BuildTaleView(tale, entries))
+            .Select(BuildTaleView)
             .ToList();
     }
 
-    private UiChronicleTaleView BuildTaleView(UiChronicleTale tale, IReadOnlyList<UiChronicleEntry> entries)
+    private UiChronicleTaleView BuildTaleView(UiChronicleTale tale)
     {
         var archetype = _knowledge.ChronicleArchetypesById.GetValueOrDefault(tale.ArchetypeId);
         var title = FillRoleTemplate(archetype?.TitleTemplate, archetype, tale, useReferenceNames: true)
@@ -95,7 +94,7 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
             title,
             actName,
             OutcomeNarrative(tale, archetype),
-            TaleBeats(tale, entries));
+            _baseChronicle.BeatsFor(tale.Sequence).ToList());
     }
 
     private static string OutcomeNarrative(UiChronicleTale tale, GameChronicleArchetypeKnowledge? archetype)
@@ -133,32 +132,6 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
         }
 
         return result;
-    }
-
-    private static List<UiChronicleEntry> TaleBeats(UiChronicleTale tale, IReadOnlyList<UiChronicleEntry> entries)
-    {
-        const int maxBeats = 10;
-        var castIds = new HashSet<int>(tale.Cast.Select(static member => member.EntityId));
-        var beats = new List<UiChronicleEntry>();
-        for (var i = entries.Count - 1; i >= 0 && beats.Count < maxBeats; i--)
-        {
-            var entry = entries[i];
-            if (entry.EntryType == UiChronicleEntryType.Tale ||
-                entry.Tick < tale.StartTick ||
-                (tale.Resolved && entry.Tick > tale.LastEventTick))
-            {
-                continue;
-            }
-
-            var touched = entry.Entities.Count(member => castIds.Contains(member.EntityId));
-            if (touched >= 2)
-            {
-                beats.Add(entry);
-            }
-        }
-
-        beats.Reverse();
-        return beats;
     }
 
     public IReadOnlyList<UiChronicleEntry> Entries

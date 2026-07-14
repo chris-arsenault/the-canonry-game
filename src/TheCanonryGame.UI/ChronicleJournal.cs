@@ -222,21 +222,25 @@ public partial class ChronicleJournal : PanelContainer
             lines.Add($"    [url={member.EntityId}][color=#{EntityColor}]{member.DisplayName}[/color][/url]");
         }
 
+        lines.Add(string.Empty);
+        lines.Add($"[color=#{ConnectorColor}]The beats[/color]");
+        if (view.Beats.Count > 0)
+        {
+            foreach (var beat in view.Beats)
+            {
+                lines.Add($"    {beat.Text}");
+            }
+        }
+        else
+        {
+            lines.Add($"    [color=#{DimColor}]The ice holds its breath - nothing yet worth telling.[/color]");
+        }
+
         if (tale.Resolved && view.OutcomeNarrative.Length > 0)
         {
             lines.Add(string.Empty);
             lines.Add($"[color=#{ConnectorColor}]How it ended[/color]");
             lines.Add($"    [i][color=#{NarrativeColor}]{view.OutcomeNarrative}[/color][/i]");
-        }
-
-        if (view.Beats.Count > 0)
-        {
-            lines.Add(string.Empty);
-            lines.Add($"[color=#{ConnectorColor}]The beats[/color]");
-            foreach (var beat in view.Beats)
-            {
-                lines.Add($"    {beat.Text}");
-            }
         }
 
         return lines;

@@ -251,6 +251,25 @@ roles first and biases future events into the beats.
   event type, act index, outcome reason code, and all four role entity
   ids). The ChroniclePlan/illuminator export is shelved indefinitely by
   decision (2026-07-13); do not build it without an explicit ask.
+- [x] Chronicle beats rework (2026-07-14, after the "chronicles have no
+  beats" finding). Diagnosis was two implementation gaps and one authored
+  flaw: (1) journal beats were retro-scanned from the rolling 160-entry
+  event log, so any tale older than the window lost its history; (2) beat
+  sources were only pair gambit/generator entries — relationship changes
+  between cast members (war declared, route culled, practice broken) were
+  invisible; (3) flourishing_road act 2's advance condition (trade_route
+  >= 0.95) was already true when act 2 began, so every road resolved at
+  exactly 405 ticks with an unearned "Proving". Fix: UiChronicleProjection
+  now captures beats durably per tale at event arrival (cap 12, oldest
+  single-cast beat evicted first) from four sources — gambits/generators
+  between cast or by a cast actor or landing on the protagonist,
+  relationship forged/severed events between cast pairs (created/culled
+  event codes threaded from DomainRuntimeCodes), and act-advance markers;
+  the game layer reads BeatsFor(sequence) instead of re-filtering the log;
+  flourishing_road act 2 recut to an 850-tick Proving with causeway bias.
+  Evidence (12k-tick live harness, seed 20260714): 41/42 tales carry
+  beats, median ~5, rivalries/hunts hit the 12 cap, roads now span 1250
+  ticks with 4-8 beats.
 
 ## Scope notes and follow-ups discovered during R1-R4
 
@@ -319,6 +338,13 @@ roles first and biases future events into the beats.
   (`SelfHasRelationshipToEntityOfSubtype`, `EndpointSubtypeIs`), the
   generator `RelatedToTarget` binding filter, and the
   `CullEndpointIncomingRelationships` operation.
+- The kernel event log (65536, DropOldest) silently overwrites unread
+  events when consumers lag. A harness pumping every 500 ticks lost
+  ChronicleChanged Cast events wholesale (tales appeared to resolve
+  instantly); pumping every 5 ticks fixed it. The game pumps per frame, so
+  normal play is safe, but sustained fast-forward could shed chronicle and
+  beat events the same way — worth a dropped-event counter or a larger log
+  if fast-forward speeds grow.
 - Relationship slots are lifetime totals (culled edges stay allocated as the
   historical record). The recalibrated world exhausted the old 8192 cap
   mid-run at the 100k horizon; capacities were raised (relationships 65536,

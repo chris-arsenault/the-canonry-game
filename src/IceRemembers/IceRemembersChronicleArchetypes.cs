@@ -309,21 +309,7 @@ public static class IceRemembersChronicleArchetypes
                 Query = new SemanticEntityQuery { RelatedToTargetRelationship = "trade_route", RelatedToTargetMinStrength = 0.85f },
             },
         ],
-        Acts =
-        [
-            new ChronicleActConfig
-            {
-                DeadlineTicks = 400,
-                Bias = [Bias("$port", "$partner", null, 1f), Bias("$partner", "$port", null, 1f)],
-                Sustain = [Sustain("$port", 0.02f, "temp_hp"), Sustain("$partner", 0.02f, "temp_hp")],
-            },
-            new ChronicleActConfig
-            {
-                DeadlineTicks = 400,
-                AdvanceWhen = new ChronicleConditionConfig { Kind = ChronicleConditionKind.RolePairRelationship, RoleA = "$port", RoleB = "$partner", RelationshipKind = "trade_route", MinStrength = 0.95f },
-                Sustain = [Sustain("$port", 0.02f, "temp_hp"), Sustain("$partner", 0.02f, "temp_hp")],
-            },
-        ],
+        Acts = RoadActs(),
         Resolutions =
         [
             new ChronicleResolutionConfig
@@ -343,6 +329,26 @@ public static class IceRemembersChronicleArchetypes
         MaxActive = 1,
         CastingCadenceTicks = 900,
     };
+
+    private static List<ChronicleActConfig> RoadActs() =>
+    [
+        new ChronicleActConfig
+        {
+            DeadlineTicks = 400,
+            Bias = [Bias("$port", "$partner", null, 1f), Bias("$partner", "$port", null, 1f)],
+            Sustain = [Sustain("$port", 0.02f, "temp_hp"), Sustain("$partner", 0.02f, "temp_hp")],
+        },
+        new ChronicleActConfig
+        {
+            DeadlineTicks = 850,
+            Bias =
+            [
+                Bias("$port", "$partner", "settlement_raises_causeway", 3f),
+                Bias("$partner", "$port", "settlement_raises_causeway", 3f),
+            ],
+            Sustain = [Sustain("$port", 0.02f, "temp_hp"), Sustain("$partner", 0.02f, "temp_hp")],
+        },
+    ];
 
     /// <summary>
     /// A corrupted transport and the monster haunting it. Wards are favored;

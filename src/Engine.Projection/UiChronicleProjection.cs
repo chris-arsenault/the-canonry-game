@@ -10,6 +10,7 @@ public enum UiChronicleEntryType
     Generator = 2,
     HistoryChain = 3,
     Tale = 4,
+    Relationship = 5,
 }
 
 public sealed record UiChronicleEntityRef(
@@ -61,6 +62,7 @@ public sealed record UiChronicleEntry(
 public sealed class UiChronicleProjection : KernelEventProjector
 {
     private const int MaxEntries = 160;
+    private const int MaxBeatsPerTale = 12;
     private const string TickColor = "6F7684";
     private const string GambitColor = "D97742";
     private const string GeneratorColor = "78C9B2";
@@ -68,19 +70,28 @@ public sealed class UiChronicleProjection : KernelEventProjector
     private const string EntityColor = "E7E3D5";
     private const string ConnectorColor = "B8B5A6";
     private const string TaleColor = "C9A2E0";
+    private const string RelationshipColor = "D7B968";
 
     private readonly IProjectionSymbolCatalog? _symbols;
+    private readonly int _relationshipCreatedCodeId;
+    private readonly int _relationshipCulledCodeId;
     private readonly List<UiChronicleEntry> _entries = [];
     private readonly List<string> _lines = [];
     private readonly Dictionary<int, EntityInfo> _entityInfo = [];
     private readonly List<int> _pendingCreatedIds = [];
     private readonly Dictionary<int, UiChronicleTale> _tales = [];
     private readonly List<UiChronicleTale> _talesOrdered = [];
+    private readonly Dictionary<int, List<UiChronicleEntry>> _taleBeats = [];
     private int _pendingTick = -1;
 
-    public UiChronicleProjection(IProjectionSymbolCatalog? symbols)
+    public UiChronicleProjection(
+        IProjectionSymbolCatalog? symbols,
+        int relationshipCreatedCodeId = 0,
+        int relationshipCulledCodeId = 0)
     {
         _symbols = symbols;
+        _relationshipCreatedCodeId = relationshipCreatedCodeId;
+        _relationshipCulledCodeId = relationshipCulledCodeId;
     }
 
     public IReadOnlyList<UiChronicleEntry> Entries => _entries;
@@ -88,6 +99,13 @@ public sealed class UiChronicleProjection : KernelEventProjector
     public IReadOnlyList<UiChronicleTale> Tales => _talesOrdered;
 
     public long TalesVersion { get; private set; }
+
+    /// <summary>
+    /// The beats of one chronicle: event entries captured while the tale ran,
+    /// durable for the tale's whole life (unlike the rolling event log).
+    /// </summary>
+    public IReadOnlyList<UiChronicleEntry> BeatsFor(int chronicleSequence) =>
+        _taleBeats.GetValueOrDefault(chronicleSequence) ?? (IReadOnlyList<UiChronicleEntry>)[];
 
     public IReadOnlyList<string> Lines => _lines;
 
@@ -130,7 +148,11 @@ public sealed class UiChronicleProjection : KernelEventProjector
             cast.Count > 0 ? cast : previous?.Cast ?? cast);
         _tales[evt.ChronicleSequence] = tale;
         RebuildTaleOrder();
-        AppendTaleEntry(sequence, evt.Tick, tale, evt.EventTypeCode);
+        var entry = AppendTaleEntry(sequence, evt.Tick, tale, evt.EventTypeCode);
+        if (evt.EventTypeCode == ChronicleEventTypeCodes.ActAdvanced)
+        {
+            AttachBeat(evt.ChronicleSequence, tale, entry);
+        }
     }
 
     private void RebuildTaleOrder()
@@ -152,6 +174,7 @@ public sealed class UiChronicleProjection : KernelEventProjector
             if (resolvedSeen > maxResolvedRetained)
             {
                 _tales.Remove(_talesOrdered[i].Sequence);
+                _taleBeats.Remove(_talesOrdered[i].Sequence);
             }
         }
 
@@ -165,7 +188,7 @@ public sealed class UiChronicleProjection : KernelEventProjector
         TalesVersion++;
     }
 
-    private void AppendTaleEntry(long sequence, int tick, UiChronicleTale tale, int eventTypeCode)
+    private UiChronicleEntry AppendTaleEntry(long sequence, int tick, UiChronicleTale tale, int eventTypeCode)
     {
         var verb = eventTypeCode switch
         {
@@ -177,7 +200,7 @@ public sealed class UiChronicleProjection : KernelEventProjector
             $"[color=#{ConnectorColor}], [/color]",
             tale.Cast.Select(entity => $"[color=#{EntityColor}]{entity.DisplayName}[/color]"));
         var line = $"{TickPrefix(tick)}[b][color=#{TaleColor}]{tale.ArchetypeName}[/color][/b] {verb}  {castText}";
-        Append(new UiChronicleEntry(
+        var entry = new UiChronicleEntry(
             sequence,
             tick,
             UiChronicleEntryType.Tale,
@@ -185,7 +208,9 @@ public sealed class UiChronicleProjection : KernelEventProjector
             tale.ArchetypeId,
             KernelEventState.Succeeded,
             tale.Cast,
-            line));
+            line);
+        Append(entry);
+        return entry;
     }
 
     protected override void OnGambitExecuted(long sequence, in GambitExecutedKernelEvent evt)
@@ -203,7 +228,7 @@ public sealed class UiChronicleProjection : KernelEventProjector
             ? $"{TickPrefix(evt.Tick)}[b][color=#{color}]{gambit}[/color][/b]{stateText}  [color=#{EntityColor}]{actor.DisplayName}[/color]"
             : $"{TickPrefix(evt.Tick)}[b][color=#{color}]{gambit}[/color][/b]{stateText}  [color=#{EntityColor}]{actor.DisplayName}[/color] [color=#{ConnectorColor}]->[/color] [color=#{EntityColor}]{target.DisplayName}[/color]";
 
-        Append(new UiChronicleEntry(
+        var entry = new UiChronicleEntry(
             sequence,
             evt.Tick,
             UiChronicleEntryType.Gambit,
@@ -211,7 +236,9 @@ public sealed class UiChronicleProjection : KernelEventProjector
             evt.GambitId,
             evt.State,
             EntityRefs(evt.ActorId, evt.AffectedEntityId0, evt.AffectedEntityId1),
-            line));
+            line);
+        Append(entry);
+        AttachBeats(entry, evt.ActorId);
     }
 
     protected override void OnGeneratorFired(long sequence, in GeneratorFiredKernelEvent evt)
@@ -240,7 +267,7 @@ public sealed class UiChronicleProjection : KernelEventProjector
         }
 
         entities.AddRange(created);
-        Append(new UiChronicleEntry(
+        var entry = new UiChronicleEntry(
             sequence,
             evt.Tick,
             UiChronicleEntryType.Generator,
@@ -248,7 +275,164 @@ public sealed class UiChronicleProjection : KernelEventProjector
             evt.GeneratorId,
             KernelEventState.Succeeded,
             entities,
-            line));
+            line);
+        Append(entry);
+        AttachBeats(entry, evt.TargetEntityId);
+    }
+
+    protected override void OnRelationshipChanged(long sequence, in RelationshipChangedKernelEvent evt)
+    {
+        var forged = _relationshipCreatedCodeId > 0 && evt.ChangeCodeId == _relationshipCreatedCodeId;
+        var severed = _relationshipCulledCodeId > 0 && evt.ChangeCodeId == _relationshipCulledCodeId;
+        if (!forged && !severed)
+        {
+            return;
+        }
+
+        UiChronicleEntry? entry = null;
+        foreach (var (chronicleSequence, tale) in _tales)
+        {
+            if (tale.Resolved ||
+                !TaleCastContains(tale, evt.SourceEntityId) ||
+                !TaleCastContains(tale, evt.TargetEntityId))
+            {
+                continue;
+            }
+
+            entry ??= BuildRelationshipEntry(sequence, evt, forged);
+            AttachBeat(chronicleSequence, tale, entry);
+        }
+    }
+
+    private UiChronicleEntry BuildRelationshipEntry(
+        long sequence,
+        in RelationshipChangedKernelEvent evt,
+        bool forged)
+    {
+        var kindName = Resolve(
+            ProjectionSymbolKind.RelationshipKind,
+            evt.RelationshipKindId,
+            $"relationship {evt.RelationshipKindId}");
+        var source = BuildEntityRef(evt.SourceEntityId);
+        var target = BuildEntityRef(evt.TargetEntityId);
+        var verb = forged ? "forged" : "severed";
+        var line = $"{TickPrefix(evt.Tick)}[b][color=#{RelationshipColor}]{kindName}[/color][/b] {verb}  " +
+            $"[color=#{EntityColor}]{source.DisplayName}[/color] [color=#{ConnectorColor}]->[/color] " +
+            $"[color=#{EntityColor}]{target.DisplayName}[/color]";
+        return new UiChronicleEntry(
+            sequence,
+            evt.Tick,
+            UiChronicleEntryType.Relationship,
+            ProvenanceProducerKindCodes.System,
+            evt.RelationshipKindId,
+            KernelEventState.Succeeded,
+            [source, target],
+            line);
+    }
+
+    private void AttachBeats(UiChronicleEntry entry, int actorEntityId)
+    {
+        foreach (var (chronicleSequence, tale) in _tales)
+        {
+            if (tale.Resolved)
+            {
+                continue;
+            }
+
+            if (IsBeatFor(tale, entry, actorEntityId))
+            {
+                AttachBeat(chronicleSequence, tale, entry);
+            }
+        }
+    }
+
+    /// <summary>
+    /// An event is a beat when it plays out between cast members, when a cast
+    /// member is the one acting, or when it lands on the tale's protagonist.
+    /// </summary>
+    private static bool IsBeatFor(UiChronicleTale tale, UiChronicleEntry entry, int actorEntityId)
+    {
+        var touched = 0;
+        var primaryTouched = false;
+        var primaryId = tale.Cast.Count > 0 ? tale.Cast[0].EntityId : 0;
+        foreach (var member in entry.Entities)
+        {
+            if (!TaleCastContains(tale, member.EntityId))
+            {
+                continue;
+            }
+
+            touched++;
+            primaryTouched |= member.EntityId == primaryId && primaryId > 0;
+        }
+
+        if (touched >= 2)
+        {
+            return true;
+        }
+
+        return touched == 1 && (TaleCastContains(tale, actorEntityId) || primaryTouched);
+    }
+
+    private void AttachBeat(int chronicleSequence, UiChronicleTale tale, UiChronicleEntry entry)
+    {
+        if (!_taleBeats.TryGetValue(chronicleSequence, out var beats))
+        {
+            beats = [];
+            _taleBeats[chronicleSequence] = beats;
+        }
+
+        if (beats.Count >= MaxBeatsPerTale)
+        {
+            beats.RemoveAt(OldestMinorBeatIndex(tale, beats));
+        }
+
+        beats.Add(entry);
+        TalesVersion++;
+    }
+
+    /// <summary>
+    /// When a tale's beat list is full, prefer evicting the oldest beat that
+    /// touched only one cast member; beats between cast members are the story.
+    /// </summary>
+    private static int OldestMinorBeatIndex(UiChronicleTale tale, List<UiChronicleEntry> beats)
+    {
+        for (var i = 0; i < beats.Count; i++)
+        {
+            var touched = 0;
+            foreach (var member in beats[i].Entities)
+            {
+                if (TaleCastContains(tale, member.EntityId))
+                {
+                    touched++;
+                }
+            }
+
+            if (touched < 2)
+            {
+                return i;
+            }
+        }
+
+        return 0;
+    }
+
+    private static bool TaleCastContains(UiChronicleTale tale, int entityId)
+    {
+        if (entityId <= 0)
+        {
+            return false;
+        }
+
+        foreach (var member in tale.Cast)
+        {
+            if (member.EntityId == entityId)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private List<UiChronicleEntityRef> TakeRecentCreations(int tick, int count)

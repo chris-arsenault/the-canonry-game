@@ -83,7 +83,10 @@ public sealed class KernelRuntimeFactory
                         "chronicle",
                         context =>
                         {
-                            chronicle = new UiChronicleProjection(context.Symbols);
+                            chronicle = new UiChronicleProjection(
+                                context.Symbols,
+                                context.DomainIds.EventCodeIdOf(DomainRuntimeNames.RelationshipCreatedCode).Value,
+                                context.DomainIds.EventCodeIdOf(DomainRuntimeNames.RelationshipCulledCode).Value);
                             return chronicle;
                         });
             });

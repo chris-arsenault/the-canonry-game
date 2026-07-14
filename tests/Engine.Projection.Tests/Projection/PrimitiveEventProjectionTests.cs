@@ -34,6 +34,77 @@ public sealed class PrimitiveEventProjectionTests
     }
 
     [Fact]
+    public void UiChronicleProjection_CapturesDurableBeatsForActiveTales()
+    {
+        var log = new KernelEventLog(capacity: 512);
+        var projection = new UiChronicleProjection(
+            symbols: null,
+            relationshipCreatedCodeId: 91,
+            relationshipCulledCodeId: 92);
+        using var pump = new KernelEventProjectionPump(
+            log,
+            KernelEventCursorStart.EarliestAvailable,
+            projection);
+
+        Assert.True(log.TryWrite(KernelEvent.From(new ChronicleChangedKernelEvent(
+            Tick: 10,
+            WorldVersion: 1,
+            ChronicleSequence: 1,
+            ArchetypeId: 5,
+            EventTypeCode: ChronicleEventTypeCodes.Cast,
+            ActIndex: 0,
+            OutcomeCodeId: 0,
+            RoleEntityId0: 100,
+            RoleEntityId1: 200,
+            RoleEntityId2: 0,
+            RoleEntityId3: 0))));
+
+        WriteGambit(log, tick: 20, actorId: 100, targetId: 200);
+        WriteGambit(log, tick: 25, actorId: 100, targetId: 999);
+        WriteGambit(log, tick: 30, actorId: 998, targetId: 997);
+        Assert.True(log.TryWrite(KernelEvent.From(new RelationshipChangedKernelEvent(
+            Tick: 40,
+            WorldVersion: 5,
+            ChangeCodeId: 92,
+            SourceCodeId: 3,
+            RelationshipKindId: 7,
+            PolarityCode: RelationshipPolarityCodes.Negative,
+            SourceEntityId: 200,
+            TargetEntityId: 100,
+            RelationshipId: 12,
+            PreviousStrength: 0.4f,
+            NewStrength: 0f))));
+
+        for (var i = 0; i < 200; i++)
+        {
+            WriteGambit(log, tick: 50 + i, actorId: 900, targetId: 901);
+        }
+
+        pump.DrainAvailable();
+
+        var beats = projection.BeatsFor(1);
+        Assert.Equal(3, beats.Count);
+        Assert.Equal(UiChronicleEntryType.Gambit, beats[0].EntryType);
+        Assert.Equal(UiChronicleEntryType.Gambit, beats[1].EntryType);
+        Assert.Equal(UiChronicleEntryType.Relationship, beats[2].EntryType);
+        Assert.Contains("severed", beats[2].Text, StringComparison.Ordinal);
+    }
+
+    private static void WriteGambit(KernelEventLog log, int tick, int actorId, int targetId)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(new GambitExecutedKernelEvent(
+            Tick: tick,
+            WorldVersion: tick,
+            ActorId: actorId,
+            ActorKindId: 2,
+            GambitId: 3,
+            AffectedEntityId0: actorId,
+            AffectedEntityId1: targetId,
+            AffectedEntityCount: 2,
+            State: KernelEventState.Succeeded))));
+    }
+
+    [Fact]
     public void PrimitiveProjectionPump_ReplacesObjectMessageSubscription()
     {
         var log = new KernelEventLog(capacity: 5);
