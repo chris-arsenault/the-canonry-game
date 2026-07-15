@@ -166,6 +166,10 @@ internal static class Beat
     internal static ChronicleConditionConfig PairRelAbsent(string roleA, string roleB, string kind) =>
         new() { Kind = ChronicleConditionKind.RolePairRelationshipAbsent, RoleA = roleA, RoleB = roleB, RelationshipKind = kind, Value = 0.05f };
 
+    /// <summary>The pair's edge has weakened below the threshold (or is gone).</summary>
+    internal static ChronicleConditionConfig PairRelBelow(string roleA, string roleB, string kind, float value) =>
+        new() { Kind = ChronicleConditionKind.RolePairRelationshipAbsent, RoleA = roleA, RoleB = roleB, RelationshipKind = kind, Value = value };
+
     internal static ChronicleConditionConfig Historical(string role) =>
         new() { Kind = ChronicleConditionKind.RoleHistorical, RoleA = role };
 

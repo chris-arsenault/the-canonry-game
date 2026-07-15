@@ -38,6 +38,8 @@ public static partial class DomainCompiler
             primaryRequirement is null ? 0 : ids.RelationshipKindIdOf(primaryRequirement.RelationshipKind).Value,
             primaryRequirement?.MinimumStrength ?? 0f,
             ids.ReasonCodeIdOf(archetype.FadeOutcomeId).Value,
+            archetype.FadeGraceTicks,
+            archetype.FadeQuietTicks,
             CompileSupportingRoles(archetype, ids),
             beats);
     }

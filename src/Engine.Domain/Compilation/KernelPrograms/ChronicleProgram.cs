@@ -14,6 +14,8 @@ public sealed record CompiledChronicleArchetypeRule(
     int PrimaryRequiredRelKindId,
     float PrimaryRequiredRelMinStrength,
     int FadeOutcomeCodeId,
+    int FadeGraceTicks,
+    int FadeQuietTicks,
     IReadOnlyList<CompiledChronicleRole> SupportingRoles,
     IReadOnlyList<CompiledChronicleBeat> Beats);
 

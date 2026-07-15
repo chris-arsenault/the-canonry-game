@@ -739,8 +739,8 @@ internal sealed class KernelConfigurationContext
     public void SetGeneratorTargetChronicleGates(int generatorSlot, float heatMin, int legendaryWithinTicks) =>
         _kernel.Generators.SetTargetChronicleGates(generatorSlot, heatMin, legendaryWithinTicks);
 
-    public int AddChronicleArchetype(int archetypeId, int maxActive, int castingCadenceTicks, int primaryKindId, int primaryRequiredRelKindId, float primaryRequiredRelMinStrength, int fadeOutcomeCodeId) =>
-        _kernel.Chronicles.AddArchetype(archetypeId, maxActive, castingCadenceTicks, primaryKindId, primaryRequiredRelKindId, primaryRequiredRelMinStrength, fadeOutcomeCodeId);
+    public int AddChronicleArchetype(int archetypeId, int maxActive, int castingCadenceTicks, int primaryKindId, int primaryRequiredRelKindId, float primaryRequiredRelMinStrength, int fadeOutcomeCodeId, int fadeGraceTicks, int fadeQuietTicks) =>
+        _kernel.Chronicles.AddArchetype(archetypeId, maxActive, castingCadenceTicks, primaryKindId, primaryRequiredRelKindId, primaryRequiredRelMinStrength, fadeOutcomeCodeId, fadeGraceTicks, fadeQuietTicks);
 
     public void AddChronicleRole(int archetypeSlot, int kindId, int relatedKindId, bool relatedIncoming, float relatedMinStrength, bool open = false) =>
         _kernel.Chronicles.AddRole(archetypeSlot, kindId, relatedKindId, relatedIncoming ? 1 : 0, relatedMinStrength, open ? 1 : 0);

@@ -51,6 +51,12 @@ public sealed class ChronicleArchetypeConfig
     /// <summary>Player-facing fade sentence template with role refs in braces.</summary>
     public string? FadeNarrative { get; init; }
 
+    /// <summary>Slow-burn pacing: ticks before a strike-less tale may fade. 0 = engine default.</summary>
+    public int FadeGraceTicks { get; init; }
+
+    /// <summary>Slow-burn pacing: quiet ticks since the last strike before fading. 0 = engine default.</summary>
+    public int FadeQuietTicks { get; init; }
+
     /// <summary>
     /// Player-facing title template. Role refs in braces are replaced with
     /// the cast member's reference name, e.g. "The Hunt of {$quarry}".

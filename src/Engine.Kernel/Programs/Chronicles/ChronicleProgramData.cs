@@ -25,6 +25,8 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
     internal int[] ArchetypePrimaryRequiredRelKindIds = [];
     internal float[] ArchetypePrimaryRequiredRelMinStrengths = [];
     internal int[] ArchetypeFadeOutcomeCodeIds = [];
+    internal int[] ArchetypeFadeGraceTicks = [];
+    internal int[] ArchetypeFadeQuietTicks = [];
 
     // Roles (flat; role 0 of each archetype is the primary and carries no query).
     internal int[] RoleKindIds = [];
@@ -97,6 +99,8 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
         ArchetypePrimaryRequiredRelKindIds = new int[archetypeCapacity + 1];
         ArchetypePrimaryRequiredRelMinStrengths = new float[archetypeCapacity + 1];
         ArchetypeFadeOutcomeCodeIds = new int[archetypeCapacity + 1];
+        ArchetypeFadeGraceTicks = new int[archetypeCapacity + 1];
+        ArchetypeFadeQuietTicks = new int[archetypeCapacity + 1];
     }
 
     private void AllocateRoles(int itemCapacity)
@@ -149,5 +153,5 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.ChronicleDirector;
 
-    public int SchemaVersion => 5;
+    public int SchemaVersion => 6;
 }

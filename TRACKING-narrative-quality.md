@@ -396,6 +396,25 @@ roles first and biases future events into the beats.
   flight 1.5 to 1). Roads gain their first entrance: raiders_on_the_road
   joins the raiding orca as $raider with heat-scaled raid charges - road
   tales gain an antagonist.
+- [x] C2d — the quiet trio (2026-07-15). Teaching, practice, and road
+  were structurally silent: their beats keyed to rare grant-gated gambits
+  or thresholds their 1505-tick lifespan never reached, so they faded at
+  the global grace floor with empty tellings. Three fixes: (1) guaranteed-
+  expression beats on the facts these tales must pass through - the bond
+  frays (taught_by below 0.35, charging the fight to mend it), the bond
+  deepens, the master falters (vitality), the discipline tested, the road
+  strains (route below 0.5, charging both ports to shore it up);
+  (2) entrances wired to deeds these casts actually perform - the
+  practice's own sharing draws the new practitioner in as $novice
+  (RoleDrawsIn on ability_shares_practice), the master's passing of the
+  teaching draws in $second_student; (3) per-archetype slow-burn fade
+  windows (new authored knob: FadeGraceTicks/FadeQuietTicks, 0 = engine
+  default) - teaching 3500/2500, practice 3000/2000, road 2500/2000 -
+  because bonds drift and masters age on ten-year scales, and a slow
+  story force-fitted to a six-year clock can only fade. Harness: teaching
+  tales now span 2255-4510 ticks and reach the_teaching_broken; practices
+  grow casts and reach the_keeper_passes; roads span 2500-4000 with
+  strikes throughout.
 
 ## Scope notes and follow-ups discovered during R1-R4
 

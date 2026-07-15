@@ -259,7 +259,9 @@ internal static partial class KernelProgramInstaller
                 archetype.PrimaryKindId,
                 archetype.PrimaryRequiredRelKindId,
                 archetype.PrimaryRequiredRelMinStrength,
-                archetype.FadeOutcomeCodeId);
+                archetype.FadeOutcomeCodeId,
+                archetype.FadeGraceTicks,
+                archetype.FadeQuietTicks);
             foreach (var role in archetype.SupportingRoles)
             {
                 context.AddChronicleRole(archetypeSlot, role.KindId, role.RelatedKindId, role.RelatedIncoming, role.RelatedMinStrength, role.Open);

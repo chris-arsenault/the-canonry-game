@@ -49,7 +49,10 @@ Heat-scaled charges grow with heat — convergence pushes stories toward their
 endings without decreeing them. A chronicle whose heat stays below the fade
 threshold past the grace window, with no strikes inside the quiet window,
 resolves with the archetype's authored fade outcome. Fades are endings, and
-some are authored as good ones ("the road endures quietly").
+some are authored as good ones ("the road endures quietly"). Archetypes may
+author slow-burn fade windows (`FadeGraceTicks`/`FadeQuietTicks`) - bonds
+drift and masters age on ten-year scales, and a slow story on a fast clock
+can only fade.
 
 Convergence has two mechanisms. **Entrance beats**: archetypes declare open
 roles (kind-constrained cast slots that start empty), and entrance beats fill

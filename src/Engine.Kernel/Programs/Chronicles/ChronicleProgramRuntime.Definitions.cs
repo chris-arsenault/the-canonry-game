@@ -12,7 +12,9 @@ internal sealed partial class ChronicleProgramRuntime
         int primaryKindId,
         int primaryRequiredRelKindId,
         float primaryRequiredRelMinStrength,
-        int fadeOutcomeCodeId)
+        int fadeOutcomeCodeId,
+        int fadeGraceTicks = 0,
+        int fadeQuietTicks = 0)
     {
         ValidatePositive(archetypeId);
         ValidatePositive(maxActive);
@@ -33,6 +35,8 @@ internal sealed partial class ChronicleProgramRuntime
         Data.ArchetypePrimaryRequiredRelKindIds[slot] = primaryRequiredRelKindId;
         Data.ArchetypePrimaryRequiredRelMinStrengths[slot] = primaryRequiredRelMinStrength;
         Data.ArchetypeFadeOutcomeCodeIds[slot] = fadeOutcomeCodeId;
+        Data.ArchetypeFadeGraceTicks[slot] = fadeGraceTicks;
+        Data.ArchetypeFadeQuietTicks[slot] = fadeQuietTicks;
         Data.ArchetypeRoleStarts[slot] = Data.RoleCount + 1;
         Data.ArchetypeBeatStarts[slot] = Data.BeatCount + 1;
         _openArchetypeSlot = slot;

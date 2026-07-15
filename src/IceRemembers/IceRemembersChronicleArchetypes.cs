@@ -384,15 +384,18 @@ public static class IceRemembersChronicleArchetypes
                 },
             },
         ],
+        OpenRoles = [new ChronicleOpenRoleConfig { Ref = "$second_student", Kind = K.Penguin }],
         Beats = [.. TeachingBeats()],
         FadeOutcomeId = "the_lesson_rests",
         FadeNarrative = "The teaching of {$student} settled into silence, the way most teachings do.",
+        FadeGraceTicks = 3500,
+        FadeQuietTicks = 2500,
         MaxActive = 1,
         CastingCadenceTicks = 700,
     };
 
     private static List<ChronicleBeatConfig> TeachingBeats() =>
-        [.. TeachingLifeBeats(), .. TeachingEndBeats()];
+        [.. TeachingLifeBeats(), .. TeachingArcBeats(), .. TeachingCircleBeats(), .. TeachingEndBeats()];
 
     private static List<ChronicleBeatConfig> TeachingLifeBeats() =>
     [
@@ -404,7 +407,56 @@ public static class IceRemembersChronicleArchetypes
             [
                 Beat.Charge("$master", "$student", "penguin_mends_another", 1.5f, success: 0.25f),
                 Beat.Charge("$student", "$master", "penguin_mends_another", 1.5f, success: 0.25f),
+                Beat.Charge("$master", "$student", null, 1f, success: 0.15f),
+                Beat.Charge("$student", "$master", null, 1f, success: 0.15f),
             ],
+        },
+    ];
+
+    private static List<ChronicleBeatConfig> TeachingArcBeats() =>
+    [
+        new ChronicleBeatConfig
+        {
+            Id = "the_bond_deepens",
+            Narrative = "What {$master} knows is taking hold in {$student}. The bond deepens.",
+            Open = Beat.Always(),
+            Strike = Beat.OnFact(Beat.PairRel("$student", "$master", "taught_by", 0.75f)),
+            HeatGain = 2f,
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "the_bond_frays",
+            Narrative = "The bond between {$student} and {$master} frays. What is not tended is lost.",
+            Open = Beat.Always(),
+            Strike = Beat.OnFact(Beat.PairRelBelow("$student", "$master", "taught_by", 0.35f)),
+            HeatGain = 2.5f,
+            Charges =
+            [
+                Beat.Charge("$master", "$student", "penguin_mends_another", 1.5f, success: 0.25f),
+                Beat.Charge("$student", "$master", null, 1.5f, success: 0.2f),
+            ],
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "the_master_falters",
+            Narrative = "{$master} falters. What has not yet been taught must be taught soon.",
+            Open = Beat.AttrBelow("$master", "vitality", 45f),
+            Strike = Beat.OnFact(Beat.AttrBelow("$master", "vitality", 45f)),
+            HeatGain = 2.5f,
+            Charges = [Beat.Charge("$student", "$master", null, 1.5f, success: 0.2f)],
+        },
+    ];
+
+    private static List<ChronicleBeatConfig> TeachingCircleBeats() =>
+    [
+        new ChronicleBeatConfig
+        {
+            Id = "the_circle_grows",
+            Narrative = "{$master} takes a second student. {$second_student} joins the circle.",
+            Open = Beat.Always(),
+            Strike = Beat.RoleDrawsIn("$master", "penguin_passes_the_teaching", "$second_student"),
+            HeatGain = 2.5f,
+            Charges = [Beat.Charge("$master", "$second_student", "penguin_mends_another", 1.5f, success: 0.2f)],
         },
         new ChronicleBeatConfig
         {
@@ -500,12 +552,14 @@ public static class IceRemembersChronicleArchetypes
         Beats = [.. RoadBeats()],
         FadeOutcomeId = "the_road_endures_quietly",
         FadeNarrative = "The road between {$port} and {$partner} needs no more telling. It simply endures.",
+        FadeGraceTicks = 2500,
+        FadeQuietTicks = 2000,
         MaxActive = 1,
         CastingCadenceTicks = 900,
     };
 
     private static List<ChronicleBeatConfig> RoadBeats() =>
-        [.. RoadTradeBeats(), .. RoadWorldBeats()];
+        [.. RoadTradeBeats(), .. RoadWorldBeats(), .. RoadEndBeats()];
 
     private static List<ChronicleBeatConfig> RoadTradeBeats() =>
     [
@@ -574,6 +628,23 @@ public static class IceRemembersChronicleArchetypes
             Open = Beat.Always(),
             Strike = Beat.RoleActs("$port", "settlement_digs_the_gallery"),
             HeatGain = 2f,
+        },
+    ];
+
+    private static List<ChronicleBeatConfig> RoadEndBeats() =>
+    [
+        new ChronicleBeatConfig
+        {
+            Id = "the_road_strains",
+            Narrative = "The road between {$port} and {$partner} strains. What was built must now be defended.",
+            Open = Beat.Always(),
+            Strike = Beat.OnFact(Beat.PairRelBelow("$port", "$partner", "trade_route", 0.5f)),
+            HeatGain = 2.5f,
+            Charges =
+            [
+                Beat.Charge("$port", "$partner", null, 1.5f, success: 0.2f),
+                Beat.Charge("$partner", "$port", null, 1.5f, success: 0.2f),
+            ],
         },
         new ChronicleBeatConfig
         {
@@ -714,9 +785,12 @@ public static class IceRemembersChronicleArchetypes
                 Query = new SemanticEntityQuery { RelatedToTargetRelationship = "practiced_by", RelatedToTargetIncoming = true, RelatedToTargetMinStrength = 0.8f },
             },
         ],
-        Beats = [.. PracticeBeats()],
+        OpenRoles = [new ChronicleOpenRoleConfig { Ref = "$novice", Kind = K.Penguin }],
+        Beats = [.. PracticeBeats(), .. PracticeEndBeats()],
         FadeOutcomeId = "the_practice_endures",
         FadeNarrative = "{$practice} was kept without drama, season after season. That, too, is a story.",
+        FadeGraceTicks = 3000,
+        FadeQuietTicks = 2000,
         MaxActive = 1,
         CastingCadenceTicks = 1000,
     };
@@ -744,10 +818,20 @@ public static class IceRemembersChronicleArchetypes
         new ChronicleBeatConfig
         {
             Id = "the_practice_spreads",
-            Narrative = "{$practice} finds another pair of hands. A discipline kept is a discipline shared.",
+            Narrative = "{$practice} finds another pair of hands. {$novice} takes up the discipline.",
             Open = Beat.Always(),
-            Strike = Beat.RoleActs("$practice", "ability_shares_practice"),
+            Strike = Beat.RoleDrawsIn("$practice", "ability_shares_practice", "$novice"),
             HeatGain = 3f,
+            Charges = [Beat.Charge("$novice", "$practice", null, 1f, success: 0.15f)],
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "the_discipline_tested",
+            Narrative = "{$keeper}'s hardest season. A discipline is what remains when everything else fails.",
+            Open = Beat.AttrBelow("$keeper", "vitality", 40f),
+            Strike = Beat.OnFact(Beat.AttrBelow("$keeper", "vitality", 40f)),
+            HeatGain = 2.5f,
+            Charges = [Beat.Charge("$keeper", "$keeper", null, 1f, success: 0.15f)],
         },
         new ChronicleBeatConfig
         {
@@ -757,6 +841,10 @@ public static class IceRemembersChronicleArchetypes
             Strike = Beat.RoleActs("$keeper", "penguin_stills_the_waters"),
             HeatGain = 2f,
         },
+    ];
+
+    private static List<ChronicleBeatConfig> PracticeEndBeats() =>
+    [
         new ChronicleBeatConfig
         {
             Id = "the_keeper_passes",

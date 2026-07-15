@@ -271,14 +271,17 @@ internal sealed partial class ChronicleProgramRuntime
 
     private void TryFade(Simulation simulation, int chronicle, int tick)
     {
+        // Slow-burn archetypes may author longer windows; 0 keeps defaults.
+        var archetype = State.ArchetypeSlots[chronicle];
+        var grace = Data.ArchetypeFadeGraceTicks[archetype];
+        var quiet = Data.ArchetypeFadeQuietTicks[archetype];
         if (State.Heat[chronicle] >= FadeHeatThreshold ||
-            tick - State.StartTicks[chronicle] <= FadeGraceTicks ||
-            tick - State.LastStrikeTicks[chronicle] <= FadeQuietTicks)
+            tick - State.StartTicks[chronicle] <= (grace > 0 ? grace : FadeGraceTicks) ||
+            tick - State.LastStrikeTicks[chronicle] <= (quiet > 0 ? quiet : FadeQuietTicks))
         {
             return;
         }
 
-        var archetype = State.ArchetypeSlots[chronicle];
         Resolve(simulation, chronicle, Data.ArchetypeFadeOutcomeCodeIds[archetype], tick);
     }
 
