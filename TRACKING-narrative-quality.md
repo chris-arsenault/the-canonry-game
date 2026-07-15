@@ -554,3 +554,59 @@ gains:losses spread 0.8-1.3; >= 1 boundary reversal per 25k; motion in
 any 20-hex viewport within seconds.
 Not changed by any bundle: chronicle/beat system, scarcity caps,
 lifecycle bands, microkernel constraints, no-Director-writes.
+
+### Map geometry findings + the bold program (2026-07-15, exploration)
+
+Geometry (run 4700, r40 hex map, 4,921 cells): the map is simultaneously
+too co-located and too diffuse, at different scales. Micro: median
+penguin-to-nearest-penguin distance is 2 hexes, penguin-to-monster 4,
+72% of penguins sit within 5 hexes of a settlement, and 100% of
+penguins are within slay range (24) of a monster - interaction geometry
+is not the blocker today. Meso: only 48% of cells were ever visited by
+any named entity across 25k ticks; civilization is ~6 dense settlement
+halos separated by dead ocean no journey crosses. Generator target
+rejections are graph conditions, not geography (subtype/tags 43%,
+required relationship 31%, trigger 10%, absence 10%; placement 0.1%).
+Culture fragmentation is halo-shaped: components grow 2 -> 11 while
+largest-component share stays 74-91%.
+
+Scaling implication: current physics survives ONLY because of
+co-location. Fixed hex-radius gates (24/18) plus centripetal verbs on a
+very large map would produce dozens of disconnected halo-villages with
+zero inter-halo interaction. Scale-out fails without reach that grows
+with the world.
+
+The bold program (three pillars, subsumes bundles A/B):
+
+1. WORLD-BEATS - the ages of the world as a macro-chronicle. The world
+   itself gets the beat treatment: an unordered pool of Ages with
+   opening conditions on macro facts (saturation, population, first
+   legendary saga, war exhaustion, canon count), charges that modulate
+   the whole domain while open (generator pulse weights, verb
+   weightings, casting gates, decay tides per age), and transitions
+   recognized from world state - never timers, never scripts. Age of
+   Founding (exploration-charged) strikes into the Age of Striving when
+   frontiers first collide; the Age of Accords opens on war exhaustion
+   (diplomacy/canon-charged); the Long Dark on saturation + stagnation.
+   Exploration, war, and diplomacy epochs emerge in whatever order this
+   world earns them.
+
+2. THE GROWING MAP - map size becomes a result of history. Bootstrap on
+   a small thawed heart (co-location by construction, dense
+   interaction), and let epoch pressure open the world: thaw rings /
+   reveal regions via terrain transformation and cell creation as the
+   Age of Founding charges exploration. Founding treks colonize the new
+   ground; wars ignite where cultures meet; the very large map is
+   earned, structured by the paths history took, never dead-on-arrival.
+
+3. TRAVEL-COST REACH - civilization shrinks the world. Replace raw
+   hex-radius interaction gates with route-cost distance (the movement
+   program already computes road/causeway/conduit-aware costs). Roads
+   and conduits then extend interaction reach: connected settlements 60
+   hexes apart are "near" for trade, war, and diplomacy; wilderness
+   stays far. Infrastructure becomes the connective tissue that keeps
+   gambits and generators hooking in at any map size - and building it
+   is visible flow.
+
+Kinetics bundles A/B become sub-rounds: journeys/fronts/tempo are the
+moment-to-moment texture inside whichever Age is open.
