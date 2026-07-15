@@ -610,3 +610,41 @@ The bold program (three pillars, subsumes bundles A/B):
 
 Kinetics bundles A/B become sub-rounds: journeys/fronts/tempo are the
 moment-to-moment texture inside whichever Age is open.
+
+### Civ-parallel refinements + the progression epic (2026-07-15, direction)
+
+Mental models by decision: Civ is the closest analogue for map/movement
+scaling; Universim for player agency (directing where the bulk
+civilization grows, and having it actually grow).
+
+Travel-cost reach, refined by the Civ parallel (what makes it work
+there as ages advance):
+- Roads are speed, not decoration: road tiers lower effective travel
+  cost (and later tiers lower it further - the road -> railroad curve).
+  Road quality already exists on cells and the movement program already
+  prices it; the change is making tiers matter enough to be felt and
+  seen: caravans visibly faster on good roads.
+- Transport-class entities become actual carriers: they load and carry
+  (artifacts, founding cohorts, trade goods-as-relationships) between
+  connected settlements and move materially faster than walkers. A
+  transport is the setting's railroad: reach and capacity embodied in a
+  named entity you can watch cross the ocean of ice.
+- Explicitly rejected: innate per-entity movement increases across
+  ages (Civ's unit-speed creep) - wrong for this setting. Speed comes
+  from the world (roads, conduits, carriers), never from the creature.
+
+Follow-up epic (needs its own design round; build toward it): the
+PROGRESSION LATTICE - a tech/unlock tree, possibly the key missing
+piece against stagnation. The domain already holds the in-fiction
+carriers, so this is not a bolted-on tech screen:
+- abilities = techniques (already grant gambits via practice),
+- canons = institutions (already gate/charge behavior via
+  jurisdictions; sagas feed them via remembrance),
+- travel structures = infrastructure tiers (causeway -> conduit -> ...),
+- world-beats/Ages = the clock that opens branches.
+Unlocks charge domain content the way beats charge gambits: a culture
+that establishes a practice/canon/work unlocks verbs, gambits,
+generator eligibility, and structure tiers downstream of it. Player
+agency lands in the existing card/tableau layer: directing which
+branches the bulk civilization pursues (Universim-style), so growth
+direction is the player's hand without puppeting any entity.
