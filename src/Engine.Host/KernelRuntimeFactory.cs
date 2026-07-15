@@ -52,6 +52,7 @@ public sealed class KernelRuntimeFactory
         ProvenanceProjection? provenance = null;
         UiChronicleProjection? chronicle = null;
         MinorActorFlowProjection? minorActorFlow = null;
+        EntityTrailProjection? entityTrails = null;
 
         var runtime = StartCore(
             request,
@@ -73,7 +74,8 @@ public sealed class KernelRuntimeFactory
                             context.DomainIds.EventCodeIdOf(DomainRuntimeNames.RelationshipCulledCode).Value);
                         return chronicle;
                     },
-                    () => minorActorFlow = new MinorActorFlowProjection());
+                    () => minorActorFlow = new MinorActorFlowProjection(),
+                    () => entityTrails = new EntityTrailProjection());
             });
         var provenanceProjection = provenance ??
             throw new InvalidOperationException("UI provenance projection was not registered.");
@@ -88,6 +90,7 @@ public sealed class KernelRuntimeFactory
             provenanceProjection,
             chronicle ?? throw new InvalidOperationException("UI chronicle projection was not registered."),
             minorActorFlow ?? throw new InvalidOperationException("Minor actor flow projection was not registered."),
+            entityTrails ?? throw new InvalidOperationException("Entity trail projection was not registered."),
             logger);
     }
 
@@ -97,7 +100,8 @@ public sealed class KernelRuntimeFactory
         UiProjectionState ui,
         ProvenanceProjection provenance,
         Func<KernelHostConsumerContext, UiChronicleProjection> createChronicle,
-        Func<MinorActorFlowProjection> createMinorActorFlow)
+        Func<MinorActorFlowProjection> createMinorActorFlow,
+        Func<EntityTrailProjection> createEntityTrails)
     {
         builder
             .RegisterProjection("map", _ => map)
@@ -116,7 +120,8 @@ public sealed class KernelRuntimeFactory
                     return provenance;
                 })
             .RegisterProjection("chronicle", createChronicle)
-            .RegisterProjection("minor-actor-flow", _ => createMinorActorFlow());
+            .RegisterProjection("minor-actor-flow", _ => createMinorActorFlow())
+            .RegisterProjection("entity-trails", _ => createEntityTrails());
     }
 
     private KernelRuntime StartCore(
@@ -300,6 +305,7 @@ public sealed class KernelUiRuntime : IDisposable
         ProvenanceProjection provenance,
         UiChronicleProjection chronicle,
         MinorActorFlowProjection minorActorFlow,
+        EntityTrailProjection entityTrails,
         RunLogger? runLogger)
     {
         ArgumentNullException.ThrowIfNull(runtime);
@@ -308,6 +314,7 @@ public sealed class KernelUiRuntime : IDisposable
         ArgumentNullException.ThrowIfNull(provenance);
         ArgumentNullException.ThrowIfNull(chronicle);
         ArgumentNullException.ThrowIfNull(minorActorFlow);
+        ArgumentNullException.ThrowIfNull(entityTrails);
 
         _runtime = runtime;
         Map = map;
@@ -315,6 +322,7 @@ public sealed class KernelUiRuntime : IDisposable
         Provenance = provenance;
         Chronicle = chronicle;
         MinorActorFlow = minorActorFlow;
+        EntityTrails = entityTrails;
         _runLogger = runLogger;
         RefreshCultureBoundariesIfChanged();
     }
@@ -328,6 +336,8 @@ public sealed class KernelUiRuntime : IDisposable
     public UiChronicleProjection Chronicle { get; }
 
     public MinorActorFlowProjection MinorActorFlow { get; }
+
+    public EntityTrailProjection EntityTrails { get; }
 
     public ProjectionSymbolCatalog Symbols => _runtime.Symbols;
 

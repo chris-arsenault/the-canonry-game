@@ -733,3 +733,29 @@ c2d-quiet-trio-3x25k-20260715.
 - Next: world-beats/Ages round (mass-projection campaigns that can
   move the sharpened fronts), growing map, travel-cost reach, caravan
   carriers, progression-lattice epic.
+
+### Kinetics round, Bundle C "The Stage" (2026-07-15, branch kinetics-deeds)
+
+Scope: the legibility probe (T1+T2+T3+pursuit). T1 proved structural
+and T3 + pursuit shipped in Bundle B, so this bundle is the remaining
+piece: T2 motion rendering. Zero simulation change - projection and UI
+only, so no MC evidence run (provenance would be identical to
+kin-tide-3x25k-20260715d).
+
+- T2a interpolation: already present (Entity.MoveTo tweens position
+  over 0.25s); no change.
+- T2b trails: new EntityTrailProjection (4096-segment ring over
+  EntityMoved kernel events, same pattern as MinorActorFlowProjection)
+  + EntityTrailLayer (fading kind-tinted lines along recent hops,
+  90-tick fade, drawn behind the entity layer). Wired through
+  KernelUiRuntime.EntityTrails, GameRuntimeReadModels, GameRenderTree.
+  Journeys now read as paths being drawn - a trek, pursuit, or
+  pilgrimage leaves a visible wake instead of a token teleporting.
+- Live check: ring fills (12.5k movement events over a 3k-tick run),
+  plane filtering and fade ages correct. Ring covers ~110 ticks at
+  late-sim hop volume, comfortably above the 90-tick fade.
+- Needs visual confirmation in Godot alongside Bundle B's flow motes
+  and chronicle auras.
+- Next: world-beats/Ages round (mass-projection campaigns for the
+  sharpened fronts), growing map, travel-cost reach, caravan carriers,
+  progression-lattice epic.
