@@ -166,6 +166,15 @@ public interface IDefinitionGeneratorEffect
     string Describe();
 }
 
+public sealed class DefinitionErodeCultureAtTargetEffect(int radius, float amountPerCell) : IDefinitionGeneratorEffect
+{
+    public int Radius { get; } = radius;
+
+    public float AmountPerCell { get; } = amountPerCell;
+
+    public string Describe() => $"erode_culture_at_target(radius={Radius}, amount={AmountPerCell})";
+}
+
 public sealed class DefinitionClaimSemanticJurisdictionEffect(string bindingRef, int radius) : IDefinitionGeneratorEffect
 {
     public string BindingRef { get; } = bindingRef;

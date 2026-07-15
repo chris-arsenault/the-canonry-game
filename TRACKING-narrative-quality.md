@@ -648,3 +648,40 @@ generator eligibility, and structure tiers downstream of it. Player
 agency lands in the existing card/tableau layer: directing which
 branches the bulk civilization pursues (Universim-style), so growth
 direction is the player's hand without puppeting any entity.
+
+### Kinetics round, Bundle B in progress (2026-07-15, branch kinetics-deeds)
+
+- B1 minor-actor flow rendered: MinorActorFlowProjection (recent-pulse
+  ring over MinorActorVerbExecuted events) + MinorActorFlowLayer
+  (fading culture-tinted motes under the entity layer). The kernel's
+  invisible cohort labor is now on the map; zero sim change.
+- B2 conflict scars: new ErodeTargetCulture primitive for both
+  authorship classes (gambit mutation + generator effect) - erodes the
+  target's culture influence in a radius at the target's position,
+  strongest at center. Authored: faction_declares_territorial_war
+  (r2/4), orca_raids_trade_route (r2/3), war_takes_its_toll (r3/5),
+  ice_settles_accounts (r3/6). Conflict now couples to concentrated
+  territorial loss.
+- B3 pursuit journeys: new ChroniclePursuit verb target selector - the
+  verb layer asks the Director for the entity's chronicle costar
+  (cast converge on the primary; heat floor 2.5, min distance 5) and
+  commits a long journey (answer_the_tale verbs for penguin/orca/
+  monster, 250-600 tick commitments, heat-scaled weight). The tale
+  draws its cast together, visibly.
+- Pre-MC live check: penguin displacement efficiency median 33%
+  (12 net hexes / 46 gross hops per epoch) vs ~14% at diagnosis.
+- Journey verbs added after the pursuit finding: the wandering season,
+  pilgrimage (to canons), far currents - long commitments to
+  structurally far targets.
+- MC verdict (kin-deeds-3x25k-20260715b, vs run-4700 baseline): p90
+  range per epoch 33 -> 41 hexes (+24%), map utilization +11%; median
+  endpoint displacement unchanged (13-14%) - journeys are round trips
+  and the home-pull owns the median, which is defensible for a settled
+  species. Pursuit is correct but gated by co-located casts (min
+  distance rarely met); it will matter on grown maps and pulled-in
+  entrants. Scars at 4x still produced zero net-losing regions -
+  event-pulse erosion cannot beat continuous verb reinforcement;
+  visible fronts require the continuous-contest macro round (F2), as
+  bundled. Flow rendering and auras need visual confirmation in Godot.
+- Next: F2 frontier contest as its own macro round; duty-cycle step
+  tuning; caravan carriers per the Civ-parallel refinements.

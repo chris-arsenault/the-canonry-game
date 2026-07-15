@@ -45,6 +45,7 @@ public static class BehaviorOperationCodes
     public const int IncreaseWorkTier = 33;
     public const int ForgeCellVertical = 34;
     public const int CullEndpointIncomingRelationships = 35;
+    public const int ErodeTargetCulture = 36;
 }
 
 public static class BehaviorTargetModeCodes
@@ -418,6 +419,7 @@ public static class TargetSelectorCodes
     public const int Terrain = 4;
     public const int SelfMapValue = 5;
     public const int OtherMapValue = 6;
+    public const int ChroniclePursuit = 7;
 }
 
 public static class ProgramOpcodeCodes
@@ -532,6 +534,7 @@ public static class GeneratorEffectTypeCodes
     public const int SetTerrainPatch = 4;
     public const int SetBindingTag = 5;
     public const int ClaimSemanticJurisdiction = 6;
+    public const int ErodeCultureAtTarget = 7;
 }
 
 public static class GeneratorRelationshipInstanceSelectionCodes

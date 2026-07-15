@@ -969,6 +969,12 @@ public static partial class DomainCompiler
                     buildStructure.PlaneCode,
                     buildStructure.MaxDistance));
                 return true;
+            case ErodeTargetCultureMutation erode:
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.ErodeTargetCulture,
+                    erode.Radius,
+                    X: erode.AmountPerCell));
+                return true;
             default:
                 return false;
         }

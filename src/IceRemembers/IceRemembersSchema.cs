@@ -372,6 +372,12 @@ public enum IceRemembersVerbId
     SettlementBreakTheHunt,
     SettlementPanicDrawsThePods,
     FactionLeadTheRite,
+    PenguinAnswerTheTale,
+    OrcaAnswerTheTale,
+    MonsterAnswerTheTale,
+    PenguinWanderingSeason,
+    PenguinPilgrimage,
+    OrcaFarCurrents,
 }
 
 public static class IceRemembersVerbIdExtensions
@@ -545,6 +551,12 @@ public static class IceRemembersVerbIdExtensions
         "settlement_break_the_hunt",
         "settlement_panic_draws_the_pods",
         "faction_lead_the_rite",
+        "penguin_answer_the_tale",
+        "orca_answer_the_tale",
+        "monster_answer_the_tale",
+        "penguin_wandering_season",
+        "penguin_pilgrimage",
+        "orca_far_currents",
     ];
 
     public static string ToVerbId(this IceRemembersVerbId verbId)

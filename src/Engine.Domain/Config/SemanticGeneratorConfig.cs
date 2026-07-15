@@ -197,6 +197,19 @@ public sealed class SetBindingHistoricalEffect(string bindingRef) : ISemanticGen
 /// binding's semantic position as that entity's named coverage — how
 /// generator-born canons take jurisdiction over idea-space.
 /// </summary>
+/// <summary>
+/// War leaves marks on the land: erodes the target's culture influence in a
+/// radius around the target's physical position when the generator fires.
+/// </summary>
+public sealed class ErodeCultureAtTargetEffect(int radius, float amountPerCell) : ISemanticGeneratorEffect
+{
+    public int Radius { get; } = radius;
+
+    public float AmountPerCell { get; } = amountPerCell;
+
+    public string Describe() => $"erode_culture_at_target(radius={Radius}, amount={AmountPerCell})";
+}
+
 public sealed class ClaimSemanticJurisdictionEffect(string bindingRef, int radius) : ISemanticGeneratorEffect
 {
     public string BindingRef { get; } = bindingRef;

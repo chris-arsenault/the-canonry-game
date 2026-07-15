@@ -51,6 +51,7 @@ public sealed class KernelRuntimeFactory
         UiProjectionState? ui = null;
         ProvenanceProjection? provenance = null;
         UiChronicleProjection? chronicle = null;
+        MinorActorFlowProjection? minorActorFlow = null;
 
         var runtime = StartCore(
             request,
@@ -59,36 +60,20 @@ public sealed class KernelRuntimeFactory
                 map = new HexMapProjection();
                 ui = new UiProjectionState();
                 provenance = new ProvenanceProjection();
-                builder
-                    .RegisterProjection("map", _ => map)
-                    .RegisterProjection(
-                        "ui",
-                        context =>
-                        {
-                            var projection = ui ??
-                                throw new InvalidOperationException("UI projection was not initialized.");
-                            context.Symbols.UseEntityProjectionState(projection);
-                            return projection;
-                        })
-                    .RegisterProjection(
-                        "provenance",
-                        context =>
-                        {
-                            var projection = provenance ??
-                                throw new InvalidOperationException("UI provenance projection was not initialized.");
-                            context.Symbols.UseProvenanceProjection(projection);
-                            return projection;
-                        })
-                    .RegisterProjection(
-                        "chronicle",
-                        context =>
-                        {
-                            chronicle = new UiChronicleProjection(
-                                context.Symbols,
-                                context.DomainIds.EventCodeIdOf(DomainRuntimeNames.RelationshipCreatedCode).Value,
-                                context.DomainIds.EventCodeIdOf(DomainRuntimeNames.RelationshipCulledCode).Value);
-                            return chronicle;
-                        });
+                RegisterUiProjections(
+                    builder,
+                    map,
+                    ui,
+                    provenance,
+                    context =>
+                    {
+                        chronicle = new UiChronicleProjection(
+                            context.Symbols,
+                            context.DomainIds.EventCodeIdOf(DomainRuntimeNames.RelationshipCreatedCode).Value,
+                            context.DomainIds.EventCodeIdOf(DomainRuntimeNames.RelationshipCulledCode).Value);
+                        return chronicle;
+                    },
+                    () => minorActorFlow = new MinorActorFlowProjection());
             });
         var provenanceProjection = provenance ??
             throw new InvalidOperationException("UI provenance projection was not registered.");
@@ -102,7 +87,36 @@ public sealed class KernelRuntimeFactory
             ui ?? throw new InvalidOperationException("UI projection was not registered."),
             provenanceProjection,
             chronicle ?? throw new InvalidOperationException("UI chronicle projection was not registered."),
+            minorActorFlow ?? throw new InvalidOperationException("Minor actor flow projection was not registered."),
             logger);
+    }
+
+    private static void RegisterUiProjections(
+        KernelHostBuilder builder,
+        HexMapProjection map,
+        UiProjectionState ui,
+        ProvenanceProjection provenance,
+        Func<KernelHostConsumerContext, UiChronicleProjection> createChronicle,
+        Func<MinorActorFlowProjection> createMinorActorFlow)
+    {
+        builder
+            .RegisterProjection("map", _ => map)
+            .RegisterProjection(
+                "ui",
+                context =>
+                {
+                    context.Symbols.UseEntityProjectionState(ui);
+                    return ui;
+                })
+            .RegisterProjection(
+                "provenance",
+                context =>
+                {
+                    context.Symbols.UseProvenanceProjection(provenance);
+                    return provenance;
+                })
+            .RegisterProjection("chronicle", createChronicle)
+            .RegisterProjection("minor-actor-flow", _ => createMinorActorFlow());
     }
 
     private KernelRuntime StartCore(
@@ -285,6 +299,7 @@ public sealed class KernelUiRuntime : IDisposable
         UiProjectionState ui,
         ProvenanceProjection provenance,
         UiChronicleProjection chronicle,
+        MinorActorFlowProjection minorActorFlow,
         RunLogger? runLogger)
     {
         ArgumentNullException.ThrowIfNull(runtime);
@@ -292,12 +307,14 @@ public sealed class KernelUiRuntime : IDisposable
         ArgumentNullException.ThrowIfNull(ui);
         ArgumentNullException.ThrowIfNull(provenance);
         ArgumentNullException.ThrowIfNull(chronicle);
+        ArgumentNullException.ThrowIfNull(minorActorFlow);
 
         _runtime = runtime;
         Map = map;
         Ui = ui;
         Provenance = provenance;
         Chronicle = chronicle;
+        MinorActorFlow = minorActorFlow;
         _runLogger = runLogger;
         RefreshCultureBoundariesIfChanged();
     }
@@ -309,6 +326,8 @@ public sealed class KernelUiRuntime : IDisposable
     public ProvenanceProjection Provenance { get; }
 
     public UiChronicleProjection Chronicle { get; }
+
+    public MinorActorFlowProjection MinorActorFlow { get; }
 
     public ProjectionSymbolCatalog Symbols => _runtime.Symbols;
 

@@ -646,19 +646,88 @@ internal sealed partial class GeneratorProgramRuntime
                         triggerKindCode,
                         triggerId);
                     break;
-                case GeneratorEffectTypeCodes.SetTerrainPatch:
-                    ExecuteSetTerrainPatch(simulation, world, e, refCodes, refEntityIds, refCount);
-                    break;
-                case GeneratorEffectTypeCodes.SetBindingTag:
-                    ExecuteSetBindingTag(simulation, e, refOrKindId, refCodes, refEntityIds, refCount, tick);
-                    break;
-                case GeneratorEffectTypeCodes.ClaimSemanticJurisdiction:
-                    ExecuteClaimSemanticJurisdiction(simulation, e, refOrKindId, refCodes, refEntityIds, refCount);
+                default:
+                    ApplyMapEffect(simulation, world, e, effectType, refOrKindId, refCodes, refEntityIds, refCount, tick);
                     break;
             }
         }
 
         return relationshipSpendCount;
+    }
+
+    private void ApplyMapEffect(
+        Simulation simulation,
+        WorldState world,
+        int effectSlot,
+        int effectType,
+        int refOrKindId,
+        int[] refCodes,
+        int[] refEntityIds,
+        int refCount,
+        int tick)
+    {
+        switch (effectType)
+        {
+            case GeneratorEffectTypeCodes.SetTerrainPatch:
+                ExecuteSetTerrainPatch(simulation, world, effectSlot, refCodes, refEntityIds, refCount);
+                break;
+            case GeneratorEffectTypeCodes.SetBindingTag:
+                ExecuteSetBindingTag(simulation, effectSlot, refOrKindId, refCodes, refEntityIds, refCount, tick);
+                break;
+            case GeneratorEffectTypeCodes.ClaimSemanticJurisdiction:
+                ExecuteClaimSemanticJurisdiction(simulation, effectSlot, refOrKindId, refCodes, refEntityIds, refCount);
+                break;
+            case GeneratorEffectTypeCodes.ErodeCultureAtTarget:
+                ExecuteErodeCultureAtTarget(simulation, world, effectSlot, refOrKindId, refCodes, refEntityIds, refCount, tick);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// War leaves marks on the land: erode the resolved entity's culture
+    /// influence around its physical position, strongest at the center.
+    /// </summary>
+    private void ExecuteErodeCultureAtTarget(
+        Simulation simulation,
+        WorldState world,
+        int effectSlot,
+        int refOrKindId,
+        int[] refCodes,
+        int[] refEntityIds,
+        int refCount,
+        int tick)
+    {
+        var entityId = ResolveRef(refCodes, refEntityIds, refCount, refOrKindId);
+        if (entityId <= 0 || !world.EntityIsActive(entityId))
+        {
+            return;
+        }
+
+        var cultureId = world.EntityCultureId(entityId);
+        if (cultureId <= 0)
+        {
+            return;
+        }
+
+        var radius = _effectRadii[effectSlot];
+        var amount = _effectValues[effectSlot];
+        var centerQ = world.EntityPhysicalQ(entityId);
+        var centerR = world.EntityPhysicalR(entityId);
+        for (var dq = -radius; dq <= radius; dq++)
+        {
+            for (var dr = global::System.Math.Max(-radius, -dq - radius); dr <= global::System.Math.Min(radius, -dq + radius); dr++)
+            {
+                var distance = (global::System.Math.Abs(dq) + global::System.Math.Abs(dr) + global::System.Math.Abs(dq + dr)) / 2;
+                var falloff = 1f - (distance / (radius + 1f));
+                _ = simulation.ModifyCellCultureInfluenceRaw(
+                    cultureId,
+                    PlaneCodes.Physical,
+                    centerQ + dq,
+                    centerR + dr,
+                    -amount * falloff,
+                    tick);
+            }
+        }
     }
 
     // Claims unowned semantic cells within the radius of the ref entity's

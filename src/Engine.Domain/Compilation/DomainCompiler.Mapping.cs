@@ -506,6 +506,13 @@ public static partial class DomainCompiler
                         adjustRelationship.IncludeReciprocal ? 1 : 0,
                         adjustRelationship.Delta));
                     break;
+                case DefinitionErodeCultureAtTargetEffect erode:
+                    compiled.Add(new GeneratorEffectRule(
+                        GeneratorEffectTypeCodes.ErodeCultureAtTarget,
+                        GeneratorProgramConstants.TargetReferenceCode,
+                        Value: erode.AmountPerCell,
+                        Radius: erode.Radius));
+                    break;
                 case DefinitionClaimSemanticJurisdictionEffect claim:
                     compiled.Add(new GeneratorEffectRule(
                         GeneratorEffectTypeCodes.ClaimSemanticJurisdiction,

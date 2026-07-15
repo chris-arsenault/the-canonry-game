@@ -91,6 +91,7 @@ public static partial class IceRemembersGeneratorDefinition
         ],
         Effects =
         [
+            new ErodeCultureAtTargetEffect(radius: 4, amountPerCell: 20f),
             new SetBindingHistoricalEffect("$casualty"),
             new AdjustTargetRelationshipStrengthEffect(
                 L(Rel.AtWarWith),

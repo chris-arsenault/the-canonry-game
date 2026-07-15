@@ -19,11 +19,43 @@ public static partial class IceRemembersDefinition
 
     private static IReadOnlyList<LowAltitudeVerbConfig> CreateLowAltitudeVerbs() =>
     [
+        ..CreatePursuitVerbs(),
+        ..CreateJourneyVerbs(),
         ..CreatePhysicalMovementVerbs(),
         ..CreateSemanticMovementVerbs(),
         ..CreateRelationshipStrengthMutationVerbs(),
         ..CreateSemanticInfluenceVerbs(),
         ..CreatePhysicalInfluenceVerbs(),
+    ];
+
+    // The tale draws its cast together: long-committed journeys toward a
+    // chronicle costar, only offered while the story burns and the costar
+    // is far. High weight - when the ice tells your tale, you answer.
+    // Destination journeys: long-committed travel to structurally far
+    // targets - the wandering season roams the deep white, pilgrimage seeks
+    // the canons, far currents carry orcas across the map. These move the
+    // median life, not just the storied one.
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreateJourneyVerbs() =>
+    [
+        MovementVerb(Verb.PenguinWanderingSeason, "The Wandering Season", K.Penguin, Mode.Explore,
+            ticks: (300, 700), dwell: 12, radius: 22, samples: 30, weight: 0.5f, opportunityBonusOverride: 0.2f,
+            distanceScale: 30f),
+        MovementVerb(Verb.PenguinPilgrimage, "Pilgrimage", K.Penguin, Mode.EntityKind,
+            targetKind: K.Canon, ticks: (300, 700), dwell: 40, radius: 1, samples: 10, weight: 0.5f,
+            opportunityBonusOverride: 0.4f, distanceScale: 45f),
+        MovementVerb(Verb.OrcaFarCurrents, "Ride the Far Currents", K.Orca, Mode.Explore,
+            ticks: (300, 700), dwell: 12, radius: 26, samples: 30, weight: 0.6f, opportunityBonusOverride: 0.2f,
+            distanceScale: 40f),
+    ];
+
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreatePursuitVerbs() =>
+    [
+        MovementVerb(Verb.PenguinAnswerTheTale, "Answer the Tale", K.Penguin, Mode.ChroniclePursuit,
+            ticks: (250, 600), dwell: 20, samples: 1, weight: 2.5f, opportunityBonusOverride: 1.5f),
+        MovementVerb(Verb.OrcaAnswerTheTale, "Answer the Tale", K.Orca, Mode.ChroniclePursuit,
+            ticks: (250, 600), dwell: 20, samples: 1, weight: 2.5f, opportunityBonusOverride: 1.5f),
+        MovementVerb(Verb.MonsterAnswerTheTale, "Answer the Tale", K.Monster, Mode.ChroniclePursuit,
+            ticks: (250, 600), dwell: 20, samples: 1, weight: 2.2f, opportunityBonusOverride: 1.5f),
     ];
 
     private static IReadOnlyList<LowAltitudeVerbConfig> CreatePhysicalMovementVerbs() =>
@@ -475,7 +507,8 @@ public static partial class IceRemembersDefinition
         LowAltitudeVerbRelationshipDirection fitnessDirection = LowAltitudeVerbRelationshipDirection.Either,
         float fitnessWeight = 0f,
         (float Delta, int Radius)? travelInfluence = null,
-        PrimaryPlane plane = PrimaryPlane.Physical) =>
+        PrimaryPlane plane = PrimaryPlane.Physical,
+        float distanceScale = 0f) =>
         new()
         {
             Id = V(verb),
@@ -493,6 +526,7 @@ public static partial class IceRemembersDefinition
             CandidateSampleCount = samples,
             Weight = weight,
             OpportunityBonusOverride = opportunityBonusOverride,
+            DistanceScaleOverride = distanceScale,
             FitnessRelationshipKind = fitnessRelationshipKind,
             FitnessRelationshipDirection = fitnessDirection,
             FitnessWeight = fitnessWeight,

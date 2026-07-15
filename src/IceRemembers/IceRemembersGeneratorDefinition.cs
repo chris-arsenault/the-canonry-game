@@ -125,6 +125,7 @@ public static partial class IceRemembersGeneratorDefinition
         ],
         Effects =
         [
+            new ErodeCultureAtTargetEffect(radius: 4, amountPerCell: 25f),
             new SetBindingHistoricalEffect("$offered"),
             new ClaimSemanticJurisdictionEffect("$peace", CanonJurisdictionRadius),
             new RemoveTargetRelationshipsEffect(

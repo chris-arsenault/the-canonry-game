@@ -299,6 +299,7 @@ public static partial class IceRemembersDefinition
         gambit.Reads.Add(AttributeRef.Self(A(Attr.Cohesion), K.Faction));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.AtWarWith, RelationshipPolarity.Negative, 0.88f));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Target, TransferEndpoint.Self, Rel.AtWarWith, RelationshipPolarity.Negative, 0.88f));
+        gambit.Mutations.Add(new ErodeTargetCultureMutation(radius: 3, amountPerCell: 12f));
         gambit.Description = "A pressed rivalry over contested ground formalises into war. War is declared in both directions; cohesion sours, the ice begins to record.";
         return gambit;
     }
@@ -855,6 +856,7 @@ public static partial class IceRemembersDefinition
         gambit.Reads.Add(AttributeRef.Target(A(Attr.Vitality), K.Penguin));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.AtWarWith, RelationshipPolarity.Negative, 0.78f));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Target, TransferEndpoint.Self, Rel.AtWarWith, RelationshipPolarity.Negative, 0.78f));
+        gambit.Mutations.Add(new ErodeTargetCultureMutation(radius: 3, amountPerCell: 10f));
         gambit.Description = "An orca with a settled current raids a nearby penguin route-participant. The raid becomes reciprocal war topology that route-war generators can name and spend.";
         return gambit;
     }

@@ -40,6 +40,7 @@ public enum BehaviorProgramOperation
     IncreaseWorkTier,
     ForgeCellVertical,
     CullEndpointIncomingRelationships,
+    ErodeTargetCulture,
 }
 
 public enum BehaviorProgramEndpoint

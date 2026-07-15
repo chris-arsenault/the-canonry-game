@@ -18,6 +18,7 @@ public static class LowAltitudeTargets
     public static LowAltitudeVerbTargetMode Terrain => LowAltitudeVerbTargetMode.Terrain;
     public static LowAltitudeVerbTargetMode OwnInfluence => LowAltitudeVerbTargetMode.OwnInfluence;
     public static LowAltitudeVerbTargetMode ForeignInfluence => LowAltitudeVerbTargetMode.ForeignInfluence;
+    public static LowAltitudeVerbTargetMode ChroniclePursuit => LowAltitudeVerbTargetMode.ChroniclePursuit;
 }
 
 public static class AttributeEffectConditions

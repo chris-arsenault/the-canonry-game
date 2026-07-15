@@ -163,8 +163,47 @@ internal sealed partial class GambitProgramRuntime
             case BehaviorOperationCodes.ForgeCellVertical:
                 _ = simulation.TryForgeCellVertical(entityId, _stepA[step], _stepB[step], tick);
                 return true;
+            case BehaviorOperationCodes.ErodeTargetCulture:
+                ErodeTargetCulture(simulation, world, targetId, tick, _stepA[step], _stepX[step]);
+                return true;
             default:
                 return false;
+        }
+    }
+
+    /// <summary>
+    /// Conflict scars the field: erode the target's culture influence around
+    /// the target's physical position, strongest at the center.
+    /// </summary>
+    private static void ErodeTargetCulture(Simulation simulation, WorldState world, int targetId, int tick, int radius, float amountPerCell)
+    {
+        if (targetId <= 0 || !world.EntityIsActive(targetId))
+        {
+            return;
+        }
+
+        var cultureId = world.EntityCultureId(targetId);
+        if (cultureId <= 0)
+        {
+            return;
+        }
+
+        var centerQ = world.EntityPhysicalQ(targetId);
+        var centerR = world.EntityPhysicalR(targetId);
+        for (var dq = -radius; dq <= radius; dq++)
+        {
+            for (var dr = global::System.Math.Max(-radius, -dq - radius); dr <= global::System.Math.Min(radius, -dq + radius); dr++)
+            {
+                var distance = (global::System.Math.Abs(dq) + global::System.Math.Abs(dr) + global::System.Math.Abs(dq + dr)) / 2;
+                var falloff = 1f - (distance / (radius + 1f));
+                _ = simulation.ModifyCellCultureInfluenceRaw(
+                    cultureId,
+                    PlaneCodes.Physical,
+                    centerQ + dq,
+                    centerR + dr,
+                    -amountPerCell * falloff,
+                    tick);
+            }
         }
     }
 

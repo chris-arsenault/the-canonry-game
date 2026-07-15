@@ -782,6 +782,7 @@ internal static partial class KernelProgramInstaller
         {
             BehaviorProgramOperation.SetTargetCoverageTerrain => BehaviorOperationCodes.SetTargetCoverageTerrain,
             BehaviorProgramOperation.BuildTravelStructureLine => BehaviorOperationCodes.BuildTravelStructureLine,
+            BehaviorProgramOperation.ErodeTargetCulture => BehaviorOperationCodes.ErodeTargetCulture,
             _ => -1,
         };
         return code >= 0;

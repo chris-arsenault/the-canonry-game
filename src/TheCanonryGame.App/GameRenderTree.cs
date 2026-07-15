@@ -37,6 +37,7 @@ internal sealed class GameRenderTree
     private readonly EntityBrowserRender _browserRender = new();
     private readonly ChronicleRender _chronicleRender = new();
     private readonly ChronicleAuraLayer _chronicleAura = new();
+    private readonly MinorActorFlowLayer _minorActorFlow = new();
     private readonly CardLayerRender _cardLayerRender = new();
     private readonly AttributeGraphRender _attributeGraphRender = new();
     private readonly TableauRender _tableauRender = new();
@@ -83,6 +84,7 @@ internal sealed class GameRenderTree
         _entityLayer = entityLayer;
         _chronicleAura.Initialize(entityLayer);
         entityLayer.AddChild(_chronicleAura);
+        entityLayer.AddChild(_minorActorFlow);
         _browser = browser;
         _topBar = topBar;
         _bottomBar = bottomBar;
@@ -176,6 +178,14 @@ internal sealed class GameRenderTree
         _ui = runtime.ReadModels.Entities;
         _symbols = runtime.ReadModels.Symbols;
         _chronicle = runtime.ReadModels.Chronicle;
+        _minorActorFlow.Initialize(
+            runtime.ReadModels.MinorActorFlow,
+            _entityLayer,
+            cultureId => UiTokens.CultureColor(ProjectionDisplay.StableName(
+                _symbols,
+                ProjectionSymbolKind.Culture,
+                cultureId,
+                cultureId == 0 ? "none" : $"culture-{cultureId}")));
         _seed = runtime.Seed.BaseSeed;
         _seedAttempt = runtime.Seed.Attempt;
         BindNodesToRuntime();

@@ -577,7 +577,8 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
             not TargetSelectorCodes.RelationshipTarget and
             not TargetSelectorCodes.Terrain and
             not TargetSelectorCodes.SelfMapValue and
-            not TargetSelectorCodes.OtherMapValue)
+            not TargetSelectorCodes.OtherMapValue and
+            not TargetSelectorCodes.ChroniclePursuit)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(targetModeCode));
         }

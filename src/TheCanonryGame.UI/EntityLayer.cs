@@ -295,6 +295,9 @@ public partial class EntityLayer : Node2D
             : new HexCoord(entity.SemanticQ, entity.SemanticR);
     }
 
+    /// <summary>Hex-to-pixel in this layer's local space, for overlay layers.</summary>
+    public Vector2 HexCenter(HexCoord coord) => HexToPixel(coord);
+
     private Vector2 HexToPixel(HexCoord coord)
     {
         var x = HexSize * (Mathf.Sqrt(3f) * coord.Q + Mathf.Sqrt(3f) / 2f * coord.R);

@@ -34,8 +34,70 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             TargetSelectorCodes.Terrain => TryBuildTerrainCandidate(simulation, entityId, rule, tick),
             TargetSelectorCodes.SelfMapValue => TryBuildOwnInfluenceCandidate(simulation, entityId, rule, tick),
             TargetSelectorCodes.OtherMapValue => TryBuildForeignInfluenceCandidate(simulation, entityId, rule, tick),
+            TargetSelectorCodes.ChroniclePursuit => TryBuildChroniclePursuitCandidate(simulation, entityId, rule, tick),
             _ => CandidateBuildResult.Empty,
         };
+    }
+
+    private const int PursuitMinDistance = 5;
+
+    /// <summary>
+    /// The tale draws its cast together: a journey toward the entity's
+    /// chronicle costar, offered only while the story is hot and the costar
+    /// is genuinely far - close costars need no pursuit.
+    /// </summary>
+    private CandidateBuildResult TryBuildChroniclePursuitCandidate(
+        Simulation simulation,
+        int entityId,
+        int rule,
+        int tick)
+    {
+        var costarId = simulation.Chronicles.PursuitTargetFor(entityId, out var heat);
+        if (costarId <= 0 || !simulation.World.EntityIsActive(costarId))
+        {
+            return CandidateBuildResult.Empty;
+        }
+
+        var world = simulation.World;
+        var planeCode = Data.PlaneCode(rule);
+        var actorQ = CurrentQ(world, entityId, planeCode);
+        var actorR = CurrentR(world, entityId, planeCode);
+        var targetQ = CurrentQ(world, costarId, planeCode);
+        var targetR = CurrentR(world, costarId, planeCode);
+        var distance = (global::System.Math.Abs(actorQ - targetQ) +
+            global::System.Math.Abs(actorR - targetR) +
+            global::System.Math.Abs((actorQ + actorR) - (targetQ + targetR))) / 2;
+        if (distance < PursuitMinDistance ||
+            !MovementTargetReachable(simulation, entityId, rule, planeCode, targetQ, targetR, tick))
+        {
+            return CandidateBuildResult.Empty;
+        }
+
+        var scalars = EffectiveScalars(simulation, entityId, rule);
+        var targetS = planeCode == PlaneCodes.Semantic ? world.EntitySemanticS(costarId) : 0;
+        var weight = scalars.Weight * (1f + (heat * 0.15f));
+        var candidate = new VerbTargetCandidate(
+            RuleSlot: rule,
+            PlaneCode: planeCode,
+            TargetEntityId: costarId,
+            TargetKindId: world.EntityKindId(costarId),
+            Q: targetQ,
+            R: targetR,
+            S: targetS,
+            BaseWeight: weight,
+            AffordanceScore: 0f,
+            AffordanceBonus: 0f,
+            AffordanceSourceKindCode: 0,
+            AffordanceSourceId: 0,
+            AffordanceShapeCode: 0,
+            AffordanceSourceKindMask: 0,
+            AffordanceShapeMask: 0,
+            AffordanceContributionCount: 0,
+            GeneratorAffordanceCount: 0,
+            GambitAffordanceCount: 0,
+            HiddenAffordanceCount: 0,
+            Weight: weight);
+        return new CandidateBuildResult(candidate, 0f);
     }
 
     private CandidateBuildResult TryBuildExploreCandidate(

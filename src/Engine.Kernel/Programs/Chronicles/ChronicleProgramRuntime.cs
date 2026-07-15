@@ -130,6 +130,60 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
         return pull > ConvergencePullMax ? ConvergencePullMax : pull;
     }
 
+    private const float PursuitHeatFloor = 2.5f;
+
+    /// <summary>
+    /// The tale draws its cast together: the costar this entity should
+    /// travel toward, from its hottest sufficiently hot chronicle. Cast
+    /// members converge on the primary; the primary is drawn to whichever
+    /// costar carries the story to it. Read by the verb program's
+    /// chronicle-pursuit target selector.
+    /// </summary>
+    public int PursuitTargetFor(int entityId, out float heat)
+    {
+        heat = 0f;
+        var target = 0;
+        for (var chronicle = 1; chronicle <= State.HighWatermark; chronicle++)
+        {
+            if (!State.Active[chronicle] ||
+                State.Heat[chronicle] < PursuitHeatFloor ||
+                State.Heat[chronicle] <= heat ||
+                !CastContains(chronicle, entityId))
+            {
+                continue;
+            }
+
+            var costar = PursuitCostar(chronicle, entityId);
+            if (costar > 0)
+            {
+                heat = State.Heat[chronicle];
+                target = costar;
+            }
+        }
+
+        return target;
+    }
+
+    private int PursuitCostar(int chronicle, int entityId)
+    {
+        var primary = RoleEntity(chronicle, 0);
+        if (primary != entityId)
+        {
+            return primary;
+        }
+
+        for (var role = 1; role < ChronicleProgramData.MaxRolesPerArchetype; role++)
+        {
+            var costar = RoleEntity(chronicle, role);
+            if (costar > 0)
+            {
+                return costar;
+            }
+        }
+
+        return 0;
+    }
+
     /// <summary>
     /// The hottest running chronicle this entity is cast in; the world's
     /// remembrance machinery (generators) reads this to notice story-bearers.

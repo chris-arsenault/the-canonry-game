@@ -460,6 +460,7 @@ public static class GameplayCompiler
         LowAltitudeVerbTargetMode.Terrain => TargetSelectorCodes.Terrain,
         LowAltitudeVerbTargetMode.OwnInfluence => TargetSelectorCodes.SelfMapValue,
         LowAltitudeVerbTargetMode.ForeignInfluence => TargetSelectorCodes.OtherMapValue,
+        LowAltitudeVerbTargetMode.ChroniclePursuit => TargetSelectorCodes.ChroniclePursuit,
         _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null),
     };
 

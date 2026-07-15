@@ -125,6 +125,13 @@ public enum LowAltitudeVerbTargetMode
     Terrain,
     OwnInfluence,
     ForeignInfluence,
+
+    /// <summary>
+    /// The tale draws its cast together: target the pursuing entity's
+    /// chronicle costar. Only offers a candidate while the entity is cast in
+    /// a sufficiently hot chronicle with a distant costar.
+    /// </summary>
+    ChroniclePursuit,
 }
 
 public enum LowAltitudeVerbRelationshipDirection

@@ -46,6 +46,7 @@ internal sealed class LowAltitudeVerbShape
             LowAltitudeVerbTargetMode.EntityKind,
             LowAltitudeVerbTargetMode.RelationshipTarget,
             LowAltitudeVerbTargetMode.Terrain,
+            LowAltitudeVerbTargetMode.ChroniclePursuit,
         },
         PhysicalAllowed = true,
         SemanticAllowed = true,

@@ -369,6 +369,7 @@ public static class DefinitionGeneratorBuilder
             SetBindingHistoricalEffect setHistorical => BuildSetBindingHistoricalEffect(generatorId, setHistorical, declaredRefs),
             SetBindingTagEffect setTag => BuildBindingTagEffect(generatorId, setTag.BindingRef, setTag.Tag, assigned: true, graph, declaredRefs),
             ClaimSemanticJurisdictionEffect claim => BuildClaimJurisdictionEffect(generatorId, claim, declaredRefs),
+            ErodeCultureAtTargetEffect erode => new DefinitionErodeCultureAtTargetEffect(erode.Radius, erode.AmountPerCell),
             ClearBindingTagEffect clearTag => BuildBindingTagEffect(generatorId, clearTag.BindingRef, clearTag.Tag, assigned: false, graph, declaredRefs),
             RemoveTargetRelationshipsEffect removeRelationships => BuildRemoveTargetRelationshipsEffect(generatorId, target, removeRelationships, graph, runtimeIds),
             AdjustTargetRelationshipStrengthEffect adjustRelationship => BuildAdjustTargetRelationshipStrengthEffect(generatorId, target, adjustRelationship, graph, runtimeIds),

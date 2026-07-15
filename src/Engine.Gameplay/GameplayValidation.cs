@@ -127,6 +127,7 @@ public static class GameplayValidator
             case LowAltitudeVerbTargetMode.Explore:
             case LowAltitudeVerbTargetMode.OwnInfluence:
             case LowAltitudeVerbTargetMode.ForeignInfluence:
+            case LowAltitudeVerbTargetMode.ChroniclePursuit:
                 RejectField(verb, hasTargetKind, "TargetKind", errors);
                 RejectField(verb, hasRelationship, "RelationshipKind", errors);
                 RejectField(verb, hasTerrains, "Terrains", errors);

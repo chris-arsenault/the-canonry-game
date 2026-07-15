@@ -37,6 +37,7 @@ internal sealed class GameRuntimeReadModels
         Symbols = runtime.Symbols;
         Knowledge = GameDomainKnowledge.FromCompiledDomain(runtime.CompiledDomain, runtime.Symbols);
         Chronicle = new GameRuntimeChronicle(runtime.Chronicle, runtime.Provenance, runtime.Symbols, Knowledge);
+        MinorActorFlow = runtime.MinorActorFlow;
         ConfigureHierarchyTags(runtime);
         ConfigureCultureSlots(runtime);
         ConfigureHealthAttributes(runtime);
@@ -47,6 +48,8 @@ internal sealed class GameRuntimeReadModels
     public UiProjectionState Entities { get; }
 
     public IGameChronicleFeed Chronicle { get; }
+
+    public MinorActorFlowProjection MinorActorFlow { get; }
 
     public IProjectionSymbolCatalog Symbols { get; }
 

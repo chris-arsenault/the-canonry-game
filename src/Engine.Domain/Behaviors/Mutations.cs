@@ -287,6 +287,20 @@ public sealed class ModifyTargetByVariableMutation(string attributeName, string 
 /// <summary>
 /// Moves self one step along a path toward the resolved target.
 /// </summary>
+/// <summary>
+/// War leaves marks on the land: erodes the target's culture influence in a
+/// radius around the target's physical position. Conflict couples to
+/// concentrated territorial loss - the front becomes visible.
+/// </summary>
+public sealed class ErodeTargetCultureMutation(int radius, float amountPerCell) : IMutation
+{
+    public int Radius { get; } = radius;
+
+    public float AmountPerCell { get; } = amountPerCell;
+
+    public string Describe() => $"erode_target_culture(radius={Radius}, amount={AmountPerCell})";
+}
+
 public sealed class MoveTowardTargetMutation(
     string? locationRelationshipKind = null,
     EntityKind? locationEntityKind = null) : IMutation
