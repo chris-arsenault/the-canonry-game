@@ -511,3 +511,46 @@ roles first and biases future events into the beats.
   entities 16384) for evidence runs, but the 2.5M-tick full-game horizon
   needs a relationship/entity history-eviction architecture. This is the
   accretion warning made concrete.
+
+## Kinetics round — proposal space (2026-07-15, drafted; not yet approved)
+
+Diagnosis: `docs/analysis/world-kinetics-20260715.md`. Metrics to move:
+displacement efficiency (80 hops/epoch nets 11 hexes; 86% cancels),
+flux localization (culture gains:losses 1.02 uniform; no fronts, no
+ownership reversals), watchable density (0.13 deeds/tick worldwide).
+Low-altitude verbs are the intended ebb/flow engine, with gambits as
+punctuation; the verb layer runs constantly but its product is
+centripetal jitter.
+
+Axis 1 — journeys:
+- J1 destination verbs (authored): pilgrimage, wandering season,
+  caravan runs, chronicle-charged pursuit; commitment-until-arrival.
+- J2 consume the attractor field (systemic): verb selection treks to
+  high-attractor cells beyond a minimum range; chronicle heat already
+  boosts cast attractor mass, so convergence becomes visible for free.
+- J3 the anchor drifts: crowding-triggered anchor relocation and
+  settlement fission with founding treks.
+
+Axis 2 — fronts:
+- F1 conflict scars the field: wars/raids apply concentrated culture
+  erosion at the event site via gambit/generator effects.
+- F2 frontier contest: contested mixed-influence cells decay the weaker
+  side faster and draw both sides' verb targeting; the standing tide.
+- F3 the ice breathes: epochal terrain-modulated decay; only as a layer
+  under F2.
+
+Axis 3 — tempo:
+- T1 duty-cycle travel (rest long, then move every tick to arrival).
+- T2 motion rendering (trails, interpolation).
+- T3 render minor actors: the kernel's invisible cohort labor drawn as
+  flow along roads - highest visual life per effort, zero sim change.
+
+Bundles: A "The Tide" (J2+F2+T1, systemic, heaviest tuning risk);
+B "The Deeds" (J1+F1+T3, authored, independently shippable);
+C "The Stage" (T1+T2+T3+pursuit only, legibility probe).
+Draft recommendation: B first, then F2 (+J2) as its own macro round.
+Targets: journeying-kind displacement efficiency >= 40%; per-region
+gains:losses spread 0.8-1.3; >= 1 boundary reversal per 25k; motion in
+any 20-hex viewport within seconds.
+Not changed by any bundle: chronicle/beat system, scarcity caps,
+lifecycle bands, microkernel constraints, no-Director-writes.
