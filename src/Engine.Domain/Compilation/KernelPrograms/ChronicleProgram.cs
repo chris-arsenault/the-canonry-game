@@ -51,6 +51,7 @@ public sealed record CompiledChronicleCharge(
     int TargetRole,
     int GambitId,
     float ScoreBonus,
+    float SuccessBonus,
     bool HeatScaled);
 
 public sealed record CompiledChronicleGrant(

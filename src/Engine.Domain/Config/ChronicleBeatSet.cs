@@ -128,6 +128,7 @@ public static class ChronicleBeatSet
                 TargetRole = target,
                 Gambit = charge.Gambit,
                 ScoreBonus = charge.ScoreBonus,
+                SuccessBonus = charge.SuccessBonus,
                 HeatScaled = charge.HeatScaled,
             });
         }

@@ -788,8 +788,8 @@ internal sealed class KernelConfigurationContext
             strikeFactRelOrAttrId,
             strikeFactValue);
 
-    public void AddChronicleBeatCharge(int beatSlot, int actorRole, int targetRole, int gambitId, float scoreBonus, bool heatScaled) =>
-        _kernel.Chronicles.AddBeatCharge(beatSlot, actorRole, targetRole, gambitId, scoreBonus, heatScaled ? 1 : 0);
+    public void AddChronicleBeatCharge(int beatSlot, int actorRole, int targetRole, int gambitId, float scoreBonus, bool heatScaled, float successBonus) =>
+        _kernel.Chronicles.AddBeatCharge(beatSlot, actorRole, targetRole, gambitId, scoreBonus, heatScaled ? 1 : 0, successBonus);
 
     public void AddChronicleBeatGrant(int beatSlot, int role, int gambitId) =>
         _kernel.Chronicles.AddBeatGrant(beatSlot, role, gambitId);

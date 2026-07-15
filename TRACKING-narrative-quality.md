@@ -384,6 +384,18 @@ roles first and biases future events into the beats.
   ticks of a legendary resolution, memorializing and claiming them).
   Remembrance is the C3 name for the legend-making layer; the earlier
   draft name was judged too Malazan and is retired from chronicle content.
+- [x] C2c — story favor (2026-07-15, after the "so what / fails and
+  fizzles / beats are nothing-happens" finding). Root cause chain:
+  baseline gambit success is 0.25 and charges only biased selection, so
+  the story pushed actions the dice failed three times out of four; deed
+  beats are success-gated, so tellings filled with lulls, flights, and
+  fades. Charges now carry an authored SuccessBonus added to the gambit
+  success roll while the beat is open (never heat-scaled; typical 0.1 to
+  0.3, the beast at bay 0.3 on top of the granted corner) - the story
+  favors the committed. Nothing-beats quieted (lull heat 1 to 0.5,
+  flight 1.5 to 1). Roads gain their first entrance: raiders_on_the_road
+  joins the raiding orca as $raider with heat-scaled raid charges - road
+  tales gain an antagonist.
 
 ## Scope notes and follow-ups discovered during R1-R4
 

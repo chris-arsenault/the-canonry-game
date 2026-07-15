@@ -63,6 +63,7 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
     internal int[] ChargeTargetRoles = [];
     internal int[] ChargeGambitIds = [];
     internal float[] ChargeScoreBonuses = [];
+    internal float[] ChargeSuccessBonuses = [];
     internal int[] ChargeHeatScaled = [];
 
     // Grant rows (flat): chronicle-granted gambits available while the beat is open.
@@ -140,6 +141,7 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
         ChargeTargetRoles = new int[itemCapacity + 1];
         ChargeGambitIds = new int[itemCapacity + 1];
         ChargeScoreBonuses = new float[itemCapacity + 1];
+        ChargeSuccessBonuses = new float[itemCapacity + 1];
         ChargeHeatScaled = new int[itemCapacity + 1];
         GrantRoles = new int[itemCapacity + 1];
         GrantGambitIds = new int[itemCapacity + 1];
@@ -147,5 +149,5 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.ChronicleDirector;
 
-    public int SchemaVersion => 4;
+    public int SchemaVersion => 5;
 }

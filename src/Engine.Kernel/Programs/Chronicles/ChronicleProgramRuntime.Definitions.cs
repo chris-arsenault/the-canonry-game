@@ -118,7 +118,7 @@ internal sealed partial class ChronicleProgramRuntime
         return beat;
     }
 
-    public void AddBeatCharge(int beatSlot, int actorRole, int targetRole, int gambitId, float scoreBonus, int heatScaled)
+    public void AddBeatCharge(int beatSlot, int actorRole, int targetRole, int gambitId, float scoreBonus, int heatScaled, float successBonus = 0f)
     {
         EnsureOpenBeat(beatSlot);
         if (Data.ChargeCount + 1 >= Data.ChargeActorRoles.Length)
@@ -131,6 +131,7 @@ internal sealed partial class ChronicleProgramRuntime
         Data.ChargeTargetRoles[Data.ChargeCount] = targetRole;
         Data.ChargeGambitIds[Data.ChargeCount] = gambitId;
         Data.ChargeScoreBonuses[Data.ChargeCount] = scoreBonus;
+        Data.ChargeSuccessBonuses[Data.ChargeCount] = successBonus;
         Data.ChargeHeatScaled[Data.ChargeCount] = heatScaled;
         Data.BeatChargeCounts[beatSlot]++;
     }

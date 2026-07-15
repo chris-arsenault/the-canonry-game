@@ -199,6 +199,7 @@ public static partial class DomainCompiler
                 RoleIndex(archetype, charge.TargetRole, roleIndices),
                 charge.Gambit is null ? 0 : ids.GambitIdOf(charge.Gambit).Value,
                 charge.ScoreBonus,
+                charge.SuccessBonus,
                 charge.HeatScaled))
             .ToList();
 

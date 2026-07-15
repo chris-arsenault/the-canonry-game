@@ -54,7 +54,11 @@ public static class IceRemembersChronicleBeats
         Open = Beat.Heat(3.5f),
         Strike = Beat.PairAttempt(Protagonist, Adversary),
         HeatGain = 2f,
-        Charges = [Beat.Charge(Protagonist, Adversary, null, 1f), Beat.Charge(Adversary, Protagonist, null, 1f)],
+        Charges =
+        [
+            Beat.Charge(Protagonist, Adversary, null, 1f, success: 0.1f),
+            Beat.Charge(Adversary, Protagonist, null, 1f, success: 0.1f),
+        ],
     };
 
     private static ChronicleBeatConfig TheTideTurns() => new()
@@ -72,7 +76,7 @@ public static class IceRemembersChronicleBeats
         Narrative = "{protagonist} and {adversary} lose each other in the white distance.",
         Open = Beat.Heat(2f),
         Strike = Beat.OnFact(Beat.BeyondDistance(Protagonist, Adversary, 40f)),
-        HeatGain = 1.5f,
+        HeatGain = 1f,
     };
 
     private static ChronicleBeatConfig TheClosing() => new()
@@ -82,7 +86,7 @@ public static class IceRemembersChronicleBeats
         Open = Beat.Heat(4f),
         Strike = Beat.OnFact(Beat.WithinDistance(Protagonist, Adversary, 6f)),
         HeatGain = 2.5f,
-        Charges = [Beat.Charge(Protagonist, Adversary, null, 2f, heatScaled: true)],
+        Charges = [Beat.Charge(Protagonist, Adversary, null, 2f, heatScaled: true, success: 0.15f)],
     };
 
     private static ChronicleBeatConfig AlliesAnswer() => new()
@@ -109,7 +113,7 @@ public static class IceRemembersChronicleBeats
         Narrative = "They draw apart to breathe. The ice waits.",
         Open = Beat.Heat(5.5f),
         Strike = Beat.OnFact(Beat.HeatBelow(2.5f)),
-        HeatGain = 1f,
+        HeatGain = 0.5f,
     };
 
     private static ChronicleBeatConfig NoQuarter() => new()
@@ -121,8 +125,8 @@ public static class IceRemembersChronicleBeats
         HeatGain = 2.5f,
         Charges =
         [
-            Beat.Charge(Protagonist, Adversary, null, 2.5f, heatScaled: true),
-            Beat.Charge(Adversary, Protagonist, null, 2.5f, heatScaled: true),
+            Beat.Charge(Protagonist, Adversary, null, 2.5f, heatScaled: true, success: 0.2f),
+            Beat.Charge(Adversary, Protagonist, null, 2.5f, heatScaled: true, success: 0.2f),
         ],
     };
 
@@ -135,8 +139,8 @@ public static class IceRemembersChronicleBeats
         HeatGain = 1.5f,
         Charges =
         [
-            Beat.Charge(Protagonist, Adversary, null, 2f, heatScaled: true),
-            Beat.Charge(Adversary, Protagonist, null, 2f, heatScaled: true),
+            Beat.Charge(Protagonist, Adversary, null, 2f, heatScaled: true, success: 0.15f),
+            Beat.Charge(Adversary, Protagonist, null, 2f, heatScaled: true, success: 0.15f),
         ],
     };
 }
@@ -201,8 +205,8 @@ internal static class Beat
     internal static ChronicleStrikeConfig OnFact(ChronicleConditionConfig fact) =>
         new() { Kind = ChronicleStrikeKind.StateFact, Fact = fact };
 
-    internal static ChronicleChargeConfig Charge(string actor, string target, string? gambit, float bonus, bool heatScaled = false) =>
-        new() { ActorRole = actor, TargetRole = target, Gambit = gambit, ScoreBonus = bonus, HeatScaled = heatScaled };
+    internal static ChronicleChargeConfig Charge(string actor, string target, string? gambit, float bonus, bool heatScaled = false, float success = 0f) =>
+        new() { ActorRole = actor, TargetRole = target, Gambit = gambit, ScoreBonus = bonus, HeatScaled = heatScaled, SuccessBonus = success };
 
     internal static ChronicleGrantConfig Grant(string role, string gambit) =>
         new() { Role = role, Gambit = gambit };

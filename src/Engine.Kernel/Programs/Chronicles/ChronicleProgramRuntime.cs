@@ -205,7 +205,48 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
         return total;
     }
 
-    private float BeatChargeBias(int chronicle, int beat, int actorId, int targetId, int gambitId)
+    private float BeatChargeBias(int chronicle, int beat, int actorId, int targetId, int gambitId) =>
+        BeatChargeSum(chronicle, beat, actorId, targetId, gambitId, Data.ChargeScoreBonuses, heatScale: true);
+
+    /// <summary>
+    /// The story favors the committed: charges also raise the success chance
+    /// of the deeds they push, so a charged blow lands more often than an
+    /// uncharged one. Read by the gambit program's success roll. Success
+    /// favor is never heat-scaled - it is authored, bounded encouragement.
+    /// </summary>
+    public float SuccessBonus(int actorId, int targetId, int gambitId)
+    {
+        var total = 0f;
+        for (var chronicle = 1; chronicle <= State.HighWatermark; chronicle++)
+        {
+            if (!State.Active[chronicle])
+            {
+                continue;
+            }
+
+            var archetype = State.ArchetypeSlots[chronicle];
+            var beatStart = Data.ArchetypeBeatStarts[archetype];
+            var beatEnd = beatStart + Data.ArchetypeBeatCounts[archetype];
+            for (var beat = beatStart; beat < beatEnd; beat++)
+            {
+                if (BeatIsOpen(chronicle, beat - beatStart))
+                {
+                    total += BeatChargeSum(chronicle, beat, actorId, targetId, gambitId, Data.ChargeSuccessBonuses, heatScale: false);
+                }
+            }
+        }
+
+        return total;
+    }
+
+    private float BeatChargeSum(
+        int chronicle,
+        int beat,
+        int actorId,
+        int targetId,
+        int gambitId,
+        float[] bonuses,
+        bool heatScale)
     {
         var total = 0f;
         var chargeStart = Data.BeatChargeStarts[beat];
@@ -223,8 +264,8 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
                 continue;
             }
 
-            var bonus = Data.ChargeScoreBonuses[charge];
-            if (Data.ChargeHeatScaled[charge] != 0)
+            var bonus = bonuses[charge];
+            if (heatScale && Data.ChargeHeatScaled[charge] != 0)
             {
                 var multiplier = 1f + (State.Heat[chronicle] * HeatChargeSlope);
                 bonus *= multiplier < MaxHeatChargeMultiplier ? multiplier : MaxHeatChargeMultiplier;

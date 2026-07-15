@@ -17,9 +17,11 @@ chronicle makes real:
   discipline that keeps an unordered pool from collapsing back into a
   scripted act order.
 - **Charges** — what the open beat arms: role-pair gambit score bonuses
-  (optionally heat-scaled) and chronicle-granted gambits (gambits flagged
-  `ChronicleGranted` are inert unless an open beat grants them to the acting
-  entity's role).
+  (optionally heat-scaled), success-chance bonuses (the story favors the
+  committed: a charged blow lands more often than an uncharged one; authored
+  and bounded, never heat-scaled), and chronicle-granted gambits (gambits
+  flagged `ChronicleGranted` are inert unless an open beat grants them to the
+  acting entity's role).
 - **Strike condition** — what marks the beat as having happened: a gambit
   executed between roles, a gambit by a
   non-cast entity on a role (optionally filtered to one gambit — "an

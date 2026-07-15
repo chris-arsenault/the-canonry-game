@@ -92,8 +92,8 @@ public static class IceRemembersChronicleArchetypes
             Open = Beat.Always(),
             Charges =
             [
-                Beat.Charge("$hunter", "$quarry", "penguin_slays_monster", 2f),
-                Beat.Charge("$hunter", "$quarry", "penguin_binds_what_was_loosed", 1.5f),
+                Beat.Charge("$hunter", "$quarry", "penguin_slays_monster", 2f, success: 0.15f),
+                Beat.Charge("$hunter", "$quarry", "penguin_binds_what_was_loosed", 1.5f, success: 0.1f),
             ],
         },
         new ChronicleBeatConfig
@@ -103,7 +103,7 @@ public static class IceRemembersChronicleArchetypes
             Open = Beat.AttrBelow("$quarry", "containment", 55f),
             Strike = Beat.OnFact(Beat.AttrBelow("$quarry", "containment", 55f)),
             HeatGain = 2.5f,
-            Charges = [Beat.Charge("$hunter", "$quarry", "penguin_slays_monster", 2f, heatScaled: true)],
+            Charges = [Beat.Charge("$hunter", "$quarry", "penguin_slays_monster", 2f, heatScaled: true, success: 0.2f)],
         },
         new ChronicleBeatConfig
         {
@@ -112,7 +112,7 @@ public static class IceRemembersChronicleArchetypes
             Open = Beat.AttrBelow("$hunter", "vitality", 40f),
             Strike = Beat.OnFact(Beat.AttrBelow("$hunter", "vitality", 40f)),
             HeatGain = 2.5f,
-            Charges = [Beat.Charge("$quarry", "$hunter", null, 1.5f)],
+            Charges = [Beat.Charge("$quarry", "$hunter", null, 1.5f, success: 0.1f)],
         },
     ];
 
@@ -133,7 +133,7 @@ public static class IceRemembersChronicleArchetypes
             Open = Beat.Always(),
             Strike = Beat.OutsiderJoins("$quarry", "$second"),
             HeatGain = 2.5f,
-            Charges = [Beat.Charge("$second", "$quarry", "penguin_slays_monster", 2f, heatScaled: true)],
+            Charges = [Beat.Charge("$second", "$quarry", "penguin_slays_monster", 2f, heatScaled: true, success: 0.2f)],
         },
         new ChronicleBeatConfig
         {
@@ -150,7 +150,7 @@ public static class IceRemembersChronicleArchetypes
             Open = Beat.Heat(5f),
             Strike = Beat.PairAttempt("$hunter", "$quarry", "penguin_corners_the_beast"),
             HeatGain = 3f,
-            Charges = [Beat.Charge("$hunter", "$quarry", "penguin_slays_monster", 3f, heatScaled: true)],
+            Charges = [Beat.Charge("$hunter", "$quarry", "penguin_slays_monster", 3f, heatScaled: true, success: 0.3f)],
             Grants = [Beat.Grant("$hunter", "penguin_corners_the_beast")],
         },
     ];
@@ -242,8 +242,8 @@ public static class IceRemembersChronicleArchetypes
             Open = Beat.Always(),
             Charges =
             [
-                Beat.Charge("$challenger", "$rival", "faction_declares_territorial_war", 2.5f),
-                Beat.Charge("$rival", "$challenger", "faction_declares_territorial_war", 2.5f),
+                Beat.Charge("$challenger", "$rival", "faction_declares_territorial_war", 2.5f, success: 0.2f),
+                Beat.Charge("$rival", "$challenger", "faction_declares_territorial_war", 2.5f, success: 0.2f),
             ],
         },
         new ChronicleBeatConfig
@@ -265,7 +265,7 @@ public static class IceRemembersChronicleArchetypes
             Open = Beat.Always(),
             Strike = Beat.RoleDrawsIn("$challenger", "faction_swears_cold_accord", "$ally"),
             HeatGain = 2.5f,
-            Charges = [Beat.Charge("$ally", "$rival", "faction_declares_territorial_war", 1.5f, heatScaled: true)],
+            Charges = [Beat.Charge("$ally", "$rival", "faction_declares_territorial_war", 1.5f, heatScaled: true, success: 0.15f)],
         },
         new ChronicleBeatConfig
         {
@@ -317,8 +317,8 @@ public static class IceRemembersChronicleArchetypes
             Open = Beat.PairRel("$challenger", "$rival", "at_war_with", 0.05f),
             Charges =
             [
-                Beat.Charge("$challenger", "$rival", "faction_sues_for_peace", 1.5f, heatScaled: true),
-                Beat.Charge("$rival", "$challenger", "faction_sues_for_peace", 1.5f, heatScaled: true),
+                Beat.Charge("$challenger", "$rival", "faction_sues_for_peace", 1.5f, heatScaled: true, success: 0.2f),
+                Beat.Charge("$rival", "$challenger", "faction_sues_for_peace", 1.5f, heatScaled: true, success: 0.2f),
             ],
         },
     ];
@@ -402,8 +402,8 @@ public static class IceRemembersChronicleArchetypes
             Open = Beat.Always(),
             Charges =
             [
-                Beat.Charge("$master", "$student", "penguin_mends_another", 1.5f),
-                Beat.Charge("$student", "$master", "penguin_mends_another", 1.5f),
+                Beat.Charge("$master", "$student", "penguin_mends_another", 1.5f, success: 0.25f),
+                Beat.Charge("$student", "$master", "penguin_mends_another", 1.5f, success: 0.25f),
             ],
         },
         new ChronicleBeatConfig
@@ -496,6 +496,7 @@ public static class IceRemembersChronicleArchetypes
                 Query = new SemanticEntityQuery { RelatedToTargetRelationship = "trade_route", RelatedToTargetMinStrength = 0.85f },
             },
         ],
+        OpenRoles = [new ChronicleOpenRoleConfig { Ref = "$raider", Kind = K.Orca }],
         Beats = [.. RoadBeats()],
         FadeOutcomeId = "the_road_endures_quietly",
         FadeNarrative = "The road between {$port} and {$partner} needs no more telling. It simply endures.",
@@ -514,10 +515,10 @@ public static class IceRemembersChronicleArchetypes
             Open = Beat.Always(),
             Charges =
             [
-                Beat.Charge("$port", "$partner", null, 1f),
-                Beat.Charge("$partner", "$port", null, 1f),
-                Beat.Charge("$port", "$partner", "settlement_raises_causeway", 3f, heatScaled: true),
-                Beat.Charge("$partner", "$port", "settlement_raises_causeway", 3f, heatScaled: true),
+                Beat.Charge("$port", "$partner", null, 1f, success: 0.1f),
+                Beat.Charge("$partner", "$port", null, 1f, success: 0.1f),
+                Beat.Charge("$port", "$partner", "settlement_raises_causeway", 3f, heatScaled: true, success: 0.25f),
+                Beat.Charge("$partner", "$port", "settlement_raises_causeway", 3f, heatScaled: true, success: 0.25f),
             ],
         },
         new ChronicleBeatConfig
@@ -543,10 +544,20 @@ public static class IceRemembersChronicleArchetypes
         new ChronicleBeatConfig
         {
             Id = "raiders_on_the_road",
-            Narrative = "Raiders test the road. What flows between {$port} and {$partner} is worth stealing now.",
+            Narrative = "{$raider} tests the road. What flows between {$port} and {$partner} is worth stealing now.",
             Open = Beat.Always(),
-            Strike = Beat.OutsiderOn("$port", "orca_raids_trade_route"),
+            Strike = Beat.OutsiderJoins("$port", "$raider", "orca_raids_trade_route"),
             HeatGain = 2.5f,
+            Charges = [Beat.Charge("$raider", "$port", "orca_raids_trade_route", 2f, heatScaled: true, success: 0.15f)],
+        },
+        new ChronicleBeatConfig
+        {
+            Id = "raiders_at_the_far_gate",
+            Narrative = "{$raider} strikes the far end of the road. Both ports arm their sledges now.",
+            Open = Beat.Always(),
+            Strike = Beat.OutsiderJoins("$partner", "$raider", "orca_raids_trade_route"),
+            HeatGain = 2.5f,
+            Charges = [Beat.Charge("$raider", "$partner", "orca_raids_trade_route", 2f, heatScaled: true, success: 0.15f)],
         },
         new ChronicleBeatConfig
         {
@@ -630,8 +641,8 @@ public static class IceRemembersChronicleArchetypes
             Open = Beat.Always(),
             Charges =
             [
-                Beat.Charge("$vessel", "$haunt", "transport_wards_monster", 3f, heatScaled: true),
-                Beat.Charge("$haunt", "$vessel", "monster_haunts_transport", 1.5f),
+                Beat.Charge("$vessel", "$haunt", "transport_wards_monster", 3f, heatScaled: true, success: 0.25f),
+                Beat.Charge("$haunt", "$vessel", "monster_haunts_transport", 1.5f, success: 0.1f),
             ],
         },
         new ChronicleBeatConfig
@@ -716,7 +727,11 @@ public static class IceRemembersChronicleArchetypes
         {
             Id = "devotion",
             Open = Beat.Always(),
-            Charges = [Beat.Charge("$practice", "$keeper", null, 1f), Beat.Charge("$keeper", "$practice", null, 1f)],
+            Charges =
+            [
+                Beat.Charge("$practice", "$keeper", null, 1f, success: 0.15f),
+                Beat.Charge("$keeper", "$practice", null, 1f, success: 0.15f),
+            ],
         },
         new ChronicleBeatConfig
         {
@@ -811,8 +826,8 @@ public static class IceRemembersChronicleArchetypes
             Open = Beat.Always(),
             Charges =
             [
-                Beat.Charge("$terror", "$foe", "orca_raids_trade_route", 2.5f),
-                Beat.Charge("$foe", "$terror", "penguin_slays_orca", 2.5f, heatScaled: true),
+                Beat.Charge("$terror", "$foe", "orca_raids_trade_route", 2.5f, success: 0.15f),
+                Beat.Charge("$foe", "$terror", "penguin_slays_orca", 2.5f, heatScaled: true, success: 0.2f),
             ],
         },
         new ChronicleBeatConfig
@@ -842,7 +857,7 @@ public static class IceRemembersChronicleArchetypes
             Open = Beat.Always(),
             Strike = Beat.OutsiderJoins("$terror", "$second"),
             HeatGain = 2.5f,
-            Charges = [Beat.Charge("$second", "$terror", "penguin_slays_orca", 2f, heatScaled: true)],
+            Charges = [Beat.Charge("$second", "$terror", "penguin_slays_orca", 2f, heatScaled: true, success: 0.2f)],
         },
         new ChronicleBeatConfig
         {

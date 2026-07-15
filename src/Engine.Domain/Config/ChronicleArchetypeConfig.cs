@@ -207,7 +207,14 @@ public sealed class ChronicleChargeConfig
 
     public required float ScoreBonus { get; init; }
 
-    /// <summary>Scale the bonus with the chronicle's heat - convergence pushing toward endings.</summary>
+    /// <summary>
+    /// The story favors the committed: added to the gambit's success chance
+    /// while the beat is open. Authored, bounded encouragement - never
+    /// heat-scaled.
+    /// </summary>
+    public float SuccessBonus { get; init; }
+
+    /// <summary>Scale the score bonus with the chronicle's heat - convergence pushing toward endings.</summary>
     public bool HeatScaled { get; init; }
 }
 

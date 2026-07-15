@@ -59,6 +59,7 @@ public sealed class ChronicleProgramRuntimeTests
         simulation.Chronicles.Tick(simulation, tick: 25);
 
         Assert.Equal(2f, simulation.Chronicles.ScoreBias(hunter, quarry, SlayGambitId));
+        Assert.Equal(0.3f, simulation.Chronicles.SuccessBonus(hunter, quarry, SlayGambitId));
         Assert.True(simulation.Chronicles.GrantsGambit(hunter, SlayGambitId));
         Assert.False(simulation.Chronicles.GrantsGambit(quarry, SlayGambitId));
 
@@ -66,6 +67,7 @@ public sealed class ChronicleProgramRuntimeTests
         simulation.Chronicles.NoteExecution(hunter, quarry, SlayGambitId, succeeded: true);
         simulation.Chronicles.Tick(simulation, tick: 30);
         Assert.Equal(0f, simulation.Chronicles.ScoreBias(hunter, quarry, SlayGambitId));
+        Assert.Equal(0f, simulation.Chronicles.SuccessBonus(hunter, quarry, SlayGambitId));
         Assert.False(simulation.Chronicles.GrantsGambit(hunter, SlayGambitId));
     }
 
@@ -250,7 +252,7 @@ public sealed class ChronicleProgramRuntimeTests
             strikeFactRoleB: 0,
             strikeFactRelOrAttrId: 0,
             strikeFactValue: 0f);
-        simulation.Chronicles.AddBeatCharge(pairBeat, actorRole: 1, targetRole: 0, gambitId: SlayGambitId, scoreBonus: 2f, heatScaled: 0);
+        simulation.Chronicles.AddBeatCharge(pairBeat, actorRole: 1, targetRole: 0, gambitId: SlayGambitId, scoreBonus: 2f, heatScaled: 0, successBonus: 0.3f);
         simulation.Chronicles.AddBeatGrant(pairBeat, role: 1, gambitId: SlayGambitId);
         _ = simulation.Chronicles.AddBeat(
             archetype,

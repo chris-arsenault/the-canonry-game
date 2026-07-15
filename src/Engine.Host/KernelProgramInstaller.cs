@@ -297,7 +297,7 @@ internal static partial class KernelProgramInstaller
             beat.StrikeFact.Value);
         foreach (var charge in beat.Charges)
         {
-            context.AddChronicleBeatCharge(beatSlot, charge.ActorRole, charge.TargetRole, charge.GambitId, charge.ScoreBonus, charge.HeatScaled);
+            context.AddChronicleBeatCharge(beatSlot, charge.ActorRole, charge.TargetRole, charge.GambitId, charge.ScoreBonus, charge.HeatScaled, charge.SuccessBonus);
         }
 
         foreach (var grant in beat.Grants)

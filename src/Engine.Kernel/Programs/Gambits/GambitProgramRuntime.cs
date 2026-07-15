@@ -541,7 +541,8 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     {
         var successChance = Clamp01(
             _gambitSuccessChances[gambitSlot] +
-            GambitSuccessDecisionDelta(simulation.World, _gambitIds[gambitSlot], entityId, targetId));
+            GambitSuccessDecisionDelta(simulation.World, _gambitIds[gambitSlot], entityId, targetId) +
+            simulation.Chronicles.SuccessBonus(entityId, targetId, _gambitIds[gambitSlot]));
         return successChance >= 1f || simulation.NextFloat() <= successChance
             ? KernelEventState.Succeeded
             : KernelEventState.Failed;
