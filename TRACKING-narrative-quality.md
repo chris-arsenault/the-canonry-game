@@ -415,6 +415,21 @@ roles first and biases future events into the beats.
   tales now span 2255-4510 ticks and reach the_teaching_broken; practices
   grow casts and reach the_keeper_passes; roads span 2500-4000 with
   strikes throughout.
+- [x] C2e — chronicle presence (2026-07-15, after the "disjointed / not
+  clearly special / needs an interest measure" finding). Heat is the
+  interest measure and is now exposed: ChronicleChanged gains a heat
+  float (schemaMinor 1; chronicle_events telemetry gains the column).
+  The journal shows a named intensity band (cold embers / murmuring /
+  burning / roaring / legendary) with glyphs, sorts unfolding tales by
+  heat, and displays glyphs in the nav. Displayed heat is decayed from
+  the last event to the current tick with the director's own cooling
+  rate so it never overstates. The map gains a ChronicleAuraLayer:
+  pulsing rings around every cast member of an unfolding tale, tinted
+  cold blue to ember orange by heat and pulsing faster when hot - a
+  running story is visibly worth following in the world. The journal's
+  split telling/record lists are merged into one chronological timeline:
+  struck-beat narratives lead, and the raw record events sit indented
+  and dimmed beneath them so cause and telling read together.
 
 ## Scope notes and follow-ups discovered during R1-R4
 

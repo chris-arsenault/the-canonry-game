@@ -120,7 +120,8 @@ internal sealed partial class Simulation
         int roleEntityId0,
         int roleEntityId1,
         int roleEntityId2,
-        int roleEntityId3)
+        int roleEntityId3,
+        float heat)
     {
         WriteKernelEvent(KernelEvent.From(new ChronicleChangedKernelEvent(
             tick,
@@ -133,7 +134,8 @@ internal sealed partial class Simulation
             roleEntityId0,
             roleEntityId1,
             roleEntityId2,
-            roleEntityId3)));
+            roleEntityId3,
+            heat)));
     }
 
     internal void EmitGeneratorTargetEvaluated(

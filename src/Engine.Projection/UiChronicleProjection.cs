@@ -37,7 +37,8 @@ public sealed record UiChronicleTale(
     int OutcomeCodeId,
     string OutcomeName,
     IReadOnlyList<UiChronicleEntityRef> Cast,
-    IReadOnlyList<int> RoleIds);
+    IReadOnlyList<int> RoleIds,
+    float Heat);
 
 /// <summary>
 /// A fully narrated chronicle for presentation: forged title, outcome
@@ -114,6 +115,12 @@ public sealed class UiChronicleProjection : KernelEventProjector
 
     public UiChronicleEntityRef EntityRef(int entityId) => BuildEntityRef(entityId);
 
+    /// <summary>Latest completed tick; lets consumers decay displayed heat honestly.</summary>
+    public int CurrentTick { get; private set; }
+
+    protected override void OnTickCompleted(long sequence, in TickCompletedKernelEvent evt) =>
+        CurrentTick = evt.Tick;
+
     protected override void OnEntityCreated(long sequence, in EntityCreatedKernelEvent evt)
     {
         _entityInfo[evt.EntityId] = new EntityInfo(evt.KindId, evt.SubtypeId, evt.CultureId);
@@ -169,7 +176,8 @@ public sealed class UiChronicleProjection : KernelEventProjector
             ResolvedOutcomeCodeId(evt, resolved, previous),
             ResolvedOutcomeName(evt, resolved, previous),
             cast,
-            roleIds);
+            roleIds,
+            evt.Heat);
         _tales[evt.ChronicleSequence] = tale;
         RebuildTaleOrder();
         return tale;

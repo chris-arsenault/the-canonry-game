@@ -84,6 +84,17 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
 
     private UiChronicleTaleView BuildTaleView(UiChronicleTale tale)
     {
+        if (!tale.Resolved)
+        {
+            // Events carry heat as of the last strike; decay it to now with
+            // the director's own cooling rate so the display never overstates.
+            var pulses = (_baseChronicle.CurrentTick - tale.LastEventTick) / 5f;
+            if (pulses > 0f)
+            {
+                tale = tale with { Heat = tale.Heat * MathF.Pow(0.99f, pulses) };
+            }
+        }
+
         var archetype = _knowledge.ChronicleArchetypesById.GetValueOrDefault(tale.ArchetypeId);
         var title = FillRoleTemplate(archetype?.TitleTemplate, archetype, tale, useReferenceNames: true)
             ?? tale.ArchetypeName;

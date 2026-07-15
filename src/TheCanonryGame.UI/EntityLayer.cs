@@ -120,6 +120,19 @@ public partial class EntityLayer : Node2D
         return true;
     }
 
+    /// <summary>Rendered node position in this layer's local space (aura overlays).</summary>
+    public bool TryGetEntityLocalPosition(int entityId, out Vector2 localPosition)
+    {
+        if (_entityNodes.TryGetValue(entityId, out var node))
+        {
+            localPosition = node.Position;
+            return true;
+        }
+
+        localPosition = default;
+        return false;
+    }
+
     public bool TryGetEntityWorldPosition(int entityId, out Vector2 worldPosition)
     {
         if (_entityNodes.TryGetValue(entityId, out var node))

@@ -106,7 +106,11 @@ Casting is unchanged from R5: generator-grade queries, provenance-recency
 primary selection, global and per-archetype concurrency caps.
 
 Telemetry: `ChronicleChanged` events carry Cast / BeatStruck / Resolved, with
-beat and outcome codes in reason-code space (`chronicle_events` table). The
+beat and outcome codes in reason-code space and the chronicle's heat
+(`chronicle_events` table). Heat is the player-facing interest measure: the
+journal names it in bands (cold embers to legendary) and sorts by it, and a
+map aura layer rings every cast member of an unfolding tale, tinted and
+pulsed by heat. The
 UI projection accumulates durable per-tale beats for the Chronicle Journal,
 split into the telling (authored struck-beat narratives) and the record
 (observed events, kept only when they involve two cast members or the world

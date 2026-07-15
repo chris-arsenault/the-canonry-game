@@ -127,6 +127,25 @@ public partial class ChronicleJournal : PanelContainer
         }
     }
 
+    /// <summary>The interest measure: heat, named for the telling.</summary>
+    internal static string HeatBand(float heat) => heat switch
+    {
+        < 1.5f => "cold embers",
+        < 3.5f => "murmuring",
+        < 5.5f => "burning",
+        < 8f => "roaring",
+        _ => "legendary",
+    };
+
+    internal static string HeatGlyphs(float heat) => heat switch
+    {
+        < 1.5f => "·",
+        < 3.5f => "✦",
+        < 5.5f => "✦✦",
+        < 8f => "✦✦✦",
+        _ => "✦✦✦✦",
+    };
+
     private void RebuildNav()
     {
         if (_navList is null)
@@ -139,7 +158,9 @@ public partial class ChronicleJournal : PanelContainer
             child.QueueFree();
         }
 
-        var unfolding = _views.Where(static view => !view.Tale.Resolved).ToList();
+        var unfolding = _views.Where(static view => !view.Tale.Resolved)
+            .OrderByDescending(static view => view.Tale.Heat)
+            .ToList();
         var ended = _views.Where(static view => view.Tale.Resolved).ToList();
         if (_headerLabel is not null)
         {
@@ -168,7 +189,7 @@ public partial class ChronicleJournal : PanelContainer
             var sequence = view.Tale.Sequence;
             var button = new Button
             {
-                Text = view.Title,
+                Text = view.Tale.Resolved ? view.Title : $"{HeatGlyphs(view.Tale.Heat)} {view.Title}",
                 Alignment = HorizontalAlignment.Left,
                 ClipText = true,
                 ToggleMode = true,
@@ -213,7 +234,8 @@ public partial class ChronicleJournal : PanelContainer
             $"[b][color=#{TaleColor}]{view.Title}[/color][/b]",
             tale.Resolved
                 ? $"[color=#{DimColor}]{tale.ArchetypeName} · ended after {years:0.#} years · {tale.StruckBeats} beats struck[/color]"
-                : $"[color=#{DimColor}]{tale.ArchetypeName} · {years:0.#} years and unfolding · {tale.StruckBeats} beats struck[/color]",
+                : $"[color=#{DimColor}]{tale.ArchetypeName} · {years:0.#} years and unfolding · " +
+                  $"[/color][color=#{TaleColor}]{HeatGlyphs(tale.Heat)} {HeatBand(tale.Heat)}[/color]",
             string.Empty,
             $"[color=#{ConnectorColor}]The cast[/color]",
         };
@@ -222,31 +244,9 @@ public partial class ChronicleJournal : PanelContainer
             lines.Add($"    [url={member.EntityId}][color=#{EntityColor}]{member.DisplayName}[/color][/url]");
         }
 
-        var telling = view.Beats.Where(static beat => beat.EntryType == UiChronicleEntryType.BeatStruck).ToList();
-        var record = view.Beats.Where(static beat => beat.EntryType != UiChronicleEntryType.BeatStruck).ToList();
         lines.Add(string.Empty);
         lines.Add($"[color=#{ConnectorColor}]The telling[/color]");
-        if (telling.Count > 0)
-        {
-            foreach (var beat in telling)
-            {
-                lines.Add($"    {beat.Text}");
-            }
-        }
-        else
-        {
-            lines.Add($"    [color=#{DimColor}]The ice holds its breath - nothing yet worth telling.[/color]");
-        }
-
-        if (record.Count > 0)
-        {
-            lines.Add(string.Empty);
-            lines.Add($"[color=#{ConnectorColor}]From the record[/color]");
-            foreach (var beat in record)
-            {
-                lines.Add($"    {beat.Text}");
-            }
-        }
+        AppendTimeline(lines, view);
 
         if (tale.Resolved && view.OutcomeNarrative.Length > 0)
         {
@@ -256,5 +256,41 @@ public partial class ChronicleJournal : PanelContainer
         }
 
         return lines;
+    }
+
+    /// <summary>
+    /// One chronological timeline: struck beats carry the telling; the raw
+    /// record events that surround each beat sit indented and dimmed beneath
+    /// it, so cause and telling read together instead of as two lists.
+    /// </summary>
+    private static void AppendTimeline(List<string> lines, UiChronicleTaleView view)
+    {
+        if (view.Beats.Count == 0)
+        {
+            lines.Add($"    [color=#{DimColor}]The ice holds its breath - nothing yet worth telling.[/color]");
+            return;
+        }
+
+        var ordered = view.Beats
+            .OrderBy(static entry => entry.Tick)
+            .ThenBy(static entry => entry.EntryType == UiChronicleEntryType.BeatStruck ? 1 : 0)
+            .ToList();
+        var anyBeat = ordered.Exists(static entry => entry.EntryType == UiChronicleEntryType.BeatStruck);
+        if (!anyBeat)
+        {
+            lines.Add($"    [color=#{DimColor}]The ice holds its breath - nothing yet worth telling.[/color]");
+        }
+
+        foreach (var entry in ordered)
+        {
+            if (entry.EntryType == UiChronicleEntryType.BeatStruck)
+            {
+                lines.Add($"    {entry.Text}");
+            }
+            else
+            {
+                lines.Add($"        [color=#{DimColor}]·[/color] {entry.Text}");
+            }
+        }
     }
 }

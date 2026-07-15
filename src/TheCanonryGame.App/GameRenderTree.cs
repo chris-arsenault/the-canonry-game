@@ -36,6 +36,7 @@ internal sealed class GameRenderTree
     private readonly EntityMapRender _entityMapRender = new();
     private readonly EntityBrowserRender _browserRender = new();
     private readonly ChronicleRender _chronicleRender = new();
+    private readonly ChronicleAuraLayer _chronicleAura = new();
     private readonly CardLayerRender _cardLayerRender = new();
     private readonly AttributeGraphRender _attributeGraphRender = new();
     private readonly TableauRender _tableauRender = new();
@@ -80,6 +81,8 @@ internal sealed class GameRenderTree
     {
         _mapRenderer = mapRenderer;
         _entityLayer = entityLayer;
+        _chronicleAura.Initialize(entityLayer);
+        entityLayer.AddChild(_chronicleAura);
         _browser = browser;
         _topBar = topBar;
         _bottomBar = bottomBar;
@@ -204,6 +207,7 @@ internal sealed class GameRenderTree
         _cardLayerRender.Present(_cardLayer, _ui);
         _attributeGraphRender.Present(ActiveAttributeGraph(), _ui);
         _chronicleRender.Present(_chroniclePanel, _chronicle);
+        _chronicleAura.SetTales(_chronicle.TaleViews.Select(static view => view.Tale).ToList());
         _tableauRender.Present(_tableauPanel, _ui, _tableauVisible);
         _floatingHudLayoutRender.Present(_mapArea, _tableauPanel, _tableauVisible);
     }

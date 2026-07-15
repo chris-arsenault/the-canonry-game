@@ -352,6 +352,7 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
             RoleEntity(chronicle, 0),
             RoleEntity(chronicle, 1),
             RoleEntity(chronicle, 2),
-            RoleEntity(chronicle, 3));
+            RoleEntity(chronicle, 3),
+            State.Heat[chronicle]);
     }
 }

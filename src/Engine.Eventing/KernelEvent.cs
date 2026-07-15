@@ -173,7 +173,7 @@ public readonly record struct EntityTagChangedKernelEvent(
     [KernelEventIntSlot(3, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
     int SourceCodeId);
 
-[KernelEventLayout(KernelEventType.ChronicleChanged, schemaMinor: 0)]
+[KernelEventLayout(KernelEventType.ChronicleChanged, schemaMinor: 1)]
 public readonly record struct ChronicleChangedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -194,7 +194,9 @@ public readonly record struct ChronicleChangedKernelEvent(
     [KernelEventIntSlot(7, "role_entity_id_2", KernelEventSemanticKind.EntityId)]
     int RoleEntityId2,
     [KernelEventIntSlot(8, "role_entity_id_3", KernelEventSemanticKind.EntityId)]
-    int RoleEntityId3);
+    int RoleEntityId3,
+    [KernelEventFloatSlot(0, "heat", KernelEventSemanticKind.Strength)]
+    float Heat = 0f);
 
 [KernelEventLayout(KernelEventType.RelationshipChanged, schemaMinor: 3)]
 public readonly record struct RelationshipChangedKernelEvent(
