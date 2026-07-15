@@ -225,6 +225,9 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
     /// True when the entity was cast in a chronicle that resolved within the
     /// window at legendary heat - the hook remembrance generators fire on.
     /// </summary>
+    /// <summary>Cumulative count of tales that resolved at legendary heat - the world's macro memory fact.</summary>
+    public int LegendaryResolutionCount => State.LegendaryResolutionCount;
+
     public bool LegendaryResolvedWithin(int entityId, int currentTick, int windowTicks)
     {
         for (var slot = 0; slot < ChronicleProgramState.SuppressionRingCapacity; slot++)

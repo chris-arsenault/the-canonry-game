@@ -48,6 +48,14 @@ Generators are intermittent high-altitude events. They create named entities
 and relationship bundles when their preconditions are met. Generator selection
 should be shaped by the state created by low altitude and gambits.
 
+World beats are the macro-chronicle: authored Ages on three regime tracks
+(Ice, Peoples, Memory) recognized from macro world state - population, wars
+living and ended, culture mass and its growth, canons, legendary resolutions.
+An open age charges ordinary authored content (generator weights, verb
+weights, gambit scores, the decay tide); the Age of Striving arms campaigns,
+whose labor columns are the world's mass-projection at contested fronts. See
+[systems/25-world-beats.md](./systems/25-world-beats.md).
+
 Beats are the fourth authorship class, owned by the Chronicle Director. A beat
 is a dramatic potential attached to a cast chronicle: it opens on world or
 heat conditions, charges gambits between the cast while open, and strikes when

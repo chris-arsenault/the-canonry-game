@@ -288,6 +288,11 @@ internal sealed partial class ChronicleProgramRuntime
     private void Resolve(Simulation simulation, int chronicle, int outcomeCodeId, int tick)
     {
         EmitChronicleChanged(simulation, chronicle, ChronicleEventTypeCodes.Resolved, 0, outcomeCodeId, tick);
+        if (State.Heat[chronicle] >= LegendaryHeatThreshold)
+        {
+            State.LegendaryResolutionCount++;
+        }
+
         RememberCast(chronicle, tick);
         State.Active[chronicle] = false;
         State.ArchetypeActiveCounts[State.ArchetypeSlots[chronicle]]--;

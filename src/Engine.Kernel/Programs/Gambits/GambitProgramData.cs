@@ -52,6 +52,7 @@ internal sealed partial class GambitProgramData : IKernelProgramData
     internal int[] TraitModifierBearerCodes = [];
     internal float[] TraitModifierScoreDeltas = [];
     internal float[] TraitModifierSuccessChanceDeltas = [];
+    internal float[] AgeScoreMultipliers = [];
     internal int GambitCount;
     internal int PreconditionCount;
     internal int ExpressionCount;
@@ -78,6 +79,8 @@ internal sealed partial class GambitProgramData : IKernelProgramData
     {
         GambitKindIds = new int[gambitCapacity + 1];
         GambitIds = new int[gambitCapacity + 1];
+        AgeScoreMultipliers = new float[gambitCapacity + 1];
+        global::System.Array.Fill(AgeScoreMultipliers, 1f);
         GambitCooldownTicks = new int[gambitCapacity + 1];
         GambitEntityCooldownTicks = new int[gambitCapacity + 1];
         GambitSuccessChances = new float[gambitCapacity + 1];

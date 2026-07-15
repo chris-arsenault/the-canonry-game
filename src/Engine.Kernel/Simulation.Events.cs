@@ -110,6 +110,16 @@ internal sealed partial class Simulation
             outputLockRelationshipCreatedCount)));
     }
 
+    internal void EmitWorldBeatChanged(int tick, int trackCode, int ageId, int phaseCode)
+    {
+        WriteKernelEvent(KernelEvent.From(new WorldBeatChangedKernelEvent(
+            tick,
+            WorldVersion,
+            trackCode,
+            ageId,
+            phaseCode)));
+    }
+
     internal void EmitChronicleChanged(
         int tick,
         int storySequence,

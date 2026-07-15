@@ -306,7 +306,8 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(sourceRuleId);
         if (purposeCode is not (
                 MinorActorPurposeCodes.CulturalLabor or
-                MinorActorPurposeCodes.RoadLabor))
+                MinorActorPurposeCodes.RoadLabor or
+                MinorActorPurposeCodes.CampaignLabor))
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(purposeCode));
         }

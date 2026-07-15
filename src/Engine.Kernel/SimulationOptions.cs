@@ -49,6 +49,8 @@ internal sealed record SimulationOptions
     // tales at once. Scarcity is the point - chronicles are player focus
     // objects, not ambient churn.
     public int ChronicleCapacity { get; init; } = 7;
+    public int WorldBeatAgeCapacity { get; init; } = 16;
+    public int WorldBeatItemCapacity { get; init; } = 128;
     public int MinorActorRuleCapacity { get; init; } = 64;
     public int MinorActorSourceRuleCapacity { get; init; } = 16384;
     public int EntityAttributeCapacity { get; init; } = 512;
@@ -81,6 +83,7 @@ internal sealed record KernelProgramTuningOptions
     public GeneratorProgramTuningOptions Generators { get; init; } = new();
     public LowAltitudeVerbTuningOptions LowAltitudeVerbs { get; init; } = new();
     public CultureFieldTuningOptions CultureField { get; init; } = new();
+    public WorldBeatsTuningOptions WorldBeats { get; init; } = new();
 
     public int ScaleMainTicks(int ticks)
     {
@@ -144,6 +147,12 @@ internal sealed record CultureFieldTuningOptions
 
     /// <summary>A rival needs at least this raw mass (and more than the local side) for a cell to count as contested.</summary>
     public float ContestFloorRawMass { get; init; } = 4f;
+}
+
+internal sealed record WorldBeatsTuningOptions
+{
+    /// <summary>Age recognition cadence in main ticks (raw ticks = this x MinorActorMainTickRatio).</summary>
+    public int CadenceMainTicks { get; init; } = 25;
 }
 
 internal sealed record GeneratorProgramTuningOptions

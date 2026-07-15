@@ -5,6 +5,9 @@ public sealed class MinorActorProgram
     public bool EnabledByDefault { get; init; }
 
     public IReadOnlyList<MinorActorEmitterRule> EmitterRules { get; init; } = [];
+
+    /// <summary>Relationship kind whose living edges aim campaign-labor cohorts (0 = none).</summary>
+    public int CampaignRelationshipKindId { get; init; }
 }
 
 public sealed record MinorActorEmitterRule(

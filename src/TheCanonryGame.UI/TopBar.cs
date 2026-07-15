@@ -65,15 +65,17 @@ public partial class TopBar : PanelContainer
         int entityCount,
         int generatorFireCount,
         int seed,
-        int seedAttempt)
+        int seedAttempt,
+        string? agesLabel = null)
     {
         if (_tickLabel is null)
         {
             return;
         }
 
+        var ages = string.IsNullOrEmpty(agesLabel) ? string.Empty : $"  |  {agesLabel}";
         _tickLabel.Text =
-            $"t{tick,-5}  |  {timeState,-8}  |  {entityCount,3} entities  |  {generatorFireCount,3} fires  |  seed {seed}/{seedAttempt}";
+            $"t{tick,-5}  |  {timeState,-8}  |  {entityCount,3} entities  |  {generatorFireCount,3} fires  |  seed {seed}/{seedAttempt}{ages}";
     }
 
     private void WireButton(string path, Action onPressed)

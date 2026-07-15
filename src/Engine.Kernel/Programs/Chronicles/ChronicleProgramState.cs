@@ -35,6 +35,7 @@ internal sealed class ChronicleProgramState : IKernelProgramState
     internal readonly int[] PendingSucceeded;
     internal int PendingCount;
     internal int HighWatermark;
+    internal int LegendaryResolutionCount;
 
     public ChronicleProgramState(int chronicleCapacity, int archetypeCapacity)
     {
@@ -63,5 +64,5 @@ internal sealed class ChronicleProgramState : IKernelProgramState
 
     public int ProgramId => KernelProgramCodes.ChronicleDirector;
 
-    public int SchemaVersion => 6;
+    public int SchemaVersion => 7;
 }

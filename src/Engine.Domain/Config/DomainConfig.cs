@@ -35,6 +35,8 @@ public sealed class DomainConfig
     /// <summary>Rules for short-lived non-graph actors emitted by named entities.</summary>
     public IReadOnlyList<MinorActorRuleConfig> MinorActors { get; init; } = [];
 
+    public MinorActorCampaignConfig? MinorActorCampaign { get; init; }
+
     /// <summary>Discrete movement capability classes used by route planning and terrain traversal.</summary>
     public IReadOnlyList<MovementProfileConfig> MovementProfiles { get; init; } = [];
 
@@ -292,6 +294,12 @@ public sealed class TravelStructureMovementProfileConfig
 {
     public required string Profile { get; init; }
     public required float MovementCost { get; init; }
+}
+
+/// <summary>Names the relationship kind that carries campaigns for campaign-labor cohorts.</summary>
+public sealed class MinorActorCampaignConfig
+{
+    public required string RelationshipKind { get; init; }
 }
 
 public sealed class MinorActorRuleConfig

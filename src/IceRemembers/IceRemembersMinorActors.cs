@@ -52,8 +52,56 @@ public static partial class IceRemembersDefinition
         }
 
         rules.Add(RoadCrew(K.Transport));
+        rules.Add(CampaignColumn(K.Faction));
         return rules;
     }
+
+    /// <summary>
+    /// The mass-projection column: while a faction wages a campaign, worker
+    /// cohorts muster at the enemy's ground instead of home, pressing the
+    /// attacker's culture into the contested frontier and clearing the
+    /// defender's. Continuous labor at the front is what moves a boundary;
+    /// no campaign edge, no column.
+    /// </summary>
+    private static MinorActorRuleConfig CampaignColumn(EntityKind sourceKind) =>
+        new()
+        {
+            SourceKind = sourceKind,
+            PurposeCode = MinorActorPurposeCodes.CampaignLabor,
+            ActorKindCode = MinorActorKindCodes.Worker,
+            ActionCode = MinorActorActionCodes.CultureExpansion,
+            PlaneCode = PlaneCodes.Physical,
+            TtlPulses = 100,
+            EmitCadencePulses = 40,
+            MaxActivePerSource = 3,
+            SpawnRadius = 4,
+            MoveChancePermille = 0,
+            ActionCadencePulses = 1,
+            WorkDelta = 1.6f,
+            Verbs = CampaignColumnVerbs(sourceKind),
+        };
+
+    private static IReadOnlyList<MinorActorVerbConfig> CampaignColumnVerbs(EntityKind sourceKind) =>
+    [
+        CultureVerb(sourceKind, PlaneCodes.Physical, "press_the_banner", "Press the Banner",
+            MinorActorVerbTargetingCodes.ExtendConnectedBorder,
+            radius: 5,
+            sampleCount: 128,
+            weight: 1.6f,
+            workDeltaMultiplier: 1f),
+        new()
+        {
+            Id = MinorActorVerbId(sourceKind, PlaneCodes.Physical, "break_the_holding"),
+            DisplayName = "Break the Holding",
+            ActionCode = MinorActorActionCodes.CultureCleanup,
+            TargetingCode = MinorActorVerbTargetingCodes.ReduceOtherCulture,
+            PlaneCode = PlaneCodes.Physical,
+            Radius = 5,
+            SampleCount = 128,
+            Weight = 1.5f,
+            WorkDeltaMultiplier = 1.1f,
+        },
+    ];
 
     private static MinorActorRuleConfig CultureWorker(
         EntityKind sourceKind,

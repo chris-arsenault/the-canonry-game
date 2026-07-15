@@ -406,6 +406,17 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         MarkProjected(sequence);
     }
 
+    protected override void OnWorldBeatChanged(long sequence, in WorldBeatChangedKernelEvent evt)
+    {
+        _batch.WorldBeatEvents.Add(new WorldBeatEventRow(
+            _runId,
+            evt.Tick,
+            evt.TrackCode,
+            evt.AgeId,
+            evt.PhaseCode));
+        MarkProjected(sequence);
+    }
+
     protected override void OnEntityTagChanged(long sequence, in EntityTagChangedKernelEvent evt)
     {
         _batch.EntityTagEvents.Add(new EntityTagEventRow(

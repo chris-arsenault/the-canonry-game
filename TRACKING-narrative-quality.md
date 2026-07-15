@@ -759,3 +759,53 @@ kin-tide-3x25k-20260715d).
 - Next: world-beats/Ages round (mass-projection campaigns for the
   sharpened fronts), growing map, travel-cost reach, caravan carriers,
   progression-lattice epic.
+
+### World-beats (Ages) + mass-projection campaigns (2026-07-15, branch kinetics-deeds)
+
+The combined round commanded after Bundle A's finding (contest decay
+sharpens but stabilizes; boundary movement needs attacker mass
+projection). Evidence: ages-campaigns-3x25k-20260715b, probes
+ages-frontier-probe-1x25k-20260715b; baseline kin-tide-3x25k-20260715d.
+
+- WORLD BEATS: new kernel program (Programs/WorldBeats) - the beat
+  treatment applied to the world. Three regime tracks (Ice, Peoples,
+  Memory), each holding at most one open age; authored ages open when
+  ALL opening conditions are recognized from macro facts (population
+  by kind, wars living/culled, total culture mass and growth,
+  legendary resolutions, ticks) and close when ANY closing condition
+  holds after a minimum span - never timers. Priorities pick among
+  eligible ages; cooldowns stop flapping; the Still Ice (no
+  conditions, priority 0) makes "at least one age open" structural.
+  Charges push idempotently every pulse into per-slot multiplier
+  arrays owned by the target programs: generator pulse weights, verb
+  weights, gambit scores, the contest decay tide. WorldBeatChanged
+  primitive event -> world_beat_events parquet + top-bar age display.
+  Authored pool: the Thaw / the Still Ice / the Long Dark;
+  Striving / Accords; Signs / Canons (IceRemembersAges).
+- CAMPAIGNS: wages_campaign_against relationship (exclusive, decaying
+  commitment; cull ends the campaign), armed by
+  faction_marches_the_banners (Striving charges it x4), re-pressed by
+  the_column_holds generator + faction_feed_the_column verb while the
+  war justifies it. While the edge lives, the minor-actor CampaignLabor
+  emitter spawns worker columns at the live frontier toward the
+  target: anchor walks from the enemy position back to the first
+  own-trace cell, then a campaign-specific spawn scorer picks thin own
+  ground with maximum foreign contact (the ordinary spawn scorer
+  maximizes connected mass and marched columns into their own core,
+  where every verb scored zero - found via probe: 97% no-target
+  pulses, fixed to 90% -> worked pulses x51, 23.5k raw delivered).
+- Verdict (b run vs tide-d): ages transition in different earned
+  orders per seed (Striving opens t9.7k/13.8k/14.8k; Canons opens in
+  2 of 3 runs after legendary resolutions; run 4901 even reached
+  Accords in the first cut). 80 campaigns lived and 61 ended -
+  war exhaustion now accumulates. OWNERSHIP FLIPS 163 vs 133
+  (+33% per cell-epoch) - the first movement in this metric across
+  three rounds. Reversals 12 vs 11; chronicles stable (133 tales).
+- Honest limits: campaign columns still idle ~90% of pulses (they
+  outrun their own supported field and stall on fresh corridor);
+  flip movement is real but modest. Next lever is column drift toward
+  the target and campaign-purpose scoring that lets a column press
+  from its own laid corridor - plus the growing map, where campaigns
+  get real geography to cross.
+- Docs: docs/systems/25-world-beats.md, architecture.md,
+  game-systems.md updated.

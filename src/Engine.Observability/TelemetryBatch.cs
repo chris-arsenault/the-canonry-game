@@ -40,6 +40,8 @@ public sealed class TelemetryBatch
     public Collection<CulturePowerSnapshotRow> CulturePowerSnapshots { get; } = Rows<CulturePowerSnapshotRow>();
     public Collection<EntityTagEventRow> EntityTagEvents { get; } = Rows<EntityTagEventRow>();
     public Collection<ChronicleEventRow> ChronicleEvents { get; } = Rows<ChronicleEventRow>();
+
+    public Collection<WorldBeatEventRow> WorldBeatEvents { get; } = Rows<WorldBeatEventRow>();
     public Collection<CultureEntityFieldSnapshotRow> CultureEntityFieldSnapshots { get; } = Rows<CultureEntityFieldSnapshotRow>();
     public Collection<CultureEntityBirthFieldEventRow> CultureEntityBirthFieldEvents { get; } = Rows<CultureEntityBirthFieldEventRow>();
     public Collection<CultureInfluenceActionFieldEventRow> CultureInfluenceActionFieldEvents { get; } = Rows<CultureInfluenceActionFieldEventRow>();
@@ -79,10 +81,16 @@ public sealed class TelemetryBatch
         CellCultureInfluenceEvents.Clear();
         CultureSlotOccupancyEvents.Clear();
         MinorActorVerbEvents.Clear();
+        ClearCultureAndNarrativeRows();
+    }
+
+    private void ClearCultureAndNarrativeRows()
+    {
         CultureFieldComponentSnapshots.Clear();
         CulturePowerSnapshots.Clear();
         EntityTagEvents.Clear();
         ChronicleEvents.Clear();
+        WorldBeatEvents.Clear();
         CultureEntityFieldSnapshots.Clear();
         CultureEntityBirthFieldEvents.Clear();
         CultureInfluenceActionFieldEvents.Clear();
@@ -516,6 +524,13 @@ public sealed record MinorActorVerbEventRow(
     float ConnectedRawMass,
     float Score,
     float Delta);
+
+public sealed record WorldBeatEventRow(
+    int RunId,
+    int Tick,
+    int TrackCode,
+    int AgeId,
+    int PhaseCode);
 
 public sealed record ChronicleEventRow(
     int RunId,

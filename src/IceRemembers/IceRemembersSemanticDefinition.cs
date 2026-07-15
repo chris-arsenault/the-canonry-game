@@ -10,5 +10,6 @@ public static class IceRemembersSemanticDefinition
         Generators = IceRemembersGeneratorDefinition.Create(),
         ChronicleArchetypes = IceRemembersChronicleArchetypes.Create(),
         ChronicleSharedBeats = IceRemembersChronicleArchetypes.CreateSharedBeats(),
+        WorldBeatAges = IceRemembersAges.Create(),
     };
 }

@@ -35,6 +35,7 @@ public static partial class IceRemembersDefinition
             Terrains = IceRemembersTerrainCatalog.DomainTerrains,
             TravelStructures = IceRemembersTravelStructures.DomainTravelStructures,
             MinorActors = CreateMinorActorRules(),
+            MinorActorCampaign = new MinorActorCampaignConfig { RelationshipKind = L(Rel.WagesCampaignAgainst) },
             MovementProfiles = IceRemembersMovementProfiles.DomainProfiles,
             Cultures = CreateCultures(),
             CulturePower = CreateCulturePowerDefinition(),
@@ -159,8 +160,17 @@ public static partial class IceRemembersDefinition
             new() { Name = L(Rel.OfferedTo), Polarity = RelationshipPolarity.Positive, ValidSourceCategories = agency, ValidTargetCategories = spatial, CullThreshold = 0.02f, Maintenance = OfferingMaintenance() },
             new() { Name = L(Rel.PreysOn), Polarity = RelationshipPolarity.Negative, ValidSourceCategories = agency, ValidTargetCategories = spatialOrAsset, CullThreshold = 0.03f, Maintenance = PredationMaintenance() },
             new() { Name = L(Rel.ConsignedTo), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = asset, ValidTargetCategories = spatial, IsExclusive = true, CullThreshold = 0.02f, Maintenance = SemanticBondMaintenance() },
+            // A campaign is a committed push, not a standing hatred: it decays
+            // toward its cull threshold unless the war keeps feeding it, so
+            // columns march for seasons, not forever.
+            new() { Name = L(Rel.WagesCampaignAgainst), Polarity = RelationshipPolarity.Negative, ValidSourceCategories = agency, ValidTargetCategories = agencyOrSpatialOrAsset, IsExclusive = true, CullThreshold = 0.15f, Maintenance = CampaignMaintenance() },
         ];
     }
+
+    private static IReadOnlyList<RelationshipMaintenanceRuleConfig> CampaignMaintenance() =>
+    [
+        AlwaysDecay(0.0016f),
+    ];
 
     private static IReadOnlyList<RelationshipMaintenanceRuleConfig> ControlledByMaintenance() =>
     [

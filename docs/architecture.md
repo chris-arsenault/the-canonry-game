@@ -153,6 +153,14 @@ cast actually strikes. It never writes world state; endings are recognized
 facts or fades. See
 [22-chronicle-director.md](./systems/22-chronicle-director.md).
 
+The World Beats program is the same treatment applied to the world itself:
+authored Ages on three regime tracks (Ice, Peoples, Memory) open and close on
+recognized macro facts - never timers - and, while open, charge the rates of
+existing generators, verbs, gambits, and the contest decay tide. Campaigns
+(minor-actor labor columns projected at an enemy's frontier while a
+`wages_campaign_against` edge lives) are the first age payload. See
+[25-world-beats.md](./systems/25-world-beats.md).
+
 The former macro aggregate layer has been removed. Generator, gambit, trait,
 and card work use shared query, effect, and decision-modifier primitives.
 Relationship strength and locality queries are the default numeric gates when

@@ -104,6 +104,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
             case KernelEventType.ChronicleChanged:
                 OnChronicleChanged(kernelEvent.Sequence, evt.AsChronicleChanged());
                 break;
+            case KernelEventType.WorldBeatChanged:
+                OnWorldBeatChanged(kernelEvent.Sequence, evt.AsWorldBeatChanged());
+                break;
         }
     }
 
@@ -232,6 +235,10 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnChronicleChanged(long sequence, in ChronicleChangedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnWorldBeatChanged(long sequence, in WorldBeatChangedKernelEvent evt)
     {
     }
 

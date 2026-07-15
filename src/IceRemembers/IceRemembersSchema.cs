@@ -140,6 +140,7 @@ public enum IceRemembersRelationship
     OfferedTo,
     ConsignedTo,
     PreysOn,
+    WagesCampaignAgainst,
 }
 
 public static class IceRemembersRelationshipExtensions
@@ -172,6 +173,7 @@ public static class IceRemembersRelationshipExtensions
         "offered_to",
         "consigned_to",
         "preys_on",
+        "wages_campaign_against",
     ];
 
     public static string ToDomainName(this IceRemembersRelationship relationship)
@@ -380,6 +382,7 @@ public enum IceRemembersVerbId
     OrcaFarCurrents,
     PenguinFollowTheGathering,
     OrcaFollowTheGathering,
+    FactionFeedTheColumn,
 }
 
 public static class IceRemembersVerbIdExtensions
@@ -561,6 +564,7 @@ public static class IceRemembersVerbIdExtensions
         "orca_far_currents",
         "penguin_follow_the_gathering",
         "orca_follow_the_gathering",
+        "faction_feed_the_column",
     ];
 
     public static string ToVerbId(this IceRemembersVerbId verbId)
@@ -627,6 +631,7 @@ public enum IceRemembersGambitId
     PenguinWrestsArtifact,
     PenguinForsakesTheHunt,
     PenguinCornersTheBeast,
+    FactionMarchesTheBanners,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -686,6 +691,7 @@ public static class IceRemembersGambitIdExtensions
         "penguin_wrests_artifact",
         "penguin_forsakes_the_hunt",
         "penguin_corners_the_beast",
+        "faction_marches_the_banners",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)

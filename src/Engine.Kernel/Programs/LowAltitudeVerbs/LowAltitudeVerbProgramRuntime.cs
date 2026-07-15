@@ -28,6 +28,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
     public LowAltitudeVerbProgramData Data { get; }
 
+    public void ResetAgeWeightMultipliers() => Data.ResetAgeWeightMultipliers();
+
+    public void ApplyAgeWeightMultiplier(int verbId, float multiplier) => Data.ApplyAgeWeightMultiplier(verbId, multiplier);
+
     public LowAltitudeVerbProgramState State { get; }
 
     public KernelProgramTuningOptions Tuning { get; }

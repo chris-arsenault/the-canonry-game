@@ -14,6 +14,7 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
     private readonly float _cullFloorRawMass;
     private readonly float _contestDecayMultiplier;
     private readonly float _contestFloorRawMass;
+    private float _contestTide = 1f;
     private readonly int[] _scratchQ;
     private readonly int[] _scratchR;
     private readonly int[] _scratchZ;
@@ -99,9 +100,15 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
     /// cell, the locally weaker side decays faster - fronts form where
     /// cultures touch, and boundaries can visibly move.
     /// </summary>
+    /// <summary>Age charges: the world-beat program scales the contest tide per open age each pulse.</summary>
+    public void SetContestTide(float tide) => _contestTide = tide;
+
+    public void ScaleContestTide(float multiplier) => _contestTide *= multiplier;
+
     private float ContestMultiplier(WorldState world, int cultureId, int planeCode, int q, int r, int z, float raw)
     {
-        if (_contestDecayMultiplier <= 1f || raw <= 0f)
+        var contested = _contestDecayMultiplier * _contestTide;
+        if (contested <= 1f || raw <= 0f)
         {
             return 1f;
         }
@@ -116,7 +123,7 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
             var rival = world.GetCellCultureInfluenceRaw(other, planeCode, q, r, z);
             if (rival > raw && rival >= _contestFloorRawMass)
             {
-                return _contestDecayMultiplier;
+                return contested;
             }
         }
 

@@ -24,6 +24,7 @@ internal static partial class KernelProgramInstaller
         InstallCultureSlots(context, programs.CultureSlots);
         InstallMinorActors(context, programs.MinorActors);
         InstallChronicles(context, programs.Chronicles);
+        InstallWorldBeats(context, programs.WorldBeats);
 
         context.SetProgramEnabled(
             KernelProgramCodes.Movement,
@@ -62,6 +63,11 @@ internal static partial class KernelProgramInstaller
 
     private static void InstallMinorActors(KernelConfigurationContext context, MinorActorProgram program)
     {
+        if (program.CampaignRelationshipKindId > 0)
+        {
+            context.SetMinorActorCampaignRelationshipKind(program.CampaignRelationshipKindId);
+        }
+
         foreach (var rule in program.EmitterRules)
         {
             var ruleSlot = context.RegisterMinorActorEmitterRule(
@@ -245,6 +251,43 @@ internal static partial class KernelProgramInstaller
         foreach (var expression in step.Expression)
         {
             context.AddGambitStepExpressionOp(stepSlot, ExpressionCode(expression.Code), expression.A, expression.X);
+        }
+    }
+
+    private static void InstallWorldBeats(KernelConfigurationContext context, WorldBeatProgram program)
+    {
+        foreach (var age in program.Ages)
+        {
+            var ageSlot = context.AddWorldBeatAge(
+                age.AgeId,
+                age.TrackCode,
+                age.Priority,
+                age.MinOpenTicks,
+                age.CooldownTicks);
+            foreach (var condition in age.OpenWhen)
+            {
+                context.AddWorldBeatOpenCondition(
+                    ageSlot,
+                    condition.FactCode,
+                    condition.ComparatorCode,
+                    condition.Value,
+                    condition.ParamId);
+            }
+
+            foreach (var condition in age.CloseWhen)
+            {
+                context.AddWorldBeatCloseCondition(
+                    ageSlot,
+                    condition.FactCode,
+                    condition.ComparatorCode,
+                    condition.Value,
+                    condition.ParamId);
+            }
+
+            foreach (var charge in age.Charges)
+            {
+                context.AddWorldBeatCharge(ageSlot, charge.DomainCode, charge.TargetId, charge.Multiplier);
+            }
         }
     }
 

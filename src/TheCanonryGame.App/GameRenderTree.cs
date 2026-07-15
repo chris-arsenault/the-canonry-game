@@ -225,7 +225,7 @@ internal sealed class GameRenderTree
         }
 
         _chronicle.Refresh();
-        _topBarRender.Present(_topBar, _ui, currentTick, timeState, _seed, _seedAttempt);
+        _topBarRender.Present(_topBar, _ui, currentTick, timeState, _seed, _seedAttempt, WorldBeatAgesLabel());
         _mapRender.Present(_mapRenderer, _map, _ui);
         PresentCultureOverview(currentTick);
         _browserRender.Present(_browser, _ui);
@@ -495,6 +495,25 @@ internal sealed class GameRenderTree
         _floatingHudLayoutRender.Reset();
     }
 
+    private string WorldBeatAgesLabel()
+    {
+        if (_ui is null)
+        {
+            return string.Empty;
+        }
+
+        var names = new List<string>(3);
+        foreach (var ageId in _ui.WorldBeatAgeIds)
+        {
+            if (ageId > 0)
+            {
+                names.Add(ProjectionDisplay.DisplayName(_symbols, ProjectionSymbolKind.Generator, ageId, $"age-{ageId}"));
+            }
+        }
+
+        return names.Count == 0 ? string.Empty : string.Join(" · ", names);
+    }
+
     private AttributeGraphPanel? ActiveAttributeGraph()
     {
         if (_attributeGraph is null)
@@ -525,7 +544,8 @@ internal sealed class GameRenderTree
             int currentTick,
             string timeState,
             int seed,
-            int seedAttempt)
+            int seedAttempt,
+            string agesLabel)
         {
             var state = new TopBarState(
                 currentTick,
@@ -541,7 +561,7 @@ internal sealed class GameRenderTree
             }
 
             _lastState = state;
-            topBar.SetStatus(currentTick, timeState, ui.ActiveEntityCount, ui.GeneratorFires.Count, seed, seedAttempt);
+            topBar.SetStatus(currentTick, timeState, ui.ActiveEntityCount, ui.GeneratorFires.Count, seed, seedAttempt, agesLabel);
         }
     }
 

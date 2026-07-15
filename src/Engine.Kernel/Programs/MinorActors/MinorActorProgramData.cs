@@ -165,6 +165,9 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         return verb;
     }
 
+    /// <summary>Domain-configured relationship kind that carries a campaign (0 = campaigns disabled).</summary>
+    internal int CampaignRelationshipKindId;
+
     public bool RuleMatches(WorldState world, int entityId, int rule)
     {
         if (!world.EntityIsActive(entityId) ||
@@ -245,7 +248,8 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
     {
         if (purposeCode is not (
                 MinorActorPurposeCodes.CulturalLabor or
-                MinorActorPurposeCodes.RoadLabor))
+                MinorActorPurposeCodes.RoadLabor or
+                MinorActorPurposeCodes.CampaignLabor))
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(purposeCode));
         }

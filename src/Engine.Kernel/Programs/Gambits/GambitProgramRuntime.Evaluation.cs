@@ -496,9 +496,10 @@ internal sealed partial class GambitProgramRuntime
             return 0f;
         }
 
-        var score = EvaluateScore(simulation.World, gambitSlot, entityId, targetId) +
+        var score = (EvaluateScore(simulation.World, gambitSlot, entityId, targetId) +
             GambitScoreDecisionDelta(simulation.World, _gambitIds[gambitSlot], entityId, targetId) +
-            simulation.Chronicles.ScoreBias(entityId, targetId, _gambitIds[gambitSlot]);
+            simulation.Chronicles.ScoreBias(entityId, targetId, _gambitIds[gambitSlot])) *
+            Data.AgeScoreMultipliers[gambitSlot];
         var recentActionCount = CountRecentActions(
             entityId,
             _gambitIds[gambitSlot],

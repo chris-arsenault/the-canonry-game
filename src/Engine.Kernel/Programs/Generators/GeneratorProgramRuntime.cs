@@ -13,6 +13,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _generatorIds => Data.GeneratorIds;
     private int[] _targetKindIds => Data.TargetKindIds;
     private int[] _pulseWeights => Data.PulseWeights;
+    private float[] _agePulseWeightMultipliers => Data.AgePulseWeightMultipliers;
     private int[] _cadenceTicks => Data.CadenceTicks;
     private int[] _cadenceJitterTicks => Data.CadenceJitterTicks;
     private int[] _targetRequiredTagBits => Data.TargetRequiredTagBits;
@@ -651,10 +652,31 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
 
         var (candidateCount, slotFillBonus) = CountEligibleTargetsAndSlotFillBonus(simulation, slot);
         _pulseCandidateCounts[slot] = candidateCount;
-        _pulseSelectionWeights[slot] = candidateCount == 0 ? 0 : _pulseWeights[slot] + slotFillBonus;
+        var agedWeight = (int)global::System.MathF.Max(0f, _pulseWeights[slot] * _agePulseWeightMultipliers[slot]);
+        _pulseSelectionWeights[slot] = candidateCount == 0 ? 0 : agedWeight + slotFillBonus;
         _pulseStatusCodes[slot] = candidateCount == 0
             ? GeneratorStatusCodes.Blocked
             : GeneratorStatusCodes.Eligible;
+    }
+
+    /// <summary>Age charges: neutralize, then apply per open age each world-beat pulse.</summary>
+    public void ResetAgePulseWeightMultipliers()
+    {
+        for (var slot = 1; slot <= _generatorCount; slot++)
+        {
+            _agePulseWeightMultipliers[slot] = 1f;
+        }
+    }
+
+    public void ApplyAgePulseWeightMultiplier(int generatorId, float multiplier)
+    {
+        for (var slot = 1; slot <= _generatorCount; slot++)
+        {
+            if (generatorId == 0 || _generatorIds[slot] == generatorId)
+            {
+                _agePulseWeightMultipliers[slot] *= multiplier;
+            }
+        }
     }
 
     private bool TryChooseEligibleGenerator(Simulation simulation, out int selectedGeneratorSlot)

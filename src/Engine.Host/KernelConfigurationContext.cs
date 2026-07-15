@@ -739,6 +739,21 @@ internal sealed class KernelConfigurationContext
     public void SetGeneratorTargetChronicleGates(int generatorSlot, float heatMin, int legendaryWithinTicks) =>
         _kernel.Generators.SetTargetChronicleGates(generatorSlot, heatMin, legendaryWithinTicks);
 
+    public int AddWorldBeatAge(int ageId, int trackCode, int priority, int minOpenTicks, int cooldownTicks) =>
+        _kernel.WorldBeats.AddAge(ageId, trackCode, priority, minOpenTicks, cooldownTicks);
+
+    public void AddWorldBeatOpenCondition(int ageSlot, int factCode, int comparatorCode, float value, int paramId) =>
+        _kernel.WorldBeats.AddOpenCondition(ageSlot, factCode, comparatorCode, value, paramId);
+
+    public void AddWorldBeatCloseCondition(int ageSlot, int factCode, int comparatorCode, float value, int paramId) =>
+        _kernel.WorldBeats.AddCloseCondition(ageSlot, factCode, comparatorCode, value, paramId);
+
+    public void AddWorldBeatCharge(int ageSlot, int domainCode, int targetId, float multiplier) =>
+        _kernel.WorldBeats.AddCharge(ageSlot, domainCode, targetId, multiplier);
+
+    public void SetMinorActorCampaignRelationshipKind(int relationshipKindId) =>
+        _kernel.MinorActors.SetCampaignRelationshipKindId(relationshipKindId);
+
     public int AddChronicleArchetype(int archetypeId, int maxActive, int castingCadenceTicks, int primaryKindId, int primaryRequiredRelKindId, float primaryRequiredRelMinStrength, int fadeOutcomeCodeId, int fadeGraceTicks, int fadeQuietTicks) =>
         _kernel.Chronicles.AddArchetype(archetypeId, maxActive, castingCadenceTicks, primaryKindId, primaryRequiredRelKindId, primaryRequiredRelMinStrength, fadeOutcomeCodeId, fadeGraceTicks, fadeQuietTicks);
 

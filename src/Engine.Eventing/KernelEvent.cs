@@ -34,6 +34,7 @@ public enum KernelEventType
     GambitEnabledChanged = 32,
     EntityTagChanged = 33,
     ChronicleChanged = 34,
+    WorldBeatChanged = 35,
     Trace = 120,
 }
 
@@ -197,6 +198,17 @@ public readonly record struct ChronicleChangedKernelEvent(
     int RoleEntityId3,
     [KernelEventFloatSlot(0, "heat", KernelEventSemanticKind.Strength)]
     float Heat = 0f);
+
+[KernelEventLayout(KernelEventType.WorldBeatChanged, schemaMinor: 0)]
+public readonly record struct WorldBeatChangedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "track_code", KernelEventSemanticKind.StatusCode)]
+    int TrackCode,
+    [KernelEventIntSlot(1, "age_id", KernelEventSemanticKind.GeneratorId)]
+    int AgeId,
+    [KernelEventIntSlot(2, "phase_code", KernelEventSemanticKind.StatusCode)]
+    int PhaseCode);
 
 [KernelEventLayout(KernelEventType.RelationshipChanged, schemaMinor: 3)]
 public readonly record struct RelationshipChangedKernelEvent(

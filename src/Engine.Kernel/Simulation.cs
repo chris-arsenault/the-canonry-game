@@ -56,6 +56,7 @@ internal sealed partial class Simulation : IKernel
         MinorActors = CreateMinorActorRuntime(options);
         CultureFieldDecay = CreateCultureFieldDecayRuntime(options);
         Chronicles = new ChronicleProgramRuntime(options);
+        WorldBeats = new WorldBeatsProgramRuntime(options);
         AssignRuntimeCodes(options.RuntimeCodes);
         _executionContext = new KernelExecutionContext(0, StartupSourceCodeId);
         _random = new RandomSource(options.Seed);
@@ -204,6 +205,10 @@ internal sealed partial class Simulation : IKernel
         RegisterProgram(KernelProgramCodes.Gambits, mainCadence, Gambits);
         RegisterProgram(KernelProgramCodes.ChronicleDirector, mainCadence, Chronicles);
         RegisterProgram(KernelProgramCodes.Generators, mainCadence, Generators);
+        RegisterProgram(
+            KernelProgramCodes.WorldBeats,
+            Options.KernelTuning.Programs.WorldBeats.CadenceMainTicks * mainCadence,
+            WorldBeats);
         RegisterProgram(KernelProgramCodes.CultureSlots, 10 * mainCadence, CultureSlots);
         RegisterProgram(
             KernelProgramCodes.MinorActors,
@@ -353,6 +358,7 @@ internal sealed partial class Simulation : IKernel
     internal GeneratorProgramRuntime Generators { get; }
 
     internal ChronicleProgramRuntime Chronicles { get; }
+    internal WorldBeatsProgramRuntime WorldBeats { get; }
     internal UpkeepProgramRuntime Upkeep { get; }
     internal RelationshipProgramRuntime Relationships { get; }
     internal MinorActorProgramRuntime MinorActors { get; }
@@ -1053,6 +1059,9 @@ internal sealed partial class Simulation : IKernel
         KernelProgramCodes.Gambits => GambitSourceCodeId,
         KernelProgramCodes.Generators => GeneratorSourceCodeId,
         KernelProgramCodes.ChronicleDirector => ChronicleSourceCodeId,
+        // WorldBeats writes no world state; its events attribute to the
+        // chronicle source (the macro-chronicle is the director's sibling).
+        KernelProgramCodes.WorldBeats => ChronicleSourceCodeId,
         KernelProgramCodes.Movement => MapActivitySourceCodeId,
         KernelProgramCodes.Effects => EffectsSourceCodeId,
         KernelProgramCodes.MinorActors => MapActivitySourceCodeId,

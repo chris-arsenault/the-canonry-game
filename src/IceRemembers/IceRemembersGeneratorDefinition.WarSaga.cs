@@ -17,6 +17,8 @@ public static partial class IceRemembersGeneratorDefinition
     private const float AlliesAnswerMinimumAllianceStrength = 0.45f;
     private const float WarTollMinimumWarStrength = 0.5f;
     private const float WarTollWarStrengthSpend = -0.18f;
+    private const float ColumnHoldsMinimumCampaignStrength = 0.25f;
+    private const float ColumnHoldsCampaignRePress = 0.20f;
 
     private static SemanticGeneratorConfig AlliesAnswerTheCall() => new()
     {
@@ -101,5 +103,24 @@ public static partial class IceRemembersGeneratorDefinition
         ],
         Triggers = TriggerOn(K.Faction),
         PulseWeight = 14,
+    };
+
+    private static SemanticGeneratorConfig TheColumnHolds() => new()
+    {
+        Id = "the_column_holds",
+        Name = "The Column Holds",
+        Description = "A faction whose banners are in the field sends fresh hands to the front. A campaign that is fed keeps pressing; one the war has abandoned starves and comes home.",
+        CausalLimit = "Requires a living outgoing campaign on the target; re-presses only that campaign's strength, creating nothing.",
+        Target = TargetWithStrongOutgoing(K.Faction, Rel.WagesCampaignAgainst, ColumnHoldsMinimumCampaignStrength),
+        Produces = [],
+        Effects =
+        [
+            new AdjustTargetRelationshipStrengthEffect(
+                L(Rel.WagesCampaignAgainst),
+                ColumnHoldsCampaignRePress,
+                GeneratorRelationshipInstanceSelection.TriggerRelationship),
+        ],
+        Triggers = TriggerOn(K.Faction),
+        PulseWeight = 8,
     };
 }

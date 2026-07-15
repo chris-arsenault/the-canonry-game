@@ -32,6 +32,7 @@ public static partial class DomainCompiler
             CultureSlots = BuildCultureSlotProgram(graph),
             MinorActors = BuildMinorActorProgram(config, ids),
             Chronicles = BuildChronicleProgram(config, ids),
+            WorldBeats = BuildWorldBeatProgram(config, ids),
         };
     }
 
@@ -74,6 +75,9 @@ public static partial class DomainCompiler
         {
             EnabledByDefault = rules.Count > 0,
             EmitterRules = rules,
+            CampaignRelationshipKindId = config.MinorActorCampaign is null
+                ? 0
+                : ids.RelationshipKindIdOf(config.MinorActorCampaign.RelationshipKind).Value,
         };
     }
 

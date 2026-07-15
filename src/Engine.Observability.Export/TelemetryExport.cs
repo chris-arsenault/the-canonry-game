@@ -131,6 +131,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("culture_power_snapshots");
         ExportTable("entity_tag_events");
         ExportTable("chronicle_events");
+        ExportTable("world_beat_events");
         ExportTable("culture_entity_field_snapshots");
         ExportTable("culture_entity_birth_field_events");
         ExportTable("culture_influence_action_field_events");
@@ -198,6 +199,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("culture_power_snapshots", typeof(CulturePowerSnapshotRow));
         EnsureTable("entity_tag_events", typeof(EntityTagEventRow));
         EnsureTable("chronicle_events", typeof(ChronicleEventRow));
+        EnsureTable("world_beat_events", typeof(WorldBeatEventRow));
         EnsureTable("culture_entity_field_snapshots", typeof(CultureEntityFieldSnapshotRow));
         EnsureTable("culture_entity_birth_field_events", typeof(CultureEntityBirthFieldEventRow));
         EnsureTable("culture_influence_action_field_events", typeof(CultureInfluenceActionFieldEventRow));
@@ -268,6 +270,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("culture_power_snapshots", batch.CulturePowerSnapshots);
         AppendTable("entity_tag_events", batch.EntityTagEvents);
         AppendTable("chronicle_events", batch.ChronicleEvents);
+        AppendTable("world_beat_events", batch.WorldBeatEvents);
         AppendTable("culture_entity_field_snapshots", batch.CultureEntityFieldSnapshots);
         AppendTable("culture_entity_birth_field_events", batch.CultureEntityBirthFieldEvents);
         AppendTable("culture_influence_action_field_events", batch.CultureInfluenceActionFieldEvents);

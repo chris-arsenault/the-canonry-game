@@ -125,6 +125,11 @@ public static partial class DomainCompiler
             RegisterGeneratorSubtypes(generator, state.Subtypes, state.Registry);
         }
 
+        foreach (var age in config.Semantics.WorldBeatAges)
+        {
+            RegisterOnceStrict(state.Generators, age.Id, state.Registry.RegisterGenerator, "world beat age");
+        }
+
         var chronicleCodes = new HashSet<string>(StringComparer.Ordinal);
         foreach (var archetype in config.Semantics.ChronicleArchetypes)
         {

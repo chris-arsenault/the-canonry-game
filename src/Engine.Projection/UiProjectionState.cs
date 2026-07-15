@@ -82,6 +82,11 @@ public sealed class UiProjectionState : KernelEventProjector
 
     public long TopBarVersion { get; private set; }
 
+    /// <summary>Open age id per world-beat track (0 = blank track).</summary>
+    public IReadOnlyList<int> WorldBeatAgeIds => _worldBeatAgeIds;
+
+    private readonly int[] _worldBeatAgeIds = new int[3];
+
     public long EntityMapVersion { get; private set; }
 
     public long EntityBrowserVersion { get; private set; }
@@ -203,6 +208,17 @@ public sealed class UiProjectionState : KernelEventProjector
     {
         DroppedEvents += droppedEventCount;
         LastProjectedSequence = Math.Max(LastProjectedSequence, nextSequence - 1);
+    }
+
+    protected override void OnWorldBeatChanged(long sequence, in WorldBeatChangedKernelEvent evt)
+    {
+        if (evt.TrackCode < 0 || evt.TrackCode >= _worldBeatAgeIds.Length)
+        {
+            return;
+        }
+
+        _worldBeatAgeIds[evt.TrackCode] = evt.PhaseCode == 1 ? evt.AgeId : 0;
+        TopBarVersion++;
     }
 
     protected override void OnEntityCreated(long sequence, in EntityCreatedKernelEvent evt)

@@ -41,7 +41,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     {
         var totals = TraitTotals(simulation.World, entityId, rule);
         var weight = (Data.Weight(rule) + totals.Weight) *
-            CultureSlotAgencyMultiplier(simulation, entityId, rule);
+            CultureSlotAgencyMultiplier(simulation, entityId, rule) *
+            Data.AgeWeightMultiplier(rule);
         var globalBonus = Tuning.LowAltitudeVerbs.OpportunityBonus;
         var verbOverride = Data.OpportunityBonusOverride(rule);
         var opportunityBonus = (verbOverride > 0f ? verbOverride : globalBonus) + totals.OpportunityBonus;

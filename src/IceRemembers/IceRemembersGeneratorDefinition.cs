@@ -98,6 +98,7 @@ public static partial class IceRemembersGeneratorDefinition
         WarsGetNames(),
         AlliesAnswerTheCall(),
         WarTakesItsToll(),
+        TheColumnHolds(),
     ];
 
     private static SemanticGeneratorConfig IceSettlesAccounts() => new()

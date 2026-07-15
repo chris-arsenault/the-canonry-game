@@ -124,6 +124,16 @@ public static partial class DomainCompiler
                 generator.Description);
         }
 
+        foreach (var age in config.Semantics.WorldBeatAges)
+        {
+            symbols.Add(
+                DomainSymbolKind.Generator,
+                ids.GeneratorIdOf(age.Id).Value,
+                age.Id,
+                age.Name,
+                age.Description);
+        }
+
         var chronicleCodes = new HashSet<string>(StringComparer.Ordinal);
         foreach (var archetype in config.Semantics.ChronicleArchetypes)
         {

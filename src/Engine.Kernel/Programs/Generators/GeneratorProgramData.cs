@@ -7,6 +7,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] GeneratorIds = [];
     internal int[] TargetKindIds = [];
     internal int[] PulseWeights = [];
+    internal float[] AgePulseWeightMultipliers = [];
     internal int[] CadenceTicks = [];
     internal int[] CadenceJitterTicks = [];
     internal int[] TargetRequiredTagBits = [];
@@ -165,6 +166,8 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         GeneratorIds = new int[generatorCapacity + 1];
         TargetKindIds = new int[generatorCapacity + 1];
         PulseWeights = new int[generatorCapacity + 1];
+        AgePulseWeightMultipliers = new float[generatorCapacity + 1];
+        global::System.Array.Fill(AgePulseWeightMultipliers, 1f);
         CadenceTicks = new int[generatorCapacity + 1];
         CadenceJitterTicks = new int[generatorCapacity + 1];
         TargetRequiredTagBits = new int[generatorCapacity + 1];

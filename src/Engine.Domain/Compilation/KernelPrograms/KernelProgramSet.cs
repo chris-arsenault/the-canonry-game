@@ -15,4 +15,5 @@ public sealed class KernelProgramSet
     public required CultureSlotProgram CultureSlots { get; init; }
     public required MinorActorProgram MinorActors { get; init; }
     public required ChronicleProgram Chronicles { get; init; }
+    public required WorldBeatProgram WorldBeats { get; init; }
 }

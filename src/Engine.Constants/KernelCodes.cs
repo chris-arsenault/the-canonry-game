@@ -283,6 +283,47 @@ public static class KernelProgramCodes
     public const int CultureBoundaries = 16;
     public const int CultureFieldDecay = 17;
     public const int ChronicleDirector = 18;
+    public const int WorldBeats = 19;
+}
+
+/// <summary>The three regime tracks of the world's macro-chronicle.</summary>
+public static class WorldBeatTrackCodes
+{
+    public const int Ice = 0;
+    public const int Peoples = 1;
+    public const int Memory = 2;
+    public const int Count = 3;
+}
+
+public static class WorldBeatFactCodes
+{
+    public const int TicksSinceStart = 1;
+    public const int ActiveEntitiesOfKind = 2;
+    public const int LivingRelationshipsOfKind = 3;
+    public const int CulledRelationshipsOfKind = 4;
+    public const int TotalCultureRawMass = 5;
+    public const int CultureMassGrowthPermille = 6;
+    public const int LegendaryResolutions = 7;
+}
+
+public static class WorldBeatComparatorCodes
+{
+    public const int AtLeast = 1;
+    public const int Below = 2;
+}
+
+public static class WorldBeatChargeDomainCodes
+{
+    public const int GeneratorPulseWeight = 1;
+    public const int VerbWeight = 2;
+    public const int GambitScore = 3;
+    public const int ContestDecayTide = 4;
+}
+
+public static class WorldBeatPhaseCodes
+{
+    public const int Opened = 1;
+    public const int Closed = 2;
 }
 
 public static class ChronicleEventTypeCodes
@@ -342,6 +383,7 @@ public static class MinorActorPurposeCodes
 {
     public const int CulturalLabor = 1;
     public const int RoadLabor = 2;
+    public const int CampaignLabor = 3;
 }
 
 public static class MinorActorVerbTargetingCodes

@@ -25,6 +25,8 @@ internal sealed partial class Simulation
         GeneratorProgramSnapshot.Write(writer, Generators);
         KernelProgramSnapshot.WriteData(writer, Chronicles.Data);
         KernelProgramSnapshot.WriteState(writer, Chronicles.State);
+        KernelProgramSnapshot.WriteData(writer, WorldBeats.Data);
+        KernelProgramSnapshot.WriteState(writer, WorldBeats.State);
     }
 
     internal void ReadSnapshot(global::System.IO.BinaryReader reader)
@@ -48,6 +50,8 @@ internal sealed partial class Simulation
         GeneratorProgramSnapshot.Read(reader, Generators);
         KernelProgramSnapshot.ReadData(reader, Chronicles.Data);
         KernelProgramSnapshot.ReadState(reader, Chronicles.State);
+        KernelProgramSnapshot.ReadData(reader, WorldBeats.Data);
+        KernelProgramSnapshot.ReadState(reader, WorldBeats.State);
     }
 
     internal void EmitSnapshotEvents()

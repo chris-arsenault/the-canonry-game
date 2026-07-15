@@ -70,6 +70,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private int _terrainCount;
     private int _stepCount;
     private int _initialInfluenceRuleCount;
+    private float[] _ageWeightMultipliers = [];
     private int _affordanceCount;
     private int _traitWeightModifierCount;
     public LowAltitudeVerbProgramData(int ruleCapacity, int itemCapacity)
@@ -93,6 +94,8 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     {
         _kindIds = new int[ruleLength];
         _verbIds = new int[ruleLength];
+        _ageWeightMultipliers = new float[ruleLength];
+        global::System.Array.Fill(_ageWeightMultipliers, 1f);
         _planeCodes = new int[ruleLength];
         _operationCodes = new int[ruleLength];
         _influenceTargetingCodes = new int[ruleLength];
@@ -192,6 +195,29 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     public int SchemaVersion => 9;
 
     public int RuleCount => _ruleCount;
+
+    public float AgeWeightMultiplier(int rule) => _ageWeightMultipliers[rule];
+
+    /// <summary>Age charges: neutralize, then apply per open age each world-beat pulse.</summary>
+    public void ResetAgeWeightMultipliers()
+    {
+        for (var rule = 1; rule <= _ruleCount; rule++)
+        {
+            _ageWeightMultipliers[rule] = 1f;
+        }
+    }
+
+    public void ApplyAgeWeightMultiplier(int verbId, float multiplier)
+    {
+        for (var rule = 1; rule <= _ruleCount; rule++)
+        {
+            if (verbId == 0 || _verbIds[rule] == verbId)
+            {
+                _ageWeightMultipliers[rule] *= multiplier;
+            }
+        }
+    }
+
 
     public int InitialInfluenceRuleCount => _initialInfluenceRuleCount;
 

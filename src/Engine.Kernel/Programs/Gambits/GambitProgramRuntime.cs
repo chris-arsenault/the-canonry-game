@@ -13,6 +13,26 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     private readonly GambitProgramScratch _scratch;
     private int[] _gambitKindIds => Data.GambitKindIds;
     private int[] _gambitIds => Data.GambitIds;
+
+    /// <summary>Age charges: neutralize, then apply per open age each world-beat pulse.</summary>
+    public void ResetAgeScoreMultipliers()
+    {
+        for (var slot = 1; slot <= Data.GambitCount; slot++)
+        {
+            Data.AgeScoreMultipliers[slot] = 1f;
+        }
+    }
+
+    public void ApplyAgeScoreMultiplier(int gambitId, float multiplier)
+    {
+        for (var slot = 1; slot <= Data.GambitCount; slot++)
+        {
+            if (gambitId == 0 || _gambitIds[slot] == gambitId)
+            {
+                Data.AgeScoreMultipliers[slot] *= multiplier;
+            }
+        }
+    }
     private int[] _gambitCooldownTicks => Data.GambitCooldownTicks;
     private int[] _gambitEntityCooldownTicks => Data.GambitEntityCooldownTicks;
     private float[] _gambitSuccessChances => Data.GambitSuccessChances;

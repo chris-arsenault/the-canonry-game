@@ -194,17 +194,15 @@ internal sealed partial class MinorActorProgramRuntime :
             return;
         }
 
+        var anchorEntityId = sourceEntityId;
+        if (Data.PurposeCodes[rule] == MinorActorPurposeCodes.CampaignLabor &&
+            !TryResolveCampaignTarget(world, sourceEntityId, out anchorEntityId))
+        {
+            return;
+        }
+
         State.SetNextEmissionPulse(sourceEntityId, rule, pulse + EffectiveEmitCadence(rule, slotMultiplier));
-        if (!TryResolveSourcePosition(world, sourceEntityId, Data.PlaneCodes[rule], out var sourceQ, out var sourceR) ||
-            !TrySelectSpawnCell(
-                simulation,
-                world.EntityCultureId(sourceEntityId),
-                Data.PlaneCodes[rule],
-                sourceQ,
-                sourceR,
-                Data.SpawnRadii[rule],
-                out var q,
-                out var r))
+        if (!TryResolveSpawnPosition(simulation, world, sourceEntityId, anchorEntityId, rule, out var q, out var r))
         {
             return;
         }
@@ -226,6 +224,8 @@ internal sealed partial class MinorActorProgramRuntime :
             pulse,
             Data.PurposeCodes[rule]);
     }
+
+
 
     private int EffectiveMaxActivePerSource(int rule, int slotMultiplier, int workTier) =>
         (Data.MaxActivePerSource[rule] * global::System.Math.Max(1, slotMultiplier)) +
@@ -898,6 +898,48 @@ internal sealed partial class MinorActorProgramRuntime :
         q = 0;
         r = 0;
         return false;
+    }
+
+    private bool TryResolveSpawnPosition(
+        Simulation simulation,
+        WorldState world,
+        int sourceEntityId,
+        int anchorEntityId,
+        int rule,
+        out int q,
+        out int r)
+    {
+        q = 0;
+        r = 0;
+        if (!TryResolveSourcePosition(world, anchorEntityId, Data.PlaneCodes[rule], out var sourceQ, out var sourceR))
+        {
+            return false;
+        }
+
+        if (anchorEntityId != sourceEntityId)
+        {
+            AdvanceAnchorToFrontier(world, sourceEntityId, Data.PlaneCodes[rule], ref sourceQ, ref sourceR);
+        }
+
+        return Data.PurposeCodes[rule] == MinorActorPurposeCodes.CampaignLabor
+            ? TrySelectCampaignSpawnCell(
+                simulation,
+                world.EntityCultureId(sourceEntityId),
+                Data.PlaneCodes[rule],
+                sourceQ,
+                sourceR,
+                Data.SpawnRadii[rule],
+                out q,
+                out r)
+            : TrySelectSpawnCell(
+                simulation,
+                world.EntityCultureId(sourceEntityId),
+                Data.PlaneCodes[rule],
+                sourceQ,
+                sourceR,
+                Data.SpawnRadii[rule],
+                out q,
+                out r);
     }
 
     private bool TrySelectSpawnCell(

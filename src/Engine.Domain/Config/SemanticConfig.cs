@@ -19,6 +19,9 @@ public sealed class SemanticDomainConfig
     /// beat's stances receives that beat in its compiled pool.
     /// </summary>
     public IReadOnlyList<ChronicleBeatConfig> ChronicleSharedBeats { get; init; } = [];
+
+    /// <summary>The authored pool of Ages: the world's own beat treatment.</summary>
+    public IReadOnlyList<WorldBeatAgeConfig> WorldBeatAges { get; init; } = [];
 }
 
 public abstract class SemanticStockConfig
