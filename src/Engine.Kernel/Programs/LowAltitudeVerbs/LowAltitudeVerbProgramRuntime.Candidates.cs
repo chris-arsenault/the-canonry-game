@@ -35,8 +35,61 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             TargetSelectorCodes.SelfMapValue => TryBuildOwnInfluenceCandidate(simulation, entityId, rule, tick),
             TargetSelectorCodes.OtherMapValue => TryBuildForeignInfluenceCandidate(simulation, entityId, rule, tick),
             TargetSelectorCodes.ChroniclePursuit => TryBuildChroniclePursuitCandidate(simulation, entityId, rule, tick),
+            TargetSelectorCodes.AttractorTrek => TryBuildAttractorTrekCandidate(simulation, entityId, rule, tick),
             _ => CandidateBuildResult.Empty,
         };
+    }
+
+    private const int TrekMinDistance = 8;
+
+    /// <summary>
+    /// Journeys toward the pull of the world: sample distant cells and weigh
+    /// them by attractor mass (previous pulse), so entities trek to where
+    /// life gathers - settlements, works, and the cast of hot chronicles.
+    /// </summary>
+    private CandidateBuildResult TryBuildAttractorTrekCandidate(
+        Simulation simulation,
+        int entityId,
+        int rule,
+        int tick)
+    {
+        var world = simulation.World;
+        var planeCode = Data.PlaneCode(rule);
+        var scalars = EffectiveScalars(simulation, entityId, rule);
+        var actorQ = CurrentQ(world, entityId, planeCode);
+        var actorR = CurrentR(world, entityId, planeCode);
+        var searchRadius = global::System.Math.Max(TrekMinDistance + 2, CellTargetSearchRadius(world, rule, TargetSelectorCodes.AttractorTrek));
+        var samples = global::System.Math.Max(4, Data.CandidateSampleCount(rule));
+        var totalWeight = 0f;
+        var selected = default(VerbTargetCandidate);
+        for (var i = 0; i < samples; i++)
+        {
+            var dq = simulation.NextInclusive(-searchRadius, searchRadius);
+            var dr = simulation.NextInclusive(
+                global::System.Math.Max(-searchRadius, -dq - searchRadius),
+                global::System.Math.Min(searchRadius, -dq + searchRadius));
+            var q = actorQ + dq;
+            var r = actorR + dr;
+            var distance = (global::System.Math.Abs(dq) + global::System.Math.Abs(dr) + global::System.Math.Abs(dq + dr)) / 2;
+            if (distance < TrekMinDistance ||
+                !CellTargetCoordinateAllowed(world, planeCode, q, r) ||
+                !MovementTargetReachable(simulation, entityId, rule, planeCode, q, r, tick))
+            {
+                continue;
+            }
+
+            var pull = simulation.ReadAttractorMassSnapshot(planeCode, q, r);
+            if (pull <= 0f)
+            {
+                continue;
+            }
+
+            var weight = scalars.Weight * pull * DistancePref(rule, TargetSelectorCodes.AttractorTrek, actorQ, actorR, q, r);
+            var candidate = Candidate(rule, planeCode, 0, world.EntityKindId(entityId), q, r, TargetS(planeCode, q, r), weight, default, scalars.OpportunityBonus);
+            ConsiderCandidate(simulation, candidate, ref totalWeight, ref selected);
+        }
+
+        return new CandidateBuildResult(selected, 0f);
     }
 
     private const int PursuitMinDistance = 5;

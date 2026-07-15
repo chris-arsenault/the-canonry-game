@@ -132,6 +132,13 @@ public enum LowAltitudeVerbTargetMode
     /// a sufficiently hot chronicle with a distant costar.
     /// </summary>
     ChroniclePursuit,
+
+    /// <summary>
+    /// Journeys toward the pull of the world: samples distant cells and
+    /// treks to high attractor mass (settlements, works, hot chronicle
+    /// casts). The systemic engine of convergence.
+    /// </summary>
+    AttractorTrek,
 }
 
 public enum LowAltitudeVerbRelationshipDirection

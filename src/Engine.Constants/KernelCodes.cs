@@ -420,6 +420,7 @@ public static class TargetSelectorCodes
     public const int SelfMapValue = 5;
     public const int OtherMapValue = 6;
     public const int ChroniclePursuit = 7;
+    public const int AttractorTrek = 8;
 }
 
 public static class ProgramOpcodeCodes

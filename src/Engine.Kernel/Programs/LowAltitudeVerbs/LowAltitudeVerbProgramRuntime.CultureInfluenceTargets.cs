@@ -325,6 +325,44 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         return StrongestOtherCultureInfluence(simulation.World, ownCultureId, planeCode, q, r, out foreignCultureId);
     }
 
+    /// <summary>
+    /// Contest score for the cell plus the standing tide's other hand:
+    /// genuinely contested cells (both sides established) draw the fight -
+    /// verbs of both cultures weight the front.
+    /// </summary>
+    private const float FrontierEstablishedRawMass = 4f;
+    private const float FrontierWeightMultiplier = 1.75f;
+
+    private (float ContestSupport, float Frontier) ContestSupportAndFrontier(
+        Simulation simulation,
+        int actorCultureId,
+        int planeCode,
+        int q,
+        int r)
+    {
+        if (actorCultureId <= 0)
+        {
+            return (0f, 1f);
+        }
+
+        var boundary = simulation.CultureBoundaries.CellAt(simulation.World, actorCultureId, planeCode, q, r);
+        var frontier = boundary.RawMass >= FrontierEstablishedRawMass && boundary.ForeignRawMass >= FrontierEstablishedRawMass
+            ? FrontierWeightMultiplier
+            : 1f;
+        var attachment = CultureAttachment(boundary);
+        var input = new CultureInfluenceTargetScoreInput(
+            LowAltitudeInfluenceTargetingCodes.Contest,
+            boundary.Share,
+            boundary.RawMass,
+            boundary.ForeignShare,
+            boundary.ForeignRawMass,
+            attachment.ComponentMass,
+            attachment.AdjacentSupportedCount,
+            attachment.ComponentCount,
+            attachment.LargestComponentSupport);
+        return (CultureInfluenceTargetScorer.Score(input), frontier);
+    }
+
     private void AddForeignInfluenceCandidate(
         Simulation simulation,
         int entityId,
@@ -356,23 +394,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             return;
         }
 
-        var contestSupport = 0f;
-        if (actorCultureId > 0)
-        {
-            var boundary = simulation.CultureBoundaries.CellAt(simulation.World, actorCultureId, planeCode, q, r);
-            var attachment = CultureAttachment(boundary);
-            var input = new CultureInfluenceTargetScoreInput(
-                LowAltitudeInfluenceTargetingCodes.Contest,
-                boundary.Share,
-                boundary.RawMass,
-                boundary.ForeignShare,
-                boundary.ForeignRawMass,
-                attachment.ComponentMass,
-                attachment.AdjacentSupportedCount,
-                attachment.ComponentCount,
-                attachment.LargestComponentSupport);
-            contestSupport = CultureInfluenceTargetScorer.Score(input);
-        }
+        var (contestSupport, frontier) = ContestSupportAndFrontier(simulation, actorCultureId, planeCode, q, r);
 
         if (contestSupport <= 0f)
         {
@@ -385,7 +407,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var saturationDivisor = CellSaturationDivisor(simulation, planeCode, q, r);
         var recencyKey = LowAltitudeVerbProgramState.PackCellTargetKey(planeCode, q, r);
         var recency = ComputeRecencyMultiplier(entityId, tick, recencyKey);
-        var baseWeight = scalars.Weight * (0.25f + presenceBias) * contestSupport * distance * saturationDivisor * recency;
+        var baseWeight = scalars.Weight * (0.25f + presenceBias) * contestSupport * distance * saturationDivisor * recency * frontier;
         var influencerKindId = influencerId > 0 ? simulation.World.EntityKindId(influencerId) : actorKindId;
         var affordance = CombineAffordancesForInfluenceTarget(
             actorKindId,

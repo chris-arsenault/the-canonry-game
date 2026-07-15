@@ -4,6 +4,7 @@ internal sealed class MapSignalsProgramRuntime :
     IKernelProgramRuntime<MapSignalsProgramData, MapSignalsProgramState>
 {
     private const float CultureMaturityCapacityScale = 0.4f;
+    private const float ChronicleAttractorScale = 2f;
 
     public MapSignalsProgramRuntime(MapSignalsProgramData data, MapSignalsProgramState state)
     {
@@ -274,6 +275,10 @@ internal sealed class MapSignalsProgramRuntime :
 
         mass += simulation.MapActivity.Heat(planeCode, q, r, tick) * Data.KindActivityAttractorScale(kindId);
         mass += AttractorScalarMass(world, entityId, kindId);
+
+        // Convergence made spatial: the cast of a hot chronicle radiates
+        // pull, so running stories become places the world is drawn toward.
+        mass += simulation.Chronicles.HeatFor(entityId) * ChronicleAttractorScale;
 
         mass += support - threat;
         return mass < 0f ? 0f : mass;

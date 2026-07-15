@@ -461,6 +461,7 @@ public static class GameplayCompiler
         LowAltitudeVerbTargetMode.OwnInfluence => TargetSelectorCodes.SelfMapValue,
         LowAltitudeVerbTargetMode.ForeignInfluence => TargetSelectorCodes.OtherMapValue,
         LowAltitudeVerbTargetMode.ChroniclePursuit => TargetSelectorCodes.ChroniclePursuit,
+        LowAltitudeVerbTargetMode.AttractorTrek => TargetSelectorCodes.AttractorTrek,
         _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null),
     };
 

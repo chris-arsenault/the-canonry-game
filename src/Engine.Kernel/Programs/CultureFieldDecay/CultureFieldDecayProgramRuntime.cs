@@ -12,6 +12,8 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
     private readonly float _decayPerPulse;
     private readonly float _minimumDecayPerPulse;
     private readonly float _cullFloorRawMass;
+    private readonly float _contestDecayMultiplier;
+    private readonly float _contestFloorRawMass;
     private readonly int[] _scratchQ;
     private readonly int[] _scratchR;
     private readonly int[] _scratchZ;
@@ -24,6 +26,8 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
         _decayPerPulse = tuning.DecayPerPulse;
         _minimumDecayPerPulse = tuning.MinimumDecayPerPulse;
         _cullFloorRawMass = tuning.CullFloorRawMass;
+        _contestDecayMultiplier = tuning.ContestDecayMultiplier;
+        _contestFloorRawMass = tuning.ContestFloorRawMass;
         _scratchQ = new int[cellCapacity];
         _scratchR = new int[cellCapacity];
         _scratchZ = new int[cellCapacity];
@@ -72,7 +76,8 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
         for (var i = 0; i < count; i++)
         {
             var raw = _scratchRaw[i];
-            var decay = global::System.MathF.Max(raw * _decayPerPulse, _minimumDecayPerPulse);
+            var contest = ContestMultiplier(world, cultureId, planeCode, _scratchQ[i], _scratchR[i], _scratchZ[i], raw);
+            var decay = global::System.MathF.Max(raw * _decayPerPulse, _minimumDecayPerPulse) * contest;
             if (raw - decay < _cullFloorRawMass)
             {
                 decay = raw;
@@ -87,5 +92,34 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
                 -decay,
                 tick);
         }
+    }
+
+    /// <summary>
+    /// The standing tide: where a stronger rival culture holds the same
+    /// cell, the locally weaker side decays faster - fronts form where
+    /// cultures touch, and boundaries can visibly move.
+    /// </summary>
+    private float ContestMultiplier(WorldState world, int cultureId, int planeCode, int q, int r, int z, float raw)
+    {
+        if (_contestDecayMultiplier <= 1f || raw <= 0f)
+        {
+            return 1f;
+        }
+
+        for (var other = 1; other <= world.CultureHighWatermark; other++)
+        {
+            if (other == cultureId)
+            {
+                continue;
+            }
+
+            var rival = world.GetCellCultureInfluenceRaw(other, planeCode, q, r, z);
+            if (rival > raw && rival >= _contestFloorRawMass)
+            {
+                return _contestDecayMultiplier;
+            }
+        }
+
+        return 1f;
     }
 }

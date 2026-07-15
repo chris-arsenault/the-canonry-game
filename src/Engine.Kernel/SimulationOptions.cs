@@ -134,6 +134,16 @@ internal sealed record CultureFieldTuningOptions
     public int DecayCadenceMainTicks { get; init; } = 5;
     public float RemittanceShare { get; init; } = 0.5f;
     public int RemittanceMinimumDistance { get; init; } = 6;
+
+    /// <summary>
+    /// The standing tide: in contested cells the locally weaker culture
+    /// decays faster, so fronts form where cultures touch and boundaries
+    /// can visibly move. 1 disables contest.
+    /// </summary>
+    public float ContestDecayMultiplier { get; init; } = 6f;
+
+    /// <summary>A rival needs at least this raw mass (and more than the local side) for a cell to count as contested.</summary>
+    public float ContestFloorRawMass { get; init; } = 4f;
 }
 
 internal sealed record GeneratorProgramTuningOptions

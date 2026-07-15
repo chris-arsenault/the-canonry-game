@@ -181,6 +181,8 @@ internal static class KernelSnapshotOptions
         writer.Write(kernelTuning.Programs.CultureField.DecayCadenceMainTicks);
         writer.Write(kernelTuning.Programs.CultureField.RemittanceShare);
         writer.Write(kernelTuning.Programs.CultureField.RemittanceMinimumDistance);
+        writer.Write(kernelTuning.Programs.CultureField.ContestDecayMultiplier);
+        writer.Write(kernelTuning.Programs.CultureField.ContestFloorRawMass);
     }
 
     private static void WriteProgramEnabledOverrides(
@@ -343,6 +345,8 @@ internal static class KernelSnapshotOptions
         values.CultureFieldDecayCadenceMainTicks = reader.ReadInt32();
         values.CultureFieldRemittanceShare = reader.ReadSingle();
         values.CultureFieldRemittanceMinimumDistance = reader.ReadInt32();
+        values.CultureFieldContestDecayMultiplier = reader.ReadSingle();
+        values.CultureFieldContestFloorRawMass = reader.ReadSingle();
     }
 
     private static void ApplyEventCapacityFloor(ref SnapshotOptionValues values, int eventCount)
@@ -502,6 +506,8 @@ internal static class KernelSnapshotOptions
                 CultureField = new CultureFieldTuningOptions
                 {
                     DecayPerPulse = values.CultureFieldDecayPerPulse,
+                    ContestDecayMultiplier = values.CultureFieldContestDecayMultiplier,
+                    ContestFloorRawMass = values.CultureFieldContestFloorRawMass,
                     MinimumDecayPerPulse = values.CultureFieldMinimumDecayPerPulse,
                     CullFloorRawMass = values.CultureFieldCullFloorRawMass,
                     DecayCadenceMainTicks = values.CultureFieldDecayCadenceMainTicks,
@@ -604,6 +610,8 @@ internal static class KernelSnapshotOptions
         public float LowAltitudeInfluenceShortfallSamplingFactor;
         public float LowAltitudeForeignInfluencePresenceSamplingFactor;
         public float CultureFieldDecayPerPulse;
+        public float CultureFieldContestDecayMultiplier;
+        public float CultureFieldContestFloorRawMass;
         public float CultureFieldMinimumDecayPerPulse;
         public float CultureFieldCullFloorRawMass;
         public int CultureFieldDecayCadenceMainTicks;

@@ -388,6 +388,11 @@ internal sealed partial class Simulation : IKernel
         };
     }
 
+    // Previous-tick read by kernel program order: LowAltitudeVerbs run before
+    // MapSignals refreshes, so trek targeting sees the prior pulse's field.
+    internal float ReadAttractorMassSnapshot(int planeCode, int q, int r) =>
+        MapSignals.AttractorMassAt(planeCode, q, r);
+
     internal int ReadCellOccupancyOneRingSum(int planeCode, int q, int r)
     {
         var sum = MapActivity.CurrentOccupancy(planeCode, q, r);

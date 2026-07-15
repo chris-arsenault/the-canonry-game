@@ -685,3 +685,51 @@ direction is the player's hand without puppeting any entity.
   bundled. Flow rendering and auras need visual confirmation in Godot.
 - Next: F2 frontier contest as its own macro round; duty-cycle step
   tuning; caravan carriers per the Civ-parallel refinements.
+
+### Kinetics round, Bundle A "The Tide" (2026-07-15, branch kinetics-deeds)
+
+Scope: F2 frontier contest + J2 attractor consumption + T1 duty-cycle.
+Evidence chain: kin-tide-3x25k-20260715b (first cut), -c (gate fixes),
+-d (final, contest 6x); baselines kin-deeds-3x25k-20260715b and
+c2d-quiet-trio-3x25k-20260715.
+
+- F2a contest decay (kernel CultureFieldDecay): in a cell where a rival
+  culture holds more raw mass (and at least ContestFloorRawMass 4), the
+  locally weaker side's decay is multiplied by ContestDecayMultiplier.
+  Two neutering bugs found via the b/c runs and fixed: (1) the gate
+  originally exempted local mass < 4 - exactly the thin weaker tails
+  where fronts live (only 53 of 519 mixed cells qualified); (2) the
+  multiplier originally scaled the decay *rate*, which the 0.6
+  MinimumDecayPerPulse floor swallowed for all raw < 120. Final form:
+  decay = max(raw * rate, minimum) * contest, contest 6x after 2.5x
+  proved invisible (+2.8% losses) against the ~4M raw background.
+- F2b frontier verb weighting: contested cells (both sides >= 4 raw)
+  weight foreign-influence verb targets x1.75. Confirmed working:
+  verb-sourced culture losses nearly doubled (79k -> 145k raw).
+- J2 attractor consumption: chronicle heat now radiates into the
+  attractor field (HeatFor x 2 in EntityAttractorMass) - convergence
+  made spatial; and a new AttractorTrek verb selector samples an
+  annulus (min distance 8) weighted by prior-pulse attractor mass,
+  through a declared Simulation.ReadAttractorMassSnapshot boundary
+  read. Authored penguin/orca "Follow the Gathering" treks (300-700
+  tick commitments, weight 0.5, distance scale 40).
+- T1 duty-cycle: confirmed already structural (committed movement steps
+  every 1-3 ticks; gaps between intents are dwell). No change.
+- MC verdict (kin-tide-3x25k-20260715d at 6x): contested-band decay
+  losses +9.5% vs Bundle B; final mixed cells (both cultures > 0.5 raw)
+  -16% - boundaries visibly sharpen; culture reversals, chronicle
+  volume (132 tales), and displacement all stable. But ownership flips
+  fell 233 -> 133: contest decay is a conservative force - it crushes
+  weak incursions before they flip cells, so fronts sharpen while
+  ownership stabilizes. Decay-side contest alone cannot produce moving
+  fronts; boundary MOVEMENT needs the attacking side to project mass
+  (concentrated reinforcement campaigns, settlement founding/loss) -
+  that is Ages/generator territory, recorded as the follow-up.
+- Trek verdict: physical verb hop volume +21% (470k -> 571k) - more
+  visible motion on the map - but epoch displacement efficiency dipped
+  (0.218 -> 0.176): treks are round trips; they add journey volume,
+  not migration. Same defensible-for-a-settled-species shape as the
+  Bundle B journey verbs.
+- Next: world-beats/Ages round (mass-projection campaigns that can
+  move the sharpened fronts), growing map, travel-cost reach, caravan
+  carriers, progression-lattice epic.

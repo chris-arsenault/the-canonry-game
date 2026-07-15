@@ -46,6 +46,12 @@ public static partial class IceRemembersDefinition
         MovementVerb(Verb.OrcaFarCurrents, "Ride the Far Currents", K.Orca, Mode.Explore,
             ticks: (300, 700), dwell: 12, radius: 26, samples: 30, weight: 0.6f, opportunityBonusOverride: 0.2f,
             distanceScale: 40f),
+        MovementVerb(Verb.PenguinFollowTheGathering, "Follow the Gathering", K.Penguin, Mode.AttractorTrek,
+            ticks: (300, 700), dwell: 25, radius: 30, samples: 24, weight: 0.5f, opportunityBonusOverride: 0.3f,
+            distanceScale: 40f),
+        MovementVerb(Verb.OrcaFollowTheGathering, "Follow the Gathering", K.Orca, Mode.AttractorTrek,
+            ticks: (300, 700), dwell: 25, radius: 30, samples: 24, weight: 0.5f, opportunityBonusOverride: 0.3f,
+            distanceScale: 40f),
     ];
 
     private static IReadOnlyList<LowAltitudeVerbConfig> CreatePursuitVerbs() =>

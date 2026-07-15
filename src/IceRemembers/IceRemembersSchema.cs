@@ -378,6 +378,8 @@ public enum IceRemembersVerbId
     PenguinWanderingSeason,
     PenguinPilgrimage,
     OrcaFarCurrents,
+    PenguinFollowTheGathering,
+    OrcaFollowTheGathering,
 }
 
 public static class IceRemembersVerbIdExtensions
@@ -557,6 +559,8 @@ public static class IceRemembersVerbIdExtensions
         "penguin_wandering_season",
         "penguin_pilgrimage",
         "orca_far_currents",
+        "penguin_follow_the_gathering",
+        "orca_follow_the_gathering",
     ];
 
     public static string ToVerbId(this IceRemembersVerbId verbId)
