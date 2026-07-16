@@ -12,9 +12,18 @@ placeholder partitions.
 
 The semantic plane is an analogous map model, not a mirror of the physical
 map. It has the same plane-aware storage, movement, culture influence, road,
-coverage, superregion, and continent surfaces, but its coordinates and terrain
-mean conceptual position rather than physical location. Physical `(6, 5)` and
-semantic `(6, 5)` have no direct implied relationship.
+coverage, superregion, and continent surfaces, but its coordinates locate a
+conceptual position rather than a physical one. Physical `(6, 5)` and semantic
+`(6, 5)` have no direct implied relationship.
+
+Its two free axes (`q`, `r`; `s = -q - r` is the derived cube coordinate) are
+**neutral directions** — like compass bearings, they carry no meaning of their
+own and impose no scale or good/evil polarity. Meaning lives in the terrain at a
+coordinate and the entities standing on it, not in the axis values; the
+simulation reads only the distance between coordinates (source and destination),
+never any absolute "similarity" measure. The plane is a growing map like the
+physical one — born as a heart and pushed outward through play — see
+[the growing map](./26-growing-map.md).
 
 Semantic terrain is first-class Ice Remembers terrain: lineage, yoke, witness,
 silence, severance, breakaway, beacon spire, taboo ridge, cave pocket, open

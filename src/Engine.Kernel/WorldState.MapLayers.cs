@@ -41,7 +41,10 @@ internal sealed partial class WorldState
         ValidateInfluencePlaneCode(planeCode);
         if (planeCode == PlaneCodes.Semantic)
         {
-            return z == 0 && MaxAbs(q, r, -q - r) <= _mapRadius;
+            // Idea-space grows like the physical map: a semantic cell is known
+            // only once it has been materialized (seeded heart or opened by the
+            // frontier). Un-opened idea-space is genuine fog.
+            return z == 0 && _mapCellTerrainIds.TryGet(CoordinateKey(q, r, z), PlaneCodes.Semantic, out _);
         }
 
         if (z is < MinCellZ or > MaxCellZ)
@@ -579,8 +582,6 @@ internal sealed partial class WorldState
         return removed;
     }
 
-    private static int MaxAbs(int a, int b, int c) =>
-        global::System.Math.Max(global::System.Math.Abs(a), global::System.Math.Max(global::System.Math.Abs(b), global::System.Math.Abs(c)));
 
     internal void ModifyEntityCultureInfluenceMultiplierDelta(
         int entityId,

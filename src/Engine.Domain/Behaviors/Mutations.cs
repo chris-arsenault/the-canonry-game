@@ -388,7 +388,7 @@ public sealed class BuildTravelStructureLineMutation(
 
 /// <summary>
 /// Semantic-plane drift. Steps self's SemanticPosition to a uniformly random
-/// neighbor on the autonomy/resonance/tradition plane.
+/// neighbor on the neutral semantic (idea-space) plane.
 /// </summary>
 public sealed class WanderOnSemanticPlaneMutation : IMutation
 {

@@ -125,7 +125,7 @@ public sealed class KindConfig
     /// The plane on which this kind primarily positions itself. Physical-plane kinds
     /// (such as penguins and artifacts in Ice Remembers) use the map hex grid and
     /// measure proximity via HexCoord.Distance. Semantic-plane kinds use SemanticHexCoord on the
-    /// autonomy/resonance/tradition axes. Mobility/drift verbs and cross-entity verb
+    /// neutral idea-space axes. Mobility/drift verbs and cross-entity verb
     /// proximity checks pick their metric from the owner's primary plane.
     /// </summary>
     public required PrimaryPlane PrimaryPlane { get; init; }
@@ -327,6 +327,16 @@ public sealed class MapFrontierConfig
     public float ReclaimMassCeiling { get; init; } = 1f;
     public int ThawBudgetPerPulse { get; init; } = 24;
     public int RefreezeBudgetPerPulse { get; init; } = 24;
+
+    /// <summary>
+    /// Terrain laid on newly opened semantic (idea-space) cells. Null disables
+    /// semantic growth: the semantic plane stays whatever extent it was seeded at.
+    /// Ideas have no ice, so semantic growth is continuous (no age gate) and never
+    /// re-freezes.
+    /// </summary>
+    public string? SemanticOpenTerrain { get; init; }
+    public int SemanticMaxRadius { get; init; } = 40;
+    public float SemanticFrontierMassThreshold { get; init; } = 30f;
 }
 
 public sealed class MinorActorRuleConfig

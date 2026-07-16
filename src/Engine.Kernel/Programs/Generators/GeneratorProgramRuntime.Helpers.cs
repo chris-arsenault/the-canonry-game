@@ -411,14 +411,6 @@ internal sealed partial class GeneratorProgramRuntime
         }
     }
 
-    private static int Abs(int value)
-    {
-        return value < 0 ? -value : value;
-    }
-
-    private static int MaxAbs(int a, int b, int c) =>
-        global::System.Math.Max(Abs(a), global::System.Math.Max(Abs(b), Abs(c)));
-
     private static int CurrentQ(WorldState world, int entityId, int planeCode) =>
         planeCode == PlaneCodes.Semantic ? world.EntitySemanticQ(entityId) : world.EntityPhysicalQ(entityId);
 

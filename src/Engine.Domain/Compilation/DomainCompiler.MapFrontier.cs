@@ -27,6 +27,9 @@ public static partial class DomainCompiler
             ReclaimMassCeiling = frontier.ReclaimMassCeiling,
             ThawBudgetPerPulse = frontier.ThawBudgetPerPulse,
             RefreezeBudgetPerPulse = frontier.RefreezeBudgetPerPulse,
+            SemanticOpenTerrainId = frontier.SemanticOpenTerrain is null ? 0 : ids.TerrainIdOf(frontier.SemanticOpenTerrain).Value,
+            SemanticMaxRadius = frontier.SemanticMaxRadius,
+            SemanticFrontierMassThreshold = frontier.SemanticFrontierMassThreshold,
         };
     }
 }

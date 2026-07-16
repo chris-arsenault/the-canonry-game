@@ -168,7 +168,7 @@ public partial class HexTooltipPanel : PanelContainer
         var occupantsLine = FormatOccupants(PlaneCodes.Semantic, coord);
         if (!_map!.TryGetHex(PlaneCodes.Semantic, coord, out var cell))
         {
-            return $"autonomy {coord.Q,3}    resonance {coord.R,3}    tradition {s,3}\n{occupantsLine}";
+            return $"q {coord.Q,3}    r {coord.R,3}    s {s,3}\n{occupantsLine}";
         }
 
         var terrain = FormatTerrain(cell);
@@ -176,7 +176,7 @@ public partial class HexTooltipPanel : PanelContainer
         var continent = FormatSubdivision(ProjectionSymbolKind.Continent, cell.ContinentId);
         var superregion = FormatSubdivision(ProjectionSymbolKind.Superregion, cell.SuperregionId);
         return
-            $"autonomy {coord.Q,3}    resonance {coord.R,3}    tradition {s,3}\n" +
+            $"q {coord.Q,3}    r {coord.R,3}    s {s,3}\n" +
             $"{terrain,-10}   {owner}   {FormatRoad(cell)}\n" +
             $"{continent}   {superregion}\n" +
             $"{FormatCultureInfluence(cell)}\n" +

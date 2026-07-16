@@ -7,9 +7,15 @@ cost, so a larger world and its infrastructure change what can interact.
 ## The thawed heart
 
 Seed/worldgen builds the physical grid at `PhysicalHeartRadius` (18) — about
-a fifth of the eventual r40 extent — while the semantic plane is born full
-(ideas have no ice). The heart is dense by construction: all six cultures fit
+a fifth of the eventual r40 extent. Idea-space is born the same way: the
+semantic plane is seeded only within `SemanticHeartRadius` (18), and the rest of
+its disk starts as fog. The heart is dense by construction: all six cultures fit
 and press each other, which is the co-location the early simulation needs.
+
+A semantic cell is *known* only once it has been materialized — the seeded heart
+or ground the frontier later opens — exactly like the physical plane. Un-opened
+idea-space is genuine fog: movement, generator placement, and verb targeting all
+refuse it.
 
 ## MapFrontier: thaw and reclaim
 
@@ -38,6 +44,25 @@ New cells are ordinary: culture spreads onto them, entities move onto them,
 generators place into them. Re-freezing transforms terrain rather than deleting
 cells, so occupancy indexes and culture rows stay valid; passable, culture-
 bearing extent is what grows and shrinks.
+
+## Semantic growth: idea-space has no ice
+
+The semantic plane grows through the same `MapFrontier` machinery, but its driver
+is different. Ideas have no seasonal ice, so semantic growth is **continuous and
+ungated by any age** and never re-freezes: each tick, every semantic cell a
+culture holds with raw idea-mass at or above `SemanticFrontierMassThreshold`
+opens its unknown neighbours as new `open_field` cells (`SemanticMaxRadius` and
+the shared per-pulse budget bound it). New idea-ground is neutral open field and
+earns its meaning as culture and entities reach it — the specialty rim terrains
+(beacon spires, taboo ridges, cave pockets) of the full-scale field are not
+pre-materialized. Configured on `MapFrontierConfig` via `SemanticOpenTerrain`
+(null disables semantic growth).
+
+Evidence (`semantic-growing-map-1`, 2×5000 ticks): idea-space grew from its
+1027-cell heart to 1182 known cells, opening 155 new cells beyond the heart and
+reaching ring 25 (vs. ring 19 for the age-gated physical plane), progressively
+across the whole run (max ring 19 → 21 → 23 → 24 → 25) with no stranded entities
+and no degenerate maps.
 
 ## Travel-cost reach
 

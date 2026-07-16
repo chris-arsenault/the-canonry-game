@@ -247,7 +247,7 @@ public sealed class GeneratorProgramRuntimeCulturePlacementTests
             for (var r = minR; r <= maxR; r++)
             {
                 simulation.CreateCell(q, r, terrainId: 1, ownerEntityId: 0);
-                simulation.SetCellState(PlaneCodes.Semantic, q, r, terrainId: 1, ownerEntityId: 0, tick: 0);
+                simulation.CreateCell(PlaneCodes.Semantic, q, r, terrainId: 1, ownerEntityId: 0);
             }
         }
     }

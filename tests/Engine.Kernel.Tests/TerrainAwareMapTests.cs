@@ -172,6 +172,7 @@ public sealed class TerrainAwareMapTests
             roadBuildMultiplier: 20f,
             roadSpeedMultiplier: 2f);
         simulation.World.SetMapRadius(2);
+        KernelTestSimulation.SeedSemanticCells(simulation, 2);
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
 
         var result = simulation.Movement.Navigate(
@@ -595,6 +596,7 @@ public sealed class TerrainAwareMapTests
         simulation.RegisterTerrain(transformedTerrainId, boundaryGroupId: 1);
         simulation.World.SetMapRadius(1);
         SeedRadiusOne(simulation, originalTerrainId);
+        KernelTestSimulation.SeedSemanticCells(simulation, 1);
         simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 1, -1, 0, tick: 0);
         var slot = simulation.Generators.RegisterGenerator(
             generatorId,

@@ -26,7 +26,7 @@ public sealed class Entity
     public (int Q, int R) Coordinates { get; set; }
 
     /// <summary>
-    /// Position on the shared semantic hex grid (autonomy/resonance/tradition).
+    /// Position on the shared semantic hex grid (neutral q/r idea-space axes).
     /// Every entity carries a semantic position. Physical-mobile entities also carry
     /// physical Coordinates; stationary entities move only on the semantic grid.
     /// </summary>

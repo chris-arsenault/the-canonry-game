@@ -53,6 +53,12 @@ internal sealed partial class MapFrontierProgramRuntime :
         {
             ReclaimRim(simulation, tick);
         }
+
+        // Idea-space grows every tick where culture presses it - no age gate.
+        if (Data.SemanticOpenTerrainId != 0)
+        {
+            GrowSemanticFrontier(simulation);
+        }
     }
 
     private static int HexDistanceFromOrigin(int q, int r) =>

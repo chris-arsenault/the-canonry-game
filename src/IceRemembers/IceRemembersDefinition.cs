@@ -142,6 +142,13 @@ public static partial class IceRemembersDefinition
         ReclaimMassCeiling = 8f,
         ThawBudgetPerPulse = 48,
         RefreezeBudgetPerPulse = 16,
+        // Idea-space is born as a heart and grows outward wherever a culture's
+        // idea-mass presses its frontier - continuous, no age gate, never
+        // re-freezing. New ground opens as neutral open field and earns meaning
+        // as culture and entities reach it.
+        SemanticOpenTerrain = Terrain.OpenField.ToDomainName(),
+        SemanticMaxRadius = 40,
+        SemanticFrontierMassThreshold = 25f,
     };
 
     private static List<RelationshipConfig> CreateRelationships()

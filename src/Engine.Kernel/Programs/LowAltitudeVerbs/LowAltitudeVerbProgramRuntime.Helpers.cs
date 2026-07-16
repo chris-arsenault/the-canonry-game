@@ -104,8 +104,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         return (Abs(aq - bq) + Abs(ar - br) + Abs(asCoord - bsCoord)) / 2;
     }
 
-    private static int MaxAbs(int a, int b, int c) => global::System.Math.Max(Abs(a), global::System.Math.Max(Abs(b), Abs(c)));
-
     private static int Abs(int value) => value < 0 ? -value : value;
 
     private int CellTargetSearchRadius(WorldState world, int rule, int targetMode)

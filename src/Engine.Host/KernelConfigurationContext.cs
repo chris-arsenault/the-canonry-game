@@ -781,6 +781,9 @@ internal sealed class KernelConfigurationContext
     public void AddMapFrontierDriverAge(int thawAgeId, int refreezeAgeId) =>
         _kernel.MapFrontier.AddDriverAge(thawAgeId, refreezeAgeId);
 
+    public void SetMapFrontierSemanticConfiguration(int openTerrainId, int maxRadius, float frontierMassThreshold) =>
+        _kernel.MapFrontier.SetSemanticConfiguration(openTerrainId, maxRadius, frontierMassThreshold);
+
     public int AddChronicleArchetype(int archetypeId, int maxActive, int castingCadenceTicks, int primaryKindId, int primaryRequiredRelKindId, float primaryRequiredRelMinStrength, int fadeOutcomeCodeId, int fadeGraceTicks, int fadeQuietTicks) =>
         _kernel.Chronicles.AddArchetype(archetypeId, maxActive, castingCadenceTicks, primaryKindId, primaryRequiredRelKindId, primaryRequiredRelMinStrength, fadeOutcomeCodeId, fadeGraceTicks, fadeQuietTicks);
 

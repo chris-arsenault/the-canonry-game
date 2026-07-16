@@ -16,6 +16,7 @@ internal sealed class MapFrontierProgramState : IKernelProgramState
     internal int ThawedCount;
     internal int TotalThawed;
     internal int TotalReclaimed;
+    internal int TotalSemanticOpened;
 
     public MapFrontierProgramState(int capacity)
     {

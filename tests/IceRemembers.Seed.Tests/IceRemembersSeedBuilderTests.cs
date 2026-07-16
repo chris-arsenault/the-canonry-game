@@ -84,7 +84,7 @@ public sealed class IceRemembersSeedBuilderTests
 
         Assert.Equal(18, startupSeed.MapRadius);
         Assert.Equal((3 * 18 * 18) + (3 * 18) + 1, physicalCells.Length);
-        Assert.Equal((3 * 40 * 40) + (3 * 40) + 1, semanticCells.Length);
+        Assert.Equal((3 * 18 * 18) + (3 * 18) + 1, semanticCells.Length);
         Assert.Equal(Seed.Entities.Count, startupSeed.Entities.Count);
         Assert.Equal(7, startupSeed.MapSubdivisions.Count(subdivision =>
             subdivision.Level == DomainMapSubdivisionLevel.Continent));
@@ -153,18 +153,18 @@ public sealed class IceRemembersSeedBuilderTests
             .Distinct(StringComparer.Ordinal)
             .ToHashSet(StringComparer.Ordinal);
 
-        Assert.Equal(3 * 40 * 40 + 3 * 40 + 1, semanticCells.Length);
+        // Idea-space is now born as a heart (radius 18) and grows through play.
+        Assert.Equal(3 * 18 * 18 + 3 * 18 + 1, semanticCells.Length);
         Assert.DoesNotContain(T(IceRemembersTerrain.Wastes), terrainNames);
         Assert.Contains(T(IceRemembersTerrain.OpenField), terrainNames);
-        Assert.Contains(T(IceRemembersTerrain.Lineage), terrainNames);
-        Assert.Contains(T(IceRemembersTerrain.Yoke), terrainNames);
-        Assert.Contains(T(IceRemembersTerrain.Witness), terrainNames);
-        Assert.Contains(T(IceRemembersTerrain.Silence), terrainNames);
-        Assert.Contains(T(IceRemembersTerrain.Severance), terrainNames);
-        Assert.Contains(T(IceRemembersTerrain.Breakaway), terrainNames);
-        Assert.Contains(T(IceRemembersTerrain.BeaconSpire), terrainNames);
-        Assert.Contains(T(IceRemembersTerrain.TabooRidge), terrainNames);
-        Assert.Contains(T(IceRemembersTerrain.CavePocket), terrainNames);
+        // The heart carries varied, axis-driven idea-terrain rather than a
+        // monoculture. Specialty rim terrains (beacon spires, taboo ridges, cave
+        // pockets) and some axis basins are seeded toward the edge of the
+        // full-scale field, so they emerge as idea-space grows outward from its
+        // heart rather than all existing at birth.
+        Assert.True(
+            terrainNames.Count >= 5,
+            $"Expected varied semantic terrain in the heart, got: {string.Join(", ", terrainNames)}.");
         Assert.All(semanticCells, cell =>
         {
             Assert.Equal(PlaneCodes.Semantic, cell.PlaneCode);
@@ -233,16 +233,18 @@ public sealed class IceRemembersSeedBuilderTests
     }
 
     [Fact]
-    public void SeedEntities_UseExpandedSemanticPlane()
+    public void SeedEntities_StayWithinSemanticHeart()
     {
         var semanticCoords = Seed.Entities
             .Select(SemanticCoord)
             .ToArray();
         var maxDistance = semanticCoords.Max(coord => SemanticHexCoord.Distance(SemanticHexCoord.Origin, coord));
 
+        // Idea-space is born as a heart (radius 18) and grows outward through
+        // play, so every seed entity must start inside known idea-ground.
         Assert.True(
-            maxDistance >= 30,
-            $"Expected at least one seed entity outside semantic radius 30 on radius-{Seed.MapRadius} map, got max radius {maxDistance}.");
+            maxDistance <= 18,
+            $"Seed entities must start inside the semantic heart (radius 18) on radius-{Seed.MapRadius} map, got max radius {maxDistance}.");
     }
 
     [Fact]

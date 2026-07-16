@@ -22,6 +22,13 @@ internal static partial class IceRemembersSeedBuilder
     private const int StartupMapRadius = 40;
     internal const int PhysicalHeartRadius = 18;
 
+    // Idea-space is also born as a heart and grows outward through play (see the
+    // semantic map-frontier). Terrain, entities, and canons are seeded only
+    // within this radius; the rest of the semantic disk starts as fog. The
+    // terrain influence field is still scaled to StartupMapRadius, so the heart
+    // shows the inner region of the full-scale field.
+    internal const int SemanticHeartRadius = 18;
+
     private static string C(IceRemembersCulture culture) => culture.ToDomainName();
 
     private static SeedEntity CreateEntity(

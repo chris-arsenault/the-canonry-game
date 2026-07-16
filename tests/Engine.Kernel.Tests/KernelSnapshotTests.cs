@@ -90,6 +90,8 @@ public sealed class KernelSnapshotTests
                 simulation.CreateCell(q, r, terrainId: 1, ownerEntityId: 0);
             }
         }
+
+        KernelTestSimulation.SeedSemanticCells(simulation, 1);
     }
 
     private static void RegisterProvenanceSnapshotGenerator(Simulation simulation)

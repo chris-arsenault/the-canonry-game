@@ -132,7 +132,7 @@ internal static partial class IceRemembersSeedBuilder
         SemanticTerrainSeedSet seeds,
         SemanticTerrainSalts salts)
     {
-        foreach (var coord in SemanticHexCoord.CoordsInRadius(SemanticHexCoord.Origin, StartupMapRadius))
+        foreach (var coord in SemanticHexCoord.CoordsInRadius(SemanticHexCoord.Origin, SemanticHeartRadius))
         {
             var influence = CalculateSemanticTerrainInfluence(coord, seeds, salts);
             SetSemanticTerrain(seed, coord, DetermineSemanticTerrain(influence));

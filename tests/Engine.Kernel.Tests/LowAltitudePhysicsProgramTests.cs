@@ -15,6 +15,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
         const int verbId = 88;
         simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
         simulation.World.SetMapRadius(3);
+        KernelTestSimulation.SeedSemanticCells(simulation, 3);
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 2, 0, -2, tick: 0);
         var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
@@ -109,6 +110,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
         const int verbId = 89;
         simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
         simulation.World.SetMapRadius(30);
+        KernelTestSimulation.SeedSemanticCells(simulation, 24, 0, 3);
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 24, 0, -24, tick: 0);
         simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 25, 0, -25, tick: 0);
         var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
@@ -575,6 +577,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
         const int verbId = 103;
         simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
         simulation.World.SetMapRadius(3);
+        KernelTestSimulation.SeedSemanticCells(simulation, 3);
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 2, -1, -1, tick: 0);
         simulation.LowAltitudeVerbs.RegisterInitialInfluence(kindId, PlaneCodes.Semantic, 35f);
         RegisterInfluenceVerb(

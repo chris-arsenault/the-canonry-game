@@ -1,19 +1,18 @@
 namespace Engine.WorldGen;
 
 /// <summary>
-/// Semantic hex coordinate. Axis interpretation:
-///   Q = Autonomy   (constraint ↔ autonomy)
-///   R = Resonance  (quiescent ↔ resonant)
-///   S = Tradition  (derived; ancestral ↔ novel) with Q + R + S = 0
-///
-/// Axis labels are neutral directions (like compass points), not value judgments.
-/// All entity kinds carry a semantic position. Physical-mobile entities also carry
-/// a physical <see cref="HexCoord"/>; planning uses whichever grid is relevant to
-/// the verb being invoked.
+/// Semantic hex coordinate: a position on the neutral idea-space plane. The two
+/// free axes (Q, R) are directions only - like compass bearings they carry no
+/// meaning of their own. Meaning lives in the terrain at a coordinate and the
+/// entities standing on it, not in the axis values. S is the derived third cube
+/// coordinate (S = -Q - R); distance between coordinates is the only relation the
+/// simulation reads from the plane. All entity kinds carry a semantic position.
+/// Physical-mobile entities also carry a physical <see cref="HexCoord"/>; planning
+/// uses whichever grid is relevant to the verb being invoked.
 /// </summary>
 public readonly record struct SemanticHexCoord(int Q, int R)
 {
-    /// <summary>Cube coordinate S (Tradition axis), derived from Q and R. Q + R + S = 0.</summary>
+    /// <summary>Derived third cube coordinate; S = -Q - R, so Q + R + S = 0.</summary>
     public int S => -Q - R;
 
     public static SemanticHexCoord Origin => new(0, 0);
@@ -62,5 +61,5 @@ public readonly record struct SemanticHexCoord(int Q, int R)
         }
     }
 
-    public override string ToString() => $"(autonomy={Q},resonance={R},tradition={S})";
+    public override string ToString() => $"(q={Q},r={R},s={S})";
 }

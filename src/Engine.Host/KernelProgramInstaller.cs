@@ -277,6 +277,10 @@ internal static partial class KernelProgramInstaller
             program.ReclaimMassCeiling,
             program.ThawBudgetPerPulse,
             program.RefreezeBudgetPerPulse);
+        context.SetMapFrontierSemanticConfiguration(
+            program.SemanticOpenTerrainId,
+            program.SemanticMaxRadius,
+            program.SemanticFrontierMassThreshold);
         var driverCount = System.Math.Max(program.AdditionalThawAgeIds.Count, program.AdditionalRefreezeAgeIds.Count);
         for (var i = 0; i < driverCount; i++)
         {

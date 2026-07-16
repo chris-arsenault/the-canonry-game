@@ -15,4 +15,7 @@ public sealed class MapFrontierProgram
     public float ReclaimMassCeiling { get; init; }
     public int ThawBudgetPerPulse { get; init; }
     public int RefreezeBudgetPerPulse { get; init; }
+    public int SemanticOpenTerrainId { get; init; }
+    public int SemanticMaxRadius { get; init; }
+    public float SemanticFrontierMassThreshold { get; init; }
 }

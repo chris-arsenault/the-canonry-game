@@ -74,6 +74,7 @@ public sealed class MapSignalsProgramTests
         const int kindId = 1;
         simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
         simulation.World.SetMapRadius(3);
+        KernelTestSimulation.SeedSemanticCells(simulation, 3);
         simulation.MapSignals.RegisterKindSignal(
             kindId,
             signalRadius: 0,
