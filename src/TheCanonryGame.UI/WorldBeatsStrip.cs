@@ -19,10 +19,10 @@ public partial class WorldBeatsStrip : PanelContainer
     [Signal]
     public delegate void ToggleRequestedEventHandler();
 
-    private static readonly string[] TrackLabels = ["Ice", "Peoples", "Memory"];
-    private static readonly string[] TrackColors = ["8FC7E8", "E8C27A", "C9A2E0"];
+    private static readonly string[] TrackLabels = ["World", "Peoples"];
+    private static readonly string[] TrackColors = ["8FC7E8", "E8C27A"];
 
-    private readonly Label[] _chips = new Label[3];
+    private readonly Label[] _chips = new Label[2];
     private UiProjectionState? _projection;
     private IProjectionSymbolCatalog? _symbols;
     private long _lastVersion = -1;
@@ -31,7 +31,7 @@ public partial class WorldBeatsStrip : PanelContainer
     {
         var row = new HBoxContainer();
         row.AddThemeConstantOverride("separation", UiTokens.Space3);
-        for (var track = 0; track < 3; track++)
+        for (var track = 0; track < 2; track++)
         {
             var chip = new Label
             {
@@ -65,7 +65,7 @@ public partial class WorldBeatsStrip : PanelContainer
         }
 
         _lastVersion = _projection.WorldBeatVersion;
-        for (var track = 0; track < 3 && track < _projection.WorldBeatAgeIds.Count; track++)
+        for (var track = 0; track < 2 && track < _projection.WorldBeatAgeIds.Count; track++)
         {
             var ageId = _projection.WorldBeatAgeIds[track];
             var name = ageId > 0

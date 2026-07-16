@@ -778,6 +778,9 @@ internal sealed class KernelConfigurationContext
             thawBudgetPerPulse,
             refreezeBudgetPerPulse);
 
+    public void AddMapFrontierDriverAge(int thawAgeId, int refreezeAgeId) =>
+        _kernel.MapFrontier.AddDriverAge(thawAgeId, refreezeAgeId);
+
     public int AddChronicleArchetype(int archetypeId, int maxActive, int castingCadenceTicks, int primaryKindId, int primaryRequiredRelKindId, float primaryRequiredRelMinStrength, int fadeOutcomeCodeId, int fadeGraceTicks, int fadeQuietTicks) =>
         _kernel.Chronicles.AddArchetype(archetypeId, maxActive, castingCadenceTicks, primaryKindId, primaryRequiredRelKindId, primaryRequiredRelMinStrength, fadeOutcomeCodeId, fadeGraceTicks, fadeQuietTicks);
 

@@ -126,9 +126,12 @@ public static partial class IceRemembersDefinition
 
     private static MapFrontierConfig CreateMapFrontier() => new()
     {
-        // The world opens during the Thaw and is reclaimed in the Long Dark.
+        // The world opens during the Thaw (and, dramatically, the Great Thaw)
+        // and is reclaimed in the Long Dark (and the catastrophic Great Freeze).
         ThawAge = "age_the_thaw",
         RefreezeAge = "age_the_long_dark",
+        AdditionalThawAges = ["age_the_great_thaw"],
+        AdditionalRefreezeAges = ["age_the_great_freeze"],
         ThawTerrain = Terrain.Tundra.ToDomainName(),
         FrozenTerrain = Terrain.DeepIce.ToDomainName(),
         MaxRadius = 40,

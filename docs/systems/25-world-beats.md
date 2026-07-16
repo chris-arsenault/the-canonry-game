@@ -6,19 +6,30 @@ recognizes stories among a cast, world beats recognize *eras* across the whole
 simulation - and, like the director, the framework writes no world state. It
 only modulates the rates of content that already exists.
 
-## Three tracks
+## Two tracks
 
-An age occupies one of three regime tracks; each track holds at most one open
-age, and tracks are independent (semi-overlapping regimes):
+A beat occupies one of two regime tracks; each holds at most one open beat.
+Each track carries four **fallback** beats (loosely gated everyday moods, one
+always holds the track) and four **hard** beats (rarely-triggered, consequential
+eras that preempt the fallbacks).
 
-- **Ice** - the physical regime of the land itself (the Thaw, the Still Ice,
-  the Long Dark). The Ice track carries the domain's fallback age (no opening
-  conditions, priority 0), which structurally guarantees at least one age is
-  always open somewhere.
-- **Peoples** - the social regime among the living kinds (the Age of Striving,
-  the Age of Accords).
-- **Memory** - the regime of the semantic world (the Age of Signs, the Age of
-  Canons).
+- **World** - the Berg's own condition. The four fallbacks are the seasons as a
+  fortune-cycle recognized from culture-mass growth (the Thaw when it surges,
+  the Endless Day when steady, the Freeze when slowing, the Long Dark when it
+  stalls); the hard beats are physical/cosmic breaks (the Heartbeat Quickens,
+  the Before Times Surface, the Great Thaw, the Great Freeze).
+- **Peoples** - what the three cultures are doing. The fallbacks are everyday
+  activity (the Witnessed Life, the Hunt, the Long Trade, the Deepening Craft);
+  the hard beats are the epochal eras from recorded history (the Faction Wars,
+  the Orca Incursion, the Frozen Peace, the Clever Ice Age).
+
+Beats are recurring moods, not a timeline: openings are loose and closings are
+hysteretic, so they come and go and recur, and each amplifies the very activity
+it is named for (the Hunt raises hunt selection and success; the Thaw quickens
+travel and opens the map). The no-condition default fallback on each track
+(the Endless Day, the Witnessed Life) guarantees one beat is always active,
+preempted by a higher-priority mood or era when its conditions hold. The
+sixteen beats are named from the lore bible; see `IceRemembersAges`.
 
 ## Recognition, never scheduling
 
@@ -51,7 +62,11 @@ target program owns its own O(1) modulation array:
 - gambit scores (`AgeScoreMultipliers`),
 - the contest decay tide (`CultureFieldDecay.ScaleContestTide`), contested cells only,
 - the global decay tide (`CultureFieldDecay.ScaleGlobalTide`), every cell - the
-  Long Dark charges it so untended frontier cools and the map recedes.
+  Long Dark and Great Freeze charge it so untended frontier cools and the map recedes,
+- gambit success (`Gambits.ApplyAgeSuccessMultiplier`), per gambit - the Hunt and
+  the Faction Wars raise not just selection but the odds an act lands,
+- movement step rate (`Movement.ScaleAgeStepRateMultiplier`), global - the Thaw and
+  the Great Thaw quicken travel; the Freeze and the dark slow it.
 
 A null/zero charge target charges the whole domain family.
 

@@ -49,8 +49,8 @@ internal sealed record SimulationOptions
     // tales at once. Scarcity is the point - chronicles are player focus
     // objects, not ambient churn.
     public int ChronicleCapacity { get; init; } = 7;
-    public int WorldBeatAgeCapacity { get; init; } = 16;
-    public int WorldBeatItemCapacity { get; init; } = 128;
+    public int WorldBeatAgeCapacity { get; init; } = 24;
+    public int WorldBeatItemCapacity { get; init; } = 256;
     public int MapFrontierThawRingCapacity { get; init; } = 8192;
     public int MinorActorRuleCapacity { get; init; } = 64;
     public int MinorActorSourceRuleCapacity { get; init; } = 16384;

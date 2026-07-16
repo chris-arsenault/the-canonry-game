@@ -18,6 +18,8 @@ public static partial class DomainCompiler
             Enabled = true,
             ThawAgeId = ids.GeneratorIdOf(frontier.ThawAge).Value,
             RefreezeAgeId = frontier.RefreezeAge is null ? 0 : ids.GeneratorIdOf(frontier.RefreezeAge).Value,
+            AdditionalThawAgeIds = [.. frontier.AdditionalThawAges.Select(age => ids.GeneratorIdOf(age).Value)],
+            AdditionalRefreezeAgeIds = [.. frontier.AdditionalRefreezeAges.Select(age => ids.GeneratorIdOf(age).Value)],
             ThawTerrainId = ids.TerrainIdOf(frontier.ThawTerrain).Value,
             FrozenTerrainId = ids.TerrainIdOf(frontier.FrozenTerrain).Value,
             MaxRadius = frontier.MaxRadius,

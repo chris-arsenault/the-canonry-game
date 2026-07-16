@@ -34,5 +34,5 @@ internal sealed class WorldBeatsProgramState : IKernelProgramState
 
     public int ProgramId => KernelProgramCodes.WorldBeats;
 
-    public int SchemaVersion => 1;
+    public int SchemaVersion => 2;
 }

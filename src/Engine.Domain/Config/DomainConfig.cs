@@ -316,6 +316,10 @@ public sealed class MapFrontierConfig
 {
     public required string ThawAge { get; init; }
     public string? RefreezeAge { get; init; }
+    /// <summary>Additional ages that also drive thaw (e.g. a stronger epochal thaw).</summary>
+    public IReadOnlyList<string> AdditionalThawAges { get; init; } = [];
+    /// <summary>Additional ages that also drive reclaim (e.g. a catastrophic freeze).</summary>
+    public IReadOnlyList<string> AdditionalRefreezeAges { get; init; } = [];
     public required string ThawTerrain { get; init; }
     public required string FrozenTerrain { get; init; }
     public int MaxRadius { get; init; } = 40;

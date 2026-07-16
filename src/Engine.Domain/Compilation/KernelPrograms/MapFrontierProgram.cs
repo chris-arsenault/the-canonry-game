@@ -6,6 +6,8 @@ public sealed class MapFrontierProgram
     public bool Enabled { get; init; }
     public int ThawAgeId { get; init; }
     public int RefreezeAgeId { get; init; }
+    public IReadOnlyList<int> AdditionalThawAgeIds { get; init; } = [];
+    public IReadOnlyList<int> AdditionalRefreezeAgeIds { get; init; } = [];
     public int ThawTerrainId { get; init; }
     public int FrozenTerrainId { get; init; }
     public int MaxRadius { get; init; }

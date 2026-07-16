@@ -16,8 +16,10 @@ internal sealed partial class WorldBeatsProgramRuntime
         simulation.LowAltitudeVerbs.ResetAgeWeightMultipliers();
         simulation.Generators.ResetAgePulseWeightMultipliers();
         simulation.Gambits.ResetAgeScoreMultipliers();
+        simulation.Gambits.ResetAgeSuccessMultipliers();
         simulation.CultureFieldDecay.SetContestTide(1f);
         simulation.CultureFieldDecay.SetGlobalTide(1f);
+        simulation.Movement.SetAgeStepRateMultiplier(1f);
 
         for (var track = 0; track < WorldBeatTrackCodes.Count; track++)
         {
@@ -55,6 +57,12 @@ internal sealed partial class WorldBeatsProgramRuntime
                     break;
                 case WorldBeatChargeDomainCodes.GlobalDecayTide:
                     simulation.CultureFieldDecay.ScaleGlobalTide(multiplier);
+                    break;
+                case WorldBeatChargeDomainCodes.GambitSuccess:
+                    simulation.Gambits.ApplyAgeSuccessMultiplier(targetId, multiplier);
+                    break;
+                case WorldBeatChargeDomainCodes.MovementStepRate:
+                    simulation.Movement.ScaleAgeStepRateMultiplier(multiplier);
                     break;
                 default:
                     break;

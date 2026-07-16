@@ -288,13 +288,12 @@ public static class KernelProgramCodes
     public const int MapFrontier = 20;
 }
 
-/// <summary>The three regime tracks of the world's macro-chronicle.</summary>
+/// <summary>The two regime tracks of the world's macro-chronicle.</summary>
 public static class WorldBeatTrackCodes
 {
-    public const int Ice = 0;
+    public const int World = 0;
     public const int Peoples = 1;
-    public const int Memory = 2;
-    public const int Count = 3;
+    public const int Count = 2;
 }
 
 public static class WorldBeatFactCodes
@@ -321,6 +320,8 @@ public static class WorldBeatChargeDomainCodes
     public const int GambitScore = 3;
     public const int ContestDecayTide = 4;
     public const int GlobalDecayTide = 5;
+    public const int GambitSuccess = 6;
+    public const int MovementStepRate = 7;
 }
 
 public static class WorldBeatPhaseCodes

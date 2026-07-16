@@ -913,3 +913,51 @@ tier2-saturation-longdark-1x25k-20260716i (reclaim scenario).
   (reclaim mechanism), architecture.md, game-systems.md.
 - Next: the progression-lattice epic; Godot visual pass; caravan
   capacity/reach growth across ages.
+
+### World-beats content rework: 2 tracks, 16 lore-grounded beats (2026-07-16, branch kinetics-deeds)
+
+User critique of the first world-beats content: it was a one-way
+timeline forced onto the game (Thaw->Striving->Canons, gone through
+once), too weighty, no pattern, and the Ice track was forced always-on.
+They wanted recurring moods that reflect and amplify current activity -
+"the age of the hunt", "the clam spring / the long dark / the orca
+incursion" - grounded in the actual world. Directed: 2 tracks (World,
+Peoples), 4 fallback + 4 hard beats each (16), less strict openings,
+less finality. Framework kept; content and a little plumbing changed.
+Read the full lore bible + eras first to ground the design.
+
+- FRAMEWORK: tracks 3->2 (World/Peoples). Two new charge domains
+  (approved): gambit-success multiplier and movement step-rate
+  multiplier, so beats deliver "the Hunt raises success" and "the Thaw
+  quickens travel". MapFrontier now takes thaw/reclaim age SETS (the
+  Thaw + Great Thaw grow the map; the Long Dark + Great Freeze reclaim).
+  Recognition/charge/preemption engine unchanged.
+- THE 16, grounded in the lore bible. WORLD fallbacks are the seasons
+  as a growth-driven fortune-cycle (the Endless Day default, the Thaw,
+  the Freeze, the Long Dark); WORLD hard beats are cosmic/physical
+  breaks (the Heartbeat Quickens/Dead God, the Before Times Surface,
+  the Great Thaw, the Great Freeze). PEOPLES fallbacks are everyday
+  activity (the Witnessed Life default, the Hunt, the Long Trade, the
+  Deepening Craft); PEOPLES hard beats are the five recorded eras (the
+  Faction Wars, the Orca Incursion, the Frozen Peace, the Clever Ice
+  Age). Each amplifies the activity it is named for.
+- KEY DESIGN LESSON: entity-count facts are monotonic, so a hard beat
+  gated on a count locks on once triggered. The beats that CYCLE gate
+  on fluctuating signals - culture-mass growth (the whole World
+  fortune-cycle) and living wars (the Faction Wars/Frozen Peace). The
+  first cut had Before Times gated at artifacts>=12 (they start at 17),
+  so it masked the entire World fortune-cycle; raising count-gated hard
+  beats to genuine peaks and giving hard beats distinct priorities let
+  the seasons show and the eras take turns.
+- VERDICT (worldbeats-rework-3x25k-20260716b): 14 of 16 beats fire;
+  15-21 World transitions and 12-21 Peoples transitions per run, 4-6
+  distinct beats per track - recurring, emergent, seed-varied, no
+  lock-on. The full seasonal fortune-cycle recurs (Long Dark/Thaw/
+  Freeze/Endless Day), and the eras come and go (Faction Wars, Orca
+  Incursion, Frozen Peace, and even the Great Freeze emerge in normal
+  runs). Only the Great Thaw and Deepening Craft did not fire (preempted
+  / timing) - acceptable variety.
+- Docs: 25-world-beats.md reworked (two tracks, the two new charges).
+- Next: Godot visual pass; progression-lattice epic. Possible follow-up:
+  fluctuating signals (living predation/raid relationships) so the Orca
+  Incursion and Clever Ice Age cycle rather than settle late.

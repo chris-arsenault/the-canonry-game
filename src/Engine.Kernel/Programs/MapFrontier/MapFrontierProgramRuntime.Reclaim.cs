@@ -98,8 +98,8 @@ internal sealed partial class MapFrontierProgramRuntime
         int thawBudgetPerPulse,
         int refreezeBudgetPerPulse)
     {
-        Data.ThawAgeId = thawAgeId;
-        Data.RefreezeAgeId = refreezeAgeId;
+        Data.ThawAgeIds[0] = thawAgeId;
+        Data.RefreezeAgeIds[0] = refreezeAgeId;
         Data.ThawTerrainId = thawTerrainId;
         Data.FrozenTerrainId = frozenTerrainId;
         Data.MaxRadius = maxRadius;
@@ -107,5 +107,29 @@ internal sealed partial class MapFrontierProgramRuntime
         Data.ReclaimMassCeiling = reclaimMassCeiling;
         Data.ThawBudgetPerPulse = thawBudgetPerPulse;
         Data.RefreezeBudgetPerPulse = refreezeBudgetPerPulse;
+    }
+
+    /// <summary>Registers an additional thaw and/or reclaim driver age (0 slots ignored).</summary>
+    public void AddDriverAge(int thawAgeId, int refreezeAgeId)
+    {
+        AppendAge(Data.ThawAgeIds, thawAgeId);
+        AppendAge(Data.RefreezeAgeIds, refreezeAgeId);
+    }
+
+    private static void AppendAge(int[] ages, int ageId)
+    {
+        if (ageId == 0)
+        {
+            return;
+        }
+
+        for (var i = 0; i < ages.Length; i++)
+        {
+            if (ages[i] == 0)
+            {
+                ages[i] = ageId;
+                return;
+            }
+        }
     }
 }

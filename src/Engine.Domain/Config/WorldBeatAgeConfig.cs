@@ -3,14 +3,11 @@ namespace Engine.Domain.Config;
 /// <summary>The three regime tracks an age can occupy.</summary>
 public enum WorldBeatTrack
 {
-    /// <summary>The physical regime of the land itself: thaw, hard winter, the breaking.</summary>
-    Ice = 0,
+    /// <summary>The Berg's own condition: the seasons and the rare physical/cosmic breaks.</summary>
+    World = 0,
 
-    /// <summary>The social regime among the living kinds: striving, accords, wandering.</summary>
+    /// <summary>What the three peoples are doing: the everyday activities and the epochal eras.</summary>
     Peoples = 1,
-
-    /// <summary>The regime of the semantic world: signs, canons, the quiet.</summary>
-    Memory = 2,
 }
 
 public enum WorldBeatFact
@@ -37,6 +34,8 @@ public enum WorldBeatChargeDomain
     GambitScore,
     ContestDecayTide,
     GlobalDecayTide,
+    GambitSuccess,
+    MovementStepRate,
 }
 
 /// <summary>A macro-fact predicate an age's opening or closing is recognized from.</summary>

@@ -43,13 +43,13 @@ internal sealed partial class MapFrontierProgramRuntime :
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        var iceAge = simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.Ice);
-        if (Data.ThawAgeId != 0 && iceAge == Data.ThawAgeId)
+        var worldAge = simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.World);
+        if (Data.IsThawAge(worldAge))
         {
             ThawFrontier(simulation, tick);
         }
 
-        if (Data.RefreezeAgeId != 0 && iceAge == Data.RefreezeAgeId)
+        if (Data.IsRefreezeAge(worldAge))
         {
             ReclaimRim(simulation, tick);
         }

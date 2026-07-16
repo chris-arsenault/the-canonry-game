@@ -469,6 +469,11 @@ internal sealed partial class MovementProgramRuntime :
     {
         var stepCost = StepCostForMove(simulation, planeCode, entityId, q, r, tick, causeCode);
         stepCost *= CarrierRoadSpeedFactor(simulation, planeCode, entityId, q, r, tick, causeCode);
+        if (causeCode == MovementCauseCodes.Travel)
+        {
+            stepCost *= _ageStepRateMultiplier;
+        }
+
         return StepUnchecked(simulation, entityId, planeCode, q, r, tick, causeCode, stepCost);
     }
 
@@ -553,9 +558,19 @@ internal sealed partial class MovementProgramRuntime :
 
     private const float CarrierRoadSpeedFloor = 0.5f;
     private const float CarrierRoadQualityThreshold = 40f;
+    private float _ageStepRateMultiplier = 1f;
 
     public void SetCarrierRelationshipKindId(int relationshipKindId) =>
         Data.CarrierRelationshipKindId = relationshipKindId;
+
+    /// <summary>
+    /// Age charge: the world-beat program scales movement pace per open age
+    /// each pulse (below 1 = faster, so a Thaw or Wandering quickens travel).
+    /// Applied to travel step cost, so it reads as more ground per tick.
+    /// </summary>
+    public void SetAgeStepRateMultiplier(float multiplier) => _ageStepRateMultiplier = multiplier;
+
+    public void ScaleAgeStepRateMultiplier(float multiplier) => _ageStepRateMultiplier *= multiplier;
 
     /// <summary>
     /// The railroad made concrete: a laden carrier on a good road covers

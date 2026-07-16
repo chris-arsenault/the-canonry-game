@@ -21,7 +21,7 @@ public sealed class WorldBeatsProgramRuntimeTests
 
         simulation.WorldBeats.Tick(simulation, tick: 10);
 
-        Assert.Equal(FallbackAgeId, simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.Ice));
+        Assert.Equal(FallbackAgeId, simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.World));
         Assert.Equal(0, simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.Peoples));
         AssertPhaseEmitted(simulation, FallbackAgeId, WorldBeatPhaseCodes.Opened);
     }
@@ -127,7 +127,7 @@ public sealed class WorldBeatsProgramRuntimeTests
     private static void DefineFallbackAge(Simulation simulation) =>
         _ = simulation.WorldBeats.AddAge(
             FallbackAgeId,
-            WorldBeatTrackCodes.Ice,
+            WorldBeatTrackCodes.World,
             priority: 0,
             minOpenTicks: 0,
             cooldownTicks: 0);

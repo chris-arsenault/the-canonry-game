@@ -277,6 +277,13 @@ internal static partial class KernelProgramInstaller
             program.ReclaimMassCeiling,
             program.ThawBudgetPerPulse,
             program.RefreezeBudgetPerPulse);
+        var driverCount = System.Math.Max(program.AdditionalThawAgeIds.Count, program.AdditionalRefreezeAgeIds.Count);
+        for (var i = 0; i < driverCount; i++)
+        {
+            context.AddMapFrontierDriverAge(
+                i < program.AdditionalThawAgeIds.Count ? program.AdditionalThawAgeIds[i] : 0,
+                i < program.AdditionalRefreezeAgeIds.Count ? program.AdditionalRefreezeAgeIds[i] : 0);
+        }
     }
 
     private static void InstallWorldBeats(KernelConfigurationContext context, WorldBeatProgram program)

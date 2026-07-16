@@ -104,7 +104,7 @@ public sealed class MapFrontierProgramRuntimeTests
     private static void OpenIceAge(Simulation simulation, int ageId)
     {
         // An unconditional Ice-track age so OpenAgeId(Ice) equals ageId.
-        _ = simulation.WorldBeats.AddAge(ageId, WorldBeatTrackCodes.Ice, priority: 10, minOpenTicks: 0, cooldownTicks: 0);
+        _ = simulation.WorldBeats.AddAge(ageId, WorldBeatTrackCodes.World, priority: 10, minOpenTicks: 0, cooldownTicks: 0);
         simulation.WorldBeats.Tick(simulation, tick: 1);
     }
 

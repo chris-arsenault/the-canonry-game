@@ -14,11 +14,30 @@ internal sealed class MapFrontierProgramData : IKernelProgramData
 
     public int SchemaVersion => 1;
 
-    /// <summary>Ice-track age id whose opening drives thaw (0 = thaw disabled).</summary>
-    public int ThawAgeId;
+    internal const int MaxDriverAges = 4;
 
-    /// <summary>Ice-track age id whose opening drives re-freeze (0 = re-freeze disabled).</summary>
-    public int RefreezeAgeId;
+    /// <summary>World-track age ids whose holding drives thaw (empty = disabled).</summary>
+    public readonly int[] ThawAgeIds = new int[MaxDriverAges];
+
+    /// <summary>World-track age ids whose holding drives re-freeze (empty = disabled).</summary>
+    public readonly int[] RefreezeAgeIds = new int[MaxDriverAges];
+
+    public bool IsThawAge(int ageId) => ageId != 0 && ContainsAge(ThawAgeIds, ageId);
+
+    public bool IsRefreezeAge(int ageId) => ageId != 0 && ContainsAge(RefreezeAgeIds, ageId);
+
+    private static bool ContainsAge(int[] ages, int ageId)
+    {
+        for (var i = 0; i < ages.Length; i++)
+        {
+            if (ages[i] == ageId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     /// <summary>Terrain laid on newly thawed ground.</summary>
     public int ThawTerrainId;

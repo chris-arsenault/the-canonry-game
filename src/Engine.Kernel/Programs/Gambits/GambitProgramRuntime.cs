@@ -33,6 +33,25 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
             }
         }
     }
+
+    public void ResetAgeSuccessMultipliers()
+    {
+        for (var slot = 1; slot <= Data.GambitCount; slot++)
+        {
+            Data.AgeSuccessMultipliers[slot] = 1f;
+        }
+    }
+
+    public void ApplyAgeSuccessMultiplier(int gambitId, float multiplier)
+    {
+        for (var slot = 1; slot <= Data.GambitCount; slot++)
+        {
+            if (gambitId == 0 || _gambitIds[slot] == gambitId)
+            {
+                Data.AgeSuccessMultipliers[slot] *= multiplier;
+            }
+        }
+    }
     private int[] _gambitCooldownTicks => Data.GambitCooldownTicks;
     private int[] _gambitEntityCooldownTicks => Data.GambitEntityCooldownTicks;
     private float[] _gambitSuccessChances => Data.GambitSuccessChances;
@@ -560,7 +579,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     private KernelEventState RollGambitState(Simulation simulation, int gambitSlot, int entityId, int targetId)
     {
         var successChance = Clamp01(
-            _gambitSuccessChances[gambitSlot] +
+            (_gambitSuccessChances[gambitSlot] * Data.AgeSuccessMultipliers[gambitSlot]) +
             GambitSuccessDecisionDelta(simulation.World, _gambitIds[gambitSlot], entityId, targetId) +
             simulation.Chronicles.SuccessBonus(entityId, targetId, _gambitIds[gambitSlot]));
         return successChance >= 1f || simulation.NextFloat() <= successChance

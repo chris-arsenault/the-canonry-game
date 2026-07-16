@@ -94,8 +94,8 @@ public sealed class UiProjectionState : KernelEventProjector
     public long WorldBeatVersion { get; private set; }
 
     private const int WorldBeatTransitionCapacity = 64;
-    private readonly int[] _worldBeatAgeIds = new int[3];
-    private readonly int[] _worldBeatOpenedTicks = new int[3];
+    private readonly int[] _worldBeatAgeIds = new int[2];
+    private readonly int[] _worldBeatOpenedTicks = new int[2];
     private readonly List<UiWorldBeatTransition> _worldBeatTransitions = [];
 
     public long EntityMapVersion { get; private set; }

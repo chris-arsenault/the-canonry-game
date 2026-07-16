@@ -64,19 +64,20 @@ public static partial class DomainCompiler
                 $"World beat age '{age.Id}' has a non-positive charge multiplier.");
         }
 
-        var targetId = charge.Target is null
-            ? 0
-            : charge.Domain switch
-            {
-                WorldBeatChargeDomain.GeneratorPulseWeight => ids.GeneratorIdOf(charge.Target).Value,
-                WorldBeatChargeDomain.VerbWeight => ids.VerbIdOf(charge.Target).Value,
-                WorldBeatChargeDomain.GambitScore => ids.GambitIdOf(charge.Target).Value,
-                WorldBeatChargeDomain.ContestDecayTide or WorldBeatChargeDomain.GlobalDecayTide => 0,
-                _ => throw new InvalidOperationException(
-                    $"World beat age '{age.Id}' charge domain '{charge.Domain}' does not take a target."),
-            };
+        var targetId = charge.Target is null ? 0 : ResolveChargeTarget(age, charge, ids);
         return new CompiledWorldBeatCharge(WorldBeatChargeDomainCode(charge.Domain), targetId, charge.Multiplier);
     }
+
+    private static int ResolveChargeTarget(WorldBeatAgeConfig age, WorldBeatChargeConfig charge, DomainIdRegistry ids) =>
+        charge.Domain switch
+        {
+            WorldBeatChargeDomain.GeneratorPulseWeight => ids.GeneratorIdOf(charge.Target!).Value,
+            WorldBeatChargeDomain.VerbWeight => ids.VerbIdOf(charge.Target!).Value,
+            WorldBeatChargeDomain.GambitScore => ids.GambitIdOf(charge.Target!).Value,
+            WorldBeatChargeDomain.GambitSuccess => ids.GambitIdOf(charge.Target!).Value,
+            _ => throw new InvalidOperationException(
+                $"World beat age '{age.Id}' charge domain '{charge.Domain}' does not take a target."),
+        };
 
     private static int WorldBeatFactCode(WorldBeatFact fact) => fact switch
     {
@@ -97,6 +98,8 @@ public static partial class DomainCompiler
         WorldBeatChargeDomain.GambitScore => WorldBeatChargeDomainCodes.GambitScore,
         WorldBeatChargeDomain.ContestDecayTide => WorldBeatChargeDomainCodes.ContestDecayTide,
         WorldBeatChargeDomain.GlobalDecayTide => WorldBeatChargeDomainCodes.GlobalDecayTide,
+        WorldBeatChargeDomain.GambitSuccess => WorldBeatChargeDomainCodes.GambitSuccess,
+        WorldBeatChargeDomain.MovementStepRate => WorldBeatChargeDomainCodes.MovementStepRate,
         _ => throw new InvalidOperationException($"Unknown world beat charge domain '{domain}'."),
     };
 
