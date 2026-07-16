@@ -64,6 +64,8 @@ public sealed class KernelProgramStateArchitectureTests
             "src/Engine.Kernel/Programs/WorldBeats/WorldBeatsProgramState.cs:OpenAgeSlots",
             "src/Engine.Kernel/Programs/WorldBeats/WorldBeatsProgramState.cs:OpenedTicks",
             "src/Engine.Kernel/Programs/WorldBeats/WorldBeatsProgramState.cs:LastClosedTicks",
+            "src/Engine.Kernel/Programs/MapFrontier/MapFrontierProgramState.cs:ThawedQ",
+            "src/Engine.Kernel/Programs/MapFrontier/MapFrontierProgramState.cs:ThawedR",
             "src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramState.cs:_activeVerbSlots",
             "src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramState.cs:_intentIds",
             "src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramState.cs:_targetPlaneCodes",

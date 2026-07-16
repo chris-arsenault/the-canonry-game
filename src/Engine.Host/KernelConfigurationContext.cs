@@ -754,6 +754,27 @@ internal sealed class KernelConfigurationContext
     public void SetMinorActorCampaignRelationshipKind(int relationshipKindId) =>
         _kernel.MinorActors.SetCampaignRelationshipKindId(relationshipKindId);
 
+    public void SetMapFrontierConfiguration(
+        int thawAgeId,
+        int refreezeAgeId,
+        int thawTerrainId,
+        int frozenTerrainId,
+        int maxRadius,
+        float frontierMassThreshold,
+        float reclaimMassCeiling,
+        int thawBudgetPerPulse,
+        int refreezeBudgetPerPulse) =>
+        _kernel.MapFrontier.SetAgeConfiguration(
+            thawAgeId,
+            refreezeAgeId,
+            thawTerrainId,
+            frozenTerrainId,
+            maxRadius,
+            frontierMassThreshold,
+            reclaimMassCeiling,
+            thawBudgetPerPulse,
+            refreezeBudgetPerPulse);
+
     public int AddChronicleArchetype(int archetypeId, int maxActive, int castingCadenceTicks, int primaryKindId, int primaryRequiredRelKindId, float primaryRequiredRelMinStrength, int fadeOutcomeCodeId, int fadeGraceTicks, int fadeQuietTicks) =>
         _kernel.Chronicles.AddArchetype(archetypeId, maxActive, castingCadenceTicks, primaryKindId, primaryRequiredRelKindId, primaryRequiredRelMinStrength, fadeOutcomeCodeId, fadeGraceTicks, fadeQuietTicks);
 

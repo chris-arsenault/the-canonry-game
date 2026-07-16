@@ -16,4 +16,5 @@ public sealed class KernelProgramSet
     public required MinorActorProgram MinorActors { get; init; }
     public required ChronicleProgram Chronicles { get; init; }
     public required WorldBeatProgram WorldBeats { get; init; }
+    public required MapFrontierProgram MapFrontier { get; init; }
 }

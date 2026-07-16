@@ -235,7 +235,7 @@ public sealed class KernelExecutionContextTests
     [Fact]
     public void ProgramExecutionRestoresPreviousContextWhenSystemThrows()
     {
-        var simulation = new Simulation(new SimulationOptions { SystemCapacity = 16 });
+        var simulation = new Simulation(new SimulationOptions { SystemCapacity = 24 });
         var initial = simulation.ExecutionContext;
         var caller = new KernelExecutionContext(
             KernelProgramCodes.Relationships,

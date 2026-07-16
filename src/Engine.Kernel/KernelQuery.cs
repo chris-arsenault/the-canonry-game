@@ -344,11 +344,13 @@ internal static partial class KernelQuery
         result = predicate.Code switch
         {
             BehaviorPreconditionCodes.PlaneDistance => PlaneDistance(world, binding.ActorId, binding.TargetId, predicate.B) <= predicate.A,
+            BehaviorPreconditionCodes.WithinTravelReach => binding.TravelCost(binding.ActorId, binding.TargetId, predicate.B, binding.Tick) <= predicate.X,
             BehaviorPreconditionCodes.ContestedInfluence => InfluenceOverlapPasses(world, binding.ActorId, binding.TargetId, predicate.A, predicate.X, predicate.Y),
             BehaviorPreconditionCodes.SharedInfluence => InfluenceOverlapPasses(world, binding.ActorId, binding.TargetId, predicate.A, predicate.X, predicate.Y),
             _ => false,
         };
         return predicate.Code is BehaviorPreconditionCodes.PlaneDistance or
+            BehaviorPreconditionCodes.WithinTravelReach or
             BehaviorPreconditionCodes.ContestedInfluence or
             BehaviorPreconditionCodes.SharedInfluence;
     }

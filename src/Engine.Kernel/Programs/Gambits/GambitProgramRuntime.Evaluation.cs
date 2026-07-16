@@ -673,7 +673,8 @@ internal sealed partial class GambitProgramRuntime
             tick,
             _gambitIds[gambitSlot],
             recentActionCounter: CountRecentActions,
-            entityWorkTierReader: simulation.MinorActors.WorkTier);
+            entityWorkTierReader: simulation.MinorActors.WorkTier,
+            travelCostReader: simulation.TravelReachCost);
         return KernelQuery.EvaluatePredicate(simulation.World, predicate, binding);
     }
 

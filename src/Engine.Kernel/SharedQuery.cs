@@ -3,6 +3,8 @@ namespace Engine.Kernel;
 internal delegate int QueryRecentActionCounter(int actorId, int actionId, int sinceTick);
 internal delegate int QueryEntityWorkTierReader(int entityId);
 
+internal delegate float QueryTravelCostReader(int fromEntityId, int toEntityId, int planeCode, int tick);
+
 internal readonly struct QueryBinding
 {
     public QueryBinding(
@@ -15,7 +17,8 @@ internal readonly struct QueryBinding
         int[]? refEntityIds = null,
         int refCount = 0,
         QueryRecentActionCounter? recentActionCounter = null,
-        QueryEntityWorkTierReader? entityWorkTierReader = null)
+        QueryEntityWorkTierReader? entityWorkTierReader = null,
+        QueryTravelCostReader? travelCostReader = null)
     {
         ActorId = actorId;
         TargetId = targetId;
@@ -27,6 +30,7 @@ internal readonly struct QueryBinding
         RefCount = refCount;
         RecentActionCounter = recentActionCounter;
         EntityWorkTierReader = entityWorkTierReader;
+        TravelCostReader = travelCostReader;
     }
 
     public int ActorId { get; }
@@ -48,6 +52,8 @@ internal readonly struct QueryBinding
     public QueryRecentActionCounter? RecentActionCounter { get; }
 
     public QueryEntityWorkTierReader? EntityWorkTierReader { get; }
+
+    public QueryTravelCostReader? TravelCostReader { get; }
 
     public bool ReferenceAlreadyBound(int entityId)
     {
@@ -72,6 +78,13 @@ internal readonly struct QueryBinding
 
     public int EntityWorkTier(int entityId) =>
         EntityWorkTierReader is null ? 0 : EntityWorkTierReader(entityId);
+
+    // No reader means reach cannot be evaluated here; a travel-reach gate
+    // conservatively fails rather than passing an unbounded route.
+    public float TravelCost(int fromEntityId, int toEntityId, int planeCode, int tick) =>
+        TravelCostReader is null
+            ? float.PositiveInfinity
+            : TravelCostReader(fromEntityId, toEntityId, planeCode, tick);
 }
 
 internal readonly struct QueryPredicate

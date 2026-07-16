@@ -88,6 +88,7 @@ public static class BehaviorPreconditionCodes
     public const int SelfWorkTierBelow = 25;
     public const int SelfHasOutgoingRelationshipToKind = 26;
     public const int EndpointSubtypeIs = 27;
+    public const int WithinTravelReach = 28;
 }
 
 public static class BehaviorExpressionCodes
@@ -284,6 +285,7 @@ public static class KernelProgramCodes
     public const int CultureFieldDecay = 17;
     public const int ChronicleDirector = 18;
     public const int WorldBeats = 19;
+    public const int MapFrontier = 20;
 }
 
 /// <summary>The three regime tracks of the world's macro-chronicle.</summary>

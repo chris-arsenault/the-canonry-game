@@ -302,4 +302,72 @@ internal sealed partial class Simulation
             Movement.RecordTopologyChanged();
         }
     }
+
+    /// <summary>
+    /// Travel-cost reach between two entities on a plane: the summed
+    /// road-discounted terrain cost of the cells along the hex line between
+    /// them. Impassable or un-thawed ground on the line (deep ice, unknown
+    /// cells) makes the route infinite, so a growing map and its frozen
+    /// frontier gate reach the way real geography does; roads shrink it.
+    /// </summary>
+    internal float TravelReachCost(int actorId, int targetId, int planeCode, int tick)
+    {
+        if (actorId <= 0 || targetId <= 0 ||
+            !World.EntityIsActive(actorId) || !World.EntityIsActive(targetId))
+        {
+            return float.PositiveInfinity;
+        }
+
+        var (fromQ, fromR) = PlaneCoords(actorId, planeCode);
+        var (toQ, toR) = PlaneCoords(targetId, planeCode);
+        var steps = KernelQuery.HexDistance(fromQ, fromR, toQ, toR);
+        if (steps == 0)
+        {
+            return 0f;
+        }
+
+        var total = 0f;
+        for (var step = 1; step <= steps; step++)
+        {
+            var t = step / (float)steps;
+            var (q, r) = HexRound(
+                fromQ + ((toQ - fromQ) * t),
+                fromR + ((toR - fromR) * t));
+            var cellCost = Movement.TravelCost(this, planeCode, actorId, q, r, tick);
+            if (float.IsPositiveInfinity(cellCost))
+            {
+                return float.PositiveInfinity;
+            }
+
+            total += cellCost;
+        }
+
+        return total;
+    }
+
+    private (int Q, int R) PlaneCoords(int entityId, int planeCode) =>
+        planeCode == PlaneCodes.Semantic
+            ? (World.EntitySemanticQ(entityId), World.EntitySemanticR(entityId))
+            : (World.EntityPhysicalQ(entityId), World.EntityPhysicalR(entityId));
+
+    private static (int Q, int R) HexRound(float q, float r)
+    {
+        var s = -q - r;
+        var rq = global::System.MathF.Round(q, global::System.MidpointRounding.AwayFromZero);
+        var rr = global::System.MathF.Round(r, global::System.MidpointRounding.AwayFromZero);
+        var rs = global::System.MathF.Round(s, global::System.MidpointRounding.AwayFromZero);
+        var dq = global::System.MathF.Abs(rq - q);
+        var dr = global::System.MathF.Abs(rr - r);
+        var ds = global::System.MathF.Abs(rs - s);
+        if (dq > dr && dq > ds)
+        {
+            rq = -rr - rs;
+        }
+        else if (dr > ds)
+        {
+            rr = -rq - rs;
+        }
+
+        return ((int)rq, (int)rr);
+    }
 }

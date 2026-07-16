@@ -46,7 +46,7 @@ public static class IceRemembersAges
         ],
         CloseWhen =
         [
-            new(WorldBeatFact.ActiveEntitiesOfKind, WorldBeatComparator.AtLeast, 14f, Kind: "settlement"),
+            new(WorldBeatFact.TotalCultureRawMass, WorldBeatComparator.AtLeast, 900_000f),
         ],
         Charges =
         [

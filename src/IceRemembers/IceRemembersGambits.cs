@@ -361,7 +361,7 @@ public static partial class IceRemembersDefinition
             K.Settlement,
             All(
                 new TargetIsNotSelf(),
-                new WithinPlaneDistancePrecondition(24, PrimaryPlane.Physical),
+                new WithinTravelReachPrecondition(100f, PrimaryPlane.Physical),
                 new SelfHasRelationshipToTarget(L(Rel.TradeRoute)),
                 new TargetHasRelationshipToSelf(L(Rel.TradeRoute)),
                 new SelfAttributeThreshold(A(Attr.TempHp), min: 60f, max: null, behaviorRelevant: false),
@@ -461,7 +461,7 @@ public static partial class IceRemembersDefinition
                 new TargetIsNotSelf(),
                 new EndpointCultureIs(TransferEndpoint.Target, C(Culture.TheIce)),
                 Not(new EndpointCultureIs(TransferEndpoint.Self, C(Culture.TheIce))),
-                new WithinPlaneDistancePrecondition(18, PrimaryPlane.Physical),
+                new WithinTravelReachPrecondition(75f, PrimaryPlane.Physical),
                 new EndpointRelationshipCountBelow(TransferEndpoint.Target, L(Rel.ClaimedBy), maximumExclusive: 2),
                 Not(new TargetHasRelationshipToSelf(L(Rel.ClaimedBy))),
                 new SelfAttributeThreshold(A(Attr.Cohesion), min: 35f, max: null, behaviorRelevant: false),
@@ -904,7 +904,7 @@ public static partial class IceRemembersDefinition
             All(
                 new TargetIsNotSelf(),
                 new SelfHasRelationshipToTarget(L(Rel.AtWarWith)),
-                new WithinPlaneDistancePrecondition(24, PrimaryPlane.Physical),
+                new WithinTravelReachPrecondition(100f, PrimaryPlane.Physical),
                 new SelfAttributeThreshold(A(Attr.Vitality), min: 26f, max: null, behaviorRelevant: false),
                 new TargetAttributeThreshold(A(Attr.Containment), min: null, max: 92f, behaviorRelevant: false)),
             scoreExpression: GambitScore(
@@ -941,7 +941,7 @@ public static partial class IceRemembersDefinition
                 new SelfHasRelationshipToTarget(L(Rel.AtWarWith)),
                 new TargetHasRelationshipToSelf(L(Rel.AtWarWith)),
                 Not(new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.Holds), maximumExclusive: 1, minStrength: 0.7f)),
-                new WithinPlaneDistancePrecondition(18, PrimaryPlane.Physical),
+                new WithinTravelReachPrecondition(75f, PrimaryPlane.Physical),
                 new SelfAttributeThreshold(A(Attr.Vitality), min: 28f, max: null, behaviorRelevant: false),
                 new TargetAttributeThreshold(A(Attr.Endurance), min: 20f, max: null, behaviorRelevant: false)),
             scoreExpression: GambitScore(

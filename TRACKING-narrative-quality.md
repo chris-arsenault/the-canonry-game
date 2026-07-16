@@ -809,3 +809,51 @@ ages-frontier-probe-1x25k-20260715b; baseline kin-tide-3x25k-20260715d.
   get real geography to cross.
 - Docs: docs/systems/25-world-beats.md, architecture.md,
   game-systems.md updated.
+
+### Growing map (true cell creation, r18 heart) + travel-cost reach (2026-07-16, branch kinetics-deeds)
+
+The next big chunk after world-beats: map size becomes a result of history,
+and reach scales with the world. Evidence: grown-map-reach-3x25k-20260716
+vs ages-campaigns-3x25k-20260715b; unit tests MapFrontierProgramRuntimeTests
++ TravelReachCostTests.
+
+- THE HEART: physical grid seeded at PhysicalHeartRadius 18 (~1027 of the
+  eventual 4921 cells); semantic plane stays full (ideas have no ice). The
+  heart is dense by construction - the co-location the early sim needs.
+- MAPFRONTIER (new kernel program): reads WorldBeats.OpenAgeId(Ice) and
+  grows/shrinks the physical world. THAW (Age of the Thaw): culture mass at
+  a frontier cell (raw >= threshold) opens its unknown neighbours as new
+  cells via runtime Simulation.CreateCell, region inherited from the pressing
+  cell, bounded by MaxRadius 40 + per-pulse budget. RECLAIM (the Long Dark):
+  rim ground the program thawed with no mass and no road is taken back as
+  impassable deep_ice (a new terrain, all-zero movement profiles); a thawed-
+  cell ring keeps reclaim to ground the program opened. Re-freeze transforms
+  terrain rather than deleting cells, so occupancy/culture rows stay valid.
+- TRAVEL-COST REACH: new WithinTravelReach(maxCost, plane) precondition line-
+  samples the hex line between actor and target, summing road-discounted
+  terrain cost (Movement.TravelCost); impassable/un-thawed ground makes the
+  route infinite, roads shrink it. Reader passed through QueryBinding
+  (kernel query stays sim-agnostic; no reader = gate fails). Authored on the
+  hunt (Corner the Beast), Slay Monster/Orca, Claim Point of Interest, Raise
+  Causeway; short-range and semantic gates stay on hex distance.
+- VERDICT: the map grows (1027 -> 1268-1683 cells per seed, +241-656). The
+  decisive win is utilization: the grown world is 78-88% occupied vs the old
+  r40 world's 44-53% - the "dead ocean no journey crosses" problem from the
+  geometry analysis is essentially gone; nearly all the world the player sees
+  is lived-in, and it grows. Ownership flips TRIPLED (507 vs 163) - the dense
+  heart makes cultures actually contest. Travel-reach gambits all still fire
+  (hunt, slays, claims, causeways); on the compressed heart the gates are
+  passable, so behaviour is preserved while the mechanism now scales.
+- Honest limits: the Long Dark did not open in 25k ticks (young worlds keep
+  growing, mass never stalls), so reclaim is unit-tested, not yet seen in a
+  full run - it needs a longer horizon or a saturation scenario. Chronicles
+  dipped slightly (112 vs 133 tales) in the smaller world. Tuned thaw
+  (threshold 25, budget 48) and lengthened the founding window (Thaw closes
+  on culture-mass saturation, not settlement count) so growth is legible.
+- Seed geometry tests recalibrated to the r18 heart (cell counts, spans,
+  subdivision land) or rewritten to durable growing-map contracts
+  (SeedCivilizations_SpanTheHeartWithNearAndFarNeighbors, subdivision test);
+  the old r40 near/far cluster narrative no longer holds on the bootstrap.
+- Docs: docs/systems/26-growing-map.md, architecture.md, game-systems.md.
+- Next: caravan carriers (transports as true carriers per the Civ parallel),
+  a saturation/Long-Dark scenario to exercise reclaim, the progression epic.

@@ -59,7 +59,9 @@ public static partial class IceRemembersDefinition
             All(
                 new TargetIsNotSelf(),
                 new SelfHasRelationshipToTarget(L(Rel.AtWarWith)),
-                new WithinPlaneDistancePrecondition(24, PrimaryPlane.Physical),
+                // The hunt must cross real ground: frozen frontier blocks the
+                // corner, a road-linked quarry is within reach further out.
+                new WithinTravelReachPrecondition(100f, PrimaryPlane.Physical),
                 new SelfAttributeThreshold(A(Attr.Vitality), min: 15f, max: null, behaviorRelevant: false)),
             scoreExpression: GambitScore(
                 baseline: 3f,

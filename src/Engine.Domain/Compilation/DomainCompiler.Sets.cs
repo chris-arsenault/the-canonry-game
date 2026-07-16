@@ -33,6 +33,7 @@ public static partial class DomainCompiler
             MinorActors = BuildMinorActorProgram(config, ids),
             Chronicles = BuildChronicleProgram(config, ids),
             WorldBeats = BuildWorldBeatProgram(config, ids),
+            MapFrontier = BuildMapFrontierProgram(config, ids),
         };
     }
 

@@ -37,6 +37,8 @@ public sealed class DomainConfig
 
     public MinorActorCampaignConfig? MinorActorCampaign { get; init; }
 
+    public MapFrontierConfig? MapFrontier { get; init; }
+
     /// <summary>Discrete movement capability classes used by route planning and terrain traversal.</summary>
     public IReadOnlyList<MovementProfileConfig> MovementProfiles { get; init; } = [];
 
@@ -300,6 +302,24 @@ public sealed class TravelStructureMovementProfileConfig
 public sealed class MinorActorCampaignConfig
 {
     public required string RelationshipKind { get; init; }
+}
+
+/// <summary>
+/// The growing map: which Ice-track ages drive thaw and re-freeze, the
+/// terrains they lay, and the mass/extent bounds. Age ids reference
+/// WorldBeatAges by id; terrains reference terrain names.
+/// </summary>
+public sealed class MapFrontierConfig
+{
+    public required string ThawAge { get; init; }
+    public string? RefreezeAge { get; init; }
+    public required string ThawTerrain { get; init; }
+    public required string FrozenTerrain { get; init; }
+    public int MaxRadius { get; init; } = 40;
+    public float FrontierMassThreshold { get; init; } = 60f;
+    public float ReclaimMassCeiling { get; init; } = 1f;
+    public int ThawBudgetPerPulse { get; init; } = 24;
+    public int RefreezeBudgetPerPulse { get; init; } = 24;
 }
 
 public sealed class MinorActorRuleConfig

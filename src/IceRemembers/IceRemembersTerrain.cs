@@ -28,6 +28,7 @@ public enum IceRemembersTerrain
     OpenField,
     SpireTier,
     TunnelGallery,
+    DeepIce,
 }
 
 public static class IceRemembersTerrainExtensions
@@ -54,6 +55,7 @@ public static class IceRemembersTerrainExtensions
         "open_field",
         "spire_tier",
         "tunnel_gallery",
+        "deep_ice",
     ];
 
     public static string ToDomainName(this IceRemembersTerrain terrain)
@@ -130,6 +132,11 @@ public static class IceRemembersTerrainCatalog
             movementProfiles: PhysicalMovement(trail: 2.8f, shore: 0f, wake: 0f)),
         DomainTerrain(IceRemembersTerrain.TunnelGallery, "Tunnel Gallery", "forged_depth", 3.2f, 1.2f, 1.1f, 0.9f, 0f, 1f,
             movementProfiles: PhysicalMovement(trail: 3.2f, shore: 0f, wake: 0f)),
+        // The un-thawed and the reclaimed: ground the ice holds shut. Fully
+        // impassable (every profile blocked), uninhabitable, uncultured -
+        // the physical world's frontier and the Long Dark's reach.
+        DomainTerrain(IceRemembersTerrain.DeepIce, "Deep Ice", "frozen_land", 9f, 0.2f, 3f, 0.05f, 0f, 1f,
+            movementProfiles: PhysicalMovement(trail: 0f, shore: 0f, wake: 0f)),
     ];
 
     public static TerrainCatalog CreateWorldGenCatalog() =>

@@ -15,7 +15,12 @@ using IceRemembers;
 internal static partial class IceRemembersSeedBuilder
 {
     private const int MaxAcceptedSeedAttempts = 64;
+
+    // The semantic plane is born vast - ideas have no ice. The physical
+    // world starts as a small thawed heart and grows only where history
+    // presses (the_ice_opens); map extent is earned, never allocated.
     private const int StartupMapRadius = 40;
+    internal const int PhysicalHeartRadius = 18;
 
     private static string C(IceRemembersCulture culture) => culture.ToDomainName();
 
@@ -138,7 +143,7 @@ internal static partial class IceRemembersSeedBuilder
     private static SeedAssembly BuildEmptyAssembly(WorldGenerationSeed seed)
     {
         var grid = new HexGrid(
-            StartupMapRadius,
+            PhysicalHeartRadius,
             IceRemembersTerrainCatalog.CreateWorldGenCatalog(),
             IceRemembersTerrain.Wastes.ToDomainName());
         var coverageMap = new MapCoverageMap();

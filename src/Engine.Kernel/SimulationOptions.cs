@@ -51,6 +51,7 @@ internal sealed record SimulationOptions
     public int ChronicleCapacity { get; init; } = 7;
     public int WorldBeatAgeCapacity { get; init; } = 16;
     public int WorldBeatItemCapacity { get; init; } = 128;
+    public int MapFrontierThawRingCapacity { get; init; } = 8192;
     public int MinorActorRuleCapacity { get; init; } = 64;
     public int MinorActorSourceRuleCapacity { get; init; } = 16384;
     public int EntityAttributeCapacity { get; init; } = 512;
@@ -84,6 +85,7 @@ internal sealed record KernelProgramTuningOptions
     public LowAltitudeVerbTuningOptions LowAltitudeVerbs { get; init; } = new();
     public CultureFieldTuningOptions CultureField { get; init; } = new();
     public WorldBeatsTuningOptions WorldBeats { get; init; } = new();
+    public MapFrontierTuningOptions MapFrontier { get; init; } = new();
 
     public int ScaleMainTicks(int ticks)
     {
@@ -152,6 +154,12 @@ internal sealed record CultureFieldTuningOptions
 internal sealed record WorldBeatsTuningOptions
 {
     /// <summary>Age recognition cadence in main ticks (raw ticks = this x MinorActorMainTickRatio).</summary>
+    public int CadenceMainTicks { get; init; } = 25;
+}
+
+internal sealed record MapFrontierTuningOptions
+{
+    /// <summary>Thaw/reclaim cadence in main ticks (raw ticks = this x MinorActorMainTickRatio).</summary>
     public int CadenceMainTicks { get; init; } = 25;
 }
 

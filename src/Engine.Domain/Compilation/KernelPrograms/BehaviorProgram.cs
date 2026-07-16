@@ -84,6 +84,7 @@ public enum BehaviorProgramPrecondition
     SelfWorkTierBelow,
     SelfHasOutgoingRelationshipToKind,
     EndpointSubtypeIs,
+    WithinTravelReach,
 }
 
 public enum BehaviorProgramExpression

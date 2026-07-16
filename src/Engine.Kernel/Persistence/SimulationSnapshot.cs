@@ -27,6 +27,8 @@ internal sealed partial class Simulation
         KernelProgramSnapshot.WriteState(writer, Chronicles.State);
         KernelProgramSnapshot.WriteData(writer, WorldBeats.Data);
         KernelProgramSnapshot.WriteState(writer, WorldBeats.State);
+        KernelProgramSnapshot.WriteData(writer, MapFrontier.Data);
+        KernelProgramSnapshot.WriteState(writer, MapFrontier.State);
     }
 
     internal void ReadSnapshot(global::System.IO.BinaryReader reader)
@@ -52,6 +54,8 @@ internal sealed partial class Simulation
         KernelProgramSnapshot.ReadState(reader, Chronicles.State);
         KernelProgramSnapshot.ReadData(reader, WorldBeats.Data);
         KernelProgramSnapshot.ReadState(reader, WorldBeats.State);
+        KernelProgramSnapshot.ReadData(reader, MapFrontier.Data);
+        KernelProgramSnapshot.ReadState(reader, MapFrontier.State);
     }
 
     internal void EmitSnapshotEvents()

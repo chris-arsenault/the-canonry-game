@@ -263,6 +263,23 @@ public sealed class WithinPlaneDistancePrecondition(int maxDistance, Engine.Doma
 }
 
 /// <summary>
+/// Target must be reachable within the given summed travel cost along the
+/// line between actor and target on the plane. Impassable or un-thawed
+/// ground on the route makes it unreachable; roads shrink the cost. This is
+/// the reach gate that scales with a growing map and its infrastructure.
+/// </summary>
+public sealed class WithinTravelReachPrecondition(float maxCost, Engine.Domain.Config.PrimaryPlane plane) : IPrecondition
+{
+    public float MaxCost { get; } = maxCost;
+    public Engine.Domain.Config.PrimaryPlane Plane { get; } = plane;
+
+    public string Describe() =>
+        Plane == Engine.Domain.Config.PrimaryPlane.Physical
+            ? $"physical_travel_cost ≤ {MaxCost}"
+            : $"semantic_travel_cost ≤ {MaxCost}";
+}
+
+/// <summary>
 /// Requires self and target to have overlapping influence on at least one cell
 /// of the selected plane. Used for territorial actions without teaching the
 /// kernel any domain-specific relationship or kind names.

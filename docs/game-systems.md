@@ -48,6 +48,14 @@ Generators are intermittent high-altitude events. They create named entities
 and relationship bundles when their preconditions are met. Generator selection
 should be shaped by the state created by low altitude and gambits.
 
+The physical map grows from play: born as a small thawed heart (radius 18),
+it opens new cells where culture presses its frontier during the Age of the
+Thaw and is reclaimed as impassable deep ice in the Long Dark (the
+MapFrontier program). Reach across the map is priced by travel cost - a
+`WithinTravelReach` gate line-samples road-discounted terrain cost, so frozen
+frontier blocks reach and roads extend it. See
+[systems/26-growing-map.md](./systems/26-growing-map.md).
+
 World beats are the macro-chronicle: authored Ages on three regime tracks
 (Ice, Peoples, Memory) recognized from macro world state - population, wars
 living and ended, culture mass and its growth, canons, legendary resolutions.

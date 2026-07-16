@@ -161,6 +161,15 @@ existing generators, verbs, gambits, and the contest decay tide. Campaigns
 `wages_campaign_against` edge lives) are the first age payload. See
 [25-world-beats.md](./systems/25-world-beats.md).
 
+The physical world grows. It is born as a small thawed heart and opens
+only where culture presses its edge (the MapFrontier program, driven by
+the Ice track's thaw age via true runtime cell creation); the Long Dark
+reclaims untended rim ground as impassable deep ice. Reach across the
+map is priced by travel cost, not raw hex distance: a `WithinTravelReach`
+gate line-samples road-discounted terrain cost between endpoints, so
+frozen frontier blocks reach and roads extend it. See
+[26-growing-map.md](./systems/26-growing-map.md).
+
 The former macro aggregate layer has been removed. Generator, gambit, trait,
 and card work use shared query, effect, and decision-modifier primitives.
 Relationship strength and locality queries are the default numeric gates when

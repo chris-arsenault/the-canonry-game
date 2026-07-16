@@ -25,6 +25,7 @@ internal static partial class KernelProgramInstaller
         InstallMinorActors(context, programs.MinorActors);
         InstallChronicles(context, programs.Chronicles);
         InstallWorldBeats(context, programs.WorldBeats);
+        InstallMapFrontier(context, programs.MapFrontier);
 
         context.SetProgramEnabled(
             KernelProgramCodes.Movement,
@@ -252,6 +253,25 @@ internal static partial class KernelProgramInstaller
         {
             context.AddGambitStepExpressionOp(stepSlot, ExpressionCode(expression.Code), expression.A, expression.X);
         }
+    }
+
+    private static void InstallMapFrontier(KernelConfigurationContext context, MapFrontierProgram program)
+    {
+        if (!program.Enabled)
+        {
+            return;
+        }
+
+        context.SetMapFrontierConfiguration(
+            program.ThawAgeId,
+            program.RefreezeAgeId,
+            program.ThawTerrainId,
+            program.FrozenTerrainId,
+            program.MaxRadius,
+            program.FrontierMassThreshold,
+            program.ReclaimMassCeiling,
+            program.ThawBudgetPerPulse,
+            program.RefreezeBudgetPerPulse);
     }
 
     private static void InstallWorldBeats(KernelConfigurationContext context, WorldBeatProgram program)
@@ -837,6 +857,7 @@ internal static partial class KernelProgramInstaller
             TryRelationshipPreconditionCode(precondition, out code) ||
             TryCompositionPreconditionCode(precondition, out code) ||
             TryContextPreconditionCode(precondition, out code) ||
+            TrySpatialPreconditionCode(precondition, out code) ||
             TryKernelStatePreconditionCode(precondition, out code))
         {
             return code;
@@ -899,6 +920,16 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramPrecondition.SharedInfluence => BehaviorPreconditionCodes.SharedInfluence,
             BehaviorProgramPrecondition.EndpointCultureIs => BehaviorPreconditionCodes.EndpointCultureIs,
             BehaviorProgramPrecondition.EndpointSubtypeIs => BehaviorPreconditionCodes.EndpointSubtypeIs,
+            _ => -1,
+        };
+        return code >= 0;
+    }
+
+    private static bool TrySpatialPreconditionCode(BehaviorProgramPrecondition precondition, out int code)
+    {
+        code = precondition switch
+        {
+            BehaviorProgramPrecondition.WithinTravelReach => BehaviorPreconditionCodes.WithinTravelReach,
             _ => -1,
         };
         return code >= 0;

@@ -36,6 +36,7 @@ public static partial class IceRemembersDefinition
             TravelStructures = IceRemembersTravelStructures.DomainTravelStructures,
             MinorActors = CreateMinorActorRules(),
             MinorActorCampaign = new MinorActorCampaignConfig { RelationshipKind = L(Rel.WagesCampaignAgainst) },
+            MapFrontier = CreateMapFrontier(),
             MovementProfiles = IceRemembersMovementProfiles.DomainProfiles,
             Cultures = CreateCultures(),
             CulturePower = CreateCulturePowerDefinition(),
@@ -121,6 +122,20 @@ public static partial class IceRemembersDefinition
 
     private static IReadOnlyList<InitialInfluenceRule> CreateInitialInfluenceRules() =>
         IceRemembersEntities.CreateInitialInfluenceRules();
+
+    private static MapFrontierConfig CreateMapFrontier() => new()
+    {
+        // The world opens during the Thaw and is reclaimed in the Long Dark.
+        ThawAge = "age_the_thaw",
+        RefreezeAge = "age_the_long_dark",
+        ThawTerrain = Terrain.Tundra.ToDomainName(),
+        FrozenTerrain = Terrain.DeepIce.ToDomainName(),
+        MaxRadius = 40,
+        FrontierMassThreshold = 25f,
+        ReclaimMassCeiling = 1f,
+        ThawBudgetPerPulse = 48,
+        RefreezeBudgetPerPulse = 16,
+    };
 
     private static List<RelationshipConfig> CreateRelationships()
     {
