@@ -754,6 +754,9 @@ internal sealed class KernelConfigurationContext
     public void SetMinorActorCampaignRelationshipKind(int relationshipKindId) =>
         _kernel.MinorActors.SetCampaignRelationshipKindId(relationshipKindId);
 
+    public void SetMovementCarrierRelationshipKind(int relationshipKindId) =>
+        _kernel.Movement.SetCarrierRelationshipKindId(relationshipKindId);
+
     public void SetMapFrontierConfiguration(
         int thawAgeId,
         int refreezeAgeId,

@@ -22,10 +22,17 @@ then:
   materialized at runtime via `Simulation.CreateCell` with region/superregion
   inherited from the pressing cell. Growth is bounded by `MaxRadius` (40) and a
   per-pulse budget. The world opens where history presses, not on a timer.
-- **Reclaim** (the Long Dark): rim ground the program once thawed — no culture
-  mass, no road, still touching unknown or frozen neighbours — is taken back as
-  impassable `deep_ice`. The map's extent itself can ebb. The program keeps a
-  ring of thawed coordinates so reclaim only revisits ground it opened.
+- **Reclaim** (the Long Dark): while the reclaim age holds the Ice track, the
+  program scans the frontier box for cold edge cells — known, weakly held
+  (culture mass at or below the reclaim ceiling), no road, touching unknown or
+  frozen ground — and takes them back as impassable `deep_ice`, propagating
+  inward as the interior cools behind them. The Long Dark charges a global
+  decay tide so untended frontier actually cools; a heart-radius floor keeps a
+  minimal core, so the map recedes but never fully dissolves. The scan runs
+  only while the reclaim age holds (deep stagnation), never on the hot path.
+  Evidence: the saturation scenario (`tools/MonteCarlo/scenarios/`) drives the
+  full Ice-age arc (Thaw → Still Ice → Long Dark → Thaw) and `deep_ice` appears
+  exactly when the Long Dark opens.
 
 New cells are ordinary: culture spreads onto them, entities move onto them,
 generators place into them. Re-freezing transforms terrain rather than deleting

@@ -765,6 +765,7 @@ public class DomainConfigTests
             [Rel.ControlledBy.ToDomainName()] = true,
             [Rel.HomeBase.ToDomainName()] = false,
             [Rel.WagesCampaignAgainst.ToDomainName()] = true,
+            [Rel.Carries.ToDomainName()] = false,
             [Rel.AlliedWith.ToDomainName()] = true,
             [Rel.RivalOf.ToDomainName()] = true,
             [Rel.LedBy.ToDomainName()] = true,

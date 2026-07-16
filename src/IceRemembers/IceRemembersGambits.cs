@@ -69,6 +69,8 @@ public static partial class IceRemembersDefinition
             PenguinForsakesTheHunt(),
             PenguinCornersTheBeast(),
             FactionMarchesTheBanners(),
+            TransportTakesUpThePassenger(),
+            TransportSetsDownThePassenger(),
         };
         gambits.AddRange(CreateWorkTierGambits());
         gambits.AddRange(CreateForgingGambits());

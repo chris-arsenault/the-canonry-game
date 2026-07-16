@@ -24,6 +24,12 @@ internal sealed partial class MinorActorProgramRuntime
             return RoadMaintenanceScore(simulation, planeCode, q, r, neighborhood, tick);
         }
 
+        if (State.PurposeCode(actorId) == MinorActorPurposeCodes.CampaignLabor)
+        {
+            return CampaignVerbScore(
+                Data.VerbTargetingCodes[verb], ownRaw, foreignRaw, neighborhood);
+        }
+
         if (State.PurposeCode(actorId) == MinorActorPurposeCodes.RoadLabor)
         {
             return RouteCultureScore(simulation, planeCode, q, r, ownRaw, neighborhood, attachment, tick);
@@ -51,6 +57,37 @@ internal sealed partial class MinorActorProgramRuntime
                 foreignRaw,
                 neighborhood,
                 attachment);
+    }
+
+    /// <summary>
+    /// A campaign column brings its own support: it presses from thin own
+    /// ground with local presence, not from a deep connected home component.
+    /// Press rewards a target-facing cell where own mass is adjacent and
+    /// there is foreign ground or headroom to take; break rewards enemy mass
+    /// the column can reach. Both stay finite on the thin frontier where the
+    /// interior scorers collapse to zero.
+    /// </summary>
+    private static float CampaignVerbScore(
+        int targetingCode,
+        float ownRaw,
+        float foreignRaw,
+        in MinorActorCultureField neighborhood)
+    {
+        var localPresence = Clamp01(neighborhood.SupportedAdjacentCount / 3f);
+        if (localPresence <= 0f)
+        {
+            return 0f;
+        }
+
+        if (targetingCode == MinorActorVerbTargetingCodes.ReduceOtherCulture)
+        {
+            var enemy = Saturating(foreignRaw, CultureSupportedRawInfluence);
+            return enemy <= 0f ? 0f : (0.5f + localPresence) * enemy;
+        }
+
+        var headroom = Clamp01((CultureStrongRawInfluence - ownRaw) / CultureStrongRawInfluence);
+        var contest = Saturating(foreignRaw, CultureSupportedRawInfluence);
+        return localPresence * (0.35f + headroom) * (0.5f + contest);
     }
 
     private static float CultureTargetScore(

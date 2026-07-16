@@ -2,6 +2,9 @@ namespace Engine.Kernel;
 
 internal sealed partial class MovementProgramData : IKernelProgramData
 {
+    /// <summary>Relationship kind whose holder is a laden carrier (0 = carriers disabled).</summary>
+    internal int CarrierRelationshipKindId;
+
     private const int DefaultMovementProfileId = 1;
     private readonly PrimitiveIntTable _defaultMovementProfiles;
     private readonly int[] _subtypeProfileKindIds;

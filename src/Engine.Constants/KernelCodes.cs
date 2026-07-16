@@ -320,6 +320,7 @@ public static class WorldBeatChargeDomainCodes
     public const int VerbWeight = 2;
     public const int GambitScore = 3;
     public const int ContestDecayTide = 4;
+    public const int GlobalDecayTide = 5;
 }
 
 public static class WorldBeatPhaseCodes

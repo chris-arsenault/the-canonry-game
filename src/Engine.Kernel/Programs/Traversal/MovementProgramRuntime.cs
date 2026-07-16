@@ -468,6 +468,7 @@ internal sealed partial class MovementProgramRuntime :
         int causeCode)
     {
         var stepCost = StepCostForMove(simulation, planeCode, entityId, q, r, tick, causeCode);
+        stepCost *= CarrierRoadSpeedFactor(simulation, planeCode, entityId, q, r, tick, causeCode);
         return StepUnchecked(simulation, entityId, planeCode, q, r, tick, causeCode, stepCost);
     }
 
@@ -548,6 +549,37 @@ internal sealed partial class MovementProgramRuntime :
         }
 
         return moved;
+    }
+
+    private const float CarrierRoadSpeedFloor = 0.5f;
+    private const float CarrierRoadQualityThreshold = 40f;
+
+    public void SetCarrierRelationshipKindId(int relationshipKindId) =>
+        Data.CarrierRelationshipKindId = relationshipKindId;
+
+    /// <summary>
+    /// The railroad made concrete: a laden carrier on a good road covers
+    /// ground faster than a walker. Speed comes from the road and the load,
+    /// never from the creature - a carrier off-road or empty moves normally.
+    /// The relationship check runs only on established road, keeping the hot
+    /// path cheap.
+    /// </summary>
+    private float CarrierRoadSpeedFactor(Simulation simulation, int planeCode, int entityId, int q, int r, int tick, int causeCode)
+    {
+        if (causeCode != MovementCauseCodes.Travel || Data.CarrierRelationshipKindId <= 0)
+        {
+            return 1f;
+        }
+
+        var roadQuality = RoadQuality(planeCode, q, r, tick);
+        if (roadQuality < CarrierRoadQualityThreshold ||
+            !simulation.World.HasOutgoingRelationshipOfKind(entityId, Data.CarrierRelationshipKindId))
+        {
+            return 1f;
+        }
+
+        var strength = Clamp01(roadQuality / 100f);
+        return 1f - ((1f - CarrierRoadSpeedFloor) * strength);
     }
 
     private float StepCostForMove(

@@ -59,18 +59,17 @@ public sealed class MapFrontierProgramRuntimeTests
     {
         var simulation = CreateSimulation();
         RegisterTerrains(simulation);
-        simulation.World.SetMapRadius(6);
-        simulation.SeedCell(0, 0, TundraTerrain, ownerEntityId: 0);
-        simulation.SeedCell(1, 0, TundraTerrain, ownerEntityId: 0);
+        simulation.World.SetMapRadius(10);
+        simulation.SeedCell(7, 0, TundraTerrain, ownerEntityId: 0);
         OpenIceAge(simulation, ReclaimAgeId);
         ConfigureFrontier(simulation, ThawAgeId, ReclaimAgeId);
-        simulation.MapFrontier.State.RecordThawed(1, 0);
+        // (7,0) is a weakly-held edge cell beyond the heart floor (trace mass,
+        // outward neighbour unknown), no road: the Long Dark takes it back.
+        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 7, 0, 0.5f, tick: 5);
 
-        // (1,0) is a rim cell (its outward neighbours are unknown), no mass, no
-        // road: the Long Dark takes it back as deep ice.
         simulation.MapFrontier.Tick(simulation, tick: 20);
 
-        Assert.Equal(DeepIceTerrain, simulation.World.CellTerrainId(PlaneCodes.Physical, 1, 0));
+        Assert.Equal(DeepIceTerrain, simulation.World.CellTerrainId(PlaneCodes.Physical, 7, 0));
         Assert.True(simulation.MapFrontier.State.TotalReclaimed > 0);
     }
 
@@ -79,17 +78,15 @@ public sealed class MapFrontierProgramRuntimeTests
     {
         var simulation = CreateSimulation();
         RegisterTerrains(simulation);
-        simulation.World.SetMapRadius(6);
-        simulation.SeedCell(0, 0, TundraTerrain, ownerEntityId: 0);
-        simulation.SeedCell(1, 0, TundraTerrain, ownerEntityId: 0);
+        simulation.World.SetMapRadius(10);
+        simulation.SeedCell(7, 0, TundraTerrain, ownerEntityId: 0);
         OpenIceAge(simulation, ReclaimAgeId);
         ConfigureFrontier(simulation, ThawAgeId, ReclaimAgeId);
-        simulation.MapFrontier.State.RecordThawed(1, 0);
-        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 1, 0, 20f, tick: 15);
+        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 7, 0, 20f, tick: 15);
 
         simulation.MapFrontier.Tick(simulation, tick: 20);
 
-        Assert.Equal(TundraTerrain, simulation.World.CellTerrainId(PlaneCodes.Physical, 1, 0));
+        Assert.Equal(TundraTerrain, simulation.World.CellTerrainId(PlaneCodes.Physical, 7, 0));
     }
 
     private static void RegisterTerrains(Simulation simulation)

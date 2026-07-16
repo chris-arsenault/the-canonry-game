@@ -36,6 +36,7 @@ public static partial class IceRemembersDefinition
             TravelStructures = IceRemembersTravelStructures.DomainTravelStructures,
             MinorActors = CreateMinorActorRules(),
             MinorActorCampaign = new MinorActorCampaignConfig { RelationshipKind = L(Rel.WagesCampaignAgainst) },
+            CarrierRelationshipKind = L(Rel.Carries),
             MapFrontier = CreateMapFrontier(),
             MovementProfiles = IceRemembersMovementProfiles.DomainProfiles,
             Cultures = CreateCultures(),
@@ -132,7 +133,10 @@ public static partial class IceRemembersDefinition
         FrozenTerrain = Terrain.DeepIce.ToDomainName(),
         MaxRadius = 40,
         FrontierMassThreshold = 25f,
-        ReclaimMassCeiling = 1f,
+        // The Long Dark reclaims weakly-held rim, not only empty rim: trace
+        // ground the ice can take back. Reclaim fires only while the reclaim
+        // age holds the Ice track, so normal (growing) worlds never see it.
+        ReclaimMassCeiling = 8f,
         ThawBudgetPerPulse = 48,
         RefreezeBudgetPerPulse = 16,
     };
@@ -179,6 +183,10 @@ public static partial class IceRemembersDefinition
             // toward its cull threshold unless the war keeps feeding it, so
             // columns march for seasons, not forever.
             new() { Name = L(Rel.WagesCampaignAgainst), Polarity = RelationshipPolarity.Negative, ValidSourceCategories = agency, ValidTargetCategories = agencyOrSpatialOrAsset, IsExclusive = true, CullThreshold = 0.15f, Maintenance = CampaignMaintenance() },
+            // A carried passenger follows the transport bodily; the tie is
+            // exclusive (one load at a time) and set down explicitly, so it
+            // has no drift maintenance - load and deposit gambits own its life.
+            new() { Name = L(Rel.Carries), Polarity = RelationshipPolarity.Neutral, ValidSourceCategories = agency, ValidTargetCategories = agencyOrSpatialOrAsset, IsExclusive = true, TargetFollowsSourcePhysical = true, CullThreshold = 0.02f },
         ];
     }
 

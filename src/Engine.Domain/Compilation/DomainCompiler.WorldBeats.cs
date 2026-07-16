@@ -71,6 +71,7 @@ public static partial class DomainCompiler
                 WorldBeatChargeDomain.GeneratorPulseWeight => ids.GeneratorIdOf(charge.Target).Value,
                 WorldBeatChargeDomain.VerbWeight => ids.VerbIdOf(charge.Target).Value,
                 WorldBeatChargeDomain.GambitScore => ids.GambitIdOf(charge.Target).Value,
+                WorldBeatChargeDomain.ContestDecayTide or WorldBeatChargeDomain.GlobalDecayTide => 0,
                 _ => throw new InvalidOperationException(
                     $"World beat age '{age.Id}' charge domain '{charge.Domain}' does not take a target."),
             };
@@ -95,6 +96,7 @@ public static partial class DomainCompiler
         WorldBeatChargeDomain.VerbWeight => WorldBeatChargeDomainCodes.VerbWeight,
         WorldBeatChargeDomain.GambitScore => WorldBeatChargeDomainCodes.GambitScore,
         WorldBeatChargeDomain.ContestDecayTide => WorldBeatChargeDomainCodes.ContestDecayTide,
+        WorldBeatChargeDomain.GlobalDecayTide => WorldBeatChargeDomainCodes.GlobalDecayTide,
         _ => throw new InvalidOperationException($"Unknown world beat charge domain '{domain}'."),
     };
 

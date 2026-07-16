@@ -141,6 +141,7 @@ public enum IceRemembersRelationship
     ConsignedTo,
     PreysOn,
     WagesCampaignAgainst,
+    Carries,
 }
 
 public static class IceRemembersRelationshipExtensions
@@ -174,6 +175,7 @@ public static class IceRemembersRelationshipExtensions
         "consigned_to",
         "preys_on",
         "wages_campaign_against",
+        "carries",
     ];
 
     public static string ToDomainName(this IceRemembersRelationship relationship)
@@ -632,6 +634,8 @@ public enum IceRemembersGambitId
     PenguinForsakesTheHunt,
     PenguinCornersTheBeast,
     FactionMarchesTheBanners,
+    TransportTakesUpThePassenger,
+    TransportSetsDownThePassenger,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -692,6 +696,8 @@ public static class IceRemembersGambitIdExtensions
         "penguin_forsakes_the_hunt",
         "penguin_corners_the_beast",
         "faction_marches_the_banners",
+        "transport_takes_up_the_passenger",
+        "transport_sets_down_the_passenger",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)

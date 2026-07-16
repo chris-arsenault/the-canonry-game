@@ -15,6 +15,7 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
     private readonly float _contestDecayMultiplier;
     private readonly float _contestFloorRawMass;
     private float _contestTide = 1f;
+    private float _globalTide = 1f;
     private readonly int[] _scratchQ;
     private readonly int[] _scratchR;
     private readonly int[] _scratchZ;
@@ -78,7 +79,7 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
         {
             var raw = _scratchRaw[i];
             var contest = ContestMultiplier(world, cultureId, planeCode, _scratchQ[i], _scratchR[i], _scratchZ[i], raw);
-            var decay = global::System.MathF.Max(raw * _decayPerPulse, _minimumDecayPerPulse) * contest;
+            var decay = global::System.MathF.Max(raw * _decayPerPulse, _minimumDecayPerPulse) * contest * _globalTide;
             if (raw - decay < _cullFloorRawMass)
             {
                 decay = raw;
@@ -100,10 +101,14 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
     /// cell, the locally weaker side decays faster - fronts form where
     /// cultures touch, and boundaries can visibly move.
     /// </summary>
-    /// <summary>Age charges: the world-beat program scales the contest tide per open age each pulse.</summary>
+    /// <summary>Age charges: the world-beat program scales the tides per open age each pulse.</summary>
     public void SetContestTide(float tide) => _contestTide = tide;
 
     public void ScaleContestTide(float multiplier) => _contestTide *= multiplier;
+
+    public void SetGlobalTide(float tide) => _globalTide = tide;
+
+    public void ScaleGlobalTide(float multiplier) => _globalTide *= multiplier;
 
     private float ContestMultiplier(WorldState world, int cultureId, int planeCode, int q, int r, int z, float raw)
     {

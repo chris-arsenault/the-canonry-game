@@ -32,10 +32,13 @@ ticks) the program samples macro facts from world state:
 - cumulative legendary chronicle resolutions (from the Chronicle Director).
 
 An open age closes when **any** closing condition holds, after its authored
-minimum span. A blank track opens the highest-priority age whose opening
-conditions **all** hold and whose post-close cooldown has passed. Transitions
-emit `WorldBeatChanged` primitive events (track, age id, opened/closed) into
-telemetry (`world_beat_events`) and the UI top bar.
+minimum span. Each pulse the highest-priority age whose opening conditions
+**all** hold (and whose post-close cooldown has passed) takes each track: it
+fills a blank track, and it **preempts** a lower-priority incumbent that has
+met its minimum span - so a low-priority fallback like the Still Ice never
+traps the track and blocks a real age. Transitions emit `WorldBeatChanged`
+primitive events (track, age id, opened/closed) into telemetry
+(`world_beat_events`), the UI top bar, and the ages strip/panel.
 
 ## Charges
 
@@ -46,7 +49,9 @@ target program owns its own O(1) modulation array:
 - generator pulse weights (`AgePulseWeightMultipliers`),
 - low-altitude verb weights (`AgeWeightMultiplier` per rule),
 - gambit scores (`AgeScoreMultipliers`),
-- the contest decay tide (`CultureFieldDecay.ScaleContestTide`).
+- the contest decay tide (`CultureFieldDecay.ScaleContestTide`), contested cells only,
+- the global decay tide (`CultureFieldDecay.ScaleGlobalTide`), every cell - the
+  Long Dark charges it so untended frontier cools and the map recedes.
 
 A null/zero charge target charges the whole domain family.
 

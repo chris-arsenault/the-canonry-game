@@ -50,6 +50,8 @@ internal sealed class GameRenderTree
     private IGameChronicleFeed? _chronicle;
     private AttributeGraphPanel? _attributeGraph;
     private ChronicleJournal? _journal;
+    private readonly WorldBeatsStrip _worldBeatsStrip = new();
+    private WorldBeatsPanel? _worldBeatsPanel;
 
     public event Action<int>? JournalEntitySelected;
     private HexMapProjection? _lastCultureOverviewMap;
@@ -234,6 +236,8 @@ internal sealed class GameRenderTree
         _attributeGraphRender.Present(ActiveAttributeGraph(), _ui);
         _chronicleRender.Present(_chroniclePanel, _chronicle);
         _chronicleAura.SetTales(_chronicle.TaleViews.Select(static view => view.Tale).ToList());
+        _worldBeatsStrip.Refresh();
+        _worldBeatsPanel?.Refresh();
         _tableauRender.Present(_tableauPanel, _ui, _tableauVisible);
         _floatingHudLayoutRender.Present(_mapArea, _tableauPanel, _tableauVisible);
     }
@@ -445,6 +449,43 @@ internal sealed class GameRenderTree
         _mapArea.BindCultureOverview(_map, _ui, _symbols, _mapRenderer.CurrentPlane, _runtime?.ReadModels.CulturePowers());
         _bottomBar.SetTableauVisible(_tableauVisible);
         _bottomBar.SetReadingsVisible(_attributeGraph is not null);
+        BindWorldBeatsStrip();
+    }
+
+    private void BindWorldBeatsStrip()
+    {
+        if (_worldBeatsStrip.GetParent() is null)
+        {
+            _cardLayer.AddChild(_worldBeatsStrip);
+            _worldBeatsStrip.Position = new Vector2(240, UiTokens.Space2);
+            _worldBeatsStrip.ToggleRequested += ToggleWorldBeatsPanel;
+        }
+
+        if (_ui is not null)
+        {
+            _worldBeatsStrip.Initialize(_ui, _symbols);
+        }
+    }
+
+    public void ToggleWorldBeatsPanel()
+    {
+        if (_worldBeatsPanel is not null)
+        {
+            _worldBeatsPanel.QueueFree();
+            _worldBeatsPanel = null;
+            return;
+        }
+
+        if (_ui is null)
+        {
+            return;
+        }
+
+        _worldBeatsPanel = new WorldBeatsPanel { Theme = _theme };
+        _cardLayer.AddChild(_worldBeatsPanel);
+        _worldBeatsPanel.Position = new Vector2(240, UiTokens.Space7);
+        _worldBeatsPanel.CloseRequested += ToggleWorldBeatsPanel;
+        _worldBeatsPanel.Initialize(_ui, _symbols);
     }
 
     private void ApplyMapLens()

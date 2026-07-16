@@ -140,34 +140,57 @@ internal sealed partial class WorldBeatsProgramRuntime : IKernelProgramRuntime<W
     {
         for (var track = 0; track < WorldBeatTrackCodes.Count; track++)
         {
-            if (State.OpenAgeSlots[track] != 0)
-            {
-                continue;
-            }
-
-            var best = 0;
-            for (var slot = 1; slot <= Data.AgeCount; slot++)
-            {
-                if (Data.TrackCode(slot) != track ||
-                    (best != 0 && Data.Priority(slot) <= Data.Priority(best)) ||
-                    tick - State.LastClosedTicks[slot] < Data.CooldownTicks(slot) ||
-                    !AllOpenConditionsHold(simulation, slot, tick))
-                {
-                    continue;
-                }
-
-                best = slot;
-            }
-
+            var best = BestEligibleAge(simulation, track, tick);
             if (best == 0)
             {
                 continue;
+            }
+
+            var current = State.OpenAgeSlots[track];
+            if (current == best)
+            {
+                continue;
+            }
+
+            // A higher-priority eligible age preempts a lower-priority
+            // incumbent (once the incumbent has met its minimum span), so a
+            // low-priority fallback like the Still Ice never traps the track.
+            if (current != 0 &&
+                (Data.Priority(best) <= Data.Priority(current) ||
+                 tick - State.OpenedTicks[track] < Data.MinOpenTicks(current)))
+            {
+                continue;
+            }
+
+            if (current != 0)
+            {
+                State.LastClosedTicks[current] = tick;
+                simulation.EmitWorldBeatChanged(tick, track, Data.AgeId(current), WorldBeatPhaseCodes.Closed);
             }
 
             State.OpenAgeSlots[track] = best;
             State.OpenedTicks[track] = tick;
             simulation.EmitWorldBeatChanged(tick, track, Data.AgeId(best), WorldBeatPhaseCodes.Opened);
         }
+    }
+
+    private int BestEligibleAge(Simulation simulation, int track, int tick)
+    {
+        var best = 0;
+        for (var slot = 1; slot <= Data.AgeCount; slot++)
+        {
+            if (Data.TrackCode(slot) != track ||
+                (best != 0 && Data.Priority(slot) <= Data.Priority(best)) ||
+                tick - State.LastClosedTicks[slot] < Data.CooldownTicks(slot) ||
+                !AllOpenConditionsHold(simulation, slot, tick))
+            {
+                continue;
+            }
+
+            best = slot;
+        }
+
+        return best;
     }
 
     private bool AllOpenConditionsHold(Simulation simulation, int ageSlot, int tick)

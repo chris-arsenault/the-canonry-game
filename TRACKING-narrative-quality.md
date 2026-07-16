@@ -857,3 +857,59 @@ vs ages-campaigns-3x25k-20260715b; unit tests MapFrontierProgramRuntimeTests
 - Docs: docs/systems/26-growing-map.md, architecture.md, game-systems.md.
 - Next: caravan carriers (transports as true carriers per the Civ parallel),
   a saturation/Long-Dark scenario to exercise reclaim, the progression epic.
+
+### Tier 2: carriers, campaign-idle fix, saturation scenario, world-beats UI (2026-07-16, branch kinetics-deeds)
+
+Round the user commanded after the tier-2 backlog review (they rejected
+merging unfinished work, added the world-beats UI). Evidence:
+tier2-carriers-3x25k-20260716b (main) vs grown-map-reach baseline;
+tier2-saturation-longdark-1x25k-20260716i (reclaim scenario).
+
+- CARRIERS: transports now load, haul, and deposit passengers. New
+  `carries` follow-relationship (transport -> entity, physical follow,
+  exclusive); load gambit `transport_takes_up_the_passenger` and deposit
+  `transport_sets_down_the_passenger` (sets down where named life
+  gathers). Road-speed for carriers: a laden carrier (holds a carries
+  edge) on a good road gets a shorter movement step interval - the
+  Civ railroad, speed from the road and the load, never the creature.
+  Result: 519 loads / 351 deposits succeed, ~120 passengers relocated
+  per run.
+- CAMPAIGN-IDLE FIX: campaign columns scored zero on thin frontier
+  because the interior culture scorers need deep connected support.
+  New campaign-purpose scoring presses from local own presence
+  (SupportedAdjacentCount), not home components. Worked pulses
+  49% -> 85%, culture delta +47% (96653 -> 141924). Fronts improved
+  too (flips 590 vs 507).
+- SATURATION SCENARIO + reclaim, the hard part. A config
+  (tools/MonteCarlo/scenarios/saturation-longdark.json) raises culture
+  decay to stall growth so the Long Dark opens. Getting reclaim to
+  actually fire exposed and fixed three real issues:
+  1. WORLD-BEATS PREEMPTION (framework bug): opening only filled blank
+     tracks, so the priority-0 Still Ice fallback trapped the Ice track
+     forever and blocked the Long Dark. Fixed: a higher-priority
+     eligible age now preempts a lower-priority incumbent past its min
+     span. Unit-tested.
+  2. THE THAW never closed under stagnation (mass < its 900k close
+     threshold): added a growth-stall close condition (inert in growing
+     worlds, which close on mass first).
+  3. RECLAIM SOURCE: cold edge cells are the heart boundary and fully
+     culled (mass 0) - absent from both the thawed ring and the culture
+     cursor. Reclaim now scans the frontier box for cold edge cells and
+     the Long Dark charges a new GLOBAL DECAY TIDE (every cell, "the
+     dark presses in on every frontier") so untended rim cools below the
+     ceiling. A heart-radius floor protects a minimal core.
+  Result: the full Ice-age arc cycles (Thaw -> Still Ice -> Long Dark
+  -> Thaw -> Still Ice) and deep_ice appears exactly when the Long Dark
+  opens (t15250). The recede is conservative (peak 4 cells) - the dense
+  heart stays warm and reclaim is deliberately gentle; a dramatic
+  dissolve would need a deeper/longer stagnation, which is fine.
+- WORLD-BEATS UI: always-visible ages strip (three track chips
+  Ice/Peoples/Memory -> current age) clickable to open a panel with each
+  track's age, its telling, and a transition timeline. Projection
+  exposes age names + a transition ring. Needs visual confirmation in
+  Godot with the other unrendered layers (trails, flow, auras, growing
+  map, deep ice).
+- Docs: 25-world-beats.md (preemption, global tide), 26-growing-map.md
+  (reclaim mechanism), architecture.md, game-systems.md.
+- Next: the progression-lattice epic; Godot visual pass; caravan
+  capacity/reach growth across ages.

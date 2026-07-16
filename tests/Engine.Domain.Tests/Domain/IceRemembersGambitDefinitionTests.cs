@@ -14,9 +14,10 @@ public sealed class IceRemembersGambitDefinitionTests
         var config = IceRemembersDefinition.Create();
         var gambitIds = config.Gambits.Select(gambit => gambit.Id).ToHashSet(StringComparer.Ordinal);
 
-        // 30 strategic gambits (incl. the hunt-chronicle pair and the
-        // campaign march) + 12 grant gambits + one work-tier gambit per kind.
-        Assert.Equal(42 + IceRemembersEntities.All.Count, gambitIds.Count);
+        // 32 strategic gambits (incl. the hunt-chronicle pair, the campaign
+        // march, and the two carrier gambits) + 12 grant gambits + one
+        // work-tier gambit per kind.
+        Assert.Equal(44 + IceRemembersEntities.All.Count, gambitIds.Count);
         Assert.Contains(IceRemembersGambitId.AbilitySharesPractice.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactBindsMonster.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactCleansesScar.ToGambitId(), gambitIds);

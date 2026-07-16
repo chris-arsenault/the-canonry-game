@@ -36,6 +36,7 @@ public enum WorldBeatChargeDomain
     VerbWeight,
     GambitScore,
     ContestDecayTide,
+    GlobalDecayTide,
 }
 
 /// <summary>A macro-fact predicate an age's opening or closing is recognized from.</summary>

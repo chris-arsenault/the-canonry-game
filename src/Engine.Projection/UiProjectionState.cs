@@ -85,7 +85,18 @@ public sealed class UiProjectionState : KernelEventProjector
     /// <summary>Open age id per world-beat track (0 = blank track).</summary>
     public IReadOnlyList<int> WorldBeatAgeIds => _worldBeatAgeIds;
 
+    /// <summary>Tick each track's current age opened (0 = blank track).</summary>
+    public IReadOnlyList<int> WorldBeatOpenedTicks => _worldBeatOpenedTicks;
+
+    /// <summary>Recent age transitions, newest last, for the ages timeline.</summary>
+    public IReadOnlyList<UiWorldBeatTransition> WorldBeatTransitions => _worldBeatTransitions;
+
+    public long WorldBeatVersion { get; private set; }
+
+    private const int WorldBeatTransitionCapacity = 64;
     private readonly int[] _worldBeatAgeIds = new int[3];
+    private readonly int[] _worldBeatOpenedTicks = new int[3];
+    private readonly List<UiWorldBeatTransition> _worldBeatTransitions = [];
 
     public long EntityMapVersion { get; private set; }
 
@@ -217,7 +228,16 @@ public sealed class UiProjectionState : KernelEventProjector
             return;
         }
 
-        _worldBeatAgeIds[evt.TrackCode] = evt.PhaseCode == 1 ? evt.AgeId : 0;
+        var opened = evt.PhaseCode == 1;
+        _worldBeatAgeIds[evt.TrackCode] = opened ? evt.AgeId : 0;
+        _worldBeatOpenedTicks[evt.TrackCode] = opened ? evt.Tick : 0;
+        _worldBeatTransitions.Add(new UiWorldBeatTransition(evt.Tick, evt.TrackCode, evt.AgeId, opened));
+        if (_worldBeatTransitions.Count > WorldBeatTransitionCapacity)
+        {
+            _worldBeatTransitions.RemoveAt(0);
+        }
+
+        WorldBeatVersion++;
         TopBarVersion++;
     }
 
@@ -1020,6 +1040,9 @@ public sealed record UiHealthAttributeDefinitionProjection(
     float Minimum,
     float Maximum,
     float DefaultValue);
+
+/// <summary>One world-beat age transition for the ages timeline (opened or closed).</summary>
+public sealed record UiWorldBeatTransition(int Tick, int TrackCode, int AgeId, bool Opened);
 
 public sealed record UiCultureSlotDefinitionProjection(
     UiCultureSlotKey Key,

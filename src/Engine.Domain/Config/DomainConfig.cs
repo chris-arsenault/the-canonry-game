@@ -39,6 +39,9 @@ public sealed class DomainConfig
 
     public MapFrontierConfig? MapFrontier { get; init; }
 
+    /// <summary>Relationship kind whose holder is a laden carrier (road-speed bonus).</summary>
+    public string? CarrierRelationshipKind { get; init; }
+
     /// <summary>Discrete movement capability classes used by route planning and terrain traversal.</summary>
     public IReadOnlyList<MovementProfileConfig> MovementProfiles { get; init; } = [];
 

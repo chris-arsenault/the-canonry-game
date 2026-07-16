@@ -69,6 +69,11 @@ internal static partial class KernelProgramInstaller
             context.SetMinorActorCampaignRelationshipKind(program.CampaignRelationshipKindId);
         }
 
+        if (program.CarrierRelationshipKindId > 0)
+        {
+            context.SetMovementCarrierRelationshipKind(program.CarrierRelationshipKindId);
+        }
+
         foreach (var rule in program.EmitterRules)
         {
             var ruleSlot = context.RegisterMinorActorEmitterRule(

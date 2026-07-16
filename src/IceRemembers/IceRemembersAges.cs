@@ -46,7 +46,12 @@ public static class IceRemembersAges
         ],
         CloseWhen =
         [
+            // The founding ends when the settled world fills (mass) OR when
+            // growth simply stops - a stagnant world is no longer thawing,
+            // which frees the Ice track for the Long Dark. In a growing world
+            // the mass condition always fires first, so this is inert there.
             new(WorldBeatFact.TotalCultureRawMass, WorldBeatComparator.AtLeast, 900_000f),
+            new(WorldBeatFact.CultureMassGrowthPermille, WorldBeatComparator.Below, 5f),
         ],
         Charges =
         [
@@ -103,6 +108,9 @@ public static class IceRemembersAges
         Charges =
         [
             new(WorldBeatChargeDomain.ContestDecayTide, 1.5f),
+            // The dark presses in on every frontier: culture decays hard while
+            // the Long Dark holds, so untended rim cools and the map recedes.
+            new(WorldBeatChargeDomain.GlobalDecayTide, 6f),
         ],
     };
 

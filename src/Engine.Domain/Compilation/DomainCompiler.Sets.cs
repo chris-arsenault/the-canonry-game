@@ -79,6 +79,9 @@ public static partial class DomainCompiler
             CampaignRelationshipKindId = config.MinorActorCampaign is null
                 ? 0
                 : ids.RelationshipKindIdOf(config.MinorActorCampaign.RelationshipKind).Value,
+            CarrierRelationshipKindId = string.IsNullOrWhiteSpace(config.CarrierRelationshipKind)
+                ? 0
+                : ids.RelationshipKindIdOf(config.CarrierRelationshipKind).Value,
         };
     }
 

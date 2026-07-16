@@ -1,0 +1,10 @@
+{
+  "kernelTuning": {
+    "programs": {
+      "cultureField": {
+        "decay_per_pulse": 0.02,
+        "minimum_decay_per_pulse": 1.5
+      }
+    }
+  }
+}
