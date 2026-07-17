@@ -103,6 +103,13 @@ only.
 When a previous answer or proposal was corrected, treat the correction as a new
 constraint for the rest of the task.
 
+When correcting course on feedback, make a targeted, proportionate change toward
+a stable design. Never swing to the opposite extreme. Feedback that "not all X
+should be A" almost never means "make all X be B" — it means the distribution is
+wrong, so find the right mix and assign it case by case. Most real designs are a
+deliberate balance of several behaviors, not one setting applied everywhere. Each
+overcorrection makes the design worse, not better; build toward the stable middle.
+
 Do not create or switch to a feature branch unless the user explicitly commands
 branching. Always commit directly to `main` unless the user specifically
 instructs otherwise.
