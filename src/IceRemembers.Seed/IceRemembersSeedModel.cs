@@ -136,7 +136,30 @@ internal sealed class SeedAssembly
             cells,
             relationships,
             MapSubdivisions,
-            Attributes: []);
+            Attributes: [],
+            KnowledgeSites: CreateKnowledgeSites());
+    }
+
+    // The six discipline spokes (unit hex directions from centre). A tech at
+    // tier t, discipline d sits at ring (t*TierWidth + TierWidth/2) along spoke d.
+    private static readonly (int Q, int R)[] DisciplineSpokes =
+    [
+        (1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1),
+    ];
+
+    private static DomainKnowledgeSite[] CreateKnowledgeSites()
+    {
+        var techs = IceRemembersKnowledge.Techs;
+        var sites = new DomainKnowledgeSite[techs.Count];
+        for (var i = 0; i < techs.Count; i++)
+        {
+            var tech = techs[i];
+            var ring = (tech.Tier * IceRemembersKnowledge.TierWidth) + (IceRemembersKnowledge.TierWidth / 2);
+            var spoke = DisciplineSpokes[(int)tech.Discipline % DisciplineSpokes.Length];
+            sites[i] = new DomainKnowledgeSite(tech.Id, ring * spoke.Q, ring * spoke.R, tech.Tier);
+        }
+
+        return sites;
     }
 
     private DomainSeedEntity[] CreateStartupEntities() =>

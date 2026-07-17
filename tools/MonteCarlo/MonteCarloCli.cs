@@ -336,6 +336,7 @@ internal static class MonteCarloCli
         {
             run.Host.RecordCultureBoundaryTelemetry(recorder.Batch, recorder.RunId, tick, includeEntities);
             run.Host.RecordCulturePowerTelemetry(recorder.Batch, recorder.RunId, tick);
+            run.Host.RecordKnowledgeTelemetry(recorder.Batch, recorder.RunId, tick);
         }
     }
 

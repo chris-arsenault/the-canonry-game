@@ -14,11 +14,24 @@ public sealed record DomainStartupSeed(
     IReadOnlyList<DomainSeedCell> Cells,
     IReadOnlyList<DomainSeedRelationship> Relationships,
     IReadOnlyList<DomainMapSubdivision> MapSubdivisions,
-    IReadOnlyList<DomainSeedAttributeValue> Attributes)
+    IReadOnlyList<DomainSeedAttributeValue> Attributes,
+    IReadOnlyList<DomainKnowledgeSite> KnowledgeSites)
 {
     public static DomainStartupSeed Empty(int mapRadius) =>
-        new(mapRadius, [], [], [], [], []);
+        new(mapRadius, [], [], [], [], [], []);
 }
+
+/// <summary>
+/// One authored technology placed at a hex of the semantic (idea) plane. A
+/// culture comes to know the tech when its idea-mass reaches this hex. Tier is
+/// the radius band (also derivable from the coordinate); it is carried for
+/// convenient tier telemetry.
+/// </summary>
+public sealed record DomainKnowledgeSite(
+    string TechId,
+    int Q,
+    int R,
+    int Tier);
 
 public sealed record DomainSeedEntity(
     int SeedEntityId,

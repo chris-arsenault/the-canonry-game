@@ -38,6 +38,7 @@ public sealed class TelemetryBatch
     public Collection<MinorActorVerbEventRow> MinorActorVerbEvents { get; } = Rows<MinorActorVerbEventRow>();
     public Collection<CultureFieldComponentSnapshotRow> CultureFieldComponentSnapshots { get; } = Rows<CultureFieldComponentSnapshotRow>();
     public Collection<CulturePowerSnapshotRow> CulturePowerSnapshots { get; } = Rows<CulturePowerSnapshotRow>();
+    public Collection<KnowledgeSnapshotRow> KnowledgeSnapshots { get; } = Rows<KnowledgeSnapshotRow>();
     public Collection<EntityTagEventRow> EntityTagEvents { get; } = Rows<EntityTagEventRow>();
     public Collection<ChronicleEventRow> ChronicleEvents { get; } = Rows<ChronicleEventRow>();
 
@@ -88,6 +89,7 @@ public sealed class TelemetryBatch
     {
         CultureFieldComponentSnapshots.Clear();
         CulturePowerSnapshots.Clear();
+        KnowledgeSnapshots.Clear();
         EntityTagEvents.Clear();
         ChronicleEvents.Clear();
         WorldBeatEvents.Clear();
@@ -567,6 +569,18 @@ public sealed record CulturePowerSnapshotRow(
     float ClaimStrength,
     float WarStrength,
     float OfferingStrength);
+
+/// <summary>
+/// Per-culture knowledge state at a snapshot tick: how many of the authored
+/// technologies the culture has claimed (its idea-mass holds the tech's hex) and
+/// the highest tier it has reached.
+/// </summary>
+public sealed record KnowledgeSnapshotRow(
+    int RunId,
+    int Tick,
+    int CultureId,
+    int ClaimedTechs,
+    int MaxTier);
 
 public sealed record CultureFieldComponentSnapshotRow(
     int RunId,

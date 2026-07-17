@@ -245,7 +245,21 @@ not the exact cell only; (2) place techs slightly off the pure spoke / at severa
 offsets per (tier, discipline) so they land where footprints actually spread; (3)
 higher-tier claims also need faster expansion or longer runs.
 
-**Remaining build:** seed places the authored techs (tier→ring band, discipline→
-spoke, with offsets) into `DomainStartupSeed` as knowledge-site coords; a small
-kernel structure holds them; per-culture claimed-tech count + max tier as
-telemetry; then the in-sim claim curve. Grants after.
+**BUILT (in-sim, end to end).** Seed places each authored tech at a hex
+(tier→ring mid-band, discipline→one of six spokes) into
+`DomainStartupSeed.KnowledgeSites`; `KernelHost` holds them and
+`RecordKnowledgeTelemetry` emits a `knowledge_snapshots` row per culture per
+snapshot (claimed-tech count + max tier). Claim = semantic mass ≥ 30 within
+radius 2 of the tech hex (the radius keeps single-hex control from being
+razor-thin). Files: `IceRemembersKnowledge.cs` (list), `DomainStartupSeed`
+(record), `IceRemembersSeedModel.CreateKnowledgeSites`, `KernelHost.Knowledge.cs`,
+`TelemetryBatch`/`TelemetryExport` (knowledge_snapshots), `MonteCarloCli` (cadence).
+
+Result (MC `knowledge-live-1`, 20k): cultures claim over time (3→15), diverge
+(15 / 11 / 7, different subsets), max tier 2 (frontier reached ring 29 → tiers
+3–4 unclaimed; higher tiers need faster/longer expansion — a knob), and forgetting
+shows organically (culture 1 dropped 8→7 as mass receded). make ci green.
+
+**Next:** grants (knowing a tech emits world-beat-style charges / unlocks — a
+runtime `CultureKnows` moves the sites into the kernel), tuning the tier reach,
+and the physical-plane frontier balance still pending from the expansion pass.

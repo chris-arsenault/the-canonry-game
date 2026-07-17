@@ -2,6 +2,7 @@ namespace Engine.Host;
 
 using Engine.Domain;
 using Engine.Domain.Compilation;
+using Engine.Domain.Startup;
 using Engine.Eventing;
 using Engine.Kernel;
 using Engine.Kernel.Driver;
@@ -12,6 +13,7 @@ public sealed partial class KernelHost : IDisposable
     private readonly Simulation _kernel;
     private readonly KernelCommandCompletionPump _commandCompletions;
     private readonly CultureBoundaryDirtyCell[] _cultureBoundaryRefreshCells;
+    private readonly IReadOnlyList<DomainKnowledgeSite> _knowledgeSites;
     private bool _disposed;
 
     internal KernelHost(
@@ -23,10 +25,12 @@ public sealed partial class KernelHost : IDisposable
         ICommandSubmitter commands,
         KernelCommandCompletionPump commandCompletions,
         int seedEventCount,
-        CompiledDomain? compiledDomain = null)
+        CompiledDomain? compiledDomain = null,
+        IReadOnlyList<DomainKnowledgeSite>? knowledgeSites = null)
     {
         _kernel = kernel;
         _cultureBoundaryRefreshCells = new CultureBoundaryDirtyCell[kernel.Options.MapCellCapacity];
+        _knowledgeSites = knowledgeSites ?? [];
         Events = kernel.Events;
         DomainIds = domainIds;
         Symbols = symbols;

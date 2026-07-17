@@ -26,8 +26,8 @@ public sealed record KnowledgeTech(string Id, string Name, int Tier, KnowledgeDi
 
 public static class IceRemembersKnowledge
 {
-    /// <summary>Number of tier bands; tier t spans semantic rings [t*TierWidth, (t+1)*TierWidth).</summary>
-    public const int TierWidth = 8;
+    /// <summary>Ring width of a tier band; tier t spans semantic rings [t*TierWidth, (t+1)*TierWidth).</summary>
+    public static int TierWidth => 8;
 
     public static IReadOnlyList<KnowledgeTech> Techs { get; } =
     [

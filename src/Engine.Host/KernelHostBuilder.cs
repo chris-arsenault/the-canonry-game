@@ -349,7 +349,8 @@ internal sealed class KernelHostBuilder
                 commands,
                 commandCompletions,
                 seedEventCount,
-                _compiledDomain);
+                _compiledDomain,
+                _domainStartupSeed?.KnowledgeSites);
             consumers = null;
             commandCompletions = null;
             time = null;
