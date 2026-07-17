@@ -221,9 +221,31 @@ coordinates that don't exist as cells until the frontier opens them.
 with per-culture claimed-site count + max tier exported as telemetry. Claim =
 semantic mass ≥ band at the site's cell. No grants yet.
 
-**Open fork (authoring):** are site names/positions **procedural** (generated
-across the disk at a tuned density — unbounded, emergent, what the "unbounded"
-goal wants) or **hand-authored** (a curated list of meaningful named techs at
-chosen tier/terrain roles — more designed, less free)? Likely procedural
-placement + a generated name pool now, with room to pin specific authored
-"landmark" techs later. Needs a decision before building the catalog.
+**Authoring: DECIDED — hand-authored, always was.** The catalog is a discrete
+hand-authored list of named techs. "Unbounded" means we keep ADDING authored
+techs to the list; it is NOT procedural generation. Each authored tech has a
+tier (radius band) and a direction/sector (to spread them and drive divergence);
+the seed places each at a hex at that ring+direction. Outer rings open as
+open_field, so discipline is the angular sector, not the terrain (terrain variety
+only exists in the heart). Add a tech = add a line to the list; the seed places
+it. Claim = a culture's semantic mass reaches the tech's hex.
+
+**Authored list exists:** `src/IceRemembers/IceRemembersKnowledge.cs` — 27 named
+techs across 5 tiers × 6 disciplines (Remembrance/Deep/Craft/Hunt/Song/Cold),
+growable by adding lines. Tier band width = 8 rings; discipline = one of six
+spokes.
+
+**Validated (DuckDB, real authored hexes on frontier-balanced-2):** the discrete-
+hex claim works and cultures diverge (claimed 4 / 12 / 4, different subsets). But
+placing each tech on an EXACT axis spoke is too brittle — a culture must hold
+that precise cell, so counts are sparse and max tier stalls at 1–2 even though
+the frontier reached ring 29. **Real-build fixes:** (1) claim = mass ≥ band
+within a small radius of the tech hex (control the hex and its immediate ring),
+not the exact cell only; (2) place techs slightly off the pure spoke / at several
+offsets per (tier, discipline) so they land where footprints actually spread; (3)
+higher-tier claims also need faster expansion or longer runs.
+
+**Remaining build:** seed places the authored techs (tier→ring band, discipline→
+spoke, with offsets) into `DomainStartupSeed` as knowledge-site coords; a small
+kernel structure holds them; per-culture claimed-tech count + max tier as
+telemetry; then the in-sim claim curve. Grants after.
