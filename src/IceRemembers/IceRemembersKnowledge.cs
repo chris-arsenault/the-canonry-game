@@ -32,40 +32,40 @@ public static class IceRemembersKnowledge
     public static IReadOnlyList<KnowledgeTech> Techs { get; } =
     [
         // Tier 0 - foundational, everyone learns these near home.
-        new("first_remembrance", "The First Remembrance", 0, KnowledgeDiscipline.Remembrance),
-        new("long_descent", "The Long Descent", 0, KnowledgeDiscipline.Deep),
-        new("working_the_floe", "Working the Floe", 0, KnowledgeDiscipline.Craft),
-        new("the_blooding", "The Blooding", 0, KnowledgeDiscipline.Hunt),
-        new("the_first_cant", "The First Cant", 0, KnowledgeDiscipline.Song),
-        new("reading_the_cold", "Reading the Cold", 0, KnowledgeDiscipline.Cold),
+        new("record_carving", "Record-Carving", 0, KnowledgeDiscipline.Remembrance),
+        new("breath_holding_dives", "Breath-Holding Dives", 0, KnowledgeDiscipline.Deep),
+        new("bone_tools", "Bone Tools", 0, KnowledgeDiscipline.Craft),
+        new("ice_fishing", "Ice Fishing", 0, KnowledgeDiscipline.Hunt),
+        new("call_signals", "Call-Signals", 0, KnowledgeDiscipline.Song),
+        new("windbreaks", "Windbreaks", 0, KnowledgeDiscipline.Cold),
 
         // Tier 1 - the heart's craft.
-        new("lineage_keeping", "Lineage-Keeping", 1, KnowledgeDiscipline.Remembrance),
-        new("the_deep_listening", "The Deep Listening", 1, KnowledgeDiscipline.Deep),
-        new("bone_and_baleen", "Bone and Baleen", 1, KnowledgeDiscipline.Craft),
-        new("the_pod_break", "The Pod-Break", 1, KnowledgeDiscipline.Hunt),
-        new("the_carried_name", "The Carried Name", 1, KnowledgeDiscipline.Song),
-        new("thaw_sense", "Thaw-Sense", 1, KnowledgeDiscipline.Cold),
+        new("rookery_schools", "Rookery Schools", 1, KnowledgeDiscipline.Remembrance),
+        new("deep_netting", "Deep Netting", 1, KnowledgeDiscipline.Deep),
+        new("ice_block_building", "Ice-Block Building", 1, KnowledgeDiscipline.Craft),
+        new("improved_ice_fishing", "Improved Ice Fishing", 1, KnowledgeDiscipline.Hunt),
+        new("echo_hunting", "Echo-Hunting", 1, KnowledgeDiscipline.Song),
+        new("aurora_light_spectacles", "Aurora Light Spectacles", 1, KnowledgeDiscipline.Cold),
 
         // Tier 2 - reaches the heart's edge.
-        new("the_canon_binding", "The Canon-Binding", 2, KnowledgeDiscipline.Remembrance),
-        new("descent_rites", "Descent Rites", 2, KnowledgeDiscipline.Deep),
-        new("ice_ship_shaping", "Ice-Ship Shaping", 2, KnowledgeDiscipline.Craft),
-        new("the_flensing_cant", "The Flensing Cant", 2, KnowledgeDiscipline.Hunt),
-        new("chorus_of_the_shelf", "Chorus of the Shelf", 2, KnowledgeDiscipline.Song),
-        new("frost_cartography", "Frost Cartography", 2, KnowledgeDiscipline.Cold),
+        new("lineage_charts", "Lineage Charts", 2, KnowledgeDiscipline.Remembrance),
+        new("trench_charting", "Trench Charting", 2, KnowledgeDiscipline.Deep),
+        new("sled_building", "Sled Building", 2, KnowledgeDiscipline.Craft),
+        new("krill_traps", "Krill Traps", 2, KnowledgeDiscipline.Hunt),
+        new("long_distance_calls", "Long-Distance Calls", 2, KnowledgeDiscipline.Song),
+        new("thaw_forecasting", "Thaw Forecasting", 2, KnowledgeDiscipline.Cold),
 
         // Tier 3 - out past the heart, earned by expansion.
-        new("the_unforgetting", "The Unforgetting", 3, KnowledgeDiscipline.Remembrance),
-        new("what_waits_below", "What Waits Below", 3, KnowledgeDiscipline.Deep),
-        new("the_living_hull", "The Living Hull", 3, KnowledgeDiscipline.Craft),
-        new("the_deep_war", "The Deep War", 3, KnowledgeDiscipline.Hunt),
-        new("the_sung_vigil", "The Sung Vigil", 3, KnowledgeDiscipline.Song),
-        new("command_of_the_freeze", "Command of the Freeze", 3, KnowledgeDiscipline.Cold),
+        new("stone_libraries", "Stone Libraries", 3, KnowledgeDiscipline.Remembrance),
+        new("pressure_diving", "Pressure Diving", 3, KnowledgeDiscipline.Deep),
+        new("ice_ship_hulls", "Ice-Ship Hulls", 3, KnowledgeDiscipline.Craft),
+        new("pack_hunting", "Pack Hunting", 3, KnowledgeDiscipline.Hunt),
+        new("pod_coordination", "Pod Coordination", 3, KnowledgeDiscipline.Song),
+        new("ice_cellars", "Ice Cellars", 3, KnowledgeDiscipline.Cold),
 
         // Tier 4 - the far rim; few reach these.
-        new("the_whole_remembrance", "The Whole Remembrance", 4, KnowledgeDiscipline.Remembrance),
-        new("the_god_touched_depth", "The God-Touched Depth", 4, KnowledgeDiscipline.Deep),
-        new("the_unmelting_work", "The Unmelting Work", 4, KnowledgeDiscipline.Craft),
+        new("abyssal_mapping", "Abyssal Mapping", 4, KnowledgeDiscipline.Deep),
+        new("reinforced_hulls", "Reinforced Hulls", 4, KnowledgeDiscipline.Craft),
+        new("storm_prediction", "Storm Prediction", 4, KnowledgeDiscipline.Cold),
     ];
 }
