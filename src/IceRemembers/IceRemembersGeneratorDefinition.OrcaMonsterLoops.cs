@@ -24,7 +24,7 @@ public static partial class IceRemembersGeneratorDefinition
         [
             Required("$scout", K.Orca, "scout", "$target", "$target"),
             Required("$skiff", K.Transport, "scout", "$target", "$target"),
-            Required("$shoal", K.PointOfInterest, "shoal", "$target", "$target"),
+            Required("$shoal", K.PointOfInterest, "shoal", "$target", "$target", frontier: true),
         ],
         Relationships =
         [

@@ -61,7 +61,9 @@ public static partial class IceRemembersGeneratorDefinition
         Target = TargetSubtypeWithOutgoingAndWithoutIncoming(K.Settlement, "sanctuary", Rel.ControlledBy, Rel.FoundedFrom),
         Produces =
         [
-            Required("$colony", K.Settlement, "colony", "$target", "$target"),
+            // The colony is the outward settler - it pushes the culture's
+            // idea-frontier. Its order and charter stay with it (near the colony).
+            Required("$colony", K.Settlement, "colony", "$target", "$target", frontier: true),
             Required("$order", K.Faction, "order", "$colony", "$target"),
             Required("$charter", K.Transport, "trade", "$colony", "$target"),
         ],
@@ -102,7 +104,7 @@ public static partial class IceRemembersGeneratorDefinition
         ],
         Produces =
         [
-            Required("$reefhold", K.Settlement, "reefhold", "$target", "$port"),
+            Required("$reefhold", K.Settlement, "reefhold", "$target", "$port", frontier: true),
             Required("$instrument", K.Artifact, "instrument", "$reefhold", "$port"),
             Required("$broker", K.Penguin, "broker", "$reefhold", "$port"),
         ],
@@ -197,7 +199,7 @@ public static partial class IceRemembersGeneratorDefinition
             PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
             PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
             PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
-            SemanticPlacement = SemanticPlacement.Frontier,
+            SemanticPlacement = SemanticPlacement.Near,
             SemanticPlacementPreferredTerrains = semanticProfile.PreferredTerrains,
             SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,

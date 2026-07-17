@@ -253,7 +253,7 @@ public static partial class IceRemembersGeneratorDefinition
         Target = TargetWithOutgoingAndWithoutOutgoing(K.Penguin, Rel.Holds, Rel.HomeBase),
         Produces =
         [
-            Required("$rookery", K.Settlement, "rookery", "$target", "$target"),
+            Required("$rookery", K.Settlement, "rookery", "$target", "$target", frontier: true),
             Required("$seal", K.Artifact, "seal", "$rookery", "$target"),
             Optional("$cell", K.Faction, "cell", "$target", "$target", chance: 0.45f),
         ],
@@ -328,7 +328,7 @@ public static partial class IceRemembersGeneratorDefinition
         Target = TargetWithIncomingAndWithoutOutgoing(K.Transport, Rel.Holds, Rel.NativeTo),
         Produces =
         [
-            Required("$harbor", K.Settlement, "harbor", "$target", "$target"),
+            Required("$harbor", K.Settlement, "harbor", "$target", "$target", frontier: true),
             Required("$broker", K.Penguin, "broker", "$harbor", "$target"),
             Optional("$instrument", K.Artifact, "instrument", "$harbor", "$target", chance: 0.45f),
         ],
@@ -528,7 +528,7 @@ public static partial class IceRemembersGeneratorDefinition
         Target = TargetWithOutgoingAndWithoutIncoming(K.Transport, Rel.NativeTo, Rel.Memorializes),
         Produces =
         [
-            Required("$peak", K.PointOfInterest, "peak", "$target", "$target"),
+            Required("$peak", K.PointOfInterest, "peak", "$target", "$target", frontier: true),
         ],
         Relationships =
         [
@@ -895,13 +895,19 @@ public static partial class IceRemembersGeneratorDefinition
         new() { OnKind = kind },
     ];
 
+    // frontier: true marks a produced entity as an outward expansion anchor - it
+    // lands at the leading edge of its culture on the idea-plane (a daughter that
+    // spreads the culture) rather than near its parent. Reserve it for entities
+    // whose fiction is reaching new ground (colonies, newly founded sites), not
+    // retinue or entities anchored to a specific target.
     private static SemanticProducedEntity Required(
         string @ref,
         EntityKind kind,
         string subtype,
         string placementRef,
         string cultureRef,
-        bool on = false)
+        bool on = false,
+        bool frontier = false)
     {
         var physicalProfile = IceRemembersPlacementTerrainProfiles.Physical(kind, subtype);
         var semanticProfile = IceRemembersPlacementTerrainProfiles.Semantic(kind, subtype);
@@ -915,7 +921,7 @@ public static partial class IceRemembersGeneratorDefinition
             PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
             PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
             PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
-            SemanticPlacement = SemanticPlacement.Frontier,
+            SemanticPlacement = frontier ? SemanticPlacement.Frontier : SemanticPlacement.Near,
             SemanticPlacementPreferredTerrains = semanticProfile.PreferredTerrains,
             SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
@@ -947,7 +953,7 @@ public static partial class IceRemembersGeneratorDefinition
             PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
             PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
             PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
-            SemanticPlacement = SemanticPlacement.Frontier,
+            SemanticPlacement = SemanticPlacement.Near,
             SemanticPlacementPreferredTerrains = semanticProfile.PreferredTerrains,
             SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
@@ -971,7 +977,7 @@ public static partial class IceRemembersGeneratorDefinition
             PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
             PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
             PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
-            SemanticPlacement = SemanticPlacement.Frontier,
+            SemanticPlacement = SemanticPlacement.Near,
             SemanticPlacementPreferredTerrains = semanticProfile.PreferredTerrains,
             SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
@@ -995,7 +1001,7 @@ public static partial class IceRemembersGeneratorDefinition
             PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
             PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
             PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
-            SemanticPlacement = SemanticPlacement.Frontier,
+            SemanticPlacement = SemanticPlacement.Near,
             SemanticPlacementPreferredTerrains = semanticProfile.PreferredTerrains,
             SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,

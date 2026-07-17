@@ -100,21 +100,33 @@ Check EVERY proposal against all of these; each has been forgotten at least once
 
 ## Current state (keep this current)
 
-**Frontier placement works — this is the expansion engine.** A new
-`SemanticPlacement.Frontier` (kernel `GeneratorPlacementCodes.Frontier`) searches
-the produced entity's culture raw-influence border and places at the outermost
-free, known, terrain-allowed cell just beyond it, falling back to a near-origin
-search. Generator-produced entities now default to it on the semantic plane
-(`Required`/`Optional` and the culture helpers). Effect: entities land at the
-culture's leading edge, become new anchors, and the semantic frontier climbs
-from the r18 heart to **ring 40 (the rim)** by ~tick 8000 and fills in (MC
-`frontier-place-1`), vs a plateau at ring 26 before. No mass-echo, no special
-scholar generator — both removed. `make ci` green; `map_degenerate=0`; perf fine.
+**Frontier placement works, and is applied as a deliberate balance — not a
+blanket.** A new `SemanticPlacement.Frontier` (kernel
+`GeneratorPlacementCodes.Frontier`) searches the produced entity's culture
+raw-influence border and places at the outermost free, known, terrain-allowed
+cell just beyond it, falling back to a near-origin search. `Required`/
+`RequiredWakeSingers` take a `frontier: true` flag; it is set ONLY on **founded
+static place-anchors that reach new ground** — colony, newsite (new current),
+reefhold, harbor, peak, shoal, rookery. Everything else stays home: retinue
+(orders, choirs, witnesses, rites, seals…) near its parent, target-anchored and
+restoration entities in place, conflict generators (monsters, wars, intrusions)
+on their own placement. Mobile productions (e.g. the towed citadel) are not
+frontier — a mover would just roam back.
 
-Still TODO: physical-plane frontier placement (only semantic is flipped so far —
-physical placement stays Near to avoid scattering physical bundles; revisit),
-pace tuning (rim reached by tick 8000 may be too fast once tiers matter), then
-the authored tech set / claim / telemetry (tasks 39–41).
+Result (MC `frontier-balanced-2`, 20k ticks): the semantic frontier climbs from
+the r18 heart to **ring 29 and is still climbing** (steady, not the ring-26
+plateau, not the rush-to-rim of the earlier blanket version), with **~79% of
+living entities in the heart and ~21% at the frontier** — a real home/expansion
+balance. `make ci` green.
+
+Lesson locked in memory (`feedback_no_opposite_extreme`): the fix for "not all X
+Near" was NOT "all X Frontier" — it was the *distribution* above. Don't swing
+to the opposite pole.
+
+Still TODO: physical-plane frontier placement (only semantic is tuned so far;
+physical stays Near to avoid scattering physical bundles — do it carefully),
+pace/mix tuning (which anchors and how many is a knob), then the authored tech
+set / claim / telemetry (tasks 39–41).
 
 ### History
 
