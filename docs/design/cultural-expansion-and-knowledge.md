@@ -207,3 +207,23 @@ site when its semantic mass over that hex crosses the band (pure coverage,
 co-holdable, no stockpile). Tier = the site's ring, discipline = its terrain.
 Claiming stays sustained because outer sites are reached across the whole run.
 Telemetry = per-culture claimed-site count + max tier. Grants come after.
+
+**Validated (DuckDB preview on frontier-balanced-2, synthetic 196-site set at 4%
+density):** claiming is sustained over the run (culture 3: 4→4→5→10; culture 2:
+10→16), not front-loaded like (tier×terrain); claim count scales with site
+density (tunable) and max tier scales with frontier reach; a culture claims the
+sites its footprint covers. The model works and fixes both the cap and the
+front-loading. Sites MUST be data (named coords) — outer sites live at fog
+coordinates that don't exist as cells until the frontier opens them.
+
+**Build plan (lightest real version):** seed generates a knowledge-site catalog
+(named coords across the disk, density a knob), held in a small kernel structure,
+with per-culture claimed-site count + max tier exported as telemetry. Claim =
+semantic mass ≥ band at the site's cell. No grants yet.
+
+**Open fork (authoring):** are site names/positions **procedural** (generated
+across the disk at a tuned density — unbounded, emergent, what the "unbounded"
+goal wants) or **hand-authored** (a curated list of meaningful named techs at
+chosen tier/terrain roles — more designed, less free)? Likely procedural
+placement + a generated name pool now, with room to pin specific authored
+"landmark" techs later. Needs a decision before building the catalog.
