@@ -880,49 +880,6 @@ public sealed class GameplayBoundaryArchitectureTests
     }
 
     [Fact]
-    public void Source_DoesNotExposeRemovedPressureSystemVocabulary()
-    {
-        var root = FindRepoRoot();
-        var source = ReadAllSourcesUnder(root, "src");
-        var forbiddenFragments = new[]
-        {
-            "Pressure",
-            "pressure",
-            "Pressures",
-            "PressureRange",
-            "AddPressure",
-            "PressureChangedKernelEvent",
-            "KernelProgramCodes.Pressures",
-            "PressureSourceCodeId",
-        };
-        var violations = ContainedFragments(source, forbiddenFragments);
-
-        Assert.Empty(violations);
-    }
-
-    [Fact]
-    public void Source_DoesNotExposeRemovedAttributeConfigOrGeneratorAttributeGates()
-    {
-        var root = FindRepoRoot();
-        var source = ReadAllSourcesUnder(root, "src");
-        var forbiddenFragments = new[]
-        {
-            "AttributeConfig",
-            "StandardNeed",
-            "StandardNeedScale",
-            "TriggerDirection",
-            "GeneratorTriggerDirectionCodes",
-            "GeneratorProgramTriggerDirection",
-            "GeneratorAttributeConditionRule",
-            "SemanticQueryAttributeCondition",
-            "DefinitionQueryAttributeCondition",
-        };
-        var violations = ContainedFragments(source, forbiddenFragments);
-
-        Assert.Empty(violations);
-    }
-
-    [Fact]
     public void HigherLevelEffectCallers_UseSharedKernelEffectExecutorForWorldMutations()
     {
         var root = FindRepoRoot();

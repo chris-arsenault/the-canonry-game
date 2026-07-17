@@ -153,6 +153,19 @@ analysis:
 
 ## Testing
 
+A test must earn its place. Write a test only to (1) encode a real, durable
+contract — behavior, an invariant, a schema/graph rule, an architecture boundary
+— or (2) as a temporary scaffold that drives a cleanup or refactor and is
+DELETED once that work lands. Do not add a test for every little correction.
+
+Never add brittle guards that ban a word or symbol name across the source to
+"lock in" a removal or refactor. They outlive their purpose and punish unrelated
+code (a source-wide ban on the word "pressure" once broke an unrelated diving
+technology). When a migration is done, delete its guard tests instead of keeping
+them forever. Prefer deleting a low-value, obsolete, or content-mirroring test
+over updating it — tests are a cleanup mechanism, not a permanent record of every
+past change.
+
 Use `make ci` as the final verification pass.
 
 Do not run tests in parallel in this repo.
