@@ -20,7 +20,7 @@ internal static class PenguinEntity
         Kind = K.Penguin,
         Category = EntityCategory.Agency,
         Tier = EntityTier.Life,
-        Subtypes = Subtypes("warden", "broker", "witness", "exile"),
+        Subtypes = Subtypes("warden", "broker", "witness", "exile", "scholar"),
         HealthAttribute = Attr.Vitality,
         HealthDisplayName = "Vitality",
         PrimaryPlane = PrimaryPlane.Physical,
@@ -69,6 +69,7 @@ internal static class PenguinEntity
                 SubtypeRule("broker", Semantic(Terrain.Breakaway, Terrain.OpenField, Terrain.Witness)),
                 SubtypeRule("warden", Semantic(Terrain.Yoke, Terrain.Lineage, Terrain.TabooRidge)),
                 SubtypeRule("exile", Semantic(Terrain.Severance, Terrain.Breakaway, Terrain.Silence)),
+                SubtypeRule("scholar", Semantic(Terrain.BeaconSpire, Terrain.Lineage, Terrain.OpenField)),
             ]),
     };
 }

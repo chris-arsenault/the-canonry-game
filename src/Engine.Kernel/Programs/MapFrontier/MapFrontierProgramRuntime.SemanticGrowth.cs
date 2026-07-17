@@ -4,6 +4,12 @@ using Engine.Constants;
 
 internal sealed partial class MapFrontierProgramRuntime
 {
+    // Fraction of the frontier threshold echoed into each newly opened semantic
+    // cell (below 1 so the rim still needs a little labour to become a source -
+    // no instant cascade to the edge).
+    private const float SemanticFrontierSeedFraction = 0.72f;
+
+
     /// <summary>
     /// Idea-space grows where thought concentrates. Each tick, every cell a
     /// culture holds with idea-mass at or above the threshold opens its unknown
@@ -13,7 +19,7 @@ internal sealed partial class MapFrontierProgramRuntime
     /// culture and entities reach it. Bounded by the semantic max radius and the
     /// shared per-pulse candidate budget.
     /// </summary>
-    private void GrowSemanticFrontier(Simulation simulation)
+    private void GrowSemanticFrontier(Simulation simulation, int tick)
     {
         var world = simulation.World;
         var count = 0;
@@ -22,6 +28,12 @@ internal sealed partial class MapFrontierProgramRuntime
             count = CollectSemanticCandidates(world, cultureId, count);
         }
 
+        // A newly opened cell inherits a head-start of the culture that pressed
+        // it open - a fraction of the frontier threshold. Without this the fresh
+        // rim decays from nothing faster than heart-bound labour can feed it, and
+        // the frontier plateaus a few rings out; with it, the culture carries its
+        // own edge outward and idea-space keeps climbing toward the higher tiers.
+        var seedMass = SemanticFrontierSeedFraction * Data.SemanticFrontierMassThreshold;
         for (var i = 0; i < count; i++)
         {
             simulation.CreateCell(
@@ -32,6 +44,13 @@ internal sealed partial class MapFrontierProgramRuntime
                 _candidateOwner[i],
                 _candidateSuperregion[i],
                 _candidateContinent[i]);
+            simulation.ModifyCellCultureInfluenceRaw(
+                _candidateCulture[i],
+                PlaneCodes.Semantic,
+                _candidateQ[i],
+                _candidateR[i],
+                seedMass,
+                tick);
             State.TotalSemanticOpened++;
         }
     }
@@ -47,13 +66,13 @@ internal sealed partial class MapFrontierProgramRuntime
                 continue;
             }
 
-            count = CollectSemanticNeighbors(world, q, r, count);
+            count = CollectSemanticNeighbors(world, cultureId, q, r, count);
         }
 
         return count;
     }
 
-    private int CollectSemanticNeighbors(WorldState world, int q, int r, int count)
+    private int CollectSemanticNeighbors(WorldState world, int cultureId, int q, int r, int count)
     {
         for (var direction = 0; direction < 6 && count < _candidateQ.Length; direction++)
         {
@@ -71,6 +90,7 @@ internal sealed partial class MapFrontierProgramRuntime
             _candidateSuperregion[count] = world.CellSuperregionId(PlaneCodes.Semantic, q, r);
             _candidateContinent[count] = world.CellContinentId(PlaneCodes.Semantic, q, r);
             _candidateOwner[count] = 0;
+            _candidateCulture[count] = cultureId;
             count++;
         }
 

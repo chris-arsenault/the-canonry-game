@@ -135,12 +135,39 @@ public static partial class IceRemembersDefinition
         SustainSourceLifecycleVerb(sourceKind, planeCode),
     ];
 
+    // The expand-vs-fortress formula differs by plane. Physical fortresses:
+    // culture holds territory and its growth is deliberately slow. Semantic
+    // expands: knowledge has to climb outward through tiers toward the rim, so
+    // idea-labor leans toward pushing the connected border rather than
+    // reinforcing home. Same worker cohorts, different posture per plane.
+    private static bool PlaneExpands(int planeCode) => planeCode == PlaneCodes.Semantic;
+
+    private static float FortressWeight(EntityKind sourceKind, int planeCode)
+    {
+        if (PlaneExpands(planeCode))
+        {
+            return sourceKind == K.Faction ? 0.8f : 0.9f;
+        }
+
+        return sourceKind == K.Faction ? 1.1f : 1.25f;
+    }
+
+    private static float ExpandWeight(EntityKind sourceKind, int planeCode)
+    {
+        if (PlaneExpands(planeCode))
+        {
+            return sourceKind == K.Faction ? 2.0f : 1.6f;
+        }
+
+        return sourceKind == K.Faction ? 1.3f : 0.95f;
+    }
+
     private static MinorActorVerbConfig ReinforceHomeMassVerb(EntityKind sourceKind, int planeCode) =>
         CultureVerb(sourceKind, planeCode, "reinforce_home_mass", "Reinforce Home Mass",
             MinorActorVerbTargetingCodes.ReinforceHomeMass,
             radius: sourceKind == K.Faction ? 5 : 4,
             sampleCount: 96,
-            weight: sourceKind == K.Faction ? 1.1f : 1.25f,
+            weight: FortressWeight(sourceKind, planeCode),
             workDeltaMultiplier: sourceKind == K.Settlement ? 1.2f : 1f);
 
     private static MinorActorVerbConfig ExtendConnectedBorderVerb(EntityKind sourceKind, int planeCode) =>
@@ -148,7 +175,7 @@ public static partial class IceRemembersDefinition
             MinorActorVerbTargetingCodes.ExtendConnectedBorder,
             radius: sourceKind == K.Faction ? 6 : 5,
             sampleCount: 128,
-            weight: sourceKind == K.Faction ? 1.3f : 0.95f,
+            weight: ExpandWeight(sourceKind, planeCode),
             workDeltaMultiplier: 0.85f);
 
     private static MinorActorVerbConfig BridgeGapVerb(EntityKind sourceKind, int planeCode) =>

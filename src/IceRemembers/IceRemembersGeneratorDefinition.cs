@@ -82,6 +82,7 @@ public static partial class IceRemembersGeneratorDefinition
         PodsHuntTheConvoys(),
         TheDreadSongBreaksTheWatch(),
         WardensTakeUpTheOldForms(),
+        FrontierScholarsSettleTheReaches(),
     ];
 
     private static string L(Rel relationship) => relationship.ToDomainName();
