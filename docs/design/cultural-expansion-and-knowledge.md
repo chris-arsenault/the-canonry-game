@@ -186,6 +186,24 @@ system, and hacked a kernel mass-echo. Means got confused for the end.
   (expand weight alone insufficient; sources are heart-bound).
 - `knowledge-seed-1` — with the (since-removed) mass-echo, frontier climbed to
   ring 33. Growth worked but via the shortcut, not the real mechanism.
-- `frontier-place-1` — with frontier placement (the real mechanism, no mass-echo):
-  frontier reaches ring 40 (rim) by ~tick 8000 and fills (63→284→412→263→383→222
-  new cells/4k), map_degenerate=0. This is the keeper.
+- `frontier-place-1` — blanket frontier placement (all produced entities): rim
+  (ring 40) by ~tick 8000. Too aggressive — replaced by the balanced version.
+- `frontier-balanced-2` — balanced (7 founded place-anchors frontier, rest home):
+  ring 29 and still climbing; ~79% of entities in the heart, ~21% at the
+  frontier. The keeper for expansion.
+- `frontier-balanced-2` (tech analysis, DuckDB only) — tested tech = (tier band ×
+  terrain), claimed at mass ≥ 30: the claim LOOP works (cultures accumulate
+  techs, diverge 30/24/24/8, reach tiers 4–6), but the catalog caps at ~24–30
+  (bounded by tiers×terrains) and is ~80% front-loaded by tick 5000. Confirms the
+  freedom cap → moving to discrete named sites.
+
+## Tech representation: DECISION (named hexes)
+
+`(tier × terrain)` is dropped as the catalog (too small, front-loaded). A **tech
+is a named hex** seeded across the semantic disk at authored (tier, terrain)
+spots, most in fog beyond the frontier. Authored set = a plain growable list of
+named techs (adding a tech = adding a site → unbounded). A culture **claims** a
+site when its semantic mass over that hex crosses the band (pure coverage,
+co-holdable, no stockpile). Tier = the site's ring, discipline = its terrain.
+Claiming stays sustained because outer sites are reached across the whole run.
+Telemetry = per-culture claimed-site count + max tier. Grants come after.
