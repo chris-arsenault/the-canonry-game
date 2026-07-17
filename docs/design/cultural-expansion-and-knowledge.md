@@ -32,6 +32,20 @@ The frontier advances because cultures **found new anchors outward**, not
 because mass magically spreads. Reaching a higher tier (further ring, see below)
 means the anchor network has been pushed out to that ring.
 
+### The mechanism (decided — keep it this simple)
+
+Expansion is just this: **generators — of all types — place their entities in
+frontier space, on both planes.** Generators are the world's entity-creation
+engine and fire constantly; if the entities they create land at the *edge* of
+the culture's reach instead of clustering in the heart, the culture's anchor
+network (and the frontier) marches outward on its own. No carrier units, no
+special "founding" trigger, no kernel mass-echo. The only piece that has to
+work is a **frontier-space placement** that reliably drops a produced entity at
+the edge of the culture's reach — which today it does not, because generator
+placement searches coverage cells or fixed radius bands, and the culture
+frontier is a mass field (the culture's raw-influence border). Making that
+placement real, and having entity-creating generators use it, is the whole job.
+
 ### Mapping to this world
 
 - **Anchors = static entities**, per plane. On the semantic plane the static
@@ -86,6 +100,24 @@ Check EVERY proposal against all of these; each has been forgotten at least once
 
 ## Current state (keep this current)
 
+**Frontier placement works — this is the expansion engine.** A new
+`SemanticPlacement.Frontier` (kernel `GeneratorPlacementCodes.Frontier`) searches
+the produced entity's culture raw-influence border and places at the outermost
+free, known, terrain-allowed cell just beyond it, falling back to a near-origin
+search. Generator-produced entities now default to it on the semantic plane
+(`Required`/`Optional` and the culture helpers). Effect: entities land at the
+culture's leading edge, become new anchors, and the semantic frontier climbs
+from the r18 heart to **ring 40 (the rim)** by ~tick 8000 and fills in (MC
+`frontier-place-1`), vs a plateau at ring 26 before. No mass-echo, no special
+scholar generator — both removed. `make ci` green; `map_degenerate=0`; perf fine.
+
+Still TODO: physical-plane frontier placement (only semantic is flipped so far —
+physical placement stays Near to avoid scattering physical bundles; revisit),
+pace tuning (rim reached by tick 8000 may be too fast once tiers matter), then
+the authored tech set / claim / telemetry (tasks 39–41).
+
+### History
+
 Branch `progression-lattice`. Semantic-plane reframe (neutral axes + growing
 map) is merged and done. On the expansion/knowledge system so far:
 
@@ -114,41 +146,34 @@ culture's characteristic kinds at the frontier). Instead I fixated on the
 symptom ("make the frontier ring number go up"), fought the generator placement
 system, and hacked a kernel mass-echo. Means got confused for the end.
 
-## Open design questions (resolve before building more)
+## Decided (no more debate)
 
-1. **What founds a new anchor?** Ambient generator, entity gambit, or minor-actor
-   labor crossing a threshold? Likely generator (heroic, named) + supporting
-   ambient labor.
-2. **Do mobile entities settle, or do static anchors spawn daughters?** Civ says
-   a mobile settler founds a new static city. Here: do orcas/factions/abilities
-   carry out and found, or does an existing anchor bud a daughter anchor?
-3. **What is an anchor's footprint?** A bounded emission radius (like a city
-   border) so anchors don't over/under-emit. Do we need a new emission term for
-   this, distinct from the current reinforce/extend labor?
-4. **New cultural-mass-emission mechanics?** Probably yes: a first-class
-   "found new anchor at the frontier" behavior (the settler), general across
-   kinds; and possibly a per-anchor bounded footprint. The current
-   reinforce/extend minor-actor labor covers "hold + creep," not "settle a new
-   anchor."
-5. **Keep or replace the mass-echo?** Either bound it (model a city's finite
-   border) and keep founding for reach beyond, or remove it and let founding do
-   all the work.
-6. **The generator placement gap.** To found anchors at the true frontier we
-   likely need a new placement mode: "place at the culture's semantic *mass*
-   frontier" (search the mass-field border), since coverage/radius placement
-   can't hit it. This is the one genuinely new kernel piece.
+- Expansion = generators of all types place entities in frontier space, both
+  planes. No carriers, no founding-trigger machinery, no mass-echo.
+- Build a real **frontier-space placement** that searches the culture's
+  raw-influence border (the mass field), on both planes, and place there.
+- Have entity-creating generators use it (broadly — via the per-kind culture-
+  placement default and/or generator configs), so all types spread outward.
+- Rip out the semantic frontier mass-echo. Drop the special scholar generator
+  (the frontier placement is general; no penguin-specific mechanism).
 
 ## Next steps
 
-- Resolve the open questions above with the user (reanalysis, not code).
-- Then: implement general anchor-founding as the real expansion engine; revisit
-  the mass-echo; generalize/replace the scholar generator; only then layer the
-  authored tech set, claim, and telemetry (tasks 39–41 in the tracker).
+1. Remove the mass-echo (`MapFrontierProgramRuntime.SemanticGrowth.cs`).
+2. Make `CultureFrontier` placement search the culture's raw-influence border
+   (both planes); today it uses coverage cells and finds nothing for culture
+   mass.
+3. Apply frontier placement broadly (per-kind default in `CulturePlacementFor`
+   and/or generator configs); drop `frontier_scholars_settle_the_reaches`.
+4. MC: frontier climbs because generator-placed entities land at the edge.
+5. Then layer the authored tech set, claim, and telemetry (tasks 39–41).
 
 ## MC evidence log
 
 - `semantic-expand-20k` — frontier plateaus at ring 26, new cells die to 4/bucket
   (expand weight alone insufficient; sources are heart-bound).
-- `knowledge-seed-1` — with mass-echo, frontier climbs to ring 33 and keeps
-  climbing (13→92→151→119→118→87 new cells/4k). Growth works; mechanism is the
-  shortcut above.
+- `knowledge-seed-1` — with the (since-removed) mass-echo, frontier climbed to
+  ring 33. Growth worked but via the shortcut, not the real mechanism.
+- `frontier-place-1` — with frontier placement (the real mechanism, no mass-echo):
+  frontier reaches ring 40 (rim) by ~tick 8000 and fills (63→284→412→263→383→222
+  new cells/4k), map_degenerate=0. This is the keeper.

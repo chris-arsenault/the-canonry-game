@@ -241,6 +241,7 @@ public static class GeneratorPlacementCodes
 {
     public const int Area = 1;
     public const int Locality = 2;
+    public const int Frontier = 3;
 }
 
 public static class GeneratorCultureMatchCodes

@@ -684,6 +684,10 @@ public static partial class DomainCompiler
             GeneratorProgramPlacement.Locality,
             GeneratorProgramConstants.DefaultPlacementMinRadius,
             GeneratorProgramConstants.UnboundedPlacementMaxRadius),
+        SemanticPlacement.Frontier => (
+            GeneratorProgramPlacement.Frontier,
+            GeneratorProgramConstants.DefaultPlacementMinRadius,
+            GeneratorProgramConstants.UnboundedPlacementMaxRadius),
         _ => throw new ArgumentOutOfRangeException(nameof(placement), placement, null),
     };
 

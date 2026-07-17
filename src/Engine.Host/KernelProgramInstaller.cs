@@ -1029,6 +1029,7 @@ internal static partial class KernelProgramInstaller
     {
         GeneratorProgramPlacement.Area => GeneratorPlacementCodes.Area,
         GeneratorProgramPlacement.Locality => GeneratorPlacementCodes.Locality,
+        GeneratorProgramPlacement.Frontier => GeneratorPlacementCodes.Frontier,
         _ => throw new ArgumentOutOfRangeException(nameof(placement), placement, null),
     };
 

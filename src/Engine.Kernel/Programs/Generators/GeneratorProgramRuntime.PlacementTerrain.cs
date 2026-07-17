@@ -25,6 +25,84 @@ internal sealed partial class GeneratorProgramRuntime
     private const float PlacementCultureDominantRawInfluence = WorldState.CultureEntrenchedRawMass;
     private const float PlacementCultureConnectedBonusRawInfluence = WorldState.CultureNexusRawMass;
 
+    private static readonly int[] PlacementFrontierNeighborDQ = [1, 1, 0, -1, -1, 0];
+    private static readonly int[] PlacementFrontierNeighborDR = [0, -1, -1, 0, 1, 1];
+
+    // Places at the leading edge of the produced entity's culture: a known, free,
+    // terrain-allowed cell adjacent to ground the culture holds (own raw mass at
+    // or above trace) but does not yet hold itself, preferring the outermost such
+    // cell. The entity becomes a new anchor there and its emission pushes the
+    // frontier out - this is how a culture expands across a plane. Works on both
+    // planes; iterates the culture's raw-influence cells (bounded).
+    private bool FindTerrainAwareHexAtCultureFrontier(
+        Simulation simulation,
+        int planeCode,
+        int producedSlot,
+        int movementProfileId,
+        int producedCultureId,
+        out int q,
+        out int r)
+    {
+        q = 0;
+        r = 0;
+        if (producedCultureId <= 0)
+        {
+            return false;
+        }
+
+        var world = simulation.World;
+        var found = false;
+        var bestRing = -1;
+        var selectedQ = 0;
+        var selectedR = 0;
+        var cursor = world.RawCultureInfluenceCellsOf(producedCultureId, planeCode);
+        while (world.MoveNextRawCultureInfluenceCell(ref cursor, out var cq, out var cr, out var raw))
+        {
+            if (raw < WorldState.CultureTraceRawMass)
+            {
+                continue;
+            }
+
+            for (var direction = 0; direction < 6; direction++)
+            {
+                var nq = cq + PlacementFrontierNeighborDQ[direction];
+                var nr = cr + PlacementFrontierNeighborDR[direction];
+                var ring = (global::System.Math.Abs(nq) + global::System.Math.Abs(nr) + global::System.Math.Abs(nq + nr)) / 2;
+                if (ring <= bestRing ||
+                    !FrontierPlacementCellAllowed(simulation, planeCode, producedSlot, movementProfileId, producedCultureId, nq, nr))
+                {
+                    continue;
+                }
+
+                bestRing = ring;
+                selectedQ = nq;
+                selectedR = nr;
+                found = true;
+            }
+        }
+
+        q = selectedQ;
+        r = selectedR;
+        return found;
+    }
+
+    private bool FrontierPlacementCellAllowed(
+        Simulation simulation,
+        int planeCode,
+        int producedSlot,
+        int movementProfileId,
+        int producedCultureId,
+        int q,
+        int r)
+    {
+        var world = simulation.World;
+        return world.CellIsKnown(planeCode, q, r) &&
+            world.GetCellCultureInfluenceRaw(producedCultureId, planeCode, q, r) < WorldState.CultureTraceRawMass &&
+            PlacementCellIsFree(world, planeCode, q, r) &&
+            PlacementCellAllowsCulture(simulation, planeCode, producedSlot, producedCultureId, q, r) &&
+            PlacementTerrainIsAllowed(simulation, planeCode, producedSlot, movementProfileId, q, r);
+    }
+
     private bool FindTerrainAwareHex(
         Simulation simulation,
         int planeCode,

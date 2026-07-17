@@ -123,6 +123,7 @@ public enum GeneratorProgramPlacement
 {
     Area,
     Locality,
+    Frontier,
 }
 
 public enum GeneratorProgramCultureMatch

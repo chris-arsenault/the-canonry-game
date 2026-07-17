@@ -62,6 +62,13 @@ internal sealed partial class GeneratorProgramRuntime
                 out r);
         }
 
+        if (placementCode == GeneratorPlacementCodes.Frontier)
+        {
+            return ResolveFrontierPlacement(
+                simulation, planeCode, producedSlot, movementProfileId,
+                producedCultureId, originQ, originR, out q, out r);
+        }
+
         if (placementCode == GeneratorPlacementCodes.Area)
         {
             return FindTerrainAwareHex(
@@ -81,6 +88,47 @@ internal sealed partial class GeneratorProgramRuntime
         q = 0;
         r = 0;
         return false;
+    }
+
+    // Place at the leading edge of the produced entity's culture so the entity
+    // becomes a new anchor that pushes the frontier outward. Fall back to a
+    // near-origin search when the culture has no reachable edge (e.g. no mass
+    // yet), so the produced entity still lands somewhere.
+    private bool ResolveFrontierPlacement(
+        Simulation simulation,
+        int planeCode,
+        int producedSlot,
+        int movementProfileId,
+        int producedCultureId,
+        int originQ,
+        int originR,
+        out int q,
+        out int r)
+    {
+        if (FindTerrainAwareHexAtCultureFrontier(
+                simulation,
+                planeCode,
+                producedSlot,
+                movementProfileId,
+                producedCultureId,
+                out q,
+                out r))
+        {
+            return true;
+        }
+
+        return FindTerrainAwareHex(
+            simulation,
+            planeCode,
+            producedSlot,
+            movementProfileId,
+            producedCultureId,
+            originQ,
+            originR,
+            GeneratorProgramConstants.DefaultPlacementMinRadius,
+            GeneratorProgramConstants.DefaultPlacementMaxRadius,
+            out q,
+            out r);
     }
 
     private bool ResolveProducedPlacement(

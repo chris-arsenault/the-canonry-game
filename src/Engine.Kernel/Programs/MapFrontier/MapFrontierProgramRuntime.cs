@@ -22,7 +22,6 @@ internal sealed partial class MapFrontierProgramRuntime :
     private readonly int[] _candidateSuperregion;
     private readonly int[] _candidateContinent;
     private readonly int[] _candidateOwner;
-    private readonly int[] _candidateCulture;
 
     public MapFrontierProgramRuntime(SimulationOptions options)
     {
@@ -35,7 +34,6 @@ internal sealed partial class MapFrontierProgramRuntime :
         _candidateSuperregion = new int[budget];
         _candidateContinent = new int[budget];
         _candidateOwner = new int[budget];
-        _candidateCulture = new int[budget];
     }
 
     public MapFrontierProgramData Data { get; }
@@ -59,7 +57,7 @@ internal sealed partial class MapFrontierProgramRuntime :
         // Idea-space grows every tick where culture presses it - no age gate.
         if (Data.SemanticOpenTerrainId != 0)
         {
-            GrowSemanticFrontier(simulation, tick);
+            GrowSemanticFrontier(simulation);
         }
     }
 

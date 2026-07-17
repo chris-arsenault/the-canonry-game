@@ -515,7 +515,7 @@ public static partial class IceRemembersGeneratorDefinition
             PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
             PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
             PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
-            SemanticPlacement = SemanticPlacement.Near,
+            SemanticPlacement = SemanticPlacement.Frontier,
             SemanticPlacementPreferredTerrains = semanticProfile.PreferredTerrains,
             SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,

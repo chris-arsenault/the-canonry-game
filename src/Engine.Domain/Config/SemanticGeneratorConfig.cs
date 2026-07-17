@@ -332,4 +332,13 @@ public enum SemanticPlacement
     Near,
     Across,
     InRegionLocality,
+
+    /// <summary>
+    /// Place at the leading edge of the produced entity's culture on this plane -
+    /// a known, free cell just beyond the culture's raw-influence border,
+    /// preferring the outermost. This is how the culture expands: generator-made
+    /// entities land at the frontier and become new anchors that push it further
+    /// out. Falls back to a near-origin search when no frontier cell is available.
+    /// </summary>
+    Frontier,
 }

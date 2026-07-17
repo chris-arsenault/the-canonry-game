@@ -82,7 +82,6 @@ public static partial class IceRemembersGeneratorDefinition
         PodsHuntTheConvoys(),
         TheDreadSongBreaksTheWatch(),
         WardensTakeUpTheOldForms(),
-        FrontierScholarsSettleTheReaches(),
     ];
 
     private static string L(Rel relationship) => relationship.ToDomainName();
@@ -916,7 +915,7 @@ public static partial class IceRemembersGeneratorDefinition
             PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
             PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
             PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
-            SemanticPlacement = SemanticPlacement.Near,
+            SemanticPlacement = SemanticPlacement.Frontier,
             SemanticPlacementPreferredTerrains = semanticProfile.PreferredTerrains,
             SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
@@ -948,7 +947,7 @@ public static partial class IceRemembersGeneratorDefinition
             PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
             PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
             PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
-            SemanticPlacement = SemanticPlacement.Near,
+            SemanticPlacement = SemanticPlacement.Frontier,
             SemanticPlacementPreferredTerrains = semanticProfile.PreferredTerrains,
             SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
@@ -972,7 +971,7 @@ public static partial class IceRemembersGeneratorDefinition
             PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
             PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
             PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
-            SemanticPlacement = SemanticPlacement.Near,
+            SemanticPlacement = SemanticPlacement.Frontier,
             SemanticPlacementPreferredTerrains = semanticProfile.PreferredTerrains,
             SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
@@ -996,7 +995,7 @@ public static partial class IceRemembersGeneratorDefinition
             PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
             PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
             PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
-            SemanticPlacement = SemanticPlacement.Near,
+            SemanticPlacement = SemanticPlacement.Frontier,
             SemanticPlacementPreferredTerrains = semanticProfile.PreferredTerrains,
             SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
