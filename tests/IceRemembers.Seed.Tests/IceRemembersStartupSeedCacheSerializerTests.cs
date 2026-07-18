@@ -34,11 +34,26 @@ public sealed class IceRemembersStartupSeedCacheSerializerTests
         Assert.Equal(expected.Seed.Relationships, actual.Seed.Relationships);
         Assert.Equal(expected.Seed.MapSubdivisions, actual.Seed.MapSubdivisions);
         Assert.Equal(expected.Seed.Attributes, actual.Seed.Attributes);
-        Assert.Equal(expected.Seed.KnowledgeSites, actual.Seed.KnowledgeSites);
+        AssertKnowledgeSitesEqual(expected.Seed.KnowledgeSites, actual.Seed.KnowledgeSites);
         Assert.Equal(expected.Seed.PhysicalGeography!.MaterialPalette, actual.Seed.PhysicalGeography!.MaterialPalette);
         Assert.Equal(expected.Seed.PhysicalGeography.Cells, actual.Seed.PhysicalGeography.Cells);
         Assert.Equal(expected.Seed.PhysicalGeography.Microtriangles, actual.Seed.PhysicalGeography.Microtriangles);
         Assert.Equal(expected.Seed.SemanticTerrain!.Cells, actual.Seed.SemanticTerrain!.Cells);
+    }
+
+    private static void AssertKnowledgeSitesEqual(
+        IReadOnlyList<DomainKnowledgeSite> expected,
+        IReadOnlyList<DomainKnowledgeSite> actual)
+    {
+        Assert.Equal(expected.Count, actual.Count);
+        for (var index = 0; index < expected.Count; index++)
+        {
+            Assert.Equal(expected[index].TechId, actual[index].TechId);
+            Assert.Equal(expected[index].Q, actual[index].Q);
+            Assert.Equal(expected[index].R, actual[index].R);
+            Assert.Equal(expected[index].Tier, actual[index].Tier);
+            Assert.Equal(expected[index].Grants, actual[index].Grants);
+        }
     }
 
     private static DomainStartupSeedResult CreateStartupSeed()

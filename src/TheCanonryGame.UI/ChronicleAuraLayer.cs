@@ -13,7 +13,8 @@ namespace TheCanonryGame.UI;
 /// </summary>
 public partial class ChronicleAuraLayer : Node2D
 {
-    private const double RedrawIntervalSeconds = 1d / 30d;
+    private const double RedrawIntervalSeconds = 1d / 8d;
+    private const int RingPointCount = 18;
 
     private readonly List<(int EntityId, float Heat)> _auras = [];
     private EntityLayer? _entities;
@@ -31,6 +32,7 @@ public partial class ChronicleAuraLayer : Node2D
     {
         ArgumentNullException.ThrowIfNull(tales);
         _auras.Clear();
+        var heatByEntity = new Dictionary<int, float>();
         foreach (var tale in tales)
         {
             if (tale.Resolved)
@@ -40,9 +42,16 @@ public partial class ChronicleAuraLayer : Node2D
 
             foreach (var member in tale.Cast)
             {
-                _auras.Add((member.EntityId, tale.Heat));
+                if (!heatByEntity.TryGetValue(member.EntityId, out var heat) || tale.Heat > heat)
+                {
+                    heatByEntity[member.EntityId] = tale.Heat;
+                }
             }
         }
+
+        _auras.AddRange(heatByEntity
+            .OrderBy(static pair => pair.Key)
+            .Select(static pair => (pair.Key, pair.Value)));
 
         SetProcess(_auras.Count > 0);
         QueueRedraw();
@@ -50,7 +59,7 @@ public partial class ChronicleAuraLayer : Node2D
 
     public override void _Process(double delta)
     {
-        if (_auras.Count == 0 || !IsVisibleInTree())
+        if (_auras.Count == 0)
         {
             return;
         }
@@ -90,9 +99,15 @@ public partial class ChronicleAuraLayer : Node2D
             var pulse = 1f + (0.12f * Mathf.Sin(((float)_time * (1.2f + (warmth * 1.6f))) + (index * 0.9f)));
             var radius = hexSize * 0.62f * pulse;
             color.A = 0.55f + (0.25f * warmth);
-            DrawArc(position, radius, 0f, Mathf.Tau, 40, color, 2.5f + (warmth * 2f), antialiased: true);
-            color.A *= 0.4f;
-            DrawArc(position, radius * 1.28f, 0f, Mathf.Tau, 40, color, 1.5f, antialiased: true);
+            DrawArc(
+                position,
+                radius,
+                0f,
+                Mathf.Tau,
+                RingPointCount,
+                color,
+                2.5f + (warmth * 2f),
+                antialiased: true);
         }
     }
 }

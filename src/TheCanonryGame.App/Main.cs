@@ -767,7 +767,7 @@ public partial class Main : Node2D
         {
             var speed = 200f / _camera.Zoom.X;
             _camera.Position += direction.Normalized() * speed * delta;
-            _entityLayer?.NotifyViewportChanged();
+            _renderTree?.NotifyViewportChanged();
         }
     }
 

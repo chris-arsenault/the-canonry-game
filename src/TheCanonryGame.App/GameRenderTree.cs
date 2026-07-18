@@ -335,6 +335,12 @@ internal sealed partial class GameRenderTree
         _ = _mapRenderer.SetCameraZoom(cameraZoom);
     }
 
+    public void NotifyViewportChanged()
+    {
+        _entityLayer.NotifyViewportChanged();
+        _mapRenderer.NotifyViewportChanged();
+    }
+
     public void ToggleChronicleJournal()
     {
         if (_journal is not null)

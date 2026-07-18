@@ -62,6 +62,7 @@ public partial class EntityBrowser : PanelContainer
     private float _totalHeight;
     private bool _visibleRefreshQueued;
     private bool _updatingFilterControls;
+    private bool _filterMapToBrowser;
     private int _selectedKindFilterId = AllFilterId;
     private int _selectedCultureFilterId = AllFilterId;
     private int _selectedStatusFilterId = StatusActiveFilterId;
@@ -92,7 +93,7 @@ public partial class EntityBrowser : PanelContainer
 
     public long FilterVersion { get; private set; }
 
-    public bool FilterMapToBrowser => _filterMapCheckBox?.ButtonPressed == true;
+    public bool FilterMapToBrowser => _filterMapToBrowser;
 
     public int SelectedGeneratorFilterId => _selectedGeneratorFilterId;
 
@@ -891,7 +892,7 @@ public partial class EntityBrowser : PanelContainer
 
     private void OnFilterMapToggled(bool pressed)
     {
-        _ = pressed;
+        _filterMapToBrowser = pressed;
         if (_updatingFilterControls)
         {
             return;

@@ -14,8 +14,10 @@ namespace TheCanonryGame.UI;
 public partial class MinorActorFlowLayer : Node2D
 {
     private const int FadeTicks = 60;
+    private const int MaximumVisibleMotes = 192;
 
     private readonly MinorActorPulse[] _buffer = new MinorActorPulse[768];
+    private readonly HashSet<long> _drawnCells = [];
     private MinorActorFlowProjection? _flow;
     private EntityLayer? _entities;
     private Func<int, Color>? _cultureColor;
@@ -36,7 +38,7 @@ public partial class MinorActorFlowLayer : Node2D
             return;
         }
 
-        var state = new FlowLayerState(_flow.Version, _flow.CurrentTick, _entities.CurrentPlaneCode, Visible);
+        var state = new FlowLayerState(_flow.Version, _flow.CurrentTick, _entities.CurrentPlaneCode);
         if (_lastState == state)
         {
             return;
@@ -58,11 +60,19 @@ public partial class MinorActorFlowLayer : Node2D
         var currentTick = _flow.CurrentTick;
         var planeCode = _entities.CurrentPlaneCode;
         var count = _flow.CopyRecent(_buffer, planeCode, currentTick - FadeTicks);
-        for (var i = 0; i < count; i++)
+        _drawnCells.Clear();
+        var visibleMotes = 0;
+        for (var i = 0; i < count && visibleMotes < MaximumVisibleMotes; i++)
         {
             var pulse = _buffer[i];
             var age = currentTick - pulse.Tick;
             if (age < 0 || age > FadeTicks)
+            {
+                continue;
+            }
+
+            var cellKey = ((long)(uint)pulse.Q << 32) | (uint)pulse.R;
+            if (!_drawnCells.Add(cellKey))
             {
                 continue;
             }
@@ -75,8 +85,9 @@ public partial class MinorActorFlowLayer : Node2D
                 6f * Mathf.Sin((pulse.Tick * 0.7f) + i),
                 6f * Mathf.Cos((pulse.Tick * 1.1f) + i));
             DrawCircle(center + drift, 2.2f + (2f * fade), color);
+            visibleMotes++;
         }
     }
 
-    private readonly record struct FlowLayerState(long Version, int Tick, int PlaneCode, bool Visible);
+    private readonly record struct FlowLayerState(long Version, int Tick, int PlaneCode);
 }

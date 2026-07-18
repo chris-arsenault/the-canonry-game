@@ -127,18 +127,29 @@ public partial class HexMapRenderer : Node2D
         }
 
         var planeCode = PlaneCodeForCurrentPlane();
+        var dirtyCoordinates = new List<HexCoord>(dirtyHexIds.Count);
+        var requiresFullGeographyRefresh = false;
         foreach (var hexId in dirtyHexIds)
         {
             if (_map.TryGetHex(planeCode, hexId, out var cell))
             {
                 UpdateCell(cell);
+                dirtyCoordinates.Add(cell.Coord);
                 continue;
             }
 
             RemoveCell(hexId);
+            requiresFullGeographyRefresh = true;
         }
 
-        _physicalMicrogeographyLayer?.RefreshMap();
+        if (requiresFullGeographyRefresh)
+        {
+            _physicalMicrogeographyLayer?.RefreshMap();
+        }
+        else
+        {
+            _physicalMicrogeographyLayer?.RefreshMap(dirtyCoordinates);
+        }
     }
 
     public void RefreshFrame()
@@ -196,6 +207,9 @@ public partial class HexMapRenderer : Node2D
 
     public bool SetCameraZoom(float cameraZoom) =>
         _physicalMicrogeographyLayer?.SetCameraZoom(cameraZoom) == true;
+
+    public void NotifyViewportChanged() =>
+        _physicalMicrogeographyLayer?.NotifyViewportChanged();
 
     private void SyncCellLayer()
     {

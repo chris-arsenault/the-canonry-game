@@ -21,16 +21,20 @@ public readonly record struct PhysicalMicrotriangleHit(HexCoord Coord, int Trian
 
 public partial class PhysicalMicrogeographyLayer : Node2D
 {
-    private const int ChunkCoordinateSize = 16;
+    private const int ChunkCoordinateSize = 8;
     private const float MicrotriangleZoomThreshold = 1.25f;
 
     private readonly List<PhysicalMicrogeographyChunk> _chunks = [];
+    private readonly Dictionary<ChunkKey, PhysicalMicrogeographyChunk> _chunksByKey = [];
     private PhysicalGeographyProjection? _geography;
     private HexMapProjection? _map;
     private IProjectionSymbolCatalog? _symbols;
     private PhysicalMicrogeographyGeometry? _geometry;
     private PlaneMode _plane = PlaneMode.Physical;
     private float _cameraZoom = 1.5f;
+    private Rect2 _lastCullingRect;
+    private bool _lastLayerVisible;
+    private bool _hasCullingState;
 
     public bool InspectionEnabled { get; private set; }
 
@@ -72,7 +76,7 @@ public partial class PhysicalMicrogeographyLayer : Node2D
 
         _plane = plane;
         RefreshAllChunks();
-        UpdateChunkVisibility();
+        UpdateChunkVisibility(force: true);
         return true;
     }
 
@@ -122,10 +126,27 @@ public partial class PhysicalMicrogeographyLayer : Node2D
         }
 
         RefreshAllChunks();
+        UpdateChunkVisibility(force: true);
         return true;
     }
 
     public void RefreshMap() => RefreshAllChunks();
+
+    public void NotifyViewportChanged() => UpdateChunkVisibility(force: true);
+
+    public void RefreshMap(IReadOnlyCollection<HexCoord> dirtyCells)
+    {
+        ArgumentNullException.ThrowIfNull(dirtyCells);
+        var refreshed = new HashSet<ChunkKey>();
+        foreach (var coord in dirtyCells)
+        {
+            var key = ChunkKeyFor(coord);
+            if (refreshed.Add(key) && _chunksByKey.TryGetValue(key, out var chunk))
+            {
+                chunk.Refresh();
+            }
+        }
+    }
 
     public bool TryGetMicrotriangle(Vector2 worldPosition, out PhysicalMicrotriangleHit hit)
     {
@@ -156,10 +177,15 @@ public partial class PhysicalMicrogeographyLayer : Node2D
     internal Color TerrainColor(in PhysicalGeographyCellProjection cell) =>
         Theme.UiTokens.TerrainColor(cell.BaseTerrainStableName);
 
-    public override void _Process(double delta)
+    public override void _Ready()
     {
-        _ = delta;
-        UpdateChunkVisibility();
+        GetViewport().SizeChanged += NotifyViewportChanged;
+    }
+
+    public override void _ExitTree()
+    {
+        GetViewport().SizeChanged -= NotifyViewportChanged;
+        base._ExitTree();
     }
 
     private void RebuildChunks()
@@ -170,9 +196,10 @@ public partial class PhysicalMicrogeographyLayer : Node2D
         }
 
         _chunks.Clear();
+        _chunksByKey.Clear();
+        _hasCullingState = false;
         if (_geography?.HasData != true || _geometry is null)
         {
-            SetProcess(false);
             return;
         }
 
@@ -191,16 +218,16 @@ public partial class PhysicalMicrogeographyLayer : Node2D
             cells.Add(cell);
         }
 
-        foreach (var cells in cellsByChunk.Values)
+        foreach (var (key, cells) in cellsByChunk)
         {
             var chunk = new PhysicalMicrogeographyChunk();
             AddChild(chunk);
             chunk.Bind(this, cells.ToArray(), BoundsFor(cells));
             _chunks.Add(chunk);
+            _chunksByKey.Add(key, chunk);
         }
 
-        SetProcess(true);
-        UpdateChunkVisibility();
+        UpdateChunkVisibility(force: true);
     }
 
     private Rect2 BoundsFor(List<PhysicalGeographyCellProjection> cells)
@@ -218,23 +245,25 @@ public partial class PhysicalMicrogeographyLayer : Node2D
         return new Rect2(minimum, maximum - minimum).Grow(_geometry.HexSize * 1.1f);
     }
 
-    private void UpdateChunkVisibility()
+    private void UpdateChunkVisibility(bool force = false)
     {
         var layerVisible = _plane == PlaneMode.Physical && _geometry is not null;
         var visibleRect = layerVisible ? VisibleLocalRect() : default;
+        if (!force &&
+            _hasCullingState &&
+            _lastLayerVisible == layerVisible &&
+            (!layerVisible || _lastCullingRect == visibleRect))
+        {
+            return;
+        }
+
+        _hasCullingState = true;
+        _lastLayerVisible = layerVisible;
+        _lastCullingRect = visibleRect;
         foreach (var chunk in _chunks)
         {
             var shouldBeVisible = layerVisible && visibleRect.Intersects(chunk.Bounds);
-            if (chunk.Visible == shouldBeVisible)
-            {
-                continue;
-            }
-
-            chunk.Visible = shouldBeVisible;
-            if (shouldBeVisible)
-            {
-                chunk.QueueRedraw();
-            }
+            chunk.SetCullingVisible(shouldBeVisible);
         }
     }
 
@@ -315,9 +344,13 @@ public partial class PhysicalMicrogeographyLayer : Node2D
     {
         foreach (var chunk in _chunks)
         {
-            chunk.QueueRedraw();
+            chunk.Refresh();
         }
     }
+
+    private static ChunkKey ChunkKeyFor(HexCoord coord) => new(
+        FloorDivide(coord.Q, ChunkCoordinateSize),
+        FloorDivide(coord.R, ChunkCoordinateSize));
 
     private static int FloorDivide(int value, int divisor) =>
         value >= 0 ? value / divisor : -(((-value) + divisor - 1) / divisor);

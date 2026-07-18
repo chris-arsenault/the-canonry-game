@@ -20,6 +20,7 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
 
     private PhysicalMicrogeographyLayer? _owner;
     private PhysicalGeographyCellProjection[] _cells = [];
+    private bool _cullingVisible = true;
 
     public Rect2 Bounds { get; private set; }
 
@@ -34,6 +35,29 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         _cells = cells;
         Bounds = bounds;
         QueueRedraw();
+    }
+
+    public void SetCullingVisible(bool visible)
+    {
+        if (_cullingVisible == visible)
+        {
+            return;
+        }
+
+        _cullingVisible = visible;
+        Visible = visible;
+        if (visible)
+        {
+            QueueRedraw();
+        }
+    }
+
+    public void Refresh()
+    {
+        if (_cullingVisible)
+        {
+            QueueRedraw();
+        }
     }
 
     public override void _Draw()

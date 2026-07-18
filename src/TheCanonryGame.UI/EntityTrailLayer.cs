@@ -35,7 +35,7 @@ public partial class EntityTrailLayer : Node2D
             return;
         }
 
-        var state = new TrailLayerState(_trails.Version, _trails.CurrentTick, _entities.CurrentPlaneCode, Visible);
+        var state = new TrailLayerState(_trails.Version, _trails.CurrentTick, _entities.CurrentPlaneCode);
         if (_lastState == state)
         {
             return;
@@ -75,5 +75,5 @@ public partial class EntityTrailLayer : Node2D
         }
     }
 
-    private readonly record struct TrailLayerState(long Version, int Tick, int PlaneCode, bool Visible);
+    private readonly record struct TrailLayerState(long Version, int Tick, int PlaneCode);
 }
