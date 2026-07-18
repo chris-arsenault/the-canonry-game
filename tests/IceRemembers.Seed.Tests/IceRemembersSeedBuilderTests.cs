@@ -112,6 +112,46 @@ public sealed class IceRemembersSeedBuilderTests
     }
 
     [Fact]
+    public void LatentGeography_CoversRadius128WithMicrohexAndSemanticVariation()
+    {
+        var physical = Assert.IsType<DomainPhysicalGeographyBlueprint>(Seed.PhysicalGeography);
+        var semantic = Assert.IsType<DomainSemanticTerrainBlueprint>(Seed.SemanticTerrain);
+        var expectedCells = (3 * 128 * 128) + (3 * 128) + 1;
+
+        Assert.Equal(128, physical.Radius);
+        Assert.Equal(expectedCells, physical.Cells.Count);
+        Assert.Equal(expectedCells * PhysicalGeographyCodes.MicrotrianglesPerHex, physical.Microtriangles.Count);
+        Assert.Equal(128, semantic.Radius);
+        Assert.Equal(expectedCells, semantic.Cells.Count);
+
+        Assert.All(physical.Cells.Select((cell, index) => (cell, index)), entry =>
+            Assert.Equal(
+                entry.index * PhysicalGeographyCodes.MicrotrianglesPerHex,
+                entry.cell.MicrotriangleOffset));
+        Assert.True(
+            physical.Cells.Select(cell => cell.BaseTerrain).Distinct(StringComparer.Ordinal).Count() >= 6,
+            "The latent physical disk must retain a broad terrain palette.");
+        Assert.True(
+            physical.Cells.Where(cell => HexDistance(cell.Q, cell.R) >= 96)
+                .Select(cell => cell.BaseTerrain)
+                .Distinct(StringComparer.Ordinal)
+                .Count() >= 4,
+            "Outer physical geography must not collapse to one frontier terrain.");
+        Assert.Contains(
+            physical.Microtriangles,
+            triangle => (triangle.HydrologyFlags & PhysicalGeographyCodes.HydrologyRiver) != 0);
+        Assert.True(
+            semantic.Cells.Select(cell => cell.Terrain).Distinct(StringComparer.Ordinal).Count() >= 8,
+            "The latent semantic disk must retain its authored terrain vocabulary.");
+        Assert.True(
+            semantic.Cells.Where(cell => HexDistance(cell.Q, cell.R) >= 96)
+                .Select(cell => cell.Terrain)
+                .Distinct(StringComparer.Ordinal)
+                .Count() >= 5,
+            "Outer semantic geography must not collapse to Open Field.");
+    }
+
+    [Fact]
     public void Grid_UsesIceRemembersTerrainCatalog()
     {
         var terrainNames = PhysicalCells()
@@ -460,6 +500,9 @@ public sealed class IceRemembersSeedBuilderTests
     private static SemanticHexCoord SemanticCoord(DomainSeedEntity entity) => new(entity.SemanticQ, entity.SemanticR);
 
     private static string T(IceRemembersTerrain terrain) => terrain.ToDomainName();
+
+    private static int HexDistance(int q, int r) =>
+        (Math.Abs(q) + Math.Abs(r) + Math.Abs(q + r)) / 2;
 
     private static bool IsAnyTerrain(string terrainName, params IceRemembersTerrain[] terrains) =>
         terrains.Any(terrain => string.Equals(terrainName, T(terrain), StringComparison.Ordinal));

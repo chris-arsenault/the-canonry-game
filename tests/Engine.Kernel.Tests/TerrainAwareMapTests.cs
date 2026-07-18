@@ -5,6 +5,45 @@ using Engine.Kernel;
 public sealed class TerrainAwareMapTests
 {
     [Fact]
+    public void PhysicalMicrotriangleTopology_IsReciprocalAcrossEveryEdge()
+    {
+        for (var triangleIndex = 0; triangleIndex < PhysicalGeographyCodes.MicrotrianglesPerHex; triangleIndex++)
+        {
+            for (var edge = 0; edge < 3; edge++)
+            {
+                PhysicalMicrotriangleTopology.ResolveNeighbor(
+                    0,
+                    0,
+                    triangleIndex,
+                    edge,
+                    out var neighborQ,
+                    out var neighborR,
+                    out var neighborTriangleIndex);
+
+                var foundReturnEdge = false;
+                for (var returnEdge = 0; returnEdge < 3; returnEdge++)
+                {
+                    PhysicalMicrotriangleTopology.ResolveNeighbor(
+                        neighborQ,
+                        neighborR,
+                        neighborTriangleIndex,
+                        returnEdge,
+                        out var returnQ,
+                        out var returnR,
+                        out var returnTriangleIndex);
+                    if (returnQ == 0 && returnR == 0 && returnTriangleIndex == triangleIndex)
+                    {
+                        foundReturnEdge = true;
+                        break;
+                    }
+                }
+
+                Assert.True(foundReturnEdge, $"Triangle {triangleIndex} edge {edge} is not reciprocal.");
+            }
+        }
+    }
+
+    [Fact]
     public void MovementOverTerrainBuildsRoadQualityThatReducesEffectiveTravelCost()
     {
         var simulation = KernelTestSimulation.Create();

@@ -19,6 +19,7 @@ internal sealed record SimulationOptions
     public int GrowableStorageThresholdPermille { get; init; } = 900;
     public int GrowableStorageGrowthFactor { get; init; } = 2;
     public int MapCellCapacity { get; init; } = 16384;
+    public int MapGenerationRadiusCapacity { get; init; }
     public int MapInfluenceCapacity { get; init; } = 65536;
     public int SystemCapacity { get; init; } = 32;
     public int EventCapacity { get; init; } = 65536;

@@ -29,6 +29,56 @@ internal sealed class KernelConfigurationContext
     public void SetMapRadius(int radius) =>
         _kernel.World.SetMapRadius(radius);
 
+    public void BeginPhysicalGeographyInstall(int radius) =>
+        _kernel.KernelData.PhysicalGeography.BeginInstall(radius);
+
+    public void InstallPhysicalGeographyCell(
+        int q,
+        int r,
+        int baseTerrainId,
+        int superregionId,
+        int continentId,
+        int meanElevation,
+        int maxElevation,
+        int roughness,
+        int waterCoverage,
+        int riverEdgeMask,
+        int coastEdgeMask,
+        global::System.ReadOnlySpan<int> materialIds,
+        global::System.ReadOnlySpan<int> elevations,
+        global::System.ReadOnlySpan<int> hydrologyFlags) =>
+        _kernel.KernelData.PhysicalGeography.InstallCell(
+            q,
+            r,
+            baseTerrainId,
+            superregionId,
+            continentId,
+            meanElevation,
+            maxElevation,
+            roughness,
+            waterCoverage,
+            riverEdgeMask,
+            coastEdgeMask,
+            materialIds,
+            elevations,
+            hydrologyFlags);
+
+    public void BeginSemanticTerrainBlueprintInstall(int radius) =>
+        _kernel.MapFrontier.Data.BeginSemanticBlueprintInstall(radius);
+
+    public void InstallSemanticTerrainBlueprintCell(
+        int q,
+        int r,
+        int terrainId,
+        int superregionId,
+        int continentId) =>
+        _kernel.MapFrontier.Data.InstallSemanticBlueprintCell(
+            q,
+            r,
+            terrainId,
+            superregionId,
+            continentId);
+
     public int RegisterTerrain(
         TerrainRuntimeId terrainId,
         int boundaryGroupId,

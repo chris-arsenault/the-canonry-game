@@ -258,12 +258,18 @@ internal sealed class KernelHostBuilder
 
     private SimulationOptions CreateSimulationOptions()
     {
-        return _compiledDomain is null
+        var options = _compiledDomain is null
             ? _simulationOptions
             : _simulationOptions with
             {
                 RuntimeCodes = ToKernelRuntimeCodes(_compiledDomain.RuntimeCodes),
             };
+        var generationRadius = global::System.Math.Max(
+            _domainStartupSeed?.PhysicalGeography?.Radius ?? 0,
+            _domainStartupSeed?.SemanticTerrain?.Radius ?? 0);
+        return generationRadius > options.MapGenerationRadiusCapacity
+            ? options with { MapGenerationRadiusCapacity = generationRadius }
+            : options;
     }
 
     private Simulation CreateKernel(SimulationOptions simulationOptions, out bool kernelWasLoaded)

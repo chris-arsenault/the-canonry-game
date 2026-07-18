@@ -77,7 +77,8 @@ internal static partial class IceRemembersSeedBuilder
 
     private static int ChooseContinent(HexGrid grid, HexCoord coord, int salt)
     {
-        var radius = grid.Radius;
+        _ = grid;
+        var radius = PhysicalHeartRadius;
         var near = SubdivisionDistance(coord, new HexCoord(-radius / 4, 1), salt ^ 101, 4f);
         var far = SubdivisionDistance(coord, new HexCoord((radius * 3) / 4, -(radius * 3) / 5), salt ^ 211, 3f);
         var empty = SubdivisionDistance(coord, new HexCoord(-radius / 5, (radius * 3) / 5), salt ^ 307, 2f);
@@ -94,7 +95,8 @@ internal static partial class IceRemembersSeedBuilder
 
     private static int ChooseSuperregion(HexGrid grid, HexCoord coord, int continentId, int salt)
     {
-        var radius = grid.Radius;
+        _ = grid;
+        var radius = PhysicalHeartRadius;
         return continentId switch
         {
             NearContinentId => ClosestSuperregion(

@@ -16,17 +16,17 @@ internal static partial class IceRemembersSeedBuilder
 {
     private const int MaxAcceptedSeedAttempts = 64;
 
-    // The semantic plane is born vast - ideas have no ice. The physical
-    // world starts as a small thawed heart and grows only where history
-    // presses (the_ice_opens); map extent is earned, never allocated.
-    private const int StartupMapRadius = 40;
+    // Both latent coordinate fields cover the full fixed generation disk. Only
+    // their hearts are materialized at startup; play earns the remaining extent.
+    internal const int GenerationRadius = 128;
     internal const int PhysicalHeartRadius = 18;
+    private const int SemanticFeatureScale = 40;
 
     // Idea-space is also born as a heart and grows outward through play (see the
     // semantic map-frontier). Terrain, entities, and canons are seeded only
     // within this radius; the rest of the semantic disk starts as fog. The
-    // terrain influence field is still scaled to StartupMapRadius, so the heart
-    // shows the inner region of the full-scale field.
+    // terrain influence field is generated through GenerationRadius, so the
+    // heart and every later frontier cell share one deterministic geography.
     internal const int SemanticHeartRadius = 18;
 
     private static string C(IceRemembersCulture culture) => culture.ToDomainName();
@@ -149,14 +149,14 @@ internal static partial class IceRemembersSeedBuilder
 
     private static SeedAssembly BuildEmptyAssembly(WorldGenerationSeed seed)
     {
-        var grid = new HexGrid(
-            PhysicalHeartRadius,
-            IceRemembersTerrainCatalog.CreateWorldGenCatalog(),
-            IceRemembersTerrain.Wastes.ToDomainName());
+        var geography = CreatePhysicalGeography(seed.TerrainSeed);
         var coverageMap = new MapCoverageMap();
-        var subdivisionMap = CreateSubdivisions(grid, seed.TerrainSeed);
-        PaintTerrain(grid, new Random(seed.TerrainSeed), subdivisionMap);
-        return new SeedAssembly(grid, coverageMap, subdivisionMap, CreateSubdivisionDefinitions());
+        return new SeedAssembly(
+            geography.HeartGrid,
+            coverageMap,
+            geography.HeartSubdivisions,
+            CreateSubdivisionDefinitions(),
+            geography.Blueprint);
     }
 
     private static void Populate(SeedAssembly assembly, WorldGenerationSeed seed)

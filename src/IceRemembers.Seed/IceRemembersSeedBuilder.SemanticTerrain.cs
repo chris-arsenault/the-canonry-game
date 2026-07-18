@@ -70,49 +70,49 @@ internal static partial class IceRemembersSeedBuilder
         new(
             PickSemanticSeedCoords(
                 random,
-                count: 5,
-                minDistance: StartupMapRadius / 3,
-                coord => coord.S >= StartupMapRadius / 5),
+                count: 18,
+                minDistance: SemanticFeatureScale / 3,
+                coord => coord.S >= SemanticFeatureScale / 5),
             PickSemanticSeedCoords(
                 random,
-                count: 5,
-                minDistance: StartupMapRadius / 3,
-                coord => coord.Q <= -StartupMapRadius / 5),
+                count: 18,
+                minDistance: SemanticFeatureScale / 3,
+                coord => coord.Q <= -SemanticFeatureScale / 5),
             PickSemanticSeedCoords(
                 random,
-                count: 5,
-                minDistance: StartupMapRadius / 3,
-                coord => coord.R >= StartupMapRadius / 5),
+                count: 18,
+                minDistance: SemanticFeatureScale / 3,
+                coord => coord.R >= SemanticFeatureScale / 5),
             PickSemanticSeedCoords(
                 random,
-                count: 5,
-                minDistance: StartupMapRadius / 3,
-                coord => coord.R <= -StartupMapRadius / 5),
+                count: 18,
+                minDistance: SemanticFeatureScale / 3,
+                coord => coord.R <= -SemanticFeatureScale / 5),
             PickSemanticSeedCoords(
                 random,
-                count: 5,
-                minDistance: StartupMapRadius / 3,
-                coord => coord.S <= -StartupMapRadius / 5 && SemanticHexCoord.Distance(SemanticHexCoord.Origin, coord) >= StartupMapRadius / 4),
+                count: 18,
+                minDistance: SemanticFeatureScale / 3,
+                coord => coord.S <= -SemanticFeatureScale / 5 && SemanticHexCoord.Distance(SemanticHexCoord.Origin, coord) >= SemanticFeatureScale / 4),
             PickSemanticSeedCoords(
                 random,
-                count: 5,
-                minDistance: StartupMapRadius / 3,
-                coord => coord.Q >= StartupMapRadius / 5),
+                count: 18,
+                minDistance: SemanticFeatureScale / 3,
+                coord => coord.Q >= SemanticFeatureScale / 5),
             PickSemanticSeedCoords(
                 random,
-                count: 5,
-                minDistance: StartupMapRadius / 5,
+                count: 24,
+                minDistance: SemanticFeatureScale / 5,
                 coord => SemanticHexCoord.Distance(SemanticHexCoord.Origin, coord) is >= 8 and <= 32),
             PickSemanticSeedCoords(
                 random,
-                count: 7,
-                minDistance: StartupMapRadius / 5,
-                coord => SemanticHexCoord.Distance(SemanticHexCoord.Origin, coord) >= StartupMapRadius / 2),
+                count: 28,
+                minDistance: SemanticFeatureScale / 5,
+                coord => SemanticHexCoord.Distance(SemanticHexCoord.Origin, coord) >= SemanticFeatureScale / 2),
             PickSemanticSeedCoords(
                 random,
-                count: 6,
-                minDistance: StartupMapRadius / 5,
-                coord => coord.R <= -StartupMapRadius / 6 && SemanticHexCoord.Distance(SemanticHexCoord.Origin, coord) >= StartupMapRadius / 3));
+                count: 24,
+                minDistance: SemanticFeatureScale / 5,
+                coord => coord.R <= -SemanticFeatureScale / 6 && SemanticHexCoord.Distance(SemanticHexCoord.Origin, coord) >= SemanticFeatureScale / 3));
 
     private static SemanticTerrainSalts NextSemanticTerrainSalts(Random random) =>
         new(
@@ -132,11 +132,30 @@ internal static partial class IceRemembersSeedBuilder
         SemanticTerrainSeedSet seeds,
         SemanticTerrainSalts salts)
     {
-        foreach (var coord in SemanticHexCoord.CoordsInRadius(SemanticHexCoord.Origin, SemanticHeartRadius))
+        var blueprintCells = new List<Engine.Domain.Startup.DomainSemanticTerrainCell>(
+            (3 * GenerationRadius * GenerationRadius) + (3 * GenerationRadius) + 1);
+        foreach (var coord in SemanticHexCoord.CoordsInRadius(SemanticHexCoord.Origin, GenerationRadius))
         {
             var influence = CalculateSemanticTerrainInfluence(coord, seeds, salts);
-            SetSemanticTerrain(seed, coord, DetermineSemanticTerrain(influence));
+            var terrain = DetermineSemanticTerrain(influence);
+            var subdivision = SemanticSubdivisionForTerrain(terrain);
+            blueprintCells.Add(new Engine.Domain.Startup.DomainSemanticTerrainCell(
+                coord.Q,
+                coord.R,
+                terrain.ToDomainName(),
+                subdivision.SuperregionId,
+                subdivision.ContinentId));
+            if (SemanticHexCoord.Distance(SemanticHexCoord.Origin, coord) <= SemanticHeartRadius)
+            {
+                SetSemanticTerrain(seed, coord, terrain);
+            }
         }
+
+        var blueprint = new Engine.Domain.Startup.DomainSemanticTerrainBlueprint(
+            GenerationRadius,
+            blueprintCells.ToArray());
+        blueprint.Validate();
+        seed.SetSemanticTerrainBlueprint(blueprint);
     }
 
     private static SemanticTerrainInfluence CalculateSemanticTerrainInfluence(
@@ -144,37 +163,37 @@ internal static partial class IceRemembersSeedBuilder
         SemanticTerrainSeedSet seeds,
         SemanticTerrainSalts salts)
     {
-        var radial = SemanticHexCoord.Distance(SemanticHexCoord.Origin, coord) / (float)StartupMapRadius;
-        var q = coord.Q / (float)StartupMapRadius;
-        var r = coord.R / (float)StartupMapRadius;
-        var s = coord.S / (float)StartupMapRadius;
+        var radial = SemanticHexCoord.Distance(SemanticHexCoord.Origin, coord) / (float)SemanticFeatureScale;
+        var q = coord.Q / (float)SemanticFeatureScale;
+        var r = coord.R / (float)SemanticFeatureScale;
+        var s = coord.S / (float)SemanticFeatureScale;
 
         var open = 0.44f - (radial * 0.2f) + SemanticNoise(coord, salts.Open, 0.08f);
-        var lineage = ComputeSemanticInfluence(coord, seeds.Lineage, StartupMapRadius * 0.34f)
+        var lineage = ComputeSemanticInfluence(coord, seeds.Lineage, SemanticFeatureScale * 0.34f)
             + (Positive(s) * 0.36f)
             + SemanticNoise(coord, salts.Lineage, 0.09f);
-        var yoke = ComputeSemanticInfluence(coord, seeds.Yoke, StartupMapRadius * 0.32f)
+        var yoke = ComputeSemanticInfluence(coord, seeds.Yoke, SemanticFeatureScale * 0.32f)
             + (Positive(-q) * 0.34f)
             + SemanticNoise(coord, salts.Yoke, 0.09f);
-        var witness = ComputeSemanticInfluence(coord, seeds.Witness, StartupMapRadius * 0.32f)
+        var witness = ComputeSemanticInfluence(coord, seeds.Witness, SemanticFeatureScale * 0.32f)
             + (Positive(r) * 0.36f)
             + SemanticNoise(coord, salts.Witness, 0.09f);
-        var silence = ComputeSemanticInfluence(coord, seeds.Silence, StartupMapRadius * 0.32f)
+        var silence = ComputeSemanticInfluence(coord, seeds.Silence, SemanticFeatureScale * 0.32f)
             + (Positive(-r) * 0.36f)
             + SemanticNoise(coord, salts.Silence, 0.09f);
-        var severance = ComputeSemanticInfluence(coord, seeds.Severance, StartupMapRadius * 0.3f)
+        var severance = ComputeSemanticInfluence(coord, seeds.Severance, SemanticFeatureScale * 0.3f)
             + (Positive(-s) * 0.34f)
             + (radial * 0.08f)
             + SemanticNoise(coord, salts.Severance, 0.09f);
-        var breakaway = ComputeSemanticInfluence(coord, seeds.Breakaway, StartupMapRadius * 0.32f)
+        var breakaway = ComputeSemanticInfluence(coord, seeds.Breakaway, SemanticFeatureScale * 0.32f)
             + (Positive(q) * 0.34f)
             + SemanticNoise(coord, salts.Breakaway, 0.09f);
-        var beacon = ComputeSemanticInfluence(coord, seeds.Beacon, StartupMapRadius * 0.11f)
+        var beacon = ComputeSemanticInfluence(coord, seeds.Beacon, SemanticFeatureScale * 0.11f)
             + SemanticNoise(coord, salts.Beacon, 0.04f);
-        var taboo = ComputeSemanticInfluence(coord, seeds.Taboo, StartupMapRadius * 0.14f)
+        var taboo = ComputeSemanticInfluence(coord, seeds.Taboo, SemanticFeatureScale * 0.14f)
             + (radial * 0.08f)
             + SemanticNoise(coord, salts.Taboo, 0.04f);
-        var cave = ComputeSemanticInfluence(coord, seeds.Cave, StartupMapRadius * 0.13f)
+        var cave = ComputeSemanticInfluence(coord, seeds.Cave, SemanticFeatureScale * 0.13f)
             + (Positive(-r) * 0.08f)
             + SemanticNoise(coord, salts.Cave, 0.04f);
 
@@ -225,24 +244,21 @@ internal static partial class IceRemembersSeedBuilder
         int minDistance,
         Func<SemanticHexCoord, bool> predicate)
     {
-        var candidates = SemanticHexCoord.CoordsInRadius(SemanticHexCoord.Origin, StartupMapRadius)
+        var candidates = SemanticHexCoord.CoordsInRadius(SemanticHexCoord.Origin, GenerationRadius)
             .Where(predicate)
+            .ToArray();
+        var innerCandidates = candidates
+            .Where(coord => SemanticHexCoord.Distance(SemanticHexCoord.Origin, coord) <= SemanticFeatureScale)
             .OrderBy(_ => random.Next())
-            .ToList();
-
+            .ToArray();
+        var outerCandidates = candidates
+            .Where(coord => SemanticHexCoord.Distance(SemanticHexCoord.Origin, coord) > SemanticFeatureScale)
+            .OrderBy(_ => random.Next())
+            .ToArray();
         var chosen = new List<SemanticHexCoord>();
-        foreach (var candidate in candidates)
-        {
-            if (chosen.TrueForAll(existing => SemanticHexCoord.Distance(existing, candidate) >= minDistance))
-            {
-                chosen.Add(candidate);
-            }
-
-            if (chosen.Count == count)
-            {
-                break;
-            }
-        }
+        AddSemanticSeeds(chosen, innerCandidates, Math.Max(1, count / 3), minDistance);
+        AddSemanticSeeds(chosen, outerCandidates, count, minDistance);
+        AddSemanticSeeds(chosen, candidates, count, minDistance);
 
         if (chosen.Count == 0)
         {
@@ -250,6 +266,26 @@ internal static partial class IceRemembersSeedBuilder
         }
 
         return chosen;
+    }
+
+    private static void AddSemanticSeeds(
+        List<SemanticHexCoord> chosen,
+        IEnumerable<SemanticHexCoord> candidates,
+        int targetCount,
+        int minDistance)
+    {
+        foreach (var candidate in candidates)
+        {
+            if (chosen.TrueForAll(existing => SemanticHexCoord.Distance(existing, candidate) >= minDistance))
+            {
+                chosen.Add(candidate);
+            }
+
+            if (chosen.Count >= targetCount)
+            {
+                return;
+            }
+        }
     }
 
     private static float ComputeSemanticInfluence(

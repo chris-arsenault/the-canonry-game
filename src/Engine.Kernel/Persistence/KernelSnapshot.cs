@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 41;
+    private const int FormatVersion = 42;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -82,6 +82,7 @@ internal static class KernelSnapshotOptions
         writer.Write(options.GrowableStorageThresholdPermille);
         writer.Write(options.GrowableStorageGrowthFactor);
         writer.Write(options.MapCellCapacity);
+        writer.Write(options.MapGenerationRadiusCapacity);
         writer.Write(options.MapInfluenceCapacity);
         writer.Write(options.SystemCapacity);
         writer.Write(options.EventCapacity);
@@ -228,6 +229,7 @@ internal static class KernelSnapshotOptions
             GrowableStorageThresholdPermille = reader.ReadInt32(),
             GrowableStorageGrowthFactor = reader.ReadInt32(),
             MapCellCapacity = reader.ReadInt32(),
+            MapGenerationRadiusCapacity = reader.ReadInt32(),
             MapInfluenceCapacity = reader.ReadInt32(),
             SystemCapacity = reader.ReadInt32(),
             EventCapacity = reader.ReadInt32(),
@@ -397,6 +399,7 @@ internal static class KernelSnapshotOptions
             GrowableStorageThresholdPermille = values.GrowableStorageThresholdPermille,
             GrowableStorageGrowthFactor = values.GrowableStorageGrowthFactor,
             MapCellCapacity = values.MapCellCapacity,
+            MapGenerationRadiusCapacity = values.MapGenerationRadiusCapacity,
             MapInfluenceCapacity = values.MapInfluenceCapacity,
             SystemCapacity = values.SystemCapacity,
             EventCapacity = values.EventCapacity,
@@ -530,6 +533,7 @@ internal static class KernelSnapshotOptions
         public int GrowableStorageThresholdPermille;
         public int GrowableStorageGrowthFactor;
         public int MapCellCapacity;
+        public int MapGenerationRadiusCapacity;
         public int MapInfluenceCapacity;
         public int SystemCapacity;
         public int EventCapacity;

@@ -15,21 +15,25 @@ internal sealed class SeedAssembly
     private readonly List<SeedEntity> _entities = [];
     private readonly List<DomainSeedRelationship> _relationships = [];
     private readonly Dictionary<SemanticHexCoord, DomainSeedCell> _semanticCells = [];
+    private DomainSemanticTerrainBlueprint _semanticTerrain = DomainSemanticTerrainBlueprint.Empty;
 
     public SeedAssembly(
         HexGrid grid,
         MapCoverageMap coverageMap,
         MapSubdivisionMap subdivisionMap,
-        IReadOnlyList<DomainMapSubdivision> mapSubdivisions)
+        IReadOnlyList<DomainMapSubdivision> mapSubdivisions,
+        DomainPhysicalGeographyBlueprint physicalGeography)
     {
         ArgumentNullException.ThrowIfNull(grid);
         ArgumentNullException.ThrowIfNull(coverageMap);
         ArgumentNullException.ThrowIfNull(subdivisionMap);
         ArgumentNullException.ThrowIfNull(mapSubdivisions);
+        ArgumentNullException.ThrowIfNull(physicalGeography);
         Grid = grid;
         CoverageMap = coverageMap;
         SubdivisionMap = subdivisionMap;
         MapSubdivisions = mapSubdivisions;
+        PhysicalGeography = physicalGeography;
     }
 
     public HexGrid Grid { get; }
@@ -40,11 +44,19 @@ internal sealed class SeedAssembly
 
     public IReadOnlyList<DomainMapSubdivision> MapSubdivisions { get; }
 
+    public DomainPhysicalGeographyBlueprint PhysicalGeography { get; }
+
     public IReadOnlyList<SeedEntity> Entities => _entities;
 
     public IReadOnlyList<DomainSeedRelationship> Relationships => _relationships;
 
     public IReadOnlyDictionary<SemanticHexCoord, DomainSeedCell> SemanticCells => _semanticCells;
+
+    public void SetSemanticTerrainBlueprint(DomainSemanticTerrainBlueprint blueprint)
+    {
+        ArgumentNullException.ThrowIfNull(blueprint);
+        _semanticTerrain = blueprint;
+    }
 
     public SeedEntity CreateEntity(
         EntityKind kind,
@@ -137,7 +149,9 @@ internal sealed class SeedAssembly
             relationships,
             MapSubdivisions,
             Attributes: [],
-            KnowledgeSites: CreateKnowledgeSites());
+            KnowledgeSites: CreateKnowledgeSites(),
+            PhysicalGeography,
+            _semanticTerrain);
     }
 
     // The six discipline spokes (unit hex directions from centre). A tech at

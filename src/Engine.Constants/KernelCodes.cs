@@ -13,6 +13,17 @@ public static class PlaneCodes
     public const int Semantic = 2;
 }
 
+public static class PhysicalGeographyCodes
+{
+    public const int MicrotrianglesPerHex = 24;
+    public const int MicrotrianglesPerSector = 4;
+    public const int HexSectorCount = 6;
+
+    public const int HydrologyWater = 1 << 0;
+    public const int HydrologyRiver = 1 << 1;
+    public const int HydrologyCoast = 1 << 2;
+}
+
 public static class BehaviorOperationCodes
 {
     public const int AddAttribute = 1;

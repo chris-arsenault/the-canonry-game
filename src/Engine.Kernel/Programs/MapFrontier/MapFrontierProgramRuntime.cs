@@ -26,7 +26,7 @@ internal sealed partial class MapFrontierProgramRuntime :
     public MapFrontierProgramRuntime(SimulationOptions options)
     {
         global::System.ArgumentNullException.ThrowIfNull(options);
-        Data = new MapFrontierProgramData();
+        Data = new MapFrontierProgramData(options.MapGenerationRadiusCapacity);
         State = new MapFrontierProgramState(options.MapFrontierThawRingCapacity);
         var budget = global::System.Math.Max(1, Data.ThawBudgetPerPulse);
         _candidateQ = new int[budget];

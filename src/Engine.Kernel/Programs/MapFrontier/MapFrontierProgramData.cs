@@ -8,11 +8,17 @@ using Engine.Constants;
 /// the mass/budget bounds that keep growth earned and bounded. Configured
 /// once at install from domain content.
 /// </summary>
-internal sealed class MapFrontierProgramData : IKernelProgramData
+internal sealed partial class MapFrontierProgramData : IKernelProgramData
 {
+    public MapFrontierProgramData(int mapGenerationRadiusCapacity = 0)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(mapGenerationRadiusCapacity);
+        InitializeSemanticBlueprint(mapGenerationRadiusCapacity);
+    }
+
     public int ProgramId => KernelProgramCodes.MapFrontier;
 
-    public int SchemaVersion => 1;
+    public int SchemaVersion => 2;
 
     internal const int MaxDriverAges = 4;
 

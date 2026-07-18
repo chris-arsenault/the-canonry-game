@@ -16,7 +16,9 @@ public sealed record DomainStartupSeed(
     IReadOnlyList<DomainSeedRelationship> Relationships,
     IReadOnlyList<DomainMapSubdivision> MapSubdivisions,
     IReadOnlyList<DomainSeedAttributeValue> Attributes,
-    IReadOnlyList<DomainKnowledgeSite> KnowledgeSites)
+    IReadOnlyList<DomainKnowledgeSite> KnowledgeSites,
+    DomainPhysicalGeographyBlueprint? PhysicalGeography = null,
+    DomainSemanticTerrainBlueprint? SemanticTerrain = null)
 {
     public static DomainStartupSeed Empty(int mapRadius) =>
         new(mapRadius, [], [], [], [], [], []);

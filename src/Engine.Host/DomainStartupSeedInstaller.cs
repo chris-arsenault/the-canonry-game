@@ -44,6 +44,8 @@ internal static class DomainStartupSeedInstaller
         if (configureMap)
         {
             context.SetMapRadius(seed.MapRadius);
+            InstallPhysicalGeography(context, seed.PhysicalGeography);
+            InstallSemanticTerrain(context, seed.SemanticTerrain);
         }
 
         foreach (var site in seed.KnowledgeSites)
@@ -58,6 +60,73 @@ internal static class DomainStartupSeedInstaller
                     ResolveKnowledgeGrantTarget(context.DomainIds, grant),
                     grant.Multiplier);
             }
+        }
+    }
+
+    private static void InstallPhysicalGeography(
+        KernelConfigurationContext context,
+        DomainPhysicalGeographyBlueprint? blueprint)
+    {
+        if (blueprint is null || blueprint.Radius == 0)
+        {
+            return;
+        }
+
+        blueprint.Validate();
+        var materialIds = blueprint.MaterialPalette
+            .Select(name => context.DomainIds.TerrainIdOf(name).Value)
+            .ToArray();
+        context.BeginPhysicalGeographyInstall(blueprint.Radius);
+        global::System.Span<int> cellMaterialIds = stackalloc int[PhysicalGeographyCodes.MicrotrianglesPerHex];
+        global::System.Span<int> elevations = stackalloc int[PhysicalGeographyCodes.MicrotrianglesPerHex];
+        global::System.Span<int> hydrologyFlags = stackalloc int[PhysicalGeographyCodes.MicrotrianglesPerHex];
+        foreach (var cell in blueprint.Cells)
+        {
+            for (var triangleIndex = 0; triangleIndex < PhysicalGeographyCodes.MicrotrianglesPerHex; triangleIndex++)
+            {
+                var triangle = blueprint.Microtriangles[cell.MicrotriangleOffset + triangleIndex];
+                cellMaterialIds[triangleIndex] = materialIds[triangle.MaterialIndex];
+                elevations[triangleIndex] = triangle.Elevation;
+                hydrologyFlags[triangleIndex] = triangle.HydrologyFlags;
+            }
+
+            context.InstallPhysicalGeographyCell(
+                cell.Q,
+                cell.R,
+                context.DomainIds.TerrainIdOf(cell.BaseTerrain).Value,
+                cell.SuperregionId,
+                cell.ContinentId,
+                cell.MeanElevation,
+                cell.MaxElevation,
+                cell.Roughness,
+                cell.WaterCoverage,
+                cell.RiverEdgeMask,
+                cell.CoastEdgeMask,
+                cellMaterialIds,
+                elevations,
+                hydrologyFlags);
+        }
+    }
+
+    private static void InstallSemanticTerrain(
+        KernelConfigurationContext context,
+        DomainSemanticTerrainBlueprint? blueprint)
+    {
+        if (blueprint is null || blueprint.Radius == 0)
+        {
+            return;
+        }
+
+        blueprint.Validate();
+        context.BeginSemanticTerrainBlueprintInstall(blueprint.Radius);
+        foreach (var cell in blueprint.Cells)
+        {
+            context.InstallSemanticTerrainBlueprintCell(
+                cell.Q,
+                cell.R,
+                context.DomainIds.TerrainIdOf(cell.Terrain).Value,
+                cell.SuperregionId,
+                cell.ContinentId);
         }
     }
 

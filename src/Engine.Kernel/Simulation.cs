@@ -39,7 +39,8 @@ internal sealed partial class Simulation : IKernel
         KernelData = new KernelDataSet(
             new KernelEntityData(options.EntityAttributeCapacity, options.AttributeIdCapacity, options.EntityTraitCapacity),
             new KernelTerrainData(options.TerrainIdCapacity),
-            new KernelCultureData(options.CultureIdCapacity));
+            new KernelCultureData(options.CultureIdCapacity),
+            new KernelPhysicalGeographyData(options.MapGenerationRadiusCapacity));
         World = new WorldState(Events, options, KernelData);
         CultureBoundaries = CreateCultureBoundaryRuntime(options);
         World.AttachCultureBoundaries(CultureBoundaries);
