@@ -18,9 +18,9 @@ internal sealed record SimulationOptions
     public int GrowableStorageCheckCadenceTicks { get; init; } = 100;
     public int GrowableStorageThresholdPermille { get; init; } = 900;
     public int GrowableStorageGrowthFactor { get; init; } = 2;
-    public int MapCellCapacity { get; init; } = 16384;
+    public int MapCellCapacity { get; init; } = 131072;
     public int MapGenerationRadiusCapacity { get; init; }
-    public int MapInfluenceCapacity { get; init; } = 65536;
+    public int MapInfluenceCapacity { get; init; } = 1048576;
     public int SystemCapacity { get; init; } = 32;
     public int EventCapacity { get; init; } = 65536;
     public int EventCursorCapacity { get; init; } = 32;
@@ -35,10 +35,10 @@ internal sealed record SimulationOptions
     public int LifecycleRuleCapacity { get; init; } = 256;
     public int LowAltitudeVerbRuleCapacity { get; init; } = 256;
     public int LowAltitudeVerbItemCapacity { get; init; } = 1024;
-    public int MovementCellCapacity { get; init; } = 32768;
+    public int MovementCellCapacity { get; init; } = 131072;
     public int MovementProfileRuleCapacity { get; init; } = 256;
-    public int MapActivityCellCapacity { get; init; } = 32768;
-    public int MapSignalCellCapacity { get; init; } = 32768;
+    public int MapActivityCellCapacity { get; init; } = 131072;
+    public int MapSignalCellCapacity { get; init; } = 131072;
     public int EffectRuleCapacity { get; init; } = 512;
     public int CultureSlotCapacity { get; init; } = 64;
     public int CultureSlotAllowedKindCapacity { get; init; } = 256;
@@ -52,7 +52,8 @@ internal sealed record SimulationOptions
     public int ChronicleCapacity { get; init; } = 7;
     public int WorldBeatAgeCapacity { get; init; } = 24;
     public int WorldBeatItemCapacity { get; init; } = 256;
-    public int MapFrontierThawRingCapacity { get; init; } = 8192;
+    public int MapFrontierThawRingCapacity { get; init; } = 65536;
+    public int MapFrontierCandidateCapacity { get; init; } = 128;
     public int KnowledgeSiteCapacity { get; init; } = 256;
     public int KnowledgeGrantCapacity { get; init; } = 2048;
     public int KnowledgeModifierCapacity { get; init; } = 8192;

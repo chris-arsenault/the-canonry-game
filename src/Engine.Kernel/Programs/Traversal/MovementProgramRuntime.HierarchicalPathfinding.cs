@@ -840,6 +840,17 @@ internal sealed partial class MovementProgramRuntime
         return (((radius * 2) + 1) + segmentSize - 1) / segmentSize;
     }
 
+    private static int SegmentFrameRadius(int liveRadius, int originRadius, int segmentSize)
+    {
+        if (liveRadius <= originRadius)
+        {
+            return originRadius;
+        }
+
+        var additionalRadius = liveRadius - originRadius;
+        return originRadius + (((additionalRadius + segmentSize - 1) / segmentSize) * segmentSize);
+    }
+
     private static int SegmentIndex(
         int radius,
         int segmentSize,

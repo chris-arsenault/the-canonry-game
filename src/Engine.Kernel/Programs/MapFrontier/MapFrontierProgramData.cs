@@ -45,9 +45,6 @@ internal sealed partial class MapFrontierProgramData : IKernelProgramData
         return false;
     }
 
-    /// <summary>Terrain laid on newly thawed ground.</summary>
-    public int ThawTerrainId;
-
     /// <summary>Terrain laid on reclaimed / un-thawed ground (impassable deep ice).</summary>
     public int FrozenTerrainId;
 
@@ -70,12 +67,17 @@ internal sealed partial class MapFrontierProgramData : IKernelProgramData
     // Ideas have no ice, so the semantic plane grows continuously wherever a
     // culture's idea-mass presses its frontier - no age gate, no re-freeze.
 
-    /// <summary>Terrain laid on newly opened semantic cells (0 = semantic growth disabled).</summary>
-    public int SemanticOpenTerrainId;
+    /// <summary>Whether the latent semantic terrain field may materialize.</summary>
+    public bool SemanticGrowthEnabled;
 
     /// <summary>The semantic plane may never grow beyond this radius from origin.</summary>
     public int SemanticMaxRadius = 40;
 
     /// <summary>A semantic frontier cell must hold at least this raw idea-mass to open new ground.</summary>
     public float SemanticFrontierMassThreshold = 30f;
+
+    /// <summary>Maximum semantic cells opened per pulse.</summary>
+    public int SemanticBudgetPerPulse = 24;
+
+    public int GenerationRadiusCapacity => _semanticBlueprintRadiusCapacity;
 }

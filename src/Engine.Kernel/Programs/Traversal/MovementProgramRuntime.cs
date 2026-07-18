@@ -268,6 +268,7 @@ internal sealed partial class MovementProgramRuntime :
             _ = quality;
             _ = lastTick;
             if (!simulation.World.TryResolveCoordinateKey(
+                    planeCode,
                     coordinateKey,
                     planeCode == PlaneCodes.Semantic ? 4 : 0,
                     out var q,
@@ -288,6 +289,7 @@ internal sealed partial class MovementProgramRuntime :
         State.ForEachTravelStructureCell((planeCode, coordinateKey, travelStructureId) =>
         {
             if (!simulation.World.TryResolveCoordinateKey(
+                    planeCode,
                     coordinateKey,
                     planeCode == PlaneCodes.Semantic ? 4 : 0,
                     out var q,

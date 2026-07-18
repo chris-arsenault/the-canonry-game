@@ -132,9 +132,8 @@ public static partial class IceRemembersDefinition
         RefreezeAge = "age_the_long_dark",
         AdditionalThawAges = ["age_the_great_thaw"],
         AdditionalRefreezeAges = ["age_the_great_freeze"],
-        ThawTerrain = Terrain.Tundra.ToDomainName(),
         FrozenTerrain = Terrain.DeepIce.ToDomainName(),
-        MaxRadius = 40,
+        MaxRadius = 128,
         FrontierMassThreshold = 25f,
         // The Long Dark reclaims weakly-held rim, not only empty rim: trace
         // ground the ice can take back. Reclaim fires only while the reclaim
@@ -142,13 +141,12 @@ public static partial class IceRemembersDefinition
         ReclaimMassCeiling = 8f,
         ThawBudgetPerPulse = 48,
         RefreezeBudgetPerPulse = 16,
-        // Idea-space is born as a heart and grows outward wherever a culture's
-        // idea-mass presses its frontier - continuous, no age gate, never
-        // re-freezing. New ground opens as neutral open field and earns meaning
-        // as culture and entities reach it.
-        SemanticOpenTerrain = Terrain.OpenField.ToDomainName(),
-        SemanticMaxRadius = 40,
+        // Idea-space is born as a heart and reveals the varied latent semantic
+        // field wherever culture's idea-mass presses its frontier.
+        SemanticGrowthEnabled = true,
+        SemanticMaxRadius = 128,
         SemanticFrontierMassThreshold = 25f,
+        SemanticBudgetPerPulse = 48,
     };
 
     private static List<RelationshipConfig> CreateRelationships()

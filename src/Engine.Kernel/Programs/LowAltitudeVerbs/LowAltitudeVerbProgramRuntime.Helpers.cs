@@ -110,7 +110,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     {
         var planeRadius = Data.PlaneCode(rule) == PlaneCodes.Semantic
             ? EffectiveSemanticRadius(world)
-            : world.MapRadius;
+            : world.PhysicalMapRadius;
         var distanceScale = EffectiveDistanceScale(rule, targetMode);
         var scaledRadius = distanceScale > 0f
             ? (int)global::System.MathF.Ceiling(distanceScale * 2f)

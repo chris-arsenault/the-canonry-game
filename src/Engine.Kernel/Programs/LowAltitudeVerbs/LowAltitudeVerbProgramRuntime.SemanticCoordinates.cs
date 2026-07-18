@@ -8,5 +8,5 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         world.CellIsKnown(PlaneCodes.Semantic, q, r);
 
     private static int EffectiveSemanticRadius(WorldState world) =>
-        world.MapRadius;
+        world.SemanticMapRadius;
 }

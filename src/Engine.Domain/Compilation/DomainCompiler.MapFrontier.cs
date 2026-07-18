@@ -20,16 +20,16 @@ public static partial class DomainCompiler
             RefreezeAgeId = frontier.RefreezeAge is null ? 0 : ids.GeneratorIdOf(frontier.RefreezeAge).Value,
             AdditionalThawAgeIds = [.. frontier.AdditionalThawAges.Select(age => ids.GeneratorIdOf(age).Value)],
             AdditionalRefreezeAgeIds = [.. frontier.AdditionalRefreezeAges.Select(age => ids.GeneratorIdOf(age).Value)],
-            ThawTerrainId = ids.TerrainIdOf(frontier.ThawTerrain).Value,
             FrozenTerrainId = ids.TerrainIdOf(frontier.FrozenTerrain).Value,
             MaxRadius = frontier.MaxRadius,
             FrontierMassThreshold = frontier.FrontierMassThreshold,
             ReclaimMassCeiling = frontier.ReclaimMassCeiling,
             ThawBudgetPerPulse = frontier.ThawBudgetPerPulse,
             RefreezeBudgetPerPulse = frontier.RefreezeBudgetPerPulse,
-            SemanticOpenTerrainId = frontier.SemanticOpenTerrain is null ? 0 : ids.TerrainIdOf(frontier.SemanticOpenTerrain).Value,
+            SemanticGrowthEnabled = frontier.SemanticGrowthEnabled,
             SemanticMaxRadius = frontier.SemanticMaxRadius,
             SemanticFrontierMassThreshold = frontier.SemanticFrontierMassThreshold,
+            SemanticBudgetPerPulse = frontier.SemanticBudgetPerPulse,
         };
     }
 }

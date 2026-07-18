@@ -270,7 +270,6 @@ internal static partial class KernelProgramInstaller
         context.SetMapFrontierConfiguration(
             program.ThawAgeId,
             program.RefreezeAgeId,
-            program.ThawTerrainId,
             program.FrozenTerrainId,
             program.MaxRadius,
             program.FrontierMassThreshold,
@@ -278,9 +277,10 @@ internal static partial class KernelProgramInstaller
             program.ThawBudgetPerPulse,
             program.RefreezeBudgetPerPulse);
         context.SetMapFrontierSemanticConfiguration(
-            program.SemanticOpenTerrainId,
+            program.SemanticGrowthEnabled,
             program.SemanticMaxRadius,
-            program.SemanticFrontierMassThreshold);
+            program.SemanticFrontierMassThreshold,
+            program.SemanticBudgetPerPulse);
         var driverCount = System.Math.Max(program.AdditionalThawAgeIds.Count, program.AdditionalRefreezeAgeIds.Count);
         for (var i = 0; i < driverCount; i++)
         {

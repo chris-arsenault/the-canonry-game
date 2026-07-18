@@ -15,12 +15,6 @@ internal sealed partial class MovementProgramRuntime
         }
 
         var world = simulation.World;
-        var segmentGridWidth = SegmentGridWidth(world.MapRadius, segmentSize);
-        if (segmentGridWidth <= 0)
-        {
-            return;
-        }
-
         State.BeginRoadMarkReconciliation(segmentSize);
         for (var index = 0; index < State.RoadCellCount; index++)
         {
@@ -28,7 +22,7 @@ internal sealed partial class MovementProgramRuntime
             _ = quality;
             _ = lastTick;
             _ = travelCount;
-            ReconcileRoadMarkCell(world, planeCode, coordinateKey, tick, segmentSize, segmentGridWidth);
+            ReconcileRoadMarkCell(world, planeCode, coordinateKey, tick, segmentSize);
         }
 
         State.CommitRoadMarkReconciliation(segmentSize);
@@ -40,10 +34,10 @@ internal sealed partial class MovementProgramRuntime
         int planeCode,
         int coordinateKey,
         int tick,
-        int segmentSize,
-        int segmentGridWidth)
+        int segmentSize)
     {
         if (!world.TryResolveCoordinateKey(
+                planeCode,
                 coordinateKey,
                 planeCode == PlaneCodes.Semantic ? 4 : 0,
                 out var q,
@@ -58,7 +52,12 @@ internal sealed partial class MovementProgramRuntime
             return;
         }
 
-        var segment = SegmentIndex(world.MapRadius, segmentSize, segmentGridWidth, q, r);
+        var radius = SegmentFrameRadius(
+            world.MapRadiusForPlane(planeCode),
+            world.MapSegmentOriginRadiusForPlane(planeCode),
+            segmentSize);
+        var segmentGridWidth = SegmentGridWidth(radius, segmentSize);
+        var segment = SegmentIndex(radius, segmentSize, segmentGridWidth, q, r);
         if (segment >= 0)
         {
             State.AccumulateRoadMark(planeCode, segmentSize, segment, mark);

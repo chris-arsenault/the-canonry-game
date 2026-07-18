@@ -72,10 +72,11 @@ internal sealed partial class WorldState
     private int SnapshotCellEventCount(int planeCode, bool emitLegacyPhysicalEvents)
     {
         var count = 0;
-        for (var q = -_mapRadius; q <= _mapRadius; q++)
+        var radius = MapRadiusForPlane(planeCode);
+        for (var q = -radius; q <= radius; q++)
         {
-            var minR = global::System.Math.Max(-_mapRadius, -q - _mapRadius);
-            var maxR = global::System.Math.Min(_mapRadius, -q + _mapRadius);
+            var minR = global::System.Math.Max(-radius, -q - radius);
+            var maxR = global::System.Math.Min(radius, -q + radius);
             for (var r = minR; r <= maxR; r++)
             {
                 count += SnapshotCellColumnEventCount(planeCode, q, r, emitLegacyPhysicalEvents);
@@ -112,10 +113,11 @@ internal sealed partial class WorldState
     {
         var minZ = planeCode == PlaneCodes.Physical ? MinCellZ : 0;
         var maxZ = planeCode == PlaneCodes.Physical ? MaxCellZ : 0;
-        for (var q = -_mapRadius; q <= _mapRadius; q++)
+        var radius = MapRadiusForPlane(planeCode);
+        for (var q = -radius; q <= radius; q++)
         {
-            var minR = global::System.Math.Max(-_mapRadius, -q - _mapRadius);
-            var maxR = global::System.Math.Min(_mapRadius, -q + _mapRadius);
+            var minR = global::System.Math.Max(-radius, -q - radius);
+            var maxR = global::System.Math.Min(radius, -q + radius);
             for (var r = minR; r <= maxR; r++)
             {
                 for (var z = minZ; z <= maxZ; z++)
@@ -366,9 +368,9 @@ internal sealed partial class WorldState
         }
     }
 
-    internal bool TryResolveCoordinateKey(int coordinateKey, int extraRadius, out int q, out int r)
+    internal bool TryResolveCoordinateKey(int planeCode, int coordinateKey, int extraRadius, out int q, out int r)
     {
-        var radius = _mapRadius + extraRadius;
+        var radius = MapRadiusForPlane(planeCode) + extraRadius;
         for (q = -radius; q <= radius; q++)
         {
             var minR = global::System.Math.Max(-radius, -q - radius);

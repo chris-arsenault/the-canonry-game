@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 42;
+    private const int FormatVersion = 43;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -130,6 +130,8 @@ internal static class KernelSnapshotOptions
         writer.Write(options.RelationshipRuleCapacity);
         writer.Write(options.RelationshipKindIdCapacity);
         writer.Write(options.RelationshipGraphDeltaMergeThreshold);
+        writer.Write(options.MapFrontierThawRingCapacity);
+        writer.Write(options.MapFrontierCandidateCapacity);
     }
 
     private static void WriteRuntimeCodes(
@@ -285,6 +287,8 @@ internal static class KernelSnapshotOptions
         values.RelationshipRuleCapacity = reader.ReadInt32();
         values.RelationshipKindIdCapacity = reader.ReadInt32();
         values.RelationshipGraphDeltaMergeThreshold = reader.ReadInt32();
+        values.MapFrontierThawRingCapacity = reader.ReadInt32();
+        values.MapFrontierCandidateCapacity = reader.ReadInt32();
     }
 
     private static void ReadRuntimeCodeValues(
@@ -436,6 +440,8 @@ internal static class KernelSnapshotOptions
             RelationshipRuleCapacity = values.RelationshipRuleCapacity,
             RelationshipKindIdCapacity = values.RelationshipKindIdCapacity,
             RelationshipGraphDeltaMergeThreshold = values.RelationshipGraphDeltaMergeThreshold,
+            MapFrontierThawRingCapacity = values.MapFrontierThawRingCapacity,
+            MapFrontierCandidateCapacity = values.MapFrontierCandidateCapacity,
             RuntimeCodes = CreateRuntimeCodes(values),
             KernelTuning = CreateKernelTuning(values),
             Seed = values.Seed,
@@ -569,6 +575,8 @@ internal static class KernelSnapshotOptions
         public int RelationshipRuleCapacity;
         public int RelationshipKindIdCapacity;
         public int RelationshipGraphDeltaMergeThreshold;
+        public int MapFrontierThawRingCapacity;
+        public int MapFrontierCandidateCapacity;
         public int RelationshipCreatedCodeId;
         public int RelationshipCulledCodeId;
         public int RelationshipStrengthChangedCodeId;

@@ -30,6 +30,7 @@ internal sealed partial class Simulation : IKernel
         }
 
         ValidateCultureTuning(options);
+        ValidateMapCapacities(options);
         Options = options;
         Events = new KernelEventLog(
             options.EventCapacity,

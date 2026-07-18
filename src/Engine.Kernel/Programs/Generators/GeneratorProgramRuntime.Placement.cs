@@ -326,7 +326,7 @@ internal sealed partial class GeneratorProgramRuntime
         var bestScore = int.MaxValue;
         var found = false;
         var world = simulation.World;
-        for (var radius = 0; radius <= world.MapRadius; radius++)
+        for (var radius = 0; radius <= world.PhysicalMapRadius; radius++)
         {
             found = TrySearchCoverageSeedRadius(
                     simulation,
@@ -949,7 +949,7 @@ internal sealed partial class GeneratorProgramRuntime
         }
 
         return planeCode == PlaneCodes.Physical
-            ? world.MapRadius
+            ? world.PhysicalMapRadius
             : EffectiveSemanticRadius(world);
     }
 
@@ -957,6 +957,6 @@ internal sealed partial class GeneratorProgramRuntime
         world.CellIsKnown(PlaneCodes.Semantic, q, r);
 
     private static int EffectiveSemanticRadius(WorldState world) =>
-        world.MapRadius;
+        world.SemanticMapRadius;
 
 }

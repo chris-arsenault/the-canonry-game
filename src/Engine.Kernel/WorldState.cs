@@ -108,7 +108,10 @@ internal sealed partial class WorldState
     private int _relationshipHighWatermark;
     private int _provenanceInvocationHighWatermark;
     private int _provenanceOutputHighWatermark;
-    private int _mapRadius;
+    private int _physicalMapRadius;
+    private int _semanticMapRadius;
+    private int _physicalMapSegmentOriginRadius;
+    private int _semanticMapSegmentOriginRadius;
     private int _relationshipGraphDeltaCount;
 
     public WorldState(KernelEventLog events, SimulationOptions options, KernelDataSet kernelData)

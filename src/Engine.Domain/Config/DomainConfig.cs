@@ -309,8 +309,9 @@ public sealed class MinorActorCampaignConfig
 
 /// <summary>
 /// The growing map: which Ice-track ages drive thaw and re-freeze, the
-/// terrains they lay, and the mass/extent bounds. Age ids reference
-/// WorldBeatAges by id; terrains reference terrain names.
+/// mass/extent bounds, and semantic growth. Age ids reference WorldBeatAges by
+/// id; the frozen terrain references a terrain name. Revealed base terrain and
+/// geography come from the startup seed's latent fields.
 /// </summary>
 public sealed class MapFrontierConfig
 {
@@ -320,7 +321,6 @@ public sealed class MapFrontierConfig
     public IReadOnlyList<string> AdditionalThawAges { get; init; } = [];
     /// <summary>Additional ages that also drive reclaim (e.g. a catastrophic freeze).</summary>
     public IReadOnlyList<string> AdditionalRefreezeAges { get; init; } = [];
-    public required string ThawTerrain { get; init; }
     public required string FrozenTerrain { get; init; }
     public int MaxRadius { get; init; } = 40;
     public float FrontierMassThreshold { get; init; } = 60f;
@@ -329,14 +329,14 @@ public sealed class MapFrontierConfig
     public int RefreezeBudgetPerPulse { get; init; } = 24;
 
     /// <summary>
-    /// Terrain laid on newly opened semantic (idea-space) cells. Null disables
-    /// semantic growth: the semantic plane stays whatever extent it was seeded at.
-    /// Ideas have no ice, so semantic growth is continuous (no age gate) and never
+    /// Enables continuous semantic growth from the installed latent terrain
+    /// field. Ideas have no ice, so semantic growth has no age gate and never
     /// re-freezes.
     /// </summary>
-    public string? SemanticOpenTerrain { get; init; }
+    public bool SemanticGrowthEnabled { get; init; }
     public int SemanticMaxRadius { get; init; } = 40;
     public float SemanticFrontierMassThreshold { get; init; } = 30f;
+    public int SemanticBudgetPerPulse { get; init; } = 24;
 }
 
 public sealed class MinorActorRuleConfig

@@ -19,21 +19,15 @@ internal sealed partial class MapFrontierProgramRuntime :
 
     private readonly int[] _candidateQ;
     private readonly int[] _candidateR;
-    private readonly int[] _candidateSuperregion;
-    private readonly int[] _candidateContinent;
-    private readonly int[] _candidateOwner;
 
     public MapFrontierProgramRuntime(SimulationOptions options)
     {
         global::System.ArgumentNullException.ThrowIfNull(options);
         Data = new MapFrontierProgramData(options.MapGenerationRadiusCapacity);
         State = new MapFrontierProgramState(options.MapFrontierThawRingCapacity);
-        var budget = global::System.Math.Max(1, Data.ThawBudgetPerPulse);
+        var budget = options.MapFrontierCandidateCapacity;
         _candidateQ = new int[budget];
         _candidateR = new int[budget];
-        _candidateSuperregion = new int[budget];
-        _candidateContinent = new int[budget];
-        _candidateOwner = new int[budget];
     }
 
     public MapFrontierProgramData Data { get; }
@@ -55,7 +49,7 @@ internal sealed partial class MapFrontierProgramRuntime :
         }
 
         // Idea-space grows every tick where culture presses it - no age gate.
-        if (Data.SemanticOpenTerrainId != 0)
+        if (Data.SemanticGrowthEnabled)
         {
             GrowSemanticFrontier(simulation);
         }
@@ -67,12 +61,17 @@ internal sealed partial class MapFrontierProgramRuntime :
     private void ThawFrontier(Simulation simulation, int tick)
     {
         var world = simulation.World;
-        var budget = _candidateQ.Length;
+        var budget = global::System.Math.Min(Data.ThawBudgetPerPulse, _candidateQ.Length);
         var count = 0;
-        for (var cultureId = 1; cultureId <= world.CultureHighWatermark && count < budget; cultureId++)
+        var cultureCount = world.CultureHighWatermark;
+        var startCultureId = FirstCultureId(State.NextPhysicalCultureId, cultureCount);
+        for (var offset = 0; offset < cultureCount && count < budget; offset++)
         {
-            count = CollectThawCandidates(simulation, world, cultureId, count);
+            var cultureId = ((startCultureId - 1 + offset) % cultureCount) + 1;
+            count = CollectThawCandidates(simulation, world, cultureId, count, budget);
         }
+
+        State.NextPhysicalCultureId = NextCultureId(startCultureId, cultureCount);
 
         for (var i = 0; i < count; i++)
         {
@@ -80,13 +79,18 @@ internal sealed partial class MapFrontierProgramRuntime :
         }
     }
 
-    private int CollectThawCandidates(Simulation simulation, WorldState world, int cultureId, int count)
+    private int CollectThawCandidates(
+        Simulation simulation,
+        WorldState world,
+        int cultureId,
+        int count,
+        int budget)
     {
         var threshold = Data.FrontierMassThreshold * simulation.Knowledge.Modifier(
             cultureId,
             KnowledgeGrantDomainCodes.FrontierThawThreshold);
         var cursor = world.RawCultureInfluenceCellsOf(cultureId, PlaneCodes.Physical);
-        while (count < _candidateQ.Length &&
+        while (count < budget &&
                world.MoveNextRawCultureInfluenceCell(ref cursor, out var q, out var r, out _, out var raw))
         {
             if (raw < threshold || HexDistanceFromOrigin(q, r) >= Data.MaxRadius)
@@ -94,37 +98,43 @@ internal sealed partial class MapFrontierProgramRuntime :
                 continue;
             }
 
-            count = CollectThawNeighbors(world, q, r, count);
+            count = CollectThawNeighbors(simulation, world, q, r, count, budget);
         }
 
         return count;
     }
 
-    private int CollectThawNeighbors(WorldState world, int q, int r, int count)
+    private int CollectThawNeighbors(
+        Simulation simulation,
+        WorldState world,
+        int q,
+        int r,
+        int count,
+        int budget)
     {
-        for (var direction = 0; direction < 6 && count < _candidateQ.Length; direction++)
+        for (var direction = 0; direction < 6 && count < budget; direction++)
         {
             var nq = q + NeighborDQ[direction];
             var nr = r + NeighborDR[direction];
-            if (HexDistanceFromOrigin(nq, nr) > Data.MaxRadius || !CellNeedsThaw(world, nq, nr) || AlreadyQueued(nq, nr, count))
+            if (HexDistanceFromOrigin(nq, nr) > Data.MaxRadius ||
+                !CellNeedsThaw(simulation, world, nq, nr) ||
+                AlreadyQueued(nq, nr, count))
             {
                 continue;
             }
 
             _candidateQ[count] = nq;
             _candidateR[count] = nr;
-            _candidateSuperregion[count] = world.CellSuperregionId(PlaneCodes.Physical, q, r);
-            _candidateContinent[count] = world.CellContinentId(PlaneCodes.Physical, q, r);
-            _candidateOwner[count] = 0;
             count++;
         }
 
         return count;
     }
 
-    private bool CellNeedsThaw(WorldState world, int q, int r) =>
-        !world.CellIsKnown(PlaneCodes.Physical, q, r) ||
-        world.CellTerrainId(PlaneCodes.Physical, q, r) == Data.FrozenTerrainId;
+    private bool CellNeedsThaw(Simulation simulation, WorldState world, int q, int r) =>
+        simulation.KernelData.PhysicalGeography.TryGetCell(q, r, out _, out _, out _) &&
+        (!world.CellIsKnown(PlaneCodes.Physical, q, r) ||
+         world.CellTerrainId(PlaneCodes.Physical, q, r) == Data.FrozenTerrainId);
 
     private bool AlreadyQueued(int q, int r, int count)
     {
@@ -143,9 +153,20 @@ internal sealed partial class MapFrontierProgramRuntime :
     {
         var q = _candidateQ[index];
         var r = _candidateR[index];
-        if (simulation.World.CellIsKnown(PlaneCodes.Physical, q, r))
+        if (!simulation.KernelData.PhysicalGeography.TryGetCell(
+                q,
+                r,
+                out var terrainId,
+                out var superregionId,
+                out var continentId))
         {
-            simulation.SetCellTerrain(PlaneCodes.Physical, q, r, Data.ThawTerrainId, tick);
+            throw new global::System.InvalidOperationException();
+        }
+
+        var wasKnown = simulation.World.CellIsKnown(PlaneCodes.Physical, q, r);
+        if (wasKnown)
+        {
+            simulation.SetCellTerrain(PlaneCodes.Physical, q, r, terrainId, tick);
         }
         else
         {
@@ -153,12 +174,21 @@ internal sealed partial class MapFrontierProgramRuntime :
                 PlaneCodes.Physical,
                 q,
                 r,
-                Data.ThawTerrainId,
-                _candidateOwner[index],
-                _candidateSuperregion[index],
-                _candidateContinent[index]);
+                terrainId,
+                0,
+                superregionId,
+                continentId);
         }
 
-        State.RecordThawed(q, r);
+        if (!wasKnown)
+        {
+            State.RecordThawed(q, r);
+        }
     }
+
+    private static int FirstCultureId(int nextCultureId, int cultureCount) =>
+        cultureCount <= 0 || nextCultureId <= 0 || nextCultureId > cultureCount ? 1 : nextCultureId;
+
+    private static int NextCultureId(int currentCultureId, int cultureCount) =>
+        cultureCount <= 0 || currentCultureId >= cultureCount ? 1 : currentCultureId + 1;
 }

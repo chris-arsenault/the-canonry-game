@@ -13,12 +13,33 @@ internal sealed partial class WorldState
     internal const int MinCellZ = -3;
     internal const int MaxCellZ = 3;
 
-    public int MapRadius => _mapRadius;
+    public int MapRadius => _physicalMapRadius;
+
+    public int PhysicalMapRadius => _physicalMapRadius;
+
+    public int SemanticMapRadius => _semanticMapRadius;
+
+    public int MapRadiusForPlane(int planeCode)
+    {
+        ValidateInfluencePlaneCode(planeCode);
+        return planeCode == PlaneCodes.Physical ? _physicalMapRadius : _semanticMapRadius;
+    }
+
+    internal int MapSegmentOriginRadiusForPlane(int planeCode)
+    {
+        ValidateInfluencePlaneCode(planeCode);
+        return planeCode == PlaneCodes.Physical
+            ? _physicalMapSegmentOriginRadius
+            : _semanticMapSegmentOriginRadius;
+    }
 
     public void SetMapRadius(int radius)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(radius);
-        _mapRadius = radius;
+        _physicalMapRadius = radius;
+        _semanticMapRadius = radius;
+        _physicalMapSegmentOriginRadius = radius;
+        _semanticMapSegmentOriginRadius = radius;
     }
 
     public void SetCell(int q, int r, int terrainId)
@@ -142,7 +163,27 @@ internal sealed partial class WorldState
         _mapCellSuperregionIds.Set(key, planeCode, superregionId);
         _mapCellContinentIds.Set(key, planeCode, continentId);
         _mapLayers.Coverage.SetValue(planeCode, key, q, r, z, ownerEntityId);
+        if (z == 0)
+        {
+            AdvanceMapExtent(planeCode, q, r);
+        }
     }
+
+    private void AdvanceMapExtent(int planeCode, int q, int r)
+    {
+        var radius = HexDistanceFromOrigin(q, r);
+        if (planeCode == PlaneCodes.Physical)
+        {
+            _physicalMapRadius = global::System.Math.Max(_physicalMapRadius, radius);
+        }
+        else
+        {
+            _semanticMapRadius = global::System.Math.Max(_semanticMapRadius, radius);
+        }
+    }
+
+    private static int HexDistanceFromOrigin(int q, int r) =>
+        (global::System.Math.Abs(q) + global::System.Math.Abs(r) + global::System.Math.Abs(q + r)) / 2;
 
     internal void WriteForgedCell(int planeCode, int q, int r, int z, int terrainId)
     {

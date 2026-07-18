@@ -329,7 +329,7 @@ public sealed partial class KernelHost
 
     private static IEnumerable<(int Q, int R)> KnownCells(WorldState world, int planeCode)
     {
-        var radius = world.MapRadius;
+        var radius = world.MapRadiusForPlane(planeCode);
         for (var q = -radius; q <= radius; q++)
         {
             var minR = Math.Max(-radius, -q - radius);

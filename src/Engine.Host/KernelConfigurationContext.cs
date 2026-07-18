@@ -810,7 +810,6 @@ internal sealed class KernelConfigurationContext
     public void SetMapFrontierConfiguration(
         int thawAgeId,
         int refreezeAgeId,
-        int thawTerrainId,
         int frozenTerrainId,
         int maxRadius,
         float frontierMassThreshold,
@@ -820,7 +819,6 @@ internal sealed class KernelConfigurationContext
         _kernel.MapFrontier.SetAgeConfiguration(
             thawAgeId,
             refreezeAgeId,
-            thawTerrainId,
             frozenTerrainId,
             maxRadius,
             frontierMassThreshold,
@@ -837,8 +835,12 @@ internal sealed class KernelConfigurationContext
     public void RegisterKnowledgeGrant(int site, int domain, int target, float multiplier) =>
         _kernel.RegisterKnowledgeGrant(site, domain, target, multiplier);
 
-    public void SetMapFrontierSemanticConfiguration(int openTerrainId, int maxRadius, float frontierMassThreshold) =>
-        _kernel.MapFrontier.SetSemanticConfiguration(openTerrainId, maxRadius, frontierMassThreshold);
+    public void SetMapFrontierSemanticConfiguration(
+        bool enabled,
+        int maxRadius,
+        float frontierMassThreshold,
+        int budgetPerPulse) =>
+        _kernel.MapFrontier.SetSemanticConfiguration(enabled, maxRadius, frontierMassThreshold, budgetPerPulse);
 
     public int AddChronicleArchetype(int archetypeId, int maxActive, int castingCadenceTicks, int primaryKindId, int primaryRequiredRelKindId, float primaryRequiredRelMinStrength, int fadeOutcomeCodeId, int fadeGraceTicks, int fadeQuietTicks) =>
         _kernel.Chronicles.AddArchetype(archetypeId, maxActive, castingCadenceTicks, primaryKindId, primaryRequiredRelKindId, primaryRequiredRelMinStrength, fadeOutcomeCodeId, fadeGraceTicks, fadeQuietTicks);

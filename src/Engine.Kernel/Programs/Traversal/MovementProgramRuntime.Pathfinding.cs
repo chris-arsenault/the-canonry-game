@@ -56,6 +56,7 @@ internal sealed partial class MovementProgramRuntime
         nextR = startR;
         if (!TryBuildSegmentRouteContext(
                 world,
+                planeCode,
                 LocalPathSegmentSize,
                 startQ,
                 startR,
@@ -64,6 +65,7 @@ internal sealed partial class MovementProgramRuntime
                 out var localContext) ||
             !TryBuildSegmentRouteContext(
                 world,
+                planeCode,
                 RegionalPathSegmentSize,
                 startQ,
                 startR,
@@ -97,6 +99,7 @@ internal sealed partial class MovementProgramRuntime
 
     private bool TryBuildSegmentRouteContext(
         WorldState world,
+        int planeCode,
         int segmentSize,
         int startQ,
         int startR,
@@ -104,7 +107,10 @@ internal sealed partial class MovementProgramRuntime
         int targetR,
         out SegmentRouteContext context)
     {
-        var radius = world.MapRadius;
+        var radius = SegmentFrameRadius(
+            world.MapRadiusForPlane(planeCode),
+            world.MapSegmentOriginRadiusForPlane(planeCode),
+            segmentSize);
         var segmentGridWidth = SegmentGridWidth(radius, segmentSize);
         context = new SegmentRouteContext(radius, segmentSize, segmentGridWidth, -1, -1);
         if (segmentGridWidth <= 0 ||

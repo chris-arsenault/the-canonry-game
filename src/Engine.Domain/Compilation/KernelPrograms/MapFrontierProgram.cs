@@ -8,14 +8,14 @@ public sealed class MapFrontierProgram
     public int RefreezeAgeId { get; init; }
     public IReadOnlyList<int> AdditionalThawAgeIds { get; init; } = [];
     public IReadOnlyList<int> AdditionalRefreezeAgeIds { get; init; } = [];
-    public int ThawTerrainId { get; init; }
     public int FrozenTerrainId { get; init; }
     public int MaxRadius { get; init; }
     public float FrontierMassThreshold { get; init; }
     public float ReclaimMassCeiling { get; init; }
     public int ThawBudgetPerPulse { get; init; }
     public int RefreezeBudgetPerPulse { get; init; }
-    public int SemanticOpenTerrainId { get; init; }
+    public bool SemanticGrowthEnabled { get; init; }
     public int SemanticMaxRadius { get; init; }
     public float SemanticFrontierMassThreshold { get; init; }
+    public int SemanticBudgetPerPulse { get; init; }
 }

@@ -109,7 +109,6 @@ internal sealed partial class MapFrontierProgramRuntime
     public void SetAgeConfiguration(
         int thawAgeId,
         int refreezeAgeId,
-        int thawTerrainId,
         int frozenTerrainId,
         int maxRadius,
         float frontierMassThreshold,
@@ -117,15 +116,34 @@ internal sealed partial class MapFrontierProgramRuntime
         int thawBudgetPerPulse,
         int refreezeBudgetPerPulse)
     {
+        ValidateRadiusAndBudget(maxRadius, thawBudgetPerPulse);
+        if (refreezeBudgetPerPulse <= 0 || refreezeBudgetPerPulse > _candidateQ.Length)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(refreezeBudgetPerPulse));
+        }
+
         Data.ThawAgeIds[0] = thawAgeId;
         Data.RefreezeAgeIds[0] = refreezeAgeId;
-        Data.ThawTerrainId = thawTerrainId;
         Data.FrozenTerrainId = frozenTerrainId;
         Data.MaxRadius = maxRadius;
         Data.FrontierMassThreshold = frontierMassThreshold;
         Data.ReclaimMassCeiling = reclaimMassCeiling;
         Data.ThawBudgetPerPulse = thawBudgetPerPulse;
         Data.RefreezeBudgetPerPulse = refreezeBudgetPerPulse;
+    }
+
+    private void ValidateRadiusAndBudget(int radius, int budgetPerPulse)
+    {
+        if (radius <= 0 ||
+            (Data.GenerationRadiusCapacity > 0 && radius > Data.GenerationRadiusCapacity))
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(radius));
+        }
+
+        if (budgetPerPulse <= 0 || budgetPerPulse > _candidateQ.Length)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(budgetPerPulse));
+        }
     }
 
     /// <summary>Registers an additional thaw and/or reclaim driver age (0 slots ignored).</summary>
