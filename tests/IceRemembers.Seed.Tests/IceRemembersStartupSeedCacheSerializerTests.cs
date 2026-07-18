@@ -36,6 +36,9 @@ public sealed class IceRemembersStartupSeedCacheSerializerTests
         Assert.Equal(expected.Seed.Attributes, actual.Seed.Attributes);
         AssertKnowledgeSitesEqual(expected.Seed.KnowledgeSites, actual.Seed.KnowledgeSites);
         Assert.Equal(expected.Seed.PhysicalGeography!.MaterialPalette, actual.Seed.PhysicalGeography!.MaterialPalette);
+        Assert.Equal(expected.Seed.PhysicalGeography.SurfacePalette, actual.Seed.PhysicalGeography.SurfacePalette);
+        Assert.Equal(expected.Seed.PhysicalGeography.FeaturePalette, actual.Seed.PhysicalGeography.FeaturePalette);
+        Assert.Equal(expected.Seed.PhysicalGeography.ScalarFields, actual.Seed.PhysicalGeography.ScalarFields);
         Assert.Equal(expected.Seed.PhysicalGeography.Cells, actual.Seed.PhysicalGeography.Cells);
         Assert.Equal(expected.Seed.PhysicalGeography.Microtriangles, actual.Seed.PhysicalGeography.Microtriangles);
         Assert.Equal(expected.Seed.SemanticTerrain!.Cells, actual.Seed.SemanticTerrain!.Cells);
@@ -113,7 +116,21 @@ public sealed class IceRemembersStartupSeedCacheSerializerTests
 
     private static DomainPhysicalGeographyBlueprint CreatePhysicalGeography()
     {
-        var cells = Enumerable.Range(0, 7)
+        const int triangleCount = 7 * PhysicalGeographyCodes.MicrotrianglesPerHex;
+        return new DomainPhysicalGeographyBlueprint(
+            1,
+            ["glacial_ice"],
+            ["tundra"],
+            ["hot_spring"],
+            [new DomainPhysicalScalarField(
+                "fire_intensity",
+                Enumerable.Repeat(7, triangleCount).ToArray())],
+            CreatePhysicalCells(),
+            CreatePhysicalMicrotriangles());
+    }
+
+    private static DomainPhysicalGeographyCell[] CreatePhysicalCells() =>
+        Enumerable.Range(0, 7)
             .Select(index => new DomainPhysicalGeographyCell(
                 index,
                 0,
@@ -122,6 +139,8 @@ public sealed class IceRemembersStartupSeedCacheSerializerTests
                 1,
                 index * PhysicalGeographyCodes.MicrotrianglesPerHex,
                 0,
+                0,
+                1,
                 10,
                 5,
                 15,
@@ -141,16 +160,35 @@ public sealed class IceRemembersStartupSeedCacheSerializerTests
                 0,
                 0,
                 0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0,
                 0))
             .ToArray();
-        var microtriangles = Enumerable.Repeat(
+
+    private static DomainPhysicalMicrotriangle[] CreatePhysicalMicrotriangles() =>
+        Enumerable.Repeat(
                 new DomainPhysicalMicrotriangle(
                     0,
+                    0,
+                    0,
+                    1,
                     PhysicalLandformCodes.Plain,
                     10,
+                    0,
                     -20,
                     40,
                     0,
+                    1,
+                    PhysicalLandmassClassCodes.Continent,
+                    1,
+                    PhysicalBathymetricZoneCodes.Land,
                     PhysicalWaterKindCodes.None,
                     0,
                     0,
@@ -158,13 +196,11 @@ public sealed class IceRemembersStartupSeedCacheSerializerTests
                     PhysicalGeographyCodes.NoFlowEdge,
                     0,
                     0,
+                    0,
+                    0,
+                    0,
+                    0,
                     0),
                 7 * PhysicalGeographyCodes.MicrotrianglesPerHex)
             .ToArray();
-        return new DomainPhysicalGeographyBlueprint(
-            1,
-            ["glacial_ice"],
-            cells,
-            microtriangles);
-    }
 }

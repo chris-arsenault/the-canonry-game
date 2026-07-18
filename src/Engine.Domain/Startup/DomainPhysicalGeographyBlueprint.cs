@@ -10,11 +10,14 @@ using Engine.Constants;
 public sealed record DomainPhysicalGeographyBlueprint(
     int Radius,
     IReadOnlyList<string> MaterialPalette,
+    IReadOnlyList<string> SurfacePalette,
+    IReadOnlyList<string> FeaturePalette,
+    IReadOnlyList<DomainPhysicalScalarField> ScalarFields,
     IReadOnlyList<DomainPhysicalGeographyCell> Cells,
     IReadOnlyList<DomainPhysicalMicrotriangle> Microtriangles)
 {
     public static DomainPhysicalGeographyBlueprint Empty { get; } =
-        new(0, [], [], []);
+        new(0, [], [], [], [], [], []);
 
     public void Validate()
     {
@@ -25,24 +28,35 @@ public sealed record DomainPhysicalGeographyBlueprint(
 
         if (Radius == 0)
         {
-            if (MaterialPalette.Count != 0 || Cells.Count != 0 || Microtriangles.Count != 0)
-            {
-                throw new InvalidOperationException("Empty physical geography cannot contain data.");
-            }
-
+            ValidateEmpty();
             return;
         }
 
+        ValidateCoverage();
+        ValidateCells();
+        ValidateMicrotriangles();
+        ValidateScalarFields();
+    }
+
+    private void ValidateEmpty()
+    {
+        if (MaterialPalette.Count != 0 || SurfacePalette.Count != 0 ||
+            FeaturePalette.Count != 0 || ScalarFields.Count != 0 ||
+            Cells.Count != 0 || Microtriangles.Count != 0)
+        {
+            throw new InvalidOperationException("Empty physical geography cannot contain data.");
+        }
+    }
+
+    private void ValidateCoverage()
+    {
         var expectedCells = checked((3 * Radius * Radius) + (3 * Radius) + 1);
-        if (MaterialPalette.Count == 0 ||
+        if (MaterialPalette.Count == 0 || SurfacePalette.Count == 0 || FeaturePalette.Count > 64 ||
             Cells.Count != expectedCells ||
             Microtriangles.Count != checked(expectedCells * PhysicalGeographyCodes.MicrotrianglesPerHex))
         {
             throw new InvalidOperationException("Physical geography does not cover its declared hex disk.");
         }
-
-        ValidateCells();
-        ValidateMicrotriangles();
     }
 
     private void ValidateCells()
@@ -53,6 +67,7 @@ public sealed record DomainPhysicalGeographyBlueprint(
             if (cell.MicrotriangleOffset != cellIndex * PhysicalGeographyCodes.MicrotrianglesPerHex ||
                 string.IsNullOrWhiteSpace(cell.BaseTerrain) ||
                 (uint)cell.DominantMaterialIndex >= (uint)MaterialPalette.Count ||
+                (uint)cell.PrimarySurfaceIndex >= (uint)SurfacePalette.Count ||
                 cell.SuperregionId <= 0 ||
                 cell.ContinentId <= 0)
             {
@@ -74,7 +89,10 @@ public sealed record DomainPhysicalGeographyBlueprint(
 
     private bool MicrotriangleIsValid(DomainPhysicalMicrotriangle microtriangle) =>
         (uint)microtriangle.MaterialIndex < (uint)MaterialPalette.Count &&
+        (uint)microtriangle.BaseSurfaceIndex < (uint)SurfacePalette.Count &&
+        (uint)microtriangle.SurfaceIndex < (uint)SurfacePalette.Count &&
         SurfaceCodesAreValid(microtriangle) &&
+        GeographyCodesAreValid(microtriangle) &&
         HydrologyIsValid(microtriangle) &&
         FlowIsValid(microtriangle);
 
@@ -82,6 +100,24 @@ public sealed record DomainPhysicalGeographyBlueprint(
         microtriangle.LandformCode >= PhysicalLandformCodes.Min &&
         microtriangle.LandformCode <= PhysicalLandformCodes.Max &&
         (microtriangle.FeatureFlags & ~PhysicalGeographyFeatureCodes.All) == 0;
+
+    private static bool GeographyCodesAreValid(DomainPhysicalMicrotriangle microtriangle) =>
+        GeographicIdentityIsValid(microtriangle) && FrozenFieldValuesAreValid(microtriangle);
+
+    private static bool GeographicIdentityIsValid(DomainPhysicalMicrotriangle microtriangle) =>
+        microtriangle.Slope >= 0 &&
+        microtriangle.LandmassId >= 0 &&
+        microtriangle.LandmassClassCode >= PhysicalLandmassClassCodes.Min &&
+        microtriangle.LandmassClassCode <= PhysicalLandmassClassCodes.Max &&
+        microtriangle.ContinentalGroupId >= 0 &&
+        microtriangle.BathymetricZoneCode >= PhysicalBathymetricZoneCodes.Min &&
+        microtriangle.BathymetricZoneCode <= PhysicalBathymetricZoneCodes.Max;
+
+    private static bool FrozenFieldValuesAreValid(DomainPhysicalMicrotriangle microtriangle) =>
+        microtriangle.IceThickness >= 0 &&
+        microtriangle.IceFlux >= 0 &&
+        microtriangle.FractureConductance >= 0 &&
+        microtriangle.HeatSourceDensity >= 0;
 
     private static bool HydrologyIsValid(DomainPhysicalMicrotriangle microtriangle) =>
         microtriangle.WaterKindCode >= PhysicalWaterKindCodes.Min &&
@@ -95,6 +131,20 @@ public sealed record DomainPhysicalGeographyBlueprint(
         microtriangle.FlowEdge <= 2 &&
         microtriangle.FlowAccumulation >= 0 &&
         microtriangle.RiverOrder >= 0;
+
+    private void ValidateScalarFields()
+    {
+        var names = new HashSet<string>(StringComparer.Ordinal);
+        foreach (var field in ScalarFields)
+        {
+            if (string.IsNullOrWhiteSpace(field.StableName) ||
+                !names.Add(field.StableName) ||
+                field.Values.Count != Microtriangles.Count)
+            {
+                throw new InvalidOperationException("Physical geography contains an invalid scalar field.");
+            }
+        }
+    }
 }
 
 public readonly record struct DomainPhysicalGeographyCell(
@@ -105,6 +155,8 @@ public readonly record struct DomainPhysicalGeographyCell(
     int ContinentId,
     int MicrotriangleOffset,
     int DominantMaterialIndex,
+    int PrimarySurfaceIndex,
+    ulong SignificantFeatureFlags,
     int MeanElevation,
     int MinElevation,
     int MaxElevation,
@@ -120,19 +172,36 @@ public readonly record struct DomainPhysicalGeographyCell(
     int PermanentIceCoverage,
     int RiverCoverage,
     int PeakCount,
+    int MeanIceThickness,
+    int MaxIceThickness,
+    int MeanFireIntensity,
+    int MaxFireIntensity,
+    int MeanAuroraIntensity,
+    int MaxAuroraIntensity,
+    int MeanPressureIntensity,
+    int MaxPressureIntensity,
     int RiverEdgeMask,
     int CoastEdgeMask,
     int RidgeEdgeMask,
     int CliffEdgeMask,
-    int PassEdgeMask);
+    int PassEdgeMask,
+    int FractureEdgeMask);
 
 public readonly record struct DomainPhysicalMicrotriangle(
     int MaterialIndex,
+    int BaseSurfaceIndex,
+    int SurfaceIndex,
+    ulong SignificantFeatureFlags,
     int LandformCode,
     int Elevation,
+    int Slope,
     int Temperature,
     int Moisture,
     int Geothermal,
+    int LandmassId,
+    int LandmassClassCode,
+    int ContinentalGroupId,
+    int BathymetricZoneCode,
     int WaterKindCode,
     int WaterDepth,
     int WaterBodyId,
@@ -140,4 +209,12 @@ public readonly record struct DomainPhysicalMicrotriangle(
     int FlowEdge,
     int FlowAccumulation,
     int RiverOrder,
+    int IceThickness,
+    int IceFlux,
+    int FractureConductance,
+    int HeatSourceDensity,
     int FeatureFlags);
+
+public sealed record DomainPhysicalScalarField(
+    string StableName,
+    IReadOnlyList<int> Values);

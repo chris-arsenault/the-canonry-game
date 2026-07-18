@@ -11,6 +11,11 @@ using Engine.Domain.Startup;
 public sealed class PhysicalGeographyProjection
 {
     private readonly string[] _materialPalette;
+    private readonly string[] _surfacePalette;
+    private readonly string[] _featurePalette;
+    private readonly string[] _scalarFieldNames;
+    private readonly int[][] _scalarFieldValues;
+    private readonly Dictionary<string, int> _scalarFieldIndexes;
     private readonly PhysicalGeographyCellProjection[] _cells;
     private readonly PhysicalMicrotriangleProjection[] _microtriangles;
     private readonly int[] _cellIndexes;
@@ -19,11 +24,25 @@ public sealed class PhysicalGeographyProjection
     private PhysicalGeographyProjection(
         int radius,
         string[] materialPalette,
+        string[] surfacePalette,
+        string[] featurePalette,
+        string[] scalarFieldNames,
+        int[][] scalarFieldValues,
         PhysicalGeographyCellProjection[] cells,
         PhysicalMicrotriangleProjection[] microtriangles)
     {
         Radius = radius;
         _materialPalette = materialPalette;
+        _surfacePalette = surfacePalette;
+        _featurePalette = featurePalette;
+        _scalarFieldNames = scalarFieldNames;
+        _scalarFieldValues = scalarFieldValues;
+        _scalarFieldIndexes = new Dictionary<string, int>(scalarFieldNames.Length, StringComparer.Ordinal);
+        for (var index = 0; index < scalarFieldNames.Length; index++)
+        {
+            _scalarFieldIndexes.Add(scalarFieldNames[index], index);
+        }
+
         _cells = cells;
         _microtriangles = microtriangles;
         _diameter = checked((radius * 2) + 1);
@@ -37,13 +56,19 @@ public sealed class PhysicalGeographyProjection
     }
 
     public static PhysicalGeographyProjection Empty { get; } =
-        new(0, [], [], []);
+        new(0, [], [], [], [], [], [], []);
 
     public int Radius { get; }
 
     public bool HasData => Radius > 0 && _cells.Length > 0;
 
     public IReadOnlyList<string> MaterialPalette => _materialPalette;
+
+    public IReadOnlyList<string> SurfacePalette => _surfacePalette;
+
+    public IReadOnlyList<string> FeaturePalette => _featurePalette;
+
+    public IReadOnlyList<string> ScalarFieldNames => _scalarFieldNames;
 
     public IReadOnlyList<PhysicalGeographyCellProjection> Cells => _cells;
 
@@ -59,6 +84,10 @@ public sealed class PhysicalGeographyProjection
         return new PhysicalGeographyProjection(
             blueprint.Radius,
             blueprint.MaterialPalette.ToArray(),
+            blueprint.SurfacePalette.ToArray(),
+            blueprint.FeaturePalette.ToArray(),
+            blueprint.ScalarFields.Select(static field => field.StableName).ToArray(),
+            blueprint.ScalarFields.Select(static field => field.Values.ToArray()).ToArray(),
             CreateCells(blueprint.Cells),
             CreateMicrotriangles(blueprint.Microtriangles));
     }
@@ -78,6 +107,8 @@ public sealed class PhysicalGeographyProjection
                 source.ContinentId,
                 source.MicrotriangleOffset,
                 source.DominantMaterialIndex,
+                source.PrimarySurfaceIndex,
+                source.SignificantFeatureFlags,
                 source.MeanElevation,
                 source.MinElevation,
                 source.MaxElevation,
@@ -93,11 +124,20 @@ public sealed class PhysicalGeographyProjection
                 source.PermanentIceCoverage,
                 source.RiverCoverage,
                 source.PeakCount,
+                source.MeanIceThickness,
+                source.MaxIceThickness,
+                source.MeanFireIntensity,
+                source.MaxFireIntensity,
+                source.MeanAuroraIntensity,
+                source.MaxAuroraIntensity,
+                source.MeanPressureIntensity,
+                source.MaxPressureIntensity,
                 source.RiverEdgeMask,
                 source.CoastEdgeMask,
                 source.RidgeEdgeMask,
                 source.CliffEdgeMask,
-                source.PassEdgeMask);
+                source.PassEdgeMask,
+                source.FractureEdgeMask);
         }
 
         return cells;
@@ -112,11 +152,19 @@ public sealed class PhysicalGeographyProjection
             var source = sourceTriangles[index];
             triangles[index] = new PhysicalMicrotriangleProjection(
                 source.MaterialIndex,
+                source.BaseSurfaceIndex,
+                source.SurfaceIndex,
+                source.SignificantFeatureFlags,
                 source.LandformCode,
                 source.Elevation,
+                source.Slope,
                 source.Temperature,
                 source.Moisture,
                 source.Geothermal,
+                source.LandmassId,
+                source.LandmassClassCode,
+                source.ContinentalGroupId,
+                source.BathymetricZoneCode,
                 source.WaterKindCode,
                 source.WaterDepth,
                 source.WaterBodyId,
@@ -124,6 +172,10 @@ public sealed class PhysicalGeographyProjection
                 source.FlowEdge,
                 source.FlowAccumulation,
                 source.RiverOrder,
+                source.IceThickness,
+                source.IceFlux,
+                source.FractureConductance,
+                source.HeatSourceDensity,
                 source.FeatureFlags);
         }
 
@@ -170,6 +222,35 @@ public sealed class PhysicalGeographyProjection
             ? _materialPalette[materialIndex]
             : $"material-{materialIndex}";
 
+    public string SurfaceName(int surfaceIndex) =>
+        (uint)surfaceIndex < (uint)_surfacePalette.Length
+            ? _surfacePalette[surfaceIndex]
+            : $"surface-{surfaceIndex}";
+
+    public bool TryGetScalarValue(string stableName, int microtriangleIndex, out int value)
+    {
+        if (!_scalarFieldIndexes.TryGetValue(stableName, out var fieldIndex) ||
+            (uint)microtriangleIndex >= (uint)_microtriangles.Length)
+        {
+            value = 0;
+            return false;
+        }
+
+        value = _scalarFieldValues[fieldIndex][microtriangleIndex];
+        return true;
+    }
+
+    public IEnumerable<string> SignificantFeatureNames(ulong flags)
+    {
+        for (var index = 0; index < _featurePalette.Length; index++)
+        {
+            if ((flags & (1UL << index)) != 0)
+            {
+                yield return _featurePalette[index];
+            }
+        }
+    }
+
     private bool TryGetCellIndex(HexCoord coord, out int index)
     {
         if (Radius == 0 ||
@@ -197,6 +278,8 @@ public readonly record struct PhysicalGeographyCellProjection(
     int ContinentId,
     int MicrotriangleOffset,
     int DominantMaterialIndex,
+    int PrimarySurfaceIndex,
+    ulong SignificantFeatureFlags,
     int MeanElevation,
     int MinElevation,
     int MaxElevation,
@@ -212,19 +295,36 @@ public readonly record struct PhysicalGeographyCellProjection(
     int PermanentIceCoverage,
     int RiverCoverage,
     int PeakCount,
+    int MeanIceThickness,
+    int MaxIceThickness,
+    int MeanFireIntensity,
+    int MaxFireIntensity,
+    int MeanAuroraIntensity,
+    int MaxAuroraIntensity,
+    int MeanPressureIntensity,
+    int MaxPressureIntensity,
     int RiverEdgeMask,
     int CoastEdgeMask,
     int RidgeEdgeMask,
     int CliffEdgeMask,
-    int PassEdgeMask);
+    int PassEdgeMask,
+    int FractureEdgeMask);
 
 public readonly record struct PhysicalMicrotriangleProjection(
     int MaterialIndex,
+    int BaseSurfaceIndex,
+    int SurfaceIndex,
+    ulong SignificantFeatureFlags,
     int LandformCode,
     int Elevation,
+    int Slope,
     int Temperature,
     int Moisture,
     int Geothermal,
+    int LandmassId,
+    int LandmassClassCode,
+    int ContinentalGroupId,
+    int BathymetricZoneCode,
     int WaterKindCode,
     int WaterDepth,
     int WaterBodyId,
@@ -232,4 +332,8 @@ public readonly record struct PhysicalMicrotriangleProjection(
     int FlowEdge,
     int FlowAccumulation,
     int RiverOrder,
+    int IceThickness,
+    int IceFlux,
+    int FractureConductance,
+    int HeatSourceDensity,
     int FeatureFlags);

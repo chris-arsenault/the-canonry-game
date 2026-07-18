@@ -19,8 +19,9 @@ internal static partial class IceRemembersSeedBuilder
             GenerationRadius,
             salt,
             IceRemembersPhysicalGeography.GenerationProfile);
-        var materialIndexes = ClassifyPhysicalMaterials(field);
-        var aggregates = AggregateConfiguredHexes(field, materialIndexes);
+        var magic = IceRemembersMagicWorldGenerator.Generate(field, salt);
+        var materialIndexes = ClassifyPhysicalMaterials(field, magic);
+        var aggregates = AggregateConfiguredHexes(field, materialIndexes, magic);
         var subdivisions = CreatePhysicalSubdivisions(field, aggregates, salt);
         var catalog = IceRemembersTerrainCatalog.CreateWorldGenCatalog();
         var fieldGrid = new HexGrid(
@@ -30,6 +31,7 @@ internal static partial class IceRemembersSeedBuilder
         var blueprint = BuildPhysicalBlueprint(
             field,
             materialIndexes,
+            magic,
             aggregates,
             subdivisions,
             fieldGrid);
@@ -37,7 +39,9 @@ internal static partial class IceRemembersSeedBuilder
         return new PhysicalGeographyBuild(heart.Grid, heart.Subdivisions, blueprint);
     }
 
-    private static int[] ClassifyPhysicalMaterials(PhysicalGeographyField field)
+    private static int[] ClassifyPhysicalMaterials(
+        PhysicalGeographyField field,
+        IceRemembersMagicField magic)
     {
         var materialIndexes = new int[field.Grid.TriangleCount];
         for (var configuredIndex = 0;
@@ -50,9 +54,14 @@ internal static partial class IceRemembersSeedBuilder
                 localTriangle++)
             {
                 var triangleIndex = field.Grid.TriangleIndex(hexIndex, localTriangle);
-                materialIndexes[triangleIndex] = (int)IceRemembersPhysicalGeography.ClassifyMaterial(
-                    field,
-                    triangleIndex);
+                var surface = (IceRemembersPhysicalSurface)magic.SurfaceIndexes[triangleIndex];
+                materialIndexes[triangleIndex] = surface switch
+                {
+                    IceRemembersPhysicalSurface.BasaltFlat => (int)IceRemembersPhysicalMaterial.Basalt,
+                    IceRemembersPhysicalSurface.FirecoreVent or IceRemembersPhysicalSurface.ThermalVein =>
+                        (int)IceRemembersPhysicalMaterial.GeothermalCrust,
+                    _ => (int)IceRemembersPhysicalGeography.ClassifyMaterial(field, triangleIndex),
+                };
             }
         }
 
@@ -61,7 +70,8 @@ internal static partial class IceRemembersSeedBuilder
 
     private static PhysicalHexAggregate[] AggregateConfiguredHexes(
         PhysicalGeographyField field,
-        ReadOnlySpan<int> materialIndexes)
+        ReadOnlySpan<int> materialIndexes,
+        IceRemembersMagicField magic)
     {
         var aggregates = new PhysicalHexAggregate[field.Grid.HexCount];
         for (var configuredIndex = 0;
@@ -74,6 +84,12 @@ internal static partial class IceRemembersSeedBuilder
                 hexIndex,
                 materialIndexes,
                 IceRemembersPhysicalGeography.MaterialPalette.Count,
+                magic.SurfaceIndexes,
+                IceRemembersPhysicalGeography.SurfacePalette.Count,
+                magic.SignificantFeatureFlags,
+                magic.FireIntensity,
+                magic.AuroraIntensity,
+                magic.PressureIntensity,
                 IceRemembersPhysicalGeography.GenerationProfile.CliffSlopeThreshold);
         }
 
@@ -83,6 +99,7 @@ internal static partial class IceRemembersSeedBuilder
     private static DomainPhysicalGeographyBlueprint BuildPhysicalBlueprint(
         PhysicalGeographyField field,
         ReadOnlySpan<int> materialIndexes,
+        IceRemembersMagicField magic,
         ReadOnlySpan<PhysicalHexAggregate> aggregates,
         MapSubdivisionMap subdivisions,
         HexGrid fieldGrid)
@@ -110,12 +127,15 @@ internal static partial class IceRemembersSeedBuilder
                 terrain,
                 microtriangles.Count,
                 aggregate));
-            AddDomainMicrotriangles(field, hexIndex, materialIndexes, microtriangles);
+            AddDomainMicrotriangles(field, hexIndex, materialIndexes, magic, microtriangles);
         }
 
         var blueprint = new DomainPhysicalGeographyBlueprint(
             GenerationRadius,
             IceRemembersPhysicalGeography.MaterialPalette,
+            IceRemembersPhysicalGeography.SurfacePalette,
+            IceRemembersPhysicalGeography.FeaturePalette,
+            CreateScalarFields(field, magic),
             cells,
             microtriangles);
         blueprint.Validate();
@@ -126,6 +146,7 @@ internal static partial class IceRemembersSeedBuilder
         PhysicalGeographyField field,
         int hexIndex,
         ReadOnlySpan<int> materialIndexes,
+        IceRemembersMagicField magic,
         List<DomainPhysicalMicrotriangle> target)
     {
         for (var localTriangle = 0;
@@ -133,12 +154,17 @@ internal static partial class IceRemembersSeedBuilder
             localTriangle++)
         {
             var triangleIndex = field.Grid.TriangleIndex(hexIndex, localTriangle);
-            target.Add(ToDomainMicrotriangle(field, triangleIndex, materialIndexes[triangleIndex]));
+            target.Add(ToDomainMicrotriangle(
+                field,
+                magic,
+                triangleIndex,
+                materialIndexes[triangleIndex]));
         }
     }
 
     private static DomainPhysicalMicrotriangle ToDomainMicrotriangle(
         PhysicalGeographyField field,
+        IceRemembersMagicField magic,
         int triangleIndex,
         int materialIndex)
     {
@@ -153,11 +179,19 @@ internal static partial class IceRemembersSeedBuilder
 
         return new DomainPhysicalMicrotriangle(
             materialIndex,
+            magic.BaseSurfaceIndexes[triangleIndex],
+            magic.SurfaceIndexes[triangleIndex],
+            magic.SignificantFeatureFlags[triangleIndex],
             field.LandformCodes[triangleIndex],
             field.Elevation[triangleIndex],
+            field.Slope[triangleIndex],
             field.Temperature[triangleIndex],
             field.Moisture[triangleIndex],
             field.Geothermal[triangleIndex],
+            field.LandmassIds[triangleIndex],
+            field.LandmassClassCodes[triangleIndex],
+            field.ContinentalGroupIds[triangleIndex],
+            field.BathymetricZoneCodes[triangleIndex],
             field.WaterKindCodes[triangleIndex],
             field.WaterDepths[triangleIndex],
             field.WaterBodyIds[triangleIndex],
@@ -165,6 +199,10 @@ internal static partial class IceRemembersSeedBuilder
             flowEdge,
             field.FlowAccumulation[triangleIndex],
             field.RiverOrders[triangleIndex],
+            field.IceThickness[triangleIndex],
+            field.IceFlux[triangleIndex],
+            field.FractureConductance[triangleIndex],
+            field.HeatSourceDensity[triangleIndex],
             field.FeatureFlags[triangleIndex]);
     }
 
@@ -182,6 +220,8 @@ internal static partial class IceRemembersSeedBuilder
             subdivision.ContinentId,
             microtriangleOffset,
             aggregate.DominantMaterialIndex,
+            aggregate.PrimarySurfaceIndex,
+            aggregate.SignificantFeatureFlags,
             aggregate.MeanElevation,
             aggregate.MinElevation,
             aggregate.MaxElevation,
@@ -197,11 +237,50 @@ internal static partial class IceRemembersSeedBuilder
             aggregate.PermanentIceCoverage,
             aggregate.RiverCoverage,
             aggregate.PeakCount,
+            aggregate.MeanIceThickness,
+            aggregate.MaxIceThickness,
+            aggregate.MeanFireIntensity,
+            aggregate.MaxFireIntensity,
+            aggregate.MeanAuroraIntensity,
+            aggregate.MaxAuroraIntensity,
+            aggregate.MeanPressureIntensity,
+            aggregate.MaxPressureIntensity,
             aggregate.RiverEdgeMask,
             aggregate.CoastEdgeMask,
             aggregate.RidgeEdgeMask,
             aggregate.CliffEdgeMask,
-            aggregate.PassEdgeMask);
+            aggregate.PassEdgeMask,
+            aggregate.FractureEdgeMask);
+
+    private static DomainPhysicalScalarField[] CreateScalarFields(
+        PhysicalGeographyField field,
+        IceRemembersMagicField magic) =>
+    [
+        new("fire_intensity", ExtractConfiguredValues(field, magic.FireIntensity)),
+        new("aurora_intensity", ExtractConfiguredValues(field, magic.AuroraIntensity)),
+        new("pressure_intensity", ExtractConfiguredValues(field, magic.PressureIntensity)),
+    ];
+
+    private static int[] ExtractConfiguredValues(
+        PhysicalGeographyField field,
+        ReadOnlySpan<int> values)
+    {
+        var result = new int[checked(
+            field.Grid.ConfiguredHexCount * PhysicalGeographyCodes.MicrotrianglesPerHex)];
+        var offset = 0;
+        for (var configuredIndex = 0; configuredIndex < field.Grid.ConfiguredHexCount; configuredIndex++)
+        {
+            var hexIndex = field.Grid.ConfiguredHexIndexAt(configuredIndex);
+            for (var localTriangle = 0;
+                localTriangle < PhysicalGeographyCodes.MicrotrianglesPerHex;
+                localTriangle++)
+            {
+                result[offset++] = values[field.Grid.TriangleIndex(hexIndex, localTriangle)];
+            }
+        }
+
+        return result;
+    }
 
     private static PhysicalHeart CropPhysicalHeart(
         HexGrid fieldGrid,

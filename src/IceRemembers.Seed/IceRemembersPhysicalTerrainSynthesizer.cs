@@ -69,11 +69,13 @@ internal static class IceRemembersPhysicalTerrainSynthesizer
                 (facts.Aggregate.Roughness * 3);
 
     private static int ScoreHotSprings(SynthesisFacts facts) =>
-        facts.Aggregate.LandCoverage < 8 || (facts.VentCount < 2 && facts.GeothermalCrust < 3)
+        facts.Aggregate.LandCoverage < 8 ||
+            (facts.VentCount < 2 && facts.GeothermalCrust < 3 && facts.Aggregate.MaxFireIntensity < 500)
             ? Ineligible
             : (facts.VentCount * 310) +
                 (facts.GeothermalCrust * 95) +
-                facts.Aggregate.MeanGeothermal;
+                facts.Aggregate.MeanGeothermal +
+                facts.Aggregate.MeanFireIntensity;
 
     private static int ScoreShelf(SynthesisFacts facts) =>
         facts.Aggregate.WaterCoverage < 7 || facts.Aggregate.OceanCoverage >= 20
@@ -133,7 +135,7 @@ internal static class IceRemembersPhysicalTerrainSynthesizer
             ReadOnlySpan<int> materialIndexes,
             PhysicalHexAggregate aggregate)
         {
-            Span<int> counts = stackalloc int[10];
+            Span<int> counts = stackalloc int[12];
             var ventCount = 0;
             for (var localTriangle = 0;
                 localTriangle < PhysicalGeographyCodes.MicrotrianglesPerHex;

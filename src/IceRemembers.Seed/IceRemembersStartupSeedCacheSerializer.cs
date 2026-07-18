@@ -10,7 +10,7 @@ using Engine.Host;
 internal static class IceRemembersStartupSeedCacheSerializer
 {
     private const ulong Magic = 0x31444C524F574743UL;
-    private const int FormatVersion = 1;
+    private const int FormatVersion = 2;
     private const int MaximumEntityCount = 1_000_000;
     private const int MaximumCellCount = 2_000_000;
     private const int MaximumRelationshipCount = 4_000_000;
@@ -19,6 +19,7 @@ internal static class IceRemembersStartupSeedCacheSerializer
     private const int MaximumKnowledgeSiteCount = 1_000_000;
     private const int MaximumGrantCount = 10_000;
     private const int MaximumPaletteCount = 10_000;
+    private const int MaximumScalarFieldCount = 100;
     private const int MaximumPhysicalCellCount = 2_000_000;
     private const int MaximumMicrotriangleCount = 50_000_000;
     private const int MaximumComponentCount = 1_000;
@@ -300,6 +301,9 @@ internal static class IceRemembersStartupSeedCacheSerializer
 
         writer.Write(geography.Radius);
         WriteList(writer, geography.MaterialPalette, static (output, material) => output.Write(material));
+        WriteList(writer, geography.SurfacePalette, static (output, surface) => output.Write(surface));
+        WriteList(writer, geography.FeaturePalette, static (output, feature) => output.Write(feature));
+        WriteList(writer, geography.ScalarFields, WritePhysicalScalarField);
         WriteList(writer, geography.Cells, WritePhysicalCell);
         WriteList(writer, geography.Microtriangles, WriteMicrotriangle);
     }
@@ -312,15 +316,36 @@ internal static class IceRemembersStartupSeedCacheSerializer
         }
 
         var radius = reader.ReadInt32();
-        var palette = ReadArray(reader, MaximumPaletteCount, "material", static input => input.ReadString());
+        var materialPalette = ReadArray(reader, MaximumPaletteCount, "material", static input => input.ReadString());
+        var surfacePalette = ReadArray(reader, MaximumPaletteCount, "surface", static input => input.ReadString());
+        var featurePalette = ReadArray(reader, MaximumPaletteCount, "physical feature", static input => input.ReadString());
+        var scalarFields = ReadArray(reader, MaximumScalarFieldCount, "physical scalar field", ReadPhysicalScalarField);
         var cells = ReadArray(reader, MaximumPhysicalCellCount, "physical cell", ReadPhysicalCell);
         var microtriangles = ReadArray(
             reader,
             MaximumMicrotriangleCount,
             "physical microtriangle",
             ReadMicrotriangle);
-        return new DomainPhysicalGeographyBlueprint(radius, palette, cells, microtriangles);
+        return new DomainPhysicalGeographyBlueprint(
+            radius,
+            materialPalette,
+            surfacePalette,
+            featurePalette,
+            scalarFields,
+            cells,
+            microtriangles);
     }
+
+    private static void WritePhysicalScalarField(BinaryWriter writer, DomainPhysicalScalarField field)
+    {
+        writer.Write(field.StableName);
+        WriteList(writer, field.Values, static (output, value) => output.Write(value));
+    }
+
+    private static DomainPhysicalScalarField ReadPhysicalScalarField(BinaryReader reader) =>
+        new(
+            reader.ReadString(),
+            ReadArray(reader, MaximumMicrotriangleCount, "physical scalar value", static input => input.ReadInt32()));
 
     private static void WritePhysicalCell(BinaryWriter writer, DomainPhysicalGeographyCell cell)
     {
@@ -331,6 +356,8 @@ internal static class IceRemembersStartupSeedCacheSerializer
         writer.Write(cell.ContinentId);
         writer.Write(cell.MicrotriangleOffset);
         writer.Write(cell.DominantMaterialIndex);
+        writer.Write(cell.PrimarySurfaceIndex);
+        writer.Write(cell.SignificantFeatureFlags);
         writer.Write(cell.MeanElevation);
         writer.Write(cell.MinElevation);
         writer.Write(cell.MaxElevation);
@@ -346,50 +373,78 @@ internal static class IceRemembersStartupSeedCacheSerializer
         writer.Write(cell.PermanentIceCoverage);
         writer.Write(cell.RiverCoverage);
         writer.Write(cell.PeakCount);
+        writer.Write(cell.MeanIceThickness);
+        writer.Write(cell.MaxIceThickness);
+        writer.Write(cell.MeanFireIntensity);
+        writer.Write(cell.MaxFireIntensity);
+        writer.Write(cell.MeanAuroraIntensity);
+        writer.Write(cell.MaxAuroraIntensity);
+        writer.Write(cell.MeanPressureIntensity);
+        writer.Write(cell.MaxPressureIntensity);
         writer.Write(cell.RiverEdgeMask);
         writer.Write(cell.CoastEdgeMask);
         writer.Write(cell.RidgeEdgeMask);
         writer.Write(cell.CliffEdgeMask);
         writer.Write(cell.PassEdgeMask);
+        writer.Write(cell.FractureEdgeMask);
     }
 
     private static DomainPhysicalGeographyCell ReadPhysicalCell(BinaryReader reader) => new(
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadString(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32());
+        Q: reader.ReadInt32(),
+        R: reader.ReadInt32(),
+        BaseTerrain: reader.ReadString(),
+        SuperregionId: reader.ReadInt32(),
+        ContinentId: reader.ReadInt32(),
+        MicrotriangleOffset: reader.ReadInt32(),
+        DominantMaterialIndex: reader.ReadInt32(),
+        PrimarySurfaceIndex: reader.ReadInt32(),
+        SignificantFeatureFlags: reader.ReadUInt64(),
+        MeanElevation: reader.ReadInt32(),
+        MinElevation: reader.ReadInt32(),
+        MaxElevation: reader.ReadInt32(),
+        Relief: reader.ReadInt32(),
+        Roughness: reader.ReadInt32(),
+        MeanTemperature: reader.ReadInt32(),
+        MeanMoisture: reader.ReadInt32(),
+        MeanGeothermal: reader.ReadInt32(),
+        LandCoverage: reader.ReadInt32(),
+        WaterCoverage: reader.ReadInt32(),
+        OceanCoverage: reader.ReadInt32(),
+        LakeCoverage: reader.ReadInt32(),
+        PermanentIceCoverage: reader.ReadInt32(),
+        RiverCoverage: reader.ReadInt32(),
+        PeakCount: reader.ReadInt32(),
+        MeanIceThickness: reader.ReadInt32(),
+        MaxIceThickness: reader.ReadInt32(),
+        MeanFireIntensity: reader.ReadInt32(),
+        MaxFireIntensity: reader.ReadInt32(),
+        MeanAuroraIntensity: reader.ReadInt32(),
+        MaxAuroraIntensity: reader.ReadInt32(),
+        MeanPressureIntensity: reader.ReadInt32(),
+        MaxPressureIntensity: reader.ReadInt32(),
+        RiverEdgeMask: reader.ReadInt32(),
+        CoastEdgeMask: reader.ReadInt32(),
+        RidgeEdgeMask: reader.ReadInt32(),
+        CliffEdgeMask: reader.ReadInt32(),
+        PassEdgeMask: reader.ReadInt32(),
+        FractureEdgeMask: reader.ReadInt32());
 
     private static void WriteMicrotriangle(BinaryWriter writer, DomainPhysicalMicrotriangle triangle)
     {
         writer.Write(triangle.MaterialIndex);
+        writer.Write(triangle.BaseSurfaceIndex);
+        writer.Write(triangle.SurfaceIndex);
+        writer.Write(triangle.SignificantFeatureFlags);
         writer.Write(triangle.LandformCode);
         writer.Write(triangle.Elevation);
+        writer.Write(triangle.Slope);
         writer.Write(triangle.Temperature);
         writer.Write(triangle.Moisture);
         writer.Write(triangle.Geothermal);
+        writer.Write(triangle.LandmassId);
+        writer.Write(triangle.LandmassClassCode);
+        writer.Write(triangle.ContinentalGroupId);
+        writer.Write(triangle.BathymetricZoneCode);
         writer.Write(triangle.WaterKindCode);
         writer.Write(triangle.WaterDepth);
         writer.Write(triangle.WaterBodyId);
@@ -397,24 +452,40 @@ internal static class IceRemembersStartupSeedCacheSerializer
         writer.Write(triangle.FlowEdge);
         writer.Write(triangle.FlowAccumulation);
         writer.Write(triangle.RiverOrder);
+        writer.Write(triangle.IceThickness);
+        writer.Write(triangle.IceFlux);
+        writer.Write(triangle.FractureConductance);
+        writer.Write(triangle.HeatSourceDensity);
         writer.Write(triangle.FeatureFlags);
     }
 
     private static DomainPhysicalMicrotriangle ReadMicrotriangle(BinaryReader reader) => new(
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32(),
-        reader.ReadInt32());
+        MaterialIndex: reader.ReadInt32(),
+        BaseSurfaceIndex: reader.ReadInt32(),
+        SurfaceIndex: reader.ReadInt32(),
+        SignificantFeatureFlags: reader.ReadUInt64(),
+        LandformCode: reader.ReadInt32(),
+        Elevation: reader.ReadInt32(),
+        Slope: reader.ReadInt32(),
+        Temperature: reader.ReadInt32(),
+        Moisture: reader.ReadInt32(),
+        Geothermal: reader.ReadInt32(),
+        LandmassId: reader.ReadInt32(),
+        LandmassClassCode: reader.ReadInt32(),
+        ContinentalGroupId: reader.ReadInt32(),
+        BathymetricZoneCode: reader.ReadInt32(),
+        WaterKindCode: reader.ReadInt32(),
+        WaterDepth: reader.ReadInt32(),
+        WaterBodyId: reader.ReadInt32(),
+        DrainageBasinId: reader.ReadInt32(),
+        FlowEdge: reader.ReadInt32(),
+        FlowAccumulation: reader.ReadInt32(),
+        RiverOrder: reader.ReadInt32(),
+        IceThickness: reader.ReadInt32(),
+        IceFlux: reader.ReadInt32(),
+        FractureConductance: reader.ReadInt32(),
+        HeatSourceDensity: reader.ReadInt32(),
+        FeatureFlags: reader.ReadInt32());
 
     private static void WriteSemanticTerrain(
         BinaryWriter writer,

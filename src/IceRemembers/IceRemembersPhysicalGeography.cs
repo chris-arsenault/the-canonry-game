@@ -15,6 +15,61 @@ public enum IceRemembersPhysicalMaterial
     DeepMarineSediment,
     ReefStone,
     GeothermalCrust,
+    MoraineTill,
+    Basalt,
+}
+
+public enum IceRemembersPhysicalSurface
+{
+    Tundra,
+    OpenField,
+    Ridge,
+    Glacier,
+    Moraine,
+    Lake,
+    Fjord,
+    ExposedShelf,
+    Shelf,
+    Ocean,
+    Reef,
+    FirecoreVent,
+    ThermalVein,
+    HotSpring,
+    BasaltFlat,
+    ThawedHalo,
+    AuroraField,
+    LightWell,
+    FrostPrism,
+    MeltLine,
+    PressureGodLocus,
+    CrushZone,
+    WakeScar,
+    InterferenceLattice,
+    RogueImpact,
+    ThermalWarRim,
+    SteamFracture,
+    PressureAuroraBreach,
+}
+
+public enum IceRemembersPhysicalFeature
+{
+    FirecoreVent,
+    ThermalVein,
+    HotSpring,
+    BasaltFlat,
+    ThawedHalo,
+    AuroraField,
+    LightWell,
+    FrostPrism,
+    MeltLine,
+    PressureGodLocus,
+    CrushZone,
+    WakeScar,
+    InterferenceLattice,
+    RogueImpact,
+    ThermalWarRim,
+    SteamFracture,
+    PressureAuroraBreach,
 }
 
 public static class IceRemembersPhysicalGeography
@@ -31,21 +86,84 @@ public static class IceRemembersPhysicalGeography
         "deep_marine_sediment",
         "reef_stone",
         "geothermal_crust",
+        "moraine_till",
+        "basalt",
+    ];
+
+    private static readonly string[] SurfaceNames =
+    [
+        "tundra",
+        "open_field",
+        "ridge",
+        "glacier",
+        "moraine",
+        "lake",
+        "fjord",
+        "exposed_shelf",
+        "shelf",
+        "ocean",
+        "reef",
+        "firecore_vent",
+        "thermal_vein",
+        "hot_spring",
+        "basalt_flat",
+        "thawed_halo",
+        "aurora_field",
+        "light_well",
+        "frost_prism",
+        "melt_line",
+        "pressure_god_locus",
+        "crush_zone",
+        "wake_scar",
+        "interference_lattice",
+        "rogue_impact",
+        "thermal_war_rim",
+        "steam_fracture",
+        "pressure_aurora_breach",
+    ];
+
+    private static readonly string[] FeatureNames =
+    [
+        "firecore_vent",
+        "thermal_vein",
+        "hot_spring",
+        "basalt_flat",
+        "thawed_halo",
+        "aurora_field",
+        "light_well",
+        "frost_prism",
+        "melt_line",
+        "pressure_god_locus",
+        "crush_zone",
+        "wake_scar",
+        "interference_lattice",
+        "rogue_impact",
+        "thermal_war_rim",
+        "steam_fracture",
+        "pressure_aurora_breach",
     ];
 
     public static IReadOnlyList<string> MaterialPalette { get; } = MaterialNames;
 
+    public static IReadOnlyList<string> SurfacePalette { get; } = SurfaceNames;
+
+    public static IReadOnlyList<string> FeaturePalette { get; } = FeatureNames;
+
     public static PhysicalGeographyGenerationProfile GenerationProfile { get; } = new()
     {
         Padding = 24,
-        PlateSpacing = 72d,
-        PlateBoundaryWidth = 14d,
-        SeaLevel = 0d,
-        HeartBiasRadius = 36d,
-        HeartLandBias = 0.28d,
-        PaddingOceanBias = 0.78d,
-        TemperatureBaseline = 0.35d,
-        RiverAccumulationThreshold = 11500,
+        ContinentalCenterCount = 5,
+        ContinentalRadius = 96d,
+        RidgeAxisCount = 8,
+        RidgeHalfLength = 76d,
+        RidgeWidth = 10d,
+        SeaLevel = -0.04d,
+        IslandTriangleThreshold = 680,
+        RiverAccumulationThreshold = 9200,
+        TemperatureBaseline = 125,
+        WarmthPocketCount = 16,
+        HeartWarmthRadius = 31d,
+        HeartWarmthStrength = 350,
     };
 
     public static IceRemembersPhysicalMaterial ClassifyMaterial(
@@ -58,94 +176,74 @@ public static class IceRemembersPhysicalGeography
             throw new ArgumentOutOfRangeException(nameof(triangleIndex));
         }
 
-        if (field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
-        {
-            return ClassifyOceanFloor(field, triangleIndex);
-        }
-
-        return ClassifyLandSurface(field, triangleIndex);
+        return field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean
+            ? ClassifyOceanFloor(field, triangleIndex)
+            : ClassifyLandMaterial(field, triangleIndex);
     }
 
-    private static IceRemembersPhysicalMaterial ClassifyLandSurface(
+    private static IceRemembersPhysicalMaterial ClassifyLandMaterial(
         PhysicalGeographyField field,
         int triangleIndex)
     {
+        if (field.LandformCodes[triangleIndex] == PhysicalLandformCodes.Moraine)
+        {
+            return IceRemembersPhysicalMaterial.MoraineTill;
+        }
 
-        if ((field.FeatureFlags[triangleIndex] & PhysicalGeographyFeatureCodes.GeothermalVent) != 0)
+        if (field.Geothermal[triangleIndex] >= 760)
         {
             return IceRemembersPhysicalMaterial.GeothermalCrust;
         }
 
-        if (IsPermanentIce(field, triangleIndex))
+        if (field.IceThickness[triangleIndex] >= 300)
         {
             return IceRemembersPhysicalMaterial.GlacialIce;
         }
 
-        var roughSurface = ClassifyRoughSurface(field, triangleIndex);
-        if (roughSurface.HasValue)
-        {
-            return roughSurface.Value;
-        }
-
-        return ClassifyLowlandSurface(field, triangleIndex);
+        return ClassifyExposedLandMaterial(field, triangleIndex);
     }
 
-    private static IceRemembersPhysicalMaterial? ClassifyRoughSurface(
+    private static IceRemembersPhysicalMaterial ClassifyExposedLandMaterial(
         PhysicalGeographyField field,
         int triangleIndex)
     {
         if (field.LandformCodes[triangleIndex] is PhysicalLandformCodes.Peak or PhysicalLandformCodes.Ridge)
         {
-            return field.Slope[triangleIndex] >= 90
+            return field.Slope[triangleIndex] >= 85
                 ? IceRemembersPhysicalMaterial.ExposedBedrock
                 : IceRemembersPhysicalMaterial.Scree;
         }
 
-        return field.LandformCodes[triangleIndex] == PhysicalLandformCodes.Slope &&
-            field.Slope[triangleIndex] >= 75
-                ? IceRemembersPhysicalMaterial.Scree
-                : null;
-    }
-
-    private static IceRemembersPhysicalMaterial ClassifyLowlandSurface(
-        PhysicalGeographyField field,
-        int triangleIndex)
-    {
-        if (field.Temperature[triangleIndex] <= 285)
+        if (field.Temperature[triangleIndex] <= 250)
         {
-            return field.Moisture[triangleIndex] >= 590
+            return field.Moisture[triangleIndex] >= 560
                 ? IceRemembersPhysicalMaterial.Snowpack
                 : IceRemembersPhysicalMaterial.Permafrost;
         }
 
-        return field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake ||
-            field.Moisture[triangleIndex] >= 360
-                ? IceRemembersPhysicalMaterial.TundraSoil
-                : IceRemembersPhysicalMaterial.Permafrost;
+        return field.Moisture[triangleIndex] >= 330
+            ? IceRemembersPhysicalMaterial.TundraSoil
+            : IceRemembersPhysicalMaterial.Permafrost;
     }
+
+    public static ulong FeatureFlag(IceRemembersPhysicalFeature feature) => 1UL << (int)feature;
 
     private static IceRemembersPhysicalMaterial ClassifyOceanFloor(
         PhysicalGeographyField field,
         int triangleIndex)
     {
-        if (field.WaterDepths[triangleIndex] >= 360)
+        if (field.BathymetricZoneCodes[triangleIndex] == PhysicalBathymetricZoneCodes.DeepOcean)
         {
             return IceRemembersPhysicalMaterial.DeepMarineSediment;
         }
 
         if (field.WaterDepths[triangleIndex] <= 125 &&
-            field.Temperature[triangleIndex] >= 315 &&
-            field.Geothermal[triangleIndex] >= 180)
+            field.Temperature[triangleIndex] >= 300 &&
+            field.Geothermal[triangleIndex] >= 150)
         {
             return IceRemembersPhysicalMaterial.ReefStone;
         }
 
         return IceRemembersPhysicalMaterial.ShelfSediment;
     }
-
-    private static bool IsPermanentIce(PhysicalGeographyField field, int triangleIndex) =>
-        (field.FeatureFlags[triangleIndex] &
-            (PhysicalGeographyFeatureCodes.PermanentSeaIce |
-                PhysicalGeographyFeatureCodes.PermanentIceMargin)) != 0 ||
-        (field.Temperature[triangleIndex] <= 215 && field.Moisture[triangleIndex] >= 400);
 }

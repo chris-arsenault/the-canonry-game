@@ -1,6 +1,5 @@
 namespace Engine.Host;
 
-using Engine.Constants;
 using Engine.Domain;
 using Engine.Kernel;
 
@@ -35,39 +34,15 @@ internal sealed class KernelConfigurationContext
     public void InstallPhysicalGeographyCell(
         int q,
         int r,
-        in PhysicalGeographyCellSummary summary,
-        global::System.ReadOnlySpan<int> materialIds,
-        global::System.ReadOnlySpan<int> landformCodes,
-        global::System.ReadOnlySpan<int> elevations,
-        global::System.ReadOnlySpan<int> temperatures,
-        global::System.ReadOnlySpan<int> moisture,
-        global::System.ReadOnlySpan<int> geothermal,
-        global::System.ReadOnlySpan<int> waterKindCodes,
-        global::System.ReadOnlySpan<int> waterDepths,
-        global::System.ReadOnlySpan<int> waterBodyIds,
-        global::System.ReadOnlySpan<int> drainageBasinIds,
-        global::System.ReadOnlySpan<int> flowEdges,
-        global::System.ReadOnlySpan<int> flowAccumulation,
-        global::System.ReadOnlySpan<int> riverOrders,
-        global::System.ReadOnlySpan<int> featureFlags) =>
+        int baseTerrainId,
+        int superregionId,
+        int continentId) =>
         _kernel.KernelData.PhysicalGeography.InstallCell(
             q,
             r,
-            summary,
-            materialIds,
-            landformCodes,
-            elevations,
-            temperatures,
-            moisture,
-            geothermal,
-            waterKindCodes,
-            waterDepths,
-            waterBodyIds,
-            drainageBasinIds,
-            flowEdges,
-            flowAccumulation,
-            riverOrders,
-            featureFlags);
+            baseTerrainId,
+            superregionId,
+            continentId);
 
     public void BeginSemanticTerrainBlueprintInstall(int radius) =>
         _kernel.MapFrontier.Data.BeginSemanticBlueprintInstall(radius);

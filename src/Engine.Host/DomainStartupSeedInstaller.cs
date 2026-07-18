@@ -74,42 +74,16 @@ internal static class DomainStartupSeedInstaller
 
         blueprint.Validate();
         context.BeginPhysicalGeographyInstall(blueprint.Radius);
-        var buffers = new PhysicalMicrotriangleInstallBuffers();
         foreach (var cell in blueprint.Cells)
         {
-            buffers.Populate(blueprint, cell);
-            buffers.InstallCell(context, cell, CompilePhysicalSummary(context, cell));
+            context.InstallPhysicalGeographyCell(
+                cell.Q,
+                cell.R,
+                context.DomainIds.TerrainIdOf(cell.BaseTerrain).Value,
+                cell.SuperregionId,
+                cell.ContinentId);
         }
     }
-
-    private static PhysicalGeographyCellSummary CompilePhysicalSummary(
-        KernelConfigurationContext context,
-        DomainPhysicalGeographyCell cell) =>
-        new(
-            context.DomainIds.TerrainIdOf(cell.BaseTerrain).Value,
-            cell.SuperregionId,
-            cell.ContinentId,
-            cell.DominantMaterialIndex + 1,
-            cell.MeanElevation,
-            cell.MinElevation,
-            cell.MaxElevation,
-            cell.Relief,
-            cell.Roughness,
-            cell.MeanTemperature,
-            cell.MeanMoisture,
-            cell.MeanGeothermal,
-            cell.LandCoverage,
-            cell.WaterCoverage,
-            cell.OceanCoverage,
-            cell.LakeCoverage,
-            cell.PermanentIceCoverage,
-            cell.RiverCoverage,
-            cell.PeakCount,
-            cell.RiverEdgeMask,
-            cell.CoastEdgeMask,
-            cell.RidgeEdgeMask,
-            cell.CliffEdgeMask,
-            cell.PassEdgeMask);
 
     private static void InstallSemanticTerrain(
         KernelConfigurationContext context,
@@ -337,68 +311,4 @@ internal static class DomainStartupSeedInstaller
             _ => throw new ArgumentOutOfRangeException(nameof(level), level, "Unknown map subdivision level."),
         };
 
-    private sealed class PhysicalMicrotriangleInstallBuffers
-    {
-        private readonly int[] _materialIds = new int[PhysicalGeographyCodes.MicrotrianglesPerHex];
-        private readonly int[] _landformCodes = new int[PhysicalGeographyCodes.MicrotrianglesPerHex];
-        private readonly int[] _elevations = new int[PhysicalGeographyCodes.MicrotrianglesPerHex];
-        private readonly int[] _temperatures = new int[PhysicalGeographyCodes.MicrotrianglesPerHex];
-        private readonly int[] _moisture = new int[PhysicalGeographyCodes.MicrotrianglesPerHex];
-        private readonly int[] _geothermal = new int[PhysicalGeographyCodes.MicrotrianglesPerHex];
-        private readonly int[] _waterKindCodes = new int[PhysicalGeographyCodes.MicrotrianglesPerHex];
-        private readonly int[] _waterDepths = new int[PhysicalGeographyCodes.MicrotrianglesPerHex];
-        private readonly int[] _waterBodyIds = new int[PhysicalGeographyCodes.MicrotrianglesPerHex];
-        private readonly int[] _drainageBasinIds = new int[PhysicalGeographyCodes.MicrotrianglesPerHex];
-        private readonly int[] _flowEdges = new int[PhysicalGeographyCodes.MicrotrianglesPerHex];
-        private readonly int[] _flowAccumulation = new int[PhysicalGeographyCodes.MicrotrianglesPerHex];
-        private readonly int[] _riverOrders = new int[PhysicalGeographyCodes.MicrotrianglesPerHex];
-        private readonly int[] _featureFlags = new int[PhysicalGeographyCodes.MicrotrianglesPerHex];
-
-        public void Populate(
-            DomainPhysicalGeographyBlueprint blueprint,
-            DomainPhysicalGeographyCell cell)
-        {
-            for (var index = 0; index < PhysicalGeographyCodes.MicrotrianglesPerHex; index++)
-            {
-                var triangle = blueprint.Microtriangles[cell.MicrotriangleOffset + index];
-                _materialIds[index] = triangle.MaterialIndex + 1;
-                _landformCodes[index] = triangle.LandformCode;
-                _elevations[index] = triangle.Elevation;
-                _temperatures[index] = triangle.Temperature;
-                _moisture[index] = triangle.Moisture;
-                _geothermal[index] = triangle.Geothermal;
-                _waterKindCodes[index] = triangle.WaterKindCode;
-                _waterDepths[index] = triangle.WaterDepth;
-                _waterBodyIds[index] = triangle.WaterBodyId;
-                _drainageBasinIds[index] = triangle.DrainageBasinId;
-                _flowEdges[index] = triangle.FlowEdge;
-                _flowAccumulation[index] = triangle.FlowAccumulation;
-                _riverOrders[index] = triangle.RiverOrder;
-                _featureFlags[index] = triangle.FeatureFlags;
-            }
-        }
-
-        public void InstallCell(
-            KernelConfigurationContext context,
-            DomainPhysicalGeographyCell cell,
-            in PhysicalGeographyCellSummary summary) =>
-            context.InstallPhysicalGeographyCell(
-                cell.Q,
-                cell.R,
-                summary,
-                _materialIds,
-                _landformCodes,
-                _elevations,
-                _temperatures,
-                _moisture,
-                _geothermal,
-                _waterKindCodes,
-                _waterDepths,
-                _waterBodyIds,
-                _drainageBasinIds,
-                _flowEdges,
-                _flowAccumulation,
-                _riverOrders,
-                _featureFlags);
-    }
 }

@@ -195,17 +195,25 @@ public sealed class PhysicalGeographyField
     private readonly int[] _drainageElevations;
     private readonly int[] _elevation;
     private readonly int[] _featureFlags;
+    private readonly int[] _fractureConductance;
     private readonly int[] _flowAccumulation;
     private readonly int[] _flowEdges;
     private readonly int[] _flowTargets;
     private readonly int[] _geothermal;
+    private readonly int[] _heatSourceDensity;
+    private readonly int[] _iceFlux;
+    private readonly int[] _iceThickness;
+    private readonly int[] _landmassClassCodes;
+    private readonly int[] _landmassIds;
     private readonly int[] _landformCodes;
     private readonly int[] _moisture;
-    private readonly float[] _plateBoundaryInfluence;
+    private readonly float[] _ridgeInfluence;
     private readonly int[] _riverOrders;
     private readonly int[] _runoff;
     private readonly int[] _slope;
     private readonly int[] _temperature;
+    private readonly int[] _continentalGroupIds;
+    private readonly int[] _bathymetricZoneCodes;
     private readonly float[] _uplift;
     private readonly int[] _waterBodyIds;
     private readonly int[] _waterDepths;
@@ -229,10 +237,18 @@ public sealed class PhysicalGeographyField
         _flowAccumulation = new int[grid.TriangleCount];
         _riverOrders = new int[grid.TriangleCount];
         _featureFlags = new int[grid.TriangleCount];
+        _landmassIds = new int[grid.TriangleCount];
+        _landmassClassCodes = new int[grid.TriangleCount];
+        _continentalGroupIds = new int[grid.TriangleCount];
+        _bathymetricZoneCodes = new int[grid.TriangleCount];
+        _iceThickness = new int[grid.TriangleCount];
+        _iceFlux = new int[grid.TriangleCount];
+        _fractureConductance = new int[grid.TriangleCount];
+        _heatSourceDensity = new int[grid.TriangleCount];
         _drainageElevations = new int[grid.TriangleCount];
         _flowTargets = new int[grid.TriangleCount];
         Array.Fill(_flowTargets, -1);
-        _plateBoundaryInfluence = new float[grid.TriangleCount];
+        _ridgeInfluence = new float[grid.TriangleCount];
         _uplift = new float[grid.TriangleCount];
         _runoff = new int[grid.TriangleCount];
     }
@@ -267,13 +283,29 @@ public sealed class PhysicalGeographyField
 
     public Span<int> FeatureFlags => _featureFlags;
 
+    public Span<int> LandmassIds => _landmassIds;
+
+    public Span<int> LandmassClassCodes => _landmassClassCodes;
+
+    public Span<int> ContinentalGroupIds => _continentalGroupIds;
+
+    public Span<int> BathymetricZoneCodes => _bathymetricZoneCodes;
+
+    public Span<int> IceThickness => _iceThickness;
+
+    public Span<int> IceFlux => _iceFlux;
+
+    public Span<int> FractureConductance => _fractureConductance;
+
+    public Span<int> HeatSourceDensity => _heatSourceDensity;
+
     internal Span<int> DrainageElevations => _drainageElevations;
 
     internal Span<int> FlowTargets => _flowTargets;
 
-    internal Span<float> PlateBoundaryInfluence => _plateBoundaryInfluence;
+    public Span<float> RidgeInfluence => _ridgeInfluence;
 
-    internal Span<float> Uplift => _uplift;
+    public Span<float> Uplift => _uplift;
 
     internal Span<int> Runoff => _runoff;
 }

@@ -7,12 +7,16 @@ public sealed class PhysicalGeographyGenerationTests
     private static readonly PhysicalGeographyGenerationProfile TestProfile = new()
     {
         Padding = 8,
-        PlateSpacing = 24d,
-        PlateBoundaryWidth = 8d,
-        MacroNoiseScale = 18d,
-        MediumNoiseScale = 7d,
-        DetailNoiseScale = 2.5d,
-        HeartBiasRadius = 8d,
+        ContinentalCenterCount = 3,
+        ContinentalRadius = 18d,
+        ContinentalWarpScale = 12d,
+        ContinentalWarpStrength = 4d,
+        RidgeAxisCount = 4,
+        RidgeHalfLength = 16d,
+        RidgeWidth = 4d,
+        ElevationVariationScale = 7d,
+        WarmthPocketCount = 5,
+        HeartWarmthRadius = 10d,
         OceanMoistureDistance = 30,
         RiverAccumulationThreshold = 2200,
     };

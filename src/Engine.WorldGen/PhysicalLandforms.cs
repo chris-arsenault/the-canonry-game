@@ -8,30 +8,10 @@ internal static class PhysicalLandforms
         PhysicalGeographyField field,
         PhysicalGeographyGenerationProfile profile)
     {
-        MeasureSlopes(field);
+        PhysicalHydrology.MeasureSlopes(field);
         for (var triangleIndex = 0; triangleIndex < field.Grid.TriangleCount; triangleIndex++)
         {
             field.LandformCodes[triangleIndex] = ClassifyTriangle(field, triangleIndex, profile);
-        }
-    }
-
-    private static void MeasureSlopes(PhysicalGeographyField field)
-    {
-        for (var triangleIndex = 0; triangleIndex < field.Grid.TriangleCount; triangleIndex++)
-        {
-            var slope = 0;
-            for (var edge = 0; edge < 3; edge++)
-            {
-                var neighbor = field.Grid.NeighborTriangleIndex(triangleIndex, edge);
-                if (neighbor >= 0)
-                {
-                    slope = Math.Max(
-                        slope,
-                        Math.Abs(field.Elevation[triangleIndex] - field.Elevation[neighbor]));
-                }
-            }
-
-            field.Slope[triangleIndex] = slope;
         }
     }
 
@@ -40,23 +20,19 @@ internal static class PhysicalLandforms
         int triangleIndex,
         PhysicalGeographyGenerationProfile profile)
     {
-        if (field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
+        var existing = ExistingLandform(field, triangleIndex);
+        if (existing != 0)
         {
-            return PhysicalLandformCodes.Seabed;
+            return existing;
         }
 
-        if (field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake)
-        {
-            return PhysicalLandformCodes.Basin;
-        }
-
-        var neighborShape = MeasureNeighborShape(field, triangleIndex);
-        if (IsPeak(field, triangleIndex, neighborShape, profile))
+        var shape = MeasureNeighborShape(field, triangleIndex);
+        if (IsPeak(field, triangleIndex, shape, profile))
         {
             return PhysicalLandformCodes.Peak;
         }
 
-        if (IsPass(field, triangleIndex, neighborShape, profile))
+        if (IsPass(field, triangleIndex, shape, profile))
         {
             return PhysicalLandformCodes.Pass;
         }
@@ -66,7 +42,7 @@ internal static class PhysicalLandforms
             return PhysicalLandformCodes.Ridge;
         }
 
-        if (IsValley(field, triangleIndex, neighborShape, profile))
+        if (IsValley(field, triangleIndex, shape, profile))
         {
             return PhysicalLandformCodes.Valley;
         }
@@ -76,29 +52,25 @@ internal static class PhysicalLandforms
             : PhysicalLandformCodes.Slope;
     }
 
-    private static NeighborShape MeasureNeighborShape(PhysicalGeographyField field, int triangleIndex)
+    private static int ExistingLandform(PhysicalGeographyField field, int triangleIndex)
     {
-        var higher = 0;
-        var lower = 0;
-        var lowestNeighbor = int.MaxValue;
-        var highestNeighbor = int.MinValue;
-        var elevation = field.Elevation[triangleIndex];
-        for (var edge = 0; edge < 3; edge++)
+        var glacial = field.LandformCodes[triangleIndex];
+        if (field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
         {
-            var neighbor = field.Grid.NeighborTriangleIndex(triangleIndex, edge);
-            if (neighbor < 0)
-            {
-                continue;
-            }
-
-            var neighborElevation = field.Elevation[neighbor];
-            higher += neighborElevation > elevation ? 1 : 0;
-            lower += neighborElevation < elevation ? 1 : 0;
-            lowestNeighbor = Math.Min(lowestNeighbor, neighborElevation);
-            highestNeighbor = Math.Max(highestNeighbor, neighborElevation);
+            return glacial is PhysicalLandformCodes.UValley or PhysicalLandformCodes.Cirque
+                ? PhysicalLandformCodes.Fjord
+                : PhysicalLandformCodes.Seabed;
         }
 
-        return new NeighborShape(higher, lower, lowestNeighbor, highestNeighbor);
+        if (glacial is PhysicalLandformCodes.UValley or
+            PhysicalLandformCodes.Cirque or PhysicalLandformCodes.Moraine)
+        {
+            return glacial;
+        }
+
+        return field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake
+            ? PhysicalLandformCodes.Basin
+            : 0;
     }
 
     private static bool IsPeak(
@@ -116,9 +88,8 @@ internal static class PhysicalLandforms
         NeighborShape shape,
         PhysicalGeographyGenerationProfile profile) =>
         field.Elevation[triangleIndex] >= profile.RidgeElevationThreshold &&
-        field.PlateBoundaryInfluence[triangleIndex] >= 0.35f &&
-        shape.HigherNeighbors >= 2 &&
-        shape.LowerNeighbors >= 1;
+        field.RidgeInfluence[triangleIndex] >= 0.34f &&
+        shape.HigherNeighbors >= 2 && shape.LowerNeighbors >= 1;
 
     private static bool IsRidge(
         PhysicalGeographyField field,
@@ -126,7 +97,7 @@ internal static class PhysicalLandforms
         PhysicalGeographyGenerationProfile profile) =>
         field.Elevation[triangleIndex] >= profile.RidgeElevationThreshold &&
         field.Slope[triangleIndex] >= profile.RidgeSlopeThreshold &&
-        (field.PlateBoundaryInfluence[triangleIndex] >= 0.3f || field.Uplift[triangleIndex] >= 0.08f);
+        (field.RidgeInfluence[triangleIndex] >= 0.26f || field.Uplift[triangleIndex] >= 0.42f);
 
     private static bool IsValley(
         PhysicalGeographyField field,
@@ -138,9 +109,31 @@ internal static class PhysicalLandforms
             field.Slope[triangleIndex] > profile.PlainSlopeThreshold &&
             field.FlowAccumulation[triangleIndex] >= profile.RiverAccumulationThreshold / 3);
 
+    private static NeighborShape MeasureNeighborShape(PhysicalGeographyField field, int triangleIndex)
+    {
+        var higher = 0;
+        var lower = 0;
+        var highest = int.MinValue;
+        var elevation = field.Elevation[triangleIndex];
+        for (var edge = 0; edge < 3; edge++)
+        {
+            var neighbor = field.Grid.NeighborTriangleIndex(triangleIndex, edge);
+            if (neighbor < 0)
+            {
+                continue;
+            }
+
+            var neighborElevation = field.Elevation[neighbor];
+            higher += neighborElevation > elevation ? 1 : 0;
+            lower += neighborElevation < elevation ? 1 : 0;
+            highest = Math.Max(highest, neighborElevation);
+        }
+
+        return new NeighborShape(higher, lower, highest);
+    }
+
     private readonly record struct NeighborShape(
         int HigherNeighbors,
         int LowerNeighbors,
-        int LowestNeighbor,
         int HighestNeighbor);
 }

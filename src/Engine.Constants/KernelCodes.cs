@@ -36,9 +36,35 @@ public static class PhysicalLandformCodes
     public const int Peak = 6;
     public const int Pass = 7;
     public const int Seabed = 8;
+    public const int UValley = 9;
+    public const int Cirque = 10;
+    public const int Fjord = 11;
+    public const int Moraine = 12;
 
     public const int Min = Plain;
-    public const int Max = Seabed;
+    public const int Max = Moraine;
+}
+
+public static class PhysicalLandmassClassCodes
+{
+    public const int None = 0;
+    public const int Island = 1;
+    public const int Continent = 2;
+
+    public const int Min = None;
+    public const int Max = Continent;
+}
+
+public static class PhysicalBathymetricZoneCodes
+{
+    public const int Land = 0;
+    public const int ExposedShelf = 1;
+    public const int Shelf = 2;
+    public const int ShelfBreak = 3;
+    public const int DeepOcean = 4;
+
+    public const int Min = Land;
+    public const int Max = DeepOcean;
 }
 
 public static class PhysicalWaterKindCodes
@@ -56,35 +82,13 @@ public static class PhysicalGeographyFeatureCodes
     public const int GeothermalVent = 1 << 0;
     public const int PermanentSeaIce = 1 << 1;
     public const int PermanentIceMargin = 1 << 2;
+    public const int FireCore = 1 << 3;
+    public const int MagmaChamber = 1 << 4;
+    public const int DeadGodLocus = 1 << 5;
 
-    public const int All = GeothermalVent | PermanentSeaIce | PermanentIceMargin;
+    public const int All = GeothermalVent | PermanentSeaIce | PermanentIceMargin |
+        FireCore | MagmaChamber | DeadGodLocus;
 }
-
-public readonly record struct PhysicalGeographyCellSummary(
-    int BaseTerrainId,
-    int SuperregionId,
-    int ContinentId,
-    int DominantMaterialId,
-    int MeanElevation,
-    int MinElevation,
-    int MaxElevation,
-    int Relief,
-    int Roughness,
-    int MeanTemperature,
-    int MeanMoisture,
-    int MeanGeothermal,
-    int LandCoverage,
-    int WaterCoverage,
-    int OceanCoverage,
-    int LakeCoverage,
-    int PermanentIceCoverage,
-    int RiverCoverage,
-    int PeakCount,
-    int RiverEdgeMask,
-    int CoastEdgeMask,
-    int RidgeEdgeMask,
-    int CliffEdgeMask,
-    int PassEdgeMask);
 
 public static class BehaviorOperationCodes
 {

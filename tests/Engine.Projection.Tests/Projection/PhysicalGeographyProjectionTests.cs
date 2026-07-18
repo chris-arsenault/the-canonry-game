@@ -20,6 +20,9 @@ public sealed class PhysicalGeographyProjectionTests
         var blueprint = new DomainPhysicalGeographyBlueprint(
             Radius: 1,
             MaterialPalette: ["tundra_soil"],
+            SurfacePalette: ["tundra"],
+            FeaturePalette: [],
+            ScalarFields: [],
             Cells: cells,
             Microtriangles: triangles);
 
@@ -45,6 +48,8 @@ public sealed class PhysicalGeographyProjectionTests
             ContinentId: 1,
             MicrotriangleOffset: offset,
             DominantMaterialIndex: 0,
+            PrimarySurfaceIndex: 0,
+            SignificantFeatureFlags: 0,
             MeanElevation: offset,
             MinElevation: offset,
             MaxElevation: offset + 23,
@@ -60,20 +65,37 @@ public sealed class PhysicalGeographyProjectionTests
             PermanentIceCoverage: 0,
             RiverCoverage: 0,
             PeakCount: 0,
+            MeanIceThickness: 0,
+            MaxIceThickness: 0,
+            MeanFireIntensity: 0,
+            MaxFireIntensity: 0,
+            MeanAuroraIntensity: 0,
+            MaxAuroraIntensity: 0,
+            MeanPressureIntensity: 0,
+            MaxPressureIntensity: 0,
             RiverEdgeMask: 0,
             CoastEdgeMask: 0,
             RidgeEdgeMask: 0,
             CliffEdgeMask: 0,
-            PassEdgeMask: 0);
+            PassEdgeMask: 0,
+            FractureEdgeMask: 0);
 
     private static DomainPhysicalMicrotriangle Triangle(int index) =>
         new(
             MaterialIndex: 0,
+            BaseSurfaceIndex: 0,
+            SurfaceIndex: 0,
+            SignificantFeatureFlags: 0,
             LandformCode: PhysicalLandformCodes.Plain,
             Elevation: index,
+            Slope: 0,
             Temperature: 0,
             Moisture: 0,
             Geothermal: 0,
+            LandmassId: 1,
+            LandmassClassCode: PhysicalLandmassClassCodes.Continent,
+            ContinentalGroupId: 1,
+            BathymetricZoneCode: PhysicalBathymetricZoneCodes.Land,
             WaterKindCode: PhysicalWaterKindCodes.None,
             WaterDepth: 0,
             WaterBodyId: 0,
@@ -81,5 +103,9 @@ public sealed class PhysicalGeographyProjectionTests
             FlowEdge: PhysicalGeographyCodes.NoFlowEdge,
             FlowAccumulation: 0,
             RiverOrder: 0,
+            IceThickness: 0,
+            IceFlux: 0,
+            FractureConductance: 0,
+            HeatSourceDensity: 0,
             FeatureFlags: 0);
 }

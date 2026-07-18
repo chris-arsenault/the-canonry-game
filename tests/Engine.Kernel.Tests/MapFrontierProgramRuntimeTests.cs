@@ -250,55 +250,14 @@ public sealed class MapFrontierProgramRuntimeTests
     private static void InstallPhysicalBlueprint(Simulation simulation, int generationRadius, int installedRadius)
     {
         simulation.KernelData.PhysicalGeography.BeginInstall(generationRadius);
-        var materialIds = Enumerable.Repeat(TundraTerrain, PhysicalGeographyCodes.MicrotrianglesPerHex).ToArray();
-        var landforms = Enumerable.Repeat(PhysicalLandformCodes.Plain, PhysicalGeographyCodes.MicrotrianglesPerHex).ToArray();
-        var zeros = new int[PhysicalGeographyCodes.MicrotrianglesPerHex];
-        var flowEdges = Enumerable.Repeat(PhysicalGeographyCodes.NoFlowEdge, PhysicalGeographyCodes.MicrotrianglesPerHex).ToArray();
         ForEachHex(installedRadius, (q, r) =>
         {
-            var summary = new PhysicalGeographyCellSummary(
-                q == 0 && r == 0 ? TundraTerrain : MountainTerrain,
-                SuperregionId: 12,
-                ContinentId: 13,
-                DominantMaterialId: TundraTerrain,
-                MeanElevation: 10,
-                MinElevation: 0,
-                MaxElevation: 20,
-                Relief: 20,
-                Roughness: 5,
-                MeanTemperature: 200,
-                MeanMoisture: 500,
-                MeanGeothermal: 0,
-                LandCoverage: PhysicalGeographyCodes.MicrotrianglesPerHex,
-                WaterCoverage: 0,
-                OceanCoverage: 0,
-                LakeCoverage: 0,
-                PermanentIceCoverage: 0,
-                RiverCoverage: 0,
-                PeakCount: 0,
-                RiverEdgeMask: 0,
-                CoastEdgeMask: 0,
-                RidgeEdgeMask: 0,
-                CliffEdgeMask: 0,
-                PassEdgeMask: 0);
             simulation.KernelData.PhysicalGeography.InstallCell(
                 q,
                 r,
-                summary,
-                materialIds,
-                landforms,
-                zeros,
-                zeros,
-                zeros,
-                zeros,
-                zeros,
-                zeros,
-                zeros,
-                zeros,
-                flowEdges,
-                zeros,
-                zeros,
-                zeros);
+                q == 0 && r == 0 ? TundraTerrain : MountainTerrain,
+                superregionId: 12,
+                continentId: 13);
         });
     }
 
