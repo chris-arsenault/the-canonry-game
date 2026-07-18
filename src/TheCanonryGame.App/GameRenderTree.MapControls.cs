@@ -91,7 +91,19 @@ internal sealed partial class GameRenderTree
         _ => null,
     };
 
-    private static PhysicalGeographyView SpecialGeographyViewFor(string viewKey) => viewKey switch
+    private static PhysicalGeographyView SpecialGeographyViewFor(string viewKey) =>
+        TectonicGeographyViewFor(viewKey) ?? RemainingGeographyViewFor(viewKey);
+
+    private static PhysicalGeographyView? TectonicGeographyViewFor(string viewKey) => viewKey switch
+    {
+        MapArea.GeographyViewTectonicProvinces => PhysicalGeographyView.TectonicProvinces,
+        MapArea.GeographyViewCrustType => PhysicalGeographyView.CrustType,
+        MapArea.GeographyViewTectonicBoundaries => PhysicalGeographyView.TectonicBoundaries,
+        MapArea.GeographyViewTectonicStrain => PhysicalGeographyView.TectonicStrain,
+        _ => null,
+    };
+
+    private static PhysicalGeographyView RemainingGeographyViewFor(string viewKey) => viewKey switch
     {
         MapArea.GeographyViewLandform => PhysicalGeographyView.Landform,
         MapArea.GeographyViewHydrology => PhysicalGeographyView.Hydrology,

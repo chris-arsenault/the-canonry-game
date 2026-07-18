@@ -44,9 +44,13 @@ and geothermal crust are not gameplay terrain IDs. Stable within-hex and
 across-edge adjacency makes ridges, coasts, drainage, and rivers continuous
 across hex boundaries instead of independently rolled decorations.
 
-Generation is ordered over one padded graph. Continental masks and authored
-ridge axes create uplift; fluvial erosion carves ancestral valleys from that
-cause. Connected-component and boundary-flood passes identify landmasses,
+Generation is ordered over one padded graph. Irregular moving crust provinces
+establish continental assemblies and oceanic crust. Relative motion types their
+boundaries as convergent, divergent, or transform; continuous strain then drives
+mountain systems, rifts, fractures, and mostly submarine island arcs. Rare
+intraplate mantle plumes supplement rather than replace those tectonic heat
+sources. Fluvial erosion carves ancestral valleys from that relief.
+Connected-component and boundary-flood passes identify landmasses,
 continental shelves, bathymetry, and the exterior ocean. Priority-flood
 drainage then creates coherent lakes, accumulated runoff, tributaries, and
 watersheds. A cold derived climate supplies multiple separated warmth pockets
@@ -67,7 +71,8 @@ polynya surfaces, making the setting icebound while leaving distinct warm-water
 habitats. Cold land separately classifies polar barrens, wet tundra, cold
 steppe, scree fields, river valleys, ordinary tundra, ridges, snowfields, and
 glaciers. Physical and domain passes are independent dependency-declaring
-processes; distribution goals such as ocean and land-ice coverage are tunable
+processes; distribution goals such as ocean, land-ice, major-landmass size and
+spacing, island share, coast density, and hotspot distribution are tunable
 generation-profile targets rather than hard-coded proportions. These processes
 and every triangle field remain external startup data; the dead-god locus is a
 generation pressure source, not a graph entity.

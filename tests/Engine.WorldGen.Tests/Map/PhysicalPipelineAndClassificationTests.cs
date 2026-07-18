@@ -67,6 +67,16 @@ public sealed class PhysicalPipelineAndClassificationTests
             landIce: new CoverageTarget(0.99d, 0.01d));
         Assert.Throws<InvalidOperationException>(() =>
             ApplyValidation(result.Map, impossibleLandIce));
+
+        var impossibleLandmassShare = permissive with
+        {
+            QualityTargets = permissive.QualityTargets with
+            {
+                LargestLandmassLandCoverage = new CoverageTarget(0.99d, 0.01d),
+            },
+        };
+        Assert.Throws<InvalidOperationException>(() =>
+            ApplyValidation(result.Map, impossibleLandmassShare));
     }
 
     [Fact]
@@ -94,6 +104,11 @@ public sealed class PhysicalPipelineAndClassificationTests
                 SeaIceCoverage = new CoverageTarget(0.5d, 0.5d),
                 MajorLandmassCount = new CountTarget(0, int.MaxValue),
                 InlandLakeBodyCount = new CountTarget(0, int.MaxValue),
+                LargestLandmassLandCoverage = new CoverageTarget(0.5d, 0.5d),
+                IslandLandCoverage = new CoverageTarget(0.5d, 0.5d),
+                CoastEdgeDensity = new CoverageTarget(0.5d, 0.5d),
+                MajorLandmassSpacing = new CoverageTarget(0.5d, 0.5d),
+                HotspotLandmassCount = new CountTarget(0, int.MaxValue),
             },
         };
 

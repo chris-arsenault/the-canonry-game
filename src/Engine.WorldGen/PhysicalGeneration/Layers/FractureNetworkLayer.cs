@@ -5,7 +5,9 @@ internal sealed class FractureNetworkLayer : IPhysicalGeographyLayer
     public PhysicalGeographyLayerContract Contract { get; } = new(
         "fracture-network",
         0x6f9d2b1,
-        PhysicalGeographyFacts.ContinentalDomains | PhysicalGeographyFacts.Elevation,
+        PhysicalGeographyFacts.TectonicProvinces |
+        PhysicalGeographyFacts.ContinentalDomains |
+        PhysicalGeographyFacts.Elevation,
         PhysicalGeographyFacts.Fractures,
         PhysicalGeographyFacts.Geothermal | PhysicalGeographyFacts.Validated);
 
@@ -15,9 +17,10 @@ internal sealed class FractureNetworkLayer : IPhysicalGeographyLayer
         var candidates = Enumerable.Range(0, map.Grid.TriangleCount)
             .Where(map.Grid.TriangleIsInsideConfiguredDisk)
             .OrderByDescending(index =>
-                (map.Uplift[index] * 600f) +
-                (map.RidgeInfluence[index] * 250f) +
-                (float)(PhysicalNoise.HashUnit(context.Seed, index, 0) * 150d))
+                (map.TectonicStrain[index] * 0.48f) +
+                (map.Uplift[index] * 310f) +
+                (map.RidgeInfluence[index] * 120f) +
+                (float)(PhysicalNoise.HashUnit(context.Seed, index, 0) * 90d))
             .ToArray();
         var networkNodes = new List<int>();
         var previousRoots = new List<int>();
@@ -153,9 +156,9 @@ internal sealed class FractureNetworkLayer : IPhysicalGeographyLayer
                 map.Grid.TriangleX(neighbor) - map.Grid.TriangleX(current));
             var alignment = Math.Cos(direction - angle);
             var novelty = map.FractureConductance[neighbor] < 560 ? 0.22d : -0.08d;
-            var continentalBias = map.ContinentalPotential[neighbor] / 1000d * 0.08d;
+            var tectonicBias = map.TectonicStrain[neighbor] / 1000d * 0.12d;
             var hash = PhysicalNoise.HashSigned(seed ^ 0x6c53, branch + step, neighbor) * 0.12d;
-            var score = alignment + novelty + continentalBias + hash;
+            var score = alignment + novelty + tectonicBias + hash;
             if (score > bestScore)
             {
                 best = neighbor;

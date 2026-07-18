@@ -32,6 +32,7 @@ internal sealed class PhysicalGeographyPipeline
         return new PhysicalGeographyPipeline(
             profile,
             [
+                new TectonicProvinceLayer(),
                 new ContinentalDomainLayer(),
                 new TectonicUpliftLayer(),
                 ocean,

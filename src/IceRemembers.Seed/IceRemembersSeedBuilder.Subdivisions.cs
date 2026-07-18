@@ -86,7 +86,7 @@ internal static partial class IceRemembersSeedBuilder
         PhysicalGeographyField field,
         ReadOnlySpan<PhysicalHexAggregate> aggregates)
     {
-        var scale = PhysicalSubdivisionScale;
+        var scale = PhysicalHeartRadius;
         return
         [
             new(
@@ -97,7 +97,8 @@ internal static partial class IceRemembersSeedBuilder
                     [],
                     0,
                     new HexCoord(-scale / 2, 0),
-                    AnchorPreference.Land)),
+                    AnchorPreference.Land,
+                    PhysicalHeartRadius)),
             new(
                 FarContinentId,
                 SelectAnchor(
@@ -106,7 +107,8 @@ internal static partial class IceRemembersSeedBuilder
                     [],
                     0,
                     new HexCoord((scale * 2) / 3, -(scale * 3) / 5),
-                    AnchorPreference.Ocean)),
+                    AnchorPreference.Coast,
+                    PhysicalHeartRadius)),
             new(
                 EmptyContinentId,
                 SelectAnchor(
@@ -115,7 +117,8 @@ internal static partial class IceRemembersSeedBuilder
                     [],
                     0,
                     new HexCoord(-(scale * 2) / 5, (scale * 3) / 4),
-                    AnchorPreference.ColdLand)),
+                    AnchorPreference.ColdLand,
+                    PhysicalHeartRadius)),
         ];
     }
 
@@ -163,7 +166,8 @@ internal static partial class IceRemembersSeedBuilder
         ReadOnlySpan<int> parentRegions,
         int parentRegionId,
         HexCoord target,
-        AnchorPreference preference)
+        AnchorPreference preference,
+        int maximumOriginDistance = int.MaxValue)
     {
         var bestHexIndex = -1;
         var bestScore = long.MaxValue;
@@ -172,12 +176,17 @@ internal static partial class IceRemembersSeedBuilder
             configuredIndex++)
         {
             var hexIndex = field.Grid.ConfiguredHexIndexAt(configuredIndex);
+            var coord = field.Grid.HexCoordAt(hexIndex);
             if (parentRegions.Length != 0 && parentRegions[hexIndex] != parentRegionId)
             {
                 continue;
             }
 
-            var coord = field.Grid.HexCoordAt(hexIndex);
+            if (HexCoord.Distance(new HexCoord(0, 0), coord) > maximumOriginDistance)
+            {
+                continue;
+            }
+
             var score = (HexCoord.Distance(coord, target) * 100L) +
                 AnchorPenalty(aggregates[hexIndex], preference);
             if (score < bestScore || (score == bestScore && hexIndex < bestHexIndex))
@@ -353,7 +362,7 @@ internal static partial class IceRemembersSeedBuilder
         var affinity = regionId switch
         {
             NearContinentId => aggregate.OceanCoverage * 11,
-            FarContinentId => aggregate.LandCoverage * 10,
+            FarContinentId => Math.Abs(12 - aggregate.WaterCoverage) * 5,
             EmptyContinentId =>
                 (aggregate.WaterCoverage * 7) + Math.Max(0, aggregate.MeanTemperature - 300) / 3,
             _ => aggregate.WaterCoverage * 2,

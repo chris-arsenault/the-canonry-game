@@ -7,6 +7,7 @@ internal sealed class GeothermalLayer : IPhysicalGeographyLayer
     public PhysicalGeographyLayerContract Contract { get; } = new(
         "geothermal",
         0x152b37,
+        PhysicalGeographyFacts.TectonicProvinces |
         PhysicalGeographyFacts.Elevation |
         PhysicalGeographyFacts.Ocean |
         PhysicalGeographyFacts.Fractures,
@@ -22,38 +23,36 @@ internal sealed class GeothermalLayer : IPhysicalGeographyLayer
     {
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
-            var x = map.Grid.TriangleX(triangleIndex);
-            var y = map.Grid.TriangleY(triangleIndex);
-            var tectonic = (map.RidgeInfluence[triangleIndex] * 0.30d) +
-                (map.FractureConductance[triangleIndex] / 1000d * 0.34d);
-            var broad = PhysicalNoise.UnitNoise(x, y, context.Seed, 42d, 3) * 0.16d;
-            var hotspot = Math.Max(
-                0d,
-                PhysicalNoise.UnitNoise(x, y, context.Seed ^ 0x37c1, 17d, 2) - 0.78d) * 2.8d;
-            map.Geothermal[triangleIndex] = ScaleUnit(tectonic + broad + hotspot);
-        }
-
-        ForcePeakSources(map, context);
-        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
-        {
-            map.HeatSourceDensity[triangleIndex] = Math.Clamp(
-                ((map.Geothermal[triangleIndex] * 2) + map.FractureConductance[triangleIndex]) / 3,
-                0,
-                1000);
-            var flags = map.FeatureFlags[triangleIndex] & ~PhysicalGeographyFeatureCodes.GeothermalVent;
-            if (map.Geothermal[triangleIndex] >= context.Profile.GeothermalVentThreshold)
+            map.FeatureFlags[triangleIndex] &=
+                ~(PhysicalGeographyFeatureCodes.GeothermalVent |
+                    PhysicalGeographyFeatureCodes.MantlePlume);
+            var strain = map.TectonicStrain[triangleIndex] / 1000d;
+            var boundaryHeat = map.TectonicBoundaryCodes[triangleIndex] switch
             {
-                flags |= PhysicalGeographyFeatureCodes.GeothermalVent;
-            }
-
-            map.FeatureFlags[triangleIndex] = flags;
+                PhysicalTectonicBoundaryCodes.Divergent => strain * 0.58d,
+                PhysicalTectonicBoundaryCodes.Convergent => strain * 0.43d,
+                PhysicalTectonicBoundaryCodes.Transform => strain * 0.24d,
+                _ => 0d,
+            };
+            var fractureHeat = map.FractureConductance[triangleIndex] / 1000d * 0.28d;
+            var broad = PhysicalNoise.UnitNoise(
+                map.Grid.TriangleX(triangleIndex),
+                map.Grid.TriangleY(triangleIndex),
+                context.Seed,
+                Math.Max(14d, map.Grid.Radius * 0.34d),
+                2) * 0.10d;
+            map.Geothermal[triangleIndex] = ScaleUnit(boundaryHeat + fractureHeat + broad);
         }
+
+        PaintMantlePlumes(map, context);
+        ClassifyHeatSources(map, context.Profile);
     }
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
         _ = context;
         var vents = 0;
+        var groundedVents = 0;
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             if (map.Geothermal[triangleIndex] is < 0 or > 1000)
@@ -61,50 +60,74 @@ internal sealed class GeothermalLayer : IPhysicalGeographyLayer
                 throw new InvalidOperationException("Geothermal intensity is out of range.");
             }
 
-            vents += (map.FeatureFlags[triangleIndex] & PhysicalGeographyFeatureCodes.GeothermalVent) != 0 ? 1 : 0;
+            if ((map.FeatureFlags[triangleIndex] & PhysicalGeographyFeatureCodes.GeothermalVent) == 0)
+            {
+                continue;
+            }
+
+            vents++;
+            groundedVents += map.TectonicStrain[triangleIndex] >= 180 ||
+                map.FractureConductance[triangleIndex] >= 560 ||
+                (map.FeatureFlags[triangleIndex] & PhysicalGeographyFeatureCodes.MantlePlume) != 0
+                    ? 1
+                    : 0;
         }
 
-        if (vents == 0)
+        if (vents == 0 || groundedVents != vents)
         {
-            throw new InvalidOperationException("Geothermal generation produced no vents.");
+            throw new InvalidOperationException("Geothermal vents lack tectonic, fracture, or plume provenance.");
         }
     }
 
-    private static void ForcePeakSources(
+    private static void PaintMantlePlumes(
         PhysicalGeographyField map,
         PhysicalGeographyGenerationContext context)
     {
-        const int sourceCount = 5;
+        if (context.Profile.MantlePlumeCount == 0)
+        {
+            return;
+        }
+
         var candidates = Enumerable.Range(0, map.Grid.TriangleCount)
-            .Where(index => map.Grid.TriangleIsInsideConfiguredDisk(index) &&
-                map.WaterKindCodes[index] != PhysicalWaterKindCodes.Ocean)
+            .Where(index => map.Grid.TriangleIsInsideConfiguredDisk(index))
             .OrderByDescending(index =>
-                map.Elevation[index] +
-                (map.FractureConductance[index] / 2) +
-                (int)(PhysicalNoise.HashUnit(context.Seed, index, 0) * 100d))
+                (1000 - map.TectonicStrain[index]) +
+                (int)(PhysicalNoise.HashUnit(context.Seed ^ 0x37c1, index, 0) * 420d))
             .ToArray();
-        var sources = new List<int>(sourceCount);
+        var selected = new List<int>(context.Profile.MantlePlumeCount);
         foreach (var candidate in candidates)
         {
-            if (sources.Count == sourceCount)
+            if (selected.Count >= context.Profile.MantlePlumeCount)
             {
                 break;
             }
 
-            if (sources.TrueForAll(source => DistanceSquared(map.Grid, source, candidate) >= 24d * 24d))
+            if (map.TectonicStrain[candidate] <= 420 &&
+                selected.TrueForAll(source => DistanceSquared(map.Grid, source, candidate) >=
+                    context.Profile.MantlePlumeMinimumSpacing *
+                    context.Profile.MantlePlumeMinimumSpacing))
             {
-                sources.Add(candidate);
+                selected.Add(candidate);
             }
         }
 
-        foreach (var source in sources)
+        foreach (var source in selected)
         {
-            PaintSource(map, source, 8d, 920);
+            PaintPlume(
+                map,
+                source,
+                context.Profile.MantlePlumeRadius,
+                context.Profile.MantlePlumeStrength);
         }
     }
 
-    private static void PaintSource(PhysicalGeographyField map, int source, double radius, int strength)
+    private static void PaintPlume(
+        PhysicalGeographyField map,
+        int source,
+        double radius,
+        int strength)
     {
+        map.FeatureFlags[source] |= PhysicalGeographyFeatureCodes.MantlePlume;
         var radiusSquared = radius * radius;
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
@@ -118,6 +141,30 @@ internal sealed class GeothermalLayer : IPhysicalGeographyLayer
             map.Geothermal[triangleIndex] = Math.Max(
                 map.Geothermal[triangleIndex],
                 (int)Math.Round(strength * amount * amount, MidpointRounding.AwayFromZero));
+        }
+    }
+
+    private static void ClassifyHeatSources(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile)
+    {
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            map.HeatSourceDensity[triangleIndex] = Math.Clamp(
+                ((map.Geothermal[triangleIndex] * 2) +
+                    map.FractureConductance[triangleIndex] +
+                    map.TectonicStrain[triangleIndex]) / 4,
+                0,
+                1000);
+            if (map.Geothermal[triangleIndex] < profile.GeothermalVentThreshold ||
+                (map.TectonicStrain[triangleIndex] < 180 &&
+                    map.FractureConductance[triangleIndex] < 560 &&
+                    (map.FeatureFlags[triangleIndex] & PhysicalGeographyFeatureCodes.MantlePlume) == 0))
+            {
+                continue;
+            }
+
+            map.FeatureFlags[triangleIndex] |= PhysicalGeographyFeatureCodes.GeothermalVent;
         }
     }
 

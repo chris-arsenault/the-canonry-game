@@ -208,8 +208,9 @@ The physical and semantic worlds grow from separately tracked radius-18
 hearts toward an explicit fixed-capacity generation radius of 128. Seed/worldgen
 installs deterministic terrain and geography for that whole latent field, but
 `MapFrontier` materializes cells only where culture presses an edge. Physical
-worldgen first builds one padded triangle graph. Authored uplift causes
-continents and mountain spines; erosion, connected-ocean bathymetry, conditioned
+worldgen first builds one padded triangle graph. Reduced moving crust provinces
+produce continental assemblies, ocean basins, typed boundaries, strain,
+mountain systems, rifts, and sparse island arcs; erosion, connected-ocean bathymetry, conditioned
 drainage, climate, ice flow, glacial carving, and fractures consume the prior
 passes through independent dependency-declaring layers. Ice Remembers then runs
 a second external layer pipeline that classifies varied cold land and water,

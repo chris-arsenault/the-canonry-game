@@ -59,7 +59,19 @@ public sealed record PhysicalGeographyQualityTargets
 
     public CountTarget MajorLandmassCount { get; init; } = new(2, 6);
 
+    public double MajorLandmassMinimumLandCoverage { get; init; } = 0.02d;
+
     public CountTarget InlandLakeBodyCount { get; init; } = new(2, 80);
+
+    public CoverageTarget LargestLandmassLandCoverage { get; init; } = new(0.38d, 0.30d);
+
+    public CoverageTarget IslandLandCoverage { get; init; } = new(0.10d, 0.10d);
+
+    public CoverageTarget CoastEdgeDensity { get; init; } = new(0.20d, 0.20d);
+
+    public CoverageTarget MajorLandmassSpacing { get; init; } = new(0.30d, 0.30d);
+
+    public CountTarget HotspotLandmassCount { get; init; } = new(1, 8);
 
     internal void Validate()
     {
@@ -68,12 +80,24 @@ public sealed record PhysicalGeographyQualityTargets
             throw new InvalidOperationException("Minimum quality evaluation radius cannot be negative.");
         }
 
-        if (OceanCoverage is null || LandIceCoverage is null || SeaIceCoverage is null ||
-            MajorLandmassCount is null || InlandLakeBodyCount is null)
+        if (CoverageTargetIsNull() || CountTargetIsNull())
         {
             throw new InvalidOperationException("Physical geography quality targets cannot be null.");
         }
+
+        if (MajorLandmassMinimumLandCoverage is <= 0d or > 1d)
+        {
+            throw new InvalidOperationException("Major-landmass minimum coverage is invalid.");
+        }
     }
+
+    private bool CoverageTargetIsNull() =>
+        OceanCoverage is null || LandIceCoverage is null || SeaIceCoverage is null ||
+        LargestLandmassLandCoverage is null || IslandLandCoverage is null ||
+        CoastEdgeDensity is null || MajorLandmassSpacing is null;
+
+    private bool CountTargetIsNull() =>
+        MajorLandmassCount is null || InlandLakeBodyCount is null || HotspotLandmassCount is null;
 }
 
 /// <summary>
@@ -87,23 +111,37 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int ElevationScale { get; init; } = 1000;
 
-    public int ContinentalCenterCount { get; init; } = 5;
+    public int TectonicProvinceCount { get; init; } = 14;
 
-    public int OceanBasinCenterCount { get; init; } = 7;
+    public int TectonicSiteCandidateMultiplier { get; init; } = 24;
 
-    public double ContinentalRadius { get; init; } = 92d;
+    public int ContinentalAssemblyCount { get; init; } = 4;
+
+    public double ContinentalCrustFraction { get; init; } = 0.48d;
+
+    public double ContinentalTransitionWidth { get; init; } = 26d;
+
+    public double ContinentalAssemblySeparationDepth { get; init; } = 0.38d;
+
+    public double ContinentalCrustPotentialFloor { get; init; } = 0.62d;
+
+    public double OceanicCrustPotentialCeiling { get; init; } = 0.38d;
 
     public double ContinentalWarpScale { get; init; } = 54d;
 
     public double ContinentalWarpStrength { get; init; } = 18d;
 
-    public int RidgeAxisCount { get; init; } = 7;
-
-    public double RidgeHalfLength { get; init; } = 72d;
-
     public double RidgeWidth { get; init; } = 11d;
 
     public double RidgeUplift { get; init; } = 0.62d;
+
+    public double RiftDepth { get; init; } = 0.28d;
+
+    public double TectonicMotionMinimum { get; init; } = 0.22d;
+
+    public double TectonicMotionMaximum { get; init; } = 0.72d;
+
+    public double TectonicConvergenceThreshold { get; init; } = 0.12d;
 
     public double ElevationVariationScale { get; init; } = 25d;
 
@@ -183,6 +221,14 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int GeothermalVentThreshold { get; init; } = 720;
 
+    public int MantlePlumeCount { get; init; } = 3;
+
+    public double MantlePlumeRadius { get; init; } = 11d;
+
+    public double MantlePlumeMinimumSpacing { get; init; } = 36d;
+
+    public int MantlePlumeStrength { get; init; } = 940;
+
     public int FractureBranchCount { get; init; } = 24;
 
     public int FractureConductanceFloor { get; init; } = 25;
@@ -204,30 +250,62 @@ public sealed record PhysicalGeographyGenerationProfile
 
     private void ValidateCounts()
     {
-        if (Padding <= 0 || ElevationScale <= 0 || ContinentalCenterCount <= 0 ||
-            OceanBasinCenterCount <= 0 || RidgeAxisCount <= 0 || FluvialErosionIterations <= 0 ||
-            MinimumLakeTriangles <= 0 || MinimumRiverReachTriangles <= 0)
+        if (TectonicCountsAreInvalid() || LandscapeCountsAreInvalid())
         {
             throw new InvalidOperationException("Physical worldgen integer parameters are invalid.");
         }
     }
 
+    private bool TectonicCountsAreInvalid() =>
+        TectonicProvinceCount < 4 || TectonicSiteCandidateMultiplier < 2 ||
+        MantlePlumeCount < 0 || ContinentalAssemblyCount < 2 ||
+        ContinentalAssemblyCount > TectonicProvinceCount - 2;
+
+    private bool LandscapeCountsAreInvalid() =>
+        Padding <= 0 || ElevationScale <= 0 || FluvialErosionIterations <= 0 ||
+        MinimumLakeTriangles <= 0 || MinimumRiverReachTriangles <= 0;
+
     private void ValidateScales()
     {
-        if (ContinentalRadius <= 0d || ContinentalWarpScale <= 0d ||
-            RidgeHalfLength <= 0d || RidgeWidth <= 0d || RidgeUplift <= 0d ||
-            ElevationVariationScale <= 0d || FluvialErosionStrength <= 0d ||
-            WarmthPocketMinRadius <= 0d || HeartWarmthRadius <= 0d)
+        if (TectonicScaleIsInvalid() || LandscapeScaleIsInvalid())
         {
             throw new InvalidOperationException("Physical worldgen feature scales are invalid.");
         }
     }
 
+    private bool TectonicScaleIsInvalid() =>
+        ContinentalTransitionWidth <= 0d || ContinentalWarpScale <= 0d ||
+        RidgeWidth <= 0d || RidgeUplift <= 0d || RiftDepth <= 0d ||
+        ContinentalAssemblySeparationDepth <= 0d ||
+        MantlePlumeRadius <= 0d || MantlePlumeMinimumSpacing <= 0d;
+
+    private bool LandscapeScaleIsInvalid() =>
+        ElevationVariationScale <= 0d || FluvialErosionStrength <= 0d ||
+        WarmthPocketMinRadius <= 0d || HeartWarmthRadius <= 0d;
+
     private void ValidateRanges()
     {
+        if (TectonicRangesAreInvalid())
+        {
+            throw new InvalidOperationException("Physical worldgen tectonic ranges are invalid.");
+        }
+
         ValidateHydrologyRanges();
         ValidateClimateRanges();
     }
+
+    private bool TectonicRangesAreInvalid() =>
+        ContinentalCrustFraction is <= 0d or >= 1d ||
+        ContinentalCrustPotentialFloor is <= 0d or > 1d ||
+        OceanicCrustPotentialCeiling is < 0d or >= 1d ||
+        OceanicCrustPotentialCeiling >= ContinentalCrustPotentialFloor ||
+        TectonicMotionRangesAreInvalid();
+
+    private bool TectonicMotionRangesAreInvalid() =>
+        TectonicMotionMinimum <= 0d ||
+        TectonicMotionMaximum < TectonicMotionMinimum ||
+        TectonicConvergenceThreshold < 0d ||
+        MantlePlumeStrength is < 1 or > 1000;
 
     private void ValidateHydrologyRanges()
     {

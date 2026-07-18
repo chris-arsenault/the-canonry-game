@@ -36,7 +36,7 @@ internal sealed class LandmassLayer : IPhysicalGeographyLayer
 
     private static bool TriangleIsClassified(PhysicalGeographyField map, int triangleIndex)
     {
-        if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
+        if (!IsDryLand(map, triangleIndex))
         {
             return true;
         }
@@ -55,7 +55,7 @@ internal sealed class LandmassLayer : IPhysicalGeographyLayer
         var nextId = 0;
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
-            if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean ||
+            if (!IsDryLand(map, triangleIndex) ||
                 map.LandmassIds[triangleIndex] != 0)
             {
                 continue;
@@ -97,7 +97,7 @@ internal sealed class LandmassLayer : IPhysicalGeographyLayer
         for (var edge = 0; edge < 3; edge++)
         {
             var neighbor = map.Grid.NeighborTriangleIndex(member, edge);
-            if (neighbor >= 0 && map.WaterKindCodes[neighbor] != PhysicalWaterKindCodes.Ocean &&
+            if (neighbor >= 0 && IsDryLand(map, neighbor) &&
                 map.LandmassIds[neighbor] == 0)
             {
                 map.LandmassIds[neighbor] = landmassId;
@@ -137,5 +137,10 @@ internal sealed class LandmassLayer : IPhysicalGeographyLayer
                 }
             }
         }
+
     }
+
+    private static bool IsDryLand(PhysicalGeographyField map, int triangleIndex) =>
+        map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.None &&
+        map.Elevation[triangleIndex] >= map.EffectiveSeaLevel;
 }

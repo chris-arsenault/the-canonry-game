@@ -191,6 +191,13 @@ public sealed class PhysicalGeographyGrid
 /// </summary>
 public sealed class PhysicalGeographyField
 {
+    private readonly int[] _crustBasePotential;
+    private readonly int[] _crustAssemblyIds;
+    private readonly int[] _crustAssemblySeparation;
+    private readonly int[] _crustMotionX;
+    private readonly int[] _crustMotionY;
+    private readonly int[] _crustProvinceIds;
+    private readonly int[] _crustTypeCodes;
     private readonly int[] _continentalPotential;
     private readonly int[] _drainageBasinIds;
     private readonly int[] _drainageElevations;
@@ -217,6 +224,8 @@ public sealed class PhysicalGeographyField
     private readonly int[] _runoff;
     private readonly int[] _slope;
     private readonly int[] _temperature;
+    private readonly int[] _tectonicBoundaryCodes;
+    private readonly int[] _tectonicStrain;
     private readonly int[] _warmth;
     private readonly int[] _continentalGroupIds;
     private readonly int[] _bathymetricZoneCodes;
@@ -228,9 +237,16 @@ public sealed class PhysicalGeographyField
     internal PhysicalGeographyField(PhysicalGeographyGrid grid)
     {
         Grid = grid;
+        (_crustBasePotential, _crustAssemblyIds, _crustAssemblySeparation, _crustMotionX,
+            _crustMotionY, _crustProvinceIds, _crustTypeCodes) =
+            (new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount],
+                new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount],
+                new int[grid.TriangleCount]);
         _continentalPotential = new int[grid.TriangleCount];
         _elevation = new int[grid.TriangleCount];
         _temperature = new int[grid.TriangleCount];
+        (_tectonicBoundaryCodes, _tectonicStrain) =
+            (new int[grid.TriangleCount], new int[grid.TriangleCount]);
         _moisture = new int[grid.TriangleCount];
         _geothermal = new int[grid.TriangleCount];
         _slope = new int[grid.TriangleCount];
@@ -273,7 +289,25 @@ public sealed class PhysicalGeographyField
 
     internal int EffectiveSeaLevel { get; set; }
 
+    public Span<int> CrustBasePotential => _crustBasePotential;
+
+    public Span<int> CrustAssemblyIds => _crustAssemblyIds;
+
+    public Span<int> CrustAssemblySeparation => _crustAssemblySeparation;
+
+    public Span<int> CrustMotionX => _crustMotionX;
+
+    public Span<int> CrustMotionY => _crustMotionY;
+
+    public Span<int> CrustProvinceIds => _crustProvinceIds;
+
+    public Span<int> CrustTypeCodes => _crustTypeCodes;
+
     internal Span<int> ContinentalPotential => _continentalPotential;
+
+    public Span<int> TectonicBoundaryCodes => _tectonicBoundaryCodes;
+
+    public Span<int> TectonicStrain => _tectonicStrain;
 
     public Span<int> Elevation => _elevation;
 

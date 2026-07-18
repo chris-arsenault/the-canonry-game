@@ -5,6 +5,23 @@ using Engine.Constants;
 public sealed class PhysicalMacroLayerTests
 {
     [Fact]
+    public void TectonicProvinces_CreateTypedMovingCrustAndRejectUnknownBoundary()
+    {
+        var result = PhysicalGeographyLayerTestHarness.GenerateThrough<TectonicProvinceLayer>();
+        Assert.True(result.Map.CrustProvinceIds.ToArray().Distinct().Count() >= 4);
+        Assert.Contains(result.Map.CrustTypeCodes.ToArray(), code =>
+            code == PhysicalCrustTypeCodes.Continental);
+        Assert.Contains(result.Map.CrustTypeCodes.ToArray(), code =>
+            code == PhysicalCrustTypeCodes.Oceanic);
+        Assert.Contains(result.Map.TectonicBoundaryCodes.ToArray(), code =>
+            code != PhysicalTectonicBoundaryCodes.None);
+
+        result.Map.TectonicBoundaryCodes[0] = PhysicalTectonicBoundaryCodes.Max + 1;
+        Assert.Throws<InvalidOperationException>(() =>
+            result.Layer.Validate(result.Map, result.Context));
+    }
+
+    [Fact]
     public void ContinentalDomains_CreateMacroScaleContrastAndRejectUniformPotential()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<ContinentalDomainLayer>();
@@ -17,12 +34,13 @@ public sealed class PhysicalMacroLayerTests
     }
 
     [Fact]
-    public void TectonicUplift_ConfinesRidgesToContinentalDomainsAndRejectsOceanRidge()
+    public void TectonicUplift_FollowsConvergentBoundariesAndRejectsInvalidInfluence()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<TectonicUpliftLayer>();
-        Assert.Contains(result.Map.RidgeInfluence.ToArray(), value => value > 0.25f);
-        var deepOcean = FindTriangle(result.Map, index => result.Map.ContinentalPotential[index] < 250);
-        result.Map.RidgeInfluence[deepOcean] = 0.5f;
+        Assert.Contains(Enumerable.Range(0, result.Map.Grid.TriangleCount), index =>
+            result.Map.TectonicBoundaryCodes[index] == PhysicalTectonicBoundaryCodes.Convergent &&
+            result.Map.RidgeInfluence[index] > 0.15f);
+        result.Map.RidgeInfluence[0] = 1.1f;
 
         Assert.Throws<InvalidOperationException>(() =>
             result.Layer.Validate(result.Map, result.Context));
@@ -87,7 +105,7 @@ public sealed class PhysicalMacroLayerTests
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<LandmassLayer>();
         var dry = FindTriangle(result.Map, index =>
-            result.Map.WaterKindCodes[index] != PhysicalWaterKindCodes.Ocean);
+            TriangleIsDry(result.Map, index));
         Assert.True(result.Map.LandmassIds[dry] > 0);
         Assert.True(result.Map.ContinentalGroupIds[dry] > 0);
         AssertAdjacentDryTrianglesShareLandmass(result.Map);
@@ -117,7 +135,10 @@ public sealed class PhysicalMacroLayerTests
         Assert.Contains(result.Map.FeatureFlags.ToArray(), flags =>
             (flags & PhysicalGeographyFeatureCodes.GeothermalVent) != 0);
         Assert.Contains(Enumerable.Range(0, result.Map.Grid.TriangleCount), index =>
-            result.Map.Geothermal[index] >= 700 && result.Map.FractureConductance[index] >= 260);
+            (result.Map.FeatureFlags[index] & PhysicalGeographyFeatureCodes.GeothermalVent) != 0 &&
+            (result.Map.TectonicStrain[index] >= 180 ||
+                result.Map.FractureConductance[index] >= 560 ||
+                (result.Map.FeatureFlags[index] & PhysicalGeographyFeatureCodes.MantlePlume) != 0));
 
         result.Map.Geothermal[0] = 1001;
         Assert.Throws<InvalidOperationException>(() =>
@@ -142,13 +163,15 @@ public sealed class PhysicalMacroLayerTests
             for (var edge = 0; edge < 3; edge++)
             {
                 var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
-                if (neighbor >= 0 &&
-                    map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.Ocean &&
-                    map.WaterKindCodes[neighbor] != PhysicalWaterKindCodes.Ocean)
+                if (neighbor >= 0 && TriangleIsDry(map, triangleIndex) && TriangleIsDry(map, neighbor))
                 {
                     Assert.Equal(map.LandmassIds[triangleIndex], map.LandmassIds[neighbor]);
                 }
             }
         }
     }
+
+    private static bool TriangleIsDry(PhysicalGeographyField map, int triangleIndex) =>
+        map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.None &&
+        map.Elevation[triangleIndex] >= map.EffectiveSeaLevel;
 }

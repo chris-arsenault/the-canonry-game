@@ -259,6 +259,10 @@ internal static partial class IceRemembersSeedBuilder
         PhysicalGeographyField field,
         IceRemembersMicrogeographyMap magic) =>
     [
+        new("crust_province", ExtractConfiguredValues(field, field.CrustProvinceIds)),
+        new("crust_type", ExtractConfiguredValues(field, field.CrustTypeCodes)),
+        new("tectonic_boundary", ExtractConfiguredValues(field, field.TectonicBoundaryCodes)),
+        new("tectonic_strain", ExtractConfiguredValues(field, field.TectonicStrain)),
         new("fire_intensity", ExtractConfiguredValues(field, magic.FireIntensity)),
         new("aurora_intensity", ExtractConfiguredValues(field, magic.AuroraIntensity)),
         new("pressure_intensity", ExtractConfiguredValues(field, magic.PressureIntensity)),

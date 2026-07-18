@@ -24,4 +24,5 @@ internal enum PhysicalGeographyFacts : ulong
     SeaIce = 1UL << 17,
     Landforms = 1UL << 18,
     Validated = 1UL << 19,
+    TectonicProvinces = 1UL << 20,
 }

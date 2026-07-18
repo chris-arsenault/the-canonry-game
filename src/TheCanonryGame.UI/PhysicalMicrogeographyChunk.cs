@@ -127,7 +127,21 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             _ => UiTokens.Whisper,
         };
 
-    private static Color AggregatePhysicalFieldColor(
+    private Color AggregatePhysicalFieldColor(
+        in PhysicalGeographyCellProjection cell,
+        PhysicalGeographyView view)
+    {
+        if (IsTectonicView(view))
+        {
+            return AggregateTectonicColor(cell, view);
+        }
+
+        return view <= PhysicalGeographyView.Geothermal
+            ? AggregateClimateColor(cell, view)
+            : AggregateProcessColor(cell, view);
+    }
+
+    private static Color AggregateClimateColor(
         in PhysicalGeographyCellProjection cell,
         PhysicalGeographyView view) => view switch
         {
@@ -135,10 +149,30 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             PhysicalGeographyView.Temperature => TemperatureColor(cell.MeanTemperature),
             PhysicalGeographyView.Moisture => MoistureColor(cell.MeanMoisture),
             PhysicalGeographyView.Geothermal => GeothermalColor(cell.MeanGeothermal),
+            _ => UiTokens.Whisper,
+        };
+
+    private static Color AggregateProcessColor(
+        in PhysicalGeographyCellProjection cell,
+        PhysicalGeographyView view) => view switch
+        {
             PhysicalGeographyView.Hydrology => AggregateHydrologyColor(cell),
             PhysicalGeographyView.Ice => IceColor(cell.MeanIceThickness),
             PhysicalGeographyView.Fractures => FractureColor(
                 System.Numerics.BitOperations.PopCount((uint)cell.FractureEdgeMask) * 1000 / 6),
+            _ => UiTokens.Whisper,
+        };
+
+    private Color AggregateTectonicColor(
+        in PhysicalGeographyCellProjection cell,
+        PhysicalGeographyView view) => view switch
+        {
+            PhysicalGeographyView.TectonicProvinces =>
+                ScalarColor(cell, 0, "crust_province", TectonicProvinceColor),
+            PhysicalGeographyView.CrustType => ScalarColor(cell, 0, "crust_type", CrustTypeColor),
+            PhysicalGeographyView.TectonicBoundaries => AggregateBoundaryColor(cell),
+            PhysicalGeographyView.TectonicStrain =>
+                AggregateScalarColor(cell, "tectonic_strain", TectonicStrainColor),
             _ => UiTokens.Whisper,
         };
 
@@ -203,7 +237,7 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
 
         return view <= PhysicalGeographyView.Material
             ? TriangleIdentityColor(cell, triangle, view)
-            : TrianglePhysicalFieldColor(triangle, view);
+            : TrianglePhysicalFieldColor(cell, triangleIndex, triangle, view);
     }
 
     private Color TriangleIdentityColor(
@@ -223,7 +257,23 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             _ => UiTokens.Whisper,
         };
 
-    private static Color TrianglePhysicalFieldColor(
+    private Color TrianglePhysicalFieldColor(
+        in PhysicalGeographyCellProjection cell,
+        int triangleIndex,
+        in PhysicalMicrotriangleProjection triangle,
+        PhysicalGeographyView view)
+    {
+        if (IsTectonicView(view))
+        {
+            return TriangleTectonicColor(cell, triangleIndex, view);
+        }
+
+        return view <= PhysicalGeographyView.Geothermal
+            ? TriangleClimateColor(triangle, view)
+            : TriangleProcessColor(triangle, view);
+    }
+
+    private static Color TriangleClimateColor(
         in PhysicalMicrotriangleProjection triangle,
         PhysicalGeographyView view) => view switch
         {
@@ -231,10 +281,36 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             PhysicalGeographyView.Temperature => TemperatureColor(triangle.Temperature),
             PhysicalGeographyView.Moisture => MoistureColor(triangle.Moisture),
             PhysicalGeographyView.Geothermal => GeothermalColor(triangle.Geothermal),
+            _ => UiTokens.Whisper,
+        };
+
+    private static Color TriangleProcessColor(
+        in PhysicalMicrotriangleProjection triangle,
+        PhysicalGeographyView view) => view switch
+        {
             PhysicalGeographyView.Landform => LandformColor(triangle.LandformCode),
             PhysicalGeographyView.Hydrology => HydrologyColor(triangle),
             PhysicalGeographyView.Ice => IceColor(triangle.IceThickness),
             PhysicalGeographyView.Fractures => FractureColor(triangle.FractureConductance),
+            _ => UiTokens.Whisper,
+        };
+
+    private static bool IsTectonicView(PhysicalGeographyView view) =>
+        view is >= PhysicalGeographyView.TectonicProvinces and <= PhysicalGeographyView.TectonicStrain;
+
+    private Color TriangleTectonicColor(
+        in PhysicalGeographyCellProjection cell,
+        int triangleIndex,
+        PhysicalGeographyView view) => view switch
+        {
+            PhysicalGeographyView.TectonicProvinces =>
+                ScalarColor(cell, triangleIndex, "crust_province", TectonicProvinceColor),
+            PhysicalGeographyView.CrustType =>
+                ScalarColor(cell, triangleIndex, "crust_type", CrustTypeColor),
+            PhysicalGeographyView.TectonicBoundaries =>
+                ScalarColor(cell, triangleIndex, "tectonic_boundary", TectonicBoundaryColor),
+            PhysicalGeographyView.TectonicStrain =>
+                ScalarColor(cell, triangleIndex, "tectonic_strain", TectonicStrainColor),
             _ => UiTokens.Whisper,
         };
 
@@ -261,6 +337,55 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             cell.MicrotriangleOffset + triangleIndex,
             out var value);
         return color(value);
+    }
+
+    private Color AggregateScalarColor(
+        in PhysicalGeographyCellProjection cell,
+        string stableName,
+        Func<int, Color> color)
+    {
+        var total = 0;
+        for (var triangleIndex = 0;
+            triangleIndex < PhysicalGeographyCodes.MicrotrianglesPerHex;
+            triangleIndex++)
+        {
+            _ = _owner!.Geography.TryGetScalarValue(
+                stableName,
+                cell.MicrotriangleOffset + triangleIndex,
+                out var value);
+            total += value;
+        }
+
+        return color(total / PhysicalGeographyCodes.MicrotrianglesPerHex);
+    }
+
+    private Color AggregateBoundaryColor(in PhysicalGeographyCellProjection cell)
+    {
+        var strongestBoundary = 0;
+        var strongestStrain = 0;
+        for (var triangleIndex = 0;
+            triangleIndex < PhysicalGeographyCodes.MicrotrianglesPerHex;
+            triangleIndex++)
+        {
+            _ = _owner!.Geography.TryGetScalarValue(
+                "tectonic_strain",
+                cell.MicrotriangleOffset + triangleIndex,
+                out var strain);
+            if (strain <= strongestStrain)
+            {
+                continue;
+            }
+
+            strongestStrain = strain;
+            _ = _owner.Geography.TryGetScalarValue(
+                "tectonic_boundary",
+                cell.MicrotriangleOffset + triangleIndex,
+                out strongestBoundary);
+        }
+
+        return TectonicBoundaryColor(strongestBoundary).Lerp(
+            UiTokens.Ink,
+            1f - Math.Clamp(strongestStrain / 1000f, 0f, 1f));
     }
 
     private Color MagicCompositeTriangleColor(
@@ -470,6 +595,30 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         new Color(0.10f, 0.10f, 0.14f).Lerp(
             new Color(0.96f, 0.30f, 0.12f),
             Math.Clamp(conductance / 1000f, 0f, 1f));
+
+    private static Color TectonicProvinceColor(int provinceId) => provinceId <= 0
+        ? UiTokens.Ink
+        : Color.FromHsv((provinceId * 0.618034f) % 1f, 0.58f, 0.84f);
+
+    private static Color CrustTypeColor(int crustType) => crustType switch
+    {
+        1 => new Color(0.12f, 0.30f, 0.48f),
+        2 => new Color(0.66f, 0.51f, 0.30f),
+        _ => UiTokens.Ink,
+    };
+
+    private static Color TectonicBoundaryColor(int boundaryType) => boundaryType switch
+    {
+        1 => new Color(0.95f, 0.30f, 0.16f),
+        2 => new Color(0.20f, 0.65f, 0.92f),
+        3 => new Color(0.94f, 0.70f, 0.22f),
+        _ => UiTokens.Ink,
+    };
+
+    private static Color TectonicStrainColor(int strain) =>
+        new Color(0.08f, 0.10f, 0.16f).Lerp(
+            new Color(0.94f, 0.36f, 0.18f),
+            Math.Clamp(strain / 1000f, 0f, 1f));
 
     private static Color FireColor(int intensity) =>
         new Color(0.10f, 0.08f, 0.10f).Lerp(

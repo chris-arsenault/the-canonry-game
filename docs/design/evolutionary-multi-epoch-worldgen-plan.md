@@ -86,24 +86,25 @@ site, surrounding rings, and straight radial ocean cuts;
 
 Implementation:
 
-- [ ] Add a reduced `TectonicProvinceLayer` producing irregular provinces
+- [x] Add a reduced `TectonicProvinceLayer` producing irregular provinces
   beyond the cropped map, continental/oceanic crust, motion, and boundary type.
-- [ ] Make `ContinentalDomainLayer` derive continuous continental potential and
+- [x] Make `ContinentalDomainLayer` derive continuous continental potential and
   basin structure from provinces; remove center/ring and radial-channel code.
-- [ ] Reuse the curved uplift kernel in `TectonicUpliftLayer`, but source ridges,
-  rifts, arcs, and trenches from typed province boundaries.
-- [ ] Extend fractures from tectonic strain while retaining independent
+- [x] Replace the incompatible radial-axis placement in `TectonicUpliftLayer`
+  while retaining continuous shaped relief for ridges, rifts, arcs, and
+  trenches sourced from typed province boundaries.
+- [x] Extend fractures from tectonic strain while retaining independent
   branching.
-- [ ] Ground geothermal systems in boundary activity, fracture intersections,
+- [x] Ground geothermal systems in boundary activity, fracture intersections,
   and rare configurable mantle plumes; delete the forced five peaks.
-- [ ] Preserve ocean connectivity, target-calibrated sea level, ancestral
+- [x] Preserve ocean connectivity, target-calibrated sea level, ancestral
   erosion, bathymetry, and landmass connected components.
-- [ ] Add configurable landmass-size, spacing, island-share, coast-complexity,
+- [x] Add configurable landmass-size, spacing, island-share, coast-complexity,
   hotspot-spacing, and hotspot-distribution quality targets.
-- [ ] Add inspector views required to evaluate provinces and boundaries.
-- [ ] Add positive and negative layer tests for causal boundary behavior and
+- [x] Add inspector views required to evaluate provinces and boundaries.
+- [x] Add positive and negative layer tests for causal boundary behavior and
   configurable target validation.
-- [ ] Inspect fixed-seed output, run final milestone verification, commit, and
+- [x] Inspect fixed-seed output, run final milestone verification, commit, and
   push.
 
 Primary files:

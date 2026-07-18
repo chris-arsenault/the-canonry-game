@@ -172,11 +172,14 @@ public static class IceRemembersPhysicalGeography
     public static PhysicalGeographyGenerationProfile GenerationProfile { get; } = new()
     {
         Padding = 24,
-        ContinentalCenterCount = 5,
-        ContinentalRadius = 96d,
-        RidgeAxisCount = 8,
-        RidgeHalfLength = 76d,
+        TectonicProvinceCount = 18,
+        ContinentalAssemblyCount = 4,
+        ContinentalCrustFraction = 0.44d,
+        ContinentalTransitionWidth = 14d,
         RidgeWidth = 10d,
+        MantlePlumeCount = 4,
+        MantlePlumeRadius = 12d,
+        MantlePlumeMinimumSpacing = 42d,
         SeaLevel = -0.04d,
         IslandTriangleThreshold = 680,
         RiverAccumulationThreshold = 9200,

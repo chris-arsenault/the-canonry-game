@@ -31,6 +31,10 @@ public partial class MapArea : Control
     public const string GeographyViewHydrology = "hydrology";
     public const string GeographyViewIce = "ice";
     public const string GeographyViewFractures = "fractures";
+    public const string GeographyViewTectonicProvinces = "tectonic_provinces";
+    public const string GeographyViewCrustType = "crust_type";
+    public const string GeographyViewTectonicBoundaries = "tectonic_boundaries";
+    public const string GeographyViewTectonicStrain = "tectonic_strain";
     public const string GeographyViewFire = "fire";
     public const string GeographyViewAurora = "aurora";
     public const string GeographyViewPressure = "pressure";
@@ -254,6 +258,10 @@ public partial class MapArea : Control
         AddGeographyViewOption("Hydrology", GeographyViewHydrology);
         AddGeographyViewOption("Ice", GeographyViewIce);
         AddGeographyViewOption("Fractures", GeographyViewFractures);
+        AddGeographyViewOption("Tectonic provinces", GeographyViewTectonicProvinces);
+        AddGeographyViewOption("Crust type", GeographyViewCrustType);
+        AddGeographyViewOption("Tectonic boundaries", GeographyViewTectonicBoundaries);
+        AddGeographyViewOption("Tectonic strain", GeographyViewTectonicStrain);
         AddGeographyViewOption("Fire", GeographyViewFire);
         AddGeographyViewOption("Aurora", GeographyViewAurora);
         AddGeographyViewOption("Pressure", GeographyViewPressure);

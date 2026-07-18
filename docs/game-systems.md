@@ -18,8 +18,9 @@ cells are forged only by entity actions (Aurora spire tiers up, Nightshelf
 tunnel galleries down). Regions and settlements are not a separate
 abstraction from map coverage: they are named coverage over physical space. The
 physical generation blueprint also divides every surface hex into 24 canonical
-microtriangles. Outside the kernel, one padded causal pipeline creates uplift
-and mountain spines, erodes valleys, labels connected land and ocean, solves
+microtriangles. Outside the kernel, one padded causal pipeline partitions
+moving continental and oceanic crust, derives typed boundaries and strain,
+raises mountains and island arcs from those boundaries, erodes valleys, labels connected land and ocean, solves
 bathymetry and drainage, derives climate, routes ice, carves glacial landforms,
 and generates fractures. Ice Remembers then runs asymmetric fire, aurora, and
 pressure passes over that same triangle graph. Natural surfaces include frozen
