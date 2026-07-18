@@ -1,6 +1,6 @@
 # Causal Physical World Generation
 
-Status: approved replacement design, implementation in progress.
+Status: implemented.
 
 The physical world is generated as a pass-ordered dependency chain over the
 canonical microtriangle graph. It is not a stack of independent noise layers.
@@ -8,9 +8,9 @@ Elevation causes drainage; drainage is eroded before glaciation; glaciation
 overprints the ancestral river landscape; fire changes temperature before
 aurora settles; pressure propagates through the resulting ocean geometry.
 
-The existing prototype generator is replaced rather than retained behind a
-compatibility layer. The canonical 24-triangle topology and the current
-hex-scale simulation boundary remain useful contracts.
+The prototype generator was removed rather than retained behind a compatibility
+layer. The canonical 24-triangle topology and the current hex-scale simulation
+boundary remain the useful contracts.
 
 ## Ownership and runtime boundary
 
@@ -131,7 +131,7 @@ landform codes.
 ### 7. Natural surface classification
 
 Classify a cold-shifted climate base, then apply physical overrides in causal
-order. The initial natural surface vocabulary is:
+order. The natural surface vocabulary is:
 
 - `tundra`
 - `open_field`
@@ -144,6 +144,11 @@ order. The initial natural surface vocabulary is:
 - `shelf`
 - `ocean`
 - `reef`
+- `pack_ice`
+- `sea_ice`
+- `ice_shelf`
+- `polynya`
+- `snowfield`
 
 Physical material remains independent of this surface classification.
 
@@ -238,6 +243,11 @@ Hard contracts:
 - every surface and anomaly palette index resolves;
 - every hex summary matches its 24 triangles;
 - administrative subdivision assignment changes no physical field;
+- frozen land and sea dominate without one final surface painting the world;
+- separated viable warmth occurs in ocean, shore, inland, and peak contexts;
+- the startup heart overlaps warmth while viable systems also exist far away;
+- verdant hot springs can occur in high peak hexes;
+- no anomaly predicate collapses most of the field into one magic surface;
 - the startup heart has viable placement geography across a fixed seed corpus.
 
 Quality is calibrated across several deterministic seeds rather than tuned to

@@ -41,12 +41,14 @@ Engine.Observability
   run log, telemetry projection, parquet export, Monte Carlo analysis inputs
 
 Engine.WorldGen
-  domain-neutral hex/triangle topology, whole-field physical generation,
-  hydrology, landforms, aggregation, terrain catalogs, and map coverage
+  domain-neutral hex/triangle topology, causal uplift and erosion, connected
+  land/water analysis, hydrology, climate, glaciation, fractures, aggregation,
+  terrain catalogs, and map coverage
 
 IceRemembers.Seed
-  Ice Remembers physical materials, authored hex-terrain synthesis,
-  geography-shaped subdivisions, startup placement, and seed validation
+  Ice Remembers physical materials and surfaces, fire/aurora/pressure worldgen,
+  authored hex-terrain synthesis, geography-shaped subdivisions, startup
+  placement, and seed validation
 ```
 
 `Engine.Kernel` must remain domain-agnostic. Domain names compile to stable ids
@@ -137,10 +139,16 @@ The kernel world contains:
 - physical and semantic map cells with independent live extents, effective
   terrain, physical base terrain and transient cover, named coverage, roads,
   culture influence tile layers, and derived culture boundary caches;
-- an installed radius-bounded latent geography blueprint: physical hex
-  summaries backed by 24 microtriangles per hex, plus varied semantic terrain;
+- installed radius-bounded per-hex latent geography: physical base terrain,
+  superregion, and continent ids, plus varied semantic terrain;
 - provenance invocation/output history for high-altitude and authored effects;
 - program data/state/scratch for each registered kernel program.
+
+The kernel does not store the physical microtriangle field or the generation
+process that produced it. Those immutable startup facts remain outside the
+kernel in the stable-name seed blueprint and its read-only projection. The
+kernel's frontier program needs only the resolved terrain and regional identity
+for a coordinate.
 
 Semantic domain reasoning and authored graph validation happen outside the
 kernel in the definition graph. The runtime entity graph is the simulation
@@ -196,19 +204,21 @@ The physical and semantic worlds grow from separately tracked radius-18
 hearts toward an explicit fixed-capacity generation radius of 128. Seed/worldgen
 installs deterministic terrain and geography for that whole latent field, but
 `MapFrontier` materializes cells only where culture presses an edge. Physical
-worldgen first builds a padded shared triangle graph, then derives
-macrostructure/elevation, connected ocean, climate and geothermal normals,
-conditioned drainage, lakes, rivers, and landforms in dependency order. Ice
-Remembers classifies physical materials separately from gameplay terrain and
-uses scored authored rules over each 24-triangle aggregate to choose base
-terrain. Geographic subdivisions grow as connected partitions over those
-facts and never repaint the physical field. Current simulation behavior remains
-hex-scale. During the Long Dark, ordinary reclaim applies impassable Deep Ice
-as transient cover only to frontier-grown physical cells. Durable terrain and
-the startup heart remain intact underneath. Reach across the map is priced by
-travel cost, not raw hex distance: a `WithinTravelReach` gate line-samples
-road-discounted terrain cost between endpoints, so frozen frontier blocks reach
-and roads extend it. See [26-growing-map.md](./systems/26-growing-map.md).
+worldgen first builds one padded triangle graph. Authored uplift causes
+continents and mountain spines; erosion, connected-ocean bathymetry, conditioned
+drainage, climate, ice flow, glacial carving, and fractures consume the prior
+passes in dependency order. Ice Remembers then routes fire through fractures,
+aurora through cold ice reservoirs, and pressure waves through ocean geometry.
+It retains natural surfaces, anomaly flags, and all three intensity fields while
+scored authored rules reduce each 24-triangle aggregate to the base terrain the
+hex-scale kernel consumes. Geographic subdivisions grow as connected partitions
+over those facts and never repaint the physical field. During the Long Dark,
+ordinary reclaim applies impassable Deep Ice as transient cover only to
+frontier-grown physical cells. Durable terrain and the startup heart remain
+intact underneath. Reach across the map is priced by travel cost, not raw hex
+distance: a `WithinTravelReach` gate line-samples road-discounted terrain cost
+between endpoints, so frozen frontier blocks reach and roads extend it. See
+[26-growing-map.md](./systems/26-growing-map.md).
 
 The former macro aggregate layer has been removed. Generator, gambit, trait,
 and card work use shared query, effect, and decision-modifier primitives.
@@ -229,8 +239,10 @@ The Host also converts the immutable startup physical-geography blueprint into
 a presentation-owned `PhysicalGeographyProjection`. It contains the complete
 latent disk and is separate from the event-backed `HexMapProjection`, which
 continues to represent only materialized cells and their current terrain. The
-UI can therefore inspect generated geography without reading live kernel state
-or making latent cells part of gameplay.
+blueprint and projection retain every natural/final surface, material,
+landform, hydrology, climate, ice, fracture, fire, aurora, pressure, and anomaly
+fact. The UI can therefore inspect generated geography without reading live
+kernel state or making latent cells part of gameplay.
 
 Provenance is kernel state and primitive event data. The kernel records
 producer kind/id, parent invocation, trigger evidence, and outputs. It does not

@@ -44,22 +44,39 @@ and geothermal crust are not gameplay terrain IDs. Stable within-hex and
 across-edge adjacency makes ridges, coasts, drainage, and rivers continuous
 across hex boundaries instead of independently rolled decorations.
 
-Generation is ordered over one padded graph: macro sites and plate-boundary
-influence shape elevation; boundary flooding identifies the connected ocean;
-climate and geothermal normals follow; a deterministic priority flood creates
-acyclic drainage, coherent lakes, accumulated runoff, and tributary order; and
-elevation topology classifies plains, valleys, ridges, peaks, and passes. The
-padded result is cropped to the configured latent disk, so the configured edge
-is not automatically a coast or watershed.
+Generation is ordered over one padded graph. Continental masks and authored
+ridge axes create uplift; fluvial erosion carves ancestral valleys from that
+cause. Connected-component and boundary-flood passes identify landmasses,
+continental shelves, bathymetry, and the exterior ocean. Priority-flood
+drainage then creates coherent lakes, accumulated runoff, tributaries, and
+watersheds. A cold derived climate supplies multiple separated warmth pockets
+across ocean, shore, inland, and geothermal peak sites; the startup heart
+overlaps one pocket but does not own the world's only warmth. Ice thickness and
+ice flux overprint the earlier drainage with U-valleys, cirques, fjords, and
+moraines. A branching fracture network finishes the physical inputs. The padded
+result is cropped to the configured latent disk, so the configured edge is not
+automatically a coast or watershed.
+
+Ice Remembers adds three worldgen-only magic passes after those physical facts.
+Fire follows fracture conductance and writes local heat; aurora routes into cold
+ice reservoirs; pressure rays propagate and reflect through ocean geometry from
+one unnamed dead-god locus plus ancient impacts and wakes. Interaction
+predicates retain rare compound anomalies without erasing the underlying
+natural surface. Frozen oceans classify into pack ice, sea ice, ice shelf, and
+polynya surfaces, making the setting icebound while leaving distinct warm-water
+habitats. These processes and every triangle field remain external startup
+data; the dead-god locus is a generation pressure source, not a graph entity.
 
 The current simulation remains hex-scale. Worldgen derives one authoritative
-summary per physical hex: base terrain, dominant material, elevation range and
-relief, roughness, climate normals, land/ocean/lake/ice/river coverage, peaks,
-and reciprocal river/coast/ridge/cliff/pass edge masks. Base terrain is chosen
-by scored Ice Remembers rules over both aggregate and minority features, not a
-dominant-material count cascade. Movement, culture, placement, and map signals
-currently consume the effective terrain id from that summary boundary; using
-the richer physical summary is a follow-up. They do not independently
+external summary per physical hex: base terrain, primary surface, significant
+features, dominant material, relief, roughness, climate, land/water/ice/river
+coverage, peaks, magic intensity ranges, and reciprocal
+river/coast/ridge/cliff/pass/fracture edge masks. Base terrain is chosen by
+scored Ice Remembers rules over both aggregate and minority features, not a
+dominant-material count cascade. The kernel installs only that resolved base
+terrain plus the hex's superregion and continent ids. Movement, culture,
+placement, and map signals consume the effective hex terrain; gameplay use of
+the richer summary is a follow-up. Kernel systems do not store or independently
 reinterpret the 24 triangles.
 
 Continents and superregions are connected growth partitions over the generated
@@ -78,10 +95,12 @@ The UI receives an immutable projection of the complete generated physical
 field at startup. Normal map presentation still uses the event-backed live map
 as its fog boundary. At close zoom it draws the 24 triangles of each revealed,
 unmodified hex; at distant zoom an explicit worldgen-inspection mode draws
-aggregate latent hexes. Terrain, material, elevation, temperature, moisture,
-geothermal, landform, and hydrology views expose how the synthesized terrain was
-chosen. Chunk culling keeps triangle drawing limited to the visible field, and
-the tooltip exposes both hex summaries and individual triangle facts.
+aggregate latent hexes. Terrain, final and natural surface, material,
+elevation, temperature, moisture, geothermal, landform, hydrology, ice,
+fracture, fire, aurora, pressure, and composite-magic views expose how the
+synthesized terrain was chosen. Chunk culling keeps triangle drawing limited to
+the visible field, and the tooltip exposes both hex summaries and individual
+triangle facts.
 
 Runtime triangle edits and triangle-scale movement or placement remain
 follow-up systems; rendering the geography does not move ordinary simulation

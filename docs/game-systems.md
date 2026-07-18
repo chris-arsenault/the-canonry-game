@@ -18,19 +18,28 @@ cells are forged only by entity actions (Aurora spire tiers up, Nightshelf
 tunnel galleries down). Regions and settlements are not a separate
 abstraction from map coverage: they are named coverage over physical space. The
 physical generation blueprint also divides every surface hex into 24 canonical
-microtriangles. A padded whole-field pass creates coherent elevation,
-temperature, moisture, geothermal, water-body, drainage, river, and landform
-fields on their shared graph. Ice Remembers surface materials are a separate
-vocabulary from gameplay terrain; scored authored rules turn each arranged
-24-triangle aggregate into one base terrain and summary for the current
-hex-scale simulation. The physical map renders those facts through a
-zoom-dependent, chunk-cached geography layer: aggregate fields at distant zoom
-and all 24 triangles plus connected physical features at close zoom. Normal
-play shows only materialized geography; an explicit inspection mode can reveal
-the complete latent generation field for diagnosis. Gameplay remains at hex
-scale. The semantic plane is an analogous bounded axial q/r map with `s =
--q-r`, its own varied terrain, culture influence, roads, and placement. It is
-not a coordinate copy of the physical plane and does not use microtriangles.
+microtriangles. Outside the kernel, one padded causal pipeline creates uplift
+and mountain spines, erodes valleys, labels connected land and ocean, solves
+bathymetry and drainage, derives climate, routes ice, carves glacial landforms,
+and generates fractures. Ice Remembers then runs asymmetric fire, aurora, and
+pressure passes over that same triangle graph. Natural surfaces include frozen
+ocean forms such as pack ice, sea ice, ice shelves, and polynyas; anomaly
+surfaces remain sparse overrides while their flags and intensity fields are
+retained independently.
+
+Physical material and surface vocabularies are separate from gameplay terrain.
+Scored authored rules turn each arranged 24-triangle aggregate into one base
+terrain for the current hex-scale simulation. Only that resolved base terrain
+and its superregion/continent ids enter the kernel; triangle details and the
+processes that created them remain in the immutable startup blueprint,
+projection, cache, and UI. The physical map renders those external facts
+through a zoom-dependent, chunk-cached geography layer: aggregate fields at
+distant zoom and all 24 triangles plus connected physical features at close
+zoom. Normal play shows only materialized geography; an explicit inspection
+mode can reveal the complete latent generation field for diagnosis. The
+semantic plane is an analogous bounded axial q/r map with `s = -q-r`, its own
+varied terrain, culture influence, roads, and placement. It is not a coordinate
+copy of the physical plane and does not use microtriangles.
 
 Domain content is authored in `DomainConfig` and Ice Remembers-specific files.
 Reusable gameplay vocabulary lives in `Engine.Gameplay` and compiles down into

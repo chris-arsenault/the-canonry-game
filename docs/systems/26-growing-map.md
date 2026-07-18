@@ -27,10 +27,11 @@ reads which age holds the World track from `WorldBeats.OpenAgeId`:
 - **Thaw** (Age of the Thaw): each pulse, culture mass at a frontier cell
   (raw ≥ `FrontierMassThreshold`) opens its unknown neighbors through
   `Simulation.CreateCell`. Terrain, superregion, and continent come from the
-  coordinate's installed physical geography rather than a uniform fallback or
-  inheritance from the pressing cell. Growth is bounded by `MaxRadius` (128)
-  and an explicit per-pulse budget. The world opens where history presses, not
-  on a timer.
+  coordinate's installed per-hex physical geography rather than a uniform
+  fallback or inheritance from the pressing cell. The kernel does not need the
+  external microtriangle field to perform this reveal. Growth is bounded by
+  `MaxRadius` (128) and an explicit per-pulse budget. The world opens where
+  history presses, not on a timer.
 - **Reclaim** (the Long Dark): the program rotates a persistent cursor over
   cells previously created by physical frontier growth. A known, weakly held
   edge cell with no road and an unknown or already covered neighbor receives
@@ -61,14 +62,25 @@ frontier reclaim does not do it implicitly.
 
 Physical worldgen generates the whole radius-128 field as 24 canonical
 microtriangles per hex, using generation padding outside that field to avoid an
-artificial coastline at the latent frontier. Macrostructure and elevation feed
-connected-ocean classification, climate and geothermal normals, priority-flood
-drainage, lakes, accumulated rivers, and topology-derived landforms. Physical
-materials are distinct from gameplay terrain. Scored authored rules derive the
-hex's durable base terrain from its triangle arrangement and retained minority
-features, while the complete summary retains relief, climate, water and ice
-coverage, peaks, and reciprocal river/coast/ridge/cliff/pass edge masks.
-Continents and superregions follow this geography without creating water bands.
+artificial coastline at the latent frontier. Uplift and ridge axes cause the
+initial topography; erosion creates ancestral valleys; connected land/ocean and
+bathymetry feed priority-flood drainage; derived climate and separated warmth
+pockets feed ice cover and glacial carving; fractures finish the physical
+substrate. Ice Remembers then generates fire networks, aurora reservoirs,
+pressure propagation from an unnamed deep-ocean locus, and rare interaction
+surfaces. Frozen-ocean surfaces make the world broadly icebound while warm
+ocean, shore, inland, and peak pockets remain viable away from the startup
+heart.
+
+Physical materials, natural surfaces, anomaly surfaces, and gameplay terrain
+are distinct vocabularies. Scored authored rules derive the hex's durable base
+terrain from its triangle arrangement and retained minority features. The
+complete external summary retains relief, climate, water and ice coverage,
+peaks, anomaly flags and magic intensities, plus reciprocal
+river/coast/ridge/cliff/pass/fracture edge masks. Continents and superregions
+follow this geography without creating water bands. Only base terrain,
+superregion, and continent are installed in kernel latent-geography state; the
+triangle fields live in the immutable startup blueprint, cache, and projection.
 The simulation still acts at hex scale; richer summary utilization and
 triangle-scale gameplay are follow-ups. Presentation can render the 24
 triangles and connected physical features for materialized cells, while an

@@ -118,6 +118,16 @@ mutate physical facts. Terrain distribution remains a diagnostic across seeds;
 do not retune the physical generator merely to satisfy an arbitrary percentage
 when placement, traversal, or map-use evidence does not identify a problem.
 
+Ice Remembers adds setting-level generation invariants on top of that physical
+structure. Frozen land and sea should dominate the natural field, but viable
+warmth must form several disconnected systems spanning ocean, shore, inland,
+and geothermal peaks rather than a single privileged heart. The heart must
+overlap one such system without being its cause. Fire, aurora, pressure, and
+their interaction surfaces must remain legible exceptions: a magic predicate
+that paints most triangles is an override-collapse bug even when the underlying
+fields are diverse. Natural surface, all anomaly flags, and scalar intensities
+must therefore survive final-surface classification independently.
+
 For culture influence, watch component quality per culture and plane:
 
 - component count above a threshold;
