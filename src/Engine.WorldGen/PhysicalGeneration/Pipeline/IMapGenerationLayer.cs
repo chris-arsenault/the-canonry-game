@@ -1,6 +1,6 @@
 namespace Engine.WorldGen;
 
-internal interface IMapGenerationLayer<in TMap, in TContext>
+public interface IMapGenerationLayer<in TMap, in TContext>
 {
     void Apply(TMap map, TContext context);
 

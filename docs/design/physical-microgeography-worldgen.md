@@ -17,9 +17,11 @@ boundary remain the useful contracts.
 - `Engine.WorldGen` owns domain-neutral generation grids, graph algorithms,
   uplift and erosion, connected land and ocean classification, bathymetry,
   hydrology, climate, glaciation, fractures, aggregation, and validation.
-- `IceRemembers.Seed` owns the Ice Remembers generation profile, fire, aurora,
-  pressure, magic interactions, physical surface taxonomy, material rules,
-  administrative subdivisions, and compatibility hex-terrain synthesis.
+- `IceRemembers` owns the Ice Remembers generation profile, physical surface
+  taxonomy, material rules, and tunable quality targets. `IceRemembers.Seed`
+  executes the domain generation pipeline: natural surfaces, fire, aurora,
+  pressure, magic interactions, administrative subdivisions, and compatibility
+  hex-terrain synthesis.
 - `Engine.Domain.Startup` transports the immutable generated blueprint with
   stable palettes. The developer world cache persists this blueprint.
 - `Engine.Projection` and the Godot UI inspect and render the complete external
@@ -47,6 +49,13 @@ the pipeline refuses to run it when its inputs are missing and rebuilds facts
 invalidated by a later causal edit. Algorithms shared by multiple layers live
 separately from the layers themselves. Layer tests exercise both the intended
 effect and rejection of malformed inputs or outputs.
+
+The domain pipeline uses the same dependency-inversion boundary over an
+`IceRemembersMicrogeographyMap`. Natural classification, each magic field,
+fire's climate feedback, each feature-classification pass, interactions, final
+surface precedence, and validation are independent files with declared fact
+dependencies. These generation-time details remain outside the simulation
+kernel.
 
 Generation-time arrays may allocate freely within the application target of
 about 4 GB and acceptable ceiling of 8 GB. Clear field-major arrays and reusable
@@ -157,6 +166,11 @@ order. The natural surface vocabulary is:
 - `ice_shelf`
 - `polynya`
 - `snowfield`
+- `polar_barrens`
+- `wet_tundra`
+- `cold_steppe`
+- `scree_field`
+- `river_valley`
 
 Physical material remains independent of this surface classification.
 
@@ -258,8 +272,13 @@ profile supplies tunable target ranges for ocean coverage, land-ice coverage,
 sea-ice coverage, major-landmass count, and inland-lake count. Generation fails
 quality validation when a radius large enough for evaluation misses those
 targets, but changing a target does not require changing validation code.
-Domain quality checks separately cover separated viable warmth, high-peak hot
-springs, final-surface collapse, anomaly prevalence, and startup placement.
+The domain profile likewise supplies tunable ranges for natural- and
+final-surface concentration, magic override coverage, melt-line prevalence,
+fire-core count, and separated warm-habitat count. Domain quality validation
+reads those targets rather than embedding acceptable proportions in code.
+Positive and negative layer tests use deliberately narrow profile overrides to
+prove that changing a target changes acceptance without changing the validator.
+Additional behavioral checks cover high-peak hot springs and startup placement.
 
 Quality is calibrated across several deterministic seeds rather than tuned to
 one screenshot. Cold generation at radius 128 targets roughly 30 seconds on the

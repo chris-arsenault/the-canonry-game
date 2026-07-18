@@ -19,7 +19,10 @@ internal static partial class IceRemembersSeedBuilder
             GenerationRadius,
             salt,
             IceRemembersPhysicalGeography.GenerationProfile);
-        var magic = IceRemembersMagicWorldGenerator.Generate(field, salt);
+        var magic = IceRemembersMicrogeographyGenerator.Generate(
+            field,
+            salt,
+            IceRemembersPhysicalGeography.MicrogeographyProfile);
         var materialIndexes = ClassifyPhysicalMaterials(field, magic);
         var aggregates = AggregateConfiguredHexes(field, materialIndexes, magic);
         var subdivisions = CreatePhysicalSubdivisions(field, aggregates, salt);
@@ -41,7 +44,7 @@ internal static partial class IceRemembersSeedBuilder
 
     private static int[] ClassifyPhysicalMaterials(
         PhysicalGeographyField field,
-        IceRemembersMagicField magic)
+        IceRemembersMicrogeographyMap magic)
     {
         var materialIndexes = new int[field.Grid.TriangleCount];
         for (var configuredIndex = 0;
@@ -71,7 +74,7 @@ internal static partial class IceRemembersSeedBuilder
     private static PhysicalHexAggregate[] AggregateConfiguredHexes(
         PhysicalGeographyField field,
         ReadOnlySpan<int> materialIndexes,
-        IceRemembersMagicField magic)
+        IceRemembersMicrogeographyMap magic)
     {
         var aggregates = new PhysicalHexAggregate[field.Grid.HexCount];
         for (var configuredIndex = 0;
@@ -99,7 +102,7 @@ internal static partial class IceRemembersSeedBuilder
     private static DomainPhysicalGeographyBlueprint BuildPhysicalBlueprint(
         PhysicalGeographyField field,
         ReadOnlySpan<int> materialIndexes,
-        IceRemembersMagicField magic,
+        IceRemembersMicrogeographyMap magic,
         ReadOnlySpan<PhysicalHexAggregate> aggregates,
         MapSubdivisionMap subdivisions,
         HexGrid fieldGrid)
@@ -146,7 +149,7 @@ internal static partial class IceRemembersSeedBuilder
         PhysicalGeographyField field,
         int hexIndex,
         ReadOnlySpan<int> materialIndexes,
-        IceRemembersMagicField magic,
+        IceRemembersMicrogeographyMap magic,
         List<DomainPhysicalMicrotriangle> target)
     {
         for (var localTriangle = 0;
@@ -164,7 +167,7 @@ internal static partial class IceRemembersSeedBuilder
 
     private static DomainPhysicalMicrotriangle ToDomainMicrotriangle(
         PhysicalGeographyField field,
-        IceRemembersMagicField magic,
+        IceRemembersMicrogeographyMap magic,
         int triangleIndex,
         int materialIndex)
     {
@@ -254,7 +257,7 @@ internal static partial class IceRemembersSeedBuilder
 
     private static DomainPhysicalScalarField[] CreateScalarFields(
         PhysicalGeographyField field,
-        IceRemembersMagicField magic) =>
+        IceRemembersMicrogeographyMap magic) =>
     [
         new("fire_intensity", ExtractConfiguredValues(field, magic.FireIntensity)),
         new("aurora_intensity", ExtractConfiguredValues(field, magic.AuroraIntensity)),

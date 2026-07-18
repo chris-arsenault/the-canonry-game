@@ -37,6 +37,11 @@ public enum IceRemembersPhysicalSurface
     IceShelf,
     Polynya,
     Snowfield,
+    PolarBarrens,
+    WetTundra,
+    ColdSteppe,
+    ScreeField,
+    RiverValley,
     FirecoreVent,
     ThermalVein,
     HotSpring,
@@ -113,6 +118,11 @@ public static class IceRemembersPhysicalGeography
         "ice_shelf",
         "polynya",
         "snowfield",
+        "polar_barrens",
+        "wet_tundra",
+        "cold_steppe",
+        "scree_field",
+        "river_valley",
         "firecore_vent",
         "thermal_vein",
         "hot_spring",
@@ -175,6 +185,8 @@ public static class IceRemembersPhysicalGeography
         HeartWarmthRadius = 31d,
         HeartWarmthStrength = 430,
     };
+
+    public static IceRemembersMicrogeographyGenerationProfile MicrogeographyProfile { get; } = new();
 
     public static IceRemembersPhysicalMaterial ClassifyMaterial(
         PhysicalGeographyField field,
