@@ -33,6 +33,7 @@ internal sealed class GameRuntimeReadModels
         ArgumentNullException.ThrowIfNull(runtime);
         _runtime = runtime;
         Map = runtime.Map;
+        PhysicalGeography = runtime.PhysicalGeography;
         Entities = runtime.Ui;
         Symbols = runtime.Symbols;
         Knowledge = GameDomainKnowledge.FromCompiledDomain(runtime.CompiledDomain, runtime.Symbols);
@@ -46,6 +47,8 @@ internal sealed class GameRuntimeReadModels
     }
 
     public HexMapProjection Map { get; }
+
+    public PhysicalGeographyProjection PhysicalGeography { get; }
 
     public UiProjectionState Entities { get; }
 

@@ -2,6 +2,7 @@ namespace Engine.Host;
 
 using Engine.Domain;
 using Engine.Domain.Compilation;
+using Engine.Domain.Startup;
 using Engine.Eventing.Schema;
 using Engine.Kernel;
 using Engine.Kernel.Driver;
@@ -48,6 +49,7 @@ public sealed class KernelRuntimeFactory
     public KernelUiRuntime StartUiRuntime(KernelStartRequest request, string? runLogPath = null)
     {
         HexMapProjection? map = null;
+        PhysicalGeographyProjection physicalGeography = PhysicalGeographyProjection.Empty;
         UiProjectionState? ui = null;
         ProvenanceProjection? provenance = null;
         UiChronicleProjection? chronicle = null;
@@ -56,8 +58,9 @@ public sealed class KernelRuntimeFactory
 
         var runtime = StartCore(
             request,
-            builder =>
+            (builder, startupSeed) =>
             {
+                physicalGeography = PhysicalGeographyProjection.FromBlueprint(startupSeed.PhysicalGeography);
                 map = new HexMapProjection();
                 ui = new UiProjectionState();
                 provenance = new ProvenanceProjection();
@@ -86,6 +89,7 @@ public sealed class KernelRuntimeFactory
         return new KernelUiRuntime(
             runtime,
             map ?? throw new InvalidOperationException("UI map projection was not registered."),
+            physicalGeography,
             ui ?? throw new InvalidOperationException("UI projection was not registered."),
             provenanceProjection,
             chronicle ?? throw new InvalidOperationException("UI chronicle projection was not registered."),
@@ -126,7 +130,7 @@ public sealed class KernelRuntimeFactory
 
     private KernelRuntime StartCore(
         KernelStartRequest request,
-        Action<KernelHostBuilder>? configureConsumers)
+        Action<KernelHostBuilder, DomainStartupSeed>? configureConsumers)
     {
         ArgumentNullException.ThrowIfNull(request);
 
@@ -153,7 +157,7 @@ public sealed class KernelRuntimeFactory
             .ConfigurePrograms(programs => ApplyProgramEnabledOverrides(programs, kernelTuning.Programs.Enabled))
             .WithDomainStartupSeed(seedResult.Seed);
 
-        configureConsumers?.Invoke(builder);
+        configureConsumers?.Invoke(builder, seedResult.Seed);
 
         return new KernelRuntime(
             builder.Build(),
@@ -302,6 +306,7 @@ public sealed class KernelUiRuntime : IDisposable
     internal KernelUiRuntime(
         KernelRuntime runtime,
         HexMapProjection map,
+        PhysicalGeographyProjection physicalGeography,
         UiProjectionState ui,
         ProvenanceProjection provenance,
         UiChronicleProjection chronicle,
@@ -311,6 +316,7 @@ public sealed class KernelUiRuntime : IDisposable
     {
         ArgumentNullException.ThrowIfNull(runtime);
         ArgumentNullException.ThrowIfNull(map);
+        ArgumentNullException.ThrowIfNull(physicalGeography);
         ArgumentNullException.ThrowIfNull(ui);
         ArgumentNullException.ThrowIfNull(provenance);
         ArgumentNullException.ThrowIfNull(chronicle);
@@ -319,6 +325,7 @@ public sealed class KernelUiRuntime : IDisposable
 
         _runtime = runtime;
         Map = map;
+        PhysicalGeography = physicalGeography;
         Ui = ui;
         Provenance = provenance;
         Chronicle = chronicle;
@@ -329,6 +336,8 @@ public sealed class KernelUiRuntime : IDisposable
     }
 
     public HexMapProjection Map { get; }
+
+    public PhysicalGeographyProjection PhysicalGeography { get; }
 
     public UiProjectionState Ui { get; }
 
