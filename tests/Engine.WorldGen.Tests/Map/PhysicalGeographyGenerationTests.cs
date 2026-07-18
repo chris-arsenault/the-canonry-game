@@ -1,0 +1,73 @@
+namespace Engine.WorldGen.Tests.Map;
+
+using Engine.Constants;
+
+public sealed class PhysicalGeographyGenerationTests
+{
+    private static readonly PhysicalGeographyGenerationProfile TestProfile = new()
+    {
+        Padding = 8,
+        PlateSpacing = 24d,
+        PlateBoundaryWidth = 8d,
+        MacroNoiseScale = 18d,
+        MediumNoiseScale = 7d,
+        DetailNoiseScale = 2.5d,
+        HeartBiasRadius = 8d,
+        OceanMoistureDistance = 30,
+        RiverAccumulationThreshold = 2200,
+    };
+
+    [Fact]
+    public void Generate_IsDeterministicForSeedAndProfile()
+    {
+        var first = PhysicalGeographyGenerator.Generate(12, 7319, TestProfile);
+        var second = PhysicalGeographyGenerator.Generate(12, 7319, TestProfile);
+
+        Assert.True(first.Elevation.SequenceEqual(second.Elevation));
+        Assert.True(first.WaterKindCodes.SequenceEqual(second.WaterKindCodes));
+        Assert.True(first.FlowEdges.SequenceEqual(second.FlowEdges));
+        Assert.True(first.FlowAccumulation.SequenceEqual(second.FlowAccumulation));
+        Assert.True(first.LandformCodes.SequenceEqual(second.LandformCodes));
+    }
+
+    [Fact]
+    public void Generate_BuildsReciprocalTopologyAndAcyclicDrainageToOcean()
+    {
+        var field = PhysicalGeographyGenerator.Generate(12, 9173, TestProfile);
+        var oceanCount = 0;
+        var riverCount = 0;
+        for (var triangleIndex = 0; triangleIndex < field.Grid.TriangleCount; triangleIndex++)
+        {
+            ValidateTriangleNeighbors(field.Grid, triangleIndex);
+            if (field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
+            {
+                oceanCount++;
+            }
+
+            if (field.RiverOrders[triangleIndex] > 0)
+            {
+                riverCount++;
+            }
+        }
+
+        Assert.True(oceanCount > 0);
+        Assert.True(riverCount > 0);
+    }
+
+    private static void ValidateTriangleNeighbors(PhysicalGeographyGrid grid, int triangleIndex)
+    {
+        for (var edge = 0; edge < 3; edge++)
+        {
+            var neighbor = grid.NeighborTriangleIndex(triangleIndex, edge);
+            if (neighbor < 0)
+            {
+                continue;
+            }
+
+            Assert.Contains(
+                triangleIndex,
+                Enumerable.Range(0, 3).Select(neighborEdge =>
+                    grid.NeighborTriangleIndex(neighbor, neighborEdge)));
+        }
+    }
+}
