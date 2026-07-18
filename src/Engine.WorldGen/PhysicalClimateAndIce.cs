@@ -61,21 +61,25 @@ internal static class PhysicalClimate
         PhysicalGeographyGenerationProfile profile)
     {
         const int sourceCount = 4;
+        Span<int> selected = stackalloc int[sourceCount];
+        var selectedCount = 0;
         for (var sourceIndex = 0; sourceIndex < sourceCount; sourceIndex++)
         {
             var best = -1;
             var bestScore = long.MinValue;
             for (var triangleIndex = 0; triangleIndex < field.Grid.TriangleCount; triangleIndex++)
             {
-                if (field.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None ||
-                    field.Elevation[triangleIndex] < profile.PeakElevationThreshold)
+                if (!field.Grid.TriangleIsInsideConfiguredDisk(triangleIndex) ||
+                    field.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None ||
+                    field.Elevation[triangleIndex] < profile.PeakElevationThreshold ||
+                    !FarEnoughFromPeakSources(field.Grid, triangleIndex, selected[..selectedCount]))
                 {
                     continue;
                 }
 
-                var separation = MinimumSelectedSeparation(field, triangleIndex, sourceIndex, seed);
                 var score = (field.Elevation[triangleIndex] * 1000L) +
-                    (long)(field.RidgeInfluence[triangleIndex] * 200_000f) + separation;
+                    (long)(field.RidgeInfluence[triangleIndex] * 200_000f) +
+                    (long)(PhysicalNoise.HashUnit(seed ^ 0x6a2d, triangleIndex, sourceIndex) * 50_000d);
                 if (score > bestScore)
                 {
                     best = triangleIndex;
@@ -85,37 +89,57 @@ internal static class PhysicalClimate
 
             if (best >= 0)
             {
-                PaintGeothermalSource(field, best, 8d, 900);
+                selected[selectedCount++] = best;
             }
         }
+
+        PaintGeothermalSources(field, selected[..selectedCount], 8d, 900);
     }
 
-    private static long MinimumSelectedSeparation(
-        PhysicalGeographyField field,
-        int triangleIndex,
-        int sourceIndex,
-        int seed) =>
-        (long)(PhysicalNoise.HashUnit(seed ^ 0x6a2d, triangleIndex, sourceIndex) * 50_000d);
+    private static bool FarEnoughFromPeakSources(
+        PhysicalGeographyGrid grid,
+        int candidate,
+        ReadOnlySpan<int> selected)
+    {
+        const double minimumDistanceSquared = 36d * 36d;
+        var x = grid.TriangleX(candidate);
+        var y = grid.TriangleY(candidate);
+        foreach (var source in selected)
+        {
+            var dx = x - grid.TriangleX(source);
+            var dy = y - grid.TriangleY(source);
+            if ((dx * dx) + (dy * dy) < minimumDistanceSquared)
+            {
+                return false;
+            }
+        }
 
-    private static void PaintGeothermalSource(
+        return true;
+    }
+
+    private static void PaintGeothermalSources(
         PhysicalGeographyField field,
-        int source,
+        ReadOnlySpan<int> sources,
         double radius,
         int strength)
     {
-        var sourceX = field.Grid.TriangleX(source);
-        var sourceY = field.Grid.TriangleY(source);
+        var radiusSquared = radius * radius;
         for (var triangleIndex = 0; triangleIndex < field.Grid.TriangleCount; triangleIndex++)
         {
-            var dx = field.Grid.TriangleX(triangleIndex) - sourceX;
-            var dy = field.Grid.TriangleY(triangleIndex) - sourceY;
-            var distance = Math.Sqrt((dx * dx) + (dy * dy));
-            if (distance <= radius)
+            var x = field.Grid.TriangleX(triangleIndex);
+            var y = field.Grid.TriangleY(triangleIndex);
+            foreach (var source in sources)
             {
-                var amount = 1d - (distance / radius);
-                field.Geothermal[triangleIndex] = Math.Max(
-                    field.Geothermal[triangleIndex],
-                    (int)Math.Round(strength * amount, MidpointRounding.AwayFromZero));
+                var dx = x - field.Grid.TriangleX(source);
+                var dy = y - field.Grid.TriangleY(source);
+                var distanceSquared = (dx * dx) + (dy * dy);
+                if (distanceSquared <= radiusSquared)
+                {
+                    var amount = 1d - (Math.Sqrt(distanceSquared) / radius);
+                    field.Geothermal[triangleIndex] = Math.Max(
+                        field.Geothermal[triangleIndex],
+                        (int)Math.Round(strength * amount, MidpointRounding.AwayFromZero));
+                }
             }
         }
     }
@@ -128,10 +152,13 @@ internal static class PhysicalClimate
     {
         var pockets = new WarmthPocket[profile.WarmthPocketCount + 1];
         pockets[0] = new WarmthPocket(0d, 0d, profile.HeartWarmthRadius, profile.HeartWarmthStrength);
+        var candidates = CreateWarmthCandidates(field, oceanDistance, profile);
+        var selected = new List<int>(profile.WarmthPocketCount);
         for (var index = 1; index < pockets.Length; index++)
         {
             var category = (WarmthCategory)((index - 1) % 4);
-            var source = SelectWarmthSource(field, oceanDistance, seed, index, category, profile);
+            var source = SelectWarmthSource(field, candidates[(int)category], selected, seed, index, category);
+            selected.Add(source);
             var radiusAmount = PhysicalNoise.HashUnit(seed ^ 0x14d3, index, 0);
             var strengthAmount = PhysicalNoise.HashUnit(seed ^ 0x29f1, index, 1);
             pockets[index] = new WarmthPocket(
@@ -148,26 +175,30 @@ internal static class PhysicalClimate
 
     private static int SelectWarmthSource(
         PhysicalGeographyField field,
-        int[] oceanDistance,
+        List<int> candidates,
+        IReadOnlyList<int> selected,
         int seed,
         int pocketIndex,
-        WarmthCategory category,
-        PhysicalGeographyGenerationProfile profile)
+        WarmthCategory category)
     {
+        if (candidates.Count == 0)
+        {
+            return field.Grid.TriangleIndex(field.Grid.ConfiguredHexIndexAt(0), 0);
+        }
+
+        var sampleCount = Math.Min(64, candidates.Count);
         var best = -1;
         var bestScore = double.MinValue;
-        for (var triangleIndex = 0; triangleIndex < field.Grid.TriangleCount; triangleIndex++)
+        for (var sample = 0; sample < sampleCount; sample++)
         {
-            if (!EligibleWarmthSource(field, oceanDistance, triangleIndex, category, profile))
-            {
-                continue;
-            }
-
-            var hash = PhysicalNoise.HashUnit(seed ^ 0x4b67, triangleIndex, pocketIndex);
+            var hash = PhysicalNoise.HashUnit(seed ^ 0x4b67, pocketIndex, sample);
+            var candidateIndex = Math.Min(candidates.Count - 1, (int)(hash * candidates.Count));
+            var triangleIndex = candidates[candidateIndex];
             var geothermalBonus = category == WarmthCategory.Peak
-                ? field.Geothermal[triangleIndex] / 1000d
+                ? field.Geothermal[triangleIndex] * 4d
                 : 0d;
-            var score = hash + geothermalBonus;
+            var score = MinimumWarmthDistanceSquared(field.Grid, triangleIndex, selected) +
+                geothermalBonus + hash;
             if (score > bestScore)
             {
                 best = triangleIndex;
@@ -175,22 +206,78 @@ internal static class PhysicalClimate
             }
         }
 
-        return best >= 0 ? best : field.Grid.TriangleIndex(field.Grid.ConfiguredHexIndexAt(0), 0);
+        return best;
     }
 
-    private static bool EligibleWarmthSource(
+    private static List<int>[] CreateWarmthCandidates(
+        PhysicalGeographyField field,
+        int[] oceanDistance,
+        PhysicalGeographyGenerationProfile profile)
+    {
+        var candidates = new List<int>[4] { [], [], [], [] };
+        for (var triangleIndex = 0; triangleIndex < field.Grid.TriangleCount; triangleIndex++)
+        {
+            if (!field.Grid.TriangleIsInsideConfiguredDisk(triangleIndex))
+            {
+                continue;
+            }
+
+            AddWarmthCandidate(candidates, field, oceanDistance, triangleIndex, profile);
+        }
+
+        return candidates;
+    }
+
+    private static void AddWarmthCandidate(
+        List<int>[] candidates,
         PhysicalGeographyField field,
         int[] oceanDistance,
         int triangleIndex,
-        WarmthCategory category,
-        PhysicalGeographyGenerationProfile profile) => category switch
+        PhysicalGeographyGenerationProfile profile)
     {
-        WarmthCategory.Ocean => field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean,
-        WarmthCategory.Shore => IsShoreSource(field, oceanDistance, triangleIndex),
-        WarmthCategory.Inland => IsInlandSource(field, oceanDistance, triangleIndex, profile),
-        WarmthCategory.Peak => IsPeakSource(field, triangleIndex, profile),
-        _ => false,
-    };
+        if (field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
+        {
+            candidates[(int)WarmthCategory.Ocean].Add(triangleIndex);
+        }
+
+        if (IsShoreSource(field, oceanDistance, triangleIndex))
+        {
+            candidates[(int)WarmthCategory.Shore].Add(triangleIndex);
+        }
+
+        if (IsInlandSource(field, oceanDistance, triangleIndex, profile))
+        {
+            candidates[(int)WarmthCategory.Inland].Add(triangleIndex);
+        }
+
+        if (IsPeakSource(field, triangleIndex, profile))
+        {
+            candidates[(int)WarmthCategory.Peak].Add(triangleIndex);
+        }
+    }
+
+    private static double MinimumWarmthDistanceSquared(
+        PhysicalGeographyGrid grid,
+        int candidate,
+        IReadOnlyList<int> selected)
+    {
+        if (selected.Count == 0)
+        {
+            return 0d;
+        }
+
+        var minimum = double.MaxValue;
+        var x = grid.TriangleX(candidate);
+        var y = grid.TriangleY(candidate);
+        foreach (var source in selected)
+        {
+            var dx = x - grid.TriangleX(source);
+            var dy = y - grid.TriangleY(source);
+            minimum = Math.Min(minimum, (dx * dx) + (dy * dy));
+        }
+
+        return minimum;
+    }
 
     private static bool IsShoreSource(
         PhysicalGeographyField field,
@@ -223,9 +310,10 @@ internal static class PhysicalClimate
         {
             var dx = x - pocket.X;
             var dy = y - pocket.Y;
-            var distance = Math.Sqrt((dx * dx) + (dy * dy));
-            if (distance < pocket.Radius)
+            var distanceSquared = (dx * dx) + (dy * dy);
+            if (distanceSquared < pocket.Radius * pocket.Radius)
             {
+                var distance = Math.Sqrt(distanceSquared);
                 var amount = 1d - (distance / pocket.Radius);
                 strongest = Math.Max(strongest, pocket.Strength * amount * amount);
             }

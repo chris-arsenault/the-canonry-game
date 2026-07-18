@@ -7,12 +7,13 @@ internal static class PhysicalFractures
         int seed,
         PhysicalGeographyGenerationProfile profile)
     {
+        var branches = CreateBranches(seed, profile.FractureBranchCount);
         for (var triangleIndex = 0; triangleIndex < field.Grid.TriangleCount; triangleIndex++)
         {
             var x = field.Grid.TriangleX(triangleIndex);
             var y = field.Grid.TriangleY(triangleIndex);
             var independent = PhysicalNoise.UnitNoise(x, y, seed ^ 0x1d73, 15d, 3);
-            var branching = BranchingConductance(x, y, seed, profile);
+            var branching = BranchingConductance(x, y, branches);
             var ridgeSeed = field.RidgeInfluence[triangleIndex] * 0.28d;
             field.FractureConductance[triangleIndex] = Math.Clamp(
                 profile.FractureConductanceFloor +
@@ -31,26 +32,57 @@ internal static class PhysicalFractures
     private static double BranchingConductance(
         double x,
         double y,
-        int seed,
-        PhysicalGeographyGenerationProfile profile)
+        ReadOnlySpan<FractureBranch> branches)
     {
         var strongest = 0d;
-        for (var branch = 0; branch < profile.FractureBranchCount; branch++)
+        foreach (var branch in branches)
         {
-            var angle = PhysicalNoise.HashUnit(seed ^ 0x2b91, branch, 0) * Math.PI * 2d;
-            var centerRadius = PhysicalNoise.HashUnit(seed ^ 0x3da7, branch, 1) * 150d;
-            var centerAngle = PhysicalNoise.HashUnit(seed ^ 0x4f39, branch, 2) * Math.PI * 2d;
-            var cx = Math.Cos(centerAngle) * centerRadius;
-            var cy = Math.Sin(centerAngle) * centerRadius;
-            var wavelength = 13d + (PhysicalNoise.HashUnit(seed ^ 0x5ac1, branch, 3) * 23d);
-            var across = Math.Abs((-Math.Sin(angle) * (x - cx)) + (Math.Cos(angle) * (y - cy)));
-            var along = (Math.Cos(angle) * (x - cx)) + (Math.Sin(angle) * (y - cy));
-            var wobble = Math.Sin(along / wavelength) * (2.5d + (branch % 4));
+            var offsetX = x - branch.CenterX;
+            var offsetY = y - branch.CenterY;
+            var across = Math.Abs((-branch.SinAngle * offsetX) + (branch.CosAngle * offsetY));
+            var along = (branch.CosAngle * offsetX) + (branch.SinAngle * offsetY);
+            var wobble = PeriodicWobble(along / branch.Wavelength) * branch.WobbleStrength;
             var distance = Math.Abs(across - wobble);
-            var width = 0.8d + (PhysicalNoise.HashUnit(seed ^ 0x6c53, branch, 4) * 1.8d);
-            strongest = Math.Max(strongest, Math.Clamp(1d - (distance / width), 0d, 1d));
+            strongest = Math.Max(strongest, Math.Clamp(1d - (distance / branch.Width), 0d, 1d));
         }
 
         return strongest * 0.72d;
     }
+
+    private static FractureBranch[] CreateBranches(int seed, int count)
+    {
+        var branches = new FractureBranch[count];
+        for (var index = 0; index < branches.Length; index++)
+        {
+            var angle = PhysicalNoise.HashUnit(seed ^ 0x2b91, index, 0) * Math.PI * 2d;
+            var centerRadius = PhysicalNoise.HashUnit(seed ^ 0x3da7, index, 1) * 150d;
+            var centerAngle = PhysicalNoise.HashUnit(seed ^ 0x4f39, index, 2) * Math.PI * 2d;
+            branches[index] = new FractureBranch(
+                Math.Sin(angle),
+                Math.Cos(angle),
+                Math.Cos(centerAngle) * centerRadius,
+                Math.Sin(centerAngle) * centerRadius,
+                13d + (PhysicalNoise.HashUnit(seed ^ 0x5ac1, index, 3) * 23d),
+                2.5d + (index % 4),
+                0.8d + (PhysicalNoise.HashUnit(seed ^ 0x6c53, index, 4) * 1.8d));
+        }
+
+        return branches;
+    }
+
+    private static double PeriodicWobble(double cycles)
+    {
+        var phase = cycles - Math.Floor(cycles);
+        var triangle = 1d - (4d * Math.Abs(phase - 0.5d));
+        return triangle * (1.5d - (0.5d * triangle * triangle));
+    }
+
+    private readonly record struct FractureBranch(
+        double SinAngle,
+        double CosAngle,
+        double CenterX,
+        double CenterY,
+        double Wavelength,
+        double WobbleStrength,
+        double Width);
 }

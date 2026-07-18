@@ -332,7 +332,7 @@ internal static class PhysicalHydrology
         var visited = new bool[field.Grid.TriangleCount];
         var order = new int[field.Grid.TriangleCount];
         var orderCount = 0;
-        var queue = new PriorityQueue<int, (int Elevation, int Index)>();
+        var queue = new ElevationBucketQueue(field.Elevation);
         for (var triangleIndex = 0; triangleIndex < field.Grid.TriangleCount; triangleIndex++)
         {
             if (field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
@@ -346,7 +346,7 @@ internal static class PhysicalHydrology
             throw new InvalidOperationException("Physical world has no connected ocean outlet.");
         }
 
-        while (queue.TryDequeue(out var triangleIndex, out var priority))
+        while (queue.TryDequeue(out var triangleIndex, out var floodElevation))
         {
             order[orderCount++] = triangleIndex;
             for (var edge = 0; edge < 3; edge++)
@@ -358,11 +358,11 @@ internal static class PhysicalHydrology
                 }
 
                 visited[neighbor] = true;
-                var drainageElevation = Math.Max(field.Elevation[neighbor], priority.Elevation);
+                var drainageElevation = Math.Max(field.Elevation[neighbor], floodElevation);
                 field.DrainageElevations[neighbor] = drainageElevation;
                 field.FlowTargets[neighbor] = triangleIndex;
                 field.FlowEdges[neighbor] = field.Grid.EdgeLeadingTo(neighbor, triangleIndex);
-                queue.Enqueue(neighbor, (drainageElevation, neighbor));
+                queue.Enqueue(neighbor, drainageElevation);
             }
         }
 
@@ -373,11 +373,11 @@ internal static class PhysicalHydrology
         PhysicalGeographyField field,
         int triangleIndex,
         bool[] visited,
-        PriorityQueue<int, (int Elevation, int Index)> queue)
+        ElevationBucketQueue queue)
     {
         visited[triangleIndex] = true;
         field.DrainageElevations[triangleIndex] = field.Elevation[triangleIndex];
-        queue.Enqueue(triangleIndex, (field.Elevation[triangleIndex], triangleIndex));
+        queue.Enqueue(triangleIndex, field.Elevation[triangleIndex]);
     }
 
     private static void ClassifyLakes(
@@ -561,4 +561,82 @@ internal static class PhysicalHydrology
 
     private static int SaturatingAdd(int first, int second) =>
         first > int.MaxValue - second ? int.MaxValue : first + second;
+
+    private sealed class ElevationBucketQueue
+    {
+        private readonly int _minimumElevation;
+        private readonly int[] _heads;
+        private readonly int[] _tails;
+        private readonly int[] _next;
+        private int _currentBucket;
+
+        public ElevationBucketQueue(ReadOnlySpan<int> elevation)
+        {
+            if (elevation.IsEmpty)
+            {
+                throw new ArgumentException("Elevation field cannot be empty.", nameof(elevation));
+            }
+
+            var minimum = int.MaxValue;
+            var maximum = int.MinValue;
+            foreach (var value in elevation)
+            {
+                minimum = Math.Min(minimum, value);
+                maximum = Math.Max(maximum, value);
+            }
+
+            _minimumElevation = minimum;
+            _heads = new int[checked(maximum - minimum + 1)];
+            _tails = new int[_heads.Length];
+            _next = new int[elevation.Length];
+            Array.Fill(_heads, -1);
+            Array.Fill(_tails, -1);
+            Array.Fill(_next, -1);
+        }
+
+        public int Count { get; private set; }
+
+        public void Enqueue(int triangleIndex, int elevation)
+        {
+            var bucket = elevation - _minimumElevation;
+            if (_tails[bucket] < 0)
+            {
+                _heads[bucket] = triangleIndex;
+            }
+            else
+            {
+                _next[_tails[bucket]] = triangleIndex;
+            }
+
+            _tails[bucket] = triangleIndex;
+            Count++;
+        }
+
+        public bool TryDequeue(out int triangleIndex, out int elevation)
+        {
+            while (_currentBucket < _heads.Length && _heads[_currentBucket] < 0)
+            {
+                _currentBucket++;
+            }
+
+            if (_currentBucket >= _heads.Length)
+            {
+                triangleIndex = -1;
+                elevation = 0;
+                return false;
+            }
+
+            triangleIndex = _heads[_currentBucket];
+            _heads[_currentBucket] = _next[triangleIndex];
+            _next[triangleIndex] = -1;
+            if (_heads[_currentBucket] < 0)
+            {
+                _tails[_currentBucket] = -1;
+            }
+
+            elevation = _currentBucket + _minimumElevation;
+            Count--;
+            return true;
+        }
+    }
 }

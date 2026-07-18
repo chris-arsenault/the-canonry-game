@@ -79,22 +79,72 @@ internal static class IceRemembersMagicWorldGenerator
         PhysicalGeographyField field,
         int triangleIndex)
     {
+        var special = NaturalOceanSpecialSurface(field, triangleIndex);
+        if (special.HasValue)
+        {
+            return special.Value;
+        }
+
+        var shallow = field.BathymetricZoneCodes[triangleIndex] is
+            PhysicalBathymetricZoneCodes.Shelf or PhysicalBathymetricZoneCodes.ShelfBreak;
+        if (field.IceThickness[triangleIndex] >= 50)
+        {
+            return IceRemembersPhysicalSurface.PackIce;
+        }
+
+        if (field.Temperature[triangleIndex] <= 315)
+        {
+            return IceRemembersPhysicalSurface.SeaIce;
+        }
+
+        if (HasFrozenOceanNeighbor(field, triangleIndex))
+        {
+            return IceRemembersPhysicalSurface.Polynya;
+        }
+
+        return shallow
+            ? IceRemembersPhysicalSurface.Shelf
+            : IceRemembersPhysicalSurface.Ocean;
+    }
+
+    private static IceRemembersPhysicalSurface? NaturalOceanSpecialSurface(
+        PhysicalGeographyField field,
+        int triangleIndex)
+    {
         if (field.LandformCodes[triangleIndex] == PhysicalLandformCodes.Fjord)
         {
             return IceRemembersPhysicalSurface.Fjord;
         }
 
-        if (field.BathymetricZoneCodes[triangleIndex] is not
-            (PhysicalBathymetricZoneCodes.Shelf or PhysicalBathymetricZoneCodes.ShelfBreak))
+        var shallow = field.BathymetricZoneCodes[triangleIndex] is
+            PhysicalBathymetricZoneCodes.Shelf or PhysicalBathymetricZoneCodes.ShelfBreak;
+        if (shallow &&
+            field.WaterDepths[triangleIndex] <= 125 &&
+            field.Temperature[triangleIndex] >= 300 &&
+            field.Geothermal[triangleIndex] >= 150)
         {
-            return IceRemembersPhysicalSurface.Ocean;
+            return IceRemembersPhysicalSurface.Reef;
         }
 
-        return field.WaterDepths[triangleIndex] <= 125 &&
-            field.Temperature[triangleIndex] >= 300 &&
-            field.Geothermal[triangleIndex] >= 150
-                ? IceRemembersPhysicalSurface.Reef
-                : IceRemembersPhysicalSurface.Shelf;
+        return shallow && field.IceThickness[triangleIndex] >= 75
+            ? IceRemembersPhysicalSurface.IceShelf
+            : null;
+    }
+
+    private static bool HasFrozenOceanNeighbor(PhysicalGeographyField field, int triangleIndex)
+    {
+        for (var edge = 0; edge < 3; edge++)
+        {
+            var neighbor = field.Grid.NeighborTriangleIndex(triangleIndex, edge);
+            if (neighbor >= 0 &&
+                field.WaterKindCodes[neighbor] == PhysicalWaterKindCodes.Ocean &&
+                field.Temperature[neighbor] <= 315)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static IceRemembersPhysicalSurface NaturalLandSurface(
@@ -116,9 +166,10 @@ internal static class IceRemembersMagicWorldGenerator
             return IceRemembersPhysicalSurface.Moraine;
         }
 
-        if (field.IceThickness[triangleIndex] >= 300)
+        var frozen = FrozenLandSurface(field.IceThickness[triangleIndex]);
+        if (frozen.HasValue)
         {
-            return IceRemembersPhysicalSurface.Glacier;
+            return frozen.Value;
         }
 
         if (field.LandformCodes[triangleIndex] is
@@ -130,6 +181,18 @@ internal static class IceRemembersMagicWorldGenerator
         return field.Temperature[triangleIndex] >= 335 && field.Moisture[triangleIndex] >= 260
             ? IceRemembersPhysicalSurface.OpenField
             : IceRemembersPhysicalSurface.Tundra;
+    }
+
+    private static IceRemembersPhysicalSurface? FrozenLandSurface(int iceThickness)
+    {
+        if (iceThickness >= 300)
+        {
+            return IceRemembersPhysicalSurface.Glacier;
+        }
+
+        return iceThickness >= 250
+            ? IceRemembersPhysicalSurface.Snowfield
+            : null;
     }
 
     private static void GenerateFire(
@@ -527,7 +590,7 @@ internal static class IceRemembersMagicWorldGenerator
         int count,
         bool requireCoast)
     {
-        var candidates = new List<CoreCandidate>();
+        var candidates = new PriorityQueue<CoreCandidate, (long Score, int TriangleIndex)>();
         for (var triangleIndex = 0; triangleIndex < field.Grid.TriangleCount; triangleIndex++)
         {
             if (!field.Grid.TriangleIsInsideConfiguredDisk(triangleIndex) ||
@@ -537,13 +600,42 @@ internal static class IceRemembersMagicWorldGenerator
                 continue;
             }
 
-            candidates.Add(new CoreCandidate(
+            var candidate = new CoreCandidate(
                 triangleIndex,
-                (long)(PhysicalNoise.HashUnit(seed, triangleIndex, count) * long.MaxValue)));
+                (long)(PhysicalNoise.HashUnit(seed, triangleIndex, count) * long.MaxValue));
+            AddBoundedCandidate(candidates, candidate, count);
         }
 
-        candidates.Sort(static (first, second) => second.Score.CompareTo(first.Score));
-        return candidates.Take(count).Select(static candidate => candidate.TriangleIndex).ToArray();
+        var selected = new CoreCandidate[candidates.Count];
+        for (var index = 0; index < selected.Length; index++)
+        {
+            selected[index] = candidates.Dequeue();
+        }
+
+        Array.Sort(selected, static (first, second) => second.Score.CompareTo(first.Score));
+        return selected.Select(static candidate => candidate.TriangleIndex).ToArray();
+    }
+
+    private static void AddBoundedCandidate(
+        PriorityQueue<CoreCandidate, (long Score, int TriangleIndex)> candidates,
+        CoreCandidate candidate,
+        int capacity)
+    {
+        var priority = (candidate.Score, candidate.TriangleIndex);
+        if (candidates.Count < capacity)
+        {
+            candidates.Enqueue(candidate, priority);
+            return;
+        }
+
+        _ = candidates.TryPeek(out _, out var weakest);
+        if (priority.CompareTo(weakest) <= 0)
+        {
+            return;
+        }
+
+        _ = candidates.Dequeue();
+        candidates.Enqueue(candidate, priority);
     }
 
     private static bool HasDryNeighbor(PhysicalGeographyField field, int triangleIndex)
@@ -622,15 +714,24 @@ internal static class IceRemembersMagicWorldGenerator
         Add(ref flags, core, IceRemembersPhysicalFeature.FirecoreVent);
         Add(ref flags, fire >= 420 && field.FractureConductance[triangleIndex] >= 560,
             IceRemembersPhysicalFeature.ThermalVein);
-        Add(ref flags, fire >= 430 &&
-            (field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake ||
-                field.RiverOrders[triangleIndex] > 0 || field.Moisture[triangleIndex] >= 650),
+        Add(ref flags, IsHotSpring(field, triangleIndex, fire),
             IceRemembersPhysicalFeature.HotSpring);
         Add(ref flags, fire >= 560 && field.Slope[triangleIndex] <= 45,
             IceRemembersPhysicalFeature.BasaltFlat);
         Add(ref flags, fire is >= 220 and < 560 && field.Temperature[triangleIndex] >= 300,
             IceRemembersPhysicalFeature.ThawedHalo);
         return flags;
+    }
+
+    private static bool IsHotSpring(PhysicalGeographyField field, int triangleIndex, int fire)
+    {
+        var wetFireSpring = fire >= 430 &&
+            (field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake ||
+                field.RiverOrders[triangleIndex] > 0 || field.Moisture[triangleIndex] >= 650);
+        var verdantGeothermalSpring = field.Geothermal[triangleIndex] >= 720 &&
+            field.Temperature[triangleIndex] >= 335 &&
+            field.Moisture[triangleIndex] >= 260;
+        return wetFireSpring || verdantGeothermalSpring;
     }
 
     private static ulong ClassifyAuroraFeatureFlags(
@@ -648,7 +749,9 @@ internal static class IceRemembersMagicWorldGenerator
         Add(ref flags, aurora >= 510 && field.LandformCodes[triangleIndex] is
             PhysicalLandformCodes.Peak or PhysicalLandformCodes.Ridge,
             IceRemembersPhysicalFeature.FrostPrism);
-        Add(ref flags, aurora >= 300 && field.Temperature[triangleIndex] is >= 275 and <= 380,
+        Add(ref flags, aurora >= 650 &&
+            field.IceThickness[triangleIndex] is >= 80 and <= 360 &&
+            field.Temperature[triangleIndex] is >= 275 and <= 380,
             IceRemembersPhysicalFeature.MeltLine);
         return flags;
     }

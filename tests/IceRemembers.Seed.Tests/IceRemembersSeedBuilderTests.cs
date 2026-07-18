@@ -168,6 +168,65 @@ public sealed class IceRemembersSeedBuilderTests
     }
 
     [Fact]
+    public void LatentPhysicalGeography_IsIceboundWithSeparatedWarmHabitats()
+    {
+        var physical = Assert.IsType<DomainPhysicalGeographyBlueprint>(Seed.PhysicalGeography);
+        var frozenSurfaces = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "glacier",
+            "snowfield",
+            "pack_ice",
+            "sea_ice",
+            "ice_shelf",
+        };
+        var frozenTriangleCount = physical.Microtriangles.Count(triangle =>
+            frozenSurfaces.Contains(physical.SurfacePalette[triangle.BaseSurfaceIndex]));
+        var largestFinalSurfaceShare = physical.Microtriangles
+            .GroupBy(triangle => triangle.SurfaceIndex)
+            .Max(group => group.Count()) /
+            (double)physical.Microtriangles.Count;
+        var meltLineIndex = physical.SurfacePalette
+            .Select((surface, index) => (surface, index))
+            .Single(entry => entry.surface == "melt_line")
+            .index;
+        var meltLineShare = physical.Microtriangles.Count(triangle =>
+            triangle.SurfaceIndex == meltLineIndex) /
+            (double)physical.Microtriangles.Count;
+
+        Assert.True(
+            frozenTriangleCount >= physical.Microtriangles.Count * 0.60,
+            "Frozen land and sea must remain the world's dominant natural geometry.");
+        Assert.True(
+            largestFinalSurfaceShare < 0.65,
+            $"A final surface collapsed the world at {largestFinalSurfaceShare:P1}.");
+        Assert.True(meltLineShare < 0.05, $"Melt lines cover {meltLineShare:P1} of the world.");
+
+        var habitableCells = physical.Cells
+            .Where(cell => Microtriangles(physical, cell).Any(IsHabitable))
+            .ToArray();
+        Assert.True(CountConnectedCellComponents(habitableCells) >= 8);
+        Assert.Contains(habitableCells, cell => HexDistance(cell.Q, cell.R) <= Seed.MapRadius);
+        Assert.Contains(habitableCells, cell => HexDistance(cell.Q, cell.R) >= 64);
+        Assert.Contains(habitableCells, cell => cell.OceanCoverage > 0);
+        Assert.Contains(habitableCells, cell => cell.CoastEdgeMask != 0);
+        Assert.Contains(habitableCells, cell => cell.LandCoverage > 0 && cell.CoastEdgeMask == 0);
+        Assert.Contains(habitableCells, cell => cell.PeakCount > 0);
+
+        var hotSpringFlag = IceRemembersPhysicalGeography.FeatureFlag(
+            IceRemembersPhysicalFeature.HotSpring);
+        Assert.Contains(physical.Cells, cell =>
+            cell.PeakCount > 0 &&
+            Microtriangles(physical, cell).Any(triangle =>
+                IsHabitable(triangle) &&
+                (triangle.SignificantFeatureFlags & hotSpringFlag) != 0));
+
+        var pressureGodFlag = IceRemembersPhysicalGeography.FeatureFlag(
+            IceRemembersPhysicalFeature.PressureGodLocus);
+        Assert.Single(physical.Microtriangles, triangle =>
+            (triangle.SignificantFeatureFlags & pressureGodFlag) != 0);
+    }
+
+    [Fact]
     public void LatentPhysicalGeography_SharedFeatureEdgesAgreeAcrossHexes()
     {
         var physical = Assert.IsType<DomainPhysicalGeographyBlueprint>(Seed.PhysicalGeography);
@@ -207,13 +266,9 @@ public sealed class IceRemembersSeedBuilderTests
             .GroupBy(cell => cell.Terrain, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
         var total = cells.Length;
-        var wetShare = cells.Count(cell =>
-            IsAnyTerrain(cell.Terrain, IceRemembersTerrain.Ocean, IceRemembersTerrain.Shelf, IceRemembersTerrain.Reef)) /
-            (float)total;
         var largestShare = terrainCounts.Values.Max() / (float)total;
 
-        Assert.True(wetShare >= 0.18f, $"Expected meaningful ocean/shelf/reef separation, got {wetShare:P1}.");
-        Assert.True(largestShare < 0.65f, $"Single terrain dominates expanded map at {largestShare:P1}.");
+        Assert.True(largestShare < 0.65f, $"Single terrain dominates startup heart at {largestShare:P1}.");
     }
 
     [Fact]
@@ -518,6 +573,51 @@ public sealed class IceRemembersSeedBuilderTests
 
     private static bool IsWaterBoundaryTerrain(string terrainName) =>
         IsAnyTerrain(terrainName, IceRemembersTerrain.Ocean, IceRemembersTerrain.Shelf, IceRemembersTerrain.Reef);
+
+    private static IEnumerable<DomainPhysicalMicrotriangle> Microtriangles(
+        DomainPhysicalGeographyBlueprint physical,
+        DomainPhysicalGeographyCell cell)
+    {
+        for (var localTriangle = 0;
+            localTriangle < PhysicalGeographyCodes.MicrotrianglesPerHex;
+            localTriangle++)
+        {
+            yield return physical.Microtriangles[cell.MicrotriangleOffset + localTriangle];
+        }
+    }
+
+    private static bool IsHabitable(DomainPhysicalMicrotriangle triangle) =>
+        triangle.Temperature >= 335 && triangle.Moisture >= 260;
+
+    private static int CountConnectedCellComponents(
+        IReadOnlyCollection<DomainPhysicalGeographyCell> cells)
+    {
+        var remaining = cells.ToDictionary(cell => new HexCoord(cell.Q, cell.R));
+        var componentCount = 0;
+        var queue = new Queue<HexCoord>();
+        while (remaining.Count > 0)
+        {
+            componentCount++;
+            queue.Enqueue(remaining.First().Key);
+            while (queue.TryDequeue(out var coord))
+            {
+                if (!remaining.Remove(coord))
+                {
+                    continue;
+                }
+
+                foreach (var neighbor in coord.Neighbors())
+                {
+                    if (remaining.ContainsKey(neighbor))
+                    {
+                        queue.Enqueue(neighbor);
+                    }
+                }
+            }
+        }
+
+        return componentCount;
+    }
 
     private static void AssertCellSummaryMatchesMicrotriangles(
         DomainPhysicalGeographyBlueprint physical,
