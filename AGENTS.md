@@ -100,15 +100,43 @@ scope only. Do not expand completion criteria to adjacent future work.
 When the user says not to make code changes, do not edit files. Provide analysis
 only.
 
-When a previous answer or proposal was corrected, treat the correction as a new
-constraint for the rest of the task.
+When a previous answer or proposal is corrected, retain the correction as a
+durable constraint for the rest of the task. Do not discard earlier accepted
+requirements merely because newer feedback is more recent.
 
-When correcting course on feedback, make a targeted, proportionate change toward
-a stable design. Never swing to the opposite extreme. Feedback that "not all X
-should be A" almost never means "make all X be B" — it means the distribution is
-wrong, so find the right mix and assign it case by case. Most real designs are a
-deliberate balance of several behaviors, not one setting applied everywhere. Each
-overcorrection makes the design worse, not better; build toward the stable middle.
+### Design synthesis across feedback
+
+Treat design feedback as cumulative evidence, not as an instruction to invert
+the previous proposal. Before revising a design, synthesize the full relevant
+conversation and design history: the original goal, observed failures, accepted
+decisions, rejected approaches, architectural constraints, and the newest
+feedback. The revised proposal must be one coherent causal design that satisfies
+that combined record. Do not merely restate the user's latest message.
+
+For every affected process or subsystem, deliberately choose and justify one of
+these dispositions:
+
+- keep it unchanged because its model and output are sound;
+- tune or correct its current algorithm while preserving its contract;
+- extend it with additional state or behavior;
+- add a new discrete stage for a genuinely missing process;
+- replace only the incompatible internal portion while preserving useful
+  surrounding structure; or
+- remove it because it is redundant, causally wrong, or incompatible with the
+  accepted design.
+
+The result will often be a mixed evolution: substantial reuse and targeted
+improvement alongside a few new independent stages such as erosion, glaciation,
+or reconciliation. Feedback that a proposal rewrites too much does not mean no
+new stages may be added; feedback that existing stages should be reused does not
+mean they must be preserved unchanged. Likewise, feedback that one behavior is
+overrepresented does not mean replacing it everywhere with its opposite.
+
+Balance is not an arbitrary compromise or the midpoint between two extremes.
+Choose the technically correct mixture from the causal model and evidence, with
+different dispositions where different parts warrant them. Explicitly explain
+how the revised proposal integrates prior decisions with the latest correction,
+and call out any real conflict instead of silently dropping one side.
 
 Do not create or switch to a feature branch unless the user explicitly commands
 branching. Always commit directly to `main` unless the user specifically
