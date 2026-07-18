@@ -1,226 +1,271 @@
-# Entity Density and Retirement: Findings and Scoped Proposal
+# Entity Demography: Territory-Proportional Population, Density, and Retirement
 
-Point-in-time analysis, 2026-07-18. This continues
-`entity-population-growth-20260718.md` with the reframed problem statement:
-unbounded growth is not the defect by itself. The defect is that entity growth
-does not track map growth, so the world densifies — entities stack many to a
-hex and the UI reads as clutter. This document reports the investigation and
-proposes knobs. No code was changed.
+Point-in-time analysis, 2026-07-18, revised same day after design review.
+This supersedes the first draft's causal framing and continues
+`entity-population-growth-20260718.md`. No fix is implemented here except the
+generator atomic-fire bug fix, which landed separately (commit `ec4d9e5`).
 
-## Reframed Problem Statement
+## Problem Statement
 
-- Absolute population growth is acceptable when the map grows with it.
-- The failure is density: active entities per usable cell rises continuously,
-  and per-hex stacking gets worse, not better, with horizon.
-- Primary consumer of the fix is legibility (UI clutter); the simulation-side
-  levers are creation placement, retirement, and carrying capacity. A separate
-  agent owns UI rendering performance; nothing here touches UI code.
+The problem is not that population grows — a growing world should grow its
+population. The problem is that population growth is disconnected from map
+growth, in both directions and on both planes:
 
-## Evidence
+- Anchor kinds (artifact, settlement, region, POI, canon) grow linearly
+  forever, producing physical-plane pile-ups and a semantic-plane dot-field.
+- Mortal kinds (penguin, orca, transport, occurrence) sit at fixed
+  equilibria while territory expands, so the live world *thins*.
+- The population mix therefore inverts over horizon: the live, moving share
+  shrinks while the static-anchor share climbs (artifacts alone reach 46% of
+  the active population by 100k ticks).
 
-All figures from registered runs `relationship-history-lifetime-100k-20260713`
-(seed 7900, 100k ticks; structural evidence from an earlier worktree) and
-`knowledge-real-grants-postrepair` (seed 4200, 15k ticks; current balance).
-Queries were run read-only against the runs' `telemetry.duckdb`.
+The visible symptom is UI clutter, but the cause is demographic: no term in
+the population dynamics reads territory.
 
-### Correction: rollback retirements polluted earlier counts
+## The Population Model
 
-Generator fires that fail after creating entities mark those entities
-historical in the same tick
-(`GeneratorProgramRuntime.Fire.cs` → `MarkCreatedEntitiesHistorical`). These
-rollbacks are indistinguishable from real retirements in
-`entity_events`/`lifecycle_events` unless filtered by `retire_tick >
-create_tick`. The prior analysis doc's by-kind retirement counts include them.
-Filtered, the 100k picture is:
+Active population per kind follows `N* ≈ creation rate × mean lifespan`.
+Both factors are currently world-size-independent constants:
 
-| Kind | Created (real) | Real retirements | Net | Retiring source |
-|---|---|---|---|---|
-| artifact | 389 | **0** | +389 | none |
-| settlement | 110 | **0** | +110 | none |
-| region | 78 | **0** | +78 | none |
-| point_of_interest | 29 | **0** | +29 | none |
-| canon | 21 | 1 | +20 | upkeep |
-| faction | 70 | 21 | +49 | upkeep |
-| monster | 68 | 29 | +39 | gambits 15, upkeep 14 |
-| ability | 63 | 30 | +33 | upkeep 30 |
-| penguin | 344 | 296 | +48 | upkeep 173, generators 123 |
-| occurrence | 136 | 113 | +23 | upkeep |
-| orca | 57 | 46 | +11 | upkeep, generators, gambits 7 |
-| transport | 90 | 79 | +11 | upkeep |
+**Creation is a fixed global pipe.** Pulse-driven generators share a budget of
+`DefaultFiresPerPulse = 1` per `DefaultPulseWidthTicks = 25`
+(`KernelCodes.cs:589`), and cadence generators run on fixed timers. The
+budget binds hard: in the current 15k run, generator evaluations show 4,098
+`EligibleNotSelected` against 256 `Fired` — the world offers roughly 16×
+more eligible creation than the pipe admits. Growing the map grows the
+target pool and the eligible set, not the throughput.
 
-Two structural facts follow:
+**Lifespans are fixed per band, and two bands never end.**
 
-1. **No artifact, settlement, region, or POI has ever been genuinely retired.**
-   Every accumulating kind has literally zero working retirement paths in
-   practice.
-2. **Gambits retired 22 entities in 100,000 ticks** (15 monsters, 7 orcas).
-   The gambit layer is currently a negligible sink.
+- Mortal kinds leak in proportion to their population, so a fixed inflow
+  pins them at a fixed `N*` regardless of territory. Named penguins held at
+  ~48 for 100k ticks while covered territory grew 2.3× — live density per
+  covered cell fell by more than half.
+- `WorldAnchor` kinds (artifact, region, POI) have no drain by design, and
+  `Monumental` settlements never die in practice because map-support health
+  effects fully offset their drain. Zero genuine retirements of any
+  artifact, settlement, region, or POI occurred in 100k ticks. Gambits
+  retired 22 entities total (15 monsters, 7 orcas) — a negligible sink.
 
-The mortal kinds (penguin, occurrence, orca, transport) are in genuine
-equilibrium — churn works where drain works.
+Fixed faucet into a leaking bucket = pinned equilibrium. Fixed faucet into a
+sealed bucket = linear accumulation. Neither sees the map. That single
+structure explains every observed curve.
 
-### Why the accumulating kinds never retire
+## Two Planes, Two Clutter Geometries
 
-- `artifact`, `region`, `point_of_interest`: `WorldAnchor` band — no lifecycle
-  drain by design (`IceRemembersEntityDefinition.cs:344-360`).
-- `settlement`, `canon`: `Monumental` band (20k-tick nominal lifespan), but
-  positive health effects (`MapSupportAtLocation` and friends) outweigh the
-  drain, so settlements run 5x past nominal lifespan with no deaths. In
-  practice they are anchors too.
-- The authored retirement vocabulary exists but is narrow: 5
-  `SetBindingHistoricalEffect` uses and 3 `SetTargetHistoricalMutation` uses in
-  the whole domain, all targeting penguins, monsters, orcas, or wardens. No
-  authored act retires an artifact, settlement, POI, or canon.
+The density complaint applies to both planes, and they fail differently.
 
-### Density vs map growth (100k run)
+**Physical plane: piles.** Stacking worsens monotonically — avg entities per
+occupied hex 1.43 → 1.75 over the 100k run, hexes with 6+ entities 1 → 23,
+max stack 14. The worst hexes are artifact hoards (9–11 artifacts plus a
+penguin or monster). Four authored/mechanical loops produce this:
 
-| Tick | Map cells | Covered cells | Active entities | Active/covered | Occupied hexes | Avg/occupied hex | Max hex | Hexes ≥6 |
-|---|---|---|---|---|---|---|---|---|
-| 0 | 4,921 | 440 | 44 | 0.10 | — | — | — | — |
-| 15,000 | ~4,940 | ~480 | 193 | 0.40 | 135 | 1.43 | 7 | 1 |
-| 50,000 | 5,099 | 693 | 509 | 0.73 | 315 | 1.62 | 11 | 6 |
-| 100,000 | 5,342 | 1,021 | 841 | 0.82 | 481 | 1.75 | 14 | 23 |
+1. **Memorials drop where the fallen stood.** `war_takes_its_toll` places
+   each relic at the casualty's hex (`Required("$memorial", K.Artifact,
+   "relic", "$casualty", …)`). Long-lived wars re-fire on the same fronts,
+   so the same conflict zones accrete relics indefinitely.
+2. **Artifacts advertise their own location.** Every artifact emits a map
+   signal (`baseMass 10, support 0.4, capacity 0.3, attractorRadius 2` in
+   `ArtifactEntity.cs`). Piles project support and culture mass and attract
+   activity, reinforcing the local field that permits further placement —
+   densification is self-reinforcing through the signal layer.
+3. **Claims never resolve into carrying.** The memorial is authored
+   `ClaimedBy` its faction at 0.6, but a claim is only an edge; no authored
+   content moves a claimed artifact to its claimant's hold, though the
+   engine op (`MoveTargetToSelfPhysical`) exists. 334 of 389 active
+   artifacts at 100k sit in the wild where a generator dropped them.
+4. **Founding is gated into the interior.** Interior/route outputs require
+   own-culture-supported cells (`PlacementCellHasOwnCultureSupport`), and
+   all authored physical placement is `On`/`Near` an existing entity.
+   Freshly thawed corridor cells have no culture mass, so the gate forbids
+   founding exactly where the map just grew. The kernel's `Frontier`
+   placement mode works on both planes, but the authoring DSL only wires
+   `frontier: true` to **semantic** placement
+   (`IceRemembersGeneratorDefinition.cs:924`) — physical-plane frontier
+   placement is currently unreachable from authored content.
 
-Map cells grew 8.6% and covered cells 132% while active entities grew 19x.
-Density rises monotonically on every measure; there is no equilibrium in sight.
-The current-balance 15k run shows the same shape early (202 active on 139
-occupied hexes of 525 covered, max stack 6, avg 1.45).
+**Semantic plane: spray.** Stacking is minimal (max 2–4 per hex — semantic
+placement requires free cells and drift spreads entities). The clutter is
+raw count: 841 active entities occupied 761 hexes of a 4,921-cell idea
+plane (~15%) in the 100k run, in which the semantic plane never grew. The
+current build grows the semantic plane via idea-mass thaw (1,027 → 1,401
+cells over 15k), but linear population growth outruns it. Physical-only
+remedies (carrying, physical frontier) do not touch this plane; only
+population-level remedies do.
 
-### The stacks are artifact hoards
+## Registered Evidence
 
-The worst hexes at 100k are piles of 6–11 artifacts plus one or two live
-entities (e.g. `artifact:11, penguin:2, monster:1`). 389 active artifacts sit
-on 170 hexes; only 55 of 389 are co-located with a settlement or POI. The
-rest lie where a generator dropped them — battlefield memorials, relics,
-records — and never move again. Artifacts alone are 46% of the active
-population at 100k.
+Runs: `relationship-history-lifetime-100k-20260713` (seed 7900, structural
+long-horizon evidence from an earlier worktree),
+`knowledge-real-grants-baseline`/`-postrepair` (seed 4200, 15k, matched
+pair), `atomic-fire-fix-15k-20260718` (seed 4200, 15k, current build).
 
-### Creation side is steady, not exploding
+Retirement counts from pre-2026-07-18 runs must be filtered
+`retire_tick > create_tick`: failed generator fires used to leave phantom
+entities marked historical in the same tick. That defect is fixed (atomic
+fires, commit `ec4d9e5`, verified zero rollbacks in
+`atomic-fire-fix-15k-20260718`), but it pollutes all older telemetry.
+Filtered 100k picture:
 
-Total creation is flat (~165–195 per 10k window across the whole run);
-retirement rises slowly but never converges, leaving net +46 to +105 per 10k
-window. Per-generator fire rates are mostly flat; a few grow mildly via
-reopen loops (`the_accord_holds` 0→12 per 25k quarter, `the_current_provides`
-4→11, `conduit_points_found_reefholds` 2→8). Artifact permanence is
-catalog-wide, not one bad generator: `war_takes_its_toll` 62/62 surviving,
-`wars_get_names` 51/51, `the_accord_holds` 28/28, `rich_hubs_grow_undermarkets`
-24/24, and so on. The dominant math is simply steady creation times zero
-retirement.
+| Kind | Created (real) | Real retirements | Retiring source |
+|---|---|---|---|
+| artifact | 389 | **0** | none |
+| settlement | 110 | **0** | none |
+| region | 78 | **0** | none |
+| point_of_interest | 29 | **0** | none |
+| canon | 21 | 1 | upkeep |
+| faction | 70 | 21 | upkeep |
+| monster | 68 | 29 | gambits 15, upkeep 14 |
+| ability | 63 | 30 | upkeep |
+| penguin | 344 | 296 | upkeep 173, generators 123 |
+| occurrence | 136 | 113 | upkeep |
+| orca | 57 | 46 | upkeep, generators, gambits 7 |
+| transport | 90 | 79 | upkeep |
 
-## Proposed Target Shape (to ratify, not yet an invariant)
+Map vs population, 100k run: cells +8.6%, covered cells +132%, active
+entities +1,809%. Creation flat at ~165–195 per 10k window throughout; no
+runaway generator loop — the dynamics are steady faucet, missing leak,
+territory-blind pipe.
 
-Express targets as density, not absolute counts, so a growing map buys a
-growing population:
+## Target Shape (proposed, to ratify)
 
-- **Active entities per covered cell:** plateau in a 0.3–0.5 band at long
-  horizon (currently 0.82 at 100k and still rising).
-- **Stacking:** average ≤ ~1.5 per occupied hex; hexes with 6+ entities rare
-  and story-justified (a hoard site should be a named place, not an accident).
-- **By kind:** artifact and POI active stock plateaus (retirement ≈ creation
-  beyond bootstrap); settlement count tracks covered-cell growth (roughly one
-  settlement per 8–12 covered cells matches today's 110 per 1,021); mortal
-  kinds keep their current equilibria untouched.
-- Bootstrap (first ~25k ticks) may legitimately run above band while
-  Generational/Monumental stock fills in; judge the trend, not the total.
+**Territory-proportional demography:** every kind's population plateaus in
+proportion to a territory measure, with authored per-kind densities.
+Judged at long horizon (the game is ~2.5M ticks; bootstrap may run hot):
 
-## Proposed Knobs (3–4, complementary, each proportionate)
+- **Physical density:** active entities per covered cell holds in a band
+  (~0.3–0.5) instead of climbing (0.10 → 0.82 observed). Hexes with 6+
+  entities are rare and story-justified (a reliquary hoard is a named
+  place, not an accident).
+- **Semantic occupancy:** occupied fraction of the idea plane holds in a
+  band as the plane grows, instead of monotone thickening.
+- **Mix:** the live share (mortal kinds) grows with territory rather than
+  being diluted — named-penguin density per covered cell should hold
+  roughly constant, not halve.
+- **Anchor stock:** artifact/POI counts plateau (retirement ≈ creation);
+  settlements track covered cells (~1 per 10 covered cells matches today).
 
-### K1. Zeitgeist lifecycle for artifacts and POIs (authored bands)
+## Proposed Knobs
 
-Reclassify `Artifact` and `PointOfInterest` from `WorldAnchor` to mortal bands
-(candidates: Generational for ordinary relics, Monumental for named-war
-memorials). Fiction: health (`condition`, `presence`) is relevance, not
-existence — reaching zero means passing out of the zeitgeist, and the object
-persists as history in the graph exactly as historical entities already do.
-Case-by-case subtype classification; a small authored subset (canon-grade
-relics, e.g. accord seals while their accord holds) may stay `WorldAnchor`.
-**Regions stay WorldAnchor** (tech invariants: strongholds, static entities).
-Owner: `src/IceRemembers/Entities/ArtifactEntity.cs`,
-`PointOfInterestEntity.cs`, band constants in
-`IceRemembersEntityDefinition.cs`.
+Ordered by what each controls: count (both planes), then location.
 
-### K2. Authored retirement acts (gambits + generator consequences)
+### K1. Territory-scaled creation — the pipe reads the map
 
-Give the world ordinary, narratively meaningful acts that consume, destroy, or
-transform the accumulating kinds, and tune the existing hunt-gambit pattern up
-from its current 22-per-100k contribution:
+Scale generator throughput with a territory measure (covered cells,
+settlement count, or culture mass) so a bigger world creates
+proportionally more of everything, with authored per-kind shares. The
+budget is demonstrably the binding constraint (16× eligible surplus), so
+scaling it is the direct lever. This is a kernel-tuning change
+(`KernelProgramTuningOptions`), arguably tuning rather than semantics, but
+it still needs the authored-layer-first check: verify whether per-settlement
+cadence generators could achieve the same scaling through the existing
+budget before touching it. Without K1, retirement alone produces a
+plateaued-but-thinning world.
 
-- artifacts: spent in rites (Wake-Singers offerings), shattered in raids,
-  claimed and carried off by named actors, consolidated — several battlefield
-  relics transform into one memorial canon;
-- settlements: fall to war/predation when health is already low (razing as a
-  gambit outcome, not a new global rule); the Monumental drain already exists —
-  the fix is partly that support effects should not fully cancel it;
-- canons: superseded by newer canons of the same jurisdiction.
+### K2. Universal leak — zeitgeist lifecycle plus authored endings
 
-Owner: `IceRemembersGambits*.cs`, `IceRemembersGeneratorDefinition*.cs`,
-`IceRemembersRelationshipStrengths.cs`. The vocabulary
-(`SetTargetHistoricalMutation`, `SetBindingHistoricalEffect`) already exists;
-this is authoring, not engine work.
+The only lever that reduces count on **both planes at once**, since
+active→historical removes an entity from the physical map, the idea plane,
+targeting pools, and signal emission in one transition, while the graph
+keeps it (which is exactly the "passed out of the zeitgeist" fiction, and
+what a later comeback mechanic needs).
 
-### K3. Carrying capacity via the existing crowding signal
+- Reclassify `Artifact` and `PointOfInterest` out of `WorldAnchor` into
+  mortal bands, case by case per subtype; a small authored subset
+  (canon-grade relics, seals while their accord holds) may remain anchors.
+  **Regions stay `WorldAnchor`** (design invariant).
+- Fix the settlement accounting so Monumental drain is not fully cancelled
+  by support effects — thriving settlements should persist, immortality
+  should not be the default outcome.
+- Author endings with fiction: relics spent in Wake-Singer rites (the
+  offering-spend economy already exists), shattered in raids, consolidated
+  (several battlefield relics transform into one memorial canon); weakened
+  settlements razed by war as a gambit outcome; canons superseded within a
+  jurisdiction. The vocabulary (`SetTargetHistoricalMutation`,
+  `SetBindingHistoricalEffect`) exists and is currently pointed almost
+  exclusively at penguins, monsters, and orcas.
 
-`MapSignals` already computes per-cell crowding load (occupancy vs capacity,
-`MapSignalsProgramRuntime.cs:244`) and the authored effect condition
-`MapCrowdingLoad` already exists — it is currently wired into exactly one
-settlement negative trait. Extend it as a health drain for more kinds so
-overcrowded hexes shed relevance faster, making density self-limiting where
-K1 gives kinds a drain to modulate. Owner: authored effect/trait definitions
-in `src/IceRemembers/Entities/*.cs`; `Engine.Gameplay` only if the condition
-vocabulary needs a new shape.
+### K3. Resolve claims into carrying — the physical-pile lever
 
-### K4. Occupancy-aware creation placement (spread instead of stack)
+Claimed/consigned artifacts get brought to the claimant's hold: a gambit
+("the faction enshrines its memorial") or generator consequence using the
+existing carry op. This de-litters battle sites without retiring anything,
+concentrates artifacts into settlement hoards whose co-location the UI
+already collapses, gives named bearers a rare heroic retrieval beat, and
+makes an eventual reliquary/meta-entity presentation natural. Physical
+plane only — it does not reduce count.
 
-Bias produced-entity placement and generator target scoring away from crowded
-cells and toward covered-but-empty and newly reclaimed cells, tying creation
-to the growing map. This is the knob most likely to need engine evidence
-first: placement scoring lives in
-`Engine.Kernel/Programs/Generators/GeneratorProgramRuntime.TargetScoring.cs`
-and placement resolution in the same runtime — kernel changes require
-demonstrating the authored layer cannot express the rule. Start by checking
-whether placement rules can already prefer low-occupancy cells; only escalate
-with that evidence in hand.
+### K4. Spread creation onto the growing map
+
+- **Physical:** expose frontier placement to authored physical placement —
+  the DSL's `frontier:` flag currently reaches only the semantic plane.
+  The produceds already marked `frontier: true` (colonies, reefholds,
+  rookeries, harbors, peaks, shoals, vents) are the natural candidates:
+  their fiction is already "reaching new ground." Pair with a
+  corridor-aware exception to the culture-support gate (or trace-mass
+  seeding along thaw corridors) so founding can follow the growing map.
+- **Semantic:** the mechanism exists (idea-mass frontier, semantic
+  `frontier: true`); the question is pacing — whether plane growth plus K2
+  retirement holds occupancy in band. Measure before changing.
+
+### K5. Crowding as the closing loop
+
+The per-cell crowding signal exists on both planes
+(`CrowdingLoadAt(planeCode, …)`) and is wired into exactly one settlement
+trait today. Extend it as a relevance drain so any residual stacking is
+self-limiting. Backstop, not primary.
 
 ## What Stays Untouched
 
 - Regions remain `WorldAnchor`; no region lifecycle drain.
 - Historical retention: nothing is deleted from the graph.
 - Causal limits stay causal limits, not population caps.
-- No global active-entity cap, no blanket generator slowdown, no UI-only
-  visibility cap presented as a simulation fix.
-- Mortal-kind equilibria (penguin, orca, transport, occurrence) are working;
-  leave their tuning alone.
+- No global active-entity cap, no hidden ledgers or reservoirs, no
+  UI-only visibility cap presented as a simulation fix.
+- Mortal-kind lifespans and churn mechanics are correct as mechanisms;
+  what changes is that their creation inflow scales (K1), not how they die.
 
 ## Matched Monte Carlo Comparison Plan
 
-- Control and candidate from fresh builds, unique registered run ids, 3 seeds
-  each, 100k ticks (plus one 15k pair for bootstrap-shape regression).
-- Metrics, all rollback-filtered (`retire_tick > create_tick`):
-  - real creation/retirement/net per kind per 10k window — convergence of net
-    toward 0 for artifact/POI after bootstrap;
-  - active per covered cell at 25k/50k/100k — flat or falling after 25k;
-  - stacking: avg per occupied hex, share of hexes ≥6, max stack;
-  - unchanged-behavior guards: mortal-kind equilibria, generator fire rates,
-    war/beat cadence (`narrative_population_equilibrium` flag plus existing
-    narrative-quality metrics — retirement must not gut the war-saga loops).
-- Record material DuckDB findings via `append-stats` on the registered runs.
+Control and candidate from fresh builds, unique registered run ids, 3
+seeds, 100k ticks (plus a 15k pair for bootstrap shape). All runs on the
+atomic-fire build, so no rollback filtering. Metrics per 10k window and at
+25k/50k/100k:
+
+- creation, retirement, net by kind — anchors converge to net ≈ 0 after
+  bootstrap; mortal net tracks territory growth instead of zero;
+- physical: active per covered cell (flat after bootstrap), stacking
+  distribution (avg, ≥6 share, max);
+- semantic: plane cell count, occupied fraction (flat), stacking max;
+- mix: mortal share of active population (non-decreasing as map grows);
+- wild vs held artifacts (K3), founding events on corridor/frontier cells
+  (K4);
+- unchanged-behavior guards: war/beat cadence and narrative-quality
+  metrics — retirement and scaling must not gut the war-saga loops;
+  `narrative_population_equilibrium` flag.
+
+Record material DuckDB findings via `append-stats` on the registered runs.
 
 ## Follow-ups Noted, Not Required Now
 
-- **Return from the zeitgeist:** a generator/gambit path that targets
-  *historical* artifacts or POIs and resurfaces them as active again (a relic
-  rediscovered, a shrine reconsecrated). Doubles as a creation-pressure
-  reducer: resurfacing can substitute for creating a new entity in loops like
-  `records_cast_shadows`.
-- **Dynamic meta-entities** (idea only, explicitly not a requirement): a
-  settlement + resident faction + leader + held artifacts presenting as one
-  game/UI entity. Held artifacts already co-locate crudely. This is a large,
-  cross-cutting feature; K1–K4 should be evaluated first since they may
-  remove most of the clutter that motivates it.
-- **Observability:** ~~emit a distinct reason/source for rollback retirements~~
-  Resolved 2026-07-18 on this branch: the generator executor now plans the
-  whole produced bundle before committing any creation, so failed fires write
-  nothing to the graph and rollback retirements no longer exist (see
-  `docs/systems/16-generator-executor.md`, atomic-fire section). The
-  `retire_tick > create_tick` filter is still required when querying runs
-  recorded before the fix, including every run cited in this document.
+- **Return from the zeitgeist:** generators/gambits that target historical
+  artifacts or POIs and resurface them (a relic rediscovered, a shrine
+  reconsecrated) — doubles as creation-pressure relief when resurfacing
+  substitutes for minting.
+- **Dynamic meta-entities** (explicitly not a requirement): settlement +
+  resident faction + leader + held artifacts presenting as one game/UI
+  entity. K3 makes the grouping physically real first; evaluate K1–K5
+  before paying for this.
+
+## Open Questions
+
+1. Which territory measure drives K1 (covered cells, settlements, culture
+   mass), and can authored per-settlement cadences achieve it without a
+   kernel budget change?
+2. Subtype-level anchor classification for K2: which artifacts/POIs are
+   true anchors, and what band lengths fit the fiction?
+3. Settlement drain rebalance (K2): target a survival curve, not
+   immortality — what fraction of settlements should outlive their
+   founding culture's era?
+4. Semantic-plane growth pacing (K4): is idea-mass thaw + retirement
+   sufficient, or does plane growth also need a territory link?

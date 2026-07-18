@@ -350,6 +350,16 @@ public partial class Main : Node2D
             PrewarmRuntime(prewarmTicks);
         }
 
+        _renderTree?.BindRuntime(_runtime);
+        _renderTree?.Present(_runtime.ReadModels.Entities.CurrentTick, FormatKernelTimeState());
+
+        var runLogText = _runtime.RunLogPath is { Length: > 0 } runLogPath
+            ? $" Run log -> {runLogPath}"
+            : " Run logging disabled.";
+        GD.Print(
+            $"Simulation initialized: seed {_runtime.Seed.BaseSeed}/{_runtime.Seed.Attempt}, " +
+            $"{_runtime.ReadModels.Entities.Entities.Count} projected entities.{runLogText}");
+
         if (tickRateAfterStart is { } tickRate)
         {
             SetKernelTickRate(tickRate);
@@ -362,16 +372,6 @@ public partial class Main : Node2D
         {
             SetKernelTickRate(NormalTicksPerSecond);
         }
-
-        _renderTree?.BindRuntime(_runtime);
-        _renderTree?.Present(_runtime.ReadModels.Entities.CurrentTick, FormatKernelTimeState());
-
-        var runLogText = _runtime.RunLogPath is { Length: > 0 } runLogPath
-            ? $" Run log -> {runLogPath}"
-            : " Run logging disabled.";
-        GD.Print(
-            $"Simulation initialized: seed {_runtime.Seed.BaseSeed}/{_runtime.Seed.Attempt}, " +
-            $"{_runtime.ReadModels.Entities.Entities.Count} projected entities.{runLogText}");
     }
 
     private void PrewarmRuntime(int targetTick)
