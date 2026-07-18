@@ -41,7 +41,9 @@ internal sealed partial class GeneratorProgramRuntime
 
         using var provenanceScope = EnterFireProvenance(simulation, generatorSlot, targetId, out var triggerKindCode, out var triggerId);
 
-        if (!CreateProducedEntities(
+        _plannedCreateCount = 0;
+        _plannedCoverageCellCount = 0;
+        if (!PlanProducedEntities(
                 simulation,
                 world,
                 generatorSlot,
@@ -50,14 +52,17 @@ internal sealed partial class GeneratorProgramRuntime
                 targetOriginR,
                 refCodes,
                 refEntityIds,
-                createdEntityIds,
                 ref refCount,
-                ref createdEntityCount,
-                tick,
                 out failureReasonCode))
         {
+            _plannedCreateCount = 0;
+            _plannedCoverageCellCount = 0;
             return false;
         }
+
+        createdEntityCount = CommitPlannedEntities(simulation, refCodes, refEntityIds, ref refCount, createdEntityIds);
+        _plannedCreateCount = 0;
+        _plannedCoverageCellCount = 0;
 
         var createdRelationshipCount = CreateRelationships(simulation, world, generatorSlot, refCodes, refEntityIds, refCount, tick);
         var relationshipSpendCount = ExecuteEffects(simulation, world, generatorSlot, targetId, refCodes, refEntityIds, refCount, tick, triggerKindCode, triggerId);
@@ -197,7 +202,7 @@ internal sealed partial class GeneratorProgramRuntime
         out int relationshipId) =>
         KernelQuery.TryFirstRelationshipOfKind(world, targetId, relationshipKindId, outgoing, minimumStrength, out relationshipId);
 
-    private bool CreateProducedEntities(
+    private bool PlanProducedEntities(
         Simulation simulation,
         WorldState world,
         int generatorSlot,
@@ -206,10 +211,7 @@ internal sealed partial class GeneratorProgramRuntime
         int targetOriginR,
         int[] refCodes,
         int[] refEntityIds,
-        int[] createdEntityIds,
         ref int refCount,
-        ref int createdEntityCount,
-        int tick,
         out int failureReasonCode)
     {
         failureReasonCode = GeneratorTargetRejectionReasonCodes.None;
@@ -217,7 +219,7 @@ internal sealed partial class GeneratorProgramRuntime
         var endProduced = firstProduced + _producedCounts[generatorSlot];
         for (var produced = firstProduced; produced < endProduced; produced++)
         {
-            if (!CreateOrBindProducedEntity(
+            if (!PlanProducedEntity(
                     simulation,
                     world,
                     produced,
@@ -226,10 +228,7 @@ internal sealed partial class GeneratorProgramRuntime
                     targetOriginR,
                     refCodes,
                     refEntityIds,
-                    createdEntityIds,
                     ref refCount,
-                    ref createdEntityCount,
-                    tick,
                     out failureReasonCode))
             {
                 return false;
@@ -239,7 +238,7 @@ internal sealed partial class GeneratorProgramRuntime
         return true;
     }
 
-    private bool CreateOrBindProducedEntity(
+    private bool PlanProducedEntity(
         Simulation simulation,
         WorldState world,
         int produced,
@@ -248,10 +247,7 @@ internal sealed partial class GeneratorProgramRuntime
         int targetOriginR,
         int[] refCodes,
         int[] refEntityIds,
-        int[] createdEntityIds,
         ref int refCount,
-        ref int createdEntityCount,
-        int tick,
         out int failureReasonCode)
     {
         failureReasonCode = GeneratorTargetRejectionReasonCodes.None;
@@ -284,17 +280,14 @@ internal sealed partial class GeneratorProgramRuntime
             return true;
         }
 
-        return CreateMissingProducedEntity(
+        return PlanMissingProducedEntity(
             simulation,
             world,
             produced,
             targetId,
             refCodes,
             refEntityIds,
-            createdEntityIds,
             ref refCount,
-            ref createdEntityCount,
-            tick,
             out failureReasonCode);
     }
 
@@ -341,17 +334,14 @@ internal sealed partial class GeneratorProgramRuntime
             _producedQueryRelatedToTargetMinStrengths[produced]);
     }
 
-    private bool CreateMissingProducedEntity(
+    private bool PlanMissingProducedEntity(
         Simulation simulation,
         WorldState world,
         int produced,
         int targetId,
         int[] refCodes,
         int[] refEntityIds,
-        int[] createdEntityIds,
         ref int refCount,
-        ref int createdEntityCount,
-        int tick,
         out int failureReasonCode)
     {
         failureReasonCode = GeneratorTargetRejectionReasonCodes.None;
@@ -371,41 +361,103 @@ internal sealed partial class GeneratorProgramRuntime
                 out var semanticR,
                 out failureReasonCode))
         {
-            MarkCreatedEntitiesHistorical(simulation, world, createdEntityIds, createdEntityCount, tick);
             return false;
         }
 
-        var createdEntityId = CreateProducedEntity(
-            simulation,
-            produced,
-            subtypeId,
-            producedCultureId,
-            physicalQ,
-            physicalR,
-            semanticQ,
-            semanticR);
-        TrackCreatedProducedEntity(
-            produced,
-            createdEntityId,
-            createdEntityIds,
-            ref refCount,
-            ref createdEntityCount,
-            refCodes,
-            refEntityIds);
-        return ApplyProducedCoverage(
-            simulation,
-            world,
-            produced,
-            createdEntityId,
-            physicalQ,
-            physicalR,
-            refCodes,
-            refEntityIds,
-            createdEntityIds,
-            refCount,
-            createdEntityCount,
-            tick,
-            out failureReasonCode);
+        var planIndex = RecordPlannedProducedEntity(produced, subtypeId, producedCultureId, physicalQ, physicalR, semanticQ, semanticR);
+        if (_producedCoverageModeCodes[produced] != GeneratorCoverageModeCodes.None)
+        {
+            if (!PlanCoverage(
+                    simulation,
+                    produced,
+                    producedCultureId,
+                    refCodes,
+                    refEntityIds,
+                    refCount,
+                    physicalQ,
+                    physicalR,
+                    out var anchorQ,
+                    out var anchorR,
+                    out var coverageCellCount))
+            {
+                failureReasonCode = GeneratorTargetRejectionReasonCodes.Placement;
+                return false;
+            }
+
+            _plannedCoverageCounts[planIndex] = coverageCellCount;
+            _plannedFinalPhysicalQ[planIndex] = anchorQ;
+            _plannedFinalPhysicalR[planIndex] = anchorR;
+        }
+
+        _plannedCreateCount++;
+        SetRef(refCodes, refEntityIds, ref refCount, _producedRefCodes[produced], PendingRefId(planIndex));
+        return true;
+    }
+
+    private int RecordPlannedProducedEntity(
+        int produced,
+        int subtypeId,
+        int producedCultureId,
+        int physicalQ,
+        int physicalR,
+        int semanticQ,
+        int semanticR)
+    {
+        var planIndex = _plannedCreateCount;
+        if (planIndex >= _plannedProducedSlots.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _plannedProducedSlots[planIndex] = produced;
+        _plannedSubtypeIds[planIndex] = subtypeId;
+        _plannedCultureIds[planIndex] = producedCultureId;
+        _plannedSpawnPhysicalQ[planIndex] = physicalQ;
+        _plannedSpawnPhysicalR[planIndex] = physicalR;
+        _plannedFinalPhysicalQ[planIndex] = physicalQ;
+        _plannedFinalPhysicalR[planIndex] = physicalR;
+        _plannedSemanticQ[planIndex] = semanticQ;
+        _plannedSemanticR[planIndex] = semanticR;
+        _plannedCoverageStarts[planIndex] = _plannedCoverageCellCount;
+        _plannedCoverageCounts[planIndex] = 0;
+        return planIndex;
+    }
+
+    private int CommitPlannedEntities(
+        Simulation simulation,
+        int[] refCodes,
+        int[] refEntityIds,
+        ref int refCount,
+        int[] createdEntityIds)
+    {
+        var plannedCount = _plannedCreateCount;
+        for (var planIndex = 0; planIndex < plannedCount; planIndex++)
+        {
+            var produced = _plannedProducedSlots[planIndex];
+            var createdEntityId = CreateProducedEntity(
+                simulation,
+                produced,
+                _plannedSubtypeIds[planIndex],
+                _plannedCultureIds[planIndex],
+                _plannedSpawnPhysicalQ[planIndex],
+                _plannedSpawnPhysicalR[planIndex],
+                _plannedSemanticQ[planIndex],
+                _plannedSemanticR[planIndex]);
+            createdEntityIds[planIndex] = createdEntityId;
+            SetRef(refCodes, refEntityIds, ref refCount, _producedRefCodes[produced], createdEntityId);
+            CommitPlannedCoverage(simulation, planIndex, createdEntityId);
+            if (_plannedFinalPhysicalQ[planIndex] != _plannedSpawnPhysicalQ[planIndex] ||
+                _plannedFinalPhysicalR[planIndex] != _plannedSpawnPhysicalR[planIndex])
+            {
+                KernelEffectExecutor.MovePhysical(
+                    simulation,
+                    createdEntityId,
+                    _plannedFinalPhysicalQ[planIndex],
+                    _plannedFinalPhysicalR[planIndex]);
+            }
+        }
+
+        return plannedCount;
     }
 
     private bool TryResolveMissingProducedPlacement(
@@ -477,20 +529,6 @@ internal sealed partial class GeneratorProgramRuntime
             semanticR,
             -semanticQ - semanticR);
 
-    private void TrackCreatedProducedEntity(
-        int produced,
-        int createdEntityId,
-        int[] createdEntityIds,
-        ref int refCount,
-        ref int createdEntityCount,
-        int[] refCodes,
-        int[] refEntityIds)
-    {
-        createdEntityIds[createdEntityCount] = createdEntityId;
-        createdEntityCount++;
-        SetRef(refCodes, refEntityIds, ref refCount, _producedRefCodes[produced], createdEntityId);
-    }
-
     private bool TryResolveProducedCreationInputs(
         Simulation simulation,
         WorldState world,
@@ -512,42 +550,6 @@ internal sealed partial class GeneratorProgramRuntime
         }
 
         return subtypeId > 0 && producedCultureId > 0;
-    }
-
-    private bool ApplyProducedCoverage(
-        Simulation simulation,
-        WorldState world,
-        int produced,
-        int createdEntityId,
-        int physicalQ,
-        int physicalR,
-        int[] refCodes,
-        int[] refEntityIds,
-        int[] createdEntityIds,
-        int refCount,
-        int createdEntityCount,
-        int tick,
-        out int failureReasonCode)
-    {
-        failureReasonCode = GeneratorTargetRejectionReasonCodes.None;
-        if (_producedCoverageModeCodes[produced] == GeneratorCoverageModeCodes.None)
-        {
-            return true;
-        }
-
-        if (!CreateCoverage(simulation, produced, createdEntityId, refCodes, refEntityIds, refCount, physicalQ, physicalR, out var anchorQ, out var anchorR))
-        {
-            MarkCreatedEntitiesHistorical(simulation, world, createdEntityIds, createdEntityCount, tick);
-            failureReasonCode = GeneratorTargetRejectionReasonCodes.Placement;
-            return false;
-        }
-
-        if (anchorQ != physicalQ || anchorR != physicalR)
-        {
-            KernelEffectExecutor.MovePhysical(simulation, createdEntityId, anchorQ, anchorR);
-        }
-
-        return true;
     }
 
     private int CreateRelationships(

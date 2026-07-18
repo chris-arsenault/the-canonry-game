@@ -57,6 +57,16 @@ If no legal placement candidate exists, the generator fire fails cleanly and
 does not consume pulse budget. This keeps invalid placement from suppressing
 later valid fires inside the same pulse window.
 
+A fire is atomic over its produced bundle. The executor first plans every
+produced entity — chance roll, query binding, subtype, culture, placement
+coordinates, and coverage cells — without mutating world state, then commits
+the creations only after the whole bundle resolves. A failed fire therefore
+leaves nothing behind: no entities, no events, no historical placeholders.
+During planning, later produced entities see earlier planned ones through
+pending references: their planned cells count as occupied, their planned
+coverage counts as claimed, and they can serve as placement anchors and
+culture sources.
+
 Generator culture placement uses the kernel culture-boundary model. Normal
 placement prefers same-culture support and avoids another culture's
 entrenched/nexus fields. Hostile intrusion is an explicit placement mode for

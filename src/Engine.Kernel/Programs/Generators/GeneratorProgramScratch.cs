@@ -22,6 +22,19 @@ internal sealed class GeneratorProgramScratch
     internal readonly int[] RefEntityIds;
     internal readonly int[] CreatedEntityIds;
     internal readonly int[] RetryRejectedTargetIds;
+    internal readonly int[] PlannedProducedSlots;
+    internal readonly int[] PlannedSubtypeIds;
+    internal readonly int[] PlannedCultureIds;
+    internal readonly int[] PlannedSpawnPhysicalQ;
+    internal readonly int[] PlannedSpawnPhysicalR;
+    internal readonly int[] PlannedFinalPhysicalQ;
+    internal readonly int[] PlannedFinalPhysicalR;
+    internal readonly int[] PlannedSemanticQ;
+    internal readonly int[] PlannedSemanticR;
+    internal readonly int[] PlannedCoverageStarts;
+    internal readonly int[] PlannedCoverageCounts;
+    internal readonly int[] PlannedCoverageCellQ;
+    internal readonly int[] PlannedCoverageCellR;
 
     public GeneratorProgramScratch(
         int generatorCapacity,
@@ -53,5 +66,18 @@ internal sealed class GeneratorProgramScratch
         RefEntityIds = new int[resolvedReferenceCapacity];
         CreatedEntityIds = new int[resolvedReferenceCapacity];
         RetryRejectedTargetIds = new int[retryTargetCapacity];
+        PlannedProducedSlots = new int[resolvedReferenceCapacity];
+        PlannedSubtypeIds = new int[resolvedReferenceCapacity];
+        PlannedCultureIds = new int[resolvedReferenceCapacity];
+        PlannedSpawnPhysicalQ = new int[resolvedReferenceCapacity];
+        PlannedSpawnPhysicalR = new int[resolvedReferenceCapacity];
+        PlannedFinalPhysicalQ = new int[resolvedReferenceCapacity];
+        PlannedFinalPhysicalR = new int[resolvedReferenceCapacity];
+        PlannedSemanticQ = new int[resolvedReferenceCapacity];
+        PlannedSemanticR = new int[resolvedReferenceCapacity];
+        PlannedCoverageStarts = new int[resolvedReferenceCapacity];
+        PlannedCoverageCounts = new int[resolvedReferenceCapacity];
+        PlannedCoverageCellQ = new int[scratchCellCapacity];
+        PlannedCoverageCellR = new int[scratchCellCapacity];
     }
 }

@@ -254,6 +254,23 @@ internal sealed partial class GeneratorProgramRuntime
         var equalBestCount = 0;
         var selectedQ = originQ;
         var selectedR = originR;
+        if (IsPendingRef(coverageOwnerId))
+        {
+            return FindFreeHexInPendingCoverage(
+                simulation,
+                planeCode,
+                producedSlot,
+                movementProfileId,
+                producedCultureId,
+                coverageOwnerId,
+                originQ,
+                originR,
+                minRadius,
+                effectiveMaxRadius,
+                out q,
+                out r);
+        }
+
         KernelQuery.ForEachCoverageCell(
             world,
             coverageOwnerId,
@@ -279,6 +296,60 @@ internal sealed partial class GeneratorProgramRuntime
                     ref selectedR) || found;
                 return true;
             });
+
+        q = selectedQ;
+        r = selectedR;
+        return found;
+    }
+
+    // A pending owner's coverage exists only as planned physical cells.
+    private bool FindFreeHexInPendingCoverage(
+        Simulation simulation,
+        int planeCode,
+        int producedSlot,
+        int movementProfileId,
+        int producedCultureId,
+        int coverageOwnerId,
+        int originQ,
+        int originR,
+        int minRadius,
+        int effectiveMaxRadius,
+        out int q,
+        out int r)
+    {
+        var found = false;
+        var bestScore = int.MinValue;
+        var equalBestCount = 0;
+        var selectedQ = originQ;
+        var selectedR = originR;
+        if (planeCode == PlaneCodes.Physical)
+        {
+            var planIndex = PendingPlanIndex(coverageOwnerId);
+            var start = _plannedCoverageStarts[planIndex];
+            var end = start + _plannedCoverageCounts[planIndex];
+            for (var cell = start; cell < end; cell++)
+            {
+                var cq = _plannedCoverageCellQ[cell];
+                var cr = _plannedCoverageCellR[cell];
+                found = SelectPlacementCandidateIfMatch(
+                    simulation,
+                    planeCode,
+                    producedSlot,
+                    movementProfileId,
+                    producedCultureId,
+                    cq,
+                    cr,
+                    originQ,
+                    originR,
+                    KernelQuery.HexDistance(originQ, originR, cq, cr),
+                    minRadius,
+                    effectiveMaxRadius,
+                    ref bestScore,
+                    ref equalBestCount,
+                    ref selectedQ,
+                    ref selectedR) || found;
+            }
+        }
 
         q = selectedQ;
         r = selectedR;
@@ -436,6 +507,11 @@ internal sealed partial class GeneratorProgramRuntime
 
     private bool PlacementCellIsFree(WorldState world, int planeCode, int q, int r)
     {
+        if (PendingPlacementOccupies(planeCode, q, r))
+        {
+            return false;
+        }
+
         return planeCode == PlaneCodes.Physical
             ? IsFreePhysical(world, q, r)
             : SemanticCoordinateAllowed(world, q, r) && !KernelQuery.SemanticCellIsOccupied(world, q, r);

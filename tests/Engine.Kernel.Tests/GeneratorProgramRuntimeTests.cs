@@ -597,8 +597,15 @@ public sealed class GeneratorProgramRuntimeTests
         Assert.Contains(events, evt =>
             evt.EventType == KernelEventType.GeneratorFired &&
             evt.AsGeneratorFired().TargetEntityId == secondTarget);
-        Assert.Equal(EntityStatusCodes.Historical, simulation.World.EntityStatus(firstTarget + 2));
-        Assert.Equal(4, simulation.World.EntityHighWatermark);
+
+        // The failed first fire commits nothing: only the two targets and the
+        // one entity created by the successful second fire exist, and every
+        // created entity is active.
+        Assert.Equal(3, simulation.World.EntityHighWatermark);
+        Assert.Equal(EntityStatusCodes.Active, simulation.World.EntityStatus(firstTarget + 2));
+        Assert.DoesNotContain(events, evt =>
+            evt.EventType == KernelEventType.EntityStatusChanged &&
+            evt.AsEntityStatusChanged().CurrentStatusCode == EntityStatusCodes.Historical);
     }
 
     [Fact]
@@ -620,7 +627,36 @@ public sealed class GeneratorProgramRuntimeTests
         Assert.Equal(1, evaluated.SelectedTargetEntityId);
         Assert.Equal(1, evaluated.FailedFireCount);
         Assert.DoesNotContain(events, evt => evt.EventType == KernelEventType.GeneratorFired);
-        Assert.Equal(3, simulation.World.EntityHighWatermark);
+
+        // The failed fire commits nothing: no created entities, active or
+        // historical, reach the graph.
+        Assert.Equal(2, simulation.World.EntityHighWatermark);
+        Assert.DoesNotContain(events, evt => evt.EventType == KernelEventType.EntityCreated);
+    }
+
+    [Fact]
+    public void Fire_WhenLaterProducedFails_CommitsNoEarlierProducedEntities()
+    {
+        var simulation = CreateSimulation(seed: 1, retryFireTargets: false);
+        CreateSparseCoverageTarget(simulation);
+        var slot = RegisterGenerator(simulation, includeProduced: false);
+        AddProducedEntity(simulation, slot, createChance: 1f);
+        AddCoverageProduced(simulation, slot, producedRefCode: CreatedRef + 1, createdKindId: CreatedKindId + 1);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        simulation.AdvanceTicks(1);
+
+        // The first produced entity resolves, but the fire fails on the second
+        // produced's coverage. Nothing reaches the graph — no active entities,
+        // no historical placeholders, no entity events at all.
+        var events = ReadAvailableEvents(simulation, cursor);
+        var evaluated = Assert.Single(events
+            .Where(evt => evt.EventType == KernelEventType.GeneratorEvaluated)
+            .Select(evt => evt.AsGeneratorEvaluated()));
+        Assert.Equal(GeneratorStatusCodes.FireFailed, evaluated.StatusCode);
+        Assert.Equal(1, simulation.World.EntityHighWatermark);
+        Assert.DoesNotContain(events, evt => evt.EventType == KernelEventType.EntityCreated);
+        Assert.DoesNotContain(events, evt => evt.EventType == KernelEventType.EntityStatusChanged);
     }
 
     [Fact]
@@ -845,10 +881,19 @@ public sealed class GeneratorProgramRuntimeTests
     private static void RegisterCoverageGenerator(Simulation simulation)
     {
         var slot = RegisterGenerator(simulation, includeProduced: false);
+        AddCoverageProduced(simulation, slot, producedRefCode: CreatedRef, createdKindId: CreatedKindId);
+    }
+
+    private static void AddCoverageProduced(
+        Simulation simulation,
+        int slot,
+        int producedRefCode,
+        int createdKindId)
+    {
         simulation.Generators.AddProduced(
             slot,
-            CreatedRef,
-            CreatedKindId,
+            producedRefCode,
+            createdKindId,
             CreatedSubtypeId,
             createIfMissing: 1,
             hasQuery: 0,

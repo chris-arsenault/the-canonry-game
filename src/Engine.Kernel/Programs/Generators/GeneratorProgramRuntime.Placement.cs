@@ -34,13 +34,7 @@ internal sealed partial class GeneratorProgramRuntime
         out int q,
         out int r)
     {
-        var world = simulation.World;
-        var originQ = planeCode == PlaneCodes.Physical
-            ? world.EntityPhysicalQ(anchorEntityId)
-            : world.EntitySemanticQ(anchorEntityId);
-        var originR = planeCode == PlaneCodes.Physical
-            ? world.EntityPhysicalR(anchorEntityId)
-            : world.EntitySemanticR(anchorEntityId);
+        ResolveAnchorOrigin(simulation.World, anchorEntityId, planeCode, out var originQ, out var originR);
         var movementProfileId = simulation.Movement.MovementProfileFor(
             _producedKindIds[producedSlot],
             producedSubtypeId,
@@ -88,6 +82,29 @@ internal sealed partial class GeneratorProgramRuntime
         q = 0;
         r = 0;
         return false;
+    }
+
+    private void ResolveAnchorOrigin(
+        WorldState world,
+        int anchorEntityId,
+        int planeCode,
+        out int originQ,
+        out int originR)
+    {
+        if (IsPendingRef(anchorEntityId))
+        {
+            var planIndex = PendingPlanIndex(anchorEntityId);
+            originQ = PlannedEntityQ(planIndex, planeCode);
+            originR = PlannedEntityR(planIndex, planeCode);
+            return;
+        }
+
+        originQ = planeCode == PlaneCodes.Physical
+            ? world.EntityPhysicalQ(anchorEntityId)
+            : world.EntitySemanticQ(anchorEntityId);
+        originR = planeCode == PlaneCodes.Physical
+            ? world.EntityPhysicalR(anchorEntityId)
+            : world.EntitySemanticR(anchorEntityId);
     }
 
     // Place at the leading edge of the produced entity's culture so the entity
@@ -174,20 +191,22 @@ internal sealed partial class GeneratorProgramRuntime
             out semanticR);
     }
 
-    private bool CreateCoverage(
+    private bool PlanCoverage(
         Simulation simulation,
         int producedSlot,
-        int ownerEntityId,
+        int ownerCultureId,
         int[] refCodes,
         int[] refEntityIds,
         int refCount,
         int originQ,
         int originR,
         out int anchorQ,
-        out int anchorR)
+        out int anchorR,
+        out int coverageCellCount)
     {
         anchorQ = originQ;
         anchorR = originR;
+        coverageCellCount = 0;
         var world = simulation.World;
         var sourceOwnerId = 0;
         if (_producedCoverageModeCodes[producedSlot] == GeneratorCoverageModeCodes.SplitFromExisting)
@@ -202,13 +221,13 @@ internal sealed partial class GeneratorProgramRuntime
                 sourceOwnerId = world.CoverageOwnerAt(originQ, originR);
             }
 
-            if (sourceOwnerId == 0)
+            // A pending same-fire entity owns no committed coverage to split.
+            if (sourceOwnerId <= 0)
             {
                 return false;
             }
         }
 
-        var ownerCultureId = world.EntityCultureId(ownerEntityId);
         if (!FindCoverageSeedCell(simulation, producedSlot, ownerCultureId, originQ, originR, sourceOwnerId, out anchorQ, out anchorR))
         {
             return false;
@@ -220,10 +239,31 @@ internal sealed partial class GeneratorProgramRuntime
             return false;
         }
 
+        if (_plannedCoverageCellCount + claimedCount > _plannedCoverageCellQ.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
         for (var i = 0; i < claimedCount; i++)
         {
-            var q = _scratchClaimedQ[i];
-            var r = _scratchClaimedR[i];
+            _plannedCoverageCellQ[_plannedCoverageCellCount] = _scratchClaimedQ[i];
+            _plannedCoverageCellR[_plannedCoverageCellCount] = _scratchClaimedR[i];
+            _plannedCoverageCellCount++;
+        }
+
+        coverageCellCount = claimedCount;
+        return true;
+    }
+
+    private void CommitPlannedCoverage(Simulation simulation, int planIndex, int ownerEntityId)
+    {
+        var producedSlot = _plannedProducedSlots[planIndex];
+        var start = _plannedCoverageStarts[planIndex];
+        var end = start + _plannedCoverageCounts[planIndex];
+        for (var cell = start; cell < end; cell++)
+        {
+            var q = _plannedCoverageCellQ[cell];
+            var r = _plannedCoverageCellR[cell];
             if (_producedCoverageTransformTerrainIds[producedSlot] > 0)
             {
                 KernelEffectExecutor.SetCellState(
@@ -238,8 +278,6 @@ internal sealed partial class GeneratorProgramRuntime
                 KernelEffectExecutor.SetCoverageOwner(simulation, q, r, ownerEntityId);
             }
         }
-
-        return true;
     }
 
     private bool FindCoverageSeedCell(
@@ -621,7 +659,7 @@ internal sealed partial class GeneratorProgramRuntime
         int boundaryGroupId,
         int alreadyClaimedCount)
     {
-        if (!world.CellIsKnown(q, r))
+        if (!world.CellIsKnown(q, r) || PendingCoverageClaims(q, r))
         {
             return false;
         }

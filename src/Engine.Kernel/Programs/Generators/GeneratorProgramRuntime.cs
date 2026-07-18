@@ -11,6 +11,12 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private const int SlotFillAdditionalPulseWeightBonus = 2;
     private const int SlotFillMaxPulseWeightBonus = 16;
     private readonly GeneratorProgramScratch _scratch;
+
+    // Fire-scoped plan state: produced entities resolved but not yet committed.
+    // Valid only between PlanProducedEntities and CommitPlannedEntities within
+    // one Fire call; pending refs are encoded as -(planIndex + 1).
+    private int _plannedCreateCount;
+    private int _plannedCoverageCellCount;
     private int[] _generatorIds => Data.GeneratorIds;
     private int[] _targetKindIds => Data.TargetKindIds;
     private int[] _pulseWeights => Data.PulseWeights;
@@ -163,6 +169,19 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _refEntityIds => _scratch.RefEntityIds;
     private int[] _createdEntityIds => _scratch.CreatedEntityIds;
     private int[] _retryRejectedTargetIds => _scratch.RetryRejectedTargetIds;
+    private int[] _plannedProducedSlots => _scratch.PlannedProducedSlots;
+    private int[] _plannedSubtypeIds => _scratch.PlannedSubtypeIds;
+    private int[] _plannedCultureIds => _scratch.PlannedCultureIds;
+    private int[] _plannedSpawnPhysicalQ => _scratch.PlannedSpawnPhysicalQ;
+    private int[] _plannedSpawnPhysicalR => _scratch.PlannedSpawnPhysicalR;
+    private int[] _plannedFinalPhysicalQ => _scratch.PlannedFinalPhysicalQ;
+    private int[] _plannedFinalPhysicalR => _scratch.PlannedFinalPhysicalR;
+    private int[] _plannedSemanticQ => _scratch.PlannedSemanticQ;
+    private int[] _plannedSemanticR => _scratch.PlannedSemanticR;
+    private int[] _plannedCoverageStarts => _scratch.PlannedCoverageStarts;
+    private int[] _plannedCoverageCounts => _scratch.PlannedCoverageCounts;
+    private int[] _plannedCoverageCellQ => _scratch.PlannedCoverageCellQ;
+    private int[] _plannedCoverageCellR => _scratch.PlannedCoverageCellR;
     private ref int _generatorCount => ref Data.GeneratorCount;
     private ref int _subtypeCount => ref Data.SubtypeCount;
     private ref int _relationshipKindFilterCount => ref Data.RelationshipKindFilterCount;

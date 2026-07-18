@@ -70,8 +70,43 @@ internal sealed partial class GeneratorProgramRuntime
         }
 
         var cultureSourceId = ResolveRef(refCodes, refEntityIds, refCount, _producedCultureRefCodes[produced]);
-        return cultureSourceId == 0 ? 0 : world.EntityCultureId(cultureSourceId);
+        if (cultureSourceId == 0)
+        {
+            return 0;
+        }
+
+        return IsPendingRef(cultureSourceId)
+            ? _plannedCultureIds[PendingPlanIndex(cultureSourceId)]
+            : world.EntityCultureId(cultureSourceId);
     }
+
+    private static int PendingRefId(int planIndex) => -(planIndex + 1);
+
+    private static bool IsPendingRef(int refId) => refId < 0;
+
+    private static int PendingPlanIndex(int refId) => -refId - 1;
+
+    private int PlannedEntityQ(int planIndex, int planeCode) =>
+        planeCode == PlaneCodes.Semantic ? _plannedSemanticQ[planIndex] : _plannedFinalPhysicalQ[planIndex];
+
+    private int PlannedEntityR(int planIndex, int planeCode) =>
+        planeCode == PlaneCodes.Semantic ? _plannedSemanticR[planIndex] : _plannedFinalPhysicalR[planIndex];
+
+    private bool PendingPlacementOccupies(int planeCode, int q, int r)
+    {
+        for (var planIndex = 0; planIndex < _plannedCreateCount; planIndex++)
+        {
+            if (PlannedEntityQ(planIndex, planeCode) == q && PlannedEntityR(planIndex, planeCode) == r)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool PendingCoverageClaims(int q, int r) =>
+        ScratchContains(_plannedCoverageCellQ, _plannedCoverageCellR, _plannedCoverageCellCount, q, r);
 
     private static int ResolveRef(int[] refCodes, int[] refEntityIds, int refCount, int refCode)
     {
@@ -97,22 +132,6 @@ internal sealed partial class GeneratorProgramRuntime
         }
 
         return false;
-    }
-
-    private static void MarkCreatedEntitiesHistorical(
-        Simulation simulation,
-        WorldState world,
-        int[] createdEntityIds,
-        int createdEntityCount,
-        int tick)
-    {
-        for (var i = 0; i < createdEntityCount; i++)
-        {
-            if (createdEntityIds[i] > 0 && world.EntityIsActive(createdEntityIds[i]))
-            {
-                KernelEffectExecutor.SetEntityStatus(simulation, createdEntityIds[i], EntityStatusCodes.Historical);
-            }
-        }
     }
 
     private int SelectSharedEntity(
