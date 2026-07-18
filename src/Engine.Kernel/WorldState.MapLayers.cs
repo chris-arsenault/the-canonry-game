@@ -83,7 +83,28 @@ internal sealed partial class WorldState
     public int CellTerrainId(int planeCode, int q, int r, int z)
     {
         ValidateInfluencePlaneCode(planeCode);
-        return _mapCellTerrainIds.TryGet(CoordinateKey(q, r, z), planeCode, out var terrainId) ? terrainId : 1;
+        var key = CoordinateKey(q, r, z);
+        if (planeCode == PlaneCodes.Physical && z == 0)
+        {
+            var coverTerrainId = _mapCellTerrainCoverIds.GetOrDefault(key, planeCode);
+            if (coverTerrainId > 0)
+            {
+                return coverTerrainId;
+            }
+        }
+
+        return _mapCellTerrainIds.TryGet(key, planeCode, out var terrainId) ? terrainId : 1;
+    }
+
+    internal int CellBaseTerrainId(int planeCode, int q, int r) =>
+        _mapCellTerrainIds.TryGet(CoordinateKey(q, r), planeCode, out var terrainId) ? terrainId : 1;
+
+    internal int CellTerrainCoverId(int planeCode, int q, int r)
+    {
+        ValidateInfluencePlaneCode(planeCode);
+        return planeCode == PlaneCodes.Physical
+            ? _mapCellTerrainCoverIds.GetOrDefault(CoordinateKey(q, r), planeCode)
+            : 0;
     }
 
     public void SetCellTerrain(int q, int r, int terrainId)
@@ -248,7 +269,7 @@ internal sealed partial class WorldState
 
     internal void SetCoverageOwner(int planeCode, int q, int r, int ownerEntityId, int tick, in KernelExecutionContext context)
     {
-        SetCellState(planeCode, q, r, CellTerrainId(planeCode, q, r), ownerEntityId, tick, context);
+        SetCellState(planeCode, q, r, CellBaseTerrainId(planeCode, q, r), ownerEntityId, tick, context);
     }
 
     internal void SetCellState(
@@ -287,17 +308,22 @@ internal sealed partial class WorldState
         ValidatePositive(terrainId);
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(ownerEntityId);
 
+        var key = CoordinateKey(q, r, z);
         var previousTerrainId = CellTerrainId(planeCode, q, r, z);
+        var previousBaseTerrainId = _mapCellTerrainIds.TryGet(key, planeCode, out var baseTerrainId)
+            ? baseTerrainId
+            : 1;
         var previousOwnerEntityId = _mapLayers.Coverage.ValueAt(planeCode, CoordinateKey(q, r, z));
-        var superregionId = _mapCellSuperregionIds.GetOrDefault(CoordinateKey(q, r, z), planeCode);
-        var continentId = _mapCellContinentIds.GetOrDefault(CoordinateKey(q, r, z), planeCode);
-        if (previousTerrainId == terrainId && previousOwnerEntityId == ownerEntityId)
+        var superregionId = _mapCellSuperregionIds.GetOrDefault(key, planeCode);
+        var continentId = _mapCellContinentIds.GetOrDefault(key, planeCode);
+        if (previousBaseTerrainId == terrainId && previousOwnerEntityId == ownerEntityId)
         {
             return;
         }
 
         EnsureProvenanceOutputCapacity(context);
         WriteCell(planeCode, q, r, z, terrainId, ownerEntityId, superregionId, continentId);
+        var nextTerrainId = CellTerrainId(planeCode, q, r, z);
         AdvanceWorldVersion();
         RecordProvenanceOutput(
             context,
@@ -307,36 +333,103 @@ internal sealed partial class WorldState
             0,
             terrainId,
             ProvenanceOutputKindCodes.CellChanged);
-        Write(KernelEvent.From(new MapCellStateChangedKernelEvent(
-            tick,
-            WorldVersion,
-            planeCode,
-            q,
-            r,
-            context.SourceCodeId,
-            previousTerrainId,
-            terrainId,
-            previousOwnerEntityId,
+        WriteCellStateEvents(
+            planeCode, q, r, z, tick, previousTerrainId, nextTerrainId,
+            previousOwnerEntityId, ownerEntityId, superregionId, continentId, context);
+    }
+
+    internal void SetTerrainCover(
+        int q,
+        int r,
+        int coverTerrainId,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        ValidatePositive(context.SourceCodeId);
+        ValidatePositive(coverTerrainId);
+        if (!CellIsKnown(PlaneCodes.Physical, q, r))
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        SetTerrainCoverCore(q, r, coverTerrainId, tick, context);
+    }
+
+    internal void ClearTerrainCover(
+        int q,
+        int r,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        ValidatePositive(context.SourceCodeId);
+        if (!CellIsKnown(PlaneCodes.Physical, q, r))
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        SetTerrainCoverCore(q, r, coverTerrainId: 0, tick, context);
+    }
+
+    private void SetTerrainCoverCore(
+        int q,
+        int r,
+        int coverTerrainId,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        var key = CoordinateKey(q, r);
+        var previousCoverTerrainId = _mapCellTerrainCoverIds.GetOrDefault(key, PlaneCodes.Physical);
+        if (previousCoverTerrainId == coverTerrainId)
+        {
+            return;
+        }
+
+        var previousTerrainId = CellTerrainId(PlaneCodes.Physical, q, r);
+        var ownerEntityId = _mapLayers.Coverage.ValueAt(PlaneCodes.Physical, key);
+        var superregionId = _mapCellSuperregionIds.GetOrDefault(key, PlaneCodes.Physical);
+        var continentId = _mapCellContinentIds.GetOrDefault(key, PlaneCodes.Physical);
+        EnsureProvenanceOutputCapacity(context);
+        _mapCellTerrainCoverIds.Set(key, PlaneCodes.Physical, coverTerrainId);
+        var nextTerrainId = CellTerrainId(PlaneCodes.Physical, q, r);
+        AdvanceWorldVersion();
+        RecordProvenanceOutput(
+            context,
+            ProvenanceOutputKindCodes.CellChanged,
+            key,
             ownerEntityId,
-            superregionId,
-            continentId,
-            z)),
+            0,
+            nextTerrainId,
+            ProvenanceOutputKindCodes.CellChanged);
+        WriteCellStateEvents(
+            PlaneCodes.Physical, q, r, z: 0, tick, previousTerrainId, nextTerrainId,
+            ownerEntityId, ownerEntityId, superregionId, continentId, context);
+    }
+
+    private void WriteCellStateEvents(
+        int planeCode,
+        int q,
+        int r,
+        int z,
+        int tick,
+        int previousTerrainId,
+        int nextTerrainId,
+        int previousOwnerEntityId,
+        int ownerEntityId,
+        int superregionId,
+        int continentId,
+        in KernelExecutionContext context)
+    {
+        Write(KernelEvent.From(new MapCellStateChangedKernelEvent(
+            tick, WorldVersion, planeCode, q, r, context.SourceCodeId,
+            previousTerrainId, nextTerrainId, previousOwnerEntityId, ownerEntityId,
+            superregionId, continentId, z)),
             context);
         if (planeCode == PlaneCodes.Physical)
         {
             Write(KernelEvent.From(new CellChangedKernelEvent(
-                tick,
-                WorldVersion,
-                q,
-                r,
-                context.SourceCodeId,
-                previousTerrainId,
-                terrainId,
-                previousOwnerEntityId,
-                ownerEntityId,
-                superregionId,
-                continentId,
-                z)),
+                tick, WorldVersion, q, r, context.SourceCodeId,
+                previousTerrainId, nextTerrainId, previousOwnerEntityId, ownerEntityId,
+                superregionId, continentId, z)),
                 context);
         }
     }

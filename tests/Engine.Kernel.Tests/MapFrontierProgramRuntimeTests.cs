@@ -10,6 +10,7 @@ public sealed class MapFrontierProgramRuntimeTests
     private const int MountainTerrain = 3;
     private const int ThawAgeId = 900;
     private const int ReclaimAgeId = 901;
+    private const int SecondThawAgeId = 902;
 
     [Fact]
     public void MapFrontier_ThawsGroundWhereCultureMassPressesTheEdge()
@@ -110,7 +111,7 @@ public sealed class MapFrontierProgramRuntimeTests
     }
 
     [Fact]
-    public void MapFrontier_ReclaimsUntendedRimAsDeepIce()
+    public void MapFrontier_DoesNotReclaimStartupHeartCells()
     {
         var simulation = CreateSimulation();
         RegisterTerrains(simulation);
@@ -118,14 +119,56 @@ public sealed class MapFrontierProgramRuntimeTests
         simulation.SeedCell(7, 0, TundraTerrain, ownerEntityId: 0);
         OpenIceAge(simulation, ReclaimAgeId);
         ConfigureFrontier(simulation, ThawAgeId, ReclaimAgeId);
-        // (7,0) is a weakly-held edge cell beyond the heart floor (trace mass,
-        // outward neighbour unknown), no road: the Long Dark takes it back.
         _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 7, 0, 0.5f, tick: 5);
 
         simulation.MapFrontier.Tick(simulation, tick: 20);
 
-        Assert.Equal(DeepIceTerrain, simulation.World.CellTerrainId(PlaneCodes.Physical, 7, 0));
-        Assert.True(simulation.MapFrontier.State.TotalReclaimed > 0);
+        Assert.Equal(TundraTerrain, simulation.World.CellTerrainId(PlaneCodes.Physical, 7, 0));
+        Assert.Equal(0, simulation.World.CellTerrainCoverId(PlaneCodes.Physical, 7, 0));
+        Assert.Equal(0, simulation.MapFrontier.State.TotalReclaimed);
+    }
+
+    [Fact]
+    public void MapFrontier_PreservesDurableTerrainThroughCoverTransformAndThaw()
+    {
+        var simulation = CreateReclaimedFrontierSimulation();
+
+        Assert.Equal(DeepIceTerrain, simulation.World.CellTerrainId(PlaneCodes.Physical, 1, 0));
+        Assert.Equal(MountainTerrain, simulation.World.CellBaseTerrainId(PlaneCodes.Physical, 1, 0));
+        Assert.Equal(DeepIceTerrain, simulation.World.CellTerrainCoverId(PlaneCodes.Physical, 1, 0));
+
+        simulation.SetCellTerrain(PlaneCodes.Physical, 1, 0, TundraTerrain, tick: 6);
+
+        Assert.Equal(DeepIceTerrain, simulation.World.CellTerrainId(PlaneCodes.Physical, 1, 0));
+        Assert.Equal(TundraTerrain, simulation.World.CellBaseTerrainId(PlaneCodes.Physical, 1, 0));
+
+        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0, 40f, tick: 7);
+        simulation.MapFrontier.AddDriverAge(SecondThawAgeId, refreezeAgeId: 0);
+        OpenIceAge(simulation, SecondThawAgeId, priority: 30, tick: 8);
+        simulation.MapFrontier.Tick(simulation, tick: 9);
+
+        Assert.Equal(TundraTerrain, simulation.World.CellTerrainId(PlaneCodes.Physical, 1, 0));
+        Assert.Equal(TundraTerrain, simulation.World.CellBaseTerrainId(PlaneCodes.Physical, 1, 0));
+        Assert.Equal(0, simulation.World.CellTerrainCoverId(PlaneCodes.Physical, 1, 0));
+    }
+
+    [Fact]
+    public void MapFrontier_SnapshotPreservesFrontierHistoryAndTerrainCover()
+    {
+        var simulation = CreateReclaimedFrontierSimulation();
+        var thawedCount = simulation.MapFrontier.State.ThawedCount;
+        var reclaimCursor = simulation.MapFrontier.State.ReclaimCursor;
+        using var snapshot = new MemoryStream();
+
+        KernelSnapshot.SaveKernelState(simulation, snapshot);
+        snapshot.Position = 0;
+        var loaded = KernelSnapshot.LoadKernelState(snapshot);
+
+        Assert.Equal(thawedCount, loaded.MapFrontier.State.ThawedCount);
+        Assert.Equal(reclaimCursor, loaded.MapFrontier.State.ReclaimCursor);
+        Assert.Equal(MountainTerrain, loaded.World.CellBaseTerrainId(PlaneCodes.Physical, 1, 0));
+        Assert.Equal(DeepIceTerrain, loaded.World.CellTerrainCoverId(PlaneCodes.Physical, 1, 0));
+        Assert.Equal(DeepIceTerrain, loaded.World.CellTerrainId(PlaneCodes.Physical, 1, 0));
     }
 
     [Fact]
@@ -133,15 +176,19 @@ public sealed class MapFrontierProgramRuntimeTests
     {
         var simulation = CreateSimulation();
         RegisterTerrains(simulation);
-        simulation.World.SetMapRadius(10);
-        simulation.SeedCell(7, 0, TundraTerrain, ownerEntityId: 0);
-        OpenIceAge(simulation, ReclaimAgeId);
+        InstallPhysicalBlueprint(simulation, generationRadius: 64, installedRadius: 1);
+        simulation.SeedCell(0, 0, TundraTerrain, ownerEntityId: 0);
+        OpenIceAge(simulation, ThawAgeId);
         ConfigureFrontier(simulation, ThawAgeId, ReclaimAgeId);
-        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 7, 0, 20f, tick: 15);
+        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0, 40f, tick: 2);
+        simulation.MapFrontier.Tick(simulation, tick: 3);
+        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 1, 0, 20f, tick: 4);
+        OpenIceAge(simulation, ReclaimAgeId, priority: 20, tick: 5);
 
-        simulation.MapFrontier.Tick(simulation, tick: 20);
+        simulation.MapFrontier.Tick(simulation, tick: 6);
 
-        Assert.Equal(TundraTerrain, simulation.World.CellTerrainId(PlaneCodes.Physical, 7, 0));
+        Assert.Equal(MountainTerrain, simulation.World.CellTerrainId(PlaneCodes.Physical, 1, 0));
+        Assert.Equal(0, simulation.World.CellTerrainCoverId(PlaneCodes.Physical, 1, 0));
     }
 
     private static void RegisterTerrains(Simulation simulation)
@@ -160,11 +207,27 @@ public sealed class MapFrontierProgramRuntimeTests
             roadBuildMultiplier: 6f, roadSpeedMultiplier: 2f);
     }
 
-    private static void OpenIceAge(Simulation simulation, int ageId)
+    private static void OpenIceAge(Simulation simulation, int ageId, int priority = 10, int tick = 1)
     {
         // An unconditional Ice-track age so OpenAgeId(Ice) equals ageId.
-        _ = simulation.WorldBeats.AddAge(ageId, WorldBeatTrackCodes.World, priority: 10, minOpenTicks: 0, cooldownTicks: 0);
-        simulation.WorldBeats.Tick(simulation, tick: 1);
+        _ = simulation.WorldBeats.AddAge(ageId, WorldBeatTrackCodes.World, priority, minOpenTicks: 0, cooldownTicks: 0);
+        simulation.WorldBeats.Tick(simulation, tick);
+    }
+
+    private static Simulation CreateReclaimedFrontierSimulation()
+    {
+        var simulation = CreateSimulation();
+        RegisterTerrains(simulation);
+        InstallPhysicalBlueprint(simulation, generationRadius: 64, installedRadius: 1);
+        simulation.SeedCell(0, 0, TundraTerrain, ownerEntityId: 0);
+        OpenIceAge(simulation, ThawAgeId);
+        ConfigureFrontier(simulation, ThawAgeId, ReclaimAgeId);
+        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0, 40f, tick: 2);
+        simulation.MapFrontier.Tick(simulation, tick: 3);
+        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0, -40f, tick: 4);
+        OpenIceAge(simulation, ReclaimAgeId, priority: 20, tick: 5);
+        simulation.MapFrontier.Tick(simulation, tick: 6);
+        return simulation;
     }
 
     private static void ConfigureFrontier(Simulation simulation, int thawAgeId, int reclaimAgeId) =>

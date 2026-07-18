@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 43;
+    private const int FormatVersion = 44;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {

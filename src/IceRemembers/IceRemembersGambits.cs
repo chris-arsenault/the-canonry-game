@@ -400,7 +400,9 @@ public static partial class IceRemembersDefinition
             K.Region,
             All(
                 new TargetIsNotSelf(),
+                new EndpointSubtypeIs(TransferEndpoint.Target, "scar"),
                 new WithinPlaneDistancePrecondition(2, PrimaryPlane.Physical),
+                Not(new EndpointRelationshipCountBelow(TransferEndpoint.Target, L(Rel.CorruptedBy), maximumExclusive: 1)),
                 Not(new SelfHasRelationshipToTarget(L(Rel.CleansedBy))),
                 new SelfAttributeThreshold(A(Attr.Condition), min: 40f, max: null, behaviorRelevant: false),
                 Not(new TargetHasRelationshipToSelf(L(Rel.CleansedBy)))),

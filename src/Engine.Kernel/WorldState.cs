@@ -11,6 +11,7 @@ internal sealed partial class WorldState
     private readonly PrimitiveFloatTable _attributes;
     private readonly PrimitiveIntTable _traits;
     private readonly PrimitiveIntTable _mapCellTerrainIds;
+    private readonly PrimitiveIntTable _mapCellTerrainCoverIds;
     private readonly PrimitiveIntTable _mapCellSuperregionIds;
     private readonly PrimitiveIntTable _mapCellContinentIds;
     private readonly MapLayerSet _mapLayers;
@@ -122,6 +123,7 @@ internal sealed partial class WorldState
         _attributes = new PrimitiveFloatTable(options.AttributeCapacity);
         _traits = new PrimitiveIntTable(options.TraitCapacity);
         _mapCellTerrainIds = new PrimitiveIntTable(options.MapCellCapacity);
+        _mapCellTerrainCoverIds = new PrimitiveIntTable(options.MapCellCapacity);
         _mapCellSuperregionIds = new PrimitiveIntTable(options.MapCellCapacity);
         _mapCellContinentIds = new PrimitiveIntTable(options.MapCellCapacity);
         _mapLayers = new MapLayerSet(

@@ -7,9 +7,10 @@ using Engine.Constants;
 /// opens only where history presses. Each pulse, when the Ice track's thaw
 /// age is open, culture mass at the current frontier thaws the ground beyond
 /// it - new cells materialized, region inherited from the pressing cell.
-/// When the reclaim age (the Long Dark) is open, rim ground that no culture
-/// holds and no road crosses is taken back as impassable deep ice. Extent is
-/// earned and can ebb; it is never allocated up front.
+/// When the reclaim age (the Long Dark) is open, frontier-grown rim ground
+/// that no culture holds and no road crosses receives an impassable deep-ice
+/// cover. Thaw removes that cover and reveals the durable terrain beneath.
+/// Extent is earned and can ebb; it is never allocated up front.
 /// </summary>
 internal sealed partial class MapFrontierProgramRuntime :
     IKernelProgramRuntime<MapFrontierProgramData, MapFrontierProgramState>
@@ -134,7 +135,7 @@ internal sealed partial class MapFrontierProgramRuntime :
     private bool CellNeedsThaw(Simulation simulation, WorldState world, int q, int r) =>
         simulation.KernelData.PhysicalGeography.TryGetCell(q, r, out _, out _, out _) &&
         (!world.CellIsKnown(PlaneCodes.Physical, q, r) ||
-         world.CellTerrainId(PlaneCodes.Physical, q, r) == Data.FrozenTerrainId);
+         world.CellTerrainCoverId(PlaneCodes.Physical, q, r) != 0);
 
     private bool AlreadyQueued(int q, int r, int count)
     {
@@ -166,7 +167,8 @@ internal sealed partial class MapFrontierProgramRuntime :
         var wasKnown = simulation.World.CellIsKnown(PlaneCodes.Physical, q, r);
         if (wasKnown)
         {
-            simulation.SetCellTerrain(PlaneCodes.Physical, q, r, terrainId, tick);
+            simulation.ClearTerrainCover(q, r, tick);
+            State.TotalThawed++;
         }
         else
         {

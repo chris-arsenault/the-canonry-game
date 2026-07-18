@@ -45,6 +45,8 @@ public sealed class CapabilityKnowledgeContractTests
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
         var cleanseId = compiled.Ids.GambitIdOf(IceRemembersGambitId.ArtifactCleansesScar.ToGambitId()).Value;
         var cleansedById = compiled.Ids.RelationshipKindIdOf(IceRemembersRelationship.CleansedBy.ToDomainName()).Value;
+        var corruptedById = compiled.Ids.RelationshipKindIdOf(IceRemembersRelationship.CorruptedBy.ToDomainName()).Value;
+        var scarSubtypeId = compiled.Ids.SubtypeIdOf("scar").Value;
         var conditionId = compiled.Ids.AttributeIdOf(IceRemembersAttributeId.Condition.ToDomainName()).Value;
         var hotSpringsId = compiled.Ids.TerrainIdOf(IceRemembersTerrain.HotSprings.ToDomainName()).Value;
 
@@ -67,6 +69,15 @@ public sealed class CapabilityKnowledgeContractTests
         Assert.Contains(compiledRule.Preconditions, precondition =>
             precondition.Code == BehaviorProgramPrecondition.SelfAttributeRange &&
             precondition.A == conditionId);
+        Assert.Contains(compiledRule.Preconditions, precondition =>
+            precondition.Code == BehaviorProgramPrecondition.EndpointSubtypeIs &&
+            precondition.A == (int)BehaviorProgramEndpoint.Target &&
+            precondition.B == scarSubtypeId);
+        Assert.Contains(compiledRule.Preconditions, precondition =>
+            precondition.Code == BehaviorProgramPrecondition.EndpointRelationshipCountBelow &&
+            precondition.A == corruptedById &&
+            precondition.B == (int)BehaviorProgramEndpoint.Target &&
+            precondition.C == 1);
         Assert.Contains(compiledRule.Steps, step =>
             step.Operation == BehaviorProgramOperation.CreateEndpointRelationship &&
             step.A == cleansedById);
