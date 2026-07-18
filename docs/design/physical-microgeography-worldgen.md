@@ -1,13 +1,15 @@
 # Physical Microgeography and World Generation
 
-Status: implemented for deferred items 1–3; items 4–11 remain follow-ups to the completed
+Status: implemented for deferred items 1–3 and 6–7; items 4–5 and 8–11 remain
+follow-ups to the completed
 [growing-map terrain substrate](../analysis/growing-map-terrain-review-proposal-20260718.md).
 
 The implementation now uses the ordered whole-field pipeline, independent
 physical material vocabulary, connected geography-shaped subdivisions, and
-authored aggregate terrain synthesis described here. Runtime utilization,
-projection, rendering, and triangle-scale gameplay remain deliberately outside
-this tranche.
+authored aggregate terrain synthesis described here. A later presentation
+tranche added immutable projection, chunked inspection, and zoom-dependent
+microtriangle rendering. Runtime utilization and triangle-scale gameplay remain
+outside the completed work.
 
 This document records the deferred physical-microgeography work and designs the
 first implementation tranche. The tranche ends before simulation behavior: it
@@ -92,10 +94,14 @@ The microhex follow-up remains divided into the following chunks:
 5. **Hex-scale simulation utilization.** Apply slope, water, rivers, coasts,
    and other summaries to traversal, placement, culture, roads, capacity, and
    map signals without moving entities onto triangles.
-6. **Projection.** Expose revealed microgeography and changed geography in a
-   static or chunked projection shape.
-7. **Rendering.** Draw triangle materials, relief, coasts, rivers, ridges,
-   peaks, and passes with appropriate fog and level of detail.
+6. **Projection (implemented).** Expose generated microgeography through an
+   immutable startup projection, while normal event-backed map projection
+   continues to define revealed cells and current terrain.
+7. **Rendering (implemented).** Draw terrain, material, elevation, climate,
+   hydrology, and landform views through culled chunks. Close zoom draws the 24
+   triangles plus rivers, coasts, ridges, cliffs, peaks, and passes; normal play
+   respects materialization and an explicit inspection toggle reveals the
+   complete latent field.
 8. **Geography-specific gameplay.** Fords, bridges, mountain passes, peak
    occupation, ports, reefs, resources, and structures.
 9. **Runtime microtriangle editing.** Terraforming, excavation, flooding,

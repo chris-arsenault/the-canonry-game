@@ -23,11 +23,14 @@ temperature, moisture, geothermal, water-body, drainage, river, and landform
 fields on their shared graph. Ice Remembers surface materials are a separate
 vocabulary from gameplay terrain; scored authored rules turn each arranged
 24-triangle aggregate into one base terrain and summary for the current
-hex-scale simulation. The triangles are the substrate for later fine-grained
-rendering and gameplay. The semantic plane is an analogous bounded axial q/r
-map with `s = -q-r`, its own varied terrain, culture influence, roads, and
-placement. It is not a coordinate copy of the physical plane and does not use
-microtriangles.
+hex-scale simulation. The physical map renders those facts through a
+zoom-dependent, chunk-cached geography layer: aggregate fields at distant zoom
+and all 24 triangles plus connected physical features at close zoom. Normal
+play shows only materialized geography; an explicit inspection mode can reveal
+the complete latent generation field for diagnosis. Gameplay remains at hex
+scale. The semantic plane is an analogous bounded axial q/r map with `s =
+-q-r`, its own varied terrain, culture influence, roads, and placement. It is
+not a coordinate copy of the physical plane and does not use microtriangles.
 
 Domain content is authored in `DomainConfig` and Ice Remembers-specific files.
 Reusable gameplay vocabulary lives in `Engine.Gameplay` and compiles down into

@@ -17,6 +17,16 @@ public partial class MapArea : Control
     public const string LayerInfluence = "influence";
     public const string LayerCultureInfluence = "culture_influence";
     public const string LayerLabor = "labor";
+    public const string LayerWorldgenInspection = "worldgen_inspection";
+    public const string LayerGeographyFeatures = "geography_features";
+    public const string GeographyViewTerrain = "terrain";
+    public const string GeographyViewMaterial = "material";
+    public const string GeographyViewElevation = "elevation";
+    public const string GeographyViewTemperature = "temperature";
+    public const string GeographyViewMoisture = "moisture";
+    public const string GeographyViewGeothermal = "geothermal";
+    public const string GeographyViewLandform = "landform";
+    public const string GeographyViewHydrology = "hydrology";
     public const string LensDefault = "default";
     public const string LensCulture = "culture";
     public const string LensControl = "control";
@@ -29,6 +39,8 @@ public partial class MapArea : Control
     private Button? _influenceToggleButton;
     private PanelContainer? _layersPanel;
     private LegendPanel? _legendPanel;
+    private Control? _geographyControls;
+    private OptionButton? _geographyViewOptions;
     private OverlayLayoutState? _lastOverlayLayout;
     private bool _updatingLayerControls;
     private bool _updatingLensControls;
@@ -41,6 +53,9 @@ public partial class MapArea : Control
 
     [Signal]
     public delegate void MapLensRequestedEventHandler(string lensKey);
+
+    [Signal]
+    public delegate void GeographyViewRequestedEventHandler(string viewKey);
 
     public override void _Ready()
     {
@@ -82,6 +97,12 @@ public partial class MapArea : Control
         _planeToggleButton.Text = plane == PlaneMode.Physical
             ? "Physical"
             : "Semantic";
+        if (_geographyControls is not null)
+        {
+            _geographyControls.Visible = plane == PlaneMode.Physical;
+            _lastOverlayLayout = null;
+            PositionOverlays();
+        }
     }
 
     public void SetLayerVisible(string layerKey, bool visible)
@@ -105,6 +126,26 @@ public partial class MapArea : Control
         }
 
         _updatingLensControls = false;
+    }
+
+    public void SetGeographyViewKey(string viewKey)
+    {
+        if (_geographyViewOptions is null)
+        {
+            return;
+        }
+
+        for (var index = 0; index < _geographyViewOptions.ItemCount; index++)
+        {
+            if (string.Equals(
+                _geographyViewOptions.GetItemMetadata(index).AsString(),
+                viewKey,
+                StringComparison.Ordinal))
+            {
+                _geographyViewOptions.Select(index);
+                return;
+            }
+        }
     }
 
     private void AddLayerPanel()
@@ -141,13 +182,7 @@ public partial class MapArea : Control
         AddLensButton(lensGrid, "Control", LensControl);
         AddLensButton(lensGrid, "Influence", LensInfluence);
 
-        box.AddChild(new ColorRect
-        {
-            Color = UiTokens.Hairline,
-            CustomMinimumSize = new Vector2(0, 1),
-            SizeFlagsHorizontal = SizeFlags.ExpandFill,
-            MouseFilter = MouseFilterEnum.Ignore,
-        });
+        AddSeparator(box);
 
         var label = new Label
         {
@@ -167,7 +202,65 @@ public partial class MapArea : Control
         _ = AddLayerCheckBox(box, "Culture", LayerCultureInfluence);
         _ = AddLayerCheckBox(box, "Influence", LayerInfluence);
         _ = AddLayerCheckBox(box, "Labor", LayerLabor);
+        AddGeographyControls(box);
         AddChild(_layersPanel);
+    }
+
+    private static void AddSeparator(VBoxContainer box) =>
+        box.AddChild(new ColorRect
+        {
+            Color = UiTokens.Hairline,
+            CustomMinimumSize = new Vector2(0, 1),
+            SizeFlagsHorizontal = SizeFlags.ExpandFill,
+            MouseFilter = MouseFilterEnum.Ignore,
+        });
+
+    private void AddGeographyControls(VBoxContainer box)
+    {
+        var controls = new VBoxContainer();
+        controls.AddThemeConstantOverride("separation", UiTokens.Space1);
+        AddSeparator(controls);
+        var label = new Label
+        {
+            Text = "Physical Geography",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        label.AddThemeFontOverride("font", UiTheme.BodyFont);
+        label.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        label.AddThemeColorOverride("font_color", UiTokens.Whisper);
+        controls.AddChild(label);
+
+        _geographyViewOptions = new OptionButton
+        {
+            TooltipText = "Choose the generated physical field to inspect",
+        };
+        AddGeographyViewOption("Terrain", GeographyViewTerrain);
+        AddGeographyViewOption("Materials", GeographyViewMaterial);
+        AddGeographyViewOption("Elevation", GeographyViewElevation);
+        AddGeographyViewOption("Temperature", GeographyViewTemperature);
+        AddGeographyViewOption("Moisture", GeographyViewMoisture);
+        AddGeographyViewOption("Geothermal", GeographyViewGeothermal);
+        AddGeographyViewOption("Landforms", GeographyViewLandform);
+        AddGeographyViewOption("Hydrology", GeographyViewHydrology);
+        _geographyViewOptions.Select(1);
+        _geographyViewOptions.ItemSelected += OnGeographyViewSelected;
+        controls.AddChild(_geographyViewOptions);
+
+        var inspection = AddLayerCheckBox(
+            controls,
+            "Reveal latent field",
+            LayerWorldgenInspection);
+        inspection.ButtonPressed = false;
+        _ = AddLayerCheckBox(controls, "Geography features", LayerGeographyFeatures);
+        _geographyControls = controls;
+        box.AddChild(controls);
+    }
+
+    private void AddGeographyViewOption(string label, string viewKey)
+    {
+        var index = _geographyViewOptions!.ItemCount;
+        _geographyViewOptions.AddItem(label);
+        _geographyViewOptions.SetItemMetadata(index, viewKey);
     }
 
     public void BindCultureOverview(
@@ -230,6 +323,18 @@ public partial class MapArea : Control
         }
 
         EmitSignal(SignalName.MapLayerVisibilityChanged, layerKey, visible);
+    }
+
+    private void OnGeographyViewSelected(long index)
+    {
+        if (_geographyViewOptions is null || (ulong)index >= (ulong)_geographyViewOptions.ItemCount)
+        {
+            return;
+        }
+
+        EmitSignal(
+            SignalName.GeographyViewRequested,
+            _geographyViewOptions.GetItemMetadata((int)index).AsString());
     }
 
     private void PositionOverlays()

@@ -13,7 +13,7 @@ using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.App;
 
-internal sealed class GameRenderTree
+internal sealed partial class GameRenderTree
 {
     private const long TooltipRefreshIntervalMs = 100;
 
@@ -46,6 +46,7 @@ internal sealed class GameRenderTree
     private readonly FloatingHudLayoutRender _floatingHudLayoutRender = new();
     private CanonryGameRuntime? _runtime;
     private HexMapProjection? _map;
+    private PhysicalGeographyProjection? _physicalGeography;
     private UiProjectionState? _ui;
     private IProjectionSymbolCatalog? _symbols;
     private IGameChronicleFeed? _chronicle;
@@ -184,6 +185,7 @@ internal sealed class GameRenderTree
 
         _runtime = runtime;
         _map = runtime.ReadModels.Map;
+        _physicalGeography = runtime.ReadModels.PhysicalGeography;
         _ui = runtime.ReadModels.Entities;
         _symbols = runtime.ReadModels.Symbols;
         _chronicle = runtime.ReadModels.Chronicle;
@@ -330,60 +332,7 @@ internal sealed class GameRenderTree
         var cameraZoom = MathF.Max(zoom.X, zoom.Y);
         _entityNamesVisibleForZoom = cameraZoom >= 3.1f;
         _ = _entityLayer.SetCameraZoom(cameraZoom);
-    }
-
-    public void SetMapLayerVisible(string layerKey, bool visible)
-    {
-        if (!ApplyMapLayerVisibility(layerKey, visible))
-        {
-            return;
-        }
-
-        _mapLensKey = MapArea.LensCustom;
-        _mapArea.SetLensKey(_mapLensKey);
-        _mapArea.SetLayerVisible(layerKey, visible);
-        _mapRender.InvalidateFrame();
-    }
-
-    private bool ApplyMapLayerVisibility(string layerKey, bool visible) => layerKey switch
-    {
-        MapArea.LayerRoads => SetLayerVisibility(_mapRenderer.ShowRoads, visible, value => _mapRenderer.ShowRoads = value),
-        MapArea.LayerRoutes => SetLayerVisibility(_mapRenderer.ShowRoutes, visible, value => _mapRenderer.ShowRoutes = value),
-        MapArea.LayerBorders => SetLayerVisibility(_mapRenderer.ShowBorders, visible, value => _mapRenderer.ShowBorders = value),
-        MapArea.LayerLabels => SetLayerVisibility(_mapRenderer.ShowLabels, visible, value => _mapRenderer.ShowLabels = value),
-        MapArea.LayerTerritory => SetLayerVisibility(_mapRenderer.ShowTerritory, visible, value => _mapRenderer.ShowTerritory = value),
-        MapArea.LayerInfluence => SetLayerVisibility(_mapRenderer.ShowInfluence, visible, value => _mapRenderer.ShowInfluence = value),
-        MapArea.LayerLabor => SetLayerVisibility(_mapRenderer.ShowMinorActors, visible, value => _mapRenderer.ShowMinorActors = value),
-        MapArea.LayerCultureInfluence => SetLayerVisibility(
-            _mapRenderer.ShowCultureInfluence,
-            visible,
-            value => _mapRenderer.ShowCultureInfluence = value),
-        _ => false,
-    };
-
-    private static bool SetLayerVisibility(bool current, bool visible, Action<bool> apply)
-    {
-        ArgumentNullException.ThrowIfNull(apply);
-        if (current == visible)
-        {
-            return false;
-        }
-
-        apply(visible);
-        return true;
-    }
-
-    public void SetMapLens(string lensKey)
-    {
-        _mapLensKey = lensKey switch
-        {
-            MapArea.LensCulture => MapArea.LensCulture,
-            MapArea.LensControl => MapArea.LensControl,
-            MapArea.LensInfluence => MapArea.LensInfluence,
-            _ => MapArea.LensDefault,
-        };
-        ApplyMapLens();
-        _mapRender.InvalidateFrame();
+        _ = _mapRenderer.SetCameraZoom(cameraZoom);
     }
 
     public void ToggleChronicleJournal()
@@ -472,7 +421,7 @@ internal sealed class GameRenderTree
 
     private void BindNodesToRuntime()
     {
-        _mapRenderer.Initialize(_map!, _ui, _symbols);
+        _mapRenderer.Initialize(_map!, _physicalGeography!, _ui, _symbols);
         _entityLayer.Initialize(_ui, _symbols, _mapRenderer.HexSize);
         _ = _entityLayer.SetPlane(_mapRenderer.CurrentPlane);
         _browser.Initialize(_ui, _symbols);
@@ -480,7 +429,14 @@ internal sealed class GameRenderTree
         _cardLayer.Initialize(_ui, _symbols, _theme);
         _chroniclePanel.Initialize(_symbols);
         _chroniclePanel.Clear();
-        _hexTooltipPanel.Initialize(_map, _ui, _symbols, _mapRenderer, _worldCanvas, [_rootColumn, _mapArea, _uiRoot]);
+        _hexTooltipPanel.Initialize(
+            _map,
+            _physicalGeography,
+            _ui,
+            _symbols,
+            _mapRenderer,
+            _worldCanvas,
+            [_rootColumn, _mapArea, _uiRoot]);
         _tableauPanel.Initialize(_runtime?.Tableau);
         _tableauVisible = _tableauPanel.Visible;
         _mapArea.SetPlane(_mapRenderer.CurrentPlane);
@@ -556,7 +512,26 @@ internal sealed class GameRenderTree
         _mapArea.SetLayerVisible(MapArea.LayerCultureInfluence, _mapRenderer.ShowCultureInfluence);
         _mapArea.SetLayerVisible(MapArea.LayerInfluence, _mapRenderer.ShowInfluence);
         _mapArea.SetLayerVisible(MapArea.LayerLabor, _mapRenderer.ShowMinorActors);
+        _mapArea.SetLayerVisible(
+            MapArea.LayerWorldgenInspection,
+            _mapRenderer.WorldgenInspectionEnabled);
+        _mapArea.SetLayerVisible(
+            MapArea.LayerGeographyFeatures,
+            _mapRenderer.GeographyFeaturesEnabled);
+        _mapArea.SetGeographyViewKey(GeographyViewKey(_mapRenderer.GeographyView));
     }
+
+    private static string GeographyViewKey(PhysicalGeographyView view) => view switch
+    {
+        PhysicalGeographyView.Terrain => MapArea.GeographyViewTerrain,
+        PhysicalGeographyView.Elevation => MapArea.GeographyViewElevation,
+        PhysicalGeographyView.Temperature => MapArea.GeographyViewTemperature,
+        PhysicalGeographyView.Moisture => MapArea.GeographyViewMoisture,
+        PhysicalGeographyView.Geothermal => MapArea.GeographyViewGeothermal,
+        PhysicalGeographyView.Landform => MapArea.GeographyViewLandform,
+        PhysicalGeographyView.Hydrology => MapArea.GeographyViewHydrology,
+        _ => MapArea.GeographyViewMaterial,
+    };
 
     private void ResetPresenters()
     {

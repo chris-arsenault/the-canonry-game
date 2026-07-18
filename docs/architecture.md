@@ -213,6 +213,13 @@ human-readable diagnostics are resolved by consumers through symbol catalogs.
 The kernel can emit typed event ids and numeric payload slots; it cannot write
 logs, allocate trace objects, or query projection state.
 
+The Host also converts the immutable startup physical-geography blueprint into
+a presentation-owned `PhysicalGeographyProjection`. It contains the complete
+latent disk and is separate from the event-backed `HexMapProjection`, which
+continues to represent only materialized cells and their current terrain. The
+UI can therefore inspect generated geography without reading live kernel state
+or making latent cells part of gameplay.
+
 Provenance is kernel state and primitive event data. The kernel records
 producer kind/id, parent invocation, trigger evidence, and outputs. It does not
 interpret narrative chains. `Engine.Projection` exposes a generic provenance

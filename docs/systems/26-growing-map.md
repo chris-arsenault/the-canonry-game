@@ -69,8 +69,11 @@ hex's durable base terrain from its triangle arrangement and retained minority
 features, while the complete summary retains relief, climate, water and ice
 coverage, peaks, and reciprocal river/coast/ridge/cliff/pass edge masks.
 Continents and superregions follow this geography without creating water bands.
-The simulation still acts at hex scale; richer summary utilization,
-microtriangle rendering, and triangle-scale gameplay are follow-ups.
+The simulation still acts at hex scale; richer summary utilization and
+triangle-scale gameplay are follow-ups. Presentation can render the 24
+triangles and connected physical features for materialized cells, while an
+explicit inspection mode reveals the complete latent field without
+materializing it or bypassing gameplay fog.
 
 Semantic worldgen installs a varied per-hex terrain and geography blueprint
 through the same generation radius. It does not use microtriangles.

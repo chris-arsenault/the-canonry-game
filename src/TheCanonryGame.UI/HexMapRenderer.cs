@@ -29,8 +29,10 @@ public partial class HexMapRenderer : Node2D
     private PackedScene? _cellScene;
     private Node2D? _cellLayer;
     private HexMapBackdropLayer? _backdropLayer;
+    private PhysicalMicrogeographyLayer? _physicalMicrogeographyLayer;
     private HexMapFrameLayer? _frameLayer;
     private long _ownerColorVersion = -1;
+    private PlaneMode _currentPlane = PlaneMode.Physical;
 
     [Export] public float HexSize { get; set; } = 30f;
 
@@ -50,7 +52,24 @@ public partial class HexMapRenderer : Node2D
 
     [Export] public bool ShowLabels { get; set; }
 
-    public PlaneMode CurrentPlane { get; set; } = PlaneMode.Physical;
+    public PlaneMode CurrentPlane
+    {
+        get => _currentPlane;
+        set
+        {
+            _currentPlane = value;
+            _physicalMicrogeographyLayer?.SetPlane(value);
+        }
+    }
+
+    public bool WorldgenInspectionEnabled =>
+        _physicalMicrogeographyLayer?.InspectionEnabled == true;
+
+    public bool GeographyFeaturesEnabled =>
+        _physicalMicrogeographyLayer?.FeaturesEnabled != false;
+
+    public PhysicalGeographyView GeographyView =>
+        _physicalMicrogeographyLayer?.View ?? PhysicalGeographyView.Material;
 
     public int CurrentPlaneCode => PlaneCodeForCurrentPlane();
 
@@ -59,16 +78,25 @@ public partial class HexMapRenderer : Node2D
         _cellScene = GD.Load<PackedScene>("res://scenes/ui/HexCell.tscn");
         _backdropLayer = GetNodeOrNull<HexMapBackdropLayer>("BackdropLayer");
         _cellLayer = GetNodeOrNull<Node2D>("CellLayer");
+        _physicalMicrogeographyLayer = GetNodeOrNull<PhysicalMicrogeographyLayer>(
+            "PhysicalMicrogeographyLayer");
         _frameLayer = GetNodeOrNull<HexMapFrameLayer>("FrameLayer");
     }
 
-    public void Initialize(HexMapProjection map, UiProjectionState? ui, IProjectionSymbolCatalog? symbols)
+    public void Initialize(
+        HexMapProjection map,
+        PhysicalGeographyProjection physicalGeography,
+        UiProjectionState? ui,
+        IProjectionSymbolCatalog? symbols)
     {
+        ArgumentNullException.ThrowIfNull(physicalGeography);
         _map = map;
         _ui = ui;
         _symbols = symbols;
         _ownerColors.Clear();
         _ownerColorVersion = -1;
+        _physicalMicrogeographyLayer?.Bind(physicalGeography, map, symbols, HexSize);
+        _physicalMicrogeographyLayer?.SetPlane(CurrentPlane);
         Refresh();
     }
 
@@ -109,6 +137,8 @@ public partial class HexMapRenderer : Node2D
 
             RemoveCell(hexId);
         }
+
+        _physicalMicrogeographyLayer?.RefreshMap();
     }
 
     public void RefreshFrame()
@@ -141,10 +171,31 @@ public partial class HexMapRenderer : Node2D
         }
 
         var coord = PixelToHex(worldPos);
-        return _map.TryGetHex(PlaneCodeForCurrentPlane(), coord, out _)
+        var known = _map.TryGetHex(PlaneCodeForCurrentPlane(), coord, out _);
+        var inspectable = CurrentPlane == PlaneMode.Physical &&
+            WorldgenInspectionEnabled &&
+            _physicalMicrogeographyLayer?.Geography.TryGetCell(coord, out _) == true;
+        return known || inspectable
             ? coord
             : null;
     }
+
+    public PhysicalMicrotriangleHit? GetPhysicalMicrotriangleAtWorldPosition(Vector2 worldPos) =>
+        _physicalMicrogeographyLayer?.TryGetMicrotriangle(worldPos, out var hit) == true
+            ? hit
+            : null;
+
+    public bool SetWorldgenInspectionEnabled(bool enabled) =>
+        _physicalMicrogeographyLayer?.SetInspectionEnabled(enabled) == true;
+
+    public bool SetGeographyFeaturesEnabled(bool enabled) =>
+        _physicalMicrogeographyLayer?.SetFeaturesEnabled(enabled) == true;
+
+    public bool SetGeographyView(PhysicalGeographyView view) =>
+        _physicalMicrogeographyLayer?.SetView(view) == true;
+
+    public bool SetCameraZoom(float cameraZoom) =>
+        _physicalMicrogeographyLayer?.SetCameraZoom(cameraZoom) == true;
 
     private void SyncCellLayer()
     {
@@ -172,6 +223,8 @@ public partial class HexMapRenderer : Node2D
         {
             RemoveCell(hexId);
         }
+
+        _physicalMicrogeographyLayer?.RefreshMap();
     }
 
     private HexCell UpdateCell(HexProjection cell)

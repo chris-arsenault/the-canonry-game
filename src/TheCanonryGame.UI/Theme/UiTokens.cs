@@ -106,6 +106,20 @@ public static class UiTokens
         [TerrainKey.OpenField] = TerrainOpenField,
     };
 
+    private static readonly global::System.Collections.Generic.Dictionary<string, Color> PhysicalMaterialColors = new(global::System.StringComparer.Ordinal)
+    {
+        ["exposed_bedrock"] = Hex(0x555B63),
+        ["scree"] = Hex(0x777A78),
+        ["permafrost"] = Hex(0x87959C),
+        ["tundra_soil"] = Hex(0x71806F),
+        ["snowpack"] = Hex(0xD9DEE0),
+        ["glacial_ice"] = Hex(0xB8D4DF),
+        ["shelf_sediment"] = Hex(0x597A82),
+        ["deep_marine_sediment"] = Hex(0x253747),
+        ["reef_stone"] = Hex(0x3D7B79),
+        ["geothermal_crust"] = Hex(0x9A5D43),
+    };
+
     // Faction palette on the map — cold, distinguishable.
     public static readonly Color[] FactionPalette =
     [
@@ -197,6 +211,9 @@ public static class UiTokens
 
     public static Color TerrainColor(string stableName) =>
         TerrainColors.TryGetValue(TerrainKey.Canonicalize(stableName), out var color) ? color : Whisper;
+
+    public static Color PhysicalMaterialColor(string stableName) =>
+        PhysicalMaterialColors.TryGetValue(stableName, out var color) ? color : Whisper;
 
     public static Color WithAlpha(Color color, float alpha) =>
         new(color.R, color.G, color.B, alpha);

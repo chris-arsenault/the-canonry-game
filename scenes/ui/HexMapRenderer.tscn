@@ -1,8 +1,9 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://src/TheCanonryGame.UI/HexMapRenderer.cs" id="1_renderer"]
 [ext_resource type="Script" path="res://src/TheCanonryGame.UI/HexMapBackdropLayer.cs" id="2_backdrop"]
 [ext_resource type="Script" path="res://src/TheCanonryGame.UI/HexMapFrameLayer.cs" id="3_frame"]
+[ext_resource type="Script" path="res://src/TheCanonryGame.UI/PhysicalMicrogeographyLayer.cs" id="4_geography"]
 
 [node name="HexMapRenderer" type="Node2D"]
 script = ExtResource("1_renderer")
@@ -11,6 +12,9 @@ script = ExtResource("1_renderer")
 script = ExtResource("2_backdrop")
 
 [node name="CellLayer" type="Node2D" parent="."]
+
+[node name="PhysicalMicrogeographyLayer" type="Node2D" parent="."]
+script = ExtResource("4_geography")
 
 [node name="FrameLayer" type="Node2D" parent="."]
 script = ExtResource("3_frame")

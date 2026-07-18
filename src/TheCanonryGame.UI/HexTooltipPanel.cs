@@ -17,12 +17,14 @@ public partial class HexTooltipPanel : PanelContainer
 
     private readonly List<Control> _passThroughControls = [];
     private HexMapProjection? _map;
+    private PhysicalGeographyProjection? _physicalGeography;
     private UiProjectionState? _projection;
     private IProjectionSymbolCatalog? _symbols;
     private HexMapRenderer? _renderer;
     private Node2D? _worldCanvas;
     private Label? _label;
     private HexCoord? _hoveredHex;
+    private int _hoveredTriangleIndex = -1;
     private Vector2 _hoverScreenPosition;
     private long _hoverStartedAtMs;
     private TooltipTextState? _lastTextState;
@@ -44,6 +46,7 @@ public partial class HexTooltipPanel : PanelContainer
 
     public void Initialize(
         HexMapProjection? map,
+        PhysicalGeographyProjection? physicalGeography,
         UiProjectionState? projection,
         IProjectionSymbolCatalog? symbols,
         HexMapRenderer? renderer,
@@ -54,6 +57,7 @@ public partial class HexTooltipPanel : PanelContainer
         ArgumentNullException.ThrowIfNull(passThroughControls);
 
         _map = map;
+        _physicalGeography = physicalGeography;
         _projection = projection;
         _symbols = symbols;
         _renderer = renderer;
@@ -65,32 +69,18 @@ public partial class HexTooltipPanel : PanelContainer
 
     public bool UpdateTooltip()
     {
-        if (_renderer is null || _label is null || _worldCanvas is null)
-        {
-            return false;
-        }
-
-        var hoveredControl = GetViewport().GuiGetHoveredControl();
-        if (ShouldSuppressHexTooltip(hoveredControl))
-        {
-            ClearTooltip();
-            return false;
-        }
-
-        var screenPos = GetViewport().GetMousePosition();
-        var worldPos = _worldCanvas.GetCanvasTransform().AffineInverse() * screenPos;
-        var pointedHex = _renderer.GetHexAtWorldPosition(worldPos);
-        if (pointedHex is null)
+        if (!TryResolvePointedLocation(out var screenPosition, out var pointedHex, out var triangleIndex))
         {
             ClearTooltip();
             return false;
         }
 
         var now = System.Environment.TickCount64;
-        _hoverScreenPosition = screenPos;
-        if (_hoveredHex is null || _hoveredHex.Value != pointedHex.Value)
+        _hoverScreenPosition = screenPosition;
+        if (_hoveredHex is null || _hoveredHex.Value != pointedHex)
         {
-            _hoveredHex = pointedHex.Value;
+            _hoveredHex = pointedHex;
+            _hoveredTriangleIndex = triangleIndex;
             _hoverStartedAtMs = now;
             _lastTextState = null;
             _lastPositionState = null;
@@ -98,20 +88,56 @@ public partial class HexTooltipPanel : PanelContainer
             return true;
         }
 
+        if (_hoveredTriangleIndex != triangleIndex)
+        {
+            _hoveredTriangleIndex = triangleIndex;
+            _lastTextState = null;
+            _lastPositionState = null;
+        }
+
         if (!Visible && now - _hoverStartedAtMs < TooltipDelayMs)
         {
             return true;
         }
 
-        PresentTooltipText(pointedHex.Value);
+        PresentTooltipText(pointedHex);
         Visible = true;
         PositionTooltip(_hoverScreenPosition);
+        return true;
+    }
+
+    private bool TryResolvePointedLocation(
+        out Vector2 screenPosition,
+        out HexCoord pointedHex,
+        out int triangleIndex)
+    {
+        screenPosition = default;
+        pointedHex = default;
+        triangleIndex = -1;
+        if (_renderer is null || _label is null || _worldCanvas is null ||
+            ShouldSuppressHexTooltip(GetViewport().GuiGetHoveredControl()))
+        {
+            return false;
+        }
+
+        screenPosition = GetViewport().GetMousePosition();
+        var worldPosition = _worldCanvas.GetCanvasTransform().AffineInverse() * screenPosition;
+        var resolvedHex = _renderer.GetHexAtWorldPosition(worldPosition);
+        if (resolvedHex is null)
+        {
+            return false;
+        }
+
+        pointedHex = resolvedHex.Value;
+        triangleIndex = _renderer.GetPhysicalMicrotriangleAtWorldPosition(worldPosition)?
+            .TriangleIndex ?? -1;
         return true;
     }
 
     public void ClearTooltip()
     {
         _hoveredHex = null;
+        _hoveredTriangleIndex = -1;
         _lastTextState = null;
         _lastPositionState = null;
         Visible = false;
@@ -127,7 +153,7 @@ public partial class HexTooltipPanel : PanelContainer
         return !_passThroughControls.Contains(hoveredControl);
     }
 
-    private string FormatHexTooltip(HexCoord coord)
+    private string FormatHexTooltip(HexCoord coord, int triangleIndex)
     {
         if (_map is null || _projection is null)
         {
@@ -136,7 +162,7 @@ public partial class HexTooltipPanel : PanelContainer
 
         return _renderer?.CurrentPlane == PlaneMode.Semantic
             ? FormatSemanticHexTooltip(coord)
-            : FormatPhysicalHexTooltip(coord);
+            : FormatPhysicalHexTooltip(coord, triangleIndex);
     }
 
     private void PresentTooltipText(HexCoord coord)
@@ -149,6 +175,7 @@ public partial class HexTooltipPanel : PanelContainer
         var plane = _renderer.CurrentPlane;
         var textState = new TooltipTextState(
             coord,
+            _hoveredTriangleIndex,
             plane,
             _map?.CellVersion ?? -1,
             plane == PlaneMode.Semantic ? _projection?.EntityMapVersion ?? -1 : -1);
@@ -157,7 +184,7 @@ public partial class HexTooltipPanel : PanelContainer
             return;
         }
 
-        _label.Text = FormatHexTooltip(coord);
+        _label.Text = FormatHexTooltip(coord, _hoveredTriangleIndex);
         _lastTextState = textState;
         _lastPositionState = null;
     }
@@ -184,11 +211,24 @@ public partial class HexTooltipPanel : PanelContainer
             occupantsLine;
     }
 
-    private string FormatPhysicalHexTooltip(HexCoord coord)
+    private string FormatPhysicalHexTooltip(HexCoord coord, int triangleIndex)
     {
-        if (!_map!.TryGetHex(PlaneCodes.Physical, coord, out var cell))
+        var hasLiveCell = _map!.TryGetHex(PlaneCodes.Physical, coord, out var cell);
+        var geographyCell = default(PhysicalGeographyCellProjection);
+        var hasGeography = _physicalGeography is not null &&
+            _physicalGeography.TryGetCell(coord, out geographyCell);
+        if (!hasLiveCell &&
+            (!hasGeography || _renderer?.WorldgenInspectionEnabled != true))
         {
             return $"{coord.Q,3} , {coord.R,3}   unknown";
+        }
+
+        var geography = hasGeography
+            ? FormatPhysicalGeography(geographyCell, triangleIndex)
+            : string.Empty;
+        if (!hasLiveCell)
+        {
+            return geography;
         }
 
         var terrain = FormatTerrain(cell);
@@ -201,10 +241,99 @@ public partial class HexTooltipPanel : PanelContainer
             $"{coord.Q,3} , {coord.R,3}   {terrain,-10}   {owner}   {FormatSurface(cell)}\n" +
             (forgedLine.Length > 0 ? forgedLine + "\n" : string.Empty) +
             $"{continent}   {superregion}\n" +
+            (geography.Length > 0 ? geography + "\n" : string.Empty) +
             $"{FormatCultureInfluence(cell)}\n" +
             $"{FormatInfluence(cell)}\n" +
             occupantsLine;
     }
+
+    private string FormatPhysicalGeography(
+        in PhysicalGeographyCellProjection cell,
+        int triangleIndex)
+    {
+        var terrain = Humanize(cell.BaseTerrainStableName);
+        var material = Humanize(_physicalGeography!.MaterialName(cell.DominantMaterialIndex));
+        var subdivisions =
+            $"{FormatSubdivision(ProjectionSymbolKind.Continent, cell.ContinentId)}   " +
+            FormatSubdivision(ProjectionSymbolKind.Superregion, cell.SuperregionId);
+        var summary =
+            $"generated {terrain}   material {material}\n" +
+            $"elevation {cell.MeanElevation} [{cell.MinElevation},{cell.MaxElevation}]   " +
+            $"relief {cell.Relief}   rough {cell.Roughness}\n" +
+            $"temperature {cell.MeanTemperature}   moisture {cell.MeanMoisture}   " +
+            $"geothermal {cell.MeanGeothermal}\n" +
+            $"coverage land {cell.LandCoverage}/24 water {cell.WaterCoverage}/24 " +
+            $"ocean {cell.OceanCoverage}/24 lake {cell.LakeCoverage}/24 " +
+            $"ice {cell.PermanentIceCoverage}/24 river {cell.RiverCoverage}/24\n" +
+            $"peaks {cell.PeakCount}   edges river {cell.RiverEdgeMask:X2} " +
+            $"coast {cell.CoastEdgeMask:X2} ridge {cell.RidgeEdgeMask:X2} " +
+            $"cliff {cell.CliffEdgeMask:X2} pass {cell.PassEdgeMask:X2}\n" +
+            subdivisions;
+        return triangleIndex >= 0 &&
+            _physicalGeography.TryGetMicrotriangle(cell.Coord, triangleIndex, out var triangle)
+                ? summary + "\n" + FormatPhysicalMicrotriangle(triangleIndex, triangle)
+                : summary;
+    }
+
+    private string FormatPhysicalMicrotriangle(
+        int triangleIndex,
+        in PhysicalMicrotriangleProjection triangle)
+    {
+        var material = Humanize(_physicalGeography!.MaterialName(triangle.MaterialIndex));
+        var features = PhysicalFeatureNames(triangle.FeatureFlags);
+        return
+            $"triangle {triangleIndex:00}   {material}   {LandformName(triangle.LandformCode)}\n" +
+            $"elev {triangle.Elevation}   temp {triangle.Temperature}   " +
+            $"moist {triangle.Moisture}   geo {triangle.Geothermal}\n" +
+            $"water {WaterKindName(triangle.WaterKindCode)} depth {triangle.WaterDepth} " +
+            $"body {triangle.WaterBodyId} basin {triangle.DrainageBasinId}\n" +
+            $"flow edge {triangle.FlowEdge} accumulation {triangle.FlowAccumulation} " +
+            $"river order {triangle.RiverOrder}   {features}";
+    }
+
+    private static string LandformName(int code) => code switch
+    {
+        PhysicalLandformCodes.Plain => "plain",
+        PhysicalLandformCodes.Slope => "slope",
+        PhysicalLandformCodes.Valley => "valley",
+        PhysicalLandformCodes.Basin => "basin",
+        PhysicalLandformCodes.Ridge => "ridge",
+        PhysicalLandformCodes.Peak => "peak",
+        PhysicalLandformCodes.Pass => "pass",
+        PhysicalLandformCodes.Seabed => "seabed",
+        _ => $"landform-{code}",
+    };
+
+    private static string WaterKindName(int code) => code switch
+    {
+        PhysicalWaterKindCodes.Ocean => "ocean",
+        PhysicalWaterKindCodes.Lake => "lake",
+        _ => "none",
+    };
+
+    private static string PhysicalFeatureNames(int flags)
+    {
+        var features = new List<string>(3);
+        if ((flags & PhysicalGeographyFeatureCodes.GeothermalVent) != 0)
+        {
+            features.Add("vent");
+        }
+
+        if ((flags & PhysicalGeographyFeatureCodes.PermanentSeaIce) != 0)
+        {
+            features.Add("sea ice");
+        }
+
+        if ((flags & PhysicalGeographyFeatureCodes.PermanentIceMargin) != 0)
+        {
+            features.Add("ice margin");
+        }
+
+        return features.Count == 0 ? "features none" : $"features {string.Join(", ", features)}";
+    }
+
+    private static string Humanize(string stableName) =>
+        stableName.Replace('_', ' ');
 
     private static string FormatForgedColumn(HexProjection cell)
     {
@@ -401,6 +530,7 @@ public partial class HexTooltipPanel : PanelContainer
 
     private readonly record struct TooltipTextState(
         HexCoord Coord,
+        int TriangleIndex,
         PlaneMode Plane,
         long CellVersion,
         long EntityMapVersion);

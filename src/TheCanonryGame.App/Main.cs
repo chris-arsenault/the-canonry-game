@@ -15,6 +15,8 @@ public partial class Main : Node2D
     private const double NormalTicksPerSecond = 1d;
     private const double FastTicksPerSecond = 5d;
     private const double VeryFastTicksPerSecond = 10d;
+    private const float MinimumCameraZoom = 0.07f;
+    private const float MaximumCameraZoom = 5f;
 
     private CanonryGameRuntime? _runtime;
     private HexMapRenderer? _mapRenderer;
@@ -221,7 +223,9 @@ public partial class Main : Node2D
 
     private void AdjustZoom(float factor)
     {
-        var zoom = (_camera!.Zoom * factor).Clamp(new Vector2(0.3f, 0.3f), new Vector2(5f, 5f));
+        var zoom = (_camera!.Zoom * factor).Clamp(
+            new Vector2(MinimumCameraZoom, MinimumCameraZoom),
+            new Vector2(MaximumCameraZoom, MaximumCameraZoom));
         _camera.Zoom = zoom;
         _renderTree?.SetCameraZoom(zoom);
     }
@@ -312,6 +316,7 @@ public partial class Main : Node2D
             _mapArea.PlaneToggleRequested += OnTogglePlanePressed;
             _mapArea.MapLayerVisibilityChanged += OnMapLayerVisibilityChanged;
             _mapArea.MapLensRequested += OnMapLensRequested;
+            _mapArea.GeographyViewRequested += OnGeographyViewRequested;
         }
 
         if (_entityLayer is not null)
@@ -448,6 +453,9 @@ public partial class Main : Node2D
     private void OnMapLensRequested(string lensKey) =>
         _renderTree?.SetMapLens(lensKey);
 
+    private void OnGeographyViewRequested(string viewKey) =>
+        _renderTree?.SetGeographyView(viewKey);
+
     private void OnBrowserEntityFilterChanged() => _renderTree?.InvalidateEntityMap();
 
     private void ToggleAttributeGraph() => _renderTree?.ToggleAttributeGraph();
@@ -489,7 +497,9 @@ public partial class Main : Node2D
 
         _camera.Position = worldPosition;
         var zoom = MathF.Max(_camera.Zoom.X, 2.25f);
-        var clampedZoom = new Vector2(zoom, zoom).Clamp(new Vector2(0.3f, 0.3f), new Vector2(5f, 5f));
+        var clampedZoom = new Vector2(zoom, zoom).Clamp(
+            new Vector2(MinimumCameraZoom, MinimumCameraZoom),
+            new Vector2(MaximumCameraZoom, MaximumCameraZoom));
         _camera.Zoom = clampedZoom;
         _renderTree?.SetCameraZoom(clampedZoom);
     }

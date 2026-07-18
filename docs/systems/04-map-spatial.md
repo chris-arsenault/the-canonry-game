@@ -74,9 +74,18 @@ underneath, including a transformation made while the cell was frozen. The
 semantic plane has a varied deterministic per-hex blueprint but no
 microtriangles or terrain-cover cycle.
 
-Microtriangle rendering, inspection, runtime triangle edits, and triangle-scale
-movement or placement remain follow-up systems; installing the geography
-substrate does not move ordinary simulation below the hex scale.
+The UI receives an immutable projection of the complete generated physical
+field at startup. Normal map presentation still uses the event-backed live map
+as its fog boundary. At close zoom it draws the 24 triangles of each revealed,
+unmodified hex; at distant zoom an explicit worldgen-inspection mode draws
+aggregate latent hexes. Terrain, material, elevation, temperature, moisture,
+geothermal, landform, and hydrology views expose how the synthesized terrain was
+chosen. Chunk culling keeps triangle drawing limited to the visible field, and
+the tooltip exposes both hex summaries and individual triangle facts.
+
+Runtime triangle edits and triangle-scale movement or placement remain
+follow-up systems; rendering the geography does not move ordinary simulation
+below the hex scale.
 
 Named regions are physical coverage. There is no separate concept of anonymous
 partition plus local named coverage. A region is the named geographic coverage.
