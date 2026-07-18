@@ -140,7 +140,14 @@ public sealed class KernelRuntimeFactory
         }
 
         var baseSeed = request.SeedPolicy.ResolveBaseSeed();
-        var seedResult = domain.BuildStartupSeed(new DomainStartupSeedRequest(baseSeed));
+        var seedResult = request.StartupSeed ??
+            domain.BuildStartupSeed(new DomainStartupSeedRequest(baseSeed));
+        if (seedResult.Identity.BaseSeed != baseSeed)
+        {
+            throw new InvalidOperationException(
+                $"Prebuilt startup seed base seed {seedResult.Identity.BaseSeed} does not match requested base seed {baseSeed}.");
+        }
+
         var compiledDomain = CreateRuntimeCompiledDomain(GetOrCompileDomain(domain));
         var kernelTuning = KernelStartupConfigLoader.LoadKernelTuning(request.ConfigFilePath);
         var builder = new KernelHostBuilder()

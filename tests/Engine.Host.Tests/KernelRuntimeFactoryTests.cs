@@ -25,6 +25,44 @@ public sealed class KernelRuntimeFactoryTests
     }
 
     [Fact]
+    public void Start_UsesMatchingPrebuiltStartupSeedWithoutCallingDomainBuilder()
+    {
+        var domain = new CountingDomainModule();
+        var factory = KernelRuntimeFactory.ForDomains(domain);
+        var prebuilt = new DomainStartupSeedResult(
+            DomainStartupSeed.Empty(mapRadius: 1),
+            new StartupSeedIdentity(baseSeed: 100, attempt: 3));
+
+        using var runtime = factory.Start(new KernelStartRequest(
+            domain.Name,
+            StartupSeedPolicy.Requested(100),
+            KernelFunctionProfile.Batch,
+            startupSeed: prebuilt));
+
+        Assert.Equal(0, domain.BuildStartupSeedCalls);
+        Assert.Equal(3, runtime.SeedIdentity.Attempt);
+    }
+
+    [Fact]
+    public void Start_RejectsPrebuiltStartupSeedForDifferentBaseSeed()
+    {
+        var domain = new CountingDomainModule();
+        var factory = KernelRuntimeFactory.ForDomains(domain);
+        var prebuilt = new DomainStartupSeedResult(
+            DomainStartupSeed.Empty(mapRadius: 1),
+            new StartupSeedIdentity(baseSeed: 101, attempt: 0));
+
+        var exception = Assert.Throws<InvalidOperationException>(() => factory.Start(new KernelStartRequest(
+            domain.Name,
+            StartupSeedPolicy.Requested(100),
+            KernelFunctionProfile.Batch,
+            startupSeed: prebuilt)));
+
+        Assert.Contains("does not match", exception.Message, StringComparison.Ordinal);
+        Assert.Equal(0, domain.BuildStartupSeedCalls);
+    }
+
+    [Fact]
     public void Start_DoesNotShareRuntimeDomainIdsAcrossCachedCompiledDomainStarts()
     {
         var domain = new CountingDomainModule();

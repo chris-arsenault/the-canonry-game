@@ -1,5 +1,7 @@
 namespace TheCanonryGame.Game;
 
+#pragma warning disable CA2000 // GameStartupResult transfers runtime ownership to the application shell.
+
 using Engine.Host;
 using Engine.Kernel.Driver;
 
@@ -48,6 +50,29 @@ internal readonly record struct GameRuntimePulse(int PreviousTick, int CurrentTi
 {
     public int TicksProcessed => Math.Max(0, CurrentTick - PreviousTick);
 }
+
+internal enum GameStartupStage
+{
+    CheckingCachedWorld,
+    LoadingCachedWorld,
+    GeneratingWorld,
+    SavingCachedWorld,
+    StartingSimulation,
+    PrewarmingSimulation,
+}
+
+internal sealed record GameWorldCacheOptions(string Directory, bool Regenerate = false)
+{
+    public string Directory { get; } = string.IsNullOrWhiteSpace(Directory)
+        ? throw new ArgumentException("World cache directory cannot be blank.", nameof(Directory))
+        : Directory;
+}
+
+internal sealed record GameStartupResult(
+    CanonryGameRuntime Runtime,
+    bool CacheHit,
+    string? CachePath,
+    string? Warning);
 
 internal sealed class CanonryGameRuntime : IDisposable
 {
@@ -112,4 +137,50 @@ internal static class CanonryGameRuntimeFactory
             runLogPath);
         return new CanonryGameRuntime(runtime);
     }
+
+    public static GameStartupResult StartInteractive(
+        GameSeedPolicy seedPolicy,
+        GameWorldCacheOptions? cacheOptions,
+        Action<GameStartupStage>? reportStage = null,
+        string? runLogPath = null)
+    {
+        DomainStartupSeedResult? startupSeed = null;
+        IceRemembersStartupSeedCacheResult? cacheResult = null;
+        if (cacheOptions is not null)
+        {
+            if (seedPolicy.Kind != GameSeedPolicyKind.Requested)
+            {
+                throw new InvalidOperationException("Only requested world seeds can use the startup cache.");
+            }
+
+            cacheResult = IceRemembersStartupSeedCache.LoadOrCreate(
+                seedPolicy.RequestedSeed,
+                cacheOptions.Directory,
+                cacheOptions.Regenerate,
+                stage => reportStage?.Invoke(MapCacheStage(stage)));
+            startupSeed = cacheResult.StartupSeed;
+        }
+
+        reportStage?.Invoke(GameStartupStage.StartingSimulation);
+        var runtime = RuntimeFactory.StartUiRuntime(new KernelStartRequest(
+            IceRemembersRuntime.DomainName,
+            seedPolicy.ToStartupSeedPolicy(),
+            KernelFunctionProfile.InteractiveRealtime,
+            startupSeed: startupSeed),
+            runLogPath);
+        return new GameStartupResult(
+            new CanonryGameRuntime(runtime),
+            cacheResult?.CacheHit ?? false,
+            cacheResult?.CachePath,
+            cacheResult?.Warning);
+    }
+
+    private static GameStartupStage MapCacheStage(IceRemembersStartupSeedCacheStage stage) => stage switch
+    {
+        IceRemembersStartupSeedCacheStage.CheckingCache => GameStartupStage.CheckingCachedWorld,
+        IceRemembersStartupSeedCacheStage.ReadingCache => GameStartupStage.LoadingCachedWorld,
+        IceRemembersStartupSeedCacheStage.GeneratingWorld => GameStartupStage.GeneratingWorld,
+        IceRemembersStartupSeedCacheStage.WritingCache => GameStartupStage.SavingCachedWorld,
+        _ => throw new InvalidOperationException($"Unknown startup cache stage '{stage}'."),
+    };
 }

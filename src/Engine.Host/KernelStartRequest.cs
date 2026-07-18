@@ -54,7 +54,8 @@ public sealed record KernelStartRequest
         StartupSeedPolicy seedPolicy,
         KernelFunctionProfile functionProfile,
         bool traceEnabled = false,
-        string? configFilePath = null)
+        string? configFilePath = null,
+        DomainStartupSeedResult? startupSeed = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(domainName);
         if (configFilePath is not null)
@@ -67,6 +68,7 @@ public sealed record KernelStartRequest
         FunctionProfile = functionProfile;
         TraceEnabled = traceEnabled;
         ConfigFilePath = configFilePath;
+        StartupSeed = startupSeed;
     }
 
     public string DomainName { get; }
@@ -78,6 +80,13 @@ public sealed record KernelStartRequest
     public bool TraceEnabled { get; }
 
     public string? ConfigFilePath { get; }
+
+    /// <summary>
+    /// Optional prebuilt domain seed. Interactive shells use this to restore a
+    /// versioned world-generation cache without moving persistence into the
+    /// deterministic kernel runtime.
+    /// </summary>
+    public DomainStartupSeedResult? StartupSeed { get; }
 }
 
 public readonly record struct DomainStartupSeedRequest

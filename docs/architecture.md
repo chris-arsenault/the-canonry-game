@@ -58,13 +58,25 @@ only executes the primitive program representation.
 
 Startup follows this shape:
 
-1. Godot creates the game runtime.
-2. `Engine.Host` loads the Ice Remembers domain definition.
-3. `Engine.Domain` registers stable ids and builds the definition graph.
-4. `Engine.Gameplay` validates and compiles gameplay definitions.
-5. `Engine.Host` installs compiled programs and seed data into the kernel.
-6. Projections and observability consumers attach cursors to the event log.
-7. The driver advances the kernel; consumers drain events independently.
+1. Godot paints a modal startup surface, then schedules world construction off
+   the render thread.
+2. Fixed-seed interactive development runs restore a versioned immutable
+   startup-seed cache when available; random runs generate directly.
+3. `Engine.Host` loads the Ice Remembers domain definition.
+4. `Engine.Domain` registers stable ids and builds the definition graph.
+5. `Engine.Gameplay` validates and compiles gameplay definitions.
+6. `Engine.Host` installs compiled programs and seed data into the kernel.
+7. Projections and observability consumers attach cursors to the event log.
+8. Godot binds the completed projections on its render thread, then starts the
+   realtime driver.
+
+The cache boundary is the stable-name `DomainStartupSeedResult`, before domain
+ids, kernel state, event cursors, and Godot objects exist. Cache keys include a
+world-generation version and base seed; corrupt or stale snapshots regenerate.
+Debug launches default to fixed seed `4200` so iteration reuses the same world.
+`--random-seed`, `--no-world-cache`, and `--regenerate-world` retain explicit
+control over startup behavior. The cache is a developer startup optimization,
+not a simulation persistence or save-game format.
 
 Consumers must not stall kernel advancement. If a consumer needs richer
 materialized state, it builds that state from events or snapshots on its own

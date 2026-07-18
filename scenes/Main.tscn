@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://b2qy5k1m3xvxr"]
+[gd_scene load_steps=13 format=3 uid="uid://b2qy5k1m3xvxr"]
 
 [ext_resource type="Script" path="res://src/TheCanonryGame.App/Main.cs" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/ui/HexMapRenderer.tscn" id="2_maprenderer"]
@@ -11,6 +11,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/TableauPanel.tscn" id="9_tableau"]
 [ext_resource type="Script" path="res://src/TheCanonryGame.UI/HexTooltipPanel.cs" id="10_tooltip"]
 [ext_resource type="Script" path="res://src/TheCanonryGame.UI/EntityCardLayer.cs" id="11_cardlayer"]
+[ext_resource type="Script" path="res://src/TheCanonryGame.UI/StartupLoadingOverlay.cs" id="12_loading"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -65,3 +66,15 @@ mouse_filter = 2
 [node name="CardLayer" type="CanvasLayer" parent="."]
 layer = 2
 script = ExtResource("11_cardlayer")
+
+[node name="StartupLayer" type="CanvasLayer" parent="."]
+layer = 100
+
+[node name="StartupLoadingOverlay" type="Control" parent="StartupLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("12_loading")

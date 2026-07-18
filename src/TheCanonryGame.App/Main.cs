@@ -2,6 +2,9 @@
 #pragma warning disable CA1305
 #pragma warning disable CA2000 // Godot nodes managed by scene tree
 #pragma warning disable CA2213 // Godot nodes are managed by the scene tree
+#pragma warning disable CA1031 // The application shell must surface arbitrary background startup failures.
+using System.Diagnostics;
+
 using Godot;
 
 using TheCanonryGame.Game;
@@ -17,6 +20,9 @@ public partial class Main : Node2D
     private const double VeryFastTicksPerSecond = 10d;
     private const float MinimumCameraZoom = 0.07f;
     private const float MaximumCameraZoom = 5f;
+#if DEBUG
+    private const int DevelopmentWorldSeed = 4200;
+#endif
 
     private CanonryGameRuntime? _runtime;
     private HexMapRenderer? _mapRenderer;
@@ -33,7 +39,11 @@ public partial class Main : Node2D
     private TableauPanel? _tableauPanel;
     private HexTooltipPanel? _hexTooltipPanel;
     private GameRenderTree? _renderTree;
+    private StartupLoadingOverlay? _startupLoadingOverlay;
     private Godot.Theme? _theme;
+    private Task<BackgroundStartupResult>? _startupTask;
+    private Stopwatch? _startupStopwatch;
+    private int _startupStage;
     private double _displayTicksPerSecond = NormalTicksPerSecond;
     private bool _displayPaused;
     private bool _moveLeft;
@@ -43,12 +53,43 @@ public partial class Main : Node2D
     private int _startupPrewarmTicks;
     private int? _startupSeed;
     private double? _startupTickRate;
+    private bool _startupUseWorldCache;
+    private bool _startupRegenerateWorld;
+    private bool _startupRandomSeedRequested;
+    private bool _startupDisableWorldCache;
 
     public override void _ExitTree()
     {
+        DisposePendingStartupWhenComplete();
         _runtime?.Dispose();
         _runtime = null;
         base._ExitTree();
+    }
+
+    private void DisposePendingStartupWhenComplete()
+    {
+        var startupTask = _startupTask;
+        _startupTask = null;
+        if (startupTask is null)
+        {
+            return;
+        }
+
+        _ = startupTask.ContinueWith(
+            static task =>
+            {
+                if (task.Status == TaskStatus.RanToCompletion)
+                {
+                    task.Result.Startup.Runtime.Dispose();
+                }
+                else
+                {
+                    _ = task.Exception;
+                }
+            },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
     }
 
     public override void _Ready()
@@ -70,6 +111,7 @@ public partial class Main : Node2D
 
     public override void _Process(double delta)
     {
+        PollStartup();
         if (_runtime is null)
         {
             return;
@@ -245,6 +287,7 @@ public partial class Main : Node2D
         _tableauPanel = GetNode<TableauPanel>("UiLayer/UiRoot/TableauPanel");
         _hexTooltipPanel = GetNode<HexTooltipPanel>("UiLayer/UiRoot/HexTooltipPanel");
         _cardLayer = GetNode<EntityCardLayer>("CardLayer");
+        _startupLoadingOverlay = GetNode<StartupLoadingOverlay>("StartupLayer/StartupLoadingOverlay");
     }
 
     private void ConfigureSceneNodes()
@@ -330,93 +373,146 @@ public partial class Main : Node2D
         var seedPolicy = _startupSeed is { } seed
             ? GameSeedPolicy.Requested(seed)
             : GameSeedPolicy.Random();
+        var cacheOptions = _startupUseWorldCache && _startupSeed.HasValue
+            ? new GameWorldCacheOptions(
+                ProjectSettings.GlobalizePath("user://world-cache"),
+                _startupRegenerateWorld)
+            : null;
         StartNewRun(
             seedPolicy,
             pauseAfterStart: _startupPrewarmTicks > 0 && _startupTickRate is null,
             prewarmTicks: _startupPrewarmTicks,
-            tickRateAfterStart: _startupTickRate);
+            tickRateAfterStart: _startupTickRate,
+            cacheOptions: cacheOptions);
     }
 
     private void StartNewRun(
         GameSeedPolicy seedPolicy,
         bool pauseAfterStart,
         int prewarmTicks = 0,
-        double? tickRateAfterStart = null)
+        double? tickRateAfterStart = null,
+        GameWorldCacheOptions? cacheOptions = null)
     {
         _renderTree?.CloseOpenCards();
         _renderTree?.ClearTooltip();
 
         _runtime?.Dispose();
-        _runtime = CanonryGameRuntimeFactory.Start(seedPolicy);
+        _runtime = null;
+        _displayPaused = true;
+        Volatile.Write(ref _startupStage, (int)GameStartupStage.CheckingCachedWorld);
+        _startupStopwatch = Stopwatch.StartNew();
+        _startupLoadingOverlay?.ShowLoading(StartupStageText(GameStartupStage.CheckingCachedWorld));
+        _startupTask = Task.Run(() => BuildRuntime(
+            seedPolicy,
+            prewarmTicks,
+            pauseAfterStart,
+            tickRateAfterStart,
+            cacheOptions));
+    }
 
-        if (prewarmTicks > 0)
+    private BackgroundStartupResult BuildRuntime(
+        GameSeedPolicy seedPolicy,
+        int prewarmTicks,
+        bool pauseAfterStart,
+        double? tickRateAfterStart,
+        GameWorldCacheOptions? cacheOptions)
+    {
+        var startup = CanonryGameRuntimeFactory.StartInteractive(
+            seedPolicy,
+            cacheOptions,
+            stage => Volatile.Write(ref _startupStage, (int)stage));
+        try
         {
-            PauseKernelDriver();
-            PrewarmRuntime(prewarmTicks);
+            startup.Runtime.Controls.Pause();
+            var prewarmElapsed = TimeSpan.Zero;
+            if (prewarmTicks > 0)
+            {
+                Volatile.Write(ref _startupStage, (int)GameStartupStage.PrewarmingSimulation);
+                prewarmElapsed = PrewarmRuntime(startup.Runtime, prewarmTicks);
+            }
+
+            return new BackgroundStartupResult(
+                startup,
+                prewarmElapsed,
+                pauseAfterStart,
+                tickRateAfterStart);
         }
-
-        _renderTree?.BindRuntime(_runtime);
-        _renderTree?.Present(_runtime.ReadModels.Entities.CurrentTick, FormatKernelTimeState());
-
-        var runLogText = _runtime.RunLogPath is { Length: > 0 } runLogPath
-            ? $" Run log -> {runLogPath}"
-            : " Run logging disabled.";
-        GD.Print(
-            $"Simulation initialized: seed {_runtime.Seed.BaseSeed}/{_runtime.Seed.Attempt}, " +
-            $"{_runtime.ReadModels.Entities.Entities.Count} projected entities.{runLogText}");
-
-        if (tickRateAfterStart is { } tickRate)
+        catch
         {
-            SetKernelTickRate(tickRate);
-        }
-        else if (pauseAfterStart)
-        {
-            PauseKernelDriver();
-        }
-        else
-        {
-            SetKernelTickRate(NormalTicksPerSecond);
+            startup.Runtime.Dispose();
+            throw;
         }
     }
 
-    private void PrewarmRuntime(int targetTick)
+    private static TimeSpan PrewarmRuntime(CanonryGameRuntime runtime, int targetTick)
     {
-        if (_runtime is null)
-        {
-            return;
-        }
-
         const int batchTicks = 25;
-        var startedAtMs = Time.GetTicksMsec();
-        while (_runtime.ReadModels.Entities.CurrentTick < targetTick)
+        var stopwatch = Stopwatch.StartNew();
+        while (runtime.ReadModels.Entities.CurrentTick < targetTick)
         {
-            var remaining = targetTick - _runtime.ReadModels.Entities.CurrentTick;
-            _runtime.Controls.Step(Math.Min(batchTicks, remaining));
-            _ = _runtime.Update();
+            var remaining = targetTick - runtime.ReadModels.Entities.CurrentTick;
+            runtime.Controls.Step(Math.Min(batchTicks, remaining));
+            _ = runtime.Update();
         }
 
-        var elapsedMs = Time.GetTicksMsec() - startedAtMs;
-        GD.Print(
-            $"Prewarmed simulation to tick {_runtime.ReadModels.Entities.CurrentTick} " +
-            $"in {elapsedMs} ms for UI profiling.");
+        stopwatch.Stop();
+        return stopwatch.Elapsed;
     }
 
     private void ReadStartupOptions()
     {
         foreach (var argument in OS.GetCmdlineUserArgs())
         {
-            if (TryReadPositiveOption(argument, "--prewarm-ticks=", out var prewarmTicks))
-            {
-                _startupPrewarmTicks = prewarmTicks;
-            }
-            else if (TryReadPositiveOption(argument, "--seed=", out var seed))
-            {
-                _startupSeed = seed;
-            }
-            else if (TryReadPositiveRateOption(argument, "--prewarm-tick-rate=", out var tickRate))
-            {
-                _startupTickRate = tickRate;
-            }
+            ApplyStartupOption(argument);
+        }
+
+        if (_startupRandomSeedRequested)
+        {
+            _startupSeed = null;
+        }
+#if DEBUG
+        else if (_startupSeed is null)
+        {
+            _startupSeed = DevelopmentWorldSeed;
+        }
+#endif
+
+        _startupUseWorldCache = _startupSeed.HasValue && !_startupDisableWorldCache;
+    }
+
+    private void ApplyStartupOption(string argument)
+    {
+        if (TryReadPositiveOption(argument, "--prewarm-ticks=", out var prewarmTicks))
+        {
+            _startupPrewarmTicks = prewarmTicks;
+        }
+        else if (TryReadPositiveOption(argument, "--seed=", out var seed))
+        {
+            _startupSeed = seed;
+        }
+        else if (TryReadPositiveRateOption(argument, "--prewarm-tick-rate=", out var tickRate))
+        {
+            _startupTickRate = tickRate;
+        }
+        else
+        {
+            ApplyStartupFlag(argument);
+        }
+    }
+
+    private void ApplyStartupFlag(string argument)
+    {
+        switch (argument)
+        {
+            case "--random-seed":
+                _startupRandomSeedRequested = true;
+                break;
+            case "--no-world-cache":
+                _startupDisableWorldCache = true;
+                break;
+            case "--regenerate-world":
+                _startupRegenerateWorld = true;
+                break;
         }
     }
 
@@ -467,8 +563,126 @@ public partial class Main : Node2D
     private void ResetSimulation()
     {
         StartNewRun(GameSeedPolicy.Random(), pauseAfterStart: true);
-        GD.Print("Simulation reset with a new random seed.");
+        GD.Print("Generating a new random simulation world.");
     }
+
+    private void PollStartup()
+    {
+        var task = _startupTask;
+        if (task is null)
+        {
+            return;
+        }
+
+        var elapsed = _startupStopwatch?.Elapsed.TotalSeconds ?? 0d;
+        var stage = (GameStartupStage)Volatile.Read(ref _startupStage);
+        _startupLoadingOverlay?.UpdateStatus(StartupStageText(stage), elapsed);
+        if (!task.IsCompleted)
+        {
+            return;
+        }
+
+        _startupTask = null;
+        try
+        {
+            CompleteStartup(task.GetAwaiter().GetResult());
+        }
+        catch (Exception exception)
+        {
+            _startupStopwatch?.Stop();
+            _startupLoadingOverlay?.ShowFailure(exception.Message, elapsed);
+            GD.PushError($"Simulation startup failed: {exception}");
+        }
+    }
+
+    private void CompleteStartup(BackgroundStartupResult background)
+    {
+        BindStartupRuntime(background.Startup.Runtime);
+        ApplyStartupTimeControl(background);
+        FinishStartupPresentation(background, background.Startup.Runtime);
+    }
+
+    private void BindStartupRuntime(CanonryGameRuntime runtime)
+    {
+        _runtime = runtime;
+        try
+        {
+            _renderTree?.BindRuntime(_runtime);
+            _renderTree?.Present(_runtime.ReadModels.Entities.CurrentTick, FormatKernelTimeState());
+        }
+        catch
+        {
+            _runtime.Dispose();
+            _runtime = null;
+            throw;
+        }
+    }
+
+    private void ApplyStartupTimeControl(BackgroundStartupResult background)
+    {
+        if (background.TickRateAfterStart is { } tickRate)
+        {
+            SetKernelTickRate(tickRate);
+        }
+        else if (background.PauseAfterStart)
+        {
+            _displayPaused = true;
+        }
+        else
+        {
+            SetKernelTickRate(NormalTicksPerSecond);
+        }
+    }
+
+    private void FinishStartupPresentation(
+        BackgroundStartupResult background,
+        CanonryGameRuntime runtime)
+    {
+        _startupStopwatch?.Stop();
+        _startupLoadingOverlay?.HideLoading();
+        var elapsed = _startupStopwatch?.Elapsed.TotalSeconds ?? 0d;
+        var cacheText = CacheStatusText(background.Startup);
+        var runLogText = runtime.RunLogPath is { Length: > 0 } runLogPath
+            ? $" Run log -> {runLogPath}"
+            : " Run logging disabled.";
+        GD.Print(
+            $"Simulation initialized in {elapsed:0.00}s: seed {runtime.Seed.BaseSeed}/{runtime.Seed.Attempt}, " +
+            $"{runtime.ReadModels.Entities.Entities.Count} projected entities.{cacheText}{runLogText}");
+        if (background.PrewarmElapsed > TimeSpan.Zero)
+        {
+            GD.Print(
+                $"Prewarmed simulation to tick {runtime.ReadModels.Entities.CurrentTick} " +
+                $"in {background.PrewarmElapsed.TotalMilliseconds:0} ms for UI profiling.");
+        }
+
+        if (background.Startup.Warning is { Length: > 0 } warning)
+        {
+            GD.PushWarning(warning);
+        }
+    }
+
+    private static string CacheStatusText(GameStartupResult startup)
+    {
+        if (startup.CachePath is null)
+        {
+            return " World cache disabled.";
+        }
+
+        return startup.CacheHit
+            ? $" Loaded cached world from {startup.CachePath}."
+            : $" Generated and cached world at {startup.CachePath}.";
+    }
+
+    private static string StartupStageText(GameStartupStage stage) => stage switch
+    {
+        GameStartupStage.CheckingCachedWorld => "Checking the remembered world",
+        GameStartupStage.LoadingCachedWorld => "Restoring the remembered world",
+        GameStartupStage.GeneratingWorld => "Shaping terrain and waters",
+        GameStartupStage.SavingCachedWorld => "Remembering this world for next time",
+        GameStartupStage.StartingSimulation => "Populating the living world",
+        GameStartupStage.PrewarmingSimulation => "Advancing the simulation",
+        _ => "Preparing the world",
+    };
 
     private void OnBrowserEntitySelected(int entityIdValue)
     {
@@ -556,5 +770,11 @@ public partial class Main : Node2D
             _entityLayer?.NotifyViewportChanged();
         }
     }
+
+    private sealed record BackgroundStartupResult(
+        GameStartupResult Startup,
+        TimeSpan PrewarmElapsed,
+        bool PauseAfterStart,
+        double? TickRateAfterStart);
 
 }
