@@ -103,6 +103,13 @@ Useful physical and semantic metrics include:
 - largest strict empty hex radius;
 - bounding-box fill.
 
+Growing-map evidence must also distinguish live extent from terrain quality.
+Track physical and semantic maximum materialized radius, frontier additions by
+terrain, live terrain entropy/share, transient cover share, and base-terrain
+restoration after thaw. A larger map is not healthy if new cells collapse into
+one terrain, and a visually icy period is not destructive if the varied durable
+base remains intact underneath.
+
 For culture influence, watch component quality per culture and plane:
 
 - component count above a threshold;

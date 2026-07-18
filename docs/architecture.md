@@ -117,8 +117,11 @@ The kernel world contains:
 
 - entities, health, traits, status, physical and semantic coordinates;
 - relationships and relationship strength;
-- physical and semantic map cells, terrain, named coverage, roads, culture
-  influence tile layers, and derived culture boundary caches;
+- physical and semantic map cells with independent live extents, effective
+  terrain, physical base terrain and transient cover, named coverage, roads,
+  culture influence tile layers, and derived culture boundary caches;
+- an installed radius-bounded latent geography blueprint: physical hex
+  summaries backed by 24 microtriangles per hex, plus varied semantic terrain;
 - provenance invocation/output history for high-altitude and authored effects;
 - program data/state/scratch for each registered kernel program.
 
@@ -172,13 +175,17 @@ existing generators, verbs, gambits, and the contest decay tide. Campaigns
 `wages_campaign_against` edge lives) are the first age payload. See
 [25-world-beats.md](./systems/25-world-beats.md).
 
-The physical world grows. It is born as a small thawed heart and opens
-only where culture presses its edge (the MapFrontier program, driven by
-the Ice track's thaw age via true runtime cell creation); the Long Dark
-reclaims untended rim ground as impassable deep ice. Reach across the
-map is priced by travel cost, not raw hex distance: a `WithinTravelReach`
-gate line-samples road-discounted terrain cost between endpoints, so
-frozen frontier blocks reach and roads extend it. See
+The physical and semantic worlds grow from separately tracked radius-18
+hearts toward an explicit fixed-capacity generation radius of 128. Seed/worldgen
+installs deterministic terrain and geography for that whole latent field, but
+`MapFrontier` materializes cells only where culture presses an edge. Physical
+hex summaries are derived from 24 microtriangles carrying material, elevation,
+and hydrology; current simulation behavior remains hex-scale. During the Long
+Dark, ordinary reclaim applies impassable Deep Ice as transient cover only to
+frontier-grown physical cells. Durable terrain and the startup heart remain
+intact underneath. Reach across the map is priced by travel cost, not raw hex
+distance: a `WithinTravelReach` gate line-samples road-discounted terrain cost
+between endpoints, so frozen frontier blocks reach and roads extend it. See
 [26-growing-map.md](./systems/26-growing-map.md).
 
 The former macro aggregate layer has been removed. Generator, gambit, trait,

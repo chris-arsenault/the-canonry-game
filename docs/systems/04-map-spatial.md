@@ -8,7 +8,8 @@ the semantic plane.
 The physical map is a hex grid with Ice Remembers terrain vocabulary: shelf,
 wastes, tundra, ice, hot springs, ocean, reef, scar, and related variants.
 Procedural generation creates terrain-aware seeds rather than full-cover
-placeholder partitions.
+placeholder partitions. It deterministically generates a latent field through
+radius 128 while initially materializing only the radius-18 heart.
 
 The semantic plane is an analogous map model, not a mirror of the physical
 map. It has the same plane-aware storage, movement, culture influence, road,
@@ -31,6 +32,30 @@ field, and related authored media. Semantic terrain changes movement cost,
 enterability, culture influence propagation, claim viability, and road
 formation just as physical terrain does, with semantic interpretation instead
 of physical material.
+
+## Physical Microgeography And Effective Terrain
+
+Every latent physical surface hex has 24 canonically indexed microtriangles.
+Each triangle stores primitive material, elevation, and hydrology data. Stable
+within-hex and across-edge adjacency makes ridges, coasts, drainage, and rivers
+continuous across hex boundaries instead of independently rolled decorations.
+
+The current simulation remains hex-scale. Worldgen derives one authoritative
+summary per physical hex: base terrain, mean and maximum elevation, roughness,
+water coverage, and river/coast edge masks. Movement, culture, placement, map
+signals, and authored terrain rules consume the effective terrain id from that
+summary boundary. They do not independently reinterpret the 24 triangles.
+
+Physical terrain has two runtime layers. Durable base terrain is the generated
+summary or a later permanent transformation. Transient cover, currently Deep
+Ice, wins when present. Removing cover exposes whatever durable terrain is then
+underneath, including a transformation made while the cell was frozen. The
+semantic plane has a varied deterministic per-hex blueprint but no
+microtriangles or terrain-cover cycle.
+
+Microtriangle rendering, inspection, runtime triangle edits, and triangle-scale
+movement or placement remain follow-up systems; installing the geography
+substrate does not move ordinary simulation below the hex scale.
 
 Named regions are physical coverage. There is no separate concept of anonymous
 partition plus local named coverage. A region is the named geographic coverage.
@@ -67,7 +92,8 @@ Map coverage is a first-class map abstraction:
 - Coverage creation should fail gracefully with explicit rejection data rather
   than crashing the host.
 - New coverage can optionally change terrain when the narrative requires it,
-  such as a scar.
+  such as a scar. Such changes update durable base terrain even when transient
+  cover currently hides it.
 
 ## Culture Influence
 
@@ -176,5 +202,7 @@ Map quality is evaluated by utilization, not by movement volume alone:
 - activity entropy and top-cell share
 - largest strict empty hex radius
 - bounding-box fill
+- terrain diversity among newly materialized cells and across the live map
+- durable base-terrain preservation across cover/thaw cycles
 - culture component count and discontinuity
 - per-entity roam radius and unique cells visited

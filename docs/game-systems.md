@@ -17,9 +17,13 @@ terrain, named coverage, and an integer z axis in `[-3, +3]` whose non-surface
 cells are forged only by entity actions (Aurora spire tiers up, Nightshelf
 tunnel galleries down). Regions and settlements are not a separate
 abstraction from map coverage: they are named coverage over physical space. The
-semantic plane is an analogous bounded axial q/r map with `s = -q-r`, its own
-semantic terrain, culture influence, roads, and placement. It is not a
-coordinate copy of the physical plane.
+physical generation blueprint also divides every surface hex into 24 canonical
+microtriangles with material, elevation, and hydrology. Those triangles produce
+one definitive hex summary for the current hex-scale simulation and are the
+substrate for later fine-grained rendering and gameplay. The semantic plane is
+an analogous bounded axial q/r map with `s = -q-r`, its own varied terrain,
+culture influence, roads, and placement. It is not a coordinate copy of the
+physical plane and does not use microtriangles.
 
 Domain content is authored in `DomainConfig` and Ice Remembers-specific files.
 Reusable gameplay vocabulary lives in `Engine.Gameplay` and compiles down into
@@ -48,12 +52,14 @@ Generators are intermittent high-altitude events. They create named entities
 and relationship bundles when their preconditions are met. Generator selection
 should be shaped by the state created by low altitude and gambits.
 
-The physical map grows from play: born as a small thawed heart (radius 18),
-it opens new cells where culture presses its frontier during the Age of the
-Thaw and is reclaimed as impassable deep ice in the Long Dark (the
-MapFrontier program). Reach across the map is priced by travel cost - a
-`WithinTravelReach` gate line-samples road-discounted terrain cost, so frozen
-frontier blocks reach and roads extend it. See
+Both map planes grow from radius-18 hearts into deterministic latent geography
+bounded at radius 128. Physical cells open where culture presses the frontier
+during the Age of the Thaw; semantic cells open continuously where idea-mass
+presses. The Long Dark can cover weak frontier-grown physical cells with
+impassable Deep Ice, but thaw removes the cover and reveals the current durable
+base terrain rather than replacing it. Reach across the map is priced by travel
+cost: a `WithinTravelReach` gate line-samples road-discounted terrain cost, so
+frozen frontier blocks reach and roads extend it. See
 [systems/26-growing-map.md](./systems/26-growing-map.md).
 
 World beats are the macro-chronicle: authored Ages on three regime tracks

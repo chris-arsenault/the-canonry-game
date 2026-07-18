@@ -1,16 +1,18 @@
 # The Growing Map and Travel-Cost Reach
 
-The physical world is not allocated up front. It is born as a small thawed
-heart and earns its extent through play; reach across it is priced by travel
-cost, so a larger world and its infrastructure change what can interact.
+The live world is not materialized up front. Seed/worldgen deterministically
+prepares latent physical and semantic geography through radius 128, but each
+plane is born as a small heart and earns its live extent through play. Reach
+across it is priced by travel cost, so a larger world and its infrastructure
+change what can interact.
 
 ## The thawed heart
 
-Seed/worldgen builds the physical grid at `PhysicalHeartRadius` (18) — about
-a fifth of the eventual r40 extent. Idea-space is born the same way: the
-semantic plane is seeded only within `SemanticHeartRadius` (18), and the rest of
-its disk starts as fog. The heart is dense by construction: all six cultures fit
-and press each other, which is the co-location the early simulation needs.
+Seed/worldgen materializes the physical grid at `PhysicalHeartRadius` (18).
+Idea-space is born the same way: the semantic plane is seeded only within
+`SemanticHeartRadius` (18), and the rest of the radius-128 field starts as fog.
+The heart is dense by construction: all six cultures fit and press each other,
+which is the co-location the early simulation needs.
 
 A semantic cell is *known* only once it has been materialized — the seeded heart
 or ground the frontier later opens — exactly like the physical plane. Un-opened
@@ -19,50 +21,65 @@ refuse it.
 
 ## MapFrontier: thaw and reclaim
 
-`Engine.Kernel/Programs/MapFrontier/` grows and shrinks the physical world. It
-reads which age holds the Ice track from `WorldBeats.OpenAgeId` and acts only
-then:
+`Engine.Kernel/Programs/MapFrontier/` grows and covers the physical world. It
+reads which age holds the World track from `WorldBeats.OpenAgeId`:
 
 - **Thaw** (Age of the Thaw): each pulse, culture mass at a frontier cell
-  (raw ≥ `FrontierMassThreshold`) opens its unknown neighbours as new cells,
-  materialized at runtime via `Simulation.CreateCell` with region/superregion
-  inherited from the pressing cell. Growth is bounded by `MaxRadius` (40) and a
-  per-pulse budget. The world opens where history presses, not on a timer.
-- **Reclaim** (the Long Dark): while the reclaim age holds the Ice track, the
-  program scans the frontier box for cold edge cells — known, weakly held
-  (culture mass at or below the reclaim ceiling), no road, touching unknown or
-  frozen ground — and takes them back as impassable `deep_ice`, propagating
-  inward as the interior cools behind them. The Long Dark charges a global
-  decay tide so untended frontier actually cools; a heart-radius floor keeps a
-  minimal core, so the map recedes but never fully dissolves. The scan runs
-  only while the reclaim age holds (deep stagnation), never on the hot path.
-  Evidence: the saturation scenario (`tools/MonteCarlo/scenarios/`) drives the
-  full Ice-age arc (Thaw → Still Ice → Long Dark → Thaw) and `deep_ice` appears
-  exactly when the Long Dark opens.
+  (raw ≥ `FrontierMassThreshold`) opens its unknown neighbors through
+  `Simulation.CreateCell`. Terrain, superregion, and continent come from the
+  coordinate's installed physical geography rather than a uniform fallback or
+  inheritance from the pressing cell. Growth is bounded by `MaxRadius` (128)
+  and an explicit per-pulse budget. The world opens where history presses, not
+  on a timer.
+- **Reclaim** (the Long Dark): the program rotates a persistent cursor over
+  cells previously created by physical frontier growth. A known, weakly held
+  edge cell with no road and an unknown or already covered neighbor receives
+  impassable `deep_ice` cover. Startup-heart cells are absent from this eligible
+  set. The Long Dark's decay tide can cool abandoned rim ground, and repeated
+  pulses can propagate cover inward through earned territory without
+  destructively rewriting its terrain.
 
-New cells are ordinary: culture spreads onto them, entities move onto them,
-generators place into them. Re-freezing transforms terrain rather than deleting
-cells, so occupancy indexes and culture rows stay valid; passable, culture-
-bearing extent is what grows and shrinks.
+New cells are ordinary: culture spreads onto them, entities move onto them, and
+generators place into them. The world tracks physical and semantic live extents
+independently, and every map consumer and snapshot uses the appropriate extent.
+Candidate scratch capacity is an explicit kernel option, authored budgets are
+validated against it, and the culture scan rotates so low culture ids do not
+monopolize a shared pulse budget.
+
+Re-freezing does not delete a cell or replace its terrain. Physical cells hold
+durable base terrain separately from transient cover. Deep Ice is the effective
+terrain while present; thaw removes it and exposes the current base. Permanent
+terrain changes made under ice remain hidden until thaw, then become visible.
+Occupancy indexes, culture rows, geography identity, and terrain history
+therefore remain valid through ebb and flow.
+
+If the Long Dark later needs to invade the startup heart, that should be a
+separate reversible invasion rule with explicit coverage and pacing. Ordinary
+frontier reclaim does not do it implicitly.
+
+## Latent geography
+
+Physical worldgen generates the whole radius-128 field as 24 canonical
+microtriangles per hex. Primitive material, elevation, and hydrology are
+continuous across shared edges and deterministically derive the hex's base
+terrain, mean and maximum elevation, roughness, water coverage, river edges,
+and coast edges. The simulation still acts at hex scale; microtriangle
+rendering and triangle-scale gameplay are follow-ups.
+
+Semantic worldgen installs a varied per-hex terrain and geography blueprint
+through the same generation radius. It does not use microtriangles.
 
 ## Semantic growth: idea-space has no ice
 
-The semantic plane grows through the same `MapFrontier` machinery, but its driver
-is different. Ideas have no seasonal ice, so semantic growth is **continuous and
-ungated by any age** and never re-freezes: each tick, every semantic cell a
-culture holds with raw idea-mass at or above `SemanticFrontierMassThreshold`
-opens its unknown neighbours as new `open_field` cells (`SemanticMaxRadius` and
-the shared per-pulse budget bound it). New idea-ground is neutral open field and
-earns its meaning as culture and entities reach it — the specialty rim terrains
-(beacon spires, taboo ridges, cave pockets) of the full-scale field are not
-pre-materialized. Configured on `MapFrontierConfig` via `SemanticOpenTerrain`
-(null disables semantic growth).
-
-Evidence (`semantic-growing-map-1`, 2×5000 ticks): idea-space grew from its
-1027-cell heart to 1182 known cells, opening 155 new cells beyond the heart and
-reaching ring 25 (vs. ring 19 for the age-gated physical plane), progressively
-across the whole run (max ring 19 → 21 → 23 → 24 → 25) with no stranded entities
-and no degenerate maps.
+The semantic plane grows through the same `MapFrontier` machinery, but its
+driver is different. Ideas have no seasonal ice, so semantic growth is
+**continuous and ungated by any age** and never re-freezes. Each tick, every
+semantic cell a culture holds with raw idea-mass at or above
+`SemanticFrontierMassThreshold` opens unknown neighbors from the installed
+semantic blueprint. Each new cell reveals its coordinate's terrain,
+superregion, and continent rather than becoming `open_field`.
+`SemanticMaxRadius` (128) and its explicit per-pulse budget bound growth;
+`SemanticGrowthEnabled` disables it when false.
 
 ## Travel-cost reach
 
