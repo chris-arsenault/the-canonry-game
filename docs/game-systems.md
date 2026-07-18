@@ -25,7 +25,12 @@ and generates fractures. Ice Remembers then runs asymmetric fire, aurora, and
 pressure passes over that same triangle graph. Natural surfaces include frozen
 ocean forms such as pack ice, sea ice, ice shelves, and polynyas; anomaly
 surfaces remain sparse overrides while their flags and intensity fields are
-retained independently.
+retained independently. Ordinary cold land is not collapsed into generic ice:
+polar barrens, wet tundra, cold steppe, scree, river valleys, tundra, ridges,
+snowfields, and glaciers remain distinct outcomes. Every physical and domain
+generation pass declares its inputs and outputs, and acceptable distribution
+ranges—including ocean and land-ice coverage—live in tunable profiles rather
+than validator constants.
 
 Physical material and surface vocabularies are separate from gameplay terrain.
 Scored authored rules turn each arranged 24-triangle aggregate into one base
@@ -37,6 +42,9 @@ through a zoom-dependent, chunk-cached geography layer: aggregate fields at
 distant zoom and all 24 triangles plus connected physical features at close
 zoom. Normal play shows only materialized geography; an explicit inspection
 mode can reveal the complete latent generation field for diagnosis. The
+close-zoom renderer uses triangle features only, while distant aggregate edge
+masks have a single owner per shared edge. Surface views composite water beneath
+sea ice and other ocean surfaces so frozen seas still read as seas. The
 semantic plane is an analogous bounded axial q/r map with `s = -q-r`, its own
 varied terrain, culture influence, roads, and placement. It is not a coordinate
 copy of the physical plane and does not use microtriangles.

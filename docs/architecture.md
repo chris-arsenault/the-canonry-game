@@ -45,10 +45,14 @@ Engine.WorldGen
   land/water analysis, hydrology, climate, glaciation, fractures, aggregation,
   terrain catalogs, and map coverage
 
+IceRemembers
+  authored domain content plus physical material/surface taxonomy, generation
+  profile, and tunable world-quality targets
+
 IceRemembers.Seed
-  Ice Remembers physical materials and surfaces, fire/aurora/pressure worldgen,
+  dependency-ordered natural-surface and fire/aurora/pressure worldgen,
   authored hex-terrain synthesis, geography-shaped subdivisions, startup
-  placement, and seed validation
+  placement, and profile-driven seed validation
 ```
 
 `Engine.Kernel` must remain domain-agnostic. Domain names compile to stable ids
@@ -207,12 +211,17 @@ installs deterministic terrain and geography for that whole latent field, but
 worldgen first builds one padded triangle graph. Authored uplift causes
 continents and mountain spines; erosion, connected-ocean bathymetry, conditioned
 drainage, climate, ice flow, glacial carving, and fractures consume the prior
-passes in dependency order. Ice Remembers then routes fire through fractures,
-aurora through cold ice reservoirs, and pressure waves through ocean geometry.
+passes through independent dependency-declaring layers. Ice Remembers then runs
+a second external layer pipeline that classifies varied cold land and water,
+routes fire through fractures, aurora through cold ice reservoirs, and pressure
+waves through ocean geometry.
 It retains natural surfaces, anomaly flags, and all three intensity fields while
 scored authored rules reduce each 24-triangle aggregate to the base terrain the
-hex-scale kernel consumes. Geographic subdivisions grow as connected partitions
-over those facts and never repaint the physical field. During the Long Dark,
+hex-scale kernel consumes. Ocean, land-ice, sea-ice, landmass, lake, surface
+concentration, warmth, and anomaly distribution goals are tunable profile
+targets; structural graph and routing contracts remain invariants. Geographic
+subdivisions grow as connected partitions over those facts and never repaint
+the physical field. During the Long Dark,
 ordinary reclaim applies impassable Deep Ice as transient cover only to
 frontier-grown physical cells. Durable terrain and the startup heart remain
 intact underneath. Reach across the map is priced by travel cost, not raw hex

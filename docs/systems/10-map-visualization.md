@@ -37,6 +37,27 @@ The map should help answer these questions quickly:
 - Which regions, settlements, and relationships explain a generator or gambit
   becoming available?
 
+## Physical Generation Views
+
+The immutable startup geography projection exposes the complete latent physical
+disk without making it live simulation state. Normal play clips that projection
+to materialized, unmodified hexes; explicit generation inspection may reveal the
+latent field. Distant zoom renders one aggregate value per hex, while close zoom
+renders all 24 physical microtriangles.
+
+Close zoom uses triangle-scale rivers, peaks, and significant anomalies only.
+It does not superimpose aggregate coast/ridge/cliff/pass/fracture masks over the
+triangle field. At distant zoom, each shared aggregate edge has one
+deterministic drawing owner so reciprocal masks do not produce doubled seams.
+Final- and natural-surface views preserve an ocean or lake underlay beneath ice
+and magic surfaces, keeping frozen water geographically legible.
+
+Available views cover effective terrain, final surface, natural surface,
+material, elevation, temperature, moisture, geothermal heat, landform,
+hydrology, ice, fractures, fire, aurora, pressure, and composite magic. These
+views visualize projected facts; they never classify terrain or feed values
+back to worldgen or the simulation.
+
 ## Non-Goals
 
 - Visualization must not compute simulation state.

@@ -64,8 +64,13 @@ one unnamed dead-god locus plus ancient impacts and wakes. Interaction
 predicates retain rare compound anomalies without erasing the underlying
 natural surface. Frozen oceans classify into pack ice, sea ice, ice shelf, and
 polynya surfaces, making the setting icebound while leaving distinct warm-water
-habitats. These processes and every triangle field remain external startup
-data; the dead-god locus is a generation pressure source, not a graph entity.
+habitats. Cold land separately classifies polar barrens, wet tundra, cold
+steppe, scree fields, river valleys, ordinary tundra, ridges, snowfields, and
+glaciers. Physical and domain passes are independent dependency-declaring
+processes; distribution goals such as ocean and land-ice coverage are tunable
+generation-profile targets rather than hard-coded proportions. These processes
+and every triangle field remain external startup data; the dead-god locus is a
+generation pressure source, not a graph entity.
 
 The current simulation remains hex-scale. Worldgen derives one authoritative
 external summary per physical hex: base terrain, primary surface, significant
@@ -99,8 +104,10 @@ aggregate latent hexes. Terrain, final and natural surface, material,
 elevation, temperature, moisture, geothermal, landform, hydrology, ice,
 fracture, fire, aurora, pressure, and composite-magic views expose how the
 synthesized terrain was chosen. Chunk culling keeps triangle drawing limited to
-the visible field, and the tooltip exposes both hex summaries and individual
-triangle facts.
+the visible field. Close zoom draws triangle-scale features without overlaying
+aggregate full-hex masks; distant shared feature edges are drawn once by a
+deterministic owner. Surface views blend water beneath sea ice and other ocean
+surfaces. The tooltip exposes both hex summaries and individual triangle facts.
 
 Runtime triangle edits and triangle-scale movement or placement remain
 follow-up systems; rendering the geography does not move ordinary simulation

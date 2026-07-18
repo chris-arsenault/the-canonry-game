@@ -94,7 +94,7 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         var color = AggregateColor(cell);
         DrawColoredPolygon(_owner!.Geometry.HexPoints, color);
         DrawPolyline(_owner.Geometry.ClosedHexPoints, UiTokens.Hairline, 0.75f);
-        if (_owner.FeaturesEnabled)
+        if (FeatureDetail() == PhysicalMicrogeographyFeatureDetail.Aggregate)
         {
             DrawHexFeatures(cell);
         }
@@ -172,10 +172,9 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         }
 
         DrawPolyline(_owner.Geometry.ClosedHexPoints, UiTokens.HairlineStrong, 0.9f);
-        if (_owner.FeaturesEnabled)
+        if (FeatureDetail() == PhysicalMicrogeographyFeatureDetail.Microtriangle)
         {
             DrawTriangleFeatures(cell, triangles);
-            DrawHexFeatures(cell);
         }
     }
 
@@ -343,8 +342,18 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
     {
         for (var sector = 0; sector < PhysicalGeographyCodes.HexSectorCount; sector++)
         {
+            var neighborExists = _owner!.Geography.TryGetCell(cell.Coord.Neighbor(sector), out _);
+            if (!PhysicalMicrogeographyRenderDecisions.OwnsSharedHexEdge(
+                    cell.Coord.Q,
+                    cell.Coord.R,
+                    sector,
+                    neighborExists))
+            {
+                continue;
+            }
+
             var bit = 1 << sector;
-            var a = _owner!.Geometry.HexPoints[sector];
+            var a = _owner.Geometry.HexPoints[sector];
             var b = _owner.Geometry.HexPoints[(sector + 1) % PhysicalGeographyCodes.HexSectorCount];
             if ((cell.RidgeEdgeMask & bit) != 0)
             {
@@ -515,9 +524,14 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         _ => UiTokens.Whisper,
     };
 
+    private PhysicalMicrogeographyFeatureDetail FeatureDetail() =>
+        PhysicalMicrogeographyRenderDecisions.FeatureDetail(
+            _owner!.FeaturesEnabled,
+            _owner.DrawMicrotriangles,
+            _owner.DrawAggregateHexes);
+
     private static bool ViewUsesWaterTint(PhysicalGeographyView view) =>
-        view == PhysicalGeographyView.Terrain ||
-        view is >= PhysicalGeographyView.Material and <= PhysicalGeographyView.Landform;
+        PhysicalMicrogeographyRenderDecisions.UsesWaterUnderlay(view);
 
     private static Color ElevationShade(Color color, int elevation)
     {

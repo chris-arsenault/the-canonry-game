@@ -5,26 +5,6 @@ using Godot;
 
 namespace TheCanonryGame.UI;
 
-public enum PhysicalGeographyView
-{
-    Terrain,
-    Surface,
-    NaturalSurface,
-    Material,
-    Elevation,
-    Temperature,
-    Moisture,
-    Geothermal,
-    Landform,
-    Hydrology,
-    Ice,
-    Fractures,
-    Fire,
-    Aurora,
-    Pressure,
-    MagicComposite,
-}
-
 public readonly record struct PhysicalMicrotriangleHit(HexCoord Coord, int TriangleIndex);
 
 public partial class PhysicalMicrogeographyLayer : Node2D
