@@ -2,7 +2,7 @@
 
 Date: 2026-07-18
 
-Status: Approved and amended proposal; implementation not started
+Status: Implemented; registered evidence complete; physical-growth pacing follow-up identified
 
 ## Scope
 
@@ -349,6 +349,53 @@ Monte Carlo evidence run should check terrain diversity, continued long-horizon
 growth, reclaim restoration, map utilization, roaming variance, culture shape,
 and Hot Springs coverage. Any important ad hoc SQL findings must be appended to
 that run's registry record.
+
+## Implementation Outcome
+
+The approved rework was implemented and pushed in four milestones:
+
+- `f754603` — deterministic radius-128 latent physical microgeography and
+  varied semantic terrain blueprints.
+- `049e372` — coordinate-based frontier reveal, explicit frontier capacity,
+  independent physical/semantic live extents, and extent-aware map consumers
+  and snapshots.
+- `2c3b951` — durable base terrain plus transient Deep Ice cover,
+  frontier-scoped rotating reclaim, and corrupted-scar-only cleansing.
+- `d2b08b6` — stable architecture and system documentation.
+
+Final `make ci` passed with clean analyzers and formatting, all test suites, 319
+kernel tests, and the domain-contamination check.
+
+Registered post-implementation evidence:
+
+- `terrain-map-rework-3x25k-20260718` — three standard 25k-tick trace runs.
+  Physical frontier additions were varied rather than uniform: 127 additions
+  split across Crags, Ocean, Tundra, and Reef, with no type above 27.56%.
+  Semantic growth added 2,025 cells across all ten semantic terrains; Open
+  Field was 2.37% of additions. Final Hot Springs share was 4.71% to 8.48%,
+  compared with 40.7% in `atomic-fire-fix-15k-20260718`. Physical activity
+  entropy was 0.81 to 0.89 and semantic activity entropy was 0.84 to 0.86.
+- `terrain-cover-saturation-1x25k-20260718` — the existing saturation scenario
+  entered reclaim ages, but no frontier cell was eligible for cover; this run
+  is recorded as inconclusive for restoration rather than treated as evidence
+  of success.
+- `terrain-map-long-horizon-1x100k-20260718` — one 100k-tick saturation run.
+  Nine frontier cells received Deep Ice cover. Cell `(11, 8)` materialized as
+  Hot Springs at tick 4,250, froze at 7,625, and thawed back to Hot Springs at
+  11,375, directly demonstrating non-destructive restoration. Deep Ice peaked
+  at 0.73% of the physical map and ended at 0.66%, rather than covering roughly
+  23% to 25% as in the old runs. The process was observed at about 6.0 GiB RSS
+  during the long telemetry run, within the explicitly acceptable 8 GiB
+  envelope.
+
+The evidence also identifies one remaining balance/pacing issue rather than a
+capacity defect. Standard physical runs reached radii 22, 24, and 21; the 100k
+run reached radius 21. Semantic growth continued to radius 52. The implemented
+hard limit is 128 and the stale-extent/candidate-cap defects are removed, but
+physical Thaw-age availability and frontier pressure still do not reliably
+produce long-horizon expansion. Per the approved out-of-scope boundary below,
+world-beat cadence was not tuned to conceal or compensate for this result. It
+needs a separate evidence-led pacing proposal.
 
 ## Out of Scope
 
