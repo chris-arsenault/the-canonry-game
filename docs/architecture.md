@@ -41,7 +41,12 @@ Engine.Observability
   run log, telemetry projection, parquet export, Monte Carlo analysis inputs
 
 Engine.WorldGen
-  physical map generation, terrain, coverage, startup placement
+  domain-neutral hex/triangle topology, whole-field physical generation,
+  hydrology, landforms, aggregation, terrain catalogs, and map coverage
+
+IceRemembers.Seed
+  Ice Remembers physical materials, authored hex-terrain synthesis,
+  geography-shaped subdivisions, startup placement, and seed validation
 ```
 
 `Engine.Kernel` must remain domain-agnostic. Domain names compile to stable ids
@@ -179,14 +184,19 @@ The physical and semantic worlds grow from separately tracked radius-18
 hearts toward an explicit fixed-capacity generation radius of 128. Seed/worldgen
 installs deterministic terrain and geography for that whole latent field, but
 `MapFrontier` materializes cells only where culture presses an edge. Physical
-hex summaries are derived from 24 microtriangles carrying material, elevation,
-and hydrology; current simulation behavior remains hex-scale. During the Long
-Dark, ordinary reclaim applies impassable Deep Ice as transient cover only to
-frontier-grown physical cells. Durable terrain and the startup heart remain
-intact underneath. Reach across the map is priced by travel cost, not raw hex
-distance: a `WithinTravelReach` gate line-samples road-discounted terrain cost
-between endpoints, so frozen frontier blocks reach and roads extend it. See
-[26-growing-map.md](./systems/26-growing-map.md).
+worldgen first builds a padded shared triangle graph, then derives
+macrostructure/elevation, connected ocean, climate and geothermal normals,
+conditioned drainage, lakes, rivers, and landforms in dependency order. Ice
+Remembers classifies physical materials separately from gameplay terrain and
+uses scored authored rules over each 24-triangle aggregate to choose base
+terrain. Geographic subdivisions grow as connected partitions over those
+facts and never repaint the physical field. Current simulation behavior remains
+hex-scale. During the Long Dark, ordinary reclaim applies impassable Deep Ice
+as transient cover only to frontier-grown physical cells. Durable terrain and
+the startup heart remain intact underneath. Reach across the map is priced by
+travel cost, not raw hex distance: a `WithinTravelReach` gate line-samples
+road-discounted terrain cost between endpoints, so frozen frontier blocks reach
+and roads extend it. See [26-growing-map.md](./systems/26-growing-map.md).
 
 The former macro aggregate layer has been removed. Generator, gambit, trait,
 and card work use shared query, effect, and decision-modifier primitives.

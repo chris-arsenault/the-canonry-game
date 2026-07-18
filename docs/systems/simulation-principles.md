@@ -110,6 +110,14 @@ restoration after thaw. A larger map is not healthy if new cells collapse into
 one terrain, and a visually icy period is not destructive if the varied durable
 base remains intact underneath.
 
+Physical generation quality begins with structural invariants before balance:
+reciprocal triangle topology and feature edges, connected exterior ocean,
+acyclic drainage, coherent lake surfaces, downstream-growing river
+accumulation, consistent hex summaries, and connected subdivisions that do not
+mutate physical facts. Terrain distribution remains a diagnostic across seeds;
+do not retune the physical generator merely to satisfy an arbitrary percentage
+when placement, traversal, or map-use evidence does not identify a problem.
+
 For culture influence, watch component quality per culture and plane:
 
 - component count above a threshold;

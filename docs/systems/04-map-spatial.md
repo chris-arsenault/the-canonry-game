@@ -36,15 +36,36 @@ of physical material.
 ## Physical Microgeography And Effective Terrain
 
 Every latent physical surface hex has 24 canonically indexed microtriangles.
-Each triangle stores primitive material, elevation, and hydrology data. Stable
-within-hex and across-edge adjacency makes ridges, coasts, drainage, and rivers
-continuous across hex boundaries instead of independently rolled decorations.
+Each triangle stores a physical material, landform, elevation, stable climate
+and geothermal values, water kind/depth/body, drainage basin, downstream edge,
+flow accumulation, river order, and permanent feature flags. Physical materials
+such as bedrock, scree, tundra soil, glacial ice, marine sediment, reef stone,
+and geothermal crust are not gameplay terrain IDs. Stable within-hex and
+across-edge adjacency makes ridges, coasts, drainage, and rivers continuous
+across hex boundaries instead of independently rolled decorations.
+
+Generation is ordered over one padded graph: macro sites and plate-boundary
+influence shape elevation; boundary flooding identifies the connected ocean;
+climate and geothermal normals follow; a deterministic priority flood creates
+acyclic drainage, coherent lakes, accumulated runoff, and tributary order; and
+elevation topology classifies plains, valleys, ridges, peaks, and passes. The
+padded result is cropped to the configured latent disk, so the configured edge
+is not automatically a coast or watershed.
 
 The current simulation remains hex-scale. Worldgen derives one authoritative
-summary per physical hex: base terrain, mean and maximum elevation, roughness,
-water coverage, and river/coast edge masks. Movement, culture, placement, map
-signals, and authored terrain rules consume the effective terrain id from that
-summary boundary. They do not independently reinterpret the 24 triangles.
+summary per physical hex: base terrain, dominant material, elevation range and
+relief, roughness, climate normals, land/ocean/lake/ice/river coverage, peaks,
+and reciprocal river/coast/ridge/cliff/pass edge masks. Base terrain is chosen
+by scored Ice Remembers rules over both aggregate and minority features, not a
+dominant-material count cascade. Movement, culture, placement, and map signals
+currently consume the effective terrain id from that summary boundary; using
+the richer physical summary is a follow-up. They do not independently
+reinterpret the 24 triangles.
+
+Continents and superregions are connected growth partitions over the generated
+geography. Their traversal costs prefer their authored maritime, land, cold,
+coastal, or highland character. Subdivision assignment never edits elevation,
+water, material, landform, or terrain to manufacture a boundary.
 
 Physical terrain has two runtime layers. Durable base terrain is the generated
 summary or a later permanent transformation. Transient cover, currently Deep

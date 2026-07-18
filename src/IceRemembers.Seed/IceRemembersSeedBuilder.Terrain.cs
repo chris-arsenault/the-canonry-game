@@ -19,14 +19,6 @@ internal static partial class IceRemembersSeedBuilder
         }
     }
 
-    private static void SetTerrain(
-        HexGrid grid,
-        HexCoord coord,
-        IceRemembersTerrain terrain)
-    {
-        grid.SetCell(coord, terrain.ToDomainName());
-    }
-
     private static HashSet<string> TerrainSet(params IceRemembersTerrain[] terrains) =>
         terrains.Select(terrain => terrain.ToDomainName()).ToHashSet(StringComparer.Ordinal);
 }

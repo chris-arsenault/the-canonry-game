@@ -1,5 +1,7 @@
 namespace IceRemembers.Seed;
 
+using System.Numerics;
+
 using Engine.Domain.Startup;
 using Engine.WorldGen;
 
@@ -16,6 +18,8 @@ internal static partial class IceRemembersSeedBuilder
     private const int BlackwaterSuperregionId = 22;
     private const int WhiteEmptySuperregionId = 31;
     private const int DeepEmptySuperregionId = 32;
+
+    private const int PhysicalSubdivisionScale = 32;
 
     private const int SemanticMemoryContinentId = 101;
     private const int SemanticAuthorityContinentId = 102;
@@ -61,85 +65,365 @@ internal static partial class IceRemembersSeedBuilder
         new(SemanticOpenFieldSuperregionId, DomainMapSubdivisionLevel.Superregion, "semantic_open_fields", "Open Fields"),
     ];
 
-    private static MapSubdivisionMap CreateSubdivisions(HexGrid grid, int salt)
+    private static MapSubdivisionMap CreatePhysicalSubdivisions(
+        PhysicalGeographyField field,
+        ReadOnlySpan<PhysicalHexAggregate> aggregates,
+        int salt)
+    {
+        var continentSeeds = CreateContinentSeeds(field, aggregates);
+        var continents = GrowConnectedRegions(field, aggregates, continentSeeds, [], salt ^ 0x2a91);
+        var superregionSeeds = CreateSuperregionSeeds(field, aggregates, continents);
+        var superregions = GrowConnectedRegions(
+            field,
+            aggregates,
+            superregionSeeds,
+            continents,
+            salt ^ 0x6f17);
+        return BuildSubdivisionMap(field, continents, superregions);
+    }
+
+    private static RegionSeed[] CreateContinentSeeds(
+        PhysicalGeographyField field,
+        ReadOnlySpan<PhysicalHexAggregate> aggregates)
+    {
+        var scale = PhysicalSubdivisionScale;
+        return
+        [
+            new(
+                NearContinentId,
+                SelectAnchor(
+                    field,
+                    aggregates,
+                    [],
+                    0,
+                    new HexCoord(-scale / 2, 0),
+                    AnchorPreference.Land)),
+            new(
+                FarContinentId,
+                SelectAnchor(
+                    field,
+                    aggregates,
+                    [],
+                    0,
+                    new HexCoord((scale * 2) / 3, -(scale * 3) / 5),
+                    AnchorPreference.Ocean)),
+            new(
+                EmptyContinentId,
+                SelectAnchor(
+                    field,
+                    aggregates,
+                    [],
+                    0,
+                    new HexCoord(-(scale * 2) / 5, (scale * 3) / 4),
+                    AnchorPreference.ColdLand)),
+        ];
+    }
+
+    private static RegionSeed[] CreateSuperregionSeeds(
+        PhysicalGeographyField field,
+        ReadOnlySpan<PhysicalHexAggregate> aggregates,
+        ReadOnlySpan<int> continents)
+    {
+        var scale = PhysicalSubdivisionScale;
+        return
+        [
+            SuperregionSeed(field, aggregates, continents, NearContinentId, NorthlandsSuperregionId,
+                new HexCoord(-(scale * 3) / 4, -2), AnchorPreference.ColdLand),
+            SuperregionSeed(field, aggregates, continents, NearContinentId, HeartlandsSuperregionId,
+                new HexCoord(-scale / 4, scale / 3), AnchorPreference.Land),
+            SuperregionSeed(field, aggregates, continents, NearContinentId, CoastlandsSuperregionId,
+                new HexCoord(scale / 4, -(scale * 3) / 5), AnchorPreference.Coast),
+            SuperregionSeed(field, aggregates, continents, FarContinentId, FarwakeSuperregionId,
+                new HexCoord((scale * 2) / 3, -(scale * 3) / 5), AnchorPreference.Ocean),
+            SuperregionSeed(field, aggregates, continents, FarContinentId, BlackwaterSuperregionId,
+                new HexCoord((scale * 7) / 8, 0), AnchorPreference.DeepOcean),
+            SuperregionSeed(field, aggregates, continents, EmptyContinentId, WhiteEmptySuperregionId,
+                new HexCoord(-(scale * 2) / 5, (scale * 3) / 4), AnchorPreference.ColdLand),
+            SuperregionSeed(field, aggregates, continents, EmptyContinentId, DeepEmptySuperregionId,
+                new HexCoord(scale / 4, (scale * 3) / 4), AnchorPreference.Highland),
+        ];
+    }
+
+    private static RegionSeed SuperregionSeed(
+        PhysicalGeographyField field,
+        ReadOnlySpan<PhysicalHexAggregate> aggregates,
+        ReadOnlySpan<int> continents,
+        int continentId,
+        int superregionId,
+        HexCoord target,
+        AnchorPreference preference) =>
+        new(
+            superregionId,
+            SelectAnchor(field, aggregates, continents, continentId, target, preference),
+            continentId);
+
+    private static int SelectAnchor(
+        PhysicalGeographyField field,
+        ReadOnlySpan<PhysicalHexAggregate> aggregates,
+        ReadOnlySpan<int> parentRegions,
+        int parentRegionId,
+        HexCoord target,
+        AnchorPreference preference)
+    {
+        var bestHexIndex = -1;
+        var bestScore = long.MaxValue;
+        for (var configuredIndex = 0;
+            configuredIndex < field.Grid.ConfiguredHexCount;
+            configuredIndex++)
+        {
+            var hexIndex = field.Grid.ConfiguredHexIndexAt(configuredIndex);
+            if (parentRegions.Length != 0 && parentRegions[hexIndex] != parentRegionId)
+            {
+                continue;
+            }
+
+            var coord = field.Grid.HexCoordAt(hexIndex);
+            var score = (HexCoord.Distance(coord, target) * 100L) +
+                AnchorPenalty(aggregates[hexIndex], preference);
+            if (score < bestScore || (score == bestScore && hexIndex < bestHexIndex))
+            {
+                bestHexIndex = hexIndex;
+                bestScore = score;
+            }
+        }
+
+        return bestHexIndex >= 0
+            ? bestHexIndex
+            : throw new InvalidOperationException("Physical subdivision has no eligible anchor.");
+    }
+
+    private static long AnchorPenalty(PhysicalHexAggregate aggregate, AnchorPreference preference) =>
+        preference switch
+        {
+            AnchorPreference.Land => aggregate.WaterCoverage * 100L,
+            AnchorPreference.Ocean => aggregate.LandCoverage * 100L,
+            AnchorPreference.DeepOcean =>
+                (aggregate.LandCoverage * 120L) + Math.Max(0, 24 - aggregate.OceanCoverage) * 30L,
+            AnchorPreference.ColdLand =>
+                (aggregate.WaterCoverage * 100L) + aggregate.MeanTemperature,
+            AnchorPreference.Coast =>
+                (aggregate.CoastEdgeMask == 0 ? 1800L : 0L) +
+                (Math.Abs(12 - aggregate.WaterCoverage) * 40L),
+            AnchorPreference.Highland =>
+                (aggregate.WaterCoverage * 100L) + Math.Max(0, 300 - aggregate.MeanElevation),
+            _ => 0L,
+        };
+
+    private static int[] GrowConnectedRegions(
+        PhysicalGeographyField field,
+        ReadOnlySpan<PhysicalHexAggregate> aggregates,
+        ReadOnlySpan<RegionSeed> seeds,
+        ReadOnlySpan<int> parentRegions,
+        int salt)
+    {
+        ValidateRegionSeeds(seeds);
+        var assigned = new int[field.Grid.HexCount];
+        var bestCosts = new long[checked(field.Grid.HexCount * seeds.Length)];
+        Array.Fill(bestCosts, long.MaxValue);
+        var queue = new PriorityQueue<GrowthFrontier, (long Cost, int RegionId, int HexIndex)>();
+        SeedRegionGrowth(seeds, field.Grid.HexCount, bestCosts, queue);
+        while (queue.TryDequeue(out var frontier, out var priority))
+        {
+            if (assigned[frontier.HexIndex] != 0 ||
+                priority.Cost != bestCosts[(frontier.SeedIndex * field.Grid.HexCount) + frontier.HexIndex])
+            {
+                continue;
+            }
+
+            assigned[frontier.HexIndex] = seeds[frontier.SeedIndex].RegionId;
+            ExpandRegionGrowth(
+                field,
+                aggregates,
+                seeds,
+                parentRegions,
+                salt,
+                assigned,
+                bestCosts,
+                queue,
+                frontier,
+                priority.Cost);
+        }
+
+        ValidateRegionCoverage(field, seeds, assigned);
+        return assigned;
+    }
+
+    private static void ValidateRegionSeeds(ReadOnlySpan<RegionSeed> seeds)
+    {
+        var anchors = new HashSet<(int ParentRegionId, int HexIndex)>();
+        var regionIds = new HashSet<int>();
+        foreach (var seed in seeds)
+        {
+            if (!anchors.Add((seed.ParentRegionId, seed.HexIndex)) || !regionIds.Add(seed.RegionId))
+            {
+                throw new InvalidOperationException("Physical subdivision seeds must be distinct.");
+            }
+        }
+    }
+
+    private static void SeedRegionGrowth(
+        ReadOnlySpan<RegionSeed> seeds,
+        int hexCount,
+        Span<long> bestCosts,
+        PriorityQueue<GrowthFrontier, (long Cost, int RegionId, int HexIndex)> queue)
+    {
+        for (var seedIndex = 0; seedIndex < seeds.Length; seedIndex++)
+        {
+            var seed = seeds[seedIndex];
+            bestCosts[(seedIndex * hexCount) + seed.HexIndex] = 0;
+            queue.Enqueue(
+                new GrowthFrontier(seedIndex, seed.HexIndex),
+                (0, seed.RegionId, seed.HexIndex));
+        }
+    }
+
+    private static void ExpandRegionGrowth(
+        PhysicalGeographyField field,
+        ReadOnlySpan<PhysicalHexAggregate> aggregates,
+        ReadOnlySpan<RegionSeed> seeds,
+        ReadOnlySpan<int> parentRegions,
+        int salt,
+        ReadOnlySpan<int> assigned,
+        Span<long> bestCosts,
+        PriorityQueue<GrowthFrontier, (long Cost, int RegionId, int HexIndex)> queue,
+        GrowthFrontier frontier,
+        long currentCost)
+    {
+        var seed = seeds[frontier.SeedIndex];
+        var coord = field.Grid.HexCoordAt(frontier.HexIndex);
+        foreach (var neighborCoord in coord.Neighbors())
+        {
+            if (!field.Grid.TryGetHexIndex(neighborCoord, out var neighborHexIndex) ||
+                !field.Grid.TriangleIsInsideConfiguredDisk(field.Grid.TriangleIndex(neighborHexIndex, 0)) ||
+                assigned[neighborHexIndex] != 0 ||
+                (parentRegions.Length != 0 && parentRegions[neighborHexIndex] != seed.ParentRegionId))
+            {
+                continue;
+            }
+
+            EnqueueGrowthCandidate(
+                field,
+                aggregates,
+                seed,
+                salt,
+                bestCosts,
+                queue,
+                frontier.SeedIndex,
+                neighborHexIndex,
+                currentCost);
+        }
+    }
+
+    private static void EnqueueGrowthCandidate(
+        PhysicalGeographyField field,
+        ReadOnlySpan<PhysicalHexAggregate> aggregates,
+        RegionSeed seed,
+        int salt,
+        Span<long> bestCosts,
+        PriorityQueue<GrowthFrontier, (long Cost, int RegionId, int HexIndex)> queue,
+        int seedIndex,
+        int hexIndex,
+        long currentCost)
+    {
+        var bestCostIndex = (seedIndex * field.Grid.HexCount) + hexIndex;
+        var nextCost = currentCost + RegionStepCost(
+            seed.RegionId,
+            aggregates[hexIndex],
+            field.Grid.HexCoordAt(hexIndex),
+            salt);
+        if (nextCost >= bestCosts[bestCostIndex])
+        {
+            return;
+        }
+
+        bestCosts[bestCostIndex] = nextCost;
+        queue.Enqueue(
+            new GrowthFrontier(seedIndex, hexIndex),
+            (nextCost, seed.RegionId, hexIndex));
+    }
+
+    private static int RegionStepCost(
+        int regionId,
+        PhysicalHexAggregate aggregate,
+        HexCoord coord,
+        int salt)
+    {
+        var geographicBarrier = (aggregate.Relief / 8) +
+            (BitOperations.PopCount((uint)aggregate.CliffEdgeMask) * 18);
+        var affinity = regionId switch
+        {
+            NearContinentId => aggregate.OceanCoverage * 11,
+            FarContinentId => aggregate.LandCoverage * 10,
+            EmptyContinentId =>
+                (aggregate.WaterCoverage * 7) + Math.Max(0, aggregate.MeanTemperature - 300) / 3,
+            _ => aggregate.WaterCoverage * 2,
+        };
+        var variation = (int)(CellNoise(coord, salt ^ regionId) * 22f);
+        return 80 + geographicBarrier + affinity + variation;
+    }
+
+    private static void ValidateRegionCoverage(
+        PhysicalGeographyField field,
+        ReadOnlySpan<RegionSeed> seeds,
+        ReadOnlySpan<int> assigned)
+    {
+        for (var configuredIndex = 0;
+            configuredIndex < field.Grid.ConfiguredHexCount;
+            configuredIndex++)
+        {
+            if (assigned[field.Grid.ConfiguredHexIndexAt(configuredIndex)] == 0)
+            {
+                throw new InvalidOperationException("Physical subdivision growth left an unassigned hex.");
+            }
+        }
+
+        foreach (var seed in seeds)
+        {
+            if (!assigned.Contains(seed.RegionId))
+            {
+                throw new InvalidOperationException("Physical subdivision growth lost an authored region.");
+            }
+        }
+    }
+
+    private static MapSubdivisionMap BuildSubdivisionMap(
+        PhysicalGeographyField field,
+        ReadOnlySpan<int> continents,
+        ReadOnlySpan<int> superregions)
     {
         var map = new MapSubdivisionMap();
-        foreach (var cell in grid.AllCells)
+        for (var configuredIndex = 0;
+            configuredIndex < field.Grid.ConfiguredHexCount;
+            configuredIndex++)
         {
-            var coord = cell.Coord;
-            var continentId = ChooseContinent(grid, coord, salt);
-            var superregionId = ChooseSuperregion(grid, coord, continentId, salt);
-            map.AssignCell(coord, superregionId, continentId);
+            var hexIndex = field.Grid.ConfiguredHexIndexAt(configuredIndex);
+            map.AssignCell(
+                field.Grid.HexCoordAt(hexIndex),
+                superregions[hexIndex],
+                continents[hexIndex]);
         }
 
         return map;
     }
 
-    private static int ChooseContinent(HexGrid grid, HexCoord coord, int salt)
+    private enum AnchorPreference
     {
-        _ = grid;
-        var radius = PhysicalHeartRadius;
-        var near = SubdivisionDistance(coord, new HexCoord(-radius / 4, 1), salt ^ 101, 4f);
-        var far = SubdivisionDistance(coord, new HexCoord((radius * 3) / 4, -(radius * 3) / 5), salt ^ 211, 3f);
-        var empty = SubdivisionDistance(coord, new HexCoord(-radius / 5, (radius * 3) / 5), salt ^ 307, 2f);
-
-        if (far < near && far < empty)
-        {
-            return FarContinentId;
-        }
-
-        return empty < near
-            ? EmptyContinentId
-            : NearContinentId;
+        Land,
+        Ocean,
+        DeepOcean,
+        ColdLand,
+        Coast,
+        Highland,
     }
 
-    private static int ChooseSuperregion(HexGrid grid, HexCoord coord, int continentId, int salt)
-    {
-        _ = grid;
-        var radius = PhysicalHeartRadius;
-        return continentId switch
-        {
-            NearContinentId => ClosestSuperregion(
-                coord,
-                salt,
-                (NorthlandsSuperregionId, new HexCoord(-radius / 2, -2)),
-                (HeartlandsSuperregionId, new HexCoord(-radius / 5, 8)),
-                (CoastlandsSuperregionId, new HexCoord(radius / 6, -radius / 4))),
-            FarContinentId => ClosestSuperregion(
-                coord,
-                salt,
-                (FarwakeSuperregionId, new HexCoord((radius * 3) / 4, -(radius * 3) / 5)),
-                (BlackwaterSuperregionId, new HexCoord((radius * 7) / 10, -radius / 5))),
-            _ => ClosestSuperregion(
-                coord,
-                salt,
-                (WhiteEmptySuperregionId, new HexCoord(-radius / 3, (radius * 3) / 5)),
-                (DeepEmptySuperregionId, new HexCoord(radius / 5, radius / 3))),
-        };
-    }
+    private readonly record struct RegionSeed(
+        int RegionId,
+        int HexIndex,
+        int ParentRegionId = 0);
 
-    private static int ClosestSuperregion(
-        HexCoord coord,
-        int salt,
-        params (int Id, HexCoord Center)[] options)
-    {
-        var bestId = options[0].Id;
-        var bestScore = float.PositiveInfinity;
-        foreach (var option in options)
-        {
-            var score = SubdivisionDistance(coord, option.Center, salt ^ option.Id, 2.5f);
-            if (score < bestScore)
-            {
-                bestId = option.Id;
-                bestScore = score;
-            }
-        }
-
-        return bestId;
-    }
-
-    private static float SubdivisionDistance(HexCoord coord, HexCoord center, int salt, float noiseScale) =>
-        HexCoord.Distance(coord, center) + ((CellNoise(coord, salt) - 0.5f) * noiseScale);
+    private readonly record struct GrowthFrontier(
+        int SeedIndex,
+        int HexIndex);
 
     private static float SuperregionAffinity(
         MapSubdivisionMap subdivisionMap,

@@ -12,6 +12,7 @@ public static class PhysicalGeographyValidator
         ArgumentNullException.ThrowIfNull(profile);
         ValidateCodes(field);
         ValidateOcean(field);
+        ValidateLakes(field);
         ValidateFlowGraph(field);
         ValidateRivers(field);
     }
@@ -61,6 +62,30 @@ public static class PhysicalGeographyValidator
             if (state[triangleIndex] == 0)
             {
                 TraceFlow(field, triangleIndex, state);
+            }
+        }
+    }
+
+    private static void ValidateLakes(PhysicalGeographyField field)
+    {
+        var surfaces = new Dictionary<int, int>();
+        for (var triangleIndex = 0; triangleIndex < field.Grid.TriangleCount; triangleIndex++)
+        {
+            if (field.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.Lake)
+            {
+                continue;
+            }
+
+            var waterBodyId = field.WaterBodyIds[triangleIndex];
+            var surface = field.DrainageElevations[triangleIndex];
+            if (waterBodyId <= 1 || field.WaterDepths[triangleIndex] <= 0)
+            {
+                throw new InvalidOperationException("Physical lake is missing body or depth data.");
+            }
+
+            if (!surfaces.TryAdd(waterBodyId, surface) && surfaces[waterBodyId] != surface)
+            {
+                throw new InvalidOperationException("Physical lake body has inconsistent surface elevation.");
             }
         }
     }

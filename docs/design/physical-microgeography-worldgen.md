@@ -1,7 +1,13 @@
 # Physical Microgeography and World Generation
 
-Status: proposed follow-up to the completed
+Status: implemented for deferred items 1–3; items 4–11 remain follow-ups to the completed
 [growing-map terrain substrate](../analysis/growing-map-terrain-review-proposal-20260718.md).
+
+The implementation now uses the ordered whole-field pipeline, independent
+physical material vocabulary, connected geography-shaped subdivisions, and
+authored aggregate terrain synthesis described here. Runtime utilization,
+projection, rendering, and triangle-scale gameplay remain deliberately outside
+this tranche.
 
 This document records the deferred physical-microgeography work and designs the
 first implementation tranche. The tranche ends before simulation behavior: it

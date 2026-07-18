@@ -60,11 +60,17 @@ frontier reclaim does not do it implicitly.
 ## Latent geography
 
 Physical worldgen generates the whole radius-128 field as 24 canonical
-microtriangles per hex. Primitive material, elevation, and hydrology are
-continuous across shared edges and deterministically derive the hex's base
-terrain, mean and maximum elevation, roughness, water coverage, river edges,
-and coast edges. The simulation still acts at hex scale; microtriangle
-rendering and triangle-scale gameplay are follow-ups.
+microtriangles per hex, using generation padding outside that field to avoid an
+artificial coastline at the latent frontier. Macrostructure and elevation feed
+connected-ocean classification, climate and geothermal normals, priority-flood
+drainage, lakes, accumulated rivers, and topology-derived landforms. Physical
+materials are distinct from gameplay terrain. Scored authored rules derive the
+hex's durable base terrain from its triangle arrangement and retained minority
+features, while the complete summary retains relief, climate, water and ice
+coverage, peaks, and reciprocal river/coast/ridge/cliff/pass edge masks.
+Continents and superregions follow this geography without creating water bands.
+The simulation still acts at hex scale; richer summary utilization,
+microtriangle rendering, and triangle-scale gameplay are follow-ups.
 
 Semantic worldgen installs a varied per-hex terrain and geography blueprint
 through the same generation radius. It does not use microtriangles.

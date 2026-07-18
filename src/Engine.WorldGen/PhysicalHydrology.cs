@@ -232,7 +232,10 @@ internal static class PhysicalHydrology
             for (var edge = 0; edge < 3; edge++)
             {
                 var neighbor = field.Grid.NeighborTriangleIndex(triangleIndex, edge);
-                if (neighbor >= 0 && candidate[neighbor] && field.WaterBodyIds[neighbor] == 0)
+                if (neighbor >= 0 &&
+                    candidate[neighbor] &&
+                    field.WaterBodyIds[neighbor] == 0 &&
+                    field.DrainageElevations[neighbor] == field.DrainageElevations[triangleIndex])
                 {
                     MarkLake(field, neighbor, waterBodyId, queue);
                 }

@@ -38,6 +38,10 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public double OrographicDrying { get; init; } = 0.24d;
 
+    public double PrevailingWindX { get; init; } = 1d;
+
+    public double PrevailingWindY { get; init; }
+
     public int LakeDepthThreshold { get; init; } = 24;
 
     public int RiverAccumulationThreshold { get; init; } = 11000;
@@ -78,7 +82,8 @@ public sealed record PhysicalGeographyGenerationProfile
     private void ValidateFeatureScales()
     {
         if (PlateSpacing <= 0d || PlateBoundaryWidth <= 0d ||
-            MacroNoiseScale <= 0d || MediumNoiseScale <= 0d || DetailNoiseScale <= 0d)
+            MacroNoiseScale <= 0d || MediumNoiseScale <= 0d || DetailNoiseScale <= 0d ||
+            Math.Abs(PrevailingWindX) + Math.Abs(PrevailingWindY) <= double.Epsilon)
         {
             throw new InvalidOperationException("Physical worldgen feature scales must be positive.");
         }
@@ -151,9 +156,10 @@ public static class PhysicalGeographyGenerator
         var jitterY = PhysicalNoise.HashSigned(seed ^ 0x286d, row, column) * rowHeight * 0.22d;
         var x = -extentX + (column * profile.PlateSpacing) + offset + jitterX;
         var y = -extentY + (row * rowHeight) + jitterY;
-        var baseElevation = PhysicalNoise.HashSigned(seed ^ 0x45a1, row, column) * 0.39d;
+        var continentalTendency = PhysicalNoise.HashSigned(seed ^ 0x45a1, row, column) * 0.39d;
+        var age = PhysicalNoise.HashUnit(seed ^ 0x5bb3, row, column);
         var angle = PhysicalNoise.HashUnit(seed ^ 0x7229, row, column) * Math.PI * 2d;
-        return new MacroSite(x, y, baseElevation, Math.Cos(angle), Math.Sin(angle));
+        return new MacroSite(x, y, continentalTendency, age, Math.Cos(angle), Math.Sin(angle));
     }
 
     private static void GenerateElevation(
@@ -189,11 +195,23 @@ public static class PhysicalGeographyGenerator
         double y,
         MacroSite site,
         int seed,
-        PhysicalGeographyGenerationProfile profile) =>
-        site.ElevationBias +
-        (PhysicalNoise.FractalNoise(x, y, seed ^ 0x19f1, profile.MacroNoiseScale, 3) * 0.30d) +
-        (PhysicalNoise.FractalNoise(x, y, seed ^ 0x4b37, profile.MediumNoiseScale, 3) * 0.13d) +
-        (PhysicalNoise.FractalNoise(x, y, seed ^ 0x7c15, profile.DetailNoiseScale, 2) * 0.045d);
+        PhysicalGeographyGenerationProfile profile)
+    {
+        var warpScale = profile.MediumNoiseScale * 1.7d;
+        var warpStrength = profile.MediumNoiseScale * 0.42d;
+        var warpedX = x +
+            (PhysicalNoise.FractalNoise(x, y, seed ^ 0x3d29, warpScale, 2) * warpStrength);
+        var warpedY = y +
+            (PhysicalNoise.FractalNoise(x, y, seed ^ 0x6a43, warpScale, 2) * warpStrength);
+        var youngRoughness = 0.85d + ((1d - site.Age) * 0.3d);
+        return site.ContinentalTendency +
+            ((site.Age - 0.5d) * 0.08d) +
+            (PhysicalNoise.FractalNoise(warpedX, warpedY, seed ^ 0x19f1, profile.MacroNoiseScale, 3) * 0.30d) +
+            (PhysicalNoise.FractalNoise(warpedX, warpedY, seed ^ 0x4b37, profile.MediumNoiseScale, 3) *
+                0.13d * youngRoughness) +
+            (PhysicalNoise.FractalNoise(warpedX, warpedY, seed ^ 0x7c15, profile.DetailNoiseScale, 2) *
+                0.045d * youngRoughness);
+    }
 
     private static double HeartBias(double x, double y, PhysicalGeographyGenerationProfile profile)
     {
@@ -268,7 +286,8 @@ public static class PhysicalGeographyGenerator
             ? 0d
             : Math.Clamp(1d - (distance / (double)profile.OceanMoistureDistance), 0d, 1d);
         var noise = PhysicalNoise.UnitNoise(x, y, seed ^ 0x6bb1, 31d, 3);
-        var drying = field.Uplift[triangleIndex] * (float)profile.OrographicDrying;
+        var drying = (field.Uplift[triangleIndex] * (float)profile.OrographicDrying) +
+            OrographicShadow(field, triangleIndex, profile);
         var moisture = 0.12d + (oceanExposure * 0.55d) +
             (noise * profile.MoistureNoiseStrength) - drying;
         if (field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
@@ -283,6 +302,40 @@ public static class PhysicalGeographyGenerator
             (int)Math.Round(
                 field.Moisture[triangleIndex] * meltFactor,
                 MidpointRounding.AwayFromZero));
+    }
+
+    private static double OrographicShadow(
+        PhysicalGeographyField field,
+        int triangleIndex,
+        PhysicalGeographyGenerationProfile profile)
+    {
+        var upwindNeighbor = -1;
+        var upwindProjection = double.MaxValue;
+        var x = field.Grid.TriangleX(triangleIndex);
+        var y = field.Grid.TriangleY(triangleIndex);
+        for (var edge = 0; edge < 3; edge++)
+        {
+            var neighbor = field.Grid.NeighborTriangleIndex(triangleIndex, edge);
+            if (neighbor < 0)
+            {
+                continue;
+            }
+
+            var projection = ((field.Grid.TriangleX(neighbor) - x) * profile.PrevailingWindX) +
+                ((field.Grid.TriangleY(neighbor) - y) * profile.PrevailingWindY);
+            if (projection < upwindProjection)
+            {
+                upwindNeighbor = neighbor;
+                upwindProjection = projection;
+            }
+        }
+
+        return upwindNeighbor < 0
+            ? 0d
+            : Math.Max(
+                0d,
+                (field.Elevation[upwindNeighbor] - field.Elevation[triangleIndex]) /
+                    (double)profile.ElevationScale) * profile.OrographicDrying;
     }
 
     private static void SetClimateFeatures(
@@ -369,7 +422,8 @@ public static class PhysicalGeographyGenerator
     private readonly record struct MacroSite(
         double X,
         double Y,
-        double ElevationBias,
+        double ContinentalTendency,
+        double Age,
         double VelocityX,
         double VelocityY);
 }

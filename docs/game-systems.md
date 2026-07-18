@@ -18,12 +18,16 @@ cells are forged only by entity actions (Aurora spire tiers up, Nightshelf
 tunnel galleries down). Regions and settlements are not a separate
 abstraction from map coverage: they are named coverage over physical space. The
 physical generation blueprint also divides every surface hex into 24 canonical
-microtriangles with material, elevation, and hydrology. Those triangles produce
-one definitive hex summary for the current hex-scale simulation and are the
-substrate for later fine-grained rendering and gameplay. The semantic plane is
-an analogous bounded axial q/r map with `s = -q-r`, its own varied terrain,
-culture influence, roads, and placement. It is not a coordinate copy of the
-physical plane and does not use microtriangles.
+microtriangles. A padded whole-field pass creates coherent elevation,
+temperature, moisture, geothermal, water-body, drainage, river, and landform
+fields on their shared graph. Ice Remembers surface materials are a separate
+vocabulary from gameplay terrain; scored authored rules turn each arranged
+24-triangle aggregate into one base terrain and summary for the current
+hex-scale simulation. The triangles are the substrate for later fine-grained
+rendering and gameplay. The semantic plane is an analogous bounded axial q/r
+map with `s = -q-r`, its own varied terrain, culture influence, roads, and
+placement. It is not a coordinate copy of the physical plane and does not use
+microtriangles.
 
 Domain content is authored in `DomainConfig` and Ice Remembers-specific files.
 Reusable gameplay vocabulary lives in `Engine.Gameplay` and compiles down into

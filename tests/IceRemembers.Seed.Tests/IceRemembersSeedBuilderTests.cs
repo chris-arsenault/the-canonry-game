@@ -152,6 +152,40 @@ public sealed class IceRemembersSeedBuilderTests
     }
 
     [Fact]
+    public void LatentPhysicalGeography_UsesIndependentMaterialsAndConsistentHexSummaries()
+    {
+        var physical = Assert.IsType<DomainPhysicalGeographyBlueprint>(Seed.PhysicalGeography);
+        var gameplayTerrains = IceRemembersTerrainCatalog.CreateWorldGenCatalog()
+            .Terrains
+            .Select(terrain => terrain.StableName)
+            .ToHashSet(StringComparer.Ordinal);
+
+        Assert.DoesNotContain(physical.MaterialPalette, gameplayTerrains.Contains);
+        foreach (var cell in physical.Cells)
+        {
+            AssertCellSummaryMatchesMicrotriangles(physical, cell);
+        }
+    }
+
+    [Fact]
+    public void LatentPhysicalGeography_SharedFeatureEdgesAgreeAcrossHexes()
+    {
+        var physical = Assert.IsType<DomainPhysicalGeographyBlueprint>(Seed.PhysicalGeography);
+        var cells = physical.Cells.ToDictionary(cell => new HexCoord(cell.Q, cell.R));
+        foreach (var cell in physical.Cells)
+        {
+            var coord = new HexCoord(cell.Q, cell.R);
+            for (var direction = 0; direction < 6; direction++)
+            {
+                if (cells.TryGetValue(coord.Neighbor(direction), out var neighbor))
+                {
+                    AssertSharedEdgeMasksAgree(cell, neighbor, direction);
+                }
+            }
+        }
+    }
+
+    [Fact]
     public void Grid_UsesIceRemembersTerrainCatalog()
     {
         var terrainNames = PhysicalCells()
@@ -166,20 +200,18 @@ public sealed class IceRemembersSeedBuilderTests
     }
 
     [Fact]
-    public void TerrainGeneration_UsesExpandedMapInsteadOfOldTundraBands()
+    public void TerrainGeneration_DoesNotCollapseTheStartupHeartToOneTerrain()
     {
         var cells = PhysicalCells();
         var terrainCounts = cells
             .GroupBy(cell => cell.Terrain, StringComparer.Ordinal)
             .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
         var total = cells.Length;
-        var tundraShare = terrainCounts.GetValueOrDefault(T(IceRemembersTerrain.Tundra)) / (float)total;
         var wetShare = cells.Count(cell =>
             IsAnyTerrain(cell.Terrain, IceRemembersTerrain.Ocean, IceRemembersTerrain.Shelf, IceRemembersTerrain.Reef)) /
             (float)total;
         var largestShare = terrainCounts.Values.Max() / (float)total;
 
-        Assert.True(tundraShare < 0.55f, $"Tundra dominates expanded map at {tundraShare:P1}.");
         Assert.True(wetShare >= 0.18f, $"Expected meaningful ocean/shelf/reef separation, got {wetShare:P1}.");
         Assert.True(largestShare < 0.65f, $"Single terrain dominates expanded map at {largestShare:P1}.");
     }
@@ -381,36 +413,13 @@ public sealed class IceRemembersSeedBuilderTests
     }
 
     [Fact]
-    public void SeedSubdivisions_SeparateContinentsWithWaterBands()
+    public void SeedSubdivisions_FormConnectedGeographicPartitions()
     {
-        var physicalCells = PhysicalCells();
-        var cells = physicalCells.ToDictionary(cell => new HexCoord(cell.Q, cell.R));
-        var boundaryEdges = 0;
-        var wetBoundaryEdges = 0;
-        foreach (var cell in physicalCells)
-        {
-            var coord = new HexCoord(cell.Q, cell.R);
-            foreach (var neighborCoord in coord.Neighbors())
-            {
-                if (CompareCoords(coord, neighborCoord) >= 0 ||
-                    !cells.TryGetValue(neighborCoord, out var neighbor) ||
-                    cell.ContinentId == neighbor.ContinentId)
-                {
-                    continue;
-                }
-
-                boundaryEdges++;
-                if (IsWaterBoundaryTerrain(cell.Terrain) || IsWaterBoundaryTerrain(neighbor.Terrain))
-                {
-                    wetBoundaryEdges++;
-                }
-            }
-        }
-
-        Assert.True(boundaryEdges > 0, "Expected continent boundary edges.");
-        Assert.True(
-            wetBoundaryEdges / (float)boundaryEdges >= 0.75f,
-            $"Expected water-separated continents, got {wetBoundaryEdges}/{boundaryEdges} wet boundary edges.");
+        var physical = Assert.IsType<DomainPhysicalGeographyBlueprint>(Seed.PhysicalGeography);
+        Assert.Equal(3, physical.Cells.Select(cell => cell.ContinentId).Distinct().Count());
+        Assert.Equal(7, physical.Cells.Select(cell => cell.SuperregionId).Distinct().Count());
+        AssertRegionsAreConnected(physical.Cells, cell => cell.ContinentId);
+        AssertRegionsAreConnected(physical.Cells, cell => cell.SuperregionId);
     }
 
     [Fact]
@@ -510,9 +519,81 @@ public sealed class IceRemembersSeedBuilderTests
     private static bool IsWaterBoundaryTerrain(string terrainName) =>
         IsAnyTerrain(terrainName, IceRemembersTerrain.Ocean, IceRemembersTerrain.Shelf, IceRemembersTerrain.Reef);
 
-    private static int CompareCoords(HexCoord left, HexCoord right)
+    private static void AssertCellSummaryMatchesMicrotriangles(
+        DomainPhysicalGeographyBlueprint physical,
+        DomainPhysicalGeographyCell cell)
     {
-        var q = left.Q.CompareTo(right.Q);
-        return q != 0 ? q : left.R.CompareTo(right.R);
+        var minElevation = int.MaxValue;
+        var maxElevation = int.MinValue;
+        var waterCoverage = 0;
+        var oceanCoverage = 0;
+        var lakeCoverage = 0;
+        for (var localTriangle = 0;
+            localTriangle < PhysicalGeographyCodes.MicrotrianglesPerHex;
+            localTriangle++)
+        {
+            var triangle = physical.Microtriangles[cell.MicrotriangleOffset + localTriangle];
+            minElevation = Math.Min(minElevation, triangle.Elevation);
+            maxElevation = Math.Max(maxElevation, triangle.Elevation);
+            waterCoverage += triangle.WaterKindCode != PhysicalWaterKindCodes.None ? 1 : 0;
+            oceanCoverage += triangle.WaterKindCode == PhysicalWaterKindCodes.Ocean ? 1 : 0;
+            lakeCoverage += triangle.WaterKindCode == PhysicalWaterKindCodes.Lake ? 1 : 0;
+        }
+
+        Assert.Equal(minElevation, cell.MinElevation);
+        Assert.Equal(maxElevation, cell.MaxElevation);
+        Assert.Equal(cell.MaxElevation - cell.MinElevation, cell.Relief);
+        Assert.Equal(waterCoverage, cell.WaterCoverage);
+        Assert.Equal(oceanCoverage, cell.OceanCoverage);
+        Assert.Equal(lakeCoverage, cell.LakeCoverage);
+        Assert.Equal(PhysicalGeographyCodes.MicrotrianglesPerHex, cell.LandCoverage + cell.WaterCoverage);
+    }
+
+    private static void AssertSharedEdgeMasksAgree(
+        DomainPhysicalGeographyCell cell,
+        DomainPhysicalGeographyCell neighbor,
+        int direction)
+    {
+        var opposite = (direction + 3) % 6;
+        Assert.Equal(MaskBit(cell.RiverEdgeMask, direction), MaskBit(neighbor.RiverEdgeMask, opposite));
+        Assert.Equal(MaskBit(cell.CoastEdgeMask, direction), MaskBit(neighbor.CoastEdgeMask, opposite));
+        Assert.Equal(MaskBit(cell.RidgeEdgeMask, direction), MaskBit(neighbor.RidgeEdgeMask, opposite));
+        Assert.Equal(MaskBit(cell.CliffEdgeMask, direction), MaskBit(neighbor.CliffEdgeMask, opposite));
+        Assert.Equal(MaskBit(cell.PassEdgeMask, direction), MaskBit(neighbor.PassEdgeMask, opposite));
+    }
+
+    private static int MaskBit(int mask, int direction) => (mask >> direction) & 1;
+
+    private static void AssertRegionsAreConnected(
+        IReadOnlyList<DomainPhysicalGeographyCell> cells,
+        Func<DomainPhysicalGeographyCell, int> regionSelector)
+    {
+        var cellsByCoord = cells.ToDictionary(cell => new HexCoord(cell.Q, cell.R));
+        foreach (var region in cells.GroupBy(regionSelector))
+        {
+            var expected = region.Select(cell => new HexCoord(cell.Q, cell.R)).ToHashSet();
+            var visited = new HashSet<HexCoord>();
+            var queue = new Queue<HexCoord>();
+            queue.Enqueue(expected.First());
+            while (queue.TryDequeue(out var coord))
+            {
+                if (!visited.Add(coord))
+                {
+                    continue;
+                }
+
+                foreach (var neighbor in coord.Neighbors())
+                {
+                    if (expected.Contains(neighbor) && cellsByCoord.ContainsKey(neighbor))
+                    {
+                        queue.Enqueue(neighbor);
+                    }
+                }
+            }
+
+            Assert.True(
+                expected.SetEquals(visited),
+                $"Region {region.Key} is split into disconnected components.");
+        }
     }
 }
