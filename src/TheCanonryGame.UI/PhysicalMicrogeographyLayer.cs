@@ -8,6 +8,8 @@ namespace TheCanonryGame.UI;
 public enum PhysicalGeographyView
 {
     Terrain,
+    Surface,
+    NaturalSurface,
     Material,
     Elevation,
     Temperature,
@@ -15,6 +17,12 @@ public enum PhysicalGeographyView
     Geothermal,
     Landform,
     Hydrology,
+    Ice,
+    Fractures,
+    Fire,
+    Aurora,
+    Pressure,
+    MagicComposite,
 }
 
 public readonly record struct PhysicalMicrotriangleHit(HexCoord Coord, int TriangleIndex);
@@ -40,7 +48,7 @@ public partial class PhysicalMicrogeographyLayer : Node2D
 
     public bool FeaturesEnabled { get; private set; } = true;
 
-    public PhysicalGeographyView View { get; private set; } = PhysicalGeographyView.Material;
+    public PhysicalGeographyView View { get; private set; } = PhysicalGeographyView.Surface;
 
     internal PhysicalGeographyProjection Geography => _geography!;
 

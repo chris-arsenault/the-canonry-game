@@ -253,11 +253,14 @@ public partial class HexTooltipPanel : PanelContainer
     {
         var terrain = Humanize(cell.BaseTerrainStableName);
         var material = Humanize(_physicalGeography!.MaterialName(cell.DominantMaterialIndex));
+        var surface = Humanize(_physicalGeography.SurfaceName(cell.PrimarySurfaceIndex));
+        var anomalies = SignificantFeatureNames(cell.SignificantFeatureFlags);
         var subdivisions =
             $"{FormatSubdivision(ProjectionSymbolKind.Continent, cell.ContinentId)}   " +
             FormatSubdivision(ProjectionSymbolKind.Superregion, cell.SuperregionId);
         var summary =
-            $"generated {terrain}   material {material}\n" +
+            $"generated {terrain}   surface {surface}   material {material}\n" +
+            $"anomalies {anomalies}\n" +
             $"elevation {cell.MeanElevation} [{cell.MinElevation},{cell.MaxElevation}]   " +
             $"relief {cell.Relief}   rough {cell.Roughness}\n" +
             $"temperature {cell.MeanTemperature}   moisture {cell.MeanMoisture}   " +
@@ -265,33 +268,59 @@ public partial class HexTooltipPanel : PanelContainer
             $"coverage land {cell.LandCoverage}/24 water {cell.WaterCoverage}/24 " +
             $"ocean {cell.OceanCoverage}/24 lake {cell.LakeCoverage}/24 " +
             $"ice {cell.PermanentIceCoverage}/24 river {cell.RiverCoverage}/24\n" +
+            $"ice thickness {cell.MeanIceThickness}/{cell.MaxIceThickness}   " +
+            $"magic fire {cell.MeanFireIntensity}/{cell.MaxFireIntensity} " +
+            $"aurora {cell.MeanAuroraIntensity}/{cell.MaxAuroraIntensity} " +
+            $"pressure {cell.MeanPressureIntensity}/{cell.MaxPressureIntensity}\n" +
             $"peaks {cell.PeakCount}   edges river {cell.RiverEdgeMask:X2} " +
             $"coast {cell.CoastEdgeMask:X2} ridge {cell.RidgeEdgeMask:X2} " +
-            $"cliff {cell.CliffEdgeMask:X2} pass {cell.PassEdgeMask:X2}\n" +
+            $"cliff {cell.CliffEdgeMask:X2} pass {cell.PassEdgeMask:X2} " +
+            $"fracture {cell.FractureEdgeMask:X2}\n" +
             subdivisions;
         return triangleIndex >= 0 &&
             _physicalGeography.TryGetMicrotriangle(cell.Coord, triangleIndex, out var triangle)
-                ? summary + "\n" + FormatPhysicalMicrotriangle(triangleIndex, triangle)
+                ? summary + "\n" + FormatPhysicalMicrotriangle(
+                    cell.MicrotriangleOffset + triangleIndex,
+                    triangleIndex,
+                    triangle)
                 : summary;
     }
 
     private string FormatPhysicalMicrotriangle(
+        int globalTriangleIndex,
         int triangleIndex,
         in PhysicalMicrotriangleProjection triangle)
     {
         var material = Humanize(_physicalGeography!.MaterialName(triangle.MaterialIndex));
         var features = PhysicalFeatureNames(triangle.FeatureFlags);
+        var surface = Humanize(_physicalGeography.SurfaceName(triangle.SurfaceIndex));
+        var naturalSurface = Humanize(_physicalGeography.SurfaceName(triangle.BaseSurfaceIndex));
+        var anomalies = SignificantFeatureNames(triangle.SignificantFeatureFlags);
+        _ = _physicalGeography.TryGetScalarValue("fire_intensity", globalTriangleIndex, out var fire);
+        _ = _physicalGeography.TryGetScalarValue("aurora_intensity", globalTriangleIndex, out var aurora);
+        _ = _physicalGeography.TryGetScalarValue("pressure_intensity", globalTriangleIndex, out var pressure);
         return
-            $"triangle {triangleIndex:00}   {material}   {LandformName(triangle.LandformCode)}\n" +
-            $"elev {triangle.Elevation}   temp {triangle.Temperature}   " +
+            $"triangle {triangleIndex:00}   {surface} (natural {naturalSurface})\n" +
+            $"{material}   {LandformName(triangle.LandformCode)}   anomalies {anomalies}\n" +
+            $"elev {triangle.Elevation} slope {triangle.Slope}   temp {triangle.Temperature}   " +
             $"moist {triangle.Moisture}   geo {triangle.Geothermal}\n" +
             $"water {WaterKindName(triangle.WaterKindCode)} depth {triangle.WaterDepth} " +
             $"body {triangle.WaterBodyId} basin {triangle.DrainageBasinId}\n" +
             $"flow edge {triangle.FlowEdge} accumulation {triangle.FlowAccumulation} " +
-            $"river order {triangle.RiverOrder}   {features}";
+            $"river order {triangle.RiverOrder}   {features}\n" +
+            $"landmass {triangle.LandmassId}/{LandmassClassName(triangle.LandmassClassCode)} " +
+            $"continental group {triangle.ContinentalGroupId} bathymetry {BathymetryName(triangle.BathymetricZoneCode)}\n" +
+            $"ice {triangle.IceThickness} flux {triangle.IceFlux}   fracture {triangle.FractureConductance} " +
+            $"heat source {triangle.HeatSourceDensity}\n" +
+            $"magic fire {fire} aurora {aurora} pressure {pressure}";
     }
 
-    private static string LandformName(int code) => code switch
+    private static string LandformName(int code) =>
+        code >= PhysicalLandformCodes.UValley
+            ? GlacialLandformName(code)
+            : StandardLandformName(code);
+
+    private static string StandardLandformName(int code) => code switch
     {
         PhysicalLandformCodes.Plain => "plain",
         PhysicalLandformCodes.Slope => "slope",
@@ -302,6 +331,31 @@ public partial class HexTooltipPanel : PanelContainer
         PhysicalLandformCodes.Pass => "pass",
         PhysicalLandformCodes.Seabed => "seabed",
         _ => $"landform-{code}",
+    };
+
+    private static string GlacialLandformName(int code) => code switch
+    {
+        PhysicalLandformCodes.UValley => "u-valley",
+        PhysicalLandformCodes.Cirque => "cirque",
+        PhysicalLandformCodes.Fjord => "fjord",
+        PhysicalLandformCodes.Moraine => "moraine",
+        _ => $"landform-{code}",
+    };
+
+    private static string LandmassClassName(int code) => code switch
+    {
+        PhysicalLandmassClassCodes.Island => "island",
+        PhysicalLandmassClassCodes.Continent => "continent",
+        _ => "none",
+    };
+
+    private static string BathymetryName(int code) => code switch
+    {
+        PhysicalBathymetricZoneCodes.ExposedShelf => "exposed shelf",
+        PhysicalBathymetricZoneCodes.Shelf => "shelf",
+        PhysicalBathymetricZoneCodes.ShelfBreak => "shelf break",
+        PhysicalBathymetricZoneCodes.DeepOcean => "deep ocean",
+        _ => "land",
     };
 
     private static string WaterKindName(int code) => code switch
@@ -329,7 +383,30 @@ public partial class HexTooltipPanel : PanelContainer
             features.Add("ice margin");
         }
 
+        if ((flags & PhysicalGeographyFeatureCodes.FireCore) != 0)
+        {
+            features.Add("fire core");
+        }
+
+        if ((flags & PhysicalGeographyFeatureCodes.MagmaChamber) != 0)
+        {
+            features.Add("magma chamber");
+        }
+
+        if ((flags & PhysicalGeographyFeatureCodes.DeadGodLocus) != 0)
+        {
+            features.Add("pressure locus");
+        }
+
         return features.Count == 0 ? "features none" : $"features {string.Join(", ", features)}";
+    }
+
+    private string SignificantFeatureNames(ulong flags)
+    {
+        var names = _physicalGeography!.SignificantFeatureNames(flags)
+            .Select(Humanize)
+            .ToArray();
+        return names.Length == 0 ? "none" : string.Join(", ", names);
     }
 
     private static string Humanize(string stableName) =>

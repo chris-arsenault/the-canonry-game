@@ -17,6 +17,7 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
     private static readonly Color RidgeLine = new(0.82f, 0.78f, 0.66f, 0.78f);
     private static readonly Color CliffLine = new(0.20f, 0.18f, 0.20f, 0.95f);
     private static readonly Color PassLine = new(0.92f, 0.64f, 0.30f, 0.95f);
+    private static readonly Color FractureLine = new(0.94f, 0.42f, 0.24f, 0.92f);
 
     private PhysicalMicrogeographyLayer? _owner;
     private PhysicalGeographyCellProjection[] _cells = [];
@@ -90,25 +91,70 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
 
     private void DrawAggregate(in PhysicalGeographyCellProjection cell)
     {
-        var color = _owner!.View switch
-        {
-            PhysicalGeographyView.Terrain => _owner.TerrainColor(cell),
-            PhysicalGeographyView.Material => UiTokens.PhysicalMaterialColor(
-                _owner.Geography.MaterialName(cell.DominantMaterialIndex)),
-            PhysicalGeographyView.Elevation => ElevationColor(cell.MeanElevation),
-            PhysicalGeographyView.Temperature => TemperatureColor(cell.MeanTemperature),
-            PhysicalGeographyView.Moisture => MoistureColor(cell.MeanMoisture),
-            PhysicalGeographyView.Geothermal => GeothermalColor(cell.MeanGeothermal),
-            PhysicalGeographyView.Hydrology => AggregateHydrologyColor(cell),
-            _ => _owner.TerrainColor(cell),
-        };
-        DrawColoredPolygon(_owner.Geometry.HexPoints, color);
+        var color = AggregateColor(cell);
+        DrawColoredPolygon(_owner!.Geometry.HexPoints, color);
         DrawPolyline(_owner.Geometry.ClosedHexPoints, UiTokens.Hairline, 0.75f);
         if (_owner.FeaturesEnabled)
         {
             DrawHexFeatures(cell);
         }
     }
+
+    private Color AggregateColor(in PhysicalGeographyCellProjection cell)
+    {
+        var view = _owner!.View;
+        if (view is PhysicalGeographyView.Fire or PhysicalGeographyView.Aurora or
+            PhysicalGeographyView.Pressure or PhysicalGeographyView.MagicComposite)
+        {
+            return AggregateMagicColor(cell, view);
+        }
+
+        return view <= PhysicalGeographyView.Material
+            ? AggregateIdentityColor(cell, view)
+            : AggregatePhysicalFieldColor(cell, view);
+    }
+
+    private Color AggregateIdentityColor(
+        in PhysicalGeographyCellProjection cell,
+        PhysicalGeographyView view) => view switch
+        {
+            PhysicalGeographyView.Terrain => _owner!.TerrainColor(cell),
+            PhysicalGeographyView.Surface => UiTokens.PhysicalSurfaceColor(
+                _owner!.Geography.SurfaceName(cell.PrimarySurfaceIndex)),
+            PhysicalGeographyView.NaturalSurface => DominantNaturalSurfaceColor(cell),
+            PhysicalGeographyView.Material => UiTokens.PhysicalMaterialColor(
+                _owner!.Geography.MaterialName(cell.DominantMaterialIndex)),
+            _ => UiTokens.Whisper,
+        };
+
+    private static Color AggregatePhysicalFieldColor(
+        in PhysicalGeographyCellProjection cell,
+        PhysicalGeographyView view) => view switch
+        {
+            PhysicalGeographyView.Elevation => ElevationColor(cell.MeanElevation),
+            PhysicalGeographyView.Temperature => TemperatureColor(cell.MeanTemperature),
+            PhysicalGeographyView.Moisture => MoistureColor(cell.MeanMoisture),
+            PhysicalGeographyView.Geothermal => GeothermalColor(cell.MeanGeothermal),
+            PhysicalGeographyView.Hydrology => AggregateHydrologyColor(cell),
+            PhysicalGeographyView.Ice => IceColor(cell.MeanIceThickness),
+            PhysicalGeographyView.Fractures => FractureColor(
+                System.Numerics.BitOperations.PopCount((uint)cell.FractureEdgeMask) * 1000 / 6),
+            _ => UiTokens.Whisper,
+        };
+
+    private static Color AggregateMagicColor(
+        in PhysicalGeographyCellProjection cell,
+        PhysicalGeographyView view) => view switch
+        {
+            PhysicalGeographyView.Fire => FireColor(cell.MeanFireIntensity),
+            PhysicalGeographyView.Aurora => AuroraColor(cell.MeanAuroraIntensity),
+            PhysicalGeographyView.Pressure => PressureColor(cell.MeanPressureIntensity),
+            PhysicalGeographyView.MagicComposite => MagicCompositeColor(
+                cell.MeanFireIntensity,
+                cell.MeanAuroraIntensity,
+                cell.MeanPressureIntensity),
+            _ => UiTokens.Whisper,
+        };
 
     private void DrawMicrotriangles(in PhysicalGeographyCellProjection cell)
     {
@@ -118,7 +164,7 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             var triangle = triangles[index];
             DrawColoredPolygon(
                 _owner.Geometry.TrianglePoints(index),
-                TriangleColor(cell, triangle));
+                TriangleColor(cell, index, triangle));
             DrawPolyline(
                 _owner.Geometry.ClosedTrianglePoints(index),
                 new Color(UiTokens.Vellum, 0.055f),
@@ -135,32 +181,107 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
 
     private Color TriangleColor(
         in PhysicalGeographyCellProjection cell,
+        int triangleIndex,
         in PhysicalMicrotriangleProjection triangle)
     {
-        var color = BaseTriangleColor(cell, triangle);
-        return _owner!.View == PhysicalGeographyView.Hydrology
-            ? color
-            : ApplyWaterTint(color, triangle.WaterKindCode, triangle.WaterDepth);
+        var color = BaseTriangleColor(cell, triangleIndex, triangle);
+        return ViewUsesWaterTint(_owner!.View)
+            ? ApplyWaterTint(color, triangle.WaterKindCode, triangle.WaterDepth)
+            : color;
     }
 
     private Color BaseTriangleColor(
         in PhysicalGeographyCellProjection cell,
-        in PhysicalMicrotriangleProjection triangle) =>
-        _owner!.View switch
+        int triangleIndex,
+        in PhysicalMicrotriangleProjection triangle)
+    {
+        var view = _owner!.View;
+        if (view is PhysicalGeographyView.Fire or PhysicalGeographyView.Aurora or
+            PhysicalGeographyView.Pressure or PhysicalGeographyView.MagicComposite)
+        {
+            return TriangleMagicColor(cell, triangleIndex, view);
+        }
+
+        return view <= PhysicalGeographyView.Material
+            ? TriangleIdentityColor(cell, triangle, view)
+            : TrianglePhysicalFieldColor(triangle, view);
+    }
+
+    private Color TriangleIdentityColor(
+        in PhysicalGeographyCellProjection cell,
+        in PhysicalMicrotriangleProjection triangle,
+        PhysicalGeographyView view) => view switch
         {
             PhysicalGeographyView.Terrain => ElevationShade(
-                _owner.TerrainColor(cell),
+                _owner!.TerrainColor(cell),
                 triangle.Elevation),
+            PhysicalGeographyView.Surface => UiTokens.PhysicalSurfaceColor(
+                _owner!.Geography.SurfaceName(triangle.SurfaceIndex)),
+            PhysicalGeographyView.NaturalSurface => UiTokens.PhysicalSurfaceColor(
+                _owner!.Geography.SurfaceName(triangle.BaseSurfaceIndex)),
             PhysicalGeographyView.Material => UiTokens.PhysicalMaterialColor(
-                _owner.Geography.MaterialName(triangle.MaterialIndex)),
+                _owner!.Geography.MaterialName(triangle.MaterialIndex)),
+            _ => UiTokens.Whisper,
+        };
+
+    private static Color TrianglePhysicalFieldColor(
+        in PhysicalMicrotriangleProjection triangle,
+        PhysicalGeographyView view) => view switch
+        {
             PhysicalGeographyView.Elevation => ElevationColor(triangle.Elevation),
             PhysicalGeographyView.Temperature => TemperatureColor(triangle.Temperature),
             PhysicalGeographyView.Moisture => MoistureColor(triangle.Moisture),
             PhysicalGeographyView.Geothermal => GeothermalColor(triangle.Geothermal),
             PhysicalGeographyView.Landform => LandformColor(triangle.LandformCode),
             PhysicalGeographyView.Hydrology => HydrologyColor(triangle),
+            PhysicalGeographyView.Ice => IceColor(triangle.IceThickness),
+            PhysicalGeographyView.Fractures => FractureColor(triangle.FractureConductance),
             _ => UiTokens.Whisper,
         };
+
+    private Color TriangleMagicColor(
+        in PhysicalGeographyCellProjection cell,
+        int triangleIndex,
+        PhysicalGeographyView view) => view switch
+        {
+            PhysicalGeographyView.Fire => ScalarColor(cell, triangleIndex, "fire_intensity", FireColor),
+            PhysicalGeographyView.Aurora => ScalarColor(cell, triangleIndex, "aurora_intensity", AuroraColor),
+            PhysicalGeographyView.Pressure => ScalarColor(cell, triangleIndex, "pressure_intensity", PressureColor),
+            PhysicalGeographyView.MagicComposite => MagicCompositeTriangleColor(cell, triangleIndex),
+            _ => UiTokens.Whisper,
+        };
+
+    private Color ScalarColor(
+        in PhysicalGeographyCellProjection cell,
+        int triangleIndex,
+        string stableName,
+        Func<int, Color> color)
+    {
+        _ = _owner!.Geography.TryGetScalarValue(
+            stableName,
+            cell.MicrotriangleOffset + triangleIndex,
+            out var value);
+        return color(value);
+    }
+
+    private Color MagicCompositeTriangleColor(
+        in PhysicalGeographyCellProjection cell,
+        int triangleIndex)
+    {
+        _ = _owner!.Geography.TryGetScalarValue(
+            "fire_intensity",
+            cell.MicrotriangleOffset + triangleIndex,
+            out var fire);
+        _ = _owner.Geography.TryGetScalarValue(
+            "aurora_intensity",
+            cell.MicrotriangleOffset + triangleIndex,
+            out var aurora);
+        _ = _owner.Geography.TryGetScalarValue(
+            "pressure_intensity",
+            cell.MicrotriangleOffset + triangleIndex,
+            out var pressure);
+        return MagicCompositeColor(fire, aurora, pressure);
+    }
 
     private void DrawTriangleFeatures(
         in PhysicalGeographyCellProjection cell,
@@ -180,6 +301,14 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
                     _owner!.Geometry.TriangleCentroid(index),
                     1.4f + (0.55f * triangle.RiverOrder),
                     UiTokens.Vellum);
+            }
+
+            if (triangle.SignificantFeatureFlags != 0)
+            {
+                DrawCircle(
+                    _owner!.Geometry.TriangleCentroid(index),
+                    1.05f,
+                    UiTokens.Gilt);
             }
         }
     }
@@ -236,7 +365,33 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             {
                 DrawLine(a.Lerp(b, 0.28f), a.Lerp(b, 0.72f), PassLine, 2.8f, true);
             }
+
+            if ((cell.FractureEdgeMask & bit) != 0)
+            {
+                DrawLine(a.Lerp(b, 0.12f), a.Lerp(b, 0.88f), FractureLine, 1.2f, true);
+            }
         }
+    }
+
+    private Color DominantNaturalSurfaceColor(in PhysicalGeographyCellProjection cell)
+    {
+        Span<int> counts = stackalloc int[64];
+        var dominant = 0;
+        foreach (var triangle in _owner!.Geography.MicrotrianglesFor(cell))
+        {
+            if ((uint)triangle.BaseSurfaceIndex >= (uint)counts.Length)
+            {
+                continue;
+            }
+
+            counts[triangle.BaseSurfaceIndex]++;
+            if (counts[triangle.BaseSurfaceIndex] > counts[dominant])
+            {
+                dominant = triangle.BaseSurfaceIndex;
+            }
+        }
+
+        return UiTokens.PhysicalSurfaceColor(_owner.Geography.SurfaceName(dominant));
     }
 
     private static Color AggregateHydrologyColor(in PhysicalGeographyCellProjection cell)
@@ -297,7 +452,48 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             new Color(0.92f, 0.30f, 0.12f),
             Math.Clamp(geothermal / 1000f, 0f, 1f));
 
-    private static Color LandformColor(int landformCode) => landformCode switch
+    private static Color IceColor(int iceThickness) =>
+        new Color(0.13f, 0.18f, 0.24f).Lerp(
+            new Color(0.82f, 0.94f, 0.98f),
+            Math.Clamp(iceThickness / 1000f, 0f, 1f));
+
+    private static Color FractureColor(int conductance) =>
+        new Color(0.10f, 0.10f, 0.14f).Lerp(
+            new Color(0.96f, 0.30f, 0.12f),
+            Math.Clamp(conductance / 1000f, 0f, 1f));
+
+    private static Color FireColor(int intensity) =>
+        new Color(0.10f, 0.08f, 0.10f).Lerp(
+            new Color(1.00f, 0.28f, 0.05f),
+            Math.Clamp(intensity / 1000f, 0f, 1f));
+
+    private static Color AuroraColor(int intensity) =>
+        new Color(0.08f, 0.10f, 0.17f).Lerp(
+            new Color(0.26f, 0.96f, 0.73f),
+            Math.Clamp(intensity / 1000f, 0f, 1f));
+
+    private static Color PressureColor(int intensity) =>
+        new Color(0.07f, 0.09f, 0.15f).Lerp(
+            new Color(0.70f, 0.20f, 0.78f),
+            Math.Clamp(intensity / 1000f, 0f, 1f));
+
+    private static Color MagicCompositeColor(int fire, int aurora, int pressure)
+    {
+        var fireStrength = Math.Clamp(fire / 1000f, 0f, 1f);
+        var auroraStrength = Math.Clamp(aurora / 1000f, 0f, 1f);
+        var pressureStrength = Math.Clamp(pressure / 1000f, 0f, 1f);
+        return new Color(
+            Math.Clamp(0.07f + (0.82f * fireStrength) + (0.38f * pressureStrength), 0f, 1f),
+            Math.Clamp(0.08f + (0.76f * auroraStrength) + (0.12f * fireStrength), 0f, 1f),
+            Math.Clamp(0.13f + (0.56f * auroraStrength) + (0.68f * pressureStrength), 0f, 1f));
+    }
+
+    private static Color LandformColor(int landformCode) =>
+        landformCode >= PhysicalLandformCodes.UValley
+            ? GlacialLandformColor(landformCode)
+            : StandardLandformColor(landformCode);
+
+    private static Color StandardLandformColor(int landformCode) => landformCode switch
     {
         PhysicalLandformCodes.Plain => new Color(0.42f, 0.52f, 0.42f),
         PhysicalLandformCodes.Slope => new Color(0.52f, 0.49f, 0.40f),
@@ -309,6 +505,19 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         PhysicalLandformCodes.Seabed => new Color(0.12f, 0.23f, 0.34f),
         _ => UiTokens.Whisper,
     };
+
+    private static Color GlacialLandformColor(int landformCode) => landformCode switch
+    {
+        PhysicalLandformCodes.UValley => new Color(0.32f, 0.52f, 0.50f),
+        PhysicalLandformCodes.Cirque => new Color(0.58f, 0.72f, 0.76f),
+        PhysicalLandformCodes.Fjord => new Color(0.10f, 0.31f, 0.43f),
+        PhysicalLandformCodes.Moraine => new Color(0.44f, 0.39f, 0.33f),
+        _ => UiTokens.Whisper,
+    };
+
+    private static bool ViewUsesWaterTint(PhysicalGeographyView view) =>
+        view == PhysicalGeographyView.Terrain ||
+        view is >= PhysicalGeographyView.Material and <= PhysicalGeographyView.Landform;
 
     private static Color ElevationShade(Color color, int elevation)
     {

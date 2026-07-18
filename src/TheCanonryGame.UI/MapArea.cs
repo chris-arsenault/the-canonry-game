@@ -20,6 +20,8 @@ public partial class MapArea : Control
     public const string LayerWorldgenInspection = "worldgen_inspection";
     public const string LayerGeographyFeatures = "geography_features";
     public const string GeographyViewTerrain = "terrain";
+    public const string GeographyViewSurface = "surface";
+    public const string GeographyViewNaturalSurface = "natural_surface";
     public const string GeographyViewMaterial = "material";
     public const string GeographyViewElevation = "elevation";
     public const string GeographyViewTemperature = "temperature";
@@ -27,6 +29,12 @@ public partial class MapArea : Control
     public const string GeographyViewGeothermal = "geothermal";
     public const string GeographyViewLandform = "landform";
     public const string GeographyViewHydrology = "hydrology";
+    public const string GeographyViewIce = "ice";
+    public const string GeographyViewFractures = "fractures";
+    public const string GeographyViewFire = "fire";
+    public const string GeographyViewAurora = "aurora";
+    public const string GeographyViewPressure = "pressure";
+    public const string GeographyViewMagicComposite = "magic_composite";
     public const string LensDefault = "default";
     public const string LensCulture = "culture";
     public const string LensControl = "control";
@@ -235,6 +243,8 @@ public partial class MapArea : Control
             TooltipText = "Choose the generated physical field to inspect",
         };
         AddGeographyViewOption("Terrain", GeographyViewTerrain);
+        AddGeographyViewOption("Final surfaces", GeographyViewSurface);
+        AddGeographyViewOption("Natural surfaces", GeographyViewNaturalSurface);
         AddGeographyViewOption("Materials", GeographyViewMaterial);
         AddGeographyViewOption("Elevation", GeographyViewElevation);
         AddGeographyViewOption("Temperature", GeographyViewTemperature);
@@ -242,6 +252,12 @@ public partial class MapArea : Control
         AddGeographyViewOption("Geothermal", GeographyViewGeothermal);
         AddGeographyViewOption("Landforms", GeographyViewLandform);
         AddGeographyViewOption("Hydrology", GeographyViewHydrology);
+        AddGeographyViewOption("Ice", GeographyViewIce);
+        AddGeographyViewOption("Fractures", GeographyViewFractures);
+        AddGeographyViewOption("Fire", GeographyViewFire);
+        AddGeographyViewOption("Aurora", GeographyViewAurora);
+        AddGeographyViewOption("Pressure", GeographyViewPressure);
+        AddGeographyViewOption("Magic composite", GeographyViewMagicComposite);
         _geographyViewOptions.Select(1);
         _geographyViewOptions.ItemSelected += OnGeographyViewSelected;
         controls.AddChild(_geographyViewOptions);

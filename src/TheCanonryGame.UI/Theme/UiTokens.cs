@@ -118,6 +118,40 @@ public static class UiTokens
         ["deep_marine_sediment"] = Hex(0x253747),
         ["reef_stone"] = Hex(0x3D7B79),
         ["geothermal_crust"] = Hex(0x9A5D43),
+        ["moraine_till"] = Hex(0x756B5F),
+        ["basalt"] = Hex(0x362F32),
+    };
+
+    private static readonly global::System.Collections.Generic.Dictionary<string, Color> PhysicalSurfaceColors = new(global::System.StringComparer.Ordinal)
+    {
+        ["tundra"] = Hex(0x899995),
+        ["open_field"] = Hex(0x7EA275),
+        ["ridge"] = Hex(0x686B70),
+        ["glacier"] = Hex(0xC5DFE7),
+        ["moraine"] = Hex(0x716A60),
+        ["lake"] = Hex(0x32677B),
+        ["fjord"] = Hex(0x214A62),
+        ["exposed_shelf"] = Hex(0x647D78),
+        ["shelf"] = Hex(0x426D7E),
+        ["ocean"] = Hex(0x172E48),
+        ["reef"] = Hex(0x398E86),
+        ["firecore_vent"] = Hex(0xE04F24),
+        ["thermal_vein"] = Hex(0xBF5B35),
+        ["hot_spring"] = Hex(0x4DAA7C),
+        ["basalt_flat"] = Hex(0x3A3132),
+        ["thawed_halo"] = Hex(0x91A568),
+        ["aurora_field"] = Hex(0x43D6B1),
+        ["light_well"] = Hex(0xB1F5DB),
+        ["frost_prism"] = Hex(0x8BCBEF),
+        ["melt_line"] = Hex(0x64B9B2),
+        ["pressure_god_locus"] = Hex(0x3A183F),
+        ["crush_zone"] = Hex(0x6B315D),
+        ["wake_scar"] = Hex(0x8A426D),
+        ["interference_lattice"] = Hex(0x8954A7),
+        ["rogue_impact"] = Hex(0xC94E72),
+        ["thermal_war_rim"] = Hex(0xD28252),
+        ["steam_fracture"] = Hex(0xC8BBA7),
+        ["pressure_aurora_breach"] = Hex(0x8057C7),
     };
 
     // Faction palette on the map — cold, distinguishable.
@@ -214,6 +248,9 @@ public static class UiTokens
 
     public static Color PhysicalMaterialColor(string stableName) =>
         PhysicalMaterialColors.TryGetValue(stableName, out var color) ? color : Whisper;
+
+    public static Color PhysicalSurfaceColor(string stableName) =>
+        PhysicalSurfaceColors.TryGetValue(stableName, out var color) ? color : Whisper;
 
     public static Color WithAlpha(Color color, float alpha) =>
         new(color.R, color.G, color.B, alpha);

@@ -69,7 +69,7 @@ public partial class HexMapRenderer : Node2D
         _physicalMicrogeographyLayer?.FeaturesEnabled != false;
 
     public PhysicalGeographyView GeographyView =>
-        _physicalMicrogeographyLayer?.View ?? PhysicalGeographyView.Material;
+        _physicalMicrogeographyLayer?.View ?? PhysicalGeographyView.Surface;
 
     public int CurrentPlaneCode => PlaneCodeForCurrentPlane();
 

@@ -75,16 +75,33 @@ internal sealed partial class GameRenderTree
         _ => false,
     };
 
-    private static PhysicalGeographyView GeographyViewFor(string viewKey) => viewKey switch
+    private static PhysicalGeographyView GeographyViewFor(string viewKey) =>
+        BaseGeographyViewFor(viewKey) ?? SpecialGeographyViewFor(viewKey);
+
+    private static PhysicalGeographyView? BaseGeographyViewFor(string viewKey) => viewKey switch
     {
         MapArea.GeographyViewTerrain => PhysicalGeographyView.Terrain,
+        MapArea.GeographyViewSurface => PhysicalGeographyView.Surface,
+        MapArea.GeographyViewNaturalSurface => PhysicalGeographyView.NaturalSurface,
+        MapArea.GeographyViewMaterial => PhysicalGeographyView.Material,
         MapArea.GeographyViewElevation => PhysicalGeographyView.Elevation,
         MapArea.GeographyViewTemperature => PhysicalGeographyView.Temperature,
         MapArea.GeographyViewMoisture => PhysicalGeographyView.Moisture,
         MapArea.GeographyViewGeothermal => PhysicalGeographyView.Geothermal,
+        _ => null,
+    };
+
+    private static PhysicalGeographyView SpecialGeographyViewFor(string viewKey) => viewKey switch
+    {
         MapArea.GeographyViewLandform => PhysicalGeographyView.Landform,
         MapArea.GeographyViewHydrology => PhysicalGeographyView.Hydrology,
-        _ => PhysicalGeographyView.Material,
+        MapArea.GeographyViewIce => PhysicalGeographyView.Ice,
+        MapArea.GeographyViewFractures => PhysicalGeographyView.Fractures,
+        MapArea.GeographyViewFire => PhysicalGeographyView.Fire,
+        MapArea.GeographyViewAurora => PhysicalGeographyView.Aurora,
+        MapArea.GeographyViewPressure => PhysicalGeographyView.Pressure,
+        MapArea.GeographyViewMagicComposite => PhysicalGeographyView.MagicComposite,
+        _ => PhysicalGeographyView.Surface,
     };
 
     private static bool SetLayerVisibility(bool current, bool visible, Action<bool> apply)

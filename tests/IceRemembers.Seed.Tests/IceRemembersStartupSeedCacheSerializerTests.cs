@@ -38,7 +38,9 @@ public sealed class IceRemembersStartupSeedCacheSerializerTests
         Assert.Equal(expected.Seed.PhysicalGeography!.MaterialPalette, actual.Seed.PhysicalGeography!.MaterialPalette);
         Assert.Equal(expected.Seed.PhysicalGeography.SurfacePalette, actual.Seed.PhysicalGeography.SurfacePalette);
         Assert.Equal(expected.Seed.PhysicalGeography.FeaturePalette, actual.Seed.PhysicalGeography.FeaturePalette);
-        Assert.Equal(expected.Seed.PhysicalGeography.ScalarFields, actual.Seed.PhysicalGeography.ScalarFields);
+        AssertScalarFieldsEqual(
+            expected.Seed.PhysicalGeography.ScalarFields,
+            actual.Seed.PhysicalGeography.ScalarFields);
         Assert.Equal(expected.Seed.PhysicalGeography.Cells, actual.Seed.PhysicalGeography.Cells);
         Assert.Equal(expected.Seed.PhysicalGeography.Microtriangles, actual.Seed.PhysicalGeography.Microtriangles);
         Assert.Equal(expected.Seed.SemanticTerrain!.Cells, actual.Seed.SemanticTerrain!.Cells);
@@ -56,6 +58,18 @@ public sealed class IceRemembersStartupSeedCacheSerializerTests
             Assert.Equal(expected[index].R, actual[index].R);
             Assert.Equal(expected[index].Tier, actual[index].Tier);
             Assert.Equal(expected[index].Grants, actual[index].Grants);
+        }
+    }
+
+    private static void AssertScalarFieldsEqual(
+        IReadOnlyList<DomainPhysicalScalarField> expected,
+        IReadOnlyList<DomainPhysicalScalarField> actual)
+    {
+        Assert.Equal(expected.Count, actual.Count);
+        for (var index = 0; index < expected.Count; index++)
+        {
+            Assert.Equal(expected[index].StableName, actual[index].StableName);
+            Assert.Equal(expected[index].Values, actual[index].Values);
         }
     }
 
