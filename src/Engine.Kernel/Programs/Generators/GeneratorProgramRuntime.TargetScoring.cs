@@ -1,5 +1,7 @@
 namespace Engine.Kernel;
 
+using Engine.Constants;
+
 internal sealed partial class GeneratorProgramRuntime
 {
     private const int TargetSelectionBaseWeight = 16;
@@ -9,6 +11,7 @@ internal sealed partial class GeneratorProgramRuntime
     private int TargetSelectionWeight(
         Simulation simulation,
         int generatorSlot,
+        int targetEntityId,
         int[] refCodes,
         int[] refEntityIds,
         int refCount)
@@ -21,12 +24,28 @@ internal sealed partial class GeneratorProgramRuntime
             bonus += ProducedTargetCultureBonus(simulation, produced, refCodes, refEntityIds, refCount);
             if (bonus >= TargetSelectionMaxCultureBonus)
             {
-                return TargetSelectionBaseWeight + TargetSelectionMaxCultureBonus;
+                return ApplyKnowledgeTargetWeight(
+                    simulation,
+                    generatorSlot,
+                    targetEntityId,
+                    TargetSelectionBaseWeight + TargetSelectionMaxCultureBonus);
             }
         }
 
-        return TargetSelectionBaseWeight + bonus;
+        return ApplyKnowledgeTargetWeight(simulation, generatorSlot, targetEntityId, TargetSelectionBaseWeight + bonus);
     }
+
+    private int ApplyKnowledgeTargetWeight(
+        Simulation simulation,
+        int generatorSlot,
+        int targetEntityId,
+        int weight) =>
+        (int)global::System.MathF.Max(
+            1f,
+            weight * simulation.Knowledge.Modifier(
+                simulation.World.EntityCultureId(targetEntityId),
+                KnowledgeGrantDomainCodes.GeneratorPulseWeight,
+                _generatorIds[generatorSlot]));
 
     private int ProducedTargetCultureBonus(
         Simulation simulation,

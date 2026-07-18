@@ -1,5 +1,7 @@
 namespace Engine.Kernel;
 
+using Engine.Constants;
+
 internal sealed class RelationshipProgramRuntime :
     IKernelProgramRuntime<RelationshipProgramData, RelationshipProgramState>
 {
@@ -71,12 +73,22 @@ internal sealed class RelationshipProgramRuntime :
         UpdateContactMemory(world, relationshipId, relationshipKindId, tick);
         var sourceId = world.RelationshipSourceId(relationshipId);
         var targetId = world.RelationshipTargetId(relationshipId);
+        var sourceModifier = simulation.Knowledge.Modifier(
+            world.EntityCultureId(sourceId),
+            KnowledgeGrantDomainCodes.RelationshipMaintenance,
+            relationshipKindId);
+        var targetModifier = simulation.Knowledge.Modifier(
+            world.EntityCultureId(targetId),
+            KnowledgeGrantDomainCodes.RelationshipMaintenance,
+            relationshipKindId);
+        var modifier = global::System.MathF.Max(sourceModifier, targetModifier);
         var delta = 0f;
         for (var rule = 1; rule <= Data.MaintenanceRuleCount; rule++)
         {
             if (Data.MaintenanceKindId(rule) == relationshipKindId)
             {
-                delta += ComputeRuleDelta(world, relationshipId, sourceId, targetId, rule);
+                var ruleDelta = ComputeRuleDelta(world, relationshipId, sourceId, targetId, rule);
+                delta += ruleDelta > 0f ? ruleDelta * modifier : ruleDelta / modifier;
             }
         }
 

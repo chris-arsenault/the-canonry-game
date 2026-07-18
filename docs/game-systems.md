@@ -64,6 +64,13 @@ weights, gambit scores, the decay tide); the Age of Striving arms campaigns,
 whose labor columns are the world's mass-projection at contested fronts. See
 [systems/25-world-beats.md](./systems/25-world-beats.md).
 
+Knowledge is claimed spatially rather than researched through a queue. The 27
+authored technologies occupy tiered semantic-map sites; current culture claims
+activate explicit grants over existing verbs, generators, gambits, movement,
+relationships, map signals, culture fields, minor actors, and frontier rules.
+Claims and grants disappear if culture loses the site. See
+[systems/27-knowledge.md](./systems/27-knowledge.md).
+
 Beats are the fourth authorship class, owned by the Chronicle Director. A beat
 is a dramatic potential attached to a cast chronicle: it opens on world or
 heat conditions, charges gambits between the cast while open, and strikes when
@@ -105,6 +112,8 @@ programs:
 - `Upkeep`: lifecycle drain and historical-status transition on death.
 - `MinorActors`: unnamed worker cohorts that maintain culture, roads, and
   source lifecycle without adding graph nodes.
+- `Knowledge`: slow claim recomputation and culture-scoped modifiers derived
+  from authored semantic-map sites.
 
 The current default tick order is:
 
@@ -119,8 +128,12 @@ Relationships
 Effects
 Upkeep
 Gambits
+ChronicleDirector
 Generators
+WorldBeats
+MapFrontier
 CultureSlots
+Knowledge
 MinorActors
 ```
 
@@ -167,6 +180,15 @@ Ledgers are exported as
 `culture_power_snapshots`, and shown in the nations rows; see
 [culture.md](./systems/culture.md).
 
+Knowledge telemetry has two levels: `knowledge_snapshots` reports aggregate
+claim count and maximum tier, while `knowledge_claim_snapshots` identifies the
+site index each culture actually holds. `knowledge_site_symbols` resolves those
+indices to stable technology names.
+
+The in-game **Technology (K)** overview uses the same live kernel claim state
+and derived modifier totals to show each culture's controlled technologies and
+combined bonuses; it does not infer effects from telemetry counts.
+
 Monte Carlo analysis should be performed against parquet output with SQL,
 DuckDB, or Python. The stable simulation-quality metrics are described in
 [simulation-principles.md](./systems/simulation-principles.md).
@@ -203,4 +225,7 @@ kernel tick advanced. Current UI presentation principles are recorded in
 - [22 Map Signals](./systems/22-map-signals.md)
 - [23 Tags And Status State Machines](./systems/23-tags.md)
 - [24 Canons And Jurisdictions](./systems/24-canons-and-jurisdictions.md)
+- [25 World Beats](./systems/25-world-beats.md)
+- [26 Growing Map](./systems/26-growing-map.md)
+- [27 Knowledge and Technology](./systems/27-knowledge.md)
 - [UI Principles](./design/ui-principles.md)

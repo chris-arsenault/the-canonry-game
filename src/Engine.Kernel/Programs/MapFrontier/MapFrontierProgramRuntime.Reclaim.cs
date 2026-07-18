@@ -64,8 +64,27 @@ internal sealed partial class MapFrontierProgramRuntime
     {
         if (!world.CellIsKnown(PlaneCodes.Physical, q, r) ||
             world.CellTerrainId(PlaneCodes.Physical, q, r) == Data.FrozenTerrainId ||
-            world.CultureFieldAt(1, PlaneCodes.Physical, q, r).TotalRawMass > Data.ReclaimMassCeiling ||
             simulation.Movement.RoadTravelCount(PlaneCodes.Physical, q, r) > 0)
+        {
+            return false;
+        }
+
+        var strongestCultureId = 0;
+        var strongestRaw = 0f;
+        for (var cultureId = 1; cultureId <= world.CultureHighWatermark; cultureId++)
+        {
+            var raw = world.CultureFieldAt(cultureId, PlaneCodes.Physical, q, r).TotalRawMass;
+            if (raw > strongestRaw)
+            {
+                strongestRaw = raw;
+                strongestCultureId = cultureId;
+            }
+        }
+
+        var reclaimCeiling = Data.ReclaimMassCeiling * simulation.Knowledge.Modifier(
+            strongestCultureId,
+            KnowledgeGrantDomainCodes.FrontierReclaimThreshold);
+        if (strongestRaw > reclaimCeiling)
         {
             return false;
         }

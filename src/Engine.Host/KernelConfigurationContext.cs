@@ -781,6 +781,12 @@ internal sealed class KernelConfigurationContext
     public void AddMapFrontierDriverAge(int thawAgeId, int refreezeAgeId) =>
         _kernel.MapFrontier.AddDriverAge(thawAgeId, refreezeAgeId);
 
+    public int RegisterKnowledgeSite(int q, int r, int tier) =>
+        _kernel.RegisterKnowledgeSite(q, r, tier);
+
+    public void RegisterKnowledgeGrant(int site, int domain, int target, float multiplier) =>
+        _kernel.RegisterKnowledgeGrant(site, domain, target, multiplier);
+
     public void SetMapFrontierSemanticConfiguration(int openTerrainId, int maxRadius, float frontierMassThreshold) =>
         _kernel.MapFrontier.SetSemanticConfiguration(openTerrainId, maxRadius, frontierMassThreshold);
 

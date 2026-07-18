@@ -13,17 +13,21 @@ namespace TheCanonryGame.UI;
 /// </summary>
 public partial class ChronicleAuraLayer : Node2D
 {
+    private const double RedrawIntervalSeconds = 1d / 30d;
+
     private readonly List<(int EntityId, float Heat)> _auras = [];
     private EntityLayer? _entities;
     private double _time;
+    private double _redrawElapsed;
 
     public void Initialize(EntityLayer entities)
     {
         _entities = entities;
         ShowBehindParent = true;
+        SetProcess(false);
     }
 
-    public void SetTales(IReadOnlyList<UiChronicleTale> tales)
+    public void SetTales(IEnumerable<UiChronicleTale> tales)
     {
         ArgumentNullException.ThrowIfNull(tales);
         _auras.Clear();
@@ -39,13 +43,23 @@ public partial class ChronicleAuraLayer : Node2D
                 _auras.Add((member.EntityId, tale.Heat));
             }
         }
+
+        SetProcess(_auras.Count > 0);
+        QueueRedraw();
     }
 
     public override void _Process(double delta)
     {
-        _time += delta;
-        if (_auras.Count > 0 || IsVisibleInTree())
+        if (_auras.Count == 0 || !IsVisibleInTree())
         {
+            return;
+        }
+
+        _redrawElapsed += delta;
+        if (_redrawElapsed >= RedrawIntervalSeconds)
+        {
+            _time += _redrawElapsed;
+            _redrawElapsed = 0d;
             QueueRedraw();
         }
     }

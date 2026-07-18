@@ -509,6 +509,14 @@ internal sealed partial class MovementProgramRuntime :
         float stepCost)
     {
         var world = simulation.World;
+        if (causeCode == MovementCauseCodes.Travel && planeCode == PlaneCodes.Physical)
+        {
+            stepCost *= simulation.Knowledge.Modifier(
+                world.EntityCultureId(entityId),
+                KnowledgeGrantDomainCodes.MovementStepRate,
+                world.EntityKindId(entityId));
+        }
+
         var fromQ = CurrentQ(world, entityId, planeCode);
         var fromR = CurrentR(world, entityId, planeCode);
         var fromZ = CurrentZ(world, entityId, planeCode);
@@ -550,7 +558,7 @@ internal sealed partial class MovementProgramRuntime :
         var moved = fromQ != q || fromR != r || fromZ != z || (planeCode == PlaneCodes.Semantic && fromS != toS);
         if (moved && causeCode == MovementCauseCodes.Travel && z == 0)
         {
-            ApplyTravelSurface(simulation, planeCode, q, r, tick);
+            ApplyTravelSurface(simulation, entityId, planeCode, q, r, tick);
         }
 
         return moved;
@@ -650,7 +658,7 @@ internal sealed partial class MovementProgramRuntime :
             CanEnter(simulation, planeCode, entityId, q, r, z);
     }
 
-    private void ApplyTravelSurface(Simulation simulation, int planeCode, int q, int r, int tick)
+    private void ApplyTravelSurface(Simulation simulation, int entityId, int planeCode, int q, int r, int tick)
     {
         if (!simulation.World.CellIsKnown(planeCode, q, r))
         {
@@ -658,13 +666,17 @@ internal sealed partial class MovementProgramRuntime :
         }
 
         var terrainId = simulation.World.CellTerrainId(planeCode, q, r);
+        var roadWork = simulation.Knowledge.Modifier(
+            simulation.World.EntityCultureId(entityId),
+            KnowledgeGrantDomainCodes.RoadWork,
+            simulation.World.EntityKindId(entityId));
         var previousQuality = RoadQuality(planeCode, q, r, tick);
         State.RecordTravel(
             planeCode,
             q,
             r,
             tick,
-            Data.RoadBuildPerTravel * simulation.KernelData.Terrain.RoadBuildMultiplier(terrainId),
+            Data.RoadBuildPerTravel * simulation.KernelData.Terrain.RoadBuildMultiplier(terrainId) * roadWork,
             Data.RoadDecayPerTick,
             Tuning.MinorActorMainTickRatio);
         var currentQuality = RoadQuality(planeCode, q, r, tick);

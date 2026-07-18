@@ -52,6 +52,9 @@ internal sealed record SimulationOptions
     public int WorldBeatAgeCapacity { get; init; } = 24;
     public int WorldBeatItemCapacity { get; init; } = 256;
     public int MapFrontierThawRingCapacity { get; init; } = 8192;
+    public int KnowledgeSiteCapacity { get; init; } = 256;
+    public int KnowledgeGrantCapacity { get; init; } = 2048;
+    public int KnowledgeModifierCapacity { get; init; } = 8192;
     public int MinorActorRuleCapacity { get; init; } = 64;
     public int MinorActorSourceRuleCapacity { get; init; } = 16384;
     public int EntityAttributeCapacity { get; init; } = 512;

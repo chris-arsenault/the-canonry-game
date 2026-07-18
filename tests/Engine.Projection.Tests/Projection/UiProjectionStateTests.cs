@@ -331,13 +331,18 @@ public sealed class UiProjectionStateTests
         Assert.Equal(1, projection.TopBarVersion);
         Assert.Equal(1, projection.EntityMapVersion);
         Assert.Equal(1, projection.EntityBrowserVersion);
+        AssertBrowserInvalidation(projection, structureVersion: 1, rowVersion: 1, 10);
         Assert.Equal(1, projection.EntityDetailVersion);
 
         var browserVersion = projection.EntityBrowserVersion;
+        var browserStructureVersion = projection.EntityBrowserStructureVersion;
+        var browserRowVersion = projection.EntityBrowserRowVersion;
+        projection.ClearDirtyEntityBrowserRows();
         WriteVersionTestEntityMoved(log);
         pump.DrainAvailable();
 
         Assert.Equal(browserVersion, projection.EntityBrowserVersion);
+        AssertBrowserInvalidation(projection, browserStructureVersion, browserRowVersion);
         Assert.Equal(2, projection.EntityMapVersion);
         Assert.Equal(2, projection.EntityDetailVersion);
 
@@ -352,7 +357,9 @@ public sealed class UiProjectionStateTests
         pump.DrainAvailable();
 
         browserVersion++;
+        browserRowVersion++;
         Assert.Equal(browserVersion, projection.EntityBrowserVersion);
+        AssertBrowserInvalidation(projection, browserStructureVersion, browserRowVersion, 10);
         Assert.Equal(4, projection.EntityDetailVersion);
 
         WriteVersionTestTickCompleted(log);
@@ -467,6 +474,17 @@ public sealed class UiProjectionStateTests
             RelationshipId: 12,
             PreviousStrength: 0f,
             NewStrength: 1f))));
+    }
+
+    private static void AssertBrowserInvalidation(
+        UiProjectionState projection,
+        long structureVersion,
+        long rowVersion,
+        params int[] dirtyEntityIds)
+    {
+        Assert.Equal(structureVersion, projection.EntityBrowserStructureVersion);
+        Assert.Equal(rowVersion, projection.EntityBrowserRowVersion);
+        Assert.Equal(dirtyEntityIds, projection.DirtyEntityBrowserRows.ToArray());
     }
 
     private static void WriteVersionTestGambitExecuted(KernelEventLog log)

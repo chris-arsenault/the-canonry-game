@@ -36,6 +36,7 @@ internal sealed class GameRenderTree
     private readonly EntityMapRender _entityMapRender = new();
     private readonly EntityBrowserRender _browserRender = new();
     private readonly ChronicleRender _chronicleRender = new();
+    private readonly TechnologyOverviewRender _technologyOverviewRender = new();
     private readonly ChronicleAuraLayer _chronicleAura = new();
     private readonly MinorActorFlowLayer _minorActorFlow = new();
     private readonly EntityTrailLayer _entityTrails = new();
@@ -50,21 +51,25 @@ internal sealed class GameRenderTree
     private IGameChronicleFeed? _chronicle;
     private AttributeGraphPanel? _attributeGraph;
     private ChronicleJournal? _journal;
+    private TechnologyOverview? _technologyOverview;
     private readonly WorldBeatsStrip _worldBeatsStrip = new();
     private WorldBeatsPanel? _worldBeatsPanel;
 
     public event Action<int>? JournalEntitySelected;
     private HexMapProjection? _lastCultureOverviewMap;
     private PlaneMode? _lastCultureOverviewPlane;
-    private long _lastCultureOverviewActivityVersion = -1;
+    private long _lastCultureOverviewCellVersion = -1;
+    private long _lastCultureOverviewEntityStructureVersion = -1;
+    private int _lastCultureOverviewActivityBucket = -1;
     private bool _tableauVisible;
     private int _seed;
     private int _seedAttempt;
-    private int _lastCultureOverviewTick = -1;
     private bool _tooltipPollingEnabled;
     private bool _entityNamesVisibleForZoom;
     private double _tooltipRefreshElapsedMs = TooltipRefreshIntervalMs;
     private string _mapLensKey = MapArea.LensDefault;
+    private long _worldBeatAgesVersion = -1;
+    private string _worldBeatAgesLabel = string.Empty;
 
     internal GameRenderTree(
         HexMapRenderer mapRenderer,
@@ -229,13 +234,18 @@ internal sealed class GameRenderTree
         _chronicle.Refresh();
         _topBarRender.Present(_topBar, _ui, currentTick, timeState, _seed, _seedAttempt, WorldBeatAgesLabel());
         _mapRender.Present(_mapRenderer, _map, _ui);
-        PresentCultureOverview(currentTick);
+        PresentCultureOverview();
         _browserRender.Present(_browser, _ui);
         _entityMapRender.Present(_entityLayer, _ui, _browser, _entityNamesVisibleForZoom);
+        _minorActorFlow.Present();
+        _entityTrails.Present();
         _cardLayerRender.Present(_cardLayer, _ui);
         _attributeGraphRender.Present(ActiveAttributeGraph(), _ui);
-        _chronicleRender.Present(_chroniclePanel, _chronicle);
-        _chronicleAura.SetTales(_chronicle.TaleViews.Select(static view => view.Tale).ToList());
+        _chronicleRender.Present(_chroniclePanel, _chronicle, _chronicleAura);
+        if (_technologyOverview is not null)
+        {
+            _technologyOverviewRender.Present(_runtime.ReadModels.Technologies.Current());
+        }
         _worldBeatsStrip.Refresh();
         _worldBeatsPanel?.Refresh();
         _tableauRender.Present(_tableauPanel, _ui, _tableauVisible);
@@ -265,7 +275,7 @@ internal sealed class GameRenderTree
         _tooltipRefreshElapsedMs = TooltipRefreshIntervalMs;
     }
 
-    private void PresentCultureOverview(int currentTick)
+    private void PresentCultureOverview()
     {
         var ui = _ui;
         if (ui is null)
@@ -274,27 +284,29 @@ internal sealed class GameRenderTree
         }
 
         var plane = _mapRenderer.CurrentPlane;
-        if (_lastCultureOverviewTick == currentTick &&
-            _lastCultureOverviewPlane == plane &&
-            ReferenceEquals(_lastCultureOverviewMap, _map) &&
-            _lastCultureOverviewActivityVersion == ui.MinorActorActivityVersion)
+        if (CultureOverviewUnchanged(ui, plane))
         {
             return;
         }
 
         _mapArea.BindCultureOverview(_map, ui, _symbols, plane, _runtime?.ReadModels.CulturePowers());
-        _lastCultureOverviewTick = currentTick;
         _lastCultureOverviewPlane = plane;
         _lastCultureOverviewMap = _map;
-        _lastCultureOverviewActivityVersion = ui.MinorActorActivityVersion;
+        _lastCultureOverviewCellVersion = _map?.CellVersion ?? -1;
+        _lastCultureOverviewEntityStructureVersion = ui.EntityBrowserStructureVersion;
+        _lastCultureOverviewActivityBucket = ui.CurrentTick / 10;
     }
+
+    private bool CultureOverviewUnchanged(UiProjectionState ui, PlaneMode plane) =>
+        _lastCultureOverviewPlane == plane &&
+        ReferenceEquals(_lastCultureOverviewMap, _map) &&
+        _lastCultureOverviewCellVersion == _map?.CellVersion &&
+        _lastCultureOverviewEntityStructureVersion == ui.EntityBrowserStructureVersion &&
+        _lastCultureOverviewActivityBucket == ui.CurrentTick / 10;
 
     public void ToggleEntityNames()
     {
-        if (_entityLayer.SetShowEntityNames(!_entityLayer.ShowEntityNames))
-        {
-            _entityMapRender.Invalidate();
-        }
+        _ = _entityLayer.SetShowEntityNames(!_entityLayer.ShowEntityNames);
     }
 
     public void TogglePlane()
@@ -307,13 +319,17 @@ internal sealed class GameRenderTree
         _hexTooltipPanel.ClearTooltip();
         _mapRender.Invalidate();
         _entityMapRender.Invalidate();
+        _minorActorFlow.Invalidate();
+        _entityTrails.Invalidate();
     }
 
     public void InvalidateEntityMap() => _entityMapRender.Invalidate();
 
     public void SetCameraZoom(Vector2 zoom)
     {
-        _entityNamesVisibleForZoom = MathF.Max(zoom.X, zoom.Y) >= 3.1f;
+        var cameraZoom = MathF.Max(zoom.X, zoom.Y);
+        _entityNamesVisibleForZoom = cameraZoom >= 3.1f;
+        _ = _entityLayer.SetCameraZoom(cameraZoom);
     }
 
     public void SetMapLayerVisible(string layerKey, bool visible)
@@ -390,6 +406,29 @@ internal sealed class GameRenderTree
         {
             _journal.SetTaleViews(_chronicle.TaleViews);
         }
+    }
+
+    public void ToggleTechnologyOverview()
+    {
+        if (_technologyOverview is not null)
+        {
+            _technologyOverview.QueueFree();
+            _technologyOverview = null;
+            _technologyOverviewRender.Panel = null;
+            return;
+        }
+
+        if (_runtime is null)
+        {
+            return;
+        }
+
+        _technologyOverview = new TechnologyOverview { Theme = _theme };
+        _cardLayer.AddChild(_technologyOverview);
+        _technologyOverview.Position = new Vector2(280, UiTokens.Space7);
+        _technologyOverview.CloseRequested += ToggleTechnologyOverview;
+        _technologyOverviewRender.Panel = _technologyOverview;
+        _technologyOverviewRender.Present(_runtime.ReadModels.Technologies.Current());
     }
 
     public void ToggleAttributeGraph()
@@ -521,15 +560,19 @@ internal sealed class GameRenderTree
 
     private void ResetPresenters()
     {
-        _lastCultureOverviewTick = -1;
         _lastCultureOverviewPlane = null;
         _lastCultureOverviewMap = null;
-        _lastCultureOverviewActivityVersion = -1;
+        _lastCultureOverviewCellVersion = -1;
+        _lastCultureOverviewEntityStructureVersion = -1;
+        _lastCultureOverviewActivityBucket = -1;
+        _worldBeatAgesVersion = -1;
+        _worldBeatAgesLabel = string.Empty;
         _topBarRender.Reset();
         _mapRender.Reset();
         _entityMapRender.Reset();
         _browserRender.Reset();
         _chronicleRender.Reset();
+        _technologyOverviewRender.Reset();
         _cardLayerRender.Reset();
         _attributeGraphRender.Reset();
         _tableauRender.Reset();
@@ -543,6 +586,11 @@ internal sealed class GameRenderTree
             return string.Empty;
         }
 
+        if (_worldBeatAgesVersion == _ui.WorldBeatVersion)
+        {
+            return _worldBeatAgesLabel;
+        }
+
         var names = new List<string>(3);
         foreach (var ageId in _ui.WorldBeatAgeIds)
         {
@@ -552,7 +600,9 @@ internal sealed class GameRenderTree
             }
         }
 
-        return names.Count == 0 ? string.Empty : string.Join(" · ", names);
+        _worldBeatAgesVersion = _ui.WorldBeatVersion;
+        _worldBeatAgesLabel = names.Count == 0 ? string.Empty : string.Join(" · ", names);
+        return _worldBeatAgesLabel;
     }
 
     private AttributeGraphPanel? ActiveAttributeGraph()
@@ -726,12 +776,11 @@ internal sealed class GameRenderTree
 
         public void Present(EntityLayer layer, UiProjectionState ui, EntityBrowser browser, bool showNamesForZoom)
         {
-            var zoomNamesChanged = layer.SetShowEntityNamesForZoom(showNamesForZoom);
+            layer.SetCurrentTick(ui.CurrentTick);
+            _ = layer.SetShowEntityNamesForZoom(showNamesForZoom);
             var state = new EntityMapState(
                 ui.EntityMapVersion,
                 layer.CurrentPlane,
-                layer.EffectiveShowEntityNames,
-                ui.CurrentTick / 20,
                 browser.FilterVersion,
                 browser.FilterMapToBrowser,
                 browser.SelectedGeneratorFilterId);
@@ -740,13 +789,15 @@ internal sealed class GameRenderTree
                 return;
             }
 
-            var filterChanged = layer.SetVisibleEntityIds(browser.VisibleEntityIdsForMap());
+            var browserFilterChanged = _lastState is null ||
+                _lastState.Value.BrowserFilterVersion != state.BrowserFilterVersion ||
+                _lastState.Value.FilterMapToBrowser != state.FilterMapToBrowser ||
+                _lastState.Value.SelectedGeneratorFilterId != state.SelectedGeneratorFilterId;
+            var filterChanged = browserFilterChanged &&
+                layer.SetVisibleEntityIds(browser.VisibleEntityIdsForMap());
             var shouldFullRefresh = _lastState is null ||
                 _lastState.Value.Plane != state.Plane ||
-                _lastState.Value.ShowNames != state.ShowNames ||
-                _lastState.Value.ActionPulseBucket != state.ActionPulseBucket ||
-                filterChanged ||
-                zoomNamesChanged;
+                filterChanged;
             _lastState = state;
             if (shouldFullRefresh)
             {
@@ -768,38 +819,81 @@ internal sealed class GameRenderTree
 
         public void Present(EntityBrowser browser, UiProjectionState ui)
         {
-            var state = new BrowserState(ui.EntityBrowserVersion);
+            var state = new BrowserState(ui.EntityBrowserStructureVersion, ui.EntityBrowserRowVersion);
             if (_lastState == state)
             {
                 return;
             }
 
+            var structureChanged = _lastState is null ||
+                _lastState.Value.StructureVersion != state.StructureVersion;
             _lastState = state;
-            browser.Refresh();
+            if (structureChanged)
+            {
+                browser.Refresh(rebuildFilterOptions: true);
+            }
+            else
+            {
+                browser.RefreshDirtyRows(ui.DirtyEntityBrowserRows);
+            }
+
+            ui.ClearDirtyEntityBrowserRows();
         }
     }
 
     private sealed class ChronicleRender
     {
         private ChronicleState? _lastState;
+        private long _lastTalesVersion = -1;
 
-        public void Reset() => _lastState = null;
+        public void Reset()
+        {
+            _lastState = null;
+            _lastTalesVersion = -1;
+        }
 
-        public void Present(ChroniclePanel panel, IGameChronicleFeed chronicle)
+        public void Present(
+            ChroniclePanel panel,
+            IGameChronicleFeed chronicle,
+            ChronicleAuraLayer aura)
         {
             var state = new ChronicleState(chronicle.Version + (chronicle.TalesVersion << 20), panel.FilterVersion);
-            if (_lastState == state)
+            if (_lastState != state)
+            {
+                _lastState = state;
+                panel.SetEntries(chronicle.Entries);
+                panel.SetTaleViews(chronicle.TaleViews);
+                Journal?.SetTaleViews(chronicle.TaleViews);
+            }
+
+            if (_lastTalesVersion != chronicle.TalesVersion)
+            {
+                _lastTalesVersion = chronicle.TalesVersion;
+                aura.SetTales(chronicle.TaleViews.Select(static view => view.Tale));
+            }
+        }
+
+        public ChronicleJournal? Journal { get; set; }
+    }
+
+    private sealed class TechnologyOverviewRender
+    {
+        private long _lastVersion = -1;
+
+        public TechnologyOverview? Panel { get; set; }
+
+        public void Reset() => _lastVersion = -1;
+
+        public void Present(GameTechnologyOverview overview)
+        {
+            if (Panel is null || _lastVersion == overview.Version)
             {
                 return;
             }
 
-            _lastState = state;
-            panel.SetEntries(chronicle.Entries);
-            panel.SetTaleViews(chronicle.TaleViews);
-            Journal?.SetTaleViews(chronicle.TaleViews);
+            _lastVersion = overview.Version;
+            Panel.SetOverview(overview);
         }
-
-        public ChronicleJournal? Journal { get; set; }
     }
 
     private sealed class CardLayerRender
@@ -1024,13 +1118,11 @@ internal sealed class GameRenderTree
     private readonly record struct EntityMapState(
         long Version,
         PlaneMode Plane,
-        bool ShowNames,
-        int ActionPulseBucket,
         long BrowserFilterVersion,
         bool FilterMapToBrowser,
         int SelectedGeneratorFilterId);
 
-    private readonly record struct BrowserState(long Version);
+    private readonly record struct BrowserState(long StructureVersion, long RowVersion);
 
     private readonly record struct ChronicleState(long Version, long FilterVersion);
 

@@ -305,9 +305,12 @@ internal sealed class KernelHostBuilder
             configure(kernelConfigurationContext);
         }
 
-        if (_domainStartupSeed is not null && !kernelWasLoaded)
+        if (_domainStartupSeed is not null)
         {
-            DomainStartupSeedInstaller.ConfigureKernel(kernelConfigurationContext, _domainStartupSeed);
+            DomainStartupSeedInstaller.ConfigureKernel(
+                kernelConfigurationContext,
+                _domainStartupSeed,
+                configureMap: !kernelWasLoaded);
         }
 
         if (kernel.Events.NextSequence != nextSequenceBeforeKernelConfiguration)

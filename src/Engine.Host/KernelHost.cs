@@ -14,6 +14,7 @@ public sealed partial class KernelHost : IDisposable
     private readonly KernelCommandCompletionPump _commandCompletions;
     private readonly CultureBoundaryDirtyCell[] _cultureBoundaryRefreshCells;
     private readonly IReadOnlyList<DomainKnowledgeSite> _knowledgeSites;
+    private bool _knowledgeSiteSymbolsRecorded;
     private bool _disposed;
 
     internal KernelHost(

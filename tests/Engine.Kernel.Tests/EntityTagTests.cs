@@ -114,7 +114,7 @@ public sealed class EntityTagTests
         GeneratorItemCapacity = 64,
         RelationshipKindIdCapacity = 16,
         TerrainIdCapacity = 8,
-        SystemCapacity = 16,
+        SystemCapacity = 24,
         Seed = 1,
     });
 }

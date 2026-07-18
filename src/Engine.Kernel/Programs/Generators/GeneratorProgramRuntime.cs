@@ -1,5 +1,6 @@
 namespace Engine.Kernel;
 
+using Engine.Constants;
 using Engine.Eventing;
 
 internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<GeneratorProgramData, GeneratorProgramState>
@@ -650,10 +651,12 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             return;
         }
 
-        var (candidateCount, slotFillBonus) = CountEligibleTargetsAndSlotFillBonus(simulation, slot);
+        var (candidateCount, slotFillBonus, knowledgeWeight) = CountEligibleTargetsAndSlotFillBonus(simulation, slot);
         _pulseCandidateCounts[slot] = candidateCount;
         var agedWeight = (int)global::System.MathF.Max(0f, _pulseWeights[slot] * _agePulseWeightMultipliers[slot]);
-        _pulseSelectionWeights[slot] = candidateCount == 0 ? 0 : agedWeight + slotFillBonus;
+        _pulseSelectionWeights[slot] = candidateCount == 0
+            ? 0
+            : (int)global::System.MathF.Max(1f, (agedWeight + slotFillBonus) * (knowledgeWeight / candidateCount));
         _pulseStatusCodes[slot] = candidateCount == 0
             ? GeneratorStatusCodes.Blocked
             : GeneratorStatusCodes.Eligible;
@@ -716,12 +719,13 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         return false;
     }
 
-    private (int CandidateCount, int SlotFillBonus) CountEligibleTargetsAndSlotFillBonus(
+    private (int CandidateCount, int SlotFillBonus, float KnowledgeWeight) CountEligibleTargetsAndSlotFillBonus(
         Simulation simulation,
         int generatorSlot)
     {
         var count = 0;
         var maxSlotFitCount = 0;
+        var knowledgeWeight = 0f;
         var world = simulation.World;
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
@@ -747,6 +751,10 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
                 if (passes)
                 {
                     count++;
+                    knowledgeWeight += simulation.Knowledge.Modifier(
+                        world.EntityCultureId(entityId),
+                        KnowledgeGrantDomainCodes.GeneratorPulseWeight,
+                        _generatorIds[generatorSlot]);
                     var slotFitCount = ProducedUnoccupiedSlotFitCount(
                         simulation,
                         generatorSlot,
@@ -762,7 +770,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
                 return true;
             });
 
-        return (count, SlotFillPulseWeightBonus(maxSlotFitCount));
+        return (count, SlotFillPulseWeightBonus(maxSlotFitCount), knowledgeWeight);
     }
 
     private int ProducedUnoccupiedSlotFitCount(
@@ -826,7 +834,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
                     return true;
                 }
 
-                var targetWeight = TargetSelectionWeight(simulation, generatorSlot, refCodes, refEntityIds, refCount);
+                var targetWeight = TargetSelectionWeight(simulation, generatorSlot, entityId, refCodes, refEntityIds, refCount);
                 totalWeight += targetWeight;
                 if (simulation.NextInt(totalWeight) < targetWeight)
                 {
@@ -876,7 +884,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
                     return true;
                 }
 
-                var targetWeight = TargetSelectionWeight(simulation, generatorSlot, refCodes, refEntityIds, refCount);
+                var targetWeight = TargetSelectionWeight(simulation, generatorSlot, entityId, refCodes, refEntityIds, refCount);
                 totalWeight += targetWeight;
                 if (simulation.NextInt(totalWeight) < targetWeight)
                 {

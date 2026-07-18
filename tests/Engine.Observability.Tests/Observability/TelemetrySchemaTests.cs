@@ -13,6 +13,7 @@ public sealed class TelemetrySchemaTests
         {
             typeof(SymbolRow),
             typeof(EntityNameSymbolRow),
+            typeof(KnowledgeSiteSymbolRow),
         };
 
         var rowTypes = typeof(TelemetryBatch).Assembly

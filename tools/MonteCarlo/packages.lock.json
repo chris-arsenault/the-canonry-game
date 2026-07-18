@@ -152,6 +152,7 @@
         "type": "Project",
         "dependencies": {
           "Engine.Domain": "[1.0.0, )",
+          "Engine.Gameplay": "[1.0.0, )",
           "Engine.Projection": "[1.0.0, )",
           "Engine.WorldGen": "[1.0.0, )",
           "NameForge.Runtime": "[1.0.0, )"

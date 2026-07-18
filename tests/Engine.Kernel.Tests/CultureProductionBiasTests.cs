@@ -47,7 +47,7 @@ public sealed class CultureProductionBiasTests
             MapCellCapacity = 128,
             MapInfluenceCapacity = 128,
             EventCapacity = 1024,
-            SystemCapacity = 16,
+            SystemCapacity = 24,
             KernelTuning = new KernelTuningOptions
             {
                 Programs = new KernelProgramTuningOptions

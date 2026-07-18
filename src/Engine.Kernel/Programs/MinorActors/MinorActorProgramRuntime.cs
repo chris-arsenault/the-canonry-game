@@ -290,10 +290,19 @@ internal sealed partial class MinorActorProgramRuntime :
         }
 
         State.SetPosition(actorId, selected.Q, selected.R);
+        var cultureId = State.CultureId(actorId);
         var delta = State.WorkDelta(actorId) *
             selected.WorkDeltaMultiplier *
             SourceSlotWorkMultiplier(simulation, State.SourceEntityId(actorId)) *
-            NexusSourceMultiplier(simulation, actorId, selected.PlaneCode);
+            NexusSourceMultiplier(simulation, actorId, selected.PlaneCode) *
+            simulation.Knowledge.Modifier(
+                cultureId,
+                KnowledgeGrantDomainCodes.MinorActorWork,
+                State.PurposeCode(actorId));
+        if (selected.ActionCode == MinorActorActionCodes.RoadMaintenance)
+        {
+            delta *= simulation.Knowledge.Modifier(cultureId, KnowledgeGrantDomainCodes.RoadWork);
+        }
         if (delta <= 0f)
         {
             EmitMinorActorVerb(simulation, actorId, tick, selected, TraceStatusCodes.NoReward, delta);
@@ -693,7 +702,12 @@ internal sealed partial class MinorActorProgramRuntime :
 
     private void ApplyLegacyWork(Simulation simulation, int actorId, int tick)
     {
-        var workDelta = State.WorkDelta(actorId);
+        var cultureId = State.CultureId(actorId);
+        var workDelta = State.WorkDelta(actorId) *
+            simulation.Knowledge.Modifier(
+                cultureId,
+                KnowledgeGrantDomainCodes.MinorActorWork,
+                State.PurposeCode(actorId));
         if (workDelta <= 0f)
         {
             return;
@@ -720,7 +734,13 @@ internal sealed partial class MinorActorProgramRuntime :
                     tick);
                 break;
             case MinorActorActionCodes.RoadMaintenance:
-                _ = simulation.Movement.ReinforceRoad(simulation, planeCode, q, r, workDelta, tick);
+                _ = simulation.Movement.ReinforceRoad(
+                    simulation,
+                    planeCode,
+                    q,
+                    r,
+                    workDelta * simulation.Knowledge.Modifier(cultureId, KnowledgeGrantDomainCodes.RoadWork),
+                    tick);
                 break;
             case MinorActorActionCodes.CultureCleanup:
                 _ = ReduceOtherCultureSources(

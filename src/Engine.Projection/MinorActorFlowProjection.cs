@@ -26,17 +26,29 @@ public sealed class MinorActorFlowProjection : KernelEventProjector
 
     public int CurrentTick { get; private set; }
 
-    /// <summary>Copies recent pulses into the caller's buffer; returns the count.</summary>
-    public int CopyRecent(MinorActorPulse[] buffer)
+    /// <summary>
+    /// Copies newest-first pulses for one plane at or after the requested tick,
+    /// stopping once the monotonic event stream reaches expired history.
+    /// </summary>
+    public int CopyRecent(MinorActorPulse[] buffer, int planeCode, int minimumTick)
     {
         System.ArgumentNullException.ThrowIfNull(buffer);
-        var take = System.Math.Min(_count, buffer.Length);
-        for (var i = 0; i < take; i++)
+        var copied = 0;
+        for (var i = 0; i < _count && copied < buffer.Length; i++)
         {
-            buffer[i] = _pulses[(_next - 1 - i + Capacity) % Capacity];
+            var pulse = _pulses[(_next - 1 - i + Capacity) % Capacity];
+            if (pulse.Tick < minimumTick)
+            {
+                break;
+            }
+
+            if (pulse.PlaneCode == planeCode)
+            {
+                buffer[copied++] = pulse;
+            }
         }
 
-        return take;
+        return copied;
     }
 
     protected override void OnMinorActorVerbExecuted(long sequence, in MinorActorVerbExecutedKernelEvent evt)

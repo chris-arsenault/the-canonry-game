@@ -7,9 +7,11 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Engine.Constants\Engine.Constants.csproj" />
+    <ProjectReference Include="..\Engine.Gameplay\Engine.Gameplay.csproj" />
     <ProjectReference Include="..\Engine.Host\Engine.Host.csproj" />
     <ProjectReference Include="..\Engine.Kernel.Driver\Engine.Kernel.Driver.csproj" />
     <ProjectReference Include="..\Engine.Projection\Engine.Projection.csproj" />
+    <ProjectReference Include="..\IceRemembers\IceRemembers.csproj" />
     <ProjectReference Include="..\IceRemembers.Seed\IceRemembers.Seed.csproj" />
   </ItemGroup>
 

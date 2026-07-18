@@ -1,5 +1,7 @@
 namespace Engine.Kernel;
 
+using Engine.Constants;
+
 internal sealed class MapSignalsProgramRuntime :
     IKernelProgramRuntime<MapSignalsProgramData, MapSignalsProgramState>
 {
@@ -232,7 +234,12 @@ internal sealed class MapSignalsProgramRuntime :
         var world = simulation.World;
         var q = CurrentQ(world, entityId, planeCode);
         var r = CurrentR(world, entityId, planeCode);
-        var capacity = DynamicCapacityAt(world, planeCode, q, r);
+        var cultureId = world.EntityCultureId(entityId);
+        var capacity = DynamicCapacityAt(world, planeCode, q, r) *
+            simulation.Knowledge.Modifier(
+                cultureId,
+                KnowledgeGrantDomainCodes.CarryingCapacity,
+                planeCode);
         var occupancy = LocalOccupancy(simulation, planeCode, q, r, Data.CrowdingRadius);
         var load = CrowdingLoad(occupancy, capacity);
         var comfort = CrowdingComfort(occupancy, capacity);
@@ -281,7 +288,8 @@ internal sealed class MapSignalsProgramRuntime :
         mass += simulation.Chronicles.HeatFor(entityId) * ChronicleAttractorScale;
 
         mass += support - threat;
-        return mass < 0f ? 0f : mass;
+        return global::System.MathF.Max(0f, mass) *
+            simulation.Knowledge.Modifier(cultureId, KnowledgeGrantDomainCodes.Attraction, planeCode);
     }
 
     private float AttractorScalarMass(WorldState world, int entityId, int kindId)

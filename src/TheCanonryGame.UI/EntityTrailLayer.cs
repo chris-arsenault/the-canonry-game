@@ -18,6 +18,7 @@ public partial class EntityTrailLayer : Node2D
     private EntityTrailProjection? _trails;
     private EntityLayer? _entities;
     private Func<int, Color>? _entityColor;
+    private TrailLayerState? _lastState;
 
     public void Initialize(EntityTrailProjection trails, EntityLayer entities, Func<int, Color> entityColor)
     {
@@ -27,13 +28,24 @@ public partial class EntityTrailLayer : Node2D
         ShowBehindParent = true;
     }
 
-    public override void _Process(double delta)
+    public void Present()
     {
-        if (IsVisibleInTree())
+        if (_trails is null || _entities is null)
         {
-            QueueRedraw();
+            return;
         }
+
+        var state = new TrailLayerState(_trails.Version, _trails.CurrentTick, _entities.CurrentPlaneCode, Visible);
+        if (_lastState == state)
+        {
+            return;
+        }
+
+        _lastState = state;
+        QueueRedraw();
     }
+
+    public void Invalidate() => _lastState = null;
 
     public override void _Draw()
     {
@@ -44,12 +56,12 @@ public partial class EntityTrailLayer : Node2D
 
         var currentTick = _trails.CurrentTick;
         var planeCode = _entities.CurrentPlaneCode;
-        var count = _trails.CopyRecent(_buffer);
+        var count = _trails.CopyRecent(_buffer, planeCode, currentTick - FadeTicks);
         for (var i = 0; i < count; i++)
         {
             var segment = _buffer[i];
             var age = currentTick - segment.Tick;
-            if (segment.PlaneCode != planeCode || age < 0 || age > FadeTicks)
+            if (age < 0 || age > FadeTicks)
             {
                 continue;
             }
@@ -62,4 +74,6 @@ public partial class EntityTrailLayer : Node2D
             DrawLine(from, to, color, 1.2f + (1.6f * fade), antialiased: true);
         }
     }
+
+    private readonly record struct TrailLayerState(long Version, int Tick, int PlaneCode, bool Visible);
 }

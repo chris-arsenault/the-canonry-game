@@ -19,6 +19,7 @@ public partial class MinorActorFlowLayer : Node2D
     private MinorActorFlowProjection? _flow;
     private EntityLayer? _entities;
     private Func<int, Color>? _cultureColor;
+    private FlowLayerState? _lastState;
 
     public void Initialize(MinorActorFlowProjection flow, EntityLayer entities, Func<int, Color> cultureColor)
     {
@@ -28,13 +29,24 @@ public partial class MinorActorFlowLayer : Node2D
         ShowBehindParent = true;
     }
 
-    public override void _Process(double delta)
+    public void Present()
     {
-        if (IsVisibleInTree())
+        if (_flow is null || _entities is null)
         {
-            QueueRedraw();
+            return;
         }
+
+        var state = new FlowLayerState(_flow.Version, _flow.CurrentTick, _entities.CurrentPlaneCode, Visible);
+        if (_lastState == state)
+        {
+            return;
+        }
+
+        _lastState = state;
+        QueueRedraw();
     }
+
+    public void Invalidate() => _lastState = null;
 
     public override void _Draw()
     {
@@ -45,12 +57,12 @@ public partial class MinorActorFlowLayer : Node2D
 
         var currentTick = _flow.CurrentTick;
         var planeCode = _entities.CurrentPlaneCode;
-        var count = _flow.CopyRecent(_buffer);
+        var count = _flow.CopyRecent(_buffer, planeCode, currentTick - FadeTicks);
         for (var i = 0; i < count; i++)
         {
             var pulse = _buffer[i];
             var age = currentTick - pulse.Tick;
-            if (pulse.PlaneCode != planeCode || age < 0 || age > FadeTicks)
+            if (age < 0 || age > FadeTicks)
             {
                 continue;
             }
@@ -65,4 +77,6 @@ public partial class MinorActorFlowLayer : Node2D
             DrawCircle(center + drift, 2.2f + (2f * fade), color);
         }
     }
+
+    private readonly record struct FlowLayerState(long Version, int Tick, int PlaneCode, bool Visible);
 }

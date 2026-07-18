@@ -8,7 +8,7 @@ public sealed record UiProjectionMigrationItem(
     string RequiredPrimitiveSource,
     string Reason);
 
-public sealed class UiProjectionState : KernelEventProjector
+public sealed partial class UiProjectionState : KernelEventProjector
 {
     private const int MinorActorActivityCapacity = 320;
 
@@ -27,6 +27,7 @@ public sealed class UiProjectionState : KernelEventProjector
         new Dictionary<UiCultureSlotKey, UiCultureSlotDefinitionProjection>();
     private readonly Dictionary<UiCultureSlotKey, UiCultureSlotOccupancyProjection> _cultureSlots = [];
     private readonly List<UiMinorActorActivityProjection> _minorActorActivities = [];
+    private readonly HashSet<int> _dirtyEntityBrowserRows = [];
 
     private IReadOnlyDictionary<int, EntityTier> _tierByKindId = new Dictionary<int, EntityTier>();
     private Dictionary<int, UiHealthAttributeDefinitionProjection> _healthAttributeByKindId = [];
@@ -102,6 +103,10 @@ public sealed class UiProjectionState : KernelEventProjector
 
     public long EntityBrowserVersion { get; private set; }
 
+    public long EntityBrowserStructureVersion { get; private set; }
+
+    public long EntityBrowserRowVersion { get; private set; }
+
     public long EntityDetailVersion { get; private set; }
 
     public long RelationshipVersion { get; private set; }
@@ -124,6 +129,8 @@ public sealed class UiProjectionState : KernelEventProjector
             ? dirtyHexes
             : [];
 
+    public IReadOnlyCollection<int> DirtyEntityBrowserRows => _dirtyEntityBrowserRows;
+
     public void ClearDirtyEntityHexes(int planeCode)
     {
         if (_dirtyEntityHexesByPlane.TryGetValue(planeCode, out var dirtyHexes))
@@ -131,6 +138,8 @@ public sealed class UiProjectionState : KernelEventProjector
             dirtyHexes.Clear();
         }
     }
+
+    public void ClearDirtyEntityBrowserRows() => _dirtyEntityBrowserRows.Clear();
 
     public IReadOnlyList<UiRelationshipProjection> ActiveOutgoingRelationships(int entityId) =>
         ActiveRelationships(_activeOutgoingRelationshipsByEntity, entityId);
@@ -264,7 +273,7 @@ public sealed class UiProjectionState : KernelEventProjector
         ActiveEntityCount++;
         TopBarVersion++;
         EntityMapVersion++;
-        EntityBrowserVersion++;
+        MarkEntityBrowserStructureChanged(evt.EntityId);
         EntityDetailVersion++;
         ReindexRelationshipsForEntity(evt.EntityId);
         TrackCreatedEntityForGeneratorAttribution(evt);
@@ -279,9 +288,10 @@ public sealed class UiProjectionState : KernelEventProjector
         entity.CultureId = evt.CurrentCultureId;
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
-        EntityBrowserVersion++;
+        MarkEntityBrowserStructureChanged(evt.EntityId);
         EntityDetailVersion++;
         EntityMapVersion++;
+        MarkEntityVisualDirty(entity);
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -315,7 +325,7 @@ public sealed class UiProjectionState : KernelEventProjector
 
         ReindexRelationshipsForEntity(evt.EntityId);
         EntityDetailVersion++;
-        EntityBrowserVersion++;
+        MarkEntityBrowserStructureChanged(evt.EntityId);
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -395,7 +405,9 @@ public sealed class UiProjectionState : KernelEventProjector
         }
 
         EntityMapVersion++;
-        EntityBrowserVersion++;
+        MarkEntityVisualDirty(evt.PreviousEntityId);
+        MarkEntityVisualDirty(evt.CurrentEntityId);
+        MarkEntityBrowserStructureChanged(evt.PreviousEntityId, evt.CurrentEntityId);
         EntityDetailVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
@@ -441,7 +453,7 @@ public sealed class UiProjectionState : KernelEventProjector
         MinorActorActivityVersion++;
         if (browserChanged)
         {
-            EntityBrowserVersion++;
+            MarkEntityBrowserStructureChanged(evt.SourceEntityId);
             EntityDetailVersion++;
         }
 
@@ -579,7 +591,9 @@ public sealed class UiProjectionState : KernelEventProjector
         }
 
         EntityDetailVersion++;
-        EntityBrowserVersion++;
+        EntityMapVersion++;
+        MarkEntityVisualDirty(entity);
+        MarkEntityBrowserRowChanged(evt.ActorId);
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -870,7 +884,7 @@ public sealed class UiProjectionState : KernelEventProjector
         MarkEntityHexDirty(PlaneCodes.Physical, new HexCoord(entity.PhysicalQ, entity.PhysicalR));
         MarkEntityHexDirty(PlaneCodes.Semantic, new HexCoord(entity.SemanticQ, entity.SemanticR));
         EntityMapVersion++;
-        EntityBrowserVersion++;
+        MarkEntityBrowserStructureChanged(entityId);
         EntityDetailVersion++;
     }
 

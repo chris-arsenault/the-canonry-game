@@ -24,8 +24,8 @@ Engine.Domain
   domain schema, stable id registry, definition graph, semantic validation
 
 Engine.Gameplay
-  reusable gameplay vocabulary and validators; compiles authored gameplay
-  into primitive kernel program data
+  reusable gameplay vocabulary and validators, including knowledge grant
+  domains; compiles authored gameplay into primitive kernel program data
 
 Engine.Kernel
   deterministic state mutation, fixed-capacity program data/state/scratch,
@@ -83,13 +83,18 @@ Movement
 LowAltitudeVerbs
 MapActivity
 MapSignals
+CultureFieldDecay
 CultureBoundaries
 Relationships
 Effects
 Upkeep
 Gambits
+ChronicleDirector
 Generators
+WorldBeats
+MapFrontier
 CultureSlots
+Knowledge
 MinorActors
 ```
 
@@ -145,6 +150,12 @@ High-altitude programs produce significant graph changes:
 
 - gambits;
 - generators.
+
+Knowledge is a derived culture-scoped modifier layer across both altitudes.
+Authored technology sites and stable grant targets are resolved by the host;
+the kernel recomputes claims from semantic culture mass and exposes primitive
+modifiers to existing programs. See
+[27-knowledge.md](./systems/27-knowledge.md).
 
 The Chronicle Director sits above both as a recognition layer: it casts story
 archetypes over live entities, arms authored beats (gambit bias and

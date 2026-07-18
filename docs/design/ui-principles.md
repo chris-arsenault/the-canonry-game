@@ -62,6 +62,7 @@ GameRenderTree
     TooltipRender
   EntityBrowserRender
   ChronicleRender
+  TechnologyOverviewRender
   CardLayerRender
   AttributeGraphRender
   TableauRender
@@ -90,6 +91,10 @@ sets, layout state, visibility, and active UI mode.
   hex for entity-map and tooltip lookup.
 - `UiProjectionState.EntityBrowserVersion`: active entity list, grouping, or
   row summary changed.
+- `UiProjectionState.EntityBrowserStructureVersion`: roster, grouping, filter
+  count, or sort membership changed and the browser snapshot must be rebuilt.
+- `UiProjectionState.EntityBrowserRowVersion` and `DirtyEntityBrowserRows`:
+  existing row presentation changed without changing browser structure.
 - `UiProjectionState.EntityDetailVersion`: selected-card/readings details
   changed.
 - `UiProjectionState.RelationshipVersion`: relationship details changed; active
@@ -98,16 +103,29 @@ sets, layout state, visibility, and active UI mode.
   changed.
 - `UiChronicleProjection.Version` and `GameRuntimeChronicle.Version`: chronicle
   text changed.
+- `KnowledgeProgramRuntime.Revision` and `KnowledgeOverviewSnapshot.Revision`:
+  culture technology claims and their derived modifier totals were rebuilt.
 
 ## Current Implementation Notes
 
 - Map cells are component-version gated and dirty-cell delta updated.
-- Entity map presentation uses active-occupant indexes and dirty hexes.
-- Entity browser presentation is active-only, version gated, and virtualized
-  with spacer controls plus row/header pools.
+- Entity map presentation uses one batched canvas item backed by active-occupant
+  indexes and dirty hexes; it viewport-culls drawing and collapses crowded
+  hexes to a representative token plus count until close zoom.
+- Entity browser presentation is active-only, structure/row version gated, and
+  virtualized with spacer controls plus row/header pools. Filter option counts
+  rebuild only when browser structure changes.
+- Recent entity trails and minor-actor flows copy only the visible plane's
+  bounded live window, and redraw on projection tick/version changes rather
+  than every rendered frame.
+- Chronicle auras allocate their cast only when tale data changes and animate
+  at a bounded redraw rate while an unresolved tale is visible.
+- Culture legend rows are keyed and reused across refreshes.
 - Entity cards read selected-entity active relationship indexes instead of
   scanning the full relationship graph.
 - Chronicle presentation is version gated and incrementally builds visible text.
+- The technology overview is a bounded, journal-style ledger rebuilt only when
+  the knowledge projection revision changes while the panel is open.
 - Tableau and attribute graph presentation are visible/version gated.
 - Floating tableau layout is dirty-state driven.
 - Tooltip text and position updates are cached by hover/projection/layout
@@ -119,8 +137,8 @@ Do not optimize these areas preemptively. Revisit them when profiling or
 long-run play exposes a concrete bottleneck:
 
 - bound unresolved chronicle/provenance chain candidates if they accumulate;
-- maintain grouped active-entity browser lists or row-level deltas if active
-  entity counts make browser snapshot rebuilds expensive;
+- maintain projection-owned grouped browser indexes if roster/filter structure
+  changes, rather than row updates, make snapshot rebuilds expensive;
 - move tooltip hover probing to input/camera invalidation if paused-frame
   profiling calls it out;
 - add per-entity detail versions for attribute graph or pre-sorted tableau

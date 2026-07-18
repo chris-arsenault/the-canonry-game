@@ -1,5 +1,6 @@
 namespace Engine.Kernel;
 
+using Engine.Constants;
 using Engine.Eventing;
 
 internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramData, GambitProgramState>
@@ -579,7 +580,12 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     private KernelEventState RollGambitState(Simulation simulation, int gambitSlot, int entityId, int targetId)
     {
         var successChance = Clamp01(
-            (_gambitSuccessChances[gambitSlot] * Data.AgeSuccessMultipliers[gambitSlot]) +
+            (_gambitSuccessChances[gambitSlot] *
+                Data.AgeSuccessMultipliers[gambitSlot] *
+                simulation.Knowledge.Modifier(
+                    simulation.World.EntityCultureId(entityId),
+                    KnowledgeGrantDomainCodes.GambitSuccess,
+                    _gambitIds[gambitSlot])) +
             GambitSuccessDecisionDelta(simulation.World, _gambitIds[gambitSlot], entityId, targetId) +
             simulation.Chronicles.SuccessBonus(entityId, targetId, _gambitIds[gambitSlot]));
         return successChance >= 1f || simulation.NextFloat() <= successChance

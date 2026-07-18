@@ -987,7 +987,7 @@ public sealed class GeneratorProgramRuntimeTests
             GeneratorItemCapacity = 64,
             RelationshipKindIdCapacity = 64,
             TerrainIdCapacity = 8,
-            SystemCapacity = 16,
+            SystemCapacity = 24,
             KernelTuning = new KernelTuningOptions
             {
                 Programs = new KernelProgramTuningOptions

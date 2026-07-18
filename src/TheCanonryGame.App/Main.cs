@@ -38,6 +38,9 @@ public partial class Main : Node2D
     private bool _moveRight;
     private bool _moveUp;
     private bool _moveDown;
+    private int _startupPrewarmTicks;
+    private int? _startupSeed;
+    private double? _startupTickRate;
 
     public override void _ExitTree()
     {
@@ -57,9 +60,10 @@ public partial class Main : Node2D
         AssetLibrary.Load();
         RenderingServer.SetDefaultClearColor(UiTokens.Basalt);
 
+        ReadStartupOptions();
         InitializeKernelHost();
 
-        GD.Print("Controls: Space=pause, Right=step, 1/2/3=speed, R=reset, N=names, G=readings, WASD=pan, scroll=zoom");
+        GD.Print("Controls: Space=pause, Right=step, 1/2/3=speed, R=reset, N=names, G=readings, J=journal, K=technology, WASD=pan, scroll=zoom");
     }
 
     public override void _Process(double delta)
@@ -106,6 +110,11 @@ public partial class Main : Node2D
 
     private void HandlePressedShortcut(Key keycode)
     {
+        if (HandlePanelShortcut(keycode))
+        {
+            return;
+        }
+
         switch (keycode)
         {
             case Key.Space:
@@ -129,12 +138,24 @@ public partial class Main : Node2D
             case Key.N:
                 ToggleEntityNames();
                 break;
+        }
+    }
+
+    private bool HandlePanelShortcut(Key keycode)
+    {
+        switch (keycode)
+        {
             case Key.G:
                 ToggleAttributeGraph();
-                break;
+                return true;
             case Key.J:
                 ToggleChronicleJournal();
-                break;
+                return true;
+            case Key.K:
+                ToggleTechnologyOverview();
+                return true;
+            default:
+                return false;
         }
     }
 
@@ -274,6 +295,7 @@ public partial class Main : Node2D
             _bottomBar.TableauToggleRequested += ToggleTableauVisibility;
             _bottomBar.ReadingsToggleRequested += ToggleAttributeGraph;
             _bottomBar.JournalToggleRequested += ToggleChronicleJournal;
+            _bottomBar.TechnologyToggleRequested += ToggleTechnologyOverview;
         }
 
         if (_browser is not null)
@@ -298,10 +320,23 @@ public partial class Main : Node2D
         }
     }
 
-    private void InitializeKernelHost() =>
-        StartNewRun(GameSeedPolicy.Random(), pauseAfterStart: false);
+    private void InitializeKernelHost()
+    {
+        var seedPolicy = _startupSeed is { } seed
+            ? GameSeedPolicy.Requested(seed)
+            : GameSeedPolicy.Random();
+        StartNewRun(
+            seedPolicy,
+            pauseAfterStart: _startupPrewarmTicks > 0 && _startupTickRate is null,
+            prewarmTicks: _startupPrewarmTicks,
+            tickRateAfterStart: _startupTickRate);
+    }
 
-    private void StartNewRun(GameSeedPolicy seedPolicy, bool pauseAfterStart)
+    private void StartNewRun(
+        GameSeedPolicy seedPolicy,
+        bool pauseAfterStart,
+        int prewarmTicks = 0,
+        double? tickRateAfterStart = null)
     {
         _renderTree?.CloseOpenCards();
         _renderTree?.ClearTooltip();
@@ -309,7 +344,17 @@ public partial class Main : Node2D
         _runtime?.Dispose();
         _runtime = CanonryGameRuntimeFactory.Start(seedPolicy);
 
-        if (pauseAfterStart)
+        if (prewarmTicks > 0)
+        {
+            PauseKernelDriver();
+            PrewarmRuntime(prewarmTicks);
+        }
+
+        if (tickRateAfterStart is { } tickRate)
+        {
+            SetKernelTickRate(tickRate);
+        }
+        else if (pauseAfterStart)
         {
             PauseKernelDriver();
         }
@@ -329,6 +374,72 @@ public partial class Main : Node2D
             $"{_runtime.ReadModels.Entities.Entities.Count} projected entities.{runLogText}");
     }
 
+    private void PrewarmRuntime(int targetTick)
+    {
+        if (_runtime is null)
+        {
+            return;
+        }
+
+        const int batchTicks = 25;
+        var startedAtMs = Time.GetTicksMsec();
+        while (_runtime.ReadModels.Entities.CurrentTick < targetTick)
+        {
+            var remaining = targetTick - _runtime.ReadModels.Entities.CurrentTick;
+            _runtime.Controls.Step(Math.Min(batchTicks, remaining));
+            _ = _runtime.Update();
+        }
+
+        var elapsedMs = Time.GetTicksMsec() - startedAtMs;
+        GD.Print(
+            $"Prewarmed simulation to tick {_runtime.ReadModels.Entities.CurrentTick} " +
+            $"in {elapsedMs} ms for UI profiling.");
+    }
+
+    private void ReadStartupOptions()
+    {
+        foreach (var argument in OS.GetCmdlineUserArgs())
+        {
+            if (TryReadPositiveOption(argument, "--prewarm-ticks=", out var prewarmTicks))
+            {
+                _startupPrewarmTicks = prewarmTicks;
+            }
+            else if (TryReadPositiveOption(argument, "--seed=", out var seed))
+            {
+                _startupSeed = seed;
+            }
+            else if (TryReadPositiveRateOption(argument, "--prewarm-tick-rate=", out var tickRate))
+            {
+                _startupTickRate = tickRate;
+            }
+        }
+    }
+
+    private static bool TryReadPositiveOption(string argument, string prefix, out int value)
+    {
+        value = 0;
+        return argument.StartsWith(prefix, StringComparison.Ordinal) &&
+            int.TryParse(
+                argument.AsSpan(prefix.Length),
+                System.Globalization.NumberStyles.None,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out value) &&
+            value > 0;
+    }
+
+    private static bool TryReadPositiveRateOption(string argument, string prefix, out double value)
+    {
+        value = 0d;
+        return argument.StartsWith(prefix, StringComparison.Ordinal) &&
+            double.TryParse(
+                argument.AsSpan(prefix.Length),
+                System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture,
+                out value) &&
+            double.IsFinite(value) &&
+            value > 0d;
+    }
+
     private void OnTogglePlanePressed() => _renderTree?.TogglePlane();
 
     private void OnMapLayerVisibilityChanged(string layerKey, bool visible) =>
@@ -342,6 +453,8 @@ public partial class Main : Node2D
     private void ToggleAttributeGraph() => _renderTree?.ToggleAttributeGraph();
 
     private void ToggleChronicleJournal() => _renderTree?.ToggleChronicleJournal();
+
+    private void ToggleTechnologyOverview() => _renderTree?.ToggleTechnologyOverview();
 
     private void ResetSimulation()
     {
@@ -430,6 +543,7 @@ public partial class Main : Node2D
         {
             var speed = 200f / _camera.Zoom.X;
             _camera.Position += direction.Normalized() * speed * delta;
+            _entityLayer?.NotifyViewportChanged();
         }
     }
 

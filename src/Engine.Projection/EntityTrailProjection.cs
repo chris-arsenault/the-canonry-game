@@ -32,17 +32,30 @@ public sealed class EntityTrailProjection : KernelEventProjector
 
     public int CurrentTick { get; private set; }
 
-    /// <summary>Copies recent segments into the caller's buffer; returns the count.</summary>
-    public int CopyRecent(EntityTrailSegment[] buffer)
+    /// <summary>
+    /// Copies newest-first segments for one plane at or after the requested
+    /// tick. Event ticks are monotonic, so the scan stops as soon as it reaches
+    /// expired history instead of walking the entire retained ring.
+    /// </summary>
+    public int CopyRecent(EntityTrailSegment[] buffer, int planeCode, int minimumTick)
     {
         System.ArgumentNullException.ThrowIfNull(buffer);
-        var take = System.Math.Min(_count, buffer.Length);
-        for (var i = 0; i < take; i++)
+        var copied = 0;
+        for (var i = 0; i < _count && copied < buffer.Length; i++)
         {
-            buffer[i] = _segments[(_next - 1 - i + Capacity) % Capacity];
+            var segment = _segments[(_next - 1 - i + Capacity) % Capacity];
+            if (segment.Tick < minimumTick)
+            {
+                break;
+            }
+
+            if (segment.PlaneCode == planeCode)
+            {
+                buffer[copied++] = segment;
+            }
         }
 
-        return take;
+        return copied;
     }
 
     protected override void OnEntityMoved(long sequence, in EntityMovedKernelEvent evt)

@@ -1,5 +1,7 @@
 namespace Engine.Kernel;
 
+using Engine.Constants;
+
 internal sealed partial class LowAltitudeVerbProgramRuntime
 {
     private const int AffordanceOverlapCap = 6;
@@ -40,9 +42,14 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     private EffectiveVerbScalars EffectiveScalars(Simulation simulation, int entityId, int rule)
     {
         var totals = TraitTotals(simulation.World, entityId, rule);
+        var cultureId = simulation.World.EntityCultureId(entityId);
         var weight = (Data.Weight(rule) + totals.Weight) *
             CultureSlotAgencyMultiplier(simulation, entityId, rule) *
-            Data.AgeWeightMultiplier(rule);
+            Data.AgeWeightMultiplier(rule) *
+            simulation.Knowledge.Modifier(
+                cultureId,
+                KnowledgeGrantDomainCodes.VerbWeight,
+                Data.VerbId(rule));
         var globalBonus = Tuning.LowAltitudeVerbs.OpportunityBonus;
         var verbOverride = Data.OpportunityBonusOverride(rule);
         var opportunityBonus = (verbOverride > 0f ? verbOverride : globalBonus) + totals.OpportunityBonus;

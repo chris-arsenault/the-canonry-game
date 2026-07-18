@@ -296,6 +296,7 @@ public sealed class KernelUiRuntime : IDisposable
     private long _lastCultureBoundaryRevision = -1;
     private IReadOnlyList<CulturePowerSummary> _culturePowers = [];
     private int _culturePowersTick = -1;
+    private KnowledgeOverviewSnapshot? _knowledgeOverview;
     private bool _disposed;
 
     internal KernelUiRuntime(
@@ -386,6 +387,19 @@ public sealed class KernelUiRuntime : IDisposable
         }
 
         return _culturePowers;
+    }
+
+    public KnowledgeOverviewSnapshot KnowledgeOverview()
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+
+        var revision = _runtime.Host.KnowledgeRevision;
+        if (_knowledgeOverview is null || _knowledgeOverview.Revision != revision)
+        {
+            _knowledgeOverview = _runtime.Host.ComputeKnowledgeOverview();
+        }
+
+        return _knowledgeOverview;
     }
 
     private void RefreshCultureBoundariesIfChanged()

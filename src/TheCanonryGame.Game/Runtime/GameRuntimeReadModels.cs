@@ -36,6 +36,7 @@ internal sealed class GameRuntimeReadModels
         Entities = runtime.Ui;
         Symbols = runtime.Symbols;
         Knowledge = GameDomainKnowledge.FromCompiledDomain(runtime.CompiledDomain, runtime.Symbols);
+        Technologies = new GameTechnologyOverviewReadModel(runtime, runtime.Symbols);
         Chronicle = new GameRuntimeChronicle(runtime.Chronicle, runtime.Provenance, runtime.Symbols, Knowledge);
         MinorActorFlow = runtime.MinorActorFlow;
         EntityTrails = runtime.EntityTrails;
@@ -57,6 +58,8 @@ internal sealed class GameRuntimeReadModels
     public IProjectionSymbolCatalog Symbols { get; }
 
     public GameDomainKnowledge Knowledge { get; }
+
+    public GameTechnologyOverviewReadModel Technologies { get; }
 
     public IReadOnlyList<CulturePowerSummary> CulturePowers() => _runtime.CulturePowers();
 

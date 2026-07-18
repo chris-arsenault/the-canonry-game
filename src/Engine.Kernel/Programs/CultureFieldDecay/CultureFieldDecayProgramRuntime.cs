@@ -55,6 +55,17 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
     private void DecayPlane(Simulation simulation, int cultureId, int planeCode, int tick)
     {
         var world = simulation.World;
+        var persistence = simulation.Knowledge.Modifier(
+            cultureId,
+            KnowledgeGrantDomainCodes.CulturePersistence,
+            planeCode);
+        var tideResistance = simulation.Knowledge.Modifier(
+            cultureId,
+            KnowledgeGrantDomainCodes.DecayTideResistance,
+            planeCode);
+        var effectiveGlobalTide = _globalTide > 1f
+            ? 1f + ((_globalTide - 1f) * tideResistance)
+            : _globalTide;
         // Two-phase: snapshot cells first because applying decay mutates the
         // spatial index the cursor walks. Cells beyond scratch capacity skip
         // this pulse and decay on a later one.
@@ -79,7 +90,7 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
         {
             var raw = _scratchRaw[i];
             var contest = ContestMultiplier(world, cultureId, planeCode, _scratchQ[i], _scratchR[i], _scratchZ[i], raw);
-            var decay = global::System.MathF.Max(raw * _decayPerPulse, _minimumDecayPerPulse) * contest * _globalTide;
+            var decay = global::System.MathF.Max(raw * _decayPerPulse, _minimumDecayPerPulse) * contest * effectiveGlobalTide * persistence;
             if (raw - decay < _cullFloorRawMass)
             {
                 decay = raw;

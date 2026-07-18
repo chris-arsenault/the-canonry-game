@@ -58,6 +58,11 @@ internal sealed partial class Simulation : IKernel
         Chronicles = new ChronicleProgramRuntime(options);
         WorldBeats = new WorldBeatsProgramRuntime(options);
         MapFrontier = new MapFrontierProgramRuntime(options);
+        Knowledge = new KnowledgeProgramRuntime(
+            options.KnowledgeSiteCapacity,
+            options.KnowledgeGrantCapacity,
+            options.KnowledgeModifierCapacity,
+            options.CultureIdCapacity);
         AssignRuntimeCodes(options.RuntimeCodes);
         _executionContext = new KernelExecutionContext(0, StartupSourceCodeId);
         _random = new RandomSource(options.Seed);
@@ -215,6 +220,9 @@ internal sealed partial class Simulation : IKernel
             Options.KernelTuning.Programs.MapFrontier.CadenceMainTicks * mainCadence,
             MapFrontier);
         RegisterProgram(KernelProgramCodes.CultureSlots, 10 * mainCadence, CultureSlots);
+        // Claims change slowly; recompute knowledge modifiers on the same slow
+        // cadence as culture slots rather than every main tick.
+        RegisterProgram(KernelProgramCodes.Knowledge, 10 * mainCadence, Knowledge);
         RegisterProgram(
             KernelProgramCodes.MinorActors,
             1,
@@ -365,6 +373,7 @@ internal sealed partial class Simulation : IKernel
     internal ChronicleProgramRuntime Chronicles { get; }
     internal WorldBeatsProgramRuntime WorldBeats { get; }
     internal MapFrontierProgramRuntime MapFrontier { get; }
+    internal KnowledgeProgramRuntime Knowledge { get; }
     internal UpkeepProgramRuntime Upkeep { get; }
     internal RelationshipProgramRuntime Relationships { get; }
     internal MinorActorProgramRuntime MinorActors { get; }
@@ -453,6 +462,12 @@ internal sealed partial class Simulation : IKernel
     {
         KernelData.Cultures.RegisterCultureProduction(cultureId, physicalMultiplier, semanticMultiplier);
     }
+
+    internal int RegisterKnowledgeSite(int q, int r, int tier) =>
+        Knowledge.RegisterSite(q, r, tier);
+
+    internal void RegisterKnowledgeGrant(int site, int domain, int target, float multiplier) =>
+        Knowledge.RegisterGrant(site, domain, target, multiplier);
 
     internal int RegisterTerrain(int terrainId, int boundaryGroupId)
     {
@@ -1081,6 +1096,9 @@ internal sealed partial class Simulation : IKernel
         KernelProgramCodes.CultureBoundaries => MapSignalsSourceCodeId,
         KernelProgramCodes.CultureFieldDecay => MapSignalsSourceCodeId,
         KernelProgramCodes.CultureSlots => MapSignalsSourceCodeId,
+        // The knowledge program writes only derived scalar modifiers (no world
+        // events); it borrows the culture source for a valid, unused attribution.
+        KernelProgramCodes.Knowledge => MapSignalsSourceCodeId,
         _ => 0,
     };
 

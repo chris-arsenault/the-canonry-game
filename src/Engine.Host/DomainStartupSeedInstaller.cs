@@ -4,6 +4,7 @@ using Engine.Constants;
 using Engine.Domain;
 using Engine.Domain.Compilation;
 using Engine.Domain.Startup;
+using Engine.Gameplay;
 using Engine.Graph;
 using Engine.Projection;
 
@@ -33,11 +34,70 @@ internal static class DomainStartupSeedInstaller
         return count;
     }
 
-    public static void ConfigureKernel(KernelConfigurationContext context, DomainStartupSeed seed)
+    public static void ConfigureKernel(
+        KernelConfigurationContext context,
+        DomainStartupSeed seed,
+        bool configureMap)
     {
         ArgumentNullException.ThrowIfNull(context);
         ArgumentNullException.ThrowIfNull(seed);
-        context.SetMapRadius(seed.MapRadius);
+        if (configureMap)
+        {
+            context.SetMapRadius(seed.MapRadius);
+        }
+
+        foreach (var site in seed.KnowledgeSites)
+        {
+            var siteIndex = context.RegisterKnowledgeSite(site.Q, site.R, site.Tier);
+            foreach (var grant in site.Grants)
+            {
+                ValidateKnowledgeGrant(grant);
+                context.RegisterKnowledgeGrant(
+                    siteIndex,
+                    KnowledgeGrantDomainCode(grant.Domain),
+                    ResolveKnowledgeGrantTarget(context.DomainIds, grant),
+                    grant.Multiplier);
+            }
+        }
+    }
+
+    private static void ValidateKnowledgeGrant(KnowledgeGrantConfig grant)
+    {
+        ArgumentNullException.ThrowIfNull(grant);
+        if (grant.Multiplier <= 0f ||
+            (grant.Target is not null && grant.TargetCode != 0) ||
+            (grant.Target is not null && string.IsNullOrWhiteSpace(grant.Target)))
+        {
+            throw new InvalidOperationException($"Invalid knowledge grant for {grant.Domain}.");
+        }
+    }
+
+    internal static int ResolveKnowledgeGrantTarget(DomainIdRegistry ids, KnowledgeGrantConfig grant) =>
+        grant.Domain switch
+        {
+            KnowledgeGrantDomain.VerbWeight => ids.VerbIdOf(RequiredTarget(grant)).Value,
+            KnowledgeGrantDomain.GeneratorPulseWeight => ids.GeneratorIdOf(RequiredTarget(grant)).Value,
+            KnowledgeGrantDomain.GambitScore or KnowledgeGrantDomain.GambitSuccess =>
+                ids.GambitIdOf(RequiredTarget(grant)).Value,
+            KnowledgeGrantDomain.RelationshipMaintenance =>
+                ids.RelationshipKindIdOf(RequiredTarget(grant)).Value,
+            KnowledgeGrantDomain.MovementStepRate or KnowledgeGrantDomain.RoadWork when grant.Target is not null =>
+                ids.KindIdOf(grant.Target).Value,
+            _ when grant.Target is null => grant.TargetCode,
+            _ => throw new InvalidOperationException($"Knowledge grant {grant.Domain} does not accept a named target."),
+        };
+
+    private static string RequiredTarget(KnowledgeGrantConfig grant) =>
+        grant.Target ?? throw new InvalidOperationException($"Knowledge grant {grant.Domain} requires a target.");
+
+    internal static int KnowledgeGrantDomainCode(KnowledgeGrantDomain domain)
+    {
+        if (domain <= KnowledgeGrantDomain.None || domain > KnowledgeGrantDomain.DecayTideResistance)
+        {
+            throw new ArgumentOutOfRangeException(nameof(domain), domain, "Unknown knowledge grant domain.");
+        }
+
+        return (int)domain;
     }
 
     public static void Install(KernelStartupContext context, DomainStartupSeed seed)

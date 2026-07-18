@@ -156,7 +156,7 @@ internal sealed class SeedAssembly
             var tech = techs[i];
             var ring = (tech.Tier * IceRemembersKnowledge.TierWidth) + (IceRemembersKnowledge.TierWidth / 2);
             var spoke = DisciplineSpokes[(int)tech.Discipline % DisciplineSpokes.Length];
-            sites[i] = new DomainKnowledgeSite(tech.Id, ring * spoke.Q, ring * spoke.R, tech.Tier);
+            sites[i] = new DomainKnowledgeSite(tech.Id, ring * spoke.Q, ring * spoke.R, tech.Tier, tech.Grants);
         }
 
         return sites;

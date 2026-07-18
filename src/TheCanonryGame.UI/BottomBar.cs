@@ -22,6 +22,9 @@ public partial class BottomBar : PanelContainer
     [Signal]
     public delegate void JournalToggleRequestedEventHandler();
 
+    [Signal]
+    public delegate void TechnologyToggleRequestedEventHandler();
+
     public override void _Ready()
     {
         CustomMinimumSize = new Vector2(0, 40);
@@ -48,6 +51,16 @@ public partial class BottomBar : PanelContainer
         var row = GetNode<HBoxContainer>("Row");
         row.AddChild(journalButton);
         row.MoveChild(journalButton, _readingsToggleButton.GetIndex() + 1);
+
+        var technologyButton = new Button
+        {
+            Text = "Technology (K)",
+            TooltipText = "Technology overview: current claims and combined culture bonuses.",
+        };
+        StyleButton(technologyButton);
+        technologyButton.Pressed += () => EmitSignal(SignalName.TechnologyToggleRequested);
+        row.AddChild(technologyButton);
+        row.MoveChild(technologyButton, journalButton.GetIndex() + 1);
 
         _hintLabel.AddThemeFontOverride("font", UiTheme.BodyFont);
         _hintLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeMicro);

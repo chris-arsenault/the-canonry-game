@@ -71,7 +71,7 @@ internal sealed partial class MapFrontierProgramRuntime :
         var count = 0;
         for (var cultureId = 1; cultureId <= world.CultureHighWatermark && count < budget; cultureId++)
         {
-            count = CollectThawCandidates(world, cultureId, count);
+            count = CollectThawCandidates(simulation, world, cultureId, count);
         }
 
         for (var i = 0; i < count; i++)
@@ -80,13 +80,16 @@ internal sealed partial class MapFrontierProgramRuntime :
         }
     }
 
-    private int CollectThawCandidates(WorldState world, int cultureId, int count)
+    private int CollectThawCandidates(Simulation simulation, WorldState world, int cultureId, int count)
     {
+        var threshold = Data.FrontierMassThreshold * simulation.Knowledge.Modifier(
+            cultureId,
+            KnowledgeGrantDomainCodes.FrontierThawThreshold);
         var cursor = world.RawCultureInfluenceCellsOf(cultureId, PlaneCodes.Physical);
         while (count < _candidateQ.Length &&
                world.MoveNextRawCultureInfluenceCell(ref cursor, out var q, out var r, out _, out var raw))
         {
-            if (raw < Data.FrontierMassThreshold || HexDistanceFromOrigin(q, r) >= Data.MaxRadius)
+            if (raw < threshold || HexDistanceFromOrigin(q, r) >= Data.MaxRadius)
             {
                 continue;
             }

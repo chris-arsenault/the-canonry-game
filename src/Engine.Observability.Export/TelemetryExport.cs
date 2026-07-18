@@ -94,6 +94,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
     {
         ExportTable("symbols");
         ExportTable("entity_name_symbols");
+        ExportTable("knowledge_site_symbols");
         ExportTable("runs");
         ExportTable("tick_snapshots");
         ExportTable("kind_snapshots");
@@ -130,6 +131,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("culture_field_component_snapshots");
         ExportTable("culture_power_snapshots");
         ExportTable("knowledge_snapshots");
+        ExportTable("knowledge_claim_snapshots");
         ExportTable("entity_tag_events");
         ExportTable("chronicle_events");
         ExportTable("world_beat_events");
@@ -162,6 +164,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
     {
         EnsureTable("symbols", typeof(SymbolRow));
         EnsureTable("entity_name_symbols", typeof(EntityNameSymbolRow));
+        EnsureTable("knowledge_site_symbols", typeof(KnowledgeSiteSymbolRow));
         EnsureTable("runs", typeof(RunRow));
         EnsureTable("tick_snapshots", typeof(TickSnapshotRow));
         EnsureTable("kind_snapshots", typeof(KindSnapshotRow));
@@ -199,6 +202,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("culture_field_component_snapshots", typeof(CultureFieldComponentSnapshotRow));
         EnsureTable("culture_power_snapshots", typeof(CulturePowerSnapshotRow));
         EnsureTable("knowledge_snapshots", typeof(KnowledgeSnapshotRow));
+        EnsureTable("knowledge_claim_snapshots", typeof(KnowledgeClaimSnapshotRow));
         EnsureTable("entity_tag_events", typeof(EntityTagEventRow));
         EnsureTable("chronicle_events", typeof(ChronicleEventRow));
         EnsureTable("world_beat_events", typeof(WorldBeatEventRow));
@@ -234,6 +238,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
     {
         AppendTable("symbols", batch.Symbols);
         AppendTable("entity_name_symbols", batch.EntityNameSymbols);
+        AppendTable("knowledge_site_symbols", batch.KnowledgeSiteSymbols);
         AppendTable("runs", batch.Runs);
         AppendTable("tick_snapshots", batch.TickSnapshots);
         AppendTable("kind_snapshots", batch.KindSnapshots);
@@ -271,6 +276,7 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("culture_field_component_snapshots", batch.CultureFieldComponentSnapshots);
         AppendTable("culture_power_snapshots", batch.CulturePowerSnapshots);
         AppendTable("knowledge_snapshots", batch.KnowledgeSnapshots);
+        AppendTable("knowledge_claim_snapshots", batch.KnowledgeClaimSnapshots);
         AppendTable("entity_tag_events", batch.EntityTagEvents);
         AppendTable("chronicle_events", batch.ChronicleEvents);
         AppendTable("world_beat_events", batch.WorldBeatEvents);
@@ -480,6 +486,7 @@ internal static class TelemetryBatchExtensions
     private static long CountIdentityRows(TelemetryBatch batch) =>
         batch.Symbols.Count +
         batch.EntityNameSymbols.Count +
+        batch.KnowledgeSiteSymbols.Count +
         batch.Runs.Count +
         batch.TickSnapshots.Count +
         batch.KindSnapshots.Count +
@@ -512,6 +519,8 @@ internal static class TelemetryBatchExtensions
         batch.MinorActorVerbEvents.Count +
         batch.CultureFieldComponentSnapshots.Count +
         batch.CulturePowerSnapshots.Count +
+        batch.KnowledgeSnapshots.Count +
+        batch.KnowledgeClaimSnapshots.Count +
         batch.EntityTagEvents.Count +
         batch.CultureEntityFieldSnapshots.Count +
         batch.CultureEntityBirthFieldEvents.Count +
@@ -535,6 +544,7 @@ internal static class TelemetryBatchExtensions
     {
         AppendRows(destination.Symbols, source.Symbols);
         AppendRows(destination.EntityNameSymbols, source.EntityNameSymbols);
+        AppendRows(destination.KnowledgeSiteSymbols, source.KnowledgeSiteSymbols);
         AppendRows(destination.Runs, source.Runs);
         AppendRows(destination.TickSnapshots, source.TickSnapshots);
         AppendRows(destination.KindSnapshots, source.KindSnapshots);
@@ -571,6 +581,8 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.MinorActorVerbEvents, source.MinorActorVerbEvents);
         AppendRows(destination.CultureFieldComponentSnapshots, source.CultureFieldComponentSnapshots);
         AppendRows(destination.CulturePowerSnapshots, source.CulturePowerSnapshots);
+        AppendRows(destination.KnowledgeSnapshots, source.KnowledgeSnapshots);
+        AppendRows(destination.KnowledgeClaimSnapshots, source.KnowledgeClaimSnapshots);
         AppendRows(destination.EntityTagEvents, source.EntityTagEvents);
         AppendRows(destination.CultureEntityFieldSnapshots, source.CultureEntityFieldSnapshots);
         AppendRows(destination.CultureEntityBirthFieldEvents, source.CultureEntityBirthFieldEvents);

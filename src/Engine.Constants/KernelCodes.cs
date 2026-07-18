@@ -287,6 +287,26 @@ public static class KernelProgramCodes
     public const int ChronicleDirector = 18;
     public const int WorldBeats = 19;
     public const int MapFrontier = 20;
+    public const int Knowledge = 21;
+}
+
+public static class KnowledgeGrantDomainCodes
+{
+    public const int CultureProduction = 1;
+    public const int CulturePersistence = 2;
+    public const int VerbWeight = 3;
+    public const int GeneratorPulseWeight = 4;
+    public const int GambitScore = 5;
+    public const int GambitSuccess = 6;
+    public const int MinorActorWork = 7;
+    public const int MovementStepRate = 8;
+    public const int RoadWork = 9;
+    public const int RelationshipMaintenance = 10;
+    public const int CarryingCapacity = 11;
+    public const int Attraction = 12;
+    public const int FrontierThawThreshold = 13;
+    public const int FrontierReclaimThreshold = 14;
+    public const int DecayTideResistance = 15;
 }
 
 /// <summary>The two regime tracks of the world's macro-chronicle.</summary>

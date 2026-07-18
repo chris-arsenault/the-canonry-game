@@ -54,12 +54,23 @@ PROFILE=.artifacts/profiles/mc-trace-$(date -u +%Y%m%dT%H%M%SZ)
 For UI/app work, start the app scenario and attach to the running .NET process:
 
 ```bash
+godot --path . -- --prewarm-ticks=10000 --prewarm-tick-rate=10 --seed=4200
+
 ~/.dotnet/tools/dotnet-trace ps
 ~/.dotnet/tools/dotnet-trace collect \
   --process-id <pid> \
   --profile dotnet-sampled-thread-time \
   --output ".artifacts/profiles/app-$(date -u +%Y%m%dT%H%M%SZ).nettrace"
 ```
+
+`--prewarm-ticks` advances the real interactive runtime in bounded batches,
+drains its projections, binds the UI once at the requested tick, and leaves the
+game paused unless `--prewarm-tick-rate` resumes it at an explicit rate. Pair
+it with `--seed` so before/after traces open the same world.
+Use 10,000 ticks for the reported population boundary and 25,000 ticks when the
+UI workload needs a larger active census. Resume or step the paused game only
+after attaching the profiler, so trace time measures steady presentation and
+incremental updates rather than startup world generation.
 
 ## Generate Reports
 

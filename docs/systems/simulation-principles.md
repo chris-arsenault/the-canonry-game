@@ -115,6 +115,13 @@ For culture influence, watch component quality per culture and plane:
 Thin tendrils are acceptable when one dominant component remains. Many detached
 islands are a tuning problem.
 
+Knowledge progression must be evaluated as spatial culture behavior, not as a
+standalone score. Track claim count and maximum tier together with the named
+claim set, map reach, component shape, and semantic mass. When validating a
+grant, measure its owning mechanic (for example targeted verb use, relationship
+retention, travel cost, carrying load, generator targeting, or gambit outcomes)
+rather than treating a higher claim count as proof of effect.
+
 ## Entity Metrics
 
 Judge roaming per entity and per plane:

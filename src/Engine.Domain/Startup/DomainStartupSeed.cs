@@ -1,6 +1,7 @@
 namespace Engine.Domain.Startup;
 
 using Engine.Constants;
+using Engine.Gameplay;
 using Engine.Graph;
 
 /// <summary>
@@ -25,13 +26,15 @@ public sealed record DomainStartupSeed(
 /// One authored technology placed at a hex of the semantic (idea) plane. A
 /// culture comes to know the tech when its idea-mass reaches this hex. Tier is
 /// the radius band (also derivable from the coordinate); it is carried for
-/// convenient tier telemetry.
+/// convenient tier telemetry. Grants are authored gameplay configuration;
+/// Engine.Host resolves their stable targets before installing kernel data.
 /// </summary>
 public sealed record DomainKnowledgeSite(
     string TechId,
     int Q,
     int R,
-    int Tier);
+    int Tier,
+    IReadOnlyList<KnowledgeGrantConfig> Grants);
 
 public sealed record DomainSeedEntity(
     int SeedEntityId,

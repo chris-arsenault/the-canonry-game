@@ -1,5 +1,6 @@
 namespace Engine.Kernel;
 
+using Engine.Constants;
 using Engine.Eventing;
 
 internal sealed partial class GambitProgramRuntime
@@ -499,7 +500,11 @@ internal sealed partial class GambitProgramRuntime
         var score = (EvaluateScore(simulation.World, gambitSlot, entityId, targetId) +
             GambitScoreDecisionDelta(simulation.World, _gambitIds[gambitSlot], entityId, targetId) +
             simulation.Chronicles.ScoreBias(entityId, targetId, _gambitIds[gambitSlot])) *
-            Data.AgeScoreMultipliers[gambitSlot];
+            Data.AgeScoreMultipliers[gambitSlot] *
+            simulation.Knowledge.Modifier(
+                simulation.World.EntityCultureId(entityId),
+                KnowledgeGrantDomainCodes.GambitScore,
+                _gambitIds[gambitSlot]);
         var recentActionCount = CountRecentActions(
             entityId,
             _gambitIds[gambitSlot],

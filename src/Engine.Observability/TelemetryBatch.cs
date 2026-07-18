@@ -10,6 +10,7 @@ public sealed class TelemetryBatch
 {
     public Collection<SymbolRow> Symbols { get; } = Rows<SymbolRow>();
     public Collection<EntityNameSymbolRow> EntityNameSymbols { get; } = Rows<EntityNameSymbolRow>();
+    public Collection<KnowledgeSiteSymbolRow> KnowledgeSiteSymbols { get; } = Rows<KnowledgeSiteSymbolRow>();
     public Collection<RunRow> Runs { get; } = Rows<RunRow>();
     public Collection<TickSnapshotRow> TickSnapshots { get; } = Rows<TickSnapshotRow>();
     public Collection<KindSnapshotRow> KindSnapshots { get; } = Rows<KindSnapshotRow>();
@@ -39,6 +40,7 @@ public sealed class TelemetryBatch
     public Collection<CultureFieldComponentSnapshotRow> CultureFieldComponentSnapshots { get; } = Rows<CultureFieldComponentSnapshotRow>();
     public Collection<CulturePowerSnapshotRow> CulturePowerSnapshots { get; } = Rows<CulturePowerSnapshotRow>();
     public Collection<KnowledgeSnapshotRow> KnowledgeSnapshots { get; } = Rows<KnowledgeSnapshotRow>();
+    public Collection<KnowledgeClaimSnapshotRow> KnowledgeClaimSnapshots { get; } = Rows<KnowledgeClaimSnapshotRow>();
     public Collection<EntityTagEventRow> EntityTagEvents { get; } = Rows<EntityTagEventRow>();
     public Collection<ChronicleEventRow> ChronicleEvents { get; } = Rows<ChronicleEventRow>();
 
@@ -56,6 +58,7 @@ public sealed class TelemetryBatch
     {
         Symbols.Clear();
         EntityNameSymbols.Clear();
+        KnowledgeSiteSymbols.Clear();
         Runs.Clear();
         TickSnapshots.Clear();
         KindSnapshots.Clear();
@@ -90,6 +93,7 @@ public sealed class TelemetryBatch
         CultureFieldComponentSnapshots.Clear();
         CulturePowerSnapshots.Clear();
         KnowledgeSnapshots.Clear();
+        KnowledgeClaimSnapshots.Clear();
         EntityTagEvents.Clear();
         ChronicleEvents.Clear();
         WorldBeatEvents.Clear();
@@ -155,6 +159,12 @@ public sealed record EntityNameSymbolRow(
     int NameSeed,
     string DisplayName,
     string ReferenceName);
+
+public sealed record KnowledgeSiteSymbolRow(
+    int RunId,
+    int SiteIndex,
+    string StableName,
+    int Tier);
 
 public sealed record RunRow(
     int RunId,
@@ -581,6 +591,13 @@ public sealed record KnowledgeSnapshotRow(
     int CultureId,
     int ClaimedTechs,
     int MaxTier);
+
+public sealed record KnowledgeClaimSnapshotRow(
+    int RunId,
+    int Tick,
+    int CultureId,
+    int SiteIndex,
+    int Tier);
 
 public sealed record CultureFieldComponentSnapshotRow(
     int RunId,

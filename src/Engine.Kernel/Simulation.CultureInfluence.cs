@@ -1,5 +1,7 @@
 namespace Engine.Kernel;
 
+using Engine.Constants;
+
 internal sealed partial class Simulation
 {
     internal float ModifyCellCultureInfluenceRaw(int cultureId, int planeCode, int q, int r, float delta, int tick) =>
@@ -112,7 +114,9 @@ internal sealed partial class Simulation
     /// </summary>
     internal float CultureProductionScaled(int cultureId, int planeCode, float delta) =>
         cultureId > 0 && delta > 0f
-            ? delta * KernelData.Cultures.ProductionMultiplier(cultureId, planeCode)
+            ? delta *
+                KernelData.Cultures.ProductionMultiplier(cultureId, planeCode) *
+                Knowledge.Modifier(cultureId, KnowledgeGrantDomainCodes.CultureProduction, planeCode)
             : delta;
 
     private static bool CultureBoundarySupportChanged(float previousRaw, float currentRaw) =>
