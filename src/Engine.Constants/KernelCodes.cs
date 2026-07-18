@@ -19,10 +19,72 @@ public static class PhysicalGeographyCodes
     public const int MicrotrianglesPerSector = 4;
     public const int HexSectorCount = 6;
 
+    public const int NoFlowEdge = -1;
+
     public const int HydrologyWater = 1 << 0;
     public const int HydrologyRiver = 1 << 1;
     public const int HydrologyCoast = 1 << 2;
 }
+
+public static class PhysicalLandformCodes
+{
+    public const int Plain = 1;
+    public const int Slope = 2;
+    public const int Valley = 3;
+    public const int Basin = 4;
+    public const int Ridge = 5;
+    public const int Peak = 6;
+    public const int Pass = 7;
+    public const int Seabed = 8;
+
+    public const int Min = Plain;
+    public const int Max = Seabed;
+}
+
+public static class PhysicalWaterKindCodes
+{
+    public const int None = 0;
+    public const int Ocean = 1;
+    public const int Lake = 2;
+
+    public const int Min = None;
+    public const int Max = Lake;
+}
+
+public static class PhysicalGeographyFeatureCodes
+{
+    public const int GeothermalVent = 1 << 0;
+    public const int PermanentSeaIce = 1 << 1;
+    public const int PermanentIceMargin = 1 << 2;
+
+    public const int All = GeothermalVent | PermanentSeaIce | PermanentIceMargin;
+}
+
+public readonly record struct PhysicalGeographyCellSummary(
+    int BaseTerrainId,
+    int SuperregionId,
+    int ContinentId,
+    int DominantMaterialId,
+    int MeanElevation,
+    int MinElevation,
+    int MaxElevation,
+    int Relief,
+    int Roughness,
+    int MeanTemperature,
+    int MeanMoisture,
+    int MeanGeothermal,
+    int LandCoverage,
+    int WaterCoverage,
+    int OceanCoverage,
+    int LakeCoverage,
+    int PermanentIceCoverage,
+    int RiverCoverage,
+    int PeakCount,
+    int RiverEdgeMask,
+    int CoastEdgeMask,
+    int RidgeEdgeMask,
+    int CliffEdgeMask,
+    int PassEdgeMask);
 
 public static class BehaviorOperationCodes
 {

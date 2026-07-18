@@ -4,4 +4,8 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Engine.Constants\Engine.Constants.csproj" />
+  </ItemGroup>
 </Project>

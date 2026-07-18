@@ -22,8 +22,20 @@ public sealed record DomainPhysicalGeographyBlueprint(
         {
             throw new InvalidOperationException("Physical geography radius cannot be negative.");
         }
+
+        if (Radius == 0)
+        {
+            if (MaterialPalette.Count != 0 || Cells.Count != 0 || Microtriangles.Count != 0)
+            {
+                throw new InvalidOperationException("Empty physical geography cannot contain data.");
+            }
+
+            return;
+        }
+
         var expectedCells = checked((3 * Radius * Radius) + (3 * Radius) + 1);
-        if (Cells.Count != expectedCells ||
+        if (MaterialPalette.Count == 0 ||
+            Cells.Count != expectedCells ||
             Microtriangles.Count != checked(expectedCells * PhysicalGeographyCodes.MicrotrianglesPerHex))
         {
             throw new InvalidOperationException("Physical geography does not cover its declared hex disk.");
@@ -40,6 +52,7 @@ public sealed record DomainPhysicalGeographyBlueprint(
             var cell = Cells[cellIndex];
             if (cell.MicrotriangleOffset != cellIndex * PhysicalGeographyCodes.MicrotrianglesPerHex ||
                 string.IsNullOrWhiteSpace(cell.BaseTerrain) ||
+                (uint)cell.DominantMaterialIndex >= (uint)MaterialPalette.Count ||
                 cell.SuperregionId <= 0 ||
                 cell.ContinentId <= 0)
             {
@@ -52,12 +65,36 @@ public sealed record DomainPhysicalGeographyBlueprint(
     {
         foreach (var microtriangle in Microtriangles)
         {
-            if ((uint)microtriangle.MaterialIndex >= (uint)MaterialPalette.Count)
+            if (!MicrotriangleIsValid(microtriangle))
             {
-                throw new InvalidOperationException("Physical geography references an unknown material.");
+                throw new InvalidOperationException("Physical geography contains an invalid microtriangle.");
             }
         }
     }
+
+    private bool MicrotriangleIsValid(DomainPhysicalMicrotriangle microtriangle) =>
+        (uint)microtriangle.MaterialIndex < (uint)MaterialPalette.Count &&
+        SurfaceCodesAreValid(microtriangle) &&
+        HydrologyIsValid(microtriangle) &&
+        FlowIsValid(microtriangle);
+
+    private static bool SurfaceCodesAreValid(DomainPhysicalMicrotriangle microtriangle) =>
+        microtriangle.LandformCode >= PhysicalLandformCodes.Min &&
+        microtriangle.LandformCode <= PhysicalLandformCodes.Max &&
+        (microtriangle.FeatureFlags & ~PhysicalGeographyFeatureCodes.All) == 0;
+
+    private static bool HydrologyIsValid(DomainPhysicalMicrotriangle microtriangle) =>
+        microtriangle.WaterKindCode >= PhysicalWaterKindCodes.Min &&
+        microtriangle.WaterKindCode <= PhysicalWaterKindCodes.Max &&
+        microtriangle.WaterDepth >= 0 &&
+        microtriangle.WaterBodyId >= 0 &&
+        microtriangle.DrainageBasinId >= 0;
+
+    private static bool FlowIsValid(DomainPhysicalMicrotriangle microtriangle) =>
+        microtriangle.FlowEdge >= PhysicalGeographyCodes.NoFlowEdge &&
+        microtriangle.FlowEdge <= 2 &&
+        microtriangle.FlowAccumulation >= 0 &&
+        microtriangle.RiverOrder >= 0;
 }
 
 public readonly record struct DomainPhysicalGeographyCell(
@@ -67,14 +104,40 @@ public readonly record struct DomainPhysicalGeographyCell(
     int SuperregionId,
     int ContinentId,
     int MicrotriangleOffset,
+    int DominantMaterialIndex,
     int MeanElevation,
+    int MinElevation,
     int MaxElevation,
+    int Relief,
     int Roughness,
+    int MeanTemperature,
+    int MeanMoisture,
+    int MeanGeothermal,
+    int LandCoverage,
     int WaterCoverage,
+    int OceanCoverage,
+    int LakeCoverage,
+    int PermanentIceCoverage,
+    int RiverCoverage,
+    int PeakCount,
     int RiverEdgeMask,
-    int CoastEdgeMask);
+    int CoastEdgeMask,
+    int RidgeEdgeMask,
+    int CliffEdgeMask,
+    int PassEdgeMask);
 
 public readonly record struct DomainPhysicalMicrotriangle(
     int MaterialIndex,
+    int LandformCode,
     int Elevation,
-    int HydrologyFlags);
+    int Temperature,
+    int Moisture,
+    int Geothermal,
+    int WaterKindCode,
+    int WaterDepth,
+    int WaterBodyId,
+    int DrainageBasinId,
+    int FlowEdge,
+    int FlowAccumulation,
+    int RiverOrder,
+    int FeatureFlags);

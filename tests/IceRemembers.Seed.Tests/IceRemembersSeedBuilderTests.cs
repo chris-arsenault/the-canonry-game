@@ -139,7 +139,7 @@ public sealed class IceRemembersSeedBuilderTests
             "Outer physical geography must not collapse to one frontier terrain.");
         Assert.Contains(
             physical.Microtriangles,
-            triangle => (triangle.HydrologyFlags & PhysicalGeographyCodes.HydrologyRiver) != 0);
+            triangle => triangle.RiverOrder > 0);
         Assert.True(
             semantic.Cells.Select(cell => cell.Terrain).Distinct(StringComparer.Ordinal).Count() >= 8,
             "The latent semantic disk must retain its authored terrain vocabulary.");

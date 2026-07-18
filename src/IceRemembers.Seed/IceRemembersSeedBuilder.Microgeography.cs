@@ -31,6 +31,9 @@ internal static partial class IceRemembersSeedBuilder
     private readonly record struct MicroSample(
         int MaterialIndex,
         int Elevation,
+        int Temperature,
+        int Moisture,
+        int Geothermal,
         int HydrologyFlags);
 
     private static PhysicalGeographyBuild CreatePhysicalGeography(int salt)
@@ -64,10 +67,7 @@ internal static partial class IceRemembersSeedBuilder
             for (var triangleIndex = 0; triangleIndex < samples.Length; triangleIndex++)
             {
                 var sample = samples[triangleIndex];
-                microtriangles.Add(new DomainPhysicalMicrotriangle(
-                    sample.MaterialIndex,
-                    sample.Elevation,
-                    sample.HydrologyFlags));
+                microtriangles.Add(ToDomainMicrotriangle(sample));
             }
         }
 
@@ -130,6 +130,9 @@ internal static partial class IceRemembersSeedBuilder
             samples[triangleIndex] = new MicroSample(
                 (int)material,
                 ScaleElevation(SeaLevel - 0.04d),
+                250,
+                900,
+                0,
                 water | PhysicalGeographyCodes.HydrologyCoast);
         }
     }
@@ -174,8 +177,56 @@ internal static partial class IceRemembersSeedBuilder
         var material = MaterialAt(elevation, cold, geothermal, arid);
         var flags = HydrologyAt(x, y, elevation, material, salt);
         samples[(sector * PhysicalGeographyCodes.MicrotrianglesPerSector) + localTriangle] =
-            new MicroSample((int)material, ScaleElevation(elevation), flags);
+            new MicroSample(
+                (int)material,
+                ScaleElevation(elevation),
+                ScaleUnit(1d - cold),
+                ScaleUnit(1d - arid),
+                ScaleUnit(geothermal),
+                flags);
     }
+
+    private static DomainPhysicalMicrotriangle ToDomainMicrotriangle(MicroSample sample)
+    {
+        var material = (IceRemembersTerrain)sample.MaterialIndex;
+        var waterKind = LegacyWaterKind(material);
+        return new DomainPhysicalMicrotriangle(
+            sample.MaterialIndex,
+            LegacyLandform(material),
+            sample.Elevation,
+            sample.Temperature,
+            sample.Moisture,
+            sample.Geothermal,
+            waterKind,
+            waterKind == PhysicalWaterKindCodes.None
+                ? 0
+                : global::System.Math.Max(1, ScaleElevation(SeaLevel) - sample.Elevation),
+            waterKind == PhysicalWaterKindCodes.Ocean ? 1 : 0,
+            0,
+            PhysicalGeographyCodes.NoFlowEdge,
+            (sample.HydrologyFlags & PhysicalGeographyCodes.HydrologyRiver) != 0 ? 1 : 0,
+            (sample.HydrologyFlags & PhysicalGeographyCodes.HydrologyRiver) != 0 ? 1 : 0,
+            LegacyFeatureFlags(material));
+    }
+
+    private static int LegacyWaterKind(IceRemembersTerrain material) =>
+        material is IceRemembersTerrain.Ocean or IceRemembersTerrain.Reef or IceRemembersTerrain.Shelf
+            ? PhysicalWaterKindCodes.Ocean
+            : PhysicalWaterKindCodes.None;
+
+    private static int LegacyLandform(IceRemembersTerrain material) =>
+        material switch
+        {
+            IceRemembersTerrain.Ocean or IceRemembersTerrain.Reef or IceRemembersTerrain.Shelf =>
+                PhysicalLandformCodes.Seabed,
+            IceRemembersTerrain.Crags => PhysicalLandformCodes.Ridge,
+            _ => PhysicalLandformCodes.Plain,
+        };
+
+    private static int LegacyFeatureFlags(IceRemembersTerrain material) =>
+        material == IceRemembersTerrain.HotSprings
+            ? PhysicalGeographyFeatureCodes.GeothermalVent
+            : 0;
 
     private static double ElevationAt(double x, double y, int salt)
     {
@@ -259,55 +310,161 @@ internal static partial class IceRemembersSeedBuilder
         IceRemembersTerrain baseTerrain,
         int microtriangleOffset,
         global::System.ReadOnlySpan<MicroSample> samples)
+        => LegacyMicroSummary.Create(coord, samples).ToCell(
+            coord,
+            subdivision,
+            baseTerrain,
+            microtriangleOffset,
+            samples.Length);
+
+    private struct LegacyMicroSummary
     {
-        var elevationTotal = 0;
-        var minElevation = int.MaxValue;
-        var maxElevation = int.MinValue;
-        var waterCoverage = 0;
-        var riverEdgeMask = 0;
-        var coastEdgeMask = 0;
-        for (var triangleIndex = 0; triangleIndex < samples.Length; triangleIndex++)
+        private int _dominantMaterialIndex;
+        private int _elevationTotal;
+        private int _temperatureTotal;
+        private int _moistureTotal;
+        private int _geothermalTotal;
+        private int _minElevation;
+        private int _maxElevation;
+        private int _oceanCoverage;
+        private int _permanentIceCoverage;
+        private int _riverCoverage;
+        private int _riverEdgeMask;
+        private int _coastEdgeMask;
+        private int _roughness;
+
+        public static LegacyMicroSummary Create(
+            HexCoord coord,
+            global::System.ReadOnlySpan<MicroSample> samples)
         {
-            var sample = samples[triangleIndex];
-            elevationTotal += sample.Elevation;
-            minElevation = global::System.Math.Min(minElevation, sample.Elevation);
-            maxElevation = global::System.Math.Max(maxElevation, sample.Elevation);
-            if ((sample.HydrologyFlags & PhysicalGeographyCodes.HydrologyWater) != 0)
+            var summary = new LegacyMicroSummary
             {
-                waterCoverage++;
+                _minElevation = int.MaxValue,
+                _maxElevation = int.MinValue,
+            };
+            global::System.Span<int> materialCounts = stackalloc int[PhysicalMaterialPalette.Length];
+            for (var index = 0; index < samples.Length; index++)
+            {
+                materialCounts[samples[index].MaterialIndex]++;
+                summary.Add(samples[index], index);
             }
 
+            summary._dominantMaterialIndex = (int)DominantTerrain(materialCounts, PhysicalMaterialPalette);
+            summary._roughness = MeasureRoughness(coord, samples);
+            return summary;
+        }
+
+        private void Add(MicroSample sample, int triangleIndex)
+        {
+            _elevationTotal += sample.Elevation;
+            _temperatureTotal += sample.Temperature;
+            _moistureTotal += sample.Moisture;
+            _geothermalTotal += sample.Geothermal;
+            _minElevation = global::System.Math.Min(_minElevation, sample.Elevation);
+            _maxElevation = global::System.Math.Max(_maxElevation, sample.Elevation);
+            var material = (IceRemembersTerrain)sample.MaterialIndex;
+            if (LegacyWaterKind(material) == PhysicalWaterKindCodes.Ocean)
+            {
+                _oceanCoverage++;
+            }
+
+            if (material == IceRemembersTerrain.Ice)
+            {
+                _permanentIceCoverage++;
+            }
+
+            if ((sample.HydrologyFlags & PhysicalGeographyCodes.HydrologyRiver) != 0)
+            {
+                _riverCoverage++;
+            }
+
+            AddEdgeFlags(sample, triangleIndex);
+        }
+
+        private void AddEdgeFlags(MicroSample sample, int triangleIndex)
+        {
             var local = triangleIndex % PhysicalGeographyCodes.MicrotrianglesPerSector;
             if (local is not (1 or 2))
             {
-                continue;
+                return;
             }
 
             var edgeMask = 1 << (triangleIndex / PhysicalGeographyCodes.MicrotrianglesPerSector);
             if ((sample.HydrologyFlags & PhysicalGeographyCodes.HydrologyRiver) != 0)
             {
-                riverEdgeMask |= edgeMask;
+                _riverEdgeMask |= edgeMask;
             }
 
             if ((sample.HydrologyFlags & PhysicalGeographyCodes.HydrologyCoast) != 0)
             {
-                coastEdgeMask |= edgeMask;
+                _coastEdgeMask |= edgeMask;
             }
         }
 
-        return new DomainPhysicalGeographyCell(
-            coord.Q,
-            coord.R,
-            baseTerrain.ToDomainName(),
-            subdivision.SuperregionId,
-            subdivision.ContinentId,
-            microtriangleOffset,
-            elevationTotal / samples.Length,
-            maxElevation,
-            maxElevation - minElevation,
-            waterCoverage,
-            riverEdgeMask,
-            coastEdgeMask);
+        public readonly DomainPhysicalGeographyCell ToCell(
+            HexCoord coord,
+            MapSubdivisionCell subdivision,
+            IceRemembersTerrain baseTerrain,
+            int microtriangleOffset,
+            int sampleCount) =>
+            new(
+                coord.Q,
+                coord.R,
+                baseTerrain.ToDomainName(),
+                subdivision.SuperregionId,
+                subdivision.ContinentId,
+                microtriangleOffset,
+                _dominantMaterialIndex,
+                _elevationTotal / sampleCount,
+                _minElevation,
+                _maxElevation,
+                _maxElevation - _minElevation,
+                _roughness,
+                _temperatureTotal / sampleCount,
+                _moistureTotal / sampleCount,
+                _geothermalTotal / sampleCount,
+                sampleCount - _oceanCoverage,
+                _oceanCoverage,
+                _oceanCoverage,
+                0,
+                _permanentIceCoverage,
+                _riverCoverage,
+                0,
+                _riverEdgeMask,
+                _coastEdgeMask,
+                0,
+                0,
+                0);
+
+        private static int MeasureRoughness(
+            HexCoord coord,
+            global::System.ReadOnlySpan<MicroSample> samples)
+        {
+            var total = 0;
+            var count = 0;
+            for (var triangleIndex = 0; triangleIndex < samples.Length; triangleIndex++)
+            {
+                for (var edge = 0; edge < 3; edge++)
+                {
+                    PhysicalMicrotriangleTopology.ResolveNeighbor(
+                        coord.Q,
+                        coord.R,
+                        triangleIndex,
+                        edge,
+                        out var neighborQ,
+                        out var neighborR,
+                        out var neighborTriangleIndex);
+                    if (neighborQ == coord.Q && neighborR == coord.R && neighborTriangleIndex > triangleIndex)
+                    {
+                        total += global::System.Math.Abs(
+                            samples[triangleIndex].Elevation - samples[neighborTriangleIndex].Elevation);
+                        count++;
+                    }
+                }
+            }
+
+            return count == 0 ? 0 : total / count;
+        }
     }
 
     private static IceRemembersTerrain SummarizeBaseTerrain(global::System.ReadOnlySpan<MicroSample> samples)
@@ -420,6 +577,11 @@ internal static partial class IceRemembersSeedBuilder
     private static int ScaleElevation(double elevation) =>
         (int)global::System.Math.Round(
             global::System.Math.Clamp(elevation, -2d, 2d) * ElevationScale,
+            global::System.MidpointRounding.AwayFromZero);
+
+    private static int ScaleUnit(double value) =>
+        (int)global::System.Math.Round(
+            global::System.Math.Clamp(value, 0d, 1d) * 1000d,
             global::System.MidpointRounding.AwayFromZero);
 
     private static int HexCellCount(int radius) => checked((3 * radius * radius) + (3 * radius) + 1);
