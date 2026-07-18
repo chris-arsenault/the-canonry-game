@@ -173,7 +173,7 @@ public static class IceRemembersPhysicalGeography
         TemperatureBaseline = 125,
         WarmthPocketCount = 16,
         HeartWarmthRadius = 31d,
-        HeartWarmthStrength = 350,
+        HeartWarmthStrength = 430,
     };
 
     public static IceRemembersPhysicalMaterial ClassifyMaterial(

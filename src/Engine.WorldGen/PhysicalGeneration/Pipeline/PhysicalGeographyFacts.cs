@@ -1,0 +1,27 @@
+namespace Engine.WorldGen;
+
+[Flags]
+internal enum PhysicalGeographyFacts : ulong
+{
+    None = 0,
+    ContinentalDomains = 1UL << 0,
+    Elevation = 1UL << 1,
+    Ocean = 1UL << 2,
+    Bathymetry = 1UL << 3,
+    Landmasses = 1UL << 4,
+    Fractures = 1UL << 5,
+    Geothermal = 1UL << 6,
+    Warmth = 1UL << 7,
+    Temperature = 1UL << 8,
+    Moisture = 1UL << 9,
+    Runoff = 1UL << 10,
+    Lakes = 1UL << 11,
+    FlowRouting = 1UL << 12,
+    Rivers = 1UL << 13,
+    LandIce = 1UL << 14,
+    IceFlow = 1UL << 15,
+    GlacialRelief = 1UL << 16,
+    SeaIce = 1UL << 17,
+    Landforms = 1UL << 18,
+    Validated = 1UL << 19,
+}

@@ -40,6 +40,14 @@ edge neighbors within the padded work graph. All connected passes use this
 graph, and the configured radius-128 field is cropped only after generation and
 validation.
 
+Each generation process lives in its own layer file and implements the common
+`IMapGenerationLayer<PhysicalGeographyField, PhysicalGeographyGenerationContext>`
+boundary. A layer declares the facts it requires, produces, and invalidates;
+the pipeline refuses to run it when its inputs are missing and rebuilds facts
+invalidated by a later causal edit. Algorithms shared by multiple layers live
+separately from the layers themselves. Layer tests exercise both the intended
+effect and rejection of malformed inputs or outputs.
+
 Generation-time arrays may allocate freely within the application target of
 about 4 GB and acceptable ceiling of 8 GB. Clear field-major arrays and reusable
 scratch buffers are preferred over compact encodings. Exported startup data is
@@ -243,12 +251,15 @@ Hard contracts:
 - every surface and anomaly palette index resolves;
 - every hex summary matches its 24 triangles;
 - administrative subdivision assignment changes no physical field;
-- frozen land and sea dominate without one final surface painting the world;
-- separated viable warmth occurs in ocean, shore, inland, and peak contexts;
-- the startup heart overlaps warmth while viable systems also exist far away;
-- verdant hot springs can occur in high peak hexes;
-- no anomaly predicate collapses most of the field into one magic surface;
-- the startup heart has viable placement geography across a fixed seed corpus.
+- the startup heart overlaps warmth while viable systems also exist far away.
+
+Distribution goals are profile configuration, not invariants. The current
+profile supplies tunable target ranges for ocean coverage, land-ice coverage,
+sea-ice coverage, major-landmass count, and inland-lake count. Generation fails
+quality validation when a radius large enough for evaluation misses those
+targets, but changing a target does not require changing validation code.
+Domain quality checks separately cover separated viable warmth, high-peak hot
+springs, final-surface collapse, anomaly prevalence, and startup placement.
 
 Quality is calibrated across several deterministic seeds rather than tuned to
 one screenshot. Cold generation at radius 128 targets roughly 30 seconds on the

@@ -8,4 +8,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Engine.Constants\Engine.Constants.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Engine.WorldGen.Tests" />
+  </ItemGroup>
 </Project>

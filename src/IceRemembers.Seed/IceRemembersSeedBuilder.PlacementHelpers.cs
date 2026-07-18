@@ -30,7 +30,8 @@ internal static partial class IceRemembersSeedBuilder
         int minimumDistance,
         HexCoord? origin,
         int searchRadius,
-        Func<HexCell, float>? contextScorer = null) =>
+        Func<HexCell, float>? contextScorer = null,
+        Func<HexCell, bool>? candidateFilter = null) =>
         ChoosePhysicalCoordinate(
             seed,
             random,
@@ -39,7 +40,8 @@ internal static partial class IceRemembersSeedBuilder
             minimumDistance,
             origin,
             searchRadius,
-            contextScorer);
+            contextScorer,
+            candidateFilter);
 
     private static HexCoord ChoosePhysicalCoordinate(
         SeedAssembly seed,
@@ -49,7 +51,8 @@ internal static partial class IceRemembersSeedBuilder
         int minimumDistance,
         HexCoord? origin,
         int searchRadius,
-        Func<HexCell, float>? contextScorer = null)
+        Func<HexCell, float>? contextScorer = null,
+        Func<HexCell, bool>? candidateFilter = null)
     {
         var candidates = RankedPhysicalCandidates(
             seed,
@@ -58,7 +61,8 @@ internal static partial class IceRemembersSeedBuilder
             minimumDistance,
             origin,
             searchRadius,
-            contextScorer);
+            contextScorer,
+            candidateFilter);
         if (candidates.Count == 0 && origin.HasValue)
         {
             candidates = RankedPhysicalCandidates(
@@ -68,7 +72,8 @@ internal static partial class IceRemembersSeedBuilder
                 minimumDistance,
                 origin: null,
                 searchRadius: 0,
-                contextScorer: contextScorer);
+                contextScorer: contextScorer,
+                candidateFilter: candidateFilter);
         }
 
         if (candidates.Count == 0 && minimumDistance > 0)
@@ -80,7 +85,8 @@ internal static partial class IceRemembersSeedBuilder
                 minimumDistance: 0,
                 origin: origin,
                 searchRadius: searchRadius,
-                contextScorer: contextScorer);
+                contextScorer: contextScorer,
+                candidateFilter: candidateFilter);
         }
 
         if (candidates.Count == 0)
@@ -252,10 +258,12 @@ internal static partial class IceRemembersSeedBuilder
         int minimumDistance,
         HexCoord? origin,
         int searchRadius,
-        Func<HexCell, float>? contextScorer) =>
+        Func<HexCell, float>? contextScorer,
+        Func<HexCell, bool>? candidateFilter) =>
         seed.Grid.AllCells
             .Where(cell =>
                 !taken.Contains(cell.Coord) &&
+                (candidateFilter is null || candidateFilter(cell)) &&
                 PhysicalCandidateIsInsideSearch(cell.Coord, origin, searchRadius) &&
                 PhysicalCandidateHasMinimumDistance(cell.Coord, taken, minimumDistance))
             .Select(cell => (
@@ -280,6 +288,23 @@ internal static partial class IceRemembersSeedBuilder
         int minimumDistance) =>
         minimumDistance <= 0 ||
         taken.All(existing => HexCoord.Distance(existing, coord) >= minimumDistance);
+
+    private static bool IsMaritimeSettlementCell(HexGrid grid, HexCell cell)
+    {
+        var terrain = cell.Terrain.StableName;
+        if (string.Equals(terrain, IceRemembersTerrain.Reef.ToDomainName(), StringComparison.Ordinal) ||
+            string.Equals(terrain, IceRemembersTerrain.Shelf.ToDomainName(), StringComparison.Ordinal))
+        {
+            return true;
+        }
+
+        return cell.Coord.Neighbors()
+            .Select(grid.GetCell)
+            .Any(neighbor => neighbor is not null &&
+                (string.Equals(neighbor.Terrain.StableName, IceRemembersTerrain.Ocean.ToDomainName(), StringComparison.Ordinal) ||
+                 string.Equals(neighbor.Terrain.StableName, IceRemembersTerrain.Reef.ToDomainName(), StringComparison.Ordinal) ||
+                 string.Equals(neighbor.Terrain.StableName, IceRemembersTerrain.Shelf.ToDomainName(), StringComparison.Ordinal)));
+    }
 
     private static bool SemanticCandidateIsInsideSearch(
         SemanticHexCoord coord,

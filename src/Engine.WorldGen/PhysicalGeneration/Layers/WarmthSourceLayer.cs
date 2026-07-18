@@ -1,0 +1,202 @@
+namespace Engine.WorldGen;
+
+using Engine.Constants;
+
+internal sealed class WarmthSourceLayer : IPhysicalGeographyLayer
+{
+    public PhysicalGeographyLayerContract Contract { get; } = new(
+        "warmth-sources",
+        0x4a51c73,
+        PhysicalGeographyFacts.Elevation |
+        PhysicalGeographyFacts.Ocean |
+        PhysicalGeographyFacts.Geothermal,
+        PhysicalGeographyFacts.Warmth,
+        PhysicalGeographyFacts.Temperature |
+        PhysicalGeographyFacts.Moisture |
+        PhysicalGeographyFacts.Runoff |
+        PhysicalGeographyFacts.LandIce |
+        PhysicalGeographyFacts.SeaIce |
+        PhysicalGeographyFacts.Validated);
+
+    public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
+    {
+        map.Warmth.Clear();
+        Paint(map, 0d, 0d, context.Profile.HeartWarmthRadius, context.Profile.HeartWarmthStrength);
+        var oceanDistance = PhysicalDistanceFields.FromOcean(map);
+        var candidates = CandidateSets(map, oceanDistance, context.Profile);
+        var selected = new List<int>();
+        for (var sourceIndex = 0; sourceIndex < context.Profile.WarmthPocketCount; sourceIndex++)
+        {
+            var category = sourceIndex % candidates.Length;
+            var source = SelectSource(map, candidates[category], selected, context.Seed, sourceIndex);
+            selected.Add(source);
+            var radius = Lerp(
+                context.Profile.WarmthPocketMinRadius,
+                context.Profile.WarmthPocketMaxRadius,
+                PhysicalNoise.HashUnit(context.Seed ^ 0x14d3, sourceIndex, 0));
+            var strength = (int)Math.Round(
+                Lerp(
+                    context.Profile.WarmthPocketMinStrength,
+                    context.Profile.WarmthPocketMaxStrength,
+                    PhysicalNoise.HashUnit(context.Seed ^ 0x29f1, sourceIndex, 1)),
+                MidpointRounding.AwayFromZero);
+            Paint(
+                map,
+                map.Grid.TriangleX(source),
+                map.Grid.TriangleY(source),
+                radius,
+                strength);
+        }
+    }
+
+    public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
+    {
+        _ = context;
+        var warm = 0;
+        var far = 0;
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            if (map.Warmth[triangleIndex] > 0)
+            {
+                warm++;
+                far += map.Grid.HexDistanceAt(map.Grid.TriangleHexIndex(triangleIndex)) >= map.Grid.Radius / 2 ? 1 : 0;
+            }
+        }
+
+        if (warm == 0 || far == 0)
+        {
+            throw new InvalidOperationException("Warmth sources did not create separated habitats.");
+        }
+    }
+
+    private static List<int>[] CandidateSets(
+        PhysicalGeographyField map,
+        int[] oceanDistance,
+        PhysicalGeographyGenerationProfile profile)
+    {
+        var result = new List<int>[] { [], [], [], [] };
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            if (!map.Grid.TriangleIsInsideConfiguredDisk(triangleIndex))
+            {
+                continue;
+            }
+
+            AddCandidate(result, map, oceanDistance, triangleIndex, profile);
+        }
+
+        return result;
+    }
+
+    private static int SelectSource(
+        PhysicalGeographyField map,
+        List<int> candidates,
+        IReadOnlyList<int> selected,
+        int seed,
+        int sourceIndex)
+    {
+        if (candidates.Count == 0)
+        {
+            return map.Grid.TriangleIndex(map.Grid.ConfiguredHexIndexAt(0), sourceIndex % 24);
+        }
+
+        var best = candidates[0];
+        var bestScore = double.MinValue;
+        var sampleCount = Math.Min(96, candidates.Count);
+        for (var sample = 0; sample < sampleCount; sample++)
+        {
+            var candidate = candidates[(int)(PhysicalNoise.HashUnit(seed, sourceIndex, sample) * candidates.Count) % candidates.Count];
+            var score = MinimumDistanceSquared(map.Grid, candidate, selected) +
+                (map.Geothermal[candidate] * 0.25d) +
+                PhysicalNoise.HashUnit(seed ^ 0x4b67, candidate, sample);
+            if (score > bestScore)
+            {
+                best = candidate;
+                bestScore = score;
+            }
+        }
+
+        return best;
+    }
+
+    private static void AddCandidate(
+        List<int>[] result,
+        PhysicalGeographyField map,
+        int[] oceanDistance,
+        int triangleIndex,
+        PhysicalGeographyGenerationProfile profile)
+    {
+        var ocean = map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean;
+        if (ocean)
+        {
+            result[0].Add(triangleIndex);
+            return;
+        }
+
+        if (oceanDistance[triangleIndex] is >= 1 and <= 12)
+        {
+            result[1].Add(triangleIndex);
+        }
+
+        if (oceanDistance[triangleIndex] >= 20 &&
+            map.Elevation[triangleIndex] < profile.PeakElevationThreshold)
+        {
+            result[2].Add(triangleIndex);
+        }
+
+        if (map.Elevation[triangleIndex] >= profile.PeakElevationThreshold &&
+            map.Geothermal[triangleIndex] >= 420)
+        {
+            result[3].Add(triangleIndex);
+        }
+    }
+
+    private static double MinimumDistanceSquared(
+        PhysicalGeographyGrid grid,
+        int candidate,
+        IReadOnlyList<int> selected)
+    {
+        if (selected.Count == 0)
+        {
+            return 0d;
+        }
+
+        var result = double.MaxValue;
+        foreach (var source in selected)
+        {
+            var dx = grid.TriangleX(candidate) - grid.TriangleX(source);
+            var dy = grid.TriangleY(candidate) - grid.TriangleY(source);
+            result = Math.Min(result, (dx * dx) + (dy * dy));
+        }
+
+        return result;
+    }
+
+    private static void Paint(
+        PhysicalGeographyField map,
+        double centerX,
+        double centerY,
+        double radius,
+        int strength)
+    {
+        var radiusSquared = radius * radius;
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            var dx = map.Grid.TriangleX(triangleIndex) - centerX;
+            var dy = map.Grid.TriangleY(triangleIndex) - centerY;
+            var distanceSquared = (dx * dx) + (dy * dy);
+            if (distanceSquared > radiusSquared)
+            {
+                continue;
+            }
+
+            var amount = 1d - (Math.Sqrt(distanceSquared) / radius);
+            map.Warmth[triangleIndex] = Math.Max(
+                map.Warmth[triangleIndex],
+                (int)Math.Round(strength * amount * amount, MidpointRounding.AwayFromZero));
+        }
+    }
+
+    private static double Lerp(double first, double second, double amount) =>
+        first + ((second - first) * amount);
+}

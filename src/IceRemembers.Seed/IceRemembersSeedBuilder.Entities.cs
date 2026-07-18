@@ -321,7 +321,8 @@ internal static partial class IceRemembersSeedBuilder
             C(IceRemembersCulture.Nightshelf),
             6,
             cell => SettlementCoverageContextScore(coverageMap, regions["coastlands"], cell, 22f, 12f)
-                + NamedDistanceBandContext(cell.Coord, auroraStack, idealDistance: 20, maxBonus: 70f, step: 3.5f));
+                + NamedDistanceBandContext(cell.Coord, auroraStack, idealDistance: 20, maxBonus: 70f, step: 3.5f),
+            cell => IsMaritimeSettlementCell(seed.Grid, cell));
         var drownedLedge = ChooseNamedSettlementCoord(
             seed,
             random,
@@ -331,7 +332,8 @@ internal static partial class IceRemembersSeedBuilder
             C(IceRemembersCulture.Nightshelf),
             6,
             cell => SettlementCoverageContextScore(coverageMap, regions["coastlands"], cell, 22f, 10f)
-                + NamedDistanceBandContext(cell.Coord, nightfallShelf, idealDistance: 8, maxBonus: 50f, step: 5f));
+                + NamedDistanceBandContext(cell.Coord, nightfallShelf, idealDistance: 8, maxBonus: 50f, step: 5f),
+            cell => IsMaritimeSettlementCell(seed.Grid, cell));
         var stillPools = ChooseNamedSettlementCoord(
             seed,
             random,
@@ -354,7 +356,8 @@ internal static partial class IceRemembersSeedBuilder
         string subtype,
         string culture,
         int minimumDistance,
-        Func<HexCell, float> contextScorer)
+        Func<HexCell, float> contextScorer,
+        Func<HexCell, bool>? candidateFilter = null)
     {
         var coord = ChooseAnchor(
             seed,
@@ -364,7 +367,8 @@ internal static partial class IceRemembersSeedBuilder
             subtype,
             culture,
             minimumDistance,
-            contextScorer);
+            contextScorer,
+            candidateFilter);
         ReservePhysical(coord, takenPhysical, name);
         return coord;
     }
@@ -413,7 +417,16 @@ internal static partial class IceRemembersSeedBuilder
         SetPhysicalNaturalNear(seed, council, settlementCoords.AuroraStack, random, takenPhysical, searchRadius: 8);
         SetPhysicalNaturalNear(seed, exchange, settlementCoords.AuroraStack, random, takenPhysical, searchRadius: 6);
         SetPhysicalNaturalNear(seed, claws, settlementCoords.NightfallShelf, random, takenPhysical, searchRadius: 8);
-        SetPhysicalNaturalNear(seed, wakeSingers, new HexCoord(32, -32), random, takenPhysical, searchRadius: 8);
+        SetPhysicalNaturalNear(
+            seed,
+            wakeSingers,
+            new HexCoord(0, 0),
+            random,
+            takenPhysical,
+            searchRadius: PhysicalHeartRadius,
+            contextScorer: cell => Math.Max(
+                HexCoord.Distance(cell.Coord, council.Coordinates),
+                HexCoord.Distance(cell.Coord, claws.Coordinates)) * 20f);
 
         SetSemanticNaturalNear(seed, council, auroraStack, random, takenSemantic, searchRadius: 12);
         SetSemanticNaturalNear(seed, exchange, auroraStack, random, takenSemantic, searchRadius: 12);
@@ -580,7 +593,8 @@ internal static partial class IceRemembersSeedBuilder
         string subtype,
         string culture,
         int minimumDistance,
-        Func<HexCell, float> contextScorer) =>
+        Func<HexCell, float> contextScorer,
+        Func<HexCell, bool>? candidateFilter = null) =>
         ChoosePhysicalCoordinate(
             seed,
             random,
@@ -591,7 +605,8 @@ internal static partial class IceRemembersSeedBuilder
             minimumDistance,
             origin: null,
             searchRadius: 0,
-            contextScorer);
+            contextScorer,
+            candidateFilter);
 
     private static float RegionNorthlandsContextScore(HexCell cell) =>
         HexCoord.Distance(cell.Coord, new HexCoord(0, 0)) * 1.2f;

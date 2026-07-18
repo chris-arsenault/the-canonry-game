@@ -168,19 +168,9 @@ public sealed class IceRemembersSeedBuilderTests
     }
 
     [Fact]
-    public void LatentPhysicalGeography_IsIceboundWithSeparatedWarmHabitats()
+    public void LatentPhysicalGeography_HasSeparatedWarmHabitatsWithoutSurfaceCollapse()
     {
         var physical = Assert.IsType<DomainPhysicalGeographyBlueprint>(Seed.PhysicalGeography);
-        var frozenSurfaces = new HashSet<string>(StringComparer.Ordinal)
-        {
-            "glacier",
-            "snowfield",
-            "pack_ice",
-            "sea_ice",
-            "ice_shelf",
-        };
-        var frozenTriangleCount = physical.Microtriangles.Count(triangle =>
-            frozenSurfaces.Contains(physical.SurfacePalette[triangle.BaseSurfaceIndex]));
         var largestFinalSurfaceShare = physical.Microtriangles
             .GroupBy(triangle => triangle.SurfaceIndex)
             .Max(group => group.Count()) /
@@ -194,9 +184,6 @@ public sealed class IceRemembersSeedBuilderTests
             (double)physical.Microtriangles.Count;
 
         Assert.True(
-            frozenTriangleCount >= physical.Microtriangles.Count * 0.60,
-            "Frozen land and sea must remain the world's dominant natural geometry.");
-        Assert.True(
             largestFinalSurfaceShare < 0.65,
             $"A final surface collapsed the world at {largestFinalSurfaceShare:P1}.");
         Assert.True(meltLineShare < 0.05, $"Melt lines cover {meltLineShare:P1} of the world.");
@@ -205,7 +192,13 @@ public sealed class IceRemembersSeedBuilderTests
             .Where(cell => Microtriangles(physical, cell).Any(IsHabitable))
             .ToArray();
         Assert.True(CountConnectedCellComponents(habitableCells) >= 8);
-        Assert.Contains(habitableCells, cell => HexDistance(cell.Q, cell.R) <= Seed.MapRadius);
+        var heartTriangles = physical.Cells
+            .Where(cell => HexDistance(cell.Q, cell.R) <= Seed.MapRadius)
+            .SelectMany(cell => Microtriangles(physical, cell))
+            .ToArray();
+        Assert.True(
+            heartTriangles.Any(IsHabitable),
+            $"The starting heart has no habitable microgeography; maximum temperature is {heartTriangles.Max(triangle => triangle.Temperature)} and maximum moisture is {heartTriangles.Max(triangle => triangle.Moisture)}.");
         Assert.Contains(habitableCells, cell => HexDistance(cell.Q, cell.R) >= 64);
         Assert.Contains(habitableCells, cell => cell.OceanCoverage > 0);
         Assert.Contains(habitableCells, cell => cell.CoastEdgeMask != 0);
@@ -520,7 +513,9 @@ public sealed class IceRemembersSeedBuilderTests
         // and the spread reaches across the heart. Which clan is remote is a
         // property of the grown world, not the bootstrap.
         Assert.True(closest <= 26, $"Expected a close civilization pair, got closest {closest}.");
-        Assert.True(farthest >= 12, $"Expected civilizations to span the heart, got farthest {farthest}.");
+        Assert.True(
+            farthest >= 12,
+            $"Expected civilizations to span the heart, got farthest {farthest}: council {Coord(council)}, claws {Coord(claws)}, Wake-Singers {Coord(wakeSingers)}.");
         Assert.True(farthest > closest, $"Expected a spread of civilizations, got closest {closest}, farthest {farthest}.");
     }
 

@@ -191,8 +191,11 @@ public sealed class PhysicalGeographyGrid
 /// </summary>
 public sealed class PhysicalGeographyField
 {
+    private readonly int[] _continentalPotential;
     private readonly int[] _drainageBasinIds;
     private readonly int[] _drainageElevations;
+    private readonly int[] _drainageParents;
+    private readonly int[] _drainageRanks;
     private readonly int[] _elevation;
     private readonly int[] _featureFlags;
     private readonly int[] _fractureConductance;
@@ -202,9 +205,11 @@ public sealed class PhysicalGeographyField
     private readonly int[] _geothermal;
     private readonly int[] _heatSourceDensity;
     private readonly int[] _iceFlux;
+    private readonly int[] _iceBalance;
     private readonly int[] _iceThickness;
     private readonly int[] _landmassClassCodes;
     private readonly int[] _landmassIds;
+    private readonly int[] _lakeOutletTargets;
     private readonly int[] _landformCodes;
     private readonly int[] _moisture;
     private readonly float[] _ridgeInfluence;
@@ -212,6 +217,7 @@ public sealed class PhysicalGeographyField
     private readonly int[] _runoff;
     private readonly int[] _slope;
     private readonly int[] _temperature;
+    private readonly int[] _warmth;
     private readonly int[] _continentalGroupIds;
     private readonly int[] _bathymetricZoneCodes;
     private readonly float[] _uplift;
@@ -222,6 +228,7 @@ public sealed class PhysicalGeographyField
     internal PhysicalGeographyField(PhysicalGeographyGrid grid)
     {
         Grid = grid;
+        _continentalPotential = new int[grid.TriangleCount];
         _elevation = new int[grid.TriangleCount];
         _temperature = new int[grid.TriangleCount];
         _moisture = new int[grid.TriangleCount];
@@ -243,17 +250,30 @@ public sealed class PhysicalGeographyField
         _bathymetricZoneCodes = new int[grid.TriangleCount];
         _iceThickness = new int[grid.TriangleCount];
         _iceFlux = new int[grid.TriangleCount];
+        _iceBalance = new int[grid.TriangleCount];
         _fractureConductance = new int[grid.TriangleCount];
         _heatSourceDensity = new int[grid.TriangleCount];
         _drainageElevations = new int[grid.TriangleCount];
+        _drainageParents = new int[grid.TriangleCount];
+        Array.Fill(_drainageParents, -1);
+        _drainageRanks = new int[grid.TriangleCount];
         _flowTargets = new int[grid.TriangleCount];
         Array.Fill(_flowTargets, -1);
+        _lakeOutletTargets = new int[grid.TriangleCount];
+        Array.Fill(_lakeOutletTargets, -1);
         _ridgeInfluence = new float[grid.TriangleCount];
         _uplift = new float[grid.TriangleCount];
         _runoff = new int[grid.TriangleCount];
+        _warmth = new int[grid.TriangleCount];
     }
 
     public PhysicalGeographyGrid Grid { get; }
+
+    internal PhysicalGeographyFacts AvailableFacts { get; set; }
+
+    internal int EffectiveSeaLevel { get; set; }
+
+    internal Span<int> ContinentalPotential => _continentalPotential;
 
     public Span<int> Elevation => _elevation;
 
@@ -295,17 +315,27 @@ public sealed class PhysicalGeographyField
 
     public Span<int> IceFlux => _iceFlux;
 
+    internal Span<int> IceBalance => _iceBalance;
+
     public Span<int> FractureConductance => _fractureConductance;
 
     public Span<int> HeatSourceDensity => _heatSourceDensity;
 
     internal Span<int> DrainageElevations => _drainageElevations;
 
+    internal Span<int> DrainageParents => _drainageParents;
+
+    internal Span<int> DrainageRanks => _drainageRanks;
+
     internal Span<int> FlowTargets => _flowTargets;
+
+    internal Span<int> LakeOutletTargets => _lakeOutletTargets;
 
     public Span<float> RidgeInfluence => _ridgeInfluence;
 
     public Span<float> Uplift => _uplift;
 
     internal Span<int> Runoff => _runoff;
+
+    internal Span<int> Warmth => _warmth;
 }
