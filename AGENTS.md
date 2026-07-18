@@ -129,6 +129,19 @@ primitive kernel data. The kernel does not own domain strings or gameplay prose.
 boundary, fixed-capacity state, no runtime strings, no hot-path allocations, no
 async/threading/I/O, and one sim writer thread.
 
+## Memory Budget
+
+Design for an application working set of approximately 4 GB. A working set up
+to 8 GB is acceptable when it supports a cleaner, more durable data shape or
+useful precomputation. Do not optimize the architecture for a sub-1-GB process
+unless the user explicitly asks for that constraint.
+
+Prefer simple direct fixed-capacity arrays, explicit indexes, and precomputed
+state over compact encodings that add complexity solely to minimize memory.
+This memory envelope does not relax the kernel requirements for bounded state,
+explicit capacity validation, deterministic behavior, or no hot-path
+allocations.
+
 ## Analysis Tooling
 
 For Monte Carlo output, parquet telemetry, tuning reports, and exploratory data
