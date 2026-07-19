@@ -87,4 +87,19 @@ public sealed class PhysicalMicrogeographyRenderDecisionTests
         Assert.False(PhysicalMicrogeographyRenderDecisions.UsesWaterUnderlay(
             PhysicalGeographyView.MagicHistory));
     }
+
+    [Theory]
+    [InlineData(PhysicalGeographyView.Terrain, true)]
+    [InlineData(PhysicalGeographyView.Surface, true)]
+    [InlineData(PhysicalGeographyView.NaturalSurface, true)]
+    [InlineData(PhysicalGeographyView.Material, false)]
+    [InlineData(PhysicalGeographyView.MagicComposite, false)]
+    public void OrdinarySurfaceViewsPreserveStructuralRivers(
+        PhysicalGeographyView view,
+        bool expected)
+    {
+        Assert.Equal(
+            expected,
+            PhysicalMicrogeographyRenderDecisions.UsesStructuralRiverOverlay(view));
+    }
 }

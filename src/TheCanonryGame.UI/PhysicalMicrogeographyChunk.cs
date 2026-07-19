@@ -122,9 +122,12 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             return AggregateMagicColor(cell, view);
         }
 
-        return view <= PhysicalGeographyView.Material
+        var color = view <= PhysicalGeographyView.Material
             ? AggregateIdentityColor(cell, view)
             : AggregatePhysicalFieldColor(cell, view);
+        return PhysicalMicrogeographyRenderDecisions.UsesStructuralRiverOverlay(view)
+            ? ApplyAggregateStructuralWater(color, cell)
+            : color;
     }
 
     private Color AggregateIdentityColor(
@@ -275,7 +278,7 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         color = ViewUsesWaterTint(_owner!.View)
             ? ApplyWaterTint(color, triangle.WaterKindCode, triangle.WaterDepth)
             : color;
-        return _owner.View == PhysicalGeographyView.Terrain
+        return PhysicalMicrogeographyRenderDecisions.UsesStructuralRiverOverlay(_owner.View)
             ? ApplyRiverGeometryTint(color, triangle)
             : color;
     }
@@ -754,6 +757,28 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
 
         return triangle.FloodplainIntensity > 0
             ? color.Lerp(new Color(0.35f, 0.55f, 0.40f), 0.22f)
+            : color;
+    }
+
+    private static Color ApplyAggregateStructuralWater(
+        Color color,
+        in PhysicalGeographyCellProjection cell)
+    {
+        if (cell.WaterCoverage > 0)
+        {
+            var water = cell.OceanCoverage >= cell.LakeCoverage ? OceanWater : LakeWater;
+            color = color.Lerp(water, 0.34f + (0.42f * cell.WaterCoverage / 24f));
+        }
+
+        if (cell.DeltaCoverage > 0)
+        {
+            return color.Lerp(
+                new Color(0.20f, 0.62f, 0.56f),
+                0.34f + (0.42f * cell.DeltaCoverage / 24f));
+        }
+
+        return cell.RiverCoverage > 0
+            ? color.Lerp(RiverWater, 0.30f + (0.48f * cell.RiverCoverage / 24f))
             : color;
     }
 

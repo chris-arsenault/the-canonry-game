@@ -99,4 +99,9 @@ internal static class PhysicalMicrogeographyRenderDecisions
             PhysicalGeographyView.NaturalSurface ||
         view is >= PhysicalGeographyView.Material and <= PhysicalGeographyView.Landform ||
         view == PhysicalGeographyView.RiverGeometry;
+
+    public static bool UsesStructuralRiverOverlay(PhysicalGeographyView view) =>
+        view is PhysicalGeographyView.Terrain or
+            PhysicalGeographyView.Surface or
+            PhysicalGeographyView.NaturalSurface;
 }

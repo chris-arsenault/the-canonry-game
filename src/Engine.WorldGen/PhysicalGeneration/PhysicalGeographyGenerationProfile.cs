@@ -244,11 +244,17 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int RiverChannelMaximumExpansionSteps { get; init; } = 2;
 
+    public int RiverChannelMaximumLongitudinalAlignment { get; init; } = 560;
+
+    public int RiverChannelMaximumBankRelief { get; init; } = 70;
+
     public int FloodplainMinimumRiverOrder { get; init; } = 2;
 
     public int FloodplainMaximumSlope { get; init; } = 42;
 
     public int FloodplainMaximumRelief { get; init; } = 34;
+
+    public int FloodplainMaximumLongitudinalAlignment { get; init; } = 720;
 
     public int FloodplainIntensityDecay { get; init; } = 280;
 
@@ -265,6 +271,8 @@ public sealed record PhysicalGeographyGenerationProfile
     public int DeltaMaximumCurrentStrength { get; init; } = 900;
 
     public int DeltaIntensityDecay { get; init; } = 240;
+
+    public int DeltaMinimumForwardAlignment { get; init; } = 80;
 
     public int DeltaMaximumExpansionSteps { get; init; } = 3;
 
@@ -497,11 +505,22 @@ public sealed record PhysicalGeographyGenerationProfile
         !IsUnitScalar(GlacialRetreatRunoffStrength);
 
     private bool RiverGeometryRangesAreInvalid() =>
+        RiverChannelRangesAreInvalid() || FloodplainRangesAreInvalid() || DeltaRangesAreInvalid();
+
+    private bool RiverChannelRangesAreInvalid() =>
         !IsUnitScalar(RiverChannelBaseStrength) || !IsUnitScalar(RiverChannelOrderStrength) ||
         !IsUnitScalar(RiverChannelDischargeStrength) || RiverChannelWidthDecay <= 0 ||
+        !IsUnitScalar(RiverChannelMaximumLongitudinalAlignment) ||
+        RiverChannelMaximumBankRelief < 0;
+
+    private bool FloodplainRangesAreInvalid() =>
         FloodplainMaximumSlope < 0 || FloodplainMaximumRelief < 0 ||
-        FloodplainIntensityDecay <= 0 || !IsUnitScalar(DeltaMaximumWaveEnergy) ||
-        !IsUnitScalar(DeltaMaximumCurrentStrength) || DeltaIntensityDecay <= 0;
+        !IsUnitScalar(FloodplainMaximumLongitudinalAlignment) || FloodplainIntensityDecay <= 0;
+
+    private bool DeltaRangesAreInvalid() =>
+        !IsUnitScalar(DeltaMaximumWaveEnergy) ||
+        !IsUnitScalar(DeltaMaximumCurrentStrength) ||
+        !IsUnitScalar(DeltaMinimumForwardAlignment) || DeltaIntensityDecay <= 0;
 
     private static bool IsUnitScalar(int value) => value is >= 0 and <= 1000;
 

@@ -18,8 +18,9 @@ internal sealed class FloodplainLayer : IPhysicalGeographyLayer
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
         map.FloodplainIntensity.Clear();
-        var frontier = SeedFloodplains(map, context.Profile);
-        ExpandFloodplains(map, context.Profile, frontier);
+        var dominantUpstream = RiverChannelGeometryLayer.BuildDominantUpstream(map);
+        var frontier = SeedFloodplains(map, context.Profile, dominantUpstream);
+        ExpandFloodplains(map, context.Profile, dominantUpstream, frontier);
     }
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
@@ -39,7 +40,8 @@ internal sealed class FloodplainLayer : IPhysicalGeographyLayer
 
     private static List<int> SeedFloodplains(
         PhysicalGeographyField map,
-        PhysicalGeographyGenerationProfile profile)
+        PhysicalGeographyGenerationProfile profile,
+        int[] dominantUpstream)
     {
         var frontier = new List<int>();
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
@@ -52,7 +54,7 @@ internal sealed class FloodplainLayer : IPhysicalGeographyLayer
             for (var edge = 0; edge < 3; edge++)
             {
                 var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
-                if (!CanFlood(map, profile, triangleIndex, neighbor))
+                if (!CanFlood(map, profile, dominantUpstream, triangleIndex, neighbor))
                 {
                     continue;
                 }
@@ -77,6 +79,7 @@ internal sealed class FloodplainLayer : IPhysicalGeographyLayer
     private static void ExpandFloodplains(
         PhysicalGeographyField map,
         PhysicalGeographyGenerationProfile profile,
+        int[] dominantUpstream,
         List<int> frontier)
     {
         for (var step = 1; step < profile.FloodplainMaximumExpansionSteps && frontier.Count > 0; step++)
@@ -87,7 +90,7 @@ internal sealed class FloodplainLayer : IPhysicalGeographyLayer
                 for (var edge = 0; edge < 3; edge++)
                 {
                     var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
-                    if (!CanFlood(map, profile, triangleIndex, neighbor))
+                    if (!CanFlood(map, profile, dominantUpstream, triangleIndex, neighbor))
                     {
                         continue;
                     }
@@ -110,6 +113,7 @@ internal sealed class FloodplainLayer : IPhysicalGeographyLayer
     private static bool CanFlood(
         PhysicalGeographyField map,
         PhysicalGeographyGenerationProfile profile,
+        int[] dominantUpstream,
         int source,
         int target) =>
         target >= 0 &&
@@ -117,5 +121,7 @@ internal sealed class FloodplainLayer : IPhysicalGeographyLayer
         map.RiverChannelStrength[target] == 0 &&
         map.DrainageBasinIds[target] == map.DrainageBasinIds[source] &&
         map.Slope[target] <= profile.FloodplainMaximumSlope &&
-        Math.Abs(map.Elevation[source] - map.Elevation[target]) <= profile.FloodplainMaximumRelief;
+        Math.Abs(map.Elevation[source] - map.Elevation[target]) <= profile.FloodplainMaximumRelief &&
+        RiverChannelGeometryLayer.LongitudinalAlignment(map, dominantUpstream, source, target) <=
+            profile.FloodplainMaximumLongitudinalAlignment / 1000d;
 }

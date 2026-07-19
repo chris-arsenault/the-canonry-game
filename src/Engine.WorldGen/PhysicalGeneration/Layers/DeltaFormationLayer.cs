@@ -151,7 +151,13 @@ internal sealed class DeltaFormationLayer : IPhysicalGeographyLayer
             {
                 var neighbor = map.Grid.NeighborTriangleIndex(front.TriangleIndex, edge);
                 if (neighbor < 0 || neighbor == front.Previous ||
-                    !PointsIntoFan(map, front.TriangleIndex, neighbor, directionX, directionY))
+                    !PointsIntoFan(
+                        map,
+                        front.TriangleIndex,
+                        neighbor,
+                        directionX,
+                        directionY,
+                        profile.DeltaMinimumForwardAlignment))
                 {
                     continue;
                 }
@@ -172,11 +178,14 @@ internal sealed class DeltaFormationLayer : IPhysicalGeographyLayer
         int source,
         int target,
         float directionX,
-        float directionY)
+        float directionY,
+        int minimumForwardAlignment)
     {
         var stepX = map.Grid.TriangleX(target) - map.Grid.TriangleX(source);
         var stepY = map.Grid.TriangleY(target) - map.Grid.TriangleY(source);
-        return (stepX * directionX) + (stepY * directionY) >= -0.04f;
+        var length = MathF.Max(0.001f, MathF.Sqrt((stepX * stepX) + (stepY * stepY)));
+        return ((stepX * directionX) + (stepY * directionY)) / length >=
+            minimumForwardAlignment / 1000f;
     }
 
     private static void MarkDelta(PhysicalGeographyField map, int triangleIndex, int intensity, int order)

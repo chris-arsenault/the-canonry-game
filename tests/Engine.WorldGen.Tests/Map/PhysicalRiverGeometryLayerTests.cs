@@ -20,6 +20,16 @@ public sealed class PhysicalRiverGeometryLayerTests
         Assert.Contains(
             Enumerable.Range(0, result.Map.Grid.TriangleCount),
             index => result.Map.RiverChannelStrength[index] > 0 && result.Map.RiverOrders[index] == 0);
+        var dominantUpstream = RiverChannelGeometryLayer.BuildDominantUpstream(result.Map);
+        Assert.All(
+            Enumerable.Range(0, result.Map.Grid.TriangleCount)
+                .Where(index => result.Map.RiverChannelStrength[index] > 0 &&
+                    result.Map.RiverOrders[index] == 0),
+            index => Assert.True(HasCrossValleySpineProvenance(
+                result.Map,
+                result.Context.Profile,
+                dominantUpstream,
+                index)));
 
         result.Map.RiverChannelStrength[spines[0]] = 0;
         result.Map.RiverChannelOrders[spines[0]] = 0;
@@ -148,5 +158,47 @@ public sealed class PhysicalRiverGeometryLayerTests
         map.WaveExposure[ocean] = 0;
         map.OceanCurrentStrength[ocean] = 0;
         map.BathymetricZoneCodes[ocean] = PhysicalBathymetricZoneCodes.Shelf;
+    }
+
+    private static bool HasCrossValleySpineProvenance(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile,
+        int[] dominantUpstream,
+        int channel)
+    {
+        var visited = new HashSet<int> { channel };
+        var frontier = new Queue<(int TriangleIndex, int Depth)>();
+        frontier.Enqueue((channel, 0));
+        while (frontier.TryDequeue(out var current))
+        {
+            if (current.Depth > 0 && map.RiverOrders[current.TriangleIndex] > 0 &&
+                map.DrainageBasinIds[current.TriangleIndex] == map.DrainageBasinIds[channel] &&
+                Math.Abs(map.Elevation[current.TriangleIndex] - map.Elevation[channel]) <=
+                    profile.RiverChannelMaximumBankRelief &&
+                RiverChannelGeometryLayer.LongitudinalAlignment(
+                    map,
+                    dominantUpstream,
+                    current.TriangleIndex,
+                    channel) <= profile.RiverChannelMaximumLongitudinalAlignment / 1000d)
+            {
+                return true;
+            }
+
+            if (current.Depth >= profile.RiverChannelMaximumExpansionSteps)
+            {
+                continue;
+            }
+
+            for (var edge = 0; edge < 3; edge++)
+            {
+                var neighbor = map.Grid.NeighborTriangleIndex(current.TriangleIndex, edge);
+                if (neighbor >= 0 && visited.Add(neighbor))
+                {
+                    frontier.Enqueue((neighbor, current.Depth + 1));
+                }
+            }
+        }
+
+        return false;
     }
 }

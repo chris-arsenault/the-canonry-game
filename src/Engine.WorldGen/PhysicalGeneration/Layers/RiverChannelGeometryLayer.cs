@@ -20,8 +20,8 @@ internal sealed class RiverChannelGeometryLayer : IPhysicalGeographyLayer
     {
         map.RiverChannelStrength.Clear();
         map.RiverChannelOrders.Clear();
-        var remaining = new int[map.Grid.TriangleCount];
-        var frontier = new List<int>();
+        var dominantUpstream = BuildDominantUpstream(map);
+        var frontier = new Queue<ChannelFront>();
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             var order = map.RiverOrders[triangleIndex];
@@ -32,14 +32,14 @@ internal sealed class RiverChannelGeometryLayer : IPhysicalGeographyLayer
 
             map.RiverChannelStrength[triangleIndex] = SourceStrength(map, triangleIndex, context.Profile);
             map.RiverChannelOrders[triangleIndex] = order;
-            remaining[triangleIndex] = ExpansionSteps(map, triangleIndex, context.Profile);
-            if (remaining[triangleIndex] > 0)
+            var expansionSteps = ExpansionSteps(map, triangleIndex, context.Profile);
+            if (expansionSteps > 0)
             {
-                frontier.Add(triangleIndex);
+                frontier.Enqueue(new ChannelFront(triangleIndex, triangleIndex, 0, expansionSteps));
             }
         }
 
-        ExpandChannels(map, context.Profile, frontier, remaining);
+        ExpandChannels(map, context.Profile, dominantUpstream, frontier);
     }
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
@@ -110,53 +110,67 @@ internal sealed class RiverChannelGeometryLayer : IPhysicalGeographyLayer
         return Math.Min(profile.RiverChannelMaximumExpansionSteps, 1 + (scale / 3));
     }
 
+    internal static int[] BuildDominantUpstream(PhysicalGeographyField map)
+    {
+        var upstream = new int[map.Grid.TriangleCount];
+        Array.Fill(upstream, -1);
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            var target = map.FlowTargets[triangleIndex];
+            if (map.RiverOrders[triangleIndex] <= 0 || target < 0 || map.RiverOrders[target] <= 0)
+            {
+                continue;
+            }
+
+            var previous = upstream[target];
+            if (previous < 0 || map.FlowAccumulation[triangleIndex] > map.FlowAccumulation[previous])
+            {
+                upstream[target] = triangleIndex;
+            }
+        }
+
+        return upstream;
+    }
+
     private static void ExpandChannels(
         PhysicalGeographyField map,
         PhysicalGeographyGenerationProfile profile,
-        List<int> frontier,
-        int[] remaining)
+        int[] dominantUpstream,
+        Queue<ChannelFront> frontier)
     {
-        var queued = new bool[map.Grid.TriangleCount];
-        while (frontier.Count > 0)
+        while (frontier.TryDequeue(out var front))
         {
-            var next = new List<int>();
-            foreach (var triangleIndex in frontier)
+            for (var edge = 0; edge < 3; edge++)
             {
-                for (var edge = 0; edge < 3; edge++)
+                var target = map.Grid.NeighborTriangleIndex(front.TriangleIndex, edge);
+                if (TryWiden(map, profile, dominantUpstream, front, target))
                 {
-                    var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
-                    if (TryWiden(map, profile, triangleIndex, neighbor, remaining) &&
-                        !queued[neighbor])
-                    {
-                        queued[neighbor] = true;
-                        next.Add(neighbor);
-                    }
+                    frontier.Enqueue(front.AdvanceTo(target));
                 }
             }
-
-            foreach (var triangleIndex in next)
-            {
-                queued[triangleIndex] = false;
-            }
-
-            frontier = next;
         }
     }
 
     private static bool TryWiden(
         PhysicalGeographyField map,
         PhysicalGeographyGenerationProfile profile,
-        int source,
-        int target,
-        int[] remaining)
+        int[] dominantUpstream,
+        ChannelFront front,
+        int target)
     {
-        if (!CanWidenInto(map, source, target))
+        var depth = front.Depth + 1;
+        if (depth > front.MaximumDepth || !CanWidenInto(
+                map,
+                profile,
+                dominantUpstream,
+                front.SpineIndex,
+                target))
         {
             return false;
         }
 
-        var strength = WidenedStrength(map, profile, source, target);
-        var order = Math.Max(map.RiverChannelOrders[source], map.RiverOrders[target]);
+        var strength = WidenedStrength(map, profile, front.SpineIndex, target, depth);
+        var order = map.RiverChannelOrders[front.SpineIndex];
         if (strength < map.RiverChannelStrength[target] ||
             strength == map.RiverChannelStrength[target] && order <= map.RiverChannelOrders[target])
         {
@@ -165,26 +179,116 @@ internal sealed class RiverChannelGeometryLayer : IPhysicalGeographyLayer
 
         map.RiverChannelStrength[target] = strength;
         map.RiverChannelOrders[target] = order;
-        remaining[target] = remaining[source] - 1;
-        return remaining[target] > 0;
+        return depth < front.MaximumDepth;
     }
 
-    private static bool CanWidenInto(PhysicalGeographyField map, int source, int target) =>
-        target >= 0 &&
-        map.WaterKindCodes[target] == PhysicalWaterKindCodes.None &&
-        map.DrainageBasinIds[target] == map.DrainageBasinIds[source];
+    private static bool CanWidenInto(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile,
+        int[] dominantUpstream,
+        int spine,
+        int target)
+    {
+        if (target < 0 || map.RiverOrders[target] > 0 ||
+            map.WaterKindCodes[target] != PhysicalWaterKindCodes.None ||
+            map.DrainageBasinIds[target] != map.DrainageBasinIds[spine] ||
+            Math.Abs(map.Elevation[spine] - map.Elevation[target]) >
+                profile.RiverChannelMaximumBankRelief)
+        {
+            return false;
+        }
+
+        var alignment = LongitudinalAlignment(map, dominantUpstream, spine, target);
+        return alignment <= profile.RiverChannelMaximumLongitudinalAlignment / 1000d;
+    }
+
+    internal static double LongitudinalAlignment(
+        PhysicalGeographyField map,
+        int[] dominantUpstream,
+        int spine,
+        int target)
+    {
+        FlowTangent(map, dominantUpstream, spine, out var tangentX, out var tangentY);
+        Normalize(
+            map.Grid.TriangleX(target) - map.Grid.TriangleX(spine),
+            map.Grid.TriangleY(target) - map.Grid.TriangleY(spine),
+            out var bankX,
+            out var bankY);
+        return Math.Abs((tangentX * bankX) + (tangentY * bankY));
+    }
+
+    private static void FlowTangent(
+        PhysicalGeographyField map,
+        int[] dominantUpstream,
+        int spine,
+        out double tangentX,
+        out double tangentY)
+    {
+        tangentX = 0d;
+        tangentY = 0d;
+        var downstream = map.FlowTargets[spine];
+        if (downstream >= 0)
+        {
+            AddUnitDirection(map, spine, downstream, ref tangentX, ref tangentY);
+        }
+
+        var upstream = dominantUpstream[spine];
+        if (upstream >= 0)
+        {
+            AddUnitDirection(map, upstream, spine, ref tangentX, ref tangentY);
+        }
+
+        Normalize(tangentX, tangentY, out tangentX, out tangentY);
+    }
+
+    private static void AddUnitDirection(
+        PhysicalGeographyField map,
+        int source,
+        int target,
+        ref double totalX,
+        ref double totalY)
+    {
+        Normalize(
+            map.Grid.TriangleX(target) - map.Grid.TriangleX(source),
+            map.Grid.TriangleY(target) - map.Grid.TriangleY(source),
+            out var x,
+            out var y);
+        totalX += x;
+        totalY += y;
+    }
+
+    private static void Normalize(double x, double y, out double normalizedX, out double normalizedY)
+    {
+        var length = Math.Max(0.000001d, Math.Sqrt((x * x) + (y * y)));
+        normalizedX = x / length;
+        normalizedY = y / length;
+    }
 
     private static int WidenedStrength(
         PhysicalGeographyField map,
         PhysicalGeographyGenerationProfile profile,
-        int source,
-        int target)
+        int spine,
+        int target,
+        int depth)
     {
-        var reliefPenalty = Math.Abs(map.Elevation[source] - map.Elevation[target]);
+        var reliefPenalty = Math.Abs(map.Elevation[spine] - map.Elevation[target]);
         var slopePenalty = Math.Max(0, map.Slope[target] - profile.PlainSlopeThreshold);
         return Math.Max(
             1,
-            map.RiverChannelStrength[source] - profile.RiverChannelWidthDecay -
+            map.RiverChannelStrength[spine] - (profile.RiverChannelWidthDecay * depth) -
                 reliefPenalty - slopePenalty);
+    }
+
+    private readonly record struct ChannelFront(
+        int TriangleIndex,
+        int SpineIndex,
+        int Depth,
+        int MaximumDepth)
+    {
+        public ChannelFront AdvanceTo(int triangleIndex) => this with
+        {
+            TriangleIndex = triangleIndex,
+            Depth = Depth + 1,
+        };
     }
 }

@@ -128,13 +128,13 @@ Primary files:
 
 ### 4. River geometry and rendering
 
-- [ ] Keep the one-triangle flow spine authoritative.
-- [ ] Derive a local channel tangent from upstream and downstream geometry.
-- [ ] Widen toward perpendicular low-relief banks, with width driven by
+- [x] Keep the one-triangle flow spine authoritative.
+- [x] Derive a local channel tangent from upstream and downstream geometry.
+- [x] Widen toward perpendicular low-relief banks, with width driven by
   discharge/order and constrained by valley confinement.
-- [ ] Merge tributaries cleanly and derive floodplains and delta distributaries
+- [x] Merge tributaries cleanly and derive floodplains and delta distributaries
   from valley and mouth geometry rather than generic neighbor dilation.
-- [ ] Composite rivers, lakes, and deltas in ordinary surface views so magic
+- [x] Composite rivers, lakes, and deltas in ordinary surface views so magic
   classification cannot visually sever them.
 
 Primary files:
