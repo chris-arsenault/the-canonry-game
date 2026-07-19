@@ -114,14 +114,14 @@ projection boundary.
 
 ### 7. Persistent physical volcanism
 
-- [ ] Add stable mantle-plume roots and epoch volcanic construction before
+- [x] Add stable mantle-plume roots and epoch volcanic construction before
   climate/hydrology.
-- [ ] Use crust motion over persistent roots to produce age-progressive
+- [x] Use crust motion over persistent roots to produce age-progressive
   seamount/island chains and occasional continental cones, calderas, and lava
   plains.
-- [ ] Let later erosion, glaciation, sea-level change, and rivers reshape the
+- [x] Let later erosion, glaciation, sea-level change, and rivers reshape the
   constructed relief.
-- [ ] Keep fire magic reactive to volcanic provenance rather than causal.
+- [x] Keep fire magic reactive to volcanic provenance rather than causal.
 
 ### 8. Verification and handoff
 

@@ -45,6 +45,8 @@ public sealed class PhysicalGeographyEvolutionSession
         Apply(new ContinentalDomainLayer());
         Apply(new TectonicUpliftLayer());
         Apply(new LandscapeInitializationLayer());
+        Apply(new MantlePlumeRootLayer());
+        Apply(new VolcanicConstructionLayer());
         Apply(new ImpactCrateringLayer());
         Apply(new FractureNetworkLayer());
         Apply(new GeothermalLayer());
@@ -85,6 +87,7 @@ public sealed class PhysicalGeographyEvolutionSession
         Apply(new TectonicEpochLayer());
         Apply(new ContinentalDomainLayer());
         Apply(new TectonicUpliftLayer());
+        Apply(new VolcanicConstructionLayer());
         Apply(new FractureNetworkLayer());
         Apply(new GeothermalLayer());
         _phase = EvolutionPhase.Climate;

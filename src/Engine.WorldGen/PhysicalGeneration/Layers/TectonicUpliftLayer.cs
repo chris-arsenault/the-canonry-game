@@ -9,6 +9,7 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
         0x4f2b17,
         PhysicalGeographyFacts.TectonicProvinces | PhysicalGeographyFacts.ContinentalDomains,
         PhysicalGeographyFacts.Elevation,
+        PhysicalGeographyFacts.VolcanicConstruction |
         PhysicalGeographyFacts.Ocean |
         PhysicalGeographyFacts.Bathymetry |
         PhysicalGeographyFacts.Landmasses |

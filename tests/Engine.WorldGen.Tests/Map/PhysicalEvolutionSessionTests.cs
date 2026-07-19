@@ -68,6 +68,32 @@ public sealed class PhysicalEvolutionSessionTests
     }
 
     [Fact]
+    public void PlumeRoots_RemainFixedWhileSurfaceVolcanismAdvancesAcrossEpochs()
+    {
+        var session = PhysicalGeographyEvolutionSession.Begin(
+            6,
+            PhysicalGeographyLayerTestHarness.Seed,
+            PhysicalGeographyLayerTestHarness.Profile);
+        var roots = session.Map.MantlePlumeRootStrength.ToArray();
+        var epochs = new[]
+        {
+            Epoch("first-plume-crossing", tectonic: 700),
+            Epoch("second-plume-crossing", tectonic: 700),
+        };
+
+        session.BeginEpoch(epochs[0], epochs.Length);
+        session.ApplyGeology();
+        var firstActivity = session.Map.VolcanicActivity.ToArray();
+        CompleteStartedEpoch(session);
+        session.BeginEpoch(epochs[1], epochs.Length);
+        session.ApplyGeology();
+
+        Assert.Equal(roots, session.Map.MantlePlumeRootStrength.ToArray());
+        Assert.False(firstActivity.SequenceEqual(session.Map.VolcanicActivity.ToArray()));
+        Assert.Contains(session.Map.VolcanicLastActiveEpoch.ToArray(), epoch => epoch == 1);
+    }
+
+    [Fact]
     public void ExternalCoastalForcing_ErodesOnlyAValidDryCoast()
     {
         var session = ReadyForDomainForcing();
@@ -124,6 +150,17 @@ public sealed class PhysicalEvolutionSessionTests
     {
         session.BeginEpoch(epoch, count);
         session.ApplyGeology();
+        session.ApplyClimate();
+        session.ApplyHydrology();
+        session.ApplyGlaciation();
+        session.ApplyPostGlacialReconciliation();
+        session.MarkDomainForcingComplete();
+        session.ApplyCoastalEvolution();
+        session.CompleteEpoch();
+    }
+
+    private static void CompleteStartedEpoch(PhysicalGeographyEvolutionSession session)
+    {
         session.ApplyClimate();
         session.ApplyHydrology();
         session.ApplyGlaciation();

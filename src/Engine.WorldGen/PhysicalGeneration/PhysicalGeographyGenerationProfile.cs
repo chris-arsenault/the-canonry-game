@@ -430,6 +430,18 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int MantlePlumeStrength { get; init; } = 940;
 
+    public double MantlePlumeDriftPerEpoch { get; init; } = 8d;
+
+    public double VolcanicConeRadius { get; init; } = 4.5d;
+
+    public int VolcanicConeHeight { get; init; } = 460;
+
+    public int VolcanicApronHeight { get; init; } = 70;
+
+    public int VolcanicCalderaChance { get; init; } = 180;
+
+    public int VolcanicCalderaDepth { get; init; } = 90;
+
     public int FractureBranchCount { get; init; } = 24;
 
     public int FractureConductanceFloor { get; init; } = 25;
@@ -488,7 +500,10 @@ public sealed record PhysicalGeographyGenerationProfile
         FrozenLakeIceAdvanceDecay <= 0 ||
         MaximumGlacialErosionPerPass <= 0 || MaximumGlacialDepositionPerPass <= 0 ||
         LandformHistoryCountsAreInvalid() || MaximumCoastalErosionPerPass <= 0 ||
-        MaximumSedimentDepositionPerPass <= 0;
+        MaximumSedimentDepositionPerPass <= 0 || VolcanicCountsAreInvalid();
+
+    private bool VolcanicCountsAreInvalid() =>
+        VolcanicConeHeight <= 0 || VolcanicApronHeight <= 0 || VolcanicCalderaDepth <= 0;
 
     private bool LandformHistoryCountsAreInvalid() =>
         AncestralValleyMinimumErosion <= 0 || OutwashMinimumGlacialDeposition <= 0 ||
@@ -508,7 +523,12 @@ public sealed record PhysicalGeographyGenerationProfile
         TectonicEpochVariationScale <= 0d ||
         RidgeWidth <= 0d || RidgeUplift <= 0d || RiftDepth <= 0d ||
         ContinentalAssemblySeparationDepth <= 0d ||
-        MantlePlumeRadius <= 0d || MantlePlumeMinimumSpacing <= 0d;
+        VolcanicScaleIsInvalid();
+
+    private bool VolcanicScaleIsInvalid() =>
+        MantlePlumeRadius <= 0d || MantlePlumeMinimumSpacing <= 0d ||
+        MantlePlumeDriftPerEpoch <= 0d || VolcanicConeRadius <= 0d ||
+        VolcanicConeRadius >= MantlePlumeRadius;
 
     private bool LandscapeScaleIsInvalid() =>
         ElevationVariationScale <= 0d || FluvialErosionStrength <= 0d ||
@@ -540,7 +560,7 @@ public sealed record PhysicalGeographyGenerationProfile
         TectonicMotionMaximum < TectonicMotionMinimum ||
         TectonicConvergenceThreshold < 0d ||
         !IsUnitScalar(TectonicBoundaryPersistence) ||
-        MantlePlumeStrength is < 1 or > 1000;
+        MantlePlumeStrength is < 1 or > 1000 || !IsUnitScalar(VolcanicCalderaChance);
 
     private void ValidateHydrologyRanges()
     {

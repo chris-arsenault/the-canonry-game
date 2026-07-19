@@ -22,6 +22,9 @@ internal sealed class LandscapeInitializationLayer : IPhysicalGeographyLayer
         map.MaximumIceFlux.Clear();
         map.WaveExposureHistory.Clear();
         map.GeothermalHistory.Clear();
+        map.VolcanicActivity.Clear();
+        map.VolcanicConstructionHistory.Clear();
+        map.VolcanicLastActiveEpoch.Fill(-1);
         map.ExternalHeatForcing.Clear();
         map.ExternalCoastalForcing.Clear();
         map.ExternalCoastalForcingHistory.Clear();

@@ -15,6 +15,7 @@ public sealed class PhysicalGeographyGenerationTests
         RidgeWidth = 4d,
         MantlePlumeCount = 2,
         MantlePlumeRadius = 4d,
+        VolcanicConeRadius = 2d,
         MantlePlumeMinimumSpacing = 8d,
         ElevationVariationScale = 7d,
         WarmthPocketCount = 5,

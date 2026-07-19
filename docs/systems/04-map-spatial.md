@@ -42,7 +42,9 @@ flow accumulation, river order, ocean-current direction/strength/heat, wave
 exposure, rainfall, snowfall, sea-ice suitability, bedrock elevation, sediment
 thickness, cumulative erosion/deposition (including glacial deposition),
 maximum glaciation, impact excavation/rim/ejecta history, channel strength
-and order, floodplain intensity, delta intensity, and permanent feature flags. Physical materials
+and order, floodplain intensity, delta intensity, mantle-plume roots, current
+volcanic activity, cumulative volcanic construction, volcanic age, and permanent
+feature flags. Physical materials
 such as bedrock, scree, tundra soil, glacial ice, marine sediment, reef stone,
 and geothermal crust are not gameplay terrain IDs. Stable within-hex and
 across-edge adjacency makes ridges, coasts, drainage, and rivers continuous
@@ -52,16 +54,21 @@ Generation is ordered over one padded graph. Irregular moving crust provinces
 establish continental assemblies and oceanic crust. Relative motion types their
 boundaries as convergent, divergent, or transform; continuous strain then drives
 mountain systems, rifts, fractures, and mostly submarine island arcs. Rare
-intraplate mantle plumes supplement rather than replace those tectonic heat
-sources. Four authored but configurable epochs—crust assembly, wet orogeny,
+intraplate mantle roots remain fixed while crust motion advances their surface
+expression across epochs, constructing age-progressive seamount and island
+chains plus occasional continental cones, calderas, and lava plains. Those
+landforms supply geothermal provenance but do not originate in fire magic.
+Four authored but configurable epochs—crust assembly, wet orogeny,
 glacial maximum, and retreat/present—reuse these same physical layers with
 different tectonic, hydrologic, glacial, coastal, temperature, and sea-level
 forcing. Fluvial stream power incrementally removes sediment and bedrock,
 routes the produced sediment downstream, deposits it in low-energy basins and
 mouths, and accounts for material exported from the modeled field.
-Before those epochs, sparse domain-neutral impacts excavate basins, lift and
+Before those epochs, the first volcanic constructs and sparse domain-neutral
+impacts establish relief; impacts excavate basins, lift and
 fracture rims, distribute conserved ejecta, and retain short-lived heat only
-for sufficiently large strikes. Every later process acts on those shapes.
+for sufficiently large strikes. Later volcanic, fluvial, coastal, glacial,
+sea-level, and hydrological passes continue to act on and reshape those forms.
 Connected-component and boundary-flood passes identify landmasses,
 continental shelves, bathymetry, and the exterior ocean. Priority-flood
 drainage then creates coherent lakes, accumulated runoff, tributaries, and

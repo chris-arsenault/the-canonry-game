@@ -311,6 +311,7 @@ internal static partial class IceRemembersSeedBuilder
         new("wave_exposure_history", ExtractConfiguredValues(field, field.WaveExposureHistory)),
         new("tectonic_activity_history", ExtractConfiguredValues(field, field.TectonicActivityHistory)),
         new("geothermal_history", ExtractConfiguredValues(field, field.GeothermalHistory)),
+        .. CreateVolcanicScalarFields(field),
         new("external_coastal_forcing_history", ExtractConfiguredValues(field, field.ExternalCoastalForcingHistory)),
         new("fire_intensity", ExtractConfiguredValues(field, magic.FireIntensity)),
         new("aurora_intensity", ExtractConfiguredValues(field, magic.AuroraIntensity)),
@@ -323,6 +324,17 @@ internal static partial class IceRemembersSeedBuilder
         new("aurora_first_epoch", ExtractConfiguredValues(field, magic.AuroraFirstEpoch)),
         new("pressure_first_epoch", ExtractConfiguredValues(field, magic.PressureFirstEpoch)),
         new("pressure_coastal_first_epoch", ExtractConfiguredValues(field, magic.PressureCoastalFirstEpoch)),
+    ];
+
+    private static DomainPhysicalScalarField[] CreateVolcanicScalarFields(
+        PhysicalGeographyField field) =>
+    [
+        new("mantle_plume_root", ExtractConfiguredValues(field, field.MantlePlumeRootStrength)),
+        new("volcanic_activity", ExtractConfiguredValues(field, field.VolcanicActivity)),
+        new("volcanic_construction_history", ExtractConfiguredElevationValues(
+            field,
+            field.VolcanicConstructionHistory)),
+        new("volcanic_last_active_epoch", ExtractConfiguredValues(field, field.VolcanicLastActiveEpoch)),
     ];
 
     private static int[] ExtractConfiguredValues(

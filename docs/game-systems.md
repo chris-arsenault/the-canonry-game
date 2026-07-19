@@ -21,7 +21,9 @@ physical generation blueprint also divides every surface hex into 24 canonical
 microtriangles. Outside the kernel, one padded causal graph partitions
 moving continental and oceanic crust, derives typed boundaries and strain,
 grows distributed continental assemblies, raises mountains and island arcs
-from evolving epoch boundaries, applies sparse impacts, erodes valleys, labels connected land and ocean, solves
+from evolving epoch boundaries, applies sparse impacts, and moves crust across
+stable mantle roots to construct seamount chains, islands, cones, calderas, and
+lava plains before climate and hydrology. It then erodes valleys, labels connected land and ocean, solves
 bathymetry and drainage, derives reduced basin currents and wave exposure,
 builds one shared atmospheric/upwind field for moisture, rain, and snow, and evolves a persistent bedrock and
 sediment surface through fluvial, coastal, and glacial erosion and deposition

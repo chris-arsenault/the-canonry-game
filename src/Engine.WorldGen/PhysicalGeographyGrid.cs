@@ -262,6 +262,10 @@ public sealed class PhysicalGeographyField
     private readonly int[] _impactHeat;
     private readonly int[] _glacialMeltwater;
     private readonly int[] _heatSourceDensity;
+    private readonly int[] _mantlePlumeRootStrength;
+    private readonly int[] _volcanicActivity;
+    private readonly long[] _volcanicConstructionHistory;
+    private readonly int[] _volcanicLastActiveEpoch;
     private readonly int[] _iceFlux;
     private readonly int[] _iceFlowTargets;
     private readonly int[] _iceBalance;
@@ -351,6 +355,8 @@ public sealed class PhysicalGeographyField
         (_externalHeatForcing, _externalCoastalForcing, _externalCoastalForcingHistory) =
             (NewField(grid), NewField(grid), NewField(grid));
         _geothermal = NewField(grid);
+        (_mantlePlumeRootStrength, _volcanicActivity, _volcanicConstructionHistory,
+            _volcanicLastActiveEpoch) = NewVolcanicFields(grid);
         _slope = NewElevationField(grid);
         _landformCodes = NewField(grid);
         _waterKindCodes = NewField(grid);
@@ -380,6 +386,14 @@ public sealed class PhysicalGeographyField
     }
 
     private static int[] NewField(PhysicalGeographyGrid grid) => new int[grid.TriangleCount];
+
+    private static (int[] Roots, int[] Activity, long[] History, int[] LastActiveEpoch)
+        NewVolcanicFields(PhysicalGeographyGrid grid)
+    {
+        var lastActiveEpoch = NewField(grid);
+        Array.Fill(lastActiveEpoch, -1);
+        return (NewField(grid), NewField(grid), NewElevationField(grid), lastActiveEpoch);
+    }
 
     private static long[] NewElevationField(PhysicalGeographyGrid grid) => new long[grid.TriangleCount];
 
@@ -650,6 +664,14 @@ public sealed class PhysicalGeographyField
     public Span<int> FractureConductance => _fractureConductance;
 
     public Span<int> HeatSourceDensity => _heatSourceDensity;
+
+    public Span<int> MantlePlumeRootStrength => _mantlePlumeRootStrength;
+
+    public Span<int> VolcanicActivity => _volcanicActivity;
+
+    public Span<long> VolcanicConstructionHistory => _volcanicConstructionHistory;
+
+    public Span<int> VolcanicLastActiveEpoch => _volcanicLastActiveEpoch;
 
     internal Span<long> DrainageElevations => _drainageElevations;
 

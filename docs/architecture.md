@@ -233,7 +233,10 @@ incremental bedrock erosion, conserved sediment transport and deposition,
 glacial carving, coastal evolution, fractures, channel widening, floodplains,
 and delta fans. Sparse impacts precede the epochs so their excavated basins,
 fractured rims, ejecta, and residual heat are subsequently eroded, flooded,
-glaciated, or buried. Ice Remembers interleaves fire heat, aurora storage, and ocean
+glaciated, or buried. Stable mantle-plume roots also precede the epochs; crust
+motion advances their independently generated volcanic construction into
+seamount/island chains, cones, calderas, and lava plains before each epoch's
+climate and hydrology. Ice Remembers interleaves fire heat, aurora storage, and ocean
 pressure with those physical phases, translating pressure into a generic
 coastal-forcing field rather than importing domain concepts into physical
 worldgen. Current magic fields, cumulative epoch histories, and first-active

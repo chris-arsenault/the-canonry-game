@@ -35,19 +35,7 @@ internal sealed class PhysicalGeographyPipeline
         var rivers = new RiverNetworkLayer();
         var landIce = new LandIceLayer();
         var iceFlow = new IceFlowLayer();
-        var layers = new List<IPhysicalGeographyLayer>
-        {
-            new TectonicProvinceLayer(),
-            new ContinentalDomainLayer(),
-            new TectonicUpliftLayer(),
-            new LandscapeInitializationLayer(),
-            new ImpactCrateringLayer(),
-            ocean,
-            new FluvialErosionLayer(),
-            ocean,
-            new FractureNetworkLayer(),
-            new GeothermalLayer(),
-        };
+        var layers = CreateInitialLayers(ocean);
         AddClimateAndDrainage(
             layers, ocean, oceanDistance, bathymetry, landmasses, currents, warmth, temperature,
             atmosphericFlow, moisture, precipitation, runoff, conditioning, lakes, guidance, flow, rivers);
@@ -77,6 +65,22 @@ internal sealed class PhysicalGeographyPipeline
         layers.Add(new PhysicalGeographyValidationLayer());
         return new PhysicalGeographyPipeline(profile, layers);
     }
+
+    private static List<IPhysicalGeographyLayer> CreateInitialLayers(IPhysicalGeographyLayer ocean) =>
+    [
+        new TectonicProvinceLayer(),
+        new ContinentalDomainLayer(),
+        new TectonicUpliftLayer(),
+        new LandscapeInitializationLayer(),
+        new MantlePlumeRootLayer(),
+        new VolcanicConstructionLayer(),
+        new ImpactCrateringLayer(),
+        ocean,
+        new FluvialErosionLayer(),
+        ocean,
+        new FractureNetworkLayer(),
+        new GeothermalLayer(),
+    ];
 
     private static void AddFinalGlacialDrainage(
         List<IPhysicalGeographyLayer> layers,

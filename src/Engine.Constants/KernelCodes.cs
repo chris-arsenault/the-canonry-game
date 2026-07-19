@@ -90,9 +90,13 @@ public static class PhysicalGeographyFeatureCodes
     public const int DeadGodLocus = 1 << 5;
     public const int MantlePlume = 1 << 6;
     public const int ImpactCenter = 1 << 7;
+    public const int VolcanicCone = 1 << 8;
+    public const int VolcanicCaldera = 1 << 9;
+    public const int LavaPlain = 1 << 10;
 
     public const int All = GeothermalVent | PermanentSeaIce | PermanentIceMargin |
-        FireCore | MagmaChamber | DeadGodLocus | MantlePlume | ImpactCenter;
+        FireCore | MagmaChamber | DeadGodLocus | MantlePlume | ImpactCenter |
+        VolcanicCone | VolcanicCaldera | LavaPlain;
 }
 
 public static class BehaviorOperationCodes

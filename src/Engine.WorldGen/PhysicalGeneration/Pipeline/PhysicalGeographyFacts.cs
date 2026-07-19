@@ -42,4 +42,6 @@ internal enum PhysicalGeographyFacts : ulong
     Impacts = 1UL << 35,
     DrainageConditioning = 1UL << 36,
     DrainageGuidance = 1UL << 37,
+    MantlePlumeRoots = 1UL << 38,
+    VolcanicConstruction = 1UL << 39,
 }

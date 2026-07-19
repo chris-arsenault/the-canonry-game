@@ -14,7 +14,8 @@ internal sealed class LandformClassificationLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Rivers |
         PhysicalGeographyFacts.GlacialRelief |
         PhysicalGeographyFacts.LandscapeHistory |
-        PhysicalGeographyFacts.Impacts,
+        PhysicalGeographyFacts.Impacts |
+        PhysicalGeographyFacts.VolcanicConstruction,
         PhysicalGeographyFacts.Landforms,
         PhysicalGeographyFacts.Validated);
 

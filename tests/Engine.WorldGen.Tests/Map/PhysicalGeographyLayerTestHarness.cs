@@ -16,6 +16,7 @@ internal static class PhysicalGeographyLayerTestHarness
         RidgeWidth = 4d,
         MantlePlumeCount = 2,
         MantlePlumeRadius = 4d,
+        VolcanicConeRadius = 2d,
         MantlePlumeMinimumSpacing = 8d,
         FluvialErosionIterations = 2,
         IslandTriangleThreshold = 100,

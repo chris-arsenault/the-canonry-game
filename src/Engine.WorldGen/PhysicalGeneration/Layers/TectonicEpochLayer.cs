@@ -16,6 +16,7 @@ internal sealed class TectonicEpochLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.TectonicProvinces,
         PhysicalGeographyFacts.ContinentalDomains |
         PhysicalGeographyFacts.Elevation |
+        PhysicalGeographyFacts.VolcanicConstruction |
         PhysicalGeographyFacts.Ocean |
         PhysicalGeographyFacts.Bathymetry |
         PhysicalGeographyFacts.Landmasses |

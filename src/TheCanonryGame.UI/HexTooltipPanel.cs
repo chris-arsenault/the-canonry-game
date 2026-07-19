@@ -440,7 +440,32 @@ public partial class HexTooltipPanel : PanelContainer
             features.Add("pressure locus");
         }
 
+        AddVolcanicFeatureNames(features, flags);
+
         return features.Count == 0 ? "features none" : $"features {string.Join(", ", features)}";
+    }
+
+    private static void AddVolcanicFeatureNames(List<string> features, int flags)
+    {
+        if ((flags & PhysicalGeographyFeatureCodes.MantlePlume) != 0)
+        {
+            features.Add("active mantle plume");
+        }
+
+        if ((flags & PhysicalGeographyFeatureCodes.VolcanicCone) != 0)
+        {
+            features.Add("volcanic cone");
+        }
+
+        if ((flags & PhysicalGeographyFeatureCodes.VolcanicCaldera) != 0)
+        {
+            features.Add("caldera");
+        }
+
+        if ((flags & PhysicalGeographyFeatureCodes.LavaPlain) != 0)
+        {
+            features.Add("lava plain");
+        }
     }
 
     private string SignificantFeatureNames(ulong flags)

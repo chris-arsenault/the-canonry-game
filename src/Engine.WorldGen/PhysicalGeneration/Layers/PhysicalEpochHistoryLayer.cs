@@ -8,6 +8,7 @@ internal sealed class PhysicalEpochHistoryLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.TectonicProvinces |
         PhysicalGeographyFacts.Elevation |
         PhysicalGeographyFacts.Geothermal |
+        PhysicalGeographyFacts.VolcanicConstruction |
         PhysicalGeographyFacts.LandscapeHistory |
         PhysicalGeographyFacts.SedimentTransport |
         PhysicalGeographyFacts.GlacialEvolution |

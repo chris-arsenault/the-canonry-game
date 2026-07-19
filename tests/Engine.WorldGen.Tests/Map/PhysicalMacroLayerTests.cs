@@ -162,6 +162,40 @@ public sealed class PhysicalMacroLayerTests
             result.Layer.Validate(result.Map, result.Context));
     }
 
+    [Fact]
+    public void MantlePlumeRoots_AreStableMidplateSourcesAndRejectInvalidStrength()
+    {
+        var result = PhysicalGeographyLayerTestHarness.GenerateThrough<MantlePlumeRootLayer>();
+        var roots = Enumerable.Range(0, result.Map.Grid.TriangleCount)
+            .Where(index => result.Map.MantlePlumeRootStrength[index] > 0)
+            .ToArray();
+
+        Assert.NotEmpty(roots);
+        Assert.All(roots, index =>
+            Assert.True(result.Map.Grid.TriangleIsInsideConfiguredDisk(index)));
+        result.Map.MantlePlumeRootStrength[roots[0]] = 1001;
+        Assert.Throws<InvalidOperationException>(() =>
+            result.Layer.Validate(result.Map, result.Context));
+    }
+
+    [Fact]
+    public void VolcanicConstruction_BuildsReliefWithPhysicalProvenanceAndRejectsInvalidHistory()
+    {
+        var result = PhysicalGeographyLayerTestHarness.GenerateThrough<VolcanicConstructionLayer>();
+        var constructed = Enumerable.Range(0, result.Map.Grid.TriangleCount)
+            .First(index => result.Map.VolcanicConstructionHistory[index] > 0);
+
+        Assert.True(result.Map.VolcanicActivity[constructed] > 0);
+        Assert.Contains(result.Map.FeatureFlags.ToArray(), flags =>
+            (flags & PhysicalGeographyFeatureCodes.VolcanicCone) != 0);
+        Assert.Contains(result.Map.FeatureFlags.ToArray(), flags =>
+            (flags & PhysicalGeographyFeatureCodes.LavaPlain) != 0);
+
+        result.Map.VolcanicConstructionHistory[constructed] = -1;
+        Assert.Throws<InvalidOperationException>(() =>
+            result.Layer.Validate(result.Map, result.Context));
+    }
+
     private static int FindTriangle(PhysicalGeographyField map, Func<int, bool> predicate) =>
         Enumerable.Range(0, map.Grid.TriangleCount).First(predicate);
 
