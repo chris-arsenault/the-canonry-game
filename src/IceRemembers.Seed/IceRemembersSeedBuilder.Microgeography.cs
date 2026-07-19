@@ -187,8 +187,8 @@ internal static partial class IceRemembersSeedBuilder
             magic.SurfaceIndexes[triangleIndex],
             magic.SignificantFeatureFlags[triangleIndex],
             field.LandformCodes[triangleIndex],
-            field.Elevation[triangleIndex],
-            field.Slope[triangleIndex],
+            PhysicalElevation.ToUnits(field.Elevation[triangleIndex]),
+            PhysicalElevation.ToUnits(field.Slope[triangleIndex]),
             field.Temperature[triangleIndex],
             field.Moisture[triangleIndex],
             field.Geothermal[triangleIndex],
@@ -197,7 +197,7 @@ internal static partial class IceRemembersSeedBuilder
             field.ContinentalGroupIds[triangleIndex],
             field.BathymetricZoneCodes[triangleIndex],
             field.WaterKindCodes[triangleIndex],
-            field.WaterDepths[triangleIndex],
+            PhysicalElevation.ToUnits(field.WaterDepths[triangleIndex]),
             field.WaterBodyIds[triangleIndex],
             field.DrainageBasinIds[triangleIndex],
             flowEdge,
@@ -279,12 +279,24 @@ internal static partial class IceRemembersSeedBuilder
         new("rainfall", ExtractConfiguredValues(field, field.Rainfall)),
         new("snowfall", ExtractConfiguredValues(field, field.Snowfall)),
         new("sea_ice_suitability", ExtractConfiguredValues(field, field.SeaIceSuitability)),
-        new("bedrock_elevation", ExtractConfiguredValues(field, field.BedrockElevation)),
-        new("sediment_thickness", ExtractConfiguredValues(field, field.SedimentThickness)),
-        new("fluvial_erosion_history", ExtractConfiguredValues(field, field.CumulativeFluvialErosion)),
-        new("glacial_erosion_history", ExtractConfiguredValues(field, field.CumulativeGlacialErosion)),
-        new("coastal_erosion_history", ExtractConfiguredValues(field, field.CumulativeCoastalErosion)),
-        new("deposition_history", ExtractConfiguredValues(field, field.CumulativeDeposition)),
+        new("fine_elevation", ExtractConfiguredElevationValues(field, field.Elevation, fine: true)),
+        new("conditioned_drainage_elevation", ExtractConfiguredElevationValues(
+            field,
+            field.ConditionedDrainageElevation,
+            fine: true)),
+        new("drainage_flat_rank", ExtractConfiguredValues(field, field.DrainageFlatRanks)),
+        new("bedrock_elevation", ExtractConfiguredElevationValues(field, field.BedrockElevation)),
+        new("sediment_thickness", ExtractConfiguredElevationValues(field, field.SedimentThickness)),
+        new("fluvial_erosion_history", ExtractConfiguredElevationValues(
+            field,
+            field.CumulativeFluvialErosion)),
+        new("glacial_erosion_history", ExtractConfiguredElevationValues(
+            field,
+            field.CumulativeGlacialErosion)),
+        new("coastal_erosion_history", ExtractConfiguredElevationValues(
+            field,
+            field.CumulativeCoastalErosion)),
+        new("deposition_history", ExtractConfiguredElevationValues(field, field.CumulativeDeposition)),
         new("maximum_ice_thickness", ExtractConfiguredValues(field, field.MaximumIceThickness)),
         new("maximum_ice_flux", ExtractConfiguredValues(field, field.MaximumIceFlux)),
         new("river_channel_strength", ExtractConfiguredValues(field, field.RiverChannelStrength)),
@@ -323,6 +335,31 @@ internal static partial class IceRemembersSeedBuilder
                 localTriangle++)
             {
                 result[offset++] = values[field.Grid.TriangleIndex(hexIndex, localTriangle)];
+            }
+        }
+
+        return result;
+    }
+
+    private static int[] ExtractConfiguredElevationValues(
+        PhysicalGeographyField field,
+        ReadOnlySpan<long> values,
+        bool fine = false)
+    {
+        var result = new int[checked(
+            field.Grid.ConfiguredHexCount * PhysicalGeographyCodes.MicrotrianglesPerHex)];
+        var offset = 0;
+        for (var configuredIndex = 0; configuredIndex < field.Grid.ConfiguredHexCount; configuredIndex++)
+        {
+            var hexIndex = field.Grid.ConfiguredHexIndexAt(configuredIndex);
+            for (var localTriangle = 0;
+                localTriangle < PhysicalGeographyCodes.MicrotrianglesPerHex;
+                localTriangle++)
+            {
+                var value = values[field.Grid.TriangleIndex(hexIndex, localTriangle)];
+                result[offset++] = fine
+                    ? PhysicalElevation.ToDiagnosticValue(value)
+                    : PhysicalElevation.ToUnits(value);
             }
         }
 

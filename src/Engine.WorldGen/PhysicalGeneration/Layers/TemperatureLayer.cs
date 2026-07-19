@@ -24,7 +24,8 @@ internal sealed class TemperatureLayer : IPhysicalGeographyLayer
     {
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
-            var lapse = Math.Max(0, map.Elevation[triangleIndex] - map.EffectiveSeaLevel) *
+            var lapse = PhysicalElevation.ToUnits(
+                Math.Max(0L, map.Elevation[triangleIndex] - map.EffectiveSeaLevel)) *
                 context.Profile.ElevationTemperatureLapse /
                 context.Profile.ElevationScale;
             var moderation = map.OceanDistance[triangleIndex] < 0

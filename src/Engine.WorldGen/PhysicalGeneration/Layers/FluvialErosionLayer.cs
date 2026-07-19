@@ -45,12 +45,14 @@ internal sealed class FluvialErosionLayer : IPhysicalGeographyLayer
                     continue;
                 }
 
-                var fall = Math.Max(0, map.DrainageElevations[triangleIndex] - map.DrainageElevations[target]);
+                var fall = Math.Max(
+                    0d,
+                    (map.DrainageElevations[triangleIndex] - map.DrainageElevations[target]) /
+                        (double)PhysicalElevation.SubunitsPerUnit);
                 var streamPower = Math.Pow(accumulation[triangleIndex], 0.42d) * Math.Sqrt(fall + 1d);
-                var cut = (int)Math.Round(
+                var cut = PhysicalElevation.FromUnits(
                     Math.Min(22d, streamPower * context.Profile.FluvialErosionStrength) *
-                        context.HydrologyStrength / 1000d,
-                    MidpointRounding.AwayFromZero);
+                        context.HydrologyStrength / 1000d);
                 if (cut <= 0)
                 {
                     continue;
@@ -72,7 +74,8 @@ internal sealed class FluvialErosionLayer : IPhysicalGeographyLayer
         LandscapeSurface.Validate(map);
         foreach (var value in map.Elevation)
         {
-            if (value is < -2000 or > 2000)
+            if (value < PhysicalElevation.FromUnits(-2000) ||
+                value > PhysicalElevation.FromUnits(2000))
             {
                 throw new InvalidOperationException("Fluvial erosion produced an invalid elevation.");
             }

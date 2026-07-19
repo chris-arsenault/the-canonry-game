@@ -2,6 +2,45 @@ namespace Engine.WorldGen;
 
 internal static class IntegerKeyOrdering
 {
+    public static int[] DescendingThenIndex(ReadOnlySpan<long> keys)
+    {
+        if (keys.IsEmpty)
+        {
+            return [];
+        }
+
+        var source = Enumerable.Range(0, keys.Length).ToArray();
+        var destination = new int[keys.Length];
+        Span<int> counts = stackalloc int[256];
+        for (var shift = 0; shift < 64; shift += 8)
+        {
+            counts.Clear();
+            foreach (var index in source)
+            {
+                counts[KeyByte(keys[index], shift)]++;
+            }
+
+            var offset = 0;
+            for (var bucket = 0; bucket < counts.Length; bucket++)
+            {
+                var count = counts[bucket];
+                counts[bucket] = offset;
+                offset += count;
+            }
+
+            foreach (var index in source)
+            {
+                var bucket = KeyByte(keys[index], shift);
+                destination[counts[bucket]++] = index;
+            }
+
+            (source, destination) = (destination, source);
+        }
+
+        Array.Reverse(source);
+        return source;
+    }
+
     public static int[] DescendingThenIndex(ReadOnlySpan<int> keys)
     {
         if (keys.IsEmpty)
@@ -40,4 +79,7 @@ internal static class IntegerKeyOrdering
 
         return result;
     }
+
+    private static byte KeyByte(long key, int shift) =>
+        (byte)(unchecked((ulong)(key ^ long.MinValue)) >> shift);
 }

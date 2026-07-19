@@ -101,7 +101,8 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
     {
         var cold = Math.Max(0, profile.IceTemperatureThreshold - map.Temperature[triangleIndex]);
         var snowfall = map.Snowfall[triangleIndex] * cold / 300;
-        var altitude = Math.Max(0, map.Elevation[triangleIndex] - map.EffectiveSeaLevel) / 4;
+        var altitude = PhysicalElevation.ToUnits(
+            Math.Max(0L, map.Elevation[triangleIndex] - map.EffectiveSeaLevel)) / 4;
         var concavity = LocalConcavity(map, triangleIndex);
         var warmAblation = Math.Max(0, map.Temperature[triangleIndex] - profile.IceTemperatureThreshold) * 4;
         var geothermalAblation = map.Geothermal[triangleIndex] / 3;
@@ -125,7 +126,7 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
 
     private static int LocalConcavity(PhysicalGeographyField map, int triangleIndex)
     {
-        var total = 0;
+        var total = 0L;
         var count = 0;
         for (var edge = 0; edge < 3; edge++)
         {
@@ -137,6 +138,8 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
             }
         }
 
-        return count == 0 ? 0 : Math.Max(0, total / count) * 2;
+        return count == 0
+            ? 0
+            : PhysicalElevation.ToUnits(Math.Max(0L, total / count)) * 2;
     }
 }

@@ -6,10 +6,10 @@ internal static class LandscapeSurface
         map.Elevation[triangleIndex] = checked(
             map.BedrockElevation[triangleIndex] + map.SedimentThickness[triangleIndex]);
 
-    public static int Erode(
+    public static long Erode(
         PhysicalGeographyField map,
         int triangleIndex,
-        int requested)
+        long requested)
     {
         if (requested <= 0)
         {
@@ -24,10 +24,10 @@ internal static class LandscapeSurface
         return requested;
     }
 
-    public static int Deposit(
+    public static long Deposit(
         PhysicalGeographyField map,
         int triangleIndex,
-        int requested)
+        long requested)
     {
         var deposited = Math.Max(0, requested);
         map.SedimentThickness[triangleIndex] = checked(

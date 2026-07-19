@@ -44,7 +44,7 @@ public sealed class PhysicalLandscapeEvolutionLayerTests
         Assert.Equal(
             result.Map.SedimentProducedTotal,
             result.Map.SedimentDepositedTotal + result.Map.SedimentExportedTotal +
-                result.Map.SedimentSupply.ToArray().Sum(value => (long)value));
+                result.Map.SedimentSupply.ToArray().Sum());
 
         result.Map.CumulativeFluvialErosion[0] = -1;
         Assert.Throws<InvalidOperationException>(() =>

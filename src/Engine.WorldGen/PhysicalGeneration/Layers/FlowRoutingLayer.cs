@@ -7,7 +7,9 @@ internal sealed class FlowRoutingLayer : IPhysicalGeographyLayer
     public PhysicalGeographyLayerContract Contract { get; } = new(
         "flow-routing",
         0,
-        PhysicalGeographyFacts.Ocean | PhysicalGeographyFacts.Lakes,
+        PhysicalGeographyFacts.Ocean |
+        PhysicalGeographyFacts.DrainageConditioning |
+        PhysicalGeographyFacts.Lakes,
         PhysicalGeographyFacts.FlowRouting,
         PhysicalGeographyFacts.Rivers |
         PhysicalGeographyFacts.Landforms |

@@ -24,6 +24,7 @@ internal sealed class CoastalErosionLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Moisture |
         PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.Runoff |
+        PhysicalGeographyFacts.DrainageConditioning |
         PhysicalGeographyFacts.Lakes |
         PhysicalGeographyFacts.FlowRouting |
         PhysicalGeographyFacts.Rivers |
@@ -46,7 +47,7 @@ internal sealed class CoastalErosionLayer : IPhysicalGeographyLayer
             }
 
             var cut = ErosionAmount(map, context.Profile, triangleIndex, wave);
-            cut = cut * context.CoastalStrength / 1000;
+            cut = PhysicalElevation.Multiply(cut, context.CoastalStrength, 1000);
             if (cut <= 0)
             {
                 continue;
@@ -113,22 +114,25 @@ internal sealed class CoastalErosionLayer : IPhysicalGeographyLayer
         return wave;
     }
 
-    private static int ErosionAmount(
+    private static long ErosionAmount(
         PhysicalGeographyField map,
         PhysicalGeographyGenerationProfile profile,
         int triangleIndex,
         int wave)
     {
         var waveExcess = wave - profile.CoastalErosionWaveThreshold;
-        var shelfSlope = Math.Clamp(map.Slope[triangleIndex], 0, 1000);
-        var forcing = (waveExcess * profile.CoastalErosionStrength / 1000) +
-            (shelfSlope / 18) + Math.Abs(profile.CoastalSeaLevelChange);
+        var shelfSlope = Math.Clamp(
+            map.Slope[triangleIndex] / (double)PhysicalElevation.SubunitsPerUnit,
+            0d,
+            1000d);
+        var forcing = (waveExcess * profile.CoastalErosionStrength / 1000d) +
+            (shelfSlope / 18d) + Math.Abs(profile.CoastalSeaLevelChange);
         var resistance = map.CrustTypeCodes[triangleIndex] ==
-            PhysicalCrustTypeCodes.Continental ? 18 : 12;
-        return Math.Clamp(
+            PhysicalCrustTypeCodes.Continental ? 18d : 12d;
+        return PhysicalElevation.FromUnits(Math.Clamp(
             forcing / resistance,
-            0,
-            profile.MaximumCoastalErosionPerPass);
+            0d,
+            profile.MaximumCoastalErosionPerPass));
     }
 
     private static void DepositOrExport(
@@ -137,12 +141,12 @@ internal sealed class CoastalErosionLayer : IPhysicalGeographyLayer
         int[] coastalWave,
         int source,
         int sourceWave,
-        int sediment)
+        long sediment)
     {
         var target = FindShelteredTarget(map, coastalWave, source, sourceWave);
         var deposit = target < 0
             ? 0
-            : sediment * profile.CoastalDepositionFraction / 1000;
+            : PhysicalElevation.Multiply(sediment, profile.CoastalDepositionFraction, 1000);
         if (deposit > 0)
         {
             _ = LandscapeSurface.Deposit(map, target, deposit);

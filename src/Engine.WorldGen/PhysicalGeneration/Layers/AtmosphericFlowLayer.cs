@@ -82,8 +82,8 @@ internal sealed class AtmosphericFlowLayer : IPhysicalGeographyLayer
         int start)
     {
         var current = start;
-        var maximumBarrier = 0;
-        var moistureBarrier = -1;
+        var maximumBarrier = 0L;
+        var moistureBarrier = -1L;
         var oceanSource = -1;
         for (var step = 1; step <= PrecipitationPathSteps; step++)
         {
@@ -113,8 +113,11 @@ internal sealed class AtmosphericFlowLayer : IPhysicalGeographyLayer
         map.UpwindOceanSources[start] = oceanSource;
     }
 
-    private static int NormalizeBarrier(int barrier, int elevationScale) =>
-        Math.Clamp(barrier * 1000 / Math.Max(1, elevationScale / 2), 0, 1000);
+    private static int NormalizeBarrier(long barrier, int elevationScale) =>
+        Math.Clamp(
+            PhysicalElevation.ToUnits(barrier) * 1000 / Math.Max(1, elevationScale / 2),
+            0,
+            1000);
 
     private static bool OceanSourceIsValid(PhysicalGeographyField map, int oceanSource) =>
         oceanSource < 0 ||

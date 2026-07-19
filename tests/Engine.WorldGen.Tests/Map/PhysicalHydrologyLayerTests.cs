@@ -8,23 +8,59 @@ public sealed class PhysicalHydrologyLayerTests
     public void LakeBasins_FillConnectedDepressionsWithOneSurfaceAndRejectInconsistentDepth()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<LakeBasinLayer>();
-        var lake = Enumerable.Range(0, result.Map.Grid.TriangleCount)
-            .First(index => result.Map.WaterKindCodes[index] == PhysicalWaterKindCodes.Lake);
-        var bodyId = result.Map.WaterBodyIds[lake];
         var members = Enumerable.Range(0, result.Map.Grid.TriangleCount)
-            .Where(index => result.Map.WaterBodyIds[index] == bodyId)
-            .ToArray();
+            .Where(index => result.Map.WaterKindCodes[index] == PhysicalWaterKindCodes.Lake)
+            .GroupBy(index => result.Map.WaterBodyIds[index])
+            .Select(static body => body.ToArray())
+            .First(body => body.Select(index => result.Map.Elevation[index]).Distinct().Count() > 1);
         var surfaces = members
-            .Select(index => result.Map.Elevation[index] + result.Map.WaterDepths[index])
+            .Select(index => result.Map.WaterSurfaceElevations[index])
             .Distinct()
             .ToArray();
         Assert.Single(surfaces);
         Assert.True(members.Length >= PhysicalGeographyLayerTestHarness.Profile.MinimumLakeTriangles);
         Assert.Contains(members, index => result.Map.LakeOutletTargets[index] >= 0);
+        Assert.All(members, index => Assert.Equal(
+            surfaces[0] - result.Map.Elevation[index],
+            result.Map.WaterDepths[index]));
 
-        result.Map.WaterDepths[members[0]]++;
+        result.Map.MutableWaterDepths[members[0]]++;
         Assert.Throws<InvalidOperationException>(() =>
             result.Layer.Validate(result.Map, result.Context));
+    }
+
+    [Fact]
+    public void DrainageConditioning_RetainsSubunitReliefWithoutChangingThePhysicalFloor()
+    {
+        Assert.Equal(128, PhysicalElevation.FromUnits(0.125d));
+        Assert.Equal(0, PhysicalElevation.ToUnits(PhysicalElevation.FromUnits(0.25d)));
+
+        var grid = new PhysicalGeographyGrid(2, 1);
+        var map = new PhysicalGeographyField(grid);
+        var boundaryFloor = PhysicalElevation.FromUnits(5.125d);
+        var basinFloor = PhysicalElevation.FromUnits(0.125d);
+        for (var triangleIndex = 0; triangleIndex < grid.TriangleCount; triangleIndex++)
+        {
+            var ocean = grid.HexIsOnWorkBoundary(grid.TriangleHexIndex(triangleIndex));
+            map.WaterKindCodes[triangleIndex] = ocean
+                ? PhysicalWaterKindCodes.Ocean
+                : PhysicalWaterKindCodes.None;
+            map.Elevation[triangleIndex] = ocean ? boundaryFloor : basinFloor;
+        }
+
+        var physicalFloor = map.Elevation.ToArray();
+        _ = PriorityFlood.FillFromOcean(map);
+
+        Assert.Equal(physicalFloor, map.Elevation.ToArray());
+        Assert.Contains(
+            Enumerable.Range(0, grid.TriangleCount),
+            index => map.DrainageElevations[index] > map.Elevation[index]);
+        Assert.All(
+            map.DrainageElevations.ToArray(),
+            conditioned => Assert.NotEqual(0, conditioned % PhysicalElevation.SubunitsPerUnit));
+        Assert.Contains(
+            map.Elevation.ToArray(),
+            floor => floor % PhysicalElevation.SubunitsPerUnit != 0);
     }
 
     [Fact]

@@ -151,12 +151,12 @@ internal sealed class WarmthSourceLayer : IPhysicalGeographyLayer
         }
 
         if (oceanDistance[triangleIndex] >= 20 &&
-            map.Elevation[triangleIndex] < profile.PeakElevationThreshold)
+            map.Elevation[triangleIndex] < PhysicalElevation.FromUnits(profile.PeakElevationThreshold))
         {
             result[2].Add(triangleIndex);
         }
 
-        if (map.Elevation[triangleIndex] >= profile.PeakElevationThreshold &&
+        if (map.Elevation[triangleIndex] >= PhysicalElevation.FromUnits(profile.PeakElevationThreshold) &&
             map.Geothermal[triangleIndex] >= 420)
         {
             result[3].Add(triangleIndex);

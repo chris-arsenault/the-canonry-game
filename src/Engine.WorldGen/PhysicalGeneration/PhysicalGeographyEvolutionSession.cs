@@ -20,6 +20,7 @@ public sealed class PhysicalGeographyEvolutionSession
     private readonly MoistureLayer _moisture = new();
     private readonly PrecipitationLayer _precipitation = new();
     private readonly RunoffLayer _runoff = new();
+    private readonly DrainageConditioningLayer _conditioning = new();
     private readonly LakeBasinLayer _lakes = new();
     private readonly FlowRoutingLayer _flow = new();
     private readonly RiverNetworkLayer _rivers = new();
@@ -193,6 +194,7 @@ public sealed class PhysicalGeographyEvolutionSession
             Apply(_glacialRunoff, useEpoch);
         }
 
+        Apply(_conditioning, useEpoch);
         Apply(_lakes, useEpoch);
         Apply(_flow, useEpoch);
         Apply(_rivers, useEpoch);

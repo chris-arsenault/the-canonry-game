@@ -31,7 +31,8 @@ internal sealed class FloodplainLayer : IPhysicalGeographyLayer
                 map.FloodplainIntensity[triangleIndex] > 0 &&
                     (map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None ||
                         map.RiverChannelStrength[triangleIndex] > 0 ||
-                        map.Slope[triangleIndex] > context.Profile.FloodplainMaximumSlope))
+                        map.Slope[triangleIndex] >
+                            PhysicalElevation.FromUnits(context.Profile.FloodplainMaximumSlope)))
             {
                 throw new InvalidOperationException("Floodplain coverage is not low, dry terrain beside a river.");
             }
@@ -61,8 +62,8 @@ internal sealed class FloodplainLayer : IPhysicalGeographyLayer
 
                 var intensity = Math.Clamp(
                     map.RiverChannelStrength[triangleIndex] +
-                        map.CumulativeDeposition[neighbor] -
-                        (map.Slope[neighbor] * 6),
+                        PhysicalElevation.ToUnits(map.CumulativeDeposition[neighbor]) -
+                        (PhysicalElevation.ToUnits(map.Slope[neighbor]) * 6),
                     1,
                     1000);
                 if (intensity > map.FloodplainIntensity[neighbor])
@@ -97,7 +98,8 @@ internal sealed class FloodplainLayer : IPhysicalGeographyLayer
 
                     var intensity = map.FloodplainIntensity[triangleIndex] -
                         profile.FloodplainIntensityDecay -
-                        Math.Abs(map.Elevation[triangleIndex] - map.Elevation[neighbor]);
+                        PhysicalElevation.ToUnits(
+                            Math.Abs(map.Elevation[triangleIndex] - map.Elevation[neighbor]));
                     if (intensity > map.FloodplainIntensity[neighbor])
                     {
                         map.FloodplainIntensity[neighbor] = intensity;
@@ -120,8 +122,9 @@ internal sealed class FloodplainLayer : IPhysicalGeographyLayer
         map.WaterKindCodes[target] == PhysicalWaterKindCodes.None &&
         map.RiverChannelStrength[target] == 0 &&
         map.DrainageBasinIds[target] == map.DrainageBasinIds[source] &&
-        map.Slope[target] <= profile.FloodplainMaximumSlope &&
-        Math.Abs(map.Elevation[source] - map.Elevation[target]) <= profile.FloodplainMaximumRelief &&
+        map.Slope[target] <= PhysicalElevation.FromUnits(profile.FloodplainMaximumSlope) &&
+        Math.Abs(map.Elevation[source] - map.Elevation[target]) <=
+            PhysicalElevation.FromUnits(profile.FloodplainMaximumRelief) &&
         RiverChannelGeometryLayer.LongitudinalAlignment(map, dominantUpstream, source, target) <=
             profile.FloodplainMaximumLongitudinalAlignment / 1000d;
 }

@@ -84,9 +84,9 @@ internal sealed class SedimentTransportLayer : IPhysicalGeographyLayer
             return 0;
         }
 
-        var requested = (int)Math.Min(
-            profile.MaximumSedimentDepositionPerPass,
-            Math.Max(1L, load * profile.SedimentTransportFraction / 1000L));
+        var requested = Math.Min(
+            PhysicalElevation.FromUnits(profile.MaximumSedimentDepositionPerPass),
+            Math.Max(1L, PhysicalElevation.Multiply(load, profile.SedimentTransportFraction, 1000)));
         return LandscapeSurface.Deposit(map, triangleIndex, requested);
     }
 
@@ -96,6 +96,6 @@ internal sealed class SedimentTransportLayer : IPhysicalGeographyLayer
         int triangleIndex,
         int target) =>
         map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake ||
-        map.Slope[triangleIndex] <= profile.SedimentDepositionSlopeThreshold ||
+        map.Slope[triangleIndex] <= PhysicalElevation.FromUnits(profile.SedimentDepositionSlopeThreshold) ||
         target >= 0 && map.WaterKindCodes[target] == PhysicalWaterKindCodes.Ocean;
 }

@@ -7,7 +7,9 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
     public PhysicalGeographyLayerContract Contract { get; } = new(
         "lake-basins",
         0x7a31,
-        PhysicalGeographyFacts.Elevation | PhysicalGeographyFacts.Ocean,
+        PhysicalGeographyFacts.Elevation |
+        PhysicalGeographyFacts.Ocean |
+        PhysicalGeographyFacts.DrainageConditioning,
         PhysicalGeographyFacts.Lakes,
         PhysicalGeographyFacts.FlowRouting |
         PhysicalGeographyFacts.Rivers |
@@ -17,7 +19,6 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
         ClearPreviousLakes(map);
-        _ = PriorityFlood.FillFromOcean(map);
         var depression = BuildDepressionMask(map);
         var componentMarks = new int[map.Grid.TriangleCount];
         var nextComponentId = 0;
@@ -66,7 +67,7 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
         _ = context;
-        var surfaces = new Dictionary<int, int>();
+        var surfaces = new Dictionary<int, long>();
         var counts = new Dictionary<int, int>();
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
@@ -76,8 +77,9 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
             }
 
             var bodyId = map.WaterBodyIds[triangleIndex];
-            var surface = map.Elevation[triangleIndex] + map.WaterDepths[triangleIndex];
+            var surface = map.WaterSurfaceElevations[triangleIndex];
             if (bodyId <= 1 || map.WaterDepths[triangleIndex] <= 0 ||
+                surface - map.Elevation[triangleIndex] != map.WaterDepths[triangleIndex] ||
                 (!surfaces.TryAdd(bodyId, surface) && surfaces[bodyId] != surface))
             {
                 throw new InvalidOperationException("Lake body has inconsistent depth or surface data.");
@@ -101,7 +103,7 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
             {
                 map.WaterKindCodes[triangleIndex] = PhysicalWaterKindCodes.None;
                 map.WaterBodyIds[triangleIndex] = 0;
-                map.WaterDepths[triangleIndex] = 0;
+                map.ClearWaterSurface(triangleIndex);
             }
         }
     }
@@ -124,11 +126,11 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
         int[] componentMarks,
         int start,
         int componentId,
-        int surface)
+        long surface)
     {
         var queue = new Queue<int>();
         var members = new List<int>();
-        var maximumDepth = 0;
+        var maximumDepth = 0L;
         componentMarks[start] = componentId;
         queue.Enqueue(start);
         while (queue.TryDequeue(out var member))
@@ -148,7 +150,7 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
         Queue<int> queue,
         int member,
         int componentId,
-        int surface)
+        long surface)
     {
         for (var edge = 0; edge < 3; edge++)
         {
@@ -166,7 +168,7 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
         DepressionComponent component,
         PhysicalGeographyGenerationProfile profile) =>
         component.Members.Count >= profile.MinimumLakeTriangles &&
-        component.MaximumDepth >= profile.LakeDepthThreshold;
+        component.MaximumDepth >= PhysicalElevation.FromUnits(profile.LakeDepthThreshold);
 
     private static void MarkLakeBody(
         PhysicalGeographyField map,
@@ -180,7 +182,7 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
         {
             map.WaterKindCodes[member] = PhysicalWaterKindCodes.Lake;
             map.WaterBodyIds[member] = bodyId;
-            map.WaterDepths[member] = Math.Max(1, component.Surface - map.Elevation[member]);
+            map.SetWaterSurface(member, component.Surface);
         }
 
         var endorheic = PhysicalNoise.HashUnit(context.Seed, bodyId, component.Members.Count) <
@@ -208,7 +210,7 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
         IReadOnlyList<int> members,
         int[] componentMarks,
         int componentId,
-        int surface,
+        long surface,
         int seed)
     {
         var best = OutletCandidate.Invalid;
@@ -234,7 +236,7 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
         PhysicalGeographyField map,
         int[] componentMarks,
         int componentId,
-        int surface,
+        long surface,
         int seed,
         int member)
     {
@@ -245,7 +247,7 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
         }
 
         var drainage = map.WaterKindCodes[target] == PhysicalWaterKindCodes.Ocean
-            ? int.MinValue
+            ? long.MinValue
             : map.DrainageElevations[target];
         return new OutletCandidate(
             member,
@@ -281,7 +283,7 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
         PhysicalGeographyField map,
         int[] componentMarks,
         int componentId,
-        int surface,
+        long surface,
         int neighbor)
     {
         if (neighbor < 0 || componentMarks[neighbor] == componentId)
@@ -290,7 +292,7 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
         }
 
         var elevation = map.WaterKindCodes[neighbor] == PhysicalWaterKindCodes.Ocean
-            ? int.MinValue
+            ? long.MinValue
             : map.DrainageElevations[neighbor];
         return elevation <= surface;
     }
@@ -298,20 +300,20 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
     private sealed record DepressionComponent(
         int ComponentId,
         List<int> Members,
-        int Surface,
-        int MaximumDepth)
+        long Surface,
+        long MaximumDepth)
     {
-        public long Significance => (long)Members.Count * MaximumDepth;
+        public long Significance => checked(Members.Count * MaximumDepth);
     }
 
     private readonly record struct OutletCandidate(
         int Member,
         int Target,
         int Rank,
-        int Drainage,
+        long Drainage,
         double Geometry)
     {
         public static OutletCandidate Invalid { get; } =
-            new(-1, -1, int.MaxValue, int.MaxValue, double.MinValue);
+            new(-1, -1, int.MaxValue, long.MaxValue, double.MinValue);
     }
 }

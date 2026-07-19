@@ -121,7 +121,7 @@ internal sealed class PrecipitationLayer : IPhysicalGeographyLayer
         }
 
         return Math.Clamp(
-            (map.Elevation[triangleIndex] - map.Elevation[upwind]) * 1000 /
+            PhysicalElevation.ToUnits(map.Elevation[triangleIndex] - map.Elevation[upwind]) * 1000 /
                 Math.Max(1, context.Profile.ElevationScale / 3),
             0,
             1000);

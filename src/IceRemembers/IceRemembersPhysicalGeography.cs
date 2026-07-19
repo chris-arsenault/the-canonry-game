@@ -325,7 +325,7 @@ public static class IceRemembersPhysicalGeography
     {
         if (field.LandformCodes[triangleIndex] is PhysicalLandformCodes.Peak or PhysicalLandformCodes.Ridge)
         {
-            return field.Slope[triangleIndex] >= 85
+            return field.Slope[triangleIndex] >= PhysicalElevation.FromUnits(85)
                 ? IceRemembersPhysicalMaterial.ExposedBedrock
                 : IceRemembersPhysicalMaterial.Scree;
         }
@@ -353,7 +353,7 @@ public static class IceRemembersPhysicalGeography
             return IceRemembersPhysicalMaterial.DeepMarineSediment;
         }
 
-        if (field.WaterDepths[triangleIndex] <= 125 &&
+        if (field.WaterDepths[triangleIndex] <= PhysicalElevation.FromUnits(125) &&
             field.Temperature[triangleIndex] >= 300 &&
             field.Geothermal[triangleIndex] >= 150)
         {

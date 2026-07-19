@@ -20,10 +20,11 @@ internal sealed class IceFlowLayer : IPhysicalGeographyLayer
         _ = context;
         map.IceFlux.Clear();
         map.IceFlowTargets.Fill(-1);
-        var surface = new int[map.Grid.TriangleCount];
+        var surface = new long[map.Grid.TriangleCount];
         for (var triangleIndex = 0; triangleIndex < surface.Length; triangleIndex++)
         {
-            surface[triangleIndex] = map.Elevation[triangleIndex] + (map.IceThickness[triangleIndex] / 3);
+            surface[triangleIndex] = map.Elevation[triangleIndex] +
+                PhysicalElevation.FromUnits(map.IceThickness[triangleIndex] / 3d);
             map.IceFlux[triangleIndex] = map.IceThickness[triangleIndex];
         }
 

@@ -24,6 +24,7 @@ internal sealed class GlacialDepositionLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Moisture |
         PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.Runoff |
+        PhysicalGeographyFacts.DrainageConditioning |
         PhysicalGeographyFacts.Lakes |
         PhysicalGeographyFacts.FlowRouting |
         PhysicalGeographyFacts.Rivers |
@@ -51,9 +52,10 @@ internal sealed class GlacialDepositionLayer : IPhysicalGeographyLayer
                 ? LandscapeSurface.Deposit(
                     map,
                     triangleIndex,
-                    (int)Math.Min(
-                        context.Profile.MaximumGlacialDepositionPerPass *
-                            context.GlaciationStrength / 1000,
+                    Math.Min(
+                        PhysicalElevation.FromUnits(
+                            context.Profile.MaximumGlacialDepositionPerPass *
+                                context.GlaciationStrength / 1000d),
                         load))
                 : 0;
             map.CumulativeGlacialDeposition[triangleIndex] = checked(

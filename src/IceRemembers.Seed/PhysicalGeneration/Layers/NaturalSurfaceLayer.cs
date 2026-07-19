@@ -90,7 +90,8 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
 
         var shallow = field.BathymetricZoneCodes[triangleIndex] is
             PhysicalBathymetricZoneCodes.Shelf or PhysicalBathymetricZoneCodes.ShelfBreak;
-        if (shallow && field.WaterDepths[triangleIndex] <= profile.ReefMaximumDepth &&
+        if (shallow && field.WaterDepths[triangleIndex] <=
+                PhysicalElevation.FromUnits(profile.ReefMaximumDepth) &&
             field.Temperature[triangleIndex] >= profile.ReefMinimumTemperature &&
             field.Geothermal[triangleIndex] >= profile.ReefMinimumGeothermal)
         {
@@ -214,14 +215,15 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
             return IceRemembersPhysicalSurface.RiverValley;
         }
 
-        if (field.CumulativeFluvialErosion[triangleIndex] >=
-                profile.AncestralRiverValleyMinimumErosion &&
-            field.Slope[triangleIndex] <= profile.AncestralRiverValleyMaximumSlope)
+        if (field.CumulativeFluvialErosion[triangleIndex] >= PhysicalElevation.FromUnits(
+                profile.AncestralRiverValleyMinimumErosion) &&
+            field.Slope[triangleIndex] <= PhysicalElevation.FromUnits(
+                profile.AncestralRiverValleyMaximumSlope))
         {
             return IceRemembersPhysicalSurface.RiverValley;
         }
 
-        if (field.Slope[triangleIndex] >= profile.ScreeFieldMinimumSlope)
+        if (field.Slope[triangleIndex] >= PhysicalElevation.FromUnits(profile.ScreeFieldMinimumSlope))
         {
             return IceRemembersPhysicalSurface.ScreeField;
         }
@@ -300,6 +302,6 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
         return field.Temperature[triangleIndex] >= profile.ColdSteppeMinimumTemperature &&
         field.Moisture[triangleIndex] >= profile.ColdSteppeMinimumMoisture &&
         field.Moisture[triangleIndex] <= profile.ColdSteppeMaximumMoisture &&
-        field.Slope[triangleIndex] <= profile.ColdSteppeMaximumSlope;
+        field.Slope[triangleIndex] <= PhysicalElevation.FromUnits(profile.ColdSteppeMaximumSlope);
     }
 }

@@ -11,11 +11,7 @@ internal static class PriorityFlood
         map.DrainageParents.Fill(-1);
         var order = new int[map.Grid.TriangleCount];
         var orderCount = 0;
-        var (minimumElevation, maximumElevation) = ElevationBounds(map);
-        var queue = new MonotoneIntegerPriorityQueue(
-            map.Grid.TriangleCount,
-            minimumElevation,
-            maximumElevation);
+        var queue = new MonotoneRadixPriorityQueue();
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             if (map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.Ocean)
@@ -61,16 +57,4 @@ internal static class PriorityFlood
         return order;
     }
 
-    private static (int Minimum, int Maximum) ElevationBounds(PhysicalGeographyField map)
-    {
-        var minimum = int.MaxValue;
-        var maximum = int.MinValue;
-        foreach (var elevation in map.Elevation)
-        {
-            minimum = Math.Min(minimum, elevation);
-            maximum = Math.Max(maximum, elevation);
-        }
-
-        return (minimum, maximum);
-    }
 }

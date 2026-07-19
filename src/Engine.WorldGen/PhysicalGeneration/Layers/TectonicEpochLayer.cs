@@ -28,6 +28,7 @@ internal sealed class TectonicEpochLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Moisture |
         PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.Runoff |
+        PhysicalGeographyFacts.DrainageConditioning |
         PhysicalGeographyFacts.Lakes |
         PhysicalGeographyFacts.FlowRouting |
         PhysicalGeographyFacts.Rivers |

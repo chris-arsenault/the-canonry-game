@@ -1,5 +1,7 @@
 namespace IceRemembers.Seed;
 
+using Engine.WorldGen;
+
 internal sealed class AuroraFieldLayer : IIceRemembersMicrogeographyLayer
 {
     public IceRemembersMicrogeographyLayerContract Contract { get; } = new(
@@ -26,7 +28,8 @@ internal sealed class AuroraFieldLayer : IIceRemembersMicrogeographyLayer
             accumulation[triangleIndex] = Math.Max(
                 0,
                 context.Profile.AuroraBaseInput - map.Physical.Temperature[triangleIndex] +
-                    (Math.Max(0, map.Physical.Elevation[triangleIndex]) / 10));
+                    (PhysicalElevation.ToUnits(
+                        Math.Max(0L, map.Physical.Elevation[triangleIndex])) / 10));
             targets[triangleIndex] = ColdestNeighbor(map, triangleIndex);
         }
 

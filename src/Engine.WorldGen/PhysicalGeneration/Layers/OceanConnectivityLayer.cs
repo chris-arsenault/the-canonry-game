@@ -19,6 +19,7 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Moisture |
         PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.Runoff |
+        PhysicalGeographyFacts.DrainageConditioning |
         PhysicalGeographyFacts.Lakes |
         PhysicalGeographyFacts.FlowRouting |
         PhysicalGeographyFacts.Rivers |
@@ -29,13 +30,13 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
         map.WaterKindCodes.Clear();
-        map.WaterDepths.Clear();
+        map.ClearWaterSurfaces();
         map.WaterBodyIds.Clear();
         map.EffectiveSeaLevel = FindEffectiveSeaLevel(map, context);
         FloodConnectedOcean(map);
     }
 
-    private static int FindEffectiveSeaLevel(
+    private static long FindEffectiveSeaLevel(
         PhysicalGeographyField map,
         PhysicalGeographyGenerationContext context)
     {
@@ -48,9 +49,9 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
             1,
             checked(map.Grid.ConfiguredHexCount * PhysicalGeographyCodes.MicrotrianglesPerHex));
         var seaLevel = ConnectedOceanLevel(map, targetCount) +
-            (int)Math.Round(profile.SeaLevel * profile.ElevationScale, MidpointRounding.AwayFromZero) +
-            context.SeaLevelOffset;
-        var minimumBoundary = int.MaxValue;
+            PhysicalElevation.FromUnits(profile.SeaLevel * profile.ElevationScale) +
+            PhysicalElevation.FromUnits(context.SeaLevelOffset);
+        var minimumBoundary = long.MaxValue;
         for (var hexIndex = 0; hexIndex < map.Grid.HexCount; hexIndex++)
         {
             if (!map.Grid.HexIsOnWorkBoundary(hexIndex))
@@ -64,10 +65,10 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
             }
         }
 
-        return Math.Max(seaLevel, minimumBoundary + 1);
+        return Math.Max(seaLevel, minimumBoundary + PhysicalElevation.FromUnits(1));
     }
 
-    private static int ConnectedOceanLevel(PhysicalGeographyField map, int targetCount)
+    private static long ConnectedOceanLevel(PhysicalGeographyField map, int targetCount)
     {
         var order = IntegerKeyOrdering.DescendingThenIndex(map.Elevation);
         var parent = new int[map.Grid.TriangleCount];
@@ -112,14 +113,16 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
             }
         }
 
-        return selectedElevation == int.MaxValue ? int.MaxValue : selectedElevation + 1;
+        return selectedElevation == long.MaxValue
+            ? long.MaxValue
+            : selectedElevation + PhysicalElevation.FromUnits(1);
     }
 
     private static int ActivateElevationGroup(
         PhysicalGeographyField map,
         int[] order,
         int cursor,
-        int elevation,
+        long elevation,
         int[] parent,
         int[] componentSizes,
         int[] configuredCounts,
@@ -276,7 +279,8 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
 
             count++;
             if (map.Elevation[triangleIndex] >= map.EffectiveSeaLevel ||
-                map.WaterDepths[triangleIndex] <= 0 || map.WaterBodyIds[triangleIndex] != 1)
+                map.WaterDepths[triangleIndex] <= 0 || map.WaterBodyIds[triangleIndex] != 1 ||
+                map.WaterSurfaceElevations[triangleIndex] != map.EffectiveSeaLevel)
             {
                 throw new InvalidOperationException("Ocean classification contradicts sea level.");
             }
@@ -298,7 +302,7 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
 
         map.WaterKindCodes[triangleIndex] = PhysicalWaterKindCodes.Ocean;
         map.WaterBodyIds[triangleIndex] = 1;
-        map.WaterDepths[triangleIndex] = map.EffectiveSeaLevel - map.Elevation[triangleIndex];
+        map.SetWaterSurface(triangleIndex, map.EffectiveSeaLevel);
         queue.Enqueue(triangleIndex);
     }
 }

@@ -110,7 +110,7 @@ internal sealed class LandmassLayer : IPhysicalGeographyLayer
         PhysicalGeographyField map,
         PhysicalGeographyGenerationProfile profile)
     {
-        var shelfFloor = map.EffectiveSeaLevel - profile.ShelfBreakDepth;
+        var shelfFloor = map.EffectiveSeaLevel - PhysicalElevation.FromUnits(profile.ShelfBreakDepth);
         var queue = new Queue<int>();
         var nextId = 0;
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)

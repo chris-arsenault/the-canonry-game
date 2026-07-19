@@ -100,7 +100,7 @@ internal sealed class DeltaFormationLayer : IPhysicalGeographyLayer
         int mouth,
         int oceanTarget) =>
         IsMajorRiver(map, profile, mouth) &&
-        sedimentDelivery[mouth] >= profile.DeltaMinimumSedimentDelivery &&
+        sedimentDelivery[mouth] >= PhysicalElevation.FromUnits(profile.DeltaMinimumSedimentDelivery) &&
         map.WaveExposure[oceanTarget] <= profile.DeltaMaximumWaveEnergy &&
         map.OceanCurrentStrength[oceanTarget] <= profile.DeltaMaximumCurrentStrength &&
         map.BathymetricZoneCodes[oceanTarget] != PhysicalBathymetricZoneCodes.DeepOcean;

@@ -55,28 +55,28 @@ projection boundary.
 
 ### 2. High-resolution physical elevation
 
-- [ ] Use deterministic signed fixed-point generation elevation with 1,024
+- [x] Use deterministic signed fixed-point generation elevation with 1,024
   subunits per existing authored elevation unit.
-- [ ] Keep profile values in existing authored units and convert them through
+- [x] Keep profile values in existing authored units and convert them through
   one explicit unit boundary.
-- [ ] Preserve fractional uplift, erosion, deposition, floor, water surface,
+- [x] Preserve fractional uplift, erosion, deposition, floor, water surface,
   and conditioned drainage values throughout every epoch.
-- [ ] Replace the range-sized monotone bucket queue with a deterministic
+- [x] Replace the range-sized monotone bucket queue with a deterministic
   monotone radix queue suitable for fine priorities while retaining the
   existing priority-flood algorithm.
-- [ ] Export rounded compatibility elevation plus diagnostic fine elevation;
+- [x] Export rounded compatibility elevation plus diagnostic fine elevation;
   do not add high-resolution state to the kernel.
 
 ### 3. Explicit floor, water surface, and drainage surface
 
-- [ ] Keep physical floor authoritative as bedrock plus sediment.
-- [ ] Store actual ocean/lake surface separately and derive water depth from
+- [x] Keep physical floor authoritative as bedrock plus sediment.
+- [x] Store actual ocean/lake surface separately and derive water depth from
   surface minus floor.
-- [ ] Store conditioned drainage surface and outletward routing rank separately
+- [x] Store conditioned drainage surface and outletward routing rank separately
   from both terrain and actual water.
-- [ ] Split drainage conditioning into a dependency-declared layer; priority
+- [x] Split drainage conditioning into a dependency-declared layer; priority
   flooding must never mutate the physical floor.
-- [ ] Preserve one flat lake surface over irregular basin floors.
+- [x] Preserve one flat lake surface over irregular basin floors.
 
 ### 4. Glacial basin evolution
 

@@ -109,18 +109,18 @@ public static class PhysicalHexAggregator
         private int _auroraTotal;
         private int _coastEdgeMask;
         private int _cliffEdgeMask;
-        private int _elevationTotal;
+        private long _elevationTotal;
         private int _fireTotal;
         private int _fractureEdgeMask;
         private int _geothermalTotal;
         private int _iceTotal;
         private int _lakeCoverage;
         private int _maxAurora;
-        private int _maxElevation;
+        private long _maxElevation;
         private int _maxFire;
         private int _maxIce;
         private int _maxPressure;
-        private int _minElevation;
+        private long _minElevation;
         private int _moistureTotal;
         private int _oceanCoverage;
         private int _passEdgeMask;
@@ -133,7 +133,7 @@ public static class PhysicalHexAggregator
         private int _deltaCoverage;
         private int _wideRiverCoverage;
         private int _riverEdgeMask;
-        private int _roughness;
+        private long _roughness;
         private ulong _significantFeatureFlags;
         private int _temperatureTotal;
 
@@ -175,7 +175,7 @@ public static class PhysicalHexAggregator
 
         public void MeasureRoughness(PhysicalGeographyField field, int hexIndex)
         {
-            var total = 0;
+            var total = 0L;
             var edges = 0;
             for (var localTriangle = 0; localTriangle < PhysicalGeographyCodes.MicrotrianglesPerHex; localTriangle++)
             {
@@ -202,11 +202,11 @@ public static class PhysicalHexAggregator
                 DominantMaterialIndex,
                 PrimarySurfaceIndex,
                 _significantFeatureFlags,
-                _elevationTotal / count,
-                _minElevation,
-                _maxElevation,
-                _maxElevation - _minElevation,
-                _roughness,
+                PhysicalElevation.ToUnits(_elevationTotal / count),
+                PhysicalElevation.ToUnits(_minElevation),
+                PhysicalElevation.ToUnits(_maxElevation),
+                PhysicalElevation.ToUnits(_maxElevation - _minElevation),
+                PhysicalElevation.ToUnits(_roughness),
                 _temperatureTotal / count,
                 _moistureTotal / count,
                 _geothermalTotal / count,
@@ -307,7 +307,8 @@ public static class PhysicalHexAggregator
                 _ridgeEdgeMask |= edgeMask;
             }
 
-            if (Math.Abs(field.Elevation[triangleIndex] - field.Elevation[neighbor]) >= cliffSlopeThreshold)
+            if (Math.Abs(field.Elevation[triangleIndex] - field.Elevation[neighbor]) >=
+                PhysicalElevation.FromUnits(cliffSlopeThreshold))
             {
                 _cliffEdgeMask |= edgeMask;
             }

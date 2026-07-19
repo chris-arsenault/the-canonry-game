@@ -109,7 +109,7 @@ internal static class ConditionedFlowResolver
         double[] outletX,
         double[] outletY)
     {
-        var bestDrainage = int.MaxValue;
+        var bestDrainage = long.MaxValue;
         var count = 0;
         for (var edge = 0; edge < 3; edge++)
         {
@@ -120,7 +120,7 @@ internal static class ConditionedFlowResolver
             }
 
             var drainage = map.WaterKindCodes[neighbor] == PhysicalWaterKindCodes.Ocean
-                ? int.MinValue
+                ? long.MinValue
                 : map.DrainageElevations[neighbor];
             if (drainage >= map.DrainageElevations[triangleIndex])
             {
@@ -242,13 +242,13 @@ internal static class ConditionedFlowResolver
         PhysicalGeographyField map,
         int[] flatRanks,
         int neighbor,
-        int currentDrainage,
+        long currentDrainage,
         int currentRank,
-        out int drainage,
+        out long drainage,
         out int rank)
     {
         drainage = map.WaterKindCodes[neighbor] == PhysicalWaterKindCodes.Ocean
-            ? int.MinValue
+            ? long.MinValue
             : map.DrainageElevations[neighbor];
         rank = flatRanks[neighbor];
         var descends = drainage < currentDrainage;
@@ -307,10 +307,10 @@ internal static class ConditionedFlowResolver
         return best.Value;
     }
 
-    private static (int Drainage, int Rank) FindPrimaryPreference(
+    private static (long Drainage, int Rank) FindPrimaryPreference(
         ReadOnlySpan<GeometricFlowCandidate> candidates)
     {
-        var bestDrainage = int.MaxValue;
+        var bestDrainage = long.MaxValue;
         var bestRank = int.MaxValue;
         foreach (var candidate in candidates)
         {
@@ -349,7 +349,7 @@ internal static class ConditionedFlowResolver
 
     internal readonly record struct GeometricFlowCandidate(
         int Value,
-        int Drainage,
+        long Drainage,
         int Rank,
         double DirectionX,
         double DirectionY);

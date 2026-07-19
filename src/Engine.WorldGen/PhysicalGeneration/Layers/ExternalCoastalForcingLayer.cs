@@ -28,6 +28,7 @@ internal sealed class ExternalCoastalForcingLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.AtmosphericFlow |
         PhysicalGeographyFacts.Runoff |
+        PhysicalGeographyFacts.DrainageConditioning |
         PhysicalGeographyFacts.Lakes |
         PhysicalGeographyFacts.FlowRouting |
         PhysicalGeographyFacts.Rivers |
@@ -61,11 +62,12 @@ internal sealed class ExternalCoastalForcingLayer : IPhysicalGeographyLayer
             map.ExternalCoastalForcingHistory[triangleIndex] = Math.Max(
                 map.ExternalCoastalForcingHistory[triangleIndex],
                 forcing);
-            var cut = forcing * context.Profile.MaximumCoastalErosionPerPass *
-                context.CoastalStrength / 1_000_000;
+            var cut = PhysicalElevation.FromUnits(
+                forcing * context.Profile.MaximumCoastalErosionPerPass *
+                    context.CoastalStrength / 1_000_000d);
             if (cut == 0 && context.CoastalStrength > 0)
             {
-                cut = 1;
+                cut = 1L;
             }
 
             if (cut == 0)
@@ -131,9 +133,9 @@ internal sealed class ExternalCoastalForcingLayer : IPhysicalGeographyLayer
         PhysicalGeographyField map,
         PhysicalGeographyGenerationProfile profile,
         int target,
-        int sediment)
+        long sediment)
     {
-        var deposit = sediment * profile.CoastalDepositionFraction / 1000;
+        var deposit = PhysicalElevation.Multiply(sediment, profile.CoastalDepositionFraction, 1000);
         if (deposit > 0)
         {
             _ = LandscapeSurface.Deposit(map, target, deposit);

@@ -208,7 +208,10 @@ internal sealed class OceanCurrentLayer : IPhysicalGeographyLayer
                 continue;
             }
 
-            var depthGain = Math.Clamp((map.WaterDepths[neighbor] - depth) / 240d, -1d, 1d);
+            var depthGain = Math.Clamp(
+                (map.WaterDepths[neighbor] - depth) / (double)PhysicalElevation.FromUnits(240),
+                -1d,
+                1d);
             influenceX += dx * depthGain;
             influenceY += dy * depthGain;
         }
@@ -261,7 +264,8 @@ internal sealed class OceanCurrentLayer : IPhysicalGeographyLayer
             }
 
             var depth = Math.Clamp(
-                map.WaterDepths[triangleIndex] * 420 / context.Profile.ShelfBreakDepth,
+                PhysicalElevation.ToUnits(map.WaterDepths[triangleIndex]) * 420 /
+                    context.Profile.ShelfBreakDepth,
                 0,
                 420);
             var broad = (int)Math.Round(

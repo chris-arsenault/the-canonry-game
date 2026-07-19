@@ -24,6 +24,7 @@ internal sealed class GlacialErosionLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Moisture |
         PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.Runoff |
+        PhysicalGeographyFacts.DrainageConditioning |
         PhysicalGeographyFacts.Lakes |
         PhysicalGeographyFacts.FlowRouting |
         PhysicalGeographyFacts.Rivers |
@@ -43,16 +44,17 @@ internal sealed class GlacialErosionLayer : IPhysicalGeographyLayer
                 continue;
             }
 
-            var power = 1 +
+            var power = 1d +
                 ((map.IceFlux[triangleIndex] - context.Profile.GlacierFluxThreshold) /
-                    Math.Max(1, context.Profile.GlacierFluxThreshold)) +
-                (map.IceThickness[triangleIndex] / Math.Max(1, context.Profile.GlacierThicknessThreshold));
+                    (double)Math.Max(1, context.Profile.GlacierFluxThreshold)) +
+                (map.IceThickness[triangleIndex] /
+                    (double)Math.Max(1, context.Profile.GlacierThicknessThreshold));
             var resistance = map.CrustTypeCodes[triangleIndex] ==
-                PhysicalCrustTypeCodes.Continental ? 4 : 3;
-            var cut = Math.Clamp(
-                power * 3 / resistance * context.GlaciationStrength / 1000,
-                1,
-                context.Profile.MaximumGlacialErosionPerPass);
+                PhysicalCrustTypeCodes.Continental ? 4d : 3d;
+            var cut = PhysicalElevation.FromUnits(Math.Clamp(
+                power * 3d / resistance * context.GlaciationStrength / 1000d,
+                1d / PhysicalElevation.SubunitsPerUnit,
+                context.Profile.MaximumGlacialErosionPerPass));
             _ = LandscapeSurface.Erode(map, triangleIndex, cut);
             map.CumulativeGlacialErosion[triangleIndex] = checked(
                 map.CumulativeGlacialErosion[triangleIndex] + cut);

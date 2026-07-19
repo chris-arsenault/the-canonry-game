@@ -21,6 +21,7 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Moisture |
         PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.Runoff |
+        PhysicalGeographyFacts.DrainageConditioning |
         PhysicalGeographyFacts.Lakes |
         PhysicalGeographyFacts.FlowRouting |
         PhysicalGeographyFacts.Rivers |
@@ -58,7 +59,9 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
             }
             else
             {
-                map.Elevation[triangleIndex] = ScaleElevation(elevation, context.Profile.ElevationScale);
+                map.Elevation[triangleIndex] = PhysicalElevation.FromScaled(
+                    elevation,
+                    context.Profile.ElevationScale);
             }
 
             map.Uplift[triangleIndex] = (float)Math.Clamp(
@@ -81,20 +84,19 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
         int triangleIndex,
         double boundaryRelief)
     {
-        var delta = (int)Math.Round(
+        var delta = PhysicalElevation.FromUnits(
             boundaryRelief * context.Profile.EpochTectonicElevationStep *
-                context.TectonicStrength / 1000d,
-            MidpointRounding.AwayFromZero);
-        var maximumBedrock = 2000 - map.SedimentThickness[triangleIndex];
+                context.TectonicStrength / 1000d);
+        var maximumBedrock = PhysicalElevation.FromUnits(2000) - map.SedimentThickness[triangleIndex];
         var nextBedrock = Math.Clamp(
-            (long)map.BedrockElevation[triangleIndex] + delta,
-            -2000L,
+            map.BedrockElevation[triangleIndex] + delta,
+            PhysicalElevation.FromUnits(-2000),
             maximumBedrock);
-        var applied = (int)nextBedrock - map.BedrockElevation[triangleIndex];
-        map.BedrockElevation[triangleIndex] = (int)nextBedrock;
+        var applied = nextBedrock - map.BedrockElevation[triangleIndex];
+        map.BedrockElevation[triangleIndex] = nextBedrock;
         LandscapeSurface.Rebuild(map, triangleIndex);
         map.TectonicActivityHistory[triangleIndex] = checked(
-            map.TectonicActivityHistory[triangleIndex] + Math.Abs(applied));
+            map.TectonicActivityHistory[triangleIndex] + PhysicalElevation.ToUnits(Math.Abs(applied)));
     }
 
     private static double InheritedRelief(
@@ -169,6 +171,4 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
         return 0.08d + (exposedArc * 0.30d);
     }
 
-    private static int ScaleElevation(double value, int scale) =>
-        (int)Math.Round(Math.Clamp(value, -2d, 2d) * scale, MidpointRounding.AwayFromZero);
 }

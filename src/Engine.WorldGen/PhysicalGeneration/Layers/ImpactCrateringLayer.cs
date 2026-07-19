@@ -10,7 +10,12 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Elevation | PhysicalGeographyFacts.LandscapeHistory,
         PhysicalGeographyFacts.Elevation |
         PhysicalGeographyFacts.SedimentSupply |
-        PhysicalGeographyFacts.Impacts);
+        PhysicalGeographyFacts.Impacts,
+        PhysicalGeographyFacts.DrainageConditioning |
+        PhysicalGeographyFacts.Lakes |
+        PhysicalGeographyFacts.FlowRouting |
+        PhysicalGeographyFacts.Rivers |
+        PhysicalGeographyFacts.Validated);
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
@@ -182,7 +187,7 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
             map.SedimentExportedTotal + excavation - deposited);
     }
 
-    private static int Excavate(
+    private static long Excavate(
         PhysicalGeographyField map,
         int triangleIndex,
         double distance,
@@ -196,8 +201,8 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
 
         var normalized = distance / radius;
         var cut = Math.Max(
-            1,
-            (int)Math.Round(depth * (1d - (normalized * normalized)), MidpointRounding.AwayFromZero));
+            1L,
+            PhysicalElevation.FromUnits(depth * (1d - (normalized * normalized))));
         map.BedrockElevation[triangleIndex] = checked(map.BedrockElevation[triangleIndex] - cut);
         map.ImpactExcavation[triangleIndex] = checked(map.ImpactExcavation[triangleIndex] + cut);
         LandscapeSurface.Rebuild(map, triangleIndex);
@@ -218,9 +223,7 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
             return;
         }
 
-        var uplift = Math.Max(
-            1,
-            (int)Math.Round(rimHeight * influence, MidpointRounding.AwayFromZero));
+        var uplift = Math.Max(1L, PhysicalElevation.FromUnits(rimHeight * influence));
         map.BedrockElevation[triangleIndex] = checked(map.BedrockElevation[triangleIndex] + uplift);
         map.ImpactRimUplift[triangleIndex] = checked(map.ImpactRimUplift[triangleIndex] + uplift);
         LandscapeSurface.Rebuild(map, triangleIndex);
@@ -288,9 +291,7 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
                 break;
             }
 
-            var requested = (int)Math.Min(
-                int.MaxValue,
-                Math.Max(1L, remaining * candidate.Weight / remainingWeight));
+            var requested = Math.Max(1L, remaining * candidate.Weight / remainingWeight);
             var amount = LandscapeSurface.Deposit(map, candidate.TriangleIndex, requested);
             map.ImpactEjectaThickness[candidate.TriangleIndex] = checked(
                 map.ImpactEjectaThickness[candidate.TriangleIndex] + amount);

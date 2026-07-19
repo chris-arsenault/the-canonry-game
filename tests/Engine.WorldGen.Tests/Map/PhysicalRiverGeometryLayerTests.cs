@@ -154,7 +154,8 @@ public sealed class PhysicalRiverGeometryLayerTests
         map.RiverOrders[mouth] = Math.Max(map.RiverOrders[mouth], profile.DeltaMinimumRiverOrder);
         map.FlowAccumulation[mouth] = checked(
             profile.RiverAccumulationThreshold * profile.DeltaDischargeMultiplier);
-        map.CumulativeFluvialErosion[mouth] = profile.DeltaMinimumSedimentDelivery;
+        map.CumulativeFluvialErosion[mouth] =
+            PhysicalElevation.FromUnits(profile.DeltaMinimumSedimentDelivery);
         map.WaveExposure[ocean] = 0;
         map.OceanCurrentStrength[ocean] = 0;
         map.BathymetricZoneCodes[ocean] = PhysicalBathymetricZoneCodes.Shelf;
@@ -174,7 +175,7 @@ public sealed class PhysicalRiverGeometryLayerTests
             if (current.Depth > 0 && map.RiverOrders[current.TriangleIndex] > 0 &&
                 map.DrainageBasinIds[current.TriangleIndex] == map.DrainageBasinIds[channel] &&
                 Math.Abs(map.Elevation[current.TriangleIndex] - map.Elevation[channel]) <=
-                    profile.RiverChannelMaximumBankRelief &&
+                    PhysicalElevation.FromUnits(profile.RiverChannelMaximumBankRelief) &&
                 RiverChannelGeometryLayer.LongitudinalAlignment(
                     map,
                     dominantUpstream,

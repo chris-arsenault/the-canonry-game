@@ -131,7 +131,7 @@ internal sealed class PressureFieldLayer : IIceRemembersMicrogeographyLayer
     private static int SelectDeadGodLocus(PhysicalGeographyField field)
     {
         var best = -1;
-        var bestScore = int.MinValue;
+        var bestScore = long.MinValue;
         for (var configuredIndex = 0; configuredIndex < field.Grid.ConfiguredHexCount; configuredIndex++)
         {
             var hexIndex = field.Grid.ConfiguredHexIndexAt(configuredIndex);
@@ -157,10 +157,10 @@ internal sealed class PressureFieldLayer : IIceRemembersMicrogeographyLayer
             : throw new InvalidOperationException("Pressure magic requires a deep ocean locus.");
     }
 
-    private static int LocalBasinDepth(PhysicalGeographyField field, int triangleIndex)
+    private static long LocalBasinDepth(PhysicalGeographyField field, int triangleIndex)
     {
         var depth = field.WaterDepths[triangleIndex];
-        var total = 0;
+        var total = 0L;
         for (var edge = 0; edge < 3; edge++)
         {
             var neighbor = field.Grid.NeighborTriangleIndex(triangleIndex, edge);

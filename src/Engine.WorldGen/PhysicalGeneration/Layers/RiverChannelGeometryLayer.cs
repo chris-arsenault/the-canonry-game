@@ -193,7 +193,7 @@ internal sealed class RiverChannelGeometryLayer : IPhysicalGeographyLayer
             map.WaterKindCodes[target] != PhysicalWaterKindCodes.None ||
             map.DrainageBasinIds[target] != map.DrainageBasinIds[spine] ||
             Math.Abs(map.Elevation[spine] - map.Elevation[target]) >
-                profile.RiverChannelMaximumBankRelief)
+                PhysicalElevation.FromUnits(profile.RiverChannelMaximumBankRelief))
         {
             return false;
         }
@@ -271,8 +271,11 @@ internal sealed class RiverChannelGeometryLayer : IPhysicalGeographyLayer
         int target,
         int depth)
     {
-        var reliefPenalty = Math.Abs(map.Elevation[spine] - map.Elevation[target]);
-        var slopePenalty = Math.Max(0, map.Slope[target] - profile.PlainSlopeThreshold);
+        var reliefPenalty = PhysicalElevation.ToUnits(
+            Math.Abs(map.Elevation[spine] - map.Elevation[target]));
+        var slopePenalty = Math.Max(
+            0,
+            PhysicalElevation.ToUnits(map.Slope[target]) - profile.PlainSlopeThreshold);
         return Math.Max(
             1,
             map.RiverChannelStrength[spine] - (profile.RiverChannelWidthDecay * depth) -

@@ -1,6 +1,7 @@
 namespace IceRemembers.Seed;
 
 using Engine.Constants;
+using Engine.WorldGen;
 
 using IceRemembers;
 
@@ -46,7 +47,7 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
                 IceRemembersPhysicalFeature.HotSpring);
             IceRemembersFeatureMasks.Add(
                 ref flags,
-                fire >= 560 && map.Physical.Slope[triangleIndex] <= 45,
+                fire >= 560 && map.Physical.Slope[triangleIndex] <= PhysicalElevation.FromUnits(45),
                 IceRemembersPhysicalFeature.BasaltFlat);
             IceRemembersFeatureMasks.Add(
                 ref flags,

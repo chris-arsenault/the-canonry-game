@@ -30,7 +30,8 @@ internal sealed class BathymetryLayer : IPhysicalGeographyLayer
             else
             {
                 map.BathymetricZoneCodes[triangleIndex] =
-                    map.Elevation[triangleIndex] <= map.EffectiveSeaLevel + (context.Profile.ShelfDepth / 2) &&
+                    map.Elevation[triangleIndex] <= map.EffectiveSeaLevel +
+                        PhysicalElevation.FromUnits(context.Profile.ShelfDepth / 2d) &&
                     map.OceanDistance[triangleIndex] is >= 0 and <= 18
                         ? PhysicalBathymetricZoneCodes.ExposedShelf
                         : PhysicalBathymetricZoneCodes.Land;
@@ -57,7 +58,7 @@ internal sealed class BathymetryLayer : IPhysicalGeographyLayer
     {
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
-            var slope = 0;
+            var slope = 0L;
             for (var edge = 0; edge < 3; edge++)
             {
                 var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
@@ -71,14 +72,14 @@ internal sealed class BathymetryLayer : IPhysicalGeographyLayer
         }
     }
 
-    private static int OceanZone(int depth, PhysicalGeographyGenerationProfile profile)
+    private static int OceanZone(long depth, PhysicalGeographyGenerationProfile profile)
     {
-        if (depth <= profile.ShelfDepth)
+        if (depth <= PhysicalElevation.FromUnits(profile.ShelfDepth))
         {
             return PhysicalBathymetricZoneCodes.Shelf;
         }
 
-        return depth <= profile.ShelfBreakDepth
+        return depth <= PhysicalElevation.FromUnits(profile.ShelfBreakDepth)
             ? PhysicalBathymetricZoneCodes.ShelfBreak
             : PhysicalBathymetricZoneCodes.DeepOcean;
     }
