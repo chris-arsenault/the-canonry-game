@@ -34,8 +34,9 @@ internal sealed class OceanCurrentLayer : IPhysicalGeographyLayer
         SeedDirections(map, context);
         SmoothDirections(map, context.Profile.OceanCurrentSmoothingIterations);
         MeasureStrength(map, context);
-        TransportHeat(map, context.Profile.OceanCurrentHeatIterations);
-        MeasureWaveExposure(map, context.Profile.OceanCurrentFetchSteps);
+        var upstreamNeighbors = BuildUpstreamNeighbors(map);
+        TransportHeat(map, context.Profile.OceanCurrentHeatIterations, upstreamNeighbors);
+        MeasureWaveExposure(map, context.Profile.OceanCurrentFetchSteps, upstreamNeighbors);
     }
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
@@ -111,6 +112,7 @@ internal sealed class OceanCurrentLayer : IPhysicalGeographyLayer
         PhysicalGeographyGenerationContext context)
     {
         var noiseScale = Math.Max(18d, map.Grid.Radius * 0.46d);
+        var curlPotential = BuildCurlPotential(map, context.Seed, noiseScale);
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             if (map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.Ocean)
@@ -120,16 +122,11 @@ internal sealed class OceanCurrentLayer : IPhysicalGeographyLayer
 
             var x = map.Grid.TriangleX(triangleIndex);
             var y = map.Grid.TriangleY(triangleIndex);
-            var gradientX = PhysicalNoise.FractalNoise(
-                    x + 1.5d, y, context.Seed, noiseScale, 3) -
-                PhysicalNoise.FractalNoise(x - 1.5d, y, context.Seed, noiseScale, 3);
-            var gradientY = PhysicalNoise.FractalNoise(
-                    x, y + 1.5d, context.Seed, noiseScale, 3) -
-                PhysicalNoise.FractalNoise(x, y - 1.5d, context.Seed, noiseScale, 3);
+            PotentialGradient(map.Grid, curlPotential, triangleIndex, out var gradientX, out var gradientY);
             var curlX = gradientY;
             var curlY = -gradientX;
             var radius = Math.Max(1d, Math.Sqrt((x * x) + (y * y)));
-            var gyreSign = PhysicalNoise.UnitNoise(x, y, context.Seed ^ 0x2d61, noiseScale * 1.8d, 2) >= 0.5d
+            var gyreSign = curlPotential[triangleIndex] >= 0.5d
                 ? 1d
                 : -1d;
             var tangentX = -y / radius * gyreSign;
@@ -140,6 +137,48 @@ internal sealed class OceanCurrentLayer : IPhysicalGeographyLayer
                 triangleIndex,
                 (curlX * 3.4d) + (tangentX * 0.48d) + (basinX * 0.88d),
                 (curlY * 3.4d) + (tangentY * 0.48d) + (basinY * 0.88d));
+        }
+    }
+
+    private static double[] BuildCurlPotential(
+        PhysicalGeographyField map,
+        int seed,
+        double noiseScale)
+    {
+        var potential = new double[map.Grid.TriangleCount];
+        for (var triangleIndex = 0; triangleIndex < potential.Length; triangleIndex++)
+        {
+            potential[triangleIndex] = PhysicalNoise.UnitNoise(
+                map.Grid.TriangleX(triangleIndex),
+                map.Grid.TriangleY(triangleIndex),
+                seed,
+                noiseScale,
+                3);
+        }
+
+        return potential;
+    }
+
+    private static void PotentialGradient(
+        PhysicalGeographyGrid grid,
+        double[] potential,
+        int triangleIndex,
+        out double gradientX,
+        out double gradientY)
+    {
+        gradientX = 0d;
+        gradientY = 0d;
+        for (var edge = 0; edge < 3; edge++)
+        {
+            var neighbor = grid.NeighborTriangleIndex(triangleIndex, edge);
+            if (neighbor < 0)
+            {
+                continue;
+            }
+
+            var difference = potential[neighbor] - potential[triangleIndex];
+            gradientX += grid.TriangleEdgeUnitX(triangleIndex, edge) * difference;
+            gradientY += grid.TriangleEdgeUnitY(triangleIndex, edge) * difference;
         }
     }
 
@@ -160,11 +199,8 @@ internal sealed class OceanCurrentLayer : IPhysicalGeographyLayer
                 continue;
             }
 
-            double dx = map.Grid.TriangleX(neighbor) - map.Grid.TriangleX(triangleIndex);
-            double dy = map.Grid.TriangleY(neighbor) - map.Grid.TriangleY(triangleIndex);
-            var length = Math.Max(0.001d, Math.Sqrt((dx * dx) + (dy * dy)));
-            dx /= length;
-            dy /= length;
+            var dx = map.Grid.TriangleEdgeUnitX(triangleIndex, edge);
+            var dy = map.Grid.TriangleEdgeUnitY(triangleIndex, edge);
             if (map.WaterKindCodes[neighbor] != PhysicalWaterKindCodes.Ocean)
             {
                 influenceX -= dx * 1.4d;
@@ -243,7 +279,10 @@ internal sealed class OceanCurrentLayer : IPhysicalGeographyLayer
         }
     }
 
-    private static void TransportHeat(PhysicalGeographyField map, int iterations)
+    private static void TransportHeat(
+        PhysicalGeographyField map,
+        int iterations,
+        int[] upstreamNeighbors)
     {
         var source = InitializeHeatSources(map);
 
@@ -252,7 +291,11 @@ internal sealed class OceanCurrentLayer : IPhysicalGeographyLayer
         {
             for (var triangleIndex = 0; triangleIndex < next.Length; triangleIndex++)
             {
-                next[triangleIndex] = AdvectedHeat(map, source, triangleIndex);
+                next[triangleIndex] = AdvectedHeat(
+                    map,
+                    source,
+                    upstreamNeighbors,
+                    triangleIndex);
             }
 
             next.AsSpan().CopyTo(map.OceanCurrentHeat);
@@ -285,21 +328,28 @@ internal sealed class OceanCurrentLayer : IPhysicalGeographyLayer
         return source;
     }
 
-    private static int AdvectedHeat(PhysicalGeographyField map, int[] source, int triangleIndex)
+    private static int AdvectedHeat(
+        PhysicalGeographyField map,
+        int[] source,
+        int[] upstreamNeighbors,
+        int triangleIndex)
     {
         if (map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.Ocean)
         {
             return 0;
         }
 
-        var upstream = MostAlignedOceanNeighbor(map, triangleIndex, upstream: true);
+        var upstream = upstreamNeighbors[triangleIndex];
         var advected = upstream >= 0 ? map.OceanCurrentHeat[upstream] : 0;
         return Math.Max(
             source[triangleIndex],
             Math.Max(0, ((map.OceanCurrentHeat[triangleIndex] * 3) + (advected * 7)) / 10 - 5));
     }
 
-    private static void MeasureWaveExposure(PhysicalGeographyField map, int fetchSteps)
+    private static void MeasureWaveExposure(
+        PhysicalGeographyField map,
+        int fetchSteps,
+        int[] upstreamNeighbors)
     {
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
@@ -313,7 +363,7 @@ internal sealed class OceanCurrentLayer : IPhysicalGeographyLayer
             var previous = -1;
             while (fetch < fetchSteps)
             {
-                var next = MostAlignedOceanNeighbor(map, current, upstream: true);
+                var next = upstreamNeighbors[current];
                 if (next < 0 || next == previous)
                 {
                     break;
@@ -331,13 +381,27 @@ internal sealed class OceanCurrentLayer : IPhysicalGeographyLayer
         }
     }
 
+    private static int[] BuildUpstreamNeighbors(PhysicalGeographyField map)
+    {
+        var upstreamNeighbors = new int[map.Grid.TriangleCount];
+        Array.Fill(upstreamNeighbors, -1);
+        for (var triangleIndex = 0; triangleIndex < upstreamNeighbors.Length; triangleIndex++)
+        {
+            if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
+            {
+                upstreamNeighbors[triangleIndex] = MostAlignedOceanNeighbor(map, triangleIndex);
+            }
+        }
+
+        return upstreamNeighbors;
+    }
+
     private static int MostAlignedOceanNeighbor(
         PhysicalGeographyField map,
-        int triangleIndex,
-        bool upstream)
+        int triangleIndex)
     {
-        var directionX = map.OceanCurrentX[triangleIndex] * (upstream ? -1d : 1d);
-        var directionY = map.OceanCurrentY[triangleIndex] * (upstream ? -1d : 1d);
+        var directionX = -map.OceanCurrentX[triangleIndex];
+        var directionY = -map.OceanCurrentY[triangleIndex];
         var best = -1;
         var bestAlignment = 0d;
         for (var edge = 0; edge < 3; edge++)
@@ -348,10 +412,8 @@ internal sealed class OceanCurrentLayer : IPhysicalGeographyLayer
                 continue;
             }
 
-            var dx = map.Grid.TriangleX(neighbor) - map.Grid.TriangleX(triangleIndex);
-            var dy = map.Grid.TriangleY(neighbor) - map.Grid.TriangleY(triangleIndex);
-            var length = Math.Max(0.001d, Math.Sqrt((dx * dx) + (dy * dy)));
-            var alignment = ((dx / length) * directionX) + ((dy / length) * directionY);
+            var alignment = (map.Grid.TriangleEdgeUnitX(triangleIndex, edge) * directionX) +
+                (map.Grid.TriangleEdgeUnitY(triangleIndex, edge) * directionY);
             if (alignment > bestAlignment)
             {
                 best = neighbor;

@@ -80,9 +80,12 @@ Ice mass accumulates and ablates incrementally; its retained flow graph drives
 separate glacial erosion and terminus deposition passes. U-valleys, cirques,
 fjords, and moraines are then classified from cumulative erosion, deposition,
 and maximum flux rather than stamped into elevation. Wave/current exposure and
-shelf geometry likewise drive a separate coastal erosion/deposition pass. Each
-surface-changing process invalidates and reconciles ocean, bathymetry, climate,
-and drainage before later processes consume them. A branching fracture network
+shelf geometry likewise drive a separate coastal erosion/deposition pass.
+Surface-changing work is operator-split within an epoch: fluvial and sediment
+passes share the beginning-of-epoch climate/drainage snapshot, glacial work is
+followed by one post-glacial reconciliation, and coastal work shares that
+post-glacial ocean/current snapshot. Derived facts are invalidated at those
+batch boundaries and fully reconciled again before the next epoch. A branching fracture network
 finishes the physical inputs. The padded
 result is cropped to the configured latent disk, so the configured edge is not
 automatically a coast or watershed.
@@ -94,7 +97,8 @@ through ocean geometry from one unnamed dead-god locus plus ancient impacts and
 wakes. Pressure-derived coastal stress becomes a generic physical forcing field,
 so the domain layer selects where magic acts while physical worldgen retains
 erosion, deposition, and sediment accounting. Cumulative fire, aurora, pressure,
-and coastal-pressure histories remain separate from the final current fields.
+and coastal-pressure histories and their first-active epoch indexes remain
+separate from the final current fields.
 Interaction and final-surface classification run only after final physical
 reconciliation, retaining rare compound anomalies without erasing the underlying
 natural surface. Frozen oceans classify into pack ice, sea ice, ice shelf, and
@@ -140,7 +144,8 @@ aggregate latent hexes. Terrain, final and natural surface, material,
 elevation, temperature, moisture, geothermal, currents, wave exposure,
 precipitation, sea-ice suitability, landform, hydrology, ice, sediment,
 cumulative erosion, maximum glaciation, and river geometry,
-fracture, fire, aurora, pressure, and composite-magic views expose how the
+fracture, fire, aurora, pressure, current composite magic, and cumulative
+magic-history/age views expose how the
 synthesized terrain was chosen. Chunk culling keeps triangle drawing limited to
 the visible field. Close zoom draws triangle-scale features without overlaying
 aggregate full-hex masks; distant shared feature edges are drawn once by a

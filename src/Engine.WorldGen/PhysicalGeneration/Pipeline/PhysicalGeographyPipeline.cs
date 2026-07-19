@@ -23,6 +23,7 @@ internal sealed class PhysicalGeographyPipeline
         var currents = new OceanCurrentLayer();
         var warmth = new WarmthSourceLayer();
         var temperature = new TemperatureLayer();
+        var atmosphericFlow = new AtmosphericFlowLayer();
         var moisture = new MoistureLayer();
         var precipitation = new PrecipitationLayer();
         var runoff = new RunoffLayer();
@@ -45,22 +46,22 @@ internal sealed class PhysicalGeographyPipeline
         };
         AddClimateAndDrainage(
             layers, ocean, bathymetry, landmasses, currents, warmth, temperature,
-            moisture, precipitation, runoff, lakes, flow, rivers);
+            atmosphericFlow, moisture, precipitation, runoff, lakes, flow, rivers);
         layers.Add(new SedimentTransportLayer());
         AddClimateAndDrainage(
             layers, ocean, bathymetry, landmasses, currents, warmth, temperature,
-            moisture, precipitation, runoff, lakes, flow, rivers);
+            atmosphericFlow, moisture, precipitation, runoff, lakes, flow, rivers);
         layers.Add(new CoastalErosionLayer());
         AddClimateAndDrainage(
             layers, ocean, bathymetry, landmasses, currents, warmth, temperature,
-            moisture, precipitation, runoff, lakes, flow, rivers);
+            atmosphericFlow, moisture, precipitation, runoff, lakes, flow, rivers);
         layers.Add(landIce);
         layers.Add(iceFlow);
         layers.Add(new GlacialErosionLayer());
         layers.Add(new GlacialDepositionLayer());
         AddClimateAndDrainage(
             layers, ocean, bathymetry, landmasses, currents, warmth, temperature,
-            moisture, precipitation, runoff, lakes, flow, rivers);
+            atmosphericFlow, moisture, precipitation, runoff, lakes, flow, rivers);
         layers.Add(landIce);
         layers.Add(iceFlow);
         layers.Add(new GlacialLandformLayer());
@@ -81,6 +82,7 @@ internal sealed class PhysicalGeographyPipeline
         IPhysicalGeographyLayer currents,
         IPhysicalGeographyLayer warmth,
         IPhysicalGeographyLayer temperature,
+        IPhysicalGeographyLayer atmosphericFlow,
         IPhysicalGeographyLayer moisture,
         IPhysicalGeographyLayer precipitation,
         IPhysicalGeographyLayer runoff,
@@ -94,6 +96,7 @@ internal sealed class PhysicalGeographyPipeline
         layers.Add(currents);
         layers.Add(warmth);
         layers.Add(temperature);
+        layers.Add(atmosphericFlow);
         layers.Add(moisture);
         layers.Add(precipitation);
         layers.Add(runoff);

@@ -27,6 +27,17 @@ internal sealed class MagicHistoryLayer : IIceRemembersMicrogeographyLayer
                 map.AuroraHistory[triangleIndex] + map.AuroraIntensity[triangleIndex]);
             map.PressureHistory[triangleIndex] = checked(
                 map.PressureHistory[triangleIndex] + map.PressureIntensity[triangleIndex]);
+            RecordFirstEpoch(map.FireFirstEpoch, triangleIndex, map.FireIntensity[triangleIndex], context.EpochIndex);
+            RecordFirstEpoch(
+                map.AuroraFirstEpoch,
+                triangleIndex,
+                map.AuroraIntensity[triangleIndex],
+                context.EpochIndex);
+            RecordFirstEpoch(
+                map.PressureFirstEpoch,
+                triangleIndex,
+                map.PressureIntensity[triangleIndex],
+                context.EpochIndex);
         }
 
         map.CompletedEpochCount++;
@@ -41,7 +52,10 @@ internal sealed class MagicHistoryLayer : IIceRemembersMicrogeographyLayer
             map.CompletedEpochCount > context.EpochCount ||
             !HistoryIsValid(map.FireHistory, maximumHistory) ||
             !HistoryIsValid(map.AuroraHistory, maximumHistory) ||
-            !HistoryIsValid(map.PressureHistory, maximumHistory))
+            !HistoryIsValid(map.PressureHistory, maximumHistory) ||
+            !AgeIsValid(map.FireHistory, map.FireFirstEpoch, map.CompletedEpochCount) ||
+            !AgeIsValid(map.AuroraHistory, map.AuroraFirstEpoch, map.CompletedEpochCount) ||
+            !AgeIsValid(map.PressureHistory, map.PressureFirstEpoch, map.CompletedEpochCount))
         {
             throw new InvalidOperationException("Accumulated magic history is invalid.");
         }
@@ -52,6 +66,27 @@ internal sealed class MagicHistoryLayer : IIceRemembersMicrogeographyLayer
         foreach (var value in history)
         {
             if (value < 0 || value > maximum)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static void RecordFirstEpoch(int[] ages, int index, int intensity, int epochIndex)
+    {
+        if (intensity > 0 && ages[index] < 0)
+        {
+            ages[index] = epochIndex;
+        }
+    }
+
+    private static bool AgeIsValid(ReadOnlySpan<int> history, ReadOnlySpan<int> ages, int epochCount)
+    {
+        for (var index = 0; index < history.Length; index++)
+        {
+            if ((history[index] == 0) != (ages[index] == -1) || ages[index] >= epochCount)
             {
                 return false;
             }

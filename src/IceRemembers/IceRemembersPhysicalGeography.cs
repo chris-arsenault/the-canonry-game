@@ -192,6 +192,8 @@ public static class IceRemembersPhysicalGeography
         TemperatureBaseline = 125,
         OceanCurrentTemperatureStrength = 80,
         OceanCurrentWarmthStrength = 55,
+        OceanCurrentSmoothingIterations = 3,
+        OceanCurrentHeatIterations = 6,
         WarmthPocketCount = 16,
         HeartWarmthRadius = 31d,
         HeartWarmthStrength = 430,

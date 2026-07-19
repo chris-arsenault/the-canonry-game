@@ -46,6 +46,10 @@ internal sealed class PressureCoastFeedbackLayer : IIceRemembersMicrogeographyLa
             map.Physical.ExternalCoastalForcing[triangleIndex] = forcing;
             map.PressureCoastalHistory[triangleIndex] = checked(
                 map.PressureCoastalHistory[triangleIndex] + forcing);
+            if (map.PressureCoastalFirstEpoch[triangleIndex] < 0)
+            {
+                map.PressureCoastalFirstEpoch[triangleIndex] = context.EpochIndex;
+            }
         }
     }
 
@@ -53,19 +57,30 @@ internal sealed class PressureCoastFeedbackLayer : IIceRemembersMicrogeographyLa
         IceRemembersMicrogeographyMap map,
         IceRemembersMicrogeographyGenerationContext context)
     {
+        _ = context;
         var maximumHistory = checked(map.CompletedEpochCount * 1000);
         for (var triangleIndex = 0; triangleIndex < map.Physical.Grid.TriangleCount; triangleIndex++)
         {
-            var forcing = map.Physical.ExternalCoastalForcing[triangleIndex];
-            if (forcing is < 0 or > 1000 ||
-                forcing > 0 && (map.Physical.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None ||
-                    !HasOceanNeighbor(map, triangleIndex)) ||
-                map.PressureCoastalHistory[triangleIndex] is < 0 ||
-                map.PressureCoastalHistory[triangleIndex] > maximumHistory)
+            if (!TriangleIsValid(map, triangleIndex, maximumHistory))
             {
                 throw new InvalidOperationException("Pressure coastal feedback is invalid.");
             }
         }
+    }
+
+    private static bool TriangleIsValid(
+        IceRemembersMicrogeographyMap map,
+        int triangleIndex,
+        int maximumHistory)
+    {
+        var forcing = map.Physical.ExternalCoastalForcing[triangleIndex];
+        var history = map.PressureCoastalHistory[triangleIndex];
+        var firstEpoch = map.PressureCoastalFirstEpoch[triangleIndex];
+        return forcing is >= 0 and <= 1000 &&
+            (forcing == 0 || map.Physical.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.None &&
+                HasOceanNeighbor(map, triangleIndex)) &&
+            history >= 0 && history <= maximumHistory &&
+            (history == 0) == (firstEpoch == -1) && firstEpoch < map.CompletedEpochCount;
     }
 
     private static void MeasureAdjacentOcean(

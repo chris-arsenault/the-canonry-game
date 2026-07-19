@@ -47,6 +47,7 @@ public partial class MapArea : Control
     public const string GeographyViewAurora = "aurora";
     public const string GeographyViewPressure = "pressure";
     public const string GeographyViewMagicComposite = "magic_composite";
+    public const string GeographyViewMagicHistory = "magic_history";
     public const string LensDefault = "default";
     public const string LensCulture = "culture";
     public const string LensControl = "control";
@@ -276,6 +277,7 @@ public partial class MapArea : Control
         AddGeographyViewOption("Aurora", GeographyViewAurora);
         AddGeographyViewOption("Pressure", GeographyViewPressure);
         AddGeographyViewOption("Magic composite", GeographyViewMagicComposite);
+        AddGeographyViewOption("Magic history", GeographyViewMagicHistory);
         _geographyViewOptions.Select(1);
         _geographyViewOptions.ItemSelected += OnGeographyViewSelected;
         controls.AddChild(_geographyViewOptions);

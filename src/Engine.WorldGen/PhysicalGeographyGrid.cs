@@ -1,5 +1,7 @@
 namespace Engine.WorldGen;
 
+using System.Runtime.CompilerServices;
+
 using Engine.Constants;
 
 /// <summary>
@@ -14,6 +16,8 @@ public sealed class PhysicalGeographyGrid
     private readonly int[] _hexDistances;
     private readonly int[] _configuredHexIndexes;
     private readonly int[] _triangleNeighbors;
+    private readonly float[] _triangleEdgeUnitX;
+    private readonly float[] _triangleEdgeUnitY;
     private readonly float[] _triangleX;
     private readonly float[] _triangleY;
 
@@ -44,10 +48,13 @@ public sealed class PhysicalGeographyGrid
         var triangleCount = checked(_hexCoords.Length * PhysicalGeographyCodes.MicrotrianglesPerHex);
         _triangleNeighbors = new int[checked(triangleCount * 3)];
         Array.Fill(_triangleNeighbors, -1);
+        _triangleEdgeUnitX = new float[_triangleNeighbors.Length];
+        _triangleEdgeUnitY = new float[_triangleNeighbors.Length];
         _triangleX = new float[triangleCount];
         _triangleY = new float[triangleCount];
         BuildTriangleGeometry();
         BuildTriangleNeighbors();
+        BuildTriangleEdgeGeometry();
     }
 
     public int Radius { get; }
@@ -79,6 +86,14 @@ public sealed class PhysicalGeographyGrid
 
     public int NeighborTriangleIndex(int triangleIndex, int edge) =>
         _triangleNeighbors[checked((triangleIndex * 3) + edge)];
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal float TriangleEdgeUnitX(int triangleIndex, int edge) =>
+        _triangleEdgeUnitX[(triangleIndex * 3) + edge];
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal float TriangleEdgeUnitY(int triangleIndex, int edge) =>
+        _triangleEdgeUnitY[(triangleIndex * 3) + edge];
 
     public float TriangleX(int triangleIndex) => _triangleX[triangleIndex];
 
@@ -113,6 +128,28 @@ public sealed class PhysicalGeographyGrid
             for (var localTriangle = 0; localTriangle < PhysicalGeographyCodes.MicrotrianglesPerHex; localTriangle++)
             {
                 BuildTriangleNeighbors(hexIndex, coord, localTriangle);
+            }
+        }
+    }
+
+    private void BuildTriangleEdgeGeometry()
+    {
+        for (var triangleIndex = 0; triangleIndex < TriangleCount; triangleIndex++)
+        {
+            for (var edge = 0; edge < 3; edge++)
+            {
+                var neighbor = NeighborTriangleIndex(triangleIndex, edge);
+                if (neighbor < 0)
+                {
+                    continue;
+                }
+
+                var dx = (double)_triangleX[neighbor] - _triangleX[triangleIndex];
+                var dy = (double)_triangleY[neighbor] - _triangleY[triangleIndex];
+                var length = Math.Max(0.001d, Math.Sqrt((dx * dx) + (dy * dy)));
+                var offset = (triangleIndex * 3) + edge;
+                _triangleEdgeUnitX[offset] = (float)(dx / length);
+                _triangleEdgeUnitY[offset] = (float)(dy / length);
             }
         }
     }
@@ -246,6 +283,12 @@ public sealed class PhysicalGeographyField
     private readonly int[] _snowfall;
     private readonly int[] _slope;
     private readonly int[] _temperature;
+    private readonly int[] _windX;
+    private readonly int[] _windY;
+    private readonly int[] _upwindTargets;
+    private readonly int[] _moistureBarriers;
+    private readonly int[] _precipitationBarriers;
+    private readonly int[] _upwindOceanSources;
     private readonly int[] _tectonicBoundaryCodes;
     private readonly int[] _tectonicStrain;
     private readonly int[] _tectonicActivityHistory;
@@ -272,6 +315,8 @@ public sealed class PhysicalGeographyField
                 new int[grid.TriangleCount]);
         (_continentalPotential, _elevation, _temperature) =
             (new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount]);
+        (_windX, _windY, _upwindTargets, _moistureBarriers,
+            _precipitationBarriers, _upwindOceanSources) = NewAtmosphericFields(grid);
         (_tectonicBoundaryCodes, _tectonicStrain) =
             (new int[grid.TriangleCount], new int[grid.TriangleCount]);
         _moisture = new int[grid.TriangleCount];
@@ -280,9 +325,7 @@ public sealed class PhysicalGeographyField
             (new int[grid.TriangleCount], new int[grid.TriangleCount],
                 new int[grid.TriangleCount], new int[grid.TriangleCount],
                 new int[grid.TriangleCount]);
-        (_rainfall, _snowfall, _seaIceSuitability) =
-            (new int[grid.TriangleCount], new int[grid.TriangleCount],
-                new int[grid.TriangleCount]);
+        (_rainfall, _snowfall, _seaIceSuitability) = NewTriple(grid);
         (_bedrockElevation, _sedimentThickness, _sedimentSupply, _cumulativeFluvialErosion,
             _cumulativeGlacialErosion, _cumulativeCoastalErosion, _cumulativeDeposition) =
             (NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid),
@@ -326,6 +369,32 @@ public sealed class PhysicalGeographyField
 
     private static int[] NewField(PhysicalGeographyGrid grid) => new int[grid.TriangleCount];
 
+    private static (int[] First, int[] Second, int[] Third) NewTriple(
+        PhysicalGeographyGrid grid) =>
+        (NewField(grid), NewField(grid), NewField(grid));
+
+    private static (
+        int[] WindX,
+        int[] WindY,
+        int[] UpwindTargets,
+        int[] MoistureBarriers,
+        int[] PrecipitationBarriers,
+        int[] UpwindOceanSources) NewAtmosphericFields(
+        PhysicalGeographyGrid grid)
+    {
+        var upwindTargets = NewField(grid);
+        var upwindOceanSources = NewField(grid);
+        Array.Fill(upwindTargets, -1);
+        Array.Fill(upwindOceanSources, -1);
+        return (
+            NewField(grid),
+            NewField(grid),
+            upwindTargets,
+            NewField(grid),
+            NewField(grid),
+            upwindOceanSources);
+    }
+
     public PhysicalGeographyGrid Grid { get; }
 
     internal PhysicalGeographyFacts AvailableFacts { get; set; }
@@ -355,6 +424,18 @@ public sealed class PhysicalGeographyField
     public Span<int> Elevation => _elevation;
 
     public Span<int> Temperature => _temperature;
+
+    internal Span<int> WindX => _windX;
+
+    internal Span<int> WindY => _windY;
+
+    internal Span<int> UpwindTargets => _upwindTargets;
+
+    internal Span<int> MoistureBarriers => _moistureBarriers;
+
+    internal Span<int> PrecipitationBarriers => _precipitationBarriers;
+
+    internal Span<int> UpwindOceanSources => _upwindOceanSources;
 
     public Span<int> Moisture => _moisture;
 

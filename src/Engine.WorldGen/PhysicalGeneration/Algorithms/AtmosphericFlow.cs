@@ -1,43 +1,7 @@
 namespace Engine.WorldGen;
 
-using Engine.Constants;
-
 internal static class AtmosphericFlow
 {
-    public static int TraceUpwindBarrier(
-        PhysicalGeographyField map,
-        PhysicalGeographyGenerationContext context,
-        int start,
-        int steps,
-        out int oceanSource)
-    {
-        WindDirection(map, context, start, out var windX, out var windY);
-        var current = start;
-        var maximumBarrier = 0;
-        oceanSource = -1;
-        for (var step = 0; step < steps; step++)
-        {
-            var next = MostAlignedNeighbor(map, current, -windX, -windY);
-            if (next < 0 || next == current)
-            {
-                break;
-            }
-
-            current = next;
-            maximumBarrier = Math.Max(maximumBarrier, map.Elevation[current] - map.Elevation[start]);
-            if (map.WaterKindCodes[current] == PhysicalWaterKindCodes.Ocean)
-            {
-                oceanSource = current;
-                break;
-            }
-        }
-
-        return Math.Clamp(
-            maximumBarrier * 1000 / Math.Max(1, context.Profile.ElevationScale / 2),
-            0,
-            1000);
-    }
-
     public static void WindDirection(
         PhysicalGeographyField map,
         PhysicalGeographyGenerationContext context,
@@ -74,10 +38,8 @@ internal static class AtmosphericFlow
                 continue;
             }
 
-            var dx = map.Grid.TriangleX(neighbor) - map.Grid.TriangleX(triangleIndex);
-            var dy = map.Grid.TriangleY(neighbor) - map.Grid.TriangleY(triangleIndex);
-            var length = Math.Max(0.001d, Math.Sqrt((dx * dx) + (dy * dy)));
-            var alignment = ((dx / length) * directionX) + ((dy / length) * directionY);
+            var alignment = (map.Grid.TriangleEdgeUnitX(triangleIndex, edge) * directionX) +
+                (map.Grid.TriangleEdgeUnitY(triangleIndex, edge) * directionY);
             if (alignment > bestAlignment)
             {
                 best = neighbor;

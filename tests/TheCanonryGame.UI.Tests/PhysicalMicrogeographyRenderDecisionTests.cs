@@ -84,5 +84,7 @@ public sealed class PhysicalMicrogeographyRenderDecisionTests
             PhysicalGeographyView.RiverGeometry));
         Assert.False(PhysicalMicrogeographyRenderDecisions.UsesWaterUnderlay(
             PhysicalGeographyView.MagicComposite));
+        Assert.False(PhysicalMicrogeographyRenderDecisions.UsesWaterUnderlay(
+            PhysicalGeographyView.MagicHistory));
     }
 }

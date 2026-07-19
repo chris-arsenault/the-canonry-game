@@ -14,22 +14,17 @@ internal sealed class SedimentTransportLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.FlowRouting |
         PhysicalGeographyFacts.Rivers,
         PhysicalGeographyFacts.Elevation | PhysicalGeographyFacts.SedimentTransport,
-        PhysicalGeographyFacts.Ocean |
-        PhysicalGeographyFacts.Bathymetry |
-        PhysicalGeographyFacts.Landmasses |
-        PhysicalGeographyFacts.OceanCurrents |
-        PhysicalGeographyFacts.Warmth |
-        PhysicalGeographyFacts.Temperature |
-        PhysicalGeographyFacts.Moisture |
-        PhysicalGeographyFacts.Precipitation |
-        PhysicalGeographyFacts.Runoff |
-        PhysicalGeographyFacts.Lakes |
-        PhysicalGeographyFacts.FlowRouting |
-        PhysicalGeographyFacts.Rivers |
+        // Preserve the epoch's forcing fields until glaciation has consumed
+        // them; glacial evolution invalidates them before reconciliation.
         PhysicalGeographyFacts.LandIce |
         PhysicalGeographyFacts.IceFlow |
         PhysicalGeographyFacts.SeaIce |
         PhysicalGeographyFacts.Landforms |
+        PhysicalGeographyFacts.CoastalEvolution |
+        PhysicalGeographyFacts.GlacialEvolution |
+        PhysicalGeographyFacts.RiverGeometry |
+        PhysicalGeographyFacts.Floodplains |
+        PhysicalGeographyFacts.Deltas |
         PhysicalGeographyFacts.Validated);
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)

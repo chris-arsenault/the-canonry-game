@@ -19,14 +19,14 @@ internal sealed class ExternalCoastalForcingLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.LandscapeHistory |
         PhysicalGeographyFacts.SedimentTransport,
         PhysicalGeographyFacts.Elevation | PhysicalGeographyFacts.CoastalEvolution,
-        PhysicalGeographyFacts.Ocean |
-        PhysicalGeographyFacts.Bathymetry |
+        // Natural coastal evolution consumes the post-glacial ocean/current
+        // snapshot in the same epoch before these derived facts are rebuilt.
         PhysicalGeographyFacts.Landmasses |
-        PhysicalGeographyFacts.OceanCurrents |
         PhysicalGeographyFacts.Warmth |
         PhysicalGeographyFacts.Temperature |
         PhysicalGeographyFacts.Moisture |
         PhysicalGeographyFacts.Precipitation |
+        PhysicalGeographyFacts.AtmosphericFlow |
         PhysicalGeographyFacts.Runoff |
         PhysicalGeographyFacts.Lakes |
         PhysicalGeographyFacts.FlowRouting |

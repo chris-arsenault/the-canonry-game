@@ -300,6 +300,7 @@ internal static class IceRemembersStartupSeedCacheSerializer
         }
 
         writer.Write(geography.Radius);
+        writer.Write(geography.GenerationEpochCount);
         WriteList(writer, geography.MaterialPalette, static (output, material) => output.Write(material));
         WriteList(writer, geography.SurfacePalette, static (output, surface) => output.Write(surface));
         WriteList(writer, geography.FeaturePalette, static (output, feature) => output.Write(feature));
@@ -316,6 +317,7 @@ internal static class IceRemembersStartupSeedCacheSerializer
         }
 
         var radius = reader.ReadInt32();
+        var generationEpochCount = reader.ReadInt32();
         var materialPalette = ReadArray(reader, MaximumPaletteCount, "material", static input => input.ReadString());
         var surfacePalette = ReadArray(reader, MaximumPaletteCount, "surface", static input => input.ReadString());
         var featurePalette = ReadArray(reader, MaximumPaletteCount, "physical feature", static input => input.ReadString());
@@ -328,6 +330,7 @@ internal static class IceRemembersStartupSeedCacheSerializer
             ReadMicrotriangle);
         return new DomainPhysicalGeographyBlueprint(
             radius,
+            generationEpochCount,
             materialPalette,
             surfacePalette,
             featurePalette,

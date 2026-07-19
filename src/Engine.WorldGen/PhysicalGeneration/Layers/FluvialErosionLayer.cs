@@ -11,19 +11,18 @@ internal sealed class FluvialErosionLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Ocean |
         PhysicalGeographyFacts.LandscapeHistory,
         PhysicalGeographyFacts.Elevation | PhysicalGeographyFacts.SedimentSupply,
-        PhysicalGeographyFacts.Ocean |
-        PhysicalGeographyFacts.Bathymetry |
-        PhysicalGeographyFacts.Landmasses |
-        PhysicalGeographyFacts.OceanCurrents |
-        PhysicalGeographyFacts.Warmth |
-        PhysicalGeographyFacts.Temperature |
-        PhysicalGeographyFacts.Moisture |
-        PhysicalGeographyFacts.Precipitation |
-        PhysicalGeographyFacts.Runoff |
-        PhysicalGeographyFacts.Lakes |
-        PhysicalGeographyFacts.FlowRouting |
-        PhysicalGeographyFacts.Rivers |
+        // Sediment and glaciation consume the beginning-of-epoch climate and
+        // drainage graph before the post-glacial reconciliation.
+        PhysicalGeographyFacts.SedimentTransport |
+        PhysicalGeographyFacts.CoastalEvolution |
+        PhysicalGeographyFacts.GlacialEvolution |
+        PhysicalGeographyFacts.LandIce |
+        PhysicalGeographyFacts.IceFlow |
+        PhysicalGeographyFacts.SeaIce |
         PhysicalGeographyFacts.Landforms |
+        PhysicalGeographyFacts.RiverGeometry |
+        PhysicalGeographyFacts.Floodplains |
+        PhysicalGeographyFacts.Deltas |
         PhysicalGeographyFacts.Validated);
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)

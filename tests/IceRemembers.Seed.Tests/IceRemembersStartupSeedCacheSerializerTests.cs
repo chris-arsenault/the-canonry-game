@@ -36,6 +36,9 @@ public sealed class IceRemembersStartupSeedCacheSerializerTests
         Assert.Equal(expected.Seed.Attributes, actual.Seed.Attributes);
         AssertKnowledgeSitesEqual(expected.Seed.KnowledgeSites, actual.Seed.KnowledgeSites);
         Assert.Equal(expected.Seed.PhysicalGeography!.MaterialPalette, actual.Seed.PhysicalGeography!.MaterialPalette);
+        Assert.Equal(
+            expected.Seed.PhysicalGeography.GenerationEpochCount,
+            actual.Seed.PhysicalGeography.GenerationEpochCount);
         Assert.Equal(expected.Seed.PhysicalGeography.SurfacePalette, actual.Seed.PhysicalGeography.SurfacePalette);
         Assert.Equal(expected.Seed.PhysicalGeography.FeaturePalette, actual.Seed.PhysicalGeography.FeaturePalette);
         AssertScalarFieldsEqual(
@@ -133,6 +136,7 @@ public sealed class IceRemembersStartupSeedCacheSerializerTests
         const int triangleCount = 7 * PhysicalGeographyCodes.MicrotrianglesPerHex;
         return new DomainPhysicalGeographyBlueprint(
             1,
+            4,
             ["glacial_ice"],
             ["tundra"],
             ["hot_spring"],

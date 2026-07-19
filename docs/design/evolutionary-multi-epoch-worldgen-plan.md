@@ -237,17 +237,32 @@ Implementation:
 
 ### 6. Final classification, UI, quality, and performance
 
-- [ ] Run final derived-field reconciliation and existing natural/magic surface
+- [x] Run final derived-field reconciliation and existing natural/magic surface
   classification.
-- [ ] Complete inspector views for tectonics, currents, precipitation,
+- [x] Complete inspector views for tectonics, currents, precipitation,
   sediment, erosion, maximum glaciation, river geometry, and magic age/history.
-- [ ] Preserve developer-world caching and responsive startup behavior.
-- [ ] Profile radius-128 generation and UI startup with actual hotspot data.
-- [ ] Validate a fixed multi-seed corpus.
-- [ ] Keep distribution goals configurable and hard invariants structural.
-- [ ] Update stable architecture/system documentation if final ownership or
+- [x] Preserve developer-world caching and responsive startup behavior.
+- [x] Profile radius-128 generation and UI startup with actual hotspot data.
+- [x] Validate a fixed multi-seed corpus.
+- [x] Keep distribution goals configurable and hard invariants structural.
+- [x] Update stable architecture/system documentation if final ownership or
   contracts changed.
-- [ ] Run `make ci`, commit all approved implementation changes, and push.
+- [x] Run `make ci`, commit all approved implementation changes, and push.
+
+Performance evidence for the final implementation pass:
+
+- startup traces identified repeated atmospheric path tracing, ocean-current
+  neighbor selection, redundant epoch reconciliation, and per-frame loading
+  label mutation as the actionable hotspots;
+- moisture and precipitation now consume one discrete atmospheric-flow layer,
+  ocean-current transport reuses one upstream graph, epoch work reconciles at
+  its defined operator-split boundaries, and the loading overlay updates only
+  on visible status/second changes while completion is still polled every frame;
+- the exact radius-128 Release generation case completed in 3m42s with a
+  4.20 GB peak working set, within the accepted 8 GB ceiling but slightly above
+  the 4 GB target; and
+- a cold-cache Debug launch remained CPU-bound and responsive but exceeded ten
+  minutes, confirming that fixed-seed developer caching remains necessary.
 
 ## Validation policy
 

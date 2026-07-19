@@ -13,6 +13,9 @@ public partial class StartupLoadingOverlay : Control
 
     private Label? _statusLabel;
     private Label? _elapsedLabel;
+    private string? _displayedStatus;
+    private int _displayedActivityFrame = -1;
+    private int _displayedSecond = -1;
 
     public override void _Ready()
     {
@@ -112,9 +115,21 @@ public partial class StartupLoadingOverlay : Control
             return;
         }
 
-        var frame = ActivityFrames[(int)(elapsedSeconds * 2d) % ActivityFrames.Length];
-        _statusLabel.Text = $"{status} {frame}";
-        _elapsedLabel.Text = $"{elapsedSeconds:0.0}s elapsed";
+        var elapsedSecond = Math.Max(0, (int)elapsedSeconds);
+        var frame = elapsedSecond % ActivityFrames.Length;
+        if (!string.Equals(_displayedStatus, status, StringComparison.Ordinal) ||
+            _displayedActivityFrame != frame)
+        {
+            _statusLabel.Text = $"{status} {ActivityFrames[frame]}";
+            _displayedStatus = status;
+            _displayedActivityFrame = frame;
+        }
+
+        if (_displayedSecond != elapsedSecond)
+        {
+            _elapsedLabel.Text = $"{elapsedSecond}s elapsed";
+            _displayedSecond = elapsedSecond;
+        }
     }
 
     public void ShowFailure(string message, double elapsedSeconds)

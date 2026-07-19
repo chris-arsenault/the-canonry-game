@@ -5,6 +5,18 @@ using Engine.Constants;
 public sealed class PhysicalClimateAndIceLayerTests
 {
     [Fact]
+    public void AtmosphericFlow_FormsOneAdjacentUpwindGraphAndRejectsInvalidTargets()
+    {
+        var result = PhysicalGeographyLayerTestHarness.GenerateThrough<AtmosphericFlowLayer>();
+        Assert.Contains(result.Map.UpwindTargets.ToArray(), target => target >= 0);
+        Assert.True(result.Map.WindX.ToArray().Distinct().Take(3).Count() >= 3);
+
+        result.Map.UpwindTargets[0] = 0;
+        Assert.Throws<InvalidOperationException>(() =>
+            result.Layer.Validate(result.Map, result.Context));
+    }
+
+    [Fact]
     public void OceanCurrents_FormVariedOceanOnlyCirculationAndRejectLandFlux()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<OceanCurrentLayer>();

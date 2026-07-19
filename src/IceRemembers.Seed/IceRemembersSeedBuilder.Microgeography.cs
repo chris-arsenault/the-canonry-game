@@ -135,6 +135,7 @@ internal static partial class IceRemembersSeedBuilder
 
         var blueprint = new DomainPhysicalGeographyBlueprint(
             GenerationRadius,
+            magic.CompletedEpochCount,
             IceRemembersPhysicalGeography.MaterialPalette,
             IceRemembersPhysicalGeography.SurfacePalette,
             IceRemembersPhysicalGeography.FeaturePalette,
@@ -291,9 +292,20 @@ internal static partial class IceRemembersSeedBuilder
         new("floodplain_intensity", ExtractConfiguredValues(field, field.FloodplainIntensity)),
         new("delta_intensity", ExtractConfiguredValues(field, field.DeltaIntensity)),
         new("wave_exposure_history", ExtractConfiguredValues(field, field.WaveExposureHistory)),
+        new("tectonic_activity_history", ExtractConfiguredValues(field, field.TectonicActivityHistory)),
+        new("geothermal_history", ExtractConfiguredValues(field, field.GeothermalHistory)),
+        new("external_coastal_forcing_history", ExtractConfiguredValues(field, field.ExternalCoastalForcingHistory)),
         new("fire_intensity", ExtractConfiguredValues(field, magic.FireIntensity)),
         new("aurora_intensity", ExtractConfiguredValues(field, magic.AuroraIntensity)),
         new("pressure_intensity", ExtractConfiguredValues(field, magic.PressureIntensity)),
+        new("fire_history", ExtractConfiguredValues(field, magic.FireHistory)),
+        new("aurora_history", ExtractConfiguredValues(field, magic.AuroraHistory)),
+        new("pressure_history", ExtractConfiguredValues(field, magic.PressureHistory)),
+        new("pressure_coastal_history", ExtractConfiguredValues(field, magic.PressureCoastalHistory)),
+        new("fire_first_epoch", ExtractConfiguredValues(field, magic.FireFirstEpoch)),
+        new("aurora_first_epoch", ExtractConfiguredValues(field, magic.AuroraFirstEpoch)),
+        new("pressure_first_epoch", ExtractConfiguredValues(field, magic.PressureFirstEpoch)),
+        new("pressure_coastal_first_epoch", ExtractConfiguredValues(field, magic.PressureCoastalFirstEpoch)),
     ];
 
     private static int[] ExtractConfiguredValues(

@@ -19,10 +19,16 @@ public sealed class PhysicalGeographyProjectionTests
             .ToArray();
         var blueprint = new DomainPhysicalGeographyBlueprint(
             Radius: 1,
+            GenerationEpochCount: 4,
             MaterialPalette: ["tundra_soil"],
             SurfacePalette: ["tundra"],
             FeaturePalette: [],
-            ScalarFields: [],
+            ScalarFields:
+            [
+                new DomainPhysicalScalarField(
+                    "fire_history",
+                    Enumerable.Range(0, triangles.Length).ToArray()),
+            ],
             Cells: cells,
             Microtriangles: triangles);
 
@@ -30,6 +36,7 @@ public sealed class PhysicalGeographyProjectionTests
 
         Assert.True(projection.HasData);
         Assert.Equal(1, projection.Radius);
+        Assert.Equal(4, projection.GenerationEpochCount);
         Assert.Equal(7, projection.Cells.Count);
         Assert.Equal("tundra_soil", projection.MaterialName(0));
         Assert.True(projection.TryGetCell(new HexCoord(1, -1), out var cell));
@@ -42,6 +49,8 @@ public sealed class PhysicalGeographyProjectionTests
         Assert.Equal(cell.MicrotriangleOffset, projection.MicrotrianglesFor(cell)[0].Elevation);
         Assert.Equal(500, projection.MicrotrianglesFor(cell)[0].RiverChannelStrength);
         Assert.Equal(100, projection.MicrotrianglesFor(cell)[0].DeltaIntensity);
+        Assert.True(projection.TryGetScalarValue("fire_history", cell.MicrotriangleOffset, out var fireHistory));
+        Assert.Equal(cell.MicrotriangleOffset, fireHistory);
         Assert.False(projection.TryGetCell(new HexCoord(2, 0), out _));
     }
 

@@ -6,12 +6,15 @@ using IceRemembers;
 
 public sealed class IceRemembersEvolutionLayerTests
 {
-    [Fact]
-    public void ProductionEpochSchedule_SatisfiesTargetsAtQualityEvaluationRadius()
+    [Theory]
+    [InlineData(42)]
+    [InlineData(9173)]
+    [InlineData(21031)]
+    public void ProductionEpochSchedule_SatisfiesTargetsAcrossFixedQualityCorpus(int seed)
     {
         var result = IceRemembersWorldGenerationOrchestrator.Generate(
             32,
-            42,
+            seed,
             IceRemembersPhysicalGeography.GenerationProfile,
             IceRemembersPhysicalGeography.MicrogeographyProfile,
             IceRemembersPhysicalGeography.WorldGenerationEpochs);
@@ -41,8 +44,24 @@ public sealed class IceRemembersEvolutionLayerTests
         AssertHistoryIsCumulative(result.Magic.FireHistory, epochs.Length);
         AssertHistoryIsCumulative(result.Magic.AuroraHistory, epochs.Length);
         AssertHistoryIsCumulative(result.Magic.PressureHistory, epochs.Length);
+        AssertFirstEpochsMatchHistory(
+            result.Magic.FireHistory,
+            result.Magic.FireFirstEpoch,
+            epochs.Length);
+        AssertFirstEpochsMatchHistory(
+            result.Magic.AuroraHistory,
+            result.Magic.AuroraFirstEpoch,
+            epochs.Length);
+        AssertFirstEpochsMatchHistory(
+            result.Magic.PressureHistory,
+            result.Magic.PressureFirstEpoch,
+            epochs.Length);
         Assert.NotSame(result.Magic.FireHistory, result.Magic.FireIntensity);
         Assert.Contains(result.Magic.PressureCoastalHistory, value => value > 0);
+        AssertFirstEpochsMatchHistory(
+            result.Magic.PressureCoastalHistory,
+            result.Magic.PressureCoastalFirstEpoch,
+            epochs.Length);
     }
 
     [Fact]
@@ -54,7 +73,9 @@ public sealed class IceRemembersEvolutionLayerTests
         result.Pipeline.ApplyLayer(history, result.Map, 77123, epoch, 0, 1);
         Assert.Equal(1, result.Map.CompletedEpochCount);
 
-        result.Map.FireHistory[0] = -1;
+        var historicFire = Array.FindIndex(result.Map.FireHistory, static value => value > 0);
+        Assert.True(historicFire >= 0);
+        result.Map.FireFirstEpoch[historicFire] = -1;
         var historyContext = new IceRemembersMicrogeographyGenerationContext(
             77123,
             IceRemembersMicrogeographyLayerTestHarness.Profile,
@@ -63,7 +84,7 @@ public sealed class IceRemembersEvolutionLayerTests
             0,
             1);
         Assert.Throws<InvalidOperationException>(() => history.Validate(result.Map, historyContext));
-        result.Map.FireHistory[0] = result.Map.FireIntensity[0];
+        result.Map.FireFirstEpoch[historicFire] = 0;
 
         var feedback = new PressureCoastFeedbackLayer();
         result.Pipeline.ApplyLayer(feedback, result.Map, 77123, epoch, 0, 1);
@@ -101,23 +122,39 @@ public sealed class IceRemembersEvolutionLayerTests
         int fire,
         int aurora,
         int pressure) => new()
-    {
-        Physical = new PhysicalGeographyEpochDefinition
         {
-            StableName = name,
-            TectonicStrength = 600,
-            HydrologyStrength = 700,
-            GlaciationStrength = 600,
-            CoastalStrength = 700,
-        },
-        FireStrength = fire,
-        AuroraStrength = aurora,
-        PressureStrength = pressure,
-    };
+            Physical = new PhysicalGeographyEpochDefinition
+            {
+                StableName = name,
+                TectonicStrength = 600,
+                HydrologyStrength = 700,
+                GlaciationStrength = 600,
+                CoastalStrength = 700,
+            },
+            FireStrength = fire,
+            AuroraStrength = aurora,
+            PressureStrength = pressure,
+        };
 
     private static void AssertHistoryIsCumulative(int[] history, int epochCount)
     {
         Assert.Contains(history, value => value > 0);
         Assert.All(history, value => Assert.InRange(value, 0, epochCount * 1000));
+    }
+
+    private static void AssertFirstEpochsMatchHistory(
+        ReadOnlySpan<int> history,
+        ReadOnlySpan<int> firstEpochs,
+        int epochCount)
+    {
+        var found = false;
+        for (var index = 0; index < history.Length; index++)
+        {
+            Assert.Equal(history[index] == 0, firstEpochs[index] == -1);
+            Assert.InRange(firstEpochs[index], -1, epochCount - 1);
+            found |= firstEpochs[index] >= 0;
+        }
+
+        Assert.True(found);
     }
 }

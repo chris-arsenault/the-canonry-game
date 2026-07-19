@@ -19,6 +19,10 @@ internal sealed class IceRemembersMicrogeographyMap
         AuroraHistory = new int[triangleCount];
         PressureHistory = new int[triangleCount];
         PressureCoastalHistory = new int[triangleCount];
+        FireFirstEpoch = NewEpochField(triangleCount);
+        AuroraFirstEpoch = NewEpochField(triangleCount);
+        PressureFirstEpoch = NewEpochField(triangleCount);
+        PressureCoastalFirstEpoch = NewEpochField(triangleCount);
         PressureWake = new bool[triangleCount];
         RogueImpact = new bool[triangleCount];
     }
@@ -45,6 +49,14 @@ internal sealed class IceRemembersMicrogeographyMap
 
     public int[] PressureCoastalHistory { get; }
 
+    public int[] FireFirstEpoch { get; }
+
+    public int[] AuroraFirstEpoch { get; }
+
+    public int[] PressureFirstEpoch { get; }
+
+    public int[] PressureCoastalFirstEpoch { get; }
+
     public bool[] PressureWake { get; }
 
     public bool[] RogueImpact { get; }
@@ -54,4 +66,11 @@ internal sealed class IceRemembersMicrogeographyMap
     public int CompletedEpochCount { get; set; }
 
     public IceRemembersMicrogeographyFacts AvailableFacts { get; set; }
+
+    private static int[] NewEpochField(int triangleCount)
+    {
+        var field = new int[triangleCount];
+        Array.Fill(field, -1);
+        return field;
+    }
 }

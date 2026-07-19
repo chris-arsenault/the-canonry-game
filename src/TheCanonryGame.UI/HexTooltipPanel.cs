@@ -14,6 +14,13 @@ namespace TheCanonryGame.UI;
 public partial class HexTooltipPanel : PanelContainer
 {
     private const long TooltipDelayMs = 500;
+    private static readonly string[] MagicFirstEpochFields =
+    [
+        "fire_first_epoch",
+        "aurora_first_epoch",
+        "pressure_first_epoch",
+        "pressure_coastal_first_epoch",
+    ];
 
     private readonly List<Control> _passThroughControls = [];
     private HexMapProjection? _map;
@@ -273,7 +280,8 @@ public partial class HexTooltipPanel : PanelContainer
             $"ice thickness {cell.MeanIceThickness}/{cell.MaxIceThickness}   " +
             $"magic fire {cell.MeanFireIntensity}/{cell.MaxFireIntensity} " +
             $"aurora {cell.MeanAuroraIntensity}/{cell.MaxAuroraIntensity} " +
-            $"pressure {cell.MeanPressureIntensity}/{cell.MaxPressureIntensity}\n" +
+            $"pressure {cell.MeanPressureIntensity}/{cell.MaxPressureIntensity} " +
+            $"epochs {_physicalGeography.GenerationEpochCount}\n" +
             $"peaks {cell.PeakCount}   edges river {cell.RiverEdgeMask:X2} " +
             $"coast {cell.CoastEdgeMask:X2} ridge {cell.RidgeEdgeMask:X2} " +
             $"cliff {cell.CliffEdgeMask:X2} pass {cell.PassEdgeMask:X2} " +
@@ -316,7 +324,37 @@ public partial class HexTooltipPanel : PanelContainer
             $"continental group {triangle.ContinentalGroupId} bathymetry {BathymetryName(triangle.BathymetricZoneCode)}\n" +
             $"ice {triangle.IceThickness} flux {triangle.IceFlux}   fracture {triangle.FractureConductance} " +
             $"heat source {triangle.HeatSourceDensity}\n" +
-            $"magic fire {fire} aurora {aurora} pressure {pressure}";
+            $"magic fire {fire} aurora {aurora} pressure {pressure}\n" +
+            FormatMagicHistory(globalTriangleIndex);
+    }
+
+    private string FormatMagicHistory(int globalTriangleIndex)
+    {
+        _ = _physicalGeography!.TryGetScalarValue("fire_history", globalTriangleIndex, out var fire);
+        _ = _physicalGeography.TryGetScalarValue("aurora_history", globalTriangleIndex, out var aurora);
+        _ = _physicalGeography.TryGetScalarValue("pressure_history", globalTriangleIndex, out var pressure);
+        _ = _physicalGeography.TryGetScalarValue(
+            "pressure_coastal_history",
+            globalTriangleIndex,
+            out var coast);
+        var first = FirstMagicEpoch(globalTriangleIndex);
+        var age = first < 0 ? "none" : $"{first + 1}/{_physicalGeography.GenerationEpochCount}";
+        return $"history fire {fire} aurora {aurora} pressure {pressure} coast {coast} first {age}";
+    }
+
+    private int FirstMagicEpoch(int globalTriangleIndex)
+    {
+        var first = int.MaxValue;
+        foreach (var stableName in MagicFirstEpochFields)
+        {
+            _ = _physicalGeography!.TryGetScalarValue(stableName, globalTriangleIndex, out var epoch);
+            if (epoch >= 0)
+            {
+                first = Math.Min(first, epoch);
+            }
+        }
+
+        return first == int.MaxValue ? -1 : first;
     }
 
     private static string LandformName(int code) =>

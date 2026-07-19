@@ -43,6 +43,7 @@ public partial class Main : Node2D
     private Godot.Theme? _theme;
     private Task<BackgroundStartupResult>? _startupTask;
     private Stopwatch? _startupStopwatch;
+    private double _startupStatusRefreshCountdown;
     private int _startupStage;
     private double _displayTicksPerSecond = NormalTicksPerSecond;
     private bool _displayPaused;
@@ -111,7 +112,7 @@ public partial class Main : Node2D
 
     public override void _Process(double delta)
     {
-        PollStartup();
+        PollStartup(delta);
         if (_runtime is null)
         {
             return;
@@ -401,6 +402,7 @@ public partial class Main : Node2D
         _displayPaused = true;
         Volatile.Write(ref _startupStage, (int)GameStartupStage.CheckingCachedWorld);
         _startupStopwatch = Stopwatch.StartNew();
+        _startupStatusRefreshCountdown = 0d;
         _startupLoadingOverlay?.ShowLoading(StartupStageText(GameStartupStage.CheckingCachedWorld));
         _startupTask = Task.Run(() => BuildRuntime(
             seedPolicy,
@@ -566,7 +568,7 @@ public partial class Main : Node2D
         GD.Print("Generating a new random simulation world.");
     }
 
-    private void PollStartup()
+    private void PollStartup(double delta)
     {
         var task = _startupTask;
         if (task is null)
@@ -574,6 +576,13 @@ public partial class Main : Node2D
             return;
         }
 
+        _startupStatusRefreshCountdown -= delta;
+        if (!task.IsCompleted && _startupStatusRefreshCountdown > 0d)
+        {
+            return;
+        }
+
+        _startupStatusRefreshCountdown = 1d;
         var elapsed = _startupStopwatch?.Elapsed.TotalSeconds ?? 0d;
         var stage = (GameStartupStage)Volatile.Read(ref _startupStage);
         _startupLoadingOverlay?.UpdateStatus(StartupStageText(stage), elapsed);

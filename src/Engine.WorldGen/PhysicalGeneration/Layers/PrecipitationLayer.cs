@@ -8,8 +8,6 @@ using Engine.Constants;
 /// </summary>
 internal sealed class PrecipitationLayer : IPhysicalGeographyLayer
 {
-    private const int AirPathSteps = 18;
-
     public PhysicalGeographyLayerContract Contract { get; } = new(
         "precipitation",
         0x3b7d19,
@@ -17,7 +15,8 @@ internal sealed class PrecipitationLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Ocean |
         PhysicalGeographyFacts.OceanCurrents |
         PhysicalGeographyFacts.Temperature |
-        PhysicalGeographyFacts.Moisture,
+        PhysicalGeographyFacts.Moisture |
+        PhysicalGeographyFacts.AtmosphericFlow,
         PhysicalGeographyFacts.Precipitation,
         PhysicalGeographyFacts.Runoff |
         PhysicalGeographyFacts.Rivers |
@@ -98,12 +97,9 @@ internal sealed class PrecipitationLayer : IPhysicalGeographyLayer
         out int oceanEvaporation,
         out int barrier)
     {
-        barrier = AtmosphericFlow.TraceUpwindBarrier(
-            map,
-            context,
-            start,
-            AirPathSteps,
-            out var oceanSource);
+        _ = context;
+        barrier = map.PrecipitationBarriers[start];
+        var oceanSource = map.UpwindOceanSources[start];
         oceanEvaporation = oceanSource < 0
             ? 0
             : Math.Clamp(
@@ -118,8 +114,7 @@ internal sealed class PrecipitationLayer : IPhysicalGeographyLayer
         PhysicalGeographyGenerationContext context,
         int triangleIndex)
     {
-        AtmosphericFlow.WindDirection(map, context, triangleIndex, out var windX, out var windY);
-        var upwind = AtmosphericFlow.MostAlignedNeighbor(map, triangleIndex, -windX, -windY);
+        var upwind = map.UpwindTargets[triangleIndex];
         if (upwind < 0)
         {
             return 0;

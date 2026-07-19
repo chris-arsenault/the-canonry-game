@@ -30,6 +30,7 @@ public enum PhysicalGeographyView
     Aurora,
     Pressure,
     MagicComposite,
+    MagicHistory,
 }
 
 internal enum PhysicalMicrogeographyFeatureDetail

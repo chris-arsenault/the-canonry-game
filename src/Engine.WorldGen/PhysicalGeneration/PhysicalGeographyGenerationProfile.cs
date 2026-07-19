@@ -81,7 +81,7 @@ public sealed record PhysicalGeographyQualityTargets
 
     public CoverageTarget TributarySpineCoverage { get; init; } = new(0.075d, 0.075d);
 
-    public CoverageTarget WideRiverCoverage { get; init; } = new(0.01d, 0.01d);
+    public CoverageTarget WideRiverCoverage { get; init; } = new(0.015d, 0.015d);
 
     public CountTarget HigherOrderRiverTriangleCount { get; init; } = new(1, int.MaxValue);
 

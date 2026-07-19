@@ -20,6 +20,7 @@ internal sealed class GlacialErosionLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.OceanCurrents |
         PhysicalGeographyFacts.Warmth |
         PhysicalGeographyFacts.Temperature |
+        PhysicalGeographyFacts.AtmosphericFlow |
         PhysicalGeographyFacts.Moisture |
         PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.Runoff |

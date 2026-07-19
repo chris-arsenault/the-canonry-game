@@ -15,6 +15,7 @@ public sealed class PhysicalGeographyEvolutionSession
     private readonly OceanCurrentLayer _currents = new();
     private readonly WarmthSourceLayer _warmth = new();
     private readonly TemperatureLayer _temperature = new();
+    private readonly AtmosphericFlowLayer _atmosphericFlow = new();
     private readonly MoistureLayer _moisture = new();
     private readonly PrecipitationLayer _precipitation = new();
     private readonly RunoffLayer _runoff = new();
@@ -92,9 +93,7 @@ public sealed class PhysicalGeographyEvolutionSession
         RequirePhase(EvolutionPhase.Hydrology);
         ApplyDrainage();
         Apply(new FluvialErosionLayer());
-        ReconcileClimateAndDrainage();
         Apply(new SedimentTransportLayer());
-        ReconcileClimateAndDrainage();
         _phase = EvolutionPhase.Glaciation;
     }
 
@@ -127,9 +126,7 @@ public sealed class PhysicalGeographyEvolutionSession
     {
         RequirePhase(EvolutionPhase.Coasts);
         Apply(new ExternalCoastalForcingLayer());
-        ReconcileClimateAndDrainage();
         Apply(new CoastalErosionLayer());
-        ReconcileClimateAndDrainage();
         _phase = EvolutionPhase.History;
     }
 
@@ -177,6 +174,7 @@ public sealed class PhysicalGeographyEvolutionSession
         Apply(_currents, useEpoch);
         Apply(_warmth, useEpoch);
         Apply(_temperature, useEpoch);
+        Apply(_atmosphericFlow, useEpoch);
         Apply(_moisture, useEpoch);
         Apply(_precipitation, useEpoch);
     }

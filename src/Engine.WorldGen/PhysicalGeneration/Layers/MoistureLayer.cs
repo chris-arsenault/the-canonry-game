@@ -9,7 +9,8 @@ internal sealed class MoistureLayer : IPhysicalGeographyLayer
         0x5e29,
         PhysicalGeographyFacts.Elevation |
         PhysicalGeographyFacts.Ocean |
-        PhysicalGeographyFacts.Temperature,
+        PhysicalGeographyFacts.Temperature |
+        PhysicalGeographyFacts.AtmosphericFlow,
         PhysicalGeographyFacts.Moisture,
         PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.Runoff |
@@ -38,12 +39,8 @@ internal sealed class MoistureLayer : IPhysicalGeographyLayer
                     31d,
                     3) * 230d,
                 MidpointRounding.AwayFromZero);
-            var rainShadow = AtmosphericFlow.TraceUpwindBarrier(
-                map,
-                context,
-                triangleIndex,
-                14,
-                out _) * context.Profile.RainShadowStrength / 1000;
+            var rainShadow = map.MoistureBarriers[triangleIndex] *
+                context.Profile.RainShadowStrength / 1000;
             var thaw = Math.Max(0, map.Temperature[triangleIndex] - 260) / 3;
             map.Moisture[triangleIndex] = Math.Clamp(
                 80 + exposure + weather + thaw - rainShadow,

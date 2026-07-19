@@ -58,7 +58,8 @@ with direction vectors, wave exposure, rain/snow, sea-ice suitability, landform,
 hydrology, ice, sediment thickness, cumulative fluvial/glacial/coastal erosion,
 deposition, maximum ice thickness/flux, filled channel/floodplain/delta
 geometry, fractures, tectonic provinces, crust type, tectonic boundary
-type and strain, fire, aurora, pressure, and composite magic. These
+type and strain, fire, aurora, pressure, composite magic, and cumulative magic
+history colored by first-active epoch. These
 views visualize projected facts; they never classify terrain or feed values
 back to worldgen or the simulation.
 

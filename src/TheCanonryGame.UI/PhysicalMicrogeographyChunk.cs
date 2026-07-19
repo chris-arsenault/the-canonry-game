@@ -18,6 +18,13 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
     private static readonly Color CliffLine = new(0.20f, 0.18f, 0.20f, 0.95f);
     private static readonly Color PassLine = new(0.92f, 0.64f, 0.30f, 0.95f);
     private static readonly Color FractureLine = new(0.94f, 0.42f, 0.24f, 0.92f);
+    private static readonly string[] FirstMagicEpochFields =
+    [
+        "fire_first_epoch",
+        "aurora_first_epoch",
+        "pressure_first_epoch",
+        "pressure_coastal_first_epoch",
+    ];
 
     private PhysicalMicrogeographyLayer? _owner;
     private PhysicalGeographyCellProjection[] _cells = [];
@@ -109,7 +116,8 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
     {
         var view = _owner!.View;
         if (view is PhysicalGeographyView.Fire or PhysicalGeographyView.Aurora or
-            PhysicalGeographyView.Pressure or PhysicalGeographyView.MagicComposite)
+            PhysicalGeographyView.Pressure or PhysicalGeographyView.MagicComposite or
+            PhysicalGeographyView.MagicHistory)
         {
             return AggregateMagicColor(cell, view);
         }
@@ -216,7 +224,7 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             _ => UiTokens.Whisper,
         };
 
-    private static Color AggregateMagicColor(
+    private Color AggregateMagicColor(
         in PhysicalGeographyCellProjection cell,
         PhysicalGeographyView view) => view switch
         {
@@ -227,6 +235,7 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
                 cell.MeanFireIntensity,
                 cell.MeanAuroraIntensity,
                 cell.MeanPressureIntensity),
+            PhysicalGeographyView.MagicHistory => AggregateMagicHistoryColor(cell),
             _ => UiTokens.Whisper,
         };
 
@@ -278,7 +287,8 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
     {
         var view = _owner!.View;
         if (view is PhysicalGeographyView.Fire or PhysicalGeographyView.Aurora or
-            PhysicalGeographyView.Pressure or PhysicalGeographyView.MagicComposite)
+            PhysicalGeographyView.Pressure or PhysicalGeographyView.MagicComposite or
+            PhysicalGeographyView.MagicHistory)
         {
             return TriangleMagicColor(cell, triangleIndex, view);
         }
@@ -350,34 +360,34 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         in PhysicalGeographyCellProjection cell,
         int triangleIndex,
         PhysicalGeographyView view) => view switch
-    {
-        PhysicalGeographyView.OceanCurrents => OceanCurrentColor(
-            ScalarValue(cell, triangleIndex, "ocean_current_strength"),
-            ScalarValue(cell, triangleIndex, "ocean_current_heat")),
-        PhysicalGeographyView.WaveExposure =>
-            WaveExposureColor(ScalarValue(cell, triangleIndex, "wave_exposure")),
-        PhysicalGeographyView.Precipitation => PrecipitationColor(
-            ScalarValue(cell, triangleIndex, "rainfall"),
-            ScalarValue(cell, triangleIndex, "snowfall")),
-        PhysicalGeographyView.SeaIceSuitability => SeaIceSuitabilityColor(
-            ScalarValue(cell, triangleIndex, "sea_ice_suitability")),
-        _ => UiTokens.Whisper,
-    };
+        {
+            PhysicalGeographyView.OceanCurrents => OceanCurrentColor(
+                ScalarValue(cell, triangleIndex, "ocean_current_strength"),
+                ScalarValue(cell, triangleIndex, "ocean_current_heat")),
+            PhysicalGeographyView.WaveExposure =>
+                WaveExposureColor(ScalarValue(cell, triangleIndex, "wave_exposure")),
+            PhysicalGeographyView.Precipitation => PrecipitationColor(
+                ScalarValue(cell, triangleIndex, "rainfall"),
+                ScalarValue(cell, triangleIndex, "snowfall")),
+            PhysicalGeographyView.SeaIceSuitability => SeaIceSuitabilityColor(
+                ScalarValue(cell, triangleIndex, "sea_ice_suitability")),
+            _ => UiTokens.Whisper,
+        };
 
     private static Color TriangleLandscapeProcessColor(
         in PhysicalMicrotriangleProjection triangle,
         PhysicalGeographyView view) => view switch
-    {
-        PhysicalGeographyView.Landform => LandformColor(triangle.LandformCode),
-        PhysicalGeographyView.Hydrology => HydrologyColor(triangle),
-        PhysicalGeographyView.RiverGeometry => RiverGeometryColor(
-            triangle.RiverChannelStrength,
-            triangle.FloodplainIntensity,
-            triangle.DeltaIntensity),
-        PhysicalGeographyView.Ice => IceColor(triangle.IceThickness),
-        PhysicalGeographyView.Fractures => FractureColor(triangle.FractureConductance),
-        _ => UiTokens.Whisper,
-    };
+        {
+            PhysicalGeographyView.Landform => LandformColor(triangle.LandformCode),
+            PhysicalGeographyView.Hydrology => HydrologyColor(triangle),
+            PhysicalGeographyView.RiverGeometry => RiverGeometryColor(
+                triangle.RiverChannelStrength,
+                triangle.FloodplainIntensity,
+                triangle.DeltaIntensity),
+            PhysicalGeographyView.Ice => IceColor(triangle.IceThickness),
+            PhysicalGeographyView.Fractures => FractureColor(triangle.FractureConductance),
+            _ => UiTokens.Whisper,
+        };
 
     private Color TriangleHistoryColor(
         in PhysicalGeographyCellProjection cell,
@@ -427,8 +437,67 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             PhysicalGeographyView.Aurora => ScalarColor(cell, triangleIndex, "aurora_intensity", AuroraColor),
             PhysicalGeographyView.Pressure => ScalarColor(cell, triangleIndex, "pressure_intensity", PressureColor),
             PhysicalGeographyView.MagicComposite => MagicCompositeTriangleColor(cell, triangleIndex),
+            PhysicalGeographyView.MagicHistory => MagicHistoryTriangleColor(cell, triangleIndex),
             _ => UiTokens.Whisper,
         };
+
+    private Color AggregateMagicHistoryColor(in PhysicalGeographyCellProjection cell)
+    {
+        var epochCount = Math.Max(1, _owner!.Geography.GenerationEpochCount);
+        return MagicHistoryColor(
+            AggregateScalarValue(cell, "fire_history") / epochCount,
+            AggregateScalarValue(cell, "aurora_history") / epochCount,
+            AggregateScalarValue(cell, "pressure_history") / epochCount,
+            AggregateScalarValue(cell, "pressure_coastal_history") / epochCount,
+            AggregateFirstMagicEpoch(cell),
+            epochCount);
+    }
+
+    private Color MagicHistoryTriangleColor(
+        in PhysicalGeographyCellProjection cell,
+        int triangleIndex)
+    {
+        var epochCount = Math.Max(1, _owner!.Geography.GenerationEpochCount);
+        return MagicHistoryColor(
+            ScalarValue(cell, triangleIndex, "fire_history") / epochCount,
+            ScalarValue(cell, triangleIndex, "aurora_history") / epochCount,
+            ScalarValue(cell, triangleIndex, "pressure_history") / epochCount,
+            ScalarValue(cell, triangleIndex, "pressure_coastal_history") / epochCount,
+            FirstMagicEpoch(cell, triangleIndex),
+            epochCount);
+    }
+
+    private int AggregateFirstMagicEpoch(in PhysicalGeographyCellProjection cell)
+    {
+        var first = int.MaxValue;
+        for (var triangleIndex = 0;
+            triangleIndex < PhysicalGeographyCodes.MicrotrianglesPerHex;
+            triangleIndex++)
+        {
+            var candidate = FirstMagicEpoch(cell, triangleIndex);
+            if (candidate >= 0)
+            {
+                first = Math.Min(first, candidate);
+            }
+        }
+
+        return first == int.MaxValue ? -1 : first;
+    }
+
+    private int FirstMagicEpoch(in PhysicalGeographyCellProjection cell, int triangleIndex)
+    {
+        var first = int.MaxValue;
+        foreach (var stableName in FirstMagicEpochFields)
+        {
+            var candidate = ScalarValue(cell, triangleIndex, stableName);
+            if (candidate >= 0)
+            {
+                first = Math.Min(first, candidate);
+            }
+        }
+
+        return first == int.MaxValue ? -1 : first;
+    }
 
     private Color ScalarColor(
         in PhysicalGeographyCellProjection cell,
@@ -887,6 +956,27 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             Math.Clamp(0.07f + (0.82f * fireStrength) + (0.38f * pressureStrength), 0f, 1f),
             Math.Clamp(0.08f + (0.76f * auroraStrength) + (0.12f * fireStrength), 0f, 1f),
             Math.Clamp(0.13f + (0.56f * auroraStrength) + (0.68f * pressureStrength), 0f, 1f));
+    }
+
+    private static Color MagicHistoryColor(
+        int fire,
+        int aurora,
+        int pressure,
+        int coastalPressure,
+        int firstEpoch,
+        int epochCount)
+    {
+        if (firstEpoch < 0)
+        {
+            return new Color(0.07f, 0.08f, 0.11f);
+        }
+
+        var history = MagicCompositeColor(fire, aurora, pressure);
+        history = history.Lerp(
+            new Color(0.70f, 0.48f, 0.84f),
+            Math.Clamp(coastalPressure / 1000f, 0f, 1f) * 0.42f);
+        var ancient = 1f - Math.Clamp(firstEpoch / (float)Math.Max(1, epochCount - 1), 0f, 1f);
+        return history.Lerp(new Color(0.94f, 0.78f, 0.42f), ancient * 0.24f);
     }
 
     private static Color LandformColor(int landformCode) =>

@@ -94,6 +94,7 @@ internal sealed partial class GameRenderTree
     private static PhysicalGeographyView SpecialGeographyViewFor(string viewKey) =>
         GeneratedProcessViewFor(viewKey) ??
         TectonicGeographyViewFor(viewKey) ??
+        MagicGeographyViewFor(viewKey) ??
         RemainingGeographyViewFor(viewKey);
 
     private static PhysicalGeographyView? GeneratedProcessViewFor(string viewKey) => viewKey switch
@@ -124,11 +125,17 @@ internal sealed partial class GameRenderTree
         MapArea.GeographyViewHydrology => PhysicalGeographyView.Hydrology,
         MapArea.GeographyViewIce => PhysicalGeographyView.Ice,
         MapArea.GeographyViewFractures => PhysicalGeographyView.Fractures,
+        _ => PhysicalGeographyView.Surface,
+    };
+
+    private static PhysicalGeographyView? MagicGeographyViewFor(string viewKey) => viewKey switch
+    {
         MapArea.GeographyViewFire => PhysicalGeographyView.Fire,
         MapArea.GeographyViewAurora => PhysicalGeographyView.Aurora,
         MapArea.GeographyViewPressure => PhysicalGeographyView.Pressure,
         MapArea.GeographyViewMagicComposite => PhysicalGeographyView.MagicComposite,
-        _ => PhysicalGeographyView.Surface,
+        MapArea.GeographyViewMagicHistory => PhysicalGeographyView.MagicHistory,
+        _ => null,
     };
 
     private static string GeographyViewKey(PhysicalGeographyView view) =>
@@ -150,6 +157,7 @@ internal sealed partial class GameRenderTree
     private static string SpecialGeographyViewKey(PhysicalGeographyView view) =>
         GeneratedProcessViewKey(view) ??
         TectonicGeographyViewKey(view) ??
+        MagicGeographyViewKey(view) ??
         RemainingGeographyViewKey(view);
 
     private static string? GeneratedProcessViewKey(PhysicalGeographyView view) => view switch
@@ -180,11 +188,17 @@ internal sealed partial class GameRenderTree
         PhysicalGeographyView.Hydrology => MapArea.GeographyViewHydrology,
         PhysicalGeographyView.Ice => MapArea.GeographyViewIce,
         PhysicalGeographyView.Fractures => MapArea.GeographyViewFractures,
+        _ => MapArea.GeographyViewSurface,
+    };
+
+    private static string? MagicGeographyViewKey(PhysicalGeographyView view) => view switch
+    {
         PhysicalGeographyView.Fire => MapArea.GeographyViewFire,
         PhysicalGeographyView.Aurora => MapArea.GeographyViewAurora,
         PhysicalGeographyView.Pressure => MapArea.GeographyViewPressure,
         PhysicalGeographyView.MagicComposite => MapArea.GeographyViewMagicComposite,
-        _ => MapArea.GeographyViewSurface,
+        PhysicalGeographyView.MagicHistory => MapArea.GeographyViewMagicHistory,
+        _ => null,
     };
 
     private static bool SetLayerVisibility(bool current, bool visible, Action<bool> apply)

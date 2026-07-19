@@ -9,6 +9,7 @@ using Engine.Constants;
 /// </summary>
 public sealed record DomainPhysicalGeographyBlueprint(
     int Radius,
+    int GenerationEpochCount,
     IReadOnlyList<string> MaterialPalette,
     IReadOnlyList<string> SurfacePalette,
     IReadOnlyList<string> FeaturePalette,
@@ -17,7 +18,7 @@ public sealed record DomainPhysicalGeographyBlueprint(
     IReadOnlyList<DomainPhysicalMicrotriangle> Microtriangles)
 {
     public static DomainPhysicalGeographyBlueprint Empty { get; } =
-        new(0, [], [], [], [], [], []);
+        new(0, 0, [], [], [], [], [], []);
 
     public void Validate()
     {
@@ -40,7 +41,7 @@ public sealed record DomainPhysicalGeographyBlueprint(
 
     private void ValidateEmpty()
     {
-        if (MaterialPalette.Count != 0 || SurfacePalette.Count != 0 ||
+        if (GenerationEpochCount != 0 || MaterialPalette.Count != 0 || SurfacePalette.Count != 0 ||
             FeaturePalette.Count != 0 || ScalarFields.Count != 0 ||
             Cells.Count != 0 || Microtriangles.Count != 0)
         {
@@ -51,7 +52,8 @@ public sealed record DomainPhysicalGeographyBlueprint(
     private void ValidateCoverage()
     {
         var expectedCells = checked((3 * Radius * Radius) + (3 * Radius) + 1);
-        if (MaterialPalette.Count == 0 || SurfacePalette.Count == 0 || FeaturePalette.Count > 64 ||
+        if (GenerationEpochCount <= 0 || MaterialPalette.Count == 0 ||
+            SurfacePalette.Count == 0 || FeaturePalette.Count > 64 ||
             Cells.Count != expectedCells ||
             Microtriangles.Count != checked(expectedCells * PhysicalGeographyCodes.MicrotrianglesPerHex))
         {

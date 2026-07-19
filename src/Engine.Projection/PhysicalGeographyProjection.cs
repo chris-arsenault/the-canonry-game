@@ -23,6 +23,7 @@ public sealed class PhysicalGeographyProjection
 
     private PhysicalGeographyProjection(
         int radius,
+        int generationEpochCount,
         string[] materialPalette,
         string[] surfacePalette,
         string[] featurePalette,
@@ -32,6 +33,7 @@ public sealed class PhysicalGeographyProjection
         PhysicalMicrotriangleProjection[] microtriangles)
     {
         Radius = radius;
+        GenerationEpochCount = generationEpochCount;
         _materialPalette = materialPalette;
         _surfacePalette = surfacePalette;
         _featurePalette = featurePalette;
@@ -56,9 +58,11 @@ public sealed class PhysicalGeographyProjection
     }
 
     public static PhysicalGeographyProjection Empty { get; } =
-        new(0, [], [], [], [], [], [], []);
+        new(0, 0, [], [], [], [], [], [], []);
 
     public int Radius { get; }
+
+    public int GenerationEpochCount { get; }
 
     public bool HasData => Radius > 0 && _cells.Length > 0;
 
@@ -83,6 +87,7 @@ public sealed class PhysicalGeographyProjection
         blueprint.Validate();
         return new PhysicalGeographyProjection(
             blueprint.Radius,
+            blueprint.GenerationEpochCount,
             blueprint.MaterialPalette.ToArray(),
             blueprint.SurfacePalette.ToArray(),
             blueprint.FeaturePalette.ToArray(),

@@ -221,7 +221,8 @@ glacial carving, coastal evolution, fractures, channel widening, floodplains,
 and delta fans. Ice Remembers interleaves fire heat, aurora storage, and ocean
 pressure with those physical phases, translating pressure into a generic
 coastal-forcing field rather than importing domain concepts into physical
-worldgen. Current magic fields and cumulative epoch histories remain separate;
+worldgen. Current magic fields, cumulative epoch histories, and first-active
+epoch indexes remain separate;
 feature interactions and final varied cold land/water surfaces classify only
 after the final physical reconciliation.
 It retains natural surfaces, anomaly flags, and all three intensity fields while
@@ -260,7 +261,8 @@ latent disk and is separate from the event-backed `HexMapProjection`, which
 continues to represent only materialized cells and their current terrain. The
 blueprint and projection retain every natural/final surface, material,
 landform, hydrology, river channel/floodplain/delta coverage, climate, ice, bedrock, sediment, cumulative erosion and
-deposition, maximum glaciation, wave history, fracture, fire, aurora, pressure, and anomaly
+deposition, maximum glaciation, wave history, fracture, current and cumulative fire/aurora/pressure,
+their first-active epochs, and anomaly
 fact. The UI can therefore inspect generated geography without reading live
 kernel state or making latent cells part of gameplay.
 
