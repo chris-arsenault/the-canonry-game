@@ -43,6 +43,7 @@ public sealed class PhysicalGeographyEvolutionSession
         Apply(new ContinentalDomainLayer());
         Apply(new TectonicUpliftLayer());
         Apply(new LandscapeInitializationLayer());
+        Apply(new ImpactCrateringLayer());
         Apply(new FractureNetworkLayer());
         Apply(new GeothermalLayer());
     }

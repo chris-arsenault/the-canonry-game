@@ -7,7 +7,8 @@ internal sealed class FractureNetworkLayer : IPhysicalGeographyLayer
         0x6f9d2b1,
         PhysicalGeographyFacts.TectonicProvinces |
         PhysicalGeographyFacts.ContinentalDomains |
-        PhysicalGeographyFacts.Elevation,
+        PhysicalGeographyFacts.Elevation |
+        PhysicalGeographyFacts.Impacts,
         PhysicalGeographyFacts.Fractures,
         PhysicalGeographyFacts.Geothermal | PhysicalGeographyFacts.Validated);
 
@@ -15,7 +16,7 @@ internal sealed class FractureNetworkLayer : IPhysicalGeographyLayer
     {
         if (!context.IsEvolutionEpoch)
         {
-            map.FractureConductance.Fill(context.Profile.FractureConductanceFloor);
+            InitializeFractureFloor(map, context.Profile.FractureConductanceFloor);
         }
 
         var branchCount = context.TectonicStrength == 0
@@ -55,6 +56,16 @@ internal sealed class FractureNetworkLayer : IPhysicalGeographyLayer
                 : SelectSeparatedRoot(map, candidates, previousRoots, branch);
             previousRoots.Add(root);
             GrowBranch(map, context, root, branch, networkNodes);
+        }
+    }
+
+    private static void InitializeFractureFloor(PhysicalGeographyField map, int floor)
+    {
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            map.FractureConductance[triangleIndex] = Math.Max(
+                map.FractureConductance[triangleIndex],
+                floor);
         }
     }
 

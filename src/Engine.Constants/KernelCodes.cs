@@ -86,9 +86,10 @@ public static class PhysicalGeographyFeatureCodes
     public const int MagmaChamber = 1 << 4;
     public const int DeadGodLocus = 1 << 5;
     public const int MantlePlume = 1 << 6;
+    public const int ImpactCenter = 1 << 7;
 
     public const int All = GeothermalVent | PermanentSeaIce | PermanentIceMargin |
-        FireCore | MagmaChamber | DeadGodLocus | MantlePlume;
+        FireCore | MagmaChamber | DeadGodLocus | MantlePlume | ImpactCenter;
 }
 
 public static class BehaviorOperationCodes

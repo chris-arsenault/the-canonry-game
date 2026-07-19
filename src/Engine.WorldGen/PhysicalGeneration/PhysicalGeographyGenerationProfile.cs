@@ -182,6 +182,24 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int MaximumSedimentDepositionPerPass { get; init; } = 18;
 
+    public int ImpactCraterCount { get; init; } = 6;
+
+    public double ImpactMinimumRadius { get; init; } = 5d;
+
+    public double ImpactMaximumRadius { get; init; } = 18d;
+
+    public double ImpactMinimumSpacing { get; init; } = 22d;
+
+    public int ImpactDepthRatio { get; init; } = 280;
+
+    public int ImpactRimHeightRatio { get; init; } = 90;
+
+    public int ImpactEjectaFraction { get; init; } = 520;
+
+    public int ImpactFractureStrength { get; init; } = 760;
+
+    public double ImpactThermalRadiusThreshold { get; init; } = 12d;
+
     public int IceAccumulationStep { get; init; } = 420;
 
     public int IceAblationStep { get; init; } = 260;
@@ -405,6 +423,7 @@ public sealed record PhysicalGeographyGenerationProfile
 
     private bool BaseLandscapeCountsAreInvalid() =>
         Padding <= 0 || ElevationScale <= 0 || FluvialErosionIterations <= 0 ||
+        ImpactCraterCount < 0 ||
         MinimumLakeTriangles <= 0 || MinimumRiverReachTriangles <= 0 ||
         OceanCurrentSmoothingIterations <= 0 || OceanCurrentHeatIterations <= 0 ||
         OceanCurrentFetchSteps <= 0 || RiverGeometryCountsAreInvalid();
@@ -438,6 +457,8 @@ public sealed record PhysicalGeographyGenerationProfile
 
     private bool LandscapeScaleIsInvalid() =>
         ElevationVariationScale <= 0d || FluvialErosionStrength <= 0d ||
+        ImpactMinimumRadius <= 0d || ImpactMaximumRadius < ImpactMinimumRadius ||
+        ImpactMinimumSpacing <= 0d || ImpactThermalRadiusThreshold <= 0d ||
         WarmthPocketMinRadius <= 0d || HeartWarmthRadius <= 0d ||
         SeaIceVariationScale <= 0d;
 
@@ -491,12 +512,17 @@ public sealed record PhysicalGeographyGenerationProfile
 
     private bool LandscapeEvolutionRangesAreInvalid() =>
         !IsUnitScalar(SedimentTransportFraction) ||
+        ImpactRangesAreInvalid() ||
         GlacialRunoffRangesAreInvalid() ||
         SedimentDepositionSlopeThreshold < 0 ||
         !IsUnitScalar(CoastalErosionWaveThreshold) ||
         !IsUnitScalar(CoastalErosionStrength) ||
         !IsUnitScalar(CoastalDepositionFraction) ||
         CoastalSeaLevelChange is < -1000 or > 1000 || RiverGeometryRangesAreInvalid();
+
+    private bool ImpactRangesAreInvalid() =>
+        !IsUnitScalar(ImpactDepthRatio) || !IsUnitScalar(ImpactRimHeightRatio) ||
+        !IsUnitScalar(ImpactEjectaFraction) || !IsUnitScalar(ImpactFractureStrength);
 
     private bool GlacialRunoffRangesAreInvalid() =>
         GlacialMeltTemperatureFloor is < 0 or > 1000 ||

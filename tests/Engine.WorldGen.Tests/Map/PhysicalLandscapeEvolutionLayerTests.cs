@@ -15,6 +15,27 @@ public sealed class PhysicalLandscapeEvolutionLayerTests
     }
 
     [Fact]
+    public void ImpactCratering_ExcavatesFracturedBasinsRaisesRimsAndDepositsConservedEjecta()
+    {
+        var result = PhysicalGeographyLayerTestHarness.GenerateThrough<ImpactCrateringLayer>();
+        Assert.Contains(result.Map.ImpactExcavation.ToArray(), value => value > 0);
+        Assert.Contains(result.Map.ImpactRimUplift.ToArray(), value => value > 0);
+        Assert.Contains(result.Map.ImpactEjectaThickness.ToArray(), value => value > 0);
+        Assert.Contains(
+            Enumerable.Range(0, result.Map.Grid.TriangleCount),
+            index => (result.Map.FeatureFlags[index] &
+                Engine.Constants.PhysicalGeographyFeatureCodes.ImpactCenter) != 0 &&
+                result.Map.FractureConductance[index] > 0);
+        Assert.Equal(
+            result.Map.SedimentProducedTotal,
+            result.Map.SedimentDepositedTotal + result.Map.SedimentExportedTotal);
+
+        result.Map.ImpactHeat[0] = -1;
+        Assert.Throws<InvalidOperationException>(() =>
+            result.Layer.Validate(result.Map, result.Context));
+    }
+
+    [Fact]
     public void FluvialErosion_CutsBedrockAndProducesConservedSedimentSupply()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<FluvialErosionLayer>();
@@ -22,7 +43,8 @@ public sealed class PhysicalLandscapeEvolutionLayerTests
         Assert.Contains(result.Map.SedimentSupply.ToArray(), value => value > 0);
         Assert.Equal(
             result.Map.SedimentProducedTotal,
-            result.Map.SedimentSupply.ToArray().Sum(value => (long)value));
+            result.Map.SedimentDepositedTotal + result.Map.SedimentExportedTotal +
+                result.Map.SedimentSupply.ToArray().Sum(value => (long)value));
 
         result.Map.CumulativeFluvialErosion[0] = -1;
         Assert.Throws<InvalidOperationException>(() =>

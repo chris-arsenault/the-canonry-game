@@ -16,6 +16,7 @@ internal sealed class PhysicalGeographyValidationLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.LandIce |
         PhysicalGeographyFacts.SeaIce |
         PhysicalGeographyFacts.Landforms |
+        PhysicalGeographyFacts.Impacts |
         PhysicalGeographyFacts.LandscapeHistory |
         PhysicalGeographyFacts.SedimentTransport |
         PhysicalGeographyFacts.GlacialEvolution |

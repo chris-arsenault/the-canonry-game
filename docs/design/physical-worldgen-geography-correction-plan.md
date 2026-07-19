@@ -147,13 +147,13 @@ Primary files:
 
 ### 5. Sparse physical impacts
 
-- [ ] Add an early domain-neutral impact layer with configurable sparse crater
+- [x] Add an early domain-neutral impact layer with configurable sparse crater
   count and size distribution.
-- [ ] Excavate basins, raise fractured rims, produce ejecta/sediment, and expose
+- [x] Excavate basins, raise fractured rims, produce ejecta/sediment, and expose
   heat only where impact scale warrants it.
-- [ ] Run later hydrology, erosion, and glaciation over impacts so they become
+- [x] Run later hydrology, erosion, and glaciation over impacts so they become
   lakes, breached basins, buried rims, or ice-filled scars rather than decals.
-- [ ] Keep Ice Remembers magic free to react to impact facts without defining
+- [x] Keep Ice Remembers magic free to react to impact facts without defining
   the physical crater.
 
 Primary files:

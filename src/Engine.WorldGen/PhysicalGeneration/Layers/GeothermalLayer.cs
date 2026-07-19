@@ -36,13 +36,16 @@ internal sealed class GeothermalLayer : IPhysicalGeographyLayer
                 _ => 0d,
             };
             var fractureHeat = map.FractureConductance[triangleIndex] / 1000d * 0.28d;
+            var impactHeat = map.ImpactHeat[triangleIndex] / 1000d * 0.36d /
+                Math.Max(1, map.CompletedEpochCount + 1);
             var broad = PhysicalNoise.UnitNoise(
                 map.Grid.TriangleX(triangleIndex),
                 map.Grid.TriangleY(triangleIndex),
                 context.Seed,
                 Math.Max(14d, map.Grid.Radius * 0.34d),
                 2) * 0.10d;
-            map.Geothermal[triangleIndex] = ScaleUnit(boundaryHeat + fractureHeat + broad);
+            map.Geothermal[triangleIndex] = ScaleUnit(
+                boundaryHeat + fractureHeat + impactHeat + broad);
         }
 
         PaintMantlePlumes(map, context);

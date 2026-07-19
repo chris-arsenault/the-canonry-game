@@ -39,6 +39,7 @@ internal sealed class PhysicalGeographyPipeline
             new ContinentalDomainLayer(),
             new TectonicUpliftLayer(),
             new LandscapeInitializationLayer(),
+            new ImpactCrateringLayer(),
             ocean,
             new FluvialErosionLayer(),
             ocean,
