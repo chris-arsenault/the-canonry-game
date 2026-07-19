@@ -39,7 +39,8 @@ Every latent physical surface hex has 24 canonically indexed microtriangles.
 Each triangle stores a physical material, landform, elevation, stable climate
 and geothermal values, water kind/depth/body, drainage basin, downstream edge,
 flow accumulation, river order, ocean-current direction/strength/heat, wave
-exposure, rainfall, snowfall, sea-ice suitability, and permanent feature flags. Physical materials
+exposure, rainfall, snowfall, sea-ice suitability, bedrock elevation, sediment
+thickness, cumulative erosion/deposition, maximum glaciation, and permanent feature flags. Physical materials
 such as bedrock, scree, tundra soil, glacial ice, marine sediment, reef stone,
 and geothermal crust are not gameplay terrain IDs. Stable within-hex and
 across-edge adjacency makes ridges, coasts, drainage, and rivers continuous
@@ -50,13 +51,15 @@ establish continental assemblies and oceanic crust. Relative motion types their
 boundaries as convergent, divergent, or transform; continuous strain then drives
 mountain systems, rifts, fractures, and mostly submarine island arcs. Rare
 intraplate mantle plumes supplement rather than replace those tectonic heat
-sources. Fluvial erosion carves ancestral valleys from that relief.
+sources. Fluvial stream power incrementally removes sediment and bedrock,
+routes the produced sediment downstream, deposits it in low-energy basins and
+mouths, and accounts for material exported from the modeled field.
 Connected-component and boundary-flood passes identify landmasses,
 continental shelves, bathymetry, and the exterior ocean. Priority-flood
 drainage then creates coherent lakes, accumulated runoff, tributaries, and
 watersheds. A cold derived climate supplies multiple separated warmth pockets
 across ocean, shore, inland, and geothermal peak sites; the startup heart
-overlaps one pocket but does not own the world's only warmth. Ice thickness and
+overlaps one pocket but does not own the world's only warmth.
 Currents follow broad curl forcing while responding to basin depth and coast
 normals. They transport geothermal heat, moderate selected habitats, expose
 coasts to waves, and break up sea-ice suitability. Coherent atmospheric paths
@@ -64,8 +67,14 @@ retain orographic moisture shadows and split precipitation into rain and snow;
 only precipitation and melt on dry ground create local runoff. Standing ocean
 and lake triangles contribute no local water merely by existing. Equal drainage
 choices use an outlet-facing geometric preference, never triangle storage order.
-Ice flux overprints the earlier drainage with U-valleys, cirques, fjords, and
-moraines. A branching fracture network finishes the physical inputs. The padded
+Ice mass accumulates and ablates incrementally; its retained flow graph drives
+separate glacial erosion and terminus deposition passes. U-valleys, cirques,
+fjords, and moraines are then classified from cumulative erosion, deposition,
+and maximum flux rather than stamped into elevation. Wave/current exposure and
+shelf geometry likewise drive a separate coastal erosion/deposition pass. Each
+surface-changing process invalidates and reconciles ocean, bathymetry, climate,
+and drainage before later processes consume them. A branching fracture network
+finishes the physical inputs. The padded
 result is cropped to the configured latent disk, so the configured edge is not
 automatically a coast or watershed.
 
@@ -115,7 +124,8 @@ as its fog boundary. At close zoom it draws the 24 triangles of each revealed,
 unmodified hex; at distant zoom an explicit worldgen-inspection mode draws
 aggregate latent hexes. Terrain, final and natural surface, material,
 elevation, temperature, moisture, geothermal, currents, wave exposure,
-precipitation, sea-ice suitability, landform, hydrology, ice,
+precipitation, sea-ice suitability, landform, hydrology, ice, sediment,
+cumulative erosion, maximum glaciation,
 fracture, fire, aurora, pressure, and composite-magic views expose how the
 synthesized terrain was chosen. Chunk culling keeps triangle drawing limited to
 the visible field. Close zoom draws triangle-scale features without overlaying

@@ -141,6 +141,11 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             return AggregateTectonicColor(cell, view);
         }
 
+        if (IsHistoryView(view))
+        {
+            return AggregateHistoryColor(cell, view);
+        }
+
         return view <= PhysicalGeographyView.Geothermal
             ? AggregateClimateColor(cell, view)
             : AggregateProcessColor(cell, view);
@@ -175,6 +180,22 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             PhysicalGeographyView.Ice => IceColor(cell.MeanIceThickness),
             PhysicalGeographyView.Fractures => FractureColor(
                 System.Numerics.BitOperations.PopCount((uint)cell.FractureEdgeMask) * 1000 / 6),
+            _ => UiTokens.Whisper,
+        };
+
+    private Color AggregateHistoryColor(
+        in PhysicalGeographyCellProjection cell,
+        PhysicalGeographyView view) => view switch
+        {
+            PhysicalGeographyView.Sediment => SedimentColor(
+                AggregateScalarValue(cell, "sediment_thickness"),
+                AggregateScalarValue(cell, "deposition_history")),
+            PhysicalGeographyView.ErosionHistory => ErosionHistoryColor(
+                AggregateScalarValue(cell, "fluvial_erosion_history"),
+                AggregateScalarValue(cell, "glacial_erosion_history"),
+                AggregateScalarValue(cell, "coastal_erosion_history")),
+            PhysicalGeographyView.MaximumGlaciation =>
+                MaximumGlaciationColor(AggregateScalarValue(cell, "maximum_ice_thickness")),
             _ => UiTokens.Whisper,
         };
 
@@ -288,6 +309,11 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             return TriangleTectonicColor(cell, triangleIndex, view);
         }
 
+        if (IsHistoryView(view))
+        {
+            return TriangleHistoryColor(cell, triangleIndex, view);
+        }
+
         return view <= PhysicalGeographyView.Geothermal
             ? TriangleClimateColor(triangle, view)
             : TriangleProcessColor(cell, triangleIndex, triangle, view);
@@ -327,8 +353,28 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             _ => UiTokens.Whisper,
         };
 
+    private Color TriangleHistoryColor(
+        in PhysicalGeographyCellProjection cell,
+        int triangleIndex,
+        PhysicalGeographyView view) => view switch
+        {
+            PhysicalGeographyView.Sediment => SedimentColor(
+                ScalarValue(cell, triangleIndex, "sediment_thickness"),
+                ScalarValue(cell, triangleIndex, "deposition_history")),
+            PhysicalGeographyView.ErosionHistory => ErosionHistoryColor(
+                ScalarValue(cell, triangleIndex, "fluvial_erosion_history"),
+                ScalarValue(cell, triangleIndex, "glacial_erosion_history"),
+                ScalarValue(cell, triangleIndex, "coastal_erosion_history")),
+            PhysicalGeographyView.MaximumGlaciation => MaximumGlaciationColor(
+                ScalarValue(cell, triangleIndex, "maximum_ice_thickness")),
+            _ => UiTokens.Whisper,
+        };
+
     private static bool IsTectonicView(PhysicalGeographyView view) =>
         view is >= PhysicalGeographyView.TectonicProvinces and <= PhysicalGeographyView.TectonicStrain;
+
+    private static bool IsHistoryView(PhysicalGeographyView view) =>
+        view is >= PhysicalGeographyView.Sediment and <= PhysicalGeographyView.MaximumGlaciation;
 
     private Color TriangleTectonicColor(
         in PhysicalGeographyCellProjection cell,
@@ -721,6 +767,30 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         new Color(0.08f, 0.16f, 0.28f).Lerp(
             new Color(0.88f, 0.97f, 1f),
             Math.Clamp(suitability / 1000f, 0f, 1f));
+
+    private static Color SedimentColor(int thickness, int deposition)
+    {
+        var amount = Math.Clamp((thickness + (deposition / 2f)) / 180f, 0f, 1f);
+        return new Color(0.13f, 0.14f, 0.16f).Lerp(
+            new Color(0.73f, 0.58f, 0.35f),
+            amount);
+    }
+
+    private static Color ErosionHistoryColor(int fluvial, int glacial, int coastal)
+    {
+        var maximum = Math.Max(1f, Math.Max(fluvial, Math.Max(glacial, coastal)));
+        var intensity = Math.Clamp((fluvial + glacial + coastal) / 240f, 0f, 1f);
+        var process = new Color(
+            0.18f + (0.22f * coastal / maximum),
+            0.16f + (0.55f * fluvial / maximum),
+            0.20f + (0.66f * glacial / maximum));
+        return new Color(0.08f, 0.09f, 0.11f).Lerp(process, intensity);
+    }
+
+    private static Color MaximumGlaciationColor(int thickness) =>
+        new Color(0.16f, 0.12f, 0.18f).Lerp(
+            new Color(0.78f, 0.94f, 1f),
+            Math.Clamp(thickness / 1000f, 0f, 1f));
 
     private static Color IceColor(int iceThickness) =>
         new Color(0.13f, 0.18f, 0.24f).Lerp(

@@ -27,4 +27,9 @@ internal enum PhysicalGeographyFacts : ulong
     TectonicProvinces = 1UL << 20,
     OceanCurrents = 1UL << 21,
     Precipitation = 1UL << 22,
+    LandscapeHistory = 1UL << 23,
+    SedimentSupply = 1UL << 24,
+    SedimentTransport = 1UL << 25,
+    GlacialEvolution = 1UL << 26,
+    CoastalEvolution = 1UL << 27,
 }

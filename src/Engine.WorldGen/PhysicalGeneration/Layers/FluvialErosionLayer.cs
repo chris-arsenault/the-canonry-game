@@ -7,8 +7,10 @@ internal sealed class FluvialErosionLayer : IPhysicalGeographyLayer
     public PhysicalGeographyLayerContract Contract { get; } = new(
         "ancestral-fluvial-erosion",
         0,
-        PhysicalGeographyFacts.Elevation | PhysicalGeographyFacts.Ocean,
-        PhysicalGeographyFacts.Elevation,
+        PhysicalGeographyFacts.Elevation |
+        PhysicalGeographyFacts.Ocean |
+        PhysicalGeographyFacts.LandscapeHistory,
+        PhysicalGeographyFacts.Elevation | PhysicalGeographyFacts.SedimentSupply,
         PhysicalGeographyFacts.Ocean |
         PhysicalGeographyFacts.Bathymetry |
         PhysicalGeographyFacts.Landmasses |
@@ -31,7 +33,6 @@ internal sealed class FluvialErosionLayer : IPhysicalGeographyLayer
             _ = PriorityFlood.FillFromOcean(map);
             var targets = ConditionedFlowResolver.ResolveLandTargets(map);
             var accumulation = AccumulateContributingArea(map, targets);
-            var original = map.Elevation.ToArray();
             for (var triangleIndex = 0; triangleIndex < targets.Length; triangleIndex++)
             {
                 var target = targets[triangleIndex];
@@ -45,7 +46,17 @@ internal sealed class FluvialErosionLayer : IPhysicalGeographyLayer
                 var cut = (int)Math.Round(
                     Math.Min(22d, streamPower * context.Profile.FluvialErosionStrength),
                     MidpointRounding.AwayFromZero);
-                map.Elevation[triangleIndex] = original[triangleIndex] - cut;
+                if (cut <= 0)
+                {
+                    continue;
+                }
+
+                _ = LandscapeSurface.Erode(map, triangleIndex, cut);
+                map.CumulativeFluvialErosion[triangleIndex] = checked(
+                    map.CumulativeFluvialErosion[triangleIndex] + cut);
+                map.SedimentSupply[triangleIndex] = checked(
+                    map.SedimentSupply[triangleIndex] + cut);
+                map.SedimentProducedTotal = checked(map.SedimentProducedTotal + cut);
             }
         }
     }
@@ -53,6 +64,7 @@ internal sealed class FluvialErosionLayer : IPhysicalGeographyLayer
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
         _ = context;
+        LandscapeSurface.Validate(map);
         foreach (var value in map.Elevation)
         {
             if (value is < -2000 or > 2000)

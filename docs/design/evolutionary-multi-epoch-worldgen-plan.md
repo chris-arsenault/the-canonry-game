@@ -161,20 +161,20 @@ geological memory, while coasts are mostly sea-level contours.
 
 Implementation:
 
-- [ ] Add bedrock, sediment, cumulative erosion, maximum ice, tectonic history,
+- [x] Add bedrock, sediment, cumulative erosion, maximum ice, tectonic history,
   and wave/coast history fields.
-- [ ] Retain the stream-power core of `FluvialErosionLayer`, make it
+- [x] Retain the stream-power core of `FluvialErosionLayer`, make it
   incremental against bedrock, and produce eroded sediment.
-- [ ] Add `SedimentTransportLayer` for downstream transport and deposition.
-- [ ] Make land-ice mass balance incremental; retain `IceFlowLayer`.
-- [ ] Add `GlacialErosionLayer` and `GlacialDepositionLayer` using flux,
+- [x] Add `SedimentTransportLayer` for downstream transport and deposition.
+- [x] Make land-ice mass balance incremental; retain `IceFlowLayer`.
+- [x] Add `GlacialErosionLayer` and `GlacialDepositionLayer` using flux,
   substrate, and sediment.
-- [ ] Retain `GlacialLandformLayer` as classification over the evolved result.
-- [ ] Add `CoastalErosionLayer` using fetch, current, wave exposure, substrate,
+- [x] Retain `GlacialLandformLayer` as classification over the evolved result.
+- [x] Add `CoastalErosionLayer` using fetch, current, wave exposure, substrate,
   shelf slope, sea-level change, and available sediment.
-- [ ] Reconcile ocean, bathymetry, and drainage after elevation changes.
-- [ ] Add conservation, provenance, and malformed-input tests.
-- [ ] Inspect history and resulting landforms; verify, commit, and push.
+- [x] Reconcile ocean, bathymetry, and drainage after elevation changes.
+- [x] Add conservation, provenance, and malformed-input tests.
+- [x] Inspect history and resulting landforms; verify, commit, and push.
 
 ### 4. River channels, floodplains, and deltas
 

@@ -31,6 +31,9 @@ public partial class MapArea : Control
     public const string GeographyViewWaveExposure = "wave_exposure";
     public const string GeographyViewPrecipitation = "precipitation";
     public const string GeographyViewSeaIceSuitability = "sea_ice_suitability";
+    public const string GeographyViewSediment = "sediment";
+    public const string GeographyViewErosionHistory = "erosion_history";
+    public const string GeographyViewMaximumGlaciation = "maximum_glaciation";
     public const string GeographyViewLandform = "landform";
     public const string GeographyViewHydrology = "hydrology";
     public const string GeographyViewIce = "ice";
@@ -291,6 +294,9 @@ public partial class MapArea : Control
         AddGeographyViewOption("Wave exposure", GeographyViewWaveExposure);
         AddGeographyViewOption("Rain and snow", GeographyViewPrecipitation);
         AddGeographyViewOption("Sea-ice suitability", GeographyViewSeaIceSuitability);
+        AddGeographyViewOption("Sediment", GeographyViewSediment);
+        AddGeographyViewOption("Erosion history", GeographyViewErosionHistory);
+        AddGeographyViewOption("Maximum glaciation", GeographyViewMaximumGlaciation);
     }
 
     private void AddGeographyViewOption(string label, string viewKey)

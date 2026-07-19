@@ -212,7 +212,8 @@ worldgen first builds one padded triangle graph. Reduced moving crust provinces
 produce continental assemblies, ocean basins, typed boundaries, strain,
 mountain systems, rifts, and sparse island arcs; erosion, connected-ocean bathymetry, conditioned
 drainage, basin-shaped ocean currents, precipitation, climate, ice flow,
-glacial carving, and fractures consume the prior
+incremental bedrock erosion, conserved sediment transport and deposition,
+glacial carving, coastal evolution, and fractures consume the prior
 passes through independent dependency-declaring layers. Ice Remembers then runs
 a second external layer pipeline that classifies varied cold land and water,
 routes fire through fractures, aurora through cold ice reservoirs, and pressure
@@ -252,7 +253,8 @@ a presentation-owned `PhysicalGeographyProjection`. It contains the complete
 latent disk and is separate from the event-backed `HexMapProjection`, which
 continues to represent only materialized cells and their current terrain. The
 blueprint and projection retain every natural/final surface, material,
-landform, hydrology, climate, ice, fracture, fire, aurora, pressure, and anomaly
+landform, hydrology, climate, ice, bedrock, sediment, cumulative erosion and
+deposition, maximum glaciation, wave history, fracture, fire, aurora, pressure, and anomaly
 fact. The UI can therefore inspect generated geography without reading live
 kernel state or making latent cells part of gameplay.
 

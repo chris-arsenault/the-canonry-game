@@ -31,49 +31,72 @@ internal sealed class PhysicalGeographyPipeline
         var rivers = new RiverNetworkLayer();
         var landIce = new LandIceLayer();
         var iceFlow = new IceFlowLayer();
-        return new PhysicalGeographyPipeline(
-            profile,
-            [
-                new TectonicProvinceLayer(),
-                new ContinentalDomainLayer(),
-                new TectonicUpliftLayer(),
-                ocean,
-                new FluvialErosionLayer(),
-                ocean,
-                bathymetry,
-                landmasses,
-                new FractureNetworkLayer(),
-                new GeothermalLayer(),
-                currents,
-                warmth,
-                temperature,
-                moisture,
-                precipitation,
-                runoff,
-                lakes,
-                flow,
-                rivers,
-                landIce,
-                iceFlow,
-                new GlacialLandformLayer(),
-                ocean,
-                bathymetry,
-                landmasses,
-                currents,
-                warmth,
-                temperature,
-                moisture,
-                precipitation,
-                runoff,
-                lakes,
-                flow,
-                rivers,
-                landIce,
-                iceFlow,
-                new SeaIceLayer(),
-                new LandformClassificationLayer(),
-                new PhysicalGeographyValidationLayer(),
-            ]);
+        var layers = new List<IPhysicalGeographyLayer>
+        {
+            new TectonicProvinceLayer(),
+            new ContinentalDomainLayer(),
+            new TectonicUpliftLayer(),
+            new LandscapeInitializationLayer(),
+            ocean,
+            new FluvialErosionLayer(),
+            ocean,
+            new FractureNetworkLayer(),
+            new GeothermalLayer(),
+        };
+        AddClimateAndDrainage(
+            layers, ocean, bathymetry, landmasses, currents, warmth, temperature,
+            moisture, precipitation, runoff, lakes, flow, rivers);
+        layers.Add(new SedimentTransportLayer());
+        AddClimateAndDrainage(
+            layers, ocean, bathymetry, landmasses, currents, warmth, temperature,
+            moisture, precipitation, runoff, lakes, flow, rivers);
+        layers.Add(new CoastalErosionLayer());
+        AddClimateAndDrainage(
+            layers, ocean, bathymetry, landmasses, currents, warmth, temperature,
+            moisture, precipitation, runoff, lakes, flow, rivers);
+        layers.Add(landIce);
+        layers.Add(iceFlow);
+        layers.Add(new GlacialErosionLayer());
+        layers.Add(new GlacialDepositionLayer());
+        AddClimateAndDrainage(
+            layers, ocean, bathymetry, landmasses, currents, warmth, temperature,
+            moisture, precipitation, runoff, lakes, flow, rivers);
+        layers.Add(landIce);
+        layers.Add(iceFlow);
+        layers.Add(new GlacialLandformLayer());
+        layers.Add(new SeaIceLayer());
+        layers.Add(new LandformClassificationLayer());
+        layers.Add(new PhysicalGeographyValidationLayer());
+        return new PhysicalGeographyPipeline(profile, layers);
+    }
+
+    private static void AddClimateAndDrainage(
+        List<IPhysicalGeographyLayer> layers,
+        IPhysicalGeographyLayer ocean,
+        IPhysicalGeographyLayer bathymetry,
+        IPhysicalGeographyLayer landmasses,
+        IPhysicalGeographyLayer currents,
+        IPhysicalGeographyLayer warmth,
+        IPhysicalGeographyLayer temperature,
+        IPhysicalGeographyLayer moisture,
+        IPhysicalGeographyLayer precipitation,
+        IPhysicalGeographyLayer runoff,
+        IPhysicalGeographyLayer lakes,
+        IPhysicalGeographyLayer flow,
+        IPhysicalGeographyLayer rivers)
+    {
+        layers.Add(ocean);
+        layers.Add(bathymetry);
+        layers.Add(landmasses);
+        layers.Add(currents);
+        layers.Add(warmth);
+        layers.Add(temperature);
+        layers.Add(moisture);
+        layers.Add(precipitation);
+        layers.Add(runoff);
+        layers.Add(lakes);
+        layers.Add(flow);
+        layers.Add(rivers);
     }
 
     internal IReadOnlyList<IPhysicalGeographyLayer> Layers => _layers;

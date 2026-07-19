@@ -11,6 +11,7 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Ocean |
         PhysicalGeographyFacts.Temperature |
         PhysicalGeographyFacts.Moisture |
+        PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.Geothermal |
         PhysicalGeographyFacts.FlowRouting,
         PhysicalGeographyFacts.LandIce,
@@ -20,7 +21,6 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
-        map.IceThickness.Clear();
         map.IceBalance.Clear();
         var land = new List<int>();
         var balances = new List<int>();
@@ -28,6 +28,7 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
         {
             if (map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None)
             {
+                map.IceThickness[triangleIndex] = 0;
                 continue;
             }
 
@@ -59,13 +60,17 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             var balance = map.IceBalance[triangleIndex];
-            if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.None && balance >= cutoff)
+            if (map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None)
             {
-                map.IceThickness[triangleIndex] = Math.Clamp(
-                    context.Profile.GlacierThicknessThreshold + ((balance - cutoff) * 2),
-                    context.Profile.GlacierThicknessThreshold,
-                    1000);
+                continue;
             }
+
+            map.IceThickness[triangleIndex] = balance >= cutoff
+                ? AccumulateIce(map.IceThickness[triangleIndex], balance - cutoff, context.Profile)
+                : Math.Max(0, map.IceThickness[triangleIndex] - context.Profile.IceAblationStep);
+            map.MaximumIceThickness[triangleIndex] = Math.Max(
+                map.MaximumIceThickness[triangleIndex],
+                map.IceThickness[triangleIndex]);
         }
     }
 
@@ -88,7 +93,7 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
         PhysicalGeographyGenerationProfile profile)
     {
         var cold = Math.Max(0, profile.IceTemperatureThreshold - map.Temperature[triangleIndex]);
-        var snowfall = map.Moisture[triangleIndex] * cold / 520;
+        var snowfall = map.Snowfall[triangleIndex] * cold / 300;
         var altitude = Math.Max(0, map.Elevation[triangleIndex] - map.EffectiveSeaLevel) / 4;
         var concavity = LocalConcavity(map, triangleIndex);
         var warmAblation = Math.Max(0, map.Temperature[triangleIndex] - profile.IceTemperatureThreshold) * 4;
@@ -96,6 +101,17 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
         var dryAblation = Math.Max(0, 280 - map.Moisture[triangleIndex]);
         return (cold * 2) + snowfall + altitude + concavity -
             warmAblation - geothermalAblation - dryAblation;
+    }
+
+    private static int AccumulateIce(
+        int current,
+        int balanceAboveCutoff,
+        PhysicalGeographyGenerationProfile profile)
+    {
+        var growth = Math.Min(
+            profile.IceAccumulationStep,
+            profile.GlacierThicknessThreshold + (balanceAboveCutoff * 2));
+        return Math.Clamp(current + growth, profile.GlacierThicknessThreshold, 1000);
     }
 
     private static int LocalConcavity(PhysicalGeographyField map, int triangleIndex)

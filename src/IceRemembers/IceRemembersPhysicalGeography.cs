@@ -191,7 +191,10 @@ public static class IceRemembersPhysicalGeography
         HeartWarmthStrength = 430,
     };
 
-    public static IceRemembersMicrogeographyGenerationProfile MicrogeographyProfile { get; } = new();
+    public static IceRemembersMicrogeographyGenerationProfile MicrogeographyProfile { get; } = new()
+    {
+        ColdSteppeMinimumTemperature = 210,
+    };
 
     public static IceRemembersPhysicalMaterial ClassifyMaterial(
         PhysicalGeographyField field,

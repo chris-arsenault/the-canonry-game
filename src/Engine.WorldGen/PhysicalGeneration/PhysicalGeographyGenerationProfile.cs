@@ -151,6 +151,30 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public double FluvialErosionStrength { get; init; } = 0.045d;
 
+    public int SedimentTransportFraction { get; init; } = 760;
+
+    public int SedimentDepositionSlopeThreshold { get; init; } = 34;
+
+    public int MaximumSedimentDepositionPerPass { get; init; } = 18;
+
+    public int IceAccumulationStep { get; init; } = 420;
+
+    public int IceAblationStep { get; init; } = 260;
+
+    public int MaximumGlacialErosionPerPass { get; init; } = 18;
+
+    public int MaximumGlacialDepositionPerPass { get; init; } = 20;
+
+    public int CoastalErosionWaveThreshold { get; init; } = 420;
+
+    public int CoastalErosionStrength { get; init; } = 180;
+
+    public int MaximumCoastalErosionPerPass { get; init; } = 12;
+
+    public int CoastalDepositionFraction { get; init; } = 580;
+
+    public int CoastalSeaLevelChange { get; init; }
+
     public double SeaLevel { get; init; }
 
     public int ShelfDepth { get; init; } = 210;
@@ -294,10 +318,18 @@ public sealed record PhysicalGeographyGenerationProfile
         ContinentalAssemblyCount > TectonicProvinceCount - 2;
 
     private bool LandscapeCountsAreInvalid() =>
+        BaseLandscapeCountsAreInvalid() || EvolutionCountsAreInvalid();
+
+    private bool BaseLandscapeCountsAreInvalid() =>
         Padding <= 0 || ElevationScale <= 0 || FluvialErosionIterations <= 0 ||
         MinimumLakeTriangles <= 0 || MinimumRiverReachTriangles <= 0 ||
         OceanCurrentSmoothingIterations <= 0 || OceanCurrentHeatIterations <= 0 ||
         OceanCurrentFetchSteps <= 0;
+
+    private bool EvolutionCountsAreInvalid() =>
+        IceAccumulationStep <= 0 || IceAblationStep <= 0 ||
+        MaximumGlacialErosionPerPass <= 0 || MaximumGlacialDepositionPerPass <= 0 ||
+        MaximumCoastalErosionPerPass <= 0 || MaximumSedimentDepositionPerPass <= 0;
 
     private void ValidateScales()
     {
@@ -353,7 +385,22 @@ public sealed record PhysicalGeographyGenerationProfile
         {
             throw new InvalidOperationException("Endorheic lake fraction is invalid.");
         }
+
+        if (LandscapeEvolutionRangesAreInvalid())
+        {
+            throw new InvalidOperationException("Physical worldgen landscape-evolution ranges are invalid.");
+        }
     }
+
+    private bool LandscapeEvolutionRangesAreInvalid() =>
+        !IsUnitScalar(SedimentTransportFraction) ||
+        SedimentDepositionSlopeThreshold < 0 ||
+        !IsUnitScalar(CoastalErosionWaveThreshold) ||
+        !IsUnitScalar(CoastalErosionStrength) ||
+        !IsUnitScalar(CoastalDepositionFraction) ||
+        CoastalSeaLevelChange is < -1000 or > 1000;
+
+    private static bool IsUnitScalar(int value) => value is >= 0 and <= 1000;
 
     private void ValidateClimateRanges()
     {

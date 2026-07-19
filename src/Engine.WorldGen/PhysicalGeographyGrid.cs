@@ -198,7 +198,12 @@ public sealed class PhysicalGeographyField
     private readonly int[] _crustMotionY;
     private readonly int[] _crustProvinceIds;
     private readonly int[] _crustTypeCodes;
+    private readonly int[] _bedrockElevation;
     private readonly int[] _continentalPotential;
+    private readonly int[] _cumulativeCoastalErosion;
+    private readonly int[] _cumulativeDeposition;
+    private readonly int[] _cumulativeFluvialErosion;
+    private readonly int[] _cumulativeGlacialErosion;
     private readonly int[] _drainageBasinIds;
     private readonly int[] _drainageElevations;
     private readonly int[] _drainageParents;
@@ -212,12 +217,15 @@ public sealed class PhysicalGeographyField
     private readonly int[] _geothermal;
     private readonly int[] _heatSourceDensity;
     private readonly int[] _iceFlux;
+    private readonly int[] _iceFlowTargets;
     private readonly int[] _iceBalance;
     private readonly int[] _iceThickness;
     private readonly int[] _landmassClassCodes;
     private readonly int[] _landmassIds;
     private readonly int[] _lakeOutletTargets;
     private readonly int[] _landformCodes;
+    private readonly int[] _maximumIceFlux;
+    private readonly int[] _maximumIceThickness;
     private readonly int[] _moisture;
     private readonly int[] _oceanCurrentHeat;
     private readonly int[] _oceanCurrentStrength;
@@ -228,13 +236,17 @@ public sealed class PhysicalGeographyField
     private readonly int[] _riverOrders;
     private readonly int[] _runoff;
     private readonly int[] _seaIceSuitability;
+    private readonly int[] _sedimentSupply;
+    private readonly int[] _sedimentThickness;
     private readonly int[] _snowfall;
     private readonly int[] _slope;
     private readonly int[] _temperature;
     private readonly int[] _tectonicBoundaryCodes;
     private readonly int[] _tectonicStrain;
+    private readonly int[] _tectonicActivityHistory;
     private readonly int[] _warmth;
     private readonly int[] _waveExposure;
+    private readonly int[] _waveExposureHistory;
     private readonly int[] _continentalGroupIds;
     private readonly int[] _bathymetricZoneCodes;
     private readonly float[] _uplift;
@@ -263,6 +275,12 @@ public sealed class PhysicalGeographyField
         (_rainfall, _snowfall, _seaIceSuitability) =
             (new int[grid.TriangleCount], new int[grid.TriangleCount],
                 new int[grid.TriangleCount]);
+        (_bedrockElevation, _sedimentThickness, _sedimentSupply, _cumulativeFluvialErosion,
+            _cumulativeGlacialErosion, _cumulativeCoastalErosion, _cumulativeDeposition) =
+            (NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid),
+                NewField(grid), NewField(grid));
+        (_maximumIceThickness, _maximumIceFlux, _tectonicActivityHistory, _waveExposureHistory) =
+            (NewField(grid), NewField(grid), NewField(grid), NewField(grid));
         (_geothermal, _slope, _landformCodes, _waterKindCodes, _waterDepths, _waterBodyIds) =
             (new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount],
                 new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount]);
@@ -278,6 +296,8 @@ public sealed class PhysicalGeographyField
         _bathymetricZoneCodes = new int[grid.TriangleCount];
         _iceThickness = new int[grid.TriangleCount];
         _iceFlux = new int[grid.TriangleCount];
+        _iceFlowTargets = new int[grid.TriangleCount];
+        Array.Fill(_iceFlowTargets, -1);
         _iceBalance = new int[grid.TriangleCount];
         _fractureConductance = new int[grid.TriangleCount];
         _heatSourceDensity = new int[grid.TriangleCount];
@@ -294,6 +314,8 @@ public sealed class PhysicalGeographyField
         _runoff = new int[grid.TriangleCount];
         _warmth = new int[grid.TriangleCount];
     }
+
+    private static int[] NewField(PhysicalGeographyGrid grid) => new int[grid.TriangleCount];
 
     public PhysicalGeographyGrid Grid { get; }
 
@@ -343,6 +365,28 @@ public sealed class PhysicalGeographyField
 
     public Span<int> SeaIceSuitability => _seaIceSuitability;
 
+    public Span<int> BedrockElevation => _bedrockElevation;
+
+    public Span<int> SedimentThickness => _sedimentThickness;
+
+    public Span<int> SedimentSupply => _sedimentSupply;
+
+    public Span<int> CumulativeFluvialErosion => _cumulativeFluvialErosion;
+
+    public Span<int> CumulativeGlacialErosion => _cumulativeGlacialErosion;
+
+    public Span<int> CumulativeCoastalErosion => _cumulativeCoastalErosion;
+
+    public Span<int> CumulativeDeposition => _cumulativeDeposition;
+
+    public Span<int> MaximumIceThickness => _maximumIceThickness;
+
+    public Span<int> MaximumIceFlux => _maximumIceFlux;
+
+    public Span<int> TectonicActivityHistory => _tectonicActivityHistory;
+
+    public Span<int> WaveExposureHistory => _waveExposureHistory;
+
     public Span<int> Geothermal => _geothermal;
 
     public Span<int> Slope => _slope;
@@ -377,6 +421,8 @@ public sealed class PhysicalGeographyField
 
     public Span<int> IceFlux => _iceFlux;
 
+    internal Span<int> IceFlowTargets => _iceFlowTargets;
+
     internal Span<int> IceBalance => _iceBalance;
 
     public Span<int> FractureConductance => _fractureConductance;
@@ -400,4 +446,10 @@ public sealed class PhysicalGeographyField
     internal Span<int> Runoff => _runoff;
 
     internal Span<int> Warmth => _warmth;
+
+    internal long SedimentProducedTotal { get; set; }
+
+    internal long SedimentDepositedTotal { get; set; }
+
+    internal long SedimentExportedTotal { get; set; }
 }

@@ -102,6 +102,9 @@ internal sealed partial class GameRenderTree
         MapArea.GeographyViewWaveExposure => PhysicalGeographyView.WaveExposure,
         MapArea.GeographyViewPrecipitation => PhysicalGeographyView.Precipitation,
         MapArea.GeographyViewSeaIceSuitability => PhysicalGeographyView.SeaIceSuitability,
+        MapArea.GeographyViewSediment => PhysicalGeographyView.Sediment,
+        MapArea.GeographyViewErosionHistory => PhysicalGeographyView.ErosionHistory,
+        MapArea.GeographyViewMaximumGlaciation => PhysicalGeographyView.MaximumGlaciation,
         _ => null,
     };
 
@@ -154,6 +157,9 @@ internal sealed partial class GameRenderTree
         PhysicalGeographyView.WaveExposure => MapArea.GeographyViewWaveExposure,
         PhysicalGeographyView.Precipitation => MapArea.GeographyViewPrecipitation,
         PhysicalGeographyView.SeaIceSuitability => MapArea.GeographyViewSeaIceSuitability,
+        PhysicalGeographyView.Sediment => MapArea.GeographyViewSediment,
+        PhysicalGeographyView.ErosionHistory => MapArea.GeographyViewErosionHistory,
+        PhysicalGeographyView.MaximumGlaciation => MapArea.GeographyViewMaximumGlaciation,
         _ => null,
     };
 

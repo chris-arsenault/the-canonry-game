@@ -55,7 +55,8 @@ and magic surfaces, keeping frozen water geographically legible.
 Available views cover effective terrain, final surface, natural surface,
 material, elevation, temperature, moisture, geothermal heat, ocean currents
 with direction vectors, wave exposure, rain/snow, sea-ice suitability, landform,
-hydrology, ice, fractures, tectonic provinces, crust type, tectonic boundary
+hydrology, ice, sediment thickness, cumulative fluvial/glacial/coastal erosion,
+deposition, maximum ice thickness/flux, fractures, tectonic provinces, crust type, tectonic boundary
 type and strain, fire, aurora, pressure, and composite magic. These
 views visualize projected facts; they never classify terrain or feed values
 back to worldgen or the simulation.

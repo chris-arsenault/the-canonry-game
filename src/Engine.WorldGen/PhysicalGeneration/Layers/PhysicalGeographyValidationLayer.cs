@@ -15,7 +15,11 @@ internal sealed class PhysicalGeographyValidationLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Rivers |
         PhysicalGeographyFacts.LandIce |
         PhysicalGeographyFacts.SeaIce |
-        PhysicalGeographyFacts.Landforms,
+        PhysicalGeographyFacts.Landforms |
+        PhysicalGeographyFacts.LandscapeHistory |
+        PhysicalGeographyFacts.SedimentTransport |
+        PhysicalGeographyFacts.GlacialEvolution |
+        PhysicalGeographyFacts.CoastalEvolution,
         PhysicalGeographyFacts.Validated);
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
@@ -24,6 +28,7 @@ internal sealed class PhysicalGeographyValidationLayer : IPhysicalGeographyLayer
         ValidateWater(map);
         _ = FlowGraphAlgorithms.SourceToOutletOrder(map);
         ValidateRivers(map);
+        LandscapeSurface.Validate(map);
         if (map.Grid.Radius >= context.Profile.QualityTargets.MinimumEvaluationRadius)
         {
             ValidateConfigurableTargets(map, context.Profile);

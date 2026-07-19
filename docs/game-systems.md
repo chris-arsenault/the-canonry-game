@@ -22,8 +22,10 @@ microtriangles. Outside the kernel, one padded causal pipeline partitions
 moving continental and oceanic crust, derives typed boundaries and strain,
 raises mountains and island arcs from those boundaries, erodes valleys, labels connected land and ocean, solves
 bathymetry and drainage, derives reduced basin currents and wave exposure,
-separates moisture into rain and snow, routes ice, carves glacial landforms,
-and generates fractures. Ice Remembers then runs asymmetric fire, aurora, and
+separates moisture into rain and snow, and evolves a persistent bedrock and
+sediment surface through fluvial, coastal, and glacial erosion and deposition.
+Incremental ice mass and flux leave cumulative glacial history from which
+landforms are classified. Ice Remembers then runs asymmetric fire, aurora, and
 pressure passes over that same triangle graph. Natural surfaces include frozen
 ocean forms such as pack ice, sea ice, ice shelves, and polynyas; anomaly
 surfaces remain sparse overrides while their flags and intensity fields are
