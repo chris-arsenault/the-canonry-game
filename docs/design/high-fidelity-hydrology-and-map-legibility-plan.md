@@ -106,10 +106,10 @@ projection boundary.
   including confluences, lake entry, and lake outflow.
 - [x] Retain filled geometry for genuinely wide channels, floodplains, and
   deltas.
-- [ ] Strengthen scale-aware relief from elevation, slope, and roughness.
-- [ ] Composite broad magic fields over natural geography instead of hiding
+- [x] Strengthen scale-aware relief from elevation, slope, and roughness.
+- [x] Composite broad magic fields over natural geography instead of hiding
   relief and structural water.
-- [ ] Classify fire, aurora, and pressure regions with causal per-feature
+- [x] Classify fire, aurora, and pressure regions with causal per-feature
   hysteresis rather than independent noisy thresholds.
 
 ### 7. Persistent physical volcanism

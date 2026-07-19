@@ -27,33 +27,52 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
         IceRemembersMicrogeographyMap map,
         IceRemembersMicrogeographyGenerationContext context)
     {
-        _ = context;
+        ClearOwnedFeatures(map);
+        var region = new CausalFeatureRegionClassifier(map.Physical.Grid);
+        var hysteresis = context.Profile.MagicFeatureHysteresis;
+
+        AddExactFeature(
+            map,
+            IceRemembersPhysicalFeature.FirecoreVent,
+            triangleIndex => (map.Physical.FeatureFlags[triangleIndex] &
+                PhysicalGeographyFeatureCodes.FireCore) != 0);
+        AddRegionFeature(
+            map,
+            region,
+            IceRemembersPhysicalFeature.ThermalVein,
+            triangleIndex => map.FireIntensity[triangleIndex] >= 420 &&
+                map.Physical.FractureConductance[triangleIndex] >= 560,
+            triangleIndex => map.FireIntensity[triangleIndex] >= 420 - hysteresis &&
+                map.Physical.FractureConductance[triangleIndex] >= 420);
+        AddRegionFeature(
+            map,
+            region,
+            IceRemembersPhysicalFeature.HotSpring,
+            triangleIndex => IsHotSpringSeed(map, triangleIndex),
+            triangleIndex => IsHotSpringRetained(map, triangleIndex, hysteresis));
+        AddRegionFeature(
+            map,
+            region,
+            IceRemembersPhysicalFeature.BasaltFlat,
+            triangleIndex => map.FireIntensity[triangleIndex] >= 560 &&
+                map.Physical.Slope[triangleIndex] <= PhysicalElevation.FromUnits(45),
+            triangleIndex => map.FireIntensity[triangleIndex] >= 560 - hysteresis &&
+                map.Physical.Slope[triangleIndex] <= PhysicalElevation.FromUnits(60));
+        AddRegionFeature(
+            map,
+            region,
+            IceRemembersPhysicalFeature.ThawedHalo,
+            triangleIndex => map.FireIntensity[triangleIndex] >= 310 &&
+                map.Physical.Temperature[triangleIndex] >= 300,
+            triangleIndex => map.FireIntensity[triangleIndex] >= 220 &&
+                map.Physical.Temperature[triangleIndex] >= 275);
+    }
+
+    private static void ClearOwnedFeatures(IceRemembersMicrogeographyMap map)
+    {
         for (var triangleIndex = 0; triangleIndex < map.Physical.Grid.TriangleCount; triangleIndex++)
         {
-            var flags = map.SignificantFeatureFlags[triangleIndex] & ~OwnedFeatures;
-            var fire = map.FireIntensity[triangleIndex];
-            var core = (map.Physical.FeatureFlags[triangleIndex] & PhysicalGeographyFeatureCodes.FireCore) != 0;
-            IceRemembersFeatureMasks.Add(
-                ref flags,
-                core,
-                IceRemembersPhysicalFeature.FirecoreVent);
-            IceRemembersFeatureMasks.Add(
-                ref flags,
-                fire >= 420 && map.Physical.FractureConductance[triangleIndex] >= 560,
-                IceRemembersPhysicalFeature.ThermalVein);
-            IceRemembersFeatureMasks.Add(
-                ref flags,
-                IsHotSpring(map, triangleIndex, fire),
-                IceRemembersPhysicalFeature.HotSpring);
-            IceRemembersFeatureMasks.Add(
-                ref flags,
-                fire >= 560 && map.Physical.Slope[triangleIndex] <= PhysicalElevation.FromUnits(45),
-                IceRemembersPhysicalFeature.BasaltFlat);
-            IceRemembersFeatureMasks.Add(
-                ref flags,
-                fire is >= 220 and < 560 && map.Physical.Temperature[triangleIndex] >= 300,
-                IceRemembersPhysicalFeature.ThawedHalo);
-            map.SignificantFeatureFlags[triangleIndex] = flags;
+            map.SignificantFeatureFlags[triangleIndex] &= ~OwnedFeatures;
         }
     }
 
@@ -68,18 +87,18 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
             if (IceRemembersFeatureMasks.Has(flags, IceRemembersPhysicalFeature.FirecoreVent) !=
                 ((map.Physical.FeatureFlags[triangleIndex] & PhysicalGeographyFeatureCodes.FireCore) != 0) ||
                 (IceRemembersFeatureMasks.Has(flags, IceRemembersPhysicalFeature.HotSpring) &&
-                    !IsHotSpring(map, triangleIndex, map.FireIntensity[triangleIndex])))
+                    !IsHotSpringRetained(map, triangleIndex, context.Profile.MagicFeatureHysteresis)))
             {
                 throw new InvalidOperationException("Fire feature classification is inconsistent with its field.");
             }
         }
     }
 
-    private static bool IsHotSpring(
+    private static bool IsHotSpringSeed(
         IceRemembersMicrogeographyMap map,
-        int triangleIndex,
-        int fire)
+        int triangleIndex)
     {
+        var fire = map.FireIntensity[triangleIndex];
         var wetFireSpring = fire >= 430 &&
             (map.Physical.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake ||
                 map.Physical.RiverOrders[triangleIndex] > 0 ||
@@ -88,5 +107,45 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
             map.Physical.Temperature[triangleIndex] >= 335 &&
             map.Physical.Moisture[triangleIndex] >= 260;
         return wetFireSpring || verdantGeothermalSpring;
+    }
+
+    private static bool IsHotSpringRetained(
+        IceRemembersMicrogeographyMap map,
+        int triangleIndex,
+        int hysteresis)
+    {
+        var wetFireSpring = map.FireIntensity[triangleIndex] >= 430 - hysteresis &&
+            (map.Physical.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake ||
+                map.Physical.RiverOrders[triangleIndex] > 0 ||
+                map.Physical.Moisture[triangleIndex] >= 560);
+        var geothermalSpring = map.Physical.Geothermal[triangleIndex] >= 650 &&
+            map.Physical.Temperature[triangleIndex] >= 300 &&
+            map.Physical.Moisture[triangleIndex] >= 220;
+        return wetFireSpring || geothermalSpring;
+    }
+
+    private static void AddExactFeature(
+        IceRemembersMicrogeographyMap map,
+        IceRemembersPhysicalFeature feature,
+        Func<int, bool> includes)
+    {
+        for (var triangleIndex = 0; triangleIndex < map.Physical.Grid.TriangleCount; triangleIndex++)
+        {
+            IceRemembersFeatureMasks.Add(
+                ref map.SignificantFeatureFlags[triangleIndex],
+                includes(triangleIndex),
+                feature);
+        }
+    }
+
+    private static void AddRegionFeature(
+        IceRemembersMicrogeographyMap map,
+        CausalFeatureRegionClassifier region,
+        IceRemembersPhysicalFeature feature,
+        Func<int, bool> isSeed,
+        Func<int, bool> isRetained)
+    {
+        region.Classify(isSeed, isRetained);
+        AddExactFeature(map, feature, region.Includes);
     }
 }

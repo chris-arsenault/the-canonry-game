@@ -145,7 +145,7 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             _ => UiTokens.Whisper,
         };
         return PhysicalMicrogeographyRenderDecisions.UsesReliefShading(view)
-            ? ElevationShade(color, cell.MeanElevation)
+            ? ReliefShade(color, cell.MeanElevation, cell.Relief, cell.Roughness)
             : color;
     }
 
@@ -235,18 +235,39 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
 
     private Color AggregateMagicColor(
         in PhysicalGeographyCellProjection cell,
-        PhysicalGeographyView view) => view switch
+        PhysicalGeographyView view)
+    {
+        if (view == PhysicalGeographyView.MagicHistory)
+        {
+            return AggregateMagicHistoryColor(cell);
+        }
+
+        var magic = view switch
         {
             PhysicalGeographyView.Fire => FireColor(cell.MeanFireIntensity),
             PhysicalGeographyView.Aurora => AuroraColor(cell.MeanAuroraIntensity),
             PhysicalGeographyView.Pressure => PressureColor(cell.MeanPressureIntensity),
-            PhysicalGeographyView.MagicComposite => MagicCompositeColor(
+            _ => MagicCompositeColor(
                 cell.MeanFireIntensity,
                 cell.MeanAuroraIntensity,
                 cell.MeanPressureIntensity),
-            PhysicalGeographyView.MagicHistory => AggregateMagicHistoryColor(cell),
-            _ => UiTokens.Whisper,
         };
+        var intensity = view switch
+        {
+            PhysicalGeographyView.Fire => cell.MeanFireIntensity,
+            PhysicalGeographyView.Aurora => cell.MeanAuroraIntensity,
+            PhysicalGeographyView.Pressure => cell.MeanPressureIntensity,
+            _ => Math.Max(
+                cell.MeanFireIntensity,
+                Math.Max(cell.MeanAuroraIntensity, cell.MeanPressureIntensity)),
+        };
+        var geography = ReliefShade(
+            DominantNaturalSurfaceColor(cell),
+            cell.MeanElevation,
+            cell.Relief,
+            cell.Roughness);
+        return CompositeMagicOverGeography(geography, magic, intensity);
+    }
 
     private void DrawMicrotriangles(in PhysicalGeographyCellProjection cell)
     {
@@ -304,7 +325,7 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             PhysicalGeographyView.Pressure or PhysicalGeographyView.MagicComposite or
             PhysicalGeographyView.MagicHistory)
         {
-            return TriangleMagicColor(cell, triangleIndex, view);
+            return TriangleMagicColor(cell, triangleIndex, triangle, view);
         }
 
         return view <= PhysicalGeographyView.Material
@@ -329,7 +350,7 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             _ => UiTokens.Whisper,
         };
         return PhysicalMicrogeographyRenderDecisions.UsesReliefShading(view)
-            ? ElevationShade(color, triangle.Elevation)
+            ? ReliefShade(color, triangle.Elevation, triangle.Slope, triangle.Slope)
             : color;
     }
 
@@ -449,15 +470,38 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
     private Color TriangleMagicColor(
         in PhysicalGeographyCellProjection cell,
         int triangleIndex,
-        PhysicalGeographyView view) => view switch
+        in PhysicalMicrotriangleProjection triangle,
+        PhysicalGeographyView view)
+    {
+        if (view == PhysicalGeographyView.MagicHistory)
         {
-            PhysicalGeographyView.Fire => ScalarColor(cell, triangleIndex, "fire_intensity", FireColor),
-            PhysicalGeographyView.Aurora => ScalarColor(cell, triangleIndex, "aurora_intensity", AuroraColor),
-            PhysicalGeographyView.Pressure => ScalarColor(cell, triangleIndex, "pressure_intensity", PressureColor),
-            PhysicalGeographyView.MagicComposite => MagicCompositeTriangleColor(cell, triangleIndex),
-            PhysicalGeographyView.MagicHistory => MagicHistoryTriangleColor(cell, triangleIndex),
-            _ => UiTokens.Whisper,
+            return MagicHistoryTriangleColor(cell, triangleIndex);
+        }
+
+        var fire = ScalarValue(cell, triangleIndex, "fire_intensity");
+        var aurora = ScalarValue(cell, triangleIndex, "aurora_intensity");
+        var pressure = ScalarValue(cell, triangleIndex, "pressure_intensity");
+        var magic = view switch
+        {
+            PhysicalGeographyView.Fire => FireColor(fire),
+            PhysicalGeographyView.Aurora => AuroraColor(aurora),
+            PhysicalGeographyView.Pressure => PressureColor(pressure),
+            _ => MagicCompositeColor(fire, aurora, pressure),
         };
+        var intensity = view switch
+        {
+            PhysicalGeographyView.Fire => fire,
+            PhysicalGeographyView.Aurora => aurora,
+            PhysicalGeographyView.Pressure => pressure,
+            _ => Math.Max(fire, Math.Max(aurora, pressure)),
+        };
+        var geography = ReliefShade(
+            UiTokens.PhysicalSurfaceColor(_owner!.Geography.SurfaceName(triangle.BaseSurfaceIndex)),
+            triangle.Elevation,
+            triangle.Slope,
+            triangle.Slope);
+        return CompositeMagicOverGeography(geography, magic, intensity);
+    }
 
     private Color AggregateMagicHistoryColor(in PhysicalGeographyCellProjection cell)
     {
@@ -604,25 +648,6 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         return TectonicBoundaryColor(strongestBoundary).Lerp(
             UiTokens.Ink,
             1f - Math.Clamp(strongestStrain / 1000f, 0f, 1f));
-    }
-
-    private Color MagicCompositeTriangleColor(
-        in PhysicalGeographyCellProjection cell,
-        int triangleIndex)
-    {
-        _ = _owner!.Geography.TryGetScalarValue(
-            "fire_intensity",
-            cell.MicrotriangleOffset + triangleIndex,
-            out var fire);
-        _ = _owner.Geography.TryGetScalarValue(
-            "aurora_intensity",
-            cell.MicrotriangleOffset + triangleIndex,
-            out var aurora);
-        _ = _owner.Geography.TryGetScalarValue(
-            "pressure_intensity",
-            cell.MicrotriangleOffset + triangleIndex,
-            out var pressure);
-        return MagicCompositeColor(fire, aurora, pressure);
     }
 
     private void DrawTriangleFeatures(
@@ -889,213 +914,6 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         DrawCircle(end, 0.55f, new Color(0.94f, 0.98f, 1f, 0.88f));
     }
 
-    private static Color ElevationColor(int elevation)
-    {
-        var normalized = Math.Clamp((elevation + 1000f) / 2000f, 0f, 1f);
-        if (normalized < 0.5f)
-        {
-            return new Color(0.05f, 0.16f, 0.28f).Lerp(
-                new Color(0.36f, 0.48f, 0.42f),
-                normalized * 2f);
-        }
-
-        return new Color(0.36f, 0.48f, 0.42f).Lerp(
-            new Color(0.92f, 0.91f, 0.86f),
-            (normalized - 0.5f) * 2f);
-    }
-
-    private static Color TemperatureColor(int temperature) =>
-        new Color(0.18f, 0.38f, 0.68f).Lerp(
-            new Color(0.88f, 0.38f, 0.18f),
-            Math.Clamp(temperature / 1000f, 0f, 1f));
-
-    private static Color MoistureColor(int moisture) =>
-        new Color(0.54f, 0.42f, 0.25f).Lerp(
-            new Color(0.18f, 0.62f, 0.68f),
-            Math.Clamp(moisture / 1000f, 0f, 1f));
-
-    private static Color GeothermalColor(int geothermal) =>
-        new Color(0.17f, 0.18f, 0.23f).Lerp(
-            new Color(0.92f, 0.30f, 0.12f),
-            Math.Clamp(geothermal / 1000f, 0f, 1f));
-
-    private static Color OceanCurrentColor(int strength, int heat)
-    {
-        var thermal = new Color(0.08f, 0.20f, 0.38f).Lerp(
-            new Color(0.20f, 0.74f, 0.66f),
-            Math.Clamp(heat / 1000f, 0f, 1f));
-        return new Color(0.06f, 0.09f, 0.14f).Lerp(
-            thermal,
-            Math.Clamp(strength / 1000f, 0f, 1f));
-    }
-
-    private static Color WaveExposureColor(int exposure) =>
-        new Color(0.05f, 0.13f, 0.22f).Lerp(
-            new Color(0.68f, 0.90f, 0.96f),
-            Math.Clamp(exposure / 1000f, 0f, 1f));
-
-    private static Color PrecipitationColor(int rainfall, int snowfall)
-    {
-        var total = Math.Clamp((rainfall + snowfall) / 1000f, 0f, 1f);
-        var snowShare = snowfall / (float)Math.Max(1, rainfall + snowfall);
-        var wet = new Color(0.15f, 0.42f, 0.72f).Lerp(
-            new Color(0.88f, 0.95f, 0.98f),
-            snowShare);
-        return new Color(0.18f, 0.14f, 0.12f).Lerp(wet, total);
-    }
-
-    private static Color SeaIceSuitabilityColor(int suitability) =>
-        new Color(0.08f, 0.16f, 0.28f).Lerp(
-            new Color(0.88f, 0.97f, 1f),
-            Math.Clamp(suitability / 1000f, 0f, 1f));
-
-    private static Color SedimentColor(int thickness, int deposition)
-    {
-        var amount = Math.Clamp((thickness + (deposition / 2f)) / 180f, 0f, 1f);
-        return new Color(0.13f, 0.14f, 0.16f).Lerp(
-            new Color(0.73f, 0.58f, 0.35f),
-            amount);
-    }
-
-    private static Color ErosionHistoryColor(int fluvial, int glacial, int coastal)
-    {
-        var maximum = Math.Max(1f, Math.Max(fluvial, Math.Max(glacial, coastal)));
-        var intensity = Math.Clamp((fluvial + glacial + coastal) / 240f, 0f, 1f);
-        var process = new Color(
-            0.18f + (0.22f * coastal / maximum),
-            0.16f + (0.55f * fluvial / maximum),
-            0.20f + (0.66f * glacial / maximum));
-        return new Color(0.08f, 0.09f, 0.11f).Lerp(process, intensity);
-    }
-
-    private static Color MaximumGlaciationColor(int thickness) =>
-        new Color(0.16f, 0.12f, 0.18f).Lerp(
-            new Color(0.78f, 0.94f, 1f),
-            Math.Clamp(thickness / 1000f, 0f, 1f));
-
-    private static Color IceColor(int iceThickness) =>
-        new Color(0.13f, 0.18f, 0.24f).Lerp(
-            new Color(0.82f, 0.94f, 0.98f),
-            Math.Clamp(iceThickness / 1000f, 0f, 1f));
-
-    private static Color FractureColor(int conductance) =>
-        new Color(0.10f, 0.10f, 0.14f).Lerp(
-            new Color(0.96f, 0.30f, 0.12f),
-            Math.Clamp(conductance / 1000f, 0f, 1f));
-
-    private static Color TectonicProvinceColor(int provinceId) => provinceId <= 0
-        ? UiTokens.Ink
-        : Color.FromHsv((provinceId * 0.618034f) % 1f, 0.58f, 0.84f);
-
-    private static Color CrustTypeColor(int crustType) => crustType switch
-    {
-        1 => new Color(0.12f, 0.30f, 0.48f),
-        2 => new Color(0.66f, 0.51f, 0.30f),
-        _ => UiTokens.Ink,
-    };
-
-    private static Color TectonicBoundaryColor(int boundaryType) => boundaryType switch
-    {
-        1 => new Color(0.95f, 0.30f, 0.16f),
-        2 => new Color(0.20f, 0.65f, 0.92f),
-        3 => new Color(0.94f, 0.70f, 0.22f),
-        _ => UiTokens.Ink,
-    };
-
-    private static Color TectonicStrainColor(int strain) =>
-        new Color(0.08f, 0.10f, 0.16f).Lerp(
-            new Color(0.94f, 0.36f, 0.18f),
-            Math.Clamp(strain / 1000f, 0f, 1f));
-
-    private static Color FireColor(int intensity) =>
-        new Color(0.10f, 0.08f, 0.10f).Lerp(
-            new Color(1.00f, 0.28f, 0.05f),
-            Math.Clamp(intensity / 1000f, 0f, 1f));
-
-    private static Color AuroraColor(int intensity) =>
-        new Color(0.08f, 0.10f, 0.17f).Lerp(
-            new Color(0.26f, 0.96f, 0.73f),
-            Math.Clamp(intensity / 1000f, 0f, 1f));
-
-    private static Color PressureColor(int intensity) =>
-        new Color(0.07f, 0.09f, 0.15f).Lerp(
-            new Color(0.70f, 0.20f, 0.78f),
-            Math.Clamp(intensity / 1000f, 0f, 1f));
-
-    private static Color MagicCompositeColor(int fire, int aurora, int pressure)
-    {
-        var fireStrength = Math.Clamp(fire / 1000f, 0f, 1f);
-        var auroraStrength = Math.Clamp(aurora / 1000f, 0f, 1f);
-        var pressureStrength = Math.Clamp(pressure / 1000f, 0f, 1f);
-        return new Color(
-            Math.Clamp(0.07f + (0.82f * fireStrength) + (0.38f * pressureStrength), 0f, 1f),
-            Math.Clamp(0.08f + (0.76f * auroraStrength) + (0.12f * fireStrength), 0f, 1f),
-            Math.Clamp(0.13f + (0.56f * auroraStrength) + (0.68f * pressureStrength), 0f, 1f));
-    }
-
-    private static Color MagicHistoryColor(
-        int fire,
-        int aurora,
-        int pressure,
-        int coastalPressure,
-        int firstEpoch,
-        int epochCount)
-    {
-        if (firstEpoch < 0)
-        {
-            return new Color(0.07f, 0.08f, 0.11f);
-        }
-
-        var history = MagicCompositeColor(fire, aurora, pressure);
-        history = history.Lerp(
-            new Color(0.70f, 0.48f, 0.84f),
-            Math.Clamp(coastalPressure / 1000f, 0f, 1f) * 0.42f);
-        var ancient = 1f - Math.Clamp(firstEpoch / (float)Math.Max(1, epochCount - 1), 0f, 1f);
-        return history.Lerp(new Color(0.94f, 0.78f, 0.42f), ancient * 0.24f);
-    }
-
-    private static Color LandformColor(int landformCode)
-    {
-        if (landformCode >= PhysicalLandformCodes.OutwashPlain)
-        {
-            return HistoricalLandformColor(landformCode);
-        }
-
-        return landformCode >= PhysicalLandformCodes.UValley
-            ? GlacialLandformColor(landformCode)
-            : StandardLandformColor(landformCode);
-    }
-
-    private static Color StandardLandformColor(int landformCode) => landformCode switch
-    {
-        PhysicalLandformCodes.Plain => new Color(0.42f, 0.52f, 0.42f),
-        PhysicalLandformCodes.Slope => new Color(0.52f, 0.49f, 0.40f),
-        PhysicalLandformCodes.Valley => new Color(0.28f, 0.48f, 0.42f),
-        PhysicalLandformCodes.Basin => new Color(0.30f, 0.36f, 0.44f),
-        PhysicalLandformCodes.Ridge => new Color(0.67f, 0.62f, 0.54f),
-        PhysicalLandformCodes.Peak => new Color(0.90f, 0.88f, 0.82f),
-        PhysicalLandformCodes.Pass => new Color(0.82f, 0.57f, 0.28f),
-        PhysicalLandformCodes.Seabed => new Color(0.12f, 0.23f, 0.34f),
-        _ => UiTokens.Whisper,
-    };
-
-    private static Color HistoricalLandformColor(int landformCode) => landformCode switch
-    {
-        PhysicalLandformCodes.OutwashPlain => new Color(0.48f, 0.55f, 0.47f),
-        PhysicalLandformCodes.ImpactBasin => new Color(0.34f, 0.28f, 0.30f),
-        PhysicalLandformCodes.ImpactRim => new Color(0.70f, 0.42f, 0.31f),
-        _ => UiTokens.Whisper,
-    };
-
-    private static Color GlacialLandformColor(int landformCode) => landformCode switch
-    {
-        PhysicalLandformCodes.UValley => new Color(0.32f, 0.52f, 0.50f),
-        PhysicalLandformCodes.Cirque => new Color(0.58f, 0.72f, 0.76f),
-        PhysicalLandformCodes.Fjord => new Color(0.10f, 0.31f, 0.43f),
-        PhysicalLandformCodes.Moraine => new Color(0.44f, 0.39f, 0.33f),
-        _ => UiTokens.Whisper,
-    };
-
     private PhysicalMicrogeographyFeatureDetail FeatureDetail() =>
         PhysicalMicrogeographyRenderDecisions.FeatureDetail(
             _owner!.FeaturesEnabled,
@@ -1105,9 +923,18 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
     private static bool ViewUsesWaterTint(PhysicalGeographyView view) =>
         PhysicalMicrogeographyRenderDecisions.UsesWaterUnderlay(view);
 
-    private static Color ElevationShade(Color color, int elevation)
+    private static Color ReliefShade(
+        Color color,
+        int elevation,
+        int relief,
+        int roughness)
     {
-        var factor = 0.84f + (0.20f * Math.Clamp((elevation + 1000f) / 2000f, 0f, 1f));
+        var altitude = Math.Clamp((elevation + 700f) / 1400f, 0f, 1f);
+        var structure = Math.Clamp(Math.Max(relief, roughness) / 180f, 0f, 1f);
+        var factor = 0.80f + (0.22f * altitude) + (0.16f * structure);
         return new Color(color.R * factor, color.G * factor, color.B * factor, color.A);
     }
+
+    private static Color CompositeMagicOverGeography(Color geography, Color magic, int intensity) =>
+        geography.Lerp(magic, 0.18f + (0.62f * Math.Clamp(intensity / 1000f, 0f, 1f)));
 }

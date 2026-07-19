@@ -8,6 +8,32 @@ using IceRemembers;
 public sealed class IceRemembersFeatureAndQualityLayerTests
 {
     [Fact]
+    public void CausalFeatureRegions_GrowOnlyThroughSupportedNeighborsAndClearBetweenUses()
+    {
+        var grid = new PhysicalGeographyGrid(1, 0);
+        const int seed = 0;
+        var retainedNeighbor = Enumerable.Range(0, 3)
+            .Select(edge => grid.NeighborTriangleIndex(seed, edge))
+            .First(index => index >= 0);
+        var unsupported = Enumerable.Range(0, grid.TriangleCount)
+            .First(index => index != seed && index != retainedNeighbor);
+        var classifier = new CausalFeatureRegionClassifier(grid);
+
+        classifier.Classify(
+            index => index == seed,
+            index => index == retainedNeighbor);
+
+        Assert.True(classifier.Includes(seed));
+        Assert.True(classifier.Includes(retainedNeighbor));
+        Assert.False(classifier.Includes(unsupported));
+
+        classifier.Classify(index => index == unsupported, _ => false);
+
+        Assert.False(classifier.Includes(seed));
+        Assert.True(classifier.Includes(unsupported));
+    }
+
+    [Fact]
     public void GeneratedFireFeatures_DeriveFromFireAndWetHeatAndRejectUnsupportedSpring()
     {
         var result = IceRemembersMicrogeographyLayerTestHarness.GenerateThrough<FireFeatureLayer>();

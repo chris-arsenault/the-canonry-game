@@ -26,38 +26,41 @@ internal sealed class PressureFeatureLayer : IIceRemembersMicrogeographyLayer
         IceRemembersMicrogeographyMap map,
         IceRemembersMicrogeographyGenerationContext context)
     {
-        _ = context;
+        ClearOwnedFeatures(map);
+        var region = new CausalFeatureRegionClassifier(map.Physical.Grid);
+        var hysteresis = context.Profile.MagicFeatureHysteresis;
+
+        AddExactFeature(
+            map,
+            IceRemembersPhysicalFeature.PressureGodLocus,
+            triangleIndex => triangleIndex == map.DeadGodTriangleIndex);
+        AddRegionFeature(
+            map,
+            region,
+            IceRemembersPhysicalFeature.CrushZone,
+            triangleIndex => map.PressureIntensity[triangleIndex] >= 690,
+            triangleIndex => map.PressureIntensity[triangleIndex] >= 690 - hysteresis);
+        AddExactFeature(
+            map,
+            IceRemembersPhysicalFeature.WakeScar,
+            triangleIndex => map.PressureWake[triangleIndex]);
+        AddRegionFeature(
+            map,
+            region,
+            IceRemembersPhysicalFeature.InterferenceLattice,
+            triangleIndex => IsLatticeSeed(map, triangleIndex),
+            triangleIndex => IsLatticeRetained(map, triangleIndex, hysteresis));
+        AddExactFeature(
+            map,
+            IceRemembersPhysicalFeature.RogueImpact,
+            triangleIndex => map.RogueImpact[triangleIndex]);
+    }
+
+    private static void ClearOwnedFeatures(IceRemembersMicrogeographyMap map)
+    {
         for (var triangleIndex = 0; triangleIndex < map.Physical.Grid.TriangleCount; triangleIndex++)
         {
-            var flags = map.SignificantFeatureFlags[triangleIndex] & ~OwnedFeatures;
-            var pressure = map.PressureIntensity[triangleIndex];
-            IceRemembersFeatureMasks.Add(
-                ref flags,
-                triangleIndex == map.DeadGodTriangleIndex,
-                IceRemembersPhysicalFeature.PressureGodLocus);
-            IceRemembersFeatureMasks.Add(
-                ref flags,
-                pressure >= 690,
-                IceRemembersPhysicalFeature.CrushZone);
-            IceRemembersFeatureMasks.Add(
-                ref flags,
-                map.PressureWake[triangleIndex],
-                IceRemembersPhysicalFeature.WakeScar);
-            IceRemembersFeatureMasks.Add(
-                ref flags,
-                pressure >= 380 &&
-                    PhysicalNoise.UnitNoise(
-                        map.Physical.Grid.TriangleX(triangleIndex),
-                        map.Physical.Grid.TriangleY(triangleIndex),
-                        0x621d,
-                        7d,
-                        1) >= 0.54d,
-                IceRemembersPhysicalFeature.InterferenceLattice);
-            IceRemembersFeatureMasks.Add(
-                ref flags,
-                map.RogueImpact[triangleIndex],
-                IceRemembersPhysicalFeature.RogueImpact);
-            map.SignificantFeatureFlags[triangleIndex] = flags;
+            map.SignificantFeatureFlags[triangleIndex] &= ~OwnedFeatures;
         }
     }
 
@@ -76,7 +79,11 @@ internal sealed class PressureFeatureLayer : IIceRemembersMicrogeographyLayer
             if (IceRemembersFeatureMasks.Has(flags, IceRemembersPhysicalFeature.WakeScar) !=
                     map.PressureWake[triangleIndex] ||
                 IceRemembersFeatureMasks.Has(flags, IceRemembersPhysicalFeature.RogueImpact) !=
-                    map.RogueImpact[triangleIndex])
+                    map.RogueImpact[triangleIndex] ||
+                (IceRemembersFeatureMasks.Has(
+                        flags,
+                        IceRemembersPhysicalFeature.InterferenceLattice) &&
+                    !IsLatticeRetained(map, triangleIndex, context.Profile.MagicFeatureHysteresis)))
             {
                 throw new InvalidOperationException("Pressure feature classification is inconsistent with its field.");
             }
@@ -88,5 +95,48 @@ internal sealed class PressureFeatureLayer : IIceRemembersMicrogeographyLayer
         {
             throw new InvalidOperationException("Pressure feature classification lost its unique locus.");
         }
+    }
+
+    private static bool IsLatticeSeed(IceRemembersMicrogeographyMap map, int triangleIndex) =>
+        map.PressureIntensity[triangleIndex] >= 380 && LatticeNoise(map, triangleIndex) >= 0.62d;
+
+    private static bool IsLatticeRetained(
+        IceRemembersMicrogeographyMap map,
+        int triangleIndex,
+        int hysteresis) =>
+        map.PressureIntensity[triangleIndex] >= 380 - hysteresis &&
+        LatticeNoise(map, triangleIndex) >= 0.40d;
+
+    private static double LatticeNoise(IceRemembersMicrogeographyMap map, int triangleIndex) =>
+        PhysicalNoise.UnitNoise(
+            map.Physical.Grid.TriangleX(triangleIndex),
+            map.Physical.Grid.TriangleY(triangleIndex),
+            0x621d,
+            7d,
+            1);
+
+    private static void AddExactFeature(
+        IceRemembersMicrogeographyMap map,
+        IceRemembersPhysicalFeature feature,
+        Func<int, bool> includes)
+    {
+        for (var triangleIndex = 0; triangleIndex < map.Physical.Grid.TriangleCount; triangleIndex++)
+        {
+            IceRemembersFeatureMasks.Add(
+                ref map.SignificantFeatureFlags[triangleIndex],
+                includes(triangleIndex),
+                feature);
+        }
+    }
+
+    private static void AddRegionFeature(
+        IceRemembersMicrogeographyMap map,
+        CausalFeatureRegionClassifier region,
+        IceRemembersPhysicalFeature feature,
+        Func<int, bool> isSeed,
+        Func<int, bool> isRetained)
+    {
+        region.Classify(isSeed, isRetained);
+        AddExactFeature(map, feature, region.Includes);
     }
 }

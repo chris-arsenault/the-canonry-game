@@ -115,6 +115,8 @@ public sealed record IceRemembersMicrogeographyGenerationProfile
 
     public int AncientWakeSourceCount { get; init; } = 20;
 
+    public int MagicFeatureHysteresis { get; init; } = 90;
+
     public int PressureCoastalThreshold { get; init; } = 540;
 
     public int PressureCoastalWaveAmplification { get; init; } = 360;
@@ -143,7 +145,8 @@ public sealed record IceRemembersMicrogeographyGenerationProfile
 
     private void ValidateMagicParameters()
     {
-        if (FireParametersAreInvalid() || PressureParametersAreInvalid())
+        if (FireParametersAreInvalid() || PressureParametersAreInvalid() ||
+            MagicFeatureHysteresis is < 1 or > 300)
         {
             throw new InvalidOperationException("Ice Remembers magic-generation parameters are invalid.");
         }
