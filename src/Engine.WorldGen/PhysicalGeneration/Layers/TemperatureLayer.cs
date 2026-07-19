@@ -15,6 +15,7 @@ internal sealed class TemperatureLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Moisture |
         PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.Runoff |
+        PhysicalGeographyFacts.GlacialMeltwater |
         PhysicalGeographyFacts.LandIce |
         PhysicalGeographyFacts.SeaIce |
         PhysicalGeographyFacts.Validated);

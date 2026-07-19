@@ -63,8 +63,7 @@ internal sealed class PhysicalGeographyPipeline
         AddClimateAndDrainage(
             layers, ocean, oceanDistance, bathymetry, landmasses, currents, warmth, temperature,
             atmosphericFlow, moisture, precipitation, runoff, lakes, flow, rivers);
-        layers.Add(landIce);
-        layers.Add(iceFlow);
+        AddFinalGlacialDrainage(layers, landIce, iceFlow, runoff, lakes, flow, rivers);
         layers.Add(new GlacialLandformLayer());
         layers.Add(new SeaIceLayer());
         layers.Add(new LandformClassificationLayer());
@@ -73,6 +72,25 @@ internal sealed class PhysicalGeographyPipeline
         layers.Add(new DeltaFormationLayer());
         layers.Add(new PhysicalGeographyValidationLayer());
         return new PhysicalGeographyPipeline(profile, layers);
+    }
+
+    private static void AddFinalGlacialDrainage(
+        List<IPhysicalGeographyLayer> layers,
+        IPhysicalGeographyLayer landIce,
+        IPhysicalGeographyLayer iceFlow,
+        IPhysicalGeographyLayer runoff,
+        IPhysicalGeographyLayer lakes,
+        IPhysicalGeographyLayer flow,
+        IPhysicalGeographyLayer rivers)
+    {
+        layers.Add(landIce);
+        layers.Add(iceFlow);
+        layers.Add(new GlacialMeltwaterLayer());
+        layers.Add(runoff);
+        layers.Add(new GlacialRunoffLayer());
+        layers.Add(lakes);
+        layers.Add(flow);
+        layers.Add(rivers);
     }
 
     private static void AddClimateAndDrainage(

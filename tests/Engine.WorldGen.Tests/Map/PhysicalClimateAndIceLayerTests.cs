@@ -145,6 +145,28 @@ public sealed class PhysicalClimateAndIceLayerTests
     }
 
     [Fact]
+    public void GlacialMeltwater_AddsRetreatAndBasalDischargeWithoutTurningWaterIntoRunoff()
+    {
+        var result = PhysicalGeographyLayerTestHarness.GenerateThrough<GlacialRunoffLayer>();
+        var meltwaterLand = Enumerable.Range(0, result.Map.Grid.TriangleCount)
+            .Where(index => result.Map.WaterKindCodes[index] == PhysicalWaterKindCodes.None &&
+                result.Map.GlacialMeltwater[index] > 0)
+            .ToArray();
+
+        Assert.NotEmpty(meltwaterLand);
+        Assert.Contains(meltwaterLand, index => result.Map.Runoff[index] > 0);
+        Assert.DoesNotContain(Enumerable.Range(0, result.Map.Grid.TriangleCount), index =>
+            result.Map.WaterKindCodes[index] != PhysicalWaterKindCodes.None &&
+            result.Map.GlacialMeltwater[index] != 0);
+
+        var water = Enumerable.Range(0, result.Map.Grid.TriangleCount)
+            .First(index => result.Map.WaterKindCodes[index] != PhysicalWaterKindCodes.None);
+        result.Map.GlacialMeltwater[water] = 1;
+        var layer = new GlacialMeltwaterLayer();
+        Assert.Throws<InvalidOperationException>(() => layer.Validate(result.Map, result.Context));
+    }
+
+    [Fact]
     public void LandIce_UsesConfiguredCoverageTargetOnLandAndRejectsIceOnWater()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<LandIceLayer>();

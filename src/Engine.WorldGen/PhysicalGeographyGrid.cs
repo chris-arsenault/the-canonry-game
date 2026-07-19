@@ -253,6 +253,7 @@ public sealed class PhysicalGeographyField
     private readonly int[] _flowTargets;
     private readonly int[] _geothermal;
     private readonly int[] _geothermalHistory;
+    private readonly int[] _glacialMeltwater;
     private readonly int[] _heatSourceDensity;
     private readonly int[] _iceFlux;
     private readonly int[] _iceFlowTargets;
@@ -335,6 +336,7 @@ public sealed class PhysicalGeographyField
         (_maximumIceThickness, _maximumIceFlux, _tectonicActivityHistory, _waveExposureHistory,
             _geothermalHistory) =
             (NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid));
+        _glacialMeltwater = NewField(grid);
         (_externalHeatForcing, _externalCoastalForcing, _externalCoastalForcingHistory) =
             (NewField(grid), NewField(grid), NewField(grid));
         (_geothermal, _slope, _landformCodes, _waterKindCodes, _waterDepths, _waterBodyIds) =
@@ -505,6 +507,8 @@ public sealed class PhysicalGeographyField
     public Span<int> WaveExposureHistory => _waveExposureHistory;
 
     public Span<int> GeothermalHistory => _geothermalHistory;
+
+    public Span<int> GlacialMeltwater => _glacialMeltwater;
 
     public Span<int> ExternalHeatForcing => _externalHeatForcing;
 

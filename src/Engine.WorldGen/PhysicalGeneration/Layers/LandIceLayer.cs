@@ -16,6 +16,7 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.FlowRouting,
         PhysicalGeographyFacts.LandIce,
         PhysicalGeographyFacts.IceFlow |
+        PhysicalGeographyFacts.GlacialMeltwater |
         PhysicalGeographyFacts.Landforms |
         PhysicalGeographyFacts.Validated);
 

@@ -186,6 +186,14 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int IceAblationStep { get; init; } = 260;
 
+    public int GlacialMeltTemperatureFloor { get; init; } = 170;
+
+    public int GlacialAblationRunoffStrength { get; init; } = 460;
+
+    public int BasalMeltRunoffStrength { get; init; } = 180;
+
+    public int GlacialRetreatRunoffStrength { get; init; } = 260;
+
     public int MaximumGlacialErosionPerPass { get; init; } = 18;
 
     public int MaximumGlacialDepositionPerPass { get; init; } = 20;
@@ -466,11 +474,18 @@ public sealed record PhysicalGeographyGenerationProfile
 
     private bool LandscapeEvolutionRangesAreInvalid() =>
         !IsUnitScalar(SedimentTransportFraction) ||
+        GlacialRunoffRangesAreInvalid() ||
         SedimentDepositionSlopeThreshold < 0 ||
         !IsUnitScalar(CoastalErosionWaveThreshold) ||
         !IsUnitScalar(CoastalErosionStrength) ||
         !IsUnitScalar(CoastalDepositionFraction) ||
         CoastalSeaLevelChange is < -1000 or > 1000 || RiverGeometryRangesAreInvalid();
+
+    private bool GlacialRunoffRangesAreInvalid() =>
+        GlacialMeltTemperatureFloor is < 0 or > 1000 ||
+        !IsUnitScalar(GlacialAblationRunoffStrength) ||
+        !IsUnitScalar(BasalMeltRunoffStrength) ||
+        !IsUnitScalar(GlacialRetreatRunoffStrength);
 
     private bool RiverGeometryRangesAreInvalid() =>
         !IsUnitScalar(RiverChannelBaseStrength) || !IsUnitScalar(RiverChannelOrderStrength) ||

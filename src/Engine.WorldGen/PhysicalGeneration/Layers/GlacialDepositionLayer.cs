@@ -29,6 +29,7 @@ internal sealed class GlacialDepositionLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Rivers |
         PhysicalGeographyFacts.LandIce |
         PhysicalGeographyFacts.IceFlow |
+        PhysicalGeographyFacts.GlacialMeltwater |
         PhysicalGeographyFacts.SeaIce |
         PhysicalGeographyFacts.Landforms |
         PhysicalGeographyFacts.Validated);

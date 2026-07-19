@@ -27,6 +27,7 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.LandIce |
         PhysicalGeographyFacts.IceFlow |
         PhysicalGeographyFacts.SeaIce |
+        PhysicalGeographyFacts.GlacialMeltwater |
         PhysicalGeographyFacts.Landforms |
         PhysicalGeographyFacts.RiverGeometry |
         PhysicalGeographyFacts.Floodplains |

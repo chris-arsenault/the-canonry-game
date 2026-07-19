@@ -59,7 +59,7 @@ public sealed class PhysicalEvolutionSessionTests
         layer.Validate(session.Map, context);
 
         Assert.Equal(provinces, session.Map.CrustProvinceIds.ToArray());
-        Assert.False(initialBoundary.SequenceEqual(session.Map.TectonicBoundaryCodes));
+        Assert.False(initialBoundary.SequenceEqual(session.Map.TectonicBoundaryCodes.ToArray()));
 
         var interior = Enumerable.Range(0, session.Map.Grid.TriangleCount)
             .First(index => session.Map.InitialTectonicBoundaryCodes[index] == 0);

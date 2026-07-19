@@ -23,6 +23,8 @@ public sealed class PhysicalGeographyEvolutionSession
     private readonly LakeBasinLayer _lakes = new();
     private readonly FlowRoutingLayer _flow = new();
     private readonly RiverNetworkLayer _rivers = new();
+    private readonly GlacialMeltwaterLayer _meltwater = new();
+    private readonly GlacialRunoffLayer _glacialRunoff = new();
     private PhysicalGeographyEpochDefinition? _epoch;
     private EvolutionPhase _phase = EvolutionPhase.Ready;
     private int _epochCount;
@@ -70,6 +72,7 @@ public sealed class PhysicalGeographyEvolutionSession
         _epochCount = totalEpochCount;
         Map.ExternalHeatForcing.Clear();
         Map.ExternalCoastalForcing.Clear();
+        Map.GlacialMeltwater.Clear();
         _phase = EvolutionPhase.Geology;
     }
 
@@ -113,9 +116,11 @@ public sealed class PhysicalGeographyEvolutionSession
     public void ApplyPostGlacialReconciliation()
     {
         RequirePhase(EvolutionPhase.PostGlacialReconciliation);
-        ReconcileClimateAndDrainage();
+        ReconcileClimate();
         Apply(new LandIceLayer());
         Apply(new IceFlowLayer());
+        Apply(_meltwater);
+        ApplyDrainage(includeMeltwater: true);
         _phase = EvolutionPhase.DomainForcing;
     }
 
@@ -149,9 +154,11 @@ public sealed class PhysicalGeographyEvolutionSession
             throw new InvalidOperationException("Physical evolution cannot finalize before every epoch completes.");
         }
 
-        ReconcileClimateAndDrainage(useEpoch: false);
+        ReconcileClimate(useEpoch: false);
         Apply(new LandIceLayer(), useEpoch: false);
         Apply(new IceFlowLayer(), useEpoch: false);
+        Apply(_meltwater, useEpoch: false);
+        ApplyDrainage(useEpoch: false, includeMeltwater: true);
         Apply(new GlacialLandformLayer(), useEpoch: false);
         Apply(new SeaIceLayer(), useEpoch: false);
         Apply(new LandformClassificationLayer(), useEpoch: false);
@@ -161,12 +168,6 @@ public sealed class PhysicalGeographyEvolutionSession
         Apply(new PhysicalGeographyValidationLayer(), useEpoch: false);
         _phase = EvolutionPhase.Complete;
         return Map;
-    }
-
-    private void ReconcileClimateAndDrainage(bool useEpoch = true)
-    {
-        ReconcileClimate(useEpoch);
-        ApplyDrainage(useEpoch);
     }
 
     private void ReconcileClimate(bool useEpoch = true)
@@ -183,9 +184,14 @@ public sealed class PhysicalGeographyEvolutionSession
         Apply(_precipitation, useEpoch);
     }
 
-    private void ApplyDrainage(bool useEpoch = true)
+    private void ApplyDrainage(bool useEpoch = true, bool includeMeltwater = false)
     {
         Apply(_runoff, useEpoch);
+        if (includeMeltwater)
+        {
+            Apply(_glacialRunoff, useEpoch);
+        }
+
         Apply(_lakes, useEpoch);
         Apply(_flow, useEpoch);
         Apply(_rivers, useEpoch);

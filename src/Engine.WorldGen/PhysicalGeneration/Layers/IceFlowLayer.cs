@@ -11,6 +11,7 @@ internal sealed class IceFlowLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Ocean |
         PhysicalGeographyFacts.LandIce,
         PhysicalGeographyFacts.IceFlow,
+        PhysicalGeographyFacts.GlacialMeltwater |
         PhysicalGeographyFacts.Landforms |
         PhysicalGeographyFacts.Validated);
 

@@ -87,13 +87,13 @@ Primary files:
 
 ### 2. Climate history and cold drainage
 
-- [ ] Retune the authored schedule so the wet epoch produces widespread liquid
+- [x] Retune the authored schedule so the wet epoch produces widespread liquid
   precipitation and runoff as an outcome, not just a positive offset.
-- [ ] Keep the Deep Freeze as the glacial maximum and the final epoch as partial
+- [x] Keep the Deep Freeze as the glacial maximum and the final epoch as partial
   retreat into the still-icebound present.
-- [ ] Add seasonal/glacial ablation, basal/geothermal melt, and proglacial
+- [x] Add seasonal/glacial ablation, basal/geothermal melt, and proglacial
   discharge to runoff without treating standing water as local rainfall.
-- [ ] Preserve cumulative fluvial erosion as ancestral or seasonally dry valley
+- [x] Preserve cumulative fluvial erosion as ancestral or seasonally dry valley
   evidence when present flow is weak.
 
 Primary files:

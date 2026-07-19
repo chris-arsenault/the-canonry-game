@@ -27,6 +27,7 @@ internal sealed class GlacialErosionLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Lakes |
         PhysicalGeographyFacts.FlowRouting |
         PhysicalGeographyFacts.Rivers |
+        PhysicalGeographyFacts.GlacialMeltwater |
         PhysicalGeographyFacts.SeaIce |
         PhysicalGeographyFacts.Landforms |
         PhysicalGeographyFacts.Validated);

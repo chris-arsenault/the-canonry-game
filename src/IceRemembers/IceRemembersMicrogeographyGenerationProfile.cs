@@ -89,6 +89,10 @@ public sealed record IceRemembersMicrogeographyGenerationProfile
 
     public int RiverValleyMinimumOrder { get; init; } = 1;
 
+    public int AncestralRiverValleyMinimumErosion { get; init; } = 4;
+
+    public int AncestralRiverValleyMaximumSlope { get; init; } = 68;
+
     public int MaximumFireCores { get; init; } = 180;
 
     public int FireCoreDensityThreshold { get; init; } = 590;
@@ -130,7 +134,8 @@ public sealed record IceRemembersMicrogeographyGenerationProfile
     {
         if (ReefMaximumDepth <= 0 || PackIceMinimumThickness <= 0 ||
             IceShelfMinimumThickness <= 0 || GlacierMinimumThickness < SnowfieldMinimumThickness ||
-            ColdSteppeMaximumMoisture < ColdSteppeMinimumMoisture)
+            ColdSteppeMaximumMoisture < ColdSteppeMinimumMoisture ||
+            AncestralRiverValleyMinimumErosion <= 0 || AncestralRiverValleyMaximumSlope < 0)
         {
             throw new InvalidOperationException("Ice Remembers natural-surface parameters are invalid.");
         }

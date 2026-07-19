@@ -214,6 +214,13 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
             return IceRemembersPhysicalSurface.RiverValley;
         }
 
+        if (field.CumulativeFluvialErosion[triangleIndex] >=
+                profile.AncestralRiverValleyMinimumErosion &&
+            field.Slope[triangleIndex] <= profile.AncestralRiverValleyMaximumSlope)
+        {
+            return IceRemembersPhysicalSurface.RiverValley;
+        }
+
         if (field.Slope[triangleIndex] >= profile.ScreeFieldMinimumSlope)
         {
             return IceRemembersPhysicalSurface.ScreeField;
