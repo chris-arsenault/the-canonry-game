@@ -37,4 +37,5 @@ internal enum PhysicalGeographyFacts : ulong
     Deltas = 1UL << 30,
     EpochHistory = 1UL << 31,
     AtmosphericFlow = 1UL << 32,
+    OceanDistance = 1UL << 33,
 }

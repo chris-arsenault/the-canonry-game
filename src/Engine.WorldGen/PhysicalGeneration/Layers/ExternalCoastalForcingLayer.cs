@@ -87,10 +87,20 @@ internal sealed class ExternalCoastalForcingLayer : IPhysicalGeographyLayer
     {
         _ = context;
         LandscapeSurface.Validate(map);
-        if (map.ExternalCoastalForcing.ToArray().Any(static value => value != 0) ||
-            map.ExternalCoastalForcingHistory.ToArray().Any(static value => value is < 0 or > 1000))
+        foreach (var value in map.ExternalCoastalForcing)
         {
-            throw new InvalidOperationException("External coastal forcing history is invalid.");
+            if (value != 0)
+            {
+                throw new InvalidOperationException("External coastal forcing history is invalid.");
+            }
+        }
+
+        foreach (var value in map.ExternalCoastalForcingHistory)
+        {
+            if (value is < 0 or > 1000)
+            {
+                throw new InvalidOperationException("External coastal forcing history is invalid.");
+            }
         }
     }
 

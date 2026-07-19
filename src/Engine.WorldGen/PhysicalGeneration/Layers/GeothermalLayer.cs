@@ -89,12 +89,22 @@ internal sealed class GeothermalLayer : IPhysicalGeographyLayer
             return;
         }
 
-        var candidates = Enumerable.Range(0, map.Grid.TriangleCount)
-            .Where(index => map.Grid.TriangleIsInsideConfiguredDisk(index))
-            .OrderByDescending(index =>
-                (1000 - map.TectonicStrain[index]) +
-                (int)(PhysicalNoise.HashUnit(context.Seed ^ 0x37c1, index, 0) * 420d))
-            .ToArray();
+        var candidateLimit = Math.Max(256, context.Profile.MantlePlumeCount * 256);
+        var candidateSelection = new BoundedCandidateSelection(candidateLimit);
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            if (!map.Grid.TriangleIsInsideConfiguredDisk(triangleIndex))
+            {
+                continue;
+            }
+
+            candidateSelection.Consider(
+                triangleIndex,
+                (1000 - map.TectonicStrain[triangleIndex]) +
+                    (int)(PhysicalNoise.HashUnit(context.Seed ^ 0x37c1, triangleIndex, 0) * 420d));
+        }
+
+        var candidates = candidateSelection.GetBestIndexes();
         var selected = new List<int>(context.Profile.MantlePlumeCount);
         foreach (var candidate in candidates)
         {
@@ -129,20 +139,13 @@ internal sealed class GeothermalLayer : IPhysicalGeographyLayer
         int strength)
     {
         map.FeatureFlags[source] |= PhysicalGeographyFeatureCodes.MantlePlume;
-        var radiusSquared = radius * radius;
-        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
-        {
-            var distanceSquared = DistanceSquared(map.Grid, source, triangleIndex);
-            if (distanceSquared > radiusSquared)
-            {
-                continue;
-            }
-
-            var amount = 1d - (Math.Sqrt(distanceSquared) / radius);
-            map.Geothermal[triangleIndex] = Math.Max(
-                map.Geothermal[triangleIndex],
-                (int)Math.Round(strength * amount * amount, MidpointRounding.AwayFromZero));
-        }
+        PhysicalRadialFieldPainter.PaintMaximum(
+            map.Grid,
+            map.Geothermal,
+            map.Grid.TriangleX(source),
+            map.Grid.TriangleY(source),
+            radius,
+            strength);
     }
 
     private static void ClassifyHeatSources(

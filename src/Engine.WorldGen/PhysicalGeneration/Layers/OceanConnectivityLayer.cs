@@ -10,6 +10,7 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Elevation,
         PhysicalGeographyFacts.Ocean,
         PhysicalGeographyFacts.Bathymetry |
+        PhysicalGeographyFacts.OceanDistance |
         PhysicalGeographyFacts.Landmasses |
         PhysicalGeographyFacts.OceanCurrents |
         PhysicalGeographyFacts.Warmth |

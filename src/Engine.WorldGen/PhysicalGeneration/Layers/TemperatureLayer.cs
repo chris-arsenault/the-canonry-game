@@ -7,6 +7,7 @@ internal sealed class TemperatureLayer : IPhysicalGeographyLayer
         0,
         PhysicalGeographyFacts.Elevation |
         PhysicalGeographyFacts.Ocean |
+        PhysicalGeographyFacts.OceanDistance |
         PhysicalGeographyFacts.OceanCurrents |
         PhysicalGeographyFacts.Geothermal |
         PhysicalGeographyFacts.Warmth,
@@ -20,18 +21,17 @@ internal sealed class TemperatureLayer : IPhysicalGeographyLayer
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
-        var oceanDistance = PhysicalDistanceFields.FromOcean(map);
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             var lapse = Math.Max(0, map.Elevation[triangleIndex] - map.EffectiveSeaLevel) *
                 context.Profile.ElevationTemperatureLapse /
                 context.Profile.ElevationScale;
-            var moderation = oceanDistance[triangleIndex] < 0
+            var moderation = map.OceanDistance[triangleIndex] < 0
                 ? 0
                 : Math.Max(
                     0,
                     context.Profile.OceanModerationStrength -
-                        (oceanDistance[triangleIndex] * context.Profile.OceanModerationStrength /
+                        (map.OceanDistance[triangleIndex] * context.Profile.OceanModerationStrength /
                             context.Profile.OceanModerationDistance));
             var geothermal = map.Geothermal[triangleIndex] *
                 context.Profile.GeothermalTemperatureStrength / 1000;

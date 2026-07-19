@@ -58,10 +58,17 @@ internal sealed class SedimentTransportLayer : IPhysicalGeographyLayer
     {
         _ = context;
         LandscapeSurface.Validate(map);
-        if (map.SedimentSupply.ToArray().Any(static value => value != 0) ||
-            map.SedimentDepositedTotal + map.SedimentExportedTotal != map.SedimentProducedTotal)
+        if (map.SedimentDepositedTotal + map.SedimentExportedTotal != map.SedimentProducedTotal)
         {
             throw new InvalidOperationException("Sediment transport did not conserve its supplied load.");
+        }
+
+        foreach (var value in map.SedimentSupply)
+        {
+            if (value != 0)
+            {
+                throw new InvalidOperationException("Sediment transport did not conserve its supplied load.");
+            }
         }
     }
 

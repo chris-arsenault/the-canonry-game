@@ -9,6 +9,7 @@ internal sealed class WarmthSourceLayer : IPhysicalGeographyLayer
         0x4a51c73,
         PhysicalGeographyFacts.Elevation |
         PhysicalGeographyFacts.Ocean |
+        PhysicalGeographyFacts.OceanDistance |
         PhysicalGeographyFacts.OceanCurrents |
         PhysicalGeographyFacts.Geothermal,
         PhysicalGeographyFacts.Warmth,
@@ -33,8 +34,7 @@ internal sealed class WarmthSourceLayer : IPhysicalGeographyLayer
         }
 
         Paint(map, 0d, 0d, context.Profile.HeartWarmthRadius, context.Profile.HeartWarmthStrength);
-        var oceanDistance = PhysicalDistanceFields.FromOcean(map);
-        var candidates = CandidateSets(map, oceanDistance, context.Profile);
+        var candidates = CandidateSets(map, map.OceanDistance, context.Profile);
         var selected = new List<int>();
         for (var sourceIndex = 0; sourceIndex < context.Profile.WarmthPocketCount; sourceIndex++)
         {
@@ -82,7 +82,7 @@ internal sealed class WarmthSourceLayer : IPhysicalGeographyLayer
 
     private static List<int>[] CandidateSets(
         PhysicalGeographyField map,
-        int[] oceanDistance,
+        ReadOnlySpan<int> oceanDistance,
         PhysicalGeographyGenerationProfile profile)
     {
         var result = new List<int>[] { [], [], [], [] };
@@ -134,7 +134,7 @@ internal sealed class WarmthSourceLayer : IPhysicalGeographyLayer
     private static void AddCandidate(
         List<int>[] result,
         PhysicalGeographyField map,
-        int[] oceanDistance,
+        ReadOnlySpan<int> oceanDistance,
         int triangleIndex,
         PhysicalGeographyGenerationProfile profile)
     {
@@ -190,24 +190,13 @@ internal sealed class WarmthSourceLayer : IPhysicalGeographyLayer
         double centerY,
         double radius,
         int strength)
-    {
-        var radiusSquared = radius * radius;
-        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
-        {
-            var dx = map.Grid.TriangleX(triangleIndex) - centerX;
-            var dy = map.Grid.TriangleY(triangleIndex) - centerY;
-            var distanceSquared = (dx * dx) + (dy * dy);
-            if (distanceSquared > radiusSquared)
-            {
-                continue;
-            }
-
-            var amount = 1d - (Math.Sqrt(distanceSquared) / radius);
-            map.Warmth[triangleIndex] = Math.Max(
-                map.Warmth[triangleIndex],
-                (int)Math.Round(strength * amount * amount, MidpointRounding.AwayFromZero));
-        }
-    }
+        => PhysicalRadialFieldPainter.PaintMaximum(
+            map.Grid,
+            map.Warmth,
+            centerX,
+            centerY,
+            radius,
+            strength);
 
     private static double Lerp(double first, double second, double amount) =>
         first + ((second - first) * amount);

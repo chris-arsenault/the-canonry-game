@@ -10,6 +10,7 @@ public sealed class PhysicalGeographyEvolutionSession
     private readonly int _rootSeed;
     private readonly PhysicalGeographyPipeline _pipeline;
     private readonly OceanConnectivityLayer _ocean = new();
+    private readonly OceanDistanceLayer _oceanDistance = new();
     private readonly BathymetryLayer _bathymetry = new();
     private readonly LandmassLayer _landmasses = new();
     private readonly OceanCurrentLayer _currents = new();
@@ -169,6 +170,7 @@ public sealed class PhysicalGeographyEvolutionSession
     private void ReconcileClimate(bool useEpoch = true)
     {
         Apply(_ocean, useEpoch);
+        Apply(_oceanDistance, useEpoch);
         Apply(_bathymetry, useEpoch);
         Apply(_landmasses, useEpoch);
         Apply(_currents, useEpoch);

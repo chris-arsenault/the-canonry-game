@@ -7,7 +7,9 @@ internal sealed class BathymetryLayer : IPhysicalGeographyLayer
     public PhysicalGeographyLayerContract Contract { get; } = new(
         "bathymetry",
         0,
-        PhysicalGeographyFacts.Elevation | PhysicalGeographyFacts.Ocean,
+        PhysicalGeographyFacts.Elevation |
+        PhysicalGeographyFacts.Ocean |
+        PhysicalGeographyFacts.OceanDistance,
         PhysicalGeographyFacts.Bathymetry,
         PhysicalGeographyFacts.Landmasses |
         PhysicalGeographyFacts.OceanCurrents |
@@ -17,7 +19,6 @@ internal sealed class BathymetryLayer : IPhysicalGeographyLayer
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
         MeasureSlopes(map);
-        var oceanDistance = PhysicalDistanceFields.FromOcean(map);
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
@@ -30,7 +31,7 @@ internal sealed class BathymetryLayer : IPhysicalGeographyLayer
             {
                 map.BathymetricZoneCodes[triangleIndex] =
                     map.Elevation[triangleIndex] <= map.EffectiveSeaLevel + (context.Profile.ShelfDepth / 2) &&
-                    oceanDistance[triangleIndex] is >= 0 and <= 18
+                    map.OceanDistance[triangleIndex] is >= 0 and <= 18
                         ? PhysicalBathymetricZoneCodes.ExposedShelf
                         : PhysicalBathymetricZoneCodes.Land;
             }

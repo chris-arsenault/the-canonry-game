@@ -18,6 +18,7 @@ internal sealed class PhysicalGeographyPipeline
     public static PhysicalGeographyPipeline CreateDefault(PhysicalGeographyGenerationProfile profile)
     {
         var ocean = new OceanConnectivityLayer();
+        var oceanDistance = new OceanDistanceLayer();
         var bathymetry = new BathymetryLayer();
         var landmasses = new LandmassLayer();
         var currents = new OceanCurrentLayer();
@@ -45,22 +46,22 @@ internal sealed class PhysicalGeographyPipeline
             new GeothermalLayer(),
         };
         AddClimateAndDrainage(
-            layers, ocean, bathymetry, landmasses, currents, warmth, temperature,
+            layers, ocean, oceanDistance, bathymetry, landmasses, currents, warmth, temperature,
             atmosphericFlow, moisture, precipitation, runoff, lakes, flow, rivers);
         layers.Add(new SedimentTransportLayer());
         AddClimateAndDrainage(
-            layers, ocean, bathymetry, landmasses, currents, warmth, temperature,
+            layers, ocean, oceanDistance, bathymetry, landmasses, currents, warmth, temperature,
             atmosphericFlow, moisture, precipitation, runoff, lakes, flow, rivers);
         layers.Add(new CoastalErosionLayer());
         AddClimateAndDrainage(
-            layers, ocean, bathymetry, landmasses, currents, warmth, temperature,
+            layers, ocean, oceanDistance, bathymetry, landmasses, currents, warmth, temperature,
             atmosphericFlow, moisture, precipitation, runoff, lakes, flow, rivers);
         layers.Add(landIce);
         layers.Add(iceFlow);
         layers.Add(new GlacialErosionLayer());
         layers.Add(new GlacialDepositionLayer());
         AddClimateAndDrainage(
-            layers, ocean, bathymetry, landmasses, currents, warmth, temperature,
+            layers, ocean, oceanDistance, bathymetry, landmasses, currents, warmth, temperature,
             atmosphericFlow, moisture, precipitation, runoff, lakes, flow, rivers);
         layers.Add(landIce);
         layers.Add(iceFlow);
@@ -77,6 +78,7 @@ internal sealed class PhysicalGeographyPipeline
     private static void AddClimateAndDrainage(
         List<IPhysicalGeographyLayer> layers,
         IPhysicalGeographyLayer ocean,
+        IPhysicalGeographyLayer oceanDistance,
         IPhysicalGeographyLayer bathymetry,
         IPhysicalGeographyLayer landmasses,
         IPhysicalGeographyLayer currents,
@@ -91,6 +93,7 @@ internal sealed class PhysicalGeographyPipeline
         IPhysicalGeographyLayer rivers)
     {
         layers.Add(ocean);
+        layers.Add(oceanDistance);
         layers.Add(bathymetry);
         layers.Add(landmasses);
         layers.Add(currents);

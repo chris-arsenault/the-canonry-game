@@ -5,6 +5,22 @@ using Engine.Constants;
 public sealed class PhysicalClimateAndIceLayerTests
 {
     [Fact]
+    public void OceanDistance_IsSharedDerivedGeographyAndRejectsContradictoryValues()
+    {
+        var result = PhysicalGeographyLayerTestHarness.GenerateThrough<OceanDistanceLayer>();
+        Assert.Contains(Enumerable.Range(0, result.Map.Grid.TriangleCount), index =>
+            result.Map.WaterKindCodes[index] == PhysicalWaterKindCodes.Ocean &&
+            result.Map.OceanDistance[index] == 0);
+        var land = Enumerable.Range(0, result.Map.Grid.TriangleCount)
+            .First(index => result.Map.WaterKindCodes[index] == PhysicalWaterKindCodes.None);
+        Assert.True(result.Map.OceanDistance[land] > 0);
+
+        result.Map.OceanDistance[land] = 0;
+        Assert.Throws<InvalidOperationException>(() =>
+            result.Layer.Validate(result.Map, result.Context));
+    }
+
+    [Fact]
     public void AtmosphericFlow_FormsOneAdjacentUpwindGraphAndRejectsInvalidTargets()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<AtmosphericFlowLayer>();

@@ -55,10 +55,17 @@ internal sealed class PhysicalEpochHistoryLayer : IPhysicalGeographyLayer
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
         if (map.CompletedEpochCount != context.EpochIndex + 1 ||
-            map.CompletedEpochCount > context.EpochCount ||
-            map.GeothermalHistory.ToArray().Any(static value => value is < 0 or > 1000))
+            map.CompletedEpochCount > context.EpochCount)
         {
             throw new InvalidOperationException("Physical epoch history is invalid.");
+        }
+
+        foreach (var value in map.GeothermalHistory)
+        {
+            if (value is < 0 or > 1000)
+            {
+                throw new InvalidOperationException("Physical epoch history is invalid.");
+            }
         }
     }
 }

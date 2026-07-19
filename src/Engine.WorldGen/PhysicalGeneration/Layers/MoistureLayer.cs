@@ -9,6 +9,7 @@ internal sealed class MoistureLayer : IPhysicalGeographyLayer
         0x5e29,
         PhysicalGeographyFacts.Elevation |
         PhysicalGeographyFacts.Ocean |
+        PhysicalGeographyFacts.OceanDistance |
         PhysicalGeographyFacts.Temperature |
         PhysicalGeographyFacts.AtmosphericFlow,
         PhysicalGeographyFacts.Moisture,
@@ -19,7 +20,6 @@ internal sealed class MoistureLayer : IPhysicalGeographyLayer
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
-        var oceanDistance = PhysicalDistanceFields.FromOcean(map);
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             if (map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None)
@@ -30,7 +30,7 @@ internal sealed class MoistureLayer : IPhysicalGeographyLayer
 
             var exposure = Math.Max(
                 0,
-                720 - (oceanDistance[triangleIndex] * 720 / context.Profile.OceanMoistureDistance));
+                720 - (map.OceanDistance[triangleIndex] * 720 / context.Profile.OceanMoistureDistance));
             var weather = (int)Math.Round(
                 PhysicalNoise.UnitNoise(
                     map.Grid.TriangleX(triangleIndex),

@@ -28,14 +28,24 @@ internal sealed class FractureNetworkLayer : IPhysicalGeographyLayer
             return;
         }
 
-        var candidates = Enumerable.Range(0, map.Grid.TriangleCount)
-            .Where(map.Grid.TriangleIsInsideConfiguredDisk)
-            .OrderByDescending(index =>
-                (map.TectonicStrain[index] * 0.48f) +
-                (map.Uplift[index] * 310f) +
-                (map.RidgeInfluence[index] * 120f) +
-                (float)(PhysicalNoise.HashUnit(context.Seed, index, 0) * 90d))
-            .ToArray();
+        var candidateLimit = Math.Max(1024, branchCount * 256);
+        var candidateSelection = new BoundedCandidateSelection(candidateLimit);
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            if (!map.Grid.TriangleIsInsideConfiguredDisk(triangleIndex))
+            {
+                continue;
+            }
+
+            candidateSelection.Consider(
+                triangleIndex,
+                (map.TectonicStrain[triangleIndex] * 0.48f) +
+                    (map.Uplift[triangleIndex] * 310f) +
+                    (map.RidgeInfluence[triangleIndex] * 120f) +
+                    (float)(PhysicalNoise.HashUnit(context.Seed, triangleIndex, 0) * 90d));
+        }
+
+        var candidates = candidateSelection.GetBestIndexes();
         var networkNodes = new List<int>();
         var previousRoots = new List<int>();
         for (var branch = 0; branch < branchCount; branch++)

@@ -71,10 +71,17 @@ internal sealed class GlacialDepositionLayer : IPhysicalGeographyLayer
     {
         _ = context;
         LandscapeSurface.Validate(map);
-        if (map.SedimentSupply.ToArray().Any(static value => value != 0) ||
-            map.SedimentDepositedTotal + map.SedimentExportedTotal != map.SedimentProducedTotal)
+        if (map.SedimentDepositedTotal + map.SedimentExportedTotal != map.SedimentProducedTotal)
         {
             throw new InvalidOperationException("Glacial deposition did not conserve sediment.");
+        }
+
+        foreach (var value in map.SedimentSupply)
+        {
+            if (value != 0)
+            {
+                throw new InvalidOperationException("Glacial deposition did not conserve sediment.");
+            }
         }
     }
 

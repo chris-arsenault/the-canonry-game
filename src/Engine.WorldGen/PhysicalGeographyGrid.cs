@@ -269,6 +269,7 @@ public sealed class PhysicalGeographyField
     private readonly int[] _oceanCurrentStrength;
     private readonly int[] _oceanCurrentX;
     private readonly int[] _oceanCurrentY;
+    private readonly int[] _oceanDistance;
     private readonly int[] _rainfall;
     private readonly float[] _ridgeInfluence;
     private readonly int[] _riverOrders;
@@ -321,10 +322,7 @@ public sealed class PhysicalGeographyField
             (new int[grid.TriangleCount], new int[grid.TriangleCount]);
         _moisture = new int[grid.TriangleCount];
         (_oceanCurrentX, _oceanCurrentY, _oceanCurrentStrength, _oceanCurrentHeat,
-            _waveExposure) =
-            (new int[grid.TriangleCount], new int[grid.TriangleCount],
-                new int[grid.TriangleCount], new int[grid.TriangleCount],
-                new int[grid.TriangleCount]);
+            _waveExposure, _oceanDistance) = NewOceanFields(grid);
         (_rainfall, _snowfall, _seaIceSuitability) = NewTriple(grid);
         (_bedrockElevation, _sedimentThickness, _sedimentSupply, _cumulativeFluvialErosion,
             _cumulativeGlacialErosion, _cumulativeCoastalErosion, _cumulativeDeposition) =
@@ -372,6 +370,25 @@ public sealed class PhysicalGeographyField
     private static (int[] First, int[] Second, int[] Third) NewTriple(
         PhysicalGeographyGrid grid) =>
         (NewField(grid), NewField(grid), NewField(grid));
+
+    private static (
+        int[] CurrentX,
+        int[] CurrentY,
+        int[] CurrentStrength,
+        int[] CurrentHeat,
+        int[] WaveExposure,
+        int[] OceanDistance) NewOceanFields(PhysicalGeographyGrid grid)
+    {
+        var oceanDistance = NewField(grid);
+        Array.Fill(oceanDistance, -1);
+        return (
+            NewField(grid),
+            NewField(grid),
+            NewField(grid),
+            NewField(grid),
+            NewField(grid),
+            oceanDistance);
+    }
 
     private static (
         int[] WindX,
@@ -446,6 +463,8 @@ public sealed class PhysicalGeographyField
     public Span<int> OceanCurrentStrength => _oceanCurrentStrength;
 
     public Span<int> OceanCurrentHeat => _oceanCurrentHeat;
+
+    internal Span<int> OceanDistance => _oceanDistance;
 
     public Span<int> WaveExposure => _waveExposure;
 
