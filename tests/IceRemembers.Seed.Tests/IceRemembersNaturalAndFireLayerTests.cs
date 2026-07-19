@@ -11,10 +11,7 @@ public sealed class IceRemembersNaturalAndFireLayerTests
     public void NaturalSurfaces_ExpressColdClimateLandformsAndRejectInvalidSurface()
     {
         var result = IceRemembersMicrogeographyLayerTestHarness.GenerateThrough<NaturalSurfaceLayer>();
-        var candidates = Enumerable.Range(0, result.Map.Physical.Grid.TriangleCount)
-            .Where(index => result.Map.Physical.WaterKindCodes[index] == PhysicalWaterKindCodes.None)
-            .Take(8)
-            .ToArray();
+        var candidates = SelectIsolatedLandTriangles(result.Map, count: 8);
         Assert.Equal(8, candidates.Length);
 
         ConfigureLand(result.Map, candidates[0], temperature: 205, moisture: 90, slope: 5);
@@ -109,10 +106,52 @@ public sealed class IceRemembersNaturalAndFireLayerTests
         map.Physical.RiverOrders[triangleIndex] = 0;
         map.Physical.RiverChannelStrength[triangleIndex] = 0;
         map.Physical.RiverChannelOrders[triangleIndex] = 0;
+        map.Physical.CumulativeFluvialErosion[triangleIndex] = 0;
         map.Physical.FloodplainIntensity[triangleIndex] = 0;
         map.Physical.DeltaIntensity[triangleIndex] = 0;
         map.Physical.Temperature[triangleIndex] = temperature;
         map.Physical.Moisture[triangleIndex] = moisture;
         map.Physical.Slope[triangleIndex] = slope;
+
+        for (var edge = 0; edge < 3; edge++)
+        {
+            var neighbor = map.Physical.Grid.NeighborTriangleIndex(triangleIndex, edge);
+            if (neighbor >= 0)
+            {
+                map.Physical.RiverChannelOrders[neighbor] = 0;
+            }
+        }
+    }
+
+    private static int[] SelectIsolatedLandTriangles(IceRemembersMicrogeographyMap map, int count)
+    {
+        var candidates = new List<int>(count);
+        for (var triangleIndex = 0;
+             triangleIndex < map.Physical.Grid.TriangleCount && candidates.Count < count;
+             triangleIndex++)
+        {
+            if (map.Physical.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None ||
+                candidates.Exists(candidate => AreNeighbors(map.Physical.Grid, candidate, triangleIndex)))
+            {
+                continue;
+            }
+
+            candidates.Add(triangleIndex);
+        }
+
+        return candidates.ToArray();
+    }
+
+    private static bool AreNeighbors(PhysicalGeographyGrid grid, int first, int second)
+    {
+        for (var edge = 0; edge < 3; edge++)
+        {
+            if (grid.NeighborTriangleIndex(first, edge) == second)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

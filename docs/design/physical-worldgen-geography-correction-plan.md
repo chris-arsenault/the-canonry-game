@@ -183,12 +183,22 @@ Primary files:
 
 ### 7. Verification and handoff
 
-- [ ] Exercise durable layer contracts with positive and negative cases.
-- [ ] Inspect macro continents, relief, climate history, complete drainage,
-  tributaries, channel geometry, impacts, and default surface rendering.
-- [ ] Run final repository verification after all milestones are complete.
-- [ ] Update stable generation documentation to the final implemented behavior.
-- [ ] Commit and push each completed milestone and the final verified result.
+- [x] Exercise durable layer contracts with positive and negative cases.
+- [x] Generate current fixed-seed `.world` artifacts for seeds 42, 4200, 9173,
+  and 21031 and expose them through the existing pregenerated-world UI.
+- [ ] Review those rendered worlds for macro continents, relief, climate
+  history, complete drainage, tributaries, channel geometry, impacts, and
+  default surface presentation. This visual review is the quality gate; the
+  implementation does not infer acceptance from distribution percentages.
+- [x] Run final repository verification after all milestones are complete.
+  Release build, analyzers, formatting, the focused failure repro, and every
+  reported test passed. The solution-level VSTest task nevertheless returned
+  false with `0 Warning(s)` and `0 Error(s)` after reporting all 41 seed tests
+  successful; this unexplained runner exit is recorded rather than hidden or
+  diagnosed without evidence.
+- [x] Update stable generation documentation to the final implemented behavior.
+- [x] Commit and push each completed milestone; the final handoff commit follows
+  this tracker update.
 
 ## Explicit deferrals
 
