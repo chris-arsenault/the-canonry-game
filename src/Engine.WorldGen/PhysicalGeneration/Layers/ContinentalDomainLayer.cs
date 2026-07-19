@@ -29,7 +29,9 @@ internal sealed class ContinentalDomainLayer : IPhysicalGeographyLayer
                 y,
                 context.Seed ^ 0x41c7,
                 Math.Max(8d, context.Profile.ContinentalWarpScale * 0.44d),
-                3) * 0.08d;
+                4);
+            var margin = 1d - Math.Clamp(Math.Abs(potential - 0.5d) * 2d, 0d, 1d);
+            roughness *= 0.025d + (margin * margin * 0.14d);
             var strain = map.TectonicStrain[triangleIndex] / 1000d;
             var boundaryAdjustment = map.TectonicBoundaryCodes[triangleIndex] switch
             {

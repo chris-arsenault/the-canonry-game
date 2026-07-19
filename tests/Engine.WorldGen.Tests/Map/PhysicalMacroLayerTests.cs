@@ -22,6 +22,23 @@ public sealed class PhysicalMacroLayerTests
     }
 
     [Fact]
+    public void TectonicProvinces_KeepHeartLandWhileDistributingAssembliesAcrossWorkDomain()
+    {
+        var result = PhysicalGeographyLayerTestHarness.GenerateThrough<TectonicProvinceLayer>();
+        var continental = Enumerable.Range(0, result.Map.Grid.TriangleCount)
+            .Where(index => result.Map.CrustTypeCodes[index] == PhysicalCrustTypeCodes.Continental)
+            .ToArray();
+        var closest = continental.MinBy(index => DistanceSquaredFromOrigin(result.Map, index));
+        var farthest = continental.MaxBy(index => DistanceSquaredFromOrigin(result.Map, index));
+
+        Assert.True(DistanceSquaredFromOrigin(result.Map, closest) < 16d);
+        Assert.True(DistanceSquaredFromOrigin(result.Map, farthest) > 100d);
+        Assert.Equal(
+            PhysicalGeographyLayerTestHarness.Profile.ContinentalAssemblyCount,
+            continental.Select(index => result.Map.CrustAssemblyIds[index]).Distinct().Count());
+    }
+
+    [Fact]
     public void ContinentalDomains_CreateMacroScaleContrastAndRejectUniformPotential()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<ContinentalDomainLayer>();
@@ -174,4 +191,11 @@ public sealed class PhysicalMacroLayerTests
     private static bool TriangleIsDry(PhysicalGeographyField map, int triangleIndex) =>
         map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.None &&
         map.Elevation[triangleIndex] >= map.EffectiveSeaLevel;
+
+    private static double DistanceSquaredFromOrigin(PhysicalGeographyField map, int triangleIndex)
+    {
+        var x = map.Grid.TriangleX(triangleIndex);
+        var y = map.Grid.TriangleY(triangleIndex);
+        return (x * x) + (y * y);
+    }
 }

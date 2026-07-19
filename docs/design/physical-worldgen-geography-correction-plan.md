@@ -63,17 +63,17 @@ older geography; it must not prevent that geography from having formed.
 
 ### 1. Continental assemblies and evolving tectonics
 
-- [ ] Retain the existing province sites, Voronoi assignment, motion, boundary
+- [x] Retain the existing province sites, Voronoi assignment, motion, boundary
   typing, padded work graph, and continental-potential pipeline.
-- [ ] Replace centered nearest-anchor acquisition with deterministic frontier
+- [x] Replace centered nearest-anchor acquisition with deterministic frontier
   growth over province adjacency, including nuclei outside the configured crop.
-- [ ] Bias assembly growth into coherent elongated chains and fragments rather
+- [x] Bias assembly growth into coherent elongated chains and fragments rather
   than compact disks.
-- [ ] Apply bounded multi-scale margin warping only near the continental
+- [x] Apply bounded multi-scale margin warping only near the continental
   transition; do not classify continents from raw fractal thresholds.
-- [ ] Add a discrete epoch tectonic stage that varies active strain and rift
+- [x] Add a discrete epoch tectonic stage that varies active strain and rift
   separation while retaining cumulative tectonic history and inherited relief.
-- [ ] Let strong early uplift decay into lower later activity instead of
+- [x] Let strong early uplift decay into lower later activity instead of
   repeatedly renewing the same ridge everywhere.
 
 Primary files:

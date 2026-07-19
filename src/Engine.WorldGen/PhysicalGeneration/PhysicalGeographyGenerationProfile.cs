@@ -162,6 +162,10 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public double TectonicConvergenceThreshold { get; init; } = 0.12d;
 
+    public double TectonicEpochVariationScale { get; init; } = 34d;
+
+    public int TectonicBoundaryPersistence { get; init; } = 420;
+
     public double ElevationVariationScale { get; init; } = 25d;
 
     public double ElevationVariationStrength { get; init; } = 0.12d;
@@ -407,6 +411,7 @@ public sealed record PhysicalGeographyGenerationProfile
 
     private bool TectonicScaleIsInvalid() =>
         ContinentalTransitionWidth <= 0d || ContinentalWarpScale <= 0d ||
+        TectonicEpochVariationScale <= 0d ||
         RidgeWidth <= 0d || RidgeUplift <= 0d || RiftDepth <= 0d ||
         ContinentalAssemblySeparationDepth <= 0d ||
         MantlePlumeRadius <= 0d || MantlePlumeMinimumSpacing <= 0d;
@@ -438,6 +443,7 @@ public sealed record PhysicalGeographyGenerationProfile
         TectonicMotionMinimum <= 0d ||
         TectonicMotionMaximum < TectonicMotionMinimum ||
         TectonicConvergenceThreshold < 0d ||
+        !IsUnitScalar(TectonicBoundaryPersistence) ||
         MantlePlumeStrength is < 1 or > 1000;
 
     private void ValidateHydrologyRanges()

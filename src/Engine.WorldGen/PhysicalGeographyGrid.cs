@@ -291,6 +291,8 @@ public sealed class PhysicalGeographyField
     private readonly int[] _precipitationBarriers;
     private readonly int[] _upwindOceanSources;
     private readonly int[] _tectonicBoundaryCodes;
+    private readonly int[] _initialTectonicBoundaryCodes;
+    private readonly int[] _initialTectonicStrain;
     private readonly int[] _tectonicStrain;
     private readonly int[] _tectonicActivityHistory;
     private readonly int[] _warmth;
@@ -318,8 +320,10 @@ public sealed class PhysicalGeographyField
             (new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount]);
         (_windX, _windY, _upwindTargets, _moistureBarriers,
             _precipitationBarriers, _upwindOceanSources) = NewAtmosphericFields(grid);
-        (_tectonicBoundaryCodes, _tectonicStrain) =
-            (new int[grid.TriangleCount], new int[grid.TriangleCount]);
+        (_tectonicBoundaryCodes, _tectonicStrain, _initialTectonicBoundaryCodes,
+            _initialTectonicStrain) =
+            (new int[grid.TriangleCount], new int[grid.TriangleCount],
+                new int[grid.TriangleCount], new int[grid.TriangleCount]);
         _moisture = new int[grid.TriangleCount];
         (_oceanCurrentX, _oceanCurrentY, _oceanCurrentStrength, _oceanCurrentHeat,
             _waveExposure, _oceanDistance) = NewOceanFields(grid);
@@ -437,6 +441,10 @@ public sealed class PhysicalGeographyField
     public Span<int> TectonicBoundaryCodes => _tectonicBoundaryCodes;
 
     public Span<int> TectonicStrain => _tectonicStrain;
+
+    internal Span<int> InitialTectonicBoundaryCodes => _initialTectonicBoundaryCodes;
+
+    internal Span<int> InitialTectonicStrain => _initialTectonicStrain;
 
     public Span<int> Elevation => _elevation;
 

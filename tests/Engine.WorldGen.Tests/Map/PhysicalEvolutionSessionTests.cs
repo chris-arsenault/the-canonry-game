@@ -37,6 +37,37 @@ public sealed class PhysicalEvolutionSessionTests
     }
 
     [Fact]
+    public void TectonicEpoch_ChangesActivityWithoutMovingProvinceIdentity()
+    {
+        var session = PhysicalGeographyEvolutionSession.Begin(
+            6,
+            PhysicalGeographyLayerTestHarness.Seed,
+            PhysicalGeographyLayerTestHarness.Profile);
+        var provinces = session.Map.CrustProvinceIds.ToArray();
+        var initialBoundary = session.Map.TectonicBoundaryCodes.ToArray();
+        var epoch = Epoch("active-boundaries", tectonic: 800);
+        var layer = new TectonicEpochLayer();
+        var context = new PhysicalGeographyGenerationContext(
+            PhysicalGeographyLayerTestHarness.Seed,
+            PhysicalGeographyLayerTestHarness.Profile,
+            layer.Contract,
+            epoch,
+            0,
+            1);
+
+        layer.Apply(session.Map, context);
+        layer.Validate(session.Map, context);
+
+        Assert.Equal(provinces, session.Map.CrustProvinceIds.ToArray());
+        Assert.False(initialBoundary.SequenceEqual(session.Map.TectonicBoundaryCodes));
+
+        var interior = Enumerable.Range(0, session.Map.Grid.TriangleCount)
+            .First(index => session.Map.InitialTectonicBoundaryCodes[index] == 0);
+        session.Map.TectonicBoundaryCodes[interior] = 1;
+        Assert.Throws<InvalidOperationException>(() => layer.Validate(session.Map, context));
+    }
+
+    [Fact]
     public void ExternalCoastalForcing_ErodesOnlyAValidDryCoast()
     {
         var session = ReadyForDomainForcing();

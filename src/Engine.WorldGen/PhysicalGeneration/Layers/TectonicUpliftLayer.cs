@@ -61,11 +61,14 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
             }
 
             map.Uplift[triangleIndex] = (float)Math.Clamp(
-                Math.Max(0d, boundaryRelief) + (potential * 0.48d),
+                Math.Max(0d, boundaryRelief) + (potential * 0.48d) +
+                    InheritedRelief(map, triangleIndex, context.Profile) * 0.20d,
                 0d,
                 1.5d);
             map.RidgeInfluence[triangleIndex] = (float)Math.Clamp(
-                Math.Max(0d, boundaryRelief) / Math.Max(0.001d, context.Profile.RidgeUplift),
+                Math.Max(
+                    Math.Max(0d, boundaryRelief) / Math.Max(0.001d, context.Profile.RidgeUplift),
+                    InheritedRelief(map, triangleIndex, context.Profile) * 0.52d),
                 0d,
                 1d);
         }
@@ -92,6 +95,16 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
         map.TectonicActivityHistory[triangleIndex] = checked(
             map.TectonicActivityHistory[triangleIndex] + Math.Abs(applied));
     }
+
+    private static double InheritedRelief(
+        PhysicalGeographyField map,
+        int triangleIndex,
+        PhysicalGeographyGenerationProfile profile) =>
+        Math.Clamp(
+            map.TectonicActivityHistory[triangleIndex] /
+                Math.Max(1d, profile.EpochTectonicElevationStep * 1.8d),
+            0d,
+            1d);
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {

@@ -23,6 +23,9 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
         {
             AssignTriangle(map, context, sites, triangleIndex);
         }
+
+        map.TectonicBoundaryCodes.CopyTo(map.InitialTectonicBoundaryCodes);
+        map.TectonicStrain.CopyTo(map.InitialTectonicStrain);
     }
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
@@ -86,7 +89,10 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
         }
 
         var selected = SelectSeparatedCandidates(candidates, context.Profile.TectonicProvinceCount);
-        var assemblies = AssignContinentalAssemblies(selected, grid, context.Profile);
+        var assemblies = AssignContinentalAssemblies(
+            selected,
+            context.Profile,
+            context.Seed);
         var sites = new ProvinceSite[selected.Length];
         for (var index = 0; index < sites.Length; index++)
         {
@@ -142,8 +148,8 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
 
     private static int[] AssignContinentalAssemblies(
         SiteCandidate[] sites,
-        PhysicalGeographyGrid grid,
-        PhysicalGeographyGenerationProfile profile)
+        PhysicalGeographyGenerationProfile profile,
+        int seed)
     {
         var count = Math.Clamp(
             (int)Math.Round(
@@ -152,24 +158,35 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
             2,
             sites.Length - 2);
         var result = new int[sites.Length];
-        var anchors = SelectAssemblyAnchors(sites, grid, profile.ContinentalAssemblyCount);
+        var anchors = SelectAssemblyAnchors(sites, profile.ContinentalAssemblyCount);
         for (var anchorIndex = 0; anchorIndex < anchors.Length; anchorIndex++)
         {
             result[anchors[anchorIndex]] = anchorIndex + 1;
         }
 
+        var directions = AssemblyDirections(anchors.Length, seed);
         var selectedCount = anchors.Length;
+        var round = 0;
         while (selectedCount < count)
         {
-            for (var anchorIndex = 0; anchorIndex < anchors.Length && selectedCount < count; anchorIndex++)
+            var start = (int)(unchecked((uint)(seed + (round * 397))) % (uint)anchors.Length);
+            for (var offset = 0; offset < anchors.Length && selectedCount < count; offset++)
             {
-                var neighbor = NearestUnselectedSite(sites, result, anchors[anchorIndex]);
+                var anchorIndex = (start + offset) % anchors.Length;
+                var neighbor = SelectAssemblyFrontierSite(
+                    sites,
+                    result,
+                    anchorIndex + 1,
+                    anchors[anchorIndex],
+                    directions[anchorIndex]);
                 if (neighbor >= 0)
                 {
                     result[neighbor] = anchorIndex + 1;
                     selectedCount++;
                 }
             }
+
+            round++;
         }
 
         return result;
@@ -177,24 +194,15 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
 
     private static int[] SelectAssemblyAnchors(
         SiteCandidate[] sites,
-        PhysicalGeographyGrid grid,
         int count)
     {
-        var continentalExtent = grid.Radius * Math.Sqrt(3d) * 0.92d;
-        var eligible = Enumerable.Range(0, sites.Length)
-            .Where(index => DistanceSquaredFromOrigin(sites[index]) <=
-                continentalExtent * continentalExtent)
-            .ToArray();
-        if (eligible.Length < count)
-        {
-            eligible = Enumerable.Range(0, sites.Length).ToArray();
-        }
-
         var anchors = new int[count];
-        anchors[0] = eligible.MaxBy(index => sites[index].Priority);
+        anchors[0] = Enumerable.Range(0, sites.Length)
+            .MinBy(index => DistanceSquaredFromOrigin(sites[index]) /
+                (0.80d + (sites[index].Priority * 0.40d)));
         for (var anchorIndex = 1; anchorIndex < anchors.Length; anchorIndex++)
         {
-            anchors[anchorIndex] = eligible
+            anchors[anchorIndex] = Enumerable.Range(0, sites.Length)
                 .Where(candidate => !anchors.Take(anchorIndex).Contains(candidate))
                 .MaxBy(candidate => MinimumDistanceSquared(sites, candidate, anchors, anchorIndex));
         }
@@ -202,24 +210,109 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
         return anchors;
     }
 
-    private static int NearestUnselectedSite(
+    private static int SelectAssemblyFrontierSite(
         SiteCandidate[] sites,
         int[] selected,
-        int anchor)
+        int assemblyId,
+        int anchor,
+        AssemblyDirection direction)
     {
         var best = -1;
-        var bestDistance = double.MaxValue;
+        var bestCost = double.MaxValue;
         for (var candidate = 0; candidate < sites.Length; candidate++)
         {
-            var distance = DistanceSquared(sites[anchor], sites[candidate]);
-            if (selected[candidate] == 0 && distance < bestDistance)
+            if (selected[candidate] != 0)
+            {
+                continue;
+            }
+
+            var frontierDistance = MinimumAssemblyDistanceSquared(
+                sites,
+                selected,
+                candidate,
+                assemblyId);
+            var competingDistance = MinimumCompetingDistanceSquared(
+                sites,
+                selected,
+                candidate,
+                assemblyId);
+            if (competingDistance < frontierDistance * 0.62d)
+            {
+                continue;
+            }
+
+            var dx = sites[candidate].X - sites[anchor].X;
+            var dy = sites[candidate].Y - sites[anchor].Y;
+            var length = Math.Max(0.001d, Math.Sqrt((dx * dx) + (dy * dy)));
+            var alignment = Math.Abs(
+                ((dx / length) * direction.X) + ((dy / length) * direction.Y));
+            var distance = Math.Sqrt(frontierDistance);
+            var cost = distance * (1.12d - (alignment * 0.48d)) -
+                (sites[candidate].Priority * distance * 0.10d);
+            if (cost < bestCost)
             {
                 best = candidate;
-                bestDistance = distance;
+                bestCost = cost;
             }
         }
 
-        return best;
+        return best >= 0
+            ? best
+            : Enumerable.Range(0, sites.Length)
+                .Where(index => selected[index] == 0)
+                .MinBy(index => MinimumAssemblyDistanceSquared(
+                    sites,
+                    selected,
+                    index,
+                    assemblyId));
+    }
+
+    private static double MinimumAssemblyDistanceSquared(
+        SiteCandidate[] sites,
+        int[] selected,
+        int candidate,
+        int assemblyId)
+    {
+        var minimum = double.MaxValue;
+        for (var index = 0; index < sites.Length; index++)
+        {
+            if (selected[index] == assemblyId)
+            {
+                minimum = Math.Min(minimum, DistanceSquared(sites[candidate], sites[index]));
+            }
+        }
+
+        return minimum;
+    }
+
+    private static double MinimumCompetingDistanceSquared(
+        SiteCandidate[] sites,
+        int[] selected,
+        int candidate,
+        int assemblyId)
+    {
+        var minimum = double.MaxValue;
+        for (var index = 0; index < sites.Length; index++)
+        {
+            if (selected[index] != 0 && selected[index] != assemblyId)
+            {
+                minimum = Math.Min(minimum, DistanceSquared(sites[candidate], sites[index]));
+            }
+        }
+
+        return minimum;
+    }
+
+    private static AssemblyDirection[] AssemblyDirections(int count, int seed)
+    {
+        var result = new AssemblyDirection[count];
+        for (var index = 0; index < result.Length; index++)
+        {
+            var angle = PhysicalNoise.HashUnit(seed ^ 0x67d3, index, 0) * Math.PI * 2d;
+            result[index] = new AssemblyDirection(Math.Cos(angle), Math.Sin(angle));
+        }
+
+        return result;
     }
 
     private static double MinimumDistanceSquared(
@@ -447,6 +540,8 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
     private readonly record struct SiteCandidate(double X, double Y, double Priority);
 
     private readonly record struct SamplePoint(double X, double Y);
+
+    private readonly record struct AssemblyDirection(double X, double Y);
 
     private readonly record struct SiteSelection(
         int Nearest,

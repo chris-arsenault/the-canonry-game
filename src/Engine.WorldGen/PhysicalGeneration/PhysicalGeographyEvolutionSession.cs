@@ -76,6 +76,8 @@ public sealed class PhysicalGeographyEvolutionSession
     public void ApplyGeology()
     {
         RequirePhase(EvolutionPhase.Geology);
+        Apply(new TectonicEpochLayer());
+        Apply(new ContinentalDomainLayer());
         Apply(new TectonicUpliftLayer());
         Apply(new FractureNetworkLayer());
         Apply(new GeothermalLayer());
