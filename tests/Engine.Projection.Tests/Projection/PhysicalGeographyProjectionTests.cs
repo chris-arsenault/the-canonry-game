@@ -121,6 +121,7 @@ public sealed class PhysicalGeographyProjectionTests
             FlowEdge: PhysicalGeographyCodes.NoFlowEdge,
             FlowAccumulation: 0,
             RiverOrder: 0,
+            RiverSpineEdgeMask: 0,
             RiverChannelStrength: 500,
             RiverChannelOrder: 2,
             FloodplainIntensity: 0,

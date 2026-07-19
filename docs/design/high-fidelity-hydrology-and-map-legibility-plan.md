@@ -2,7 +2,7 @@
 
 Date: 2026-07-19
 
-Status: approved; implementation in progress
+Status: implemented; final verification in progress
 
 This is the authoritative tracker for the next physical-map tranche. It evolves
 the existing layered, multi-epoch generator. It does not replace the canonical
@@ -17,8 +17,11 @@ projection boundary.
   volcanism.
 - `IceRemembers.Seed` owns domain surface classification and coherent magic
   feature regions.
-- Projection and UI own relief, river presentation, and inspection views.
-- The app host owns unattended rendered-map capture.
+- Projection and UI own relief, river presentation, and inspection views. A
+  presentation-only painter is shared by the live Godot canvas and unattended
+  capture adapters.
+- `tools/WorldGenerator` owns deterministic `.world` loading, capture cameras,
+  raster output, and capture manifests.
 - `Engine.Kernel` remains unaware of microtriangles and generation fields.
 
 ## Diagnosed failures
@@ -46,9 +49,10 @@ projection boundary.
 
 ### 1. Unattended rendered evidence
 
-- [x] Add an application capture mode that loads a normal `.world`, selects
-  deterministic cameras/views, captures the actual Godot viewport, and writes
-  a manifest beside the PNGs.
+- [x] Factor map painting out of the Godot node so the live map and a standalone
+  `.world` capture harness call the same presentation code. The harness selects
+  deterministic cameras/views and writes a manifest beside the PNGs without a
+  window or display server.
 - [x] Capture whole-world surface/elevation/hydrology views and deterministic cold,
   warm, and major-river crops.
 - [x] Keep captures as human-review evidence, not pixel-golden tests.
@@ -125,16 +129,45 @@ projection boundary.
 
 ### 8. Verification and handoff
 
-- [ ] Use durable unit/contract tests and only targeted small-world integration
+- [x] Use durable unit/contract tests and only targeted small-world integration
   tests during milestones; do not run the heavy full suite after each stage.
-- [ ] Trace one complete radius-128 generation after core hydrology and optimize
+- [x] Trace one complete radius-128 generation after core hydrology and optimize
   demonstrated hotspots only.
-- [ ] Treat approximately 4 GB as the target and 8 GB as acceptable.
-- [ ] Generate the four fixed worlds once after implementation, capture matching
-  rendered evidence, and review geography directly rather than accepting it
-  through distribution percentages.
-- [ ] Run `make ci` once as final verification, update stable documentation,
-  commit, and push.
+- [x] Treat approximately 4 GB as the target and 8 GB as acceptable.
+- [x] Generate the four fixed worlds once after implementation rather than
+  accepting the result through distribution percentages.
+- [x] Capture and review matching rendered evidence.
+- [x] Run `make ci` once as final verification after the shared-renderer change
+  and update stable documentation.
+- [ ] Commit and push the final reconciliation and handoff.
+
+Final evidence on 2026-07-19:
+
+- A complete profiled radius-128 seed 42 generated attempt 0 in 48.68 seconds
+  and wrote the 372.1 MiB `.world` in 3.00 seconds.
+- Observed peak resident memory was approximately 4.3 GiB.
+- Trace-backed changes reduced redundant priority-flood storage and work,
+  repeated conditioned-routing geometry, radix-heap refill overhead, and
+  fixed-point ordering passes.
+- Fixed worlds were regenerated for base seeds 42, 9173, 4200, and 21031.
+  Their accepted attempts were 0, 0, 1, and 8 respectively.
+- After the final lake/ice reconciliation correction, seed 42 was regenerated
+  again from the final code in 39.59 seconds and written in 2.05 seconds.
+- The standalone shared-renderer harness captured ten 2560x1440 views from the
+  final seed-42 world in 11.24 seconds. Review found multiple separated
+  continents and oceans, surface detail across warm and cold regions, visible
+  crater/volcanic structures, non-saturated fine-elevation relief, and river
+  spines present in surface, hydrology, and river-geometry views.
+- River topology is continuous to downstream water under the generation
+  contract and visible as connected spines. Its remaining sawtooth and locally
+  parallel appearance is genuine graph/topography character, not a hidden
+  discontinuity or missing-overlay bug; future aesthetic smoothing must not
+  replace or mutate the authoritative flow graph.
+- The earlier pre-capture `make ci` passed in 12 minutes 9 seconds with zero
+  warnings and errors; final verification is repeated after the renderer
+  extraction.
+- Final `make ci` passed after the shared-renderer extraction with zero warnings,
+  zero errors, all test suites green, and the domain-contamination check green.
 
 ## Explicitly unchanged
 

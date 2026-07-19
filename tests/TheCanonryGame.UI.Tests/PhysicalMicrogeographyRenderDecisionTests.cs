@@ -92,6 +92,8 @@ public sealed class PhysicalMicrogeographyRenderDecisionTests
     [InlineData(PhysicalGeographyView.Terrain, true)]
     [InlineData(PhysicalGeographyView.Surface, true)]
     [InlineData(PhysicalGeographyView.NaturalSurface, true)]
+    [InlineData(PhysicalGeographyView.Hydrology, true)]
+    [InlineData(PhysicalGeographyView.RiverGeometry, true)]
     [InlineData(PhysicalGeographyView.Material, false)]
     [InlineData(PhysicalGeographyView.MagicComposite, false)]
     public void OrdinarySurfaceViewsPreserveStructuralRivers(

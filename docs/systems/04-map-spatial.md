@@ -50,6 +50,15 @@ and geothermal crust are not gameplay terrain IDs. Stable within-hex and
 across-edge adjacency makes ridges, coasts, drainage, and rivers continuous
 across hex boundaries instead of independently rolled decorations.
 
+Generation elevation is deterministic signed fixed point with 1,024 subunits
+per authored elevation unit. Bedrock plus sediment defines the irregular
+physical floor. Actual ocean or lake surface, water depth, the conditioned
+drainage surface, and outletward routing rank are separate facts: priority
+flooding may establish a flat lake surface without flattening its submerged
+floor, and routing may cross a conditioned flat without pretending the terrain
+itself is level. The kernel receives only the rounded hex-scale terrain result;
+the fine fields remain in startup worldgen, projection, and inspection data.
+
 Generation is ordered over one padded graph. Irregular moving crust provinces
 establish continental assemblies and oceanic crust. Relative motion types their
 boundaries as convergent, divergent, or transform; continuous strain then drives
@@ -72,9 +81,12 @@ sea-level, and hydrological passes continue to act on and reshape those forms.
 Connected-component and boundary-flood passes identify landmasses,
 continental shelves, bathymetry, and the exterior ocean. Priority-flood
 drainage then creates coherent lakes, accumulated runoff, tributaries, and
-watersheds. Flat routes face their conditioned outlet instead of the world
-origin; basin-relative thresholds retain tributaries, and classified channels
-remain continuous through exorheic lakes to terminal water. That one-triangle
+routing rank without changing the physical floor. Legal routes descend the
+fine drainage surface or advance outletward across an exactly conditioned
+flat; inherited valleys guide only physically compatible choices. Coordinate
+hashes break only exact final ties. Basin-relative thresholds retain
+tributaries, and classified channels remain continuous through exorheic lakes
+to terminal water or an explicitly configured crop outlet. That one-triangle
 routing spine remains authoritative while a separate channel layer widens
 major flows perpendicular to local flow tangents from discharge, order,
 relief, and basin membership. Low-gradient cross-valley margins become

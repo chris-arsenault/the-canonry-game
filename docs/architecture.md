@@ -43,9 +43,10 @@ Engine.Observability
 Engine.WorldGen
   domain-neutral hex/triangle topology, evolving tectonic assemblies, sparse
   impacts, causal uplift and erosion, connected land/water analysis,
-  outlet-conditioned hydrology, climate, glaciation, valley-shaped river
-  geometry, aggregation, terrain catalogs, map coverage, and the phased
-  physical-evolution session
+  fixed-point physical floors, independent actual-water and conditioned
+  drainage surfaces, outlet-ranked hydrology, climate, glaciation,
+  valley-shaped river geometry, aggregation, terrain catalogs, map coverage,
+  and the phased physical-evolution session
 
 IceRemembers
   authored domain content plus physical material/surface taxonomy, generation
@@ -107,6 +108,12 @@ The Godot UI follows the same consumer boundary. Projections expose versions,
 dirty sets, and active-state indexes; render components own Godot subtrees and
 present only when their inputs change. The stable UI rules are recorded in
 [ui-principles.md](./design/ui-principles.md).
+
+Physical-map presentation has one painter for colors, geometry, overlays, and
+LOD decisions. The live Godot node and `tools/WorldGenerator capture` provide
+canvas adapters to that painter. The latter loads an ordinary `.world` and
+writes deterministic offscreen PNG evidence without introducing worldgen or
+simulation decisions into presentation code.
 
 ## Kernel Tick
 
@@ -278,7 +285,9 @@ a presentation-owned `PhysicalGeographyProjection`. It contains the complete
 latent disk and is separate from the event-backed `HexMapProjection`, which
 continues to represent only materialized cells and their current terrain. The
 blueprint and projection retain every natural/final surface, material,
-landform, hydrology, river channel/floodplain/delta coverage, climate, ice, bedrock, sediment, cumulative erosion and
+landform, fine physical floor, actual water surface, conditioned drainage
+surface and routing rank, hydrology, river channel/floodplain/delta coverage,
+climate, ice, bedrock, sediment, cumulative erosion and
 deposition, maximum glaciation, wave history, fracture, current and cumulative fire/aurora/pressure,
 their first-active epochs, and anomaly
 fact. The UI can therefore inspect generated geography without reading live

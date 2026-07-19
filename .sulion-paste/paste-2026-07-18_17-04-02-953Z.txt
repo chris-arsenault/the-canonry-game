@@ -1,0 +1,68 @@
+roposed repair
+I recommend an explicit generation radius of 128, rather than pretending the fixed-capacity kernel is unbounded. A complete radius-128 disk contains 49,537 cells per plane, or 99,074 across both planes. Raising map capacity from 16,384 to 131,072 provides a clear fixed bound and headroom.
+
+A. Deterministic latent terrain field
+Owning layers: seed/worldgen defines the terrain; Domain/Host compiles and installs it; Kernel only materializes primitive results.
+
+Generate a coherent physical and semantic terrain/subdivision blueprint through radius 128 using the same algorithms that generate the initial heart.
+Materialize only radius 18 at startup.
+When frontier growth reaches a coordinate, reveal its planned terrain, subdivision, subregion, and continent rather than assigning Tundra/OpenField or cloning the neighboring subdivision.
+Scale feature placement and noise frequencies for the larger field, so radius 128 is not merely a stretched version of radius 18.
+Store the installed blueprint in fixed primitive arrays. No runtime domain strings, allocation, or worldgen logic enters the kernel.
+Intended files:
+
+src/IceRemembers.Seed/IceRemembersSeedBuilder.cs
+src/IceRemembers.Seed/IceRemembersSeedBuilder.Terrain.cs
+src/IceRemembers.Seed/IceRemembersSeedBuilder.SemanticTerrain.cs
+src/IceRemembers.Seed/IceRemembersSeedBuilder.Subdivisions.cs
+src/IceRemembers.Seed/IceRemembersSeedModel.cs
+src/Engine.Domain/Startup/DomainStartupSeed.cs
+new src/Engine.Domain/Startup/DomainTerrainBlueprint.cs
+src/Engine.Host/DomainStartupSeedInstaller.cs
+src/Engine.Kernel/Programs/MapFrontier/MapFrontierProgramData.cs
+new src/Engine.Kernel/Programs/MapFrontier/MapFrontierTerrainBlueprint.cs
+both physical and semantic MapFrontier runtimes
+MapFrontier configuration/compiler/installer files
+src/IceRemembers/IceRemembersDefinition.cs
+B. Correct live extents, capacity, and frontier budgeting
+Owning layer: Engine.Kernel.
+
+Maintain separate materialized physical and semantic extents and update them whenever a cell is created.
+Make pathfinding, placement, culture boundaries, low-altitude coordinates, and snapshot persistence use the correct live extent.
+Allocate frontier candidate scratch space from an explicit kernel option, not the pre-configuration default budget.
+Validate authored budgets against that capacity.
+Rotate the culture scan starting point so low culture IDs cannot consistently monopolize the shared growth budget.
+Raise map-cell capacity to 131,072 and validate other coordinate-indexed capacities against radius 128.
+Intended files:
+
+src/Engine.Kernel/SimulationOptions.cs
+src/Engine.Kernel/WorldState.MapLayers.cs
+src/Engine.Kernel/Simulation.MapTerrain.cs
+src/Engine.Kernel/Persistence/WorldStateSnapshot.cs
+src/Engine.Kernel/Persistence/KernelSnapshot.cs
+MapFrontier runtime/state files
+movement pathfinding and road-mark runtime files
+low-altitude helper and semantic-coordinate runtime files
+generator placement runtime
+src/Engine.Host/KernelHost.CultureBoundaries.cs
+C. Reversible, frontier-scoped reclaim
+Owning layer: Engine.Kernel; Ice Remembers continues to provide Deep Ice as the authored frozen terrain.
+
+Track which cells were created by frontier expansion.
+Make ordinary reclaim eligible only for those frontier-created cells outside the startup heart.
+Store each cell’s exact pre-freeze terrain ID and restore it when the ice recedes.
+Replace the full-disk restart scan with a persistent cursor over eligible frontier cells.
+If Long Dark should eventually invade the original heart, model that explicitly as a separate reversible invasion rule rather than allowing ordinary reclaim to erase startup geography accidentally.
+Intended files:
+
+MapFrontierProgramState.cs
+MapFrontierProgramRuntime.cs
+MapFrontierProgramRuntime.Reclaim.cs
+SimulationOptions.cs
+snapshot persistence files
+D. Restrict the Hot Springs gambit
+Owning layer: Ice Remembers domain content.
+
+Add a target subtype requirement for scar, plus the appropriate scar/corruption relationship requirement, to ArtifactCleansesScar. Its coverage repaint can then remain: generated scars are bounded patches of roughly 4–8 Wastes cells.
+
+Intended file: src/IceRemembers/IceRemembersGambits.cs.

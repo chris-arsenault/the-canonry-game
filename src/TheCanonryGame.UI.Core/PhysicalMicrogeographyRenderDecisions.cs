@@ -103,7 +103,9 @@ internal static class PhysicalMicrogeographyRenderDecisions
     public static bool UsesStructuralRiverOverlay(PhysicalGeographyView view) =>
         view is PhysicalGeographyView.Terrain or
             PhysicalGeographyView.Surface or
-            PhysicalGeographyView.NaturalSurface;
+            PhysicalGeographyView.NaturalSurface or
+            PhysicalGeographyView.Hydrology or
+            PhysicalGeographyView.RiverGeometry;
 
     public static bool UsesReliefShading(PhysicalGeographyView view) =>
         view is PhysicalGeographyView.Terrain or

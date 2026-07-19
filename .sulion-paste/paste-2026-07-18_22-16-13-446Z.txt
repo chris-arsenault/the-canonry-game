@@ -1,0 +1,136 @@
+You’re right. I overextended from several confirmed defects into replacing the platform around them. The layer boundaries already give us the mechanism for controlled evolution; we should use them.
+
+The revised rule is:
+
+Keep every layer whose algorithm is fundamentally sound.
+Improve inputs, state, validation, or iteration locally.
+Add a layer when a genuinely new process is missing.
+Rewrite only the small algorithms whose core premise is incompatible—currently the radial continent placement and index-based flat drainage/ice selection.
+Inspect the output after each focused milestone before compounding more processes.
+A multi-epoch runner should come after the individual layers produce good results. Repeating broken continent, ice, or drainage layers would only amplify their artifacts.
+
+Layer disposition
+Existing component	Treatment
+Generation pipeline, dependency contracts, facts, grid, triangle topology	Keep
+ContinentalDomainLayer	Keep the layer and contract; replace only center/ring site placement and radial channel carving
+TectonicUpliftLayer	Reuse; derive ridge axes from continental/province boundaries instead of another radial arrangement
+OceanConnectivityLayer	Keep, including configurable sea-level calibration
+Bathymetry and landmass components	Keep
+Priority flood	Keep
+ConditionedFlowResolver	Replace only index-dependent flat resolution
+Lake generation and routing	Keep and improve where evidence requires
+Runoff	Keep; correct standing-water contribution and add precipitation input
+River accumulation, pruning, and Strahler ordering	Keep
+River width/delta representation	Add as a new downstream layer
+Temperature and moisture	Keep
+Land-ice mass balance, ice flow, and glacial landforms	Keep; later make them incremental across epochs
+Sea ice	Keep the layer/contract; replace its rank-and-index selection internals
+Fractures	Keep
+Geothermal	Keep its fracture/uplift basis; remove the five forced sources
+Existing fire, aurora, pressure, interaction, and classification layers	Keep; later add persistent epoch history around them
+UI/projection/blueprint	Extend only for new channel/history fields
+Revised implementation sequence
+1. Fix macro geography only
+Focus exclusively on the continent/coast model.
+
+Modify:
+
+ContinentalDomainLayer.cs
+TectonicUpliftLayer.cs
+PhysicalGeographyGenerationProfile.cs
+PhysicalMacroLayerTests.cs
+Changes:
+
+Replace central-plus-ring site placement with irregular, separated continuous-coordinate sites extending beyond the crop.
+Replace straight radial ocean-channel segments with a connected, curved basin/rift structure.
+Add a tectonic-boundary influence field.
+Reuse the current uplift calculation, but seed ridge axes from those boundaries.
+Keep sea-level calibration, erosion, ocean connectivity, bathymetry, and landmass labeling unchanged.
+Add configurable targets for landmass spacing, largest-landmass share, island share, and coast complexity.
+Then inspect fixed-seed UI output before touching climate or rivers.
+
+2. Fix sea ice and hotspot placement
+Modify:
+
+SeaIceLayer.cs
+GeothermalLayer.cs
+WarmthSourceLayer.cs
+PhysicalClimateAndIceLayerTests.cs
+Changes:
+
+Retain the sea-ice layer but replace exact N-triangle selection with a continuous suitability field based on temperature, geothermal/ocean warmth, bathymetry, coast exposure, and neighboring ice.
+Use the coverage target to calibrate a suitability threshold, not select storage indexes.
+Remove ForcePeakSources and its hard-coded count of five.
+Derive geothermal maxima from tectonic-boundary strength, fracture intersections, rifts, and rare configurable plume sources.
+Distribute warmth across landmasses and ocean basins rather than merely over a global candidate list.
+Add configurable targets for ice-component concentration, thickness diversity, hotspot spacing, and represented landmasses.
+Then inspect the same seeds again.
+
+3. Repair drainage topology
+Modify:
+
+ConditionedFlowResolver.cs
+RunoffLayer.cs
+FlowRoutingLayer.cs
+RiverNetworkLayer.cs
+PhysicalHydrologyLayerTests.cs
+Changes:
+
+Preserve priority-flood conditioning and the existing flow graph.
+Replace absolute-index flat choices with geometric flat gradients toward outlets and away from higher terrain.
+Add permutation/rotation tests proving node numbering cannot select a physical direction.
+Stop lakes from manufacturing 1000 runoff per triangle.
+Separate precipitation contribution, contributing area, and discharge.
+Retain accumulation, pruning, and Strahler order.
+Add configurable targets for channel coverage, direction balance, tributary junctions, and higher-order rivers.
+This milestone fixes image C’s repeated directional network without yet adding wide river surfaces.
+
+4. Add river extent, floodplains, and deltas
+This is a genuinely missing process, so it deserves a new independent RiverChannelGeometryLayer.
+
+It will consume the existing river spine, discharge, slope, valley shape, sediment, and coast data and produce:
+
+lateral channel coverage;
+banks and floodplains;
+broad major-river channels;
+river mouths;
+distributaries and deltas.
+The existing flow spine remains authoritative. The new layer expands physical expression around it.
+
+Extend the existing blueprint/projection/UI and add river_channel, floodplain, and delta surfaces. A large river can then occupy many or all microtriangles in a hex without moving the simulation below hex scale.
+
+5. Add missing rain, currents, and coastal erosion layers
+Only after macro geography and drainage are demonstrably sound:
+
+Add PrecipitationLayer, reusing moisture transport and rain-shadow calculations.
+Add a reduced OceanCurrentLayer.
+Add CoastalErosionLayer consuming ocean exposure, current, substrate, pressure energy, and sediment.
+Feed precipitation into existing runoff and glacial mass balance.
+Feed currents into existing temperature, sea ice, and coastal layers.
+These are additions, not replacements.
+
+6. Introduce configurable epochs by reusing the working layers
+Once every individual process produces acceptable output, add an epoch loop around them.
+
+The loop will repeatedly invoke the existing independent layers:
+
+incremental tectonic uplift;
+ocean/bathymetry/current reconciliation;
+geothermal and fire;
+temperature and precipitation;
+land ice and ice flow;
+aurora;
+hydrology and fluvial erosion;
+pressure and coastal erosion;
+sediment/glacial deposition;
+final derived-field reconciliation.
+Required changes are primarily persistent history fields and an epoch-aware context. The physical algorithms remain the ones already tested in milestones 1–5.
+
+FluvialErosionLayer, IceFlowLayer, GlacialLandformLayer, and the magic propagation layers are reused rather than replaced. Active fields may be recomputed each epoch while cumulative erosion, thermal, glacial, and magic history persists.
+
+Four authored epochs will be the initial profile, not a hard-coded engine constant.
+
+7. Revisit project ownership separately
+Moving domain generation from IceRemembers.Seed to IceRemembers.WorldGen remains the cleaner architecture, but it should be a mechanical milestone after output stabilizes. It will not be mixed into algorithm diagnosis.
+
+This plan does not replace the working layer framework, topology, ocean flood, bathymetry, landmass labeling, priority flood, lake model, river accumulation, ice-flow machinery, magic propagation, blueprint, or UI. It evolves them one or two con

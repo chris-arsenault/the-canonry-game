@@ -111,7 +111,7 @@ public sealed class IceRemembersNaturalAndFireLayerTests
         map.Physical.DeltaIntensity[triangleIndex] = 0;
         map.Physical.Temperature[triangleIndex] = temperature;
         map.Physical.Moisture[triangleIndex] = moisture;
-        map.Physical.Slope[triangleIndex] = slope;
+        map.Physical.Slope[triangleIndex] = PhysicalElevation.FromUnits(slope);
 
         for (var edge = 0; edge < 3; edge++)
         {

@@ -1,0 +1,293 @@
+# World Generation Specification
+
+A pass-ordered pipeline for an ice-age world built on hexes subdivided into micro-triangles. Each stage reads the outputs of prior stages and writes its own fields. The governing principle: **this is a dependency chain, not a stack of independent noise layers.** Elevation must exist before water can flow; water must flow before glaciers can overprint it; ice and temperature must exist before the magic passes can read them. Nothing here is a standalone noise channel bolted onto the others.
+
+---
+
+## 0. Architecture: where generation runs
+
+Two resolutions exist. The **micro-triangle** (≈24 per hex) is where physical simulation happens. The **hex** (starting radius 18, expanding to 154) receives a single type via feature extraction from its triangles.
+
+**All physical simulation runs on a continuous field sampled at micro-triangle centroids, not on hexes.** Hexes are too coarse for erosion, flow, and propagation to look right; simulating per-hex produces blocky, uncausal terrain. Triangles carry rich per-cell state (elevation, water depth, ice thickness, temperature, flow direction, flow accumulation, and later the magic intensity fields). The hex type is a *classification* of the aggregated triangle state, produced only at the very end.
+
+Pipeline shape:
+
+```
+continuous scalar fields
+   → sample at each triangle centroid
+   → run all physical passes at triangle resolution
+   → feature-extract 24 triangles → 1 hex type
+```
+
+A note on the triangle mesh as a graph: each triangle has three edge-neighbors with unambiguous adjacency. This is strictly better than a square grid for flow routing — the diagonal-bias problems of D8-on-squares largely vanish. Every traversal pass below (hydrology, region growth, and the magic passes) runs on this same triangle adjacency graph. Priority-flood, in particular, is reused repeatedly; build it once and build it well.
+
+---
+
+## 1. Base elevation — uplift domain, not raw heightmap
+
+**Do not heightmap directly from Perlin noise.** Raw noise produces cloud-like blobs with no geological causality. Instead, generate in the **uplift domain**: define where crust is being pushed up, then let erosion carve the actual elevation out of that uplift field. Terrain is the product of two processes — tectonic uplift and erosion — and generating in the uplift domain is what separates "looks like a landscape" from "looks like noise."
+
+Process:
+
+1. Define an **uplift field**: low-frequency, with one or two explicit **ridge axes**. These axes directly become the *cause* of the drainage pattern rather than decoration sprinkled on top. This is also where continents get their mountain spines (see §2).
+2. Run **fluvial (water) erosion first** to carve an ancestral V-shaped valley network out of the uplift field. This must precede glaciation, because glaciers exploit and overprint pre-existing river valleys — that is the geologically correct sequence and it is what later makes glaciated terrain read as glaciated.
+
+For a world this size, a full plate-tectonics simulation is not warranted — it earns its cost at planet scale, not at 154 hexes. Author the uplift field directly (a handful of controlled ridge axes / continent seeds) rather than simulating plates. The uplift field doubles as the continent-placement field in §2.
+
+**Highest-leverage change in the whole pipeline:** ridges as a first-class geological cause. Everything downstream — valleys, drainage, where things flatten into open field — emerges from eroding this field rather than being independently noised.
+
+Writes: `elevation`.
+
+---
+
+## 2. Continents and islands — landmass detection
+
+Runs after §1 (needs elevation vs. sea level) and before hydrology. Cheap.
+
+**Core operation: connected-components labeling on above-sea-level triangles.** Flood-fill across land-adjacent triangles; each connected blob is one landmass. Classify by size: large blobs are continents, small blobs are islands, threshold to taste. This is the same connected-components machinery used for lake detection, run on land instead of water.
+
+What makes the output read as *continents* rather than one Pangaea blob or a confetti-spray of islands is controlling the landmass distribution **before** detection. Three levers, in order of impact:
+
+**A. Group at the shelf level (the elegant one).** §3 builds shelf/ocean/reef as bathymetric depth bands. Define a **continental group** as one connected component of *shelf-or-shallower* (everything above the shelf break); the individual islands within it are the high points of that shared shelf poking above sea level. This yields archipelagos that read as coherent groups — islands sharing one continuous shelf, deep ocean between groups. It also ties the group structure to the sea-level parameter: raise sea level and a continent fragments into an island chain along its former high ground; lower it and the chain fuses back into one landmass across the exposed shelf.
+
+**B. Domain warping for coastlines.** Straight thresholded noise gives puffy, cloud-like coasts. Warp the sample coordinates (perturb `(x,y)` by a second low-frequency noise before sampling elevation) to produce fjorded, peninsula'd, irregular coastlines. This is doubly appropriate for an ice-age world because glacial carving *is* a coastline-roughening process — coastline warping and the §5 fjord logic are the same visual family.
+
+**C. Continental mask for placement.** For a specific number of continents in specific arrangements, generate a few low-frequency "continent center" points, build a mask that is high near them and falls off with distance, and multiply the elevation field by it. This makes continent count and placement a *dial* rather than a lottery. Combine with warping so the masked blobs are not circles. The §1 uplift field can serve as this mask directly: high uplift = continental interior, and the ridge axes become the continents' mountain spines — exactly where real continents carry them.
+
+Writes: `landmass_id`, `landmass_class` (continent/island), `continental_group_id`.
+
+---
+
+## 3. Oceans, shelf, and reef — bathymetric zones
+
+**Ocean / shelf / reef are depth-and-slope bands of the same elevation field extended below sea level — not separate noise.** Real bathymetry: a gently sloping continental **shelf** (very shallow, low slope) ends abruptly at a **shelf break** where slope steepens sharply into deep **ocean**.
+
+Classification:
+
+- **Shelf** — submerged but shallow (between sea level and shelf-break depth), low slope.
+- **Ocean** — beyond the shelf break / below shelf-break depth.
+- **Reef** — shelf-depth ∩ near-shore-or-near-break ∩ warm enough. Reefs form in shallow, sunlit water, characteristically fringing land or hugging the shelf edge. This predicate makes reefs appear as narrow bands along coastlines and shelf edges rather than random shallow patches.
+
+**Ice-age sea-level lever (make this an explicit parameter, never a baked zero).** Ice-age sea level was substantially lower; the continental shelf was exposed as dry land during glacial periods. This means the shelf can be partially **exposed land** (coastal tundra), and the sea-level line becomes a strong worldbuilding control: dropping it exposes shelf as frozen playable coast, raising it floods it. This same parameter drives continental-group fragmentation in §2.
+
+Writes: `depth` (below sea level), `bathymetric_zone` (shelf/ocean/reef), and updates `elevation` semantics so exposed-shelf triangles are treated as land by later passes.
+
+---
+
+## 4. Hydrology — flow accumulation before rivers
+
+**Rivers are not drawn; they are where water accumulates.**
+
+1. **D8 flow routing** — each triangle drains to its lowest neighbor. (On the triangle graph, D8's diagonal bias is a non-issue.) This is deliberately the fast routing model, not a shallow-water pipe/fluid simulation — the map is static, so fluid dynamics are unnecessary cost.
+2. **Flow accumulation** — sum upstream contributing area for each triangle. Accumulation above a threshold = river. The threshold controls river density.
+3. **Depressions / lakes** — cells that do not drain. Use a **priority-flood** algorithm (fill each depression to its lowest outflow point in one deterministic pass), **not** iterative particle pooling. Lake *filling* is easy; lake *draining* is where naive methods break — determining drainage points on a mutating basin boundary is riddled with edge cases and tends to fragment. Priority-flood on a static map avoids all of it.
+
+Watersheds (drainage basins) computed here are reused later as a natural region primitive.
+
+Writes: `flow_direction`, `flow_accumulation`, `water_depth` (lakes), `watershed_id`.
+
+---
+
+## 5. Temperature — derived, never its own noise
+
+**Temperature is a derived field, not a noise channel.** It is composed:
+
+- **Base gradient** from latitude — or the ring-world equivalent (distance from the world's heat axis / proximity to the warm zone), whichever your geometry uses.
+- **Minus a lapse rate** for elevation (higher = colder).
+- **Plus** local perturbation.
+
+**Ice-age tuning: shift the entire baseline cold and compress the warm band.** The whole point of an ice-age world is that the temperate zone is a thin ribbon and most of the map sits below freezing. This single global offset is what makes the world feel like an ice age rather than a normal world with snowy poles.
+
+Note: §7 (fire) writes heat back into this field. If fire runs before the aurora magic pass, aurora will correctly drain around fire cores with no special-casing. See ordering in the magic section.
+
+Writes: `temperature`.
+
+---
+
+## 6. Ice and glaciation — the setting-defining pass
+
+The pass most world-gen skips, and the one an ice-age world lives or dies on. Two distinct components.
+
+**6a. Ice cover (cheap, first).** A triangle is ice-covered where temperature is below threshold — but make it depend on prior passes: ice accumulates in high/cold terrain and flows downhill, so ice thickness correlates with elevation-above-snowline and with **concavity** (ice pools in valleys and basins, matching where water pooled in §4). This alone yields believable ice distribution. Ice thickness is also a **reservoir** that the aurora magic pass reads later.
+
+**6b. Glacial landforms (what makes it *look* ice-age).** Real glacial terrain has signature shapes fluvial erosion cannot produce; their absence is why "cold world" often reads as merely "normal world painted white." Model these as geometric operations keyed off ice flux — **not** a physical ice-flow solve. (Proper glacial simulation requires modeling viscous stress within the ice, which the cheap Shallow Ice Approximation does not capture; you do not need any of that. You need the landform *signatures* as procedural stamps keyed to "did ice flow here.")
+
+Run a cheap **ice-flow accumulation** — the same D8 + accumulation machinery as water, but on ice — then apply:
+
+- **U-shaped valleys** — glaciers widen and flatten the V-valleys carved in §1. Since the V-valleys already exist, this is a cheap post-process: flatten and widen valley floors wherever ice flowed through them. **Highest-value glacial visual.**
+- **Cirques** — bowl-shaped hollows at glaciated valley heads. Good sites for tarns (and later for aurora light-wells).
+- **Fjords** — U-valleys carved below sea level and flooded. Where a glaciated valley meets the ocean, drown its mouth. Spectacular and unmistakably glacial; shares the §2 warped-coastline family.
+- **Moraines** — small linear elevation ridges stamped at the down-flow terminus of each glacier (debris deposition). Read as ridge-type terrain at hex resolution.
+
+Writes: `ice_thickness`, `ice_flux`, and updates `elevation` (U-valley flattening, moraine deposition, cirque carving, fjord drowning).
+
+---
+
+## 7. Biome / terrain classification — Whittaker, ice-age variant
+
+Assign land types. The **Whittaker diagram** classifies biome from two axes — temperature and moisture — and is the canonical procedural tool. **Implementation note:** use a **rectangular lookup array**, not Whittaker's triangular matrix; the triangle shape is inconvenient to code against.
+
+The listed types in a cold-shifted Whittaker space:
+
+- **Tundra** — cold + low-to-moderate moisture. In an ice age this is the *dominant* land biome, the default.
+- **Open field** — the warmer/temperate ribbon (cold-steppe / mammoth-steppe grassland — dry grassland, which is what real ice-age mid-latitudes looked like, not forest).
+
+Then apply **overrides** — the pattern is: compute a base biome from the climate axes, then let special conditions override it. Precedence, highest first:
+
+1. **Bathymetry** (§3) — ocean / shelf / reef win over everything on submerged (non-exposed) cells.
+2. **Geothermal / fire** (magic) — hot springs and thermal terrain.
+3. **Landform: ridge** — override by elevation/slope regardless of climate; a ridge is a landform, not a climate zone, so it wins over the Whittaker lookup.
+4. **Climate** — tundra / open field as the base fill.
+
+Every "special" terrain type below (ridge, hot springs, reef, and all magic terrain) relates to the tundra/field base through this override architecture, not through additional noise layers. Adding a new terrain type = adding a new predicate over existing fields, not a new noise channel.
+
+Writes: `hex_biome_base` (pre-magic terrain classification per triangle).
+
+---
+
+# Magic passes
+
+Three primary magics, each anchored to a different physical layer of the world: **pressure** (deep ocean), **aurora** (sky / ice), **fire** (earth). Each is one more traversal pass on the same triangle graph. The specialized terrains are **predicates over the resulting intensity fields** — single-field predicates for pure terrains, two-field predicates for interface terrains.
+
+For each magic, motivation is separated from process below.
+
+The three are **not** symmetric, and that asymmetry is the point — it is what keeps them from blurring together on the map. Aurora is a **settling/reservoir** field (diffusion-like, makes *expanses*). Fire is a **conductance/network** field (routing-like, makes *veins*). Pressure is a **propagation/interference** field (wave-like, makes *focal points and interference patterns*).
+
+**Design rule governing all three (the anti-mimicry rule):** magic terrain is distinct from natural terrain only where the magic's intensity is **not a monotonic readout of the physical field that sources it.** A field derived monotonically from an existing field (e.g. intensity = f(depth)) just reproduces that field's features wearing a new color. Distinctness requires that the source→intensity transform introduce information not present in the source — via one of: (a) a **storage/reservoir** term that decouples accumulation from the instantaneous field (aurora's ice-storage), (b) a **network/conductance** term making intensity depend on *connectivity* rather than local value (fire's fractures), or (c) **propagation/interference** producing emergent focal and interference structure (pressure's waves). Each magic below satisfies this rule through a specific generated structure; that structure is the load-bearing artifact.
+
+---
+
+## Pressure magic — deep ocean
+
+### Motivation
+
+Pressure is the sea's crushing force made active: the rogue wave's impact, the shockwave of a fast-moving underwater creature, the unrelenting weight of the deep. It originates partially from a **dead god at the bottom of the sea** — a fixed, continuous source radiating pressure — with transient disturbances (rogue waves, creature wakes) layered on top. It is the one force in the world that behaves *opposite* to water: water flows down and pools in the deeps; pressure is generated by the deeps and propagates outward as disturbance.
+
+Critically, pressure is **not a static potential.** An earlier framing modeled it as a depth-derived scalar seeking thin overburden — that framing fails, because any static field derived from depth simply mimics the bathymetry (all pressure features land exactly where the shelf already is). Pressure is **dynamic**: propagating impulses that radiate, reflect off terrain, focus, and interfere. This is wave propagation, not drainage — a genuinely different physics from the other two magics, and the reason its terrain does not trace the depth map.
+
+### Process / implementation
+
+Model as **wave propagation from sources**, closer to acoustics/ripples than to river routing. Two source types:
+
+- **Standing source** — the dead god at a fixed deep point, radiating continuously.
+- **Transients** — rogue-wave loci (impulse points) and creature-wakes (moving line-sources along paths).
+
+Propagate each disturbance outward with these behaviors:
+
+- **Attenuation with distance** — impulses weaken as they spread; intensity depends on distance-from-source *along the propagation path*, not on depth.
+- **Reflection and refraction off bathymetric boundaries** — when a wave hits the shelf break, a seamount, or a basin wall, it reflects and refracts. **This is where pressure stops mimicking the shelf:** concave undersea shapes **focus** reflected pressure to a focal point determined by the geometry's *curvature*, not its depth. Two basins of identical depth but different shape focus to different intensities at different points. The bathymetry sources the reflections, but the focal points are locations the depth map does not telegraph.
+- **Constructive interference** — overlapping disturbances (god's steady radiation + a creature wake + a wall reflection) **sum**, producing intensity peaks at interference nodes that sit at no single source.
+
+The pass: place the standing source; generate the transient events; propagate each outward with attenuation; reflect/refract off bathymetric boundaries; **accumulate the summed, time-integrated interference pattern** over all disturbances. That accumulated field is pressure intensity; its peaks are at focal points and interference nodes.
+
+**Cost / tractability:** you do **not** need a time-domain wave solver. Either (a) **ray propagation** — shoot rays from each source, bounce them off bathymetric boundaries, deposit attenuated intensity along each ray, sum; focal points emerge where rays converge — or (b) **precompute** a distance-with-reflections field once for the standing god-source (the expensive part, done a single time because the god does not move) and layer cheap transient impulses on top. The god being *fixed* is what makes this tractable: its contribution is cached; only transients need per-event work.
+
+The load-bearing structure here is the **propagation-and-reflection simulation itself** (even a cheap ray-based one). Distinctness comes from propagating through geometry, not reading a level.
+
+### Results / terrain
+
+Signature: **crushing force, standing and transient** — the sea's violence made geological. (At low ice-age sea level, features on exposed shelf appear as land features.)
+
+- **Crush zones / shatter-fields** at focal points where reflected pressure concentrates — pulverized seafloor/exposed-shelf. Appear in specific basins and not in others of identical depth, because they sit at *geometric focal points*.
+- **The god-locus** — a fixed deep origin radiating continuously; the highest-intensity standing feature. Concentric/radial crushed terrain fading with distance — a bullseye. Distinct because it is an *origin*, not a bathymetric extreme.
+- **Wake-scars / pressure trails** — transient high-pressure lines from fast creatures, integrated over time into linear features cutting across the seafloor. Trace *movement paths* — unrelated to depth or shelf.
+- **Interference lattices** — standing-wave patterns where the god's radiation reflects off surrounding walls and self-interferes: regular grids/bands of alternating deformation. Alien, and impossible from a static field — an unmistakable wave signature.
+- **Rogue-wave impact zones** — near surface/coast where transients reach shallow water and slam. Episodic crush features along coastlines, distinct from reef/shelf because they mark where *waves break hardest* (propagation + coastal geometry), not where water is shallow.
+
+Writes: `pressure_intensity`.
+
+---
+
+## Aurora magic — sky and ice
+
+### Motivation
+
+Aurora is luminous cold: light generated in the sky and stored in the ice. It is the mirror image of pressure — pressure is deep/confined/propagating; aurora is high/diffuse/settling. It descends and accumulates in the cold, pooling into the low cold places and draining off the warm ones. Where water flows down a gravity gradient, aurora flows down a **temperature** gradient — collecting where coldest, thinning where warm. The sky and the ice are coupled: the ice is where sky-light pools and freezes into the landscape, and thick ice **stores and re-emits** aurora (thick ice glows).
+
+Aurora is the healthiest of the three against the mimicry rule, because it introduces a **reservoir/storage rule with no analog in the existing fields.** Ice thickness (§6) is a physical quantity; aurora *reads* it as storage capacity, producing glow-saturation that no other pass computes. Two cells with identical elevation, temperature, and ice thickness can carry *different* aurora accumulation depending on their position in the aurora flow network (upstream conduit vs. downstream sink). That path-dependence makes aurora terrain genuinely non-recoverable from any single existing field.
+
+### Process / implementation
+
+The most literally hydrology-like of the three, with **temperature as the height field** and a reservoir term:
+
+- **Flow routing over temperature** — aurora at each cell flows to its **coldest** neighbor; accumulates in cold basins; accumulation field = aurora intensity.
+- **Reservoir / storage** — cells with thick ice have high **storage capacity**: they hold aurora rather than passing it on (as saturated ground holds water). So it is flow-accumulation *plus* a per-cell capacity term keyed to `ice_thickness`. Cold + thick-ice cells fill and glow; cold + thin-ice cells are conduits; warm cells drain instantly (zero storage) and stay dark.
+- **Source geometry — a ceiling, not a point.** Aurora rains down across the whole cold zone, modulated by elevation (higher catches more) and cold, rather than issuing from a spot. This broad-field input is why aurora produces *expanses* where pressure produces *points*: source geometry dictates terrain geometry.
+
+**Ordering dependency:** aurora reads `temperature`, which §7-fire writes back into. Run fire before aurora so aurora drains correctly around fire's thawed zones with no special-casing.
+
+### Results / terrain
+
+Signature: **luminous cold** — settled sky-light interacting with the frozen landscape.
+
+- **Aurora fields / glacier-glow** — expanses of ice saturated with settled light (high aurora accumulation ∩ thick ice). The default "magic is visibly here" biome of the cold zones; the aurora analog of a lake.
+- **Light-wells / cold sinks** — concave cold basins (cirques from §6 are ideal) where aurora pools deeply. Rare, intense, bowl-shaped — tarns for light.
+- **Frost-refraction ridges / prisms** — high exposed peaks that catch and scatter sky-aurora rather than pooling it. The emitters/beacons, as opposed to the pooling basins.
+- **The melt-line frontier** — where the cold zone gives way to the temperate ribbon, aurora drains off and thins to nothing. Charged ice meeting un-charged warmer land: a visible, active transition band. Aurora's shoreline.
+
+Writes: `aurora_intensity`.
+
+---
+
+## Fire magic — earth's cores
+
+### Motivation
+
+Fire wells up from the earth. **Fire cores are numerous, not a few hero sources** — a distributed resource, dense in places, sparse in others. (A few large **magma chambers** exist as the high-density peaks of the core field — the mother lodes — but cores scatter at lower density across everywhere the field is nonzero.) Fire rises toward the surface and travels **laterally along paths of least resistance through the rock** — a fracture network — before surfacing. It flows along **conductance** (the rock's willingness to let heat through), which correlates with but is not identical to the ridge/fault structure.
+
+Fire satisfies the mimicry rule through its **network/conductance** routing: intensity depends on *connectivity through the fracture network*, not on a local field value. This works **only if the fracture network is its own generated structure** and not merely the ridge field re-read — if fire just routes over the ridges, it collapses back into mimicking them.
+
+### Process / implementation
+
+**Core placement — a density field, not point sources.** Generate a **core-density field** (biased toward ridge roots / uplift zones, since the earth's heat still concentrates there, but not exclusively). Place individual cores by sampling proportional to density — **Poisson-disk sampling with density-varying radius** — giving dense clusters near chambers and sparse scatters in the cold interior, with no unnatural overlaps. Magma chambers are the density peaks.
+
+**Propagation — cost-distance over a generated fracture network.** Multi-source priority-flood from all cores, where edge cost is **inverse conductance**: cheap along fractures, expensive through solid cold rock. Fire intensity at a cell = source strength attenuated by accumulated travel cost from the nearest core. This routes fire into **veins** instead of the radial blobs a smooth falloff would give — the standard upgrade that makes a radial field look geological rather than painted.
+
+**The fracture network is a shared, load-bearing artifact.** Generate it as a genuine fracture graph — it may be *seeded* by ridges/faults but must have its own structure (branching, its own connectivity). It is depended on by both fire and pressure (pressure's reflections and any pressure-fire interaction reference it); if it degenerates into "the ridge field," both magics lose distinctness. Build it as a real independent layer.
+
+### Results / terrain
+
+Signature: **heat punching through cold** — inherently dramatic in an ice-age world.
+
+- **Firecore vents / caldera terrain** — the surfacing point of a core; high intensity. Surrounded by a **thawed halo** (fire locally spikes `temperature`, melting ice — which then feeds hydrology and aurora-drainage; see ordering).
+- **Thermal veins / warm corridors** — the *channels* fire travels before surfacing: linear warm strips following the fracture network, threading through cold terrain like glowing cracks radiating from cores along fault lines. A warm, thawed line cutting across tundra, tracing a fault otherwise invisible.
+- **Hot springs / thermal oases** — fire surfacing where its channel meets water or ice (fire-adjacent ∩ water). The thawed oasis in the frozen waste.
+- **Ash / basalt flats** — where fire has surfaced, spread, and cooled. Spent fire terrain, the opposite of an active vent.
+
+Writes: `fire_intensity`, `core_density`, `core_sites`, and writes heat back into `temperature` (thawed halos) — which must occur before the aurora pass.
+
+---
+
+## Magic interactions — where three passes become a system
+
+Each magic is anchored to a different physical layer (deep, sky-cold, earth), so they **meet at the boundaries between those layers**, and those meeting-places are the most interesting terrain — the same way the best physical terrain was transitional (shelf break, melt-line, coastline). Interface terrains are **two-field predicates**, and a two-field conjunction is distinct *even when both inputs individually mimic their sources*, because the conjunction sits where neither source sits.
+
+- **Fire vs. Aurora — the thermal war.** Direct antagonists on the temperature axis: fire spikes heat, aurora requires cold. A fire core in the deep cold zone carves a **thawed void in the aurora field** — a dark warm hole in the glowing ice, ringed by a **bright rim** where aurora piles against the heat boundary it cannot cross. That rim (both `fire_intensity` and `aurora_intensity` high) is a thin contested ring, automatic if fire writes `temperature` before the aurora pass runs (aurora then drains around fire cores with no special-casing). **Ordering: fire → temperature → aurora.**
+
+- **Pressure vs. Fire — the deep contest.** Both reference the fracture network, from opposite ends (pressure propagating/reflecting in the deep, fire routing up from crustal cores). Where a pressure focal point or wake-line intersects a fire vein, you get a **contested channel** — physically the most violent terrain (deep-ocean pressure-water meeting fire-heat → steam-explosion / phreatic character). Predicate: `pressure_intensity` and `fire_intensity` both high on the same fracture. Rare by construction (needs a fracture reaching both a deep disturbance path and a fire core) — which is what you want for the wildest terrain.
+
+- **Pressure vs. Aurora — the vertical extremes.** These barely interact (deep-ocean vs. sky-ice — opposite ends of the world), and that is correct; not everything should interact. The one meeting place: **a pressure transient breaching beneath thick coastal ice** — deep force punching up through the frozen shelf into an aurora-charged ice field. Episodic and violent. Falls out wherever `pressure_intensity` (impact) and `aurora_intensity` overlap, which the geometry already makes rare.
+
+**Thematic through-line:** the three magics are the three layers of the world made active — the deep (pressure), the surface-cold (aurora), the earth (fire) — and every dramatic terrain is where two of those layers touch. The map becomes a diagram of where the world's strata are in contact.
+
+---
+
+## Pass ordering summary
+
+Forced by the physics:
+
+1. **Base elevation** (uplift → fluvial erosion) → `elevation`
+2. **Continents / islands** (connected components; shelf-level grouping) → `landmass_id`, `continental_group_id`
+3. **Bathymetry** (depth/slope bands; sea-level parameter) → `depth`, `bathymetric_zone`
+4. **Hydrology** (D8 → accumulation → priority-flood lakes) → `flow_*`, `water_depth`, `watershed_id`
+5. **Temperature** (latitude/heat-axis − lapse rate; cold-shifted) → `temperature`
+6. **Glaciation** (ice cover, then landform stamps off ice flux) → `ice_thickness`, `ice_flux`, updates `elevation`
+7. **Biome classification** (Whittaker rectangular LUT + overrides) → `hex_biome_base`
+8. **Fire** (core-density → Poisson placement → conductance routing; writes heat to `temperature`) → `fire_intensity`
+9. **Aurora** (temperature-gradient flow + ice-storage reservoir) — **must follow fire** → `aurora_intensity`
+10. **Pressure** (wave propagation/reflection from god + transients) → `pressure_intensity`
+11. **Interaction terrains** (two-field predicates over the magic intensity fields)
+
+Shared load-bearing artifacts: the **priority-flood traversal** (reused in hydrology, glaciation ice-flow, fire routing), the **fracture network** (shared by fire and pressure; must be independently generated, not the ridge field re-read), and the **sea-level parameter** (couples bathymetry, exposed-shelf land, and continental-group fragmentation).
+
+Every terrain type — natural or magic — is a predicate over these fields. Adding terrain means adding a predicate, never adding a noise channel.

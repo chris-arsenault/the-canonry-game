@@ -50,7 +50,7 @@ public sealed class PhysicalPipelineAndClassificationTests
                     PhysicalLandformCodes.Moraine));
         result.Map.ImpactExcavation[impactRim] = 0;
         result.Map.ImpactRimUplift[impactRim] =
-            result.Context.Profile.ImpactLandformMinimumRimUplift;
+            PhysicalElevation.FromUnits(result.Context.Profile.ImpactLandformMinimumRimUplift);
         result.Layer.Apply(result.Map, result.Context);
         Assert.Equal(PhysicalLandformCodes.ImpactRim, result.Map.LandformCodes[impactRim]);
 

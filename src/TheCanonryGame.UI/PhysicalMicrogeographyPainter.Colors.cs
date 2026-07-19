@@ -6,21 +6,33 @@ using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;
 
-internal partial class PhysicalMicrogeographyChunk
+public sealed partial class PhysicalMicrogeographyPainter
 {
-    private static Color ElevationColor(int elevation)
+    private static Color ElevationColor(float elevation, float minimum, float maximum)
     {
-        var normalized = Math.Clamp((elevation + 1000f) / 2000f, 0f, 1f);
-        if (normalized < 0.5f)
+        if (elevation < 0f)
         {
-            return new Color(0.05f, 0.16f, 0.28f).Lerp(
-                new Color(0.36f, 0.48f, 0.42f),
-                normalized * 2f);
+            var depth = MathF.Pow(
+                Math.Clamp(-elevation / Math.Max(1f, -minimum), 0f, 1f),
+                0.60f);
+            return new Color(0.24f, 0.43f, 0.44f).Lerp(
+                new Color(0.035f, 0.10f, 0.22f),
+                depth);
         }
 
-        return new Color(0.36f, 0.48f, 0.42f).Lerp(
-            new Color(0.92f, 0.91f, 0.86f),
-            (normalized - 0.5f) * 2f);
+        var normalized = MathF.Pow(
+            Math.Clamp(elevation / Math.Max(1f, maximum), 0f, 1f),
+            0.55f);
+        if (normalized < 0.58f)
+        {
+            return new Color(0.31f, 0.48f, 0.38f).Lerp(
+                new Color(0.62f, 0.57f, 0.45f),
+                normalized / 0.58f);
+        }
+
+        return new Color(0.62f, 0.57f, 0.45f).Lerp(
+            new Color(0.95f, 0.94f, 0.90f),
+            (normalized - 0.58f) / 0.42f);
     }
 
     private static Color TemperatureColor(int temperature) =>

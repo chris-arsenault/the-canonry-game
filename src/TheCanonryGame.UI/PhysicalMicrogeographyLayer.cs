@@ -18,6 +18,7 @@ public partial class PhysicalMicrogeographyLayer : Node2D
     private HexMapProjection? _map;
     private IProjectionSymbolCatalog? _symbols;
     private PhysicalMicrogeographyGeometry? _geometry;
+    private PhysicalMicrogeographyPainter? _painter;
     private PlaneMode _plane = PlaneMode.Physical;
     private float _cameraZoom = 1.5f;
     private Rect2 _lastCullingRect;
@@ -33,6 +34,8 @@ public partial class PhysicalMicrogeographyLayer : Node2D
     internal PhysicalGeographyProjection Geography => _geography!;
 
     internal PhysicalMicrogeographyGeometry Geometry => _geometry!;
+
+    internal PhysicalMicrogeographyPainter Painter => _painter!;
 
     internal bool DrawMicrotriangles =>
         _plane == PlaneMode.Physical && _cameraZoom >= MicrotriangleZoomThreshold;
@@ -51,6 +54,9 @@ public partial class PhysicalMicrogeographyLayer : Node2D
         _symbols = symbols;
         _geometry = geography?.HasData == true
             ? new PhysicalMicrogeographyGeometry(hexSize)
+            : null;
+        _painter = geography?.HasData == true
+            ? new PhysicalMicrogeographyPainter(geography, _geometry!)
             : null;
         RebuildChunks();
     }

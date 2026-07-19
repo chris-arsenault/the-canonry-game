@@ -103,6 +103,10 @@ internal sealed class PhysicalGeographyPipeline
         layers.Add(guidance);
         layers.Add(flow);
         layers.Add(rivers);
+        // Lake reconciliation invalidates the support surface used by the ice
+        // state. Refresh it before final glacial classification and validation.
+        layers.Add(landIce);
+        layers.Add(iceFlow);
     }
 
     private static void AddClimateAndDrainage(

@@ -54,6 +54,12 @@ lakes, rivers, and deltas beneath ice and magic surfaces. They also apply
 restrained elevation shading at aggregate and triangle LODs, keeping relief
 legible without replacing surface identity.
 
+The physical-map draw policy, colors, feature geometry, and LOD behavior live
+in a presentation-only painter. The Godot map node is a canvas adapter for that
+painter; it does not contain a second rendering implementation. The standalone
+world-review harness adapts the same painter to an offscreen raster canvas, so
+its output exercises the map users actually see without launching Godot.
+
 Available views cover effective terrain, final surface, natural surface,
 material, elevation, temperature, moisture, geothermal heat, ocean currents
 with direction vectors, wave exposure, rain/snow, sea-ice suitability, landform,
@@ -64,6 +70,19 @@ type and strain, fire, aurora, pressure, composite magic, and cumulative magic
 history colored by first-active epoch. These
 views visualize projected facts; they never classify terrain or feed values
 back to worldgen or the simulation.
+
+For worldgen review, `tools/WorldGenerator capture` accepts an ordinary
+filesystem `.world` path and output directory. It writes deterministic
+whole-world surface/elevation/hydrology/river views, warm/cold/major-river
+detail views, and a JSON manifest. Capture is a normal command-line process and
+does not require a desktop, virtual display, Godot process, or imported Godot
+resources. PNGs are review evidence rather than golden-test inputs.
+
+```text
+dotnet run --project tools/WorldGenerator -c Release -- capture \
+  --world=worlds/ice-remembers-seed-42.world \
+  --output=.artifacts/captures/seed42
+```
 
 ## Non-Goals
 

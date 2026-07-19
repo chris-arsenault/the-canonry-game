@@ -159,11 +159,14 @@ public sealed class IceRemembersSeedBuilderTests
             .Terrains
             .Select(terrain => terrain.StableName)
             .ToHashSet(StringComparer.Ordinal);
+        var fineElevation = physical.ScalarFields
+            .Single(field => field.StableName == "fine_elevation")
+            .Values;
 
         Assert.DoesNotContain(physical.MaterialPalette, gameplayTerrains.Contains);
         foreach (var cell in physical.Cells)
         {
-            AssertCellSummaryMatchesMicrotriangles(physical, cell);
+            AssertCellSummaryMatchesMicrotriangles(physical, cell, fineElevation);
         }
     }
 
@@ -617,10 +620,13 @@ public sealed class IceRemembersSeedBuilderTests
 
     private static void AssertCellSummaryMatchesMicrotriangles(
         DomainPhysicalGeographyBlueprint physical,
-        DomainPhysicalGeographyCell cell)
+        DomainPhysicalGeographyCell cell,
+        IReadOnlyList<int> fineElevation)
     {
         var minElevation = int.MaxValue;
         var maxElevation = int.MinValue;
+        var minFineElevation = int.MaxValue;
+        var maxFineElevation = int.MinValue;
         var waterCoverage = 0;
         var oceanCoverage = 0;
         var lakeCoverage = 0;
@@ -631,6 +637,9 @@ public sealed class IceRemembersSeedBuilderTests
             var triangle = physical.Microtriangles[cell.MicrotriangleOffset + localTriangle];
             minElevation = Math.Min(minElevation, triangle.Elevation);
             maxElevation = Math.Max(maxElevation, triangle.Elevation);
+            var fine = fineElevation[cell.MicrotriangleOffset + localTriangle];
+            minFineElevation = Math.Min(minFineElevation, fine);
+            maxFineElevation = Math.Max(maxFineElevation, fine);
             waterCoverage += triangle.WaterKindCode != PhysicalWaterKindCodes.None ? 1 : 0;
             oceanCoverage += triangle.WaterKindCode == PhysicalWaterKindCodes.Ocean ? 1 : 0;
             lakeCoverage += triangle.WaterKindCode == PhysicalWaterKindCodes.Lake ? 1 : 0;
@@ -638,7 +647,9 @@ public sealed class IceRemembersSeedBuilderTests
 
         Assert.Equal(minElevation, cell.MinElevation);
         Assert.Equal(maxElevation, cell.MaxElevation);
-        Assert.Equal(cell.MaxElevation - cell.MinElevation, cell.Relief);
+        Assert.Equal(
+            PhysicalElevation.ToUnits((long)maxFineElevation - minFineElevation),
+            cell.Relief);
         Assert.Equal(waterCoverage, cell.WaterCoverage);
         Assert.Equal(oceanCoverage, cell.OceanCoverage);
         Assert.Equal(lakeCoverage, cell.LakeCoverage);

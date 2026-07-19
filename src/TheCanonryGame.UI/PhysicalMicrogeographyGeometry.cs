@@ -5,19 +5,21 @@ using Godot;
 
 namespace TheCanonryGame.UI;
 
-internal sealed class PhysicalMicrogeographyGeometry
+public sealed class PhysicalMicrogeographyGeometry
 {
     private static readonly int[] EdgeFirstPoint = [1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1];
     private static readonly int[] EdgeSecondPoint = [2, 1, 2, 2, 1, 2, 2, 2, 1, 1, 2, 2];
     private readonly Vector2[][] _trianglePoints;
     private readonly Vector2[][] _closedTrianglePoints;
     private readonly Vector2[] _triangleCentroids;
+    private readonly Vector2[] _hexPoints;
+    private readonly Vector2[] _closedHexPoints;
 
     public PhysicalMicrogeographyGeometry(float hexSize)
     {
         HexSize = hexSize;
-        HexPoints = BuildHexPoints(hexSize);
-        ClosedHexPoints = Close(HexPoints);
+        _hexPoints = BuildHexPoints(hexSize);
+        _closedHexPoints = Close(_hexPoints);
         _trianglePoints = new Vector2[PhysicalGeographyCodes.MicrotrianglesPerHex][];
         _closedTrianglePoints = new Vector2[PhysicalGeographyCodes.MicrotrianglesPerHex][];
         _triangleCentroids = new Vector2[PhysicalGeographyCodes.MicrotrianglesPerHex];
@@ -26,9 +28,9 @@ internal sealed class PhysicalMicrogeographyGeometry
 
     public float HexSize { get; }
 
-    public Vector2[] HexPoints { get; }
+    public Vector2[] HexPoints() => _hexPoints;
 
-    public Vector2[] ClosedHexPoints { get; }
+    public Vector2[] ClosedHexPoints() => _closedHexPoints;
 
     public Vector2[] TrianglePoints(int triangleIndex) => _trianglePoints[triangleIndex];
 
@@ -71,8 +73,8 @@ internal sealed class PhysicalMicrogeographyGeometry
     {
         for (var sector = 0; sector < PhysicalGeographyCodes.HexSectorCount; sector++)
         {
-            var a = HexPoints[sector];
-            var b = HexPoints[(sector + 1) % PhysicalGeographyCodes.HexSectorCount];
+            var a = _hexPoints[sector];
+            var b = _hexPoints[(sector + 1) % PhysicalGeographyCodes.HexSectorCount];
             var halfA = a * 0.5f;
             var halfB = b * 0.5f;
             var edgeMiddle = (a + b) * 0.5f;

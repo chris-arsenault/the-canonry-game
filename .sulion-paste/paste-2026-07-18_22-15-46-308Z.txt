@@ -1,0 +1,184 @@
+The multi-epoch idea is directionally stronger than a single finished-terrain pass, but the important distinction is “evolve persistent geology” versus “reroll the whole generator four times.” I’m checking that distinction against primary landscape-evolution and procedural-terrain work, then I’ll fold it into a staged proposal with explicit ownership and process ordering.
+
+Yes, multi-epoch evolution is the better model, and it should replace the proposed single-pass rebuild now. Implementing a new single-pass generator first would likely mean rewriting it again once persistent geology is introduced.
+
+The right model is not “run the whole generator four times.” It is “create crust once, then evolve persistent state through four configurable epochs.”
+
+That distinction matters because rerunning today’s layers would erase history: lakes, flow, ice, warmth, and surfaces are currently cleared and recomputed. Realistic terrain comes from old structures surviving while later processes modify them.
+
+This approach is well grounded. Procedural terrain work has successfully coupled tectonic uplift with stream-power erosion to produce watersheds, dendritic rivers, and ridges; landscape-evolution models evolve topography over time under changing tectonics, precipitation, and sea level rather than generating each independently. Multiple glacial cycles likewise leave materially different terrain than a single glacial stamp. Cordonnier et al., eSCAPE, multi-cycle glacial erosion.
+
+The epoch model
+Four epochs is a good initial authored history, but EpochCount and the epoch definitions must be configurable.
+
+A useful starting history is:
+
+Crust assembly Strong plate movement, rifting, subduction, initial mountain uplift, volcanism, warm climate, and large marine basins.
+
+Orogeny and wet erosion Continued uplift, stronger precipitation, major river incision, sediment transport, coastline development, and established drainage basins.
+
+Glacial maximum Colder climate and lower sea level; glaciers accumulate, flow, erode valleys, deposit moraines, redirect rivers, and create overdeepened basins. Aurora strongly accumulates in this epoch.
+
+Retreat and present world Reduced tectonic activity, rising sea level, glacier retreat, lake formation, river recapture, delta construction, present sea ice, and final surface classification.
+
+Each epoch would contain a small configurable number of surface-evolution substeps. Four epochs are narrative/geological eras, not merely four numerical iterations.
+
+Persistent state would include:
+
+plate identity, crust type, age, and motion;
+bedrock elevation and erodibility;
+sediment thickness;
+fault, fracture, and tectonic strain history;
+geothermal and volcanic history;
+maximum and cumulative glacial erosion;
+cumulative fluvial and coastal erosion;
+old river valleys and abandoned channels;
+persistent magic deposits and scars.
+Derived state—ocean, temperature, rain, current flow routing, active glaciers, lakes, present rivers, and current sea ice—is rebuilt as necessary from that persistent history.
+
+Memory should remain well inside the 4–8 GB target because epoch scratch arrays can be reused. We should not retain four complete copies of the world.
+
+Hotspots and tectonics
+You are correct that arbitrary hotspot placement will continue to feel fake.
+
+One terminology distinction: mountain ridges are not necessarily volcanic sources. Physical heat should originate from:
+
+convergent plate boundaries and volcanic arcs;
+divergent boundaries and rifts;
+transform/fault intersections;
+rare mantle plumes within plates.
+A fixed mantle plume beneath a moving plate naturally produces a chain of progressively older volcanic sites. We can model this without simulating deformable crust: preserve each plate’s motion vector, move the active intersection each epoch, and retain attenuating deposits from previous epochs.
+
+That produces the “original hotspots spread out” effect you want. Boundary volcanism moves as plate boundaries evolve, while plume tracks cross plate interiors.
+
+The current five forced peaks would be deleted entirely.
+
+Magic should participate asymmetrically:
+
+Fire runs every epoch after tectonics and fractures. It records active vents, extinct volcanic provinces, thermal veins, and old basalt fields. Its heat feeds that epoch’s climate and ice.
+Aurora runs after glaciation in sufficiently cold epochs. Some charge remains trapped in persistent ice or mineral deposits; later thaw creates melt lines and exposed prisms.
+Pressure runs after ocean connectivity and currents. It affects marine sediment, scars, and coastal energy. Ancient effects persist even if the coast subsequently moves.
+Final magic surfaces are classified only after the last epoch; earlier epochs write history fields and persistent features rather than repeatedly replacing the visible surface.
+Rain should be first-class
+Yes. The present moisture approximation is insufficient for landscape evolution.
+
+Each epoch should have a discrete precipitation layer driven by:
+
+ocean and open-water fetch;
+prevailing wind directions;
+temperature;
+elevation;
+orographic lift;
+rain shadow;
+local geothermal thaw;
+epoch-specific wetness.
+Rain then drives runoff, river discharge, lake balance, snowfall, and glacial accumulation. Changing precipitation across epochs is an established landscape-evolution forcing, not decorative noise. eSCAPE’s model explicitly couples spatial and temporal precipitation with tectonics, erosion, deposition, and sea-level variation.
+
+Glaciation should actually evolve terrain
+Yes, but with a reduced-order model rather than a full ice-sheet PDE.
+
+Within cold epochs:
+
+Calculate accumulation and ablation from precipitation and temperature.
+Route ice flux over the current topography.
+Erode bedrock according to flux, slope, and substrate.
+Widen and flatten occupied valleys.
+Transport and deposit sediment at margins and termini.
+Update elevation.
+Recompute drainage after the terrain changes.
+That gives us genuine glacial capture, U-valleys, hanging valleys, fjords, moraines, overdeepened lake basins, and rivers reorganized by ice. Large-scale glacial stream-power approaches are specifically intended to make this kind of coupled evolution computationally practical. OpenLEM glacial erosion study.
+
+Coastal erosion is worth including now
+It belongs in the epoch model because coastlines should be consequences of ocean history, not merely sea-level contours.
+
+A reduced coastal process should use:
+
+open-ocean fetch and wave exposure;
+current direction;
+pressure-magic amplification;
+shoreline angle;
+substrate resistance;
+shelf slope;
+sea-level change;
+available sediment.
+It should erode exposed headlands and cliffs, move sediment alongshore, and deposit it in protected bays, beaches, shelves, and river mouths. We do not need a detailed ocean-fluid solver. Reduced cellular coastal models already produce erosion, deposition, spits, cuspate forms, and changing shorelines from wave angle, fetch, sediment, and sea-level history. CEM2D, NEWTS.
+
+Physical waves and currents remain the baseline. Pressure magic modifies that energy; it does not become the only reason coasts erode.
+
+Revised implementation plan
+Milestone 1: Correct ownership and epoch contracts
+Create IceRemembers.WorldGen now because the epoch orchestrator has no sensible home in Seed.
+
+Engine.WorldGen: physical map state, plate/crust algorithms, generic evolution layers.
+IceRemembers.WorldGen: authored epoch schedule, magic processes, surface taxonomy compilation, and quality profiles.
+IceRemembers.Seed: consumes the finished blueprint for entities, subdivisions, and placement.
+Engine.Kernel: unchanged and unaware of epochs or microtriangles.
+Add persistent-versus-derived field contracts, configurable epoch definitions, reusable scratch storage, and layer dependency/invalidation semantics. Move existing domain generation out of IceRemembers.Seed without preserving compatibility wrappers.
+
+Commit and push this boundary independently.
+
+Milestone 2: Crust and tectonic history
+Delete the center-and-ring continental model.
+
+Implement:
+
+irregular plate/crust provinces across and beyond the padded crop;
+continental/oceanic crust and plate motion;
+convergent uplift, rifting, trenches, and island arcs;
+moving plate boundaries across epochs;
+fault and fracture history;
+tectonically grounded geothermal systems and mantle-plume tracks;
+sea-level calibration against configurable ocean targets.
+Checkpoint views should expose plate IDs, crust type, boundary type, uplift history, and bedrock elevation.
+
+Tests must cover plate spacing, crop independence, coast/landmass targets, movement across epochs, hotspot provenance, and rejection of the current radial layout.
+
+Commit and push.
+
+Milestone 3: Coupled epoch surface evolution
+Implement the per-epoch sequence:
+
+tectonic displacement and uplift;
+ocean connectivity and broad current field;
+physical geothermal plus fire history;
+temperature and precipitation;
+snow/ice mass balance and glacial flow;
+aurora deposition;
+drainage and runoff;
+fluvial erosion and sediment transport;
+pressure propagation;
+coastal erosion and alongshore sediment movement;
+glacial erosion and deposition;
+ocean and drainage reconciliation after elevation changes.
+Old one-shot erosion, fixed-fraction ice selection, and stamped glacial-landform behavior would be deleted.
+
+Commit and push after the complete four-epoch physical history produces coherent continents, varied ice, distributed heat systems, evolved coasts, and inland basins.
+
+Milestone 4: Final hydrology and river geography
+On the final evolved topography:
+
+replace index-biased flat routing;
+calculate precipitation-derived discharge;
+construct tributary trees and Strahler order;
+retain a narrow flow spine;
+widen channels laterally from discharge and valley geometry;
+add floodplains, abandoned channels, distributaries, mouths, and deltas;
+allow sufficiently large rivers to occupy much or all of a hex’s 24 triangles.
+Add river_channel, floodplain, and delta surfaces alongside river_valley.
+
+River-width scaling with drainage area is consistent with landscape-evolution work on lateral channel erosion and valley widening. Langston and Tucker.
+
+Tests must include graph-renumbering and rotational-equivalence cases so storage order can never choose a physical direction again.
+
+Commit and push.
+
+Milestone 5: Final magic, surfaces, UI, and quality
+Resolve active versus relict fire, aurora, and pressure features.
+Classify final natural and magic surfaces once.
+Render filled river channels and deltas rather than representing everything as a line.
+Add inspection views for crust age, erosion history, sediment, maximum glaciation, active/relict faults, and magic age.
+Keep distribution requirements configurable: ocean, land ice, sea ice, landmass sizes, coast complexity, hotspot spacing, channel coverage, direction balance, tributary density, wide-river prevalence, and delta prevalence.
+Keep only structural truths hard: topology, routing, provenance, conservation, and deterministic behavior.
+Run multi-seed fixed-corpus validation, then final make ci, commit, and push.
+
+This revised plan supersedes the earlier single-pass proposal. It does not change frontier radius, entity density, the semantic map, simulation behavior, or kernel terrain contracts.
