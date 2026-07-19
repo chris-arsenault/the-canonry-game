@@ -102,4 +102,17 @@ public sealed class PhysicalMicrogeographyRenderDecisionTests
             expected,
             PhysicalMicrogeographyRenderDecisions.UsesStructuralRiverOverlay(view));
     }
+
+    [Theory]
+    [InlineData(PhysicalGeographyView.Terrain, true)]
+    [InlineData(PhysicalGeographyView.Surface, true)]
+    [InlineData(PhysicalGeographyView.NaturalSurface, true)]
+    [InlineData(PhysicalGeographyView.Material, false)]
+    [InlineData(PhysicalGeographyView.Elevation, false)]
+    public void OrdinarySurfaceViewsUseReliefShading(
+        PhysicalGeographyView view,
+        bool expected)
+    {
+        Assert.Equal(expected, PhysicalMicrogeographyRenderDecisions.UsesReliefShading(view));
+    }
 }

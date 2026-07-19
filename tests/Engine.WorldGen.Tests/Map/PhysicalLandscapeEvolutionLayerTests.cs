@@ -96,6 +96,7 @@ public sealed class PhysicalLandscapeEvolutionLayerTests
                 PhysicalGeographyLayerTestHarness.Profile.GlacierFluxThreshold));
 
         var deposition = PhysicalGeographyLayerTestHarness.GenerateThrough<GlacialDepositionLayer>();
+        Assert.Contains(deposition.Map.CumulativeGlacialDeposition.ToArray(), value => value > 0);
         Assert.All(deposition.Map.SedimentSupply.ToArray(), value => Assert.Equal(0, value));
         Assert.Equal(
             deposition.Map.SedimentProducedTotal,

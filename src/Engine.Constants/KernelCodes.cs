@@ -40,9 +40,12 @@ public static class PhysicalLandformCodes
     public const int Cirque = 10;
     public const int Fjord = 11;
     public const int Moraine = 12;
+    public const int OutwashPlain = 13;
+    public const int ImpactBasin = 14;
+    public const int ImpactRim = 15;
 
     public const int Min = Plain;
-    public const int Max = Moraine;
+    public const int Max = ImpactRim;
 }
 
 public static class PhysicalLandmassClassCodes

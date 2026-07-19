@@ -227,7 +227,8 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
         }
 
         if (field.LandformCodes[triangleIndex] is
-            PhysicalLandformCodes.Ridge or PhysicalLandformCodes.Peak or PhysicalLandformCodes.Pass)
+            PhysicalLandformCodes.Ridge or PhysicalLandformCodes.Peak or PhysicalLandformCodes.Pass or
+            PhysicalLandformCodes.ImpactRim)
         {
             return IceRemembersPhysicalSurface.Ridge;
         }

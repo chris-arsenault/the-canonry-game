@@ -12,7 +12,9 @@ internal sealed class LandformClassificationLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Bathymetry |
         PhysicalGeographyFacts.Lakes |
         PhysicalGeographyFacts.Rivers |
-        PhysicalGeographyFacts.GlacialRelief,
+        PhysicalGeographyFacts.GlacialRelief |
+        PhysicalGeographyFacts.LandscapeHistory |
+        PhysicalGeographyFacts.Impacts,
         PhysicalGeographyFacts.Landforms,
         PhysicalGeographyFacts.Validated);
 
@@ -42,13 +44,19 @@ internal sealed class LandformClassificationLayer : IPhysicalGeographyLayer
         int triangleIndex,
         PhysicalGeographyGenerationProfile profile)
     {
+        var shape = MeasureShape(map, triangleIndex);
         var retained = RetainedPhysicalLandform(map, triangleIndex);
         if (retained != 0)
         {
             return retained;
         }
 
-        var shape = MeasureShape(map, triangleIndex);
+        var historical = HistoricalLandform(map, triangleIndex, profile, shape);
+        if (historical != 0)
+        {
+            return historical;
+        }
+
         if (IsPeak(map, triangleIndex, profile, shape))
         {
             return PhysicalLandformCodes.Peak;
@@ -98,7 +106,8 @@ internal sealed class LandformClassificationLayer : IPhysicalGeographyLayer
         PhysicalGeographyGenerationProfile profile) =>
         map.Elevation[triangleIndex] >= profile.RidgeElevationThreshold &&
         map.Slope[triangleIndex] >= profile.RidgeSlopeThreshold &&
-        (map.RidgeInfluence[triangleIndex] >= 0.26f || map.Uplift[triangleIndex] >= 0.42f);
+        (map.RidgeInfluence[triangleIndex] >= 0.26f || map.Uplift[triangleIndex] >= 0.42f ||
+            map.TectonicActivityHistory[triangleIndex] >= profile.InheritedRidgeActivityThreshold);
 
     private static bool IsValley(
         PhysicalGeographyField map,
@@ -106,8 +115,34 @@ internal sealed class LandformClassificationLayer : IPhysicalGeographyLayer
         PhysicalGeographyGenerationProfile profile,
         NeighborShape shape) =>
         map.RiverOrders[triangleIndex] > 0 ||
+        map.CumulativeFluvialErosion[triangleIndex] >= profile.AncestralValleyMinimumErosion ||
         (shape.HigherNeighbors >= 2 && map.Slope[triangleIndex] > profile.PlainSlopeThreshold &&
             map.FlowAccumulation[triangleIndex] >= profile.RiverAccumulationThreshold / 3);
+
+    private static int HistoricalLandform(
+        PhysicalGeographyField map,
+        int triangleIndex,
+        PhysicalGeographyGenerationProfile profile,
+        NeighborShape shape)
+    {
+        if (map.ImpactRimUplift[triangleIndex] >= profile.ImpactLandformMinimumRimUplift &&
+            map.ImpactRimUplift[triangleIndex] * 2 > map.ImpactExcavation[triangleIndex])
+        {
+            return PhysicalLandformCodes.ImpactRim;
+        }
+
+        if (map.ImpactExcavation[triangleIndex] >= profile.ImpactLandformMinimumExcavation &&
+            shape.HigherNeighbors >= 2)
+        {
+            return PhysicalLandformCodes.ImpactBasin;
+        }
+
+        return map.CumulativeGlacialDeposition[triangleIndex] >=
+                profile.OutwashMinimumGlacialDeposition &&
+            map.Slope[triangleIndex] <= profile.PlainSlopeThreshold
+                ? PhysicalLandformCodes.OutwashPlain
+                : 0;
+    }
 
     private static int RetainedPhysicalLandform(PhysicalGeographyField map, int triangleIndex)
     {

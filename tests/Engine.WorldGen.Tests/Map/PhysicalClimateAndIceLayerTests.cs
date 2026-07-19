@@ -202,7 +202,7 @@ public sealed class PhysicalClimateAndIceLayerTests
     }
 
     [Fact]
-    public void GlacialLandforms_RequireQualifyingIceFluxAndRejectUnsupportedOverprint()
+    public void GlacialLandforms_RequireQualifyingHistoricalIceFluxAndRejectUnsupportedOverprint()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<GlacialLandformLayer>();
         var glacial = Enumerable.Range(0, result.Map.Grid.TriangleCount)
@@ -213,10 +213,11 @@ public sealed class PhysicalClimateAndIceLayerTests
             .ToArray();
         Assert.NotEmpty(glacial);
         Assert.All(glacial, index => Assert.True(
-            result.Map.IceFlux[index] >= PhysicalGeographyLayerTestHarness.Profile.GlacierFluxThreshold));
+            result.Map.MaximumIceFlux[index] >=
+                PhysicalGeographyLayerTestHarness.Profile.GlacierFluxThreshold));
 
         var unsupported = Enumerable.Range(0, result.Map.Grid.TriangleCount)
-            .First(index => result.Map.IceFlux[index] <
+            .First(index => result.Map.MaximumIceFlux[index] <
                 PhysicalGeographyLayerTestHarness.Profile.GlacierFluxThreshold);
         result.Map.LandformCodes[unsupported] = PhysicalLandformCodes.UValley;
         Assert.Throws<InvalidOperationException>(() =>

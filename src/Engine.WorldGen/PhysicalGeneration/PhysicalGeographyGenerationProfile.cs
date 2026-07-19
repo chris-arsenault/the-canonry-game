@@ -87,6 +87,18 @@ public sealed record PhysicalGeographyQualityTargets
 
     public CountTarget DeltaMouthCount { get; init; } = new(1, 1000);
 
+    public CountTarget ColdLandformTypeCount { get; init; } = new(3, 15);
+
+    public int MinimumLandformTypesPerMajorLandmass { get; init; } = 3;
+
+    public CountTarget VariedMajorLandmassCount { get; init; } = new(1, 8);
+
+    public CountTarget CoastalMajorLandmassCount { get; init; } = new(1, 8);
+
+    public CountTarget BranchingDrainageBasinCount { get; init; } = new(1, int.MaxValue);
+
+    public CoverageTarget DominantRiverDirectionShare { get; init; } = new(0.25d, 0.25d);
+
     internal void Validate()
     {
         if (MinimumEvaluationRadius < 0)
@@ -103,6 +115,11 @@ public sealed record PhysicalGeographyQualityTargets
         {
             throw new InvalidOperationException("Major-landmass minimum coverage is invalid.");
         }
+
+        if (MinimumLandformTypesPerMajorLandmass <= 0)
+        {
+            throw new InvalidOperationException("Major-landmass variety target is invalid.");
+        }
     }
 
     private bool CoverageTargetIsNull() =>
@@ -112,11 +129,14 @@ public sealed record PhysicalGeographyQualityTargets
 
     private bool RiverCoverageTargetIsNull() =>
         RiverChannelCoverage is null || FloodplainCoverage is null || DeltaCoverage is null ||
-        TributarySpineCoverage is null || WideRiverCoverage is null;
+        TributarySpineCoverage is null || WideRiverCoverage is null ||
+        DominantRiverDirectionShare is null;
 
     private bool CountTargetIsNull() =>
         MajorLandmassCount is null || InlandLakeBodyCount is null || HotspotLandmassCount is null ||
-        HigherOrderRiverTriangleCount is null || DeltaMouthCount is null;
+        HigherOrderRiverTriangleCount is null || DeltaMouthCount is null ||
+        ColdLandformTypeCount is null || VariedMajorLandmassCount is null ||
+        CoastalMajorLandmassCount is null || BranchingDrainageBasinCount is null;
 }
 
 /// <summary>
@@ -215,6 +235,16 @@ public sealed record PhysicalGeographyGenerationProfile
     public int MaximumGlacialErosionPerPass { get; init; } = 18;
 
     public int MaximumGlacialDepositionPerPass { get; init; } = 20;
+
+    public int AncestralValleyMinimumErosion { get; init; } = 5;
+
+    public int OutwashMinimumGlacialDeposition { get; init; } = 6;
+
+    public int ImpactLandformMinimumExcavation { get; init; } = 18;
+
+    public int ImpactLandformMinimumRimUplift { get; init; } = 8;
+
+    public int InheritedRidgeActivityThreshold { get; init; } = 60;
 
     public int CoastalErosionWaveThreshold { get; init; } = 420;
 
@@ -438,7 +468,13 @@ public sealed record PhysicalGeographyGenerationProfile
     private bool EvolutionCountsAreInvalid() =>
         EpochTectonicElevationStep <= 0 || IceAccumulationStep <= 0 || IceAblationStep <= 0 ||
         MaximumGlacialErosionPerPass <= 0 || MaximumGlacialDepositionPerPass <= 0 ||
-        MaximumCoastalErosionPerPass <= 0 || MaximumSedimentDepositionPerPass <= 0;
+        LandformHistoryCountsAreInvalid() || MaximumCoastalErosionPerPass <= 0 ||
+        MaximumSedimentDepositionPerPass <= 0;
+
+    private bool LandformHistoryCountsAreInvalid() =>
+        AncestralValleyMinimumErosion <= 0 || OutwashMinimumGlacialDeposition <= 0 ||
+        ImpactLandformMinimumExcavation <= 0 || ImpactLandformMinimumRimUplift <= 0 ||
+        InheritedRidgeActivityThreshold <= 0;
 
     private void ValidateScales()
     {

@@ -104,4 +104,9 @@ internal static class PhysicalMicrogeographyRenderDecisions
         view is PhysicalGeographyView.Terrain or
             PhysicalGeographyView.Surface or
             PhysicalGeographyView.NaturalSurface;
+
+    public static bool UsesReliefShading(PhysicalGeographyView view) =>
+        view is PhysicalGeographyView.Terrain or
+            PhysicalGeographyView.Surface or
+            PhysicalGeographyView.NaturalSurface;
 }

@@ -241,6 +241,7 @@ public sealed class PhysicalGeographyField
     private readonly int[] _cumulativeDeposition;
     private readonly int[] _cumulativeFluvialErosion;
     private readonly int[] _cumulativeGlacialErosion;
+    private readonly int[] _cumulativeGlacialDeposition;
     private readonly int[] _drainageBasinIds;
     private readonly int[] _drainageElevations;
     private readonly int[] _drainageParents;
@@ -334,9 +335,8 @@ public sealed class PhysicalGeographyField
             _waveExposure, _oceanDistance) = NewOceanFields(grid);
         (_rainfall, _snowfall, _seaIceSuitability) = NewTriple(grid);
         (_bedrockElevation, _sedimentThickness, _sedimentSupply, _cumulativeFluvialErosion,
-            _cumulativeGlacialErosion, _cumulativeCoastalErosion, _cumulativeDeposition) =
-            (NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid),
-                NewField(grid), NewField(grid));
+            _cumulativeGlacialErosion, _cumulativeGlacialDeposition,
+            _cumulativeCoastalErosion, _cumulativeDeposition) = NewLandscapeHistoryFields(grid);
         (_maximumIceThickness, _maximumIceFlux, _tectonicActivityHistory, _waveExposureHistory,
             _geothermalHistory) =
             (NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid));
@@ -381,6 +381,18 @@ public sealed class PhysicalGeographyField
     private static (int[] First, int[] Second, int[] Third) NewTriple(
         PhysicalGeographyGrid grid) =>
         (NewField(grid), NewField(grid), NewField(grid));
+
+    private static (
+        int[] Bedrock,
+        int[] Sediment,
+        int[] Supply,
+        int[] FluvialErosion,
+        int[] GlacialErosion,
+        int[] GlacialDeposition,
+        int[] CoastalErosion,
+        int[] Deposition) NewLandscapeHistoryFields(PhysicalGeographyGrid grid) =>
+        (NewField(grid), NewField(grid), NewField(grid), NewField(grid),
+            NewField(grid), NewField(grid), NewField(grid), NewField(grid));
 
     private static (
         int[] CurrentX,
@@ -498,6 +510,8 @@ public sealed class PhysicalGeographyField
     public Span<int> CumulativeFluvialErosion => _cumulativeFluvialErosion;
 
     public Span<int> CumulativeGlacialErosion => _cumulativeGlacialErosion;
+
+    public Span<int> CumulativeGlacialDeposition => _cumulativeGlacialDeposition;
 
     public Span<int> CumulativeCoastalErosion => _cumulativeCoastalErosion;
 

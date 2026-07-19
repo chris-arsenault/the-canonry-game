@@ -15,6 +15,7 @@ internal sealed class LandscapeInitializationLayer : IPhysicalGeographyLayer
         map.SedimentSupply.Clear();
         map.CumulativeFluvialErosion.Clear();
         map.CumulativeGlacialErosion.Clear();
+        map.CumulativeGlacialDeposition.Clear();
         map.CumulativeCoastalErosion.Clear();
         map.CumulativeDeposition.Clear();
         map.MaximumIceThickness.Clear();

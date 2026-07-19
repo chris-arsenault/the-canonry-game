@@ -56,6 +56,8 @@ internal sealed class GlacialDepositionLayer : IPhysicalGeographyLayer
                             context.GlaciationStrength / 1000,
                         load))
                 : 0;
+            map.CumulativeGlacialDeposition[triangleIndex] = checked(
+                map.CumulativeGlacialDeposition[triangleIndex] + deposited);
             var remaining = load - deposited;
             if (target >= 0)
             {

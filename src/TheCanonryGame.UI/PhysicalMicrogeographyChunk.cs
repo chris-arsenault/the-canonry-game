@@ -132,7 +132,9 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
 
     private Color AggregateIdentityColor(
         in PhysicalGeographyCellProjection cell,
-        PhysicalGeographyView view) => view switch
+        PhysicalGeographyView view)
+    {
+        var color = view switch
         {
             PhysicalGeographyView.Terrain => _owner!.TerrainColor(cell),
             PhysicalGeographyView.Surface => UiTokens.PhysicalSurfaceColor(
@@ -142,6 +144,10 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
                 _owner!.Geography.MaterialName(cell.DominantMaterialIndex)),
             _ => UiTokens.Whisper,
         };
+        return PhysicalMicrogeographyRenderDecisions.UsesReliefShading(view)
+            ? ElevationShade(color, cell.MeanElevation)
+            : color;
+    }
 
     private Color AggregatePhysicalFieldColor(
         in PhysicalGeographyCellProjection cell,
@@ -304,11 +310,11 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
     private Color TriangleIdentityColor(
         in PhysicalGeographyCellProjection cell,
         in PhysicalMicrotriangleProjection triangle,
-        PhysicalGeographyView view) => view switch
+        PhysicalGeographyView view)
+    {
+        var color = view switch
         {
-            PhysicalGeographyView.Terrain => ElevationShade(
-                _owner!.TerrainColor(cell),
-                triangle.Elevation),
+            PhysicalGeographyView.Terrain => _owner!.TerrainColor(cell),
             PhysicalGeographyView.Surface => UiTokens.PhysicalSurfaceColor(
                 _owner!.Geography.SurfaceName(triangle.SurfaceIndex)),
             PhysicalGeographyView.NaturalSurface => UiTokens.PhysicalSurfaceColor(
@@ -317,6 +323,10 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
                 _owner!.Geography.MaterialName(triangle.MaterialIndex)),
             _ => UiTokens.Whisper,
         };
+        return PhysicalMicrogeographyRenderDecisions.UsesReliefShading(view)
+            ? ElevationShade(color, triangle.Elevation)
+            : color;
+    }
 
     private Color TrianglePhysicalFieldColor(
         in PhysicalGeographyCellProjection cell,
@@ -1004,10 +1014,17 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         return history.Lerp(new Color(0.94f, 0.78f, 0.42f), ancient * 0.24f);
     }
 
-    private static Color LandformColor(int landformCode) =>
-        landformCode >= PhysicalLandformCodes.UValley
+    private static Color LandformColor(int landformCode)
+    {
+        if (landformCode >= PhysicalLandformCodes.OutwashPlain)
+        {
+            return HistoricalLandformColor(landformCode);
+        }
+
+        return landformCode >= PhysicalLandformCodes.UValley
             ? GlacialLandformColor(landformCode)
             : StandardLandformColor(landformCode);
+    }
 
     private static Color StandardLandformColor(int landformCode) => landformCode switch
     {
@@ -1019,6 +1036,14 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         PhysicalLandformCodes.Peak => new Color(0.90f, 0.88f, 0.82f),
         PhysicalLandformCodes.Pass => new Color(0.82f, 0.57f, 0.28f),
         PhysicalLandformCodes.Seabed => new Color(0.12f, 0.23f, 0.34f),
+        _ => UiTokens.Whisper,
+    };
+
+    private static Color HistoricalLandformColor(int landformCode) => landformCode switch
+    {
+        PhysicalLandformCodes.OutwashPlain => new Color(0.48f, 0.55f, 0.47f),
+        PhysicalLandformCodes.ImpactBasin => new Color(0.34f, 0.28f, 0.30f),
+        PhysicalLandformCodes.ImpactRim => new Color(0.70f, 0.42f, 0.31f),
         _ => UiTokens.Whisper,
     };
 
@@ -1042,7 +1067,7 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
 
     private static Color ElevationShade(Color color, int elevation)
     {
-        var factor = 0.72f + (0.34f * Math.Clamp((elevation + 1000f) / 2000f, 0f, 1f));
+        var factor = 0.84f + (0.20f * Math.Clamp((elevation + 1000f) / 2000f, 0f, 1f));
         return new Color(color.R * factor, color.G * factor, color.B * factor, color.A);
     }
 }

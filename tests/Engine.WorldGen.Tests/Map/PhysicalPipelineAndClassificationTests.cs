@@ -30,7 +30,7 @@ public sealed class PhysicalPipelineAndClassificationTests
     }
 
     [Fact]
-    public void LandformClassification_PreservesGlacialFormsAndRejectsUnknownCode()
+    public void LandformClassification_PreservesPhysicalHistoryAndRejectsUnknownCode()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<LandformClassificationLayer>();
         Assert.Contains(result.Map.LandformCodes.ToArray(), code => code == PhysicalLandformCodes.Plain);
@@ -41,6 +41,18 @@ public sealed class PhysicalPipelineAndClassificationTests
                 PhysicalLandformCodes.Cirque or
                 PhysicalLandformCodes.Moraine or
                 PhysicalLandformCodes.Fjord);
+
+        var impactRim = Enumerable.Range(0, result.Map.Grid.TriangleCount).First(index =>
+            result.Map.WaterKindCodes[index] == PhysicalWaterKindCodes.None &&
+            result.Map.LandformCodes[index] is not
+                (PhysicalLandformCodes.UValley or
+                    PhysicalLandformCodes.Cirque or
+                    PhysicalLandformCodes.Moraine));
+        result.Map.ImpactExcavation[impactRim] = 0;
+        result.Map.ImpactRimUplift[impactRim] =
+            result.Context.Profile.ImpactLandformMinimumRimUplift;
+        result.Layer.Apply(result.Map, result.Context);
+        Assert.Equal(PhysicalLandformCodes.ImpactRim, result.Map.LandformCodes[impactRim]);
 
         result.Map.LandformCodes[0] = PhysicalLandformCodes.Max + 1;
         Assert.Throws<InvalidOperationException>(() =>
@@ -77,6 +89,18 @@ public sealed class PhysicalPipelineAndClassificationTests
         };
         Assert.Throws<InvalidOperationException>(() =>
             ApplyValidation(result.Map, impossibleLandmassShare));
+
+        var impossibleColdVariety = permissive with
+        {
+            QualityTargets = permissive.QualityTargets with
+            {
+                ColdLandformTypeCount = new CountTarget(
+                    PhysicalLandformCodes.Max + 1,
+                    int.MaxValue),
+            },
+        };
+        Assert.Throws<InvalidOperationException>(() =>
+            ApplyValidation(result.Map, impossibleColdVariety));
     }
 
     [Fact]
@@ -116,6 +140,12 @@ public sealed class PhysicalPipelineAndClassificationTests
                 WideRiverCoverage = new CoverageTarget(0.5d, 0.5d),
                 HigherOrderRiverTriangleCount = new CountTarget(0, int.MaxValue),
                 DeltaMouthCount = new CountTarget(0, int.MaxValue),
+                ColdLandformTypeCount = new CountTarget(0, int.MaxValue),
+                MinimumLandformTypesPerMajorLandmass = 1,
+                VariedMajorLandmassCount = new CountTarget(0, int.MaxValue),
+                CoastalMajorLandmassCount = new CountTarget(0, int.MaxValue),
+                BranchingDrainageBasinCount = new CountTarget(0, int.MaxValue),
+                DominantRiverDirectionShare = new CoverageTarget(0.5d, 0.5d),
             },
         };
 

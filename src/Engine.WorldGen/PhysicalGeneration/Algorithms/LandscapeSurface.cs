@@ -59,6 +59,7 @@ internal static class LandscapeSurface
         map.SedimentThickness[triangleIndex] >= 0 &&
         map.CumulativeFluvialErosion[triangleIndex] >= 0 &&
         map.CumulativeGlacialErosion[triangleIndex] >= 0 &&
+        map.CumulativeGlacialDeposition[triangleIndex] >= 0 &&
         map.CumulativeCoastalErosion[triangleIndex] >= 0 &&
         map.CumulativeDeposition[triangleIndex] >= 0 &&
         map.Elevation[triangleIndex] ==

@@ -164,11 +164,11 @@ Primary files:
 
 ### 6. Inherited landforms, UI relief, and quality
 
-- [ ] Classify old river valleys, outwash, impact basins/rims, and inherited
+- [x] Classify old river valleys, outwash, impact basins/rims, and inherited
   orogenies from persistent physical history.
-- [ ] Add restrained elevation shading to normal macro and micro surface views
+- [x] Add restrained elevation shading to normal macro and micro surface views
   without obscuring surface identity or structural water overlays.
-- [ ] Tighten configurable goals for distributed coast complexity, per-landmass
+- [x] Tighten configurable goals for distributed coast complexity, per-landmass
   variety, cold-region variety, basin branching, river continuity, and flow
   direction balance.
 - [ ] Evaluate the existing pregenerated worlds before generating replacements;

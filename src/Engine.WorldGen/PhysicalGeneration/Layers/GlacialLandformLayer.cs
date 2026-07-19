@@ -23,7 +23,7 @@ internal sealed class GlacialLandformLayer : IPhysicalGeographyLayer
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             if (map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None ||
-                map.IceFlux[triangleIndex] < context.Profile.GlacierFluxThreshold)
+                map.MaximumIceFlux[triangleIndex] < context.Profile.GlacierFluxThreshold)
             {
                 continue;
             }
@@ -53,7 +53,7 @@ internal sealed class GlacialLandformLayer : IPhysicalGeographyLayer
                     PhysicalLandformCodes.UValley or
                     PhysicalLandformCodes.Cirque or
                     PhysicalLandformCodes.Moraine &&
-                map.IceFlux[triangleIndex] < context.Profile.GlacierFluxThreshold)
+                map.MaximumIceFlux[triangleIndex] < context.Profile.GlacierFluxThreshold)
             {
                 throw new InvalidOperationException("Glacial landform lacks qualifying ice flux.");
             }
@@ -73,7 +73,7 @@ internal sealed class GlacialLandformLayer : IPhysicalGeographyLayer
         int triangleIndex,
         PhysicalGeographyGenerationProfile profile)
     {
-        if (map.IceThickness[triangleIndex] < profile.GlacierThicknessThreshold)
+        if (map.MaximumIceThickness[triangleIndex] < profile.GlacierThicknessThreshold)
         {
             return false;
         }
@@ -81,7 +81,8 @@ internal sealed class GlacialLandformLayer : IPhysicalGeographyLayer
         for (var edge = 0; edge < 3; edge++)
         {
             var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
-            if (neighbor >= 0 && map.IceFlux[neighbor] > map.IceFlux[triangleIndex])
+            if (neighbor >= 0 &&
+                map.MaximumIceThickness[neighbor] > map.MaximumIceThickness[triangleIndex])
             {
                 return false;
             }
