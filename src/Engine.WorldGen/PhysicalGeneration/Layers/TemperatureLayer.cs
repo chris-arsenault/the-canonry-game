@@ -39,8 +39,9 @@ internal sealed class TemperatureLayer : IPhysicalGeographyLayer
                 map.OceanCurrentStrength[triangleIndex] / 1000 *
                 context.Profile.OceanCurrentTemperatureStrength / 1000;
             map.Temperature[triangleIndex] = Math.Clamp(
-                context.Profile.TemperatureBaseline - lapse + moderation +
-                geothermal + currentHeat + map.Warmth[triangleIndex],
+                context.Profile.TemperatureBaseline + context.TemperatureOffset - lapse + moderation +
+                geothermal + currentHeat + map.Warmth[triangleIndex] +
+                map.ExternalHeatForcing[triangleIndex],
                 0,
                 1000);
         }

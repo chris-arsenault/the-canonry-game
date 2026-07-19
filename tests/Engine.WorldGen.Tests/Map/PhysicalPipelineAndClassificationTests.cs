@@ -109,6 +109,13 @@ public sealed class PhysicalPipelineAndClassificationTests
                 CoastEdgeDensity = new CoverageTarget(0.5d, 0.5d),
                 MajorLandmassSpacing = new CoverageTarget(0.5d, 0.5d),
                 HotspotLandmassCount = new CountTarget(0, int.MaxValue),
+                RiverChannelCoverage = new CoverageTarget(0.5d, 0.5d),
+                FloodplainCoverage = new CoverageTarget(0.5d, 0.5d),
+                DeltaCoverage = new CoverageTarget(0.5d, 0.5d),
+                TributarySpineCoverage = new CoverageTarget(0.5d, 0.5d),
+                WideRiverCoverage = new CoverageTarget(0.5d, 0.5d),
+                HigherOrderRiverTriangleCount = new CountTarget(0, int.MaxValue),
+                DeltaMouthCount = new CountTarget(0, int.MaxValue),
             },
         };
 

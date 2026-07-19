@@ -53,7 +53,10 @@ internal sealed class IceRemembersMicrogeographyPipeline
     internal IceRemembersMicrogeographyMap ApplyLayer(
         IIceRemembersMicrogeographyLayer layer,
         IceRemembersMicrogeographyMap map,
-        int rootSeed)
+        int rootSeed,
+        IceRemembersWorldGenerationEpoch? epoch = null,
+        int epochIndex = -1,
+        int epochCount = 0)
     {
         ArgumentNullException.ThrowIfNull(layer);
         ArgumentNullException.ThrowIfNull(map);
@@ -64,7 +67,13 @@ internal sealed class IceRemembersMicrogeographyPipeline
                 $"Ice Remembers microgeography layer '{layer.Contract.StableName}' is missing {missing}.");
         }
 
-        var context = new IceRemembersMicrogeographyGenerationContext(rootSeed, _profile, layer.Contract);
+        var context = new IceRemembersMicrogeographyGenerationContext(
+            rootSeed,
+            _profile,
+            layer.Contract,
+            epoch,
+            epochIndex,
+            epochCount);
         layer.Apply(map, context);
         layer.Validate(map, context);
         map.AvailableFacts &= ~layer.Contract.Invalidates;

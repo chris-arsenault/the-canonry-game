@@ -9,7 +9,6 @@ internal sealed class GeothermalLayer : IPhysicalGeographyLayer
         0x152b37,
         PhysicalGeographyFacts.TectonicProvinces |
         PhysicalGeographyFacts.Elevation |
-        PhysicalGeographyFacts.Ocean |
         PhysicalGeographyFacts.Fractures,
         PhysicalGeographyFacts.Geothermal,
         PhysicalGeographyFacts.OceanCurrents |

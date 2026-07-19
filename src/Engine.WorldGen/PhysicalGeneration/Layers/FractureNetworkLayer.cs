@@ -13,7 +13,21 @@ internal sealed class FractureNetworkLayer : IPhysicalGeographyLayer
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
-        map.FractureConductance.Fill(context.Profile.FractureConductanceFloor);
+        if (!context.IsEvolutionEpoch)
+        {
+            map.FractureConductance.Fill(context.Profile.FractureConductanceFloor);
+        }
+
+        var branchCount = context.TectonicStrength == 0
+            ? 0
+            : Math.Max(
+                1,
+                context.Profile.FractureBranchCount * context.TectonicStrength / 1000);
+        if (branchCount == 0)
+        {
+            return;
+        }
+
         var candidates = Enumerable.Range(0, map.Grid.TriangleCount)
             .Where(map.Grid.TriangleIsInsideConfiguredDisk)
             .OrderByDescending(index =>
@@ -24,7 +38,7 @@ internal sealed class FractureNetworkLayer : IPhysicalGeographyLayer
             .ToArray();
         var networkNodes = new List<int>();
         var previousRoots = new List<int>();
-        for (var branch = 0; branch < context.Profile.FractureBranchCount; branch++)
+        for (var branch = 0; branch < branchCount; branch++)
         {
             var root = branch > 0 && branch % 3 == 0 && networkNodes.Count > 0
                 ? networkNodes[(int)(PhysicalNoise.HashUnit(context.Seed ^ 0x29f1, branch, 0) * networkNodes.Count) % networkNodes.Count]

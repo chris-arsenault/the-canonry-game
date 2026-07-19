@@ -18,18 +18,21 @@ cells are forged only by entity actions (Aurora spire tiers up, Nightshelf
 tunnel galleries down). Regions and settlements are not a separate
 abstraction from map coverage: they are named coverage over physical space. The
 physical generation blueprint also divides every surface hex into 24 canonical
-microtriangles. Outside the kernel, one padded causal pipeline partitions
+microtriangles. Outside the kernel, one padded causal graph partitions
 moving continental and oceanic crust, derives typed boundaries and strain,
 raises mountains and island arcs from those boundaries, erodes valleys, labels connected land and ocean, solves
 bathymetry and drainage, derives reduced basin currents and wave exposure,
 separates moisture into rain and snow, and evolves a persistent bedrock and
-sediment surface through fluvial, coastal, and glacial erosion and deposition.
+sediment surface through fluvial, coastal, and glacial erosion and deposition
+across four configurable geological epochs.
 Incremental ice mass and flux leave cumulative glacial history from which
 landforms are classified. The authoritative drainage spine then expands into
 discharge-scaled channel triangles, adjacent low-gradient floodplains, and
 sediment-rich delta fans without changing the hex-scale runtime. Ice Remembers
-then runs asymmetric fire, aurora, and
-pressure passes over that same triangle graph. Natural surfaces include frozen
+interleaves asymmetric fire, aurora, and pressure passes with those epochs,
+retains cumulative magic exposure separately from the current fields, and
+converts pressure-driven coastal stress to domain-neutral physical forcing.
+Natural surfaces include frozen
 ocean forms such as pack ice, sea ice, ice shelves, and polynyas; anomaly
 surfaces remain sparse overrides while their flags and intensity fields are
 retained independently. Ordinary cold land is not collapsed into generic ice:

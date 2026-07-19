@@ -202,6 +202,72 @@ public static class IceRemembersPhysicalGeography
         ColdSteppeMinimumTemperature = 210,
     };
 
+    public static IReadOnlyList<IceRemembersWorldGenerationEpoch> WorldGenerationEpochs { get; } =
+    [
+        new()
+        {
+            Physical = new PhysicalGeographyEpochDefinition
+            {
+                StableName = "crust-assembly",
+                TectonicStrength = 1000,
+                HydrologyStrength = 180,
+                GlaciationStrength = 100,
+                CoastalStrength = 120,
+                TemperatureOffset = 80,
+                SeaLevelOffset = 35,
+            },
+            FireStrength = 650,
+            AuroraStrength = 160,
+            PressureStrength = 320,
+        },
+        new()
+        {
+            Physical = new PhysicalGeographyEpochDefinition
+            {
+                StableName = "orogeny-and-wet-erosion",
+                TectonicStrength = 850,
+                HydrologyStrength = 1000,
+                GlaciationStrength = 280,
+                CoastalStrength = 580,
+                TemperatureOffset = 55,
+                SeaLevelOffset = 20,
+            },
+            FireStrength = 900,
+            AuroraStrength = 380,
+            PressureStrength = 560,
+        },
+        new()
+        {
+            Physical = new PhysicalGeographyEpochDefinition
+            {
+                StableName = "glacial-maximum",
+                TectonicStrength = 360,
+                HydrologyStrength = 620,
+                GlaciationStrength = 1000,
+                CoastalStrength = 760,
+                TemperatureOffset = -110,
+                SeaLevelOffset = -45,
+            },
+            FireStrength = 720,
+            AuroraStrength = 1000,
+            PressureStrength = 760,
+        },
+        new()
+        {
+            Physical = new PhysicalGeographyEpochDefinition
+            {
+                StableName = "retreat-and-present",
+                TectonicStrength = 220,
+                HydrologyStrength = 860,
+                GlaciationStrength = 620,
+                CoastalStrength = 1000,
+            },
+            FireStrength = 1000,
+            AuroraStrength = 760,
+            PressureStrength = 1000,
+        },
+    ];
+
     public static IceRemembersPhysicalMaterial ClassifyMaterial(
         PhysicalGeographyField field,
         int triangleIndex)

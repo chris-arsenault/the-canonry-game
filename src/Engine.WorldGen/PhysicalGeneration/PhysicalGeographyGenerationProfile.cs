@@ -73,13 +73,13 @@ public sealed record PhysicalGeographyQualityTargets
 
     public CountTarget HotspotLandmassCount { get; init; } = new(1, 8);
 
-    public CoverageTarget RiverChannelCoverage { get; init; } = new(0.025d, 0.025d);
+    public CoverageTarget RiverChannelCoverage { get; init; } = new(0.05d, 0.05d);
 
     public CoverageTarget FloodplainCoverage { get; init; } = new(0.02d, 0.02d);
 
     public CoverageTarget DeltaCoverage { get; init; } = new(0.003d, 0.003d);
 
-    public CoverageTarget TributarySpineCoverage { get; init; } = new(0.03d, 0.03d);
+    public CoverageTarget TributarySpineCoverage { get; init; } = new(0.075d, 0.075d);
 
     public CoverageTarget WideRiverCoverage { get; init; } = new(0.01d, 0.01d);
 
@@ -165,6 +165,8 @@ public sealed record PhysicalGeographyGenerationProfile
     public double ElevationVariationScale { get; init; } = 25d;
 
     public double ElevationVariationStrength { get; init; } = 0.12d;
+
+    public int EpochTectonicElevationStep { get; init; } = 150;
 
     public int FluvialErosionIterations { get; init; } = 5;
 
@@ -391,7 +393,7 @@ public sealed record PhysicalGeographyGenerationProfile
         DeltaMinimumSedimentDelivery < 0 || DeltaMaximumExpansionSteps < 0;
 
     private bool EvolutionCountsAreInvalid() =>
-        IceAccumulationStep <= 0 || IceAblationStep <= 0 ||
+        EpochTectonicElevationStep <= 0 || IceAccumulationStep <= 0 || IceAblationStep <= 0 ||
         MaximumGlacialErosionPerPass <= 0 || MaximumGlacialDepositionPerPass <= 0 ||
         MaximumCoastalErosionPerPass <= 0 || MaximumSedimentDepositionPerPass <= 0;
 

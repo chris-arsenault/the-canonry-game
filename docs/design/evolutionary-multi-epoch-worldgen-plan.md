@@ -223,17 +223,17 @@ Per-epoch process order:
 
 Implementation:
 
-- [ ] Add configurable epoch definitions and epoch-aware generation context.
-- [ ] Add a physical evolution session that reuses the existing layer executor,
+- [x] Add configurable epoch definitions and epoch-aware generation context.
+- [x] Add a physical evolution session that reuses the existing layer executor,
   contracts, facts, and invalidation.
-- [ ] Add an Ice Remembers evolution orchestrator without moving projects.
-- [ ] Reuse fire, aurora, and pressure propagation during epochs; accumulate
+- [x] Add an Ice Remembers evolution orchestrator without moving projects.
+- [x] Reuse fire, aurora, and pressure propagation during epochs; accumulate
   history separately from current intensity and final feature classification.
-- [ ] Add a discrete domain pressure-to-coast feedback stage.
-- [ ] Run magic feature, interaction, and final-surface classification only
+- [x] Add a discrete domain pressure-to-coast feedback stage.
+- [x] Run magic feature, interaction, and final-surface classification only
   after the final epoch.
-- [ ] Prove epoch count and strengths are configured rather than hard-coded.
-- [ ] Verify deterministic cumulative history, commit, and push.
+- [x] Prove epoch count and strengths are configured rather than hard-coded.
+- [x] Verify deterministic cumulative history, commit, and push.
 
 ### 6. Final classification, UI, quality, and performance
 

@@ -8,7 +8,9 @@ internal sealed class FireClimateFeedbackLayer : IIceRemembersMicrogeographyLaye
         IceRemembersMicrogeographyFacts.FireField,
         IceRemembersMicrogeographyFacts.FireClimate,
         IceRemembersMicrogeographyFacts.AuroraField |
+        IceRemembersMicrogeographyFacts.PressureField |
         IceRemembersMicrogeographyFacts.AuroraFeatures |
+        IceRemembersMicrogeographyFacts.PressureCoastalFeedback |
         IceRemembersMicrogeographyFacts.Interactions |
         IceRemembersMicrogeographyFacts.FinalSurfaces |
         IceRemembersMicrogeographyFacts.Validated);
@@ -19,17 +21,19 @@ internal sealed class FireClimateFeedbackLayer : IIceRemembersMicrogeographyLaye
     {
         for (var triangleIndex = 0; triangleIndex < map.Physical.Grid.TriangleCount; triangleIndex++)
         {
+            var previousHeat = map.Physical.ExternalHeatForcing[triangleIndex];
             var fire = map.FireIntensity[triangleIndex];
+            var currentHeat = fire * context.Profile.FireTemperatureFeedbackPercent / 100;
+            map.Physical.ExternalHeatForcing[triangleIndex] = currentHeat;
+            map.Physical.Temperature[triangleIndex] = Math.Clamp(
+                map.Physical.Temperature[triangleIndex] - previousHeat + currentHeat,
+                0,
+                1000);
             if (fire <= 0)
             {
                 continue;
             }
 
-            map.Physical.Temperature[triangleIndex] = Math.Clamp(
-                map.Physical.Temperature[triangleIndex] +
-                    (fire * context.Profile.FireTemperatureFeedbackPercent / 100),
-                0,
-                1000);
             map.Physical.IceThickness[triangleIndex] = Math.Max(
                 0,
                 map.Physical.IceThickness[triangleIndex] -

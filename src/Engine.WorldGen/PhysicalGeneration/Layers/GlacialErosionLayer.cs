@@ -34,7 +34,8 @@ internal sealed class GlacialErosionLayer : IPhysicalGeographyLayer
     {
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
-            if (map.IceFlux[triangleIndex] < context.Profile.GlacierFluxThreshold ||
+            if (context.GlaciationStrength == 0 ||
+                map.IceFlux[triangleIndex] < context.Profile.GlacierFluxThreshold ||
                 map.IceThickness[triangleIndex] <= 0)
             {
                 continue;
@@ -47,7 +48,7 @@ internal sealed class GlacialErosionLayer : IPhysicalGeographyLayer
             var resistance = map.CrustTypeCodes[triangleIndex] ==
                 PhysicalCrustTypeCodes.Continental ? 4 : 3;
             var cut = Math.Clamp(
-                power * 3 / resistance,
+                power * 3 / resistance * context.GlaciationStrength / 1000,
                 1,
                 context.Profile.MaximumGlacialErosionPerPass);
             _ = LandscapeSurface.Erode(map, triangleIndex, cut);

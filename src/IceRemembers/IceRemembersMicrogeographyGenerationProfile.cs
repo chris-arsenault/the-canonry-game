@@ -111,6 +111,12 @@ public sealed record IceRemembersMicrogeographyGenerationProfile
 
     public int AncientWakeSourceCount { get; init; } = 20;
 
+    public int PressureCoastalThreshold { get; init; } = 540;
+
+    public int PressureCoastalWaveAmplification { get; init; } = 360;
+
+    public int PressureCoastalCurrentAmplification { get; init; } = 180;
+
     public IceRemembersMicrogeographyQualityTargets QualityTargets { get; init; } = new();
 
     public void Validate()
@@ -132,13 +138,19 @@ public sealed record IceRemembersMicrogeographyGenerationProfile
 
     private void ValidateMagicParameters()
     {
-        if (MaximumFireCores <= 0 || FireCoreDensityThreshold is < 0 or > 1000 ||
-            FirePropagationBaseCost <= 0 || FireConductanceCostDivisor <= 0 ||
-            FireIceMeltDivisor <= 0 ||
-            StandingPressureRayCount <= 0 || CoastalPressureSourceCount <= 0 ||
-            AncientWakeSourceCount <= 0)
+        if (FireParametersAreInvalid() || PressureParametersAreInvalid())
         {
             throw new InvalidOperationException("Ice Remembers magic-generation parameters are invalid.");
         }
     }
+
+    private bool FireParametersAreInvalid() =>
+        MaximumFireCores <= 0 || FireCoreDensityThreshold is < 0 or > 1000 ||
+        FirePropagationBaseCost <= 0 || FireConductanceCostDivisor <= 0 || FireIceMeltDivisor <= 0;
+
+    private bool PressureParametersAreInvalid() =>
+        StandingPressureRayCount <= 0 || CoastalPressureSourceCount <= 0 ||
+        AncientWakeSourceCount <= 0 || PressureCoastalThreshold is < 0 or > 1000 ||
+        PressureCoastalWaveAmplification is < 0 or > 1000 ||
+        PressureCoastalCurrentAmplification is < 0 or > 1000;
 }

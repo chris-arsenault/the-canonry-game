@@ -15,14 +15,14 @@ internal static partial class IceRemembersSeedBuilder
 
     private static PhysicalGeographyBuild CreatePhysicalGeography(int salt)
     {
-        var field = PhysicalGeographyGenerator.Generate(
+        var generated = IceRemembersWorldGenerationOrchestrator.Generate(
             GenerationRadius,
             salt,
-            IceRemembersPhysicalGeography.GenerationProfile);
-        var magic = IceRemembersMicrogeographyGenerator.Generate(
-            field,
-            salt,
-            IceRemembersPhysicalGeography.MicrogeographyProfile);
+            IceRemembersPhysicalGeography.GenerationProfile,
+            IceRemembersPhysicalGeography.MicrogeographyProfile,
+            IceRemembersPhysicalGeography.WorldGenerationEpochs);
+        var field = generated.Physical;
+        var magic = generated.Magic;
         var materialIndexes = ClassifyPhysicalMaterials(field, magic);
         var aggregates = AggregateConfiguredHexes(field, materialIndexes, magic);
         var subdivisions = CreatePhysicalSubdivisions(field, aggregates, salt);

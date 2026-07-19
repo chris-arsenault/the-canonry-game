@@ -15,4 +15,6 @@ internal enum IceRemembersMicrogeographyFacts : ushort
     Interactions = 1 << 8,
     FinalSurfaces = 1 << 9,
     Validated = 1 << 10,
+    MagicHistory = 1 << 11,
+    PressureCoastalFeedback = 1 << 12,
 }

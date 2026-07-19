@@ -43,14 +43,16 @@ Engine.Observability
 Engine.WorldGen
   domain-neutral hex/triangle topology, causal uplift and erosion, connected
   land/water analysis, hydrology, climate, glaciation, fractures, aggregation,
-  terrain catalogs, and map coverage
+  terrain catalogs, map coverage, and the phased physical-evolution session
 
 IceRemembers
   authored domain content plus physical material/surface taxonomy, generation
-  profile, and tunable world-quality targets
+  profile, configurable geological/magic epoch schedule, and tunable
+  world-quality targets
 
 IceRemembers.Seed
-  dependency-ordered natural-surface and fire/aurora/pressure worldgen,
+  multi-epoch orchestration, dependency-ordered natural-surface and
+  fire/aurora/pressure worldgen,
   authored hex-terrain synthesis, geography-shaped subdivisions, startup
   placement, and profile-driven seed validation
 ```
@@ -210,15 +212,18 @@ installs deterministic terrain and geography for that whole latent field, but
 `MapFrontier` materializes cells only where culture presses an edge. Physical
 worldgen first builds one padded triangle graph. Reduced moving crust provinces
 produce continental assemblies, ocean basins, typed boundaries, strain,
-mountain systems, rifts, and sparse island arcs; erosion, connected-ocean bathymetry, conditioned
+mountain systems, rifts, and sparse island arcs. Four authored but configurable
+epochs then reuse the same dependency-declaring layers for incremental uplift,
+erosion, connected-ocean bathymetry, conditioned
 drainage, basin-shaped ocean currents, precipitation, climate, ice flow,
 incremental bedrock erosion, conserved sediment transport and deposition,
 glacial carving, coastal evolution, fractures, channel widening, floodplains,
-and delta fans consume the prior
-passes through independent dependency-declaring layers. Ice Remembers then runs
-a second external layer pipeline that classifies varied cold land and water,
-routes fire through fractures, aurora through cold ice reservoirs, and pressure
-waves through ocean geometry.
+and delta fans. Ice Remembers interleaves fire heat, aurora storage, and ocean
+pressure with those physical phases, translating pressure into a generic
+coastal-forcing field rather than importing domain concepts into physical
+worldgen. Current magic fields and cumulative epoch histories remain separate;
+feature interactions and final varied cold land/water surfaces classify only
+after the final physical reconciliation.
 It retains natural surfaces, anomaly flags, and all three intensity fields while
 scored authored rules reduce each 24-triangle aggregate to the base terrain the
 hex-scale kernel consumes. Ocean, current, wave, rain, snow, land-ice, sea-ice,

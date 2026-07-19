@@ -45,6 +45,7 @@ internal sealed class CoastalErosionLayer : IPhysicalGeographyLayer
             }
 
             var cut = ErosionAmount(map, context.Profile, triangleIndex, wave);
+            cut = cut * context.CoastalStrength / 1000;
             if (cut <= 0)
             {
                 continue;
@@ -65,7 +66,8 @@ internal sealed class CoastalErosionLayer : IPhysicalGeographyLayer
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             if (map.CumulativeCoastalErosion[triangleIndex] > 0 &&
-                map.WaveExposureHistory[triangleIndex] <= 0)
+                map.WaveExposureHistory[triangleIndex] <= 0 &&
+                map.ExternalCoastalForcingHistory[triangleIndex] <= 0)
             {
                 throw new InvalidOperationException("Coastal erosion lacks wave-exposure history.");
             }

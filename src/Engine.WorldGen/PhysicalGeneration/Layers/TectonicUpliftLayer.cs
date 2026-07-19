@@ -8,7 +8,29 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
         "tectonic-uplift",
         0x4f2b17,
         PhysicalGeographyFacts.TectonicProvinces | PhysicalGeographyFacts.ContinentalDomains,
-        PhysicalGeographyFacts.Elevation);
+        PhysicalGeographyFacts.Elevation,
+        PhysicalGeographyFacts.Ocean |
+        PhysicalGeographyFacts.Bathymetry |
+        PhysicalGeographyFacts.Landmasses |
+        PhysicalGeographyFacts.Fractures |
+        PhysicalGeographyFacts.Geothermal |
+        PhysicalGeographyFacts.OceanCurrents |
+        PhysicalGeographyFacts.Warmth |
+        PhysicalGeographyFacts.Temperature |
+        PhysicalGeographyFacts.Moisture |
+        PhysicalGeographyFacts.Precipitation |
+        PhysicalGeographyFacts.Runoff |
+        PhysicalGeographyFacts.Lakes |
+        PhysicalGeographyFacts.FlowRouting |
+        PhysicalGeographyFacts.Rivers |
+        PhysicalGeographyFacts.LandIce |
+        PhysicalGeographyFacts.IceFlow |
+        PhysicalGeographyFacts.SeaIce |
+        PhysicalGeographyFacts.Landforms |
+        PhysicalGeographyFacts.RiverGeometry |
+        PhysicalGeographyFacts.Floodplains |
+        PhysicalGeographyFacts.Deltas |
+        PhysicalGeographyFacts.Validated);
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
@@ -28,7 +50,15 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
                 context.Profile.ElevationVariationScale,
                 3) * context.Profile.ElevationVariationStrength;
             var elevation = baseElevation + boundaryRelief + variation - assemblySeparation;
-            map.Elevation[triangleIndex] = ScaleElevation(elevation, context.Profile.ElevationScale);
+            if (context.IsEvolutionEpoch)
+            {
+                ApplyIncrementalUplift(map, context, triangleIndex, boundaryRelief);
+            }
+            else
+            {
+                map.Elevation[triangleIndex] = ScaleElevation(elevation, context.Profile.ElevationScale);
+            }
+
             map.Uplift[triangleIndex] = (float)Math.Clamp(
                 Math.Max(0d, boundaryRelief) + (potential * 0.48d),
                 0d,
@@ -38,6 +68,28 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
                 0d,
                 1d);
         }
+    }
+
+    private static void ApplyIncrementalUplift(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationContext context,
+        int triangleIndex,
+        double boundaryRelief)
+    {
+        var delta = (int)Math.Round(
+            boundaryRelief * context.Profile.EpochTectonicElevationStep *
+                context.TectonicStrength / 1000d,
+            MidpointRounding.AwayFromZero);
+        var maximumBedrock = 2000 - map.SedimentThickness[triangleIndex];
+        var nextBedrock = Math.Clamp(
+            (long)map.BedrockElevation[triangleIndex] + delta,
+            -2000L,
+            maximumBedrock);
+        var applied = (int)nextBedrock - map.BedrockElevation[triangleIndex];
+        map.BedrockElevation[triangleIndex] = (int)nextBedrock;
+        LandscapeSurface.Rebuild(map, triangleIndex);
+        map.TectonicActivityHistory[triangleIndex] = checked(
+            map.TectonicActivityHistory[triangleIndex] + Math.Abs(applied));
     }
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)

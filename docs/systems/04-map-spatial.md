@@ -52,7 +52,10 @@ establish continental assemblies and oceanic crust. Relative motion types their
 boundaries as convergent, divergent, or transform; continuous strain then drives
 mountain systems, rifts, fractures, and mostly submarine island arcs. Rare
 intraplate mantle plumes supplement rather than replace those tectonic heat
-sources. Fluvial stream power incrementally removes sediment and bedrock,
+sources. Four authored but configurable epochs—crust assembly, wet orogeny,
+glacial maximum, and retreat/present—reuse these same physical layers with
+different tectonic, hydrologic, glacial, coastal, temperature, and sea-level
+forcing. Fluvial stream power incrementally removes sediment and bedrock,
 routes the produced sediment downstream, deposits it in low-energy basins and
 mouths, and accounts for material exported from the modeled field.
 Connected-component and boundary-flood passes identify landmasses,
@@ -84,11 +87,16 @@ finishes the physical inputs. The padded
 result is cropped to the configured latent disk, so the configured edge is not
 automatically a coast or watershed.
 
-Ice Remembers adds three worldgen-only magic passes after those physical facts.
-Fire follows fracture conductance and writes local heat; aurora routes into cold
-ice reservoirs; pressure rays propagate and reflect through ocean geometry from
-one unnamed dead-god locus plus ancient impacts and wakes. Interaction
-predicates retain rare compound anomalies without erasing the underlying
+Ice Remembers interleaves three worldgen-only magic processes with the physical
+epochs. Fire follows fracture conductance and writes generic heat forcing;
+aurora routes into cold ice reservoirs; pressure rays propagate and reflect
+through ocean geometry from one unnamed dead-god locus plus ancient impacts and
+wakes. Pressure-derived coastal stress becomes a generic physical forcing field,
+so the domain layer selects where magic acts while physical worldgen retains
+erosion, deposition, and sediment accounting. Cumulative fire, aurora, pressure,
+and coastal-pressure histories remain separate from the final current fields.
+Interaction and final-surface classification run only after final physical
+reconciliation, retaining rare compound anomalies without erasing the underlying
 natural surface. Frozen oceans classify into pack ice, sea ice, ice shelf, and
 polynya surfaces, making the setting icebound while leaving distinct warm-water
 habitats. Cold land separately classifies polar barrens, wet tundra, cold

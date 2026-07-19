@@ -1,0 +1,223 @@
+namespace Engine.WorldGen;
+
+/// <summary>
+/// Stateful dependency-inversion boundary for multi-epoch physical evolution.
+/// Domain worldgen may interleave authored forcing between the exposed phases;
+/// every physical phase still executes through ordinary layer contracts.
+/// </summary>
+public sealed class PhysicalGeographyEvolutionSession
+{
+    private readonly int _rootSeed;
+    private readonly PhysicalGeographyPipeline _pipeline;
+    private readonly OceanConnectivityLayer _ocean = new();
+    private readonly BathymetryLayer _bathymetry = new();
+    private readonly LandmassLayer _landmasses = new();
+    private readonly OceanCurrentLayer _currents = new();
+    private readonly WarmthSourceLayer _warmth = new();
+    private readonly TemperatureLayer _temperature = new();
+    private readonly MoistureLayer _moisture = new();
+    private readonly PrecipitationLayer _precipitation = new();
+    private readonly RunoffLayer _runoff = new();
+    private readonly LakeBasinLayer _lakes = new();
+    private readonly FlowRoutingLayer _flow = new();
+    private readonly RiverNetworkLayer _rivers = new();
+    private PhysicalGeographyEpochDefinition? _epoch;
+    private EvolutionPhase _phase = EvolutionPhase.Ready;
+    private int _epochCount;
+
+    private PhysicalGeographyEvolutionSession(
+        int radius,
+        int seed,
+        PhysicalGeographyGenerationProfile profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        profile.Validate();
+        _rootSeed = seed;
+        _pipeline = new PhysicalGeographyPipeline(profile, []);
+        Map = new PhysicalGeographyField(new PhysicalGeographyGrid(radius, profile.Padding));
+        Apply(new TectonicProvinceLayer());
+        Apply(new ContinentalDomainLayer());
+        Apply(new TectonicUpliftLayer());
+        Apply(new LandscapeInitializationLayer());
+        Apply(new FractureNetworkLayer());
+        Apply(new GeothermalLayer());
+    }
+
+    public PhysicalGeographyField Map { get; }
+
+    public int CompletedEpochCount => Map.CompletedEpochCount;
+
+    public static PhysicalGeographyEvolutionSession Begin(
+        int radius,
+        int seed,
+        PhysicalGeographyGenerationProfile profile) =>
+        new(radius, seed, profile);
+
+    public void BeginEpoch(PhysicalGeographyEpochDefinition epoch, int totalEpochCount)
+    {
+        ArgumentNullException.ThrowIfNull(epoch);
+        epoch.Validate();
+        if (_phase != EvolutionPhase.Ready || totalEpochCount <= 0 ||
+            Map.CompletedEpochCount >= totalEpochCount ||
+            (_epochCount != 0 && _epochCount != totalEpochCount))
+        {
+            throw new InvalidOperationException("Physical evolution epoch was started out of order.");
+        }
+
+        _epoch = epoch;
+        _epochCount = totalEpochCount;
+        Map.ExternalHeatForcing.Clear();
+        Map.ExternalCoastalForcing.Clear();
+        _phase = EvolutionPhase.Geology;
+    }
+
+    public void ApplyGeology()
+    {
+        RequirePhase(EvolutionPhase.Geology);
+        Apply(new TectonicUpliftLayer());
+        Apply(new FractureNetworkLayer());
+        Apply(new GeothermalLayer());
+        _phase = EvolutionPhase.Climate;
+    }
+
+    public void ApplyClimate()
+    {
+        RequirePhase(EvolutionPhase.Climate);
+        ReconcileClimate();
+        _phase = EvolutionPhase.Hydrology;
+    }
+
+    public void ApplyHydrology()
+    {
+        RequirePhase(EvolutionPhase.Hydrology);
+        ApplyDrainage();
+        Apply(new FluvialErosionLayer());
+        ReconcileClimateAndDrainage();
+        Apply(new SedimentTransportLayer());
+        ReconcileClimateAndDrainage();
+        _phase = EvolutionPhase.Glaciation;
+    }
+
+    public void ApplyGlaciation()
+    {
+        RequirePhase(EvolutionPhase.Glaciation);
+        Apply(new LandIceLayer());
+        Apply(new IceFlowLayer());
+        Apply(new GlacialErosionLayer());
+        Apply(new GlacialDepositionLayer());
+        _phase = EvolutionPhase.PostGlacialReconciliation;
+    }
+
+    public void ApplyPostGlacialReconciliation()
+    {
+        RequirePhase(EvolutionPhase.PostGlacialReconciliation);
+        ReconcileClimateAndDrainage();
+        Apply(new LandIceLayer());
+        Apply(new IceFlowLayer());
+        _phase = EvolutionPhase.DomainForcing;
+    }
+
+    public void MarkDomainForcingComplete()
+    {
+        RequirePhase(EvolutionPhase.DomainForcing);
+        _phase = EvolutionPhase.Coasts;
+    }
+
+    public void ApplyCoastalEvolution()
+    {
+        RequirePhase(EvolutionPhase.Coasts);
+        Apply(new ExternalCoastalForcingLayer());
+        ReconcileClimateAndDrainage();
+        Apply(new CoastalErosionLayer());
+        ReconcileClimateAndDrainage();
+        _phase = EvolutionPhase.History;
+    }
+
+    public void CompleteEpoch()
+    {
+        RequirePhase(EvolutionPhase.History);
+        Apply(new PhysicalEpochHistoryLayer());
+        _epoch = null;
+        _phase = EvolutionPhase.Ready;
+    }
+
+    public PhysicalGeographyField Complete()
+    {
+        if (_phase != EvolutionPhase.Ready || _epochCount <= 0 ||
+            Map.CompletedEpochCount != _epochCount)
+        {
+            throw new InvalidOperationException("Physical evolution cannot finalize before every epoch completes.");
+        }
+
+        ReconcileClimateAndDrainage(useEpoch: false);
+        Apply(new LandIceLayer(), useEpoch: false);
+        Apply(new IceFlowLayer(), useEpoch: false);
+        Apply(new GlacialLandformLayer(), useEpoch: false);
+        Apply(new SeaIceLayer(), useEpoch: false);
+        Apply(new LandformClassificationLayer(), useEpoch: false);
+        Apply(new RiverChannelGeometryLayer(), useEpoch: false);
+        Apply(new FloodplainLayer(), useEpoch: false);
+        Apply(new DeltaFormationLayer(), useEpoch: false);
+        Apply(new PhysicalGeographyValidationLayer(), useEpoch: false);
+        _phase = EvolutionPhase.Complete;
+        return Map;
+    }
+
+    private void ReconcileClimateAndDrainage(bool useEpoch = true)
+    {
+        ReconcileClimate(useEpoch);
+        ApplyDrainage(useEpoch);
+    }
+
+    private void ReconcileClimate(bool useEpoch = true)
+    {
+        Apply(_ocean, useEpoch);
+        Apply(_bathymetry, useEpoch);
+        Apply(_landmasses, useEpoch);
+        Apply(_currents, useEpoch);
+        Apply(_warmth, useEpoch);
+        Apply(_temperature, useEpoch);
+        Apply(_moisture, useEpoch);
+        Apply(_precipitation, useEpoch);
+    }
+
+    private void ApplyDrainage(bool useEpoch = true)
+    {
+        Apply(_runoff, useEpoch);
+        Apply(_lakes, useEpoch);
+        Apply(_flow, useEpoch);
+        Apply(_rivers, useEpoch);
+    }
+
+    private void Apply(IPhysicalGeographyLayer layer, bool useEpoch = true) =>
+        _pipeline.ApplyLayer(
+            layer,
+            Map,
+            _rootSeed,
+            useEpoch ? _epoch : null,
+            useEpoch ? Map.CompletedEpochCount : -1,
+            useEpoch ? _epochCount : 0);
+
+    private void RequirePhase(EvolutionPhase expected)
+    {
+        if (_phase != expected)
+        {
+            throw new InvalidOperationException(
+                $"Physical evolution expected phase {expected}, not {_phase}.");
+        }
+    }
+
+    private enum EvolutionPhase
+    {
+        Ready,
+        Geology,
+        Climate,
+        Hydrology,
+        Glaciation,
+        PostGlacialReconciliation,
+        DomainForcing,
+        Coasts,
+        History,
+        Complete,
+    }
+}

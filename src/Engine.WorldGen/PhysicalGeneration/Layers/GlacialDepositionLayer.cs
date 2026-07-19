@@ -49,7 +49,10 @@ internal sealed class GlacialDepositionLayer : IPhysicalGeographyLayer
                 ? LandscapeSurface.Deposit(
                     map,
                     triangleIndex,
-                    (int)Math.Min(context.Profile.MaximumGlacialDepositionPerPass, load))
+                    (int)Math.Min(
+                        context.Profile.MaximumGlacialDepositionPerPass *
+                            context.GlaciationStrength / 1000,
+                        load))
                 : 0;
             var remaining = load - deposited;
             if (target >= 0)

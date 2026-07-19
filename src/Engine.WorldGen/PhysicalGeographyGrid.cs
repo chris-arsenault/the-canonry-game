@@ -215,6 +215,7 @@ public sealed class PhysicalGeographyField
     private readonly int[] _flowEdges;
     private readonly int[] _flowTargets;
     private readonly int[] _geothermal;
+    private readonly int[] _geothermalHistory;
     private readonly int[] _heatSourceDensity;
     private readonly int[] _iceFlux;
     private readonly int[] _iceFlowTargets;
@@ -251,6 +252,9 @@ public sealed class PhysicalGeographyField
     private readonly int[] _warmth;
     private readonly int[] _waveExposure;
     private readonly int[] _waveExposureHistory;
+    private readonly int[] _externalHeatForcing;
+    private readonly int[] _externalCoastalForcing;
+    private readonly int[] _externalCoastalForcingHistory;
     private readonly int[] _continentalGroupIds;
     private readonly int[] _bathymetricZoneCodes;
     private readonly float[] _uplift;
@@ -283,23 +287,22 @@ public sealed class PhysicalGeographyField
             _cumulativeGlacialErosion, _cumulativeCoastalErosion, _cumulativeDeposition) =
             (NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid),
                 NewField(grid), NewField(grid));
-        (_maximumIceThickness, _maximumIceFlux, _tectonicActivityHistory, _waveExposureHistory) =
-            (NewField(grid), NewField(grid), NewField(grid), NewField(grid));
+        (_maximumIceThickness, _maximumIceFlux, _tectonicActivityHistory, _waveExposureHistory,
+            _geothermalHistory) =
+            (NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid));
+        (_externalHeatForcing, _externalCoastalForcing, _externalCoastalForcingHistory) =
+            (NewField(grid), NewField(grid), NewField(grid));
         (_geothermal, _slope, _landformCodes, _waterKindCodes, _waterDepths, _waterBodyIds) =
             (new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount],
                 new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount]);
-        _drainageBasinIds = new int[grid.TriangleCount];
-        _flowEdges = new int[grid.TriangleCount];
+        (_drainageBasinIds, _flowEdges, _flowAccumulation, _riverOrders) =
+            (NewField(grid), NewField(grid), NewField(grid), NewField(grid));
         Array.Fill(_flowEdges, PhysicalGeographyCodes.NoFlowEdge);
-        _flowAccumulation = new int[grid.TriangleCount];
-        _riverOrders = new int[grid.TriangleCount];
         (_riverChannelStrength, _riverChannelOrders, _floodplainIntensity, _deltaIntensity) =
             (NewField(grid), NewField(grid), NewField(grid), NewField(grid));
-        _featureFlags = new int[grid.TriangleCount];
-        _landmassIds = new int[grid.TriangleCount];
-        _landmassClassCodes = new int[grid.TriangleCount];
-        _continentalGroupIds = new int[grid.TriangleCount];
-        _bathymetricZoneCodes = new int[grid.TriangleCount];
+        (_featureFlags, _landmassIds, _landmassClassCodes, _continentalGroupIds,
+            _bathymetricZoneCodes) =
+            (NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid));
         _iceThickness = new int[grid.TriangleCount];
         _iceFlux = new int[grid.TriangleCount];
         _iceFlowTargets = new int[grid.TriangleCount];
@@ -393,6 +396,14 @@ public sealed class PhysicalGeographyField
 
     public Span<int> WaveExposureHistory => _waveExposureHistory;
 
+    public Span<int> GeothermalHistory => _geothermalHistory;
+
+    public Span<int> ExternalHeatForcing => _externalHeatForcing;
+
+    public Span<int> ExternalCoastalForcing => _externalCoastalForcing;
+
+    public Span<int> ExternalCoastalForcingHistory => _externalCoastalForcingHistory;
+
     public Span<int> Geothermal => _geothermal;
 
     public Span<int> Slope => _slope;
@@ -466,4 +477,6 @@ public sealed class PhysicalGeographyField
     internal long SedimentDepositedTotal { get; set; }
 
     internal long SedimentExportedTotal { get; set; }
+
+    public int CompletedEpochCount { get; internal set; }
 }

@@ -11,6 +11,7 @@ internal sealed class PressureFieldLayer : IIceRemembersMicrogeographyLayer
         IceRemembersMicrogeographyFacts.AuroraField,
         IceRemembersMicrogeographyFacts.PressureField,
         IceRemembersMicrogeographyFacts.PressureFeatures |
+        IceRemembersMicrogeographyFacts.PressureCoastalFeedback |
         IceRemembersMicrogeographyFacts.Interactions |
         IceRemembersMicrogeographyFacts.FinalSurfaces |
         IceRemembersMicrogeographyFacts.Validated);
@@ -29,6 +30,11 @@ internal sealed class PressureFieldLayer : IIceRemembersMicrogeographyLayer
         }
 
         map.Physical.FeatureFlags[map.DeadGodTriangleIndex] |= PhysicalGeographyFeatureCodes.DeadGodLocus;
+        if (context.PressureStrength == 0)
+        {
+            return;
+        }
+
         for (var ray = 0; ray < context.Profile.StandingPressureRayCount; ray++)
         {
             var angle = ray / (double)context.Profile.StandingPressureRayCount * Math.PI * 2d;
@@ -37,11 +43,19 @@ internal sealed class PressureFieldLayer : IIceRemembersMicrogeographyLayer
                 map.PressureIntensity,
                 map.DeadGodTriangleIndex,
                 angle,
-                1000,
+                context.PressureStrength,
                 440,
                 context.Seed ^ ray);
         }
 
+        PropagateCoastalImpacts(map, context);
+        PropagateAncientWakes(map, context);
+    }
+
+    private static void PropagateCoastalImpacts(
+        IceRemembersMicrogeographyMap map,
+        IceRemembersMicrogeographyGenerationContext context)
+    {
         var coastSources = SelectOceanSources(
             map.Physical,
             context.Seed,
@@ -59,12 +73,17 @@ internal sealed class PressureFieldLayer : IIceRemembersMicrogeographyLayer
                     map.PressureIntensity,
                     source,
                     angle,
-                    620,
+                    620 * context.PressureStrength / 1000,
                     130,
                     context.Seed ^ (sourceIndex * 397) ^ ray);
             }
         }
+    }
 
+    private static void PropagateAncientWakes(
+        IceRemembersMicrogeographyMap map,
+        IceRemembersMicrogeographyGenerationContext context)
+    {
         var wakeSources = SelectOceanSources(
             map.Physical,
             context.Seed ^ 0x3359,
@@ -75,7 +94,8 @@ internal sealed class PressureFieldLayer : IIceRemembersMicrogeographyLayer
             TraceAncientWake(
                 map,
                 wakeSources[wakeIndex],
-                context.Seed ^ (wakeIndex * 7919));
+                context.Seed ^ (wakeIndex * 7919),
+                context.PressureStrength);
         }
     }
 
@@ -299,7 +319,8 @@ internal sealed class PressureFieldLayer : IIceRemembersMicrogeographyLayer
     private static void TraceAncientWake(
         IceRemembersMicrogeographyMap map,
         int source,
-        int seed)
+        int seed,
+        int strength)
     {
         var angle = PhysicalNoise.HashUnit(seed, source, 0) * Math.PI * 2d;
         var current = source;
@@ -307,7 +328,9 @@ internal sealed class PressureFieldLayer : IIceRemembersMicrogeographyLayer
         for (var step = 0; step < 190; step++)
         {
             map.PressureWake[current] = true;
-            map.PressureIntensity[current] = Math.Min(1000, map.PressureIntensity[current] + 180);
+            map.PressureIntensity[current] = Math.Min(
+                1000,
+                map.PressureIntensity[current] + (180 * strength / 1000));
             var next = BestOceanNeighbor(map.Physical, current, previous, angle);
             if (next < 0)
             {

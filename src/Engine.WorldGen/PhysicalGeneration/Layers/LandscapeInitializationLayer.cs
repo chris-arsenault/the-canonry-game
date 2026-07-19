@@ -20,6 +20,11 @@ internal sealed class LandscapeInitializationLayer : IPhysicalGeographyLayer
         map.MaximumIceThickness.Clear();
         map.MaximumIceFlux.Clear();
         map.WaveExposureHistory.Clear();
+        map.GeothermalHistory.Clear();
+        map.ExternalHeatForcing.Clear();
+        map.ExternalCoastalForcing.Clear();
+        map.ExternalCoastalForcingHistory.Clear();
+        map.CompletedEpochCount = 0;
         map.SedimentProducedTotal = 0;
         map.SedimentDepositedTotal = 0;
         map.SedimentExportedTotal = 0;

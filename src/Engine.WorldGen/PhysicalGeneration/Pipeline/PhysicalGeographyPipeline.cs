@@ -119,7 +119,10 @@ internal sealed class PhysicalGeographyPipeline
     internal PhysicalGeographyField ApplyLayer(
         IPhysicalGeographyLayer layer,
         PhysicalGeographyField map,
-        int rootSeed)
+        int rootSeed,
+        PhysicalGeographyEpochDefinition? epoch = null,
+        int epochIndex = -1,
+        int epochCount = 0)
     {
         ArgumentNullException.ThrowIfNull(layer);
         ArgumentNullException.ThrowIfNull(map);
@@ -130,7 +133,13 @@ internal sealed class PhysicalGeographyPipeline
                 $"Physical generation layer '{layer.Contract.StableName}' is missing {missing}.");
         }
 
-        var context = new PhysicalGeographyGenerationContext(rootSeed, _profile, layer.Contract);
+        var context = new PhysicalGeographyGenerationContext(
+            rootSeed,
+            _profile,
+            layer.Contract,
+            epoch,
+            epochIndex,
+            epochCount);
         layer.Apply(map, context);
         layer.Validate(map, context);
         map.AvailableFacts &= ~layer.Contract.Invalidates;

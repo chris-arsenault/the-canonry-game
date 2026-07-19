@@ -8,12 +8,14 @@ internal sealed class FireFieldLayer : IIceRemembersMicrogeographyLayer
     public IceRemembersMicrogeographyLayerContract Contract { get; } = new(
         "fire-field",
         0x192d31,
-        IceRemembersMicrogeographyFacts.NaturalSurfaces,
+        IceRemembersMicrogeographyFacts.None,
         IceRemembersMicrogeographyFacts.FireField,
         IceRemembersMicrogeographyFacts.FireClimate |
         IceRemembersMicrogeographyFacts.AuroraField |
+        IceRemembersMicrogeographyFacts.PressureField |
         IceRemembersMicrogeographyFacts.FireFeatures |
         IceRemembersMicrogeographyFacts.AuroraFeatures |
+        IceRemembersMicrogeographyFacts.PressureCoastalFeedback |
         IceRemembersMicrogeographyFacts.Interactions |
         IceRemembersMicrogeographyFacts.FinalSurfaces |
         IceRemembersMicrogeographyFacts.Validated);
@@ -29,9 +31,11 @@ internal sealed class FireFieldLayer : IIceRemembersMicrogeographyLayer
                 ~(PhysicalGeographyFeatureCodes.FireCore | PhysicalGeographyFeatureCodes.MagmaChamber);
         }
 
-        var cores = SelectCores(map.Physical, context.Profile, context.Seed);
+        var cores = context.FireStrength == 0
+            ? []
+            : SelectCores(map.Physical, context.Profile, context.Seed);
         var queue = new PriorityQueue<int, (int NegativeIntensity, int Index)>();
-        SeedCores(map, cores, queue);
+        SeedCores(map, cores, queue, context.FireStrength);
         Propagate(map, context.Profile, queue);
     }
 
@@ -57,7 +61,8 @@ internal sealed class FireFieldLayer : IIceRemembersMicrogeographyLayer
             }
         }
 
-        if (coreCount is < 1 || coreCount > context.Profile.MaximumFireCores)
+        if (context.FireStrength == 0 ? coreCount != 0 :
+            coreCount is < 1 || coreCount > context.Profile.MaximumFireCores)
         {
             throw new InvalidOperationException("Fire-core selection missed its configured count bounds.");
         }
@@ -66,11 +71,15 @@ internal sealed class FireFieldLayer : IIceRemembersMicrogeographyLayer
     private static void SeedCores(
         IceRemembersMicrogeographyMap map,
         ReadOnlySpan<int> cores,
-        PriorityQueue<int, (int NegativeIntensity, int Index)> queue)
+        PriorityQueue<int, (int NegativeIntensity, int Index)> queue,
+        int strengthScale)
     {
         foreach (var core in cores)
         {
-            var strength = Math.Clamp(720 + (map.Physical.HeatSourceDensity[core] / 3), 0, 1000);
+            var strength = Math.Max(
+                1,
+                Math.Clamp(720 + (map.Physical.HeatSourceDensity[core] / 3), 0, 1000) *
+                    strengthScale / 1000);
             map.FireIntensity[core] = strength;
             map.Physical.FeatureFlags[core] |= PhysicalGeographyFeatureCodes.FireCore;
             if (strength >= 940)

@@ -48,15 +48,18 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
 
         var targetCount = Math.Clamp(
             (int)Math.Round(
-                land.Count * context.Profile.QualityTargets.LandIceCoverage.Target,
+                land.Count * context.Profile.QualityTargets.LandIceCoverage.Target *
+                    context.GlaciationStrength / 1000d,
                 MidpointRounding.AwayFromZero),
-            1,
+            0,
             land.Count);
-        var cutoff = Math.Max(
-            context.Profile.MinimumIceBalance,
-            IntegerOrderStatistics.ValueAtDescendingRank(
-                System.Runtime.InteropServices.CollectionsMarshal.AsSpan(balances),
-                targetCount - 1));
+        var cutoff = targetCount == 0
+            ? int.MaxValue
+            : Math.Max(
+                context.Profile.MinimumIceBalance,
+                IntegerOrderStatistics.ValueAtDescendingRank(
+                    System.Runtime.InteropServices.CollectionsMarshal.AsSpan(balances),
+                    targetCount - 1));
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             var balance = map.IceBalance[triangleIndex];
@@ -66,7 +69,11 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
             }
 
             map.IceThickness[triangleIndex] = balance >= cutoff
-                ? AccumulateIce(map.IceThickness[triangleIndex], balance - cutoff, context.Profile)
+                ? AccumulateIce(
+                    map.IceThickness[triangleIndex],
+                    balance - cutoff,
+                    context.Profile,
+                    context.GlaciationStrength)
                 : Math.Max(0, map.IceThickness[triangleIndex] - context.Profile.IceAblationStep);
             map.MaximumIceThickness[triangleIndex] = Math.Max(
                 map.MaximumIceThickness[triangleIndex],
@@ -106,11 +113,13 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
     private static int AccumulateIce(
         int current,
         int balanceAboveCutoff,
-        PhysicalGeographyGenerationProfile profile)
+        PhysicalGeographyGenerationProfile profile,
+        int glaciationStrength)
     {
         var growth = Math.Min(
             profile.IceAccumulationStep,
-            profile.GlacierThicknessThreshold + (balanceAboveCutoff * 2));
+            profile.GlacierThicknessThreshold + (balanceAboveCutoff * 2)) *
+            glaciationStrength / 1000;
         return Math.Clamp(current + growth, profile.GlacierThicknessThreshold, 1000);
     }
 

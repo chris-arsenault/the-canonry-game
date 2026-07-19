@@ -87,10 +87,10 @@ public sealed class IceRemembersNaturalAndFireLayerTests
     public void Pipeline_RejectsAFieldLayerWhenItsDeclaredDependencyIsMissing()
     {
         var result = IceRemembersMicrogeographyLayerTestHarness.GenerateBefore<NaturalSurfaceLayer>();
-        var fire = new FireFieldLayer();
+        var feedback = new FireClimateFeedbackLayer();
         Assert.Throws<InvalidOperationException>(() =>
             result.Pipeline.ApplyLayer(
-                fire,
+                feedback,
                 result.Map,
                 IceRemembersMicrogeographyLayerTestHarness.Seed));
     }

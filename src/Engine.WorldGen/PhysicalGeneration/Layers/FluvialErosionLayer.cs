@@ -28,7 +28,12 @@ internal sealed class FluvialErosionLayer : IPhysicalGeographyLayer
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
-        for (var iteration = 0; iteration < context.Profile.FluvialErosionIterations; iteration++)
+        var iterations = context.HydrologyStrength == 0
+            ? 0
+            : Math.Max(
+                1,
+                context.Profile.FluvialErosionIterations * context.HydrologyStrength / 1000);
+        for (var iteration = 0; iteration < iterations; iteration++)
         {
             _ = PriorityFlood.FillFromOcean(map);
             var targets = ConditionedFlowResolver.ResolveLandTargets(map);
@@ -44,7 +49,8 @@ internal sealed class FluvialErosionLayer : IPhysicalGeographyLayer
                 var fall = Math.Max(0, map.DrainageElevations[triangleIndex] - map.DrainageElevations[target]);
                 var streamPower = Math.Pow(accumulation[triangleIndex], 0.42d) * Math.Sqrt(fall + 1d);
                 var cut = (int)Math.Round(
-                    Math.Min(22d, streamPower * context.Profile.FluvialErosionStrength),
+                    Math.Min(22d, streamPower * context.Profile.FluvialErosionStrength) *
+                        context.HydrologyStrength / 1000d,
                     MidpointRounding.AwayFromZero);
                 if (cut <= 0)
                 {

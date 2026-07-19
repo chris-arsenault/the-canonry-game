@@ -15,6 +15,10 @@ internal sealed class IceRemembersMicrogeographyMap
         FireIntensity = new int[triangleCount];
         AuroraIntensity = new int[triangleCount];
         PressureIntensity = new int[triangleCount];
+        FireHistory = new int[triangleCount];
+        AuroraHistory = new int[triangleCount];
+        PressureHistory = new int[triangleCount];
+        PressureCoastalHistory = new int[triangleCount];
         PressureWake = new bool[triangleCount];
         RogueImpact = new bool[triangleCount];
     }
@@ -33,11 +37,21 @@ internal sealed class IceRemembersMicrogeographyMap
 
     public int[] PressureIntensity { get; }
 
+    public int[] FireHistory { get; }
+
+    public int[] AuroraHistory { get; }
+
+    public int[] PressureHistory { get; }
+
+    public int[] PressureCoastalHistory { get; }
+
     public bool[] PressureWake { get; }
 
     public bool[] RogueImpact { get; }
 
     public int DeadGodTriangleIndex { get; set; } = -1;
+
+    public int CompletedEpochCount { get; set; }
 
     public IceRemembersMicrogeographyFacts AvailableFacts { get; set; }
 }

@@ -7,7 +7,9 @@ internal sealed class AuroraFieldLayer : IIceRemembersMicrogeographyLayer
         0,
         IceRemembersMicrogeographyFacts.FireClimate,
         IceRemembersMicrogeographyFacts.AuroraField,
+        IceRemembersMicrogeographyFacts.PressureField |
         IceRemembersMicrogeographyFacts.AuroraFeatures |
+        IceRemembersMicrogeographyFacts.PressureCoastalFeedback |
         IceRemembersMicrogeographyFacts.Interactions |
         IceRemembersMicrogeographyFacts.FinalSurfaces |
         IceRemembersMicrogeographyFacts.Validated);
@@ -35,10 +37,10 @@ internal sealed class AuroraFieldLayer : IIceRemembersMicrogeographyLayer
             var capacity = Math.Clamp(map.Physical.IceThickness[triangleIndex], 0, 900);
             var retained = accumulation[triangleIndex] * capacity / 1200;
             map.AuroraIntensity[triangleIndex] = Math.Clamp(
-                (int)Math.Round(
-                    Math.Log2(accumulation[triangleIndex] + 1d) * context.Profile.AuroraLogScale,
-                    MidpointRounding.ToEven) +
-                    (capacity / 4),
+                ((int)Math.Round(
+                        Math.Log2(accumulation[triangleIndex] + 1d) * context.Profile.AuroraLogScale,
+                        MidpointRounding.ToEven) +
+                    (capacity / 4)) * context.AuroraStrength / 1000,
                 0,
                 1000);
             var target = targets[triangleIndex];
@@ -67,7 +69,7 @@ internal sealed class AuroraFieldLayer : IIceRemembersMicrogeographyLayer
             charged |= intensity > 0;
         }
 
-        if (!charged)
+        if (!charged && context.AuroraStrength > 0)
         {
             throw new InvalidOperationException("Aurora generation produced no charged terrain.");
         }

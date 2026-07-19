@@ -29,14 +29,15 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
         map.WaterKindCodes.Clear();
         map.WaterDepths.Clear();
         map.WaterBodyIds.Clear();
-        map.EffectiveSeaLevel = FindEffectiveSeaLevel(map, context.Profile);
+        map.EffectiveSeaLevel = FindEffectiveSeaLevel(map, context);
         FloodConnectedOcean(map);
     }
 
     private static int FindEffectiveSeaLevel(
         PhysicalGeographyField map,
-        PhysicalGeographyGenerationProfile profile)
+        PhysicalGeographyGenerationContext context)
     {
+        var profile = context.Profile;
         var configuredElevations = new int[checked(
             map.Grid.ConfiguredHexCount * PhysicalGeographyCodes.MicrotrianglesPerHex)];
         var offset = 0;
@@ -59,7 +60,8 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
         var seaLevel = IntegerOrderStatistics.ValueAtDescendingRank(
             configuredElevations,
             descendingRank) +
-            (int)Math.Round(profile.SeaLevel * profile.ElevationScale, MidpointRounding.AwayFromZero);
+            (int)Math.Round(profile.SeaLevel * profile.ElevationScale, MidpointRounding.AwayFromZero) +
+            context.SeaLevelOffset;
         var minimumBoundary = int.MaxValue;
         for (var hexIndex = 0; hexIndex < map.Grid.HexCount; hexIndex++)
         {
