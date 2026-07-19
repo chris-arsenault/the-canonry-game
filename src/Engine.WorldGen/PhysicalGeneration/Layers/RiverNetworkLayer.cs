@@ -44,9 +44,10 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
             map,
             channels,
             lakeOutflowStarts,
-            context.Profile.MinimumRiverReachTriangles);
+            context.Profile);
         CompleteDownstreamChannels(map, order, channels);
         AssignStrahlerOrder(map, order, channels);
+        BuildSpineEdgeMasks(map);
     }
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
@@ -67,6 +68,8 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
 
             ValidateContinuousOutletPath(map, triangleIndex);
         }
+
+        ValidateSpineEdgeMasks(map);
     }
 
     private static int[] BuildBasinMaximumDischarge(PhysicalGeographyField map)
@@ -200,7 +203,7 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
         PhysicalGeographyField map,
         bool[] channels,
         bool[] protectedHeadwaters,
-        int minimumLength)
+        PhysicalGeographyGenerationProfile profile)
     {
         var incoming = ChannelIncomingCounts(map, channels);
         for (var triangleIndex = 0; triangleIndex < channels.Length; triangleIndex++)
@@ -217,7 +220,8 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
                 incoming,
                 protectedHeadwaters,
                 triangleIndex);
-            if (reach.Count < minimumLength)
+            if (reach.Count < profile.MinimumRiverReachTriangles &&
+                !ShortReachIsSupported(map, channels, incoming, reach, profile))
             {
                 foreach (var member in reach)
                 {
@@ -225,6 +229,21 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
                 }
             }
         }
+    }
+
+    private static bool ShortReachIsSupported(
+        PhysicalGeographyField map,
+        bool[] channels,
+        int[] incoming,
+        List<int> reach,
+        PhysicalGeographyGenerationProfile profile)
+    {
+        var headwater = reach[0];
+        var last = reach[^1];
+        var target = map.FlowTargets[last];
+        var joinsConfluence = target >= 0 && channels[target] && incoming[target] > 1;
+        return joinsConfluence ||
+            map.FlowAccumulation[headwater] >= profile.RiverAccumulationThreshold;
     }
 
     private static List<int> CollectHeadwaterReach(
@@ -311,5 +330,63 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
         }
 
         return largestCount >= 2 ? largestIncoming + 1 : largestIncoming;
+    }
+
+    private static void BuildSpineEdgeMasks(PhysicalGeographyField map)
+    {
+        map.RiverSpineEdgeMasks.Clear();
+        for (var source = 0; source < map.Grid.TriangleCount; source++)
+        {
+            var target = map.FlowTargets[source];
+            if (target >= 0 && CarriesVisibleSpine(map, source, target))
+            {
+                AddSpineEdge(map, source, target);
+            }
+        }
+    }
+
+    private static bool CarriesVisibleSpine(
+        PhysicalGeographyField map,
+        int source,
+        int target) =>
+        map.RiverOrders[source] > 0 ||
+        map.WaterKindCodes[source] == PhysicalWaterKindCodes.Lake &&
+            map.WaterKindCodes[target] != PhysicalWaterKindCodes.Lake &&
+            map.RiverOrders[target] > 0;
+
+    private static void AddSpineEdge(PhysicalGeographyField map, int source, int target)
+    {
+        var sourceEdge = map.Grid.EdgeLeadingTo(source, target);
+        var targetEdge = map.Grid.EdgeLeadingTo(target, source);
+        if (sourceEdge < 0 || targetEdge < 0)
+        {
+            throw new InvalidOperationException("River spine contains a non-adjacent segment.");
+        }
+
+        map.RiverSpineEdgeMasks[source] |= 1 << sourceEdge;
+        map.RiverSpineEdgeMasks[target] |= 1 << targetEdge;
+    }
+
+    private static void ValidateSpineEdgeMasks(PhysicalGeographyField map)
+    {
+        for (var source = 0; source < map.Grid.TriangleCount; source++)
+        {
+            var expected = 0;
+            for (var edge = 0; edge < 3; edge++)
+            {
+                var neighbor = map.Grid.NeighborTriangleIndex(source, edge);
+                if (neighbor >= 0 &&
+                    (map.FlowTargets[source] == neighbor && CarriesVisibleSpine(map, source, neighbor) ||
+                        map.FlowTargets[neighbor] == source && CarriesVisibleSpine(map, neighbor, source)))
+                {
+                    expected |= 1 << edge;
+                }
+            }
+
+            if (map.RiverSpineEdgeMasks[source] != expected)
+            {
+                throw new InvalidOperationException("River spine edge coverage is discontinuous.");
+            }
+        }
     }
 }

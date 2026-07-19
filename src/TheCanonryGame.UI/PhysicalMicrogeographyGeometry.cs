@@ -7,6 +7,8 @@ namespace TheCanonryGame.UI;
 
 internal sealed class PhysicalMicrogeographyGeometry
 {
+    private static readonly int[] EdgeFirstPoint = [1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1];
+    private static readonly int[] EdgeSecondPoint = [2, 1, 2, 2, 1, 2, 2, 2, 1, 1, 2, 2];
     private readonly Vector2[][] _trianglePoints;
     private readonly Vector2[][] _closedTrianglePoints;
     private readonly Vector2[] _triangleCentroids;
@@ -33,6 +35,17 @@ internal sealed class PhysicalMicrogeographyGeometry
     public Vector2[] ClosedTrianglePoints(int triangleIndex) => _closedTrianglePoints[triangleIndex];
 
     public Vector2 TriangleCentroid(int triangleIndex) => _triangleCentroids[triangleIndex];
+
+    public Vector2 TriangleEdgeMidpoint(int triangleIndex, int edge)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(edge);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(edge, 3);
+        var local = triangleIndex % PhysicalGeographyCodes.MicrotrianglesPerSector;
+        var mappingIndex = (local * 3) + edge;
+        var first = EdgeFirstPoint[mappingIndex];
+        var second = EdgeSecondPoint[mappingIndex];
+        return (_trianglePoints[triangleIndex][first] + _trianglePoints[triangleIndex][second]) * 0.5f;
+    }
 
     public Vector2 HexCenter(HexCoord coord) =>
         new(

@@ -89,22 +89,22 @@ projection boundary.
 
 ### 5. Conditioned routing and river topology
 
-- [ ] Add a discrete drainage-guidance layer using high-resolution local
+- [x] Add a discrete drainage-guidance layer using high-resolution local
   downhill gradient, conditioned outlet direction, and physically compatible
   inherited valleys.
-- [ ] Restrict guidance to legal descending or outletward-flat candidates.
-- [ ] Remove crust motion and global turn handedness from flow selection.
-- [ ] Use coordinate-stable deterministic selection only for exact final ties.
-- [ ] Preserve sustained headwaters and tributaries through confluences while
+- [x] Restrict guidance to legal descending or outletward-flat candidates.
+- [x] Remove crust motion and global turn handedness from flow selection.
+- [x] Use coordinate-stable deterministic selection only for exact final ties.
+- [x] Preserve sustained headwaters and tributaries through confluences while
   pruning only unsupported reaches.
-- [ ] Require every classified channel to reach ocean, lake, endorheic water,
+- [x] Require every classified channel to reach ocean, lake, endorheic water,
   or the configured crop outlet.
 
 ### 6. River rendering and terrain legibility
 
-- [ ] Render narrow rivers as connected segments over the authoritative spine,
+- [x] Render narrow rivers as connected segments over the authoritative spine,
   including confluences, lake entry, and lake outflow.
-- [ ] Retain filled geometry for genuinely wide channels, floodplains, and
+- [x] Retain filled geometry for genuinely wide channels, floodplains, and
   deltas.
 - [ ] Strengthen scale-aware relief from elevation, slope, and roughness.
 - [ ] Composite broad magic fields over natural geography instead of hiding

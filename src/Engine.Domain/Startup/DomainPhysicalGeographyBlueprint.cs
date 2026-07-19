@@ -234,6 +234,7 @@ public readonly record struct DomainPhysicalMicrotriangle(
     int FlowEdge,
     int FlowAccumulation,
     int RiverOrder,
+    int RiverSpineEdgeMask,
     int RiverChannelStrength,
     int RiverChannelOrder,
     int FloodplainIntensity,

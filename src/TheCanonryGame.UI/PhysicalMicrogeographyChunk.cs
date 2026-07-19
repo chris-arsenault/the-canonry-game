@@ -263,6 +263,11 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
                 0.45f);
         }
 
+        if (PhysicalMicrogeographyRenderDecisions.UsesStructuralRiverOverlay(_owner.View))
+        {
+            DrawRiverSpines(triangles);
+        }
+
         DrawPolyline(_owner.Geometry.ClosedHexPoints, UiTokens.HairlineStrong, 0.9f);
         if (FeatureDetail() == PhysicalMicrogeographyFeatureDetail.Microtriangle)
         {
@@ -725,7 +730,7 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
                 Math.Clamp(triangle.WaterDepth / 700f, 0f, 1f)),
             PhysicalWaterKindCodes.Lake => LakeWater,
             _ when triangle.DeltaIntensity > 0 => new Color(0.20f, 0.56f, 0.54f),
-            _ when triangle.RiverChannelStrength > 0 => RiverWater,
+            _ when UsesFilledRiverGeometry(triangle) => RiverWater,
             _ when triangle.FloodplainIntensity > 0 => new Color(0.34f, 0.53f, 0.42f),
             _ => new Color(0.38f, 0.42f, 0.38f),
         };
@@ -760,7 +765,7 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             return color.Lerp(new Color(0.20f, 0.62f, 0.56f), 0.72f);
         }
 
-        if (triangle.RiverChannelStrength > 0)
+        if (UsesFilledRiverGeometry(triangle))
         {
             return color.Lerp(RiverWater, 0.58f + (0.28f * triangle.RiverChannelStrength / 1000f));
         }
@@ -769,6 +774,41 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             ? color.Lerp(new Color(0.35f, 0.55f, 0.40f), 0.22f)
             : color;
     }
+
+    private void DrawRiverSpines(ReadOnlySpan<PhysicalMicrotriangleProjection> triangles)
+    {
+        for (var triangleIndex = 0; triangleIndex < triangles.Length; triangleIndex++)
+        {
+            var triangle = triangles[triangleIndex];
+            if (triangle.RiverSpineEdgeMask == 0)
+            {
+                continue;
+            }
+
+            var center = _owner!.Geometry.TriangleCentroid(triangleIndex);
+            var width = 0.9f + Math.Min(
+                2.8f,
+                (triangle.RiverChannelStrength / 420f) + (triangle.RiverChannelOrder * 0.22f));
+            for (var edge = 0; edge < 3; edge++)
+            {
+                if ((triangle.RiverSpineEdgeMask & (1 << edge)) != 0)
+                {
+                    DrawLine(
+                        center,
+                        _owner.Geometry.TriangleEdgeMidpoint(triangleIndex, edge),
+                        RiverWater,
+                        width,
+                        true);
+                }
+            }
+        }
+    }
+
+    private static bool UsesFilledRiverGeometry(in PhysicalMicrotriangleProjection triangle) =>
+        triangle.RiverChannelStrength > 0 &&
+        (triangle.RiverSpineEdgeMask == 0 ||
+            triangle.RiverChannelOrder >= 2 ||
+            triangle.RiverChannelStrength >= 640);
 
     private static Color ApplyAggregateStructuralWater(
         Color color,

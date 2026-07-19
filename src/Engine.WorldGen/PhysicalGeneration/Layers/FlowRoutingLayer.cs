@@ -9,6 +9,7 @@ internal sealed class FlowRoutingLayer : IPhysicalGeographyLayer
         0,
         PhysicalGeographyFacts.Ocean |
         PhysicalGeographyFacts.DrainageConditioning |
+        PhysicalGeographyFacts.DrainageGuidance |
         PhysicalGeographyFacts.Lakes,
         PhysicalGeographyFacts.FlowRouting,
         PhysicalGeographyFacts.Rivers |
@@ -20,12 +21,11 @@ internal sealed class FlowRoutingLayer : IPhysicalGeographyLayer
         map.FlowTargets.Fill(-1);
         map.FlowEdges.Fill(PhysicalGeographyCodes.NoFlowEdge);
         map.DrainageBasinIds.Clear();
-        var targets = ConditionedFlowResolver.ResolveLandTargets(map);
-        for (var triangleIndex = 0; triangleIndex < targets.Length; triangleIndex++)
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.None)
             {
-                map.FlowTargets[triangleIndex] = targets[triangleIndex];
+                map.FlowTargets[triangleIndex] = map.DrainageGuidanceTargets[triangleIndex];
             }
         }
 
@@ -203,20 +203,14 @@ internal sealed class FlowRoutingLayer : IPhysicalGeographyLayer
         int root)
     {
         var targetRank = ranks[member];
-        Span<ConditionedFlowResolver.GeometricFlowCandidate> candidates =
-            stackalloc ConditionedFlowResolver.GeometricFlowCandidate[3];
+        Span<int> candidates = stackalloc int[3];
         var candidateCount = 0;
         for (var edge = 0; edge < 3; edge++)
         {
             var neighbor = map.Grid.NeighborTriangleIndex(member, edge);
             if (neighbor >= 0 && ranks.TryGetValue(neighbor, out var rank) && rank < targetRank)
             {
-                candidates[candidateCount++] = new ConditionedFlowResolver.GeometricFlowCandidate(
-                    neighbor,
-                    rank,
-                    rank,
-                    map.Grid.TriangleX(neighbor) - map.Grid.TriangleX(member),
-                    map.Grid.TriangleY(neighbor) - map.Grid.TriangleY(member));
+                candidates[candidateCount++] = neighbor;
             }
         }
 
@@ -225,12 +219,12 @@ internal sealed class FlowRoutingLayer : IPhysicalGeographyLayer
             throw new InvalidOperationException("Lake member cannot reach its outlet.");
         }
 
-        return ConditionedFlowResolver.SelectByGeometry(
+        return ConditionedFlowResolver.SelectByOutletAlignment(
+            map,
             candidates[..candidateCount],
-            map.Grid.TriangleX(root) - map.Grid.TriangleX(member),
-            map.Grid.TriangleY(root) - map.Grid.TriangleY(member),
-            map.CrustMotionX[member],
-            map.CrustMotionY[member]);
+            member,
+            root,
+            seed: root);
     }
 
     private static void AssignBasins(PhysicalGeographyField map)

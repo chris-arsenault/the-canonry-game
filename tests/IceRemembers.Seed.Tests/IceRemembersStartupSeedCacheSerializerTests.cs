@@ -260,6 +260,7 @@ public sealed class IceRemembersStartupSeedCacheSerializerTests
                     FlowEdge: PhysicalGeographyCodes.NoFlowEdge,
                     FlowAccumulation: 0,
                     RiverOrder: 0,
+                    RiverSpineEdgeMask: 0,
                     RiverChannelStrength: 0,
                     RiverChannelOrder: 0,
                     FloodplainIntensity: 0,

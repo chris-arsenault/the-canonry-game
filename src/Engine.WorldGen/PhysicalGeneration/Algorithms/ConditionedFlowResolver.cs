@@ -4,338 +4,231 @@ using Engine.Constants;
 
 internal static class ConditionedFlowResolver
 {
-    public static int[] ResolveLandTargets(PhysicalGeographyField map)
+    private const double ScoreEpsilon = 0.0000001d;
+
+    public static int[] ResolveLandTargets(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile,
+        int seed)
     {
         ArgumentNullException.ThrowIfNull(map);
-        var flatRouting = BuildFlatRouting(map);
+        ArgumentNullException.ThrowIfNull(profile);
         var targets = new int[map.Grid.TriangleCount];
         Array.Fill(targets, -1);
         for (var triangleIndex = 0; triangleIndex < targets.Length; triangleIndex++)
         {
-            if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
+            if (map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.Ocean)
             {
-                continue;
+                targets[triangleIndex] = SelectTarget(map, profile, seed, triangleIndex);
             }
-
-            targets[triangleIndex] = SelectTarget(map, flatRouting, triangleIndex);
         }
 
         return targets;
     }
 
-    private static FlatRouting BuildFlatRouting(PhysicalGeographyField map)
-    {
-        var ranks = new int[map.Grid.TriangleCount];
-        var outletX = new double[map.Grid.TriangleCount];
-        var outletY = new double[map.Grid.TriangleCount];
-        Array.Fill(ranks, -1);
-        var queue = new Queue<int>();
-        var order = new int[map.Grid.TriangleCount];
-        SeedFlatOutlets(map, ranks, outletX, outletY, queue);
-        var orderCount = RankFlatInterior(map, ranks, queue, order);
-        AssignFlatOutletCentroids(map, ranks, outletX, outletY, order, orderCount);
-        return new FlatRouting(ranks, outletX, outletY);
-    }
-
-    private static void SeedFlatOutlets(
+    internal static bool IsLegalTarget(
         PhysicalGeographyField map,
-        int[] ranks,
-        double[] outletX,
-        double[] outletY,
-        Queue<int> queue)
+        int source,
+        int target)
     {
-        for (var triangleIndex = 0; triangleIndex < ranks.Length; triangleIndex++)
+        if (target < 0 || map.Grid.EdgeLeadingTo(source, target) < 0)
         {
-            if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean ||
-                !HasLowerOutlet(map, triangleIndex))
-            {
-                continue;
-            }
-
-            ranks[triangleIndex] = 0;
-            AssignLowerOutletCentroid(map, triangleIndex, outletX, outletY);
-            queue.Enqueue(triangleIndex);
+            return false;
         }
+
+        if (map.WaterKindCodes[target] == PhysicalWaterKindCodes.Ocean)
+        {
+            return true;
+        }
+
+        var sourceDrainage = map.DrainageElevations[source];
+        var targetDrainage = map.DrainageElevations[target];
+        return targetDrainage < sourceDrainage ||
+            targetDrainage == sourceDrainage &&
+                map.DrainageRanks[target] < map.DrainageRanks[source];
     }
 
-    private static int RankFlatInterior(
+    internal static int SelectByOutletAlignment(
         PhysicalGeographyField map,
-        int[] ranks,
-        Queue<int> queue,
-        int[] order)
-    {
-        var orderCount = 0;
-        while (queue.TryDequeue(out var triangleIndex))
-        {
-            order[orderCount++] = triangleIndex;
-            var nextRank = ranks[triangleIndex] + 1;
-            for (var edge = 0; edge < 3; edge++)
-            {
-                var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
-                if (neighbor >= 0 && ranks[neighbor] < 0 &&
-                    map.WaterKindCodes[neighbor] != PhysicalWaterKindCodes.Ocean &&
-                    map.DrainageElevations[neighbor] == map.DrainageElevations[triangleIndex])
-                {
-                    ranks[neighbor] = nextRank;
-                    queue.Enqueue(neighbor);
-                }
-            }
-        }
-
-        return orderCount;
-    }
-
-    private static void AssignFlatOutletCentroids(
-        PhysicalGeographyField map,
-        int[] ranks,
-        double[] outletX,
-        double[] outletY,
-        int[] order,
-        int orderCount)
-    {
-        for (var orderIndex = 0; orderIndex < orderCount; orderIndex++)
-        {
-            var triangleIndex = order[orderIndex];
-            if (ranks[triangleIndex] > 0)
-            {
-                AssignInheritedOutletCentroid(map, ranks, outletX, outletY, triangleIndex);
-            }
-        }
-    }
-
-    private static void AssignLowerOutletCentroid(
-        PhysicalGeographyField map,
-        int triangleIndex,
-        double[] outletX,
-        double[] outletY)
-    {
-        var bestDrainage = long.MaxValue;
-        var count = 0;
-        for (var edge = 0; edge < 3; edge++)
-        {
-            var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
-            if (neighbor < 0)
-            {
-                continue;
-            }
-
-            var drainage = map.WaterKindCodes[neighbor] == PhysicalWaterKindCodes.Ocean
-                ? long.MinValue
-                : map.DrainageElevations[neighbor];
-            if (drainage >= map.DrainageElevations[triangleIndex])
-            {
-                continue;
-            }
-
-            if (drainage < bestDrainage)
-            {
-                bestDrainage = drainage;
-                outletX[triangleIndex] = 0d;
-                outletY[triangleIndex] = 0d;
-                count = 0;
-            }
-
-            if (drainage == bestDrainage)
-            {
-                outletX[triangleIndex] += map.Grid.TriangleX(neighbor);
-                outletY[triangleIndex] += map.Grid.TriangleY(neighbor);
-                count++;
-            }
-        }
-
-        outletX[triangleIndex] /= Math.Max(1, count);
-        outletY[triangleIndex] /= Math.Max(1, count);
-    }
-
-    private static void AssignInheritedOutletCentroid(
-        PhysicalGeographyField map,
-        int[] ranks,
-        double[] outletX,
-        double[] outletY,
-        int triangleIndex)
-    {
-        var count = 0;
-        for (var edge = 0; edge < 3; edge++)
-        {
-            var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
-            if (neighbor >= 0 && ranks[neighbor] >= 0 && ranks[neighbor] < ranks[triangleIndex] &&
-                map.DrainageElevations[neighbor] == map.DrainageElevations[triangleIndex])
-            {
-                outletX[triangleIndex] += outletX[neighbor];
-                outletY[triangleIndex] += outletY[neighbor];
-                count++;
-            }
-        }
-
-        if (count == 0)
-        {
-            throw new InvalidOperationException("Conditioned flat lacks an outlet gradient.");
-        }
-
-        outletX[triangleIndex] /= count;
-        outletY[triangleIndex] /= count;
-    }
-
-    private static bool HasLowerOutlet(PhysicalGeographyField map, int triangleIndex)
-    {
-        var elevation = map.DrainageElevations[triangleIndex];
-        for (var edge = 0; edge < 3; edge++)
-        {
-            var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
-            if (neighbor >= 0 &&
-                (map.WaterKindCodes[neighbor] == PhysicalWaterKindCodes.Ocean ||
-                    map.DrainageElevations[neighbor] < elevation))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static int SelectTarget(
-        PhysicalGeographyField map,
-        FlatRouting flatRouting,
-        int triangleIndex)
-    {
-        Span<GeometricFlowCandidate> candidates = stackalloc GeometricFlowCandidate[3];
-        var candidateCount = 0;
-        var currentDrainage = map.DrainageElevations[triangleIndex];
-        var currentRank = flatRouting.Ranks[triangleIndex];
-        for (var edge = 0; edge < 3; edge++)
-        {
-            var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
-            if (neighbor < 0 || !TryCreateCandidate(
-                    map,
-                    flatRouting.Ranks,
-                    neighbor,
-                    currentDrainage,
-                    currentRank,
-                    out var drainage,
-                    out var rank))
-            {
-                continue;
-            }
-
-            candidates[candidateCount++] = new GeometricFlowCandidate(
-                neighbor,
-                drainage,
-                rank,
-                map.Grid.TriangleX(neighbor) - map.Grid.TriangleX(triangleIndex),
-                map.Grid.TriangleY(neighbor) - map.Grid.TriangleY(triangleIndex));
-        }
-
-        if (candidateCount == 0)
-        {
-            throw new InvalidOperationException($"Conditioned triangle {triangleIndex} has no outlet.");
-        }
-
-        return SelectByGeometry(
-            candidates[..candidateCount],
-            flatRouting.OutletX[triangleIndex] - map.Grid.TriangleX(triangleIndex),
-            flatRouting.OutletY[triangleIndex] - map.Grid.TriangleY(triangleIndex),
-            map.CrustMotionX[triangleIndex],
-            map.CrustMotionY[triangleIndex]);
-    }
-
-    private static bool TryCreateCandidate(
-        PhysicalGeographyField map,
-        int[] flatRanks,
-        int neighbor,
-        long currentDrainage,
-        int currentRank,
-        out long drainage,
-        out int rank)
-    {
-        drainage = map.WaterKindCodes[neighbor] == PhysicalWaterKindCodes.Ocean
-            ? long.MinValue
-            : map.DrainageElevations[neighbor];
-        rank = flatRanks[neighbor];
-        var descends = drainage < currentDrainage;
-        var resolvesFlat = drainage == currentDrainage &&
-            rank >= 0 && currentRank >= 0 && rank < currentRank;
-        return descends || resolvesFlat;
-    }
-
-    internal static int SelectByGeometry(
-        ReadOnlySpan<GeometricFlowCandidate> candidates,
-        double outletX,
-        double outletY,
-        double motionX,
-        double motionY)
+        ReadOnlySpan<int> candidates,
+        int source,
+        int outlet,
+        int seed)
     {
         if (candidates.IsEmpty)
         {
             throw new ArgumentException("Flow selection requires at least one candidate.", nameof(candidates));
         }
 
-        var (bestDrainage, bestRank) = FindPrimaryPreference(candidates);
-        Normalize(outletX, outletY, out var desiredX, out var desiredY);
-        var best = candidates[0];
-        var hasBest = false;
-        var bestOutlet = double.MinValue;
-        var bestMotion = double.MinValue;
-        var bestTurn = double.MinValue;
+        DesiredDirection(map, source, outlet, out var desiredX, out var desiredY);
+        var best = -1;
+        var bestAlignment = double.MinValue;
+        var bestTie = double.MinValue;
         foreach (var candidate in candidates)
         {
-            if (candidate.Drainage != bestDrainage || candidate.Rank != bestRank)
+            var alignment = DirectionAlignment(map, source, candidate, desiredX, desiredY);
+            var tie = CoordinateTie(map, source, candidate, seed);
+            if (alignment > bestAlignment + ScoreEpsilon ||
+                NearlyEqual(alignment, bestAlignment) && tie > bestTie)
+            {
+                best = candidate;
+                bestAlignment = alignment;
+                bestTie = tie;
+            }
+        }
+
+        return best;
+    }
+
+    private static int SelectTarget(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile,
+        int seed,
+        int source)
+    {
+        var outlet = ParentLookahead(map, source, profile.DrainageGuidanceLookaheadSteps);
+        DesiredDirection(map, source, outlet, out var desiredX, out var desiredY);
+        var best = -1;
+        var bestScore = double.MinValue;
+        var bestTie = double.MinValue;
+        for (var edge = 0; edge < 3; edge++)
+        {
+            var target = map.Grid.NeighborTriangleIndex(source, edge);
+            if (!IsLegalTarget(map, source, target))
             {
                 continue;
             }
 
-            Normalize(candidate.DirectionX, candidate.DirectionY, out var x, out var y);
-            var outletScore = (x * desiredX) + (y * desiredY);
-            var motionScore = (x * motionX) + (y * motionY);
-            var turnScore = (desiredX * y) - (desiredY * x);
-            if (IsBetterScore(
-                hasBest,
-                outletScore,
-                motionScore,
-                turnScore,
-                bestOutlet,
-                bestMotion,
-                bestTurn))
+            var score = CandidateScore(map, profile, source, target, desiredX, desiredY);
+            var tie = CoordinateTie(map, source, target, seed);
+            if (score > bestScore + ScoreEpsilon ||
+                NearlyEqual(score, bestScore) && tie > bestTie)
             {
-                best = candidate;
-                hasBest = true;
-                bestOutlet = outletScore;
-                bestMotion = motionScore;
-                bestTurn = turnScore;
+                best = target;
+                bestScore = score;
+                bestTie = tie;
             }
         }
 
-        return best.Value;
+        return best >= 0
+            ? best
+            : throw new InvalidOperationException($"Conditioned triangle {source} has no outlet.");
     }
 
-    private static (long Drainage, int Rank) FindPrimaryPreference(
-        ReadOnlySpan<GeometricFlowCandidate> candidates)
+    private static double CandidateScore(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile,
+        int source,
+        int target,
+        double desiredX,
+        double desiredY)
     {
-        var bestDrainage = long.MaxValue;
-        var bestRank = int.MaxValue;
-        foreach (var candidate in candidates)
+        var alignment = DirectionAlignment(map, source, target, desiredX, desiredY);
+        var inheritedValley = InheritedValley(map, target);
+        if (map.WaterKindCodes[target] == PhysicalWaterKindCodes.Ocean)
         {
-            if (candidate.Drainage < bestDrainage ||
-                (candidate.Drainage == bestDrainage && candidate.Rank < bestRank))
-            {
-                bestDrainage = candidate.Drainage;
-                bestRank = candidate.Rank;
-            }
+            return 10_000d + alignment;
         }
 
-        return (bestDrainage, bestRank);
+        var conditionedDrop = (map.DrainageElevations[source] - map.DrainageElevations[target]) /
+            (double)PhysicalElevation.SubunitsPerUnit;
+        if (conditionedDrop <= 0d)
+        {
+            var rankProgress = Math.Clamp(
+                map.DrainageRanks[source] - map.DrainageRanks[target],
+                0,
+                20);
+            return (alignment * profile.DrainageOutletAlignmentWeight / 10d) +
+                (rankProgress * 0.15d) +
+                (inheritedValley * profile.DrainageInheritedValleyWeight / 1000d);
+        }
+
+        var floorDrop = Math.Clamp(
+            (map.Elevation[source] - map.Elevation[target]) /
+                (double)PhysicalElevation.SubunitsPerUnit,
+            -50d,
+            200d);
+        return (floorDrop * profile.DrainageFloorGradientWeight / 1000d) +
+            (Math.Min(200d, conditionedDrop) *
+                profile.DrainageConditionedGradientWeight / 1000d) +
+            (alignment * profile.DrainageOutletAlignmentWeight / 20d) +
+            (inheritedValley * profile.DrainageInheritedValleyWeight / 1000d);
     }
 
-    private static bool IsBetterScore(
-        bool hasBest,
-        double outlet,
-        double motion,
-        double turn,
-        double bestOutlet,
-        double bestMotion,
-        double bestTurn) =>
-        !hasBest || outlet > bestOutlet ||
-        (NearlyEqual(outlet, bestOutlet) && motion > bestMotion) ||
-        (NearlyEqual(outlet, bestOutlet) && NearlyEqual(motion, bestMotion) && turn > bestTurn);
+    private static double InheritedValley(PhysicalGeographyField map, int triangleIndex) =>
+        Math.Clamp(
+            PhysicalElevation.ToUnits(
+                map.CumulativeFluvialErosion[triangleIndex] +
+                map.CumulativeGlacialErosion[triangleIndex]),
+            0,
+            100);
+
+    private static int ParentLookahead(
+        PhysicalGeographyField map,
+        int source,
+        int maximumSteps)
+    {
+        var current = source;
+        for (var step = 0; step < maximumSteps; step++)
+        {
+            var parent = map.DrainageParents[current];
+            if (parent < 0)
+            {
+                break;
+            }
+
+            current = parent;
+        }
+
+        return current;
+    }
+
+    private static void DesiredDirection(
+        PhysicalGeographyField map,
+        int source,
+        int target,
+        out double desiredX,
+        out double desiredY) =>
+        Normalize(
+            map.Grid.TriangleX(target) - map.Grid.TriangleX(source),
+            map.Grid.TriangleY(target) - map.Grid.TriangleY(source),
+            out desiredX,
+            out desiredY);
+
+    private static double DirectionAlignment(
+        PhysicalGeographyField map,
+        int source,
+        int target,
+        double desiredX,
+        double desiredY)
+    {
+        Normalize(
+            map.Grid.TriangleX(target) - map.Grid.TriangleX(source),
+            map.Grid.TriangleY(target) - map.Grid.TriangleY(source),
+            out var directionX,
+            out var directionY);
+        return (directionX * desiredX) + (directionY * desiredY);
+    }
+
+    private static double CoordinateTie(
+        PhysicalGeographyField map,
+        int source,
+        int target,
+        int seed)
+    {
+        var sourceX = QuantizeCoordinate(map.Grid.TriangleX(source));
+        var sourceY = QuantizeCoordinate(map.Grid.TriangleY(source));
+        var targetX = QuantizeCoordinate(map.Grid.TriangleX(target));
+        var targetY = QuantizeCoordinate(map.Grid.TriangleY(target));
+        return PhysicalNoise.HashUnit(
+            seed ^ sourceX,
+            sourceY ^ targetX,
+            targetY);
+    }
+
+    private static int QuantizeCoordinate(float value) => checked((int)Math.Round(
+        value * 4096d,
+        MidpointRounding.AwayFromZero));
 
     private static void Normalize(double x, double y, out double normalizedX, out double normalizedY)
     {
@@ -345,14 +238,5 @@ internal static class ConditionedFlowResolver
     }
 
     private static bool NearlyEqual(double first, double second) =>
-        Math.Abs(first - second) < 0.0000001d;
-
-    internal readonly record struct GeometricFlowCandidate(
-        int Value,
-        long Drainage,
-        int Rank,
-        double DirectionX,
-        double DirectionY);
-
-    private sealed record FlatRouting(int[] Ranks, double[] OutletX, double[] OutletY);
+        Math.Abs(first - second) < ScoreEpsilon;
 }

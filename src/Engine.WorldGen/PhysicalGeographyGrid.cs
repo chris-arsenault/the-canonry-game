@@ -243,6 +243,7 @@ public sealed class PhysicalGeographyField
     private readonly long[] _cumulativeGlacialErosion;
     private readonly long[] _cumulativeGlacialDeposition;
     private readonly int[] _drainageBasinIds;
+    private readonly int[] _drainageGuidanceTargets;
     private readonly long[] _drainageElevations;
     private readonly int[] _drainageParents;
     private readonly int[] _drainageRanks;
@@ -285,6 +286,7 @@ public sealed class PhysicalGeographyField
     private readonly int[] _riverChannelOrders;
     private readonly int[] _floodplainIntensity;
     private readonly int[] _deltaIntensity;
+    private readonly int[] _riverSpineEdgeMasks;
     private readonly int[] _runoff;
     private readonly int[] _seaIceSuitability;
     private readonly long[] _sedimentSupply;
@@ -359,8 +361,9 @@ public sealed class PhysicalGeographyField
         (_drainageBasinIds, _flowEdges, _flowAccumulation, _riverOrders) =
             (NewField(grid), NewField(grid), NewField(grid), NewField(grid));
         Array.Fill(_flowEdges, PhysicalGeographyCodes.NoFlowEdge);
-        (_riverChannelStrength, _riverChannelOrders, _floodplainIntensity, _deltaIntensity) =
-            (NewField(grid), NewField(grid), NewField(grid), NewField(grid));
+        (_riverChannelStrength, _riverChannelOrders, _floodplainIntensity, _deltaIntensity,
+            _riverSpineEdgeMasks) =
+            (NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid));
         (_featureFlags, _landmassIds, _landmassClassCodes, _continentalGroupIds,
             _bathymetricZoneCodes) =
             (NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid));
@@ -368,8 +371,8 @@ public sealed class PhysicalGeographyField
             _maximumGroundedIceFlux) = NewIceFields(grid);
         _fractureConductance = new int[grid.TriangleCount];
         _heatSourceDensity = new int[grid.TriangleCount];
-        (_drainageElevations, _drainageParents, _drainageRanks, _flowTargets,
-            _lakeOutletTargets) = NewDrainageFields(grid);
+        (_drainageElevations, _drainageParents, _drainageRanks, _drainageGuidanceTargets,
+            _flowTargets, _lakeOutletTargets) = NewDrainageFields(grid);
         _ridgeInfluence = new float[grid.TriangleCount];
         _uplift = new float[grid.TriangleCount];
         _runoff = new int[grid.TriangleCount];
@@ -407,16 +410,19 @@ public sealed class PhysicalGeographyField
         long[] Elevations,
         int[] Parents,
         int[] Ranks,
+        int[] GuidanceTargets,
         int[] FlowTargets,
         int[] LakeOutlets) NewDrainageFields(PhysicalGeographyGrid grid)
     {
         var parents = NewField(grid);
+        var guidanceTargets = NewField(grid);
         var flowTargets = NewField(grid);
         var lakeOutlets = NewField(grid);
         Array.Fill(parents, -1);
+        Array.Fill(guidanceTargets, -1);
         Array.Fill(flowTargets, -1);
         Array.Fill(lakeOutlets, -1);
-        return (NewElevationField(grid), parents, NewField(grid), flowTargets, lakeOutlets);
+        return (NewElevationField(grid), parents, NewField(grid), guidanceTargets, flowTargets, lakeOutlets);
     }
 
     private static (int[] First, int[] Second, int[] Third) NewTriple(
@@ -619,6 +625,8 @@ public sealed class PhysicalGeographyField
 
     public Span<int> DeltaIntensity => _deltaIntensity;
 
+    public Span<int> RiverSpineEdgeMasks => _riverSpineEdgeMasks;
+
     public Span<int> FeatureFlags => _featureFlags;
 
     public Span<int> LandmassIds => _landmassIds;
@@ -652,6 +660,8 @@ public sealed class PhysicalGeographyField
     internal Span<int> DrainageRanks => _drainageRanks;
 
     public ReadOnlySpan<int> DrainageFlatRanks => _drainageRanks;
+
+    internal Span<int> DrainageGuidanceTargets => _drainageGuidanceTargets;
 
     internal Span<int> FlowTargets => _flowTargets;
 

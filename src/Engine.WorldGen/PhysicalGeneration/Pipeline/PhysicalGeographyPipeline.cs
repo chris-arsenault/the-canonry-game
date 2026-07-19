@@ -30,6 +30,7 @@ internal sealed class PhysicalGeographyPipeline
         var runoff = new RunoffLayer();
         var conditioning = new DrainageConditioningLayer();
         var lakes = new LakeBasinLayer();
+        var guidance = new DrainageGuidanceLayer();
         var flow = new FlowRoutingLayer();
         var rivers = new RiverNetworkLayer();
         var landIce = new LandIceLayer();
@@ -49,23 +50,24 @@ internal sealed class PhysicalGeographyPipeline
         };
         AddClimateAndDrainage(
             layers, ocean, oceanDistance, bathymetry, landmasses, currents, warmth, temperature,
-            atmosphericFlow, moisture, precipitation, runoff, conditioning, lakes, flow, rivers);
+            atmosphericFlow, moisture, precipitation, runoff, conditioning, lakes, guidance, flow, rivers);
         layers.Add(new SedimentTransportLayer());
         AddClimateAndDrainage(
             layers, ocean, oceanDistance, bathymetry, landmasses, currents, warmth, temperature,
-            atmosphericFlow, moisture, precipitation, runoff, conditioning, lakes, flow, rivers);
+            atmosphericFlow, moisture, precipitation, runoff, conditioning, lakes, guidance, flow, rivers);
         layers.Add(new CoastalErosionLayer());
         AddClimateAndDrainage(
             layers, ocean, oceanDistance, bathymetry, landmasses, currents, warmth, temperature,
-            atmosphericFlow, moisture, precipitation, runoff, conditioning, lakes, flow, rivers);
+            atmosphericFlow, moisture, precipitation, runoff, conditioning, lakes, guidance, flow, rivers);
         layers.Add(landIce);
         layers.Add(iceFlow);
         layers.Add(new GlacialErosionLayer());
         layers.Add(new GlacialDepositionLayer());
         AddClimateAndDrainage(
             layers, ocean, oceanDistance, bathymetry, landmasses, currents, warmth, temperature,
-            atmosphericFlow, moisture, precipitation, runoff, conditioning, lakes, flow, rivers);
-        AddFinalGlacialDrainage(layers, landIce, iceFlow, runoff, conditioning, lakes, flow, rivers);
+            atmosphericFlow, moisture, precipitation, runoff, conditioning, lakes, guidance, flow, rivers);
+        AddFinalGlacialDrainage(
+            layers, landIce, iceFlow, runoff, conditioning, lakes, guidance, flow, rivers);
         layers.Add(new GlacialLandformLayer());
         layers.Add(new SeaIceLayer());
         layers.Add(new LandformClassificationLayer());
@@ -83,6 +85,7 @@ internal sealed class PhysicalGeographyPipeline
         IPhysicalGeographyLayer runoff,
         IPhysicalGeographyLayer conditioning,
         IPhysicalGeographyLayer lakes,
+        IPhysicalGeographyLayer guidance,
         IPhysicalGeographyLayer flow,
         IPhysicalGeographyLayer rivers)
     {
@@ -93,6 +96,7 @@ internal sealed class PhysicalGeographyPipeline
         layers.Add(new GlacialRunoffLayer());
         layers.Add(conditioning);
         layers.Add(lakes);
+        layers.Add(guidance);
         layers.Add(flow);
         layers.Add(rivers);
     }
@@ -112,6 +116,7 @@ internal sealed class PhysicalGeographyPipeline
         IPhysicalGeographyLayer runoff,
         IPhysicalGeographyLayer conditioning,
         IPhysicalGeographyLayer lakes,
+        IPhysicalGeographyLayer guidance,
         IPhysicalGeographyLayer flow,
         IPhysicalGeographyLayer rivers)
     {
@@ -128,6 +133,7 @@ internal sealed class PhysicalGeographyPipeline
         layers.Add(runoff);
         layers.Add(conditioning);
         layers.Add(lakes);
+        layers.Add(guidance);
         layers.Add(flow);
         layers.Add(rivers);
     }

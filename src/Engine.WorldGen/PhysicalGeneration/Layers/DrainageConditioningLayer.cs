@@ -8,6 +8,7 @@ internal sealed class DrainageConditioningLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Elevation | PhysicalGeographyFacts.Ocean,
         PhysicalGeographyFacts.DrainageConditioning,
         PhysicalGeographyFacts.Lakes |
+        PhysicalGeographyFacts.DrainageGuidance |
         PhysicalGeographyFacts.FlowRouting |
         PhysicalGeographyFacts.Rivers |
         PhysicalGeographyFacts.Landforms |

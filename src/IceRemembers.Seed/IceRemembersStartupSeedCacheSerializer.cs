@@ -10,7 +10,7 @@ using Engine.Host;
 internal static class IceRemembersStartupSeedCacheSerializer
 {
     private const ulong Magic = 0x31444C524F574743UL;
-    private const int FormatVersion = 2;
+    private const int FormatVersion = 3;
     private const int MaximumEntityCount = 1_000_000;
     private const int MaximumCellCount = 2_000_000;
     private const int MaximumRelationshipCount = 4_000_000;
@@ -480,6 +480,7 @@ internal static class IceRemembersStartupSeedCacheSerializer
         writer.Write(triangle.FlowEdge);
         writer.Write(triangle.FlowAccumulation);
         writer.Write(triangle.RiverOrder);
+        writer.Write(triangle.RiverSpineEdgeMask);
         writer.Write(triangle.RiverChannelStrength);
         writer.Write(triangle.RiverChannelOrder);
         writer.Write(triangle.FloodplainIntensity);
@@ -513,6 +514,7 @@ internal static class IceRemembersStartupSeedCacheSerializer
         FlowEdge: reader.ReadInt32(),
         FlowAccumulation: reader.ReadInt32(),
         RiverOrder: reader.ReadInt32(),
+        RiverSpineEdgeMask: reader.ReadInt32(),
         RiverChannelStrength: reader.ReadInt32(),
         RiverChannelOrder: reader.ReadInt32(),
         FloodplainIntensity: reader.ReadInt32(),

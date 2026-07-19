@@ -274,6 +274,16 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public double EndorheicLakeFraction { get; init; } = 0.06d;
 
+    public int DrainageGuidanceLookaheadSteps { get; init; } = 12;
+
+    public int DrainageFloorGradientWeight { get; init; } = 1000;
+
+    public int DrainageConditionedGradientWeight { get; init; } = 450;
+
+    public int DrainageOutletAlignmentWeight { get; init; } = 320;
+
+    public int DrainageInheritedValleyWeight { get; init; } = 180;
+
     public int RiverAccumulationThreshold { get; init; } = 10500;
 
     public int RiverMinimumAccumulationThreshold { get; init; } = 2400;
@@ -458,9 +468,13 @@ public sealed record PhysicalGeographyGenerationProfile
     private bool BaseLandscapeCountsAreInvalid() =>
         Padding <= 0 || ElevationScale <= 0 || FluvialErosionIterations <= 0 ||
         ImpactCraterCount < 0 ||
-        MinimumLakeTriangles <= 0 || MinimumRiverReachTriangles <= 0 ||
+        HydrologyCountsAreInvalid() ||
         OceanCurrentSmoothingIterations <= 0 || OceanCurrentHeatIterations <= 0 ||
         OceanCurrentFetchSteps <= 0 || RiverGeometryCountsAreInvalid();
+
+    private bool HydrologyCountsAreInvalid() =>
+        MinimumLakeTriangles <= 0 || MinimumRiverReachTriangles <= 0 ||
+        DrainageGuidanceLookaheadSteps <= 0;
 
     private bool RiverGeometryCountsAreInvalid() =>
         RiverChannelWideningOrder <= 0 ||
@@ -540,11 +554,22 @@ public sealed record PhysicalGeographyGenerationProfile
             throw new InvalidOperationException("Endorheic lake fraction is invalid.");
         }
 
+        if (DrainageGuidanceRangesAreInvalid())
+        {
+            throw new InvalidOperationException("Physical drainage-guidance weights are invalid.");
+        }
+
         if (LandscapeEvolutionRangesAreInvalid())
         {
             throw new InvalidOperationException("Physical worldgen landscape-evolution ranges are invalid.");
         }
     }
+
+    private bool DrainageGuidanceRangesAreInvalid() =>
+        !IsUnitScalar(DrainageFloorGradientWeight) ||
+        !IsUnitScalar(DrainageConditionedGradientWeight) ||
+        !IsUnitScalar(DrainageOutletAlignmentWeight) ||
+        !IsUnitScalar(DrainageInheritedValleyWeight);
 
     private bool RiverThresholdsAreInvalid() =>
         RiverAccumulationThreshold <= 0 || RiverMinimumAccumulationThreshold <= 0 ||

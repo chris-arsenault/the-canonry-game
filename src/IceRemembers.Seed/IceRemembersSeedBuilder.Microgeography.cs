@@ -203,6 +203,7 @@ internal static partial class IceRemembersSeedBuilder
             flowEdge,
             field.FlowAccumulation[triangleIndex],
             field.RiverOrders[triangleIndex],
+            field.RiverSpineEdgeMasks[triangleIndex],
             field.RiverChannelStrength[triangleIndex],
             field.RiverChannelOrders[triangleIndex],
             field.FloodplainIntensity[triangleIndex],

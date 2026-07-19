@@ -35,7 +35,10 @@ internal sealed class FluvialErosionLayer : IPhysicalGeographyLayer
         for (var iteration = 0; iteration < iterations; iteration++)
         {
             _ = PriorityFlood.FillFromOcean(map);
-            var targets = ConditionedFlowResolver.ResolveLandTargets(map);
+            var targets = ConditionedFlowResolver.ResolveLandTargets(
+                map,
+                context.Profile,
+                context.Seed ^ iteration);
             var accumulation = AccumulateContributingArea(map, targets);
             for (var triangleIndex = 0; triangleIndex < targets.Length; triangleIndex++)
             {
