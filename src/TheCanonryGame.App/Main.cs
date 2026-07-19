@@ -614,10 +614,23 @@ public partial class Main : Node2D
     private void RefreshPregeneratedWorlds()
     {
         _pregeneratedWorlds = CanonryGameRuntimeFactory.DiscoverPregeneratedWorlds(
-            ProjectSettings.GlobalizePath("res://worlds"));
+            ResolvePregeneratedWorldDirectory());
         _topBar?.SetPregeneratedWorlds(
             _pregeneratedWorlds,
             _runtime?.Seed.BaseSeed ?? _startupSeed);
+    }
+
+    private static string ResolvePregeneratedWorldDirectory()
+    {
+        var applicationDirectory = OS.HasFeature("editor")
+            ? Directory.GetCurrentDirectory()
+            : Path.GetDirectoryName(OS.GetExecutablePath());
+        if (string.IsNullOrWhiteSpace(applicationDirectory))
+        {
+            throw new InvalidOperationException("Cannot resolve the application directory for world discovery.");
+        }
+
+        return Path.GetFullPath(Path.Combine(applicationDirectory, "worlds"));
     }
 
     private void PollStartup(double delta)

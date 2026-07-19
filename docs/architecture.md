@@ -89,11 +89,13 @@ not a simulation persistence or save-game format.
 
 Pregenerated `.world` files serialize the same pre-kernel startup boundary but
 are explicit local artifacts rather than cache entries. The application scans
-`res://worlds`, validates each file's format and world-generation version, and
-offers valid files through the top-bar world selector. These potentially large
-generated files are gitignored; selecting one replaces the current runtime via
-the ordinary asynchronous startup/loading surface. Release artifacts are built
-through `tools/WorldGenerator`, keeping generation out of the Godot UI process.
+its ordinary filesystem `worlds` directory (`<repo>/worlds` during development,
+`<executable directory>/worlds` when exported), validates each file's format and
+world-generation version, and offers valid files through the top-bar world
+selector. These potentially large generated files are gitignored; selecting one
+replaces the current runtime via the ordinary asynchronous startup/loading
+surface. Release artifacts are built through `tools/WorldGenerator`, keeping
+generation out of the Godot UI process.
 
 Consumers must not stall kernel advancement. If a consumer needs richer
 materialized state, it builds that state from events or snapshots on its own
