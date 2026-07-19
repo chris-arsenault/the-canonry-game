@@ -32,6 +32,36 @@ the accepted direction:
 This is not full plate tectonics, an ocean-fluid solver, or an ice-sheet PDE.
 It is a reduced deterministic process model over the canonical triangle graph.
 
+## Canonical epoch interpretation
+
+The world was roughly Earth-temperate before the Collapse. The apocalyptic war
+killed the Dead God, broke the magical balance, and caused the Deep Freeze.
+Game year 0 begins roughly twenty years after that acute freeze ended, while the
+world remains inside the resulting artificial ice age.
+
+The four configured epochs must express that history as outcomes, not merely as
+names or relative strength values:
+
+1. assemble a mature physical world under ordinary long-term climate;
+2. perform major uplift followed by genuinely warm/wet erosion with widespread
+   liquid drainage;
+3. apply the magic-caused Deep Freeze as a catastrophic glacial overprint;
+4. retreat toward the still-icebound present, reopening some water and warmth
+   without erasing inherited temperate geology.
+
+The current schedule's temperature offsets do not by themselves establish a
+temperate or wet epoch. Follow-on correction work must validate actual thawed
+land, liquid runoff, erosion distribution, glacial advance, and partial retreat.
+Tectonic activity must likewise leave successive active and inherited relief
+rather than repeatedly uplifting one fixed boundary arrangement.
+
+The Before Times are the pre-Collapse civilization. Their serial-numbered
+artifacts are high-technology weapons used in the war that killed the Dead God.
+After natural geography is correct, a later domain-owned archaeology stage may
+place pre-Collapse megaliths and infrastructure before the Deep Freeze so later
+physical and magic passes transform them into relic sites. That stage is not a
+substitute for continent, relief, climate, or hydrology quality.
+
 ## Ownership and boundaries
 
 - `Engine.WorldGen` owns domain-neutral triangle-scale geology, climate,

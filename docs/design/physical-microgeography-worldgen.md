@@ -12,6 +12,43 @@ The prototype generator was removed rather than retained behind a compatibility
 layer. The canonical 24-triangle topology and the current hex-scale simulation
 boundary remain the useful contracts.
 
+## Canonical climate history
+
+Ice Remembers is set during an artificial ice age, not on a naturally frozen
+planet. Before the Collapse, the world had a climate roughly comparable to
+Earth's. Its continents, ocean basins, mature river systems, eroded mountain
+ranges, and temperate landscapes formed under ordinary long-term climate.
+
+The apocalyptic pre-game war killed the Dead God and broke the balance among
+the world's magical forces. That failure caused the **Deep Freeze**, a terminal
+glacial overprint of unknown duration that destroyed pre-Collapse civilization.
+Game year 0 is roughly twenty years after the Deep Freeze ended. The acute
+freeze has retreated, but the artificial ice age continues.
+
+This history constrains generation:
+
+- early geological and erosional epochs must be capable of widespread liquid
+  precipitation and temperate drainage rather than treating every epoch as an
+  ice-planet variant;
+- the Deep Freeze is a late, magic-caused glacial catastrophe over an already
+  mature landscape;
+- the present pass represents partial retreat, renewed runoff, exposed coasts,
+  and isolated warm refuges while retaining extensive land and sea ice;
+- present barrens and glaciers must preserve readable underlying relief,
+  ancestral valleys, basins, continental margins, and depositional history;
+- current warmth pockets are refuges within the artificial ice age, not the
+  only places where geological complexity was ever allowed to form.
+
+The Before Times are the same immediate pre-Collapse period. Their
+serial-numbered artifacts are manufactured high-technology weapons used in the
+war that killed the Dead God. Once ordinary physical generation is sound, a
+later domain generation stage may seed pre-Collapse roads, settlements,
+megaliths, and weapon sites into the mature temperate landscape before applying
+the Deep Freeze and retreat passes. Glaciation, erosion, sediment, fracture,
+and magic processes can then turn those works into buried, broken, flooded, or
+newly exposed relic sites. This archaeology stage is intentionally deferred; it
+must not be used to disguise defective natural geography.
+
 ## Ownership and runtime boundary
 
 - `Engine.WorldGen` owns domain-neutral generation grids, graph algorithms,
@@ -116,11 +153,11 @@ lowest conditioned neighbor, accumulate runoff, derive river order, and assign
 watersheds. Rivers are accumulated paths and tributary networks rather than
 drawn channels.
 
-### 5. Icebound climate with warmth pockets
+### 5. Present icebound climate with warmth pockets
 
-The world has a cold global baseline. Temperature is derived from elevation
-lapse, ocean moderation, water proximity, and several deterministic warmth
-systems rather than latitude or an independent noise channel.
+The present world has a cold global baseline. Temperature is derived from
+elevation lapse, ocean moderation, water proximity, and several deterministic
+warmth systems rather than latitude or an independent noise channel.
 
 Warmth pockets may occur offshore, on coasts, inland, or around geothermal
 systems. The startup heart is guaranteed to overlap one viable warmth system,

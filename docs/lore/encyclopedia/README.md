@@ -55,6 +55,7 @@ generator outcomes.
 - [Council of Luminaries](council-of-luminaries.md)
 - [Courier Corps](courier-corps.md)
 - [Dead God](dead-god.md)
+- [The Deep Freeze](deep-freeze.md)
 - [Deep Ice Corruption](deep-ice-corruption.md)
 - [Fire Keepers](fire-keepers.md)
 - [Flipper Accord](flipper-accord.md)

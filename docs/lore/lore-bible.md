@@ -6,7 +6,7 @@
 
 ## 1. The Premise in One Paragraph
 
-Aurora Berg is a continent-sized iceberg drifting through an endless frozen sea at the bottom of the world. Three sapient peoples share it: the **Aurora Stack** penguins on the sunlit surface, the **Nightshelf** penguins in the lightless tunnels beneath, and the **Orca** in the waters surrounding it. The ice itself is a vast, slow consciousness — the **ice-memory** — that records everything that happens on or in it. Events leave impressions; the dead persist as echoes; identity and history are literally frozen into the ground the penguins walk on. Beneath the waters, something two miles long lies on the abyssal floor, heart still beating once every several minutes. The civilizations here cannot leave — the Frozen Sea has no documented edge — so every conflict must eventually be settled with whoever is still standing when it's over.
+Aurora Berg is a continent-sized iceberg drifting through an endless frozen sea at the bottom of the world. Three sapient peoples share it: the **Aurora Stack** penguins on the sunlit surface, the **Nightshelf** penguins in the lightless tunnels beneath, and the **Orca** in the waters surrounding it. The ice itself is a vast, slow consciousness — the **ice-memory** — that records everything that happens on or in it. Events leave impressions; the dead persist as echoes; identity and history are literally frozen into the ground the penguins walk on. Beneath the waters, something two miles long lies on the abyssal floor, heart still beating once every several minutes. The civilizations here cannot leave — the Frozen Sea has no documented edge — so every conflict must eventually be settled with whoever is still standing when it's over. This is not the natural climate of an ice planet: the present cold is the aftermath of a recent artificial ice age imposed on a formerly temperate world.
 
 ---
 
@@ -54,6 +54,27 @@ Shore-watch duty rotates every two weeks. Longer, and the watchers develop the "
 ### 2.4 The Only Home
 
 Because the sea has no crossable edge, there is nowhere else. Every conflict must be resolved, every resource managed, every death absorbed. This is the foundational constraint of civilization on The Berg.
+
+### 2.5 The Artificial Ice Age
+
+Before the Collapse, the wider world had a climate roughly comparable to
+Earth's. It possessed ordinary continents and oceans, long-lived river systems,
+temperate ecologies, and civilizations whose works were not designed for
+permanent planetary ice. The Berg and its polar seas were cold places within
+that world, not evidence that the entire world had always been frozen.
+
+The apocalyptic war before the current age destroyed the world's magical
+balance and killed the Dead God. The two events cannot be cleanly separated as
+causes. Together they forced the world into the **Deep Freeze**, an artificial
+and catastrophic glaciation whose duration is unknown and whose onset destroyed
+the previous civilization.
+
+The Deep Freeze has ended; the ice age has not. Game year 0 begins roughly
+twenty years after the acute freeze released its hold. Oceans and coasts have
+reopened unevenly, refuges of warmth support life, and survivors have begun to
+move through a world still buried beneath the climatic consequence of the war.
+Present ice therefore overprints an older temperate geography rather than
+replacing its geological history.
 
 ---
 
@@ -136,7 +157,10 @@ Three scholarly camps:
 
 Beneath the surface, older ice contains older memories. The deepest layers contain impressions from before penguins existed. Readers who access them report alien geometries, thoughts that don't parse into penguin concepts, a sense of vast and patient attention. Some believe the deep ice *is* the ice-memory's consciousness. Others believe it is simply older recordings left by beings who were incomprehensible.
 
-It is from these depths that artifacts of The Before Times occasionally surface — objects bearing serial numbers in no known language, radiating power that makes the ice-memory itself recoil.
+The Deep Freeze also buried the much more recent weapons and ruins of the Before
+Times beneath ice that current civilizations often mistake for ancient strata.
+These objects bear serial numbers in technical systems no longer understood and
+radiate power that makes the ice-memory itself recoil.
 
 ---
 
@@ -544,6 +568,14 @@ Grandmother Deep says the pulse is a **countdown**. She does not say to what. Wh
 
 Frozen in the deepest ice lie artifacts that should not exist. Impossible materials, serial numbers in no known language, power that makes the ice-memory itself recoil. The penguins call them relics of The Before Times.
 
+The Before Times are the immediately pre-Collapse civilization, not an unknown
+older age. Its ruined roads, megaliths, settlements, civic works, and
+serial-numbered weapons all belong to the same technological world. The six
+known artifacts below are high-technology weapons used in the apocalyptic war
+that killed the Dead God, broke the magical balance, and caused the Deep Freeze.
+They feel alien to current cultures because the civilization that designed,
+manufactured, named, and operated them did not survive intact.
+
 ### 10.1 The Six Known Artifacts
 
 - **8H-H1Y0B — Prime Shard.** A fragment of something larger, edges impossibly sharp, surface shifting between states of matter. Held in Aurora Stack's deepest vaults. Ice-readers who approach it report hearing numbers — endless strings of them — in a voice that sounds like grinding glaciers.
@@ -553,12 +585,18 @@ Frozen in the deepest ice lie artifacts that should not exist. Impossible materi
 - **P3-8NL2B5H — Singularity Obelisk.** A pillar that floats precisely three inches above any surface it is placed on. Its surface is covered in the serial numbers of other artifacts — possibly a manifest of things yet to be found.
 - **8R-W6GQ3K3L — Singularity Beam.** A rod emitting light of a color that has no name. Those who look upon it see different things — some see the future, some the past, some nothing at all and are never quite the same afterward.
 
-### 10.2 Theories of Origin
+### 10.2 Origin And Lost Interpretation
 
-- **Deep Ice Hypothesis** — remnants of a civilization that lived on The Berg millions of years ago, so ancient that even the ice-memory has compressed their impressions into incomprehensible noise.
-- **Fallen Sky Theory** — debris or gifts from entities that exist in the spaces between stars; they follow no natural laws because they are foreign to this reality.
-- **Future Echo Speculation** — deep-ice readers have reported seeing what feels like the future: ruined cities, lights in the sky, the ice itself burning. Perhaps the artifacts echo backward through time from something that hasn't happened yet.
-- **Dead God's Tools** — Wake-Singers believe all the artifacts are pieces of the Dead God. The serial numbers are the god's true names. Assembling them all would wake it. Their greatest hope or The Berg's greatest danger, depending on whom you ask.
+Canonically, these are surviving weapon systems from the pre-Collapse war. They
+retain serial numbers because they were manufactured military technology, not
+unnamed mystical relics. Their use killed the Dead God and helped unbalance the
+three magical forces badly enough to freeze the world.
+
+Current inhabitants do not possess that complete explanation. Deep-ice readers,
+Wake-Singers, archivists, and weapon custodians variously misidentify them as
+fallen-sky debris, pieces of the Dead God, future echoes, or artifacts from a
+lost civilization far older than their actual makers. Those interpretations are
+in-world uncertainty, not uncertainty in the setting canon.
 
 ### 10.3 Handling Protocols
 
@@ -653,6 +691,12 @@ Orca who die before they can descend — killed in combat, injury, accident — 
 
 ## 13. The Five Eras of Recorded History
 
+These era lenses describe surviving recorded history during the Deep Freeze,
+after the Collapse. Their archives cover only parts of that unknown span because
+the catastrophe broke the calendar, destroyed institutions, and buried much of
+their physical evidence. The Transition marks the end of this sequence around
+the end of the acute freeze; game year 0 follows roughly twenty years later.
+
 Chronicled (with characteristic skepticism) by Quillen (frost-scarred, echo: Quilara) val'Foundation, Third Under-Archivist of the Foundation Depths.
 
 ### 13.1 The Great Thaw
@@ -685,9 +729,9 @@ The orca threat recedes, leaving generational scars. Survivors rebuild colonies 
 
 **Quillen's view.** *"The Frozen Peace is not peace. It is exhaustion dressed as stability, and I say this with genuine affection for the exhausted."*
 
-### 13.6 The Transition (present)
+### 13.6 The Transition (end of the Deep Freeze)
 
-The Council has commissioned an annotated chronicle "in preparation for what they are calling the transition." No one will say what the transition is. Quillen has read enough history to recognize the pattern: institutions commission annotated editions of their chronicles when they sense an ending — or a beginning so large the previous era must be formally closed and shelved. The Great Thaw warranted one when the Faction Wars began. The Faction Wars warranted one when the fighting stopped. The Clever Ice Age warranted one when the orcas arrived and rendered cleverness insufficient.
+Toward the end of the Deep Freeze, the Council commissioned an annotated chronicle "in preparation for what they called the transition." No one would say what the transition was. Quillen had read enough history to recognize the pattern: institutions commission annotated editions of their chronicles when they sense an ending — or a beginning so large the previous era must be formally closed and shelved. The Great Thaw warranted one when the Faction Wars began. The Faction Wars warranted one when the fighting stopped. The Clever Ice Age warranted one when the orcas arrived and rendered cleverness insufficient.
 
 **Something is coming.** Quillen writes: *"The ice knows. I can feel it in the deep layers — a change in the quality of the impressions, a shift in what the frost chooses to preserve. The ice is recording more carefully now, the way it does before events it considers significant. I do not know what it is preparing to witness."*
 
@@ -699,11 +743,11 @@ Dated: *"The fifty-third year of the Frozen Peace — or, if we are being precis
 
 ### 14.1 High-Beak Auditor Selka — Aurora Stack
 
-Meticulous mayor of Aurora Stack. Elected by a demonstration of aurora-magic so precise she etched trade figures into ice from across a room. Speaks in numbers and celestial metaphors. Silver-threaded robes, always immaculate. **Crystal circlet calibrated to detect lies through subtle temperature shifts.** Rose through the Icebound Exchange before taking office; critics note she has never ruled against the guild's interests. Her office contains **seventeen aurora-lenses** trained on different parts of the colony, and she is said to watch them all simultaneously. The Nightshelf calls her *"the Counting Beak"* and trusts her exactly as far as the Flipper Accord requires.
+Meticulous mayor of Aurora Stack. Elected by a demonstration of aurora-magic so precise she etched trade figures into ice from across a room. Speaks in numbers and celestial metaphors. Silver-threaded robes, always immaculate. **Crystal circlet calibrated to detect lies through subtle temperature shifts.** Rose through the Icebound Exchange before taking office; critics note she has never ruled against the guild's interests. Her office contains **seventeen aurora-lenses** trained on different parts of the colony, and she is said to watch them all simultaneously. The Nightshelf calls her *"the Counting Beak"* and trusts her exactly as far as the Flipper Accord requires. Selka lived before the Collapse and carries direct memory of the world before the Deep Freeze.
 
 ### 14.2 Shadow-Broker Nyla — Nightfall Shelf
 
-Unofficial mayor of Nightfall Shelf. Holds no elected office; her word carries more weight than any council vote. Inherited the Midnight Claws at nineteen after her predecessor fell into a fire-vent — an accident she was suspiciously positioned to survive. Ash-gray wraps that blend into tunnel shadows. Speaks in riddles that reveal themselves three conversations later. Her left flipper bears burn scars from a forge accident she won't discuss. **Never been seen in aurora-light.** Her power peaks in Long Dark. She has forbidden all discussion of the Dead God within Nightshelf territory.
+Unofficial mayor of Nightfall Shelf. Holds no elected office; her word carries more weight than any council vote. Inherited the Midnight Claws at nineteen after her predecessor fell into a fire-vent — an accident she was suspiciously positioned to survive. Ash-gray wraps that blend into tunnel shadows. Speaks in riddles that reveal themselves three conversations later. Her left flipper bears burn scars from a forge accident she won't discuss. **Never been seen in aurora-light.** Her power peaks in Long Dark. She has forbidden all discussion of the Dead God within Nightshelf territory. Nyla lived before the Collapse and remembers the institutions and routes that the Deep Freeze erased.
 
 ### 14.3 Keeper Hollows — The Drowned Ledge
 
@@ -711,7 +755,7 @@ Last miner to escape the Drowned Ledge, now a hermit who camps at the sealed ent
 
 ### 14.4 Grandmother Deep — Orca, leader of the Wake-Singers
 
-Oldest orca matriarch in living memory. Dove to touch the Dead God's body and returned changed. Her left eye sees the present; her right eye, clouded white, sees something else — futures, pasts, or simply bone, depending on who's asking. Leads no pod directly; advises all of them. Whale-song carries prophecies that have proven accurate often enough to terrify. Remembers when penguins were just food, before they built towers and channeled lights. Curious why they've changed, and whether the change makes them more or less suitable for sacrifice. The scars across her flank spell words in a language the Dead God's followers haven't used in generations. The twice-born whose name keeps growing past where it should have stopped.
+Oldest orca matriarch in living memory. Dove to touch the Dead God's body and returned changed. Her left eye sees the present; her right eye, clouded white, sees something else — futures, pasts, or simply bone, depending on who's asking. Leads no pod directly; advises all of them. Whale-song carries prophecies that have proven accurate often enough to terrify. Remembers when penguins were just food, before they built towers and channeled lights. Curious why they've changed, and whether the change makes them more or less suitable for sacrifice. The scars across her flank spell words in a language the Dead God's followers haven't used in generations. The twice-born whose name keeps growing past where it should have stopped. Grandmother Deep lived before the Collapse and is one of the few surviving witnesses to the old climate and the Dead God's death.
 
 ### 14.5 Ferrymaster Owke — Courier Corps (implied)
 
@@ -841,7 +885,7 @@ relationships that show fear, allegiance, or abandonment.
 - **Central metaphysical conceit.** The ice remembers. This is a recording universe, not a just one. Nothing is erased, but nothing is punished. The dead persist not as spirits with intent but as impressions with personality.
 - **Central political conceit.** The Flipper Accord. Two civilizations kept alive by a trade dependency neither wanted. Not peace. Not friendship. A mutual hostage arrangement dressed in trade language.
 - **Central cosmological conceit.** The Frozen Sea has no edge, and something two miles long lies at the bottom of it with its heart still beating.
-- **Central temporal conceit.** The transition. The Frozen Peace ended three years ago and nobody bothered to name what came next. The Council commissions chronicles when an era is about to close. Quillen can feel the ice recording more carefully.
+- **Central temporal conceit.** Game year 0 begins roughly twenty years after the Deep Freeze ended. The acute catastrophe has passed, but the artificial ice age remains; survivors are rebuilding over a temperate world buried beneath recent magical glaciation.
 - **Three irreducible ways of being a person.** Aurora: accumulate echoes, be witnessed, join the ice. Nightshelf: hold secrets, remain incomplete, join the shadow. Orca: accumulate kills, be complete, descend on your own terms.
 - **Three irreducible costs for power.** Aurora-light costs clarity of self. Captured fire costs flesh. Pressure-depth costs interior distance.
 - **The great unresolved questions.**

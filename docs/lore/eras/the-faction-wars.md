@@ -60,7 +60,15 @@ Audits were filed in triplicate with the crystalline precision the Thaw had inst
 
 A subordinate named Lianoshing carried the schematics between sessions, carried the supply-chain reports, carried the knowledge of what was failing and where. Present for every critical assessment. Permitted to act in none. The ice record catalogues at least eleven such figures across the era — competent, informed, positioned at the exact juncture where intervention would have mattered, held in place by an architecture that granted proximity to decision without authority to decide. The same consensus protocols that prevented any single actor from seizing power prevented any single actor from exercising judgment, and the distinction between those two operations was invisible to the system that performed both.
 
-Selka died in a Calving at the eastern galleries while cataloguing discrepancies she had been accumulating for the better part of a season. The official account attributes the fracture to natural compression. The deep ice shows stress patterns propagating from inside, originating at a depth consistent with tunnels opened three weeks prior under an orca diplomatic pact that neither faction's public record acknowledges. No proof is required beyond what the ice already shows: the eastern face fractured from within, someone had opened tunnels beneath it, and the penguin cataloguing structural anomalies died in the event.
+Selka was declared dead after a Calving at the eastern galleries swallowed the
+survey position where she had been cataloguing discrepancies for the better
+part of a season. The official account attributes the fracture to natural
+compression. The deep ice shows stress patterns propagating from inside,
+originating at a depth consistent with tunnels opened three weeks prior under an
+orca diplomatic pact that neither faction's public record acknowledges. It
+records Selka entering the galleries and the eastern face fracturing from
+within; it does not record a body. The death certificate survived. Selka did
+too, although she did not return to public record until after the Deep Freeze.
 
 A replacement arrived. Qeihong carried the confidence of distance — the assessor who had never chosen between doctrine and a colony going dark. His distinction was sharp: *Protecting the colony is not the same as protecting your vision of the colony.* Within two cycles the ice records comparable compromises under his authority. The line survives in citation because it flatters the reader who believes they would have chosen differently. They would not have. The apparatus that produced Qeihong's compromises ran the same specifications as the compromises he had been sent to audit.
 

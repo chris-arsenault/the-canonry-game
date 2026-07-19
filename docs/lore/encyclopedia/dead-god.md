@@ -9,6 +9,11 @@ makes ordinary history look recently hatched.
 
 Whether it is a god is an argument. Whether something is down there is not.
 
+The Dead God was killed during the apocalyptic war before the current age. Its
+death broke the world's magical balance and helped cause the Deep Freeze. The
+continued heartbeat does not make that death metaphorical; it makes divine
+death stranger than mortal death.
+
 ## The Body And Current
 
 The Corpse Current runs warm without volcanic explanation. Orca track it by its

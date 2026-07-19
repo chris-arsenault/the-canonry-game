@@ -1,15 +1,16 @@
 # The Transition
 
-*Archivist's register: present lens, unstable.*
+*Archivist's register: end-of-Deep-Freeze lens, unstable.*
 
-"The Transition" is not yet an era. It is a committee word, which means it was
-chosen because every more honest word would have required a vote no one wanted
-to lose. The Council commissioned new chronicles in preparation for it. The ice
-has begun recording with the careful attention it shows before events that later
-generations pretend were obvious.
+"The Transition" was never an era. It was a committee word from near the end of
+the Deep Freeze, chosen because every more honest word would have required a vote
+no one wanted to lose. The Council commissioned new chronicles in preparation
+for it. The ice had begun recording with the careful attention it shows before
+events that later generations pretend were obvious.
 
-If the term survives, historians will claim they knew what it meant. At present,
-they do not.
+Later historians can claim they knew what it meant. At the time, they did not.
+What followed was the end of the acute Deep Freeze, though not the end of the
+artificial ice age it had created.
 
 ## Signs
 
@@ -33,14 +34,14 @@ already ended.
 
 ## Useful Lore To Extract
 
-- Present-day records should feel over-documented and under-explained.
+- Late-Deep-Freeze records should feel over-documented and under-explained.
 - Institutions should sense change before they can name it.
 - The unresolved questions remain active pressures, not puzzles to solve.
 - "Transition" should be a working label, not a cosmological certainty.
 
 ## Chronicle Use
 
-Use this lens for current uncertainty. Do not anchor the world too firmly on it.
-It is most useful as atmosphere: the ice paying closer attention, officials
-commissioning records, and ordinary people noticing that the old names no longer
-fit the cold around them.
+Use this lens for uncertainty immediately before the Deep Freeze ends. It is
+most useful as atmosphere: the ice paying closer attention, officials
+commissioning records, and ordinary people noticing that the old names no
+longer fit the world around them.
