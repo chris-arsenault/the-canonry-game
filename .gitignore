@@ -39,3 +39,6 @@ Thumbs.db
 *.speedscope.json
 *.etl
 *.etlx
+
+# Local pregenerated worlds
+worlds/*.world

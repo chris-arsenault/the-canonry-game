@@ -4,6 +4,7 @@
 #pragma warning disable CA2213
 using Godot;
 
+using TheCanonryGame.Game;
 using TheCanonryGame.UI.Theme;
 
 namespace TheCanonryGame.UI;
@@ -13,6 +14,8 @@ public partial class TopBar : PanelContainer
     private Label? _titleLabel;
     private Label? _subtitleLabel;
     private Label? _tickLabel;
+    private OptionButton? _worldSelector;
+    private Button? _loadWorldButton;
 
     [Signal]
     public delegate void PauseRequestedEventHandler();
@@ -26,6 +29,9 @@ public partial class TopBar : PanelContainer
     [Signal]
     public delegate void ResetRequestedEventHandler();
 
+    [Signal]
+    public delegate void PregeneratedWorldRequestedEventHandler(int baseSeed);
+
     public override void _Ready()
     {
         CustomMinimumSize = new Vector2(0, 48);
@@ -34,6 +40,8 @@ public partial class TopBar : PanelContainer
         _titleLabel = GetNode<Label>("Row/TitleColumn/TitleLabel");
         _subtitleLabel = GetNode<Label>("Row/TitleColumn/SubtitleLabel");
         _tickLabel = GetNode<Label>("Row/TickLabel");
+        _worldSelector = GetNode<OptionButton>("Row/Controls/WorldSelector");
+        _loadWorldButton = GetNode<Button>("Row/Controls/LoadWorldButton");
 
         GetNode<HBoxContainer>("Row").AddThemeConstantOverride("separation", UiTokens.Space4);
         GetNode<VBoxContainer>("Row/TitleColumn").AddThemeConstantOverride("separation", 0);
@@ -56,7 +64,38 @@ public partial class TopBar : PanelContainer
         WireButton("Row/Controls/NormalSpeedButton", () => EmitSignal(SignalName.SpeedRequested, 1d));
         WireButton("Row/Controls/FastSpeedButton", () => EmitSignal(SignalName.SpeedRequested, 5d));
         WireButton("Row/Controls/VeryFastSpeedButton", () => EmitSignal(SignalName.SpeedRequested, 10d));
+        WireButton("Row/Controls/LoadWorldButton", LoadSelectedPregeneratedWorld);
         WireButton("Row/Controls/ResetButton", () => EmitSignal(SignalName.ResetRequested));
+    }
+
+    internal void SetPregeneratedWorlds(
+        IReadOnlyList<GamePregeneratedWorld> worlds,
+        int? selectedBaseSeed = null)
+    {
+        ArgumentNullException.ThrowIfNull(worlds);
+        if (_worldSelector is null || _loadWorldButton is null)
+        {
+            return;
+        }
+
+        _worldSelector.Clear();
+        foreach (var world in worlds)
+        {
+            _worldSelector.AddItem(world.DisplayName, world.BaseSeed);
+        }
+
+        _loadWorldButton.Disabled = worlds.Count == 0;
+        _worldSelector.Disabled = worlds.Count == 0;
+        if (worlds.Count == 0)
+        {
+            _worldSelector.AddItem("no .world files");
+            return;
+        }
+
+        var selectedIndex = selectedBaseSeed is { } seed
+            ? worlds.ToList().FindIndex(world => world.BaseSeed == seed)
+            : -1;
+        _worldSelector.Select(Math.Max(0, selectedIndex));
     }
 
     public void SetStatus(
@@ -83,5 +122,15 @@ public partial class TopBar : PanelContainer
         var button = GetNode<Button>(path);
         button.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
         button.Pressed += onPressed;
+    }
+
+    private void LoadSelectedPregeneratedWorld()
+    {
+        if (_worldSelector is null || _worldSelector.Disabled)
+        {
+            return;
+        }
+
+        EmitSignal(SignalName.PregeneratedWorldRequested, _worldSelector.GetSelectedId());
     }
 }

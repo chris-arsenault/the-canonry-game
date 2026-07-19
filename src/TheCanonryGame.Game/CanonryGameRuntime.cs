@@ -55,10 +55,19 @@ internal enum GameStartupStage
 {
     CheckingCachedWorld,
     LoadingCachedWorld,
+    LoadingPregeneratedWorld,
     GeneratingWorld,
     SavingCachedWorld,
     StartingSimulation,
     PrewarmingSimulation,
+}
+
+internal enum GameStartupSourceKind
+{
+    Generated,
+    GeneratedAndCached,
+    Cached,
+    PregeneratedWorldFile,
 }
 
 internal sealed record GameWorldCacheOptions(string Directory, bool Regenerate = false)
@@ -68,10 +77,18 @@ internal sealed record GameWorldCacheOptions(string Directory, bool Regenerate =
         : Directory;
 }
 
+internal sealed record GamePregeneratedWorld(
+    int BaseSeed,
+    string Path,
+    long SizeBytes)
+{
+    public string DisplayName => $"seed {BaseSeed}  ·  {SizeBytes / (1024d * 1024d):0} MB";
+}
+
 internal sealed record GameStartupResult(
     CanonryGameRuntime Runtime,
-    bool CacheHit,
-    string? CachePath,
+    GameStartupSourceKind SourceKind,
+    string? SourcePath,
     string? Warning);
 
 internal sealed class CanonryGameRuntime : IDisposable
@@ -162,17 +179,63 @@ internal static class CanonryGameRuntimeFactory
         }
 
         reportStage?.Invoke(GameStartupStage.StartingSimulation);
+        var runtime = StartUiRuntime(seedPolicy, startupSeed, runLogPath);
+        var sourceKind = cacheResult is null
+            ? GameStartupSourceKind.Generated
+            : CacheSourceKind(cacheResult);
+        return new GameStartupResult(
+            runtime,
+            sourceKind,
+            cacheResult?.CachePath,
+            cacheResult?.Warning);
+    }
+
+    private static GameStartupSourceKind CacheSourceKind(IceRemembersStartupSeedCacheResult cacheResult) =>
+        cacheResult.CacheHit
+            ? GameStartupSourceKind.Cached
+            : GameStartupSourceKind.GeneratedAndCached;
+
+    public static IReadOnlyList<GamePregeneratedWorld> DiscoverPregeneratedWorlds(string directory) =>
+        IceRemembersPregeneratedWorldStore.Discover(directory)
+            .Select(static world => new GamePregeneratedWorld(
+                world.BaseSeed,
+                world.Path,
+                world.SizeBytes))
+            .ToArray();
+
+    public static GameStartupResult StartPregenerated(
+        GamePregeneratedWorld world,
+        Action<GameStartupStage>? reportStage = null,
+        string? runLogPath = null)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        reportStage?.Invoke(GameStartupStage.LoadingPregeneratedWorld);
+        var startupSeed = IceRemembersPregeneratedWorldStore.Read(
+            new IceRemembersPregeneratedWorldInfo(world.BaseSeed, world.Path, world.SizeBytes));
+        reportStage?.Invoke(GameStartupStage.StartingSimulation);
+        var runtime = StartUiRuntime(
+            GameSeedPolicy.Requested(world.BaseSeed),
+            startupSeed,
+            runLogPath);
+        return new GameStartupResult(
+            runtime,
+            GameStartupSourceKind.PregeneratedWorldFile,
+            world.Path,
+            null);
+    }
+
+    private static CanonryGameRuntime StartUiRuntime(
+        GameSeedPolicy seedPolicy,
+        DomainStartupSeedResult? startupSeed,
+        string? runLogPath)
+    {
         var runtime = RuntimeFactory.StartUiRuntime(new KernelStartRequest(
             IceRemembersRuntime.DomainName,
             seedPolicy.ToStartupSeedPolicy(),
             KernelFunctionProfile.InteractiveRealtime,
             startupSeed: startupSeed),
             runLogPath);
-        return new GameStartupResult(
-            new CanonryGameRuntime(runtime),
-            cacheResult?.CacheHit ?? false,
-            cacheResult?.CachePath,
-            cacheResult?.Warning);
+        return new CanonryGameRuntime(runtime);
     }
 
     private static GameStartupStage MapCacheStage(IceRemembersStartupSeedCacheStage stage) => stage switch

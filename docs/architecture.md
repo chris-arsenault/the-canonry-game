@@ -68,7 +68,8 @@ Startup follows this shape:
 
 1. Godot paints a modal startup surface, then schedules world construction off
    the render thread.
-2. Fixed-seed interactive development runs restore a versioned immutable
+2. Fixed-seed interactive development runs prefer an explicit versioned
+   `worlds/*.world` artifact for that seed, then restore the ordinary immutable
    startup-seed cache when available; random runs generate directly.
 3. `Engine.Host` loads the Ice Remembers domain definition.
 4. `Engine.Domain` registers stable ids and builds the definition graph.
@@ -85,6 +86,14 @@ Debug launches default to fixed seed `4200` so iteration reuses the same world.
 `--random-seed`, `--no-world-cache`, and `--regenerate-world` retain explicit
 control over startup behavior. The cache is a developer startup optimization,
 not a simulation persistence or save-game format.
+
+Pregenerated `.world` files serialize the same pre-kernel startup boundary but
+are explicit local artifacts rather than cache entries. The application scans
+`res://worlds`, validates each file's format and world-generation version, and
+offers valid files through the top-bar world selector. These potentially large
+generated files are gitignored; selecting one replaces the current runtime via
+the ordinary asynchronous startup/loading surface. Release artifacts are built
+through `tools/WorldGenerator`, keeping generation out of the Godot UI process.
 
 Consumers must not stall kernel advancement. If a consumer needs richer
 materialized state, it builds that state from events or snapshots on its own

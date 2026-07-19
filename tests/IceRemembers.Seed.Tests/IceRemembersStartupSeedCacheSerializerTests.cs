@@ -9,6 +9,39 @@ using Engine.Host;
 public sealed class IceRemembersStartupSeedCacheSerializerTests
 {
     [Fact]
+    public void PregeneratedWorldStore_DiscoversAndLoadsOnlyCurrentValidWorldFiles()
+    {
+        var directory = Path.Combine(
+            Path.GetTempPath(),
+            "canonry-pregenerated-world-tests",
+            Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var expected = CreateStartupSeed();
+            var currentPath = Path.Combine(directory, "current.world");
+            IceRemembersPregeneratedWorldStore.Write(currentPath, expected);
+            File.WriteAllText(Path.Combine(directory, "corrupt.world"), "not a world");
+            WriteLegacyWorld(Path.Combine(directory, "legacy.world"), expected);
+
+            var discovered = Assert.Single(IceRemembersPregeneratedWorldStore.Discover(directory));
+            Assert.Equal(expected.Identity.BaseSeed, discovered.BaseSeed);
+            Assert.Equal(Path.GetFullPath(currentPath), discovered.Path);
+            Assert.True(discovered.SizeBytes > 0);
+
+            var actual = IceRemembersPregeneratedWorldStore.Read(discovered);
+            Assert.Equal(expected.Identity.BaseSeed, actual.Identity.BaseSeed);
+            Assert.Equal(expected.Identity.Attempt, actual.Identity.Attempt);
+            Assert.Equal(expected.Seed.PhysicalGeography!.Cells, actual.Seed.PhysicalGeography!.Cells);
+            Assert.Equal(expected.Seed.PhysicalGeography.Microtriangles, actual.Seed.PhysicalGeography.Microtriangles);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void RoundTrip_PreservesCompleteStartupSeed()
     {
         var expected = CreateStartupSeed();
@@ -129,6 +162,16 @@ public sealed class IceRemembersStartupSeedCacheSerializerTests
                 42,
                 2,
                 new Dictionary<string, int>(StringComparer.Ordinal) { ["terrain"] = 99 }));
+    }
+
+    private static void WriteLegacyWorld(string path, DomainStartupSeedResult startupSeed)
+    {
+        using var stream = File.Create(path);
+        IceRemembersStartupSeedCacheSerializer.Write(
+            stream,
+            IceRemembersWorldGenerationVersion.Current - 1,
+            startupSeed.Identity.BaseSeed,
+            startupSeed);
     }
 
     private static DomainPhysicalGeographyBlueprint CreatePhysicalGeography()

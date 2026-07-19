@@ -21,5 +21,6 @@
     <InternalsVisibleTo Include="Engine.Observability.Tests" />
     <InternalsVisibleTo Include="IceRemembers.Seed.Tests" />
     <InternalsVisibleTo Include="MonteCarlo.Tests" />
+    <InternalsVisibleTo Include="WorldGenerator" />
   </ItemGroup>
 </Project>

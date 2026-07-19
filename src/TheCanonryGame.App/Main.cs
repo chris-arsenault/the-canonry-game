@@ -58,6 +58,7 @@ public partial class Main : Node2D
     private bool _startupRegenerateWorld;
     private bool _startupRandomSeedRequested;
     private bool _startupDisableWorldCache;
+    private IReadOnlyList<GamePregeneratedWorld> _pregeneratedWorlds = [];
 
     public override void _ExitTree()
     {
@@ -336,6 +337,7 @@ public partial class Main : Node2D
             _topBar.StepRequested += StepKernelDriver;
             _topBar.SpeedRequested += SetKernelTickRate;
             _topBar.ResetRequested += ResetSimulation;
+            _topBar.PregeneratedWorldRequested += LoadPregeneratedWorld;
         }
 
         if (_bottomBar is not null)
@@ -371,9 +373,14 @@ public partial class Main : Node2D
 
     private void InitializeKernelHost()
     {
+        RefreshPregeneratedWorlds();
         var seedPolicy = _startupSeed is { } seed
             ? GameSeedPolicy.Requested(seed)
             : GameSeedPolicy.Random();
+        var pregeneratedWorld = !_startupRegenerateWorld &&
+            _startupSeed is { } requestedSeed
+                ? _pregeneratedWorlds.FirstOrDefault(world => world.BaseSeed == requestedSeed)
+                : null;
         var cacheOptions = _startupUseWorldCache && _startupSeed.HasValue
             ? new GameWorldCacheOptions(
                 ProjectSettings.GlobalizePath("user://world-cache"),
@@ -384,7 +391,8 @@ public partial class Main : Node2D
             pauseAfterStart: _startupPrewarmTicks > 0 && _startupTickRate is null,
             prewarmTicks: _startupPrewarmTicks,
             tickRateAfterStart: _startupTickRate,
-            cacheOptions: cacheOptions);
+            cacheOptions: pregeneratedWorld is null ? cacheOptions : null,
+            pregeneratedWorld: pregeneratedWorld);
     }
 
     private void StartNewRun(
@@ -392,7 +400,8 @@ public partial class Main : Node2D
         bool pauseAfterStart,
         int prewarmTicks = 0,
         double? tickRateAfterStart = null,
-        GameWorldCacheOptions? cacheOptions = null)
+        GameWorldCacheOptions? cacheOptions = null,
+        GamePregeneratedWorld? pregeneratedWorld = null)
     {
         _renderTree?.CloseOpenCards();
         _renderTree?.ClearTooltip();
@@ -409,7 +418,8 @@ public partial class Main : Node2D
             prewarmTicks,
             pauseAfterStart,
             tickRateAfterStart,
-            cacheOptions));
+            cacheOptions,
+            pregeneratedWorld));
     }
 
     private BackgroundStartupResult BuildRuntime(
@@ -417,12 +427,13 @@ public partial class Main : Node2D
         int prewarmTicks,
         bool pauseAfterStart,
         double? tickRateAfterStart,
-        GameWorldCacheOptions? cacheOptions)
+        GameWorldCacheOptions? cacheOptions,
+        GamePregeneratedWorld? pregeneratedWorld)
     {
-        var startup = CanonryGameRuntimeFactory.StartInteractive(
+        var startup = StartConfiguredRuntime(
             seedPolicy,
             cacheOptions,
-            stage => Volatile.Write(ref _startupStage, (int)stage));
+            pregeneratedWorld);
         try
         {
             startup.Runtime.Controls.Pause();
@@ -444,6 +455,22 @@ public partial class Main : Node2D
             startup.Runtime.Dispose();
             throw;
         }
+    }
+
+    private GameStartupResult StartConfiguredRuntime(
+        GameSeedPolicy seedPolicy,
+        GameWorldCacheOptions? cacheOptions,
+        GamePregeneratedWorld? pregeneratedWorld)
+    {
+        void ReportStage(GameStartupStage stage) =>
+            Volatile.Write(ref _startupStage, (int)stage);
+
+        if (pregeneratedWorld is not null)
+        {
+            return CanonryGameRuntimeFactory.StartPregenerated(pregeneratedWorld, ReportStage);
+        }
+
+        return CanonryGameRuntimeFactory.StartInteractive(seedPolicy, cacheOptions, ReportStage);
     }
 
     private static TimeSpan PrewarmRuntime(CanonryGameRuntime runtime, int targetTick)
@@ -568,6 +595,31 @@ public partial class Main : Node2D
         GD.Print("Generating a new random simulation world.");
     }
 
+    private void LoadPregeneratedWorld(int baseSeed)
+    {
+        RefreshPregeneratedWorlds();
+        var world = _pregeneratedWorlds.FirstOrDefault(candidate => candidate.BaseSeed == baseSeed);
+        if (world is null)
+        {
+            GD.PushWarning($"Pregenerated world for seed {baseSeed} is no longer available.");
+            return;
+        }
+
+        StartNewRun(
+            GameSeedPolicy.Requested(world.BaseSeed),
+            pauseAfterStart: true,
+            pregeneratedWorld: world);
+    }
+
+    private void RefreshPregeneratedWorlds()
+    {
+        _pregeneratedWorlds = CanonryGameRuntimeFactory.DiscoverPregeneratedWorlds(
+            ProjectSettings.GlobalizePath("res://worlds"));
+        _topBar?.SetPregeneratedWorlds(
+            _pregeneratedWorlds,
+            _runtime?.Seed.BaseSeed ?? _startupSeed);
+    }
+
     private void PollStartup(double delta)
     {
         var task = _startupTask;
@@ -649,8 +701,9 @@ public partial class Main : Node2D
     {
         _startupStopwatch?.Stop();
         _startupLoadingOverlay?.HideLoading();
+        RefreshPregeneratedWorlds();
         var elapsed = _startupStopwatch?.Elapsed.TotalSeconds ?? 0d;
-        var cacheText = CacheStatusText(background.Startup);
+        var cacheText = StartupSourceText(background.Startup);
         var runLogText = runtime.RunLogPath is { Length: > 0 } runLogPath
             ? $" Run log -> {runLogPath}"
             : " Run logging disabled.";
@@ -670,22 +723,20 @@ public partial class Main : Node2D
         }
     }
 
-    private static string CacheStatusText(GameStartupResult startup)
+    private static string StartupSourceText(GameStartupResult startup) => startup.SourceKind switch
     {
-        if (startup.CachePath is null)
-        {
-            return " World cache disabled.";
-        }
-
-        return startup.CacheHit
-            ? $" Loaded cached world from {startup.CachePath}."
-            : $" Generated and cached world at {startup.CachePath}.";
-    }
+        GameStartupSourceKind.Generated => " World cache disabled.",
+        GameStartupSourceKind.GeneratedAndCached => $" Generated and cached world at {startup.SourcePath}.",
+        GameStartupSourceKind.Cached => $" Loaded cached world from {startup.SourcePath}.",
+        GameStartupSourceKind.PregeneratedWorldFile => $" Loaded pregenerated world from {startup.SourcePath}.",
+        _ => throw new InvalidOperationException($"Unknown startup source '{startup.SourceKind}'."),
+    };
 
     private static string StartupStageText(GameStartupStage stage) => stage switch
     {
         GameStartupStage.CheckingCachedWorld => "Checking the remembered world",
         GameStartupStage.LoadingCachedWorld => "Restoring the remembered world",
+        GameStartupStage.LoadingPregeneratedWorld => "Loading a pregenerated world",
         GameStartupStage.GeneratingWorld => "Shaping terrain and waters",
         GameStartupStage.SavingCachedWorld => "Remembering this world for next time",
         GameStartupStage.StartingSimulation => "Populating the living world",

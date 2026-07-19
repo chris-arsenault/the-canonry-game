@@ -18,8 +18,6 @@ internal sealed record IceRemembersStartupSeedCacheResult(
 
 internal static class IceRemembersStartupSeedCache
 {
-    private const int WorldGenerationVersion = 7;
-
     public static IceRemembersStartupSeedCacheResult LoadOrCreate(
         int baseSeed,
         string cacheDirectory,
@@ -31,7 +29,7 @@ internal static class IceRemembersStartupSeedCache
 
         var cachePath = Path.Combine(
             cacheDirectory,
-            $"ice-remembers-world-v{WorldGenerationVersion}-seed-{baseSeed}.bin");
+            $"ice-remembers-world-v{IceRemembersWorldGenerationVersion.Current}-seed-{baseSeed}.bin");
         string? warning = null;
 
         reportStage?.Invoke(IceRemembersStartupSeedCacheStage.CheckingCache);
@@ -43,7 +41,7 @@ internal static class IceRemembersStartupSeedCache
                 using var stream = OpenRead(cachePath);
                 var startupSeed = IceRemembersStartupSeedCacheSerializer.Read(
                     stream,
-                    WorldGenerationVersion,
+                    IceRemembersWorldGenerationVersion.Current,
                     baseSeed);
                 return new IceRemembersStartupSeedCacheResult(startupSeed, true, cachePath, null);
             }
@@ -101,7 +99,7 @@ internal static class IceRemembersStartupSeedCache
             {
                 IceRemembersStartupSeedCacheSerializer.Write(
                     stream,
-                    WorldGenerationVersion,
+                    IceRemembersWorldGenerationVersion.Current,
                     baseSeed,
                     startupSeed);
                 stream.Flush(flushToDisk: true);

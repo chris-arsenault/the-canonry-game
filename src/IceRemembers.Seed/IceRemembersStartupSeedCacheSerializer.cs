@@ -24,6 +24,20 @@ internal static class IceRemembersStartupSeedCacheSerializer
     private const int MaximumMicrotriangleCount = 50_000_000;
     private const int MaximumComponentCount = 1_000;
 
+    public static IceRemembersStartupSeedHeader ReadHeader(Stream stream)
+    {
+        ArgumentNullException.ThrowIfNull(stream);
+        using var reader = new BinaryReader(stream, Encoding.UTF8, leaveOpen: true);
+        if (reader.ReadUInt64() != Magic || reader.ReadInt32() != FormatVersion)
+        {
+            throw new InvalidDataException("Startup seed header is not recognized.");
+        }
+
+        return new IceRemembersStartupSeedHeader(
+            reader.ReadInt32(),
+            reader.ReadInt32());
+    }
+
     public static void Write(
         Stream stream,
         int worldGenerationVersion,
@@ -625,3 +639,7 @@ internal static class IceRemembersStartupSeedCacheSerializer
     private static string? ReadNullableString(BinaryReader reader) =>
         reader.ReadBoolean() ? reader.ReadString() : null;
 }
+
+internal readonly record struct IceRemembersStartupSeedHeader(
+    int WorldGenerationVersion,
+    int BaseSeed);
