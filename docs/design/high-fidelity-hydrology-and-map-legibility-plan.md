@@ -46,12 +46,12 @@ projection boundary.
 
 ### 1. Unattended rendered evidence
 
-- [ ] Add an application capture mode that loads a normal `.world`, selects
+- [x] Add an application capture mode that loads a normal `.world`, selects
   deterministic cameras/views, captures the actual Godot viewport, and writes
   a manifest beside the PNGs.
-- [ ] Capture whole-world surface/elevation/hydrology views and fixed cold,
+- [x] Capture whole-world surface/elevation/hydrology views and deterministic cold,
   warm, and major-river crops.
-- [ ] Keep captures as human-review evidence, not pixel-golden tests.
+- [x] Keep captures as human-review evidence, not pixel-golden tests.
 
 ### 2. High-resolution physical elevation
 

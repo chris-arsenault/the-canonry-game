@@ -59,6 +59,8 @@ public partial class Main : Node2D
     private bool _startupRandomSeedRequested;
     private bool _startupDisableWorldCache;
     private IReadOnlyList<GamePregeneratedWorld> _pregeneratedWorlds = [];
+    private WorldgenCaptureOptions? _worldgenCaptureOptions;
+    private WorldgenCaptureController? _worldgenCapture;
 
     public override void _ExitTree()
     {
@@ -125,6 +127,7 @@ public partial class Main : Node2D
         _renderTree?.Present(currentTick, FormatKernelTimeState());
         HandleCameraMovement((float)delta);
         _renderTree?.PresentTooltip(delta);
+        _worldgenCapture?.ProcessFrame();
     }
 
     public override void _UnhandledInput(InputEvent @event)
@@ -374,13 +377,8 @@ public partial class Main : Node2D
     private void InitializeKernelHost()
     {
         RefreshPregeneratedWorlds();
-        var seedPolicy = _startupSeed is { } seed
-            ? GameSeedPolicy.Requested(seed)
-            : GameSeedPolicy.Random();
-        var pregeneratedWorld = !_startupRegenerateWorld &&
-            _startupSeed is { } requestedSeed
-                ? _pregeneratedWorlds.FirstOrDefault(world => world.BaseSeed == requestedSeed)
-                : null;
+        var pregeneratedWorld = ResolveStartupWorld();
+        var seedPolicy = ResolveStartupSeedPolicy(pregeneratedWorld);
         var cacheOptions = _startupUseWorldCache && _startupSeed.HasValue
             ? new GameWorldCacheOptions(
                 ProjectSettings.GlobalizePath("user://world-cache"),
@@ -388,11 +386,36 @@ public partial class Main : Node2D
             : null;
         StartNewRun(
             seedPolicy,
-            pauseAfterStart: _startupPrewarmTicks > 0 && _startupTickRate is null,
+            pauseAfterStart: _worldgenCaptureOptions is not null ||
+                _startupPrewarmTicks > 0 && _startupTickRate is null,
             prewarmTicks: _startupPrewarmTicks,
             tickRateAfterStart: _startupTickRate,
             cacheOptions: pregeneratedWorld is null ? cacheOptions : null,
             pregeneratedWorld: pregeneratedWorld);
+    }
+
+    private GamePregeneratedWorld? ResolveStartupWorld()
+    {
+        if (_worldgenCaptureOptions is not null)
+        {
+            return ResolvePregeneratedWorld(_worldgenCaptureOptions.WorldPath);
+        }
+
+        return !_startupRegenerateWorld && _startupSeed is { } requestedSeed
+            ? _pregeneratedWorlds.FirstOrDefault(world => world.BaseSeed == requestedSeed)
+            : null;
+    }
+
+    private GameSeedPolicy ResolveStartupSeedPolicy(GamePregeneratedWorld? world)
+    {
+        if (_startupSeed is { } seed)
+        {
+            return GameSeedPolicy.Requested(seed);
+        }
+
+        return world is not null
+            ? GameSeedPolicy.Requested(world.BaseSeed)
+            : GameSeedPolicy.Random();
     }
 
     private void StartNewRun(
@@ -490,7 +513,9 @@ public partial class Main : Node2D
 
     private void ReadStartupOptions()
     {
-        foreach (var argument in OS.GetCmdlineUserArgs())
+        var arguments = OS.GetCmdlineUserArgs();
+        _worldgenCaptureOptions = WorldgenCaptureOptions.Parse(arguments);
+        foreach (var argument in arguments)
         {
             ApplyStartupOption(argument);
         }
@@ -674,6 +699,40 @@ public partial class Main : Node2D
         BindStartupRuntime(background.Startup.Runtime);
         ApplyStartupTimeControl(background);
         FinishStartupPresentation(background, background.Startup.Runtime);
+        BeginWorldgenCapture(background.Startup.Runtime);
+    }
+
+    private void BeginWorldgenCapture(CanonryGameRuntime runtime)
+    {
+        if (_worldgenCaptureOptions is null || _camera is null || _mapRenderer is null ||
+            _uiRoot is null || _entityLayer is null)
+        {
+            return;
+        }
+
+        _worldgenCapture = new WorldgenCaptureController(
+            _worldgenCaptureOptions,
+            GetTree(),
+            GetViewport(),
+            _camera,
+            _mapRenderer,
+            _uiRoot,
+            _entityLayer,
+            runtime.ReadModels.PhysicalGeography,
+            runtime.Seed.BaseSeed);
+    }
+
+    private static GamePregeneratedWorld ResolvePregeneratedWorld(string worldPath)
+    {
+        var fullPath = Path.GetFullPath(worldPath);
+        var directory = Path.GetDirectoryName(fullPath) ??
+            throw new InvalidOperationException("Capture world path has no parent directory.");
+        return CanonryGameRuntimeFactory.DiscoverPregeneratedWorlds(directory)
+            .FirstOrDefault(world => string.Equals(
+                Path.GetFullPath(world.Path),
+                fullPath,
+                StringComparison.Ordinal)) ??
+            throw new InvalidOperationException($"Cannot load capture world '{fullPath}'.");
     }
 
     private void BindStartupRuntime(CanonryGameRuntime runtime)
