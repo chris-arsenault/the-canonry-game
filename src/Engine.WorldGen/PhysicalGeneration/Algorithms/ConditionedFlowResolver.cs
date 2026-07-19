@@ -7,7 +7,7 @@ internal static class ConditionedFlowResolver
     public static int[] ResolveLandTargets(PhysicalGeographyField map)
     {
         ArgumentNullException.ThrowIfNull(map);
-        var flatRanks = BuildFlatRanks(map);
+        var flatRouting = BuildFlatRouting(map);
         var targets = new int[map.Grid.TriangleCount];
         Array.Fill(targets, -1);
         for (var triangleIndex = 0; triangleIndex < targets.Length; triangleIndex++)
@@ -17,17 +17,33 @@ internal static class ConditionedFlowResolver
                 continue;
             }
 
-            targets[triangleIndex] = SelectTarget(map, flatRanks, triangleIndex);
+            targets[triangleIndex] = SelectTarget(map, flatRouting, triangleIndex);
         }
 
         return targets;
     }
 
-    private static int[] BuildFlatRanks(PhysicalGeographyField map)
+    private static FlatRouting BuildFlatRouting(PhysicalGeographyField map)
     {
         var ranks = new int[map.Grid.TriangleCount];
+        var outletX = new double[map.Grid.TriangleCount];
+        var outletY = new double[map.Grid.TriangleCount];
         Array.Fill(ranks, -1);
         var queue = new Queue<int>();
+        var order = new int[map.Grid.TriangleCount];
+        SeedFlatOutlets(map, ranks, outletX, outletY, queue);
+        var orderCount = RankFlatInterior(map, ranks, queue, order);
+        AssignFlatOutletCentroids(map, ranks, outletX, outletY, order, orderCount);
+        return new FlatRouting(ranks, outletX, outletY);
+    }
+
+    private static void SeedFlatOutlets(
+        PhysicalGeographyField map,
+        int[] ranks,
+        double[] outletX,
+        double[] outletY,
+        Queue<int> queue)
+    {
         for (var triangleIndex = 0; triangleIndex < ranks.Length; triangleIndex++)
         {
             if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean ||
@@ -37,11 +53,21 @@ internal static class ConditionedFlowResolver
             }
 
             ranks[triangleIndex] = 0;
+            AssignLowerOutletCentroid(map, triangleIndex, outletX, outletY);
             queue.Enqueue(triangleIndex);
         }
+    }
 
+    private static int RankFlatInterior(
+        PhysicalGeographyField map,
+        int[] ranks,
+        Queue<int> queue,
+        int[] order)
+    {
+        var orderCount = 0;
         while (queue.TryDequeue(out var triangleIndex))
         {
+            order[orderCount++] = triangleIndex;
             var nextRank = ranks[triangleIndex] + 1;
             for (var edge = 0; edge < 3; edge++)
             {
@@ -56,7 +82,98 @@ internal static class ConditionedFlowResolver
             }
         }
 
-        return ranks;
+        return orderCount;
+    }
+
+    private static void AssignFlatOutletCentroids(
+        PhysicalGeographyField map,
+        int[] ranks,
+        double[] outletX,
+        double[] outletY,
+        int[] order,
+        int orderCount)
+    {
+        for (var orderIndex = 0; orderIndex < orderCount; orderIndex++)
+        {
+            var triangleIndex = order[orderIndex];
+            if (ranks[triangleIndex] > 0)
+            {
+                AssignInheritedOutletCentroid(map, ranks, outletX, outletY, triangleIndex);
+            }
+        }
+    }
+
+    private static void AssignLowerOutletCentroid(
+        PhysicalGeographyField map,
+        int triangleIndex,
+        double[] outletX,
+        double[] outletY)
+    {
+        var bestDrainage = int.MaxValue;
+        var count = 0;
+        for (var edge = 0; edge < 3; edge++)
+        {
+            var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
+            if (neighbor < 0)
+            {
+                continue;
+            }
+
+            var drainage = map.WaterKindCodes[neighbor] == PhysicalWaterKindCodes.Ocean
+                ? int.MinValue
+                : map.DrainageElevations[neighbor];
+            if (drainage >= map.DrainageElevations[triangleIndex])
+            {
+                continue;
+            }
+
+            if (drainage < bestDrainage)
+            {
+                bestDrainage = drainage;
+                outletX[triangleIndex] = 0d;
+                outletY[triangleIndex] = 0d;
+                count = 0;
+            }
+
+            if (drainage == bestDrainage)
+            {
+                outletX[triangleIndex] += map.Grid.TriangleX(neighbor);
+                outletY[triangleIndex] += map.Grid.TriangleY(neighbor);
+                count++;
+            }
+        }
+
+        outletX[triangleIndex] /= Math.Max(1, count);
+        outletY[triangleIndex] /= Math.Max(1, count);
+    }
+
+    private static void AssignInheritedOutletCentroid(
+        PhysicalGeographyField map,
+        int[] ranks,
+        double[] outletX,
+        double[] outletY,
+        int triangleIndex)
+    {
+        var count = 0;
+        for (var edge = 0; edge < 3; edge++)
+        {
+            var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
+            if (neighbor >= 0 && ranks[neighbor] >= 0 && ranks[neighbor] < ranks[triangleIndex] &&
+                map.DrainageElevations[neighbor] == map.DrainageElevations[triangleIndex])
+            {
+                outletX[triangleIndex] += outletX[neighbor];
+                outletY[triangleIndex] += outletY[neighbor];
+                count++;
+            }
+        }
+
+        if (count == 0)
+        {
+            throw new InvalidOperationException("Conditioned flat lacks an outlet gradient.");
+        }
+
+        outletX[triangleIndex] /= count;
+        outletY[triangleIndex] /= count;
     }
 
     private static bool HasLowerOutlet(PhysicalGeographyField map, int triangleIndex)
@@ -76,18 +193,21 @@ internal static class ConditionedFlowResolver
         return false;
     }
 
-    private static int SelectTarget(PhysicalGeographyField map, int[] flatRanks, int triangleIndex)
+    private static int SelectTarget(
+        PhysicalGeographyField map,
+        FlatRouting flatRouting,
+        int triangleIndex)
     {
         Span<GeometricFlowCandidate> candidates = stackalloc GeometricFlowCandidate[3];
         var candidateCount = 0;
         var currentDrainage = map.DrainageElevations[triangleIndex];
-        var currentRank = flatRanks[triangleIndex];
+        var currentRank = flatRouting.Ranks[triangleIndex];
         for (var edge = 0; edge < 3; edge++)
         {
             var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
             if (neighbor < 0 || !TryCreateCandidate(
                     map,
-                    flatRanks,
+                    flatRouting.Ranks,
                     neighbor,
                     currentDrainage,
                     currentRank,
@@ -112,8 +232,8 @@ internal static class ConditionedFlowResolver
 
         return SelectByGeometry(
             candidates[..candidateCount],
-            map.Grid.TriangleX(triangleIndex),
-            map.Grid.TriangleY(triangleIndex),
+            flatRouting.OutletX[triangleIndex] - map.Grid.TriangleX(triangleIndex),
+            flatRouting.OutletY[triangleIndex] - map.Grid.TriangleY(triangleIndex),
             map.CrustMotionX[triangleIndex],
             map.CrustMotionY[triangleIndex]);
     }
@@ -139,8 +259,8 @@ internal static class ConditionedFlowResolver
 
     internal static int SelectByGeometry(
         ReadOnlySpan<GeometricFlowCandidate> candidates,
-        double currentX,
-        double currentY,
+        double outletX,
+        double outletY,
         double motionX,
         double motionY)
     {
@@ -150,15 +270,12 @@ internal static class ConditionedFlowResolver
         }
 
         var (bestDrainage, bestRank) = FindPrimaryPreference(candidates);
-        var (outletX, outletY) = SumOutletDirection(candidates, bestDrainage, bestRank);
-
-        var tangentX = -currentY;
-        var tangentY = currentX;
+        Normalize(outletX, outletY, out var desiredX, out var desiredY);
         var best = candidates[0];
         var hasBest = false;
         var bestOutlet = double.MinValue;
-        var bestRadial = double.MinValue;
         var bestMotion = double.MinValue;
+        var bestTurn = double.MinValue;
         foreach (var candidate in candidates)
         {
             if (candidate.Drainage != bestDrainage || candidate.Rank != bestRank)
@@ -167,23 +284,23 @@ internal static class ConditionedFlowResolver
             }
 
             Normalize(candidate.DirectionX, candidate.DirectionY, out var x, out var y);
-            var outletScore = (x * outletX) + (y * outletY);
-            var radialScore = (x * tangentX) + (y * tangentY);
+            var outletScore = (x * desiredX) + (y * desiredY);
             var motionScore = (x * motionX) + (y * motionY);
+            var turnScore = (desiredX * y) - (desiredY * x);
             if (IsBetterScore(
                 hasBest,
                 outletScore,
-                radialScore,
                 motionScore,
+                turnScore,
                 bestOutlet,
-                bestRadial,
-                bestMotion))
+                bestMotion,
+                bestTurn))
             {
                 best = candidate;
                 hasBest = true;
                 bestOutlet = outletScore;
-                bestRadial = radialScore;
                 bestMotion = motionScore;
+                bestTurn = turnScore;
             }
         }
 
@@ -208,39 +325,17 @@ internal static class ConditionedFlowResolver
         return (bestDrainage, bestRank);
     }
 
-    private static (double X, double Y) SumOutletDirection(
-        ReadOnlySpan<GeometricFlowCandidate> candidates,
-        int drainage,
-        int rank)
-    {
-        var outletX = 0d;
-        var outletY = 0d;
-        foreach (var candidate in candidates)
-        {
-            if (candidate.Drainage != drainage || candidate.Rank != rank)
-            {
-                continue;
-            }
-
-            Normalize(candidate.DirectionX, candidate.DirectionY, out var x, out var y);
-            outletX += x;
-            outletY += y;
-        }
-
-        return (outletX, outletY);
-    }
-
     private static bool IsBetterScore(
         bool hasBest,
         double outlet,
-        double radial,
         double motion,
+        double turn,
         double bestOutlet,
-        double bestRadial,
-        double bestMotion) =>
+        double bestMotion,
+        double bestTurn) =>
         !hasBest || outlet > bestOutlet ||
-        (NearlyEqual(outlet, bestOutlet) && radial > bestRadial) ||
-        (NearlyEqual(outlet, bestOutlet) && NearlyEqual(radial, bestRadial) && motion > bestMotion);
+        (NearlyEqual(outlet, bestOutlet) && motion > bestMotion) ||
+        (NearlyEqual(outlet, bestOutlet) && NearlyEqual(motion, bestMotion) && turn > bestTurn);
 
     private static void Normalize(double x, double y, out double normalizedX, out double normalizedY)
     {
@@ -258,4 +353,6 @@ internal static class ConditionedFlowResolver
         int Rank,
         double DirectionX,
         double DirectionY);
+
+    private sealed record FlatRouting(int[] Ranks, double[] OutletX, double[] OutletY);
 }

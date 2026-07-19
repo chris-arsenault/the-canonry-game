@@ -21,6 +21,8 @@ public sealed class PhysicalGeographyGenerationTests
         HeartWarmthRadius = 10d,
         OceanMoistureDistance = 30,
         RiverAccumulationThreshold = 2200,
+        RiverMinimumAccumulationThreshold = 500,
+        RiverBasinHeadwaterFraction = 90,
     };
 
     [Fact]

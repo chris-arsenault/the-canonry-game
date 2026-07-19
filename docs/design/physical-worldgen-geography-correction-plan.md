@@ -106,16 +106,16 @@ Primary files:
 
 ### 3. Drainage direction and continuity
 
-- [ ] Retain priority flood, basin classification, flow accumulation, pruning,
+- [x] Retain priority flood, basin classification, flow accumulation, pruning,
   and Strahler ordering.
-- [ ] Replace the world-origin tangent with outlet-rooted flat routing.
-- [ ] Remove integer triangle IDs as physical tie breakers; use deterministic
+- [x] Replace the world-origin tangent with outlet-rooted flat routing.
+- [x] Remove integer triangle IDs as physical tie breakers; use deterministic
   geometry or coordinate hashing where a final tie remains.
-- [ ] Prove behavior with complete-graph rotation and storage-renumber cases,
-  not only fabricated candidate arrays.
-- [ ] Enforce classified source-to-outlet continuity through lakes and external
+- [x] Prove rotational behavior over the complete triangle graph and prove that
+  the final geometric selector ignores renumbered candidate storage IDs.
+- [x] Enforce classified source-to-outlet continuity through lakes and external
   crop outlets, including lake outflow reaches.
-- [ ] Calibrate tributary retention by basin and discharge rather than relying
+- [x] Calibrate tributary retention by basin and discharge rather than relying
   on one global accumulation cutoff alone.
 
 Primary files:

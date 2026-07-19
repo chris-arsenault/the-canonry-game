@@ -15,7 +15,6 @@ internal sealed class FlowRoutingLayer : IPhysicalGeographyLayer
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
-        _ = context;
         map.FlowTargets.Fill(-1);
         map.FlowEdges.Fill(PhysicalGeographyCodes.NoFlowEdge);
         map.DrainageBasinIds.Clear();
@@ -28,7 +27,7 @@ internal sealed class FlowRoutingLayer : IPhysicalGeographyLayer
             }
         }
 
-        RouteLakeBodies(map);
+        RouteLakeBodies(map, context.Seed);
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             var target = map.FlowTargets[triangleIndex];
@@ -79,7 +78,7 @@ internal sealed class FlowRoutingLayer : IPhysicalGeographyLayer
         }
     }
 
-    private static void RouteLakeBodies(PhysicalGeographyField map)
+    private static void RouteLakeBodies(PhysicalGeographyField map, int seed)
     {
         var bodies = new Dictionary<int, List<int>>();
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
@@ -99,15 +98,15 @@ internal sealed class FlowRoutingLayer : IPhysicalGeographyLayer
 
         foreach (var members in bodies.Values)
         {
-            RouteLakeBody(map, members);
+            RouteLakeBody(map, members, seed);
         }
     }
 
-    private static void RouteLakeBody(PhysicalGeographyField map, List<int> members)
+    private static void RouteLakeBody(PhysicalGeographyField map, List<int> members, int seed)
     {
         var root = members.FirstOrDefault(member => map.LakeOutletTargets[member] >= 0, -1);
         var outletTarget = root >= 0 ? map.LakeOutletTargets[root] : -1;
-        root = root >= 0 ? root : members.Min();
+        root = root >= 0 ? root : SelectStableLakeRoot(map, members, seed);
         var ranks = BuildLakeRanks(map, members.Count, root);
         map.FlowTargets[root] = outletTarget;
         RouteOutletEscape(map, outletTarget);
@@ -115,9 +114,33 @@ internal sealed class FlowRoutingLayer : IPhysicalGeographyLayer
         {
             if (member != root)
             {
-                map.FlowTargets[member] = SelectLowerRankedNeighbor(map, ranks, member);
+                map.FlowTargets[member] = SelectLowerRankedNeighbor(map, ranks, member, root);
             }
         }
+    }
+
+    private static int SelectStableLakeRoot(
+        PhysicalGeographyField map,
+        IReadOnlyList<int> members,
+        int seed)
+    {
+        var selected = -1;
+        var best = double.MinValue;
+        foreach (var member in members)
+        {
+            var x = (int)Math.Round(map.Grid.TriangleX(member) * 1024d, MidpointRounding.AwayFromZero);
+            var y = (int)Math.Round(map.Grid.TriangleY(member) * 1024d, MidpointRounding.AwayFromZero);
+            var score = PhysicalNoise.HashUnit(seed ^ 0x6c53, x, y);
+            if (score > best)
+            {
+                selected = member;
+                best = score;
+            }
+        }
+
+        return selected >= 0
+            ? selected
+            : throw new InvalidOperationException("Lake body has no members.");
     }
 
     private static void RouteOutletEscape(PhysicalGeographyField map, int outletTarget)
@@ -174,23 +197,38 @@ internal sealed class FlowRoutingLayer : IPhysicalGeographyLayer
     private static int SelectLowerRankedNeighbor(
         PhysicalGeographyField map,
         Dictionary<int, int> ranks,
-        int member)
+        int member,
+        int root)
     {
-        var target = -1;
         var targetRank = ranks[member];
+        Span<ConditionedFlowResolver.GeometricFlowCandidate> candidates =
+            stackalloc ConditionedFlowResolver.GeometricFlowCandidate[3];
+        var candidateCount = 0;
         for (var edge = 0; edge < 3; edge++)
         {
             var neighbor = map.Grid.NeighborTriangleIndex(member, edge);
             if (neighbor >= 0 && ranks.TryGetValue(neighbor, out var rank) && rank < targetRank)
             {
-                target = neighbor;
-                targetRank = rank;
+                candidates[candidateCount++] = new ConditionedFlowResolver.GeometricFlowCandidate(
+                    neighbor,
+                    rank,
+                    rank,
+                    map.Grid.TriangleX(neighbor) - map.Grid.TriangleX(member),
+                    map.Grid.TriangleY(neighbor) - map.Grid.TriangleY(member));
             }
         }
 
-        return target >= 0
-            ? target
-            : throw new InvalidOperationException("Lake member cannot reach its outlet.");
+        if (candidateCount == 0)
+        {
+            throw new InvalidOperationException("Lake member cannot reach its outlet.");
+        }
+
+        return ConditionedFlowResolver.SelectByGeometry(
+            candidates[..candidateCount],
+            map.Grid.TriangleX(root) - map.Grid.TriangleX(member),
+            map.Grid.TriangleY(root) - map.Grid.TriangleY(member),
+            map.CrustMotionX[member],
+            map.CrustMotionY[member]);
     }
 
     private static void AssignBasins(PhysicalGeographyField map)

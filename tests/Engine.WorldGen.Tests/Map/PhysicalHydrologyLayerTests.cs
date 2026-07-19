@@ -52,22 +52,49 @@ public sealed class PhysicalHydrologyLayerTests
             new ConditionedFlowResolver.GeometricFlowCandidate(2, 10, 1, 0d, 1d),
         };
         var reversed = original.Reverse().ToArray();
-        Assert.Equal(2, ConditionedFlowResolver.SelectByGeometry(original, 1d, 0d, 0d, 0d));
-        Assert.Equal(2, ConditionedFlowResolver.SelectByGeometry(reversed, 1d, 0d, 0d, 0d));
+        Assert.Equal(2, ConditionedFlowResolver.SelectByGeometry(original, 1d, 1d, 0d, 0d));
+        Assert.Equal(2, ConditionedFlowResolver.SelectByGeometry(reversed, 1d, 1d, 0d, 0d));
 
         var renumbered = new[]
         {
             original[0] with { Value = 7 },
             original[1] with { Value = 99 },
         };
-        Assert.Equal(99, ConditionedFlowResolver.SelectByGeometry(renumbered, 1d, 0d, 0d, 0d));
+        Assert.Equal(99, ConditionedFlowResolver.SelectByGeometry(renumbered, 1d, 1d, 0d, 0d));
 
         var rotated = new[]
         {
             original[0] with { DirectionX = 0d, DirectionY = 1d },
             original[1] with { DirectionX = -1d, DirectionY = 0d },
         };
-        Assert.Equal(2, ConditionedFlowResolver.SelectByGeometry(rotated, 0d, 1d, 0d, 0d));
+        Assert.Equal(2, ConditionedFlowResolver.SelectByGeometry(rotated, -1d, 1d, 0d, 0d));
+    }
+
+    [Fact]
+    public void ConditionedFlow_RotatesWithTheCompleteTriangleGraph()
+    {
+        var grid = new PhysicalGeographyGrid(2, 1);
+        var map = new PhysicalGeographyField(grid);
+        for (var triangleIndex = 0; triangleIndex < grid.TriangleCount; triangleIndex++)
+        {
+            var boundary = grid.HexIsOnWorkBoundary(grid.TriangleHexIndex(triangleIndex));
+            map.WaterKindCodes[triangleIndex] = boundary
+                ? PhysicalWaterKindCodes.Ocean
+                : PhysicalWaterKindCodes.None;
+            map.DrainageElevations[triangleIndex] = boundary ? 0 : 100;
+        }
+
+        var targets = ConditionedFlowResolver.ResolveLandTargets(map);
+        var rotation = BuildSixtyDegreeRotation(grid);
+        for (var triangleIndex = 0; triangleIndex < grid.TriangleCount; triangleIndex++)
+        {
+            if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
+            {
+                continue;
+            }
+
+            Assert.Equal(rotation[targets[triangleIndex]], targets[rotation[triangleIndex]]);
+        }
     }
 
     [Fact]
@@ -112,5 +139,42 @@ public sealed class PhysicalHydrologyLayerTests
                 Assert.True(current >= 0, "Dry drainage path has no outlet.");
             }
         }
+    }
+
+    private static int[] BuildSixtyDegreeRotation(PhysicalGeographyGrid grid)
+    {
+        const double cosine = 0.5d;
+        var sine = Math.Sqrt(3d) / 2d;
+        var rotation = new int[grid.TriangleCount];
+        for (var triangleIndex = 0; triangleIndex < grid.TriangleCount; triangleIndex++)
+        {
+            var x = grid.TriangleX(triangleIndex);
+            var y = grid.TriangleY(triangleIndex);
+            var rotatedX = (cosine * x) - (sine * y);
+            var rotatedY = (sine * x) + (cosine * y);
+            rotation[triangleIndex] = FindTriangleAt(grid, rotatedX, rotatedY);
+        }
+
+        return rotation;
+    }
+
+    private static int FindTriangleAt(PhysicalGeographyGrid grid, double x, double y)
+    {
+        var best = -1;
+        var bestDistance = double.MaxValue;
+        for (var candidate = 0; candidate < grid.TriangleCount; candidate++)
+        {
+            var dx = grid.TriangleX(candidate) - x;
+            var dy = grid.TriangleY(candidate) - y;
+            var distance = (dx * dx) + (dy * dy);
+            if (distance < bestDistance)
+            {
+                best = candidate;
+                bestDistance = distance;
+            }
+        }
+
+        Assert.True(bestDistance < 0.000001d, "Rotated triangle did not map onto the canonical graph.");
+        return best;
     }
 }

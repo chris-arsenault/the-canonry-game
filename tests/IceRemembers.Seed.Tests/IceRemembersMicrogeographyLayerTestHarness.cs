@@ -27,6 +27,8 @@ internal static class IceRemembersMicrogeographyLayerTestHarness
         MinimumLakeTriangles = 2,
         EndorheicLakeFraction = 0d,
         RiverAccumulationThreshold = 700,
+        RiverMinimumAccumulationThreshold = 180,
+        RiverBasinHeadwaterFraction = 90,
         MinimumRiverReachTriangles = 2,
         TemperatureBaseline = 160,
         WarmthPocketCount = 6,

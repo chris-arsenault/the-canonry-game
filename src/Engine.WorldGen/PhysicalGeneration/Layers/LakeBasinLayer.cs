@@ -190,7 +190,13 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
             return;
         }
 
-        var outlet = FindOutlet(map, component.Members, componentMarks, componentId, component.Surface);
+        var outlet = FindOutlet(
+            map,
+            component.Members,
+            componentMarks,
+            componentId,
+            component.Surface,
+            context.Seed);
         if (outlet.Member >= 0)
         {
             map.LakeOutletTargets[outlet.Member] = outlet.Target;
@@ -202,33 +208,73 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
         IReadOnlyList<int> members,
         int[] componentMarks,
         int componentId,
-        int surface)
+        int surface,
+        int seed)
     {
-        var bestMember = -1;
-        var bestTarget = -1;
-        var bestRank = int.MaxValue;
+        var best = OutletCandidate.Invalid;
         foreach (var member in members)
         {
-            for (var edge = 0; edge < 3; edge++)
+            var candidate = FindMemberOutlet(
+                map,
+                componentMarks,
+                componentId,
+                surface,
+                seed,
+                member);
+            if (IsPreferred(candidate, best))
             {
-                var neighbor = map.Grid.NeighborTriangleIndex(member, edge);
-                if (neighbor != map.DrainageParents[member] ||
-                    !CanBeOutlet(map, componentMarks, componentId, surface, neighbor))
-                {
-                    continue;
-                }
-
-                var rank = map.DrainageRanks[member];
-                if (rank < bestRank || (rank == bestRank && neighbor < bestTarget))
-                {
-                    bestMember = member;
-                    bestTarget = neighbor;
-                    bestRank = rank;
-                }
+                best = candidate;
             }
         }
 
-        return (bestMember, bestTarget);
+        return (best.Member, best.Target);
+    }
+
+    private static OutletCandidate FindMemberOutlet(
+        PhysicalGeographyField map,
+        int[] componentMarks,
+        int componentId,
+        int surface,
+        int seed,
+        int member)
+    {
+        var target = map.DrainageParents[member];
+        if (!CanBeOutlet(map, componentMarks, componentId, surface, target))
+        {
+            return OutletCandidate.Invalid;
+        }
+
+        var drainage = map.WaterKindCodes[target] == PhysicalWaterKindCodes.Ocean
+            ? int.MinValue
+            : map.DrainageElevations[target];
+        return new OutletCandidate(
+            member,
+            target,
+            map.DrainageRanks[member],
+            drainage,
+            GeometryKey(map, seed, member, target));
+    }
+
+    private static bool IsPreferred(OutletCandidate candidate, OutletCandidate best) =>
+        candidate.Member >= 0 &&
+        (candidate.Rank < best.Rank ||
+            (candidate.Rank == best.Rank && candidate.Drainage < best.Drainage) ||
+            (candidate.Rank == best.Rank && candidate.Drainage == best.Drainage &&
+                candidate.Geometry > best.Geometry));
+
+    private static double GeometryKey(
+        PhysicalGeographyField map,
+        int seed,
+        int member,
+        int target)
+    {
+        var x = (int)Math.Round(
+            (map.Grid.TriangleX(member) + map.Grid.TriangleX(target)) * 512d,
+            MidpointRounding.AwayFromZero);
+        var y = (int)Math.Round(
+            (map.Grid.TriangleY(member) + map.Grid.TriangleY(target)) * 512d,
+            MidpointRounding.AwayFromZero);
+        return PhysicalNoise.HashUnit(seed ^ 0x5b91, x, y);
     }
 
     private static bool CanBeOutlet(
@@ -256,5 +302,16 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
         int MaximumDepth)
     {
         public long Significance => (long)Members.Count * MaximumDepth;
+    }
+
+    private readonly record struct OutletCandidate(
+        int Member,
+        int Target,
+        int Rank,
+        int Drainage,
+        double Geometry)
+    {
+        public static OutletCandidate Invalid { get; } =
+            new(-1, -1, int.MaxValue, int.MaxValue, double.MinValue);
     }
 }

@@ -224,6 +224,10 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int RiverAccumulationThreshold { get; init; } = 10500;
 
+    public int RiverMinimumAccumulationThreshold { get; init; } = 2400;
+
+    public int RiverBasinHeadwaterFraction { get; init; } = 80;
+
     public int MinimumRiverReachTriangles { get; init; } = 7;
 
     public int RiverChannelBaseStrength { get; init; } = 260;
@@ -456,7 +460,7 @@ public sealed record PhysicalGeographyGenerationProfile
 
     private void ValidateHydrologyRanges()
     {
-        if (ShelfDepth <= 0 || ShelfBreakDepth <= ShelfDepth || RiverAccumulationThreshold <= 0)
+        if (ShelfDepth <= 0 || ShelfBreakDepth <= ShelfDepth || RiverThresholdsAreInvalid())
         {
             throw new InvalidOperationException("Physical worldgen hydrology ranges are invalid.");
         }
@@ -471,6 +475,11 @@ public sealed record PhysicalGeographyGenerationProfile
             throw new InvalidOperationException("Physical worldgen landscape-evolution ranges are invalid.");
         }
     }
+
+    private bool RiverThresholdsAreInvalid() =>
+        RiverAccumulationThreshold <= 0 || RiverMinimumAccumulationThreshold <= 0 ||
+        RiverMinimumAccumulationThreshold > RiverAccumulationThreshold ||
+        RiverBasinHeadwaterFraction is < 1 or > 1000;
 
     private bool LandscapeEvolutionRangesAreInvalid() =>
         !IsUnitScalar(SedimentTransportFraction) ||

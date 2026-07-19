@@ -36,14 +36,15 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
             }
         }
 
-        var channels = new bool[map.Grid.TriangleCount];
-        for (var triangleIndex = 0; triangleIndex < channels.Length; triangleIndex++)
-        {
-            channels[triangleIndex] = map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.None &&
-                map.FlowAccumulation[triangleIndex] >= context.Profile.RiverAccumulationThreshold;
-        }
+        var basinDischarge = BuildBasinMaximumDischarge(map);
+        var channels = BuildChannels(map, context.Profile, basinDischarge);
+        var lakeOutflowStarts = FindLakeOutflowStarts(map, channels);
 
-        PruneShortHeadwaters(map, channels, context.Profile.MinimumRiverReachTriangles);
+        PruneShortHeadwaters(
+            map,
+            channels,
+            lakeOutflowStarts,
+            context.Profile.MinimumRiverReachTriangles);
         AssignStrahlerOrder(map, order, channels);
     }
 
@@ -62,18 +63,117 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
             {
                 throw new InvalidOperationException("River accumulation does not continue downstream.");
             }
+
+            ValidateContinuousOutletPath(map, triangleIndex);
         }
+    }
+
+    private static int[] BuildBasinMaximumDischarge(PhysicalGeographyField map)
+    {
+        var largestBasin = 0;
+        foreach (var basin in map.DrainageBasinIds)
+        {
+            largestBasin = Math.Max(largestBasin, basin);
+        }
+
+        var maximum = new int[largestBasin + 1];
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            var basin = map.DrainageBasinIds[triangleIndex];
+            if (basin > 0)
+            {
+                maximum[basin] = Math.Max(maximum[basin], map.FlowAccumulation[triangleIndex]);
+            }
+        }
+
+        return maximum;
+    }
+
+    private static bool[] BuildChannels(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile,
+        int[] basinDischarge)
+    {
+        var channels = new bool[map.Grid.TriangleCount];
+        for (var triangleIndex = 0; triangleIndex < channels.Length; triangleIndex++)
+        {
+            if (map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None)
+            {
+                continue;
+            }
+
+            var basin = map.DrainageBasinIds[triangleIndex];
+            var maximum = basin > 0 && basin < basinDischarge.Length
+                ? basinDischarge[basin]
+                : profile.RiverAccumulationThreshold;
+            var basinThreshold = (int)Math.Min(
+                int.MaxValue,
+                (long)maximum * profile.RiverBasinHeadwaterFraction / 1000L);
+            var threshold = Math.Clamp(
+                basinThreshold,
+                profile.RiverMinimumAccumulationThreshold,
+                profile.RiverAccumulationThreshold);
+            channels[triangleIndex] = map.FlowAccumulation[triangleIndex] >= threshold;
+        }
+
+        return channels;
+    }
+
+    private static bool[] FindLakeOutflowStarts(PhysicalGeographyField map, bool[] channels)
+    {
+        var outflowStarts = new bool[channels.Length];
+        for (var triangleIndex = 0; triangleIndex < channels.Length; triangleIndex++)
+        {
+            var target = map.FlowTargets[triangleIndex];
+            if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake &&
+                target >= 0 && channels[target])
+            {
+                outflowStarts[target] = true;
+            }
+        }
+
+        return outflowStarts;
+    }
+
+    private static void ValidateContinuousOutletPath(PhysicalGeographyField map, int source)
+    {
+        var current = source;
+        for (var step = 0; step <= map.Grid.TriangleCount; step++)
+        {
+            var target = map.FlowTargets[current];
+            if (target < 0)
+            {
+                if (map.WaterKindCodes[current] is PhysicalWaterKindCodes.Ocean or PhysicalWaterKindCodes.Lake)
+                {
+                    return;
+                }
+
+                throw new InvalidOperationException("River channel terminates before reaching water.");
+            }
+
+            if (map.WaterKindCodes[target] == PhysicalWaterKindCodes.None &&
+                map.RiverOrders[target] <= 0)
+            {
+                throw new InvalidOperationException("River channel contains a downstream break.");
+            }
+
+            current = target;
+        }
+
+        throw new InvalidOperationException("River channel outlet path contains a cycle.");
     }
 
     private static void PruneShortHeadwaters(
         PhysicalGeographyField map,
         bool[] channels,
+        bool[] protectedHeadwaters,
         int minimumLength)
     {
         var incoming = ChannelIncomingCounts(map, channels);
         for (var triangleIndex = 0; triangleIndex < channels.Length; triangleIndex++)
         {
-            if (!channels[triangleIndex] || incoming[triangleIndex] != 0)
+            if (!channels[triangleIndex] || incoming[triangleIndex] != 0 ||
+                protectedHeadwaters[triangleIndex])
             {
                 continue;
             }

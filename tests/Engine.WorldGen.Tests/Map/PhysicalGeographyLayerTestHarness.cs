@@ -23,6 +23,8 @@ internal static class PhysicalGeographyLayerTestHarness
         MinimumLakeTriangles = 2,
         EndorheicLakeFraction = 0d,
         RiverAccumulationThreshold = 700,
+        RiverMinimumAccumulationThreshold = 180,
+        RiverBasinHeadwaterFraction = 90,
         MinimumRiverReachTriangles = 2,
         WarmthPocketCount = 6,
         WarmthPocketMinRadius = 4d,
