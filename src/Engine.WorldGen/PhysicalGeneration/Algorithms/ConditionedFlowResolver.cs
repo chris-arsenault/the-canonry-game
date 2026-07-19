@@ -36,6 +36,14 @@ internal static class ConditionedFlowResolver
             return false;
         }
 
+        return IsLegalAdjacentTarget(map, source, target);
+    }
+
+    private static bool IsLegalAdjacentTarget(
+        PhysicalGeographyField map,
+        int source,
+        int target)
+    {
         if (map.WaterKindCodes[target] == PhysicalWaterKindCodes.Ocean)
         {
             return true;
@@ -94,19 +102,28 @@ internal static class ConditionedFlowResolver
         for (var edge = 0; edge < 3; edge++)
         {
             var target = map.Grid.NeighborTriangleIndex(source, edge);
-            if (!IsLegalTarget(map, source, target))
+            if (target < 0 || !IsLegalAdjacentTarget(map, source, target))
             {
                 continue;
             }
 
-            var score = CandidateScore(map, profile, source, target, desiredX, desiredY);
-            var tie = CoordinateTie(map, source, target, seed);
-            if (score > bestScore + ScoreEpsilon ||
-                NearlyEqual(score, bestScore) && tie > bestTie)
+            var alignment = (map.Grid.TriangleEdgeUnitX(source, edge) * desiredX) +
+                (map.Grid.TriangleEdgeUnitY(source, edge) * desiredY);
+            var score = CandidateScore(map, profile, source, target, alignment);
+            if (score > bestScore + ScoreEpsilon)
             {
                 best = target;
                 bestScore = score;
-                bestTie = tie;
+                bestTie = CoordinateTie(map, source, target, seed);
+            }
+            else if (NearlyEqual(score, bestScore))
+            {
+                var tie = CoordinateTie(map, source, target, seed);
+                if (tie > bestTie)
+                {
+                    best = target;
+                    bestTie = tie;
+                }
             }
         }
 
@@ -120,10 +137,8 @@ internal static class ConditionedFlowResolver
         PhysicalGeographyGenerationProfile profile,
         int source,
         int target,
-        double desiredX,
-        double desiredY)
+        double alignment)
     {
-        var alignment = DirectionAlignment(map, source, target, desiredX, desiredY);
         var inheritedValley = InheritedValley(map, target);
         if (map.WaterKindCodes[target] == PhysicalWaterKindCodes.Ocean)
         {

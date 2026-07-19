@@ -34,7 +34,7 @@ internal sealed class FluvialErosionLayer : IPhysicalGeographyLayer
                 context.Profile.FluvialErosionIterations * context.HydrologyStrength / 1000);
         for (var iteration = 0; iteration < iterations; iteration++)
         {
-            _ = PriorityFlood.FillFromOcean(map);
+            PriorityFlood.FillFromOcean(map);
             var targets = ConditionedFlowResolver.ResolveLandTargets(
                 map,
                 context.Profile,

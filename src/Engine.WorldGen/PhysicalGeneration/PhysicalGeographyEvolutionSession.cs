@@ -167,6 +167,12 @@ public sealed class PhysicalGeographyEvolutionSession
         Apply(new IceFlowLayer(), useEpoch: false);
         Apply(_meltwater, useEpoch: false);
         ApplyDrainage(useEpoch: false, includeMeltwater: true);
+        // Lake reconciliation changes the physical support surface and therefore
+        // invalidates the current ice state. Refresh it before deriving glacial
+        // landforms and validating grounded ice; the historical maxima remain
+        // cumulative across both passes.
+        Apply(new LandIceLayer(), useEpoch: false);
+        Apply(new IceFlowLayer(), useEpoch: false);
         Apply(new GlacialLandformLayer(), useEpoch: false);
         Apply(new SeaIceLayer(), useEpoch: false);
         Apply(new LandformClassificationLayer(), useEpoch: false);

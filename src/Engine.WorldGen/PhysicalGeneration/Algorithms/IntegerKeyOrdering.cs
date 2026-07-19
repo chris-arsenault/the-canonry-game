@@ -11,13 +11,13 @@ internal static class IntegerKeyOrdering
 
         var source = Enumerable.Range(0, keys.Length).ToArray();
         var destination = new int[keys.Length];
-        Span<int> counts = stackalloc int[256];
-        for (var shift = 0; shift < 64; shift += 8)
+        var counts = new int[1 << 16];
+        for (var shift = 0; shift < 64; shift += 16)
         {
-            counts.Clear();
+            Array.Clear(counts);
             foreach (var index in source)
             {
-                counts[KeyByte(keys[index], shift)]++;
+                counts[KeyChunk(keys[index], shift)]++;
             }
 
             var offset = 0;
@@ -30,7 +30,7 @@ internal static class IntegerKeyOrdering
 
             foreach (var index in source)
             {
-                var bucket = KeyByte(keys[index], shift);
+                var bucket = KeyChunk(keys[index], shift);
                 destination[counts[bucket]++] = index;
             }
 
@@ -80,6 +80,6 @@ internal static class IntegerKeyOrdering
         return result;
     }
 
-    private static byte KeyByte(long key, int shift) =>
-        (byte)(unchecked((ulong)(key ^ long.MinValue)) >> shift);
+    private static int KeyChunk(long key, int shift) =>
+        (ushort)(unchecked((ulong)(key ^ long.MinValue)) >> shift);
 }

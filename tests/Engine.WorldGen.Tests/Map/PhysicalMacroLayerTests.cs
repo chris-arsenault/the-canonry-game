@@ -179,7 +179,7 @@ public sealed class PhysicalMacroLayerTests
     }
 
     [Fact]
-    public void VolcanicConstruction_BuildsReliefWithPhysicalProvenanceAndRejectsInvalidHistory()
+    public void VolcanicConstruction_BuildsReliefWithPhysicalProvenanceAndRejectsInvalidState()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<VolcanicConstructionLayer>();
         var constructed = Enumerable.Range(0, result.Map.Grid.TriangleCount)
@@ -191,7 +191,13 @@ public sealed class PhysicalMacroLayerTests
         Assert.Contains(result.Map.FeatureFlags.ToArray(), flags =>
             (flags & PhysicalGeographyFeatureCodes.LavaPlain) != 0);
 
+        var history = result.Map.VolcanicConstructionHistory[constructed];
         result.Map.VolcanicConstructionHistory[constructed] = -1;
+        Assert.Throws<InvalidOperationException>(() =>
+            result.Layer.Validate(result.Map, result.Context));
+
+        result.Map.VolcanicConstructionHistory[constructed] = history;
+        result.Map.Elevation[constructed] = PhysicalElevation.FromUnits(2001);
         Assert.Throws<InvalidOperationException>(() =>
             result.Layer.Validate(result.Map, result.Context));
     }

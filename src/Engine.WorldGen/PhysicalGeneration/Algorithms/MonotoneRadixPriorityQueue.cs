@@ -1,6 +1,7 @@
 namespace Engine.WorldGen;
 
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 /// <summary>
 /// Monotone radix heap for signed 64-bit priorities. It retains linear-size
@@ -13,7 +14,8 @@ internal sealed class MonotoneRadixPriorityQueue
     private readonly List<Entry>[] _buckets = Enumerable.Range(0, 65)
         .Select(static _ => new List<Entry>())
         .ToArray();
-    private readonly Queue<Entry> _minimum = new();
+    private readonly List<Entry> _minimum = [];
+    private int _minimumHead;
     private ulong _lastKey;
 
     public int Count { get; private set; }
@@ -30,7 +32,7 @@ internal sealed class MonotoneRadixPriorityQueue
         var bucket = BucketIndex(key, _lastKey);
         if (bucket == 0)
         {
-            _minimum.Enqueue(entry);
+            _minimum.Add(entry);
         }
         else
         {
@@ -49,12 +51,12 @@ internal sealed class MonotoneRadixPriorityQueue
             return false;
         }
 
-        if (_minimum.Count == 0)
+        if (_minimumHead == _minimum.Count)
         {
             RefillMinimum();
         }
 
-        var entry = _minimum.Dequeue();
+        var entry = _minimum[_minimumHead++];
         Count--;
         item = entry.Item;
         priority = SignedPriority(entry.Key);
@@ -70,13 +72,23 @@ internal sealed class MonotoneRadixPriorityQueue
         }
 
         var source = _buckets[sourceIndex];
-        _lastKey = source.Min(static entry => entry.Key);
-        foreach (var entry in source)
+        var entries = CollectionsMarshal.AsSpan(source);
+        var minimum = ulong.MaxValue;
+        for (var index = 0; index < entries.Length; index++)
         {
+            minimum = Math.Min(minimum, entries[index].Key);
+        }
+
+        _lastKey = minimum;
+        _minimum.Clear();
+        _minimumHead = 0;
+        for (var index = 0; index < entries.Length; index++)
+        {
+            var entry = entries[index];
             var destination = BucketIndex(entry.Key, _lastKey);
             if (destination == 0)
             {
-                _minimum.Enqueue(entry);
+                _minimum.Add(entry);
             }
             else
             {
