@@ -64,17 +64,26 @@ public sealed record DomainPhysicalGeographyBlueprint(
         for (var cellIndex = 0; cellIndex < Cells.Count; cellIndex++)
         {
             var cell = Cells[cellIndex];
-            if (cell.MicrotriangleOffset != cellIndex * PhysicalGeographyCodes.MicrotrianglesPerHex ||
-                string.IsNullOrWhiteSpace(cell.BaseTerrain) ||
-                (uint)cell.DominantMaterialIndex >= (uint)MaterialPalette.Count ||
-                (uint)cell.PrimarySurfaceIndex >= (uint)SurfacePalette.Count ||
-                cell.SuperregionId <= 0 ||
-                cell.ContinentId <= 0)
+            if (!CellIdentityIsValid(cell, cellIndex) || !CellCoverageIsValid(cell))
             {
                 throw new InvalidOperationException("Physical geography contains an invalid hex summary.");
             }
         }
     }
+
+    private bool CellIdentityIsValid(DomainPhysicalGeographyCell cell, int cellIndex) =>
+        cell.MicrotriangleOffset == cellIndex * PhysicalGeographyCodes.MicrotrianglesPerHex &&
+        !string.IsNullOrWhiteSpace(cell.BaseTerrain) &&
+        (uint)cell.DominantMaterialIndex < (uint)MaterialPalette.Count &&
+        (uint)cell.PrimarySurfaceIndex < (uint)SurfacePalette.Count &&
+        cell.SuperregionId > 0 && cell.ContinentId > 0;
+
+    private static bool CellCoverageIsValid(DomainPhysicalGeographyCell cell) =>
+        cell.RiverCoverage is >= 0 and <= PhysicalGeographyCodes.MicrotrianglesPerHex &&
+        cell.FloodplainCoverage is >= 0 and <= PhysicalGeographyCodes.MicrotrianglesPerHex &&
+        cell.DeltaCoverage is >= 0 and <= PhysicalGeographyCodes.MicrotrianglesPerHex &&
+        cell.WideRiverCoverage is >= 0 and <= PhysicalGeographyCodes.MicrotrianglesPerHex &&
+        cell.WideRiverCoverage <= cell.RiverCoverage;
 
     private void ValidateMicrotriangles()
     {
@@ -130,7 +139,18 @@ public sealed record DomainPhysicalGeographyBlueprint(
         microtriangle.FlowEdge >= PhysicalGeographyCodes.NoFlowEdge &&
         microtriangle.FlowEdge <= 2 &&
         microtriangle.FlowAccumulation >= 0 &&
-        microtriangle.RiverOrder >= 0;
+        microtriangle.RiverOrder >= 0 && RiverGeometryIsValid(microtriangle);
+
+    private static bool RiverGeometryIsValid(DomainPhysicalMicrotriangle microtriangle) =>
+        microtriangle.RiverChannelStrength is >= 0 and <= 1000 &&
+        microtriangle.RiverChannelOrder >= 0 &&
+        microtriangle.FloodplainIntensity is >= 0 and <= 1000 &&
+        microtriangle.DeltaIntensity is >= 0 and <= 1000 && RiverGeometryRelationshipsAreValid(microtriangle);
+
+    private static bool RiverGeometryRelationshipsAreValid(DomainPhysicalMicrotriangle microtriangle) =>
+        (microtriangle.RiverChannelStrength == 0) == (microtriangle.RiverChannelOrder == 0) &&
+        (microtriangle.DeltaIntensity == 0 || microtriangle.RiverChannelStrength > 0) &&
+        (microtriangle.FloodplainIntensity == 0 || microtriangle.RiverChannelStrength == 0);
 
     private void ValidateScalarFields()
     {
@@ -171,6 +191,9 @@ public readonly record struct DomainPhysicalGeographyCell(
     int LakeCoverage,
     int PermanentIceCoverage,
     int RiverCoverage,
+    int FloodplainCoverage,
+    int DeltaCoverage,
+    int WideRiverCoverage,
     int PeakCount,
     int MeanIceThickness,
     int MaxIceThickness,
@@ -209,6 +232,10 @@ public readonly record struct DomainPhysicalMicrotriangle(
     int FlowEdge,
     int FlowAccumulation,
     int RiverOrder,
+    int RiverChannelStrength,
+    int RiverChannelOrder,
+    int FloodplainIntensity,
+    int DeltaIntensity,
     int IceThickness,
     int IceFlux,
     int FractureConductance,

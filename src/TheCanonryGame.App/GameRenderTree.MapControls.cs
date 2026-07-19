@@ -105,6 +105,7 @@ internal sealed partial class GameRenderTree
         MapArea.GeographyViewSediment => PhysicalGeographyView.Sediment,
         MapArea.GeographyViewErosionHistory => PhysicalGeographyView.ErosionHistory,
         MapArea.GeographyViewMaximumGlaciation => PhysicalGeographyView.MaximumGlaciation,
+        MapArea.GeographyViewRiverGeometry => PhysicalGeographyView.RiverGeometry,
         _ => null,
     };
 
@@ -160,6 +161,7 @@ internal sealed partial class GameRenderTree
         PhysicalGeographyView.Sediment => MapArea.GeographyViewSediment,
         PhysicalGeographyView.ErosionHistory => MapArea.GeographyViewErosionHistory,
         PhysicalGeographyView.MaximumGlaciation => MapArea.GeographyViewMaximumGlaciation,
+        PhysicalGeographyView.RiverGeometry => MapArea.GeographyViewRiverGeometry,
         _ => null,
     };
 

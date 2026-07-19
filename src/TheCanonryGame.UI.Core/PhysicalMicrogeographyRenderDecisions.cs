@@ -19,6 +19,7 @@ public enum PhysicalGeographyView
     MaximumGlaciation,
     Landform,
     Hydrology,
+    RiverGeometry,
     Ice,
     Fractures,
     TectonicProvinces,
@@ -95,5 +96,6 @@ internal static class PhysicalMicrogeographyRenderDecisions
         view is PhysicalGeographyView.Terrain or
             PhysicalGeographyView.Surface or
             PhysicalGeographyView.NaturalSurface ||
-        view is >= PhysicalGeographyView.Material and <= PhysicalGeographyView.Landform;
+        view is >= PhysicalGeographyView.Material and <= PhysicalGeographyView.Landform ||
+        view == PhysicalGeographyView.RiverGeometry;
 }

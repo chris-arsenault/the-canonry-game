@@ -80,6 +80,8 @@ public sealed class PhysicalMicrogeographyRenderDecisionTests
             PhysicalGeographyView.NaturalSurface));
         Assert.False(PhysicalMicrogeographyRenderDecisions.UsesWaterUnderlay(
             PhysicalGeographyView.Hydrology));
+        Assert.True(PhysicalMicrogeographyRenderDecisions.UsesWaterUnderlay(
+            PhysicalGeographyView.RiverGeometry));
         Assert.False(PhysicalMicrogeographyRenderDecisions.UsesWaterUnderlay(
             PhysicalGeographyView.MagicComposite));
     }

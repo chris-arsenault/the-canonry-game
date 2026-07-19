@@ -1,0 +1,121 @@
+namespace Engine.WorldGen;
+
+using Engine.Constants;
+
+internal sealed class FloodplainLayer : IPhysicalGeographyLayer
+{
+    public PhysicalGeographyLayerContract Contract { get; } = new(
+        "river-floodplains",
+        0,
+        PhysicalGeographyFacts.Elevation |
+        PhysicalGeographyFacts.FlowRouting |
+        PhysicalGeographyFacts.Rivers |
+        PhysicalGeographyFacts.RiverGeometry |
+        PhysicalGeographyFacts.LandscapeHistory,
+        PhysicalGeographyFacts.Floodplains,
+        PhysicalGeographyFacts.Deltas | PhysicalGeographyFacts.Validated);
+
+    public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
+    {
+        map.FloodplainIntensity.Clear();
+        var frontier = SeedFloodplains(map, context.Profile);
+        ExpandFloodplains(map, context.Profile, frontier);
+    }
+
+    public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
+    {
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            if (map.FloodplainIntensity[triangleIndex] is < 0 or > 1000 ||
+                map.FloodplainIntensity[triangleIndex] > 0 &&
+                    (map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None ||
+                        map.RiverChannelStrength[triangleIndex] > 0 ||
+                        map.Slope[triangleIndex] > context.Profile.FloodplainMaximumSlope))
+            {
+                throw new InvalidOperationException("Floodplain coverage is not low, dry terrain beside a river.");
+            }
+        }
+    }
+
+    private static List<int> SeedFloodplains(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile)
+    {
+        var frontier = new List<int>();
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            if (map.RiverChannelOrders[triangleIndex] < profile.FloodplainMinimumRiverOrder)
+            {
+                continue;
+            }
+
+            for (var edge = 0; edge < 3; edge++)
+            {
+                var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
+                if (!CanFlood(map, profile, triangleIndex, neighbor))
+                {
+                    continue;
+                }
+
+                var intensity = Math.Clamp(
+                    map.RiverChannelStrength[triangleIndex] +
+                        map.CumulativeDeposition[neighbor] -
+                        (map.Slope[neighbor] * 6),
+                    1,
+                    1000);
+                if (intensity > map.FloodplainIntensity[neighbor])
+                {
+                    map.FloodplainIntensity[neighbor] = intensity;
+                    frontier.Add(neighbor);
+                }
+            }
+        }
+
+        return frontier;
+    }
+
+    private static void ExpandFloodplains(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile,
+        List<int> frontier)
+    {
+        for (var step = 1; step < profile.FloodplainMaximumExpansionSteps && frontier.Count > 0; step++)
+        {
+            var next = new List<int>();
+            foreach (var triangleIndex in frontier)
+            {
+                for (var edge = 0; edge < 3; edge++)
+                {
+                    var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
+                    if (!CanFlood(map, profile, triangleIndex, neighbor))
+                    {
+                        continue;
+                    }
+
+                    var intensity = map.FloodplainIntensity[triangleIndex] -
+                        profile.FloodplainIntensityDecay -
+                        Math.Abs(map.Elevation[triangleIndex] - map.Elevation[neighbor]);
+                    if (intensity > map.FloodplainIntensity[neighbor])
+                    {
+                        map.FloodplainIntensity[neighbor] = intensity;
+                        next.Add(neighbor);
+                    }
+                }
+            }
+
+            frontier = next;
+        }
+    }
+
+    private static bool CanFlood(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile,
+        int source,
+        int target) =>
+        target >= 0 &&
+        map.WaterKindCodes[target] == PhysicalWaterKindCodes.None &&
+        map.RiverChannelStrength[target] == 0 &&
+        map.DrainageBasinIds[target] == map.DrainageBasinIds[source] &&
+        map.Slope[target] <= profile.FloodplainMaximumSlope &&
+        Math.Abs(map.Elevation[source] - map.Elevation[target]) <= profile.FloodplainMaximumRelief;
+}

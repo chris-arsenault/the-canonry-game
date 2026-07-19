@@ -73,6 +73,20 @@ public sealed record PhysicalGeographyQualityTargets
 
     public CountTarget HotspotLandmassCount { get; init; } = new(1, 8);
 
+    public CoverageTarget RiverChannelCoverage { get; init; } = new(0.025d, 0.025d);
+
+    public CoverageTarget FloodplainCoverage { get; init; } = new(0.02d, 0.02d);
+
+    public CoverageTarget DeltaCoverage { get; init; } = new(0.003d, 0.003d);
+
+    public CoverageTarget TributarySpineCoverage { get; init; } = new(0.03d, 0.03d);
+
+    public CoverageTarget WideRiverCoverage { get; init; } = new(0.01d, 0.01d);
+
+    public CountTarget HigherOrderRiverTriangleCount { get; init; } = new(1, int.MaxValue);
+
+    public CountTarget DeltaMouthCount { get; init; } = new(1, 1000);
+
     internal void Validate()
     {
         if (MinimumEvaluationRadius < 0)
@@ -94,10 +108,15 @@ public sealed record PhysicalGeographyQualityTargets
     private bool CoverageTargetIsNull() =>
         OceanCoverage is null || LandIceCoverage is null || SeaIceCoverage is null ||
         LargestLandmassLandCoverage is null || IslandLandCoverage is null ||
-        CoastEdgeDensity is null || MajorLandmassSpacing is null;
+        CoastEdgeDensity is null || MajorLandmassSpacing is null || RiverCoverageTargetIsNull();
+
+    private bool RiverCoverageTargetIsNull() =>
+        RiverChannelCoverage is null || FloodplainCoverage is null || DeltaCoverage is null ||
+        TributarySpineCoverage is null || WideRiverCoverage is null;
 
     private bool CountTargetIsNull() =>
-        MajorLandmassCount is null || InlandLakeBodyCount is null || HotspotLandmassCount is null;
+        MajorLandmassCount is null || InlandLakeBodyCount is null || HotspotLandmassCount is null ||
+        HigherOrderRiverTriangleCount is null || DeltaMouthCount is null;
 }
 
 /// <summary>
@@ -192,6 +211,44 @@ public sealed record PhysicalGeographyGenerationProfile
     public int RiverAccumulationThreshold { get; init; } = 10500;
 
     public int MinimumRiverReachTriangles { get; init; } = 7;
+
+    public int RiverChannelBaseStrength { get; init; } = 260;
+
+    public int RiverChannelOrderStrength { get; init; } = 145;
+
+    public int RiverChannelDischargeStrength { get; init; } = 55;
+
+    public int RiverChannelWidthDecay { get; init; } = 330;
+
+    public int RiverChannelWideningOrder { get; init; } = 2;
+
+    public int RiverChannelWideningDischargeMultiplier { get; init; } = 5;
+
+    public int RiverChannelMaximumExpansionSteps { get; init; } = 2;
+
+    public int FloodplainMinimumRiverOrder { get; init; } = 2;
+
+    public int FloodplainMaximumSlope { get; init; } = 42;
+
+    public int FloodplainMaximumRelief { get; init; } = 34;
+
+    public int FloodplainIntensityDecay { get; init; } = 280;
+
+    public int FloodplainMaximumExpansionSteps { get; init; } = 2;
+
+    public int DeltaMinimumRiverOrder { get; init; } = 2;
+
+    public int DeltaDischargeMultiplier { get; init; } = 3;
+
+    public int DeltaMinimumSedimentDelivery { get; init; } = 1;
+
+    public int DeltaMaximumWaveEnergy { get; init; } = 760;
+
+    public int DeltaMaximumCurrentStrength { get; init; } = 900;
+
+    public int DeltaIntensityDecay { get; init; } = 240;
+
+    public int DeltaMaximumExpansionSteps { get; init; } = 3;
 
     public int TemperatureBaseline { get; init; } = 285;
 
@@ -324,7 +381,14 @@ public sealed record PhysicalGeographyGenerationProfile
         Padding <= 0 || ElevationScale <= 0 || FluvialErosionIterations <= 0 ||
         MinimumLakeTriangles <= 0 || MinimumRiverReachTriangles <= 0 ||
         OceanCurrentSmoothingIterations <= 0 || OceanCurrentHeatIterations <= 0 ||
-        OceanCurrentFetchSteps <= 0;
+        OceanCurrentFetchSteps <= 0 || RiverGeometryCountsAreInvalid();
+
+    private bool RiverGeometryCountsAreInvalid() =>
+        RiverChannelWideningOrder <= 0 ||
+        RiverChannelWideningDischargeMultiplier <= 0 || RiverChannelMaximumExpansionSteps < 0 ||
+        FloodplainMinimumRiverOrder <= 0 || FloodplainMaximumExpansionSteps < 0 ||
+        DeltaMinimumRiverOrder <= 0 || DeltaDischargeMultiplier <= 0 ||
+        DeltaMinimumSedimentDelivery < 0 || DeltaMaximumExpansionSteps < 0;
 
     private bool EvolutionCountsAreInvalid() =>
         IceAccumulationStep <= 0 || IceAblationStep <= 0 ||
@@ -398,7 +462,14 @@ public sealed record PhysicalGeographyGenerationProfile
         !IsUnitScalar(CoastalErosionWaveThreshold) ||
         !IsUnitScalar(CoastalErosionStrength) ||
         !IsUnitScalar(CoastalDepositionFraction) ||
-        CoastalSeaLevelChange is < -1000 or > 1000;
+        CoastalSeaLevelChange is < -1000 or > 1000 || RiverGeometryRangesAreInvalid();
+
+    private bool RiverGeometryRangesAreInvalid() =>
+        !IsUnitScalar(RiverChannelBaseStrength) || !IsUnitScalar(RiverChannelOrderStrength) ||
+        !IsUnitScalar(RiverChannelDischargeStrength) || RiverChannelWidthDecay <= 0 ||
+        FloodplainMaximumSlope < 0 || FloodplainMaximumRelief < 0 ||
+        FloodplainIntensityDecay <= 0 || !IsUnitScalar(DeltaMaximumWaveEnergy) ||
+        !IsUnitScalar(DeltaMaximumCurrentStrength) || DeltaIntensityDecay <= 0;
 
     private static bool IsUnitScalar(int value) => value is >= 0 and <= 1000;
 

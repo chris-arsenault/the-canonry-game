@@ -129,6 +129,9 @@ public static class PhysicalHexAggregator
         private int _pressureTotal;
         private int _ridgeEdgeMask;
         private int _riverCoverage;
+        private int _floodplainCoverage;
+        private int _deltaCoverage;
+        private int _wideRiverCoverage;
         private int _riverEdgeMask;
         private int _roughness;
         private ulong _significantFeatureFlags;
@@ -213,6 +216,9 @@ public static class PhysicalHexAggregator
                 _lakeCoverage,
                 _permanentIceCoverage,
                 _riverCoverage,
+                _floodplainCoverage,
+                _deltaCoverage,
+                _wideRiverCoverage,
                 _peakCount,
                 _iceTotal / count,
                 _maxIce,
@@ -235,7 +241,11 @@ public static class PhysicalHexAggregator
             _oceanCoverage += field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean ? 1 : 0;
             _lakeCoverage += field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake ? 1 : 0;
             _permanentIceCoverage += field.IceThickness[triangleIndex] >= 250 ? 1 : 0;
-            _riverCoverage += field.RiverOrders[triangleIndex] > 0 ? 1 : 0;
+            _riverCoverage += field.RiverChannelStrength[triangleIndex] > 0 ? 1 : 0;
+            _floodplainCoverage += field.FloodplainIntensity[triangleIndex] > 0 ? 1 : 0;
+            _deltaCoverage += field.DeltaIntensity[triangleIndex] > 0 ? 1 : 0;
+            _wideRiverCoverage += field.RiverChannelStrength[triangleIndex] > 0 &&
+                field.RiverOrders[triangleIndex] == 0 ? 1 : 0;
             _peakCount += field.LandformCodes[triangleIndex] == PhysicalLandformCodes.Peak ? 1 : 0;
         }
 
@@ -345,6 +355,9 @@ public readonly record struct PhysicalHexAggregate(
     int LakeCoverage,
     int PermanentIceCoverage,
     int RiverCoverage,
+    int FloodplainCoverage,
+    int DeltaCoverage,
+    int WideRiverCoverage,
     int PeakCount,
     int MeanIceThickness,
     int MaxIceThickness,

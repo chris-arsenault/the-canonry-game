@@ -36,7 +36,7 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
         foreach (var surfaceIndex in map.BaseSurfaceIndexes)
         {
             if (surfaceIndex is < (int)IceRemembersPhysicalSurface.Tundra or
-                > (int)IceRemembersPhysicalSurface.RiverValley)
+                > (int)IceRemembersPhysicalSurface.Delta)
             {
                 throw new InvalidOperationException("Natural surface classification produced an invalid surface.");
             }
@@ -78,6 +78,11 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
         int triangleIndex,
         IceRemembersMicrogeographyGenerationProfile profile)
     {
+        if (field.DeltaIntensity[triangleIndex] > 0)
+        {
+            return IceRemembersPhysicalSurface.Delta;
+        }
+
         if (field.LandformCodes[triangleIndex] == PhysicalLandformCodes.Fjord)
         {
             return IceRemembersPhysicalSurface.Fjord;
@@ -160,6 +165,21 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
         int triangleIndex,
         IceRemembersMicrogeographyGenerationProfile profile)
     {
+        if (field.DeltaIntensity[triangleIndex] > 0)
+        {
+            return IceRemembersPhysicalSurface.Delta;
+        }
+
+        if (field.RiverChannelStrength[triangleIndex] > 0)
+        {
+            return IceRemembersPhysicalSurface.RiverChannel;
+        }
+
+        if (field.FloodplainIntensity[triangleIndex] > 0)
+        {
+            return IceRemembersPhysicalSurface.Floodplain;
+        }
+
         if (field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake)
         {
             return IceRemembersPhysicalSurface.Lake;
@@ -189,6 +209,11 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
             return IceRemembersPhysicalSurface.RiverValley;
         }
 
+        if (BordersRiverChannel(field, triangleIndex, profile.RiverValleyMinimumOrder))
+        {
+            return IceRemembersPhysicalSurface.RiverValley;
+        }
+
         if (field.Slope[triangleIndex] >= profile.ScreeFieldMinimumSlope)
         {
             return IceRemembersPhysicalSurface.ScreeField;
@@ -201,6 +226,23 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
         }
 
         return null;
+    }
+
+    private static bool BordersRiverChannel(
+        PhysicalGeographyField field,
+        int triangleIndex,
+        int minimumOrder)
+    {
+        for (var edge = 0; edge < 3; edge++)
+        {
+            var neighbor = field.Grid.NeighborTriangleIndex(triangleIndex, edge);
+            if (neighbor >= 0 && field.RiverChannelOrders[neighbor] >= minimumOrder)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static IceRemembersPhysicalSurface ClassifyLandClimate(

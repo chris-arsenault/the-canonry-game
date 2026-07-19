@@ -32,4 +32,7 @@ internal enum PhysicalGeographyFacts : ulong
     SedimentTransport = 1UL << 25,
     GlacialEvolution = 1UL << 26,
     CoastalEvolution = 1UL << 27,
+    RiverGeometry = 1UL << 28,
+    Floodplains = 1UL << 29,
+    Deltas = 1UL << 30,
 }

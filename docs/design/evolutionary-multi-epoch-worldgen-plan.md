@@ -183,18 +183,18 @@ floodplains, distributaries, and deltas cannot exist.
 
 Implementation:
 
-- [ ] Keep the existing flow spine authoritative.
-- [ ] Add `RiverChannelGeometryLayer` to widen channels from discharge, order,
+- [x] Keep the existing flow spine authoritative.
+- [x] Add `RiverChannelGeometryLayer` to widen channels from discharge, order,
   slope, and valley confinement.
-- [ ] Add `FloodplainLayer` for low-gradient terrain repeatedly affected by
+- [x] Add `FloodplainLayer` for low-gradient terrain repeatedly affected by
   large channels.
-- [ ] Add `DeltaFormationLayer` using discharge, sediment, mouth geometry, and
+- [x] Add `DeltaFormationLayer` using discharge, sediment, mouth geometry, and
   coastal-current energy.
-- [ ] Add `river_channel`, `floodplain`, and `delta` domain surfaces.
-- [ ] Extend aggregation, blueprint, projection, and UI to render filled
+- [x] Add `river_channel`, `floodplain`, and `delta` domain surfaces.
+- [x] Extend aggregation, blueprint, projection, and UI to render filled
   triangle coverage instead of universal border lines.
-- [ ] Add positive/negative topology and rendering tests.
-- [ ] Inspect tributaries, wide channels, lake outlets, distributaries, and
+- [x] Add positive/negative topology and rendering tests.
+- [x] Inspect tributaries, wide channels, lake outlets, distributaries, and
   deltas; verify, commit, and push.
 
 ### 5. Configurable epochs and magic history

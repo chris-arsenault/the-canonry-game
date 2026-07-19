@@ -267,7 +267,9 @@ public partial class HexTooltipPanel : PanelContainer
             $"geothermal {cell.MeanGeothermal}\n" +
             $"coverage land {cell.LandCoverage}/24 water {cell.WaterCoverage}/24 " +
             $"ocean {cell.OceanCoverage}/24 lake {cell.LakeCoverage}/24 " +
-            $"ice {cell.PermanentIceCoverage}/24 river {cell.RiverCoverage}/24\n" +
+            $"ice {cell.PermanentIceCoverage}/24 river {cell.RiverCoverage}/24 " +
+            $"floodplain {cell.FloodplainCoverage}/24 delta {cell.DeltaCoverage}/24 " +
+            $"wide {cell.WideRiverCoverage}/24\n" +
             $"ice thickness {cell.MeanIceThickness}/{cell.MaxIceThickness}   " +
             $"magic fire {cell.MeanFireIntensity}/{cell.MaxFireIntensity} " +
             $"aurora {cell.MeanAuroraIntensity}/{cell.MaxAuroraIntensity} " +
@@ -307,7 +309,9 @@ public partial class HexTooltipPanel : PanelContainer
             $"water {WaterKindName(triangle.WaterKindCode)} depth {triangle.WaterDepth} " +
             $"body {triangle.WaterBodyId} basin {triangle.DrainageBasinId}\n" +
             $"flow edge {triangle.FlowEdge} accumulation {triangle.FlowAccumulation} " +
-            $"river order {triangle.RiverOrder}   {features}\n" +
+            $"river order {triangle.RiverOrder} channel {triangle.RiverChannelStrength}/" +
+            $"{triangle.RiverChannelOrder} floodplain {triangle.FloodplainIntensity} " +
+            $"delta {triangle.DeltaIntensity}   {features}\n" +
             $"landmass {triangle.LandmassId}/{LandmassClassName(triangle.LandmassClassCode)} " +
             $"continental group {triangle.ContinentalGroupId} bathymetry {BathymetryName(triangle.BathymetricZoneCode)}\n" +
             $"ice {triangle.IceThickness} flux {triangle.IceFlux}   fracture {triangle.FractureConductance} " +

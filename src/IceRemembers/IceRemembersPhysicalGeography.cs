@@ -42,6 +42,9 @@ public enum IceRemembersPhysicalSurface
     ColdSteppe,
     ScreeField,
     RiverValley,
+    RiverChannel,
+    Floodplain,
+    Delta,
     FirecoreVent,
     ThermalVein,
     HotSpring,
@@ -123,6 +126,9 @@ public static class IceRemembersPhysicalGeography
         "cold_steppe",
         "scree_field",
         "river_valley",
+        "river_channel",
+        "floodplain",
+        "delta",
         "firecore_vent",
         "thermal_vein",
         "hot_spring",
@@ -215,6 +221,11 @@ public static class IceRemembersPhysicalGeography
         PhysicalGeographyField field,
         int triangleIndex)
     {
+        if (field.DeltaIntensity[triangleIndex] > 0 || field.FloodplainIntensity[triangleIndex] > 0)
+        {
+            return IceRemembersPhysicalMaterial.TundraSoil;
+        }
+
         if (field.LandformCodes[triangleIndex] == PhysicalLandformCodes.Moraine)
         {
             return IceRemembersPhysicalMaterial.MoraineTill;

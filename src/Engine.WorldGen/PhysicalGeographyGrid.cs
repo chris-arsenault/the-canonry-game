@@ -234,6 +234,10 @@ public sealed class PhysicalGeographyField
     private readonly int[] _rainfall;
     private readonly float[] _ridgeInfluence;
     private readonly int[] _riverOrders;
+    private readonly int[] _riverChannelStrength;
+    private readonly int[] _riverChannelOrders;
+    private readonly int[] _floodplainIntensity;
+    private readonly int[] _deltaIntensity;
     private readonly int[] _runoff;
     private readonly int[] _seaIceSuitability;
     private readonly int[] _sedimentSupply;
@@ -289,6 +293,8 @@ public sealed class PhysicalGeographyField
         Array.Fill(_flowEdges, PhysicalGeographyCodes.NoFlowEdge);
         _flowAccumulation = new int[grid.TriangleCount];
         _riverOrders = new int[grid.TriangleCount];
+        (_riverChannelStrength, _riverChannelOrders, _floodplainIntensity, _deltaIntensity) =
+            (NewField(grid), NewField(grid), NewField(grid), NewField(grid));
         _featureFlags = new int[grid.TriangleCount];
         _landmassIds = new int[grid.TriangleCount];
         _landmassClassCodes = new int[grid.TriangleCount];
@@ -406,6 +412,14 @@ public sealed class PhysicalGeographyField
     public Span<int> FlowAccumulation => _flowAccumulation;
 
     public Span<int> RiverOrders => _riverOrders;
+
+    public Span<int> RiverChannelStrength => _riverChannelStrength;
+
+    public Span<int> RiverChannelOrders => _riverChannelOrders;
+
+    public Span<int> FloodplainIntensity => _floodplainIntensity;
+
+    public Span<int> DeltaIntensity => _deltaIntensity;
 
     public Span<int> FeatureFlags => _featureFlags;
 

@@ -177,6 +177,10 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             PhysicalGeographyView.SeaIceSuitability =>
                 SeaIceSuitabilityColor(AggregateScalarValue(cell, "sea_ice_suitability")),
             PhysicalGeographyView.Hydrology => AggregateHydrologyColor(cell),
+            PhysicalGeographyView.RiverGeometry => RiverGeometryColor(
+                cell.RiverCoverage,
+                cell.FloodplainCoverage,
+                cell.DeltaCoverage),
             PhysicalGeographyView.Ice => IceColor(cell.MeanIceThickness),
             PhysicalGeographyView.Fractures => FractureColor(
                 System.Numerics.BitOperations.PopCount((uint)cell.FractureEdgeMask) * 1000 / 6),
@@ -259,8 +263,11 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         in PhysicalMicrotriangleProjection triangle)
     {
         var color = BaseTriangleColor(cell, triangleIndex, triangle);
-        return ViewUsesWaterTint(_owner!.View)
+        color = ViewUsesWaterTint(_owner!.View)
             ? ApplyWaterTint(color, triangle.WaterKindCode, triangle.WaterDepth)
+            : color;
+        return _owner.View == PhysicalGeographyView.Terrain
+            ? ApplyRiverGeometryTint(color, triangle)
             : color;
     }
 
@@ -334,24 +341,43 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         in PhysicalGeographyCellProjection cell,
         int triangleIndex,
         in PhysicalMicrotriangleProjection triangle,
+        PhysicalGeographyView view)
+    => view <= PhysicalGeographyView.SeaIceSuitability
+        ? TriangleAtmosphericProcessColor(cell, triangleIndex, view)
+        : TriangleLandscapeProcessColor(triangle, view);
+
+    private Color TriangleAtmosphericProcessColor(
+        in PhysicalGeographyCellProjection cell,
+        int triangleIndex,
         PhysicalGeographyView view) => view switch
-        {
-            PhysicalGeographyView.OceanCurrents => OceanCurrentColor(
-                ScalarValue(cell, triangleIndex, "ocean_current_strength"),
-                ScalarValue(cell, triangleIndex, "ocean_current_heat")),
-            PhysicalGeographyView.WaveExposure =>
-                WaveExposureColor(ScalarValue(cell, triangleIndex, "wave_exposure")),
-            PhysicalGeographyView.Precipitation => PrecipitationColor(
-                ScalarValue(cell, triangleIndex, "rainfall"),
-                ScalarValue(cell, triangleIndex, "snowfall")),
-            PhysicalGeographyView.SeaIceSuitability => SeaIceSuitabilityColor(
-                ScalarValue(cell, triangleIndex, "sea_ice_suitability")),
-            PhysicalGeographyView.Landform => LandformColor(triangle.LandformCode),
-            PhysicalGeographyView.Hydrology => HydrologyColor(triangle),
-            PhysicalGeographyView.Ice => IceColor(triangle.IceThickness),
-            PhysicalGeographyView.Fractures => FractureColor(triangle.FractureConductance),
-            _ => UiTokens.Whisper,
-        };
+    {
+        PhysicalGeographyView.OceanCurrents => OceanCurrentColor(
+            ScalarValue(cell, triangleIndex, "ocean_current_strength"),
+            ScalarValue(cell, triangleIndex, "ocean_current_heat")),
+        PhysicalGeographyView.WaveExposure =>
+            WaveExposureColor(ScalarValue(cell, triangleIndex, "wave_exposure")),
+        PhysicalGeographyView.Precipitation => PrecipitationColor(
+            ScalarValue(cell, triangleIndex, "rainfall"),
+            ScalarValue(cell, triangleIndex, "snowfall")),
+        PhysicalGeographyView.SeaIceSuitability => SeaIceSuitabilityColor(
+            ScalarValue(cell, triangleIndex, "sea_ice_suitability")),
+        _ => UiTokens.Whisper,
+    };
+
+    private static Color TriangleLandscapeProcessColor(
+        in PhysicalMicrotriangleProjection triangle,
+        PhysicalGeographyView view) => view switch
+    {
+        PhysicalGeographyView.Landform => LandformColor(triangle.LandformCode),
+        PhysicalGeographyView.Hydrology => HydrologyColor(triangle),
+        PhysicalGeographyView.RiverGeometry => RiverGeometryColor(
+            triangle.RiverChannelStrength,
+            triangle.FloodplainIntensity,
+            triangle.DeltaIntensity),
+        PhysicalGeographyView.Ice => IceColor(triangle.IceThickness),
+        PhysicalGeographyView.Fractures => FractureColor(triangle.FractureConductance),
+        _ => UiTokens.Whisper,
+    };
 
     private Color TriangleHistoryColor(
         in PhysicalGeographyCellProjection cell,
@@ -519,16 +545,11 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         for (var index = 0; index < triangles.Length; index++)
         {
             var triangle = triangles[index];
-            if (triangle.RiverOrder > 0 && triangle.FlowEdge >= 0)
-            {
-                DrawRiver(cell.Coord, index, triangle);
-            }
-
             if (triangle.LandformCode == PhysicalLandformCodes.Peak)
             {
                 DrawCircle(
                     _owner!.Geometry.TriangleCentroid(index),
-                    1.4f + (0.55f * triangle.RiverOrder),
+                    1.4f,
                     UiTokens.Vellum);
             }
 
@@ -540,32 +561,6 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
                     UiTokens.Gilt);
             }
         }
-    }
-
-    private void DrawRiver(
-        HexCoord coord,
-        int triangleIndex,
-        in PhysicalMicrotriangleProjection triangle)
-    {
-        PhysicalMicrotriangleTopology.ResolveNeighbor(
-            coord.Q,
-            coord.R,
-            triangleIndex,
-            triangle.FlowEdge,
-            out var neighborQ,
-            out var neighborR,
-            out var neighborTriangleIndex);
-        var neighborCoord = new HexCoord(neighborQ, neighborR);
-        if (!_owner!.Geography.TryGetMicrotriangle(neighborCoord, neighborTriangleIndex, out _))
-        {
-            return;
-        }
-
-        var start = _owner.Geometry.TriangleCentroid(triangleIndex);
-        var target = _owner.Geometry.HexCenter(neighborCoord) -
-            _owner.Geometry.HexCenter(coord) +
-            _owner.Geometry.TriangleCentroid(neighborTriangleIndex);
-        DrawLine(start, target, RiverWater, 0.8f + (triangle.RiverOrder * 0.55f), true);
     }
 
     private void DrawHexFeatures(in PhysicalGeographyCellProjection cell)
@@ -647,9 +642,51 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
                 new Color(0.02f, 0.07f, 0.15f),
                 Math.Clamp(triangle.WaterDepth / 700f, 0f, 1f)),
             PhysicalWaterKindCodes.Lake => LakeWater,
-            _ when triangle.RiverOrder > 0 => new Color(0.20f, 0.48f, 0.50f),
+            _ when triangle.DeltaIntensity > 0 => new Color(0.20f, 0.56f, 0.54f),
+            _ when triangle.RiverChannelStrength > 0 => RiverWater,
+            _ when triangle.FloodplainIntensity > 0 => new Color(0.34f, 0.53f, 0.42f),
             _ => new Color(0.38f, 0.42f, 0.38f),
         };
+
+    private static Color RiverGeometryColor(int channel, int floodplain, int delta)
+    {
+        if (delta > 0)
+        {
+            return new Color(0.20f, 0.62f, 0.56f).Lerp(RiverWater, Math.Clamp(delta / 1000f, 0f, 0.45f));
+        }
+
+        if (channel > 0)
+        {
+            return new Color(0.16f, 0.36f, 0.42f).Lerp(
+                RiverWater,
+                Math.Clamp(channel / 1000f, 0.25f, 1f));
+        }
+
+        return floodplain > 0
+            ? new Color(0.27f, 0.55f, 0.39f).Lerp(
+                new Color(0.48f, 0.62f, 0.45f),
+                Math.Clamp(floodplain / 1000f, 0f, 1f))
+            : new Color(0.31f, 0.34f, 0.32f);
+    }
+
+    private static Color ApplyRiverGeometryTint(
+        Color color,
+        in PhysicalMicrotriangleProjection triangle)
+    {
+        if (triangle.DeltaIntensity > 0)
+        {
+            return color.Lerp(new Color(0.20f, 0.62f, 0.56f), 0.72f);
+        }
+
+        if (triangle.RiverChannelStrength > 0)
+        {
+            return color.Lerp(RiverWater, 0.58f + (0.28f * triangle.RiverChannelStrength / 1000f));
+        }
+
+        return triangle.FloodplainIntensity > 0
+            ? color.Lerp(new Color(0.35f, 0.55f, 0.40f), 0.22f)
+            : color;
+    }
 
     private static Color ApplyWaterTint(Color color, int waterKindCode, int waterDepth) =>
         waterKindCode switch

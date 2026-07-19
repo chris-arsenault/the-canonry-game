@@ -36,6 +36,7 @@ public partial class MapArea : Control
     public const string GeographyViewMaximumGlaciation = "maximum_glaciation";
     public const string GeographyViewLandform = "landform";
     public const string GeographyViewHydrology = "hydrology";
+    public const string GeographyViewRiverGeometry = "river_geometry";
     public const string GeographyViewIce = "ice";
     public const string GeographyViewFractures = "fractures";
     public const string GeographyViewTectonicProvinces = "tectonic_provinces";
@@ -264,6 +265,7 @@ public partial class MapArea : Control
         AddGeneratedProcessViewOptions();
         AddGeographyViewOption("Landforms", GeographyViewLandform);
         AddGeographyViewOption("Hydrology", GeographyViewHydrology);
+        AddGeographyViewOption("River geometry", GeographyViewRiverGeometry);
         AddGeographyViewOption("Ice", GeographyViewIce);
         AddGeographyViewOption("Fractures", GeographyViewFractures);
         AddGeographyViewOption("Tectonic provinces", GeographyViewTectonicProvinces);

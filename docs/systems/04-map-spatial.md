@@ -40,7 +40,8 @@ Each triangle stores a physical material, landform, elevation, stable climate
 and geothermal values, water kind/depth/body, drainage basin, downstream edge,
 flow accumulation, river order, ocean-current direction/strength/heat, wave
 exposure, rainfall, snowfall, sea-ice suitability, bedrock elevation, sediment
-thickness, cumulative erosion/deposition, maximum glaciation, and permanent feature flags. Physical materials
+thickness, cumulative erosion/deposition, maximum glaciation, channel strength
+and order, floodplain intensity, delta intensity, and permanent feature flags. Physical materials
 such as bedrock, scree, tundra soil, glacial ice, marine sediment, reef stone,
 and geothermal crust are not gameplay terrain IDs. Stable within-hex and
 across-edge adjacency makes ridges, coasts, drainage, and rivers continuous
@@ -57,7 +58,12 @@ mouths, and accounts for material exported from the modeled field.
 Connected-component and boundary-flood passes identify landmasses,
 continental shelves, bathymetry, and the exterior ocean. Priority-flood
 drainage then creates coherent lakes, accumulated runoff, tributaries, and
-watersheds. A cold derived climate supplies multiple separated warmth pockets
+watersheds. That one-triangle routing spine remains authoritative while a
+separate channel layer widens major flows across neighboring triangles from
+discharge, order, relief, and basin membership. Low-gradient margins become
+floodplains; sediment delivery and sheltered shelf energy produce branching
+delta fans. These coverage fields do not rewrite downstream routing. A cold
+derived climate supplies multiple separated warmth pockets
 across ocean, shore, inland, and geothermal peak sites; the startup heart
 overlaps one pocket but does not own the world's only warmth.
 Currents follow broad curl forcing while responding to basin depth and coast
@@ -125,7 +131,7 @@ unmodified hex; at distant zoom an explicit worldgen-inspection mode draws
 aggregate latent hexes. Terrain, final and natural surface, material,
 elevation, temperature, moisture, geothermal, currents, wave exposure,
 precipitation, sea-ice suitability, landform, hydrology, ice, sediment,
-cumulative erosion, maximum glaciation,
+cumulative erosion, maximum glaciation, and river geometry,
 fracture, fire, aurora, pressure, and composite-magic views expose how the
 synthesized terrain was chosen. Chunk culling keeps triangle drawing limited to
 the visible field. Close zoom draws triangle-scale features without overlaying

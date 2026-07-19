@@ -366,12 +366,7 @@ internal static class IceRemembersStartupSeedCacheSerializer
         writer.Write(cell.MeanTemperature);
         writer.Write(cell.MeanMoisture);
         writer.Write(cell.MeanGeothermal);
-        writer.Write(cell.LandCoverage);
-        writer.Write(cell.WaterCoverage);
-        writer.Write(cell.OceanCoverage);
-        writer.Write(cell.LakeCoverage);
-        writer.Write(cell.PermanentIceCoverage);
-        writer.Write(cell.RiverCoverage);
+        WritePhysicalCellCoverage(writer, cell);
         writer.Write(cell.PeakCount);
         writer.Write(cell.MeanIceThickness);
         writer.Write(cell.MaxIceThickness);
@@ -387,6 +382,19 @@ internal static class IceRemembersStartupSeedCacheSerializer
         writer.Write(cell.CliffEdgeMask);
         writer.Write(cell.PassEdgeMask);
         writer.Write(cell.FractureEdgeMask);
+    }
+
+    private static void WritePhysicalCellCoverage(BinaryWriter writer, DomainPhysicalGeographyCell cell)
+    {
+        writer.Write(cell.LandCoverage);
+        writer.Write(cell.WaterCoverage);
+        writer.Write(cell.OceanCoverage);
+        writer.Write(cell.LakeCoverage);
+        writer.Write(cell.PermanentIceCoverage);
+        writer.Write(cell.RiverCoverage);
+        writer.Write(cell.FloodplainCoverage);
+        writer.Write(cell.DeltaCoverage);
+        writer.Write(cell.WideRiverCoverage);
     }
 
     private static DomainPhysicalGeographyCell ReadPhysicalCell(BinaryReader reader) => new(
@@ -413,6 +421,9 @@ internal static class IceRemembersStartupSeedCacheSerializer
         LakeCoverage: reader.ReadInt32(),
         PermanentIceCoverage: reader.ReadInt32(),
         RiverCoverage: reader.ReadInt32(),
+        FloodplainCoverage: reader.ReadInt32(),
+        DeltaCoverage: reader.ReadInt32(),
+        WideRiverCoverage: reader.ReadInt32(),
         PeakCount: reader.ReadInt32(),
         MeanIceThickness: reader.ReadInt32(),
         MaxIceThickness: reader.ReadInt32(),
@@ -452,6 +463,10 @@ internal static class IceRemembersStartupSeedCacheSerializer
         writer.Write(triangle.FlowEdge);
         writer.Write(triangle.FlowAccumulation);
         writer.Write(triangle.RiverOrder);
+        writer.Write(triangle.RiverChannelStrength);
+        writer.Write(triangle.RiverChannelOrder);
+        writer.Write(triangle.FloodplainIntensity);
+        writer.Write(triangle.DeltaIntensity);
         writer.Write(triangle.IceThickness);
         writer.Write(triangle.IceFlux);
         writer.Write(triangle.FractureConductance);
@@ -481,6 +496,10 @@ internal static class IceRemembersStartupSeedCacheSerializer
         FlowEdge: reader.ReadInt32(),
         FlowAccumulation: reader.ReadInt32(),
         RiverOrder: reader.ReadInt32(),
+        RiverChannelStrength: reader.ReadInt32(),
+        RiverChannelOrder: reader.ReadInt32(),
+        FloodplainIntensity: reader.ReadInt32(),
+        DeltaIntensity: reader.ReadInt32(),
         IceThickness: reader.ReadInt32(),
         IceFlux: reader.ReadInt32(),
         FractureConductance: reader.ReadInt32(),

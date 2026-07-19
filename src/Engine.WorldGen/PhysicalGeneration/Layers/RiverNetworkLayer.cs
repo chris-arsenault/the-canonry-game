@@ -9,7 +9,11 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
         0,
         PhysicalGeographyFacts.Runoff | PhysicalGeographyFacts.FlowRouting,
         PhysicalGeographyFacts.Rivers,
-        PhysicalGeographyFacts.Landforms | PhysicalGeographyFacts.Validated);
+        PhysicalGeographyFacts.RiverGeometry |
+        PhysicalGeographyFacts.Floodplains |
+        PhysicalGeographyFacts.Deltas |
+        PhysicalGeographyFacts.Landforms |
+        PhysicalGeographyFacts.Validated);
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {

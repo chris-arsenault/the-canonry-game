@@ -19,7 +19,10 @@ internal sealed class PhysicalGeographyValidationLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.LandscapeHistory |
         PhysicalGeographyFacts.SedimentTransport |
         PhysicalGeographyFacts.GlacialEvolution |
-        PhysicalGeographyFacts.CoastalEvolution,
+        PhysicalGeographyFacts.CoastalEvolution |
+        PhysicalGeographyFacts.RiverGeometry |
+        PhysicalGeographyFacts.Floodplains |
+        PhysicalGeographyFacts.Deltas,
         PhysicalGeographyFacts.Validated);
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
@@ -45,16 +48,30 @@ internal sealed class PhysicalGeographyValidationLayer : IPhysicalGeographyLayer
     {
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
-            if (map.LandformCodes[triangleIndex] is < PhysicalLandformCodes.Min or > PhysicalLandformCodes.Max ||
-                map.WaterKindCodes[triangleIndex] is < PhysicalWaterKindCodes.Min or > PhysicalWaterKindCodes.Max ||
-                map.BathymetricZoneCodes[triangleIndex] is < PhysicalBathymetricZoneCodes.Min or
-                    > PhysicalBathymetricZoneCodes.Max ||
-                (map.FeatureFlags[triangleIndex] & ~PhysicalGeographyFeatureCodes.All) != 0)
+            if (!PrimitiveCodesAreValid(map, triangleIndex))
             {
                 throw new InvalidOperationException("Physical geography contains an invalid primitive code.");
             }
+
+            if (!RiverGeometryCodesAreValid(map, triangleIndex))
+            {
+                throw new InvalidOperationException("Physical geography contains an invalid river-geometry value.");
+            }
         }
     }
+
+    private static bool PrimitiveCodesAreValid(PhysicalGeographyField map, int triangleIndex) =>
+        map.LandformCodes[triangleIndex] is >= PhysicalLandformCodes.Min and <= PhysicalLandformCodes.Max &&
+        map.WaterKindCodes[triangleIndex] is >= PhysicalWaterKindCodes.Min and <= PhysicalWaterKindCodes.Max &&
+        map.BathymetricZoneCodes[triangleIndex] is >= PhysicalBathymetricZoneCodes.Min and
+            <= PhysicalBathymetricZoneCodes.Max &&
+        (map.FeatureFlags[triangleIndex] & ~PhysicalGeographyFeatureCodes.All) == 0;
+
+    private static bool RiverGeometryCodesAreValid(PhysicalGeographyField map, int triangleIndex) =>
+        map.RiverChannelStrength[triangleIndex] is >= 0 and <= 1000 &&
+        map.RiverChannelOrders[triangleIndex] >= 0 &&
+        map.FloodplainIntensity[triangleIndex] is >= 0 and <= 1000 &&
+        map.DeltaIntensity[triangleIndex] is >= 0 and <= 1000;
 
     private static void ValidateWater(PhysicalGeographyField map)
     {
@@ -155,7 +172,14 @@ internal sealed class PhysicalGeographyValidationLayer : IPhysicalGeographyLayer
             counts.IslandCount / (double)Math.Max(1, counts.LandCount),
             counts.CoastEdgeCount / (double)Math.Max(1, counts.LandCount * 3),
             MeasureLandmassSpacing(map, counts.LandmassCentroids, majorLandmassIds),
-            counts.HotspotLandmassIds.Count);
+            counts.HotspotLandmassIds.Count,
+            counts.RiverChannelCount / (double)Math.Max(1, counts.TriangleCount),
+            counts.FloodplainCount / (double)Math.Max(1, counts.LandCount),
+            counts.DeltaCount / (double)Math.Max(1, counts.TriangleCount),
+            counts.TributarySpineCount / (double)Math.Max(1, counts.LandCount),
+            counts.WideRiverCount / (double)Math.Max(1, counts.TriangleCount),
+            counts.HigherOrderRiverTriangleCount,
+            counts.DeltaMouthCount);
     }
 
     private static HashSet<int> MajorLandmassIds(
@@ -192,10 +216,35 @@ internal sealed class PhysicalGeographyValidationLayer : IPhysicalGeographyLayer
 
         counts.LandCount++;
         counts.LandIceCount += map.IceThickness[triangleIndex] >= profile.GlacierThicknessThreshold ? 1 : 0;
+        counts.TributarySpineCount += map.RiverOrders[triangleIndex] == 1 ? 1 : 0;
+        MeasureRiverGeometry(map, triangleIndex, counts);
         MeasureLandmass(map, triangleIndex, counts);
         MeasureHotspot(map, triangleIndex, counts);
         MeasureCoast(map, triangleIndex, counts);
 
+    }
+
+    private static void MeasureRiverGeometry(
+        PhysicalGeographyField map,
+        int triangleIndex,
+        MutableQualityCounts counts)
+    {
+        counts.RiverChannelCount += map.RiverChannelStrength[triangleIndex] > 0 ? 1 : 0;
+        counts.FloodplainCount += map.FloodplainIntensity[triangleIndex] > 0 ? 1 : 0;
+        counts.DeltaCount += map.DeltaIntensity[triangleIndex] > 0 ? 1 : 0;
+        counts.WideRiverCount += IsWideRiver(map, triangleIndex) ? 1 : 0;
+        counts.HigherOrderRiverTriangleCount += map.RiverOrders[triangleIndex] > 1 ? 1 : 0;
+        counts.DeltaMouthCount += IsDeltaMouth(map, triangleIndex) ? 1 : 0;
+    }
+
+    private static bool IsWideRiver(PhysicalGeographyField map, int triangleIndex) =>
+        map.RiverChannelStrength[triangleIndex] > 0 && map.RiverOrders[triangleIndex] == 0;
+
+    private static bool IsDeltaMouth(PhysicalGeographyField map, int triangleIndex)
+    {
+        var target = map.FlowTargets[triangleIndex];
+        return map.DeltaIntensity[triangleIndex] > 0 && map.RiverOrders[triangleIndex] > 0 &&
+            target >= 0 && map.WaterKindCodes[target] == PhysicalWaterKindCodes.Ocean;
     }
 
     private static void MeasureLandmass(
@@ -298,6 +347,14 @@ internal sealed class PhysicalGeographyValidationLayer : IPhysicalGeographyLayer
             "Major-landmass spacing",
             measurements.MajorLandmassSpacing,
             targets.MajorLandmassSpacing);
+        ValidateCoverage("River-channel", measurements.RiverChannelCoverage, targets.RiverChannelCoverage);
+        ValidateCoverage("Floodplain", measurements.FloodplainCoverage, targets.FloodplainCoverage);
+        ValidateCoverage("Delta", measurements.DeltaCoverage, targets.DeltaCoverage);
+        ValidateCoverage(
+            "Tributary-spine",
+            measurements.TributarySpineCoverage,
+            targets.TributarySpineCoverage);
+        ValidateCoverage("Wide-river", measurements.WideRiverCoverage, targets.WideRiverCoverage);
     }
 
     private static void ValidateCoverage(string name, double value, CoverageTarget target)
@@ -317,6 +374,11 @@ internal sealed class PhysicalGeographyValidationLayer : IPhysicalGeographyLayer
         ValidateCount("Major landmass", measurements.MajorLandmassCount, targets.MajorLandmassCount);
         ValidateCount("Inland lake", measurements.InlandLakeBodyCount, targets.InlandLakeBodyCount);
         ValidateCount("Hotspot landmass", measurements.HotspotLandmassCount, targets.HotspotLandmassCount);
+        ValidateCount(
+            "Higher-order river triangle",
+            measurements.HigherOrderRiverTriangleCount,
+            targets.HigherOrderRiverTriangleCount);
+        ValidateCount("Delta mouth", measurements.DeltaMouthCount, targets.DeltaMouthCount);
     }
 
     private static void ValidateCount(string name, int value, CountTarget target)
@@ -343,6 +405,20 @@ internal sealed class PhysicalGeographyValidationLayer : IPhysicalGeographyLayer
         public int IslandCount { get; set; }
 
         public int CoastEdgeCount { get; set; }
+
+        public int RiverChannelCount { get; set; }
+
+        public int FloodplainCount { get; set; }
+
+        public int DeltaCount { get; set; }
+
+        public int TributarySpineCount { get; set; }
+
+        public int WideRiverCount { get; set; }
+
+        public int HigherOrderRiverTriangleCount { get; set; }
+
+        public int DeltaMouthCount { get; set; }
 
         public HashSet<int> LakeBodyIds { get; } = [];
 
@@ -372,5 +448,12 @@ internal sealed class PhysicalGeographyValidationLayer : IPhysicalGeographyLayer
         double IslandLandCoverage,
         double CoastEdgeDensity,
         double MajorLandmassSpacing,
-        int HotspotLandmassCount);
+        int HotspotLandmassCount,
+        double RiverChannelCoverage,
+        double FloodplainCoverage,
+        double DeltaCoverage,
+        double TributarySpineCoverage,
+        double WideRiverCoverage,
+        int HigherOrderRiverTriangleCount,
+        int DeltaMouthCount);
 }

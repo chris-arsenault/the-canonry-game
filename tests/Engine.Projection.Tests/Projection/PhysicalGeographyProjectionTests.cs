@@ -34,8 +34,14 @@ public sealed class PhysicalGeographyProjectionTests
         Assert.Equal("tundra_soil", projection.MaterialName(0));
         Assert.True(projection.TryGetCell(new HexCoord(1, -1), out var cell));
         Assert.Equal("tundra", cell.BaseTerrainStableName);
+        Assert.Equal(4, cell.RiverCoverage);
+        Assert.Equal(2, cell.FloodplainCoverage);
+        Assert.Equal(1, cell.DeltaCoverage);
+        Assert.Equal(3, cell.WideRiverCoverage);
         Assert.Equal(PhysicalGeographyCodes.MicrotrianglesPerHex, projection.MicrotrianglesFor(cell).Length);
         Assert.Equal(cell.MicrotriangleOffset, projection.MicrotrianglesFor(cell)[0].Elevation);
+        Assert.Equal(500, projection.MicrotrianglesFor(cell)[0].RiverChannelStrength);
+        Assert.Equal(100, projection.MicrotrianglesFor(cell)[0].DeltaIntensity);
         Assert.False(projection.TryGetCell(new HexCoord(2, 0), out _));
     }
 
@@ -63,7 +69,10 @@ public sealed class PhysicalGeographyProjectionTests
             OceanCoverage: 0,
             LakeCoverage: 0,
             PermanentIceCoverage: 0,
-            RiverCoverage: 0,
+            RiverCoverage: 4,
+            FloodplainCoverage: 2,
+            DeltaCoverage: 1,
+            WideRiverCoverage: 3,
             PeakCount: 0,
             MeanIceThickness: 0,
             MaxIceThickness: 0,
@@ -103,6 +112,10 @@ public sealed class PhysicalGeographyProjectionTests
             FlowEdge: PhysicalGeographyCodes.NoFlowEdge,
             FlowAccumulation: 0,
             RiverOrder: 0,
+            RiverChannelStrength: 500,
+            RiverChannelOrder: 2,
+            FloodplainIntensity: 0,
+            DeltaIntensity: 100,
             IceThickness: 0,
             IceFlux: 0,
             FractureConductance: 0,

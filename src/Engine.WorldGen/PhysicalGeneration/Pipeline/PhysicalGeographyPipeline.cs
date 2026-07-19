@@ -66,6 +66,9 @@ internal sealed class PhysicalGeographyPipeline
         layers.Add(new GlacialLandformLayer());
         layers.Add(new SeaIceLayer());
         layers.Add(new LandformClassificationLayer());
+        layers.Add(new RiverChannelGeometryLayer());
+        layers.Add(new FloodplainLayer());
+        layers.Add(new DeltaFormationLayer());
         layers.Add(new PhysicalGeographyValidationLayer());
         return new PhysicalGeographyPipeline(profile, layers);
     }

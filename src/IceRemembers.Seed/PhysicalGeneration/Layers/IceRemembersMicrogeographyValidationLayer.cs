@@ -39,7 +39,7 @@ internal sealed class IceRemembersMicrogeographyValidationLayer : IIceRemembersM
         for (var triangleIndex = 0; triangleIndex < map.Physical.Grid.TriangleCount; triangleIndex++)
         {
             if (map.BaseSurfaceIndexes[triangleIndex] is < (int)IceRemembersPhysicalSurface.Tundra or
-                    > (int)IceRemembersPhysicalSurface.RiverValley ||
+                    > (int)IceRemembersPhysicalSurface.Delta ||
                 (uint)map.SurfaceIndexes[triangleIndex] >= (uint)surfaceCount ||
                 (map.SignificantFeatureFlags[triangleIndex] & ~allFeatures) != 0)
             {

@@ -18,7 +18,7 @@ internal sealed record IceRemembersStartupSeedCacheResult(
 
 internal static class IceRemembersStartupSeedCache
 {
-    private const int WorldGenerationVersion = 4;
+    private const int WorldGenerationVersion = 5;
 
     public static IceRemembersStartupSeedCacheResult LoadOrCreate(
         int baseSeed,
