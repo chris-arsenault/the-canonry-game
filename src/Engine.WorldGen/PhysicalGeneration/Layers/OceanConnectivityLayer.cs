@@ -40,28 +40,14 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
         PhysicalGeographyGenerationContext context)
     {
         var profile = context.Profile;
-        var configuredElevations = new int[checked(
-            map.Grid.ConfiguredHexCount * PhysicalGeographyCodes.MicrotrianglesPerHex)];
-        var offset = 0;
-        for (var configuredIndex = 0; configuredIndex < map.Grid.ConfiguredHexCount; configuredIndex++)
-        {
-            var hexIndex = map.Grid.ConfiguredHexIndexAt(configuredIndex);
-            for (var local = 0; local < PhysicalGeographyCodes.MicrotrianglesPerHex; local++)
-            {
-                configuredElevations[offset++] = map.Elevation[map.Grid.TriangleIndex(hexIndex, local)];
-            }
-        }
-
-        var targetIndex = Math.Clamp(
+        var targetCount = Math.Clamp(
             (int)Math.Round(
-                profile.QualityTargets.OceanCoverage.Target * (configuredElevations.Length - 1),
+                map.Grid.ConfiguredHexCount * PhysicalGeographyCodes.MicrotrianglesPerHex *
+                    profile.QualityTargets.OceanCoverage.Target,
                 MidpointRounding.AwayFromZero),
-            0,
-            configuredElevations.Length - 1);
-        var descendingRank = configuredElevations.Length - targetIndex - 1;
-        var seaLevel = IntegerOrderStatistics.ValueAtDescendingRank(
-            configuredElevations,
-            descendingRank) +
+            1,
+            checked(map.Grid.ConfiguredHexCount * PhysicalGeographyCodes.MicrotrianglesPerHex));
+        var seaLevel = ConnectedOceanLevel(map, targetCount) +
             (int)Math.Round(profile.SeaLevel * profile.ElevationScale, MidpointRounding.AwayFromZero) +
             context.SeaLevelOffset;
         var minimumBoundary = int.MaxValue;
@@ -79,6 +65,177 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
         }
 
         return Math.Max(seaLevel, minimumBoundary + 1);
+    }
+
+    private static int ConnectedOceanLevel(PhysicalGeographyField map, int targetCount)
+    {
+        var order = IntegerKeyOrdering.DescendingThenIndex(map.Elevation);
+        var parent = new int[map.Grid.TriangleCount];
+        var componentSizes = new int[parent.Length];
+        var configuredCounts = new int[parent.Length];
+        var active = new bool[parent.Length];
+        var boundaryConnected = new bool[parent.Length];
+        Array.Fill(parent, -1);
+        var connectedConfigured = 0;
+        var cursor = order.Length - 1;
+        var selectedElevation = map.Elevation[order[0]];
+        while (cursor >= 0)
+        {
+            selectedElevation = map.Elevation[order[cursor]];
+            var groupEnd = cursor;
+            cursor = ActivateElevationGroup(
+                map,
+                order,
+                cursor,
+                selectedElevation,
+                parent,
+                componentSizes,
+                configuredCounts,
+                active,
+                boundaryConnected,
+                ref connectedConfigured);
+            ConnectElevationGroup(
+                map,
+                order,
+                cursor,
+                groupEnd,
+                parent,
+                componentSizes,
+                configuredCounts,
+                active,
+                boundaryConnected,
+                ref connectedConfigured);
+
+            if (connectedConfigured >= targetCount)
+            {
+                break;
+            }
+        }
+
+        return selectedElevation == int.MaxValue ? int.MaxValue : selectedElevation + 1;
+    }
+
+    private static int ActivateElevationGroup(
+        PhysicalGeographyField map,
+        int[] order,
+        int cursor,
+        int elevation,
+        int[] parent,
+        int[] componentSizes,
+        int[] configuredCounts,
+        bool[] active,
+        bool[] boundaryConnected,
+        ref int connectedConfigured)
+    {
+        while (cursor >= 0 && map.Elevation[order[cursor]] == elevation)
+        {
+            var triangleIndex = order[cursor--];
+            active[triangleIndex] = true;
+            parent[triangleIndex] = triangleIndex;
+            componentSizes[triangleIndex] = 1;
+            configuredCounts[triangleIndex] =
+                map.Grid.TriangleIsInsideConfiguredDisk(triangleIndex) ? 1 : 0;
+            boundaryConnected[triangleIndex] = map.Grid.HexIsOnWorkBoundary(
+                map.Grid.TriangleHexIndex(triangleIndex));
+            if (boundaryConnected[triangleIndex])
+            {
+                connectedConfigured += configuredCounts[triangleIndex];
+            }
+        }
+
+        return cursor;
+    }
+
+    private static void ConnectElevationGroup(
+        PhysicalGeographyField map,
+        int[] order,
+        int cursor,
+        int groupEnd,
+        int[] parent,
+        int[] componentSizes,
+        int[] configuredCounts,
+        bool[] active,
+        bool[] boundaryConnected,
+        ref int connectedConfigured)
+    {
+        for (var index = groupEnd; index > cursor; index--)
+        {
+            var triangleIndex = order[index];
+            for (var edge = 0; edge < 3; edge++)
+            {
+                var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
+                if (neighbor >= 0 && active[neighbor])
+                {
+                    UnionOceanComponents(
+                        parent,
+                        componentSizes,
+                        configuredCounts,
+                        boundaryConnected,
+                        triangleIndex,
+                        neighbor,
+                        ref connectedConfigured);
+                }
+            }
+        }
+    }
+
+    private static void UnionOceanComponents(
+        int[] parent,
+        int[] componentSizes,
+        int[] configuredCounts,
+        bool[] boundaryConnected,
+        int first,
+        int second,
+        ref int connectedConfigured)
+    {
+        var firstRoot = FindOceanComponent(parent, first);
+        var secondRoot = FindOceanComponent(parent, second);
+        if (firstRoot == secondRoot)
+        {
+            return;
+        }
+
+        if (componentSizes[firstRoot] < componentSizes[secondRoot])
+        {
+            (firstRoot, secondRoot) = (secondRoot, firstRoot);
+        }
+
+        if (boundaryConnected[firstRoot])
+        {
+            connectedConfigured -= configuredCounts[firstRoot];
+        }
+
+        if (boundaryConnected[secondRoot])
+        {
+            connectedConfigured -= configuredCounts[secondRoot];
+        }
+
+        parent[secondRoot] = firstRoot;
+        componentSizes[firstRoot] += componentSizes[secondRoot];
+        configuredCounts[firstRoot] += configuredCounts[secondRoot];
+        boundaryConnected[firstRoot] |= boundaryConnected[secondRoot];
+        if (boundaryConnected[firstRoot])
+        {
+            connectedConfigured += configuredCounts[firstRoot];
+        }
+    }
+
+    private static int FindOceanComponent(int[] parent, int triangleIndex)
+    {
+        var root = triangleIndex;
+        while (parent[root] != root)
+        {
+            root = parent[root];
+        }
+
+        while (parent[triangleIndex] != triangleIndex)
+        {
+            var next = parent[triangleIndex];
+            parent[triangleIndex] = root;
+            triangleIndex = next;
+        }
+
+        return root;
     }
 
     private static void FloodConnectedOcean(PhysicalGeographyField map)

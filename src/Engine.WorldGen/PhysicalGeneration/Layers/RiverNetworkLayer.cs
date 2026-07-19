@@ -37,7 +37,7 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
         }
 
         var basinDischarge = BuildBasinMaximumDischarge(map);
-        var channels = BuildChannels(map, context.Profile, basinDischarge);
+        var channels = BuildChannels(map, context.Profile, basinDischarge, order);
         var lakeOutflowStarts = FindLakeOutflowStarts(map, channels);
 
         PruneShortHeadwaters(
@@ -45,6 +45,7 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
             channels,
             lakeOutflowStarts,
             context.Profile.MinimumRiverReachTriangles);
+        CompleteDownstreamChannels(map, order, channels);
         AssignStrahlerOrder(map, order, channels);
     }
 
@@ -92,7 +93,8 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
     private static bool[] BuildChannels(
         PhysicalGeographyField map,
         PhysicalGeographyGenerationProfile profile,
-        int[] basinDischarge)
+        int[] basinDischarge,
+        IReadOnlyList<int> sourceToOutlet)
     {
         var channels = new bool[map.Grid.TriangleCount];
         for (var triangleIndex = 0; triangleIndex < channels.Length; triangleIndex++)
@@ -116,7 +118,35 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
             channels[triangleIndex] = map.FlowAccumulation[triangleIndex] >= threshold;
         }
 
+        CompleteDownstreamChannels(map, sourceToOutlet, channels);
         return channels;
+    }
+
+    private static void CompleteDownstreamChannels(
+        PhysicalGeographyField map,
+        IReadOnlyList<int> sourceToOutlet,
+        bool[] channels)
+    {
+        var downstreamOfChannel = (bool[])channels.Clone();
+        foreach (var triangleIndex in sourceToOutlet)
+        {
+            if (!downstreamOfChannel[triangleIndex])
+            {
+                continue;
+            }
+
+            var target = map.FlowTargets[triangleIndex];
+            if (target < 0)
+            {
+                continue;
+            }
+
+            downstreamOfChannel[target] = true;
+            if (map.WaterKindCodes[target] == PhysicalWaterKindCodes.None)
+            {
+                channels[target] = true;
+            }
+        }
     }
 
     private static bool[] FindLakeOutflowStarts(PhysicalGeographyField map, bool[] channels)
@@ -154,7 +184,10 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
             if (map.WaterKindCodes[target] == PhysicalWaterKindCodes.None &&
                 map.RiverOrders[target] <= 0)
             {
-                throw new InvalidOperationException("River channel contains a downstream break.");
+                throw new InvalidOperationException(
+                    $"River channel {source} contains a downstream break from {current} to {target}; " +
+                    $"source basin={map.DrainageBasinIds[source]}, current water=" +
+                    $"{map.WaterKindCodes[current]}, target basin={map.DrainageBasinIds[target]}.");
             }
 
             current = target;
@@ -178,7 +211,12 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
                 continue;
             }
 
-            var reach = CollectHeadwaterReach(map, channels, incoming, triangleIndex);
+            var reach = CollectHeadwaterReach(
+                map,
+                channels,
+                incoming,
+                protectedHeadwaters,
+                triangleIndex);
             if (reach.Count < minimumLength)
             {
                 foreach (var member in reach)
@@ -193,6 +231,7 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
         PhysicalGeographyField map,
         bool[] channels,
         int[] incoming,
+        bool[] protectedHeadwaters,
         int headwater)
     {
         var reach = new List<int>();
@@ -201,7 +240,8 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
         {
             reach.Add(current);
             var target = map.FlowTargets[current];
-            if (target < 0 || !channels[target] || incoming[target] > 1)
+            if (target < 0 || !channels[target] || incoming[target] > 1 ||
+                protectedHeadwaters[target])
             {
                 break;
             }

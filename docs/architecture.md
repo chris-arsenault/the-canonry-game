@@ -41,20 +41,22 @@ Engine.Observability
   run log, telemetry projection, parquet export, Monte Carlo analysis inputs
 
 Engine.WorldGen
-  domain-neutral hex/triangle topology, causal uplift and erosion, connected
-  land/water analysis, hydrology, climate, glaciation, fractures, aggregation,
-  terrain catalogs, map coverage, and the phased physical-evolution session
+  domain-neutral hex/triangle topology, evolving tectonic assemblies, sparse
+  impacts, causal uplift and erosion, connected land/water analysis,
+  outlet-conditioned hydrology, climate, glaciation, valley-shaped river
+  geometry, aggregation, terrain catalogs, map coverage, and the phased
+  physical-evolution session
 
 IceRemembers
   authored domain content plus physical material/surface taxonomy, generation
-  profile, configurable geological/magic epoch schedule, and tunable
-  world-quality targets
+  profile, configurable geological/magic epoch schedule, tunable generation
+  controls, and non-blocking diagnostic goals
 
 IceRemembers.Seed
   multi-epoch orchestration, dependency-ordered natural-surface and
   fire/aurora/pressure worldgen,
   authored hex-terrain synthesis, geography-shaped subdivisions, startup
-  placement, and profile-driven seed validation
+  placement, and structural seed validation
 ```
 
 `Engine.Kernel` must remain domain-agnostic. Domain names compile to stable ids
@@ -229,7 +231,9 @@ erosion, connected-ocean bathymetry, conditioned
 drainage, basin-shaped ocean currents, precipitation, climate, ice flow,
 incremental bedrock erosion, conserved sediment transport and deposition,
 glacial carving, coastal evolution, fractures, channel widening, floodplains,
-and delta fans. Ice Remembers interleaves fire heat, aurora storage, and ocean
+and delta fans. Sparse impacts precede the epochs so their excavated basins,
+fractured rims, ejecta, and residual heat are subsequently eroded, flooded,
+glaciated, or buried. Ice Remembers interleaves fire heat, aurora storage, and ocean
 pressure with those physical phases, translating pressure into a generic
 coastal-forcing field rather than importing domain concepts into physical
 worldgen. Current magic fields, cumulative epoch histories, and first-active
@@ -239,8 +243,8 @@ after the final physical reconciliation.
 It retains natural surfaces, anomaly flags, and all three intensity fields while
 scored authored rules reduce each 24-triangle aggregate to the base terrain the
 hex-scale kernel consumes. Ocean, current, wave, rain, snow, land-ice, sea-ice,
-landmass, lake, surface
-concentration, warmth, and anomaly distribution goals are tunable profile
+landmass, lake, surface concentration, cold-landform and per-landmass variety,
+drainage branching/direction, warmth, and anomaly distribution goals are tunable profile
 targets; structural graph and routing contracts remain invariants. Geographic
 subdivisions grow as connected partitions over those facts and never repaint
 the physical field. During the Long Dark,

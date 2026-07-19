@@ -92,7 +92,8 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
         var assemblies = AssignContinentalAssemblies(
             selected,
             context.Profile,
-            context.Seed);
+            context.Seed,
+            grid.Radius * Math.Sqrt(3d) * 0.94d);
         var sites = new ProvinceSite[selected.Length];
         for (var index = 0; index < sites.Length; index++)
         {
@@ -149,7 +150,8 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
     private static int[] AssignContinentalAssemblies(
         SiteCandidate[] sites,
         PhysicalGeographyGenerationProfile profile,
-        int seed)
+        int seed,
+        double configuredPlacementRadius)
     {
         var count = Math.Clamp(
             (int)Math.Round(
@@ -158,7 +160,10 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
             2,
             sites.Length - 2);
         var result = new int[sites.Length];
-        var anchors = SelectAssemblyAnchors(sites, profile.ContinentalAssemblyCount);
+        var anchors = SelectAssemblyAnchors(
+            sites,
+            profile.ContinentalAssemblyCount,
+            configuredPlacementRadius);
         for (var anchorIndex = 0; anchorIndex < anchors.Length; anchorIndex++)
         {
             result[anchors[anchorIndex]] = anchorIndex + 1;
@@ -194,15 +199,25 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
 
     private static int[] SelectAssemblyAnchors(
         SiteCandidate[] sites,
-        int count)
+        int count,
+        double configuredPlacementRadius)
     {
+        var maximumDistanceSquared = configuredPlacementRadius * configuredPlacementRadius;
+        var candidates = Enumerable.Range(0, sites.Length)
+            .Where(index => DistanceSquaredFromOrigin(sites[index]) <= maximumDistanceSquared)
+            .ToArray();
+        if (candidates.Length < count)
+        {
+            candidates = Enumerable.Range(0, sites.Length).ToArray();
+        }
+
         var anchors = new int[count];
-        anchors[0] = Enumerable.Range(0, sites.Length)
+        anchors[0] = candidates
             .MinBy(index => DistanceSquaredFromOrigin(sites[index]) /
                 (0.80d + (sites[index].Priority * 0.40d)));
         for (var anchorIndex = 1; anchorIndex < anchors.Length; anchorIndex++)
         {
-            anchors[anchorIndex] = Enumerable.Range(0, sites.Length)
+            anchors[anchorIndex] = candidates
                 .Where(candidate => !anchors.Take(anchorIndex).Contains(candidate))
                 .MaxBy(candidate => MinimumDistanceSquared(sites, candidate, anchors, anchorIndex));
         }

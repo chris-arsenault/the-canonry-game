@@ -10,7 +10,7 @@ public sealed class IceRemembersEvolutionLayerTests
     [InlineData(42)]
     [InlineData(9173)]
     [InlineData(21031)]
-    public void ProductionEpochSchedule_SatisfiesTargetsAcrossFixedQualityCorpus(int seed)
+    public void ProductionEpochSchedule_CompletesWithStructurallyValidOutput(int seed)
     {
         var result = IceRemembersWorldGenerationOrchestrator.Generate(
             32,

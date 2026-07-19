@@ -96,40 +96,19 @@ public sealed class IceRemembersFeatureAndQualityLayerTests
     }
 
     [Fact]
-    public void QualityValidation_UsesConfigurableTargetsAndStillRejectsInvalidCodes()
+    public void StructuralValidation_RejectsInvalidCodes()
     {
         var map = IceRemembersMicrogeographyLayerTestHarness.GenerateComplete();
         var layer = new IceRemembersMicrogeographyValidationLayer();
-        var permissive = WithLargestNaturalTarget(new ProportionRangeTarget(0d, 1d));
-        layer.Validate(map, Context(layer, permissive));
-
-        var impossible = WithLargestNaturalTarget(new ProportionRangeTarget(0d, 0d));
-        Assert.Throws<InvalidOperationException>(() => layer.Validate(map, Context(layer, impossible)));
+        var context = new IceRemembersMicrogeographyGenerationContext(
+            IceRemembersMicrogeographyLayerTestHarness.Seed,
+            IceRemembersMicrogeographyLayerTestHarness.Profile,
+            layer.Contract);
+        layer.Validate(map, context);
 
         map.SurfaceIndexes[0] = IceRemembersPhysicalGeography.SurfacePalette.Count;
-        Assert.Throws<InvalidOperationException>(() => layer.Validate(map, Context(layer, permissive)));
+        Assert.Throws<InvalidOperationException>(() => layer.Validate(map, context));
     }
-
-    private static IceRemembersMicrogeographyGenerationProfile WithLargestNaturalTarget(
-        ProportionRangeTarget target) =>
-        IceRemembersMicrogeographyLayerTestHarness.Profile with
-        {
-            QualityTargets = new IceRemembersMicrogeographyQualityTargets
-            {
-                MinimumEvaluationRadius = 0,
-                LargestNaturalSurfaceCoverage = target,
-                LargestFinalSurfaceCoverage = new ProportionRangeTarget(0d, 1d),
-                MagicOverrideCoverage = new ProportionRangeTarget(0d, 1d),
-                MeltLineCoverage = new ProportionRangeTarget(0d, 1d),
-                FireCoreCount = new CountTarget(0, int.MaxValue),
-                WarmHabitatComponentCount = new CountTarget(0, int.MaxValue),
-            },
-        };
-
-    private static IceRemembersMicrogeographyGenerationContext Context(
-        IceRemembersMicrogeographyValidationLayer layer,
-        IceRemembersMicrogeographyGenerationProfile profile) =>
-        new(IceRemembersMicrogeographyLayerTestHarness.Seed, profile, layer.Contract);
 
     private static bool Has(
         IceRemembersMicrogeographyMap map,

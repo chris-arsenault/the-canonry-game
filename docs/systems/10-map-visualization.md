@@ -49,8 +49,10 @@ Close zoom uses triangle-scale rivers, peaks, and significant anomalies only.
 It does not superimpose aggregate coast/ridge/cliff/pass/fracture masks over the
 triangle field. At distant zoom, each shared aggregate edge has one
 deterministic drawing owner so reciprocal masks do not produce doubled seams.
-Final- and natural-surface views preserve an ocean or lake underlay beneath ice
-and magic surfaces, keeping frozen water geographically legible.
+Terrain, final-surface, and natural-surface views preserve structural oceans,
+lakes, rivers, and deltas beneath ice and magic surfaces. They also apply
+restrained elevation shading at aggregate and triangle LODs, keeping relief
+legible without replacing surface identity.
 
 Available views cover effective terrain, final surface, natural surface,
 material, elevation, temperature, moisture, geothermal heat, ocean currents

@@ -53,12 +53,13 @@ must not be used to disguise defective natural geography.
 
 - `Engine.WorldGen` owns domain-neutral generation grids, graph algorithms,
   uplift and erosion, connected land and ocean classification, bathymetry,
-  hydrology, climate, glaciation, fractures, aggregation, and validation.
+  hydrology, climate, glaciation, fractures, aggregation, and structural
+  validation.
 - `IceRemembers` owns the Ice Remembers generation profile, physical surface
-  taxonomy, material rules, and tunable quality targets. `IceRemembers.Seed`
-  executes the domain generation pipeline: natural surfaces, fire, aurora,
-  pressure, magic interactions, administrative subdivisions, and compatibility
-  hex-terrain synthesis.
+  taxonomy, material rules, tunable generation controls, and diagnostic goals.
+  `IceRemembers.Seed` executes the domain generation pipeline: natural
+  surfaces, fire, aurora, pressure, magic interactions, administrative
+  subdivisions, and compatibility hex-terrain synthesis.
 - `Engine.Domain.Startup` transports the immutable generated blueprint with
   stable palettes. The developer world cache persists this blueprint.
 - `Engine.Projection` and the Godot UI inspect and render the complete external
@@ -120,13 +121,17 @@ but it never erases the underlying fields or overlapping flags.
 
 ### 1. Uplift and ancestral erosion
 
-Generate an uplift field from a small authored set of warped continental masks
-and one or two ridge axes per major land system. Ridge axes are geological
-causes, not a classification applied after noise.
+Generate reduced moving crust provinces across the padded field. Deterministic
+frontier growth joins distributed nuclei into continental assemblies and
+oceanic crust; relative motion types convergent, divergent, and transform
+boundaries. Epoch activity varies which inherited boundaries remain active,
+while cumulative strain and uplift preserve old orogenies and rifts.
 
-Low-amplitude coordinate-warped variation roughens the field without deciding
-the large-scale geography. A deterministic fluvial erosion pass then carves an
-ancestral V-valley drainage network before ice exists.
+Warped multi-scale variation roughens only continental margins rather than
+deciding land from a noise threshold. Sparse domain-neutral impacts then
+excavate basins, raise fractured rims, distribute conserved ejecta, and retain
+decaying heat for sufficiently large strikes. Warm/wet epoch hydrology carves
+ancestral V-valleys through this mature landscape before the Deep Freeze.
 
 ### 2. Landmasses and continental groups
 
@@ -148,10 +153,14 @@ be zero and it controls exposed shelf and island fragmentation.
 ### 4. Hydrology
 
 Use one deterministic priority-flood implementation to condition drainage,
-classify lakes, and establish stable outlets. Route each dry triangle to its
-lowest conditioned neighbor, accumulate runoff, derive river order, and assign
-watersheds. Rivers are accumulated paths and tributary networks rather than
-drawn channels.
+classify lakes, and establish stable outlets. Flat routes follow propagated
+outlet geometry rather than a tangent around the world origin, and lake roots
+do not depend on storage IDs. Accumulate rainfall and glacial melt, derive
+basin-relative headwater thresholds and Strahler order, and assign watersheds.
+Every classified channel remains continuous through exorheic lakes to terminal
+water. The one-triangle flow spine stays authoritative while a separate layer
+widens major rivers perpendicular to local flow tangents across low-relief
+banks; cross-valley floodplains and seaward delta fans remain derived coverage.
 
 ### 5. Present icebound climate with warmth pockets
 
@@ -171,8 +180,10 @@ scarcer warm-steppe outcome.
 ### 6. Glaciation
 
 Derive ice thickness from cold, elevation above snowline, moisture, and
-concavity. Route ice flux downhill with the shared flow machinery. Stamp the
-recognizable consequences of ice flow:
+concavity. Route ice flux downhill with the shared flow machinery. Surface,
+basal, geothermal, and retreat melt feed proglacial runoff. Incremental erosion
+and deposition retain maximum thickness/flux and produce the recognizable
+consequences of ice flow:
 
 - widened and flattened U-valleys;
 - cirques at glaciated valley heads;
@@ -180,7 +191,9 @@ recognizable consequences of ice flow:
 - moraine ridges at glacier termini.
 
 The landform pass runs after these elevation edits and retains glacial
-landform codes.
+landform codes from historical maximum ice rather than requiring present ice.
+It also classifies outwash, ancestral river valleys, inherited ridges, and
+impact basins/rims from persistent history.
 
 ### 7. Natural surface classification
 
@@ -208,6 +221,9 @@ order. The natural surface vocabulary is:
 - `cold_steppe`
 - `scree_field`
 - `river_valley`
+- `river_channel`
+- `floodplain`
+- `delta`
 
 Physical material remains independent of this surface classification.
 
@@ -296,7 +312,7 @@ Hard contracts:
 - acyclic water and ice routing;
 - classified rivers terminate at a lake, ocean, inland basin, or cropped
   external outlet;
-- glacial landforms require actual ice flux;
+- glacial landforms require qualifying historical maximum ice flux;
 - fracture paths are connected and not identical to ridge classification;
 - magic fields satisfy their source and propagation constraints;
 - every surface and anomaly palette index resolves;
@@ -304,22 +320,19 @@ Hard contracts:
 - administrative subdivision assignment changes no physical field;
 - the startup heart overlaps warmth while viable systems also exist far away.
 
-Distribution goals are profile configuration, not invariants. The current
-profile supplies tunable target ranges for ocean coverage, land-ice coverage,
-sea-ice coverage, major-landmass count, and inland-lake count. Generation fails
-quality validation when a radius large enough for evaluation misses those
-targets, but changing a target does not require changing validation code.
-The domain profile likewise supplies tunable ranges for natural- and
-final-surface concentration, magic override coverage, melt-line prevalence,
-fire-core count, and separated warm-habitat count. Domain quality validation
-reads those targets rather than embedding acceptable proportions in code.
-Positive and negative layer tests use deliberately narrow profile overrides to
-prove that changing a target changes acceptance without changing the validator.
-Additional behavioral checks cover high-peak hot springs and startup placement.
+Distribution values are tuning inputs and diagnostics, not acceptance
+invariants. Ocean, land-ice, sea-ice, and lake controls still shape their causal
+layers, while broader proportions and counts may guide later comparison. They
+do not make generation fail: previous fixed-percentage gates repeatedly
+accepted visibly bad maps and encouraged tuning to the proxy instead of fixing
+geography. Final validation is structural: legal codes, coherent water bodies,
+acyclic and continuous flow, conserved landscape state, valid magic sources,
+and consistent aggregate output. Geographic quality is judged from rendered
+fixed-seed worlds, with failures traced back to the owning causal layer.
 
-Quality is calibrated across several deterministic seeds rather than tuned to
-one screenshot. Cold generation at radius 128 targets roughly 30 seconds on the
-development machine; fixed-seed cached startup should remain near five seconds.
+Full radius-128 generation remains an offline minutes-scale operation;
+fixed-seed interactive development should use explicit versioned `.world`
+artifacts.
 
 ## Explicit exclusions
 

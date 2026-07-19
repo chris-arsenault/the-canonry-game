@@ -20,14 +20,17 @@ abstraction from map coverage: they are named coverage over physical space. The
 physical generation blueprint also divides every surface hex into 24 canonical
 microtriangles. Outside the kernel, one padded causal graph partitions
 moving continental and oceanic crust, derives typed boundaries and strain,
-raises mountains and island arcs from those boundaries, erodes valleys, labels connected land and ocean, solves
+grows distributed continental assemblies, raises mountains and island arcs
+from evolving epoch boundaries, applies sparse impacts, erodes valleys, labels connected land and ocean, solves
 bathymetry and drainage, derives reduced basin currents and wave exposure,
 builds one shared atmospheric/upwind field for moisture, rain, and snow, and evolves a persistent bedrock and
 sediment surface through fluvial, coastal, and glacial erosion and deposition
 across four configurable geological epochs.
 Incremental ice mass and flux leave cumulative glacial history from which
-landforms are classified. The authoritative drainage spine then expands into
-discharge-scaled channel triangles, adjacent low-gradient floodplains, and
+present and inherited landforms are classified. Outlet-rooted drainage and
+basin-relative tributary retention keep classified rivers continuous through
+lakes. The authoritative drainage spine then expands across low-relief banks into
+discharge-scaled channel triangles, adjacent cross-valley floodplains, and
 sediment-rich delta fans without changing the hex-scale runtime. Ice Remembers
 interleaves asymmetric fire, aurora, and pressure passes with those epochs,
 retains cumulative magic exposure and first-active epochs separately from the current fields, and
@@ -39,8 +42,10 @@ retained independently. Ordinary cold land is not collapsed into generic ice:
 polar barrens, wet tundra, cold steppe, scree, river valleys, tundra, ridges,
 snowfields, and glaciers remain distinct outcomes. Every physical and domain
 generation pass declares its inputs and outputs, and acceptable distribution
-ranges—including ocean, land-ice, and sea-ice coverage—live in tunable profiles rather
-than validator constants.
+ranges—including ocean, land-ice, sea-ice, landform variety, branching basins,
+and flow-direction balance—live in tunable profiles rather than validator
+constants. Ordinary surface views retain structural water and restrained
+relief shading at both aggregate and microtriangle zoom levels.
 
 Physical material and surface vocabularies are separate from gameplay terrain.
 Scored authored rules turn each arranged 24-triangle aggregate into one base

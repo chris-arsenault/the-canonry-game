@@ -40,7 +40,8 @@ Each triangle stores a physical material, landform, elevation, stable climate
 and geothermal values, water kind/depth/body, drainage basin, downstream edge,
 flow accumulation, river order, ocean-current direction/strength/heat, wave
 exposure, rainfall, snowfall, sea-ice suitability, bedrock elevation, sediment
-thickness, cumulative erosion/deposition, maximum glaciation, channel strength
+thickness, cumulative erosion/deposition (including glacial deposition),
+maximum glaciation, impact excavation/rim/ejecta history, channel strength
 and order, floodplain intensity, delta intensity, and permanent feature flags. Physical materials
 such as bedrock, scree, tundra soil, glacial ice, marine sediment, reef stone,
 and geothermal crust are not gameplay terrain IDs. Stable within-hex and
@@ -58,13 +59,19 @@ different tectonic, hydrologic, glacial, coastal, temperature, and sea-level
 forcing. Fluvial stream power incrementally removes sediment and bedrock,
 routes the produced sediment downstream, deposits it in low-energy basins and
 mouths, and accounts for material exported from the modeled field.
+Before those epochs, sparse domain-neutral impacts excavate basins, lift and
+fracture rims, distribute conserved ejecta, and retain short-lived heat only
+for sufficiently large strikes. Every later process acts on those shapes.
 Connected-component and boundary-flood passes identify landmasses,
 continental shelves, bathymetry, and the exterior ocean. Priority-flood
 drainage then creates coherent lakes, accumulated runoff, tributaries, and
-watersheds. That one-triangle routing spine remains authoritative while a
-separate channel layer widens major flows across neighboring triangles from
-discharge, order, relief, and basin membership. Low-gradient margins become
-floodplains; sediment delivery and sheltered shelf energy produce branching
+watersheds. Flat routes face their conditioned outlet instead of the world
+origin; basin-relative thresholds retain tributaries, and classified channels
+remain continuous through exorheic lakes to terminal water. That one-triangle
+routing spine remains authoritative while a separate channel layer widens
+major flows perpendicular to local flow tangents from discharge, order,
+relief, and basin membership. Low-gradient cross-valley margins become
+floodplains; sediment delivery and sheltered shelf energy produce seaward
 delta fans. These coverage fields do not rewrite downstream routing. A cold
 derived climate supplies multiple separated warmth pockets
 across ocean, shore, inland, and geothermal peak sites; the startup heart
@@ -76,10 +83,13 @@ retain orographic moisture shadows and split precipitation into rain and snow;
 only precipitation and melt on dry ground create local runoff. Standing ocean
 and lake triangles contribute no local water merely by existing. Equal drainage
 choices use an outlet-facing geometric preference, never triangle storage order.
-Ice mass accumulates and ablates incrementally; its retained flow graph drives
-separate glacial erosion and terminus deposition passes. U-valleys, cirques,
-fjords, and moraines are then classified from cumulative erosion, deposition,
-and maximum flux rather than stamped into elevation. Wave/current exposure and
+Ice mass accumulates and ablates incrementally; surface, basal, geothermal, and
+retreat melt feed proglacial drainage. Its retained flow graph drives separate
+glacial erosion and terminus deposition passes. U-valleys, cirques, fjords,
+moraines, and outwash are then classified from cumulative erosion, glacial
+deposition, and maximum historical flux rather than stamped into elevation.
+Ancestral river valleys, inherited ridges, and impact basins/rims remain
+classifiable after their active process has waned. Wave/current exposure and
 shelf geometry likewise drive a separate coastal erosion/deposition pass.
 Surface-changing work is operator-split within an epoch: fluvial and sediment
 passes share the beginning-of-epoch climate/drainage snapshot, glacial work is
@@ -108,9 +118,12 @@ steppe, scree fields, river valleys, ordinary tundra, ridges, snowfields, and
 glaciers. Physical and domain passes are independent dependency-declaring
 processes; distribution goals such as ocean, land-ice, major-landmass size and
 spacing, island share, coast density, and hotspot distribution are tunable
-generation-profile targets rather than hard-coded proportions. These processes
-and every triangle field remain external startup data; the dead-god locus is a
-generation pressure source, not a graph entity.
+generation controls or non-blocking diagnostics rather than hard-coded
+acceptance proportions. Final generation validation enforces structural
+correctness; rendered fixed-seed worlds remain the acceptance surface for
+geographic quality. These processes and every triangle field remain external
+startup data; the dead-god locus is a generation pressure source, not a graph
+entity.
 
 The current simulation remains hex-scale. Worldgen derives one authoritative
 external summary per physical hex: base terrain, primary surface, significant
@@ -149,8 +162,10 @@ magic-history/age views expose how the
 synthesized terrain was chosen. Chunk culling keeps triangle drawing limited to
 the visible field. Close zoom draws triangle-scale features without overlaying
 aggregate full-hex masks; distant shared feature edges are drawn once by a
-deterministic owner. Surface views blend water beneath sea ice and other ocean
-surfaces. The tooltip exposes both hex summaries and individual triangle facts.
+deterministic owner. Surface views blend structural oceans, lakes, rivers, and
+deltas beneath ice and magic surfaces, then apply restrained relief shading at
+both aggregate and triangle LODs. The tooltip exposes both hex summaries and
+individual triangle facts.
 
 Runtime triangle edits and triangle-scale movement or placement remain
 follow-up systems; rendering the geography does not move ordinary simulation

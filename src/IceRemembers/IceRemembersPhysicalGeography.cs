@@ -186,7 +186,6 @@ public static class IceRemembersPhysicalGeography
         MantlePlumeCount = 4,
         MantlePlumeRadius = 12d,
         MantlePlumeMinimumSpacing = 42d,
-        SeaLevel = -0.04d,
         IslandTriangleThreshold = 680,
         ImpactCraterCount = 7,
         ImpactMinimumRadius = 6d,

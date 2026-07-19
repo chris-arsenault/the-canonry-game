@@ -12,8 +12,7 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Temperature |
         PhysicalGeographyFacts.Moisture |
         PhysicalGeographyFacts.Precipitation |
-        PhysicalGeographyFacts.Geothermal |
-        PhysicalGeographyFacts.FlowRouting,
+        PhysicalGeographyFacts.Geothermal,
         PhysicalGeographyFacts.LandIce,
         PhysicalGeographyFacts.IceFlow |
         PhysicalGeographyFacts.GlacialMeltwater |

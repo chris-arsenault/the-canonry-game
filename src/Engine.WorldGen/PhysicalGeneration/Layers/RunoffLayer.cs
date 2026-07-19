@@ -12,7 +12,6 @@ internal sealed class RunoffLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Precipitation,
         PhysicalGeographyFacts.Runoff,
         PhysicalGeographyFacts.Rivers |
-        PhysicalGeographyFacts.LandIce |
         PhysicalGeographyFacts.Validated);
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)

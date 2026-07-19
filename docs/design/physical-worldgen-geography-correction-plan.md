@@ -2,7 +2,7 @@
 
 Date: 2026-07-19
 
-Status: approved; implementation in progress
+Status: implementation complete; rendered-world review pending
 
 This is the authoritative tracker for the correction pass prompted by review of
 `a.png` through `d.png`. It evolves the existing multi-epoch, layered generator;
@@ -168,10 +168,10 @@ Primary files:
   orogenies from persistent physical history.
 - [x] Add restrained elevation shading to normal macro and micro surface views
   without obscuring surface identity or structural water overlays.
-- [x] Tighten configurable goals for distributed coast complexity, per-landmass
-  variety, cold-region variety, basin branching, river continuity, and flow
-  direction balance.
-- [ ] Evaluate the existing pregenerated worlds before generating replacements;
+- [x] Retain configurable distribution controls and diagnostics without using
+  percentage thresholds as generation acceptance gates; geographic quality is
+  evaluated from rendered fixed-seed worlds.
+- [x] Evaluate the existing pregenerated worlds before generating replacements;
   regenerate the corpus only after the corrected implementation is complete.
 
 Primary files:

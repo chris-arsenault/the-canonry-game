@@ -2,7 +2,8 @@
 
 Date: 2026-07-18
 
-Status: approved; implementation in progress
+Status: implemented; historical tracker. Current behavior is documented in
+`physical-microgeography-worldgen.md`.
 
 This document is the authoritative implementation tracker for the physical
 map-generation rework. It supersedes both the earlier rewrite-heavy epoch plan
@@ -130,10 +131,11 @@ Implementation:
 - [x] Preserve ocean connectivity, target-calibrated sea level, ancestral
   erosion, bathymetry, and landmass connected components.
 - [x] Add configurable landmass-size, spacing, island-share, coast-complexity,
-  hotspot-spacing, and hotspot-distribution quality targets.
+  hotspot-spacing, and hotspot-distribution diagnostics. These were later
+  demoted from acceptance gates after proving visually unreliable.
 - [x] Add inspector views required to evaluate provinces and boundaries.
 - [x] Add positive and negative layer tests for causal boundary behavior and
-  configurable target validation.
+  structural validation.
 - [x] Inspect fixed-seed output, run final milestone verification, commit, and
   push.
 
@@ -273,8 +275,9 @@ Implementation:
   sediment, erosion, maximum glaciation, river geometry, and magic age/history.
 - [x] Preserve developer-world caching and responsive startup behavior.
 - [x] Profile radius-128 generation and UI startup with actual hotspot data.
-- [x] Validate a fixed multi-seed corpus.
-- [x] Keep distribution goals configurable and hard invariants structural.
+- [x] Exercise a fixed multi-seed corpus for structural failures; rendered
+  worlds, not percentage gates, determine geographic quality.
+- [x] Keep distribution controls configurable and hard invariants structural.
 - [x] Update stable architecture/system documentation if final ownership or
   contracts changed.
 - [x] Run `make ci`, commit all approved implementation changes, and push.
