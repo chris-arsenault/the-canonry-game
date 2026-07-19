@@ -21,7 +21,8 @@ physical generation blueprint also divides every surface hex into 24 canonical
 microtriangles. Outside the kernel, one padded causal pipeline partitions
 moving continental and oceanic crust, derives typed boundaries and strain,
 raises mountains and island arcs from those boundaries, erodes valleys, labels connected land and ocean, solves
-bathymetry and drainage, derives climate, routes ice, carves glacial landforms,
+bathymetry and drainage, derives reduced basin currents and wave exposure,
+separates moisture into rain and snow, routes ice, carves glacial landforms,
 and generates fractures. Ice Remembers then runs asymmetric fire, aurora, and
 pressure passes over that same triangle graph. Natural surfaces include frozen
 ocean forms such as pack ice, sea ice, ice shelves, and polynyas; anomaly
@@ -30,7 +31,7 @@ retained independently. Ordinary cold land is not collapsed into generic ice:
 polar barrens, wet tundra, cold steppe, scree, river valleys, tundra, ridges,
 snowfields, and glaciers remain distinct outcomes. Every physical and domain
 generation pass declares its inputs and outputs, and acceptable distribution
-ranges—including ocean and land-ice coverage—live in tunable profiles rather
+ranges—including ocean, land-ice, and sea-ice coverage—live in tunable profiles rather
 than validator constants.
 
 Physical material and surface vocabularies are separate from gameplay terrain.

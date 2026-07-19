@@ -92,7 +92,18 @@ internal sealed partial class GameRenderTree
     };
 
     private static PhysicalGeographyView SpecialGeographyViewFor(string viewKey) =>
-        TectonicGeographyViewFor(viewKey) ?? RemainingGeographyViewFor(viewKey);
+        GeneratedProcessViewFor(viewKey) ??
+        TectonicGeographyViewFor(viewKey) ??
+        RemainingGeographyViewFor(viewKey);
+
+    private static PhysicalGeographyView? GeneratedProcessViewFor(string viewKey) => viewKey switch
+    {
+        MapArea.GeographyViewOceanCurrents => PhysicalGeographyView.OceanCurrents,
+        MapArea.GeographyViewWaveExposure => PhysicalGeographyView.WaveExposure,
+        MapArea.GeographyViewPrecipitation => PhysicalGeographyView.Precipitation,
+        MapArea.GeographyViewSeaIceSuitability => PhysicalGeographyView.SeaIceSuitability,
+        _ => null,
+    };
 
     private static PhysicalGeographyView? TectonicGeographyViewFor(string viewKey) => viewKey switch
     {
@@ -114,6 +125,58 @@ internal sealed partial class GameRenderTree
         MapArea.GeographyViewPressure => PhysicalGeographyView.Pressure,
         MapArea.GeographyViewMagicComposite => PhysicalGeographyView.MagicComposite,
         _ => PhysicalGeographyView.Surface,
+    };
+
+    private static string GeographyViewKey(PhysicalGeographyView view) =>
+        BaseGeographyViewKey(view) ?? SpecialGeographyViewKey(view);
+
+    private static string? BaseGeographyViewKey(PhysicalGeographyView view) => view switch
+    {
+        PhysicalGeographyView.Terrain => MapArea.GeographyViewTerrain,
+        PhysicalGeographyView.Surface => MapArea.GeographyViewSurface,
+        PhysicalGeographyView.NaturalSurface => MapArea.GeographyViewNaturalSurface,
+        PhysicalGeographyView.Material => MapArea.GeographyViewMaterial,
+        PhysicalGeographyView.Elevation => MapArea.GeographyViewElevation,
+        PhysicalGeographyView.Temperature => MapArea.GeographyViewTemperature,
+        PhysicalGeographyView.Moisture => MapArea.GeographyViewMoisture,
+        PhysicalGeographyView.Geothermal => MapArea.GeographyViewGeothermal,
+        _ => null,
+    };
+
+    private static string SpecialGeographyViewKey(PhysicalGeographyView view) =>
+        GeneratedProcessViewKey(view) ??
+        TectonicGeographyViewKey(view) ??
+        RemainingGeographyViewKey(view);
+
+    private static string? GeneratedProcessViewKey(PhysicalGeographyView view) => view switch
+    {
+        PhysicalGeographyView.OceanCurrents => MapArea.GeographyViewOceanCurrents,
+        PhysicalGeographyView.WaveExposure => MapArea.GeographyViewWaveExposure,
+        PhysicalGeographyView.Precipitation => MapArea.GeographyViewPrecipitation,
+        PhysicalGeographyView.SeaIceSuitability => MapArea.GeographyViewSeaIceSuitability,
+        _ => null,
+    };
+
+    private static string? TectonicGeographyViewKey(PhysicalGeographyView view) => view switch
+    {
+        PhysicalGeographyView.TectonicProvinces => MapArea.GeographyViewTectonicProvinces,
+        PhysicalGeographyView.CrustType => MapArea.GeographyViewCrustType,
+        PhysicalGeographyView.TectonicBoundaries => MapArea.GeographyViewTectonicBoundaries,
+        PhysicalGeographyView.TectonicStrain => MapArea.GeographyViewTectonicStrain,
+        _ => null,
+    };
+
+    private static string RemainingGeographyViewKey(PhysicalGeographyView view) => view switch
+    {
+        PhysicalGeographyView.Landform => MapArea.GeographyViewLandform,
+        PhysicalGeographyView.Hydrology => MapArea.GeographyViewHydrology,
+        PhysicalGeographyView.Ice => MapArea.GeographyViewIce,
+        PhysicalGeographyView.Fractures => MapArea.GeographyViewFractures,
+        PhysicalGeographyView.Fire => MapArea.GeographyViewFire,
+        PhysicalGeographyView.Aurora => MapArea.GeographyViewAurora,
+        PhysicalGeographyView.Pressure => MapArea.GeographyViewPressure,
+        PhysicalGeographyView.MagicComposite => MapArea.GeographyViewMagicComposite,
+        _ => MapArea.GeographyViewSurface,
     };
 
     private static bool SetLayerVisibility(bool current, bool visible, Action<bool> apply)

@@ -20,9 +20,11 @@ internal sealed class PhysicalGeographyPipeline
         var ocean = new OceanConnectivityLayer();
         var bathymetry = new BathymetryLayer();
         var landmasses = new LandmassLayer();
+        var currents = new OceanCurrentLayer();
         var warmth = new WarmthSourceLayer();
         var temperature = new TemperatureLayer();
         var moisture = new MoistureLayer();
+        var precipitation = new PrecipitationLayer();
         var runoff = new RunoffLayer();
         var lakes = new LakeBasinLayer();
         var flow = new FlowRoutingLayer();
@@ -42,9 +44,11 @@ internal sealed class PhysicalGeographyPipeline
                 landmasses,
                 new FractureNetworkLayer(),
                 new GeothermalLayer(),
+                currents,
                 warmth,
                 temperature,
                 moisture,
+                precipitation,
                 runoff,
                 lakes,
                 flow,
@@ -55,9 +59,11 @@ internal sealed class PhysicalGeographyPipeline
                 ocean,
                 bathymetry,
                 landmasses,
+                currents,
                 warmth,
                 temperature,
                 moisture,
+                precipitation,
                 runoff,
                 lakes,
                 flow,

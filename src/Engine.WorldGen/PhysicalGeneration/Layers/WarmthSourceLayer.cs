@@ -9,10 +9,12 @@ internal sealed class WarmthSourceLayer : IPhysicalGeographyLayer
         0x4a51c73,
         PhysicalGeographyFacts.Elevation |
         PhysicalGeographyFacts.Ocean |
+        PhysicalGeographyFacts.OceanCurrents |
         PhysicalGeographyFacts.Geothermal,
         PhysicalGeographyFacts.Warmth,
         PhysicalGeographyFacts.Temperature |
         PhysicalGeographyFacts.Moisture |
+        PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.Runoff |
         PhysicalGeographyFacts.LandIce |
         PhysicalGeographyFacts.SeaIce |
@@ -21,6 +23,15 @@ internal sealed class WarmthSourceLayer : IPhysicalGeographyLayer
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
         map.Warmth.Clear();
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
+            {
+                map.Warmth[triangleIndex] = map.OceanCurrentHeat[triangleIndex] *
+                    context.Profile.OceanCurrentWarmthStrength / 1000;
+            }
+        }
+
         Paint(map, 0d, 0d, context.Profile.HeartWarmthRadius, context.Profile.HeartWarmthStrength);
         var oceanDistance = PhysicalDistanceFields.FromOcean(map);
         var candidates = CandidateSets(map, oceanDistance, context.Profile);
@@ -108,6 +119,7 @@ internal sealed class WarmthSourceLayer : IPhysicalGeographyLayer
             var candidate = candidates[(int)(PhysicalNoise.HashUnit(seed, sourceIndex, sample) * candidates.Count) % candidates.Count];
             var score = MinimumDistanceSquared(map.Grid, candidate, selected) +
                 (map.Geothermal[candidate] * 0.25d) +
+                (map.OceanCurrentHeat[candidate] * 0.22d) +
                 PhysicalNoise.HashUnit(seed ^ 0x4b67, candidate, sample);
             if (score > bestScore)
             {

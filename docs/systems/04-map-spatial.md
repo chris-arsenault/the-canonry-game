@@ -38,7 +38,8 @@ of physical material.
 Every latent physical surface hex has 24 canonically indexed microtriangles.
 Each triangle stores a physical material, landform, elevation, stable climate
 and geothermal values, water kind/depth/body, drainage basin, downstream edge,
-flow accumulation, river order, and permanent feature flags. Physical materials
+flow accumulation, river order, ocean-current direction/strength/heat, wave
+exposure, rainfall, snowfall, sea-ice suitability, and permanent feature flags. Physical materials
 such as bedrock, scree, tundra soil, glacial ice, marine sediment, reef stone,
 and geothermal crust are not gameplay terrain IDs. Stable within-hex and
 across-edge adjacency makes ridges, coasts, drainage, and rivers continuous
@@ -56,7 +57,14 @@ drainage then creates coherent lakes, accumulated runoff, tributaries, and
 watersheds. A cold derived climate supplies multiple separated warmth pockets
 across ocean, shore, inland, and geothermal peak sites; the startup heart
 overlaps one pocket but does not own the world's only warmth. Ice thickness and
-ice flux overprint the earlier drainage with U-valleys, cirques, fjords, and
+Currents follow broad curl forcing while responding to basin depth and coast
+normals. They transport geothermal heat, moderate selected habitats, expose
+coasts to waves, and break up sea-ice suitability. Coherent atmospheric paths
+retain orographic moisture shadows and split precipitation into rain and snow;
+only precipitation and melt on dry ground create local runoff. Standing ocean
+and lake triangles contribute no local water merely by existing. Equal drainage
+choices use an outlet-facing geometric preference, never triangle storage order.
+Ice flux overprints the earlier drainage with U-valleys, cirques, fjords, and
 moraines. A branching fracture network finishes the physical inputs. The padded
 result is cropped to the configured latent disk, so the configured edge is not
 automatically a coast or watershed.
@@ -106,7 +114,8 @@ field at startup. Normal map presentation still uses the event-backed live map
 as its fog boundary. At close zoom it draws the 24 triangles of each revealed,
 unmodified hex; at distant zoom an explicit worldgen-inspection mode draws
 aggregate latent hexes. Terrain, final and natural surface, material,
-elevation, temperature, moisture, geothermal, landform, hydrology, ice,
+elevation, temperature, moisture, geothermal, currents, wave exposure,
+precipitation, sea-ice suitability, landform, hydrology, ice,
 fracture, fire, aurora, pressure, and composite-magic views expose how the
 synthesized terrain was chosen. Chunk culling keeps triangle drawing limited to
 the visible field. Close zoom draws triangle-scale features without overlaying

@@ -191,7 +191,8 @@ public sealed class IceRemembersSeedBuilderTests
         var habitableCells = physical.Cells
             .Where(cell => Microtriangles(physical, cell).Any(IsHabitable))
             .ToArray();
-        Assert.True(CountConnectedCellComponents(habitableCells) >= 8);
+        var componentCount = CountConnectedCellComponents(habitableCells);
+        Assert.True(componentCount >= 8, $"Habitable geography formed only {componentCount} components.");
         var heartTriangles = physical.Cells
             .Where(cell => HexDistance(cell.Q, cell.R) <= Seed.MapRadius)
             .SelectMany(cell => Microtriangles(physical, cell))

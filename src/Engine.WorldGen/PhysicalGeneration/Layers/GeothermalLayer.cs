@@ -12,9 +12,11 @@ internal sealed class GeothermalLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Ocean |
         PhysicalGeographyFacts.Fractures,
         PhysicalGeographyFacts.Geothermal,
+        PhysicalGeographyFacts.OceanCurrents |
         PhysicalGeographyFacts.Warmth |
         PhysicalGeographyFacts.Temperature |
         PhysicalGeographyFacts.Moisture |
+        PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.Runoff |
         PhysicalGeographyFacts.LandIce |
         PhysicalGeographyFacts.Validated);

@@ -10,6 +10,7 @@ internal sealed class BathymetryLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Elevation | PhysicalGeographyFacts.Ocean,
         PhysicalGeographyFacts.Bathymetry,
         PhysicalGeographyFacts.Landmasses |
+        PhysicalGeographyFacts.OceanCurrents |
         PhysicalGeographyFacts.Landforms |
         PhysicalGeographyFacts.Validated);
 

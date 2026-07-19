@@ -184,6 +184,8 @@ public static class IceRemembersPhysicalGeography
         IslandTriangleThreshold = 680,
         RiverAccumulationThreshold = 9200,
         TemperatureBaseline = 125,
+        OceanCurrentTemperatureStrength = 80,
+        OceanCurrentWarmthStrength = 55,
         WarmthPocketCount = 16,
         HeartWarmthRadius = 31d,
         HeartWarmthStrength = 430,

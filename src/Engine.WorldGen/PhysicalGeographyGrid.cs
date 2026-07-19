@@ -219,14 +219,22 @@ public sealed class PhysicalGeographyField
     private readonly int[] _lakeOutletTargets;
     private readonly int[] _landformCodes;
     private readonly int[] _moisture;
+    private readonly int[] _oceanCurrentHeat;
+    private readonly int[] _oceanCurrentStrength;
+    private readonly int[] _oceanCurrentX;
+    private readonly int[] _oceanCurrentY;
+    private readonly int[] _rainfall;
     private readonly float[] _ridgeInfluence;
     private readonly int[] _riverOrders;
     private readonly int[] _runoff;
+    private readonly int[] _seaIceSuitability;
+    private readonly int[] _snowfall;
     private readonly int[] _slope;
     private readonly int[] _temperature;
     private readonly int[] _tectonicBoundaryCodes;
     private readonly int[] _tectonicStrain;
     private readonly int[] _warmth;
+    private readonly int[] _waveExposure;
     private readonly int[] _continentalGroupIds;
     private readonly int[] _bathymetricZoneCodes;
     private readonly float[] _uplift;
@@ -242,18 +250,22 @@ public sealed class PhysicalGeographyField
             (new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount],
                 new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount],
                 new int[grid.TriangleCount]);
-        _continentalPotential = new int[grid.TriangleCount];
-        _elevation = new int[grid.TriangleCount];
-        _temperature = new int[grid.TriangleCount];
+        (_continentalPotential, _elevation, _temperature) =
+            (new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount]);
         (_tectonicBoundaryCodes, _tectonicStrain) =
             (new int[grid.TriangleCount], new int[grid.TriangleCount]);
         _moisture = new int[grid.TriangleCount];
-        _geothermal = new int[grid.TriangleCount];
-        _slope = new int[grid.TriangleCount];
-        _landformCodes = new int[grid.TriangleCount];
-        _waterKindCodes = new int[grid.TriangleCount];
-        _waterDepths = new int[grid.TriangleCount];
-        _waterBodyIds = new int[grid.TriangleCount];
+        (_oceanCurrentX, _oceanCurrentY, _oceanCurrentStrength, _oceanCurrentHeat,
+            _waveExposure) =
+            (new int[grid.TriangleCount], new int[grid.TriangleCount],
+                new int[grid.TriangleCount], new int[grid.TriangleCount],
+                new int[grid.TriangleCount]);
+        (_rainfall, _snowfall, _seaIceSuitability) =
+            (new int[grid.TriangleCount], new int[grid.TriangleCount],
+                new int[grid.TriangleCount]);
+        (_geothermal, _slope, _landformCodes, _waterKindCodes, _waterDepths, _waterBodyIds) =
+            (new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount],
+                new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount]);
         _drainageBasinIds = new int[grid.TriangleCount];
         _flowEdges = new int[grid.TriangleCount];
         Array.Fill(_flowEdges, PhysicalGeographyCodes.NoFlowEdge);
@@ -314,6 +326,22 @@ public sealed class PhysicalGeographyField
     public Span<int> Temperature => _temperature;
 
     public Span<int> Moisture => _moisture;
+
+    public Span<int> OceanCurrentX => _oceanCurrentX;
+
+    public Span<int> OceanCurrentY => _oceanCurrentY;
+
+    public Span<int> OceanCurrentStrength => _oceanCurrentStrength;
+
+    public Span<int> OceanCurrentHeat => _oceanCurrentHeat;
+
+    public Span<int> WaveExposure => _waveExposure;
+
+    public Span<int> Rainfall => _rainfall;
+
+    public Span<int> Snowfall => _snowfall;
+
+    public Span<int> SeaIceSuitability => _seaIceSuitability;
 
     public Span<int> Geothermal => _geothermal;
 

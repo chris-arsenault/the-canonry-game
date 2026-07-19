@@ -16,9 +16,11 @@ internal sealed class GlacialLandformLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Ocean |
         PhysicalGeographyFacts.Bathymetry |
         PhysicalGeographyFacts.Landmasses |
+        PhysicalGeographyFacts.OceanCurrents |
         PhysicalGeographyFacts.Warmth |
         PhysicalGeographyFacts.Temperature |
         PhysicalGeographyFacts.Moisture |
+        PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.Runoff |
         PhysicalGeographyFacts.Lakes |
         PhysicalGeographyFacts.FlowRouting |

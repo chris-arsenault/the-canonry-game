@@ -527,47 +527,6 @@ internal sealed partial class GameRenderTree
         _mapArea.SetGeographyViewKey(GeographyViewKey(_mapRenderer.GeographyView));
     }
 
-    private static string GeographyViewKey(PhysicalGeographyView view) =>
-        BaseGeographyViewKey(view) ?? SpecialGeographyViewKey(view);
-
-    private static string? BaseGeographyViewKey(PhysicalGeographyView view) => view switch
-    {
-        PhysicalGeographyView.Terrain => MapArea.GeographyViewTerrain,
-        PhysicalGeographyView.Surface => MapArea.GeographyViewSurface,
-        PhysicalGeographyView.NaturalSurface => MapArea.GeographyViewNaturalSurface,
-        PhysicalGeographyView.Material => MapArea.GeographyViewMaterial,
-        PhysicalGeographyView.Elevation => MapArea.GeographyViewElevation,
-        PhysicalGeographyView.Temperature => MapArea.GeographyViewTemperature,
-        PhysicalGeographyView.Moisture => MapArea.GeographyViewMoisture,
-        PhysicalGeographyView.Geothermal => MapArea.GeographyViewGeothermal,
-        _ => null,
-    };
-
-    private static string SpecialGeographyViewKey(PhysicalGeographyView view) =>
-        TectonicGeographyViewKey(view) ?? RemainingGeographyViewKey(view);
-
-    private static string? TectonicGeographyViewKey(PhysicalGeographyView view) => view switch
-    {
-        PhysicalGeographyView.TectonicProvinces => MapArea.GeographyViewTectonicProvinces,
-        PhysicalGeographyView.CrustType => MapArea.GeographyViewCrustType,
-        PhysicalGeographyView.TectonicBoundaries => MapArea.GeographyViewTectonicBoundaries,
-        PhysicalGeographyView.TectonicStrain => MapArea.GeographyViewTectonicStrain,
-        _ => null,
-    };
-
-    private static string RemainingGeographyViewKey(PhysicalGeographyView view) => view switch
-    {
-        PhysicalGeographyView.Landform => MapArea.GeographyViewLandform,
-        PhysicalGeographyView.Hydrology => MapArea.GeographyViewHydrology,
-        PhysicalGeographyView.Ice => MapArea.GeographyViewIce,
-        PhysicalGeographyView.Fractures => MapArea.GeographyViewFractures,
-        PhysicalGeographyView.Fire => MapArea.GeographyViewFire,
-        PhysicalGeographyView.Aurora => MapArea.GeographyViewAurora,
-        PhysicalGeographyView.Pressure => MapArea.GeographyViewPressure,
-        PhysicalGeographyView.MagicComposite => MapArea.GeographyViewMagicComposite,
-        _ => MapArea.GeographyViewSurface,
-    };
-
     private void ResetPresenters()
     {
         _lastCultureOverviewPlane = null;

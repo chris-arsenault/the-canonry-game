@@ -27,6 +27,10 @@ public partial class MapArea : Control
     public const string GeographyViewTemperature = "temperature";
     public const string GeographyViewMoisture = "moisture";
     public const string GeographyViewGeothermal = "geothermal";
+    public const string GeographyViewOceanCurrents = "ocean_currents";
+    public const string GeographyViewWaveExposure = "wave_exposure";
+    public const string GeographyViewPrecipitation = "precipitation";
+    public const string GeographyViewSeaIceSuitability = "sea_ice_suitability";
     public const string GeographyViewLandform = "landform";
     public const string GeographyViewHydrology = "hydrology";
     public const string GeographyViewIce = "ice";
@@ -254,6 +258,7 @@ public partial class MapArea : Control
         AddGeographyViewOption("Temperature", GeographyViewTemperature);
         AddGeographyViewOption("Moisture", GeographyViewMoisture);
         AddGeographyViewOption("Geothermal", GeographyViewGeothermal);
+        AddGeneratedProcessViewOptions();
         AddGeographyViewOption("Landforms", GeographyViewLandform);
         AddGeographyViewOption("Hydrology", GeographyViewHydrology);
         AddGeographyViewOption("Ice", GeographyViewIce);
@@ -278,6 +283,14 @@ public partial class MapArea : Control
         _ = AddLayerCheckBox(controls, "Geography features", LayerGeographyFeatures);
         _geographyControls = controls;
         box.AddChild(controls);
+    }
+
+    private void AddGeneratedProcessViewOptions()
+    {
+        AddGeographyViewOption("Ocean currents", GeographyViewOceanCurrents);
+        AddGeographyViewOption("Wave exposure", GeographyViewWaveExposure);
+        AddGeographyViewOption("Rain and snow", GeographyViewPrecipitation);
+        AddGeographyViewOption("Sea-ice suitability", GeographyViewSeaIceSuitability);
     }
 
     private void AddGeographyViewOption(string label, string viewKey)

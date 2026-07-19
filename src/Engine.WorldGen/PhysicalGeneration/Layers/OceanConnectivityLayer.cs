@@ -11,9 +11,11 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Ocean,
         PhysicalGeographyFacts.Bathymetry |
         PhysicalGeographyFacts.Landmasses |
+        PhysicalGeographyFacts.OceanCurrents |
         PhysicalGeographyFacts.Warmth |
         PhysicalGeographyFacts.Temperature |
         PhysicalGeographyFacts.Moisture |
+        PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.Runoff |
         PhysicalGeographyFacts.Lakes |
         PhysicalGeographyFacts.FlowRouting |

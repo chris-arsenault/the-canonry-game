@@ -5,6 +5,28 @@ using Engine.Constants;
 public sealed class PhysicalClimateAndIceLayerTests
 {
     [Fact]
+    public void OceanCurrents_FormVariedOceanOnlyCirculationAndRejectLandFlux()
+    {
+        var result = PhysicalGeographyLayerTestHarness.GenerateThrough<OceanCurrentLayer>();
+        var ocean = Enumerable.Range(0, result.Map.Grid.TriangleCount)
+            .Where(index => result.Map.WaterKindCodes[index] == PhysicalWaterKindCodes.Ocean)
+            .ToArray();
+        Assert.NotEmpty(ocean);
+        Assert.Contains(ocean, index => result.Map.OceanCurrentStrength[index] > 0);
+        Assert.Contains(ocean, index => result.Map.OceanCurrentHeat[index] > 0);
+        Assert.Contains(ocean, index => result.Map.WaveExposure[index] > 0);
+        Assert.True(ocean.Select(index => (
+            result.Map.OceanCurrentX[index] / 100,
+            result.Map.OceanCurrentY[index] / 100)).Distinct().Take(3).Count() >= 3);
+
+        var land = Enumerable.Range(0, result.Map.Grid.TriangleCount)
+            .First(index => result.Map.WaterKindCodes[index] == PhysicalWaterKindCodes.None);
+        result.Map.OceanCurrentStrength[land] = 1;
+        Assert.Throws<InvalidOperationException>(() =>
+            result.Layer.Validate(result.Map, result.Context));
+    }
+
+    [Fact]
     public void WarmthSources_IncludeHeartAndSeparatedHabitatsAndRejectEmptyField()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<WarmthSourceLayer>();
@@ -37,7 +59,7 @@ public sealed class PhysicalClimateAndIceLayerTests
     }
 
     [Fact]
-    public void Moisture_UsesOpenWaterAndRainShadowAndRejectsOutOfRangeValue()
+    public void Moisture_UsesOpenWaterAndVariedWeatherAndRejectsOutOfRangeValue()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<MoistureLayer>();
         Assert.Contains(Enumerable.Range(0, result.Map.Grid.TriangleCount), index =>
@@ -57,15 +79,39 @@ public sealed class PhysicalClimateAndIceLayerTests
     }
 
     [Fact]
-    public void Runoff_RespondsToMoistureAndThawAndRejectsZeroFlux()
+    public void Precipitation_SeparatesRainAndSnowAndRejectsInvalidTotals()
+    {
+        var result = PhysicalGeographyLayerTestHarness.GenerateThrough<PrecipitationLayer>();
+        Assert.Contains(result.Map.Rainfall.ToArray(), value => value > 0);
+        Assert.Contains(result.Map.Snowfall.ToArray(), value => value > 0);
+        var landTotals = Enumerable.Range(0, result.Map.Grid.TriangleCount)
+            .Where(index => result.Map.WaterKindCodes[index] == PhysicalWaterKindCodes.None)
+            .Select(index => result.Map.Rainfall[index] + result.Map.Snowfall[index])
+            .Distinct()
+            .Take(2)
+            .ToArray();
+        Assert.Equal(2, landTotals.Length);
+
+        result.Map.Rainfall[0] = 1001;
+        Assert.Throws<InvalidOperationException>(() =>
+            result.Layer.Validate(result.Map, result.Context));
+    }
+
+    [Fact]
+    public void Runoff_UsesRainAndSnowmeltWhileStandingWaterContributesNoLocalFlux()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<RunoffLayer>();
-        Assert.All(result.Map.Runoff.ToArray(), value => Assert.InRange(value, 1, 1000));
+        Assert.All(result.Map.Runoff.ToArray(), value => Assert.InRange(value, 0, 1000));
         Assert.Contains(Enumerable.Range(0, result.Map.Grid.TriangleCount), index =>
             result.Map.WaterKindCodes[index] != PhysicalWaterKindCodes.None &&
-            result.Map.Runoff[index] == 1000);
+            result.Map.Runoff[index] == 0);
+        Assert.Contains(Enumerable.Range(0, result.Map.Grid.TriangleCount), index =>
+            result.Map.WaterKindCodes[index] == PhysicalWaterKindCodes.None &&
+            result.Map.Runoff[index] > 0);
 
-        result.Map.Runoff[0] = 0;
+        var water = Enumerable.Range(0, result.Map.Grid.TriangleCount)
+            .First(index => result.Map.WaterKindCodes[index] != PhysicalWaterKindCodes.None);
+        result.Map.Runoff[water] = 1;
         Assert.Throws<InvalidOperationException>(() =>
             result.Layer.Validate(result.Map, result.Context));
     }
@@ -138,6 +184,7 @@ public sealed class PhysicalClimateAndIceLayerTests
         var frozen = ocean.Count(index => result.Map.IceThickness[index] > 0);
         var coverage = frozen / (double)ocean.Length;
         Assert.True(PhysicalGeographyLayerTestHarness.Profile.QualityTargets.SeaIceCoverage.Contains(coverage));
+        Assert.Contains(ocean, index => result.Map.SeaIceSuitability[index] > 0);
 
         var land = Enumerable.Range(0, result.Map.Grid.TriangleCount)
             .First(index => result.Map.WaterKindCodes[index] == PhysicalWaterKindCodes.None);

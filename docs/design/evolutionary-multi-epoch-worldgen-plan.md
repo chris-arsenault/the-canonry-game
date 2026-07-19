@@ -126,23 +126,23 @@ storage-order direction bias.
 
 Implementation:
 
-- [ ] Add a reduced `OceanCurrentLayer` producing current direction, strength,
+- [x] Add a reduced `OceanCurrentLayer` producing current direction, strength,
   and wave exposure from basin geometry and broad forcing.
-- [ ] Retain moisture transport and rain-shadow work; add a discrete
+- [x] Retain moisture transport and rain-shadow work; add a discrete
   `PrecipitationLayer` for rainfall and snowfall.
-- [ ] Feed currents into temperature, warmth, and sea-ice morphology.
-- [ ] Feed precipitation and melt into runoff; standing water contributes no
+- [x] Feed currents into temperature, warmth, and sea-ice morphology.
+- [x] Feed precipitation and melt into runoff; standing water contributes no
   local runoff.
-- [ ] Replace absolute-index flat routing with a geometric outlet gradient.
-- [ ] Retain priority flood, lake routing, flow targets, accumulation, pruning,
+- [x] Replace absolute-index flat routing with a geometric outlet gradient.
+- [x] Retain priority flood, lake routing, flow targets, accumulation, pruning,
   and Strahler ordering.
-- [ ] Replace exact ranked sea-ice selection with a continuous suitability
+- [x] Replace exact ranked sea-ice selection with a continuous suitability
   field and a target-calibrated threshold.
-- [ ] Ground warm habitats in geothermal systems, ocean moderation, currents,
+- [x] Ground warm habitats in geothermal systems, ocean moderation, currents,
   and sheltered basins while preserving the heart guarantee.
-- [ ] Add rotation and graph-renumbering tests proving storage order cannot
+- [x] Add rotation and graph-renumbering tests proving storage order cannot
   select physical river or ice direction.
-- [ ] Inspect climate, current, ice, lake, and river-spine views; verify,
+- [x] Inspect climate, current, ice, lake, and river-spine views; verify,
   commit, and push.
 
 Primary files:

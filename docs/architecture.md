@@ -211,14 +211,16 @@ installs deterministic terrain and geography for that whole latent field, but
 worldgen first builds one padded triangle graph. Reduced moving crust provinces
 produce continental assemblies, ocean basins, typed boundaries, strain,
 mountain systems, rifts, and sparse island arcs; erosion, connected-ocean bathymetry, conditioned
-drainage, climate, ice flow, glacial carving, and fractures consume the prior
+drainage, basin-shaped ocean currents, precipitation, climate, ice flow,
+glacial carving, and fractures consume the prior
 passes through independent dependency-declaring layers. Ice Remembers then runs
 a second external layer pipeline that classifies varied cold land and water,
 routes fire through fractures, aurora through cold ice reservoirs, and pressure
 waves through ocean geometry.
 It retains natural surfaces, anomaly flags, and all three intensity fields while
 scored authored rules reduce each 24-triangle aggregate to the base terrain the
-hex-scale kernel consumes. Ocean, land-ice, sea-ice, landmass, lake, surface
+hex-scale kernel consumes. Ocean, current, wave, rain, snow, land-ice, sea-ice,
+landmass, lake, surface
 concentration, warmth, and anomaly distribution goals are tunable profile
 targets; structural graph and routing contracts remain invariants. Geographic
 subdivisions grow as connected partitions over those facts and never repaint

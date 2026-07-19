@@ -44,6 +44,33 @@ public sealed class PhysicalHydrologyLayerTests
     }
 
     [Fact]
+    public void FlatFlowTieBreak_RotatesWithGeometryAndIgnoresCandidateStorageIds()
+    {
+        var original = new[]
+        {
+            new ConditionedFlowResolver.GeometricFlowCandidate(100, 10, 1, 1d, 0d),
+            new ConditionedFlowResolver.GeometricFlowCandidate(2, 10, 1, 0d, 1d),
+        };
+        var reversed = original.Reverse().ToArray();
+        Assert.Equal(2, ConditionedFlowResolver.SelectByGeometry(original, 1d, 0d, 0d, 0d));
+        Assert.Equal(2, ConditionedFlowResolver.SelectByGeometry(reversed, 1d, 0d, 0d, 0d));
+
+        var renumbered = new[]
+        {
+            original[0] with { Value = 7 },
+            original[1] with { Value = 99 },
+        };
+        Assert.Equal(99, ConditionedFlowResolver.SelectByGeometry(renumbered, 1d, 0d, 0d, 0d));
+
+        var rotated = new[]
+        {
+            original[0] with { DirectionX = 0d, DirectionY = 1d },
+            original[1] with { DirectionX = -1d, DirectionY = 0d },
+        };
+        Assert.Equal(2, ConditionedFlowResolver.SelectByGeometry(rotated, 0d, 1d, 0d, 0d));
+    }
+
+    [Fact]
     public void RiverNetwork_UsesAccumulatedTributariesAndRejectsDownstreamLoss()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<RiverNetworkLayer>();
@@ -52,6 +79,7 @@ public sealed class PhysicalHydrologyLayerTests
             .ToArray();
         Assert.NotEmpty(rivers);
         Assert.Contains(rivers, index => result.Map.RiverOrders[index] > 1);
+        Assert.True(rivers.Select(index => result.Map.FlowEdges[index]).Distinct().Count() > 1);
         Assert.All(rivers, index =>
         {
             var target = result.Map.FlowTargets[index];

@@ -11,6 +11,7 @@ internal sealed class MoistureLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Ocean |
         PhysicalGeographyFacts.Temperature,
         PhysicalGeographyFacts.Moisture,
+        PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.Runoff |
         PhysicalGeographyFacts.LandIce |
         PhysicalGeographyFacts.Validated);
@@ -37,7 +38,12 @@ internal sealed class MoistureLayer : IPhysicalGeographyLayer
                     31d,
                     3) * 230d,
                 MidpointRounding.AwayFromZero);
-            var rainShadow = UpwindBarrier(map, triangleIndex) * 2;
+            var rainShadow = AtmosphericFlow.TraceUpwindBarrier(
+                map,
+                context,
+                triangleIndex,
+                14,
+                out _) * context.Profile.RainShadowStrength / 1000;
             var thaw = Math.Max(0, map.Temperature[triangleIndex] - 260) / 3;
             map.Moisture[triangleIndex] = Math.Clamp(
                 80 + exposure + weather + thaw - rainShadow,
@@ -58,42 +64,4 @@ internal sealed class MoistureLayer : IPhysicalGeographyLayer
         }
     }
 
-    private static int UpwindBarrier(PhysicalGeographyField map, int start)
-    {
-        var current = start;
-        var barrier = 0;
-        var startElevation = map.Elevation[start];
-        for (var step = 0; step < 14; step++)
-        {
-            var next = -1;
-            var bestProjection = double.MinValue;
-            for (var edge = 0; edge < 3; edge++)
-            {
-                var neighbor = map.Grid.NeighborTriangleIndex(current, edge);
-                if (neighbor < 0)
-                {
-                    continue;
-                }
-
-                var dx = map.Grid.TriangleX(current) - map.Grid.TriangleX(neighbor);
-                var dy = map.Grid.TriangleY(current) - map.Grid.TriangleY(neighbor);
-                var projection = (dx * 0.94d) + (dy * 0.34d);
-                if (projection > bestProjection)
-                {
-                    next = neighbor;
-                    bestProjection = projection;
-                }
-            }
-
-            if (next < 0 || next == current)
-            {
-                break;
-            }
-
-            current = next;
-            barrier = Math.Max(barrier, map.Elevation[current] - startElevation);
-        }
-
-        return Math.Max(0, barrier) / 6;
-    }
 }

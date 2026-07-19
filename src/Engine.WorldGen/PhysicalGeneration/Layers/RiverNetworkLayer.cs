@@ -18,7 +18,7 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
         var order = FlowGraphAlgorithms.SourceToOutletOrder(map);
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
-            map.FlowAccumulation[triangleIndex] = Math.Max(1, map.Runoff[triangleIndex]);
+            map.FlowAccumulation[triangleIndex] = map.Runoff[triangleIndex];
         }
 
         foreach (var triangleIndex in order)

@@ -98,6 +98,11 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         {
             DrawHexFeatures(cell);
         }
+
+        if (_owner.View == PhysicalGeographyView.OceanCurrents)
+        {
+            DrawAggregateCurrent(cell);
+        }
     }
 
     private Color AggregateColor(in PhysicalGeographyCellProjection cell)
@@ -152,10 +157,20 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             _ => UiTokens.Whisper,
         };
 
-    private static Color AggregateProcessColor(
+    private Color AggregateProcessColor(
         in PhysicalGeographyCellProjection cell,
         PhysicalGeographyView view) => view switch
         {
+            PhysicalGeographyView.OceanCurrents => OceanCurrentColor(
+                AggregateScalarValue(cell, "ocean_current_strength"),
+                AggregateScalarValue(cell, "ocean_current_heat")),
+            PhysicalGeographyView.WaveExposure =>
+                WaveExposureColor(AggregateScalarValue(cell, "wave_exposure")),
+            PhysicalGeographyView.Precipitation => PrecipitationColor(
+                AggregateScalarValue(cell, "rainfall"),
+                AggregateScalarValue(cell, "snowfall")),
+            PhysicalGeographyView.SeaIceSuitability =>
+                SeaIceSuitabilityColor(AggregateScalarValue(cell, "sea_ice_suitability")),
             PhysicalGeographyView.Hydrology => AggregateHydrologyColor(cell),
             PhysicalGeographyView.Ice => IceColor(cell.MeanIceThickness),
             PhysicalGeographyView.Fractures => FractureColor(
@@ -209,6 +224,11 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         if (FeatureDetail() == PhysicalMicrogeographyFeatureDetail.Microtriangle)
         {
             DrawTriangleFeatures(cell, triangles);
+        }
+
+        if (_owner.View == PhysicalGeographyView.OceanCurrents)
+        {
+            DrawTriangleCurrents(cell, triangles);
         }
     }
 
@@ -270,7 +290,7 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
 
         return view <= PhysicalGeographyView.Geothermal
             ? TriangleClimateColor(triangle, view)
-            : TriangleProcessColor(triangle, view);
+            : TriangleProcessColor(cell, triangleIndex, triangle, view);
     }
 
     private static Color TriangleClimateColor(
@@ -284,10 +304,22 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             _ => UiTokens.Whisper,
         };
 
-    private static Color TriangleProcessColor(
+    private Color TriangleProcessColor(
+        in PhysicalGeographyCellProjection cell,
+        int triangleIndex,
         in PhysicalMicrotriangleProjection triangle,
         PhysicalGeographyView view) => view switch
         {
+            PhysicalGeographyView.OceanCurrents => OceanCurrentColor(
+                ScalarValue(cell, triangleIndex, "ocean_current_strength"),
+                ScalarValue(cell, triangleIndex, "ocean_current_heat")),
+            PhysicalGeographyView.WaveExposure =>
+                WaveExposureColor(ScalarValue(cell, triangleIndex, "wave_exposure")),
+            PhysicalGeographyView.Precipitation => PrecipitationColor(
+                ScalarValue(cell, triangleIndex, "rainfall"),
+                ScalarValue(cell, triangleIndex, "snowfall")),
+            PhysicalGeographyView.SeaIceSuitability => SeaIceSuitabilityColor(
+                ScalarValue(cell, triangleIndex, "sea_ice_suitability")),
             PhysicalGeographyView.Landform => LandformColor(triangle.LandformCode),
             PhysicalGeographyView.Hydrology => HydrologyColor(triangle),
             PhysicalGeographyView.Ice => IceColor(triangle.IceThickness),
@@ -357,6 +389,33 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         }
 
         return color(total / PhysicalGeographyCodes.MicrotrianglesPerHex);
+    }
+
+    private int AggregateScalarValue(
+        in PhysicalGeographyCellProjection cell,
+        string stableName)
+    {
+        var total = 0;
+        for (var triangleIndex = 0;
+            triangleIndex < PhysicalGeographyCodes.MicrotrianglesPerHex;
+            triangleIndex++)
+        {
+            total += ScalarValue(cell, triangleIndex, stableName);
+        }
+
+        return total / PhysicalGeographyCodes.MicrotrianglesPerHex;
+    }
+
+    private int ScalarValue(
+        in PhysicalGeographyCellProjection cell,
+        int triangleIndex,
+        string stableName)
+    {
+        _ = _owner!.Geography.TryGetScalarValue(
+            stableName,
+            cell.MicrotriangleOffset + triangleIndex,
+            out var value);
+        return value;
     }
 
     private Color AggregateBoundaryColor(in PhysicalGeographyCellProjection cell)
@@ -556,6 +615,53 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
             _ => color,
         };
 
+    private void DrawTriangleCurrents(
+        in PhysicalGeographyCellProjection cell,
+        ReadOnlySpan<PhysicalMicrotriangleProjection> triangles)
+    {
+        for (var triangleIndex = 0; triangleIndex < triangles.Length; triangleIndex++)
+        {
+            if (triangles[triangleIndex].WaterKindCode != PhysicalWaterKindCodes.Ocean)
+            {
+                continue;
+            }
+
+            DrawCurrentVector(
+                _owner!.Geometry.TriangleCentroid(triangleIndex),
+                ScalarValue(cell, triangleIndex, "ocean_current_x"),
+                ScalarValue(cell, triangleIndex, "ocean_current_y"),
+                ScalarValue(cell, triangleIndex, "ocean_current_strength"),
+                3.2f);
+        }
+    }
+
+    private void DrawAggregateCurrent(in PhysicalGeographyCellProjection cell) =>
+        DrawCurrentVector(
+            Vector2.Zero,
+            AggregateScalarValue(cell, "ocean_current_x"),
+            AggregateScalarValue(cell, "ocean_current_y"),
+            AggregateScalarValue(cell, "ocean_current_strength"),
+            _owner!.Geometry.HexSize * 0.52f);
+
+    private void DrawCurrentVector(
+        Vector2 start,
+        int currentX,
+        int currentY,
+        int strength,
+        float maximumLength)
+    {
+        var direction = new Vector2(currentX, currentY);
+        if (strength <= 0 || direction.LengthSquared() < 1f)
+        {
+            return;
+        }
+
+        direction = direction.Normalized();
+        var end = start + (direction * maximumLength * Math.Clamp(strength / 1000f, 0.2f, 1f));
+        DrawLine(start, end, new Color(0.80f, 0.94f, 1f, 0.82f), 0.8f, antialiased: true);
+        DrawCircle(end, 0.55f, new Color(0.94f, 0.98f, 1f, 0.88f));
+    }
+
     private static Color ElevationColor(int elevation)
     {
         var normalized = Math.Clamp((elevation + 1000f) / 2000f, 0f, 1f);
@@ -585,6 +691,36 @@ internal partial class PhysicalMicrogeographyChunk : Node2D
         new Color(0.17f, 0.18f, 0.23f).Lerp(
             new Color(0.92f, 0.30f, 0.12f),
             Math.Clamp(geothermal / 1000f, 0f, 1f));
+
+    private static Color OceanCurrentColor(int strength, int heat)
+    {
+        var thermal = new Color(0.08f, 0.20f, 0.38f).Lerp(
+            new Color(0.20f, 0.74f, 0.66f),
+            Math.Clamp(heat / 1000f, 0f, 1f));
+        return new Color(0.06f, 0.09f, 0.14f).Lerp(
+            thermal,
+            Math.Clamp(strength / 1000f, 0f, 1f));
+    }
+
+    private static Color WaveExposureColor(int exposure) =>
+        new Color(0.05f, 0.13f, 0.22f).Lerp(
+            new Color(0.68f, 0.90f, 0.96f),
+            Math.Clamp(exposure / 1000f, 0f, 1f));
+
+    private static Color PrecipitationColor(int rainfall, int snowfall)
+    {
+        var total = Math.Clamp((rainfall + snowfall) / 1000f, 0f, 1f);
+        var snowShare = snowfall / (float)Math.Max(1, rainfall + snowfall);
+        var wet = new Color(0.15f, 0.42f, 0.72f).Lerp(
+            new Color(0.88f, 0.95f, 0.98f),
+            snowShare);
+        return new Color(0.18f, 0.14f, 0.12f).Lerp(wet, total);
+    }
+
+    private static Color SeaIceSuitabilityColor(int suitability) =>
+        new Color(0.08f, 0.16f, 0.28f).Lerp(
+            new Color(0.88f, 0.97f, 1f),
+            Math.Clamp(suitability / 1000f, 0f, 1f));
 
     private static Color IceColor(int iceThickness) =>
         new Color(0.13f, 0.18f, 0.24f).Lerp(

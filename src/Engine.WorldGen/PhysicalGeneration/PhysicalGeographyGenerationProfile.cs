@@ -195,6 +195,38 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int OceanMoistureDistance { get; init; } = 90;
 
+    public int OceanCurrentSmoothingIterations { get; init; } = 6;
+
+    public int OceanCurrentHeatIterations { get; init; } = 10;
+
+    public int OceanCurrentFetchSteps { get; init; } = 18;
+
+    public int OceanCurrentMinimumStrength { get; init; } = 110;
+
+    public int OceanCurrentTemperatureStrength { get; init; } = 150;
+
+    public int OceanCurrentWarmthStrength { get; init; } = 120;
+
+    public int CurrentEvaporationStrength { get; init; } = 180;
+
+    public int PrecipitationBaseline { get; init; } = 40;
+
+    public int OrographicPrecipitationStrength { get; init; } = 220;
+
+    public int RainShadowStrength { get; init; } = 260;
+
+    public int SnowTemperatureThreshold { get; init; } = 300;
+
+    public int SnowTemperatureTransition { get; init; } = 100;
+
+    public int SeaIceCurrentResistance { get; init; } = 220;
+
+    public int SeaIceWaveResistance { get; init; } = 180;
+
+    public int SeaIceSuitabilityVariation { get; init; } = 150;
+
+    public double SeaIceVariationScale { get; init; } = 26d;
+
     public int RidgeElevationThreshold { get; init; } = 145;
 
     public int RidgeSlopeThreshold { get; init; } = 38;
@@ -263,7 +295,9 @@ public sealed record PhysicalGeographyGenerationProfile
 
     private bool LandscapeCountsAreInvalid() =>
         Padding <= 0 || ElevationScale <= 0 || FluvialErosionIterations <= 0 ||
-        MinimumLakeTriangles <= 0 || MinimumRiverReachTriangles <= 0;
+        MinimumLakeTriangles <= 0 || MinimumRiverReachTriangles <= 0 ||
+        OceanCurrentSmoothingIterations <= 0 || OceanCurrentHeatIterations <= 0 ||
+        OceanCurrentFetchSteps <= 0;
 
     private void ValidateScales()
     {
@@ -281,7 +315,8 @@ public sealed record PhysicalGeographyGenerationProfile
 
     private bool LandscapeScaleIsInvalid() =>
         ElevationVariationScale <= 0d || FluvialErosionStrength <= 0d ||
-        WarmthPocketMinRadius <= 0d || HeartWarmthRadius <= 0d;
+        WarmthPocketMinRadius <= 0d || HeartWarmthRadius <= 0d ||
+        SeaIceVariationScale <= 0d;
 
     private void ValidateRanges()
     {
@@ -322,11 +357,32 @@ public sealed record PhysicalGeographyGenerationProfile
 
     private void ValidateClimateRanges()
     {
-        if (OceanModerationDistance <= 0 || OceanMoistureDistance <= 0 ||
-            WarmthPocketCount < 1 || FractureBranchCount < 1 ||
-            WarmthPocketMaxRadius < WarmthPocketMinRadius)
+        if (BaseClimateRangesAreInvalid() || CurrentRangesAreInvalid() ||
+            PrecipitationRangesAreInvalid() || SeaIceRangesAreInvalid())
         {
             throw new InvalidOperationException("Physical worldgen climate ranges are invalid.");
         }
     }
+
+    private bool BaseClimateRangesAreInvalid() =>
+        OceanModerationDistance <= 0 || OceanMoistureDistance <= 0 ||
+        WarmthPocketCount < 1 || FractureBranchCount < 1 ||
+        WarmthPocketMaxRadius < WarmthPocketMinRadius;
+
+    private bool CurrentRangesAreInvalid() =>
+        OceanCurrentMinimumStrength is < 0 or > 1000 ||
+        OceanCurrentTemperatureStrength is < 0 or > 1000 ||
+        OceanCurrentWarmthStrength is < 0 or > 1000 ||
+        CurrentEvaporationStrength is < 0 or > 1000;
+
+    private bool PrecipitationRangesAreInvalid() =>
+        PrecipitationBaseline is < 0 or > 1000 ||
+        OrographicPrecipitationStrength is < 0 or > 1000 ||
+        RainShadowStrength is < 0 or > 1000 ||
+        SnowTemperatureThreshold is < 0 or > 1000 || SnowTemperatureTransition <= 0;
+
+    private bool SeaIceRangesAreInvalid() =>
+        SeaIceCurrentResistance is < 0 or > 1000 ||
+        SeaIceWaveResistance is < 0 or > 1000 ||
+        SeaIceSuitabilityVariation is < 0 or > 1000;
 }

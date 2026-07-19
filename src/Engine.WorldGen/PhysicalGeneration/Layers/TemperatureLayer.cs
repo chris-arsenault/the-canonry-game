@@ -7,10 +7,12 @@ internal sealed class TemperatureLayer : IPhysicalGeographyLayer
         0,
         PhysicalGeographyFacts.Elevation |
         PhysicalGeographyFacts.Ocean |
+        PhysicalGeographyFacts.OceanCurrents |
         PhysicalGeographyFacts.Geothermal |
         PhysicalGeographyFacts.Warmth,
         PhysicalGeographyFacts.Temperature,
         PhysicalGeographyFacts.Moisture |
+        PhysicalGeographyFacts.Precipitation |
         PhysicalGeographyFacts.Runoff |
         PhysicalGeographyFacts.LandIce |
         PhysicalGeographyFacts.SeaIce |
@@ -33,9 +35,12 @@ internal sealed class TemperatureLayer : IPhysicalGeographyLayer
                             context.Profile.OceanModerationDistance));
             var geothermal = map.Geothermal[triangleIndex] *
                 context.Profile.GeothermalTemperatureStrength / 1000;
+            var currentHeat = map.OceanCurrentHeat[triangleIndex] *
+                map.OceanCurrentStrength[triangleIndex] / 1000 *
+                context.Profile.OceanCurrentTemperatureStrength / 1000;
             map.Temperature[triangleIndex] = Math.Clamp(
                 context.Profile.TemperatureBaseline - lapse + moderation +
-                geothermal + map.Warmth[triangleIndex],
+                geothermal + currentHeat + map.Warmth[triangleIndex],
                 0,
                 1000);
         }

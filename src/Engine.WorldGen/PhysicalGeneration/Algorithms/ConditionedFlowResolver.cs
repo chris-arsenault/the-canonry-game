@@ -78,7 +78,8 @@ internal static class ConditionedFlowResolver
 
     private static int SelectTarget(PhysicalGeographyField map, int[] flatRanks, int triangleIndex)
     {
-        var best = FlowCandidate.None;
+        Span<GeometricFlowCandidate> candidates = stackalloc GeometricFlowCandidate[3];
+        var candidateCount = 0;
         var currentDrainage = map.DrainageElevations[triangleIndex];
         var currentRank = flatRanks[triangleIndex];
         for (var edge = 0; edge < 3; edge++)
@@ -90,23 +91,31 @@ internal static class ConditionedFlowResolver
                     neighbor,
                     currentDrainage,
                     currentRank,
-                    out var candidate))
+                    out var drainage,
+                    out var rank))
             {
                 continue;
             }
 
-            if (candidate.IsPreferredTo(best))
-            {
-                best = candidate;
-            }
+            candidates[candidateCount++] = new GeometricFlowCandidate(
+                neighbor,
+                drainage,
+                rank,
+                map.Grid.TriangleX(neighbor) - map.Grid.TriangleX(triangleIndex),
+                map.Grid.TriangleY(neighbor) - map.Grid.TriangleY(triangleIndex));
         }
 
-        if (best.Index < 0)
+        if (candidateCount == 0)
         {
             throw new InvalidOperationException($"Conditioned triangle {triangleIndex} has no outlet.");
         }
 
-        return best.Index;
+        return SelectByGeometry(
+            candidates[..candidateCount],
+            map.Grid.TriangleX(triangleIndex),
+            map.Grid.TriangleY(triangleIndex),
+            map.CrustMotionX[triangleIndex],
+            map.CrustMotionY[triangleIndex]);
     }
 
     private static bool TryCreateCandidate(
@@ -115,26 +124,138 @@ internal static class ConditionedFlowResolver
         int neighbor,
         int currentDrainage,
         int currentRank,
-        out FlowCandidate candidate)
+        out int drainage,
+        out int rank)
     {
-        var drainage = map.WaterKindCodes[neighbor] == PhysicalWaterKindCodes.Ocean
+        drainage = map.WaterKindCodes[neighbor] == PhysicalWaterKindCodes.Ocean
             ? int.MinValue
             : map.DrainageElevations[neighbor];
-        var rank = flatRanks[neighbor];
+        rank = flatRanks[neighbor];
         var descends = drainage < currentDrainage;
         var resolvesFlat = drainage == currentDrainage &&
             rank >= 0 && currentRank >= 0 && rank < currentRank;
-        candidate = new FlowCandidate(neighbor, drainage, rank);
         return descends || resolvesFlat;
     }
 
-    private readonly record struct FlowCandidate(int Index, int Drainage, int Rank)
+    internal static int SelectByGeometry(
+        ReadOnlySpan<GeometricFlowCandidate> candidates,
+        double currentX,
+        double currentY,
+        double motionX,
+        double motionY)
     {
-        public static FlowCandidate None { get; } = new(-1, int.MaxValue, int.MaxValue);
+        if (candidates.IsEmpty)
+        {
+            throw new ArgumentException("Flow selection requires at least one candidate.", nameof(candidates));
+        }
 
-        public bool IsPreferredTo(FlowCandidate other) =>
-            Drainage < other.Drainage ||
-            (Drainage == other.Drainage && Rank < other.Rank) ||
-            (Drainage == other.Drainage && Rank == other.Rank && Index < other.Index);
+        var (bestDrainage, bestRank) = FindPrimaryPreference(candidates);
+        var (outletX, outletY) = SumOutletDirection(candidates, bestDrainage, bestRank);
+
+        var tangentX = -currentY;
+        var tangentY = currentX;
+        var best = candidates[0];
+        var hasBest = false;
+        var bestOutlet = double.MinValue;
+        var bestRadial = double.MinValue;
+        var bestMotion = double.MinValue;
+        foreach (var candidate in candidates)
+        {
+            if (candidate.Drainage != bestDrainage || candidate.Rank != bestRank)
+            {
+                continue;
+            }
+
+            Normalize(candidate.DirectionX, candidate.DirectionY, out var x, out var y);
+            var outletScore = (x * outletX) + (y * outletY);
+            var radialScore = (x * tangentX) + (y * tangentY);
+            var motionScore = (x * motionX) + (y * motionY);
+            if (IsBetterScore(
+                hasBest,
+                outletScore,
+                radialScore,
+                motionScore,
+                bestOutlet,
+                bestRadial,
+                bestMotion))
+            {
+                best = candidate;
+                hasBest = true;
+                bestOutlet = outletScore;
+                bestRadial = radialScore;
+                bestMotion = motionScore;
+            }
+        }
+
+        return best.Value;
     }
+
+    private static (int Drainage, int Rank) FindPrimaryPreference(
+        ReadOnlySpan<GeometricFlowCandidate> candidates)
+    {
+        var bestDrainage = int.MaxValue;
+        var bestRank = int.MaxValue;
+        foreach (var candidate in candidates)
+        {
+            if (candidate.Drainage < bestDrainage ||
+                (candidate.Drainage == bestDrainage && candidate.Rank < bestRank))
+            {
+                bestDrainage = candidate.Drainage;
+                bestRank = candidate.Rank;
+            }
+        }
+
+        return (bestDrainage, bestRank);
+    }
+
+    private static (double X, double Y) SumOutletDirection(
+        ReadOnlySpan<GeometricFlowCandidate> candidates,
+        int drainage,
+        int rank)
+    {
+        var outletX = 0d;
+        var outletY = 0d;
+        foreach (var candidate in candidates)
+        {
+            if (candidate.Drainage != drainage || candidate.Rank != rank)
+            {
+                continue;
+            }
+
+            Normalize(candidate.DirectionX, candidate.DirectionY, out var x, out var y);
+            outletX += x;
+            outletY += y;
+        }
+
+        return (outletX, outletY);
+    }
+
+    private static bool IsBetterScore(
+        bool hasBest,
+        double outlet,
+        double radial,
+        double motion,
+        double bestOutlet,
+        double bestRadial,
+        double bestMotion) =>
+        !hasBest || outlet > bestOutlet ||
+        (NearlyEqual(outlet, bestOutlet) && radial > bestRadial) ||
+        (NearlyEqual(outlet, bestOutlet) && NearlyEqual(radial, bestRadial) && motion > bestMotion);
+
+    private static void Normalize(double x, double y, out double normalizedX, out double normalizedY)
+    {
+        var length = Math.Max(0.000001d, Math.Sqrt((x * x) + (y * y)));
+        normalizedX = x / length;
+        normalizedY = y / length;
+    }
+
+    private static bool NearlyEqual(double first, double second) =>
+        Math.Abs(first - second) < 0.0000001d;
+
+    internal readonly record struct GeometricFlowCandidate(
+        int Value,
+        int Drainage,
+        int Rank,
+        double DirectionX,
+        double DirectionY);
 }
