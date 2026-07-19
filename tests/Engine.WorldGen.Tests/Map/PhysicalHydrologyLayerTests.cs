@@ -64,6 +64,34 @@ public sealed class PhysicalHydrologyLayerTests
     }
 
     [Fact]
+    public void LakeFloorEvolution_PreservesTheSurfaceAndRecomputesDepth()
+    {
+        var map = new PhysicalGeographyField(new PhysicalGeographyGrid(1, 1));
+        const int eroded = 0;
+        const int deposited = 1;
+        map.BedrockElevation[deposited] = PhysicalElevation.FromUnits(-2);
+        LandscapeSurface.Rebuild(map, deposited);
+        map.WaterKindCodes[eroded] = PhysicalWaterKindCodes.Lake;
+        map.WaterKindCodes[deposited] = PhysicalWaterKindCodes.Lake;
+        var lakeSurface = PhysicalElevation.FromUnits(10);
+        map.SetWaterSurface(eroded, lakeSurface);
+        map.SetWaterSurface(deposited, lakeSurface);
+
+        _ = LandscapeSurface.Erode(map, eroded, PhysicalElevation.FromUnits(1.25d));
+        _ = LandscapeSurface.Deposit(map, deposited, PhysicalElevation.FromUnits(3));
+
+        Assert.Equal(lakeSurface, map.WaterSurfaceElevations[eroded]);
+        Assert.Equal(lakeSurface, map.WaterSurfaceElevations[deposited]);
+        Assert.NotEqual(map.Elevation[eroded], map.Elevation[deposited]);
+        Assert.Equal(
+            lakeSurface - map.Elevation[eroded],
+            map.WaterDepths[eroded]);
+        Assert.Equal(
+            lakeSurface - map.Elevation[deposited],
+            map.WaterDepths[deposited]);
+    }
+
+    [Fact]
     public void FlowRouting_ResolvesFlatsIntoAcyclicAdjacentPathsAndRejectsNonAdjacentTarget()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<FlowRoutingLayer>();

@@ -16,7 +16,8 @@ internal sealed class GlacialMeltwaterLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Temperature |
         PhysicalGeographyFacts.Geothermal |
         PhysicalGeographyFacts.LandIce |
-        PhysicalGeographyFacts.IceFlow,
+        PhysicalGeographyFacts.IceFlow |
+        PhysicalGeographyFacts.Lakes,
         PhysicalGeographyFacts.GlacialMeltwater,
         PhysicalGeographyFacts.Runoff |
         PhysicalGeographyFacts.Lakes |

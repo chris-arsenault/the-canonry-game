@@ -10,7 +10,8 @@ internal sealed class GlacialErosionLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Elevation |
         PhysicalGeographyFacts.LandscapeHistory |
         PhysicalGeographyFacts.LandIce |
-        PhysicalGeographyFacts.IceFlow,
+        PhysicalGeographyFacts.IceFlow |
+        PhysicalGeographyFacts.Lakes,
         PhysicalGeographyFacts.Elevation |
         PhysicalGeographyFacts.SedimentSupply |
         PhysicalGeographyFacts.GlacialEvolution,
@@ -39,7 +40,8 @@ internal sealed class GlacialErosionLayer : IPhysicalGeographyLayer
         {
             if (context.GlaciationStrength == 0 ||
                 map.IceFlux[triangleIndex] < context.Profile.GlacierFluxThreshold ||
-                map.IceThickness[triangleIndex] <= 0)
+                map.IceThickness[triangleIndex] <= 0 ||
+                map.GroundedIce[triangleIndex] == 0)
             {
                 continue;
             }
@@ -61,6 +63,8 @@ internal sealed class GlacialErosionLayer : IPhysicalGeographyLayer
             map.SedimentSupply[triangleIndex] = checked(map.SedimentSupply[triangleIndex] + cut);
             map.SedimentProducedTotal = checked(map.SedimentProducedTotal + cut);
         }
+
+        GlacierSurface.RefreshGrounding(map, context.Profile);
     }
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
@@ -69,9 +73,9 @@ internal sealed class GlacialErosionLayer : IPhysicalGeographyLayer
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             if (map.CumulativeGlacialErosion[triangleIndex] > 0 &&
-                map.MaximumIceFlux[triangleIndex] < context.Profile.GlacierFluxThreshold)
+                map.MaximumGroundedIceFlux[triangleIndex] < context.Profile.GlacierFluxThreshold)
             {
-                throw new InvalidOperationException("Glacial erosion lacks qualifying ice history.");
+                throw new InvalidOperationException("Glacial erosion lacks qualifying grounded-ice history.");
             }
         }
     }

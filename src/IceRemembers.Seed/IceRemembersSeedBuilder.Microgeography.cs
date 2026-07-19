@@ -299,6 +299,10 @@ internal static partial class IceRemembersSeedBuilder
         new("deposition_history", ExtractConfiguredElevationValues(field, field.CumulativeDeposition)),
         new("maximum_ice_thickness", ExtractConfiguredValues(field, field.MaximumIceThickness)),
         new("maximum_ice_flux", ExtractConfiguredValues(field, field.MaximumIceFlux)),
+        new("grounded_ice", ExtractConfiguredValues(field, field.GroundedIce)),
+        new("maximum_grounded_ice_flux", ExtractConfiguredValues(
+            field,
+            field.MaximumGroundedIceFlux)),
         new("river_channel_strength", ExtractConfiguredValues(field, field.RiverChannelStrength)),
         new("river_channel_order", ExtractConfiguredValues(field, field.RiverChannelOrders)),
         new("floodplain_intensity", ExtractConfiguredValues(field, field.FloodplainIntensity)),

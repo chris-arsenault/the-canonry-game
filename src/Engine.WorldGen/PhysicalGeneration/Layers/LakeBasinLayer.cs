@@ -13,6 +13,8 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Lakes,
         PhysicalGeographyFacts.FlowRouting |
         PhysicalGeographyFacts.Rivers |
+        PhysicalGeographyFacts.LandIce |
+        PhysicalGeographyFacts.IceFlow |
         PhysicalGeographyFacts.Landforms |
         PhysicalGeographyFacts.Validated);
 

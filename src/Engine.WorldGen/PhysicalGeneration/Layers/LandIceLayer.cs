@@ -12,7 +12,8 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Temperature |
         PhysicalGeographyFacts.Moisture |
         PhysicalGeographyFacts.Precipitation |
-        PhysicalGeographyFacts.Geothermal,
+        PhysicalGeographyFacts.Geothermal |
+        PhysicalGeographyFacts.Lakes,
         PhysicalGeographyFacts.LandIce,
         PhysicalGeographyFacts.IceFlow |
         PhysicalGeographyFacts.GlacialMeltwater |
@@ -26,7 +27,7 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
         var balances = new List<int>();
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
-            if (map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None)
+            if (!GlacierSurface.CanCarryLandIce(map, triangleIndex))
             {
                 map.IceThickness[triangleIndex] = 0;
                 continue;
@@ -34,7 +35,8 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
 
             var balance = MassBalance(map, triangleIndex, context.Profile);
             map.IceBalance[triangleIndex] = balance;
-            if (map.Grid.TriangleIsInsideConfiguredDisk(triangleIndex))
+            if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.None &&
+                map.Grid.TriangleIsInsideConfiguredDisk(triangleIndex))
             {
                 land.Add(triangleIndex);
                 balances.Add(balance);
@@ -60,6 +62,15 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
                 IntegerOrderStatistics.ValueAtDescendingRank(
                     System.Runtime.InteropServices.CollectionsMarshal.AsSpan(balances),
                     targetCount - 1));
+        ApplyDryLandBalance(map, context, cutoff);
+        AdvanceOntoFrozenLakes(map, context);
+    }
+
+    private static void ApplyDryLandBalance(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationContext context,
+        int cutoff)
+    {
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             var balance = map.IceBalance[triangleIndex];
@@ -81,15 +92,94 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
         }
     }
 
+    private static void AdvanceOntoFrozenLakes(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationContext context)
+    {
+        var reached = new bool[map.Grid.TriangleCount];
+        var queue = new Queue<int>();
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake)
+            {
+                map.IceThickness[triangleIndex] = Math.Max(
+                    0,
+                    map.IceThickness[triangleIndex] - context.Profile.IceAblationStep);
+            }
+            else if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.None &&
+                map.IceThickness[triangleIndex] > 0)
+            {
+                reached[triangleIndex] = true;
+                queue.Enqueue(triangleIndex);
+            }
+        }
+
+        while (queue.TryDequeue(out var source))
+        {
+            AdvanceFromSource(map, context, reached, queue, source);
+        }
+
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake)
+            {
+                map.MaximumIceThickness[triangleIndex] = Math.Max(
+                    map.MaximumIceThickness[triangleIndex],
+                    map.IceThickness[triangleIndex]);
+            }
+        }
+    }
+
+    private static void AdvanceFromSource(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationContext context,
+        bool[] reached,
+        Queue<int> queue,
+        int source)
+    {
+        for (var edge = 0; edge < 3; edge++)
+        {
+            var target = map.Grid.NeighborTriangleIndex(source, edge);
+            if (target < 0 || map.WaterKindCodes[target] != PhysicalWaterKindCodes.Lake ||
+                !LakeCanFreeze(map, target, context))
+            {
+                continue;
+            }
+
+            var candidate = Math.Max(
+                0,
+                map.IceThickness[source] - context.Profile.FrozenLakeIceAdvanceDecay);
+            var improved = candidate > map.IceThickness[target];
+            if (improved)
+            {
+                map.IceThickness[target] = candidate;
+            }
+
+            if (!reached[target] || improved)
+            {
+                reached[target] = true;
+                queue.Enqueue(target);
+            }
+        }
+    }
+
+    private static bool LakeCanFreeze(
+        PhysicalGeographyField map,
+        int triangleIndex,
+        PhysicalGeographyGenerationContext context) =>
+        context.GlaciationStrength > 0 &&
+        map.Temperature[triangleIndex] <= context.Profile.IceTemperatureThreshold &&
+        map.IceBalance[triangleIndex] >= context.Profile.MinimumIceBalance;
+
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
         _ = context;
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             if (map.IceThickness[triangleIndex] > 0 &&
-                map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None)
+                !GlacierSurface.CanCarryLandIce(map, triangleIndex))
             {
-                throw new InvalidOperationException("Land glacier was assigned to water.");
+                throw new InvalidOperationException("Land glacier was assigned outside land or inland water.");
             }
         }
     }
@@ -101,8 +191,9 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
     {
         var cold = Math.Max(0, profile.IceTemperatureThreshold - map.Temperature[triangleIndex]);
         var snowfall = map.Snowfall[triangleIndex] * cold / 300;
-        var altitude = PhysicalElevation.ToUnits(
-            Math.Max(0L, map.Elevation[triangleIndex] - map.EffectiveSeaLevel)) / 4;
+        var altitude = PhysicalElevation.ToUnits(Math.Max(
+            0L,
+            GlacierSurface.SupportElevation(map, triangleIndex) - map.EffectiveSeaLevel)) / 4;
         var concavity = LocalConcavity(map, triangleIndex);
         var warmAblation = Math.Max(0, map.Temperature[triangleIndex] - profile.IceTemperatureThreshold) * 4;
         var geothermalAblation = map.Geothermal[triangleIndex] / 3;
@@ -133,7 +224,8 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
             var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
             if (neighbor >= 0)
             {
-                total += map.Elevation[neighbor] - map.Elevation[triangleIndex];
+                total += GlacierSurface.SupportElevation(map, neighbor) -
+                    GlacierSurface.SupportElevation(map, triangleIndex);
                 count++;
             }
         }

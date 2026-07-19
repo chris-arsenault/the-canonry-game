@@ -119,6 +119,7 @@ public sealed class PhysicalGeographyEvolutionSession
     {
         RequirePhase(EvolutionPhase.PostGlacialReconciliation);
         ReconcileClimate();
+        ApplyDrainage();
         Apply(new LandIceLayer());
         Apply(new IceFlowLayer());
         Apply(_meltwater);
@@ -157,6 +158,7 @@ public sealed class PhysicalGeographyEvolutionSession
         }
 
         ReconcileClimate(useEpoch: false);
+        ApplyDrainage(useEpoch: false);
         Apply(new LandIceLayer(), useEpoch: false);
         Apply(new IceFlowLayer(), useEpoch: false);
         Apply(_meltwater, useEpoch: false);

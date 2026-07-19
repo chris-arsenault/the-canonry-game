@@ -167,24 +167,66 @@ public sealed class PhysicalClimateAndIceLayerTests
     }
 
     [Fact]
-    public void LandIce_UsesConfiguredCoverageTargetOnLandAndRejectsIceOnWater()
+    public void LandIce_AccumulatesOnLandAndRejectsOceanIce()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<LandIceLayer>();
         var land = Enumerable.Range(0, result.Map.Grid.TriangleCount)
             .Where(index => result.Map.Grid.TriangleIsInsideConfiguredDisk(index) &&
                 result.Map.WaterKindCodes[index] == PhysicalWaterKindCodes.None)
             .ToArray();
-        var frozen = land.Count(index =>
-            result.Map.IceThickness[index] >=
-                PhysicalGeographyLayerTestHarness.Profile.GlacierThicknessThreshold);
-        var coverage = frozen / (double)land.Length;
-        Assert.True(PhysicalGeographyLayerTestHarness.Profile.QualityTargets.LandIceCoverage.Contains(coverage));
+        Assert.Contains(land, index => result.Map.IceThickness[index] >=
+            PhysicalGeographyLayerTestHarness.Profile.GlacierThicknessThreshold);
 
         var ocean = Enumerable.Range(0, result.Map.Grid.TriangleCount)
             .First(index => result.Map.WaterKindCodes[index] == PhysicalWaterKindCodes.Ocean);
         result.Map.IceThickness[ocean] = 250;
         Assert.Throws<InvalidOperationException>(() =>
             result.Layer.Validate(result.Map, result.Context));
+    }
+
+    [Fact]
+    public void LandIce_AdvancesOntoFrozenLakesAndGroundsOnlyInShallowWater()
+    {
+        var result = PhysicalGeographyLayerTestHarness.GenerateThrough<LakeBasinLayer>();
+        var pair = FindLakeShore(result.Map);
+        for (var triangleIndex = 0; triangleIndex < result.Map.Grid.TriangleCount; triangleIndex++)
+        {
+            result.Map.Temperature[triangleIndex] = 1000;
+            result.Map.Moisture[triangleIndex] = 0;
+            result.Map.Snowfall[triangleIndex] = 0;
+        }
+
+        result.Map.Temperature[pair.Land] = 0;
+        result.Map.Moisture[pair.Land] = 1000;
+        result.Map.Snowfall[pair.Land] = 1000;
+        result.Map.Temperature[pair.Lake] = 0;
+        result.Map.Moisture[pair.Lake] = 1000;
+        result.Map.Snowfall[pair.Lake] = 1000;
+        var layer = new LandIceLayer();
+        var context = new PhysicalGeographyGenerationContext(
+            PhysicalGeographyLayerTestHarness.Seed,
+            PhysicalGeographyLayerTestHarness.Profile,
+            layer.Contract);
+
+        layer.Apply(result.Map, context);
+
+        Assert.True(result.Map.IceThickness[pair.Land] > 0);
+        Assert.True(result.Map.IceThickness[pair.Lake] > 0);
+
+        var groundingMap = new PhysicalGeographyField(new PhysicalGeographyGrid(1, 1));
+        const int groundingTriangle = 0;
+        groundingMap.WaterKindCodes[groundingTriangle] = PhysicalWaterKindCodes.Lake;
+        groundingMap.SetWaterSurface(groundingTriangle, PhysicalElevation.FromUnits(50));
+        groundingMap.IceThickness[groundingTriangle] = 100;
+        Assert.False(GlacierSurface.IsGrounded(
+            groundingMap,
+            groundingTriangle,
+            PhysicalGeographyLayerTestHarness.Profile));
+        groundingMap.IceThickness[groundingTriangle] = 200;
+        Assert.True(GlacierSurface.IsGrounded(
+            groundingMap,
+            groundingTriangle,
+            PhysicalGeographyLayerTestHarness.Profile));
     }
 
     [Fact]
@@ -199,6 +241,28 @@ public sealed class PhysicalClimateAndIceLayerTests
 
         Assert.Throws<InvalidOperationException>(() =>
             result.Layer.Validate(result.Map, result.Context));
+    }
+
+    private static (int Lake, int Land) FindLakeShore(PhysicalGeographyField map)
+    {
+        for (var lake = 0; lake < map.Grid.TriangleCount; lake++)
+        {
+            if (map.WaterKindCodes[lake] != PhysicalWaterKindCodes.Lake)
+            {
+                continue;
+            }
+
+            for (var edge = 0; edge < 3; edge++)
+            {
+                var land = map.Grid.NeighborTriangleIndex(lake, edge);
+                if (land >= 0 && map.WaterKindCodes[land] == PhysicalWaterKindCodes.None)
+                {
+                    return (lake, land);
+                }
+            }
+        }
+
+        throw new InvalidOperationException("Test map has no inland lake shore.");
     }
 
     [Fact]

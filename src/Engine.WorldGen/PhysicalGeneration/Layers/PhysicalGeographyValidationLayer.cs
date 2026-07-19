@@ -15,6 +15,7 @@ internal sealed class PhysicalGeographyValidationLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.FlowRouting |
         PhysicalGeographyFacts.Rivers |
         PhysicalGeographyFacts.LandIce |
+        PhysicalGeographyFacts.IceFlow |
         PhysicalGeographyFacts.SeaIce |
         PhysicalGeographyFacts.Landforms |
         PhysicalGeographyFacts.Impacts |
@@ -33,8 +34,8 @@ internal sealed class PhysicalGeographyValidationLayer : IPhysicalGeographyLayer
         ValidateWater(map);
         _ = FlowGraphAlgorithms.SourceToOutletOrder(map);
         ValidateRivers(map);
+        ValidateGroundedIce(map, context.Profile);
         LandscapeSurface.Validate(map);
-        _ = context;
     }
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
@@ -147,6 +148,22 @@ internal sealed class PhysicalGeographyValidationLayer : IPhysicalGeographyLayer
             if (target < 0 || map.FlowAccumulation[target] < map.FlowAccumulation[triangleIndex])
             {
                 throw new InvalidOperationException("River network does not continue toward an outlet.");
+            }
+        }
+    }
+
+    private static void ValidateGroundedIce(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile)
+    {
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            if (map.GroundedIce[triangleIndex] is < 0 or > 1 ||
+                map.GroundedIce[triangleIndex] != 0 &&
+                    !GlacierSurface.IsGrounded(map, triangleIndex, profile) ||
+                map.MaximumGroundedIceFlux[triangleIndex] > map.MaximumIceFlux[triangleIndex])
+            {
+                throw new InvalidOperationException("Grounded-ice history contradicts physical support.");
             }
         }
     }

@@ -58,6 +58,10 @@ internal sealed class GlacialDepositionLayer : IPhysicalGeographyLayer
                                 context.GlaciationStrength / 1000d),
                         load))
                 : 0;
+            if (deposited > 0)
+            {
+                GlacierSurface.RefreshGrounding(map, context.Profile, triangleIndex);
+            }
             map.CumulativeGlacialDeposition[triangleIndex] = checked(
                 map.CumulativeGlacialDeposition[triangleIndex] + deposited);
             var remaining = load - deposited;
@@ -133,7 +137,9 @@ internal sealed class GlacialDepositionLayer : IPhysicalGeographyLayer
         int triangleIndex,
         int target,
         PhysicalGeographyGenerationProfile profile) =>
-        target < 0 || map.IceFlux[target] < profile.GlacierFluxThreshold / 3 ||
-        map.WaterKindCodes[target] != PhysicalWaterKindCodes.None ||
-        map.IceFlux[triangleIndex] >= profile.GlacierFluxThreshold && map.IceThickness[target] == 0;
+        map.GroundedIce[triangleIndex] != 0 &&
+        (target < 0 || map.GroundedIce[target] == 0 ||
+            map.IceFlux[target] < profile.GlacierFluxThreshold / 3 ||
+            map.IceFlux[triangleIndex] >= profile.GlacierFluxThreshold &&
+                map.IceThickness[target] == 0);
 }

@@ -254,6 +254,7 @@ public sealed class PhysicalGeographyField
     private readonly int[] _flowTargets;
     private readonly int[] _geothermal;
     private readonly int[] _geothermalHistory;
+    private readonly int[] _groundedIce;
     private readonly long[] _impactExcavation;
     private readonly long[] _impactRimUplift;
     private readonly long[] _impactEjectaThickness;
@@ -269,6 +270,7 @@ public sealed class PhysicalGeographyField
     private readonly int[] _lakeOutletTargets;
     private readonly int[] _landformCodes;
     private readonly int[] _maximumIceFlux;
+    private readonly int[] _maximumGroundedIceFlux;
     private readonly int[] _maximumIceThickness;
     private readonly int[] _moisture;
     private readonly int[] _oceanCurrentHeat;
@@ -362,7 +364,8 @@ public sealed class PhysicalGeographyField
         (_featureFlags, _landmassIds, _landmassClassCodes, _continentalGroupIds,
             _bathymetricZoneCodes) =
             (NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid));
-        (_iceThickness, _iceFlux, _iceFlowTargets, _iceBalance) = NewIceFields(grid);
+        (_iceThickness, _iceFlux, _iceFlowTargets, _iceBalance, _groundedIce,
+            _maximumGroundedIceFlux) = NewIceFields(grid);
         _fractureConductance = new int[grid.TriangleCount];
         _heatSourceDensity = new int[grid.TriangleCount];
         (_drainageElevations, _drainageParents, _drainageRanks, _flowTargets,
@@ -386,12 +389,18 @@ public sealed class PhysicalGeographyField
         (NewElevationField(grid), NewElevationField(grid), NewElevationField(grid),
             NewField(grid), NewField(grid));
 
-    private static (int[] Thickness, int[] Flux, int[] Targets, int[] Balance) NewIceFields(
+    private static (
+        int[] Thickness,
+        int[] Flux,
+        int[] Targets,
+        int[] Balance,
+        int[] Grounded,
+        int[] MaximumGroundedFlux) NewIceFields(
         PhysicalGeographyGrid grid)
     {
         var targets = NewField(grid);
         Array.Fill(targets, -1);
-        return (NewField(grid), NewField(grid), targets, NewField(grid));
+        return (NewField(grid), NewField(grid), targets, NewField(grid), NewField(grid), NewField(grid));
     }
 
     private static (
@@ -554,6 +563,8 @@ public sealed class PhysicalGeographyField
 
     public Span<int> MaximumIceFlux => _maximumIceFlux;
 
+    public Span<int> MaximumGroundedIceFlux => _maximumGroundedIceFlux;
+
     public Span<int> TectonicActivityHistory => _tectonicActivityHistory;
 
     public Span<int> WaveExposureHistory => _waveExposureHistory;
@@ -622,6 +633,8 @@ public sealed class PhysicalGeographyField
 
     public Span<int> IceFlux => _iceFlux;
 
+    public Span<int> GroundedIce => _groundedIce;
+
     internal Span<int> IceFlowTargets => _iceFlowTargets;
 
     internal Span<int> IceBalance => _iceBalance;
@@ -674,6 +687,26 @@ public sealed class PhysicalGeographyField
 
         _waterSurfaceElevations[triangleIndex] = surfaceElevation;
         _waterDepths[triangleIndex] = depth;
+    }
+
+    internal void ReconcileWaterAfterFloorChange(int triangleIndex)
+    {
+        var surface = _waterSurfaceElevations[triangleIndex];
+        if (surface == long.MinValue)
+        {
+            return;
+        }
+
+        if (surface > _elevation[triangleIndex])
+        {
+            _waterDepths[triangleIndex] = surface - _elevation[triangleIndex];
+            return;
+        }
+
+        _waterKindCodes[triangleIndex] = PhysicalWaterKindCodes.None;
+        _waterBodyIds[triangleIndex] = 0;
+        _lakeOutletTargets[triangleIndex] = -1;
+        ClearWaterSurface(triangleIndex);
     }
 
     internal long SedimentProducedTotal { get; set; }

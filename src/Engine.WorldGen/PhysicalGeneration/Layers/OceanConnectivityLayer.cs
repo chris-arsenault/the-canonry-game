@@ -23,6 +23,8 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
         PhysicalGeographyFacts.Lakes |
         PhysicalGeographyFacts.FlowRouting |
         PhysicalGeographyFacts.Rivers |
+        PhysicalGeographyFacts.LandIce |
+        PhysicalGeographyFacts.IceFlow |
         PhysicalGeographyFacts.SeaIce |
         PhysicalGeographyFacts.Landforms |
         PhysicalGeographyFacts.Validated);

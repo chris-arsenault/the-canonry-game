@@ -92,7 +92,7 @@ public sealed class PhysicalLandscapeEvolutionLayerTests
             .ToArray();
         Assert.NotEmpty(eroded);
         Assert.All(eroded, index => Assert.True(
-            erosion.Map.MaximumIceFlux[index] >=
+            erosion.Map.MaximumGroundedIceFlux[index] >=
                 PhysicalGeographyLayerTestHarness.Profile.GlacierFluxThreshold));
 
         var deposition = PhysicalGeographyLayerTestHarness.GenerateThrough<GlacialDepositionLayer>();

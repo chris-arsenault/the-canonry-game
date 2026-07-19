@@ -2,9 +2,12 @@ namespace Engine.WorldGen;
 
 internal static class LandscapeSurface
 {
-    public static void Rebuild(PhysicalGeographyField map, int triangleIndex) =>
+    public static void Rebuild(PhysicalGeographyField map, int triangleIndex)
+    {
         map.Elevation[triangleIndex] = checked(
             map.BedrockElevation[triangleIndex] + map.SedimentThickness[triangleIndex]);
+        map.ReconcileWaterAfterFloorChange(triangleIndex);
+    }
 
     public static long Erode(
         PhysicalGeographyField map,

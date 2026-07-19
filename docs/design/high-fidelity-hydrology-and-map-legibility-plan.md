@@ -80,12 +80,12 @@ projection boundary.
 
 ### 4. Glacial basin evolution
 
-- [ ] Permit glaciers to advance over frozen inland water during qualifying
+- [x] Permit glaciers to advance over frozen inland water during qualifying
   epochs using the supported ice/water surface.
-- [ ] Erode submerged floors only where the glacier is grounded; floating ice
+- [x] Erode submerged floors only where the glacier is grounded; floating ice
   must not carve the bed.
-- [ ] Allow glacial deposition to construct sills and moraine dams.
-- [ ] Invalidate and recompute lakes after each glacial landscape edit.
+- [x] Allow glacial deposition to construct sills and moraine dams.
+- [x] Invalidate and recompute lakes after each glacial landscape edit.
 
 ### 5. Conditioned routing and river topology
 

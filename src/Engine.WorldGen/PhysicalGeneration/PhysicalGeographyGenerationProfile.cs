@@ -224,6 +224,10 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int IceAblationStep { get; init; } = 260;
 
+    public int FrozenLakeIceAdvanceDecay { get; init; } = 40;
+
+    public int GlacierGroundingFraction { get; init; } = 900;
+
     public int GlacialMeltTemperatureFloor { get; init; } = 170;
 
     public int GlacialAblationRunoffStrength { get; init; } = 460;
@@ -467,6 +471,7 @@ public sealed record PhysicalGeographyGenerationProfile
 
     private bool EvolutionCountsAreInvalid() =>
         EpochTectonicElevationStep <= 0 || IceAccumulationStep <= 0 || IceAblationStep <= 0 ||
+        FrozenLakeIceAdvanceDecay <= 0 ||
         MaximumGlacialErosionPerPass <= 0 || MaximumGlacialDepositionPerPass <= 0 ||
         LandformHistoryCountsAreInvalid() || MaximumCoastalErosionPerPass <= 0 ||
         MaximumSedimentDepositionPerPass <= 0;
@@ -564,7 +569,8 @@ public sealed record PhysicalGeographyGenerationProfile
         GlacialMeltTemperatureFloor is < 0 or > 1000 ||
         !IsUnitScalar(GlacialAblationRunoffStrength) ||
         !IsUnitScalar(BasalMeltRunoffStrength) ||
-        !IsUnitScalar(GlacialRetreatRunoffStrength);
+        !IsUnitScalar(GlacialRetreatRunoffStrength) ||
+        GlacierGroundingFraction is < 1 or > 1000;
 
     private bool RiverGeometryRangesAreInvalid() =>
         RiverChannelRangesAreInvalid() || FloodplainRangesAreInvalid() || DeltaRangesAreInvalid();
