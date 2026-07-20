@@ -35,6 +35,13 @@ internal static class WorldDiagnosticsCli
             return ReportHeartTerrain(seed);
         }
 
+        var worldArgument = args.FirstOrDefault(
+            static argument => argument.StartsWith("--audit-world=", StringComparison.Ordinal));
+        if (worldArgument is not null)
+        {
+            return AuditWorldRivers(worldArgument["--audit-world=".Length..]);
+        }
+
         Console.WriteLine($"Generating radius={radius} seed={seed} with production profile...");
         var result = IceRemembersWorldGenerationOrchestrator.Generate(
             radius,
@@ -60,6 +67,104 @@ internal static class WorldDiagnosticsCli
         ReportVolcanism(field);
         ReportStripes(field);
         return 0;
+    }
+
+    private static int AuditWorldRivers(string worldPath)
+    {
+        var fullPath = Path.GetFullPath(worldPath);
+        var world = IceRemembersPregeneratedWorldStore
+            .Discover(Path.GetDirectoryName(fullPath)!)
+            .Single(candidate => string.Equals(
+                Path.GetFullPath(candidate.Path),
+                fullPath,
+                StringComparison.Ordinal));
+        var blueprint = IceRemembersPregeneratedWorldStore.Read(world).Seed.PhysicalGeography!;
+        Console.WriteLine(
+            $"Auditing {blueprint.Cells.Count} cells / {blueprint.Microtriangles.Count} triangles...");
+
+        var cellIndexByCoord = new Dictionary<(int Q, int R), int>();
+        for (var cellIndex = 0; cellIndex < blueprint.Cells.Count; cellIndex++)
+        {
+            var cell = blueprint.Cells[cellIndex];
+            cellIndexByCoord[(cell.Q, cell.R)] = cellIndex;
+        }
+
+        long riverTriangles = 0;
+        long flowBreaks = 0;
+        long boundaryLoss = 0;
+        var samples = new List<string>();
+        for (var cellIndex = 0; cellIndex < blueprint.Cells.Count; cellIndex++)
+        {
+            AuditCellRivers(
+                blueprint,
+                cellIndexByCoord,
+                cellIndex,
+                ref riverTriangles,
+                ref flowBreaks,
+                ref boundaryLoss,
+                samples);
+        }
+
+        Console.WriteLine(
+            $"river triangles={riverTriangles} flow-breaks={flowBreaks} " +
+            $"disk-boundary-exits={boundaryLoss}");
+        foreach (var sample in samples)
+        {
+            Console.WriteLine($"  {sample}");
+        }
+
+        return 0;
+    }
+
+    private static void AuditCellRivers(
+        Engine.Domain.Startup.DomainPhysicalGeographyBlueprint blueprint,
+        Dictionary<(int Q, int R), int> cellIndexByCoord,
+        int cellIndex,
+        ref long riverTriangles,
+        ref long flowBreaks,
+        ref long boundaryLoss,
+        List<string> samples)
+    {
+        var cell = blueprint.Cells[cellIndex];
+        for (var local = 0; local < Engine.Constants.PhysicalGeographyCodes.MicrotrianglesPerHex; local++)
+        {
+            var triangle = blueprint.Microtriangles[cell.MicrotriangleOffset + local];
+            if (triangle.RiverOrder <= 0 || triangle.FlowEdge is < 0 or > 2)
+            {
+                continue;
+            }
+
+            riverTriangles++;
+            Engine.Constants.PhysicalMicrotriangleTopology.ResolveNeighbor(
+                cell.Q,
+                cell.R,
+                local,
+                triangle.FlowEdge,
+                out var neighborQ,
+                out var neighborR,
+                out var neighborLocal);
+            if (!cellIndexByCoord.TryGetValue((neighborQ, neighborR), out var neighborCell))
+            {
+                boundaryLoss++;
+                continue;
+            }
+
+            var neighbor = blueprint.Microtriangles[
+                blueprint.Cells[neighborCell].MicrotriangleOffset + neighborLocal];
+            if (neighbor.RiverOrder <= 0 &&
+                neighbor.WaterKindCode == Engine.Constants.PhysicalWaterKindCodes.None)
+            {
+                flowBreaks++;
+                if (samples.Count < 10)
+                {
+                    samples.Add(
+                        $"break at cell({cell.Q},{cell.R}) local={local} -> " +
+                        $"cell({neighborQ},{neighborR}) local={neighborLocal} " +
+                        $"neighbor order={neighbor.RiverOrder} water={neighbor.WaterKindCode} " +
+                        $"surface={blueprint.SurfacePalette[neighbor.SurfaceIndex]}");
+                }
+            }
+        }
     }
 
     private static int ReportHeartTerrain(int seed)

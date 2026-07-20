@@ -58,7 +58,8 @@ internal partial class PhysicalMicrogeographyChunk : Node2D, IPhysicalMicrogeogr
 
         foreach (var cell in _cells)
         {
-            if (!_owner.CellIsRenderable(cell))
+            var mode = _owner.CellRenderMode(cell);
+            if (mode == PhysicalCellRenderMode.Hidden)
             {
                 continue;
             }
@@ -70,6 +71,13 @@ internal partial class PhysicalMicrogeographyChunk : Node2D, IPhysicalMicrogeogr
                 _owner.View,
                 _owner.FeaturesEnabled,
                 _owner.DrawMicrotriangles);
+            if (mode == PhysicalCellRenderMode.Diverged)
+            {
+                var wash = _owner.LiveTerrainColor(cell);
+                DrawColoredPolygon(
+                    _owner.Geometry.HexPoints(),
+                    new Color(wash.R, wash.G, wash.B, 0.38f));
+            }
         }
 
         DrawSetTransform(Vector2.Zero);

@@ -304,3 +304,30 @@ order-3/4 stream, so the observed max of 4 corresponds to a fully resolved
 natural order of roughly 7–8. Remaining known curiosity: two rivers rising on
 opposite sides of a divide can share one fill apron, which reads as facing
 line ends inside one blue patch.
+
+## Addendum (2026-07-20, round 4): in-game river holes and hex-lattice leakage
+
+In-game screenshots still showed hex-shaped river gaps that the capture
+harness never reproduced. A serialized-world audit (`diagnose
+--audit-world=...`) proved the `.world` flow data gapless (zero flow breaks
+across ~40k river triangles), which isolated the cause to the game's render
+path: `PhysicalMicrogeographyLayer` hid a hex's entire microgeography whenever
+the live kernel terrain no longer matched the generated base terrain — so
+every sim-changed hex punched a hole through any river crossing it. Diverged
+hexes now render their microgeography with a translucent live-terrain wash on
+top; only unmaterialized (unrevealed) hexes stay hidden.
+
+The separate hex-boundary quantization (river-valley crescents hugging hex
+edges map-wide, rivers running along hex rows) came from comparing raw
+elevation drops between neighbor centroids whose distances differ by edge
+type: longer steps always looked steeper, so drainage, erosion history, ice
+flow, and the slope field all guttered onto the hex lattice. The grid now
+carries per-edge slope scales (mean edge length over actual length), and every
+drop comparison — guidance scoring, descent-gradient estimation, stream-power
+erosion, ice-flow steepest descent, and `MeasureSlopes` — multiplies by them,
+comparing true slope instead of drop.
+
+Observation noted for a future tranche: several climate/magic overlays read as
+palette swaps of one another because they share the same drivers
+(ocean-distance, elevation, one global wind); differentiating their dynamics
+is design work, not a bug fix.

@@ -50,14 +50,21 @@ internal sealed class IceFlowLayer : IPhysicalGeographyLayer
             }
 
             var best = -1;
-            var bestHeight = surface[triangleIndex];
+            var bestSlope = 0d;
             for (var edge = 0; edge < 3; edge++)
             {
                 var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
-                if (neighbor >= 0 && surface[neighbor] < bestHeight)
+                if (neighbor < 0 || surface[neighbor] >= surface[triangleIndex])
+                {
+                    continue;
+                }
+
+                var slope = (surface[triangleIndex] - surface[neighbor]) *
+                    (double)map.Grid.TriangleEdgeSlopeScale(triangleIndex, edge);
+                if (slope > bestSlope)
                 {
                     best = neighbor;
-                    bestHeight = surface[neighbor];
+                    bestSlope = slope;
                 }
             }
 

@@ -173,7 +173,13 @@ internal static class ConditionedFlowResolver
 
             var alignment = (map.Grid.TriangleEdgeUnitX(source, edge) * desiredX) +
                 (map.Grid.TriangleEdgeUnitY(source, edge) * desiredY);
-            var score = CandidateScore(map, profile, source, target, alignment);
+            var score = CandidateScore(
+                map,
+                profile,
+                source,
+                target,
+                alignment,
+                map.Grid.TriangleEdgeSlopeScale(source, edge));
             if (accumulation is not null)
             {
                 score += Math.Log2(1d + accumulation[target]) *
@@ -214,7 +220,8 @@ internal static class ConditionedFlowResolver
         PhysicalGeographyGenerationProfile profile,
         int source,
         int target,
-        double alignment)
+        double alignment,
+        double slopeScale)
     {
         var inheritedValley = InheritedValley(map, target);
         if (map.WaterKindCodes[target] == PhysicalWaterKindCodes.Ocean)
@@ -222,8 +229,8 @@ internal static class ConditionedFlowResolver
             return 10_000d + alignment;
         }
 
-        var conditionedDrop = (map.DrainageElevations[source] - map.DrainageElevations[target]) /
-            (double)PhysicalElevation.SubunitsPerUnit;
+        var conditionedDrop = (map.DrainageElevations[source] - map.DrainageElevations[target]) *
+            slopeScale / PhysicalElevation.SubunitsPerUnit;
         if (conditionedDrop <= 0d)
         {
             var rankProgress = Math.Clamp(
@@ -236,8 +243,8 @@ internal static class ConditionedFlowResolver
         }
 
         var floorDrop = Math.Clamp(
-            (map.Elevation[source] - map.Elevation[target]) /
-                (double)PhysicalElevation.SubunitsPerUnit,
+            (map.Elevation[source] - map.Elevation[target]) *
+                slopeScale / PhysicalElevation.SubunitsPerUnit,
             -50d,
             200d);
         return (floorDrop * profile.DrainageFloorGradientWeight / 1000d) +
@@ -307,8 +314,9 @@ internal static class ConditionedFlowResolver
                 continue;
             }
 
-            var drop = (map.DrainageElevations[triangleIndex] - map.DrainageElevations[neighbor]) /
-                (double)PhysicalElevation.SubunitsPerUnit;
+            var drop = (map.DrainageElevations[triangleIndex] - map.DrainageElevations[neighbor]) *
+                map.Grid.TriangleEdgeSlopeScale(triangleIndex, edge) /
+                PhysicalElevation.SubunitsPerUnit;
             sumX += map.Grid.TriangleEdgeUnitX(triangleIndex, edge) * drop;
             sumY += map.Grid.TriangleEdgeUnitY(triangleIndex, edge) * drop;
         }

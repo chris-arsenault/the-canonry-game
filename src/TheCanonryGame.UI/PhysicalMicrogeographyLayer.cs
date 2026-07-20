@@ -7,6 +7,13 @@ namespace TheCanonryGame.UI;
 
 public readonly record struct PhysicalMicrotriangleHit(HexCoord Coord, int TriangleIndex);
 
+public enum PhysicalCellRenderMode
+{
+    Hidden,
+    Full,
+    Diverged,
+}
+
 public partial class PhysicalMicrogeographyLayer : Node2D
 {
     private const int ChunkCoordinateSize = 8;
@@ -154,7 +161,8 @@ public partial class PhysicalMicrogeographyLayer : Node2D
         }
 
         var coord = PixelToHex(worldPosition);
-        if (!CellIsRenderable(coord) ||
+        if (_geography?.TryGetCell(coord, out var geographyCell) != true ||
+            CellRenderMode(geographyCell) == PhysicalCellRenderMode.Hidden ||
             !_geometry.TryGetTriangleIndex(worldPosition - _geometry.HexCenter(coord), out var triangleIndex))
         {
             hit = default;
@@ -166,7 +174,58 @@ public partial class PhysicalMicrogeographyLayer : Node2D
     }
 
     internal bool CellIsRenderable(in PhysicalGeographyCellProjection cell) =>
-        CellIsRenderable(cell.Coord, cell.BaseTerrainStableName);
+        CellRenderMode(cell) != PhysicalCellRenderMode.Hidden;
+
+    /// <summary>
+    /// Materialized hexes whose live terrain diverged from the generated base
+    /// still render their microgeography (rivers and relief are physical and
+    /// must stay continuous); the divergence shows as a live-terrain wash on
+    /// top instead of a hex-shaped hole in the map.
+    /// </summary>
+    internal PhysicalCellRenderMode CellRenderMode(in PhysicalGeographyCellProjection cell)
+    {
+        if (_geography?.TryGetCell(cell.Coord, out _) != true)
+        {
+            return PhysicalCellRenderMode.Hidden;
+        }
+
+        if (InspectionEnabled)
+        {
+            return PhysicalCellRenderMode.Full;
+        }
+
+        if (_map?.TryGetHex(PlaneCodes.Physical, cell.Coord, out var liveCell) != true)
+        {
+            return PhysicalCellRenderMode.Hidden;
+        }
+
+        var stableName = ProjectionDisplay.StableName(
+            _symbols,
+            ProjectionSymbolKind.Terrain,
+            liveCell.TerrainId,
+            string.Empty);
+        return string.Equals(
+            stableName,
+            cell.BaseTerrainStableName,
+            StringComparison.Ordinal)
+            ? PhysicalCellRenderMode.Full
+            : PhysicalCellRenderMode.Diverged;
+    }
+
+    internal Color LiveTerrainColor(in PhysicalGeographyCellProjection cell)
+    {
+        if (_map?.TryGetHex(PlaneCodes.Physical, cell.Coord, out var liveCell) == true)
+        {
+            var stableName = ProjectionDisplay.StableName(
+                _symbols,
+                ProjectionSymbolKind.Terrain,
+                liveCell.TerrainId,
+                string.Empty);
+            return Theme.UiTokens.TerrainColor(stableName);
+        }
+
+        return Theme.UiTokens.TerrainColor(cell.BaseTerrainStableName);
+    }
 
     internal Color TerrainColor(in PhysicalGeographyCellProjection cell) =>
         Theme.UiTokens.TerrainColor(cell.BaseTerrainStableName);
@@ -276,34 +335,6 @@ public partial class PhysicalMicrogeographyLayer : Node2D
             Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomLeft.X, bottomRight.X)),
             Math.Max(Math.Max(topLeft.Y, topRight.Y), Math.Max(bottomLeft.Y, bottomRight.Y)));
         return new Rect2(minimum, maximum - minimum).Grow(_geometry!.HexSize * 2f);
-    }
-
-    private bool CellIsRenderable(HexCoord coord, string? generatedTerrain = null)
-    {
-        if (_geography?.TryGetCell(coord, out var geographyCell) != true)
-        {
-            return false;
-        }
-
-        if (InspectionEnabled)
-        {
-            return true;
-        }
-
-        if (_map?.TryGetHex(PlaneCodes.Physical, coord, out var liveCell) != true)
-        {
-            return false;
-        }
-
-        var stableName = ProjectionDisplay.StableName(
-            _symbols,
-            ProjectionSymbolKind.Terrain,
-            liveCell.TerrainId,
-            string.Empty);
-        return string.Equals(
-            stableName,
-            generatedTerrain ?? geographyCell.BaseTerrainStableName,
-            StringComparison.Ordinal);
     }
 
     private HexCoord PixelToHex(Vector2 pixel)

@@ -64,7 +64,10 @@ internal sealed class BathymetryLayer : IPhysicalGeographyLayer
                 var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
                 if (neighbor >= 0)
                 {
-                    slope = Math.Max(slope, Math.Abs(map.Elevation[triangleIndex] - map.Elevation[neighbor]));
+                    var drop = (long)(Math.Abs(
+                            map.Elevation[triangleIndex] - map.Elevation[neighbor]) *
+                        map.Grid.TriangleEdgeSlopeScale(triangleIndex, edge));
+                    slope = Math.Max(slope, drop);
                 }
             }
 

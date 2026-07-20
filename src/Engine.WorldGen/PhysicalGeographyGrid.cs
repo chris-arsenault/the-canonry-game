@@ -18,6 +18,7 @@ public sealed class PhysicalGeographyGrid
     private readonly int[] _triangleNeighbors;
     private readonly float[] _triangleEdgeUnitX;
     private readonly float[] _triangleEdgeUnitY;
+    private readonly float[] _triangleEdgeScale;
     private readonly float[] _triangleX;
     private readonly float[] _triangleY;
 
@@ -50,6 +51,7 @@ public sealed class PhysicalGeographyGrid
         Array.Fill(_triangleNeighbors, -1);
         _triangleEdgeUnitX = new float[_triangleNeighbors.Length];
         _triangleEdgeUnitY = new float[_triangleNeighbors.Length];
+        _triangleEdgeScale = new float[_triangleNeighbors.Length];
         _triangleX = new float[triangleCount];
         _triangleY = new float[triangleCount];
         BuildTriangleGeometry();
@@ -95,6 +97,14 @@ public sealed class PhysicalGeographyGrid
     internal float TriangleEdgeUnitY(int triangleIndex, int edge) =>
         _triangleEdgeUnitY[(triangleIndex * 3) + edge];
 
+    /// <summary>
+    /// Mean-edge-length divided by this edge's centroid distance. Multiply an
+    /// elevation drop across the edge by this to get a length-fair slope.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    internal float TriangleEdgeSlopeScale(int triangleIndex, int edge) =>
+        _triangleEdgeScale[(triangleIndex * 3) + edge];
+
     public float TriangleX(int triangleIndex) => _triangleX[triangleIndex];
 
     public float TriangleY(int triangleIndex) => _triangleY[triangleIndex];
@@ -134,6 +144,9 @@ public sealed class PhysicalGeographyGrid
 
     private void BuildTriangleEdgeGeometry()
     {
+        var lengthTotal = 0d;
+        var lengthCount = 0L;
+        var lengths = new double[_triangleNeighbors.Length];
         for (var triangleIndex = 0; triangleIndex < TriangleCount; triangleIndex++)
         {
             for (var edge = 0; edge < 3; edge++)
@@ -150,7 +163,23 @@ public sealed class PhysicalGeographyGrid
                 var offset = (triangleIndex * 3) + edge;
                 _triangleEdgeUnitX[offset] = (float)(dx / length);
                 _triangleEdgeUnitY[offset] = (float)(dy / length);
+                lengths[offset] = length;
+                lengthTotal += length;
+                lengthCount++;
             }
+        }
+
+        // Centroid steps differ in world length by edge type (cross-hex steps
+        // are not the same distance as intra-hex ones). Every drop comparison
+        // multiplies by this scale so it compares slope, not raw drop —
+        // otherwise long-edge directions systematically look steeper and
+        // drainage gutters onto the hex lattice.
+        var meanLength = lengthTotal / Math.Max(1, lengthCount);
+        for (var offset = 0; offset < lengths.Length; offset++)
+        {
+            _triangleEdgeScale[offset] = lengths[offset] <= 0d
+                ? 1f
+                : (float)(meanLength / lengths[offset]);
         }
     }
 

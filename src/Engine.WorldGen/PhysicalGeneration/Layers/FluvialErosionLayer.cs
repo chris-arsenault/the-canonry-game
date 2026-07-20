@@ -48,10 +48,14 @@ internal sealed class FluvialErosionLayer : IPhysicalGeographyLayer
                     continue;
                 }
 
+                var fallEdge = map.Grid.EdgeLeadingTo(triangleIndex, target);
+                var fallScale = fallEdge >= 0
+                    ? map.Grid.TriangleEdgeSlopeScale(triangleIndex, fallEdge)
+                    : 1f;
                 var fall = Math.Max(
                     0d,
-                    (map.DrainageElevations[triangleIndex] - map.DrainageElevations[target]) /
-                        (double)PhysicalElevation.SubunitsPerUnit);
+                    (map.DrainageElevations[triangleIndex] - map.DrainageElevations[target]) *
+                        fallScale / PhysicalElevation.SubunitsPerUnit);
                 var streamPower = Math.Pow(accumulation[triangleIndex], 0.42d) * Math.Sqrt(fall + 1d);
                 var cut = PhysicalElevation.FromUnits(
                     Math.Min(22d, streamPower * context.Profile.FluvialErosionStrength) *
