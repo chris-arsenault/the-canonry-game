@@ -806,11 +806,11 @@ public static partial class IceRemembersDefinition
             RequiredMapValue = influence.Required,
         };
 
+    // The water family, derived from the catalog: any terrain marked as
+    // water joins automatically when the catalog grows.
     private static HashSet<string> MaritimeTerrains() =>
-    [
-        TerrainName(Terrain.Ocean),
-        TerrainName(Terrain.Reef),
-        TerrainName(Terrain.Shelf),
-        TerrainName(Terrain.Fjord),
-    ];
+        IceRemembersTerrainCatalog.DomainTerrains
+            .Where(terrain => terrain.IsWater)
+            .Select(terrain => terrain.Name)
+            .ToHashSet(StringComparer.Ordinal);
 }

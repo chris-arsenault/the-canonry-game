@@ -6,6 +6,8 @@ public sealed class CompiledMovementData
     public IReadOnlyList<CompiledMovementProfileSubtypeRule> SubtypeRules { get; init; } = [];
     public IReadOnlyList<CompiledMovementProfileTraitRule> TraitRules { get; init; } = [];
     public IReadOnlyList<CompiledTravelStructureDefinition> TravelStructures { get; init; } = [];
+
+    public float RoughnessCostWeight { get; init; }
 }
 
 public sealed record CompiledMovementProfileDefault(

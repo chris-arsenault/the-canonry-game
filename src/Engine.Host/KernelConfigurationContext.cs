@@ -133,6 +133,9 @@ internal sealed class KernelConfigurationContext
         float movementCost) =>
         _kernel.RegisterTerrainMovementProfile(terrainId, movementProfileId, movementCost);
 
+    public void SetTerrainWater(int terrainId) =>
+        _kernel.KernelData.Terrain.SetWater(terrainId);
+
     public void RegisterCrossingProfile(
         int crossingClass,
         int movementProfileId,
@@ -828,6 +831,9 @@ internal sealed class KernelConfigurationContext
 
     public void SetMovementCarrierRelationshipKind(int relationshipKindId) =>
         _kernel.Movement.SetCarrierRelationshipKindId(relationshipKindId);
+
+    public void SetMovementRoughnessCostWeight(float weight) =>
+        _kernel.Movement.Data.RoughnessCostWeight = weight < 0f ? 0f : weight;
 
     public void SetMapFrontierConfiguration(
         int thawAgeId,

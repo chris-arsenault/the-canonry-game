@@ -78,10 +78,23 @@ internal static class KernelEffectExecutor
         simulation.SetCellState(planeCode, q, r, terrainId, ownerEntityId, simulation.CurrentTick);
 
     public static void SetCellTerrain(Simulation simulation, int q, int r, int terrainId) =>
-        simulation.SetCellTerrain(q, r, terrainId, simulation.CurrentTick);
+        SetCellTerrain(simulation, PlaneCodes.Physical, q, r, terrainId);
 
-    public static void SetCellTerrain(Simulation simulation, int planeCode, int q, int r, int terrainId) =>
+    public static void SetCellTerrain(Simulation simulation, int planeCode, int q, int r, int terrainId)
+    {
+        // Authored repaints never cross the land/water divide: a scar or a
+        // cleansing changes what ground is, not whether it is ground. Cells
+        // on the wrong side of the divide are skipped, never converted.
+        if (planeCode == PlaneCodes.Physical &&
+            simulation.World.CellIsKnown(planeCode, q, r) &&
+            simulation.KernelData.Terrain.IsWater(simulation.World.CellBaseTerrainId(planeCode, q, r)) !=
+            simulation.KernelData.Terrain.IsWater(terrainId))
+        {
+            return;
+        }
+
         simulation.SetCellTerrain(planeCode, q, r, terrainId, simulation.CurrentTick);
+    }
 
     public static void SetCoverageOwner(Simulation simulation, int q, int r, int ownerEntityId) =>
         simulation.SetCoverageOwner(q, r, ownerEntityId, simulation.CurrentTick);

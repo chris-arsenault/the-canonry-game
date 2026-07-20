@@ -13,6 +13,7 @@ internal sealed partial class KernelTerrainData
     private readonly PrimitiveFloatTable _movementProfileCosts;
     private readonly PrimitiveFloatTable _crossingFactors;
     private readonly bool[] _crossingRoadNegated;
+    private readonly bool[] _isWater;
     private readonly PrimitiveIntTable _kindProfileFlags;
     private readonly PrimitiveFloatTable _kindInfluenceMultipliers;
     private readonly PrimitiveFloatTable _kindClaimCostMultipliers;
@@ -33,6 +34,7 @@ internal sealed partial class KernelTerrainData
         _movementProfileCosts = new PrimitiveFloatTable(overrideCapacity);
         _crossingFactors = new PrimitiveFloatTable(overrideCapacity);
         _crossingRoadNegated = new bool[PhysicalCrossingCodes.ClassMask + 1];
+        _isWater = new bool[terrainIdCapacity + 1];
         _kindProfileFlags = new PrimitiveIntTable(overrideCapacity);
         _kindInfluenceMultipliers = new PrimitiveFloatTable(overrideCapacity);
         _kindClaimCostMultipliers = new PrimitiveFloatTable(overrideCapacity);
@@ -146,6 +148,19 @@ internal sealed partial class KernelTerrainData
 
     public bool CrossingRoadNegated(int crossingClass) =>
         (uint)crossingClass < (uint)_crossingRoadNegated.Length && _crossingRoadNegated[crossingClass];
+
+    /// <summary>
+    /// Marks a terrain as open water. Authored repaints never cross the
+    /// land/water divide; the executor consults this before applying them.
+    /// </summary>
+    public void SetWater(int terrainId)
+    {
+        EnsureTerrain(terrainId);
+        _isWater[terrainId] = true;
+    }
+
+    public bool IsWater(int terrainId) =>
+        (uint)terrainId < (uint)_isWater.Length && _isWater[terrainId];
 
     public int BoundaryGroupId(int terrainId)
     {

@@ -138,7 +138,8 @@ public static partial class DomainCompiler
                 ClampNonNegative(terrain.RoadBuildMultiplier),
                 ClampAtLeast(terrain.RoadSpeedMultiplier, 1f),
                 CompileTerrainMovementProfiles(terrainId, terrain.MovementProfiles, movementProfileIds),
-                CompileTerrainKindProfiles(terrainId, terrain.KindProfiles, ids)));
+                CompileTerrainKindProfiles(terrainId, terrain.KindProfiles, ids),
+                IsWater: terrain.IsWater));
         }
 
         return new CompiledTerrainData
@@ -498,6 +499,11 @@ public static partial class DomainCompiler
         if (!string.IsNullOrWhiteSpace(coverage.TransformTerrain))
         {
             transformTerrain = ResolveTerrain(terrainByName, coverage.TransformTerrain);
+            if (transformTerrain.IsWater)
+            {
+                throw new InvalidOperationException(
+                    $"Coverage transform terrain '{transformTerrain.Name}' is water; authored repaints never cross the land/water divide.");
+            }
         }
 
         return new GeneratorCoverageRule(

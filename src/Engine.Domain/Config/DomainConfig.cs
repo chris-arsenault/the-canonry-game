@@ -50,6 +50,13 @@ public sealed class DomainConfig
     /// <summary>Relationship kind whose holder is a laden carrier (road-speed bonus).</summary>
     public string? CarrierRelationshipKind { get; init; }
 
+    /// <summary>
+    /// Step-cost multiplier per unit of hex roughness: broken ground within
+    /// a terrain is slower than smooth ground of the same terrain. Zero
+    /// disables the modifier.
+    /// </summary>
+    public float MovementRoughnessCostWeight { get; init; }
+
     /// <summary>Discrete movement capability classes used by route planning and terrain traversal.</summary>
     public IReadOnlyList<MovementProfileConfig> MovementProfiles { get; init; } = [];
 
@@ -251,6 +258,13 @@ public sealed class TerrainConfig
     public required string Name { get; init; }
     public required string DisplayName { get; init; }
     public string BoundaryGroup { get; init; } = "default";
+
+    /// <summary>
+    /// Whether this terrain is open water. Authored repaints never cross the
+    /// land/water divide, coast adjacency derives from it, and water-family
+    /// consumer sets are built from it instead of hand lists.
+    /// </summary>
+    public bool IsWater { get; init; }
     public float MovementCost { get; init; } = 1f;
     public float InfluenceMultiplier { get; init; } = 1f;
     public float ClaimCostMultiplier { get; init; } = 1f;

@@ -47,6 +47,9 @@ internal sealed partial class MovementProgramData : IKernelProgramData
 
     public float RoadBuildPerTravel { get; set; }
 
+    /// <summary>Step-cost multiplier per unit of hex roughness (0 disables).</summary>
+    public float RoughnessCostWeight { get; set; }
+
     public float RoadDecayPerTick { get; set; }
 
     public void RegisterDefaultMovementProfile(

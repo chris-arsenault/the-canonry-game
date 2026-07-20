@@ -94,10 +94,11 @@ public static class IceRemembersTerrainCatalog
             movementProfiles: PhysicalMovement(trail: 3f, shore: 3.2f, wake: 6f)),
         DomainTerrain(IceRemembersTerrain.Ice, "Ice", "frozen_land", 4f, 0.9f, 1.1f, 0.95f, 0.8f, 3.6f,
             movementProfiles: PhysicalMovement(trail: 4f, shore: 4.2f, wake: 5f)),
-        DomainTerrain(IceRemembersTerrain.HotSprings, "Hot Springs", "sanctuary", 2.5f, 1.35f, 0.75f, 1.25f, 0.7f, 3.2f,
+        DomainTerrain(IceRemembersTerrain.HotSprings, "Hot Springs", "warm_land", 2.5f, 1.35f, 0.75f, 1.25f, 0.7f, 3.2f,
             movementProfiles: PhysicalMovement(trail: 2.5f, shore: 2.6f, wake: 0f)),
         DomainTerrain(IceRemembersTerrain.Shelf, "Shelf", "maritime", 3.3f, 1f, 1f, 1f, 1.2f, 4f,
-            movementProfiles: PhysicalMovement(trail: 3.3f, shore: 2.8f, wake: 2.4f)),
+            movementProfiles: PhysicalMovement(trail: 3.3f, shore: 2.8f, wake: 2.4f),
+            isWater: true),
         DomainTerrain(
             IceRemembersTerrain.Reef,
             "Reef",
@@ -107,8 +108,9 @@ public static class IceRemembersTerrainCatalog
             1.1f,
             0.9f,
             0.5f,
-            3.5f,
-            movementProfiles: PhysicalMovement(trail: 0f, shore: 4.8f, wake: 2.2f)),
+            1f,
+            movementProfiles: PhysicalMovement(trail: 0f, shore: 4.8f, wake: 2.2f),
+            isWater: true),
         DomainTerrain(
             IceRemembersTerrain.Ocean,
             "Ocean",
@@ -118,22 +120,25 @@ public static class IceRemembersTerrainCatalog
             1.6f,
             0.5f,
             0.2f,
-            3f,
-            movementProfiles: PhysicalMovement(trail: 0f, shore: 6f, wake: 2f)),
+            1f,
+            movementProfiles: PhysicalMovement(trail: 0f, shore: 6f, wake: 2f),
+            isWater: true),
         // The good land: scarce warm steppe. Highest land capacity and
         // culture pull - the ground fronts fight over.
-        DomainTerrain(IceRemembersTerrain.Verdant, "Verdant", "frozen_land", 2.2f, 1.25f, 0.8f, 1.2f, 1.3f, 4.4f,
+        DomainTerrain(IceRemembersTerrain.Verdant, "Verdant", "warm_land", 2.2f, 1.25f, 0.8f, 1.2f, 1.3f, 4.4f,
             movementProfiles: PhysicalMovement(trail: 2.2f, shore: 2.4f, wake: 0f)),
         // River lands: valleys, floodplains, deltas. Fertile corridor ground
         // - cheap to walk, road-friendly, worth settling.
-        DomainTerrain(IceRemembersTerrain.Floodplain, "Floodplain", "frozen_land", 2.6f, 1.15f, 0.85f, 1.15f, 1.2f, 4.2f,
+        DomainTerrain(IceRemembersTerrain.Floodplain, "Floodplain", "warm_land", 2.6f, 1.15f, 0.85f, 1.15f, 1.2f, 4.2f,
             movementProfiles: PhysicalMovement(trail: 2.6f, shore: 2.4f, wake: 0f)),
         // The natural harbor: sheltered glacial-carved water.
-        DomainTerrain(IceRemembersTerrain.Fjord, "Fjord", "maritime", 3f, 1f, 1.1f, 0.95f, 0.6f, 3.4f,
-            movementProfiles: PhysicalMovement(trail: 0f, shore: 3f, wake: 2.6f)),
+        DomainTerrain(IceRemembersTerrain.Fjord, "Fjord", "maritime", 3f, 1f, 1.1f, 0.95f, 0.6f, 1f,
+            movementProfiles: PhysicalMovement(trail: 0f, shore: 3f, wake: 2.6f),
+            isWater: true),
         // Inland freshwater: no sea connectivity for Wake movers beyond it.
-        DomainTerrain(IceRemembersTerrain.Lake, "Lake", "maritime", 3f, 0.95f, 1.2f, 0.85f, 0.4f, 3f,
-            movementProfiles: PhysicalMovement(trail: 0f, shore: 3f, wake: 2.8f)),
+        DomainTerrain(IceRemembersTerrain.Lake, "Lake", "maritime", 3f, 0.95f, 1.2f, 0.85f, 0.4f, 1f,
+            movementProfiles: PhysicalMovement(trail: 0f, shore: 3f, wake: 2.8f),
+            isWater: true),
         // Aurora-charged ice provinces: slow, hard, thinly habitable land
         // that pulls aurora- and memory-flavored content.
         DomainTerrain(IceRemembersTerrain.AuroraField, "Aurora Field", "frozen_land", 4.5f, 0.85f, 1.3f, 0.8f, 0.5f, 3.4f,
@@ -213,15 +218,15 @@ public static class IceRemembersTerrainCatalog
         new(
         [
             Terrain(IceRemembersTerrain.Tundra, "Tundra", "frozen_land"),
-            Terrain(IceRemembersTerrain.HotSprings, "Hot Springs", "sanctuary"),
+            Terrain(IceRemembersTerrain.HotSprings, "Hot Springs", "warm_land"),
             Terrain(IceRemembersTerrain.Shelf, "Shelf", "maritime"),
             Terrain(IceRemembersTerrain.Crags, "Crags", "harsh_land"),
             Terrain(IceRemembersTerrain.Wastes, "Wastes", "harsh_land"),
             Terrain(IceRemembersTerrain.Ocean, "Ocean", "maritime"),
             Terrain(IceRemembersTerrain.Reef, "Reef", "maritime"),
             Terrain(IceRemembersTerrain.Ice, "Ice", "frozen_land"),
-            Terrain(IceRemembersTerrain.Verdant, "Verdant", "frozen_land"),
-            Terrain(IceRemembersTerrain.Floodplain, "Floodplain", "frozen_land"),
+            Terrain(IceRemembersTerrain.Verdant, "Verdant", "warm_land"),
+            Terrain(IceRemembersTerrain.Floodplain, "Floodplain", "warm_land"),
             Terrain(IceRemembersTerrain.Fjord, "Fjord", "maritime"),
             Terrain(IceRemembersTerrain.Lake, "Lake", "maritime"),
             Terrain(IceRemembersTerrain.AuroraField, "Aurora Field", "frozen_land"),
@@ -239,12 +244,14 @@ public static class IceRemembersTerrainCatalog
         float roadBuildMultiplier,
         float roadSpeedMultiplier,
         IReadOnlyList<TerrainMovementProfileConfig>? movementProfiles = null,
-        IReadOnlyList<TerrainKindProfileConfig>? kindProfiles = null) =>
+        IReadOnlyList<TerrainKindProfileConfig>? kindProfiles = null,
+        bool isWater = false) =>
         new()
         {
             Name = terrain.ToDomainName(),
             DisplayName = displayName,
             BoundaryGroup = boundaryGroup,
+            IsWater = isWater,
             MovementCost = movementCost,
             InfluenceMultiplier = influenceMultiplier,
             ClaimCostMultiplier = claimCostMultiplier,

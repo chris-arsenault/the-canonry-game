@@ -34,6 +34,9 @@ public static partial class IceRemembersDefinition
             Lifecycles = CreateLifecycles(),
             Terrains = IceRemembersTerrainCatalog.DomainTerrains,
             CrossingProfiles = IceRemembersTerrainCatalog.CrossingProfiles,
+            // Broken ground slows travel within a terrain: rough crags are
+            // worse than smooth crags, straight from the roughness fact.
+            MovementRoughnessCostWeight = 0.3f,
             TravelStructures = IceRemembersTravelStructures.DomainTravelStructures,
             MinorActors = CreateMinorActorRules(),
             MinorActorCampaign = new MinorActorCampaignConfig { RelationshipKind = L(Rel.WagesCampaignAgainst) },

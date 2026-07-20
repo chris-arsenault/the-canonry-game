@@ -111,6 +111,9 @@ public static partial class DomainCompiler
             SubtypeRules = subtypeRules,
             TraitRules = traitRules,
             TravelStructures = BuildTravelStructureData(config, ids, movementProfileIds),
+            RoughnessCostWeight = config.MovementRoughnessCostWeight < 0f
+                ? 0f
+                : config.MovementRoughnessCostWeight,
         };
     }
 

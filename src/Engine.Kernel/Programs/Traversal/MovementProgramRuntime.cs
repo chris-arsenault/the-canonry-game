@@ -870,6 +870,15 @@ internal sealed partial class MovementProgramRuntime :
 
         terrainId = world.CellTerrainId(planeCode, q, r);
         var terrainCost = simulation.KernelData.Terrain.TravelCost(terrainId, movementProfileId);
+        if (terrainCost > 0f && planeCode == PlaneCodes.Physical && Data.RoughnessCostWeight > 0f)
+        {
+            // Broken ground within a terrain is slower than smooth ground
+            // of the same terrain - the hex's real roughness fact, not a
+            // second terrain table.
+            terrainCost *= 1f + (Data.RoughnessCostWeight *
+                world.PhysicalHexFact(q, r, PhysicalHexFactCodes.Roughness) / 255f);
+        }
+
         var structureCost = Data.TravelStructureCost(
             State.TravelStructureId(planeCode, q, r),
             planeCode,

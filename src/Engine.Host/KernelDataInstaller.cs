@@ -62,6 +62,10 @@ internal static class KernelDataInstaller
                 terrain.ClaimChanceMultiplier,
                 terrain.RoadBuildMultiplier,
                 terrain.RoadSpeedMultiplier);
+            if (terrain.IsWater)
+            {
+                context.SetTerrainWater(terrain.TerrainId);
+            }
 
             foreach (var profile in terrain.MovementProfiles)
             {
@@ -95,6 +99,7 @@ internal static class KernelDataInstaller
 
     private static void InstallMovement(KernelConfigurationContext context, CompiledMovementData data)
     {
+        context.SetMovementRoughnessCostWeight(data.RoughnessCostWeight);
         foreach (var profile in data.Defaults)
         {
             context.RegisterDefaultMovementProfile(

@@ -23,7 +23,8 @@ public sealed record CompiledTerrainDefinition(
     float RoadBuildMultiplier,
     float RoadSpeedMultiplier,
     IReadOnlyList<CompiledTerrainMovementProfileDefinition> MovementProfiles,
-    IReadOnlyList<CompiledTerrainKindProfileDefinition> KindProfiles);
+    IReadOnlyList<CompiledTerrainKindProfileDefinition> KindProfiles,
+    bool IsWater = false);
 
 public sealed record CompiledTerrainMovementProfileDefinition(
     int TerrainId,
