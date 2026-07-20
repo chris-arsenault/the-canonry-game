@@ -14,6 +14,22 @@ internal static class KernelDataInstaller
         InstallMovement(context, kernelData.Movement);
         InstallTerrain(context, kernelData.Terrain);
         InstallCultures(context, kernelData.Cultures);
+        InstallPlacementTaste(context, kernelData.PlacementTaste);
+    }
+
+    private static void InstallPlacementTaste(
+        KernelConfigurationContext context,
+        CompiledPlacementTasteData data)
+    {
+        foreach (var weight in data.KindWeights)
+        {
+            context.RegisterKindPlacementTaste(weight.Id, weight.AxisCode, weight.Weight);
+        }
+
+        foreach (var weight in data.CultureWeights)
+        {
+            context.RegisterCulturePlacementTaste(weight.Id, weight.AxisCode, weight.Weight);
+        }
     }
 
     private static void InstallCultures(KernelConfigurationContext context, CompiledCultureData data)

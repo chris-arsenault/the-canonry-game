@@ -342,6 +342,122 @@ internal sealed partial class Simulation
         }
     }
 
+    private const float TasteScoreScale = 600f;
+    private const float TasteCapacityNormal = 4f;
+
+    internal void RegisterKindPlacementTaste(int kindId, int axisCode, float weight) =>
+        KernelData.PlacementTaste.RegisterKindWeight(kindId, axisCode, weight);
+
+    internal void RegisterCulturePlacementTaste(int cultureId, int axisCode, float weight) =>
+        KernelData.PlacementTaste.RegisterCultureWeight(cultureId, axisCode, weight);
+
+    /// <summary>
+    /// The placement taste score of a physical hex for a kind placed under
+    /// a culture: each signed taste weight times its normalized axis value,
+    /// summed. Identity reads geography here - a kind's needs and a
+    /// culture's relationship to the world, stated once, price every hex.
+    /// </summary>
+    internal float PlacementTasteScore(int kindId, int cultureId, int q, int r)
+    {
+        var taste = KernelData.PlacementTaste;
+        var score = 0f;
+        for (var axis = 0; axis < PlacementTasteAxisCodes.Count; axis++)
+        {
+            var weight = taste.CombinedWeight(kindId, cultureId, axis);
+            if (weight != 0f)
+            {
+                score += weight * TasteAxisValue(axis, q, r);
+            }
+        }
+
+        return score * TasteScoreScale;
+    }
+
+    // Fact-backed axes map straight to their fact column; the three derived
+    // axes (capacity, water fraction, coast) compute below. Indexed by axis.
+    private static readonly int[] TasteAxisFactCodes =
+    [
+        -1,
+        PhysicalHexFactCodes.Temperature,
+        PhysicalHexFactCodes.Moisture,
+        PhysicalHexFactCodes.Elevation,
+        PhysicalHexFactCodes.Relief,
+        PhysicalHexFactCodes.IceThickness,
+        PhysicalHexFactCodes.RiverCoverage,
+        PhysicalHexFactCodes.FireMean,
+        PhysicalHexFactCodes.AuroraMean,
+        PhysicalHexFactCodes.PressureMean,
+        -1,
+        -1,
+    ];
+
+    private float TasteAxisValue(int axis, int q, int r)
+    {
+        var factCode = TasteAxisFactCodes[axis];
+        if (factCode >= 0)
+        {
+            return FactValue(q, r, factCode);
+        }
+
+        if (axis == PlacementTasteAxisCodes.Capacity)
+        {
+            return TasteCapacityValue(q, r);
+        }
+
+        return axis == PlacementTasteAxisCodes.WaterFraction
+            ? 1f - FactValue(q, r, PhysicalHexFactCodes.LandFraction)
+            : TasteCoastAdjacency(q, r);
+    }
+
+    private float FactValue(int q, int r, int factCode) =>
+        KernelData.PhysicalGeography.Fact(q, r, factCode) / 255f;
+
+    private float TasteCapacityValue(int q, int r)
+    {
+        var capacity = MapSignals.Data.HasCapacityFormula
+            ? MapSignals.PhysicalBaseCapacity(World, q, r)
+            : TasteFallbackCapacity(q, r);
+        var normalized = capacity / TasteCapacityNormal;
+        if (normalized < 0f)
+        {
+            return 0f;
+        }
+
+        return normalized > 1f ? 1f : normalized;
+    }
+
+    private float TasteFallbackCapacity(int q, int r) =>
+        KernelData.PhysicalGeography.TryGetCell(q, r, out var terrainId, out _, out _)
+            ? MapSignals.Data.TerrainBaseCapacity(terrainId)
+            : 0f;
+
+    // Coast is derived, never stored: a hex whose latent terrain sits on
+    // the opposite side of the land/water divide from any neighbour.
+    private float TasteCoastAdjacency(int q, int r)
+    {
+        if (!KernelData.PhysicalGeography.TryGetCell(q, r, out var terrainId, out _, out _))
+        {
+            return 0f;
+        }
+
+        var water = KernelData.Terrain.IsWater(terrainId);
+        for (var direction = 0; direction < 6; direction++)
+        {
+            if (KernelData.PhysicalGeography.TryGetCell(
+                    q + HexDirectionQ(direction),
+                    r + HexDirectionR(direction),
+                    out var neighborTerrainId,
+                    out _,
+                    out _) &&
+                KernelData.Terrain.IsWater(neighborTerrainId) != water)
+            {
+                return 1f;
+            }
+        }
+
+        return 0f;
+    }
+
     /// <summary>
     /// Travel-cost reach between two entities on a plane: the summed
     /// road-discounted terrain cost of the cells along the hex line between

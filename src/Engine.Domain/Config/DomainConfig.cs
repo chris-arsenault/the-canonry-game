@@ -137,6 +137,13 @@ public sealed class KindConfig
     public string? Description { get; init; }
 
     /// <summary>
+    /// Signed placement taste weights over the geography axes: this kind's
+    /// functional relationship to the land, stated once and applied to
+    /// every placement of the kind.
+    /// </summary>
+    public IReadOnlyList<PlacementTasteWeightConfig> PlacementTaste { get; init; } = [];
+
+    /// <summary>
     /// The plane on which this kind primarily positions itself. Physical-plane kinds
     /// (such as penguins and artifacts in Ice Remembers) use the map hex grid and
     /// measure proximity via HexCoord.Distance. Semantic-plane kinds use SemanticHexCoord on the
@@ -253,6 +260,18 @@ public sealed class LifecycleConfig
 }
 
 /// <summary>Domain-authored terrain identity and runtime gameplay profile.</summary>
+/// <summary>One signed placement taste weight on a named geography axis.</summary>
+public sealed class PlacementTasteWeightConfig
+{
+    /// <summary>
+    /// Axis name: capacity, temperature, moisture, elevation, relief, ice,
+    /// river, fire, aurora, pressure, water, or coast.
+    /// </summary>
+    public required string Axis { get; init; }
+
+    public required float Weight { get; init; }
+}
+
 public sealed class TerrainConfig
 {
     public required string Name { get; init; }
@@ -425,6 +444,13 @@ public sealed class CultureConfig
     public required string Id { get; init; }
     public required string DisplayName { get; init; }
     public IReadOnlyList<CultureSlotConfig> Slots { get; init; } = [];
+
+    /// <summary>
+    /// Signed placement taste weights over the geography axes: the
+    /// culture's identity as a relationship to the world, stated once and
+    /// added to every placement made under this culture.
+    /// </summary>
+    public IReadOnlyList<PlacementTasteWeightConfig> PlacementTaste { get; init; } = [];
 
     /// <summary>
     /// Multiplier on positive entity-driven culture influence production on

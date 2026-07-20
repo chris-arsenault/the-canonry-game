@@ -8,6 +8,7 @@ internal sealed partial class KernelDataSet
         Terrain.WriteSnapshot(writer);
         Cultures.WriteSnapshot(writer);
         PhysicalGeography.WriteSnapshot(writer);
+        PlacementTaste.WriteSnapshot(writer);
     }
 
     internal void ReadSnapshot(global::System.IO.BinaryReader reader)
@@ -16,6 +17,7 @@ internal sealed partial class KernelDataSet
         Terrain.ReadSnapshot(reader);
         Cultures.ReadSnapshot(reader);
         PhysicalGeography.ReadSnapshot(reader);
+        PlacementTaste.ReadSnapshot(reader);
     }
 }
 

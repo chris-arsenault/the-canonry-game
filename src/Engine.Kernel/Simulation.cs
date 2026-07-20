@@ -41,7 +41,8 @@ internal sealed partial class Simulation : IKernel
             new KernelEntityData(options.EntityAttributeCapacity, options.AttributeIdCapacity, options.EntityTraitCapacity),
             new KernelTerrainData(options.TerrainIdCapacity),
             new KernelCultureData(options.CultureIdCapacity),
-            new KernelPhysicalGeographyData(options.MapGenerationRadiusCapacity));
+            new KernelPhysicalGeographyData(options.MapGenerationRadiusCapacity),
+            new KernelPlacementTasteData(options.KindIdCapacity, options.CultureIdCapacity));
         World = new WorldState(Events, options, KernelData);
         CultureBoundaries = CreateCultureBoundaryRuntime(options);
         World.AttachCultureBoundaries(CultureBoundaries);
@@ -515,6 +516,7 @@ internal sealed partial class Simulation : IKernel
     {
         KernelData.Terrain.RegisterCrossingProfile(crossingClass, movementProfileId, factor, roadNegated);
     }
+
 
     internal void RegisterTerrainKindProfile(
         int terrainId,

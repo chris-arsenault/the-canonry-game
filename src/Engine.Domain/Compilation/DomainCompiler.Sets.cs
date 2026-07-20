@@ -127,8 +127,68 @@ public static partial class DomainCompiler
             Movement = BuildMovementData(config, ids, movementProfileIds),
             Terrain = BuildTerrainData(config, ids, movementProfileIds),
             Cultures = BuildCultureData(config, ids),
+            PlacementTaste = BuildPlacementTasteData(config, ids),
         };
     }
+
+    private static CompiledPlacementTasteData BuildPlacementTasteData(
+        DomainConfig config,
+        DomainIdRegistry ids)
+    {
+        var kindWeights = new List<CompiledPlacementTasteWeight>();
+        foreach (var (kind, kindConfig) in config.Kinds)
+        {
+            var kindId = ids.KindIdOf(kind.Value).Value;
+            foreach (var weight in kindConfig.PlacementTaste)
+            {
+                kindWeights.Add(new CompiledPlacementTasteWeight(
+                    kindId,
+                    PlacementTasteAxisCode(weight.Axis),
+                    weight.Weight));
+            }
+        }
+
+        var cultureWeights = new List<CompiledPlacementTasteWeight>();
+        foreach (var culture in config.Cultures)
+        {
+            var cultureId = ids.CultureIdOf(culture.Id).Value;
+            foreach (var weight in culture.PlacementTaste)
+            {
+                cultureWeights.Add(new CompiledPlacementTasteWeight(
+                    cultureId,
+                    PlacementTasteAxisCode(weight.Axis),
+                    weight.Weight));
+            }
+        }
+
+        return new CompiledPlacementTasteData
+        {
+            KindWeights = kindWeights,
+            CultureWeights = cultureWeights,
+        };
+    }
+
+    private static readonly Dictionary<string, int> PlacementTasteAxes =
+        new(StringComparer.Ordinal)
+        {
+            ["capacity"] = PlacementTasteAxisCodes.Capacity,
+            ["temperature"] = PlacementTasteAxisCodes.Temperature,
+            ["moisture"] = PlacementTasteAxisCodes.Moisture,
+            ["elevation"] = PlacementTasteAxisCodes.Elevation,
+            ["relief"] = PlacementTasteAxisCodes.Relief,
+            ["ice"] = PlacementTasteAxisCodes.IceThickness,
+            ["river"] = PlacementTasteAxisCodes.RiverCoverage,
+            ["fire"] = PlacementTasteAxisCodes.FireMean,
+            ["aurora"] = PlacementTasteAxisCodes.AuroraMean,
+            ["pressure"] = PlacementTasteAxisCodes.PressureMean,
+            ["water"] = PlacementTasteAxisCodes.WaterFraction,
+            ["coast"] = PlacementTasteAxisCodes.CoastAdjacency,
+        };
+
+    private static int PlacementTasteAxisCode(string axis) =>
+        PlacementTasteAxes.TryGetValue(axis, out var code)
+            ? code
+            : throw new InvalidOperationException($"Unknown placement taste axis '{axis}'.");
 
     private static CompiledCultureData BuildCultureData(DomainConfig config, DomainIdRegistry ids)
     {

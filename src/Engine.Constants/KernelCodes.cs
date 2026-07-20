@@ -146,6 +146,29 @@ public static class PhysicalHexFactCodes
     }
 }
 
+/// <summary>
+/// Placement taste axes: the hex vocabulary a kind's or culture's placement
+/// taste may weight. Values are engine-generic; each axis normalizes its
+/// underlying fact to 0..1 before the signed weight applies.
+/// </summary>
+public static class PlacementTasteAxisCodes
+{
+    public const int Capacity = 0;
+    public const int Temperature = 1;
+    public const int Moisture = 2;
+    public const int Elevation = 3;
+    public const int Relief = 4;
+    public const int IceThickness = 5;
+    public const int RiverCoverage = 6;
+    public const int FireMean = 7;
+    public const int AuroraMean = 8;
+    public const int PressureMean = 9;
+    public const int WaterFraction = 10;
+    public const int CoastAdjacency = 11;
+
+    public const int Count = 12;
+}
+
 public static class PhysicalLandmassClassCodes
 {
     public const int None = 0;

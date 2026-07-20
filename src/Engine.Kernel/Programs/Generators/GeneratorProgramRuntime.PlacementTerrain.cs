@@ -552,6 +552,15 @@ internal sealed partial class GeneratorProgramRuntime
         score += PreferredNeighborPlacementScore(simulation.World, planeCode, producedSlot, q, r);
         score += CulturePlacementScore(simulation, planeCode, producedSlot, producedCultureId, q, r);
         score += GeographyPlacementScore(simulation, planeCode, producedSlot, q, r);
+        if (planeCode == PlaneCodes.Physical)
+        {
+            score += (int)simulation.PlacementTasteScore(
+                Data.ProducedKindIds[producedSlot],
+                producedCultureId,
+                q,
+                r);
+        }
+
         score -= KernelQuery.HexDistance(0, 0, q, r);
         score += global::System.Math.Max(0, PlacementOriginBonusBase - (KernelQuery.HexDistance(originQ, originR, q, r) * PlacementOriginBonusStep));
         return score;

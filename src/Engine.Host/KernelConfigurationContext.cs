@@ -136,6 +136,12 @@ internal sealed class KernelConfigurationContext
     public void SetTerrainWater(int terrainId) =>
         _kernel.KernelData.Terrain.SetWater(terrainId);
 
+    public void RegisterKindPlacementTaste(int kindId, int axisCode, float weight) =>
+        _kernel.RegisterKindPlacementTaste(kindId, axisCode, weight);
+
+    public void RegisterCulturePlacementTaste(int cultureId, int axisCode, float weight) =>
+        _kernel.RegisterCulturePlacementTaste(cultureId, axisCode, weight);
+
     public void RegisterCrossingProfile(
         int crossingClass,
         int movementProfileId,
