@@ -38,8 +38,8 @@ internal sealed class PressureFeatureLayer : IIceRemembersMicrogeographyLayer
             map,
             region,
             IceRemembersPhysicalFeature.CrushZone,
-            triangleIndex => map.PressureIntensity[triangleIndex] >= 690,
-            triangleIndex => map.PressureIntensity[triangleIndex] >= 690 - hysteresis);
+            triangleIndex => map.PressureIntensity[triangleIndex] >= 360,
+            triangleIndex => map.PressureIntensity[triangleIndex] >= 360 - hysteresis);
         AddExactFeature(
             map,
             IceRemembersPhysicalFeature.WakeScar,
@@ -98,14 +98,14 @@ internal sealed class PressureFeatureLayer : IIceRemembersMicrogeographyLayer
     }
 
     private static bool IsLatticeSeed(IceRemembersMicrogeographyMap map, int triangleIndex) =>
-        map.PressureIntensity[triangleIndex] >= 380 && LatticeNoise(map, triangleIndex) >= 0.62d;
+        map.PressureIntensity[triangleIndex] >= 185 && LatticeNoise(map, triangleIndex) >= 0.34d;
 
     private static bool IsLatticeRetained(
         IceRemembersMicrogeographyMap map,
         int triangleIndex,
         int hysteresis) =>
-        map.PressureIntensity[triangleIndex] >= 380 - hysteresis &&
-        LatticeNoise(map, triangleIndex) >= 0.40d;
+        map.PressureIntensity[triangleIndex] >= 185 - hysteresis &&
+        LatticeNoise(map, triangleIndex) >= 0.28d;
 
     private static double LatticeNoise(IceRemembersMicrogeographyMap map, int triangleIndex) =>
         PhysicalNoise.UnitNoise(

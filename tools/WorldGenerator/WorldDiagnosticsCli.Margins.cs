@@ -142,7 +142,21 @@ internal static partial class WorldDiagnosticsCli
         PhysicalGeographyField field,
         IceRemembers.Seed.IceRemembersMicrogeographyMap magic)
     {
-        Console.WriteLine("\n== Magic prevalence ==");
+        // The whole disk is the wrong denominator for "will a player ever see
+        // this": early play only reaches a fraction of it, and magic is
+        // clustered rather than spread, so a healthy global share can still
+        // mean zero encounters in the reachable region.
+        Console.WriteLine("\n== Magic prevalence (whole disk) ==");
+        ReportMagicPrevalenceWithin(field, magic, int.MaxValue);
+        Console.WriteLine("\n== Magic prevalence (early-play radius 40) ==");
+        ReportMagicPrevalenceWithin(field, magic, 40);
+    }
+
+    private static void ReportMagicPrevalenceWithin(
+        PhysicalGeographyField field,
+        IceRemembers.Seed.IceRemembersMicrogeographyMap magic,
+        int maximumHexDistance)
+    {
         string[] fireSurfaces =
             ["firecore_vent", "thermal_vein", "hot_spring", "basalt_flat", "thawed_halo", "steam_fracture"];
         string[] auroraSurfaces = ["aurora_field", "light_well", "frost_prism", "melt_line"];
@@ -159,7 +173,8 @@ internal static partial class WorldDiagnosticsCli
         var perSurface = new Dictionary<string, long>(StringComparer.Ordinal);
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
-            if (!field.Grid.TriangleIsInsideConfiguredDisk(t))
+            if (!field.Grid.TriangleIsInsideConfiguredDisk(t) ||
+                field.Grid.HexDistanceAt(field.Grid.TriangleHexIndex(t)) > maximumHexDistance)
             {
                 continue;
             }

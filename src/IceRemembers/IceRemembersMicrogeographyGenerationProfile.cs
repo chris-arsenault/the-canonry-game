@@ -34,7 +34,7 @@ public sealed record IceRemembersMicrogeographyQualityTargets
 
     public ProportionRangeTarget MeltLineCoverage { get; init; } = new(0d, 0.05d);
 
-    public CountTarget FireCoreCount { get; init; } = new(1, 180);
+    public CountTarget FireCoreCount { get; init; } = new(1, 1000);
 
     public CountTarget WarmHabitatComponentCount { get; init; } = new(8, int.MaxValue);
 
@@ -111,9 +111,9 @@ public sealed record IceRemembersMicrogeographyGenerationProfile
 
     public int AncestralRiverValleyMaximumSlope { get; init; } = 68;
 
-    public int MaximumFireCores { get; init; } = 180;
+    public int MaximumFireCores { get; init; } = 900;
 
-    public int FireCoreDensityThreshold { get; init; } = 590;
+    public int FireCoreDensityThreshold { get; init; } = 300;
 
     /// <summary>
     /// Fire spreads as a conduit-limited flow along fractures rather than as a
@@ -122,9 +122,9 @@ public sealed record IceRemembersMicrogeographyGenerationProfile
     /// legible and stops fire intensity reading as a recolouring of the
     /// geothermal field it shares a source with.
     /// </summary>
-    public int FirePropagationBaseCost { get; init; } = 6;
+    public int FirePropagationBaseCost { get; init; } = 4;
 
-    public int FireConductanceCostDivisor { get; init; } = 12;
+    public int FireConductanceCostDivisor { get; init; } = 26;
 
     public int FireTemperatureFeedbackPercent { get; init; } = 36;
 
@@ -134,15 +134,15 @@ public sealed record IceRemembersMicrogeographyGenerationProfile
 
     public int AuroraLogScale { get; init; } = 66;
 
-    public int StandingPressureRayCount { get; init; } = 720;
+    public int StandingPressureRayCount { get; init; } = 1200;
 
-    public int CoastalPressureSourceCount { get; init; } = 18;
+    public int CoastalPressureSourceCount { get; init; } = 200;
 
-    public int AncientWakeSourceCount { get; init; } = 20;
+    public int AncientWakeSourceCount { get; init; } = 260;
 
     public int MagicFeatureHysteresis { get; init; } = 90;
 
-    public int PressureCoastalThreshold { get; init; } = 540;
+    public int PressureCoastalThreshold { get; init; } = 140;
 
     public int PressureCoastalWaveAmplification { get; init; } = 360;
 

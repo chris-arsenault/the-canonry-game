@@ -40,10 +40,10 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
             map,
             region,
             IceRemembersPhysicalFeature.ThermalVein,
-            triangleIndex => map.FireIntensity[triangleIndex] >= 420 &&
-                map.Physical.FractureConductance[triangleIndex] >= 560,
-            triangleIndex => map.FireIntensity[triangleIndex] >= 420 - hysteresis &&
-                map.Physical.FractureConductance[triangleIndex] >= 420);
+            triangleIndex => map.FireIntensity[triangleIndex] >= 320 &&
+                map.Physical.FractureConductance[triangleIndex] >= 430,
+            triangleIndex => map.FireIntensity[triangleIndex] >= 320 - hysteresis &&
+                map.Physical.FractureConductance[triangleIndex] >= 320);
         AddRegionFeature(
             map,
             region,
@@ -62,8 +62,8 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
             map,
             region,
             IceRemembersPhysicalFeature.ThawedHalo,
-            triangleIndex => map.FireIntensity[triangleIndex] >= 310 &&
-                map.Physical.Temperature[triangleIndex] >= 300,
+            triangleIndex => map.FireIntensity[triangleIndex] >= 210 &&
+                map.Physical.Temperature[triangleIndex] >= 250,
             triangleIndex => IsThawedHaloRetained(map, context, triangleIndex));
     }
 
@@ -148,10 +148,10 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
         IceRemembersMicrogeographyMap map,
         IceRemembersMicrogeographyGenerationContext context,
         int triangleIndex) =>
-        map.FireIntensity[triangleIndex] >= 220 &&
-        map.Physical.Temperature[triangleIndex] >= 275 &&
-        map.Physical.FractureConductance[triangleIndex] >= 260 &&
-        PhysicalNoise.HashUnit(context.Seed ^ 0x3f19, triangleIndex, 0x5b1) >= 0.30d;
+        map.FireIntensity[triangleIndex] >= 140 &&
+        map.Physical.Temperature[triangleIndex] >= 225 &&
+        map.Physical.FractureConductance[triangleIndex] >= 170 &&
+        PhysicalNoise.HashUnit(context.Seed ^ 0x3f19, triangleIndex, 0x5b1) >= 0.14d;
 
     private static void AddRegionFeature(
         IceRemembersMicrogeographyMap map,
