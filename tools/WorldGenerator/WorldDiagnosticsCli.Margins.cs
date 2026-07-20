@@ -222,6 +222,88 @@ internal static partial class WorldDiagnosticsCli
         $"{part * 100d / Math.Max(1, total):0.00}%";
 
     /// <summary>
+    /// Is the world's wetness concentrated on low ground? Buckets land by
+    /// height above sea level and reports the wet surface mix in each, plus
+    /// how much lake sits nearby, so "low landmasses are marshy" becomes a
+    /// measurement rather than an impression.
+    /// </summary>
+    internal static void ReportWetness(
+        PhysicalGeographyField field,
+        IceRemembers.Seed.IceRemembersMicrogeographyMap magic)
+    {
+        var palette = IceRemembers.IceRemembersPhysicalGeography.SurfacePalette;
+        int[] cuts = [25, 60, 120, 250, 500, int.MaxValue];
+        string[] names = ["0-25", "25-60", "60-120", "120-250", "250-500", "500+"];
+        var landCount = new long[cuts.Length];
+        var wetCount = new long[cuts.Length];
+        var lakeAdjacent = new long[cuts.Length];
+        var perSurface = new Dictionary<string, long>(StringComparer.Ordinal);
+        long totalLand = 0;
+
+        long seaLevel = long.MinValue;
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (field.WaterKindCodes[t] == PhysicalWaterKindCodes.Ocean)
+            {
+                seaLevel = Math.Max(seaLevel, field.WaterSurfaceElevations[t]);
+            }
+        }
+
+        string[] wet =
+            ["river_valley", "river_channel", "floodplain", "delta", "wet_tundra", "lake"];
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (!field.Grid.TriangleIsInsideConfiguredDisk(t) ||
+                field.WaterKindCodes[t] != PhysicalWaterKindCodes.None)
+            {
+                continue;
+            }
+
+            totalLand++;
+            var height = PhysicalElevation.ToUnits(field.Elevation[t] - seaLevel);
+            var bucket = 0;
+            while (bucket < cuts.Length - 1 && height > cuts[bucket])
+            {
+                bucket++;
+            }
+
+            landCount[bucket]++;
+            var name = palette[magic.SurfaceIndexes[t]];
+            if (Array.IndexOf(wet, name) >= 0)
+            {
+                wetCount[bucket]++;
+                perSurface[name] = perSurface.GetValueOrDefault(name) + 1;
+            }
+
+            for (var edge = 0; edge < 3; edge++)
+            {
+                var neighbor = field.Grid.NeighborTriangleIndex(t, edge);
+                if (neighbor >= 0 && field.WaterKindCodes[neighbor] == PhysicalWaterKindCodes.Lake)
+                {
+                    lakeAdjacent[bucket]++;
+                    break;
+                }
+            }
+        }
+
+        Console.WriteLine("\n== Wetness by height above sea level (land only) ==");
+        for (var bucket = 0; bucket < cuts.Length; bucket++)
+        {
+            if (landCount[bucket] == 0) { continue; }
+            Console.WriteLine(
+                $"  {names[bucket],-8} land={landCount[bucket],7} " +
+                $"wet={wetCount[bucket] * 100d / landCount[bucket],5:0.0}% " +
+                $"lakeshore={lakeAdjacent[bucket] * 100d / landCount[bucket],5:0.0}%");
+        }
+
+        Console.WriteLine($"  total land={totalLand}");
+        foreach (var (name, count) in perSurface.OrderByDescending(pair => pair.Value))
+        {
+            Console.WriteLine($"    {name,-16} {count,8} ({count * 100d / Math.Max(1, totalLand):0.0}% of land)");
+        }
+    }
+
+    /// <summary>
     /// The named coast forms from review: offshore island groups, narrow
     /// peninsulas and isthmuses, and drowned glacial inlets.
     /// </summary>

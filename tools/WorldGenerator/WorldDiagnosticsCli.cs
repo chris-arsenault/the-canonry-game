@@ -75,6 +75,7 @@ internal static partial class WorldDiagnosticsCli
         ReportStripes(field);
         ReportPlateHistory(field, result.Magic);
         ReportMagicPrevalence(field, result.Magic);
+        ReportWetness(field, result.Magic);
         ReportFieldCorrelation(field, result.Magic);
         return 0;
     }
