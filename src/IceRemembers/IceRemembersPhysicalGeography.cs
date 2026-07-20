@@ -206,7 +206,7 @@ public static class IceRemembersPhysicalGeography
         RiverAccumulationThreshold = 7200,
         RiverMinimumAccumulationThreshold = 1800,
         RiverBasinHeadwaterFraction = 55,
-        MinimumRiverReachTriangles = 4,
+        MinimumRiverReachTriangles = 6,
         TemperatureBaseline = 125,
         OceanCurrentTemperatureStrength = 80,
         OceanCurrentWarmthStrength = 55,

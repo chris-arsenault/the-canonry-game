@@ -733,11 +733,18 @@ public sealed partial class PhysicalMicrogeographyPainter
         }
     }
 
+    /// <summary>
+    /// Geometric sector to HexCoord direction: edge-mask bits use the
+    /// direction convention while hex geometry is indexed by sector.
+    /// </summary>
+    private static readonly int[] SectorToHexDirection = [0, 5, 4, 3, 2, 1];
+
     private void DrawHexFeatures(in PhysicalGeographyCellProjection cell)
     {
         for (var sector = 0; sector < PhysicalGeographyCodes.HexSectorCount; sector++)
         {
-            var neighborExists = _owner!.Geography.TryGetCell(cell.Coord.Neighbor(sector), out _);
+            var direction = SectorToHexDirection[sector];
+            var neighborExists = _owner!.Geography.TryGetCell(cell.Coord.Neighbor(direction), out _);
             if (!PhysicalMicrogeographyRenderDecisions.OwnsSharedHexEdge(
                     cell.Coord.Q,
                     cell.Coord.R,
@@ -747,7 +754,7 @@ public sealed partial class PhysicalMicrogeographyPainter
                 continue;
             }
 
-            var bit = 1 << sector;
+            var bit = 1 << direction;
             var a = _owner.Geometry.HexPoints()[sector];
             var b = _owner.Geometry.HexPoints()[(sector + 1) % PhysicalGeographyCodes.HexSectorCount];
             if ((cell.RidgeEdgeMask & bit) != 0)

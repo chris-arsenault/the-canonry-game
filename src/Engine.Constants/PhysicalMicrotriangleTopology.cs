@@ -7,8 +7,14 @@ namespace Engine.Constants;
 /// </summary>
 public static class PhysicalMicrotriangleTopology
 {
-    private static readonly int[] NeighborDQ = [1, 1, 0, -1, -1, 0];
-    private static readonly int[] NeighborDR = [0, -1, -1, 0, 1, 1];
+    // Sector s's outer hex edge faces angle 60°·s (with the +y hex row below
+    // in axial space), so its cross-hex neighbor is the hex in that facing
+    // direction. The previous table was the y-mirror of this for the four
+    // diagonal sectors, which linked geometrically distant triangles: flow
+    // "teleported" one hex row at those edges, rivers rendered as disjoint
+    // segments, and every graph process carried hex-boundary artifacts.
+    private static readonly int[] NeighborDQ = [1, 0, -1, -1, 0, 1];
+    private static readonly int[] NeighborDR = [0, 1, 1, 0, -1, -1];
 
     public static int TriangleIndex(int sector, int localTriangle)
     {

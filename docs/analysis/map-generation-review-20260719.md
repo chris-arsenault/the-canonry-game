@@ -331,3 +331,34 @@ Observation noted for a future tranche: several climate/magic overlays read as
 palette swaps of one another because they share the same drivers
 (ocean-distance, elevation, one global wind); differentiating their dynamics
 is design work, not a bug fix.
+
+## Addendum (2026-07-20, round 5): the twisted lattice
+
+Persisting disjoint rivers — visible even in capture-harness output while
+every data audit reported zero flow breaks — finally reduced to one root
+cause. An exhaustive check of all 72 (sector, triangle, edge) neighbor
+correspondences against world-space geometry found 8 broken pairs: the
+`PhysicalMicrotriangleTopology` cross-hex neighbor table was the y-mirror of
+the render geometry for the four diagonal sectors, so those links connected
+triangles a full hex row apart. The generation graph was internally consistent
+and reciprocal — every structural validation passed — but geometrically
+twisted: flow "teleported" one hex row wherever it crossed a diagonal-sector
+hex edge.
+
+That one table explains the persistent symptom cluster: rivers rendering as
+offset disjoint segments (connected in graph space, not in world space),
+hex-boundary-aligned artifacts (the twisted links sit exactly on diagonal hex
+edges), the stubborn E/W direction bias (twisted vertical links joined
+spatially uncorrelated elevations and read as cliffs, so coherent descent only
+formed along the geometrically true east/west edges), and correlated smearing
+in every graph-diffused field.
+
+After correcting the table (verified 72/72 midpoint coincidence, all centroid
+steps ≤ 0.29 world units): 12-step river direction share in the two E/W bins
+fell from ~66% to 11% with all twelve bins populated, Strahler order reaches
+5, land slope p90 fell from ~108 to ~32 units (the phantom cliffs were
+twisted-edge jumps), and rivers render as connected dendritic trees in both
+the capture harness and the game. The radius-10 test harness needed a colder
+temperature baseline once ocean moderation flowed across the corrected graph.
+Tooltips now show (q, r, tN) microtriangle coordinates for precise defect
+reports.

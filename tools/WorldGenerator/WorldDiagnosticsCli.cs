@@ -39,7 +39,13 @@ internal static class WorldDiagnosticsCli
             static argument => argument.StartsWith("--audit-world=", StringComparison.Ordinal));
         if (worldArgument is not null)
         {
-            return AuditWorldRivers(worldArgument["--audit-world=".Length..]);
+            var inspectArgument = args.FirstOrDefault(
+                static argument => argument.StartsWith("--inspect=", StringComparison.Ordinal));
+            return inspectArgument is not null
+                ? InspectWorldHexes(
+                    worldArgument["--audit-world=".Length..],
+                    inspectArgument["--inspect=".Length..])
+                : AuditWorldRivers(worldArgument["--audit-world=".Length..]);
         }
 
         Console.WriteLine($"Generating radius={radius} seed={seed} with production profile...");
@@ -164,6 +170,79 @@ internal static class WorldDiagnosticsCli
                         $"surface={blueprint.SurfacePalette[neighbor.SurfaceIndex]}");
                 }
             }
+        }
+    }
+
+    private static int InspectWorldHexes(string worldPath, string inspectSpec)
+    {
+        var parts = inspectSpec.Split(',');
+        var centerQ = int.Parse(parts[0], CultureInfo.InvariantCulture);
+        var centerR = int.Parse(parts[1], CultureInfo.InvariantCulture);
+        var range = parts.Length > 2 ? int.Parse(parts[2], CultureInfo.InvariantCulture) : 1;
+        var fullPath = Path.GetFullPath(worldPath);
+        var world = IceRemembersPregeneratedWorldStore
+            .Discover(Path.GetDirectoryName(fullPath)!)
+            .Single(candidate => string.Equals(
+                Path.GetFullPath(candidate.Path),
+                fullPath,
+                StringComparison.Ordinal));
+        var blueprint = IceRemembersPregeneratedWorldStore.Read(world).Seed.PhysicalGeography!;
+        var cellIndexByCoord = new Dictionary<(int Q, int R), int>();
+        for (var cellIndex = 0; cellIndex < blueprint.Cells.Count; cellIndex++)
+        {
+            var cell = blueprint.Cells[cellIndex];
+            cellIndexByCoord[(cell.Q, cell.R)] = cellIndex;
+        }
+
+        for (var q = centerQ - range; q <= centerQ + range; q++)
+        {
+            for (var r = centerR - range; r <= centerR + range; r++)
+            {
+                if (cellIndexByCoord.TryGetValue((q, r), out var cellIndex))
+                {
+                    PrintHex(blueprint, cellIndex);
+                }
+            }
+        }
+
+        return 0;
+    }
+
+    private static void PrintHex(
+        Engine.Domain.Startup.DomainPhysicalGeographyBlueprint blueprint,
+        int cellIndex)
+    {
+        var cell = blueprint.Cells[cellIndex];
+        Console.WriteLine($"hex ({cell.Q},{cell.R}) terrain={cell.BaseTerrain} riverCoverage={cell.RiverCoverage}");
+        for (var local = 0; local < Engine.Constants.PhysicalGeographyCodes.MicrotrianglesPerHex; local++)
+        {
+            var triangle = blueprint.Microtriangles[cell.MicrotriangleOffset + local];
+            if (triangle.RiverOrder <= 0 && triangle.RiverSpineEdgeMask == 0 &&
+                triangle.RiverChannelStrength <= 0 &&
+                triangle.WaterKindCode == Engine.Constants.PhysicalWaterKindCodes.None)
+            {
+                continue;
+            }
+
+            var flow = "-";
+            if (triangle.FlowEdge is >= 0 and <= 2)
+            {
+                Engine.Constants.PhysicalMicrotriangleTopology.ResolveNeighbor(
+                    cell.Q,
+                    cell.R,
+                    local,
+                    triangle.FlowEdge,
+                    out var neighborQ,
+                    out var neighborR,
+                    out var neighborLocal);
+                flow = $"({neighborQ},{neighborR},{neighborLocal})";
+            }
+
+            Console.WriteLine(
+                $"  t={local,2} water={triangle.WaterKindCode} order={triangle.RiverOrder} " +
+                $"strength={triangle.RiverChannelStrength} spineMask={triangle.RiverSpineEdgeMask} " +
+                $"acc={triangle.FlowAccumulation} flow->{flow} " +
+                $"surface={blueprint.SurfacePalette[triangle.SurfaceIndex]}");
         }
     }
 

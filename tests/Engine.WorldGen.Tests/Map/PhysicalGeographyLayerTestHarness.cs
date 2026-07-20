@@ -27,6 +27,7 @@ internal static class PhysicalGeographyLayerTestHarness
         RiverMinimumAccumulationThreshold = 180,
         RiverBasinHeadwaterFraction = 90,
         MinimumRiverReachTriangles = 2,
+        TemperatureBaseline = 150,
         WarmthPocketCount = 6,
         WarmthPocketMinRadius = 4d,
         WarmthPocketMaxRadius = 8d,

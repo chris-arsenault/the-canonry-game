@@ -81,14 +81,16 @@ internal static class PhysicalMicrogeographyRenderDecisions
             return true;
         }
 
+        // Sector s's outer hex edge faces angle 60°·s; this mirrors the
+        // corrected PhysicalMicrotriangleTopology neighbor table.
         var (neighborQ, neighborR) = sector switch
         {
             0 => (q + 1, r),
-            1 => (q + 1, r - 1),
-            2 => (q, r - 1),
+            1 => (q, r + 1),
+            2 => (q - 1, r + 1),
             3 => (q - 1, r),
-            4 => (q - 1, r + 1),
-            _ => (q, r + 1),
+            4 => (q, r - 1),
+            _ => (q + 1, r - 1),
         };
         return q < neighborQ || (q == neighborQ && r < neighborR);
     }

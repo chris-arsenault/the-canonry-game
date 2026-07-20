@@ -230,12 +230,13 @@ public partial class HexTooltipPanel : PanelContainer
             return $"{coord.Q,3} , {coord.R,3}   unknown";
         }
 
+        var location = FormatLocation(coord, triangleIndex);
         var geography = hasGeography
             ? FormatPhysicalGeography(geographyCell, triangleIndex)
             : string.Empty;
         if (!hasLiveCell)
         {
-            return geography;
+            return $"{location}\n{geography}";
         }
 
         var terrain = FormatTerrain(cell);
@@ -245,7 +246,7 @@ public partial class HexTooltipPanel : PanelContainer
         var occupantsLine = FormatOccupants(PlaneCodes.Physical, coord);
         var forgedLine = FormatForgedColumn(cell);
         return
-            $"{coord.Q,3} , {coord.R,3}   {terrain,-10}   {owner}   {FormatSurface(cell)}\n" +
+            $"{location}   {terrain,-10}   {owner}   {FormatSurface(cell)}\n" +
             (forgedLine.Length > 0 ? forgedLine + "\n" : string.Empty) +
             $"{continent}   {superregion}\n" +
             (geography.Length > 0 ? geography + "\n" : string.Empty) +
@@ -253,6 +254,11 @@ public partial class HexTooltipPanel : PanelContainer
             $"{FormatInfluence(cell)}\n" +
             occupantsLine;
     }
+
+    private static string FormatLocation(HexCoord coord, int triangleIndex) =>
+        triangleIndex >= 0
+            ? $"({coord.Q},{coord.R},t{triangleIndex})"
+            : $"({coord.Q},{coord.R})";
 
     private string FormatPhysicalGeography(
         in PhysicalGeographyCellProjection cell,

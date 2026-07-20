@@ -106,6 +106,7 @@ public static class PhysicalHexAggregator
 
     private struct AggregateBuilder
     {
+        private static readonly int[] SectorToHexDirection = [0, 5, 4, 3, 2, 1];
         private int _auroraTotal;
         private int _coastEdgeMask;
         private int _cliffEdgeMask;
@@ -269,7 +270,12 @@ public static class PhysicalHexAggregator
                 return;
             }
 
-            var edgeMask = 1 << (localTriangle / PhysicalGeographyCodes.MicrotrianglesPerSector);
+            // Edge-mask bits use the HexCoord direction convention (0 east,
+            // counting clockwise via north-east), while sector s faces the
+            // neighbor at angle 60°·s (east, then south-east...). Map sector
+            // to direction so shared-edge bits pair with Neighbor(direction).
+            var sector = localTriangle / PhysicalGeographyCodes.MicrotrianglesPerSector;
+            var edgeMask = 1 << SectorToHexDirection[sector];
             AddWaterEdgeFlags(field, triangleIndex, neighbor, edgeMask);
             AddReliefEdgeFlags(field, triangleIndex, neighbor, edgeMask, cliffSlopeThreshold);
             AddFractureEdgeFlag(field, triangleIndex, neighbor, edgeMask);
