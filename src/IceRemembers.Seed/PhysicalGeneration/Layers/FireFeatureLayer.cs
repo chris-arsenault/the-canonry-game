@@ -64,8 +64,7 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
             IceRemembersPhysicalFeature.ThawedHalo,
             triangleIndex => map.FireIntensity[triangleIndex] >= 310 &&
                 map.Physical.Temperature[triangleIndex] >= 300,
-            triangleIndex => map.FireIntensity[triangleIndex] >= 220 &&
-                map.Physical.Temperature[triangleIndex] >= 275);
+            triangleIndex => IsThawedHaloRetained(map, context, triangleIndex));
     }
 
     private static void ClearOwnedFeatures(IceRemembersMicrogeographyMap map)
@@ -137,6 +136,22 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
                 feature);
         }
     }
+
+    /// <summary>
+    /// A thaw halo is the ground a fire conduit has warmed, so it stays tied
+    /// to the conduit that caused it and breaks up on a hashed scatter.
+    /// Retaining on the raw fire-and-temperature thresholds alone painted the
+    /// same broad wash over every warm region — the field-threshold
+    /// anti-pattern that makes magic terrain read as bland.
+    /// </summary>
+    private static bool IsThawedHaloRetained(
+        IceRemembersMicrogeographyMap map,
+        IceRemembersMicrogeographyGenerationContext context,
+        int triangleIndex) =>
+        map.FireIntensity[triangleIndex] >= 220 &&
+        map.Physical.Temperature[triangleIndex] >= 275 &&
+        map.Physical.FractureConductance[triangleIndex] >= 260 &&
+        PhysicalNoise.HashUnit(context.Seed ^ 0x3f19, triangleIndex, 0x5b1) >= 0.30d;
 
     private static void AddRegionFeature(
         IceRemembersMicrogeographyMap map,

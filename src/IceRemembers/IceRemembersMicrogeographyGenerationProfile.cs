@@ -115,9 +115,16 @@ public sealed record IceRemembersMicrogeographyGenerationProfile
 
     public int FireCoreDensityThreshold { get; init; } = 590;
 
-    public int FirePropagationBaseCost { get; init; } = 17;
+    /// <summary>
+    /// Fire spreads as a conduit-limited flow along fractures rather than as a
+    /// halo around heat. A low base cost with a strong conductance term makes
+    /// firecore reach anisotropic — it follows lineations — which is both more
+    /// legible and stops fire intensity reading as a recolouring of the
+    /// geothermal field it shares a source with.
+    /// </summary>
+    public int FirePropagationBaseCost { get; init; } = 6;
 
-    public int FireConductanceCostDivisor { get; init; } = 30;
+    public int FireConductanceCostDivisor { get; init; } = 12;
 
     public int FireTemperatureFeedbackPercent { get; init; } = 36;
 

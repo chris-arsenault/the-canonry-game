@@ -370,6 +370,42 @@ the correlation matrix is not mistaken for one.
 The correlation matrix is now part of `diagnose`, so M5 has a measurable gate
 rather than an aesthetic one.
 
+## M5 result (2026-07-20): the overlay complaint is mostly not a data defect
+
+Two of the three things M5 set out to fix turned out to be misdiagnosed, and
+the measurements say so plainly.
+
+**Item 17 (stripe asymmetry) is continent placement, not wind.** The M2 note
+guessed the column-versus-row asymmetry tracked the single global wind.
+Replacing that wind with banded circulation moved moisture X-stripe only from
+0.270 to 0.261. The reason is in `MoistureLayer`: moisture is
+`720 − oceanDistance·k − rainShadow`, so it is dominated by distance to ocean,
+and wind enters only through the rain-shadow term. Distance to ocean varies
+strongly by column because this world's continents sit in a north-south band.
+The asymmetry is a true description of the geography, not an artefact. **Item
+17 is closed as not-a-defect.**
+
+**Item 10 (overlay similarity) is mostly causal physics.** Ranked by
+correlation, the strongest pairs are moisture/snowfall 0.79,
+temperature/rainfall 0.63, temperature/elevation −0.59 — snow is cold rain,
+warm air carries more water, and air cools with height. Decorrelating those
+would make the world *less* physical, not more. The one pair worth acting on
+was geothermal/fire, which shared a driver without fire having structure of its
+own; making fire propagation conduit-limited along fractures rather than
+heat-limited moved it 0.63 → 0.60 and, more importantly, made firecore reach
+anisotropic so it reads as flow along lineations instead of a halo.
+
+The residual complaint that overlays look like palette swaps is therefore
+largely a **rendering** matter — similar colour ramps over fields that are
+legitimately correlated — and belongs with the presentation layer rather than
+with the generator. Distinct visual encodings per overlay would address it
+without falsifying the physics.
+
+**Item 11 (single global wind) is fixed on its own terms.** Prevailing wind is
+now banded, with alternating belts, cross-belt turning, and terrain-scale
+wander, so rain shadows are no longer globally parallel even though the metric
+that prompted the change turned out to measure something else.
+
 ## M4 result (2026-07-20): coasts now differ in kind
 
 Seed 42, radius 128, after margin classification, crust age, margin-dependent

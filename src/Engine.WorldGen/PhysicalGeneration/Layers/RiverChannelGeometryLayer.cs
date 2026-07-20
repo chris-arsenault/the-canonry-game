@@ -234,6 +234,16 @@ internal sealed class RiverChannelGeometryLayer : IPhysicalGeographyLayer
             return false;
         }
 
+        // Two rivers rising on opposite sides of a divide would otherwise
+        // share one apron, rendering as facing line-ends inside a single patch
+        // of channel fill. A river's fill stays inside its own basin.
+        if (target >= 0 && map.DrainageBasinIds[target] > 0 &&
+            map.DrainageBasinIds[front.SpineIndex] > 0 &&
+            map.DrainageBasinIds[target] != map.DrainageBasinIds[front.SpineIndex])
+        {
+            return false;
+        }
+
         var strength = WidenedStrength(map, profile, front.SpineIndex, target, depth);
         var order = map.RiverChannelOrders[front.SpineIndex];
         if (strength < map.RiverChannelStrength[target] ||

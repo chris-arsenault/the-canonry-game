@@ -46,8 +46,19 @@ internal sealed class MantlePlumeRootLayer : IPhysicalGeographyLayer
         var selected = SelectSeparatedRoots(map, candidates.GetBestIndexes(), count, context.Profile);
         for (var rootIndex = 0; rootIndex < selected.Length; rootIndex++)
         {
-            var variation = 0.82d +
-                (PhysicalNoise.HashUnit(context.Seed ^ 0x54b1, rootIndex, 0) * 0.18d);
+            // Few large plumes and several small ones rather than a set of
+            // near-identical ones: a handful of provinces carry a real
+            // volcanic story and the rest add scattered character, instead of
+            // every plume producing the same cone.
+            var rank = selected.Length <= 1
+                ? 0d
+                : rootIndex / (double)(selected.Length - 1);
+            var floor = context.Profile.MantlePlumeMinimumShare / 1000d;
+            var falloff = Math.Pow(
+                1d - rank,
+                context.Profile.MantlePlumeStrengthExponent / 1000d);
+            var variation = (floor + ((1d - floor) * falloff)) *
+                (0.88d + (PhysicalNoise.HashUnit(context.Seed ^ 0x54b1, rootIndex, 0) * 0.12d));
             map.MantlePlumeRootStrength[selected[rootIndex]] = (int)Math.Round(
                 context.Profile.MantlePlumeStrength * variation,
                 MidpointRounding.AwayFromZero);

@@ -206,6 +206,21 @@ public sealed record PhysicalGeographyGenerationProfile
     /// </summary>
     public int FjordMinimumGlacialErosion { get; init; } = 2;
 
+    /// <summary>
+    /// Number of alternating prevailing-wind belts across the world. One belt
+    /// is a single global wind, which tilts every rain shadow the same way.
+    /// </summary>
+    public int CirculationBands { get; init; } = 5;
+
+    /// <summary>
+    /// How strongly each belt curves across its own width, per mille. Gives
+    /// circulation cells curved streamlines instead of straight sheets.
+    /// </summary>
+    public int CirculationCellTurn { get; init; } = 700;
+
+    /// <summary>Terrain-scale wander, per mille, so belts are not straight seams.</summary>
+    public int CirculationWander { get; init; } = 550;
+
     public double ElevationVariationScale { get; init; } = 25d;
 
     public double ElevationVariationStrength { get; init; } = 0.12d;
@@ -509,6 +524,15 @@ public sealed record PhysicalGeographyGenerationProfile
     public double MantlePlumeMinimumSpacing { get; init; } = 36d;
 
     public int MantlePlumeStrength { get; init; } = 940;
+
+    /// <summary>Weakest plume as a per-mille share of the strongest.</summary>
+    public int MantlePlumeMinimumShare { get; init; } = 260;
+
+    /// <summary>
+    /// Falloff exponent across the plume rank order, per mille. Higher values
+    /// concentrate strength into the first few plumes.
+    /// </summary>
+    public int MantlePlumeStrengthExponent { get; init; } = 1700;
 
     public double MantlePlumeDriftPerEpoch { get; init; } = 8d;
 
