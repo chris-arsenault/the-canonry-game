@@ -58,6 +58,16 @@ internal sealed class LandformClassificationLayer : IPhysicalGeographyLayer
             return historical;
         }
 
+        if (IsWaterfall(map, triangleIndex, profile))
+        {
+            return PhysicalLandformCodes.Waterfall;
+        }
+
+        if (IsGorge(map, triangleIndex, profile))
+        {
+            return PhysicalLandformCodes.Gorge;
+        }
+
         if (IsPeak(map, triangleIndex, profile, shape))
         {
             return PhysicalLandformCodes.Peak;
@@ -82,6 +92,31 @@ internal sealed class LandformClassificationLayer : IPhysicalGeographyLayer
             ? PhysicalLandformCodes.Plain
             : PhysicalLandformCodes.Slope;
     }
+
+    private static bool IsWaterfall(
+        PhysicalGeographyField map,
+        int triangleIndex,
+        PhysicalGeographyGenerationProfile profile)
+    {
+        if (map.RiverOrders[triangleIndex] <= 0)
+        {
+            return false;
+        }
+
+        var target = map.FlowTargets[triangleIndex];
+        return target >= 0 &&
+            map.Elevation[triangleIndex] - map.Elevation[target] >=
+                PhysicalElevation.FromUnits(profile.WaterfallMinimumDrop);
+    }
+
+    private static bool IsGorge(
+        PhysicalGeographyField map,
+        int triangleIndex,
+        PhysicalGeographyGenerationProfile profile) =>
+        map.RiverOrders[triangleIndex] > 0 &&
+        map.Slope[triangleIndex] >= PhysicalElevation.FromUnits(profile.GorgeMinimumSlope) &&
+        map.CumulativeFluvialErosion[triangleIndex] >=
+            PhysicalElevation.FromUnits(profile.GorgeMinimumIncision);
 
     private static bool IsPeak(
         PhysicalGeographyField map,

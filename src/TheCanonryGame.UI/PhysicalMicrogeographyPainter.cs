@@ -41,6 +41,8 @@ public sealed partial class PhysicalMicrogeographyPainter
     private readonly bool _hasFineElevation;
     private readonly float _minimumElevation;
     private readonly float _maximumElevation;
+    private readonly float _landLowAnchor;
+    private readonly float _landHighAnchor;
     private IPhysicalMicrogeographyCanvas? _canvas;
 
     public PhysicalMicrogeographyPainter(
@@ -59,6 +61,31 @@ public sealed partial class PhysicalMicrogeographyPainter
         _maximumElevation = geography.Cells.Count == 0
             ? 1f
             : Math.Max(1f, geography.Cells.Max(static cell => cell.MaxElevation));
+        (_landLowAnchor, _landHighAnchor) = LandElevationAnchors(geography, _maximumElevation);
+    }
+
+    /// <summary>
+    /// Hypsometric anchors (10th/95th percentile of mean land elevation) so
+    /// the land ramp spends its range on the elevations land actually has,
+    /// instead of compressing them under the absolute world maximum.
+    /// </summary>
+    private static (float Low, float High) LandElevationAnchors(
+        PhysicalGeographyProjection geography,
+        float maximumElevation)
+    {
+        var land = geography.Cells
+            .Where(static cell => cell.MeanElevation > 0f)
+            .Select(static cell => cell.MeanElevation)
+            .Order()
+            .ToArray();
+        if (land.Length == 0)
+        {
+            return (0f, Math.Max(1f, maximumElevation));
+        }
+
+        var low = land[(int)(land.Length * 0.10d)];
+        var high = land[Math.Min(land.Length - 1, (int)(land.Length * 0.95d))];
+        return high - low < 1f ? (low, low + 1f) : (low, high);
     }
 
     public void PaintCell(
@@ -175,7 +202,8 @@ public sealed partial class PhysicalMicrogeographyPainter
             PhysicalGeographyView.Elevation => ElevationColor(
                 AggregateElevation(cell),
                 _minimumElevation,
-                _maximumElevation),
+                _landLowAnchor,
+                _landHighAnchor),
             PhysicalGeographyView.Temperature => TemperatureColor(cell.MeanTemperature),
             PhysicalGeographyView.Moisture => MoistureColor(cell.MeanMoisture),
             PhysicalGeographyView.Geothermal => GeothermalColor(cell.MeanGeothermal),
@@ -387,7 +415,8 @@ public sealed partial class PhysicalMicrogeographyPainter
             PhysicalGeographyView.Elevation => ElevationColor(
                 TriangleElevation(cell, triangleIndex, triangle),
                 _minimumElevation,
-                _maximumElevation),
+                _landLowAnchor,
+                _landHighAnchor),
             PhysicalGeographyView.Temperature => TemperatureColor(triangle.Temperature),
             PhysicalGeographyView.Moisture => MoistureColor(triangle.Moisture),
             PhysicalGeographyView.Geothermal => GeothermalColor(triangle.Geothermal),
@@ -684,6 +713,14 @@ public sealed partial class PhysicalMicrogeographyPainter
                     _owner!.Geometry.TriangleCentroid(index),
                     1.4f,
                     UiTokens.Vellum);
+            }
+
+            if (triangle.LandformCode == PhysicalLandformCodes.Waterfall)
+            {
+                DrawCircle(
+                    _owner!.Geometry.TriangleCentroid(index),
+                    1.2f,
+                    new Color(0.80f, 0.94f, 0.99f));
             }
 
             if (triangle.SignificantFeatureFlags != 0)

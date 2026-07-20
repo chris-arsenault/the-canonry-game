@@ -45,6 +45,8 @@ public enum IceRemembersPhysicalSurface
     RiverChannel,
     Floodplain,
     Delta,
+    Gorge,
+    Waterfall,
     FirecoreVent,
     ThermalVein,
     HotSpring,
@@ -129,6 +131,8 @@ public static class IceRemembersPhysicalGeography
         "river_channel",
         "floodplain",
         "delta",
+        "gorge",
+        "waterfall",
         "firecore_vent",
         "thermal_vein",
         "hot_spring",
@@ -327,6 +331,12 @@ public static class IceRemembersPhysicalGeography
         PhysicalGeographyField field,
         int triangleIndex)
     {
+        if (field.LandformCodes[triangleIndex] is
+            PhysicalLandformCodes.Gorge or PhysicalLandformCodes.Waterfall)
+        {
+            return IceRemembersPhysicalMaterial.ExposedBedrock;
+        }
+
         if (field.LandformCodes[triangleIndex] is PhysicalLandformCodes.Peak or PhysicalLandformCodes.Ridge)
         {
             return field.Slope[triangleIndex] >= PhysicalElevation.FromUnits(85)

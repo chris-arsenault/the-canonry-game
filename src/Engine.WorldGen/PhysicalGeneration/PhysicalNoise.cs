@@ -2,6 +2,11 @@ namespace Engine.WorldGen;
 
 public static class PhysicalNoise
 {
+    // Fixed per-octave rotation (golden angle) so octave lattices never share
+    // axes; axis-aligned stripes and diamond level sets cancel across octaves.
+    private static readonly double RotationCos = Math.Cos(2.39996322972865332d);
+    private static readonly double RotationSin = Math.Sin(2.39996322972865332d);
+
     public static double UnitNoise(double x, double y, int salt, double scale, int octaves) =>
         (FractalNoise(x, y, salt, scale, octaves) + 1d) * 0.5d;
 
@@ -10,12 +15,23 @@ public static class PhysicalNoise
         var amplitude = 1d;
         var amplitudeTotal = 0d;
         var value = 0d;
+        var cos = 1d;
+        var sin = 0d;
         for (var octave = 0; octave < octaves; octave++)
         {
-            value += ValueNoise(x / scale, y / scale, salt + (octave * 7919)) * amplitude;
+            var rotatedX = (x * cos) - (y * sin);
+            var rotatedY = (x * sin) + (y * cos);
+            value += ValueNoise(
+                rotatedX / scale,
+                rotatedY / scale,
+                salt + (octave * 7919)) * amplitude;
             amplitudeTotal += amplitude;
             amplitude *= 0.5d;
             scale *= 0.5d;
+            var nextCos = (cos * RotationCos) - (sin * RotationSin);
+            var nextSin = (cos * RotationSin) + (sin * RotationCos);
+            cos = nextCos;
+            sin = nextSin;
         }
 
         return value / amplitudeTotal;
@@ -27,12 +43,14 @@ public static class PhysicalNoise
     {
         unchecked
         {
-            var hash = salt;
-            hash = (hash * 397) ^ x;
-            hash = (hash * 397) ^ y;
-            hash ^= hash >> 13;
-            hash *= 16777619;
-            return (hash & 0x7fffffff) / (double)int.MaxValue;
+            // splitmix64-style finalizer over the packed coordinates; every
+            // input bit avalanches so neighboring lattice cells decorrelate.
+            var z = ((ulong)(uint)x << 32) | (uint)y;
+            z += (ulong)(uint)salt * 0x9E3779B97F4A7C15UL;
+            z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9UL;
+            z = (z ^ (z >> 27)) * 0x94D049BB133111EBUL;
+            z ^= z >> 31;
+            return (z >> 11) * (1d / 9007199254740992d);
         }
     }
 

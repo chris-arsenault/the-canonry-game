@@ -36,7 +36,7 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
         foreach (var surfaceIndex in map.BaseSurfaceIndexes)
         {
             if (surfaceIndex is < (int)IceRemembersPhysicalSurface.Tundra or
-                > (int)IceRemembersPhysicalSurface.Delta)
+                > (int)IceRemembersPhysicalSurface.Waterfall)
             {
                 throw new InvalidOperationException("Natural surface classification produced an invalid surface.");
             }
@@ -166,19 +166,10 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
         int triangleIndex,
         IceRemembersMicrogeographyGenerationProfile profile)
     {
-        if (field.DeltaIntensity[triangleIndex] > 0)
+        var water = ClassifyFluvialOverride(field, triangleIndex);
+        if (water.HasValue)
         {
-            return IceRemembersPhysicalSurface.Delta;
-        }
-
-        if (field.RiverChannelStrength[triangleIndex] > 0)
-        {
-            return IceRemembersPhysicalSurface.RiverChannel;
-        }
-
-        if (field.FloodplainIntensity[triangleIndex] > 0)
-        {
-            return IceRemembersPhysicalSurface.Floodplain;
+            return water.Value;
         }
 
         if (field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake)
@@ -196,6 +187,27 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
             (PhysicalLandformCodes.Moraine, _) => IceRemembersPhysicalSurface.Moraine,
             (_, var ice) when ice >= profile.GlacierMinimumThickness => IceRemembersPhysicalSurface.Glacier,
             (_, var ice) when ice >= profile.SnowfieldMinimumThickness => IceRemembersPhysicalSurface.Snowfield,
+            _ => null,
+        };
+    }
+
+    private static IceRemembersPhysicalSurface? ClassifyFluvialOverride(
+        PhysicalGeographyField field,
+        int triangleIndex)
+    {
+        if (field.DeltaIntensity[triangleIndex] > 0)
+        {
+            return IceRemembersPhysicalSurface.Delta;
+        }
+
+        return field.LandformCodes[triangleIndex] switch
+        {
+            PhysicalLandformCodes.Waterfall => IceRemembersPhysicalSurface.Waterfall,
+            PhysicalLandformCodes.Gorge => IceRemembersPhysicalSurface.Gorge,
+            _ when field.RiverChannelStrength[triangleIndex] > 0 =>
+                IceRemembersPhysicalSurface.RiverChannel,
+            _ when field.FloodplainIntensity[triangleIndex] > 0 =>
+                IceRemembersPhysicalSurface.Floodplain,
             _ => null,
         };
     }

@@ -99,6 +99,7 @@ internal static class ConditionedFlowResolver
         var best = -1;
         var bestScore = double.MinValue;
         var bestTie = double.MinValue;
+        var tieDecided = false;
         for (var edge = 0; edge < 3; edge++)
         {
             var target = map.Grid.NeighborTriangleIndex(source, edge);
@@ -115,9 +116,11 @@ internal static class ConditionedFlowResolver
                 best = target;
                 bestScore = score;
                 bestTie = CoordinateTie(map, source, target, seed);
+                tieDecided = false;
             }
             else if (NearlyEqual(score, bestScore))
             {
+                tieDecided = true;
                 var tie = CoordinateTie(map, source, target, seed);
                 if (tie > bestTie)
                 {
@@ -125,6 +128,12 @@ internal static class ConditionedFlowResolver
                     bestTie = tie;
                 }
             }
+        }
+
+        map.DrainageDecisionTotal++;
+        if (tieDecided)
+        {
+            map.DrainageTieDecisionTotal++;
         }
 
         return best >= 0

@@ -748,4 +748,22 @@ public sealed class PhysicalGeographyField
     internal long SedimentExportedTotal { get; set; }
 
     public int CompletedEpochCount { get; internal set; }
+
+    /// <summary>
+    /// Cumulative drainage-guidance selections whose top candidate scores tied
+    /// within epsilon, leaving the hashed tie-break to decide. With real
+    /// relief everywhere this should stay near zero of
+    /// <see cref="DrainageDecisionTotal"/>.
+    /// </summary>
+    public long DrainageTieDecisionTotal { get; internal set; }
+
+    public long DrainageDecisionTotal { get; internal set; }
+
+    /// <summary>
+    /// Cumulative priority-flood fills where the neighbor floor sat at or
+    /// below the flood level (flat or depression fill), against all fills.
+    /// </summary>
+    public long FloodFlatFillTotal { get; internal set; }
+
+    public long FloodFillTotal { get; internal set; }
 }

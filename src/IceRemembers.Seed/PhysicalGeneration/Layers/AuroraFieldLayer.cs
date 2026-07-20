@@ -30,7 +30,7 @@ internal sealed class AuroraFieldLayer : IIceRemembersMicrogeographyLayer
                 context.Profile.AuroraBaseInput - map.Physical.Temperature[triangleIndex] +
                     (PhysicalElevation.ToUnits(
                         Math.Max(0L, map.Physical.Elevation[triangleIndex])) / 10));
-            targets[triangleIndex] = ColdestNeighbor(map, triangleIndex);
+            targets[triangleIndex] = ColdestNeighbor(map, triangleIndex, context.Seed);
         }
 
         var order = ScalarOrder(map.Physical.Temperature);
@@ -78,20 +78,27 @@ internal sealed class AuroraFieldLayer : IIceRemembersMicrogeographyLayer
         }
     }
 
-    private static int ColdestNeighbor(IceRemembersMicrogeographyMap map, int triangleIndex)
+    private static int ColdestNeighbor(IceRemembersMicrogeographyMap map, int triangleIndex, int seed)
     {
         var target = -1;
         var targetTemperature = map.Physical.Temperature[triangleIndex];
+        var targetTie = double.MinValue;
         for (var edge = 0; edge < 3; edge++)
         {
             var neighbor = map.Physical.Grid.NeighborTriangleIndex(triangleIndex, edge);
-            if (neighbor >= 0 &&
-                (map.Physical.Temperature[neighbor] < targetTemperature ||
-                    (map.Physical.Temperature[neighbor] == targetTemperature &&
-                        neighbor < triangleIndex && (target < 0 || neighbor < target))))
+            if (neighbor < 0)
+            {
+                continue;
+            }
+
+            var temperature = map.Physical.Temperature[neighbor];
+            var tie = PhysicalNoise.HashUnit(seed ^ 0x4dcb, triangleIndex, neighbor);
+            if (temperature < targetTemperature ||
+                (temperature == targetTemperature && target >= 0 && tie > targetTie))
             {
                 target = neighbor;
-                targetTemperature = map.Physical.Temperature[neighbor];
+                targetTemperature = temperature;
+                targetTie = tie;
             }
         }
 

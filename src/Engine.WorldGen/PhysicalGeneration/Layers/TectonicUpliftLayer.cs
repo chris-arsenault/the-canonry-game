@@ -53,10 +53,12 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
                 context.Seed ^ 0x52c9,
                 context.Profile.ElevationVariationScale,
                 3) * context.Profile.ElevationVariationStrength;
-            var elevation = baseElevation + boundaryRelief + variation - assemblySeparation;
+            InteriorRelief(map, context, triangleIndex, out var interiorRelief, out var belt);
+            var elevation = baseElevation + boundaryRelief + variation + interiorRelief -
+                assemblySeparation;
             if (context.IsEvolutionEpoch)
             {
-                ApplyIncrementalUplift(map, context, triangleIndex, boundaryRelief);
+                ApplyIncrementalUplift(map, context, triangleIndex, boundaryRelief, belt);
             }
             else
             {
@@ -66,27 +68,84 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
             }
 
             map.Uplift[triangleIndex] = (float)Math.Clamp(
-                Math.Max(0d, boundaryRelief) + (potential * 0.48d) +
+                Math.Max(0d, boundaryRelief) + (belt * 0.55d) + (potential * 0.48d) +
                     InheritedRelief(map, triangleIndex, context.Profile) * 0.20d,
                 0d,
                 1.5d);
             map.RidgeInfluence[triangleIndex] = (float)Math.Clamp(
                 Math.Max(
-                    Math.Max(0d, boundaryRelief) / Math.Max(0.001d, context.Profile.RidgeUplift),
+                    Math.Max(
+                        Math.Max(0d, boundaryRelief) / Math.Max(0.001d, context.Profile.RidgeUplift),
+                        belt / Math.Max(0.001d, context.Profile.InteriorBeltStrength) * 0.8d),
                     InheritedRelief(map, triangleIndex, context.Profile) * 0.52d),
                 0d,
                 1d);
         }
     }
 
+    /// <summary>
+    /// Persistent interior height structure on continental crust: broad
+    /// highlands/basins plus elongated mountain belts along the zero contours
+    /// of an epoch-stable belt field. Keeps a strong differential everywhere so
+    /// downstream processes never operate on a flat plateau.
+    /// </summary>
+    private static void InteriorRelief(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationContext context,
+        int triangleIndex,
+        out double relief,
+        out double belt)
+    {
+        var profile = context.Profile;
+        var continentality = Math.Clamp(
+            ((map.ContinentalPotential[triangleIndex] / 1000d) - 0.45d) / 0.25d,
+            0d,
+            1d);
+        if (continentality <= 0d)
+        {
+            relief = 0d;
+            belt = 0d;
+            return;
+        }
+
+        var x = map.Grid.TriangleX(triangleIndex);
+        var y = map.Grid.TriangleY(triangleIndex);
+        var macro = PhysicalNoise.FractalNoise(
+            x,
+            y,
+            context.EpochStableSeed ^ 0x5ee1,
+            profile.InteriorReliefScale,
+            4) * profile.InteriorReliefStrength;
+        var beltField = PhysicalNoise.FractalNoise(
+            x,
+            y,
+            context.EpochStableSeed ^ 0x77a3,
+            profile.InteriorBeltScale * 2.6d,
+            3);
+        var beltMask = Math.Clamp(
+            (profile.InteriorBeltCoverage - Math.Abs(beltField)) / 0.18d,
+            0d,
+            1d);
+        var ridged = 1d - Math.Abs(PhysicalNoise.FractalNoise(
+            x,
+            y,
+            context.EpochStableSeed ^ 0x3b59,
+            profile.InteriorBeltScale,
+            4));
+        belt = continentality * beltMask * Math.Pow(ridged, 1.6d) * profile.InteriorBeltStrength;
+        relief = (continentality * macro) + belt;
+    }
+
     private static void ApplyIncrementalUplift(
         PhysicalGeographyField map,
         PhysicalGeographyGenerationContext context,
         int triangleIndex,
-        double boundaryRelief)
+        double boundaryRelief,
+        double belt)
     {
+        var beltUplift = belt * context.Profile.EpochInteriorUpliftShare / 1000d;
         var delta = PhysicalElevation.FromUnits(
-            boundaryRelief * context.Profile.EpochTectonicElevationStep *
+            (boundaryRelief + beltUplift) * context.Profile.EpochTectonicElevationStep *
                 context.TectonicStrength / 1000d);
         var maximumBedrock = PhysicalElevation.FromUnits(2000) - map.SedimentThickness[triangleIndex];
         var nextBedrock = Math.Clamp(

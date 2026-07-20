@@ -49,7 +49,7 @@ public sealed class PhysicalHydrologyLayerTests
         }
 
         var physicalFloor = map.Elevation.ToArray();
-        PriorityFlood.FillFromOcean(map);
+        PriorityFlood.FillFromOcean(map, seed: 9173);
 
         Assert.Equal(physicalFloor, map.Elevation.ToArray());
         Assert.Contains(

@@ -18,10 +18,17 @@ internal sealed class PhysicalGeographyGenerationContext
         unchecked
         {
             Seed = seed ^ contract.SeedSalt ^ EpochSeedSalt(epochIndex);
+            EpochStableSeed = seed ^ contract.SeedSalt;
         }
     }
 
     public int Seed { get; }
+
+    /// <summary>
+    /// Layer-salted seed without the epoch salt, for persistent structure that
+    /// must not move between epochs (cratons, belts, plume roots).
+    /// </summary>
+    public int EpochStableSeed { get; }
 
     public string LayerName { get; }
 

@@ -11,5 +11,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Engine.WorldGen.Tests" />
+    <InternalsVisibleTo Include="WorldGenerator" />
   </ItemGroup>
 </Project>

@@ -55,18 +55,18 @@ internal static class IceRemembersPhysicalTerrainSynthesizer
     private static int ScoreCrags(SynthesisFacts facts) =>
         facts.Aggregate.LandCoverage < 8 ||
             (facts.Aggregate.PeakCount == 0 &&
-                facts.Aggregate.Relief < 55 &&
-                facts.Aggregate.Roughness < 35 &&
+                facts.Aggregate.Relief < 240 &&
+                facts.Aggregate.Roughness < 130 &&
                 facts.Aggregate.RidgeEdgeMask == 0 &&
                 facts.Scree < 2)
             ? Ineligible
-            : 2300 +
+            : 800 +
                 (facts.ExposedBedrock * 140) +
                 (facts.Scree * 80) +
                 (facts.Aggregate.PeakCount * 400) +
                 (BitOperations.PopCount((uint)facts.Aggregate.RidgeEdgeMask) * 180) +
-                (facts.Aggregate.Relief * 10) +
-                (facts.Aggregate.Roughness * 3);
+                (facts.Aggregate.Relief * 4) +
+                (facts.Aggregate.Roughness * 2);
 
     private static int ScoreHotSprings(SynthesisFacts facts) =>
         facts.Aggregate.LandCoverage < 8 ||

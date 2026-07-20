@@ -381,6 +381,16 @@ public partial class HexTooltipPanel : PanelContainer
         PhysicalLandformCodes.Cirque => "cirque",
         PhysicalLandformCodes.Fjord => "fjord",
         PhysicalLandformCodes.Moraine => "moraine",
+        _ => HistoricalLandformName(code),
+    };
+
+    private static string HistoricalLandformName(int code) => code switch
+    {
+        PhysicalLandformCodes.OutwashPlain => "outwash plain",
+        PhysicalLandformCodes.ImpactBasin => "impact basin",
+        PhysicalLandformCodes.ImpactRim => "impact rim",
+        PhysicalLandformCodes.Gorge => "gorge",
+        PhysicalLandformCodes.Waterfall => "waterfall",
         _ => $"landform-{code}",
     };
 

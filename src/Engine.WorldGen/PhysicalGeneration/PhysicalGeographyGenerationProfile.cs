@@ -190,6 +190,36 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public double ElevationVariationStrength { get; init; } = 0.12d;
 
+    /// <summary>
+    /// Amplitude of broad interior highlands and basins, as a fraction of
+    /// <see cref="ElevationScale"/>. Applied on continental crust so interiors
+    /// carry macro relief instead of saturating to one plateau height.
+    /// </summary>
+    public double InteriorReliefStrength { get; init; } = 0.45d;
+
+    public double InteriorReliefScale { get; init; } = 44d;
+
+    /// <summary>
+    /// Peak amplitude of elongated interior mountain belts (ancient orogens),
+    /// as a fraction of <see cref="ElevationScale"/>.
+    /// </summary>
+    public double InteriorBeltStrength { get; init; } = 0.72d;
+
+    public double InteriorBeltScale { get; init; } = 24d;
+
+    /// <summary>
+    /// Width of the belt bands carved along the belt-field zero contours.
+    /// Larger values cover more of the interior with mountain belts.
+    /// </summary>
+    public double InteriorBeltCoverage { get; init; } = 0.30d;
+
+    /// <summary>
+    /// Per-mille share of <see cref="EpochTectonicElevationStep"/> applied as
+    /// continued interior-belt uplift each evolution epoch, so belts keep
+    /// their differential against erosion across the whole epoch schedule.
+    /// </summary>
+    public int EpochInteriorUpliftShare { get; init; } = 300;
+
     public int EpochTectonicElevationStep { get; init; } = 150;
 
     public int FluvialErosionIterations { get; init; } = 5;
@@ -268,9 +298,9 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int IslandTriangleThreshold { get; init; } = 720;
 
-    public int LakeDepthThreshold { get; init; } = 18;
+    public int LakeDepthThreshold { get; init; } = 45;
 
-    public int MinimumLakeTriangles { get; init; } = 6;
+    public int MinimumLakeTriangles { get; init; } = 24;
 
     public double EndorheicLakeFraction { get; init; } = 0.06d;
 
@@ -280,9 +310,9 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int DrainageConditionedGradientWeight { get; init; } = 450;
 
-    public int DrainageOutletAlignmentWeight { get; init; } = 320;
+    public int DrainageOutletAlignmentWeight { get; init; } = 30;
 
-    public int DrainageInheritedValleyWeight { get; init; } = 180;
+    public int DrainageInheritedValleyWeight { get; init; } = 450;
 
     public int RiverAccumulationThreshold { get; init; } = 10500;
 
@@ -396,11 +426,21 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public double SeaIceVariationScale { get; init; } = 26d;
 
-    public int RidgeElevationThreshold { get; init; } = 145;
+    public int RidgeElevationThreshold { get; init; } = 1000;
 
     public int RidgeSlopeThreshold { get; init; } = 38;
 
-    public int PeakElevationThreshold { get; init; } = 235;
+    public int PeakElevationThreshold { get; init; } = 1250;
+
+    /// <summary>
+    /// Elevation drop (units) from a channel triangle to its flow target that
+    /// classifies the step as a waterfall.
+    /// </summary>
+    public int WaterfallMinimumDrop { get; init; } = 45;
+
+    public int GorgeMinimumSlope { get; init; } = 90;
+
+    public int GorgeMinimumIncision { get; init; } = 12;
 
     public int PeakProminenceThreshold { get; init; } = 16;
 
@@ -532,10 +572,17 @@ public sealed record PhysicalGeographyGenerationProfile
 
     private bool LandscapeScaleIsInvalid() =>
         ElevationVariationScale <= 0d || FluvialErosionStrength <= 0d ||
+        InteriorReliefScaleIsInvalid() ||
         ImpactMinimumRadius <= 0d || ImpactMaximumRadius < ImpactMinimumRadius ||
         ImpactMinimumSpacing <= 0d || ImpactThermalRadiusThreshold <= 0d ||
         WarmthPocketMinRadius <= 0d || HeartWarmthRadius <= 0d ||
         SeaIceVariationScale <= 0d;
+
+    private bool InteriorReliefScaleIsInvalid() =>
+        InteriorReliefStrength < 0d || InteriorReliefScale <= 0d ||
+        InteriorBeltStrength < 0d || InteriorBeltScale <= 0d ||
+        InteriorBeltCoverage is <= 0d or >= 1d ||
+        EpochInteriorUpliftShare is < 0 or > 1000;
 
     private void ValidateRanges()
     {

@@ -43,9 +43,11 @@ public static class PhysicalLandformCodes
     public const int OutwashPlain = 13;
     public const int ImpactBasin = 14;
     public const int ImpactRim = 15;
+    public const int Gorge = 16;
+    public const int Waterfall = 17;
 
     public const int Min = Plain;
-    public const int Max = ImpactRim;
+    public const int Max = Waterfall;
 }
 
 public static class PhysicalLandmassClassCodes

@@ -51,12 +51,19 @@ internal sealed class ExternalCoastalForcingLayer : IPhysicalGeographyLayer
                 continue;
             }
 
-            var oceanTarget = BestOceanTarget(map, triangleIndex);
-            if (forcing > 1000 || map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None ||
-                oceanTarget < 0)
+            if (forcing > 1000 || map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None)
             {
                 throw new InvalidOperationException(
-                    "External coastal forcing must target dry terrain beside the ocean.");
+                    "External coastal forcing must target dry terrain.");
+            }
+
+            var oceanTarget = BestOceanTarget(map, triangleIndex);
+            if (oceanTarget < 0)
+            {
+                // Deposition earlier in this pass can emerge a shallow shelf
+                // neighbor, moving the coastline off this cell. The stranded
+                // forcing dissipates instead of eroding an inland cell.
+                continue;
             }
 
             map.ExternalCoastalForcingHistory[triangleIndex] = Math.Max(

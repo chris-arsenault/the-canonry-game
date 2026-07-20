@@ -33,15 +33,13 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
                 continue;
             }
 
-            var surface = map.DrainageElevations[triangleIndex];
             var componentId = ++nextComponentId;
             var component = CollectComponent(
                 map,
                 depression,
                 componentMarks,
                 triangleIndex,
-                componentId,
-                surface);
+                componentId);
             if (!Qualifies(component, context.Profile))
             {
                 continue;
@@ -111,13 +109,21 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
         }
     }
 
+    /// <summary>
+    /// The conditioned surface carries a subunit epsilon gradient, so a cell
+    /// counts as submerged only when the fill exceeds its floor by at least a
+    /// full elevation unit; epsilon-raised routing cells stay dry land.
+    /// </summary>
+    private const long MinimumSubmergence = PhysicalElevation.SubunitsPerUnit;
+
     private static bool[] BuildDepressionMask(PhysicalGeographyField map)
     {
         var depression = new bool[map.Grid.TriangleCount];
         for (var triangleIndex = 0; triangleIndex < depression.Length; triangleIndex++)
         {
             depression[triangleIndex] = map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.None &&
-                map.DrainageElevations[triangleIndex] > map.Elevation[triangleIndex];
+                map.DrainageElevations[triangleIndex] - map.Elevation[triangleIndex] >=
+                    MinimumSubmergence;
         }
 
         return depression;
@@ -128,19 +134,33 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
         bool[] depression,
         int[] componentMarks,
         int start,
-        int componentId,
-        long surface)
+        int componentId)
     {
         var queue = new Queue<int>();
-        var members = new List<int>();
-        var maximumDepth = 0L;
+        var collected = new List<int>();
+        var surface = long.MaxValue;
         componentMarks[start] = componentId;
         queue.Enqueue(start);
         while (queue.TryDequeue(out var member))
         {
-            members.Add(member);
-            maximumDepth = Math.Max(maximumDepth, surface - map.Elevation[member]);
-            EnqueueComponentNeighbors(map, depression, componentMarks, queue, member, componentId, surface);
+            collected.Add(member);
+            surface = Math.Min(surface, map.DrainageElevations[member]);
+            EnqueueComponentNeighbors(map, depression, componentMarks, queue, member, componentId);
+        }
+
+        // The component water surface is its spill fill level (the smallest
+        // conditioned elevation). Cells whose physical floor is not strictly
+        // below that surface are shore relief above the spill, not lake.
+        var members = new List<int>(collected.Count);
+        var maximumDepth = 0L;
+        foreach (var member in collected)
+        {
+            var depth = surface - map.Elevation[member];
+            if (depth > 0)
+            {
+                members.Add(member);
+                maximumDepth = Math.Max(maximumDepth, depth);
+            }
         }
 
         return new DepressionComponent(componentId, members, surface, maximumDepth);
@@ -152,14 +172,12 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
         int[] componentMarks,
         Queue<int> queue,
         int member,
-        int componentId,
-        long surface)
+        int componentId)
     {
         for (var edge = 0; edge < 3; edge++)
         {
             var neighbor = map.Grid.NeighborTriangleIndex(member, edge);
-            if (neighbor >= 0 && depression[neighbor] && componentMarks[neighbor] == 0 &&
-                map.DrainageElevations[neighbor] == surface)
+            if (neighbor >= 0 && depression[neighbor] && componentMarks[neighbor] == 0)
             {
                 componentMarks[neighbor] = componentId;
                 queue.Enqueue(neighbor);

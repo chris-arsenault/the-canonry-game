@@ -8,7 +8,11 @@ namespace TheCanonryGame.UI;
 
 public sealed partial class PhysicalMicrogeographyPainter
 {
-    private static Color ElevationColor(float elevation, float minimum, float maximum)
+    private static Color ElevationColor(
+        float elevation,
+        float minimum,
+        float landLow,
+        float landHigh)
     {
         if (elevation < 0f)
         {
@@ -21,8 +25,8 @@ public sealed partial class PhysicalMicrogeographyPainter
         }
 
         var normalized = MathF.Pow(
-            Math.Clamp(elevation / Math.Max(1f, maximum), 0f, 1f),
-            0.55f);
+            Math.Clamp((elevation - landLow) / Math.Max(1f, landHigh - landLow), 0f, 1f),
+            0.80f);
         if (normalized < 0.58f)
         {
             return new Color(0.31f, 0.48f, 0.38f).Lerp(
@@ -187,6 +191,16 @@ public sealed partial class PhysicalMicrogeographyPainter
 
     private static Color LandformColor(int landformCode)
     {
+        if (landformCode == PhysicalLandformCodes.Gorge)
+        {
+            return new Color(0.26f, 0.28f, 0.33f);
+        }
+
+        if (landformCode == PhysicalLandformCodes.Waterfall)
+        {
+            return new Color(0.71f, 0.90f, 0.96f);
+        }
+
         if (landformCode >= PhysicalLandformCodes.OutwashPlain)
         {
             return HistoricalLandformColor(landformCode);

@@ -16,8 +16,7 @@ internal sealed class DrainageConditioningLayer : IPhysicalGeographyLayer
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
-        _ = context;
-        PriorityFlood.FillFromOcean(map);
+        PriorityFlood.FillFromOcean(map, context.Seed);
     }
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
