@@ -135,17 +135,26 @@ public sealed record DomainStartupSeedResult
 {
     public DomainStartupSeedResult(
         DomainStartupSeed seed,
-        StartupSeedIdentity identity)
+        StartupSeedIdentity identity,
+        IReadOnlyList<string>? rejectedAttempts = null)
     {
         ArgumentNullException.ThrowIfNull(seed);
         ArgumentNullException.ThrowIfNull(identity);
         Seed = seed;
         Identity = identity;
+        RejectedAttempts = rejectedAttempts ?? [];
     }
 
     public DomainStartupSeed Seed { get; }
 
     public StartupSeedIdentity Identity { get; }
+
+    /// <summary>
+    /// Why the attempts before the accepted one were turned down, in order.
+    /// A domain that rejects seeds silently makes a change that degrades the
+    /// world indistinguishable from one that merely reshuffles it.
+    /// </summary>
+    public IReadOnlyList<string> RejectedAttempts { get; }
 }
 
 public interface IKernelDomainModule

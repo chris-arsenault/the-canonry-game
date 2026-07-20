@@ -32,7 +32,7 @@ internal sealed class IceRemembersKernelDomainModule : IKernelDomainModule
                 ["entity"] = acceptedSeed.EntitySeed,
             });
 
-        return new DomainStartupSeedResult(accepted.StartupSeed, identity);
+        return new DomainStartupSeedResult(accepted.StartupSeed, identity, accepted.RejectedAttempts);
     }
 
     public void ConfigureProjectionSymbols(KernelSymbolContext symbols)

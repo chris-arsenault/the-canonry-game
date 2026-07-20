@@ -27,6 +27,11 @@ internal static class WorldGeneratorCli
             $"Generated accepted seed {startupSeed.Identity.BaseSeed}/{startupSeed.Identity.Attempt} " +
             $"in {generationStopwatch.Elapsed.TotalSeconds:0.00}s. Writing {fullOutputPath}...");
 
+        foreach (var rejection in startupSeed.RejectedAttempts)
+        {
+            Console.WriteLine($"  rejected {rejection}");
+        }
+
         var writeStopwatch = Stopwatch.StartNew();
         IceRemembersPregeneratedWorldStore.Write(fullOutputPath, startupSeed);
         writeStopwatch.Stop();

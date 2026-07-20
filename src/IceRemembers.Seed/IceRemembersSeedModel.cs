@@ -6,9 +6,16 @@ using Engine.Graph;
 using Engine.Kinds;
 using Engine.WorldGen;
 
+/// <summary>
+/// The accepted seed plus why the attempts before it were turned down.
+/// Rejections used to be discarded unless every attempt failed, so a change
+/// that degraded the world enough to burn several attempts showed up only as a
+/// different attempt number.
+/// </summary>
 internal sealed record IceRemembersStartupSeedResult(
     WorldGenerationSeed Seed,
-    DomainStartupSeed StartupSeed);
+    DomainStartupSeed StartupSeed,
+    IReadOnlyList<string> RejectedAttempts);
 
 internal sealed class SeedAssembly
 {

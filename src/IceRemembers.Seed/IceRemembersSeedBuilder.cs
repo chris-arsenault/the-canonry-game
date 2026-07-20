@@ -117,6 +117,7 @@ internal static partial class IceRemembersSeedBuilder
         ArgumentNullException.ThrowIfNull(validateSeed);
 
         IReadOnlyList<string> lastIssues = [];
+        var rejected = new List<string>();
         for (var attempt = 0; attempt < maxAttempts; attempt++)
         {
             var seed = WorldGenerationSeed.FromBaseSeed(baseSeed, attempt);
@@ -126,10 +127,11 @@ internal static partial class IceRemembersSeedBuilder
                 var report = validateSeed(startupSeed);
                 if (report.IsValid)
                 {
-                    return new IceRemembersStartupSeedResult(seed, startupSeed);
+                    return new IceRemembersStartupSeedResult(seed, startupSeed, rejected);
                 }
 
                 lastIssues = report.Issues;
+                rejected.Add($"attempt {attempt}: {string.Join("; ", report.Issues)}");
             }
 #pragma warning disable CA1031
             catch (Exception ex)
@@ -139,6 +141,7 @@ internal static partial class IceRemembersSeedBuilder
                 [
                     $"{ex.GetType().Name}: {ex.Message}",
                 ];
+                rejected.Add($"attempt {attempt}: {ex.GetType().Name}: {ex.Message}");
             }
         }
 
