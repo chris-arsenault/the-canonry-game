@@ -99,6 +99,54 @@ internal sealed class CoastalErosionLayer : IPhysicalGeographyLayer
         return coastalWave;
     }
 
+    /// <summary>
+    /// How hard this ground is to cut back, derived from facts the generator
+    /// already computed rather than from an independent noise field.
+    ///
+    /// Wave exposure peaks on protruding headlands, so erosion driven by wave
+    /// energy alone is a coastline *straightener*: it planes off every
+    /// promontory and fills every bay. Real coasts stay ragged because
+    /// lithology varies — basalt headlands and orogenic cores survive while
+    /// sediment aprons retreat. Differential resistance is what preserves
+    /// capes, stacks, and peninsulas instead of grinding them flat.
+    /// </summary>
+    private static double RockResistance(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile,
+        int triangleIndex)
+    {
+        var resistance = map.CrustTypeCodes[triangleIndex] ==
+            PhysicalCrustTypeCodes.Continental ? 18d : 12d;
+
+        // Volcanic construction leaves hard rock: necks, flows, and cones
+        // become the capes and stacks that survive an eroding shoreline.
+        var volcanic = Math.Clamp(
+            PhysicalElevation.ToUnits(map.VolcanicConstructionHistory[triangleIndex]) /
+                Math.Max(1d, profile.VolcanicConeHeight),
+            0d,
+            1d);
+        resistance += volcanic * profile.VolcanicRockResistance / 100d;
+
+        // Long-lived tectonic activity means deep-seated, competent rock.
+        var orogenic = Math.Clamp(
+            map.TectonicActivityHistory[triangleIndex] /
+                Math.Max(1d, profile.EpochTectonicElevationStep * 2d),
+            0d,
+            1d);
+        resistance += orogenic * profile.OrogenicRockResistance / 100d;
+
+        // Thick sediment is soft: aprons and outwash retreat readily, which is
+        // what opens bays between the resistant headlands.
+        var sediment = Math.Clamp(
+            PhysicalElevation.ToUnits(map.SedimentThickness[triangleIndex]) /
+                Math.Max(1d, profile.SoftSedimentDepth),
+            0d,
+            1d);
+        resistance -= sediment * profile.SedimentRockWeakness / 100d;
+
+        return Math.Max(4d, resistance);
+    }
+
     private static int AdjacentOceanWave(PhysicalGeographyField map, int triangleIndex)
     {
         var wave = 0;
@@ -127,10 +175,8 @@ internal sealed class CoastalErosionLayer : IPhysicalGeographyLayer
             1000d);
         var forcing = (waveExcess * profile.CoastalErosionStrength / 1000d) +
             (shelfSlope / 18d) + Math.Abs(profile.CoastalSeaLevelChange);
-        var resistance = map.CrustTypeCodes[triangleIndex] ==
-            PhysicalCrustTypeCodes.Continental ? 18d : 12d;
         return PhysicalElevation.FromUnits(Math.Clamp(
-            forcing / resistance,
+            forcing / RockResistance(map, profile, triangleIndex),
             0d,
             profile.MaximumCoastalErosionPerPass));
     }

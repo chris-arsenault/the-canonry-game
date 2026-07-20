@@ -46,7 +46,7 @@ internal sealed class LandformClassificationLayer : IPhysicalGeographyLayer
         PhysicalGeographyGenerationProfile profile)
     {
         var shape = MeasureShape(map, triangleIndex);
-        var retained = RetainedPhysicalLandform(map, triangleIndex);
+        var retained = RetainedPhysicalLandform(map, triangleIndex, profile);
         if (retained != 0)
         {
             return retained;
@@ -185,14 +185,27 @@ internal sealed class LandformClassificationLayer : IPhysicalGeographyLayer
                 : 0;
     }
 
-    private static int RetainedPhysicalLandform(PhysicalGeographyField map, int triangleIndex)
+    private static int RetainedPhysicalLandform(
+        PhysicalGeographyField map,
+        int triangleIndex,
+        PhysicalGeographyGenerationProfile profile)
     {
         var glacial = map.LandformCodes[triangleIndex];
         if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
         {
-            return glacial is PhysicalLandformCodes.UValley or PhysicalLandformCodes.Cirque
-                ? PhysicalLandformCodes.Fjord
-                : PhysicalLandformCodes.Seabed;
+            // A fjord is a glacial valley the sea has drowned. Glacial
+            // landform classification skips water, so a valley that ended up
+            // below sea level never carried a UValley code and this branch was
+            // unreachable: the carving history is the durable evidence, not
+            // the transient code.
+            if (glacial is PhysicalLandformCodes.UValley or PhysicalLandformCodes.Cirque ||
+                map.CumulativeGlacialErosion[triangleIndex] >=
+                    PhysicalElevation.FromUnits(profile.FjordMinimumGlacialErosion))
+            {
+                return PhysicalLandformCodes.Fjord;
+            }
+
+            return PhysicalLandformCodes.Seabed;
         }
 
         if (glacial is PhysicalLandformCodes.UValley or

@@ -46,6 +46,7 @@ public sealed class PhysicalGeographyEvolutionSession
         Apply(new ContinentalDomainLayer());
         Apply(new TectonicUpliftLayer());
         Apply(new LandscapeInitializationLayer());
+        Apply(new CoastalDetailLayer());
         Apply(new MantlePlumeRootLayer());
         Apply(new VolcanicConstructionLayer());
         Apply(new ImpactCrateringLayer());

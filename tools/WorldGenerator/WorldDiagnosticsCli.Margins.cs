@@ -63,10 +63,79 @@ internal static partial class WorldDiagnosticsCli
             var shelfPerCoast = coastal[margin] == 0
                 ? 0d
                 : shelfTriangles[margin] / (double)coastal[margin];
+
+            // Coastline length against the square root of enclosed land area:
+            // a smooth blob sits near 4, and the value climbs as the shoreline
+            // becomes crenulated. This is the number that says whether coasts
+            // are ragged, and reporting it per margin says whether they are
+            // ragged in *different ways*.
+            var crenulation = landTriangles[margin] <= 0
+                ? 0d
+                : coastal[margin] / Math.Sqrt(landTriangles[margin]);
             Console.WriteLine(
                 $"  {names[margin],-11} triangles={all[margin],8} land={landTriangles[margin],8} " +
-                $"coastline={coastal[margin],6} shelf/coast={shelfPerCoast,6:0.00}");
+                $"coastline={coastal[margin],6} shelf/coast={shelfPerCoast,6:0.00} " +
+                $"crenulation={crenulation,6:0.00}");
         }
+
+        ReportCoastalForms(field);
+    }
+
+    /// <summary>
+    /// The named coast forms from review: offshore island groups, narrow
+    /// peninsulas and isthmuses, and drowned glacial inlets.
+    /// </summary>
+    private static void ReportCoastalForms(PhysicalGeographyField field)
+    {
+        var landmassSizes = new Dictionary<int, int>();
+        long isthmus = 0;
+        long fjord = 0;
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (!field.Grid.TriangleIsInsideConfiguredDisk(t))
+            {
+                continue;
+            }
+
+            if (field.LandformCodes[t] == PhysicalLandformCodes.Fjord)
+            {
+                fjord++;
+            }
+
+            if (field.WaterKindCodes[t] != PhysicalWaterKindCodes.None)
+            {
+                continue;
+            }
+
+            var landmass = field.LandmassIds[t];
+            if (landmass > 0)
+            {
+                landmassSizes[landmass] = landmassSizes.GetValueOrDefault(landmass) + 1;
+            }
+
+            // Land with ocean on two or more sides is a neck: a peninsula tip,
+            // an isthmus, or a barrier strand.
+            var oceanSides = 0;
+            for (var edge = 0; edge < 3; edge++)
+            {
+                var neighbor = field.Grid.NeighborTriangleIndex(t, edge);
+                if (neighbor >= 0 && field.WaterKindCodes[neighbor] == PhysicalWaterKindCodes.Ocean)
+                {
+                    oceanSides++;
+                }
+            }
+
+            if (oceanSides >= 2)
+            {
+                isthmus++;
+            }
+        }
+
+        var islands = landmassSizes.Values.Count(size => size is > 0 and < 400);
+        var large = landmassSizes.Values.Count(size => size >= 400);
+        Console.WriteLine(
+            $"  landmasses: {large} major, {islands} islands (<400 triangles); " +
+            $"neck triangles={isthmus} fjord triangles={fjord}");
     }
 
     private static bool HasOceanNeighbor(PhysicalGeographyField field, int triangleIndex)

@@ -160,6 +160,52 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int RiftedMarginFlattening { get; init; } = 300;
 
+    /// <summary>
+    /// Elevation band around sea level, in authored units, inside which
+    /// coastal detail is displaced. Narrow enough not to disturb interiors.
+    /// </summary>
+    public int CoastalDetailBand { get; init; } = 90;
+
+    /// <summary>
+    /// Overall coastal-detail strength, per mille. Zero disables the layer.
+    /// </summary>
+    public int CoastalDetailStrength { get; init; } = 1000;
+
+    /// <summary>
+    /// Base wavelength of coastal displacement in world units. The octave
+    /// stack reaches roughly a triangle from here, which is what makes narrow
+    /// peninsulas and straits representable at all.
+    /// </summary>
+    public double CoastalDetailScale { get; init; } = 7d;
+
+    public double CoastalDetailWarp { get; init; } = 2600d;
+
+    public int CoastalDetailPassiveAmplitude { get; init; } = 62;
+
+    public int CoastalDetailConvergentAmplitude { get; init; } = 88;
+
+    public int CoastalDetailRiftedAmplitude { get; init; } = 74;
+
+    public int CoastalDetailTransformAmplitude { get; init; } = 34;
+
+    /// <summary>Extra coastal erosion resistance from volcanic rock.</summary>
+    public int VolcanicRockResistance { get; init; } = 2600;
+
+    /// <summary>Extra coastal erosion resistance from orogenic history.</summary>
+    public int OrogenicRockResistance { get; init; } = 1500;
+
+    /// <summary>Resistance removed by a full soft-sediment cover.</summary>
+    public int SedimentRockWeakness { get; init; } = 900;
+
+    /// <summary>Sediment thickness, in units, treated as fully soft cover.</summary>
+    public int SoftSedimentDepth { get; init; } = 45;
+
+    /// <summary>
+    /// Cumulative glacial erosion, in units, that marks a submerged triangle
+    /// as a drowned glacial valley rather than ordinary seabed.
+    /// </summary>
+    public int FjordMinimumGlacialErosion { get; init; } = 2;
+
     public double ElevationVariationScale { get; init; } = 25d;
 
     public double ElevationVariationStrength { get; init; } = 0.12d;

@@ -370,6 +370,39 @@ the correlation matrix is not mistaken for one.
 The correlation matrix is now part of `diagnose`, so M5 has a measurable gate
 rather than an aesthetic one.
 
+## M4 result (2026-07-20): coasts now differ in kind
+
+Seed 42, radius 128, after margin classification, crust age, margin-dependent
+near-shore flattening, margin-dependent coastal displacement, and differential
+coastal erosion:
+
+| margin | land | shelf per coast | crenulation |
+| --- | --- | --- | --- |
+| passive | 238,806 | 19.15 | 3.54 |
+| transform | 64,960 | 13.36 | 5.46 |
+| rifted | 82,149 | 10.17 | 6.80 |
+| convergent | 99,773 | 8.04 | 6.20 |
+
+Crenulation is coastline triangles over the square root of enclosed land area:
+a smooth blob sits near 4 and climbs as the shoreline becomes ragged. Passive
+margins are broad-shelved and comparatively smooth, rifted and convergent
+margins are narrow-shelved and deeply indented, transforms sit between. That
+separation is the M4.0 acceptance criterion and it holds. The world also
+carries 32 islands against 6 major landmasses, and 1,441 neck triangles
+(land with ocean on two or more sides) — peninsulas, isthmuses, and strands.
+
+**Residual: fjords remain rare (7 triangles).** The `Fjord` branch was
+previously unreachable — glacial landform classification skips water, so a
+valley drowned by later sea-level rise never carried the `UValley` code that
+the branch tested. It now keys on cumulative glacial erosion, which is
+persistent history and survives drowning, so the path works. The reason the
+count stays low is upstream: little glacial carving happens on the shelf that
+the glacial-maximum sea-level drop exposes, because grounded ice is thin at
+those margins. Making fjord coasts common needs the glaciation model to route
+ice onto exposed shelves, which is its own piece of work. Lowering the
+threshold further would relabel ordinary seabed as fjord, which is worse than
+reporting few.
+
 ## Addendum (2026-07-20, round 5): the twisted lattice
 
 Persisting disjoint rivers — visible even in capture-harness output while
