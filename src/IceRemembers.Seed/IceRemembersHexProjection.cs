@@ -29,7 +29,7 @@ internal static class IceRemembersHexProjection
     private const int BasaltSurfaceCut = 8;
     private const int RiverLandCut = 8;
     private const int CragPeakCut = 2;
-    private const int CragSurfaceCut = 8;
+    private const int CragSurfaceCut = 14;
     private const int CragReliefCut = 240;
     private const int CragRoughnessCut = 130;
     private const int IceSurfaceCut = 10;
