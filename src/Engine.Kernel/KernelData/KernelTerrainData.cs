@@ -144,6 +144,22 @@ internal sealed partial class KernelTerrainData
     public float CrossingFactor(int crossingClass, int movementProfileId) =>
         _crossingFactors.GetOrDefault(crossingClass, movementProfileId, 1f);
 
+    // Warmth tilts culture deposition: influence accumulates fastest on
+    // ground worth holding, so contest concentrates instead of spreading
+    // uniformly. Defaults to flat (terrain-only influence).
+    private readonly float[] _warmthInfluenceCurve = [1f, 1f, 1f, 1f];
+
+    public void SetWarmthInfluenceCurve(float band0, float band1, float band2, float band3)
+    {
+        _warmthInfluenceCurve[0] = ClampNonNegative(band0);
+        _warmthInfluenceCurve[1] = ClampNonNegative(band1);
+        _warmthInfluenceCurve[2] = ClampNonNegative(band2);
+        _warmthInfluenceCurve[3] = ClampNonNegative(band3);
+    }
+
+    public float WarmthInfluenceFactor(int warmthBand) =>
+        _warmthInfluenceCurve[warmthBand & PhysicalHexFieldCodes.BandMask];
+
     public bool CrossingRoadNegated(int crossingClass) =>
         (uint)crossingClass < (uint)_crossingRoadNegated.Length && _crossingRoadNegated[crossingClass];
 

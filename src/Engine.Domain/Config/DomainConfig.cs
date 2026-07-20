@@ -40,6 +40,13 @@ public sealed class DomainConfig
     /// </summary>
     public IReadOnlyList<CrossingProfileConfig> CrossingProfiles { get; init; } = [];
 
+    /// <summary>
+    /// Physical culture-influence multiplier per warmth band (exactly 4
+    /// values, bands 0-3), or empty for terrain-only influence. Warmth tilts
+    /// deposition so contest concentrates on ground worth holding.
+    /// </summary>
+    public IReadOnlyList<float> WarmthInfluenceCurve { get; init; } = [];
+
     /// <summary>Rules for short-lived non-graph actors emitted by named entities.</summary>
     public IReadOnlyList<MinorActorRuleConfig> MinorActors { get; init; } = [];
 

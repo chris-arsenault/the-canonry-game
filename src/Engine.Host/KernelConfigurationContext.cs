@@ -511,6 +511,12 @@ internal sealed class KernelConfigurationContext
     public void RegisterTerrainMapSignal(int terrainId, float baseCapacity) =>
         _kernel.MapSignals.RegisterTerrainCapacity(terrainId, baseCapacity);
 
+    public void SetMapSignalsWarmthCapacityCurve(float band0, float band1, float band2, float band3) =>
+        _kernel.MapSignals.Data.SetWarmthCapacityCurve(band0, band1, band2, band3);
+
+    public void SetTerrainWarmthInfluenceCurve(float band0, float band1, float band2, float band3) =>
+        _kernel.KernelData.Terrain.SetWarmthInfluenceCurve(band0, band1, band2, band3);
+
     public void RegisterKindMapSignal(
         int kindId,
         int signalRadius,

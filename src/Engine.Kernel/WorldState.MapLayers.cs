@@ -242,6 +242,15 @@ internal sealed partial class WorldState
         return _kernelData.Terrain.BoundaryGroupId(terrainId);
     }
 
+    /// <summary>
+    /// The immutable warmth band (0-3) of a physical hex's latent geography;
+    /// 0 outside the installed field, so absent geography reads as cold.
+    /// </summary>
+    public int PhysicalWarmthBand(int q, int r) =>
+        PhysicalHexFieldCodes.BandAt(
+            _kernelData.PhysicalGeography.FieldWord(q, r),
+            PhysicalHexFieldCodes.WarmthShift);
+
     internal int CoverageOwnerAt(int q, int r) => CoverageOwnerAt(PlaneCodes.Physical, q, r);
 
     internal int CoverageOwnerAt(int planeCode, int q, int r)

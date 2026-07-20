@@ -34,6 +34,10 @@ public static partial class IceRemembersDefinition
             Lifecycles = CreateLifecycles(),
             Terrains = IceRemembersTerrainCatalog.DomainTerrains,
             CrossingProfiles = IceRemembersTerrainCatalog.CrossingProfiles,
+            // Culture accumulates fastest on ground worth holding, so
+            // contest localizes at the warm land instead of churning
+            // uniformly everywhere.
+            WarmthInfluenceCurve = [0.7f, 1f, 1.2f, 1.4f],
             TravelStructures = IceRemembersTravelStructures.DomainTravelStructures,
             MinorActors = CreateMinorActorRules(),
             MinorActorCampaign = new MinorActorCampaignConfig { RelationshipKind = L(Rel.WagesCampaignAgainst) },
@@ -449,6 +453,9 @@ public static partial class IceRemembersDefinition
         {
             SemanticBaseCapacity = 2f,
             CrowdingRadius = 1,
+            // Warm ground carries life in an ice age: capacity concentrates
+            // at warmth so hubs form at the refuges instead of anywhere.
+            WarmthCapacityCurve = [0.5f, 1f, 1.5f, 2.2f],
             Terrains = CreateTerrainSignals(),
             Kinds = IceRemembersEntities.CreateKindMapSignals(),
             Relationships =

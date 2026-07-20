@@ -184,10 +184,17 @@ public static class GameplayCompiler
         IGameplayCompilationContext context)
     {
         var mapSignals = definition.MapSignals;
+        if (mapSignals.WarmthCapacityCurve.Count is not (0 or 4))
+        {
+            throw new InvalidOperationException(
+                "Map signals warmth capacity curve must have exactly four band values.");
+        }
+
         return new MapSignalsProgram
         {
             SemanticBaseCapacity = mapSignals.SemanticBaseCapacity,
             CrowdingRadius = mapSignals.CrowdingRadius,
+            WarmthCapacityCurve = mapSignals.WarmthCapacityCurve,
             Terrains = CompileTerrainMapSignals(mapSignals, context),
             Kinds = CompileKindMapSignals(mapSignals, context),
             Relationships = CompileRelationshipMapSignals(mapSignals, context),

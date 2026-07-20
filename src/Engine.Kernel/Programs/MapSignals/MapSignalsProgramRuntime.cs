@@ -367,7 +367,12 @@ internal sealed class MapSignalsProgramRuntime :
         var capacity = Data.TerrainBaseCapacity(world.CellTerrainId(planeCode, q, r));
         if (capacity > 0f)
         {
-            return capacity;
+            // Warm ground carries more life than cold ground of the same
+            // terrain: a verdant valley supports a city, frozen wastes near
+            // nothing. This is what gives clusters a reason to be somewhere.
+            return planeCode == PlaneCodes.Physical
+                ? capacity * Data.WarmthCapacityFactor(world.PhysicalWarmthBand(q, r))
+                : capacity;
         }
 
         return planeCode == PlaneCodes.Semantic ? Data.SemanticBaseCapacity : 1f;
