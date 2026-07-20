@@ -141,7 +141,35 @@ public static partial class DomainCompiler
                 CompileTerrainKindProfiles(terrainId, terrain.KindProfiles, ids)));
         }
 
-        return new CompiledTerrainData { Terrains = terrains };
+        return new CompiledTerrainData
+        {
+            Terrains = terrains,
+            CrossingProfiles = CompileCrossingProfiles(config.CrossingProfiles, movementProfileIds),
+        };
+    }
+
+    private static List<CompiledCrossingProfileDefinition> CompileCrossingProfiles(
+        IReadOnlyList<CrossingProfileConfig> profiles,
+        Dictionary<string, int> movementProfileIds)
+    {
+        var compiled = new List<CompiledCrossingProfileDefinition>(profiles.Count);
+        foreach (var profile in profiles)
+        {
+            if (profile.CrossingClass <= PhysicalCrossingCodes.Open ||
+                profile.CrossingClass > PhysicalCrossingCodes.ClassMask)
+            {
+                throw new InvalidOperationException(
+                    $"Crossing profile for '{profile.Profile}' names an unknown crossing class {profile.CrossingClass}.");
+            }
+
+            compiled.Add(new CompiledCrossingProfileDefinition(
+                profile.CrossingClass,
+                ResolveMovementProfileId(profile.Profile, movementProfileIds),
+                ClampAtLeast(profile.Factor, 1f),
+                profile.RoadNegated));
+        }
+
+        return compiled;
     }
 
     private static List<CompiledTerrainMovementProfileDefinition> CompileTerrainMovementProfiles(

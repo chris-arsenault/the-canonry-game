@@ -253,6 +253,47 @@ public sealed class MapFrontierProgramRuntimeTests
         Assert.Equal(SeaIceTerrain, simulation.World.CellTerrainId(PlaneCodes.Physical, 0, 0));
     }
 
+    [Fact]
+    public void MapFrontier_ThawsWarmLandBeforeColdHostileLand()
+    {
+        var simulation = CreateSimulation();
+        RegisterTerrains(simulation);
+        simulation.KernelData.PhysicalGeography.BeginInstall(64);
+        ForEachHex(1, (q, r) =>
+        {
+            // One warm, open neighbour; everything else cold behind cliffs.
+            var warm = q == 1 && r == 0;
+            var fieldWord = warm ? 3 << PhysicalHexFieldCodes.WarmthShift : 0;
+            var crossingWord = 0;
+            if (!warm)
+            {
+                for (var direction = 0; direction < PhysicalCrossingCodes.DirectionCount; direction++)
+                {
+                    crossingWord = PhysicalCrossingCodes.WithClass(
+                        crossingWord, direction, PhysicalCrossingCodes.Cliff);
+                }
+            }
+
+            simulation.KernelData.PhysicalGeography.InstallCell(
+                q, r, TundraTerrain, superregionId: 12, continentId: 13,
+                crossingWord, fieldWord, initialCoverTerrainId: 0);
+        });
+        simulation.World.SetMapRadius(6);
+        simulation.SeedCell(0, 0, TundraTerrain, ownerEntityId: 0);
+        OpenIceAge(simulation, ThawAgeId);
+        simulation.MapFrontier.SetAgeConfiguration(
+            ThawAgeId, ReclaimAgeId, DeepIceTerrain,
+            maxRadius: 40, frontierMassThreshold: 10f, reclaimMassCeiling: 1f,
+            thawBudgetPerPulse: 1, refreezeBudgetPerPulse: 24);
+        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0, 40f, tick: 11);
+
+        simulation.MapFrontier.Tick(simulation, tick: 12);
+
+        // The single-cell budget goes to the warm, open ground first.
+        Assert.True(simulation.World.CellIsKnown(PlaneCodes.Physical, 1, 0));
+        Assert.False(simulation.World.CellIsKnown(PlaneCodes.Physical, -1, 0));
+    }
+
     private static void InstallPhysicalBlueprintWithCover(Simulation simulation, int coverQ, int coverR)
     {
         simulation.KernelData.PhysicalGeography.BeginInstall(64);

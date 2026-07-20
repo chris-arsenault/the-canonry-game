@@ -736,6 +736,8 @@ internal sealed partial class MovementProgramRuntime
             return;
         }
 
+        neighborTerrainCost *= DirectedEdgeFactor(
+            simulation, planeCode, movementProfileId, q, r, neighborQ, neighborR, tick: 0, roadAware: false);
         var candidateCost = SegmentPortalEdgeCost(edgeBaseCost, neighborTerrainCost);
         if (float.IsInfinity(candidateCost))
         {
@@ -776,6 +778,8 @@ internal sealed partial class MovementProgramRuntime
             return;
         }
 
+        neighborTerrainCost *= DirectedEdgeFactor(
+            simulation, planeCode, movementProfileId, q, r, neighborQ, neighborR, tick: 0, roadAware: false);
         var candidateCost = SegmentPortalEdgeCost(edgeBaseCost, neighborTerrainCost);
         if (candidateCost >= edgeCost)
         {

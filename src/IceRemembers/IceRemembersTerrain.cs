@@ -1,5 +1,6 @@
 namespace IceRemembers;
 
+using Engine.Constants;
 using Engine.Domain.Config;
 using Engine.WorldGen;
 
@@ -178,6 +179,35 @@ public static class IceRemembersTerrainCatalog
         DomainTerrain(IceRemembersTerrain.DeepIce, "Deep Ice", "frozen_land", 9f, 0.2f, 3f, 0.05f, 0f, 1f,
             movementProfiles: PhysicalMovement(trail: 0f, shore: 0f, wake: 0f)),
     ];
+
+    /// <summary>
+    /// What each movement profile pays to cross a directional edge class.
+    /// Rivers surcharge walkers but roads negate them (fords become
+    /// bridges); ridge and cliff surcharges are road-immune - mountains are
+    /// crossed at passes, which worldgen already folded to open edges. Wake
+    /// ignores land edges entirely (no rows).
+    /// </summary>
+    public static IReadOnlyList<CrossingProfileConfig> CrossingProfiles { get; } =
+    [
+        Crossing(PhysicalCrossingCodes.River, Profile.Trail, 1.6f, roadNegated: true),
+        Crossing(PhysicalCrossingCodes.Ridge, Profile.Trail, 2f),
+        Crossing(PhysicalCrossingCodes.Ridge, Profile.Shore, 2f),
+        Crossing(PhysicalCrossingCodes.Cliff, Profile.Trail, 4f),
+        Crossing(PhysicalCrossingCodes.Cliff, Profile.Shore, 4f),
+    ];
+
+    private static CrossingProfileConfig Crossing(
+        int crossingClass,
+        Profile profile,
+        float factor,
+        bool roadNegated = false) =>
+        new()
+        {
+            CrossingClass = crossingClass,
+            Profile = profile.ToDomainName(),
+            Factor = factor,
+            RoadNegated = roadNegated,
+        };
 
     public static TerrainCatalog CreateWorldGenCatalog() =>
         new(

@@ -32,6 +32,14 @@ public sealed class DomainConfig
     /// <summary>Non-entity, non-terrain travel structures that can alter movement over cells.</summary>
     public IReadOnlyList<TravelStructureConfig> TravelStructures { get; init; } = [];
 
+    /// <summary>
+    /// Step-cost factors movement profiles pay to cross directional edge
+    /// classes (river, ridge, cliff). Crossings only surcharge - factors
+    /// below 1 are clamped - and a road-negated class has its surcharge
+    /// erased by road quality (bridges emerge from travel).
+    /// </summary>
+    public IReadOnlyList<CrossingProfileConfig> CrossingProfiles { get; init; } = [];
+
     /// <summary>Rules for short-lived non-graph actors emitted by named entities.</summary>
     public IReadOnlyList<MinorActorRuleConfig> MinorActors { get; init; } = [];
 
@@ -285,6 +293,15 @@ public sealed class TerrainMovementProfileConfig
 {
     public required string Profile { get; init; }
     public required float MovementCost { get; init; }
+}
+
+public sealed class CrossingProfileConfig
+{
+    /// <summary>An Engine.Constants.PhysicalCrossingCodes class (River, Ridge, Cliff).</summary>
+    public required int CrossingClass { get; init; }
+    public required string Profile { get; init; }
+    public required float Factor { get; init; }
+    public bool RoadNegated { get; init; }
 }
 
 public sealed class TravelStructureConfig

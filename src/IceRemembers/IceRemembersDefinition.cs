@@ -33,6 +33,7 @@ public static partial class IceRemembersDefinition
             Relationships = CreateRelationships(),
             Lifecycles = CreateLifecycles(),
             Terrains = IceRemembersTerrainCatalog.DomainTerrains,
+            CrossingProfiles = IceRemembersTerrainCatalog.CrossingProfiles,
             TravelStructures = IceRemembersTravelStructures.DomainTravelStructures,
             MinorActors = CreateMinorActorRules(),
             MinorActorCampaign = new MinorActorCampaignConfig { RelationshipKind = L(Rel.WagesCampaignAgainst) },

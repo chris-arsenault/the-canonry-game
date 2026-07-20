@@ -395,7 +395,17 @@ internal sealed partial class MovementProgramRuntime :
         var toR = fromR + DirectionR(selectedDirection);
         var toZ = fromZ + DirectionZ(selectedDirection);
         var stepCost = toZ == 0
-            ? BaseTravelCost(simulation, planeCode, entityId, toQ, toR)
+            ? BaseTravelCost(simulation, planeCode, entityId, toQ, toR) *
+                DirectedEdgeFactor(
+                    simulation,
+                    planeCode,
+                    Data.MovementProfileFor(world, entityId, planeCode),
+                    fromQ,
+                    fromR,
+                    toQ,
+                    toR,
+                    tick,
+                    roadAware: true)
             : 1f;
         return StepUnchecked(simulation, entityId, planeCode, toQ, toR, toZ, tick, MovementCauseCodes.Travel, stepCost);
     }
@@ -621,7 +631,110 @@ internal sealed partial class MovementProgramRuntime :
             return 1f;
         }
 
-        return TravelCost(simulation, planeCode, entityId, q, r, tick);
+        var world = simulation.World;
+        return TravelCost(simulation, planeCode, entityId, q, r, tick) *
+            DirectedEdgeFactor(
+                simulation,
+                planeCode,
+                Data.MovementProfileFor(world, entityId, planeCode),
+                CurrentQ(world, entityId, planeCode),
+                CurrentR(world, entityId, planeCode),
+                q,
+                r,
+                tick,
+                roadAware: true);
+    }
+
+    /// <summary>
+    /// Directed travel cost between adjacent cells: the target cell's
+    /// surface cost times the crossing factor of the edge between them.
+    /// Used by travel reach so a great river or a ridge line gates reach the
+    /// way it gates walking.
+    /// </summary>
+    internal float DirectedTravelCost(
+        Simulation simulation,
+        int planeCode,
+        int entityId,
+        int fromQ,
+        int fromR,
+        int toQ,
+        int toR,
+        int tick)
+    {
+        return TravelCost(simulation, planeCode, entityId, toQ, toR, tick) *
+            DirectedEdgeFactor(
+                simulation,
+                planeCode,
+                Data.MovementProfileFor(simulation.World, entityId, planeCode),
+                fromQ,
+                fromR,
+                toQ,
+                toR,
+                tick,
+                roadAware: true);
+    }
+
+    /// <summary>
+    /// The crossing surcharge for stepping between two adjacent physical
+    /// cells. Crossings never block: factors are at least 1, unregistered
+    /// classes and non-adjacent pairs read as 1, and a road-negated class
+    /// (rivers) has its surcharge erased as road quality rises - a ford
+    /// becomes a bridge through use. Ridge and cliff surcharges are
+    /// road-immune; worldgen already folded passes to open edges.
+    /// </summary>
+    private float DirectedEdgeFactor(
+        Simulation simulation,
+        int planeCode,
+        int movementProfileId,
+        int fromQ,
+        int fromR,
+        int toQ,
+        int toR,
+        int tick,
+        bool roadAware)
+    {
+        if (planeCode != PlaneCodes.Physical)
+        {
+            return 1f;
+        }
+
+        var direction = DirectionBetween(toQ - fromQ, toR - fromR);
+        if (direction < 0)
+        {
+            return 1f;
+        }
+
+        var crossingClass = PhysicalCrossingCodes.ClassAt(
+            simulation.KernelData.PhysicalGeography.CrossingWord(fromQ, fromR),
+            direction);
+        if (crossingClass == PhysicalCrossingCodes.Open)
+        {
+            return 1f;
+        }
+
+        var factor = simulation.KernelData.Terrain.CrossingFactor(crossingClass, movementProfileId);
+        if (roadAware && simulation.KernelData.Terrain.CrossingRoadNegated(crossingClass))
+        {
+            var roadQuality = global::System.MathF.Max(
+                RoadQuality(planeCode, fromQ, fromR, tick),
+                RoadQuality(planeCode, toQ, toR, tick));
+            factor = 1f + ((factor - 1f) * (1f - Clamp01(roadQuality / 100f)));
+        }
+
+        return factor;
+    }
+
+    private static int DirectionBetween(int dq, int dr)
+    {
+        for (var direction = 0; direction < 6; direction++)
+        {
+            if (DirectionQ(direction) == dq && DirectionR(direction) == dr)
+            {
+                return direction;
+            }
+        }
+
+        return -1;
     }
 
     private float BaseTravelCost(

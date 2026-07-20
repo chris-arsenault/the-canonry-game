@@ -131,6 +131,13 @@ internal sealed class KernelConfigurationContext
         float movementCost) =>
         _kernel.RegisterTerrainMovementProfile(terrainId, movementProfileId, movementCost);
 
+    public void RegisterCrossingProfile(
+        int crossingClass,
+        int movementProfileId,
+        float factor,
+        bool roadNegated) =>
+        _kernel.RegisterCrossingProfile(crossingClass, movementProfileId, factor, roadNegated);
+
     public void RegisterDefaultMovementProfile(
         int kindId,
         int planeCode,

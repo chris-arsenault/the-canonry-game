@@ -3,7 +3,15 @@ namespace Engine.Domain.Compilation.KernelData;
 public sealed class CompiledTerrainData
 {
     public IReadOnlyList<CompiledTerrainDefinition> Terrains { get; init; } = [];
+
+    public IReadOnlyList<CompiledCrossingProfileDefinition> CrossingProfiles { get; init; } = [];
 }
+
+public sealed record CompiledCrossingProfileDefinition(
+    int CrossingClass,
+    int MovementProfileId,
+    float Factor,
+    bool RoadNegated);
 
 public sealed record CompiledTerrainDefinition(
     int TerrainId,

@@ -366,19 +366,23 @@ internal sealed partial class Simulation
         }
 
         var total = 0f;
+        var previousQ = fromQ;
+        var previousR = fromR;
         for (var step = 1; step <= steps; step++)
         {
             var t = step / (float)steps;
             var (q, r) = HexRound(
                 fromQ + ((toQ - fromQ) * t),
                 fromR + ((toR - fromR) * t));
-            var cellCost = Movement.TravelCost(this, planeCode, actorId, q, r, tick);
+            var cellCost = Movement.DirectedTravelCost(this, planeCode, actorId, previousQ, previousR, q, r, tick);
             if (float.IsPositiveInfinity(cellCost))
             {
                 return float.PositiveInfinity;
             }
 
             total += cellCost;
+            previousQ = q;
+            previousR = r;
         }
 
         return total;

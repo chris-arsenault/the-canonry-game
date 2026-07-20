@@ -11,6 +11,8 @@ internal sealed partial class KernelTerrainData
     private readonly float[] _roadBuildMultipliers;
     private readonly float[] _roadSpeedMultipliers;
     private readonly PrimitiveFloatTable _movementProfileCosts;
+    private readonly PrimitiveFloatTable _crossingFactors;
+    private readonly bool[] _crossingRoadNegated;
     private readonly PrimitiveIntTable _kindProfileFlags;
     private readonly PrimitiveFloatTable _kindInfluenceMultipliers;
     private readonly PrimitiveFloatTable _kindClaimCostMultipliers;
@@ -29,6 +31,8 @@ internal sealed partial class KernelTerrainData
         _roadSpeedMultipliers = new float[terrainIdCapacity + 1];
         var overrideCapacity = global::System.Math.Max(16, terrainIdCapacity * 8);
         _movementProfileCosts = new PrimitiveFloatTable(overrideCapacity);
+        _crossingFactors = new PrimitiveFloatTable(overrideCapacity);
+        _crossingRoadNegated = new bool[PhysicalCrossingCodes.ClassMask + 1];
         _kindProfileFlags = new PrimitiveIntTable(overrideCapacity);
         _kindInfluenceMultipliers = new PrimitiveFloatTable(overrideCapacity);
         _kindClaimCostMultipliers = new PrimitiveFloatTable(overrideCapacity);
@@ -114,6 +118,34 @@ internal sealed partial class KernelTerrainData
             _kindClaimChanceMultipliers.Set(terrainId, kindId, ClampNonNegative(claimChanceMultiplier));
         }
     }
+
+    /// <summary>
+    /// Registers the step-cost factor a movement profile pays to cross an
+    /// edge of the given crossing class. Unregistered pairs default to 1
+    /// (crossings only ever surcharge; they never block or discount).
+    /// </summary>
+    public void RegisterCrossingProfile(
+        int crossingClass,
+        int movementProfileId,
+        float factor,
+        bool roadNegated)
+    {
+        if (crossingClass <= PhysicalCrossingCodes.Open ||
+            crossingClass > PhysicalCrossingCodes.ClassMask)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        ValidatePositive(movementProfileId);
+        _crossingFactors.Set(crossingClass, movementProfileId, ClampAtLeast(factor, 1f));
+        _crossingRoadNegated[crossingClass] = roadNegated;
+    }
+
+    public float CrossingFactor(int crossingClass, int movementProfileId) =>
+        _crossingFactors.GetOrDefault(crossingClass, movementProfileId, 1f);
+
+    public bool CrossingRoadNegated(int crossingClass) =>
+        (uint)crossingClass < (uint)_crossingRoadNegated.Length && _crossingRoadNegated[crossingClass];
 
     public int BoundaryGroupId(int terrainId)
     {

@@ -63,21 +63,70 @@ internal sealed partial class MapFrontierProgramRuntime :
     {
         var world = simulation.World;
         var budget = global::System.Math.Min(Data.ThawBudgetPerPulse, _candidateQ.Length);
+        var capacity = _candidateQ.Length;
         var count = 0;
         var cultureCount = world.CultureHighWatermark;
         var startCultureId = FirstCultureId(State.NextPhysicalCultureId, cultureCount);
-        for (var offset = 0; offset < cultureCount && count < budget; offset++)
+        for (var offset = 0; offset < cultureCount && count < capacity; offset++)
         {
             var cultureId = ((startCultureId - 1 + offset) % cultureCount) + 1;
-            count = CollectThawCandidates(simulation, world, cultureId, count, budget);
+            count = CollectThawCandidates(simulation, world, cultureId, count, capacity);
         }
 
         State.NextPhysicalCultureId = NextCultureId(startCultureId, cultureCount);
 
-        for (var i = 0; i < count; i++)
+        var thawCount = global::System.Math.Min(budget, count);
+        OrderCandidatesByGeography(simulation, count, thawCount);
+        for (var i = 0; i < thawCount; i++)
         {
             ThawCell(simulation, i, tick);
         }
+    }
+
+    // The retreating ice follows the land: candidates over budget are
+    // dropped from the coldest, most edge-hostile ground first, so thaw
+    // advances along valleys, coasts, and warm refuges instead of as a
+    // uniform rim.
+    private void OrderCandidatesByGeography(Simulation simulation, int count, int thawCount)
+    {
+        for (var slot = 0; slot < thawCount; slot++)
+        {
+            var bestIndex = slot;
+            var bestScore = CandidateGeographyScore(simulation, bestIndex);
+            for (var i = slot + 1; i < count; i++)
+            {
+                var score = CandidateGeographyScore(simulation, i);
+                if (score > bestScore)
+                {
+                    bestIndex = i;
+                    bestScore = score;
+                }
+            }
+
+            if (bestIndex != slot)
+            {
+                (_candidateQ[slot], _candidateQ[bestIndex]) = (_candidateQ[bestIndex], _candidateQ[slot]);
+                (_candidateR[slot], _candidateR[bestIndex]) = (_candidateR[bestIndex], _candidateR[slot]);
+            }
+        }
+    }
+
+    private int CandidateGeographyScore(Simulation simulation, int index)
+    {
+        var q = _candidateQ[index];
+        var r = _candidateR[index];
+        var geography = simulation.KernelData.PhysicalGeography;
+        var warmth = PhysicalHexFieldCodes.BandAt(
+            geography.FieldWord(q, r),
+            PhysicalHexFieldCodes.WarmthShift);
+        var crossingWord = geography.CrossingWord(q, r);
+        var hostility = 0;
+        for (var direction = 0; direction < PhysicalCrossingCodes.DirectionCount; direction++)
+        {
+            hostility += PhysicalCrossingCodes.ClassAt(crossingWord, direction) == PhysicalCrossingCodes.Open ? 0 : 1;
+        }
+
+        return (warmth * 4) - hostility;
     }
 
     private int CollectThawCandidates(

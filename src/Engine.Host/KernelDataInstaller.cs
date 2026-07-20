@@ -82,6 +82,15 @@ internal static class KernelDataInstaller
                     profile.ClaimChanceMultiplier);
             }
         }
+
+        foreach (var crossing in data.CrossingProfiles)
+        {
+            context.RegisterCrossingProfile(
+                crossing.CrossingClass,
+                crossing.MovementProfileId,
+                crossing.Factor,
+                crossing.RoadNegated);
+        }
     }
 
     private static void InstallMovement(KernelConfigurationContext context, CompiledMovementData data)

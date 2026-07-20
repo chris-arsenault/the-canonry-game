@@ -507,6 +507,15 @@ internal sealed partial class Simulation : IKernel
         KernelData.Terrain.RegisterTerrainMovementProfile(terrainId, movementProfileId, movementCost);
     }
 
+    internal void RegisterCrossingProfile(
+        int crossingClass,
+        int movementProfileId,
+        float factor,
+        bool roadNegated)
+    {
+        KernelData.Terrain.RegisterCrossingProfile(crossingClass, movementProfileId, factor, roadNegated);
+    }
+
     internal void RegisterTerrainKindProfile(
         int terrainId,
         int kindId,
