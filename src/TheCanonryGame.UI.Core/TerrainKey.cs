@@ -15,7 +15,7 @@ internal static class TerrainKey
     public const string Fjord = "Fjord";
     public const string Lake = "Lake";
     public const string AuroraField = "AuroraField";
-    public const string Basalt = "Basalt";
+    public const string BasaltFlats = "BasaltFlats";
     public const string SeaIce = "SeaIce";
     public const string Lineage = "Lineage";
     public const string Yoke = "Yoke";
@@ -43,7 +43,7 @@ internal static class TerrainKey
         ["FJORD"] = Fjord,
         ["LAKE"] = Lake,
         ["AURORAFIELD"] = AuroraField,
-        ["BASALT"] = Basalt,
+        ["BASALTFLATS"] = BasaltFlats,
         ["SEAICE"] = SeaIce,
         ["LINEAGE"] = Lineage,
         ["YOKE"] = Yoke,

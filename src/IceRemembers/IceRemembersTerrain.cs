@@ -56,7 +56,7 @@ public static class IceRemembersTerrainExtensions
         "fjord",
         "lake",
         "aurora_field",
-        "basalt",
+        "basalt_flats",
         "sea_ice",
         "lineage",
         "yoke",
@@ -139,7 +139,7 @@ public static class IceRemembersTerrainCatalog
         DomainTerrain(IceRemembersTerrain.AuroraField, "Aurora Field", "frozen_land", 4.5f, 0.85f, 1.3f, 0.8f, 0.5f, 3.4f,
             movementProfiles: PhysicalMovement(trail: 4.5f, shore: 4.8f, wake: 0f)),
         // Volcanic fields: hazard-and-power ground.
-        DomainTerrain(IceRemembersTerrain.Basalt, "Basalt", "harsh_land", 4.8f, 0.8f, 1.25f, 0.8f, 0.7f, 3.8f,
+        DomainTerrain(IceRemembersTerrain.Basalt, "Basalt Flats", "harsh_land", 4.8f, 0.8f, 1.25f, 0.8f, 0.7f, 3.8f,
             movementProfiles: PhysicalMovement(trail: 4.8f, shore: 5.2f, wake: 0f)),
         // Frozen sea: transient cover over water, the Deep Ice mechanism with
         // inverse polarity - walkers cross slowly, swimmers are shut out, and
@@ -225,7 +225,7 @@ public static class IceRemembersTerrainCatalog
             Terrain(IceRemembersTerrain.Fjord, "Fjord", "maritime"),
             Terrain(IceRemembersTerrain.Lake, "Lake", "maritime"),
             Terrain(IceRemembersTerrain.AuroraField, "Aurora Field", "frozen_land"),
-            Terrain(IceRemembersTerrain.Basalt, "Basalt", "harsh_land"),
+            Terrain(IceRemembersTerrain.Basalt, "Basalt Flats", "harsh_land"),
         ]);
 
     private static TerrainConfig DomainTerrain(

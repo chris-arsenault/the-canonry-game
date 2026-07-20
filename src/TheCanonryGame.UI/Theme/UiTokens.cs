@@ -78,7 +78,7 @@ public static class UiTokens
     public static readonly Color TerrainFjord = Hex(0x2E5570);
     public static readonly Color TerrainLake = Hex(0x32677B);
     public static readonly Color TerrainAuroraField = Hex(0x43D6B1);
-    public static readonly Color TerrainBasalt = Hex(0x3A3132);
+    public static readonly Color TerrainBasaltFlats = Hex(0x3A3132);
     public static readonly Color TerrainSeaIce = Hex(0xB4D2DB);
     public static readonly Color TerrainLineage = Hex(0xBFA36A);
     public static readonly Color TerrainYoke = Hex(0x7E5D74);
@@ -106,7 +106,7 @@ public static class UiTokens
         [TerrainKey.Fjord] = TerrainFjord,
         [TerrainKey.Lake] = TerrainLake,
         [TerrainKey.AuroraField] = TerrainAuroraField,
-        [TerrainKey.Basalt] = TerrainBasalt,
+        [TerrainKey.BasaltFlats] = TerrainBasaltFlats,
         [TerrainKey.SeaIce] = TerrainSeaIce,
         [TerrainKey.Lineage] = TerrainLineage,
         [TerrainKey.Yoke] = TerrainYoke,
