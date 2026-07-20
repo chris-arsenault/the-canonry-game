@@ -138,9 +138,70 @@ that gets tuned until green while the map stays wrong is the failure mode this
 project already learned; structural assertions and human review of captures are
 the gates that work. Keep only targets a layer actually consumes.
 
-### M4 — Coastal fractal realism
+### M4 — Coastal realism
 
-The largest visual item. Three independent changes, in dependency order.
+The largest visual item.
+
+**[DECISION — open, user's call] Does coastal character come from tectonic
+margin type, or from added detail on the current smooth margins?**
+
+Every coast form named in the request is a tectonic outcome rather than a noise
+outcome. A Florida peninsula is a carbonate platform on a passive margin. The
+Norwegian fjord coast is a glaciated rifted margin with a deep shelf. The
+southeast-Asian archipelago is a convergent margin with island arcs, back-arc
+basins, and accreted microplates. The Central American isthmus is a volcanic
+arc land bridge. Real coastlines do not differ merely in how ragged they are;
+they differ in *kind*, and the kind is set by what the margin is doing.
+
+The generator has no concept of margin type. Crust provinces carry motion
+vectors and boundary classification, but that information is consumed only as
+strain-driven uplift and never reaches the coast. M4.1–M4.4 below add generic
+raggedness — real, needed, and insufficient on their own to produce any of the
+four named forms.
+
+Two routes:
+
+- **Detail-only.** Implement M4.1–M4.4 as written. Cheaper, lower risk, and
+  produces coastlines that are irregular at every scale but still all of one
+  kind. Recommended if coastline variety is a visual concern.
+- **Raise tectonic fidelity first.** Make margin type a first-class generated
+  fact and let the coastal layers consume it. This is the larger change and
+  is described in M4.0. Recommended if coastlines are meant to carry
+  *strategic* meaning — different margins afford different play.
+
+M4.1–M4.4 are needed under either route; the question is whether M4.0 precedes
+them.
+
+### M4.0 — Tectonic margin fidelity (conditional on the decision above)
+
+Not a full plate-motion solver. A kinematic extension of the model that already
+exists, in increasing cost:
+
+1. **Margin type as a fact.** Classify every coastal crust province as passive,
+   active, transform, or collisional from the existing motion vectors and
+   boundary types, and persist it. Cheap — the inputs are already computed and
+   thrown away.
+2. **Crust age and seafloor depth.** Track age from spreading and make ocean
+   depth follow it, so basins deepen away from ridges instead of by noise. This
+   is what gives passive margins their broad shallow shelves, and broad shallow
+   shelves are the precondition for platform peninsulas and archipelagos.
+3. **Plate drift across epochs.** Let provinces translate so boundaries migrate
+   and collide, leaving inherited sutures and orogens away from present
+   boundaries rather than repeatedly uplifting one fixed arrangement — which
+   the multi-epoch plan already identified as a defect and never fixed.
+4. **Terrane accretion.** Fragments detach and weld onto continental margins.
+   This is the specific mechanism behind irregular continental outlines and
+   offshore island groups, and it is the single highest-value item for the
+   stated complaint.
+
+A full mantle-convection or plate-motion solver remains a further step beyond
+this and is not proposed: at hex scale most of its extra fidelity would be
+invisible, generation time is already about a minute, and steering a solver
+toward a playable map (warm heart, legible regions) is materially harder than
+steering a kinematic model. That is an assessment, not a rule — if the
+kinematic route proves insufficient, the solver is on the table.
+
+Then three independent detail changes, in dependency order.
 
 **M4.1 Near-shore gradient shaping.** Introduce a coastal-platform elevation
 profile so the land-to-shelf transition flattens near sea level instead of

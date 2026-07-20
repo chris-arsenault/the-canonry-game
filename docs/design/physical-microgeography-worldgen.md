@@ -482,27 +482,41 @@ This replacement does not change frontier radius or pacing, entity density,
 semantic world generation, simulation behavior, movement, placement, map
 signals, runtime terrain mutation, or the gameplay hex-terrain catalog.
 
-Approaches deliberately rejected, recorded so they are not re-proposed as
-fixes:
+Deferred scope, set outside this workstream:
 
-- **No full plate-tectonics solver, fluid PDE, or ice-sheet PDE.** Geology is
-  produced by ordered causal layers over persistent history, not by numerical
-  simulation of the underlying physics.
-- **No generic cellular-automaton continent builder and no direct
-  fractal-threshold continent mask.** Continents come from crust provinces,
-  assemblies, and boundary types so that later processes have causes to
-  inherit. Coastline detail work must add relief and erosion structure at
-  finer scales rather than replacing the causal mask with a thresholded noise
-  field.
-- **No random per-triangle elevation jitter.** Roughness must come from a
-  process with a cause. This is distinct from the seeded jitter in the
-  priority-flood *priority key*, which breaks tie ordering without perturbing
-  any stored elevation.
-- **No percentage quality gates.** Fixed-proportion gates repeatedly accepted
-  visibly bad maps and encouraged tuning the proxy instead of fixing geography.
 - **Vegetation and cover classification** (forest, marsh, ecological scrub,
   climate-derived aridity) is a later domain layer, and when it lands it must
   not replace or hide landform, substrate, rivers, or magic features.
 - **Pre-Collapse archaeology** (roads, settlements, megaliths, weapon sites) is
   a later domain stage inserted before the Deep Freeze overprint, never a
   substitute for sound natural geography.
+
+Standing directive:
+
+- **No percentage quality gates.** Fixed-proportion gates repeatedly accepted
+  visibly bad maps and encouraged tuning the proxy instead of fixing geography.
+
+## Current implementation choices
+
+These are engineering choices made inside this workstream, not directives.
+They are recorded with their reasoning so that revisiting one is an informed
+decision rather than a rediscovery. None of them is settled.
+
+- **Geology is produced by ordered causal layers over persistent history
+  rather than by numerical simulation.** There is no plate-motion solver,
+  fluid PDE, or ice-sheet PDE. The kinematic model that exists — crust
+  provinces with motion vectors, derived boundary types, and strain-driven
+  uplift — was chosen for controllability and generation time, not because
+  simulation was judged unable to do better. Raising fidelity here is an open
+  question, and plate motion is the most likely candidate to repay it: the
+  characteristic coastline forms (passive-margin platforms, rifted fjord
+  coasts, arc archipelagos, volcanic isthmuses) are consequences of margin
+  type, which a kinematic model can supply and noise cannot.
+- **Continents come from crust provinces, assemblies, and boundary types**
+  rather than a cellular-automaton builder or a thresholded fractal mask, so
+  that later processes inherit causes. If coastline work needs finer structure,
+  the preferred direction is more causal structure (margin type, crust age,
+  accreted fragments), not replacing the causal mask with noise.
+- **Roughness comes from processes, not from per-triangle elevation jitter.**
+  This is distinct from the seeded jitter in the priority-flood *priority key*,
+  which breaks tie ordering without perturbing any stored elevation.
