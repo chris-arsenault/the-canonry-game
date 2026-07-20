@@ -39,6 +39,19 @@ This history constrains generation:
 - current warmth pockets are refuges within the artificial ice age, not the
   only places where geological complexity was ever allowed to form.
 
+The four configured epochs must express that history as measurable outcomes,
+not merely as names and relative strength values. `crust-assembly` assembles a
+mature physical world under ordinary long-term climate;
+`orogeny-and-wet-erosion` performs major uplift followed by genuinely warm and
+wet erosion with widespread liquid drainage; `glacial-maximum` applies the
+magic-caused Deep Freeze as a catastrophic overprint on an already mature
+landscape; `retreat-and-present` retreats toward the still-icebound present,
+reopening some water and warmth without erasing inherited temperate geology.
+Temperature offsets alone do not establish a temperate or wet epoch — verify
+actual thawed land, liquid runoff, erosion distribution, glacial advance, and
+partial retreat. Tectonics must likewise leave successive active and inherited
+relief rather than repeatedly uplifting one fixed boundary arrangement.
+
 The Before Times are the same immediate pre-Collapse period. Their
 serial-numbered artifacts are manufactured high-technology weapons used in the
 war that killed the Dead God. Once ordinary physical generation is sound, a
@@ -117,6 +130,78 @@ The retained triangle model separates:
 An exclusive final surface type exists for rendering and feature extraction,
 but it never erases the underlying fields or overlapping flags.
 
+## Numeric model and lattice invariants
+
+These are the failure modes that cost the most to find. They are cheap to
+respect and expensive to rediscover.
+
+**The topology table must agree with the geometry it describes.** Triangle
+adjacency is declared in `PhysicalMicrotriangleTopology`, and triangle
+positions are computed independently in `PhysicalGeographyGrid` (and again in
+the renderer's `PhysicalMicrogeographyGeometry`). These are two descriptions of
+one structure, and *internal* consistency of either proves nothing. A neighbor
+table can be perfectly reciprocal, pass every acyclicity and continuity check,
+and still be geometrically twisted — the cross-hex table was once the y-mirror
+of the geometry for the four diagonal sectors, linking triangles a full hex row
+apart. Symptoms were rivers that were connected in graph space but rendered as
+disjoint offset segments, hex-boundary-aligned artifacts in every
+graph-diffused field, phantom cliffs where twisted links joined uncorrelated
+elevations, and a stubborn east/west flow bias. Any change to adjacency,
+sector indexing, or hex geometry must be validated by exhaustive comparison
+against world-space positions: all 24 local triangles × 3 edges, checking
+reciprocity, bounded centroid step, and shared-edge midpoint coincidence
+computed independently from each side.
+
+**Sector index and hex direction are different conventions.** Geometric sector
+`s` faces the hex at `HexCoord` direction `[0,5,4,3,2,1][s]`. Hex geometry and
+triangle indexing use sector order; edge-mask bits use direction order. The
+mapping appears in `PhysicalHexAggregation` and
+`PhysicalMicrogeographyPainter`, and the two must agree by assertion rather
+than by comment.
+
+**Compare slopes, not drops.** Centroid-to-centroid steps differ in world
+length by edge type, so a raw elevation difference is not a gradient: longer
+steps look systematically steeper, and every process that picks a neighbor by
+"biggest drop" then gutters onto the hex lattice. `PhysicalGeographyGrid`
+exposes a per-edge slope scale (mean edge length over actual length); any
+comparison that treats an elevation difference as a gradient multiplies by it.
+Drainage guidance, descent-gradient estimation, stream-power erosion, ice-flow
+descent, and the slope field all do. Ordinal comparisons — counting neighbors
+higher or lower — do not need it.
+
+**Elevation is deterministic fixed point.** Generation elevation carries 1,024
+subunits per authored unit (`PhysicalElevation`). Rounded whole-unit elevation
+exists only as compatibility output and must never be the basis of a routing or
+comparison decision; the fractional part is what keeps uplift, erosion,
+deposition, and conditioned drainage from collapsing into ties. Five facts stay
+distinct and must not be conflated: physical floor (bedrock plus sediment),
+water-surface elevation, water depth, conditioned drainage surface, and
+outletward drainage rank.
+
+**Flat conditioned surfaces are a lattice trap.** Where the conditioned surface
+is flat, routing decisions fall to tie-breaking, and any deterministic
+tie-break (enqueue order, triangle index) becomes a visible axis-aligned comb.
+The priority flood therefore carries a seeded per-triangle jitter in its
+priority key and fills depressions along a strictly decreasing surface using a
+hashed, heavy-tailed epsilon, so flats drain through a few dendritic corridors
+instead of evenly spaced parallel chains. Guidance then runs a second
+discharge-capture pass so parallel streams coalesce into trunks. The share of
+decisions actually settled by tie-break is a reported metric and should stay
+near zero.
+
+## Persistent and derived state
+
+Epochs are cumulative, so a small set of fields is history and everything else
+is recomputed. Retain: crust province and type, boundary type and tectonic
+strain; bedrock elevation and sediment thickness; cumulative fluvial, glacial,
+and coastal erosion and deposition; geothermal history; maximum ice thickness
+and flux; wave-exposure history; and domain fire, aurora, and pressure history.
+
+Ocean connectivity, bathymetry, active temperature, precipitation, present
+flow, active rivers, current land and sea ice, and every classification are
+derived: they may be invalidated and rebuilt at any point in the schedule. Do
+not retain complete field snapshots per epoch.
+
 ## Ordered pipeline
 
 ### 1. Uplift and ancestral erosion
@@ -161,6 +246,23 @@ Every classified channel remains continuous through exorheic lakes to terminal
 water. The one-triangle flow spine stays authoritative while a separate layer
 widens major rivers perpendicular to local flow tangents across low-relief
 banks; cross-valley floodplains and seaward delta fans remain derived coverage.
+
+Two river facts are easy to break. Lakes are *conduits* for stream order, not
+terminators: a system flowing through a chain of lakes keeps accumulating
+Strahler order instead of restarting below every pond, and a river crossing a
+lake draws its flow path when it carries channel-scale discharge, so a
+lake-fed system reads as one river. And the visible spine must survive its own
+channel fill: widening spreads fill upstream past the channel head, so the
+dominant filled inflow chain above each head carries the spine to the top of
+the apron rather than stopping inside it. Because channels begin only after
+roughly 1,800 triangles of drainage area — already a natural order-3 or -4
+stream — an observed maximum Strahler order near 5 corresponds to a fully
+resolved natural order around 7 or 8.
+
+Lake bodies are compact depressions, not every filled hollow. Elongated
+one-or-two-triangle chains along epsilon-filled valleys are river corridors and
+are rejected by a compactness gate; after the submergence filter a depression
+may split into disconnected lobes, and each lobe becomes its own body.
 
 ### 5. Present icebound climate with warmth pockets
 
@@ -334,8 +436,73 @@ Full radius-128 generation remains an offline minutes-scale operation;
 fixed-seed interactive development should use explicit versioned `.world`
 artifacts.
 
+A seed is built through an acceptance loop that retries with successive
+attempt numbers until structural validation passes. Repeated rejection is a
+signal worth investigating rather than absorbing: a mid-pass throw inside a
+causal layer once burned attempts silently, and a single seed accepting on
+attempt 3 instead of 0 was the only outward sign.
+
+## Development evidence tooling
+
+Geographic quality is judged from rendered fixed-seed worlds, so the tooling
+that produces evidence is part of the contract.
+
+One presentation painter owns map colors, triangle and hex geometry, feature
+overlays, river spines, and level-of-detail decisions. The live Godot node and
+the headless capture utility are both thin canvas adapters over that painter,
+so a defect visible in the game reproduces in a capture and vice versa. The
+capture utility loads an ordinary `.world` and writes PNGs without a display
+server. Divergence between the two adapters means a rendering bug, and a
+defect visible in the game but not in captures points at the game's own gating
+rather than at generation — materialized hexes whose live terrain has diverged
+from the generated base still render their microgeography, because rivers and
+relief are physical and must stay continuous.
+
+`tools/WorldGenerator` provides generation (`--seed`, `--output`), capture
+(`capture`), and diagnosis (`diagnose`). Diagnostic modes report tie-break
+usage, direction attribution and river-direction histograms, spine endpoints,
+water balance and lake shape, trunk-run lengths, network structure
+(confluences, Strahler distribution, basins), hypsometry, landform counts,
+volcanism, and stripe indices; `--audit-world` re-reads a serialized world and
+proves flow continuity end to end; `--inspect=q,r[,range]` dumps per-triangle
+river and water facts for a named hex neighborhood. In-game tooltips report
+`(q, r, tN)` so a visual defect can be traced to exact triangles.
+
+These numbers are regression evidence and diagnosis aids, never acceptance
+criteria — with one class of exception. Assertions that check facts which are
+simply true or false, such as lattice conformance and six-fold topological
+isotropy, are hard gates precisely because they cannot be tuned until green.
+A metric that is only ever printed is not a test: the lattice anisotropy that
+revealed the twisted neighbor table sat in diagnostic output for days, read
+each time as terrain character.
+
 ## Explicit exclusions
 
 This replacement does not change frontier radius or pacing, entity density,
 semantic world generation, simulation behavior, movement, placement, map
 signals, runtime terrain mutation, or the gameplay hex-terrain catalog.
+
+Approaches deliberately rejected, recorded so they are not re-proposed as
+fixes:
+
+- **No full plate-tectonics solver, fluid PDE, or ice-sheet PDE.** Geology is
+  produced by ordered causal layers over persistent history, not by numerical
+  simulation of the underlying physics.
+- **No generic cellular-automaton continent builder and no direct
+  fractal-threshold continent mask.** Continents come from crust provinces,
+  assemblies, and boundary types so that later processes have causes to
+  inherit. Coastline detail work must add relief and erosion structure at
+  finer scales rather than replacing the causal mask with a thresholded noise
+  field.
+- **No random per-triangle elevation jitter.** Roughness must come from a
+  process with a cause. This is distinct from the seeded jitter in the
+  priority-flood *priority key*, which breaks tie ordering without perturbing
+  any stored elevation.
+- **No percentage quality gates.** Fixed-proportion gates repeatedly accepted
+  visibly bad maps and encouraged tuning the proxy instead of fixing geography.
+- **Vegetation and cover classification** (forest, marsh, ecological scrub,
+  climate-derived aridity) is a later domain layer, and when it lands it must
+  not replace or hide landform, substrate, rivers, or magic features.
+- **Pre-Collapse archaeology** (roads, settlements, megaliths, weapon sites) is
+  a later domain stage inserted before the Deep Freeze overprint, never a
+  substitute for sound natural geography.
