@@ -2,7 +2,9 @@
 
 Date: 2026-07-20
 
-Status: proposed. No implementation started.
+Status: implemented. All milestones landed; see
+`docs/analysis/map-generation-review-20260719.md` for measured results and the
+two items that measurement reclassified.
 
 Supersedes the completed map-generation plans (multi-epoch worldgen,
 high-fidelity hydrology, geography correction, growing-map terrain review) and

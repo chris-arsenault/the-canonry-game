@@ -189,6 +189,44 @@ discharge-capture pass so parallel streams coalesce into trunks. The share of
 decisions actually settled by tie-break is a reported metric and should stay
 near zero.
 
+## Margins, crust age, and coastal character
+
+Plate motion and boundary type were once computed and then discarded before
+the coastline, so every coast came out the same smooth passive shape. They now
+reach the coast, because **coasts differ in kind, not merely in raggedness**,
+and the kind is set by what the nearest boundary is doing.
+
+`TectonicMarginLayer` classifies crust as passive, convergent, rifted, or
+transform by propagating boundary kind outward to a bounded reach; crust beyond
+every boundary's reach is plate interior, which on continental crust is a
+passive margin. The same layer ages oceanic crust away from spreading centres,
+and ocean depth follows the square root of that age, which is what gives old
+passive margins their broad shallow shelves.
+
+Three consumers turn those facts into geography. Uplift flattens passive and
+rifted margins toward the shoreline datum inside a band around sea level —
+without that, a steep near-shore gradient means coastal noise moves the
+shoreline only a little, and no amount of added detail produces a platform
+peninsula. `CoastalDetailLayer` then displaces the near-shore band with warped
+octaves reaching triangle scale, with amplitude, wavelength, warp, and ridging
+chosen by margin type; it runs on the landscape surface, not on the potential
+field, so it composes with erosion rather than replacing the causal continent
+mask. Coastal erosion applies rock resistance derived from volcanic
+construction, orogenic history, and sediment thickness, because erosion driven
+by wave energy alone is a coastline *straightener*: wave exposure peaks on
+headlands, so without differential resistance every promontory is planed off
+and every bay filled.
+
+The standing check is that coasts remain tellable apart by margin type.
+Crenulation — coastline triangles over the square root of enclosed land area —
+should separate by kind, and shelf width per unit coastline should separate
+with it. If they converge, a margin fact is being persisted but not consumed.
+
+A fjord is a glacial valley the sea has drowned. Glacial landform
+classification skips water, so a valley that ended below sea level never
+carried a `UValley` code; fjord classification therefore keys on cumulative
+glacial erosion, which is persistent history and survives drowning.
+
 ## Persistent and derived state
 
 Epochs are cumulative, so a small set of fields is history and everything else
@@ -475,6 +513,27 @@ isotropy, are hard gates precisely because they cannot be tuned until green.
 A metric that is only ever printed is not a test: the lattice anisotropy that
 revealed the twisted neighbor table sat in diagnostic output for days, read
 each time as terrain character.
+
+Three instruments sit alongside the structural contracts:
+
+- **Lattice conformance and isotropy** compare the adjacency table against
+  world geometry exhaustively over all 24 local triangles and 3 edges. These
+  are gates. Reverting the neighbor table to its twisted form fails four of
+  them in well under a second, while reciprocity alone still passes.
+- **A structural digest** of a fixed small world is held in a committed
+  baseline and diffed by the test suite. It is a change *detector*, not a gate:
+  when it moves, read the difference and either accept it in the same commit
+  with a reason or investigate. It never asserts that a map is good.
+- **Scoped mutation testing** (`make mutation`) runs on demand over the
+  algorithms and grid, where lookup tables and index arithmetic live. It
+  addresses the wrong-constant class directly by reporting code that no test
+  distinguishes from its mutation.
+
+The test suite is split by wall time. `make ci` skips tests tagged
+`Category=Slow` — the ones that build full worlds, kernels, domain
+configurations, or Monte Carlo batches — and finishes in about thirty seconds.
+`make ci-full` runs everything and should be run before pushing anything that
+touches worldgen, startup, wiring, or the generator catalog.
 
 ## Explicit exclusions
 
