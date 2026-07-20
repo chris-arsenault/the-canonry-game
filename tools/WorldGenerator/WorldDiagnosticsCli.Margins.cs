@@ -138,6 +138,74 @@ internal static partial class WorldDiagnosticsCli
         Console.WriteLine();
     }
 
+    internal static void ReportMagicPrevalence(
+        PhysicalGeographyField field,
+        IceRemembers.Seed.IceRemembersMicrogeographyMap magic)
+    {
+        Console.WriteLine("\n== Magic prevalence ==");
+        string[] fireSurfaces =
+            ["firecore_vent", "thermal_vein", "hot_spring", "basalt_flat", "thawed_halo", "steam_fracture"];
+        string[] auroraSurfaces = ["aurora_field", "light_well", "frost_prism", "melt_line"];
+        string[] pressureSurfaces =
+        [
+            "pressure_god_locus", "crush_zone", "wake_scar", "interference_lattice",
+            "rogue_impact", "thermal_war_rim", "pressure_aurora_breach",
+        ];
+        var palette = IceRemembers.IceRemembersPhysicalGeography.SurfacePalette;
+
+        long total = 0, land = 0, ocean = 0;
+        long fireAny = 0, fireStrong = 0, pressureAny = 0, pressureStrong = 0, auroraAny = 0;
+        long fireSurface = 0, auroraSurface = 0, pressureSurface = 0;
+        var perSurface = new Dictionary<string, long>(StringComparer.Ordinal);
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (!field.Grid.TriangleIsInsideConfiguredDisk(t))
+            {
+                continue;
+            }
+
+            total++;
+            if (field.WaterKindCodes[t] == PhysicalWaterKindCodes.None)
+            {
+                land++;
+            }
+            else if (field.WaterKindCodes[t] == PhysicalWaterKindCodes.Ocean)
+            {
+                ocean++;
+            }
+
+            fireAny += magic.FireIntensity[t] > 0 ? 1 : 0;
+            fireStrong += magic.FireIntensity[t] >= 310 ? 1 : 0;
+            auroraAny += magic.AuroraIntensity[t] > 0 ? 1 : 0;
+            pressureAny += magic.PressureIntensity[t] > 0 ? 1 : 0;
+            pressureStrong += magic.PressureIntensity[t] >= 310 ? 1 : 0;
+
+            var name = palette[magic.SurfaceIndexes[t]];
+            if (Array.IndexOf(fireSurfaces, name) >= 0) { fireSurface++; }
+            else if (Array.IndexOf(auroraSurfaces, name) >= 0) { auroraSurface++; }
+            else if (Array.IndexOf(pressureSurfaces, name) >= 0) { pressureSurface++; }
+            else { continue; }
+
+            perSurface[name] = perSurface.GetValueOrDefault(name) + 1;
+        }
+
+        Console.WriteLine($"  total={total} land={land} ocean={ocean}");
+        Console.WriteLine($"  FIELD  fire>0: {fireAny,8} ({Pct(fireAny, total)}) | >=310: {fireStrong,8} ({Pct(fireStrong, total)})");
+        Console.WriteLine($"  FIELD  pres>0: {pressureAny,8} ({Pct(pressureAny, total)}) | >=310: {pressureStrong,8} ({Pct(pressureStrong, total)})");
+        Console.WriteLine($"  FIELD  aur >0: {auroraAny,8} ({Pct(auroraAny, total)})");
+        Console.WriteLine($"  SURFACE fire: {fireSurface,8} ({Pct(fireSurface, total)})");
+        Console.WriteLine($"  SURFACE aur : {auroraSurface,8} ({Pct(auroraSurface, total)})");
+        Console.WriteLine($"  SURFACE pres: {pressureSurface,8} ({Pct(pressureSurface, total)})");
+        Console.WriteLine($"  SURFACE all magic: {fireSurface + auroraSurface + pressureSurface} ({Pct(fireSurface + auroraSurface + pressureSurface, total)})");
+        foreach (var (name, count) in perSurface.OrderByDescending(pair => pair.Value))
+        {
+            Console.WriteLine($"    {name,-24} {count,8} ({Pct(count, total)})");
+        }
+    }
+
+    private static string Pct(long part, long total) =>
+        $"{part * 100d / Math.Max(1, total):0.00}%";
+
     /// <summary>
     /// The named coast forms from review: offshore island groups, narrow
     /// peninsulas and isthmuses, and drowned glacial inlets.
