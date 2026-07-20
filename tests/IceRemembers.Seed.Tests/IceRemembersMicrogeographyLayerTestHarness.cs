@@ -40,10 +40,6 @@ internal static class IceRemembersMicrogeographyLayerTestHarness
         OceanMoistureDistance = 28,
         FractureBranchCount = 10,
         GlacierFluxThreshold = 400,
-        QualityTargets = new PhysicalGeographyQualityTargets
-        {
-            MinimumEvaluationRadius = 32,
-        },
     };
 
     public static IceRemembersMicrogeographyGenerationProfile Profile { get; } = new()

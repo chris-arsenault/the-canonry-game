@@ -12,7 +12,7 @@ using Engine.WorldGen;
 using IceRemembers;
 using IceRemembers.Seed;
 
-internal static class WorldDiagnosticsCli
+internal static partial class WorldDiagnosticsCli
 {
     public static int Run(string[] args)
     {
@@ -59,6 +59,7 @@ internal static class WorldDiagnosticsCli
         Console.WriteLine("Generation complete. Computing diagnostics...\n");
 
         var flowTargets = ReconstructFlowTargets(field);
+        ReportMargins(field);
         ReportSpineEndpoints(field, flowTargets);
         ReportWater(field);
         ReportTrunks(field, flowTargets);

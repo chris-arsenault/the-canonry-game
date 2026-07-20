@@ -264,6 +264,8 @@ public sealed class PhysicalGeographyField
     private readonly int[] _crustMotionY;
     private readonly int[] _crustProvinceIds;
     private readonly int[] _crustTypeCodes;
+    private readonly int[] _marginCodes;
+    private readonly int[] _crustAge;
     private readonly long[] _bedrockElevation;
     private readonly int[] _continentalPotential;
     private readonly long[] _cumulativeCoastalErosion;
@@ -360,7 +362,8 @@ public sealed class PhysicalGeographyField
             (new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount],
                 new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount],
                 new int[grid.TriangleCount]);
-        _continentalPotential = new int[grid.TriangleCount];
+        (_marginCodes, _crustAge, _continentalPotential) =
+            (new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount]);
         _elevation = NewElevationField(grid);
         _temperature = new int[grid.TriangleCount];
         (_windX, _windY, _upwindTargets, _moistureBarriers,
@@ -545,6 +548,19 @@ public sealed class PhysicalGeographyField
     public Span<int> CrustProvinceIds => _crustProvinceIds;
 
     public Span<int> CrustTypeCodes => _crustTypeCodes;
+
+    /// <summary>
+    /// What the nearest plate boundary is doing to this crust. Coastal layers
+    /// consume this so coasts differ in kind, not merely in raggedness.
+    /// </summary>
+    public Span<int> MarginCodes => _marginCodes;
+
+    /// <summary>
+    /// Relative crust age in per-mille of the oldest crust, rising away from
+    /// spreading boundaries. Oceanic depth follows it, which is what gives
+    /// passive margins their broad shallow shelves.
+    /// </summary>
+    public Span<int> CrustAge => _crustAge;
 
     internal Span<int> ContinentalPotential => _continentalPotential;
 

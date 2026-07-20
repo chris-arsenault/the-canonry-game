@@ -7,7 +7,9 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
     public PhysicalGeographyLayerContract Contract { get; } = new(
         "tectonic-uplift",
         0x4f2b17,
-        PhysicalGeographyFacts.TectonicProvinces | PhysicalGeographyFacts.ContinentalDomains,
+        PhysicalGeographyFacts.TectonicProvinces |
+        PhysicalGeographyFacts.TectonicMargins |
+        PhysicalGeographyFacts.ContinentalDomains,
         PhysicalGeographyFacts.Elevation,
         PhysicalGeographyFacts.VolcanicConstruction |
         PhysicalGeographyFacts.Ocean |
@@ -55,7 +57,8 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
                 3) * context.Profile.ElevationVariationStrength;
             InteriorRelief(map, context, triangleIndex, out var interiorRelief, out var belt);
             var elevation = baseElevation + boundaryRelief + variation + interiorRelief -
-                assemblySeparation;
+                assemblySeparation +
+                MarginProfile(map, context.Profile, triangleIndex, baseElevation);
             if (context.IsEvolutionEpoch)
             {
                 ApplyIncrementalUplift(map, context, triangleIndex, boundaryRelief, belt);
@@ -81,6 +84,51 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
                 0d,
                 1d);
         }
+    }
+
+    /// <summary>
+    /// Shapes the land-to-ocean transition by margin type, which is what makes
+    /// coasts differ in kind rather than only in raggedness.
+    ///
+    /// Oceanic crust subsides as it ages away from its spreading centre, so
+    /// young ridge flanks stay shallow and old crust reaches abyssal depth.
+    /// Near sea level, passive margins flatten into a broad platform: the same
+    /// horizontal noise then moves the shoreline much further, which is how
+    /// real platform peninsulas and offshore archipelagos arise. Convergent
+    /// and transform margins keep a steep, narrow transition instead.
+    /// </summary>
+    private static double MarginProfile(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile,
+        int triangleIndex,
+        double baseElevation)
+    {
+        var adjustment = 0d;
+        if (map.CrustTypeCodes[triangleIndex] == PhysicalCrustTypeCodes.Oceanic)
+        {
+            adjustment -= map.CrustAge[triangleIndex] / 1000d *
+                (profile.OceanicSubsidenceDepth / 1000d);
+        }
+
+        var flattening = map.MarginCodes[triangleIndex] switch
+        {
+            PhysicalMarginCodes.Passive => profile.PassiveMarginFlattening / 1000d,
+            PhysicalMarginCodes.Rifted => profile.RiftedMarginFlattening / 1000d,
+            _ => 0d,
+        };
+
+        if (flattening <= 0d)
+        {
+            return adjustment;
+        }
+
+        // Pull elevation toward the shoreline datum inside a band around it.
+        // The closer the crust already is to sea level, the harder it is
+        // pulled, which widens the near-shore platform without moving
+        // continental interiors or deep basins.
+        var band = Math.Max(0.001d, profile.MarginPlatformBand / 1000d);
+        var proximity = Math.Clamp(1d - (Math.Abs(baseElevation) / band), 0d, 1d);
+        return adjustment - (baseElevation * proximity * proximity * flattening);
     }
 
     /// <summary>

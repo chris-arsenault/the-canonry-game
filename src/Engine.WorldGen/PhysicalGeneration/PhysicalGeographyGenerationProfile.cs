@@ -47,96 +47,36 @@ public sealed record CountTarget
     public bool Contains(int value) => value >= Minimum && value <= Maximum;
 }
 
+/// <summary>
+/// Generation controls consumed by causal layers to shape their own output.
+/// These are not acceptance gates: geographic quality is judged from rendered
+/// worlds, and fixed-proportion gates previously accepted visibly bad maps
+/// while encouraging tuning of the proxy. Every target here must be read by a
+/// layer — an unread target is dead configuration that reads as coverage, and
+/// a dozen of them were removed for exactly that reason.
+/// </summary>
 public sealed record PhysicalGeographyQualityTargets
 {
-    public int MinimumEvaluationRadius { get; init; } = 32;
-
+    /// <summary>Consumed by <see cref="OceanConnectivityLayer"/>.</summary>
     public CoverageTarget OceanCoverage { get; init; } = new(0.52d, 0.14d);
 
+    /// <summary>Consumed by <see cref="LandIceLayer"/>.</summary>
     public CoverageTarget LandIceCoverage { get; init; } = new(0.14d, 0.10d);
 
+    /// <summary>Consumed by <see cref="SeaIceLayer"/>.</summary>
     public CoverageTarget SeaIceCoverage { get; init; } = new(0.42d, 0.32d);
 
-    public CountTarget MajorLandmassCount { get; init; } = new(2, 6);
-
-    public double MajorLandmassMinimumLandCoverage { get; init; } = 0.02d;
-
+    /// <summary>Consumed by <see cref="LakeBasinLayer"/>.</summary>
     public CountTarget InlandLakeBodyCount { get; init; } = new(2, 80);
-
-    public CoverageTarget LargestLandmassLandCoverage { get; init; } = new(0.38d, 0.30d);
-
-    public CoverageTarget IslandLandCoverage { get; init; } = new(0.10d, 0.10d);
-
-    public CoverageTarget CoastEdgeDensity { get; init; } = new(0.20d, 0.20d);
-
-    public CoverageTarget MajorLandmassSpacing { get; init; } = new(0.30d, 0.30d);
-
-    public CountTarget HotspotLandmassCount { get; init; } = new(1, 8);
-
-    public CoverageTarget RiverChannelCoverage { get; init; } = new(0.05d, 0.05d);
-
-    public CoverageTarget FloodplainCoverage { get; init; } = new(0.02d, 0.02d);
-
-    public CoverageTarget DeltaCoverage { get; init; } = new(0.003d, 0.003d);
-
-    public CoverageTarget TributarySpineCoverage { get; init; } = new(0.075d, 0.075d);
-
-    public CoverageTarget WideRiverCoverage { get; init; } = new(0.015d, 0.015d);
-
-    public CountTarget HigherOrderRiverTriangleCount { get; init; } = new(1, int.MaxValue);
-
-    public CountTarget DeltaMouthCount { get; init; } = new(1, 1000);
-
-    public CountTarget ColdLandformTypeCount { get; init; } = new(3, 15);
-
-    public int MinimumLandformTypesPerMajorLandmass { get; init; } = 3;
-
-    public CountTarget VariedMajorLandmassCount { get; init; } = new(1, 8);
-
-    public CountTarget CoastalMajorLandmassCount { get; init; } = new(1, 8);
-
-    public CountTarget BranchingDrainageBasinCount { get; init; } = new(1, int.MaxValue);
-
-    public CoverageTarget DominantRiverDirectionShare { get; init; } = new(0.25d, 0.25d);
 
     internal void Validate()
     {
-        if (MinimumEvaluationRadius < 0)
-        {
-            throw new InvalidOperationException("Minimum quality evaluation radius cannot be negative.");
-        }
-
-        if (CoverageTargetIsNull() || CountTargetIsNull())
+        if (OceanCoverage is null || LandIceCoverage is null || SeaIceCoverage is null ||
+            InlandLakeBodyCount is null)
         {
             throw new InvalidOperationException("Physical geography quality targets cannot be null.");
         }
-
-        if (MajorLandmassMinimumLandCoverage is <= 0d or > 1d)
-        {
-            throw new InvalidOperationException("Major-landmass minimum coverage is invalid.");
-        }
-
-        if (MinimumLandformTypesPerMajorLandmass <= 0)
-        {
-            throw new InvalidOperationException("Major-landmass variety target is invalid.");
-        }
     }
-
-    private bool CoverageTargetIsNull() =>
-        OceanCoverage is null || LandIceCoverage is null || SeaIceCoverage is null ||
-        LargestLandmassLandCoverage is null || IslandLandCoverage is null ||
-        CoastEdgeDensity is null || MajorLandmassSpacing is null || RiverCoverageTargetIsNull();
-
-    private bool RiverCoverageTargetIsNull() =>
-        RiverChannelCoverage is null || FloodplainCoverage is null || DeltaCoverage is null ||
-        TributarySpineCoverage is null || WideRiverCoverage is null ||
-        DominantRiverDirectionShare is null;
-
-    private bool CountTargetIsNull() =>
-        MajorLandmassCount is null || InlandLakeBodyCount is null || HotspotLandmassCount is null ||
-        HigherOrderRiverTriangleCount is null || DeltaMouthCount is null ||
-        ColdLandformTypeCount is null || VariedMajorLandmassCount is null ||
-        CoastalMajorLandmassCount is null || BranchingDrainageBasinCount is null;
 }
 
 /// <summary>
@@ -185,6 +125,40 @@ public sealed record PhysicalGeographyGenerationProfile
     public double TectonicEpochVariationScale { get; init; } = 34d;
 
     public int TectonicBoundaryPersistence { get; init; } = 420;
+
+    /// <summary>
+    /// How far, in triangles, an active plate boundary imprints its kind on
+    /// surrounding crust. Crust beyond every boundary's reach is plate
+    /// interior, which on continental crust is a passive margin.
+    /// </summary>
+    public int MarginInfluenceReach { get; init; } = 26;
+
+    /// <summary>
+    /// Distance from a spreading centre, in triangles, at which oceanic crust
+    /// is treated as fully aged. Beyond it, depth stops increasing.
+    /// </summary>
+    public int CrustAgeSaturationDistance { get; init; } = 70;
+
+    /// <summary>
+    /// Depth, per mille of the authored elevation unit, that fully aged
+    /// oceanic crust subsides relative to a fresh spreading centre.
+    /// </summary>
+    public int OceanicSubsidenceDepth { get; init; } = 340;
+
+    /// <summary>
+    /// Elevation band around sea level, per mille of the authored unit, inside
+    /// which margin flattening applies.
+    /// </summary>
+    public int MarginPlatformBand { get; init; } = 260;
+
+    /// <summary>
+    /// How strongly passive margins flatten toward the shoreline datum. This
+    /// is the lever that converts coastal noise into wide horizontal shoreline
+    /// excursions rather than small wobbles.
+    /// </summary>
+    public int PassiveMarginFlattening { get; init; } = 720;
+
+    public int RiftedMarginFlattening { get; init; } = 300;
 
     public double ElevationVariationScale { get; init; } = 25d;
 

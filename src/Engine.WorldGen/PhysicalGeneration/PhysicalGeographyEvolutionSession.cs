@@ -42,6 +42,7 @@ public sealed class PhysicalGeographyEvolutionSession
         _pipeline = new PhysicalGeographyPipeline(profile, []);
         Map = new PhysicalGeographyField(new PhysicalGeographyGrid(radius, profile.Padding));
         Apply(new TectonicProvinceLayer());
+        Apply(new TectonicMarginLayer());
         Apply(new ContinentalDomainLayer());
         Apply(new TectonicUpliftLayer());
         Apply(new LandscapeInitializationLayer());
@@ -85,6 +86,7 @@ public sealed class PhysicalGeographyEvolutionSession
     {
         RequirePhase(EvolutionPhase.Geology);
         Apply(new TectonicEpochLayer());
+        Apply(new TectonicMarginLayer());
         Apply(new ContinentalDomainLayer());
         Apply(new TectonicUpliftLayer());
         Apply(new VolcanicConstructionLayer());

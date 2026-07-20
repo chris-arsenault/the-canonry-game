@@ -69,6 +69,7 @@ internal sealed class PhysicalGeographyPipeline
     private static List<IPhysicalGeographyLayer> CreateInitialLayers(IPhysicalGeographyLayer ocean) =>
     [
         new TectonicProvinceLayer(),
+        new TectonicMarginLayer(),
         new ContinentalDomainLayer(),
         new TectonicUpliftLayer(),
         new LandscapeInitializationLayer(),

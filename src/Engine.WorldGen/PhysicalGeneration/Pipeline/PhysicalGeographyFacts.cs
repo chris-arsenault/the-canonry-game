@@ -44,4 +44,5 @@ internal enum PhysicalGeographyFacts : ulong
     DrainageGuidance = 1UL << 37,
     MantlePlumeRoots = 1UL << 38,
     VolcanicConstruction = 1UL << 39,
+    TectonicMargins = 1UL << 40,
 }

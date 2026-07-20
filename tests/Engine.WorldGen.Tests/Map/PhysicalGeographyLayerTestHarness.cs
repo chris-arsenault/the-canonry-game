@@ -36,10 +36,6 @@ internal static class PhysicalGeographyLayerTestHarness
         OceanMoistureDistance = 28,
         FractureBranchCount = 10,
         GlacierFluxThreshold = 400,
-        QualityTargets = new PhysicalGeographyQualityTargets
-        {
-            MinimumEvaluationRadius = 32,
-        },
     };
 
     public static LayerResult GenerateThrough<TLayer>()
