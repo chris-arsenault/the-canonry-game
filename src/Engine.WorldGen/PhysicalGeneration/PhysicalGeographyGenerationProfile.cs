@@ -127,12 +127,29 @@ public sealed record PhysicalGeographyGenerationProfile
     public int TectonicBoundaryPersistence { get; init; } = 420;
 
     /// <summary>
-    /// World units a plate at full speed travels between epochs, scaled by the
-    /// epoch's tectonic strength. Plates hold still during an epoch and move
-    /// between them, so every epoch is a static snapshot of a moved
-    /// arrangement rather than a moving-boundary simulation.
+    /// World units a plate at full speed travels in the *first* epoch. Plates
+    /// hold still during an epoch and move between them, so every epoch is a
+    /// static snapshot of a moved arrangement rather than a moving-boundary
+    /// simulation.
+    ///
+    /// Expressed as a per-mille share of the world's radius in world units so
+    /// it means the same thing at any map size — an absolute distance would
+    /// carry a small test world clean off itself.
+    ///
+    /// Sized against continent scale on purpose: the first step must be a
+    /// large fraction of a continent, or crust never travels far enough for a
+    /// continental interior to be former ocean floor.
     /// </summary>
-    public double PlateDriftPerEpoch { get; init; } = 14d;
+    public int PlateDriftPerEpoch { get; init; } = 234;
+
+    /// <summary>
+    /// Per-mille factor applied to drift each successive epoch, so the world
+    /// is violently mobile while assembling and settles toward the present.
+    /// Kept separate from <see cref="PhysicalGeographyEpochDefinition"/>'s
+    /// tectonic strength, which scales uplift and should not be distorted to
+    /// obtain movement.
+    /// </summary>
+    public int PlateDriftDecay { get; init; } = 420;
 
     /// <summary>
     /// Uplift, in authored units per epoch, applied to submerged crust at a

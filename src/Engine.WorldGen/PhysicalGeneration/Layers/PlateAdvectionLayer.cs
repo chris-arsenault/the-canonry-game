@@ -42,7 +42,13 @@ internal sealed class PlateAdvectionLayer : IPhysicalGeographyLayer
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
-        var step = context.Profile.PlateDriftPerEpoch * context.TectonicStrength / 1000d;
+        // Drift decays on its own curve: the assembling world reorganises at
+        // continent scale, later epochs only adjust.
+        var decay = Math.Pow(
+            context.Profile.PlateDriftDecay / 1000d,
+            Math.Max(0, context.EpochIndex));
+        var worldExtent = map.Grid.Radius * Math.Sqrt(3d);
+        var step = worldExtent * (context.Profile.PlateDriftPerEpoch / 1000d) * decay;
         map.AdvectionSourceIndex.Fill(-1);
         if (step <= 0d)
         {
