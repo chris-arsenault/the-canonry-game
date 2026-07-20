@@ -281,6 +281,14 @@ internal static partial class KernelProgramInstaller
             program.SemanticMaxRadius,
             program.SemanticFrontierMassThreshold,
             program.SemanticBudgetPerPulse);
+        context.SetMapFrontierSeaIceConfiguration(
+            program.SeaIceCoverTerrainId,
+            program.SeaIceFreezeBudgetPerPulse,
+            program.SeaIceMeltBudgetPerPulse);
+        foreach (var terrainId in program.SeaIceEligibleTerrainIds)
+        {
+            context.AddMapFrontierSeaIceEligibleTerrain(terrainId);
+        }
         var driverCount = System.Math.Max(program.AdditionalThawAgeIds.Count, program.AdditionalRefreezeAgeIds.Count);
         for (var i = 0; i < driverCount; i++)
         {

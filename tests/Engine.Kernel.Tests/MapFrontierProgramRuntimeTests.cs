@@ -294,6 +294,40 @@ public sealed class MapFrontierProgramRuntimeTests
         Assert.False(simulation.World.CellIsKnown(PlaneCodes.Physical, -1, 0));
     }
 
+    [Fact]
+    public void SeaIce_FreezesFromShoreInFreezeAgesAndMeltsInThawAges()
+    {
+        var simulation = CreateSimulation();
+        RegisterTerrains(simulation);
+        InstallPhysicalBlueprint(simulation, generationRadius: 64, installedRadius: 2);
+        simulation.World.SetMapRadius(6);
+        // A shore at the origin and open water east of it. Water uses the
+        // mountain terrain id registered as sea-ice eligible below.
+        simulation.SeedCell(0, 0, TundraTerrain, ownerEntityId: 0);
+        simulation.SeedCell(1, 0, MountainTerrain, ownerEntityId: 0);
+        simulation.SeedCell(2, 0, MountainTerrain, ownerEntityId: 0);
+        ConfigureFrontier(simulation, ThawAgeId, ReclaimAgeId);
+        simulation.MapFrontier.SetSeaIceConfiguration(
+            SeaIceTerrain, freezeBudgetPerPulse: 1, meltBudgetPerPulse: 8);
+        simulation.MapFrontier.AddSeaIceEligibleTerrain(MountainTerrain);
+
+        // A freeze age: the shore-adjacent water freezes first.
+        OpenIceAge(simulation, ReclaimAgeId, priority: 20, tick: 1);
+        simulation.MapFrontier.Tick(simulation, tick: 2);
+        Assert.Equal(SeaIceTerrain, simulation.World.CellTerrainCoverId(PlaneCodes.Physical, 1, 0));
+
+        // The next freeze pulse spreads the cover along the frozen edge.
+        simulation.MapFrontier.Tick(simulation, tick: 3);
+        Assert.Equal(SeaIceTerrain, simulation.World.CellTerrainCoverId(PlaneCodes.Physical, 2, 0));
+
+        // A thaw age melts the cover back and the water reopens.
+        OpenIceAge(simulation, ThawAgeId, priority: 30, tick: 4);
+        simulation.MapFrontier.Tick(simulation, tick: 5);
+        simulation.MapFrontier.Tick(simulation, tick: 6);
+        Assert.Equal(0, simulation.World.CellTerrainCoverId(PlaneCodes.Physical, 1, 0));
+        Assert.Equal(0, simulation.World.CellTerrainCoverId(PlaneCodes.Physical, 2, 0));
+    }
+
     private static void InstallPhysicalBlueprintWithCover(Simulation simulation, int coverQ, int coverR)
     {
         simulation.KernelData.PhysicalGeography.BeginInstall(64);

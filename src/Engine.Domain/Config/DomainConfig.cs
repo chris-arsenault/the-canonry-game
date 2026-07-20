@@ -346,6 +346,16 @@ public sealed class MapFrontierConfig
     public int RefreezeBudgetPerPulse { get; init; } = 24;
 
     /// <summary>
+    /// Sea-ice cover breathing with the same ages: freeze ages extend this
+    /// cover over the eligible water terrains from coasts and existing ice;
+    /// thaw ages melt it back from the fringe. Null disables modulation.
+    /// </summary>
+    public string? SeaIceCoverTerrain { get; init; }
+    public IReadOnlyList<string> SeaIceEligibleTerrains { get; init; } = [];
+    public int SeaIceFreezeBudgetPerPulse { get; init; } = 12;
+    public int SeaIceMeltBudgetPerPulse { get; init; } = 12;
+
+    /// <summary>
     /// Enables continuous semantic growth from the installed latent terrain
     /// field. Ideas have no ice, so semantic growth has no age gate and never
     /// re-freezes.

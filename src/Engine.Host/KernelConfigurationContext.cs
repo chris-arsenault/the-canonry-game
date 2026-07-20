@@ -823,6 +823,15 @@ internal sealed class KernelConfigurationContext
     public void AddMapFrontierDriverAge(int thawAgeId, int refreezeAgeId) =>
         _kernel.MapFrontier.AddDriverAge(thawAgeId, refreezeAgeId);
 
+    public void SetMapFrontierSeaIceConfiguration(
+        int coverTerrainId,
+        int freezeBudgetPerPulse,
+        int meltBudgetPerPulse) =>
+        _kernel.MapFrontier.SetSeaIceConfiguration(coverTerrainId, freezeBudgetPerPulse, meltBudgetPerPulse);
+
+    public void AddMapFrontierSeaIceEligibleTerrain(int terrainId) =>
+        _kernel.MapFrontier.AddSeaIceEligibleTerrain(terrainId);
+
     public int RegisterKnowledgeSite(int q, int r, int tier) =>
         _kernel.RegisterKnowledgeSite(q, r, tier);
 

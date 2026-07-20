@@ -18,4 +18,8 @@ public sealed class MapFrontierProgram
     public int SemanticMaxRadius { get; init; }
     public float SemanticFrontierMassThreshold { get; init; }
     public int SemanticBudgetPerPulse { get; init; }
+    public int SeaIceCoverTerrainId { get; init; }
+    public IReadOnlyList<int> SeaIceEligibleTerrainIds { get; init; } = [];
+    public int SeaIceFreezeBudgetPerPulse { get; init; }
+    public int SeaIceMeltBudgetPerPulse { get; init; }
 }

@@ -42,11 +42,13 @@ internal sealed partial class MapFrontierProgramRuntime :
         if (Data.IsThawAge(worldAge))
         {
             ThawFrontier(simulation, tick);
+            PulseSeaIce(simulation, tick, freeze: false);
         }
 
         if (Data.IsRefreezeAge(worldAge))
         {
             ReclaimRim(simulation, tick);
+            PulseSeaIce(simulation, tick, freeze: true);
         }
 
         // Idea-space grows every tick where culture presses it - no age gate.

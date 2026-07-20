@@ -142,6 +142,20 @@ public static partial class IceRemembersDefinition
         ReclaimMassCeiling = 8f,
         ThawBudgetPerPulse = 48,
         RefreezeBudgetPerPulse = 16,
+        // The frozen sea breathes with the same ages: a Long Dark closes
+        // harbors and sea lanes while opening slow walking routes over the
+        // ice; a Thaw reopens the water from its fringes.
+        SeaIceCoverTerrain = Terrain.SeaIce.ToDomainName(),
+        SeaIceEligibleTerrains =
+        [
+            Terrain.Ocean.ToDomainName(),
+            Terrain.Shelf.ToDomainName(),
+            Terrain.Reef.ToDomainName(),
+            Terrain.Fjord.ToDomainName(),
+            Terrain.Lake.ToDomainName(),
+        ],
+        SeaIceFreezeBudgetPerPulse = 12,
+        SeaIceMeltBudgetPerPulse = 12,
         // Idea-space is born as a heart and reveals the varied latent semantic
         // field wherever culture's idea-mass presses its frontier.
         SemanticGrowthEnabled = true,

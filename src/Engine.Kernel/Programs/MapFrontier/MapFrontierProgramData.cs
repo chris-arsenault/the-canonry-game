@@ -18,7 +18,7 @@ internal sealed partial class MapFrontierProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.MapFrontier;
 
-    public int SchemaVersion => 2;
+    public int SchemaVersion => 3;
 
     internal const int MaxDriverAges = 4;
 
@@ -62,6 +62,53 @@ internal sealed partial class MapFrontierProgramData : IKernelProgramData
 
     /// <summary>Maximum cells reclaimed per pulse.</summary>
     public int RefreezeBudgetPerPulse = 24;
+
+    // --- Sea ice: the frozen sea breathes with the Ice-track ages ---
+    // Freeze ages extend the cover from coasts and existing ice over
+    // eligible water; thaw ages melt it back from the fringe. The cover
+    // closes sea lanes to swimmers and opens slow walking routes, so the
+    // map's connectivity ebbs with the fiction.
+
+    /// <summary>Cover terrain frozen sea wears; 0 disables sea-ice modulation.</summary>
+    public int SeaIceCoverTerrainId;
+
+    /// <summary>Maximum eligible water cells frozen per re-freeze pulse.</summary>
+    public int SeaIceFreezeBudgetPerPulse = 12;
+
+    /// <summary>Maximum covered cells melted per thaw pulse.</summary>
+    public int SeaIceMeltBudgetPerPulse = 12;
+
+    internal const int MaxSeaIceEligibleTerrains = 8;
+
+    /// <summary>Base terrains whose cells may carry sea-ice cover (water family).</summary>
+    public readonly int[] SeaIceEligibleTerrainIds = new int[MaxSeaIceEligibleTerrains];
+
+    public int SeaIceEligibleTerrainCount;
+
+    public bool SeaIceEligibleTerrain(int terrainId)
+    {
+        for (var i = 0; i < SeaIceEligibleTerrainCount; i++)
+        {
+            if (SeaIceEligibleTerrainIds[i] == terrainId)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    public void AddSeaIceEligibleTerrain(int terrainId)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(terrainId);
+        if (SeaIceEligibleTerrainCount >= MaxSeaIceEligibleTerrains ||
+            SeaIceEligibleTerrain(terrainId))
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        SeaIceEligibleTerrainIds[SeaIceEligibleTerrainCount++] = terrainId;
+    }
 
     // --- Semantic (idea-space) growth ---
     // Ideas have no ice, so the semantic plane grows continuously wherever a

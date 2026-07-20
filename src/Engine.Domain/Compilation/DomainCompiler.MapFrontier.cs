@@ -30,6 +30,13 @@ public static partial class DomainCompiler
             SemanticMaxRadius = frontier.SemanticMaxRadius,
             SemanticFrontierMassThreshold = frontier.SemanticFrontierMassThreshold,
             SemanticBudgetPerPulse = frontier.SemanticBudgetPerPulse,
+            SeaIceCoverTerrainId = frontier.SeaIceCoverTerrain is null
+                ? 0
+                : ids.TerrainIdOf(frontier.SeaIceCoverTerrain).Value,
+            SeaIceEligibleTerrainIds =
+                [.. frontier.SeaIceEligibleTerrains.Select(terrain => ids.TerrainIdOf(terrain).Value)],
+            SeaIceFreezeBudgetPerPulse = frontier.SeaIceFreezeBudgetPerPulse,
+            SeaIceMeltBudgetPerPulse = frontier.SeaIceMeltBudgetPerPulse,
         };
     }
 }
