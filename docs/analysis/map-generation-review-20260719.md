@@ -333,6 +333,43 @@ palette swaps of one another because they share the same drivers
 (ocean-distance, elevation, one global wind); differentiating their dynamics
 is design work, not a bug fix.
 
+## M2 baseline (2026-07-20): deferred items re-measured after the lattice fix
+
+Measured on seed 42, radius 128, with the corrected lattice. Which deferred
+items survived:
+
+**Item 17 (stripe asymmetry) — survived, but probably not its own defect.**
+Moisture X-stripe 0.27 against Y-stripe 0.11; temperature 0.16/0.08;
+elevation 0.16/0.09. The column-vs-row asymmetry is intact. The most likely
+cause is item 11: a single global wind direction tilts every moisture and
+rain-shadow gradient the same way, which is exactly what a directional stripe
+measures. Do not treat this as separate work — re-measure after M5 and expect
+it to fall with the circulation change.
+
+**Item 10 (overlay similarity) — confirmed, now quantified.** Pairwise Pearson
+correlation over land triangles:
+
+| pair | r |
+| --- | --- |
+| moisture / snowfall | 0.77 |
+| temperature / rainfall | 0.65 |
+| geothermal / fire | 0.63 |
+| temperature / moisture | 0.62 |
+| temperature / elevation | −0.59 |
+| rainfall / fire | 0.50 |
+
+This is the baseline M5 must improve. The geothermal/fire pair is the sharpest
+single instance of the complaint: fire intensity is close to a recolouring of
+geothermal, so it needs structure of its own rather than a shared driver.
+
+**Pressure is ocean-only by design** — the Dead God locus sits in the ocean and
+wake scars propagate through ocean triangles, so pressure is constant on land
+and correctly absent from land overlays. Not a defect; noted so the zero row in
+the correlation matrix is not mistaken for one.
+
+The correlation matrix is now part of `diagnose`, so M5 has a measurable gate
+rather than an aesthetic one.
+
 ## Addendum (2026-07-20, round 5): the twisted lattice
 
 Persisting disjoint rivers — visible even in capture-harness output while

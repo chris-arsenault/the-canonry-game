@@ -72,7 +72,111 @@ internal static class WorldDiagnosticsCli
         ReportLandforms(field);
         ReportVolcanism(field);
         ReportStripes(field);
+        ReportFieldCorrelation(field, result.Magic);
         return 0;
+    }
+
+    /// <summary>
+    /// Overlays that read as palette swaps of one another are measurably
+    /// correlated. This prints the pairwise Pearson correlation over land so
+    /// "they all look the same" becomes a number that can be driven down.
+    /// </summary>
+    private static void ReportFieldCorrelation(
+        PhysicalGeographyField field,
+        IceRemembers.Seed.IceRemembersMicrogeographyMap magic)
+    {
+        Console.WriteLine("\n== Overlay correlation over land (|r| high = palette swaps) ==");
+        var samples = new List<int>();
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (field.Grid.TriangleIsInsideConfiguredDisk(t) &&
+                field.WaterKindCodes[t] == PhysicalWaterKindCodes.None)
+            {
+                samples.Add(t);
+            }
+        }
+
+        (string Name, Func<int, double> Value)[] fields =
+        [
+            ("elevation", t => field.Elevation[t] / (double)PhysicalElevation.SubunitsPerUnit),
+            ("temperature", t => field.Temperature[t]),
+            ("moisture", t => field.Moisture[t]),
+            ("rainfall", t => field.Rainfall[t]),
+            ("snowfall", t => field.Snowfall[t]),
+            ("geothermal", t => field.Geothermal[t]),
+            ("fire", t => magic.FireIntensity[t]),
+            ("aurora", t => magic.AuroraIntensity[t]),
+            ("pressure", t => magic.PressureIntensity[t]),
+        ];
+
+        var series = new double[fields.Length][];
+        for (var f = 0; f < fields.Length; f++)
+        {
+            series[f] = new double[samples.Count];
+            for (var i = 0; i < samples.Count; i++)
+            {
+                series[f][i] = fields[f].Value(samples[i]);
+            }
+        }
+
+        Console.Write($"  {"",-12}");
+        foreach (var f in fields)
+        {
+            Console.Write($"{f.Name[..Math.Min(6, f.Name.Length)],7}");
+        }
+
+        Console.WriteLine();
+        double worst = 0;
+        var worstPair = string.Empty;
+        for (var a = 0; a < fields.Length; a++)
+        {
+            Console.Write($"  {fields[a].Name,-12}");
+            for (var b = 0; b < fields.Length; b++)
+            {
+                var r = Correlation(series[a], series[b]);
+                Console.Write($"{r,7:0.00}");
+                if (a < b && Math.Abs(r) > Math.Abs(worst))
+                {
+                    worst = r;
+                    worstPair = $"{fields[a].Name}/{fields[b].Name}";
+                }
+            }
+
+            Console.WriteLine();
+        }
+
+        Console.WriteLine($"  strongest off-diagonal pair: {worstPair} r={worst:0.000}");
+    }
+
+    private static double Correlation(double[] a, double[] b)
+    {
+        var n = a.Length;
+        if (n == 0)
+        {
+            return 0;
+        }
+
+        double sumA = 0, sumB = 0;
+        for (var i = 0; i < n; i++)
+        {
+            sumA += a[i];
+            sumB += b[i];
+        }
+
+        var meanA = sumA / n;
+        var meanB = sumB / n;
+        double cov = 0, varA = 0, varB = 0;
+        for (var i = 0; i < n; i++)
+        {
+            var da = a[i] - meanA;
+            var db = b[i] - meanB;
+            cov += da * db;
+            varA += da * da;
+            varB += db * db;
+        }
+
+        var denominator = Math.Sqrt(varA * varB);
+        return denominator <= 0 ? 0 : cov / denominator;
     }
 
     private static int AuditWorldRivers(string worldPath)
