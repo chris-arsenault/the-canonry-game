@@ -40,6 +40,71 @@ internal sealed class RiverChannelGeometryLayer : IPhysicalGeographyLayer
         }
 
         ExpandChannels(map, context.Profile, dominantUpstream, frontier);
+        ExtendSpineThroughChannelFill(map);
+    }
+
+    /// <summary>
+    /// Channel widening spreads fill upstream past the channel head, which
+    /// left rivers visually losing their spine inside their own fill. The
+    /// dominant filled inflow of each filled triangle carries the spine, so
+    /// one main thread runs to the top of the fill instead of stopping
+    /// mid-apron, without veining every bank stub.
+    /// </summary>
+    private static void ExtendSpineThroughChannelFill(PhysicalGeographyField map)
+    {
+        var dominantInflow = BuildDominantFilledInflow(map);
+        for (var head = 0; head < map.Grid.TriangleCount; head++)
+        {
+            if (map.RiverOrders[head] <= 0)
+            {
+                continue;
+            }
+
+            // Walk the dominant filled inflow chain upstream from each
+            // channel head, so exactly one thread continues to the top of the
+            // fill apron and no isolated bank dashes appear.
+            var target = head;
+            var source = dominantInflow[target];
+            while (source >= 0 && map.RiverOrders[source] <= 0)
+            {
+                var sourceEdge = map.Grid.EdgeLeadingTo(source, target);
+                var targetEdge = map.Grid.EdgeLeadingTo(target, source);
+                if (sourceEdge < 0 || targetEdge < 0)
+                {
+                    break;
+                }
+
+                map.RiverSpineEdgeMasks[source] |= 1 << sourceEdge;
+                map.RiverSpineEdgeMasks[target] |= 1 << targetEdge;
+                target = source;
+                source = dominantInflow[target];
+            }
+        }
+    }
+
+    private static int[] BuildDominantFilledInflow(PhysicalGeographyField map)
+    {
+        var dominantInflow = new int[map.Grid.TriangleCount];
+        Array.Fill(dominantInflow, -1);
+        for (var source = 0; source < map.Grid.TriangleCount; source++)
+        {
+            var target = map.FlowTargets[source];
+            if (target < 0 ||
+                map.RiverChannelStrength[source] <= 0 ||
+                map.RiverChannelStrength[target] <= 0)
+            {
+                continue;
+            }
+
+            var previous = dominantInflow[target];
+            if (previous < 0 ||
+                map.FlowAccumulation[source] > map.FlowAccumulation[previous])
+            {
+                dominantInflow[target] = source;
+            }
+        }
+
+        return dominantInflow;
     }
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)

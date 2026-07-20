@@ -858,7 +858,21 @@ public sealed partial class PhysicalMicrogeographyPainter
             : color;
     }
 
+    private static readonly Color RiverSpineCasing = new(0.05f, 0.16f, 0.30f);
+
     private void DrawRiverSpines(ReadOnlySpan<PhysicalMicrotriangleProjection> triangles)
+    {
+        // Casing first, then the bright core, so the spine stays readable
+        // where it crosses channel fill, floodplain, waterfall, or lake
+        // surfaces whose colors sit close to the river line.
+        DrawRiverSpinePass(triangles, RiverSpineCasing, 1.5f);
+        DrawRiverSpinePass(triangles, RiverWater, 0f);
+    }
+
+    private void DrawRiverSpinePass(
+        ReadOnlySpan<PhysicalMicrotriangleProjection> triangles,
+        Color color,
+        float extraWidth)
     {
         for (var triangleIndex = 0; triangleIndex < triangles.Length; triangleIndex++)
         {
@@ -869,7 +883,7 @@ public sealed partial class PhysicalMicrogeographyPainter
             }
 
             var center = _owner!.Geometry.TriangleCentroid(triangleIndex);
-            var width = 0.9f + Math.Min(
+            var width = extraWidth + 0.9f + Math.Min(
                 2.8f,
                 (triangle.RiverChannelStrength / 420f) + (triangle.RiverChannelOrder * 0.22f));
             for (var edge = 0; edge < 3; edge++)
@@ -879,7 +893,7 @@ public sealed partial class PhysicalMicrogeographyPainter
                     DrawLine(
                         center,
                         _owner.Geometry.TriangleEdgeMidpoint(triangleIndex, edge),
-                        RiverWater,
+                        color,
                         width,
                         true);
                 }

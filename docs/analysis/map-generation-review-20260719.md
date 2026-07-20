@@ -278,3 +278,29 @@ elevation-correlated). The visual, however, no longer reads as combs; the
 remaining trend resembles regional drainage. Treat further de-biasing as its
 own tranche if it still bothers review: the lever would be conditioning, not
 scoring.
+
+## Addendum (2026-07-20, round 3): spine continuity and stream order
+
+Follow-up screenshots showed rivers still reading as disjoint segments. A
+spine-endpoint census settled the split between data and rendering: the flow
+data has only 6 interior stops in the whole seed-42 world (all
+below-channel-threshold lake exits), with every other endpoint a headwater or
+an ocean/lake entry. The disjoint reading was rendering:
+
+- The spine line was drawn in flat river-blue and disappeared against
+  channel-fill, floodplain, waterfall, and lake surfaces. It now draws with a
+  dark casing under a bright core and stays legible on any background.
+- Channel widening spreads fill upstream past the channel head, so rivers
+  "lost" their spine inside their own apron. The dominant filled inflow chain
+  above each channel head now carries the spine to the top of the fill.
+- Rivers crossing lakes draw their flow path when they carry channel-scale
+  discharge, so a river entering and leaving a lake reads as one system.
+
+Strahler order also stopped resetting at lakes: lake cells act as order
+conduits, so chained-lake systems accumulate order (order-3 river length grew
+~2x, order-4 ~2.2x). On the "shouldn't max order be 6–8" question: channels
+begin only after ~1,800 triangles of drainage area, which is already a natural
+order-3/4 stream, so the observed max of 4 corresponds to a fully resolved
+natural order of roughly 7–8. Remaining known curiosity: two rivers rising on
+opposite sides of a divide can share one fill apron, which reads as facing
+line ends inside one blue patch.

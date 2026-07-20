@@ -47,12 +47,11 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
             context.Profile);
         CompleteDownstreamChannels(map, order, channels);
         AssignStrahlerOrder(map, order, channels);
-        BuildSpineEdgeMasks(map);
+        BuildSpineEdgeMasks(map, context.Profile);
     }
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
-        _ = context;
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             if (map.RiverOrders[triangleIndex] <= 0)
@@ -69,7 +68,7 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
             ValidateContinuousOutletPath(map, triangleIndex);
         }
 
-        ValidateSpineEdgeMasks(map);
+        ValidateSpineEdgeMasks(map, context.Profile);
     }
 
     private static int[] BuildBasinMaximumDischarge(PhysicalGeographyField map)
@@ -295,7 +294,13 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
         var largestCount = new int[channels.Length];
         foreach (var triangleIndex in sourceToOutlet)
         {
-            if (!channels[triangleIndex])
+            // Lakes are conduits for stream order: a river system that flows
+            // through a chain of lakes keeps accumulating order instead of
+            // restarting at one below every pond.
+            var isLakeConduit = !channels[triangleIndex] &&
+                map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake &&
+                largestIncoming[triangleIndex] > 0;
+            if (!channels[triangleIndex] && !isLakeConduit)
             {
                 continue;
             }
@@ -303,7 +308,11 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
             var order = CalculateStrahlerOrder(
                 largestIncoming[triangleIndex],
                 largestCount[triangleIndex]);
-            map.RiverOrders[triangleIndex] = order;
+            if (channels[triangleIndex])
+            {
+                map.RiverOrders[triangleIndex] = order;
+            }
+
             var target = map.FlowTargets[triangleIndex];
             if (target < 0)
             {
@@ -332,13 +341,15 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
         return largestCount >= 2 ? largestIncoming + 1 : largestIncoming;
     }
 
-    private static void BuildSpineEdgeMasks(PhysicalGeographyField map)
+    private static void BuildSpineEdgeMasks(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile)
     {
         map.RiverSpineEdgeMasks.Clear();
         for (var source = 0; source < map.Grid.TriangleCount; source++)
         {
             var target = map.FlowTargets[source];
-            if (target >= 0 && CarriesVisibleSpine(map, source, target))
+            if (target >= 0 && CarriesVisibleSpine(map, profile, source, target))
             {
                 AddSpineEdge(map, source, target);
             }
@@ -347,12 +358,14 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
 
     private static bool CarriesVisibleSpine(
         PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile,
         int source,
         int target) =>
         map.RiverOrders[source] > 0 ||
         map.WaterKindCodes[source] == PhysicalWaterKindCodes.Lake &&
-            map.WaterKindCodes[target] != PhysicalWaterKindCodes.Lake &&
-            map.RiverOrders[target] > 0;
+            (map.RiverOrders[target] > 0 ||
+                map.WaterKindCodes[target] == PhysicalWaterKindCodes.Lake &&
+                map.FlowAccumulation[source] >= profile.RiverMinimumAccumulationThreshold);
 
     private static void AddSpineEdge(PhysicalGeographyField map, int source, int target)
     {
@@ -367,7 +380,9 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
         map.RiverSpineEdgeMasks[target] |= 1 << targetEdge;
     }
 
-    private static void ValidateSpineEdgeMasks(PhysicalGeographyField map)
+    private static void ValidateSpineEdgeMasks(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile)
     {
         for (var source = 0; source < map.Grid.TriangleCount; source++)
         {
@@ -376,8 +391,10 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
             {
                 var neighbor = map.Grid.NeighborTriangleIndex(source, edge);
                 if (neighbor >= 0 &&
-                    (map.FlowTargets[source] == neighbor && CarriesVisibleSpine(map, source, neighbor) ||
-                        map.FlowTargets[neighbor] == source && CarriesVisibleSpine(map, neighbor, source)))
+                    (map.FlowTargets[source] == neighbor &&
+                            CarriesVisibleSpine(map, profile, source, neighbor) ||
+                        map.FlowTargets[neighbor] == source &&
+                            CarriesVisibleSpine(map, profile, neighbor, source)))
                 {
                     expected |= 1 << edge;
                 }
