@@ -43,6 +43,39 @@ internal sealed partial class GeneratorProgramRuntime
         _producedPlacementFallbackTerrainIds[PlacementTerrainSlot(producedSlot, planeCode)] = terrainId;
     }
 
+    public void SetProducedPlacementGeography(
+        int producedSlot,
+        int siteFlags,
+        float warmthAffinity,
+        float fireAffinity,
+        float auroraAffinity,
+        float pressureAffinity)
+    {
+        EnsureOpenProduced(producedSlot);
+        if ((siteFlags & ~PhysicalHexFieldCodes.WordMask) != 0)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        Data.ProducedPlacementSiteFlags[producedSlot] = siteFlags;
+        var baseIndex = producedSlot * GeneratorProgramData.PlacementBandAffinityCount;
+        var affinities = Data.ProducedPlacementBandAffinities;
+        affinities[baseIndex + GeneratorProgramData.PlacementWarmthAffinityOffset] = ClampAffinity(warmthAffinity);
+        affinities[baseIndex + GeneratorProgramData.PlacementFireAffinityOffset] = ClampAffinity(fireAffinity);
+        affinities[baseIndex + GeneratorProgramData.PlacementAuroraAffinityOffset] = ClampAffinity(auroraAffinity);
+        affinities[baseIndex + GeneratorProgramData.PlacementPressureAffinityOffset] = ClampAffinity(pressureAffinity);
+    }
+
+    private static float ClampAffinity(float value)
+    {
+        if (value < -1f)
+        {
+            return -1f;
+        }
+
+        return value > 1f ? 1f : value;
+    }
+
     public void AddProducedCoveragePreferredTerrain(int producedSlot, int terrainId)
     {
         EnsureOpenProduced(producedSlot);

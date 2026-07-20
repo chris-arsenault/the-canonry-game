@@ -88,6 +88,22 @@ public sealed class SemanticProducedEntity
     public IReadOnlySet<string>? PhysicalPlacementAllowedTerrains { get; init; }
     public IReadOnlySet<string>? PhysicalPlacementAvoidedTerrains { get; init; }
     public string? PhysicalPlacementFallbackTerrain { get; init; }
+
+    /// <summary>
+    /// Geography site flags (summit, thermal, anomaly, polynya, crater) that
+    /// boost physical placement score where the hex carries them.
+    /// </summary>
+    public IReadOnlySet<string>? PhysicalPlacementPreferredSites { get; init; }
+
+    /// <summary>
+    /// Signed band affinities (-1..1): placement score rises with the hex's
+    /// band times the affinity, so content follows the geography that suits
+    /// it without per-value rules.
+    /// </summary>
+    public float PhysicalPlacementWarmthAffinity { get; init; }
+    public float PhysicalPlacementFireAffinity { get; init; }
+    public float PhysicalPlacementAuroraAffinity { get; init; }
+    public float PhysicalPlacementPressureAffinity { get; init; }
     public SemanticPlacement SemanticPlacement { get; init; } = SemanticPlacement.Near;
     public IReadOnlySet<string>? SemanticPlacementPreferredTerrains { get; init; }
     public IReadOnlySet<string>? SemanticPlacementAllowedTerrains { get; init; }

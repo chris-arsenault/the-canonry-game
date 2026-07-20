@@ -57,16 +57,38 @@ public sealed record IceRemembersKindMapSignalProfile(
     float HealthScale,
     int AttractorRadius);
 
+/// <summary>
+/// Engine-generic geography site flag names a placement profile may prefer.
+/// </summary>
+public static class IceRemembersPlacementSites
+{
+    public const string Summit = "summit";
+    public const string Thermal = "thermal";
+    public const string Anomaly = "anomaly";
+    public const string Polynya = "polynya";
+    public const string Crater = "crater";
+}
+
 public sealed record IceRemembersPlacementTerrainProfile(
     IReadOnlySet<string> PreferredTerrains,
     IReadOnlyList<string> PreferredTerrainOrder,
     IReadOnlySet<string> AvoidedTerrains,
-    string? FallbackTerrain);
+    string? FallbackTerrain,
+    IReadOnlySet<string>? PreferredSites = null,
+    float WarmthAffinity = 0f,
+    float FireAffinity = 0f,
+    float AuroraAffinity = 0f,
+    float PressureAffinity = 0f);
 
 public sealed record IceRemembersTerrainProfile(
     IReadOnlyList<Terrain> PreferredTerrains,
     IReadOnlyList<Terrain> AvoidedTerrains,
-    Terrain? FallbackTerrain)
+    Terrain? FallbackTerrain,
+    IReadOnlySet<string>? PreferredSites = null,
+    float WarmthAffinity = 0f,
+    float FireAffinity = 0f,
+    float AuroraAffinity = 0f,
+    float PressureAffinity = 0f)
 {
     public IceRemembersPlacementTerrainProfile ToPlacementProfile()
     {
@@ -76,7 +98,12 @@ public sealed record IceRemembersTerrainProfile(
             new HashSet<string>(preferred, StringComparer.Ordinal),
             preferred,
             new HashSet<string>(avoided, StringComparer.Ordinal),
-            FallbackTerrain?.ToDomainName());
+            FallbackTerrain?.ToDomainName(),
+            PreferredSites,
+            WarmthAffinity,
+            FireAffinity,
+            AuroraAffinity,
+            PressureAffinity);
     }
 
     private static List<string> TerrainNames(IEnumerable<Terrain> terrains)
@@ -489,6 +516,9 @@ internal static class IceRemembersEntityDsl
 
     public static IceRemembersTerrainProfile Semantic(params Terrain[] preferred) =>
         new(preferred, SemanticHostileTerrains, Terrain.OpenField);
+
+    public static IReadOnlySet<string> Sites(params string[] sites) =>
+        new HashSet<string>(sites, StringComparer.Ordinal);
 
     public static IceRemembersTerrainProfileRule SubtypeRule(
         string subtype,

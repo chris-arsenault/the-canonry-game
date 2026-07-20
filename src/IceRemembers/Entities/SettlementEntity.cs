@@ -61,7 +61,10 @@ internal static class SettlementEntity
                 SubtypeRule("harbor", Maritime(Terrain.Shelf, Terrain.Reef, Terrain.Ocean)),
                 SubtypeRule("reefhold", Maritime(Terrain.Shelf, Terrain.Reef, Terrain.Ocean)),
                 SubtypeRule("holdfast", Maritime(Terrain.Shelf, Terrain.Reef, Terrain.Ocean, Terrain.Crags, Terrain.Tundra)),
-                SubtypeRule("sanctuary", Land(Terrain.HotSprings, Terrain.Tundra, Terrain.Ice)),
+                SubtypeRule("sanctuary", Land(Terrain.HotSprings, Terrain.Tundra, Terrain.Ice) with
+                {
+                    PreferredSites = Sites(IceRemembersPlacementSites.Thermal),
+                }),
                 CultureRule(Culture.Nightshelf.ToDomainName(), Land(Terrain.Ice, Terrain.Shelf, Terrain.Tundra)),
             ],
             semanticRules:

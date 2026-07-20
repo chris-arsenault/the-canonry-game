@@ -921,6 +921,16 @@ internal sealed class KernelConfigurationContext
     public void AddGeneratorProducedPlacementPreferredTerrain(int producedSlot, int planeCode, int terrainId) =>
         _kernel.Generators.AddProducedPlacementPreferredTerrain(producedSlot, planeCode, terrainId);
 
+    public void SetGeneratorProducedPlacementGeography(
+        int producedSlot,
+        int siteFlags,
+        float warmthAffinity,
+        float fireAffinity,
+        float auroraAffinity,
+        float pressureAffinity) =>
+        _kernel.Generators.SetProducedPlacementGeography(
+            producedSlot, siteFlags, warmthAffinity, fireAffinity, auroraAffinity, pressureAffinity);
+
     public void AddGeneratorProducedPlacementAllowedTerrain(int producedSlot, int planeCode, int terrainId) =>
         _kernel.Generators.AddProducedPlacementAllowedTerrain(producedSlot, planeCode, terrainId);
 

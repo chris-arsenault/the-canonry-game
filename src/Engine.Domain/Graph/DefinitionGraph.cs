@@ -310,6 +310,11 @@ public sealed class DefinitionProducedEntity
     public IReadOnlySet<string>? PhysicalPlacementAllowedTerrains { get; init; }
     public IReadOnlySet<string>? PhysicalPlacementAvoidedTerrains { get; init; }
     public string? PhysicalPlacementFallbackTerrain { get; init; }
+    public IReadOnlySet<string>? PhysicalPlacementPreferredSites { get; init; }
+    public float PhysicalPlacementWarmthAffinity { get; init; }
+    public float PhysicalPlacementFireAffinity { get; init; }
+    public float PhysicalPlacementAuroraAffinity { get; init; }
+    public float PhysicalPlacementPressureAffinity { get; init; }
     public SemanticPlacement SemanticPlacement { get; init; } = SemanticPlacement.Near;
     public IReadOnlySet<string>? SemanticPlacementPreferredTerrains { get; init; }
     public IReadOnlySet<string>? SemanticPlacementAllowedTerrains { get; init; }

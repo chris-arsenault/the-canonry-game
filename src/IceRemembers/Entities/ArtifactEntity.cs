@@ -58,7 +58,13 @@ internal static class ArtifactEntity
                 MovementSubtypeRule("tome", semantic: Profile.Veil),
             ]),
         Placement = Placement(
-            physicalDefault: Land(Terrain.Crags, Terrain.Wastes, Terrain.Tundra),
+            // Artifacts surface where the aurora stores memory and where the
+            // old war left its marks.
+            physicalDefault: Land(Terrain.Crags, Terrain.Wastes, Terrain.Tundra) with
+            {
+                AuroraAffinity = 0.5f,
+                PreferredSites = Sites(IceRemembersPlacementSites.Anomaly),
+            },
             semanticDefault: Semantic(Terrain.Silence, Terrain.CavePocket, Terrain.OpenField),
             semanticRules:
             [

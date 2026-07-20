@@ -674,6 +674,32 @@ internal static partial class KernelProgramInstaller
         {
             context.SetGeneratorProducedPlacementFallbackTerrain(producedSlot, PlaneCodes.Semantic, produced.SemanticPlacementFallbackTerrainId);
         }
+
+        InstallGeneratorProducedPlacementGeography(context, producedSlot, produced);
+    }
+
+    private static void InstallGeneratorProducedPlacementGeography(
+        KernelConfigurationContext context,
+        int producedSlot,
+        GeneratorProducedEntityRule produced)
+    {
+        var hasAffinity =
+            produced.PhysicalPlacementWarmthAffinity != 0f ||
+            produced.PhysicalPlacementFireAffinity != 0f ||
+            produced.PhysicalPlacementAuroraAffinity != 0f ||
+            produced.PhysicalPlacementPressureAffinity != 0f;
+        if (produced.PhysicalPlacementSiteFlags == 0 && !hasAffinity)
+        {
+            return;
+        }
+
+        context.SetGeneratorProducedPlacementGeography(
+            producedSlot,
+            produced.PhysicalPlacementSiteFlags,
+            produced.PhysicalPlacementWarmthAffinity,
+            produced.PhysicalPlacementFireAffinity,
+            produced.PhysicalPlacementAuroraAffinity,
+            produced.PhysicalPlacementPressureAffinity);
     }
 
     private static int NullableCoverageModeCode(GeneratorCoverageRule? coverage) =>

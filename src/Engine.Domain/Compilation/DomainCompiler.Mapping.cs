@@ -428,11 +428,42 @@ public static partial class DomainCompiler
                 produced.Culture is null ? 0 : ids.CultureIdOf(produced.Culture).Value,
                 ToGeneratorCulturePlacement(produced.CulturePlacement),
                 produced.CreateChance,
-                CompileGeneratorCoverage(produced.Coverage, terrainByName, refCodes, ids)));
+                CompileGeneratorCoverage(produced.Coverage, terrainByName, refCodes, ids),
+                PhysicalPlacementSiteFlags: CompilePlacementSiteFlags(produced.PhysicalPlacementPreferredSites),
+                PhysicalPlacementWarmthAffinity: ClampAffinity(produced.PhysicalPlacementWarmthAffinity),
+                PhysicalPlacementFireAffinity: ClampAffinity(produced.PhysicalPlacementFireAffinity),
+                PhysicalPlacementAuroraAffinity: ClampAffinity(produced.PhysicalPlacementAuroraAffinity),
+                PhysicalPlacementPressureAffinity: ClampAffinity(produced.PhysicalPlacementPressureAffinity)));
         }
 
         return compiled;
     }
+
+    private static int CompilePlacementSiteFlags(IReadOnlySet<string>? sites)
+    {
+        if (sites is null)
+        {
+            return 0;
+        }
+
+        var flags = 0;
+        foreach (var site in sites)
+        {
+            flags |= site switch
+            {
+                "summit" => PhysicalHexFieldCodes.SummitFlag,
+                "thermal" => PhysicalHexFieldCodes.ThermalFlag,
+                "anomaly" => PhysicalHexFieldCodes.AnomalyFlag,
+                "polynya" => PhysicalHexFieldCodes.PolynyaFlag,
+                "crater" => PhysicalHexFieldCodes.CraterFlag,
+                _ => throw new InvalidOperationException($"Unknown placement site flag '{site}'."),
+            };
+        }
+
+        return flags;
+    }
+
+    private static float ClampAffinity(float value) => Math.Clamp(value, -1f, 1f);
 
     private static GeneratorEntityQueryRule? CompileGeneratorQuery(
         DefinitionEntityQuery? query,

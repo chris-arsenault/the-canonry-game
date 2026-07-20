@@ -46,7 +46,12 @@ internal static class MonsterEntity
             physicalDefault: Profile.Trail,
             semanticDefault: Profile.Veil),
         Placement = Placement(
-            physicalDefault: Land(Terrain.Wastes, Terrain.Crags, Terrain.Ice),
+            // Monsters haunt the fire and the anomalies.
+            physicalDefault: Land(Terrain.Wastes, Terrain.Crags, Terrain.Ice) with
+            {
+                FireAffinity = 0.5f,
+                PreferredSites = Sites(IceRemembersPlacementSites.Anomaly),
+            },
             semanticDefault: Semantic(Terrain.Silence, Terrain.Severance, Terrain.CavePocket)),
     };
 }

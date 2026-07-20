@@ -85,7 +85,12 @@ public sealed record GeneratorProducedEntityRule(
     int FixedCultureId,
     GeneratorProgramCulturePlacement CulturePlacement,
     float CreateChance,
-    GeneratorCoverageRule? Coverage);
+    GeneratorCoverageRule? Coverage,
+    int PhysicalPlacementSiteFlags = 0,
+    float PhysicalPlacementWarmthAffinity = 0f,
+    float PhysicalPlacementFireAffinity = 0f,
+    float PhysicalPlacementAuroraAffinity = 0f,
+    float PhysicalPlacementPressureAffinity = 0f);
 
 public sealed record GeneratorEntityQueryRule(
     IReadOnlyList<int> SubtypeIds,

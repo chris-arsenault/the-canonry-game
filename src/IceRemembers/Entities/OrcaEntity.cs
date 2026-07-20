@@ -46,7 +46,11 @@ internal static class OrcaEntity
             physicalDefault: Profile.Wake,
             semanticDefault: Profile.Commons),
         Placement = Placement(
-            physicalDefault: Maritime(Terrain.Ocean, Terrain.Reef, Terrain.Shelf),
+            // Orcas follow the deep pressure - the god's wake is their sea.
+            physicalDefault: Maritime(Terrain.Ocean, Terrain.Reef, Terrain.Shelf) with
+            {
+                PressureAffinity = 0.5f,
+            },
             semanticDefault: Semantic(Terrain.Breakaway, Terrain.Lineage, Terrain.OpenField)),
     };
 }

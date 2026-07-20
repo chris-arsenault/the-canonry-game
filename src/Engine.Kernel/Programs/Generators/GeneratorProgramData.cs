@@ -89,6 +89,8 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] ProducedPlacementAvoidedTerrainStarts = [];
     internal int[] ProducedPlacementAvoidedTerrainCounts = [];
     internal int[] ProducedPlacementFallbackTerrainIds = [];
+    internal int[] ProducedPlacementSiteFlags = [];
+    internal float[] ProducedPlacementBandAffinities = [];
     internal int[] ProducedPlacementRefCodes = [];
     internal int[] ProducedCultureRefCodes = [];
     internal int[] ProducedFixedCultureIds = [];
@@ -304,7 +306,15 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         ProducedPlacementAvoidedTerrainStarts = new int[planeSlotCapacity + 1];
         ProducedPlacementAvoidedTerrainCounts = new int[planeSlotCapacity + 1];
         ProducedPlacementFallbackTerrainIds = new int[planeSlotCapacity + 1];
+        ProducedPlacementSiteFlags = new int[itemCapacity + 1];
+        ProducedPlacementBandAffinities = new float[(itemCapacity + 1) * PlacementBandAffinityCount];
     }
+
+    internal const int PlacementBandAffinityCount = 4;
+    internal const int PlacementWarmthAffinityOffset = 0;
+    internal const int PlacementFireAffinityOffset = 1;
+    internal const int PlacementAuroraAffinityOffset = 2;
+    internal const int PlacementPressureAffinityOffset = 3;
 
     private void InitializeRelationshipArrays(int itemCapacity)
     {
