@@ -7,7 +7,7 @@ RESTORE_FLAGS ?= /p:NuGetAudit=false
 SLOW_FILTER ?= Category=Slow
 FAST_FILTER ?= Category!=Slow
 
-.PHONY: ci ci-full build test test-slow test-all lint analyzer-lint format-check clean domain-check
+.PHONY: ci ci-full build test test-slow test-all lint analyzer-lint format-check clean domain-check mutation
 
 ci: lint test domain-check
 
@@ -43,6 +43,11 @@ domain-check:
 	else \
 		echo "PASS: No domain contamination"; \
 	fi
+
+# Scoped mutation testing over the generator's algorithmic core. On demand or
+# nightly; see tools/mutation/README.md. Not part of ci.
+mutation:
+	cd tools/mutation && dotnet stryker --config-file stryker-config.json
 
 clean:
 	rm -rf .artifacts

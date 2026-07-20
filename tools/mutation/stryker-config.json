@@ -1,0 +1,27 @@
+{
+  "stryker-config": {
+    "project-info": {
+      "name": "the-canonry-game-worldgen"
+    },
+    "test-projects": [
+      "../../tests/Engine.WorldGen.Tests/Engine.WorldGen.Tests.csproj"
+    ],
+    "project": "Engine.WorldGen.csproj",
+    "mutate": [
+      "**/PhysicalGeneration/Algorithms/**.cs",
+      "**/PhysicalGeographyGrid.cs"
+    ],
+    "reporters": [
+      "html",
+      "progress",
+      "cleartext"
+    ],
+    "thresholds": {
+      "high": 80,
+      "low": 60,
+      "break": 0
+    },
+    "concurrency": 4,
+    "coverage-analysis": "perTest"
+  }
+}

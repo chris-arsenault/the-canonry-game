@@ -22,4 +22,8 @@
     <ProjectReference Include="..\..\src\Engine.WorldGen\Engine.WorldGen.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="Map\structural-digest.baseline.txt" CopyToOutputDirectory="PreserveNewest" Link="structural-digest.baseline.txt" />
+  </ItemGroup>
+
 </Project>
