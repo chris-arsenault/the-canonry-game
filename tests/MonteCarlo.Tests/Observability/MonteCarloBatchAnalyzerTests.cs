@@ -14,6 +14,8 @@ using IceRemembers.Seed;
 
 using MonteCarloTool;
 
+// Slow: runs Monte Carlo batches; excluded from the fast loop.
+[Trait("Category", "Slow")]
 public sealed class MonteCarloBatchAnalyzerTests : IDisposable
 {
     private readonly List<string> _directoriesToDelete = [];

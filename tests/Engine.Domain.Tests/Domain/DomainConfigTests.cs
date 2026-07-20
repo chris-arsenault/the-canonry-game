@@ -13,6 +13,8 @@ using IceRemembers.Seed;
 
 using Rel = IceRemembers.IceRemembersRelationship;
 
+// Slow: compiles the full domain configuration; excluded from the fast loop.
+[Trait("Category", "Slow")]
 public class DomainConfigTests
 {
     [Fact]

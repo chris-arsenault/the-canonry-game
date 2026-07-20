@@ -11,6 +11,8 @@ using Engine.Projection;
 using IceRemembers;
 using IceRemembers.Seed;
 
+// Slow: builds a full startup seed and kernel host; excluded from the fast loop.
+[Trait("Category", "Slow")]
 public sealed class KernelHostBuilderTests
 {
     [Fact]

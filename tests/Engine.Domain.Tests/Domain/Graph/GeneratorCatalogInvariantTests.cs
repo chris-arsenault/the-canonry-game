@@ -10,6 +10,8 @@ using Engine.WorldGen;
 using IceRemembers;
 using IceRemembers.Seed;
 
+// Slow: compiles the full generator catalog; excluded from the fast loop.
+[Trait("Category", "Slow")]
 public class GeneratorCatalogInvariantTests
 {
     [Fact]

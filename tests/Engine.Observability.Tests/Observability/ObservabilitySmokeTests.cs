@@ -6,6 +6,8 @@ using Engine.Observability;
 
 using IceRemembers.Seed;
 
+// Slow: seeds a full world and records telemetry; excluded from the fast loop.
+[Trait("Category", "Slow")]
 public sealed class ObservabilitySmokeTests
 {
     [Fact]

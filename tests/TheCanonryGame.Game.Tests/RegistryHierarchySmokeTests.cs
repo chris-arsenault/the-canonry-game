@@ -6,6 +6,8 @@ using Engine.Projection;
 
 using Xunit.Abstractions;
 
+// Slow: seeds a full world; excluded from the fast loop.
+[Trait("Category", "Slow")]
 public sealed class RegistryHierarchySmokeTests
 {
     private readonly ITestOutputHelper _output;

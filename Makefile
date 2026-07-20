@@ -1,14 +1,29 @@
 RESTORE_FLAGS ?= /p:NuGetAudit=false
 
-.PHONY: ci build test lint analyzer-lint format-check clean domain-check
+# Tests tagged [Trait("Category", "Slow")] build full worlds, kernels, domain
+# configurations, or Monte Carlo batches. They dominate wall time, so the
+# default loop skips them; run `make ci-full` before pushing anything that
+# touches worldgen, startup, wiring, or the generator catalog.
+SLOW_FILTER ?= Category=Slow
+FAST_FILTER ?= Category!=Slow
+
+.PHONY: ci ci-full build test test-slow test-all lint analyzer-lint format-check clean domain-check
 
 ci: lint test domain-check
+
+ci-full: lint test-all domain-check
 
 build:
 	dotnet restore $(RESTORE_FLAGS)
 	dotnet build -c Release --no-restore
 
 test:
+	dotnet test -c Release --no-build --verbosity normal --filter "$(FAST_FILTER)"
+
+test-slow:
+	dotnet test -c Release --no-build --verbosity normal --filter "$(SLOW_FILTER)"
+
+test-all:
 	dotnet test -c Release --no-build --verbosity normal
 
 lint: analyzer-lint format-check

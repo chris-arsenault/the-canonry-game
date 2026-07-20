@@ -142,8 +142,8 @@ the gates that work. Keep only targets a layer actually consumes.
 
 The largest visual item.
 
-**[DECISION — open, user's call] Does coastal character come from tectonic
-margin type, or from added detail on the current smooth margins?**
+**[DECISION — settled] Coastal character comes from tectonic margin type.
+M4.0 precedes the detail work.**
 
 Every coast form named in the request is a tectonic outcome rather than a noise
 outcome. A Florida peninsula is a carbonate platform on a passive margin. The
@@ -159,20 +159,13 @@ strain-driven uplift and never reaches the coast. M4.1–M4.4 below add generic
 raggedness — real, needed, and insufficient on their own to produce any of the
 four named forms.
 
-Two routes:
+The detail-only route — implementing M4.1–M4.4 alone — was considered and
+rejected: it produces coastlines that are irregular at every scale but still
+all of one kind, which does not meet the goal of coasts that afford different
+play. M4.1–M4.4 are still required; they now consume margin type rather than
+standing in for it.
 
-- **Detail-only.** Implement M4.1–M4.4 as written. Cheaper, lower risk, and
-  produces coastlines that are irregular at every scale but still all of one
-  kind. Recommended if coastline variety is a visual concern.
-- **Raise tectonic fidelity first.** Make margin type a first-class generated
-  fact and let the coastal layers consume it. This is the larger change and
-  is described in M4.0. Recommended if coastlines are meant to carry
-  *strategic* meaning — different margins afford different play.
-
-M4.1–M4.4 are needed under either route; the question is whether M4.0 precedes
-them.
-
-### M4.0 — Tectonic margin fidelity (conditional on the decision above)
+### M4.0 — Tectonic margin fidelity
 
 Not a full plate-motion solver. A kinematic extension of the model that already
 exists, in increasing cost:
@@ -201,7 +194,15 @@ toward a playable map (warm heart, legible regions) is materially harder than
 steering a kinematic model. That is an assessment, not a rule — if the
 kinematic route proves insufficient, the solver is on the table.
 
-Then three independent detail changes, in dependency order.
+Margin type must reach the coastal layers as a consumed input, not merely be
+persisted: passive margins get broad shallow shelves and platform peninsulas,
+rifted margins get deep-shelf glaciated inlets, convergent margins get arcs and
+offshore island groups, transform margins get straight faulted coasts. If a
+generated world's coasts cannot be told apart by margin type, M4.0 has not
+landed regardless of what the field contains.
+
+Then three independent detail changes, in dependency order, each now
+conditioned on margin type.
 
 **M4.1 Near-shore gradient shaping.** Introduce a coastal-platform elevation
 profile so the land-to-shelf transition flattens near sea level instead of
@@ -297,9 +298,13 @@ recurring rather than a one-off.
 
 M1 and M2 first — both are cheap, and M2 prevents spending effort on items the
 lattice fix already resolved. M3 next, since deleting dead gates changes what
-"passing" means for everything after it. M4 is the main visual payload. M5–M7
-follow in any order. M8 is infrastructure that can proceed in parallel. M9 is
-conditional on M7's findings.
+"passing" means for everything after it. M4 is the main payload, with M4.0
+ahead of M4.1–M4.4. M5–M7 follow in any order. M8 is infrastructure that can
+proceed in parallel. M9 is conditional on M7's findings.
+
+Note on M4.0 step 3 (plate drift) and M5 (circulation): both change the inputs
+to climate, so the M2 correlation baseline should be re-measured after them
+rather than only before.
 
 ## Verification stance
 

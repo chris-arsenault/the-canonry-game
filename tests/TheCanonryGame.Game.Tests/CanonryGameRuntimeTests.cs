@@ -4,6 +4,8 @@ using Engine.Projection;
 
 using TheCanonryGame.Game.Cards;
 
+// Slow: starts the full game runtime; excluded from the fast loop.
+[Trait("Category", "Slow")]
 public sealed class CanonryGameRuntimeTests
 {
     [Fact]

@@ -10,6 +10,8 @@ using Engine.Kernel;
 ///
 /// See DESIGN-low-altitude-verb-selection.md at the repository root.
 /// </summary>
+// Slow: runs a long verb-selection sample; excluded from the fast loop.
+[Trait("Category", "Slow")]
 public sealed class LowAltitudeVerbSelectionTests
 {
     private const int TerrainId = 1;

@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TestRun id="42995c63-ffb8-440a-b636-8a78a45a3d73" name="@34b165543bd0 2026-07-20 08:10:55" xmlns="http://microsoft.com/schemas/VisualStudio/TeamTest/2010">
+  <Times creation="2026-07-20T08:10:55.3737443+00:00" queuing="2026-07-20T08:10:55.3737444+00:00" start="2026-07-20T08:10:53.1279817+00:00" finish="2026-07-20T08:13:26.5087878+00:00" />
+  <TestSettings name="default" id="8d4d8b4a-8605-462d-a026-f8bcd3b074ed">
+    <Deployment runDeploymentRoot="_34b165543bd0_2026-07-20_08_10_55" />
+  </TestSettings>
+  <Results>
+    <UnitTestResult executionId="4d546185-4b5b-4ad7-a7b9-30b809fac963" testId="d97882a3-36db-fd41-a3cd-ebc36c74d1a6" testName="Engine.Host.Tests.GameplayCompilationBoundaryTests.IceRemembersReduceInfluenceVerbsUseHostileOrOverextendedTargeting" computerName="34b165543bd0" duration="00:00:00.6431344" startTime="2026-07-20T08:10:54.1453593+00:00" endTime="2026-07-20T08:10:54.8030684+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4d546185-4b5b-4ad7-a7b9-30b809fac963" />
+    <UnitTestResult executionId="a6a6642c-bee4-4ef7-8da6-d2701a83733a" testId="6253675a-bad2-2cc7-36f5-b30a8475a5ce" testName="Engine.Host.Tests.GameplayCompilationBoundaryTests.IceRemembersAffordanceCompilerDoesNotExposeHighAltitudeOnlyPrerequisites" computerName="34b165543bd0" duration="00:00:00.0268452" startTime="2026-07-20T08:10:54.8229774+00:00" endTime="2026-07-20T08:10:54.8321859+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="a6a6642c-bee4-4ef7-8da6-d2701a83733a" />
+    <UnitTestResult executionId="af25c5e8-9b33-41a5-af70-97c0089c095a" testId="d9470a0a-9dbf-6bbb-9ead-bd665a1518ef" testName="Engine.Host.Tests.CulturePowerTests.ComputeCulturePower_ReportsAllCulturesWithSharesThatPartitionEachAxis" computerName="34b165543bd0" duration="00:01:07.0289303" startTime="2026-07-20T08:12:14.6200208+00:00" endTime="2026-07-20T08:13:21.6445906+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="af25c5e8-9b33-41a5-af70-97c0089c095a" />
+    <UnitTestResult executionId="4d64d598-961c-40fe-8fb9-b20ddbea5d5b" testId="d8fb919f-47d5-ccb2-c8de-f6bdf39bb8c3" testName="Engine.Host.Tests.KernelSmokeTests.Simulation_LowAltitudePhysicsMovesEntitiesWithoutLegacyActionProgram" computerName="34b165543bd0" duration="00:01:23.9804979" startTime="2026-07-20T08:10:54.1454373+00:00" endTime="2026-07-20T08:12:18.1362414+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4d64d598-961c-40fe-8fb9-b20ddbea5d5b" />
+    <UnitTestResult executionId="071cfd8d-e095-4754-9d87-6ff00d91702e" testId="f047b118-fc2a-8c2a-625d-1bca42f0d10f" testName="Engine.Host.Tests.CulturePowerTests.ComputeCulturePower_SeedCustodyFeedsTheShadowLedger" computerName="34b165543bd0" duration="00:01:20.4594838" startTime="2026-07-20T08:10:54.1431156+00:00" endTime="2026-07-20T08:12:14.6155656+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="071cfd8d-e095-4754-9d87-6ff00d91702e" />
+    <UnitTestResult executionId="6dd0ade9-24d9-4597-8d20-eb50816f158a" testId="1b778e40-2680-4008-fcde-8746e6a68dc9" testName="Engine.Host.Tests.GameplayCompilationBoundaryTests.LowAltitudeAffordanceShapeCodesDoNotDefineHighAltitudeOnlyShapes" computerName="34b165543bd0" duration="00:00:00.0018580" startTime="2026-07-20T08:10:54.8214999+00:00" endTime="2026-07-20T08:10:54.8217589+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="6dd0ade9-24d9-4597-8d20-eb50816f158a" />
+    <UnitTestResult executionId="e60e2d44-1dab-4b3b-bb8f-b0f7766a55aa" testId="48a7c0fb-36ba-b2d9-a3fd-9ac94bd3614a" testName="Engine.Host.Tests.KnowledgeOverviewTests.KnowledgeOverview_ReportsLiveClaimsAndDeduplicatedEffectiveModifiers" computerName="34b165543bd0" duration="00:01:23.4960473" startTime="2026-07-20T08:10:54.1452513+00:00" endTime="2026-07-20T08:12:17.6519767+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="e60e2d44-1dab-4b3b-bb8f-b0f7766a55aa" />
+    <UnitTestResult executionId="4c974508-ede7-42e5-8f08-c3ffd367f20a" testId="2ce141ef-d189-990c-f5ee-adee7241e05e" testName="Engine.Host.Tests.KernelSmokeTests.InitialSeed_EntitiesStartWithDistinctPositionsOnBothPlanes" computerName="34b165543bd0" duration="00:01:08.1515712" startTime="2026-07-20T08:12:18.1377861+00:00" endTime="2026-07-20T08:13:26.2879968+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="4c974508-ede7-42e5-8f08-c3ffd367f20a" />
+    <UnitTestResult executionId="5d5f7d4c-80cc-43ea-b83e-dbc435e13467" testId="c574887d-6c50-c128-04a1-6881925a3bce" testName="Engine.Host.Tests.GameplayCompilationBoundaryTests.IceRemembersAffordanceCompilerKeepsActionableInfluencePressure" computerName="34b165543bd0" duration="00:00:00.0207469" startTime="2026-07-20T08:10:54.8538119+00:00" endTime="2026-07-20T08:10:54.8742567+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="5d5f7d4c-80cc-43ea-b83e-dbc435e13467" />
+    <UnitTestResult executionId="b1d24f24-9696-421e-8a31-93e73548006d" testId="94f5096e-ef91-189a-1f86-d93ac1799d43" testName="Engine.Host.Tests.GameplayCompilationBoundaryTests.IceRemembersPenguinsCanReduceInfluenceOnPhysicalAndSemanticPlanes" computerName="34b165543bd0" duration="00:00:00.0210044" startTime="2026-07-20T08:10:54.8326278+00:00" endTime="2026-07-20T08:10:54.8533518+00:00" testType="13cdc9d9-ddb5-4fa4-a97d-d965ccfc6d4b" outcome="Passed" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" relativeResultsDirectory="b1d24f24-9696-421e-8a31-93e73548006d" />
+  </Results>
+  <TestDefinitions>
+    <UnitTest name="Engine.Host.Tests.GameplayCompilationBoundaryTests.IceRemembersAffordanceCompilerKeepsActionableInfluencePressure" storage="/home/dev/repos/the-canonry-game/.artifacts/bin/engine.host.tests/release/net8.0/engine.host.tests.dll" id="c574887d-6c50-c128-04a1-6881925a3bce">
+      <Execution id="5d5f7d4c-80cc-43ea-b83e-dbc435e13467" />
+      <TestMethod codeBase="/home/dev/repos/the-canonry-game/.artifacts/bin/Engine.Host.Tests/Release/net8.0/Engine.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Engine.Host.Tests.GameplayCompilationBoundaryTests" name="IceRemembersAffordanceCompilerKeepsActionableInfluencePressure" />
+    </UnitTest>
+    <UnitTest name="Engine.Host.Tests.GameplayCompilationBoundaryTests.IceRemembersAffordanceCompilerDoesNotExposeHighAltitudeOnlyPrerequisites" storage="/home/dev/repos/the-canonry-game/.artifacts/bin/engine.host.tests/release/net8.0/engine.host.tests.dll" id="6253675a-bad2-2cc7-36f5-b30a8475a5ce">
+      <Execution id="a6a6642c-bee4-4ef7-8da6-d2701a83733a" />
+      <TestMethod codeBase="/home/dev/repos/the-canonry-game/.artifacts/bin/Engine.Host.Tests/Release/net8.0/Engine.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Engine.Host.Tests.GameplayCompilationBoundaryTests" name="IceRemembersAffordanceCompilerDoesNotExposeHighAltitudeOnlyPrerequisites" />
+    </UnitTest>
+    <UnitTest name="Engine.Host.Tests.CulturePowerTests.ComputeCulturePower_ReportsAllCulturesWithSharesThatPartitionEachAxis" storage="/home/dev/repos/the-canonry-game/.artifacts/bin/engine.host.tests/release/net8.0/engine.host.tests.dll" id="d9470a0a-9dbf-6bbb-9ead-bd665a1518ef">
+      <Execution id="af25c5e8-9b33-41a5-af70-97c0089c095a" />
+      <TestMethod codeBase="/home/dev/repos/the-canonry-game/.artifacts/bin/Engine.Host.Tests/Release/net8.0/Engine.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Engine.Host.Tests.CulturePowerTests" name="ComputeCulturePower_ReportsAllCulturesWithSharesThatPartitionEachAxis" />
+    </UnitTest>
+    <UnitTest name="Engine.Host.Tests.GameplayCompilationBoundaryTests.LowAltitudeAffordanceShapeCodesDoNotDefineHighAltitudeOnlyShapes" storage="/home/dev/repos/the-canonry-game/.artifacts/bin/engine.host.tests/release/net8.0/engine.host.tests.dll" id="1b778e40-2680-4008-fcde-8746e6a68dc9">
+      <Execution id="6dd0ade9-24d9-4597-8d20-eb50816f158a" />
+      <TestMethod codeBase="/home/dev/repos/the-canonry-game/.artifacts/bin/Engine.Host.Tests/Release/net8.0/Engine.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Engine.Host.Tests.GameplayCompilationBoundaryTests" name="LowAltitudeAffordanceShapeCodesDoNotDefineHighAltitudeOnlyShapes" />
+    </UnitTest>
+    <UnitTest name="Engine.Host.Tests.KernelSmokeTests.Simulation_LowAltitudePhysicsMovesEntitiesWithoutLegacyActionProgram" storage="/home/dev/repos/the-canonry-game/.artifacts/bin/engine.host.tests/release/net8.0/engine.host.tests.dll" id="d8fb919f-47d5-ccb2-c8de-f6bdf39bb8c3">
+      <Execution id="4d64d598-961c-40fe-8fb9-b20ddbea5d5b" />
+      <TestMethod codeBase="/home/dev/repos/the-canonry-game/.artifacts/bin/Engine.Host.Tests/Release/net8.0/Engine.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Engine.Host.Tests.KernelSmokeTests" name="Simulation_LowAltitudePhysicsMovesEntitiesWithoutLegacyActionProgram" />
+    </UnitTest>
+    <UnitTest name="Engine.Host.Tests.GameplayCompilationBoundaryTests.IceRemembersReduceInfluenceVerbsUseHostileOrOverextendedTargeting" storage="/home/dev/repos/the-canonry-game/.artifacts/bin/engine.host.tests/release/net8.0/engine.host.tests.dll" id="d97882a3-36db-fd41-a3cd-ebc36c74d1a6">
+      <Execution id="4d546185-4b5b-4ad7-a7b9-30b809fac963" />
+      <TestMethod codeBase="/home/dev/repos/the-canonry-game/.artifacts/bin/Engine.Host.Tests/Release/net8.0/Engine.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Engine.Host.Tests.GameplayCompilationBoundaryTests" name="IceRemembersReduceInfluenceVerbsUseHostileOrOverextendedTargeting" />
+    </UnitTest>
+    <UnitTest name="Engine.Host.Tests.KnowledgeOverviewTests.KnowledgeOverview_ReportsLiveClaimsAndDeduplicatedEffectiveModifiers" storage="/home/dev/repos/the-canonry-game/.artifacts/bin/engine.host.tests/release/net8.0/engine.host.tests.dll" id="48a7c0fb-36ba-b2d9-a3fd-9ac94bd3614a">
+      <Execution id="e60e2d44-1dab-4b3b-bb8f-b0f7766a55aa" />
+      <TestMethod codeBase="/home/dev/repos/the-canonry-game/.artifacts/bin/Engine.Host.Tests/Release/net8.0/Engine.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Engine.Host.Tests.KnowledgeOverviewTests" name="KnowledgeOverview_ReportsLiveClaimsAndDeduplicatedEffectiveModifiers" />
+    </UnitTest>
+    <UnitTest name="Engine.Host.Tests.KernelSmokeTests.InitialSeed_EntitiesStartWithDistinctPositionsOnBothPlanes" storage="/home/dev/repos/the-canonry-game/.artifacts/bin/engine.host.tests/release/net8.0/engine.host.tests.dll" id="2ce141ef-d189-990c-f5ee-adee7241e05e">
+      <Execution id="4c974508-ede7-42e5-8f08-c3ffd367f20a" />
+      <TestMethod codeBase="/home/dev/repos/the-canonry-game/.artifacts/bin/Engine.Host.Tests/Release/net8.0/Engine.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Engine.Host.Tests.KernelSmokeTests" name="InitialSeed_EntitiesStartWithDistinctPositionsOnBothPlanes" />
+    </UnitTest>
+    <UnitTest name="Engine.Host.Tests.GameplayCompilationBoundaryTests.IceRemembersPenguinsCanReduceInfluenceOnPhysicalAndSemanticPlanes" storage="/home/dev/repos/the-canonry-game/.artifacts/bin/engine.host.tests/release/net8.0/engine.host.tests.dll" id="94f5096e-ef91-189a-1f86-d93ac1799d43">
+      <Execution id="b1d24f24-9696-421e-8a31-93e73548006d" />
+      <TestMethod codeBase="/home/dev/repos/the-canonry-game/.artifacts/bin/Engine.Host.Tests/Release/net8.0/Engine.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Engine.Host.Tests.GameplayCompilationBoundaryTests" name="IceRemembersPenguinsCanReduceInfluenceOnPhysicalAndSemanticPlanes" />
+    </UnitTest>
+    <UnitTest name="Engine.Host.Tests.CulturePowerTests.ComputeCulturePower_SeedCustodyFeedsTheShadowLedger" storage="/home/dev/repos/the-canonry-game/.artifacts/bin/engine.host.tests/release/net8.0/engine.host.tests.dll" id="f047b118-fc2a-8c2a-625d-1bca42f0d10f">
+      <Execution id="071cfd8d-e095-4754-9d87-6ff00d91702e" />
+      <TestMethod codeBase="/home/dev/repos/the-canonry-game/.artifacts/bin/Engine.Host.Tests/Release/net8.0/Engine.Host.Tests.dll" adapterTypeName="executor://xunit/VsTestRunner3/netcore/" className="Engine.Host.Tests.CulturePowerTests" name="ComputeCulturePower_SeedCustodyFeedsTheShadowLedger" />
+    </UnitTest>
+  </TestDefinitions>
+  <TestEntries>
+    <TestEntry testId="d97882a3-36db-fd41-a3cd-ebc36c74d1a6" executionId="4d546185-4b5b-4ad7-a7b9-30b809fac963" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="6253675a-bad2-2cc7-36f5-b30a8475a5ce" executionId="a6a6642c-bee4-4ef7-8da6-d2701a83733a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d9470a0a-9dbf-6bbb-9ead-bd665a1518ef" executionId="af25c5e8-9b33-41a5-af70-97c0089c095a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="d8fb919f-47d5-ccb2-c8de-f6bdf39bb8c3" executionId="4d64d598-961c-40fe-8fb9-b20ddbea5d5b" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="f047b118-fc2a-8c2a-625d-1bca42f0d10f" executionId="071cfd8d-e095-4754-9d87-6ff00d91702e" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="1b778e40-2680-4008-fcde-8746e6a68dc9" executionId="6dd0ade9-24d9-4597-8d20-eb50816f158a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="48a7c0fb-36ba-b2d9-a3fd-9ac94bd3614a" executionId="e60e2d44-1dab-4b3b-bb8f-b0f7766a55aa" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="2ce141ef-d189-990c-f5ee-adee7241e05e" executionId="4c974508-ede7-42e5-8f08-c3ffd367f20a" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="c574887d-6c50-c128-04a1-6881925a3bce" executionId="5d5f7d4c-80cc-43ea-b83e-dbc435e13467" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestEntry testId="94f5096e-ef91-189a-1f86-d93ac1799d43" executionId="b1d24f24-9696-421e-8a31-93e73548006d" testListId="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+  </TestEntries>
+  <TestLists>
+    <TestList name="Results Not in a List" id="8c84fa94-04c1-424b-9868-57a2d4851a1d" />
+    <TestList name="All Loaded Results" id="19431567-8539-422a-85d7-44ee4e166bda" />
+  </TestLists>
+  <ResultSummary outcome="Completed">
+    <Counters total="10" executed="10" passed="10" failed="0" error="0" timeout="0" aborted="0" inconclusive="0" passedButRunAborted="0" notRunnable="0" notExecuted="0" disconnected="0" warning="0" completed="0" inProgress="0" pending="0" />
+    <Output>
+      <StdOut>[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v3.1.4+50e68bbb8b (64-bit .NET 8.0.28)
+[xUnit.net 00:00:00.13]   Discovering: Engine.Host.Tests
+[xUnit.net 00:00:00.22]   Discovered:  Engine.Host.Tests
+[xUnit.net 00:00:00.26]   Starting:    Engine.Host.Tests
+[xUnit.net 00:02:32.46]   Finished:    Engine.Host.Tests
+</StdOut>
+    </Output>
+  </ResultSummary>
+</TestRun>

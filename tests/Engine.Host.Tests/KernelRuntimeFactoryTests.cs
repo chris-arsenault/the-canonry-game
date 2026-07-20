@@ -7,6 +7,8 @@ using Engine.Kernel;
 
 using IceRemembers;
 
+// Slow: builds a full startup seed and kernel runtime; excluded from the fast loop.
+[Trait("Category", "Slow")]
 public sealed class KernelRuntimeFactoryTests
 {
     [Fact]

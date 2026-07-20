@@ -7,6 +7,8 @@ using Engine.Projection;
 using IceRemembers;
 using IceRemembers.Seed;
 
+// Slow: seeds a full world and runs the kernel; excluded from the fast loop.
+[Trait("Category", "Slow")]
 public sealed class KernelSmokeTests
 {
     [Fact]

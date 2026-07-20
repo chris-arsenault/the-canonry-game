@@ -5,6 +5,8 @@ using Engine.Host;
 using IceRemembers;
 using IceRemembers.Seed;
 
+// Slow: seeds a full world; excluded from the fast loop.
+[Trait("Category", "Slow")]
 public sealed class KnowledgeOverviewTests
 {
     [Fact]

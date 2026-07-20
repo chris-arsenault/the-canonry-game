@@ -6,6 +6,8 @@ using Engine.WorldGen;
 
 using K = IceRemembers.IceRemembersKinds;
 
+// Slow: generates radius-128 worlds; excluded from the fast loop.
+[Trait("Category", "Slow")]
 public sealed class IceRemembersSeedBuilderTests
 {
     private static readonly Lazy<IceRemembersStartupSeedResult> Result42 =

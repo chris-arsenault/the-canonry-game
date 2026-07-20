@@ -3,6 +3,8 @@ namespace Engine.Domain.Tests.Wiring;
 using Engine.Kinds;
 using Engine.Wiring;
 
+// Slow: compiles the full domain configuration; excluded from the fast loop.
+[Trait("Category", "Slow")]
 public class WiringValidatorTests
 {
     // --- AttributeRef ---
