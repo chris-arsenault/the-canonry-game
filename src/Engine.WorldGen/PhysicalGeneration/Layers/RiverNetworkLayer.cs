@@ -362,10 +362,13 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
         int source,
         int target) =>
         map.RiverOrders[source] > 0 ||
+
+        // A lake triangle draws a spine only where it hands off to a channel,
+        // so a river reads as continuous through the lake without the open
+        // water itself being veined with rivers.
         map.WaterKindCodes[source] == PhysicalWaterKindCodes.Lake &&
-            (map.RiverOrders[target] > 0 ||
-                map.WaterKindCodes[target] == PhysicalWaterKindCodes.Lake &&
-                map.FlowAccumulation[source] >= profile.RiverMinimumAccumulationThreshold);
+            map.WaterKindCodes[target] != PhysicalWaterKindCodes.Lake &&
+            map.RiverOrders[target] > 0;
 
     private static void AddSpineEdge(PhysicalGeographyField map, int source, int target)
     {

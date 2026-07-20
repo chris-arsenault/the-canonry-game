@@ -247,13 +247,12 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
             return IceRemembersPhysicalSurface.RiverValley;
         }
 
-        if (field.CumulativeFluvialErosion[triangleIndex] >= PhysicalElevation.FromUnits(
-                profile.AncestralRiverValleyMinimumErosion) &&
-            field.Slope[triangleIndex] <= PhysicalElevation.FromUnits(
-                profile.AncestralRiverValleyMaximumSlope))
-        {
-            return IceRemembersPhysicalSurface.RiverValley;
-        }
+        // Ground that water carved long ago is a landform fact, not a cover
+        // fact: LandformClassificationLayer already records it as Valley from
+        // the same erosion field. Claiming it here painted a quarter of all
+        // land in the wetland colour family and said the world was marshy when
+        // it was merely old. Cover is decided by climate below; the geological
+        // memory shows through relief instead.
 
         if (field.Slope[triangleIndex] >= PhysicalElevation.FromUnits(profile.ScreeFieldMinimumSlope))
         {
