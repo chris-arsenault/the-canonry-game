@@ -127,6 +127,24 @@ public sealed record PhysicalGeographyGenerationProfile
     public int TectonicBoundaryPersistence { get; init; } = 420;
 
     /// <summary>
+    /// World units a plate at full speed travels between epochs, scaled by the
+    /// epoch's tectonic strength. Plates hold still during an epoch and move
+    /// between them, so every epoch is a static snapshot of a moved
+    /// arrangement rather than a moving-boundary simulation.
+    /// </summary>
+    public double PlateDriftPerEpoch { get; init; } = 14d;
+
+    /// <summary>
+    /// Uplift, in authored units per epoch, applied to submerged crust at a
+    /// convergent margin. This is the obduction lever that lets ocean floor
+    /// become land and carry its accumulated history up with it.
+    /// </summary>
+    public int AccretionUpliftStep { get; init; } = 260;
+
+    /// <summary>Depth, in units, at which accretion reaches full strength.</summary>
+    public int AccretionDepthScale { get; init; } = 420;
+
+    /// <summary>
     /// How far, in triangles, an active plate boundary imprints its kind on
     /// surrounding crust. Crust beyond every boundary's reach is plate
     /// interior, which on continental crust is a passive margin.

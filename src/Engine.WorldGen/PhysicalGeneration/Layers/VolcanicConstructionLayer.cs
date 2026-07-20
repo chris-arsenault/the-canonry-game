@@ -105,18 +105,29 @@ internal sealed class VolcanicConstructionLayer : IPhysicalGeographyLayer
         }
     }
 
+    /// <summary>
+    /// A plume is anchored in the mantle, not in the crust. It wanders a short
+    /// way during an epoch, building a local chain of cones, and then returns
+    /// home for the next epoch — the displacement is never cumulative.
+    ///
+    /// The long hotspot track comes from the other direction: between epochs
+    /// the plate drifts, so the same mantle anchor sits over different crust
+    /// each time, and cones built in earlier epochs have travelled away with
+    /// the crust that carries them. Drifting the plume itself instead would
+    /// produce a chain that no crust remembers being part of.
+    /// </summary>
     private static int AdvanceOverPlume(
         PhysicalGeographyField map,
         int root,
         int sequence,
         PhysicalGeographyGenerationProfile profile)
     {
-        var motionX = map.CrustMotionX[root];
-        var motionY = map.CrustMotionY[root];
-        var magnitude = Math.Sqrt((motionX * (double)motionX) + (motionY * (double)motionY));
-        var rate = Math.Clamp(magnitude / 1000d, 0.35d, 1d);
+        var wanderAngle = PhysicalNoise.HashUnit(0x51f3, root, sequence) * Math.PI * 2d;
+        var motionX = (int)Math.Round(Math.Cos(wanderAngle) * 1000d, MidpointRounding.AwayFromZero);
+        var motionY = (int)Math.Round(Math.Sin(wanderAngle) * 1000d, MidpointRounding.AwayFromZero);
+        var reach = PhysicalNoise.HashUnit(0x2c87, root, sequence);
         var steps = (int)Math.Round(
-            sequence * profile.MantlePlumeDriftPerEpoch * rate,
+            profile.MantlePlumeDriftPerEpoch * (0.35d + (reach * 0.65d)),
             MidpointRounding.AwayFromZero);
         var current = root;
         for (var step = 0; step < steps; step++)

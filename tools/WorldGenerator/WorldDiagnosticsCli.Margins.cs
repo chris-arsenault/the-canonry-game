@@ -82,6 +82,63 @@ internal static partial class WorldDiagnosticsCli
     }
 
     /// <summary>
+    /// Whether plate drift actually mixed history into new settings: ocean-born
+    /// pressure now standing on land, and volcanic construction spread across
+    /// epochs as an age-progressive hotspot track.
+    /// </summary>
+    internal static void ReportPlateHistory(
+        PhysicalGeographyField field,
+        IceRemembers.Seed.IceRemembersMicrogeographyMap magic)
+    {
+        Console.WriteLine("\n== Plate drift mixing ==");
+        long landWithPressureHistory = 0;
+        long landTotal = 0;
+        long freshCrust = 0;
+        var volcanicByEpoch = new Dictionary<int, int>();
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (!field.Grid.TriangleIsInsideConfiguredDisk(t))
+            {
+                continue;
+            }
+
+            if (field.AdvectionSourceIndex[t] < 0)
+            {
+                freshCrust++;
+            }
+
+            if (field.VolcanicConstructionHistory[t] > 0)
+            {
+                var epoch = field.VolcanicLastActiveEpoch[t];
+                volcanicByEpoch[epoch] = volcanicByEpoch.GetValueOrDefault(epoch) + 1;
+            }
+
+            if (field.WaterKindCodes[t] != PhysicalWaterKindCodes.None)
+            {
+                continue;
+            }
+
+            landTotal++;
+            if (magic.PressureHistory[t] > 0 || magic.PressureCoastalHistory[t] > 0)
+            {
+                landWithPressureHistory++;
+            }
+        }
+
+        Console.WriteLine(
+            $"  land carrying ocean-born pressure history: {landWithPressureHistory} of {landTotal} " +
+            $"({landWithPressureHistory * 100d / Math.Max(1, landTotal):0.0}%)");
+        Console.WriteLine($"  crust created fresh at rifts this epoch: {freshCrust}");
+        Console.Write("  volcanic construction by last-active epoch:");
+        foreach (var (epoch, count) in volcanicByEpoch.OrderBy(pair => pair.Key))
+        {
+            Console.Write($" e{epoch}:{count}");
+        }
+
+        Console.WriteLine();
+    }
+
+    /// <summary>
     /// The named coast forms from review: offshore island groups, narrow
     /// peninsulas and isthmuses, and drowned glacial inlets.
     /// </summary>

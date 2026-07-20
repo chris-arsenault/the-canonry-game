@@ -86,6 +86,10 @@ public sealed class PhysicalGeographyEvolutionSession
     public void ApplyGeology()
     {
         RequirePhase(EvolutionPhase.Geology);
+        // Plates move between epochs, carrying their history with them, then
+        // the arrangement is re-derived at the new positions.
+        Apply(new PlateAdvectionLayer());
+        Apply(new TectonicProvinceLayer());
         Apply(new TectonicEpochLayer());
         Apply(new TectonicMarginLayer());
         Apply(new ContinentalDomainLayer());

@@ -55,7 +55,12 @@ internal static class IceRemembersWorldGenerationOrchestrator
         int epochCount)
     {
         physical.BeginEpoch(epoch.Physical, epochCount);
+
+        // Plates drift at the start of geology; magic history rides along with
+        // the crust that accumulated it, which is how ocean-born pressure ends
+        // up stranded on uplifted land.
         physical.ApplyGeology();
+        ApplyMagic(pipeline, new MagicAdvectionLayer(), magic, seed, epoch, epochIndex, epochCount);
         physical.ApplyClimate();
         ApplyMagic(pipeline, new FireFieldLayer(), magic, seed, epoch, epochIndex, epochCount);
         ApplyMagic(

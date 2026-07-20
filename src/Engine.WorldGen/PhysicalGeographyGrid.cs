@@ -117,6 +117,66 @@ public sealed class PhysicalGeographyGrid
     public bool TryGetHexIndex(HexCoord coord, out int hexIndex) =>
         _hexIndexes.TryGetValue(coord, out hexIndex);
 
+    /// <summary>
+    /// Nearest triangle to a world position. Advection samples in world space
+    /// rather than index space: an index-space shift would smear history along
+    /// lattice axes and reintroduce the hex-aligned artifact class.
+    /// </summary>
+    public bool TryFindNearestTriangle(double x, double y, out int triangleIndex)
+    {
+        triangleIndex = -1;
+        var approximateR = y / 1.5d;
+        var approximateQ = (x / Math.Sqrt(3d)) - (approximateR / 2d);
+        var best = double.MaxValue;
+        for (var dq = -1; dq <= 1; dq++)
+        {
+            for (var dr = -1; dr <= 1; dr++)
+            {
+                var coord = RoundAxial(approximateQ + dq, approximateR + dr);
+                if (!_hexIndexes.TryGetValue(coord, out var hexIndex))
+                {
+                    continue;
+                }
+
+                for (var local = 0; local < PhysicalGeographyCodes.MicrotrianglesPerHex; local++)
+                {
+                    var candidate = TriangleIndex(hexIndex, local);
+                    var dx = _triangleX[candidate] - x;
+                    var dy = _triangleY[candidate] - y;
+                    var distance = (dx * dx) + (dy * dy);
+                    if (distance < best)
+                    {
+                        best = distance;
+                        triangleIndex = candidate;
+                    }
+                }
+            }
+        }
+
+        return triangleIndex >= 0;
+    }
+
+    private static HexCoord RoundAxial(double q, double r)
+    {
+        var s = -q - r;
+        var roundedQ = (int)Math.Round(q, MidpointRounding.AwayFromZero);
+        var roundedR = (int)Math.Round(r, MidpointRounding.AwayFromZero);
+        var roundedS = (int)Math.Round(s, MidpointRounding.AwayFromZero);
+        var differenceQ = Math.Abs(roundedQ - q);
+        var differenceR = Math.Abs(roundedR - r);
+        var differenceS = Math.Abs(roundedS - s);
+        if (differenceQ > differenceR && differenceQ > differenceS)
+        {
+            roundedQ = -roundedR - roundedS;
+        }
+        else if (differenceR > differenceS)
+        {
+            roundedR = -roundedQ - roundedS;
+        }
+
+        return new HexCoord(roundedQ, roundedR);
+    }
+
     public int EdgeLeadingTo(int triangleIndex, int targetTriangleIndex)
     {
         for (var edge = 0; edge < 3; edge++)
@@ -264,6 +324,7 @@ public sealed class PhysicalGeographyField
     private readonly int[] _crustMotionY;
     private readonly int[] _crustProvinceIds;
     private readonly int[] _crustTypeCodes;
+    private readonly int[] _advectionSourceIndex;
     private readonly int[] _marginCodes;
     private readonly int[] _crustAge;
     private readonly long[] _bedrockElevation;
@@ -354,6 +415,11 @@ public sealed class PhysicalGeographyField
     private readonly int[] _waterKindCodes;
     private readonly long[] _waterSurfaceElevations;
 
+    private static (int[] Source, int[] Margin, int[] Age, int[] Potential) NewCrustFrameFields(
+        PhysicalGeographyGrid grid) =>
+        (new int[grid.TriangleCount], new int[grid.TriangleCount],
+            new int[grid.TriangleCount], new int[grid.TriangleCount]);
+
     internal PhysicalGeographyField(PhysicalGeographyGrid grid)
     {
         Grid = grid;
@@ -362,8 +428,8 @@ public sealed class PhysicalGeographyField
             (new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount],
                 new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount],
                 new int[grid.TriangleCount]);
-        (_marginCodes, _crustAge, _continentalPotential) =
-            (new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount]);
+        (_advectionSourceIndex, _marginCodes, _crustAge, _continentalPotential) =
+            NewCrustFrameFields(grid);
         _elevation = NewElevationField(grid);
         _temperature = new int[grid.TriangleCount];
         (_windX, _windY, _upwindTargets, _moistureBarriers,
@@ -553,6 +619,14 @@ public sealed class PhysicalGeographyField
     /// What the nearest plate boundary is doing to this crust. Coastal layers
     /// consume this so coasts differ in kind, not merely in raggedness.
     /// </summary>
+    /// <summary>
+    /// For each triangle, the triangle its crust arrived from during the last
+    /// plate-drift step, or -1 where new crust was created at a rift. Published
+    /// so domain layers can advect their own persistent history without
+    /// Engine.WorldGen knowing what that history is.
+    /// </summary>
+    public Span<int> AdvectionSourceIndex => _advectionSourceIndex;
+
     public Span<int> MarginCodes => _marginCodes;
 
     /// <summary>
@@ -793,6 +867,13 @@ public sealed class PhysicalGeographyField
     internal long SedimentExportedTotal { get; set; }
 
     public int CompletedEpochCount { get; internal set; }
+
+    /// <summary>
+    /// Total distance, in world units, that plates have drifted since world
+    /// creation. Province sites are placed at their seed positions offset by
+    /// this, so each epoch is a static snapshot of a moved plate arrangement.
+    /// </summary>
+    public double AccumulatedPlateDrift { get; internal set; }
 
     /// <summary>
     /// Cumulative drainage-guidance selections whose top candidate scores tied

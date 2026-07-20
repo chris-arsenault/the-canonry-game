@@ -18,7 +18,7 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
-        var sites = CreateSites(map.Grid, context);
+        var sites = CreateSites(map.Grid, context, map.AccumulatedPlateDrift);
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             AssignTriangle(map, context, sites, triangleIndex);
@@ -69,9 +69,17 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
         map.CrustMotionX[triangleIndex] is < -1000 or > 1000 ||
         map.CrustMotionY[triangleIndex] is < -1000 or > 1000;
 
+    /// <summary>
+    /// Sites are seeded once and then translated by accumulated drift, so each
+    /// epoch re-derives crust type, boundaries, and strain for a plate
+    /// arrangement that has moved. The epoch-stable seed keeps the same plates
+    /// across epochs — using the per-epoch seed would reshuffle them instead of
+    /// moving them.
+    /// </summary>
     private static ProvinceSite[] CreateSites(
         PhysicalGeographyGrid grid,
-        PhysicalGeographyGenerationContext context)
+        PhysicalGeographyGenerationContext context,
+        double accumulatedDrift)
     {
         var candidateCount = checked(
             context.Profile.TectonicProvinceCount * context.Profile.TectonicSiteCandidateMultiplier);
@@ -79,35 +87,37 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
         var placementRadius = grid.WorkRadius * Math.Sqrt(3d) * 0.94d;
         for (var index = 0; index < candidates.Length; index++)
         {
-            var angle = PhysicalNoise.HashUnit(context.Seed ^ 0x1b73, index, 0) * Math.PI * 2d;
-            var radius = Math.Sqrt(PhysicalNoise.HashUnit(context.Seed ^ 0x2db9, index, 1)) *
+            var angle = PhysicalNoise.HashUnit(context.EpochStableSeed ^ 0x1b73, index, 0) * Math.PI * 2d;
+            var radius = Math.Sqrt(PhysicalNoise.HashUnit(context.EpochStableSeed ^ 0x2db9, index, 1)) *
                 placementRadius;
             candidates[index] = new SiteCandidate(
                 Math.Cos(angle) * radius,
                 Math.Sin(angle) * radius,
-                PhysicalNoise.HashUnit(context.Seed ^ 0x4a91, index, 2));
+                PhysicalNoise.HashUnit(context.EpochStableSeed ^ 0x4a91, index, 2));
         }
 
         var selected = SelectSeparatedCandidates(candidates, context.Profile.TectonicProvinceCount);
         var assemblies = AssignContinentalAssemblies(
             selected,
             context.Profile,
-            context.Seed,
+            context.EpochStableSeed,
             grid.Radius * Math.Sqrt(3d) * 0.94d);
         var sites = new ProvinceSite[selected.Length];
         for (var index = 0; index < sites.Length; index++)
         {
-            var angle = PhysicalNoise.HashUnit(context.Seed ^ 0x5c27, index, 0) * Math.PI * 2d;
+            var angle = PhysicalNoise.HashUnit(context.EpochStableSeed ^ 0x5c27, index, 0) * Math.PI * 2d;
             var speed = Lerp(
                 context.Profile.TectonicMotionMinimum,
                 context.Profile.TectonicMotionMaximum,
-                PhysicalNoise.HashUnit(context.Seed ^ 0x73a1, index, 1));
+                PhysicalNoise.HashUnit(context.EpochStableSeed ^ 0x73a1, index, 1));
+            var motionX = Math.Cos(angle) * speed;
+            var motionY = Math.Sin(angle) * speed;
             sites[index] = new ProvinceSite(
-                selected[index].X,
-                selected[index].Y,
+                selected[index].X + (motionX * accumulatedDrift),
+                selected[index].Y + (motionY * accumulatedDrift),
                 assemblies[index],
-                Math.Cos(angle) * speed,
-                Math.Sin(angle) * speed);
+                motionX,
+                motionY);
         }
 
         return sites;

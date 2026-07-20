@@ -73,6 +73,7 @@ internal static partial class WorldDiagnosticsCli
         ReportLandforms(field);
         ReportVolcanism(field);
         ReportStripes(field);
+        ReportPlateHistory(field, result.Magic);
         ReportFieldCorrelation(field, result.Magic);
         return 0;
     }

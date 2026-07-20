@@ -87,6 +87,44 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
     }
 
     /// <summary>
+    /// Obduction at convergent margins.
+    ///
+    /// Ordinary boundary uplift is far too gentle to raise ocean floor to land
+    /// within the epoch schedule, so seafloor that drifts into a collision
+    /// would simply stay seafloor and the history it carries would never
+    /// surface. Accretion lifts arriving low crust hard, which is what strands
+    /// former seabed — and the ocean-born pressure record written into it —
+    /// on top of a new range.
+    /// </summary>
+    private static long AccretionUplift(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationContext context,
+        int triangleIndex)
+    {
+        if (map.MarginCodes[triangleIndex] != PhysicalMarginCodes.Convergent)
+        {
+            return 0;
+        }
+
+        var depth = map.EffectiveSeaLevel - map.BedrockElevation[triangleIndex];
+        if (depth <= 0)
+        {
+            return 0;
+        }
+
+        // Deeper crust is driven up harder, so a whole slab surfaces together
+        // rather than only its shallowest edge.
+        var submergence = Math.Clamp(
+            PhysicalElevation.ToUnits(depth) / Math.Max(1d, context.Profile.AccretionDepthScale),
+            0d,
+            1d);
+        var strain = map.TectonicStrain[triangleIndex] / 1000d;
+        return PhysicalElevation.FromUnits(
+            submergence * strain * context.Profile.AccretionUpliftStep *
+                context.TectonicStrength / 1000d);
+    }
+
+    /// <summary>
     /// Shapes the land-to-ocean transition by margin type, which is what makes
     /// coasts differ in kind rather than only in raggedness.
     ///
@@ -201,6 +239,7 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
         var delta = PhysicalElevation.FromUnits(
             (boundaryRelief + beltUplift) * context.Profile.EpochTectonicElevationStep *
                 context.TectonicStrength / 1000d);
+        delta += AccretionUplift(map, context, triangleIndex);
         var maximumBedrock = PhysicalElevation.FromUnits(2000) - map.SedimentThickness[triangleIndex];
         var nextBedrock = Math.Clamp(
             map.BedrockElevation[triangleIndex] + delta,
