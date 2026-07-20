@@ -1,7 +1,8 @@
 # Map Generation Review — Rivers and General Findings
 
-Date: 2026-07-19. Point-in-time review of the map-generation tranche handed off
-in `docs/design/map-generation-work-handoff.md` (commit `b0ea8d3`). Evidence:
+Date: 2026-07-19. Point-in-time review of the map-generation tranche as of
+commit `b0ea8d3`. Follow-on work is planned in
+`docs/design/map-generation-fidelity-and-coastline-plan.md`. Evidence:
 the ten seed-42 captures in `.artifacts/captures/seed42-shared-renderer-final/`
 plus a quantitative diagnostic run (`tools/WorldGenerator` `diagnose` mode,
 radius 128, seed 42, production profile and epochs — the same configuration as
