@@ -10,7 +10,7 @@ using Engine.Host;
 internal static class IceRemembersStartupSeedCacheSerializer
 {
     private const ulong Magic = 0x31444C524F574743UL;
-    private const int FormatVersion = 3;
+    private const int FormatVersion = 4;
     private const int MaximumEntityCount = 1_000_000;
     private const int MaximumCellCount = 2_000_000;
     private const int MaximumRelationshipCount = 4_000_000;
@@ -359,6 +359,12 @@ internal static class IceRemembersStartupSeedCacheSerializer
         WriteList(writer, field.Values, static (output, value) => output.Write(value));
     }
 
+    private static string? ReadOptionalString(BinaryReader reader)
+    {
+        var value = reader.ReadString();
+        return value.Length == 0 ? null : value;
+    }
+
     private static DomainPhysicalScalarField ReadPhysicalScalarField(BinaryReader reader) =>
         new(
             reader.ReadString(),
@@ -371,6 +377,9 @@ internal static class IceRemembersStartupSeedCacheSerializer
         writer.Write(cell.BaseTerrain);
         writer.Write(cell.SuperregionId);
         writer.Write(cell.ContinentId);
+        writer.Write(cell.CrossingWord);
+        writer.Write(cell.FieldWord);
+        writer.Write(cell.InitialCoverTerrain ?? string.Empty);
         writer.Write(cell.MicrotriangleOffset);
         writer.Write(cell.DominantMaterialIndex);
         writer.Write(cell.PrimarySurfaceIndex);
@@ -394,6 +403,7 @@ internal static class IceRemembersStartupSeedCacheSerializer
         writer.Write(cell.MeanPressureIntensity);
         writer.Write(cell.MaxPressureIntensity);
         writer.Write(cell.RiverEdgeMask);
+        writer.Write(cell.TrunkRiverEdgeMask);
         writer.Write(cell.CoastEdgeMask);
         writer.Write(cell.RidgeEdgeMask);
         writer.Write(cell.CliffEdgeMask);
@@ -420,6 +430,9 @@ internal static class IceRemembersStartupSeedCacheSerializer
         BaseTerrain: reader.ReadString(),
         SuperregionId: reader.ReadInt32(),
         ContinentId: reader.ReadInt32(),
+        CrossingWord: reader.ReadInt32(),
+        FieldWord: reader.ReadInt32(),
+        InitialCoverTerrain: ReadOptionalString(reader),
         MicrotriangleOffset: reader.ReadInt32(),
         DominantMaterialIndex: reader.ReadInt32(),
         PrimarySurfaceIndex: reader.ReadInt32(),
@@ -451,6 +464,7 @@ internal static class IceRemembersStartupSeedCacheSerializer
         MeanPressureIntensity: reader.ReadInt32(),
         MaxPressureIntensity: reader.ReadInt32(),
         RiverEdgeMask: reader.ReadInt32(),
+        TrunkRiverEdgeMask: reader.ReadInt32(),
         CoastEdgeMask: reader.ReadInt32(),
         RidgeEdgeMask: reader.ReadInt32(),
         CliffEdgeMask: reader.ReadInt32(),

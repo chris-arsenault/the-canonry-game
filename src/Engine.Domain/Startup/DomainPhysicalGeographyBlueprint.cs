@@ -78,7 +78,13 @@ public sealed record DomainPhysicalGeographyBlueprint(
         !string.IsNullOrWhiteSpace(cell.BaseTerrain) &&
         (uint)cell.DominantMaterialIndex < (uint)MaterialPalette.Count &&
         (uint)cell.PrimarySurfaceIndex < (uint)SurfacePalette.Count &&
-        cell.SuperregionId > 0 && cell.ContinentId > 0;
+        cell.SuperregionId > 0 && cell.ContinentId > 0 &&
+        GameplayProjectionIsValid(cell);
+
+    private static bool GameplayProjectionIsValid(DomainPhysicalGeographyCell cell) =>
+        (cell.CrossingWord & ~PhysicalCrossingCodes.WordMask) == 0 &&
+        (cell.FieldWord & ~PhysicalHexFieldCodes.WordMask) == 0 &&
+        (cell.InitialCoverTerrain is null || !string.IsNullOrWhiteSpace(cell.InitialCoverTerrain));
 
     private static bool CellCoverageIsValid(DomainPhysicalGeographyCell cell) =>
         cell.RiverCoverage is >= 0 and <= PhysicalGeographyCodes.MicrotrianglesPerHex &&
@@ -175,6 +181,9 @@ public readonly record struct DomainPhysicalGeographyCell(
     string BaseTerrain,
     int SuperregionId,
     int ContinentId,
+    int CrossingWord,
+    int FieldWord,
+    string? InitialCoverTerrain,
     int MicrotriangleOffset,
     int DominantMaterialIndex,
     int PrimarySurfaceIndex,
@@ -206,6 +215,7 @@ public readonly record struct DomainPhysicalGeographyCell(
     int MeanPressureIntensity,
     int MaxPressureIntensity,
     int RiverEdgeMask,
+    int TrunkRiverEdgeMask,
     int CoastEdgeMask,
     int RidgeEdgeMask,
     int CliffEdgeMask,

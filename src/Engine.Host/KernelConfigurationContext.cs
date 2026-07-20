@@ -36,13 +36,19 @@ internal sealed class KernelConfigurationContext
         int r,
         int baseTerrainId,
         int superregionId,
-        int continentId) =>
+        int continentId,
+        int crossingWord,
+        int fieldWord,
+        int initialCoverTerrainId) =>
         _kernel.KernelData.PhysicalGeography.InstallCell(
             q,
             r,
             baseTerrainId,
             superregionId,
-            continentId);
+            continentId,
+            crossingWord,
+            fieldWord,
+            initialCoverTerrainId);
 
     public void BeginSemanticTerrainBlueprintInstall(int radius) =>
         _kernel.MapFrontier.Data.BeginSemanticBlueprintInstall(radius);

@@ -168,11 +168,14 @@ internal static class WorldCaptureCli
         var wholeZoom = WholeWorldZoom(geography.Radius, geometry);
         return
         [
+            new("whole-terrain", PhysicalGeographyView.Terrain, default, wholeZoom),
             new("whole-surface", PhysicalGeographyView.Surface, default, wholeZoom),
             new("whole-elevation", PhysicalGeographyView.Elevation, default, wholeZoom),
             new("whole-hydrology", PhysicalGeographyView.Hydrology, default, wholeZoom),
             new("whole-rivers", PhysicalGeographyView.RiverGeometry, default, wholeZoom),
+            new("warm-terrain", PhysicalGeographyView.Terrain, warm, DetailZoom),
             new("warm-surface", PhysicalGeographyView.Surface, warm, DetailZoom),
+            new("cold-terrain", PhysicalGeographyView.Terrain, cold, DetailZoom),
             new("cold-surface", PhysicalGeographyView.Surface, cold, DetailZoom),
             new("cold-elevation", PhysicalGeographyView.Elevation, cold, DetailZoom),
             new("river-surface", PhysicalGeographyView.Surface, river, DetailZoom),

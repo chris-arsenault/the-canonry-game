@@ -805,6 +805,7 @@ public static partial class IceRemembersDefinition
         TerrainName(Terrain.Ocean),
         TerrainName(Terrain.Reef),
         TerrainName(Terrain.Shelf),
+        TerrainName(Terrain.Fjord),
     ];
 
     private static HashSet<string> HotTerrains() =>

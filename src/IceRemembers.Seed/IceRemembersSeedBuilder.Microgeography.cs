@@ -93,7 +93,8 @@ internal static partial class IceRemembersSeedBuilder
                 magic.FireIntensity,
                 magic.AuroraIntensity,
                 magic.PressureIntensity,
-                IceRemembersPhysicalGeography.GenerationProfile.CliffSlopeThreshold);
+                IceRemembersPhysicalGeography.GenerationProfile.CliffSlopeThreshold,
+                IceRemembersPhysicalGeography.GenerationProfile.TrunkRiverOrderThreshold);
         }
 
         return aggregates;
@@ -117,17 +118,17 @@ internal static partial class IceRemembersSeedBuilder
             var hexIndex = field.Grid.ConfiguredHexIndexAt(configuredIndex);
             var coord = field.Grid.HexCoordAt(hexIndex);
             var aggregate = aggregates[hexIndex];
-            var terrain = IceRemembersPhysicalTerrainSynthesizer.Synthesize(
+            var projection = IceRemembersHexProjection.Project(
                 field,
+                magic,
                 hexIndex,
-                materialIndexes,
                 aggregate);
-            fieldGrid.SetCell(coord, terrain.ToDomainName());
+            fieldGrid.SetCell(coord, projection.Terrain.ToDomainName());
             var subdivision = subdivisions.GetCell(coord);
             cells.Add(ToDomainCell(
                 coord,
                 subdivision,
-                terrain,
+                projection,
                 microtriangles.Count,
                 aggregate));
             AddDomainMicrotriangles(field, hexIndex, materialIndexes, magic, microtriangles);
@@ -218,15 +219,18 @@ internal static partial class IceRemembersSeedBuilder
     private static DomainPhysicalGeographyCell ToDomainCell(
         HexCoord coord,
         MapSubdivisionCell subdivision,
-        IceRemembersTerrain terrain,
+        IceRemembersHexProjection.Result projection,
         int microtriangleOffset,
         PhysicalHexAggregate aggregate) =>
         new(
             coord.Q,
             coord.R,
-            terrain.ToDomainName(),
+            projection.Terrain.ToDomainName(),
             subdivision.SuperregionId,
             subdivision.ContinentId,
+            projection.CrossingWord,
+            projection.FieldWord,
+            projection.InitialCover?.ToDomainName(),
             microtriangleOffset,
             aggregate.DominantMaterialIndex,
             aggregate.PrimarySurfaceIndex,
@@ -258,6 +262,7 @@ internal static partial class IceRemembersSeedBuilder
             aggregate.MeanPressureIntensity,
             aggregate.MaxPressureIntensity,
             aggregate.RiverEdgeMask,
+            aggregate.TrunkRiverEdgeMask,
             aggregate.CoastEdgeMask,
             aggregate.RidgeEdgeMask,
             aggregate.CliffEdgeMask,

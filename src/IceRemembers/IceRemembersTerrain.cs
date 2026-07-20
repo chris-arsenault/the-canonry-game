@@ -16,6 +16,13 @@ public enum IceRemembersTerrain
     Shelf,
     Reef,
     Ocean,
+    Verdant,
+    Floodplain,
+    Fjord,
+    Lake,
+    AuroraField,
+    Basalt,
+    SeaIce,
     Lineage,
     Yoke,
     Witness,
@@ -43,6 +50,13 @@ public static class IceRemembersTerrainExtensions
         "shelf",
         "reef",
         "ocean",
+        "verdant",
+        "floodplain",
+        "fjord",
+        "lake",
+        "aurora_field",
+        "basalt",
+        "sea_ice",
         "lineage",
         "yoke",
         "witness",
@@ -105,6 +119,32 @@ public static class IceRemembersTerrainCatalog
             0.2f,
             3f,
             movementProfiles: PhysicalMovement(trail: 0f, shore: 6f, wake: 2f)),
+        // The good land: scarce warm steppe. Highest land capacity and
+        // culture pull - the ground fronts fight over.
+        DomainTerrain(IceRemembersTerrain.Verdant, "Verdant", "frozen_land", 2.2f, 1.25f, 0.8f, 1.2f, 1.3f, 4.4f,
+            movementProfiles: PhysicalMovement(trail: 2.2f, shore: 2.4f, wake: 0f)),
+        // River lands: valleys, floodplains, deltas. Fertile corridor ground
+        // - cheap to walk, road-friendly, worth settling.
+        DomainTerrain(IceRemembersTerrain.Floodplain, "Floodplain", "frozen_land", 2.6f, 1.15f, 0.85f, 1.15f, 1.2f, 4.2f,
+            movementProfiles: PhysicalMovement(trail: 2.6f, shore: 2.4f, wake: 0f)),
+        // The natural harbor: sheltered glacial-carved water.
+        DomainTerrain(IceRemembersTerrain.Fjord, "Fjord", "maritime", 3f, 1f, 1.1f, 0.95f, 0.6f, 3.4f,
+            movementProfiles: PhysicalMovement(trail: 0f, shore: 3f, wake: 2.6f)),
+        // Inland freshwater: no sea connectivity for Wake movers beyond it.
+        DomainTerrain(IceRemembersTerrain.Lake, "Lake", "maritime", 3f, 0.95f, 1.2f, 0.85f, 0.4f, 3f,
+            movementProfiles: PhysicalMovement(trail: 0f, shore: 3f, wake: 2.8f)),
+        // Aurora-charged ice provinces: slow, hard, thinly habitable land
+        // that pulls aurora- and memory-flavored content.
+        DomainTerrain(IceRemembersTerrain.AuroraField, "Aurora Field", "frozen_land", 4.5f, 0.85f, 1.3f, 0.8f, 0.5f, 3.4f,
+            movementProfiles: PhysicalMovement(trail: 4.5f, shore: 4.8f, wake: 0f)),
+        // Volcanic fields: hazard-and-power ground.
+        DomainTerrain(IceRemembersTerrain.Basalt, "Basalt", "harsh_land", 4.8f, 0.8f, 1.25f, 0.8f, 0.7f, 3.8f,
+            movementProfiles: PhysicalMovement(trail: 4.8f, shore: 5.2f, wake: 0f)),
+        // Frozen sea: transient cover over water, the Deep Ice mechanism with
+        // inverse polarity - walkers cross slowly, swimmers are shut out, and
+        // the water underneath keeps its identity for the thaw.
+        DomainTerrain(IceRemembersTerrain.SeaIce, "Sea Ice", "frozen_land", 5.5f, 0.6f, 1.5f, 0.6f, 0.2f, 3f,
+            movementProfiles: PhysicalMovement(trail: 5.5f, shore: 5f, wake: 0f)),
         DomainTerrain(IceRemembersTerrain.Lineage, "Lineage", "semantic_memory", 2.6f, 1.15f, 0.85f, 1.25f, 1.1f, 3.8f,
             movementProfiles: SemanticMovement(commons: 2.4f, mandate: 2.8f, veil: 4f, rift: 5f)),
         DomainTerrain(IceRemembersTerrain.Yoke, "Yoke", "semantic_authority", 4.1f, 1.05f, 0.75f, 1.35f, 0.8f, 3.4f,
@@ -150,6 +190,12 @@ public static class IceRemembersTerrainCatalog
             Terrain(IceRemembersTerrain.Ocean, "Ocean", "maritime"),
             Terrain(IceRemembersTerrain.Reef, "Reef", "maritime"),
             Terrain(IceRemembersTerrain.Ice, "Ice", "frozen_land"),
+            Terrain(IceRemembersTerrain.Verdant, "Verdant", "frozen_land"),
+            Terrain(IceRemembersTerrain.Floodplain, "Floodplain", "frozen_land"),
+            Terrain(IceRemembersTerrain.Fjord, "Fjord", "maritime"),
+            Terrain(IceRemembersTerrain.Lake, "Lake", "maritime"),
+            Terrain(IceRemembersTerrain.AuroraField, "Aurora Field", "frozen_land"),
+            Terrain(IceRemembersTerrain.Basalt, "Basalt", "harsh_land"),
         ]);
 
     private static TerrainConfig DomainTerrain(

@@ -482,10 +482,10 @@ internal static class IceRemembersEntityDsl
         };
 
     public static IceRemembersTerrainProfile Land(params Terrain[] preferred) =>
-        new(preferred, [Terrain.Ocean, Terrain.Reef], Terrain.Tundra);
+        new(preferred, [Terrain.Ocean, Terrain.Reef, Terrain.Fjord, Terrain.Lake], Terrain.Tundra);
 
     public static IceRemembersTerrainProfile Maritime(params Terrain[] preferred) =>
-        new(preferred, [Terrain.Wastes, Terrain.Crags], Terrain.Tundra);
+        new(preferred, [Terrain.Wastes, Terrain.Crags, Terrain.Basalt], Terrain.Tundra);
 
     public static IceRemembersTerrainProfile Semantic(params Terrain[] preferred) =>
         new(preferred, SemanticHostileTerrains, Terrain.OpenField);

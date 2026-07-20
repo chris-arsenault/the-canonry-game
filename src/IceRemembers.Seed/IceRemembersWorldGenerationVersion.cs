@@ -2,5 +2,5 @@ namespace IceRemembers.Seed;
 
 internal static class IceRemembersWorldGenerationVersion
 {
-    internal const int Current = 9;
+    internal const int Current = 10;
 }

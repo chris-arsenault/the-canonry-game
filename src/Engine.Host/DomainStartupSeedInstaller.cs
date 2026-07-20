@@ -81,7 +81,12 @@ internal static class DomainStartupSeedInstaller
                 cell.R,
                 context.DomainIds.TerrainIdOf(cell.BaseTerrain).Value,
                 cell.SuperregionId,
-                cell.ContinentId);
+                cell.ContinentId,
+                cell.CrossingWord,
+                cell.FieldWord,
+                cell.InitialCoverTerrain is null
+                    ? 0
+                    : context.DomainIds.TerrainIdOf(cell.InitialCoverTerrain).Value);
         }
     }
 
@@ -230,7 +235,10 @@ internal static class DomainStartupSeedInstaller
     private static int StartupCellEventCount(DomainSeedCell cell) =>
         cell.PlaneCode switch
         {
-            PlaneCodes.Physical => 2,
+            // Physical cells emit state-changed plus cell-created, and cells
+            // whose latent geography declares an initial cover emit one more
+            // cover change; estimate the ceiling.
+            PlaneCodes.Physical => 3,
             PlaneCodes.Semantic => 1,
             _ => throw new InvalidOperationException($"Unknown seed cell plane code {cell.PlaneCode}."),
         };

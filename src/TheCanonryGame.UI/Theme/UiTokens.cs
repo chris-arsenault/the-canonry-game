@@ -73,6 +73,13 @@ public static class UiTokens
     public static readonly Color TerrainShelf = Hex(0x6889A1);
     public static readonly Color TerrainReef = Hex(0x3E6078);
     public static readonly Color TerrainOcean = Hex(0x1C2B3F);
+    public static readonly Color TerrainVerdant = Hex(0x7EA275);
+    public static readonly Color TerrainFloodplain = Hex(0x638E76);
+    public static readonly Color TerrainFjord = Hex(0x2E5570);
+    public static readonly Color TerrainLake = Hex(0x32677B);
+    public static readonly Color TerrainAuroraField = Hex(0x43D6B1);
+    public static readonly Color TerrainBasalt = Hex(0x3A3132);
+    public static readonly Color TerrainSeaIce = Hex(0xB4D2DB);
     public static readonly Color TerrainLineage = Hex(0xBFA36A);
     public static readonly Color TerrainYoke = Hex(0x7E5D74);
     public static readonly Color TerrainWitness = Hex(0x5AAE9B);
@@ -94,6 +101,13 @@ public static class UiTokens
         [TerrainKey.Shelf] = TerrainShelf,
         [TerrainKey.Reef] = TerrainReef,
         [TerrainKey.Ocean] = TerrainOcean,
+        [TerrainKey.Verdant] = TerrainVerdant,
+        [TerrainKey.Floodplain] = TerrainFloodplain,
+        [TerrainKey.Fjord] = TerrainFjord,
+        [TerrainKey.Lake] = TerrainLake,
+        [TerrainKey.AuroraField] = TerrainAuroraField,
+        [TerrainKey.Basalt] = TerrainBasalt,
+        [TerrainKey.SeaIce] = TerrainSeaIce,
         [TerrainKey.Lineage] = TerrainLineage,
         [TerrainKey.Yoke] = TerrainYoke,
         [TerrainKey.Witness] = TerrainWitness,

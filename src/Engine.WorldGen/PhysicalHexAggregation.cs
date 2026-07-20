@@ -15,13 +15,15 @@ public static class PhysicalHexAggregator
         ReadOnlySpan<int> fireIntensity,
         ReadOnlySpan<int> auroraIntensity,
         ReadOnlySpan<int> pressureIntensity,
-        int cliffSlopeThreshold)
+        int cliffSlopeThreshold,
+        int trunkRiverOrderThreshold)
     {
         ArgumentNullException.ThrowIfNull(field);
         ValidateHexIndex(field, hexIndex);
         ValidatePaletteCount(materialCount, nameof(materialCount));
         ValidatePaletteCount(surfaceCount, nameof(surfaceCount));
         ArgumentOutOfRangeException.ThrowIfNegative(cliffSlopeThreshold);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(trunkRiverOrderThreshold);
         ValidateSpan(materialIndexes.Length, field.Grid.TriangleCount, nameof(materialIndexes));
         ValidateSpan(surfaceIndexes.Length, field.Grid.TriangleCount, nameof(surfaceIndexes));
         ValidateSpan(significantFeatureFlags.Length, field.Grid.TriangleCount, nameof(significantFeatureFlags));
@@ -57,7 +59,8 @@ public static class PhysicalHexAggregator
                 fireIntensity[triangleIndex],
                 auroraIntensity[triangleIndex],
                 pressureIntensity[triangleIndex],
-                cliffSlopeThreshold);
+                cliffSlopeThreshold,
+                trunkRiverOrderThreshold);
         }
 
         builder.DominantMaterialIndex = FindDominant(materialCounts);
@@ -134,6 +137,7 @@ public static class PhysicalHexAggregator
         private int _deltaCoverage;
         private int _wideRiverCoverage;
         private int _riverEdgeMask;
+        private int _trunkRiverEdgeMask;
         private long _roughness;
         private ulong _significantFeatureFlags;
         private int _temperatureTotal;
@@ -151,7 +155,8 @@ public static class PhysicalHexAggregator
             int fireIntensity,
             int auroraIntensity,
             int pressureIntensity,
-            int cliffSlopeThreshold)
+            int cliffSlopeThreshold,
+            int trunkRiverOrderThreshold)
         {
             var elevation = field.Elevation[triangleIndex];
             var ice = field.IceThickness[triangleIndex];
@@ -171,7 +176,13 @@ public static class PhysicalHexAggregator
             _maxPressure = Math.Max(_maxPressure, pressureIntensity);
             _significantFeatureFlags |= significantFeatureFlags;
             CountFeatures(field, triangleIndex);
-            AddOuterEdgeFlags(field, hexIndex, triangleIndex, localTriangle, cliffSlopeThreshold);
+            AddOuterEdgeFlags(
+                field,
+                hexIndex,
+                triangleIndex,
+                localTriangle,
+                cliffSlopeThreshold,
+                trunkRiverOrderThreshold);
         }
 
         public void MeasureRoughness(PhysicalGeographyField field, int hexIndex)
@@ -230,6 +241,7 @@ public static class PhysicalHexAggregator
                 _pressureTotal / count,
                 _maxPressure,
                 _riverEdgeMask,
+                _trunkRiverEdgeMask,
                 _coastEdgeMask,
                 _ridgeEdgeMask,
                 _cliffEdgeMask,
@@ -255,7 +267,8 @@ public static class PhysicalHexAggregator
             int hexIndex,
             int triangleIndex,
             int localTriangle,
-            int cliffSlopeThreshold)
+            int cliffSlopeThreshold,
+            int trunkRiverOrderThreshold)
         {
             var sectorLocal = localTriangle % PhysicalGeographyCodes.MicrotrianglesPerSector;
             if (sectorLocal is not (1 or 2))
@@ -276,7 +289,7 @@ public static class PhysicalHexAggregator
             // to direction so shared-edge bits pair with Neighbor(direction).
             var sector = localTriangle / PhysicalGeographyCodes.MicrotrianglesPerSector;
             var edgeMask = 1 << SectorToHexDirection[sector];
-            AddWaterEdgeFlags(field, triangleIndex, neighbor, edgeMask);
+            AddWaterEdgeFlags(field, triangleIndex, neighbor, edgeMask, trunkRiverOrderThreshold);
             AddReliefEdgeFlags(field, triangleIndex, neighbor, edgeMask, cliffSlopeThreshold);
             AddFractureEdgeFlag(field, triangleIndex, neighbor, edgeMask);
         }
@@ -285,7 +298,8 @@ public static class PhysicalHexAggregator
             PhysicalGeographyField field,
             int triangleIndex,
             int neighbor,
-            int edgeMask)
+            int edgeMask,
+            int trunkRiverOrderThreshold)
         {
             var ocean = field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean;
             var neighborOcean = field.WaterKindCodes[neighbor] == PhysicalWaterKindCodes.Ocean;
@@ -294,10 +308,23 @@ public static class PhysicalHexAggregator
                 _coastEdgeMask |= edgeMask;
             }
 
-            if ((field.FlowTargets[triangleIndex] == neighbor && field.RiverOrders[triangleIndex] > 0) ||
-                (field.FlowTargets[neighbor] == triangleIndex && field.RiverOrders[neighbor] > 0))
+            var crossingOrder = 0;
+            if (field.FlowTargets[triangleIndex] == neighbor)
+            {
+                crossingOrder = field.RiverOrders[triangleIndex];
+            }
+            else if (field.FlowTargets[neighbor] == triangleIndex)
+            {
+                crossingOrder = field.RiverOrders[neighbor];
+            }
+
+            if (crossingOrder > 0)
             {
                 _riverEdgeMask |= edgeMask;
+                if (crossingOrder >= trunkRiverOrderThreshold)
+                {
+                    _trunkRiverEdgeMask |= edgeMask;
+                }
             }
         }
 
@@ -375,6 +402,7 @@ public readonly record struct PhysicalHexAggregate(
     int MeanPressureIntensity,
     int MaxPressureIntensity,
     int RiverEdgeMask,
+    int TrunkRiverEdgeMask,
     int CoastEdgeMask,
     int RidgeEdgeMask,
     int CliffEdgeMask,

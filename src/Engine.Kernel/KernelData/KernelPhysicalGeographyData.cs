@@ -2,6 +2,9 @@ namespace Engine.Kernel;
 
 /// <summary>
 /// Fixed primitive reveal data for every potential physical surface hex.
+/// Beside terrain and subdivision identity, each hex carries its immutable
+/// gameplay projection: a directional crossing word, a band/flag field word,
+/// and an optional initial transient cover terrain applied at reveal.
 /// Generation-time triangle fields remain outside the simulation kernel.
 /// </summary>
 internal sealed class KernelPhysicalGeographyData
@@ -12,6 +15,9 @@ internal sealed class KernelPhysicalGeographyData
     private readonly int[] _baseTerrainIds;
     private readonly int[] _superregionIds;
     private readonly int[] _continentIds;
+    private readonly ushort[] _crossingWords;
+    private readonly ushort[] _fieldWords;
+    private readonly int[] _initialCoverTerrainIds;
     private int _installedRadius;
 
     public KernelPhysicalGeographyData(int radiusCapacity)
@@ -24,6 +30,9 @@ internal sealed class KernelPhysicalGeographyData
         _baseTerrainIds = new int[cellCapacity];
         _superregionIds = new int[cellCapacity];
         _continentIds = new int[cellCapacity];
+        _crossingWords = new ushort[cellCapacity];
+        _fieldWords = new ushort[cellCapacity];
+        _initialCoverTerrainIds = new int[cellCapacity];
     }
 
     internal int Radius => _installedRadius;
@@ -46,13 +55,19 @@ internal sealed class KernelPhysicalGeographyData
         int r,
         int baseTerrainId,
         int superregionId,
-        int continentId)
+        int continentId,
+        int crossingWord,
+        int fieldWord,
+        int initialCoverTerrainId)
     {
         if (_installedRadius <= 0 ||
             HexDistanceFromOrigin(q, r) > _installedRadius ||
             baseTerrainId <= 0 ||
             superregionId <= 0 ||
-            continentId <= 0)
+            continentId <= 0 ||
+            (crossingWord & ~PhysicalCrossingCodes.WordMask) != 0 ||
+            (fieldWord & ~PhysicalHexFieldCodes.WordMask) != 0 ||
+            initialCoverTerrainId < 0)
         {
             throw new global::System.InvalidOperationException();
         }
@@ -67,6 +82,9 @@ internal sealed class KernelPhysicalGeographyData
         _baseTerrainIds[cellIndex] = baseTerrainId;
         _superregionIds[cellIndex] = superregionId;
         _continentIds[cellIndex] = continentId;
+        _crossingWords[cellIndex] = (ushort)crossingWord;
+        _fieldWords[cellIndex] = (ushort)fieldWord;
+        _initialCoverTerrainIds[cellIndex] = initialCoverTerrainId;
     }
 
     internal bool TryGetCell(
@@ -76,16 +94,7 @@ internal sealed class KernelPhysicalGeographyData
         out int superregionId,
         out int continentId)
     {
-        if (!CoordinateWithinCapacity(q, r))
-        {
-            baseTerrainId = 0;
-            superregionId = 0;
-            continentId = 0;
-            return false;
-        }
-
-        var cellIndex = CellIndex(q, r);
-        if (!_installedCells[cellIndex])
+        if (!CellInstalled(q, r, out var cellIndex))
         {
             baseTerrainId = 0;
             superregionId = 0;
@@ -99,11 +108,45 @@ internal sealed class KernelPhysicalGeographyData
         return true;
     }
 
+    /// <summary>
+    /// The immutable directional crossing word for a hex, or zero when the
+    /// hex is outside the installed field. Zero also means every edge is
+    /// open, so absent geography reads as unremarkable rather than special.
+    /// </summary>
+    internal int CrossingWord(int q, int r) =>
+        CellInstalled(q, r, out var cellIndex) ? _crossingWords[cellIndex] : 0;
+
+    /// <summary>
+    /// The immutable band/flag field word for a hex, or zero outside the
+    /// installed field.
+    /// </summary>
+    internal int FieldWord(int q, int r) =>
+        CellInstalled(q, r, out var cellIndex) ? _fieldWords[cellIndex] : 0;
+
+    /// <summary>
+    /// The transient cover terrain a hex starts under when materialized
+    /// (sea ice over frozen water), or zero for none.
+    /// </summary>
+    internal int InitialCoverTerrainId(int q, int r) =>
+        CellInstalled(q, r, out var cellIndex) ? _initialCoverTerrainIds[cellIndex] : 0;
+
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer) =>
         KernelSnapshotBinary.WriteObject(writer, this);
 
     internal void ReadSnapshot(global::System.IO.BinaryReader reader) =>
         KernelSnapshotBinary.ReadObject(reader, this);
+
+    private bool CellInstalled(int q, int r, out int cellIndex)
+    {
+        if (!CoordinateWithinCapacity(q, r))
+        {
+            cellIndex = 0;
+            return false;
+        }
+
+        cellIndex = CellIndex(q, r);
+        return _installedCells[cellIndex];
+    }
 
     private bool CoordinateWithinCapacity(int q, int r) =>
         q >= -_radiusCapacity && q <= _radiusCapacity &&

@@ -10,6 +10,13 @@ internal static class TerrainKey
     public const string Shelf = "Shelf";
     public const string Reef = "Reef";
     public const string Ocean = "Ocean";
+    public const string Verdant = "Verdant";
+    public const string Floodplain = "Floodplain";
+    public const string Fjord = "Fjord";
+    public const string Lake = "Lake";
+    public const string AuroraField = "AuroraField";
+    public const string Basalt = "Basalt";
+    public const string SeaIce = "SeaIce";
     public const string Lineage = "Lineage";
     public const string Yoke = "Yoke";
     public const string Witness = "Witness";
@@ -31,6 +38,13 @@ internal static class TerrainKey
         ["SHELF"] = Shelf,
         ["REEF"] = Reef,
         ["OCEAN"] = Ocean,
+        ["VERDANT"] = Verdant,
+        ["FLOODPLAIN"] = Floodplain,
+        ["FJORD"] = Fjord,
+        ["LAKE"] = Lake,
+        ["AURORAFIELD"] = AuroraField,
+        ["BASALT"] = Basalt,
+        ["SEAICE"] = SeaIce,
         ["LINEAGE"] = Lineage,
         ["YOKE"] = Yoke,
         ["WITNESS"] = Witness,

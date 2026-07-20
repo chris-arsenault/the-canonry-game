@@ -8,6 +8,7 @@ public sealed class MapFrontierProgramRuntimeTests
     private const int TundraTerrain = 1;
     private const int DeepIceTerrain = 2;
     private const int MountainTerrain = 3;
+    private const int SeaIceTerrain = 4;
     private const int ThawAgeId = 900;
     private const int ReclaimAgeId = 901;
     private const int SecondThawAgeId = 902;
@@ -205,6 +206,69 @@ public sealed class MapFrontierProgramRuntimeTests
             MountainTerrain, boundaryGroupId: 2, movementCost: 6f,
             influenceMultiplier: 0.8f, claimCostMultiplier: 1.5f, claimChanceMultiplier: 0.7f,
             roadBuildMultiplier: 6f, roadSpeedMultiplier: 2f);
+        simulation.RegisterTerrain(
+            SeaIceTerrain, boundaryGroupId: 1, movementCost: 5.5f,
+            influenceMultiplier: 0.6f, claimCostMultiplier: 1.5f, claimChanceMultiplier: 0.6f,
+            roadBuildMultiplier: 0.2f, roadSpeedMultiplier: 1f);
+    }
+
+    [Fact]
+    public void MapFrontier_RevealAppliesInitialSeaIceCoverAndLeavesItAlone()
+    {
+        var simulation = CreateSimulation();
+        RegisterTerrains(simulation);
+        InstallPhysicalBlueprintWithCover(simulation, coverQ: 1, coverR: 0);
+        simulation.World.SetMapRadius(6);
+        simulation.SeedCell(0, 0, TundraTerrain, ownerEntityId: 0);
+        OpenIceAge(simulation, ThawAgeId);
+        ConfigureFrontier(simulation, ThawAgeId, ReclaimAgeId);
+        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0, 40f, tick: 11);
+
+        simulation.MapFrontier.Tick(simulation, tick: 12);
+
+        // Reveal materializes the base terrain and applies the declared
+        // initial cover, so the cell plays as frozen sea from its first tick.
+        Assert.True(simulation.World.CellIsKnown(PlaneCodes.Physical, 1, 0));
+        Assert.Equal(SeaIceTerrain, simulation.World.CellTerrainId(PlaneCodes.Physical, 1, 0));
+        Assert.Equal(SeaIceTerrain, simulation.World.CellTerrainCoverId(PlaneCodes.Physical, 1, 0));
+
+        // Sea-ice cover is not un-thawed frontier: further thaw pulses leave
+        // it to its own mechanics instead of clearing it.
+        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 1, 0, 40f, tick: 13);
+        simulation.MapFrontier.Tick(simulation, tick: 14);
+        Assert.Equal(SeaIceTerrain, simulation.World.CellTerrainCoverId(PlaneCodes.Physical, 1, 0));
+    }
+
+    [Fact]
+    public void SeedCell_AppliesInitialCoverFromLatentGeography()
+    {
+        var simulation = CreateSimulation();
+        RegisterTerrains(simulation);
+        InstallPhysicalBlueprintWithCover(simulation, coverQ: 0, coverR: 0);
+        simulation.World.SetMapRadius(6);
+
+        simulation.SeedCell(0, 0, MountainTerrain, ownerEntityId: 0);
+
+        Assert.Equal(SeaIceTerrain, simulation.World.CellTerrainCoverId(PlaneCodes.Physical, 0, 0));
+        Assert.Equal(SeaIceTerrain, simulation.World.CellTerrainId(PlaneCodes.Physical, 0, 0));
+    }
+
+    private static void InstallPhysicalBlueprintWithCover(Simulation simulation, int coverQ, int coverR)
+    {
+        simulation.KernelData.PhysicalGeography.BeginInstall(64);
+        ForEachHex(1, (q, r) =>
+        {
+            var covered = q == coverQ && r == coverR;
+            simulation.KernelData.PhysicalGeography.InstallCell(
+                q,
+                r,
+                covered || !(q == 0 && r == 0) ? MountainTerrain : TundraTerrain,
+                superregionId: 12,
+                continentId: 13,
+                crossingWord: 0,
+                fieldWord: 0,
+                initialCoverTerrainId: covered ? SeaIceTerrain : 0);
+        });
     }
 
     private static void OpenIceAge(Simulation simulation, int ageId, int priority = 10, int tick = 1)
@@ -257,7 +321,10 @@ public sealed class MapFrontierProgramRuntimeTests
                 r,
                 q == 0 && r == 0 ? TundraTerrain : MountainTerrain,
                 superregionId: 12,
-                continentId: 13);
+                continentId: 13,
+                crossingWord: 0,
+                fieldWord: 0,
+                initialCoverTerrainId: 0);
         });
     }
 

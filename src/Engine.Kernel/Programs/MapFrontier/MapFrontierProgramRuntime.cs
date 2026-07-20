@@ -132,10 +132,13 @@ internal sealed partial class MapFrontierProgramRuntime :
         return count;
     }
 
+    // Only Deep Ice cover marks a cell as un-thawed frontier. Other covers
+    // (sea ice over water) are ordinary transient state owned by their own
+    // mechanics, not ground the frontier still has to open.
     private bool CellNeedsThaw(Simulation simulation, WorldState world, int q, int r) =>
         simulation.KernelData.PhysicalGeography.TryGetCell(q, r, out _, out _, out _) &&
         (!world.CellIsKnown(PlaneCodes.Physical, q, r) ||
-         world.CellTerrainCoverId(PlaneCodes.Physical, q, r) != 0);
+         world.CellTerrainCoverId(PlaneCodes.Physical, q, r) == Data.FrozenTerrainId);
 
     private bool AlreadyQueued(int q, int r, int count)
     {
@@ -180,6 +183,7 @@ internal sealed partial class MapFrontierProgramRuntime :
                 0,
                 superregionId,
                 continentId);
+            simulation.ApplyInitialTerrainCover(q, r, tick);
         }
 
         if (!wasKnown)

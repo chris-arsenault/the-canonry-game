@@ -50,6 +50,63 @@ public static class PhysicalLandformCodes
     public const int Max = Waterfall;
 }
 
+/// <summary>
+/// Directional crossing classes for a physical hex's crossing word: six hex
+/// directions × 2 bits, in the HexCoord edge-mask direction order. The word
+/// is immutable runtime geography; Open edges carry no bits, so a zero word
+/// means an unremarkable hex.
+/// </summary>
+public static class PhysicalCrossingCodes
+{
+    public const int Open = 0;
+    public const int River = 1;
+    public const int Ridge = 2;
+    public const int Cliff = 3;
+
+    public const int BitsPerDirection = 2;
+    public const int DirectionCount = 6;
+    public const int ClassMask = 0b11;
+    public const int WordMask = (1 << (BitsPerDirection * DirectionCount)) - 1;
+
+    public static int ClassAt(int crossingWord, int direction) =>
+        (crossingWord >> (direction * BitsPerDirection)) & ClassMask;
+
+    public static int WithClass(int crossingWord, int direction, int crossingClass) =>
+        (crossingWord & ~(ClassMask << (direction * BitsPerDirection))) |
+        ((crossingClass & ClassMask) << (direction * BitsPerDirection));
+}
+
+/// <summary>
+/// Packed per-hex geography field word: four 2-bit magnitude bands and the
+/// site flags. Bands are numeric gradients consumed by formulas; flags are
+/// ambient placement facts. Immutable runtime geography.
+/// </summary>
+public static class PhysicalHexFieldCodes
+{
+    public const int BandMask = 0b11;
+    public const int MaxBand = 3;
+    public const int WarmthShift = 0;
+    public const int FireShift = 2;
+    public const int AuroraShift = 4;
+    public const int PressureShift = 6;
+
+    public const int SummitFlag = 1 << 8;
+    public const int ThermalFlag = 1 << 9;
+    public const int AnomalyFlag = 1 << 10;
+    public const int PolynyaFlag = 1 << 11;
+    public const int CraterFlag = 1 << 12;
+
+    public const int WordMask = (1 << 13) - 1;
+
+    public static int BandAt(int fieldWord, int bandShift) => (fieldWord >> bandShift) & BandMask;
+
+    public static int PackBands(int warmth, int fire, int aurora, int pressure) =>
+        ((warmth & BandMask) << WarmthShift) |
+        ((fire & BandMask) << FireShift) |
+        ((aurora & BandMask) << AuroraShift) |
+        ((pressure & BandMask) << PressureShift);
+}
+
 public static class PhysicalLandmassClassCodes
 {
     public const int None = 0;

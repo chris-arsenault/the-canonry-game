@@ -91,6 +91,25 @@ internal sealed partial class Simulation
     {
         AssertStartupSeedTick();
         CreateCell(planeCode, q, r, terrainId, ownerEntityId, superregionId, continentId);
+        if (planeCode == PlaneCodes.Physical)
+        {
+            ApplyInitialTerrainCover(q, r, CurrentTick);
+        }
+    }
+
+    /// <summary>
+    /// Applies the transient cover a hex starts under, if its latent
+    /// geography declares one (sea ice over frozen water). Called once when
+    /// a physical cell first materializes - at startup seed or frontier
+    /// reveal - never on later terrain changes.
+    /// </summary>
+    internal void ApplyInitialTerrainCover(int q, int r, int tick)
+    {
+        var coverTerrainId = KernelData.PhysicalGeography.InitialCoverTerrainId(q, r);
+        if (coverTerrainId > 0)
+        {
+            SetTerrainCover(q, r, coverTerrainId, tick);
+        }
     }
 
     internal void CreateCell(

@@ -519,6 +519,13 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int CliffSlopeThreshold { get; init; } = 120;
 
+    /// <summary>
+    /// Minimum Strahler order for a river crossing a hex edge to count as a
+    /// trunk river in the aggregate's trunk edge mask. Lesser rivers stay
+    /// hex-interior texture; only trunks become directional crossings.
+    /// </summary>
+    public int TrunkRiverOrderThreshold { get; init; } = 4;
+
     public int PlainSlopeThreshold { get; init; } = 30;
 
     public int IceTemperatureThreshold { get; init; } = 285;
