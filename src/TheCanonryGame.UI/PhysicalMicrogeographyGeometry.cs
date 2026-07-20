@@ -49,6 +49,22 @@ public sealed class PhysicalMicrogeographyGeometry
         return (_trianglePoints[triangleIndex][first] + _trianglePoints[triangleIndex][second]) * 0.5f;
     }
 
+    // Same edge-to-vertex mapping the midpoint uses, so area outlines land on
+    // exactly the edges the topology calls boundaries.
+    public void TriangleEdgeEndpoints(
+        int triangleIndex,
+        int edge,
+        out Vector2 first,
+        out Vector2 second)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(edge);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(edge, 3);
+        var local = triangleIndex % PhysicalGeographyCodes.MicrotrianglesPerSector;
+        var mappingIndex = (local * 3) + edge;
+        first = _trianglePoints[triangleIndex][EdgeFirstPoint[mappingIndex]];
+        second = _trianglePoints[triangleIndex][EdgeSecondPoint[mappingIndex]];
+    }
+
     public Vector2 HexCenter(HexCoord coord) =>
         new(
             HexSize * (Mathf.Sqrt(3f) * coord.Q + (Mathf.Sqrt(3f) * 0.5f * coord.R)),

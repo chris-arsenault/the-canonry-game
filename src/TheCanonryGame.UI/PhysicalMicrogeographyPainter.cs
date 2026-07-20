@@ -25,6 +25,9 @@ public sealed partial class PhysicalMicrogeographyPainter
     private static readonly Color LakeWater = new(0.16f, 0.38f, 0.48f);
     private static readonly Color RiverWater = new(0.26f, 0.68f, 0.88f, 0.92f);
     private static readonly Color CoastLine = new(0.55f, 0.82f, 0.91f, 0.92f);
+    private static readonly Color OceanOutline = new(0.62f, 0.86f, 0.95f, 0.85f);
+    private static readonly Color LakeOutline = new(0.46f, 0.80f, 0.86f, 0.90f);
+    private static readonly Color FloodplainOutline = new(0.58f, 0.74f, 0.52f, 0.85f);
     private static readonly Color RidgeLine = new(0.82f, 0.78f, 0.66f, 0.78f);
     private static readonly Color CliffLine = new(0.20f, 0.18f, 0.20f, 0.95f);
     private static readonly Color PassLine = new(0.92f, 0.64f, 0.30f, 0.95f);
@@ -317,6 +320,7 @@ public sealed partial class PhysicalMicrogeographyPainter
 
         if (PhysicalMicrogeographyRenderDecisions.UsesStructuralRiverOverlay(_owner.View))
         {
+            DrawAreaOutlines(triangles);
             DrawRiverSpines(triangles);
         }
 
@@ -866,6 +870,41 @@ public sealed partial class PhysicalMicrogeographyPainter
     }
 
     private static readonly Color RiverSpineCasing = new(0.05f, 0.16f, 0.30f);
+
+    // Oceans, lakes, and floodplains are areas, so they get a closed contour
+    // along the edge where they end rather than the centre-line a river gets.
+    // Drawn under the spines so a river entering a lake still reads on top.
+    private void DrawAreaOutlines(ReadOnlySpan<PhysicalMicrotriangleProjection> triangles)
+    {
+        for (var triangleIndex = 0; triangleIndex < triangles.Length; triangleIndex++)
+        {
+            var triangle = triangles[triangleIndex];
+            if (triangle.AreaOutlineEdgeMask == 0)
+            {
+                continue;
+            }
+
+            var color = AreaOutlineColor(triangle);
+            for (var edge = 0; edge < 3; edge++)
+            {
+                if ((triangle.AreaOutlineEdgeMask & (1 << edge)) == 0)
+                {
+                    continue;
+                }
+
+                _owner!.Geometry.TriangleEdgeEndpoints(triangleIndex, edge, out var first, out var second);
+                DrawLine(first, second, color, 1.1f, true);
+            }
+        }
+    }
+
+    private static Color AreaOutlineColor(in PhysicalMicrotriangleProjection triangle) =>
+        triangle.WaterKindCode switch
+        {
+            PhysicalWaterKindCodes.Ocean => OceanOutline,
+            PhysicalWaterKindCodes.Lake => LakeOutline,
+            _ => FloodplainOutline,
+        };
 
     private void DrawRiverSpines(ReadOnlySpan<PhysicalMicrotriangleProjection> triangles)
     {

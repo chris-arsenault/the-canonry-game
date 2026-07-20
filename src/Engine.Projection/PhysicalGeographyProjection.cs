@@ -21,6 +21,11 @@ public sealed class PhysicalGeographyProjection
     private readonly int[] _cellIndexes;
     private readonly int _diameter;
 
+    private const int AreaClassNone = 0;
+    private const int AreaClassOcean = 1;
+    private const int AreaClassLake = 2;
+    private const int AreaClassFloodplain = 3;
+
     private PhysicalGeographyProjection(
         int radius,
         int generationEpochCount,
@@ -55,7 +60,85 @@ public sealed class PhysicalGeographyProjection
             var coord = cells[index].Coord;
             _cellIndexes[SquareIndex(coord.Q, coord.R)] = index;
         }
+
+        BuildAreaOutlineEdgeMasks();
     }
+
+    // Rivers are lines and read as lines; oceans, lakes, and floodplains are
+    // areas and need to read as areas. Marking every edge where a triangle
+    // leaves its own area class gives each body a continuous outline that
+    // closes across hex seams, so a floodplain reads as one shape rather than
+    // as the river veins that happen to cross it. Derived here rather than
+    // carried through worldgen and the seed cache because it is a display
+    // fact recomputable from water kind and floodplain intensity.
+    private void BuildAreaOutlineEdgeMasks()
+    {
+        for (var cellIndex = 0; cellIndex < _cells.Length; cellIndex++)
+        {
+            var cell = _cells[cellIndex];
+            var offset = cell.MicrotriangleOffset;
+            for (var local = 0; local < PhysicalGeographyCodes.MicrotrianglesPerHex; local++)
+            {
+                var triangleIndex = offset + local;
+                var own = AreaClassOf(_microtriangles[triangleIndex]);
+                if (own == AreaClassNone)
+                {
+                    continue;
+                }
+
+                var mask = AreaBoundaryEdges(cell.Coord, local, own);
+                if (mask != 0)
+                {
+                    _microtriangles[triangleIndex] =
+                        _microtriangles[triangleIndex] with { AreaOutlineEdgeMask = mask };
+                }
+            }
+        }
+    }
+
+    private int AreaBoundaryEdges(HexCoord coord, int localTriangle, int ownClass)
+    {
+        var mask = 0;
+        for (var edge = 0; edge < 3; edge++)
+        {
+            PhysicalMicrotriangleTopology.ResolveNeighbor(
+                coord.Q,
+                coord.R,
+                localTriangle,
+                edge,
+                out var neighborQ,
+                out var neighborR,
+                out var neighborLocal);
+
+            if (AreaClassAt(neighborQ, neighborR, neighborLocal) != ownClass)
+            {
+                mask |= 1 << edge;
+            }
+        }
+
+        return mask;
+    }
+
+    private int AreaClassAt(int q, int r, int localTriangle)
+    {
+        if (!TryGetCellIndex(new HexCoord(q, r), out var cellIndex))
+        {
+            // Off-map neighbours end the shape, so the rim of the world
+            // outlines like any other boundary.
+            return AreaClassNone;
+        }
+
+        return AreaClassOf(
+            _microtriangles[_cells[cellIndex].MicrotriangleOffset + localTriangle]);
+    }
+
+    private static int AreaClassOf(in PhysicalMicrotriangleProjection triangle) =>
+        triangle.WaterKindCode switch
+        {
+            PhysicalWaterKindCodes.Ocean => AreaClassOcean,
+            PhysicalWaterKindCodes.Lake => AreaClassLake,
+            _ => triangle.FloodplainIntensity > 0 ? AreaClassFloodplain : AreaClassNone,
+        };
 
     public static PhysicalGeographyProjection Empty { get; } =
         new(0, 0, [], [], [], [], [], [], []);
@@ -181,6 +264,7 @@ public sealed class PhysicalGeographyProjection
                 source.FlowAccumulation,
                 source.RiverOrder,
                 source.RiverSpineEdgeMask,
+                0,
                 source.RiverChannelStrength,
                 source.RiverChannelOrder,
                 source.FloodplainIntensity,
@@ -349,6 +433,7 @@ public readonly record struct PhysicalMicrotriangleProjection(
     int FlowAccumulation,
     int RiverOrder,
     int RiverSpineEdgeMask,
+    int AreaOutlineEdgeMask,
     int RiverChannelStrength,
     int RiverChannelOrder,
     int FloodplainIntensity,
