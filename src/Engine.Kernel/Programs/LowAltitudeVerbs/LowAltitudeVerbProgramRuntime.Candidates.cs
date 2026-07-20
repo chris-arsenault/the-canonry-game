@@ -227,6 +227,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
                 var terrainId = simulation.World.CellTerrainId(planeCode, q, r);
                 if (!Data.TerrainAllowed(rule, terrainId) ||
+                    !GeographyAllowed(simulation, rule, planeCode, q, r) ||
                     !simulation.Movement.CanEnter(simulation, planeCode, entityId, q, r) ||
                     !MovementTargetReachable(simulation, entityId, rule, planeCode, q, r, tick))
                 {
@@ -813,5 +814,26 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         {
             selected = candidate;
         }
+    }
+
+    // A verb can want warm ground or a significant site rather than an exact
+    // terrain list. Filters apply on the physical plane only and cost one
+    // field-word fetch when configured, nothing when not.
+    private bool GeographyAllowed(Simulation simulation, int rule, int planeCode, int q, int r)
+    {
+        var minWarmth = Data.MinWarmthBand(rule);
+        var siteFlags = Data.SiteFlagsFilter(rule);
+        if ((minWarmth <= 0 && siteFlags == 0) || planeCode != PlaneCodes.Physical)
+        {
+            return true;
+        }
+
+        var fieldWord = simulation.KernelData.PhysicalGeography.FieldWord(q, r);
+        if (PhysicalHexFieldCodes.BandAt(fieldWord, PhysicalHexFieldCodes.WarmthShift) < minWarmth)
+        {
+            return false;
+        }
+
+        return siteFlags == 0 || (fieldWord & siteFlags) != 0;
     }
 }

@@ -76,7 +76,9 @@ public static class GameplayCompiler
                 verb.HeadquartersMoveChance,
                 verb.RequiredInfluence,
                 verb.RelationshipStrengthDelta,
-                shape.PrimitiveSteps));
+                shape.PrimitiveSteps,
+                MinWarmthBand: ValidateWarmthBand(verb),
+                SiteFlags: CompileVerbSiteFlags(verb)));
         }
 
         return new LowAltitudeVerbProgram
@@ -86,6 +88,42 @@ public static class GameplayCompiler
             Affordances = CompileAffordances(context),
             TraitWeightModifiers = CompileTraitLowAltitudeWeightModifiers(context),
         };
+    }
+
+    private static int ValidateWarmthBand(LowAltitudeVerbConfig verb)
+    {
+        if (verb.MinWarmthBand is < 0 or > 3)
+        {
+            throw new InvalidOperationException(
+                $"Low-altitude verb '{verb.Id}' warmth band must be 0-3.");
+        }
+
+        return verb.MinWarmthBand;
+    }
+
+    private static int CompileVerbSiteFlags(LowAltitudeVerbConfig verb)
+    {
+        if (verb.Sites is null)
+        {
+            return 0;
+        }
+
+        var flags = 0;
+        foreach (var site in verb.Sites)
+        {
+            flags |= site switch
+            {
+                "summit" => PhysicalHexFieldCodes.SummitFlag,
+                "thermal" => PhysicalHexFieldCodes.ThermalFlag,
+                "anomaly" => PhysicalHexFieldCodes.AnomalyFlag,
+                "polynya" => PhysicalHexFieldCodes.PolynyaFlag,
+                "crater" => PhysicalHexFieldCodes.CraterFlag,
+                _ => throw new InvalidOperationException(
+                    $"Low-altitude verb '{verb.Id}' names unknown site flag '{site}'."),
+            };
+        }
+
+        return flags;
     }
 
     private static CompiledForeignInfluenceTargeting CompileForeignInfluenceTargeting(LowAltitudeVerbConfig verb)

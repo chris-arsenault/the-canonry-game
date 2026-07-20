@@ -46,7 +46,9 @@ public sealed record LowAltitudeVerbRule(
     float HeadquartersMoveChance,
     float RequiredInfluence,
     float RelationshipStrengthDelta,
-    IReadOnlyList<CompiledProgramStep> PrimitiveSteps);
+    IReadOnlyList<CompiledProgramStep> PrimitiveSteps,
+    int MinWarmthBand = 0,
+    int SiteFlags = 0);
 
 public sealed record CompiledProgramStep(
     int Opcode,

@@ -17,6 +17,20 @@ public abstract class LowAltitudeVerbConfig
     public LowAltitudeVerbRelationshipDirection RelationshipDirection { get; init; } =
         LowAltitudeVerbRelationshipDirection.Either;
     public IReadOnlySet<string>? Terrains { get; init; }
+
+    /// <summary>
+    /// Minimum warmth band (0-3) a physical target cell must carry; 0
+    /// disables the filter. Lets a verb want warm ground rather than an
+    /// exact terrain list.
+    /// </summary>
+    public int MinWarmthBand { get; init; }
+
+    /// <summary>
+    /// Geography site flags (summit, thermal, anomaly, polynya, crater) a
+    /// physical target cell must carry at least one of; empty disables.
+    /// </summary>
+    public IReadOnlySet<string>? Sites { get; init; }
+
     public int MinCommitmentTicks { get; init; } = 30;
     public int MaxCommitmentTicks { get; init; } = 90;
     public int DwellTicks { get; init; } = 8;

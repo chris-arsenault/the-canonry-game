@@ -101,8 +101,10 @@ public static partial class IceRemembersDefinition
             fitnessRelationshipKind: L(Rel.AlliedWith), fitnessWeight: 1.5f),
         MovementVerb(Verb.MonsterStirWithinBonds, "Stir Within Bonds", K.Monster, Mode.Explore,
             ticks: (50, 140), dwell: 6, samples: 18, weight: 0.6f, opportunityBonusOverride: 0.3f),
+        // Heat is a band now, not one terrain: any warm ground draws the
+        // monster, with genuinely thermal sites the strongest pull.
         MovementVerb(Verb.MonsterPressTowardHeat, "Press toward Heat", K.Monster, Mode.Terrain,
-            terrains: HotTerrains(), ticks: (40, 120), dwell: 14, radius: 1, samples: 24, weight: 0.7f, opportunityBonusOverride: 0.5f),
+            minWarmthBand: 2, ticks: (40, 120), dwell: 14, radius: 1, samples: 24, weight: 0.7f, opportunityBonusOverride: 0.5f),
         MovementVerb(Verb.MonsterSurfaceAtTheFissure, "Surface at the Fissure", K.Monster, Mode.EntityKind,
             targetKind: K.PointOfInterest, ticks: (45, 130), dwell: 14, radius: 1, samples: 12, weight: 0.55f, opportunityBonusOverride: 1.1f),
         MovementVerb(Verb.AbilitySurfaceInTheReach, "Surface in the Reach", K.Ability, Mode.Explore,
@@ -510,6 +512,8 @@ public static partial class IceRemembersDefinition
         EntityKind? targetKind = null,
         string? relationshipKind = null,
         IReadOnlySet<string>? terrains = null,
+        int minWarmthBand = 0,
+        IReadOnlySet<string>? sites = null,
         int radius = 0,
         int samples = 16,
         string? fitnessRelationshipKind = null,
@@ -528,6 +532,8 @@ public static partial class IceRemembersDefinition
             TargetKind = targetKind?.Value,
             RelationshipKind = relationshipKind,
             Terrains = terrains,
+            MinWarmthBand = minWarmthBand,
+            Sites = sites,
             MinCommitmentTicks = ScaleMovementTicks(ticks.Min),
             MaxCommitmentTicks = ScaleMovementTicks(ticks.Max),
             DwellTicks = dwell,
@@ -806,10 +812,5 @@ public static partial class IceRemembersDefinition
         TerrainName(Terrain.Reef),
         TerrainName(Terrain.Shelf),
         TerrainName(Terrain.Fjord),
-    ];
-
-    private static HashSet<string> HotTerrains() =>
-    [
-        TerrainName(Terrain.HotSprings),
     ];
 }
