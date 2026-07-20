@@ -146,7 +146,7 @@ public static class GameplayValidator
             case LowAltitudeVerbTargetMode.Terrain:
                 RejectField(verb, hasTargetKind, "TargetKind", errors);
                 RejectField(verb, hasRelationship, "RelationshipKind", errors);
-                RequireField(verb, hasTerrains, "Terrains", errors);
+                RequireField(verb, HasCellPredicate(verb, hasTerrains), "Terrains", errors);
                 if (IsSemantic(plane))
                 {
                     errors.Add(new GameplayValidationError(
@@ -160,6 +160,11 @@ public static class GameplayValidator
                 break;
         }
     }
+
+    // A terrain-mode verb needs some cell predicate: an exact terrain list,
+    // a minimum warmth band, or a site-flag mask.
+    private static bool HasCellPredicate(LowAltitudeVerbConfig verb, bool hasTerrains) =>
+        hasTerrains || verb.MinWarmthBand > 0 || verb.Sites is { Count: > 0 };
 
     private static void ValidateInfluenceFields(
         LowAltitudeVerbConfig verb,
