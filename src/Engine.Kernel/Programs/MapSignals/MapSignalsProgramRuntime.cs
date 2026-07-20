@@ -364,6 +364,11 @@ internal sealed class MapSignalsProgramRuntime :
             return planeCode == PlaneCodes.Semantic ? Data.SemanticBaseCapacity : 0f;
         }
 
+        if (planeCode == PlaneCodes.Physical && Data.HasCapacityFormula)
+        {
+            return PhysicalBaseCapacity(world, q, r);
+        }
+
         var capacity = Data.TerrainBaseCapacity(world.CellTerrainId(planeCode, q, r));
         if (capacity > 0f)
         {
@@ -371,6 +376,36 @@ internal sealed class MapSignalsProgramRuntime :
         }
 
         return planeCode == PlaneCodes.Semantic ? Data.SemanticBaseCapacity : 1f;
+    }
+
+    /// <summary>
+    /// Carrying capacity derived from a hex's real facts: how much life this
+    /// exact ground supports. Warmth (with geothermal refuges) sets the
+    /// suitability curve, fresh water and fertile river ground multiply it,
+    /// broken extreme relief suppresses it, and open water carries its own
+    /// temperature-driven marine life. A verdant river valley is rich
+    /// because it is warm, wet, and flat - never because a table said so.
+    /// </summary>
+    internal float PhysicalBaseCapacity(WorldState world, int q, int r)
+    {
+        var temperature = world.PhysicalHexFact(q, r, PhysicalHexFactCodes.Temperature);
+        var geothermal = world.PhysicalHexFact(q, r, PhysicalHexFactCodes.Geothermal);
+        var warmth = temperature + (geothermal * Data.CapacityGeothermalBlend);
+        var suitability = Clamp01(
+            (warmth - Data.CapacityColdFloor) / (Data.CapacityWarmPeak - Data.CapacityColdFloor));
+        var land = world.PhysicalHexFact(q, r, PhysicalHexFactCodes.LandFraction) / 255f;
+        var fresh = 1f +
+            (Data.CapacityFreshwaterWeight * world.PhysicalHexFact(q, r, PhysicalHexFactCodes.RiverCoverage) / 255f) +
+            (Data.CapacityFertileWeight * world.PhysicalHexFact(q, r, PhysicalHexFactCodes.FloodplainCoverage) / 255f);
+        var reliefExcess = global::System.MathF.Max(
+            0f,
+            (world.PhysicalHexFact(q, r, PhysicalHexFactCodes.Relief) / 255f) - Data.CapacityReliefComfort);
+        var shelter = Clamp01(1f -
+            (Data.CapacityReliefPenalty * reliefExcess) -
+            (Data.CapacityRoughnessPenalty * world.PhysicalHexFact(q, r, PhysicalHexFactCodes.Roughness) / 255f));
+        var landCapacity = Data.CapacityLandScale * suitability * land * fresh * shelter;
+        var marineCapacity = Data.CapacityMarineScale * suitability * (1f - land);
+        return landCapacity + marineCapacity;
     }
 
     private int LocalOccupancy(Simulation simulation, int planeCode, int centerQ, int centerR, int radius)

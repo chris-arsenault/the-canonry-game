@@ -449,6 +449,23 @@ public static partial class IceRemembersDefinition
         {
             SemanticBaseCapacity = 2f,
             CrowdingRadius = 1,
+            // Physical capacity derives from each hex's real facts: warmth
+            // (with geothermal refuges) sets suitability, rivers and
+            // floodplains enrich it, broken ground suppresses it, and open
+            // water carries temperature-driven marine life.
+            PhysicalCapacityFormula = new PhysicalCapacityFormulaConfig
+            {
+                ColdFloorTemperature = 180,
+                WarmPeakTemperature = 500,
+                GeothermalBlend = 0.5f,
+                FreshwaterWeight = 0.6f,
+                FertileWeight = 0.8f,
+                ReliefComfort = 0.25f,
+                ReliefPenalty = 1.2f,
+                RoughnessPenalty = 0.5f,
+                LandScale = 4f,
+                MarineScale = 1.6f,
+            },
             Terrains = CreateTerrainSignals(),
             Kinds = IceRemembersEntities.CreateKindMapSignals(),
             Relationships =
@@ -472,23 +489,11 @@ public static partial class IceRemembersDefinition
             ],
         };
 
+    // Physical capacity is fact-derived through the capacity formula, so
+    // terrain rows remain only for the semantic plane, whose hexes carry no
+    // generated facts.
     private static IReadOnlyList<TerrainMapSignalConfig> CreateTerrainSignals() =>
     [
-        TerrainSignal(Terrain.Wastes, 0.7f),
-        TerrainSignal(Terrain.Crags, 0.8f),
-        TerrainSignal(Terrain.Tundra, 2.0f),
-        TerrainSignal(Terrain.Ice, 1.0f),
-        TerrainSignal(Terrain.HotSprings, 4.0f),
-        TerrainSignal(Terrain.Shelf, 1.3f),
-        TerrainSignal(Terrain.Reef, 2.5f),
-        TerrainSignal(Terrain.Ocean, 0.6f),
-        TerrainSignal(Terrain.Verdant, 3.2f),
-        TerrainSignal(Terrain.Floodplain, 2.8f),
-        TerrainSignal(Terrain.Fjord, 1.6f),
-        TerrainSignal(Terrain.Lake, 1.8f),
-        TerrainSignal(Terrain.AuroraField, 0.9f),
-        TerrainSignal(Terrain.Basalt, 1.0f),
-        TerrainSignal(Terrain.SeaIce, 0.5f),
         TerrainSignal(Terrain.Lineage, 2.4f),
         TerrainSignal(Terrain.Yoke, 1.6f),
         TerrainSignal(Terrain.Witness, 3.2f),

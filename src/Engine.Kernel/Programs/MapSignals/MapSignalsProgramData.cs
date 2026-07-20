@@ -64,6 +64,62 @@ internal sealed partial class MapSignalsProgramData : IKernelProgramData
         _terrainBaseCapacities[terrainId] = baseCapacity < 0f ? 0f : baseCapacity;
     }
 
+    // Physical carrying capacity derives from the hex's real facts through
+    // one authored formula; terrain rows serve only domains (and the
+    // semantic plane) that never configure it.
+
+    public bool HasCapacityFormula { get; private set; }
+
+    public float CapacityColdFloor { get; private set; }
+
+    public float CapacityWarmPeak { get; private set; }
+
+    public float CapacityGeothermalBlend { get; private set; }
+
+    public float CapacityFreshwaterWeight { get; private set; }
+
+    public float CapacityFertileWeight { get; private set; }
+
+    public float CapacityReliefComfort { get; private set; }
+
+    public float CapacityReliefPenalty { get; private set; }
+
+    public float CapacityRoughnessPenalty { get; private set; }
+
+    public float CapacityLandScale { get; private set; }
+
+    public float CapacityMarineScale { get; private set; }
+
+    public void SetCapacityFormula(
+        float coldFloor,
+        float warmPeak,
+        float geothermalBlend,
+        float freshwaterWeight,
+        float fertileWeight,
+        float reliefComfort,
+        float reliefPenalty,
+        float roughnessPenalty,
+        float landScale,
+        float marineScale)
+    {
+        if (coldFloor < 0f || warmPeak <= coldFloor || landScale < 0f || marineScale < 0f)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        HasCapacityFormula = true;
+        CapacityColdFloor = coldFloor;
+        CapacityWarmPeak = warmPeak;
+        CapacityGeothermalBlend = geothermalBlend;
+        CapacityFreshwaterWeight = freshwaterWeight;
+        CapacityFertileWeight = fertileWeight;
+        CapacityReliefComfort = reliefComfort;
+        CapacityReliefPenalty = reliefPenalty;
+        CapacityRoughnessPenalty = roughnessPenalty;
+        CapacityLandScale = landScale;
+        CapacityMarineScale = marineScale;
+    }
+
     public void RegisterKindSignal(
         int kindId,
         int signalRadius,

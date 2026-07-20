@@ -516,6 +516,29 @@ internal sealed class KernelConfigurationContext
     public void RegisterTerrainMapSignal(int terrainId, float baseCapacity) =>
         _kernel.MapSignals.RegisterTerrainCapacity(terrainId, baseCapacity);
 
+    public void SetMapSignalsCapacityFormula(
+        float coldFloor,
+        float warmPeak,
+        float geothermalBlend,
+        float freshwaterWeight,
+        float fertileWeight,
+        float reliefComfort,
+        float reliefPenalty,
+        float roughnessPenalty,
+        float landScale,
+        float marineScale) =>
+        _kernel.MapSignals.Data.SetCapacityFormula(
+            coldFloor,
+            warmPeak,
+            geothermalBlend,
+            freshwaterWeight,
+            fertileWeight,
+            reliefComfort,
+            reliefPenalty,
+            roughnessPenalty,
+            landScale,
+            marineScale);
+
     public void RegisterKindMapSignal(
         int kindId,
         int signalRadius,

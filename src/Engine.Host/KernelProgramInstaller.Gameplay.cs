@@ -24,6 +24,21 @@ internal static partial class KernelProgramInstaller
     private static void ConfigureMapSignals(KernelConfigurationContext context, MapSignalsProgram program)
     {
         context.ConfigureMapSignals(program.SemanticBaseCapacity, program.CrowdingRadius);
+        if (program.PhysicalCapacityFormula is { } formula)
+        {
+            context.SetMapSignalsCapacityFormula(
+                formula.ColdFloor,
+                formula.WarmPeak,
+                formula.GeothermalBlend,
+                formula.FreshwaterWeight,
+                formula.FertileWeight,
+                formula.ReliefComfort,
+                formula.ReliefPenalty,
+                formula.RoughnessPenalty,
+                formula.LandScale,
+                formula.MarineScale);
+        }
+
         foreach (var terrain in program.Terrains)
         {
             context.RegisterTerrainMapSignal(terrain.TerrainId, terrain.BaseCapacity);

@@ -226,10 +226,40 @@ public static class GameplayCompiler
         {
             SemanticBaseCapacity = mapSignals.SemanticBaseCapacity,
             CrowdingRadius = mapSignals.CrowdingRadius,
+            PhysicalCapacityFormula = CompilePhysicalCapacityFormula(mapSignals.PhysicalCapacityFormula),
             Terrains = CompileTerrainMapSignals(mapSignals, context),
             Kinds = CompileKindMapSignals(mapSignals, context),
             Relationships = CompileRelationshipMapSignals(mapSignals, context),
         };
+    }
+
+    private static CompiledPhysicalCapacityFormula? CompilePhysicalCapacityFormula(
+        PhysicalCapacityFormulaConfig? formula)
+    {
+        if (formula is null)
+        {
+            return null;
+        }
+
+        if (formula.ColdFloorTemperature is < 0 or > 1000 ||
+            formula.WarmPeakTemperature <= formula.ColdFloorTemperature ||
+            formula.WarmPeakTemperature > 1500)
+        {
+            throw new InvalidOperationException(
+                "Physical capacity formula temperatures must be an increasing 0-1000 range.");
+        }
+
+        return new CompiledPhysicalCapacityFormula(
+            PhysicalHexFactCodes.FromIntensity(formula.ColdFloorTemperature),
+            PhysicalHexFactCodes.FromIntensity(formula.WarmPeakTemperature),
+            formula.GeothermalBlend,
+            formula.FreshwaterWeight,
+            formula.FertileWeight,
+            formula.ReliefComfort,
+            formula.ReliefPenalty,
+            formula.RoughnessPenalty,
+            formula.LandScale,
+            formula.MarineScale);
     }
 
     private static List<TerrainMapSignalRule> CompileTerrainMapSignals(

@@ -96,11 +96,25 @@ public sealed class MapSignalsProgram
     public float SemanticBaseCapacity { get; init; } = 2f;
     public int CrowdingRadius { get; init; } = 1;
     public IReadOnlyList<TerrainMapSignalRule> Terrains { get; init; } = [];
+    public CompiledPhysicalCapacityFormula? PhysicalCapacityFormula { get; init; }
     public IReadOnlyList<KindMapSignalRule> Kinds { get; init; } = [];
     public IReadOnlyList<RelationshipMapSignalRule> Relationships { get; init; } = [];
 }
 
 public sealed record TerrainMapSignalRule(int TerrainId, float BaseCapacity);
+
+/// <summary>Fact-derived physical capacity, temperatures quantized to byte scale.</summary>
+public sealed record CompiledPhysicalCapacityFormula(
+    float ColdFloor,
+    float WarmPeak,
+    float GeothermalBlend,
+    float FreshwaterWeight,
+    float FertileWeight,
+    float ReliefComfort,
+    float ReliefPenalty,
+    float RoughnessPenalty,
+    float LandScale,
+    float MarineScale);
 
 public sealed record KindMapSignalRule(
     int KindId,
