@@ -16,16 +16,16 @@ public sealed class LowAltitudeGeographyFilterTests
         var slot = RegisterTerrainVerb(simulation);
 
         simulation.LowAltitudeVerbs.SetGeographyFilter(
-            slot, minWarmthBand: 2, siteFlags: PhysicalHexFieldCodes.PolynyaFlag);
+            slot, minTemperature: 90, siteFlags: PhysicalHexFieldCodes.PolynyaFlag);
 
-        Assert.Equal(2, simulation.LowAltitudeVerbs.Data.MinWarmthBand(slot));
+        Assert.Equal(90, simulation.LowAltitudeVerbs.Data.MinTemperature(slot));
         Assert.Equal(
             PhysicalHexFieldCodes.PolynyaFlag,
             simulation.LowAltitudeVerbs.Data.SiteFlagsFilter(slot));
         Assert.Throws<global::System.InvalidOperationException>(() =>
-            simulation.LowAltitudeVerbs.SetGeographyFilter(slot, minWarmthBand: 4, siteFlags: 0));
+            simulation.LowAltitudeVerbs.SetGeographyFilter(slot, minTemperature: 300, siteFlags: 0));
         Assert.Throws<global::System.InvalidOperationException>(() =>
-            simulation.LowAltitudeVerbs.SetGeographyFilter(slot, minWarmthBand: 0, siteFlags: 1 << 13));
+            simulation.LowAltitudeVerbs.SetGeographyFilter(slot, minTemperature: 0, siteFlags: 1 << 13));
     }
 
     private static int RegisterTerrainVerb(Simulation simulation)

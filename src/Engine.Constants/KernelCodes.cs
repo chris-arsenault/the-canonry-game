@@ -77,34 +77,73 @@ public static class PhysicalCrossingCodes
 }
 
 /// <summary>
-/// Packed per-hex geography field word: four 2-bit magnitude bands and the
-/// site flags. Bands are numeric gradients consumed by formulas; flags are
-/// ambient placement facts. Immutable runtime geography.
+/// Packed per-hex geography field word: the discrete site flags. Gradient
+/// facts live in the quantized fact columns (PhysicalHexFactCodes), never
+/// as invented magnitude bands. Immutable runtime geography.
 /// </summary>
 public static class PhysicalHexFieldCodes
 {
-    public const int BandMask = 0b11;
-    public const int MaxBand = 3;
-    public const int WarmthShift = 0;
-    public const int FireShift = 2;
-    public const int AuroraShift = 4;
-    public const int PressureShift = 6;
+    public const int SummitFlag = 1 << 0;
+    public const int ThermalFlag = 1 << 1;
+    public const int AnomalyFlag = 1 << 2;
+    public const int PolynyaFlag = 1 << 3;
+    public const int CraterFlag = 1 << 4;
 
-    public const int SummitFlag = 1 << 8;
-    public const int ThermalFlag = 1 << 9;
-    public const int AnomalyFlag = 1 << 10;
-    public const int PolynyaFlag = 1 << 11;
-    public const int CraterFlag = 1 << 12;
+    public const int WordMask = (1 << 5) - 1;
+}
 
-    public const int WordMask = (1 << 13) - 1;
+/// <summary>
+/// Quantized per-hex geography fact columns: the generated world's real
+/// quantities carried into the kernel as bytes. Gameplay numbers (capacity,
+/// placement scores, thresholds) are derived from these via authored
+/// formulas; no consumer authors per-value rules against them.
+/// </summary>
+public static class PhysicalHexFactCodes
+{
+    public const int Temperature = 0;
+    public const int Moisture = 1;
+    public const int Geothermal = 2;
+    public const int Elevation = 3;
+    public const int Relief = 4;
+    public const int Roughness = 5;
+    public const int LandFraction = 6;
+    public const int RiverCoverage = 7;
+    public const int FloodplainCoverage = 8;
+    public const int IceThickness = 9;
+    public const int FireMean = 10;
+    public const int FireMax = 11;
+    public const int AuroraMean = 12;
+    public const int AuroraMax = 13;
+    public const int PressureMean = 14;
+    public const int PressureMax = 15;
 
-    public static int BandAt(int fieldWord, int bandShift) => (fieldWord >> bandShift) & BandMask;
+    public const int Count = 16;
 
-    public static int PackBands(int warmth, int fire, int aurora, int pressure) =>
-        ((warmth & BandMask) << WarmthShift) |
-        ((fire & BandMask) << FireShift) |
-        ((aurora & BandMask) << AuroraShift) |
-        ((pressure & BandMask) << PressureShift);
+    /// <summary>Quantizes an intensity-scale value (0..1000) to a byte.</summary>
+    public static byte FromIntensity(int value) => ClampByte(value * 255 / 1000);
+
+    /// <summary>Quantizes a triangle-count coverage (0..24) to a byte.</summary>
+    public static byte FromCoverage(int triangles) =>
+        ClampByte(triangles * 255 / PhysicalGeographyCodes.MicrotrianglesPerHex);
+
+    /// <summary>
+    /// Quantizes whole-unit elevation to a byte: offset so modest depths
+    /// survive, eight units per step. Covers roughly -256..1784 units.
+    /// </summary>
+    public static byte FromElevation(int units) => ClampByte((units + 256) / 8);
+
+    /// <summary>Quantizes non-negative relief/roughness units, four per step.</summary>
+    public static byte FromReliefUnits(int units) => ClampByte(units / 4);
+
+    private static byte ClampByte(int value)
+    {
+        if (value < 0)
+        {
+            return 0;
+        }
+
+        return value > 255 ? (byte)255 : (byte)value;
+    }
 }
 
 public static class PhysicalLandmassClassCodes

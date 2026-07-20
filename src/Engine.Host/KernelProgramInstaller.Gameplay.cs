@@ -24,14 +24,6 @@ internal static partial class KernelProgramInstaller
     private static void ConfigureMapSignals(KernelConfigurationContext context, MapSignalsProgram program)
     {
         context.ConfigureMapSignals(program.SemanticBaseCapacity, program.CrowdingRadius);
-        if (program.WarmthCapacityCurve.Count == 4)
-        {
-            context.SetMapSignalsWarmthCapacityCurve(
-                program.WarmthCapacityCurve[0],
-                program.WarmthCapacityCurve[1],
-                program.WarmthCapacityCurve[2],
-                program.WarmthCapacityCurve[3]);
-        }
         foreach (var terrain in program.Terrains)
         {
             context.RegisterTerrainMapSignal(terrain.TerrainId, terrain.BaseCapacity);
@@ -161,9 +153,9 @@ internal static partial class KernelProgramInstaller
             context.AddLowAltitudeVerbTerrainFilter(slot, terrainId);
         }
 
-        if (verb.MinWarmthBand > 0 || verb.SiteFlags != 0)
+        if (verb.MinTemperature > 0 || verb.SiteFlags != 0)
         {
-            context.SetLowAltitudeVerbGeographyFilter(slot, verb.MinWarmthBand, verb.SiteFlags);
+            context.SetLowAltitudeVerbGeographyFilter(slot, verb.MinTemperature, verb.SiteFlags);
         }
 
         AddLowAltitudeVerbPrimitiveSteps(context, slot, verb.PrimitiveSteps);

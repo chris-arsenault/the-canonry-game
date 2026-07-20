@@ -21,7 +21,10 @@ internal sealed partial class GeneratorProgramRuntime
     private const int PlacementCultureRouteBonus = 280;
     private const int PlacementWildernessBaseScore = 320;
     private const int PlacementPreferredSiteScore = 860;
-    private const int PlacementBandAffinityStep = 120;
+
+    // Full-strength affinity over a maxed fact (255) matches the old
+    // three-band peak of 360.
+    private const float PlacementFactAffinityScale = 360f / 255f;
     private const float PlacementCultureTraceRawInfluence = WorldState.CultureTraceRawMass;
     private const float PlacementCultureSupportedRawInfluence = WorldState.CultureControlledRawMass;
     private const float PlacementCultureDominantRawInfluence = WorldState.CultureEntrenchedRawMass;
@@ -555,9 +558,9 @@ internal sealed partial class GeneratorProgramRuntime
     }
 
     // Geography pulls content toward the hexes that suit it: a preferred
-    // site flag scores like a top terrain preference, and each signed band
-    // affinity adds its band times a fixed step. Producers with no authored
-    // geography pay one array read and no field-word fetch.
+    // site flag scores like a top terrain preference, and each signed
+    // affinity adds its real quantized fact times a fixed step. Producers
+    // with no authored geography pay one array read and no fact fetches.
     private int GeographyPlacementScore(Simulation simulation, int planeCode, int producedSlot, int q, int r)
     {
         if (planeCode != PlaneCodes.Physical)
@@ -577,24 +580,29 @@ internal sealed partial class GeneratorProgramRuntime
             return 0;
         }
 
-        var fieldWord = simulation.KernelData.PhysicalGeography.FieldWord(q, r);
+        var geography = simulation.KernelData.PhysicalGeography;
         var score = 0;
-        if (siteFlags != 0 && (fieldWord & siteFlags) != 0)
+        if (siteFlags != 0 && (geography.FieldWord(q, r) & siteFlags) != 0)
         {
             score += PlacementPreferredSiteScore;
         }
 
-        score += BandAffinityScore(warmth, fieldWord, PhysicalHexFieldCodes.WarmthShift);
-        score += BandAffinityScore(fire, fieldWord, PhysicalHexFieldCodes.FireShift);
-        score += BandAffinityScore(aurora, fieldWord, PhysicalHexFieldCodes.AuroraShift);
-        score += BandAffinityScore(pressure, fieldWord, PhysicalHexFieldCodes.PressureShift);
+        score += FactAffinityScore(geography, warmth, q, r, PhysicalHexFactCodes.Temperature);
+        score += FactAffinityScore(geography, fire, q, r, PhysicalHexFactCodes.FireMean);
+        score += FactAffinityScore(geography, aurora, q, r, PhysicalHexFactCodes.AuroraMean);
+        score += FactAffinityScore(geography, pressure, q, r, PhysicalHexFactCodes.PressureMean);
         return score;
     }
 
-    private static int BandAffinityScore(float affinity, int fieldWord, int bandShift) =>
+    private static int FactAffinityScore(
+        KernelPhysicalGeographyData geography,
+        float affinity,
+        int q,
+        int r,
+        int factCode) =>
         affinity == 0f
             ? 0
-            : (int)(affinity * PhysicalHexFieldCodes.BandAt(fieldWord, bandShift) * PlacementBandAffinityStep);
+            : (int)(affinity * geography.Fact(q, r, factCode) * PlacementFactAffinityScale);
 
     private int CulturePlacementScore(
         Simulation simulation,

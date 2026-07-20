@@ -39,7 +39,8 @@ internal sealed class KernelConfigurationContext
         int continentId,
         int crossingWord,
         int fieldWord,
-        int initialCoverTerrainId) =>
+        int initialCoverTerrainId,
+        ReadOnlySpan<byte> facts) =>
         _kernel.KernelData.PhysicalGeography.InstallCell(
             q,
             r,
@@ -48,7 +49,8 @@ internal sealed class KernelConfigurationContext
             continentId,
             crossingWord,
             fieldWord,
-            initialCoverTerrainId);
+            initialCoverTerrainId,
+            facts);
 
     public void BeginSemanticTerrainBlueprintInstall(int radius) =>
         _kernel.MapFrontier.Data.BeginSemanticBlueprintInstall(radius);
@@ -447,8 +449,8 @@ internal sealed class KernelConfigurationContext
     public void AddLowAltitudeVerbTerrainFilter(int verbSlot, int terrainId) =>
         _kernel.LowAltitudeVerbs.AddTerrainFilter(verbSlot, terrainId);
 
-    public void SetLowAltitudeVerbGeographyFilter(int verbSlot, int minWarmthBand, int siteFlags) =>
-        _kernel.LowAltitudeVerbs.SetGeographyFilter(verbSlot, minWarmthBand, siteFlags);
+    public void SetLowAltitudeVerbGeographyFilter(int verbSlot, int minTemperature, int siteFlags) =>
+        _kernel.LowAltitudeVerbs.SetGeographyFilter(verbSlot, minTemperature, siteFlags);
 
     public int RegisterLowAltitudeInitialInfluence(
         int kindId,
@@ -513,12 +515,6 @@ internal sealed class KernelConfigurationContext
 
     public void RegisterTerrainMapSignal(int terrainId, float baseCapacity) =>
         _kernel.MapSignals.RegisterTerrainCapacity(terrainId, baseCapacity);
-
-    public void SetMapSignalsWarmthCapacityCurve(float band0, float band1, float band2, float band3) =>
-        _kernel.MapSignals.Data.SetWarmthCapacityCurve(band0, band1, band2, band3);
-
-    public void SetTerrainWarmthInfluenceCurve(float band0, float band1, float band2, float band3) =>
-        _kernel.KernelData.Terrain.SetWarmthInfluenceCurve(band0, band1, band2, band3);
 
     public void RegisterKindMapSignal(
         int kindId,

@@ -77,7 +77,7 @@ public static class GameplayCompiler
                 verb.RequiredInfluence,
                 verb.RelationshipStrengthDelta,
                 shape.PrimitiveSteps,
-                MinWarmthBand: ValidateWarmthBand(verb),
+                MinTemperature: CompileVerbMinTemperature(verb),
                 SiteFlags: CompileVerbSiteFlags(verb)));
         }
 
@@ -90,15 +90,15 @@ public static class GameplayCompiler
         };
     }
 
-    private static int ValidateWarmthBand(LowAltitudeVerbConfig verb)
+    private static int CompileVerbMinTemperature(LowAltitudeVerbConfig verb)
     {
-        if (verb.MinWarmthBand is < 0 or > 3)
+        if (verb.MinTemperature is < 0 or > 1000)
         {
             throw new InvalidOperationException(
-                $"Low-altitude verb '{verb.Id}' warmth band must be 0-3.");
+                $"Low-altitude verb '{verb.Id}' minimum temperature must be 0-1000.");
         }
 
-        return verb.MinWarmthBand;
+        return PhysicalHexFactCodes.FromIntensity(verb.MinTemperature);
     }
 
     private static int CompileVerbSiteFlags(LowAltitudeVerbConfig verb)
@@ -222,17 +222,10 @@ public static class GameplayCompiler
         IGameplayCompilationContext context)
     {
         var mapSignals = definition.MapSignals;
-        if (mapSignals.WarmthCapacityCurve.Count is not (0 or 4))
-        {
-            throw new InvalidOperationException(
-                "Map signals warmth capacity curve must have exactly four band values.");
-        }
-
         return new MapSignalsProgram
         {
             SemanticBaseCapacity = mapSignals.SemanticBaseCapacity,
             CrowdingRadius = mapSignals.CrowdingRadius,
-            WarmthCapacityCurve = mapSignals.WarmthCapacityCurve,
             Terrains = CompileTerrainMapSignals(mapSignals, context),
             Kinds = CompileKindMapSignals(mapSignals, context),
             Relationships = CompileRelationshipMapSignals(mapSignals, context),

@@ -110,27 +110,27 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _terrainStarts = new int[ruleLength];
         _terrainCounts = new int[ruleLength];
         _terrainIds = new int[itemLength];
-        _minWarmthBands = new int[ruleLength];
+        _minTemperatures = new int[ruleLength];
         _siteFlagFilters = new int[ruleLength];
     }
 
-    private int[] _minWarmthBands = [];
+    private int[] _minTemperatures = [];
     private int[] _siteFlagFilters = [];
 
-    public void SetGeographyFilter(int rule, int minWarmthBand, int siteFlags)
+    public void SetGeographyFilter(int rule, int minTemperature, int siteFlags)
     {
         EnsureRule(rule);
-        if (minWarmthBand is < 0 or > PhysicalHexFieldCodes.MaxBand ||
+        if (minTemperature is < 0 or > 255 ||
             (siteFlags & ~PhysicalHexFieldCodes.WordMask) != 0)
         {
             throw new global::System.InvalidOperationException();
         }
 
-        _minWarmthBands[rule] = minWarmthBand;
+        _minTemperatures[rule] = minTemperature;
         _siteFlagFilters[rule] = siteFlags;
     }
 
-    public int MinWarmthBand(int rule) => _minWarmthBands[rule];
+    public int MinTemperature(int rule) => _minTemperatures[rule];
 
     public int SiteFlagsFilter(int rule) => _siteFlagFilters[rule];
 

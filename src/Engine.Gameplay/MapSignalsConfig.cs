@@ -6,12 +6,6 @@ public sealed class MapSignalsConfig
 
     public int CrowdingRadius { get; init; } = 1;
 
-    /// <summary>
-    /// Physical base capacity multiplier per warmth band (exactly 4 values,
-    /// bands 0-3), or empty for terrain-only capacity.
-    /// </summary>
-    public IReadOnlyList<float> WarmthCapacityCurve { get; init; } = [];
-
     public IReadOnlyList<TerrainMapSignalConfig> Terrains { get; init; } = [];
 
     public IReadOnlyList<KindMapSignalConfig> Kinds { get; init; } = [];

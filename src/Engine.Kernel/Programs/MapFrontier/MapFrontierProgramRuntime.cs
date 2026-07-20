@@ -118,9 +118,7 @@ internal sealed partial class MapFrontierProgramRuntime :
         var q = _candidateQ[index];
         var r = _candidateR[index];
         var geography = simulation.KernelData.PhysicalGeography;
-        var warmth = PhysicalHexFieldCodes.BandAt(
-            geography.FieldWord(q, r),
-            PhysicalHexFieldCodes.WarmthShift);
+        var temperature = geography.Fact(q, r, PhysicalHexFactCodes.Temperature);
         var crossingWord = geography.CrossingWord(q, r);
         var hostility = 0;
         for (var direction = 0; direction < PhysicalCrossingCodes.DirectionCount; direction++)
@@ -128,7 +126,9 @@ internal sealed partial class MapFrontierProgramRuntime :
             hostility += PhysicalCrossingCodes.ClassAt(crossingWord, direction) == PhysicalCrossingCodes.Open ? 0 : 1;
         }
 
-        return (warmth * 4) - hostility;
+        // Temperature scaled to roughly the hostility range so one warm
+        // step outweighs one hostile edge, not six.
+        return (temperature / 21) - hostility;
     }
 
     private int CollectThawCandidates(

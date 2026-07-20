@@ -64,24 +64,6 @@ internal sealed partial class MapSignalsProgramData : IKernelProgramData
         _terrainBaseCapacities[terrainId] = baseCapacity < 0f ? 0f : baseCapacity;
     }
 
-    // Warmth shapes carrying capacity: one authored factor per warmth band,
-    // multiplying the terrain base. Defaults to flat so a domain that never
-    // configures the curve keeps terrain-only capacity.
-    private readonly float[] _warmthCapacityCurve = [1f, 1f, 1f, 1f];
-
-    public void SetWarmthCapacityCurve(float band0, float band1, float band2, float band3)
-    {
-        _warmthCapacityCurve[0] = ClampNonNegative(band0);
-        _warmthCapacityCurve[1] = ClampNonNegative(band1);
-        _warmthCapacityCurve[2] = ClampNonNegative(band2);
-        _warmthCapacityCurve[3] = ClampNonNegative(band3);
-    }
-
-    public float WarmthCapacityFactor(int warmthBand) =>
-        _warmthCapacityCurve[warmthBand & PhysicalHexFieldCodes.BandMask];
-
-    private static float ClampNonNegative(float value) => value < 0f ? 0f : value;
-
     public void RegisterKindSignal(
         int kindId,
         int signalRadius,

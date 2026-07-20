@@ -40,18 +40,6 @@ internal static class IceRemembersHexProjection
     // Initial sea-ice cover: frozen-water surfaces dominating a water hex.
     private const int SeaIceCoverCut = 10;
 
-    // Band cuts. Warmth reads effective warmth (temperature plus half
-    // geothermal); the magic bands read mean/max intensity pairs.
-    private const int WarmthBand1 = 220;
-    private const int WarmthBand2 = 340;
-    private const int WarmthBand3 = 460;
-    private const int MagicMeanBand1 = 120;
-    private const int MagicMeanBand2 = 300;
-    private const int MagicMeanBand3 = 550;
-    private const int MagicMaxBand1 = 350;
-    private const int MagicMaxBand2 = 600;
-    private const int MagicMaxBand3 = 850;
-
     // Flag cuts.
     private const int ThermalVentCut = 1;
     private const int ThermalSurfaceCut = 2;
@@ -259,12 +247,7 @@ internal static class IceRemembersHexProjection
     private static int BuildFieldWord(IceRemembersTerrain terrain, in HexFacts facts)
     {
         var aggregate = facts.Aggregate;
-        var warmth = aggregate.MeanTemperature + (aggregate.MeanGeothermal / 2);
-        var word = PhysicalHexFieldCodes.PackBands(
-            Band(warmth, WarmthBand1, WarmthBand2, WarmthBand3),
-            MagicBand(aggregate.MeanFireIntensity, aggregate.MaxFireIntensity),
-            MagicBand(aggregate.MeanAuroraIntensity, aggregate.MaxAuroraIntensity),
-            MagicBand(aggregate.MeanPressureIntensity, aggregate.MaxPressureIntensity));
+        var word = 0;
         if (aggregate.PeakCount > 0)
         {
             word |= PhysicalHexFieldCodes.SummitFlag;
@@ -298,28 +281,6 @@ internal static class IceRemembersHexProjection
         facts.VentCount >= ThermalVentCut ||
         facts.MagicCount(MagicGroup.WarmFire) >= ThermalSurfaceCut ||
         facts.Aggregate.MeanGeothermal >= ThermalGeothermalCut;
-
-    private static int Band(int value, int cut1, int cut2, int cut3)
-    {
-        if (value >= cut3)
-        {
-            return 3;
-        }
-
-        if (value >= cut2)
-        {
-            return 2;
-        }
-
-        return value >= cut1 ? 1 : 0;
-    }
-
-    private static int MagicBand(int mean, int max)
-    {
-        var fromMean = Band(mean, MagicMeanBand1, MagicMeanBand2, MagicMeanBand3);
-        var fromMax = Band(max, MagicMaxBand1, MagicMaxBand2, MagicMaxBand3);
-        return Math.Max(fromMean, fromMax);
-    }
 
     // The surface-to-terrain affinity table: one straight-line assignment
     // per natural surface. Surfaces left at None (tundra, wet tundra, plain

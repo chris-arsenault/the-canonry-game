@@ -5,8 +5,6 @@ public sealed class CompiledTerrainData
     public IReadOnlyList<CompiledTerrainDefinition> Terrains { get; init; } = [];
 
     public IReadOnlyList<CompiledCrossingProfileDefinition> CrossingProfiles { get; init; } = [];
-
-    public IReadOnlyList<float> WarmthInfluenceCurve { get; init; } = [];
 }
 
 public sealed record CompiledCrossingProfileDefinition(

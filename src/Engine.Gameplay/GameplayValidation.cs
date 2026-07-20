@@ -164,7 +164,7 @@ public static class GameplayValidator
     // A terrain-mode verb needs some cell predicate: an exact terrain list,
     // a minimum warmth band, or a site-flag mask.
     private static bool HasCellPredicate(LowAltitudeVerbConfig verb, bool hasTerrains) =>
-        hasTerrains || verb.MinWarmthBand > 0 || verb.Sites is { Count: > 0 };
+        hasTerrains || verb.MinTemperature > 0 || verb.Sites is { Count: > 0 };
 
     private static void ValidateInfluenceFields(
         LowAltitudeVerbConfig verb,

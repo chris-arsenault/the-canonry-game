@@ -136,7 +136,8 @@ public sealed class DirectedCrossingTests
 
             simulation.KernelData.PhysicalGeography.InstallCell(
                 q, 0, OpenTerrain, superregionId: 1, continentId: 1,
-                crossingWord: word, fieldWord: 0, initialCoverTerrainId: 0);
+                crossingWord: word, fieldWord: 0, initialCoverTerrainId: 0,
+                new byte[PhysicalHexFactCodes.Count]);
         }
 
         simulation.World.SetMapRadius(4);

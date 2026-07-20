@@ -91,15 +91,6 @@ internal static class KernelDataInstaller
                 crossing.Factor,
                 crossing.RoadNegated);
         }
-
-        if (data.WarmthInfluenceCurve.Count == 4)
-        {
-            context.SetTerrainWarmthInfluenceCurve(
-                data.WarmthInfluenceCurve[0],
-                data.WarmthInfluenceCurve[1],
-                data.WarmthInfluenceCurve[2],
-                data.WarmthInfluenceCurve[3]);
-        }
     }
 
     private static void InstallMovement(KernelConfigurationContext context, CompiledMovementData data)

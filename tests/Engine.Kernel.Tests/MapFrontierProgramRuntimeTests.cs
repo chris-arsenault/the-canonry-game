@@ -263,7 +263,12 @@ public sealed class MapFrontierProgramRuntimeTests
         {
             // One warm, open neighbour; everything else cold behind cliffs.
             var warm = q == 1 && r == 0;
-            var fieldWord = warm ? 3 << PhysicalHexFieldCodes.WarmthShift : 0;
+            var facts = new byte[PhysicalHexFactCodes.Count];
+            if (warm)
+            {
+                facts[PhysicalHexFactCodes.Temperature] = 220;
+            }
+
             var crossingWord = 0;
             if (!warm)
             {
@@ -276,7 +281,7 @@ public sealed class MapFrontierProgramRuntimeTests
 
             simulation.KernelData.PhysicalGeography.InstallCell(
                 q, r, TundraTerrain, superregionId: 12, continentId: 13,
-                crossingWord, fieldWord, initialCoverTerrainId: 0);
+                crossingWord, fieldWord: 0, initialCoverTerrainId: 0, facts);
         });
         simulation.World.SetMapRadius(6);
         simulation.SeedCell(0, 0, TundraTerrain, ownerEntityId: 0);
@@ -342,7 +347,8 @@ public sealed class MapFrontierProgramRuntimeTests
                 continentId: 13,
                 crossingWord: 0,
                 fieldWord: 0,
-                initialCoverTerrainId: covered ? SeaIceTerrain : 0);
+                initialCoverTerrainId: covered ? SeaIceTerrain : 0,
+                new byte[PhysicalHexFactCodes.Count]);
         });
     }
 
@@ -399,7 +405,8 @@ public sealed class MapFrontierProgramRuntimeTests
                 continentId: 13,
                 crossingWord: 0,
                 fieldWord: 0,
-                initialCoverTerrainId: 0);
+                initialCoverTerrainId: 0,
+                new byte[PhysicalHexFactCodes.Count]);
         });
     }
 

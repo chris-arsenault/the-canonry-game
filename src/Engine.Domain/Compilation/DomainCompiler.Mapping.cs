@@ -141,17 +141,10 @@ public static partial class DomainCompiler
                 CompileTerrainKindProfiles(terrainId, terrain.KindProfiles, ids)));
         }
 
-        if (config.WarmthInfluenceCurve.Count is not (0 or 4))
-        {
-            throw new InvalidOperationException(
-                "Warmth influence curve must have exactly four band values.");
-        }
-
         return new CompiledTerrainData
         {
             Terrains = terrains,
             CrossingProfiles = CompileCrossingProfiles(config.CrossingProfiles, movementProfileIds),
-            WarmthInfluenceCurve = config.WarmthInfluenceCurve,
         };
     }
 

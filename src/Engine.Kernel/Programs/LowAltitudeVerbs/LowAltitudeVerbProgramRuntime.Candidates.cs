@@ -821,19 +821,19 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     // field-word fetch when configured, nothing when not.
     private bool GeographyAllowed(Simulation simulation, int rule, int planeCode, int q, int r)
     {
-        var minWarmth = Data.MinWarmthBand(rule);
+        var minTemperature = Data.MinTemperature(rule);
         var siteFlags = Data.SiteFlagsFilter(rule);
-        if ((minWarmth <= 0 && siteFlags == 0) || planeCode != PlaneCodes.Physical)
+        if ((minTemperature <= 0 && siteFlags == 0) || planeCode != PlaneCodes.Physical)
         {
             return true;
         }
 
-        var fieldWord = simulation.KernelData.PhysicalGeography.FieldWord(q, r);
-        if (PhysicalHexFieldCodes.BandAt(fieldWord, PhysicalHexFieldCodes.WarmthShift) < minWarmth)
+        var geography = simulation.KernelData.PhysicalGeography;
+        if (geography.Fact(q, r, PhysicalHexFactCodes.Temperature) < minTemperature)
         {
             return false;
         }
 
-        return siteFlags == 0 || (fieldWord & siteFlags) != 0;
+        return siteFlags == 0 || (geography.FieldWord(q, r) & siteFlags) != 0;
     }
 }

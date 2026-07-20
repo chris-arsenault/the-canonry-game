@@ -74,8 +74,10 @@ internal static class DomainStartupSeedInstaller
 
         blueprint.Validate();
         context.BeginPhysicalGeographyInstall(blueprint.Radius);
+        var facts = new byte[PhysicalHexFactCodes.Count];
         foreach (var cell in blueprint.Cells)
         {
+            QuantizeCellFacts(cell, facts);
             context.InstallPhysicalGeographyCell(
                 cell.Q,
                 cell.R,
@@ -86,8 +88,33 @@ internal static class DomainStartupSeedInstaller
                 cell.FieldWord,
                 cell.InitialCoverTerrain is null
                     ? 0
-                    : context.DomainIds.TerrainIdOf(cell.InitialCoverTerrain).Value);
+                    : context.DomainIds.TerrainIdOf(cell.InitialCoverTerrain).Value,
+                facts);
         }
+    }
+
+    // The hex summary's real quantities, quantized to the kernel's byte
+    // fact columns. Gameplay derives from these; nothing here invents a
+    // scalar the generator did not compute.
+    private static void QuantizeCellFacts(in DomainPhysicalGeographyCell cell, byte[] facts)
+    {
+        facts[PhysicalHexFactCodes.Temperature] = PhysicalHexFactCodes.FromIntensity(cell.MeanTemperature);
+        facts[PhysicalHexFactCodes.Moisture] = PhysicalHexFactCodes.FromIntensity(cell.MeanMoisture);
+        facts[PhysicalHexFactCodes.Geothermal] = PhysicalHexFactCodes.FromIntensity(cell.MeanGeothermal);
+        facts[PhysicalHexFactCodes.Elevation] = PhysicalHexFactCodes.FromElevation(cell.MeanElevation);
+        facts[PhysicalHexFactCodes.Relief] = PhysicalHexFactCodes.FromReliefUnits(cell.Relief);
+        facts[PhysicalHexFactCodes.Roughness] = PhysicalHexFactCodes.FromReliefUnits(cell.Roughness);
+        facts[PhysicalHexFactCodes.LandFraction] = PhysicalHexFactCodes.FromCoverage(cell.LandCoverage);
+        facts[PhysicalHexFactCodes.RiverCoverage] = PhysicalHexFactCodes.FromCoverage(cell.RiverCoverage);
+        facts[PhysicalHexFactCodes.FloodplainCoverage] =
+            PhysicalHexFactCodes.FromCoverage(cell.FloodplainCoverage + cell.DeltaCoverage);
+        facts[PhysicalHexFactCodes.IceThickness] = PhysicalHexFactCodes.FromIntensity(cell.MeanIceThickness);
+        facts[PhysicalHexFactCodes.FireMean] = PhysicalHexFactCodes.FromIntensity(cell.MeanFireIntensity);
+        facts[PhysicalHexFactCodes.FireMax] = PhysicalHexFactCodes.FromIntensity(cell.MaxFireIntensity);
+        facts[PhysicalHexFactCodes.AuroraMean] = PhysicalHexFactCodes.FromIntensity(cell.MeanAuroraIntensity);
+        facts[PhysicalHexFactCodes.AuroraMax] = PhysicalHexFactCodes.FromIntensity(cell.MaxAuroraIntensity);
+        facts[PhysicalHexFactCodes.PressureMean] = PhysicalHexFactCodes.FromIntensity(cell.MeanPressureIntensity);
+        facts[PhysicalHexFactCodes.PressureMax] = PhysicalHexFactCodes.FromIntensity(cell.MaxPressureIntensity);
     }
 
     private static void InstallSemanticTerrain(

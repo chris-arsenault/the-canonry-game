@@ -21,7 +21,7 @@ public sealed class GeneratorPlacementGeographyTests
     public void PreferredSiteFlag_WinsOtherwiseEqualPlacement()
     {
         var simulation = CreateSimulation();
-        InstallGeography(simulation, flaggedQ: 1, flaggedR: 0, fieldWord: PhysicalHexFieldCodes.SummitFlag);
+        InstallGeography(simulation, flaggedQ: 1, flaggedR: 0, fieldWord: PhysicalHexFieldCodes.SummitFlag, auroraMean: 0);
         var slot = RegisterGeneratorWithGeography(
             simulation,
             siteFlags: PhysicalHexFieldCodes.SummitFlag,
@@ -44,7 +44,8 @@ public sealed class GeneratorPlacementGeographyTests
             simulation,
             flaggedQ: 0,
             flaggedR: 1,
-            fieldWord: 3 << PhysicalHexFieldCodes.AuroraShift);
+            fieldWord: 0,
+            auroraMean: 255);
         _ = RegisterGeneratorWithGeography(simulation, siteFlags: 0, auroraAffinity: 1f);
         _ = simulation.CreateEntity(TargetKindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
 
@@ -110,7 +111,12 @@ public sealed class GeneratorPlacementGeographyTests
         return slot;
     }
 
-    private static void InstallGeography(Simulation simulation, int flaggedQ, int flaggedR, int fieldWord)
+    private static void InstallGeography(
+        Simulation simulation,
+        int flaggedQ,
+        int flaggedR,
+        int fieldWord,
+        byte auroraMean)
     {
         simulation.RegisterTerrain(
             OpenTerrain, boundaryGroupId: 1, movementCost: 3f,
@@ -121,11 +127,18 @@ public sealed class GeneratorPlacementGeographyTests
         ForEachHex(1, (q, r) =>
         {
             var flagged = q == flaggedQ && r == flaggedR;
+            var facts = new byte[PhysicalHexFactCodes.Count];
+            if (flagged)
+            {
+                facts[PhysicalHexFactCodes.AuroraMean] = auroraMean;
+            }
+
             simulation.KernelData.PhysicalGeography.InstallCell(
                 q, r, OpenTerrain, superregionId: 1, continentId: 1,
                 crossingWord: 0,
                 fieldWord: flagged ? fieldWord : 0,
-                initialCoverTerrainId: 0);
+                initialCoverTerrainId: 0,
+                facts);
             simulation.SeedCell(q, r, OpenTerrain, ownerEntityId: 0);
         });
         ForEachHex(2, (q, r) =>

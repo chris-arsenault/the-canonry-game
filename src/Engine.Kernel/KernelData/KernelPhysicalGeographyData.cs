@@ -18,6 +18,7 @@ internal sealed class KernelPhysicalGeographyData
     private readonly ushort[] _crossingWords;
     private readonly ushort[] _fieldWords;
     private readonly int[] _initialCoverTerrainIds;
+    private readonly byte[] _facts;
     private int _installedRadius;
 
     public KernelPhysicalGeographyData(int radiusCapacity)
@@ -33,6 +34,7 @@ internal sealed class KernelPhysicalGeographyData
         _crossingWords = new ushort[cellCapacity];
         _fieldWords = new ushort[cellCapacity];
         _initialCoverTerrainIds = new int[cellCapacity];
+        _facts = new byte[checked(cellCapacity * PhysicalHexFactCodes.Count)];
     }
 
     internal int Radius => _installedRadius;
@@ -58,16 +60,14 @@ internal sealed class KernelPhysicalGeographyData
         int continentId,
         int crossingWord,
         int fieldWord,
-        int initialCoverTerrainId)
+        int initialCoverTerrainId,
+        global::System.ReadOnlySpan<byte> facts)
     {
-        if (_installedRadius <= 0 ||
-            HexDistanceFromOrigin(q, r) > _installedRadius ||
-            baseTerrainId <= 0 ||
-            superregionId <= 0 ||
-            continentId <= 0 ||
-            (crossingWord & ~PhysicalCrossingCodes.WordMask) != 0 ||
+        ValidateInstall(q, r, baseTerrainId, superregionId, continentId);
+        if ((crossingWord & ~PhysicalCrossingCodes.WordMask) != 0 ||
             (fieldWord & ~PhysicalHexFieldCodes.WordMask) != 0 ||
-            initialCoverTerrainId < 0)
+            initialCoverTerrainId < 0 ||
+            facts.Length != PhysicalHexFactCodes.Count)
         {
             throw new global::System.InvalidOperationException();
         }
@@ -85,6 +85,23 @@ internal sealed class KernelPhysicalGeographyData
         _crossingWords[cellIndex] = (ushort)crossingWord;
         _fieldWords[cellIndex] = (ushort)fieldWord;
         _initialCoverTerrainIds[cellIndex] = initialCoverTerrainId;
+        var factBase = cellIndex * PhysicalHexFactCodes.Count;
+        for (var fact = 0; fact < PhysicalHexFactCodes.Count; fact++)
+        {
+            _facts[factBase + fact] = facts[fact];
+        }
+    }
+
+    private void ValidateInstall(int q, int r, int baseTerrainId, int superregionId, int continentId)
+    {
+        if (_installedRadius <= 0 ||
+            HexDistanceFromOrigin(q, r) > _installedRadius ||
+            baseTerrainId <= 0 ||
+            superregionId <= 0 ||
+            continentId <= 0)
+        {
+            throw new global::System.InvalidOperationException();
+        }
     }
 
     internal bool TryGetCell(
@@ -129,6 +146,16 @@ internal sealed class KernelPhysicalGeographyData
     /// </summary>
     internal int InitialCoverTerrainId(int q, int r) =>
         CellInstalled(q, r, out var cellIndex) ? _initialCoverTerrainIds[cellIndex] : 0;
+
+    /// <summary>
+    /// A quantized geography fact (PhysicalHexFactCodes) for a hex, or zero
+    /// outside the installed field - absent geography reads as cold, dry,
+    /// flat, and unmagical rather than special.
+    /// </summary>
+    internal int Fact(int q, int r, int factCode) =>
+        CellInstalled(q, r, out var cellIndex)
+            ? _facts[(cellIndex * PhysicalHexFactCodes.Count) + factCode]
+            : 0;
 
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer) =>
         KernelSnapshotBinary.WriteObject(writer, this);

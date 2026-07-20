@@ -36,10 +36,7 @@ internal sealed partial class Simulation
             return 1f;
         }
 
-        var multiplier = KernelData.Terrain.InfluenceMultiplier(World.CellTerrainId(planeCode, q, r), kindId);
-        return planeCode == PlaneCodes.Physical
-            ? multiplier * KernelData.Terrain.WarmthInfluenceFactor(World.PhysicalWarmthBand(q, r))
-            : multiplier;
+        return KernelData.Terrain.InfluenceMultiplier(World.CellTerrainId(planeCode, q, r), kindId);
     }
 
     internal float PhysicalClaimCostMultiplier(int kindId, int q, int r)

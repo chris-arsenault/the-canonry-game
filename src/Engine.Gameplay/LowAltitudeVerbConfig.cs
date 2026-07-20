@@ -19,11 +19,11 @@ public abstract class LowAltitudeVerbConfig
     public IReadOnlySet<string>? Terrains { get; init; }
 
     /// <summary>
-    /// Minimum warmth band (0-3) a physical target cell must carry; 0
-    /// disables the filter. Lets a verb want warm ground rather than an
-    /// exact terrain list.
+    /// Minimum temperature (intensity scale, 0-1000) a physical target cell
+    /// must carry; 0 disables the filter. Lets a verb want warm ground
+    /// rather than an exact terrain list.
     /// </summary>
-    public int MinWarmthBand { get; init; }
+    public int MinTemperature { get; init; }
 
     /// <summary>
     /// Geography site flags (summit, thermal, anomaly, polynya, crater) a

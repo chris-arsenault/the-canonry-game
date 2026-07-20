@@ -47,7 +47,7 @@ public sealed record LowAltitudeVerbRule(
     float RequiredInfluence,
     float RelationshipStrengthDelta,
     IReadOnlyList<CompiledProgramStep> PrimitiveSteps,
-    int MinWarmthBand = 0,
+    int MinTemperature = 0,
     int SiteFlags = 0);
 
 public sealed record CompiledProgramStep(
@@ -95,7 +95,6 @@ public sealed class MapSignalsProgram
     public bool EnabledByDefault { get; init; } = true;
     public float SemanticBaseCapacity { get; init; } = 2f;
     public int CrowdingRadius { get; init; } = 1;
-    public IReadOnlyList<float> WarmthCapacityCurve { get; init; } = [];
     public IReadOnlyList<TerrainMapSignalRule> Terrains { get; init; } = [];
     public IReadOnlyList<KindMapSignalRule> Kinds { get; init; } = [];
     public IReadOnlyList<RelationshipMapSignalRule> Relationships { get; init; } = [];
