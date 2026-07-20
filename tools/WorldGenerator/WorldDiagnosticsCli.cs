@@ -46,6 +46,8 @@ internal static class WorldDiagnosticsCli
         Console.WriteLine("Generation complete. Computing diagnostics...\n");
 
         var flowTargets = ReconstructFlowTargets(field);
+        ReportWater(field);
+        ReportTrunks(field, flowTargets);
         ReportTieUsage(field);
         ReportDirectionAttribution(field);
         ReportRiverDirections(field, flowTargets);
@@ -88,6 +90,90 @@ internal static class WorldDiagnosticsCli
         }
 
         return targets;
+    }
+
+    private static void ReportWater(PhysicalGeographyField field)
+    {
+        Console.WriteLine("== Water balance (configured disk) ==");
+        long ocean = 0;
+        long lake = 0;
+        long land = 0;
+        var lakeSizes = new Dictionary<int, int>();
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (!field.Grid.TriangleIsInsideConfiguredDisk(t))
+            {
+                continue;
+            }
+
+            switch (field.WaterKindCodes[t])
+            {
+                case PhysicalWaterKindCodes.Ocean:
+                    ocean++;
+                    break;
+                case PhysicalWaterKindCodes.Lake:
+                    lake++;
+                    lakeSizes[field.WaterBodyIds[t]] =
+                        lakeSizes.GetValueOrDefault(field.WaterBodyIds[t]) + 1;
+                    break;
+                default:
+                    land++;
+                    break;
+            }
+        }
+
+        var total = Math.Max(1, ocean + lake + land);
+        var sizes = lakeSizes.Values.Select(static size => (double)size).Order().ToList();
+        Console.WriteLine(
+            $"  ocean={ocean * 100d / total:0.0}% lake={lake * 100d / total:0.0}% " +
+            $"land={land * 100d / total:0.0}% (total water {(ocean + lake) * 100d / total:0.0}%)");
+        Console.WriteLine(
+            $"  lake bodies={sizes.Count} median-size={Percentile(sizes, 50):0} " +
+            $"p90={Percentile(sizes, 90):0} max={(sizes.Count > 0 ? sizes[^1] : 0):0}");
+    }
+
+    private static void ReportTrunks(PhysicalGeographyField field, int[] flowTargets)
+    {
+        Console.WriteLine("\n== Trunk rivers (contiguous channel runs, order >= 2) ==");
+        var lengths = new List<double>();
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (field.RiverOrders[t] < 2 || !field.Grid.TriangleIsInsideConfiguredDisk(t))
+            {
+                continue;
+            }
+
+            var upstreamIsTrunk = false;
+            for (var edge = 0; edge < 3 && !upstreamIsTrunk; edge++)
+            {
+                var neighbor = field.Grid.NeighborTriangleIndex(t, edge);
+                upstreamIsTrunk = neighbor >= 0 && flowTargets[neighbor] == t &&
+                    field.RiverOrders[neighbor] >= 2;
+            }
+
+            if (upstreamIsTrunk)
+            {
+                continue;
+            }
+
+            var length = 0;
+            var current = t;
+            while (current >= 0 && field.RiverOrders[current] >= 2)
+            {
+                length++;
+                current = flowTargets[current];
+            }
+
+            lengths.Add(length);
+        }
+
+        lengths.Sort();
+        long over40 = lengths.Count(static value => value >= 40);
+        long over80 = lengths.Count(static value => value >= 80);
+        Console.WriteLine(
+            $"  trunk runs={lengths.Count} p50={Percentile(lengths, 50):0} " +
+            $"p90={Percentile(lengths, 90):0} max={(lengths.Count > 0 ? lengths[^1] : 0):0} " +
+            $"runs>=40: {over40}, runs>=80: {over80}");
     }
 
     private static void ReportTieUsage(PhysicalGeographyField field)

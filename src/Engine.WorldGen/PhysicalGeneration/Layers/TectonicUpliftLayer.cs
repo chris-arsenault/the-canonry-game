@@ -116,6 +116,12 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
             context.EpochStableSeed ^ 0x5ee1,
             profile.InteriorReliefScale,
             4) * profile.InteriorReliefStrength;
+        if (macro < 0d)
+        {
+            // Basins stay but shallower than highlands are tall: the land
+            // skews vertical without drowning half the interior in lakes.
+            macro *= profile.InteriorBasinDepthShare / 1000d;
+        }
         var beltField = PhysicalNoise.FractalNoise(
             x,
             y,

@@ -37,30 +37,10 @@ internal static class PriorityFlood
             for (var edge = 0; edge < 3; edge++)
             {
                 var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
-                if (neighbor < 0 || map.DrainageRanks[neighbor] >= 0)
+                if (neighbor >= 0 && map.DrainageRanks[neighbor] < 0)
                 {
-                    continue;
+                    FillNeighbor(map, queue, seed, triangleIndex, priority, neighbor);
                 }
-
-                map.DrainageRanks[neighbor] = int.MaxValue;
-                var neighborKey = JitteredKey(map, seed, neighbor);
-                map.FloodFillTotal++;
-                if (neighborKey <= priority)
-                {
-                    map.FloodFlatFillTotal++;
-                }
-
-                // Epsilon fill: depressions drain along a strictly decreasing
-                // conditioned surface, so no flat conditioned areas survive for
-                // routing to tie-break across. The per-step epsilon is itself
-                // hashed (1..8 subunits) so fill wavefronts advance unevenly
-                // and chains across flats meander instead of running straight
-                // graph geodesics to the spill.
-                var epsilon = 1L + (neighborKey & 0x7L);
-                var filledKey = Math.Max(neighborKey, priority + (epsilon << JitterBits));
-                map.DrainageElevations[neighbor] = filledKey >> JitterBits;
-                map.DrainageParents[neighbor] = triangleIndex;
-                queue.Enqueue(neighbor, filledKey);
             }
         }
 
@@ -68,6 +48,39 @@ internal static class PriorityFlood
         {
             throw new InvalidOperationException("Priority flood did not visit the complete triangle graph.");
         }
+    }
+
+    /// <summary>
+    /// Epsilon fill: depressions drain along a strictly decreasing conditioned
+    /// surface, so no flat conditioned areas survive for routing to tie-break
+    /// across. The per-step epsilon is heavy-tailed (a quarter of cells cheap,
+    /// the rest an order of magnitude dearer): the flood's shortest-path tree
+    /// concentrates onto cheap corridors, so flats drain through a few
+    /// dendritic trunk valleys with lateral tributaries instead of evenly
+    /// spaced parallel chains.
+    /// </summary>
+    private static void FillNeighbor(
+        PhysicalGeographyField map,
+        MonotoneRadixPriorityQueue queue,
+        int seed,
+        int parent,
+        long priority,
+        int neighbor)
+    {
+        map.DrainageRanks[neighbor] = int.MaxValue;
+        var neighborKey = JitteredKey(map, seed, neighbor);
+        map.FloodFillTotal++;
+        if (neighborKey <= priority)
+        {
+            map.FloodFlatFillTotal++;
+        }
+
+        var epsilonBits = neighborKey & 0x1fL;
+        var epsilon = (epsilonBits & 0x3L) == 0 ? 1L : 12L + (epsilonBits >> 2);
+        var filledKey = Math.Max(neighborKey, priority + (epsilon << JitterBits));
+        map.DrainageElevations[neighbor] = filledKey >> JitterBits;
+        map.DrainageParents[neighbor] = parent;
+        queue.Enqueue(neighbor, filledKey);
     }
 
     /// <summary>

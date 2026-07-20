@@ -235,3 +235,46 @@ vertical). Visually this now reads as regional flow direction rather than
 ruler-straight parallels; if it needs further softening, the next lever is a
 world-space smoothed-gradient desired direction replacing parent-chain
 lookahead in `ConditionedFlowResolver`.
+
+## Addendum (2026-07-20, round 2): review feedback fixes
+
+In-game screenshot review surfaced four issues; root causes and fixes:
+
+1. **"Broken river bits" at micro zoom were mostly not rivers.** The pale
+   dashed E/W rows were frost-prism surfaces: `AuroraFeatureLayer` retained
+   them where the smooth aurora field crossed its threshold on Ridge/Slope
+   landforms — a contour band, the field-threshold anti-pattern. Prisms now
+   retain only on Peak/Ridge with a hashed scatter, so they cluster on ridge
+   systems. The second contributor was narrow "worm lakes": adjacency-grouped
+   depressions one or two triangles wide along epsilon-filled valleys rendered
+   as spine-less blue chains. A compactness gate (`LakeCompactnessShare`, ≥56%
+   of members need two lake neighbors) reclassifies them as river corridors.
+2. **Water dominance.** Interior basins now form at ~52% of highland amplitude
+   (`InteriorBasinDepthShare`), and with the compactness gate, seed-42 water
+   fell from ~70% to 58.3% total (ocean 52.3%, lake 6.0% in 72 bodies, median
+   356 triangles). Lakes read as features again rather than the dominant land
+   surface.
+3. **Uniform oceans.** Reef gates were unreachable in a cold world (temp 300
+   with geothermal 150); reefs now accept warm-current heat as an alternative
+   gate. Two new ocean surfaces derive from existing facts: `current_channel`
+   (strong ocean currents) and `trench` (deep-ocean plate boundaries under
+   high strain), with palette colors. Oceans now carry strategic texture:
+   shelf, reef arcs, current lanes, trench seams, ice states.
+4. **Parallel-comb streams / few trunks.** Two-pass drainage guidance adds a
+   channel-capture bonus (log2 of first-pass discharge,
+   `DrainageCaptureWeight`), and the priority-flood epsilon is heavy-tailed
+   (quarter of cells cheap, rest ~12×), so the flood's shortest-path tree
+   concentrates into dendritic corridor valleys instead of evenly spaced
+   parallel chains. Trunk runs of order ≥2 now reach 200–350 triangles
+   (90+ runs over 40). Lake-body splitting after the submergence filter fixed
+   a routing crash the new epsilon exposed (disconnected lobes shared one
+   body id).
+
+The aggregate direction metric is essentially unmoved (~65% E/W over 12-step
+windows) and proved insensitive to alignment weight ×20, epsilon jitter, and
+the capture pass — the residue is lattice legality itself (conditioned descent
+along fill chains whose E/W neighbors are spatially closest and therefore
+elevation-correlated). The visual, however, no longer reads as combs; the
+remaining trend resembles regional drainage. Treat further de-biasing as its
+own tranche if it still bothers review: the lever would be conditioning, not
+scoring.

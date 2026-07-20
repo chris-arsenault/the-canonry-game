@@ -150,6 +150,8 @@ public static class UiTokens
         ["delta"] = Hex(0x3F8D83),
         ["gorge"] = Hex(0x474C58),
         ["waterfall"] = Hex(0xB5E5F5),
+        ["current_channel"] = Hex(0x2A5E80),
+        ["trench"] = Hex(0x0A1626),
         ["firecore_vent"] = Hex(0xE04F24),
         ["thermal_vein"] = Hex(0xBF5B35),
         ["hot_spring"] = Hex(0x4DAA7C),

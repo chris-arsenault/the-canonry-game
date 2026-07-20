@@ -34,18 +34,18 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
             }
 
             var componentId = ++nextComponentId;
-            var component = CollectComponent(
+            foreach (var component in CollectComponents(
                 map,
                 depression,
                 componentMarks,
                 triangleIndex,
-                componentId);
-            if (!Qualifies(component, context.Profile))
+                componentId))
             {
-                continue;
+                if (Qualifies(map, component, context.Profile))
+                {
+                    qualified.Add(component);
+                }
             }
-
-            qualified.Add(component);
         }
 
         var selected = qualified
@@ -129,7 +129,7 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
         return depression;
     }
 
-    private static DepressionComponent CollectComponent(
+    private static List<DepressionComponent> CollectComponents(
         PhysicalGeographyField map,
         bool[] depression,
         int[] componentMarks,
@@ -150,20 +150,58 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
 
         // The component water surface is its spill fill level (the smallest
         // conditioned elevation). Cells whose physical floor is not strictly
-        // below that surface are shore relief above the spill, not lake.
-        var members = new List<int>(collected.Count);
-        var maximumDepth = 0L;
+        // below that surface are shore relief above the spill, not lake —
+        // and excluding them can split the depression into disconnected
+        // lobes, so each submerged lobe becomes its own candidate body.
+        var submerged = new HashSet<int>();
         foreach (var member in collected)
         {
-            var depth = surface - map.Elevation[member];
-            if (depth > 0)
+            if (surface - map.Elevation[member] > 0)
             {
-                members.Add(member);
-                maximumDepth = Math.Max(maximumDepth, depth);
+                submerged.Add(member);
             }
         }
 
-        return new DepressionComponent(componentId, members, surface, maximumDepth);
+        return SplitSubmergedLobes(map, submerged, surface, componentId);
+    }
+
+    private static List<DepressionComponent> SplitSubmergedLobes(
+        PhysicalGeographyField map,
+        HashSet<int> submerged,
+        long surface,
+        int componentId)
+    {
+        var lobes = new List<DepressionComponent>();
+        var visited = new HashSet<int>();
+        foreach (var start in submerged)
+        {
+            if (!visited.Add(start))
+            {
+                continue;
+            }
+
+            var members = new List<int>();
+            var maximumDepth = 0L;
+            var queue = new Queue<int>();
+            queue.Enqueue(start);
+            while (queue.TryDequeue(out var member))
+            {
+                members.Add(member);
+                maximumDepth = Math.Max(maximumDepth, surface - map.Elevation[member]);
+                for (var edge = 0; edge < 3; edge++)
+                {
+                    var neighbor = map.Grid.NeighborTriangleIndex(member, edge);
+                    if (neighbor >= 0 && submerged.Contains(neighbor) && visited.Add(neighbor))
+                    {
+                        queue.Enqueue(neighbor);
+                    }
+                }
+            }
+
+            lobes.Add(new DepressionComponent(componentId, members, surface, maximumDepth));
+        }
+
+        return lobes;
     }
 
     private static void EnqueueComponentNeighbors(
@@ -186,10 +224,47 @@ internal sealed class LakeBasinLayer : IPhysicalGeographyLayer
     }
 
     private static bool Qualifies(
+        PhysicalGeographyField map,
         DepressionComponent component,
         PhysicalGeographyGenerationProfile profile) =>
         component.Members.Count >= profile.MinimumLakeTriangles &&
-        component.MaximumDepth >= PhysicalElevation.FromUnits(profile.LakeDepthThreshold);
+        component.MaximumDepth >= PhysicalElevation.FromUnits(profile.LakeDepthThreshold) &&
+        IsCompact(map, component, profile);
+
+    /// <summary>
+    /// Elongated one-or-two-triangle-wide chains along epsilon-filled valleys
+    /// are river corridors, not lakes; marking them as lakes breaks the
+    /// visible river into spine-less blue worms. A real lake body has most
+    /// members surrounded by other lake members.
+    /// </summary>
+    private static bool IsCompact(
+        PhysicalGeographyField map,
+        DepressionComponent component,
+        PhysicalGeographyGenerationProfile profile)
+    {
+        var memberSet = new HashSet<int>(component.Members);
+        var interior = 0;
+        foreach (var member in component.Members)
+        {
+            var lakeNeighbors = 0;
+            for (var edge = 0; edge < 3; edge++)
+            {
+                var neighbor = map.Grid.NeighborTriangleIndex(member, edge);
+                if (neighbor >= 0 && memberSet.Contains(neighbor))
+                {
+                    lakeNeighbors++;
+                }
+            }
+
+            if (lakeNeighbors >= 2)
+            {
+                interior++;
+            }
+        }
+
+        return interior * 1000L >=
+            (long)component.Members.Count * profile.LakeCompactnessShare;
+    }
 
     private static void MarkLakeBody(
         PhysicalGeographyField map,

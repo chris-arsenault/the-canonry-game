@@ -51,11 +51,29 @@ public sealed record IceRemembersMicrogeographyQualityTargets
 
 public sealed record IceRemembersMicrogeographyGenerationProfile
 {
-    public int ReefMaximumDepth { get; init; } = 125;
+    public int ReefMaximumDepth { get; init; } = 160;
 
-    public int ReefMinimumTemperature { get; init; } = 300;
+    public int ReefMinimumTemperature { get; init; } = 260;
 
-    public int ReefMinimumGeothermal { get; init; } = 150;
+    public int ReefMinimumGeothermal { get; init; } = 60;
+
+    /// <summary>
+    /// Warm ocean-current heat that lets reefs grow past the temperature
+    /// gate, so warm-current coasts carry reef arcs in a cold world.
+    /// </summary>
+    public int ReefWarmCurrentHeat { get; init; } = 420;
+
+    /// <summary>
+    /// Minimum ocean-current strength that reads as a visible current
+    /// channel on the surface map.
+    /// </summary>
+    public int CurrentChannelMinimumStrength { get; init; } = 560;
+
+    /// <summary>
+    /// Minimum tectonic strain for deep-ocean plate boundaries to surface as
+    /// trench terrain.
+    /// </summary>
+    public int TrenchMinimumStrain { get; init; } = 430;
 
     public int PackIceMinimumThickness { get; init; } = 50;
 

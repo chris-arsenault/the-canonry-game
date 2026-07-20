@@ -36,7 +36,7 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
         foreach (var surfaceIndex in map.BaseSurfaceIndexes)
         {
             if (surfaceIndex is < (int)IceRemembersPhysicalSurface.Tundra or
-                > (int)IceRemembersPhysicalSurface.Waterfall)
+                > (int)IceRemembersPhysicalSurface.Trench)
             {
                 throw new InvalidOperationException("Natural surface classification produced an invalid surface.");
             }
@@ -70,8 +70,27 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
             return frozen.Value;
         }
 
+        if (IsTrench(field, triangleIndex, profile))
+        {
+            return IceRemembersPhysicalSurface.Trench;
+        }
+
+        if (field.OceanCurrentStrength[triangleIndex] >= profile.CurrentChannelMinimumStrength)
+        {
+            return IceRemembersPhysicalSurface.CurrentChannel;
+        }
+
         return shallow ? IceRemembersPhysicalSurface.Shelf : IceRemembersPhysicalSurface.Ocean;
     }
+
+    private static bool IsTrench(
+        PhysicalGeographyField field,
+        int triangleIndex,
+        IceRemembersMicrogeographyGenerationProfile profile) =>
+        field.BathymetricZoneCodes[triangleIndex] == PhysicalBathymetricZoneCodes.DeepOcean &&
+        field.TectonicBoundaryCodes[triangleIndex] is
+            PhysicalTectonicBoundaryCodes.Convergent or PhysicalTectonicBoundaryCodes.Divergent &&
+        field.TectonicStrain[triangleIndex] >= profile.TrenchMinimumStrain;
 
     private static IceRemembersPhysicalSurface? ClassifyOceanSpecial(
         PhysicalGeographyField field,
@@ -92,7 +111,8 @@ internal sealed class NaturalSurfaceLayer : IIceRemembersMicrogeographyLayer
             PhysicalBathymetricZoneCodes.Shelf or PhysicalBathymetricZoneCodes.ShelfBreak;
         if (shallow && field.WaterDepths[triangleIndex] <=
                 PhysicalElevation.FromUnits(profile.ReefMaximumDepth) &&
-            field.Temperature[triangleIndex] >= profile.ReefMinimumTemperature &&
+            (field.Temperature[triangleIndex] >= profile.ReefMinimumTemperature ||
+                field.OceanCurrentHeat[triangleIndex] >= profile.ReefWarmCurrentHeat) &&
             field.Geothermal[triangleIndex] >= profile.ReefMinimumGeothermal)
         {
             return IceRemembersPhysicalSurface.Reef;

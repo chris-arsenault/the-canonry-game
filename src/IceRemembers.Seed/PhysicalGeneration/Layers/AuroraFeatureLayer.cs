@@ -1,6 +1,7 @@
 namespace IceRemembers.Seed;
 
 using Engine.Constants;
+using Engine.WorldGen;
 
 using IceRemembers;
 
@@ -49,9 +50,7 @@ internal sealed class AuroraFeatureLayer : IIceRemembersMicrogeographyLayer
             region,
             IceRemembersPhysicalFeature.FrostPrism,
             triangleIndex => IsFrostPrismSeed(map, triangleIndex),
-            triangleIndex => map.AuroraIntensity[triangleIndex] >= 510 - hysteresis &&
-                map.Physical.LandformCodes[triangleIndex] is PhysicalLandformCodes.Peak or
-                    PhysicalLandformCodes.Ridge or PhysicalLandformCodes.Slope);
+            triangleIndex => IsFrostPrismRetained(map, context, triangleIndex, hysteresis));
         AddRegionFeature(
             map,
             region,
@@ -101,6 +100,22 @@ internal sealed class AuroraFeatureLayer : IIceRemembersMicrogeographyLayer
         int triangleIndex) =>
         map.AuroraIntensity[triangleIndex] >= 510 && map.Physical.LandformCodes[triangleIndex] is
             PhysicalLandformCodes.Peak or PhysicalLandformCodes.Ridge;
+
+    /// <summary>
+    /// Prism fields stay anchored to ridge systems and break up on a hashed
+    /// scatter. Retaining on generic slopes let the aurora threshold contour
+    /// paint periodic dashed stripes across open terrain that read as broken
+    /// rivers.
+    /// </summary>
+    private static bool IsFrostPrismRetained(
+        IceRemembersMicrogeographyMap map,
+        IceRemembersMicrogeographyGenerationContext context,
+        int triangleIndex,
+        int hysteresis) =>
+        map.AuroraIntensity[triangleIndex] >= 510 - hysteresis &&
+        map.Physical.LandformCodes[triangleIndex] is PhysicalLandformCodes.Peak or
+            PhysicalLandformCodes.Ridge &&
+        PhysicalNoise.HashUnit(context.Seed ^ 0x77aa, triangleIndex, 0x1d3) >= 0.25d;
 
     private static bool IsMeltLineSeed(
         IceRemembersMicrogeographyMap map,

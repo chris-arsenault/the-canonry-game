@@ -214,6 +214,13 @@ public sealed record PhysicalGeographyGenerationProfile
     public double InteriorBeltCoverage { get; init; } = 0.30d;
 
     /// <summary>
+    /// Per-mille depth of interior basins relative to interior highland
+    /// height. Below 1000, downward macro-relief lobes are shallower than the
+    /// upward ones, keeping lakes and inland seas from dominating the land.
+    /// </summary>
+    public int InteriorBasinDepthShare { get; init; } = 520;
+
+    /// <summary>
     /// Per-mille share of <see cref="EpochTectonicElevationStep"/> applied as
     /// continued interior-belt uplift each evolution epoch, so belts keep
     /// their differential against erosion across the whole epoch schedule.
@@ -302,6 +309,12 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int MinimumLakeTriangles { get; init; } = 24;
 
+    /// <summary>
+    /// Per-mille of lake members that must have two or more lake neighbors.
+    /// Rejects elongated valley-chain depressions that should stay rivers.
+    /// </summary>
+    public int LakeCompactnessShare { get; init; } = 560;
+
     public double EndorheicLakeFraction { get; init; } = 0.06d;
 
     public int DrainageGuidanceLookaheadSteps { get; init; } = 12;
@@ -310,7 +323,14 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int DrainageConditionedGradientWeight { get; init; } = 450;
 
-    public int DrainageOutletAlignmentWeight { get; init; } = 30;
+    public int DrainageOutletAlignmentWeight { get; init; } = 300;
+
+    /// <summary>
+    /// Weight of the second-pass channel-capture bonus
+    /// (log2 of first-pass discharge, per mille). Pulls parallel streams
+    /// crossing flats into shared trunks.
+    /// </summary>
+    public int DrainageCaptureWeight { get; init; } = 900;
 
     public int DrainageInheritedValleyWeight { get; init; } = 450;
 
@@ -582,7 +602,12 @@ public sealed record PhysicalGeographyGenerationProfile
         InteriorReliefStrength < 0d || InteriorReliefScale <= 0d ||
         InteriorBeltStrength < 0d || InteriorBeltScale <= 0d ||
         InteriorBeltCoverage is <= 0d or >= 1d ||
-        EpochInteriorUpliftShare is < 0 or > 1000;
+        InteriorShareIsInvalid();
+
+    private bool InteriorShareIsInvalid() =>
+        EpochInteriorUpliftShare is < 0 or > 1000 ||
+        InteriorBasinDepthShare is <= 0 or > 1000 ||
+        LakeCompactnessShare is < 0 or > 1000;
 
     private void ValidateRanges()
     {
@@ -636,7 +661,8 @@ public sealed record PhysicalGeographyGenerationProfile
         !IsUnitScalar(DrainageFloorGradientWeight) ||
         !IsUnitScalar(DrainageConditionedGradientWeight) ||
         !IsUnitScalar(DrainageOutletAlignmentWeight) ||
-        !IsUnitScalar(DrainageInheritedValleyWeight);
+        !IsUnitScalar(DrainageInheritedValleyWeight) ||
+        DrainageCaptureWeight is < 0 or > 4000;
 
     private bool RiverThresholdsAreInvalid() =>
         RiverAccumulationThreshold <= 0 || RiverMinimumAccumulationThreshold <= 0 ||
