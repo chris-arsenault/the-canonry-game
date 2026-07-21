@@ -7,6 +7,7 @@ using Engine.Kinds;
 using static IceRemembers.IceRemembersEntityDsl;
 
 using Attr = IceRemembers.IceRemembersAttributeId;
+using Axis = Engine.Domain.Config.PlacementTasteAxisNames;
 using K = IceRemembers.IceRemembersKinds;
 using Profile = IceRemembers.IceRemembersMovementProfile;
 using Terrain = IceRemembers.IceRemembersTerrain;
@@ -61,7 +62,7 @@ internal static class PenguinEntity
                 MovementTraitRule(Trait.PenguinSureSwimmer, physical: Profile.Shore),
             ]),
         Placement = Placement(
-            physicalDefault: Land(Terrain.Tundra, Terrain.Ice, Terrain.Shelf),
+            physicalDefault: Land(),
             semanticDefault: Semantic(Terrain.Lineage, Terrain.OpenField, Terrain.Witness),
             semanticRules:
             [
@@ -70,5 +71,6 @@ internal static class PenguinEntity
                 SubtypeRule("warden", Semantic(Terrain.Yoke, Terrain.Lineage, Terrain.TabooRidge)),
                 SubtypeRule("exile", Semantic(Terrain.Severance, Terrain.Breakaway, Terrain.Silence)),
             ]),
+        PlacementTaste = [Taste(Axis.Capacity, 0.8f)],
     };
 }

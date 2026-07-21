@@ -447,28 +447,33 @@ public static partial class IceRemembersDefinition
         ]);
     }
 
+    /// <summary>
+    /// Physical capacity derives from each hex's real facts: warmth (with
+    /// geothermal refuges) sets suitability, rivers and floodplains enrich
+    /// it, broken ground suppresses it, and open water carries
+    /// temperature-driven marine life. Public so seed-time placement can
+    /// price capacity with the exact same formula the kernel runs.
+    /// </summary>
+    public static PhysicalCapacityFormulaConfig PhysicalCapacityFormula { get; } = new()
+    {
+        ColdFloorTemperature = 180,
+        WarmPeakTemperature = 500,
+        GeothermalBlend = 0.5f,
+        FreshwaterWeight = 0.6f,
+        FertileWeight = 0.8f,
+        ReliefComfort = 0.25f,
+        ReliefPenalty = 1.2f,
+        RoughnessPenalty = 0.5f,
+        LandScale = 4f,
+        MarineScale = 1.6f,
+    };
+
     private static MapSignalsConfig CreateMapSignals() =>
         new()
         {
             SemanticBaseCapacity = 2f,
             CrowdingRadius = 1,
-            // Physical capacity derives from each hex's real facts: warmth
-            // (with geothermal refuges) sets suitability, rivers and
-            // floodplains enrich it, broken ground suppresses it, and open
-            // water carries temperature-driven marine life.
-            PhysicalCapacityFormula = new PhysicalCapacityFormulaConfig
-            {
-                ColdFloorTemperature = 180,
-                WarmPeakTemperature = 500,
-                GeothermalBlend = 0.5f,
-                FreshwaterWeight = 0.6f,
-                FertileWeight = 0.8f,
-                ReliefComfort = 0.25f,
-                ReliefPenalty = 1.2f,
-                RoughnessPenalty = 0.5f,
-                LandScale = 4f,
-                MarineScale = 1.6f,
-            },
+            PhysicalCapacityFormula = PhysicalCapacityFormula,
             Terrains = CreateTerrainSignals(),
             Kinds = IceRemembersEntities.CreateKindMapSignals(),
             Relationships =
@@ -845,6 +850,7 @@ public static partial class IceRemembersDefinition
             Id = C(culture),
             DisplayName = displayName,
             Slots = slots,
+            PlacementTaste = IceRemembersPlacementTastes.ForCulture(culture),
             PhysicalInfluenceProductionMultiplier = physicalProduction,
             SemanticInfluenceProductionMultiplier = semanticProduction,
         };

@@ -6,7 +6,11 @@ internal sealed partial class GeneratorProgramRuntime
     private const int PlacementPreferredRankStep = 140;
     private const int PlacementFallbackTerrainScore = 350;
     private const int PlacementDefaultTerrainScore = 120;
-    private const int PlacementAvoidedTerrainScore = -250;
+
+    // Avoided terrain is the land/water partition, priced above any
+    // realistic taste swing so no authored weight strands a land kind at
+    // sea or a swimmer ashore.
+    private const int PlacementAvoidedTerrainScore = -1200;
     private const int PlacementNearPreferredNeighborScore = 60;
     private const int PlacementDistantPreferredNeighborScore = 15;
     private const int PlacementOriginBonusBase = 260;

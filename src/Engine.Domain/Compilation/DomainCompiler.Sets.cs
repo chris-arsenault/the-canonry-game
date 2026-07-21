@@ -143,7 +143,7 @@ public static partial class DomainCompiler
             {
                 kindWeights.Add(new CompiledPlacementTasteWeight(
                     kindId,
-                    PlacementTasteAxisCode(weight.Axis),
+                    PlacementTasteAxisNames.CodeOf(weight.Axis),
                     weight.Weight));
             }
         }
@@ -156,7 +156,7 @@ public static partial class DomainCompiler
             {
                 cultureWeights.Add(new CompiledPlacementTasteWeight(
                     cultureId,
-                    PlacementTasteAxisCode(weight.Axis),
+                    PlacementTasteAxisNames.CodeOf(weight.Axis),
                     weight.Weight));
             }
         }
@@ -167,28 +167,6 @@ public static partial class DomainCompiler
             CultureWeights = cultureWeights,
         };
     }
-
-    private static readonly Dictionary<string, int> PlacementTasteAxes =
-        new(StringComparer.Ordinal)
-        {
-            ["capacity"] = PlacementTasteAxisCodes.Capacity,
-            ["temperature"] = PlacementTasteAxisCodes.Temperature,
-            ["moisture"] = PlacementTasteAxisCodes.Moisture,
-            ["elevation"] = PlacementTasteAxisCodes.Elevation,
-            ["relief"] = PlacementTasteAxisCodes.Relief,
-            ["ice"] = PlacementTasteAxisCodes.IceThickness,
-            ["river"] = PlacementTasteAxisCodes.RiverCoverage,
-            ["fire"] = PlacementTasteAxisCodes.FireMean,
-            ["aurora"] = PlacementTasteAxisCodes.AuroraMean,
-            ["pressure"] = PlacementTasteAxisCodes.PressureMean,
-            ["water"] = PlacementTasteAxisCodes.WaterFraction,
-            ["coast"] = PlacementTasteAxisCodes.CoastAdjacency,
-        };
-
-    private static int PlacementTasteAxisCode(string axis) =>
-        PlacementTasteAxes.TryGetValue(axis, out var code)
-            ? code
-            : throw new InvalidOperationException($"Unknown placement taste axis '{axis}'.");
 
     private static CompiledCultureData BuildCultureData(DomainConfig config, DomainIdRegistry ids)
     {

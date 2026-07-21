@@ -7,6 +7,7 @@ using Engine.Kinds;
 using static IceRemembers.IceRemembersEntityDsl;
 
 using Attr = IceRemembers.IceRemembersAttributeId;
+using Axis = Engine.Domain.Config.PlacementTasteAxisNames;
 using Effect = Engine.Gameplay.AttributeEffectConditions;
 using K = IceRemembers.IceRemembersKinds;
 using Profile = IceRemembers.IceRemembersMovementProfile;
@@ -46,12 +47,13 @@ internal static class MonsterEntity
             physicalDefault: Profile.Trail,
             semanticDefault: Profile.Veil),
         Placement = Placement(
-            // Monsters haunt the fire and the anomalies.
-            physicalDefault: Land(Terrain.Wastes, Terrain.Crags, Terrain.Ice) with
+            // Monsters haunt the fire and the anomalies, far from the rich
+            // ground where the living crowd.
+            physicalDefault: Land() with
             {
-                FireAffinity = 0.5f,
                 PreferredSites = Sites(IceRemembersPlacementSites.Anomaly),
             },
             semanticDefault: Semantic(Terrain.Silence, Terrain.Severance, Terrain.CavePocket)),
+        PlacementTaste = [Taste(Axis.Fire, 0.5f), Taste(Axis.Capacity, -0.6f)],
     };
 }

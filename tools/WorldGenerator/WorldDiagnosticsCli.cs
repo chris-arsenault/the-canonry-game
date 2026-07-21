@@ -373,52 +373,6 @@ internal static partial class WorldDiagnosticsCli
         return 0;
     }
 
-    // A drainage that fragments into many tiny basins cannot grow long rivers:
-    // neighbouring strands belong to different drainages, so they run parallel
-    // and never converge no matter how the channel threshold is tuned.
-    private static void ReportBasinSizes(PhysicalGeographyField field)
-    {
-        var sizes = new Dictionary<int, int>();
-        var landTriangles = 0;
-        for (var t = 0; t < field.Grid.TriangleCount; t++)
-        {
-            if (field.WaterKindCodes[t] == PhysicalWaterKindCodes.Ocean)
-            {
-                continue;
-            }
-
-            landTriangles++;
-            var basin = field.DrainageBasinIds[t];
-            if (basin > 0)
-            {
-                sizes[basin] = sizes.GetValueOrDefault(basin) + 1;
-            }
-        }
-
-        if (sizes.Count == 0)
-        {
-            Console.WriteLine("  basins: none");
-            return;
-        }
-
-        var ordered = sizes.Values.Order().ToArray();
-        var total = ordered.Sum();
-        Console.WriteLine(
-            $"  basins={ordered.Length} over {landTriangles} non-ocean triangles; " +
-            $"mean={total / (double)ordered.Length:0.0}");
-        Console.WriteLine(
-            $"    size p10={Percentile(ordered, 10)} p50={Percentile(ordered, 50)} " +
-            $"p90={Percentile(ordered, 90)} p99={Percentile(ordered, 99)} max={ordered[^1]}");
-        var tiny = ordered.Count(static size => size <= 24);
-        var largest = ordered[^1] * 100d / total;
-        Console.WriteLine(
-            $"    basins <=1 hex: {tiny} ({tiny * 100d / ordered.Length:0.0}% of basins); " +
-            $"largest basin holds {largest:0.0}% of drained land");
-    }
-
-    private static int Percentile(int[] ascending, int percentile) =>
-        ascending[Math.Clamp(percentile * ascending.Length / 100, 0, ascending.Length - 1)];
-
     private static int[] ReconstructFlowTargets(PhysicalGeographyField field)
     {
         var targets = new int[field.Grid.TriangleCount];
@@ -900,6 +854,7 @@ internal static partial class WorldDiagnosticsCli
             $"  channel triangles={channelTriangles} confluences(>=2 in)={confluences} " +
             $"basins-with-rivers={basins.Count}");
         ReportBasinSizes(field);
+        ReportSlopeSeparation(field);
         Console.WriteLine(
             $"  lake triangles={lakeTriangles} delta triangles={deltas} floodplain triangles={floodplains}");
         Console.Write("  Strahler order counts:");

@@ -7,6 +7,7 @@ using Engine.Kinds;
 using static IceRemembers.IceRemembersEntityDsl;
 
 using Attr = IceRemembers.IceRemembersAttributeId;
+using Axis = Engine.Domain.Config.PlacementTasteAxisNames;
 using Culture = IceRemembers.IceRemembersCulture;
 using GambitId = IceRemembers.IceRemembersGambitId;
 using K = IceRemembers.IceRemembersKinds;
@@ -59,14 +60,12 @@ internal static class FactionEntity
                 MovementSubtypeRule("compact", semantic: Profile.Mandate),
             ]),
         Placement = Placement(
-            physicalDefault: Land(Terrain.Tundra, Terrain.Ice, Terrain.Shelf),
+            physicalDefault: Land(),
             semanticDefault: Semantic(Terrain.Yoke, Terrain.Lineage, Terrain.OpenField),
             physicalRules:
             [
-                SubtypeRule("choir", Maritime(Terrain.Shelf, Terrain.HotSprings, Terrain.Tundra, Terrain.Ice, Terrain.Reef, Terrain.Ocean)),
-                CultureRule(Culture.WakeSingers.ToDomainName(), Maritime(Terrain.Ocean, Terrain.Reef, Terrain.Shelf)),
-                SubtypeRule("order", Land(Terrain.Shelf, Terrain.Ice, Terrain.Tundra)),
-                CultureRule(Culture.Nightshelf.ToDomainName(), Land(Terrain.Shelf, Terrain.Ice, Terrain.Tundra)),
+                SubtypeRule("choir", Amphibious(Terrain.Shelf)),
+                CultureRule(Culture.WakeSingers.ToDomainName(), Maritime()),
             ],
             semanticRules:
             [
@@ -79,5 +78,6 @@ internal static class FactionEntity
                 SubtypeRule("cell", Semantic(Terrain.CavePocket, Terrain.Silence, Terrain.Breakaway)),
                 SubtypeRule("compact", Semantic(Terrain.Yoke, Terrain.Lineage, Terrain.Witness)),
             ]),
+        PlacementTaste = [Taste(Axis.Capacity, 0.6f)],
     };
 }

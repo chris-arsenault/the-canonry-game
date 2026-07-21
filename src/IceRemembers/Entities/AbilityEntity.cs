@@ -48,7 +48,7 @@ internal static class AbilityEntity
             physicalDefault: Profile.Trail,
             semanticDefault: Profile.Commons),
         Placement = Placement(
-            physicalDefault: Land(Terrain.Tundra, Terrain.Ice, Terrain.Shelf),
+            physicalDefault: Land(),
             semanticDefault: Semantic(Terrain.Lineage, Terrain.Witness, Terrain.OpenField),
             semanticRules:
             [

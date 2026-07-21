@@ -517,7 +517,7 @@ internal static partial class IceRemembersSeedBuilder
             culture,
             minimumDistance: 0,
             origin: hostCoord,
-            searchRadius: 2);
+            searchRadius: 4);
 
     private static void AssignPenguinSemanticPosition(
         SeedAssembly seed,

@@ -259,17 +259,56 @@ public sealed class LifecycleConfig
     public required float AgeCoefficient { get; init; }
 }
 
-/// <summary>Domain-authored terrain identity and runtime gameplay profile.</summary>
 /// <summary>One signed placement taste weight on a named geography axis.</summary>
 public sealed class PlacementTasteWeightConfig
 {
-    /// <summary>
-    /// Axis name: capacity, temperature, moisture, elevation, relief, ice,
-    /// river, fire, aurora, pressure, water, or coast.
-    /// </summary>
+    /// <summary>Axis name; see <see cref="PlacementTasteAxisNames"/>.</summary>
     public required string Axis { get; init; }
 
     public required float Weight { get; init; }
+}
+
+/// <summary>
+/// The canonical placement-taste axis vocabulary: the one mapping from
+/// authored axis names to kernel axis codes, shared by domain authoring,
+/// compilation, and seed-time scoring.
+/// </summary>
+public static class PlacementTasteAxisNames
+{
+    public const string Capacity = "capacity";
+    public const string Temperature = "temperature";
+    public const string Moisture = "moisture";
+    public const string Elevation = "elevation";
+    public const string Relief = "relief";
+    public const string Ice = "ice";
+    public const string River = "river";
+    public const string Fire = "fire";
+    public const string Aurora = "aurora";
+    public const string Pressure = "pressure";
+    public const string Water = "water";
+    public const string Coast = "coast";
+
+    private static readonly Dictionary<string, int> Codes =
+        new(StringComparer.Ordinal)
+        {
+            [Capacity] = PlacementTasteAxisCodes.Capacity,
+            [Temperature] = PlacementTasteAxisCodes.Temperature,
+            [Moisture] = PlacementTasteAxisCodes.Moisture,
+            [Elevation] = PlacementTasteAxisCodes.Elevation,
+            [Relief] = PlacementTasteAxisCodes.Relief,
+            [Ice] = PlacementTasteAxisCodes.IceThickness,
+            [River] = PlacementTasteAxisCodes.RiverCoverage,
+            [Fire] = PlacementTasteAxisCodes.FireMean,
+            [Aurora] = PlacementTasteAxisCodes.AuroraMean,
+            [Pressure] = PlacementTasteAxisCodes.PressureMean,
+            [Water] = PlacementTasteAxisCodes.WaterFraction,
+            [Coast] = PlacementTasteAxisCodes.CoastAdjacency,
+        };
+
+    public static int CodeOf(string axis) =>
+        Codes.TryGetValue(axis, out var code)
+            ? code
+            : throw new InvalidOperationException($"Unknown placement taste axis '{axis}'.");
 }
 
 public sealed class TerrainConfig

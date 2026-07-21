@@ -53,16 +53,16 @@ internal static class RegionEntity
                 MovementSubtypeRule("scar", semantic: Profile.Rift),
             ]),
         Placement = Placement(
-            physicalDefault: Land(Terrain.Tundra, Terrain.Ice, Terrain.Shelf),
+            physicalDefault: Land(),
             semanticDefault: Semantic(Terrain.OpenField, Terrain.Lineage, Terrain.Witness),
             physicalRules:
             [
-                SubtypeRule("face", Land(Terrain.Ice, Terrain.Tundra, Terrain.Shelf)),
-                SubtypeRule("reach", Land(Terrain.Tundra, Terrain.HotSprings, Terrain.Wastes)),
-                SubtypeRule("shelf", Maritime(Terrain.Shelf, Terrain.Reef, Terrain.Ocean, Terrain.Tundra)),
-                SubtypeRule("sea", Maritime(Terrain.Ocean, Terrain.Reef, Terrain.Shelf)),
-                SubtypeRule("depths", Maritime(Terrain.Ocean, Terrain.Reef, Terrain.Shelf)),
-                SubtypeRule("scar", Land(Terrain.Wastes, Terrain.Crags, Terrain.Tundra)),
+                SubtypeRule("face", Land(Terrain.Ice)),
+                SubtypeRule("reach", Land()),
+                SubtypeRule("shelf", Maritime(Terrain.Shelf)),
+                SubtypeRule("sea", Maritime()),
+                SubtypeRule("depths", Maritime()),
+                SubtypeRule("scar", Land(Terrain.Wastes)),
             ],
             semanticRules:
             [

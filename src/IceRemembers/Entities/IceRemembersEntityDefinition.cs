@@ -43,6 +43,14 @@ public sealed class IceRemembersEntityDefinition
     public string SemanticStockNotes { get; init; } = "Health (integrity). Dies at 0.";
     public required MovementProfileAssignmentConfig MovementProfiles { get; init; }
     public required IceRemembersEntityPlacementProfiles Placement { get; init; }
+
+    /// <summary>
+    /// The kind's functional relationship to geography: signed weights over
+    /// the hex-fact axes, applied to every placement of this kind at seed
+    /// time and in the kernel. Ranking lives here; the terrain profiles
+    /// keep only the land/water partition and named flavor.
+    /// </summary>
+    public IReadOnlyList<PlacementTasteWeightConfig> PlacementTaste { get; init; } = [];
 }
 
 public sealed record IceRemembersKindMapSignalProfile(
@@ -254,6 +262,7 @@ public static class IceRemembersEntities
                 MovementProfiles = entity.MovementProfiles,
                 Description = entity.Description,
                 PrimaryPlane = entity.PrimaryPlane,
+                PlacementTaste = entity.PlacementTaste,
             });
         }
 
@@ -508,17 +517,51 @@ internal static class IceRemembersEntityDsl
             SemanticProfile = semantic?.ToDomainName(),
         };
 
-    public static IceRemembersTerrainProfile Land(params Terrain[] preferred) =>
-        new(preferred, [Terrain.Ocean, Terrain.Reef, Terrain.Fjord, Terrain.Lake], Terrain.Tundra);
+    // The land/water partition, derived from the terrain catalog's IsWater
+    // divide. Preferred lists carry only named flavor (a sanctuary's hot
+    // springs, a harbor's shelf); habitability ranking is placement taste.
+    private static readonly IReadOnlyList<Terrain> WaterTerrains =
+        PhysicalTerrainsWhere(water: true);
 
-    public static IceRemembersTerrainProfile Maritime(params Terrain[] preferred) =>
-        new(preferred, [Terrain.Wastes, Terrain.Crags, Terrain.Basalt], Terrain.Tundra);
+    private static readonly IReadOnlyList<Terrain> LandTerrains =
+        PhysicalTerrainsWhere(water: false);
+
+    public static IceRemembersTerrainProfile Land(params Terrain[] flavor) =>
+        new(flavor, WaterTerrains, FallbackTerrain: null);
+
+    public static IceRemembersTerrainProfile Maritime(params Terrain[] flavor) =>
+        new(flavor, LandTerrains, FallbackTerrain: null);
+
+    public static IceRemembersTerrainProfile Amphibious(params Terrain[] flavor) =>
+        new(flavor, [], FallbackTerrain: null);
+
+    private static List<Terrain> PhysicalTerrainsWhere(bool water)
+    {
+        var byName = IceRemembersTerrainCatalog.DomainTerrains.ToDictionary(
+            terrain => terrain.Name,
+            StringComparer.Ordinal);
+        var result = new List<Terrain>();
+        foreach (var terrain in Enum.GetValues<Terrain>())
+        {
+            if (byName.TryGetValue(terrain.ToDomainName(), out var config) &&
+                !config.BoundaryGroup.StartsWith("semantic", StringComparison.Ordinal) &&
+                config.IsWater == water)
+            {
+                result.Add(terrain);
+            }
+        }
+
+        return result;
+    }
 
     public static IceRemembersTerrainProfile Semantic(params Terrain[] preferred) =>
         new(preferred, SemanticHostileTerrains, Terrain.OpenField);
 
     public static IReadOnlySet<string> Sites(params string[] sites) =>
         new HashSet<string>(sites, StringComparer.Ordinal);
+
+    public static PlacementTasteWeightConfig Taste(string axis, float weight) =>
+        IceRemembersPlacementTastes.W(axis, weight);
 
     public static IceRemembersTerrainProfileRule SubtypeRule(
         string subtype,

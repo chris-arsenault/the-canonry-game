@@ -7,6 +7,7 @@ using Engine.Kinds;
 using static IceRemembers.IceRemembersEntityDsl;
 
 using Attr = IceRemembers.IceRemembersAttributeId;
+using Axis = Engine.Domain.Config.PlacementTasteAxisNames;
 using Culture = IceRemembers.IceRemembersCulture;
 using Effect = Engine.Gameplay.AttributeEffectConditions;
 using K = IceRemembers.IceRemembersKinds;
@@ -54,18 +55,17 @@ internal static class SettlementEntity
                 MovementSubtypeRule("holdfast", physical: Profile.Shore),
             ]),
         Placement = Placement(
-            physicalDefault: Land(Terrain.Tundra, Terrain.Shelf, Terrain.Ice),
+            physicalDefault: Land(),
             semanticDefault: Semantic(Terrain.Lineage, Terrain.OpenField, Terrain.Witness),
             physicalRules:
             [
-                SubtypeRule("harbor", Maritime(Terrain.Shelf, Terrain.Reef, Terrain.Ocean)),
-                SubtypeRule("reefhold", Maritime(Terrain.Shelf, Terrain.Reef, Terrain.Ocean)),
-                SubtypeRule("holdfast", Maritime(Terrain.Shelf, Terrain.Reef, Terrain.Ocean, Terrain.Crags, Terrain.Tundra)),
-                SubtypeRule("sanctuary", Land(Terrain.HotSprings, Terrain.Tundra, Terrain.Ice) with
+                SubtypeRule("harbor", Maritime(Terrain.Shelf, Terrain.Reef)),
+                SubtypeRule("reefhold", Maritime(Terrain.Shelf, Terrain.Reef)),
+                SubtypeRule("holdfast", Maritime(Terrain.Shelf)),
+                SubtypeRule("sanctuary", Land(Terrain.HotSprings) with
                 {
                     PreferredSites = Sites(IceRemembersPlacementSites.Thermal),
                 }),
-                CultureRule(Culture.Nightshelf.ToDomainName(), Land(Terrain.Ice, Terrain.Shelf, Terrain.Tundra)),
             ],
             semanticRules:
             [
@@ -75,5 +75,6 @@ internal static class SettlementEntity
                 CultureRule(Culture.AuroraStack.ToDomainName(), Semantic(Terrain.Witness, Terrain.Lineage, Terrain.BeaconSpire, Terrain.OpenField)),
                 CultureRule(Culture.Nightshelf.ToDomainName(), Semantic(Terrain.Silence, Terrain.CavePocket, Terrain.Yoke, Terrain.OpenField)),
             ]),
+        PlacementTaste = [Taste(Axis.Capacity, 1f), Taste(Axis.Coast, 0.3f)],
     };
 }

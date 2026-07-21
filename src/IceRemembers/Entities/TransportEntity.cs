@@ -7,6 +7,7 @@ using Engine.Kinds;
 using static IceRemembers.IceRemembersEntityDsl;
 
 using Attr = IceRemembers.IceRemembersAttributeId;
+using Axis = Engine.Domain.Config.PlacementTasteAxisNames;
 using Effect = Engine.Gameplay.AttributeEffectConditions;
 using K = IceRemembers.IceRemembersKinds;
 using Profile = IceRemembers.IceRemembersMovementProfile;
@@ -48,7 +49,8 @@ internal static class TransportEntity
             physicalDefault: Profile.Wake,
             semanticDefault: Profile.Commons),
         Placement = Placement(
-            physicalDefault: Maritime(Terrain.Ocean, Terrain.Reef, Terrain.Shelf),
+            physicalDefault: Maritime(),
             semanticDefault: Semantic(Terrain.Breakaway, Terrain.OpenField, Terrain.Witness)),
+        PlacementTaste = [Taste(Axis.Coast, 0.5f), Taste(Axis.Water, 0.3f)],
     };
 }

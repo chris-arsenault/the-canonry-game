@@ -55,7 +55,7 @@ internal static class OccurrenceEntity
                 MovementSubtypeRule("war", semantic: Profile.Rift),
             ]),
         Placement = Placement(
-            physicalDefault: Land(Terrain.Tundra, Terrain.Ice, Terrain.Shelf),
+            physicalDefault: Land(),
             semanticDefault: Semantic(Terrain.Witness, Terrain.Severance, Terrain.OpenField)),
     };
 }

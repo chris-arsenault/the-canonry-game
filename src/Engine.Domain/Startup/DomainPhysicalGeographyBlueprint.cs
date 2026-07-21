@@ -175,6 +175,37 @@ public sealed record DomainPhysicalGeographyBlueprint(
     }
 }
 
+/// <summary>
+/// The one quantization from a hex summary's real quantities to the
+/// kernel's byte fact columns, shared by kernel installation and seed-time
+/// scoring so both read identical facts. Nothing here invents a scalar the
+/// generator did not compute.
+/// </summary>
+public static class DomainPhysicalGeographyFacts
+{
+    public static void Quantize(in DomainPhysicalGeographyCell cell, byte[] facts)
+    {
+        ArgumentNullException.ThrowIfNull(facts);
+        facts[PhysicalHexFactCodes.Temperature] = PhysicalHexFactCodes.FromIntensity(cell.MeanTemperature);
+        facts[PhysicalHexFactCodes.Moisture] = PhysicalHexFactCodes.FromIntensity(cell.MeanMoisture);
+        facts[PhysicalHexFactCodes.Geothermal] = PhysicalHexFactCodes.FromIntensity(cell.MeanGeothermal);
+        facts[PhysicalHexFactCodes.Elevation] = PhysicalHexFactCodes.FromElevation(cell.MeanElevation);
+        facts[PhysicalHexFactCodes.Relief] = PhysicalHexFactCodes.FromReliefUnits(cell.Relief);
+        facts[PhysicalHexFactCodes.Roughness] = PhysicalHexFactCodes.FromReliefUnits(cell.Roughness);
+        facts[PhysicalHexFactCodes.LandFraction] = PhysicalHexFactCodes.FromCoverage(cell.LandCoverage);
+        facts[PhysicalHexFactCodes.RiverCoverage] = PhysicalHexFactCodes.FromCoverage(cell.RiverCoverage);
+        facts[PhysicalHexFactCodes.FloodplainCoverage] =
+            PhysicalHexFactCodes.FromCoverage(cell.FloodplainCoverage + cell.DeltaCoverage);
+        facts[PhysicalHexFactCodes.IceThickness] = PhysicalHexFactCodes.FromIntensity(cell.MeanIceThickness);
+        facts[PhysicalHexFactCodes.FireMean] = PhysicalHexFactCodes.FromIntensity(cell.MeanFireIntensity);
+        facts[PhysicalHexFactCodes.FireMax] = PhysicalHexFactCodes.FromIntensity(cell.MaxFireIntensity);
+        facts[PhysicalHexFactCodes.AuroraMean] = PhysicalHexFactCodes.FromIntensity(cell.MeanAuroraIntensity);
+        facts[PhysicalHexFactCodes.AuroraMax] = PhysicalHexFactCodes.FromIntensity(cell.MaxAuroraIntensity);
+        facts[PhysicalHexFactCodes.PressureMean] = PhysicalHexFactCodes.FromIntensity(cell.MeanPressureIntensity);
+        facts[PhysicalHexFactCodes.PressureMax] = PhysicalHexFactCodes.FromIntensity(cell.MaxPressureIntensity);
+    }
+}
+
 public readonly record struct DomainPhysicalGeographyCell(
     int Q,
     int R,

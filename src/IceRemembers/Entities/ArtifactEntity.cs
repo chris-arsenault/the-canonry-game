@@ -7,6 +7,7 @@ using Engine.Kinds;
 using static IceRemembers.IceRemembersEntityDsl;
 
 using Attr = IceRemembers.IceRemembersAttributeId;
+using Axis = Engine.Domain.Config.PlacementTasteAxisNames;
 using GambitId = IceRemembers.IceRemembersGambitId;
 using K = IceRemembers.IceRemembersKinds;
 using Profile = IceRemembers.IceRemembersMovementProfile;
@@ -60,9 +61,8 @@ internal static class ArtifactEntity
         Placement = Placement(
             // Artifacts surface where the aurora stores memory and where the
             // old war left its marks.
-            physicalDefault: Land(Terrain.Crags, Terrain.Wastes, Terrain.Tundra) with
+            physicalDefault: Land() with
             {
-                AuroraAffinity = 0.5f,
                 PreferredSites = Sites(IceRemembersPlacementSites.Anomaly),
             },
             semanticDefault: Semantic(Terrain.Silence, Terrain.CavePocket, Terrain.OpenField),
@@ -74,5 +74,6 @@ internal static class ArtifactEntity
                 SubtypeRule("relic", Semantic(Terrain.Lineage, Terrain.Witness, Terrain.CavePocket)),
                 SubtypeRule("tome", Semantic(Terrain.Lineage, Terrain.Silence, Terrain.Witness)),
             ]),
+        PlacementTaste = [Taste(Axis.Aurora, 0.5f), Taste(Axis.Capacity, -0.2f)],
     };
 }

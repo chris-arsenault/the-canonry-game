@@ -7,6 +7,7 @@ using Engine.Kinds;
 using static IceRemembers.IceRemembersEntityDsl;
 
 using Attr = IceRemembers.IceRemembersAttributeId;
+using Axis = Engine.Domain.Config.PlacementTasteAxisNames;
 using K = IceRemembers.IceRemembersKinds;
 using Profile = IceRemembers.IceRemembersMovementProfile;
 using Rel = IceRemembers.IceRemembersRelationship;
@@ -47,10 +48,8 @@ internal static class OrcaEntity
             semanticDefault: Profile.Commons),
         Placement = Placement(
             // Orcas follow the deep pressure - the god's wake is their sea.
-            physicalDefault: Maritime(Terrain.Ocean, Terrain.Reef, Terrain.Shelf) with
-            {
-                PressureAffinity = 0.5f,
-            },
+            physicalDefault: Maritime(),
             semanticDefault: Semantic(Terrain.Breakaway, Terrain.Lineage, Terrain.OpenField)),
+        PlacementTaste = [Taste(Axis.Water, 0.8f), Taste(Axis.Pressure, 0.5f)],
     };
 }

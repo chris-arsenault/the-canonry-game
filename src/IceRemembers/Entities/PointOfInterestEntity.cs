@@ -53,25 +53,25 @@ internal static class PointOfInterestEntity
                 MovementSubtypeRule("bloom", physical: Profile.Shore, semantic: Profile.Rift),
             ]),
         Placement = Placement(
-            physicalDefault: Land(Terrain.Tundra, Terrain.Crags, Terrain.Ice),
+            physicalDefault: Land(),
             semanticDefault: Semantic(Terrain.Witness, Terrain.OpenField, Terrain.Lineage),
             physicalRules:
             [
-                SubtypeRule("vent", Maritime(Terrain.HotSprings, Terrain.Shelf, Terrain.Reef, Terrain.Ocean, Terrain.Crags) with
+                // Vents live on the thermal sites themselves, wherever the
+                // heat breaks through - land springs or sea-floor smokers.
+                SubtypeRule("vent", Amphibious(Terrain.HotSprings) with
                 {
                     PreferredSites = Sites(IceRemembersPlacementSites.Thermal),
                 }),
-                // Peaks stand on actual summits now that the contract can
-                // say so; the old maritime workaround retires.
-                SubtypeRule("peak", Land(Terrain.Crags, Terrain.Ice, Terrain.Tundra) with
+                SubtypeRule("peak", Land(Terrain.Crags) with
                 {
                     PreferredSites = Sites(IceRemembersPlacementSites.Summit),
                 }),
-                SubtypeRule("shoal", Maritime(Terrain.Reef, Terrain.Shelf, Terrain.Ocean) with
+                SubtypeRule("shoal", Maritime(Terrain.Reef) with
                 {
                     PreferredSites = Sites(IceRemembersPlacementSites.Polynya),
                 }),
-                SubtypeRule("bloom", Maritime(Terrain.Ocean, Terrain.Reef, Terrain.Wastes) with
+                SubtypeRule("bloom", Maritime() with
                 {
                     PreferredSites = Sites(IceRemembersPlacementSites.Polynya),
                 }),

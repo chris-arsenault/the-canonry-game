@@ -23,6 +23,7 @@ internal sealed class SeedAssembly
     private readonly List<DomainSeedRelationship> _relationships = [];
     private readonly Dictionary<SemanticHexCoord, DomainSeedCell> _semanticCells = [];
     private DomainSemanticTerrainBlueprint _semanticTerrain = DomainSemanticTerrainBlueprint.Empty;
+    private IceRemembersSeedTaste? _taste;
 
     public SeedAssembly(
         HexGrid grid,
@@ -52,6 +53,9 @@ internal sealed class SeedAssembly
     public IReadOnlyList<DomainMapSubdivision> MapSubdivisions { get; }
 
     public DomainPhysicalGeographyBlueprint PhysicalGeography { get; }
+
+    /// <summary>Taste scoring over this assembly's blueprint facts, built on first use.</summary>
+    public IceRemembersSeedTaste Taste => _taste ??= new IceRemembersSeedTaste(PhysicalGeography.Cells);
 
     public IReadOnlyList<SeedEntity> Entities => _entities;
 

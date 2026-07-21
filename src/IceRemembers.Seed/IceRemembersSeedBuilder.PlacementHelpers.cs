@@ -13,12 +13,21 @@ internal static partial class IceRemembersSeedBuilder
     private const float SeedPlacementPreferredRankStep = 14f;
     private const float SeedPlacementFallbackTerrainScore = 35f;
     private const float SeedPlacementDefaultTerrainScore = 12f;
-    private const float SeedPlacementAvoidedTerrainScore = -25f;
+
+    // The avoided set is the land/water partition, so it must outweigh any
+    // authored taste swing: a water-loving culture prices coasts up, it
+    // does not put a rookery in the open sea.
+    private const float SeedPlacementAvoidedTerrainScore = -120f;
     private const float SeedPlacementNearPreferredNeighborScore = 6f;
     private const float SeedPlacementDistantPreferredNeighborScore = 1.5f;
     private const float SeedPlacementOriginBonusBase = 26f;
     private const float SeedPlacementOriginBonusStep = 2.2f;
     private const float SeedPlacementCenterPenaltyStep = 0.08f;
+
+    // Physical picks draw from a wider slice of the ranked candidates than
+    // semantic ones: taste differentiates real geography, and the wider
+    // draw keeps kind after kind from stacking onto the same best hex.
+    private const int SeedPlacementPhysicalPickWidth = 8;
 
     private static HexCoord ChoosePhysicalCoordinate(
         SeedAssembly seed,
@@ -40,8 +49,21 @@ internal static partial class IceRemembersSeedBuilder
             minimumDistance,
             origin,
             searchRadius,
-            contextScorer,
+            WithTasteScorer(seed, kind, culture, contextScorer),
             candidateFilter);
+
+    /// <summary>
+    /// Folds the kind and culture placement taste into the context score,
+    /// so seed placement prices hexes with the same taste the kernel uses.
+    /// </summary>
+    private static Func<HexCell, float> WithTasteScorer(
+        SeedAssembly seed,
+        EntityKind kind,
+        string? culture,
+        Func<HexCell, float>? contextScorer) =>
+        contextScorer is null
+            ? cell => seed.Taste.Score(kind, culture, cell.Coord)
+            : cell => contextScorer(cell) + seed.Taste.Score(kind, culture, cell.Coord);
 
     private static HexCoord ChoosePhysicalCoordinate(
         SeedAssembly seed,
@@ -94,7 +116,7 @@ internal static partial class IceRemembersSeedBuilder
             throw new InvalidOperationException("Could not find a free physical coordinate for seed placement.");
         }
 
-        return candidates[random.Next(Math.Min(4, candidates.Count))].Coord;
+        return candidates[random.Next(Math.Min(SeedPlacementPhysicalPickWidth, candidates.Count))].Coord;
     }
 
     private static void SetPhysical(SeedEntity entity, HexCoord coord, HashSet<HexCoord> taken)
@@ -117,7 +139,9 @@ internal static partial class IceRemembersSeedBuilder
             seed,
             random,
             taken,
-            PhysicalTerrainProfile(entity),
+            entity.Kind,
+            entity.Subtype,
+            entity.Culture,
             minimumDistance,
             origin,
             searchRadius,
@@ -408,9 +432,6 @@ internal static partial class IceRemembersSeedBuilder
                 HexCoord.Distance(center, coord) > 0 &&
                 grid.GetCell(coord) is { } cell &&
                 profile.PreferredTerrains.Contains(cell.Terrain.StableName));
-
-    private static IceRemembersPlacementTerrainProfile PhysicalTerrainProfile(SeedEntity entity) =>
-        PhysicalTerrainProfile(entity.Kind, entity.Subtype, entity.Culture);
 
     private static IceRemembersPlacementTerrainProfile PhysicalTerrainProfile(
         EntityKind kind,
