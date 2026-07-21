@@ -11,6 +11,7 @@ using Engine.Kernel;
 public sealed class GeneratorPlacementGeographyTests
 {
     private const int OpenTerrain = 1;
+    private const int WaterTerrain = 2;
     private const int GeneratorId = 900;
     private const int TargetKindId = 1;
     private const int CreatedKindId = 2;
@@ -54,6 +55,89 @@ public sealed class GeneratorPlacementGeographyTests
         var createdId = FindCreated(simulation);
         Assert.Equal(0, simulation.World.EntityPhysicalQ(createdId));
         Assert.Equal(1, simulation.World.EntityPhysicalR(createdId));
+    }
+
+    [Fact]
+    public void AvoidedTerrain_IsAHardWall_PlacementWidensPastAnAllWaterRing()
+    {
+        // The anchor stands on land, its entire radius-1 ring is water, and
+        // land resumes at radius 2. The produced entity avoids water, so
+        // placement must skip the whole ring and land at distance 2 - the
+        // partition is never outscored by proximity.
+        var simulation = CreateSimulation();
+        InstallPartitionedGeography(simulation);
+        var producedSlot = RegisterGeneratorProduced(simulation);
+        simulation.Generators.AddProducedPlacementAvoidedTerrain(
+            producedSlot, PlaneCodes.Physical, WaterTerrain);
+        _ = simulation.CreateEntity(TargetKindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
+
+        simulation.AdvanceTicks(1);
+
+        var createdId = FindCreated(simulation);
+        var q = simulation.World.EntityPhysicalQ(createdId);
+        var r = simulation.World.EntityPhysicalR(createdId);
+        var distance = (global::System.Math.Abs(q) + global::System.Math.Abs(r) + global::System.Math.Abs(q + r)) / 2;
+        Assert.Equal(2, distance);
+        Assert.Equal(OpenTerrain, simulation.World.CellTerrainId(PlaneCodes.Physical, q, r));
+    }
+
+    private static void InstallPartitionedGeography(Simulation simulation)
+    {
+        simulation.RegisterTerrain(
+            OpenTerrain, boundaryGroupId: 1, movementCost: 3f,
+            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
+            roadBuildMultiplier: 1f, roadSpeedMultiplier: 1f);
+        simulation.RegisterTerrain(
+            WaterTerrain, boundaryGroupId: 2, movementCost: 4f,
+            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
+            roadBuildMultiplier: 0f, roadSpeedMultiplier: 1f);
+        simulation.KernelData.PhysicalGeography.BeginInstall(4);
+        simulation.World.SetMapRadius(4);
+        ForEachHex(2, (q, r) =>
+        {
+            var distance = (global::System.Math.Abs(q) + global::System.Math.Abs(r) + global::System.Math.Abs(q + r)) / 2;
+            var terrainId = distance == 1 ? WaterTerrain : OpenTerrain;
+            var facts = new byte[PhysicalHexFactCodes.Count];
+            simulation.KernelData.PhysicalGeography.InstallCell(
+                q, r, terrainId, superregionId: 1, continentId: 1,
+                crossingWord: 0, fieldWord: 0, initialCoverTerrainId: 0, facts);
+            simulation.SeedCell(q, r, terrainId, ownerEntityId: 0);
+            if (!simulation.World.CellIsKnown(PlaneCodes.Semantic, q, r))
+            {
+                simulation.CreateCell(PlaneCodes.Semantic, q, r, OpenTerrain, ownerEntityId: 0);
+            }
+        });
+    }
+
+    private static int RegisterGeneratorProduced(Simulation simulation)
+    {
+        var slot = simulation.Generators.RegisterGenerator(
+            GeneratorId,
+            TargetKindId,
+            pulseWeight: 1,
+            maxRuns: 0);
+        simulation.Generators.AddTrigger(slot, TargetKindId);
+        return simulation.Generators.AddProduced(
+            slot,
+            CreatedRef,
+            CreatedKindId,
+            CreatedSubtypeId,
+            createIfMissing: 1,
+            hasQuery: 0,
+            queryAdjacentToTarget: 0,
+            queryCultureMatchCode: GeneratorCultureMatchCodes.Any,
+            physicalPlacementCode: GeneratorPlacementCodes.Area,
+            semanticPlacementCode: GeneratorPlacementCodes.Area,
+            placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
+            cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
+            createChance: 1f,
+            coverageModeCode: GeneratorCoverageModeCodes.None,
+            coverageSourceRefCode: 0,
+            coverageDesiredCellCount: 0,
+            coverageMinimumCellCount: 0,
+            coverageMinimumSourceRemainingCellCount: 0,
+            coverageRespectTerrainBoundaries: 0,
+            coverageTransformTerrainId: 0);
     }
 
     private static int FindCreated(Simulation simulation)

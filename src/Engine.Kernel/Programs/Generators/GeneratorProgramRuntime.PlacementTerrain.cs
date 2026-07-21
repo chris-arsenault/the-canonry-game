@@ -538,8 +538,21 @@ internal sealed partial class GeneratorProgramRuntime
         var allowedStart = PlacementAllowedTerrainStart(planeCode, producedSlot);
         var allowedCount = PlacementAllowedTerrainCount(planeCode, producedSlot);
         return TerrainInFilter(terrainId, allowedStart, allowedCount, emptyPasses: true) &&
-            simulation.KernelData.Terrain.CanEnter(terrainId, movementProfileId);
+            simulation.KernelData.Terrain.CanEnter(terrainId, movementProfileId) &&
+            PhysicalPlacementRespectsPartition(planeCode, producedSlot, terrainId);
     }
+
+    // On the physical plane the avoided set is the land/water partition: a
+    // hard rule, never outscored. The radius walk widens past an exhausted
+    // ring on its own. Semantic avoidance stays a soft score - hostile idea
+    // ground repels, it does not forbid.
+    private bool PhysicalPlacementRespectsPartition(int planeCode, int producedSlot, int terrainId) =>
+        planeCode != PlaneCodes.Physical ||
+        !TerrainInFilter(
+            terrainId,
+            PlacementAvoidedTerrainStart(planeCode, producedSlot),
+            PlacementAvoidedTerrainCount(planeCode, producedSlot),
+            emptyPasses: false);
 
     private int ScorePlacementCell(
         Simulation simulation,

@@ -8,6 +8,7 @@ using static IceRemembers.IceRemembersEntityDsl;
 
 using Attr = IceRemembers.IceRemembersAttributeId;
 using Axis = Engine.Domain.Config.PlacementTasteAxisNames;
+using Culture = IceRemembers.IceRemembersCulture;
 using Effect = Engine.Gameplay.AttributeEffectConditions;
 using K = IceRemembers.IceRemembersKinds;
 using Profile = IceRemembers.IceRemembersMovementProfile;
@@ -48,11 +49,19 @@ internal static class MonsterEntity
             semanticDefault: Profile.Veil),
         Placement = Placement(
             // Monsters haunt the fire and the anomalies, far from the rich
-            // ground where the living crowd.
+            // ground where the living crowd. What the wake stirs up is a
+            // creature of the deep, not the shore.
             physicalDefault: Land() with
             {
                 PreferredSites = Sites(IceRemembersPlacementSites.Anomaly),
             },
+            physicalRules:
+            [
+                CultureRule(Culture.WakeSingers.ToDomainName(), Maritime() with
+                {
+                    PreferredSites = Sites(IceRemembersPlacementSites.Anomaly),
+                }),
+            ],
             semanticDefault: Semantic(Terrain.Silence, Terrain.Severance, Terrain.CavePocket)),
         PlacementTaste = [Taste(Axis.Fire, 0.5f), Taste(Axis.Capacity, -0.6f)],
     };

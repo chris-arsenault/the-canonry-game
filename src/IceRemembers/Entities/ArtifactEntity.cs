@@ -8,6 +8,7 @@ using static IceRemembers.IceRemembersEntityDsl;
 
 using Attr = IceRemembers.IceRemembersAttributeId;
 using Axis = Engine.Domain.Config.PlacementTasteAxisNames;
+using Culture = IceRemembers.IceRemembersCulture;
 using GambitId = IceRemembers.IceRemembersGambitId;
 using K = IceRemembers.IceRemembersKinds;
 using Profile = IceRemembers.IceRemembersMovementProfile;
@@ -60,11 +61,19 @@ internal static class ArtifactEntity
             ]),
         Placement = Placement(
             // Artifacts surface where the aurora stores memory and where the
-            // old war left its marks.
+            // old war left its marks. What the Wake-Singers make, they give
+            // to the deep - their relics rest under water, not on shelves.
             physicalDefault: Land() with
             {
                 PreferredSites = Sites(IceRemembersPlacementSites.Anomaly),
             },
+            physicalRules:
+            [
+                CultureRule(Culture.WakeSingers.ToDomainName(), Maritime() with
+                {
+                    PreferredSites = Sites(IceRemembersPlacementSites.Anomaly),
+                }),
+            ],
             semanticDefault: Semantic(Terrain.Silence, Terrain.CavePocket, Terrain.OpenField),
             semanticRules:
             [
