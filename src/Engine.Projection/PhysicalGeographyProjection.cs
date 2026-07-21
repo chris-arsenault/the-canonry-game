@@ -62,6 +62,7 @@ public sealed class PhysicalGeographyProjection
         }
 
         BuildAreaOutlineEdgeMasks();
+        BuildRiverThalweg();
     }
 
     // Rivers are lines and read as lines; oceans, lakes, and floodplains are
@@ -117,6 +118,108 @@ public sealed class PhysicalGeographyProjection
         }
 
         return mask;
+    }
+
+    /// <summary>
+    /// The deepest line of a channel: the one triangle across a river's width
+    /// that carries its centre line.
+    ///
+    /// A wide river is several triangles across and every one of them is a
+    /// channel with its own spine, so drawing all of them turned one river
+    /// into a braid of parallel strands. Drawing none of them, which is what
+    /// suppressing the spine on wide channels did, left a flat slab with
+    /// tributaries running into it and stopping. Exactly one line is right,
+    /// and the deepest thread of the channel is where it belongs.
+    /// </summary>
+    private void BuildRiverThalweg()
+    {
+        for (var cellIndex = 0; cellIndex < _cells.Length; cellIndex++)
+        {
+            var cell = _cells[cellIndex];
+            for (var local = 0; local < PhysicalGeographyCodes.MicrotrianglesPerHex; local++)
+            {
+                var triangleIndex = cell.MicrotriangleOffset + local;
+                if (_microtriangles[triangleIndex].RiverSpineEdgeMask == 0)
+                {
+                    continue;
+                }
+
+                if (CarriesThalweg(cell.Coord, local, triangleIndex))
+                {
+                    _microtriangles[triangleIndex] =
+                        _microtriangles[triangleIndex] with { IsRiverThalweg = true };
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// True when nothing beside this triangle carries more water. Neighbours
+    /// upstream and downstream are skipped, because a river is meant to beat
+    /// its own channel along its length; only the ones abreast of it compete.
+    /// </summary>
+    private bool CarriesThalweg(HexCoord coord, int localTriangle, int triangleIndex)
+    {
+        var triangle = _microtriangles[triangleIndex];
+        var downstream = FlowNeighborIndex(coord, localTriangle, triangle.FlowEdge);
+        for (var edge = 0; edge < 3; edge++)
+        {
+            PhysicalMicrotriangleTopology.ResolveNeighbor(
+                coord.Q,
+                coord.R,
+                localTriangle,
+                edge,
+                out var neighborQ,
+                out var neighborR,
+                out var neighborLocal);
+            if (!TryGetCellIndex(new HexCoord(neighborQ, neighborR), out var neighborCell))
+            {
+                continue;
+            }
+
+            var neighborIndex = _cells[neighborCell].MicrotriangleOffset + neighborLocal;
+            if (neighborIndex == downstream ||
+                _microtriangles[neighborIndex].RiverSpineEdgeMask == 0)
+            {
+                continue;
+            }
+
+            var flowsIntoMe = FlowNeighborIndex(
+                new HexCoord(neighborQ, neighborR),
+                neighborLocal,
+                _microtriangles[neighborIndex].FlowEdge) == triangleIndex;
+            if (flowsIntoMe)
+            {
+                continue;
+            }
+
+            if (_microtriangles[neighborIndex].FlowAccumulation > triangle.FlowAccumulation)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private int FlowNeighborIndex(HexCoord coord, int localTriangle, int flowEdge)
+    {
+        if (flowEdge is < 0 or > 2)
+        {
+            return -1;
+        }
+
+        PhysicalMicrotriangleTopology.ResolveNeighbor(
+            coord.Q,
+            coord.R,
+            localTriangle,
+            flowEdge,
+            out var neighborQ,
+            out var neighborR,
+            out var neighborLocal);
+        return TryGetCellIndex(new HexCoord(neighborQ, neighborR), out var cellIndex)
+            ? _cells[cellIndex].MicrotriangleOffset + neighborLocal
+            : -1;
     }
 
     private int AreaClassAt(int q, int r, int localTriangle)
@@ -265,6 +368,7 @@ public sealed class PhysicalGeographyProjection
                 source.RiverOrder,
                 source.RiverSpineEdgeMask,
                 0,
+                false,
                 source.RiverChannelStrength,
                 source.RiverChannelOrder,
                 source.FloodplainIntensity,
@@ -434,6 +538,7 @@ public readonly record struct PhysicalMicrotriangleProjection(
     int RiverOrder,
     int RiverSpineEdgeMask,
     int AreaOutlineEdgeMask,
+    bool IsRiverThalweg,
     int RiverChannelStrength,
     int RiverChannelOrder,
     int FloodplainIntensity,

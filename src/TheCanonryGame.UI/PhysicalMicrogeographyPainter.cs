@@ -924,12 +924,13 @@ public sealed partial class PhysicalMicrogeographyPainter
         {
             var triangle = triangles[triangleIndex];
 
-            // A channel wide enough to be drawn as filled water already reads
-            // as a river. Drawing a centre line per triangle on top of it made
-            // one wide river look like a braid of parallel streams, one strand
-            // per triangle column. The spine is for channels too narrow to
-            // show as an area.
-            if (triangle.RiverSpineEdgeMask == 0 || UsesFilledRiverGeometry(triangle))
+            // One centre line per river. Drawing every channel triangle's
+            // spine made a wide river a braid of parallel strands; drawing
+            // none of them left a flat band that tributaries ran into and
+            // stopped at. A wide channel keeps its line only along the
+            // thalweg, the deepest thread of the water.
+            if (triangle.RiverSpineEdgeMask == 0 ||
+                (UsesFilledRiverGeometry(triangle) && !triangle.IsRiverThalweg))
             {
                 continue;
             }
