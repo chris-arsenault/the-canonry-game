@@ -1,4 +1,4 @@
-namespace Engine.WorldGen;
+namespace Engine.Constants;
 
 /// <summary>
 /// Isostasy: surface height is what crustal thickness floats to, not a value
@@ -11,7 +11,7 @@ namespace Engine.WorldGen;
 /// ceiling: two collisions stack where one collided once, rifting thins, and
 /// erosion removes. Height then follows from it for free.
 /// </summary>
-internal static class PhysicalCrust
+public static class PhysicalCrust
 {
     /// <summary>Thickness of unthickened continental crust, authored units.</summary>
     public const int ContinentalThicknessUnits = 4000;
