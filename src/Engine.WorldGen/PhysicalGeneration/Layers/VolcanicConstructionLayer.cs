@@ -225,10 +225,10 @@ internal sealed class VolcanicConstructionLayer : IPhysicalGeographyLayer
                 profile.VolcanicCalderaDepth *
                 (1d - ((distance / calderaRadius) * (distance / calderaRadius))))
             : 0L;
-        var maximum = PhysicalElevation.FromUnits(2000) - map.SedimentThickness[triangleIndex];
+        var maximum = PhysicalElevation.FromUnits(PhysicalCrust.MaximumHeightUnits) - map.SedimentThickness[triangleIndex];
         map.BedrockElevation[triangleIndex] = Math.Clamp(
             checked(map.BedrockElevation[triangleIndex] + uplift - calderaCut),
-            PhysicalElevation.FromUnits(-2000),
+            PhysicalElevation.FromUnits(PhysicalCrust.MinimumHeightUnits),
             maximum);
         map.VolcanicConstructionHistory[triangleIndex] = checked(
             map.VolcanicConstructionHistory[triangleIndex] + uplift);
@@ -288,8 +288,8 @@ internal sealed class VolcanicConstructionLayer : IPhysicalGeographyLayer
         var maximumEpoch = context.IsEvolutionEpoch ? context.EpochIndex : 0;
         return map.VolcanicActivity[triangleIndex] is >= 0 and <= 1000 &&
             map.VolcanicConstructionHistory[triangleIndex] >= 0 &&
-            map.Elevation[triangleIndex] >= PhysicalElevation.FromUnits(-2000) &&
-            map.Elevation[triangleIndex] <= PhysicalElevation.FromUnits(2000) &&
+            map.Elevation[triangleIndex] >= PhysicalElevation.FromUnits(PhysicalCrust.MinimumHeightUnits) &&
+            map.Elevation[triangleIndex] <= PhysicalElevation.FromUnits(PhysicalCrust.MaximumHeightUnits) &&
             map.VolcanicLastActiveEpoch[triangleIndex] >= -1 &&
             map.VolcanicLastActiveEpoch[triangleIndex] <= maximumEpoch &&
             HistoricalFeaturesAreValid(map, triangleIndex, flags) &&

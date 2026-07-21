@@ -90,8 +90,8 @@ internal sealed class FluvialErosionLayer : IPhysicalGeographyLayer
         LandscapeSurface.Validate(map);
         foreach (var value in map.Elevation)
         {
-            if (value < PhysicalElevation.FromUnits(-2000) ||
-                value > PhysicalElevation.FromUnits(2000))
+            if (value < PhysicalElevation.FromUnits(PhysicalCrust.MinimumHeightUnits) ||
+                value > PhysicalElevation.FromUnits(PhysicalCrust.MaximumHeightUnits))
             {
                 throw new InvalidOperationException("Fluvial erosion produced an invalid elevation.");
             }

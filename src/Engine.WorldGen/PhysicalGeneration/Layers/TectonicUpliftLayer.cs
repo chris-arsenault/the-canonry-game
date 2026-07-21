@@ -305,10 +305,10 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
                 context.TectonicStrength / 1000d) +
             AccretionUplift(map, context, triangleIndex);
         var delta = ApplyThicknessChange(map, triangleIndex, heightDrive);
-        var maximumBedrock = PhysicalElevation.FromUnits(2000) - map.SedimentThickness[triangleIndex];
+        var maximumBedrock = PhysicalElevation.FromUnits(PhysicalCrust.MaximumHeightUnits) - map.SedimentThickness[triangleIndex];
         var nextBedrock = Math.Clamp(
             map.BedrockElevation[triangleIndex] + delta,
-            PhysicalElevation.FromUnits(-2000),
+            PhysicalElevation.FromUnits(PhysicalCrust.MinimumHeightUnits),
             maximumBedrock);
         var applied = nextBedrock - map.BedrockElevation[triangleIndex];
         map.BedrockElevation[triangleIndex] = nextBedrock;

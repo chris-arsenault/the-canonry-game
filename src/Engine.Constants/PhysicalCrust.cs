@@ -13,6 +13,18 @@ namespace Engine.Constants;
 /// </summary>
 public static class PhysicalCrust
 {
+    /// <summary>
+    /// Highest ground the world may hold, authored units. The old bound of
+    /// 2,000 became the binding constraint on relief once collision could
+    /// double crustal thickness: continents sat near 800 and the ceiling
+    /// arrived at 1,850, a spread of about 2.3 against Earth's 11, so no
+    /// amount of tectonics could separate a Himalaya from an Australia.
+    /// </summary>
+    public const int MaximumHeightUnits = 4000;
+
+    /// <summary>Deepest the world may go, authored units.</summary>
+    public const int MinimumHeightUnits = -4000;
+
     /// <summary>Thickness of unthickened continental crust, authored units.</summary>
     public const int ContinentalThicknessUnits = 4000;
 
@@ -23,7 +35,7 @@ public static class PhysicalCrust
     /// Thickness that floats exactly at sea level. Crust thicker than this
     /// stands above the water, thinner sits below.
     /// </summary>
-    public const int CompensationThicknessUnits = 1667;
+    public const int CompensationThicknessUnits = 3000;
 
     /// <summary>
     /// Height gained per unit of thickness above compensation, per mille.
@@ -34,7 +46,7 @@ public static class PhysicalCrust
     /// represents doubled continental crust, which is what collision does,
     /// rather than a height ordinary ground can reach.
     /// </summary>
-    public const int BuoyancyPerMille = 300;
+    public const int BuoyancyPerMille = 700;
 
     /// <summary>
     /// Half-range of per-province thickness variation, authored units.

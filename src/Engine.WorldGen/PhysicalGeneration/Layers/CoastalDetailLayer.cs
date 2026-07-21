@@ -90,8 +90,8 @@ internal sealed class CoastalDetailLayer : IPhysicalGeographyLayer
 
             map.BedrockElevation[triangleIndex] = Math.Clamp(
                 map.BedrockElevation[triangleIndex] + delta,
-                PhysicalElevation.FromUnits(-2000),
-                PhysicalElevation.FromUnits(2000) - map.SedimentThickness[triangleIndex]);
+                PhysicalElevation.FromUnits(PhysicalCrust.MinimumHeightUnits),
+                PhysicalElevation.FromUnits(PhysicalCrust.MaximumHeightUnits) - map.SedimentThickness[triangleIndex]);
             LandscapeSurface.Rebuild(map, triangleIndex);
         }
     }
@@ -102,8 +102,8 @@ internal sealed class CoastalDetailLayer : IPhysicalGeographyLayer
         LandscapeSurface.Validate(map);
         foreach (var value in map.Elevation)
         {
-            if (value < PhysicalElevation.FromUnits(-2000) ||
-                value > PhysicalElevation.FromUnits(2000))
+            if (value < PhysicalElevation.FromUnits(PhysicalCrust.MinimumHeightUnits) ||
+                value > PhysicalElevation.FromUnits(PhysicalCrust.MaximumHeightUnits))
             {
                 throw new InvalidOperationException("Coastal detail produced an invalid elevation.");
             }

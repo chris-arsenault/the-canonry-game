@@ -29,4 +29,5 @@ public static class PhysicalElevation
         ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(denominator, 0);
         return checked(value * numerator / denominator);
     }
+
 }

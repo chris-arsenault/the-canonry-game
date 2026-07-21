@@ -314,8 +314,8 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
 
     private readonly record struct WeightedTriangle(int TriangleIndex, int Weight);
 
-    private const int ImpactExcavationFloorUnits = -1850;
-    private const int ImpactRimCeilingUnits = 1850;
+    private const int ImpactExcavationFloorUnits = -3800;
+    private const int ImpactRimCeilingUnits = 3800;
 
     private static long Excavate(
         PhysicalGeographyField map,

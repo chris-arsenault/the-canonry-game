@@ -177,6 +177,8 @@ internal static partial class WorldDiagnosticsCli
         return cap;
     }
 
+    private const int ContinentMinimumTriangles = 50000;
+
     private static void ReportLandmassHighPoints(PhysicalGeographyField field, int[] distance)
     {
         var sea = field.EffectiveSeaLevel;
@@ -203,12 +205,16 @@ internal static partial class WorldDiagnosticsCli
             }
         }
 
+        // A 5,000-triangle island is not a continent, and letting islands in
+        // and out of the comparison made the spread swing between runs on
+        // membership rather than on relief. Only real continents qualify.
         var continents = size
-            .Where(entry => entry.Value >= 5000)
+            .Where(entry => entry.Value >= ContinentMinimumTriangles)
             .OrderByDescending(entry => entry.Value)
             .Take(10)
             .ToArray();
-        Console.WriteLine($"  landmasses>=5000 triangles: {continents.Length}");
+        Console.WriteLine(
+            $"  continents (>={ContinentMinimumTriangles} triangles): {continents.Length}");
         var highs = new List<long>();
         foreach (var (landmass, area) in continents)
         {
