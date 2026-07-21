@@ -65,6 +65,22 @@ public sealed class PhysicalMicrogeographyGeometry
         second = _trianglePoints[triangleIndex][EdgeSecondPoint[mappingIndex]];
     }
 
+    /// <summary>
+    /// Midpoint of the hex edge shared with the neighbour in this direction,
+    /// in hex-local space.
+    ///
+    /// Taken as half the offset to that neighbour's centre rather than from
+    /// corner ordering, so it is anchored to the same HexCoord direction
+    /// convention the edge masks use and cannot drift out of step with them.
+    /// </summary>
+    public Vector2 HexEdgeMidpoint(int direction)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(direction);
+        ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(direction, 6);
+        var origin = new HexCoord(0, 0);
+        return HexCenter(origin.Neighbor(direction)) * 0.5f;
+    }
+
     public Vector2 HexCenter(HexCoord coord) =>
         new(
             HexSize * (Mathf.Sqrt(3f) * coord.Q + (Mathf.Sqrt(3f) * 0.5f * coord.R)),

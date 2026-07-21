@@ -131,6 +131,11 @@ public sealed partial class PhysicalMicrogeographyPainter
         var color = AggregateColor(cell);
         DrawColoredPolygon(_owner!.Geometry.HexPoints(), color);
         DrawPolyline(_owner.Geometry.ClosedHexPoints(), UiTokens.Hairline, 0.75f);
+        if (PhysicalMicrogeographyRenderDecisions.UsesStructuralRiverOverlay(_owner.View))
+        {
+            DrawAggregateRivers(cell);
+        }
+
         if (FeatureDetail() == PhysicalMicrogeographyFeatureDetail.Aggregate)
         {
             DrawHexFeatures(cell);
@@ -139,6 +144,39 @@ public sealed partial class PhysicalMicrogeographyPainter
         if (_owner.View == PhysicalGeographyView.OceanCurrents)
         {
             DrawAggregateCurrent(cell);
+        }
+    }
+
+    /// <summary>
+    /// The river at hex scale. Only trunks are drawn: at a zoom where a hex is
+    /// the smallest thing visible, every tributary would be noise, and the
+    /// aggregate already separates them by order for exactly this reason.
+    /// </summary>
+    private void DrawAggregateRivers(in PhysicalGeographyCellProjection cell)
+    {
+        if (cell.TrunkRiverEdgeMask == 0)
+        {
+            return;
+        }
+
+        var center = Vector2.Zero;
+        for (var direction = 0; direction < 6; direction++)
+        {
+            if ((cell.TrunkRiverEdgeMask & (1 << direction)) == 0)
+            {
+                continue;
+            }
+
+            var edge = _owner!.Geometry.HexEdgeMidpoint(direction);
+            DrawLine(center, edge, RiverSpineCasing, 3.4f, true);
+        }
+
+        for (var direction = 0; direction < 6; direction++)
+        {
+            if ((cell.TrunkRiverEdgeMask & (1 << direction)) != 0)
+            {
+                DrawLine(center, _owner!.Geometry.HexEdgeMidpoint(direction), RiverWater, 2f, true);
+            }
         }
     }
 
