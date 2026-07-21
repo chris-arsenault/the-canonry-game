@@ -302,6 +302,12 @@ public sealed record PhysicalGeographyGenerationProfile
     public int ImpactOceanShockDepth { get; init; } = 600;
 
     /// <summary>
+    /// Per-mille of the world's impact budget that falls in the primordial
+    /// pass, the rest spread over the later epochs on a declining flux.
+    /// </summary>
+    public int ImpactPrimordialShare { get; init; } = 620;
+
+    /// <summary>
     /// How sharply uplift gathers onto range crests. Redistributes rather than
     /// adds: crests gain roughly threefold, the ground between them keeps
     /// under a third, and the mean is preserved.

@@ -15,14 +15,15 @@ public sealed class PhysicalLandscapeEvolutionLayerTests
     }
 
     [Fact]
-    public void ImpactCratering_ExcavatesFracturedBasinsRaisesRimsAndHardensShockedRock()
+    public void ImpactCratering_ExcavatesFracturedBasinsRaisesRimsDepositsEjectaAndHardensRock()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<ImpactCrateringLayer>();
         Assert.Contains(result.Map.ImpactExcavation.ToArray(), value => value > 0);
         Assert.Contains(result.Map.ImpactRimUplift.ToArray(), value => value > 0);
-        // Ejecta is no longer modelled; what a crater leaves behind that
-        // matters is shocked rock, which resists erosion long enough for the
-        // ring to outlast everything around it.
+        Assert.Contains(result.Map.ImpactEjectaThickness.ToArray(), value => value > 0);
+
+        // Shocked rock resists erosion long enough for the ring to outlast the
+        // country around it.
         Assert.Contains(
             result.Map.RockResistance.ToArray(),
             value => value > Engine.Constants.PhysicalRock.BaselineResistance);

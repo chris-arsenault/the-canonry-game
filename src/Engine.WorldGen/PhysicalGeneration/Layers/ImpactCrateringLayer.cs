@@ -75,7 +75,7 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
         PhysicalGeographyField map,
         PhysicalGeographyGenerationContext context)
     {
-        var count = ScaledImpactCount(map, context.Profile.ImpactCraterCount);
+        var count = ScaledImpactCount(map, EpochImpactCount(context));
         if (count == 0)
         {
             return [];
@@ -99,6 +99,28 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
         }
 
         return SelectSeparated(map, selection.GetBestIndexes(), count, context.Profile);
+    }
+
+    /// <summary>
+    /// Bombardment declines. The heavy early flux belongs to the primordial
+    /// pass, and each later epoch catches fewer, so a world ends up with many
+    /// old worn rings and a handful of recent sharp ones rather than the same
+    /// barrage repeated. The configured count is the whole history's budget,
+    /// not one epoch's.
+    /// </summary>
+    private static int EpochImpactCount(PhysicalGeographyGenerationContext context)
+    {
+        var configured = context.Profile.ImpactCraterCount;
+        if (!context.IsEvolutionEpoch)
+        {
+            return (configured * context.Profile.ImpactPrimordialShare) / 1000;
+        }
+
+        var remaining = configured - ((configured * context.Profile.ImpactPrimordialShare) / 1000);
+        var epochsWithImpacts = Math.Max(1, context.EpochCount - 1);
+        var share = remaining / epochsWithImpacts;
+        var decline = Math.Pow(0.6d, context.EpochIndex);
+        return Math.Max(1, (int)Math.Round(share * decline, MidpointRounding.AwayFromZero));
     }
 
     private static int ScaledImpactCount(PhysicalGeographyField map, int configuredCount) =>
@@ -182,6 +204,7 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
             map.WaterDepths[center] / (double)PhysicalElevation.FromUnits(profile.ImpactOceanShockDepth),
             0d,
             1d);
+        var ejecta = new List<WeightedTriangle>();
         long excavation = 0;
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
@@ -190,10 +213,13 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
             RaiseRim(map, triangleIndex, distance, radius, rimHeight);
             FractureAndHeat(map, profile, triangleIndex, distance, radius);
             HardenShockedRock(map, triangleIndex, distance, radius, shockShare);
+            AddEjectaCandidate(ejecta, triangleIndex, distance, radius);
         }
 
         map.SedimentProducedTotal = checked(map.SedimentProducedTotal + excavation);
-        map.SedimentExportedTotal = checked(map.SedimentExportedTotal + excavation);
+        var deposited = DepositEjecta(map, profile, ejecta, excavation);
+        map.SedimentExportedTotal = checked(
+            map.SedimentExportedTotal + excavation - deposited);
     }
 
     /// <summary>
@@ -222,6 +248,71 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
             map.RockResistance[triangleIndex],
             hardened);
     }
+
+
+    private static void AddEjectaCandidate(
+        List<WeightedTriangle> candidates,
+        int triangleIndex,
+        double distance,
+        double radius)
+    {
+        if (distance < radius || distance > radius * 2.2d)
+        {
+            return;
+        }
+
+        var weight = Math.Max(
+            1,
+            (int)Math.Round(
+                1000d * (1d - ((distance - radius) / (radius * 1.2d))),
+                MidpointRounding.AwayFromZero));
+        candidates.Add(new WeightedTriangle(triangleIndex, weight));
+    }
+
+    private static long DepositEjecta(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile,
+        IReadOnlyList<WeightedTriangle> candidates,
+        long excavation)
+    {
+        var remaining = excavation * profile.ImpactEjectaFraction / 1000L;
+        var remainingWeight = candidates.Sum(candidate => (long)candidate.Weight);
+        var deposited = 0L;
+        foreach (var candidate in candidates)
+        {
+            if (remaining <= 0 || remainingWeight <= 0)
+            {
+                break;
+            }
+
+            // Ejecta blankets stack now that impacts fall in several epochs,
+            // so a triangle under two aprons would otherwise be lifted past
+            // the range elevation is allowed to occupy. Sediment that has
+            // nowhere to land counts as exported rather than vanishing.
+            var ceiling = PhysicalElevation.FromUnits(ImpactRimCeilingUnits);
+            var headroom = Math.Max(0L, ceiling - map.Elevation[candidate.TriangleIndex]);
+            var requested = Math.Min(
+                headroom,
+                Math.Max(1L, remaining * candidate.Weight / remainingWeight));
+            if (requested <= 0)
+            {
+                remainingWeight -= candidate.Weight;
+                continue;
+            }
+
+            var amount = LandscapeSurface.Deposit(map, candidate.TriangleIndex, requested);
+            map.ImpactEjectaThickness[candidate.TriangleIndex] = checked(
+                map.ImpactEjectaThickness[candidate.TriangleIndex] + amount);
+            remaining -= amount;
+            remainingWeight -= candidate.Weight;
+            deposited += amount;
+        }
+
+        return deposited;
+    }
+
+
+    private readonly record struct WeightedTriangle(int TriangleIndex, int Weight);
 
     private const int ImpactExcavationFloorUnits = -1850;
     private const int ImpactRimCeilingUnits = 1850;
