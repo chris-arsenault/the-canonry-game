@@ -169,6 +169,10 @@ public static class UiTokens
         ["firecore_vent"] = Hex(0xE04F24),
         ["thermal_vein"] = Hex(0xBF5B35),
         ["hot_spring"] = Hex(0x4DAA7C),
+
+        // Seafloor vents read as warm mineral bloom against cold water, not as
+        // the green of a land spring, so they stop looking like drowned islands.
+        ["hydrothermal_vent"] = Hex(0x2E7E86),
         ["basalt_flat"] = Hex(0x3A3132),
         ["thawed_halo"] = Hex(0x91A568),
         ["aurora_field"] = Hex(0x43D6B1),

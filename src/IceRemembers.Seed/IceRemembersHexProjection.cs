@@ -295,6 +295,9 @@ internal static class IceRemembersHexProjection
         groups[(int)IceRemembersPhysicalSurface.Floodplain] = (byte)SurfaceGroup.RiverLand;
         groups[(int)IceRemembersPhysicalSurface.Delta] = (byte)SurfaceGroup.RiverLand;
         groups[(int)IceRemembersPhysicalSurface.PolarBarrens] = (byte)SurfaceGroup.Barren;
+        // A vent field feeds what a reef feeds, so gameplay can treat it as
+        // productive water rather than as empty ocean.
+        groups[(int)IceRemembersPhysicalSurface.HydrothermalVent] = (byte)SurfaceGroup.Reef;
         groups[(int)IceRemembersPhysicalSurface.Ridge] = (byte)SurfaceGroup.Crag;
         groups[(int)IceRemembersPhysicalSurface.ScreeField] = (byte)SurfaceGroup.Crag;
         groups[(int)IceRemembersPhysicalSurface.Gorge] = (byte)SurfaceGroup.Crag;

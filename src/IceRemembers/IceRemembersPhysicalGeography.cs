@@ -66,6 +66,7 @@ public enum IceRemembersPhysicalSurface
     ThermalWarRim,
     SteamFracture,
     PressureAuroraBreach,
+    HydrothermalVent,
 }
 
 public enum IceRemembersPhysicalFeature
@@ -87,6 +88,7 @@ public enum IceRemembersPhysicalFeature
     ThermalWarRim,
     SteamFracture,
     PressureAuroraBreach,
+    HydrothermalVent,
 }
 
 public static class IceRemembersPhysicalGeography
@@ -154,6 +156,7 @@ public static class IceRemembersPhysicalGeography
         "thermal_war_rim",
         "steam_fracture",
         "pressure_aurora_breach",
+        "hydrothermal_vent",
     ];
 
     private static readonly string[] FeatureNames =
@@ -175,6 +178,7 @@ public static class IceRemembersPhysicalGeography
         "thermal_war_rim",
         "steam_fracture",
         "pressure_aurora_breach",
+        "hydrothermal_vent",
     ];
 
     public static IReadOnlyList<string> MaterialPalette { get; } = MaterialNames;

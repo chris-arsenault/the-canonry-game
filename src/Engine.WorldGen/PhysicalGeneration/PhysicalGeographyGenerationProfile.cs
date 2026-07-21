@@ -308,6 +308,15 @@ public sealed record PhysicalGeographyGenerationProfile
     public int ImpactPrimordialShare { get; init; } = 620;
 
     /// <summary>
+    /// Wavelength at which a mantle plume's halo breaks into lobes, so it
+    /// reads as sheared upwelling rather than a disc.
+    /// </summary>
+    public double PlumeLobeScale { get; init; } = 9d;
+
+    /// <summary>Per-mille depth of that lobing.</summary>
+    public int PlumeLobeStrength { get; init; } = 620;
+
+    /// <summary>
     /// How sharply uplift gathers onto range crests. Redistributes rather than
     /// adds: crests gain roughly threefold, the ground between them keeps
     /// under a third, and the mean is preserved.
@@ -730,6 +739,7 @@ public sealed record PhysicalGeographyGenerationProfile
         SeaIceVariationScale <= 0d;
 
     private bool CollisionRangesAreInvalid() =>
+        PlumeLobeScale <= 0d || PlumeLobeStrength is < 0 or > 1000 ||
         ContinentalCollisionUplift < 0d || ContinentalRiftThinning < 0d;
 
     private bool InteriorReliefScaleIsInvalid() =>

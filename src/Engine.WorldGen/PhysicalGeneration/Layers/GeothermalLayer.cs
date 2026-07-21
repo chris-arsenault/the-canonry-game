@@ -37,7 +37,13 @@ internal sealed class GeothermalLayer : IPhysicalGeographyLayer
             var fractureHeat = map.FractureConductance[triangleIndex] / 1000d * 0.28d;
             var impactHeat = map.ImpactHeat[triangleIndex] / 1000d * 0.36d /
                 Math.Max(1, map.CompletedEpochCount + 1);
-            var plumeHeat = map.VolcanicActivity[triangleIndex] / 1000d * 0.68d;
+            // A plume halo spread as a clean radial falloff reads as a disc,
+            // and the seafloor features that key off it inherit that shape.
+            // Real plumes are sheared and lobed by the mantle they rise
+            // through, so the halo is broken up rather than being a circle
+            // with a smooth edge.
+            var plumeHeat = map.VolcanicActivity[triangleIndex] / 1000d * 0.68d *
+                PlumeLobes(map, context, triangleIndex);
             var broad = PhysicalNoise.UnitNoise(
                 map.Grid.TriangleX(triangleIndex),
                 map.Grid.TriangleY(triangleIndex),
@@ -49,6 +55,23 @@ internal sealed class GeothermalLayer : IPhysicalGeographyLayer
         }
 
         ClassifyHeatSources(map, context.Profile);
+    }
+
+    private static double PlumeLobes(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationContext context,
+        int triangleIndex)
+    {
+        var lobes = PhysicalNoise.FractalNoise(
+            map.Grid.TriangleX(triangleIndex),
+            map.Grid.TriangleY(triangleIndex),
+            context.Seed ^ 0x4d13,
+            context.Profile.PlumeLobeScale,
+            3);
+        return Math.Clamp(
+            1d + (lobes * context.Profile.PlumeLobeStrength / 1000d),
+            0d,
+            1.6d);
     }
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)

@@ -11,6 +11,7 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
         IceRemembersPhysicalFeature.FirecoreVent,
         IceRemembersPhysicalFeature.ThermalVein,
         IceRemembersPhysicalFeature.HotSpring,
+        IceRemembersPhysicalFeature.HydrothermalVent,
         IceRemembersPhysicalFeature.BasaltFlat,
         IceRemembersPhysicalFeature.ThawedHalo);
 
@@ -50,6 +51,12 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
             IceRemembersPhysicalFeature.HotSpring,
             triangleIndex => IsHotSpringSeed(map, triangleIndex),
             triangleIndex => IsHotSpringRetained(map, triangleIndex, hysteresis));
+        AddRegionFeature(
+            map,
+            region,
+            IceRemembersPhysicalFeature.HydrothermalVent,
+            triangleIndex => IsHydrothermalVentSeed(map, triangleIndex),
+            triangleIndex => IsHydrothermalVentRetained(map, triangleIndex, hysteresis));
         AddRegionFeature(
             map,
             region,
@@ -93,10 +100,23 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
         }
     }
 
+    /// <summary>
+    /// A hot spring is a land feature. Both of its routes were written for
+    /// land - one wants a lake or river nearby, the other wants moisture - and
+    /// over ocean every clause passes for free: seafloor near a plume is hot,
+    /// tropical water is warm, and ocean is saturated by definition. That
+    /// filled whole seas with hot springs. Seafloor vents are real, but they
+    /// are a different feature and get their own.
+    /// </summary>
     private static bool IsHotSpringSeed(
         IceRemembersMicrogeographyMap map,
         int triangleIndex)
     {
+        if (map.Physical.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
+        {
+            return false;
+        }
+
         var fire = map.FireIntensity[triangleIndex];
         var wetFireSpring = fire >= 430 &&
             (map.Physical.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake ||
@@ -107,6 +127,24 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
             map.Physical.Moisture[triangleIndex] >= 260;
         return wetFireSpring || verdantGeothermalSpring;
     }
+
+    /// <summary>
+    /// Seafloor hydrothermal vents: plume-fed ground under open water. Warm
+    /// mineral-rich water is what makes a vent field worth anything, so this
+    /// is the surface reef and krill can key on.
+    /// </summary>
+    private static bool IsHydrothermalVentSeed(
+        IceRemembersMicrogeographyMap map,
+        int triangleIndex) =>
+        map.Physical.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean &&
+        map.Physical.Geothermal[triangleIndex] >= 720;
+
+    private static bool IsHydrothermalVentRetained(
+        IceRemembersMicrogeographyMap map,
+        int triangleIndex,
+        int hysteresis) =>
+        map.Physical.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean &&
+        map.Physical.Geothermal[triangleIndex] >= 720 - hysteresis;
 
     private static bool IsHotSpringRetained(
         IceRemembersMicrogeographyMap map,

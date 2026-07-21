@@ -14,6 +14,7 @@ internal sealed class FinalSurfaceLayer : IIceRemembersMicrogeographyLayer
             (IceRemembersPhysicalFeature.FirecoreVent, IceRemembersPhysicalSurface.FirecoreVent),
             (IceRemembersPhysicalFeature.LightWell, IceRemembersPhysicalSurface.LightWell),
             (IceRemembersPhysicalFeature.HotSpring, IceRemembersPhysicalSurface.HotSpring),
+            (IceRemembersPhysicalFeature.HydrothermalVent, IceRemembersPhysicalSurface.HydrothermalVent),
             (IceRemembersPhysicalFeature.CrushZone, IceRemembersPhysicalSurface.CrushZone),
             (IceRemembersPhysicalFeature.WakeScar, IceRemembersPhysicalSurface.WakeScar),
             (IceRemembersPhysicalFeature.RogueImpact, IceRemembersPhysicalSurface.RogueImpact),
