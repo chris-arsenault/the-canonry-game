@@ -87,6 +87,22 @@ internal static partial class IceRemembersSeedBuilder
             candidateFilter);
         if (candidates.Count == 0 && origin.HasValue)
         {
+            // Legal ground may simply be outside the ring - a harbor's
+            // penguins still belong near the harbor, so widen before
+            // abandoning the anchor entirely.
+            candidates = RankedPhysicalCandidates(
+                seed,
+                taken,
+                profile,
+                minimumDistance,
+                origin,
+                searchRadius * 3,
+                contextScorer,
+                candidateFilter);
+        }
+
+        if (candidates.Count == 0 && origin.HasValue)
+        {
             candidates = RankedPhysicalCandidates(
                 seed,
                 taken,
@@ -287,6 +303,10 @@ internal static partial class IceRemembersSeedBuilder
         seed.Grid.AllCells
             .Where(cell =>
                 !taken.Contains(cell.Coord) &&
+                // The land/water partition is a hard rule, not a preference:
+                // an avoided cell never enters candidacy, and an exhausted
+                // pool widens the search instead of settling for the sea.
+                !profile.AvoidedTerrains.Contains(cell.Terrain.StableName) &&
                 (candidateFilter is null || candidateFilter(cell)) &&
                 PhysicalCandidateIsInsideSearch(cell.Coord, origin, searchRadius) &&
                 PhysicalCandidateHasMinimumDistance(cell.Coord, taken, minimumDistance))
@@ -450,7 +470,8 @@ internal static partial class IceRemembersSeedBuilder
         HexCoord origin,
         int desiredCellCount,
         int minimumCellCount,
-        IReadOnlySet<string> preferredTerrains)
+        IReadOnlySet<string> preferredTerrains,
+        HashSet<HexCoord> takenPhysical)
     {
         var result = coverageMap.CreateCoverage(
             grid,
@@ -466,7 +487,21 @@ internal static partial class IceRemembersSeedBuilder
                 RespectTerrainBoundaries = false,
             });
 
-        assembly.Entity(seed.OwnerEntityId).Coordinates = result.Anchor;
+        // The entity moves to the coverage anchor, so its reservation must
+        // move with it - a stale reservation left later placements free to
+        // stack onto the anchor hex.
+        var entity = assembly.Entity(seed.OwnerEntityId);
+        takenPhysical.Remove(entity.Coordinates);
+        var anchor = takenPhysical.Contains(result.Anchor)
+            ? result.Coverage.Cells
+                .Where(cell => !takenPhysical.Contains(cell))
+                .OrderBy(cell => HexCoord.Distance(cell, result.Anchor))
+                .ThenBy(static cell => cell.Q)
+                .ThenBy(static cell => cell.R)
+                .First()
+            : result.Anchor;
+        takenPhysical.Add(anchor);
+        entity.Coordinates = anchor;
         return result.Coverage;
     }
 }

@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Text.Json;
 
 using Engine.Constants;
+using Engine.Domain.Startup;
 using Engine.Projection;
 
 using Godot;
@@ -112,7 +113,7 @@ internal static class WorldCaptureCli
         {
             var fileName = $"{startupSeed.Identity.BaseSeed}-{capture.Name}.png";
             var path = Path.Combine(fullOutputDirectory, fileName);
-            Render(path, geography, geometry, painter, capture);
+            Render(path, geography, geometry, painter, capture, startupSeed.Seed.Entities);
             results.Add(new CaptureResult(
                 capture.Name,
                 capture.View.ToString(),
@@ -146,7 +147,8 @@ internal static class WorldCaptureCli
         PhysicalGeographyProjection geography,
         PhysicalMicrogeographyGeometry geometry,
         PhysicalMicrogeographyPainter painter,
-        in CaptureDefinition capture)
+        in CaptureDefinition capture,
+        IReadOnlyList<DomainSeedEntity> entities)
     {
         var imageInfo = new SKImageInfo(Width, Height, SKColorType.Rgba8888, SKAlphaType.Premul);
         using var bitmap = new SKBitmap(imageInfo);
@@ -172,6 +174,8 @@ internal static class WorldCaptureCli
             painter.PaintCell(canvas, cell, capture.View, featuresEnabled: true, drawMicrotriangles);
         }
 
+        DrawEntityOverlay(nativeCanvas, entities, geometry, capture);
+
         using var image = SKImage.FromBitmap(bitmap);
         using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
         using var stream = new FileStream(
@@ -180,6 +184,93 @@ internal static class WorldCaptureCli
             System.IO.FileAccess.Write,
             FileShare.None);
         encoded.SaveTo(stream);
+    }
+
+    // Seed entities drawn as kind-colored dots with a one-letter glyph, so
+    // a capture answers "who starts where" at a glance. Regions are skipped:
+    // their coordinate is a coverage centroid, not a placement.
+    private static void DrawEntityOverlay(
+        SKCanvas canvas,
+        IReadOnlyList<DomainSeedEntity> entities,
+        PhysicalMicrogeographyGeometry geometry,
+        in CaptureDefinition capture)
+    {
+        var cameraCenter = geometry.HexCenter(capture.Center);
+        var radius = Math.Max(5f, geometry.HexSize * capture.Zoom * 0.28f);
+        using var fill = new SKPaint { Style = SKPaintStyle.Fill, IsAntialias = true };
+        using var outline = new SKPaint
+        {
+            Style = SKPaintStyle.Stroke,
+            IsAntialias = true,
+            Color = new SKColor(20, 20, 24),
+            StrokeWidth = Math.Max(1.2f, radius * 0.18f),
+        };
+        using var glyphPaint = new SKPaint { IsAntialias = true, Color = new SKColor(20, 20, 24) };
+        using var font = new SKFont(SKTypeface.Default, radius * 1.3f) { Embolden = true };
+        foreach (var entity in entities)
+        {
+            if (!string.Equals(entity.Kind, "region", StringComparison.Ordinal) &&
+                TryEntityStyle(entity.Kind, out var color, out var glyph))
+            {
+                DrawEntityMarker(canvas, geometry, capture, cameraCenter, entity, radius, color, glyph, fill, outline, font, glyphPaint);
+            }
+        }
+    }
+
+    private static void DrawEntityMarker(
+        SKCanvas canvas,
+        PhysicalMicrogeographyGeometry geometry,
+        in CaptureDefinition capture,
+        Vector2 cameraCenter,
+        DomainSeedEntity entity,
+        float radius,
+        SKColor color,
+        string glyph,
+        SKPaint fill,
+        SKPaint outline,
+        SKFont font,
+        SKPaint glyphPaint)
+    {
+        var world = geometry.HexCenter(new HexCoord(entity.PhysicalQ, entity.PhysicalR));
+        var x = ((world.X - cameraCenter.X) * capture.Zoom) + (Width * 0.5f);
+        var y = ((world.Y - cameraCenter.Y) * capture.Zoom) + (Height * 0.5f);
+        if (x < -radius || x > Width + radius || y < -radius || y > Height + radius)
+        {
+            return;
+        }
+
+        fill.Color = color;
+        canvas.DrawCircle(x, y, radius, fill);
+        canvas.DrawCircle(x, y, radius, outline);
+        canvas.DrawText(glyph, x, y + (radius * 0.45f), SKTextAlign.Center, font, glyphPaint);
+    }
+
+    private static readonly Dictionary<string, (SKColor Color, string Glyph)> EntityStyles =
+        new(StringComparer.Ordinal)
+        {
+            ["settlement"] = (new SKColor(255, 255, 255), "S"),
+            ["penguin"] = (new SKColor(255, 214, 64), "P"),
+            ["faction"] = (new SKColor(255, 140, 40), "F"),
+            ["artifact"] = (new SKColor(226, 92, 240), "A"),
+            ["orca"] = (new SKColor(64, 220, 240), "O"),
+            ["monster"] = (new SKColor(235, 64, 64), "M"),
+            ["point_of_interest"] = (new SKColor(96, 230, 120), "I"),
+            ["transport"] = (new SKColor(90, 140, 255), "T"),
+            ["ability"] = (new SKColor(180, 180, 190), "B"),
+            ["occurrence"] = (new SKColor(150, 150, 160), "X"),
+            ["canon"] = (new SKColor(120, 165, 160), "C"),
+        };
+
+    private static bool TryEntityStyle(string kind, out SKColor color, out string glyph)
+    {
+        if (EntityStyles.TryGetValue(kind, out var style))
+        {
+            (color, glyph) = style;
+            return true;
+        }
+
+        (color, glyph) = (SKColor.Empty, string.Empty);
+        return false;
     }
 
     private static CaptureDefinition[] BuildCaptureDefinitions(

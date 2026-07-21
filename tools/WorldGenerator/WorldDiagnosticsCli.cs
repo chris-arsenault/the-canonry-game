@@ -35,6 +35,11 @@ internal static partial class WorldDiagnosticsCli
             return ReportHeartTerrain(seed);
         }
 
+        if (args.Contains("--hex-contract", StringComparer.Ordinal))
+        {
+            return ReportHexContract(seed);
+        }
+
         var worldArgument = args.FirstOrDefault(
             static argument => argument.StartsWith("--audit-world=", StringComparison.Ordinal));
         if (worldArgument is not null)

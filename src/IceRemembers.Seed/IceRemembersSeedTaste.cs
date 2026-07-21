@@ -87,6 +87,14 @@ internal sealed class IceRemembersSeedTaste
         return score * ScoreScale;
     }
 
+    /// <summary>
+    /// The derived carrying capacity of a hex (authored formula over its
+    /// quantized facts), for validators and instruments that ask whether
+    /// ground is livable rather than whether a kind likes it.
+    /// </summary>
+    public float Capacity(HexCoord coord) =>
+        _facts.TryGetValue(coord, out var facts) ? RawCapacity(facts) : 0f;
+
     private float AxisValue(int axis, HexCoord coord, byte[] facts)
     {
         var factCode = AxisFactCodes[axis];
@@ -105,7 +113,10 @@ internal sealed class IceRemembersSeedTaste
             : CoastValue(coord);
     }
 
-    private float CapacityValue(byte[] facts)
+    private float CapacityValue(byte[] facts) =>
+        Math.Clamp(RawCapacity(facts) / CapacityNormal, 0f, 1f);
+
+    private float RawCapacity(byte[] facts)
     {
         var warmth = facts[PhysicalHexFactCodes.Temperature] +
             (facts[PhysicalHexFactCodes.Geothermal] * _formula.GeothermalBlend);
@@ -123,9 +134,8 @@ internal sealed class IceRemembersSeedTaste
             (_formula.RoughnessPenalty * facts[PhysicalHexFactCodes.Roughness] / 255f),
             0f,
             1f);
-        var capacity = (_formula.LandScale * suitability * land * fresh * shelter) +
+        return (_formula.LandScale * suitability * land * fresh * shelter) +
             (_formula.MarineScale * suitability * (1f - land));
-        return Math.Clamp(capacity / CapacityNormal, 0f, 1f);
     }
 
     private float CoastValue(HexCoord coord)

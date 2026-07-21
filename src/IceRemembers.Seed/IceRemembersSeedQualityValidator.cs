@@ -4,10 +4,21 @@ using System.Globalization;
 
 using Engine.Constants;
 using Engine.Domain.Startup;
+using Engine.Kinds;
 using Engine.WorldGen;
+
+using IceRemembers;
 
 internal static class IceRemembersSeedQualityValidator
 {
+    // Catastrophe floors, not tuning targets: generous enough that every
+    // healthy world passes, real enough that a world nobody could live in
+    // fails loudly instead of shipping.
+    private const float HabitableCapacityFloor = 1f;
+    private const int HeartHabitableCellFloor = 40;
+    private const int KindDispersionMinimumCount = 4;
+    private const float KindAdjacentShareCeiling = 0.5f;
+
     public static SeedWorldQualityReport Validate(DomainStartupSeed seed)
     {
         ArgumentNullException.ThrowIfNull(seed);
@@ -16,9 +27,104 @@ internal static class IceRemembersSeedQualityValidator
         ValidateSeedHasContent(seed, issues);
         ValidateEntityPositions(seed, issues);
         ValidateRelationships(seed, issues);
+        ValidatePlacementPartition(seed, issues);
+        ValidateKindDispersion(seed, issues);
+        ValidateHeartViability(seed, issues);
 
         return new SeedWorldQualityReport(issues);
     }
+
+    /// <summary>
+    /// The land/water partition holds for every placed entity: no kind
+    /// stands on terrain its placement profile avoids. Regions are exempt -
+    /// their coordinate is a coverage centroid, not a placement.
+    /// </summary>
+    private static void ValidatePlacementPartition(DomainStartupSeed seed, List<string> issues)
+    {
+        var physicalCellsByCoord = PhysicalCellsByCoord(seed);
+        var knownKinds = IceRemembersKinds.All.ToHashSet();
+        foreach (var entity in seed.Entities)
+        {
+            var kind = KindId.From(entity.Kind);
+            if (kind == IceRemembersKinds.Region || !knownKinds.Contains(kind))
+            {
+                continue;
+            }
+
+            var coord = new HexCoord(entity.PhysicalQ, entity.PhysicalR);
+            if (!physicalCellsByCoord.TryGetValue(coord, out var cell))
+            {
+                continue;
+            }
+
+            var profile = IceRemembersPlacementTerrainProfiles.Physical(kind, entity.Subtype, entity.Culture);
+            if (profile.AvoidedTerrains.Contains(cell.Terrain))
+            {
+                issues.Add(
+                    $"{EntityLabel(entity)} ({entity.Kind}/{entity.Subtype}) stands on avoided terrain " +
+                    $"'{cell.Terrain}' at {coord.Q},{coord.R}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// No kind clumps: when a kind has enough members to have a shape, more
+    /// than half of them sitting within distance one of a same-kind
+    /// neighbour is the seed-4200 failure mode, not a settlement pattern.
+    /// </summary>
+    private static void ValidateKindDispersion(DomainStartupSeed seed, List<string> issues)
+    {
+        foreach (var group in seed.Entities.GroupBy(entity => entity.Kind, StringComparer.Ordinal))
+        {
+            var members = group.ToArray();
+            if (members.Length < KindDispersionMinimumCount)
+            {
+                continue;
+            }
+
+            var adjacent = members.Count(entity => members.Any(other =>
+                other.SeedEntityId != entity.SeedEntityId &&
+                HexCoord.Distance(
+                    new HexCoord(entity.PhysicalQ, entity.PhysicalR),
+                    new HexCoord(other.PhysicalQ, other.PhysicalR)) <= 1));
+            var share = adjacent / (float)members.Length;
+            if (share > KindAdjacentShareCeiling)
+            {
+                issues.Add(
+                    $"kind '{group.Key}' is clustered: {adjacent} of {members.Length} members " +
+                    "sit within distance 1 of another of the same kind");
+            }
+        }
+    }
+
+    /// <summary>
+    /// The heart can carry life: enough cells whose derived capacity clears
+    /// the habitable floor. Shape-agnostic on purpose - archipelagos and
+    /// corridors both pass; a frozen slab does not.
+    /// </summary>
+    private static void ValidateHeartViability(DomainStartupSeed seed, List<string> issues)
+    {
+        if (seed.PhysicalGeography is null || seed.PhysicalGeography.Radius == 0)
+        {
+            return;
+        }
+
+        var taste = new IceRemembersSeedTaste(seed.PhysicalGeography.Cells);
+        var habitable = seed.Cells.Count(cell =>
+            cell.PlaneCode == PlaneCodes.Physical &&
+            taste.Capacity(new HexCoord(cell.Q, cell.R)) >= HabitableCapacityFloor);
+        if (habitable < HeartHabitableCellFloor)
+        {
+            issues.Add(
+                $"heart has only {habitable} habitable cells " +
+                $"(derived capacity >= {HabitableCapacityFloor}); floor is {HeartHabitableCellFloor}");
+        }
+    }
+
+    private static Dictionary<HexCoord, DomainSeedCell> PhysicalCellsByCoord(DomainStartupSeed seed) =>
+        seed.Cells
+            .Where(static cell => cell.PlaneCode == PlaneCodes.Physical)
+            .ToDictionary(static cell => new HexCoord(cell.Q, cell.R));
 
     private static void ValidateSeedHasContent(DomainStartupSeed seed, List<string> issues)
     {
