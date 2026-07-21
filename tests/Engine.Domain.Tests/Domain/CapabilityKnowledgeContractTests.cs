@@ -32,10 +32,12 @@ public sealed class CapabilityKnowledgeContractTests
         Assert.Contains(graphNode.Produces, produced =>
             produced.Ref == "$instrument" &&
             produced.CreateChance == 0.45f);
+        // Physical identity flows through site flags and placement taste
+        // now; ordered physical terrain lists carry only named flavor.
         Assert.Contains(compiledRule.ProducedEntities, produced =>
             produced.CreateChance == 0.45f &&
             produced.PhysicalPlacement == GeneratorProgramPlacement.Area &&
-            produced.PhysicalPlacementPreferredTerrainIds.Count > 0 &&
+            produced.PhysicalPlacementSiteFlags == PhysicalHexFieldCodes.AnomalyFlag &&
             produced.SemanticPlacementPreferredTerrainIds.Count > 0);
     }
 
