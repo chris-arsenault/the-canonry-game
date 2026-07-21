@@ -41,10 +41,8 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
             map,
             region,
             IceRemembersPhysicalFeature.ThermalVein,
-            triangleIndex => map.FireIntensity[triangleIndex] >= 320 &&
-                map.Physical.FractureConductance[triangleIndex] >= 430,
-            triangleIndex => map.FireIntensity[triangleIndex] >= 320 - hysteresis &&
-                map.Physical.FractureConductance[triangleIndex] >= 320);
+            triangleIndex => IsThermalVein(map, triangleIndex, 320, 430),
+            triangleIndex => IsThermalVein(map, triangleIndex, 320 - hysteresis, 320));
         AddRegionFeature(
             map,
             region,
@@ -61,18 +59,36 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
             map,
             region,
             IceRemembersPhysicalFeature.BasaltFlat,
-            triangleIndex => map.FireIntensity[triangleIndex] >= 560 &&
-                map.Physical.Slope[triangleIndex] <= PhysicalElevation.FromUnits(45),
-            triangleIndex => map.FireIntensity[triangleIndex] >= 560 - hysteresis &&
-                map.Physical.Slope[triangleIndex] <= PhysicalElevation.FromUnits(60));
+            triangleIndex => IsBasaltFlat(map, triangleIndex, 560, 45),
+            triangleIndex => IsBasaltFlat(map, triangleIndex, 560 - hysteresis, 60));
         AddRegionFeature(
             map,
             region,
             IceRemembersPhysicalFeature.ThawedHalo,
-            triangleIndex => map.FireIntensity[triangleIndex] >= 210 &&
+            triangleIndex => IsLand(map, triangleIndex) &&
+                map.FireIntensity[triangleIndex] >= 210 &&
                 map.Physical.Temperature[triangleIndex] >= 250,
-            triangleIndex => IsThawedHaloRetained(map, context, triangleIndex));
+            triangleIndex => IsLand(map, triangleIndex) &&
+                IsThawedHaloRetained(map, context, triangleIndex));
     }
+
+    private static bool IsThermalVein(
+        IceRemembersMicrogeographyMap map,
+        int triangleIndex,
+        int fire,
+        int conductance) =>
+        IsLand(map, triangleIndex) &&
+        map.FireIntensity[triangleIndex] >= fire &&
+        map.Physical.FractureConductance[triangleIndex] >= conductance;
+
+    private static bool IsBasaltFlat(
+        IceRemembersMicrogeographyMap map,
+        int triangleIndex,
+        int fire,
+        int slopeUnits) =>
+        IsLand(map, triangleIndex) &&
+        map.FireIntensity[triangleIndex] >= fire &&
+        map.Physical.Slope[triangleIndex] <= PhysicalElevation.FromUnits(slopeUnits);
 
     private static void ClearOwnedFeatures(IceRemembersMicrogeographyMap map)
     {
@@ -108,11 +124,20 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
     /// filled whole seas with hot springs. Seafloor vents are real, but they
     /// are a different feature and get their own.
     /// </summary>
+    /// <summary>
+    /// Open ocean. Fire features describe ground, and a seafloor near a plume
+    /// satisfies most of their clauses for free - it is hot, it is flat, and
+    /// it is wet - so without this check they march straight out to sea and
+    /// whichever one is checked first wins the water.
+    /// </summary>
+    private static bool IsLand(IceRemembersMicrogeographyMap map, int triangleIndex) =>
+        map.Physical.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.Ocean;
+
     private static bool IsHotSpringSeed(
         IceRemembersMicrogeographyMap map,
         int triangleIndex)
     {
-        if (map.Physical.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
+        if (!IsLand(map, triangleIndex))
         {
             return false;
         }
