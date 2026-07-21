@@ -81,6 +81,58 @@ internal static partial class WorldDiagnosticsCli
         PrintSlopeRow("in hexes >=20/24 channel", saturatedHexSlopes);
         PrintSlopeRow("in hexes with no channel", sparseHexSlopes);
         ReportFloodplainGradient(field);
+        ReportSlopeByHeight(field);
+    }
+
+    // A global slope spread cannot tell a mountainous world from a flat one
+    // ringed by sea cliffs. This splits slope by height above sea level: if
+    // relief lives only at the coast and the interior is a plain, then
+    // headwaters have no gradient to organise a drainage around and the
+    // parallel rills follow from that rather than from any channel rule.
+    private static void ReportSlopeByHeight(PhysicalGeographyField field)
+    {
+        var sea = field.EffectiveSeaLevel;
+        int[] bands = [0, 25, 60, 120, 250, 500, 1000, int.MaxValue];
+        var slopes = new List<long>[bands.Length];
+        var channelCounts = new int[bands.Length];
+        for (var i = 0; i < bands.Length; i++)
+        {
+            slopes[i] = [];
+        }
+
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (field.WaterKindCodes[t] != PhysicalWaterKindCodes.None)
+            {
+                continue;
+            }
+
+            var height = (field.Elevation[t] - sea) / 1024L;
+            var band = 0;
+            while (band < bands.Length - 1 && height >= bands[band + 1])
+            {
+                band++;
+            }
+
+            slopes[band].Add(field.Slope[t]);
+            if (field.RiverOrders[t] > 0)
+            {
+                channelCounts[band]++;
+            }
+        }
+
+        Console.WriteLine("== Slope by height above sea level ==");
+        for (var i = 0; i < bands.Length; i++)
+        {
+            if (slopes[i].Count == 0)
+            {
+                continue;
+            }
+
+            var upper = i == bands.Length - 1 ? "+" : $"-{bands[i + 1]}";
+            var channelShare = channelCounts[i] * 100d / slopes[i].Count;
+            PrintSlopeRow($"{bands[i]}{upper} ({channelShare:0.0}% channel)", slopes[i]);
+        }
     }
 
     // A hex reads floodplain once eight of its twenty-four triangles are
