@@ -315,9 +315,9 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int EpochTectonicElevationStep { get; init; } = 240;
 
-    public int FluvialErosionIterations { get; init; } = 5;
+    public int FluvialErosionIterations { get; init; } = 13;
 
-    public double FluvialErosionStrength { get; init; } = 0.045d;
+    public double FluvialErosionStrength { get; init; } = 0.320d;
 
     public int SedimentTransportFraction { get; init; } = 760;
 
