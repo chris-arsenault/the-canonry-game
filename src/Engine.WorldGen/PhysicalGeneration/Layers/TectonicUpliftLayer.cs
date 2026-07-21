@@ -67,8 +67,9 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
                 potential,
                 boundaryRelief + variation + interiorRelief - assemblySeparation);
             map.CrustThickness[triangleIndex] = PhysicalElevation.FromUnits(thicknessUnits);
-            var baseElevation =
-                PhysicalCrust.HeightUnits(thicknessUnits) / context.Profile.ElevationScale;
+            var oceanic = map.CrustTypeCodes[triangleIndex] == PhysicalCrustTypeCodes.Oceanic;
+            var baseElevation = PhysicalCrust.HeightUnits(thicknessUnits, oceanic) /
+                context.Profile.ElevationScale;
             var elevation = baseElevation +
                 MarginProfile(map, context.Profile, triangleIndex, baseElevation);
             if (context.IsEvolutionEpoch)
@@ -333,8 +334,10 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
         var nextUnits = PhysicalCrust.ClampThicknessUnits(
             currentUnits + (PhysicalElevation.ToUnits(heightDrive) / buoyancy));
         map.CrustThickness[triangleIndex] = PhysicalElevation.FromUnits(nextUnits);
+        var oceanic = map.CrustTypeCodes[triangleIndex] == PhysicalCrustTypeCodes.Oceanic;
         return PhysicalElevation.FromUnits(
-            PhysicalCrust.HeightUnits(nextUnits) - PhysicalCrust.HeightUnits(currentUnits));
+            PhysicalCrust.HeightUnits(nextUnits, oceanic) -
+            PhysicalCrust.HeightUnits(currentUnits, oceanic));
     }
 
     private static double InheritedRelief(
@@ -382,7 +385,12 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
             PhysicalTectonicBoundaryCodes.Convergent => shaped * profile.RidgeUplift *
                 ConvergentCrustScale(map, triangleIndex, context) *
                 RangeConcentration(map, context, triangleIndex),
-            PhysicalTectonicBoundaryCodes.Divergent => -shaped * profile.RiftDepth,
+            // Continental crust pulled apart thins and drops a rift valley
+            // into the landmass; oceanic divergence just spreads new floor.
+            PhysicalTectonicBoundaryCodes.Divergent => -shaped * profile.RiftDepth *
+                (map.CrustTypeCodes[triangleIndex] == PhysicalCrustTypeCodes.Continental
+                    ? profile.ContinentalRiftThinning
+                    : 1d),
             PhysicalTectonicBoundaryCodes.Transform =>
                 shaped * profile.RidgeUplift *
                 (map.CrustTypeCodes[triangleIndex] == PhysicalCrustTypeCodes.Continental ? 0.16d : 0.05d),
@@ -419,7 +427,11 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
     {
         if (map.CrustTypeCodes[triangleIndex] == PhysicalCrustTypeCodes.Continental)
         {
-            return 1d;
+            // A suture where two continents have arrived stacks crust far
+            // harder than subduction does, and it stands inland because the
+            // landmass now extends past it on both sides.
+            var collision = map.CrustCollisionIntensity[triangleIndex] / 1000d;
+            return 1d + (collision * (context.Profile.ContinentalCollisionUplift - 1d));
         }
 
         var arcNoise = PhysicalNoise.UnitNoise(

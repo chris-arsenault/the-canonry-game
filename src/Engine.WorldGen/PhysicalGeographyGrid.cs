@@ -320,6 +320,7 @@ public sealed class PhysicalGeographyField
     private readonly int[] _crustBasePotential;
     private readonly int[] _crustAssemblyIds;
     private readonly int[] _crustAssemblySeparation;
+    private readonly int[] _crustCollisionIntensity;
     private readonly int[] _crustMotionX;
     private readonly int[] _crustMotionY;
     private readonly int[] _crustProvinceIds;
@@ -453,7 +454,7 @@ public sealed class PhysicalGeographyField
             NewImpactFields(grid);
         (_externalHeatForcing, _externalCoastalForcing, _externalCoastalForcingHistory) =
             (NewField(grid), NewField(grid), NewField(grid));
-        (_moisture, _geothermal) = (new int[grid.TriangleCount], NewField(grid));
+        (_moisture, _geothermal, _crustCollisionIntensity) = (new int[grid.TriangleCount], NewField(grid), NewField(grid));
         (_mantlePlumeRootStrength, _volcanicActivity, _volcanicConstructionHistory,
             _volcanicLastActiveEpoch) = NewVolcanicFields(grid);
         _slope = NewElevationField(grid);
@@ -608,6 +609,15 @@ public sealed class PhysicalGeographyField
     public Span<int> CrustAssemblyIds => _crustAssemblyIds;
 
     public Span<int> CrustAssemblySeparation => _crustAssemblySeparation;
+
+    /// <summary>
+    /// Per-mille intensity of continent-against-continent collision. Ocean
+    /// closing against a continent subducts and builds a coastal range;
+    /// continent meeting continent has nowhere to go and stacks crust, which
+    /// is what puts a Himalaya deep inside a landmass instead of another
+    /// Andes along its shore.
+    /// </summary>
+    public Span<int> CrustCollisionIntensity => _crustCollisionIntensity;
 
     public Span<int> CrustMotionX => _crustMotionX;
 

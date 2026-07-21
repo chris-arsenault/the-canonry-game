@@ -265,7 +265,7 @@ public sealed record PhysicalGeographyGenerationProfile
     /// <see cref="ElevationScale"/>. Applied on continental crust so interiors
     /// carry macro relief instead of saturating to one plateau height.
     /// </summary>
-    public double InteriorReliefStrength { get; init; } = 0.45d;
+    public double InteriorReliefStrength { get; init; } = 0.20d;
 
     public double InteriorReliefScale { get; init; } = 12d;
 
@@ -277,6 +277,22 @@ public sealed record PhysicalGeographyGenerationProfile
     /// opposite of what mountains do.
     /// </summary>
     public double RangeConcentrationScale { get; init; } = 11d;
+
+
+
+    /// <summary>
+    /// How much harder continental collision thickens crust than ocean-
+    /// continent subduction does. Neither plate can subduct, so the crust has
+    /// nowhere to go but up and down.
+    /// </summary>
+    public double ContinentalCollisionUplift { get; init; } = 18d;
+
+    /// <summary>
+    /// How much harder divergence thins continental crust than oceanic. A rift
+    /// opening inside a landmass drops a valley into it long before it becomes
+    /// an ocean.
+    /// </summary>
+    public double ContinentalRiftThinning { get; init; } = 1.9d;
 
     /// <summary>
     /// How sharply uplift gathers onto range crests. Redistributes rather than
@@ -700,9 +716,13 @@ public sealed record PhysicalGeographyGenerationProfile
         WarmthPocketMinRadius <= 0d || HeartWarmthRadius <= 0d ||
         SeaIceVariationScale <= 0d;
 
+    private bool CollisionRangesAreInvalid() =>
+        ContinentalCollisionUplift < 0d || ContinentalRiftThinning < 0d;
+
     private bool InteriorReliefScaleIsInvalid() =>
         InteriorReliefStrength < 0d || InteriorReliefScale <= 0d ||
         RangeConcentrationScale <= 0d || RangeConcentrationSharpness < 0d ||
+        CollisionRangesAreInvalid() ||
         InteriorBeltStrength < 0d || InteriorBeltScale <= 0d ||
         InteriorBeltCoverage is <= 0d or >= 1d ||
         InteriorShareIsInvalid();

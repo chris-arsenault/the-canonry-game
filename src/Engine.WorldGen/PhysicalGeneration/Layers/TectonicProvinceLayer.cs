@@ -379,7 +379,7 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
         var potential = site.Continental
             ? Math.Max(affinity, context.Profile.ContinentalCrustPotentialFloor)
             : Math.Min(affinity, context.Profile.OceanicCrustPotentialCeiling);
-        var separation = InterAssemblySeparation(sites, selection, context.Profile);
+        var separation = AssemblyGap(map, context, sites, selection, triangleIndex);
         potential -= separation;
         if (site.Continental && separation > 0d)
         {
@@ -493,17 +493,99 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
             return;
         }
 
-        var firstSite = sites[selection.Nearest];
-        var secondSite = sites[selection.Second];
-        var dx = secondSite.X - firstSite.X;
-        var dy = secondSite.Y - firstSite.Y;
-        var length = Math.Max(0.001d, Math.Sqrt((dx * dx) + (dy * dy)));
-        var relativeMotion = ((secondSite.MotionX - firstSite.MotionX) * dx / length) +
-            ((secondSite.MotionY - firstSite.MotionY) * dy / length);
+        var relativeMotion = RelativeMotion(sites, selection);
         var boundary = BoundaryCode(relativeMotion, profile.TectonicConvergenceThreshold);
         map.TectonicBoundaryCodes[triangleIndex] = boundary;
         map.TectonicStrain[triangleIndex] = ScaleUnit(
             boundaryAmount * Math.Clamp(0.48d + Math.Abs(relativeMotion), 0d, 1d));
+    }
+
+    /// <summary>
+    /// Whether these two continental assemblies are on a collision course.
+    /// Fixed per pair for the whole world, so a collision that begins in one
+    /// epoch keeps closing in the next instead of flickering.
+    /// </summary>
+    /// <summary>
+    /// The gap between two continental assemblies, which they get only if they
+    /// are moving apart.
+    ///
+    /// Which of the two happens is already decided by how the plates move, so
+    /// it is read rather than rolled. Assemblies drifting apart rift, and ocean
+    /// belongs in the widening gap - that is what keeps the world from being a
+    /// single supercontinent, and it is why this separation exists at all.
+    /// Assemblies driving into each other have nowhere to put a gap: they weld,
+    /// and the suture ends up inland because the merged landmass runs past it
+    /// on both sides.
+    /// </summary>
+    private static double AssemblyGap(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationContext context,
+        ReadOnlySpan<ProvinceSite> sites,
+        SiteSelection selection,
+        int triangleIndex)
+    {
+        var raw = InterAssemblySeparation(sites, selection, context.Profile);
+        var converging = raw > 0d &&
+            RelativeMotion(sites, selection) < -context.Profile.TectonicConvergenceThreshold;
+        RecordCollision(map, context, sites, selection, triangleIndex, raw, converging);
+        return converging ? 0d : raw;
+    }
+
+    private static bool IsContinentalSuture(
+        ReadOnlySpan<ProvinceSite> sites,
+        SiteSelection selection,
+        double rawSeparation,
+        bool converging) =>
+        converging && selection.Second >= 0 && rawSeparation > 0d &&
+        sites[selection.Nearest].Continental && sites[selection.Second].Continental;
+
+    /// <summary>
+    /// Closing rate of the two plates resolved onto the line joining them.
+    /// Negative is approach. This is the same quantity that classifies the
+    /// boundary, so what a boundary does and what it is stay consistent.
+    /// </summary>
+    private static double RelativeMotion(
+        ReadOnlySpan<ProvinceSite> sites,
+        SiteSelection selection)
+    {
+        if (selection.Second < 0)
+        {
+            return 0d;
+        }
+
+        var first = sites[selection.Nearest];
+        var second = sites[selection.Second];
+        var dx = second.X - first.X;
+        var dy = second.Y - first.Y;
+        var length = Math.Max(0.001d, Math.Sqrt((dx * dx) + (dy * dy)));
+        return ((second.MotionX - first.MotionX) * dx / length) +
+            ((second.MotionY - first.MotionY) * dy / length);
+    }
+
+    /// <summary>
+    /// Continental crust meeting continental crust. Ocean closing against a
+    /// continent subducts and raises a coastal range; continent meeting
+    /// continent has nowhere to go, so the crust stacks and stands far inside
+    /// the landmass the two of them become.
+    /// </summary>
+    private static void RecordCollision(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationContext context,
+        ReadOnlySpan<ProvinceSite> sites,
+        SiteSelection selection,
+        int triangleIndex,
+        double rawSeparation,
+        bool converging)
+    {
+        map.CrustCollisionIntensity[triangleIndex] = 0;
+        if (!IsContinentalSuture(sites, selection, rawSeparation, converging))
+        {
+            return;
+        }
+
+        var proximity = rawSeparation /
+            Math.Max(0.001d, context.Profile.ContinentalAssemblySeparationDepth);
+        map.CrustCollisionIntensity[triangleIndex] = ScaleUnit(Math.Clamp(proximity, 0d, 1d));
     }
 
     private static double InterAssemblySeparation(

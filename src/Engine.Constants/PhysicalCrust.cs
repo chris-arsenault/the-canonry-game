@@ -23,18 +23,18 @@ public static class PhysicalCrust
     /// Thickness that floats exactly at sea level. Crust thicker than this
     /// stands above the water, thinner sits below.
     /// </summary>
-    public const int CompensationThicknessUnits = 2570;
+    public const int CompensationThicknessUnits = 1667;
 
     /// <summary>
     /// Height gained per unit of thickness above compensation, per mille.
-    /// Calibrated so the mask term alone reproduces the range the painted
-    /// sigmoid produced: oceanic crust at -900 authored units, unthickened
-    /// continent at +820. Deriving height from thickness is meant to change
-    /// where relief can come from, not to move the world's hypsometry, so
-    /// this phase is numerically neutral by construction and anything that
-    /// moves is attributable to the change in structure.
+    /// Calibrated so unthickened continent at 4,000 units stands near 700,
+    /// oceanic crust at 1,000 sits near -900 once its density drop applies,
+    /// and crust doubled by collision at 8,000 reaches about 1,900 - just
+    /// inside the elevation range the pipeline validates. The ceiling
+    /// represents doubled continental crust, which is what collision does,
+    /// rather than a height ordinary ground can reach.
     /// </summary>
-    public const int BuoyancyPerMille = 573;
+    public const int BuoyancyPerMille = 300;
 
     /// <summary>
     /// Half-range of per-province thickness variation, authored units.
@@ -54,12 +54,24 @@ public static class PhysicalCrust
     public const int MinimumThicknessUnits = 800;
 
     /// <inheritdoc cref="MinimumThicknessUnits"/>
-    public const int MaximumThicknessUnits = 5700;
+    public const int MaximumThicknessUnits = 8000;
+
+    /// <summary>
+    /// How much lower oceanic crust floats for its thickness, authored units.
+    /// Ocean floor is dense basalt and continent is lighter granite, so a
+    /// single buoyancy line cannot seat both; without this the abyss comes out
+    /// as shallow as a lowland.
+    /// </summary>
+    public const int OceanicDensityDropUnits = 700;
 
     /// <summary>Surface height in authored units for a given thickness.</summary>
-    public static double HeightUnits(double thicknessUnits) =>
-        (ClampThicknessUnits(thicknessUnits) - CompensationThicknessUnits) *
-        (BuoyancyPerMille / 1000d);
+    public static double HeightUnits(double thicknessUnits) => HeightUnits(thicknessUnits, false);
+
+    /// <summary>Surface height, accounting for oceanic crust floating lower.</summary>
+    public static double HeightUnits(double thicknessUnits, bool oceanic) =>
+        ((ClampThicknessUnits(thicknessUnits) - CompensationThicknessUnits) *
+            (BuoyancyPerMille / 1000d)) -
+        (oceanic ? OceanicDensityDropUnits : 0);
 
     /// <summary>Thickness held inside the band height can legally express.</summary>
     public static double ClampThicknessUnits(double thicknessUnits) =>

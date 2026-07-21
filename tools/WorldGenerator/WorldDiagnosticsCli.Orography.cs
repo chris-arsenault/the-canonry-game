@@ -27,8 +27,42 @@ internal static partial class WorldDiagnosticsCli
         var distance = CoastDistances(field);
         var peaks = FindPeaks(field);
         Console.WriteLine("== Orography ==");
+        ReportCollision(field, distance);
         ReportIsolation(field, peaks);
         ReportLandmassHighPoints(field, distance);
+    }
+
+    // Is continental collision happening at all, and where? A suture that only
+    // ever forms on a shoreline is subduction wearing a collision's name.
+    private static void ReportCollision(PhysicalGeographyField field, int[] distance)
+    {
+        var colliding = 0;
+        var land = 0;
+        List<long> collisionDistance = [];
+        List<long> intensity = [];
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (field.WaterKindCodes[t] != PhysicalWaterKindCodes.None)
+            {
+                continue;
+            }
+
+            land++;
+            if (field.CrustCollisionIntensity[t] <= 0)
+            {
+                continue;
+            }
+
+            colliding++;
+            collisionDistance.Add(distance[t]);
+            intensity.Add(field.CrustCollisionIntensity[t]);
+        }
+
+        Console.WriteLine(
+            $"  collision triangles={colliding} of {land} land " +
+            $"({colliding * 100d / Math.Max(1, land):0.00}%)");
+        PrintSlopeRow("collision coast distance", collisionDistance);
+        PrintSlopeRow("collision intensity", intensity);
     }
 
     private static List<int> FindPeaks(PhysicalGeographyField field)
