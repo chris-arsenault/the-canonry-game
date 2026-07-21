@@ -328,6 +328,7 @@ public sealed class PhysicalGeographyField
     private readonly int[] _marginCodes;
     private readonly int[] _crustAge;
     private readonly long[] _bedrockElevation;
+    private readonly long[] _crustThickness;
     private readonly int[] _continentalPotential;
     private readonly long[] _cumulativeCoastalErosion;
     private readonly long[] _cumulativeDeposition;
@@ -438,13 +439,13 @@ public sealed class PhysicalGeographyField
             _initialTectonicStrain) =
             (new int[grid.TriangleCount], new int[grid.TriangleCount],
                 new int[grid.TriangleCount], new int[grid.TriangleCount]);
-        _moisture = new int[grid.TriangleCount];
         (_oceanCurrentX, _oceanCurrentY, _oceanCurrentStrength, _oceanCurrentHeat,
             _waveExposure, _oceanDistance) = NewOceanFields(grid);
         (_rainfall, _snowfall, _seaIceSuitability) = NewTriple(grid);
         (_bedrockElevation, _sedimentThickness, _sedimentSupply, _cumulativeFluvialErosion,
             _cumulativeGlacialErosion, _cumulativeGlacialDeposition,
-            _cumulativeCoastalErosion, _cumulativeDeposition) = NewLandscapeHistoryFields(grid);
+            _cumulativeCoastalErosion, _cumulativeDeposition, _crustThickness) = NewLandscapeHistoryFields(grid);
+
         (_maximumIceThickness, _maximumIceFlux, _tectonicActivityHistory, _waveExposureHistory,
             _geothermalHistory) =
             (NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid));
@@ -452,7 +453,7 @@ public sealed class PhysicalGeographyField
             NewImpactFields(grid);
         (_externalHeatForcing, _externalCoastalForcing, _externalCoastalForcingHistory) =
             (NewField(grid), NewField(grid), NewField(grid));
-        _geothermal = NewField(grid);
+        (_moisture, _geothermal) = (new int[grid.TriangleCount], NewField(grid));
         (_mantlePlumeRootStrength, _volcanicActivity, _volcanicConstructionHistory,
             _volcanicLastActiveEpoch) = NewVolcanicFields(grid);
         _slope = NewElevationField(grid);
@@ -549,10 +550,11 @@ public sealed class PhysicalGeographyField
         long[] GlacialErosion,
         long[] GlacialDeposition,
         long[] CoastalErosion,
-        long[] Deposition) NewLandscapeHistoryFields(PhysicalGeographyGrid grid) =>
+        long[] Deposition,
+        long[] CrustThickness) NewLandscapeHistoryFields(PhysicalGeographyGrid grid) =>
         (NewElevationField(grid), NewElevationField(grid), NewElevationField(grid),
             NewElevationField(grid), NewElevationField(grid), NewElevationField(grid),
-            NewElevationField(grid), NewElevationField(grid));
+            NewElevationField(grid), NewElevationField(grid), NewElevationField(grid));
 
     private static (
         int[] CurrentX,
@@ -683,6 +685,17 @@ public sealed class PhysicalGeographyField
     public Span<int> SeaIceSuitability => _seaIceSuitability;
 
     public Span<long> BedrockElevation => _bedrockElevation;
+
+    /// <summary>
+    /// Crustal thickness, in the same fixed-point units as elevation. This is
+    /// the quantity geology actually changes: collision thickens it, rifting
+    /// thins it, volcanism adds to it, erosion removes it. Surface height is
+    /// derived from it by isostasy rather than painted from a continental
+    /// mask, because a mask must saturate to define "definitely land" and so
+    /// flattens exactly the interior it defines. Thickness has no such
+    /// ceiling - two collisions stack where one collided once.
+    /// </summary>
+    public Span<long> CrustThickness => _crustThickness;
 
     public Span<long> SedimentThickness => _sedimentThickness;
 

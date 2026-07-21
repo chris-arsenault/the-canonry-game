@@ -134,6 +134,7 @@ internal sealed class PlateAdvectionLayer : IPhysicalGeographyLayer
     /// </summary>
     private sealed record HistorySnapshot(
         long[] Bedrock,
+        long[] Thickness,
         long[] Sediment,
         long[] SedimentSupply,
         long[] Fluvial,
@@ -158,6 +159,7 @@ internal sealed class PlateAdvectionLayer : IPhysicalGeographyLayer
     {
         public static HistorySnapshot Capture(PhysicalGeographyField map) => new(
             map.BedrockElevation.ToArray(),
+            map.CrustThickness.ToArray(),
             map.SedimentThickness.ToArray(),
             map.SedimentSupply.ToArray(),
             map.CumulativeFluvialErosion.ToArray(),
@@ -183,6 +185,7 @@ internal sealed class PlateAdvectionLayer : IPhysicalGeographyLayer
         public void CopyInto(PhysicalGeographyField map, int source, int target)
         {
             map.BedrockElevation[target] = Bedrock[source];
+            map.CrustThickness[target] = Thickness[source];
             map.SedimentThickness[target] = Sediment[source];
             map.SedimentSupply[target] = SedimentSupply[source];
             map.CumulativeFluvialErosion[target] = Fluvial[source];
@@ -212,6 +215,11 @@ internal sealed class PlateAdvectionLayer : IPhysicalGeographyLayer
 
     private static void ResetToFreshCrust(PhysicalGeographyField map, int triangleIndex)
     {
+        // Crust born at a spreading centre is oceanic: thin, not absent. Zero
+        // thickness would read as a hole in the world once height derives from
+        // thickness.
+        map.CrustThickness[triangleIndex] = PhysicalElevation.FromUnits(
+            PhysicalCrust.OceanicThicknessUnits);
         map.SedimentThickness[triangleIndex] = 0;
         map.SedimentSupply[triangleIndex] = 0;
         map.CumulativeFluvialErosion[triangleIndex] = 0;
