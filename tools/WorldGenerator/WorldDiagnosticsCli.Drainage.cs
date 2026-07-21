@@ -85,6 +85,45 @@ internal static partial class WorldDiagnosticsCli
         ReportErosionBudget(field);
         ReportReliefByCoastDistance(field);
         ReportTerrainStructure(field);
+        ReportConvergenceCoupling(field);
+    }
+
+    // Phase 2's gate: does tectonics show up in the ground? Interior triangles
+    // on convergent boundaries should be measurably thicker, higher and
+    // steeper than interior triangles that are not. If they are not, uplift is
+    // reaching the crust without expressing itself as relief.
+    private static void ReportConvergenceCoupling(PhysicalGeographyField field)
+    {
+        var distance = CoastDistances(field);
+        var sea = field.EffectiveSeaLevel;
+        List<long> convHeight = [];
+        List<long> convSlope = [];
+        List<long> convThickness = [];
+        List<long> quietHeight = [];
+        List<long> quietSlope = [];
+        List<long> quietThickness = [];
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (field.WaterKindCodes[t] != PhysicalWaterKindCodes.None || distance[t] < 25)
+            {
+                continue;
+            }
+
+            var convergent =
+                field.TectonicBoundaryCodes[t] == PhysicalTectonicBoundaryCodes.Convergent;
+            (convergent ? convHeight : quietHeight).Add((field.Elevation[t] - sea) / 1024L);
+            (convergent ? convSlope : quietSlope).Add(field.Slope[t]);
+            (convergent ? convThickness : quietThickness).Add(
+                PhysicalElevation.ToUnits(field.CrustThickness[t]));
+        }
+
+        Console.WriteLine("== Convergence coupling (interior, d>=25) ==");
+        PrintSlopeRow("convergent slope", convSlope);
+        PrintSlopeRow("quiet slope", quietSlope);
+        PrintSlopeRow("convergent height", convHeight);
+        PrintSlopeRow("quiet height", quietHeight);
+        PrintSlopeRow("convergent thickness", convThickness);
+        PrintSlopeRow("quiet thickness", quietThickness);
     }
 
     // Gradient alone can be raised by tilting a plane, which would pass a
@@ -92,6 +131,38 @@ internal static partial class WorldDiagnosticsCli
     // network organises around, so they are the honest test that relief is
     // structure rather than a ramp. Coastline counts ride along so a relief
     // change cannot soften coastlines unnoticed.
+    private static int[] CoastDistances(PhysicalGeographyField field)
+    {
+        var distance = new int[field.Grid.TriangleCount];
+        Array.Fill(distance, -1);
+        var frontier = new Queue<int>();
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (field.WaterKindCodes[t] == PhysicalWaterKindCodes.Ocean)
+            {
+                distance[t] = 0;
+                frontier.Enqueue(t);
+            }
+        }
+
+        while (frontier.Count > 0)
+        {
+            var current = frontier.Dequeue();
+            for (var edge = 0; edge < 3; edge++)
+            {
+                var neighbor = field.Grid.NeighborTriangleIndex(current, edge);
+                if (neighbor >= 0 && distance[neighbor] < 0 &&
+                    field.WaterKindCodes[neighbor] != PhysicalWaterKindCodes.Ocean)
+                {
+                    distance[neighbor] = distance[current] + 1;
+                    frontier.Enqueue(neighbor);
+                }
+            }
+        }
+
+        return distance;
+    }
+
     private static void ReportTerrainStructure(PhysicalGeographyField field)
     {
         var land = 0;
@@ -172,32 +243,7 @@ internal static partial class WorldDiagnosticsCli
     // is the signature of relief that lives only at the continental margin.
     private static void ReportReliefByCoastDistance(PhysicalGeographyField field)
     {
-        var distance = new int[field.Grid.TriangleCount];
-        Array.Fill(distance, -1);
-        var frontier = new Queue<int>();
-        for (var t = 0; t < field.Grid.TriangleCount; t++)
-        {
-            if (field.WaterKindCodes[t] == PhysicalWaterKindCodes.Ocean)
-            {
-                distance[t] = 0;
-                frontier.Enqueue(t);
-            }
-        }
-
-        while (frontier.Count > 0)
-        {
-            var current = frontier.Dequeue();
-            for (var edge = 0; edge < 3; edge++)
-            {
-                var neighbor = field.Grid.NeighborTriangleIndex(current, edge);
-                if (neighbor >= 0 && distance[neighbor] < 0 &&
-                    field.WaterKindCodes[neighbor] != PhysicalWaterKindCodes.Ocean)
-                {
-                    distance[neighbor] = distance[current] + 1;
-                    frontier.Enqueue(neighbor);
-                }
-            }
-        }
+        var distance = CoastDistances(field);
 
         int[] bands = [1, 3, 6, 12, 25, 50, 100, 200, int.MaxValue];
         var slopes = new List<long>[bands.Length];

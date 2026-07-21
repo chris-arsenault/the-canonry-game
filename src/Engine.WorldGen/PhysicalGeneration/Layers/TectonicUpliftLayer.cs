@@ -293,11 +293,17 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
         double boundaryRelief,
         double belt)
     {
+        // Tectonics act on the crust, not on the surface. Routing the epoch's
+        // work through thickness is what lets it compound: convergence that
+        // thickens the same ground in three epochs stacks, where three
+        // repaintings of a height field would not. It also means crustal
+        // limits bound the result rather than an elevation cap.
         var beltUplift = belt * context.Profile.EpochInteriorUpliftShare / 1000d;
-        var delta = PhysicalElevation.FromUnits(
+        var heightDrive = PhysicalElevation.FromUnits(
             (boundaryRelief + beltUplift) * context.Profile.EpochTectonicElevationStep *
-                context.TectonicStrength / 1000d);
-        delta += AccretionUplift(map, context, triangleIndex);
+                context.TectonicStrength / 1000d) +
+            AccretionUplift(map, context, triangleIndex);
+        var delta = ApplyThicknessChange(map, triangleIndex, heightDrive);
         var maximumBedrock = PhysicalElevation.FromUnits(2000) - map.SedimentThickness[triangleIndex];
         var nextBedrock = Math.Clamp(
             map.BedrockElevation[triangleIndex] + delta,
@@ -308,6 +314,27 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
         LandscapeSurface.Rebuild(map, triangleIndex);
         map.TectonicActivityHistory[triangleIndex] = checked(
             map.TectonicActivityHistory[triangleIndex] + PhysicalElevation.ToUnits(Math.Abs(applied)));
+    }
+
+    /// <summary>
+    /// Turns an intended height change into the thickness change that would
+    /// produce it, applies that to the crust, and reports the height the crust
+    /// actually gained. They differ where the crust hits its thickness limits,
+    /// which is the point: a range stops growing because the crust cannot
+    /// thicken further, not because a height cap intervened.
+    /// </summary>
+    private static long ApplyThicknessChange(
+        PhysicalGeographyField map,
+        int triangleIndex,
+        long heightDrive)
+    {
+        var buoyancy = PhysicalCrust.BuoyancyPerMille / 1000d;
+        var currentUnits = PhysicalElevation.ToUnits(map.CrustThickness[triangleIndex]);
+        var nextUnits = PhysicalCrust.ClampThicknessUnits(
+            currentUnits + (PhysicalElevation.ToUnits(heightDrive) / buoyancy));
+        map.CrustThickness[triangleIndex] = PhysicalElevation.FromUnits(nextUnits);
+        return PhysicalElevation.FromUnits(
+            PhysicalCrust.HeightUnits(nextUnits) - PhysicalCrust.HeightUnits(currentUnits));
     }
 
     private static double InheritedRelief(
