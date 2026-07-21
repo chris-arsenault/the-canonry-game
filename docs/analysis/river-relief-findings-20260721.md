@@ -36,6 +36,39 @@ triangles sit on that plateau, basins fragment into thousands of
 three-triangle units, parallel strands never converge, flat ground pools
 into lakes, and interiors read as marsh.
 
+### Relief lives only at the coast
+
+Walking outward from the ocean separates "far inland" from "high":
+
+| distance from ocean | triangles | height p50 | slope p50 |
+|---|---|---|---|
+| 1–3 | 31,406 | 550 | 204,217 |
+| 3–6 | 41,103 | 596 | 41,970 |
+| 6–12 | 67,760 | 667 | 36,295 |
+| 12–25 | 94,000 | 812 | 23,467 |
+| 25–50 | 113,728 | 885 | 15,886 |
+| 50–100 | 168,131 | 822 | 13,813 |
+| 100–200 | 134,208 | 749 | 9,747 |
+| 200+ | 35,726 | 813 | 14,698 |
+
+Slope falls 21x from shore to deep interior and is effectively gone by 12
+triangles inland, while height barely moves (550 to 885 to 813). The
+continent climbs to roughly 800 units within three triangles of the sea
+and is then a table at that height for hundreds of triangles.
+
+Erosion is not responsible: median cumulative fluvial erosion is 3,375
+subunits against a p10–p90 elevation spread of 695,108, or 0.5%.
+
+Suspected mechanism, not yet confirmed: in `TectonicUpliftLayer`,
+`baseElevation = (potential - 0.5) * 1.72 - 0.04`. If
+`ContinentalPotential` saturates near its maximum across continental
+interiors, `baseElevation` is constant inland and the coast is merely
+where potential sweeps from 0.5 to 1.0. Interior texture would then have
+to come entirely from `InteriorReliefStrength` (0.45) and
+`ElevationVariationStrength` (0.12), which are long-wavelength and weak
+against a saturated base — meaning interior relief cannot be fixed by
+tuning the relief terms while the base term saturates.
+
 ### Methodological warning
 
 A whole-map slope distribution spans three orders of magnitude
@@ -101,10 +134,11 @@ changes.
 Relief first. Every constant below was calibrated against plateau data
 and will need re-measuring afterwards.
 
-1. **Interior relief.** Give continents inland mountains, hills, and
-   valleys rather than a cliff rim around tableland. Establish whether
-   relief generation never produces inland structure or whether a later
-   pass planes it off.
+1. **Interior relief.** Confirm whether `ContinentalPotential` saturates
+   inland, and if so stop `baseElevation` depending on it in a way that
+   flattens interiors. Erosion is already ruled out as the cause. Target:
+   interior median slope rises well above 12,528 while the p10–p90
+   elevation spread stays near 695,108 — texture, not more height.
 2. **Gradient gate on floodplain.** `RiverLand → Floodplain` requires low
    median gradient; steep and channelled routes to crags or a gorge-like
    terrain.

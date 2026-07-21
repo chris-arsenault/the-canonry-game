@@ -82,6 +82,119 @@ internal static partial class WorldDiagnosticsCli
         PrintSlopeRow("in hexes with no channel", sparseHexSlopes);
         ReportFloodplainGradient(field);
         ReportSlopeByHeight(field);
+        ReportErosionBudget(field);
+        ReportReliefByCoastDistance(field);
+    }
+
+    // Height above sea level conflates "far inland" with "high", because the
+    // swells centre inland. Walking outward from the ocean separates them: it
+    // shows whether local gradient decays with distance from the coast, which
+    // is the signature of relief that lives only at the continental margin.
+    private static void ReportReliefByCoastDistance(PhysicalGeographyField field)
+    {
+        var distance = new int[field.Grid.TriangleCount];
+        Array.Fill(distance, -1);
+        var frontier = new Queue<int>();
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (field.WaterKindCodes[t] == PhysicalWaterKindCodes.Ocean)
+            {
+                distance[t] = 0;
+                frontier.Enqueue(t);
+            }
+        }
+
+        while (frontier.Count > 0)
+        {
+            var current = frontier.Dequeue();
+            for (var edge = 0; edge < 3; edge++)
+            {
+                var neighbor = field.Grid.NeighborTriangleIndex(current, edge);
+                if (neighbor >= 0 && distance[neighbor] < 0 &&
+                    field.WaterKindCodes[neighbor] != PhysicalWaterKindCodes.Ocean)
+                {
+                    distance[neighbor] = distance[current] + 1;
+                    frontier.Enqueue(neighbor);
+                }
+            }
+        }
+
+        int[] bands = [1, 3, 6, 12, 25, 50, 100, 200, int.MaxValue];
+        var slopes = new List<long>[bands.Length];
+        var heights = new List<long>[bands.Length];
+        for (var i = 0; i < bands.Length; i++)
+        {
+            slopes[i] = [];
+            heights[i] = [];
+        }
+
+        var sea = field.EffectiveSeaLevel;
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (field.WaterKindCodes[t] != PhysicalWaterKindCodes.None || distance[t] <= 0)
+            {
+                continue;
+            }
+
+            var band = 0;
+            while (band < bands.Length - 1 && distance[t] >= bands[band + 1])
+            {
+                band++;
+            }
+
+            slopes[band].Add(field.Slope[t]);
+            heights[band].Add((field.Elevation[t] - sea) / 1024L);
+        }
+
+        Console.WriteLine("== Relief by triangle distance from ocean ==");
+        for (var i = 0; i < bands.Length; i++)
+        {
+            if (slopes[i].Count == 0)
+            {
+                continue;
+            }
+
+            var sortedHeight = heights[i].ToArray();
+            Array.Sort(sortedHeight);
+            var upper = i == bands.Length - 1 ? "+" : $"-{bands[i + 1]}";
+            PrintSlopeRow(
+                $"d{bands[i]}{upper} height p50={PercentileLong(sortedHeight, 50)}",
+                slopes[i]);
+        }
+    }
+
+    // Relief is generated, so if the interior is flat something removed it.
+    // Comparing cumulative erosion against the elevation spread says whether
+    // erosion is planing the continents into a peneplain.
+    private static void ReportErosionBudget(PhysicalGeographyField field)
+    {
+        var elevations = new List<long>();
+        var erosion = new List<long>();
+        var bedrockGap = new List<long>();
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (field.WaterKindCodes[t] != PhysicalWaterKindCodes.None)
+            {
+                continue;
+            }
+
+            elevations.Add(field.Elevation[t]);
+            erosion.Add(field.CumulativeFluvialErosion[t]);
+            bedrockGap.Add(field.Elevation[t] - field.BedrockElevation[t]);
+        }
+
+        Console.WriteLine("== Erosion budget vs elevation spread (subunits) ==");
+        PrintSlopeRow("land elevation", elevations);
+        PrintSlopeRow("cumulative fluvial erosion", erosion);
+        PrintSlopeRow("elevation - bedrock", bedrockGap);
+        var sortedElevation = elevations.ToArray();
+        Array.Sort(sortedElevation);
+        var spread = PercentileLong(sortedElevation, 90) - PercentileLong(sortedElevation, 10);
+        var sortedErosion = erosion.ToArray();
+        Array.Sort(sortedErosion);
+        Console.WriteLine(
+            $"  p10-p90 elevation spread={spread}; median erosion={PercentileLong(sortedErosion, 50)} " +
+            $"({(spread == 0 ? 0 : PercentileLong(sortedErosion, 50) * 100d / spread):0.0}% of spread)");
     }
 
     // A global slope spread cannot tell a mountainous world from a flat one
