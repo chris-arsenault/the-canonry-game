@@ -62,7 +62,7 @@ internal sealed class FluvialErosionLayer : IPhysicalGeographyLayer
                 // gorge walls, waterfall lips and summits that stand clear of
                 // their surroundings. Without it a landscape dissects into
                 // even roughness no matter how much relief it started with.
-                var resistance = Math.Max(1, map.RockResistance[triangleIndex]);
+                var resistance = SurfaceResistance(map, triangleIndex);
                 var cut = PhysicalElevation.FromUnits(
                     Math.Min(
                         22d,
@@ -96,6 +96,22 @@ internal sealed class FluvialErosionLayer : IPhysicalGeographyLayer
                 throw new InvalidOperationException("Fluvial erosion produced an invalid elevation.");
             }
         }
+    }
+
+    /// <summary>
+    /// What the water is actually cutting. Loose cover governs while it is
+    /// there: an ejecta apron is debris, so it strips back off and re-exposes
+    /// the hard ring beneath rather than protecting the ground it landed on.
+    /// </summary>
+    private static double SurfaceResistance(PhysicalGeographyField map, int triangleIndex)
+    {
+        var cover = Math.Clamp(
+            map.SedimentThickness[triangleIndex] /
+                (double)PhysicalElevation.FromUnits(PhysicalRock.SedimentCoverUnits),
+            0d,
+            1d);
+        var rock = Math.Max(1, map.RockResistance[triangleIndex]);
+        return Math.Max(1d, rock + ((PhysicalRock.SedimentResistance - rock) * cover));
     }
 
     private static int[] AccumulateContributingArea(PhysicalGeographyField map, int[] targets)

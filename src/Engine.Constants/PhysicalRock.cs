@@ -21,6 +21,20 @@ public static class PhysicalRock
     /// </summary>
     public const int ImpactShockResistance = 2600;
 
+    /// <summary>
+    /// Resistance of loose cover: ejecta aprons, alluvium, anything not yet
+    /// rock. Debris is the least durable material a planet makes, so a blanket
+    /// laid over hard ground washes off it rather than inheriting its
+    /// durability and burying it forever.
+    /// </summary>
+    public const int SedimentResistance = 300;
+
+    /// <summary>
+    /// Sediment depth, in authored units, at which cover fully governs how
+    /// fast the ground wears. Below it, rock beneath still shows through.
+    /// </summary>
+    public const int SedimentCoverUnits = 25;
+
     public static int Clamp(int resistance) =>
         global::System.Math.Clamp(resistance, MinimumResistance, MaximumResistance);
 }
