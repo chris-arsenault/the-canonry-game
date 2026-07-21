@@ -122,10 +122,12 @@ internal static partial class WorldDiagnosticsCli
         int[] bands = [1, 3, 6, 12, 25, 50, 100, 200, int.MaxValue];
         var slopes = new List<long>[bands.Length];
         var heights = new List<long>[bands.Length];
+        var potentials = new List<long>[bands.Length];
         for (var i = 0; i < bands.Length; i++)
         {
             slopes[i] = [];
             heights[i] = [];
+            potentials[i] = [];
         }
 
         var sea = field.EffectiveSeaLevel;
@@ -144,6 +146,7 @@ internal static partial class WorldDiagnosticsCli
 
             slopes[band].Add(field.Slope[t]);
             heights[band].Add((field.Elevation[t] - sea) / 1024L);
+            potentials[band].Add(field.ContinentalPotential[t]);
         }
 
         Console.WriteLine("== Relief by triangle distance from ocean ==");
@@ -156,9 +159,14 @@ internal static partial class WorldDiagnosticsCli
 
             var sortedHeight = heights[i].ToArray();
             Array.Sort(sortedHeight);
+            var sortedPotential = potentials[i].ToArray();
+            Array.Sort(sortedPotential);
             var upper = i == bands.Length - 1 ? "+" : $"-{bands[i + 1]}";
             PrintSlopeRow(
-                $"d{bands[i]}{upper} height p50={PercentileLong(sortedHeight, 50)}",
+                $"d{bands[i]}{upper} h={PercentileLong(sortedHeight, 50)} " +
+                $"pot p10={PercentileLong(sortedPotential, 10)} " +
+                $"p50={PercentileLong(sortedPotential, 50)} " +
+                $"p90={PercentileLong(sortedPotential, 90)}",
                 slopes[i]);
         }
     }

@@ -59,7 +59,57 @@ and is then a table at that height for hundreds of triangles.
 Erosion is not responsible: median cumulative fluvial erosion is 3,375
 subunits against a p10–p90 elevation spread of 695,108, or 0.5%.
 
-Suspected mechanism, not yet confirmed: in `TectonicUpliftLayer`,
+#### Confirmed: the continental mask saturates
+
+`ContinentalPotential` is a 0–1000 field, by distance from ocean:
+
+| distance | pot p10 | pot p50 | pot p90 |
+|---|---|---|---|
+| 1–3 | 0 | 321 | 1000 |
+| 6–12 | 0 | 636 | 1000 |
+| 12–25 | 0 | 937 | 1000 |
+| 25–50 | 30 | **1000** | 1000 |
+| 100–200 | 166 | **1000** | 1000 |
+| 200+ | 987 | **1000** | 1000 |
+
+Beyond roughly 25 triangles inland it is pinned at its ceiling. Feeding
+that into `baseElevation = (potential - 0.5) * 1.72 - 0.04` yields a hard
+constant of 0.82 across the interior: the dominant elevation term
+contributes zero gradient over 83% of land. The coast is steep only
+because it is the narrow strip where potential sweeps 0 to 1000 before
+clipping.
+
+The underlying fault is that `ContinentalPotential` serves two
+incompatible roles. As a land/ocean **mask** it must saturate, or
+coastlines go mushy. As an **elevation driver** it must keep varying, or
+interiors go flat. The mask requirement wins, so it flattens exactly the
+region it defines as land.
+
+#### This was diagnosed and "fixed" once already
+
+Commit `02e7fdc` (2026-07-20) states: *"Interior relief (macro
+highlands/basins plus epoch-stable ridged belts) now feeds base
+elevation, replacing the saturating coastal sigmoid that made every
+continent a flat mesa."* Same diagnosis, one day earlier.
+
+It did not hold, for two reasons worth keeping:
+
+1. **The change was additive, not structural.** `interiorRelief` was
+   added as another term beside `baseElevation` rather than replacing it,
+   so the saturating term still contributes its constant 0.82 and the new
+   relief is gentle long-wavelength swells laid over a table.
+2. **The success metric could not detect the failure.** It reported
+   `land p25/p75 relief band 77u -> 413u`, a global hypsometry spread.
+   Broad swells raise that enormously while local gradient is untouched.
+   Today's world has a healthy global spread (p10–p90 of 695,108) and a
+   median interior slope of 12,528.
+
+**Acceptance metric for any relief change: local gradient bucketed by
+distance from coast.** A global relief band, hypsometric spread, or
+whole-map slope distribution cannot distinguish real terrain from a
+plateau with swells, and has now allowed the same defect to pass twice.
+
+Superseded suspicion, kept for the record: in `TectonicUpliftLayer`,
 `baseElevation = (potential - 0.5) * 1.72 - 0.04`. If
 `ContinentalPotential` saturates near its maximum across continental
 interiors, `baseElevation` is constant inland and the coast is merely
