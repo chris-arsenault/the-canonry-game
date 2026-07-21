@@ -74,10 +74,65 @@ internal static partial class WorldDiagnosticsCli
         }
 
         Console.WriteLine("== Slope signal (fixed-point subunits) ==");
+        Console.WriteLine(
+            $"  scree threshold = {72 * 1024}; a floodplain is by definition low-gradient");
         PrintSlopeRow("all land", landSlopes);
         PrintSlopeRow("channel triangles", channelSlopes);
         PrintSlopeRow("in hexes >=20/24 channel", saturatedHexSlopes);
         PrintSlopeRow("in hexes with no channel", sparseHexSlopes);
+        ReportFloodplainGradient(field);
+    }
+
+    // A hex reads floodplain once eight of its twenty-four triangles are
+    // river-land, with nothing said about gradient. If those hexes are steep,
+    // the label is a category error: that ground is a ravine, not a floodplain.
+    private static void ReportFloodplainGradient(PhysicalGeographyField field)
+    {
+        const long ScreeSlope = 72 * 1024;
+        var wouldBeFloodplain = 0;
+        var steepFloodplain = 0;
+        var medians = new List<long>();
+        for (var hex = 0; hex < field.Grid.ConfiguredHexCount; hex++)
+        {
+            var hexIndex = field.Grid.ConfiguredHexIndexAt(hex);
+            var riverLand = 0;
+            var slopes = new List<long>();
+            for (var local = 0; local < PhysicalGeographyCodes.MicrotrianglesPerHex; local++)
+            {
+                var t = field.Grid.TriangleIndex(hexIndex, local);
+                if (field.WaterKindCodes[t] != PhysicalWaterKindCodes.None)
+                {
+                    continue;
+                }
+
+                slopes.Add(field.Slope[t]);
+                if (field.RiverOrders[t] > 0)
+                {
+                    riverLand++;
+                }
+            }
+
+            if (riverLand < 8 || slopes.Count == 0)
+            {
+                continue;
+            }
+
+            wouldBeFloodplain++;
+            var sorted = slopes.ToArray();
+            Array.Sort(sorted);
+            var median = PercentileLong(sorted, 50);
+            medians.Add(median);
+            if (median >= ScreeSlope)
+            {
+                steepFloodplain++;
+            }
+        }
+
+        Console.WriteLine(
+            $"  hexes reading floodplain (>=8/24 channel): {wouldBeFloodplain}; " +
+            $"of those, median slope at or above scree: {steepFloodplain} " +
+            $"({(wouldBeFloodplain == 0 ? 0 : steepFloodplain * 100d / wouldBeFloodplain):0.0}%)");
+        PrintSlopeRow("their per-hex median slope", medians);
     }
 
     private static void PrintSlopeRow(string label, List<long> values)
