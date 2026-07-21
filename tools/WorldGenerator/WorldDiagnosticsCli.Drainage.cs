@@ -134,9 +134,9 @@ internal static partial class WorldDiagnosticsCli
         }
 
         Console.WriteLine(
-            $"  overlay: drawn={drawn} breaks={breaks} " +
-            $"({(drawn == 0 ? 0 : breaks * 100d / drawn):0.0}% of drawn triangles " +
-            $"hand off to nothing drawn)");
+            $"  thalweg: {drawn} triangles carry the line, {breaks} gaps for the " +
+            $"projection to close ({(drawn == 0 ? 0 : breaks * 100d / drawn):0.0}%). " +
+            $"Not a defect count - the drawn map closes all of these.");
     }
 
     // Discrete geography, as the things a name can attach to.
