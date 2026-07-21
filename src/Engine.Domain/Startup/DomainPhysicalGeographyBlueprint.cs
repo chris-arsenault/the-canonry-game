@@ -15,10 +15,12 @@ public sealed record DomainPhysicalGeographyBlueprint(
     IReadOnlyList<string> FeaturePalette,
     IReadOnlyList<DomainPhysicalScalarField> ScalarFields,
     IReadOnlyList<DomainPhysicalGeographyCell> Cells,
-    IReadOnlyList<DomainPhysicalMicrotriangle> Microtriangles)
+    IReadOnlyList<DomainPhysicalMicrotriangle> Microtriangles,
+    IReadOnlyList<DomainGeologicalFeature> GeologicalFeatures,
+    IReadOnlyList<DomainGeologicalFeatureCoverage> GeologicalFeatureCoverage)
 {
     public static DomainPhysicalGeographyBlueprint Empty { get; } =
-        new(0, 0, [], [], [], [], [], []);
+        new(0, 0, [], [], [], [], [], [], [], []);
 
     public void Validate()
     {
@@ -204,6 +206,7 @@ public static class DomainPhysicalGeographyFacts
         facts[PhysicalHexFactCodes.PressureMean] = PhysicalHexFactCodes.FromIntensity(cell.MeanPressureIntensity);
         facts[PhysicalHexFactCodes.PressureMax] = PhysicalHexFactCodes.FromIntensity(cell.MaxPressureIntensity);
     }
+
 }
 
 public readonly record struct DomainPhysicalGeographyCell(
@@ -289,3 +292,20 @@ public readonly record struct DomainPhysicalMicrotriangle(
 public sealed record DomainPhysicalScalarField(
     string StableName,
     IReadOnlyList<int> Values);
+
+/// <summary>
+/// A piece of geography discrete enough to name: a river system, a lake, a
+/// range. Identified during generation, where triangles are in scope, and
+/// carried onward purely in hex terms so gameplay can read it without ever
+/// seeing a triangle.
+/// </summary>
+public readonly record struct DomainGeologicalFeature(
+    int Id,
+    int Kind,
+    int AnchorQ,
+    int AnchorR,
+    int Magnitude,
+    int HexCount);
+
+/// <summary>One hex that a feature covers.</summary>
+public readonly record struct DomainGeologicalFeatureCoverage(int FeatureId, int Q, int R);

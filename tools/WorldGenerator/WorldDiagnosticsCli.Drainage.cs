@@ -89,6 +89,7 @@ internal static partial class WorldDiagnosticsCli
         ReportOrography(field);
         ReportOverlayContinuity(field, ReconstructFlowTargets(field));
         ReportLakeCrossings(field, ReconstructFlowTargets(field));
+        ReportGeologicalFeatures(field);
     }
 
     // NOTE: this replicates the thalweg rule against the field, so it reports
@@ -136,6 +137,23 @@ internal static partial class WorldDiagnosticsCli
             $"  overlay: drawn={drawn} breaks={breaks} " +
             $"({(drawn == 0 ? 0 : breaks * 100d / drawn):0.0}% of drawn triangles " +
             $"hand off to nothing drawn)");
+    }
+
+    // Discrete geography, as the things a name can attach to.
+    private static void ReportGeologicalFeatures(PhysicalGeographyField field)
+    {
+        var features = MapGeologicalFeatureIdentification.Identify(field);
+        Console.WriteLine("== Geological features ==");
+        foreach (var group in features.Features.Values
+            .GroupBy(feature => feature.Kind)
+            .OrderByDescending(group => group.Count()))
+        {
+            var sorted = group.OrderByDescending(feature => feature.Magnitude).ToArray();
+            Console.WriteLine(
+                $"  {group.Key,-12} count={sorted.Length,4} " +
+                $"largest magnitude={sorted[0].Magnitude} hexes={sorted[0].HexCount} " +
+                $"at ({sorted[0].Anchor.Q},{sorted[0].Anchor.R})");
+        }
     }
 
     // How many lakes a river actually runs through. A lake with water coming

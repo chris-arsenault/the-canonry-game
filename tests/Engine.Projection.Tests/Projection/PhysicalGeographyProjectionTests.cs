@@ -30,7 +30,9 @@ public sealed class PhysicalGeographyProjectionTests
                     Enumerable.Range(0, triangles.Length).ToArray()),
             ],
             Cells: cells,
-            Microtriangles: triangles);
+            Microtriangles: triangles,
+            GeologicalFeatures: [],
+            GeologicalFeatureCoverage: []);
 
         var projection = PhysicalGeographyProjection.FromBlueprint(blueprint);
 

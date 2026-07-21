@@ -61,7 +61,7 @@ centre on (-8,12), which is `reef` - open sea, not a lake - so no crossing
 appears in them. A capture centred on a lake with a through-river would settle
 it.
 
-### 3. Geological feature pass — `todo`
+### 3. Geological feature pass — `doing`
 
 Worldgen identifies features; each gets an internal ID, a type, a primary
 `HexCoord`, a magnitude, and the set of hexes it covers. Persisted into the
@@ -71,10 +71,25 @@ features are here, of what type and size.
 Start with **river systems**, because it subsumes items 1 and 2 — the same
 network walk yields the hex-level system identity and the triangle-level line.
 
-Then: peaks and ranges (topographic isolation already computed), lakes and
-inland seas (`WaterBodyId` exists), plains and basins (connected low relief),
-notable waterfalls (drop and discharge, to separate the few from the
-thousands), craters (the durable rings are already legible landmarks).
+**Landed 2026-07-21:** `MapGeologicalFeatureMap` and
+`MapGeologicalFeatureIdentification` in Engine.WorldGen, carried into the
+blueprint as a feature table plus hex coverage, through the seed cache
+serializer, so gameplay reads features without ever seeing a triangle. IDs hash
+from kind and anchor position rather than from discovery order.
+
+River systems walk upstream from each ocean mouth above a discharge floor, so a
+name attaches to the whole river rather than to the reach in front of you.
+Lakes come from `WaterBodyId` above an area floor. Seed 4200: **60 river
+systems** (largest 201 hexes, 1,756,738 discharge) and **49 lakes** (largest
+213 hexes).
+
+**Remaining kinds:** peaks and ranges (topographic isolation already computed),
+plains and basins (connected low relief), notable waterfalls (drop and
+discharge, to separate the few from the thousands), craters (the durable rings
+are already legible landmarks).
+
+**Not yet done:** the kernel-facing accessor. The data is persisted and
+hex-keyed in the blueprint, but nothing in the kernel reads it yet.
 
 ### 4. Trunk rivers at hex zoom — `done` (2026-07-21)
 

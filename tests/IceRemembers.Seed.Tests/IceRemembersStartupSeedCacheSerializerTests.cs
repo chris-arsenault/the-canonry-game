@@ -187,7 +187,14 @@ public sealed class IceRemembersStartupSeedCacheSerializerTests
                 "fire_intensity",
                 Enumerable.Repeat(7, triangleCount).ToArray())],
             CreatePhysicalCells(),
-            CreatePhysicalMicrotriangles());
+            CreatePhysicalMicrotriangles(),
+            // A feature and its coverage, so the round trip is actually
+            // exercised rather than only the empty case.
+            [new DomainGeologicalFeature(4211, 0, 2, -1, 91_000, 3)],
+            [
+                new DomainGeologicalFeatureCoverage(4211, 2, -1),
+                new DomainGeologicalFeatureCoverage(4211, 3, -1),
+            ]);
     }
 
     private static DomainPhysicalGeographyCell[] CreatePhysicalCells() =>

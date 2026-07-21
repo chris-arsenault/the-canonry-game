@@ -134,6 +134,9 @@ internal static partial class IceRemembersSeedBuilder
             AddDomainMicrotriangles(field, hexIndex, materialIndexes, magic, microtriangles);
         }
 
+        // Discrete geography, identified here where triangles are still in
+        // scope and handed on purely in hex terms.
+        var (features, coverage) = BuildGeologicalFeatures(field);
         var blueprint = new DomainPhysicalGeographyBlueprint(
             GenerationRadius,
             magic.CompletedEpochCount,
@@ -142,9 +145,40 @@ internal static partial class IceRemembersSeedBuilder
             IceRemembersPhysicalGeography.FeaturePalette,
             CreateScalarFields(field, magic),
             cells,
-            microtriangles);
+            microtriangles,
+            features,
+            coverage);
         blueprint.Validate();
         return blueprint;
+    }
+
+    private static (List<DomainGeologicalFeature> Features,
+        List<DomainGeologicalFeatureCoverage> Coverage) BuildGeologicalFeatures(
+        PhysicalGeographyField field)
+    {
+        var identified = MapGeologicalFeatureIdentification.Identify(field);
+        var features = new List<DomainGeologicalFeature>(identified.Features.Count);
+        var coverage = new List<DomainGeologicalFeatureCoverage>();
+        foreach (var feature in identified.Features.Values.OrderBy(entry => entry.Id))
+        {
+            features.Add(new DomainGeologicalFeature(
+                feature.Id,
+                (int)feature.Kind,
+                feature.Anchor.Q,
+                feature.Anchor.R,
+                feature.Magnitude,
+                feature.HexCount));
+        }
+
+        foreach (var coord in identified.CoveredCoords())
+        {
+            foreach (var id in identified.At(coord))
+            {
+                coverage.Add(new DomainGeologicalFeatureCoverage(id, coord.Q, coord.R));
+            }
+        }
+
+        return (features, coverage);
     }
 
     private static void AddDomainMicrotriangles(

@@ -321,7 +321,41 @@ internal static class IceRemembersStartupSeedCacheSerializer
         WriteList(writer, geography.ScalarFields, WritePhysicalScalarField);
         WriteList(writer, geography.Cells, WritePhysicalCell);
         WriteList(writer, geography.Microtriangles, WriteMicrotriangle);
+        WriteList(writer, geography.GeologicalFeatures, WriteGeologicalFeature);
+        WriteList(writer, geography.GeologicalFeatureCoverage, WriteGeologicalFeatureCoverage);
     }
+
+    private static void WriteGeologicalFeature(BinaryWriter writer, DomainGeologicalFeature feature)
+    {
+        writer.Write(feature.Id);
+        writer.Write(feature.Kind);
+        writer.Write(feature.AnchorQ);
+        writer.Write(feature.AnchorR);
+        writer.Write(feature.Magnitude);
+        writer.Write(feature.HexCount);
+    }
+
+    private static DomainGeologicalFeature ReadGeologicalFeature(BinaryReader reader) =>
+        new(
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32(),
+            reader.ReadInt32());
+
+    private static void WriteGeologicalFeatureCoverage(
+        BinaryWriter writer,
+        DomainGeologicalFeatureCoverage coverage)
+    {
+        writer.Write(coverage.FeatureId);
+        writer.Write(coverage.Q);
+        writer.Write(coverage.R);
+    }
+
+    private static DomainGeologicalFeatureCoverage ReadGeologicalFeatureCoverage(
+        BinaryReader reader) =>
+        new(reader.ReadInt32(), reader.ReadInt32(), reader.ReadInt32());
 
     private static DomainPhysicalGeographyBlueprint? ReadPhysicalGeography(BinaryReader reader)
     {
@@ -342,6 +376,16 @@ internal static class IceRemembersStartupSeedCacheSerializer
             MaximumMicrotriangleCount,
             "physical microtriangle",
             ReadMicrotriangle);
+        var features = ReadArray(
+            reader,
+            MaximumPhysicalCellCount,
+            "geological feature",
+            ReadGeologicalFeature);
+        var featureCoverage = ReadArray(
+            reader,
+            MaximumMicrotriangleCount,
+            "geological feature coverage",
+            ReadGeologicalFeatureCoverage);
         return new DomainPhysicalGeographyBlueprint(
             radius,
             generationEpochCount,
@@ -350,7 +394,9 @@ internal static class IceRemembersStartupSeedCacheSerializer
             featurePalette,
             scalarFields,
             cells,
-            microtriangles);
+            microtriangles,
+            features,
+            featureCoverage);
     }
 
     private static void WritePhysicalScalarField(BinaryWriter writer, DomainPhysicalScalarField field)
