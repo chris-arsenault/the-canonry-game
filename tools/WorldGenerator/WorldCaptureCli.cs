@@ -26,7 +26,7 @@ internal static class WorldCaptureCli
 
     public static int Run(string[] args)
     {
-        if (!TryReadOptions(args, out var worldPath, out var outputDirectory))
+        if (!TryReadOptions(args, out var worldPath))
         {
             PrintUsage();
             return 2;
@@ -39,20 +39,49 @@ internal static class WorldCaptureCli
             return 2;
         }
 
-        var fullOutputDirectory = Path.GetFullPath(outputDirectory);
-        Directory.CreateDirectory(fullOutputDirectory);
-        return CaptureWorld(fullWorldPath, fullOutputDirectory);
+        return CaptureWorld(fullWorldPath, ResolveCaptureRoot(fullWorldPath));
     }
 
-    private static int CaptureWorld(string fullWorldPath, string fullOutputDirectory)
+    /// <summary>
+    /// Captures always land in the repository's capture directory. There is
+    /// deliberately no way to redirect them: these screenshots are reviewed by
+    /// hand, and a caller free to choose the path is a caller free to write
+    /// them somewhere nobody is looking.
+    /// </summary>
+    private static string ResolveCaptureRoot(string fullWorldPath)
+    {
+        var directory = new DirectoryInfo(
+            Path.GetDirectoryName(fullWorldPath) ??
+            throw new InvalidOperationException("World path has no parent directory."));
+        while (directory is not null &&
+            !File.Exists(Path.Combine(directory.FullName, "TheCanonryGame.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        if (directory is null)
+        {
+            throw new InvalidOperationException(
+                $"Could not locate the repository root above '{fullWorldPath}'.");
+        }
+
+        return Path.Combine(directory.FullName, ".artifacts", "captures");
+    }
+
+    private static IceRemembersPregeneratedWorldInfo? FindWorld(string fullWorldPath)
     {
         var worldDirectory = Path.GetDirectoryName(fullWorldPath) ??
             throw new InvalidOperationException("World path has no parent directory.");
-        var world = IceRemembersPregeneratedWorldStore.Discover(worldDirectory)
+        return IceRemembersPregeneratedWorldStore.Discover(worldDirectory)
             .SingleOrDefault(candidate => string.Equals(
                 Path.GetFullPath(candidate.Path),
                 fullWorldPath,
                 StringComparison.Ordinal));
+    }
+
+    private static int CaptureWorld(string fullWorldPath, string captureRoot)
+    {
+        var world = FindWorld(fullWorldPath);
         if (world is null)
         {
             Console.Error.WriteLine(
@@ -69,6 +98,12 @@ internal static class WorldCaptureCli
             return 2;
         }
 
+        // One directory per seed, so the newest capture of a seed always
+        // replaces the last and there is a single place to look.
+        var fullOutputDirectory = Path.Combine(
+            captureRoot,
+            $"seed{startupSeed.Identity.BaseSeed}");
+        Directory.CreateDirectory(fullOutputDirectory);
         var geometry = new PhysicalMicrogeographyGeometry(HexSize);
         var painter = new PhysicalMicrogeographyPainter(geography, geometry);
         var captures = BuildCaptureDefinitions(geography, geometry);
@@ -230,41 +265,30 @@ internal static class WorldCaptureCli
         return best;
     }
 
-    private static bool TryReadOptions(
-        string[] args,
-        out string worldPath,
-        out string outputDirectory)
+    private static bool TryReadOptions(string[] args, out string worldPath)
     {
         const string worldPrefix = "--world=";
-        const string outputPrefix = "--output=";
         worldPath = string.Empty;
-        outputDirectory = string.Empty;
         foreach (var argument in args)
         {
-            if (argument.StartsWith(worldPrefix, StringComparison.Ordinal))
-            {
-                worldPath = argument[worldPrefix.Length..];
-            }
-            else if (argument.StartsWith(outputPrefix, StringComparison.Ordinal))
-            {
-                outputDirectory = argument[outputPrefix.Length..];
-            }
-            else
+            if (!argument.StartsWith(worldPrefix, StringComparison.Ordinal))
             {
                 return false;
             }
+
+            worldPath = argument[worldPrefix.Length..];
         }
 
-        return args.Length == 2 &&
+        return args.Length == 1 &&
             !string.IsNullOrWhiteSpace(worldPath) &&
-            string.Equals(Path.GetExtension(worldPath), ".world", StringComparison.OrdinalIgnoreCase) &&
-            !string.IsNullOrWhiteSpace(outputDirectory);
+            string.Equals(Path.GetExtension(worldPath), ".world", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void PrintUsage() =>
         Console.Error.WriteLine(
             "Usage: dotnet run --project tools/WorldGenerator -c Release -- capture " +
-            "--world=<path.world> --output=<directory>");
+            "--world=<path.world>\n" +
+            "Captures are written to .artifacts/captures/seed<seed>/ and cannot be redirected.");
 
     private static SKColor ToSkia(Color color) => new(
         ToByte(color.R),
