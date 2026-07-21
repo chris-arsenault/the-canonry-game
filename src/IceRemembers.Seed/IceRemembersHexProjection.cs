@@ -28,6 +28,8 @@ internal static class IceRemembersHexProjection
     private const int HotSpringSurfaceCut = 5;
     private const int BasaltSurfaceCut = 8;
     private const int RiverLandCut = 8;
+    private const int FloodplainMaximumRelief = 175;
+    private const int FloodplainMaximumRoughness = 62;
     private const int CragPeakCut = 2;
     private const int CragSurfaceCut = 14;
     private const int CragReliefCut = 240;
@@ -166,7 +168,13 @@ internal static class IceRemembersHexProjection
     // River lands beat relief; relief beats flat groups.
     private static IceRemembersTerrain? TryClassifyReliefLand(in HexFacts facts)
     {
-        if (facts.Count(SurfaceGroup.RiverLand) >= RiverLandCut)
+        // A floodplain is where a river drops what it carries, which only
+        // happens on low ground. Counting river surfaces alone called every
+        // steep ravine a floodplain, and once relief arrived that was three
+        // quarters of them: channels sit on the steepest ground there is.
+        if (facts.Count(SurfaceGroup.RiverLand) >= RiverLandCut &&
+            facts.Aggregate.Relief <= FloodplainMaximumRelief &&
+            facts.Aggregate.Roughness <= FloodplainMaximumRoughness)
         {
             return IceRemembersTerrain.Floodplain;
         }

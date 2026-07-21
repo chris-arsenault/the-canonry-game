@@ -464,6 +464,24 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int RiverBasinHeadwaterFraction { get; init; } = 80;
 
+    /// <summary>
+    /// Discharge a basin must reach before any of it counts as a river. The
+    /// basin-relative fraction keeps tributaries at every basin size, which is
+    /// why it exists, but without a floor it also puts a channel in a
+    /// three-triangle puddle: a fraction of a tiny maximum is a tiny
+    /// threshold.
+    /// </summary>
+    public int RiverMinimumBasinDischarge { get; init; } = 90000;
+
+    /// <summary>Slope at which discharge counts at face value.</summary>
+    public int ChannelReferenceSlope { get; init; } = 40;
+
+    /// <summary>Per-mille bounds on the slope weighting of discharge.</summary>
+    public int ChannelSlopeFloor { get; init; } = 350;
+
+    /// <inheritdoc cref="ChannelSlopeFloor"/>
+    public int ChannelSlopeCeiling { get; init; } = 2600;
+
     public int MinimumRiverReachTriangles { get; init; } = 7;
 
     public int RiverChannelBaseStrength { get; init; } = 260;
@@ -813,7 +831,9 @@ public sealed record PhysicalGeographyGenerationProfile
     private bool RiverThresholdsAreInvalid() =>
         RiverAccumulationThreshold <= 0 || RiverMinimumAccumulationThreshold <= 0 ||
         RiverMinimumAccumulationThreshold > RiverAccumulationThreshold ||
-        RiverBasinHeadwaterFraction is < 1 or > 1000;
+        RiverBasinHeadwaterFraction is < 1 or > 1000 ||
+        RiverMinimumBasinDischarge < 0 || ChannelReferenceSlope <= 0 ||
+        ChannelSlopeFloor <= 0 || ChannelSlopeCeiling < ChannelSlopeFloor;
 
     private bool LandscapeEvolutionRangesAreInvalid() =>
         !IsUnitScalar(SedimentTransportFraction) ||

@@ -110,6 +110,17 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
             var maximum = basin > 0 && basin < basinDischarge.Length
                 ? basinDischarge[basin]
                 : profile.RiverAccumulationThreshold;
+
+            // A drainage too small to be a river does not get one. Scaling the
+            // threshold to each basin keeps tributaries in basins of every
+            // size, which is why that rule exists, but on its own it also
+            // guarantees a channel in a puddle: a fraction of a tiny maximum
+            // is a tiny threshold.
+            if (maximum < profile.RiverMinimumBasinDischarge)
+            {
+                continue;
+            }
+
             var basinThreshold = (int)Math.Min(
                 int.MaxValue,
                 (long)maximum * profile.RiverBasinHeadwaterFraction / 1000L);
@@ -117,11 +128,34 @@ internal sealed class RiverNetworkLayer : IPhysicalGeographyLayer
                 basinThreshold,
                 profile.RiverMinimumAccumulationThreshold,
                 profile.RiverAccumulationThreshold);
-            channels[triangleIndex] = map.FlowAccumulation[triangleIndex] >= threshold;
+
+            // Steep ground channelises with a small catchment and flat ground
+            // needs a large one, so discharge is weighed against the slope it
+            // is running down rather than counted alone.
+            channels[triangleIndex] =
+                ChannelDischarge(map, profile, triangleIndex) >= threshold;
         }
 
         CompleteDownstreamChannels(map, sourceToOutlet, channels);
         return channels;
+    }
+
+    /// <summary>
+    /// Discharge weighted by local gradient. Water on a slope cuts a channel
+    /// with far less catchment behind it than the same water on a plain.
+    /// </summary>
+    private static long ChannelDischarge(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile,
+        int triangleIndex)
+    {
+        var reference = (double)PhysicalElevation.FromUnits(profile.ChannelReferenceSlope);
+        var slope = Math.Max(0d, map.Slope[triangleIndex]);
+        var factor = Math.Clamp(
+            Math.Sqrt(slope / Math.Max(1d, reference)),
+            profile.ChannelSlopeFloor / 1000d,
+            profile.ChannelSlopeCeiling / 1000d);
+        return (long)(map.FlowAccumulation[triangleIndex] * factor);
     }
 
     private static void CompleteDownstreamChannels(
