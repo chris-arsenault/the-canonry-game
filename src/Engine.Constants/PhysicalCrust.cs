@@ -23,17 +23,45 @@ public static class PhysicalCrust
     /// Thickness that floats exactly at sea level. Crust thicker than this
     /// stands above the water, thinner sits below.
     /// </summary>
-    public const int CompensationThicknessUnits = 3150;
+    public const int CompensationThicknessUnits = 2570;
 
     /// <summary>
     /// Height gained per unit of thickness above compensation, per mille.
-    /// Calibrated so unthickened continent stands near 800 units and oceanic
-    /// crust sits near 2000 below, matching the hypsometry the world already
-    /// had before height derived from thickness.
+    /// Calibrated so the mask term alone reproduces the range the painted
+    /// sigmoid produced: oceanic crust at -900 authored units, unthickened
+    /// continent at +820. Deriving height from thickness is meant to change
+    /// where relief can come from, not to move the world's hypsometry, so
+    /// this phase is numerically neutral by construction and anything that
+    /// moves is attributable to the change in structure.
     /// </summary>
-    public const int BuoyancyPerMille = 933;
+    public const int BuoyancyPerMille = 573;
+
+    /// <summary>
+    /// Half-range of per-province thickness variation, authored units.
+    /// Continents are assembled from terranes that were never the same
+    /// thickness. The continental mask cannot express that, because it
+    /// saturates the moment it is confident the ground is land, so province
+    /// identity carries the variation the mask cannot.
+    /// </summary>
+    public const int ProvinceThicknessRangeUnits = 520;
+
+    /// <summary>
+    /// Thickness bounds, chosen so derived height stays inside the elevation
+    /// range the pipeline validates against. Crust cannot be arbitrarily thick
+    /// any more than it can be arbitrarily thin; without this the relief terms
+    /// can stack past the legal band.
+    /// </summary>
+    public const int MinimumThicknessUnits = 800;
+
+    /// <inheritdoc cref="MinimumThicknessUnits"/>
+    public const int MaximumThicknessUnits = 5700;
 
     /// <summary>Surface height in authored units for a given thickness.</summary>
     public static double HeightUnits(double thicknessUnits) =>
-        (thicknessUnits - CompensationThicknessUnits) * (BuoyancyPerMille / 1000d);
+        (ClampThicknessUnits(thicknessUnits) - CompensationThicknessUnits) *
+        (BuoyancyPerMille / 1000d);
+
+    /// <summary>Thickness held inside the band height can legally express.</summary>
+    public static double ClampThicknessUnits(double thicknessUnits) =>
+        global::System.Math.Clamp(thicknessUnits, MinimumThicknessUnits, MaximumThicknessUnits);
 }

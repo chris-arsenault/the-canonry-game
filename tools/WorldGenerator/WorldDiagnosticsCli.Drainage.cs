@@ -203,11 +203,13 @@ internal static partial class WorldDiagnosticsCli
         var slopes = new List<long>[bands.Length];
         var heights = new List<long>[bands.Length];
         var potentials = new List<long>[bands.Length];
+        var basePotentials = new List<long>[bands.Length];
         for (var i = 0; i < bands.Length; i++)
         {
             slopes[i] = [];
             heights[i] = [];
             potentials[i] = [];
+            basePotentials[i] = [];
         }
 
         var counts = new int[bands.Length];
@@ -232,6 +234,7 @@ internal static partial class WorldDiagnosticsCli
             slopes[band].Add(field.Slope[t]);
             heights[band].Add((field.Elevation[t] - sea) / 1024L);
             potentials[band].Add(field.ContinentalPotential[t]);
+            basePotentials[band].Add(field.CrustBasePotential[t]);
             counts[band]++;
             if (field.TectonicBoundaryCodes[t] == PhysicalTectonicBoundaryCodes.Convergent)
             {
@@ -251,7 +254,7 @@ internal static partial class WorldDiagnosticsCli
             }
         }
 
-        PrintCoastDistanceRows(bands, slopes, heights, potentials, counts, convergent, strained, volcanic);
+        PrintCoastDistanceRows(bands, slopes, heights, potentials, basePotentials, counts, convergent, strained, volcanic);
     }
 
     private static void PrintCoastDistanceRows(
@@ -259,6 +262,7 @@ internal static partial class WorldDiagnosticsCli
         List<long>[] slopes,
         List<long>[] heights,
         List<long>[] potentials,
+        List<long>[] basePotentials,
         int[] counts,
         int[] convergent,
         int[] strained,
@@ -276,10 +280,15 @@ internal static partial class WorldDiagnosticsCli
             Array.Sort(sortedHeight);
             var sortedPotential = potentials[i].ToArray();
             Array.Sort(sortedPotential);
+            var sortedBase = basePotentials[i].ToArray();
+            Array.Sort(sortedBase);
             var upper = i == bands.Length - 1 ? "+" : $"-{bands[i + 1]}";
             PrintSlopeRow(
                 $"d{bands[i]}{upper} h={PercentileLong(sortedHeight, 50)} " +
                 $"pot={PercentileLong(sortedPotential, 50)} " +
+                $"base(p10={PercentileLong(sortedBase, 10)}," +
+                $"p50={PercentileLong(sortedBase, 50)}," +
+                $"p90={PercentileLong(sortedBase, 90)}) " +
                 $"conv={convergent[i] * 100d / counts[i]:0.00}% " +
                 $"strain={strained[i] * 100d / counts[i]:0.00}% " +
                 $"volc={volcanic[i] * 100d / counts[i]:0.00}%",

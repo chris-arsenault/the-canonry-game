@@ -45,7 +45,6 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
             var x = map.Grid.TriangleX(triangleIndex);
             var y = map.Grid.TriangleY(triangleIndex);
             var potential = map.ContinentalPotential[triangleIndex] / 1000d;
-            var baseElevation = ((potential - 0.5d) * 1.72d) - 0.04d;
             var strain = map.TectonicStrain[triangleIndex] / 1000d;
             var boundaryRelief = BoundaryRelief(map, triangleIndex, strain, context);
             var assemblySeparation = map.CrustAssemblySeparation[triangleIndex] / 1000d;
@@ -56,8 +55,21 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
                 context.Profile.ElevationVariationScale,
                 3) * context.Profile.ElevationVariationStrength;
             InteriorRelief(map, context, triangleIndex, out var interiorRelief, out var belt);
-            var elevation = baseElevation + boundaryRelief + variation + interiorRelief -
-                assemblySeparation +
+
+            // Height is what the crust floats to, not a value painted from the
+            // continental mask. The mask saturates by design - it has to, or
+            // coastlines go mushy - and a saturated term contributes no
+            // gradient across the interior it just defined.
+            var thicknessUnits = CrustThicknessUnits(
+                map,
+                context,
+                triangleIndex,
+                potential,
+                boundaryRelief + variation + interiorRelief - assemblySeparation);
+            map.CrustThickness[triangleIndex] = PhysicalElevation.FromUnits(thicknessUnits);
+            var baseElevation =
+                PhysicalCrust.HeightUnits(thicknessUnits) / context.Profile.ElevationScale;
+            var elevation = baseElevation +
                 MarginProfile(map, context.Profile, triangleIndex, baseElevation);
             if (context.IsEvolutionEpoch)
             {
@@ -84,6 +96,52 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
                 0d,
                 1d);
         }
+    }
+
+    /// <summary>
+    /// Crustal thickness, from which height follows by isostasy.
+    ///
+    /// The continental mask decides continental against oceanic, which is the
+    /// one job a saturating field does well. Everything that varies inland has
+    /// to come from somewhere that does not clamp, so province identity
+    /// carries terrane thickness and the relief terms are converted into
+    /// thickness rather than added to height.
+    /// </summary>
+    private static double CrustThicknessUnits(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationContext context,
+        int triangleIndex,
+        double potential,
+        double reliefContribution)
+    {
+        var mask = PhysicalCrust.OceanicThicknessUnits +
+            ((PhysicalCrust.ContinentalThicknessUnits - PhysicalCrust.OceanicThicknessUnits) *
+                potential);
+        var buoyancy = PhysicalCrust.BuoyancyPerMille / 1000d;
+        var reliefUnits = reliefContribution * context.Profile.ElevationScale / buoyancy;
+        return PhysicalCrust.ClampThicknessUnits(
+            mask + (ProvinceThicknessOffsetUnits(map, context, triangleIndex) * potential) +
+                reliefUnits);
+    }
+
+    /// <summary>
+    /// Per-terrane thickness. Scaled by continental potential so it fades out
+    /// over ocean, where crust is oceanic regardless of which province it
+    /// belongs to.
+    /// </summary>
+    private static double ProvinceThicknessOffsetUnits(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationContext context,
+        int triangleIndex)
+    {
+        var province = map.CrustProvinceIds[triangleIndex];
+        if (province < 0)
+        {
+            return 0d;
+        }
+
+        var hash = PhysicalNoise.HashUnit(context.Seed ^ 0x3d7b, province, 0x51a9);
+        return (hash - 0.5d) * 2d * PhysicalCrust.ProvinceThicknessRangeUnits;
     }
 
     /// <summary>
