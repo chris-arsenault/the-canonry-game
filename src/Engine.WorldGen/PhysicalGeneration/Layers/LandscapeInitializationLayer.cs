@@ -1,5 +1,7 @@
 namespace Engine.WorldGen;
 
+using Engine.Constants;
+
 internal sealed class LandscapeInitializationLayer : IPhysicalGeographyLayer
 {
     public PhysicalGeographyLayerContract Contract { get; } = new(
@@ -10,6 +12,7 @@ internal sealed class LandscapeInitializationLayer : IPhysicalGeographyLayer
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
+        map.RockResistance.Fill(PhysicalRock.BaselineResistance);
         _ = context;
         map.SedimentThickness.Clear();
         map.SedimentSupply.Clear();

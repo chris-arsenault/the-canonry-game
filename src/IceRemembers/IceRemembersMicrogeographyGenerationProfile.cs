@@ -103,6 +103,18 @@ public sealed record IceRemembersMicrogeographyGenerationProfile
 
     public int PolarBarrensMaximumMoisture { get; init; } = 210;
 
+    /// <summary>
+    /// How much fully fire-worked ground hardens, in per-mille resistance.
+    /// Baked and vitrified rock is durable, so fire country keeps its ridges.
+    /// </summary>
+    public double FireRockHardening { get; init; } = 900d;
+
+    /// <summary>
+    /// How much fully aurora-soaked ground weakens. Aurora ground is friable
+    /// and washes out into hollows rather than standing up.
+    /// </summary>
+    public double AuroraRockWeakening { get; init; } = 520d;
+
     public int ScreeFieldMinimumSlope { get; init; } = 72;
 
     public int RiverValleyMinimumOrder { get; init; } = 1;

@@ -71,6 +71,14 @@ internal static class IceRemembersWorldGenerationOrchestrator
             epoch,
             epochIndex,
             epochCount);
+        ApplyMagic(
+            pipeline,
+            new MagicRockResistanceLayer(),
+            magic,
+            seed,
+            epoch,
+            epochIndex,
+            epochCount);
         physical.ApplyHydrology();
         physical.ApplyGlaciation();
         physical.ApplyPostGlacialReconciliation();

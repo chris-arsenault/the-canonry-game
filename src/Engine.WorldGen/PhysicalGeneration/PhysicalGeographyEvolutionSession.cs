@@ -95,6 +95,7 @@ public sealed class PhysicalGeographyEvolutionSession
         Apply(new ContinentalDomainLayer());
         Apply(new TectonicUpliftLayer());
         Apply(new VolcanicConstructionLayer());
+        Apply(new ImpactCrateringLayer());
         Apply(new FractureNetworkLayer());
         Apply(new GeothermalLayer());
         _phase = EvolutionPhase.Climate;

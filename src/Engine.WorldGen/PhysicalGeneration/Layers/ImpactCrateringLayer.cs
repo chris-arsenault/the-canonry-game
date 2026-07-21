@@ -19,10 +19,15 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
 
     public void Apply(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
-        map.ImpactExcavation.Clear();
-        map.ImpactRimUplift.Clear();
-        map.ImpactEjectaThickness.Clear();
-        map.ImpactHeat.Clear();
+        // Craters accumulate rather than being cleared, so a world carries a
+        // spread of crater ages: old rings worn down to rock rings, recent
+        // ones still sharp. Nothing falls in the final epoch, so the present
+        // day has no raw impact sitting on top of everything else.
+        if (context.IsEvolutionEpoch && context.EpochIndex >= context.EpochCount - 1)
+        {
+            return;
+        }
+
         var centers = SelectCenters(map, context);
         for (var impactIndex = 0; impactIndex < centers.Length; impactIndex++)
         {
@@ -170,7 +175,13 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
             (int)Math.Round(
                 profile.ElevationScale * profile.ImpactRimHeightRatio / 1000d * scale,
                 MidpointRounding.AwayFromZero));
-        var ejecta = new List<WeightedTriangle>();
+        // Water absorbs the shock. A deep-ocean strike leaves far less
+        // hardened rock behind than the same impactor on dry land, so the
+        // durable ring a crater is remembered by is a land phenomenon.
+        var shockShare = 1d - Math.Clamp(
+            map.WaterDepths[center] / (double)PhysicalElevation.FromUnits(profile.ImpactOceanShockDepth),
+            0d,
+            1d);
         long excavation = 0;
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
@@ -178,14 +189,42 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
             excavation += Excavate(map, triangleIndex, distance, radius, depth);
             RaiseRim(map, triangleIndex, distance, radius, rimHeight);
             FractureAndHeat(map, profile, triangleIndex, distance, radius);
-            AddEjectaCandidate(ejecta, triangleIndex, distance, radius);
+            HardenShockedRock(map, triangleIndex, distance, radius, shockShare);
         }
 
         map.SedimentProducedTotal = checked(map.SedimentProducedTotal + excavation);
-        var deposited = DepositEjecta(map, profile, ejecta, excavation);
-        map.SedimentExportedTotal = checked(
-            map.SedimentExportedTotal + excavation - deposited);
+        map.SedimentExportedTotal = checked(map.SedimentExportedTotal + excavation);
     }
+
+    /// <summary>
+    /// Shocked rock, strongest at the point of impact and fading outward.
+    /// Kept as the maximum rather than a sum so overlapping craters do not
+    /// stack into indestructible ground.
+    /// </summary>
+    private static void HardenShockedRock(
+        PhysicalGeographyField map,
+        int triangleIndex,
+        double distance,
+        double radius,
+        double shockShare)
+    {
+        if (distance > radius * 1.15d || shockShare <= 0d)
+        {
+            return;
+        }
+
+        var falloff = 1d - (distance / Math.Max(0.001d, radius * 1.15d));
+        var gain = (PhysicalRock.ImpactShockResistance - PhysicalRock.BaselineResistance) *
+            falloff * shockShare;
+        var hardened = PhysicalRock.Clamp(
+            PhysicalRock.BaselineResistance + (int)Math.Round(gain, MidpointRounding.AwayFromZero));
+        map.RockResistance[triangleIndex] = Math.Max(
+            map.RockResistance[triangleIndex],
+            hardened);
+    }
+
+    private const int ImpactExcavationFloorUnits = -1850;
+    private const int ImpactRimCeilingUnits = 1850;
 
     private static long Excavate(
         PhysicalGeographyField map,
@@ -200,9 +239,21 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
         }
 
         var normalized = distance / radius;
-        var cut = Math.Max(
+        var requested = Math.Max(
             1L,
             PhysicalElevation.FromUnits(depth * (1d - (normalized * normalized))));
+
+        // A crater has a finite depth, and now that impacts fall in several
+        // epochs, strikes overlap. Without a floor a spot hit twice digs
+        // twice as deep and eventually leaves the range elevation is allowed
+        // to occupy.
+        var floor = PhysicalElevation.FromUnits(ImpactExcavationFloorUnits);
+        var cut = Math.Max(0L, Math.Min(requested, map.BedrockElevation[triangleIndex] - floor));
+        if (cut <= 0)
+        {
+            return 0;
+        }
+
         map.BedrockElevation[triangleIndex] = checked(map.BedrockElevation[triangleIndex] - cut);
         map.ImpactExcavation[triangleIndex] = checked(map.ImpactExcavation[triangleIndex] + cut);
         LandscapeSurface.Rebuild(map, triangleIndex);
@@ -223,7 +274,17 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
             return;
         }
 
-        var uplift = Math.Max(1L, PhysicalElevation.FromUnits(rimHeight * influence));
+        var ceiling = PhysicalElevation.FromUnits(ImpactRimCeilingUnits);
+        var uplift = Math.Max(
+            0L,
+            Math.Min(
+                PhysicalElevation.FromUnits(rimHeight * influence),
+                ceiling - map.BedrockElevation[triangleIndex]));
+        if (uplift <= 0)
+        {
+            return;
+        }
+
         map.BedrockElevation[triangleIndex] = checked(map.BedrockElevation[triangleIndex] + uplift);
         map.ImpactRimUplift[triangleIndex] = checked(map.ImpactRimUplift[triangleIndex] + uplift);
         LandscapeSurface.Rebuild(map, triangleIndex);
@@ -256,52 +317,7 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
             (int)Math.Round(1000d * (1d - (distance / radius)), MidpointRounding.AwayFromZero));
     }
 
-    private static void AddEjectaCandidate(
-        List<WeightedTriangle> candidates,
-        int triangleIndex,
-        double distance,
-        double radius)
-    {
-        if (distance < radius || distance > radius * 2.2d)
-        {
-            return;
-        }
 
-        var weight = Math.Max(
-            1,
-            (int)Math.Round(
-                1000d * (1d - ((distance - radius) / (radius * 1.2d))),
-                MidpointRounding.AwayFromZero));
-        candidates.Add(new WeightedTriangle(triangleIndex, weight));
-    }
-
-    private static long DepositEjecta(
-        PhysicalGeographyField map,
-        PhysicalGeographyGenerationProfile profile,
-        IReadOnlyList<WeightedTriangle> candidates,
-        long excavation)
-    {
-        var remaining = excavation * profile.ImpactEjectaFraction / 1000L;
-        var remainingWeight = candidates.Sum(candidate => (long)candidate.Weight);
-        var deposited = 0L;
-        foreach (var candidate in candidates)
-        {
-            if (remaining <= 0 || remainingWeight <= 0)
-            {
-                break;
-            }
-
-            var requested = Math.Max(1L, remaining * candidate.Weight / remainingWeight);
-            var amount = LandscapeSurface.Deposit(map, candidate.TriangleIndex, requested);
-            map.ImpactEjectaThickness[candidate.TriangleIndex] = checked(
-                map.ImpactEjectaThickness[candidate.TriangleIndex] + amount);
-            remaining -= amount;
-            remainingWeight -= candidate.Weight;
-            deposited += amount;
-        }
-
-        return deposited;
-    }
 
     private static double DistanceSquared(PhysicalGeographyField map, int first, int second)
     {
@@ -309,6 +325,4 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
         var dy = map.Grid.TriangleY(first) - map.Grid.TriangleY(second);
         return (dx * dx) + (dy * dy);
     }
-
-    private readonly record struct WeightedTriangle(int TriangleIndex, int Weight);
 }

@@ -295,6 +295,13 @@ public sealed record PhysicalGeographyGenerationProfile
     public double ContinentalRiftThinning { get; init; } = 1.9d;
 
     /// <summary>
+    /// Water depth, in authored units, at which an ocean impact leaves no
+    /// hardened rock at all. The column absorbs the shock, so the durable ring
+    /// a crater is remembered by belongs to land strikes.
+    /// </summary>
+    public int ImpactOceanShockDepth { get; init; } = 600;
+
+    /// <summary>
     /// How sharply uplift gathers onto range crests. Redistributes rather than
     /// adds: crests gain roughly threefold, the ground between them keeps
     /// under a third, and the mean is preserved.

@@ -57,8 +57,17 @@ internal sealed class FluvialErosionLayer : IPhysicalGeographyLayer
                     (map.DrainageElevations[triangleIndex] - map.DrainageElevations[target]) *
                         fallScale / PhysicalElevation.SubunitsPerUnit);
                 var streamPower = Math.Pow(accumulation[triangleIndex], 0.42d) * Math.Sqrt(fall + 1d);
+
+                // Hard rock wears slower, which is what holds up escarpments,
+                // gorge walls, waterfall lips and summits that stand clear of
+                // their surroundings. Without it a landscape dissects into
+                // even roughness no matter how much relief it started with.
+                var resistance = Math.Max(1, map.RockResistance[triangleIndex]);
                 var cut = PhysicalElevation.FromUnits(
-                    Math.Min(22d, streamPower * context.Profile.FluvialErosionStrength) *
+                    Math.Min(
+                        22d,
+                        streamPower * context.Profile.FluvialErosionStrength *
+                            PhysicalRock.BaselineResistance / resistance) *
                         context.HydrologyStrength / 1000d);
                 if (cut <= 0)
                 {

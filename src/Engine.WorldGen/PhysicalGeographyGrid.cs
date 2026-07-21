@@ -321,6 +321,7 @@ public sealed class PhysicalGeographyField
     private readonly int[] _crustAssemblyIds;
     private readonly int[] _crustAssemblySeparation;
     private readonly int[] _crustCollisionIntensity;
+    private readonly int[] _rockResistance;
     private readonly int[] _crustMotionX;
     private readonly int[] _crustMotionY;
     private readonly int[] _crustProvinceIds;
@@ -454,7 +455,7 @@ public sealed class PhysicalGeographyField
             NewImpactFields(grid);
         (_externalHeatForcing, _externalCoastalForcing, _externalCoastalForcingHistory) =
             (NewField(grid), NewField(grid), NewField(grid));
-        (_moisture, _geothermal, _crustCollisionIntensity) = (new int[grid.TriangleCount], NewField(grid), NewField(grid));
+        (_moisture, _geothermal, _crustCollisionIntensity, _rockResistance) = (new int[grid.TriangleCount], NewField(grid), NewField(grid), NewField(grid));
         (_mantlePlumeRootStrength, _volcanicActivity, _volcanicConstructionHistory,
             _volcanicLastActiveEpoch) = NewVolcanicFields(grid);
         _slope = NewElevationField(grid);
@@ -618,6 +619,20 @@ public sealed class PhysicalGeographyField
     /// Andes along its shore.
     /// </summary>
     public Span<int> CrustCollisionIntensity => _crustCollisionIntensity;
+
+    /// <summary>
+    /// How hard the rock is, per mille, against a baseline of
+    /// <see cref="PhysicalRock.BaselineResistance"/>. Erosion divides by it,
+    /// so higher rock wears slower.
+    ///
+    /// Uniform rock erodes uniformly, which is why undifferentiated terrain
+    /// dissects into even roughness with no escarpments, mesas, gorges or
+    /// summits that stand clear. Resistance is what holds a landform up.
+    /// The engine only knows the number; what raises or lowers it - impact
+    /// shock, volcanic rock, and whatever a domain layer contributes - is
+    /// written by the layers that own those facts.
+    /// </summary>
+    public Span<int> RockResistance => _rockResistance;
 
     public Span<int> CrustMotionX => _crustMotionX;
 

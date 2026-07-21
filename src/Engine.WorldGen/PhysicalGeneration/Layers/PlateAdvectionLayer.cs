@@ -135,6 +135,7 @@ internal sealed class PlateAdvectionLayer : IPhysicalGeographyLayer
     private sealed record HistorySnapshot(
         long[] Bedrock,
         long[] Thickness,
+        int[] Resistance,
         long[] Sediment,
         long[] SedimentSupply,
         long[] Fluvial,
@@ -160,6 +161,7 @@ internal sealed class PlateAdvectionLayer : IPhysicalGeographyLayer
         public static HistorySnapshot Capture(PhysicalGeographyField map) => new(
             map.BedrockElevation.ToArray(),
             map.CrustThickness.ToArray(),
+            map.RockResistance.ToArray(),
             map.SedimentThickness.ToArray(),
             map.SedimentSupply.ToArray(),
             map.CumulativeFluvialErosion.ToArray(),
@@ -186,6 +188,7 @@ internal sealed class PlateAdvectionLayer : IPhysicalGeographyLayer
         {
             map.BedrockElevation[target] = Bedrock[source];
             map.CrustThickness[target] = Thickness[source];
+            map.RockResistance[target] = Resistance[source];
             map.SedimentThickness[target] = Sediment[source];
             map.SedimentSupply[target] = SedimentSupply[source];
             map.CumulativeFluvialErosion[target] = Fluvial[source];
@@ -220,6 +223,7 @@ internal sealed class PlateAdvectionLayer : IPhysicalGeographyLayer
         // thickness.
         map.CrustThickness[triangleIndex] = PhysicalElevation.FromUnits(
             PhysicalCrust.OceanicThicknessUnits);
+        map.RockResistance[triangleIndex] = PhysicalRock.BaselineResistance;
         map.SedimentThickness[triangleIndex] = 0;
         map.SedimentSupply[triangleIndex] = 0;
         map.CumulativeFluvialErosion[triangleIndex] = 0;
