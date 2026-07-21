@@ -21,6 +21,18 @@ public sealed class PhysicalGeographyProjection
     private readonly int[] _cellIndexes;
     private readonly int _diameter;
 
+    /// <summary>Where a river enters a lake and where it leaves again.</summary>
+    private sealed class LakeCrossing
+    {
+        public int Entry { get; set; } = -1;
+
+        public int InflowDischarge { get; set; } = -1;
+
+        public HashSet<int> Exits { get; } = [];
+    }
+
+    private const int MaximumThalwegWalk = 4096;
+
     private const int AreaClassNone = 0;
     private const int AreaClassOcean = 1;
     private const int AreaClassLake = 2;
@@ -146,11 +158,327 @@ public sealed class PhysicalGeographyProjection
 
                 if (CarriesThalweg(cell.Coord, local, triangleIndex))
                 {
-                    _microtriangles[triangleIndex] =
-                        _microtriangles[triangleIndex] with { IsRiverThalweg = true };
+                    _microtriangles[triangleIndex] = _microtriangles[triangleIndex] with
+                    {
+                        IsRiverThalweg = true,
+                        ThalwegEdgeMask = _microtriangles[triangleIndex].RiverSpineEdgeMask,
+                    };
                 }
             }
         }
+
+        CloseThalwegToOutlet();
+        CarryThalwegThroughLakes();
+    }
+
+    /// <summary>
+    /// Walks each drawn line downstream and draws in whatever it hands off to,
+    /// so a river never stops before it reaches water.
+    ///
+    /// Picking one triangle per cross-section leaves gaps wherever the deepest
+    /// thread changes sides, because the next drawn triangle need not be the
+    /// one next door. A flow target always is next door, so following it and
+    /// drawing what is missing closes the line by construction. The walk does
+    /// not stop at a lake: a river that dies on one shore and reappears on the
+    /// far side is the same broken line seen from further away, so the thread
+    /// is carried through the water to the outflow.
+    /// </summary>
+    private void CloseThalwegToOutlet()
+    {
+        for (var cellIndex = 0; cellIndex < _cells.Length; cellIndex++)
+        {
+            var cell = _cells[cellIndex];
+            for (var local = 0; local < PhysicalGeographyCodes.MicrotrianglesPerHex; local++)
+            {
+                var start = cell.MicrotriangleOffset + local;
+                if (!_microtriangles[start].IsRiverThalweg)
+                {
+                    continue;
+                }
+
+                FollowThalwegDownstream(cell.Coord, local, start);
+            }
+        }
+    }
+
+    private void FollowThalwegDownstream(HexCoord coord, int localTriangle, int triangleIndex)
+    {
+        var guard = 0;
+        while (guard++ < MaximumThalwegWalk)
+        {
+            var triangle = _microtriangles[triangleIndex];
+            var flowEdge = triangle.FlowEdge;
+            if (flowEdge is < 0 or > 2)
+            {
+                return;
+            }
+
+            PhysicalMicrotriangleTopology.ResolveNeighbor(
+                coord.Q,
+                coord.R,
+                localTriangle,
+                flowEdge,
+                out var nextQ,
+                out var nextR,
+                out var nextLocal);
+            if (!TryGetCellIndex(new HexCoord(nextQ, nextR), out var nextCell))
+            {
+                return;
+            }
+
+            var nextIndex = _cells[nextCell].MicrotriangleOffset + nextLocal;
+            var incomingEdge = IncomingEdge(nextQ, nextR, nextLocal, triangleIndex);
+            _microtriangles[triangleIndex] = _microtriangles[triangleIndex] with
+            {
+                ThalwegEdgeMask = _microtriangles[triangleIndex].ThalwegEdgeMask | (1 << flowEdge),
+            };
+
+            if (_microtriangles[nextIndex].WaterKindCode == PhysicalWaterKindCodes.Ocean)
+            {
+                return;
+            }
+
+            var alreadyDrawn = _microtriangles[nextIndex].IsRiverThalweg;
+            _microtriangles[nextIndex] = _microtriangles[nextIndex] with
+            {
+                IsRiverThalweg = true,
+                ThalwegEdgeMask = _microtriangles[nextIndex].ThalwegEdgeMask |
+                    (incomingEdge >= 0 ? 1 << incomingEdge : 0),
+            };
+
+            if (alreadyDrawn)
+            {
+                return;
+            }
+
+            (coord, localTriangle, triangleIndex) =
+                (new HexCoord(nextQ, nextR), nextLocal, nextIndex);
+        }
+    }
+
+    /// <summary>
+    /// Carries the line across still water.
+    ///
+    /// A lake triangle has no flow target - the water does not run downhill
+    /// inside a lake - so following flow stops the river dead at the shore and
+    /// picks it up again on the far side, which reads as two rivers and a
+    /// coincidence. The route across is traced instead: from the inflow
+    /// carrying the most water to the nearest point where the river leaves
+    /// again, through the body itself.
+    /// </summary>
+    private void CarryThalwegThroughLakes()
+    {
+        var bodies = new Dictionary<int, LakeCrossing>();
+        for (var cellIndex = 0; cellIndex < _cells.Length; cellIndex++)
+        {
+            var cell = _cells[cellIndex];
+            for (var local = 0; local < PhysicalGeographyCodes.MicrotrianglesPerHex; local++)
+            {
+                var index = cell.MicrotriangleOffset + local;
+                var triangle = _microtriangles[index];
+                if (triangle.WaterKindCode != PhysicalWaterKindCodes.Lake ||
+                    triangle.WaterBodyId <= 0)
+                {
+                    continue;
+                }
+
+                ClassifyLakeShore(cell.Coord, local, index, bodies);
+            }
+        }
+
+        foreach (var crossing in bodies.Values)
+        {
+            TraceLakeCrossing(crossing);
+        }
+    }
+
+    private void ClassifyLakeShore(
+        HexCoord coord,
+        int localTriangle,
+        int triangleIndex,
+        Dictionary<int, LakeCrossing> bodies)
+    {
+        var bodyId = _microtriangles[triangleIndex].WaterBodyId;
+        for (var edge = 0; edge < 3; edge++)
+        {
+            PhysicalMicrotriangleTopology.ResolveNeighbor(
+                coord.Q,
+                coord.R,
+                localTriangle,
+                edge,
+                out var q,
+                out var r,
+                out var local);
+            if (!TryGetCellIndex(new HexCoord(q, r), out var cellIndex))
+            {
+                continue;
+            }
+
+            var neighborIndex = _cells[cellIndex].MicrotriangleOffset + local;
+            var neighbor = _microtriangles[neighborIndex];
+            if (!neighbor.IsRiverThalweg ||
+                neighbor.WaterKindCode == PhysicalWaterKindCodes.Lake)
+            {
+                continue;
+            }
+
+            if (!bodies.TryGetValue(bodyId, out var crossing))
+            {
+                crossing = new LakeCrossing();
+                bodies[bodyId] = crossing;
+            }
+
+            var flowsIn = FlowNeighborIndex(new HexCoord(q, r), local, neighbor.FlowEdge) ==
+                triangleIndex;
+            if (flowsIn)
+            {
+                if (neighbor.FlowAccumulation > crossing.InflowDischarge)
+                {
+                    crossing.InflowDischarge = neighbor.FlowAccumulation;
+                    crossing.Entry = triangleIndex;
+                }
+            }
+            else
+            {
+                crossing.Exits.Add(triangleIndex);
+            }
+        }
+    }
+
+    private void TraceLakeCrossing(LakeCrossing crossing)
+    {
+        if (crossing.Entry < 0 || crossing.Exits.Count == 0)
+        {
+            return;
+        }
+
+        var previous = new Dictionary<int, int>();
+        var frontier = new Queue<int>();
+        frontier.Enqueue(crossing.Entry);
+        previous[crossing.Entry] = -1;
+        var bodyId = _microtriangles[crossing.Entry].WaterBodyId;
+        while (frontier.Count > 0)
+        {
+            var current = frontier.Dequeue();
+            if (crossing.Exits.Contains(current) && current != crossing.Entry)
+            {
+                MarkLakePath(previous, current);
+                return;
+            }
+
+            foreach (var neighbor in LakeNeighbors(current, bodyId))
+            {
+                if (previous.TryAdd(neighbor, current))
+                {
+                    frontier.Enqueue(neighbor);
+                }
+            }
+        }
+    }
+
+    private void MarkLakePath(Dictionary<int, int> previous, int end)
+    {
+        var current = end;
+        while (current >= 0)
+        {
+            var step = previous[current];
+            _microtriangles[current] = _microtriangles[current] with { IsRiverThalweg = true };
+            if (step >= 0)
+            {
+                LinkThalweg(current, step);
+            }
+
+            current = step;
+        }
+    }
+
+    private IEnumerable<int> LakeNeighbors(int triangleIndex, int bodyId)
+    {
+        var (coord, local) = LocateTriangle(triangleIndex);
+        for (var edge = 0; edge < 3; edge++)
+        {
+            PhysicalMicrotriangleTopology.ResolveNeighbor(
+                coord.Q,
+                coord.R,
+                local,
+                edge,
+                out var q,
+                out var r,
+                out var neighborLocal);
+            if (!TryGetCellIndex(new HexCoord(q, r), out var cellIndex))
+            {
+                continue;
+            }
+
+            var index = _cells[cellIndex].MicrotriangleOffset + neighborLocal;
+            if (_microtriangles[index].WaterKindCode == PhysicalWaterKindCodes.Lake &&
+                _microtriangles[index].WaterBodyId == bodyId)
+            {
+                yield return index;
+            }
+        }
+    }
+
+    /// <summary>Draws the edge each of two adjacent triangles shares with the other.</summary>
+    private void LinkThalweg(int first, int second)
+    {
+        SetThalwegEdgeToward(first, second);
+        SetThalwegEdgeToward(second, first);
+    }
+
+    private void SetThalwegEdgeToward(int from, int to)
+    {
+        var (coord, local) = LocateTriangle(from);
+        for (var edge = 0; edge < 3; edge++)
+        {
+            PhysicalMicrotriangleTopology.ResolveNeighbor(
+                coord.Q,
+                coord.R,
+                local,
+                edge,
+                out var q,
+                out var r,
+                out var neighborLocal);
+            if (TryGetCellIndex(new HexCoord(q, r), out var cellIndex) &&
+                _cells[cellIndex].MicrotriangleOffset + neighborLocal == to)
+            {
+                _microtriangles[from] = _microtriangles[from] with
+                {
+                    ThalwegEdgeMask = _microtriangles[from].ThalwegEdgeMask | (1 << edge),
+                };
+                return;
+            }
+        }
+    }
+
+    private (HexCoord Coord, int Local) LocateTriangle(int triangleIndex)
+    {
+        var cellIndex = triangleIndex / PhysicalGeographyCodes.MicrotrianglesPerHex;
+        return (_cells[cellIndex].Coord,
+            triangleIndex - _cells[cellIndex].MicrotriangleOffset);
+    }
+
+    /// <summary>Which of the target's edges faces back at the triangle upstream.</summary>
+    private int IncomingEdge(int q, int r, int localTriangle, int fromIndex)
+    {
+        for (var edge = 0; edge < 3; edge++)
+        {
+            PhysicalMicrotriangleTopology.ResolveNeighbor(
+                q,
+                r,
+                localTriangle,
+                edge,
+                out var backQ,
+                out var backR,
+                out var backLocal);
+            if (TryGetCellIndex(new HexCoord(backQ, backR), out var backCell) &&
+                _cells[backCell].MicrotriangleOffset + backLocal == fromIndex)
+            {
+                return edge;
+            }
+        }
+
+        return -1;
     }
 
     /// <summary>
@@ -370,6 +698,7 @@ public sealed class PhysicalGeographyProjection
                 source.RiverSpineEdgeMask,
                 0,
                 false,
+                0,
                 source.RiverChannelStrength,
                 source.RiverChannelOrder,
                 source.FloodplainIntensity,
@@ -541,6 +870,7 @@ public readonly record struct PhysicalMicrotriangleProjection(
     int RiverSpineEdgeMask,
     int AreaOutlineEdgeMask,
     bool IsRiverThalweg,
+    int ThalwegEdgeMask,
     int RiverChannelStrength,
     int RiverChannelOrder,
     int FloodplainIntensity,

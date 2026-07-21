@@ -965,10 +965,13 @@ public sealed partial class PhysicalMicrogeographyPainter
             // One centre line per river. Drawing every channel triangle's
             // spine made a wide river a braid of parallel strands; drawing
             // none of them left a flat band that tributaries ran into and
-            // stopped at. A wide channel keeps its line only along the
-            // thalweg, the deepest thread of the water.
-            if (triangle.RiverSpineEdgeMask == 0 ||
-                (UsesFilledRiverGeometry(triangle) && !triangle.IsRiverThalweg))
+            // stopped at. A wide channel, and the water it crosses, keeps its
+            // line only along the thalweg - the deepest thread, carried
+            // through to the outlet so the river never stops short.
+            var wide = UsesFilledRiverGeometry(triangle) ||
+                triangle.WaterKindCode == PhysicalWaterKindCodes.Lake;
+            var mask = wide ? triangle.ThalwegEdgeMask : triangle.RiverSpineEdgeMask;
+            if (mask == 0 || (wide && !triangle.IsRiverThalweg))
             {
                 continue;
             }
@@ -979,7 +982,7 @@ public sealed partial class PhysicalMicrogeographyPainter
                 (triangle.RiverChannelStrength / 420f) + (triangle.RiverChannelOrder * 0.22f));
             for (var edge = 0; edge < 3; edge++)
             {
-                if ((triangle.RiverSpineEdgeMask & (1 << edge)) != 0)
+                if ((mask & (1 << edge)) != 0)
                 {
                     DrawLine(
                         center,

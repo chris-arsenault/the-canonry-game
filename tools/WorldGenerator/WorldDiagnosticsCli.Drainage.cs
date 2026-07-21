@@ -88,8 +88,14 @@ internal static partial class WorldDiagnosticsCli
         ReportConvergenceCoupling(field);
         ReportOrography(field);
         ReportOverlayContinuity(field, ReconstructFlowTargets(field));
+        ReportLakeCrossings(field, ReconstructFlowTargets(field));
     }
 
+    // NOTE: this replicates the thalweg rule against the field, so it reports
+    // the gaps *before* the projection closes them by following flow targets
+    // downstream. It measures how much closing there is to do, not what is
+    // left afterwards. Do not read it as the state of the drawn map.
+    //
     // Does the drawn river actually reach the sea? The spine network is
     // continuous by construction, but the overlay only draws one triangle per
     // cross-section, and if the deepest thread changes sides the drawn line
@@ -130,6 +136,55 @@ internal static partial class WorldDiagnosticsCli
             $"  overlay: drawn={drawn} breaks={breaks} " +
             $"({(drawn == 0 ? 0 : breaks * 100d / drawn):0.0}% of drawn triangles " +
             $"hand off to nothing drawn)");
+    }
+
+    // How many lakes a river actually runs through. A lake with water coming
+    // in and water going out is one the drawn line has to cross, or the river
+    // dies on one shore and reappears on the other.
+    private static void ReportLakeCrossings(PhysicalGeographyField field, int[] flowTargets)
+    {
+        var inflow = new HashSet<int>();
+        var outflow = new HashSet<int>();
+        var bodies = new HashSet<int>();
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (field.WaterKindCodes[t] == PhysicalWaterKindCodes.Lake)
+            {
+                if (field.WaterBodyIds[t] > 0)
+                {
+                    bodies.Add(field.WaterBodyIds[t]);
+                }
+
+                continue;
+            }
+
+            if (field.RiverOrders[t] <= 0)
+            {
+                continue;
+            }
+
+            var target = flowTargets[t];
+            if (target >= 0 && field.WaterKindCodes[target] == PhysicalWaterKindCodes.Lake &&
+                field.WaterBodyIds[target] > 0)
+            {
+                inflow.Add(field.WaterBodyIds[target]);
+            }
+
+            for (var edge = 0; edge < 3; edge++)
+            {
+                var n = field.Grid.NeighborTriangleIndex(t, edge);
+                if (n >= 0 && field.WaterKindCodes[n] == PhysicalWaterKindCodes.Lake &&
+                    field.WaterBodyIds[n] > 0 && flowTargets[t] != n)
+                {
+                    outflow.Add(field.WaterBodyIds[n]);
+                }
+            }
+        }
+
+        var crossed = inflow.Count(id => outflow.Contains(id));
+        Console.WriteLine(
+            $"  lake bodies={bodies.Count} with inflow={inflow.Count} " +
+            $"with outflow={outflow.Count} needing a crossing={crossed}");
     }
 
     private static bool IsThalweg(PhysicalGeographyField field, int[] flowTargets, int triangleIndex)

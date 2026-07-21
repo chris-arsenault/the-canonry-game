@@ -30,7 +30,7 @@ superregions already reach gameplay that way.
 
 ## Items
 
-### 1. Overlay contiguity to ocean or terminal lake — `todo`
+### 1. Overlay contiguity to ocean or terminal lake — `done` (2026-07-21)
 
 The spine network is continuous by construction
 (`ValidateContinuousOutletPath`), but the overlay draws one triangle per
@@ -38,17 +38,28 @@ cross-section, so where the deepest thread changes sides the drawn line can
 step to a triangle that is not edge-adjacent. Seed 4200 draws 20,918 triangles
 with **174 breaks** (0.8%).
 
-Fix by walking each drawn chain downstream and promoting the connecting
-triangle where the next drawn triangle is not adjacent. A player tracing a
-river with their eye should never lose it.
+Fixed by walking each drawn chain downstream and drawing in whatever it hands
+off to. A flow target is always edge-adjacent, so following it closes the line
+by construction rather than by heuristic.
 
-### 2. Thalweg through lakes — `todo`
+**Verification note:** the `overlay: breaks=` diagnostic replicates the thalweg
+rule against the field and cannot see the projection's closing walk, so it
+still reports the pre-fix count. It measures how much closing there is to do,
+not what remains. Confirmed instead by the rendered capture, where trunk rivers
+run unbroken to the sea.
 
-A lake has one outflow (the priority flood guarantees it). Find the outflow,
-walk back through the water body to the highest-accumulation inflow, mark that
-path. Currently the lake spine is restricted to the hand-off to a channel,
-which stops lakes being veined with rivers but leaves a river dying at one
-shore and reappearing on the other.
+### 2. Thalweg through lakes — `done` (2026-07-21)
+
+Lake triangles have no flow target - water does not run downhill inside a lake
+- so the downstream walk from item 1 stops dead at the shore. The route across
+is traced instead: from the inflow carrying the most water, breadth-first
+through the body, to the nearest point where the river leaves again.
+
+Seed 4200 has 80 lake bodies, 59 with an inflow and 61 with an outflow, of
+which **58 need a crossing**. Not yet confirmed visually: the river captures
+centre on (-8,12), which is `reef` - open sea, not a lake - so no crossing
+appears in them. A capture centred on a lake with a through-river would settle
+it.
 
 ### 3. Geological feature pass — `todo`
 
