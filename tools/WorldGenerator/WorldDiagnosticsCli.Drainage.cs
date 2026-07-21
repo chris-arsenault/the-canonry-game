@@ -86,6 +86,7 @@ internal static partial class WorldDiagnosticsCli
         ReportReliefByCoastDistance(field);
         ReportTerrainStructure(field);
         ReportConvergenceCoupling(field);
+        ReportOrography(field);
     }
 
     // Phase 2's gate: does tectonics show up in the ground? Interior triangles
