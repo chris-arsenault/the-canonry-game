@@ -53,8 +53,12 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
             map,
             region,
             IceRemembersPhysicalFeature.HydrothermalVent,
-            triangleIndex => IsHydrothermalVentSeed(map, triangleIndex),
-            triangleIndex => IsHydrothermalVentRetained(map, triangleIndex, hysteresis));
+            triangleIndex => IsHydrothermalVent(map, triangleIndex, 430, 720),
+            triangleIndex => IsHydrothermalVent(
+                map,
+                triangleIndex,
+                430 - hysteresis,
+                720 - hysteresis));
         AddRegionFeature(
             map,
             region,
@@ -158,18 +162,22 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
     /// mineral-rich water is what makes a vent field worth anything, so this
     /// is the surface reef and krill can key on.
     /// </summary>
-    private static bool IsHydrothermalVentSeed(
-        IceRemembersMicrogeographyMap map,
-        int triangleIndex) =>
-        map.Physical.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean &&
-        map.Physical.Geothermal[triangleIndex] >= 720;
-
-    private static bool IsHydrothermalVentRetained(
+    /// <summary>
+    /// Fire under water. Keyed on fire intensity, because that is what was
+    /// actually lighting up the seafloor: the ocean features this replaces
+    /// came in through the fire route, not the geothermal one, and seafloor
+    /// geothermal rarely reaches the geothermal route's threshold. Geothermal
+    /// still qualifies on its own, since a plume root under water is a vent
+    /// whether or not the fire field has reached it.
+    /// </summary>
+    private static bool IsHydrothermalVent(
         IceRemembersMicrogeographyMap map,
         int triangleIndex,
-        int hysteresis) =>
+        int fire,
+        int geothermal) =>
         map.Physical.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean &&
-        map.Physical.Geothermal[triangleIndex] >= 720 - hysteresis;
+        (map.FireIntensity[triangleIndex] >= fire ||
+            map.Physical.Geothermal[triangleIndex] >= geothermal);
 
     private static bool IsHotSpringRetained(
         IceRemembersMicrogeographyMap map,
