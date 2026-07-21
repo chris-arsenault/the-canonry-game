@@ -1,1 +1,1 @@
-landforms:basin=385,cirque=7,impact-basin=8,impact-rim=35,moraine=463,pass=119,peak=3,plain=462,ridge=263,seabed=4192,slope=61,valley=1696,waterfall=250 margins:convergent=3525,passive=260,rifted=4159 water:lake=385,ocean=4192,land=3367
+landforms:basin=398,cirque=83,impact-basin=23,impact-rim=34,moraine=385,pass=119,peak=3,plain=679,ridge=403,seabed=4161,slope=86,u-valley=1,valley=1194,waterfall=375 margins:convergent=3525,passive=260,rifted=4159 water:lake=398,ocean=4161,land=3385

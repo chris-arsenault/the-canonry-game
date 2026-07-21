@@ -267,7 +267,23 @@ public sealed record PhysicalGeographyGenerationProfile
     /// </summary>
     public double InteriorReliefStrength { get; init; } = 0.45d;
 
-    public double InteriorReliefScale { get; init; } = 44d;
+    public double InteriorReliefScale { get; init; } = 12d;
+
+    /// <summary>
+    /// Wavelength at which uplift concentrates into ranges. Orogeny is narrow:
+    /// a convergent zone spanning a quarter of a continent does not rise
+    /// uniformly, it rises as ranges separated by valleys. Without this the
+    /// broadest tectonic zones produce the smoothest ground, which is the
+    /// opposite of what mountains do.
+    /// </summary>
+    public double RangeConcentrationScale { get; init; } = 11d;
+
+    /// <summary>
+    /// How sharply uplift gathers onto range crests. Redistributes rather than
+    /// adds: crests gain roughly threefold, the ground between them keeps
+    /// under a third, and the mean is preserved.
+    /// </summary>
+    public double RangeConcentrationSharpness { get; init; } = 2.8d;
 
     /// <summary>
     /// Peak amplitude of elongated interior mountain belts (ancient orogens),
@@ -297,7 +313,7 @@ public sealed record PhysicalGeographyGenerationProfile
     /// </summary>
     public int EpochInteriorUpliftShare { get; init; } = 300;
 
-    public int EpochTectonicElevationStep { get; init; } = 150;
+    public int EpochTectonicElevationStep { get; init; } = 240;
 
     public int FluvialErosionIterations { get; init; } = 5;
 
@@ -686,6 +702,7 @@ public sealed record PhysicalGeographyGenerationProfile
 
     private bool InteriorReliefScaleIsInvalid() =>
         InteriorReliefStrength < 0d || InteriorReliefScale <= 0d ||
+        RangeConcentrationScale <= 0d || RangeConcentrationSharpness < 0d ||
         InteriorBeltStrength < 0d || InteriorBeltScale <= 0d ||
         InteriorBeltCoverage is <= 0d or >= 1d ||
         InteriorShareIsInvalid();

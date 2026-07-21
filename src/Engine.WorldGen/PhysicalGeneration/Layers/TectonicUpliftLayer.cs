@@ -380,13 +380,36 @@ internal sealed class TectonicUpliftLayer : IPhysicalGeographyLayer
         return map.TectonicBoundaryCodes[triangleIndex] switch
         {
             PhysicalTectonicBoundaryCodes.Convergent => shaped * profile.RidgeUplift *
-                ConvergentCrustScale(map, triangleIndex, context),
+                ConvergentCrustScale(map, triangleIndex, context) *
+                RangeConcentration(map, context, triangleIndex),
             PhysicalTectonicBoundaryCodes.Divergent => -shaped * profile.RiftDepth,
             PhysicalTectonicBoundaryCodes.Transform =>
                 shaped * profile.RidgeUplift *
                 (map.CrustTypeCodes[triangleIndex] == PhysicalCrustTypeCodes.Continental ? 0.16d : 0.05d),
             _ => 0d,
         };
+    }
+
+    /// <summary>
+    /// Gathers uplift onto narrow crests instead of spreading it evenly across
+    /// a tectonic zone. Strain is a smooth field, so squaring it still yields a
+    /// smear; a ridged field at range wavelength turns that smear into crests
+    /// with flanks steep enough for drainage to organise around. Mean
+    /// preserved, so this redistributes uplift rather than adding any.
+    /// </summary>
+    private static double RangeConcentration(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationContext context,
+        int triangleIndex)
+    {
+        var noise = PhysicalNoise.FractalNoise(
+            map.Grid.TriangleX(triangleIndex),
+            map.Grid.TriangleY(triangleIndex),
+            context.Seed ^ 0x6b1d,
+            context.Profile.RangeConcentrationScale,
+            3);
+        var crest = 1d - Math.Abs(noise);
+        return 0.30d + (context.Profile.RangeConcentrationSharpness * crest * crest * crest);
     }
 
     private static double ConvergentCrustScale(
