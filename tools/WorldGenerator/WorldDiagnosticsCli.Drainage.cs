@@ -84,6 +84,86 @@ internal static partial class WorldDiagnosticsCli
         ReportSlopeByHeight(field);
         ReportErosionBudget(field);
         ReportReliefByCoastDistance(field);
+        ReportTerrainStructure(field);
+    }
+
+    // Gradient alone can be raised by tilting a plane, which would pass a
+    // slope gate while producing no terrain. Divides are what a drainage
+    // network organises around, so they are the honest test that relief is
+    // structure rather than a ramp. Coastline counts ride along so a relief
+    // change cannot soften coastlines unnoticed.
+    private static void ReportTerrainStructure(PhysicalGeographyField field)
+    {
+        var land = 0;
+        var ocean = 0;
+        var coastal = 0;
+        var divides = 0;
+        var pits = 0;
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (field.WaterKindCodes[t] == PhysicalWaterKindCodes.Ocean)
+            {
+                ocean++;
+                continue;
+            }
+
+            if (field.WaterKindCodes[t] != PhysicalWaterKindCodes.None)
+            {
+                continue;
+            }
+
+            land++;
+            var higher = 0;
+            var lower = 0;
+            var neighbors = 0;
+            var touchesOcean = false;
+            for (var edge = 0; edge < 3; edge++)
+            {
+                var n = field.Grid.NeighborTriangleIndex(t, edge);
+                if (n < 0)
+                {
+                    continue;
+                }
+
+                if (field.WaterKindCodes[n] == PhysicalWaterKindCodes.Ocean)
+                {
+                    touchesOcean = true;
+                }
+
+                neighbors++;
+                if (field.Elevation[n] > field.Elevation[t])
+                {
+                    higher++;
+                }
+                else if (field.Elevation[n] < field.Elevation[t])
+                {
+                    lower++;
+                }
+            }
+
+            if (touchesOcean)
+            {
+                coastal++;
+            }
+
+            if (neighbors > 0 && lower == neighbors)
+            {
+                divides++;
+            }
+
+            if (neighbors > 0 && higher == neighbors)
+            {
+                pits++;
+            }
+        }
+
+        Console.WriteLine("== Terrain structure ==");
+        Console.WriteLine(
+            $"  land={land} ocean={ocean} coastal={coastal} " +
+            $"(coast/land={coastal * 100d / Math.Max(1, land):0.00}%)");
+        Console.WriteLine(
+            $"  divides={divides} ({divides * 10000d / Math.Max(1, land):0.0} per 10k land) " +
+            $"pits={pits} ({pits * 10000d / Math.Max(1, land):0.0} per 10k land)");
     }
 
     // Height above sea level conflates "far inland" with "high", because the

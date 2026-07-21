@@ -84,6 +84,32 @@ Nothing here alters generation.
 
 **Exit:** baselines captured across three seeds; diagnostics stable.
 
+**Done.** Baselines below. The pattern holds on every seed: potential
+saturated at 1000 by d50, erosion 0.4–0.5%, slope collapsing inland,
+Strahler capped at 4–5.
+
+| measure | 4200 | 42 | 9173 |
+|---|---|---|---|
+| slope p50 d1–3 | 204,217 | 131,788 | 115,373 |
+| slope p50 d12–25 | 23,467 | 18,839 | 16,895 |
+| slope p50 d50–100 | 13,813 | 16,959 | 14,890 |
+| slope p50 d100–200 | 9,747 | 18,129 | 15,285 |
+| potential p50 at d50–100 | 1000 | 1000 | 1000 |
+| elevation p10–p90 spread | 695,108 | 788,445 | 740,618 |
+| erosion as % of spread | 0.5 | 0.5 | 0.4 |
+| basins | 16,172 | 12,520 | 17,115 |
+| coast/land | 2.36% | 2.01% | 2.63% |
+| divides per 10k land | 1,336 | 873 | 1,250 |
+| pits per 10k land | 1,210 | 749 | 1,105 |
+| Strahler max | 4 | 4 | 5 |
+
+**Use the divide/pit ratio, not divide count.** Divides and pits are at
+near-parity on all three seeds (1.10, 1.17, 1.13). A landscape shaped by
+drainage has many more divides than pits, because pits get filled and
+breached; parity is the signature of an undissected noisy plane. Divide
+count alone is easy to satisfy with noise, so the ratio is the honest
+gate — target a clear majority of divides.
+
 ## Phase 1 — Crustal thickness becomes the elevation source
 
 The structural change. Everything else depends on it.
