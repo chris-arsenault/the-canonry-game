@@ -87,6 +87,69 @@ internal static partial class WorldDiagnosticsCli
         ReportTerrainStructure(field);
         ReportConvergenceCoupling(field);
         ReportOrography(field);
+        ReportOverlayContinuity(field, ReconstructFlowTargets(field));
+    }
+
+    // Does the drawn river actually reach the sea? The spine network is
+    // continuous by construction, but the overlay only draws one triangle per
+    // cross-section, and if the deepest thread changes sides the drawn line
+    // can step to a triangle that is not edge-adjacent - a river that breaks
+    // on screen while the data underneath is fine.
+    private static void ReportOverlayContinuity(PhysicalGeographyField field, int[] flowTargets)
+    {
+        var thalweg = new bool[field.Grid.TriangleCount];
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            thalweg[t] = field.RiverSpineEdgeMasks[t] != 0 && IsThalweg(field, flowTargets, t);
+        }
+
+        var drawn = 0;
+        var breaks = 0;
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (!thalweg[t])
+            {
+                continue;
+            }
+
+            drawn++;
+            var target = flowTargets[t];
+            if (target < 0)
+            {
+                continue;
+            }
+
+            var landsOnWater = field.WaterKindCodes[target] != PhysicalWaterKindCodes.None;
+            if (!landsOnWater && !thalweg[target])
+            {
+                breaks++;
+            }
+        }
+
+        Console.WriteLine(
+            $"  overlay: drawn={drawn} breaks={breaks} " +
+            $"({(drawn == 0 ? 0 : breaks * 100d / drawn):0.0}% of drawn triangles " +
+            $"hand off to nothing drawn)");
+    }
+
+    private static bool IsThalweg(PhysicalGeographyField field, int[] flowTargets, int triangleIndex)
+    {
+        for (var edge = 0; edge < 3; edge++)
+        {
+            var n = field.Grid.NeighborTriangleIndex(triangleIndex, edge);
+            if (n < 0 || field.RiverSpineEdgeMasks[n] == 0 ||
+                n == flowTargets[triangleIndex] || flowTargets[n] == triangleIndex)
+            {
+                continue;
+            }
+
+            if (field.FlowAccumulation[n] > field.FlowAccumulation[triangleIndex])
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     // Phase 2's gate: does tectonics show up in the ground? Interior triangles
