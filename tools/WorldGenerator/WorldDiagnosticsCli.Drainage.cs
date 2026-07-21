@@ -130,6 +130,11 @@ internal static partial class WorldDiagnosticsCli
             potentials[i] = [];
         }
 
+        var counts = new int[bands.Length];
+        var convergent = new int[bands.Length];
+        var strained = new int[bands.Length];
+        var volcanic = new int[bands.Length];
+
         var sea = field.EffectiveSeaLevel;
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
@@ -147,8 +152,38 @@ internal static partial class WorldDiagnosticsCli
             slopes[band].Add(field.Slope[t]);
             heights[band].Add((field.Elevation[t] - sea) / 1024L);
             potentials[band].Add(field.ContinentalPotential[t]);
+            counts[band]++;
+            if (field.TectonicBoundaryCodes[t] == PhysicalTectonicBoundaryCodes.Convergent)
+            {
+                convergent[band]++;
+            }
+
+            if (field.TectonicStrain[t] >= 300)
+            {
+                strained[band]++;
+            }
+
+            if ((field.FeatureFlags[t] &
+                (PhysicalGeographyFeatureCodes.VolcanicCone |
+                    PhysicalGeographyFeatureCodes.VolcanicCaldera)) != 0)
+            {
+                volcanic[band]++;
+            }
         }
 
+        PrintCoastDistanceRows(bands, slopes, heights, potentials, counts, convergent, strained, volcanic);
+    }
+
+    private static void PrintCoastDistanceRows(
+        int[] bands,
+        List<long>[] slopes,
+        List<long>[] heights,
+        List<long>[] potentials,
+        int[] counts,
+        int[] convergent,
+        int[] strained,
+        int[] volcanic)
+    {
         Console.WriteLine("== Relief by triangle distance from ocean ==");
         for (var i = 0; i < bands.Length; i++)
         {
@@ -164,9 +199,10 @@ internal static partial class WorldDiagnosticsCli
             var upper = i == bands.Length - 1 ? "+" : $"-{bands[i + 1]}";
             PrintSlopeRow(
                 $"d{bands[i]}{upper} h={PercentileLong(sortedHeight, 50)} " +
-                $"pot p10={PercentileLong(sortedPotential, 10)} " +
-                $"p50={PercentileLong(sortedPotential, 50)} " +
-                $"p90={PercentileLong(sortedPotential, 90)}",
+                $"pot={PercentileLong(sortedPotential, 50)} " +
+                $"conv={convergent[i] * 100d / counts[i]:0.00}% " +
+                $"strain={strained[i] * 100d / counts[i]:0.00}% " +
+                $"volc={volcanic[i] * 100d / counts[i]:0.00}%",
                 slopes[i]);
         }
     }
