@@ -532,7 +532,13 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int TemperatureBaseline { get; init; } = 285;
 
-    public int ElevationTemperatureLapse { get; init; } = 270;
+    /// <summary>
+    /// Cooling per unit of height above sea level. Calibrated when land topped
+    /// out near 800; doubling the elevation band left the same rate freezing
+    /// every highland, which starved the temperate climate surfaces and pushed
+    /// most of the world into polar barrens and tundra.
+    /// </summary>
+    public int ElevationTemperatureLapse { get; init; } = 140;
 
     public int OceanModerationDistance { get; init; } = 70;
 

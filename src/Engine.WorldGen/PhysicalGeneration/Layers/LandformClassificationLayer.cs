@@ -104,9 +104,20 @@ internal sealed class LandformClassificationLayer : IPhysicalGeographyLayer
         }
 
         var target = map.FlowTargets[triangleIndex];
-        return target >= 0 &&
-            map.Elevation[triangleIndex] - map.Elevation[target] >=
-                PhysicalElevation.FromUnits(profile.WaterfallMinimumDrop);
+        if (target < 0)
+        {
+            return false;
+        }
+
+        // Compare gradient, not raw drop. Triangle edges are not all the same
+        // length, so an unscaled comparison lets the longer edges qualify at a
+        // gentler grade than the short ones - which puts waterfalls on
+        // whichever side of a river happens to face the right way instead of
+        // where the water actually falls.
+        var edge = map.Grid.EdgeLeadingTo(triangleIndex, target);
+        var scale = edge >= 0 ? map.Grid.TriangleEdgeSlopeScale(triangleIndex, edge) : 1f;
+        var drop = (map.Elevation[triangleIndex] - map.Elevation[target]) * scale;
+        return drop >= PhysicalElevation.FromUnits(profile.WaterfallMinimumDrop);
     }
 
     private static bool IsGorge(

@@ -297,6 +297,10 @@ internal static partial class WorldDiagnosticsCli
         }
 
         Console.WriteLine($"  total land={totalLand}");
+        ReportLandSurfaceCensus(
+            field,
+            IceRemembers.IceRemembersPhysicalGeography.SurfacePalette,
+            magic.SurfaceIndexes.ToArray());
         foreach (var (name, count) in perSurface.OrderByDescending(pair => pair.Value))
         {
             Console.WriteLine($"    {name,-16} {count,8} ({count * 100d / Math.Max(1, totalLand):0.0}% of land)");

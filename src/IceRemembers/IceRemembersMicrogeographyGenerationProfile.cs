@@ -115,7 +115,14 @@ public sealed record IceRemembersMicrogeographyGenerationProfile
     /// </summary>
     public double AuroraRockWeakening { get; init; } = 520d;
 
-    public int ScreeFieldMinimumSlope { get; init; } = 72;
+    /// <summary>
+    /// Slope at which ground is loose broken rock rather than a hillside.
+    /// Calibrated at 72 against a world with almost no interior relief, where
+    /// it was a rare extreme; once the continents gained real gradient the
+    /// same number caught a fifth of all land and starved every climate
+    /// surface below it in the ladder.
+    /// </summary>
+    public int ScreeFieldMinimumSlope { get; init; } = 235;
 
     public int RiverValleyMinimumOrder { get; init; } = 1;
 

@@ -17,7 +17,9 @@ public sealed class IceRemembersNaturalAndFireLayerTests
         ConfigureLand(result.Map, candidates[0], temperature: 205, moisture: 90, slope: 5);
         ConfigureLand(result.Map, candidates[1], temperature: 285, moisture: 760, slope: 5);
         ConfigureLand(result.Map, candidates[2], temperature: 280, moisture: 300, slope: 5);
-        ConfigureLand(result.Map, candidates[3], temperature: 280, moisture: 300, slope: 100);
+        // Scree wants genuinely broken ground now that the continents have
+        // relief; 100 was a steep outlier when the world was nearly flat.
+        ConfigureLand(result.Map, candidates[3], temperature: 280, moisture: 300, slope: 300);
         ConfigureLand(result.Map, candidates[4], temperature: 280, moisture: 300, slope: 5);
         result.Map.Physical.RiverOrders[candidates[4]] = 2;
         ConfigureLand(result.Map, candidates[5], temperature: 280, moisture: 300, slope: 5);

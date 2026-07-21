@@ -179,6 +179,38 @@ internal static partial class WorldDiagnosticsCli
 
     private const int ContinentMinimumTriangles = 50000;
 
+    // The hex terrain ladder counts surfaces, so its cuts can only be
+    // calibrated against what the surfaces actually are. Reporting only the
+    // wet ones hid that the climate cuts had drifted out of step with the
+    // world underneath them.
+    public static void ReportLandSurfaceCensus(
+        PhysicalGeographyField field,
+        IReadOnlyList<string> surfaceNames,
+        IReadOnlyList<int> surfaceIndexes)
+    {
+        var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+        var land = 0;
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (field.WaterKindCodes[t] == PhysicalWaterKindCodes.Ocean)
+            {
+                continue;
+            }
+
+            land++;
+            var index = surfaceIndexes[t];
+            var name = index >= 0 && index < surfaceNames.Count ? surfaceNames[index] : "?";
+            counts[name] = counts.GetValueOrDefault(name) + 1;
+        }
+
+        Console.WriteLine($"== Land surface census ({land} non-ocean triangles) ==");
+        foreach (var entry in counts.OrderByDescending(pair => pair.Value).Take(16))
+        {
+            Console.WriteLine(
+                $"    {entry.Key,-20} {entry.Value,7} ({entry.Value * 100d / Math.Max(1, land):0.0}%)");
+        }
+    }
+
     private static void ReportLandmassHighPoints(PhysicalGeographyField field, int[] distance)
     {
         var sea = field.EffectiveSeaLevel;

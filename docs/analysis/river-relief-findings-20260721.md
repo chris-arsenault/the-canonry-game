@@ -207,6 +207,42 @@ Gate each on Strahler distribution, trunk run lengths, and confluence
 counts bucketed by basin size — not on total channel coverage, which
 hides suppression in one size class behind improvement in another.
 
+## Resolved (2026-07-21, later)
+
+Items 1-5 of the plan's phase 5 landed. Seed 4200:
+
+| measure | before phase 5 | after |
+|---|---|---|
+| floodplain share of heart | 12% | 5.9% |
+| channel triangles | 19,074 | 18,383 |
+| basins carrying rivers | 787 | 58 |
+| trunk run p50 / p90 | 5 / 69 | 45 / 144 |
+| runs >= 40 / >= 80 | 49 / 26 | 145 / 72 |
+| confluences | 423 | 774 |
+| Strahler order 4 / 5 | 192 / 0 | 1,077 / 250 |
+| heart verdant | 9.4% | 15.5% |
+| heart crags | 10.4% | 6.1% |
+
+Two constants had drifted badly once the continents gained relief, and
+both starved everything below them in their ladder:
+
+- `ScreeFieldMinimumSlope` was 72, set when that was a rare extreme on a
+  nearly flat world. With real gradient it caught 22.2% of all land. At
+  235 it catches 3.2%.
+- `ElevationTemperatureLapse` was 270, calibrated when land topped out
+  near 800. Doubling the elevation band left the same rate freezing every
+  highland, pushing the world into polar barrens and tundra and making
+  the temperate climate surfaces unreachable. Now 140.
+
+Strahler was not addressed directly and improved anyway, reaching order 5
+for the first time, because the climate and scree recalibration fed back
+into what counts as a channel.
+
+**A diagnostic to distrust:** the "hexes reading floodplain" line counts
+the diagnostic's own >=8/24 channel proxy, not the classifier's output,
+so it cannot see the gradient gate and did not move when the gate landed.
+Read heart terrain shares for the real classification.
+
 ## Outstanding
 
 - `make ci-full` has never had a valid run; an earlier "pass" was `tail`'s
