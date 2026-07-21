@@ -93,6 +93,13 @@ internal sealed class LandformClassificationLayer : IPhysicalGeographyLayer
             : PhysicalLandformCodes.Slope;
     }
 
+    /// <summary>
+    /// A waterfall spans the river. Testing each triangle against its own
+    /// outflow made the fall a property of one triangle, so on a river two or
+    /// three triangles wide only the ones whose own target happened to sit
+    /// below the lip qualified - leaving a waterfall on one bank and a gorge
+    /// on the other. Water does not fall on the left side of a river only.
+    /// </summary>
     private static bool IsWaterfall(
         PhysicalGeographyField map,
         int triangleIndex,
@@ -103,6 +110,30 @@ internal sealed class LandformClassificationLayer : IPhysicalGeographyLayer
             return false;
         }
 
+        if (HasWaterfallDrop(map, triangleIndex, profile))
+        {
+            return true;
+        }
+
+        for (var edge = 0; edge < 3; edge++)
+        {
+            var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
+            if (neighbor >= 0 &&
+                map.RiverOrders[neighbor] >= map.RiverOrders[triangleIndex] &&
+                HasWaterfallDrop(map, neighbor, profile))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasWaterfallDrop(
+        PhysicalGeographyField map,
+        int triangleIndex,
+        PhysicalGeographyGenerationProfile profile)
+    {
         var target = map.FlowTargets[triangleIndex];
         if (target < 0)
         {
