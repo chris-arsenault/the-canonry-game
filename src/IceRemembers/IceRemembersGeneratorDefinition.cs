@@ -35,6 +35,7 @@ public static partial class IceRemembersGeneratorDefinition
         ChartersFindHarbors(),
         VigilsLeaveRelics(),
         CorruptionWakesMonsters(),
+        .. CreateFrontierGenerators(),
         ..WarSagaGenerators(),
         TradeRoutesConveneNegotiation(),
         ClaimedWatersDrawBulls(),
@@ -328,7 +329,7 @@ public static partial class IceRemembersGeneratorDefinition
         Target = TargetWithIncomingAndWithoutOutgoing(K.Transport, Rel.Holds, Rel.NativeTo),
         Produces =
         [
-            Required("$harbor", K.Settlement, "harbor", "$target", "$target", frontier: true),
+            Required("$harbor", K.Settlement, "harbor", "$target", "$target", frontier: true, physicalFrontier: true),
             Required("$broker", K.Penguin, "broker", "$harbor", "$target"),
             Optional("$instrument", K.Artifact, "instrument", "$harbor", "$target", chance: 0.45f),
         ],
@@ -907,17 +908,27 @@ public static partial class IceRemembersGeneratorDefinition
         string placementRef,
         string cultureRef,
         bool on = false,
-        bool frontier = false)
+        bool frontier = false,
+        bool physicalFrontier = false)
     {
         var physicalProfile = IceRemembersPlacementTerrainProfiles.Physical(kind, subtype);
         var semanticProfile = IceRemembersPlacementTerrainProfiles.Semantic(kind, subtype);
+        // Physical frontier is the founding ratchet: the entity lands on
+        // known free ground just past its culture's border, reveals the fog
+        // around itself, and becomes the anchor the next push starts from.
+        var physicalPlacement = on ? SemanticPlacement.On : SemanticPlacement.Near;
+        if (physicalFrontier)
+        {
+            physicalPlacement = SemanticPlacement.Frontier;
+        }
+
         return new()
         {
             Ref = @ref,
             Kind = kind,
             Subtype = subtype,
             Role = subtype,
-            PhysicalPlacement = on ? SemanticPlacement.On : SemanticPlacement.Near,
+            PhysicalPlacement = physicalPlacement,
             PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
             PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
             PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
@@ -932,7 +943,9 @@ public static partial class IceRemembersGeneratorDefinition
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
             PlacementRef = placementRef,
             InheritCultureFrom = cultureRef,
-            CulturePlacement = CulturePlacementFor(kind),
+            CulturePlacement = physicalFrontier
+                ? GeneratorCulturePlacement.CultureFrontier
+                : CulturePlacementFor(kind),
         };
     }
 

@@ -1,6 +1,7 @@
 namespace IceRemembers;
 
 using Engine.Domain.Config;
+using Engine.Domain.Spatial;
 using Engine.Kinds;
 using Engine.WorldGen;
 
@@ -63,7 +64,7 @@ public static partial class IceRemembersGeneratorDefinition
         [
             // The colony is the outward settler - it pushes the culture's
             // idea-frontier. Its order and charter stay with it (near the colony).
-            Required("$colony", K.Settlement, "colony", "$target", "$target", frontier: true),
+            Required("$colony", K.Settlement, "colony", "$target", "$target", frontier: true, physicalFrontier: true),
             Required("$order", K.Faction, "order", "$colony", "$target"),
             Required("$charter", K.Transport, "trade", "$colony", "$target"),
         ],
@@ -104,7 +105,7 @@ public static partial class IceRemembersGeneratorDefinition
         ],
         Produces =
         [
-            Required("$reefhold", K.Settlement, "reefhold", "$target", "$port", frontier: true),
+            Required("$reefhold", K.Settlement, "reefhold", "$target", "$port", frontier: true, physicalFrontier: true),
             Required("$instrument", K.Artifact, "instrument", "$reefhold", "$port"),
             Required("$broker", K.Penguin, "broker", "$reefhold", "$port"),
         ],

@@ -215,7 +215,7 @@ public static partial class IceRemembersGeneratorDefinition
         ],
         Produces =
         [
-            RequiredWakeSingers("$newsite", K.PointOfInterest, "vent", "$target", GeneratorCulturePlacement.CultureRoute, frontier: true),
+            RequiredWakeSingers("$newsite", K.PointOfInterest, "vent", "$target", GeneratorCulturePlacement.CultureFrontier, frontier: true, physicalFrontier: true),
             ProducedCanon("$creed", "doctrine", "$target", culture: C(IceRemembersCulture.WakeSingers), inheritCultureFrom: null, chance: 0.60f),
         ],
         Relationships =
@@ -502,7 +502,8 @@ public static partial class IceRemembersGeneratorDefinition
         string subtype,
         string placementRef,
         GeneratorCulturePlacement culturePlacement,
-        bool frontier = false)
+        bool frontier = false,
+        bool physicalFrontier = false)
     {
         var physicalProfile = IceRemembersPlacementTerrainProfiles.Physical(kind, subtype);
         var semanticProfile = IceRemembersPlacementTerrainProfiles.Semantic(kind, subtype);
@@ -512,7 +513,7 @@ public static partial class IceRemembersGeneratorDefinition
             Kind = kind,
             Subtype = subtype,
             Role = subtype,
-            PhysicalPlacement = SemanticPlacement.Near,
+            PhysicalPlacement = physicalFrontier ? SemanticPlacement.Frontier : SemanticPlacement.Near,
             PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
             PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
             PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
