@@ -268,3 +268,14 @@ When architecture changes, update the stable docs:
 
 Do not leave session trackers, review dumps, or stale migration plans as if
 they are current design documents.
+
+## Canonical Commands
+
+Never hand-roll `dotnet run`/`dotnet test` invocations for simulation runs,
+worldgen, captures, diagnostics, or scoped test suites. Use the Makefile
+targets (`make mc`, `make world`, `make capture`, `make diagnose`,
+`make test-kernel|test-domain|test-seed|test-gameplay`) - they encode the
+flags that hand-rolled commands repeatedly get wrong: Release configuration,
+unique Monte Carlo run ids, fresh builds for the MC provenance check, and
+the tools' current argument names. If a needed invocation has no target,
+add the target first, then run it.
