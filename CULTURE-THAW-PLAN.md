@@ -89,7 +89,7 @@ Verified against code at b289a67 (+uncommitted concurrent worldgen work):
 
 ## Milestones
 
-### M1 — Reveal layer: presence-driven materialization
+### M1 [DONE] — Reveal layer: presence-driven materialization
 Replace mass-threshold thaw of unknown cells with entity-presence reveal.
 Mobile entities reveal a small per-kind radius around their physical
 position (hooked at position change, budgeted per pulse); revealed cells
@@ -102,7 +102,7 @@ reveal tests (entity movement reveals; reveal never reverses; determinism
 snapshot round-trip); MC smoke run shows revealed-cell count growing with
 entity travel, not culture mass.
 
-### M2 — Exploration verbs and ranging kinds [depends on M1]
+### M2 [DONE] — Exploration verbs and ranging kinds [depends on M1]
 Author the deliberate push into fog: exploration verb family
 (scout/survey for land kinds, voyage for transports, deep-ranging for
 orcas) targeting fog-adjacent known cells, scored by taste over the
@@ -113,7 +113,7 @@ pacing dials.
 reveal notably beyond the passive envelope (revealed-radius trajectory per
 kind), with ships opening non-contiguous landmasses.
 
-### M3 — Supported range: the soft leash [depends on M1]
+### M3 [DONE] — Supported range: the soft leash [depends on M1]
 Define per-hex support (culture field mass + static-entity anchors,
 distance-discounted) and thread it as a soft leash: verb targeting and
 exploration scoring degrade beyond support, and an attrition health effect
@@ -125,7 +125,7 @@ danger — tuned in M6 but the band choice shapes authoring.
 support with ranging-kind exceptions (roaming-radius by kind vs support
 distance), no hard boundary artifacts.
 
-### M4 — Ice layer: cold pressure and breathing covers [depends on M1]
+### M4 [DONE] — Ice layer: cold pressure and breathing covers [depends on M1]
 One ice dynamics rule for both land and sea: per-hex cold pressure derived
 from facts (temperature, ice thickness, geothermal refuge) scaled by the
 open age; covers advance onto known cells where pressure beats local
@@ -139,7 +139,7 @@ range pressure, never un-reveal.
 Thaw→Long Dark age sequence: passages close and reopen, no revealed cell
 ever becomes unknown, culture-held ground resists cover.
 
-### M5 — Taste-shaped culture growth [depends on M3]
+### M5 [DONE] — Taste-shaped culture growth [depends on M3]
 Culture expansion reads geography and identity: influence targeting
 multiplies its topology score by culture taste over target-hex facts plus
 a capacity-derived land-quality term; the physical-plane terrain
@@ -149,7 +149,7 @@ sharpening and remittance stay untouched.
 diverge (Nightshelf toward ice, Wake-Singers toward coast/water) while
 front stability metrics stay within current bands.
 
-### M6 — Integration, calibration, and evidence [depends on M2, M4, M5]
+### M6 [DONE, decisions pending] — Integration, calibration, and evidence [depends on M2, M4, M5]
 Worldgen version bump; regenerate the four worlds; validator gains reveal
 and ice sanity teeth (reveal pace floor, no-unreveal invariant, ice never
 covers the heart under normal ages); captures with reveal/ice overlays;

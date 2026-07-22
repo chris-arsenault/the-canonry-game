@@ -56,6 +56,24 @@ public sealed class PlacementTasteTests
     }
 
     [Fact]
+    public void CultureGrowth_TakesRootFasterOnTastedGround()
+    {
+        var simulation = CreateSimulation();
+        InstallWorld(simulation);
+        simulation.RegisterCulturePlacementTaste(OceanCultureId, PlacementTasteAxisCodes.WaterFraction, 1f);
+        simulation.RegisterCulturePlacementTaste(IceCultureId, PlacementTasteAxisCodes.IceThickness, 1f);
+
+        // The same territorial drive lands differently per culture: the
+        // ocean culture's field takes root at sea, the ice culture's on ice.
+        Assert.True(
+            simulation.CultureGrowthMultiplier(OceanCultureId, 1, 0) >
+            simulation.CultureGrowthMultiplier(OceanCultureId, 0, 1));
+        Assert.True(
+            simulation.CultureGrowthMultiplier(IceCultureId, 0, 1) >
+            simulation.CultureGrowthMultiplier(IceCultureId, 1, 0));
+    }
+
+    [Fact]
     public void UnregisteredTaste_ScoresZeroEverywhere()
     {
         var simulation = CreateSimulation();

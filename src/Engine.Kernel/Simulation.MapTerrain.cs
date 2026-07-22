@@ -24,6 +24,42 @@ internal sealed partial class Simulation
         return Movement.TravelCostProfile(this, planeCode, movementProfileId, q, r, tick);
     }
 
+    private const float CultureGrowthFloor = 0.25f;
+    private const float CultureGrowthTasteWeight = 0.75f;
+    private const float CultureGrowthMinimum = 0.1f;
+    private const float CultureGrowthMaximum = 2.5f;
+
+    /// <summary>
+    /// How readily culture takes root on a physical hex: the land's derived
+    /// capacity sets the base and the culture's taste bends it, so identity
+    /// reads geography when territory grows, not just when entities place.
+    /// Replaces the authored per-terrain influence table on the physical
+    /// plane; semantic ground keeps its authored multiplier - ideas have no
+    /// facts to read.
+    /// </summary>
+    internal float CultureGrowthMultiplier(int cultureId, int q, int r)
+    {
+        // No latent facts, no opinion: worlds without installed physical
+        // geography keep neutral growth everywhere.
+        if (!KernelData.PhysicalGeography.TryGetCell(q, r, out _, out _, out _))
+        {
+            return 1f;
+        }
+
+        var multiplier = CultureGrowthFloor + TasteCapacityValue(q, r);
+        if (cultureId > 0)
+        {
+            multiplier += CultureGrowthTasteWeight * PlacementTasteScore(0, cultureId, q, r) / TasteScoreScale;
+        }
+
+        if (multiplier < CultureGrowthMinimum)
+        {
+            return CultureGrowthMinimum;
+        }
+
+        return multiplier > CultureGrowthMaximum ? CultureGrowthMaximum : multiplier;
+    }
+
     internal float PhysicalInfluenceMultiplier(int kindId, int q, int r)
     {
         return TerrainInfluenceMultiplier(PlaneCodes.Physical, kindId, q, r);

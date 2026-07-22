@@ -59,6 +59,14 @@ internal sealed partial class Simulation
     {
         var cultureId = World.EntityCultureId(entityId);
         delta = CultureProductionScaled(cultureId, planeCode, delta);
+        // Positive physical production takes root as readily as the ground
+        // and the culture's taste allow; loss and semantic production are
+        // untouched.
+        if (delta > 0f && planeCode == PlaneCodes.Physical)
+        {
+            delta *= CultureGrowthMultiplier(cultureId, q, r);
+        }
+
         var previousRaw = cultureId > 0
             ? World.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r, z)
             : 0f;

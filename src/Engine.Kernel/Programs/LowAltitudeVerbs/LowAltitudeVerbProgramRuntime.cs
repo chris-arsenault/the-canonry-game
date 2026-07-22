@@ -682,6 +682,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             entityId);
     }
 
+    // Physical ground quality now scales at the deposit choke point via the
+    // culture growth multiplier; only semantic terrain keeps its authored
+    // influence table here.
     private static float TerrainAdjustedInfluenceDelta(
         Simulation simulation,
         int entityId,
@@ -690,7 +693,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int r,
         float delta)
     {
-        return delta * simulation.TerrainInfluenceMultiplier(planeCode, simulation.World.EntityKindId(entityId), q, r);
+        return planeCode == PlaneCodes.Physical
+            ? delta
+            : delta * simulation.TerrainInfluenceMultiplier(planeCode, simulation.World.EntityKindId(entityId), q, r);
     }
 
     private static float OwnCultureRawAt(WorldState world, int entityId, int planeCode, int q, int r)

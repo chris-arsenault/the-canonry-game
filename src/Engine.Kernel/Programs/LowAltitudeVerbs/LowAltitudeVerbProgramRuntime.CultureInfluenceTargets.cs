@@ -165,7 +165,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             return 0f;
         }
 
-        return OwnCultureExpansionDrive(
+        var drive = OwnCultureExpansionDrive(
             targetingCode,
             boundary.Share,
             boundary.ForeignShare,
@@ -173,6 +173,13 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             boundary.RawMass,
             neighborhood,
             CultureAttachment(boundary));
+
+        // Territory grows where the land can hold it and the culture wants
+        // it: geography and identity bend the topological drive on the
+        // physical plane.
+        return planeCode == PlaneCodes.Physical
+            ? drive * simulation.CultureGrowthMultiplier(cultureId, q, r)
+            : drive;
     }
 
     private static bool OwnCultureExpansionTargetAllowed(
