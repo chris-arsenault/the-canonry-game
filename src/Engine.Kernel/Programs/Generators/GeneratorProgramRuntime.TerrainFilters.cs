@@ -43,6 +43,17 @@ internal sealed partial class GeneratorProgramRuntime
         _producedPlacementFallbackTerrainIds[PlacementTerrainSlot(producedSlot, planeCode)] = terrainId;
     }
 
+    /// <summary>Restricts FeatureAnchor placement to one feature kind (Any = -1).</summary>
+    public void SetProducedFeatureKind(int producedSlot, int featureKind)
+    {
+        if (producedSlot < 0 || producedSlot >= _producedFeatureKinds.Length)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(producedSlot));
+        }
+
+        _producedFeatureKinds[producedSlot] = featureKind;
+    }
+
     public void SetProducedPlacementGeography(
         int producedSlot,
         int siteFlags,

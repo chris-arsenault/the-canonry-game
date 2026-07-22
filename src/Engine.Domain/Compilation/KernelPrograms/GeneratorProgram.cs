@@ -90,7 +90,8 @@ public sealed record GeneratorProducedEntityRule(
     float PhysicalPlacementWarmthAffinity = 0f,
     float PhysicalPlacementFireAffinity = 0f,
     float PhysicalPlacementAuroraAffinity = 0f,
-    float PhysicalPlacementPressureAffinity = 0f);
+    float PhysicalPlacementPressureAffinity = 0f,
+    int PhysicalPlacementFeatureKind = -1);
 
 public sealed record GeneratorEntityQueryRule(
     IReadOnlyList<int> SubtypeIds,
@@ -129,6 +130,7 @@ public enum GeneratorProgramPlacement
     Area,
     Locality,
     Frontier,
+    FeatureAnchor,
 }
 
 public enum GeneratorProgramCultureMatch

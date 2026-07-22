@@ -63,6 +63,12 @@ internal sealed partial class GeneratorProgramRuntime
                 producedCultureId, originQ, originR, out q, out r);
         }
 
+        if (placementCode == GeneratorPlacementCodes.FeatureAnchor && planeCode == PlaneCodes.Physical)
+        {
+            return FindRevealedFeatureAnchor(
+                simulation, producedSlot, movementProfileId, originQ, originR, out q, out r);
+        }
+
         if (placementCode == GeneratorPlacementCodes.Area)
         {
             return FindTerrainAwareHex(
@@ -82,6 +88,53 @@ internal sealed partial class GeneratorProgramRuntime
         q = 0;
         r = 0;
         return false;
+    }
+
+    // Discovery placement: the nearest revealed, unoccupied anchor of a
+    // matching geological feature. The entity that lands there is the name
+    // the feature earns; its occupancy is the claim, so exhausted anchors
+    // fall out of candidacy on their own.
+    private bool FindRevealedFeatureAnchor(
+        Simulation simulation,
+        int producedSlot,
+        int movementProfileId,
+        int originQ,
+        int originR,
+        out int q,
+        out int r)
+    {
+        var features = simulation.KernelData.GeologicalFeatures;
+        var wantedKind = _producedFeatureKinds[producedSlot];
+        var world = simulation.World;
+        var bestDistance = int.MaxValue;
+        q = 0;
+        r = 0;
+        for (var index = 0; index < features.Count; index++)
+        {
+            if (wantedKind >= 0 && features.Kind(index) != wantedKind)
+            {
+                continue;
+            }
+
+            var anchorQ = features.AnchorQ(index);
+            var anchorR = features.AnchorR(index);
+            if (!world.CellIsKnown(PlaneCodes.Physical, anchorQ, anchorR) ||
+                !PlacementCellIsFree(world, PlaneCodes.Physical, anchorQ, anchorR) ||
+                !PlacementTerrainIsAllowed(simulation, PlaneCodes.Physical, producedSlot, movementProfileId, anchorQ, anchorR))
+            {
+                continue;
+            }
+
+            var distance = KernelQuery.HexDistance(originQ, originR, anchorQ, anchorR);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                q = anchorQ;
+                r = anchorR;
+            }
+        }
+
+        return bestDistance != int.MaxValue;
     }
 
     private void ResolveAnchorOrigin(

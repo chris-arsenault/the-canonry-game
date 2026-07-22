@@ -5,10 +5,10 @@ using Engine.Domain.Compilation.KernelData;
 using Engine.Domain.Compilation.KernelPrograms;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
+using Engine.Domain.Spatial;
 using Engine.Gambits;
 using Engine.Kinds;
 using Engine.Wiring;
-using Engine.WorldGen;
 
 public static partial class DomainCompiler
 {

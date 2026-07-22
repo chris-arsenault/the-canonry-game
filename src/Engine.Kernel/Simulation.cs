@@ -42,7 +42,8 @@ internal sealed partial class Simulation : IKernel
             new KernelTerrainData(options.TerrainIdCapacity),
             new KernelCultureData(options.CultureIdCapacity),
             new KernelPhysicalGeographyData(options.MapGenerationRadiusCapacity),
-            new KernelPlacementTasteData(options.KindIdCapacity, options.CultureIdCapacity));
+            new KernelPlacementTasteData(options.KindIdCapacity, options.CultureIdCapacity),
+            new KernelGeologicalFeatureData(options.GeologicalFeatureCapacity));
         World = new WorldState(Events, options, KernelData);
         CultureBoundaries = CreateCultureBoundaryRuntime(options);
         World.AttachCultureBoundaries(CultureBoundaries);
@@ -698,32 +699,6 @@ internal sealed partial class Simulation : IKernel
         return Movement.Place(this, entityId, PlaneCodes.Physical, q, r, tick, causeCode);
     }
 
-    internal void MoveEntityPhysicalUnchecked(int entityId, int q, int r, int tick)
-    {
-        World.MoveEntityPhysical(entityId, q, r, tick, _executionContext);
-    }
-
-    internal void MoveEntityPhysicalUnchecked(int entityId, int q, int r, int z, int tick)
-    {
-        World.MoveEntityPhysical(entityId, q, r, z, tick, _executionContext);
-    }
-
-    internal void MoveEntitySemantic(int entityId, int q, int r, int s, int tick)
-    {
-        _ = Movement.Place(this, entityId, PlaneCodes.Semantic, q, r, tick, MovementCauseCodes.Forced);
-        _ = s;
-    }
-
-    internal MovementMoveResult MoveEntitySemantic(int entityId, int q, int r, int s, int tick, int causeCode)
-    {
-        _ = s;
-        if (causeCode == MovementCauseCodes.Travel)
-        {
-            return Movement.Navigate(this, entityId, PlaneCodes.Semantic, q, r, tick);
-        }
-
-        return Movement.Place(this, entityId, PlaneCodes.Semantic, q, r, tick, causeCode);
-    }
 
     internal void MoveEntitySemanticUnchecked(int entityId, int q, int r, int s, int tick)
     {

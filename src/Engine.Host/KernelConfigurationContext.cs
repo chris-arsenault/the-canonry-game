@@ -979,6 +979,12 @@ internal sealed class KernelConfigurationContext
     public void AddGeneratorProducedPlacementPreferredTerrain(int producedSlot, int planeCode, int terrainId) =>
         _kernel.Generators.AddProducedPlacementPreferredTerrain(producedSlot, planeCode, terrainId);
 
+    public void SetGeneratorProducedFeatureKind(int producedSlot, int featureKind) =>
+        _kernel.Generators.SetProducedFeatureKind(producedSlot, featureKind);
+
+    public void InstallGeologicalFeature(int kind, int anchorQ, int anchorR, int magnitude, int hexCount) =>
+        _kernel.KernelData.GeologicalFeatures.Install(kind, anchorQ, anchorR, magnitude, hexCount);
+
     public void SetGeneratorProducedPlacementGeography(
         int producedSlot,
         int siteFlags,

@@ -3,11 +3,11 @@ namespace Engine.Domain.Graph;
 using Engine.Behaviors;
 using Engine.Constants;
 using Engine.Domain.Config;
+using Engine.Domain.Spatial;
 using Engine.Gambits;
 using Engine.Gameplay;
 using Engine.Kinds;
 using Engine.Wiring;
-using Engine.WorldGen;
 
 public sealed class DefinitionGraph
 {
@@ -311,6 +311,7 @@ public sealed class DefinitionProducedEntity
     public IReadOnlySet<string>? PhysicalPlacementAvoidedTerrains { get; init; }
     public string? PhysicalPlacementFallbackTerrain { get; init; }
     public IReadOnlySet<string>? PhysicalPlacementPreferredSites { get; init; }
+    public string? FeatureKind { get; init; }
     public float PhysicalPlacementWarmthAffinity { get; init; }
     public float PhysicalPlacementFireAffinity { get; init; }
     public float PhysicalPlacementAuroraAffinity { get; init; }

@@ -81,6 +81,40 @@ public sealed class GeneratorPlacementGeographyTests
         Assert.Equal(OpenTerrain, simulation.World.CellTerrainId(PlaneCodes.Physical, q, r));
     }
 
+    [Fact]
+    public void FeatureAnchorPlacement_WaitsForRevealThenClaimsTheAnchor()
+    {
+        // A river-system anchor sits at (2,0), outside the initially known
+        // ground. The discovery cannot fire into fog; once the anchor is
+        // revealed, the produced entity lands exactly on it, and its
+        // occupancy blocks a second claim.
+        var simulation = CreateSimulation();
+        InstallGeography(simulation, flaggedQ: 0, flaggedR: 0, fieldWord: 0, auroraMean: 0);
+        simulation.KernelData.PhysicalGeography.InstallCell(
+            2, 0, OpenTerrain, superregionId: 1, continentId: 1,
+            crossingWord: 0, fieldWord: 0, initialCoverTerrainId: 0,
+            new byte[PhysicalHexFactCodes.Count]);
+        simulation.KernelData.GeologicalFeatures.Install(
+            kind: PhysicalGeologicalFeatureKindCodes.RiverSystem,
+            anchorQ: 2, anchorR: 0, magnitude: 900, hexCount: 12);
+        var slot = RegisterGeneratorProduced(simulation, GeneratorPlacementCodes.FeatureAnchor);
+        simulation.Generators.SetProducedFeatureKind(slot, PhysicalGeologicalFeatureKindCodes.RiverSystem);
+        _ = simulation.CreateEntity(TargetKindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
+
+        simulation.AdvanceTicks(1);
+        Assert.Throws<global::System.InvalidOperationException>(() => FindCreated(simulation));
+
+        // An explorer arriving beside the anchor reveals it (the
+        // materialization hook), and the next pulse names the river.
+        _ = simulation.CreateEntity(TargetKindId, 1, 1, 1, 0, 0, 0, 0, tick: 1);
+        Assert.True(simulation.World.CellIsKnown(PlaneCodes.Physical, 2, 0));
+        simulation.AdvanceTicks(1);
+
+        var createdId = FindCreated(simulation);
+        Assert.Equal(2, simulation.World.EntityPhysicalQ(createdId));
+        Assert.Equal(0, simulation.World.EntityPhysicalR(createdId));
+    }
+
     private static void InstallPartitionedGeography(Simulation simulation)
     {
         simulation.RegisterTerrain(
@@ -109,7 +143,9 @@ public sealed class GeneratorPlacementGeographyTests
         });
     }
 
-    private static int RegisterGeneratorProduced(Simulation simulation)
+    private static int RegisterGeneratorProduced(
+        Simulation simulation,
+        int physicalPlacementCode = GeneratorPlacementCodes.Area)
     {
         var slot = simulation.Generators.RegisterGenerator(
             GeneratorId,
@@ -126,7 +162,7 @@ public sealed class GeneratorPlacementGeographyTests
             hasQuery: 0,
             queryAdjacentToTarget: 0,
             queryCultureMatchCode: GeneratorCultureMatchCodes.Any,
-            physicalPlacementCode: GeneratorPlacementCodes.Area,
+            physicalPlacementCode: physicalPlacementCode,
             semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,

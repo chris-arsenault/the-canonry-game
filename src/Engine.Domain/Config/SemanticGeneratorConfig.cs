@@ -1,8 +1,8 @@
 namespace Engine.Domain.Config;
 
 using Engine.Constants;
+using Engine.Domain.Spatial;
 using Engine.Kinds;
-using Engine.WorldGen;
 
 public sealed class SemanticGeneratorConfig
 {
@@ -123,6 +123,13 @@ public sealed class SemanticProducedEntity
     /// </summary>
     public string? Culture { get; init; }
     public GeneratorCulturePlacement CulturePlacement { get; init; } = GeneratorCulturePlacement.PreferInheritedCulture;
+
+    /// <summary>
+    /// For FeatureAnchor placement: which geological feature kind to claim
+    /// (river_system, lake, range, peak, waterfall, crater, plain); null
+    /// means any.
+    /// </summary>
+    public string? FeatureKind { get; init; }
     public SemanticEntityQuery? Query { get; init; }
     public SemanticRegionCoverage? Coverage { get; init; }
 }
@@ -357,4 +364,11 @@ public enum SemanticPlacement
     /// out. Falls back to a near-origin search when no frontier cell is available.
     /// </summary>
     Frontier,
+
+    /// <summary>
+    /// Place on the revealed, unoccupied anchor hex of a geological feature
+    /// (nearest matching one). Discovery placement: the produced entity is
+    /// the name the feature earns, and its occupancy is the claim.
+    /// </summary>
+    FeatureAnchor,
 }

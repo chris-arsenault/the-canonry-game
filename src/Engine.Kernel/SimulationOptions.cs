@@ -53,6 +53,7 @@ internal sealed record SimulationOptions
     public int WorldBeatAgeCapacity { get; init; } = 24;
     public int WorldBeatItemCapacity { get; init; } = 256;
     public int MapFrontierThawRingCapacity { get; init; } = 65536;
+    public int GeologicalFeatureCapacity { get; init; } = 1024;
     public int MapFrontierCandidateCapacity { get; init; } = 128;
     public int KnowledgeSiteCapacity { get; init; } = 256;
     public int KnowledgeGrantCapacity { get; init; } = 2048;

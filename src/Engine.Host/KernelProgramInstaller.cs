@@ -639,6 +639,10 @@ internal static partial class KernelProgramInstaller
         }
 
         InstallGeneratorProducedPlacementGeography(context, producedSlot, produced);
+        if (produced.PhysicalPlacementFeatureKind >= 0)
+        {
+            context.SetGeneratorProducedFeatureKind(producedSlot, produced.PhysicalPlacementFeatureKind);
+        }
     }
 
     private static void InstallGeneratorProducedPlacementGeography(
@@ -1027,6 +1031,7 @@ internal static partial class KernelProgramInstaller
         GeneratorProgramPlacement.Area => GeneratorPlacementCodes.Area,
         GeneratorProgramPlacement.Locality => GeneratorPlacementCodes.Locality,
         GeneratorProgramPlacement.Frontier => GeneratorPlacementCodes.Frontier,
+        GeneratorProgramPlacement.FeatureAnchor => GeneratorPlacementCodes.FeatureAnchor,
         _ => throw new ArgumentOutOfRangeException(nameof(placement), placement, null),
     };
 

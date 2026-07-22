@@ -91,6 +91,23 @@ internal static class DomainStartupSeedInstaller
                     : context.DomainIds.TerrainIdOf(cell.InitialCoverTerrain).Value,
                 facts);
         }
+
+        InstallGeologicalFeatures(context, blueprint);
+    }
+
+    private static void InstallGeologicalFeatures(
+        KernelConfigurationContext context,
+        DomainPhysicalGeographyBlueprint blueprint)
+    {
+        foreach (var feature in blueprint.GeologicalFeatures)
+        {
+            context.InstallGeologicalFeature(
+                feature.Kind,
+                feature.AnchorQ,
+                feature.AnchorR,
+                feature.Magnitude,
+                feature.HexCount);
+        }
     }
 
     private static void InstallSemanticTerrain(

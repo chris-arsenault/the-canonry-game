@@ -114,6 +114,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _producedCultureRefCodes => Data.ProducedCultureRefCodes;
     private int[] _producedFixedCultureIds => Data.ProducedFixedCultureIds;
     private int[] _producedCulturePlacementCodes => Data.ProducedCulturePlacementCodes;
+    private int[] _producedFeatureKinds => Data.ProducedFeatureKinds;
     private float[] _producedCreateChances => Data.ProducedCreateChances;
     private int[] _producedSubtypeChoiceStarts => Data.ProducedSubtypeChoiceStarts;
     private int[] _producedSubtypeChoiceCounts => Data.ProducedSubtypeChoiceCounts;

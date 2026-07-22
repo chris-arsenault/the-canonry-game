@@ -95,6 +95,14 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] ProducedCultureRefCodes = [];
     internal int[] ProducedFixedCultureIds = [];
     internal int[] ProducedCulturePlacementCodes = [];
+    internal int[] ProducedFeatureKinds = [];
+
+    private void AllocateProducedPlacementArrays(int itemCapacity)
+    {
+        ProducedCulturePlacementCodes = new int[itemCapacity + 1];
+        ProducedFeatureKinds = new int[itemCapacity + 1];
+        global::System.Array.Fill(ProducedFeatureKinds, PhysicalGeologicalFeatureKindCodes.Any);
+    }
     internal float[] ProducedCreateChances = [];
     internal int[] ProducedSubtypeChoiceStarts = [];
     internal int[] ProducedSubtypeChoiceCounts = [];
@@ -270,7 +278,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         ProducedFixedCultureIds = new int[itemCapacity + 1];
         AllocateTagFilters(itemCapacity);
 
-        ProducedCulturePlacementCodes = new int[itemCapacity + 1];
+        AllocateProducedPlacementArrays(itemCapacity);
         ProducedCreateChances = new float[itemCapacity + 1];
         ProducedSubtypeChoiceStarts = new int[itemCapacity + 1];
         ProducedSubtypeChoiceCounts = new int[itemCapacity + 1];

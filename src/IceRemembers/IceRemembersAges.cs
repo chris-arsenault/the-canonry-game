@@ -34,6 +34,8 @@ public static class IceRemembersAges
         // --- PEOPLES track: everyday activity fallbacks (one always holds) ---
         TheWitnessedLife(),
         TheHunt(),
+        TheFarWandering(),
+        TheGreatCrossing(),
         TheLongTrade(),
         TheDeepeningCraft(),
         // --- PEOPLES track: epochal eras ---
@@ -123,6 +125,12 @@ public static class IceRemembersAges
             new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.4f, "the_ice_takes_notice"),
             new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.4f, "records_cast_shadows"),
             new(WorldBeatChargeDomain.MovementStepRate, 1.2f),
+            // Nobody sets out into the white while the sun is gone: the
+            // scouting pushes and founding chains ebb until the Thaw.
+            new(WorldBeatChargeDomain.VerbWeight, 0.5f, "penguin_scout_the_white"),
+            new(WorldBeatChargeDomain.VerbWeight, 0.6f, "transport_voyage_beyond_the_charts"),
+            new(WorldBeatChargeDomain.GeneratorPulseWeight, 0.5f, "the_thaw_calls_the_bold"),
+            new(WorldBeatChargeDomain.GeneratorPulseWeight, 0.5f, "sanctuaries_anchor_colonies"),
         ],
     };
 
@@ -238,6 +246,56 @@ public static class IceRemembersAges
             new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.3f, "the_ice_takes_notice"),
             new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.3f, "legend_enters_the_canon"),
             new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.2f, "monster_slayings_become_festivals"),
+        ],
+    };
+
+    private static WorldBeatAgeConfig TheFarWandering() => new()
+    {
+        Id = "age_the_far_wandering",
+        Name = "The Far Wandering",
+        Description = "The mood of the Great Thaw returns: bold crews walk past the last remembrance-stone, ships stand out beyond the charts, and every marginal rookery dreams of becoming a great berg. The ice from such years has a brightness, as if even the frost believed things were going well.",
+        Track = WorldBeatTrack.Peoples,
+        Priority = 4,
+        MinOpenTicks = 1800,
+        CooldownTicks = 1500,
+        OpenWhen = [Kind(WorldBeatComparator.AtLeast, 7f, "settlement")],
+        CloseWhen = [Kind(WorldBeatComparator.Below, 5f, "settlement")],
+        Charges =
+        [
+            new(WorldBeatChargeDomain.VerbWeight, 1.8f, "penguin_scout_the_white"),
+            new(WorldBeatChargeDomain.VerbWeight, 1.8f, "orca_sound_the_far_water"),
+            new(WorldBeatChargeDomain.VerbWeight, 2f, "transport_voyage_beyond_the_charts"),
+            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.6f, "the_thaw_calls_the_bold"),
+            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.6f, "sanctuaries_anchor_colonies"),
+            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.5f, "charters_find_harbors"),
+            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.5f, "the_river_earns_its_name"),
+            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.5f, "the_still_water_is_sounded"),
+            new(WorldBeatChargeDomain.MovementStepRate, 0.9f),
+        ],
+    };
+
+    private static WorldBeatAgeConfig TheGreatCrossing() => new()
+    {
+        Id = "age_the_great_crossing",
+        Name = "The Great Crossing",
+        Description = "Once in a generation the peoples attempt what Piien attempted: a crossing meant to outlast the food math. Whole flotillas commit to the far water, and either the charts grow a new coast or the sea keeps its answer. The ice records these years carefully, the way it does before events it considers significant.",
+        Track = WorldBeatTrack.Peoples,
+        Priority = 6,
+        MinOpenTicks = 1200,
+        CooldownTicks = 6000,
+        OpenWhen =
+        [
+            Kind(WorldBeatComparator.AtLeast, 10f, "settlement"),
+            Kind(WorldBeatComparator.AtLeast, 4f, "transport"),
+        ],
+        CloseWhen = [Kind(WorldBeatComparator.Below, 3f, "transport")],
+        Charges =
+        [
+            new(WorldBeatChargeDomain.VerbWeight, 2.5f, "transport_voyage_beyond_the_charts"),
+            new(WorldBeatChargeDomain.VerbWeight, 2.2f, "orca_sound_the_far_water"),
+            new(WorldBeatChargeDomain.GeneratorPulseWeight, 2f, "bulls_range_the_far_currents"),
+            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.8f, "conduit_points_found_reefholds"),
+            new(WorldBeatChargeDomain.MovementStepRate, 0.85f),
         ],
     };
 

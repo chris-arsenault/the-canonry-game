@@ -450,6 +450,24 @@ public static class GeneratorPlacementCodes
     public const int Area = 1;
     public const int Locality = 2;
     public const int Frontier = 3;
+    public const int FeatureAnchor = 4;
+}
+
+/// <summary>
+/// Discrete geological feature kinds, mirroring worldgen's identification
+/// enum ordinals as carried through the blueprint.
+/// </summary>
+public static class PhysicalGeologicalFeatureKindCodes
+{
+    public const int RiverSystem = 0;
+    public const int Lake = 1;
+    public const int Range = 2;
+    public const int Peak = 3;
+    public const int Waterfall = 4;
+    public const int Crater = 5;
+    public const int Plain = 6;
+
+    public const int Any = -1;
 }
 
 public static class GeneratorCultureMatchCodes

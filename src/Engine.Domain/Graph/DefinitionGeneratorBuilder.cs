@@ -246,6 +246,7 @@ public static class DefinitionGeneratorBuilder
             PhysicalPlacementAvoidedTerrains = CopyTerrainSet(produced.PhysicalPlacementAvoidedTerrains),
             PhysicalPlacementFallbackTerrain = produced.PhysicalPlacementFallbackTerrain,
             PhysicalPlacementPreferredSites = CopyTerrainSet(produced.PhysicalPlacementPreferredSites),
+            FeatureKind = produced.FeatureKind,
             PhysicalPlacementWarmthAffinity = produced.PhysicalPlacementWarmthAffinity,
             PhysicalPlacementFireAffinity = produced.PhysicalPlacementFireAffinity,
             PhysicalPlacementAuroraAffinity = produced.PhysicalPlacementAuroraAffinity,

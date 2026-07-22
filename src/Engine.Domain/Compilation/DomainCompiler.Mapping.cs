@@ -5,11 +5,11 @@ using Engine.Domain.Compilation.KernelData;
 using Engine.Domain.Compilation.KernelPrograms;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
+using Engine.Domain.Spatial;
 using Engine.Gambits;
 using Engine.Gameplay;
 using Engine.Kinds;
 using Engine.Wiring;
-using Engine.WorldGen;
 
 public static partial class DomainCompiler
 {
@@ -424,6 +424,7 @@ public static partial class DomainCompiler
                 produced.CreateChance,
                 CompileGeneratorCoverage(produced.Coverage, terrainByName, refCodes, ids),
                 PhysicalPlacementSiteFlags: CompilePlacementSiteFlags(produced.PhysicalPlacementPreferredSites),
+                PhysicalPlacementFeatureKind: CompileFeatureKind(produced.FeatureKind),
                 PhysicalPlacementWarmthAffinity: ClampAffinity(produced.PhysicalPlacementWarmthAffinity),
                 PhysicalPlacementFireAffinity: ClampAffinity(produced.PhysicalPlacementFireAffinity),
                 PhysicalPlacementAuroraAffinity: ClampAffinity(produced.PhysicalPlacementAuroraAffinity),
@@ -731,6 +732,30 @@ public static partial class DomainCompiler
             _ => throw new ArgumentOutOfRangeException(nameof(selection), selection, null),
         };
 
+    private static readonly Dictionary<string, int> FeatureKindCodes =
+        new(StringComparer.Ordinal)
+        {
+            ["river_system"] = PhysicalGeologicalFeatureKindCodes.RiverSystem,
+            ["lake"] = PhysicalGeologicalFeatureKindCodes.Lake,
+            ["range"] = PhysicalGeologicalFeatureKindCodes.Range,
+            ["peak"] = PhysicalGeologicalFeatureKindCodes.Peak,
+            ["waterfall"] = PhysicalGeologicalFeatureKindCodes.Waterfall,
+            ["crater"] = PhysicalGeologicalFeatureKindCodes.Crater,
+            ["plain"] = PhysicalGeologicalFeatureKindCodes.Plain,
+        };
+
+    private static int CompileFeatureKind(string? featureKind)
+    {
+        if (featureKind is null)
+        {
+            return PhysicalGeologicalFeatureKindCodes.Any;
+        }
+
+        return FeatureKindCodes.TryGetValue(featureKind, out var code)
+            ? code
+            : throw new InvalidOperationException($"Unknown geological feature kind '{featureKind}'.");
+    }
+
     private static (GeneratorProgramPlacement Placement, int MinRadius, int MaxRadius) ToGeneratorPlacement(SemanticPlacement placement) => placement switch
     {
         SemanticPlacement.On => (
@@ -751,6 +776,10 @@ public static partial class DomainCompiler
             GeneratorProgramConstants.UnboundedPlacementMaxRadius),
         SemanticPlacement.Frontier => (
             GeneratorProgramPlacement.Frontier,
+            GeneratorProgramConstants.DefaultPlacementMinRadius,
+            GeneratorProgramConstants.UnboundedPlacementMaxRadius),
+        SemanticPlacement.FeatureAnchor => (
+            GeneratorProgramPlacement.FeatureAnchor,
             GeneratorProgramConstants.DefaultPlacementMinRadius,
             GeneratorProgramConstants.UnboundedPlacementMaxRadius),
         _ => throw new ArgumentOutOfRangeException(nameof(placement), placement, null),

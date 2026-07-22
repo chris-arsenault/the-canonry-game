@@ -1,7 +1,9 @@
 namespace IceRemembers;
 
 using Engine.Domain.Config;
+using Engine.Domain.Spatial;
 using Engine.Kinds;
+using Engine.WorldGen;
 
 using K = IceRemembers.IceRemembersKinds;
 using Rel = IceRemembers.IceRemembersRelationship;
@@ -17,7 +19,90 @@ public static partial class IceRemembersGeneratorDefinition
         TheThawCallsTheBold(),
         BullsRangeTheFarCurrents(),
         TheWhiteHasTeeth(),
+        TheRiverEarnsItsName(),
+        TheStillWaterIsSounded(),
     ];
+
+    // Discovery: the retreating sheets reveal "new waters rich with krill
+    // and ancient secrets frozen beneath." When the peoples reach a named
+    // piece of the world, the ice finally has someone to remember it for.
+    private static SemanticGeneratorConfig TheRiverEarnsItsName() => new()
+    {
+        Id = "the_river_earns_its_name",
+        Name = "The River Earns Its Name",
+        Description = "A settlement's people walk the length of the water that feeds them, and the whole running system takes a name the ice can hold. What was a line on Piien's unfinished charts becomes a place the living claim.",
+        CausalLimit = "Depends on a revealed, unclaimed river-system anchor; the named region standing on the anchor is the claim.",
+        Target = new SemanticGeneratorTarget { Kind = K.Settlement },
+        Produces =
+        [
+            FeatureDiscovery("$namedwater", K.Region, "reach", "river_system"),
+        ],
+        Relationships =
+        [
+            R("$namedwater", "$target", Rel.ClaimedBy, 0.5f),
+        ],
+        Triggers = TriggerOn(K.Settlement),
+        PulseWeight = 2,
+    };
+
+    private static SemanticGeneratorConfig TheStillWaterIsSounded() => new()
+    {
+        Id = "the_still_water_is_sounded",
+        Name = "The Still Water Is Sounded",
+        Description = "A crew takes its craft onto an unmeasured lake and sounds the bottom. The still water joins the route ledger with a depth beside its name, and the charts grow by one more truth.",
+        CausalLimit = "Depends on a revealed, unclaimed lake anchor; the sounding site standing on the anchor is the claim.",
+        Target = new SemanticGeneratorTarget { Kind = K.Transport },
+        Produces =
+        [
+            FeatureDiscovery("$sounding", K.PointOfInterest, "shoal", "lake"),
+        ],
+        Relationships =
+        [
+            R("$sounding", "$target", Rel.ConduitOf, 0.6f),
+        ],
+        Triggers = TriggerOn(K.Transport),
+        PulseWeight = 2,
+    };
+
+    // A discovery lands on the revealed anchor hex of a geological feature
+    // and inherits the discoverer's culture - naming is a deed, and deeds
+    // belong to someone.
+    private static SemanticProducedEntity FeatureDiscovery(
+        string @ref,
+        EntityKind kind,
+        string subtype,
+        string featureKind)
+    {
+        var physicalProfile = IceRemembersPlacementTerrainProfiles.Physical(kind, subtype);
+        var semanticProfile = IceRemembersPlacementTerrainProfiles.Semantic(kind, subtype);
+        return new()
+        {
+            Ref = @ref,
+            Kind = kind,
+            Subtype = subtype,
+            Role = subtype,
+            PhysicalPlacement = SemanticPlacement.FeatureAnchor,
+            FeatureKind = featureKind,
+            PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
+            PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
+            PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
+            SemanticPlacement = SemanticPlacement.Near,
+            SemanticPlacementPreferredTerrains = semanticProfile.PreferredTerrains,
+            SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
+            SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
+            PlacementRef = "$target",
+            InheritCultureFrom = "$target",
+            CulturePlacement = GeneratorCulturePlacement.Ignore,
+            Coverage = kind == K.Region
+                ? new SemanticRegionCoverage
+                {
+                    Mode = CoveragePlacementMode.CreateNew,
+                    DesiredCellCount = 18,
+                    MinimumCellCount = 6,
+                }
+                : null,
+        };
+    }
 
     private static SemanticGeneratorConfig TheThawCallsTheBold() => new()
     {

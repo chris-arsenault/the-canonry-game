@@ -1,6 +1,7 @@
 namespace Engine.Graph;
 
 using Engine.Domain;
+using Engine.Domain.Spatial;
 using Engine.Kinds;
 
 using QuikGraph;
@@ -41,7 +42,7 @@ public sealed class WorldGraph
         string culture,
         int tick,
         (int Q, int R)? coordinates = null,
-        Engine.WorldGen.SemanticHexCoord? semanticPosition = null,
+        SemanticHexCoord? semanticPosition = null,
         SubtypeRuntimeId subtypeId = default,
         CultureRuntimeId cultureId = default)
     {
