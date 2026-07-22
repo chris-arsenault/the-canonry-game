@@ -458,8 +458,8 @@ internal sealed class KernelConfigurationContext
     public void AddLowAltitudeVerbTerrainFilter(int verbSlot, int terrainId) =>
         _kernel.LowAltitudeVerbs.AddTerrainFilter(verbSlot, terrainId);
 
-    public void SetLowAltitudeVerbGeographyFilter(int verbSlot, int minTemperature, int siteFlags) =>
-        _kernel.LowAltitudeVerbs.SetGeographyFilter(verbSlot, minTemperature, siteFlags);
+    public void SetLowAltitudeVerbGeographyFilter(int verbSlot, int minTemperature, int siteFlags, int fogAdjacent = 0) =>
+        _kernel.LowAltitudeVerbs.SetGeographyFilter(verbSlot, minTemperature, siteFlags, fogAdjacent);
 
     public int RegisterLowAltitudeInitialInfluence(
         int kindId,
@@ -846,19 +846,45 @@ internal sealed class KernelConfigurationContext
         int refreezeAgeId,
         int frozenTerrainId,
         int maxRadius,
-        float frontierMassThreshold,
-        float reclaimMassCeiling,
-        int thawBudgetPerPulse,
-        int refreezeBudgetPerPulse) =>
+        int revealBudgetPerPulse,
+        int iceAdvanceBudgetPerPulse,
+        int iceRetreatBudgetPerPulse) =>
         _kernel.MapFrontier.SetAgeConfiguration(
             thawAgeId,
             refreezeAgeId,
             frozenTerrainId,
             maxRadius,
-            frontierMassThreshold,
-            reclaimMassCeiling,
-            thawBudgetPerPulse,
-            refreezeBudgetPerPulse);
+            revealBudgetPerPulse,
+            iceAdvanceBudgetPerPulse,
+            iceRetreatBudgetPerPulse);
+
+    public void SetMapFrontierIcePressureConfiguration(
+        int frostTemperatureCeiling,
+        float iceThicknessPressureWeight,
+        float geothermalRefugeWeight,
+        float freezeAgePressureScalar,
+        float thawAgePressureScalar,
+        float baseIceResistance,
+        float cultureMassResistanceScale,
+        float roadIceResistance) =>
+        _kernel.MapFrontier.SetIcePressureConfiguration(
+            frostTemperatureCeiling,
+            iceThicknessPressureWeight,
+            geothermalRefugeWeight,
+            freezeAgePressureScalar,
+            thawAgePressureScalar,
+            baseIceResistance,
+            cultureMassResistanceScale,
+            roadIceResistance);
+
+    public void SetMapFrontierBaseRevealRadius(int radius)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(radius);
+        _kernel.MapFrontier.Data.BaseRevealRadius = radius;
+    }
+
+    public void RegisterMapFrontierKindRevealRadius(int kindId, int radius) =>
+        _kernel.MapFrontier.RegisterKindRevealRadius(kindId, radius);
 
     public void AddMapFrontierDriverAge(int thawAgeId, int refreezeAgeId) =>
         _kernel.MapFrontier.AddDriverAge(thawAgeId, refreezeAgeId);

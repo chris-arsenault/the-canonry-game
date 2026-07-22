@@ -296,6 +296,11 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             return OwnCultureInfluenceEvidence(simulation.World, entityId, rule);
         }
 
+        if (conditionCode == EffectConditionCodes.BeyondCultureSupport)
+        {
+            return BeyondCultureSupportEvidence(simulation, entityId, rule);
+        }
+
         return SpatialEvidence(simulation, entityId, rule, conditionCode);
     }
 
@@ -399,6 +404,34 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         return KernelQuery.ThresholdEvidence(
             world.GetCellCultureInfluence(cultureId, planeCode, q, r),
             _attributeDeltaThresholds[rule]);
+    }
+
+    // Inverse of own-culture support: full evidence with no support at all,
+    // none at or beyond the threshold. Cultureless entities answer to no
+    // hearth and feel nothing. Knowledge range grants lower the threshold,
+    // so a far-walking culture's people range farther before the cold bites.
+    private float BeyondCultureSupportEvidence(Simulation simulation, int entityId, int rule)
+    {
+        var world = simulation.World;
+        var cultureId = world.EntityCultureId(entityId);
+        if (cultureId <= 0)
+        {
+            return 0f;
+        }
+
+        var planeCode = _attributeDeltaPlaneCodes[rule];
+        var q = KernelQuery.CurrentQ(world, entityId, planeCode);
+        var r = KernelQuery.CurrentR(world, entityId, planeCode);
+        var threshold = _attributeDeltaThresholds[rule] * simulation.Knowledge.Modifier(
+            cultureId,
+            KnowledgeGrantDomainCodes.FrontierThawThreshold);
+        if (threshold <= 0f)
+        {
+            return 0f;
+        }
+
+        var supported = world.CultureFieldAt(cultureId, planeCode, q, r).TotalRawMass;
+        return supported >= threshold ? 0f : 1f - (supported / threshold);
     }
 
     private float CultureSlotOccupancyEvidence(Simulation simulation, int entityId, int rule)

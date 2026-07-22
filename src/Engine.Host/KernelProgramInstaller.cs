@@ -260,43 +260,6 @@ internal static partial class KernelProgramInstaller
         }
     }
 
-    private static void InstallMapFrontier(KernelConfigurationContext context, MapFrontierProgram program)
-    {
-        if (!program.Enabled)
-        {
-            return;
-        }
-
-        context.SetMapFrontierConfiguration(
-            program.ThawAgeId,
-            program.RefreezeAgeId,
-            program.FrozenTerrainId,
-            program.MaxRadius,
-            program.FrontierMassThreshold,
-            program.ReclaimMassCeiling,
-            program.ThawBudgetPerPulse,
-            program.RefreezeBudgetPerPulse);
-        context.SetMapFrontierSemanticConfiguration(
-            program.SemanticGrowthEnabled,
-            program.SemanticMaxRadius,
-            program.SemanticFrontierMassThreshold,
-            program.SemanticBudgetPerPulse);
-        context.SetMapFrontierSeaIceConfiguration(
-            program.SeaIceCoverTerrainId,
-            program.SeaIceFreezeBudgetPerPulse,
-            program.SeaIceMeltBudgetPerPulse);
-        foreach (var terrainId in program.SeaIceEligibleTerrainIds)
-        {
-            context.AddMapFrontierSeaIceEligibleTerrain(terrainId);
-        }
-        var driverCount = System.Math.Max(program.AdditionalThawAgeIds.Count, program.AdditionalRefreezeAgeIds.Count);
-        for (var i = 0; i < driverCount; i++)
-        {
-            context.AddMapFrontierDriverAge(
-                i < program.AdditionalThawAgeIds.Count ? program.AdditionalThawAgeIds[i] : 0,
-                i < program.AdditionalRefreezeAgeIds.Count ? program.AdditionalRefreezeAgeIds[i] : 0);
-        }
-    }
 
     private static void InstallWorldBeats(KernelConfigurationContext context, WorldBeatProgram program)
     {

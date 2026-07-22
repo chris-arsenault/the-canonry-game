@@ -385,6 +385,9 @@ public enum IceRemembersVerbId
     PenguinFollowTheGathering,
     OrcaFollowTheGathering,
     FactionFeedTheColumn,
+    PenguinScoutTheWhite,
+    OrcaSoundTheFarWater,
+    TransportVoyageBeyondTheCharts,
 }
 
 public static class IceRemembersVerbIdExtensions
@@ -567,6 +570,9 @@ public static class IceRemembersVerbIdExtensions
         "penguin_follow_the_gathering",
         "orca_follow_the_gathering",
         "faction_feed_the_column",
+        "penguin_scout_the_white",
+        "orca_sound_the_far_water",
+        "transport_voyage_beyond_the_charts",
     ];
 
     public static string ToVerbId(this IceRemembersVerbId verbId)

@@ -3,14 +3,14 @@ namespace Engine.Kernel;
 using Engine.Constants;
 
 /// <summary>
-/// The growing map: the physical world is born as a small thawed heart and
-/// opens only where history presses. Each pulse, when the Ice track's thaw
-/// age is open, culture mass at the current frontier thaws the ground beyond
-/// it - new cells materialized, region inherited from the pressing cell.
-/// When the reclaim age (the Long Dark) is open, frontier-grown rim ground
-/// that no culture holds and no road crosses receives an impassable deep-ice
-/// cover. Thaw removes that cover and reveals the durable terrain beneath.
-/// Extent is earned and can ebb; it is never allocated up front.
+/// The growing map: the physical world is born as a small revealed heart and
+/// opens where entities actually go. Each pulse, every active entity reveals
+/// the latent ground around its position - fog of war retreats at entity
+/// speed, one-way, untied from culture mass and from the ice. The ice is a
+/// separate breathing layer: during freeze ages cold pressure lays impassable
+/// deep-ice cover over weakly-held frontier ground, and during thaw ages the
+/// cover melts back; it closes passages and shrinks range but never
+/// un-reveals a cell. Extent is earned and permanent; passability ebbs.
 /// </summary>
 internal sealed partial class MapFrontierProgramRuntime :
     IKernelProgramRuntime<MapFrontierProgramData, MapFrontierProgramState>
@@ -18,13 +18,18 @@ internal sealed partial class MapFrontierProgramRuntime :
     private static readonly int[] NeighborDQ = [1, 1, 0, -1, -1, 0];
     private static readonly int[] NeighborDR = [0, -1, -1, 0, 1, 1];
 
+    // Entities visited per reveal pulse: bounds pulse cost on large worlds
+    // while the rotating cursor still reaches every entity within a few
+    // pulses.
+    private const int RevealEntityVisitBudget = 96;
+
     private readonly int[] _candidateQ;
     private readonly int[] _candidateR;
 
     public MapFrontierProgramRuntime(SimulationOptions options)
     {
         global::System.ArgumentNullException.ThrowIfNull(options);
-        Data = new MapFrontierProgramData(options.MapGenerationRadiusCapacity);
+        Data = new MapFrontierProgramData(options.MapGenerationRadiusCapacity, options.KindIdCapacity);
         State = new MapFrontierProgramState(options.MapFrontierThawRingCapacity);
         var budget = options.MapFrontierCandidateCapacity;
         _candidateQ = new int[budget];
@@ -38,16 +43,20 @@ internal sealed partial class MapFrontierProgramRuntime :
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
+
+        // Reveal is not age-gated: explorers walk in every age.
+        RevealAroundEntities(simulation, tick);
+
         var worldAge = simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.World);
         if (Data.IsThawAge(worldAge))
         {
-            ThawFrontier(simulation, tick);
+            RetreatIce(simulation, tick);
             PulseSeaIce(simulation, tick, freeze: false);
         }
 
         if (Data.IsRefreezeAge(worldAge))
         {
-            ReclaimRim(simulation, tick);
+            AdvanceIce(simulation, tick);
             PulseSeaIce(simulation, tick, freeze: true);
         }
 
@@ -61,135 +70,100 @@ internal sealed partial class MapFrontierProgramRuntime :
     private static int HexDistanceFromOrigin(int q, int r) =>
         (global::System.Math.Abs(q) + global::System.Math.Abs(r) + global::System.Math.Abs(q + r)) / 2;
 
-    private void ThawFrontier(Simulation simulation, int tick)
+    /// <summary>
+    /// Presence reveals: each visited entity materializes the latent cells
+    /// within its kind's reveal radius. Static kinds hold a lit hearth;
+    /// ranging kinds carry the light with them.
+    /// </summary>
+    private void RevealAroundEntities(Simulation simulation, int tick)
     {
         var world = simulation.World;
-        var budget = global::System.Math.Min(Data.ThawBudgetPerPulse, _candidateQ.Length);
-        var capacity = _candidateQ.Length;
-        var count = 0;
-        var cultureCount = world.CultureHighWatermark;
-        var startCultureId = FirstCultureId(State.NextPhysicalCultureId, cultureCount);
-        for (var offset = 0; offset < cultureCount && count < capacity; offset++)
+        var budget = Data.RevealBudgetPerPulse;
+        if (budget <= 0)
         {
-            var cultureId = ((startCultureId - 1 + offset) % cultureCount) + 1;
-            count = CollectThawCandidates(simulation, world, cultureId, count, capacity);
+            return;
         }
 
-        State.NextPhysicalCultureId = NextCultureId(startCultureId, cultureCount);
-
-        var thawCount = global::System.Math.Min(budget, count);
-        OrderCandidatesByGeography(simulation, count, thawCount);
-        for (var i = 0; i < thawCount; i++)
+        var highWatermark = world.EntityHighWatermark;
+        if (highWatermark <= 0)
         {
-            ThawCell(simulation, i, tick);
+            return;
         }
+
+        var revealed = 0;
+        var visited = 0;
+        var entityId = NextRevealEntityId(highWatermark);
+        while (visited < RevealEntityVisitBudget && visited < highWatermark && revealed < budget)
+        {
+            if (world.EntityIsActive(entityId))
+            {
+                revealed += RevealAroundEntity(simulation, world, entityId, budget - revealed, tick);
+            }
+
+            visited++;
+            entityId = entityId >= highWatermark ? 1 : entityId + 1;
+        }
+
+        State.NextRevealEntityId = entityId;
     }
 
-    // The retreating ice follows the land: candidates over budget are
-    // dropped from the coldest, most edge-hostile ground first, so thaw
-    // advances along valleys, coasts, and warm refuges instead of as a
-    // uniform rim.
-    private void OrderCandidatesByGeography(Simulation simulation, int count, int thawCount)
+    private int NextRevealEntityId(int highWatermark)
     {
-        for (var slot = 0; slot < thawCount; slot++)
+        var entityId = State.NextRevealEntityId;
+        return entityId <= 0 || entityId > highWatermark ? 1 : entityId;
+    }
+
+    private int RevealAroundEntity(Simulation simulation, WorldState world, int entityId, int budget, int tick)
+    {
+        var radius = Data.RevealRadiusOf(world.EntityKindId(entityId));
+        var q = world.EntityPhysicalQ(entityId);
+        var r = world.EntityPhysicalR(entityId);
+        var revealed = 0;
+        for (var dq = -radius; dq <= radius && revealed < budget; dq++)
         {
-            var bestIndex = slot;
-            var bestScore = CandidateGeographyScore(simulation, bestIndex);
-            for (var i = slot + 1; i < count; i++)
+            var minDr = global::System.Math.Max(-radius, -dq - radius);
+            var maxDr = global::System.Math.Min(radius, -dq + radius);
+            for (var dr = minDr; dr <= maxDr && revealed < budget; dr++)
             {
-                var score = CandidateGeographyScore(simulation, i);
-                if (score > bestScore)
+                if (TryRevealCell(simulation, world, q + dq, r + dr, tick))
                 {
-                    bestIndex = i;
-                    bestScore = score;
+                    revealed++;
                 }
             }
-
-            if (bestIndex != slot)
-            {
-                (_candidateQ[slot], _candidateQ[bestIndex]) = (_candidateQ[bestIndex], _candidateQ[slot]);
-                (_candidateR[slot], _candidateR[bestIndex]) = (_candidateR[bestIndex], _candidateR[slot]);
-            }
         }
+
+        return revealed;
     }
 
-    private int CandidateGeographyScore(Simulation simulation, int index)
+    // Reveal is one-way materialization of latent geography. Known cells -
+    // including ice-covered ones - are never touched here; covers belong to
+    // the ice layer.
+    private bool TryRevealCell(Simulation simulation, WorldState world, int q, int r, int tick)
     {
-        var q = _candidateQ[index];
-        var r = _candidateR[index];
-        var geography = simulation.KernelData.PhysicalGeography;
-        var temperature = geography.Fact(q, r, PhysicalHexFactCodes.Temperature);
-        var crossingWord = geography.CrossingWord(q, r);
-        var hostility = 0;
-        for (var direction = 0; direction < PhysicalCrossingCodes.DirectionCount; direction++)
+        if (HexDistanceFromOrigin(q, r) > Data.MaxRadius ||
+            world.CellIsKnown(PlaneCodes.Physical, q, r) ||
+            !simulation.KernelData.PhysicalGeography.TryGetCell(
+                q,
+                r,
+                out var terrainId,
+                out var superregionId,
+                out var continentId))
         {
-            hostility += PhysicalCrossingCodes.ClassAt(crossingWord, direction) == PhysicalCrossingCodes.Open ? 0 : 1;
+            return false;
         }
 
-        // Temperature scaled to roughly the hostility range so one warm
-        // step outweighs one hostile edge, not six.
-        return (temperature / 21) - hostility;
+        simulation.CreateCell(
+            PlaneCodes.Physical,
+            q,
+            r,
+            terrainId,
+            0,
+            superregionId,
+            continentId);
+        simulation.ApplyInitialTerrainCover(q, r, tick);
+        State.RecordThawed(q, r);
+        return true;
     }
-
-    private int CollectThawCandidates(
-        Simulation simulation,
-        WorldState world,
-        int cultureId,
-        int count,
-        int budget)
-    {
-        var threshold = Data.FrontierMassThreshold * simulation.Knowledge.Modifier(
-            cultureId,
-            KnowledgeGrantDomainCodes.FrontierThawThreshold);
-        var cursor = world.RawCultureInfluenceCellsOf(cultureId, PlaneCodes.Physical);
-        while (count < budget &&
-               world.MoveNextRawCultureInfluenceCell(ref cursor, out var q, out var r, out _, out var raw))
-        {
-            if (raw < threshold || HexDistanceFromOrigin(q, r) >= Data.MaxRadius)
-            {
-                continue;
-            }
-
-            count = CollectThawNeighbors(simulation, world, q, r, count, budget);
-        }
-
-        return count;
-    }
-
-    private int CollectThawNeighbors(
-        Simulation simulation,
-        WorldState world,
-        int q,
-        int r,
-        int count,
-        int budget)
-    {
-        for (var direction = 0; direction < 6 && count < budget; direction++)
-        {
-            var nq = q + NeighborDQ[direction];
-            var nr = r + NeighborDR[direction];
-            if (HexDistanceFromOrigin(nq, nr) > Data.MaxRadius ||
-                !CellNeedsThaw(simulation, world, nq, nr) ||
-                AlreadyQueued(nq, nr, count))
-            {
-                continue;
-            }
-
-            _candidateQ[count] = nq;
-            _candidateR[count] = nr;
-            count++;
-        }
-
-        return count;
-    }
-
-    // Only Deep Ice cover marks a cell as un-thawed frontier. Other covers
-    // (sea ice over water) are ordinary transient state owned by their own
-    // mechanics, not ground the frontier still has to open.
-    private bool CellNeedsThaw(Simulation simulation, WorldState world, int q, int r) =>
-        simulation.KernelData.PhysicalGeography.TryGetCell(q, r, out _, out _, out _) &&
-        (!world.CellIsKnown(PlaneCodes.Physical, q, r) ||
-         world.CellTerrainCoverId(PlaneCodes.Physical, q, r) == Data.FrozenTerrainId);
 
     private bool AlreadyQueued(int q, int r, int count)
     {
@@ -204,42 +178,17 @@ internal sealed partial class MapFrontierProgramRuntime :
         return false;
     }
 
-    private void ThawCell(Simulation simulation, int index, int tick)
+    private void ValidateRadiusAndBudget(int radius, int budgetPerPulse)
     {
-        var q = _candidateQ[index];
-        var r = _candidateR[index];
-        if (!simulation.KernelData.PhysicalGeography.TryGetCell(
-                q,
-                r,
-                out var terrainId,
-                out var superregionId,
-                out var continentId))
+        if (radius <= 0 ||
+            (Data.GenerationRadiusCapacity > 0 && radius > Data.GenerationRadiusCapacity))
         {
-            throw new global::System.InvalidOperationException();
+            throw new global::System.ArgumentOutOfRangeException(nameof(radius));
         }
 
-        var wasKnown = simulation.World.CellIsKnown(PlaneCodes.Physical, q, r);
-        if (wasKnown)
+        if (budgetPerPulse <= 0 || budgetPerPulse > _candidateQ.Length)
         {
-            simulation.ClearTerrainCover(q, r, tick);
-            State.TotalThawed++;
-        }
-        else
-        {
-            simulation.CreateCell(
-                PlaneCodes.Physical,
-                q,
-                r,
-                terrainId,
-                0,
-                superregionId,
-                continentId);
-            simulation.ApplyInitialTerrainCover(q, r, tick);
-        }
-
-        if (!wasKnown)
-        {
-            State.RecordThawed(q, r);
+            throw new global::System.ArgumentOutOfRangeException(nameof(budgetPerPulse));
         }
     }
 

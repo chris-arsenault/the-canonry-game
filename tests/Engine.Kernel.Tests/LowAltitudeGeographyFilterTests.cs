@@ -28,6 +28,20 @@ public sealed class LowAltitudeGeographyFilterTests
             simulation.LowAltitudeVerbs.SetGeographyFilter(slot, minTemperature: 0, siteFlags: 1 << 13));
     }
 
+    [Fact]
+    public void SetGeographyFilter_StoresTheFogAdjacencyRequirement()
+    {
+        var simulation = CreateSimulation();
+        var slot = RegisterTerrainVerb(simulation);
+
+        simulation.LowAltitudeVerbs.SetGeographyFilter(
+            slot, minTemperature: 0, siteFlags: 0, fogAdjacent: 1);
+
+        Assert.True(simulation.LowAltitudeVerbs.Data.RequiresFogAdjacent(slot));
+        Assert.Throws<global::System.InvalidOperationException>(() =>
+            simulation.LowAltitudeVerbs.SetGeographyFilter(slot, minTemperature: 0, siteFlags: 0, fogAdjacent: 2));
+    }
+
     private static int RegisterTerrainVerb(Simulation simulation)
     {
         return simulation.LowAltitudeVerbs.RegisterVerb(

@@ -29,6 +29,13 @@ public static class AttributeEffectConditions
     public static EffectCondition MapSupportAtLocation => EffectCondition.MapSupportAtLocation;
     public static EffectCondition MapThreatAtLocation => EffectCondition.MapThreatAtLocation;
     public static EffectCondition MapCrowdingLoad => EffectCondition.MapCrowdingLoad;
+
+    /// <summary>
+    /// The soft leash's teeth: full evidence on ground without own-culture
+    /// support, fading to none as support approaches the threshold. Pair
+    /// with a negative delta for attrition beyond the hearth-light.
+    /// </summary>
+    public static EffectCondition BeyondCultureSupport => EffectCondition.BeyondCultureSupport;
     public static EffectCondition MapCrowdingComfort => EffectCondition.MapCrowdingComfort;
     public static EffectCondition OwnCultureInfluenceAtLocation => EffectCondition.OwnCultureInfluenceAtLocation;
     public static EffectCondition CultureSlotOccupancy => EffectCondition.CultureSlotOccupancy;

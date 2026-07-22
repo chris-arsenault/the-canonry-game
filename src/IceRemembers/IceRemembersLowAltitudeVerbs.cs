@@ -76,6 +76,11 @@ public static partial class IceRemembersDefinition
             fitnessRelationshipKind: L(Rel.RivalOf), fitnessWeight: 1.6f),
         MovementVerb(Verb.PenguinGoFishing, "Go Fishing", K.Penguin, Mode.Terrain,
             terrains: MaritimeTerrains(), ticks: (35, 100), dwell: 16, radius: 1, samples: 28, weight: 1.1f, opportunityBonusOverride: 0.3f),
+        // The deliberate pushes into fog: exploration verbs hunt the edge of
+        // the known world, exempt from the support leash, and presence
+        // reveal opens the ground once the explorer arrives.
+        MovementVerb(Verb.PenguinScoutTheWhite, "Scout the White", K.Penguin, Mode.Terrain,
+            fogAdjacent: true, ticks: (40, 110), dwell: 4, radius: 1, samples: 24, weight: 0.8f, opportunityBonusOverride: 0.4f),
         MovementVerb(Verb.PenguinFollowArtifact, "Follow a Relic", K.Penguin, Mode.EntityKind,
             targetKind: K.Artifact, ticks: (25, 80), dwell: 10, radius: 1, samples: 10, weight: 0.65f, opportunityBonusOverride: 1.6f,
             fitnessRelationshipKind: L(Rel.Holds), fitnessWeight: 1.8f),
@@ -96,6 +101,8 @@ public static partial class IceRemembersDefinition
             fitnessRelationshipKind: L(Rel.RivalOf), fitnessWeight: 1.6f),
         MovementVerb(Verb.OrcaPatrolTheCurrents, "Patrol the Currents", K.Orca, Mode.Terrain,
             terrains: MaritimeTerrains(), ticks: (40, 120), dwell: 18, radius: 1, samples: 28, weight: 1.0f, opportunityBonusOverride: 0.3f),
+        MovementVerb(Verb.OrcaSoundTheFarWater, "Sound the Far Water", K.Orca, Mode.Terrain,
+            terrains: MaritimeTerrains(), fogAdjacent: true, ticks: (45, 130), dwell: 6, radius: 1, samples: 28, weight: 0.75f, opportunityBonusOverride: 0.4f),
         MovementVerb(Verb.OrcaSoundThePod, "Sound the Pod", K.Orca, Mode.RelationshipTarget,
             relationshipKind: L(Rel.AlliedWith), ticks: (25, 75), dwell: 12, radius: 1, weight: 0.55f, opportunityBonusOverride: 0.7f,
             fitnessRelationshipKind: L(Rel.AlliedWith), fitnessWeight: 1.5f),
@@ -109,6 +116,11 @@ public static partial class IceRemembersDefinition
             targetKind: K.PointOfInterest, ticks: (45, 130), dwell: 14, radius: 1, samples: 12, weight: 0.55f, opportunityBonusOverride: 1.1f),
         MovementVerb(Verb.AbilitySurfaceInTheReach, "Surface in the Reach", K.Ability, Mode.Explore,
             ticks: (60, 160), dwell: 6, samples: 22, weight: 0.5f, opportunityBonusOverride: 0.3f),
+        .. CreateTransportMovementVerbs(),
+    ];
+
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreateTransportMovementVerbs() =>
+    [
         MovementVerb(Verb.TransportSailTheShelf, "Sail the Shelf", K.Transport, Mode.Terrain,
             terrains: MaritimeTerrains(), ticks: (35, 110), dwell: 12, radius: 1, samples: 28, weight: 1.0f, opportunityBonusOverride: 0.4f,
             travelInfluence: (0.6f, 0)),
@@ -118,6 +130,9 @@ public static partial class IceRemembersDefinition
             travelInfluence: (0.6f, 0)),
         MovementVerb(Verb.TransportPatrolTheReach, "Patrol the Reach", K.Transport, Mode.Explore,
             ticks: (45, 130), dwell: 8, samples: 24, weight: 0.9f, opportunityBonusOverride: 0.3f,
+            travelInfluence: (0.6f, 0)),
+        MovementVerb(Verb.TransportVoyageBeyondTheCharts, "Voyage Beyond the Charts", K.Transport, Mode.Terrain,
+            terrains: MaritimeTerrains(), fogAdjacent: true, ticks: (50, 150), dwell: 6, radius: 1, samples: 28, weight: 0.8f, opportunityBonusOverride: 0.4f,
             travelInfluence: (0.6f, 0)),
         MovementVerb(Verb.TransportAnswerTheCaptain, "Answer the Captain", K.Transport, Mode.RelationshipTarget,
             relationshipKind: L(Rel.Holds), ticks: (25, 75), dwell: 14, radius: 1, weight: 0.55f, opportunityBonusOverride: 0.5f,
@@ -521,7 +536,8 @@ public static partial class IceRemembersDefinition
         float fitnessWeight = 0f,
         (float Delta, int Radius)? travelInfluence = null,
         PrimaryPlane plane = PrimaryPlane.Physical,
-        float distanceScale = 0f) =>
+        float distanceScale = 0f,
+        bool fogAdjacent = false) =>
         new()
         {
             Id = V(verb),
@@ -534,6 +550,7 @@ public static partial class IceRemembersDefinition
             Terrains = terrains,
             MinTemperature = minTemperature,
             Sites = sites,
+            RequireFogAdjacent = fogAdjacent,
             MinCommitmentTicks = ScaleMovementTicks(ticks.Min),
             MaxCommitmentTicks = ScaleMovementTicks(ticks.Max),
             DwellTicks = dwell,

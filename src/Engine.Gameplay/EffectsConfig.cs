@@ -108,6 +108,7 @@ public enum EffectCondition
     CultureSlotOccupancy,
     CrowdingBeyondCultureSupport,
     InsideOwnedCoverage,
+    BeyondCultureSupport,
 }
 
 public enum EffectRelationshipDirection

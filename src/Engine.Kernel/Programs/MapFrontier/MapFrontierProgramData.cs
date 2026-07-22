@@ -10,15 +10,17 @@ using Engine.Constants;
 /// </summary>
 internal sealed partial class MapFrontierProgramData : IKernelProgramData
 {
-    public MapFrontierProgramData(int mapGenerationRadiusCapacity = 0)
+    public MapFrontierProgramData(int mapGenerationRadiusCapacity = 0, int kindIdCapacity = 0)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegative(mapGenerationRadiusCapacity);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(kindIdCapacity);
         InitializeSemanticBlueprint(mapGenerationRadiusCapacity);
+        _kindRevealRadius = new int[kindIdCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.MapFrontier;
 
-    public int SchemaVersion => 3;
+    public int SchemaVersion => 4;
 
     internal const int MaxDriverAges = 4;
 
@@ -51,17 +53,63 @@ internal sealed partial class MapFrontierProgramData : IKernelProgramData
     /// <summary>The physical world may never grow beyond this radius from origin.</summary>
     public int MaxRadius = 40;
 
-    /// <summary>A frontier cell must hold at least this raw culture mass to open new ground.</summary>
-    public float FrontierMassThreshold = 60f;
+    // --- Reveal: fog of war retreats at entity speed, one-way ---
 
-    /// <summary>A cell with total raw mass at or below this may be reclaimed by the ice.</summary>
-    public float ReclaimMassCeiling = 1f;
+    /// <summary>Maximum latent cells materialized per reveal pulse.</summary>
+    public int RevealBudgetPerPulse = 24;
 
-    /// <summary>Maximum cells thawed per pulse.</summary>
-    public int ThawBudgetPerPulse = 24;
+    /// <summary>Reveal radius for kinds without an authored override.</summary>
+    public int BaseRevealRadius = 1;
 
-    /// <summary>Maximum cells reclaimed per pulse.</summary>
-    public int RefreezeBudgetPerPulse = 24;
+    private readonly int[] _kindRevealRadius;
+
+    public int RevealRadiusOf(int kindId) =>
+        kindId > 0 && kindId < _kindRevealRadius.Length && _kindRevealRadius[kindId] > 0
+            ? _kindRevealRadius[kindId]
+            : BaseRevealRadius;
+
+    public void RegisterKindRevealRadius(int kindId, int radius)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(radius);
+        if (kindId <= 0 || kindId >= _kindRevealRadius.Length)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(kindId));
+        }
+
+        _kindRevealRadius[kindId] = radius;
+    }
+
+    // --- Ice: cold pressure vs mortal resistance, breathing with ages ---
+
+    /// <summary>Byte-scale temperature under which ground can hold cold pressure.</summary>
+    public int FrostTemperatureCeiling = 64;
+
+    /// <summary>Pressure added per byte of resident ice thickness.</summary>
+    public float IceThicknessPressureWeight = 0.25f;
+
+    /// <summary>Pressure relieved per byte of geothermal heat.</summary>
+    public float GeothermalRefugeWeight = 0.5f;
+
+    /// <summary>Pressure scalar while a freeze age is open (advance pass).</summary>
+    public float FreezeAgePressureScalar = 1f;
+
+    /// <summary>Pressure scalar while a thaw age is open (retreat pass).</summary>
+    public float ThawAgePressureScalar = 0.5f;
+
+    /// <summary>Resistance every known cell holds against the ice.</summary>
+    public float BaseIceResistance = 8f;
+
+    /// <summary>Resistance per point of strongest-culture raw mass.</summary>
+    public float CultureMassResistanceScale = 4f;
+
+    /// <summary>Resistance per road crossing the cell.</summary>
+    public float RoadIceResistance = 40f;
+
+    /// <summary>Maximum cells the ice covers per advance pulse.</summary>
+    public int IceAdvanceBudgetPerPulse = 24;
+
+    /// <summary>Maximum covered cells melted per retreat pulse.</summary>
+    public int IceRetreatBudgetPerPulse = 24;
 
     // --- Sea ice: the frozen sea breathes with the Ice-track ages ---
     // Freeze ages extend the cover from coasts and existing ice over

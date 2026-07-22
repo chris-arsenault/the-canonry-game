@@ -308,6 +308,35 @@ public sealed class EffectsProgramTests
     }
 
     [Fact]
+    public void AttributeDeltaEffect_BeyondCultureSupportDrainsOnUnheldGroundOnly()
+    {
+        const int kindId = 1;
+        const int healthAttributeId = 1;
+        var simulation = CreateSimulation();
+        simulation.RegisterAttribute(kindId, healthAttributeId, minimum: 0f, maximum: 100f, defaultValue: 50f);
+        simulation.Effects.RegisterAttributeDeltaEffect(
+            kindId,
+            healthAttributeId,
+            EffectConditionCodes.BeyondCultureSupport,
+            0,
+            RelationshipMatchDirectionCodes.Either,
+            PlaneCodes.Physical,
+            maxDistance: 0,
+            threshold: 10f,
+            minimumRelationshipStrength: 0f,
+            deltaPerTick: -2f);
+        var farWalker = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
+        var homebody = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 2, 1, 0, 0, 0, 0, tick: 0);
+        _ = simulation.ModifyCellCultureInfluenceRaw(2, PlaneCodes.Physical, 1, 0, 40f, tick: 0);
+
+        simulation.AdvanceTicks(1);
+
+        // Full drain with zero support, none at or above the threshold.
+        Assert.Equal(48f, simulation.World.GetAttribute(farWalker, healthAttributeId));
+        Assert.Equal(50f, simulation.World.GetAttribute(homebody, healthAttributeId));
+    }
+
+    [Fact]
     public void AttributeDeltaEffect_CultureSlotOccupancyAddsHealth()
     {
         const int kindId = 1;

@@ -138,13 +138,31 @@ public static partial class IceRemembersDefinition
         AdditionalRefreezeAges = ["age_the_great_freeze"],
         FrozenTerrain = Terrain.DeepIce.ToDomainName(),
         MaxRadius = 128,
-        FrontierMassThreshold = 25f,
-        // The Long Dark reclaims weakly-held rim, not only empty rim: trace
-        // ground the ice can take back. Reclaim fires only while the reclaim
-        // age holds the Ice track, so normal (growing) worlds never see it.
-        ReclaimMassCeiling = 8f,
-        ThawBudgetPerPulse = 48,
-        RefreezeBudgetPerPulse = 16,
+        // Fog of war retreats at entity speed: everyone reveals the ground
+        // around them; ranging kinds carry the light farther, and ships
+        // farthest of all.
+        RevealBudgetPerPulse = 48,
+        BaseRevealRadius = 1,
+        KindRevealRadii =
+        [
+            new KindRevealRadiusConfig { Kind = K.Penguin, Radius = 2 },
+            new KindRevealRadiusConfig { Kind = K.Settlement, Radius = 2 },
+            new KindRevealRadiusConfig { Kind = K.Orca, Radius = 3 },
+            new KindRevealRadiusConfig { Kind = K.Transport, Radius = 3 },
+        ],
+        // The ice is pressure, not a mass ledger: cold, ice-thick ground
+        // freezes first and melts last; roads, culture, and warm refuges
+        // hold it off. It only moves while its ages hold the Ice track.
+        FrostTemperatureCeiling = 64,
+        IceThicknessPressureWeight = 0.25f,
+        GeothermalRefugeWeight = 0.5f,
+        FreezeAgePressureScalar = 1f,
+        ThawAgePressureScalar = 0.5f,
+        BaseIceResistance = 8f,
+        CultureMassResistanceScale = 4f,
+        RoadIceResistance = 40f,
+        IceAdvanceBudgetPerPulse = 16,
+        IceRetreatBudgetPerPulse = 48,
         // The frozen sea breathes with the same ages: a Long Dark closes
         // harbors and sea lanes while opening slow walking routes over the
         // ice; a Thaw reopens the water from its fringes.
@@ -445,7 +463,54 @@ public static partial class IceRemembersDefinition
             JurisdictionEffect(kind, attribute, K.Canon.Value, "accord", "semantic", 0.03f * timeScale),
             JurisdictionEffect(kind, attribute, K.Canon.Value, "taboo", "semantic", -0.03f * timeScale),
         ]);
+        AddRangeAttrition(effects, kind, attribute, timeScale);
     }
+
+    // The soft leash's teeth: mobile mortals bleed slowly on ground their
+    // culture does not hold. A middle band on purpose - real pressure that
+    // turns long overstays fatal without making every scouting trip a death
+    // sentence. Ranging kinds tolerate the far dark far better; the deep's
+    // own kinds and static anchors feel nothing.
+    private static readonly Dictionary<string, float> RangeAttritionScale =
+        new(StringComparer.Ordinal)
+        {
+            [IceRemembersKinds.Penguin.Value] = 1f,
+            [IceRemembersKinds.Faction.Value] = 0.6f,
+            [IceRemembersKinds.Transport.Value] = 0.35f,
+            [IceRemembersKinds.Orca.Value] = 0.25f,
+        };
+
+    private const float RangeAttritionSupportThreshold = 12f;
+    private const float RangeAttritionBaseDelta = -0.12f;
+
+    private static void AddRangeAttrition(
+        List<AttributeDeltaEffectConfig> effects,
+        EntityKind kind,
+        Attr attribute,
+        float timeScale)
+    {
+        if (!RangeAttritionScale.TryGetValue(kind.Value, out var scale))
+        {
+            return;
+        }
+
+        effects.Add(RangeAttritionEffect(kind, attribute, scale, timeScale));
+    }
+
+    private static AttributeDeltaEffectConfig RangeAttritionEffect(
+        EntityKind kind,
+        Attr attribute,
+        float scale,
+        float timeScale) =>
+        new()
+        {
+            Kind = kind.Value,
+            Attribute = A(attribute),
+            Condition = Effect.BeyondCultureSupport,
+            Plane = "physical",
+            Threshold = RangeAttritionSupportThreshold,
+            DeltaPerTick = RangeAttritionBaseDelta * scale * timeScale,
+        };
 
     /// <summary>
     /// Physical capacity derives from each hex's real facts: warmth (with

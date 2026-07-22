@@ -162,9 +162,9 @@ public static class GameplayValidator
     }
 
     // A terrain-mode verb needs some cell predicate: an exact terrain list,
-    // a minimum warmth band, or a site-flag mask.
+    // a minimum warmth band, a site-flag mask, or the fog frontier itself.
     private static bool HasCellPredicate(LowAltitudeVerbConfig verb, bool hasTerrains) =>
-        hasTerrains || verb.MinTemperature > 0 || verb.Sites is { Count: > 0 };
+        hasTerrains || verb.MinTemperature > 0 || verb.Sites is { Count: > 0 } || verb.RequireFogAdjacent;
 
     private static void ValidateInfluenceFields(
         LowAltitudeVerbConfig verb,

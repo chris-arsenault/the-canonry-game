@@ -14,7 +14,9 @@ internal sealed class MapFrontierProgramState : IKernelProgramState
     internal readonly int[] ThawedR;
     internal int ThawedCount;
     internal int ReclaimCursor;
+    internal int IceRetreatCursor;
     internal int SeaIceCursor;
+    internal int NextRevealEntityId = 1;
     internal int TotalThawed;
     internal int TotalReclaimed;
     internal int TotalSemanticOpened;
@@ -30,7 +32,7 @@ internal sealed class MapFrontierProgramState : IKernelProgramState
 
     public int ProgramId => KernelProgramCodes.MapFrontier;
 
-    public int SchemaVersion => 4;
+    public int SchemaVersion => 5;
 
     internal int Capacity => ThawedQ.Length;
 

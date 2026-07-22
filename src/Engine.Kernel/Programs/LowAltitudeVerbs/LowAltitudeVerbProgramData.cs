@@ -112,27 +112,33 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _terrainIds = new int[itemLength];
         _minTemperatures = new int[ruleLength];
         _siteFlagFilters = new int[ruleLength];
+        _fogAdjacentFilters = new byte[ruleLength];
     }
 
     private int[] _minTemperatures = [];
     private int[] _siteFlagFilters = [];
+    private byte[] _fogAdjacentFilters = [];
 
-    public void SetGeographyFilter(int rule, int minTemperature, int siteFlags)
+    public void SetGeographyFilter(int rule, int minTemperature, int siteFlags, int fogAdjacent = 0)
     {
         EnsureRule(rule);
         if (minTemperature is < 0 or > 255 ||
-            (siteFlags & ~PhysicalHexFieldCodes.WordMask) != 0)
+            (siteFlags & ~PhysicalHexFieldCodes.WordMask) != 0 ||
+            fogAdjacent is < 0 or > 1)
         {
             throw new global::System.InvalidOperationException();
         }
 
         _minTemperatures[rule] = minTemperature;
         _siteFlagFilters[rule] = siteFlags;
+        _fogAdjacentFilters[rule] = (byte)fogAdjacent;
     }
 
     public int MinTemperature(int rule) => _minTemperatures[rule];
 
     public int SiteFlagsFilter(int rule) => _siteFlagFilters[rule];
+
+    public bool RequiresFogAdjacent(int rule) => _fogAdjacentFilters[rule] != 0;
 
     private void InitializeStepArrays(int ruleLength, int itemLength)
     {

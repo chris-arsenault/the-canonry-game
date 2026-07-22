@@ -168,9 +168,13 @@ internal static partial class KernelProgramInstaller
             context.AddLowAltitudeVerbTerrainFilter(slot, terrainId);
         }
 
-        if (verb.MinTemperature > 0 || verb.SiteFlags != 0)
+        if (verb.MinTemperature > 0 || verb.SiteFlags != 0 || verb.RequireFogAdjacent)
         {
-            context.SetLowAltitudeVerbGeographyFilter(slot, verb.MinTemperature, verb.SiteFlags);
+            context.SetLowAltitudeVerbGeographyFilter(
+                slot,
+                verb.MinTemperature,
+                verb.SiteFlags,
+                verb.RequireFogAdjacent ? 1 : 0);
         }
 
         AddLowAltitudeVerbPrimitiveSteps(context, slot, verb.PrimitiveSteps);

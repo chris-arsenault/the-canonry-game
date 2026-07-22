@@ -188,7 +188,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 var recencyKey = LowAltitudeVerbProgramState.PackCellTargetKey(planeCode, q, r);
                 var recency = ComputeRecencyMultiplier(entityId, tick, recencyKey);
                 var routeDrive = TravelCultureRouteMultiplier(simulation, entityId, rule, planeCode, q, r);
-                var baseWeight = scalars.Weight * distance * saturationDivisor * recency * routeDrive;
+                var leash = SupportLeashMultiplier(simulation, entityId, rule, planeCode, q, r);
+                var baseWeight = scalars.Weight * distance * saturationDivisor * recency * routeDrive * leash;
                 var affordance = default(AffordanceContribution);
                 var candidate = Candidate(rule, planeCode, 0, 0, q, r, TargetS(planeCode, q, r), baseWeight, affordance, scalars.OpportunityBonus);
                 ConsiderCandidate(simulation, candidate, ref totalWeight, ref selected);
@@ -239,7 +240,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 var recencyKey = LowAltitudeVerbProgramState.PackCellTargetKey(planeCode, q, r);
                 var recency = ComputeRecencyMultiplier(entityId, tick, recencyKey);
                 var routeDrive = TravelCultureRouteMultiplier(simulation, entityId, rule, planeCode, q, r);
-                var baseWeight = scalars.Weight * distance * saturationDivisor * recency * routeDrive;
+                var leash = SupportLeashMultiplier(simulation, entityId, rule, planeCode, q, r);
+                var baseWeight = scalars.Weight * distance * saturationDivisor * recency * routeDrive * leash;
                 var affordance = default(AffordanceContribution);
                 var candidate = Candidate(rule, planeCode, 0, 0, q, r, TargetS(planeCode, q, r), baseWeight, affordance, scalars.OpportunityBonus);
                 ConsiderCandidate(simulation, candidate, ref totalWeight, ref selected);
@@ -816,14 +818,16 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         }
     }
 
-    // A verb can want warm ground or a significant site rather than an exact
-    // terrain list. Filters apply on the physical plane only and cost one
-    // field-word fetch when configured, nothing when not.
+    // A verb can want warm ground, a significant site, or the edge of the
+    // known world rather than an exact terrain list. Filters apply on the
+    // physical plane only and cost one field-word fetch when configured,
+    // nothing when not.
     private bool GeographyAllowed(Simulation simulation, int rule, int planeCode, int q, int r)
     {
         var minTemperature = Data.MinTemperature(rule);
         var siteFlags = Data.SiteFlagsFilter(rule);
-        if ((minTemperature <= 0 && siteFlags == 0) || planeCode != PlaneCodes.Physical)
+        var fogAdjacent = Data.RequiresFogAdjacent(rule);
+        if ((minTemperature <= 0 && siteFlags == 0 && !fogAdjacent) || planeCode != PlaneCodes.Physical)
         {
             return true;
         }
@@ -834,6 +838,66 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             return false;
         }
 
+        if (fogAdjacent && !CellBordersFog(simulation, q, r))
+        {
+            return false;
+        }
+
         return siteFlags == 0 || (geography.FieldWord(q, r) & siteFlags) != 0;
+    }
+
+    // The edge of the known world: a known cell with at least one latent
+    // unrevealed neighbour. Exploration verbs hunt these; presence reveal
+    // does the opening once the explorer arrives.
+    // The soft leash: ground without own-culture support keeps only a
+    // fraction of its target weight, so ordinary life orbits the strongholds.
+    // Fog-adjacent exploration verbs are exempt - ranging is their job - and
+    // cultureless entities answer to no hearth.
+    private float SupportLeashMultiplier(Simulation simulation, int entityId, int rule, int planeCode, int q, int r)
+    {
+        if (planeCode != PlaneCodes.Physical || Data.RequiresFogAdjacent(rule))
+        {
+            return 1f;
+        }
+
+        var world = simulation.World;
+        var cultureId = world.EntityCultureId(entityId);
+        if (cultureId <= 0)
+        {
+            return 1f;
+        }
+
+        var tuning = simulation.Options.KernelTuning.Programs.LowAltitudeVerbs;
+        var threshold = tuning.SupportThresholdRawMass * simulation.Knowledge.Modifier(
+            cultureId,
+            KnowledgeGrantDomainCodes.FrontierThawThreshold);
+        if (threshold <= 0f ||
+            world.CultureFieldAt(cultureId, PlaneCodes.Physical, q, r).TotalRawMass >= threshold)
+        {
+            return 1f;
+        }
+
+        return tuning.UnsupportedTargetMultiplier;
+    }
+
+    private static readonly int[] FogNeighborDQ = [1, 1, 0, -1, -1, 0];
+    private static readonly int[] FogNeighborDR = [0, -1, -1, 0, 1, 1];
+
+    private static bool CellBordersFog(Simulation simulation, int q, int r)
+    {
+        var world = simulation.World;
+        var geography = simulation.KernelData.PhysicalGeography;
+        for (var direction = 0; direction < 6; direction++)
+        {
+            var nq = q + FogNeighborDQ[direction];
+            var nr = r + FogNeighborDR[direction];
+            if (!world.CellIsKnown(PlaneCodes.Physical, nq, nr) &&
+                geography.TryGetCell(nq, nr, out _, out _, out _))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

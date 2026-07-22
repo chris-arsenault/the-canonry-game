@@ -190,4 +190,14 @@ internal sealed record LowAltitudeVerbTuningOptions
     public float ForeignInfluenceDistanceScale { get; init; } = 6f;
     public float InfluenceShortfallSamplingFactor { get; init; } = 1f;
     public float ForeignInfluencePresenceSamplingFactor { get; init; } = 1f;
+
+    /// <summary>
+    /// The soft leash: physical movement targets outside the entity's own
+    /// culture support keep only this share of their weight. Fog-adjacent
+    /// exploration verbs ignore the leash - ranging is their job.
+    /// </summary>
+    public float UnsupportedTargetMultiplier { get; init; } = 0.35f;
+
+    /// <summary>Own-culture raw mass at or above this counts as supported ground.</summary>
+    public float SupportThresholdRawMass { get; init; } = 12f;
 }

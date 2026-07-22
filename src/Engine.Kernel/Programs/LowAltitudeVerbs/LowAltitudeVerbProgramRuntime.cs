@@ -110,8 +110,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     public void AddTerrainFilter(int verbSlot, int terrainId) =>
         Data.AddTerrainFilter(verbSlot, terrainId);
 
-    public void SetGeographyFilter(int verbSlot, int minTemperature, int siteFlags) =>
-        Data.SetGeographyFilter(verbSlot, minTemperature, siteFlags);
+    public void SetGeographyFilter(int verbSlot, int minTemperature, int siteFlags, int fogAdjacent = 0) =>
+        Data.SetGeographyFilter(verbSlot, minTemperature, siteFlags, fogAdjacent);
 
     public int RegisterInitialInfluence(int kindId, int planeCode, float influenceValue) =>
         Data.RegisterInitialInfluence(kindId, planeCode, influenceValue);

@@ -401,6 +401,7 @@ public static class EffectConditionCodes
     public const int CultureSlotOccupancy = 8;
     public const int CrowdingBeyondCultureSupport = 9;
     public const int InsideOwnedCoverage = 10;
+    public const int BeyondCultureSupport = 11;
 }
 
 public static class RelationshipMatchDirectionCodes

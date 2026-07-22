@@ -31,6 +31,13 @@ public abstract class LowAltitudeVerbConfig
     /// </summary>
     public IReadOnlySet<string>? Sites { get; init; }
 
+    /// <summary>
+    /// Requires the physical target cell to border unrevealed latent ground:
+    /// the verb hunts the edge of the known world. Exploration verbs also
+    /// ignore the culture-support leash - ranging is their job.
+    /// </summary>
+    public bool RequireFogAdjacent { get; init; }
+
     public int MinCommitmentTicks { get; init; } = 30;
     public int MaxCommitmentTicks { get; init; } = 90;
     public int DwellTicks { get; init; } = 8;

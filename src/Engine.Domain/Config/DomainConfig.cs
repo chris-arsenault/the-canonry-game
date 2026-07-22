@@ -412,10 +412,45 @@ public sealed class MapFrontierConfig
     public IReadOnlyList<string> AdditionalRefreezeAges { get; init; } = [];
     public required string FrozenTerrain { get; init; }
     public int MaxRadius { get; init; } = 40;
-    public float FrontierMassThreshold { get; init; } = 60f;
-    public float ReclaimMassCeiling { get; init; } = 1f;
-    public int ThawBudgetPerPulse { get; init; } = 24;
-    public int RefreezeBudgetPerPulse { get; init; } = 24;
+
+    /// <summary>Maximum latent cells materialized per reveal pulse.</summary>
+    public int RevealBudgetPerPulse { get; init; } = 24;
+
+    /// <summary>Reveal radius for kinds without an authored override.</summary>
+    public int BaseRevealRadius { get; init; } = 1;
+
+    /// <summary>Per-kind reveal radius overrides (ranging kinds see farther).</summary>
+    public IReadOnlyList<KindRevealRadiusConfig> KindRevealRadii { get; init; } = [];
+
+    /// <summary>Byte-scale temperature under which ground can hold cold pressure.</summary>
+    public int FrostTemperatureCeiling { get; init; } = 64;
+
+    /// <summary>Pressure added per byte of resident ice thickness.</summary>
+    public float IceThicknessPressureWeight { get; init; } = 0.25f;
+
+    /// <summary>Pressure relieved per byte of geothermal heat.</summary>
+    public float GeothermalRefugeWeight { get; init; } = 0.5f;
+
+    /// <summary>Pressure scalar while a freeze age is open.</summary>
+    public float FreezeAgePressureScalar { get; init; } = 1f;
+
+    /// <summary>Pressure scalar while a thaw age is open.</summary>
+    public float ThawAgePressureScalar { get; init; } = 0.5f;
+
+    /// <summary>Resistance every known cell holds against the ice.</summary>
+    public float BaseIceResistance { get; init; } = 8f;
+
+    /// <summary>Resistance per point of strongest-culture raw mass.</summary>
+    public float CultureMassResistanceScale { get; init; } = 4f;
+
+    /// <summary>Resistance per road crossing the cell.</summary>
+    public float RoadIceResistance { get; init; } = 40f;
+
+    /// <summary>Maximum cells the ice covers per advance pulse.</summary>
+    public int IceAdvanceBudgetPerPulse { get; init; } = 24;
+
+    /// <summary>Maximum covered cells melted per retreat pulse.</summary>
+    public int IceRetreatBudgetPerPulse { get; init; } = 24;
 
     /// <summary>
     /// Sea-ice cover breathing with the same ages: freeze ages extend this
@@ -436,6 +471,12 @@ public sealed class MapFrontierConfig
     public int SemanticMaxRadius { get; init; } = 40;
     public float SemanticFrontierMassThreshold { get; init; } = 30f;
     public int SemanticBudgetPerPulse { get; init; } = 24;
+}
+
+public sealed class KindRevealRadiusConfig
+{
+    public required EntityKind Kind { get; init; }
+    public required int Radius { get; init; }
 }
 
 public sealed class MinorActorRuleConfig
