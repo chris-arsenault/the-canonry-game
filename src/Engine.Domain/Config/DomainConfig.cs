@@ -413,9 +413,6 @@ public sealed class MapFrontierConfig
     public required string FrozenTerrain { get; init; }
     public int MaxRadius { get; init; } = 40;
 
-    /// <summary>Maximum latent cells materialized per reveal pulse.</summary>
-    public int RevealBudgetPerPulse { get; init; } = 24;
-
     /// <summary>Reveal radius for kinds without an authored override.</summary>
     public int BaseRevealRadius { get; init; } = 1;
 

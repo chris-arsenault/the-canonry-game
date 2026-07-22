@@ -4,9 +4,9 @@ using Engine.Constants;
 
 /// <summary>
 /// The growing map: the physical world is born as a small revealed heart and
-/// opens where entities actually go. Each pulse, every active entity reveals
-/// the latent ground around its position - fog of war retreats at entity
-/// speed, one-way, untied from culture mass and from the ice. The ice is a
+/// opens where entities actually go. Arrival is the only reveal driver -
+/// fog of war is the set of unknown cells, retreating at entity speed,
+/// one-way, untied from culture mass and from the ice. The ice is a
 /// separate breathing layer: during freeze ages cold pressure lays impassable
 /// deep-ice cover over weakly-held frontier ground, and during thaw ages the
 /// cover melts back; it closes passages and shrinks range but never
@@ -17,11 +17,6 @@ internal sealed partial class MapFrontierProgramRuntime :
 {
     private static readonly int[] NeighborDQ = [1, 1, 0, -1, -1, 0];
     private static readonly int[] NeighborDR = [0, -1, -1, 0, 1, 1];
-
-    // Entities visited per reveal pulse: bounds pulse cost on large worlds
-    // while the rotating cursor still reaches every entity within a few
-    // pulses.
-    private const int RevealEntityVisitBudget = 96;
 
     private readonly int[] _candidateQ;
     private readonly int[] _candidateR;
@@ -43,10 +38,6 @@ internal sealed partial class MapFrontierProgramRuntime :
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-
-        // Reveal is not age-gated: explorers walk in every age.
-        RevealAroundEntities(simulation, tick);
-
         var worldAge = simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.World);
         if (Data.IsThawAge(worldAge))
         {
@@ -71,46 +62,15 @@ internal sealed partial class MapFrontierProgramRuntime :
         (global::System.Math.Abs(q) + global::System.Math.Abs(r) + global::System.Math.Abs(q + r)) / 2;
 
     /// <summary>
-    /// Presence reveals: each visited entity materializes the latent cells
-    /// within its kind's reveal radius. Static kinds hold a lit hearth;
-    /// ranging kinds carry the light with them.
+    /// The one reveal driver: an entity standing on new ground - by travel
+    /// or by coming into the world - materializes the latent cells within
+    /// its kind's reveal radius. Fog of war is simply the set of unknown
+    /// cells; no pulse, no cursor, nothing to miss.
     /// </summary>
-    private void RevealAroundEntities(Simulation simulation, int tick)
+    public void RevealOnArrival(Simulation simulation, int entityId, int tick)
     {
-        var world = simulation.World;
-        var budget = Data.RevealBudgetPerPulse;
-        if (budget <= 0)
-        {
-            return;
-        }
-
-        var highWatermark = world.EntityHighWatermark;
-        if (highWatermark <= 0)
-        {
-            return;
-        }
-
-        var revealed = 0;
-        var visited = 0;
-        var entityId = NextRevealEntityId(highWatermark);
-        while (visited < RevealEntityVisitBudget && visited < highWatermark && revealed < budget)
-        {
-            if (world.EntityIsActive(entityId))
-            {
-                revealed += RevealAroundEntity(simulation, world, entityId, budget - revealed, tick);
-            }
-
-            visited++;
-            entityId = entityId >= highWatermark ? 1 : entityId + 1;
-        }
-
-        State.NextRevealEntityId = entityId;
-    }
-
-    private int NextRevealEntityId(int highWatermark)
-    {
-        var entityId = State.NextRevealEntityId;
-        return entityId <= 0 || entityId > highWatermark ? 1 : entityId;
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        _ = RevealAroundEntity(simulation, simulation.World, entityId, _candidateQ.Length, tick);
     }
 
     private int RevealAroundEntity(Simulation simulation, WorldState world, int entityId, int budget, int tick)

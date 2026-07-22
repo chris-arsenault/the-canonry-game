@@ -51,7 +51,7 @@ public sealed class MapFrontierProgramRuntimeTests
         simulation.SeedCell(0, 0, TundraTerrain, ownerEntityId: 0);
         simulation.MapFrontier.SetAgeConfiguration(
             ThawAgeId, ReclaimAgeId, DeepIceTerrain,
-            maxRadius: 40, revealBudgetPerPulse: 48,
+            maxRadius: 40,
             iceAdvanceBudgetPerPulse: 24, iceRetreatBudgetPerPulse: 24);
         simulation.MapFrontier.RegisterKindRevealRadius(RangingKindId, 3);
         _ = simulation.CreateEntity(RangingKindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
@@ -71,7 +71,7 @@ public sealed class MapFrontierProgramRuntimeTests
         simulation.SeedCell(1, 0, TundraTerrain, ownerEntityId: 0);
         simulation.MapFrontier.SetAgeConfiguration(
             ThawAgeId, ReclaimAgeId, DeepIceTerrain,
-            maxRadius: 1, revealBudgetPerPulse: 24,
+            maxRadius: 1,
             iceAdvanceBudgetPerPulse: 24, iceRetreatBudgetPerPulse: 24);
         _ = simulation.CreateEntity(KindId, 1, 1, 1, 0, 0, 0, 0, tick: 0);
 
@@ -82,23 +82,21 @@ public sealed class MapFrontierProgramRuntimeTests
     }
 
     [Fact]
-    public void Reveal_HonorsThePulseBudget()
+    public void Reveal_FiresOnArrival_NotJustOnThePulse()
     {
         var simulation = CreateSimulation();
         RegisterTerrains(simulation);
-        InstallPhysicalBlueprint(simulation, generationRadius: 64, installedRadius: 3);
+        InstallPhysicalBlueprint(simulation, generationRadius: 64, installedRadius: 2);
         simulation.World.SetMapRadius(6);
         simulation.SeedCell(0, 0, TundraTerrain, ownerEntityId: 0);
-        simulation.MapFrontier.SetAgeConfiguration(
-            ThawAgeId, ReclaimAgeId, DeepIceTerrain,
-            maxRadius: 40, revealBudgetPerPulse: 2,
-            iceAdvanceBudgetPerPulse: 24, iceRetreatBudgetPerPulse: 24);
-        simulation.MapFrontier.RegisterKindRevealRadius(KindId, 3);
-        _ = simulation.CreateEntity(KindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
+        ConfigureFrontier(simulation, ThawAgeId, ReclaimAgeId);
+        var walker = simulation.CreateEntity(KindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
 
-        simulation.MapFrontier.Tick(simulation, tick: 10);
+        // No frontier pulse runs; arrival alone opens the surroundings.
+        simulation.MapFrontier.RevealOnArrival(simulation, walker, tick: 1);
 
-        Assert.Equal(2, simulation.MapFrontier.State.TotalThawed);
+        Assert.True(simulation.World.CellIsKnown(PlaneCodes.Physical, 1, 0));
+        Assert.True(simulation.World.CellIsKnown(PlaneCodes.Physical, -1, 1));
     }
 
     [Fact]
@@ -203,7 +201,6 @@ public sealed class MapFrontierProgramRuntimeTests
         OpenIceAge(simulation, ReclaimAgeId, priority: 20, tick: 5);
         simulation.MapFrontier.Tick(simulation, tick: 6);
         var thawedCount = simulation.MapFrontier.State.ThawedCount;
-        var revealCursor = simulation.MapFrontier.State.NextRevealEntityId;
         using var snapshot = new MemoryStream();
 
         KernelSnapshot.SaveKernelState(simulation, snapshot);
@@ -211,7 +208,6 @@ public sealed class MapFrontierProgramRuntimeTests
         var loaded = KernelSnapshot.LoadKernelState(snapshot);
 
         Assert.Equal(thawedCount, loaded.MapFrontier.State.ThawedCount);
-        Assert.Equal(revealCursor, loaded.MapFrontier.State.NextRevealEntityId);
         Assert.Equal(MountainTerrain, loaded.World.CellBaseTerrainId(PlaneCodes.Physical, 2, 0));
         Assert.Equal(DeepIceTerrain, loaded.World.CellTerrainCoverId(PlaneCodes.Physical, 2, 0));
     }
@@ -333,7 +329,7 @@ public sealed class MapFrontierProgramRuntimeTests
     private static void ConfigureFrontier(Simulation simulation, int thawAgeId, int reclaimAgeId) =>
         simulation.MapFrontier.SetAgeConfiguration(
             thawAgeId, reclaimAgeId, DeepIceTerrain,
-            maxRadius: 40, revealBudgetPerPulse: 24,
+            maxRadius: 40,
             iceAdvanceBudgetPerPulse: 24, iceRetreatBudgetPerPulse: 24);
 
     private static Simulation CreateSimulation(int candidateCapacity = 128) => KernelTestSimulation.Create(new SimulationOptions

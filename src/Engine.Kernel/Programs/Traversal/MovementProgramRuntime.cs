@@ -568,12 +568,35 @@ internal sealed partial class MovementProgramRuntime :
         }
 
         var moved = fromQ != q || fromR != r || fromZ != z || (planeCode == PlaneCodes.Semantic && fromS != toS);
-        if (moved && causeCode == MovementCauseCodes.Travel && z == 0)
+        if (moved && z == 0)
+        {
+            ApplyMoveSurfaceConsequences(simulation, entityId, planeCode, q, r, tick, causeCode);
+        }
+
+        return moved;
+    }
+
+    private void ApplyMoveSurfaceConsequences(
+        Simulation simulation,
+        int entityId,
+        int planeCode,
+        int q,
+        int r,
+        int tick,
+        int causeCode)
+    {
+        if (causeCode == MovementCauseCodes.Travel)
         {
             ApplyTravelSurface(simulation, entityId, planeCode, q, r, tick);
         }
 
-        return moved;
+        // Arrival is the reveal moment: a traveller stepping onto new ground
+        // opens the latent world around it, so exploration counts every
+        // trip instead of the slow pulse's samples.
+        if (planeCode == PlaneCodes.Physical)
+        {
+            simulation.MapFrontier.RevealOnArrival(simulation, entityId, tick);
+        }
     }
 
     private const float CarrierRoadSpeedFloor = 0.5f;

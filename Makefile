@@ -59,6 +59,7 @@ mutation:
 MC_RUNS ?= 6
 MC_TICKS ?= 1000
 MC_SEED ?= 1000
+MC_EXTRA ?=
 RUN_ID ?= dev-$(shell date +%Y%m%d-%H%M%S)
 SEED ?= 42
 DIAG_FLAGS ?= --hex-contract
@@ -71,7 +72,7 @@ DIAG_FLAGS ?= --hex-contract
 mc:
 	dotnet run --project tools/MonteCarlo/MonteCarlo.csproj -c Release -- \
 		--runs $(MC_RUNS) --ticks $(MC_TICKS) --seed $(MC_SEED) \
-		--run-id $(RUN_ID) --artifact-root .artifacts/monte-carlo
+		--run-id $(RUN_ID) --artifact-root .artifacts/monte-carlo $(MC_EXTRA)
 
 # Generate one pregenerated world: make world SEED=4200
 world:

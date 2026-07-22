@@ -16,7 +16,6 @@ internal sealed class MapFrontierProgramState : IKernelProgramState
     internal int ReclaimCursor;
     internal int IceRetreatCursor;
     internal int SeaIceCursor;
-    internal int NextRevealEntityId = 1;
     internal int TotalThawed;
     internal int TotalReclaimed;
     internal int TotalSemanticOpened;

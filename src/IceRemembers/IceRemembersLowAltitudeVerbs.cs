@@ -80,7 +80,8 @@ public static partial class IceRemembersDefinition
         // the known world, exempt from the support leash, and presence
         // reveal opens the ground once the explorer arrives.
         MovementVerb(Verb.PenguinScoutTheWhite, "Scout the White", K.Penguin, Mode.Terrain,
-            fogAdjacent: true, ticks: (40, 110), dwell: 4, radius: 1, samples: 24, weight: 0.8f, opportunityBonusOverride: 0.4f),
+            fogAdjacent: true, ticks: (40, 110), dwell: 4, radius: 1, samples: 24, weight: 0.8f, opportunityBonusOverride: 0.4f,
+            distanceScale: 14f),
         MovementVerb(Verb.PenguinFollowArtifact, "Follow a Relic", K.Penguin, Mode.EntityKind,
             targetKind: K.Artifact, ticks: (25, 80), dwell: 10, radius: 1, samples: 10, weight: 0.65f, opportunityBonusOverride: 1.6f,
             fitnessRelationshipKind: L(Rel.Holds), fitnessWeight: 1.8f),
@@ -102,7 +103,8 @@ public static partial class IceRemembersDefinition
         MovementVerb(Verb.OrcaPatrolTheCurrents, "Patrol the Currents", K.Orca, Mode.Terrain,
             terrains: MaritimeTerrains(), ticks: (40, 120), dwell: 18, radius: 1, samples: 28, weight: 1.0f, opportunityBonusOverride: 0.3f),
         MovementVerb(Verb.OrcaSoundTheFarWater, "Sound the Far Water", K.Orca, Mode.Terrain,
-            terrains: MaritimeTerrains(), fogAdjacent: true, ticks: (45, 130), dwell: 6, radius: 1, samples: 28, weight: 0.75f, opportunityBonusOverride: 0.4f),
+            terrains: MaritimeTerrains(), fogAdjacent: true, ticks: (45, 130), dwell: 6, radius: 1, samples: 28, weight: 0.75f, opportunityBonusOverride: 0.4f,
+            distanceScale: 14f),
         MovementVerb(Verb.OrcaSoundThePod, "Sound the Pod", K.Orca, Mode.RelationshipTarget,
             relationshipKind: L(Rel.AlliedWith), ticks: (25, 75), dwell: 12, radius: 1, weight: 0.55f, opportunityBonusOverride: 0.7f,
             fitnessRelationshipKind: L(Rel.AlliedWith), fitnessWeight: 1.5f),
@@ -133,7 +135,7 @@ public static partial class IceRemembersDefinition
             travelInfluence: (0.6f, 0)),
         MovementVerb(Verb.TransportVoyageBeyondTheCharts, "Voyage Beyond the Charts", K.Transport, Mode.Terrain,
             terrains: MaritimeTerrains(), fogAdjacent: true, ticks: (50, 150), dwell: 6, radius: 1, samples: 28, weight: 0.8f, opportunityBonusOverride: 0.4f,
-            travelInfluence: (0.6f, 0)),
+            travelInfluence: (0.6f, 0), distanceScale: 14f),
         MovementVerb(Verb.TransportAnswerTheCaptain, "Answer the Captain", K.Transport, Mode.RelationshipTarget,
             relationshipKind: L(Rel.Holds), ticks: (25, 75), dwell: 14, radius: 1, weight: 0.55f, opportunityBonusOverride: 0.5f,
             fitnessRelationshipKind: L(Rel.Holds), fitnessDirection: LowAltitudeVerbRelationshipDirection.Incoming, fitnessWeight: 1.7f,

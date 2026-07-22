@@ -623,6 +623,9 @@ internal sealed partial class Simulation : IKernel
             semanticR,
             semanticS)));
         KernelData.Entities.InitializeEntity(this, createdEntityId, tick);
+        // An entity coming into the world lights the ground around it the
+        // same way a traveller's arrival does.
+        MapFrontier.RevealOnArrival(this, createdEntityId, tick);
         return createdEntityId;
     }
 

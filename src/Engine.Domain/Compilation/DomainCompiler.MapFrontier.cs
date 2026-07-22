@@ -22,7 +22,6 @@ public static partial class DomainCompiler
             AdditionalRefreezeAgeIds = [.. frontier.AdditionalRefreezeAges.Select(age => ids.GeneratorIdOf(age).Value)],
             FrozenTerrainId = ids.TerrainIdOf(frontier.FrozenTerrain).Value,
             MaxRadius = frontier.MaxRadius,
-            RevealBudgetPerPulse = frontier.RevealBudgetPerPulse,
             BaseRevealRadius = frontier.BaseRevealRadius,
             KindRevealRadii =
                 [.. frontier.KindRevealRadii.Select(entry =>

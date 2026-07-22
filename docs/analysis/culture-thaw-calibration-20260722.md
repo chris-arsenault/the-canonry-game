@@ -34,11 +34,20 @@ no degeneration.
   (heart rim is 18), revealing as they go, and movement follows into the
   newly opened ground. Reveals arrive continuously across the entire
   horizon, not just at startup.
-- **But the pace is a trickle**: 36–65 cells revealed per run against
-  ~48,500 latent cells. Exploration reaches a stable equilibrium: scouts
-  push past the rim, attrition (working as designed) turns them home,
-  the culture field never extends to hold the new ground, so the range
-  never ratchets. The revealed world is the heart plus a thin fringe.
+- **Correction (measured twice, second time on the honest channel):**
+  the first draft of this report said 36–65 cells revealed per run.
+  That number came from the `CellCreated` event stream, which undercounts
+  actual materialization by roughly 20x (see watch items). The
+  authoritative `map_snapshots` cell counts show the pulse-based system
+  grew the world 1,027 → ~1,900 cells per bootstrap, and two real
+  improvements followed: reveal-on-arrival (movement and materialization
+  hooks replacing the pulse entirely) doubled growth to ~+1,700, and
+  widening the exploration verbs' search reach (distanceScale 14, search
+  radius 28) added another third, landing at 1,027 → ~3,300 per
+  bootstrap - about 4.7% of the latent world per 100 in-world years,
+  which extrapolates to a substantially opened map over a full game
+  before any support ratchet exists. Raising exploration verb weights
+  2.5x had no measurable additional effect and was reverted.
 - **Ice breathes correctly scoped**: 3,777 sea-ice cover changes (hard
   seasonal breathing) vs 155 deep-ice changes (conservative, frontier-rim
   only — matching how little frontier exists to contest).
@@ -51,7 +60,7 @@ no degeneration.
 
 ## The pacing lever (decision owed)
 
-The equilibrium range is an emergent product of three levers:
+Growth pace is an emergent product of three levers:
 
 1. **Support extension** — the range ratchets only when something static
    holds the new ground. Frontier-founded settlements (generators can
@@ -81,3 +90,12 @@ design decisions, not defaults.
   remove them in the next catalog-touching change.
 - `map_degenerate=1` flagged once (run 6, seeds 1005) — same rate as
   pre-redesign baselines; not attributed to the new layers.
+- **Telemetry:** `map_cell_events` rows with `event_type_code=20`
+  (CellCreated) capture only a small fraction of actual cell
+  materializations (~50 rows against ~2,000 real creations per run).
+  Judge world growth from `map_snapshots` cell counts, never from the
+  event stream, until the exporter is fixed.
+- Entities routinely travel and dwell on unrevealed coordinates (movement
+  events out to distance 45 with far fewer known cells) — arrival reveal
+  now materializes ground under and around them, but the movement
+  targeting rules' treatment of unknown cells deserves its own review.

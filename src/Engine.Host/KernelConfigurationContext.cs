@@ -846,7 +846,6 @@ internal sealed class KernelConfigurationContext
         int refreezeAgeId,
         int frozenTerrainId,
         int maxRadius,
-        int revealBudgetPerPulse,
         int iceAdvanceBudgetPerPulse,
         int iceRetreatBudgetPerPulse) =>
         _kernel.MapFrontier.SetAgeConfiguration(
@@ -854,7 +853,6 @@ internal sealed class KernelConfigurationContext
             refreezeAgeId,
             frozenTerrainId,
             maxRadius,
-            revealBudgetPerPulse,
             iceAdvanceBudgetPerPulse,
             iceRetreatBudgetPerPulse);
 

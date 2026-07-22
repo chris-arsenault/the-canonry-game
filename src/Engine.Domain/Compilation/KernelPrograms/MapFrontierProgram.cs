@@ -10,7 +10,6 @@ public sealed class MapFrontierProgram
     public IReadOnlyList<int> AdditionalRefreezeAgeIds { get; init; } = [];
     public int FrozenTerrainId { get; init; }
     public int MaxRadius { get; init; }
-    public int RevealBudgetPerPulse { get; init; }
     public int BaseRevealRadius { get; init; }
     public IReadOnlyList<(int KindId, int Radius)> KindRevealRadii { get; init; } = [];
     public int FrostTemperatureCeiling { get; init; }

@@ -165,7 +165,6 @@ internal sealed partial class MapFrontierProgramRuntime
         int refreezeAgeId,
         int frozenTerrainId,
         int maxRadius,
-        int revealBudgetPerPulse,
         int iceAdvanceBudgetPerPulse,
         int iceRetreatBudgetPerPulse)
     {
@@ -175,7 +174,6 @@ internal sealed partial class MapFrontierProgramRuntime
             throw new global::System.ArgumentOutOfRangeException(nameof(maxRadius));
         }
 
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(revealBudgetPerPulse);
         if (iceAdvanceBudgetPerPulse <= 0 || iceAdvanceBudgetPerPulse > _candidateQ.Length ||
             iceRetreatBudgetPerPulse <= 0 || iceRetreatBudgetPerPulse > _candidateQ.Length)
         {
@@ -186,7 +184,6 @@ internal sealed partial class MapFrontierProgramRuntime
         Data.RefreezeAgeIds[0] = refreezeAgeId;
         Data.FrozenTerrainId = frozenTerrainId;
         Data.MaxRadius = maxRadius;
-        Data.RevealBudgetPerPulse = revealBudgetPerPulse;
         Data.IceAdvanceBudgetPerPulse = iceAdvanceBudgetPerPulse;
         Data.IceRetreatBudgetPerPulse = iceRetreatBudgetPerPulse;
     }

@@ -139,9 +139,8 @@ public static partial class IceRemembersDefinition
         FrozenTerrain = Terrain.DeepIce.ToDomainName(),
         MaxRadius = 128,
         // Fog of war retreats at entity speed: everyone reveals the ground
-        // around them; ranging kinds carry the light farther, and ships
-        // farthest of all.
-        RevealBudgetPerPulse = 48,
+        // around them on arrival; ranging kinds carry the light farther,
+        // and ships farthest of all.
         BaseRevealRadius = 1,
         KindRevealRadii =
         [

@@ -16,7 +16,6 @@ internal static partial class KernelProgramInstaller
             program.RefreezeAgeId,
             program.FrozenTerrainId,
             program.MaxRadius,
-            program.RevealBudgetPerPulse,
             program.IceAdvanceBudgetPerPulse,
             program.IceRetreatBudgetPerPulse);
         context.SetMapFrontierIcePressureConfiguration(

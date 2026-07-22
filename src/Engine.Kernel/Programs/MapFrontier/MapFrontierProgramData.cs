@@ -55,9 +55,6 @@ internal sealed partial class MapFrontierProgramData : IKernelProgramData
 
     // --- Reveal: fog of war retreats at entity speed, one-way ---
 
-    /// <summary>Maximum latent cells materialized per reveal pulse.</summary>
-    public int RevealBudgetPerPulse = 24;
-
     /// <summary>Reveal radius for kinds without an authored override.</summary>
     public int BaseRevealRadius = 1;
 
