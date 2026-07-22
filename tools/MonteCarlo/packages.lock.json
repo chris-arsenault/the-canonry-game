@@ -72,7 +72,6 @@
         "dependencies": {
           "Engine.Constants": "[1.0.0, )",
           "Engine.Gameplay": "[1.0.0, )",
-          "Engine.WorldGen": "[1.0.0, )",
           "MessagePack": "[3.1.8, )",
           "QuikGraph": "[2.5.0, )"
         }

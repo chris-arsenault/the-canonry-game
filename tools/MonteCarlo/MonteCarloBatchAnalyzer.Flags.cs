@@ -8,12 +8,15 @@ internal sealed partial class MonteCarloBatchAnalyzer
         List<MapSpreadSummaryRow> mapRows,
         List<LifecycleSummaryRow> lifecycleRows,
         List<MapGenerationSummaryRow> mapGenerationRows,
-        TelemetryCoverage telemetryCoverage)
+        TelemetryCoverage telemetryCoverage,
+        IReadOnlyList<ExplorationGrowthRow>? explorationGrowth = null,
+        IReadOnlyList<ExplorationKindRow>? explorationKinds = null)
     {
         var flags = new List<AnalysisFlagRow>();
         AddTelemetryCoverageFlags(flags, telemetryCoverage);
         AddMapGenerationFlags(flags, mapGenerationRows);
         AddMapSpreadFlags(flags, mapRows);
+        AddExplorationFlags(flags, explorationGrowth ?? [], explorationKinds ?? []);
         AddLifecycleFlags(flags, lifecycleRows);
         return flags;
     }
@@ -68,6 +71,41 @@ internal sealed partial class MonteCarloBatchAnalyzer
                 Category: "telemetry",
                 Severity: "warning",
                 Message: "Cell influence rows are unavailable; settlement/faction influence shape cannot be judged."));
+        }
+    }
+
+    private const int ExplorationGrowthFloorCells = 100;
+
+    // The two measurement traps of 2026-07-22, made impossible to repeat
+    // quietly: a world that stops growing gets a loud flag, and a kind
+    // that never leaves the heart gets named.
+    internal static void AddExplorationFlags(
+        List<AnalysisFlagRow> flags,
+        IReadOnlyList<ExplorationGrowthRow> growth,
+        IReadOnlyList<ExplorationKindRow> kinds)
+    {
+        foreach (var row in growth)
+        {
+            if (row.Growth < ExplorationGrowthFloorCells)
+            {
+                flags.Add(new AnalysisFlagRow(
+                    Severity: "warning",
+                    Category: "exploration",
+                    Message: string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"Run {row.RunId} grew only {row.Growth} cells over the whole horizon; the world has stopped opening.")));
+            }
+        }
+
+        foreach (var row in kinds)
+        {
+            if (row.EntityCount >= 4 && row.BeyondRimShare <= 0d && !string.Equals(row.Kind, "occurrence", StringComparison.Ordinal))
+            {
+                flags.Add(new AnalysisFlagRow(
+                    Severity: "info",
+                    Category: "exploration",
+                    Message: $"Kind '{row.Kind}' never operates beyond the startup rim."));
+            }
         }
     }
 

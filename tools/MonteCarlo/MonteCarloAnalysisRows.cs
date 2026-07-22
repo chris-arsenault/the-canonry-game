@@ -13,6 +13,8 @@ internal sealed class MonteCarloAnalysisReport
     public required IReadOnlyList<ActionUtilizationRow> ActionUtilization { get; init; }
     public required IReadOnlyList<AttributeBandSummaryRow> AttributeBands { get; init; }
     public required IReadOnlyList<MapSpreadSummaryRow> MapSpread { get; init; }
+    public required IReadOnlyList<ExplorationGrowthRow> ExplorationGrowth { get; init; }
+    public required IReadOnlyList<ExplorationKindRow> ExplorationKinds { get; init; }
     public required IReadOnlyList<MapGenerationSummaryRow> MapGeneration { get; init; }
     public required IReadOnlyList<TerrainOccupancyRow> TerrainOccupancy { get; init; }
     public required IReadOnlyList<LifecycleSummaryRow> Lifecycle { get; init; }
@@ -126,6 +128,25 @@ internal sealed record AttributeBandSummaryRow(
     double LowShare,
     double MidShare,
     double HighShare);
+
+/// <summary>
+/// World growth measured from map snapshots (the authoritative channel -
+/// the CellCreated event stream undercounts materialization).
+/// </summary>
+internal sealed record ExplorationGrowthRow(
+    string RunId,
+    int StartCells,
+    int EndCells,
+    int Growth,
+    double GrowthShareOfStart,
+    int StartupRimRadius);
+
+/// <summary>How far each kind operates beyond the startup rim at run end.</summary>
+internal sealed record ExplorationKindRow(
+    string Kind,
+    int EntityCount,
+    double BeyondRimShare,
+    int MaxDistance);
 
 internal sealed record MapSpreadSummaryRow(
     string RunId,

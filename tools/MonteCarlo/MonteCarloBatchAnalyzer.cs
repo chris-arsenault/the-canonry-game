@@ -250,11 +250,15 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         var entitySnapshots = LoadEntitySnapshots(connection);
         var attributeRows = BuildAttributeBandRows(entitySnapshots, attributeConfigs);
         var mapRows = LoadMapSpreadRows(connection);
+        var explorationGrowthRows = LoadExplorationGrowthRows(connection);
+        var explorationKindRows = LoadExplorationKindRows(connection);
         var flags = BuildFlags(
             mapRows,
             lifecycleRows,
             mapGenerationRows,
-            telemetryCoverage);
+            telemetryCoverage,
+            explorationGrowthRows,
+            explorationKindRows);
 
         return new MonteCarloAnalysisReport
         {
@@ -269,6 +273,8 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             ActionUtilization = actionRows,
             AttributeBands = attributeRows,
             MapSpread = mapRows,
+            ExplorationGrowth = explorationGrowthRows,
+            ExplorationKinds = explorationKindRows,
             MapGeneration = mapGenerationRows,
             TerrainOccupancy = terrainRows,
             Lifecycle = lifecycleRows,
@@ -703,6 +709,79 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             .ThenBy(row => row.Plane, StringComparer.Ordinal)
             .ThenBy(row => row.Terrain, StringComparer.Ordinal)
             .ToList();
+    }
+
+    private static List<ExplorationGrowthRow> LoadExplorationGrowthRows(DuckDBConnection connection)
+    {
+        const string sql = """
+            WITH totals AS (
+                SELECT run_id, tick, SUM(cell_count) AS cells
+                FROM map_snapshots
+                WHERE plane = 'physical'
+                GROUP BY run_id, tick
+            ),
+            bounds AS (
+                SELECT run_id, MIN(tick) AS first_tick, MAX(tick) AS last_tick
+                FROM totals GROUP BY run_id
+            )
+            SELECT b.run_id,
+                   CAST(f.cells AS INT) AS start_cells,
+                   CAST(l.cells AS INT) AS end_cells,
+                   CAST(l.cells - f.cells AS INT) AS growth,
+                   (l.cells - f.cells) / NULLIF(f.cells, 0) AS growth_share,
+                   CAST(FLOOR((SQRT(12.0 * f.cells - 3) - 3) / 6) AS INT) AS rim_radius
+            FROM bounds b
+            JOIN totals f ON f.run_id = b.run_id AND f.tick = b.first_tick
+            JOIN totals l ON l.run_id = b.run_id AND l.tick = b.last_tick
+            ORDER BY b.run_id;
+            """;
+        return Query(connection, sql, reader => new ExplorationGrowthRow(
+            RunId: ReadString(reader, "run_id"),
+            StartCells: ReadInt(reader, "start_cells"),
+            EndCells: ReadInt(reader, "end_cells"),
+            Growth: ReadInt(reader, "growth"),
+            GrowthShareOfStart: ReadDouble(reader, "growth_share"),
+            StartupRimRadius: ReadInt(reader, "rim_radius")));
+    }
+
+    private static List<ExplorationKindRow> LoadExplorationKindRows(DuckDBConnection connection)
+    {
+        const string sql = """
+            WITH totals AS (
+                SELECT run_id, tick, SUM(cell_count) AS cells
+                FROM map_snapshots
+                WHERE plane = 'physical'
+                GROUP BY run_id, tick
+            ),
+            rims AS (
+                SELECT run_id,
+                       CAST(FLOOR((SQRT(12.0 * MIN(cells) - 3) - 3) / 6) AS INT) AS rim_radius
+                FROM totals GROUP BY run_id
+            ),
+            finals AS (
+                SELECT run_id, MAX(tick) AS final_tick
+                FROM entity_snapshots GROUP BY run_id
+            ),
+            final_entities AS (
+                SELECT es.run_id, es.kind,
+                       (ABS(es.physical_q) + ABS(es.physical_r) + ABS(es.physical_q + es.physical_r)) / 2 AS distance
+                FROM entity_snapshots es
+                JOIN finals f ON f.run_id = es.run_id AND es.tick = f.final_tick
+            )
+            SELECT fe.kind,
+                   COUNT(*) AS entity_count,
+                   AVG(CASE WHEN fe.distance > r.rim_radius THEN 1.0 ELSE 0.0 END) AS beyond_rim_share,
+                   CAST(MAX(fe.distance) AS INT) AS max_distance
+            FROM final_entities fe
+            JOIN rims r ON r.run_id = fe.run_id
+            GROUP BY fe.kind
+            ORDER BY beyond_rim_share DESC, fe.kind;
+            """;
+        return Query(connection, sql, reader => new ExplorationKindRow(
+            Kind: ReadString(reader, "kind"),
+            EntityCount: ReadInt(reader, "entity_count"),
+            BeyondRimShare: ReadDouble(reader, "beyond_rim_share"),
+            MaxDistance: ReadInt(reader, "max_distance")));
     }
 
     private static List<MapSpreadSummaryRow> LoadMapSpreadRows(DuckDBConnection connection)

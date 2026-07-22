@@ -13,6 +13,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
         AppendBatchSection(builder, report.Overview);
         AppendFlagsSection(builder, report.Flags);
         AppendMapSpreadSection(builder, report.MapSpread);
+        AppendExplorationSection(builder, report.ExplorationGrowth, report.ExplorationKinds);
         AppendRoamingSection(builder, report.RoamingSummary);
         AppendLowAltitudeVerbSection(builder, report.LowAltitudeVerbUtilization);
         AppendInfluenceSection(builder, report.InfluenceSummary);
@@ -149,6 +150,35 @@ internal sealed partial class MonteCarloBatchAnalyzer
             ("top_cell", row => FormatPercent(row.ActivityTopCellShare)),
             ("empty_radius", row => row.LargestUnoccupiedStrictHexRadius.ToString(CultureInfo.InvariantCulture)),
             ("anisotropy", row => row.ActivityAxisAnisotropy.ToString("F2", CultureInfo.InvariantCulture)));
+    }
+
+    private static void AppendExplorationSection(
+        StringBuilder builder,
+        IReadOnlyList<ExplorationGrowthRow> growth,
+        IReadOnlyList<ExplorationKindRow> kinds)
+    {
+        builder.AppendLine();
+        builder.AppendLine("## Exploration");
+        builder.AppendLine();
+        builder.AppendLine(
+            "World growth from map snapshots (authoritative; the CellCreated event stream undercounts).");
+        AppendTable(
+            builder,
+            growth,
+            ("run", row => row.RunId),
+            ("start_cells", row => row.StartCells.ToString(CultureInfo.InvariantCulture)),
+            ("end_cells", row => row.EndCells.ToString(CultureInfo.InvariantCulture)),
+            ("growth", row => row.Growth.ToString(CultureInfo.InvariantCulture)),
+            ("growth_share", row => FormatPercent(row.GrowthShareOfStart)),
+            ("rim_radius", row => row.StartupRimRadius.ToString(CultureInfo.InvariantCulture)));
+        builder.AppendLine();
+        AppendTable(
+            builder,
+            kinds,
+            ("kind", row => row.Kind),
+            ("entities", row => row.EntityCount.ToString(CultureInfo.InvariantCulture)),
+            ("beyond_rim", row => FormatPercent(row.BeyondRimShare)),
+            ("max_distance", row => row.MaxDistance.ToString(CultureInfo.InvariantCulture)));
     }
 
     private static void AppendRoamingSection(StringBuilder builder, IReadOnlyList<RoamingSummaryRow> rows)
