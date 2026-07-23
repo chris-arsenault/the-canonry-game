@@ -38,7 +38,9 @@ public static partial class IceRemembersGeneratorDefinition
         },
         Produces =
         [
-            Required("$waystone", K.Artifact, "relic", "$target", "$target", on: true),
+            // Beside the walker, not beneath them: the stone rises on the
+            // nearest free ground to where the deed was offered.
+            Required("$waystone", K.Artifact, "relic", "$target", "$target"),
         ],
         Relationships =
         [
