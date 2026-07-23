@@ -57,6 +57,24 @@ through a given teacher/student relationship.
   slot, low-altitude culture influence, and minor actor systems
 - better procedural map/seed diversity
 
+## World Generation And Geography
+
+- Add vegetation and cover classification—forest, marsh, ecological scrub,
+  climate-derived aridity—as a later domain layer that does not replace or hide
+  landform, substrate, rivers, or magic features.
+- Seed pre-Collapse archaeology—roads, settlements, megaliths, and weapon
+  sites—into the mature temperate landscape before the Deep Freeze overprint.
+  This stage must not compensate for defective natural geography.
+- Expand stable named geological feature IDs beyond the current rivers and
+  lakes to ranges, peaks, plains, basins, notable waterfalls, and craters. Add a
+  kernel or gameplay accessor only when an actual gameplay consumer requires
+  one; generation-time identity alone stays outside the kernel.
+- Consider a higher-fidelity plate or terrane model only when a concrete future
+  gameplay or visual need warrants replacing part of the current kinematic
+  model.
+- Tune physical-frontier growth pacing as runtime balance work. This is
+  separate from the fixed latent map capacity and physical generation model.
+
 ## Map And UI
 
 - stronger map overlays for culture influence, activity, relationship networks,

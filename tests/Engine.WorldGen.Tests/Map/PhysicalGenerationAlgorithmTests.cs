@@ -25,7 +25,7 @@ public sealed class PhysicalGenerationAlgorithmTests
         double radius,
         int strength)
     {
-        var grid = new PhysicalGeographyGrid(10, 6);
+        var grid = new PhysicalGeographyGrid(10, 10);
         var expected = new int[grid.TriangleCount];
         var actual = new int[grid.TriangleCount];
         PaintExhaustively(grid, expected, centerX, centerY, radius, strength);

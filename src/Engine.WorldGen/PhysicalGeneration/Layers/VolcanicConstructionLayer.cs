@@ -83,7 +83,12 @@ internal sealed class VolcanicConstructionLayer : IPhysicalGeographyLayer
             active += map.VolcanicActivity[triangleIndex] > 0 ? 1 : 0;
             if (!StateIsValid(map, triangleIndex, context))
             {
-                throw new InvalidOperationException("Volcanic construction contains invalid provenance.");
+                throw new InvalidOperationException(
+                    $"Volcanic construction at triangle {triangleIndex} contains invalid provenance " +
+                    $"(epoch {context.EpochIndex}, flags {map.FeatureFlags[triangleIndex]}, " +
+                    $"history {map.VolcanicConstructionHistory[triangleIndex]}, activity " +
+                    $"{map.VolcanicActivity[triangleIndex]}, last " +
+                    $"{map.VolcanicLastActiveEpoch[triangleIndex]}).");
             }
         }
 
@@ -153,7 +158,7 @@ internal sealed class VolcanicConstructionLayer : IPhysicalGeographyLayer
         for (var edge = 0; edge < 3; edge++)
         {
             var neighbor = map.Grid.NeighborTriangleIndex(current, edge);
-            if (neighbor < 0 || !map.Grid.TriangleIsInsideConfiguredDisk(neighbor))
+            if (neighbor < 0 || !map.Grid.TriangleIsInsideContentDomain(neighbor))
             {
                 continue;
             }
@@ -230,6 +235,8 @@ internal sealed class VolcanicConstructionLayer : IPhysicalGeographyLayer
             checked(map.BedrockElevation[triangleIndex] + uplift - calderaCut),
             PhysicalElevation.FromUnits(PhysicalCrust.MinimumHeightUnits),
             maximum);
+        map.SurfaceRockLoad[triangleIndex] = checked(
+            map.SurfaceRockLoad[triangleIndex] + uplift - calderaCut);
         map.VolcanicConstructionHistory[triangleIndex] = checked(
             map.VolcanicConstructionHistory[triangleIndex] + uplift);
         LandscapeSurface.Rebuild(map, triangleIndex);

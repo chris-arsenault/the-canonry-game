@@ -4,9 +4,11 @@ using Engine.Constants;
 
 public sealed class PhysicalGeographyGenerationTests
 {
+    private const int ContentTriangleCount = 11_256;
+
     private static readonly PhysicalGeographyGenerationProfile TestProfile = new()
     {
-        Padding = 8,
+        BoundaryPaddingSteps = 48,
         TectonicProvinceCount = 6,
         ContinentalAssemblyCount = 2,
         ContinentalTransitionWidth = 8d,
@@ -29,8 +31,8 @@ public sealed class PhysicalGeographyGenerationTests
     [Fact]
     public void Generate_IsDeterministicForSeedAndProfile()
     {
-        var first = PhysicalGeographyGenerator.Generate(12, 7319, TestProfile);
-        var second = PhysicalGeographyGenerator.Generate(12, 7319, TestProfile);
+        var first = PhysicalGeographyGenerator.Generate(ContentTriangleCount, 7319, TestProfile);
+        var second = PhysicalGeographyGenerator.Generate(ContentTriangleCount, 7319, TestProfile);
 
         Assert.True(first.Elevation.SequenceEqual(second.Elevation));
         Assert.True(first.WaterKindCodes.SequenceEqual(second.WaterKindCodes));
@@ -42,7 +44,7 @@ public sealed class PhysicalGeographyGenerationTests
     [Fact]
     public void Generate_BuildsReciprocalTopologyAndAcyclicDrainageToOcean()
     {
-        var field = PhysicalGeographyGenerator.Generate(12, 9173, TestProfile);
+        var field = PhysicalGeographyGenerator.Generate(ContentTriangleCount, 9173, TestProfile);
         var oceanCount = 0;
         var riverCount = 0;
         for (var triangleIndex = 0; triangleIndex < field.Grid.TriangleCount; triangleIndex++)

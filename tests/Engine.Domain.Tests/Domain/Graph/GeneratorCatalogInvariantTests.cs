@@ -3,9 +3,9 @@ namespace Engine.Domain.Tests.Domain.Graph;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Domain.Loader;
+using Engine.Domain.Spatial;
 using Engine.Domain.Startup;
 using Engine.Kinds;
-using Engine.WorldGen;
 
 using IceRemembers;
 using IceRemembers.Seed;

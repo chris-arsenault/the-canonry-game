@@ -23,6 +23,11 @@ internal static class LandscapeSurface
         map.SedimentThickness[triangleIndex] -= sedimentCut;
         var bedrockCut = requested - sedimentCut;
         map.BedrockElevation[triangleIndex] -= bedrockCut;
+        if (bedrockCut > 0)
+        {
+            map.SurfaceRockLoad[triangleIndex] = checked(
+                map.SurfaceRockLoad[triangleIndex] - bedrockCut);
+        }
         Rebuild(map, triangleIndex);
         return requested;
     }

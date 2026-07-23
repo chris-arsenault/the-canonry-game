@@ -1,5 +1,7 @@
 namespace Engine.WorldGen;
 
+using Engine.Constants;
+
 public sealed record CoverageTarget
 {
     public CoverageTarget(double target, double tolerance)
@@ -86,7 +88,11 @@ public sealed record PhysicalGeographyQualityTargets
 /// </summary>
 public sealed record PhysicalGeographyGenerationProfile
 {
-    public int Padding { get; init; } = 24;
+    /// <summary>
+    /// Generated border outside the requested content area, measured in
+    /// microtriangle centroid steps.
+    /// </summary>
+    public int BoundaryPaddingSteps { get; init; } = 144;
 
     public int ElevationScale { get; init; } = 1000;
 
@@ -112,19 +118,28 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public double RidgeWidth { get; init; } = 11d;
 
-    public double RidgeUplift { get; init; } = 0.62d;
-
-    public double RiftDepth { get; init; } = 0.28d;
-
     public double TectonicMotionMinimum { get; init; } = 0.22d;
 
     public double TectonicMotionMaximum { get; init; } = 0.72d;
 
     public double TectonicConvergenceThreshold { get; init; } = 0.12d;
 
-    public double TectonicEpochVariationScale { get; init; } = 34d;
-
     public int TectonicBoundaryPersistence { get; init; } = 420;
+
+    /// <summary>
+    /// Maximum microtriangle steps searched across a convergent province band
+    /// for unlike transported continental material.
+    /// </summary>
+    public int ContinentalSutureDetectionReach { get; init; } = 6;
+
+    /// <summary>Minimum continental fraction admitted as one side of a suture.</summary>
+    public int ContinentalSutureMinimumFraction { get; init; } = 420;
+
+    /// <summary>
+    /// Per-mille approach toward full suture strength during one fully active
+    /// collision epoch.
+    /// </summary>
+    public int ContinentalSutureStrengthGain { get; init; } = 620;
 
     /// <summary>
     /// World units a plate at full speed travels in the *first* epoch. Plates
@@ -152,16 +167,6 @@ public sealed record PhysicalGeographyGenerationProfile
     public int PlateDriftDecay { get; init; } = 420;
 
     /// <summary>
-    /// Uplift, in authored units per epoch, applied to submerged crust at a
-    /// convergent margin. This is the obduction lever that lets ocean floor
-    /// become land and carry its accumulated history up with it.
-    /// </summary>
-    public int AccretionUpliftStep { get; init; } = 260;
-
-    /// <summary>Depth, in units, at which accretion reaches full strength.</summary>
-    public int AccretionDepthScale { get; init; } = 420;
-
-    /// <summary>
     /// How far, in triangles, an active plate boundary imprints its kind on
     /// surrounding crust. Crust beyond every boundary's reach is plate
     /// interior, which on continental crust is a passive margin.
@@ -178,22 +183,38 @@ public sealed record PhysicalGeographyGenerationProfile
     /// Depth, per mille of the authored elevation unit, that fully aged
     /// oceanic crust subsides relative to a fresh spreading centre.
     /// </summary>
-    public int OceanicSubsidenceDepth { get; init; } = 340;
+    public int OceanicSubsidenceDepth { get; init; } = 1200;
+
+    public int PassiveShelfWidth { get; init; } = 24;
+
+    public int RiftedShelfWidth { get; init; } = 16;
+
+    public int TransformShelfWidth { get; init; } = 8;
+
+    public int ContinentalSlopeWidth { get; init; } = 24;
+
+    public int ContinentalShelfDepth { get; init; } = 150;
+
+    public int ContinentalSlopeDepth { get; init; } = 1100;
+
+    /// <summary>Exceptional trench depth below the local ambient seabed.</summary>
+    public int ConvergentTrenchDepth { get; init; } = 900;
 
     /// <summary>
-    /// Elevation band around sea level, per mille of the authored unit, inside
-    /// which margin flattening applies.
+    /// Minimum width over which the continental rise accelerates from its
+    /// nearly flat shelf grade toward the ordinary maximum margin grade.
     /// </summary>
-    public int MarginPlatformBand { get; init; } = 260;
+    public int ContinentalRiseMinimumWidth { get; init; } = 24;
 
-    /// <summary>
-    /// How strongly passive margins flatten toward the shoreline datum. This
-    /// is the lever that converts coastal noise into wide horizontal shoreline
-    /// excursions rather than small wobbles.
-    /// </summary>
-    public int PassiveMarginFlattening { get; init; } = 720;
+    public int PassiveMarginMaximumStep { get; init; } = 16;
 
-    public int RiftedMarginFlattening { get; init; } = 300;
+    public int RiftedMarginMaximumStep { get; init; } = 18;
+
+    public int TransformMarginMaximumStep { get; init; } = 32;
+
+    public int MarginEvolutionResponsePerMille { get; init; } = 760;
+
+    public int MarineSedimentCapacity { get; init; } = 180;
 
     /// <summary>
     /// Elevation band around sea level, in authored units, inside which
@@ -269,30 +290,71 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public double InteriorReliefScale { get; init; } = 12d;
 
-    /// <summary>
-    /// Wavelength at which uplift concentrates into ranges. Orogeny is narrow:
-    /// a convergent zone spanning a quarter of a continent does not rise
-    /// uniformly, it rises as ranges separated by valleys. Without this the
-    /// broadest tectonic zones produce the smoothest ground, which is the
-    /// opposite of what mountains do.
-    /// </summary>
-    public double RangeConcentrationScale { get; init; } = 11d;
+    /// <summary>Minimum active boundary cells that form an orogenic system.</summary>
+    public int OrogenicMinimumComponentSize { get; init; } = 6;
 
+    /// <summary>Minimum boundary strain, per mille, admitted to a system.</summary>
+    public int OrogenicMinimumStrain { get; init; } = 80;
 
+    /// <summary>Maximum microtriangle steps influenced by an active system.</summary>
+    public int OrogenicInfluenceReach { get; init; } = 28;
 
     /// <summary>
-    /// How much harder continental collision thickens crust than ocean-
-    /// continent subduction does. Neither plate can subduct, so the crust has
-    /// nowhere to go but up and down.
+    /// Initial crustal construction budget, expressed as equilibrium-height
+    /// units before the component's strain, prominence, and cross-section.
     /// </summary>
-    public double ContinentalCollisionUplift { get; init; } = 18d;
+    public int InitialOrogenicConstructionStep { get; init; } = 3200;
+
+    /// <summary>Per-epoch continuation of the same construction budget.</summary>
+    public int EpochOrogenicConstructionStep { get; init; } = 1200;
+
+    /// <summary>Half-width of broad continent-continent crustal roots.</summary>
+    public double CollisionRangeWidth { get; init; } = 18d;
+
+    /// <summary>Half-width of the continental belt above a subduction zone.</summary>
+    public double SubductionRangeWidth { get; init; } = 10d;
+
+    /// <summary>Distance from a continental rift axis to its shoulders.</summary>
+    public double RiftShoulderDistance { get; init; } = 7d;
+
+    /// <summary>Half-width of modest transform-boundary relief.</summary>
+    public double TransformRangeWidth { get; init; } = 4d;
+
+    /// <summary>Along-strike wavelength of range-scale height variation.</summary>
+    public double OrogenicAlongStrikeScale { get; init; } = 42d;
+
+    /// <summary>Weakest connected system's construction share, per mille.</summary>
+    public int OrogenicProminenceMinimum { get; init; } = 700;
+
+    /// <summary>Strongest connected system's construction share, per mille.</summary>
+    public int OrogenicProminenceMaximum { get; init; } = 1900;
 
     /// <summary>
-    /// How much harder divergence thins continental crust than oceanic. A rift
-    /// opening inside a landmass drops a valley into it long before it becomes
-    /// an ocean.
+    /// Rank distance over which major-system prominence decays. A value above
+    /// one gives several large ranges while retaining a heavy exceptional tail.
     /// </summary>
-    public double ContinentalRiftThinning { get; init; } = 1.9d;
+    public double OrogenicProminenceRankDecay { get; init; } = 2.4d;
+
+    /// <summary>Maximum crustal root supported by an ordinary system.</summary>
+    public int OrogenicRootBudgetMinimum { get; init; } = 1200;
+
+    /// <summary>Maximum crustal root supported by the strongest system.</summary>
+    public int OrogenicRootBudgetMaximum { get; init; } = 4000;
+
+    /// <summary>
+    /// Share of admitted root-supported uplift constructed as narrower upper-
+    /// crust summit relief from the same shortening budget.
+    /// </summary>
+    public int OrogenicSurfaceReliefSharePerMille { get; init; } = 750;
+
+    /// <summary>Maximum summit rock constructed at one triangle in one pass.</summary>
+    public int MaximumOrogenicSurfaceReliefPerPass { get; init; } = 1400;
+
+    /// <summary>Resistance of coherent orogenic core rock.</summary>
+    public int OrogenicCoreRockResistance { get; init; } = 2200;
+
+    /// <summary>Maximum continental crust removed beneath a mature rift axis.</summary>
+    public int ContinentalRiftThinningBudget { get; init; } = 850;
 
     /// <summary>
     /// Water depth, in authored units, at which an ocean impact leaves no
@@ -317,45 +379,49 @@ public sealed record PhysicalGeographyGenerationProfile
     public int PlumeLobeStrength { get; init; } = 620;
 
     /// <summary>
-    /// How sharply uplift gathers onto range crests. Redistributes rather than
-    /// adds: crests gain roughly threefold, the ground between them keeps
-    /// under a third, and the mean is preserved.
-    /// </summary>
-    public double RangeConcentrationSharpness { get; init; } = 2.8d;
-
-    /// <summary>
-    /// Peak amplitude of elongated interior mountain belts (ancient orogens),
-    /// as a fraction of <see cref="ElevationScale"/>.
-    /// </summary>
-    public double InteriorBeltStrength { get; init; } = 0.72d;
-
-    public double InteriorBeltScale { get; init; } = 24d;
-
-    /// <summary>
-    /// Width of the belt bands carved along the belt-field zero contours.
-    /// Larger values cover more of the interior with mountain belts.
-    /// </summary>
-    public double InteriorBeltCoverage { get; init; } = 0.30d;
-
-    /// <summary>
     /// Per-mille depth of interior basins relative to interior highland
     /// height. Below 1000, downward macro-relief lobes are shallower than the
     /// upward ones, keeping lakes and inland seas from dominating the land.
     /// </summary>
-    public int InteriorBasinDepthShare { get; init; } = 520;
-
-    /// <summary>
-    /// Per-mille share of <see cref="EpochTectonicElevationStep"/> applied as
-    /// continued interior-belt uplift each evolution epoch, so belts keep
-    /// their differential against erosion across the whole epoch schedule.
-    /// </summary>
-    public int EpochInteriorUpliftShare { get; init; } = 300;
+    public int InteriorBasinDepthShare { get; init; } = 260;
 
     public int EpochTectonicElevationStep { get; init; } = 240;
+
+    /// <summary>Regional response to rock added to or removed from the surface.</summary>
+    public int BedrockLoadResponsePerMille { get; init; } = 280;
+
+    /// <summary>Regional response to unconsolidated sediment load.</summary>
+    public int SedimentLoadResponsePerMille { get; init; } = 360;
+
+    /// <summary>Regional response to grounded ice load.</summary>
+    public int IceLoadResponsePerMille { get; init; } = 860;
+
+    /// <summary>Number of metric-Laplacian passes used to flex local Airy support.</summary>
+    public int LithosphericFlexureIterations { get; init; } = 18;
+
+    /// <summary>Per-pass coupling of each support column to its three neighbors.</summary>
+    public int LithosphericFlexureRelaxationPerMille { get; init; } = 460;
+
+    /// <summary>Local downslope rock-to-sediment transport above the stable slope.</summary>
+    public int MassWastingIterations { get; init; } = 4;
+
+    public int PostFluvialMassWastingIterations { get; init; } = 2;
+
+    public int MassWastingStableStep { get; init; } = 72;
+
+    public int MassWastingTransportFraction { get; init; } = 280;
+
+    public int MaximumMassWastingTransportPerPass { get; init; } = 55;
 
     public int FluvialErosionIterations { get; init; } = 13;
 
     public double FluvialErosionStrength { get; init; } = 0.320d;
+
+    /// <summary>
+    /// Stable per-triangle fall retained by a unit-discharge channel. Larger
+    /// rivers retain a gentler equilibrium step before further incision stops.
+    /// </summary>
+    public int FluvialEquilibriumStep { get; init; } = 8;
 
     public int SedimentTransportFraction { get; init; } = 760;
 
@@ -439,7 +505,29 @@ public sealed record PhysicalGeographyGenerationProfile
     /// </summary>
     public int LakeCompactnessShare { get; init; } = 560;
 
-    public double EndorheicLakeFraction { get; init; } = 0.06d;
+    /// <summary>Minimum land precipitation lost to infiltration and evapotranspiration.</summary>
+    public int RunoffMinimumLossPerMille { get; init; } = 160;
+
+    /// <summary>Additional per-mille land-water loss at maximum temperature.</summary>
+    public int RunoffTemperatureLossPerMille { get; init; } = 420;
+
+    /// <summary>Minimum open-water loss in runoff units per wet triangle.</summary>
+    public int LakeEvaporationMinimum { get; init; } = 180;
+
+    /// <summary>Additional open-water loss at maximum temperature.</summary>
+    public int LakeEvaporationTemperatureStrength { get; init; } = 520;
+
+    /// <summary>Seepage loss in runoff units per wet triangle.</summary>
+    public int LakeInfiltrationLoss { get; init; } = 140;
+
+    /// <summary>Overflow at which outlet incision reaches half its maximum.</summary>
+    public int LakeOutletOverflowScale { get; init; } = 120000;
+
+    /// <summary>Maximum outlet-sill erosion during one hydrology epoch.</summary>
+    public int MaximumLakeOutletIncisionPerPass { get; init; } = 140;
+
+    /// <summary>Downstream parent steps searched for the controlling spill sill.</summary>
+    public int LakeOutletIncisionSearchSteps { get; init; } = 12;
 
     public int DrainageGuidanceLookaheadSteps { get; init; } = 12;
 
@@ -614,13 +702,6 @@ public sealed record PhysicalGeographyGenerationProfile
 
     public int CliffSlopeThreshold { get; init; } = 120;
 
-    /// <summary>
-    /// Minimum Strahler order for a river crossing a hex edge to count as a
-    /// trunk river in the aggregate's trunk edge mask. Lesser rivers stay
-    /// hex-interior texture; only trunks become directional crossings.
-    /// </summary>
-    public int TrunkRiverOrderThreshold { get; init; } = 4;
-
     public int PlainSlopeThreshold { get; init; } = 30;
 
     public int IceTemperatureThreshold { get; init; } = 285;
@@ -696,21 +777,60 @@ public sealed record PhysicalGeographyGenerationProfile
     private bool TectonicCountsAreInvalid() =>
         TectonicProvinceCount < 4 || TectonicSiteCandidateMultiplier < 2 ||
         MantlePlumeCount < 0 || ContinentalAssemblyCount < 2 ||
-        ContinentalAssemblyCount > TectonicProvinceCount - 2;
+        ContinentalAssemblyCount > TectonicProvinceCount - 2 || MarginCountsAreInvalid() ||
+        ContinentalSutureDetectionReach <= 0 || OrogenicCountsAreInvalid();
+
+    private bool OrogenicCountsAreInvalid() =>
+        OrogenicMinimumComponentSize <= 0 || OrogenicInfluenceReach <= 0 ||
+        OrogenicMinimumStrain is <= 0 or > 1000 ||
+        InitialOrogenicConstructionStep <= 0 || EpochOrogenicConstructionStep <= 0 ||
+        OrogenicRootBudgetMinimum <= 0 ||
+        OrogenicRootBudgetMaximum < OrogenicRootBudgetMinimum ||
+        OrogenicSurfaceCountsAreInvalid() ||
+        ContinentalRiftThinningBudget <= 0;
+
+    private bool OrogenicSurfaceCountsAreInvalid() =>
+        MaximumOrogenicSurfaceReliefPerPass <= 0 ||
+        OrogenicCoreRockResistance < PhysicalRock.BaselineResistance;
+
+    private bool MarginCountsAreInvalid() =>
+        ShelfCountsAreInvalid() || MarginGradeCountsAreInvalid() ||
+        ContinentalSlopeWidth <= 0 || ContinentalRiseMinimumWidth <= 0 ||
+        ContinentalShelfDepth <= 0 || ContinentalSlopeDepth <= ContinentalShelfDepth ||
+        ConvergentTrenchDepth <= 0 || MarineSedimentCapacity <= 0;
+
+    private bool ShelfCountsAreInvalid() =>
+        PassiveShelfWidth <= 0 || RiftedShelfWidth <= 0 || TransformShelfWidth <= 0;
+
+    private bool MarginGradeCountsAreInvalid() =>
+        PassiveMarginMaximumStep <= 0 || RiftedMarginMaximumStep <= 0 ||
+        TransformMarginMaximumStep <= 0;
 
     private bool LandscapeCountsAreInvalid() =>
         BaseLandscapeCountsAreInvalid() || EvolutionCountsAreInvalid();
 
     private bool BaseLandscapeCountsAreInvalid() =>
-        Padding <= 0 || ElevationScale <= 0 || FluvialErosionIterations <= 0 ||
+        BaseElevationCountsAreInvalid() ||
+        SurfaceResponseCountsAreInvalid() ||
         ImpactCraterCount < 0 ||
         HydrologyCountsAreInvalid() ||
         OceanCurrentSmoothingIterations <= 0 || OceanCurrentHeatIterations <= 0 ||
         OceanCurrentFetchSteps <= 0 || RiverGeometryCountsAreInvalid();
 
+    private bool BaseElevationCountsAreInvalid() =>
+        BoundaryPaddingSteps <= 0 || ElevationScale <= 0 ||
+        FluvialErosionIterations <= 0 || FluvialEquilibriumStep <= 0;
+
+    private bool SurfaceResponseCountsAreInvalid() =>
+        LithosphericFlexureIterations <= 0 || MassWastingIterations <= 0 ||
+        PostFluvialMassWastingIterations <= 0 ||
+        MassWastingStableStep <= 0 || MaximumMassWastingTransportPerPass <= 0;
+
     private bool HydrologyCountsAreInvalid() =>
         MinimumLakeTriangles <= 0 || MinimumRiverReachTriangles <= 0 ||
-        DrainageGuidanceLookaheadSteps <= 0;
+        DrainageGuidanceLookaheadSteps <= 0 || LakeEvaporationMinimum < 0 ||
+        LakeInfiltrationLoss < 0 || LakeOutletOverflowScale <= 0 ||
+        MaximumLakeOutletIncisionPerPass <= 0 || LakeOutletIncisionSearchSteps <= 0;
 
     private bool RiverGeometryCountsAreInvalid() =>
         RiverChannelWideningOrder <= 0 ||
@@ -744,10 +864,14 @@ public sealed record PhysicalGeographyGenerationProfile
 
     private bool TectonicScaleIsInvalid() =>
         ContinentalTransitionWidth <= 0d || ContinentalWarpScale <= 0d ||
-        TectonicEpochVariationScale <= 0d ||
-        RidgeWidth <= 0d || RidgeUplift <= 0d || RiftDepth <= 0d ||
+        RidgeWidth <= 0d || OrogenicScalesAreInvalid() ||
         ContinentalAssemblySeparationDepth <= 0d ||
         VolcanicScaleIsInvalid();
+
+    private bool OrogenicScalesAreInvalid() =>
+        CollisionRangeWidth <= 0d || SubductionRangeWidth <= 0d ||
+        RiftShoulderDistance <= 0d || TransformRangeWidth <= 0d ||
+        OrogenicAlongStrikeScale <= 0d || OrogenicProminenceRankDecay <= 0d;
 
     private bool VolcanicScaleIsInvalid() =>
         MantlePlumeRadius <= 0d || MantlePlumeMinimumSpacing <= 0d ||
@@ -764,20 +888,33 @@ public sealed record PhysicalGeographyGenerationProfile
 
     private bool CollisionRangesAreInvalid() =>
         PlumeLobeScale <= 0d || PlumeLobeStrength is < 0 or > 1000 ||
-        ContinentalCollisionUplift < 0d || ContinentalRiftThinning < 0d;
+        OrogenicProminenceMinimum <= 0 ||
+        OrogenicProminenceMaximum < OrogenicProminenceMinimum;
 
     private bool InteriorReliefScaleIsInvalid() =>
         InteriorReliefStrength < 0d || InteriorReliefScale <= 0d ||
-        RangeConcentrationScale <= 0d || RangeConcentrationSharpness < 0d ||
-        CollisionRangesAreInvalid() ||
-        InteriorBeltStrength < 0d || InteriorBeltScale <= 0d ||
-        InteriorBeltCoverage is <= 0d or >= 1d ||
-        InteriorShareIsInvalid();
+        CollisionRangesAreInvalid() || InteriorShareIsInvalid();
 
     private bool InteriorShareIsInvalid() =>
-        EpochInteriorUpliftShare is < 0 or > 1000 ||
+        ContinentalSutureMinimumFraction is < 0 or > 1000 ||
+        ContinentalSutureStrengthGain is <= 0 or > 1000 ||
+        SurfaceResponseSharesAreInvalid() ||
         InteriorBasinDepthShare is <= 0 or > 1000 ||
         LakeCompactnessShare is < 0 or > 1000;
+
+    private bool SurfaceResponseSharesAreInvalid() =>
+        LoadResponseSharesAreInvalid() || SurfaceTransportSharesAreInvalid();
+
+    private bool LoadResponseSharesAreInvalid() =>
+        BedrockLoadResponsePerMille is < 0 or > 1000 ||
+        SedimentLoadResponsePerMille is < 0 or > 1000 ||
+        IceLoadResponsePerMille is < 0 or > 1000;
+
+    private bool SurfaceTransportSharesAreInvalid() =>
+        LithosphericFlexureRelaxationPerMille is < 0 or > 1000 ||
+        OrogenicSurfaceReliefSharePerMille is < 0 or > 1000 ||
+        MassWastingTransportFraction is < 0 or > 1000 ||
+        MarginEvolutionResponsePerMille is < 0 or > 1000;
 
     private void ValidateRanges()
     {
@@ -811,9 +948,9 @@ public sealed record PhysicalGeographyGenerationProfile
             throw new InvalidOperationException("Physical worldgen hydrology ranges are invalid.");
         }
 
-        if (EndorheicLakeFraction is < 0d or > 1d)
+        if (WaterLossRangesAreInvalid())
         {
-            throw new InvalidOperationException("Endorheic lake fraction is invalid.");
+            throw new InvalidOperationException("Surface-water loss parameters are invalid.");
         }
 
         if (DrainageGuidanceRangesAreInvalid())
@@ -826,6 +963,12 @@ public sealed record PhysicalGeographyGenerationProfile
             throw new InvalidOperationException("Physical worldgen landscape-evolution ranges are invalid.");
         }
     }
+
+    private bool WaterLossRangesAreInvalid() =>
+        !IsUnitScalar(RunoffMinimumLossPerMille) ||
+        !IsUnitScalar(RunoffTemperatureLossPerMille) ||
+        RunoffMinimumLossPerMille + RunoffTemperatureLossPerMille > 1000 ||
+        LakeEvaporationTemperatureStrength is < 0 or > 1000;
 
     private bool DrainageGuidanceRangesAreInvalid() =>
         !IsUnitScalar(DrainageFloorGradientWeight) ||

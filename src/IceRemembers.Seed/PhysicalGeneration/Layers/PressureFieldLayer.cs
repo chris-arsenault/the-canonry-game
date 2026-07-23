@@ -132,23 +132,18 @@ internal sealed class PressureFieldLayer : IIceRemembersMicrogeographyLayer
     {
         var best = -1;
         var bestScore = long.MinValue;
-        for (var configuredIndex = 0; configuredIndex < field.Grid.ConfiguredHexCount; configuredIndex++)
+        for (var triangleIndex = 0; triangleIndex < field.Grid.ContentTriangleCount; triangleIndex++)
         {
-            var hexIndex = field.Grid.ConfiguredHexIndexAt(configuredIndex);
-            for (var local = 0; local < PhysicalGeographyCodes.MicrotrianglesPerHex; local++)
+            if (field.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.Ocean)
             {
-                var triangleIndex = field.Grid.TriangleIndex(hexIndex, local);
-                if (field.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.Ocean)
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                var score = field.WaterDepths[triangleIndex] + LocalBasinDepth(field, triangleIndex);
-                if (score > bestScore)
-                {
-                    best = triangleIndex;
-                    bestScore = score;
-                }
+            var score = field.WaterDepths[triangleIndex] + LocalBasinDepth(field, triangleIndex);
+            if (score > bestScore)
+            {
+                best = triangleIndex;
+                bestScore = score;
             }
         }
 
@@ -257,7 +252,7 @@ internal sealed class PressureFieldLayer : IIceRemembersMicrogeographyLayer
         var candidates = new PriorityQueue<CoreCandidate, (long Score, int TriangleIndex)>();
         for (var triangleIndex = 0; triangleIndex < field.Grid.TriangleCount; triangleIndex++)
         {
-            if (!field.Grid.TriangleIsInsideConfiguredDisk(triangleIndex) ||
+            if (!field.Grid.TriangleIsInsideContentDomain(triangleIndex) ||
                 field.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.Ocean ||
                 (requireCoast && !HasDryNeighbor(field, triangleIndex)))
             {
@@ -266,7 +261,10 @@ internal sealed class PressureFieldLayer : IIceRemembersMicrogeographyLayer
 
             var candidate = new CoreCandidate(
                 triangleIndex,
-                (long)(PhysicalNoise.HashUnit(seed, triangleIndex, count) * long.MaxValue));
+                (long)(PhysicalNoise.HashUnit(
+                    seed,
+                    field.Grid.TriangleIdentity(triangleIndex),
+                    count) * long.MaxValue));
             AddBoundedCandidate(candidates, candidate, count);
         }
 

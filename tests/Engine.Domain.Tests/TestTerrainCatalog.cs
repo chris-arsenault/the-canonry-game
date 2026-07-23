@@ -1,6 +1,6 @@
 namespace Engine.Domain.Tests;
 
-using Engine.WorldGen;
+using Engine.Domain.Spatial;
 
 internal static class TestTerrainCatalog
 {

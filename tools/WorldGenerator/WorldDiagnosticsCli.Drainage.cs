@@ -7,8 +7,113 @@ namespace WorldGeneratorTool;
 using Engine.Constants;
 using Engine.WorldGen;
 
+using IceRemembers.Seed;
+
 internal static partial class WorldDiagnosticsCli
 {
+    private static void ReportSpineEndpoints(PhysicalGeographyField field, int[] flowTargets)
+    {
+        Console.WriteLine("== Spine endpoints (degree-1 spine triangles) ==");
+        long headwaters = 0;
+        long intoOcean = 0;
+        long intoLake = 0;
+        long interiorStops = 0;
+        var samples = new List<int>();
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            var mask = field.RiverSpineEdgeMasks[t];
+            if (mask == 0 || System.Numerics.BitOperations.PopCount((uint)mask) != 1 ||
+                !field.Grid.TriangleIsInsideContentDomain(t))
+            {
+                continue;
+            }
+
+            var target = flowTargets[t];
+            var downstreamEdge = target >= 0 ? field.Grid.EdgeLeadingTo(t, target) : -1;
+            var maskEdge = System.Numerics.BitOperations.TrailingZeroCount((uint)mask);
+            if (maskEdge != downstreamEdge)
+            {
+                var targetWater = target >= 0 ? field.WaterKindCodes[target] : -1;
+                if (target < 0 || targetWater == PhysicalWaterKindCodes.Ocean)
+                {
+                    intoOcean++;
+                }
+                else if (targetWater == PhysicalWaterKindCodes.Lake)
+                {
+                    intoLake++;
+                }
+                else
+                {
+                    interiorStops++;
+                    if (samples.Count < 8)
+                    {
+                        samples.Add(t);
+                    }
+                }
+            }
+            else
+            {
+                headwaters++;
+            }
+        }
+
+        Console.WriteLine(
+            $"  headwaters={headwaters} endings: ocean={intoOcean} lake={intoLake} " +
+            $"INTERIOR-LAND={interiorStops}");
+        foreach (var t in samples)
+        {
+            var target = flowTargets[t];
+            Console.WriteLine(
+                $"    interior stop t={t} order={field.RiverOrders[t]} " +
+                $"acc={field.FlowAccumulation[t]} water={field.WaterKindCodes[t]} -> " +
+                $"target={target} order={(target >= 0 ? field.RiverOrders[target] : -1)} " +
+                $"water={(target >= 0 ? field.WaterKindCodes[target] : -1)} " +
+                $"strength={(target >= 0 ? field.RiverChannelStrength[target] : -1)}");
+        }
+    }
+
+    private static void ReportWater(PhysicalGeographyField field)
+    {
+        Console.WriteLine("== Water balance (configured disk) ==");
+        long ocean = 0;
+        long lake = 0;
+        long land = 0;
+        var lakeSizes = new Dictionary<int, int>();
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (!field.Grid.TriangleIsInsideContentDomain(t))
+            {
+                continue;
+            }
+
+            switch (field.WaterKindCodes[t])
+            {
+                case PhysicalWaterKindCodes.Ocean:
+                    ocean++;
+                    break;
+                case PhysicalWaterKindCodes.Lake:
+                    lake++;
+                    lakeSizes[field.WaterBodyIds[t]] =
+                        lakeSizes.GetValueOrDefault(field.WaterBodyIds[t]) + 1;
+                    break;
+                default:
+                    land++;
+                    break;
+            }
+        }
+
+        var total = Math.Max(1, ocean + lake + land);
+        var sizes = lakeSizes.Values.Select(static size => (double)size).Order().ToList();
+        Console.WriteLine(
+            $"  ocean={ocean * 100d / total:0.0}% lake={lake * 100d / total:0.0}% " +
+            $"land={land * 100d / total:0.0}% (total water {(ocean + lake) * 100d / total:0.0}%)");
+        Console.WriteLine(
+            $"  lake bodies={sizes.Count} median-size={Percentile(sizes, 50):0} " +
+            $"p90={Percentile(sizes, 90):0} max={(sizes.Count > 0 ? sizes[^1] : 0):0}");
+        ReportLakeStages(field);
+        ReportLandmassLakeOccupancy(field);
+    }
+
     // Channel initiation in real landscapes follows contributing area AND
     // slope: steep ground channelises with a small catchment, flat ground needs
     // an enormous one. We use area alone. This asks whether slope carries
@@ -21,15 +126,15 @@ internal static partial class WorldDiagnosticsCli
         var channelSlopes = new List<long>();
         var saturatedHexSlopes = new List<long>();
         var sparseHexSlopes = new List<long>();
+        var geometry = PhysicalKernelMapGeometry.FromGeneratedContent(field.Grid);
 
-        for (var hex = 0; hex < field.Grid.ConfiguredHexCount; hex++)
+        for (var cellIndex = 0; cellIndex < geometry.CellCount; cellIndex++)
         {
-            var hexIndex = field.Grid.ConfiguredHexIndexAt(hex);
             var channelCount = 0;
             var landCount = 0;
             for (var local = 0; local < PhysicalGeographyCodes.MicrotrianglesPerHex; local++)
             {
-                var t = field.Grid.TriangleIndex(hexIndex, local);
+                var t = geometry.TriangleIndex(cellIndex, local);
                 if (field.WaterKindCodes[t] != PhysicalWaterKindCodes.None)
                 {
                     continue;
@@ -49,7 +154,7 @@ internal static partial class WorldDiagnosticsCli
 
             for (var local = 0; local < PhysicalGeographyCodes.MicrotrianglesPerHex; local++)
             {
-                var t = field.Grid.TriangleIndex(hexIndex, local);
+                var t = geometry.TriangleIndex(cellIndex, local);
                 if (field.WaterKindCodes[t] != PhysicalWaterKindCodes.None)
                 {
                     continue;
@@ -142,7 +247,7 @@ internal static partial class WorldDiagnosticsCli
     // Discrete geography, as the things a name can attach to.
     private static void ReportGeologicalFeatures(PhysicalGeographyField field)
     {
-        var features = MapGeologicalFeatureIdentification.Identify(field);
+        var features = PhysicalGeologicalFeatureIdentification.Identify(field);
         Console.WriteLine("== Geological features ==");
         foreach (var group in features.Features.Values
             .GroupBy(feature => feature.Kind)
@@ -151,8 +256,8 @@ internal static partial class WorldDiagnosticsCli
             var sorted = group.OrderByDescending(feature => feature.Magnitude).ToArray();
             Console.WriteLine(
                 $"  {group.Key,-12} count={sorted.Length,4} " +
-                $"largest magnitude={sorted[0].Magnitude} hexes={sorted[0].HexCount} " +
-                $"at ({sorted[0].Anchor.Q},{sorted[0].Anchor.R})");
+                $"largest magnitude={sorted[0].Magnitude} triangles={sorted[0].TriangleCount} " +
+                $"at {field.Grid.TriangleCoordAt(sorted[0].AnchorTriangleIndex)}");
         }
     }
 
@@ -487,6 +592,7 @@ internal static partial class WorldDiagnosticsCli
         var elevations = new List<long>();
         var erosion = new List<long>();
         var bedrockGap = new List<long>();
+        var gorgeDepth = new List<long>();
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
             if (field.WaterKindCodes[t] != PhysicalWaterKindCodes.None)
@@ -497,11 +603,27 @@ internal static partial class WorldDiagnosticsCli
             elevations.Add(field.Elevation[t]);
             erosion.Add(field.CumulativeFluvialErosion[t]);
             bedrockGap.Add(field.Elevation[t] - field.BedrockElevation[t]);
+            if (field.CumulativeFluvialErosion[t] > 0)
+            {
+                var shoulder = field.Elevation[t];
+                for (var edge = 0; edge < 3; edge++)
+                {
+                    var neighbor = field.Grid.NeighborTriangleIndex(t, edge);
+                    if (neighbor >= 0 &&
+                        field.WaterKindCodes[neighbor] == PhysicalWaterKindCodes.None)
+                    {
+                        shoulder = Math.Max(shoulder, field.Elevation[neighbor]);
+                    }
+                }
+
+                gorgeDepth.Add(shoulder - field.Elevation[t]);
+            }
         }
 
         Console.WriteLine("== Erosion budget vs elevation spread (subunits) ==");
         PrintSlopeRow("land elevation", elevations);
         PrintSlopeRow("cumulative fluvial erosion", erosion);
+        PrintSlopeRow("eroded-channel depth below adjacent shoulder", gorgeDepth);
         PrintSlopeRow("elevation - bedrock", bedrockGap);
         var sortedElevation = elevations.ToArray();
         Array.Sort(sortedElevation);
@@ -573,14 +695,14 @@ internal static partial class WorldDiagnosticsCli
         var wouldBeFloodplain = 0;
         var steepFloodplain = 0;
         var medians = new List<long>();
-        for (var hex = 0; hex < field.Grid.ConfiguredHexCount; hex++)
+        var geometry = PhysicalKernelMapGeometry.FromGeneratedContent(field.Grid);
+        for (var cellIndex = 0; cellIndex < geometry.CellCount; cellIndex++)
         {
-            var hexIndex = field.Grid.ConfiguredHexIndexAt(hex);
             var riverLand = 0;
             var slopes = new List<long>();
             for (var local = 0; local < PhysicalGeographyCodes.MicrotrianglesPerHex; local++)
             {
-                var t = field.Grid.TriangleIndex(hexIndex, local);
+                var t = geometry.TriangleIndex(cellIndex, local);
                 if (field.WaterKindCodes[t] != PhysicalWaterKindCodes.None)
                 {
                     continue;
@@ -680,5 +802,123 @@ internal static partial class WorldDiagnosticsCli
 
     private static int Percentile(int[] ascending, int percentile) =>
         ascending[Math.Clamp(percentile * ascending.Length / 100, 0, ascending.Length - 1)];
+
+    private static void ReportLakeStages(PhysicalGeographyField field)
+    {
+        var bodies = new Dictionary<int, LakeStageStats>();
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (!field.Grid.TriangleIsInsideContentDomain(t) ||
+                field.WaterKindCodes[t] != PhysicalWaterKindCodes.Lake)
+            {
+                continue;
+            }
+
+            var body = field.WaterBodyIds[t];
+            if (!bodies.TryGetValue(body, out var stats))
+            {
+                stats = new LakeStageStats();
+                bodies.Add(body, stats);
+            }
+
+            stats.Add(field, t);
+        }
+
+        var gaps = bodies.Values
+            .Select(stats => (long)PhysicalElevation.ToUnits(stats.Spill - stats.Surface))
+            .ToList();
+        var spilling = bodies.Values.Count(stats => stats.Overflow > 0);
+        Console.WriteLine(
+            $"  supported stages: below-spill={bodies.Count - spilling} " +
+            $"spilling={spilling} total-overflow={bodies.Values.Sum(stats => stats.Overflow)}");
+        PrintSlopeRow("lake stage below spill", gaps);
+    }
+
+    private static void ReportLandmassLakeOccupancy(PhysicalGeographyField field)
+    {
+        var visited = new bool[field.Grid.TriangleCount];
+        var regions = new List<LandWaterRegion>();
+        for (var start = 0; start < field.Grid.TriangleCount; start++)
+        {
+            if (visited[start] || !field.Grid.TriangleIsInsideContentDomain(start) ||
+                field.WaterKindCodes[start] == PhysicalWaterKindCodes.Ocean)
+            {
+                continue;
+            }
+
+            regions.Add(CollectLandWaterRegion(field, start, visited));
+        }
+
+        Console.WriteLine("  major landmass lake occupancy:");
+        foreach (var region in regions
+            .Where(region => region.Area >= ContinentMinimumTriangles)
+            .OrderByDescending(region => region.Area)
+            .Take(10))
+        {
+            Console.WriteLine(
+                $"    area={region.Area,7} lakes={region.LakeTriangles,7} " +
+                $"share={region.LakeTriangles * 100d / region.Area,5:0.0}% " +
+                $"largest={region.LargestLake,7} " +
+                $"largest-share={region.LargestLake * 100d / region.Area,5:0.0}%");
+        }
+    }
+
+    private static LandWaterRegion CollectLandWaterRegion(
+        PhysicalGeographyField field,
+        int start,
+        bool[] visited)
+    {
+        var area = 0;
+        var lakeTriangles = 0;
+        var lakeBodies = new Dictionary<int, int>();
+        var queue = new Queue<int>();
+        visited[start] = true;
+        queue.Enqueue(start);
+        while (queue.TryDequeue(out var triangleIndex))
+        {
+            area++;
+            if (field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Lake)
+            {
+                lakeTriangles++;
+                var body = field.WaterBodyIds[triangleIndex];
+                lakeBodies[body] = lakeBodies.GetValueOrDefault(body) + 1;
+            }
+
+            for (var edge = 0; edge < 3; edge++)
+            {
+                var neighbor = field.Grid.NeighborTriangleIndex(triangleIndex, edge);
+                if (neighbor >= 0 && !visited[neighbor] &&
+                    field.Grid.TriangleIsInsideContentDomain(neighbor) &&
+                    field.WaterKindCodes[neighbor] != PhysicalWaterKindCodes.Ocean)
+                {
+                    visited[neighbor] = true;
+                    queue.Enqueue(neighbor);
+                }
+            }
+        }
+
+        return new LandWaterRegion(
+            area,
+            lakeTriangles,
+            lakeBodies.Count == 0 ? 0 : lakeBodies.Values.Max());
+    }
+
+    private sealed class LakeStageStats
+    {
+        public long Surface { get; private set; } = long.MinValue;
+
+        public long Spill { get; private set; } = long.MaxValue;
+
+        public long Overflow { get; private set; }
+
+        public void Add(PhysicalGeographyField field, int triangleIndex)
+        {
+            Surface = Math.Max(Surface, field.WaterSurfaceElevations[triangleIndex]);
+            Spill = Math.Min(Spill, field.ConditionedDrainageElevation[triangleIndex]);
+            Overflow = Math.Max(Overflow, field.LakeOverflow[triangleIndex]);
+        }
+    }
+
+    private sealed record LandWaterRegion(int Area, int LakeTriangles, int LargestLake);
 
 }

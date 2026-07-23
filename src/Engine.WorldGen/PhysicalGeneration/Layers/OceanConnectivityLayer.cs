@@ -34,37 +34,45 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
         map.WaterKindCodes.Clear();
         map.ClearWaterSurfaces();
         map.WaterBodyIds.Clear();
-        map.EffectiveSeaLevel = FindEffectiveSeaLevel(map, context);
+        map.EffectiveSeaLevel = ResolveEffectiveSeaLevel(map, context);
         FloodConnectedOcean(map);
     }
 
-    private static long FindEffectiveSeaLevel(
+    private static long ResolveEffectiveSeaLevel(
         PhysicalGeographyField map,
         PhysicalGeographyGenerationContext context)
     {
-        var profile = context.Profile;
+        if (!map.SeaLevelInitialized)
+        {
+            map.BaseSeaLevel = FindInitialBaseSeaLevel(map, context.Profile);
+            map.SeaLevelInitialized = true;
+        }
+
+        return checked(
+            map.BaseSeaLevel + PhysicalElevation.FromUnits(context.SeaLevelOffset));
+    }
+
+    private static long FindInitialBaseSeaLevel(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile)
+    {
         var targetCount = Math.Clamp(
             (int)Math.Round(
-                map.Grid.ConfiguredHexCount * PhysicalGeographyCodes.MicrotrianglesPerHex *
-                    profile.QualityTargets.OceanCoverage.Target,
+                map.Grid.ContentTriangleCount * profile.QualityTargets.OceanCoverage.Target,
                 MidpointRounding.AwayFromZero),
             1,
-            checked(map.Grid.ConfiguredHexCount * PhysicalGeographyCodes.MicrotrianglesPerHex));
+            map.Grid.ContentTriangleCount);
         var seaLevel = ConnectedOceanLevel(map, targetCount) +
-            PhysicalElevation.FromUnits(profile.SeaLevel * profile.ElevationScale) +
-            PhysicalElevation.FromUnits(context.SeaLevelOffset);
+            PhysicalElevation.FromUnits(profile.SeaLevel * profile.ElevationScale);
         var minimumBoundary = long.MaxValue;
-        for (var hexIndex = 0; hexIndex < map.Grid.HexCount; hexIndex++)
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
-            if (!map.Grid.HexIsOnWorkBoundary(hexIndex))
+            if (!map.Grid.TriangleIsOnWorkBoundary(triangleIndex))
             {
                 continue;
             }
 
-            for (var local = 0; local < PhysicalGeographyCodes.MicrotrianglesPerHex; local++)
-            {
-                minimumBoundary = Math.Min(minimumBoundary, map.Elevation[map.Grid.TriangleIndex(hexIndex, local)]);
-            }
+            minimumBoundary = Math.Min(minimumBoundary, map.Elevation[triangleIndex]);
         }
 
         return Math.Max(seaLevel, minimumBoundary + PhysicalElevation.FromUnits(1));
@@ -139,9 +147,8 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
             parent[triangleIndex] = triangleIndex;
             componentSizes[triangleIndex] = 1;
             configuredCounts[triangleIndex] =
-                map.Grid.TriangleIsInsideConfiguredDisk(triangleIndex) ? 1 : 0;
-            boundaryConnected[triangleIndex] = map.Grid.HexIsOnWorkBoundary(
-                map.Grid.TriangleHexIndex(triangleIndex));
+                map.Grid.TriangleIsInsideContentDomain(triangleIndex) ? 1 : 0;
+            boundaryConnected[triangleIndex] = map.Grid.TriangleIsOnWorkBoundary(triangleIndex);
             if (boundaryConnected[triangleIndex])
             {
                 connectedConfigured += configuredCounts[triangleIndex];
@@ -246,17 +253,14 @@ internal sealed class OceanConnectivityLayer : IPhysicalGeographyLayer
     private static void FloodConnectedOcean(PhysicalGeographyField map)
     {
         var queue = new Queue<int>();
-        for (var hexIndex = 0; hexIndex < map.Grid.HexCount; hexIndex++)
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
-            if (!map.Grid.HexIsOnWorkBoundary(hexIndex))
+            if (!map.Grid.TriangleIsOnWorkBoundary(triangleIndex))
             {
                 continue;
             }
 
-            for (var local = 0; local < PhysicalGeographyCodes.MicrotrianglesPerHex; local++)
-            {
-                MarkIfOcean(map, map.Grid.TriangleIndex(hexIndex, local), queue);
-            }
+            MarkIfOcean(map, triangleIndex, queue);
         }
 
         while (queue.TryDequeue(out var triangleIndex))

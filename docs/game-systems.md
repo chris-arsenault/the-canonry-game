@@ -17,21 +17,46 @@ terrain, named coverage, and an integer z axis in `[-3, +3]` whose non-surface
 cells are forged only by entity actions (Aurora spire tiers up, Nightshelf
 tunnel galleries down). Regions and settlements are not a separate
 abstraction from map coverage: they are named coverage over physical space. The
-physical generation blueprint also divides every surface hex into 24 canonical
-microtriangles. Outside the kernel, one padded causal graph partitions
-moving continental and oceanic crust, derives typed boundaries and strain,
-grows distributed continental assemblies, raises mountains and island arcs
-from evolving epoch boundaries, applies sparse impacts, and moves crust across
+physical generation blueprint also exposes 24 canonical microtriangles for
+every runtime surface cell. That grouping is a seed-to-kernel projection, not
+the generation topology: outside the kernel, one padded global equilateral
+microtriangle lattice—with uniform unit-distance adjacency and no parent-cell
+knowledge—partitions moving continental and oceanic crust, derives typed boundaries and strain,
+grows distributed continental assemblies, and carries continuous crust
+composition, age, thickness, load, and material history through conservative
+source-side plate transport. Connected plate-pair systems spend finite
+deformation budgets on broad collision roots, subduction belts, rifts, and
+transform relief instead of independently raising each boundary triangle.
+Those budgets construct both flexed roots and narrower resistant summit rock.
+Crustal support measures deformation from a composition-specific foundation,
+then adds thermal subsidence and explicit loads; regional flexure converts that
+support into the bedrock datum without erasing local relief. Ocean coverage
+calibrates one sea datum rather than chasing later terrain edits. Margin
+evolution leaves ordinary landward relief intact and adaptively grades shelves
+and continental rises into the ambient basin; convergent margins retain rare
+trenches, and marine fill is limited to previously exported sediment.
+Convergence between unlike transported continental assemblies leaves material
+sutures whose pair identity and shortening strength move with the crust; those
+inherited systems preserve major interior ranges after active boundaries move.
+It applies sparse impacts and moves crust across
 stable mantle roots to construct seamount chains, islands, cones, calderas, and
 lava plains before climate and hydrology. It then erodes valleys, labels connected land and ocean, solves
 bathymetry and drainage, derives reduced basin currents and wave exposure,
 builds one shared atmospheric/upwind field for moisture, rain, and snow, and evolves a persistent bedrock and
 sediment surface through fluvial, coastal, and glacial erosion and deposition
-across four configurable geological epochs.
+across four configurable geological epochs. Bedrock removal lowers the surface
+and records unloading; a later support/flexure pass produces regional rebound.
+A mass-conserving mass-wasting pass gives each unstable source one bounded
+outgoing budget, and a post-incision pass lets gorge walls respond to rivers
+cutting toward a discharge-conditioned equilibrium grade.
 Incremental ice mass and flux leave cumulative glacial history from which
 present and inherited landforms are classified. Outlet-rooted drainage and
 basin-relative tributary retention keep classified rivers continuous through
-lakes. The authoritative drainage spine then expands across low-relief banks into
+lakes. Priority fill supplies only routing sills and outlet ranks. A separate
+lake stage balances catchment and direct water input against evaporation and
+infiltration, permits partial endorheic pools below the sill, and records
+overflow for outlet incision only when the supported stage spills. The
+authoritative drainage spine then expands across low-relief banks into
 discharge-scaled channel triangles, adjacent cross-valley floodplains, and
 sediment-rich delta fans without changing the hex-scale runtime. Ice Remembers
 interleaves asymmetric fire, aurora, and pressure passes with those epochs,
@@ -43,10 +68,11 @@ surfaces remain sparse overrides while their flags and intensity fields are
 retained independently. Ordinary cold land is not collapsed into generic ice:
 polar barrens, wet tundra, cold steppe, scree, river valleys, tundra, ridges,
 snowfields, and glaciers remain distinct outcomes. Every physical and domain
-generation pass declares its inputs and outputs, and acceptable distribution
-ranges—including ocean, land-ice, sea-ice, landform variety, branching basins,
-and flow-direction balance—live in tunable profiles rather than validator
-constants. Ordinary surface views retain structural water and restrained
+generation pass declares its inputs and outputs. Causal controls live in
+tunable profiles, while ocean, ice, landform, basin, and flow-direction
+distributions are non-blocking diagnostics rather than acceptance ranges.
+Structural invariants and fixed-seed Release renders decide acceptance.
+Ordinary surface views retain structural water and restrained
 relief shading at both aggregate and microtriangle zoom levels.
 
 Physical material and surface vocabularies are separate from gameplay terrain.
@@ -62,6 +88,13 @@ mode can reveal the complete latent generation field for diagnosis. The
 close-zoom renderer uses triangle features only, while distant aggregate edge
 masks have a single owner per shared edge. Surface views composite water beneath
 sea ice and other ocean surfaces so frozen seas still read as seas. The
+generation controls also provide a read-only 3D quality-control mode. Entering
+it pauses playback, hides the simulation map and entity layers, and displays the
+complete latent microtriangle field as displaced chunk meshes with actual
+lighting, water surfaces, structural river lines, feature markers, wireframe,
+and adjustable vertical exaggeration. It preserves the selected generation
+view and restores the prior map plane and playback state on exit; it does not
+make simulation play or entity interaction three-dimensional. The
 semantic plane is an analogous bounded axial q/r map with `s = -q-r`, its own
 varied terrain, culture influence, roads, and placement. It is not a coordinate
 copy of the physical plane and does not use microtriangles.

@@ -1,6 +1,6 @@
 namespace IceRemembers.Seed;
 
-using Engine.WorldGen;
+using Engine.Domain.Spatial;
 
 using IceRemembers;
 

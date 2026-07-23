@@ -2,6 +2,13 @@ namespace Engine.WorldGen.Tests.Map;
 
 public sealed class PhysicalEvolutionSessionTests
 {
+    private const int EvolutionContentTriangleCount = 1_024;
+    private static PhysicalGeographyGenerationProfile EvolutionProfile { get; } =
+        PhysicalGeographyLayerTestHarness.Profile with
+        {
+            ImpactCraterCount = 0,
+        };
+
     [Fact]
     public void ConfiguredEpochs_AccumulateDeterministicPhysicalHistory()
     {
@@ -20,13 +27,13 @@ public sealed class PhysicalEvolutionSessionTests
     public void EpochStrength_ChangesIncrementalUpliftAndRejectsInvalidConfiguration()
     {
         var quiet = PhysicalGeographyEvolutionSession.Begin(
-            6,
+            EvolutionContentTriangleCount,
             PhysicalGeographyLayerTestHarness.Seed,
-            PhysicalGeographyLayerTestHarness.Profile);
+            EvolutionProfile);
         var active = PhysicalGeographyEvolutionSession.Begin(
-            6,
+            EvolutionContentTriangleCount,
             PhysicalGeographyLayerTestHarness.Seed,
-            PhysicalGeographyLayerTestHarness.Profile);
+            EvolutionProfile);
         quiet.BeginEpoch(Epoch("quiet", tectonic: 0), 1);
         active.BeginEpoch(Epoch("active", tectonic: 1000), 1);
         quiet.ApplyGeology();
@@ -37,19 +44,45 @@ public sealed class PhysicalEvolutionSessionTests
     }
 
     [Fact]
+    public void QuietEpoch_UpliftPreservesExistingCrustThicknessWithoutReconstructingIt()
+    {
+        var session = PhysicalGeographyEvolutionSession.Begin(
+            EvolutionContentTriangleCount,
+            PhysicalGeographyLayerTestHarness.Seed,
+            EvolutionProfile);
+        var persistentThickness = PhysicalElevation.FromUnits(6150);
+        session.Map.CrustThickness.Fill(persistentThickness);
+        var layer = new TectonicUpliftLayer();
+        var context = new PhysicalGeographyGenerationContext(
+            PhysicalGeographyLayerTestHarness.Seed,
+            EvolutionProfile,
+            layer.Contract,
+            Epoch("quiet-uplift", tectonic: 0),
+            0,
+            1);
+
+        layer.Apply(session.Map, context);
+        layer.Validate(session.Map, context);
+
+        Assert.All(
+            session.Map.CrustThickness.ToArray(),
+            thickness => Assert.Equal(persistentThickness, thickness));
+    }
+
+    [Fact]
     public void TectonicEpoch_ChangesActivityWithoutMovingProvinceIdentity()
     {
         var session = PhysicalGeographyEvolutionSession.Begin(
-            6,
+            EvolutionContentTriangleCount,
             PhysicalGeographyLayerTestHarness.Seed,
-            PhysicalGeographyLayerTestHarness.Profile);
+            EvolutionProfile);
         var provinces = session.Map.CrustProvinceIds.ToArray();
         var initialBoundary = session.Map.TectonicBoundaryCodes.ToArray();
         var epoch = Epoch("active-boundaries", tectonic: 800);
         var layer = new TectonicEpochLayer();
         var context = new PhysicalGeographyGenerationContext(
             PhysicalGeographyLayerTestHarness.Seed,
-            PhysicalGeographyLayerTestHarness.Profile,
+            EvolutionProfile,
             layer.Contract,
             epoch,
             0,
@@ -71,9 +104,9 @@ public sealed class PhysicalEvolutionSessionTests
     public void PlumeRoots_RemainFixedWhileSurfaceVolcanismAdvancesAcrossEpochs()
     {
         var session = PhysicalGeographyEvolutionSession.Begin(
-            6,
+            EvolutionContentTriangleCount,
             PhysicalGeographyLayerTestHarness.Seed,
-            PhysicalGeographyLayerTestHarness.Profile);
+            EvolutionProfile);
         var roots = session.Map.MantlePlumeRootStrength.ToArray();
         var epochs = new[]
         {
@@ -116,9 +149,9 @@ public sealed class PhysicalEvolutionSessionTests
     private static PhysicalGeographyField Generate(PhysicalGeographyEpochDefinition[] epochs)
     {
         var session = PhysicalGeographyEvolutionSession.Begin(
-            6,
+            EvolutionContentTriangleCount,
             PhysicalGeographyLayerTestHarness.Seed,
-            PhysicalGeographyLayerTestHarness.Profile);
+            EvolutionProfile);
         foreach (var epoch in epochs)
         {
             ApplyEpoch(session, epoch, epochs.Length);
@@ -130,9 +163,9 @@ public sealed class PhysicalEvolutionSessionTests
     private static PhysicalGeographyEvolutionSession ReadyForDomainForcing()
     {
         var session = PhysicalGeographyEvolutionSession.Begin(
-            6,
+            EvolutionContentTriangleCount,
             PhysicalGeographyLayerTestHarness.Seed,
-            PhysicalGeographyLayerTestHarness.Profile);
+            EvolutionProfile);
         var epoch = Epoch("coasts", tectonic: 500);
         session.BeginEpoch(epoch, 1);
         session.ApplyGeology();

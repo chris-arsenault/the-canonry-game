@@ -9,6 +9,8 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
         0x6b31e7,
         PhysicalGeographyFacts.None,
         PhysicalGeographyFacts.TectonicProvinces,
+        PhysicalGeographyFacts.ContinentalSutures |
+        PhysicalGeographyFacts.OrogenicConstruction |
         PhysicalGeographyFacts.ContinentalDomains |
         PhysicalGeographyFacts.Elevation |
         PhysicalGeographyFacts.Ocean |
@@ -35,7 +37,7 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             ValidatePrimitive(map, triangleIndex);
-            measurements.Add(map, triangleIndex);
+            measurements.Add(map, triangleIndex, context.EpochIndex);
         }
 
         if (!measurements.IsComplete)
@@ -62,12 +64,18 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
 
     private static bool ScalarIsInvalid(PhysicalGeographyField map, int triangleIndex) =>
         map.CrustBasePotential[triangleIndex] is < 0 or > 1000 ||
+        map.CrustContinentalFraction[triangleIndex] is < 0 or > 1000 ||
         map.CrustAssemblySeparation[triangleIndex] is < 0 or > 1000 ||
-        map.TectonicStrain[triangleIndex] is < 0 or > 1000;
+        map.TectonicStrain[triangleIndex] is < 0 or > 1000 ||
+        map.TectonicBoundaryPairIds[triangleIndex] < 0 ||
+        (map.TectonicBoundaryCodes[triangleIndex] == PhysicalTectonicBoundaryCodes.None) !=
+            (map.TectonicBoundaryPairIds[triangleIndex] == 0);
 
     private static bool MotionIsInvalid(PhysicalGeographyField map, int triangleIndex) =>
         map.CrustMotionX[triangleIndex] is < -1000 or > 1000 ||
-        map.CrustMotionY[triangleIndex] is < -1000 or > 1000;
+        map.CrustMotionY[triangleIndex] is < -1000 or > 1000 ||
+        map.TectonicTangentX[triangleIndex] is < -1000 or > 1000 ||
+        map.TectonicTangentY[triangleIndex] is < -1000 or > 1000;
 
     /// <summary>
     /// Sites are seeded once and then translated by accumulated drift, so each
@@ -84,7 +92,7 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
         var candidateCount = checked(
             context.Profile.TectonicProvinceCount * context.Profile.TectonicSiteCandidateMultiplier);
         var candidates = new SiteCandidate[candidateCount];
-        var placementRadius = grid.WorkRadius * Math.Sqrt(3d) * 0.94d;
+        var placementRadius = grid.WorkRadius * 0.94d;
         for (var index = 0; index < candidates.Length; index++)
         {
             var angle = PhysicalNoise.HashUnit(context.EpochStableSeed ^ 0x1b73, index, 0) * Math.PI * 2d;
@@ -101,7 +109,7 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
             selected,
             context.Profile,
             context.EpochStableSeed,
-            grid.Radius * Math.Sqrt(3d) * 0.94d);
+            grid.ContentRadius * 0.94d);
         var sites = new ProvinceSite[selected.Length];
         for (var index = 0; index < sites.Length; index++)
         {
@@ -376,10 +384,12 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
                     (context.Profile.ContinentalTransitionWidth * 2d)),
             0d,
             1d);
+        var composition = affinity;
         var potential = site.Continental
             ? Math.Max(affinity, context.Profile.ContinentalCrustPotentialFloor)
             : Math.Min(affinity, context.Profile.OceanicCrustPotentialCeiling);
-        var separation = AssemblyGap(map, context, sites, selection, triangleIndex);
+        var separation = AssemblyGap(context, sites, selection);
+        composition = Math.Clamp(composition - separation, 0d, 1d);
         potential -= separation;
         if (site.Continental && separation > 0d)
         {
@@ -390,20 +400,72 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
 
         var riftedMargin = site.Continental &&
             separation >= context.Profile.ContinentalAssemblySeparationDepth * 0.12d;
-        map.CrustAssemblyIds[triangleIndex] = riftedMargin ? 0 : site.AssemblyId;
-        map.CrustTypeCodes[triangleIndex] = site.Continental && !riftedMargin
-            ? PhysicalCrustTypeCodes.Continental
-            : PhysicalCrustTypeCodes.Oceanic;
+        AssignInitialAssembly(map, context, sites, selection, site, triangleIndex, composition, riftedMargin);
         if (riftedMargin)
         {
             potential = Math.Min(
                 potential,
                 context.Profile.OceanicCrustPotentialCeiling - separation);
+            composition = Math.Min(
+                composition,
+                context.Profile.OceanicCrustPotentialCeiling - separation);
         }
 
         map.CrustAssemblySeparation[triangleIndex] = ScaleUnit(separation);
         map.CrustBasePotential[triangleIndex] = ScaleUnit(potential);
+        if (!context.IsEvolutionEpoch)
+        {
+            map.CrustContinentalFraction[triangleIndex] = ScaleUnit(composition);
+        }
+
+        // Province sites describe the current stress field. Composition is a
+        // property of the transported material column and is therefore only
+        // seeded once; subsequent epochs classify the crust from that
+        // persistent fraction rather than repainting it from the new Voronoi
+        // arrangement.
+        map.CrustTypeCodes[triangleIndex] =
+            map.CrustContinentalFraction[triangleIndex] >= 500
+                ? PhysicalCrustTypeCodes.Continental
+                : PhysicalCrustTypeCodes.Oceanic;
         AssignBoundary(map, context.Profile, sites, triangleIndex, selection);
+    }
+
+    private static void AssignInitialAssembly(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationContext context,
+        ReadOnlySpan<ProvinceSite> sites,
+        SiteSelection selection,
+        ProvinceSite site,
+        int triangleIndex,
+        double composition,
+        bool riftedMargin)
+    {
+        if (!context.IsEvolutionEpoch)
+        {
+            map.CrustAssemblyIds[triangleIndex] = InitialAssemblyId(
+                sites,
+                selection,
+                site,
+                composition,
+                riftedMargin);
+        }
+    }
+
+    private static int InitialAssemblyId(
+        ReadOnlySpan<ProvinceSite> sites,
+        SiteSelection selection,
+        ProvinceSite site,
+        double composition,
+        bool riftedMargin)
+    {
+        if (riftedMargin || composition <= 0d)
+        {
+            return 0;
+        }
+
+        return site.AssemblyId > 0
+            ? site.AssemblyId
+            : sites[selection.NearestContinental].AssemblyId;
     }
 
     private static SamplePoint WarpedSample(
@@ -437,6 +499,7 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
         var second = -1;
         var nearestDistance = double.MaxValue;
         var secondDistance = double.MaxValue;
+        var nearestContinental = -1;
         var continentalDistance = double.MaxValue;
         var oceanicDistance = double.MaxValue;
         for (var siteIndex = 0; siteIndex < sites.Length; siteIndex++)
@@ -444,7 +507,11 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
             var distance = Distance(sampleX, sampleY, sites[siteIndex].X, sites[siteIndex].Y);
             if (sites[siteIndex].Continental)
             {
-                continentalDistance = Math.Min(continentalDistance, distance);
+                if (distance < continentalDistance)
+                {
+                    nearestContinental = siteIndex;
+                    continentalDistance = distance;
+                }
             }
             else
             {
@@ -470,6 +537,7 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
             second,
             nearestDistance,
             secondDistance,
+            nearestContinental,
             continentalDistance,
             oceanicDistance);
     }
@@ -490,14 +558,52 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
         {
             map.TectonicBoundaryCodes[triangleIndex] = PhysicalTectonicBoundaryCodes.None;
             map.TectonicStrain[triangleIndex] = 0;
+            map.TectonicBoundaryPairIds[triangleIndex] = 0;
+            map.TectonicTangentX[triangleIndex] = 0;
+            map.TectonicTangentY[triangleIndex] = 0;
             return;
         }
 
         var relativeMotion = RelativeMotion(sites, selection);
         var boundary = BoundaryCode(relativeMotion, profile.TectonicConvergenceThreshold);
         map.TectonicBoundaryCodes[triangleIndex] = boundary;
+        map.TectonicBoundaryPairIds[triangleIndex] = BoundaryPairId(selection);
         map.TectonicStrain[triangleIndex] = ScaleUnit(
             boundaryAmount * Math.Clamp(0.48d + Math.Abs(relativeMotion), 0d, 1d));
+        AssignBoundaryTangent(map, sites, triangleIndex, selection);
+    }
+
+    private static int BoundaryPairId(SiteSelection selection)
+    {
+        var first = Math.Min(selection.Nearest, selection.Second) + 1;
+        var second = Math.Max(selection.Nearest, selection.Second) + 1;
+        return (first << 16) | second;
+    }
+
+    private static void AssignBoundaryTangent(
+        PhysicalGeographyField map,
+        ReadOnlySpan<ProvinceSite> sites,
+        int triangleIndex,
+        SiteSelection selection)
+    {
+        var first = sites[selection.Nearest];
+        var second = sites[selection.Second];
+        var normalX = second.X - first.X;
+        var normalY = second.Y - first.Y;
+        var length = Math.Max(0.001d, Math.Sqrt((normalX * normalX) + (normalY * normalY)));
+        var tangentX = -normalY / length;
+        var tangentY = normalX / length;
+
+        // A canonical sign prevents the same boundary from reversing its
+        // sampling frame when nearest and second-nearest sites exchange.
+        if (tangentX < 0d || (Math.Abs(tangentX) < 0.000001d && tangentY < 0d))
+        {
+            tangentX = -tangentX;
+            tangentY = -tangentY;
+        }
+
+        map.TectonicTangentX[triangleIndex] = ScaleMotion(tangentX);
+        map.TectonicTangentY[triangleIndex] = ScaleMotion(tangentY);
     }
 
     /// <summary>
@@ -518,26 +624,15 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
     /// on both sides.
     /// </summary>
     private static double AssemblyGap(
-        PhysicalGeographyField map,
         PhysicalGeographyGenerationContext context,
         ReadOnlySpan<ProvinceSite> sites,
-        SiteSelection selection,
-        int triangleIndex)
+        SiteSelection selection)
     {
         var raw = InterAssemblySeparation(sites, selection, context.Profile);
         var converging = raw > 0d &&
             RelativeMotion(sites, selection) < -context.Profile.TectonicConvergenceThreshold;
-        RecordCollision(map, context, sites, selection, triangleIndex, raw, converging);
         return converging ? 0d : raw;
     }
-
-    private static bool IsContinentalSuture(
-        ReadOnlySpan<ProvinceSite> sites,
-        SiteSelection selection,
-        double rawSeparation,
-        bool converging) =>
-        converging && selection.Second >= 0 && rawSeparation > 0d &&
-        sites[selection.Nearest].Continental && sites[selection.Second].Continental;
 
     /// <summary>
     /// Closing rate of the two plates resolved onto the line joining them.
@@ -560,32 +655,6 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
         var length = Math.Max(0.001d, Math.Sqrt((dx * dx) + (dy * dy)));
         return ((second.MotionX - first.MotionX) * dx / length) +
             ((second.MotionY - first.MotionY) * dy / length);
-    }
-
-    /// <summary>
-    /// Continental crust meeting continental crust. Ocean closing against a
-    /// continent subducts and raises a coastal range; continent meeting
-    /// continent has nowhere to go, so the crust stacks and stands far inside
-    /// the landmass the two of them become.
-    /// </summary>
-    private static void RecordCollision(
-        PhysicalGeographyField map,
-        PhysicalGeographyGenerationContext context,
-        ReadOnlySpan<ProvinceSite> sites,
-        SiteSelection selection,
-        int triangleIndex,
-        double rawSeparation,
-        bool converging)
-    {
-        map.CrustCollisionIntensity[triangleIndex] = 0;
-        if (!IsContinentalSuture(sites, selection, rawSeparation, converging))
-        {
-            return;
-        }
-
-        var proximity = rawSeparation /
-            Math.Max(0.001d, context.Profile.ContinentalAssemblySeparationDepth);
-        map.CrustCollisionIntensity[triangleIndex] = ScaleUnit(Math.Clamp(proximity, 0d, 1d));
     }
 
     private static double InterAssemblySeparation(
@@ -655,6 +724,7 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
         int Second,
         double NearestDistance,
         double SecondDistance,
+        int NearestContinental,
         double ContinentalDistance,
         double OceanicDistance);
 
@@ -678,13 +748,17 @@ internal sealed class TectonicProvinceLayer : IPhysicalGeographyLayer
         public bool IsComplete =>
             _provinces.Count >= 4 && _boundaries > 0 && _continental > 0 && _oceanic > 0;
 
-        public void Add(PhysicalGeographyField map, int triangleIndex)
+        public void Add(PhysicalGeographyField map, int triangleIndex, int epochIndex)
         {
             _provinces.Add(map.CrustProvinceIds[triangleIndex]);
             if (map.CrustTypeCodes[triangleIndex] == PhysicalCrustTypeCodes.Continental &&
                 map.CrustAssemblyIds[triangleIndex] <= 0)
             {
-                throw new InvalidOperationException("Continental crust lacks an assembly identity.");
+                throw new InvalidOperationException(
+                    $"Continental crust at triangle {triangleIndex} in epoch {epochIndex} " +
+                    $"lacks an assembly identity (fraction " +
+                    $"{map.CrustContinentalFraction[triangleIndex]}, source " +
+                    $"{map.AdvectionSourceIndex[triangleIndex]}).");
             }
 
             _continental += map.CrustTypeCodes[triangleIndex] == PhysicalCrustTypeCodes.Continental ? 1 : 0;

@@ -33,7 +33,7 @@ internal sealed class FractureNetworkLayer : IPhysicalGeographyLayer
         var candidateSelection = new BoundedCandidateSelection(candidateLimit);
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
-            if (!map.Grid.TriangleIsInsideConfiguredDisk(triangleIndex))
+            if (!map.Grid.TriangleIsInsideContentDomain(triangleIndex))
             {
                 continue;
             }
@@ -43,7 +43,10 @@ internal sealed class FractureNetworkLayer : IPhysicalGeographyLayer
                 (map.TectonicStrain[triangleIndex] * 0.48f) +
                     (map.Uplift[triangleIndex] * 310f) +
                     (map.RidgeInfluence[triangleIndex] * 120f) +
-                    (float)(PhysicalNoise.HashUnit(context.Seed, triangleIndex, 0) * 90d));
+                    (float)(PhysicalNoise.HashUnit(
+                        context.Seed,
+                        map.Grid.TriangleIdentity(triangleIndex),
+                        0) * 90d));
         }
 
         var candidates = candidateSelection.GetBestIndexes();
@@ -98,7 +101,7 @@ internal sealed class FractureNetworkLayer : IPhysicalGeographyLayer
         IReadOnlyList<int> selected,
         int branch)
     {
-        var minimumDistance = Math.Max(8d, map.Grid.Radius / 5d);
+        var minimumDistance = Math.Max(8d, map.Grid.ContentRadius / 5d);
         var minimumSquared = minimumDistance * minimumDistance;
         foreach (var candidate in candidates.Skip(branch % Math.Max(1, candidates.Length / 8)))
         {
@@ -136,7 +139,7 @@ internal sealed class FractureNetworkLayer : IPhysicalGeographyLayer
         var previous = -1;
         var angle = PhysicalNoise.HashUnit(context.Seed ^ 0x3da7, branch, 0) * Math.PI * 2d;
         var length = Math.Max(18, (int)Math.Round(
-            map.Grid.Radius * (0.8d + PhysicalNoise.HashUnit(context.Seed ^ 0x4f39, branch, 1)),
+            map.Grid.ContentRadius * (0.8d + PhysicalNoise.HashUnit(context.Seed ^ 0x4f39, branch, 1)),
             MidpointRounding.AwayFromZero));
         for (var step = 0; step < length; step++)
         {

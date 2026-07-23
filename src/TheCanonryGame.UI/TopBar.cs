@@ -16,6 +16,8 @@ public partial class TopBar : PanelContainer
     private Label? _tickLabel;
     private OptionButton? _worldSelector;
     private Button? _loadWorldButton;
+    private Button? _physical3DButton;
+    private bool _physical3DInspectionEnabled;
 
     [Signal]
     public delegate void PauseRequestedEventHandler();
@@ -32,6 +34,9 @@ public partial class TopBar : PanelContainer
     [Signal]
     public delegate void PregeneratedWorldRequestedEventHandler(int baseSeed);
 
+    [Signal]
+    public delegate void Physical3DInspectionRequestedEventHandler(bool enabled);
+
     public override void _Ready()
     {
         CustomMinimumSize = new Vector2(0, 48);
@@ -42,6 +47,7 @@ public partial class TopBar : PanelContainer
         _tickLabel = GetNode<Label>("Row/TickLabel");
         _worldSelector = GetNode<OptionButton>("Row/Controls/WorldSelector");
         _loadWorldButton = GetNode<Button>("Row/Controls/LoadWorldButton");
+        _physical3DButton = GetNode<Button>("Row/Controls/Physical3DButton");
 
         GetNode<HBoxContainer>("Row").AddThemeConstantOverride("separation", UiTokens.Space4);
         GetNode<VBoxContainer>("Row/TitleColumn").AddThemeConstantOverride("separation", 0);
@@ -64,6 +70,7 @@ public partial class TopBar : PanelContainer
         WireButton("Row/Controls/NormalSpeedButton", () => EmitSignal(SignalName.SpeedRequested, 1d));
         WireButton("Row/Controls/FastSpeedButton", () => EmitSignal(SignalName.SpeedRequested, 5d));
         WireButton("Row/Controls/VeryFastSpeedButton", () => EmitSignal(SignalName.SpeedRequested, 10d));
+        WireButton("Row/Controls/Physical3DButton", TogglePhysical3DInspection);
         WireButton("Row/Controls/LoadWorldButton", LoadSelectedPregeneratedWorld);
         WireButton("Row/Controls/ResetButton", () => EmitSignal(SignalName.ResetRequested));
     }
@@ -117,6 +124,15 @@ public partial class TopBar : PanelContainer
             $"t{tick,-5}  |  {timeState,-8}  |  {entityCount,3} entities  |  {generatorFireCount,3} fires  |  seed {seed}/{seedAttempt}{ages}";
     }
 
+    public void SetPhysical3DInspectionEnabled(bool enabled)
+    {
+        _physical3DInspectionEnabled = enabled;
+        if (_physical3DButton is not null)
+        {
+            _physical3DButton.Text = enabled ? "Exit 3D" : "Explore 3D";
+        }
+    }
+
     private void WireButton(string path, Action onPressed)
     {
         var button = GetNode<Button>(path);
@@ -133,4 +149,8 @@ public partial class TopBar : PanelContainer
 
         EmitSignal(SignalName.PregeneratedWorldRequested, _worldSelector.GetSelectedId());
     }
+
+    private void TogglePhysical3DInspection() => EmitSignal(
+        SignalName.Physical3DInspectionRequested,
+        !_physical3DInspectionEnabled);
 }

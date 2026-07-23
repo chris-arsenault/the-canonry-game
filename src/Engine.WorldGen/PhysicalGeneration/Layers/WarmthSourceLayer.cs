@@ -70,7 +70,10 @@ internal sealed class WarmthSourceLayer : IPhysicalGeographyLayer
             if (map.Warmth[triangleIndex] > 0)
             {
                 warm++;
-                far += map.Grid.HexDistanceAt(map.Grid.TriangleHexIndex(triangleIndex)) >= map.Grid.Radius / 2 ? 1 : 0;
+                var x = map.Grid.TriangleX(triangleIndex);
+                var y = map.Grid.TriangleY(triangleIndex);
+                far += (x * x) + (y * y) >=
+                    map.Grid.ContentRadius * map.Grid.ContentRadius / 4d ? 1 : 0;
             }
         }
 
@@ -88,7 +91,7 @@ internal sealed class WarmthSourceLayer : IPhysicalGeographyLayer
         var result = new List<int>[] { [], [], [], [] };
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
-            if (!map.Grid.TriangleIsInsideConfiguredDisk(triangleIndex))
+            if (!map.Grid.TriangleIsInsideContentDomain(triangleIndex))
             {
                 continue;
             }
@@ -108,7 +111,12 @@ internal sealed class WarmthSourceLayer : IPhysicalGeographyLayer
     {
         if (candidates.Count == 0)
         {
-            return map.Grid.TriangleIndex(map.Grid.ConfiguredHexIndexAt(0), sourceIndex % 24);
+            if (map.Grid.TryFindNearestTriangle(0d, 0d, out var center))
+            {
+                return center;
+            }
+
+            throw new InvalidOperationException("Physical generation contains no central triangle.");
         }
 
         var best = candidates[0];
@@ -120,7 +128,10 @@ internal sealed class WarmthSourceLayer : IPhysicalGeographyLayer
             var score = MinimumDistanceSquared(map.Grid, candidate, selected) +
                 (map.Geothermal[candidate] * 0.25d) +
                 (map.OceanCurrentHeat[candidate] * 0.22d) +
-                PhysicalNoise.HashUnit(seed ^ 0x4b67, candidate, sample);
+                PhysicalNoise.HashUnit(
+                    seed ^ 0x4b67,
+                    map.Grid.TriangleIdentity(candidate),
+                    sample);
             if (score > bestScore)
             {
                 best = candidate;

@@ -11,7 +11,7 @@ internal static class IceRemembersMicrogeographyLayerTestHarness
 
     public static PhysicalGeographyGenerationProfile PhysicalProfile { get; } = new()
     {
-        Padding = 6,
+        BoundaryPaddingSteps = 36,
         TectonicProvinceCount = 6,
         ContinentalAssemblyCount = 2,
         ContinentalTransitionWidth = 8d,
@@ -26,7 +26,11 @@ internal static class IceRemembersMicrogeographyLayerTestHarness
         IslandTriangleThreshold = 100,
         LakeDepthThreshold = 3,
         MinimumLakeTriangles = 2,
-        EndorheicLakeFraction = 0d,
+        RunoffMinimumLossPerMille = 0,
+        RunoffTemperatureLossPerMille = 0,
+        LakeEvaporationMinimum = 1,
+        LakeEvaporationTemperatureStrength = 0,
+        LakeInfiltrationLoss = 0,
         RiverAccumulationThreshold = 700,
         RiverMinimumAccumulationThreshold = 180,
         RiverBasinHeadwaterFraction = 90,
@@ -101,7 +105,10 @@ internal static class IceRemembersMicrogeographyLayerTestHarness
     private static IceRemembersMicrogeographyMap NewMap() => new(NewPhysical());
 
     private static PhysicalGeographyField NewPhysical() =>
-        PhysicalGeographyGenerator.Generate(Radius, Seed, PhysicalProfile);
+        PhysicalGeographyGenerator.Generate(
+            PhysicalGenerationSize.FromKernelRadius(Radius).TriangleCount,
+            Seed,
+            PhysicalProfile);
 
     private static LayerResult Result(
         IceRemembersMicrogeographyMap map,

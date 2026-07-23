@@ -1,6 +1,6 @@
 # Causal Physical World Generation
 
-Status: implemented.
+Status: implemented; the current map-generation scope is closed.
 
 The physical world is generated as a pass-ordered dependency chain over the
 canonical microtriangle graph. It is not a stack of independent noise layers.
@@ -9,8 +9,10 @@ overprints the ancestral river landscape; fire changes temperature before
 aurora settles; pressure propagates through the resulting ocean geometry.
 
 The prototype generator was removed rather than retained behind a compatibility
-layer. The canonical 24-triangle topology and the current hex-scale simulation
-boundary remain the useful contracts.
+layer. Generation now starts and ends on one global microtriangle lattice. The
+current cell-scale simulation boundary remains a useful runtime contract, but
+its 24-triangle grouping is a projection concern and is not generation
+topology.
 
 ## Canonical climate history
 
@@ -64,15 +66,16 @@ must not be used to disguise defective natural geography.
 
 ## Ownership and runtime boundary
 
-- `Engine.WorldGen` owns domain-neutral generation grids, graph algorithms,
-  uplift and erosion, connected land and ocean classification, bathymetry,
-  hydrology, climate, glaciation, fractures, aggregation, and structural
-  validation.
+- `Engine.WorldGen` owns the domain-neutral global microtriangle lattice, graph
+  algorithms, uplift and erosion, connected land and ocean classification,
+  bathymetry, hydrology, climate, glaciation, fractures, and structural
+  validation. It has no knowledge of runtime cells or their coordinates.
 - `IceRemembers` owns the Ice Remembers generation profile, physical surface
   taxonomy, material rules, tunable generation controls, and diagnostic goals.
   `IceRemembers.Seed` executes the domain generation pipeline: natural
   surfaces, fire, aurora, pressure, magic interactions, administrative
-  subdivisions, and compatibility hex-terrain synthesis.
+  subdivisions, projection into runtime cells, aggregate synthesis, and
+  compatibility terrain synthesis.
 - `Engine.Domain.Startup` transports the immutable generated blueprint with
   stable palettes. The developer world cache persists this blueprint.
 - `Engine.Projection` and the Godot UI inspect and render the complete external
@@ -88,10 +91,21 @@ kernel.
 
 ## Geometry and retained model
 
-Every physical hex has 24 canonical triangles. Each triangle has exactly three
-edge neighbors within the padded work graph. All connected passes use this
-graph, and the configured radius-128 field is cropped only after generation and
-validation.
+Generation is defined over algebraic global microtriangle coordinates
+`(u, v, inverted)`. Each triangle has exactly three edge neighbors within the
+padded work graph, and adjacent centroids are exactly one generation-distance
+unit apart. All connected passes use this graph. The requested runtime radius
+is converted once, before generation, into a content triangle count; the
+generator grows a centered content domain of that size, adds padding measured
+in microtriangle steps, and crops to the content domain only after generation
+and validation.
+
+After generation, `IceRemembers.Seed` constructs
+`PhysicalKernelMapGeometry`. That projection partitions the content lattice
+into the kernel's cells and 24 local slots, translates triangle feature edges
+into runtime edge masks, and supplies aggregate summaries. No generator layer
+may use projected cell identity, local triangle identity, cell distance, or a
+cell-shaped boundary as physical input.
 
 Each generation process lives in its own layer file and implements the common
 `IMapGenerationLayer<PhysicalGeographyField, PhysicalGeographyGenerationContext>`
@@ -115,7 +129,8 @@ immutable and deterministic.
 
 The retained triangle model separates:
 
-- physical material;
+- physical material, continental assembly provenance, and transported suture
+  identity and strength;
 - primary surface type before and after magic overrides;
 - landform;
 - landmass and continental shelf grouping;
@@ -135,39 +150,31 @@ but it never erases the underlying fields or overlapping flags.
 These are the failure modes that cost the most to find. They are cheap to
 respect and expensive to rediscover.
 
-**The topology table must agree with the geometry it describes.** Triangle
-adjacency is declared in `PhysicalMicrotriangleTopology`, and triangle
-positions are computed independently in `PhysicalGeographyGrid` (and again in
-the renderer's `PhysicalMicrogeographyGeometry`). These are two descriptions of
-one structure, and *internal* consistency of either proves nothing. A neighbor
-table can be perfectly reciprocal, pass every acyclicity and continuity check,
-and still be geometrically twisted — the cross-hex table was once the y-mirror
-of the geometry for the four diagonal sectors, linking triangles a full hex row
-apart. Symptoms were rivers that were connected in graph space but rendered as
-disjoint offset segments, hex-boundary-aligned artifacts in every
-graph-diffused field, phantom cliffs where twisted links joined uncorrelated
-elevations, and a stubborn east/west flow bias. Any change to adjacency,
-sector indexing, or hex geometry must be validated by exhaustive comparison
-against world-space positions: all 24 local triangles × 3 edges, checking
-reciprocity, bounded centroid step, and shared-edge midpoint coincidence
-computed independently from each side.
+**Topology and geometry are one global algebra.** Neighbor coordinates are
+derived directly from `(u, v, inverted)`, and centroid positions use the same
+triangular-lattice basis. The durable invariant is exhaustive reciprocity plus
+an exact unit centroid step for every interior edge. A previous parent-cell
+implementation could be internally reciprocal while connecting geometrically
+distant triangles across selected cell boundaries; the symptoms included
+disjoint rivers, cell-boundary artifacts in every diffused field, phantom
+cliffs, and directional flow bias. Those cell seams no longer exist in the
+generation graph.
 
-**Sector index and hex direction are different conventions.** Geometric sector
-`s` faces the hex at `HexCoord` direction `[0,5,4,3,2,1][s]`. Hex geometry and
-triangle indexing use sector order; edge-mask bits use direction order. The
-mapping appears in `PhysicalHexAggregation` and
-`PhysicalMicrogeographyPainter`, and the two must agree by assertion rather
-than by comment.
+**Projection does not alter physical adjacency.** Runtime cell directions,
+local slot numbers, and edge masks are conventions of
+`PhysicalKernelMapGeometry` and the presentation geometry. They may summarize
+or render generated facts, but they must not feed back into drainage, erosion,
+ice flow, slope, or any other physical pass. Projection tests verify that every
+content triangle is assigned exactly once and that translated feature edges
+remain reciprocal.
 
-**Compare slopes, not drops.** Centroid-to-centroid steps differ in world
-length by edge type, so a raw elevation difference is not a gradient: longer
-steps look systematically steeper, and every process that picks a neighbor by
-"biggest drop" then gutters onto the hex lattice. `PhysicalGeographyGrid`
-exposes a per-edge slope scale (mean edge length over actual length); any
-comparison that treats an elevation difference as a gradient multiplies by it.
-Drainage guidance, descent-gradient estimation, stream-power erosion, ice-flow
-descent, and the slope field all do. Ordinal comparisons — counting neighbors
-higher or lower — do not need it.
+**All physical edges have one length.** A raw elevation difference across an
+adjacent pair is therefore already proportional to slope. No edge-type scale,
+parent-cell correction, or slope divisor exists. Drainage guidance,
+descent-gradient estimation, stream-power erosion, ice-flow descent, and the
+slope field all operate on the same unit-step graph. Reintroducing a numerical
+correction for projected cell boundaries would hide a topology error rather
+than model a physical distance.
 
 **Elevation is deterministic fixed point.** Generation elevation carries 1,024
 subunits per authored unit (`PhysicalElevation`). Rounded whole-unit elevation
@@ -200,18 +207,23 @@ and the kind is set by what the nearest boundary is doing.
 transform by propagating boundary kind outward to a bounded reach; crust beyond
 every boundary's reach is plate interior, which on continental crust is a
 passive margin. The same layer ages oceanic crust away from spreading centres,
-and ocean depth follows the square root of that age, which is what gives old
-passive margins their broad shallow shelves.
+which drives thermal subsidence in the crustal support model. Oceanic age does
+not stand in for a continental shelf.
 
-Three consumers turn those facts into geography. Uplift flattens passive and
-rifted margins toward the shoreline datum inside a band around sea level —
-without that, a steep near-shore gradient means coastal noise moves the
-shoreline only a little, and no amount of added detail produces a platform
-peninsula. `CoastalDetailLayer` then displaces the near-shore band with warped
-octaves reaching triangle scale, with amplitude, wavelength, warp, and ridging
-chosen by margin type; it runs on the landscape surface, not on the potential
-field, so it composes with erosion rather than replacing the causal continent
-mask. Coastal erosion applies rock resistance derived from volcanic
+The provisional connected ocean first solves one stable `EffectiveSeaLevel`.
+`ContinentalMarginEvolutionLayer` floods signed distance landward and oceanward
+from that actual shoreline, propagating the adjacent coastal margin kind. It
+then evolves crustal thickness toward broad passive shelves and coastal plains,
+somewhat deeper rifted shelves, narrow transform margins, or convergent
+trenches. The next support/flexure pass converts the subsurface shape to
+regional bathymetry. `MarineSedimentationLayer` fills available passive and
+rifted shelf accommodation only from `SedimentExportedTotal`; it cannot invent
+material to hit a target profile.
+
+`CoastalDetailLayer` displaces the near-shore band with warped octaves reaching
+triangle scale, with amplitude, wavelength, warp, and ridging chosen by margin
+type; it runs on the landscape surface rather than replacing the causal margin
+shape. Coastal erosion applies rock resistance derived from volcanic
 construction, orogenic history, and sediment thickness, because erosion driven
 by wave energy alone is a coastline *straightener*: wave exposure peaks on
 headlands, so without differential resistance every promontory is planed off
@@ -230,10 +242,16 @@ glacial erosion, which is persistent history and survives drowning.
 ## Persistent and derived state
 
 Epochs are cumulative, so a small set of fields is history and everything else
-is recomputed. Retain: crust province and type, boundary type and tectonic
-strain; bedrock elevation and sediment thickness; cumulative fluvial, glacial,
-and coastal erosion and deposition; geothermal history; maximum ice thickness
-and flux; wave-exposure history; and domain fire, aurora, and pressure history.
+is recomputed. Retain and conservatively transport: crust assembly,
+composition, thickness, age, support datum, surface load, categorical
+provenance, and material suture pair and strength; bedrock elevation and
+sediment thickness; cumulative fluvial, glacial, and coastal erosion and
+deposition; geothermal history; maximum ice thickness and flux; wave-exposure
+history; and domain fire, aurora, and pressure history. Current boundary mode,
+plate-pair component, support target, convergent surplus, and orogenic
+construction are re-derived for the new epoch. A material suture is not a
+current province boundary: it moves with transported continental crust and
+survives after the active boundary migrates.
 
 Ocean connectivity, bathymetry, active temperature, precipitation, present
 flow, active rivers, current land and sea ice, and every classification are
@@ -248,7 +266,14 @@ Generate reduced moving crust provinces across the padded field. Deterministic
 frontier growth joins distributed nuclei into continental assemblies and
 oceanic crust; relative motion types convergent, divergent, and transform
 boundaries. Epoch activity varies which inherited boundaries remain active,
-while cumulative strain and uplift preserve old orogenies and rifts.
+while cumulative strain and uplift preserve old orogenies and rifts. When
+unlike transported continental assembly IDs converge, a material suture records
+their pair identity and shortening strength. Connected suture systems can keep
+building or preserve ranges in the interior after assembly, instead of relying
+on a synthetic interior-elevation belt or requiring every major range to remain
+on a current coast. Orogenic construction gives each range a broad flexed root
+and a narrower resistant summit-rock load so erosion can carve valleys without
+reducing every crest to gorge-scale relief.
 
 Warped multi-scale variation roughens only continental margins rather than
 deciding land from a noise threshold. Sparse domain-neutral impacts then
@@ -275,15 +300,29 @@ be zero and it controls exposed shelf and island fragmentation.
 
 ### 4. Hydrology
 
-Use one deterministic priority-flood implementation to condition drainage,
-classify lakes, and establish stable outlets. Flat routes follow propagated
-outlet geometry rather than a tangent around the world origin, and lake roots
-do not depend on storage IDs. Accumulate rainfall and glacial melt, derive
-basin-relative headwater thresholds and Strahler order, and assign watersheds.
-Every classified channel remains continuous through exorheic lakes to terminal
-water. The one-triangle flow spine stays authoritative while a separate layer
-widens major rivers perpendicular to local flow tangents across low-relief
-banks; cross-valley floodplains and seaward delta fans remain derived coverage.
+Use one deterministic priority-flood implementation to condition drainage and
+establish a routing sill and outletward rank for every depression. The filled
+surface is routing geometry, not a command to fill every hollow with water.
+Flat routes follow propagated outlet geometry rather than a tangent around the
+world origin, and lake roots do not depend on storage IDs.
+
+A separate lake stage discovers topographic accommodation and solves the
+supported water level from accumulated catchment runoff plus precipitation and
+melt falling directly on the candidate pool, against open-water evaporation
+and infiltration. A basin may therefore remain dry, hold a partial endorheic
+lake below its sill, or reach the spill stage and become exorheic. If a
+partially supported surface leaves disconnected pools, each pool is a separate
+water body. Only a spilling lake records overflow and a physical outlet;
+fluvial erosion spends that overflow on the controlling outlet sill before the
+next hydrology reconciliation. Priority fill never becomes lake depth or
+water-surface elevation.
+
+Accumulate the reconciled runoff and overflow, derive basin-relative headwater
+thresholds and Strahler order, and assign watersheds. Every classified channel
+remains continuous through exorheic lakes to terminal water. The one-triangle
+flow spine stays authoritative while a separate layer widens major rivers
+perpendicular to local flow tangents across low-relief banks; cross-valley
+floodplains and seaward delta fans remain derived coverage.
 
 Two river facts are easy to break. Lakes are *conduits* for stream order, not
 terminators: a system flowing through a chain of lakes keeps accumulating
@@ -297,10 +336,9 @@ roughly 1,800 triangles of drainage area — already a natural order-3 or -4
 stream — an observed maximum Strahler order near 5 corresponds to a fully
 resolved natural order around 7 or 8.
 
-Lake bodies are compact depressions, not every filled hollow. Elongated
-one-or-two-triangle chains along epsilon-filled valleys are river corridors and
-are rejected by a compactness gate; after the submergence filter a depression
-may split into disconnected lobes, and each lobe becomes its own body.
+Lake bodies are compact, water-supported portions of depressions, not every
+filled hollow. Elongated one-or-two-triangle chains along epsilon-conditioned
+valleys are river corridors and are rejected by a compactness gate.
 
 ### 5. Present icebound climate with warmth pockets
 
@@ -428,9 +466,10 @@ The interaction may become the triangle's primary render surface, but the
 underlying natural surface, all three intensity values, and all anomaly flags
 remain available.
 
-### 12. Hex extraction
+### 12. Runtime-cell projection
 
-Feature extraction reduces 24 triangles to an external hex summary containing:
+After all physical and domain generation is complete, projection reduces each
+runtime cell's 24 assigned triangles to an external summary containing:
 
 - primary surface type;
 - significant natural, fire, aurora, pressure, and interaction feature masks;
@@ -450,13 +489,15 @@ Hard contracts:
 - reciprocal triangle topology and shared feature edges;
 - coherent physical landmass and shelf components;
 - acyclic water and ice routing;
+- every lake has one coherent supported water surface, and only a spilling lake
+  has positive overflow and a physical outlet;
 - classified rivers terminate at a lake, ocean, inland basin, or cropped
   external outlet;
 - glacial landforms require qualifying historical maximum ice flux;
 - fracture paths are connected and not identical to ridge classification;
 - magic fields satisfy their source and propagation constraints;
 - every surface and anomaly palette index resolves;
-- every hex summary matches its 24 triangles;
+- every runtime-cell summary matches its 24 projected triangles;
 - administrative subdivision assignment changes no physical field;
 - the startup heart overlaps warmth while viable systems also exist far away.
 
@@ -472,7 +513,11 @@ fixed-seed worlds, with failures traced back to the owning causal layer.
 
 Full radius-128 generation remains an offline minutes-scale operation;
 fixed-seed interactive development should use explicit versioned `.world`
-artifacts.
+artifacts. Canonical local worlds live under the repository `worlds/` directory
+and use the `ice-remembers-seed-<seed>.world` naming convention; do not generate
+review worlds into ad hoc directories. Review, diagnostic, screenshot, and
+gameplay seed worlds are always generated with the Release `WorldGenerator`
+artifact; Debug builds are rejected by the CLI and never constitute evidence.
 
 A seed is built through an acceptance loop that retries with successive
 attempt numbers until structural validation passes. Repeated rejection is a
@@ -506,6 +551,10 @@ proves flow continuity end to end; `--inspect=q,r[,range]` dumps per-triangle
 river and water facts for a named hex neighborhood. In-game tooltips report
 `(q, r, tN)` so a visual defect can be traced to exact triangles.
 
+Capture output is likewise fixed: `capture` accepts a world from `worlds/` and
+writes `.artifacts/captures/seed<seed>/`. It has no output-directory option, so
+all review tooling and people inspect the same artifacts.
+
 These numbers are regression evidence and diagnosis aids, never acceptance
 criteria — with one class of exception. Assertions that check facts which are
 simply true or false, such as lattice conformance and six-fold topological
@@ -516,10 +565,11 @@ each time as terrain character.
 
 Three instruments sit alongside the structural contracts:
 
-- **Lattice conformance and isotropy** compare the adjacency table against
-  world geometry exhaustively over all 24 local triangles and 3 edges. These
-  are gates. Reverting the neighbor table to its twisted form fails four of
-  them in well under a second, while reciprocity alone still passes.
+- **Lattice conformance** compares algebraic adjacency against global centroid
+  geometry over the generated domain. Reciprocal neighbors and exact unit edge
+  length are gates. Projection coverage and edge-mask translation are tested as
+  separate contracts so a runtime grouping cannot redefine generation
+  topology.
 - **A structural digest** of a fixed small world is held in a committed
   baseline and diffed by the test suite. It is a change *detector*, not a gate:
   when it moves, read the difference and either accept it in the same commit
@@ -531,7 +581,7 @@ Three instruments sit alongside the structural contracts:
 
 The test suite is split by wall time. `make ci` skips tests tagged
 `Category=Slow` — the ones that build full worlds, kernels, domain
-configurations, or Monte Carlo batches — and finishes in about thirty seconds.
+configurations, or Monte Carlo batches.
 `make ci-full` runs everything and should be run before pushing anything that
 touches worldgen, startup, wiring, or the generator catalog.
 
@@ -541,25 +591,21 @@ This replacement does not change frontier radius or pacing, entity density,
 semantic world generation, simulation behavior, movement, placement, map
 signals, runtime terrain mutation, or the gameplay hex-terrain catalog.
 
-Deferred scope, set outside this workstream:
-
-- **Vegetation and cover classification** (forest, marsh, ecological scrub,
-  climate-derived aridity) is a later domain layer, and when it lands it must
-  not replace or hide landform, substrate, rivers, or magic features.
-- **Pre-Collapse archaeology** (roads, settlements, megaliths, weapon sites) is
-  a later domain stage inserted before the Deep Freeze overprint, never a
-  substitute for sound natural geography.
+Deferred map work is recorded only in the
+[post-MVP backlog](./post-mvp-backlog.md). It is not part of the closed current
+scope.
 
 Standing directive:
 
 - **No percentage quality gates.** Fixed-proportion gates repeatedly accepted
   visibly bad maps and encouraged tuning the proxy instead of fixing geography.
 
-## Current implementation choices
+## Implementation rationale
 
-These are engineering choices made inside this workstream, not directives.
-They are recorded with their reasoning so that revisiting one is an informed
-decision rather than a rediscovery. None of them is settled.
+These are the current engineering choices and their reasoning. Revisit them
+only from new evidence and a fresh approved proposal; closing this workstream
+does not make them immutable, but it does make this document the durable
+baseline rather than an active migration plan.
 
 - **Geology is produced by ordered causal layers over persistent history
   rather than by numerical simulation.** There is no plate-motion solver,

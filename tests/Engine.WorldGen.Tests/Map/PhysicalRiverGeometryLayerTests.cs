@@ -40,27 +40,35 @@ public sealed class PhysicalRiverGeometryLayerTests
     [Fact]
     public void Floodplains_OccupyLowDryRiverMarginsAndRejectWaterCoverage()
     {
-        var result = PhysicalGeographyLayerTestHarness.GenerateThrough<RiverChannelGeometryLayer>();
-        var (source, target) = FindDryChannelMargin(result.Map);
-        result.Map.RiverChannelOrders[source] = Math.Max(
-            result.Map.RiverChannelOrders[source],
-            result.Context.Profile.FloodplainMinimumRiverOrder);
-        result.Map.RiverChannelStrength[source] = 1000;
-        result.Map.Slope[target] = 0;
-        result.Map.Elevation[target] = result.Map.Elevation[source];
-        result.Map.DrainageBasinIds[target] = result.Map.DrainageBasinIds[source];
+        var grid = new PhysicalGeographyGrid(7, 7);
+        var map = new PhysicalGeographyField(grid);
+        var source = Enumerable.Range(0, grid.TriangleCount).First(index =>
+            Enumerable.Range(0, 3).Count(edge => grid.NeighborTriangleIndex(index, edge) >= 0) >= 2);
+        var neighbors = Enumerable.Range(0, 3)
+            .Select(edge => grid.NeighborTriangleIndex(source, edge))
+            .Where(index => index >= 0)
+            .Take(2)
+            .ToArray();
+        var target = neighbors[0];
+        var downstream = neighbors[1];
+        var profile = PhysicalGeographyLayerTestHarness.Profile;
+        map.RiverChannelOrders[source] = profile.FloodplainMinimumRiverOrder;
+        map.RiverChannelStrength[source] = 1000;
+        map.FlowTargets[source] = downstream;
+        map.DrainageBasinIds[source] = 1;
+        map.DrainageBasinIds[target] = 1;
 
         var layer = new FloodplainLayer();
         var context = new PhysicalGeographyGenerationContext(
             PhysicalGeographyLayerTestHarness.Seed,
-            result.Context.Profile,
+            profile,
             layer.Contract);
-        layer.Apply(result.Map, context);
-        layer.Validate(result.Map, context);
-        Assert.True(result.Map.FloodplainIntensity[target] > 0);
+        layer.Apply(map, context);
+        layer.Validate(map, context);
+        Assert.True(map.FloodplainIntensity[target] > 0);
 
-        result.Map.WaterKindCodes[target] = PhysicalWaterKindCodes.Lake;
-        Assert.Throws<InvalidOperationException>(() => layer.Validate(result.Map, context));
+        map.WaterKindCodes[target] = PhysicalWaterKindCodes.Lake;
+        Assert.Throws<InvalidOperationException>(() => layer.Validate(map, context));
     }
 
     [Fact]
@@ -115,29 +123,6 @@ public sealed class PhysicalRiverGeometryLayerTests
         };
 
         Assert.Throws<InvalidOperationException>(profile.Validate);
-    }
-
-    private static (int Source, int Target) FindDryChannelMargin(PhysicalGeographyField map)
-    {
-        for (var source = 0; source < map.Grid.TriangleCount; source++)
-        {
-            if (map.RiverChannelStrength[source] <= 0)
-            {
-                continue;
-            }
-
-            for (var edge = 0; edge < 3; edge++)
-            {
-                var target = map.Grid.NeighborTriangleIndex(source, edge);
-                if (target >= 0 && map.WaterKindCodes[target] == PhysicalWaterKindCodes.None &&
-                    map.RiverChannelStrength[target] == 0)
-                {
-                    return (source, target);
-                }
-            }
-        }
-
-        throw new InvalidOperationException("Test map has no dry river margin.");
     }
 
     private static int FindRiverMouth(PhysicalGeographyField map) =>

@@ -1,9 +1,9 @@
 namespace IceRemembers.Seed;
 
+using Engine.Domain.Spatial;
 using Engine.Domain.Startup;
 using Engine.Graph;
 using Engine.Kinds;
-using Engine.WorldGen;
 
 using IceRemembers;
 

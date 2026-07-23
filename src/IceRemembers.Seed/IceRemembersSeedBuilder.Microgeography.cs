@@ -1,6 +1,7 @@
 namespace IceRemembers.Seed;
 
 using Engine.Constants;
+using Engine.Domain.Spatial;
 using Engine.Domain.Startup;
 using Engine.WorldGen;
 
@@ -15,17 +16,19 @@ internal static partial class IceRemembersSeedBuilder
 
     private static PhysicalGeographyBuild CreatePhysicalGeography(int salt)
     {
+        var generationSize = PhysicalGenerationSize.FromKernelRadius(GenerationRadius);
         var generated = IceRemembersWorldGenerationOrchestrator.Generate(
-            GenerationRadius,
+            generationSize.TriangleCount,
             salt,
             IceRemembersPhysicalGeography.GenerationProfile,
             IceRemembersPhysicalGeography.MicrogeographyProfile,
             IceRemembersPhysicalGeography.WorldGenerationEpochs);
         var field = generated.Physical;
         var magic = generated.Magic;
+        var geometry = new PhysicalKernelMapGeometry(GenerationRadius, field.Grid);
         var materialIndexes = ClassifyPhysicalMaterials(field, magic);
-        var aggregates = AggregateConfiguredHexes(field, materialIndexes, magic);
-        var subdivisions = CreatePhysicalSubdivisions(field, aggregates, salt);
+        var aggregates = AggregateProjectedCells(field, geometry, materialIndexes, magic);
+        var subdivisions = CreatePhysicalSubdivisions(geometry, aggregates, salt);
         var catalog = IceRemembersTerrainCatalog.CreateWorldGenCatalog();
         var fieldGrid = new HexGrid(
             GenerationRadius,
@@ -33,6 +36,7 @@ internal static partial class IceRemembersSeedBuilder
             IceRemembersTerrain.Wastes.ToDomainName());
         var blueprint = BuildPhysicalBlueprint(
             field,
+            geometry,
             materialIndexes,
             magic,
             aggregates,
@@ -47,44 +51,35 @@ internal static partial class IceRemembersSeedBuilder
         IceRemembersMicrogeographyMap magic)
     {
         var materialIndexes = new int[field.Grid.TriangleCount];
-        for (var configuredIndex = 0;
-            configuredIndex < field.Grid.ConfiguredHexCount;
-            configuredIndex++)
+        for (var triangleIndex = 0; triangleIndex < field.Grid.TriangleCount; triangleIndex++)
         {
-            var hexIndex = field.Grid.ConfiguredHexIndexAt(configuredIndex);
-            for (var localTriangle = 0;
-                localTriangle < PhysicalGeographyCodes.MicrotrianglesPerHex;
-                localTriangle++)
+            var surface = (IceRemembersPhysicalSurface)magic.SurfaceIndexes[triangleIndex];
+            materialIndexes[triangleIndex] = surface switch
             {
-                var triangleIndex = field.Grid.TriangleIndex(hexIndex, localTriangle);
-                var surface = (IceRemembersPhysicalSurface)magic.SurfaceIndexes[triangleIndex];
-                materialIndexes[triangleIndex] = surface switch
-                {
-                    IceRemembersPhysicalSurface.BasaltFlat => (int)IceRemembersPhysicalMaterial.Basalt,
-                    IceRemembersPhysicalSurface.FirecoreVent or IceRemembersPhysicalSurface.ThermalVein =>
-                        (int)IceRemembersPhysicalMaterial.GeothermalCrust,
-                    _ => (int)IceRemembersPhysicalGeography.ClassifyMaterial(field, triangleIndex),
-                };
-            }
+                IceRemembersPhysicalSurface.BasaltFlat => (int)IceRemembersPhysicalMaterial.Basalt,
+                IceRemembersPhysicalSurface.FirecoreVent or IceRemembersPhysicalSurface.ThermalVein =>
+                    (int)IceRemembersPhysicalMaterial.GeothermalCrust,
+                _ => (int)IceRemembersPhysicalGeography.ClassifyMaterial(field, triangleIndex),
+            };
         }
 
         return materialIndexes;
     }
 
-    private static PhysicalHexAggregate[] AggregateConfiguredHexes(
+    private static PhysicalKernelCellAggregate[] AggregateProjectedCells(
         PhysicalGeographyField field,
+        PhysicalKernelMapGeometry geometry,
         ReadOnlySpan<int> materialIndexes,
         IceRemembersMicrogeographyMap magic)
     {
-        var aggregates = new PhysicalHexAggregate[field.Grid.HexCount];
-        for (var configuredIndex = 0;
-            configuredIndex < field.Grid.ConfiguredHexCount;
-            configuredIndex++)
+        const int trunkRiverOrderThreshold = 4;
+        var aggregates = new PhysicalKernelCellAggregate[geometry.CellCount];
+        for (var cellIndex = 0; cellIndex < geometry.CellCount; cellIndex++)
         {
-            var hexIndex = field.Grid.ConfiguredHexIndexAt(configuredIndex);
-            aggregates[hexIndex] = PhysicalHexAggregator.Summarize(
+            aggregates[cellIndex] = PhysicalKernelCellAggregator.Summarize(
                 field,
-                hexIndex,
+                geometry,
+                cellIndex,
                 materialIndexes,
                 IceRemembersPhysicalGeography.MaterialPalette.Count,
                 magic.SurfaceIndexes,
@@ -94,7 +89,7 @@ internal static partial class IceRemembersSeedBuilder
                 magic.AuroraIntensity,
                 magic.PressureIntensity,
                 IceRemembersPhysicalGeography.GenerationProfile.CliffSlopeThreshold,
-                IceRemembersPhysicalGeography.GenerationProfile.TrunkRiverOrderThreshold);
+                trunkRiverOrderThreshold);
         }
 
         return aggregates;
@@ -102,26 +97,25 @@ internal static partial class IceRemembersSeedBuilder
 
     private static DomainPhysicalGeographyBlueprint BuildPhysicalBlueprint(
         PhysicalGeographyField field,
+        PhysicalKernelMapGeometry geometry,
         ReadOnlySpan<int> materialIndexes,
         IceRemembersMicrogeographyMap magic,
-        ReadOnlySpan<PhysicalHexAggregate> aggregates,
+        ReadOnlySpan<PhysicalKernelCellAggregate> aggregates,
         MapSubdivisionMap subdivisions,
         HexGrid fieldGrid)
     {
-        var cells = new List<DomainPhysicalGeographyCell>(field.Grid.ConfiguredHexCount);
+        var cells = new List<DomainPhysicalGeographyCell>(geometry.CellCount);
         var microtriangles = new List<DomainPhysicalMicrotriangle>(checked(
-            field.Grid.ConfiguredHexCount * PhysicalGeographyCodes.MicrotrianglesPerHex));
-        for (var configuredIndex = 0;
-            configuredIndex < field.Grid.ConfiguredHexCount;
-            configuredIndex++)
+            geometry.CellCount * PhysicalGeographyCodes.MicrotrianglesPerHex));
+        for (var cellIndex = 0; cellIndex < geometry.CellCount; cellIndex++)
         {
-            var hexIndex = field.Grid.ConfiguredHexIndexAt(configuredIndex);
-            var coord = field.Grid.HexCoordAt(hexIndex);
-            var aggregate = aggregates[hexIndex];
+            var coord = geometry.CoordAt(cellIndex);
+            var aggregate = aggregates[cellIndex];
             var projection = IceRemembersHexProjection.Project(
                 field,
                 magic,
-                hexIndex,
+                geometry,
+                cellIndex,
                 aggregate);
             fieldGrid.SetCell(coord, projection.Terrain.ToDomainName());
             var subdivision = subdivisions.GetCell(coord);
@@ -131,19 +125,25 @@ internal static partial class IceRemembersSeedBuilder
                 projection,
                 microtriangles.Count,
                 aggregate));
-            AddDomainMicrotriangles(field, hexIndex, materialIndexes, magic, microtriangles);
+            AddDomainMicrotriangles(
+                field,
+                geometry,
+                cellIndex,
+                materialIndexes,
+                magic,
+                microtriangles);
         }
 
         // Discrete geography, identified here where triangles are still in
         // scope and handed on purely in hex terms.
-        var (features, coverage) = BuildGeologicalFeatures(field);
+        var (features, coverage) = BuildGeologicalFeatures(field, geometry);
         var blueprint = new DomainPhysicalGeographyBlueprint(
             GenerationRadius,
             magic.CompletedEpochCount,
             IceRemembersPhysicalGeography.MaterialPalette,
             IceRemembersPhysicalGeography.SurfacePalette,
             IceRemembersPhysicalGeography.FeaturePalette,
-            CreateScalarFields(field, magic),
+            CreateScalarFields(field, geometry, magic),
             cells,
             microtriangles,
             features,
@@ -154,9 +154,10 @@ internal static partial class IceRemembersSeedBuilder
 
     private static (List<DomainGeologicalFeature> Features,
         List<DomainGeologicalFeatureCoverage> Coverage) BuildGeologicalFeatures(
-        PhysicalGeographyField field)
+        PhysicalGeographyField field,
+        PhysicalKernelMapGeometry geometry)
     {
-        var identified = MapGeologicalFeatureIdentification.Identify(field);
+        var identified = ProjectedGeologicalFeatureIdentification.Identify(field, geometry);
         var features = new List<DomainGeologicalFeature>(identified.Features.Count);
         var coverage = new List<DomainGeologicalFeatureCoverage>();
         foreach (var feature in identified.Features.Values.OrderBy(entry => entry.Id))
@@ -183,7 +184,8 @@ internal static partial class IceRemembersSeedBuilder
 
     private static void AddDomainMicrotriangles(
         PhysicalGeographyField field,
-        int hexIndex,
+        PhysicalKernelMapGeometry geometry,
+        int cellIndex,
         ReadOnlySpan<int> materialIndexes,
         IceRemembersMicrogeographyMap magic,
         List<DomainPhysicalMicrotriangle> target)
@@ -192,10 +194,13 @@ internal static partial class IceRemembersSeedBuilder
             localTriangle < PhysicalGeographyCodes.MicrotrianglesPerHex;
             localTriangle++)
         {
-            var triangleIndex = field.Grid.TriangleIndex(hexIndex, localTriangle);
+            var triangleIndex = geometry.TriangleIndex(cellIndex, localTriangle);
             target.Add(ToDomainMicrotriangle(
                 field,
                 magic,
+                geometry,
+                cellIndex,
+                localTriangle,
                 triangleIndex,
                 materialIndexes[triangleIndex]));
         }
@@ -204,6 +209,9 @@ internal static partial class IceRemembersSeedBuilder
     private static DomainPhysicalMicrotriangle ToDomainMicrotriangle(
         PhysicalGeographyField field,
         IceRemembersMicrogeographyMap magic,
+        PhysicalKernelMapGeometry geometry,
+        int cellIndex,
+        int localTriangle,
         int triangleIndex,
         int materialIndex)
     {
@@ -211,9 +219,17 @@ internal static partial class IceRemembersSeedBuilder
         var flowTarget = flowEdge < 0
             ? -1
             : field.Grid.NeighborTriangleIndex(triangleIndex, flowEdge);
-        if (flowTarget >= 0 && !field.Grid.TriangleIsInsideConfiguredDisk(flowTarget))
+        if (flowTarget >= 0 &&
+            !geometry.TryLocateTriangle(flowTarget, out _, out _))
         {
             flowEdge = PhysicalGeographyCodes.NoFlowEdge;
+        }
+        else if (flowEdge >= 0)
+        {
+            flowEdge = geometry.ProjectionEdgeForGenerationEdge(
+                cellIndex,
+                localTriangle,
+                flowEdge);
         }
 
         return new DomainPhysicalMicrotriangle(
@@ -238,7 +254,10 @@ internal static partial class IceRemembersSeedBuilder
             flowEdge,
             field.FlowAccumulation[triangleIndex],
             field.RiverOrders[triangleIndex],
-            field.RiverSpineEdgeMasks[triangleIndex],
+            geometry.TranslateGenerationEdgeMask(
+                cellIndex,
+                localTriangle,
+                field.RiverSpineEdgeMasks[triangleIndex]),
             field.RiverChannelStrength[triangleIndex],
             field.RiverChannelOrders[triangleIndex],
             field.FloodplainIntensity[triangleIndex],
@@ -255,7 +274,7 @@ internal static partial class IceRemembersSeedBuilder
         MapSubdivisionCell subdivision,
         IceRemembersHexProjection.Result projection,
         int microtriangleOffset,
-        PhysicalHexAggregate aggregate) =>
+        PhysicalKernelCellAggregate aggregate) =>
         new(
             coord.Q,
             coord.R,
@@ -305,114 +324,112 @@ internal static partial class IceRemembersSeedBuilder
 
     private static DomainPhysicalScalarField[] CreateScalarFields(
         PhysicalGeographyField field,
+        PhysicalKernelMapGeometry geometry,
         IceRemembersMicrogeographyMap magic) =>
     [
-        new("crust_province", ExtractConfiguredValues(field, field.CrustProvinceIds)),
-        new("crust_type", ExtractConfiguredValues(field, field.CrustTypeCodes)),
-        new("tectonic_boundary", ExtractConfiguredValues(field, field.TectonicBoundaryCodes)),
-        new("tectonic_strain", ExtractConfiguredValues(field, field.TectonicStrain)),
-        new("ocean_current_x", ExtractConfiguredValues(field, field.OceanCurrentX)),
-        new("ocean_current_y", ExtractConfiguredValues(field, field.OceanCurrentY)),
-        new("ocean_current_strength", ExtractConfiguredValues(field, field.OceanCurrentStrength)),
-        new("ocean_current_heat", ExtractConfiguredValues(field, field.OceanCurrentHeat)),
-        new("wave_exposure", ExtractConfiguredValues(field, field.WaveExposure)),
-        new("rainfall", ExtractConfiguredValues(field, field.Rainfall)),
-        new("snowfall", ExtractConfiguredValues(field, field.Snowfall)),
-        new("sea_ice_suitability", ExtractConfiguredValues(field, field.SeaIceSuitability)),
-        new("fine_elevation", ExtractConfiguredElevationValues(field, field.Elevation, fine: true)),
-        new("conditioned_drainage_elevation", ExtractConfiguredElevationValues(
-            field,
+        new("crust_province", ExtractProjectedValues(geometry, field.CrustProvinceIds)),
+        new("crust_type", ExtractProjectedValues(geometry, field.CrustTypeCodes)),
+        new("tectonic_boundary", ExtractProjectedValues(geometry, field.TectonicBoundaryCodes)),
+        new("tectonic_strain", ExtractProjectedValues(geometry, field.TectonicStrain)),
+        new("ocean_current_x", ExtractProjectedValues(geometry, field.OceanCurrentX)),
+        new("ocean_current_y", ExtractProjectedValues(geometry, field.OceanCurrentY)),
+        new("ocean_current_strength", ExtractProjectedValues(geometry, field.OceanCurrentStrength)),
+        new("ocean_current_heat", ExtractProjectedValues(geometry, field.OceanCurrentHeat)),
+        new("wave_exposure", ExtractProjectedValues(geometry, field.WaveExposure)),
+        new("rainfall", ExtractProjectedValues(geometry, field.Rainfall)),
+        new("snowfall", ExtractProjectedValues(geometry, field.Snowfall)),
+        new("sea_ice_suitability", ExtractProjectedValues(geometry, field.SeaIceSuitability)),
+        new("fine_elevation", ExtractProjectedElevationValues(geometry, field.Elevation, fine: true)),
+        new("conditioned_drainage_elevation", ExtractProjectedElevationValues(
+            geometry,
             field.ConditionedDrainageElevation,
             fine: true)),
-        new("drainage_flat_rank", ExtractConfiguredValues(field, field.DrainageFlatRanks)),
-        new("bedrock_elevation", ExtractConfiguredElevationValues(field, field.BedrockElevation)),
-        new("sediment_thickness", ExtractConfiguredElevationValues(field, field.SedimentThickness)),
-        new("fluvial_erosion_history", ExtractConfiguredElevationValues(
-            field,
+        new("drainage_flat_rank", ExtractProjectedValues(geometry, field.DrainageFlatRanks)),
+        new("bedrock_elevation", ExtractProjectedElevationValues(geometry, field.BedrockElevation)),
+        new("sediment_thickness", ExtractProjectedElevationValues(geometry, field.SedimentThickness)),
+        new("fluvial_erosion_history", ExtractProjectedElevationValues(
+            geometry,
             field.CumulativeFluvialErosion)),
-        new("glacial_erosion_history", ExtractConfiguredElevationValues(
-            field,
+        new("glacial_erosion_history", ExtractProjectedElevationValues(
+            geometry,
             field.CumulativeGlacialErosion)),
-        new("coastal_erosion_history", ExtractConfiguredElevationValues(
-            field,
+        new("coastal_erosion_history", ExtractProjectedElevationValues(
+            geometry,
             field.CumulativeCoastalErosion)),
-        new("deposition_history", ExtractConfiguredElevationValues(field, field.CumulativeDeposition)),
-        new("maximum_ice_thickness", ExtractConfiguredValues(field, field.MaximumIceThickness)),
-        new("maximum_ice_flux", ExtractConfiguredValues(field, field.MaximumIceFlux)),
-        new("grounded_ice", ExtractConfiguredValues(field, field.GroundedIce)),
-        new("maximum_grounded_ice_flux", ExtractConfiguredValues(
-            field,
+        new("deposition_history", ExtractProjectedElevationValues(geometry, field.CumulativeDeposition)),
+        new("maximum_ice_thickness", ExtractProjectedValues(geometry, field.MaximumIceThickness)),
+        new("maximum_ice_flux", ExtractProjectedValues(geometry, field.MaximumIceFlux)),
+        new("grounded_ice", ExtractProjectedValues(geometry, field.GroundedIce)),
+        new("maximum_grounded_ice_flux", ExtractProjectedValues(
+            geometry,
             field.MaximumGroundedIceFlux)),
-        new("river_channel_strength", ExtractConfiguredValues(field, field.RiverChannelStrength)),
-        new("river_channel_order", ExtractConfiguredValues(field, field.RiverChannelOrders)),
-        new("floodplain_intensity", ExtractConfiguredValues(field, field.FloodplainIntensity)),
-        new("delta_intensity", ExtractConfiguredValues(field, field.DeltaIntensity)),
-        new("wave_exposure_history", ExtractConfiguredValues(field, field.WaveExposureHistory)),
-        new("tectonic_activity_history", ExtractConfiguredValues(field, field.TectonicActivityHistory)),
-        new("geothermal_history", ExtractConfiguredValues(field, field.GeothermalHistory)),
-        .. CreateVolcanicScalarFields(field),
-        new("external_coastal_forcing_history", ExtractConfiguredValues(field, field.ExternalCoastalForcingHistory)),
-        new("fire_intensity", ExtractConfiguredValues(field, magic.FireIntensity)),
-        new("aurora_intensity", ExtractConfiguredValues(field, magic.AuroraIntensity)),
-        new("pressure_intensity", ExtractConfiguredValues(field, magic.PressureIntensity)),
-        new("fire_history", ExtractConfiguredValues(field, magic.FireHistory)),
-        new("aurora_history", ExtractConfiguredValues(field, magic.AuroraHistory)),
-        new("pressure_history", ExtractConfiguredValues(field, magic.PressureHistory)),
-        new("pressure_coastal_history", ExtractConfiguredValues(field, magic.PressureCoastalHistory)),
-        new("fire_first_epoch", ExtractConfiguredValues(field, magic.FireFirstEpoch)),
-        new("aurora_first_epoch", ExtractConfiguredValues(field, magic.AuroraFirstEpoch)),
-        new("pressure_first_epoch", ExtractConfiguredValues(field, magic.PressureFirstEpoch)),
-        new("pressure_coastal_first_epoch", ExtractConfiguredValues(field, magic.PressureCoastalFirstEpoch)),
+        new("river_channel_strength", ExtractProjectedValues(geometry, field.RiverChannelStrength)),
+        new("river_channel_order", ExtractProjectedValues(geometry, field.RiverChannelOrders)),
+        new("floodplain_intensity", ExtractProjectedValues(geometry, field.FloodplainIntensity)),
+        new("delta_intensity", ExtractProjectedValues(geometry, field.DeltaIntensity)),
+        new("wave_exposure_history", ExtractProjectedValues(geometry, field.WaveExposureHistory)),
+        new("tectonic_activity_history", ExtractProjectedValues(geometry, field.TectonicActivityHistory)),
+        new("geothermal_history", ExtractProjectedValues(geometry, field.GeothermalHistory)),
+        .. CreateVolcanicScalarFields(geometry, field),
+        new("external_coastal_forcing_history", ExtractProjectedValues(geometry, field.ExternalCoastalForcingHistory)),
+        new("fire_intensity", ExtractProjectedValues(geometry, magic.FireIntensity)),
+        new("aurora_intensity", ExtractProjectedValues(geometry, magic.AuroraIntensity)),
+        new("pressure_intensity", ExtractProjectedValues(geometry, magic.PressureIntensity)),
+        new("fire_history", ExtractProjectedValues(geometry, magic.FireHistory)),
+        new("aurora_history", ExtractProjectedValues(geometry, magic.AuroraHistory)),
+        new("pressure_history", ExtractProjectedValues(geometry, magic.PressureHistory)),
+        new("pressure_coastal_history", ExtractProjectedValues(geometry, magic.PressureCoastalHistory)),
+        new("fire_first_epoch", ExtractProjectedValues(geometry, magic.FireFirstEpoch)),
+        new("aurora_first_epoch", ExtractProjectedValues(geometry, magic.AuroraFirstEpoch)),
+        new("pressure_first_epoch", ExtractProjectedValues(geometry, magic.PressureFirstEpoch)),
+        new("pressure_coastal_first_epoch", ExtractProjectedValues(geometry, magic.PressureCoastalFirstEpoch)),
     ];
 
     private static DomainPhysicalScalarField[] CreateVolcanicScalarFields(
+        PhysicalKernelMapGeometry geometry,
         PhysicalGeographyField field) =>
     [
-        new("mantle_plume_root", ExtractConfiguredValues(field, field.MantlePlumeRootStrength)),
-        new("volcanic_activity", ExtractConfiguredValues(field, field.VolcanicActivity)),
-        new("volcanic_construction_history", ExtractConfiguredElevationValues(
-            field,
+        new("mantle_plume_root", ExtractProjectedValues(geometry, field.MantlePlumeRootStrength)),
+        new("volcanic_activity", ExtractProjectedValues(geometry, field.VolcanicActivity)),
+        new("volcanic_construction_history", ExtractProjectedElevationValues(
+            geometry,
             field.VolcanicConstructionHistory)),
-        new("volcanic_last_active_epoch", ExtractConfiguredValues(field, field.VolcanicLastActiveEpoch)),
+        new("volcanic_last_active_epoch", ExtractProjectedValues(geometry, field.VolcanicLastActiveEpoch)),
     ];
 
-    private static int[] ExtractConfiguredValues(
-        PhysicalGeographyField field,
+    private static int[] ExtractProjectedValues(
+        PhysicalKernelMapGeometry geometry,
         ReadOnlySpan<int> values)
     {
-        var result = new int[checked(
-            field.Grid.ConfiguredHexCount * PhysicalGeographyCodes.MicrotrianglesPerHex)];
+        var result = new int[geometry.ProjectedTriangleCount];
         var offset = 0;
-        for (var configuredIndex = 0; configuredIndex < field.Grid.ConfiguredHexCount; configuredIndex++)
+        for (var cellIndex = 0; cellIndex < geometry.CellCount; cellIndex++)
         {
-            var hexIndex = field.Grid.ConfiguredHexIndexAt(configuredIndex);
             for (var localTriangle = 0;
                 localTriangle < PhysicalGeographyCodes.MicrotrianglesPerHex;
                 localTriangle++)
             {
-                result[offset++] = values[field.Grid.TriangleIndex(hexIndex, localTriangle)];
+                result[offset++] = values[geometry.TriangleIndex(cellIndex, localTriangle)];
             }
         }
 
         return result;
     }
 
-    private static int[] ExtractConfiguredElevationValues(
-        PhysicalGeographyField field,
+    private static int[] ExtractProjectedElevationValues(
+        PhysicalKernelMapGeometry geometry,
         ReadOnlySpan<long> values,
         bool fine = false)
     {
-        var result = new int[checked(
-            field.Grid.ConfiguredHexCount * PhysicalGeographyCodes.MicrotrianglesPerHex)];
+        var result = new int[geometry.ProjectedTriangleCount];
         var offset = 0;
-        for (var configuredIndex = 0; configuredIndex < field.Grid.ConfiguredHexCount; configuredIndex++)
+        for (var cellIndex = 0; cellIndex < geometry.CellCount; cellIndex++)
         {
-            var hexIndex = field.Grid.ConfiguredHexIndexAt(configuredIndex);
             for (var localTriangle = 0;
                 localTriangle < PhysicalGeographyCodes.MicrotrianglesPerHex;
                 localTriangle++)
             {
-                var value = values[field.Grid.TriangleIndex(hexIndex, localTriangle)];
+                var value = values[geometry.TriangleIndex(cellIndex, localTriangle)];
                 result[offset++] = fine
                     ? PhysicalElevation.ToDiagnosticValue(value)
                     : PhysicalElevation.ToUnits(value);

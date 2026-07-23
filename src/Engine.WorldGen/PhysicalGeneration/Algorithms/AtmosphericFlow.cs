@@ -26,7 +26,7 @@ internal static class AtmosphericFlow
 
         // Bands run across the disk; the alternation is what breaks the global
         // tilt. The seeded phase keeps worlds from sharing a band layout.
-        var span = Math.Max(1d, map.Grid.Radius * 1.5d / Math.Max(1, profile.CirculationBands));
+        var span = Math.Max(1d, map.Grid.ContentRadius * 1.5d / Math.Max(1, profile.CirculationBands));
         var phase = PhysicalNoise.HashUnit(context.Seed, 0x2a1, 0x7c9);
         var bandPosition = (y / span) + phase;
         var band = Math.Floor(bandPosition);
@@ -43,7 +43,7 @@ internal static class AtmosphericFlow
             x,
             y,
             context.Seed ^ 0x713b,
-            Math.Max(12d, map.Grid.Radius * 0.28d),
+            Math.Max(12d, map.Grid.ContentRadius * 0.28d),
             3) * (profile.CirculationWander / 1000d);
 
         var angle = Math.Atan2(acrossBand, alongBand) + wander;

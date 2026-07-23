@@ -40,18 +40,25 @@ public sealed class IceRemembersHexProjectionTests
     {
         var magic = IceRemembersMicrogeographyLayerTestHarness.GenerateComplete();
         var field = magic.Physical;
+        var geometry = PhysicalKernelMapGeometry.FromGeneratedContent(field.Grid);
         var terrains = new HashSet<IceRemembersTerrain>();
-        for (var configuredIndex = 0; configuredIndex < field.Grid.ConfiguredHexCount; configuredIndex++)
+        for (var cellIndex = 0; cellIndex < geometry.CellCount; cellIndex++)
         {
-            var hexIndex = field.Grid.ConfiguredHexIndexAt(configuredIndex);
-            var aggregate = Summarize(field, magic, hexIndex);
-            var result = IceRemembersHexProjection.Project(field, magic, hexIndex, aggregate);
+            var aggregate = Summarize(field, magic, geometry, cellIndex);
+            var result = IceRemembersHexProjection.Project(
+                field,
+                magic,
+                geometry,
+                cellIndex,
+                aggregate);
             terrains.Add(result.Terrain);
             AssertWaterPartition(aggregate, result);
             AssertCrossingWord(aggregate, result.CrossingWord);
             AssertFieldWord(aggregate, result.FieldWord);
             AssertInitialCover(result);
-            Assert.Equal(result, IceRemembersHexProjection.Project(field, magic, hexIndex, aggregate));
+            Assert.Equal(
+                result,
+                IceRemembersHexProjection.Project(field, magic, geometry, cellIndex, aggregate));
         }
 
         // A complete world must not collapse into one or two identities.
@@ -59,7 +66,7 @@ public sealed class IceRemembersHexProjectionTests
     }
 
     private static void AssertWaterPartition(
-        in PhysicalHexAggregate aggregate,
+        in PhysicalKernelCellAggregate aggregate,
         in IceRemembersHexProjection.Result result)
     {
         if (aggregate.WaterCoverage >= 12)
@@ -76,7 +83,9 @@ public sealed class IceRemembersHexProjectionTests
         }
     }
 
-    private static void AssertCrossingWord(in PhysicalHexAggregate aggregate, int crossingWord)
+    private static void AssertCrossingWord(
+        in PhysicalKernelCellAggregate aggregate,
+        int crossingWord)
     {
         Assert.Equal(0, crossingWord & ~PhysicalCrossingCodes.WordMask);
         for (var direction = 0; direction < PhysicalCrossingCodes.DirectionCount; direction++)
@@ -103,7 +112,7 @@ public sealed class IceRemembersHexProjectionTests
         }
     }
 
-    private static void AssertFieldWord(in PhysicalHexAggregate aggregate, int fieldWord)
+    private static void AssertFieldWord(in PhysicalKernelCellAggregate aggregate, int fieldWord)
     {
         Assert.Equal(0, fieldWord & ~PhysicalHexFieldCodes.WordMask);
         var summit = (fieldWord & PhysicalHexFieldCodes.SummitFlag) != 0;
@@ -121,17 +130,19 @@ public sealed class IceRemembersHexProjectionTests
         Assert.Contains(result.Terrain, WaterTerrains);
     }
 
-    private static PhysicalHexAggregate Summarize(
+    private static PhysicalKernelCellAggregate Summarize(
         PhysicalGeographyField field,
         IceRemembersMicrogeographyMap magic,
-        int hexIndex)
+        PhysicalKernelMapGeometry geometry,
+        int cellIndex)
     {
         // Materials do not participate in the projection; a zeroed material
         // field keeps the aggregate cheap to build here.
         var materials = new int[field.Grid.TriangleCount];
-        return PhysicalHexAggregator.Summarize(
+        return PhysicalKernelCellAggregator.Summarize(
             field,
-            hexIndex,
+            geometry,
+            cellIndex,
             materials,
             IceRemembersPhysicalGeography.MaterialPalette.Count,
             magic.SurfaceIndexes,
@@ -141,6 +152,6 @@ public sealed class IceRemembersHexProjectionTests
             magic.AuroraIntensity,
             magic.PressureIntensity,
             IceRemembersPhysicalGeography.GenerationProfile.CliffSlopeThreshold,
-            IceRemembersPhysicalGeography.GenerationProfile.TrunkRiverOrderThreshold);
+            4);
     }
 }

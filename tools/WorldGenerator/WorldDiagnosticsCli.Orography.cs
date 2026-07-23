@@ -28,8 +28,200 @@ internal static partial class WorldDiagnosticsCli
         var peaks = FindPeaks(field);
         Console.WriteLine("== Orography ==");
         ReportCollision(field, distance);
+        ReportContinentalSutures(field, distance);
+        ReportOrogenicSystems(field);
         ReportIsolation(field, peaks);
         ReportLandmassHighPoints(field, distance);
+    }
+
+    private static void ReportContinentalSutures(PhysicalGeographyField field, int[] distance)
+    {
+        var systems = new Dictionary<int, SutureStats>();
+        var strengths = new List<long>();
+        var coastDistances = new List<long>();
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            var pair = field.CrustSuturePairIds[t];
+            if (pair <= 0 || !field.Grid.TriangleIsInsideContentDomain(t))
+            {
+                continue;
+            }
+
+            if (!systems.TryGetValue(pair, out var stats))
+            {
+                stats = new SutureStats();
+                systems.Add(pair, stats);
+            }
+
+            stats.Add(field, t, distance[t]);
+            strengths.Add(field.CrustSutureStrength[t]);
+            if (field.WaterKindCodes[t] != PhysicalWaterKindCodes.Ocean)
+            {
+                coastDistances.Add(distance[t]);
+            }
+        }
+
+        Console.WriteLine($"  material suture systems={systems.Count}");
+        PrintSlopeRow("suture strength", strengths);
+        PrintSlopeRow("suture coast distance", coastDistances);
+        foreach (var (pair, stats) in systems
+            .OrderByDescending(entry => entry.Value.MaximumHeight)
+            .ThenByDescending(entry => entry.Value.Triangles)
+            .Take(12))
+        {
+            Console.WriteLine(
+                $"    suture {pair,7}: triangles={stats.Triangles,6} land={stats.Land,6} " +
+                $"active={stats.Active,6} maxHeight={stats.MaximumHeight,5} " +
+                $"maxCoastDistance={stats.MaximumCoastDistance,4}");
+        }
+    }
+
+    private sealed class SutureStats
+    {
+        public int Triangles { get; private set; }
+
+        public int Land { get; private set; }
+
+        public int Active { get; private set; }
+
+        public int MaximumCoastDistance { get; private set; }
+
+        public long MaximumHeight { get; private set; } = long.MinValue;
+
+        public void Add(PhysicalGeographyField field, int triangleIndex, int coastDistance)
+        {
+            Triangles++;
+            Active += field.CrustCollisionIntensity[triangleIndex] > 0 ? 1 : 0;
+            if (field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
+            {
+                return;
+            }
+
+            Land++;
+            MaximumCoastDistance = Math.Max(MaximumCoastDistance, coastDistance);
+            MaximumHeight = Math.Max(
+                MaximumHeight,
+                PhysicalElevation.ToUnits(
+                    field.Elevation[triangleIndex] - field.EffectiveSeaLevel));
+        }
+    }
+
+    private static void ReportOrogenicSystems(PhysicalGeographyField field)
+    {
+        var systems = new Dictionary<int, OrogenicSystemStats>();
+        var clipped = 0;
+        for (var t = 0; t < field.Grid.TriangleCount; t++)
+        {
+            if (!field.Grid.TriangleIsInsideContentDomain(t))
+            {
+                continue;
+            }
+
+            var component = field.OrogenicComponentIds[t];
+            if (component < 0)
+            {
+                continue;
+            }
+
+            if (!systems.TryGetValue(component, out var stats))
+            {
+                stats = new OrogenicSystemStats();
+                systems.Add(component, stats);
+            }
+
+            stats.Add(field, t);
+            if (field.CrustThickness[t] >=
+                PhysicalElevation.FromUnits(PhysicalCrust.MaximumThicknessUnits))
+            {
+                clipped++;
+            }
+        }
+
+        Console.WriteLine(
+            $"  active orogenic systems={systems.Count}; influenced crust at ceiling={clipped}");
+        foreach (var entry in systems
+            .OrderByDescending(pair => pair.Value.Prominence)
+            .ThenByDescending(pair => pair.Value.MaximumLandHeight)
+            .Take(12))
+        {
+            var stats = entry.Value;
+            Console.WriteLine(
+                $"    system {entry.Key,3} pair={stats.BoundaryPair,7} " +
+                $"mode={BoundaryName(stats.BoundaryCode),10} " +
+                $"prom={stats.Prominence,4} " +
+                $"boundary={stats.BoundaryTriangles,6} reach={stats.Triangles,7} " +
+                $"land={stats.LandTriangles,7} high={stats.MaximumLandHeight,5} " +
+                $"relief={stats.LandRelief,5} " +
+                $"last-build=[{stats.MinimumConstruction,5},{stats.MaximumConstruction,5}] " +
+                $"ceiling={stats.ClippedTriangles,5}");
+        }
+    }
+
+    private static string BoundaryName(int code) => code switch
+    {
+        PhysicalTectonicBoundaryCodes.Convergent => "convergent",
+        PhysicalTectonicBoundaryCodes.Divergent => "divergent",
+        PhysicalTectonicBoundaryCodes.Transform => "transform",
+        _ => "none",
+    };
+
+    private sealed class OrogenicSystemStats
+    {
+        public int BoundaryCode { get; private set; }
+
+        public int BoundaryPair { get; private set; }
+
+        public int BoundaryTriangles { get; private set; }
+
+        public int Prominence { get; private set; }
+
+        public int Triangles { get; private set; }
+
+        public int LandTriangles { get; private set; }
+
+        public int ClippedTriangles { get; private set; }
+
+        public long MaximumLandHeight { get; private set; } = long.MinValue;
+
+        public long MinimumLandHeight { get; private set; } = long.MaxValue;
+
+        public long LandRelief => LandTriangles == 0
+            ? 0
+            : MaximumLandHeight - MinimumLandHeight;
+
+        public long MinimumConstruction { get; private set; } = long.MaxValue;
+
+        public long MaximumConstruction { get; private set; } = long.MinValue;
+
+        public void Add(PhysicalGeographyField field, int triangleIndex)
+        {
+            Triangles++;
+            Prominence = Math.Max(Prominence, field.OrogenicSystemProminence[triangleIndex]);
+            if (field.TectonicBoundaryCodes[triangleIndex] != PhysicalTectonicBoundaryCodes.None)
+            {
+                BoundaryTriangles++;
+                BoundaryCode = field.TectonicBoundaryCodes[triangleIndex];
+                BoundaryPair = field.TectonicBoundaryPairIds[triangleIndex];
+            }
+
+            var construction = PhysicalElevation.ToUnits(field.OrogenicConstruction[triangleIndex]);
+            MinimumConstruction = Math.Min(MinimumConstruction, construction);
+            MaximumConstruction = Math.Max(MaximumConstruction, construction);
+            ClippedTriangles += field.CrustThickness[triangleIndex] >=
+                PhysicalElevation.FromUnits(PhysicalCrust.MaximumThicknessUnits) ? 1 : 0;
+            if (field.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.None)
+            {
+                LandTriangles++;
+                MaximumLandHeight = Math.Max(
+                    MaximumLandHeight,
+                    PhysicalElevation.ToUnits(
+                        field.Elevation[triangleIndex] - field.EffectiveSeaLevel));
+                MinimumLandHeight = Math.Min(
+                    MinimumLandHeight,
+                    PhysicalElevation.ToUnits(
+                        field.Elevation[triangleIndex] - field.EffectiveSeaLevel));
+            }
+        }
     }
 
     // Is continental collision happening at all, and where? A suture that only

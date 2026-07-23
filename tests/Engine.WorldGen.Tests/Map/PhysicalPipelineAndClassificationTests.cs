@@ -9,7 +9,9 @@ public sealed class PhysicalPipelineAndClassificationTests
     {
         var profile = PhysicalGeographyLayerTestHarness.Profile;
         var missingMap = new PhysicalGeographyField(
-            new PhysicalGeographyGrid(PhysicalGeographyLayerTestHarness.Radius, profile.Padding));
+            PhysicalGeographyGrid.CreateWithPadding(
+                PhysicalGeographyLayerTestHarness.ContentTriangleCount,
+                profile.BoundaryPaddingSteps));
         var bathymetry = new BathymetryLayer();
         var isolated = new PhysicalGeographyPipeline(profile, [bathymetry]);
         Assert.Throws<InvalidOperationException>(() => isolated.ApplyLayer(

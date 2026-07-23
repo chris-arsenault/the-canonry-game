@@ -34,7 +34,14 @@ internal sealed class TectonicMarginLayer : IPhysicalGeographyLayer
         var spreadingDistance = new int[map.Grid.TriangleCount];
         PropagateFromBoundaries(map, reach, boundaryDistance, boundaryKind, spreadingDistance);
         AssignMargins(map, boundaryKind);
-        AssignCrustAge(map, spreadingDistance, context.Profile);
+        if (context.IsEvolutionEpoch)
+        {
+            AgeTransportedCrust(map, context.Profile);
+        }
+        else
+        {
+            AssignInitialCrustAge(map, spreadingDistance, context.Profile);
+        }
     }
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
@@ -166,13 +173,12 @@ internal sealed class TectonicMarginLayer : IPhysicalGeographyLayer
     }
 
     /// <summary>
-    /// Ocean floor subsides as it cools away from a spreading centre, so depth
-    /// follows roughly the square root of age. This is what produces broad
-    /// shallow shelves beside old passive margins — the precondition for
-    /// platform peninsulas and offshore archipelagos — instead of a uniform
-    /// basin whose depth is set by noise.
+    /// Ocean floor subsides as it cools away from a spreading centre, so the
+    /// normalized thermal age follows roughly the square root of distance.
+    /// Crustal support consumes this age to deepen ocean basins; solved-sea-
+    /// level margin evolution owns continental shelves separately.
     /// </summary>
-    private static void AssignCrustAge(
+    private static void AssignInitialCrustAge(
         PhysicalGeographyField map,
         int[] spreadingDistance,
         PhysicalGeographyGenerationProfile profile)
@@ -196,6 +202,31 @@ internal sealed class TectonicMarginLayer : IPhysicalGeographyLayer
             map.CrustAge[triangleIndex] = (int)Math.Round(
                 Math.Sqrt(normalized) * 1000d,
                 MidpointRounding.AwayFromZero);
+        }
+    }
+
+    private static void AgeTransportedCrust(
+        PhysicalGeographyField map,
+        PhysicalGeographyGenerationProfile profile)
+    {
+        var increment = Math.Max(
+            1,
+            (int)Math.Round(
+                map.LastPlateDriftStep * 1000d /
+                    Math.Max(1d, profile.CrustAgeSaturationDistance),
+                MidpointRounding.AwayFromZero));
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            if (map.AdvectionSourceIndex[triangleIndex] < 0)
+            {
+                map.CrustAge[triangleIndex] = 0;
+            }
+            else if (map.CrustContinentalFraction[triangleIndex] < 500)
+            {
+                map.CrustAge[triangleIndex] = Math.Min(
+                    1000,
+                    map.CrustAge[triangleIndex] + increment);
+            }
         }
     }
 }

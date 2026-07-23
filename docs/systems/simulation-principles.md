@@ -112,11 +112,25 @@ base remains intact underneath.
 
 Physical generation quality begins with structural invariants before balance:
 reciprocal triangle topology and feature edges, connected exterior ocean,
-acyclic drainage, coherent lake surfaces, downstream-growing river
-accumulation, consistent hex summaries, and connected subdivisions that do not
-mutate physical facts. Terrain distribution remains a diagnostic across seeds;
-do not retune the physical generator merely to satisfy an arbitrary percentage
-when placement, traversal, or map-use evidence does not identify a problem.
+conservatively transported crust and material-suture history, acyclic drainage,
+water-supported coherent lake surfaces, valid spilling outlets and overflow,
+downstream-growing river accumulation, consistent projected summaries, and
+connected subdivisions that do not mutate physical facts. Terrain distribution
+remains a diagnostic across seeds; do not retune the physical generator merely
+to satisfy an arbitrary percentage when placement, traversal, or map-use
+evidence does not identify a problem.
+
+Elevation quality is spatial and causal, not a whole-map percentile. Sample the
+whole shore-to-basin cross-section by coast-distance band, including the
+landward approach, shelf, rise, and ambient join; a direct land/ocean neighbor
+step cannot clear a margin. Compare those profiles by margin kind and against
+range prominence on the same landmass. Count mountains by connected plate-pair
+system, inspect their base-to-crest relief and internal saddles, and compare
+river gorge depth with adjacent uplands so one exceptional peak or channel
+cannot hide a globally wrong hierarchy. Global relief and slope distributions
+are rejection screens only. Acceptance also requires several regenerated
+Release worlds and both whole-world and detailed visual review; Debug worlds
+are never evidence.
 
 Ice Remembers adds setting-level generation invariants on top of that physical
 structure. Frozen land and sea should dominate the natural field, but viable

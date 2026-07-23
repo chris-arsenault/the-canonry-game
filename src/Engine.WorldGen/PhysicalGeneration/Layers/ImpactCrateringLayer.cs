@@ -84,7 +84,7 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
         var selection = new BoundedCandidateSelection(Math.Max(256, count * 256));
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
-            if (!map.Grid.TriangleIsInsideConfiguredDisk(triangleIndex))
+            if (!map.Grid.TriangleIsInsideContentDomain(triangleIndex))
             {
                 continue;
             }
@@ -126,7 +126,7 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
     private static int ScaledImpactCount(PhysicalGeographyField map, int configuredCount) =>
         configuredCount == 0
             ? 0
-            : Math.Min(configuredCount, Math.Max(1, map.Grid.ConfiguredHexCount / 150));
+            : Math.Min(configuredCount, Math.Max(1, map.Grid.ContentTriangleCount / 3600));
 
     private static int[] SelectSeparated(
         PhysicalGeographyField map,
@@ -136,7 +136,7 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
     {
         var spacing = Math.Min(
             profile.ImpactMinimumSpacing,
-            Math.Max(3d, map.Grid.Radius * 0.72d));
+            Math.Max(3d, map.Grid.ContentRadius * 0.72d));
         var minimumSquared = spacing * spacing;
         var selected = new List<int>(count);
         foreach (var candidate in candidates)
@@ -173,7 +173,7 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
     {
         var maximum = Math.Min(
             context.Profile.ImpactMaximumRadius,
-            Math.Max(2d, map.Grid.Radius * 0.24d));
+            Math.Max(2d, map.Grid.ContentRadius * 0.24d));
         var minimum = Math.Min(context.Profile.ImpactMinimumRadius, maximum * 0.72d);
         return minimum + ((maximum - minimum) *
             PhysicalNoise.HashUnit(context.Seed ^ 0x3a91, impactIndex, 0));
@@ -346,6 +346,7 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
         }
 
         map.BedrockElevation[triangleIndex] = checked(map.BedrockElevation[triangleIndex] - cut);
+        map.SurfaceRockLoad[triangleIndex] = checked(map.SurfaceRockLoad[triangleIndex] - cut);
         map.ImpactExcavation[triangleIndex] = checked(map.ImpactExcavation[triangleIndex] + cut);
         LandscapeSurface.Rebuild(map, triangleIndex);
         return cut;
@@ -377,6 +378,7 @@ internal sealed class ImpactCrateringLayer : IPhysicalGeographyLayer
         }
 
         map.BedrockElevation[triangleIndex] = checked(map.BedrockElevation[triangleIndex] + uplift);
+        map.SurfaceRockLoad[triangleIndex] = checked(map.SurfaceRockLoad[triangleIndex] + uplift);
         map.ImpactRimUplift[triangleIndex] = checked(map.ImpactRimUplift[triangleIndex] + uplift);
         LandscapeSurface.Rebuild(map, triangleIndex);
     }

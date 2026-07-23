@@ -60,13 +60,16 @@ frontier reclaim does not do it implicitly.
 
 ## Latent geography
 
-Physical worldgen generates the whole radius-128 field as 24 canonical
-microtriangles per hex, using generation padding outside that field to avoid an
-artificial coastline at the latent frontier. Uplift and ridge axes cause the
-initial topography; erosion creates ancestral valleys; connected land/ocean and
-bathymetry feed priority-flood drainage; derived climate and separated warmth
-pockets feed ice cover and glacial carving; fractures finish the physical
-substrate. Ice Remembers then generates fire networks, aurora reservoirs,
+Physical worldgen converts the radius-128 request once into a global
+microtriangle content domain and generates it with microtriangle-step padding
+to avoid an artificial coastline at the latent frontier. It has no runtime-cell
+topology. After generation, `IceRemembers.Seed` partitions the content lattice
+into the canonical 24 local slots of each runtime cell. Uplift and ridge axes
+cause the initial topography; erosion creates ancestral valleys; connected
+land/ocean and bathymetry feed conditioned drainage; a separate water-balance
+stage establishes actual lakes and spilling outlets; derived climate and
+separated warmth pockets feed ice cover and glacial carving; fractures finish
+the physical substrate. Ice Remembers then generates fire networks, aurora reservoirs,
 pressure propagation from an unnamed deep-ocean locus, and rare interaction
 surfaces. Frozen-ocean surfaces make the world broadly icebound while warm
 ocean, shore, inland, and peak pockets remain viable away from the startup

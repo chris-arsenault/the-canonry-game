@@ -10,7 +10,7 @@ public sealed class IceRemembersFeatureAndQualityLayerTests
     [Fact]
     public void CausalFeatureRegions_GrowOnlyThroughSupportedNeighborsAndClearBetweenUses()
     {
-        var grid = new PhysicalGeographyGrid(1, 0);
+        var grid = PhysicalGeographyGrid.CreateWithPadding(1, 1);
         const int seed = 0;
         var retainedNeighbor = Enumerable.Range(0, 3)
             .Select(edge => grid.NeighborTriangleIndex(seed, edge))

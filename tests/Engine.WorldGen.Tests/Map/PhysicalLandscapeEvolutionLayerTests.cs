@@ -3,6 +3,61 @@ namespace Engine.WorldGen.Tests.Map;
 public sealed class PhysicalLandscapeEvolutionLayerTests
 {
     [Fact]
+    public void LandscapeErosion_RecordsBedrockUnloadingWithoutMutatingCrustalSupport()
+    {
+        var map = new PhysicalGeographyField(new PhysicalGeographyGrid(1, 1));
+        const int triangle = 0;
+        map.BedrockElevation[triangle] = PhysicalElevation.FromUnits(100);
+        LandscapeSurface.Rebuild(map, triangle);
+        var crustThickness = map.CrustThickness[triangle];
+
+        var removed = LandscapeSurface.Erode(
+            map,
+            triangle,
+            PhysicalElevation.FromUnits(10));
+
+        Assert.Equal(PhysicalElevation.FromUnits(10), removed);
+        Assert.Equal(PhysicalElevation.FromUnits(90), map.Elevation[triangle]);
+        Assert.Equal(crustThickness, map.CrustThickness[triangle]);
+        Assert.Equal(PhysicalElevation.FromUnits(-10), map.SurfaceRockLoad[triangle]);
+    }
+
+    [Fact]
+    public void MassWasting_ReducesBlockFacesWhileConservingLocalMaterial()
+    {
+        var map = new PhysicalGeographyField(new PhysicalGeographyGrid(7, 7));
+        const int high = 0;
+        map.BedrockElevation[high] = PhysicalElevation.FromUnits(1000);
+        LandscapeSurface.Rebuild(map, high);
+        var beforeSum = map.Elevation.ToArray().Sum();
+        var beforeMaximumStep = MaximumNeighborStep(map);
+        var layer = new MassWastingLayer();
+        var profile = PhysicalGeographyLayerTestHarness.Profile with
+        {
+            MassWastingIterations = 1,
+            MassWastingStableStep = 100,
+            MassWastingTransportFraction = 500,
+            MaximumMassWastingTransportPerPass = 80,
+        };
+        var context = new PhysicalGeographyGenerationContext(
+            PhysicalGeographyLayerTestHarness.Seed,
+            profile,
+            layer.Contract);
+
+        layer.Apply(map, context);
+        layer.Validate(map, context);
+
+        Assert.True(MaximumNeighborStep(map) < beforeMaximumStep);
+        Assert.InRange(
+            PhysicalElevation.ToUnits(
+                PhysicalElevation.FromUnits(1000) - map.Elevation[high]),
+            0d,
+            profile.MaximumMassWastingTransportPerPass);
+        Assert.Equal(beforeSum, map.Elevation.ToArray().Sum());
+        Assert.Equal(map.SedimentProducedTotal, map.SedimentDepositedTotal);
+    }
+
+    [Fact]
     public void LandscapeInitialization_CapturesBedrockAndTectonicHistoryAndRejectsSurfaceMismatch()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<LandscapeInitializationLayer>();
@@ -111,5 +166,25 @@ public sealed class PhysicalLandscapeEvolutionLayerTests
         deposition.Map.SedimentSupply[0] = 1;
         Assert.Throws<InvalidOperationException>(() =>
             deposition.Layer.Validate(deposition.Map, deposition.Context));
+    }
+
+    private static long MaximumNeighborStep(PhysicalGeographyField map)
+    {
+        long maximum = 0;
+        for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
+        {
+            for (var edge = 0; edge < 3; edge++)
+            {
+                var neighbor = map.Grid.NeighborTriangleIndex(triangleIndex, edge);
+                if (neighbor >= 0)
+                {
+                    maximum = Math.Max(
+                        maximum,
+                        Math.Abs(map.Elevation[triangleIndex] - map.Elevation[neighbor]));
+                }
+            }
+        }
+
+        return maximum;
     }
 }

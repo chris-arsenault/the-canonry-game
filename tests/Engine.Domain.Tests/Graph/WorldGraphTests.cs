@@ -1,9 +1,9 @@
 namespace Engine.Domain.Tests.Graph;
 
 using Engine.Domain;
+using Engine.Domain.Spatial;
 using Engine.Graph;
 using Engine.Kinds;
-using Engine.WorldGen;
 
 public class WorldGraphTests
 {

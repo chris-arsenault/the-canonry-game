@@ -96,13 +96,8 @@ internal sealed class FloodplainLayer : IPhysicalGeographyLayer
                         continue;
                     }
 
-                    // Bank relief is a gradient, so it must be length-fair:
-                    // comparing raw drops across edges of unequal world length
-                    // makes long-edge directions look steeper and guttters the
-                    // floodplain onto the hex lattice.
-                    var bankRelief = PhysicalElevation.ToUnits((long)(
-                        Math.Abs(map.Elevation[triangleIndex] - map.Elevation[neighbor]) *
-                        map.Grid.TriangleEdgeSlopeScale(triangleIndex, edge)));
+                    var bankRelief = PhysicalElevation.ToUnits(
+                        Math.Abs(map.Elevation[triangleIndex] - map.Elevation[neighbor]));
                     var intensity = map.FloodplainIntensity[triangleIndex] -
                         profile.FloodplainIntensityDecay -
                         bankRelief;

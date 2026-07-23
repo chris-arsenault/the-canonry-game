@@ -142,7 +142,10 @@ internal sealed class FireFieldLayer : IIceRemembersMicrogeographyLayer
             }
 
             var score = density * 1000L +
-                (long)(PhysicalNoise.HashUnit(seed, triangleIndex, 0) * 999d);
+                (long)(PhysicalNoise.HashUnit(
+                    seed,
+                    field.Grid.TriangleIdentity(triangleIndex),
+                    0) * 999d);
             candidates.Add(new CoreCandidate(triangleIndex, score));
         }
 

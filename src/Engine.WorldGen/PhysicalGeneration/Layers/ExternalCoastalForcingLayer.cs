@@ -82,7 +82,10 @@ internal sealed class ExternalCoastalForcingLayer : IPhysicalGeographyLayer
                 continue;
             }
 
-            _ = LandscapeSurface.Erode(map, triangleIndex, cut);
+            _ = LandscapeSurface.Erode(
+                map,
+                triangleIndex,
+                cut);
             map.CumulativeCoastalErosion[triangleIndex] = checked(
                 map.CumulativeCoastalErosion[triangleIndex] + cut);
             map.SedimentProducedTotal = checked(map.SedimentProducedTotal + cut);

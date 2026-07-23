@@ -54,8 +54,9 @@ internal static partial class WorldDiagnosticsCli
         }
 
         Console.WriteLine($"Generating radius={radius} seed={seed} with production profile...");
+        var generationSize = PhysicalGenerationSize.FromKernelRadius(radius);
         var result = IceRemembersWorldGenerationOrchestrator.Generate(
-            radius,
+            generationSize.TriangleCount,
             seed,
             IceRemembersPhysicalGeography.GenerationProfile,
             IceRemembersPhysicalGeography.MicrogeographyProfile,
@@ -98,7 +99,7 @@ internal static partial class WorldDiagnosticsCli
         var samples = new List<int>();
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
-            if (field.Grid.TriangleIsInsideConfiguredDisk(t) &&
+            if (field.Grid.TriangleIsInsideContentDomain(t) &&
                 field.WaterKindCodes[t] == PhysicalWaterKindCodes.None)
             {
                 samples.Add(t);
@@ -390,117 +391,13 @@ internal static partial class WorldDiagnosticsCli
         return targets;
     }
 
-    private static void ReportSpineEndpoints(PhysicalGeographyField field, int[] flowTargets)
-    {
-        Console.WriteLine("== Spine endpoints (degree-1 spine triangles) ==");
-        long headwaters = 0;
-        long intoOcean = 0;
-        long intoLake = 0;
-        long interiorStops = 0;
-        var samples = new List<int>();
-        for (var t = 0; t < field.Grid.TriangleCount; t++)
-        {
-            var mask = field.RiverSpineEdgeMasks[t];
-            if (mask == 0 || System.Numerics.BitOperations.PopCount((uint)mask) != 1 ||
-                !field.Grid.TriangleIsInsideConfiguredDisk(t))
-            {
-                continue;
-            }
-
-            var target = flowTargets[t];
-            var downstreamEdge = target >= 0 ? field.Grid.EdgeLeadingTo(t, target) : -1;
-            var maskEdge = System.Numerics.BitOperations.TrailingZeroCount((uint)mask);
-            if (maskEdge != downstreamEdge)
-            {
-                // The single spine edge points upstream: this is the LAST
-                // visible triangle of a run — its continuation downstream is
-                // not drawn.
-                var targetWater = target >= 0 ? field.WaterKindCodes[target] : -1;
-                if (target < 0 || targetWater == PhysicalWaterKindCodes.Ocean)
-                {
-                    intoOcean++;
-                }
-                else if (targetWater == PhysicalWaterKindCodes.Lake)
-                {
-                    intoLake++;
-                }
-                else
-                {
-                    interiorStops++;
-                    if (samples.Count < 8)
-                    {
-                        samples.Add(t);
-                    }
-                }
-            }
-            else
-            {
-                headwaters++;
-            }
-        }
-
-        Console.WriteLine(
-            $"  headwaters={headwaters} endings: ocean={intoOcean} lake={intoLake} " +
-            $"INTERIOR-LAND={interiorStops}");
-        foreach (var t in samples)
-        {
-            var target = flowTargets[t];
-            Console.WriteLine(
-                $"    interior stop t={t} order={field.RiverOrders[t]} " +
-                $"acc={field.FlowAccumulation[t]} water={field.WaterKindCodes[t]} -> " +
-                $"target={target} order={(target >= 0 ? field.RiverOrders[target] : -1)} " +
-                $"water={(target >= 0 ? field.WaterKindCodes[target] : -1)} " +
-                $"strength={(target >= 0 ? field.RiverChannelStrength[target] : -1)}");
-        }
-    }
-
-    private static void ReportWater(PhysicalGeographyField field)
-    {
-        Console.WriteLine("== Water balance (configured disk) ==");
-        long ocean = 0;
-        long lake = 0;
-        long land = 0;
-        var lakeSizes = new Dictionary<int, int>();
-        for (var t = 0; t < field.Grid.TriangleCount; t++)
-        {
-            if (!field.Grid.TriangleIsInsideConfiguredDisk(t))
-            {
-                continue;
-            }
-
-            switch (field.WaterKindCodes[t])
-            {
-                case PhysicalWaterKindCodes.Ocean:
-                    ocean++;
-                    break;
-                case PhysicalWaterKindCodes.Lake:
-                    lake++;
-                    lakeSizes[field.WaterBodyIds[t]] =
-                        lakeSizes.GetValueOrDefault(field.WaterBodyIds[t]) + 1;
-                    break;
-                default:
-                    land++;
-                    break;
-            }
-        }
-
-        var total = Math.Max(1, ocean + lake + land);
-        var sizes = lakeSizes.Values.Select(static size => (double)size).Order().ToList();
-        Console.WriteLine(
-            $"  ocean={ocean * 100d / total:0.0}% lake={lake * 100d / total:0.0}% " +
-            $"land={land * 100d / total:0.0}% (total water {(ocean + lake) * 100d / total:0.0}%)");
-        Console.WriteLine(
-            $"  lake bodies={sizes.Count} median-size={Percentile(sizes, 50):0} " +
-            $"p90={Percentile(sizes, 90):0} max={(sizes.Count > 0 ? sizes[^1] : 0):0}");
-    }
-
     private static void ReportTrunks(PhysicalGeographyField field, int[] flowTargets)
     {
         Console.WriteLine("\n== Trunk rivers (contiguous channel runs, order >= 2) ==");
         var lengths = new List<double>();
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
-            if (field.RiverOrders[t] < 2 || !field.Grid.TriangleIsInsideConfiguredDisk(t))
+            if (field.RiverOrders[t] < 2 || !field.Grid.TriangleIsInsideContentDomain(t))
             {
                 continue;
             }
@@ -562,7 +459,7 @@ internal static partial class WorldDiagnosticsCli
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
             if (field.WaterKindCodes[t] != PhysicalWaterKindCodes.None ||
-                !field.Grid.TriangleIsInsideConfiguredDisk(t))
+                !field.Grid.TriangleIsInsideContentDomain(t))
             {
                 continue;
             }
@@ -574,7 +471,7 @@ internal static partial class WorldDiagnosticsCli
         var edgeBins = new long[12];
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
-            if (!field.Grid.TriangleIsInsideConfiguredDisk(t))
+            if (!field.Grid.TriangleIsInsideContentDomain(t))
             {
                 continue;
             }
@@ -661,7 +558,7 @@ internal static partial class WorldDiagnosticsCli
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
             if (field.RiverOrders[t] <= 0 || flowTargets[t] < 0 ||
-                !field.Grid.TriangleIsInsideConfiguredDisk(t))
+                !field.Grid.TriangleIsInsideContentDomain(t))
             {
                 continue;
             }
@@ -692,7 +589,7 @@ internal static partial class WorldDiagnosticsCli
         long straightCount = 0;
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
-            if (field.RiverOrders[t] <= 0 || !field.Grid.TriangleIsInsideConfiguredDisk(t))
+            if (field.RiverOrders[t] <= 0 || !field.Grid.TriangleIsInsideContentDomain(t))
             {
                 continue;
             }
@@ -755,7 +652,7 @@ internal static partial class WorldDiagnosticsCli
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
             if (field.RiverOrders[t] <= 0 || flowTargets[t] < 0 ||
-                !field.Grid.TriangleIsInsideConfiguredDisk(t))
+                !field.Grid.TriangleIsInsideContentDomain(t))
             {
                 continue;
             }
@@ -793,7 +690,7 @@ internal static partial class WorldDiagnosticsCli
         long channelTriangles = 0;
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
-            if (field.RiverOrders[t] <= 0 || !field.Grid.TriangleIsInsideConfiguredDisk(t))
+            if (field.RiverOrders[t] <= 0 || !field.Grid.TriangleIsInsideContentDomain(t))
             {
                 continue;
             }
@@ -810,7 +707,7 @@ internal static partial class WorldDiagnosticsCli
         var orders = new long[12];
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
-            if (field.RiverOrders[t] <= 0 || !field.Grid.TriangleIsInsideConfiguredDisk(t))
+            if (field.RiverOrders[t] <= 0 || !field.Grid.TriangleIsInsideContentDomain(t))
             {
                 continue;
             }
@@ -829,7 +726,7 @@ internal static partial class WorldDiagnosticsCli
         long floodplains = 0;
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
-            if (!field.Grid.TriangleIsInsideConfiguredDisk(t))
+            if (!field.Grid.TriangleIsInsideContentDomain(t))
             {
                 continue;
             }
@@ -891,7 +788,7 @@ internal static partial class WorldDiagnosticsCli
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
             if (field.WaterKindCodes[t] != PhysicalWaterKindCodes.None ||
-                !field.Grid.TriangleIsInsideConfiguredDisk(t))
+                !field.Grid.TriangleIsInsideContentDomain(t))
             {
                 continue;
             }
@@ -927,7 +824,7 @@ internal static partial class WorldDiagnosticsCli
         var counts = new long[names.Length];
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
-            if (!field.Grid.TriangleIsInsideConfiguredDisk(t))
+            if (!field.Grid.TriangleIsInsideContentDomain(t))
             {
                 continue;
             }
@@ -957,7 +854,7 @@ internal static partial class WorldDiagnosticsCli
         long maxUnits = 0;
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
-            if (!field.Grid.TriangleIsInsideConfiguredDisk(t))
+            if (!field.Grid.TriangleIsInsideContentDomain(t))
             {
                 continue;
             }
@@ -1006,7 +903,7 @@ internal static partial class WorldDiagnosticsCli
         long count = 0;
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
-            if (!field.Grid.TriangleIsInsideConfiguredDisk(t))
+            if (!field.Grid.TriangleIsInsideContentDomain(t))
             {
                 continue;
             }

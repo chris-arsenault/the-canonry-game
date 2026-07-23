@@ -57,7 +57,7 @@ public sealed class StructuralDigestTests
         var land = 0;
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
-            if (!map.Grid.TriangleIsInsideConfiguredDisk(triangleIndex))
+            if (!map.Grid.TriangleIsInsideContentDomain(triangleIndex))
             {
                 continue;
             }

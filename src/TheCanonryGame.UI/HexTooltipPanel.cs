@@ -28,6 +28,7 @@ public partial class HexTooltipPanel : PanelContainer
     private UiProjectionState? _projection;
     private IProjectionSymbolCatalog? _symbols;
     private HexMapRenderer? _renderer;
+    private PhysicalMap3DInspector? _physicalMap3DInspector;
     private Node2D? _worldCanvas;
     private Label? _label;
     private HexCoord? _hoveredHex;
@@ -57,6 +58,7 @@ public partial class HexTooltipPanel : PanelContainer
         UiProjectionState? projection,
         IProjectionSymbolCatalog? symbols,
         HexMapRenderer? renderer,
+        PhysicalMap3DInspector? physicalMap3DInspector,
         Node2D worldCanvas,
         IEnumerable<Control?> passThroughControls)
     {
@@ -68,6 +70,7 @@ public partial class HexTooltipPanel : PanelContainer
         _projection = projection;
         _symbols = symbols;
         _renderer = renderer;
+        _physicalMap3DInspector = physicalMap3DInspector;
         _worldCanvas = worldCanvas;
         _passThroughControls.Clear();
         _passThroughControls.AddRange(passThroughControls.OfType<Control>());
@@ -128,10 +131,39 @@ public partial class HexTooltipPanel : PanelContainer
         }
 
         screenPosition = GetViewport().GetMousePosition();
-        var worldPosition = _worldCanvas.GetCanvasTransform().AffineInverse() * screenPosition;
-        var resolvedHex = _renderer.GetHexAtWorldPosition(worldPosition);
+        return _physicalMap3DInspector?.Active == true
+            ? TryResolvePhysical3DLocation(screenPosition, out pointedHex, out triangleIndex)
+            : TryResolve2DLocation(screenPosition, out pointedHex, out triangleIndex);
+    }
+
+    private bool TryResolvePhysical3DLocation(
+        Vector2 screenPosition,
+        out HexCoord pointedHex,
+        out int triangleIndex)
+    {
+        if (_physicalMap3DInspector?.TryPick(screenPosition, out var hit) != true)
+        {
+            pointedHex = default;
+            triangleIndex = -1;
+            return false;
+        }
+
+        pointedHex = hit.Coord;
+        triangleIndex = hit.TriangleIndex;
+        return true;
+    }
+
+    private bool TryResolve2DLocation(
+        Vector2 screenPosition,
+        out HexCoord pointedHex,
+        out int triangleIndex)
+    {
+        var worldPosition = _worldCanvas!.GetCanvasTransform().AffineInverse() * screenPosition;
+        var resolvedHex = _renderer!.GetHexAtWorldPosition(worldPosition);
         if (resolvedHex is null)
         {
+            pointedHex = default;
+            triangleIndex = -1;
             return false;
         }
 
@@ -162,6 +194,11 @@ public partial class HexTooltipPanel : PanelContainer
 
     private string FormatHexTooltip(HexCoord coord, int triangleIndex)
     {
+        if (_physicalMap3DInspector?.Active == true)
+        {
+            return FormatPhysicalInspectionTooltip(coord, triangleIndex);
+        }
+
         if (_map is null || _projection is null)
         {
             return string.Empty;
@@ -179,7 +216,7 @@ public partial class HexTooltipPanel : PanelContainer
             return;
         }
 
-        var plane = _renderer.CurrentPlane;
+        var plane = TooltipPlane();
         var textState = new TooltipTextState(
             coord,
             _hoveredTriangleIndex,
@@ -194,6 +231,21 @@ public partial class HexTooltipPanel : PanelContainer
         _label.Text = FormatHexTooltip(coord, _hoveredTriangleIndex);
         _lastTextState = textState;
         _lastPositionState = null;
+    }
+
+    private PlaneMode TooltipPlane() => _physicalMap3DInspector?.Active == true
+        ? PlaneMode.Physical
+        : _renderer!.CurrentPlane;
+
+    private string FormatPhysicalInspectionTooltip(HexCoord coord, int triangleIndex)
+    {
+        if (_physicalGeography?.TryGetCell(coord, out var geographyCell) != true)
+        {
+            return $"{coord.Q,3} , {coord.R,3}   outside generated geography";
+        }
+
+        return $"{FormatLocation(coord, triangleIndex)}\n" +
+            FormatPhysicalGeography(geographyCell, triangleIndex);
     }
 
     private string FormatSemanticHexTooltip(HexCoord coord)

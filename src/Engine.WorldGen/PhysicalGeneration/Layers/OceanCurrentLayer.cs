@@ -111,7 +111,7 @@ internal sealed class OceanCurrentLayer : IPhysicalGeographyLayer
         PhysicalGeographyField map,
         PhysicalGeographyGenerationContext context)
     {
-        var noiseScale = Math.Max(18d, map.Grid.Radius * 0.46d);
+        var noiseScale = Math.Max(18d, map.Grid.ContentRadius * 0.46d);
         var curlPotential = BuildCurlPotential(map, context.Seed, noiseScale);
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
@@ -273,7 +273,7 @@ internal sealed class OceanCurrentLayer : IPhysicalGeographyLayer
                     map.Grid.TriangleX(triangleIndex),
                     map.Grid.TriangleY(triangleIndex),
                     context.Seed ^ 0x19af,
-                    Math.Max(20d, map.Grid.Radius * 0.38d),
+                    Math.Max(20d, map.Grid.ContentRadius * 0.38d),
                     2) * 250d,
                 MidpointRounding.AwayFromZero);
             map.OceanCurrentStrength[triangleIndex] = Math.Clamp(

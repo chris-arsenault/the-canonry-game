@@ -1,0 +1,31 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://src/TheCanonryGame.UI/PhysicalMap3DInspector.cs" id="1_inspector"]
+
+[sub_resource type="Environment" id="Environment_map_3d"]
+background_mode = 1
+background_color = Color(0.025, 0.035, 0.055, 1)
+ambient_light_source = 3
+ambient_light_color = Color(0.50, 0.58, 0.68, 1)
+ambient_light_energy = 0.48
+
+[node name="PhysicalMap3DInspector" type="Node3D"]
+visible = false
+script = ExtResource("1_inspector")
+
+[node name="TerrainRoot" type="Node3D" parent="."]
+
+[node name="Camera3D" type="Camera3D" parent="."]
+projection = 1
+size = 8000.0
+near = 0.1
+far = 50000.0
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-58, -32, 0)
+light_color = Color(0.96, 0.92, 0.84, 1)
+light_energy = 1.25
+shadow_enabled = true
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_map_3d")

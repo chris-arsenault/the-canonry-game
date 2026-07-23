@@ -33,7 +33,9 @@ internal sealed partial class GameRenderTree
     public void SetGeographyView(string viewKey)
     {
         var view = GeographyViewFor(viewKey);
-        if (!_mapRenderer.SetGeographyView(view))
+        var changed2D = _mapRenderer.SetGeographyView(view);
+        _physicalMap3DInspector.SetView(view);
+        if (!changed2D && !Physical3DInspectionActive)
         {
             return;
         }
@@ -55,9 +57,15 @@ internal sealed partial class GameRenderTree
         MapArea.LayerGeographyFeatures => SetLayerVisibility(
             _mapRenderer.GeographyFeaturesEnabled,
             visible,
-            value => _mapRenderer.SetGeographyFeaturesEnabled(value)),
+            SetGeographyFeaturesVisible),
         _ => false,
     };
+
+    private void SetGeographyFeaturesVisible(bool visible)
+    {
+        _ = _mapRenderer.SetGeographyFeaturesEnabled(visible);
+        _physicalMap3DInspector.SetFeaturesVisible(visible);
+    }
 
     private bool ApplySimulationLayerVisibility(string layerKey, bool visible) => layerKey switch
     {

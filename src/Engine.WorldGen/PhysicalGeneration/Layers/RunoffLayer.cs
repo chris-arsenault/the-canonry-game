@@ -18,7 +18,7 @@ internal sealed class RunoffLayer : IPhysicalGeographyLayer
     {
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
-            if (map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None)
+            if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean)
             {
                 map.Runoff[triangleIndex] = 0;
                 continue;
@@ -30,11 +30,18 @@ internal sealed class RunoffLayer : IPhysicalGeographyLayer
                 1000 / context.Profile.SnowTemperatureTransition,
                 0,
                 1000);
-            map.Runoff[triangleIndex] = Math.Clamp(
+            var availableWater = Math.Clamp(
                 map.Rainfall[triangleIndex] +
                     (map.Snowfall[triangleIndex] * snowMelt / 1000),
                 0,
                 1000);
+            var loss = Math.Clamp(
+                context.Profile.RunoffMinimumLossPerMille +
+                    (map.Temperature[triangleIndex] *
+                        context.Profile.RunoffTemperatureLossPerMille / 1000),
+                0,
+                1000);
+            map.Runoff[triangleIndex] = availableWater * (1000 - loss) / 1000;
         }
     }
 
@@ -45,7 +52,7 @@ internal sealed class RunoffLayer : IPhysicalGeographyLayer
         {
             var value = map.Runoff[triangleIndex];
             if (value is < 0 or > 1000 ||
-                (map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.None && value != 0))
+                (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.Ocean && value != 0))
             {
                 throw new InvalidOperationException("Runoff is out of range.");
             }

@@ -48,7 +48,7 @@ internal sealed class GeothermalLayer : IPhysicalGeographyLayer
                 map.Grid.TriangleX(triangleIndex),
                 map.Grid.TriangleY(triangleIndex),
                 context.Seed,
-                Math.Max(14d, map.Grid.Radius * 0.34d),
+                Math.Max(14d, map.Grid.ContentRadius * 0.34d),
                 2) * 0.10d;
             map.Geothermal[triangleIndex] = ScaleUnit(
                 boundaryHeat + fractureHeat + impactHeat + plumeHeat + broad);
@@ -76,7 +76,6 @@ internal sealed class GeothermalLayer : IPhysicalGeographyLayer
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)
     {
-        _ = context;
         var vents = 0;
         var groundedVents = 0;
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
@@ -95,9 +94,11 @@ internal sealed class GeothermalLayer : IPhysicalGeographyLayer
             groundedVents += VentHasProvenance(map, triangleIndex) ? 1 : 0;
         }
 
-        if (vents == 0 || groundedVents != vents)
+        if (groundedVents != vents)
         {
-            throw new InvalidOperationException("Geothermal vents lack tectonic, fracture, or plume provenance.");
+            throw new InvalidOperationException(
+                $"Geothermal vent validation failed in epoch {context.EpochIndex}: " +
+                $"{vents} vents, {groundedVents} with tectonic, fracture, or plume provenance.");
         }
     }
 

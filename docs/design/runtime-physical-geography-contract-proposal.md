@@ -6,8 +6,9 @@ Status: proposed for review. No implementation until approved. Supersedes v3.
 
 v4 incorporates the latest map round:
 
-- **The structural-fidelity round landed**
-  (`map-generation-fidelity-and-coastline-plan.md`): the microtriangle
+- **The current physical worldgen contract landed**
+  ([physical-microgeography-worldgen.md](./physical-microgeography-worldgen.md)):
+  the microtriangle
   lattice was untwisted and locked behind conformance tests; tectonic margin
   types and crust age now reach the coasts, giving coasts that differ in
   kind; plates drift across epochs and crust carries history; magic features

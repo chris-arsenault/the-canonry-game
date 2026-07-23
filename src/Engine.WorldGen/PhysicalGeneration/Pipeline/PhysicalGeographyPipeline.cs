@@ -39,7 +39,7 @@ internal sealed class PhysicalGeographyPipeline
         AddClimateAndDrainage(
             layers, ocean, oceanDistance, bathymetry, landmasses, currents, warmth, temperature,
             atmosphericFlow, moisture, precipitation, runoff, conditioning, lakes, guidance, flow, rivers);
-        layers.Add(new SedimentTransportLayer());
+        AddSedimentReconciliation(layers);
         AddClimateAndDrainage(
             layers, ocean, oceanDistance, bathymetry, landmasses, currents, warmth, temperature,
             atmosphericFlow, moisture, precipitation, runoff, conditioning, lakes, guidance, flow, rivers);
@@ -51,6 +51,8 @@ internal sealed class PhysicalGeographyPipeline
         layers.Add(iceFlow);
         layers.Add(new GlacialErosionLayer());
         layers.Add(new GlacialDepositionLayer());
+        layers.Add(new CrustalSupportLayer(includeIceLoad: true));
+        layers.Add(new LithosphericFlexureLayer());
         AddClimateAndDrainage(
             layers, ocean, oceanDistance, bathymetry, landmasses, currents, warmth, temperature,
             atmosphericFlow, moisture, precipitation, runoff, conditioning, lakes, guidance, flow, rivers);
@@ -66,20 +68,39 @@ internal sealed class PhysicalGeographyPipeline
         return new PhysicalGeographyPipeline(profile, layers);
     }
 
+    private static void AddSedimentReconciliation(List<IPhysicalGeographyLayer> layers)
+    {
+        layers.Add(new SedimentTransportLayer());
+        layers.Add(new MarineSedimentationLayer());
+        layers.Add(new CrustalSupportLayer(includeIceLoad: false));
+        layers.Add(new LithosphericFlexureLayer());
+    }
+
     private static List<IPhysicalGeographyLayer> CreateInitialLayers(IPhysicalGeographyLayer ocean) =>
     [
         new TectonicProvinceLayer(),
+        new ContinentalSutureLayer(),
         new TectonicMarginLayer(),
         new ContinentalDomainLayer(),
         new TectonicUpliftLayer(),
         new LandscapeInitializationLayer(),
-        new CoastalDetailLayer(),
+        new OrogenicConstructionLayer(),
         new MantlePlumeRootLayer(),
         new VolcanicConstructionLayer(),
         new ImpactCrateringLayer(),
+        new MassWastingLayer(),
+        new CrustalSupportLayer(includeIceLoad: false),
+        new LithosphericFlexureLayer(),
+        ocean,
+        new ContinentalMarginEvolutionLayer(),
+        new MarineSedimentationLayer(),
+        new CrustalSupportLayer(includeIceLoad: false),
+        new LithosphericFlexureLayer(),
+        ocean,
+        new CoastalDetailLayer(),
         ocean,
         new FluvialErosionLayer(),
-        ocean,
+        new MassWastingLayer(postFluvial: true),
         new FractureNetworkLayer(),
         new GeothermalLayer(),
     ];
@@ -150,10 +171,12 @@ internal sealed class PhysicalGeographyPipeline
 
     internal IReadOnlyList<IPhysicalGeographyLayer> Layers => _layers;
 
-    public PhysicalGeographyField Generate(int radius, int seed)
+    public PhysicalGeographyField Generate(int triangleCount, int seed)
     {
         _profile.Validate();
-        var map = new PhysicalGeographyField(new PhysicalGeographyGrid(radius, _profile.Padding));
+        var map = new PhysicalGeographyField(PhysicalGeographyGrid.CreateWithPadding(
+            triangleCount,
+            _profile.BoundaryPaddingSteps));
         foreach (var layer in _layers)
         {
             map = ApplyLayer(layer, map, seed);

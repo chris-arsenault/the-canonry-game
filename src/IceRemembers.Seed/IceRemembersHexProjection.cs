@@ -96,10 +96,11 @@ internal static class IceRemembersHexProjection
     public static Result Project(
         PhysicalGeographyField field,
         IceRemembersMicrogeographyMap magic,
-        int hexIndex,
-        PhysicalHexAggregate aggregate)
+        PhysicalKernelMapGeometry geometry,
+        int cellIndex,
+        PhysicalKernelCellAggregate aggregate)
     {
-        var facts = HexFacts.Create(field, magic, hexIndex, aggregate);
+        var facts = HexFacts.Create(field, magic, geometry, cellIndex, aggregate);
         var terrain = ClassifyTerrain(facts);
         return new Result(
             terrain,
@@ -216,7 +217,7 @@ internal static class IceRemembersHexProjection
             : null;
     }
 
-    private static int BuildCrossingWord(in PhysicalHexAggregate aggregate)
+    private static int BuildCrossingWord(in PhysicalKernelCellAggregate aggregate)
     {
         var word = 0;
         for (var direction = 0; direction < PhysicalCrossingCodes.DirectionCount; direction++)
@@ -234,7 +235,7 @@ internal static class IceRemembersHexProjection
     // Cliff beats ridge; a pass clears both back to open (that is what a
     // pass is). Trunk rivers survive under passes - a pass over a great
     // river still crosses the river.
-    private static int CrossingClassFor(in PhysicalHexAggregate aggregate, int bit)
+    private static int CrossingClassFor(in PhysicalKernelCellAggregate aggregate, int bit)
     {
         var pass = (aggregate.PassEdgeMask & bit) != 0;
         if (!pass && (aggregate.CliffEdgeMask & bit) != 0)
@@ -348,7 +349,7 @@ internal static class IceRemembersHexProjection
         private readonly int[] _magicCounts;
 
         private HexFacts(
-            PhysicalHexAggregate aggregate,
+            PhysicalKernelCellAggregate aggregate,
             int[] groupCounts,
             int[] magicCounts,
             int fjordCount,
@@ -363,7 +364,7 @@ internal static class IceRemembersHexProjection
             CraterCount = craterCount;
         }
 
-        public PhysicalHexAggregate Aggregate { get; }
+        public PhysicalKernelCellAggregate Aggregate { get; }
 
         public int FjordCount { get; }
 
@@ -378,8 +379,9 @@ internal static class IceRemembersHexProjection
         public static HexFacts Create(
             PhysicalGeographyField field,
             IceRemembersMicrogeographyMap magic,
-            int hexIndex,
-            PhysicalHexAggregate aggregate)
+            PhysicalKernelMapGeometry geometry,
+            int cellIndex,
+            PhysicalKernelCellAggregate aggregate)
         {
             var groupCounts = new int[Enum.GetValues<SurfaceGroup>().Length];
             var magicCounts = new int[Enum.GetValues<MagicGroup>().Length];
@@ -390,7 +392,7 @@ internal static class IceRemembersHexProjection
                 localTriangle < PhysicalGeographyCodes.MicrotrianglesPerHex;
                 localTriangle++)
             {
-                var triangleIndex = field.Grid.TriangleIndex(hexIndex, localTriangle);
+                var triangleIndex = geometry.TriangleIndex(cellIndex, localTriangle);
                 groupCounts[BaseSurfaceGroups[magic.BaseSurfaceIndexes[triangleIndex]]]++;
                 magicCounts[FinalSurfaceGroups[magic.SurfaceIndexes[triangleIndex]]]++;
                 var landform = field.LandformCodes[triangleIndex];

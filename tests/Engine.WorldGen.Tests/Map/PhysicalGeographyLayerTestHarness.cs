@@ -2,12 +2,12 @@ namespace Engine.WorldGen.Tests.Map;
 
 internal static class PhysicalGeographyLayerTestHarness
 {
-    public const int Radius = 10;
+    public const int ContentTriangleCount = 7_944;
     public const int Seed = 9173;
 
     public static PhysicalGeographyGenerationProfile Profile { get; } = new()
     {
-        Padding = 6,
+        BoundaryPaddingSteps = 36,
         TectonicProvinceCount = 6,
         ContinentalAssemblyCount = 2,
         ContinentalTransitionWidth = 8d,
@@ -22,7 +22,12 @@ internal static class PhysicalGeographyLayerTestHarness
         IslandTriangleThreshold = 100,
         LakeDepthThreshold = 3,
         MinimumLakeTriangles = 2,
-        EndorheicLakeFraction = 0d,
+        RunoffMinimumLossPerMille = 0,
+        RunoffTemperatureLossPerMille = 0,
+        LakeEvaporationMinimum = 1,
+        LakeEvaporationTemperatureStrength = 0,
+        LakeInfiltrationLoss = 0,
+        RiverMinimumBasinDischarge = 1_000,
         RiverAccumulationThreshold = 700,
         RiverMinimumAccumulationThreshold = 180,
         RiverBasinHeadwaterFraction = 90,
@@ -43,7 +48,9 @@ internal static class PhysicalGeographyLayerTestHarness
     {
         Profile.Validate();
         var pipeline = PhysicalGeographyPipeline.CreateDefault(Profile);
-        var map = new PhysicalGeographyField(new PhysicalGeographyGrid(Radius, Profile.Padding));
+        var map = new PhysicalGeographyField(PhysicalGeographyGrid.CreateWithPadding(
+            ContentTriangleCount,
+            Profile.BoundaryPaddingSteps));
         foreach (var layer in pipeline.Layers)
         {
             map = pipeline.ApplyLayer(layer, map, Seed);
@@ -62,7 +69,7 @@ internal static class PhysicalGeographyLayerTestHarness
     public static LayerResult GenerateComplete()
     {
         var pipeline = PhysicalGeographyPipeline.CreateDefault(Profile);
-        var map = pipeline.Generate(Radius, Seed);
+        var map = pipeline.Generate(ContentTriangleCount, Seed);
         var layer = pipeline.Layers[^1];
         return new LayerResult(
             map,

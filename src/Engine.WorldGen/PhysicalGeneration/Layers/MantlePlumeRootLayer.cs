@@ -27,12 +27,12 @@ internal sealed class MantlePlumeRootLayer : IPhysicalGeographyLayer
 
         var count = Math.Min(
             context.Profile.MantlePlumeCount,
-            Math.Max(1, map.Grid.ConfiguredHexCount));
+            map.Grid.ContentTriangleCount);
         var candidateLimit = Math.Max(256, count * 256);
         var candidates = new BoundedCandidateSelection(candidateLimit);
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
-            if (!map.Grid.TriangleIsInsideConfiguredDisk(triangleIndex))
+            if (!map.Grid.TriangleIsInsideContentDomain(triangleIndex))
             {
                 continue;
             }
@@ -40,7 +40,10 @@ internal sealed class MantlePlumeRootLayer : IPhysicalGeographyLayer
             candidates.Consider(
                 triangleIndex,
                 (1000 - map.TectonicStrain[triangleIndex]) +
-                    (PhysicalNoise.HashUnit(context.Seed, triangleIndex, 0) * 420d));
+                    (PhysicalNoise.HashUnit(
+                        context.Seed,
+                        map.Grid.TriangleIdentity(triangleIndex),
+                        0) * 420d));
         }
 
         var selected = SelectSeparatedRoots(map, candidates.GetBestIndexes(), count, context.Profile);
@@ -72,7 +75,7 @@ internal sealed class MantlePlumeRootLayer : IPhysicalGeographyLayer
         {
             var strength = map.MantlePlumeRootStrength[triangleIndex];
             if (strength is < 0 or > 1000 ||
-                (strength > 0 && !map.Grid.TriangleIsInsideConfiguredDisk(triangleIndex)))
+                (strength > 0 && !map.Grid.TriangleIsInsideContentDomain(triangleIndex)))
             {
                 throw new InvalidOperationException("Mantle plume roots are invalid.");
             }
@@ -94,7 +97,7 @@ internal sealed class MantlePlumeRootLayer : IPhysicalGeographyLayer
     {
         var spacing = Math.Min(
             profile.MantlePlumeMinimumSpacing,
-            Math.Max(3d, map.Grid.Radius * 1.4d));
+            Math.Max(3d, map.Grid.ContentRadius * 1.4d));
         var minimumSquared = spacing * spacing;
         var selected = new List<int>(count);
         foreach (var candidate in candidates)

@@ -115,7 +115,10 @@ internal sealed class AuroraFeatureLayer : IIceRemembersMicrogeographyLayer
         map.AuroraIntensity[triangleIndex] >= 510 - hysteresis &&
         map.Physical.LandformCodes[triangleIndex] is PhysicalLandformCodes.Peak or
             PhysicalLandformCodes.Ridge &&
-        PhysicalNoise.HashUnit(context.Seed ^ 0x77aa, triangleIndex, 0x1d3) >= 0.25d;
+        PhysicalNoise.HashUnit(
+            context.Seed ^ 0x77aa,
+            map.Physical.Grid.TriangleIdentity(triangleIndex),
+            0x1d3) >= 0.25d;
 
     private static bool IsMeltLineSeed(
         IceRemembersMicrogeographyMap map,

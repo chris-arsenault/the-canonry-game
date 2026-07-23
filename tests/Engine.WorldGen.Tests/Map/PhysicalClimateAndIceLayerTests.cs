@@ -58,12 +58,11 @@ public sealed class PhysicalClimateAndIceLayerTests
     public void WarmthSources_IncludeHeartAndSeparatedHabitatsAndRejectEmptyField()
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<WarmthSourceLayer>();
-        Assert.True(result.Map.Grid.TryGetHexIndex(new HexCoord(0, 0), out var heartHex));
-        Assert.Contains(Enumerable.Range(0, PhysicalGeographyCodes.MicrotrianglesPerHex), local =>
-            result.Map.Warmth[result.Map.Grid.TriangleIndex(heartHex, local)] > 0);
+        Assert.True(result.Map.Grid.TryFindNearestTriangle(0d, 0d, out var heart));
+        Assert.True(result.Map.Warmth[heart] > 0);
         Assert.Contains(Enumerable.Range(0, result.Map.Grid.TriangleCount), index =>
-            result.Map.Grid.HexDistanceAt(result.Map.Grid.TriangleHexIndex(index)) >=
-                result.Map.Grid.Radius / 2 &&
+            result.Map.Grid.TriangleDistanceFromOrigin(index) >=
+                result.Map.Grid.ContentRadius / 2d &&
             result.Map.Warmth[index] > 0);
 
         result.Map.Warmth.Clear();
@@ -171,7 +170,7 @@ public sealed class PhysicalClimateAndIceLayerTests
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<LandIceLayer>();
         var land = Enumerable.Range(0, result.Map.Grid.TriangleCount)
-            .Where(index => result.Map.Grid.TriangleIsInsideConfiguredDisk(index) &&
+            .Where(index => result.Map.Grid.TriangleIsInsideContentDomain(index) &&
                 result.Map.WaterKindCodes[index] == PhysicalWaterKindCodes.None)
             .ToArray();
         Assert.Contains(land, index => result.Map.IceThickness[index] >=
@@ -293,7 +292,7 @@ public sealed class PhysicalClimateAndIceLayerTests
     {
         var result = PhysicalGeographyLayerTestHarness.GenerateThrough<SeaIceLayer>();
         var ocean = Enumerable.Range(0, result.Map.Grid.TriangleCount)
-            .Where(index => result.Map.Grid.TriangleIsInsideConfiguredDisk(index) &&
+            .Where(index => result.Map.Grid.TriangleIsInsideContentDomain(index) &&
                 result.Map.WaterKindCodes[index] == PhysicalWaterKindCodes.Ocean)
             .ToArray();
         var frozen = ocean.Count(index => result.Map.IceThickness[index] > 0);

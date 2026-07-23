@@ -92,7 +92,10 @@ internal sealed class AuroraFieldLayer : IIceRemembersMicrogeographyLayer
             }
 
             var temperature = map.Physical.Temperature[neighbor];
-            var tie = PhysicalNoise.HashUnit(seed ^ 0x4dcb, triangleIndex, neighbor);
+            var tie = PhysicalNoise.HashUnit(
+                seed ^ 0x4dcb,
+                map.Physical.Grid.TriangleIdentity(triangleIndex),
+                map.Physical.Grid.TriangleIdentity(neighbor));
             if (temperature < targetTemperature ||
                 (temperature == targetTemperature && target >= 0 && tie > targetTie))
             {

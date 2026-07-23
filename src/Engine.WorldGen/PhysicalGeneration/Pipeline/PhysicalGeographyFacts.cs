@@ -45,4 +45,7 @@ internal enum PhysicalGeographyFacts : ulong
     MantlePlumeRoots = 1UL << 38,
     VolcanicConstruction = 1UL << 39,
     TectonicMargins = 1UL << 40,
+    CrustalSupport = 1UL << 41,
+    OrogenicConstruction = 1UL << 42,
+    ContinentalSutures = 1UL << 43,
 }

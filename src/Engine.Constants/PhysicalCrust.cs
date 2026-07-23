@@ -32,21 +32,28 @@ public static class PhysicalCrust
     public const int OceanicThicknessUnits = 1000;
 
     /// <summary>
-    /// Thickness that floats exactly at sea level. Crust thicker than this
-    /// stands above the water, thinner sits below.
+    /// Height of an undeformed continental foundation. Continental identity
+    /// supplies modest freeboard; collision-thickened roots and constructed
+    /// surface rock own the world's major positive relief.
     /// </summary>
-    public const int CompensationThicknessUnits = 3000;
+    public const int ContinentalFoundationHeightUnits = 200;
 
     /// <summary>
-    /// Height gained per unit of thickness above compensation, per mille.
-    /// Calibrated so unthickened continent at 4,000 units stands near 700,
-    /// oceanic crust at 1,000 sits near -900 once its density drop applies,
-    /// and crust doubled by collision at 8,000 reaches about 1,900 - just
-    /// inside the elevation range the pipeline validates. The ceiling
-    /// represents doubled continental crust, which is what collision does,
-    /// rather than a height ordinary ground can reach.
+    /// Continental height gained per unit of thickness above its foundation,
+    /// per mille. Crust doubled by collision reaches 3,000 units of supported
+    /// height before its narrower constructed summit load is applied.
     /// </summary>
-    public const int BuoyancyPerMille = 700;
+    public const int ContinentalBuoyancyPerMille = 700;
+
+    /// <summary>
+    /// Height of young oceanic foundation before thermal subsidence. Deep
+    /// water accumulates with crustal age across the basin rather than being a
+    /// material cliff charged to every shoreline.
+    /// </summary>
+    public const int OceanicFoundationHeightUnits = -200;
+
+    /// <summary>Oceanic response to departure from foundation thickness.</summary>
+    public const int OceanicBuoyancyPerMille = 300;
 
     /// <summary>
     /// Half-range of per-province thickness variation, authored units.
@@ -68,22 +75,39 @@ public static class PhysicalCrust
     /// <inheritdoc cref="MinimumThicknessUnits"/>
     public const int MaximumThicknessUnits = 8000;
 
-    /// <summary>
-    /// How much lower oceanic crust floats for its thickness, authored units.
-    /// Ocean floor is dense basalt and continent is lighter granite, so a
-    /// single buoyancy line cannot seat both; without this the abyss comes out
-    /// as shallow as a lowland.
-    /// </summary>
-    public const int OceanicDensityDropUnits = 700;
-
     /// <summary>Surface height in authored units for a given thickness.</summary>
     public static double HeightUnits(double thicknessUnits) => HeightUnits(thicknessUnits, false);
 
-    /// <summary>Surface height, accounting for oceanic crust floating lower.</summary>
+    /// <summary>Surface height at a discrete crust-composition endpoint.</summary>
     public static double HeightUnits(double thicknessUnits, bool oceanic) =>
-        ((ClampThicknessUnits(thicknessUnits) - CompensationThicknessUnits) *
-            (BuoyancyPerMille / 1000d)) -
-        (oceanic ? OceanicDensityDropUnits : 0);
+        HeightUnits(thicknessUnits, oceanic ? 0d : 1d);
+
+    /// <summary>
+    /// Surface height for continuously varying crust composition. Each
+    /// composition owns a matching foundation thickness and modest foundation
+    /// height; deformation is measured from that local foundation. Evaluating
+    /// mixed crust against both endpoint compensation columns introduced a
+    /// convex sag and concentrated the material rise on the landward coast.
+    /// </summary>
+    public static double HeightUnits(double thicknessUnits, double continentalFraction)
+    {
+        var fraction = global::System.Math.Clamp(continentalFraction, 0d, 1d);
+        var foundationThickness = OceanicThicknessUnits +
+            ((ContinentalThicknessUnits - OceanicThicknessUnits) * fraction);
+        var foundationHeight = OceanicFoundationHeightUnits +
+            ((ContinentalFoundationHeightUnits - OceanicFoundationHeightUnits) * fraction);
+        var deformation = ClampThicknessUnits(thicknessUnits) - foundationThickness;
+        return foundationHeight + (deformation * BuoyancyPerMille(fraction) / 1000d);
+    }
+
+    /// <summary>
+    /// Local thickness-to-height response for continuously varying crust
+    /// composition, per mille.
+    /// </summary>
+    public static double BuoyancyPerMille(double continentalFraction) =>
+        OceanicBuoyancyPerMille +
+        ((ContinentalBuoyancyPerMille - OceanicBuoyancyPerMille) *
+            global::System.Math.Clamp(continentalFraction, 0d, 1d));
 
     /// <summary>Thickness held inside the band height can legally express.</summary>
     public static double ClampThicknessUnits(double thicknessUnits) =>

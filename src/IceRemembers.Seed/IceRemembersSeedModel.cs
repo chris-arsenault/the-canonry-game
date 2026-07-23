@@ -1,10 +1,10 @@
 namespace IceRemembers.Seed;
 
 using Engine.Constants;
+using Engine.Domain.Spatial;
 using Engine.Domain.Startup;
 using Engine.Graph;
 using Engine.Kinds;
-using Engine.WorldGen;
 
 /// <summary>
 /// The accepted seed plus why the attempts before it were turned down.

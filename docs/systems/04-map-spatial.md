@@ -5,11 +5,12 @@ the semantic plane.
 
 ## Physical And Semantic Maps
 
-The physical map is a hex grid with Ice Remembers terrain vocabulary: shelf,
-wastes, tundra, ice, hot springs, ocean, reef, scar, and related variants.
-Procedural generation creates terrain-aware seeds rather than full-cover
-placeholder partitions. It deterministically generates a latent field through
-radius 128 while initially materializing only the radius-18 heart.
+The runtime physical map is a hex grid with Ice Remembers terrain vocabulary:
+shelf, wastes, tundra, ice, hot springs, ocean, reef, scar, and related
+variants. Procedural generation creates terrain-aware seeds rather than
+full-cover placeholder partitions. It deterministically generates a latent
+field large enough to project the radius-128 runtime map while initially
+materializing only the radius-18 heart.
 
 The semantic plane is an analogous map model, not a mirror of the physical
 map. It has the same plane-aware storage, movement, culture influence, road,
@@ -35,34 +36,68 @@ of physical material.
 
 ## Physical Microgeography And Effective Terrain
 
-Every latent physical surface hex has 24 canonically indexed microtriangles.
-Each triangle stores a physical material, landform, elevation, stable climate
+Physical generation begins and ends on one global equilateral-microtriangle
+lattice. A triangle has only global lattice coordinates, orientation, and three
+unit-distance neighbors; it has no parent hex, sector, or local index. The seed
+layer converts the requested kernel radius to a triangle budget once, generates
+a padded field, and only then projects groups of 24 triangles into canonically
+indexed runtime cells. That projection is also the sole owner of cell edge-mask
+and flow-edge remapping.
+
+Each generated triangle stores a physical material, landform, elevation, stable climate
 and geothermal values, water kind/depth/body, drainage basin, downstream edge,
 flow accumulation, river order, ocean-current direction/strength/heat, wave
 exposure, rainfall, snowfall, sea-ice suitability, bedrock elevation, sediment
-thickness, cumulative erosion/deposition (including glacial deposition),
+thickness, continuous continental-crust composition, persistent crustal
+thickness and age, crustal support and surface load, plate-pair identity,
+plate-boundary tangent, transported continental-suture pair and strength,
+cumulative erosion/deposition (including glacial deposition),
 maximum glaciation, impact excavation/rim/ejecta history, channel strength
-and order, floodplain intensity, delta intensity, mantle-plume roots, current
+and order, lake outlet and overflow, floodplain intensity, delta intensity,
+mantle-plume roots, current
 volcanic activity, cumulative volcanic construction, volcanic age, and permanent
 feature flags. Physical materials
 such as bedrock, scree, tundra soil, glacial ice, marine sediment, reef stone,
-and geothermal crust are not gameplay terrain IDs. Stable within-hex and
-across-edge adjacency makes ridges, coasts, drainage, and rivers continuous
-across hex boundaries instead of independently rolled decorations.
+and geothermal crust are not gameplay terrain IDs. Uniform global adjacency
+makes ridges, coasts, drainage, and rivers continuous before a runtime map
+topology is selected.
 
 Generation elevation is deterministic signed fixed point with 1,024 subunits
 per authored elevation unit. Bedrock plus sediment defines the irregular
 physical floor. Actual ocean or lake surface, water depth, the conditioned
-drainage surface, and outletward routing rank are separate facts: priority
-flooding may establish a flat lake surface without flattening its submerged
-floor, and routing may cross a conditioned flat without pretending the terrain
-itself is level. The kernel receives only the rounded hex-scale terrain result;
+drainage surface, and outletward routing rank are separate facts. Priority
+flooding establishes only the conditioned routing surface and candidate spill
+datum. A separate water-balance stage establishes an actual lake surface
+without flattening its submerged floor, and routing may cross a conditioned
+flat without pretending the terrain itself is level. The kernel receives only
+the rounded hex-scale terrain result;
 the fine fields remain in startup worldgen, projection, and inspection data.
 
-Generation is ordered over one padded graph. Irregular moving crust provinces
+Generation is ordered over that one padded global lattice. All slope, flux,
+distance, erosion, and transport calculations therefore use one microtriangle
+step as one horizontal unit; there is no cell-boundary distance correction or
+slope divisor. Irregular moving crust provinces
 establish continental assemblies and oceanic crust. Relative motion types their
 boundaries as convergent, divergent, or transform; continuous strain then drives
-mountain systems, rifts, fractures, and mostly submarine island arcs. Rare
+mountain systems, rifts, fractures, and mostly submarine island arcs. The
+categorical crust code remains classification, while continuous composition
+selects a modest foundation height and matching foundation thickness. Support
+then follows deformation from that foundation instead of interpolating two
+endpoint compensation curves. Persistent
+crust, load, sediment, and material history advect by conservative source
+scatter. Convergent overlap is stored as shortening surplus rather than added
+to every receiving triangle. Connected components sharing one plate pair and
+tectonic mode then distribute finite deformation budgets across coherent
+systems. Collision builds broad flexed roots plus narrower resistant summit
+loads with multiple crests, subduction builds
+narrower continental-side belts, rifting thins an axis and raises shoulders,
+and transform motion produces modest narrow relief. Active range structure is
+sampled in the local boundary-tangent frame, producing long along-strike
+systems with short cross-range flanks rather than isotropic noise.
+Convergence between unlike transported continental assembly IDs establishes a
+material suture whose pair identity and shortening strength advect with the
+crust. It can preserve an inherited interior range after the active boundary
+moves; no synthetic elevation belt substitutes for that history. Rare
 intraplate mantle roots remain fixed while crust motion advances their surface
 expression across epochs, constructing age-progressive seamount and island
 chains plus occasional continental cones, calderas, and lava plains. Those
@@ -72,7 +107,22 @@ glacial maximum, and retreat/present—reuse these same physical layers with
 different tectonic, hydrologic, glacial, coastal, temperature, and sea-level
 forcing. Fluvial stream power incrementally removes sediment and bedrock,
 routes the produced sediment downstream, deposits it in low-energy basins and
-mouths, and accounts for material exported from the modeled field.
+mouths, and accounts for material exported from the modeled field. Erosional
+unloading is recorded as a surface load change. Airy support combines crustal
+thickness, continuous composition, oceanic age subsidence, sediment, rock, and
+grounded-ice loads; lithospheric flexure spreads the response regionally before
+shifting the bedrock datum. After tectonic, volcanic, and impact construction,
+deterministic mass wasting moves material only across edges above the
+stable-step threshold. One source has one bounded outgoing budget even when
+several faces descend from it. A smaller post-fluvial pass widens incised walls;
+rivers cut only above a discharge-conditioned equilibrium fall rather than
+receiving unconditional zero-slope incision. Ocean coverage calibrates a sea
+datum once, and later epochs apply authored offsets without retargeting
+coverage. Ordinary margin evolution does not stamp landward coastal plains. It
+caps oceanward deepening through the shelf and an adaptive continental rise
+until the profile meets the ambient basin; transforms may be steeper and
+convergent margins retain exceptional trenches. Marine sediment fills passive
+and rifted accommodation only from material already counted as exported.
 Before those epochs, the first volcanic constructs and sparse domain-neutral
 impacts establish relief; impacts excavate basins, lift and
 fracture rims, distribute conserved ejecta, and retain short-lived heat only
@@ -80,8 +130,13 @@ for sufficiently large strikes. Later volcanic, fluvial, coastal, glacial,
 sea-level, and hydrological passes continue to act on and reshape those forms.
 Connected-component and boundary-flood passes identify landmasses,
 continental shelves, bathymetry, and the exterior ocean. Priority-flood
-drainage then creates coherent lakes, accumulated runoff, tributaries, and
-routing rank without changing the physical floor. Legal routes descend the
+drainage then creates the conditioned routing surface and outlet rank without
+changing the physical floor. A separate lake stage tests topographic
+accommodation against catchment runoff, direct precipitation and melt,
+evaporation, and infiltration. It may leave a basin dry, establish disconnected
+partial endorheic pools as separate bodies, or raise a lake to its spill stage;
+only spilling lakes record overflow and a physical outlet for later sill
+incision. Legal routes descend the
 fine drainage surface or advance outletward across an exactly conditioned
 flat; inherited valleys guide only physically compatible choices. Coordinate
 hashes break only exact final ties. Basin-relative thresholds retain
@@ -99,8 +154,10 @@ Currents follow broad curl forcing while responding to basin depth and coast
 normals. They transport geothermal heat, moderate selected habitats, expose
 coasts to waves, and break up sea-ice suitability. Coherent atmospheric paths
 retain orographic moisture shadows and split precipitation into rain and snow;
-only precipitation and melt on dry ground create local runoff. Standing ocean
-and lake triangles contribute no local water merely by existing. Equal drainage
+dry ground contributes precipitation and melt as local runoff, while a
+candidate lake surface receives direct precipitation and melt in its water
+budget. Ocean contributes no local runoff, and standing water creates no water
+merely by existing. Equal drainage
 choices use an outlet-facing geometric preference, never triangle storage order.
 Ice mass accumulates and ablates incrementally; surface, basal, geothermal, and
 retreat melt feed proglacial drainage. Its retained flow graph drives separate

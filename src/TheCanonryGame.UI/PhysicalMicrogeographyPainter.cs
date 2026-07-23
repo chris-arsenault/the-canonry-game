@@ -109,6 +109,7 @@ public sealed partial class PhysicalMicrogeographyPainter
         _owner.FeaturesEnabled = featuresEnabled;
         _owner.DrawMicrotriangles = drawMicrotriangles;
         _owner.DrawAggregateHexes = !drawMicrotriangles;
+        _owner.ApplyReliefShading = true;
         try
         {
             if (drawMicrotriangles)
@@ -422,9 +423,7 @@ public sealed partial class PhysicalMicrogeographyPainter
                 _owner!.Geography.MaterialName(triangle.MaterialIndex)),
             _ => UiTokens.Whisper,
         };
-        return PhysicalMicrogeographyRenderDecisions.UsesReliefShading(view)
-            ? ReliefShade(color, triangle.Elevation, triangle.Slope, triangle.Slope)
-            : color;
+        return ApplyTriangleRelief(color, triangle, view);
     }
 
     private Color TrianglePhysicalFieldColor(
@@ -587,11 +586,10 @@ public sealed partial class PhysicalMicrogeographyPainter
             PhysicalGeographyView.Pressure => pressure,
             _ => Math.Max(fire, Math.Max(aurora, pressure)),
         };
-        var geography = ReliefShade(
+        var geography = ApplyTriangleRelief(
             UiTokens.PhysicalSurfaceColor(_owner!.Geography.SurfaceName(triangle.BaseSurfaceIndex)),
-            triangle.Elevation,
-            triangle.Slope,
-            triangle.Slope);
+            triangle,
+            PhysicalGeographyView.NaturalSurface);
         return CompositeMagicOverGeography(geography, magic, intensity);
     }
 
@@ -1140,6 +1138,8 @@ public sealed partial class PhysicalMicrogeographyPainter
         public bool DrawMicrotriangles { get; set; }
 
         public bool DrawAggregateHexes { get; set; }
+
+        public bool ApplyReliefShading { get; set; } = true;
 
         public Color TerrainColor(in PhysicalGeographyCellProjection cell) =>
             UiTokens.TerrainColor(cell.BaseTerrainStableName);

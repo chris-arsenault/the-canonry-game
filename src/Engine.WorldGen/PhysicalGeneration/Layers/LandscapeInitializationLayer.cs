@@ -38,8 +38,14 @@ internal sealed class LandscapeInitializationLayer : IPhysicalGeographyLayer
         for (var triangleIndex = 0; triangleIndex < map.Grid.TriangleCount; triangleIndex++)
         {
             map.BedrockElevation[triangleIndex] = map.Elevation[triangleIndex];
+            map.CrustSupportElevation[triangleIndex] = map.Elevation[triangleIndex];
             map.TectonicActivityHistory[triangleIndex] = map.TectonicStrain[triangleIndex];
         }
+
+        // Tectonic uplift established the initial flotation datum. Subsequent
+        // thickness changes must move the bedrock relative to this datum on
+        // the first flexure pass instead of being mistaken for initialization.
+        map.CrustSupportInitialized = true;
     }
 
     public void Validate(PhysicalGeographyField map, PhysicalGeographyGenerationContext context)

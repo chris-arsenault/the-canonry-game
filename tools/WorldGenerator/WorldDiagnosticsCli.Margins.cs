@@ -23,14 +23,23 @@ internal static partial class WorldDiagnosticsCli
         var coastal = new long[names.Length];
         var shelfTriangles = new long[names.Length];
         var landTriangles = new long[names.Length];
+        var shorelineSteps = new List<long>[names.Length];
+        for (var margin = 0; margin < names.Length; margin++)
+        {
+            shorelineSteps[margin] = [];
+        }
+
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
-            if (!field.Grid.TriangleIsInsideConfiguredDisk(t))
+            if (!field.Grid.TriangleIsInsideContentDomain(t))
             {
                 continue;
             }
 
-            var margin = field.MarginCodes[t];
+            var margin = field.WaterKindCodes[t] == PhysicalWaterKindCodes.Ocean &&
+                field.OceanMarginDistance[t] > 0
+                    ? field.CoastalMarginCodes[t]
+                    : field.MarginCodes[t];
             if (margin < 0 || margin >= names.Length)
             {
                 continue;
@@ -44,6 +53,7 @@ internal static partial class WorldDiagnosticsCli
                 if (HasOceanNeighbor(field, t))
                 {
                     coastal[margin]++;
+                    CollectShorelineSteps(field, t, shorelineSteps[margin]);
                 }
             }
             else if (field.BathymetricZoneCodes[t] is PhysicalBathymetricZoneCodes.Shelf
@@ -72,13 +82,125 @@ internal static partial class WorldDiagnosticsCli
             var crenulation = landTriangles[margin] <= 0
                 ? 0d
                 : coastal[margin] / Math.Sqrt(landTriangles[margin]);
+            var steps = shorelineSteps[margin].ToArray();
+            Array.Sort(steps);
+            var medianStep = steps.Length == 0 ? 0 : PercentileLong(steps, 50);
+            var upperStep = steps.Length == 0 ? 0 : PercentileLong(steps, 90);
             Console.WriteLine(
                 $"  {names[margin],-11} triangles={all[margin],8} land={landTriangles[margin],8} " +
                 $"coastline={coastal[margin],6} shelf/coast={shelfPerCoast,6:0.00} " +
-                $"crenulation={crenulation,6:0.00}");
+                $"crenulation={crenulation,6:0.00} " +
+                $"shore-step(p50={medianStep},p90={upperStep})");
         }
 
+        ReportMarginDistanceBands(field, names);
         ReportCoastalForms(field);
+    }
+
+    /// <summary>
+    /// Direct shore steps miss both the former inner coastal-plain wall and
+    /// the outer shelf-to-abyss join. Distance-banded oceanward edges expose
+    /// the complete margin instead of accepting one favorable shoreline.
+    /// </summary>
+    private static void ReportMarginDistanceBands(
+        PhysicalGeographyField field,
+        string[] names)
+    {
+        int[] bounds = [1, 8, 24, 48, 96, 192, int.MaxValue];
+        var steps = new List<long>[names.Length][];
+        var depths = new List<long>[names.Length][];
+        for (var margin = 0; margin < names.Length; margin++)
+        {
+            steps[margin] = new List<long>[bounds.Length];
+            depths[margin] = new List<long>[bounds.Length];
+            for (var band = 0; band < bounds.Length; band++)
+            {
+                steps[margin][band] = [];
+                depths[margin][band] = [];
+            }
+        }
+
+        for (var triangle = 0; triangle < field.Grid.TriangleCount; triangle++)
+        {
+            var distance = field.OceanMarginDistance[triangle];
+            var margin = field.CoastalMarginCodes[triangle];
+            if (distance <= 0 || margin < 0 || margin >= names.Length ||
+                !field.Grid.TriangleIsInsideContentDomain(triangle))
+            {
+                continue;
+            }
+
+            var band = DistanceBand(distance, bounds);
+            depths[margin][band].Add(Math.Max(
+                0,
+                field.EffectiveSeaLevel - field.Elevation[triangle]));
+            for (var edge = 0; edge < 3; edge++)
+            {
+                var neighbor = field.Grid.NeighborTriangleIndex(triangle, edge);
+                if (neighbor < 0 || field.OceanMarginDistance[neighbor] != distance + 1)
+                {
+                    continue;
+                }
+
+                steps[margin][band].Add(Math.Abs(
+                    field.Elevation[triangle] - field.Elevation[neighbor]));
+            }
+        }
+
+        Console.WriteLine("  oceanward cross-sections (authored units):");
+        for (var margin = PhysicalMarginCodes.Passive; margin < names.Length; margin++)
+        {
+            for (var band = 0; band < bounds.Length; band++)
+            {
+                if (steps[margin][band].Count == 0)
+                {
+                    continue;
+                }
+
+                var stepValues = steps[margin][band].ToArray();
+                var depthValues = depths[margin][band].ToArray();
+                Array.Sort(stepValues);
+                Array.Sort(depthValues);
+                var lower = bounds[band];
+                var upper = band == bounds.Length - 1 ? "+" : $"-{bounds[band + 1] - 1}";
+                Console.WriteLine(
+                    $"    {names[margin],-11} d{lower}{upper,-4} " +
+                    $"step(p50={Units(PercentileLong(stepValues, 50)):0.0}," +
+                    $"p90={Units(PercentileLong(stepValues, 90)):0.0}," +
+                    $"p99={Units(PercentileLong(stepValues, 99)):0.0}) " +
+                    $"depth(p50={Units(PercentileLong(depthValues, 50)):0}," +
+                    $"p90={Units(PercentileLong(depthValues, 90)):0})");
+            }
+        }
+    }
+
+    private static int DistanceBand(int distance, ReadOnlySpan<int> bounds)
+    {
+        var band = 0;
+        while (band < bounds.Length - 1 && distance >= bounds[band + 1])
+        {
+            band++;
+        }
+
+        return band;
+    }
+
+    private static double Units(long elevation) =>
+        elevation / (double)PhysicalElevation.SubunitsPerUnit;
+
+    private static void CollectShorelineSteps(
+        PhysicalGeographyField field,
+        int land,
+        List<long> steps)
+    {
+        for (var edge = 0; edge < 3; edge++)
+        {
+            var neighbor = field.Grid.NeighborTriangleIndex(land, edge);
+            if (neighbor >= 0 && field.WaterKindCodes[neighbor] == PhysicalWaterKindCodes.Ocean)
+            {
+                steps.Add(Math.Abs(field.Elevation[land] - field.Elevation[neighbor]));
+            }
+        }
     }
 
     /// <summary>
@@ -97,7 +219,7 @@ internal static partial class WorldDiagnosticsCli
         var volcanicByEpoch = new Dictionary<int, int>();
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
-            if (!field.Grid.TriangleIsInsideConfiguredDisk(t))
+            if (!field.Grid.TriangleIsInsideContentDomain(t))
             {
                 continue;
             }
@@ -173,8 +295,8 @@ internal static partial class WorldDiagnosticsCli
         var perSurface = new Dictionary<string, long>(StringComparer.Ordinal);
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
-            if (!field.Grid.TriangleIsInsideConfiguredDisk(t) ||
-                field.Grid.HexDistanceAt(field.Grid.TriangleHexIndex(t)) > maximumHexDistance)
+            if (!field.Grid.TriangleIsInsideContentDomain(t) ||
+                field.Grid.TriangleDistanceFromOrigin(t) > maximumHexDistance * 6d)
             {
                 continue;
             }
@@ -253,7 +375,7 @@ internal static partial class WorldDiagnosticsCli
             ["river_valley", "river_channel", "floodplain", "delta", "wet_tundra", "lake"];
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
-            if (!field.Grid.TriangleIsInsideConfiguredDisk(t) ||
+            if (!field.Grid.TriangleIsInsideContentDomain(t) ||
                 field.WaterKindCodes[t] != PhysicalWaterKindCodes.None)
             {
                 continue;
@@ -318,7 +440,7 @@ internal static partial class WorldDiagnosticsCli
         long fjord = 0;
         for (var t = 0; t < field.Grid.TriangleCount; t++)
         {
-            if (!field.Grid.TriangleIsInsideConfiguredDisk(t))
+            if (!field.Grid.TriangleIsInsideContentDomain(t))
             {
                 continue;
             }

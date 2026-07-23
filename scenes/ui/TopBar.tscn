@@ -51,6 +51,11 @@ custom_minimum_size = Vector2(46, 28)
 tooltip_text = "10 ticks/sec"
 text = "10x"
 
+[node name="Physical3DButton" type="Button" parent="Row/Controls"]
+custom_minimum_size = Vector2(92, 28)
+tooltip_text = "Pause simulation and inspect the complete generated physical map in 3D"
+text = "Explore 3D"
+
 [node name="WorldSelector" type="OptionButton" parent="Row/Controls"]
 custom_minimum_size = Vector2(170, 28)
 tooltip_text = "Locally saved pregenerated worlds"

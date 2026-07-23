@@ -13,7 +13,7 @@ public sealed class IceRemembersEvolutionLayerTests
     public void ProductionEpochSchedule_CompletesWithStructurallyValidOutput(int seed)
     {
         var result = IceRemembersWorldGenerationOrchestrator.Generate(
-            32,
+            PhysicalGenerationSize.FromKernelRadius(32).TriangleCount,
             seed,
             IceRemembersPhysicalGeography.GenerationProfile,
             IceRemembersPhysicalGeography.MicrogeographyProfile,
@@ -32,7 +32,7 @@ public sealed class IceRemembersEvolutionLayerTests
             Epoch("second", 1000, 850, 1000),
         };
         var result = IceRemembersWorldGenerationOrchestrator.Generate(
-            6,
+            PhysicalGenerationSize.FromKernelRadius(6).TriangleCount,
             IceRemembersMicrogeographyLayerTestHarness.Seed,
             IceRemembersMicrogeographyLayerTestHarness.PhysicalProfile,
             IceRemembersMicrogeographyLayerTestHarness.Profile,

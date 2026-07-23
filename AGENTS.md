@@ -91,6 +91,14 @@ figures/artifacts, not as a default shortcut. Every startup seed entity also
 needs an explicit short reference/inheritable name for generated descendants and
 provenance contexts.
 
+Production seed worlds used for gameplay, review, screenshots, diagnostics, or
+evidence must be generated in Release mode. Never build or generate a seed world
+from Debug artifacts. Use an explicit Release invocation such as
+`dotnet run --project tools/WorldGenerator -c Release -- ...`; if `--no-build`
+is used, first verify that the selected artifact path is the Release output from
+the current source. A world produced by a Debug generator is invalid and must
+not be reviewed or reported as evidence.
+
 Do not add helpers, abstractions, tests, telemetry, docs, or architecture unless
 they are explicitly part of the approved proposal.
 

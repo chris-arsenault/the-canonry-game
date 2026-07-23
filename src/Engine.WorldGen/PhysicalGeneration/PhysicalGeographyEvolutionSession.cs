@@ -32,7 +32,7 @@ public sealed class PhysicalGeographyEvolutionSession
     private int _epochCount;
 
     private PhysicalGeographyEvolutionSession(
-        int radius,
+        int triangleCount,
         int seed,
         PhysicalGeographyGenerationProfile profile)
     {
@@ -40,16 +40,30 @@ public sealed class PhysicalGeographyEvolutionSession
         profile.Validate();
         _rootSeed = seed;
         _pipeline = new PhysicalGeographyPipeline(profile, []);
-        Map = new PhysicalGeographyField(new PhysicalGeographyGrid(radius, profile.Padding));
+        Map = new PhysicalGeographyField(PhysicalGeographyGrid.CreateWithPadding(
+            triangleCount,
+            profile.BoundaryPaddingSteps));
         Apply(new TectonicProvinceLayer());
+        Apply(new ContinentalSutureLayer());
         Apply(new TectonicMarginLayer());
         Apply(new ContinentalDomainLayer());
         Apply(new TectonicUpliftLayer());
         Apply(new LandscapeInitializationLayer());
-        Apply(new CoastalDetailLayer());
+        Apply(new OrogenicConstructionLayer());
         Apply(new MantlePlumeRootLayer());
         Apply(new VolcanicConstructionLayer());
         Apply(new ImpactCrateringLayer());
+        Apply(new MassWastingLayer());
+        Apply(new CrustalSupportLayer(includeIceLoad: false));
+        Apply(new LithosphericFlexureLayer());
+        Apply(_ocean);
+        Apply(new ContinentalMarginEvolutionLayer());
+        Apply(new MarineSedimentationLayer());
+        Apply(new CrustalSupportLayer(includeIceLoad: false));
+        Apply(new LithosphericFlexureLayer());
+        Apply(_ocean);
+        Apply(new CoastalDetailLayer());
+        Apply(_ocean);
         Apply(new FractureNetworkLayer());
         Apply(new GeothermalLayer());
     }
@@ -59,10 +73,10 @@ public sealed class PhysicalGeographyEvolutionSession
     public int CompletedEpochCount => Map.CompletedEpochCount;
 
     public static PhysicalGeographyEvolutionSession Begin(
-        int radius,
+        int triangleCount,
         int seed,
         PhysicalGeographyGenerationProfile profile) =>
-        new(radius, seed, profile);
+        new(triangleCount, seed, profile);
 
     public void BeginEpoch(PhysicalGeographyEpochDefinition epoch, int totalEpochCount)
     {
@@ -91,11 +105,22 @@ public sealed class PhysicalGeographyEvolutionSession
         Apply(new PlateAdvectionLayer());
         Apply(new TectonicProvinceLayer());
         Apply(new TectonicEpochLayer());
+        Apply(new ContinentalSutureLayer());
         Apply(new TectonicMarginLayer());
         Apply(new ContinentalDomainLayer());
         Apply(new TectonicUpliftLayer());
+        Apply(new OrogenicConstructionLayer());
         Apply(new VolcanicConstructionLayer());
         Apply(new ImpactCrateringLayer());
+        Apply(new MassWastingLayer());
+        Apply(new CrustalSupportLayer(includeIceLoad: false));
+        Apply(new LithosphericFlexureLayer());
+        Apply(_ocean);
+        Apply(new ContinentalMarginEvolutionLayer());
+        Apply(new MarineSedimentationLayer());
+        Apply(new CrustalSupportLayer(includeIceLoad: false));
+        Apply(new LithosphericFlexureLayer());
+        Apply(_ocean);
         Apply(new FractureNetworkLayer());
         Apply(new GeothermalLayer());
         _phase = EvolutionPhase.Climate;
@@ -113,6 +138,12 @@ public sealed class PhysicalGeographyEvolutionSession
         RequirePhase(EvolutionPhase.Hydrology);
         ApplyDrainage();
         Apply(new FluvialErosionLayer());
+        Apply(new MassWastingLayer(postFluvial: true));
+        // Hillslope response changes the floor that bathymetry and routing
+        // describe. Sediment must follow the reconciled post-incision graph,
+        // not the stale graph that authorized the river cut.
+        ReconcileClimate();
+        ApplyDrainage();
         Apply(new SedimentTransportLayer());
         _phase = EvolutionPhase.Glaciation;
     }
@@ -124,6 +155,8 @@ public sealed class PhysicalGeographyEvolutionSession
         Apply(new IceFlowLayer());
         Apply(new GlacialErosionLayer());
         Apply(new GlacialDepositionLayer());
+        Apply(new CrustalSupportLayer(includeIceLoad: true));
+        Apply(new LithosphericFlexureLayer());
         _phase = EvolutionPhase.PostGlacialReconciliation;
     }
 

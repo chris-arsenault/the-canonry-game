@@ -5,86 +5,95 @@ using System.Runtime.CompilerServices;
 using Engine.Constants;
 
 /// <summary>
-/// Dense generation-time indexing for the canonical 24-triangle physical
-/// geography graph. The work disk includes padding; configured hex indexes are
-/// the cropped latent world exported to startup data.
+/// Dense generation-time indexing for one global equilateral microtriangle
+/// lattice. Neighboring centroids are exactly one generation distance unit
+/// apart. Coarser runtime cells are deliberately absent from this model.
 /// </summary>
 public sealed class PhysicalGeographyGrid
 {
-    private readonly Dictionary<HexCoord, int> _hexIndexes;
-    private readonly HexCoord[] _hexCoords;
-    private readonly int[] _hexDistances;
-    private readonly int[] _configuredHexIndexes;
+    private const double RootThree = 1.7320508075688772935d;
+    private const double TriangleArea = 1.2990381056766579701d;
+
+    private readonly Dictionary<MicrotriangleCoord, int> _triangleIndexes;
+    private readonly MicrotriangleCoord[] _triangleCoords;
     private readonly int[] _triangleNeighbors;
     private readonly float[] _triangleEdgeUnitX;
     private readonly float[] _triangleEdgeUnitY;
-    private readonly float[] _triangleEdgeScale;
     private readonly float[] _triangleX;
     private readonly float[] _triangleY;
+    private readonly bool[] _workBoundary;
 
-    public PhysicalGeographyGrid(int radius, int padding)
+    public PhysicalGeographyGrid(int contentTriangleCount, int workTriangleCount)
     {
-        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(radius);
-        ArgumentOutOfRangeException.ThrowIfNegative(padding);
-        Radius = radius;
-        Padding = padding;
-        WorkRadius = checked(radius + padding);
-        _hexCoords = HexCoord.CoordsInRadius(new HexCoord(0, 0), WorkRadius).ToArray();
-        _hexIndexes = new Dictionary<HexCoord, int>(_hexCoords.Length);
-        _hexDistances = new int[_hexCoords.Length];
-        var configured = new List<int>(HexCellCount(radius));
-        for (var hexIndex = 0; hexIndex < _hexCoords.Length; hexIndex++)
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(contentTriangleCount);
+        if (workTriangleCount < contentTriangleCount)
         {
-            var coord = _hexCoords[hexIndex];
-            _hexIndexes.Add(coord, hexIndex);
-            var distance = HexCoord.Distance(new HexCoord(0, 0), coord);
-            _hexDistances[hexIndex] = distance;
-            if (distance <= radius)
-            {
-                configured.Add(hexIndex);
-            }
+            throw new ArgumentOutOfRangeException(
+                nameof(workTriangleCount),
+                "The work domain must contain the content triangle budget.");
         }
 
-        _configuredHexIndexes = configured.ToArray();
-        var triangleCount = checked(_hexCoords.Length * PhysicalGeographyCodes.MicrotrianglesPerHex);
-        _triangleNeighbors = new int[checked(triangleCount * 3)];
+        ContentTriangleCount = contentTriangleCount;
+        _triangleCoords = BuildCenteredDomain(workTriangleCount);
+        _triangleIndexes = new Dictionary<MicrotriangleCoord, int>(_triangleCoords.Length);
+        _triangleX = new float[_triangleCoords.Length];
+        _triangleY = new float[_triangleCoords.Length];
+        for (var triangleIndex = 0; triangleIndex < _triangleCoords.Length; triangleIndex++)
+        {
+            _triangleIndexes.Add(_triangleCoords[triangleIndex], triangleIndex);
+            WriteCentroid(triangleIndex, _triangleCoords[triangleIndex]);
+        }
+
+        _triangleNeighbors = new int[checked(_triangleCoords.Length * 3)];
         Array.Fill(_triangleNeighbors, -1);
         _triangleEdgeUnitX = new float[_triangleNeighbors.Length];
         _triangleEdgeUnitY = new float[_triangleNeighbors.Length];
-        _triangleEdgeScale = new float[_triangleNeighbors.Length];
-        _triangleX = new float[triangleCount];
-        _triangleY = new float[triangleCount];
-        BuildTriangleGeometry();
+        _workBoundary = new bool[_triangleCoords.Length];
         BuildTriangleNeighbors();
         BuildTriangleEdgeGeometry();
+
+        ContentRadius = TriangleDistanceFromOrigin(contentTriangleCount - 1);
+        WorkRadius = TriangleDistanceFromOrigin(_triangleCoords.Length - 1);
     }
 
-    public int Radius { get; }
+    public static PhysicalGeographyGrid CreateWithPadding(
+        int contentTriangleCount,
+        int boundaryPaddingSteps)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(boundaryPaddingSteps);
+        var contentRadius = Math.Sqrt(contentTriangleCount * TriangleArea / Math.PI);
+        var workRadius = contentRadius + boundaryPaddingSteps;
+        var workTriangleCount = checked((int)Math.Ceiling(
+            Math.PI * workRadius * workRadius / TriangleArea));
+        return new PhysicalGeographyGrid(
+            contentTriangleCount,
+            Math.Max(contentTriangleCount, workTriangleCount));
+    }
 
-    public int Padding { get; }
-
-    public int WorkRadius { get; }
-
-    public int HexCount => _hexCoords.Length;
-
-    public int ConfiguredHexCount => _configuredHexIndexes.Length;
+    public int ContentTriangleCount { get; }
 
     public int TriangleCount => _triangleX.Length;
 
-    public HexCoord HexCoordAt(int hexIndex) => _hexCoords[hexIndex];
+    /// <summary>Radius of the requested content budget in microtriangle steps.</summary>
+    public double ContentRadius { get; }
 
-    public int HexDistanceAt(int hexIndex) => _hexDistances[hexIndex];
+    /// <summary>Radius of the padded work graph in microtriangle steps.</summary>
+    public double WorkRadius { get; }
 
-    public int ConfiguredHexIndexAt(int configuredIndex) => _configuredHexIndexes[configuredIndex];
+    public MicrotriangleCoord TriangleCoordAt(int triangleIndex) => _triangleCoords[triangleIndex];
 
-    public int TriangleIndex(int hexIndex, int localTriangleIndex) =>
-        checked((hexIndex * PhysicalGeographyCodes.MicrotrianglesPerHex) + localTriangleIndex);
-
-    public int TriangleHexIndex(int triangleIndex) =>
-        triangleIndex / PhysicalGeographyCodes.MicrotrianglesPerHex;
-
-    public int LocalTriangleIndex(int triangleIndex) =>
-        triangleIndex % PhysicalGeographyCodes.MicrotrianglesPerHex;
+    /// <summary>
+    /// Stable spatial identity for deterministic noise and tie-breaking.
+    /// Storage indexes must never act as geography.
+    /// </summary>
+    public int TriangleIdentity(int triangleIndex)
+    {
+        var coord = _triangleCoords[triangleIndex];
+        return unchecked(
+            (coord.U * 73_856_093) ^
+            (coord.V * 19_349_663) ^
+            (coord.Inverted ? 83_492_791 : 0));
+    }
 
     public int NeighborTriangleIndex(int triangleIndex, int edge) =>
         _triangleNeighbors[checked((triangleIndex * 3) + edge)];
@@ -97,84 +106,83 @@ public sealed class PhysicalGeographyGrid
     internal float TriangleEdgeUnitY(int triangleIndex, int edge) =>
         _triangleEdgeUnitY[(triangleIndex * 3) + edge];
 
-    /// <summary>
-    /// Mean-edge-length divided by this edge's centroid distance. Multiply an
-    /// elevation drop across the edge by this to get a length-fair slope.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    internal float TriangleEdgeSlopeScale(int triangleIndex, int edge) =>
-        _triangleEdgeScale[(triangleIndex * 3) + edge];
-
     public float TriangleX(int triangleIndex) => _triangleX[triangleIndex];
 
     public float TriangleY(int triangleIndex) => _triangleY[triangleIndex];
 
-    public bool TriangleIsInsideConfiguredDisk(int triangleIndex) =>
-        _hexDistances[TriangleHexIndex(triangleIndex)] <= Radius;
+    public double TriangleDistanceFromOrigin(int triangleIndex)
+    {
+        var x = (double)_triangleX[triangleIndex];
+        var y = (double)_triangleY[triangleIndex];
+        return Math.Sqrt((x * x) + (y * y));
+    }
 
-    public bool HexIsOnWorkBoundary(int hexIndex) => _hexDistances[hexIndex] == WorkRadius;
+    public bool TriangleIsInsideContentDomain(int triangleIndex) =>
+        (uint)triangleIndex < (uint)ContentTriangleCount;
 
-    public bool TryGetHexIndex(HexCoord coord, out int hexIndex) =>
-        _hexIndexes.TryGetValue(coord, out hexIndex);
+    public bool TriangleIsOnWorkBoundary(int triangleIndex) => _workBoundary[triangleIndex];
+
+    public bool TryGetTriangleIndex(MicrotriangleCoord coord, out int triangleIndex) =>
+        _triangleIndexes.TryGetValue(coord, out triangleIndex);
 
     /// <summary>
     /// Nearest triangle to a world position. Advection samples in world space
-    /// rather than index space: an index-space shift would smear history along
-    /// lattice axes and reintroduce the hex-aligned artifact class.
+    /// rather than storage-index space.
     /// </summary>
     public bool TryFindNearestTriangle(double x, double y, out int triangleIndex)
     {
         triangleIndex = -1;
-        var approximateR = y / 1.5d;
-        var approximateQ = (x / Math.Sqrt(3d)) - (approximateR / 2d);
         var best = double.MaxValue;
-        for (var dq = -1; dq <= 1; dq++)
+        for (var orientation = 0; orientation < 2; orientation++)
         {
-            for (var dr = -1; dr <= 1; dr++)
-            {
-                var coord = RoundAxial(approximateQ + dq, approximateR + dr);
-                if (!_hexIndexes.TryGetValue(coord, out var hexIndex))
-                {
-                    continue;
-                }
-
-                for (var local = 0; local < PhysicalGeographyCodes.MicrotrianglesPerHex; local++)
-                {
-                    var candidate = TriangleIndex(hexIndex, local);
-                    var dx = _triangleX[candidate] - x;
-                    var dy = _triangleY[candidate] - y;
-                    var distance = (dx * dx) + (dy * dy);
-                    if (distance < best)
-                    {
-                        best = distance;
-                        triangleIndex = candidate;
-                    }
-                }
-            }
+            ConsiderNearestCandidates(
+                x,
+                y,
+                orientation != 0,
+                ref triangleIndex,
+                ref best);
         }
 
         return triangleIndex >= 0;
     }
 
-    private static HexCoord RoundAxial(double q, double r)
+    private void ConsiderNearestCandidates(
+        double x,
+        double y,
+        bool inverted,
+        ref int triangleIndex,
+        ref double best)
     {
-        var s = -q - r;
-        var roundedQ = (int)Math.Round(q, MidpointRounding.AwayFromZero);
-        var roundedR = (int)Math.Round(r, MidpointRounding.AwayFromZero);
-        var roundedS = (int)Math.Round(s, MidpointRounding.AwayFromZero);
-        var differenceQ = Math.Abs(roundedQ - q);
-        var differenceR = Math.Abs(roundedR - r);
-        var differenceS = Math.Abs(roundedS - s);
-        if (differenceQ > differenceR && differenceQ > differenceS)
+        var offsetX = inverted ? 2d : 1d;
+        var sum = (x - offsetX) / 1.5d;
+        var difference = (2d * y) / RootThree;
+        var centerU = (int)Math.Round(
+            (sum - difference) * 0.5d,
+            MidpointRounding.AwayFromZero);
+        var centerV = (int)Math.Round(
+            (sum + difference) * 0.5d,
+            MidpointRounding.AwayFromZero);
+        for (var du = -2; du <= 2; du++)
         {
-            roundedQ = -roundedR - roundedS;
-        }
-        else if (differenceR > differenceS)
-        {
-            roundedR = -roundedQ - roundedS;
-        }
+            for (var dv = -2; dv <= 2; dv++)
+            {
+                if (!_triangleIndexes.TryGetValue(
+                        new MicrotriangleCoord(centerU + du, centerV + dv, inverted),
+                        out var candidate))
+                {
+                    continue;
+                }
 
-        return new HexCoord(roundedQ, roundedR);
+                var dx = _triangleX[candidate] - x;
+                var dy = _triangleY[candidate] - y;
+                var distance = (dx * dx) + (dy * dy);
+                if (distance < best)
+                {
+                    best = distance;
+                    triangleIndex = candidate;
+                }
+            }
+        }
     }
 
     public int EdgeLeadingTo(int triangleIndex, int targetTriangleIndex)
@@ -192,21 +200,25 @@ public sealed class PhysicalGeographyGrid
 
     private void BuildTriangleNeighbors()
     {
-        for (var hexIndex = 0; hexIndex < _hexCoords.Length; hexIndex++)
+        for (var triangleIndex = 0; triangleIndex < TriangleCount; triangleIndex++)
         {
-            var coord = _hexCoords[hexIndex];
-            for (var localTriangle = 0; localTriangle < PhysicalGeographyCodes.MicrotrianglesPerHex; localTriangle++)
+            var coord = _triangleCoords[triangleIndex];
+            for (var edge = 0; edge < 3; edge++)
             {
-                BuildTriangleNeighbors(hexIndex, coord, localTriangle);
+                if (_triangleIndexes.TryGetValue(coord.Neighbor(edge), out var neighbor))
+                {
+                    _triangleNeighbors[(triangleIndex * 3) + edge] = neighbor;
+                }
+                else
+                {
+                    _workBoundary[triangleIndex] = true;
+                }
             }
         }
     }
 
     private void BuildTriangleEdgeGeometry()
     {
-        var lengthTotal = 0d;
-        var lengthCount = 0L;
-        var lengths = new double[_triangleNeighbors.Length];
         for (var triangleIndex = 0; triangleIndex < TriangleCount; triangleIndex++)
         {
             for (var edge = 0; edge < 3; edge++)
@@ -223,97 +235,87 @@ public sealed class PhysicalGeographyGrid
                 var offset = (triangleIndex * 3) + edge;
                 _triangleEdgeUnitX[offset] = (float)(dx / length);
                 _triangleEdgeUnitY[offset] = (float)(dy / length);
-                lengths[offset] = length;
-                lengthTotal += length;
-                lengthCount++;
             }
-        }
-
-        // Centroid steps differ in world length by edge type (cross-hex steps
-        // are not the same distance as intra-hex ones). Every drop comparison
-        // multiplies by this scale so it compares slope, not raw drop —
-        // otherwise long-edge directions systematically look steeper and
-        // drainage gutters onto the hex lattice.
-        var meanLength = lengthTotal / Math.Max(1, lengthCount);
-        for (var offset = 0; offset < lengths.Length; offset++)
-        {
-            _triangleEdgeScale[offset] = lengths[offset] <= 0d
-                ? 1f
-                : (float)(meanLength / lengths[offset]);
         }
     }
 
-    private void BuildTriangleNeighbors(int hexIndex, HexCoord coord, int localTriangle)
+    private static MicrotriangleCoord[] BuildCenteredDomain(int triangleCount)
     {
-        var triangleIndex = TriangleIndex(hexIndex, localTriangle);
-        for (var edge = 0; edge < 3; edge++)
+        var radius = Math.Sqrt(triangleCount * TriangleArea / Math.PI);
+        var coordinateExtent = checked((int)Math.Ceiling((2d * radius) / 3d) + 4);
+        var side = checked((coordinateExtent * 2) + 1);
+        var candidates = new List<CoordinateCandidate>(checked(side * side * 2));
+        for (var u = -coordinateExtent; u <= coordinateExtent; u++)
         {
-            PhysicalMicrotriangleTopology.ResolveNeighbor(
-                coord.Q,
-                coord.R,
-                localTriangle,
-                edge,
-                out var neighborQ,
-                out var neighborR,
-                out var neighborLocalTriangle);
-            if (_hexIndexes.TryGetValue(new HexCoord(neighborQ, neighborR), out var neighborHexIndex))
+            for (var v = -coordinateExtent; v <= coordinateExtent; v++)
             {
-                _triangleNeighbors[(triangleIndex * 3) + edge] =
-                    TriangleIndex(neighborHexIndex, neighborLocalTriangle);
+                AddCandidate(candidates, new MicrotriangleCoord(u, v, false));
+                AddCandidate(candidates, new MicrotriangleCoord(u, v, true));
             }
         }
-    }
 
-    private void BuildTriangleGeometry()
-    {
-        for (var hexIndex = 0; hexIndex < _hexCoords.Length; hexIndex++)
+        candidates.Sort(static (first, second) =>
         {
-            var coord = _hexCoords[hexIndex];
-            var centerX = Math.Sqrt(3d) * (coord.Q + (coord.R * 0.5d));
-            var centerY = 1.5d * coord.R;
-            for (var sector = 0; sector < PhysicalGeographyCodes.HexSectorCount; sector++)
+            var distance = first.DistanceSquared.CompareTo(second.DistanceSquared);
+            if (distance != 0)
             {
-                WriteSectorCentroids(hexIndex, sector, centerX, centerY);
+                return distance;
             }
+
+            var u = first.Coord.U.CompareTo(second.Coord.U);
+            if (u != 0)
+            {
+                return u;
+            }
+
+            var v = first.Coord.V.CompareTo(second.Coord.V);
+            return v != 0
+                ? v
+                : first.Coord.Inverted.CompareTo(second.Coord.Inverted);
+        });
+        if (candidates.Count < triangleCount)
+        {
+            throw new InvalidOperationException("Microtriangle domain enumeration was undersized.");
         }
+
+        var result = new MicrotriangleCoord[triangleCount];
+        for (var index = 0; index < result.Length; index++)
+        {
+            result[index] = candidates[index].Coord;
+        }
+
+        return result;
     }
 
-    private void WriteSectorCentroids(int hexIndex, int sector, double centerX, double centerY)
+    private static void AddCandidate(
+        List<CoordinateCandidate> candidates,
+        MicrotriangleCoord coord)
     {
-        var angleA = ((sector * 60d) - 30d) * (Math.PI / 180d);
-        var angleB = (((sector + 1) * 60d) - 30d) * (Math.PI / 180d);
-        var ax = Math.Cos(angleA);
-        var ay = Math.Sin(angleA);
-        var bx = Math.Cos(angleB);
-        var by = Math.Sin(angleB);
-        WriteCentroid(hexIndex, sector, 0, centerX, centerY, (ax + bx) / 6d, (ay + by) / 6d);
-        WriteCentroid(hexIndex, sector, 1, centerX, centerY, ((ax * 2d) + (bx * 0.5d)) / 3d, ((ay * 2d) + (by * 0.5d)) / 3d);
-        WriteCentroid(hexIndex, sector, 2, centerX, centerY, ((ax * 0.5d) + (bx * 2d)) / 3d, ((ay * 0.5d) + (by * 2d)) / 3d);
-        WriteCentroid(hexIndex, sector, 3, centerX, centerY, (ax + bx) / 3d, (ay + by) / 3d);
+        Centroid(coord, out var x, out var y);
+        candidates.Add(new CoordinateCandidate(coord, (x * x) + (y * y)));
     }
 
-    private void WriteCentroid(
-        int hexIndex,
-        int sector,
-        int localTriangle,
-        double centerX,
-        double centerY,
-        double offsetX,
-        double offsetY)
+    private void WriteCentroid(int triangleIndex, MicrotriangleCoord coord)
     {
-        var triangleIndex = TriangleIndex(
-            hexIndex,
-            PhysicalMicrotriangleTopology.TriangleIndex(sector, localTriangle));
-        _triangleX[triangleIndex] = (float)(centerX + offsetX);
-        _triangleY[triangleIndex] = (float)(centerY + offsetY);
+        Centroid(coord, out var x, out var y);
+        _triangleX[triangleIndex] = (float)x;
+        _triangleY[triangleIndex] = (float)y;
     }
 
-    private static int HexCellCount(int radius) => checked((3 * radius * radius) + (3 * radius) + 1);
+    private static void Centroid(MicrotriangleCoord coord, out double x, out double y)
+    {
+        x = (1.5d * (coord.U + coord.V)) + (coord.Inverted ? 2d : 1d);
+        y = (RootThree * 0.5d) * (-coord.U + coord.V);
+    }
+
+    private readonly record struct CoordinateCandidate(
+        MicrotriangleCoord Coord,
+        double DistanceSquared);
 }
 
 /// <summary>
 /// Whole-field generated physical facts before domain material classification
-/// and hex terrain synthesis.
+/// and runtime-map projection.
 /// </summary>
 public sealed class PhysicalGeographyField
 {
@@ -321,16 +323,24 @@ public sealed class PhysicalGeographyField
     private readonly int[] _crustAssemblyIds;
     private readonly int[] _crustAssemblySeparation;
     private readonly int[] _crustCollisionIntensity;
+    private readonly int[] _crustSuturePairIds;
+    private readonly int[] _crustSutureStrength;
     private readonly int[] _rockResistance;
     private readonly int[] _crustMotionX;
     private readonly int[] _crustMotionY;
     private readonly int[] _crustProvinceIds;
     private readonly int[] _crustTypeCodes;
+    private readonly int[] _crustContinentalFraction;
     private readonly int[] _advectionSourceIndex;
     private readonly int[] _marginCodes;
+    private readonly int[] _oceanMarginDistance;
+    private readonly int[] _coastalMarginCodes;
     private readonly int[] _crustAge;
     private readonly long[] _bedrockElevation;
     private readonly long[] _crustThickness;
+    private readonly long[] _crustSupportElevation;
+    private readonly long[] _crustSupportTarget;
+    private readonly long[] _surfaceRockLoad;
     private readonly int[] _continentalPotential;
     private readonly long[] _cumulativeCoastalErosion;
     private readonly long[] _cumulativeDeposition;
@@ -368,6 +378,7 @@ public sealed class PhysicalGeographyField
     private readonly int[] _landmassClassCodes;
     private readonly int[] _landmassIds;
     private readonly int[] _lakeOutletTargets;
+    private readonly long[] _lakeOverflow;
     private readonly int[] _landformCodes;
     private readonly int[] _maximumIceFlux;
     private readonly int[] _maximumGroundedIceFlux;
@@ -403,7 +414,14 @@ public sealed class PhysicalGeographyField
     private readonly int[] _initialTectonicBoundaryCodes;
     private readonly int[] _initialTectonicStrain;
     private readonly int[] _tectonicStrain;
+    private readonly int[] _tectonicBoundaryPairIds;
+    private readonly int[] _tectonicTangentX;
+    private readonly int[] _tectonicTangentY;
     private readonly int[] _tectonicActivityHistory;
+    private readonly int[] _orogenicComponentIds;
+    private readonly int[] _orogenicSystemProminence;
+    private readonly long[] _orogenicConstruction;
+    private readonly long[] _convergentCrustSurplus;
     private readonly int[] _warmth;
     private readonly int[] _waveExposure;
     private readonly int[] _waveExposureHistory;
@@ -418,36 +436,46 @@ public sealed class PhysicalGeographyField
     private readonly int[] _waterKindCodes;
     private readonly long[] _waterSurfaceElevations;
 
-    private static (int[] Source, int[] Margin, int[] Age, int[] Potential) NewCrustFrameFields(
-        PhysicalGeographyGrid grid) =>
-        (new int[grid.TriangleCount], new int[grid.TriangleCount],
-            new int[grid.TriangleCount], new int[grid.TriangleCount]);
+    private static (
+        int[] Source,
+        int[] Margin,
+        int[] Age,
+        int[] Potential,
+        int[] ShoreDistance,
+        int[] ShoreMargin) NewCrustFrameFields(PhysicalGeographyGrid grid)
+    {
+        var shoreDistance = new int[grid.TriangleCount];
+        Array.Fill(shoreDistance, -1);
+        return (new int[grid.TriangleCount], new int[grid.TriangleCount],
+            new int[grid.TriangleCount], new int[grid.TriangleCount],
+            shoreDistance, new int[grid.TriangleCount]);
+    }
 
     internal PhysicalGeographyField(PhysicalGeographyGrid grid)
     {
         Grid = grid;
         (_crustBasePotential, _crustAssemblyIds, _crustAssemblySeparation, _crustMotionX,
-            _crustMotionY, _crustProvinceIds, _crustTypeCodes) =
-            (new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount],
-                new int[grid.TriangleCount], new int[grid.TriangleCount], new int[grid.TriangleCount],
-                new int[grid.TriangleCount]);
-        (_advectionSourceIndex, _marginCodes, _crustAge, _continentalPotential) =
-            NewCrustFrameFields(grid);
-        _elevation = NewElevationField(grid);
-        _temperature = new int[grid.TriangleCount];
+            _crustMotionY, _crustProvinceIds, _crustTypeCodes, _crustContinentalFraction) =
+            (NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid),
+                NewField(grid), NewField(grid), NewField(grid));
+        (_advectionSourceIndex, _marginCodes, _crustAge, _continentalPotential,
+            _oceanMarginDistance, _coastalMarginCodes) = NewCrustFrameFields(grid);
+        (_elevation, _temperature) = (NewElevationField(grid), NewField(grid));
         (_windX, _windY, _upwindTargets, _moistureBarriers,
             _precipitationBarriers, _upwindOceanSources) = NewAtmosphericFields(grid);
         (_tectonicBoundaryCodes, _tectonicStrain, _initialTectonicBoundaryCodes,
-            _initialTectonicStrain) =
-            (new int[grid.TriangleCount], new int[grid.TriangleCount],
-                new int[grid.TriangleCount], new int[grid.TriangleCount]);
+            _initialTectonicStrain, _tectonicBoundaryPairIds, _tectonicTangentX, _tectonicTangentY) =
+            (NewField(grid), NewField(grid), NewField(grid), NewField(grid),
+                NewField(grid), NewField(grid), NewField(grid));
+        (_orogenicComponentIds, _orogenicSystemProminence, _orogenicConstruction,
+            _convergentCrustSurplus) = NewOrogenicFields(grid);
         (_oceanCurrentX, _oceanCurrentY, _oceanCurrentStrength, _oceanCurrentHeat,
             _waveExposure, _oceanDistance) = NewOceanFields(grid);
         (_rainfall, _snowfall, _seaIceSuitability) = NewTriple(grid);
         (_bedrockElevation, _sedimentThickness, _sedimentSupply, _cumulativeFluvialErosion,
             _cumulativeGlacialErosion, _cumulativeGlacialDeposition,
             _cumulativeCoastalErosion, _cumulativeDeposition, _crustThickness) = NewLandscapeHistoryFields(grid);
-
+        (_crustSupportElevation, _crustSupportTarget, _surfaceRockLoad) = NewSupportFields(grid);
         (_maximumIceThickness, _maximumIceFlux, _tectonicActivityHistory, _waveExposureHistory,
             _geothermalHistory) =
             (NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid));
@@ -455,7 +483,8 @@ public sealed class PhysicalGeographyField
             NewImpactFields(grid);
         (_externalHeatForcing, _externalCoastalForcing, _externalCoastalForcingHistory) =
             (NewField(grid), NewField(grid), NewField(grid));
-        (_moisture, _geothermal, _crustCollisionIntensity, _rockResistance) = (new int[grid.TriangleCount], NewField(grid), NewField(grid), NewField(grid));
+        (_moisture, _geothermal, _crustCollisionIntensity, _crustSuturePairIds,
+            _crustSutureStrength, _rockResistance) = NewMaterialStateFields(grid);
         (_mantlePlumeRootStrength, _volcanicActivity, _volcanicConstructionHistory,
             _volcanicLastActiveEpoch) = NewVolcanicFields(grid);
         _slope = NewElevationField(grid);
@@ -476,10 +505,9 @@ public sealed class PhysicalGeographyField
             (NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid));
         (_iceThickness, _iceFlux, _iceFlowTargets, _iceBalance, _groundedIce,
             _maximumGroundedIceFlux) = NewIceFields(grid);
-        _fractureConductance = new int[grid.TriangleCount];
-        _heatSourceDensity = new int[grid.TriangleCount];
+        (_fractureConductance, _heatSourceDensity) = (NewField(grid), NewField(grid));
         (_drainageElevations, _drainageParents, _drainageRanks, _drainageGuidanceTargets,
-            _flowTargets, _lakeOutletTargets) = NewDrainageFields(grid);
+            _flowTargets, _lakeOutletTargets, _lakeOverflow) = NewDrainageFields(grid);
         _ridgeInfluence = new float[grid.TriangleCount];
         _uplift = new float[grid.TriangleCount];
         _runoff = new int[grid.TriangleCount];
@@ -487,6 +515,22 @@ public sealed class PhysicalGeographyField
     }
 
     private static int[] NewField(PhysicalGeographyGrid grid) => new int[grid.TriangleCount];
+
+    private static (int[] Moisture, int[] Geothermal, int[] Collision, int[] SuturePair,
+        int[] SutureStrength, int[] Resistance) NewMaterialStateFields(PhysicalGeographyGrid grid) =>
+        (NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid), NewField(grid));
+
+    private static (
+        int[] ComponentIds,
+        int[] Prominence,
+        long[] Construction,
+        long[] ConvergentSurplus) NewOrogenicFields(
+        PhysicalGeographyGrid grid)
+    {
+        var componentIds = NewField(grid);
+        Array.Fill(componentIds, -1);
+        return (componentIds, NewField(grid), NewElevationField(grid), NewElevationField(grid));
+    }
 
     private static (int[] Roots, int[] Activity, long[] History, int[] LastActiveEpoch)
         NewVolcanicFields(PhysicalGeographyGrid grid)
@@ -527,7 +571,8 @@ public sealed class PhysicalGeographyField
         int[] Ranks,
         int[] GuidanceTargets,
         int[] FlowTargets,
-        int[] LakeOutlets) NewDrainageFields(PhysicalGeographyGrid grid)
+        int[] LakeOutlets,
+        long[] LakeOverflow) NewDrainageFields(PhysicalGeographyGrid grid)
     {
         var parents = NewField(grid);
         var guidanceTargets = NewField(grid);
@@ -537,7 +582,8 @@ public sealed class PhysicalGeographyField
         Array.Fill(guidanceTargets, -1);
         Array.Fill(flowTargets, -1);
         Array.Fill(lakeOutlets, -1);
-        return (NewElevationField(grid), parents, NewField(grid), guidanceTargets, flowTargets, lakeOutlets);
+        return (NewElevationField(grid), parents, NewField(grid), guidanceTargets, flowTargets,
+            lakeOutlets, NewElevationField(grid));
     }
 
     private static (int[] First, int[] Second, int[] Third) NewTriple(
@@ -557,6 +603,12 @@ public sealed class PhysicalGeographyField
         (NewElevationField(grid), NewElevationField(grid), NewElevationField(grid),
             NewElevationField(grid), NewElevationField(grid), NewElevationField(grid),
             NewElevationField(grid), NewElevationField(grid), NewElevationField(grid));
+
+    private static (
+        long[] Elevation,
+        long[] Target,
+        long[] SurfaceLoad) NewSupportFields(PhysicalGeographyGrid grid) =>
+        (NewElevationField(grid), NewElevationField(grid), NewElevationField(grid));
 
     private static (
         int[] CurrentX,
@@ -605,6 +657,17 @@ public sealed class PhysicalGeographyField
 
     internal long EffectiveSeaLevel { get; set; }
 
+    /// <summary>
+    /// Coverage-calibrated datum solved once from the initial tectonic surface.
+    /// Epoch sea-level forcing offsets this value; later terrain edits do not
+    /// silently retarget ocean coverage.
+    /// </summary>
+    internal long BaseSeaLevel { get; set; }
+
+    internal bool SeaLevelInitialized { get; set; }
+
+    internal bool CrustSupportInitialized { get; set; }
+
     public Span<int> CrustBasePotential => _crustBasePotential;
 
     public Span<int> CrustAssemblyIds => _crustAssemblyIds;
@@ -619,6 +682,20 @@ public sealed class PhysicalGeographyField
     /// Andes along its shore.
     /// </summary>
     public Span<int> CrustCollisionIntensity => _crustCollisionIntensity;
+
+    /// <summary>
+    /// Ordered pair of transported continental assembly IDs welded at this
+    /// material suture. Unlike a current province-pair ID, this identity moves
+    /// with the crust and remains after the active boundary migrates away.
+    /// </summary>
+    public Span<int> CrustSuturePairIds => _crustSuturePairIds;
+
+    /// <summary>
+    /// Persistent per-mille shortening memory of a continental suture. Active
+    /// convergence strengthens it; ordinary advection transports it as crustal
+    /// material rather than repainting it from the current province diagram.
+    /// </summary>
+    public Span<int> CrustSutureStrength => _crustSutureStrength;
 
     /// <summary>
     /// How hard the rock is, per mille, against a baseline of
@@ -641,6 +718,18 @@ public sealed class PhysicalGeographyField
     public Span<int> CrustProvinceIds => _crustProvinceIds;
 
     public Span<int> CrustTypeCodes => _crustTypeCodes;
+
+    /// <summary>
+    /// Continuous continental composition, per mille. Crust type remains the
+    /// categorical classification used by downstream rules; this field owns
+    /// the graded physical transition used by thickness and isostasy so the
+    /// classification boundary is not also an elevation cliff.
+    /// </summary>
+    public Span<int> CrustContinentalFraction => _crustContinentalFraction;
+
+    internal Span<int> OceanMarginDistance => _oceanMarginDistance;
+
+    internal Span<int> CoastalMarginCodes => _coastalMarginCodes;
 
     /// <summary>
     /// What the nearest plate boundary is doing to this crust. Coastal layers
@@ -668,6 +757,48 @@ public sealed class PhysicalGeographyField
     public Span<int> TectonicBoundaryCodes => _tectonicBoundaryCodes;
 
     public Span<int> TectonicStrain => _tectonicStrain;
+
+    /// <summary>
+    /// Stable ordered pair of province IDs meeting at the current boundary.
+    /// Separates distinct plate contacts that touch at a triple junction but
+    /// do not share a deformation budget.
+    /// </summary>
+    public Span<int> TectonicBoundaryPairIds => _tectonicBoundaryPairIds;
+
+    /// <summary>
+    /// Canonically oriented tangent to the nearest active plate boundary,
+    /// scaled to one thousand. Orogenic relief follows this direction rather
+    /// than an unrelated isotropic noise field.
+    /// </summary>
+    public Span<int> TectonicTangentX => _tectonicTangentX;
+
+    /// <inheritdoc cref="TectonicTangentX"/>
+    public Span<int> TectonicTangentY => _tectonicTangentY;
+
+    /// <summary>
+    /// Current connected plate-boundary system influencing each triangle, or
+    /// -1 outside every active orogen's reach. IDs are rebuilt after each
+    /// plate arrangement changes and are meaningful only within that frame.
+    /// </summary>
+    public Span<int> OrogenicComponentIds => _orogenicComponentIds;
+
+    /// <summary>Assigned connected-system prominence, per mille.</summary>
+    public Span<int> OrogenicSystemProminence => _orogenicSystemProminence;
+
+    /// <summary>
+    /// Equilibrium-height contribution actually admitted by the crust during
+    /// the most recent orogenic construction pass. This is diagnostic state;
+    /// persistent relief lives in crustal thickness and activity history.
+    /// </summary>
+    public Span<long> OrogenicConstruction => _orogenicConstruction;
+
+    /// <summary>
+    /// Column-equivalent crustal thickness delivered by convergent overlap in
+    /// the most recent advection step. Orogenic construction distributes the
+    /// retained share across the plate-pair system instead of turning raster
+    /// overlap into a one-cell vertical wall.
+    /// </summary>
+    public Span<long> ConvergentCrustSurplus => _convergentCrustSurplus;
 
     internal Span<int> InitialTectonicBoundaryCodes => _initialTectonicBoundaryCodes;
 
@@ -713,14 +844,32 @@ public sealed class PhysicalGeographyField
 
     /// <summary>
     /// Crustal thickness, in the same fixed-point units as elevation. This is
-    /// the quantity geology actually changes: collision thickens it, rifting
-    /// thins it, volcanism adds to it, erosion removes it. Surface height is
+    /// the quantity plate tectonics changes: collision thickens it and rifting
+    /// thins it. Surface loading and erosion remain separate from the crustal
+    /// column. Surface height is
     /// derived from it by isostasy rather than painted from a continental
     /// mask, because a mask must saturate to define "definitely land" and so
     /// flattens exactly the interior it defines. Thickness has no such
     /// ceiling - two collisions stack where one collided once.
     /// </summary>
     public Span<long> CrustThickness => _crustThickness;
+
+    /// <summary>
+    /// Flexed equilibrium datum currently supporting the bedrock surface.
+    /// Bedrock retains local relief relative to this datum while regional
+    /// isostasy changes the datum itself.
+    /// </summary>
+    public Span<long> CrustSupportElevation => _crustSupportElevation;
+
+    /// <summary>Local Airy/load target awaiting regional flexure.</summary>
+    internal Span<long> CrustSupportTarget => _crustSupportTarget;
+
+    /// <summary>
+    /// Signed bedrock load added above or removed below the initialized
+    /// surface. Volcanism and impact rims add load; erosion and excavation
+    /// unload it. Sediment and ice are tracked independently.
+    /// </summary>
+    public Span<long> SurfaceRockLoad => _surfaceRockLoad;
 
     public Span<long> SedimentThickness => _sedimentThickness;
 
@@ -846,6 +995,13 @@ public sealed class PhysicalGeographyField
 
     internal Span<int> LakeOutletTargets => _lakeOutletTargets;
 
+    /// <summary>
+    /// Water-budget surplus delivered through a spilling lake outlet during
+    /// the current drainage reconciliation. Stored only on the lake member
+    /// owning <see cref="LakeOutletTargets"/>.
+    /// </summary>
+    public Span<long> LakeOverflow => _lakeOverflow;
+
     public Span<float> RidgeInfluence => _ridgeInfluence;
 
     public Span<float> Uplift => _uplift;
@@ -895,6 +1051,7 @@ public sealed class PhysicalGeographyField
         _waterKindCodes[triangleIndex] = PhysicalWaterKindCodes.None;
         _waterBodyIds[triangleIndex] = 0;
         _lakeOutletTargets[triangleIndex] = -1;
+        _lakeOverflow[triangleIndex] = 0;
         ClearWaterSurface(triangleIndex);
     }
 
@@ -912,6 +1069,13 @@ public sealed class PhysicalGeographyField
     /// this, so each epoch is a static snapshot of a moved plate arrangement.
     /// </summary>
     public double AccumulatedPlateDrift { get; internal set; }
+
+    /// <summary>
+    /// Metric distance transported at the latest epoch boundary. Persistent
+    /// oceanic material uses it to age after advection; newly opened crust is
+    /// left at age zero.
+    /// </summary>
+    public double LastPlateDriftStep { get; internal set; }
 
     /// <summary>
     /// Cumulative drainage-guidance selections whose top candidate scores tied

@@ -27,6 +27,7 @@ public partial class Main : Node2D
     private CanonryGameRuntime? _runtime;
     private HexMapRenderer? _mapRenderer;
     private EntityLayer? _entityLayer;
+    private PhysicalMap3DInspector? _physicalMap3DInspector;
     private Camera2D? _camera;
     private EntityBrowser? _browser;
     private TopBar? _topBar;
@@ -58,6 +59,8 @@ public partial class Main : Node2D
     private bool _startupRegenerateWorld;
     private bool _startupRandomSeedRequested;
     private bool _startupDisableWorldCache;
+    private bool _physical3DInspectionWasPaused;
+    private double _physical3DInspectionPreviousTickRate = NormalTicksPerSecond;
     private IReadOnlyList<GamePregeneratedWorld> _pregeneratedWorlds = [];
 
     public override void _ExitTree()
@@ -151,6 +154,12 @@ public partial class Main : Node2D
             return;
         }
 
+        if (_physicalMap3DInspector?.Active == true)
+        {
+            _ = HandlePanelShortcut(key.Keycode);
+            return;
+        }
+
         HandlePressedShortcut(key.Keycode);
     }
 
@@ -226,6 +235,28 @@ public partial class Main : Node2D
 
     private void HandleMouseInput(InputEvent @event)
     {
+        if (HandlePhysical3DPointerInput(@event))
+        {
+            return;
+        }
+
+        Handle2DMouseInput(@event);
+    }
+
+    private bool HandlePhysical3DPointerInput(InputEvent @event)
+    {
+        if (_physicalMap3DInspector?.Active != true ||
+            !_physicalMap3DInspector.HandlePointerInput(@event))
+        {
+            return false;
+        }
+
+        _renderTree?.NotifyPointerMoved();
+        return true;
+    }
+
+    private void Handle2DMouseInput(InputEvent @event)
+    {
         if (@event is InputEventMouseMotion)
         {
             _renderTree?.NotifyPointerMoved();
@@ -278,6 +309,7 @@ public partial class Main : Node2D
     {
         _mapRenderer = GetNode<HexMapRenderer>("MapRenderer");
         _entityLayer = GetNode<EntityLayer>("EntityLayer");
+        _physicalMap3DInspector = GetNode<PhysicalMap3DInspector>("PhysicalMap3DInspector");
         _camera = GetNode<Camera2D>("Camera");
         _uiRoot = GetNode<Control>("UiLayer/UiRoot");
         _rootColumn = GetNode<VBoxContainer>("UiLayer/UiRoot/RootColumn");
@@ -314,6 +346,7 @@ public partial class Main : Node2D
         _renderTree = new GameRenderTree(
             _mapRenderer!,
             _entityLayer!,
+            _physicalMap3DInspector!,
             _browser!,
             _topBar!,
             _bottomBar!,
@@ -338,6 +371,7 @@ public partial class Main : Node2D
             _topBar.SpeedRequested += SetKernelTickRate;
             _topBar.ResetRequested += ResetSimulation;
             _topBar.PregeneratedWorldRequested += LoadPregeneratedWorld;
+            _topBar.Physical3DInspectionRequested += SetPhysicalMap3DInspection;
         }
 
         if (_bottomBar is not null)
@@ -363,6 +397,12 @@ public partial class Main : Node2D
             _mapArea.MapLayerVisibilityChanged += OnMapLayerVisibilityChanged;
             _mapArea.MapLensRequested += OnMapLensRequested;
             _mapArea.GeographyViewRequested += OnGeographyViewRequested;
+            _mapArea.Physical3DVerticalExaggerationChanged +=
+                exaggeration => _renderTree?.SetPhysical3DVerticalExaggeration(exaggeration);
+            _mapArea.Physical3DWireframeChanged +=
+                visible => _renderTree?.SetPhysical3DWireframeVisible(visible);
+            _mapArea.Physical3DWaterChanged +=
+                visible => _renderTree?.SetPhysical3DWaterVisible(visible);
         }
 
         if (_entityLayer is not null)
@@ -594,6 +634,35 @@ public partial class Main : Node2D
     private void OnGeographyViewRequested(string viewKey) =>
         _renderTree?.SetGeographyView(viewKey);
 
+    private void SetPhysicalMap3DInspection(bool enabled)
+    {
+        if (_renderTree is null || _camera is null || _physicalMap3DInspector is null ||
+            _renderTree.Physical3DInspectionActive == enabled)
+        {
+            return;
+        }
+
+        if (enabled)
+        {
+            _physical3DInspectionWasPaused = _displayPaused;
+            _physical3DInspectionPreviousTickRate = _displayTicksPerSecond;
+            PauseKernelDriver();
+            _renderTree.SetPhysical3DInspection(true);
+            return;
+        }
+
+        _renderTree.SetPhysical3DInspection(false);
+        _camera.MakeCurrent();
+        if (_physical3DInspectionWasPaused)
+        {
+            PauseKernelDriver();
+        }
+        else
+        {
+            SetKernelTickRate(_physical3DInspectionPreviousTickRate);
+        }
+    }
+
     private void OnBrowserEntityFilterChanged() => _renderTree?.InvalidateEntityMap();
 
     private void ToggleAttributeGraph() => _renderTree?.ToggleAttributeGraph();
@@ -604,12 +673,14 @@ public partial class Main : Node2D
 
     private void ResetSimulation()
     {
+        SetPhysicalMap3DInspection(false);
         StartNewRun(GameSeedPolicy.Random(), pauseAfterStart: true);
         GD.Print("Generating a new random simulation world.");
     }
 
     private void LoadPregeneratedWorld(int baseSeed)
     {
+        SetPhysicalMap3DInspection(false);
         RefreshPregeneratedWorlds();
         var world = _pregeneratedWorlds.FirstOrDefault(candidate => candidate.BaseSeed == baseSeed);
         if (world is null)
@@ -812,12 +883,22 @@ public partial class Main : Node2D
 
     private void StepKernelDriver()
     {
+        if (_physicalMap3DInspector?.Active == true)
+        {
+            return;
+        }
+
         _runtime?.Controls.Step(1);
         _displayPaused = true;
     }
 
     private void SetKernelTickRate(double ticksPerSecond)
     {
+        if (_physicalMap3DInspector?.Active == true && ticksPerSecond > 0d)
+        {
+            return;
+        }
+
         _runtime?.Controls.SetTickRate(ticksPerSecond);
         _displayPaused = ticksPerSecond <= 0d;
         if (ticksPerSecond > 0d)
@@ -849,12 +930,32 @@ public partial class Main : Node2D
             (_moveRight ? 1f : 0f) - (_moveLeft ? 1f : 0f),
             (_moveDown ? 1f : 0f) - (_moveUp ? 1f : 0f));
 
+        if (HandlePhysical3DCameraMovement(direction, delta))
+        {
+            return;
+        }
+
         if (direction != Vector2.Zero)
         {
             var speed = 200f / _camera.Zoom.X;
             _camera.Position += direction.Normalized() * speed * delta;
             _renderTree?.NotifyViewportChanged();
         }
+    }
+
+    private bool HandlePhysical3DCameraMovement(Vector2 direction, float delta)
+    {
+        if (_physicalMap3DInspector?.Active != true)
+        {
+            return false;
+        }
+
+        if (_physicalMap3DInspector.Pan(direction, delta))
+        {
+            _renderTree?.NotifyPointerMoved();
+        }
+
+        return true;
     }
 
     private sealed record BackgroundStartupResult(

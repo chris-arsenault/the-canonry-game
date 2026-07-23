@@ -2,10 +2,10 @@ namespace IceRemembers.Seed;
 
 using Engine.Constants;
 using Engine.Domain.Config;
+using Engine.Domain.Spatial;
 using Engine.Domain.Startup;
 using Engine.Gameplay;
 using Engine.Kinds;
-using Engine.WorldGen;
 
 using IceRemembers;
 

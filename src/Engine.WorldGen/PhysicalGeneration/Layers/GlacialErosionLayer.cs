@@ -57,7 +57,10 @@ internal sealed class GlacialErosionLayer : IPhysicalGeographyLayer
                 power * 3d / resistance * context.GlaciationStrength / 1000d,
                 1d / PhysicalElevation.SubunitsPerUnit,
                 context.Profile.MaximumGlacialErosionPerPass));
-            _ = LandscapeSurface.Erode(map, triangleIndex, cut);
+            _ = LandscapeSurface.Erode(
+                map,
+                triangleIndex,
+                cut);
             map.CumulativeGlacialErosion[triangleIndex] = checked(
                 map.CumulativeGlacialErosion[triangleIndex] + cut);
             map.SedimentSupply[triangleIndex] = checked(map.SedimentSupply[triangleIndex] + cut);
@@ -75,7 +78,12 @@ internal sealed class GlacialErosionLayer : IPhysicalGeographyLayer
             if (map.CumulativeGlacialErosion[triangleIndex] > 0 &&
                 map.MaximumGroundedIceFlux[triangleIndex] < context.Profile.GlacierFluxThreshold)
             {
-                throw new InvalidOperationException("Glacial erosion lacks qualifying grounded-ice history.");
+                throw new InvalidOperationException(
+                    $"Glacial erosion at triangle {triangleIndex} in epoch {context.EpochIndex} " +
+                    $"lacks qualifying grounded-ice history (erosion " +
+                    $"{map.CumulativeGlacialErosion[triangleIndex]}, maximum grounded flux " +
+                    $"{map.MaximumGroundedIceFlux[triangleIndex]}, threshold " +
+                    $"{context.Profile.GlacierFluxThreshold}).");
             }
         }
     }

@@ -3,9 +3,9 @@ namespace IceRemembers.Seed;
 using System.Globalization;
 
 using Engine.Constants;
+using Engine.Domain.Spatial;
 using Engine.Domain.Startup;
 using Engine.Kinds;
-using Engine.WorldGen;
 
 using IceRemembers;
 

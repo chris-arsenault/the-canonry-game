@@ -7,7 +7,7 @@ using IceRemembers;
 internal static class IceRemembersWorldGenerationOrchestrator
 {
     public static IceRemembersWorldGenerationResult Generate(
-        int radius,
+        int triangleCount,
         int seed,
         PhysicalGeographyGenerationProfile physicalProfile,
         IceRemembersMicrogeographyGenerationProfile microgeographyProfile,
@@ -19,7 +19,7 @@ internal static class IceRemembersWorldGenerationOrchestrator
         ValidateEpochs(epochs);
         microgeographyProfile.Validate();
 
-        var physical = PhysicalGeographyEvolutionSession.Begin(radius, seed, physicalProfile);
+        var physical = PhysicalGeographyEvolutionSession.Begin(triangleCount, seed, physicalProfile);
         var magic = new IceRemembersMicrogeographyMap(physical.Map);
         var magicPipeline = new IceRemembersMicrogeographyPipeline(microgeographyProfile, []);
         for (var epochIndex = 0; epochIndex < epochs.Count; epochIndex++)

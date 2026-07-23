@@ -91,8 +91,10 @@ internal static class PriorityFlood
     /// </summary>
     private static long JitteredKey(PhysicalGeographyField map, int seed, int triangleIndex)
     {
-        var jitter = (long)(PhysicalNoise.HashUnit(seed ^ 0x1f7d, triangleIndex, 0x2c11) *
-            JitterMask) & JitterMask;
+        var jitter = (long)(PhysicalNoise.HashUnit(
+                seed ^ 0x1f7d,
+                map.Grid.TriangleIdentity(triangleIndex),
+                0x2c11) * JitterMask) & JitterMask;
         return checked(map.Elevation[triangleIndex] << JitterBits) | jitter;
     }
 }

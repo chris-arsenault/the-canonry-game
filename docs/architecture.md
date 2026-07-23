@@ -41,12 +41,12 @@ Engine.Observability
   run log, telemetry projection, parquet export, Monte Carlo analysis inputs
 
 Engine.WorldGen
-  domain-neutral hex/triangle topology, evolving tectonic assemblies, sparse
-  impacts, causal uplift and erosion, connected land/water analysis,
+  domain-neutral global microtriangle topology, evolving tectonic assemblies,
+  sparse impacts, causal uplift and erosion, connected land/water analysis,
   fixed-point physical floors, independent actual-water and conditioned
-  drainage surfaces, outlet-ranked hydrology, climate, glaciation,
-  valley-shaped river geometry, aggregation, terrain catalogs, map coverage,
-  and the phased physical-evolution session
+  drainage surfaces, water-balanced lakes, outlet-ranked hydrology, climate,
+  glaciation, valley-shaped river geometry, and the phased physical-evolution
+  session
 
 IceRemembers
   authored domain content plus physical material/surface taxonomy, generation
@@ -55,9 +55,10 @@ IceRemembers
 
 IceRemembers.Seed
   multi-epoch orchestration, dependency-ordered natural-surface and
-  fire/aurora/pressure worldgen,
-  authored hex-terrain synthesis, geography-shaped subdivisions, startup
-  placement, and structural seed validation
+  fire/aurora/pressure worldgen, projection of generated microtriangles into
+  runtime cells, aggregate and authored hex-terrain synthesis,
+  geography-shaped subdivisions, startup placement, and structural seed
+  validation
 ```
 
 `Engine.Kernel` must remain domain-agnostic. Domain names compile to stable ids
@@ -109,11 +110,14 @@ dirty sets, and active-state indexes; render components own Godot subtrees and
 present only when their inputs change. The stable UI rules are recorded in
 [ui-principles.md](./design/ui-principles.md).
 
-Physical-map presentation has one painter for colors, geometry, overlays, and
-LOD decisions. The live Godot node and `tools/WorldGenerator capture` provide
-canvas adapters to that painter. The latter loads an ordinary `.world` and
-writes deterministic offscreen PNG evidence without introducing worldgen or
-simulation decisions into presentation code.
+Physical-map presentation shares one policy for projected colors, structural
+overlays, and view decisions. The live two-dimensional Godot node and
+`tools/WorldGenerator capture` adapt that policy through the canvas painter.
+The read-only Godot 3D inspector reuses the same colors while reconstructing a
+chunked displaced mesh with smooth seam normals, level water bodies, and
+terrain-following river and feature geometry. Neither renderer computes
+worldgen or simulation facts. The capture path loads an ordinary `.world` and
+writes deterministic offscreen PNG evidence.
 
 ## Kernel Tick
 
@@ -230,13 +234,40 @@ The physical and semantic worlds grow from separately tracked radius-18
 hearts toward an explicit fixed-capacity generation radius of 128. Seed/worldgen
 installs deterministic terrain and geography for that whole latent field, but
 `MapFrontier` materializes cells only where culture presses an edge. Physical
-worldgen first builds one padded triangle graph. Reduced moving crust provinces
-produce continental assemblies, ocean basins, typed boundaries, strain,
-mountain systems, rifts, and sparse island arcs. Four authored but configurable
-epochs then reuse the same dependency-declaring layers for incremental uplift,
-erosion, connected-ocean bathymetry, conditioned
-drainage, basin-shaped ocean currents, precipitation, climate, ice flow,
-incremental bedrock erosion, conserved sediment transport and deposition,
+worldgen first converts the requested kernel radius to a triangle count, then
+builds one padded global equilateral-microtriangle lattice whose adjacent
+centroids are all exactly one generation distance unit apart. The generator has
+no hex coordinates, parent-cell indexes, sectors, or cell-boundary slope
+correction. After generation, `IceRemembers.Seed` alone maps global triangles
+into the kernel's cells and canonical 24-local-triangle ordering, translates
+flow and edge masks, aggregates terrain facts, and creates subdivisions.
+Reduced moving crust provinces
+produce continental assemblies, continuous crust composition, ocean basins,
+typed boundaries, strain, and persistent material history. Plate motion
+source-scatters each equal-area crust column conservatively; convergent overlap
+is retained as shortening surplus rather than multiplied into local thickness.
+Connected plate-pair components spend finite deformation budgets on coherent
+collision ranges, subduction belts, rifts, and transform relief. Each system
+constructs both a broad flexed crustal root and narrower resistant summit rock.
+Convergence between unlike transported continental assemblies also creates a
+material suture whose pair identity and shortening strength advect with the
+crust. Those inherited systems preserve major interior ranges after active
+boundaries migrate; they are not synthetic elevation belts.
+Continuous composition selects a modest foundation height and matching
+foundation thickness; departure from that foundation supplies Airy support,
+while oceanic age accumulates basin depth away from young spreading crust.
+Explicit loads and support are reconciled regionally by lithospheric flexure.
+Ocean coverage calibrates one stable sea datum. Ordinary margin evolution leaves
+landward relief intact and caps oceanward deepening until the shelf and
+continental rise meet the ambient basin without a fixed band ending; convergent
+margins retain exceptional trenches. Marine deposition reuses only exported
+sediment. Local mass wasting apportions one bounded outgoing budget per source
+triangle. Four
+authored but configurable epochs then reuse the same dependency-declaring
+layers for incremental construction, erosion, connected-ocean bathymetry, conditioned
+drainage, catchment-water-balanced lakes, lake-overflow outlet incision,
+basin-shaped ocean currents, precipitation, climate, ice flow,
+incremental bedrock erosion and regional unloading response, conserved sediment transport and deposition,
 glacial carving, coastal evolution, fractures, channel widening, floodplains,
 and delta fans. Sparse impacts precede the epochs so their excavated basins,
 fractured rims, ejecta, and residual heat are subsequently eroded, flooded,
@@ -252,10 +283,11 @@ feature interactions and final varied cold land/water surfaces classify only
 after the final physical reconciliation.
 It retains natural surfaces, anomaly flags, and all three intensity fields while
 scored authored rules reduce each 24-triangle aggregate to the base terrain the
-hex-scale kernel consumes. Ocean, current, wave, rain, snow, land-ice, sea-ice,
-landmass, lake, surface concentration, cold-landform and per-landmass variety,
-drainage branching/direction, warmth, and anomaly distribution goals are tunable profile
-targets; structural graph and routing contracts remain invariants. Geographic
+hex-scale kernel consumes. Causal controls shape ocean, current, wave, rain,
+snow, ice, landform, drainage, warmth, and anomaly outcomes; their distributions
+are non-blocking diagnostics. Structural graph, water-body, routing, and
+projection contracts remain invariants, and fixed-seed Release renders remain
+the quality evidence. Geographic
 subdivisions grow as connected partitions over those facts and never repaint
 the physical field. During the Long Dark,
 ordinary reclaim applies impassable Deep Ice as transient cover only to
@@ -292,6 +324,13 @@ deposition, maximum glaciation, wave history, fracture, current and cumulative f
 their first-active epochs, and anomaly
 fact. The UI can therefore inspect generated geography without reading live
 kernel state or making latent cells part of gameplay.
+
+The physical 3D inspector is a presentation-owned modal consumer of that same
+immutable projection. Entering it pauses kernel playback and hides the complete
+two-dimensional map/entity subtree; leaving it restores the previous plane and
+playback state. Its mesh cache, orthographic camera, ray picking, wireframe,
+water, feature, and vertical-exaggeration controls do not create kernel state or
+make microtriangles interactive gameplay coordinates.
 
 Provenance is kernel state and primitive event data. The kernel records
 producer kind/id, parent invocation, trigger evidence, and outputs. It does not

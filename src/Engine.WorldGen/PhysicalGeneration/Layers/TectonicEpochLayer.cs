@@ -14,6 +14,8 @@ internal sealed class TectonicEpochLayer : IPhysicalGeographyLayer
         0x1d71c3,
         PhysicalGeographyFacts.TectonicProvinces,
         PhysicalGeographyFacts.TectonicProvinces,
+        PhysicalGeographyFacts.ContinentalSutures |
+        PhysicalGeographyFacts.OrogenicConstruction |
         PhysicalGeographyFacts.ContinentalDomains |
         PhysicalGeographyFacts.Elevation |
         PhysicalGeographyFacts.VolcanicConstruction |
@@ -62,14 +64,17 @@ internal sealed class TectonicEpochLayer : IPhysicalGeographyLayer
                 continue;
             }
 
-            var variation = PhysicalNoise.FractalNoise(
-                map.Grid.TriangleX(triangleIndex),
-                map.Grid.TriangleY(triangleIndex),
+            // Plate motion already determines whether this pair converges,
+            // diverges, or shears. An epoch may strengthen or weaken the
+            // contact, but cannot independently repaint adjacent pieces of
+            // one plate pair into different modes without fragmenting a
+            // single mountain system into numerical stripes.
+            var pairActivity = PhysicalNoise.HashUnit(
                 context.Seed ^ 0x58d7,
-                context.Profile.TectonicEpochVariationScale,
-                3);
-            var activity = persistence + ((1d - persistence) * ((variation + 1d) * 0.5d));
-            map.TectonicBoundaryCodes[triangleIndex] = EvolveBoundary(initialCode, variation);
+                map.TectonicBoundaryPairIds[triangleIndex],
+                initialCode);
+            var activity = persistence + ((1d - persistence) * pairActivity);
+            map.TectonicBoundaryCodes[triangleIndex] = initialCode;
             map.TectonicStrain[triangleIndex] = (int)Math.Round(
                 Math.Clamp(initialStrain * activity, 0d, 1000d),
                 MidpointRounding.AwayFromZero);
@@ -111,22 +116,4 @@ internal sealed class TectonicEpochLayer : IPhysicalGeographyLayer
             (code != PhysicalTectonicBoundaryCodes.None || strain != 0);
     }
 
-    private static int EvolveBoundary(int initialCode, double variation)
-    {
-        if (variation is > -0.30d and < 0.30d)
-        {
-            return initialCode;
-        }
-
-        if (variation >= 0.30d)
-        {
-            return initialCode == PhysicalTectonicBoundaryCodes.Divergent
-                ? PhysicalTectonicBoundaryCodes.Transform
-                : PhysicalTectonicBoundaryCodes.Convergent;
-        }
-
-        return initialCode == PhysicalTectonicBoundaryCodes.Convergent
-            ? PhysicalTectonicBoundaryCodes.Transform
-            : PhysicalTectonicBoundaryCodes.Divergent;
-    }
 }

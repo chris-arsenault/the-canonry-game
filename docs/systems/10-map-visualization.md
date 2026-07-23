@@ -60,6 +60,37 @@ painter; it does not contain a second rendering implementation. The standalone
 world-review harness adapts the same painter to an offscreen raster canvas, so
 its output exercises the map users actually see without launching Godot.
 
+### Read-only 3D inspection
+
+The top-bar `Explore 3D` button opens a modal quality-control view of the same
+immutable physical geography projection. Entry remembers the current plane and playback state,
+pauses the kernel driver, hides the complete two-dimensional map and entity
+subtrees, and activates an orthographic oblique camera. Exit restores the prior
+plane and resumes only when playback was running before entry. Simulation map
+overlays, entity markers, trails, auras, interventions, and semantic rendering
+are deliberately absent.
+
+The inspector reconstructs one deterministic displaced surface from the fine
+elevation sample on every microtriangle. A world-space vertex key averages all
+incident samples before chunks are built, so hex and chunk seams agree. Each
+microtriangle then retains its exact sample at a centroid vertex and fans to the
+shared corners, recovering local relief without cracks. Per-face vertices retain
+categorical view colors while shared reconstructed normals make lighting
+continuous. Water is a separate translucent surface whose displayed height is
+the median floor-plus-depth sample for each projected water body.
+River thalwegs, water-area outlines, and significant feature marks are separate
+terrain-following line meshes. None of this interpolation changes the projected
+triangle values shown by the geography-only tooltip.
+
+The existing generation-view selector controls both renderers. Contextual 3D
+controls add orbit, pan, zoom, vertical exaggeration, microtriangle wireframe,
+and water visibility; the existing geography-feature toggle also controls 3D
+feature marks. The calibrated `1x` scale matches the original inspector's `4x`
+appearance, with a `0.5x` to `2x` range. Ground is double-sided so steep faces
+do not appear as holes from oblique inspection angles. Ray picking resolves the
+nearest reconstructed face back to its stable hex and triangle index without
+adding physics bodies or command paths.
+
 Available views cover effective terrain, final surface, natural surface,
 material, elevation, temperature, moisture, geothermal heat, ocean currents
 with direction vectors, wave exposure, rain/snow, sea-ice suitability, landform,
@@ -71,17 +102,17 @@ history colored by first-active epoch. These
 views visualize projected facts; they never classify terrain or feed values
 back to worldgen or the simulation.
 
-For worldgen review, `tools/WorldGenerator capture` accepts an ordinary
-filesystem `.world` path and output directory. It writes deterministic
-whole-world surface/elevation/hydrology/river views, warm/cold/major-river
-detail views, and a JSON manifest. Capture is a normal command-line process and
+For worldgen review, `tools/WorldGenerator capture` accepts a canonical `.world`
+from the repository `worlds/` directory and writes deterministic whole-world
+surface/elevation/hydrology/river views, warm/cold/major-river detail views, and
+a JSON manifest under `.artifacts/captures/seed<seed>/`. The output location is
+fixed and cannot be redirected. Capture is a normal command-line process and
 does not require a desktop, virtual display, Godot process, or imported Godot
 resources. PNGs are review evidence rather than golden-test inputs.
 
 ```text
 dotnet run --project tools/WorldGenerator -c Release -- capture \
-  --world=worlds/ice-remembers-seed-42.world \
-  --output=.artifacts/captures/seed42
+  --world=worlds/ice-remembers-seed-42.world
 ```
 
 ## Non-Goals

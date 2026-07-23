@@ -36,7 +36,7 @@ internal sealed class LandIceLayer : IPhysicalGeographyLayer
             var balance = MassBalance(map, triangleIndex, context.Profile);
             map.IceBalance[triangleIndex] = balance;
             if (map.WaterKindCodes[triangleIndex] == PhysicalWaterKindCodes.None &&
-                map.Grid.TriangleIsInsideConfiguredDisk(triangleIndex))
+                map.Grid.TriangleIsInsideContentDomain(triangleIndex))
             {
                 land.Add(triangleIndex);
                 balances.Add(balance);

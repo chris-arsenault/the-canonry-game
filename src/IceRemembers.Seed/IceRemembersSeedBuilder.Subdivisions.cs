@@ -2,6 +2,7 @@ namespace IceRemembers.Seed;
 
 using System.Numerics;
 
+using Engine.Domain.Spatial;
 using Engine.Domain.Startup;
 using Engine.WorldGen;
 
@@ -66,25 +67,30 @@ internal static partial class IceRemembersSeedBuilder
     ];
 
     private static MapSubdivisionMap CreatePhysicalSubdivisions(
-        PhysicalGeographyField field,
-        ReadOnlySpan<PhysicalHexAggregate> aggregates,
+        PhysicalKernelMapGeometry geometry,
+        ReadOnlySpan<PhysicalKernelCellAggregate> aggregates,
         int salt)
     {
-        var continentSeeds = CreateContinentSeeds(field, aggregates);
-        var continents = GrowConnectedRegions(field, aggregates, continentSeeds, [], salt ^ 0x2a91);
-        var superregionSeeds = CreateSuperregionSeeds(field, aggregates, continents);
+        var continentSeeds = CreateContinentSeeds(geometry, aggregates);
+        var continents = GrowConnectedRegions(
+            geometry,
+            aggregates,
+            continentSeeds,
+            [],
+            salt ^ 0x2a91);
+        var superregionSeeds = CreateSuperregionSeeds(geometry, aggregates, continents);
         var superregions = GrowConnectedRegions(
-            field,
+            geometry,
             aggregates,
             superregionSeeds,
             continents,
             salt ^ 0x6f17);
-        return BuildSubdivisionMap(field, continents, superregions);
+        return BuildSubdivisionMap(geometry, continents, superregions);
     }
 
     private static RegionSeed[] CreateContinentSeeds(
-        PhysicalGeographyField field,
-        ReadOnlySpan<PhysicalHexAggregate> aggregates)
+        PhysicalKernelMapGeometry geometry,
+        ReadOnlySpan<PhysicalKernelCellAggregate> aggregates)
     {
         var scale = PhysicalHeartRadius;
         return
@@ -92,7 +98,7 @@ internal static partial class IceRemembersSeedBuilder
             new(
                 NearContinentId,
                 SelectAnchor(
-                    field,
+                    geometry,
                     aggregates,
                     [],
                     0,
@@ -102,7 +108,7 @@ internal static partial class IceRemembersSeedBuilder
             new(
                 FarContinentId,
                 SelectAnchor(
-                    field,
+                    geometry,
                     aggregates,
                     [],
                     0,
@@ -112,7 +118,7 @@ internal static partial class IceRemembersSeedBuilder
             new(
                 EmptyContinentId,
                 SelectAnchor(
-                    field,
+                    geometry,
                     aggregates,
                     [],
                     0,
@@ -123,33 +129,33 @@ internal static partial class IceRemembersSeedBuilder
     }
 
     private static RegionSeed[] CreateSuperregionSeeds(
-        PhysicalGeographyField field,
-        ReadOnlySpan<PhysicalHexAggregate> aggregates,
+        PhysicalKernelMapGeometry geometry,
+        ReadOnlySpan<PhysicalKernelCellAggregate> aggregates,
         ReadOnlySpan<int> continents)
     {
         var scale = PhysicalSubdivisionScale;
         return
         [
-            SuperregionSeed(field, aggregates, continents, NearContinentId, NorthlandsSuperregionId,
+            SuperregionSeed(geometry, aggregates, continents, NearContinentId, NorthlandsSuperregionId,
                 new HexCoord(-(scale * 3) / 4, -2), AnchorPreference.ColdLand),
-            SuperregionSeed(field, aggregates, continents, NearContinentId, HeartlandsSuperregionId,
+            SuperregionSeed(geometry, aggregates, continents, NearContinentId, HeartlandsSuperregionId,
                 new HexCoord(-scale / 4, scale / 3), AnchorPreference.Land),
-            SuperregionSeed(field, aggregates, continents, NearContinentId, CoastlandsSuperregionId,
+            SuperregionSeed(geometry, aggregates, continents, NearContinentId, CoastlandsSuperregionId,
                 new HexCoord(scale / 4, -(scale * 3) / 5), AnchorPreference.Coast),
-            SuperregionSeed(field, aggregates, continents, FarContinentId, FarwakeSuperregionId,
+            SuperregionSeed(geometry, aggregates, continents, FarContinentId, FarwakeSuperregionId,
                 new HexCoord((scale * 2) / 3, -(scale * 3) / 5), AnchorPreference.Ocean),
-            SuperregionSeed(field, aggregates, continents, FarContinentId, BlackwaterSuperregionId,
+            SuperregionSeed(geometry, aggregates, continents, FarContinentId, BlackwaterSuperregionId,
                 new HexCoord((scale * 7) / 8, 0), AnchorPreference.DeepOcean),
-            SuperregionSeed(field, aggregates, continents, EmptyContinentId, WhiteEmptySuperregionId,
+            SuperregionSeed(geometry, aggregates, continents, EmptyContinentId, WhiteEmptySuperregionId,
                 new HexCoord(-(scale * 2) / 5, (scale * 3) / 4), AnchorPreference.ColdLand),
-            SuperregionSeed(field, aggregates, continents, EmptyContinentId, DeepEmptySuperregionId,
+            SuperregionSeed(geometry, aggregates, continents, EmptyContinentId, DeepEmptySuperregionId,
                 new HexCoord(scale / 4, (scale * 3) / 4), AnchorPreference.Highland),
         ];
     }
 
     private static RegionSeed SuperregionSeed(
-        PhysicalGeographyField field,
-        ReadOnlySpan<PhysicalHexAggregate> aggregates,
+        PhysicalKernelMapGeometry geometry,
+        ReadOnlySpan<PhysicalKernelCellAggregate> aggregates,
         ReadOnlySpan<int> continents,
         int continentId,
         int superregionId,
@@ -157,27 +163,24 @@ internal static partial class IceRemembersSeedBuilder
         AnchorPreference preference) =>
         new(
             superregionId,
-            SelectAnchor(field, aggregates, continents, continentId, target, preference),
+            SelectAnchor(geometry, aggregates, continents, continentId, target, preference),
             continentId);
 
     private static int SelectAnchor(
-        PhysicalGeographyField field,
-        ReadOnlySpan<PhysicalHexAggregate> aggregates,
+        PhysicalKernelMapGeometry geometry,
+        ReadOnlySpan<PhysicalKernelCellAggregate> aggregates,
         ReadOnlySpan<int> parentRegions,
         int parentRegionId,
         HexCoord target,
         AnchorPreference preference,
         int maximumOriginDistance = int.MaxValue)
     {
-        var bestHexIndex = -1;
+        var bestCellIndex = -1;
         var bestScore = long.MaxValue;
-        for (var configuredIndex = 0;
-            configuredIndex < field.Grid.ConfiguredHexCount;
-            configuredIndex++)
+        for (var cellIndex = 0; cellIndex < geometry.CellCount; cellIndex++)
         {
-            var hexIndex = field.Grid.ConfiguredHexIndexAt(configuredIndex);
-            var coord = field.Grid.HexCoordAt(hexIndex);
-            if (parentRegions.Length != 0 && parentRegions[hexIndex] != parentRegionId)
+            var coord = geometry.CoordAt(cellIndex);
+            if (parentRegions.Length != 0 && parentRegions[cellIndex] != parentRegionId)
             {
                 continue;
             }
@@ -188,20 +191,22 @@ internal static partial class IceRemembersSeedBuilder
             }
 
             var score = (HexCoord.Distance(coord, target) * 100L) +
-                AnchorPenalty(aggregates[hexIndex], preference);
-            if (score < bestScore || (score == bestScore && hexIndex < bestHexIndex))
+                AnchorPenalty(aggregates[cellIndex], preference);
+            if (score < bestScore || (score == bestScore && cellIndex < bestCellIndex))
             {
-                bestHexIndex = hexIndex;
+                bestCellIndex = cellIndex;
                 bestScore = score;
             }
         }
 
-        return bestHexIndex >= 0
-            ? bestHexIndex
+        return bestCellIndex >= 0
+            ? bestCellIndex
             : throw new InvalidOperationException("Physical subdivision has no eligible anchor.");
     }
 
-    private static long AnchorPenalty(PhysicalHexAggregate aggregate, AnchorPreference preference) =>
+    private static long AnchorPenalty(
+        PhysicalKernelCellAggregate aggregate,
+        AnchorPreference preference) =>
         preference switch
         {
             AnchorPreference.Land => aggregate.WaterCoverage * 100L,
@@ -219,29 +224,29 @@ internal static partial class IceRemembersSeedBuilder
         };
 
     private static int[] GrowConnectedRegions(
-        PhysicalGeographyField field,
-        ReadOnlySpan<PhysicalHexAggregate> aggregates,
+        PhysicalKernelMapGeometry geometry,
+        ReadOnlySpan<PhysicalKernelCellAggregate> aggregates,
         ReadOnlySpan<RegionSeed> seeds,
         ReadOnlySpan<int> parentRegions,
         int salt)
     {
         ValidateRegionSeeds(seeds);
-        var assigned = new int[field.Grid.HexCount];
-        var bestCosts = new long[checked(field.Grid.HexCount * seeds.Length)];
+        var assigned = new int[geometry.CellCount];
+        var bestCosts = new long[checked(geometry.CellCount * seeds.Length)];
         Array.Fill(bestCosts, long.MaxValue);
-        var queue = new PriorityQueue<GrowthFrontier, (long Cost, int RegionId, int HexIndex)>();
-        SeedRegionGrowth(seeds, field.Grid.HexCount, bestCosts, queue);
+        var queue = new PriorityQueue<GrowthFrontier, (long Cost, int RegionId, int CellIndex)>();
+        SeedRegionGrowth(seeds, geometry.CellCount, bestCosts, queue);
         while (queue.TryDequeue(out var frontier, out var priority))
         {
-            if (assigned[frontier.HexIndex] != 0 ||
-                priority.Cost != bestCosts[(frontier.SeedIndex * field.Grid.HexCount) + frontier.HexIndex])
+            if (assigned[frontier.CellIndex] != 0 ||
+                priority.Cost != bestCosts[(frontier.SeedIndex * geometry.CellCount) + frontier.CellIndex])
             {
                 continue;
             }
 
-            assigned[frontier.HexIndex] = seeds[frontier.SeedIndex].RegionId;
+            assigned[frontier.CellIndex] = seeds[frontier.SeedIndex].RegionId;
             ExpandRegionGrowth(
-                field,
+                geometry,
                 aggregates,
                 seeds,
                 parentRegions,
@@ -253,17 +258,17 @@ internal static partial class IceRemembersSeedBuilder
                 priority.Cost);
         }
 
-        ValidateRegionCoverage(field, seeds, assigned);
+        ValidateRegionCoverage(geometry, seeds, assigned);
         return assigned;
     }
 
     private static void ValidateRegionSeeds(ReadOnlySpan<RegionSeed> seeds)
     {
-        var anchors = new HashSet<(int ParentRegionId, int HexIndex)>();
+        var anchors = new HashSet<(int ParentRegionId, int CellIndex)>();
         var regionIds = new HashSet<int>();
         foreach (var seed in seeds)
         {
-            if (!anchors.Add((seed.ParentRegionId, seed.HexIndex)) || !regionIds.Add(seed.RegionId))
+            if (!anchors.Add((seed.ParentRegionId, seed.CellIndex)) || !regionIds.Add(seed.RegionId))
             {
                 throw new InvalidOperationException("Physical subdivision seeds must be distinct.");
             }
@@ -272,73 +277,72 @@ internal static partial class IceRemembersSeedBuilder
 
     private static void SeedRegionGrowth(
         ReadOnlySpan<RegionSeed> seeds,
-        int hexCount,
+        int cellCount,
         Span<long> bestCosts,
-        PriorityQueue<GrowthFrontier, (long Cost, int RegionId, int HexIndex)> queue)
+        PriorityQueue<GrowthFrontier, (long Cost, int RegionId, int CellIndex)> queue)
     {
         for (var seedIndex = 0; seedIndex < seeds.Length; seedIndex++)
         {
             var seed = seeds[seedIndex];
-            bestCosts[(seedIndex * hexCount) + seed.HexIndex] = 0;
+            bestCosts[(seedIndex * cellCount) + seed.CellIndex] = 0;
             queue.Enqueue(
-                new GrowthFrontier(seedIndex, seed.HexIndex),
-                (0, seed.RegionId, seed.HexIndex));
+                new GrowthFrontier(seedIndex, seed.CellIndex),
+                (0, seed.RegionId, seed.CellIndex));
         }
     }
 
     private static void ExpandRegionGrowth(
-        PhysicalGeographyField field,
-        ReadOnlySpan<PhysicalHexAggregate> aggregates,
+        PhysicalKernelMapGeometry geometry,
+        ReadOnlySpan<PhysicalKernelCellAggregate> aggregates,
         ReadOnlySpan<RegionSeed> seeds,
         ReadOnlySpan<int> parentRegions,
         int salt,
         ReadOnlySpan<int> assigned,
         Span<long> bestCosts,
-        PriorityQueue<GrowthFrontier, (long Cost, int RegionId, int HexIndex)> queue,
+        PriorityQueue<GrowthFrontier, (long Cost, int RegionId, int CellIndex)> queue,
         GrowthFrontier frontier,
         long currentCost)
     {
         var seed = seeds[frontier.SeedIndex];
-        var coord = field.Grid.HexCoordAt(frontier.HexIndex);
+        var coord = geometry.CoordAt(frontier.CellIndex);
         foreach (var neighborCoord in coord.Neighbors())
         {
-            if (!field.Grid.TryGetHexIndex(neighborCoord, out var neighborHexIndex) ||
-                !field.Grid.TriangleIsInsideConfiguredDisk(field.Grid.TriangleIndex(neighborHexIndex, 0)) ||
-                assigned[neighborHexIndex] != 0 ||
-                (parentRegions.Length != 0 && parentRegions[neighborHexIndex] != seed.ParentRegionId))
+            if (!geometry.TryGetCellIndex(neighborCoord, out var neighborCellIndex) ||
+                assigned[neighborCellIndex] != 0 ||
+                (parentRegions.Length != 0 && parentRegions[neighborCellIndex] != seed.ParentRegionId))
             {
                 continue;
             }
 
             EnqueueGrowthCandidate(
-                field,
+                geometry,
                 aggregates,
                 seed,
                 salt,
                 bestCosts,
                 queue,
                 frontier.SeedIndex,
-                neighborHexIndex,
+                neighborCellIndex,
                 currentCost);
         }
     }
 
     private static void EnqueueGrowthCandidate(
-        PhysicalGeographyField field,
-        ReadOnlySpan<PhysicalHexAggregate> aggregates,
+        PhysicalKernelMapGeometry geometry,
+        ReadOnlySpan<PhysicalKernelCellAggregate> aggregates,
         RegionSeed seed,
         int salt,
         Span<long> bestCosts,
-        PriorityQueue<GrowthFrontier, (long Cost, int RegionId, int HexIndex)> queue,
+        PriorityQueue<GrowthFrontier, (long Cost, int RegionId, int CellIndex)> queue,
         int seedIndex,
-        int hexIndex,
+        int cellIndex,
         long currentCost)
     {
-        var bestCostIndex = (seedIndex * field.Grid.HexCount) + hexIndex;
+        var bestCostIndex = (seedIndex * geometry.CellCount) + cellIndex;
         var nextCost = currentCost + RegionStepCost(
             seed.RegionId,
-            aggregates[hexIndex],
-            field.Grid.HexCoordAt(hexIndex),
+            aggregates[cellIndex],
+            geometry.CoordAt(cellIndex),
             salt);
         if (nextCost >= bestCosts[bestCostIndex])
         {
@@ -347,13 +351,13 @@ internal static partial class IceRemembersSeedBuilder
 
         bestCosts[bestCostIndex] = nextCost;
         queue.Enqueue(
-            new GrowthFrontier(seedIndex, hexIndex),
-            (nextCost, seed.RegionId, hexIndex));
+            new GrowthFrontier(seedIndex, cellIndex),
+            (nextCost, seed.RegionId, cellIndex));
     }
 
     private static int RegionStepCost(
         int regionId,
-        PhysicalHexAggregate aggregate,
+        PhysicalKernelCellAggregate aggregate,
         HexCoord coord,
         int salt)
     {
@@ -372,15 +376,13 @@ internal static partial class IceRemembersSeedBuilder
     }
 
     private static void ValidateRegionCoverage(
-        PhysicalGeographyField field,
+        PhysicalKernelMapGeometry geometry,
         ReadOnlySpan<RegionSeed> seeds,
         ReadOnlySpan<int> assigned)
     {
-        for (var configuredIndex = 0;
-            configuredIndex < field.Grid.ConfiguredHexCount;
-            configuredIndex++)
+        for (var cellIndex = 0; cellIndex < geometry.CellCount; cellIndex++)
         {
-            if (assigned[field.Grid.ConfiguredHexIndexAt(configuredIndex)] == 0)
+            if (assigned[cellIndex] == 0)
             {
                 throw new InvalidOperationException("Physical subdivision growth left an unassigned hex.");
             }
@@ -396,20 +398,17 @@ internal static partial class IceRemembersSeedBuilder
     }
 
     private static MapSubdivisionMap BuildSubdivisionMap(
-        PhysicalGeographyField field,
+        PhysicalKernelMapGeometry geometry,
         ReadOnlySpan<int> continents,
         ReadOnlySpan<int> superregions)
     {
         var map = new MapSubdivisionMap();
-        for (var configuredIndex = 0;
-            configuredIndex < field.Grid.ConfiguredHexCount;
-            configuredIndex++)
+        for (var cellIndex = 0; cellIndex < geometry.CellCount; cellIndex++)
         {
-            var hexIndex = field.Grid.ConfiguredHexIndexAt(configuredIndex);
             map.AssignCell(
-                field.Grid.HexCoordAt(hexIndex),
-                superregions[hexIndex],
-                continents[hexIndex]);
+                geometry.CoordAt(cellIndex),
+                superregions[cellIndex],
+                continents[cellIndex]);
         }
 
         return map;
@@ -427,12 +426,12 @@ internal static partial class IceRemembersSeedBuilder
 
     private readonly record struct RegionSeed(
         int RegionId,
-        int HexIndex,
+        int CellIndex,
         int ParentRegionId = 0);
 
     private readonly record struct GrowthFrontier(
         int SeedIndex,
-        int HexIndex);
+        int CellIndex);
 
     private static float SuperregionAffinity(
         MapSubdivisionMap subdivisionMap,

@@ -49,7 +49,7 @@ internal sealed class SeaIceLayer : IPhysicalGeographyLayer
                 ~(PhysicalGeographyFeatureCodes.PermanentSeaIce |
                     PhysicalGeographyFeatureCodes.PermanentIceMargin);
             if (map.WaterKindCodes[triangleIndex] != PhysicalWaterKindCodes.Ocean ||
-                !map.Grid.TriangleIsInsideConfiguredDisk(triangleIndex))
+                !map.Grid.TriangleIsInsideContentDomain(triangleIndex))
             {
                 continue;
             }

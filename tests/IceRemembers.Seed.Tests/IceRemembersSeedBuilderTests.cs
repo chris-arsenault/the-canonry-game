@@ -1,6 +1,7 @@
 namespace IceRemembers.Seed.Tests;
 
 using Engine.Constants;
+using Engine.Domain.Spatial;
 using Engine.Domain.Startup;
 using Engine.WorldGen;
 

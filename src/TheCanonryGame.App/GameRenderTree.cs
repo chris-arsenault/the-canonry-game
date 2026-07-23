@@ -19,6 +19,7 @@ internal sealed partial class GameRenderTree
 
     private readonly HexMapRenderer _mapRenderer;
     private readonly EntityLayer _entityLayer;
+    private readonly PhysicalMap3DInspector _physicalMap3DInspector;
     private readonly EntityBrowser _browser;
     private readonly TopBar _topBar;
     private readonly BottomBar _bottomBar;
@@ -71,10 +72,14 @@ internal sealed partial class GameRenderTree
     private string _mapLensKey = MapArea.LensDefault;
     private long _worldBeatAgesVersion = -1;
     private string _worldBeatAgesLabel = string.Empty;
+    private PlaneMode _planeBeforePhysical3D = PlaneMode.Physical;
+
+    public bool Physical3DInspectionActive => _physicalMap3DInspector.Active;
 
     internal GameRenderTree(
         HexMapRenderer mapRenderer,
         EntityLayer entityLayer,
+        PhysicalMap3DInspector physicalMap3DInspector,
         EntityBrowser browser,
         TopBar topBar,
         BottomBar bottomBar,
@@ -91,6 +96,7 @@ internal sealed partial class GameRenderTree
     {
         _mapRenderer = mapRenderer;
         _entityLayer = entityLayer;
+        _physicalMap3DInspector = physicalMap3DInspector;
         _chronicleAura.Initialize(entityLayer);
         entityLayer.AddChild(_chronicleAura);
         entityLayer.AddChild(_minorActorFlow);
@@ -122,7 +128,11 @@ internal sealed partial class GameRenderTree
 
     public bool TryApplyArmedInterventionClick()
     {
-        if (_armedInterventionId <= 0 || _runtime is null || _map is null || _ui is null)
+        if (Physical3DInspectionActive ||
+            _armedInterventionId <= 0 ||
+            _runtime is null ||
+            _map is null ||
+            _ui is null)
         {
             return false;
         }
@@ -235,12 +245,20 @@ internal sealed partial class GameRenderTree
 
         _chronicle.Refresh();
         _topBarRender.Present(_topBar, _ui, currentTick, timeState, _seed, _seedAttempt, WorldBeatAgesLabel());
-        _mapRender.Present(_mapRenderer, _map, _ui);
-        PresentCultureOverview();
+        if (!Physical3DInspectionActive)
+        {
+            _mapRender.Present(_mapRenderer, _map, _ui);
+            PresentCultureOverview();
+        }
+
         _browserRender.Present(_browser, _ui);
-        _entityMapRender.Present(_entityLayer, _ui, _browser, _entityNamesVisibleForZoom);
-        _minorActorFlow.Present();
-        _entityTrails.Present();
+        if (!Physical3DInspectionActive)
+        {
+            _entityMapRender.Present(_entityLayer, _ui, _browser, _entityNamesVisibleForZoom);
+            _minorActorFlow.Present();
+            _entityTrails.Present();
+        }
+
         _cardLayerRender.Present(_cardLayer, _ui);
         _attributeGraphRender.Present(ActiveAttributeGraph(), _ui);
         _chronicleRender.Present(_chroniclePanel, _chronicle, _chronicleAura);
@@ -313,6 +331,11 @@ internal sealed partial class GameRenderTree
 
     public void TogglePlane()
     {
+        if (Physical3DInspectionActive)
+        {
+            return;
+        }
+
         _mapRenderer.CurrentPlane = _mapRenderer.CurrentPlane == PlaneMode.Physical
             ? PlaneMode.Semantic
             : PlaneMode.Physical;
@@ -428,6 +451,7 @@ internal sealed partial class GameRenderTree
     private void BindNodesToRuntime()
     {
         _mapRenderer.Initialize(_map!, _physicalGeography!, _ui, _symbols);
+        _physicalMap3DInspector.Bind(_physicalGeography, _mapRenderer.HexSize);
         _entityLayer.Initialize(_ui, _symbols, _mapRenderer.HexSize);
         _ = _entityLayer.SetPlane(_mapRenderer.CurrentPlane);
         _browser.Initialize(_ui, _symbols);
@@ -441,6 +465,7 @@ internal sealed partial class GameRenderTree
             _ui,
             _symbols,
             _mapRenderer,
+            _physicalMap3DInspector,
             _worldCanvas,
             [_rootColumn, _mapArea, _uiRoot]);
         _tableauPanel.Initialize(_runtime?.Tableau);

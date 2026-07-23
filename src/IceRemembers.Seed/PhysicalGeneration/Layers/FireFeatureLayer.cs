@@ -222,7 +222,10 @@ internal sealed class FireFeatureLayer : IIceRemembersMicrogeographyLayer
         map.FireIntensity[triangleIndex] >= 140 &&
         map.Physical.Temperature[triangleIndex] >= 225 &&
         map.Physical.FractureConductance[triangleIndex] >= 170 &&
-        PhysicalNoise.HashUnit(context.Seed ^ 0x3f19, triangleIndex, 0x5b1) >= 0.14d;
+        PhysicalNoise.HashUnit(
+            context.Seed ^ 0x3f19,
+            map.Physical.Grid.TriangleIdentity(triangleIndex),
+            0x5b1) >= 0.14d;
 
     private static void AddRegionFeature(
         IceRemembersMicrogeographyMap map,

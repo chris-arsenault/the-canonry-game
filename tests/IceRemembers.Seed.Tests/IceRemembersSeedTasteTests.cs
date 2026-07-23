@@ -1,7 +1,7 @@
 namespace IceRemembers.Seed.Tests;
 
+using Engine.Domain.Spatial;
 using Engine.Domain.Startup;
-using Engine.WorldGen;
 
 /// <summary>
 /// Seed-time placement taste: the same kind and culture weights the kernel

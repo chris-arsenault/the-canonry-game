@@ -62,6 +62,10 @@ public partial class MapArea : Control
     private LegendPanel? _legendPanel;
     private Control? _geographyControls;
     private OptionButton? _geographyViewOptions;
+    private Control? _physical3DControls;
+    private HSlider? _physical3DVerticalExaggeration;
+    private CheckBox? _physical3DWireframeCheckBox;
+    private CheckBox? _physical3DWaterCheckBox;
     private OverlayLayoutState? _lastOverlayLayout;
     private bool _updatingLayerControls;
     private bool _updatingLensControls;
@@ -77,6 +81,15 @@ public partial class MapArea : Control
 
     [Signal]
     public delegate void GeographyViewRequestedEventHandler(string viewKey);
+
+    [Signal]
+    public delegate void Physical3DVerticalExaggerationChangedEventHandler(float exaggeration);
+
+    [Signal]
+    public delegate void Physical3DWireframeChangedEventHandler(bool visible);
+
+    [Signal]
+    public delegate void Physical3DWaterChangedEventHandler(bool visible);
 
     public override void _Ready()
     {
@@ -169,6 +182,14 @@ public partial class MapArea : Control
         }
     }
 
+    public void SetPhysical3DInspectionEnabled(bool enabled)
+    {
+        if (_physical3DControls is not null)
+        {
+            _physical3DControls.Visible = enabled;
+        }
+    }
+
     private void AddLayerPanel()
     {
         _layersPanel = new PanelContainer
@@ -255,6 +276,25 @@ public partial class MapArea : Control
         {
             TooltipText = "Choose the generated physical field to inspect",
         };
+        AddGeographyViewOptions();
+        _geographyViewOptions.Select(1);
+        _geographyViewOptions.ItemSelected += OnGeographyViewSelected;
+        controls.AddChild(_geographyViewOptions);
+
+        AddPhysical3DControls(controls);
+
+        var inspection = AddLayerCheckBox(
+            controls,
+            "Reveal latent field",
+            LayerWorldgenInspection);
+        inspection.ButtonPressed = false;
+        _ = AddLayerCheckBox(controls, "Geography features", LayerGeographyFeatures);
+        _geographyControls = controls;
+        box.AddChild(controls);
+    }
+
+    private void AddGeographyViewOptions()
+    {
         AddGeographyViewOption("Terrain", GeographyViewTerrain);
         AddGeographyViewOption("Final surfaces", GeographyViewSurface);
         AddGeographyViewOption("Natural surfaces", GeographyViewNaturalSurface);
@@ -278,18 +318,57 @@ public partial class MapArea : Control
         AddGeographyViewOption("Pressure", GeographyViewPressure);
         AddGeographyViewOption("Magic composite", GeographyViewMagicComposite);
         AddGeographyViewOption("Magic history", GeographyViewMagicHistory);
-        _geographyViewOptions.Select(1);
-        _geographyViewOptions.ItemSelected += OnGeographyViewSelected;
-        controls.AddChild(_geographyViewOptions);
+    }
 
-        var inspection = AddLayerCheckBox(
-            controls,
-            "Reveal latent field",
-            LayerWorldgenInspection);
-        inspection.ButtonPressed = false;
-        _ = AddLayerCheckBox(controls, "Geography features", LayerGeographyFeatures);
-        _geographyControls = controls;
-        box.AddChild(controls);
+    private void AddPhysical3DControls(VBoxContainer parent)
+    {
+        var controls = new VBoxContainer { Visible = false };
+        controls.AddThemeConstantOverride("separation", UiTokens.Space1);
+
+        var exaggerationLabel = new Label
+        {
+            Text = "Vertical exaggeration",
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        exaggerationLabel.AddThemeFontSizeOverride("font_size", UiTokens.SizeBodySmall);
+        exaggerationLabel.AddThemeColorOverride("font_color", UiTokens.Whisper);
+        controls.AddChild(exaggerationLabel);
+
+        _physical3DVerticalExaggeration = new HSlider
+        {
+            MinValue = 0.5,
+            MaxValue = 2.0,
+            Step = 0.1,
+            Value = 1.0,
+            TooltipText = "Scale displayed height without changing generated elevation",
+        };
+        _physical3DVerticalExaggeration.ValueChanged += value => EmitSignal(
+            SignalName.Physical3DVerticalExaggerationChanged,
+            (float)value);
+        controls.AddChild(_physical3DVerticalExaggeration);
+
+        _physical3DWireframeCheckBox = new CheckBox
+        {
+            Text = "Microtriangle wireframe",
+            ButtonPressed = false,
+        };
+        _physical3DWireframeCheckBox.Toggled += visible => EmitSignal(
+            SignalName.Physical3DWireframeChanged,
+            visible);
+        controls.AddChild(_physical3DWireframeCheckBox);
+
+        _physical3DWaterCheckBox = new CheckBox
+        {
+            Text = "Water surfaces",
+            ButtonPressed = true,
+        };
+        _physical3DWaterCheckBox.Toggled += visible => EmitSignal(
+            SignalName.Physical3DWaterChanged,
+            visible);
+        controls.AddChild(_physical3DWaterCheckBox);
+
+        _physical3DControls = controls;
+        parent.AddChild(controls);
     }
 
     private void AddGeneratedProcessViewOptions()
