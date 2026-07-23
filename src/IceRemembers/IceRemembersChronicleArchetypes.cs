@@ -12,7 +12,7 @@ using K = IceRemembers.IceRemembersKinds;
 /// facts (deaths, edges culled by real gambits and drift), never director
 /// writes; a cold, quiet tale fades from the telling.
 /// </summary>
-public static class IceRemembersChronicleArchetypes
+public static partial class IceRemembersChronicleArchetypes
 {
     private const string Prot = IceRemembersChronicleBeats.Protagonist;
     private const string Adv = IceRemembersChronicleBeats.Adversary;
@@ -29,6 +29,7 @@ public static class IceRemembersChronicleArchetypes
         TheHauntedRun(),
         TheLivingPractice(),
         TheTerrorOfTheCoasts(),
+        TheFarWanderer(),
     ];
 
     /// <summary>

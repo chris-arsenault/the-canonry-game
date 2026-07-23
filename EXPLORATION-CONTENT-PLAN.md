@@ -29,9 +29,13 @@ Great Thaw era is the exploration register.
   the Peoples track; charges boost exploration verb weight, frontier
   generator pulse weight, movement step rate; Long Dark gets dampers.
   Gate: both ages opened in both gate runs.
-- O5 The Far Wanderer chronicle archetype: journey milestones (beyond
-  support, new landmass, naming a feature, surviving the freeze) with
-  triumphant/memorial/founding endings.
+- O5 [DONE] The Far Wanderer chronicle archetype: cast on the waymark deed
+  (memorializes edge); journey beats at distance milestones (past the
+  hearth-light 14, the white between 26), the stone rising, the flesh
+  paying, a companion joining; endings the world produces (homecoming,
+  death in the white, the hearth-line let go, the hearth dying). Gate:
+  5 casts in a 25k bootstrap; full arc struck in one tale; the
+  white-keeps-them death terminal fired in another.
 - O6 [DONE] Frontier survival: Scout the White + Voyage Beyond the Charts
   (fog-adjacent seeking, waymark-trail travel influence), Winter at the
   Springs (hot-springs dwell), The Stone Remembers the Walk (remembrance-
