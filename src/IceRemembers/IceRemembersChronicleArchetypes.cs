@@ -30,6 +30,8 @@ public static partial class IceRemembersChronicleArchetypes
         TheLivingPractice(),
         TheTerrorOfTheCoasts(),
         TheFarWanderer(),
+        TheScarThatWouldNotClose(),
+        TheBurden(),
     ];
 
     /// <summary>

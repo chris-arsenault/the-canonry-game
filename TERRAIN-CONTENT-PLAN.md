@@ -237,4 +237,12 @@ gated on worldgen coordination; T5/T6 last (content on top of everything).
   carriers), settlement_hires_the_hull (20% success), 
   faction_parleys_with_the_pod (24%), winter-at-the-springs verb now seeks
   thermal sites. Growth +1652 at 25k, all kinds beyond rim.
-- [ ] T6 chronicle additions
+- [x] T6 chronicle additions — the_scar_that_would_not_close (region:scar
+  primary, cleansing artifact as mender, keeper open role; beats tie the
+  cleanse loop, corruption_wakes, and region_breathes_the_thaw together;
+  terminal arming fixed so a fresh scar can't instantly "close", fade
+  patience extended to the land's clock 6000/4500) and the_burden (held
+  Before-Times weapon primary, bearer/burden stances, covetous monster;
+  9 tales with laid-down/spent/unmade endings in gate). Watch item: the
+  scar tale runs quiet - cleanse gambits need the artifact within 2 hexes,
+  so most tellings fade half-healed by design.
