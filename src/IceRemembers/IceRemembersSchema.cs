@@ -646,6 +646,12 @@ public enum IceRemembersGambitId
     TransportSetsDownThePassenger,
     PenguinRaisesTheWaymark,
     OrcaSoundsTheFarPassage,
+    PenguinSheltersAtTheVent,
+    PenguinFindsThePass,
+    RegionBreathesTheThaw,
+    FactionClaimsTheWarmGround,
+    SettlementHiresTheHull,
+    FactionParleysWithThePod,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -710,6 +716,12 @@ public static class IceRemembersGambitIdExtensions
         "transport_sets_down_the_passenger",
         "penguin_raises_the_waymark",
         "orca_sounds_the_far_passage",
+        "penguin_shelters_at_the_vent",
+        "penguin_finds_the_pass",
+        "region_breathes_the_thaw",
+        "faction_claims_the_warm_ground",
+        "settlement_hires_the_hull",
+        "faction_parleys_with_the_pod",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)

@@ -57,7 +57,23 @@ internal static class MonsterEntity
             },
             physicalRules:
             [
+                // First match wins: what the Wake-Singers make stays in the
+                // deep regardless of shape. After that, the depth answers as
+                // a thing of the depth - leviathans rise in open water under
+                // pressure, beasts stalk the harvest edge where reef meets
+                // shelf, and wraiths keep to the cold ground the ice never
+                // quite released.
                 CultureRule(Culture.WakeSingers.ToDomainName(), Maritime() with
+                {
+                    PreferredSites = Sites(IceRemembersPlacementSites.Anomaly),
+                }),
+                SubtypeRule("leviathan", Maritime() with
+                {
+                    PreferredSites = Sites(IceRemembersPlacementSites.Anomaly),
+                    PressureAffinity = 0.5f,
+                }),
+                SubtypeRule("beast", Amphibious(Terrain.Reef, Terrain.Shelf)),
+                SubtypeRule("wraith", Land(Terrain.Ice, Terrain.Tundra, Terrain.AuroraField) with
                 {
                     PreferredSites = Sites(IceRemembersPlacementSites.Anomaly),
                 }),

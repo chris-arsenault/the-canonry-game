@@ -20,7 +20,7 @@ internal static class PointOfInterestEntity
         Kind = K.PointOfInterest,
         Category = EntityCategory.Spatial,
         Tier = EntityTier.Place,
-        Subtypes = Subtypes("vent", "peak", "bloom", "shoal"),
+        Subtypes = Subtypes("vent", "peak", "bloom", "shoal", "ruin"),
         HealthAttribute = Attr.Presence,
         HealthDisplayName = "Presence",
         PrimaryPlane = PrimaryPlane.Semantic,
@@ -75,12 +75,19 @@ internal static class PointOfInterestEntity
                 {
                     PreferredSites = Sites(IceRemembersPlacementSites.Polynya),
                 }),
+                // Ruins keep to the old scars: crater ground, blasted rock.
+                // What the Before Times left is found where it fell.
+                SubtypeRule("ruin", Land(Terrain.Basalt, Terrain.Crags) with
+                {
+                    PreferredSites = Sites(IceRemembersPlacementSites.Crater),
+                }),
             ],
             semanticRules:
             [
                 SubtypeRule("vent", Semantic(Terrain.BeaconSpire, Terrain.Witness, Terrain.OpenField)),
                 SubtypeRule("bloom", Semantic(Terrain.Severance, Terrain.Silence, Terrain.TabooRidge)),
                 SubtypeRule("shoal", Semantic(Terrain.Breakaway, Terrain.OpenField, Terrain.Witness)),
+                SubtypeRule("ruin", Semantic(Terrain.Severance, Terrain.TabooRidge, Terrain.Silence)),
             ]),
     };
 }

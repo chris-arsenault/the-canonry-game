@@ -22,7 +22,37 @@ public static partial class IceRemembersGeneratorDefinition
         TheRiverEarnsItsName(),
         TheStillWaterIsSounded(),
         TheStoneRemembersTheWalk(),
+        TheCraterKeepsItsCount(),
     ];
+
+    // Discovery: the old scars. Craters are where the Before Times' war
+    // touched the ground; what walkers find there bears serial numbers in
+    // no known language, and the ice around it recoils. Six are known.
+    // The serial numbers imply a series; a series implies a count.
+    private static SemanticGeneratorConfig TheCraterKeepsItsCount() => new()
+    {
+        Id = "the_crater_keeps_its_count",
+        Name = "The Crater Keeps Its Count",
+        Description = "A walker reaches the old scar and finds what fell there: broken roadstone, a megalith face, numbers etched in a hand no living people writes. The ruin enters the charts as a place to be watched, not settled. Sometimes the digging finds more than stone, and the ice near it goes quiet.",
+        CausalLimit = "Depends on a revealed, unclaimed crater feature; the ruin's occupancy of the anchor is the repeat lock.",
+        Target = new SemanticGeneratorTarget
+        {
+            Kind = K.Penguin,
+        },
+        Produces =
+        [
+            FeatureDiscovery("$ruin", K.PointOfInterest, "ruin", "crater"),
+            Optional("$find", K.Artifact, "weapon", "$ruin", "$target", chance: 0.25f),
+        ],
+        Relationships =
+        [
+            R("$ruin", "$target", Rel.ClaimedBy, 0.4f),
+            R("$find", "$ruin", Rel.Anchored, 0.85f),
+            R("$target", "$find", Rel.Holds, 0.6f),
+        ],
+        Triggers = TriggerOn(K.Penguin),
+        PulseWeight = 3,
+    };
 
     private static SemanticGeneratorConfig TheStoneRemembersTheWalk() => new()
     {
@@ -140,7 +170,10 @@ public static partial class IceRemembersGeneratorDefinition
         Target = TargetSubtypeWithOutgoingAndWithoutIncoming(K.Settlement, "colony", Rel.FoundedFrom, Rel.Memorializes),
         Produces =
         [
-            Required("$wayfinder", K.Penguin, "witness", "$target", "$target"),
+            // The wayfinder walks the unread white: they land at the
+            // colony's physical frontier and become the anchor the next
+            // push starts from, not another body inside the walls.
+            Required("$wayfinder", K.Penguin, "witness", "$target", "$target", physicalFrontier: true),
             Optional("$waystone", K.Artifact, "relic", "$target", "$target", chance: 0.6f),
             Optional("$coldcraft", K.Ability, "craft", "$target", "$target", chance: 0.45f),
             Optional("$charter", K.Canon, "accord", "$target", "$target", chance: 0.4f),

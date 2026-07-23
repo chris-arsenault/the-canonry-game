@@ -127,8 +127,10 @@ public static partial class IceRemembersDefinition
             distanceScale: 14f, travelInfluence: (0.4f, 0)),
         // The frontier's answer to the cold: when the white bites, walkers
         // hole up where the ground itself is warm and wait out the worst.
+        // Thermal sites pull the wintering toward the true springs.
         MovementVerb(Verb.PenguinWinterAtTheSprings, "Winter at the Springs", K.Penguin, Mode.Terrain,
-            minTemperature: 400, ticks: (45, 130), dwell: 30, radius: 1, samples: 20, weight: 0.55f, opportunityBonusOverride: 0.3f),
+            minTemperature: 400, sites: IceRemembersEntityDsl.Sites(IceRemembersPlacementSites.Thermal),
+            ticks: (45, 130), dwell: 30, radius: 1, samples: 20, weight: 0.55f, opportunityBonusOverride: 0.3f),
     ];
 
     private static IReadOnlyList<LowAltitudeVerbConfig> CreateTransportMovementVerbs() =>

@@ -25,18 +25,10 @@ public static partial class IceRemembersGeneratorDefinition
 
     public static IReadOnlyList<SemanticGeneratorConfig> Create() =>
     [
-        IceSettlesAccounts(),
-        WhatTheSpringRemembers(),
-        WarBreaksTheLand(),
-        RoutesDrawReaders(),
-        WhatTheArtifactKnows(),
-        UnclaimedPlacesDrawWardens(),
-        PracticedFormsFindTomes(),
-        ChartersFindHarbors(),
-        VigilsLeaveRelics(),
-        CorruptionWakesMonsters(),
+        ..CoreGenerators(),
         .. CreateFrontierGenerators(),
         ..WarSagaGenerators(),
+        ..CreatePaletteGenerators(),
         TradeRoutesConveneNegotiation(),
         ClaimedWatersDrawBulls(),
         PodCurrentsLaunchScouts(),
@@ -93,6 +85,20 @@ public static partial class IceRemembersGeneratorDefinition
             TargetCultureMatch = QueryTargetCultureMatch.SameAsTarget,
             SamePhysicalCultureComponentAsTarget = samePhysicalComponent,
         };
+
+    private static IReadOnlyList<SemanticGeneratorConfig> CoreGenerators() =>
+    [
+        IceSettlesAccounts(),
+        WhatTheSpringRemembers(),
+        WarBreaksTheLand(),
+        RoutesDrawReaders(),
+        WhatTheArtifactKnows(),
+        UnclaimedPlacesDrawWardens(),
+        PracticedFormsFindTomes(),
+        ChartersFindHarbors(),
+        VigilsLeaveRelics(),
+        CorruptionWakesMonsters(),
+    ];
 
     private static IReadOnlyList<SemanticGeneratorConfig> WarSagaGenerators() =>
     [
@@ -529,7 +535,9 @@ public static partial class IceRemembersGeneratorDefinition
         Target = TargetWithOutgoingAndWithoutIncoming(K.Transport, Rel.NativeTo, Rel.Memorializes),
         Produces =
         [
-            Required("$peak", K.PointOfInterest, "peak", "$target", "$target", frontier: true),
+            // The peak the record gains is a real one: the named point
+            // lands on a revealed summit feature the charts can point to.
+            FeatureDiscovery("$peak", K.PointOfInterest, "peak", "peak"),
         ],
         Relationships =
         [

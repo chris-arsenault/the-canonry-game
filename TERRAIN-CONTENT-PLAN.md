@@ -213,8 +213,28 @@ gated on worldgen coordination; T5/T6 last (content on top of everything).
   id from the registry that also numbers the compiled terrain table). Note:
   precondition failures are not per-reason telemetried for any precondition
   type; terrain gates inherit that, nothing new to instrument.
-- [ ] T2 generator retrofits
-- [ ] T3 feature identification (peaks, craters)
-- [ ] T4 terrain-gated gambits
-- [ ] T5 palette equity content
+- [x] T2 generator retrofits — monster subtype placement rules (leviathan
+  deep-water+pressure, beast reef/shelf edge, wraith cold ground; WakeSingers
+  culture rule kept first), wayfinder lands at the colony's physical
+  frontier. Audit correction: sanctuary/springs, shoals, blooms, and orca
+  water rows were already covered by subtype defaults the audit undercounted.
+- [x] T3 feature identification — worldgen identifies Peak and Crater by
+  clustering the landform classifier's summit/impact triangles; worldgen
+  version 16, four standard worlds regenerated (all accepted attempt 0).
+  conduits_map_hidden_peaks upgraded to FeatureAnchor on real peaks; new
+  the_crater_keeps_its_count raises Before-Times ruin POIs (first Crater
+  site consumer) with a rare serial-numbered weapon find. Gate: a ruin rose
+  in the 25k bootstrap; peak discovery is late-window (baseline first fire
+  tick 32k) and gated healthy.
+- [x] T4 terrain-gated gambits — shelter_at_the_vent (geothermal 350+),
+  find_the_pass (near-but-unreachable annulus, packs the causeway; 27%
+  success in gate), breathe_the_thaw (scar over warm vein, threshold
+  calibrated to ~p90 of the measured geothermal distribution),
+  claim_the_warm_ground (Nightshelf, geothermal 400+; zero attempts in
+  gate — watch item, pool is TheIce-culture vents only).
+- [x] T5 palette equity content — the_war_leaves_its_mark (2 scars in
+  gate), the_polynya_never_closes (1 shoal), the_canon_is_carried (4
+  carriers), settlement_hires_the_hull (20% success), 
+  faction_parleys_with_the_pod (24%), winter-at-the-springs verb now seeks
+  thermal sites. Growth +1652 at 25k, all kinds beyond rim.
 - [ ] T6 chronicle additions

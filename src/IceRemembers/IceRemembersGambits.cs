@@ -73,6 +73,12 @@ public static partial class IceRemembersDefinition
             FactionMarchesTheBanners(),
             TransportTakesUpThePassenger(),
             TransportSetsDownThePassenger(),
+            PenguinSheltersAtTheVent(),
+            PenguinFindsThePass(),
+            RegionBreathesTheThaw(),
+            FactionClaimsTheWarmGround(),
+            SettlementHiresTheHull(),
+            FactionParleysWithThePod(),
         };
         gambits.AddRange(CreateWorkTierGambits());
         gambits.AddRange(CreateForgingGambits());
