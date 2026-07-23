@@ -127,11 +127,14 @@ and relationship bundles when their preconditions are met. Generator selection
 should be shaped by the state created by low altitude and gambits.
 
 Both map planes grow from radius-18 hearts into deterministic latent geography
-bounded at radius 128. Physical cells open where culture presses the frontier
-during the Age of the Thaw; semantic cells open continuously where idea-mass
-presses. The Long Dark can cover weak frontier-grown physical cells with
-impassable Deep Ice, but thaw removes the cover and reveals the current durable
-base terrain rather than replacing it. Reach across the map is priced by travel
+bounded at radius 128. Physical cells open where entities actually arrive:
+reveal is one-way and entity-driven (per-kind radii on movement and
+materialization), with the culture field acting as home-base support rather
+than the reveal mechanism; semantic cells open continuously where idea-mass
+presses. Ice is a separate dynamic cover layer over frontier-grown ground:
+freeze ages advance impassable Deep Ice where cold pressure beats local
+resistance (mass, roads, knowledge), and thaw ages retreat it, exposing the
+durable base terrain rather than replacing it. Reach across the map is priced by travel
 cost: a `WithinTravelReach` gate line-samples road-discounted terrain cost, so
 frozen frontier blocks reach and roads extend it. See
 [systems/26-growing-map.md](./systems/26-growing-map.md).

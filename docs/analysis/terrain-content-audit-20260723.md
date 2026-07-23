@@ -1,6 +1,8 @@
-# Terrain-Aware Content: Audit and Plan
+# Terrain-Aware Content: Audit and Plan (completed)
 
-Audit date: 2026-07-23. Scope: all authored IceRemembers content (67 generators,
+Audit date: 2026-07-23. All six milestones executed the same week; the
+status section at the bottom records outcomes and watch items. Kept as a
+point-in-time record of the audit findings and the palette-equity baseline. Scope: all authored IceRemembers content (67 generators,
 58 gambits, 51 movement verbs, 18 ages, 8 chronicle archetypes) against the
 terrain interface the engine actually exposes. Companion goal: identify where
 net-new generators/gambits are needed so every entity kind has a workable

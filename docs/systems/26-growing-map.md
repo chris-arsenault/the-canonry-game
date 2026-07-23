@@ -19,26 +19,33 @@ or ground the frontier later opens — exactly like the physical plane. Un-opene
 idea-space is genuine fog: movement, generator placement, and verb targeting all
 refuse it.
 
-## MapFrontier: thaw and reclaim
+## MapFrontier: reveal, culture, and ice
 
-`Engine.Kernel/Programs/MapFrontier/` grows and covers the physical world. It
-reads which age holds the World track from `WorldBeats.OpenAgeId`:
+`Engine.Kernel/Programs/MapFrontier/` runs three decoupled physical layers.
+Exploration is untied from both culture and ice:
 
-- **Thaw** (Age of the Thaw): each pulse, culture mass at a frontier cell
-  (raw ≥ `FrontierMassThreshold`) opens its unknown neighbors through
-  `Simulation.CreateCell`. Terrain, superregion, and continent come from the
-  coordinate's installed per-hex physical geography rather than a uniform
-  fallback or inheritance from the pressing cell. The kernel does not need the
-  external microtriangle field to perform this reveal. Growth is bounded by
-  `MaxRadius` (128) and an explicit per-pulse budget. The world opens where
-  history presses, not on a timer.
-- **Reclaim** (the Long Dark): the program rotates a persistent cursor over
-  cells previously created by physical frontier growth. A known, weakly held
-  edge cell with no road and an unknown or already covered neighbor receives
-  impassable `deep_ice` cover. Startup-heart cells are absent from this eligible
-  set. The Long Dark's decay tide can cool abandoned rim ground, and repeated
-  pulses can propagate cover inward through earned territory without
-  destructively rewriting its terrain.
+- **Reveal is entity-driven and one-way.** Fog of war is simply the set of
+  unknown cells; there is no pulse, no cursor, nothing to miss. When an
+  entity arrives on a physical cell (movement surface consequences) or is
+  materialized there, `MapFrontier.RevealOnArrival` opens the latent cells
+  in its per-kind reveal radius through `Simulation.CreateCell`. Terrain,
+  superregion, and continent come from the coordinate's installed per-hex
+  physical geography. Growth is bounded by `MaxRadius` (128). The world
+  opens where bodies actually go: fog-adjacent exploration verbs, frontier
+  placements, and journey content are what push it.
+- **Culture is the home base, not the reveal mechanism.** The taste-shaped
+  culture field (deposits scaled by `CultureGrowthMultiplier`, derived from
+  kind and culture placement taste over the latent facts) supports
+  operations as a soft leash: acting beyond the field's support raises
+  costs through the `BeyondCultureSupport` effect condition rather than
+  forbidding anything. Knowledge lowers the support threshold.
+- **Ice is a separate dynamic cover layer.** Over the frontier-grown ring
+  (never the startup heart), per-cell `ColdPressure` — cold from the latent
+  temperature fact plus ice fact minus geothermal, scaled by the open age —
+  contests `IceResistance` from local culture mass, roads, and knowledge.
+  Freeze ages advance impassable `deep_ice` cover where pressure wins;
+  thaw ages retreat it where resistance wins. Ice modulates travel and
+  range; it does not own exploration.
 
 New cells are ordinary: culture spreads onto them, entities move onto them, and
 generators place into them. The world tracks physical and semantic live extents

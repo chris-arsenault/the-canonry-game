@@ -46,9 +46,21 @@ semantic coordinates. Area placement searches an authored radius band around a
 point; locality placement searches inside the target locality. The old
 semantic/physical shortcuts are not separate placement systems.
 
+Beyond area and locality, two placements read the map's own structure.
+**Frontier** placement lands the produced entity on known free ground just
+past its culture's leading edge, so it becomes the anchor the next push
+starts from — the founding ratchet. **FeatureAnchor** placement lands it on
+the nearest revealed, unoccupied anchor of a persisted geological feature
+(river systems, lakes, peaks, craters), filtered by an authored feature
+kind; the entity's occupancy of the anchor is the claim, so exhausted
+features fall out of candidacy on their own.
+
 Produced entities can author preferred and allowed terrain per plane. Allowed
 terrain is a hard filter; preferred terrain biases scored candidates after
 locality, radius, occupancy, semantic bounds, and coverage constraints pass.
+Physical placement also scores discrete site flags (summit, thermal, anomaly,
+polynya, crater), signed warmth/fire/aurora/pressure band affinities over the
+latent facts, and the kind and culture placement taste axes.
 For physical regions and coverage, placement must respect terrain and named
 coverage rules. For semantic placement, entities are placed within the bounded
 semantic plane against semantic terrain.

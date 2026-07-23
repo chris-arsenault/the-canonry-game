@@ -91,7 +91,18 @@ create or remove relationship topology. A relationship-existence precondition
 therefore must not compile into a relationship-creation affordance. Low-altitude
 verbs also do not create or change terrain types, so terrain creation,
 conversion, or count constraints must not compile into terrain-modification
-affordances. If a precondition cannot be moved toward by an existing
+affordances.
+
+Preconditions can read the ground directly. `SelfHexFactThreshold` and
+`TargetHexFactThreshold` band any latent geography fact (temperature,
+geothermal, elevation, river coverage, aurora, and the rest) at the actor's
+or target's physical hex, authored on each fact's natural scale and
+quantized at compile time with the same functions worldgen used to write
+the fact. `SelfOnTerrainGroup` gates on the terrain boundary group
+underfoot (warm_land, frozen_land, maritime, ...) rather than per-terrain
+lists, so content stays valid as terrains join or leave a group. These are
+read-only gates: they create no affordance pressure, because no behavior
+can move an entity's ground temperature. If a precondition cannot be moved toward by an existing
 low-altitude verb shape, it should create no low-altitude affordance pressure;
 the pressure must come from the high-altitude content that can actually create
 that state.
