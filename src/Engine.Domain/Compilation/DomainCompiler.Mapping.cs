@@ -124,13 +124,12 @@ public static partial class DomainCompiler
         Dictionary<string, int> movementProfileIds)
     {
         var terrains = new List<CompiledTerrainDefinition>();
-        var boundaryGroups = new Dictionary<string, int>(StringComparer.Ordinal);
         foreach (var terrain in config.Terrains)
         {
             var terrainId = ids.TerrainIdOf(terrain.Name).Value;
             terrains.Add(new CompiledTerrainDefinition(
                 terrainId,
-                BoundaryGroupId(boundaryGroups, terrain.BoundaryGroup),
+                ids.TerrainBoundaryGroupIdOf(terrain.BoundaryGroup).Value,
                 ClampNonNegative(terrain.MovementCost),
                 ClampNonNegative(terrain.InfluenceMultiplier),
                 ClampNonNegative(terrain.ClaimCostMultiplier),
@@ -812,19 +811,6 @@ public static partial class DomainCompiler
         CoveragePlacementMode.SplitFromExisting => GeneratorProgramCoverageMode.SplitFromExisting,
         _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null),
     };
-
-    private static int BoundaryGroupId(Dictionary<string, int> boundaryGroups, string stableName)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(stableName);
-        if (boundaryGroups.TryGetValue(stableName, out var id))
-        {
-            return id;
-        }
-
-        id = boundaryGroups.Count + 1;
-        boundaryGroups.Add(stableName, id);
-        return id;
-    }
 
     private static float ClampNonNegative(float value) => value < 0f ? 0f : value;
 

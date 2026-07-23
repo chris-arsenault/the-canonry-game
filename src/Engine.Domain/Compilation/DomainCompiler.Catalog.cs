@@ -70,9 +70,14 @@ public static partial class DomainCompiler
 
     private static void RegisterTerrainCatalog(DomainConfig config, CatalogRegistrationState state)
     {
+        var boundaryGroups = new HashSet<string>(StringComparer.Ordinal);
         foreach (var terrain in config.Terrains)
         {
             RegisterOnceStrict(state.Terrains, terrain.Name, state.Registry.RegisterTerrain, "terrain");
+            if (boundaryGroups.Add(terrain.BoundaryGroup))
+            {
+                state.Registry.RegisterTerrainBoundaryGroup(terrain.BoundaryGroup);
+            }
         }
     }
 

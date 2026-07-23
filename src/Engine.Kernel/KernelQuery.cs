@@ -341,6 +341,11 @@ internal static partial class KernelQuery
         in QueryBinding binding,
         out bool result)
     {
+        if (TryEvaluateGeographyPredicate(world, predicate, binding, out result))
+        {
+            return true;
+        }
+
         result = predicate.Code switch
         {
             BehaviorPreconditionCodes.PlaneDistance => PlaneDistance(world, binding.ActorId, binding.TargetId, predicate.B) <= predicate.A,

@@ -1,0 +1,181 @@
+namespace Engine.Kernel.Tests;
+
+using Engine.Constants;
+using Engine.Kernel;
+
+// The terrain-reading gambit gates: a fact band at an entity's feet and a
+// terrain boundary-group check. Warm ground passes a geothermal band; cold
+// ground blocks it; ground outside the wanted group blocks the group gate.
+public sealed class GambitGeographyPreconditionTests
+{
+    private const int OpenTerrain = 1;
+    private const int WarmTerrain = 2;
+    private const int OpenGroup = 1;
+    private const int WarmGroup = 2;
+    private const int AttributeId = 10;
+
+    [Fact]
+    public void SelfHexFactRange_PassesOnWarmGroundAndBlocksOnCold()
+    {
+        var simulation = CreateSimulation();
+        InstallGeography(simulation, warmQ: 1, warmR: 0, geothermal: 150);
+        const int kindId = 1;
+        simulation.RegisterAttribute(kindId, AttributeId, 0f, 100f, 10f);
+        var onWarm = simulation.CreateEntity(kindId, 1, 1, 1, 0, 0, 0, 0, 0);
+        var onCold = simulation.CreateEntity(kindId, 1, 1, -1, 0, 0, 0, 0, 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            kindId,
+            gambitId: 100,
+            targetMode: BehaviorTargetModeCodes.Self,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(
+            gambit,
+            BehaviorPreconditionCodes.SelfHexFactRange,
+            a: PhysicalHexFactCodes.Geothermal,
+            b: 100,
+            c: 255);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, AttributeId, x: 20f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(30f, simulation.World.GetAttribute(onWarm, AttributeId));
+        Assert.Equal(10f, simulation.World.GetAttribute(onCold, AttributeId));
+    }
+
+    [Fact]
+    public void TargetHexFactRange_ReadsTheTargetsGroundNotTheActors()
+    {
+        var simulation = CreateSimulation();
+        InstallGeography(simulation, warmQ: 1, warmR: 0, geothermal: 150);
+        const int actorKindId = 1;
+        const int targetKindId = 2;
+        simulation.RegisterAttribute(actorKindId, AttributeId, 0f, 100f, 10f);
+        var actor = simulation.CreateEntity(actorKindId, 1, 1, -1, 0, 0, 0, 0, 0);
+        simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId: 101,
+            targetMode: BehaviorTargetModeCodes.KindOther,
+            targetKindId: targetKindId,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.AddPrecondition(
+            gambit,
+            BehaviorPreconditionCodes.TargetHexFactRange,
+            a: PhysicalHexFactCodes.Geothermal,
+            b: 100,
+            c: 255);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, AttributeId, x: 20f);
+
+        simulation.AdvanceTicks(1);
+
+        // The actor stands on cold ground; only the target's warm hex is read.
+        Assert.Equal(30f, simulation.World.GetAttribute(actor, AttributeId));
+    }
+
+    [Fact]
+    public void SelfOnTerrainGroup_MatchesGroupOfTheCellUnderfoot()
+    {
+        var simulation = CreateSimulation();
+        InstallGeography(simulation, warmQ: 1, warmR: 0, geothermal: 150);
+        const int wantsWarmKind = 1;
+        const int wantsOpenKind = 2;
+        simulation.RegisterAttribute(wantsWarmKind, AttributeId, 0f, 100f, 10f);
+        simulation.RegisterAttribute(wantsOpenKind, AttributeId, 0f, 100f, 10f);
+        var onWarmGround = simulation.CreateEntity(wantsWarmKind, 1, 1, 1, 0, 0, 0, 0, 0);
+        var alsoOnWarmGround = simulation.CreateEntity(wantsOpenKind, 1, 1, 1, 1, 0, 0, 0, 0);
+
+        var wantsWarm = simulation.Gambits.RegisterGambit(
+            wantsWarmKind,
+            gambitId: 102,
+            targetMode: BehaviorTargetModeCodes.Self,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(
+            wantsWarm, BehaviorPreconditionCodes.SelfOnTerrainGroup, a: WarmGroup);
+        simulation.Gambits.AddExpressionOp(wantsWarm, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(wantsWarm, BehaviorOperationCodes.AddAttribute, AttributeId, x: 20f);
+
+        var wantsOpen = simulation.Gambits.RegisterGambit(
+            wantsOpenKind,
+            gambitId: 103,
+            targetMode: BehaviorTargetModeCodes.Self,
+            successChance: 1f);
+        simulation.Gambits.AddPrecondition(
+            wantsOpen, BehaviorPreconditionCodes.SelfOnTerrainGroup, a: OpenGroup);
+        simulation.Gambits.AddExpressionOp(wantsOpen, BehaviorExpressionCodes.Literal, x: 1f);
+        simulation.Gambits.AddStep(wantsOpen, BehaviorOperationCodes.AddAttribute, AttributeId, x: 20f);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(30f, simulation.World.GetAttribute(onWarmGround, AttributeId));
+        // (1,1) is warm-group ground too, so the open-group gate blocks there.
+        Assert.Equal(10f, simulation.World.GetAttribute(alsoOnWarmGround, AttributeId));
+    }
+
+    // A radius-2 field of open terrain with one warm patch: the flagged hex
+    // and its column neighbour (1,1) carry WarmTerrain (its own boundary
+    // group) and the given geothermal fact; everything else reads zero.
+    private static void InstallGeography(Simulation simulation, int warmQ, int warmR, byte geothermal)
+    {
+        simulation.RegisterTerrain(
+            OpenTerrain, boundaryGroupId: OpenGroup, movementCost: 3f,
+            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
+            roadBuildMultiplier: 1f, roadSpeedMultiplier: 1f);
+        simulation.RegisterTerrain(
+            WarmTerrain, boundaryGroupId: WarmGroup, movementCost: 3f,
+            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
+            roadBuildMultiplier: 1f, roadSpeedMultiplier: 1f);
+        simulation.KernelData.PhysicalGeography.BeginInstall(4);
+        simulation.World.SetMapRadius(4);
+        ForEachHex(2, (q, r) =>
+        {
+            var warm = (q == warmQ && r == warmR) || (q == warmQ && r == warmR + 1);
+            var facts = new byte[PhysicalHexFactCodes.Count];
+            if (warm)
+            {
+                facts[PhysicalHexFactCodes.Geothermal] = geothermal;
+            }
+
+            var terrainId = warm ? WarmTerrain : OpenTerrain;
+            simulation.KernelData.PhysicalGeography.InstallCell(
+                q, r, terrainId, superregionId: 1, continentId: 1,
+                crossingWord: 0, fieldWord: 0, initialCoverTerrainId: 0, facts);
+            simulation.SeedCell(q, r, terrainId, ownerEntityId: 0);
+        });
+    }
+
+    private static void ForEachHex(int radius, global::System.Action<int, int> visit)
+    {
+        for (var q = -radius; q <= radius; q++)
+        {
+            for (var r = -radius; r <= radius; r++)
+            {
+                if ((global::System.Math.Abs(q) + global::System.Math.Abs(r) + global::System.Math.Abs(q + r)) / 2 <= radius)
+                {
+                    visit(q, r);
+                }
+            }
+        }
+    }
+
+    private static Simulation CreateSimulation() => KernelTestSimulation.Create(new SimulationOptions
+    {
+        EntityCapacity = 16,
+        RelationshipCapacity = 16,
+        AttributeCapacity = 64,
+        MapCellCapacity = 1024,
+        EventCapacity = 512,
+        GambitCapacity = 4,
+        GambitStepCapacity = 32,
+        GambitCooldownCapacity = 32,
+        GeneratorCapacity = 4,
+        RelationshipKindIdCapacity = 64,
+        TerrainIdCapacity = 8,
+        SystemCapacity = 24,
+        MapGenerationRadiusCapacity = 8,
+    });
+}

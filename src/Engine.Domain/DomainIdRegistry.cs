@@ -44,6 +44,8 @@ public sealed class DomainIdRegistry
         new(static value => new RelationshipKindRuntimeId(value), static id => id.Value, "relationship kind");
     private readonly StableNameRegistry<TerrainRuntimeId> _terrains =
         new(static value => new TerrainRuntimeId(value), static id => id.Value, "terrain");
+    private readonly StableNameRegistry<TerrainBoundaryGroupRuntimeId> _terrainBoundaryGroups =
+        new(static value => new TerrainBoundaryGroupRuntimeId(value), static id => id.Value, "terrain boundary group");
     private readonly StableNameRegistry<TravelStructureRuntimeId> _travelStructures =
         new(static value => new TravelStructureRuntimeId(value), static id => id.Value, "travel structure");
     private readonly StableNameRegistry<SubtypeRuntimeId> _subtypes =
@@ -95,6 +97,15 @@ public sealed class DomainIdRegistry
     public TerrainRuntimeId RegisterTerrain(string stableName) => _terrains.Register(stableName);
     public TerrainRuntimeId TerrainIdOf(string stableName) => _terrains.Resolve(stableName);
     public string TerrainNameOf(TerrainRuntimeId id) => _terrains.NameOf(id);
+
+    public TerrainBoundaryGroupRuntimeId RegisterTerrainBoundaryGroup(string stableName) =>
+        _terrainBoundaryGroups.Register(stableName);
+
+    public TerrainBoundaryGroupRuntimeId TerrainBoundaryGroupIdOf(string stableName) =>
+        _terrainBoundaryGroups.Resolve(stableName);
+
+    public string TerrainBoundaryGroupNameOf(TerrainBoundaryGroupRuntimeId id) =>
+        _terrainBoundaryGroups.NameOf(id);
 
     public TravelStructureRuntimeId RegisterTravelStructure(string stableName) => _travelStructures.Register(stableName);
     public TravelStructureRuntimeId TravelStructureIdOf(string stableName) => _travelStructures.Resolve(stableName);

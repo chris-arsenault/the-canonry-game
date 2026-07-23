@@ -947,6 +947,9 @@ internal static partial class KernelProgramInstaller
         code = precondition switch
         {
             BehaviorProgramPrecondition.WithinTravelReach => BehaviorPreconditionCodes.WithinTravelReach,
+            BehaviorProgramPrecondition.SelfHexFactRange => BehaviorPreconditionCodes.SelfHexFactRange,
+            BehaviorProgramPrecondition.TargetHexFactRange => BehaviorPreconditionCodes.TargetHexFactRange,
+            BehaviorProgramPrecondition.SelfOnTerrainGroup => BehaviorPreconditionCodes.SelfOnTerrainGroup,
             _ => -1,
         };
         return code >= 0;

@@ -296,6 +296,9 @@ public static class BehaviorPreconditionCodes
     public const int SelfHasOutgoingRelationshipToKind = 26;
     public const int EndpointSubtypeIs = 27;
     public const int WithinTravelReach = 28;
+    public const int SelfHexFactRange = 29;
+    public const int TargetHexFactRange = 30;
+    public const int SelfOnTerrainGroup = 31;
 }
 
 public static class BehaviorExpressionCodes

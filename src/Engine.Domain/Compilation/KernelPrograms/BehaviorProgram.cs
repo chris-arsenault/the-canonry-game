@@ -85,6 +85,9 @@ public enum BehaviorProgramPrecondition
     SelfHasOutgoingRelationshipToKind,
     EndpointSubtypeIs,
     WithinTravelReach,
+    SelfHexFactRange,
+    TargetHexFactRange,
+    SelfOnTerrainGroup,
 }
 
 public enum BehaviorProgramExpression

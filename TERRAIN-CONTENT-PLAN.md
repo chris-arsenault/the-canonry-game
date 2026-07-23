@@ -208,7 +208,11 @@ gated on worldgen coordination; T5/T6 last (content on top of everything).
 
 ## 4. Status
 
-- [ ] T1 terrain preconditions
+- [x] T1 terrain preconditions — SelfHexFactThreshold / TargetHexFactThreshold
+  (banded, quantized per fact scale) and SelfOnTerrainGroup (boundary-group
+  id from the registry that also numbers the compiled terrain table). Note:
+  precondition failures are not per-reason telemetried for any precondition
+  type; terrain gates inherit that, nothing new to instrument.
 - [ ] T2 generator retrofits
 - [ ] T3 feature identification (peaks, craters)
 - [ ] T4 terrain-gated gambits

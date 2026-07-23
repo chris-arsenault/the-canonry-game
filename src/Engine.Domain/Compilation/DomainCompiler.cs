@@ -433,6 +433,7 @@ public static partial class DomainCompiler
             TryCompileRangePrecondition(ops, precondition, ids) ||
             TryCompileRelationshipPrecondition(ops, precondition, ids) ||
             TryCompileCulturePrecondition(ops, precondition, ids) ||
+            TryCompileGeographyPrecondition(ops, precondition, ids) ||
             TryCompileKernelStatePrecondition(ops, precondition))
         {
             return;

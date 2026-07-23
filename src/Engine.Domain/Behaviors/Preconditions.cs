@@ -354,3 +354,105 @@ public sealed class HasColocatedNamedEntityPrecondition : IPrecondition
 {
     public string Describe() => "has_colocated_named_entity";
 }
+
+/// <summary>
+/// A latent-geography fact column a precondition can band against.
+/// Authored thresholds use each fact's natural scale — intensity facts
+/// 0..1000, Elevation in world elevation units, Relief/Roughness in relief
+/// units, coverage facts in microtriangles 0..24 — and the compiler
+/// quantizes them with the same functions worldgen used to write the fact.
+/// </summary>
+public enum PhysicalHexFact
+{
+    /// <summary>Intensity 0..1000.</summary>
+    Temperature = Engine.Constants.PhysicalHexFactCodes.Temperature,
+
+    /// <summary>Intensity 0..1000.</summary>
+    Moisture = Engine.Constants.PhysicalHexFactCodes.Moisture,
+
+    /// <summary>Intensity 0..1000.</summary>
+    Geothermal = Engine.Constants.PhysicalHexFactCodes.Geothermal,
+
+    /// <summary>World elevation units (negative = depth).</summary>
+    Elevation = Engine.Constants.PhysicalHexFactCodes.Elevation,
+
+    /// <summary>Relief units.</summary>
+    Relief = Engine.Constants.PhysicalHexFactCodes.Relief,
+
+    /// <summary>Relief units.</summary>
+    Roughness = Engine.Constants.PhysicalHexFactCodes.Roughness,
+
+    /// <summary>Microtriangle coverage 0..24.</summary>
+    LandFraction = Engine.Constants.PhysicalHexFactCodes.LandFraction,
+
+    /// <summary>Microtriangle coverage 0..24.</summary>
+    RiverCoverage = Engine.Constants.PhysicalHexFactCodes.RiverCoverage,
+
+    /// <summary>Microtriangle coverage 0..24.</summary>
+    FloodplainCoverage = Engine.Constants.PhysicalHexFactCodes.FloodplainCoverage,
+
+    /// <summary>Intensity 0..1000.</summary>
+    IceThickness = Engine.Constants.PhysicalHexFactCodes.IceThickness,
+
+    /// <summary>Intensity 0..1000.</summary>
+    FireMean = Engine.Constants.PhysicalHexFactCodes.FireMean,
+
+    /// <summary>Intensity 0..1000.</summary>
+    FireMax = Engine.Constants.PhysicalHexFactCodes.FireMax,
+
+    /// <summary>Intensity 0..1000.</summary>
+    AuroraMean = Engine.Constants.PhysicalHexFactCodes.AuroraMean,
+
+    /// <summary>Intensity 0..1000.</summary>
+    AuroraMax = Engine.Constants.PhysicalHexFactCodes.AuroraMax,
+
+    /// <summary>Intensity 0..1000.</summary>
+    PressureMean = Engine.Constants.PhysicalHexFactCodes.PressureMean,
+
+    /// <summary>Intensity 0..1000.</summary>
+    PressureMax = Engine.Constants.PhysicalHexFactCodes.PressureMax,
+}
+
+/// <summary>
+/// The latent geography under self's feet must hold a fact inside the given
+/// band. Bounds are authored in the fact's natural scale (see
+/// <see cref="PhysicalHexFact"/>); either bound may be omitted. Off the
+/// installed field every fact reads as its zero, so a min bound fails there.
+/// </summary>
+public sealed class SelfHexFactThreshold(PhysicalHexFact fact, int? min = null, int? max = null) : IPrecondition
+{
+    public PhysicalHexFact Fact { get; } = fact;
+    public int? Min { get; } = min;
+    public int? Max { get; } = max;
+
+    public string Describe() =>
+        $"self_hex_fact({Fact}{(Min.HasValue ? $", min={Min}" : "")}{(Max.HasValue ? $", max={Max}" : "")})";
+}
+
+/// <summary>
+/// The latent geography under the target's position must hold a fact inside
+/// the given band. Same scales and semantics as
+/// <see cref="SelfHexFactThreshold"/>.
+/// </summary>
+public sealed class TargetHexFactThreshold(PhysicalHexFact fact, int? min = null, int? max = null) : IPrecondition
+{
+    public PhysicalHexFact Fact { get; } = fact;
+    public int? Min { get; } = min;
+    public int? Max { get; } = max;
+
+    public string Describe() =>
+        $"target_hex_fact({Fact}{(Min.HasValue ? $", min={Min}" : "")}{(Max.HasValue ? $", max={Max}" : "")})";
+}
+
+/// <summary>
+/// Self must stand on terrain belonging to the named boundary group
+/// (e.g. warm_land, frozen_land, maritime). Groups, not per-terrain lists:
+/// content states the class of ground it wants and stays valid as terrains
+/// join or leave the group.
+/// </summary>
+public sealed class SelfOnTerrainGroup(string boundaryGroup) : IPrecondition
+{
+    public string BoundaryGroup { get; } = boundaryGroup;
+
+    public string Describe() => $"self_on_terrain_group({BoundaryGroup})";
+}
