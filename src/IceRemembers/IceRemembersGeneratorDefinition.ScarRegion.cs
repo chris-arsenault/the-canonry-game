@@ -1,6 +1,7 @@
 namespace IceRemembers;
 
 using Engine.Domain.Config;
+using Engine.Domain.Spatial;
 using Engine.Kinds;
 using Engine.WorldGen;
 

@@ -21,7 +21,32 @@ public static partial class IceRemembersGeneratorDefinition
         TheWhiteHasTeeth(),
         TheRiverEarnsItsName(),
         TheStillWaterIsSounded(),
+        TheStoneRemembersTheWalk(),
     ];
+
+    private static SemanticGeneratorConfig TheStoneRemembersTheWalk() => new()
+    {
+        Id = "the_stone_remembers_the_walk",
+        Name = "The Stone Remembers the Walk",
+        Description = "A walker offered a far walk to the ice, and the ice answers: a remembrance-stone rises where they stand, holding the deed where the frost can keep it. Around such stones the far trails stay warm a little longer.",
+        CausalLimit = "Depends on a walker who committed a waymark deed and has no stone yet; the stone's memorializes edge is the repeat lock.",
+        Target = new SemanticGeneratorTarget
+        {
+            Kind = K.Penguin,
+            RequiredOutgoingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(Rel.Memorializes) },
+            WithoutIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(Rel.Memorializes) },
+        },
+        Produces =
+        [
+            Required("$waystone", K.Artifact, "relic", "$target", "$target", on: true),
+        ],
+        Relationships =
+        [
+            R("$waystone", "$target", Rel.Memorializes, 0.85f),
+        ],
+        Triggers = TriggerOn(K.Penguin),
+        PulseWeight = 4,
+    };
 
     // Discovery: the retreating sheets reveal "new waters rich with krill
     // and ancient secrets frozen beneath." When the peoples reach a named

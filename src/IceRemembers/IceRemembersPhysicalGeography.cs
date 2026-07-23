@@ -189,11 +189,11 @@ public static class IceRemembersPhysicalGeography
 
     public static PhysicalGeographyGenerationProfile GenerationProfile { get; } = new()
     {
-        Padding = 24,
+        BoundaryPaddingSteps = 144,
         TectonicProvinceCount = 30,
         ContinentalAssemblyCount = 5,
         ContinentalCrustFraction = 0.53d,
-        ContinentalTransitionWidth = 14d,
+        ContinentalTransitionWidth = 40d,
         RidgeWidth = 10d,
         MantlePlumeCount = 9,
         MantlePlumeRadius = 12d,

@@ -59,6 +59,8 @@ public static partial class IceRemembersDefinition
             FactionChartersSettlement(),
             TransportSurveysRegion(),
             OrcaLaysDeepCurrent(),
+            PenguinRaisesTheWaymark(),
+            OrcaSoundsTheFarPassage(),
             TransportWardsMonster(),
             MonsterHauntsTransport(),
             OrcaRaidsTradeRoute(),
@@ -720,44 +722,6 @@ public static partial class IceRemembersDefinition
         return gambit;
     }
 
-    private static GambitDefinition OrcaLaysDeepCurrent()
-    {
-        var gambit = NewGambit(
-            GambitId.OrcaLaysDeepCurrent,
-            "Lay a Deep Current",
-            K.Orca,
-            K.PointOfInterest,
-            All(
-                new TargetIsNotSelf(),
-                new TargetHasRelationshipToSelf(L(Rel.ClaimedBy)),
-                new WithinPlaneDistancePrecondition(16, PrimaryPlane.Physical),
-                new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.HomeBase), maximumExclusive: 1),
-                new SelfAttributeThreshold(A(Attr.Endurance), min: 42f, max: null, behaviorRelevant: false),
-                new TargetAttributeThreshold(A(Attr.Presence), min: 35f, max: null, behaviorRelevant: false)),
-            scoreExpression: GambitScore(
-                baseline: 0.8f,
-                dynamicRange: 6f,
-                Weighted3(
-                    (DistanceFalloff(8f), 0.45f),
-                    (Normalized(Expr.Self(A(Attr.Endurance))), 0.35f),
-                    (Normalized(Expr.Target(A(Attr.Presence))), 0.20f))),
-            success: InitialGambitSuccessChance,
-            cooldown: 170,
-            entityCooldown: 50);
-        AddRelationshipWrite(gambit, Rel.HomeBase, K.PointOfInterest);
-        AddRelationshipWrite(gambit, Rel.ControlledBy, K.PointOfInterest);
-        gambit.Writes.Add(AttributeRef.StructuralFact("travel_structure", K.Orca));
-        gambit.Reads.Add(AttributeRef.Self(A(Attr.Endurance), K.Orca));
-        gambit.Reads.Add(AttributeRef.Target(A(Attr.Presence), K.PointOfInterest));
-        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.HomeBase, RelationshipPolarity.Neutral, 1f));
-        gambit.Mutations.Add(Relationship(TransferEndpoint.Target, TransferEndpoint.Self, Rel.ControlledBy, RelationshipPolarity.Neutral, 0.74f));
-        gambit.Mutations.Add(new BuildTravelStructureLineMutation(
-            TravelStructure.DeepCurrent.ToDomainName(),
-            PlaneCodes.Physical,
-            maxDistance: 16));
-        gambit.Description = "An orca that already holds a hunting-ground claim settles a current into it. The current is a travel structure; the home-base edge makes the claim usable by later content.";
-        return gambit;
-    }
 
     private static GambitDefinition TransportWardsMonster()
     {

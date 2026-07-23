@@ -76,12 +76,7 @@ public static partial class IceRemembersDefinition
             fitnessRelationshipKind: L(Rel.RivalOf), fitnessWeight: 1.6f),
         MovementVerb(Verb.PenguinGoFishing, "Go Fishing", K.Penguin, Mode.Terrain,
             terrains: MaritimeTerrains(), ticks: (35, 100), dwell: 16, radius: 1, samples: 28, weight: 1.1f, opportunityBonusOverride: 0.3f),
-        // The deliberate pushes into fog: exploration verbs hunt the edge of
-        // the known world, exempt from the support leash, and presence
-        // reveal opens the ground once the explorer arrives.
-        MovementVerb(Verb.PenguinScoutTheWhite, "Scout the White", K.Penguin, Mode.Terrain,
-            fogAdjacent: true, ticks: (40, 110), dwell: 4, radius: 1, samples: 24, weight: 0.8f, opportunityBonusOverride: 0.4f,
-            distanceScale: 14f),
+        .. CreateExplorationMovementVerbs(),
         MovementVerb(Verb.PenguinFollowArtifact, "Follow a Relic", K.Penguin, Mode.EntityKind,
             targetKind: K.Artifact, ticks: (25, 80), dwell: 10, radius: 1, samples: 10, weight: 0.65f, opportunityBonusOverride: 1.6f,
             fitnessRelationshipKind: L(Rel.Holds), fitnessWeight: 1.8f),
@@ -104,7 +99,7 @@ public static partial class IceRemembersDefinition
             terrains: MaritimeTerrains(), ticks: (40, 120), dwell: 18, radius: 1, samples: 28, weight: 1.0f, opportunityBonusOverride: 0.3f),
         MovementVerb(Verb.OrcaSoundTheFarWater, "Sound the Far Water", K.Orca, Mode.Terrain,
             terrains: MaritimeTerrains(), fogAdjacent: true, ticks: (45, 130), dwell: 6, radius: 1, samples: 28, weight: 0.75f, opportunityBonusOverride: 0.4f,
-            distanceScale: 14f),
+            distanceScale: 14f, travelInfluence: (0.4f, 0)),
         MovementVerb(Verb.OrcaSoundThePod, "Sound the Pod", K.Orca, Mode.RelationshipTarget,
             relationshipKind: L(Rel.AlliedWith), ticks: (25, 75), dwell: 12, radius: 1, weight: 0.55f, opportunityBonusOverride: 0.7f,
             fitnessRelationshipKind: L(Rel.AlliedWith), fitnessWeight: 1.5f),
@@ -119,6 +114,21 @@ public static partial class IceRemembersDefinition
         MovementVerb(Verb.AbilitySurfaceInTheReach, "Surface in the Reach", K.Ability, Mode.Explore,
             ticks: (60, 160), dwell: 6, samples: 22, weight: 0.5f, opportunityBonusOverride: 0.3f),
         .. CreateTransportMovementVerbs(),
+    ];
+
+    // The deliberate pushes into fog and the survival answers to the cold:
+    // scouts hunt the edge of the known world (leash-exempt) and pack the
+    // trail as they walk it - a faint influence deposit along the route is
+    // the waymark the leash and the ice both read.
+    private static IReadOnlyList<LowAltitudeVerbConfig> CreateExplorationMovementVerbs() =>
+    [
+        MovementVerb(Verb.PenguinScoutTheWhite, "Scout the White", K.Penguin, Mode.Terrain,
+            fogAdjacent: true, ticks: (40, 110), dwell: 4, radius: 1, samples: 24, weight: 0.8f, opportunityBonusOverride: 0.4f,
+            distanceScale: 14f, travelInfluence: (0.4f, 0)),
+        // The frontier's answer to the cold: when the white bites, walkers
+        // hole up where the ground itself is warm and wait out the worst.
+        MovementVerb(Verb.PenguinWinterAtTheSprings, "Winter at the Springs", K.Penguin, Mode.Terrain,
+            minTemperature: 400, ticks: (45, 130), dwell: 30, radius: 1, samples: 20, weight: 0.55f, opportunityBonusOverride: 0.3f),
     ];
 
     private static IReadOnlyList<LowAltitudeVerbConfig> CreateTransportMovementVerbs() =>

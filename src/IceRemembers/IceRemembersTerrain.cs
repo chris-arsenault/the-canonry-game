@@ -2,7 +2,7 @@ namespace IceRemembers;
 
 using Engine.Constants;
 using Engine.Domain.Config;
-using Engine.WorldGen;
+using Engine.Domain.Spatial;
 
 using K = IceRemembers.IceRemembersKinds;
 using Profile = IceRemembers.IceRemembersMovementProfile;

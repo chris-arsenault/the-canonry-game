@@ -388,6 +388,7 @@ public enum IceRemembersVerbId
     PenguinScoutTheWhite,
     OrcaSoundTheFarWater,
     TransportVoyageBeyondTheCharts,
+    PenguinWinterAtTheSprings,
 }
 
 public static class IceRemembersVerbIdExtensions
@@ -573,6 +574,7 @@ public static class IceRemembersVerbIdExtensions
         "penguin_scout_the_white",
         "orca_sound_the_far_water",
         "transport_voyage_beyond_the_charts",
+        "penguin_winter_at_the_springs",
     ];
 
     public static string ToVerbId(this IceRemembersVerbId verbId)
@@ -642,6 +644,8 @@ public enum IceRemembersGambitId
     FactionMarchesTheBanners,
     TransportTakesUpThePassenger,
     TransportSetsDownThePassenger,
+    PenguinRaisesTheWaymark,
+    OrcaSoundsTheFarPassage,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -704,6 +708,8 @@ public static class IceRemembersGambitIdExtensions
         "faction_marches_the_banners",
         "transport_takes_up_the_passenger",
         "transport_sets_down_the_passenger",
+        "penguin_raises_the_waymark",
+        "orca_sounds_the_far_passage",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)
