@@ -16,22 +16,29 @@ Great Thaw era is the exploration register.
   Teeth (The Ice's monsters in the marches, Wilderness placement).
   Gate: founded-entity distance ratchets across a bootstrap; every kind
   beyond the startup rim (Region lands in O3).
-- O2 Expedition gambits: penguin_leads_expedition, faction_sponsors_
-  expedition, orca_sounds_the_passage, transport_charts_the_coast; camps
-  as POIs; fact-reading preconditions (geothermal refuges, passes).
-- O3 Discovery made durable: kernel accessor for persisted geological
-  features; discovery generators naming peaks/rivers/craters into POIs and
-  Regions as reveal reaches them.
-- O4 Ages of wandering: age_the_far_wandering (+the_great_crossing) on the
-  Peoples track; charges boost exploration verb weight, frontier generator
-  pulse weight, movement step rate; Long Dark gets the inverse.
+- O2 [DONE] Expedition gambits: Raise the Waymark (penguin commits the far
+  walk, packs an ice causeway home, deed costs flesh) and Sound the Far
+  Passage (orca conduits an unheld reach, deep-current line, costs interior
+  distance). Gate: waymark 29.9% success, far passage 36.1%; the stone
+  generator answers deeds (5 deeds -> 2 stones in an 8k check run).
+- O3 [DONE] Discovery made durable: kernel accessor for persisted geological
+  features; The River Earns Its Name (region) and The Still Water Is
+  Sounded (POI shoal) place on revealed feature anchors. Gate: 6 river
+  namings, 8 lake soundings in production runs.
+- O4 [DONE] Ages of wandering: The Far Wandering and The Great Crossing on
+  the Peoples track; charges boost exploration verb weight, frontier
+  generator pulse weight, movement step rate; Long Dark gets dampers.
+  Gate: both ages opened in both gate runs.
 - O5 The Far Wanderer chronicle archetype: journey milestones (beyond
   support, new landmass, naming a feature, surviving the freeze) with
   triumphant/memorial/founding endings.
-- O6 Frontier survival: make_winter_camp, waymark_the_trail, hot-springs
-  wintering; coldcraft framing for range grants; corridor persistence.
-- O7 Instruments: MC exploration section from map_snapshots (growth curve,
-  per-kind beyond-rim share); CellCreated undercount flagged; validator
-  and MC flags for stalled growth and heart-bound kinds.
+- O6 [DONE] Frontier survival: Scout the White + Voyage Beyond the Charts
+  (fog-adjacent seeking, waymark-trail travel influence), Winter at the
+  Springs (hot-springs dwell), The Stone Remembers the Walk (remembrance-
+  stone rises beside the walker; Near placement after on-cell placement
+  proved always occupied). Gate: growth +1586/+1843 per bootstrap.
+- O7 [DONE] Instruments: MC exploration section from map_snapshots (growth
+  curve, per-kind beyond-rim share); CellCreated undercount flagged;
+  validator and MC flags for stalled growth and heart-bound kinds.
 
 Sequence: O1, O7, O3, O2+O6, O4, O5.
