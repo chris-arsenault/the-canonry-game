@@ -2,10 +2,58 @@
 
 Temporary orientation doc for the completed exploration/terrain work. The
 durable state lives in `docs/systems/` (26-growing-map, 16-generator-executor,
-06-entity-behaviors) and `docs/analysis/terrain-content-audit-20260723.md`;
-delete this file once it has served its purpose.
+06-entity-behaviors, 04-map-spatial) and
+`docs/analysis/terrain-content-audit-20260723.md`; delete this file once it
+has served its purpose.
 
-## What changed, in order
+## The terrain foundation this arc consumed (parallel worldgen workstream)
+
+The gameplay work below sits on a physical-generation rework that was built
+in parallel and is documented in `docs/game-systems.md` and
+`docs/systems/04-map-spatial.md`. In brief, so this summary reads standalone:
+
+- **Global microtriangle lattice, not a hex generator.** Worldgen runs on one
+  padded equilateral microtriangle lattice with uniform adjacency and no
+  parent-cell knowledge. It partitions moving continental and oceanic crust,
+  derives typed plate boundaries and strain, and carries crust composition,
+  age, thickness, load, and material history through conservative plate
+  transport. Plate-pair systems spend finite deformation budgets on
+  collision roots, subduction belts, rifts, and transform relief;
+  crustal-support and lithospheric-flexure passes convert those loads into
+  the bedrock datum; sutures between transported assemblies preserve
+  interior ranges after active boundaries move; margin evolution grades
+  shelves and rises while retaining rare trenches.
+- **Four geological epochs of surface history.** Impacts and mantle-root
+  volcanism, then hydrology and climate: connected land/ocean labeling,
+  bathymetry, basin currents and wave exposure, one shared atmospheric
+  field for moisture/rain/snow, and persistent bedrock+sediment evolution
+  through fluvial, coastal, and glacial erosion/deposition with
+  mass-conserving mass wasting and rebound. Outlet-rooted drainage keeps
+  rivers continuous through lakes; a separate water-balance stage sets real
+  lake stages and spill outlets; deltas and floodplains expand from the
+  drainage spine. Ice Remembers interleaves fire, aurora, and pressure
+  passes with the epochs and keeps cumulative magic exposure.
+- **Radius-128 latent field, 24 microtriangles per runtime hex.** The
+  seed-to-kernel projection folds the lattice into hex-local slots. Scored
+  authored rules turn each 24-triangle arrangement into one durable base
+  terrain; only base terrain plus superregion/continent ids enter the
+  kernel. Everything the gameplay layer reads as "the ground" — the 16
+  quantized per-hex fact columns (temperature, moisture, geothermal,
+  elevation, relief, roughness, land fraction, river/floodplain coverage,
+  ice thickness, fire/aurora/pressure mean+max), the discrete site flags
+  (summit, thermal, anomaly, polynya, crater), crossing edge masks
+  (river/ridge/cliff), and the hard land/water partition — is written here.
+- **Acceptance and inspection.** Structural invariants and a seed validator
+  decide world acceptance (distributions are diagnostics, not gates);
+  worlds are versioned and must be generated from Release builds. The map
+  renders external facts at aggregate and triangle zoom, and a read-only 3D
+  QC mode displays the full latent field as displaced meshes.
+
+This arc's only additions inside that pipeline were the Peak and Crater
+feature-identification passes (T3) — everything else below consumes the
+foundation through facts, sites, features, groups, and taste.
+
+## What changed, in order (this arc)
 
 **1. Culture/thaw redesign (three decoupled layers).** Exploration untied
 from culture and ice. Reveal is entity-driven and one-way (per-kind radii on
