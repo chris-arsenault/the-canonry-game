@@ -14,11 +14,12 @@ public sealed class IceRemembersGambitDefinitionTests
         var config = IceRemembersDefinition.Create();
         var gambitIds = config.Gambits.Select(gambit => gambit.Id).ToHashSet(StringComparer.Ordinal);
 
-        // 40 strategic gambits (incl. the hunt-chronicle pair, the campaign
+        // 43 strategic gambits (incl. the hunt-chronicle pair, the campaign
         // march, the two carrier gambits, the two expedition gambits, the
-        // four terrain-gated gambits, and the two palette gambits) + 12
-        // grant gambits + one work-tier gambit per kind.
-        Assert.Equal(52 + IceRemembersEntities.All.Count, gambitIds.Count);
+        // four terrain-gated gambits, the two palette gambits, the two
+        // willful-artifact gambits, and the razing) + 12 grant gambits +
+        // one work-tier gambit per kind.
+        Assert.Equal(55 + IceRemembersEntities.All.Count, gambitIds.Count);
         Assert.Contains(IceRemembersGambitId.AbilitySharesPractice.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactBindsMonster.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactCleansesScar.ToGambitId(), gambitIds);
@@ -167,9 +168,11 @@ public sealed class IceRemembersGambitDefinitionTests
         Assert.Contains(slayOrca.Steps, step =>
             step.Operation == BehaviorProgramOperation.SetHistorical);
         var cornerId = compiled.Ids.GambitIdOf(IceRemembersGambitId.PenguinCornersTheBeast.ToGambitId()).Value;
+        var enshrineId = compiled.Ids.GambitIdOf(IceRemembersGambitId.ArtifactEnshrinesItself.ToGambitId()).Value;
+        var razeId = compiled.Ids.GambitIdOf(IceRemembersGambitId.FactionRazesTheHollowHold.ToGambitId()).Value;
         Assert.DoesNotContain(
             compiled.Programs.Gambits.Gambits
-                .Where(gambit => gambit.GambitId != slayMonsterId && gambit.GambitId != slayOrcaId && gambit.GambitId != cornerId)
+                .Where(gambit => gambit.GambitId != slayMonsterId && gambit.GambitId != slayOrcaId && gambit.GambitId != cornerId && gambit.GambitId != enshrineId && gambit.GambitId != razeId)
                 .SelectMany(gambit => gambit.Steps),
             step => step.Operation == BehaviorProgramOperation.SetHistorical);
     }

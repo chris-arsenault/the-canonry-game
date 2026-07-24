@@ -79,7 +79,8 @@ public static class GameplayCompiler
                 shape.PrimitiveSteps,
                 MinTemperature: CompileVerbMinTemperature(verb),
                 SiteFlags: CompileVerbSiteFlags(verb),
-                RequireFogAdjacent: verb.RequireFogAdjacent));
+                RequireFogAdjacent: verb.RequireFogAdjacent,
+                RestAtDestination: verb.RestAtDestination));
         }
 
         return new LowAltitudeVerbProgram
@@ -566,6 +567,7 @@ public static class GameplayCompiler
         [EffectCondition.MapThreatAtLocation] = EffectConditionCodes.LocalNegativeSignal,
         [EffectCondition.MapCrowdingLoad] = EffectConditionCodes.LocalCrowdingLoadSignal,
         [EffectCondition.MapCrowdingComfort] = EffectConditionCodes.LocalComfortSignal,
+        [EffectCondition.MapCrowdingSolitude] = EffectConditionCodes.LocalSolitudeSignal,
         [EffectCondition.OwnCultureInfluenceAtLocation] = EffectConditionCodes.LocalCultureMapValue,
         [EffectCondition.BeyondCultureSupport] = EffectConditionCodes.BeyondCultureSupport,
         [EffectCondition.CultureSlotOccupancy] = EffectConditionCodes.CultureSlotOccupancy,

@@ -299,6 +299,24 @@ Baselines complete; all structural claims confirmed on the current runtime:
 Numeric band ratification and the Phase 2 slice proposal can proceed from
 these numbers.
 
+### Phase 2–3 implementation (2026-07-24, awaiting the bundled 3×100k verdict)
+
+Implemented and smoke-verified on matched seed 8100 (registered runs
+`slice1*`–`slice3*`): zeitgeist bands for artifacts/POIs; settlement
+inverse carrying capacity (crowding-comfort lifeline + `MapCrowdingSolitude`
+drain — empty foundings die in a lifetime, peopled hubs persist; first
+settlement deaths ever); willful-artifact gambits (slip-the-grasp,
+enshrinement endowing a reversible work-tier legacy); the endings catalog
+on cadence clocks (seal-shatter, one-word-yields, memorial wall, tome-read,
+offering-spent) plus war razing of hollowed settlements; artifact
+rest-at-destination with longer commitments; carried-entity movement
+suspension (tug-of-war fix — artifact reversal 67%→14–18%); crowded-origin
+departure boost; semantic travel influence; artifact beacon removal +
+saturation 0.6; and provincial pulses (per-superregion clocks, bands
+Frontier ×8 / Settled ×3 / Heartland ×1 on base width 50, thresholds
+15/100), calibrated 2,278→990→570 fires per 25k (~2.6× the saturated
+global clock). Verification debts and the run scorecard: `docs/backlog.md`.
+
 ## Phases 2–5 (post-approval)
 
 2. **Tune existing authored knobs** (verb weights/commitment, generator

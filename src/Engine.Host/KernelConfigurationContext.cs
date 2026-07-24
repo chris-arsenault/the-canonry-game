@@ -461,6 +461,9 @@ internal sealed class KernelConfigurationContext
     public void SetLowAltitudeVerbGeographyFilter(int verbSlot, int minTemperature, int siteFlags, int fogAdjacent = 0) =>
         _kernel.LowAltitudeVerbs.SetGeographyFilter(verbSlot, minTemperature, siteFlags, fogAdjacent);
 
+    public void SetLowAltitudeVerbRestAtDestination(int verbSlot) =>
+        _kernel.LowAltitudeVerbs.SetRestAtDestination(verbSlot);
+
     public int RegisterLowAltitudeInitialInfluence(
         int kindId,
         int planeCode,

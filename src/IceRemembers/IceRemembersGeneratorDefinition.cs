@@ -28,6 +28,7 @@ public static partial class IceRemembersGeneratorDefinition
         ..CoreGenerators(),
         .. CreateFrontierGenerators(),
         ..WarSagaGenerators(),
+        ..EndingsGenerators(),
         ..CreatePaletteGenerators(),
         TradeRoutesConveneNegotiation(),
         ClaimedWatersDrawBulls(),

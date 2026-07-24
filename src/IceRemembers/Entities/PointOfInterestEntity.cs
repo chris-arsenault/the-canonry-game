@@ -24,7 +24,10 @@ internal static class PointOfInterestEntity
         HealthAttribute = Attr.Presence,
         HealthDisplayName = "Presence",
         PrimaryPlane = PrimaryPlane.Semantic,
-        LifecycleBand = IceRemembersLifecycleBand.WorldAnchor,
+        // Presence is renown, not geology: the site outlives the name. When a
+        // named place fades to historical, its feature anchor frees up and
+        // FeatureAnchor discovery generators can name it again.
+        LifecycleBand = IceRemembersLifecycleBand.Monumental,
         Description = "A named natural feature with localized significance - a thermal vent, a peak, a krill bloom, a shoal. Smaller than a region, distinct from a settlement, never built.",
         Traits =
         [

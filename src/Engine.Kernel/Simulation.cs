@@ -171,7 +171,7 @@ internal sealed partial class Simulation : IKernel
         var data = new GeneratorProgramData(options.GeneratorCapacity, options.GeneratorItemCapacity);
         return new GeneratorProgramRuntime(
             data,
-            new GeneratorProgramState(options.GeneratorCapacity),
+            new GeneratorProgramState(options.GeneratorCapacity, options.GeneratorProvinceCapacity),
             new GeneratorProgramScratch(
                 options.GeneratorCapacity,
                 options.MapCellCapacity,

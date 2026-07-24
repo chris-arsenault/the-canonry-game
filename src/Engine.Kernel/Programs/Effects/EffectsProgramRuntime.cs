@@ -286,7 +286,8 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         if (conditionCode is EffectConditionCodes.LocalPositiveSignal
             or EffectConditionCodes.LocalNegativeSignal
             or EffectConditionCodes.LocalCrowdingLoadSignal
-            or EffectConditionCodes.LocalComfortSignal)
+            or EffectConditionCodes.LocalComfortSignal
+            or EffectConditionCodes.LocalSolitudeSignal)
         {
             return SignalEvidence(simulation, entityId, rule, conditionCode);
         }
@@ -385,9 +386,24 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             EffectConditionCodes.LocalPositiveSignal => simulation.MapSignals.EntitySupport(entityId, planeCode),
             EffectConditionCodes.LocalNegativeSignal => simulation.MapSignals.EntityThreat(entityId, planeCode),
             EffectConditionCodes.LocalCrowdingLoadSignal => simulation.MapSignals.EntityCrowdingLoad(entityId, planeCode),
+            EffectConditionCodes.LocalSolitudeSignal => SolitudeSignal(simulation, entityId, planeCode),
             _ => simulation.MapSignals.EntityCrowdingComfort(entityId, planeCode),
         };
         return KernelQuery.ThresholdEvidence(value, _attributeDeltaThresholds[rule]);
+    }
+
+    // Solitude is the inverse of crowding comfort: 1 when the entity stands
+    // alone, fading toward 0 as local population approaches capacity, and 0
+    // when the cell is over capacity (crowding load owns that regime).
+    private static float SolitudeSignal(Simulation simulation, int entityId, int planeCode)
+    {
+        if (simulation.MapSignals.EntityCrowdingLoad(entityId, planeCode) > 0f)
+        {
+            return 0f;
+        }
+
+        var comfort = simulation.MapSignals.EntityCrowdingComfort(entityId, planeCode);
+        return comfort >= 1f ? 0f : 1f - comfort;
     }
 
     private float OwnCultureInfluenceEvidence(WorldState world, int entityId, int rule)

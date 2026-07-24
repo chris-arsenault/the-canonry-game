@@ -233,18 +233,21 @@ public sealed class KernelSchedulingTests
                     Generators = new GeneratorProgramTuningOptions
                     {
                         PulseWidthTicks = 2,
+                        FrontierPulseWidthMultiplier = 1,
+                        SettledPulseWidthMultiplier = 1,
                     },
                 },
             },
         });
+        simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
 
         _ = simulation.AdvanceTicks(10);
 
-        Assert.Equal(0, simulation.Generators.State.CurrentPulseIndex);
+        Assert.Equal(0, simulation.Generators.State.ProvincePulseIndices[1]);
 
         _ = simulation.AdvanceTicks(5);
 
-        Assert.Equal(1, simulation.Generators.State.CurrentPulseIndex);
+        Assert.Equal(1, simulation.Generators.State.ProvincePulseIndices[1]);
     }
 
     private sealed class RecordingSystem(Action<Simulation, int> onTick) : ISimulationSystem

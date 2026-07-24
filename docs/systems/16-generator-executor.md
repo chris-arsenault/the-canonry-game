@@ -69,6 +69,18 @@ If no legal placement candidate exists, the generator fire fails cleanly and
 does not consume pulse budget. This keeps invalid placement from suppressing
 later valid fires inside the same pulse window.
 
+Pulse scheduling is provincial. Every revealed physical superregion
+registers as a province with its own pulse clock; the tempo comes from the
+province's settledness band, derived from covered cells within it (dormant
+ground has no clock, frontier runs slow, settled faster, heartland at full
+tempo — width multipliers and thresholds are tuning options). While a
+province's pulse selects and fires, only targets standing inside that
+superregion are eligible; secondary bindings stay unrestricted, so
+cross-province relationships still form. Cadence generators keep their own
+world-wide clocks outside the provincial pool. World creation throughput is
+therefore the sum of awake provincial clocks and grows as territory is
+revealed and settles.
+
 A fire is atomic over its produced bundle. The executor first plans every
 produced entity — chance roll, query binding, subtype, culture, placement
 coordinates, and coverage cells — without mutating world state, then commits

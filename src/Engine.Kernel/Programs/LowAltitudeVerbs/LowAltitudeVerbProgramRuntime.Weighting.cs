@@ -46,6 +46,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var weight = (Data.Weight(rule) + totals.Weight) *
             CultureSlotAgencyMultiplier(simulation, entityId, rule) *
             Data.AgeWeightMultiplier(rule) *
+            CrowdedOriginDepartureMultiplier(simulation, entityId, rule) *
             simulation.Knowledge.Modifier(
                 cultureId,
                 KnowledgeGrantDomainCodes.VerbWeight,
@@ -153,6 +154,26 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     // MapActivity/MapSignals-derived occupancy reads are intentionally previous tick
     // (PreviousTick) because LowAltitudeVerbs run before those signal programs refresh
     // in the kernel program order.
+    // The departure half of carrying capacity: an entity standing on
+    // overloaded ground weights its movement verbs up in proportion to the
+    // local crowding, so crowded hubs shed excess actors toward the open
+    // ground the destination saturation divisor already favors. Non-movement
+    // verbs are unaffected; comfortable ground changes nothing.
+    private float CrowdedOriginDepartureMultiplier(Simulation simulation, int entityId, int rule)
+    {
+        if (Data.OperationCode(rule) != ProgramOpcodeCodes.MoveActor)
+        {
+            return 1f;
+        }
+
+        var planeCode = Data.PlaneCode(rule);
+        var load = simulation.ReadLowAltitudeSignalSnapshot(
+            planeCode,
+            CurrentQ(simulation.World, entityId, planeCode),
+            CurrentR(simulation.World, entityId, planeCode)).CrowdingLoad;
+        return load <= 0f ? 1f : 1f + global::System.MathF.Min(load, 2f);
+    }
+
     private float CellSaturationDivisor(Simulation simulation, int planeCode, int q, int r)
     {
         var occupancyOneRing = simulation.ReadCellOccupancyOneRingSum(planeCode, q, r);

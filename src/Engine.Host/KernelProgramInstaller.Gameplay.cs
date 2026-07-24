@@ -177,6 +177,11 @@ internal static partial class KernelProgramInstaller
                 verb.RequireFogAdjacent ? 1 : 0);
         }
 
+        if (verb.RestAtDestination)
+        {
+            context.SetLowAltitudeVerbRestAtDestination(slot);
+        }
+
         AddLowAltitudeVerbPrimitiveSteps(context, slot, verb.PrimitiveSteps);
     }
 

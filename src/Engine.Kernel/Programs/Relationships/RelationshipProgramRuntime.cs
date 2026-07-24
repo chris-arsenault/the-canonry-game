@@ -109,6 +109,35 @@ internal sealed class RelationshipProgramRuntime :
         }
     }
 
+    /// <summary>
+    /// True when an active incoming follow-configured relationship governs
+    /// this entity's physical position (it is being carried), so other
+    /// programs can suspend their own movement of it.
+    /// </summary>
+    public bool TargetIsFollowGoverned(WorldState world, int entityId)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(world);
+        for (var rule = 1; rule <= Data.Count; rule++)
+        {
+            if (!Data.RuleTargetFollowsSourcePhysical(rule))
+            {
+                continue;
+            }
+
+            var cursor = world.IncomingRelationshipsOfKind(entityId, Data.RuleKindId(rule));
+            while (world.MoveNextRelationship(ref cursor, out var relationshipId))
+            {
+                if (world.RelationshipIsActive(relationshipId) &&
+                    world.EntityIsActive(world.RelationshipSourceId(relationshipId)))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
     private static void MoveTargetToSourcePhysical(Simulation simulation, WorldState world, int sourceId, int targetId, int tick)
     {
         if (!world.EntityIsActive(sourceId) || !world.EntityIsActive(targetId))

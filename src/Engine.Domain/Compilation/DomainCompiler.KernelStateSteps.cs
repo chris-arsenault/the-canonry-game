@@ -9,14 +9,21 @@ public static partial class DomainCompiler
         List<BehaviorProgramStepRule> steps,
         IMutation mutation)
     {
-        if (mutation is not IncreaseWorkTierMutation increase)
+        switch (mutation)
         {
-            return false;
+            case IncreaseWorkTierMutation increase:
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.IncreaseWorkTier,
+                    increase.MaxTier));
+                return true;
+            case IncreaseTargetWorkTierMutation increaseTarget:
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.IncreaseWorkTier,
+                    increaseTarget.MaxTier,
+                    B: (int)BehaviorProgramEndpoint.Target));
+                return true;
+            default:
+                return false;
         }
-
-        steps.Add(new BehaviorProgramStepRule(
-            BehaviorProgramOperation.IncreaseWorkTier,
-            increase.MaxTier));
-        return true;
     }
 }

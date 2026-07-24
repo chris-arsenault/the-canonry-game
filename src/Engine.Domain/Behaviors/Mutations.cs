@@ -139,6 +139,14 @@ public sealed class SetHistoricalMutation(EntityId entityId) : IMutation
     public string Describe() => $"set_historical({EntityId})";
 }
 
+/// <summary>Transitions the acting entity itself to historical status —
+/// explicit self-retirement, e.g. an artifact installing itself into a
+/// host and leaving the active world.</summary>
+public sealed class SetSelfHistoricalMutation : IMutation
+{
+    public string Describe() => "set_self_historical";
+}
+
 /// <summary>Transitions the resolved target entity to historical status.</summary>
 public sealed class SetTargetHistoricalMutation : IMutation
 {
@@ -154,6 +162,16 @@ public sealed class SetTargetCultureFromSelfMutation : IMutation
 }
 
 /// <summary>Raises the current entity's minor-labor work tier by one. A max tier of zero means uncapped.</summary>
+/// <summary>Raises the resolved target's work tier — a durable installed
+/// benefit (more minor-actor labor sustaining the host). Attributable and
+/// reversible, so history-facing mechanics can undo it.</summary>
+public sealed class IncreaseTargetWorkTierMutation(int maxTier = 0) : IMutation
+{
+    public int MaxTier { get; } = maxTier;
+
+    public string Describe() => $"increase_target_work_tier(max={MaxTier})";
+}
+
 public sealed class IncreaseWorkTierMutation(int maxTier = 0) : IMutation
 {
     public int MaxTier { get; } = maxTier;

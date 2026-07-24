@@ -104,6 +104,13 @@ public enum EffectCondition
     MapThreatAtLocation,
     MapCrowdingLoad,
     MapCrowdingComfort,
+
+    /// <summary>
+    /// The inverse of crowding comfort: full when the entity stands alone,
+    /// fading as local population approaches capacity, zero when crowded.
+    /// The condition for things that wither without people around them.
+    /// </summary>
+    MapCrowdingSolitude,
     OwnCultureInfluenceAtLocation,
     CultureSlotOccupancy,
     CrowdingBeyondCultureSupport,

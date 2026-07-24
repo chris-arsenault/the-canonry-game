@@ -49,7 +49,8 @@ public sealed record LowAltitudeVerbRule(
     IReadOnlyList<CompiledProgramStep> PrimitiveSteps,
     int MinTemperature = 0,
     int SiteFlags = 0,
-    bool RequireFogAdjacent = false);
+    bool RequireFogAdjacent = false,
+    bool RestAtDestination = false);
 
 public sealed record CompiledProgramStep(
     int Opcode,

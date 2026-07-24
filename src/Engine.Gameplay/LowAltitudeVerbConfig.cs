@@ -41,6 +41,14 @@ public abstract class LowAltitudeVerbConfig
     public int MinCommitmentTicks { get; init; } = 30;
     public int MaxCommitmentTicks { get; init; } = 90;
     public int DwellTicks { get; init; } = 8;
+
+    /// <summary>
+    /// When true, the actor lies still at its intent destination for the
+    /// dwell window instead of wander-roaming the locality. For entities
+    /// whose fiction travels and then rests (objects, monuments) rather
+    /// than paces.
+    /// </summary>
+    public bool RestAtDestination { get; init; }
     public int TargetRadius { get; init; }
     public int CandidateSampleCount { get; init; } = 16;
     public float Weight { get; init; } = 1f;

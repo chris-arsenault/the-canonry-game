@@ -37,6 +37,7 @@ public static class AttributeEffectConditions
     /// </summary>
     public static EffectCondition BeyondCultureSupport => EffectCondition.BeyondCultureSupport;
     public static EffectCondition MapCrowdingComfort => EffectCondition.MapCrowdingComfort;
+    public static EffectCondition MapCrowdingSolitude => EffectCondition.MapCrowdingSolitude;
     public static EffectCondition OwnCultureInfluenceAtLocation => EffectCondition.OwnCultureInfluenceAtLocation;
     public static EffectCondition CultureSlotOccupancy => EffectCondition.CultureSlotOccupancy;
     public static EffectCondition CrowdingBeyondCultureSupport => EffectCondition.CrowdingBeyondCultureSupport;

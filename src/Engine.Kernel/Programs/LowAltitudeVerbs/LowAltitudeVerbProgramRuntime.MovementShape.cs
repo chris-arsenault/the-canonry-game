@@ -152,7 +152,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int anchorQ,
         int anchorR)
     {
-        if (!State.StepIsReady(entityId, tick))
+        // Resting verbs travel and then lie still: no locality wander at the
+        // destination, so the entity holds its arrival hex through the dwell.
+        if (Data.RestsAtDestination(rule) || !State.StepIsReady(entityId, tick))
         {
             return;
         }

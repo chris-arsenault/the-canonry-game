@@ -370,6 +370,8 @@ public static partial class IceRemembersDefinition
                 IceRemembersEntities.HealthEffectTimeScale(entity.LifecycleBand));
         }
 
+        AddSettlementPopulationLifeline(effects);
+
         return GameplayEffectSet.From(
             effects,
             [
@@ -409,12 +411,56 @@ public static partial class IceRemembersDefinition
             ]);
     }
 
+    // The physical half of the settlement lifeline: residents and visitors
+    // standing on the settlement's ground sustain it, while an empty
+    // settlement withers on a lifetime clock, not the Monumental one.
+    // Solitude drains fast enough that a failed founding dies in decades;
+    // any real population zeroes the signal and the hub endures.
+    private static void AddSettlementPopulationLifeline(List<AttributeDeltaEffectConfig> effects)
+    {
+        var timeScale = IceRemembersEntities.HealthEffectTimeScale(IceRemembersLifecycleBand.Monumental);
+        effects.Add(MapSignalEffect(
+            K.Settlement,
+            Attr.TempHp,
+            Effect.MapCrowdingComfort,
+            0.10f * timeScale,
+            threshold: 0.5f,
+            plane: PrimaryPlane.Physical));
+        // Sized against measured residual ambient income (slice1c smoke:
+        // -0.125 produced only a -0.0022/tick net on the loneliest founding)
+        // so a truly empty settlement fails within roughly a lifetime.
+        effects.Add(MapSignalEffect(
+            K.Settlement,
+            Attr.TempHp,
+            Effect.MapCrowdingSolitude,
+            -0.30f * timeScale,
+            threshold: 0.5f,
+            plane: PrimaryPlane.Physical));
+    }
+
     private static void AddHealthEffects(
         List<AttributeDeltaEffectConfig> effects,
         EntityKind kind,
         Attr attribute,
         PrimaryPlane plane,
         float timeScale)
+    {
+        // Settlements live by their people, not by ambient goodwill: every
+        // sustain channel that does not require a local population is scaled
+        // hard down for them, so the crowding-comfort lifeline is the only
+        // thing that closes the gap against Monumental drain. An empty
+        // founding fails; a peopled hub is effectively permanent.
+        var ambient = kind == K.Settlement ? 0.25f : 1f;
+        AddHealthEffectRules(effects, kind, attribute, plane, timeScale, ambient);
+    }
+
+    private static void AddHealthEffectRules(
+        List<AttributeDeltaEffectConfig> effects,
+        EntityKind kind,
+        Attr attribute,
+        PrimaryPlane plane,
+        float timeScale,
+        float ambient)
     {
         effects.AddRange(
         [
@@ -424,42 +470,49 @@ public static partial class IceRemembersDefinition
             InfluenceShelter(kind, attribute, Rel.ControlledBy, EffectRelationshipDirection.Either, 0.04f * timeScale, threshold: 45f, plane: plane),
             InfluenceShelter(kind, attribute, Rel.ClaimedBy, EffectRelationshipDirection.Either, 0.035f * timeScale, threshold: 35f, plane: plane),
             InfluenceShelter(kind, attribute, Rel.MemberOf, EffectRelationshipDirection.Either, 0.035f * timeScale, threshold: 35f, plane: plane),
-            InfluenceShelter(kind, attribute, Rel.LedBy, EffectRelationshipDirection.Either, 0.035f * timeScale, threshold: 35f, plane: plane),
-            InfluenceShelter(kind, attribute, Rel.TradeRoute, EffectRelationshipDirection.Either, 0.025f * timeScale, threshold: 35f, plane: plane),
-            InfluenceShelter(kind, attribute, Rel.Memorializes, EffectRelationshipDirection.Either, 0.025f * timeScale, threshold: 35f, plane: plane),
+            InfluenceShelter(kind, attribute, Rel.LedBy, EffectRelationshipDirection.Either, 0.035f * timeScale * ambient, threshold: 35f, plane: plane),
+            InfluenceShelter(kind, attribute, Rel.TradeRoute, EffectRelationshipDirection.Either, 0.025f * timeScale * ambient, threshold: 35f, plane: plane),
+            InfluenceShelter(kind, attribute, Rel.Memorializes, EffectRelationshipDirection.Either, 0.025f * timeScale * ambient, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.RivalOf, -0.07f * timeScale, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.AtWarWith, -0.10f * timeScale, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.PreysOn, -0.06f * timeScale, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.CorruptedBy, -0.08f * timeScale, threshold: 35f, plane: plane),
             InfluenceStress(kind, attribute, Rel.BetrayedBy, -0.06f * timeScale, threshold: 35f, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.AlliedWith, 0.035f * timeScale, maxDistance: 1, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.Anchored, 0.025f * timeScale, maxDistance: 1, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.ClaimedBy, 0.02f * timeScale, maxDistance: 1, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.MemberOf, 0.02f * timeScale, maxDistance: 1, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.LedBy, 0.02f * timeScale, maxDistance: 1, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.TradeRoute, 0.025f * timeScale, maxDistance: 2, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.Memorializes, 0.02f * timeScale, maxDistance: 1, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.CleansedBy, 0.025f * timeScale, maxDistance: 1, plane: plane),
-            RelationshipSupport(kind, attribute, Rel.ConduitOf, 0.025f * timeScale, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.AlliedWith, 0.035f * timeScale * ambient, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.Anchored, 0.025f * timeScale * ambient, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.ClaimedBy, 0.02f * timeScale * ambient, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.MemberOf, 0.02f * timeScale * ambient, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.LedBy, 0.02f * timeScale * ambient, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.TradeRoute, 0.025f * timeScale * ambient, maxDistance: 2, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.Memorializes, 0.02f * timeScale * ambient, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.CleansedBy, 0.025f * timeScale * ambient, maxDistance: 1, plane: plane),
+            RelationshipSupport(kind, attribute, Rel.ConduitOf, 0.025f * timeScale * ambient, maxDistance: 1, plane: plane),
             RelationshipStress(kind, attribute, Rel.RivalOf, -0.04f * timeScale, maxDistance: 2, plane: plane),
             RelationshipStress(kind, attribute, Rel.AtWarWith, -0.07f * timeScale, maxDistance: 3, plane: plane),
             RelationshipStress(kind, attribute, Rel.CorruptedBy, -0.05f * timeScale, maxDistance: 2, plane: plane),
             RelationshipStress(kind, attribute, Rel.BetrayedBy, -0.045f * timeScale, maxDistance: 1, plane: plane),
             RelationshipStress(kind, attribute, Rel.WardAgainst, -0.03f * timeScale, maxDistance: 1, plane: plane),
-            CultureInfluenceShelter(kind, attribute, 0.03f * timeScale, threshold: 35f, plane: plane),
-            CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Positive, 0.085f * timeScale, threshold: 2.4f, plane: plane),
-            CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Neutral, 0.04f * timeScale, threshold: 2.4f, plane: plane),
+            CultureInfluenceShelter(kind, attribute, 0.03f * timeScale * ambient, threshold: 35f, plane: plane),
+            CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Positive, 0.085f * timeScale * ambient, threshold: 2.4f, plane: plane),
+            CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Neutral, 0.04f * timeScale * ambient, threshold: 2.4f, plane: plane),
             CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Negative, -0.035f * timeScale, threshold: 2.4f, plane: plane),
-            MapSignalEffect(kind, attribute, Effect.MapSupportAtLocation, 0.035f * timeScale, threshold: 5f, plane: plane),
-            MapSignalEffect(kind, attribute, Effect.MapCrowdingComfort, 0.025f * timeScale, threshold: 0.5f, plane: plane),
+            // Settlements live by their people: an inverse carrying capacity
+            // where local population is the lifeline. Low-population
+            // settlements lose most of the flat ambient support and depend on
+            // crowding comfort instead, so empty foundings fail while big
+            // hubs are effectively permanent.
+            MapSignalEffect(kind, attribute, Effect.MapSupportAtLocation,
+                0.035f * timeScale * ambient, threshold: 5f, plane: plane),
+            MapSignalEffect(kind, attribute, Effect.MapCrowdingComfort,
+                (kind == K.Settlement ? 0.10f : 0.025f) * timeScale, threshold: 0.5f, plane: plane),
             MapSignalEffect(kind, attribute, Effect.MapThreatAtLocation, -0.04f * timeScale, threshold: 4f, plane: plane),
             MapSignalEffect(kind, attribute, Effect.MapCrowdingLoad, -0.08f * timeScale, threshold: 0.5f, plane: plane),
             // The carrying-capacity governor is a population-rate control, not
             // a lifespan pacing effect: it stays at full strength so growth
             // still equilibrates against culture support at the new time scale.
             CarryingStrain(kind, attribute, plane, timeScale: 1f),
-            JurisdictionEffect(kind, attribute, K.Region.Value, null, "physical", 0.02f * timeScale),
-            JurisdictionEffect(kind, attribute, K.Canon.Value, "accord", "semantic", 0.03f * timeScale),
+            JurisdictionEffect(kind, attribute, K.Region.Value, null, "physical", 0.02f * timeScale * ambient),
+            JurisdictionEffect(kind, attribute, K.Canon.Value, "accord", "semantic", 0.03f * timeScale * ambient),
             JurisdictionEffect(kind, attribute, K.Canon.Value, "taboo", "semantic", -0.03f * timeScale),
         ]);
         AddRangeAttrition(effects, kind, attribute, timeScale);

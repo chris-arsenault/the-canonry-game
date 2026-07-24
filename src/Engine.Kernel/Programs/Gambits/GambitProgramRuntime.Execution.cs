@@ -39,7 +39,7 @@ internal sealed partial class GambitProgramRuntime
         var operationCode = _stepOperationCodes[step];
         if (ExecuteAttributeStep(simulation, entityId, targetId, tick, step, operationCode, variableIds, variableValues, ref variableCount) ||
             ExecuteMovementStep(simulation, world, entityId, targetId, tick, step, operationCode) ||
-            ExecuteKernelStateStep(simulation, entityId, step, operationCode) ||
+            ExecuteKernelStateStep(simulation, entityId, targetId, step, operationCode) ||
             ExecuteMapStep(simulation, world, entityId, targetId, tick, step, operationCode) ||
             ExecuteEntityStep(simulation, world, entityId, targetId, tick, step, operationCode))
         {
@@ -93,14 +93,16 @@ internal sealed partial class GambitProgramRuntime
         }
     }
 
-    private bool ExecuteKernelStateStep(Simulation simulation, int entityId, int step, int operationCode)
+    private bool ExecuteKernelStateStep(Simulation simulation, int entityId, int targetId, int step, int operationCode)
     {
         if (operationCode != BehaviorOperationCodes.IncreaseWorkTier)
         {
             return false;
         }
 
-        _ = simulation.MinorActors.IncreaseWorkTier(entityId, _stepA[step]);
+        _ = simulation.MinorActors.IncreaseWorkTier(
+            EndpointEntityId(entityId, targetId, _stepB[step]),
+            _stepA[step]);
         return true;
     }
 

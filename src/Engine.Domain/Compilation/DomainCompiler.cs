@@ -833,6 +833,18 @@ public static partial class DomainCompiler
                     (int)EndpointCode(removeRelationship.Source),
                     (int)EndpointCode(removeRelationship.Target)));
                 return true;
+            case SetTargetCultureFromSelfMutation:
+                steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.SetTargetCultureFromSelf));
+                return true;
+            default:
+                return TryCompileHistoricalStep(steps, mutation);
+        }
+    }
+
+    private static bool TryCompileHistoricalStep(List<BehaviorProgramStepRule> steps, IMutation mutation)
+    {
+        switch (mutation)
+        {
             case SetHistoricalMutation historical:
                 steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.SetHistorical, historical.EntityId.Value));
                 return true;
@@ -841,8 +853,10 @@ public static partial class DomainCompiler
                     BehaviorProgramOperation.SetHistorical,
                     B: (int)BehaviorProgramEndpoint.Target));
                 return true;
-            case SetTargetCultureFromSelfMutation:
-                steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.SetTargetCultureFromSelf));
+            case SetSelfHistoricalMutation:
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.SetHistorical,
+                    B: (int)BehaviorProgramEndpoint.Self));
                 return true;
             default:
                 return false;

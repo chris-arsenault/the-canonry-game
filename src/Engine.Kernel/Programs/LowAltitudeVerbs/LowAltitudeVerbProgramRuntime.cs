@@ -113,6 +113,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     public void SetGeographyFilter(int verbSlot, int minTemperature, int siteFlags, int fogAdjacent = 0) =>
         Data.SetGeographyFilter(verbSlot, minTemperature, siteFlags, fogAdjacent);
 
+    public void SetRestAtDestination(int verbSlot) =>
+        Data.SetRestAtDestination(verbSlot);
+
     public int RegisterInitialInfluence(int kindId, int planeCode, float influenceValue) =>
         Data.RegisterInitialInfluence(kindId, planeCode, influenceValue);
 
@@ -235,22 +238,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             return true;
         }
 
-        var targetEntityId = State.TargetEntityId(entityId);
-        if (targetEntityId != 0 && !simulation.World.EntityIsActive(targetEntityId))
-        {
-            ClearIntentAndPushRecent(entityId, tick);
-            return true;
-        }
-
-        if (targetEntityId != 0 &&
-            Data.TargetModeCode(slot) == TargetSelectorCodes.RelationshipTarget &&
-            !HasTargetRelationship(simulation.World, entityId, targetEntityId, slot))
-        {
-            ClearIntentAndPushRecent(entityId, tick);
-            return true;
-        }
-
-        if (tick >= State.ExpiresTick(entityId))
+        if (IntentInvalidated(simulation, entityId, slot, tick))
         {
             ClearIntentAndPushRecent(entityId, tick);
             return true;
@@ -269,6 +257,29 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         }
 
         return false;
+    }
+
+    private bool IntentInvalidated(Simulation simulation, int entityId, int slot, int tick)
+    {
+        var targetEntityId = State.TargetEntityId(entityId);
+        if (targetEntityId != 0 && !simulation.World.EntityIsActive(targetEntityId))
+        {
+            return true;
+        }
+
+        if (PhysicalMovementSuspendedByCarry(simulation, entityId, slot))
+        {
+            return true;
+        }
+
+        if (targetEntityId != 0 &&
+            Data.TargetModeCode(slot) == TargetSelectorCodes.RelationshipTarget &&
+            !HasTargetRelationship(simulation.World, entityId, targetEntityId, slot))
+        {
+            return true;
+        }
+
+        return tick >= State.ExpiresTick(entityId);
     }
 
     private void ClearIntentAndPushRecent(int entityId, int tick)
@@ -300,6 +311,15 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         return LowAltitudeVerbProgramState.PackCellTargetKey(planeCode, State.TargetQ(entityId), State.TargetR(entityId));
     }
 
+    // A carried entity's position belongs to its carrier: while an incoming
+    // follow relationship governs it, its own physical movement will is
+    // suspended so the two programs cannot fight over the same coordinate
+    // tick by tick.
+    private bool PhysicalMovementSuspendedByCarry(Simulation simulation, int entityId, int rule) =>
+        Data.OperationCode(rule) == ProgramOpcodeCodes.MoveActor &&
+        Data.PlaneCode(rule) == PlaneCodes.Physical &&
+        simulation.Relationships.TargetIsFollowGoverned(simulation.World, entityId);
+
     private void ChooseIntent(Simulation simulation, int entityId, int tick)
     {
         var bucket = BuildVerbBucket(simulation, entityId, tick);
@@ -327,6 +347,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         for (var rule = 1; rule <= Data.RuleCount && bucket.VerbCount < VerbBucketCapacity; rule++)
         {
             if (Data.KindId(rule) != kindId)
+            {
+                continue;
+            }
+
+            if (PhysicalMovementSuspendedByCarry(simulation, entityId, rule))
             {
                 continue;
             }

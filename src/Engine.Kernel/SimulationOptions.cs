@@ -31,6 +31,10 @@ internal sealed record SimulationOptions
     public int GambitCooldownCapacity { get; init; } = 8192;
     public int GambitProviderSelectorCapacity { get; init; } = 512;
     public int GeneratorCapacity { get; init; } = 256;
+
+    /// <summary>Maximum distinct physical superregions the provincial pulse
+    /// system can register over a run.</summary>
+    public int GeneratorProvinceCapacity { get; init; } = 64;
     public int GeneratorItemCapacity { get; init; } = 4096;
     public int LifecycleRuleCapacity { get; init; } = 256;
     public int LowAltitudeVerbRuleCapacity { get; init; } = 256;
@@ -174,6 +178,18 @@ internal sealed record GeneratorProgramTuningOptions
     public bool RetryFireTargets { get; init; } = true;
     public int PulseWidthTicks { get; init; } = GeneratorProgramConstants.DefaultPulseWidthTicks;
     public int FiresPerPulse { get; init; } = GeneratorProgramConstants.DefaultFiresPerPulse;
+
+    // Provincial pulses: each physical-map superregion runs its own pulse
+    // clock at a tempo set by its settledness band, so throughput grows as
+    // territory settles and each place generates its own stories. Bands are
+    // derived from covered cells inside the superregion; multipliers stretch
+    // PulseWidthTicks for less settled ground. Multipliers of 1 collapse the
+    // system back to uniform provincial tempo.
+    public int FrontierPulseWidthMultiplier { get; init; } = 8;
+    public int SettledPulseWidthMultiplier { get; init; } = 3;
+    public int SettledCoveredCellThreshold { get; init; } = 15;
+    public int HeartlandCoveredCellThreshold { get; init; } = 100;
+    public int ProvinceBandRefreshTicks { get; init; } = 200;
 }
 
 internal sealed record LowAltitudeVerbTuningOptions
@@ -182,7 +198,11 @@ internal sealed record LowAltitudeVerbTuningOptions
     public float OpportunityBonus { get; init; } = 1f;
     public int RecentTargetCooldownTicks { get; init; } = 90;
     public int RecentTargetRingSize { get; init; } = 3;
-    public float CellSaturationFactor { get; init; } = 0.25f;
+    // Sized so a one-ring stack of ~10 cuts a destination's weight to ~1/7:
+    // occupied ground genuinely repels new arrivals instead of mildly
+    // discounting them, which is what keeps resting entities from
+    // converging into piles at the few most attractive targets.
+    public float CellSaturationFactor { get; init; } = 0.6f;
     public float ExploreDistanceScale { get; init; } = 6f;
     public float TerrainDistanceScale { get; init; } = 6f;
     public float EntityKindDistanceScale { get; init; } = 6f;

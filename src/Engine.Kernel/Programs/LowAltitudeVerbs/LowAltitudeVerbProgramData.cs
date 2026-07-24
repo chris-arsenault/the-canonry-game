@@ -113,11 +113,21 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _minTemperatures = new int[ruleLength];
         _siteFlagFilters = new int[ruleLength];
         _fogAdjacentFilters = new byte[ruleLength];
+        _restAtDestination = new byte[ruleLength];
     }
 
     private int[] _minTemperatures = [];
     private int[] _siteFlagFilters = [];
     private byte[] _fogAdjacentFilters = [];
+    private byte[] _restAtDestination = [];
+
+    public void SetRestAtDestination(int rule)
+    {
+        EnsureRule(rule);
+        _restAtDestination[rule] = 1;
+    }
+
+    public bool RestsAtDestination(int rule) => _restAtDestination[rule] != 0;
 
     public void SetGeographyFilter(int rule, int minTemperature, int siteFlags, int fogAdjacent = 0)
     {

@@ -165,6 +165,11 @@ internal static class KernelSnapshotOptions
         writer.Write(kernelTuning.Programs.Generators.RetryFireTargets);
         writer.Write(kernelTuning.Programs.Generators.PulseWidthTicks);
         writer.Write(kernelTuning.Programs.Generators.FiresPerPulse);
+        writer.Write(kernelTuning.Programs.Generators.FrontierPulseWidthMultiplier);
+        writer.Write(kernelTuning.Programs.Generators.SettledPulseWidthMultiplier);
+        writer.Write(kernelTuning.Programs.Generators.SettledCoveredCellThreshold);
+        writer.Write(kernelTuning.Programs.Generators.HeartlandCoveredCellThreshold);
+        writer.Write(kernelTuning.Programs.Generators.ProvinceBandRefreshTicks);
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.OpportunityRate);
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.OpportunityBonus);
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.RecentTargetCooldownTicks);
@@ -329,9 +334,7 @@ internal static class KernelSnapshotOptions
         values.MinorActorMainTickRatio = reader.ReadInt32();
         values.CultureInfluenceActionScale = reader.ReadSingle();
         values.UpkeepAgingModelCode = reader.ReadInt32();
-        values.GeneratorRetryFireTargets = reader.ReadBoolean();
-        values.GeneratorPulseWidthTicks = reader.ReadInt32();
-        values.GeneratorFiresPerPulse = reader.ReadInt32();
+        ReadGeneratorTuningValues(reader, ref values);
         values.LowAltitudeOpportunityRate = reader.ReadSingle();
         values.LowAltitudeOpportunityBonus = reader.ReadSingle();
         values.LowAltitudeRecentTargetCooldownTicks = reader.ReadInt32();
@@ -465,6 +468,33 @@ internal static class KernelSnapshotOptions
             values.PlayerSourceCodeId,
             values.ChronicleSourceCodeId);
 
+    private static void ReadGeneratorTuningValues(
+        global::System.IO.BinaryReader reader,
+        ref SnapshotOptionValues values)
+    {
+        values.GeneratorRetryFireTargets = reader.ReadBoolean();
+        values.GeneratorPulseWidthTicks = reader.ReadInt32();
+        values.GeneratorFiresPerPulse = reader.ReadInt32();
+        values.GeneratorFrontierPulseWidthMultiplier = reader.ReadInt32();
+        values.GeneratorSettledPulseWidthMultiplier = reader.ReadInt32();
+        values.GeneratorSettledCoveredCellThreshold = reader.ReadInt32();
+        values.GeneratorHeartlandCoveredCellThreshold = reader.ReadInt32();
+        values.GeneratorProvinceBandRefreshTicks = reader.ReadInt32();
+    }
+
+    private static GeneratorProgramTuningOptions CreateGeneratorTuning(SnapshotOptionValues values) =>
+        new()
+        {
+            RetryFireTargets = values.GeneratorRetryFireTargets,
+            PulseWidthTicks = values.GeneratorPulseWidthTicks,
+            FiresPerPulse = values.GeneratorFiresPerPulse,
+            FrontierPulseWidthMultiplier = values.GeneratorFrontierPulseWidthMultiplier,
+            SettledPulseWidthMultiplier = values.GeneratorSettledPulseWidthMultiplier,
+            SettledCoveredCellThreshold = values.GeneratorSettledCoveredCellThreshold,
+            HeartlandCoveredCellThreshold = values.GeneratorHeartlandCoveredCellThreshold,
+            ProvinceBandRefreshTicks = values.GeneratorProvinceBandRefreshTicks,
+        };
+
     private static KernelTuningOptions CreateKernelTuning(SnapshotOptionValues values) =>
         new()
         {
@@ -490,12 +520,7 @@ internal static class KernelSnapshotOptions
                 {
                     AgingModelCode = values.UpkeepAgingModelCode,
                 },
-                Generators = new GeneratorProgramTuningOptions
-                {
-                    RetryFireTargets = values.GeneratorRetryFireTargets,
-                    PulseWidthTicks = values.GeneratorPulseWidthTicks,
-                    FiresPerPulse = values.GeneratorFiresPerPulse,
-                },
+                Generators = CreateGeneratorTuning(values),
                 LowAltitudeVerbs = new LowAltitudeVerbTuningOptions
                 {
                     OpportunityRate = values.LowAltitudeOpportunityRate,
@@ -608,6 +633,11 @@ internal static class KernelSnapshotOptions
         public bool GeneratorRetryFireTargets;
         public int GeneratorPulseWidthTicks;
         public int GeneratorFiresPerPulse;
+        public int GeneratorFrontierPulseWidthMultiplier;
+        public int GeneratorSettledPulseWidthMultiplier;
+        public int GeneratorSettledCoveredCellThreshold;
+        public int GeneratorHeartlandCoveredCellThreshold;
+        public int GeneratorProvinceBandRefreshTicks;
         public float LowAltitudeOpportunityRate;
         public float LowAltitudeOpportunityBonus;
         public int LowAltitudeRecentTargetCooldownTicks;

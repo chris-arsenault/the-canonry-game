@@ -41,8 +41,19 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _maxRuns => Data.MaxRuns;
     private int[] _runCounts => State.RunCounts;
     private bool[] _enabled => State.Enabled;
-    private ref int _currentPulseIndex => ref State.CurrentPulseIndex;
-    private ref int _firesThisPulse => ref State.FiresThisPulse;
+    private const int ProvinceBandDormant = 0;
+    private const int ProvinceBandFrontier = 1;
+    private const int ProvinceBandSettled = 2;
+    private const int ProvinceBandHeartland = 3;
+
+    // Fire-scoped province filter: while a province's pulse selects and
+    // fires, only targets standing inside that superregion are eligible.
+    // -1 means unrestricted (cadence generators stay world-wide).
+    private int _pulseProvinceSrId = -1;
+    private int _lastProvinceRefreshTick = -1;
+    private readonly int[] _provinceBandCodes;
+    private readonly int[] _provinceCoveredCounts;
+    private readonly int[] _provinceKnownCounts;
     private int[] _targetSubtypeStarts => Data.TargetSubtypeStarts;
     private int[] _targetSubtypeCounts => Data.TargetSubtypeCounts;
     private int[] _targetRequiredOutgoingStarts => Data.TargetRequiredOutgoingStarts;
@@ -227,6 +238,9 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         }
 
         Data = data;
+        _provinceBandCodes = new int[state.ProvinceSrIds.Length];
+        _provinceCoveredCounts = new int[state.ProvinceSrIds.Length];
+        _provinceKnownCounts = new int[state.ProvinceSrIds.Length];
         State = state;
         _scratch = scratch;
         Tuning = tuning;
@@ -510,18 +524,61 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        ResetPulseBudgetIfNeeded(tick);
         TickCadenceGenerators(simulation, tick);
-        if (!HasGeneratorFireBudget() || !EvaluateGenerators(simulation, tick))
+        if (tick <= 0)
         {
             return;
         }
 
+        RefreshProvincesIfDue(simulation, tick);
+        for (var province = 1; province <= State.ProvinceCount; province++)
+        {
+            TickProvincePulse(simulation, tick, province);
+        }
+    }
+
+    // One pulse clock per settled place: the province's band stretches the
+    // base pulse width, so heartlands run at full story tempo, frontiers get
+    // sparse events, and dormant ground stays silent. Target selection is
+    // scoped to the province, so a crowded heartland can no longer starve
+    // frontier events of the fire slot.
+    private void TickProvincePulse(Simulation simulation, int tick, int province)
+    {
+        var band = _provinceBandCodes[province];
+        if (band == ProvinceBandDormant)
+        {
+            return;
+        }
+
+        var width = Tuning.ScaleMainTicks(Tuning.Generators.PulseWidthTicks * ProvinceWidthMultiplier(band));
+        var pulseIndex = (tick - 1) / width;
+        if (State.ProvincePulseIndices[province] != pulseIndex)
+        {
+            State.ProvincePulseIndices[province] = pulseIndex;
+            State.ProvinceFires[province] = 0;
+        }
+
+        if (State.ProvinceFires[province] >= Tuning.Generators.FiresPerPulse)
+        {
+            return;
+        }
+
+        _pulseProvinceSrId = State.ProvinceSrIds[province];
+        if (EvaluateGenerators(simulation, tick))
+        {
+            FireProvincePulse(simulation, tick, province);
+        }
+
+        _pulseProvinceSrId = -1;
+    }
+
+    private void FireProvincePulse(Simulation simulation, int tick, int province)
+    {
         while (TryChooseEligibleGenerator(simulation, out var selectedGeneratorSlot))
         {
             if (TryFireEligibleGenerator(simulation, selectedGeneratorSlot, tick))
             {
-                _firesThisPulse++;
+                State.ProvinceFires[province]++;
                 return;
             }
         }
@@ -529,25 +586,113 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         PublishGeneratorEvaluationStats(simulation, tick);
     }
 
-    private void ResetPulseBudgetIfNeeded(int tick)
+    private int ProvinceWidthMultiplier(int band) =>
+        band switch
+        {
+            ProvinceBandFrontier => Tuning.Generators.FrontierPulseWidthMultiplier,
+            ProvinceBandSettled => Tuning.Generators.SettledPulseWidthMultiplier,
+            _ => 1,
+        };
+
+    // Registers every revealed physical superregion as a province and bands
+    // it by how settled it is (covered cells within it). A full map sweep is
+    // cheap at the refresh cadence, and recomputing bands from world state
+    // keeps them out of the snapshot.
+    private void RefreshProvincesIfDue(Simulation simulation, int tick)
     {
-        if (tick <= 0)
+        var refreshTicks = Tuning.ScaleMainTicks(Tuning.Generators.ProvinceBandRefreshTicks);
+        if (_lastProvinceRefreshTick >= 0 && tick - _lastProvinceRefreshTick < refreshTicks)
         {
             return;
         }
 
-        var pulseIndex = (tick - 1) / Tuning.ScaleMainTicks(Tuning.Generators.PulseWidthTicks);
-        if (_currentPulseIndex == pulseIndex)
+        _lastProvinceRefreshTick = tick;
+        for (var province = 1; province <= State.ProvinceCount; province++)
         {
-            return;
+            _provinceKnownCounts[province] = 0;
+            _provinceCoveredCounts[province] = 0;
         }
 
-        _currentPulseIndex = pulseIndex;
-        _firesThisPulse = 0;
+        var world = simulation.World;
+        var radius = world.MapRadius;
+        for (var q = -radius; q <= radius; q++)
+        {
+            var minR = global::System.Math.Max(-radius, -q - radius);
+            var maxR = global::System.Math.Min(radius, -q + radius);
+            for (var r = minR; r <= maxR; r++)
+            {
+                if (!world.CellIsKnown(q, r))
+                {
+                    continue;
+                }
+
+                var province = ProvinceSlotFor(world.CellSuperregionId(q, r));
+                _provinceKnownCounts[province]++;
+                if (world.CoverageOwnerAt(q, r) != 0)
+                {
+                    _provinceCoveredCounts[province]++;
+                }
+            }
+        }
+
+        for (var province = 1; province <= State.ProvinceCount; province++)
+        {
+            _provinceBandCodes[province] = ProvinceBand(
+                _provinceKnownCounts[province],
+                _provinceCoveredCounts[province]);
+        }
     }
 
-    private bool HasGeneratorFireBudget() =>
-        _firesThisPulse < Tuning.Generators.FiresPerPulse;
+    private int ProvinceBand(int knownCells, int coveredCells)
+    {
+        if (knownCells == 0)
+        {
+            return ProvinceBandDormant;
+        }
+
+        if (coveredCells >= Tuning.Generators.HeartlandCoveredCellThreshold)
+        {
+            return ProvinceBandHeartland;
+        }
+
+        return coveredCells >= Tuning.Generators.SettledCoveredCellThreshold
+            ? ProvinceBandSettled
+            : ProvinceBandFrontier;
+    }
+
+    private int ProvinceSlotFor(int superregionId)
+    {
+        for (var province = 1; province <= State.ProvinceCount; province++)
+        {
+            if (State.ProvinceSrIds[province] == superregionId)
+            {
+                return province;
+            }
+        }
+
+        if (State.ProvinceCount + 1 >= State.ProvinceSrIds.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        State.ProvinceCount++;
+        State.ProvinceSrIds[State.ProvinceCount] = superregionId;
+        State.ProvincePulseIndices[State.ProvinceCount] = -1;
+        State.ProvinceFires[State.ProvinceCount] = 0;
+        return State.ProvinceCount;
+    }
+
+    private bool TargetInsideActiveProvince(WorldState world, int entityId)
+    {
+        if (_pulseProvinceSrId < 0)
+        {
+            return true;
+        }
+
+        return world.CellSuperregionId(
+            world.EntityPhysicalQ(entityId),
+            world.EntityPhysicalR(entityId)) == _pulseProvinceSrId;
+    }
 
     private bool EvaluateGenerators(Simulation simulation, int tick)
     {

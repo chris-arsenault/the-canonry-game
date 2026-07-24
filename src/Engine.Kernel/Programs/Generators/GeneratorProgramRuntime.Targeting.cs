@@ -31,6 +31,12 @@ internal sealed partial class GeneratorProgramRuntime
     {
         refCount = 0;
         var world = simulation.World;
+        if (!TargetInsideActiveProvince(world, targetId))
+        {
+            rejectionReasonCode = GeneratorTargetRejectionReasonCodes.InactiveOrKind;
+            return false;
+        }
+
         if (!TargetPrimaryGatesPass(simulation, generatorSlot, targetId, out rejectionReasonCode))
         {
             return false;

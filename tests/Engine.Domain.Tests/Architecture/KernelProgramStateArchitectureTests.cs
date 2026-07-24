@@ -32,7 +32,8 @@ public sealed class KernelProgramStateArchitectureTests
 
     private static HashSet<string> BareArrayStateExceptions()
     {
-        var allowed = new HashSet<string>(StringComparer.Ordinal)
+        var allowed = GeneratorProvinceStateExceptions();
+        allowed.UnionWith(new HashSet<string>(StringComparer.Ordinal)
         {
             "src/Engine.Kernel/Programs/Gambits/GambitProgramState.cs:GambitEnabled",
             "src/Engine.Kernel/Programs/Gambits/GambitProgramState.cs:ActionHistoryTicks",
@@ -42,6 +43,7 @@ public sealed class KernelProgramStateArchitectureTests
             "src/Engine.Kernel/Programs/Generators/GeneratorProgramState.cs:RunCounts",
             "src/Engine.Kernel/Programs/Generators/GeneratorProgramState.cs:Enabled",
             "src/Engine.Kernel/Programs/Generators/GeneratorProgramState.cs:NextCadenceFireTicks",
+
             "src/Engine.Kernel/Programs/Chronicles/ChronicleProgramState.cs:Active",
             "src/Engine.Kernel/Programs/Chronicles/ChronicleProgramState.cs:ArchetypeSlots",
             "src/Engine.Kernel/Programs/Chronicles/ChronicleProgramState.cs:StartTicks",
@@ -85,12 +87,20 @@ public sealed class KernelProgramStateArchitectureTests
             "src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramState.cs:_recentTargetKeys",
             "src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramState.cs:_recentTargetTicks",
             "src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramState.cs:_recentTargetCounts",
-            "src/Engine.Kernel/Programs/Relationships/RelationshipProgramState.cs:_contactTicks",
-            "src/Engine.Kernel/Programs/Relationships/RelationshipProgramState.cs:_lastContactTicks",
-        };
+        });
         AddMovementRouteCacheStateExceptions(allowed);
         return allowed;
     }
+
+    private static HashSet<string> GeneratorProvinceStateExceptions() =>
+        new(StringComparer.Ordinal)
+        {
+            "src/Engine.Kernel/Programs/Generators/GeneratorProgramState.cs:ProvinceSrIds",
+            "src/Engine.Kernel/Programs/Generators/GeneratorProgramState.cs:ProvincePulseIndices",
+            "src/Engine.Kernel/Programs/Generators/GeneratorProgramState.cs:ProvinceFires",
+            "src/Engine.Kernel/Programs/Relationships/RelationshipProgramState.cs:_contactTicks",
+            "src/Engine.Kernel/Programs/Relationships/RelationshipProgramState.cs:_lastContactTicks",
+        };
 
     private static void AddMovementRouteCacheStateExceptions(HashSet<string> allowed)
     {

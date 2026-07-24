@@ -27,7 +27,11 @@ internal static class ArtifactEntity
         HealthAttribute = Attr.Condition,
         HealthDisplayName = "Condition",
         PrimaryPlane = PrimaryPlane.Physical,
-        LifecycleBand = IceRemembersLifecycleBand.WorldAnchor,
+        // Condition is relevance, not existence: an artifact nobody holds,
+        // claims, or venerates drifts out of the zeitgeist and goes
+        // historical. Held and enshrined artifacts are sustained through
+        // their relationship support effects.
+        LifecycleBand = IceRemembersLifecycleBand.Monumental,
         Traits =
         [
             PositiveTrait(
@@ -45,9 +49,12 @@ internal static class ArtifactEntity
                 TraitRelationshipDelta(K.Region, Attr.Stability, Rel.Anchored, EffectRelationshipDirection.Incoming, -0.025f, 1, PrimaryPlane.Physical, TraitEffectBearer.RelatedEntity, minStrength: 0.45f),
                 TraitGambit(GambitId.ArtifactCleansesScar, scoreDelta: 0.15f, successDelta: -0.08f)),
         ],
-        MapSignal = MapSignal(radius: 1, capacity: 0.3f, support: 0.4f, threat: 0.2f,
-            baseMass: 10f, coverageScale: 0f, influenceScale: 0.04f, activityScale: 0.04f,
-            healthScale: 0.08f, attractorRadius: 2),
+        // A lying relic is quiet ground, not a beacon: no attractor pull and
+        // only a whisper of support, so a pile of resting artifacts cannot
+        // recruit more artifacts, monsters, or placement toward itself.
+        MapSignal = MapSignal(radius: 1, capacity: 0.1f, support: 0.15f, threat: 0.2f,
+            baseMass: 6f, coverageScale: 0f, influenceScale: 0.04f, activityScale: 0.04f,
+            healthScale: 0.08f, attractorRadius: 0),
         MovementProfiles = MovementProfiles(
             physicalDefault: Profile.Trail,
             semanticDefault: Profile.Veil,

@@ -405,6 +405,7 @@ public static class EffectConditionCodes
     public const int CrowdingBeyondCultureSupport = 9;
     public const int InsideOwnedCoverage = 10;
     public const int BeyondCultureSupport = 11;
+    public const int LocalSolitudeSignal = 12;
 }
 
 public static class RelationshipMatchDirectionCodes
@@ -815,7 +816,11 @@ public static class KernelCommandRejectReasonCodes
 public static class GeneratorProgramConstants
 {
     public const int TargetReferenceCode = 1;
-    public const int DefaultPulseWidthTicks = 25;
+    // Per-province pulse width. The old single global clock ran saturated at
+    // width 25; with every settled superregion running its own clock, the
+    // per-province tempo is halved so world throughput lands near twice the
+    // old rate at bootstrap settledness and grows with settled provinces.
+    public const int DefaultPulseWidthTicks = 50;
     public const int DefaultFiresPerPulse = 1;
     public const int DefaultPlacementMinRadius = 0;
     public const int DefaultPlacementMaxRadius = 5;

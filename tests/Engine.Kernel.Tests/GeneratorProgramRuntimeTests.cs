@@ -1039,6 +1039,8 @@ public sealed class GeneratorProgramRuntimeTests
                 {
                     Generators = new GeneratorProgramTuningOptions
                     {
+                        FrontierPulseWidthMultiplier = 1,
+                        SettledPulseWidthMultiplier = 1,
                         RetryFireTargets = retryFireTargets,
                         PulseWidthTicks = pulseWidthTicks,
                         FiresPerPulse = firesPerPulse,
