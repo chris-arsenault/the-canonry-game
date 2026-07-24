@@ -27,6 +27,9 @@ internal sealed partial record MonteCarloOptions(
     bool SimulationOnly,
     bool TraceEnabled,
     string? ConfigFilePath,
+    int ProgressEveryTicks,
+    int StreamCoreEveryTicks,
+    int SaveStateEveryTicks,
     IReadOnlyList<MonteCarloStatInput> Stats)
 {
     public string OutputDirectory => RunId is null
@@ -79,6 +82,9 @@ internal sealed partial record MonteCarloOptions(
             SimulationOnly: simulationOnly,
             TraceEnabled: traceEnabled,
             ConfigFilePath: ReadString(optionArgs, "--config-file", null),
+            ProgressEveryTicks: ReadInt(optionArgs, "--progress-every", 5000),
+            StreamCoreEveryTicks: ReadInt(optionArgs, "--stream-core-every", 0),
+            SaveStateEveryTicks: ReadInt(optionArgs, "--save-state-every", 0),
             Stats: stats);
     }
 

@@ -82,6 +82,12 @@ internal sealed class KernelTelemetryRecorder : IDisposable
         EventProjection.RecordTickSnapshot(tick);
     }
 
+    public (int ActiveEntities, int CoveredCells) ProgressCounts()
+    {
+        DrainAvailable();
+        return EventProjection.ProgressCounts();
+    }
+
     public void RecordSnapshots(int tick, bool includeEntities = true)
     {
         DrainAvailable();

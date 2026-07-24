@@ -74,6 +74,22 @@ mc:
 		--runs $(MC_RUNS) --ticks $(MC_TICKS) --seed $(MC_SEED) \
 		--run-id $(RUN_ID) --artifact-root .artifacts/monte-carlo $(MC_EXTRA)
 
+# Fan a batch across one process per seed so wall time is the slowest seed,
+# not the sum, and each seed's data lands as soon as it finishes. Streams
+# core scorecard tables to <run-id>-s<seed>/stream/ every MC_STREAM_EVERY
+# ticks for mid-run analysis. Skips the per-run analyzer (score externally).
+# Example: make mc-fan MC_TICKS=100000 MC_SEEDS="9100 9101 9102" RUN_ID=my-question
+MC_SEEDS ?= 9100 9101 9102
+MC_STREAM_EVERY ?= 12500
+mc-fan:
+	dotnet build tools/MonteCarlo/MonteCarlo.csproj -c Release
+	for seed in $(MC_SEEDS); do \
+		dotnet run --no-build --project tools/MonteCarlo/MonteCarlo.csproj -c Release -- \
+			--runs 1 --ticks $(MC_TICKS) --seed $$seed \
+			--run-id $(RUN_ID)-s$$seed --artifact-root .artifacts/monte-carlo \
+			--no-analysis --stream-core-every $(MC_STREAM_EVERY) $(MC_EXTRA) & \
+	done; wait
+
 # Generate one pregenerated world: make world SEED=4200
 world:
 	dotnet run --project tools/WorldGenerator -c Release -- \

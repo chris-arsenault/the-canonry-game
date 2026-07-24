@@ -42,6 +42,17 @@ internal sealed partial class TelemetryEventProjection
             entityStats.SemanticSpread));
     }
 
+    /// <summary>
+    /// Cheap counters for mid-run progress reporting: active entities and
+    /// physically covered cells as currently projected.
+    /// </summary>
+    public (int ActiveEntities, int CoveredCells) ProgressCounts()
+    {
+        var entityStats = TickEntityStatsFor();
+        var mapStats = PhysicalMapStatsFor();
+        return (entityStats.ActiveCount, mapStats.CoveredCells);
+    }
+
     private TickEntityStats TickEntityStatsFor()
     {
         var activeCount = 0;

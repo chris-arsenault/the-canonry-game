@@ -90,6 +90,40 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportWorldTables();
     }
 
+    // The cheap tables that answer most scorecard questions (population,
+    // density, endings, stage ledger, lifespans) — exported mid-run so
+    // analysis can start while the simulation continues. The heavyweight
+    // event tables (cell culture influence, attributes, verbs) wait for the
+    // end-of-run export.
+    private static readonly string[] CoreStreamTables =
+    [
+        "symbols",
+        "runs",
+        "tick_snapshots",
+        "entity_events",
+        "entity_snapshots",
+        "gambit_events",
+        "generator_events",
+        "lifecycle_events",
+        "lifecycle_reason_events",
+        "movement_events",
+        "coverage_snapshots",
+        "world_beat_events",
+        "chronicle_events",
+    ];
+
+    public void ExportCoreParquet()
+    {
+        ThrowIfDisposed();
+        Flush();
+        var streamDirectory = Path.Combine(_outputDirectory, "stream");
+        Directory.CreateDirectory(streamDirectory);
+        foreach (var tableName in CoreStreamTables)
+        {
+            ExportTableTo(tableName, streamDirectory);
+        }
+    }
+
     private void ExportIdentityTables()
     {
         ExportTable("symbols");
@@ -302,7 +336,12 @@ internal sealed class DuckDbTelemetryStore : IDisposable
 
     private void ExportTable(string tableName)
     {
-        var parquetPath = Path.Combine(_outputDirectory, $"{tableName}.parquet");
+        ExportTableTo(tableName, _outputDirectory);
+    }
+
+    private void ExportTableTo(string tableName, string directory)
+    {
+        var parquetPath = Path.Combine(directory, $"{tableName}.parquet");
         SqlFileHelpers.Execute(
             _connection,
             $"COPY {SqlFileHelpers.QuoteIdentifier(tableName)} TO {SqlFileHelpers.QuoteString(parquetPath)} (FORMAT PARQUET);");
@@ -316,8 +355,10 @@ internal sealed class DuckDbTelemetryStore : IDisposable
 
 internal sealed class BufferedDuckDbTelemetryWriter : IDisposable
 {
+    private readonly record struct WriterMessage(TelemetryBatch? Batch, bool ExportCore);
+
     private readonly string _outputDirectory;
-    private readonly Channel<TelemetryBatch> _batches;
+    private readonly Channel<WriterMessage> _batches;
     private readonly SemaphoreSlim _inFlight = new(1, 1);
     private readonly Task _writerTask;
     private ExceptionDispatchInfo? _failure;
@@ -329,7 +370,7 @@ internal sealed class BufferedDuckDbTelemetryWriter : IDisposable
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(outputDirectory);
         _outputDirectory = outputDirectory;
-        _batches = Channel.CreateBounded<TelemetryBatch>(new BoundedChannelOptions(1)
+        _batches = Channel.CreateBounded<WriterMessage>(new BoundedChannelOptions(1)
         {
             SingleReader = true,
             SingleWriter = true,
@@ -348,11 +389,29 @@ internal sealed class BufferedDuckDbTelemetryWriter : IDisposable
             return;
         }
 
+        Post(new WriterMessage(batch, ExportCore: false));
+    }
+
+    /// <summary>
+    /// Queues a mid-run export of the core scorecard tables to the run's
+    /// stream/ directory. Runs on the writer thread after all previously
+    /// appended batches; the simulation thread only blocks until the
+    /// writer accepts the request.
+    /// </summary>
+    public void StreamCoreTables()
+    {
+        ThrowIfDisposedOrCompleted();
+        ThrowIfFailed();
+        Post(new WriterMessage(Batch: null, ExportCore: true));
+    }
+
+    private void Post(WriterMessage message)
+    {
         _inFlight.Wait();
         try
         {
             ThrowIfFailed();
-            _batches.Writer.WriteAsync(batch).AsTask().GetAwaiter().GetResult();
+            _batches.Writer.WriteAsync(message).AsTask().GetAwaiter().GetResult();
         }
         catch
         {
@@ -401,11 +460,19 @@ internal sealed class BufferedDuckDbTelemetryWriter : IDisposable
         try
         {
             using var store = new DuckDbTelemetryStore(_outputDirectory);
-            await foreach (var batch in _batches.Reader.ReadAllAsync().ConfigureAwait(false))
+            await foreach (var message in _batches.Reader.ReadAllAsync().ConfigureAwait(false))
             {
                 try
                 {
-                    store.AppendOwned(batch);
+                    if (message.Batch is not null)
+                    {
+                        store.AppendOwned(message.Batch);
+                    }
+
+                    if (message.ExportCore)
+                    {
+                        store.ExportCoreParquet();
+                    }
                 }
                 finally
                 {

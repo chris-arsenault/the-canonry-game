@@ -168,7 +168,7 @@ internal static class MonteCarloCli
             var seed = options.Seed + runIndex;
             using var run = MonteCarloKernelRunFactory.Create(seed, traceEnabled: false, options.ConfigFilePath);
             var elapsed = Stopwatch.StartNew();
-            var processedTicks = AdvanceTicks(run, options.Ticks);
+            var processedTicks = AdvanceSimulationOnlyTicks(run, options, seed);
             elapsed.Stop();
             PrintRunSummary(
                 options,
@@ -224,6 +224,7 @@ internal static class MonteCarloCli
             stateRecorder,
             stateStore,
             boundaryBirthEntityIds,
+            seed,
             ref rowsWritten);
         var summary = summaryRecorder.Snapshot();
         rowsWritten += FlushStateTelemetry(stateRecorder, stateStore);
@@ -237,10 +238,13 @@ internal static class MonteCarloCli
             summary);
     }
 
-    private static int AdvanceTicks(MonteCarloKernelRun run, int ticks)
+    private static int AdvanceSimulationOnlyTicks(MonteCarloKernelRun run, MonteCarloOptions options, int seed)
     {
         var processedTicks = 0;
-        for (var tickIndex = 0; tickIndex < ticks; tickIndex++)
+        var stopwatch = Stopwatch.StartNew();
+        var lastElapsedSeconds = 0.0;
+        var lastTick = 0;
+        for (var tickIndex = 0; tickIndex < options.Ticks; tickIndex++)
         {
             var advanced = run.Host.Time.AdvanceSingleStep(1);
             if (advanced == 0)
@@ -249,6 +253,17 @@ internal static class MonteCarloCli
             }
 
             processedTicks += advanced;
+            var currentTick = run.Host.CurrentTick;
+            if (AtWindowBoundary(currentTick, options.ProgressEveryTicks))
+            {
+                var elapsedSeconds = stopwatch.Elapsed.TotalSeconds;
+                var windowTicksPerSecond = (currentTick - lastTick) / Math.Max(elapsedSeconds - lastElapsedSeconds, double.Epsilon);
+                lastTick = currentTick;
+                lastElapsedSeconds = elapsedSeconds;
+                Console.WriteLine(string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"progress seed={seed} tick={currentTick}/{options.Ticks} tps={windowTicksPerSecond:F1}"));
+            }
         }
 
         return processedTicks;
@@ -280,9 +295,11 @@ internal static class MonteCarloCli
         KernelTelemetryRecorder stateRecorder,
         BufferedDuckDbTelemetryWriter stateStore,
         ISet<int> boundaryBirthEntityIds,
+        int seed,
         ref long rowsWritten)
     {
         var processedTicks = 0;
+        var progress = new ProgressReporter(options, seed);
         for (var tickIndex = 0; tickIndex < options.Ticks; tickIndex++)
         {
             var advanced = run.Host.Time.AdvanceSingleStep(1);
@@ -296,9 +313,80 @@ internal static class MonteCarloCli
             summaryRecorder.DrainAvailable();
             RecordStateSnapshots(run, stateRecorder, currentTick, options, boundaryBirthEntityIds);
             rowsWritten += FlushStateTelemetryIfNeeded(stateRecorder, stateStore);
+            rowsWritten += RunWindowActions(run, options, stateRecorder, stateStore, progress, seed, currentTick);
         }
 
         return processedTicks;
+    }
+
+    private static long RunWindowActions(
+        MonteCarloKernelRun run,
+        MonteCarloOptions options,
+        KernelTelemetryRecorder stateRecorder,
+        BufferedDuckDbTelemetryWriter stateStore,
+        ProgressReporter progress,
+        int seed,
+        int currentTick)
+    {
+        if (AtWindowBoundary(currentTick, options.ProgressEveryTicks))
+        {
+            progress.Report(currentTick, stateRecorder);
+        }
+
+        var streamedRows = 0L;
+        if (AtWindowBoundary(currentTick, options.StreamCoreEveryTicks))
+        {
+            streamedRows = FlushStateTelemetry(stateRecorder, stateStore);
+            stateStore.StreamCoreTables();
+        }
+
+        if (AtWindowBoundary(currentTick, options.SaveStateEveryTicks))
+        {
+            SaveKernelStateCheckpoint(run, options, seed, currentTick);
+        }
+
+        return streamedRows;
+    }
+
+    private static bool AtWindowBoundary(int tick, int cadence) =>
+        cadence > 0 && tick > 0 && tick % cadence == 0;
+
+    private static void SaveKernelStateCheckpoint(
+        MonteCarloKernelRun run,
+        MonteCarloOptions options,
+        int seed,
+        int tick)
+    {
+        var stateDirectory = Path.Combine(options.OutputDirectory, "state");
+        Directory.CreateDirectory(stateDirectory);
+        var statePath = Path.Combine(
+            stateDirectory,
+            string.Create(CultureInfo.InvariantCulture, $"seed-{seed}-tick-{tick}.kstate"));
+        using var stream = File.Create(statePath);
+        run.Host.SaveKernelState(stream);
+    }
+
+    // One stdout line per progress window so a doomed run is visible (and
+    // killable) hours before it finishes: rolling throughput, population,
+    // coverage, density against the 0.3-0.5 band, and dropped events.
+    private sealed class ProgressReporter(MonteCarloOptions options, int seed)
+    {
+        private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
+        private double _lastElapsedSeconds;
+        private int _lastTick;
+
+        public void Report(int tick, KernelTelemetryRecorder recorder)
+        {
+            var elapsedSeconds = _stopwatch.Elapsed.TotalSeconds;
+            var windowTicksPerSecond = (tick - _lastTick) / Math.Max(elapsedSeconds - _lastElapsedSeconds, double.Epsilon);
+            _lastTick = tick;
+            _lastElapsedSeconds = elapsedSeconds;
+            var (activeEntities, coveredCells) = recorder.ProgressCounts();
+            var density = activeEntities / Math.Max(coveredCells, 1.0);
+            Console.WriteLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"progress seed={seed} tick={tick}/{options.Ticks} tps={windowTicksPerSecond:F1} active={activeEntities} covered={coveredCells} density={density:F3} dropped={recorder.DroppedEvents}"));
+        }
     }
 
     private static long FlushStateTelemetry(KernelTelemetryRecorder recorder, BufferedDuckDbTelemetryWriter store)

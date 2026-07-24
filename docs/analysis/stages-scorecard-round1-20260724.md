@@ -23,35 +23,40 @@ shipped as `7d361eb`.
 One root cause: the flat promotion gate (design said per-stage scaling
 gates; round 1 shipped raw 36 / connected 180 for every rung).
 
-- **18 Stage pyramid: INVERTED.** At horizon: artifacts 948 base / 0
-  mid / 3,141 legend; settlements 198/0/840; factions 285/0/510; canons
-  228/0/78. No entity rested at the middle stage — anything that could
-  pass the gate once passed it twice.
+- **18 Stage pyramid: APEX-HEAVY.** Corrected counts (the first scoring
+  pass tripled every symbols-join — the parquet symbols table repeats
+  each row once per kernel run and has no run_id; queries must SELECT
+  DISTINCT it): artifacts 316 base / 336 mid / 711 legend (52% of
+  stage-tracked artifacts at the apex, which should be rare); settlements
+  66/46/234; factions 95/75/95; canons 76/6/20. The apex is the mode for
+  artifacts and settlements — wrong shape, though not the zero-middle
+  inversion first reported. Numbers from tick_snapshots (density, total
+  actives) were never affected.
 - **3 Artifact convergence: FAIL.** Legend = 10× band, so promoted
   artifacts nearly stopped dying; creation outran retirement ~2:1 all
-  run. 1,929 active artifacts in run 9100 (39% of population), 99.7%
-  held (wild: 6).
+  run. 643 active artifacts in run 9100 (39% of population), ~99% held
+  (wild: 2).
 - **1 Density: FAIL.** Active/covered hit 1.16 (band 0.3–0.5), driven by
   the artifact pool plus monsters (489).
 - **12 Performance: FAIL.** 15.8/20.1/39.4 ticks/s vs ≥50. Kernel-bound,
   not telemetry-bound: a `--simulation-only` probe on seed 9100 (round-2
   binary) still ran 17.1 t/s. Entity count is the dominant cost; density
   fix is the perf lever before any kernel profiling.
-- **5 the_offering_is_spent: nearly dead.** 3 fires across 3×100k;
+- **5 the_offering_is_spent: nearly dead.** 1 fire across 3×100k;
   devotion ≥0.6 rarely accrues before the instrument wanders.
 
 ## Passed gates (round-1 evidence)
 
 - **19 Deepen share: 5.7–6.0%** of executions (was 50.1%), success 25%
   baseline, freed pool visibly spread across context gambits.
-- **18 (partial) Deaths only at base stage: PASS.** All 354 settlement
-  deaths had zero promotions. Corollary: `settlement_the_hold_withers`
+- **18 (partial) Deaths only at base stage: PASS.** All 118 settlement
+  deaths (per-run true count) had zero promotions. Corollary: `settlement_the_hold_withers`
   had zero attempts — promoted holds never sink to TempHp ≤25 because
   stage bands stretch their drain. Not a bug; it is a dormant safety
   valve. Re-judge after the pyramid fix.
-- **5 Endings attributed**: seal-shatters 27–30, one-word-yields 18–21,
-  memorial-wall 33–42, tome-read 36 per run.
-- **12a Districts**: 948 installs, 234 reawakenings, both attributed.
+- **5 Endings attributed**: seal-shatters 8–10, one-word-yields 6–7,
+  memorial-wall 11–14, tome-read 12 per run.
+- **12a Districts**: 316 installs, 78 reawakenings, both attributed.
 - **9 Semantic stacking**: 1.08 entities/cell, worst stack 3–5.
 - **10 Provincial tempo**: fires/12.5k window grow 84→363 with
   settledness.
