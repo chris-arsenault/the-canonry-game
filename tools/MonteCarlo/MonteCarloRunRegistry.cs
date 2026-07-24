@@ -7,17 +7,21 @@ using DuckDB.NET.Data;
 
 using Engine.Observability.Export;
 
+// The registry database is shared by every Monte Carlo process under the
+// same artifact root, and DuckDB allows a single writer. Each operation
+// opens its own short-lived connection (with retry while a sibling holds
+// the file lock) so fanned per-seed runs can register, complete, and fail
+// independently while their multi-hour simulations run unlocked.
 internal sealed class MonteCarloRunRegistry : IDisposable
 {
     private const int SchemaVersion = 1;
+    private static readonly TimeSpan OpenRetryWindow = TimeSpan.FromSeconds(60);
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true,
     };
-
-    private readonly DuckDBConnection _connection;
 
     public MonteCarloRunRegistry(string artifactRoot)
     {
@@ -26,15 +30,16 @@ internal sealed class MonteCarloRunRegistry : IDisposable
         Directory.CreateDirectory(artifactRoot);
         ArtifactRoot = artifactRoot;
         RegistryPath = Path.Combine(artifactRoot, "registry.duckdb");
-        _connection = new DuckDBConnection($"Data Source={RegistryPath}");
-        _connection.Open();
-        EnsureSchema();
+        WithRegistry(EnsureSchema);
     }
 
     public string ArtifactRoot { get; }
     public string RegistryPath { get; }
 
-    public void Dispose() => _connection.Dispose();
+    public void Dispose()
+    {
+        // Connections are per-operation; nothing is held between calls.
+    }
 
     public void Register(MonteCarloOptions options, MonteCarloProvenanceSnapshot provenance, string status)
     {
@@ -43,92 +48,111 @@ internal sealed class MonteCarloRunRegistry : IDisposable
         ArgumentException.ThrowIfNullOrWhiteSpace(status);
 
         var runId = RequireRunId(options);
-        if (TryGetRun(runId) is not null)
-        {
-            throw new InvalidOperationException($"Monte Carlo run id '{runId}' already exists in the registry.");
-        }
-
         var artifactPath = Path.GetFullPath(options.OutputDirectory);
-        if (Directory.Exists(artifactPath))
+        WithRegistry(connection =>
         {
-            throw new InvalidOperationException(
-                $"Monte Carlo artifact directory already exists for run id '{runId}': {artifactPath}");
-        }
+            if (TryGetRun(connection, runId) is not null)
+            {
+                throw new InvalidOperationException($"Monte Carlo run id '{runId}' already exists in the registry.");
+            }
 
-        Directory.CreateDirectory(artifactPath);
-        var now = Now();
-        var started = string.Equals(status, "running", StringComparison.Ordinal) ? now.ToString(CultureInfo.InvariantCulture) : "NULL";
-        var optionsJson = JsonSerializer.Serialize(ToRunOptionsDocument(options), JsonOptions);
-        var provenanceJson = JsonSerializer.Serialize(provenance, JsonOptions);
-        Execute(
-            $"""
-            INSERT INTO mc_runs (
-                run_id,
-                artifact_path,
-                status,
-                registered_utc_ms,
-                started_utc_ms,
-                completed_utc_ms,
-                deleted_utc_ms,
-                options_json,
-                provenance_json)
-            VALUES (
-                {Q(runId)},
-                {Q(artifactPath)},
-                {Q(status)},
-                {now.ToString(CultureInfo.InvariantCulture)},
-                {started},
-                NULL,
-                NULL,
-                {Q(optionsJson)},
-                {Q(provenanceJson)});
-            """);
-        WriteManifest(runId);
+            if (Directory.Exists(artifactPath))
+            {
+                throw new InvalidOperationException(
+                    $"Monte Carlo artifact directory already exists for run id '{runId}': {artifactPath}");
+            }
+
+            Directory.CreateDirectory(artifactPath);
+            var now = Now();
+            var started = string.Equals(status, "running", StringComparison.Ordinal) ? now.ToString(CultureInfo.InvariantCulture) : "NULL";
+            var optionsJson = JsonSerializer.Serialize(ToRunOptionsDocument(options), JsonOptions);
+            var provenanceJson = JsonSerializer.Serialize(provenance, JsonOptions);
+            Execute(
+                connection,
+                $"""
+                INSERT INTO mc_runs (
+                    run_id,
+                    artifact_path,
+                    status,
+                    registered_utc_ms,
+                    started_utc_ms,
+                    completed_utc_ms,
+                    deleted_utc_ms,
+                    options_json,
+                    provenance_json)
+                VALUES (
+                    {Q(runId)},
+                    {Q(artifactPath)},
+                    {Q(status)},
+                    {now.ToString(CultureInfo.InvariantCulture)},
+                    {started},
+                    NULL,
+                    NULL,
+                    {Q(optionsJson)},
+                    {Q(provenanceJson)});
+                """);
+            WriteManifest(connection, runId);
+        });
     }
 
     public void MarkCompleted(string runId, IEnumerable<MonteCarloStatInput> stats)
     {
-        var now = Now();
-        Execute(
-            $"""
-            UPDATE mc_runs
-            SET status = 'completed',
-                completed_utc_ms = {now.ToString(CultureInfo.InvariantCulture)}
-            WHERE run_id = {Q(runId)};
-            """);
-        AppendStats(runId, stats, source: "analysis");
-        WriteManifest(runId);
+        WithRegistry(connection =>
+        {
+            var now = Now();
+            Execute(
+                connection,
+                $"""
+                UPDATE mc_runs
+                SET status = 'completed',
+                    completed_utc_ms = {now.ToString(CultureInfo.InvariantCulture)}
+                WHERE run_id = {Q(runId)};
+                """);
+            AppendStats(connection, runId, stats, source: "analysis");
+            WriteManifest(connection, runId);
+        });
     }
 
     public void MarkFailed(string runId)
     {
-        var now = Now();
-        Execute(
-            $"""
-            UPDATE mc_runs
-            SET status = 'failed',
-                completed_utc_ms = {now.ToString(CultureInfo.InvariantCulture)}
-            WHERE run_id = {Q(runId)};
-            """);
-        WriteManifest(runId);
+        WithRegistry(connection =>
+        {
+            var now = Now();
+            Execute(
+                connection,
+                $"""
+                UPDATE mc_runs
+                SET status = 'failed',
+                    completed_utc_ms = {now.ToString(CultureInfo.InvariantCulture)}
+                WHERE run_id = {Q(runId)};
+                """);
+            WriteManifest(connection, runId);
+        });
     }
 
     public void AppendManualStats(string runId, IEnumerable<MonteCarloStatInput> stats)
     {
-        RequireExistingRun(runId);
-        AppendStats(runId, stats, source: "manual");
-        WriteManifest(runId);
+        WithRegistry(connection =>
+        {
+            RequireExistingRun(connection, runId);
+            AppendStats(connection, runId, stats, source: "manual");
+            WriteManifest(connection, runId);
+        });
     }
 
     public void MarkAnalyzed(string runId, IEnumerable<MonteCarloStatInput> stats)
     {
-        RequireExistingRun(runId);
-        AppendStats(runId, stats, source: "analysis");
-        WriteManifest(runId);
+        WithRegistry(connection =>
+        {
+            RequireExistingRun(connection, runId);
+            AppendStats(connection, runId, stats, source: "analysis");
+            WriteManifest(connection, runId);
+        });
     }
 
     public IReadOnlyList<MonteCarloRegisteredRun> ListRuns() =>
-        QueryRuns(
+        WithRegistry(connection => QueryRuns(
+            connection,
             """
             SELECT
                 run_id,
@@ -142,86 +166,107 @@ internal sealed class MonteCarloRunRegistry : IDisposable
                 provenance_json
             FROM mc_runs
             ORDER BY registered_utc_ms, run_id;
-            """);
+            """));
 
     public MonteCarloRegisteredRun GetRun(string runId) =>
-        TryGetRun(runId) ?? throw new InvalidOperationException($"Monte Carlo run id '{runId}' is not registered.");
+        WithRegistry(connection => GetRun(connection, runId));
 
-    public IReadOnlyList<MonteCarloRegisteredStat> GetStats(string runId)
-    {
-        RequireExistingRun(runId);
-        using var command = _connection.CreateCommand();
-#pragma warning disable CA2100
-        command.CommandText =
-            $"""
-            SELECT stat_name, stat_value, source, recorded_utc_ms
-            FROM mc_stats
-            WHERE run_id = {Q(runId)}
-            ORDER BY recorded_utc_ms, stat_name;
-            """;
-#pragma warning restore CA2100
-        using var reader = command.ExecuteReader();
-        var rows = new List<MonteCarloRegisteredStat>();
-        while (reader.Read())
+    public IReadOnlyList<MonteCarloRegisteredStat> GetStats(string runId) =>
+        WithRegistry(connection =>
         {
-            rows.Add(new MonteCarloRegisteredStat(
-                reader.GetString(0),
-                reader.GetString(1),
-                reader.GetString(2),
-                reader.GetInt64(3)));
-        }
+            RequireExistingRun(connection, runId);
+            return GetStats(connection, runId);
+        });
 
-        return rows;
-    }
-
-    public string ShowManifest(string runId)
-    {
-        var run = GetRun(runId);
-        var manifestPath = Path.Combine(run.ArtifactPath, "manifest.json");
-        if (!File.Exists(manifestPath))
+    public string ShowManifest(string runId) =>
+        WithRegistry(connection =>
         {
-            WriteManifest(runId);
-        }
+            var run = GetRun(connection, runId);
+            var manifestPath = Path.Combine(run.ArtifactPath, "manifest.json");
+            if (!File.Exists(manifestPath))
+            {
+                WriteManifest(connection, runId);
+            }
 
-        return File.ReadAllText(manifestPath);
-    }
+            return File.ReadAllText(manifestPath);
+        });
 
     public void DeleteRun(string runId)
     {
-        var run = GetRun(runId);
-        if (string.Equals(run.Status, "deleted", StringComparison.Ordinal))
+        WithRegistry(connection =>
         {
-            throw new InvalidOperationException($"Monte Carlo run id '{runId}' is already deleted.");
-        }
+            var run = GetRun(connection, runId);
+            if (string.Equals(run.Status, "deleted", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException($"Monte Carlo run id '{runId}' is already deleted.");
+            }
 
-        var deletedRoot = Path.Combine(ArtifactRoot, ".deleted");
-        Directory.CreateDirectory(deletedRoot);
-        var deletedPath = Path.GetFullPath(Path.Combine(
-            deletedRoot,
-            $"{runId}-{DateTime.UtcNow:yyyyMMddTHHmmssfff}"));
-        if (Directory.Exists(run.ArtifactPath))
-        {
-            Directory.Move(run.ArtifactPath, deletedPath);
-        }
+            var deletedRoot = Path.Combine(ArtifactRoot, ".deleted");
+            Directory.CreateDirectory(deletedRoot);
+            var deletedPath = Path.GetFullPath(Path.Combine(
+                deletedRoot,
+                $"{runId}-{DateTime.UtcNow:yyyyMMddTHHmmssfff}"));
+            if (Directory.Exists(run.ArtifactPath))
+            {
+                Directory.Move(run.ArtifactPath, deletedPath);
+            }
 
-        var now = Now();
-        Execute(
-            $"""
-            UPDATE mc_runs
-            SET status = 'deleted',
-                artifact_path = {Q(deletedPath)},
-                deleted_utc_ms = {now.ToString(CultureInfo.InvariantCulture)}
-            WHERE run_id = {Q(runId)};
-            """);
-        WriteManifest(runId);
+            var now = Now();
+            Execute(
+                connection,
+                $"""
+                UPDATE mc_runs
+                SET status = 'deleted',
+                    artifact_path = {Q(deletedPath)},
+                    deleted_utc_ms = {now.ToString(CultureInfo.InvariantCulture)}
+                WHERE run_id = {Q(runId)};
+                """);
+            WriteManifest(connection, runId);
+        });
     }
 
-    private void AppendStats(string runId, IEnumerable<MonteCarloStatInput> stats, string source)
+    private void WithRegistry(Action<DuckDBConnection> body)
+    {
+        WithRegistry(connection =>
+        {
+            body(connection);
+            return 0;
+        });
+    }
+
+    private T WithRegistry<T>(Func<DuckDBConnection, T> body)
+    {
+        using var connection = OpenConnection();
+        return body(connection);
+    }
+
+    private DuckDBConnection OpenConnection()
+    {
+        var deadline = DateTime.UtcNow + OpenRetryWindow;
+        while (true)
+        {
+            try
+            {
+                var connection = new DuckDBConnection($"Data Source={RegistryPath}");
+                connection.Open();
+                return connection;
+            }
+            catch (DuckDBException exception) when (
+                DateTime.UtcNow < deadline &&
+                exception.Message.Contains("lock", StringComparison.OrdinalIgnoreCase))
+            {
+                Thread.Sleep(Random.Shared.Next(100, 500));
+            }
+        }
+    }
+
+    private void AppendStats(DuckDBConnection connection, string runId, IEnumerable<MonteCarloStatInput> stats, string source)
     {
         var now = Now();
         foreach (var stat in stats)
         {
             Execute(
+                connection,
                 $"""
                 INSERT INTO mc_stats (run_id, stat_name, stat_value, source, recorded_utc_ms)
                 VALUES (
@@ -234,11 +279,11 @@ internal sealed class MonteCarloRunRegistry : IDisposable
         }
     }
 
-    private void WriteManifest(string runId)
+    private void WriteManifest(DuckDBConnection connection, string runId)
     {
-        var run = GetRun(runId);
+        var run = GetRun(connection, runId);
         Directory.CreateDirectory(run.ArtifactPath);
-        var latestStats = GetStats(runId)
+        var latestStats = GetStats(connection, runId)
             .GroupBy(stat => stat.Name, StringComparer.Ordinal)
             .ToDictionary(
                 group => group.Key,
@@ -263,14 +308,44 @@ internal sealed class MonteCarloRunRegistry : IDisposable
             JsonSerializer.Serialize(manifest, JsonOptions));
     }
 
-    private void RequireExistingRun(string runId)
+    private static MonteCarloRegisteredRun GetRun(DuckDBConnection connection, string runId) =>
+        TryGetRun(connection, runId) ?? throw new InvalidOperationException($"Monte Carlo run id '{runId}' is not registered.");
+
+    private static List<MonteCarloRegisteredStat> GetStats(DuckDBConnection connection, string runId)
     {
-        _ = GetRun(runId);
+        using var command = connection.CreateCommand();
+#pragma warning disable CA2100
+        command.CommandText =
+            $"""
+            SELECT stat_name, stat_value, source, recorded_utc_ms
+            FROM mc_stats
+            WHERE run_id = {Q(runId)}
+            ORDER BY recorded_utc_ms, stat_name;
+            """;
+#pragma warning restore CA2100
+        using var reader = command.ExecuteReader();
+        var rows = new List<MonteCarloRegisteredStat>();
+        while (reader.Read())
+        {
+            rows.Add(new MonteCarloRegisteredStat(
+                reader.GetString(0),
+                reader.GetString(1),
+                reader.GetString(2),
+                reader.GetInt64(3)));
+        }
+
+        return rows;
     }
 
-    private MonteCarloRegisteredRun? TryGetRun(string runId)
+    private static void RequireExistingRun(DuckDBConnection connection, string runId)
+    {
+        _ = GetRun(connection, runId);
+    }
+
+    private static MonteCarloRegisteredRun? TryGetRun(DuckDBConnection connection, string runId)
     {
         var rows = QueryRuns(
+            connection,
             $"""
             SELECT
                 run_id,
@@ -289,9 +364,9 @@ internal sealed class MonteCarloRunRegistry : IDisposable
         return rows.Count == 0 ? null : rows[0];
     }
 
-    private List<MonteCarloRegisteredRun> QueryRuns(string sql)
+    private static List<MonteCarloRegisteredRun> QueryRuns(DuckDBConnection connection, string sql)
     {
-        using var command = _connection.CreateCommand();
+        using var command = connection.CreateCommand();
 #pragma warning disable CA2100
         command.CommandText = sql;
 #pragma warning restore CA2100
@@ -314,9 +389,10 @@ internal sealed class MonteCarloRunRegistry : IDisposable
         return rows;
     }
 
-    private void EnsureSchema()
+    private static void EnsureSchema(DuckDBConnection connection)
     {
         Execute(
+            connection,
             """
             CREATE TABLE IF NOT EXISTS mc_runs (
                 run_id VARCHAR PRIMARY KEY,
@@ -331,6 +407,7 @@ internal sealed class MonteCarloRunRegistry : IDisposable
             );
             """);
         Execute(
+            connection,
             """
             CREATE TABLE IF NOT EXISTS mc_stats (
                 run_id VARCHAR NOT NULL,
@@ -342,7 +419,7 @@ internal sealed class MonteCarloRunRegistry : IDisposable
             """);
     }
 
-    private void Execute(string sql) => SqlFileHelpers.Execute(_connection, sql);
+    private static void Execute(DuckDBConnection connection, string sql) => SqlFileHelpers.Execute(connection, sql);
 
     private static string RequireRunId(MonteCarloOptions options) =>
         options.RunId ?? throw new InvalidOperationException("A registered MC command requires --run-id.");
