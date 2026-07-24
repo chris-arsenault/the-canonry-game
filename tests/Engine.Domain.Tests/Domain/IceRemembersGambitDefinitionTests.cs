@@ -18,8 +18,9 @@ public sealed class IceRemembersGambitDefinitionTests
         // march, the two carrier gambits, the two expedition gambits, the
         // four terrain-gated gambits, the two palette gambits, the two
         // willful-artifact gambits, the razing, and the withering) + 12
-        // grant gambits + one stage-promotion gambit per catalog kind.
-        Assert.Equal(45 + 12 + IceRemembersDefinition.StageCatalogKinds.Count, gambitIds.Count);
+        // grant gambits + two stage-promotion rungs per catalog kind
+        // (deepen to the middle stage, crown to the last).
+        Assert.Equal(45 + 12 + (IceRemembersDefinition.StageCatalogKinds.Count * 2), gambitIds.Count);
         Assert.Contains(IceRemembersGambitId.AbilitySharesPractice.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactBindsMonster.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactCleansesScar.ToGambitId(), gambitIds);
@@ -43,6 +44,8 @@ public sealed class IceRemembersGambitDefinitionTests
         Assert.Contains(IceRemembersGambitId.PenguinSlaysOrca.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.SettlementDeepensTheHolding.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.FactionDeepensTheHolding.ToGambitId(), gambitIds);
+        Assert.Contains(IceRemembersGambitId.SettlementCrownsTheHolding.ToGambitId(), gambitIds);
+        Assert.Contains(IceRemembersGambitId.ArtifactCrownsTheHolding.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.SettlementTheHoldWithers.ToGambitId(), gambitIds);
         Assert.DoesNotContain(IceRemembersGambitId.TransportDeepensTheHolding.ToGambitId(), gambitIds);
     }

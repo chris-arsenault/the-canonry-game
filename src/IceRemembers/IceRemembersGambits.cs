@@ -21,22 +21,6 @@ public static partial class IceRemembersDefinition
     private const float CulturalWorkTierMinimumRawMass = 12f;
     private const float CulturalWorkTierMinimumConnectedRawMass = 90f;
     private const int SettlementTradeRouteMaxSemanticDistance = 12;
-    private static readonly Dictionary<EntityKind, GambitId> WorkTierGambitIds = new()
-    {
-        [K.Region] = GambitId.RegionDeepensTheHolding,
-        [K.Settlement] = GambitId.SettlementDeepensTheHolding,
-        [K.Faction] = GambitId.FactionDeepensTheHolding,
-        [K.Penguin] = GambitId.PenguinDeepensTheHolding,
-        [K.Artifact] = GambitId.ArtifactDeepensTheHolding,
-        [K.Orca] = GambitId.OrcaDeepensTheHolding,
-        [K.PointOfInterest] = GambitId.PointOfInterestDeepensTheHolding,
-        [K.Ability] = GambitId.AbilityDeepensTheHolding,
-        [K.Monster] = GambitId.MonsterDeepensTheHolding,
-        [K.Transport] = GambitId.TransportDeepensTheHolding,
-        [K.Occurrence] = GambitId.OccurrenceDeepensTheHolding,
-        [K.Canon] = GambitId.CanonDeepensTheHolding,
-    };
-
     private static List<GambitDefinition> CreateGambits()
     {
         var gambits = new List<GambitDefinition>
@@ -155,60 +139,6 @@ public static partial class IceRemembersDefinition
         gambit.Reads.Add(AttributeRef.Coordinates(actorKind));
         gambit.Writes.Add(AttributeRef.StructuralFact("forged_cells", actorKind));
         gambit.Mutations.Add(new ForgeCellVerticalMutation(direction, TerrainName(terrain)));
-        return gambit;
-    }
-
-    // Deepen the Holding reborn as stage promotion: only the four catalog
-    // kinds climb their named ladders, at standard success with hard gates
-    // (docs/design/entity-stages.md). The 12-kind tier grind — measured at
-    // half of all gambit executions while the mesh's real growth came from
-    // entity movement — is retired.
-    public static readonly IReadOnlyList<EntityKind> StageCatalogKinds =
-        [K.Settlement, K.Faction, K.Artifact, K.Canon];
-
-    private const int StageCatalogMaxIndex = 2;
-
-    private static IEnumerable<GambitDefinition> CreateWorkTierGambits()
-    {
-        foreach (var entity in IceRemembersEntities.All)
-        {
-            if (StageCatalogKinds.Contains(entity.Kind))
-            {
-                yield return EntityDeepensTheHolding(entity);
-            }
-        }
-    }
-
-    private static GambitDefinition EntityDeepensTheHolding(IceRemembersEntityDefinition entity)
-    {
-        var health = A(entity.HealthAttribute);
-        var gambit = new GambitDefinition(
-            G(WorkTierGambitId(entity.Kind)),
-            "Deepen the Holding",
-            entity.Kind,
-            All(
-                new TargetIsSelf(),
-                new SelfWorkTierBelowPrecondition(StageCatalogMaxIndex),
-                new SelfCultureMassPrecondition(
-                    NonMobilePrimaryPlane(entity.PrimaryPlane),
-                    CulturalWorkTierMinimumRawMass * 3f,
-                    CulturalWorkTierMinimumConnectedRawMass * 2f),
-                new SelfAttributeThreshold(health, min: 55f, max: null, behaviorRelevant: false)),
-            scoreExpression: GambitScore(
-                baseline: 0.35f,
-                dynamicRange: 4f,
-                Normalized(Expr.Self(health))))
-        {
-            SuccessChance = InitialGambitSuccessChance,
-            Cooldown = 400,
-            EntityCooldown = 600,
-            Description = "A thriving holding rises to its next stage - town to city, relic to legend. Rare, earned, and consequential: the stage sets its clock, its keepers, and its voice.",
-        };
-        gambit.Reads.Add(AttributeRef.Self(health, entity.Kind));
-        gambit.Reads.Add(AttributeRef.Coordinates(entity.Kind));
-        gambit.Reads.Add(AttributeRef.StructuralFact("work_tier", entity.Kind));
-        gambit.Writes.Add(AttributeRef.StructuralFact("work_tier", entity.Kind));
-        gambit.Mutations.Add(new IncreaseWorkTierMutation(maxTier: StageCatalogMaxIndex));
         return gambit;
     }
 
@@ -1036,10 +966,4 @@ public static partial class IceRemembersDefinition
             ? PrimaryPlane.Semantic
             : PrimaryPlane.Physical;
 
-    private static GambitId WorkTierGambitId(EntityKind kind)
-    {
-        return WorkTierGambitIds.TryGetValue(kind, out var gambitId)
-            ? gambitId
-            : throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown Ice Remembers entity kind.");
-    }
 }

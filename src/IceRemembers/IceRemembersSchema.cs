@@ -657,6 +657,10 @@ public enum IceRemembersGambitId
     FactionClaimsTheWarmGround,
     SettlementHiresTheHull,
     FactionParleysWithThePod,
+    SettlementCrownsTheHolding,
+    FactionCrownsTheHolding,
+    ArtifactCrownsTheHolding,
+    CanonCrownsTheHolding,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -732,6 +736,10 @@ public static class IceRemembersGambitIdExtensions
         "faction_claims_the_warm_ground",
         "settlement_hires_the_hull",
         "faction_parleys_with_the_pod",
+        "settlement_crowns_the_holding",
+        "faction_crowns_the_holding",
+        "artifact_crowns_the_holding",
+        "canon_crowns_the_holding",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)

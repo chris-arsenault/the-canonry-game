@@ -18,7 +18,9 @@ public static partial class IceRemembersGeneratorDefinition
 {
     private const float SealShattersMinimumWarStrength = 0.5f;
     private const float MemorialWallMinimumClaimStrength = 0.4f;
-    private const float OfferingSpentMinimumOfferingStrength = 0.6f;
+    // 0.6 left the rite nearly silent (3 fires across 3x100k); devotion
+    // rarely climbs that high before the instrument wanders on.
+    private const float OfferingSpentMinimumOfferingStrength = 0.4f;
 
     private static SemanticGeneratorTarget TargetWithStrongIncoming(
         EntityKind kind,
