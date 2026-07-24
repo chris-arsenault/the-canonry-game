@@ -30,8 +30,12 @@ internal static class ArtifactEntity
         // Condition is relevance, not existence: an artifact nobody holds,
         // claims, or venerates drifts out of the zeitgeist and goes
         // historical. Held and enshrined artifacts are sustained through
-        // their relationship support effects.
-        LifecycleBand = IceRemembersLifecycleBand.Monumental,
+        // their relationship support effects. The band is the trinket
+        // clock and stages stretch it (famed a career, legend an age) —
+        // the settlement pattern. The old Monumental base predates stages
+        // and made even trinkets near-immortal: 745 artifacts minted per
+        // 100k against 295 retired, 39% of the world population by horizon.
+        LifecycleBand = IceRemembersLifecycleBand.Enduring,
         Traits =
         [
             PositiveTrait(
