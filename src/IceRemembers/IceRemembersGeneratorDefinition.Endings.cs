@@ -225,7 +225,12 @@ public static partial class IceRemembersGeneratorDefinition
         ],
         Triggers = TriggerOn(K.PointOfInterest),
         PulseWeight = 5,
-        CadenceTicks = 2000,
-        CadenceJitterTicks = 500,
+        // Requires a wandering instrument to stand beside the chosen
+        // devoted site on the attempt tick - a rare alignment. At cadence
+        // 2000 that gave ~10 attempts and ~0.3 fires per 100k; the shorter
+        // clock buys the rare geometry more chances while the rite stays
+        // an uncommon ending.
+        CadenceTicks = 800,
+        CadenceJitterTicks = 200,
     };
 }

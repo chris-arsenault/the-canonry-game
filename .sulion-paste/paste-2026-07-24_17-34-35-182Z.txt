@@ -1,0 +1,294 @@
+# Kernel Parallelization: Design Investigation Spec
+
+**Status:** investigation framing, not an approved plan. No performance figure in this document is measured; all quantitative claims are hypotheses to be replaced by profile data.
+
+**Basis:** the current-state briefing (`main` @ `c81d507`), the July 13 experiment (`f556332`), and a design discussion exploring ground-up alternatives.
+
+---
+
+## 1. Problem Restatement
+
+The July experiment reached roughly `1.2x` and flattened. The recorded Amdahl fit implied a large non-scaling share. The branch's own conclusion — that reaching `2x` required moving mutation, index, provenance, version, and event application out of coordinator replay — is the correct diagnosis and is adopted here.
+
+The generalization: **the July branch parallelized evaluation and left commit serial.** That is not a tuning deficiency. Evaluate-parallel/commit-serial has a hard ceiling equal to the evaluate fraction, and it pays full barrier cost to capture it. Any design that retains a single mutating commit path inherits the same ceiling regardless of how well the evaluation side scales.
+
+Two targets, and they are architecturally distinct:
+
+- **Headless:** high tick rate for Monte Carlo, batch evidence, analysis. This is where parallelization matters.
+- **UI:** low tick rate for display. The two paths should not be co-designed; see §7.
+
+The ambition stated in discussion was an order of magnitude. Whether that is reachable is one of the open questions this investigation must answer, not an assumption it should start from.
+
+---
+
+## 2. Three Candidate Architectures
+
+These are not variants of one design. They differ in what they break, what they cost, and what they can reach.
+
+### 2.1 Subsystem Offload (process-based)
+
+**Model.** Whole programs move to persistent background threads and publish immutable derived-state epochs. The kernel writer thread remains the sole mutator and reads published epochs rather than computing derived state inline.
+
+**Why it fits this codebase.** Several expensive programs are pure derived state that nothing in the pipeline writes back to:
+
+- MapActivity — reads entities, writes activity tables; nothing writes activity tables
+- MapSignals — reads activity/relationships/positions, writes signal tables; nothing writes signal tables
+- Knowledge — the briefing already notes main programs on a given tick use the *previous* knowledge table
+- CultureBoundaries / `CellAt` cache — already lazy, already derived
+
+These form a read-only projection layer currently sitting inside the mutation pipeline. The briefing also records that LowAltitudeVerbs *intentionally* reads the previous main pulse's map activity and signals — so for its largest consumer, the semantic change is nil.
+
+**Shape.**
+
+```
+Thread A (kernel writer, owns all mutation):
+  commands → LowAltitude → CultureDecay → Relationships → Effects
+  → Upkeep → Gambits → Chronicle → Generators → WorldBeats
+  → MapFrontier → CultureSlots → MinorActors
+  reads:  ActivityEpoch, SignalEpoch, KnowledgeEpoch, BoundaryEpoch (all lagged)
+  writes: EntitySnapshot per pulse
+
+Thread B (derived-state builder, owns no world state):
+  loop: take EntitySnapshot → build ActivityEpoch, SignalEpoch → publish (pointer swap)
+
+Thread C (culture/boundary/knowledge builder):
+  loop: take CultureSnapshot → build component cache, knowledge tables → publish
+```
+
+B and C are pure, allocate their own output, and never touch kernel state. No barrier: if a builder is slow, the writer reads a staler epoch, blocking only if a bounded staleness limit is exceeded.
+
+**What it changes semantically.** Consumers that currently read *same-pulse* signals move to previous-pulse. Per the briefing this affects Effects (reads same-pulse MapSignals) and the Relationships follow-movement interaction. LowAltitudeVerbs is unaffected.
+
+**Ceiling.** `1 / (1 - offloaded_fraction)`. With one mutating pipeline on one thread, this cannot reach 10x. It is bounded by how much of the tick is pure derived work — a number the profile must supply.
+
+**Cost.** The snapshot. Three implementation tiers in increasing order of engineering: full copy; double-buffer with dirty tracking; versioned/epoch-tagged arrays. Start at full copy, measure, escalate only if the profile demands it.
+
+**Why it's the recommended first move.** It ships incrementally without a contract break on step one; it is reversible; it produces the profile data needed to decide whether deeper rewrite is justified; it does not require fixed-point conversion up front (builders are pure and internally single-threaded, so float non-associativity cannot cause divergence). Given that prior agent work stalled on incremental safety, a first phase that is both genuinely safe and genuinely valuable has organizational value beyond its speedup.
+
+### 2.2 Bulk-Synchronous Phase Graph (HPC, barrier-based)
+
+**Model.** Replace the registration-order program list with a small phase graph. Each phase: read frozen state → produce shard-local deltas → deterministic merge → publish.
+
+```
+Pulse P:
+  Phase A: Evaluate   (entity-sharded, pure)      → IntentDelta[]
+  ─ merge/publish ─
+  Phase B: Resolve    (destination-cell-sharded)  → StateDelta[]
+  ─ merge/publish ─
+  Phase C: Aggregate  (cell-sharded reduce)       → ActivityEpoch, SignalEpoch
+  ─ merge/publish ─
+  Phase D: Structural (serial lane, rare cadence) → AllocationDelta[]
+  ─ publish epoch P ─
+```
+
+**Key departure from the July branch: dual ownership.** Phase A shards by entity; Phase B shards by *destination cell*. Deltas from A are routed by destination key into per-shard mailboxes during A's merge. This is what makes culture deposits, occupancy changes, road marks, and map effects parallel rather than serially replayed. Cross-shard movement is a two-sided delta (`Depart` from source shard, `Arrive` at destination shard), deterministic because keyed by destination.
+
+Phase C — MapActivity/MapSignals — becomes an embarrassingly parallel scatter into owned shards once destination ownership exists. The briefing correctly identifies these as needing "destination ownership or reduction to scale."
+
+**Required substrate changes.**
+
+| Concern | Change |
+|---|---|
+| Accumulators | Fixed-point integers. Float addition is non-associative; parallel reduction order varies; determinism dies. Non-negotiable. |
+| `PrimitiveInt/FloatTable` | Dense arrays for ID-keyed domains; per-shard tables merged at barriers for sparse. Never shared-mutable hash tables. |
+| `SpatialLayerIndex` | Per-shard page allocators merged at barrier, or sorted-by-cell entity array rebuilt per pulse. |
+| Relationship CSR/delta | Frozen CSR per epoch; per-shard delta buffers; compaction at epoch publish. |
+| Minor actor storage | SoA dense arrays. The July branch started this and never finished it; prerequisite, not optimization. |
+| Boundary cache | Computed once per epoch in Phase C, published immutable. `CellAt` becomes a pure read. |
+| RNG | Counter-based on stable logical identity. The July branch had this right. |
+| Event log | Per-shard buffers concatenated at barrier by `(phase, shardId, localSeq)`. Single-producer `TryWrite` retired. |
+| WorldVersion | `(epoch, phase, shard, localSeq)`. The global total order is the single largest blocker and must go. |
+
+**Conflict resolution** (deterministic priority keys, independent of execution order):
+
+- Additive — sum; order-independent given fixed-point
+- Absolute writes — highest `(priorityTier, sourceEntityId, actionKind)` wins; losers emit rejection records
+- Death vs. action — dedicated sub-phase after additive health merge; deltas from entities dying this pulse apply, then retire
+- Structural allocation — Phase D serial lane, or deterministic per-shard ID blocks
+- Relationship create dedup — canonical key `(min(a,b), max(a,b), kind)`, lowest source ID wins
+
+**The limitation.** BSP treats the barrier as free. At high tick rates the per-tick budget is small and each barrier costs wake latency plus straggler wait plus merge. Barrier-per-tick architectures have a practical ceiling that is a function of barrier cost against tick budget — the profile must establish where that lands for this workload. This is why §2.3 exists.
+
+### 2.3 Persistent Spatial Shard Actors (HPC, barrier-free)
+
+**Model.** Remove the global tick as a synchronization event. Each worker owns a permanent spatial region and runs its own tick loop, advancing when its *local* dependency condition is satisfied.
+
+```
+Shard k loop (never joins a global barrier):
+  drain inbox → apply foreign deltas addressed to me
+  advance local tick T if neighbors have published the versions I need
+  run my entities/cells for T
+  publish my delta set and watermark
+```
+
+Shards run at different ticks simultaneously. **Determinism requires that every read resolve to a specific published version, not that reads happen simultaneously.** Version-addressed, not time-addressed.
+
+**The mechanism: declared lag windows.** Every cross-shard read carries an authored staleness allowance.
+
+| Read class | Lag posture |
+|---|---|
+| Own-shard state | Immediate |
+| Neighbor-cell fields | Short — already effectively lagged today |
+| Distant map signals | Longer — spatially attenuated |
+| Global aggregates (world beats, ages) | Long — already on rare cadence |
+| Foreign relationship endpoint | Short — contact memory is inherently lagged |
+
+A shard with lag-N reads may run N ticks ahead before blocking. Throughput becomes bounded by the slowest shard's *average*, not its per-tick worst case — jitter and load imbalance are absorbed by the window instead of accumulating at a barrier.
+
+This is conservative-window PDES (Chandy–Misra–Bryant lookahead), not optimistic Time Warp. No rollback, no state saving, no antimessages. Lags are static and authored, so null-message deadlock does not arise.
+
+**Cross-shard effects are messages, not a merge phase.** SPSC ring buffers per shard pair. The receiver drains sorted by `(sourceShard, localSeq)` — fixed order regardless of arrival timing. Reconciliation cost is O(messages sent), paid by the receiver, overlapped with the sender's continued work. Additive deltas can skip messaging entirely via fixed-point atomic add into the destination shard's array.
+
+**Ownership is spatial, not by ID.** Entities are owned by whoever owns their cell. Each shard keeps a **halo** — read-only mirror of neighbor cells within max-interaction-radius. Most reads hit local or halo: no message, no wait. Boundary crossing is a migration message transferring ownership. Relationships live with the lower-ID endpoint; the other endpoint reads a lagged mirror.
+
+**This is why entity-ID sharding was the wrong primitive.** Spatial locality is what makes lag windows sufficient. With ID sharding every interaction is potentially cross-shard and the window buys nothing.
+
+**Global ordering is replaced entirely.**
+
+- Version → per-shard `(shardId, tick)` watermarks; world state at T = all shards' published T
+- Events → per-shard logs, merged lazily by consumers outside the kernel
+- IDs → `(shardId << k) | localCounter`; static blocks, no coordination, ownership decodable from ID
+- The global tick becomes a **watermark computed on demand** rather than a barrier enforced every tick
+
+**Structural systems.** Generators, world beats, culture slots, map frontier do broad structural mutation and should not be sharded. Two options: a scheduled global convergence at their existing rare cadence, or giving them their own long lag (their inputs are demographic aggregates and they already run on rare cadence). Prefer the latter if it holds — it keeps global stops off the path entirely.
+
+**Precedent caveat.** No shipping 4X/grand-strategy game is known to use this model. Games in this genre either reduce work, parallelize narrow subsystems, or remain serial. This architecture comes from PDES and distributed-systems literature. It is viable, but the reference implementations to learn from are research codebases, not games — that changes the risk profile and should be stated when this design is presented.
+
+---
+
+## 3. Comparative Summary
+
+| | Subsystem Offload | BSP Phase Graph | Spatial Shard Actors |
+|---|---|---|---|
+| Mutating writers | One | One per phase-shard | One per shard, permanent |
+| Synchronization | Bounded-staleness pointer swap | Barrier per phase | None global; local watermarks |
+| Ceiling | `1/(1-offloaded)` — cannot reach 10x | Bounded by barrier cost vs. tick budget | Bounded by shard load balance and locality |
+| Fixed-point required | No | Yes | Yes |
+| Storage rewrite | Snapshot only | Extensive | Extensive |
+| Legacy equivalence | Broken for same-pulse signal consumers | Gone | Gone |
+| Simultaneity concept | Preserved | Preserved at barriers | **Gone** |
+| Incremental? | Yes | Partially | No |
+| Reversible? | Yes | No | No |
+| Precedent | Common in shipped games | Common in HPC | PDES research |
+
+---
+
+## 4. Determinism Posture
+
+Adopted across all three: **exact legacy equivalence is abandoned. Same-seed repeatability under the new model is the sole invariant.** This matches the July branch's explicit choice and must be re-decided as policy, not inherited as an experimental exception — the briefing correctly flags that the repository still codifies one simulation writer as an architecture rule.
+
+Repeatability tests become: run at varying shard/worker counts with varied thread scheduling; assert identical published state at convergence points. Not "identical to legacy."
+
+**The critical gate, applicable to §2.2 and §2.3 alike:** a serial kernel whose output is invariant under randomized merge/application order is already a parallel kernel. Shuffle-invariance under a single thread is the property to prove before any threads are introduced. If it holds, enabling parallelism is scheduling. If it does not, the conflict rules have a hole and it is far cheaper to find it single-threaded.
+
+---
+
+## 5. Sequencing
+
+Prior agent work stalled because each step was required to preserve the old contract. The sequences below front-load the contract break so that later steps are mechanical.
+
+### Track 1 — Subsystem Offload
+
+1. **Snapshot publishing on current main.** Full copy, single-threaded, no behavior change. Point existing consumers at published epochs. Verify no regression. This same mechanism serves the render path (§7).
+2. **Delayed-read tolerance test.** Run current main with Effects reading a one-pulse-delayed signal table. Inspect output for degenerate behavior. This is a simulation-quality question and is cheap to answer.
+3. **Move MapActivity/MapSignals to a builder thread.** Bounded staleness, blocking only on limit exceeded.
+4. **Move Knowledge and boundary/component cache to a second builder.**
+5. **Measure.** The realized fraction tells you whether Track 2 is justified and where its priorities lie.
+
+### Track 2 — Shared Prerequisites (both HPC models)
+
+1. **Fixed-point conversion** on the serial kernel. Verify serial output differences are rounding only. Largest single chunk; unlocks everything downstream.
+2. **Dense/SoA storage rewrite** — primitive tables, spatial index, minor actor storage.
+3. **Frozen-epoch reads** — all programs read published epochs instead of live state, still committing serially. Behavior changes; re-baseline.
+4. **Delta buffers + serial merge** — programs emit deltas; coordinator merges on one thread. **Prove shuffle-invariance here.** This is the gate.
+
+### Track 3a — BSP Completion
+
+5. Shard phases; workers per shard; barriers between phases.
+6. Destination-shard Phase B/C — the piece the July branch never reached.
+
+### Track 3b — Spatial Actor Completion
+
+5. **Spatial partition + halo, single-threaded.** N logical shards, round-robin on one thread. Forces every cross-shard read to be identified and routed through message/halo paths. Output changes; re-baseline. **If a read cannot be given a lag, the design has a hole and it surfaces here, cheaply.**
+6. **Declare lags.** Annotate every cross-shard read; enforce lagged resolution while still single-threaded. The simulation is now semantically parallel while physically serial.
+7. **One thread per shard.** Mechanical if 5–6 are correct. Speedup arrives here.
+8. Migration, dynamic repartitioning, structural-system handling.
+
+**Build `ConvergeAt(tick)` before the second shard exists.** Tooling, tests, persistence, and debugging all require it, and it is nearly impossible to retrofit once tooling has grown around direct state reads. Debugging a multi-shard kernel without it is the specific failure mode that will stall agents again.
+
+---
+
+## 6. Evidence Required Before Committing
+
+The briefing already establishes that the July throughput numbers are dead and that the recent point-in-time slowdown was attributed to entity density rather than a fresh CPU profile. Nothing in this document should be acted on before the following exist.
+
+**Universally required:**
+
+- Current fixed-seed, simulation-only `dotnet-trace` at 10k/25k/100k, per-program wall time attributed across the registration list
+- Population and work-item counts at the same horizons
+- A worker-free baseline representing the current execution model
+
+**Decides Track 1 value:** the combined share of MapActivity, MapSignals, boundary cache, and Knowledge. A large share makes subsystem offload immediately worthwhile. A small share means the cost is elsewhere — likely LowAltitude pathfinding or Gambit target scanning, which are evaluate-heavy and want the July approach done properly rather than subsystem offload. These two outcomes point at entirely different second steps.
+
+**Decides Track 3b viability — the measurement that determines whether spatial sharding is right at all:**
+
+- **Interaction locality.** What fraction of entity reads/writes fall within a small radius of the entity? If interactions are overwhelmingly local, halos contain them and lag windows work. If entities routinely query across the whole map — global target searches in gambits, generator province bands, knowledge-site scans — halos cannot contain it and those queries must be redesigned first.
+- **Spatial load distribution.** Entity density per candidate shard region across a run. Severe hot/cold imbalance caps static partitioning regardless of everything else and makes dynamic repartitioning mandatory infrastructure rather than refinement.
+
+---
+
+## 7. Display and Interaction Under Multiple Long-Lived Workers
+
+The briefing already places projection consumers outside the kernel writer boundary, so the question is what a renderer reads when there is no instant at which the world is at tick T.
+
+**Reframe:** the renderer does not need a consistent world, it needs a consistent *frame*. A frame assembled from sources at differing logical ticks is fine provided the assembly rule is stable. **Staleness is free; variance in staleness is expensive.**
+
+**The rate gap resolves most of this.** The headless target is high; the UI target is low. The renderer therefore sees a small fraction of ticks, and shard skew smaller than the display interval is invisible by construction — mismatched shard slabs fall inside the same display window and compositing them is rounding, not a seam.
+
+The gap also collapses snapshot cost as a concern for the render path specifically. Whatever full-copy cost the profile shows, it is amortized across the display interval rather than the tick interval. **Use full copy for the render path.** Dirty tracking and epoch-tagged arrays are unnecessary here; reserve that engineering for the writer-thread snapshot in §2.1 if the profile demands it.
+
+**Model:**
+
+- Projection thread wakes on display cadence, takes the current watermark, copies what it needs, publishes an immutable frame by pointer swap
+- Renderer holds one frame pointer for the duration of a frame, drops it
+- Event stream merges per-shard logs by `(tick, shardId, localSeq)` up to that watermark
+- **Everything the user sees comes from one watermark**, so map and detail panels agree
+
+**Interaction concerns, in order of severity:**
+
+- **Debugging and tooling** — the real problem. Requires `ConvergeAt`. See §5.
+- **Persistence** — same mechanism; converge, freeze, serialize. Rare, so cost is irrelevant, but it must be a first-class kernel operation rather than bolted on.
+- **Commands** — need routing to an owning shard and a defined admission tick. Rule: address to `watermark + lag`, guaranteeing the target shard has not passed it. The added latency is small relative to display cadence.
+- **Selection/inspection** — solved for free by single-watermark framing.
+
+**Architectural consequence worth stating explicitly:** the projection layer should be an **optional subscriber**, costing nothing when absent. Headless runs consume the event log or a final snapshot, not frames. Building one path to serve both targets would impose render costs on the run that most needs throughput.
+
+**One open question for the UI target.** Is the low tick rate the UI's *simulation* rate — user watches the world advance at that rate in wall clock — or its *refresh* rate against a much faster kernel? If the former, the kernel is throttled during UI sessions and none of §7 is load-bearing. If the latter, the user is watching a heavy fast-forward, and the question becomes whether skipped ticks contain things the user should see: deaths, gambit resolutions, chronicle beats. That is an event-stream question rather than a snapshot question — the frame shows state, the log shows what happened, and under compression the log is where the narrative lives.
+
+---
+
+## 8. Open Decisions
+
+Restating the briefing's list, narrowed by this discussion:
+
+1. **Semantic compatibility** — exact legacy equivalence is proposed abandoned; same-seed repeatability retained. Requires explicit policy decision and amendment of the one-writer architecture rule.
+2. **Which track** — Track 1 alone, Track 1 then 2+3a, or Track 1 then 2+3b. Track 1 is recommended first regardless because it is safe, reversible, and generates the profile data the other decisions require.
+3. **Simultaneity** — Track 3b abandons the concept that the world is ever at a single tick. This affects tooling, tests, and mental model, not just performance. Accept deliberately or rule out 3b.
+4. **Lag as authored semantics** — under 3b, every cross-shard read needs a declared, defended staleness. An entity reacting to a distant region's culture N ticks late is a permanent worldbuilding property, not an implementation detail.
+5. **Shard boundary visibility** — under 3b, migration-heavy boundary regions may behave subtly differently from shard interiors unless halos are sized adequately. Needs a stated tolerance.
+6. **Fixed-point conversion** — required for both HPC tracks, not for Track 1. Deciding the track decides this.
+7. **Performance target at a named horizon and worker count** — currently absent and required before any of this can be evaluated as success or failure.
+
+---
+
+## 9. Verification
+
+Unchanged from the briefing: `make test` in development, `make ci` for final; no parallel test projects; Release-build Monte Carlo with unique human-readable run IDs; no `--no-build` for evidence runs; `dotnet-trace` on the real fixed-seed simulation-only workload; ad hoc findings recorded through the Monte Carlo CLI.
+
+Additions specific to this work:
+
+- Worker-count sweeps are meaningful only after the one-worker path represents the same new execution model
+- Shuffle-invariance under serial merge is a gating test, run before any threading
+- Repeatability across shard counts and repeated executions, if adopted as an invariant
+- Behavior, graph/index integrity, snapshot consistency, event/provenance completeness, deadlock and exception propagation validated separately from throughput
+- Independent Monte Carlo runs remain the cheapest coarse parallelism and improve analysis throughput, but do not address single-run tick latency and must not be reported as kernel scaling
