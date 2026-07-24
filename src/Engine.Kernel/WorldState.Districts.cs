@@ -131,6 +131,20 @@ internal sealed partial class WorldState
         return 0;
     }
 
+    internal int ActiveDistrictCount(int hostId)
+    {
+        var count = 0;
+        for (var district = 1; district <= _districtCount; district++)
+        {
+            if (_districtActive[district] != 0 && _districtHostIds[district] == hostId)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
     internal bool HasActiveDistrict(int hostId)
     {
         for (var district = 1; district <= _districtCount; district++)

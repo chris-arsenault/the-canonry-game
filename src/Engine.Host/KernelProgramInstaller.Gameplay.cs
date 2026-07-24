@@ -103,6 +103,17 @@ internal static partial class KernelProgramInstaller
             context.RegisterDistrictBonus(rule.SubtypeId, rule.BonusKindCode, rule.Magnitude);
         }
 
+        foreach (var rule in program.StageRules)
+        {
+            context.RegisterStageProperties(
+                rule.KindId,
+                rule.StageIndex,
+                rule.BandMultiplier,
+                rule.WorkerBonus,
+                rule.AmbientEmission,
+                rule.DistrictCapacity);
+        }
+
         foreach (var rule in program.Affordances)
         {
             context.RegisterLowAltitudeAffordance(

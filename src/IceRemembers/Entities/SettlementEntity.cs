@@ -26,11 +26,11 @@ internal static class SettlementEntity
         HealthAttribute = Attr.TempHp,
         HealthDisplayName = "Temp HP",
         PrimaryPlane = PrimaryPlane.Semantic,
-        // Generational, not Monumental: the survival budget's terms decide
-        // who outlives the band, and a faster clock lets founding failures
-        // and hard-times declines actually happen on playable horizons
-        // (docs/design/settlement-population.md).
-        LifecycleBand = IceRemembersLifecycleBand.Generational,
+        // The kind band is the TOWN clock; stage multipliers stretch it —
+        // city x3 (~Generational), capital x6 (~Monumental). Founding
+        // fragility and earned permanence come from the stage ladder
+        // (docs/design/entity-stages.md).
+        LifecycleBand = IceRemembersLifecycleBand.Standard,
         InitialInfluencePlanes = [PrimaryPlane.Physical, PrimaryPlane.Semantic],
         SemanticStockNotes = "Temporary health. Dies at 0.",
         Traits =

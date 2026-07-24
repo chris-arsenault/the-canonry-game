@@ -8,9 +8,18 @@ public sealed class LowAltitudeVerbProgram
     public IReadOnlyList<LowAltitudeVerbRule> Verbs { get; init; } = [];
     public IReadOnlyList<CompiledInitialInfluenceRule> InitialInfluence { get; init; } = [];
     public IReadOnlyList<CompiledDistrictBonusRule> DistrictBonuses { get; init; } = [];
+    public IReadOnlyList<CompiledStageRule> StageRules { get; init; } = [];
     public IReadOnlyList<CompiledAffordanceRule> Affordances { get; init; } = [];
     public IReadOnlyList<CompiledTraitLowAltitudeWeightModifierRule> TraitWeightModifiers { get; init; } = [];
 }
+
+public sealed record CompiledStageRule(
+    int KindId,
+    int StageIndex,
+    float BandMultiplier,
+    int WorkerBonus,
+    float AmbientEmission,
+    int DistrictCapacity);
 
 public sealed record CompiledDistrictBonusRule(
     int SubtypeId,

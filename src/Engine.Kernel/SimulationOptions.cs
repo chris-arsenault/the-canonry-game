@@ -146,7 +146,10 @@ internal sealed record UpkeepProgramTuningOptions
 
 internal sealed record CultureFieldTuningOptions
 {
-    public float DecayPerPulse { get; init; } = 0.005f;
+    // Eased from 0.005 with the stage rework: the worker treadmill that
+    // paid this decay bill is retired, and interior holding now comes from
+    // stage emission and districts (docs/design/entity-stages.md).
+    public float DecayPerPulse { get; init; } = 0.004f;
     public float MinimumDecayPerPulse { get; init; } = 0.6f;
     public float CullFloorRawMass { get; init; } = 1f;
     public int DecayCadenceMainTicks { get; init; } = 5;

@@ -14,12 +14,12 @@ public sealed class IceRemembersGambitDefinitionTests
         var config = IceRemembersDefinition.Create();
         var gambitIds = config.Gambits.Select(gambit => gambit.Id).ToHashSet(StringComparer.Ordinal);
 
-        // 43 strategic gambits (incl. the hunt-chronicle pair, the campaign
+        // 45 strategic gambits (incl. the hunt-chronicle pair, the campaign
         // march, the two carrier gambits, the two expedition gambits, the
         // four terrain-gated gambits, the two palette gambits, the two
-        // willful-artifact gambits, and the razing) + 12 grant gambits +
-        // one work-tier gambit per kind.
-        Assert.Equal(56 + IceRemembersEntities.All.Count, gambitIds.Count);
+        // willful-artifact gambits, the razing, and the withering) + 12
+        // grant gambits + one stage-promotion gambit per catalog kind.
+        Assert.Equal(45 + 12 + IceRemembersDefinition.StageCatalogKinds.Count, gambitIds.Count);
         Assert.Contains(IceRemembersGambitId.AbilitySharesPractice.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactBindsMonster.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactCleansesScar.ToGambitId(), gambitIds);
@@ -43,7 +43,8 @@ public sealed class IceRemembersGambitDefinitionTests
         Assert.Contains(IceRemembersGambitId.PenguinSlaysOrca.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.SettlementDeepensTheHolding.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.FactionDeepensTheHolding.ToGambitId(), gambitIds);
-        Assert.Contains(IceRemembersGambitId.TransportDeepensTheHolding.ToGambitId(), gambitIds);
+        Assert.Contains(IceRemembersGambitId.SettlementTheHoldWithers.ToGambitId(), gambitIds);
+        Assert.DoesNotContain(IceRemembersGambitId.TransportDeepensTheHolding.ToGambitId(), gambitIds);
     }
 
     [Fact]
@@ -101,10 +102,10 @@ public sealed class IceRemembersGambitDefinitionTests
     {
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
 
-        var workTierGambitIds = new HashSet<int>(
-            Enum.GetValues<IceRemembersGambitId>()
-                .Where(id => id.ToGambitId().EndsWith("_deepens_the_holding", StringComparison.Ordinal))
-                .Select(id => compiled.Ids.GambitIdOf(id.ToGambitId()).Value));
+        // Stage promotion (the reborn Deepen the Holding) runs at baseline
+        // success like every other gambit; no exclusion needed since the
+        // 12-kind tier grind was retired (docs/design/entity-stages.md).
+        var workTierGambitIds = new HashSet<int>();
         var grantGambitIds = new HashSet<int>(
             IceRemembersDefinition.GrantGambitIds
                 .Select(id => compiled.Ids.GambitIdOf(id.ToGambitId()).Value));
@@ -262,18 +263,19 @@ public sealed class IceRemembersGambitDefinitionTests
     {
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
         var settlement = Gambit(compiled, IceRemembersGambitId.SettlementDeepensTheHolding);
-        var transport = Gambit(compiled, IceRemembersGambitId.TransportDeepensTheHolding);
+        var artifact = Gambit(compiled, IceRemembersGambitId.ArtifactDeepensTheHolding);
 
         Assert.Equal(BehaviorProgramTargetMode.Self, settlement.TargetMode);
         Assert.Contains(settlement.Preconditions, precondition =>
             precondition.Code == BehaviorProgramPrecondition.SelfCultureMass &&
             precondition.A == PlaneCodes.Physical);
-        Assert.DoesNotContain(settlement.Preconditions, precondition =>
+        // Promotion is stage-capped: the ladder ends, and capped entities
+        // leave the eligibility pool entirely.
+        Assert.Contains(settlement.Preconditions, precondition =>
             precondition.Code == BehaviorProgramPrecondition.SelfWorkTierBelow);
         Assert.Contains(settlement.Steps, step =>
-            step.Operation == BehaviorProgramOperation.IncreaseWorkTier &&
-            step.A == 0);
-        Assert.Contains(transport.Preconditions, precondition =>
+            step.Operation == BehaviorProgramOperation.IncreaseWorkTier);
+        Assert.Contains(artifact.Preconditions, precondition =>
             precondition.Code == BehaviorProgramPrecondition.SelfCultureMass &&
             precondition.A == PlaneCodes.Semantic);
     }

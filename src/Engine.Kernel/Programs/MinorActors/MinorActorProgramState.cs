@@ -74,6 +74,18 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         return _sourceWorkTiers.GetOrDefault(sourceEntityId, SourceWorkTierKey);
     }
 
+    public int DecreaseWorkTier(int sourceEntityId)
+    {
+        var next = WorkTier(sourceEntityId) - 1;
+        if (next < 0)
+        {
+            return 0;
+        }
+
+        _sourceWorkTiers.Set(sourceEntityId, SourceWorkTierKey, next);
+        return next;
+    }
+
     public int IncreaseWorkTier(int sourceEntityId, int maxTier)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sourceEntityId);

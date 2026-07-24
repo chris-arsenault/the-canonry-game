@@ -556,6 +556,11 @@ public static partial class DomainCompiler
                         GeneratorEffectTypeCodes.SetBindingHistorical,
                         refCodes[setHistorical.BindingRef]));
                     break;
+                case DefinitionDemoteBindingStageEffect demote:
+                    compiled.Add(new GeneratorEffectRule(
+                        GeneratorEffectTypeCodes.DemoteBindingStage,
+                        refCodes[demote.BindingRef]));
+                    break;
                 case DefinitionRemoveTargetRelationshipsEffect removeRelationships:
                     compiled.Add(new GeneratorEffectRule(
                         GeneratorEffectTypeCodes.RemoveTargetRelationships,

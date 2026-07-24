@@ -16,6 +16,9 @@ public sealed class GameplayDefinition
     /// (docs/design/artifact-districts.md).</summary>
     public IReadOnlyList<DistrictBonusConfig> DistrictBonuses { get; init; } = [];
 
+    /// <summary>Named stage catalogs per kind (docs/design/entity-stages.md).</summary>
+    public IReadOnlyList<KindStagesConfig> KindStages { get; init; } = [];
+
     public IReadOnlyList<MapControlDefinition> MapControl { get; init; } = [];
 
     public SemanticPlaneConfig SemanticPlane { get; init; } = SemanticPlaneConfig.Default;
@@ -41,6 +44,21 @@ public sealed record AttributeEffectDefinition(
     string Attribute,
     string Condition,
     string Plane);
+
+/// <summary>One named stage in a kind's maturity ladder, with the
+/// extensible property set the kernel consumes
+/// (docs/design/entity-stages.md).</summary>
+public sealed record StageConfig(
+    string Name,
+    string DisplayName,
+    float BandMultiplier,
+    int WorkerBonus,
+    float AmbientEmission,
+    int DistrictCapacity);
+
+public sealed record KindStagesConfig(
+    string Kind,
+    IReadOnlyList<StageConfig> Stages);
 
 public enum DistrictBonusKind
 {

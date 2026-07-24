@@ -35,6 +35,7 @@ public static class GameplayCompiler
             Verbs = CompileLowAltitudeVerbRules(definition, context),
             InitialInfluence = CompileInitialInfluenceRules(definition, context),
             DistrictBonuses = CompileDistrictBonuses(definition, context),
+            StageRules = CompileStageRules(definition, context),
             Affordances = CompileAffordances(context),
             TraitWeightModifiers = CompileTraitLowAltitudeWeightModifiers(context),
         };
@@ -93,6 +94,30 @@ public static class GameplayCompiler
                 SiteFlags: CompileVerbSiteFlags(verb),
                 RequireFogAdjacent: verb.RequireFogAdjacent,
                 RestAtDestination: verb.RestAtDestination));
+        }
+
+        return rules;
+    }
+
+    private static List<CompiledStageRule> CompileStageRules(
+        GameplayDefinition definition,
+        IGameplayCompilationContext context)
+    {
+        var rules = new List<CompiledStageRule>();
+        foreach (var catalog in definition.KindStages)
+        {
+            var kindId = context.ResolveKindId(catalog.Kind, $"Stage catalog kind '{catalog.Kind}'");
+            for (var index = 0; index < catalog.Stages.Count; index++)
+            {
+                var stage = catalog.Stages[index];
+                rules.Add(new CompiledStageRule(
+                    kindId,
+                    index,
+                    stage.BandMultiplier,
+                    stage.WorkerBonus,
+                    stage.AmbientEmission,
+                    stage.DistrictCapacity));
+            }
         }
 
         return rules;

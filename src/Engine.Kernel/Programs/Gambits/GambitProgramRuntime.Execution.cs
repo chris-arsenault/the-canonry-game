@@ -222,6 +222,13 @@ internal sealed partial class GambitProgramRuntime
                 return true;
             }
 
+            var capacity = world.StageDistrictCapacity(
+                world.StageRuleFor(world.EntityKindId(targetId), simulation.MinorActors.WorkTier(targetId)));
+            if (capacity > 0 && world.ActiveDistrictCount(targetId) >= capacity)
+            {
+                return true;
+            }
+
             var q = world.EntityPhysicalQ(entityId);
             var r = world.EntityPhysicalR(entityId);
             KernelEffectExecutor.SetCoverageOwner(simulation, q, r, targetId);
@@ -253,6 +260,10 @@ internal sealed partial class GambitProgramRuntime
             case BehaviorOperationCodes.InstallDistrict:
             case BehaviorOperationCodes.ReawakenDistrict:
                 return ExecuteDistrictStep(simulation, world, entityId, targetId, operationCode);
+            case BehaviorOperationCodes.DemoteStage:
+                _ = simulation.MinorActors.DecreaseWorkTier(
+                    EndpointEntityId(entityId, targetId, _stepB[step]));
+                return true;
             case BehaviorOperationCodes.SetStatus:
                 KernelEffectExecutor.SetEntityStatus(simulation, entityId, _stepA[step]);
                 return true;

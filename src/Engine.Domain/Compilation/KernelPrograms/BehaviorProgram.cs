@@ -43,6 +43,7 @@ public enum BehaviorProgramOperation
     ErodeTargetCulture,
     InstallDistrict,
     ReawakenDistrict,
+    DemoteStage,
 }
 
 public enum BehaviorProgramEndpoint

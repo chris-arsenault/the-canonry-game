@@ -153,9 +153,37 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
                 var kindId = world.EntityKindId(entityId);
                 ApplyAttributeDeltaEffectsForKind(simulation, entityId, tick, kindId);
                 ApplyTagRulesForKind(simulation, entityId, tick, kindId);
+                ApplyStageAmbientEmission(simulation, world, entityId, kindId, tick);
                 return true;
             });
         ApplyDistrictBonuses(simulation, world, tick);
+    }
+
+    // Stage-catalog entities radiate ambient culture at their tile scaled by
+    // their stage: interior mass follows civic maturity, replacing the old
+    // worker treadmill's holding job (docs/design/entity-stages.md).
+    private static void ApplyStageAmbientEmission(Simulation simulation, WorldState world, int entityId, int kindId, int tick)
+    {
+        var stageRule = world.StageRuleFor(kindId, simulation.MinorActors.WorkTier(entityId));
+        var emission = world.StageAmbientEmission(stageRule);
+        if (emission <= 0f)
+        {
+            return;
+        }
+
+        var cultureId = world.EntityCultureId(entityId);
+        if (cultureId <= 0)
+        {
+            return;
+        }
+
+        _ = simulation.ModifyCellCultureInfluenceRaw(
+            cultureId,
+            PlaneCodes.Physical,
+            world.EntityPhysicalQ(entityId),
+            world.EntityPhysicalR(entityId),
+            emission,
+            tick);
     }
 
     // Installed districts sustain their hosts each tick: Healing feeds the

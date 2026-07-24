@@ -614,15 +614,9 @@ internal sealed partial class GeneratorProgramRuntime
             switch (effectType)
             {
                 case GeneratorEffectTypeCodes.SetBindingHistorical:
-                    {
-                        var bindingEntityId = ResolveRef(refCodes, refEntityIds, refCount, refOrKindId);
-                        if (bindingEntityId > 0)
-                        {
-                            KernelEffectExecutor.SetEntityStatus(simulation, bindingEntityId, EntityStatusCodes.Historical);
-                        }
-
-                        break;
-                    }
+                case GeneratorEffectTypeCodes.DemoteBindingStage:
+                    ApplyBindingEntityEffect(simulation, effectType, refCodes, refEntityIds, refCount, refOrKindId);
+                    break;
 
                 case GeneratorEffectTypeCodes.RemoveTargetRelationships:
                     relationshipSpendCount += RemoveTargetRelationships(
@@ -655,6 +649,29 @@ internal sealed partial class GeneratorProgramRuntime
         }
 
         return relationshipSpendCount;
+    }
+
+    private static void ApplyBindingEntityEffect(
+        Simulation simulation,
+        int effectType,
+        int[] refCodes,
+        int[] refEntityIds,
+        int refCount,
+        int refOrKindId)
+    {
+        var bindingEntityId = ResolveRef(refCodes, refEntityIds, refCount, refOrKindId);
+        if (bindingEntityId <= 0)
+        {
+            return;
+        }
+
+        if (effectType == GeneratorEffectTypeCodes.SetBindingHistorical)
+        {
+            KernelEffectExecutor.SetEntityStatus(simulation, bindingEntityId, EntityStatusCodes.Historical);
+            return;
+        }
+
+        _ = simulation.MinorActors.DecreaseWorkTier(bindingEntityId);
     }
 
     private void ApplyMapEffect(

@@ -864,6 +864,16 @@ public static partial class DomainCompiler
             case ReawakenDistrictMutation:
                 steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.ReawakenDistrict));
                 return true;
+            case DemoteSelfStageMutation:
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.DemoteStage,
+                    B: (int)BehaviorProgramEndpoint.Self));
+                return true;
+            case DemoteTargetStageMutation:
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.DemoteStage,
+                    B: (int)BehaviorProgramEndpoint.Target));
+                return true;
             default:
                 return false;
         }

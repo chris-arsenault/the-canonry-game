@@ -215,6 +215,16 @@ public sealed class SetBindingHistoricalEffect(string bindingRef) : ISemanticGen
     public string Describe() => $"set_binding_historical({BindingRef})";
 }
 
+/// <summary>Steps a resolved binding entity down one stage after the
+/// generator fires — decline arriving from events
+/// (docs/design/entity-stages.md).</summary>
+public sealed class DemoteBindingStageEffect(string bindingRef) : ISemanticGeneratorEffect
+{
+    public string BindingRef { get; } = bindingRef;
+
+    public string Describe() => $"demote_binding_stage({BindingRef})";
+}
+
 /// <summary>
 /// Claims all unowned semantic cells within a radius of the resolved
 /// binding's semantic position as that entity's named coverage — how

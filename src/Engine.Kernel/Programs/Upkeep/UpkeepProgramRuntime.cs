@@ -35,6 +35,14 @@ internal sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgram
 
     public int LifecycleRuleCount => _lifecycleRuleCount;
 
+    private static float StageLifespanMultiplier(Simulation simulation, int entityId, int kindId)
+    {
+        var world = simulation.World;
+        var stageRule = world.StageRuleFor(kindId, simulation.MinorActors.WorkTier(entityId));
+        var multiplier = world.StageBandMultiplier(stageRule);
+        return multiplier <= 0f ? 1f : multiplier;
+    }
+
     /// <summary>The kind's health attribute, or 0 when the kind has no
     /// lifecycle rule.</summary>
     public int LifecycleAttributeId(int kindId)
@@ -179,7 +187,11 @@ internal sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgram
             }
 
             var age = Tuning.MainTickAge(simulation.World.EntityCreatedAt(entityId), tick);
-            var drain = LifecycleBaseDrain(rule, age);
+            // Stage band stretch: dividing both the age and the drain by the
+            // stage multiplier is exactly a lifespan-times-m clock for both
+            // aging models (flat term /m, age terms /m^2 or /m^3).
+            var multiplier = StageLifespanMultiplier(simulation, entityId, kindId);
+            var drain = LifecycleBaseDrain(rule, (int)(age / multiplier)) / multiplier;
             var variance = _lifecycleVariances[rule];
             if (variance > 0f)
             {

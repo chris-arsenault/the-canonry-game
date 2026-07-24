@@ -18,7 +18,6 @@ using TravelStructure = IceRemembers.IceRemembersTravelStructure;
 public static partial class IceRemembersDefinition
 {
     private const float InitialGambitSuccessChance = 0.25f;
-    private const float WorkTierGambitSuccessChance = 0.75f;
     private const float CulturalWorkTierMinimumRawMass = 12f;
     private const float CulturalWorkTierMinimumConnectedRawMass = 90f;
     private const int SettlementTradeRouteMaxSemanticDistance = 12;
@@ -53,6 +52,7 @@ public static partial class IceRemembersDefinition
             ArtifactEnshrinesItself(),
             FactionRazesTheHollowHold(),
             SettlementWakesTheSleeper(),
+            SettlementTheHoldWithers(),
             FactionSuesForPeace(),
             FactionClaimsPointOfInterest(),
             OrcaClaimsHuntingGround(),
@@ -158,11 +158,24 @@ public static partial class IceRemembersDefinition
         return gambit;
     }
 
+    // Deepen the Holding reborn as stage promotion: only the four catalog
+    // kinds climb their named ladders, at standard success with hard gates
+    // (docs/design/entity-stages.md). The 12-kind tier grind — measured at
+    // half of all gambit executions while the mesh's real growth came from
+    // entity movement — is retired.
+    public static readonly IReadOnlyList<EntityKind> StageCatalogKinds =
+        [K.Settlement, K.Faction, K.Artifact, K.Canon];
+
+    private const int StageCatalogMaxIndex = 2;
+
     private static IEnumerable<GambitDefinition> CreateWorkTierGambits()
     {
         foreach (var entity in IceRemembersEntities.All)
         {
-            yield return EntityDeepensTheHolding(entity);
+            if (StageCatalogKinds.Contains(entity.Kind))
+            {
+                yield return EntityDeepensTheHolding(entity);
+            }
         }
     }
 
@@ -175,26 +188,27 @@ public static partial class IceRemembersDefinition
             entity.Kind,
             All(
                 new TargetIsSelf(),
+                new SelfWorkTierBelowPrecondition(StageCatalogMaxIndex),
                 new SelfCultureMassPrecondition(
                     NonMobilePrimaryPlane(entity.PrimaryPlane),
-                    CulturalWorkTierMinimumRawMass,
-                    CulturalWorkTierMinimumConnectedRawMass),
-                new SelfAttributeThreshold(health, min: 45f, max: null, behaviorRelevant: false)),
+                    CulturalWorkTierMinimumRawMass * 3f,
+                    CulturalWorkTierMinimumConnectedRawMass * 2f),
+                new SelfAttributeThreshold(health, min: 55f, max: null, behaviorRelevant: false)),
             scoreExpression: GambitScore(
                 baseline: 0.35f,
                 dynamicRange: 4f,
                 Normalized(Expr.Self(health))))
         {
-            SuccessChance = WorkTierGambitSuccessChance,
-            Cooldown = 260,
-            EntityCooldown = 80,
-            Description = "A durable entity inside a strong cultural mass deepens its holding, increasing the workers it can support and how far those workers can operate.",
+            SuccessChance = InitialGambitSuccessChance,
+            Cooldown = 400,
+            EntityCooldown = 600,
+            Description = "A thriving holding rises to its next stage - town to city, relic to legend. Rare, earned, and consequential: the stage sets its clock, its keepers, and its voice.",
         };
         gambit.Reads.Add(AttributeRef.Self(health, entity.Kind));
         gambit.Reads.Add(AttributeRef.Coordinates(entity.Kind));
         gambit.Reads.Add(AttributeRef.StructuralFact("work_tier", entity.Kind));
         gambit.Writes.Add(AttributeRef.StructuralFact("work_tier", entity.Kind));
-        gambit.Mutations.Add(new IncreaseWorkTierMutation());
+        gambit.Mutations.Add(new IncreaseWorkTierMutation(maxTier: StageCatalogMaxIndex));
         return gambit;
     }
 

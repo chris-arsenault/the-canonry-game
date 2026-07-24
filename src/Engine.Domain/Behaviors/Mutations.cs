@@ -156,6 +156,19 @@ public sealed class InstallDistrictMutation : IMutation
     public string Describe() => "install_district";
 }
 
+/// <summary>Steps the acting entity down one stage — the hard-times half of
+/// the stage ladder (docs/design/entity-stages.md).</summary>
+public sealed class DemoteSelfStageMutation : IMutation
+{
+    public string Describe() => "demote_self_stage";
+}
+
+/// <summary>Steps the resolved target down one stage.</summary>
+public sealed class DemoteTargetStageMutation : IMutation
+{
+    public string Describe() => "demote_target_stage";
+}
+
 /// <summary>The acting settlement reawakens its newest sleeping district
 /// core: the artifact returns to active on its tile and the district bonus
 /// ends. The tile remains the settlement's ground.</summary>

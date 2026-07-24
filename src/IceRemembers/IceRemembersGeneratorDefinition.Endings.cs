@@ -70,6 +70,7 @@ public static partial class IceRemembersGeneratorDefinition
         Effects =
         [
             new SetBindingHistoricalEffect("$seal"),
+            new DemoteBindingStageEffect("$target"),
         ],
         Triggers = TriggerOn(K.Faction),
         PulseWeight = 6,

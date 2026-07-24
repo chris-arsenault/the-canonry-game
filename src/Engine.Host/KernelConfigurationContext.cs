@@ -467,6 +467,15 @@ internal sealed class KernelConfigurationContext
     public void RegisterDistrictBonus(int subtypeId, int bonusKindCode, float magnitude) =>
         _kernel.RegisterDistrictBonus(subtypeId, bonusKindCode, magnitude);
 
+    public void RegisterStageProperties(
+        int kindId,
+        int stageIndex,
+        float bandMultiplier,
+        int workerBonus,
+        float ambientEmission,
+        int districtCapacity) =>
+        _kernel.RegisterStageProperties(kindId, stageIndex, bandMultiplier, workerBonus, ambientEmission, districtCapacity);
+
     public int RegisterLowAltitudeInitialInfluence(
         int kindId,
         int planeCode,

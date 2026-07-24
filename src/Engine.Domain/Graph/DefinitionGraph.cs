@@ -192,6 +192,13 @@ public sealed class DefinitionSetBindingTagEffect(string bindingRef, string tag,
     public string Describe() => $"set_binding_tag({BindingRef}, {Tag}, {Assigned})";
 }
 
+public sealed class DefinitionDemoteBindingStageEffect(string bindingRef) : IDefinitionGeneratorEffect
+{
+    public string BindingRef { get; } = bindingRef;
+
+    public string Describe() => $"demote_binding_stage({BindingRef})";
+}
+
 public sealed class DefinitionSetBindingHistoricalEffect(string bindingRef) : IDefinitionGeneratorEffect
 {
     public string BindingRef { get; } = bindingRef;

@@ -122,10 +122,11 @@ public static partial class IceRemembersDefinition
             [
                 new DistrictBonusConfig("relic", DistrictBonusKind.Healing, 0.003f),
                 new DistrictBonusConfig("seal", DistrictBonusKind.Healing, 0.002f),
-                new DistrictBonusConfig("instrument", DistrictBonusKind.Culture, 0.8f),
-                new DistrictBonusConfig("tome", DistrictBonusKind.Culture, 0.6f),
+                new DistrictBonusConfig("instrument", DistrictBonusKind.Culture, 2.0f),
+                new DistrictBonusConfig("tome", DistrictBonusKind.Culture, 1.5f),
                 new DistrictBonusConfig("weapon", DistrictBonusKind.Healing, 0.002f),
             ],
+            KindStages = CreateStageCatalogs(),
             Effects = CreateEffects(),
             MapSignals = CreateMapSignals(),
             MapControl =
@@ -140,6 +141,37 @@ public static partial class IceRemembersDefinition
 
     private static IReadOnlyList<InitialInfluenceRule> CreateInitialInfluenceRules() =>
         IceRemembersEntities.CreateInitialInfluenceRules();
+
+    // Named maturity ladders (docs/design/entity-stages.md). Band
+    // multipliers stretch the kind's base band; worker bonus, ambient
+    // emission, and district capacity step at promotions.
+    private static IReadOnlyList<KindStagesConfig> CreateStageCatalogs() =>
+    [
+        new KindStagesConfig(K.Settlement.Value,
+        [
+            new StageConfig("town", "Town", 1f, 0, 0.05f, 1),
+            new StageConfig("city", "City", 3f, 3, 0.15f, 3),
+            new StageConfig("capital", "Capital", 6f, 6, 0.4f, 5),
+        ]),
+        new KindStagesConfig(K.Faction.Value,
+        [
+            new StageConfig("warband", "Warband", 1f, 0, 0.02f, 0),
+            new StageConfig("order", "Order", 2f, 2, 0.06f, 0),
+            new StageConfig("dynasty", "Dynasty", 4f, 4, 0.15f, 0),
+        ]),
+        new KindStagesConfig(K.Artifact.Value,
+        [
+            new StageConfig("trinket", "Trinket", 0.3f, 0, 0f, 0),
+            new StageConfig("famed", "Famed Relic", 1f, 0, 0f, 0),
+            new StageConfig("legend", "Legend", 10f, 0, 0.05f, 0),
+        ]),
+        new KindStagesConfig(K.Canon.Value,
+        [
+            new StageConfig("edict", "Edict", 0.5f, 0, 0.02f, 0),
+            new StageConfig("living_word", "Living Word", 1f, 0, 0.05f, 0),
+            new StageConfig("doctrine", "Doctrine", 3f, 0, 0.1f, 0),
+        ]),
+    ];
 
     private static MapFrontierConfig CreateMapFrontier() => new()
     {

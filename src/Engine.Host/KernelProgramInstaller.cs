@@ -865,6 +865,7 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramOperation.ErodeTargetCulture => BehaviorOperationCodes.ErodeTargetCulture,
             BehaviorProgramOperation.InstallDistrict => BehaviorOperationCodes.InstallDistrict,
             BehaviorProgramOperation.ReawakenDistrict => BehaviorOperationCodes.ReawakenDistrict,
+            BehaviorProgramOperation.DemoteStage => BehaviorOperationCodes.DemoteStage,
             _ => -1,
         };
         return code >= 0;

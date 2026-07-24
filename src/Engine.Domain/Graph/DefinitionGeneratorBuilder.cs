@@ -370,18 +370,37 @@ public static class DefinitionGeneratorBuilder
         DefinitionGraph graph,
         global::Engine.Domain.DomainIdRegistry runtimeIds,
         HashSet<string> declaredRefs) =>
+        BuildRefScopedEffect(generatorId, effect, graph, declaredRefs) ??
+        BuildTargetScopedEffect(generatorId, target, effect, graph, runtimeIds) ??
+        throw new DefinitionGraphException(
+            $"Generator '{generatorId}' unsupported effect type '{effect.GetType().Name}'.");
+
+    private static IDefinitionGeneratorEffect? BuildRefScopedEffect(
+        string generatorId,
+        ISemanticGeneratorEffect effect,
+        DefinitionGraph graph,
+        HashSet<string> declaredRefs) =>
         effect switch
         {
-            SetBindingHistoricalEffect setHistorical => BuildSetBindingHistoricalEffect(generatorId, setHistorical, declaredRefs),
+            SetBindingHistoricalEffect or DemoteBindingStageEffect => BuildBindingEntityEffect(generatorId, effect, declaredRefs),
             SetBindingTagEffect setTag => BuildBindingTagEffect(generatorId, setTag.BindingRef, setTag.Tag, assigned: true, graph, declaredRefs),
-            ClaimSemanticJurisdictionEffect claim => BuildClaimJurisdictionEffect(generatorId, claim, declaredRefs),
-            ErodeCultureAtTargetEffect erode => new DefinitionErodeCultureAtTargetEffect(erode.Radius, erode.AmountPerCell),
             ClearBindingTagEffect clearTag => BuildBindingTagEffect(generatorId, clearTag.BindingRef, clearTag.Tag, assigned: false, graph, declaredRefs),
-            RemoveTargetRelationshipsEffect removeRelationships => BuildRemoveTargetRelationshipsEffect(generatorId, target, removeRelationships, graph, runtimeIds),
-            AdjustTargetRelationshipStrengthEffect adjustRelationship => BuildAdjustTargetRelationshipStrengthEffect(generatorId, target, adjustRelationship, graph, runtimeIds),
+            ClaimSemanticJurisdictionEffect claim => BuildClaimJurisdictionEffect(generatorId, claim, declaredRefs),
             SetTerrainPatchEffect setTerrainPatch => BuildSetTerrainPatchEffect(generatorId, setTerrainPatch, declaredRefs),
-            _ => throw new DefinitionGraphException(
-                $"Generator '{generatorId}' unsupported effect type '{effect.GetType().Name}'."),
+            _ => null,
+        };
+
+    private static IDefinitionGeneratorEffect? BuildTargetScopedEffect(
+        string generatorId,
+        SemanticGeneratorTarget target,
+        ISemanticGeneratorEffect effect,
+        DefinitionGraph graph,
+        global::Engine.Domain.DomainIdRegistry runtimeIds) =>
+        effect switch
+        {
+            ErodeCultureAtTargetEffect erode => new DefinitionErodeCultureAtTargetEffect(erode.Radius, erode.AmountPerCell),
+            RemoveTargetRelationshipsEffect or AdjustTargetRelationshipStrengthEffect => BuildTargetRelationshipEffect(generatorId, target, effect, graph, runtimeIds),
+            _ => null,
         };
 
     private static DefinitionClaimSemanticJurisdictionEffect BuildClaimJurisdictionEffect(
@@ -440,13 +459,30 @@ public static class DefinitionGeneratorBuilder
         }
     }
 
-    private static DefinitionSetBindingHistoricalEffect BuildSetBindingHistoricalEffect(
+    private static IDefinitionGeneratorEffect BuildTargetRelationshipEffect(
         string generatorId,
-        SetBindingHistoricalEffect setHistorical,
+        SemanticGeneratorTarget target,
+        ISemanticGeneratorEffect effect,
+        DefinitionGraph graph,
+        global::Engine.Domain.DomainIdRegistry runtimeIds) =>
+        effect is RemoveTargetRelationshipsEffect removeRelationships
+            ? BuildRemoveTargetRelationshipsEffect(generatorId, target, removeRelationships, graph, runtimeIds)
+            : BuildAdjustTargetRelationshipStrengthEffect(generatorId, target, (AdjustTargetRelationshipStrengthEffect)effect, graph, runtimeIds);
+
+    private static IDefinitionGeneratorEffect BuildBindingEntityEffect(
+        string generatorId,
+        ISemanticGeneratorEffect effect,
         HashSet<string> declaredRefs)
     {
-        EnsureDeclaredRef(generatorId, setHistorical.BindingRef, declaredRefs, "BindingRef");
-        return new DefinitionSetBindingHistoricalEffect(setHistorical.BindingRef);
+        if (effect is SetBindingHistoricalEffect setHistorical)
+        {
+            EnsureDeclaredRef(generatorId, setHistorical.BindingRef, declaredRefs, "BindingRef");
+            return new DefinitionSetBindingHistoricalEffect(setHistorical.BindingRef);
+        }
+
+        var demote = (DemoteBindingStageEffect)effect;
+        EnsureDeclaredRef(generatorId, demote.BindingRef, declaredRefs, "BindingRef");
+        return new DefinitionDemoteBindingStageEffect(demote.BindingRef);
     }
 
     private static DefinitionRemoveTargetRelationshipsEffect BuildRemoveTargetRelationshipsEffect(

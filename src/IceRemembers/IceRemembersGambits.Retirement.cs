@@ -42,6 +42,35 @@ public static partial class IceRemembersDefinition
         return gambit;
     }
 
+    private static GambitDefinition SettlementTheHoldWithers()
+    {
+        var gambit = NewGambit(
+            GambitId.SettlementTheHoldWithers,
+            "The Hold Withers",
+            K.Settlement,
+            K.Settlement,
+            All(
+                new TargetIsSelf(),
+                Not(new SelfWorkTierBelowPrecondition(1)),
+                new SelfAttributeThreshold(A(Attr.TempHp), min: null, max: 25f, behaviorRelevant: false)),
+            scoreExpression: GambitScore(
+                baseline: 3f,
+                dynamicRange: 4f,
+                InverseNormalized(Expr.Self(A(Attr.TempHp)))),
+            success: InitialGambitSuccessChance,
+            cooldown: 600,
+            entityCooldown: 1000);
+        gambit.Reads.Add(AttributeRef.Self(A(Attr.TempHp), K.Settlement));
+        gambit.Writes.Add(AttributeRef.StructuralFact("work_tier", K.Settlement));
+        // Hard times step the hold down a stage instead of killing it: the
+        // partial recovery is the hysteresis that prevents demotion spirals,
+        // and death waits at the base stage.
+        gambit.Mutations.Add(new DemoteSelfStageMutation());
+        gambit.Mutations.Add(new ModifySelfAttributeMutation(A(Attr.TempHp), delta: 30f));
+        gambit.Description = "A starving city lets its outer rings go dark. Smaller, humbler - but alive. Only towns die outright.";
+        return gambit;
+    }
+
     private static GambitDefinition FactionRazesTheHollowHold()
     {
         var gambit = NewGambit(

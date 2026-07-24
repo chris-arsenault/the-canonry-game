@@ -255,6 +255,7 @@ public static class BehaviorOperationCodes
     public const int ErodeTargetCulture = 36;
     public const int InstallDistrict = 37;
     public const int ReawakenDistrict = 38;
+    public const int DemoteStage = 39;
 }
 
 /// <summary>
@@ -850,6 +851,7 @@ public static class GeneratorEffectTypeCodes
     public const int SetBindingTag = 5;
     public const int ClaimSemanticJurisdiction = 6;
     public const int ErodeCultureAtTarget = 7;
+    public const int DemoteBindingStage = 8;
 }
 
 public static class GeneratorRelationshipInstanceSelectionCodes

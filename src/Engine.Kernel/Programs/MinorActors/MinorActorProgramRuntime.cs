@@ -147,6 +147,9 @@ internal sealed partial class MinorActorProgramRuntime :
     public int IncreaseWorkTier(int sourceEntityId, int maxTier) =>
         State.IncreaseWorkTier(sourceEntityId, maxTier);
 
+    public int DecreaseWorkTier(int sourceEntityId) =>
+        State.DecreaseWorkTier(sourceEntityId);
+
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
@@ -188,7 +191,7 @@ internal sealed partial class MinorActorProgramRuntime :
         var slotMultiplier = simulation.CultureSlots.CausalSpendLimitMultiplier(sourceEntityId);
         var workTier = State.WorkTier(sourceEntityId);
         if (!Data.RuleMatches(world, sourceEntityId, rule) ||
-            State.SourceActiveCount(sourceEntityId, rule) >= EffectiveMaxActivePerSource(rule, slotMultiplier, workTier) ||
+            State.SourceActiveCount(sourceEntityId, rule) >= EffectiveMaxActivePerSource(world, sourceEntityId, rule, slotMultiplier, workTier) ||
             pulse < State.NextEmissionPulse(sourceEntityId, rule))
         {
             return;
@@ -227,9 +230,17 @@ internal sealed partial class MinorActorProgramRuntime :
 
 
 
-    private int EffectiveMaxActivePerSource(int rule, int slotMultiplier, int workTier) =>
-        (Data.MaxActivePerSource[rule] * global::System.Math.Max(1, slotMultiplier)) +
-        global::System.Math.Max(0, workTier);
+    // Catalog kinds draw their bonus workers from the stage table (steps at
+    // promotions); legacy kinds keep the raw additive tier.
+    private int EffectiveMaxActivePerSource(WorldState world, int sourceEntityId, int rule, int slotMultiplier, int workTier)
+    {
+        var kindId = world.EntityKindId(sourceEntityId);
+        var progressionBonus = world.KindHasStages(kindId)
+            ? world.StageWorkerBonus(world.StageRuleFor(kindId, workTier))
+            : workTier;
+        return (Data.MaxActivePerSource[rule] * global::System.Math.Max(1, slotMultiplier)) +
+            global::System.Math.Max(0, progressionBonus);
+    }
 
     private int EffectiveEmitCadence(int rule, int slotMultiplier) =>
         global::System.Math.Max(1, Data.EmitCadencePulses[rule] / global::System.Math.Max(1, slotMultiplier));
