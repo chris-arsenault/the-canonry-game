@@ -1,9 +1,10 @@
 # Pre-Parallelization Simulation Redesign Plan
 
-Status: proposal awaiting approval. This is not current architecture and does
-not authorize implementation.
+Status: Phase 1 complete on 2026-07-24. This is not current architecture.
+Runtime implementation begins only when the applicable later phase is
+authorized.
 
-Code basis: `main` at `5bc792b` on 2026-07-24.
+Phase 1 code basis: `main` at `7344037` on 2026-07-24.
 
 Durable plan: `7a9bf1a1-5633-4ee9-884b-411fc7db7758`.
 
@@ -504,26 +505,169 @@ This is shuffle-invariance, not legacy equivalence.
 
 Owner: cross-layer design and analysis.
 
-Work:
+Status: complete on 2026-07-24.
 
-- write the preserved/disposable contract from this document into accepted
-  criteria;
-- define short-run behavioral checks for entity churn, movement, culture
-  shape, relationship dynamics, minor labor, gambits, generators, chronicles,
-  and map growth;
-- use existing registered evidence plus one short bounded Release diagnostic
-  to identify obvious phase costs and work-item counts;
-- define a performance target and named evaluation horizon before parallel
-  implementation.
+#### Accepted outcome envelope
 
-Files:
+The preserved/disposable contract and subsystem dispositions earlier in this
+document are the acceptance criteria. In particular:
 
-- this document only until the proposal is approved.
+- preserve the broad world loop: active named entities and minor cohorts act,
+  move, relate, shape culture and maps, age, retire, and are replenished by
+  gambits and generators;
+- preserve the distinct gameplay roles of low-altitude verbs, gambits,
+  generators, chronicles, world beats, lifecycle, relationships, maps, and
+  individual minor cohorts;
+- preserve bounded deterministic execution under the new model and semantic
+  events sufficient for the active UI, narrative record, and analysis;
+- allow different IDs, event order, pulse timing, RNG consumption, numeric
+  rounding, exact counts, and exact same-pulse outcomes;
+- allow gameplay substitutions that remove a historical dependency or global
+  materialization while retaining the mechanic's broad role;
+- do not preserve retired entity rows, ended relationship rows, inactive
+  districts, completed provenance rows, same-instance artifact reawakening,
+  the action-history ring, old binary snapshots, or a general history query
+  API;
+- keep individual minor actors as the default model, while allowing their
+  storage, clock, scoring inputs, and execution organization to change.
+
+These criteria judge the redesigned simulation against its own repeatable
+contract, not against exact legacy output.
+
+#### Short-run behavior checks
+
+The routine check after each implementation phase is one registered Release
+run of one seed for 1,000 ticks, sized to detect a dead or disconnected
+simulation rather than to prove long-horizon balance. It checks:
+
+- active named entities remain and both creation and retirement paths are
+  reachable;
+- physical and semantic movement occur across more than one cell;
+- more than one culture retains nonzero influence and culture writes remain
+  finite and bounded;
+- minor actors perform labor and produce at least one authored culture, road,
+  or lifecycle consequence;
+- relationships are active and strength/create/end transitions occur;
+- gambit attempts and generator evaluation continue;
+- chronicle, world-beat, district, and map-frontier programs remain installed
+  and can progress when their authored conditions occur;
+- no capacity, snapshot, graph/index, determinism, or dropped-event invariant
+  fails.
+
+Zero fires from an intentionally rare gambit, generator, chronicle, or
+reawakening in a 1,000-tick run is not by itself a failure. Long-horizon shape
+is judged only after the kernel is materially faster.
+
+#### Initial evidence and diagnostic bound
+
+Existing registered evidence is reused rather than repeated:
+
+- `stages-3x100k-20260724b` provides the current 100,000-tick broad-shape and
+  lifetime-capacity reference. Its three seeds completed at 15.8, 20.1, and
+  39.4 ticks/s, with entity density identified as a major cost multiplier.
+- `stages-perf-probe-1x100k-20260724` provides the existing seed-9100
+  simulation-only point: 17.1 ticks/s.
+- `stages-r2b-100k-20260724` provides later density, stage-shape, relationship,
+  cooldown, district, and culture-mass evidence without requiring another
+  long run in this phase.
+
+The only new Phase 1 run is:
+
+- run ID: `preparallel-phase1-1x1000-20260724`;
+- seed 9100, one run, 1,000 ticks;
+- Release and simulation-only through `make mc`, with a fresh build;
+- one 20-second sampled CPU trace attached after the simulation process starts;
+- no second seed, no full telemetry export, no escalation to 10,000/25,000/
+  100,000 ticks, and no rerun merely for confidence.
+
+The short trace is directional. It may identify obvious dominant program or
+mutation families, but it does not establish 100,000-tick percentages because
+the world is smaller at tick 1,000.
+
+#### Performance target and named horizon
+
+The user-facing target is a three-seed 100,000-tick evidence batch that finishes
+in at most 30 minutes when the three independent seeds are fanned across the
+reference development host. The corresponding single-run gate is:
+
+- fixed seed 9100 at tick 100,000;
+- Release, simulation-only, same configuration and reference host;
+- at least 60 ticks/s end to end;
+- no more than 8 GB application working set;
+- no capacity failure;
+- repeated same-seed runs publish identical new-model state.
+
+This is a result target, not a promise that in-run parallelism is required. If
+the reduced serial kernel meets it, Phase 8 selects no parallel strategy.
+Otherwise a parallel strategy must beat that reduced one-worker model
+end-to-end; worker-loop speedup alone does not pass.
+
+#### Phase 1 result
+
+`preparallel-phase1-1x1000-20260724` completed successfully with a fresh
+Release build:
+
+- seed 9100 advanced 1,000 ticks in 4.520506 seconds, or 221.2 ticks/s;
+- the registry entry is complete and records the result;
+- the whole command took about 196 seconds because fresh build and startup
+  world generation dominated this deliberately short run;
+- observed resident memory peaked near 5.7 GiB during world generation, inside
+  the 8 GiB ceiling but above the approximate 4 GiB working-set preference.
+
+The 20-second sampled trace
+`.artifacts/profiles/preparallel-phase1-1x1000-20260724.nettrace` attached to
+the correct Release process, but the tick loop lasted less than five seconds
+and had not started during the sample. The trace is therefore a startup/worldgen
+trace, dominated in managed frames by physical-geography work such as plate
+advection, flexure, noise, and drainage. It is not used to claim kernel phase
+percentages, and Phase 1 does not rerun a longer workload to compensate.
+
+The short result and existing long-horizon result are intentionally very
+different: 221.2 ticks/s at the small tick-1,000 world versus 17.1 ticks/s in
+the existing seed-9100 tick-100,000 simulation-only probe. This confirms that
+the named late horizon matters and that a fast startup slice cannot be used as
+the performance verdict.
+
+For work-volume context, ad hoc DuckDB queries against the registered
+`stages-r2b-100k-20260724-s9102` run were appended to that run's registry
+statistics. At tick 100,000 it had:
+
+- 970 active and 1,249 historical named entities;
+- 2,957 active relationships and 1,285 covered cells;
+- 49,185,361 minor-actor event rows;
+- 19,179,660 relationship event rows;
+- 1,630,513 movement event rows;
+- 490,968 generator event rows and 47,213 gambit event rows.
+
+These are work-volume indicators, not CPU attribution. They show why minor
+labor, relationship processing/eventing, movement, and generator evaluation
+deserve direct scrutiny, while also showing that rare world-beat and chronicle
+work should not be treated as a primary bulk lane.
+
+The most recent reusable late-run CPU trace predates the current source
+(`perf-20260713-eb96908-1x100k-sim-after25k`) and is treated as directional
+only. Its visible managed work was led by culture-boundary neighborhood
+queries, low-altitude candidate construction, minor-actor target construction,
+gambit target/precondition evaluation, movement/path search, and relationship
+index mutation. That matches the current-code consumer review, but fresh CPU
+percentages wait until the serial model is smaller.
+
+Phase 1 therefore selects no parallel strategy. Its evidence supports the
+existing sequence: remove history dependencies and unnecessary materialized
+work, simplify the surviving serial loops, define fixed-point/storage
+contracts, and only then collect a representative late-run profile.
+
+Files changed in Phase 1:
+
+- this document only.
 
 Exit gate:
 
-- explicit user approval of the preservation envelope, gameplay substitutions,
-  initial diagnostic bound, and success criteria.
+- the preservation envelope, gameplay substitutions, diagnostic bound, and
+  success criteria are recorded;
+- the bounded diagnostic completes and its run ID and trace findings are
+  recorded here;
+- no long Monte Carlo run has been started.
 
 Will not change:
 
@@ -938,18 +1082,28 @@ The plan succeeds only if:
 8. the chosen parallel strategy, if any, demonstrates net end-to-end benefit
    over the same reduced one-worker model.
 
-## Open Decisions Requiring Approval
+## Decision Status
 
-1. Accept the preservation/disposable contract in this document.
-2. Accept final retirement and new-instance artifact reawakening.
-3. Accept removal of general historical entity browsing and old snapshot
-   compatibility.
-4. Accept removal of MapActivity, MapSignals, and runtime connected-component
-   culture identity in favor of direct/local facts.
-5. Accept individual minor actors as the retained default while allowing their
-   storage, scoring inputs, and clock to change.
-6. Set the short diagnostic bound before it is run.
-7. Set a performance target and evaluation horizon before Phase 8.
-8. Retain same-seed repeatability under the new model as an invariant.
+Accepted for subsequent planning and implementation:
 
-No implementation begins until this proposal is reviewed and approved.
+1. the preservation/disposable contract in this document;
+2. final retirement and new-instance artifact reawakening;
+3. removal of general historical entity browsing and old snapshot
+   compatibility;
+4. individual minor actors as the retained default, with their storage,
+   scoring inputs, and clock allowed to change;
+5. the completed Phase 1 diagnostic bound;
+6. the 60 ticks/s seed-9100 tick-100,000 performance gate and three-seed
+   30-minute batch target;
+7. same-seed repeatability under the new model rather than legacy equivalence.
+
+Still decided at the owning implementation phase:
+
+1. the exact direct/local replacements made before deleting MapActivity,
+   MapSignals, and runtime connected-component culture identity;
+2. field-specific fixed-point formats and overflow/rounding rules;
+3. the final active-slot capacities and occurrence-handle widths;
+4. whether the reduced serial result needs any parallel strategy.
+
+Authorization remains phase-specific. Completing Phase 1 does not itself
+authorize runtime changes in Phase 2 or later.
