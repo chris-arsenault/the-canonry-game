@@ -19,7 +19,7 @@ public sealed class IceRemembersGambitDefinitionTests
         // four terrain-gated gambits, the two palette gambits, the two
         // willful-artifact gambits, and the razing) + 12 grant gambits +
         // one work-tier gambit per kind.
-        Assert.Equal(55 + IceRemembersEntities.All.Count, gambitIds.Count);
+        Assert.Equal(56 + IceRemembersEntities.All.Count, gambitIds.Count);
         Assert.Contains(IceRemembersGambitId.AbilitySharesPractice.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactBindsMonster.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactCleansesScar.ToGambitId(), gambitIds);

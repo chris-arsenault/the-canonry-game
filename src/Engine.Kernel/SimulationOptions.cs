@@ -35,6 +35,9 @@ internal sealed record SimulationOptions
     /// <summary>Maximum distinct physical superregions the provincial pulse
     /// system can register over a run.</summary>
     public int GeneratorProvinceCapacity { get; init; } = 64;
+
+    /// <summary>Lifetime capacity for installed artifact districts.</summary>
+    public int DistrictCapacity { get; init; } = 1024;
     public int GeneratorItemCapacity { get; init; } = 4096;
     public int LifecycleRuleCapacity { get; init; } = 256;
     public int LowAltitudeVerbRuleCapacity { get; init; } = 256;

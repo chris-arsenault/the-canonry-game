@@ -52,6 +52,7 @@ public static partial class IceRemembersDefinition
             ArtifactSlipsTheGrasp(),
             ArtifactEnshrinesItself(),
             FactionRazesTheHollowHold(),
+            SettlementWakesTheSleeper(),
             FactionSuesForPeace(),
             FactionClaimsPointOfInterest(),
             OrcaClaimsHuntingGround(),

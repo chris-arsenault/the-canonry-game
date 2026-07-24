@@ -132,6 +132,7 @@ internal sealed partial class WorldState
             options.MapCellCapacity,
             options.MapInfluenceCapacity);
         InitializeEntityStorage(options);
+        InitializeDistrictStorage(options);
         InitializeRelationshipStorage(options);
         InitializeRelationshipGraphStorage(options);
         InitializeProvenanceStorage(options);

@@ -98,6 +98,11 @@ internal static partial class KernelProgramInstaller
                 rule.InfluenceValue);
         }
 
+        foreach (var rule in program.DistrictBonuses)
+        {
+            context.RegisterDistrictBonus(rule.SubtypeId, rule.BonusKindCode, rule.Magnitude);
+        }
+
         foreach (var rule in program.Affordances)
         {
             context.RegisterLowAltitudeAffordance(

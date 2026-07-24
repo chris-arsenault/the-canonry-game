@@ -113,6 +113,19 @@ public static partial class IceRemembersDefinition
             ],
             LowAltitudeVerbs = CreateLowAltitudeVerbs(),
             InitialInfluence = CreateInitialInfluenceRules(),
+            // What each artifact subtype becomes when it installs as a
+            // district (docs/design/artifact-districts.md): relics and seals
+            // shelter their keepers, instruments and tomes press the city's
+            // voice, weapons ward the walls. Road districts wait on a road
+            // application pass.
+            DistrictBonuses =
+            [
+                new DistrictBonusConfig("relic", DistrictBonusKind.Healing, 0.003f),
+                new DistrictBonusConfig("seal", DistrictBonusKind.Healing, 0.002f),
+                new DistrictBonusConfig("instrument", DistrictBonusKind.Culture, 0.8f),
+                new DistrictBonusConfig("tome", DistrictBonusKind.Culture, 0.6f),
+                new DistrictBonusConfig("weapon", DistrictBonusKind.Healing, 0.002f),
+            ],
             Effects = CreateEffects(),
             MapSignals = CreateMapSignals(),
             MapControl =
@@ -370,7 +383,6 @@ public static partial class IceRemembersDefinition
                 IceRemembersEntities.HealthEffectTimeScale(entity.LifecycleBand));
         }
 
-        AddSettlementPopulationLifeline(effects);
 
         return GameplayEffectSet.From(
             effects,
@@ -411,33 +423,6 @@ public static partial class IceRemembersDefinition
             ]);
     }
 
-    // The physical half of the settlement lifeline: residents and visitors
-    // standing on the settlement's ground sustain it, while an empty
-    // settlement withers on a lifetime clock, not the Monumental one.
-    // Solitude drains fast enough that a failed founding dies in decades;
-    // any real population zeroes the signal and the hub endures.
-    private static void AddSettlementPopulationLifeline(List<AttributeDeltaEffectConfig> effects)
-    {
-        var timeScale = IceRemembersEntities.HealthEffectTimeScale(IceRemembersLifecycleBand.Monumental);
-        effects.Add(MapSignalEffect(
-            K.Settlement,
-            Attr.TempHp,
-            Effect.MapCrowdingComfort,
-            0.10f * timeScale,
-            threshold: 0.5f,
-            plane: PrimaryPlane.Physical));
-        // Sized against measured residual ambient income (slice1c smoke:
-        // -0.125 produced only a -0.0022/tick net on the loneliest founding)
-        // so a truly empty settlement fails within roughly a lifetime.
-        effects.Add(MapSignalEffect(
-            K.Settlement,
-            Attr.TempHp,
-            Effect.MapCrowdingSolitude,
-            -0.30f * timeScale,
-            threshold: 0.5f,
-            plane: PrimaryPlane.Physical));
-    }
-
     private static void AddHealthEffects(
         List<AttributeDeltaEffectConfig> effects,
         EntityKind kind,
@@ -445,12 +430,12 @@ public static partial class IceRemembersDefinition
         PrimaryPlane plane,
         float timeScale)
     {
-        // Settlements live by their people, not by ambient goodwill: every
-        // sustain channel that does not require a local population is scaled
-        // hard down for them, so the crowding-comfort lifeline is the only
-        // thing that closes the gap against Monumental drain. An empty
-        // founding fails; a peopled hub is effectively permanent.
-        var ambient = kind == K.Settlement ? 0.25f : 1f;
+        // Settlement survival is a budget of terms, none singly decisive
+        // (docs/design/settlement-population.md): worker maintenance is the
+        // graduated backbone, and ambient channels — the masses and the
+        // institutions — are gated so they matter without carrying a
+        // settlement alone against Monumental drain.
+        var ambient = kind == K.Settlement ? 0.4f : 1f;
         AddHealthEffectRules(effects, kind, attribute, plane, timeScale, ambient);
     }
 
@@ -496,15 +481,10 @@ public static partial class IceRemembersDefinition
             CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Positive, 0.085f * timeScale * ambient, threshold: 2.4f, plane: plane),
             CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Neutral, 0.04f * timeScale * ambient, threshold: 2.4f, plane: plane),
             CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Negative, -0.035f * timeScale, threshold: 2.4f, plane: plane),
-            // Settlements live by their people: an inverse carrying capacity
-            // where local population is the lifeline. Low-population
-            // settlements lose most of the flat ambient support and depend on
-            // crowding comfort instead, so empty foundings fail while big
-            // hubs are effectively permanent.
             MapSignalEffect(kind, attribute, Effect.MapSupportAtLocation,
                 0.035f * timeScale * ambient, threshold: 5f, plane: plane),
             MapSignalEffect(kind, attribute, Effect.MapCrowdingComfort,
-                (kind == K.Settlement ? 0.10f : 0.025f) * timeScale, threshold: 0.5f, plane: plane),
+                0.025f * timeScale, threshold: 0.5f, plane: plane),
             MapSignalEffect(kind, attribute, Effect.MapThreatAtLocation, -0.04f * timeScale, threshold: 4f, plane: plane),
             MapSignalEffect(kind, attribute, Effect.MapCrowdingLoad, -0.08f * timeScale, threshold: 0.5f, plane: plane),
             // The carrying-capacity governor is a population-rate control, not

@@ -35,6 +35,21 @@ internal sealed class UpkeepProgramRuntime : IKernelProgramRuntime<UpkeepProgram
 
     public int LifecycleRuleCount => _lifecycleRuleCount;
 
+    /// <summary>The kind's health attribute, or 0 when the kind has no
+    /// lifecycle rule.</summary>
+    public int LifecycleAttributeId(int kindId)
+    {
+        for (var rule = 1; rule <= _lifecycleRuleCount; rule++)
+        {
+            if (_lifecycleKindIds[rule] == kindId)
+            {
+                return _lifecycleAttributeIds[rule];
+            }
+        }
+
+        return 0;
+    }
+
     public bool TryGetLifecycleMaintenanceNeed(
         Simulation simulation,
         int entityId,

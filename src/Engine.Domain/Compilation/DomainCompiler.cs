@@ -858,6 +858,12 @@ public static partial class DomainCompiler
                     BehaviorProgramOperation.SetHistorical,
                     B: (int)BehaviorProgramEndpoint.Self));
                 return true;
+            case InstallDistrictMutation:
+                steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.InstallDistrict));
+                return true;
+            case ReawakenDistrictMutation:
+                steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.ReawakenDistrict));
+                return true;
             default:
                 return false;
         }

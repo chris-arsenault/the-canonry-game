@@ -41,6 +41,8 @@ public enum BehaviorProgramOperation
     ForgeCellVertical,
     CullEndpointIncomingRelationships,
     ErodeTargetCulture,
+    InstallDistrict,
+    ReawakenDistrict,
 }
 
 public enum BehaviorProgramEndpoint

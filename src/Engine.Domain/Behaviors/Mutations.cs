@@ -147,6 +147,23 @@ public sealed class SetSelfHistoricalMutation : IMutation
     public string Describe() => "set_self_historical";
 }
 
+/// <summary>The acting artifact installs into the target settlement as a
+/// district: its tile joins the target's coverage, its registered subtype
+/// bonus becomes durable district state, and the artifact goes historical
+/// (docs/design/artifact-districts.md).</summary>
+public sealed class InstallDistrictMutation : IMutation
+{
+    public string Describe() => "install_district";
+}
+
+/// <summary>The acting settlement reawakens its newest sleeping district
+/// core: the artifact returns to active on its tile and the district bonus
+/// ends. The tile remains the settlement's ground.</summary>
+public sealed class ReawakenDistrictMutation : IMutation
+{
+    public string Describe() => "reawaken_district";
+}
+
 /// <summary>Transitions the resolved target entity to historical status.</summary>
 public sealed class SetTargetHistoricalMutation : IMutation
 {
@@ -162,16 +179,6 @@ public sealed class SetTargetCultureFromSelfMutation : IMutation
 }
 
 /// <summary>Raises the current entity's minor-labor work tier by one. A max tier of zero means uncapped.</summary>
-/// <summary>Raises the resolved target's work tier — a durable installed
-/// benefit (more minor-actor labor sustaining the host). Attributable and
-/// reversible, so history-facing mechanics can undo it.</summary>
-public sealed class IncreaseTargetWorkTierMutation(int maxTier = 0) : IMutation
-{
-    public int MaxTier { get; } = maxTier;
-
-    public string Describe() => $"increase_target_work_tier(max={MaxTier})";
-}
-
 public sealed class IncreaseWorkTierMutation(int maxTier = 0) : IMutation
 {
     public int MaxTier { get; } = maxTier;

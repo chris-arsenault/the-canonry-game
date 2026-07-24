@@ -155,6 +155,56 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
                 ApplyTagRulesForKind(simulation, entityId, tick, kindId);
                 return true;
             });
+        ApplyDistrictBonuses(simulation, world, tick);
+    }
+
+    // Installed districts sustain their hosts each tick: Healing feeds the
+    // host's health attribute, Culture presses the host culture's influence
+    // on the district tile (docs/design/artifact-districts.md).
+    private static void ApplyDistrictBonuses(Simulation simulation, WorldState world, int tick)
+    {
+        for (var district = 1; district <= world.DistrictCount; district++)
+        {
+            if (!world.DistrictIsActive(district))
+            {
+                continue;
+            }
+
+            var hostId = world.DistrictHostId(district);
+            if (!world.EntityIsActive(hostId))
+            {
+                continue;
+            }
+
+            var magnitude = world.DistrictMagnitude(district);
+            switch (world.DistrictBonusKindCode(district))
+            {
+                case DistrictBonusKindCodes.Healing:
+                    var attributeId = simulation.Upkeep.LifecycleAttributeId(world.EntityKindId(hostId));
+                    if (attributeId > 0)
+                    {
+                        KernelEffectExecutor.ModifyAttribute(simulation, hostId, attributeId, magnitude);
+                    }
+
+                    break;
+                case DistrictBonusKindCodes.Culture:
+                    var cultureId = world.EntityCultureId(hostId);
+                    if (cultureId > 0)
+                    {
+                        _ = simulation.ModifyCellCultureInfluenceRaw(
+                            cultureId,
+                            PlaneCodes.Physical,
+                            world.DistrictQ(district),
+                            world.DistrictR(district),
+                            magnitude,
+                            tick);
+                    }
+
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 
     private void ApplyTagRulesForKind(Simulation simulation, int entityId, int tick, int kindId)

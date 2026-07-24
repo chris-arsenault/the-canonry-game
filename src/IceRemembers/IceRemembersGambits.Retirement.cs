@@ -80,8 +80,7 @@ public static partial class IceRemembersDefinition
             All(
                 new TargetIsNotSelf(),
                 new WithinPlaneDistancePrecondition(1, PrimaryPlane.Physical),
-                new SelfHasRelationshipToTarget(L(Rel.ConsignedTo), minStrength: 0.5f),
-                Not(new TargetHasRelationshipToSelf(L(Rel.Holds)))),
+                new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.Holds), maximumExclusive: 1)),
             scoreExpression: GambitScore(
                 baseline: 3f,
                 dynamicRange: 5f,
@@ -91,15 +90,44 @@ public static partial class IceRemembersDefinition
             entityCooldown: 200);
         AddRelationshipWrite(gambit, Rel.ConsignedTo, K.Settlement);
         gambit.Reads.Add(AttributeRef.Self(A(Attr.Condition), K.Artifact));
-        // The durable gift, per the legacy design: the shrine endows the host
-        // with a permanent work tier — keepers who tend the hold from now on.
-        // The tier is countable and reversible (a future reactivation can
-        // take it back), and the consignment pinned to full strength is the
-        // archival record of exactly which artifact was installed.
-        gambit.Mutations.Add(new IncreaseTargetWorkTierMutation());
-        gambit.Mutations.Add(new SetContextRelationshipStrengthMutation(TransferEndpoint.Self, TransferEndpoint.Target, L(Rel.ConsignedTo), 1f));
-        gambit.Mutations.Add(new SetSelfHistoricalMutation());
-        gambit.Description = "A consigned artifact at rest among its keepers installs itself for good - museum, shrine, ward, or foundation stone. The settlement keeps the gift; the artifact keeps only its name in the record.";
+        gambit.Writes.Add(AttributeRef.StructuralFact("districts", K.Settlement));
+        // The artifact becomes a district. Its tile joins the city's
+        // footprint with the relic at its core, its subtype-registered bonus
+        // becomes durable district state, the pinned consignment archives
+        // which artifact was installed, and the install mutation also sets
+        // the artifact historical until a reawakening. See
+        // docs/design/artifact-districts.md.
+        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.ConsignedTo, RelationshipPolarity.Positive, 1f));
+        gambit.Mutations.Add(new InstallDistrictMutation());
+        gambit.Description = "A consigned artifact at rest among its keepers installs itself for good - shrine, library, hall, or chancery. The city grows a district around the sleeping core; the artifact keeps only its name in the record.";
+        return gambit;
+    }
+
+    private static GambitDefinition SettlementWakesTheSleeper()
+    {
+        var gambit = NewGambit(
+            GambitId.SettlementWakesTheSleeper,
+            "Wake the Sleeper",
+            K.Settlement,
+            K.Settlement,
+            All(
+                new TargetIsSelf(),
+                new SelfAttributeThreshold(A(Attr.TempHp), min: null, max: 35f, behaviorRelevant: false)),
+            scoreExpression: GambitScore(
+                baseline: 1.5f,
+                dynamicRange: 4f,
+                InverseNormalized(Expr.Self(A(Attr.TempHp)))),
+            success: InitialGambitSuccessChance,
+            cooldown: 400,
+            entityCooldown: 300);
+        gambit.Reads.Add(AttributeRef.Self(A(Attr.TempHp), K.Settlement));
+        gambit.Writes.Add(AttributeRef.StructuralFact("districts", K.Settlement));
+        // The reawakening: a settlement in need takes up its newest sleeping
+        // core. The artifact returns to the world on its tile, the district
+        // bonus ends, and the tile stays city ground. A settlement with no
+        // sleeping core attempts and gains nothing.
+        gambit.Mutations.Add(new ReawakenDistrictMutation());
+        gambit.Description = "A hold in hard times wakes the relic sleeping under its district. The gift ends; the artifact walks the world again.";
         return gambit;
     }
 }

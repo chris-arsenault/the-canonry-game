@@ -29,6 +29,18 @@ public static class GameplayCompiler
 
     private static LowAltitudeVerbProgram CompileLowAltitudeVerbProgram(
         GameplayDefinition definition,
+        IGameplayCompilationContext context) =>
+        new()
+        {
+            Verbs = CompileLowAltitudeVerbRules(definition, context),
+            InitialInfluence = CompileInitialInfluenceRules(definition, context),
+            DistrictBonuses = CompileDistrictBonuses(definition, context),
+            Affordances = CompileAffordances(context),
+            TraitWeightModifiers = CompileTraitLowAltitudeWeightModifiers(context),
+        };
+
+    private static List<LowAltitudeVerbRule> CompileLowAltitudeVerbRules(
+        GameplayDefinition definition,
         IGameplayCompilationContext context)
     {
         var rules = new List<LowAltitudeVerbRule>();
@@ -83,13 +95,28 @@ public static class GameplayCompiler
                 RestAtDestination: verb.RestAtDestination));
         }
 
-        return new LowAltitudeVerbProgram
+        return rules;
+    }
+
+    private static List<CompiledDistrictBonusRule> CompileDistrictBonuses(
+        GameplayDefinition definition,
+        IGameplayCompilationContext context)
+    {
+        var rules = new List<CompiledDistrictBonusRule>();
+        foreach (var bonus in definition.DistrictBonuses)
         {
-            Verbs = rules,
-            InitialInfluence = CompileInitialInfluenceRules(definition, context),
-            Affordances = CompileAffordances(context),
-            TraitWeightModifiers = CompileTraitLowAltitudeWeightModifiers(context),
-        };
+            rules.Add(new CompiledDistrictBonusRule(
+                context.ResolveSubtypeId(bonus.ArtifactSubtype),
+                bonus.Bonus switch
+                {
+                    DistrictBonusKind.Healing => DistrictBonusKindCodes.Healing,
+                    DistrictBonusKind.Culture => DistrictBonusKindCodes.Culture,
+                    _ => DistrictBonusKindCodes.Road,
+                },
+                bonus.Magnitude));
+        }
+
+        return rules;
     }
 
     private static int CompileVerbMinTemperature(LowAltitudeVerbConfig verb)

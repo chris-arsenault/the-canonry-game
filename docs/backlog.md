@@ -87,6 +87,35 @@ From the demography stack (slices 1–3, uncommitted as of 2026-07-24):
 12. Performance ≥ ~50 ticks/s at 100k; relationship lifetime totals leave
     headroom (see recycler above).
 
+From artifact districts (`docs/design/artifact-districts.md`):
+
+12a. Installs and reawakenings both attributed at horizon; tile bonuses
+    verifiably applying (host health deltas, district-tile influence);
+    settlement footprint growth from installs visible in coverage; no
+    install-rate runaway (installed share of artifact retirement sane).
+
+From entity stages (`docs/design/entity-stages.md`) — NOTE: this change
+reshapes the culture economy; expect rebalancing iterations at smoke scale
+before this run is worth spending, and treat these lines as the acceptance
+gates for that rebalancing:
+
+17. **Cultural mass over time** — the headline: per-lane income statement
+    (map_control vs gameplay vs effects/emission gains and losses) at
+    25k/50k/100k; total physical raw mass trajectory; cells above
+    trace/claimed/controlled thresholds; covered-cell growth — all
+    non-regressing vs the pre-stage baseline despite grind removal.
+18. Stage pyramid: many base-stage, few apex entities per catalog kind;
+    promotion/demotion rates; deaths only at base stage; demotion events
+    attributed to their causes (generator side-effects vs hard times); no
+    demotion spirals (repeat-demotion frequency bounded).
+19. Deepen family (promotion gambits) < 10% of gambit executions; freed
+    pool share flowing to context gambits, not evaporating.
+20. Mortal-kind lifespans within their healthy bands despite the
+    maintenance-labor shift (78% of maintenance was tier-carried).
+21. Per-stage ambient emission + district tiles + decay relief carrying
+    interior holding: interior (non-frontier) mass share stable; thaw and
+    reclaim cadence unaffected.
+
 From the exploration/terrain arc (`SUMMARY-exploration-terrain-arc-20260723.md`
 watch items, carried until judged at 50k+):
 

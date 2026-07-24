@@ -464,6 +464,9 @@ internal sealed class KernelConfigurationContext
     public void SetLowAltitudeVerbRestAtDestination(int verbSlot) =>
         _kernel.LowAltitudeVerbs.SetRestAtDestination(verbSlot);
 
+    public void RegisterDistrictBonus(int subtypeId, int bonusKindCode, float magnitude) =>
+        _kernel.RegisterDistrictBonus(subtypeId, bonusKindCode, magnitude);
+
     public int RegisterLowAltitudeInitialInfluence(
         int kindId,
         int planeCode,

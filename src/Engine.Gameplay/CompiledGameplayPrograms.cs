@@ -7,9 +7,15 @@ public sealed class LowAltitudeVerbProgram
     public bool EnabledByDefault { get; init; } = true;
     public IReadOnlyList<LowAltitudeVerbRule> Verbs { get; init; } = [];
     public IReadOnlyList<CompiledInitialInfluenceRule> InitialInfluence { get; init; } = [];
+    public IReadOnlyList<CompiledDistrictBonusRule> DistrictBonuses { get; init; } = [];
     public IReadOnlyList<CompiledAffordanceRule> Affordances { get; init; } = [];
     public IReadOnlyList<CompiledTraitLowAltitudeWeightModifierRule> TraitWeightModifiers { get; init; } = [];
 }
+
+public sealed record CompiledDistrictBonusRule(
+    int SubtypeId,
+    int BonusKindCode,
+    float Magnitude);
 
 public sealed record LowAltitudeVerbRule(
     int KindId,

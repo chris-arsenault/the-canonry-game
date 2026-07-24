@@ -253,6 +253,19 @@ public static class BehaviorOperationCodes
     public const int ForgeCellVertical = 34;
     public const int CullEndpointIncomingRelationships = 35;
     public const int ErodeTargetCulture = 36;
+    public const int InstallDistrict = 37;
+    public const int ReawakenDistrict = 38;
+}
+
+/// <summary>
+/// Bonus kinds an installed artifact district can carry
+/// (docs/design/artifact-districts.md).
+/// </summary>
+public static class DistrictBonusKindCodes
+{
+    public const int Healing = 1;
+    public const int Culture = 2;
+    public const int Road = 3;
 }
 
 public static class BehaviorTargetModeCodes

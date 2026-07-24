@@ -12,6 +12,10 @@ public sealed class GameplayDefinition
 
     public IReadOnlyList<InitialInfluenceRule> InitialInfluence { get; init; } = [];
 
+    /// <summary>Installed-artifact district bonuses by artifact subtype
+    /// (docs/design/artifact-districts.md).</summary>
+    public IReadOnlyList<DistrictBonusConfig> DistrictBonuses { get; init; } = [];
+
     public IReadOnlyList<MapControlDefinition> MapControl { get; init; } = [];
 
     public SemanticPlaneConfig SemanticPlane { get; init; } = SemanticPlaneConfig.Default;
@@ -37,6 +41,20 @@ public sealed record AttributeEffectDefinition(
     string Attribute,
     string Condition,
     string Plane);
+
+public enum DistrictBonusKind
+{
+    Healing,
+    Culture,
+    Road,
+}
+
+/// <summary>What district an installed artifact of this subtype becomes,
+/// and how strongly it acts per tick.</summary>
+public sealed record DistrictBonusConfig(
+    string ArtifactSubtype,
+    DistrictBonusKind Bonus,
+    float Magnitude);
 
 public sealed record InitialInfluenceRule(
     string Kind,

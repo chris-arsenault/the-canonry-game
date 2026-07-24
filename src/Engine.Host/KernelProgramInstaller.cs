@@ -863,6 +863,8 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramOperation.SetTargetCoverageTerrain => BehaviorOperationCodes.SetTargetCoverageTerrain,
             BehaviorProgramOperation.BuildTravelStructureLine => BehaviorOperationCodes.BuildTravelStructureLine,
             BehaviorProgramOperation.ErodeTargetCulture => BehaviorOperationCodes.ErodeTargetCulture,
+            BehaviorProgramOperation.InstallDistrict => BehaviorOperationCodes.InstallDistrict,
+            BehaviorProgramOperation.ReawakenDistrict => BehaviorOperationCodes.ReawakenDistrict,
             _ => -1,
         };
         return code >= 0;

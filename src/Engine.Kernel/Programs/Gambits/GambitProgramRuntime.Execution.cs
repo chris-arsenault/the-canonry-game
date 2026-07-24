@@ -39,7 +39,7 @@ internal sealed partial class GambitProgramRuntime
         var operationCode = _stepOperationCodes[step];
         if (ExecuteAttributeStep(simulation, entityId, targetId, tick, step, operationCode, variableIds, variableValues, ref variableCount) ||
             ExecuteMovementStep(simulation, world, entityId, targetId, tick, step, operationCode) ||
-            ExecuteKernelStateStep(simulation, entityId, targetId, step, operationCode) ||
+            ExecuteKernelStateStep(simulation, entityId, step, operationCode) ||
             ExecuteMapStep(simulation, world, entityId, targetId, tick, step, operationCode) ||
             ExecuteEntityStep(simulation, world, entityId, targetId, tick, step, operationCode))
         {
@@ -93,16 +93,14 @@ internal sealed partial class GambitProgramRuntime
         }
     }
 
-    private bool ExecuteKernelStateStep(Simulation simulation, int entityId, int targetId, int step, int operationCode)
+    private bool ExecuteKernelStateStep(Simulation simulation, int entityId, int step, int operationCode)
     {
         if (operationCode != BehaviorOperationCodes.IncreaseWorkTier)
         {
             return false;
         }
 
-        _ = simulation.MinorActors.IncreaseWorkTier(
-            EndpointEntityId(entityId, targetId, _stepB[step]),
-            _stepA[step]);
+        _ = simulation.MinorActors.IncreaseWorkTier(entityId, _stepA[step]);
         return true;
     }
 
@@ -209,10 +207,52 @@ internal sealed partial class GambitProgramRuntime
         }
     }
 
+    // On install, the acting artifact's tile joins the target settlement's
+    // coverage, the registered subtype bonus becomes a durable district
+    // record, and the artifact leaves the simulation. On reawaken, the
+    // acting settlement's newest sleeping core returns to the world on its
+    // tile while the tile stays city ground. See
+    // docs/design/artifact-districts.md.
+    private static bool ExecuteDistrictStep(Simulation simulation, WorldState world, int entityId, int targetId, int operationCode)
+    {
+        if (operationCode == BehaviorOperationCodes.InstallDistrict)
+        {
+            if (!world.TryGetDistrictBonus(world.EntitySubtypeId(entityId), out var bonusKindCode, out var magnitude))
+            {
+                return true;
+            }
+
+            var q = world.EntityPhysicalQ(entityId);
+            var r = world.EntityPhysicalR(entityId);
+            KernelEffectExecutor.SetCoverageOwner(simulation, q, r, targetId);
+            _ = world.InstallDistrict(entityId, targetId, q, r, bonusKindCode, magnitude);
+            KernelEffectExecutor.SetEntityStatus(simulation, entityId, EntityStatusCodes.Historical);
+            return true;
+        }
+
+        if (operationCode != BehaviorOperationCodes.ReawakenDistrict)
+        {
+            return false;
+        }
+
+        var district = world.DeactivateNewestDistrictOf(entityId);
+        if (district != 0)
+        {
+            var artifactId = world.DistrictSourceArtifactId(district);
+            KernelEffectExecutor.SetEntityStatus(simulation, artifactId, EntityStatusCodes.Active);
+            KernelEffectExecutor.MovePhysical(simulation, artifactId, world.DistrictQ(district), world.DistrictR(district));
+        }
+
+        return true;
+    }
+
     private bool ExecuteEntityStep(Simulation simulation, WorldState world, int entityId, int targetId, int tick, int step, int operationCode)
     {
         switch (operationCode)
         {
+            case BehaviorOperationCodes.InstallDistrict:
+            case BehaviorOperationCodes.ReawakenDistrict:
+                return ExecuteDistrictStep(simulation, world, entityId, targetId, operationCode);
             case BehaviorOperationCodes.SetStatus:
                 KernelEffectExecutor.SetEntityStatus(simulation, entityId, _stepA[step]);
                 return true;
