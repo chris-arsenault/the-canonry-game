@@ -28,7 +28,11 @@ internal sealed record SimulationOptions
     public int CommandCapacity { get; init; } = 1024;
     public int GambitCapacity { get; init; } = 256;
     public int GambitStepCapacity { get; init; } = 2048;
-    public int GambitCooldownCapacity { get; init; } = 8192;
+    // Cooldown entries are keyed (entityId, gambitId) and accumulate for the
+    // run's lifetime like relationship slots; 8192 overflowed near tick 80k
+    // once the population-growth stack landed. Sized for 100k+ horizons until
+    // the lifetime recycler exists.
+    public int GambitCooldownCapacity { get; init; } = 65536;
     public int GambitProviderSelectorCapacity { get; init; } = 512;
     public int GeneratorCapacity { get; init; } = 256;
 
