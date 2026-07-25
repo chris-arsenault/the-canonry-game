@@ -10,31 +10,31 @@ namespace Engine.Kernel;
 /// </summary>
 internal sealed class KernelPlacementTasteData
 {
-    private readonly float[] _kindWeights;
-    private readonly float[] _cultureWeights;
+    private readonly FixedScalar[] _kindWeights;
+    private readonly FixedScalar[] _cultureWeights;
 
     public KernelPlacementTasteData(int kindIdCapacity, int cultureIdCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(kindIdCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cultureIdCapacity);
-        _kindWeights = new float[checked((kindIdCapacity + 1) * PlacementTasteAxisCodes.Count)];
-        _cultureWeights = new float[checked((cultureIdCapacity + 1) * PlacementTasteAxisCodes.Count)];
+        NumericGuard.ThrowIfNegativeOrZero(kindIdCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(cultureIdCapacity);
+        _kindWeights = new FixedScalar[checked((kindIdCapacity + 1) * PlacementTasteAxisCodes.Count)];
+        _cultureWeights = new FixedScalar[checked((cultureIdCapacity + 1) * PlacementTasteAxisCodes.Count)];
     }
 
-    public void RegisterKindWeight(int kindId, int axisCode, float weight) =>
+    public void RegisterKindWeight(int kindId, int axisCode, FixedScalar weight) =>
         Register(_kindWeights, kindId, axisCode, weight);
 
-    public void RegisterCultureWeight(int cultureId, int axisCode, float weight) =>
+    public void RegisterCultureWeight(int cultureId, int axisCode, FixedScalar weight) =>
         Register(_cultureWeights, cultureId, axisCode, weight);
 
-    public float KindWeight(int kindId, int axisCode) =>
+    public FixedScalar KindWeight(int kindId, int axisCode) =>
         WeightAt(_kindWeights, kindId, axisCode);
 
-    public float CultureWeight(int cultureId, int axisCode) =>
+    public FixedScalar CultureWeight(int cultureId, int axisCode) =>
         WeightAt(_cultureWeights, cultureId, axisCode);
 
     /// <summary>The summed taste of a kind placed under a culture (0 ids read as flat).</summary>
-    public float CombinedWeight(int kindId, int cultureId, int axisCode) =>
+    public FixedScalar CombinedWeight(int kindId, int cultureId, int axisCode) =>
         WeightAt(_kindWeights, kindId, axisCode) + WeightAt(_cultureWeights, cultureId, axisCode);
 
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer) =>
@@ -43,9 +43,9 @@ internal sealed class KernelPlacementTasteData
     internal void ReadSnapshot(global::System.IO.BinaryReader reader) =>
         KernelSnapshotBinary.ReadObject(reader, this);
 
-    private static void Register(float[] weights, int id, int axisCode, float weight)
+    private static void Register(FixedScalar[] weights, int id, int axisCode, FixedScalar weight)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(id);
+        NumericGuard.ThrowIfNegativeOrZero(id);
         if ((uint)axisCode >= PlacementTasteAxisCodes.Count ||
             (id * PlacementTasteAxisCodes.Count) + axisCode >= weights.Length)
         {
@@ -55,9 +55,9 @@ internal sealed class KernelPlacementTasteData
         weights[(id * PlacementTasteAxisCodes.Count) + axisCode] = weight;
     }
 
-    private static float WeightAt(float[] weights, int id, int axisCode)
+    private static FixedScalar WeightAt(FixedScalar[] weights, int id, int axisCode)
     {
         var index = (id * PlacementTasteAxisCodes.Count) + axisCode;
-        return id > 0 && (uint)index < (uint)weights.Length ? weights[index] : 0f;
+        return id > 0 && (uint)index < (uint)weights.Length ? weights[index] : 0;
     }
 }

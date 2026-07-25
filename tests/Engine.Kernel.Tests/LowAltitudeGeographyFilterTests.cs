@@ -58,7 +58,7 @@ public sealed class LowAltitudeGeographyFilterTests
             dwellTicks: 4,
             targetRadius: 1,
             candidateSampleCount: 8,
-            weight: 1f);
+            weight: FixedScalar.FromSingle(1f));
     }
 
     private static Simulation CreateSimulation() => KernelTestSimulation.Create(new SimulationOptions

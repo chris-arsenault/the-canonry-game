@@ -21,8 +21,7 @@ public static class GameplayCompiler
             new GameplayKernelProgramSet
             {
                 LowAltitudeVerbs = CompileLowAltitudeVerbProgram(definition, context),
-                MapActivity = new MapActivityProgram(),
-                MapSignals = CompileMapSignalsProgram(definition, context),
+                Locality = CompileLocalityRules(definition, context),
                 Effects = CompileEffectsProgram(definition, context),
             });
     }
@@ -70,25 +69,28 @@ public static class GameplayCompiler
                 verb.DwellTicks,
                 verb.TargetRadius,
                 verb.CandidateSampleCount,
-                verb.Weight,
-                verb.OpportunityBonusOverride,
-                verb.FitnessWeight,
-                verb.DistanceScaleOverride,
+                FixedScalar.FromSingle(verb.Weight),
+                FixedScalar.FromSingle(verb.OpportunityBonusOverride),
+                FixedScalar.FromSingle(verb.FitnessWeight),
+                FixedScalar.FromSingle(verb.DistanceScaleOverride),
                 foreignTargeting.Enabled,
                 foreignTargeting.BlockPositiveRelationships,
                 foreignTargeting.AllowNegativeRelationships,
-                foreignTargeting.MinimumRelationshipStrength,
-                foreignTargeting.AllowUnrelatedInfluenceAtOrAbove,
+                KernelFixedPoint.RelationshipStrengthScalar(
+                    KernelFixedPoint.RelationshipStrengthUnits(foreignTargeting.MinimumRelationshipStrength)),
+                KernelFixedPoint.CultureMassScalar(
+                    KernelFixedPoint.CultureMassUnits(foreignTargeting.AllowUnrelatedInfluenceAtOrAbove)),
                 verb.FitnessRelationshipKind is null ? 0 : context.ResolveRelationshipKindId(verb.FitnessRelationshipKind),
                 RelationshipDirectionCode(verb.FitnessRelationshipDirection),
                 FitnessPolarityCode(verb.FitnessPolarity),
-                verb.FitnessThreshold,
-                verb.InfluenceDelta,
+                FixedScalar.FromSingle(verb.FitnessThreshold),
+                KernelFixedPoint.CultureMassScalar(KernelFixedPoint.CultureMassUnits(verb.InfluenceDelta)),
                 verb.InfluenceRadius,
-                verb.CoverageGrowthChance,
-                verb.HeadquartersMoveChance,
-                verb.RequiredInfluence,
-                verb.RelationshipStrengthDelta,
+                FixedScalar.FromSingle(verb.CoverageGrowthChance),
+                FixedScalar.FromSingle(verb.HeadquartersMoveChance),
+                KernelFixedPoint.CultureMassScalar(KernelFixedPoint.CultureMassUnits(verb.RequiredInfluence)),
+                KernelFixedPoint.RelationshipStrengthScalar(
+                    KernelFixedPoint.RelationshipStrengthDeltaUnits(verb.RelationshipStrengthDelta)),
                 shape.PrimitiveSteps,
                 MinTemperature: CompileVerbMinTemperature(verb),
                 SiteFlags: CompileVerbSiteFlags(verb),
@@ -113,9 +115,9 @@ public static class GameplayCompiler
                 rules.Add(new CompiledStageRule(
                     kindId,
                     index,
-                    stage.BandMultiplier,
+                    FixedScalar.FromSingle(stage.BandMultiplier),
                     stage.WorkerBonus,
-                    stage.AmbientEmission,
+                    FixedScalar.FromSingle(stage.AmbientEmission),
                     stage.DistrictCapacity));
             }
         }
@@ -130,15 +132,21 @@ public static class GameplayCompiler
         var rules = new List<CompiledDistrictBonusRule>();
         foreach (var bonus in definition.DistrictBonuses)
         {
+            var bonusKindCode = bonus.Bonus switch
+            {
+                DistrictBonusKind.Healing => DistrictBonusKindCodes.Healing,
+                DistrictBonusKind.Culture => DistrictBonusKindCodes.Culture,
+                _ => DistrictBonusKindCodes.Road,
+            };
+            var magnitude = bonusKindCode == DistrictBonusKindCodes.Culture
+                ? KernelFixedPoint.CultureMassScalar(
+                    KernelFixedPoint.CultureMassUnits(bonus.Magnitude))
+                : KernelFixedPoint.AttributeScalar(
+                    KernelFixedPoint.AttributeUnits(bonus.Magnitude));
             rules.Add(new CompiledDistrictBonusRule(
                 context.ResolveSubtypeId(bonus.ArtifactSubtype),
-                bonus.Bonus switch
-                {
-                    DistrictBonusKind.Healing => DistrictBonusKindCodes.Healing,
-                    DistrictBonusKind.Culture => DistrictBonusKindCodes.Culture,
-                    _ => DistrictBonusKindCodes.Road,
-                },
-                bonus.Magnitude));
+                bonusKindCode,
+                magnitude));
         }
 
         return rules;
@@ -205,7 +213,8 @@ public static class GameplayCompiler
             rules.Add(new CompiledInitialInfluenceRule(
                 context.ResolveKindId(rule.Kind, "Initial influence kind"),
                 PlaneCode(rule.Plane),
-                rule.InfluenceValue));
+                KernelFixedPoint.CultureMassScalar(
+                    KernelFixedPoint.CultureMassUnits(rule.InfluenceValue))));
         }
 
         return rules;
@@ -230,8 +239,8 @@ public static class GameplayCompiler
                 affordance.RelationshipDirectionCode,
                 affordance.OperationCode,
                 affordance.PolarityCode,
-                affordance.Threshold,
-                affordance.Weight));
+                FixedScalar.FromSingle(affordance.Threshold),
+                FixedScalar.FromSingle(affordance.Weight)));
         }
 
         return rules;
@@ -262,28 +271,28 @@ public static class GameplayCompiler
                 context.ResolveKindId(definition.OwnerKind, $"Trait '{definition.Trait}' owner kind"),
                 context.ResolveTraitId(definition.Trait),
                 operation.Verb is null ? 0 : context.ResolveVerbId(operation.Verb),
-                operation.WeightDelta,
-                operation.OpportunityBonusDelta,
-                operation.FitnessWeightDelta));
+                FixedScalar.FromSingle(operation.WeightDelta),
+                FixedScalar.FromSingle(operation.OpportunityBonusDelta),
+                FixedScalar.FromSingle(operation.FitnessWeightDelta)));
         }
 
         return rules;
     }
 
 
-    private static MapSignalsProgram CompileMapSignalsProgram(
+    private static LocalityRules CompileLocalityRules(
         GameplayDefinition definition,
         IGameplayCompilationContext context)
     {
-        var mapSignals = definition.MapSignals;
-        return new MapSignalsProgram
+        var locality = definition.Locality;
+        return new LocalityRules
         {
-            SemanticBaseCapacity = mapSignals.SemanticBaseCapacity,
-            CrowdingRadius = mapSignals.CrowdingRadius,
-            PhysicalCapacityFormula = CompilePhysicalCapacityFormula(mapSignals.PhysicalCapacityFormula),
-            Terrains = CompileTerrainMapSignals(mapSignals, context),
-            Kinds = CompileKindMapSignals(mapSignals, context),
-            Relationships = CompileRelationshipMapSignals(mapSignals, context),
+            SemanticBaseCapacity = FixedScalar.FromSingle(locality.SemanticBaseCapacity),
+            CrowdingRadius = locality.CrowdingRadius,
+            PhysicalCapacityFormula = CompilePhysicalCapacityFormula(locality.PhysicalCapacityFormula),
+            Terrains = CompileTerrainLocality(locality, context),
+            Kinds = CompileKindLocality(locality, context),
+            Relationships = CompileRelationshipLocality(locality, context),
         };
     }
 
@@ -304,102 +313,100 @@ public static class GameplayCompiler
         }
 
         return new CompiledPhysicalCapacityFormula(
-            PhysicalHexFactCodes.FromIntensity(formula.ColdFloorTemperature),
-            PhysicalHexFactCodes.FromIntensity(formula.WarmPeakTemperature),
-            formula.GeothermalBlend,
-            formula.FreshwaterWeight,
-            formula.FertileWeight,
-            formula.ReliefComfort,
-            formula.ReliefPenalty,
-            formula.RoughnessPenalty,
-            formula.LandScale,
-            formula.MarineScale);
+            FixedScalar.FromInt(PhysicalHexFactCodes.FromIntensity(formula.ColdFloorTemperature)),
+            FixedScalar.FromInt(PhysicalHexFactCodes.FromIntensity(formula.WarmPeakTemperature)),
+            FixedScalar.FromSingle(formula.GeothermalBlend),
+            FixedScalar.FromSingle(formula.FreshwaterWeight),
+            FixedScalar.FromSingle(formula.FertileWeight),
+            FixedScalar.FromSingle(formula.ReliefComfort),
+            FixedScalar.FromSingle(formula.ReliefPenalty),
+            FixedScalar.FromSingle(formula.RoughnessPenalty),
+            FixedScalar.FromSingle(formula.LandScale),
+            FixedScalar.FromSingle(formula.MarineScale));
     }
 
-    private static List<TerrainMapSignalRule> CompileTerrainMapSignals(
-        MapSignalsConfig mapSignals,
+    private static List<TerrainLocalityRule> CompileTerrainLocality(
+        LocalityConfig locality,
         IGameplayCompilationContext context)
     {
-        var rules = new List<TerrainMapSignalRule>();
-        foreach (var terrain in mapSignals.Terrains)
+        var rules = new List<TerrainLocalityRule>();
+        foreach (var terrain in locality.Terrains)
         {
             if (!context.TerrainExists(terrain.Terrain))
             {
                 throw new InvalidOperationException(
-                    $"Map signal terrain references unknown terrain '{terrain.Terrain}'.");
+                    $"Locality terrain references unknown terrain '{terrain.Terrain}'.");
             }
 
-            rules.Add(new TerrainMapSignalRule(
+            rules.Add(new TerrainLocalityRule(
                 context.ResolveTerrainId(terrain.Terrain),
-                terrain.BaseCapacity));
+                FixedScalar.FromSingle(terrain.BaseCapacity)));
         }
 
         return rules;
     }
 
-    private static List<KindMapSignalRule> CompileKindMapSignals(
-        MapSignalsConfig mapSignals,
+    private static List<KindLocalityRule> CompileKindLocality(
+        LocalityConfig locality,
         IGameplayCompilationContext context)
     {
-        var rules = new List<KindMapSignalRule>();
-        foreach (var kind in mapSignals.Kinds)
+        var rules = new List<KindLocalityRule>();
+        foreach (var kind in locality.Kinds)
         {
-            rules.Add(new KindMapSignalRule(
-                context.ResolveKindId(kind.Kind, "Map signal kind"),
-                kind.SignalRadius,
-                kind.CapacityEmission,
-                kind.SupportEmission,
-                kind.ThreatEmission,
-                kind.BaseAttractorMass,
-                kind.CoverageAttractorScale,
-                kind.InfluenceAttractorScale,
-                kind.ActivityAttractorScale,
+            rules.Add(new KindLocalityRule(
+                context.ResolveKindId(kind.Kind, "Locality kind"),
+                kind.LocalityRadius,
+                FixedScalar.FromSingle(kind.CapacityEmission),
+                FixedScalar.FromSingle(kind.SupportEmission),
+                FixedScalar.FromSingle(kind.ThreatEmission),
+                FixedScalar.FromSingle(kind.BaseAttractorMass),
+                FixedScalar.FromSingle(kind.CoverageAttractorScale),
+                FixedScalar.FromSingle(kind.InfluenceAttractorScale),
                 kind.AttractorRadius,
-                CompileMapSignalScalarInputs(kind, context)));
+                CompileLocalityScalarInputs(kind, context)));
         }
 
         return rules;
     }
 
-    private static List<MapSignalScalarInputRule> CompileMapSignalScalarInputs(
-        KindMapSignalConfig kind,
+    private static List<LocalityScalarInputRule> CompileLocalityScalarInputs(
+        KindLocalityConfig kind,
         IGameplayCompilationContext context)
     {
-        var scalarInputs = new List<MapSignalScalarInputRule>();
+        var scalarInputs = new List<LocalityScalarInputRule>();
         foreach (var scalar in kind.AttractorScalarInputs)
         {
             if (!context.KindHasAttribute(kind.Kind, scalar.Attribute))
             {
                 throw new InvalidOperationException(
-                    $"Map signal scalar input references unknown attribute '{scalar.Attribute}'.");
+                    $"Locality scalar input references unknown attribute '{scalar.Attribute}'.");
             }
 
-            scalarInputs.Add(new MapSignalScalarInputRule(
+            scalarInputs.Add(new LocalityScalarInputRule(
                 context.ResolveAttributeId(scalar.Attribute),
-                scalar.AttractorScale));
+                FixedScalar.FromSingle(scalar.AttractorScale)));
         }
 
         return scalarInputs;
     }
 
-    private static List<RelationshipMapSignalRule> CompileRelationshipMapSignals(
-        MapSignalsConfig mapSignals,
+    private static List<RelationshipLocalityRule> CompileRelationshipLocality(
+        LocalityConfig locality,
         IGameplayCompilationContext context)
     {
-        var rules = new List<RelationshipMapSignalRule>();
-        foreach (var relationship in mapSignals.Relationships)
+        var rules = new List<RelationshipLocalityRule>();
+        foreach (var relationship in locality.Relationships)
         {
             if (!context.RelationshipExists(relationship.RelationshipKind))
             {
                 throw new InvalidOperationException(
-                    $"Map signal relationship references unknown relationship '{relationship.RelationshipKind}'.");
+                    $"Locality relationship references unknown relationship '{relationship.RelationshipKind}'.");
             }
 
-            rules.Add(new RelationshipMapSignalRule(
+            rules.Add(new RelationshipLocalityRule(
                 context.ResolveRelationshipKindId(relationship.RelationshipKind),
-                relationship.SignalRadius,
-                relationship.SupportEmission,
-                relationship.ThreatEmission));
+                FixedScalar.FromSingle(relationship.SupportEmission),
+                FixedScalar.FromSingle(relationship.ThreatEmission)));
         }
 
         return rules;
@@ -448,9 +455,10 @@ public static class GameplayCompiler
             RelationshipDirectionCode(effect.RelationshipDirection),
             PlaneCode(effect.Plane),
             effect.MaxDistance,
-            effect.Threshold,
-            effect.MinimumRelationshipStrength,
-            effect.DeltaPerTick,
+            FixedScalar.FromSingle(effect.Threshold),
+            KernelFixedPoint.RelationshipStrengthScalar(
+                KernelFixedPoint.RelationshipStrengthUnits(effect.MinimumRelationshipStrength)),
+            KernelFixedPoint.AttributeScalar(KernelFixedPoint.AttributeUnits(effect.DeltaPerTick)),
             RequiredTargetTraitId: 0,
             RequiredRelatedTraitId: 0,
             CultureId: effect.Culture is null ? 0 : context.ResolveCultureId(effect.Culture),
@@ -458,7 +466,7 @@ public static class GameplayCompiler
                 ? 0
                 : context.ResolveCultureSlotId(effect.Culture, effect.CultureSlot, $"Attribute delta effect '{effect.Kind}.{effect.Attribute}'"),
             CultureSlotPolarityCode: CultureSlotPolarityCode(effect.CultureSlotPolarity),
-            SupportScale: effect.SupportScale,
+            SupportScale: FixedScalar.FromSingle(effect.SupportScale),
             CoverageOwnerKindId: effect.CoverageOwnerKind is null ? 0 : context.ResolveKindId(effect.CoverageOwnerKind, "Effect coverage owner kind"),
             CoverageOwnerSubtypeId: effect.CoverageOwnerSubtype is null ? 0 : context.ResolveSubtypeId(effect.CoverageOwnerSubtype));
     }
@@ -486,8 +494,10 @@ public static class GameplayCompiler
                 context.ResolveTagId(rule.Tag),
                 context.ResolveRelationshipKindId(rule.RelationshipKind),
                 RelationshipDirectionCode(rule.RelationshipDirection),
-                rule.SetAtOrAbove,
-                rule.ClearBelow,
+                KernelFixedPoint.RelationshipStrengthScalar(
+                    KernelFixedPoint.RelationshipStrengthUnits(rule.SetAtOrAbove)),
+                KernelFixedPoint.RelationshipStrengthScalar(
+                    KernelFixedPoint.RelationshipStrengthUnits(rule.ClearBelow)),
                 rule.InsideCoverageOwnerKind is null ? 0 : context.ResolveKindId(rule.InsideCoverageOwnerKind, "Tag rule coverage owner kind"),
                 rule.InsideCoverageOwnerSubtype is null ? 0 : context.ResolveSubtypeId(rule.InsideCoverageOwnerSubtype),
                 PlaneCode(rule.InsideCoveragePlane));
@@ -516,9 +526,10 @@ public static class GameplayCompiler
                 RelationshipDirectionCode(operation.RelationshipDirection),
                 PlaneCode(operation.Plane),
                 operation.MaxDistance,
-                operation.Threshold,
-                operation.MinimumRelationshipStrength,
-                operation.DeltaPerTick,
+                FixedScalar.FromSingle(operation.Threshold),
+                KernelFixedPoint.RelationshipStrengthScalar(
+                    KernelFixedPoint.RelationshipStrengthUnits(operation.MinimumRelationshipStrength)),
+                KernelFixedPoint.AttributeScalar(KernelFixedPoint.AttributeUnits(operation.DeltaPerTick)),
                 RequiredTargetTraitId: operation.TraitBearer == TraitEffectBearer.Target ? traitId : 0,
                 RequiredRelatedTraitId: operation.TraitBearer == TraitEffectBearer.RelatedEntity ? traitId : 0));
         }
@@ -703,8 +714,7 @@ public sealed record AffordanceDefinition(
 public sealed class GameplayKernelProgramSet
 {
     public required LowAltitudeVerbProgram LowAltitudeVerbs { get; init; }
-    public required MapActivityProgram MapActivity { get; init; }
-    public required MapSignalsProgram MapSignals { get; init; }
+    public required LocalityRules Locality { get; init; }
     public required EffectsProgram Effects { get; init; }
 }
 

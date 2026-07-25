@@ -1,5 +1,7 @@
 namespace Engine.Kernel;
 
+using Engine.Constants;
+
 internal sealed partial class LowAltitudeVerbProgramRuntime
 {
     private bool HasTargetRelationship(WorldState world, int entityId, int targetEntityId, int rule)
@@ -61,7 +63,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var targetEntityId = State.TargetEntityId(entityId);
         var relationshipKindId = Data.RelationshipKindId(rule);
         var delta = Data.RelationshipStrengthDelta(rule);
-        if (targetEntityId == 0 || relationshipKindId == 0 || delta == 0f)
+        if (targetEntityId == 0 || relationshipKindId == 0 || delta == 0)
         {
             return;
         }
@@ -103,7 +105,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int targetEntityId,
         int relationshipKindId,
         bool outgoing,
-        float delta,
+        FixedScalar delta,
         int tick)
     {
         var cursor = outgoing
@@ -119,9 +121,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 continue;
             }
 
-            simulation.SetRelationshipStrength(
+            simulation.ModifyRelationshipStrengthUnits(
                 relationshipId,
-                world.RelationshipStrength(relationshipId) + delta,
+                KernelFixedPoint.RelationshipStrengthDeltaUnits(delta),
                 tick);
         }
     }

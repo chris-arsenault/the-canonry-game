@@ -90,7 +90,7 @@ internal sealed partial class MapFrontierProgramRuntime
     {
         if (!world.CellIsKnown(PlaneCodes.Physical, q, r) ||
             world.CellTerrainCoverId(PlaneCodes.Physical, q, r) != 0 ||
-            simulation.MapActivity.CurrentOccupancy(PlaneCodes.Physical, q, r) > 0 ||
+            simulation.Locality.OccupancyAt(world, PlaneCodes.Physical, q, r) > 0 ||
             !IsIceEdgeCell(world, q, r))
         {
             return false;
@@ -106,25 +106,25 @@ internal sealed partial class MapFrontierProgramRuntime
     /// relieved by geothermal heat, and scaled by the open age. The formula
     /// is the only geography opinion the ice holds.
     /// </summary>
-    private float ColdPressure(Simulation simulation, int q, int r, float ageScalar)
+    private FixedScalar ColdPressure(Simulation simulation, int q, int r, FixedScalar ageScalar)
     {
         var geography = simulation.KernelData.PhysicalGeography;
         var cold = Data.FrostTemperatureCeiling - geography.Fact(q, r, PhysicalHexFactCodes.Temperature);
         if (cold <= 0)
         {
-            return 0f;
+            return 0;
         }
 
         var pressure = cold +
             (Data.IceThicknessPressureWeight * geography.Fact(q, r, PhysicalHexFactCodes.IceThickness)) -
             (Data.GeothermalRefugeWeight * geography.Fact(q, r, PhysicalHexFactCodes.Geothermal));
-        return pressure <= 0f ? 0f : pressure * ageScalar;
+        return pressure <= 0 ? 0 : pressure * ageScalar;
     }
 
-    private float IceResistance(Simulation simulation, WorldState world, int q, int r)
+    private FixedScalar IceResistance(Simulation simulation, WorldState world, int q, int r)
     {
         var strongestCultureId = 0;
-        var strongestRaw = 0f;
+        var strongestRaw = FixedScalar.Zero;
         for (var cultureId = 1; cultureId <= world.CultureHighWatermark; cultureId++)
         {
             var raw = world.CultureFieldAt(cultureId, PlaneCodes.Physical, q, r).TotalRawMass;
@@ -190,22 +190,22 @@ internal sealed partial class MapFrontierProgramRuntime
 
     public void SetIcePressureConfiguration(
         int frostTemperatureCeiling,
-        float iceThicknessPressureWeight,
-        float geothermalRefugeWeight,
-        float freezeAgePressureScalar,
-        float thawAgePressureScalar,
-        float baseIceResistance,
-        float cultureMassResistanceScale,
-        float roadIceResistance)
+        FixedScalar iceThicknessPressureWeight,
+        FixedScalar geothermalRefugeWeight,
+        FixedScalar freezeAgePressureScalar,
+        FixedScalar thawAgePressureScalar,
+        FixedScalar baseIceResistance,
+        FixedScalar cultureMassResistanceScale,
+        FixedScalar roadIceResistance)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(frostTemperatureCeiling);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(iceThicknessPressureWeight);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(geothermalRefugeWeight);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(freezeAgePressureScalar);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(thawAgePressureScalar);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(baseIceResistance);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(cultureMassResistanceScale);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(roadIceResistance);
+        NumericGuard.ThrowIfNegative(frostTemperatureCeiling);
+        NumericGuard.ThrowIfNegative(iceThicknessPressureWeight);
+        NumericGuard.ThrowIfNegative(geothermalRefugeWeight);
+        NumericGuard.ThrowIfNegative(freezeAgePressureScalar);
+        NumericGuard.ThrowIfNegative(thawAgePressureScalar);
+        NumericGuard.ThrowIfNegative(baseIceResistance);
+        NumericGuard.ThrowIfNegative(cultureMassResistanceScale);
+        NumericGuard.ThrowIfNegative(roadIceResistance);
         Data.FrostTemperatureCeiling = frostTemperatureCeiling;
         Data.IceThicknessPressureWeight = iceThicknessPressureWeight;
         Data.GeothermalRefugeWeight = geothermalRefugeWeight;

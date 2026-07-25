@@ -9,7 +9,7 @@ internal sealed partial class KernelProgramRegistry
 
     public KernelProgramRegistry(int capacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
+        NumericGuard.ThrowIfNegativeOrZero(capacity);
         _programIds = new int[capacity];
         _systemHandles = new int[capacity];
         _enabled = new bool[capacity];
@@ -20,7 +20,7 @@ internal sealed partial class KernelProgramRegistry
     public void Register(int programId, int systemHandle)
     {
         ValidatePositive(programId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(systemHandle);
+        NumericGuard.ThrowIfNegative(systemHandle);
         if (_count >= _programIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -95,6 +95,6 @@ internal sealed partial class KernelProgramRegistry
 
     private static void ValidatePositive(int value)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+        NumericGuard.ThrowIfNegativeOrZero(value);
     }
 }

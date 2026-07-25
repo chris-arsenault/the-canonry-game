@@ -2,10 +2,13 @@ namespace Engine.Kernel;
 
 internal static class KernelEffectExecutor
 {
-    public static void ModifyAttribute(Simulation simulation, int entityId, int attributeId, float delta) =>
+    public static void ModifyAttribute(Simulation simulation, int entityId, int attributeId, FixedScalar delta) =>
         simulation.ModifyAttribute(entityId, attributeId, delta, simulation.CurrentTick);
 
-    public static void SetAttribute(Simulation simulation, int entityId, int attributeId, float value) =>
+    public static void ModifyAttributeUnits(Simulation simulation, int entityId, int attributeId, int deltaUnits) =>
+        simulation.ModifyAttributeUnits(entityId, attributeId, deltaUnits, simulation.CurrentTick);
+
+    public static void SetAttribute(Simulation simulation, int entityId, int attributeId, FixedScalar value) =>
         simulation.SetAttribute(entityId, attributeId, value, simulation.CurrentTick);
 
     public static void TransferAttribute(
@@ -14,7 +17,7 @@ internal static class KernelEffectExecutor
         int sourceAttributeId,
         int destinationId,
         int destinationAttributeId,
-        float amount)
+        FixedScalar amount)
     {
         if (simulation.World.GetAttribute(sourceId, sourceAttributeId) < amount)
         {
@@ -129,7 +132,7 @@ internal static class KernelEffectExecutor
         int polarityCode,
         int sourceEntityId,
         int targetEntityId,
-        float strength) =>
+        FixedScalar strength) =>
         simulation.CreateRelationship(
             relationshipKindId,
             polarityCode,
@@ -138,8 +141,17 @@ internal static class KernelEffectExecutor
             strength,
             simulation.CurrentTick);
 
-    public static void SetRelationshipStrength(Simulation simulation, int relationshipId, float strength) =>
+    public static void SetRelationshipStrength(Simulation simulation, int relationshipId, FixedScalar strength) =>
         simulation.SetRelationshipStrength(relationshipId, strength, simulation.CurrentTick);
+
+    public static void ModifyRelationshipStrengthUnits(
+        Simulation simulation,
+        int relationshipId,
+        int deltaUnits) =>
+        simulation.ModifyRelationshipStrengthUnits(
+            relationshipId,
+            deltaUnits,
+            simulation.CurrentTick);
 
     public static void CullRelationship(Simulation simulation, int relationshipId) =>
         simulation.CullRelationship(relationshipId, simulation.CurrentTick);

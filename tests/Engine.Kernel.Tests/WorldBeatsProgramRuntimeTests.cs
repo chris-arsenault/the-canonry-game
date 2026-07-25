@@ -38,15 +38,15 @@ public sealed class WorldBeatsProgramRuntimeTests
         Assert.Equal(0, simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.Peoples));
 
         // Two living wars: striving is recognized open.
-        var war1 = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, a, b, 0.8f, tick: 12);
-        var war2 = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, b, a, 0.8f, tick: 12);
+        var war1 = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, a, b, FixedScalar.FromSingle(0.8f), tick: 12);
+        var war2 = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, b, a, FixedScalar.FromSingle(0.8f), tick: 12);
         simulation.WorldBeats.Tick(simulation, tick: 20);
         Assert.Equal(StrivingAgeId, simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.Peoples));
         AssertPhaseEmitted(simulation, StrivingAgeId, WorldBeatPhaseCodes.Opened);
 
         // Wars end: striving closes on the recognized fact, never a timer.
-        simulation.World.CullRelationship(war1, tick: 30);
-        simulation.World.CullRelationship(war2, tick: 30);
+        simulation.CullRelationship(war1, tick: 30);
+        simulation.CullRelationship(war2, tick: 30);
         simulation.WorldBeats.Tick(simulation, tick: 40);
         Assert.Equal(0, simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.Peoples));
         AssertPhaseEmitted(simulation, StrivingAgeId, WorldBeatPhaseCodes.Closed);
@@ -58,23 +58,25 @@ public sealed class WorldBeatsProgramRuntimeTests
         var simulation = CreateSimulation();
         DefineStrivingAge(simulation, minOpenTicks: 100, cooldownTicks: 200);
         var (a, b) = SeedFactions(simulation);
-        var war1 = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, a, b, 0.8f, tick: 0);
-        var war2 = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, b, a, 0.8f, tick: 0);
+        var war1 = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, a, b, FixedScalar.FromSingle(0.8f), tick: 0);
+        var war2 = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, b, a, FixedScalar.FromSingle(0.8f), tick: 0);
 
         simulation.WorldBeats.Tick(simulation, tick: 10);
         Assert.Equal(StrivingAgeId, simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.Peoples));
 
         // Close condition holds, but the minimum span has not elapsed.
-        simulation.World.CullRelationship(war1, tick: 20);
-        simulation.World.CullRelationship(war2, tick: 20);
+        simulation.CullRelationship(war1, tick: 20);
+        simulation.CullRelationship(war2, tick: 20);
+        Assert.Equal(0, simulation.WorldBeats.State.ActiveRelationshipCountsByKind[WarRel]);
+        Assert.Equal(2, simulation.WorldBeats.State.EndedRelationshipCountsByKind[WarRel]);
         simulation.WorldBeats.Tick(simulation, tick: 30);
         Assert.Equal(StrivingAgeId, simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.Peoples));
 
         // Past the minimum span it closes; during cooldown it cannot reopen.
         simulation.WorldBeats.Tick(simulation, tick: 120);
         Assert.Equal(0, simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.Peoples));
-        _ = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, a, b, 0.8f, tick: 130);
-        _ = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, b, a, 0.8f, tick: 130);
+        _ = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, a, b, FixedScalar.FromSingle(0.8f), tick: 130);
+        _ = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, b, a, FixedScalar.FromSingle(0.8f), tick: 130);
         simulation.WorldBeats.Tick(simulation, tick: 140);
         Assert.Equal(0, simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.Peoples));
         simulation.WorldBeats.Tick(simulation, tick: 330);
@@ -94,8 +96,8 @@ public sealed class WorldBeatsProgramRuntimeTests
             cooldownTicks: 0);
         _ = accords;
         var (a, b) = SeedFactions(simulation);
-        _ = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, a, b, 0.8f, tick: 0);
-        _ = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, b, a, 0.8f, tick: 0);
+        _ = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, a, b, FixedScalar.FromSingle(0.8f), tick: 0);
+        _ = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, b, a, FixedScalar.FromSingle(0.8f), tick: 0);
 
         // Both are eligible (accords has no conditions); striving's higher
         // priority wins the track.
@@ -108,20 +110,20 @@ public sealed class WorldBeatsProgramRuntimeTests
     {
         var simulation = CreateSimulation();
         var striving = DefineStrivingAge(simulation, minOpenTicks: 0, cooldownTicks: 0);
-        simulation.WorldBeats.AddCharge(striving, WorldBeatChargeDomainCodes.GambitScore, targetId: 7, multiplier: 3f);
-        simulation.WorldBeats.AddCharge(striving, WorldBeatChargeDomainCodes.GeneratorPulseWeight, WarGeneratorId, 2f);
+        simulation.WorldBeats.AddCharge(striving, WorldBeatChargeDomainCodes.GambitScore, targetId: 7, multiplier: FixedScalar.FromSingle(3f));
+        simulation.WorldBeats.AddCharge(striving, WorldBeatChargeDomainCodes.GeneratorPulseWeight, WarGeneratorId, FixedScalar.FromSingle(2f));
         var gambitSlot = RegisterGambit(simulation, gambitId: 7);
         var (a, b) = SeedFactions(simulation);
-        var war1 = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, a, b, 0.8f, tick: 0);
-        var war2 = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, b, a, 0.8f, tick: 0);
+        var war1 = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, a, b, FixedScalar.FromSingle(0.8f), tick: 0);
+        var war2 = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, b, a, FixedScalar.FromSingle(0.8f), tick: 0);
 
         simulation.WorldBeats.Tick(simulation, tick: 10);
-        Assert.Equal(3f, simulation.Gambits.Data.AgeScoreMultipliers[gambitSlot]);
+        Assert.Equal(FixedScalar.FromSingle(3f), simulation.Gambits.Data.AgeScoreMultipliers[gambitSlot]);
 
-        simulation.World.CullRelationship(war1, tick: 20);
-        simulation.World.CullRelationship(war2, tick: 20);
+        simulation.CullRelationship(war1, tick: 20);
+        simulation.CullRelationship(war2, tick: 20);
         simulation.WorldBeats.Tick(simulation, tick: 30);
-        Assert.Equal(1f, simulation.Gambits.Data.AgeScoreMultipliers[gambitSlot]);
+        Assert.Equal(FixedScalar.FromSingle(1f), simulation.Gambits.Data.AgeScoreMultipliers[gambitSlot]);
     }
 
     private static void DefineFallbackAge(Simulation simulation) =>
@@ -144,13 +146,13 @@ public sealed class WorldBeatsProgramRuntimeTests
             age,
             WorldBeatFactCodes.LivingRelationshipsOfKind,
             WorldBeatComparatorCodes.AtLeast,
-            value: 2f,
+            value: FixedScalar.FromSingle(2f),
             paramId: WarRel);
         simulation.WorldBeats.AddCloseCondition(
             age,
             WorldBeatFactCodes.LivingRelationshipsOfKind,
             WorldBeatComparatorCodes.Below,
-            value: 2f,
+            value: FixedScalar.FromSingle(2f),
             paramId: WarRel);
         return age;
     }

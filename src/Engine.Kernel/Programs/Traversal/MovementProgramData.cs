@@ -7,50 +7,51 @@ internal sealed partial class MovementProgramData : IKernelProgramData
 
     private const int DefaultMovementProfileId = 1;
     private readonly PrimitiveIntTable _defaultMovementProfiles;
-    private readonly int[] _subtypeProfileKindIds;
-    private readonly int[] _subtypeProfileSubtypeIds;
-    private readonly int[] _subtypeProfilePlaneCodes;
-    private readonly int[] _subtypeProfileIds;
+    private readonly PrimitiveIntTable _subtypeMovementProfiles;
     private readonly int[] _traitProfileKindIds;
     private readonly int[] _traitProfileTraitIds;
     private readonly int[] _traitProfilePlaneCodes;
     private readonly int[] _traitProfileIds;
+    private readonly int[] _firstTraitProfileByKind;
+    private readonly int[] _lastTraitProfileByKind;
+    private readonly int[] _nextTraitProfileByKind;
     private readonly PrimitiveIntTable _travelStructurePlaneCodes;
-    private readonly PrimitiveFloatTable _travelStructureProfileCosts;
-    private int _subtypeProfileRuleCount;
+    private readonly PrimitiveScalarTable _travelStructureProfileCosts;
     private int _traitProfileRuleCount;
 
     public MovementProgramData(
         int profileRuleCapacity = 256,
-        float roadBuildPerTravel = 1f,
-        float roadDecayPerTick = 0.9995f)
+        FixedScalar? roadBuildPerTravel = null,
+        FixedScalar? roadDecayPerTick = null,
+        int kindCapacity = 256)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(profileRuleCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(profileRuleCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(kindCapacity);
         _defaultMovementProfiles = new PrimitiveIntTable(profileRuleCapacity);
-        _subtypeProfileKindIds = new int[profileRuleCapacity + 1];
-        _subtypeProfileSubtypeIds = new int[profileRuleCapacity + 1];
-        _subtypeProfilePlaneCodes = new int[profileRuleCapacity + 1];
-        _subtypeProfileIds = new int[profileRuleCapacity + 1];
+        _subtypeMovementProfiles = new PrimitiveIntTable(profileRuleCapacity);
         _traitProfileKindIds = new int[profileRuleCapacity + 1];
         _traitProfileTraitIds = new int[profileRuleCapacity + 1];
         _traitProfilePlaneCodes = new int[profileRuleCapacity + 1];
         _traitProfileIds = new int[profileRuleCapacity + 1];
+        _firstTraitProfileByKind = new int[kindCapacity + 1];
+        _lastTraitProfileByKind = new int[kindCapacity + 1];
+        _nextTraitProfileByKind = new int[profileRuleCapacity + 1];
         _travelStructurePlaneCodes = new PrimitiveIntTable(profileRuleCapacity);
-        _travelStructureProfileCosts = new PrimitiveFloatTable(profileRuleCapacity);
-        RoadBuildPerTravel = roadBuildPerTravel;
-        RoadDecayPerTick = roadDecayPerTick;
+        _travelStructureProfileCosts = new PrimitiveScalarTable(profileRuleCapacity);
+        RoadBuildPerTravel = roadBuildPerTravel ?? FixedScalar.One;
+        RoadDecayPerTick = roadDecayPerTick ?? FixedScalar.FromUnits(999_500L);
     }
 
     public int ProgramId => KernelProgramCodes.Movement;
 
-    public int SchemaVersion => 3;
+    public int SchemaVersion => 4;
 
-    public float RoadBuildPerTravel { get; set; }
+    public FixedScalar RoadBuildPerTravel { get; set; }
 
     /// <summary>Step-cost multiplier per unit of hex roughness (0 disables).</summary>
-    public float RoughnessCostWeight { get; set; }
+    public FixedScalar RoughnessCostWeight { get; set; }
 
-    public float RoadDecayPerTick { get; set; }
+    public FixedScalar RoadDecayPerTick { get; set; }
 
     public void RegisterDefaultMovementProfile(
         int kindId,
@@ -68,17 +69,8 @@ internal sealed partial class MovementProgramData : IKernelProgramData
         int movementProfileId)
     {
         ValidateMovementProfileRule(kindId, planeCode, movementProfileId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(subtypeId);
-        if (_subtypeProfileRuleCount + 1 >= _subtypeProfileKindIds.Length)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _subtypeProfileRuleCount++;
-        _subtypeProfileKindIds[_subtypeProfileRuleCount] = kindId;
-        _subtypeProfileSubtypeIds[_subtypeProfileRuleCount] = subtypeId;
-        _subtypeProfilePlaneCodes[_subtypeProfileRuleCount] = planeCode;
-        _subtypeProfileIds[_subtypeProfileRuleCount] = movementProfileId;
+        NumericGuard.ThrowIfNegativeOrZero(subtypeId);
+        _subtypeMovementProfiles.Set(kindId, SubtypeProfileKey(subtypeId, planeCode), movementProfileId);
     }
 
     public void RegisterTraitMovementProfile(
@@ -88,7 +80,7 @@ internal sealed partial class MovementProgramData : IKernelProgramData
         int movementProfileId)
     {
         ValidateMovementProfileRule(kindId, planeCode, movementProfileId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(traitId);
+        NumericGuard.ThrowIfNegativeOrZero(traitId);
         if (_traitProfileRuleCount + 1 >= _traitProfileKindIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -99,13 +91,14 @@ internal sealed partial class MovementProgramData : IKernelProgramData
         _traitProfileTraitIds[_traitProfileRuleCount] = traitId;
         _traitProfilePlaneCodes[_traitProfileRuleCount] = planeCode;
         _traitProfileIds[_traitProfileRuleCount] = movementProfileId;
+        AppendTraitProfileIndex(kindId, _traitProfileRuleCount);
     }
 
     public void RegisterTravelStructure(
         int travelStructureId,
         int planeCode)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(travelStructureId);
+        NumericGuard.ThrowIfNegativeOrZero(travelStructureId);
         ValidatePlaneCode(planeCode);
         _travelStructurePlaneCodes.Set(travelStructureId, 0, planeCode);
     }
@@ -113,14 +106,14 @@ internal sealed partial class MovementProgramData : IKernelProgramData
     public void RegisterTravelStructureMovementProfile(
         int travelStructureId,
         int movementProfileId,
-        float movementCost)
+        FixedScalar movementCost)
     {
         EnsureTravelStructureRegistered(travelStructureId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(movementProfileId);
+        NumericGuard.ThrowIfNegativeOrZero(movementProfileId);
         _travelStructureProfileCosts.Set(
             travelStructureId,
             movementProfileId,
-            movementCost < 0f ? 0f : movementCost);
+            movementCost < 0 ? 0 : movementCost);
     }
 
     public bool TravelStructureRegistered(int travelStructureId)
@@ -135,16 +128,16 @@ internal sealed partial class MovementProgramData : IKernelProgramData
         return _travelStructurePlaneCodes.GetOrDefault(travelStructureId, 0);
     }
 
-    public float TravelStructureCost(int travelStructureId, int planeCode, int movementProfileId)
+    public FixedScalar TravelStructureCost(int travelStructureId, int planeCode, int movementProfileId)
     {
         if (travelStructureId <= 0)
         {
-            return 0f;
+            return 0;
         }
 
         if (_travelStructurePlaneCodes.GetOrDefault(travelStructureId, 0) != planeCode)
         {
-            return 0f;
+            return 0;
         }
 
         return _travelStructureProfileCosts.GetOrDefault(travelStructureId, movementProfileId);
@@ -156,7 +149,9 @@ internal sealed partial class MovementProgramData : IKernelProgramData
         ValidatePlaneCode(planeCode);
         var kindId = world.EntityKindId(entityId);
         var profileId = MovementProfileFor(kindId, world.EntitySubtypeId(entityId), planeCode);
-        for (var rule = 1; rule <= _traitProfileRuleCount; rule++)
+        for (var rule = FirstTraitProfileForKind(kindId);
+             rule > 0;
+             rule = _nextTraitProfileByKind[rule])
         {
             if (_traitProfileKindIds[rule] == kindId &&
                 _traitProfilePlaneCodes[rule] == planeCode &&
@@ -171,7 +166,7 @@ internal sealed partial class MovementProgramData : IKernelProgramData
 
     private void EnsureTravelStructureRegistered(int travelStructureId)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(travelStructureId);
+        NumericGuard.ThrowIfNegativeOrZero(travelStructureId);
         if (!TravelStructureRegistered(travelStructureId))
         {
             throw new global::System.InvalidOperationException();
@@ -180,8 +175,8 @@ internal sealed partial class MovementProgramData : IKernelProgramData
 
     public int MovementProfileFor(int kindId, int subtypeId, int planeCode)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(kindId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(subtypeId);
+        NumericGuard.ThrowIfNegativeOrZero(kindId);
+        NumericGuard.ThrowIfNegative(subtypeId);
         ValidatePlaneCode(planeCode);
         var profileId = _defaultMovementProfiles.GetOrDefault(kindId, planeCode);
         if (profileId == 0)
@@ -189,23 +184,49 @@ internal sealed partial class MovementProgramData : IKernelProgramData
             profileId = DefaultMovementProfileId;
         }
 
-        for (var rule = 1; rule <= _subtypeProfileRuleCount; rule++)
+        var subtypeProfileId = _subtypeMovementProfiles.GetOrDefault(
+            kindId,
+            SubtypeProfileKey(subtypeId, planeCode));
+        if (subtypeProfileId > 0)
         {
-            if (_subtypeProfileKindIds[rule] == kindId &&
-                _subtypeProfileSubtypeIds[rule] == subtypeId &&
-                _subtypeProfilePlaneCodes[rule] == planeCode)
-            {
-                profileId = _subtypeProfileIds[rule];
-            }
+            profileId = subtypeProfileId;
         }
 
         return profileId;
     }
 
+    private int FirstTraitProfileForKind(int kindId) =>
+        (uint)kindId < (uint)_firstTraitProfileByKind.Length
+            ? _firstTraitProfileByKind[kindId]
+            : 0;
+
+    private void AppendTraitProfileIndex(int kindId, int rule)
+    {
+        if ((uint)kindId >= (uint)_firstTraitProfileByKind.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        var previous = _lastTraitProfileByKind[kindId];
+        if (previous > 0)
+        {
+            _nextTraitProfileByKind[previous] = rule;
+        }
+        else
+        {
+            _firstTraitProfileByKind[kindId] = rule;
+        }
+
+        _lastTraitProfileByKind[kindId] = rule;
+    }
+
+    private static int SubtypeProfileKey(int subtypeId, int planeCode) =>
+        checked((subtypeId << 2) | planeCode);
+
     private static void ValidateMovementProfileRule(int kindId, int planeCode, int movementProfileId)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(kindId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(movementProfileId);
+        NumericGuard.ThrowIfNegativeOrZero(kindId);
+        NumericGuard.ThrowIfNegativeOrZero(movementProfileId);
         ValidatePlaneCode(planeCode);
     }
 

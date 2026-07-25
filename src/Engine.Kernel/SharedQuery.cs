@@ -1,9 +1,8 @@
 namespace Engine.Kernel;
 
-internal delegate int QueryRecentActionCounter(int actorId, int actionId, int sinceTick);
 internal delegate int QueryEntityWorkTierReader(int entityId);
 
-internal delegate float QueryTravelCostReader(int fromEntityId, int toEntityId, int planeCode, int tick);
+internal delegate FixedScalar QueryTravelCostReader(int fromEntityId, int toEntityId, int planeCode, int tick);
 
 internal readonly struct QueryBinding
 {
@@ -16,7 +15,6 @@ internal readonly struct QueryBinding
         int targetOriginR = 0,
         int[]? refEntityIds = null,
         int refCount = 0,
-        QueryRecentActionCounter? recentActionCounter = null,
         QueryEntityWorkTierReader? entityWorkTierReader = null,
         QueryTravelCostReader? travelCostReader = null)
     {
@@ -28,7 +26,6 @@ internal readonly struct QueryBinding
         TargetOriginR = targetOriginR;
         RefEntityIds = refEntityIds;
         RefCount = refCount;
-        RecentActionCounter = recentActionCounter;
         EntityWorkTierReader = entityWorkTierReader;
         TravelCostReader = travelCostReader;
     }
@@ -48,8 +45,6 @@ internal readonly struct QueryBinding
     public int[]? RefEntityIds { get; }
 
     public int RefCount { get; }
-
-    public QueryRecentActionCounter? RecentActionCounter { get; }
 
     public QueryEntityWorkTierReader? EntityWorkTierReader { get; }
 
@@ -73,23 +68,20 @@ internal readonly struct QueryBinding
         return false;
     }
 
-    public int RecentActionCount(int sinceTick) =>
-        RecentActionCounter is null ? 0 : RecentActionCounter(ActorId, ActionId, sinceTick);
-
     public int EntityWorkTier(int entityId) =>
         EntityWorkTierReader is null ? 0 : EntityWorkTierReader(entityId);
 
     // No reader means reach cannot be evaluated here; a travel-reach gate
     // conservatively fails rather than passing an unbounded route.
-    public float TravelCost(int fromEntityId, int toEntityId, int planeCode, int tick) =>
+    public FixedScalar TravelCost(int fromEntityId, int toEntityId, int planeCode, int tick) =>
         TravelCostReader is null
-            ? float.PositiveInfinity
+            ? FixedScalar.PositiveInfinity
             : TravelCostReader(fromEntityId, toEntityId, planeCode, tick);
 }
 
 internal readonly struct QueryPredicate
 {
-    public QueryPredicate(int code, int a = 0, int b = 0, int c = 0, int d = 0, float x = 0f, float y = 0f)
+    public QueryPredicate(int code, int a = 0, int b = 0, int c = 0, int d = 0, FixedScalar x = default, FixedScalar y = default)
     {
         Code = code;
         A = a;
@@ -110,9 +102,9 @@ internal readonly struct QueryPredicate
 
     public int D { get; }
 
-    public float X { get; }
+    public FixedScalar X { get; }
 
-    public float Y { get; }
+    public FixedScalar Y { get; }
 }
 
 internal readonly struct SharedQuery
@@ -134,7 +126,7 @@ internal readonly struct SharedQuery
         int cultureId = 0,
         int relatedToTargetKindId = 0,
         int relatedToTargetIncoming = 0,
-        float relatedToTargetMinStrength = 0f)
+        FixedScalar relatedToTargetMinStrength = default)
     {
         KindId = kindId;
         SubtypeIds = subtypeIds;
@@ -187,7 +179,7 @@ internal readonly struct SharedQuery
 
     public int RelatedToTargetIncoming { get; }
 
-    public float RelatedToTargetMinStrength { get; }
+    public FixedScalar RelatedToTargetMinStrength { get; }
 }
 
 internal readonly struct QueryEvaluation

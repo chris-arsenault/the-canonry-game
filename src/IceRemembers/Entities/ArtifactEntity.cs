@@ -56,8 +56,8 @@ internal static class ArtifactEntity
         // A lying relic is quiet ground, not a beacon: no attractor pull and
         // only a whisper of support, so a pile of resting artifacts cannot
         // recruit more artifacts, monsters, or placement toward itself.
-        MapSignal = MapSignal(radius: 1, capacity: 0.1f, support: 0.15f, threat: 0.2f,
-            baseMass: 6f, coverageScale: 0f, influenceScale: 0.04f, activityScale: 0.04f,
+        Locality = Locality(radius: 1, capacity: 0.1f, support: 0.15f, threat: 0.2f,
+            baseMass: 6f, coverageScale: 0f, influenceScale: 0.04f,
             healthScale: 0.08f, attractorRadius: 0),
         MovementProfiles = MovementProfiles(
             physicalDefault: Profile.Trail,

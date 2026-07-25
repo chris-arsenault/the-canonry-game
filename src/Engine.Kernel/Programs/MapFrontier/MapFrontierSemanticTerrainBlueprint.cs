@@ -23,7 +23,7 @@ internal sealed partial class MapFrontierProgramData
 
     internal void BeginSemanticBlueprintInstall(int radius)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(radius);
+        NumericGuard.ThrowIfNegative(radius);
         if (radius > _semanticBlueprintRadiusCapacity || _semanticBlueprintRadius != 0)
         {
             throw new global::System.InvalidOperationException();

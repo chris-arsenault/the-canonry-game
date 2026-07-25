@@ -8,7 +8,7 @@ internal sealed partial class GambitProgramData : IKernelProgramData
     internal int[] GambitIds = [];
     internal int[] GambitCooldownTicks = [];
     internal int[] GambitEntityCooldownTicks = [];
-    internal float[] GambitSuccessChances = [];
+    internal FixedScalar[] GambitSuccessChances = [];
     internal int[] GambitTargetKindIds = [];
     internal int[] GambitTargetModes = [];
     internal int[] GambitPreconditionStarts = [];
@@ -25,35 +25,35 @@ internal sealed partial class GambitProgramData : IKernelProgramData
     internal int[] PreB = [];
     internal int[] PreC = [];
     internal int[] PreD = [];
-    internal float[] PreX = [];
-    internal float[] PreY = [];
+    internal FixedScalar[] PreX = [];
+    internal FixedScalar[] PreY = [];
     internal int[] ExpressionCodes = [];
     internal int[] ExpressionA = [];
-    internal float[] ExpressionX = [];
+    internal FixedScalar[] ExpressionX = [];
     internal int[] StepOperationCodes = [];
     internal int[] StepA = [];
     internal int[] StepB = [];
     internal int[] StepC = [];
     internal int[] StepD = [];
-    internal float[] StepX = [];
-    internal float[] StepY = [];
+    internal FixedScalar[] StepX = [];
+    internal FixedScalar[] StepY = [];
     internal int[] StepExpressionStarts = [];
     internal int[] StepExpressionCounts = [];
     internal int[] MutationExpressionCodes = [];
     internal int[] MutationExpressionA = [];
-    internal float[] MutationExpressionX = [];
+    internal FixedScalar[] MutationExpressionX = [];
     internal int[] ProviderSelectorCodes = [];
     internal int[] ProviderSelectorKindIds = [];
     internal int[] ProviderSelectorValueIds = [];
     internal int[] ProviderSelectorRelationshipKindIds = [];
-    internal float[] ProviderSelectorMinimumStrengths = [];
+    internal FixedScalar[] ProviderSelectorMinimumStrengths = [];
     internal int[] TraitModifierGambitIds = [];
     internal int[] TraitModifierTraitIds = [];
     internal int[] TraitModifierBearerCodes = [];
-    internal float[] TraitModifierScoreDeltas = [];
-    internal float[] TraitModifierSuccessChanceDeltas = [];
-    internal float[] AgeScoreMultipliers = [];
-    internal float[] AgeSuccessMultipliers = [];
+    internal FixedScalar[] TraitModifierScoreDeltas = [];
+    internal FixedScalar[] TraitModifierSuccessChanceDeltas = [];
+    internal FixedScalar[] AgeScoreMultipliers = [];
+    internal FixedScalar[] AgeSuccessMultipliers = [];
     internal int GambitCount;
     internal int PreconditionCount;
     internal int ExpressionCount;
@@ -68,9 +68,9 @@ internal sealed partial class GambitProgramData : IKernelProgramData
         int stepCapacity,
         int gambitProviderSelectorCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(gambitCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(stepCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(gambitProviderSelectorCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(gambitCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(stepCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(gambitProviderSelectorCapacity);
         InitializeGambitArrays(gambitCapacity);
         InitializeStepArrays(stepCapacity);
         InitializeProviderSelectorArrays(gambitProviderSelectorCapacity);
@@ -80,13 +80,13 @@ internal sealed partial class GambitProgramData : IKernelProgramData
     {
         GambitKindIds = new int[gambitCapacity + 1];
         GambitIds = new int[gambitCapacity + 1];
-        AgeScoreMultipliers = new float[gambitCapacity + 1];
-        global::System.Array.Fill(AgeScoreMultipliers, 1f);
+        AgeScoreMultipliers = new FixedScalar[gambitCapacity + 1];
+        global::System.Array.Fill(AgeScoreMultipliers, 1);
         GambitCooldownTicks = new int[gambitCapacity + 1];
         GambitEntityCooldownTicks = new int[gambitCapacity + 1];
-        GambitSuccessChances = new float[gambitCapacity + 1];
-        AgeSuccessMultipliers = new float[gambitCapacity + 1];
-        global::System.Array.Fill(AgeSuccessMultipliers, 1f);
+        GambitSuccessChances = new FixedScalar[gambitCapacity + 1];
+        AgeSuccessMultipliers = new FixedScalar[gambitCapacity + 1];
+        global::System.Array.Fill(AgeSuccessMultipliers, 1);
         GambitTargetKindIds = new int[gambitCapacity + 1];
         GambitTargetModes = new int[gambitCapacity + 1];
         GambitPreconditionStarts = new int[gambitCapacity + 1];
@@ -107,28 +107,28 @@ internal sealed partial class GambitProgramData : IKernelProgramData
         PreB = new int[stepCapacity + 1];
         PreC = new int[stepCapacity + 1];
         PreD = new int[stepCapacity + 1];
-        PreX = new float[stepCapacity + 1];
-        PreY = new float[stepCapacity + 1];
+        PreX = new FixedScalar[stepCapacity + 1];
+        PreY = new FixedScalar[stepCapacity + 1];
         ExpressionCodes = new int[stepCapacity + 1];
         ExpressionA = new int[stepCapacity + 1];
-        ExpressionX = new float[stepCapacity + 1];
+        ExpressionX = new FixedScalar[stepCapacity + 1];
         StepOperationCodes = new int[stepCapacity + 1];
         StepA = new int[stepCapacity + 1];
         StepB = new int[stepCapacity + 1];
         StepC = new int[stepCapacity + 1];
         StepD = new int[stepCapacity + 1];
-        StepX = new float[stepCapacity + 1];
-        StepY = new float[stepCapacity + 1];
+        StepX = new FixedScalar[stepCapacity + 1];
+        StepY = new FixedScalar[stepCapacity + 1];
         StepExpressionStarts = new int[stepCapacity + 1];
         StepExpressionCounts = new int[stepCapacity + 1];
         MutationExpressionCodes = new int[stepCapacity + 1];
         MutationExpressionA = new int[stepCapacity + 1];
-        MutationExpressionX = new float[stepCapacity + 1];
+        MutationExpressionX = new FixedScalar[stepCapacity + 1];
         TraitModifierGambitIds = new int[stepCapacity + 1];
         TraitModifierTraitIds = new int[stepCapacity + 1];
         TraitModifierBearerCodes = new int[stepCapacity + 1];
-        TraitModifierScoreDeltas = new float[stepCapacity + 1];
-        TraitModifierSuccessChanceDeltas = new float[stepCapacity + 1];
+        TraitModifierScoreDeltas = new FixedScalar[stepCapacity + 1];
+        TraitModifierSuccessChanceDeltas = new FixedScalar[stepCapacity + 1];
     }
 
     private void InitializeProviderSelectorArrays(int gambitProviderSelectorCapacity)
@@ -137,7 +137,7 @@ internal sealed partial class GambitProgramData : IKernelProgramData
         ProviderSelectorKindIds = new int[gambitProviderSelectorCapacity + 1];
         ProviderSelectorValueIds = new int[gambitProviderSelectorCapacity + 1];
         ProviderSelectorRelationshipKindIds = new int[gambitProviderSelectorCapacity + 1];
-        ProviderSelectorMinimumStrengths = new float[gambitProviderSelectorCapacity + 1];
+        ProviderSelectorMinimumStrengths = new FixedScalar[gambitProviderSelectorCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.Gambits;

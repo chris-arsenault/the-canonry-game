@@ -35,7 +35,9 @@ Each entry should include:
 Kernel events are primitive and no-string. Human-readable event text is produced
 by projection code after joining against symbol tables.
 
-Provenance projection is also primitive: it indexes invocations, outputs,
-parents, and trigger evidence without naming domain chains. Curated chronicle
-chains are authored in domain config, compiled to runtime IDs, and interpreted
-by the game layer against that generic provenance read model.
+Provenance is streamed rather than retained as completed kernel tables.
+Mutation events carry their invocation token; the completion event carries the
+producer, parent, trigger evidence, and output count. The provenance projection
+indexes that stream without naming domain chains. Curated chronicle chains are
+authored in domain config, compiled to runtime IDs, and interpreted by the game
+layer against that external read model.

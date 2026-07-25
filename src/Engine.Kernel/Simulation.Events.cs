@@ -1,5 +1,6 @@
 namespace Engine.Kernel;
 
+using Engine.Constants;
 using Engine.Eventing;
 
 internal sealed partial class Simulation
@@ -131,7 +132,7 @@ internal sealed partial class Simulation
         int roleEntityId1,
         int roleEntityId2,
         int roleEntityId3,
-        float heat)
+        FixedScalar heat)
     {
         WriteKernelEvent(KernelEvent.From(new ChronicleChangedKernelEvent(
             tick,
@@ -145,7 +146,7 @@ internal sealed partial class Simulation
             roleEntityId1,
             roleEntityId2,
             roleEntityId3,
-            heat)));
+            heat.Units)));
     }
 
     internal void EmitGeneratorTargetEvaluated(
@@ -166,16 +167,10 @@ internal sealed partial class Simulation
         int physicalCellKindCode,
         int semanticFieldBandCode,
         int semanticCellKindCode,
-        float physicalLocalRawMass,
-        float physicalConnectedRawMass,
-        float semanticLocalRawMass,
-        float semanticConnectedRawMass,
-        int physicalComponentId,
-        int physicalComponentCellCount,
-        float physicalComponentRawMass,
-        int semanticComponentId,
-        int semanticComponentCellCount,
-        float semanticComponentRawMass)
+        FixedScalar physicalLocalRawMass,
+        FixedScalar physicalConnectedRawMass,
+        FixedScalar semanticLocalRawMass,
+        FixedScalar semanticConnectedRawMass)
     {
         WriteKernelEvent(KernelEvent.From(new GeneratorTargetEvaluatedKernelEvent(
             tick,
@@ -196,16 +191,10 @@ internal sealed partial class Simulation
             physicalCellKindCode,
             semanticFieldBandCode,
             semanticCellKindCode,
-            physicalLocalRawMass,
-            physicalConnectedRawMass,
-            semanticLocalRawMass,
-            semanticConnectedRawMass,
-            physicalComponentId,
-            physicalComponentCellCount,
-            semanticComponentId,
-            semanticComponentCellCount,
-            physicalComponentRawMass,
-            semanticComponentRawMass)));
+            physicalLocalRawMass.Units,
+            physicalConnectedRawMass.Units,
+            semanticLocalRawMass.Units,
+            semanticConnectedRawMass.Units)));
     }
 
     internal void EmitProvenanceInvocationRecorded(
@@ -239,8 +228,8 @@ internal sealed partial class Simulation
         int planeCode,
         int q,
         int r,
-        float previousQuality,
-        float currentQuality,
+        FixedScalar previousQuality,
+        FixedScalar currentQuality,
         int travelCount)
     {
         WriteKernelEvent(KernelEvent.From(new CellRoadChangedKernelEvent(
@@ -251,8 +240,8 @@ internal sealed partial class Simulation
             r,
             _executionContext.SourceCodeId,
             travelCount,
-                previousQuality,
-                currentQuality)));
+                KernelFixedPoint.RoadQualityUnits(previousQuality),
+                KernelFixedPoint.RoadQualityUnits(currentQuality))));
     }
 
     internal void EmitCellTravelStructureChanged(
@@ -281,8 +270,8 @@ internal sealed partial class Simulation
         int polarityCode,
         int previousEntityId,
         int currentEntityId,
-        float previousScore,
-        float currentScore)
+        FixedScalar previousScore,
+        FixedScalar currentScore)
     {
         WriteKernelEvent(KernelEvent.From(new CultureSlotOccupancyChangedKernelEvent(
             tick,
@@ -293,8 +282,8 @@ internal sealed partial class Simulation
             polarityCode,
             previousEntityId,
             currentEntityId,
-            previousScore,
-            currentScore)));
+            previousScore.Units,
+            currentScore.Units)));
     }
 
     internal void EmitMinorActorVerbExecuted(
@@ -314,10 +303,10 @@ internal sealed partial class Simulation
         int r,
         int statusCode,
         int cellKindCode,
-        float localRawMass,
-        float connectedRawMass,
-        float score,
-        float delta)
+        FixedScalar localRawMass,
+        FixedScalar connectedRawMass,
+        FixedScalar score,
+        FixedScalar delta)
     {
         WriteKernelEvent(KernelEvent.From(new MinorActorVerbExecutedKernelEvent(
             tick,
@@ -337,10 +326,10 @@ internal sealed partial class Simulation
             r,
             statusCode,
             cellKindCode,
-            localRawMass,
-            connectedRawMass,
-            score,
-            delta)));
+            localRawMass.Units,
+            connectedRawMass.Units,
+            score.Units,
+            delta.Units)));
     }
 
     internal bool TraceEnabled() => Options.TraceEnabled;
@@ -359,10 +348,10 @@ internal sealed partial class Simulation
         int effectKindId,
         int targetEntityId,
         int statusCode,
-        float urgency,
-        float rewardOrBaseScore,
-        float rawWeight,
-        float adjustedWeight,
+        FixedScalar urgency,
+        FixedScalar rewardOrBaseScore,
+        FixedScalar rawWeight,
+        FixedScalar adjustedWeight,
         int affordanceSourceKindCode = 0,
         int affordanceSourceId = 0,
         int affordanceShapeCode = 0,
@@ -373,8 +362,8 @@ internal sealed partial class Simulation
         int gambitAffordanceCount = 0,
         int hiddenAffordanceCount = 0,
         int selectionBucketCode = 0,
-        float affordanceScore = 0f,
-        float affordanceBonus = 0f)
+        FixedScalar affordanceScore = default,
+        FixedScalar affordanceBonus = default)
     {
         if (!TraceEnabled())
         {
@@ -406,12 +395,12 @@ internal sealed partial class Simulation
             gambitAffordanceCount,
             hiddenAffordanceCount,
             selectionBucketCode,
-            urgency,
-            rewardOrBaseScore,
-            rawWeight,
-            adjustedWeight,
-            affordanceScore,
-            affordanceBonus)));
+            urgency.Units,
+            rewardOrBaseScore.Units,
+            rawWeight.Units,
+            adjustedWeight.Units,
+            affordanceScore.Units,
+            affordanceBonus.Units)));
     }
 
     private void WriteTickCompleted()

@@ -1,5 +1,6 @@
 namespace Engine.Projection;
 
+using Engine.Constants;
 using Engine.Eventing;
 
 public sealed class ProvenanceProjection : KernelEventProjector
@@ -88,8 +89,8 @@ public sealed class ProvenanceProjection : KernelEventProjector
             evt.ChangeCodeId);
 
         if (!_relationshipCreatedByInvocation.ContainsKey(evt.RelationshipId) &&
-            evt.PreviousStrength <= 0f &&
-            evt.NewStrength > 0f)
+            evt.PreviousStrengthUnits <= 0 &&
+            evt.NewStrengthUnits > 0)
         {
             _relationshipCreatedByInvocation[evt.RelationshipId] = _currentInvocationId;
         }
@@ -101,8 +102,8 @@ public sealed class ProvenanceProjection : KernelEventProjector
             evt.PolarityCode,
             evt.SourceEntityId,
             evt.TargetEntityId,
-            evt.NewStrength,
-            evt.NewStrength > 0f);
+            KernelFixedPoint.RelationshipStrengthValue(evt.NewStrengthUnits),
+            evt.NewStrengthUnits > 0);
     }
 
     protected override void OnCellChanged(long sequence, in CellChangedKernelEvent evt)

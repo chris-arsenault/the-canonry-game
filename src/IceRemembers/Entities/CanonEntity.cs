@@ -38,8 +38,8 @@ internal static class CanonEntity
                 "Kept in word but not in spirit; threat effects erode the observance faster.",
                 TraitMapDelta(K.Canon, Attr.Observance, Effect.MapThreatAtLocation, -0.025f, 3f, PrimaryPlane.Semantic)),
         ],
-        MapSignal = MapSignal(radius: 2, capacity: 1.2f, support: 0.2f, threat: 0.2f,
-            baseMass: 4f, coverageScale: 0.08f, influenceScale: 0.03f, activityScale: 0.02f,
+        Locality = Locality(radius: 2, capacity: 1.2f, support: 0.2f, threat: 0.2f,
+            baseMass: 4f, coverageScale: 0.08f, influenceScale: 0.03f,
             healthScale: 0.03f, attractorRadius: 2),
         MovementProfiles = MovementProfiles(
             physicalDefault: Profile.Trail,

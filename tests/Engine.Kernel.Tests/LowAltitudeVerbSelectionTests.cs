@@ -24,7 +24,7 @@ public sealed class LowAltitudeVerbSelectionTests
         var simulation = NewSimulation(seed: 11);
         SeedNeighborhood(simulation);
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
-        RegisterExploreVerb(simulation, verbId: 200, weight: 1f);
+        RegisterExploreVerb(simulation, verbId: 200, weight: FixedScalar.FromSingle(1f));
 
         // Advance well past at least one commitment window so the ring has been pushed to.
         simulation.AdvanceTicks(40);
@@ -44,7 +44,7 @@ public sealed class LowAltitudeVerbSelectionTests
         SeedNeighborhood(simulation);
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         var targetEntityId = simulation.CreateEntity(TargetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
-        RegisterEntityKindVerb(simulation, verbId: 201, targetKindId: TargetKindId, weight: 1f);
+        RegisterEntityKindVerb(simulation, verbId: 201, targetKindId: TargetKindId, weight: FixedScalar.FromSingle(1f));
 
         simulation.AdvanceTicks(1);
         Assert.Equal(targetEntityId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
@@ -101,12 +101,12 @@ public sealed class LowAltitudeVerbSelectionTests
     {
         // We construct a scenario where there are two equal targets and the recently-visited
         // one should be effectively excluded by the recency multiplier.
-        var simulation = NewSimulation(seed: 14, opportunityRate: 0f);
+        var simulation = NewSimulation(seed: 14, opportunityRate: FixedScalar.FromSingle(0f));
         SeedNeighborhood(simulation);
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         var freshTargetId = simulation.CreateEntity(TargetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
         var recentlyVisitedId = simulation.CreateEntity(TargetKindId, 1, 1, -1, 0, 0, 0, 0, 0);
-        RegisterEntityKindVerb(simulation, verbId: 202, targetKindId: TargetKindId, weight: 1f);
+        RegisterEntityKindVerb(simulation, verbId: 202, targetKindId: TargetKindId, weight: FixedScalar.FromSingle(1f));
 
         // Mark recentlyVisited as just-completed to fully suppress its score.
         simulation.LowAltitudeVerbs.State.PushRecentTarget(
@@ -122,7 +122,7 @@ public sealed class LowAltitudeVerbSelectionTests
     [Fact]
     public void OpportunityBucket_RoutesSelectionToVerbWithAffordancePressureWhenCoinHits()
     {
-        var simulation = NewSimulation(seed: 21, opportunityRate: 1f, opportunityBonus: 4f);
+        var simulation = NewSimulation(seed: 21, opportunityRate: FixedScalar.FromSingle(1f), opportunityBonus: FixedScalar.FromSingle(4f));
         SeedNeighborhood(simulation);
         const int neutralVerbId = 210;
         const int hotVerbId = 211;
@@ -132,8 +132,8 @@ public sealed class LowAltitudeVerbSelectionTests
         var hotTargetId = simulation.CreateEntity(hotTargetKindId, 1, 1, -1, 0, 0, 0, 0, 0);
 
         // Two competing verbs: one has an active affordance row, one doesn't.
-        RegisterEntityKindVerb(simulation, verbId: neutralVerbId, targetKindId: TargetKindId, weight: 1f);
-        RegisterEntityKindVerb(simulation, verbId: hotVerbId, targetKindId: hotTargetKindId, weight: 1f);
+        RegisterEntityKindVerb(simulation, verbId: neutralVerbId, targetKindId: TargetKindId, weight: FixedScalar.FromSingle(1f));
+        RegisterEntityKindVerb(simulation, verbId: hotVerbId, targetKindId: hotTargetKindId, weight: FixedScalar.FromSingle(1f));
         simulation.LowAltitudeVerbs.RegisterAffordance(
             sourceKindCode: AffordanceSourceKindCodes.Generator,
             sourceId: 1,
@@ -145,8 +145,8 @@ public sealed class LowAltitudeVerbSelectionTests
             relationshipDirectionCode: 0,
             operationCode: 0,
             polarityCode: AffordancePolarityCodes.None,
-            threshold: 0f,
-            weight: 5f);
+            threshold: FixedScalar.FromSingle(0f),
+            weight: FixedScalar.FromSingle(5f));
 
         simulation.AdvanceTicks(1);
 
@@ -156,12 +156,12 @@ public sealed class LowAltitudeVerbSelectionTests
     [Fact]
     public void RoutineBucket_IsUsedWhenNoVerbHasAffordancePressure()
     {
-        var simulation = NewSimulation(seed: 22, opportunityRate: 1f);
+        var simulation = NewSimulation(seed: 22, opportunityRate: FixedScalar.FromSingle(1f));
         SeedNeighborhood(simulation);
         const int verbId = 220;
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         simulation.CreateEntity(TargetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
-        RegisterEntityKindVerb(simulation, verbId, targetKindId: TargetKindId, weight: 1f);
+        RegisterEntityKindVerb(simulation, verbId, targetKindId: TargetKindId, weight: FixedScalar.FromSingle(1f));
 
         simulation.AdvanceTicks(1);
 
@@ -174,12 +174,12 @@ public sealed class LowAltitudeVerbSelectionTests
     public void OpportunityBucket_FallsThroughToRoutineWhenZeroOpportunityVerbsExist()
     {
         // Forced opportunity coin but no affordance => routine bucket still used (no intent lost).
-        var simulation = NewSimulation(seed: 23, opportunityRate: 1f);
+        var simulation = NewSimulation(seed: 23, opportunityRate: FixedScalar.FromSingle(1f));
         SeedNeighborhood(simulation);
         const int verbId = 230;
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         simulation.CreateEntity(TargetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
-        RegisterEntityKindVerb(simulation, verbId, targetKindId: TargetKindId, weight: 1f);
+        RegisterEntityKindVerb(simulation, verbId, targetKindId: TargetKindId, weight: FixedScalar.FromSingle(1f));
 
         simulation.AdvanceTicks(1);
         Assert.True(simulation.LowAltitudeVerbs.State.ActiveVerbSlot(actorId) > 0);
@@ -190,18 +190,18 @@ public sealed class LowAltitudeVerbSelectionTests
     {
         // Single target with multiple matching rows; with opportunityRate=1 the verb must win,
         // and with overlap, the candidate's weight is positive (verifying score is computed).
-        var simulation = NewSimulation(seed: 31, opportunityRate: 1f, opportunityBonus: 10f);
+        var simulation = NewSimulation(seed: 31, opportunityRate: FixedScalar.FromSingle(1f), opportunityBonus: FixedScalar.FromSingle(10f));
         SeedNeighborhood(simulation);
         const int verbId = 310;
         const int hotKindId = 9;
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         var hotEntityId = simulation.CreateEntity(hotKindId, 1, 1, 1, 0, 0, 0, 0, 0);
-        RegisterEntityKindVerb(simulation, verbId, targetKindId: hotKindId, weight: 0.001f);
+        RegisterEntityKindVerb(simulation, verbId, targetKindId: hotKindId, weight: FixedScalar.FromSingle(0.001f));
 
         // Register two matching affordance rows on the same target. Diminishing-sum should still
         // direct the actor to the (only) candidate target.
-        AddPresenceAffordance(simulation, sourceId: 1, candidateKindId: hotKindId, weight: 3f);
-        AddPresenceAffordance(simulation, sourceId: 2, candidateKindId: hotKindId, weight: 3f);
+        AddPresenceAffordance(simulation, sourceId: 1, candidateKindId: hotKindId, weight: FixedScalar.FromSingle(3f));
+        AddPresenceAffordance(simulation, sourceId: 2, candidateKindId: hotKindId, weight: FixedScalar.FromSingle(3f));
 
         simulation.AdvanceTicks(1);
 
@@ -213,26 +213,26 @@ public sealed class LowAltitudeVerbSelectionTests
     {
         // PolarityCode=Strengthen with threshold=0.8 should rate a low-strength relationship target
         // higher than a high-strength one.
-        var simulation = NewSimulation(seed: 41, opportunityRate: 0f);
+        var simulation = NewSimulation(seed: 41, opportunityRate: FixedScalar.FromSingle(0f));
         SeedNeighborhood(simulation);
         const int verbId = 410;
         const int relKindId = 5;
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         var lowStrengthTargetId = simulation.CreateEntity(TargetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
         var highStrengthTargetId = simulation.CreateEntity(TargetKindId, 1, 1, -1, 0, 0, 0, 0, 0);
-        simulation.CreateRelationship(relKindId, RelationshipPolarityCodes.Positive, actorId, lowStrengthTargetId, 0.1f, tick: 0);
-        simulation.CreateRelationship(relKindId, RelationshipPolarityCodes.Positive, actorId, highStrengthTargetId, 1.0f, tick: 0);
+        simulation.CreateRelationship(relKindId, RelationshipPolarityCodes.Positive, actorId, lowStrengthTargetId, FixedScalar.FromSingle(0.1f), tick: 0);
+        simulation.CreateRelationship(relKindId, RelationshipPolarityCodes.Positive, actorId, highStrengthTargetId, FixedScalar.FromSingle(1.0f), tick: 0);
 
         RegisterEntityKindVerb(
             simulation,
             verbId,
             targetKindId: TargetKindId,
-            weight: 0.001f,
+            weight: FixedScalar.FromSingle(0.001f),
             fitnessRelationshipKindId: relKindId,
             fitnessRelationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Outgoing,
             fitnessPolarityCode: AffordancePolarityCodes.Strengthen,
-            fitnessThreshold: 0.8f,
-            fitnessWeight: 1000f);
+            fitnessThreshold: FixedScalar.FromSingle(0.8f),
+            fitnessWeight: FixedScalar.FromSingle(1000f));
 
         simulation.AdvanceTicks(1);
 
@@ -242,26 +242,26 @@ public sealed class LowAltitudeVerbSelectionTests
     [Fact]
     public void RelationshipFitness_SurplusRewardsHighStrength()
     {
-        var simulation = NewSimulation(seed: 42, opportunityRate: 0f);
+        var simulation = NewSimulation(seed: 42, opportunityRate: FixedScalar.FromSingle(0f));
         SeedNeighborhood(simulation);
         const int verbId = 420;
         const int relKindId = 6;
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         var lowStrengthTargetId = simulation.CreateEntity(TargetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
         var highStrengthTargetId = simulation.CreateEntity(TargetKindId, 1, 1, -1, 0, 0, 0, 0, 0);
-        simulation.CreateRelationship(relKindId, RelationshipPolarityCodes.Positive, actorId, lowStrengthTargetId, 0.1f, tick: 0);
-        simulation.CreateRelationship(relKindId, RelationshipPolarityCodes.Positive, actorId, highStrengthTargetId, 0.9f, tick: 0);
+        simulation.CreateRelationship(relKindId, RelationshipPolarityCodes.Positive, actorId, lowStrengthTargetId, FixedScalar.FromSingle(0.1f), tick: 0);
+        simulation.CreateRelationship(relKindId, RelationshipPolarityCodes.Positive, actorId, highStrengthTargetId, FixedScalar.FromSingle(0.9f), tick: 0);
 
         RegisterEntityKindVerb(
             simulation,
             verbId,
             targetKindId: TargetKindId,
-            weight: 0.001f,
+            weight: FixedScalar.FromSingle(0.001f),
             fitnessRelationshipKindId: relKindId,
             fitnessRelationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Outgoing,
             fitnessPolarityCode: AffordancePolarityCodes.Weaken,
-            fitnessThreshold: 0.5f,
-            fitnessWeight: 1000f);
+            fitnessThreshold: FixedScalar.FromSingle(0.5f),
+            fitnessWeight: FixedScalar.FromSingle(1000f));
 
         simulation.AdvanceTicks(1);
 
@@ -272,25 +272,25 @@ public sealed class LowAltitudeVerbSelectionTests
     public void RelationshipFitness_NonePolaritySimplyScalesByStrength()
     {
         // Backwards-compat shape: no polarity => higher strength wins (legacy semantics).
-        var simulation = NewSimulation(seed: 43, opportunityRate: 0f);
+        var simulation = NewSimulation(seed: 43, opportunityRate: FixedScalar.FromSingle(0f));
         SeedNeighborhood(simulation);
         const int verbId = 430;
         const int relKindId = 7;
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         var unrelatedTargetId = simulation.CreateEntity(TargetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
         var allyTargetId = simulation.CreateEntity(TargetKindId, 1, 1, -1, 0, 0, 0, 0, 0);
-        simulation.CreateRelationship(relKindId, RelationshipPolarityCodes.Positive, actorId, allyTargetId, 1.0f, tick: 0);
+        simulation.CreateRelationship(relKindId, RelationshipPolarityCodes.Positive, actorId, allyTargetId, FixedScalar.FromSingle(1.0f), tick: 0);
 
         RegisterEntityKindVerb(
             simulation,
             verbId,
             targetKindId: TargetKindId,
-            weight: 0.001f,
+            weight: FixedScalar.FromSingle(0.001f),
             fitnessRelationshipKindId: relKindId,
             fitnessRelationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Outgoing,
             fitnessPolarityCode: AffordancePolarityCodes.None,
-            fitnessThreshold: 0f,
-            fitnessWeight: 1000f);
+            fitnessThreshold: FixedScalar.FromSingle(0f),
+            fitnessWeight: FixedScalar.FromSingle(1000f));
 
         simulation.AdvanceTicks(1);
 
@@ -301,7 +301,7 @@ public sealed class LowAltitudeVerbSelectionTests
     [Fact]
     public void TraitWeightDelta_BoostsAuthoredVerbWeight()
     {
-        var simulation = NewSimulation(seed: 51, opportunityRate: 0f);
+        var simulation = NewSimulation(seed: 51, opportunityRate: FixedScalar.FromSingle(0f));
         SeedNeighborhood(simulation);
         const int wildernessVerbId = 510;
         const int settlementVerbId = 511;
@@ -313,16 +313,16 @@ public sealed class LowAltitudeVerbSelectionTests
         simulation.CreateEntity(settlementKindId, 1, 1, -1, 0, 0, 0, 0, 0);
 
         // Without trait: equal-weight rivals.
-        RegisterEntityKindVerb(simulation, wildernessVerbId, targetKindId: wildernessKindId, weight: 1f);
-        RegisterEntityKindVerb(simulation, settlementVerbId, targetKindId: settlementKindId, weight: 1f);
+        RegisterEntityKindVerb(simulation, wildernessVerbId, targetKindId: wildernessKindId, weight: FixedScalar.FromSingle(1f));
+        RegisterEntityKindVerb(simulation, settlementVerbId, targetKindId: settlementKindId, weight: FixedScalar.FromSingle(1f));
         // Trait massively boosts the wilderness verb's weight on the actor.
         simulation.LowAltitudeVerbs.RegisterTraitWeightModifier(
             ActorKindId,
             wildernessTraitId,
             wildernessVerbId,
-            weightDelta: 1000f,
-            opportunityBonusDelta: 0f,
-            fitnessWeightDelta: 0f);
+            weightDelta: FixedScalar.FromSingle(1000f),
+            opportunityBonusDelta: FixedScalar.FromSingle(0f),
+            fitnessWeightDelta: FixedScalar.FromSingle(0f));
         simulation.World.AddTrait(actorId, wildernessTraitId, tick: 0);
 
         simulation.AdvanceTicks(1);
@@ -333,20 +333,20 @@ public sealed class LowAltitudeVerbSelectionTests
     [Fact]
     public void TraitWeightDelta_DoesNotApplyWhenActorLacksTrait()
     {
-        var simulation = NewSimulation(seed: 52, opportunityRate: 0f);
+        var simulation = NewSimulation(seed: 52, opportunityRate: FixedScalar.FromSingle(0f));
         SeedNeighborhood(simulation);
         const int verbId = 520;
         const int traitId = 101;
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         simulation.CreateEntity(TargetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
-        RegisterEntityKindVerb(simulation, verbId, targetKindId: TargetKindId, weight: 1f);
+        RegisterEntityKindVerb(simulation, verbId, targetKindId: TargetKindId, weight: FixedScalar.FromSingle(1f));
         simulation.LowAltitudeVerbs.RegisterTraitWeightModifier(
             ActorKindId,
             traitId,
             verbId,
-            weightDelta: -1000f,
-            opportunityBonusDelta: 0f,
-            fitnessWeightDelta: 0f);
+            weightDelta: FixedScalar.FromSingle(-1000f),
+            opportunityBonusDelta: FixedScalar.FromSingle(0f),
+            fitnessWeightDelta: FixedScalar.FromSingle(0f));
 
         simulation.AdvanceTicks(1);
 
@@ -357,7 +357,7 @@ public sealed class LowAltitudeVerbSelectionTests
     [Fact]
     public void TraitOpportunityBonusDelta_BoostsAffordanceSensitivityForVerb()
     {
-        var simulation = NewSimulation(seed: 53, opportunityRate: 1f, opportunityBonus: 0f);
+        var simulation = NewSimulation(seed: 53, opportunityRate: FixedScalar.FromSingle(1f), opportunityBonus: FixedScalar.FromSingle(0f));
         SeedNeighborhood(simulation);
         const int hotVerbId = 530;
         const int neutralVerbId = 531;
@@ -367,17 +367,17 @@ public sealed class LowAltitudeVerbSelectionTests
         simulation.CreateEntity(TargetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
         var hotTargetId = simulation.CreateEntity(hotKindId, 1, 1, -1, 0, 0, 0, 0, 0);
 
-        RegisterEntityKindVerb(simulation, neutralVerbId, targetKindId: TargetKindId, weight: 1f);
-        RegisterEntityKindVerb(simulation, hotVerbId, targetKindId: hotKindId, weight: 1f);
-        AddPresenceAffordance(simulation, sourceId: 1, candidateKindId: hotKindId, weight: 1f);
+        RegisterEntityKindVerb(simulation, neutralVerbId, targetKindId: TargetKindId, weight: FixedScalar.FromSingle(1f));
+        RegisterEntityKindVerb(simulation, hotVerbId, targetKindId: hotKindId, weight: FixedScalar.FromSingle(1f));
+        AddPresenceAffordance(simulation, sourceId: 1, candidateKindId: hotKindId, weight: FixedScalar.FromSingle(1f));
         // Default opportunity bonus is 0 so no effect; trait raises it for the hot verb only.
         simulation.LowAltitudeVerbs.RegisterTraitWeightModifier(
             ActorKindId,
             traitId,
             hotVerbId,
-            weightDelta: 0f,
-            opportunityBonusDelta: 100f,
-            fitnessWeightDelta: 0f);
+            weightDelta: FixedScalar.FromSingle(0f),
+            opportunityBonusDelta: FixedScalar.FromSingle(100f),
+            fitnessWeightDelta: FixedScalar.FromSingle(0f));
         simulation.World.AddTrait(actorId, traitId, tick: 0);
 
         simulation.AdvanceTicks(1);
@@ -388,14 +388,14 @@ public sealed class LowAltitudeVerbSelectionTests
     [Fact]
     public void DistanceScoring_PrefersCloserTargetsAtSamePolarity()
     {
-        var simulation = NewSimulation(seed: 61, opportunityRate: 0f);
+        var simulation = NewSimulation(seed: 61, opportunityRate: FixedScalar.FromSingle(0f));
         SeedRadius2Neighborhood(simulation);
         const int verbId = 610;
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         var nearTargetId = simulation.CreateEntity(TargetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
         simulation.CreateEntity(TargetKindId, 1, 1, 2, 0, 0, 0, 0, 0);
         // Tighten the distance scale so close-vs-far is a sharp preference.
-        RegisterEntityKindVerb(simulation, verbId, targetKindId: TargetKindId, weight: 1f, distanceScaleOverride: 1f);
+        RegisterEntityKindVerb(simulation, verbId, targetKindId: TargetKindId, weight: FixedScalar.FromSingle(1f), distanceScaleOverride: FixedScalar.FromSingle(1f));
 
         simulation.AdvanceTicks(1);
 
@@ -405,7 +405,7 @@ public sealed class LowAltitudeVerbSelectionTests
     [Fact]
     public void TerrainCandidateSelection_DoesNotDependOnUniformRandomHit()
     {
-        var simulation = NewSimulation(seed: 1, opportunityRate: 0f);
+        var simulation = NewSimulation(seed: 1, opportunityRate: FixedScalar.FromSingle(0f));
         SeedRadius3NeighborhoodWithSpecialTerrain(simulation, specialQ: 3, specialR: 0, specialTerrainId: 2);
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         var slot = simulation.LowAltitudeVerbs.RegisterVerb(
@@ -422,9 +422,9 @@ public sealed class LowAltitudeVerbSelectionTests
             dwellTicks: 0,
             targetRadius: 0,
             candidateSampleCount: 1,
-            weight: 1f);
+            weight: FixedScalar.FromSingle(1f));
         simulation.LowAltitudeVerbs.AddTerrainFilter(slot, terrainId: 2);
-        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.MoveActor, 0, 0f);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.MoveActor, 0, FixedScalar.FromSingle(0f));
 
         simulation.AdvanceTicks(1);
 
@@ -432,48 +432,14 @@ public sealed class LowAltitudeVerbSelectionTests
     }
 
     [Fact]
-    public void MovementRouteCultureScoringReadsBoundaryProgramCache()
-    {
-        var simulation = NewSimulation(seed: 2, opportunityRate: 0f);
-        SeedNeighborhood(simulation);
-        var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
-        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 1, 0, WorldState.CultureControlledRawMass, tick: 0);
-        var slot = simulation.LowAltitudeVerbs.RegisterVerb(
-            ActorKindId,
-            verbId: 811,
-            PlaneCodes.Physical,
-            ProgramOpcodeCodes.MoveActor,
-            TargetSelectorCodes.Explore,
-            targetKindId: 0,
-            relationshipKindId: 0,
-            relationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Either,
-            minCommitmentTicks: 5,
-            maxCommitmentTicks: 5,
-            dwellTicks: 0,
-            targetRadius: 0,
-            candidateSampleCount: 8,
-            weight: 1f,
-            influenceDelta: 1f,
-            influenceRadius: 0);
-        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.MoveActor, 0, 0f);
-
-        Assert.Equal(0, simulation.CultureBoundaries.RebuildCount);
-
-        simulation.AdvanceTicks(1);
-
-        Assert.True(simulation.LowAltitudeVerbs.State.ActiveVerbSlot(actorId) > 0);
-        Assert.True(simulation.CultureBoundaries.RebuildCount > 0);
-    }
-
-    [Fact]
     public void OwnInfluenceCandidateSelection_DoesNotDependOnUniformRandomHit()
     {
-        var simulation = NewSimulation(seed: 1, opportunityRate: 0f);
+        var simulation = NewSimulation(seed: 1, opportunityRate: FixedScalar.FromSingle(0f));
         SeedRadius3Neighborhood(simulation);
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
         {
-            simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 3, 0, 15f, tick: 0);
+            simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 3, 0, FixedScalar.FromSingle(15f), tick: 0);
         }
 
         var slot = simulation.LowAltitudeVerbs.RegisterVerb(
@@ -490,10 +456,10 @@ public sealed class LowAltitudeVerbSelectionTests
             dwellTicks: 0,
             targetRadius: 0,
             candidateSampleCount: 1,
-            weight: 1f,
-            influenceDelta: 1f,
+            weight: FixedScalar.FromSingle(1f),
+            influenceDelta: FixedScalar.FromSingle(1f),
             influenceRadius: 0);
-        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.AddOwnedCellScalar, 0, 0f);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.AddOwnedCellScalar, 0, FixedScalar.FromSingle(0f));
 
         simulation.AdvanceTicks(1);
 
@@ -505,12 +471,12 @@ public sealed class LowAltitudeVerbSelectionTests
     [Fact]
     public void OwnInfluenceCandidateSelection_CanTargetAdjacentCulturalFrontier()
     {
-        var simulation = NewSimulation(seed: 2, opportunityRate: 0f);
+        var simulation = NewSimulation(seed: 2, opportunityRate: FixedScalar.FromSingle(0f));
         SeedRadius3Neighborhood(simulation);
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
         {
-            simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+            simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(100f), tick: 0);
         }
 
         var slot = simulation.LowAltitudeVerbs.RegisterVerb(
@@ -527,10 +493,10 @@ public sealed class LowAltitudeVerbSelectionTests
             dwellTicks: 0,
             targetRadius: 0,
             candidateSampleCount: 1,
-            weight: 1f,
-            influenceDelta: 1f,
+            weight: FixedScalar.FromSingle(1f),
+            influenceDelta: FixedScalar.FromSingle(1f),
             influenceRadius: 0);
-        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.AddOwnedCellScalar, 0, 0f);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.AddOwnedCellScalar, 0, FixedScalar.FromSingle(0f));
 
         simulation.AdvanceTicks(1);
 
@@ -542,12 +508,12 @@ public sealed class LowAltitudeVerbSelectionTests
     [Fact]
     public void OwnInfluenceCandidateSelection_ReinforcementStaysOnExistingCultureMass()
     {
-        var simulation = NewSimulation(seed: 3, opportunityRate: 0f);
+        var simulation = NewSimulation(seed: 3, opportunityRate: FixedScalar.FromSingle(0f));
         SeedRadius3Neighborhood(simulation);
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
         {
-            simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, 15f, tick: 0);
+            simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(15f), tick: 0);
         }
 
         var slot = simulation.LowAltitudeVerbs.RegisterVerb(
@@ -564,11 +530,11 @@ public sealed class LowAltitudeVerbSelectionTests
             dwellTicks: 0,
             targetRadius: 0,
             candidateSampleCount: 1,
-            weight: 1f,
-            influenceDelta: 1f,
+            weight: FixedScalar.FromSingle(1f),
+            influenceDelta: FixedScalar.FromSingle(1f),
             influenceRadius: 0,
             influenceTargetingCode: LowAltitudeInfluenceTargetingCodes.Reinforce);
-        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.AddOwnedCellScalar, 0, 0f);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.AddOwnedCellScalar, 0, FixedScalar.FromSingle(0f));
 
         simulation.AdvanceTicks(1);
 
@@ -578,12 +544,12 @@ public sealed class LowAltitudeVerbSelectionTests
     [Fact]
     public void OwnInfluenceCandidateSelection_SpreadIgnoresUnsupportedTraceInfluence()
     {
-        var simulation = NewSimulation(seed: 4, opportunityRate: 0f);
+        var simulation = NewSimulation(seed: 4, opportunityRate: FixedScalar.FromSingle(0f));
         SeedRadius3Neighborhood(simulation);
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
         {
-            simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 1, 0, 0.6f, tick: 0);
+            simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(0.6f), tick: 0);
         }
 
         var slot = simulation.LowAltitudeVerbs.RegisterVerb(
@@ -600,11 +566,11 @@ public sealed class LowAltitudeVerbSelectionTests
             dwellTicks: 0,
             targetRadius: 0,
             candidateSampleCount: 1,
-            weight: 1f,
-            influenceDelta: 1f,
+            weight: FixedScalar.FromSingle(1f),
+            influenceDelta: FixedScalar.FromSingle(1f),
             influenceRadius: 0,
             influenceTargetingCode: LowAltitudeInfluenceTargetingCodes.Spread);
-        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.AddOwnedCellScalar, 0, 0f);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.AddOwnedCellScalar, 0, FixedScalar.FromSingle(0f));
 
         simulation.AdvanceTicks(1);
 
@@ -614,14 +580,14 @@ public sealed class LowAltitudeVerbSelectionTests
     [Fact]
     public void ForeignInfluenceCandidateSelection_DoesNotDependOnUniformRandomHit()
     {
-        var simulation = NewSimulation(seed: 1, opportunityRate: 0f);
+        var simulation = NewSimulation(seed: 1, opportunityRate: FixedScalar.FromSingle(0f));
         SeedRadius3Neighborhood(simulation);
         var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         var influencerId = simulation.CreateEntity(TargetKindId, 1, 2, 1, 0, 0, 0, 0, 0);
         using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
         {
-            simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 2, 0, 30f, tick: 0);
-            simulation.SetCellInfluence(influencerId, PlaneCodes.Physical, 3, 0, 40f, tick: 0);
+            simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 2, 0, FixedScalar.FromSingle(30f), tick: 0);
+            simulation.SetCellInfluence(influencerId, PlaneCodes.Physical, 3, 0, FixedScalar.FromSingle(40f), tick: 0);
         }
 
         var slot = simulation.LowAltitudeVerbs.RegisterVerb(
@@ -638,10 +604,10 @@ public sealed class LowAltitudeVerbSelectionTests
             dwellTicks: 0,
             targetRadius: 0,
             candidateSampleCount: 1,
-            weight: 1f,
-            influenceDelta: 1f,
+            weight: FixedScalar.FromSingle(1f),
+            influenceDelta: FixedScalar.FromSingle(1f),
             influenceRadius: 0);
-        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.SubtractOtherCellScalar, 0, 0f);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.SubtractOtherCellScalar, 0, FixedScalar.FromSingle(0f));
 
         simulation.AdvanceTicks(1);
 
@@ -667,9 +633,9 @@ public sealed class LowAltitudeVerbSelectionTests
             simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
             simulation.CreateEntity(TargetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
             simulation.CreateEntity(hotKindId, 1, 1, -1, 0, 0, 0, 0, 0);
-            RegisterEntityKindVerb(simulation, verbId: 701, targetKindId: TargetKindId, weight: 1f);
-            RegisterEntityKindVerb(simulation, verbId: hotVerbId, targetKindId: hotKindId, weight: 1f);
-            AddPresenceAffordance(simulation, sourceId: 1, candidateKindId: hotKindId, weight: 5f);
+            RegisterEntityKindVerb(simulation, verbId: 701, targetKindId: TargetKindId, weight: FixedScalar.FromSingle(1f));
+            RegisterEntityKindVerb(simulation, verbId: hotVerbId, targetKindId: hotKindId, weight: FixedScalar.FromSingle(1f));
+            AddPresenceAffordance(simulation, sourceId: 1, candidateKindId: hotKindId, weight: FixedScalar.FromSingle(5f));
 
             simulation.AdvanceTicks(1);
 
@@ -715,8 +681,8 @@ public sealed class LowAltitudeVerbSelectionTests
         var modifiers = new[]
         {
             default,
-            new DecisionModifier(verbId, kindId, traitId, TraitEffectBearerCodes.Actor, 1.5f, 2.5f, 3.5f),
-            new DecisionModifier(verbId + 99, kindId, traitId, TraitEffectBearerCodes.Actor, 100f, 100f, 100f),
+            new DecisionModifier(verbId, kindId, traitId, TraitEffectBearerCodes.Actor, FixedScalar.FromSingle(1.5f), FixedScalar.FromSingle(2.5f), FixedScalar.FromSingle(3.5f)),
+            new DecisionModifier(verbId + 99, kindId, traitId, TraitEffectBearerCodes.Actor, FixedScalar.FromSingle(100f), FixedScalar.FromSingle(100f), FixedScalar.FromSingle(100f)),
         };
 
         var totals = DecisionModifierEvaluation.SumLowAltitudeValues(
@@ -727,15 +693,15 @@ public sealed class LowAltitudeVerbSelectionTests
             verbId,
             actor);
 
-        Assert.Equal(1.5f, totals.Weight);
-        Assert.Equal(2.5f, totals.OpportunityBonus);
-        Assert.Equal(3.5f, totals.FitnessWeight);
+        Assert.Equal(FixedScalar.FromSingle(1.5f), totals.Weight);
+        Assert.Equal(FixedScalar.FromSingle(2.5f), totals.OpportunityBonus);
+        Assert.Equal(FixedScalar.FromSingle(3.5f), totals.FitnessWeight);
     }
 
     private static Simulation NewSimulation(
         int seed,
-        float opportunityRate = 0.4f,
-        float opportunityBonus = 1f,
+        FixedScalar? opportunityRate = null,
+        FixedScalar? opportunityBonus = null,
         int recentTargetRingSize = 3)
     {
         return new Simulation(new SimulationOptions
@@ -746,11 +712,11 @@ public sealed class LowAltitudeVerbSelectionTests
             {
                 Programs = new KernelProgramTuningOptions
                 {
-                    MinorActorMainTickRatio = 1,
+                    MinorActorSubstepsPerPulse = 1,
                     LowAltitudeVerbs = new LowAltitudeVerbTuningOptions
                     {
-                        OpportunityRate = opportunityRate,
-                        OpportunityBonus = opportunityBonus,
+                        OpportunityRate = opportunityRate ?? FixedScalar.FromSingle(0.4f),
+                        OpportunityBonus = opportunityBonus ?? FixedScalar.One,
                         RecentTargetRingSize = recentTargetRingSize,
                     },
                 },
@@ -810,7 +776,10 @@ public sealed class LowAltitudeVerbSelectionTests
         simulation.SeedCell(specialQ, specialR, specialTerrainId, ownerEntityId: 0);
     }
 
-    private static void RegisterExploreVerb(Simulation simulation, int verbId, float weight)
+    private static void RegisterExploreVerb(
+        Simulation simulation,
+        int verbId,
+        FixedScalar weight)
     {
         var slot = simulation.LowAltitudeVerbs.RegisterVerb(
             ActorKindId,
@@ -827,20 +796,20 @@ public sealed class LowAltitudeVerbSelectionTests
             targetRadius: 0,
             candidateSampleCount: 8,
             weight: weight);
-        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.MoveActor, 0, 0f);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.MoveActor, 0, FixedScalar.FromSingle(0f));
     }
 
     private static void RegisterEntityKindVerb(
         Simulation simulation,
         int verbId,
         int targetKindId,
-        float weight,
-        float distanceScaleOverride = 0f,
+        FixedScalar weight,
+        FixedScalar distanceScaleOverride = default,
         int fitnessRelationshipKindId = 0,
         int fitnessRelationshipDirectionCode = LowAltitudeVerbRelationshipDirectionCodes.Either,
         int fitnessPolarityCode = AffordancePolarityCodes.None,
-        float fitnessThreshold = 0f,
-        float fitnessWeight = 0f)
+        FixedScalar fitnessThreshold = default,
+        FixedScalar fitnessWeight = default)
     {
         var slot = simulation.LowAltitudeVerbs.RegisterVerb(
             ActorKindId,
@@ -857,21 +826,21 @@ public sealed class LowAltitudeVerbSelectionTests
             targetRadius: 0,
             candidateSampleCount: 8,
             weight: weight,
-            opportunityBonusOverride: 0f,
+            opportunityBonusOverride: FixedScalar.FromSingle(0f),
             fitnessWeight: fitnessWeight,
             distanceScaleOverride: distanceScaleOverride,
             fitnessRelationshipKindId: fitnessRelationshipKindId,
             fitnessRelationshipDirectionCode: fitnessRelationshipDirectionCode,
             fitnessPolarityCode: fitnessPolarityCode,
             fitnessThreshold: fitnessThreshold);
-        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.MoveActor, 0, 0f);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.MoveActor, 0, FixedScalar.FromSingle(0f));
     }
 
     private static void AddPresenceAffordance(
         Simulation simulation,
         int sourceId,
         int candidateKindId,
-        float weight)
+        FixedScalar weight)
     {
         simulation.LowAltitudeVerbs.RegisterAffordance(
             sourceKindCode: AffordanceSourceKindCodes.Generator,
@@ -884,7 +853,7 @@ public sealed class LowAltitudeVerbSelectionTests
             relationshipDirectionCode: 0,
             operationCode: 0,
             polarityCode: AffordancePolarityCodes.None,
-            threshold: 0f,
+            threshold: FixedScalar.FromSingle(0f),
             weight: weight);
     }
 

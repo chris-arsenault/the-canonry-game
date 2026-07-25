@@ -3,8 +3,8 @@ namespace Engine.Kernel;
 internal sealed partial class Simulation
 {
     private const int BlessCellCultureMaxRadius = 2;
-    private const float BlessCellCultureMaxAmount = 500f;
-    private const float FavorEntityMaxMultiplierDelta = 4f;
+    private static readonly FixedScalar BlessCellCultureMaxAmount = 500;
+    private static readonly FixedScalar FavorEntityMaxMultiplierDelta = 4;
     private const int FavorEntityMaxDurationTicks = 50000;
 
     private void DrainCommands()
@@ -71,7 +71,7 @@ internal sealed partial class Simulation
         if (payload.CultureId <= 0 ||
             (payload.PlaneCode != PlaneCodes.Physical && payload.PlaneCode != PlaneCodes.Semantic) ||
             (uint)payload.Radius > BlessCellCultureMaxRadius ||
-            !(payload.Amount > 0f) ||
+            payload.Amount <= 0 ||
             payload.Amount > BlessCellCultureMaxAmount)
         {
             return new KernelCommandApplyResult(false, KernelCommandRejectReasonCodes.InvalidCommand);
@@ -107,7 +107,7 @@ internal sealed partial class Simulation
         if (payload.EntityId <= 0 ||
             payload.EntityId > World.EntityHighWatermark ||
             !World.EntityExists(payload.EntityId) ||
-            !(payload.MultiplierDelta > 0f) ||
+            payload.MultiplierDelta <= 0 ||
             payload.MultiplierDelta > FavorEntityMaxMultiplierDelta ||
             payload.DurationTicks <= 0 ||
             payload.DurationTicks > FavorEntityMaxDurationTicks)

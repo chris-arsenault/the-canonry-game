@@ -16,13 +16,13 @@ public sealed class KnowledgeProgramRuntimeTests
             foundation,
             KnowledgeGrantDomainCodes.VerbWeight,
             target: 0,
-            multiplier: 1.10f);
+            multiplier: FixedScalar.FromSingle(1.10f));
         var advanced = simulation.RegisterKnowledgeSite(6, 0, tier: 4);
         simulation.RegisterKnowledgeGrant(
             advanced,
             KnowledgeGrantDomainCodes.VerbWeight,
             target: 17,
-            multiplier: 1.20f);
+            multiplier: FixedScalar.FromSingle(1.20f));
 
         Claim(simulation, 0, 0);
         Claim(simulation, 6, 0);
@@ -33,9 +33,8 @@ public sealed class KnowledgeProgramRuntimeTests
         Assert.True(simulation.Knowledge.CultureClaimsSite(CultureId, foundation));
         Assert.True(simulation.Knowledge.CultureClaimsSite(CultureId, advanced));
         Assert.Equal(
-            1.32f,
-            simulation.Knowledge.Modifier(CultureId, KnowledgeGrantDomainCodes.VerbWeight, target: 17),
-            precision: 3);
+            FixedScalar.FromSingle(1.32f),
+            simulation.Knowledge.Modifier(CultureId, KnowledgeGrantDomainCodes.VerbWeight, target: 17));
 
         _ = simulation.ModifyCellCultureInfluenceRaw(
             CultureId,
@@ -51,9 +50,8 @@ public sealed class KnowledgeProgramRuntimeTests
         Assert.True(simulation.Knowledge.CultureClaimsSite(CultureId, foundation));
         Assert.False(simulation.Knowledge.CultureClaimsSite(CultureId, advanced));
         Assert.Equal(
-            1.10f,
-            simulation.Knowledge.Modifier(CultureId, KnowledgeGrantDomainCodes.VerbWeight, target: 17),
-            precision: 3);
+            FixedScalar.FromSingle(1.10f),
+            simulation.Knowledge.Modifier(CultureId, KnowledgeGrantDomainCodes.VerbWeight, target: 17));
     }
 
     [Fact]
@@ -65,13 +63,13 @@ public sealed class KnowledgeProgramRuntimeTests
             site,
             KnowledgeGrantDomainCodes.CultureProduction,
             PlaneCodes.Semantic,
-            multiplier: 1.50f);
+            multiplier: FixedScalar.FromSingle(1.50f));
         Claim(simulation, 0, 0);
         simulation.Knowledge.Tick(simulation, tick: 1);
 
-        Assert.Equal(10f, simulation.CultureProductionScaled(CultureId, PlaneCodes.Physical, 10f));
-        Assert.Equal(15f, simulation.CultureProductionScaled(CultureId, PlaneCodes.Semantic, 10f));
-        Assert.Equal(-10f, simulation.CultureProductionScaled(CultureId, PlaneCodes.Semantic, -10f));
+        Assert.Equal(FixedScalar.FromSingle(10f), simulation.CultureProductionScaled(CultureId, PlaneCodes.Physical, FixedScalar.FromSingle(10f)));
+        Assert.Equal(FixedScalar.FromSingle(15f), simulation.CultureProductionScaled(CultureId, PlaneCodes.Semantic, FixedScalar.FromSingle(10f)));
+        Assert.Equal(FixedScalar.FromSingle(-10f), simulation.CultureProductionScaled(CultureId, PlaneCodes.Semantic, FixedScalar.FromSingle(-10f)));
     }
 
     private static Simulation CreateSimulation()

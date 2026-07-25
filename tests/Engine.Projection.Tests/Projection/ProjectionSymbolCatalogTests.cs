@@ -172,7 +172,8 @@ public sealed class ProjectionSymbolCatalogTests
                 Tick: 1, WorldVersion: 3, ChangeCodeId: 9, SourceCodeId: 1,
                 RelationshipKindId: relationshipKindId, PolarityCode: RelationshipPolarityCodes.Positive,
                 SourceEntityId: 10, TargetEntityId: 20, RelationshipId: 30,
-                PreviousStrength: 0f, NewStrength: 0.78f)),
+                PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f),
+                NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.78f))),
             invocationId)));
     }
 

@@ -14,20 +14,20 @@ internal sealed partial class Simulation
         return Movement.CanEnterProfile(this, planeCode, movementProfileId, q, r);
     }
 
-    internal float PhysicalTravelCostProfile(int movementProfileId, int q, int r, int tick)
+    internal FixedScalar PhysicalTravelCostProfile(int movementProfileId, int q, int r, int tick)
     {
         return TravelCostProfile(PlaneCodes.Physical, movementProfileId, q, r, tick);
     }
 
-    internal float TravelCostProfile(int planeCode, int movementProfileId, int q, int r, int tick)
+    internal FixedScalar TravelCostProfile(int planeCode, int movementProfileId, int q, int r, int tick)
     {
         return Movement.TravelCostProfile(this, planeCode, movementProfileId, q, r, tick);
     }
 
-    private const float CultureGrowthFloor = 0.25f;
-    private const float CultureGrowthTasteWeight = 0.75f;
-    private const float CultureGrowthMinimum = 0.1f;
-    private const float CultureGrowthMaximum = 2.5f;
+    private static readonly FixedScalar CultureGrowthFloor = FixedScalar.FromUnits(250000L);
+    private static readonly FixedScalar CultureGrowthTasteWeight = FixedScalar.FromUnits(750000L);
+    private static readonly FixedScalar CultureGrowthMinimum = FixedScalar.FromUnits(100000L);
+    private static readonly FixedScalar CultureGrowthMaximum = FixedScalar.FromUnits(2500000L);
 
     /// <summary>
     /// How readily culture takes root on a physical hex: the land's derived
@@ -37,13 +37,13 @@ internal sealed partial class Simulation
     /// plane; semantic ground keeps its authored multiplier - ideas have no
     /// facts to read.
     /// </summary>
-    internal float CultureGrowthMultiplier(int cultureId, int q, int r)
+    internal FixedScalar CultureGrowthMultiplier(int cultureId, int q, int r)
     {
         // No latent facts, no opinion: worlds without installed physical
         // geography keep neutral growth everywhere.
         if (!KernelData.PhysicalGeography.TryGetCell(q, r, out _, out _, out _))
         {
-            return 1f;
+            return 1;
         }
 
         var multiplier = CultureGrowthFloor + TasteCapacityValue(q, r);
@@ -60,46 +60,46 @@ internal sealed partial class Simulation
         return multiplier > CultureGrowthMaximum ? CultureGrowthMaximum : multiplier;
     }
 
-    internal float PhysicalInfluenceMultiplier(int kindId, int q, int r)
+    internal FixedScalar PhysicalInfluenceMultiplier(int kindId, int q, int r)
     {
         return TerrainInfluenceMultiplier(PlaneCodes.Physical, kindId, q, r);
     }
 
-    internal float TerrainInfluenceMultiplier(int planeCode, int kindId, int q, int r)
+    internal FixedScalar TerrainInfluenceMultiplier(int planeCode, int kindId, int q, int r)
     {
         if (!World.CellIsKnown(planeCode, q, r))
         {
-            return 1f;
+            return 1;
         }
 
         return KernelData.Terrain.InfluenceMultiplier(World.CellTerrainId(planeCode, q, r), kindId);
     }
 
-    internal float PhysicalClaimCostMultiplier(int kindId, int q, int r)
+    internal FixedScalar PhysicalClaimCostMultiplier(int kindId, int q, int r)
     {
         return TerrainClaimCostMultiplier(PlaneCodes.Physical, kindId, q, r);
     }
 
-    internal float TerrainClaimCostMultiplier(int planeCode, int kindId, int q, int r)
+    internal FixedScalar TerrainClaimCostMultiplier(int planeCode, int kindId, int q, int r)
     {
         if (!World.CellIsKnown(planeCode, q, r))
         {
-            return 1f;
+            return 1;
         }
 
         return KernelData.Terrain.ClaimCostMultiplier(World.CellTerrainId(planeCode, q, r), kindId);
     }
 
-    internal float PhysicalClaimChanceMultiplier(int kindId, int q, int r)
+    internal FixedScalar PhysicalClaimChanceMultiplier(int kindId, int q, int r)
     {
         return TerrainClaimChanceMultiplier(PlaneCodes.Physical, kindId, q, r);
     }
 
-    internal float TerrainClaimChanceMultiplier(int planeCode, int kindId, int q, int r)
+    internal FixedScalar TerrainClaimChanceMultiplier(int planeCode, int kindId, int q, int r)
     {
         if (!World.CellIsKnown(planeCode, q, r))
         {
-            return 1f;
+            return 1;
         }
 
         return KernelData.Terrain.ClaimChanceMultiplier(World.CellTerrainId(planeCode, q, r), kindId);
@@ -378,13 +378,13 @@ internal sealed partial class Simulation
         }
     }
 
-    private const float TasteScoreScale = 600f;
-    private const float TasteCapacityNormal = 4f;
+    private static readonly FixedScalar TasteScoreScale = 600;
+    private static readonly FixedScalar TasteCapacityNormal = 4;
 
-    internal void RegisterKindPlacementTaste(int kindId, int axisCode, float weight) =>
+    internal void RegisterKindPlacementTaste(int kindId, int axisCode, FixedScalar weight) =>
         KernelData.PlacementTaste.RegisterKindWeight(kindId, axisCode, weight);
 
-    internal void RegisterCulturePlacementTaste(int cultureId, int axisCode, float weight) =>
+    internal void RegisterCulturePlacementTaste(int cultureId, int axisCode, FixedScalar weight) =>
         KernelData.PlacementTaste.RegisterCultureWeight(cultureId, axisCode, weight);
 
     /// <summary>
@@ -393,14 +393,14 @@ internal sealed partial class Simulation
     /// summed. Identity reads geography here - a kind's needs and a
     /// culture's relationship to the world, stated once, price every hex.
     /// </summary>
-    internal float PlacementTasteScore(int kindId, int cultureId, int q, int r)
+    internal FixedScalar PlacementTasteScore(int kindId, int cultureId, int q, int r)
     {
         var taste = KernelData.PlacementTaste;
-        var score = 0f;
+        var score = FixedScalar.Zero;
         for (var axis = 0; axis < PlacementTasteAxisCodes.Count; axis++)
         {
             var weight = taste.CombinedWeight(kindId, cultureId, axis);
-            if (weight != 0f)
+            if (weight != 0)
             {
                 score += weight * TasteAxisValue(axis, q, r);
             }
@@ -427,7 +427,7 @@ internal sealed partial class Simulation
         -1,
     ];
 
-    private float TasteAxisValue(int axis, int q, int r)
+    private FixedScalar TasteAxisValue(int axis, int q, int r)
     {
         var factCode = TasteAxisFactCodes[axis];
         if (factCode >= 0)
@@ -441,39 +441,41 @@ internal sealed partial class Simulation
         }
 
         return axis == PlacementTasteAxisCodes.WaterFraction
-            ? 1f - FactValue(q, r, PhysicalHexFactCodes.LandFraction)
+            ? 1 - FactValue(q, r, PhysicalHexFactCodes.LandFraction)
             : TasteCoastAdjacency(q, r);
     }
 
-    private float FactValue(int q, int r, int factCode) =>
-        KernelData.PhysicalGeography.Fact(q, r, factCode) / 255f;
+    private FixedScalar FactValue(int q, int r, int factCode) =>
+        FixedScalar.FromRatio(
+            KernelData.PhysicalGeography.Fact(q, r, factCode),
+            255);
 
-    private float TasteCapacityValue(int q, int r)
+    private FixedScalar TasteCapacityValue(int q, int r)
     {
-        var capacity = MapSignals.Data.HasCapacityFormula
-            ? MapSignals.PhysicalBaseCapacity(World, q, r)
+        var capacity = Locality.Data.HasCapacityFormula
+            ? Locality.PhysicalBaseCapacity(World, q, r)
             : TasteFallbackCapacity(q, r);
         var normalized = capacity / TasteCapacityNormal;
-        if (normalized < 0f)
+        if (normalized < 0)
         {
-            return 0f;
+            return 0;
         }
 
-        return normalized > 1f ? 1f : normalized;
+        return normalized > 1 ? 1 : normalized;
     }
 
-    private float TasteFallbackCapacity(int q, int r) =>
+    private FixedScalar TasteFallbackCapacity(int q, int r) =>
         KernelData.PhysicalGeography.TryGetCell(q, r, out var terrainId, out _, out _)
-            ? MapSignals.Data.TerrainBaseCapacity(terrainId)
-            : 0f;
+            ? Locality.Data.TerrainBaseCapacity(terrainId)
+            : 0;
 
     // Coast is derived, never stored: a hex whose latent terrain sits on
     // the opposite side of the land/water divide from any neighbour.
-    private float TasteCoastAdjacency(int q, int r)
+    private FixedScalar TasteCoastAdjacency(int q, int r)
     {
         if (!KernelData.PhysicalGeography.TryGetCell(q, r, out var terrainId, out _, out _))
         {
-            return 0f;
+            return 0;
         }
 
         var water = KernelData.Terrain.IsWater(terrainId);
@@ -487,11 +489,11 @@ internal sealed partial class Simulation
                     out _) &&
                 KernelData.Terrain.IsWater(neighborTerrainId) != water)
             {
-                return 1f;
+                return 1;
             }
         }
 
-        return 0f;
+        return 0;
     }
 
     /// <summary>
@@ -501,12 +503,12 @@ internal sealed partial class Simulation
     /// cells) makes the route infinite, so a growing map and its frozen
     /// frontier gate reach the way real geography does; roads shrink it.
     /// </summary>
-    internal float TravelReachCost(int actorId, int targetId, int planeCode, int tick)
+    internal FixedScalar TravelReachCost(int actorId, int targetId, int planeCode, int tick)
     {
         if (actorId <= 0 || targetId <= 0 ||
             !World.EntityIsActive(actorId) || !World.EntityIsActive(targetId))
         {
-            return float.PositiveInfinity;
+            return FixedScalar.PositiveInfinity;
         }
 
         var (fromQ, fromR) = PlaneCoords(actorId, planeCode);
@@ -514,22 +516,22 @@ internal sealed partial class Simulation
         var steps = KernelQuery.HexDistance(fromQ, fromR, toQ, toR);
         if (steps == 0)
         {
-            return 0f;
+            return 0;
         }
 
-        var total = 0f;
+        var total = FixedScalar.Zero;
         var previousQ = fromQ;
         var previousR = fromR;
         for (var step = 1; step <= steps; step++)
         {
-            var t = step / (float)steps;
+            var t = step / (FixedScalar)steps;
             var (q, r) = HexRound(
                 fromQ + ((toQ - fromQ) * t),
                 fromR + ((toR - fromR) * t));
             var cellCost = Movement.DirectedTravelCost(this, planeCode, actorId, previousQ, previousR, q, r, tick);
-            if (float.IsPositiveInfinity(cellCost))
+            if (FixedScalar.IsPositiveInfinity(cellCost))
             {
-                return float.PositiveInfinity;
+                return FixedScalar.PositiveInfinity;
             }
 
             total += cellCost;
@@ -545,15 +547,15 @@ internal sealed partial class Simulation
             ? (World.EntitySemanticQ(entityId), World.EntitySemanticR(entityId))
             : (World.EntityPhysicalQ(entityId), World.EntityPhysicalR(entityId));
 
-    private static (int Q, int R) HexRound(float q, float r)
+    private static (int Q, int R) HexRound(FixedScalar q, FixedScalar r)
     {
         var s = -q - r;
-        var rq = global::System.MathF.Round(q, global::System.MidpointRounding.AwayFromZero);
-        var rr = global::System.MathF.Round(r, global::System.MidpointRounding.AwayFromZero);
-        var rs = global::System.MathF.Round(s, global::System.MidpointRounding.AwayFromZero);
-        var dq = global::System.MathF.Abs(rq - q);
-        var dr = global::System.MathF.Abs(rr - r);
-        var ds = global::System.MathF.Abs(rs - s);
+        var rq = FixedScalar.Round(q, global::System.MidpointRounding.AwayFromZero);
+        var rr = FixedScalar.Round(r, global::System.MidpointRounding.AwayFromZero);
+        var rs = FixedScalar.Round(s, global::System.MidpointRounding.AwayFromZero);
+        var dq = FixedScalar.Abs(rq - q);
+        var dr = FixedScalar.Abs(rr - r);
+        var ds = FixedScalar.Abs(rs - s);
         if (dq > dr && dq > ds)
         {
             rq = -rr - rs;

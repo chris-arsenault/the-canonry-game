@@ -16,7 +16,7 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
     internal readonly int[] SpawnRadii;
     internal readonly int[] MoveChancePermille;
     internal readonly int[] ActionCadencePulses;
-    internal readonly float[] WorkDeltas;
+    internal readonly FixedScalar[] WorkDeltas;
     internal readonly bool[] RuleHasVerbs;
     internal readonly int[] RuleMaxVerbRadii;
     internal readonly int[] VerbSourceRuleIds;
@@ -26,12 +26,19 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
     internal readonly int[] VerbPlaneCodes;
     internal readonly int[] VerbRadii;
     internal readonly int[] VerbSampleCounts;
-    internal readonly float[] VerbWeights;
-    internal readonly float[] VerbWorkDeltaMultipliers;
+    internal readonly FixedScalar[] VerbWeights;
+    internal readonly FixedScalar[] VerbWorkDeltaMultipliers;
+    internal readonly int[] FirstRuleBySourceKind;
+    internal readonly int[] LastRuleBySourceKind;
+    internal readonly int[] NextRuleBySourceKind;
+    internal readonly int[] FirstVerbBySourceRule;
+    internal readonly int[] LastVerbBySourceRule;
+    internal readonly int[] NextVerbBySourceRule;
 
-    public MinorActorProgramData(int ruleCapacity)
+    public MinorActorProgramData(int ruleCapacity, int kindCapacity = 256)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ruleCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(ruleCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(kindCapacity);
         var verbCapacity = ruleCapacity * 8;
         SourceKindIds = new int[ruleCapacity + 1];
         SourceSubtypeIds = new int[ruleCapacity + 1];
@@ -45,7 +52,7 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         SpawnRadii = new int[ruleCapacity + 1];
         MoveChancePermille = new int[ruleCapacity + 1];
         ActionCadencePulses = new int[ruleCapacity + 1];
-        WorkDeltas = new float[ruleCapacity + 1];
+        WorkDeltas = new FixedScalar[ruleCapacity + 1];
         RuleHasVerbs = new bool[ruleCapacity + 1];
         RuleMaxVerbRadii = new int[ruleCapacity + 1];
         VerbSourceRuleIds = new int[verbCapacity + 1];
@@ -55,13 +62,19 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         VerbPlaneCodes = new int[verbCapacity + 1];
         VerbRadii = new int[verbCapacity + 1];
         VerbSampleCounts = new int[verbCapacity + 1];
-        VerbWeights = new float[verbCapacity + 1];
-        VerbWorkDeltaMultipliers = new float[verbCapacity + 1];
+        VerbWeights = new FixedScalar[verbCapacity + 1];
+        VerbWorkDeltaMultipliers = new FixedScalar[verbCapacity + 1];
+        FirstRuleBySourceKind = new int[kindCapacity + 1];
+        LastRuleBySourceKind = new int[kindCapacity + 1];
+        NextRuleBySourceKind = new int[ruleCapacity + 1];
+        FirstVerbBySourceRule = new int[ruleCapacity + 1];
+        LastVerbBySourceRule = new int[ruleCapacity + 1];
+        NextVerbBySourceRule = new int[verbCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.MinorActors;
 
-    public int SchemaVersion => 2;
+    public int SchemaVersion => 3;
 
     public int RuleCapacity => SourceKindIds.Length - 1;
 
@@ -84,7 +97,7 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         int spawnRadius,
         int moveChancePermille,
         int actionCadencePulses,
-        float workDelta)
+        FixedScalar workDelta)
     {
         ValidateRule(
             sourceKindId,
@@ -120,6 +133,12 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         MoveChancePermille[rule] = moveChancePermille;
         ActionCadencePulses[rule] = actionCadencePulses;
         WorkDeltas[rule] = workDelta;
+        AppendIndex(
+            sourceKindId,
+            rule,
+            FirstRuleBySourceKind,
+            LastRuleBySourceKind,
+            NextRuleBySourceKind);
         return rule;
     }
 
@@ -131,8 +150,8 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         int planeCode,
         int radius,
         int sampleCount,
-        float weight,
-        float workDeltaMultiplier)
+        FixedScalar weight,
+        FixedScalar workDeltaMultiplier)
     {
         ValidateVerb(
             sourceRuleId,
@@ -162,8 +181,19 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         VerbWorkDeltaMultipliers[verb] = workDeltaMultiplier;
         RuleHasVerbs[sourceRuleId] = true;
         RuleMaxVerbRadii[sourceRuleId] = global::System.Math.Max(RuleMaxVerbRadii[sourceRuleId], radius);
+        AppendIndex(
+            sourceRuleId,
+            verb,
+            FirstVerbBySourceRule,
+            LastVerbBySourceRule,
+            NextVerbBySourceRule);
         return verb;
     }
+
+    public int FirstVerbForRule(int rule) =>
+        (uint)rule < (uint)FirstVerbBySourceRule.Length ? FirstVerbBySourceRule[rule] : 0;
+
+    public int NextVerbForRule(int verb) => NextVerbBySourceRule[verb];
 
     /// <summary>Domain-configured relationship kind that carries a campaign (0 = campaigns disabled).</summary>
     internal int CampaignRelationshipKindId;
@@ -193,21 +223,21 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         int spawnRadius,
         int moveChancePermille,
         int actionCadencePulses,
-        float workDelta)
+        FixedScalar workDelta)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sourceKindId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(sourceSubtypeId);
+        NumericGuard.ThrowIfNegativeOrZero(sourceKindId);
+        NumericGuard.ThrowIfNegative(sourceSubtypeId);
         ValidatePurposeCode(purposeCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(actorKindCode);
+        NumericGuard.ThrowIfNegativeOrZero(actorKindCode);
         ValidateActionCode(actionCode);
         ValidatePlaneCode(planeCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ttlPulses);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(emitCadencePulses);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maxActivePerSource);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(spawnRadius);
-        global::System.ArgumentOutOfRangeException.ThrowIfGreaterThan(moveChancePermille, 1000);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(actionCadencePulses);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(workDelta);
+        NumericGuard.ThrowIfNegativeOrZero(ttlPulses);
+        NumericGuard.ThrowIfNegativeOrZero(emitCadencePulses);
+        NumericGuard.ThrowIfNegativeOrZero(maxActivePerSource);
+        NumericGuard.ThrowIfNegative(spawnRadius);
+        NumericGuard.ThrowIfGreaterThan(moveChancePermille, 1000);
+        NumericGuard.ThrowIfNegativeOrZero(actionCadencePulses);
+        NumericGuard.ThrowIfNegative(workDelta);
     }
 
     private static void ValidateVerb(
@@ -218,18 +248,18 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         int planeCode,
         int radius,
         int sampleCount,
-        float weight,
-        float workDeltaMultiplier)
+        FixedScalar weight,
+        FixedScalar workDeltaMultiplier)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sourceRuleId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(verbId);
+        NumericGuard.ThrowIfNegativeOrZero(sourceRuleId);
+        NumericGuard.ThrowIfNegativeOrZero(verbId);
         ValidateActionCode(actionCode);
         ValidateTargetingCode(targetingCode);
         ValidatePlaneCode(planeCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(radius);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(sampleCount);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(weight);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(workDeltaMultiplier);
+        NumericGuard.ThrowIfNegative(radius);
+        NumericGuard.ThrowIfNegativeOrZero(sampleCount);
+        NumericGuard.ThrowIfNegative(weight);
+        NumericGuard.ThrowIfNegative(workDeltaMultiplier);
     }
 
     private static void ValidateActionCode(int actionCode)
@@ -275,5 +305,30 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(planeCode));
         }
+    }
+
+    private static void AppendIndex(
+        int key,
+        int item,
+        int[] firstByKey,
+        int[] lastByKey,
+        int[] nextByItem)
+    {
+        if ((uint)key >= (uint)firstByKey.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        var previous = lastByKey[key];
+        if (previous > 0)
+        {
+            nextByItem[previous] = item;
+        }
+        else
+        {
+            firstByKey[key] = item;
+        }
+
+        lastByKey[key] = item;
     }
 }

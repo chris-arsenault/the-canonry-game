@@ -32,7 +32,7 @@ public sealed class GeneratorProgramRuntimeTests
         Assert.Equal(2, simulation.World.EntityHighWatermark);
         Assert.DoesNotContain(ReadAvailableEventTypes(simulation, cursor), type => type == KernelEventType.GeneratorFired);
 
-        simulation.CreateRelationship(RelationshipKindId, 0, source, target, 0.8f, tick: 1);
+        simulation.CreateRelationship(RelationshipKindId, 0, source, target, FixedScalar.FromSingle(0.8f), tick: 1);
         simulation.AdvanceTicks(1);
 
         Assert.Equal(3, simulation.World.EntityHighWatermark);
@@ -94,13 +94,13 @@ public sealed class GeneratorProgramRuntimeTests
             CultureId,
             slotId: 1,
             RelationshipPolarityCodes.Positive,
-            minimumScore: 0.5f,
+            minimumScore: FixedScalar.FromSingle(0.5f),
             minimumTenureTicks: 0,
-            displacementMargin: 0f,
-            entityInfluenceMultiplierDelta: 0f,
-            cultureInfluenceMultiplierDelta: 0f);
+            displacementMargin: FixedScalar.FromSingle(0f),
+            entityInfluenceMultiplierDelta: FixedScalar.FromSingle(0f),
+            cultureInfluenceMultiplierDelta: FixedScalar.FromSingle(0f));
         simulation.CultureSlots.AddAllowedKind(slot, slotFillingKindId);
-        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.ActiveEntity, relationshipKindId: 0, weight: 1f);
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.ActiveEntity, relationshipKindId: 0, weight: FixedScalar.FromSingle(1f));
 
         simulation.AdvanceTicks(1);
 
@@ -177,7 +177,7 @@ public sealed class GeneratorProgramRuntimeTests
         simulation.AdvanceTicks(1);
         Assert.Equal(2, simulation.World.EntityHighWatermark);
 
-        simulation.CreateRelationship(RelationshipKindId, 0, source, target, 0.8f, tick: 1);
+        simulation.CreateRelationship(RelationshipKindId, 0, source, target, FixedScalar.FromSingle(0.8f), tick: 1);
         simulation.AdvanceTicks(1);
 
         Assert.Equal(3, simulation.World.EntityHighWatermark);
@@ -196,7 +196,7 @@ public sealed class GeneratorProgramRuntimeTests
         simulation.AdvanceTicks(1);
         Assert.Equal(2, simulation.World.EntityHighWatermark);
 
-        simulation.CreateRelationship(RelationshipKindId, 0, target, destination, 0.8f, tick: 1);
+        simulation.CreateRelationship(RelationshipKindId, 0, target, destination, FixedScalar.FromSingle(0.8f), tick: 1);
         simulation.AdvanceTicks(1);
 
         Assert.Equal(3, simulation.World.EntityHighWatermark);
@@ -209,14 +209,14 @@ public sealed class GeneratorProgramRuntimeTests
         SeedMap(simulation);
         var target = CreateTarget(simulation);
         var destination = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
-        var relationship = simulation.CreateRelationship(RelationshipKindId, 0, target, destination, 0.5f, tick: 0);
+        var relationship = simulation.CreateRelationship(RelationshipKindId, 0, target, destination, FixedScalar.FromSingle(0.5f), tick: 0);
         var slot = RegisterGenerator(simulation);
-        simulation.Generators.AddTargetRequiredOutgoingRelationship(slot, RelationshipKindId, minimumStrength: 0.7f);
+        simulation.Generators.AddTargetRequiredOutgoingRelationship(slot, RelationshipKindId, minimumStrength: FixedScalar.FromSingle(0.7f));
 
         simulation.AdvanceTicks(1);
         Assert.Equal(2, simulation.World.EntityHighWatermark);
 
-        simulation.World.SetRelationshipStrength(relationship, 0.8f, tick: 1);
+        simulation.World.SetRelationshipStrength(relationship, FixedScalar.FromSingle(0.8f), tick: 1);
         simulation.AdvanceTicks(1);
 
         Assert.Equal(3, simulation.World.EntityHighWatermark);
@@ -229,7 +229,7 @@ public sealed class GeneratorProgramRuntimeTests
         SeedMap(simulation);
         var target = CreateTarget(simulation);
         var destination = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
-        var relationship = simulation.CreateRelationship(RelationshipKindId, 0, target, destination, 0.8f, tick: 0);
+        var relationship = simulation.CreateRelationship(RelationshipKindId, 0, target, destination, FixedScalar.FromSingle(0.8f), tick: 0);
         var slot = RegisterGenerator(simulation);
         simulation.Generators.AddTargetWithoutOutgoingRelationship(slot, RelationshipKindId);
 
@@ -250,7 +250,7 @@ public sealed class GeneratorProgramRuntimeTests
         var target = CreateTarget(simulation);
         MakeSlotOccupant(simulation, target);
         var firstDestination = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
-        simulation.CreateRelationship(RelationshipKindId, 0, target, firstDestination, 0.8f, tick: 0);
+        simulation.CreateRelationship(RelationshipKindId, 0, target, firstDestination, FixedScalar.FromSingle(0.8f), tick: 0);
         var slot = RegisterGenerator(simulation);
         simulation.Generators.AddTargetWithoutOutgoingRelationship(slot, RelationshipKindId);
 
@@ -258,7 +258,7 @@ public sealed class GeneratorProgramRuntimeTests
         Assert.Equal(3, simulation.World.EntityHighWatermark);
 
         var secondDestination = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 1);
-        simulation.CreateRelationship(RelationshipKindId, 0, target, secondDestination, 0.8f, tick: 1);
+        simulation.CreateRelationship(RelationshipKindId, 0, target, secondDestination, FixedScalar.FromSingle(0.8f), tick: 1);
         simulation.AdvanceTicks(1);
 
         Assert.Equal(4, simulation.World.EntityHighWatermark);
@@ -269,11 +269,11 @@ public sealed class GeneratorProgramRuntimeTests
     {
         var simulation = CreateSimulation();
         SeedMap(simulation);
-        simulation.Relationships.RegisterRelationshipKind(RelationshipKindId, cullThreshold: 0.05f, isExclusive: true);
+        simulation.Relationships.RegisterRelationshipKind(RelationshipKindId, cullThreshold: FixedScalar.FromSingle(0.05f), isExclusive: true);
         var target = CreateTarget(simulation);
         MakeSlotOccupant(simulation, target);
         var destination = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
-        var relationship = simulation.CreateRelationship(RelationshipKindId, 0, target, destination, 0.8f, tick: 0);
+        var relationship = simulation.CreateRelationship(RelationshipKindId, 0, target, destination, FixedScalar.FromSingle(0.8f), tick: 0);
         var slot = RegisterGenerator(simulation);
         simulation.Generators.AddTargetWithoutOutgoingRelationship(slot, RelationshipKindId);
 
@@ -293,7 +293,7 @@ public sealed class GeneratorProgramRuntimeTests
         SeedMap(simulation);
         var target = CreateTarget(simulation);
         var source = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
-        var relationship = simulation.CreateRelationship(RelationshipKindId, 0, source, target, 0.8f, tick: 0);
+        var relationship = simulation.CreateRelationship(RelationshipKindId, 0, source, target, FixedScalar.FromSingle(0.8f), tick: 0);
         var slot = RegisterGenerator(simulation);
         simulation.Generators.AddTargetWithoutIncomingRelationship(slot, RelationshipKindId);
 
@@ -397,9 +397,6 @@ public sealed class GeneratorProgramRuntimeTests
         Assert.Equal(ProvenanceTriggerKindCodes.Entity, recorded.TriggerKindCode);
         Assert.Equal(target, recorded.TriggerId);
         Assert.Equal(2, recorded.OutputCount);
-        var outputKinds = ReadProvenanceOutputKinds(simulation, invocationId);
-        Assert.Contains(ProvenanceOutputKindCodes.EntityCreated, outputKinds);
-        Assert.Contains(ProvenanceOutputKindCodes.RelationshipChanged, outputKinds);
         Assert.Contains(events, evt =>
             evt.EventType == KernelEventType.EntityCreated &&
             evt.ProvenanceInvocationId == invocationId);
@@ -426,7 +423,7 @@ public sealed class GeneratorProgramRuntimeTests
                    producerId: 900,
                    primaryEntityId: source))
         {
-            triggerRelationship = simulation.CreateRelationship(RelationshipKindId, 0, source, target, 0.8f, tick: 0);
+            triggerRelationship = simulation.CreateRelationship(RelationshipKindId, 0, source, target, FixedScalar.FromSingle(0.8f), tick: 0);
         }
 
         var parentInvocationId = simulation.World.RelationshipCreatedByInvocationId(triggerRelationship);
@@ -453,9 +450,9 @@ public sealed class GeneratorProgramRuntimeTests
         var target = CreateTarget(simulation);
         var opponent = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
         var other = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 2, 0, 0, 0, 0, tick: 0);
-        var trigger = simulation.CreateRelationship(RelationshipKindId, 0, target, opponent, 0.8f, tick: 0);
-        var reciprocal = simulation.CreateRelationship(RelationshipKindId, 0, opponent, target, 0.8f, tick: 0);
-        var unrelated = simulation.CreateRelationship(RelationshipKindId, 0, other, target, 0.8f, tick: 0);
+        var trigger = simulation.CreateRelationship(RelationshipKindId, 0, target, opponent, FixedScalar.FromSingle(0.8f), tick: 0);
+        var reciprocal = simulation.CreateRelationship(RelationshipKindId, 0, opponent, target, FixedScalar.FromSingle(0.8f), tick: 0);
+        var unrelated = simulation.CreateRelationship(RelationshipKindId, 0, other, target, FixedScalar.FromSingle(0.8f), tick: 0);
         var slot = RegisterGenerator(simulation);
         simulation.Generators.AddTargetRequiredOutgoingRelationship(slot, RelationshipKindId);
         simulation.Generators.AddEffect(
@@ -480,24 +477,24 @@ public sealed class GeneratorProgramRuntimeTests
         var target = CreateTarget(simulation);
         var routeTarget = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
         var other = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 2, 0, 0, 0, 0, tick: 0);
-        var trigger = simulation.CreateRelationship(RelationshipKindId, 0, target, routeTarget, 0.72f, tick: 0);
-        var reciprocal = simulation.CreateRelationship(RelationshipKindId, 0, routeTarget, target, 0.72f, tick: 0);
-        var unrelated = simulation.CreateRelationship(RelationshipKindId, 0, target, other, 0.85f, tick: 0);
+        var trigger = simulation.CreateRelationship(RelationshipKindId, 0, target, routeTarget, FixedScalar.FromSingle(0.72f), tick: 0);
+        var reciprocal = simulation.CreateRelationship(RelationshipKindId, 0, routeTarget, target, FixedScalar.FromSingle(0.72f), tick: 0);
+        var unrelated = simulation.CreateRelationship(RelationshipKindId, 0, target, other, FixedScalar.FromSingle(0.85f), tick: 0);
         var slot = RegisterGenerator(simulation);
-        simulation.Generators.AddTargetRequiredOutgoingRelationship(slot, RelationshipKindId, minimumStrength: 0.7f);
+        simulation.Generators.AddTargetRequiredOutgoingRelationship(slot, RelationshipKindId, minimumStrength: FixedScalar.FromSingle(0.7f));
         simulation.Generators.AddEffect(
             slot,
             GeneratorEffectTypeCodes.AdjustTargetRelationshipStrength,
             RelationshipKindId,
             GeneratorRelationshipInstanceSelectionCodes.TriggerRelationship,
             optionCode: 1,
-            value: -0.3f);
+            value: FixedScalar.FromSingle(-0.3f));
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(0.42f, simulation.World.RelationshipStrength(trigger), precision: 4);
-        Assert.Equal(0.42f, simulation.World.RelationshipStrength(reciprocal), precision: 4);
-        Assert.Equal(0.85f, simulation.World.RelationshipStrength(unrelated), precision: 4);
+        Assert.Equal(FixedScalar.FromSingle(0.42f), simulation.World.RelationshipStrength(trigger));
+        Assert.Equal(FixedScalar.FromSingle(0.42f), simulation.World.RelationshipStrength(reciprocal));
+        Assert.Equal(FixedScalar.FromSingle(0.85f), simulation.World.RelationshipStrength(unrelated));
     }
 
     [Fact]
@@ -508,22 +505,22 @@ public sealed class GeneratorProgramRuntimeTests
         var target = CreateTarget(simulation);
         MakeSlotOccupant(simulation, target);
         var routeTarget = simulation.CreateEntity(CreatedKindId, CreatedSubtypeId, CultureId, 1, 0, 0, 0, 0, tick: 0);
-        var trigger = simulation.CreateRelationship(RelationshipKindId, 0, target, routeTarget, 0.72f, tick: 0);
-        var reciprocal = simulation.CreateRelationship(RelationshipKindId, 0, routeTarget, target, 0.72f, tick: 0);
+        var trigger = simulation.CreateRelationship(RelationshipKindId, 0, target, routeTarget, FixedScalar.FromSingle(0.72f), tick: 0);
+        var reciprocal = simulation.CreateRelationship(RelationshipKindId, 0, routeTarget, target, FixedScalar.FromSingle(0.72f), tick: 0);
         var slot = RegisterGenerator(simulation);
-        simulation.Generators.AddTargetRequiredOutgoingRelationship(slot, RelationshipKindId, minimumStrength: 0.7f);
+        simulation.Generators.AddTargetRequiredOutgoingRelationship(slot, RelationshipKindId, minimumStrength: FixedScalar.FromSingle(0.7f));
         simulation.Generators.AddEffect(
             slot,
             GeneratorEffectTypeCodes.AdjustTargetRelationshipStrength,
             RelationshipKindId,
             GeneratorRelationshipInstanceSelectionCodes.TriggerRelationship,
             optionCode: 1,
-            value: -0.3f);
+            value: FixedScalar.FromSingle(-0.3f));
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(0.57f, simulation.World.RelationshipStrength(trigger), precision: 4);
-        Assert.Equal(0.57f, simulation.World.RelationshipStrength(reciprocal), precision: 4);
+        Assert.Equal(FixedScalar.FromSingle(0.57f), simulation.World.RelationshipStrength(trigger));
+        Assert.Equal(FixedScalar.FromSingle(0.57f), simulation.World.RelationshipStrength(reciprocal));
     }
 
     [Fact]
@@ -547,7 +544,7 @@ public sealed class GeneratorProgramRuntimeTests
             semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
-            createChance: 1f,
+            createChance: FixedScalar.FromSingle(1f),
             coverageModeCode: GeneratorCoverageModeCodes.CreateNew,
             coverageSourceRefCode: 0,
             coverageDesiredCellCount: 3,
@@ -664,7 +661,7 @@ public sealed class GeneratorProgramRuntimeTests
     {
         var simulation = CreateSimulation();
         SeedMap(simulation);
-        simulation.RegisterAttribute(CreatedKindId, CreatedAttributeId, 0f, 100f, 12f);
+        simulation.RegisterAttribute(CreatedKindId, CreatedAttributeId, FixedScalar.FromSingle(0f), FixedScalar.FromSingle(100f), FixedScalar.FromSingle(12f));
         var target = CreateTarget(simulation);
         RegisterGenerator(simulation);
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
@@ -836,7 +833,7 @@ public sealed class GeneratorProgramRuntimeTests
             semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
-            createChance: 1f,
+            createChance: FixedScalar.FromSingle(1f),
             coverageModeCode: GeneratorCoverageModeCodes.None,
             coverageSourceRefCode: 0,
             coverageDesiredCellCount: 0,
@@ -861,7 +858,7 @@ public sealed class GeneratorProgramRuntimeTests
             semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
-            createChance,
+            FixedScalar.FromSingle(createChance),
             coverageModeCode: GeneratorCoverageModeCodes.None,
             coverageSourceRefCode: 0,
             coverageDesiredCellCount: 0,
@@ -874,7 +871,7 @@ public sealed class GeneratorProgramRuntimeTests
             CreatedRef,
             GeneratorProgramConstants.TargetReferenceCode,
             RelationshipKindId,
-            strength: 0.75f,
+            strength: FixedScalar.FromSingle(0.75f),
             replaceExistingOutgoing: 0);
     }
 
@@ -903,7 +900,7 @@ public sealed class GeneratorProgramRuntimeTests
             semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
-            createChance: 1f,
+            createChance: FixedScalar.FromSingle(1f),
             coverageModeCode: GeneratorCoverageModeCodes.CreateNew,
             coverageSourceRefCode: 0,
             coverageDesiredCellCount: 2,
@@ -925,12 +922,12 @@ public sealed class GeneratorProgramRuntimeTests
             CultureId,
             slotId: 2,
             RelationshipPolarityCodes.Neutral,
-            minimumScore: 0f,
+            minimumScore: FixedScalar.FromSingle(0f),
             minimumTenureTicks: 0,
-            displacementMargin: 0f,
-            entityInfluenceMultiplierDelta: 0f,
-            cultureInfluenceMultiplierDelta: 0f);
-        simulation.CultureSlots.State.SetOccupant(slot, entityId, score: 1f, tick: 0);
+            displacementMargin: FixedScalar.FromSingle(0f),
+            entityInfluenceMultiplierDelta: FixedScalar.FromSingle(0f),
+            cultureInfluenceMultiplierDelta: FixedScalar.FromSingle(0f));
+        simulation.CultureSlots.State.SetOccupant(slot, entityId, score: FixedScalar.FromSingle(1f), tick: 0);
     }
 
     private static int CreateSparseCoverageTarget(Simulation simulation)
@@ -1000,18 +997,6 @@ public sealed class GeneratorProgramRuntimeTests
         while (simulation.Events.TryRead(cursor, out var read))
         {
             result.Add(read.Event);
-        }
-
-        return result.ToArray();
-    }
-
-    private static int[] ReadProvenanceOutputKinds(Simulation simulation, int invocationId)
-    {
-        var result = new List<int>();
-        var outputCursor = simulation.World.OutputsOfProvenanceInvocation(invocationId);
-        while (simulation.World.MoveNextProvenanceOutput(ref outputCursor, out var outputId))
-        {
-            result.Add(simulation.World.ProvenanceOutputKindCode(outputId));
         }
 
         return result.ToArray();

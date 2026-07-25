@@ -20,34 +20,34 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private int[] StepCounts = [];
     private int[] StepOpcodes = [];
     private int[] StepIntArguments = [];
-    private float[] StepFloatArguments = [];
+    private FixedScalar[] StepScalarArguments = [];
     private int[] _minCommitmentTicks = [];
     private int[] _maxCommitmentTicks = [];
     private int[] _dwellTicks = [];
     private int[] _targetRadii = [];
     private int[] _candidateSampleCounts = [];
-    private float[] _weights = [];
-    private float[] _opportunityBonusOverrides = [];
-    private float[] _fitnessWeights = [];
-    private float[] _distanceScaleOverrides = [];
+    private FixedScalar[] _weights = [];
+    private FixedScalar[] _opportunityBonusOverrides = [];
+    private FixedScalar[] _fitnessWeights = [];
+    private FixedScalar[] _distanceScaleOverrides = [];
     private int[] _foreignInfluenceFilterEnabled = [];
     private int[] _foreignInfluenceBlockPositiveRelationships = [];
     private int[] _foreignInfluenceAllowNegativeRelationships = [];
-    private float[] _foreignInfluenceMinimumRelationshipStrengths = [];
-    private float[] _foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = [];
+    private FixedScalar[] _foreignInfluenceMinimumRelationshipStrengths = [];
+    private FixedScalar[] _foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = [];
     private int[] _fitnessRelationshipKindIds = [];
     private int[] _fitnessRelationshipDirectionCodes = [];
     private int[] _fitnessPolarityCodes = [];
-    private float[] _fitnessThresholds = [];
-    private float[] _influenceDeltas = [];
+    private FixedScalar[] _fitnessThresholds = [];
+    private FixedScalar[] _influenceDeltas = [];
     private int[] _influenceRadii = [];
-    private float[] _coverageGrowthChances = [];
-    private float[] _headquartersMoveChances = [];
-    private float[] _requiredInfluences = [];
-    private float[] _relationshipStrengthDeltas = [];
+    private FixedScalar[] _coverageGrowthChances = [];
+    private FixedScalar[] _headquartersMoveChances = [];
+    private FixedScalar[] _requiredInfluences = [];
+    private FixedScalar[] _relationshipStrengthDeltas = [];
     private int[] _initialInfluenceKindIds = [];
     private int[] _initialInfluencePlaneCodes = [];
-    private float[] _initialInfluenceValues = [];
+    private FixedScalar[] _initialInfluenceValues = [];
     private int[] _affordanceSourceKindCodes = [];
     private int[] _affordanceSourceIds = [];
     private int[] _affordanceShapeCodes = [];
@@ -58,27 +58,41 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private int[] _affordanceRelationshipDirectionCodes = [];
     private int[] _affordanceOperationCodes = [];
     private int[] _affordancePolarityCodes = [];
-    private float[] _affordanceThresholds = [];
-    private float[] _affordanceWeights = [];
+    private FixedScalar[] _affordanceThresholds = [];
+    private FixedScalar[] _affordanceWeights = [];
     private int[] _traitModifierKindIds = [];
     private int[] _traitModifierTraitIds = [];
     private int[] _traitModifierVerbIds = [];
-    private float[] _traitModifierWeightDeltas = [];
-    private float[] _traitModifierOpportunityBonusDeltas = [];
-    private float[] _traitModifierFitnessWeightDeltas = [];
+    private FixedScalar[] _traitModifierWeightDeltas = [];
+    private FixedScalar[] _traitModifierOpportunityBonusDeltas = [];
+    private FixedScalar[] _traitModifierFitnessWeightDeltas = [];
+    private int[] _firstRuleByKind = [];
+    private int[] _lastRuleByKind = [];
+    private int[] _nextRuleByKind = [];
+    private int[] _firstInitialInfluenceByKind = [];
+    private int[] _lastInitialInfluenceByKind = [];
+    private int[] _nextInitialInfluenceByKind = [];
+    private int[] _firstAffordanceByActorKind = [];
+    private int[] _lastAffordanceByActorKind = [];
+    private int[] _nextAffordanceByActorKind = [];
+    private int[] _firstTraitModifierByKind = [];
+    private int[] _lastTraitModifierByKind = [];
+    private int[] _nextTraitModifierByKind = [];
     private int _ruleCount;
     private int _terrainCount;
     private int _stepCount;
     private int _initialInfluenceRuleCount;
-    private float[] _ageWeightMultipliers = [];
+    private FixedScalar[] _ageWeightMultipliers = [];
     private int _affordanceCount;
     private int _traitWeightModifierCount;
-    public LowAltitudeVerbProgramData(int ruleCapacity, int itemCapacity)
+    public LowAltitudeVerbProgramData(int ruleCapacity, int itemCapacity, int kindCapacity = 256)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ruleCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(itemCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(ruleCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(itemCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(kindCapacity);
         var ruleLength = ruleCapacity + 1;
         var itemLength = itemCapacity + 1;
+        var kindLength = kindCapacity + 1;
         InitializeRuleIdentityArrays(ruleLength);
         InitializeTargetAndTerrainArrays(ruleLength, itemLength);
         InitializeStepArrays(ruleLength, itemLength);
@@ -88,14 +102,31 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         InitializeInitialInfluenceArrays(ruleLength);
         InitializeAffordanceArrays(itemLength);
         InitializeTraitWeightModifierArrays(itemLength);
+        InitializeKindIndexes(kindLength, ruleLength, itemLength);
+    }
+
+    private void InitializeKindIndexes(int kindLength, int ruleLength, int itemLength)
+    {
+        _firstRuleByKind = new int[kindLength];
+        _lastRuleByKind = new int[kindLength];
+        _nextRuleByKind = new int[ruleLength];
+        _firstInitialInfluenceByKind = new int[kindLength];
+        _lastInitialInfluenceByKind = new int[kindLength];
+        _nextInitialInfluenceByKind = new int[ruleLength];
+        _firstAffordanceByActorKind = new int[kindLength];
+        _lastAffordanceByActorKind = new int[kindLength];
+        _nextAffordanceByActorKind = new int[itemLength];
+        _firstTraitModifierByKind = new int[kindLength];
+        _lastTraitModifierByKind = new int[kindLength];
+        _nextTraitModifierByKind = new int[itemLength];
     }
 
     private void InitializeRuleIdentityArrays(int ruleLength)
     {
         _kindIds = new int[ruleLength];
         _verbIds = new int[ruleLength];
-        _ageWeightMultipliers = new float[ruleLength];
-        global::System.Array.Fill(_ageWeightMultipliers, 1f);
+        _ageWeightMultipliers = new FixedScalar[ruleLength];
+        global::System.Array.Fill(_ageWeightMultipliers, 1);
         _planeCodes = new int[ruleLength];
         _operationCodes = new int[ruleLength];
         _influenceTargetingCodes = new int[ruleLength];
@@ -156,7 +187,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         StepCounts = new int[ruleLength];
         StepOpcodes = new int[itemLength];
         StepIntArguments = new int[itemLength];
-        StepFloatArguments = new float[itemLength];
+        StepScalarArguments = new FixedScalar[itemLength];
     }
 
     private void InitializeCommitmentArrays(int ruleLength)
@@ -170,36 +201,36 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     private void InitializeWeightArrays(int ruleLength)
     {
-        _weights = new float[ruleLength];
-        _opportunityBonusOverrides = new float[ruleLength];
-        _fitnessWeights = new float[ruleLength];
-        _distanceScaleOverrides = new float[ruleLength];
+        _weights = new FixedScalar[ruleLength];
+        _opportunityBonusOverrides = new FixedScalar[ruleLength];
+        _fitnessWeights = new FixedScalar[ruleLength];
+        _distanceScaleOverrides = new FixedScalar[ruleLength];
         _foreignInfluenceFilterEnabled = new int[ruleLength];
         _foreignInfluenceBlockPositiveRelationships = new int[ruleLength];
         _foreignInfluenceAllowNegativeRelationships = new int[ruleLength];
-        _foreignInfluenceMinimumRelationshipStrengths = new float[ruleLength];
-        _foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = new float[ruleLength];
+        _foreignInfluenceMinimumRelationshipStrengths = new FixedScalar[ruleLength];
+        _foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = new FixedScalar[ruleLength];
         _fitnessRelationshipKindIds = new int[ruleLength];
         _fitnessRelationshipDirectionCodes = new int[ruleLength];
         _fitnessPolarityCodes = new int[ruleLength];
-        _fitnessThresholds = new float[ruleLength];
+        _fitnessThresholds = new FixedScalar[ruleLength];
     }
 
     private void InitializeInfluenceArrays(int ruleLength)
     {
-        _influenceDeltas = new float[ruleLength];
+        _influenceDeltas = new FixedScalar[ruleLength];
         _influenceRadii = new int[ruleLength];
-        _coverageGrowthChances = new float[ruleLength];
-        _headquartersMoveChances = new float[ruleLength];
-        _requiredInfluences = new float[ruleLength];
-        _relationshipStrengthDeltas = new float[ruleLength];
+        _coverageGrowthChances = new FixedScalar[ruleLength];
+        _headquartersMoveChances = new FixedScalar[ruleLength];
+        _requiredInfluences = new FixedScalar[ruleLength];
+        _relationshipStrengthDeltas = new FixedScalar[ruleLength];
     }
 
     private void InitializeInitialInfluenceArrays(int ruleLength)
     {
         _initialInfluenceKindIds = new int[ruleLength];
         _initialInfluencePlaneCodes = new int[ruleLength];
-        _initialInfluenceValues = new float[ruleLength];
+        _initialInfluenceValues = new FixedScalar[ruleLength];
     }
 
     private void InitializeAffordanceArrays(int itemLength)
@@ -214,8 +245,8 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _affordanceRelationshipDirectionCodes = new int[itemLength];
         _affordanceOperationCodes = new int[itemLength];
         _affordancePolarityCodes = new int[itemLength];
-        _affordanceThresholds = new float[itemLength];
-        _affordanceWeights = new float[itemLength];
+        _affordanceThresholds = new FixedScalar[itemLength];
+        _affordanceWeights = new FixedScalar[itemLength];
     }
 
     private void InitializeTraitWeightModifierArrays(int itemLength)
@@ -223,29 +254,29 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _traitModifierKindIds = new int[itemLength];
         _traitModifierTraitIds = new int[itemLength];
         _traitModifierVerbIds = new int[itemLength];
-        _traitModifierWeightDeltas = new float[itemLength];
-        _traitModifierOpportunityBonusDeltas = new float[itemLength];
-        _traitModifierFitnessWeightDeltas = new float[itemLength];
+        _traitModifierWeightDeltas = new FixedScalar[itemLength];
+        _traitModifierOpportunityBonusDeltas = new FixedScalar[itemLength];
+        _traitModifierFitnessWeightDeltas = new FixedScalar[itemLength];
     }
 
     public int ProgramId => KernelProgramCodes.LowAltitudeVerbs;
 
-    public int SchemaVersion => 9;
+    public int SchemaVersion => 10;
 
     public int RuleCount => _ruleCount;
 
-    public float AgeWeightMultiplier(int rule) => _ageWeightMultipliers[rule];
+    public FixedScalar AgeWeightMultiplier(int rule) => _ageWeightMultipliers[rule];
 
     /// <summary>Age charges: neutralize, then apply per open age each world-beat pulse.</summary>
     public void ResetAgeWeightMultipliers()
     {
         for (var rule = 1; rule <= _ruleCount; rule++)
         {
-            _ageWeightMultipliers[rule] = 1f;
+            _ageWeightMultipliers[rule] = 1;
         }
     }
 
-    public void ApplyAgeWeightMultiplier(int verbId, float multiplier)
+    public void ApplyAgeWeightMultiplier(int verbId, FixedScalar multiplier)
     {
         for (var rule = 1; rule <= _ruleCount; rule++)
         {
@@ -295,14 +326,14 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _dwellTicks[slot] = global::System.Math.Max(0, registration.DwellTicks);
         _targetRadii[slot] = global::System.Math.Max(0, registration.TargetRadius);
         _candidateSampleCounts[slot] = global::System.Math.Max(1, registration.CandidateSampleCount);
-        _weights[slot] = global::System.Math.Max(0.01f, registration.Weight);
+        _weights[slot] = FixedScalar.Max(FixedScalar.FromUnits(10000L), registration.Weight);
         _opportunityBonusOverrides[slot] = registration.OpportunityBonusOverride;
         _fitnessWeights[slot] = registration.FitnessWeight;
         _distanceScaleOverrides[slot] = registration.DistanceScaleOverride;
         _foreignInfluenceFilterEnabled[slot] = ClampFlag(registration.ForeignInfluenceFilterEnabled);
         _foreignInfluenceBlockPositiveRelationships[slot] = ClampFlag(registration.ForeignInfluenceBlockPositiveRelationships);
         _foreignInfluenceAllowNegativeRelationships[slot] = ClampFlag(registration.ForeignInfluenceAllowNegativeRelationships);
-        _foreignInfluenceMinimumRelationshipStrengths[slot] = global::System.Math.Max(0f, registration.ForeignInfluenceMinimumRelationshipStrength);
+        _foreignInfluenceMinimumRelationshipStrengths[slot] = FixedScalar.Max(0, registration.ForeignInfluenceMinimumRelationshipStrength);
         _foreignInfluenceAllowUnrelatedInfluenceAtOrAbove[slot] = ClampDisabledInfluence(registration.ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove);
         _fitnessRelationshipKindIds[slot] = registration.FitnessRelationshipKindId;
         _fitnessRelationshipDirectionCodes[slot] = registration.FitnessRelationshipDirectionCode == 0
@@ -310,16 +341,22 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
             : registration.FitnessRelationshipDirectionCode;
         _fitnessPolarityCodes[slot] = registration.FitnessPolarityCode;
         _fitnessThresholds[slot] = registration.FitnessThreshold;
-        _influenceDeltas[slot] = global::System.Math.Max(0f, registration.InfluenceDelta);
+        _influenceDeltas[slot] = FixedScalar.Max(0, registration.InfluenceDelta);
         _influenceRadii[slot] = global::System.Math.Max(0, registration.InfluenceRadius);
         _coverageGrowthChances[slot] = Clamp01(registration.CoverageChance);
         _headquartersMoveChances[slot] = Clamp01(registration.RelocationChance);
         _requiredInfluences[slot] = ClampInfluence(registration.RequiredMapValue);
         _relationshipStrengthDeltas[slot] = registration.RelationshipStrengthDelta;
+        AppendKindIndex(
+            registration.KindId,
+            slot,
+            _firstRuleByKind,
+            _lastRuleByKind,
+            _nextRuleByKind);
         return slot;
     }
 
-    public void AddPrimitiveStep(int rule, int opcode, int intArgument, float floatArgument)
+    public void AddPrimitiveStep(int rule, int opcode, int intArgument, FixedScalar scalarArgument)
     {
         EnsureRule(rule);
         ValidateOperationCode(opcode);
@@ -328,7 +365,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
             StepStarts[rule] = _stepCount + 1;
         }
 
-        AddStep(opcode, intArgument, floatArgument);
+        AddStep(opcode, intArgument, scalarArgument);
         StepCounts[rule]++;
     }
 
@@ -351,7 +388,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _terrainCounts[verbSlot]++;
     }
 
-    public int RegisterInitialInfluence(int kindId, int planeCode, float influenceValue)
+    public int RegisterInitialInfluence(int kindId, int planeCode, FixedScalar influenceValue)
     {
         ValidatePositive(kindId);
         ValidatePlaneCode(planeCode);
@@ -364,6 +401,12 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _initialInfluenceKindIds[_initialInfluenceRuleCount] = kindId;
         _initialInfluencePlaneCodes[_initialInfluenceRuleCount] = planeCode;
         _initialInfluenceValues[_initialInfluenceRuleCount] = ClampInfluence(influenceValue);
+        AppendKindIndex(
+            kindId,
+            _initialInfluenceRuleCount,
+            _firstInitialInfluenceByKind,
+            _lastInitialInfluenceByKind,
+            _nextInitialInfluenceByKind);
         return _initialInfluenceRuleCount;
     }
 
@@ -378,19 +421,19 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         int relationshipDirectionCode,
         int operationCode,
         int polarityCode,
-        float threshold,
-        float weight)
+        FixedScalar threshold,
+        FixedScalar weight)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(sourceKindCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(sourceId);
+        NumericGuard.ThrowIfNegative(sourceKindCode);
+        NumericGuard.ThrowIfNegative(sourceId);
         ValidatePositive(shapeCode);
         ValidatePositive(actorKindId);
         ValidateOptionalPlaneCode(planeCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(candidateKindId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(relationshipKindId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(relationshipDirectionCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(operationCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(polarityCode);
+        NumericGuard.ThrowIfNegative(candidateKindId);
+        NumericGuard.ThrowIfNegative(relationshipKindId);
+        NumericGuard.ThrowIfNegative(relationshipDirectionCode);
+        NumericGuard.ThrowIfNegative(operationCode);
+        NumericGuard.ThrowIfNegative(polarityCode);
         if (_affordanceCount + 1 >= _affordanceActorKindIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -409,8 +452,14 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
             : relationshipDirectionCode;
         _affordanceOperationCodes[_affordanceCount] = operationCode;
         _affordancePolarityCodes[_affordanceCount] = polarityCode;
-        _affordanceThresholds[_affordanceCount] = global::System.Math.Max(0f, threshold);
-        _affordanceWeights[_affordanceCount] = global::System.Math.Max(0f, weight);
+        _affordanceThresholds[_affordanceCount] = FixedScalar.Max(0, threshold);
+        _affordanceWeights[_affordanceCount] = FixedScalar.Max(0, weight);
+        AppendKindIndex(
+            actorKindId,
+            _affordanceCount,
+            _firstAffordanceByActorKind,
+            _lastAffordanceByActorKind,
+            _nextAffordanceByActorKind);
         return _affordanceCount;
     }
 
@@ -418,13 +467,13 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         int kindId,
         int traitId,
         int verbId,
-        float weightDelta,
-        float opportunityBonusDelta,
-        float fitnessWeightDelta)
+        FixedScalar weightDelta,
+        FixedScalar opportunityBonusDelta,
+        FixedScalar fitnessWeightDelta)
     {
         ValidatePositive(kindId);
         ValidatePositive(traitId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(verbId);
+        NumericGuard.ThrowIfNegative(verbId);
         if (_traitWeightModifierCount + 1 >= _traitModifierKindIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -437,8 +486,33 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _traitModifierWeightDeltas[_traitWeightModifierCount] = weightDelta;
         _traitModifierOpportunityBonusDeltas[_traitWeightModifierCount] = opportunityBonusDelta;
         _traitModifierFitnessWeightDeltas[_traitWeightModifierCount] = fitnessWeightDelta;
+        AppendKindIndex(
+            kindId,
+            _traitWeightModifierCount,
+            _firstTraitModifierByKind,
+            _lastTraitModifierByKind,
+            _nextTraitModifierByKind);
         return _traitWeightModifierCount;
     }
+
+    public int FirstRuleForKind(int kindId) => FirstKindItem(kindId, _firstRuleByKind);
+
+    public int NextRuleForKind(int rule) => _nextRuleByKind[rule];
+
+    public int FirstInitialInfluenceForKind(int kindId) =>
+        FirstKindItem(kindId, _firstInitialInfluenceByKind);
+
+    public int NextInitialInfluenceForKind(int rule) => _nextInitialInfluenceByKind[rule];
+
+    public int FirstAffordanceForActorKind(int kindId) =>
+        FirstKindItem(kindId, _firstAffordanceByActorKind);
+
+    public int NextAffordanceForActorKind(int affordance) => _nextAffordanceByActorKind[affordance];
+
+    public int FirstTraitModifierForKind(int kindId) =>
+        FirstKindItem(kindId, _firstTraitModifierByKind);
+
+    public int NextTraitModifierForKind(int modifier) => _nextTraitModifierByKind[modifier];
 
     public int KindId(int rule) => _kindIds[rule];
 
@@ -468,13 +542,13 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public int CandidateSampleCount(int rule) => _candidateSampleCounts[rule];
 
-    public float Weight(int rule) => _weights[rule];
+    public FixedScalar Weight(int rule) => _weights[rule];
 
-    public float OpportunityBonusOverride(int rule) => _opportunityBonusOverrides[rule];
+    public FixedScalar OpportunityBonusOverride(int rule) => _opportunityBonusOverrides[rule];
 
-    public float FitnessWeight(int rule) => _fitnessWeights[rule];
+    public FixedScalar FitnessWeight(int rule) => _fitnessWeights[rule];
 
-    public float DistanceScaleOverride(int rule) => _distanceScaleOverrides[rule];
+    public FixedScalar DistanceScaleOverride(int rule) => _distanceScaleOverrides[rule];
 
     public bool ForeignInfluenceFilterEnabled(int rule) => _foreignInfluenceFilterEnabled[rule] != 0;
 
@@ -482,9 +556,9 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public bool ForeignInfluenceAllowsNegativeRelationships(int rule) => _foreignInfluenceAllowNegativeRelationships[rule] != 0;
 
-    public float ForeignInfluenceMinimumRelationshipStrength(int rule) => _foreignInfluenceMinimumRelationshipStrengths[rule];
+    public FixedScalar ForeignInfluenceMinimumRelationshipStrength(int rule) => _foreignInfluenceMinimumRelationshipStrengths[rule];
 
-    public float ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove(int rule) => _foreignInfluenceAllowUnrelatedInfluenceAtOrAbove[rule];
+    public FixedScalar ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove(int rule) => _foreignInfluenceAllowUnrelatedInfluenceAtOrAbove[rule];
 
     public int FitnessRelationshipKindId(int rule) => _fitnessRelationshipKindIds[rule];
 
@@ -492,25 +566,25 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public int FitnessPolarityCode(int rule) => _fitnessPolarityCodes[rule];
 
-    public float FitnessThreshold(int rule) => _fitnessThresholds[rule];
+    public FixedScalar FitnessThreshold(int rule) => _fitnessThresholds[rule];
 
-    public float InfluenceDelta(int rule) => _influenceDeltas[rule];
+    public FixedScalar InfluenceDelta(int rule) => _influenceDeltas[rule];
 
     public int InfluenceRadius(int rule) => _influenceRadii[rule];
 
-    public float CoverageGrowthChance(int rule) => _coverageGrowthChances[rule];
+    public FixedScalar CoverageGrowthChance(int rule) => _coverageGrowthChances[rule];
 
-    public float HeadquartersMoveChance(int rule) => _headquartersMoveChances[rule];
+    public FixedScalar HeadquartersMoveChance(int rule) => _headquartersMoveChances[rule];
 
-    public float RequiredInfluence(int rule) => _requiredInfluences[rule];
+    public FixedScalar RequiredInfluence(int rule) => _requiredInfluences[rule];
 
-    public float RelationshipStrengthDelta(int rule) => _relationshipStrengthDeltas[rule];
+    public FixedScalar RelationshipStrengthDelta(int rule) => _relationshipStrengthDeltas[rule];
 
     public int InitialInfluenceKindId(int rule) => _initialInfluenceKindIds[rule];
 
     public int InitialInfluencePlaneCode(int rule) => _initialInfluencePlaneCodes[rule];
 
-    public float InitialInfluenceValue(int rule) => _initialInfluenceValues[rule];
+    public FixedScalar InitialInfluenceValue(int rule) => _initialInfluenceValues[rule];
 
     public int StepCount(int rule) => StepCounts[rule];
 
@@ -520,7 +594,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public int StepArgument(int step) => StepIntArguments[step];
 
-    public float StepFloatArgument(int step) => StepFloatArguments[step];
+    public FixedScalar StepScalarArgument(int step) => StepScalarArguments[step];
 
     public int AffordanceSourceKindCode(int rule) => _affordanceSourceKindCodes[rule];
 
@@ -542,9 +616,9 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public int AffordancePolarityCode(int rule) => _affordancePolarityCodes[rule];
 
-    public float AffordanceThreshold(int rule) => _affordanceThresholds[rule];
+    public FixedScalar AffordanceThreshold(int rule) => _affordanceThresholds[rule];
 
-    public float AffordanceWeight(int rule) => _affordanceWeights[rule];
+    public FixedScalar AffordanceWeight(int rule) => _affordanceWeights[rule];
 
     public DecisionModifier ReadDecisionModifier(int rule) =>
         new(
@@ -584,9 +658,37 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         }
     }
 
+    private static int FirstKindItem(int kindId, int[] firstByKind) =>
+        (uint)kindId < (uint)firstByKind.Length ? firstByKind[kindId] : 0;
+
+    private static void AppendKindIndex(
+        int kindId,
+        int item,
+        int[] firstByKind,
+        int[] lastByKind,
+        int[] nextByItem)
+    {
+        if ((uint)kindId >= (uint)firstByKind.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        var previous = lastByKind[kindId];
+        if (previous > 0)
+        {
+            nextByItem[previous] = item;
+        }
+        else
+        {
+            firstByKind[kindId] = item;
+        }
+
+        lastByKind[kindId] = item;
+    }
+
     private static void ValidatePositive(int value)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+        NumericGuard.ThrowIfNegativeOrZero(value);
     }
 
     private static void ValidateRegistration(
@@ -605,7 +707,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         ValidateTargetModeCode(targetModeCode);
     }
 
-    private void AddStep(int opcode, int intArgument, float floatArgument)
+    private void AddStep(int opcode, int intArgument, FixedScalar scalarArgument)
     {
         if (_stepCount + 1 >= StepOpcodes.Length)
         {
@@ -615,7 +717,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         _stepCount++;
         StepOpcodes[_stepCount] = opcode;
         StepIntArguments[_stepCount] = intArgument;
-        StepFloatArguments[_stepCount] = floatArgument;
+        StepScalarArguments[_stepCount] = scalarArgument;
     }
 
     private static void ValidatePlaneCode(int planeCode)
@@ -673,34 +775,34 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
         }
     }
 
-    private static float Clamp01(float value)
+    private static FixedScalar Clamp01(FixedScalar value)
     {
-        if (value < 0f)
+        if (value < 0)
         {
-            return 0f;
+            return 0;
         }
 
-        return value > 1f ? 1f : value;
+        return value > 1 ? 1 : value;
     }
 
-    private static float ClampInfluence(float value)
+    private static FixedScalar ClampInfluence(FixedScalar value)
     {
-        if (value < 0f)
+        if (value < 0)
         {
-            return 0f;
+            return 0;
         }
 
-        return value > 100f ? 100f : value;
+        return value > 100 ? 100 : value;
     }
 
-    private static float ClampDisabledInfluence(float value)
+    private static FixedScalar ClampDisabledInfluence(FixedScalar value)
     {
-        if (value < 0f)
+        if (value < 0)
         {
-            return -1f;
+            return -1;
         }
 
-        return value > 100f ? 100f : value;
+        return value > 100 ? 100 : value;
     }
 
     private static int ClampFlag(int value) => value == 0 ? 0 : 1;

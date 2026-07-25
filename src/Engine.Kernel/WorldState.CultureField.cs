@@ -1,18 +1,20 @@
 namespace Engine.Kernel;
 
+using Engine.Constants;
+
 internal readonly record struct CultureFieldCell(
     int CultureId,
     int PlaneCode,
     int Q,
     int R,
-    float Share,
-    float RawMass,
-    float TotalRawMass,
-    float ForeignShare,
-    float ForeignRawMass,
-    float LocalRawMass,
-    float ConnectedRawMass,
-    float Headroom,
+    FixedScalar Share,
+    FixedScalar RawMass,
+    FixedScalar TotalRawMass,
+    FixedScalar ForeignShare,
+    FixedScalar ForeignRawMass,
+    FixedScalar LocalRawMass,
+    FixedScalar ConnectedRawMass,
+    FixedScalar Headroom,
     int SupportedAdjacentCount,
     int SupportedRingTwoCount,
     int CellKindCode);
@@ -23,9 +25,9 @@ internal sealed partial class WorldState
     {
         ValidatePositive(cultureId);
         ValidateInfluencePlaneCode(planeCode);
-        var boundaries = _cultureBoundaries ??
+        var locality = _cultureLocality ??
             throw new global::System.InvalidOperationException();
-        var boundary = boundaries.CellAt(this, cultureId, planeCode, q, r);
+        var boundary = locality.CellAt(this, cultureId, planeCode, q, r);
         return new CultureFieldCell(
             cultureId,
             planeCode,
@@ -44,16 +46,16 @@ internal sealed partial class WorldState
             boundary.CellKindCode);
     }
 
-    internal float EntityInfluenceProduction(int entityId, int planeCode)
+    internal FixedScalar EntityInfluenceProduction(int entityId, int planeCode)
     {
         EnsureEntity(entityId);
         ValidateInfluencePlaneCode(planeCode);
         return planeCode == PlaneCodes.Semantic
-            ? _entitySemanticInfluenceProduction[entityId]
-            : _entityPhysicalInfluenceProduction[entityId];
+            ? KernelFixedPoint.CultureMassScalar(_entitySemanticInfluenceProduction[entityId])
+            : KernelFixedPoint.CultureMassScalar(_entityPhysicalInfluenceProduction[entityId]);
     }
 
-    internal static int CultureFieldStrengthBand(float rawMass)
+    internal static int CultureFieldStrengthBand(FixedScalar rawMass)
     {
         if (rawMass >= CultureNexusRawMass)
         {
@@ -80,14 +82,4 @@ internal sealed partial class WorldState
             : CultureFieldStrengthBandCodes.None;
     }
 
-    private float CultureRawTotalAt(int planeCode, int key)
-    {
-        var total = 0f;
-        for (var cultureId = 1; cultureId <= _cultureHighWatermark; cultureId++)
-        {
-            total += PositiveCultureInfluenceRaw(cultureId, planeCode, key);
-        }
-
-        return total;
-    }
 }

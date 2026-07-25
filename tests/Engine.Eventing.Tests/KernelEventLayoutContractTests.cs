@@ -34,13 +34,13 @@ public sealed class KernelEventLayoutContractTests
                 if (parameter.Name is "Tick" or "WorldVersion")
                 {
                     Assert.Empty(parameter.GetCustomAttributes<KernelEventIntSlotAttribute>());
-                    Assert.Empty(parameter.GetCustomAttributes<KernelEventFloatSlotAttribute>());
+                    Assert.Empty(parameter.GetCustomAttributes<KernelEventLongSlotAttribute>());
                     continue;
                 }
 
                 var intSlotCount = parameter.GetCustomAttributes<KernelEventIntSlotAttribute>().Count();
-                var floatSlotCount = parameter.GetCustomAttributes<KernelEventFloatSlotAttribute>().Count();
-                Assert.Equal(1, intSlotCount + floatSlotCount);
+                var longSlotCount = parameter.GetCustomAttributes<KernelEventLongSlotAttribute>().Count();
+                Assert.Equal(1, intSlotCount + longSlotCount);
             }
         }
     }
@@ -65,7 +65,7 @@ public sealed class KernelEventLayoutContractTests
             {
                 var descriptorSlot = Assert.Single(descriptor.Slots, slot => slot.PropertyName == parameter.Name);
                 var intSlot = parameter.GetCustomAttribute<KernelEventIntSlotAttribute>();
-                var floatSlot = parameter.GetCustomAttribute<KernelEventFloatSlotAttribute>();
+                var longSlot = parameter.GetCustomAttribute<KernelEventLongSlotAttribute>();
                 if (intSlot is not null)
                 {
                     Assert.Equal(KernelEventPrimitiveKind.Int32, descriptorSlot.PrimitiveKind);
@@ -75,11 +75,11 @@ public sealed class KernelEventLayoutContractTests
                 }
                 else
                 {
-                    Assert.NotNull(floatSlot);
-                    Assert.Equal(KernelEventPrimitiveKind.Float32, descriptorSlot.PrimitiveKind);
-                    Assert.Equal(floatSlot.Slot, descriptorSlot.Slot);
-                    Assert.Equal(floatSlot.Name, descriptorSlot.Name);
-                    Assert.Equal(floatSlot.SemanticKind, descriptorSlot.SemanticKind);
+                    Assert.NotNull(longSlot);
+                    Assert.Equal(KernelEventPrimitiveKind.Int64, descriptorSlot.PrimitiveKind);
+                    Assert.Equal(longSlot.Slot, descriptorSlot.Slot);
+                    Assert.Equal(longSlot.Name, descriptorSlot.Name);
+                    Assert.Equal(longSlot.SemanticKind, descriptorSlot.SemanticKind);
                 }
             }
         }
@@ -127,10 +127,10 @@ public sealed class KernelEventLayoutContractTests
                     continue;
                 }
 
-                var floatSlot = parameter.GetCustomAttribute<KernelEventFloatSlotAttribute>();
-                if (floatSlot is not null)
+                var longSlot = parameter.GetCustomAttribute<KernelEventLongSlotAttribute>();
+                if (longSlot is not null)
                 {
-                    Assert.Equal((float)arguments[i], kernelEvent.GetFloatSlot(floatSlot.Slot));
+                    Assert.Equal((long)arguments[i], kernelEvent.GetLongSlot(longSlot.Slot));
                 }
             }
 
@@ -155,14 +155,17 @@ public sealed class KernelEventLayoutContractTests
                 var parameters = constructor.GetParameters();
                 return parameters.Length >= 2 &&
                        parameters[0].Name == "Tick" &&
-                       parameters[1].Name == "WorldVersion";
+                       parameters[1].Name == "WorldVersion" &&
+                       parameters.Skip(2).All(parameter =>
+                           parameter.GetCustomAttributes<KernelEventIntSlotAttribute>().Count() +
+                           parameter.GetCustomAttributes<KernelEventLongSlotAttribute>().Count() == 1);
             });
 
     private static object[] SentinelArguments(ParameterInfo[] parameters)
     {
         var arguments = new object[parameters.Length];
         var intValue = 101;
-        var floatValue = 1001.25f;
+        var longValue = 1_001_250L;
         for (var i = 0; i < parameters.Length; i++)
         {
             var parameter = parameters[i];
@@ -178,10 +181,10 @@ public sealed class KernelEventLayoutContractTests
             {
                 arguments[i] = intValue++;
             }
-            else if (parameter.ParameterType == typeof(float))
+            else if (parameter.ParameterType == typeof(long))
             {
-                arguments[i] = floatValue;
-                floatValue += 1.25f;
+                arguments[i] = longValue;
+                longValue += 1_250L;
             }
             else if (parameter.ParameterType.IsEnum)
             {

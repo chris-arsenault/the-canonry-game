@@ -179,7 +179,7 @@ public sealed class KernelSchedulingTests
     }
 
     [Fact]
-    public void DefaultProgramsRunMinorActorsEveryTickAndMainProgramsOnRatioBoundary()
+    public void DefaultProgramsUseWorldPulsesWithMinorActorSubsteps()
     {
         var simulation = new Simulation(new SimulationOptions { MinorActorCapacity = 8 });
         simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
@@ -193,7 +193,7 @@ public sealed class KernelSchedulingTests
             semanticQ: 0,
             semanticR: 0,
             semanticS: 0);
-        _ = simulation.LowAltitudeVerbs.RegisterInitialInfluence(1, PlaneCodes.Physical, 10f);
+        _ = simulation.LowAltitudeVerbs.RegisterInitialInfluence(1, PlaneCodes.Physical, FixedScalar.FromSingle(10f));
         _ = simulation.MinorActors.Spawn(
             cultureId: 1,
             sourceEntityId: 0,
@@ -206,22 +206,25 @@ public sealed class KernelSchedulingTests
             ttlPulses: 10,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 0f,
+            workDelta: FixedScalar.FromSingle(0f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(4);
 
-        Assert.Equal(4, simulation.MinorActors.State.Pulse);
-        Assert.Equal(0f, simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(20, simulation.MinorActors.State.Pulse);
+        Assert.Equal(4, simulation.CurrentTick);
+        Assert.Equal(FixedScalar.FromSingle(10f), simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
 
         _ = simulation.AdvanceTicks(1);
 
-        Assert.Equal(5, simulation.MinorActors.State.Pulse);
-        Assert.Equal(10f, simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(25, simulation.MinorActors.State.Pulse);
+        Assert.Equal(
+            FixedScalar.FromSingle(9.4f),
+            simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
     }
 
     [Fact]
-    public void GeneratorPulseWidthScalesFromMainTicksToMinorActorTicks()
+    public void GeneratorPulseWidthUsesWorldPulses()
     {
         var simulation = new Simulation(new SimulationOptions
         {
@@ -229,7 +232,7 @@ public sealed class KernelSchedulingTests
             {
                 Programs = new KernelProgramTuningOptions
                 {
-                    MinorActorMainTickRatio = 5,
+                    MinorActorSubstepsPerPulse = 5,
                     Generators = new GeneratorProgramTuningOptions
                     {
                         PulseWidthTicks = 2,
@@ -241,11 +244,7 @@ public sealed class KernelSchedulingTests
         });
         simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
 
-        _ = simulation.AdvanceTicks(10);
-
-        Assert.Equal(0, simulation.Generators.State.ProvincePulseIndices[1]);
-
-        _ = simulation.AdvanceTicks(5);
+        _ = simulation.AdvanceTicks(3);
 
         Assert.Equal(1, simulation.Generators.State.ProvincePulseIndices[1]);
     }

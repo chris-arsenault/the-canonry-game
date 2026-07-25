@@ -68,7 +68,7 @@ public sealed class UiProjectionStateTests
     }
 
     [Fact]
-    public void Projection_UsesKernelStatusCodesForEntityStatusChanges()
+    public void Projection_RetirementIsFinalAndLaterMutationEventsDoNotRecreateEntity()
     {
         var log = new KernelEventLog(capacity: 16);
         var projection = new UiProjectionState();
@@ -99,21 +99,19 @@ public sealed class UiProjectionStateTests
             SubtypeId: 3,
             PreviousStatusCode: EntityStatusCodes.Active,
             CurrentStatusCode: EntityStatusCodes.Historical))));
-        Assert.True(log.TryWrite(KernelEvent.From(new EntityStatusChangedKernelEvent(
+        Assert.True(log.TryWrite(KernelEvent.From(new AttributeChangedKernelEvent(
             Tick: 3,
             WorldVersion: 3,
             EntityId: 10,
             SourceCodeId: 40,
-            KindId: 2,
-            SubtypeId: 3,
-            PreviousStatusCode: EntityStatusCodes.Historical,
-            CurrentStatusCode: EntityStatusCodes.Active))));
+            AttributeId: 5,
+            OldValueUnits: KernelFixedPoint.AttributeUnits(1f),
+            NewValueUnits: KernelFixedPoint.AttributeUnits(2f)))));
 
         pump.DrainAvailable();
 
-        var entity = projection.Entities[10];
-        Assert.Equal(EntityStatusCodes.Historical, entity.PreviousStatusCode);
-        Assert.Equal(EntityStatusCodes.Active, entity.StatusCode);
+        Assert.DoesNotContain(10, projection.Entities.Keys);
+        Assert.Equal(0, projection.ActiveEntityCount);
     }
 
     [Fact]
@@ -235,10 +233,10 @@ public sealed class UiProjectionStateTests
             R: 3,
             StatusCode: TraceStatusCodes.Selected,
             CellKindCode: CultureFieldCellKindCodes.Border,
-            LocalRawMass: 14.5f,
-            ConnectedRawMass: 21.5f,
-            Score: 3.25f,
-            Delta: 1.5f))));
+            LocalRawMassUnits: FixedScalar.FromSingle(14.5f).Units,
+            ConnectedRawMassUnits: FixedScalar.FromSingle(21.5f).Units,
+            ScoreUnits: FixedScalar.FromSingle(3.25f).Units,
+            DeltaUnits: FixedScalar.FromSingle(1.5f).Units))));
 
         pump.DrainAvailable();
 
@@ -472,8 +470,8 @@ public sealed class UiProjectionStateTests
             SourceEntityId: 10,
             TargetEntityId: 11,
             RelationshipId: 12,
-            PreviousStrength: 0f,
-            NewStrength: 1f))));
+            PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f),
+            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(1f)))));
     }
 
     private static void AssertBrowserInvalidation(
@@ -582,8 +580,8 @@ public sealed class UiProjectionStateTests
             SourceEntityId: sourceEntityId,
             TargetEntityId: targetEntityId,
             RelationshipId: 12,
-            PreviousStrength: 0f,
-            NewStrength: strength))));
+            PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f),
+            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(strength)))));
     }
 
     private static void WritePrimitiveEntityAndMutationEvents(KernelEventLog log)
@@ -621,8 +619,8 @@ public sealed class UiProjectionStateTests
             EntityId: 10,
             AttributeId: 30,
             SourceCodeId: 40,
-            OldValue: 12f,
-            NewValue: 14.5f))));
+            OldValueUnits: KernelFixedPoint.AttributeUnits(12f),
+            NewValueUnits: KernelFixedPoint.AttributeUnits(14.5f)))));
         Assert.True(log.TryWrite(KernelEvent.From(new GambitExecutedKernelEvent(
             Tick: 4,
             WorldVersion: 4,
@@ -643,6 +641,8 @@ public sealed class UiProjectionStateTests
 
     private static void WriteRelationshipGeneratorAndDecisionEvents(KernelEventLog log)
     {
+        WriteEntityCreated(log, entityId: 20, physicalQ: 0, physicalR: 0, semanticQ: 0, semanticR: 0);
+        WriteEntityCreated(log, entityId: 21, physicalQ: 1, physicalR: 0, semanticQ: 1, semanticR: -1);
         Assert.True(log.TryWrite(KernelEvent.From(new RelationshipChangedKernelEvent(
             Tick: 2,
             WorldVersion: 2,
@@ -653,8 +653,8 @@ public sealed class UiProjectionStateTests
             SourceEntityId: 20,
             TargetEntityId: 21,
             RelationshipId: 22,
-            PreviousStrength: 0f,
-            NewStrength: 0.75f))));
+            PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f),
+            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.75f)))));
         Assert.True(log.TryWrite(KernelEvent.From(new GeneratorEvaluatedKernelEvent(
             Tick: 3,
             WorldVersion: 3,

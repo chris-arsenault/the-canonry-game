@@ -22,7 +22,6 @@ internal sealed partial class WorldState
             return;
         }
 
-        EnsureProvenanceOutputCapacity(context);
         _entityPhysicalQ[entityId] = q;
         _entityPhysicalR[entityId] = r;
         _entityPhysicalZ[entityId] = z;
@@ -70,7 +69,6 @@ internal sealed partial class WorldState
             return;
         }
 
-        EnsureProvenanceOutputCapacity(context);
         _entitySemanticQ[entityId] = q;
         _entitySemanticR[entityId] = r;
         _entitySemanticS[entityId] = s;

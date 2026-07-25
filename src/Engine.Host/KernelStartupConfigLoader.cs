@@ -3,6 +3,7 @@ namespace Engine.Host;
 using System.Globalization;
 using System.Text.Json;
 
+using Engine.Constants;
 using Engine.Kernel;
 
 internal static class KernelStartupConfigLoader
@@ -12,12 +13,7 @@ internal static class KernelStartupConfigLoader
         new("KERNELTUNING.PROGRAMS.MOVEMENT", KernelProgramCodes.Movement),
         new("KERNELTUNING.PROGRAMS.LOWALTITUDEVERBS", KernelProgramCodes.LowAltitudeVerbs),
         new("KERNELTUNING.PROGRAMS.LOW_ALTITUDE_VERBS", KernelProgramCodes.LowAltitudeVerbs),
-        new("KERNELTUNING.PROGRAMS.MAPACTIVITY", KernelProgramCodes.MapActivity),
-        new("KERNELTUNING.PROGRAMS.MAP_ACTIVITY", KernelProgramCodes.MapActivity),
-        new("KERNELTUNING.PROGRAMS.MAPSIGNALS", KernelProgramCodes.MapSignals),
-        new("KERNELTUNING.PROGRAMS.MAP_SIGNALS", KernelProgramCodes.MapSignals),
         new("KERNELTUNING.PROGRAMS.EFFECTS", KernelProgramCodes.Effects),
-        new("KERNELTUNING.PROGRAMS.UPKEEP", KernelProgramCodes.Upkeep),
         new("KERNELTUNING.PROGRAMS.GAMBITS", KernelProgramCodes.Gambits),
         new("KERNELTUNING.PROGRAMS.RELATIONSHIPS", KernelProgramCodes.Relationships),
         new("KERNELTUNING.PROGRAMS.GENERATORS", KernelProgramCodes.Generators),
@@ -75,10 +71,10 @@ internal static class KernelStartupConfigLoader
             return tuning;
         }
 
-        tuning = ApplyJsonUpkeepTuning(programs, tuning);
+        tuning = ApplyJsonLifecycleTuning(programs, tuning);
         tuning = ApplyJsonGeneratorTuning(programs, tuning);
         tuning = ApplyJsonLowAltitudeVerbTuning(programs, tuning);
-        tuning = ApplyJsonMainTickRatioTuning(programs, tuning);
+        tuning = ApplyJsonMinorActorSubstepTuning(programs, tuning);
         tuning = ApplyJsonCultureInfluenceActionScaleTuning(programs, tuning);
         tuning = ApplyJsonCultureFieldTuning(programs, tuning);
         return ApplyJsonProgramEnabledTuning(programs, tuning);
@@ -88,10 +84,7 @@ internal static class KernelStartupConfigLoader
     {
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Movement, "movement");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.LowAltitudeVerbs, "lowAltitudeVerbs", "low_altitude_verbs");
-        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.MapActivity, "mapActivity", "map_activity");
-        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.MapSignals, "mapSignals", "map_signals");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Effects, "effects");
-        tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Upkeep, "upkeep");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Gambits, "gambits");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Relationships, "relationships");
         tuning = ApplyJsonProgramEnabledValue(programs, tuning, KernelProgramCodes.Generators, "generators");
@@ -220,10 +213,10 @@ internal static class KernelStartupConfigLoader
         return tuning;
     }
 
-    private static KernelTuningOptions ApplyJsonUpkeepTuning(JsonElement programs, KernelTuningOptions tuning)
+    private static KernelTuningOptions ApplyJsonLifecycleTuning(JsonElement programs, KernelTuningOptions tuning)
     {
-        if (!TryGetObject(programs, out var upkeep, "upkeep") ||
-            !TryGetString(upkeep, out var agingModel, "agingModel", "aging_model") ||
+        if (!TryGetObject(programs, out var lifecycle, "lifecycle") ||
+            !TryGetString(lifecycle, out var agingModel, "agingModel", "aging_model") ||
             !TryParseAgingModel(agingModel, out var agingModelCode))
         {
             return tuning;
@@ -232,20 +225,20 @@ internal static class KernelStartupConfigLoader
         return WithAgingModel(tuning, agingModelCode);
     }
 
-    private static KernelTuningOptions ApplyJsonMainTickRatioTuning(JsonElement programs, KernelTuningOptions tuning)
+    private static KernelTuningOptions ApplyJsonMinorActorSubstepTuning(JsonElement programs, KernelTuningOptions tuning)
     {
-        if (TryGetInt(programs, out var ratio, "minorActorMainTickRatio", "minor_actor_main_tick_ratio"))
+        if (TryGetInt(programs, out var substeps, "minorActorSubstepsPerPulse", "minor_actor_substeps_per_pulse"))
         {
-            return WithMinorActorMainTickRatio(tuning, ratio);
+            return WithMinorActorSubstepsPerPulse(tuning, substeps);
         }
 
         if (!TryGetObject(programs, out var minorActors, "minorActors", "minor_actors") ||
-            !TryGetInt(minorActors, out ratio, "minorActorMainTickRatio", "minor_actor_main_tick_ratio"))
+            !TryGetInt(minorActors, out substeps, "substepsPerPulse", "substeps_per_pulse"))
         {
             return tuning;
         }
 
-        return WithMinorActorMainTickRatio(tuning, ratio);
+        return WithMinorActorSubstepsPerPulse(tuning, substeps);
     }
 
     private static KernelTuningOptions ApplyJsonCultureInfluenceActionScaleTuning(JsonElement programs, KernelTuningOptions tuning)
@@ -264,27 +257,35 @@ internal static class KernelStartupConfigLoader
 
         if (TryGetFloat(cultureField, out var decayPerPulse, "decayPerPulse", "decay_per_pulse"))
         {
-            tuning = WithCultureField(tuning, tuning.Programs.CultureField with { DecayPerPulse = decayPerPulse });
+            tuning = WithCultureField(
+                tuning,
+                tuning.Programs.CultureField with { DecayPerPulse = FixedScalar.FromSingle(decayPerPulse) });
         }
 
         if (TryGetFloat(cultureField, out var minimumDecay, "minimumDecayPerPulse", "minimum_decay_per_pulse"))
         {
-            tuning = WithCultureField(tuning, tuning.Programs.CultureField with { MinimumDecayPerPulse = minimumDecay });
+            tuning = WithCultureField(
+                tuning,
+                tuning.Programs.CultureField with { MinimumDecayPerPulse = FixedScalar.FromSingle(minimumDecay) });
         }
 
         if (TryGetFloat(cultureField, out var cullFloor, "cullFloorRawMass", "cull_floor_raw_mass"))
         {
-            tuning = WithCultureField(tuning, tuning.Programs.CultureField with { CullFloorRawMass = cullFloor });
+            tuning = WithCultureField(
+                tuning,
+                tuning.Programs.CultureField with { CullFloorRawMass = FixedScalar.FromSingle(cullFloor) });
         }
 
-        if (TryGetInt(cultureField, out var cadence, "decayCadenceMainTicks", "decay_cadence_main_ticks"))
+        if (TryGetInt(cultureField, out var cadence, "decayCadencePulses", "decay_cadence_pulses"))
         {
-            tuning = WithCultureField(tuning, tuning.Programs.CultureField with { DecayCadenceMainTicks = cadence });
+            tuning = WithCultureField(tuning, tuning.Programs.CultureField with { DecayCadencePulses = cadence });
         }
 
         if (TryGetFloat(cultureField, out var remittanceShare, "remittanceShare", "remittance_share"))
         {
-            tuning = WithCultureField(tuning, tuning.Programs.CultureField with { RemittanceShare = remittanceShare });
+            tuning = WithCultureField(
+                tuning,
+                tuning.Programs.CultureField with { RemittanceShare = FixedScalar.FromSingle(remittanceShare) });
         }
 
         if (TryGetInt(cultureField, out var remittanceDistance, "remittanceMinimumDistance", "remittance_minimum_distance"))
@@ -375,10 +376,10 @@ internal static class KernelStartupConfigLoader
         }
 
         var scalar = ReadBareTomlValue(value);
-        if (string.Equals(section, "KERNELTUNING.PROGRAMS.UPKEEP", StringComparison.Ordinal) &&
+        if (string.Equals(section, "KERNELTUNING.PROGRAMS.LIFECYCLE", StringComparison.Ordinal) &&
             string.Equals(key, "AGINGMODEL", StringComparison.Ordinal))
         {
-            return ApplyTomlUpkeepValue(scalar, tuning);
+            return ApplyTomlLifecycleValue(scalar, tuning);
         }
 
         return ApplyTomlProgramEnabledValue(section, key, value, tuning);
@@ -390,10 +391,10 @@ internal static class KernelStartupConfigLoader
         KernelTuningOptions tuning)
     {
         var scalar = ReadBareTomlValue(value);
-        if (string.Equals(key, "MINORACTORMAINTICKRATIO", StringComparison.Ordinal) &&
-            int.TryParse(scalar, CultureInfo.InvariantCulture, out var ratio))
+        if (string.Equals(key, "MINORACTORSUBSTEPSPERPULSE", StringComparison.Ordinal) &&
+            int.TryParse(scalar, CultureInfo.InvariantCulture, out var substeps))
         {
-            return WithMinorActorMainTickRatio(tuning, ratio);
+            return WithMinorActorSubstepsPerPulse(tuning, substeps);
         }
 
         return string.Equals(key, "CULTUREINFLUENCEACTIONSCALE", StringComparison.Ordinal) &&
@@ -428,10 +429,22 @@ internal static class KernelStartupConfigLoader
     {
         var cultureField = key switch
         {
-            "DECAYPERPULSE" => tuning.Programs.CultureField with { DecayPerPulse = value },
-            "MINIMUMDECAYPERPULSE" => tuning.Programs.CultureField with { MinimumDecayPerPulse = value },
-            "CULLFLOORRAWMASS" => tuning.Programs.CultureField with { CullFloorRawMass = value },
-            "REMITTANCESHARE" => tuning.Programs.CultureField with { RemittanceShare = value },
+            "DECAYPERPULSE" => tuning.Programs.CultureField with
+            {
+                DecayPerPulse = FixedScalar.FromSingle(value),
+            },
+            "MINIMUMDECAYPERPULSE" => tuning.Programs.CultureField with
+            {
+                MinimumDecayPerPulse = FixedScalar.FromSingle(value),
+            },
+            "CULLFLOORRAWMASS" => tuning.Programs.CultureField with
+            {
+                CullFloorRawMass = FixedScalar.FromSingle(value),
+            },
+            "REMITTANCESHARE" => tuning.Programs.CultureField with
+            {
+                RemittanceShare = FixedScalar.FromSingle(value),
+            },
             _ => tuning.Programs.CultureField,
         };
         return WithCultureField(tuning, cultureField);
@@ -444,7 +457,7 @@ internal static class KernelStartupConfigLoader
     {
         var cultureField = key switch
         {
-            "DECAYCADENCEMAINTICKS" => tuning.Programs.CultureField with { DecayCadenceMainTicks = value },
+            "DECAYCADENCEPULSES" => tuning.Programs.CultureField with { DecayCadencePulses = value },
             "REMITTANCEMINIMUMDISTANCE" => tuning.Programs.CultureField with { RemittanceMinimumDistance = value },
             _ => tuning.Programs.CultureField,
         };
@@ -504,10 +517,7 @@ internal static class KernelStartupConfigLoader
         {
             KernelProgramCodes.Movement => options with { Movement = code },
             KernelProgramCodes.LowAltitudeVerbs => options with { LowAltitudeVerbs = code },
-            KernelProgramCodes.MapActivity => options with { MapActivity = code },
-            KernelProgramCodes.MapSignals => options with { MapSignals = code },
             KernelProgramCodes.Effects => options with { Effects = code },
-            KernelProgramCodes.Upkeep => options with { Upkeep = code },
             KernelProgramCodes.Gambits => options with { Gambits = code },
             KernelProgramCodes.MinorActors => options with { MinorActors = code },
             _ => options,
@@ -561,10 +571,10 @@ internal static class KernelStartupConfigLoader
         KernelTuningOptions tuning)
     {
         var scalar = ReadBareTomlValue(value);
-        if (string.Equals(key, "MINORACTORMAINTICKRATIO", StringComparison.Ordinal) &&
-            int.TryParse(scalar, CultureInfo.InvariantCulture, out var ratio))
+        if (string.Equals(key, "SUBSTEPSPERPULSE", StringComparison.Ordinal) &&
+            int.TryParse(scalar, CultureInfo.InvariantCulture, out var substeps))
         {
-            return WithMinorActorMainTickRatio(tuning, ratio);
+            return WithMinorActorSubstepsPerPulse(tuning, substeps);
         }
 
         return tuning;
@@ -657,7 +667,7 @@ internal static class KernelStartupConfigLoader
         return !ReferenceEquals(updated, tuning);
     }
 
-    private static KernelTuningOptions ApplyTomlUpkeepValue(
+    private static KernelTuningOptions ApplyTomlLifecycleValue(
         string value,
         KernelTuningOptions tuning)
     {
@@ -713,7 +723,10 @@ internal static class KernelStartupConfigLoader
         {
             Programs = tuning.Programs with
             {
-                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { OpportunityRate = value },
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with
+                {
+                    OpportunityRate = FixedScalar.FromSingle(value),
+                },
             },
         };
 
@@ -722,7 +735,10 @@ internal static class KernelStartupConfigLoader
         {
             Programs = tuning.Programs with
             {
-                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { OpportunityBonus = value },
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with
+                {
+                    OpportunityBonus = FixedScalar.FromSingle(value),
+                },
             },
         };
 
@@ -749,7 +765,10 @@ internal static class KernelStartupConfigLoader
         {
             Programs = tuning.Programs with
             {
-                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { CellSaturationFactor = value },
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with
+                {
+                    CellSaturationFactor = FixedScalar.FromSingle(value),
+                },
             },
         };
 
@@ -758,7 +777,10 @@ internal static class KernelStartupConfigLoader
         {
             Programs = tuning.Programs with
             {
-                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { ExploreDistanceScale = value },
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with
+                {
+                    ExploreDistanceScale = FixedScalar.FromSingle(value),
+                },
             },
         };
 
@@ -767,7 +789,10 @@ internal static class KernelStartupConfigLoader
         {
             Programs = tuning.Programs with
             {
-                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { TerrainDistanceScale = value },
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with
+                {
+                    TerrainDistanceScale = FixedScalar.FromSingle(value),
+                },
             },
         };
 
@@ -776,7 +801,10 @@ internal static class KernelStartupConfigLoader
         {
             Programs = tuning.Programs with
             {
-                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { EntityKindDistanceScale = value },
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with
+                {
+                    EntityKindDistanceScale = FixedScalar.FromSingle(value),
+                },
             },
         };
 
@@ -785,7 +813,10 @@ internal static class KernelStartupConfigLoader
         {
             Programs = tuning.Programs with
             {
-                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { RelationshipTargetDistanceScale = value },
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with
+                {
+                    RelationshipTargetDistanceScale = FixedScalar.FromSingle(value),
+                },
             },
         };
 
@@ -794,7 +825,10 @@ internal static class KernelStartupConfigLoader
         {
             Programs = tuning.Programs with
             {
-                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { OwnInfluenceDistanceScale = value },
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with
+                {
+                    OwnInfluenceDistanceScale = FixedScalar.FromSingle(value),
+                },
             },
         };
 
@@ -803,16 +837,19 @@ internal static class KernelStartupConfigLoader
         {
             Programs = tuning.Programs with
             {
-                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with { ForeignInfluenceDistanceScale = value },
+                LowAltitudeVerbs = tuning.Programs.LowAltitudeVerbs with
+                {
+                    ForeignInfluenceDistanceScale = FixedScalar.FromSingle(value),
+                },
             },
         };
 
-    private static KernelTuningOptions WithMinorActorMainTickRatio(KernelTuningOptions tuning, int value) =>
+    private static KernelTuningOptions WithMinorActorSubstepsPerPulse(KernelTuningOptions tuning, int value) =>
         tuning with
         {
             Programs = tuning.Programs with
             {
-                MinorActorMainTickRatio = value,
+                MinorActorSubstepsPerPulse = value,
             },
         };
 
@@ -821,7 +858,7 @@ internal static class KernelStartupConfigLoader
         {
             Programs = tuning.Programs with
             {
-                CultureInfluenceActionScale = value,
+                CultureInfluenceActionScale = FixedScalar.FromSingle(value),
             },
         };
 
@@ -843,7 +880,7 @@ internal static class KernelStartupConfigLoader
         {
             Programs = tuning.Programs with
             {
-                Upkeep = tuning.Programs.Upkeep with
+                Lifecycle = tuning.Programs.Lifecycle with
                 {
                     AgingModelCode = code,
                 },
@@ -957,13 +994,13 @@ internal static class KernelStartupConfigLoader
         var normalized = Normalize(value);
         if (string.Equals(normalized, "LINEAR", StringComparison.Ordinal))
         {
-            code = UpkeepAgingModelCodes.Linear;
+            code = LifecycleAgingModelCodes.Linear;
             return true;
         }
 
         if (string.Equals(normalized, "LATELIFE", StringComparison.Ordinal))
         {
-            code = UpkeepAgingModelCodes.LateLife;
+            code = LifecycleAgingModelCodes.LateLife;
             return true;
         }
 

@@ -1,4 +1,6 @@
 RESTORE_FLAGS ?= /p:NuGetAudit=false
+SHELL := /bin/bash
+.SHELLFLAGS := -o pipefail -c
 
 # Tests tagged [Trait("Category", "Slow")] build full worlds, kernels, domain
 # configurations, or Monte Carlo batches. They dominate wall time, so the
@@ -6,6 +8,27 @@ RESTORE_FLAGS ?= /p:NuGetAudit=false
 # touches worldgen, startup, wiring, or the generator catalog.
 SLOW_FILTER ?= Category=Slow
 FAST_FILTER ?= Category!=Slow
+TEST_LOG_DIR ?= .artifacts/test-logs
+
+define run-tests
+	@mkdir -p "$(TEST_LOG_DIR)"
+	@log="$(TEST_LOG_DIR)/$(2).log"; \
+	echo "Writing full test output to $$log"; \
+	dotnet test -c Release --no-build --verbosity normal \
+		--settings test.runsettings --maxcpucount:1 $(1) >"$$log" 2>&1; \
+	status=$$?; \
+	if (( status != 0 )); then \
+		echo; \
+		echo "Test command failed; full log: $$log"; \
+		echo "Failure summary:"; \
+		grep -n -E -B 4 -A 10 '(^|  )(Failed |Error Message:|Test Run Failed|Build FAILED|MSB[0-9]+)' "$$log" \
+			| tail -n 240 || true; \
+	else \
+		grep -E '^(Passed!|Test Run Successful\\.|Total tests:|[[:space:]]+Passed:)' "$$log" \
+			| tail -n 80 || true; \
+	fi; \
+	exit "$$status"
+endef
 
 .PHONY: ci ci-full build test test-slow test-all lint analyzer-lint format-check clean domain-check mutation
 
@@ -18,13 +41,13 @@ build:
 	dotnet build -c Release --no-restore
 
 test:
-	dotnet test -c Release --no-build --verbosity normal --filter "$(FAST_FILTER)"
+	$(call run-tests,--filter "$(FAST_FILTER)",test)
 
 test-slow:
-	dotnet test -c Release --no-build --verbosity normal --filter "$(SLOW_FILTER)"
+	$(call run-tests,--filter "$(SLOW_FILTER)",test-slow)
 
 test-all:
-	dotnet test -c Release --no-build --verbosity normal
+	$(call run-tests,,test-all)
 
 lint: analyzer-lint format-check
 
@@ -108,16 +131,20 @@ diagnose:
 
 # Scoped fast suites - verify what the change touched, not everything:
 test-kernel:
-	dotnet test tests/Engine.Kernel.Tests --nologo --filter "$(FAST_FILTER)"
+	dotnet test tests/Engine.Kernel.Tests --nologo \
+		--settings test.runsettings --maxcpucount:1 --filter "$(FAST_FILTER)"
 
 test-domain:
-	dotnet test tests/Engine.Domain.Tests --nologo --filter "$(FAST_FILTER)"
+	dotnet test tests/Engine.Domain.Tests --nologo \
+		--settings test.runsettings --maxcpucount:1 --filter "$(FAST_FILTER)"
 
 test-seed:
-	dotnet test tests/IceRemembers.Seed.Tests --nologo --filter "$(FAST_FILTER)"
+	dotnet test tests/IceRemembers.Seed.Tests --nologo \
+		--settings test.runsettings --maxcpucount:1 --filter "$(FAST_FILTER)"
 
 test-gameplay:
-	dotnet test tests/Engine.Gameplay.Tests --nologo --filter "$(FAST_FILTER)"
+	dotnet test tests/Engine.Gameplay.Tests --nologo \
+		--settings test.runsettings --maxcpucount:1 --filter "$(FAST_FILTER)"
 
 clean:
 	rm -rf .artifacts

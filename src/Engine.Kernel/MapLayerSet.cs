@@ -5,34 +5,38 @@ using Engine.Constants;
 internal sealed class MapLayerSet
 {
     private readonly MapUniqueEntityLayer _coverage;
-    private readonly MapScalarEntityLayer _rawCultureInfluence;
-    private readonly MapScalarEntityLayer _cultureInfluence;
+    private readonly MapFixedScalarEntityLayer _rawCultureInfluence;
+    private readonly PrimitiveLongTable _totalRawCultureInfluence;
 
     internal MapLayerSet(int entityCapacity, int cultureIdCapacity, int mapCellCapacity, int mapInfluenceCapacity)
     {
         _coverage = new MapUniqueEntityLayer(entityCapacity, mapCellCapacity);
-        _rawCultureInfluence = new MapScalarEntityLayer(cultureIdCapacity, mapInfluenceCapacity);
-        _cultureInfluence = new MapScalarEntityLayer(cultureIdCapacity, mapInfluenceCapacity);
+        _rawCultureInfluence = new MapFixedScalarEntityLayer(cultureIdCapacity, mapInfluenceCapacity);
+        _totalRawCultureInfluence = new PrimitiveLongTable(mapCellCapacity);
     }
 
     internal MapUniqueEntityLayer Coverage => _coverage;
 
-    internal MapScalarEntityLayer RawCultureInfluence => _rawCultureInfluence;
+    internal MapFixedScalarEntityLayer RawCultureInfluence => _rawCultureInfluence;
 
-    internal MapScalarEntityLayer CultureInfluence => _cultureInfluence;
+    internal long TotalRawCultureInfluenceAt(int planeCode, int cellKey) =>
+        _totalRawCultureInfluence.GetOrDefault(planeCode, cellKey);
+
+    internal void AddTotalRawCultureInfluence(int planeCode, int cellKey, int deltaUnits) =>
+        _totalRawCultureInfluence.AddChecked(planeCode, cellKey, deltaUnits);
 
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
     {
         _coverage.WriteSnapshot(writer);
         _rawCultureInfluence.WriteSnapshot(writer);
-        _cultureInfluence.WriteSnapshot(writer);
+        _totalRawCultureInfluence.WriteSnapshot(writer);
     }
 
     internal void ReadSnapshot(global::System.IO.BinaryReader reader)
     {
         _coverage.ReadSnapshot(reader);
         _rawCultureInfluence.ReadSnapshot(reader);
-        _cultureInfluence.ReadSnapshot(reader);
+        _totalRawCultureInfluence.ReadSnapshot(reader);
     }
 }
 
@@ -90,8 +94,8 @@ internal sealed class MapUniqueEntityLayer
             return 0;
         }
 
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(entityId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(planeCode);
+        NumericGuard.ThrowIfNegative(entityId);
+        NumericGuard.ThrowIfNegativeOrZero(planeCode);
         return (entityId << 2) | planeCode;
     }
 
@@ -99,8 +103,8 @@ internal sealed class MapUniqueEntityLayer
 
     private static int PlaneCellKey(int planeCode, int cellKey)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(planeCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cellKey);
+        NumericGuard.ThrowIfNegativeOrZero(planeCode);
+        NumericGuard.ThrowIfNegativeOrZero(cellKey);
         unchecked
         {
             var hash = (uint)cellKey * 2654435761u;
@@ -111,19 +115,19 @@ internal sealed class MapUniqueEntityLayer
     }
 }
 
-internal sealed class MapScalarEntityLayer
+internal sealed class MapFixedScalarEntityLayer
 {
-    private readonly PrimitiveFloatTable _values;
+    private readonly PrimitiveIntTable _values;
     private readonly PrimitiveIntTable _rowKeysByEntityPlaneCell;
     private readonly SpatialLayerIndex _cellsByEntityPlane;
     private readonly int[] _cellKeysByRowKey;
     private readonly int _rowCapacity;
     private int _rowHighWatermark;
 
-    internal MapScalarEntityLayer(int entityCapacity, int capacity)
+    internal MapFixedScalarEntityLayer(int entityCapacity, int capacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(entityCapacity);
-        _values = new PrimitiveFloatTable(capacity);
+        NumericGuard.ThrowIfNegativeOrZero(entityCapacity);
+        _values = new PrimitiveIntTable(capacity);
         _rowKeysByEntityPlaneCell = new PrimitiveIntTable(capacity);
         _cellsByEntityPlane = new SpatialLayerIndex((entityCapacity << 2) + PlaneCodes.Semantic, capacity);
         _cellKeysByRowKey = new int[capacity + 1];
@@ -132,19 +136,19 @@ internal sealed class MapScalarEntityLayer
 
     internal int Count => _values.Count;
 
-    internal float ValueAt(int entityId, int planeCode, int cellKey)
+    internal int ValueAt(int entityId, int planeCode, int cellKey)
     {
         return _values.GetOrDefault(EntityPlaneKey(entityId, planeCode), cellKey);
     }
 
-    internal void SetValue(int entityId, int planeCode, int cellKey, int q, int r, float value) =>
+    internal void SetValue(int entityId, int planeCode, int cellKey, int q, int r, int value) =>
         SetValue(entityId, planeCode, cellKey, q, r, z: 0, value);
 
-    internal void SetValue(int entityId, int planeCode, int cellKey, int q, int r, int z, float value)
+    internal void SetValue(int entityId, int planeCode, int cellKey, int q, int r, int z, int value)
     {
         var entityPlaneKey = EntityPlaneKey(entityId, planeCode);
         var rowKey = _rowKeysByEntityPlaneCell.GetOrDefault(entityPlaneKey, cellKey);
-        if (value <= 0f)
+        if (value <= 0)
         {
             if (rowKey > 0)
             {
@@ -176,27 +180,19 @@ internal sealed class MapScalarEntityLayer
         return _cellsByEntityPlane.CellsOfValue(EntityPlaneKey(entityId, planeCode));
     }
 
-    internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int q, out int r, out float value) =>
+    internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int q, out int r, out int value) =>
         MoveNextCell(ref cursor, out q, out r, out _, out value);
 
-    internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int q, out int r, out int z, out float value)
+    internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int q, out int r, out int z, out int value)
     {
         if (!_cellsByEntityPlane.MoveNextCell(ref cursor, out var rowKey, out q, out r, out z))
         {
-            value = 0f;
+            value = 0;
             return false;
         }
 
         value = _values.GetOrDefault(cursor.Value, _cellKeysByRowKey[rowKey]);
         return true;
-    }
-
-    internal void ForEach(global::System.Action<int, int, int, float> visitor)
-    {
-        _values.ForEach((entityPlaneKey, cellKey, value) =>
-        {
-            visitor(EntityIdFromKey(entityPlaneKey), PlaneCodeFromKey(entityPlaneKey), cellKey, value);
-        });
     }
 
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
@@ -219,14 +215,10 @@ internal sealed class MapScalarEntityLayer
 
     private static int EntityPlaneKey(int entityId, int planeCode)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(entityId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(planeCode);
+        NumericGuard.ThrowIfNegativeOrZero(entityId);
+        NumericGuard.ThrowIfNegativeOrZero(planeCode);
         return (entityId << 2) | planeCode;
     }
-
-    private static int EntityIdFromKey(int key) => key >> 2;
-
-    private static int PlaneCodeFromKey(int key) => key & 3;
 
     private int AllocateRowKey()
     {

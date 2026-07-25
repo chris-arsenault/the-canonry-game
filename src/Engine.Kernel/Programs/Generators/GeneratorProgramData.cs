@@ -7,25 +7,25 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] GeneratorIds = [];
     internal int[] TargetKindIds = [];
     internal int[] PulseWeights = [];
-    internal float[] AgePulseWeightMultipliers = [];
+    internal FixedScalar[] AgePulseWeightMultipliers = [];
     internal int[] CadenceTicks = [];
     internal int[] CadenceJitterTicks = [];
     internal int[] TargetRequiredTagBits = [];
     internal int[] TargetWithoutTagBits = [];
-    internal float[] TargetChronicleHeatMin = [];
+    internal FixedScalar[] TargetChronicleHeatMin = [];
     internal int[] TargetChronicleLegendaryWithinTicks = [];
     internal int[] BindingRequiredTagBits = [];
     internal int[] BindingWithoutTagBits = [];
     internal int[] BindingCultureIds = [];
     internal int[] BindingRelatedToTargetKindIds = [];
     internal int[] BindingRelatedToTargetIncoming = [];
-    internal float[] BindingRelatedToTargetMinStrengths = [];
+    internal FixedScalar[] BindingRelatedToTargetMinStrengths = [];
     internal int[] ProducedQueryRequiredTagBits = [];
     internal int[] ProducedQueryWithoutTagBits = [];
     internal int[] ProducedQueryCultureIds = [];
     internal int[] ProducedQueryRelatedToTargetKindIds = [];
     internal int[] ProducedQueryRelatedToTargetIncoming = [];
-    internal float[] ProducedQueryRelatedToTargetMinStrengths = [];
+    internal FixedScalar[] ProducedQueryRelatedToTargetMinStrengths = [];
     internal int[] MaxRuns = [];
     internal int[] TargetSubtypeStarts = [];
     internal int[] TargetSubtypeCounts = [];
@@ -53,7 +53,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] EffectCounts = [];
     internal int[] SubtypeIds = [];
     internal int[] RelationshipKindFilterIds = [];
-    internal float[] RelationshipKindFilterMinimumStrengths = [];
+    internal FixedScalar[] RelationshipKindFilterMinimumStrengths = [];
     internal int[] RelationshipKindFilterAllowsSlotCausalLimitMultiplier = [];
     internal int[] TerrainFilterIds = [];
     internal int[] TargetTerrainRequirementTerrainIds = [];
@@ -64,7 +64,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] BindingKindIds = [];
     internal int[] BindingAdjacentToTarget = [];
     internal int[] BindingCultureMatchCodes = [];
-    internal int[] BindingSamePhysicalCultureComponentAsTarget = [];
+    internal int[] BindingRequireTargetCultureRoute = [];
     internal int[] BindingSubtypeStarts = [];
     internal int[] BindingSubtypeCounts = [];
     internal int[] BindingWithoutOutgoingStarts = [];
@@ -90,7 +90,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] ProducedPlacementAvoidedTerrainCounts = [];
     internal int[] ProducedPlacementFallbackTerrainIds = [];
     internal int[] ProducedPlacementSiteFlags = [];
-    internal float[] ProducedPlacementBandAffinities = [];
+    internal FixedScalar[] ProducedPlacementBandAffinities = [];
     internal int[] ProducedPlacementRefCodes = [];
     internal int[] ProducedCultureRefCodes = [];
     internal int[] ProducedFixedCultureIds = [];
@@ -103,14 +103,14 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         ProducedFeatureKinds = new int[itemCapacity + 1];
         global::System.Array.Fill(ProducedFeatureKinds, PhysicalGeologicalFeatureKindCodes.Any);
     }
-    internal float[] ProducedCreateChances = [];
+    internal FixedScalar[] ProducedCreateChances = [];
     internal int[] ProducedSubtypeChoiceStarts = [];
     internal int[] ProducedSubtypeChoiceCounts = [];
     internal int[] ProducedQuerySubtypeStarts = [];
     internal int[] ProducedQuerySubtypeCounts = [];
     internal int[] ProducedQueryAdjacentToTarget = [];
     internal int[] ProducedQueryCultureMatchCodes = [];
-    internal int[] ProducedQuerySamePhysicalCultureComponentAsTarget = [];
+    internal int[] ProducedQueryRequireTargetCultureRoute = [];
     internal int[] ProducedQueryWithoutOutgoingStarts = [];
     internal int[] ProducedQueryWithoutOutgoingCounts = [];
     internal int[] ProducedQueryWithoutIncomingStarts = [];
@@ -130,7 +130,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] RelationshipDestinationRefCodes = [];
     internal int[] RelationshipKindIds = [];
     internal int[] RelationshipReplaceExistingOutgoing = [];
-    internal float[] RelationshipStrengths = [];
+    internal FixedScalar[] RelationshipStrengths = [];
     internal int[] EffectTypeCodes = [];
     internal int[] EffectRefOrKindIds = [];
     internal int[] EffectInstanceSelectionCodes = [];
@@ -142,7 +142,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] EffectPreferredTerrainCounts = [];
     internal int[] EffectAllowedTerrainStarts = [];
     internal int[] EffectAllowedTerrainCounts = [];
-    internal float[] EffectValues = [];
+    internal FixedScalar[] EffectValues = [];
     internal int GeneratorCount;
     internal int SubtypeCount;
     internal int RelationshipKindFilterCount;
@@ -160,8 +160,8 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
 
     public GeneratorProgramData(int generatorCapacity, int itemCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(generatorCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(itemCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(generatorCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(itemCapacity);
         InitializeGeneratorArrays(generatorCapacity);
         InitializeSharedItemArrays(itemCapacity);
         InitializeTriggerArrays(itemCapacity);
@@ -176,13 +176,13 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         GeneratorIds = new int[generatorCapacity + 1];
         TargetKindIds = new int[generatorCapacity + 1];
         PulseWeights = new int[generatorCapacity + 1];
-        AgePulseWeightMultipliers = new float[generatorCapacity + 1];
-        global::System.Array.Fill(AgePulseWeightMultipliers, 1f);
+        AgePulseWeightMultipliers = new FixedScalar[generatorCapacity + 1];
+        global::System.Array.Fill(AgePulseWeightMultipliers, 1);
         CadenceTicks = new int[generatorCapacity + 1];
         CadenceJitterTicks = new int[generatorCapacity + 1];
         TargetRequiredTagBits = new int[generatorCapacity + 1];
         TargetWithoutTagBits = new int[generatorCapacity + 1];
-        TargetChronicleHeatMin = new float[generatorCapacity + 1];
+        TargetChronicleHeatMin = new FixedScalar[generatorCapacity + 1];
         TargetChronicleLegendaryWithinTicks = new int[generatorCapacity + 1];
         MaxRuns = new int[generatorCapacity + 1];
         TargetSubtypeStarts = new int[generatorCapacity + 1];
@@ -224,14 +224,14 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         EffectPreferredTerrainCounts = new int[itemCapacity + 1];
         EffectAllowedTerrainStarts = new int[itemCapacity + 1];
         EffectAllowedTerrainCounts = new int[itemCapacity + 1];
-        EffectValues = new float[itemCapacity + 1];
+        EffectValues = new FixedScalar[itemCapacity + 1];
     }
 
     private void InitializeSharedItemArrays(int itemCapacity)
     {
         SubtypeIds = new int[itemCapacity + 1];
         RelationshipKindFilterIds = new int[itemCapacity + 1];
-        RelationshipKindFilterMinimumStrengths = new float[itemCapacity + 1];
+        RelationshipKindFilterMinimumStrengths = new FixedScalar[itemCapacity + 1];
         RelationshipKindFilterAllowsSlotCausalLimitMultiplier = new int[itemCapacity + 1];
         TerrainFilterIds = new int[itemCapacity + 1];
         TargetTerrainRequirementTerrainIds = new int[itemCapacity + 1];
@@ -250,7 +250,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         BindingKindIds = new int[itemCapacity + 1];
         BindingAdjacentToTarget = new int[itemCapacity + 1];
         BindingCultureMatchCodes = new int[itemCapacity + 1];
-        BindingSamePhysicalCultureComponentAsTarget = new int[itemCapacity + 1];
+        BindingRequireTargetCultureRoute = new int[itemCapacity + 1];
         BindingSubtypeStarts = new int[itemCapacity + 1];
         BindingSubtypeCounts = new int[itemCapacity + 1];
         BindingWithoutOutgoingStarts = new int[itemCapacity + 1];
@@ -279,14 +279,14 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         AllocateTagFilters(itemCapacity);
 
         AllocateProducedPlacementArrays(itemCapacity);
-        ProducedCreateChances = new float[itemCapacity + 1];
+        ProducedCreateChances = new FixedScalar[itemCapacity + 1];
         ProducedSubtypeChoiceStarts = new int[itemCapacity + 1];
         ProducedSubtypeChoiceCounts = new int[itemCapacity + 1];
         ProducedQuerySubtypeStarts = new int[itemCapacity + 1];
         ProducedQuerySubtypeCounts = new int[itemCapacity + 1];
         ProducedQueryAdjacentToTarget = new int[itemCapacity + 1];
         ProducedQueryCultureMatchCodes = new int[itemCapacity + 1];
-        ProducedQuerySamePhysicalCultureComponentAsTarget = new int[itemCapacity + 1];
+        ProducedQueryRequireTargetCultureRoute = new int[itemCapacity + 1];
         ProducedQueryWithoutOutgoingStarts = new int[itemCapacity + 1];
         ProducedQueryWithoutOutgoingCounts = new int[itemCapacity + 1];
         ProducedQueryWithoutIncomingStarts = new int[itemCapacity + 1];
@@ -315,7 +315,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         ProducedPlacementAvoidedTerrainCounts = new int[planeSlotCapacity + 1];
         ProducedPlacementFallbackTerrainIds = new int[planeSlotCapacity + 1];
         ProducedPlacementSiteFlags = new int[itemCapacity + 1];
-        ProducedPlacementBandAffinities = new float[(itemCapacity + 1) * PlacementBandAffinityCount];
+        ProducedPlacementBandAffinities = new FixedScalar[(itemCapacity + 1) * PlacementBandAffinityCount];
     }
 
     internal const int PlacementBandAffinityCount = 4;
@@ -330,7 +330,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         RelationshipDestinationRefCodes = new int[itemCapacity + 1];
         RelationshipKindIds = new int[itemCapacity + 1];
         RelationshipReplaceExistingOutgoing = new int[itemCapacity + 1];
-        RelationshipStrengths = new float[itemCapacity + 1];
+        RelationshipStrengths = new FixedScalar[itemCapacity + 1];
     }
 
     private void AllocateTagFilters(int itemCapacity)
@@ -340,13 +340,13 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         BindingCultureIds = new int[itemCapacity + 1];
         BindingRelatedToTargetKindIds = new int[itemCapacity + 1];
         BindingRelatedToTargetIncoming = new int[itemCapacity + 1];
-        BindingRelatedToTargetMinStrengths = new float[itemCapacity + 1];
+        BindingRelatedToTargetMinStrengths = new FixedScalar[itemCapacity + 1];
         ProducedQueryRequiredTagBits = new int[itemCapacity + 1];
         ProducedQueryWithoutTagBits = new int[itemCapacity + 1];
         ProducedQueryCultureIds = new int[itemCapacity + 1];
         ProducedQueryRelatedToTargetKindIds = new int[itemCapacity + 1];
         ProducedQueryRelatedToTargetIncoming = new int[itemCapacity + 1];
-        ProducedQueryRelatedToTargetMinStrengths = new float[itemCapacity + 1];
+        ProducedQueryRelatedToTargetMinStrengths = new FixedScalar[itemCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.Generators;

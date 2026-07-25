@@ -9,7 +9,7 @@ public sealed class RelationshipProgram
 
 public sealed record RelationshipRuntimeRule(
     int RelationshipKindId,
-    float CullThreshold,
+    FixedScalar CullThreshold,
     bool TargetFollowsSourcePhysical,
     bool IsExclusive,
     bool IsCultureAnchor);
@@ -19,5 +19,5 @@ public sealed record RelationshipMaintenanceRuntimeRule(
     int ConditionCode,
     int PlaneCode,
     int MaxDistance,
-    float Threshold,
-    float Delta);
+    FixedScalar Threshold,
+    FixedScalar Delta);

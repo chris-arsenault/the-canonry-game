@@ -6,7 +6,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     private const int VerbBucketCapacity = 64;
 
     private readonly VerbTargetCandidate[] _verbCandidateScratch = new VerbTargetCandidate[VerbBucketCapacity];
-    private readonly float[] _verbAffordanceSumScratch = new float[VerbBucketCapacity];
+    private readonly FixedScalar[] _verbAffordanceSumScratch = new FixedScalar[VerbBucketCapacity];
 
     public LowAltitudeVerbProgramRuntime(LowAltitudeVerbProgramData data, LowAltitudeVerbProgramState state)
         : this(data, state, new KernelProgramTuningOptions())
@@ -30,7 +30,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
     public void ResetAgeWeightMultipliers() => Data.ResetAgeWeightMultipliers();
 
-    public void ApplyAgeWeightMultiplier(int verbId, float multiplier) => Data.ApplyAgeWeightMultiplier(verbId, multiplier);
+    public void ApplyAgeWeightMultiplier(int verbId, FixedScalar multiplier) => Data.ApplyAgeWeightMultiplier(verbId, multiplier);
 
     public LowAltitudeVerbProgramState State { get; }
 
@@ -50,25 +50,25 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int dwellTicks,
         int targetRadius,
         int candidateSampleCount,
-        float weight,
-        float opportunityBonusOverride = 0f,
-        float fitnessWeight = 0f,
-        float distanceScaleOverride = 0f,
+        FixedScalar weight,
+        FixedScalar opportunityBonusOverride = default,
+        FixedScalar fitnessWeight = default,
+        FixedScalar distanceScaleOverride = default,
         int fitnessRelationshipKindId = 0,
         int fitnessRelationshipDirectionCode = LowAltitudeVerbRelationshipDirectionCodes.Either,
         int fitnessPolarityCode = AffordancePolarityCodes.None,
-        float fitnessThreshold = 0f,
-        float influenceDelta = 0f,
+        FixedScalar fitnessThreshold = default,
+        FixedScalar influenceDelta = default,
         int influenceRadius = 0,
-        float coverageGrowthChance = 0f,
-        float headquartersMoveChance = 0f,
-        float requiredInfluence = 0f,
+        FixedScalar coverageGrowthChance = default,
+        FixedScalar headquartersMoveChance = default,
+        FixedScalar requiredInfluence = default,
         int foreignInfluenceFilterEnabled = 0,
         int foreignInfluenceBlockPositiveRelationships = 0,
         int foreignInfluenceAllowNegativeRelationships = 0,
-        float foreignInfluenceMinimumRelationshipStrength = 0f,
-        float foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = -1f,
-        float relationshipStrengthDelta = 0f,
+        FixedScalar foreignInfluenceMinimumRelationshipStrength = default,
+        FixedScalar? foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = null,
+        FixedScalar relationshipStrengthDelta = default,
         int influenceTargetingCode = LowAltitudeInfluenceTargetingCodes.None) =>
         Data.RegisterVerb(new LowAltitudeVerbRegistration
         {
@@ -81,9 +81,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             TargetKindId = targetKindId,
             RelationshipKindId = relationshipKindId,
             RelationshipDirectionCode = relationshipDirectionCode,
-            MinTicks = Tuning.ScaleMainTicks(minCommitmentTicks),
-            MaxTicks = Tuning.ScaleMainTicks(maxCommitmentTicks),
-            DwellTicks = Tuning.ScaleMainTicks(dwellTicks),
+            MinTicks = minCommitmentTicks,
+            MaxTicks = maxCommitmentTicks,
+            DwellTicks = dwellTicks,
             TargetRadius = targetRadius,
             CandidateSampleCount = candidateSampleCount,
             Weight = weight,
@@ -94,7 +94,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             ForeignInfluenceBlockPositiveRelationships = foreignInfluenceBlockPositiveRelationships,
             ForeignInfluenceAllowNegativeRelationships = foreignInfluenceAllowNegativeRelationships,
             ForeignInfluenceMinimumRelationshipStrength = foreignInfluenceMinimumRelationshipStrength,
-            ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove = foreignInfluenceAllowUnrelatedInfluenceAtOrAbove,
+            ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove =
+                foreignInfluenceAllowUnrelatedInfluenceAtOrAbove ?? -FixedScalar.One,
             FitnessRelationshipKindId = fitnessRelationshipKindId,
             FitnessRelationshipDirectionCode = fitnessRelationshipDirectionCode,
             FitnessPolarityCode = fitnessPolarityCode,
@@ -116,11 +117,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     public void SetRestAtDestination(int verbSlot) =>
         Data.SetRestAtDestination(verbSlot);
 
-    public int RegisterInitialInfluence(int kindId, int planeCode, float influenceValue) =>
+    public int RegisterInitialInfluence(int kindId, int planeCode, FixedScalar influenceValue) =>
         Data.RegisterInitialInfluence(kindId, planeCode, influenceValue);
 
-    public void AddPrimitiveStep(int rule, int opcode, int intArgument, float floatArgument) =>
-        Data.AddPrimitiveStep(rule, opcode, intArgument, floatArgument);
+    public void AddPrimitiveStep(int rule, int opcode, int intArgument, FixedScalar scalarArgument) =>
+        Data.AddPrimitiveStep(rule, opcode, intArgument, scalarArgument);
 
     public int RegisterAffordance(
         int sourceKindCode,
@@ -133,8 +134,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int relationshipDirectionCode,
         int operationCode,
         int polarityCode,
-        float threshold,
-        float weight) =>
+        FixedScalar threshold,
+        FixedScalar weight) =>
         Data.RegisterAffordance(
             sourceKindCode,
             sourceId,
@@ -153,9 +154,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int kindId,
         int traitId,
         int verbId,
-        float weightDelta,
-        float opportunityBonusDelta,
-        float fitnessWeightDelta) =>
+        FixedScalar weightDelta,
+        FixedScalar opportunityBonusDelta,
+        FixedScalar fitnessWeightDelta) =>
         Data.RegisterTraitWeightModifier(
             kindId,
             traitId,
@@ -168,12 +169,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         var world = simulation.World;
-        for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
+        for (var entityId = world.FirstActiveEntity();
+             entityId > 0;
+             entityId = world.NextActiveEntity(entityId))
         {
-            if (!world.EntityIsActive(entityId))
-            {
-                continue;
-            }
+            ApplyRelationshipFollowMovementIntent(simulation, entityId, tick);
 
             if (ApplyInitialInfluenceIfNeeded(simulation, entityId, tick))
             {
@@ -202,10 +202,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
         var applied = false;
         var kindId = simulation.World.EntityKindId(entityId);
-        for (var rule = 1; rule <= Data.InitialInfluenceRuleCount; rule++)
+        for (var rule = Data.FirstInitialInfluenceForKind(kindId);
+             rule > 0;
+             rule = Data.NextInitialInfluenceForKind(rule))
         {
-            if (Data.InitialInfluenceKindId(rule) == kindId &&
-                ApplyInitialInfluenceRule(simulation, entityId, rule, tick))
+            if (ApplyInitialInfluenceRule(simulation, entityId, rule, tick))
             {
                 applied = true;
             }
@@ -318,7 +319,30 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     private bool PhysicalMovementSuspendedByCarry(Simulation simulation, int entityId, int rule) =>
         Data.OperationCode(rule) == ProgramOpcodeCodes.MoveActor &&
         Data.PlaneCode(rule) == PlaneCodes.Physical &&
-        simulation.Relationships.TargetIsFollowGoverned(simulation.World, entityId);
+        simulation.Relationships.TryResolveFollowSource(simulation.World, entityId, out _);
+
+    private static void ApplyRelationshipFollowMovementIntent(Simulation simulation, int entityId, int tick)
+    {
+        var world = simulation.World;
+        if (!simulation.Relationships.TryResolveFollowSource(world, entityId, out var sourceId))
+        {
+            return;
+        }
+
+        var sourceQ = world.EntityPhysicalQ(sourceId);
+        var sourceR = world.EntityPhysicalR(sourceId);
+        if (world.EntityPhysicalQ(entityId) != sourceQ || world.EntityPhysicalR(entityId) != sourceR)
+        {
+            simulation.Movement.Place(
+                simulation,
+                entityId,
+                PlaneCodes.Physical,
+                sourceQ,
+                sourceR,
+                tick,
+                MovementCauseCodes.Follow);
+        }
+    }
 
     private void ChooseIntent(Simulation simulation, int entityId, int tick)
     {
@@ -344,13 +368,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         var sumAffordanceScores = _verbAffordanceSumScratch;
         var kindId = simulation.World.EntityKindId(entityId);
         var traceIntentId = State.NextIntentId();
-        for (var rule = 1; rule <= Data.RuleCount && bucket.VerbCount < VerbBucketCapacity; rule++)
+        for (var rule = Data.FirstRuleForKind(kindId);
+             rule > 0 && bucket.VerbCount < VerbBucketCapacity;
+             rule = Data.NextRuleForKind(rule))
         {
-            if (Data.KindId(rule) != kindId)
-            {
-                continue;
-            }
-
             if (PhysicalMovementSuspendedByCarry(simulation, entityId, rule))
             {
                 continue;
@@ -367,7 +388,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             candidates[bucket.VerbCount] = result.ChosenCandidate;
             sumAffordanceScores[bucket.VerbCount] = result.SumAffordanceScore;
             bucket.TotalRoutineWeight += result.ChosenCandidate.Weight;
-            if (result.SumAffordanceScore > 0f)
+            if (result.SumAffordanceScore > 0)
             {
                 bucket.HasOpportunity = true;
                 bucket.TotalOpportunityWeight += result.SumAffordanceScore;
@@ -383,8 +404,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     {
         var opportunityRate = Tuning.LowAltitudeVerbs.OpportunityRate;
         var pickFromOpportunity = bucket.HasOpportunity &&
-            opportunityRate > 0f &&
-            simulation.NextFloat() < opportunityRate;
+            opportunityRate > 0 &&
+            simulation.NextScalar() < opportunityRate;
         selectionBucketCode = pickFromOpportunity
             ? LowAltitudeVerbSelectionBucketCodes.Opportunity
             : LowAltitudeVerbSelectionBucketCodes.Routine;
@@ -424,24 +445,24 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     private struct VerbBucket
     {
         public int VerbCount;
-        public float TotalRoutineWeight;
-        public float TotalOpportunityWeight;
+        public FixedScalar TotalRoutineWeight;
+        public FixedScalar TotalOpportunityWeight;
         public bool HasOpportunity;
     }
 
     private static int PickRoutineIndex(
         Simulation simulation,
         VerbTargetCandidate[] candidates,
-        float totalWeight,
+        FixedScalar totalWeight,
         int count)
     {
-        if (count == 0 || totalWeight <= 0f)
+        if (count == 0 || totalWeight <= 0)
         {
             return -1;
         }
 
-        var threshold = simulation.NextFloat() * totalWeight;
-        var running = 0f;
+        var threshold = simulation.NextScalar() * totalWeight;
+        var running = FixedScalar.Zero;
         for (var i = 0; i < count; i++)
         {
             running += candidates[i].Weight;
@@ -456,20 +477,20 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
     private static int PickOpportunityIndex(
         Simulation simulation,
-        float[] opportunityWeights,
-        float totalWeight,
+        FixedScalar[] opportunityWeights,
+        FixedScalar totalWeight,
         int count)
     {
-        if (count == 0 || totalWeight <= 0f)
+        if (count == 0 || totalWeight <= 0)
         {
             return -1;
         }
 
-        var threshold = simulation.NextFloat() * totalWeight;
-        var running = 0f;
+        var threshold = simulation.NextScalar() * totalWeight;
+        var running = FixedScalar.Zero;
         for (var i = 0; i < count; i++)
         {
-            if (opportunityWeights[i] <= 0f)
+            if (opportunityWeights[i] <= 0)
             {
                 continue;
             }
@@ -483,7 +504,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
         for (var i = count - 1; i >= 0; i--)
         {
-            if (opportunityWeights[i] > 0f)
+            if (opportunityWeights[i] > 0)
             {
                 return i;
             }
@@ -575,7 +596,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         }
     }
 
-    private float EffectiveInfluenceDelta(
+    private FixedScalar EffectiveInfluenceDelta(
         Simulation simulation,
         int entityId,
         int rule,
@@ -591,7 +612,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int centerQ,
         int centerR,
         int radius,
-        float delta,
+        FixedScalar delta,
         int tick)
     {
         for (var dq = -radius; dq <= radius; dq++)
@@ -624,7 +645,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int centerQ,
         int centerR,
         int radius,
-        float delta,
+        FixedScalar delta,
         int tick)
     {
         _ = rule;
@@ -659,10 +680,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int planeCode,
         int q,
         int r,
-        float delta,
+        FixedScalar delta,
         int tick)
     {
-        if (delta <= 0f)
+        if (delta <= 0)
         {
             return;
         }
@@ -690,7 +711,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         var actorKindId = simulation.World.EntityKindId(entityId);
         var claimChance = Data.CoverageGrowthChance(rule) * simulation.TerrainClaimChanceMultiplier(planeCode, actorKindId, q, r);
         var requiredInfluence = Data.RequiredInfluence(rule) * simulation.TerrainClaimCostMultiplier(planeCode, actorKindId, q, r);
-        if (simulation.NextFloat() > claimChance ||
+        if (simulation.NextScalar() > claimChance ||
             OwnCultureRawAt(simulation.World, entityId, planeCode, q, r) < requiredInfluence ||
             !CellCanBeClaimedFromEntity(simulation.World, planeCode, entityId, q, r) ||
             simulation.World.CoverageOwnerAt(planeCode, q, r) == entityId)
@@ -710,23 +731,23 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     // Physical ground quality now scales at the deposit choke point via the
     // culture growth multiplier; only semantic terrain keeps its authored
     // influence table here.
-    private static float TerrainAdjustedInfluenceDelta(
+    private static FixedScalar TerrainAdjustedInfluenceDelta(
         Simulation simulation,
         int entityId,
         int planeCode,
         int q,
         int r,
-        float delta)
+        FixedScalar delta)
     {
         return planeCode == PlaneCodes.Physical
             ? delta
             : delta * simulation.TerrainInfluenceMultiplier(planeCode, simulation.World.EntityKindId(entityId), q, r);
     }
 
-    private static float OwnCultureRawAt(WorldState world, int entityId, int planeCode, int q, int r)
+    private static FixedScalar OwnCultureRawAt(WorldState world, int entityId, int planeCode, int q, int r)
     {
         var cultureId = world.EntityCultureId(entityId);
-        return cultureId <= 0 ? 0f : world.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r);
+        return cultureId <= 0 ? 0 : world.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r);
     }
 
     private void TryRelocateEntityFromProgramStep(
@@ -737,7 +758,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int r,
         int tick)
     {
-        if (simulation.NextFloat() > Data.HeadquartersMoveChance(rule) ||
+        if (simulation.NextScalar() > Data.HeadquartersMoveChance(rule) ||
             OwnCultureRawAt(simulation.World, entityId, PlaneCodes.Physical, q, r) < Data.RequiredInfluence(rule))
         {
             return;

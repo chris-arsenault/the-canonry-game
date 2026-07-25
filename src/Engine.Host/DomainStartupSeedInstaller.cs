@@ -58,7 +58,7 @@ internal static class DomainStartupSeedInstaller
                     siteIndex,
                     KnowledgeGrantDomainCode(grant.Domain),
                     ResolveKnowledgeGrantTarget(context.DomainIds, grant),
-                    grant.Multiplier);
+                    FixedScalar.FromSingle(grant.Multiplier));
             }
         }
     }

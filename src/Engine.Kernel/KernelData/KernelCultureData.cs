@@ -2,22 +2,22 @@ namespace Engine.Kernel;
 
 internal sealed partial class KernelCultureData
 {
-    private readonly float[] _physicalProductionMultipliers;
-    private readonly float[] _semanticProductionMultipliers;
+    private readonly FixedScalar[] _physicalProductionMultipliers;
+    private readonly FixedScalar[] _semanticProductionMultipliers;
 
     public KernelCultureData(int cultureIdCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cultureIdCapacity);
-        _physicalProductionMultipliers = new float[cultureIdCapacity + 1];
-        _semanticProductionMultipliers = new float[cultureIdCapacity + 1];
-        global::System.Array.Fill(_physicalProductionMultipliers, 1f);
-        global::System.Array.Fill(_semanticProductionMultipliers, 1f);
+        NumericGuard.ThrowIfNegativeOrZero(cultureIdCapacity);
+        _physicalProductionMultipliers = new FixedScalar[cultureIdCapacity + 1];
+        _semanticProductionMultipliers = new FixedScalar[cultureIdCapacity + 1];
+        global::System.Array.Fill(_physicalProductionMultipliers, 1);
+        global::System.Array.Fill(_semanticProductionMultipliers, 1);
     }
 
-    public void RegisterCultureProduction(int cultureId, float physicalMultiplier, float semanticMultiplier)
+    public void RegisterCultureProduction(int cultureId, FixedScalar physicalMultiplier, FixedScalar semanticMultiplier)
     {
         if (cultureId <= 0 || cultureId >= _physicalProductionMultipliers.Length ||
-            physicalMultiplier < 0f || semanticMultiplier < 0f)
+            physicalMultiplier < 0 || semanticMultiplier < 0)
         {
             throw new global::System.InvalidOperationException();
         }
@@ -26,11 +26,11 @@ internal sealed partial class KernelCultureData
         _semanticProductionMultipliers[cultureId] = semanticMultiplier;
     }
 
-    public float ProductionMultiplier(int cultureId, int planeCode)
+    public FixedScalar ProductionMultiplier(int cultureId, int planeCode)
     {
         if ((uint)cultureId >= (uint)_physicalProductionMultipliers.Length)
         {
-            return 1f;
+            return 1;
         }
 
         return planeCode == PlaneCodes.Semantic

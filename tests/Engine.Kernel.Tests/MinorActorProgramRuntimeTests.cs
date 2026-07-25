@@ -28,7 +28,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 10,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 0f,
+            workDelta: FixedScalar.FromSingle(0f),
             tick: 0);
 
         Assert.Equal(1, actorId);
@@ -57,13 +57,13 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 2,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 2f,
+            workDelta: FixedScalar.FromSingle(2f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(1);
 
-        Assert.Equal(2f, simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
-        Assert.Equal(2f, simulation.World.GetCellCultureLaborInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(2f), simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(2f), simulation.World.GetCellCultureLaborInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
         Assert.Equal(0, simulation.World.EntityHighWatermark);
     }
 
@@ -94,7 +94,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             spawnRadius: 0,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 0f);
+            workDelta: FixedScalar.FromSingle(0f));
 
         _ = simulation.AdvanceTicks(1);
 
@@ -120,7 +120,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             spawnRadius: 0,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 0f);
+            workDelta: FixedScalar.FromSingle(0f));
 
         _ = simulation.AdvanceTicks(1);
         _ = simulation.AdvanceTicks(1);
@@ -158,9 +158,9 @@ public sealed partial class MinorActorProgramRuntimeTests
             PlaneCodes.Physical,
             radius: 1,
             sampleCount: 128,
-            weight: 1f,
-            workDeltaMultiplier: 1f);
-        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 2, 0, 30f, tick: 0);
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
+        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 2, 0, FixedScalar.FromSingle(30f), tick: 0);
         var before = simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 2, 0);
         Assert.Equal(1, simulation.MinorActors.IncreaseWorkTier(SourceEntityId, maxTier: 3));
         _ = simulation.MinorActors.Spawn(
@@ -175,7 +175,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 4,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 5f,
+            workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(1);
@@ -205,7 +205,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             spawnRadius: 0,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 0f);
+            workDelta: FixedScalar.FromSingle(0f));
         _ = simulation.MinorActors.Spawn(
             cultureId: 1,
             sourceEntityId: 0,
@@ -218,7 +218,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 3,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 0f,
+            workDelta: FixedScalar.FromSingle(0f),
             tick: 0);
         _ = simulation.MinorActors.IncreaseWorkTier(1, maxTier: 3);
         using var stream = new MemoryStream();
@@ -249,15 +249,15 @@ public sealed partial class MinorActorProgramRuntimeTests
             PlaneCodes.Physical,
             radius: 5,
             sampleCount: 128,
-            weight: 1f,
-            workDeltaMultiplier: 1f);
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
         var connectedCells = new[] { (0, 0), (1, 0), (1, -1), (0, -1) };
         foreach (var (q, r) in connectedCells)
         {
-            simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, q, r, 18f, tick: 0);
+            simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, q, r, FixedScalar.FromSingle(18f), tick: 0);
         }
 
-        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, -2, 0, 18f, tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, -2, 0, FixedScalar.FromSingle(18f), tick: 0);
         var connectedBefore = SumCultureRaw(simulation, connectedCells);
         var isolatedBefore = simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, -2, 0);
 
@@ -282,8 +282,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             PlaneCodes.Physical,
             radius: 1,
             sampleCount: 64,
-            weight: 1f,
-            workDeltaMultiplier: 1f);
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
         simulation.ModifyCellCultureInfluenceRaw(
             CultureId,
             PlaneCodes.Physical,
@@ -303,7 +303,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 4,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 5f,
+            workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
         var before = simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0);
 
@@ -330,8 +330,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             PlaneCodes.Physical,
             radius: 1,
             sampleCount: 64,
-            weight: 1f,
-            workDeltaMultiplier: 1f);
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
         foreach (var cell in new[] { (1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1) })
         {
             simulation.ModifyCellCultureInfluenceRaw(
@@ -355,7 +355,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 4,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 5f,
+            workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(1);
@@ -363,7 +363,7 @@ public sealed partial class MinorActorProgramRuntimeTests
         var evt = Assert.Single(ReadMinorActorVerbEvents(simulation));
         Assert.Equal(TraceStatusCodes.Selected, evt.StatusCode);
         Assert.Equal((0, 0), (evt.Q, evt.R));
-        Assert.True(simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0) > 0f);
+        Assert.True(simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0) > FixedScalar.FromSingle(0f));
     }
 
     [Fact]
@@ -381,13 +381,13 @@ public sealed partial class MinorActorProgramRuntimeTests
             PlaneCodes.Physical,
             radius: 7,
             sampleCount: 128,
-            weight: 1f,
-            workDeltaMultiplier: 1f);
-        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, 18f, tick: 0);
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
+        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(18f), tick: 0);
         var farCells = new[] { (5, 0), (5, -1), (6, -1), (6, 0) };
         foreach (var (q, r) in farCells)
         {
-            simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, q, r, 30f, tick: 0);
+            simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, q, r, FixedScalar.FromSingle(30f), tick: 0);
         }
 
         var farBefore = SumCultureRaw(simulation, farCells);
@@ -403,7 +403,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 4,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 5f,
+            workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(1);
@@ -427,8 +427,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             PlaneCodes.Physical,
             radius: 5,
             sampleCount: 128,
-            weight: 1f,
-            workDeltaMultiplier: 1f);
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
         var supportedCells = new[] { (0, 0), (1, 0), (1, -1) };
         foreach (var (q, r) in supportedCells)
         {
@@ -455,17 +455,17 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 40,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 5f,
+            workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(30);
 
         Assert.True(SumCultureRaw(simulation, borderCells) > borderBefore);
-        Assert.Equal(0f, simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, -4, 0));
+        Assert.Equal(FixedScalar.FromSingle(0f), simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, -4, 0));
     }
 
     [Fact]
-    public void CultureVerbBridgesGapBetweenNearbyComponents()
+    public void CultureVerbBridgesGapBetweenNearbySupportedPatches()
     {
         var simulation = CreateVerbSimulation(mainTickRatio: 1);
         SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 4);
@@ -479,8 +479,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             PlaneCodes.Physical,
             radius: 4,
             sampleCount: 128,
-            weight: 1f,
-            workDeltaMultiplier: 1f);
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
         simulation.ModifyCellCultureInfluenceRaw(
             CultureId,
             PlaneCodes.Physical,
@@ -507,12 +507,12 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 4,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 5f,
+            workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(1);
 
-        Assert.True(simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0) > 0f);
+        Assert.True(simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0) > FixedScalar.FromSingle(0f));
         Assert.Equal((0, 0), (simulation.MinorActors.State.Q(1), simulation.MinorActors.State.R(1)));
     }
 
@@ -530,21 +530,21 @@ public sealed partial class MinorActorProgramRuntimeTests
             PlaneCodes.Physical,
             radius: 4,
             sampleCount: 128,
-            weight: 1f,
-            workDeltaMultiplier: 1f);
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
         foreach (var cell in new[] { (0, 0), (1, 0), (0, -1), (1, -1) })
         {
-            simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, cell.Item1, cell.Item2, 30f, tick: 0);
+            simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, cell.Item1, cell.Item2, FixedScalar.FromSingle(30f), tick: 0);
         }
 
         var foreignEntityA = simulation.CreateEntity(2, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
         var foreignEntityB = simulation.CreateEntity(3, subtypeId: 1, cultureId: 3, 0, 0, 0, 0, 0, tick: 0);
         var ownEntity = simulation.CreateEntity(4, subtypeId: 1, cultureId: CultureId, 0, 0, 0, 0, 0, tick: 0);
-        simulation.SetCellInfluence(foreignEntityA, PlaneCodes.Physical, 0, 0, 12f, tick: 0);
-        simulation.SetCellInfluence(foreignEntityB, PlaneCodes.Physical, 0, 0, 9f, tick: 0);
-        simulation.SetCellInfluence(ownEntity, PlaneCodes.Physical, 0, 0, 8f, tick: 0);
-        simulation.ModifyCellCultureLaborInfluenceRaw(2, PlaneCodes.Physical, 0, 0, 7f, tick: 0);
-        simulation.ModifyCellCultureLaborInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, 6f, tick: 0);
+        simulation.SetCellInfluence(foreignEntityA, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(12f), tick: 0);
+        simulation.SetCellInfluence(foreignEntityB, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(9f), tick: 0);
+        simulation.SetCellInfluence(ownEntity, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(8f), tick: 0);
+        simulation.ModifyCellCultureLaborInfluenceRaw(2, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(7f), tick: 0);
+        simulation.ModifyCellCultureLaborInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(6f), tick: 0);
         var foreignABefore = simulation.World.GetCellInfluence(foreignEntityA, PlaneCodes.Physical, 0, 0);
         var foreignBBefore = simulation.World.GetCellInfluence(foreignEntityB, PlaneCodes.Physical, 0, 0);
         var ownEntityBefore = simulation.World.GetCellInfluence(ownEntity, PlaneCodes.Physical, 0, 0);
@@ -562,7 +562,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 4,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 5f,
+            workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(1);
@@ -592,9 +592,9 @@ public sealed partial class MinorActorProgramRuntimeTests
             PlaneCodes.Physical,
             radius: 4,
             sampleCount: 128,
-            weight: 1f,
-            workDeltaMultiplier: 1f);
-        simulation.ModifyCellCultureInfluenceRaw(2, PlaneCodes.Physical, 0, 0, 20f, tick: 0);
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
+        simulation.ModifyCellCultureInfluenceRaw(2, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(20f), tick: 0);
         var foreignBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 0, 0);
         _ = simulation.MinorActors.Spawn(
             cultureId: CultureId,
@@ -608,7 +608,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 4,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 5f,
+            workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(1);
@@ -623,8 +623,8 @@ public sealed partial class MinorActorProgramRuntimeTests
     {
         var simulation = CreateVerbSimulation(mainTickRatio: 1);
         const int healthAttributeId = 10;
-        simulation.RegisterAttribute(SourceKindId, healthAttributeId, minimum: 0f, maximum: 100f, defaultValue: 50f);
-        simulation.Upkeep.RegisterLifecycle(SourceKindId, healthAttributeId, baseRate: 0f, ageCoefficient: 1f, variance: 0f);
+        simulation.RegisterAttribute(SourceKindId, healthAttributeId, minimum: FixedScalar.FromSingle(0f), maximum: FixedScalar.FromSingle(100f), defaultValue: FixedScalar.FromSingle(50f));
+        simulation.Effects.RegisterLifecycle(SourceKindId, healthAttributeId, baseRate: FixedScalar.FromSingle(0f), ageCoefficient: FixedScalar.FromSingle(1f), variance: FixedScalar.FromSingle(0f));
         SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 2);
         var source = simulation.CreateEntity(SourceKindId, subtypeId: 1, cultureId: CultureId, 0, 0, 0, 0, 0, tick: 0);
         Assert.Equal(SourceEntityId, source);
@@ -637,11 +637,11 @@ public sealed partial class MinorActorProgramRuntimeTests
             PlaneCodes.Physical,
             radius: 2,
             sampleCount: 64,
-            weight: 1f,
-            workDeltaMultiplier: 1f);
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
         foreach (var cell in new[] { (0, 0), (1, 0), (0, -1), (1, -1) })
         {
-            simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, cell.Item1, cell.Item2, 30f, tick: 0);
+            simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, cell.Item1, cell.Item2, FixedScalar.FromSingle(30f), tick: 0);
         }
 
         _ = simulation.MinorActors.Spawn(
@@ -656,7 +656,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 4,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 100f,
+            workDelta: FixedScalar.FromSingle(100f),
             tick: 0);
         var before = simulation.World.GetAttribute(SourceEntityId, healthAttributeId);
 
@@ -666,7 +666,7 @@ public sealed partial class MinorActorProgramRuntimeTests
         Assert.Equal(MinorActorActionCodes.LifecycleMaintenance, evt.ActionCode);
         Assert.Equal(MinorActorVerbTargetingCodes.MaintainSourceLifecycle, evt.TargetingCode);
         Assert.Equal(TraceStatusCodes.Selected, evt.StatusCode);
-        Assert.True(evt.Delta > 0f);
+        Assert.True(evt.DeltaUnits > FixedScalar.Zero.Units);
         Assert.True(simulation.World.GetAttribute(SourceEntityId, healthAttributeId) > before);
     }
 
@@ -685,8 +685,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             PlaneCodes.Physical,
             radius: 1,
             sampleCount: 64,
-            weight: 1f,
-            workDeltaMultiplier: 0.01f);
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(0.01f));
         _ = simulation.MinorActors.RegisterVerb(
             rule,
             CultureVerbId + 1,
@@ -695,12 +695,12 @@ public sealed partial class MinorActorProgramRuntimeTests
             PlaneCodes.Physical,
             radius: 1,
             sampleCount: 64,
-            weight: 1f,
-            workDeltaMultiplier: 0.01f);
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(0.01f));
         foreach (var cell in new[] { (0, 0), (1, 0), (0, -1), (-1, 0), (0, 1), (1, -1), (-1, 1) })
         {
-            simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, cell.Item1, cell.Item2, 100f, tick: 0);
-            simulation.ModifyCellCultureInfluenceRaw(2, PlaneCodes.Physical, cell.Item1, cell.Item2, 100f, tick: 0);
+            simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, cell.Item1, cell.Item2, FixedScalar.FromSingle(100f), tick: 0);
+            simulation.ModifyCellCultureInfluenceRaw(2, PlaneCodes.Physical, cell.Item1, cell.Item2, FixedScalar.FromSingle(100f), tick: 0);
         }
 
         _ = simulation.MinorActors.Spawn(
@@ -715,7 +715,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 60,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 5f,
+            workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(50);
@@ -733,8 +733,8 @@ public sealed partial class MinorActorProgramRuntimeTests
     {
         var simulation = CreateVerbSimulation(mainTickRatio: 1);
         const int healthAttributeId = 10;
-        simulation.RegisterAttribute(SourceKindId, healthAttributeId, minimum: 0f, maximum: 100f, defaultValue: 50f);
-        simulation.Upkeep.RegisterLifecycle(SourceKindId, healthAttributeId, baseRate: 0f, ageCoefficient: 1f, variance: 0f);
+        simulation.RegisterAttribute(SourceKindId, healthAttributeId, minimum: FixedScalar.FromSingle(0f), maximum: FixedScalar.FromSingle(100f), defaultValue: FixedScalar.FromSingle(50f));
+        simulation.Effects.RegisterLifecycle(SourceKindId, healthAttributeId, baseRate: FixedScalar.FromSingle(0f), ageCoefficient: FixedScalar.FromSingle(1f), variance: FixedScalar.FromSingle(0f));
         SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 2);
         var source = simulation.CreateEntity(SourceKindId, subtypeId: 1, cultureId: CultureId, 0, 0, 0, 0, 0, tick: 0);
         Assert.Equal(SourceEntityId, source);
@@ -747,8 +747,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             PlaneCodes.Physical,
             radius: 2,
             sampleCount: 64,
-            weight: 1f,
-            workDeltaMultiplier: 1f);
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
         _ = simulation.MinorActors.Spawn(
             cultureId: CultureId,
             sourceEntityId: SourceEntityId,
@@ -761,7 +761,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 4,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 100f,
+            workDelta: FixedScalar.FromSingle(100f),
             tick: 0);
         var before = simulation.World.GetAttribute(SourceEntityId, healthAttributeId);
 
@@ -780,12 +780,12 @@ public sealed partial class MinorActorProgramRuntimeTests
         simulation.RegisterTerrain(
             terrainId: 1,
             boundaryGroupId: 1,
-            movementCost: 1f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 20f,
-            roadSpeedMultiplier: 2f);
+            movementCost: FixedScalar.FromSingle(1f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(20f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(2f));
         SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 2);
         SeedSourceEntity(simulation);
         var travelerId = simulation.CreateEntity(2, subtypeId: 1, cultureId: CultureId, 0, 0, 0, 0, 0, tick: 0);
@@ -794,8 +794,8 @@ public sealed partial class MinorActorProgramRuntimeTests
         var routeQ = move.ToQ;
         var routeR = move.ToR;
         _ = simulation.AdvanceTicks(1);
-        Assert.True(simulation.Movement.RoadQuality(PlaneCodes.Physical, routeQ, routeR, simulation.CurrentTick) > 0f);
-        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, 18f, tick: simulation.CurrentTick);
+        Assert.True(simulation.Movement.RoadQuality(PlaneCodes.Physical, routeQ, routeR, simulation.CurrentTick) > FixedScalar.FromSingle(0f));
+        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(18f), tick: simulation.CurrentTick);
         var rule = RegisterRouteEmitter(simulation);
         _ = simulation.MinorActors.RegisterVerb(
             rule,
@@ -805,8 +805,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             PlaneCodes.Physical,
             radius: 2,
             sampleCount: 128,
-            weight: 1f,
-            workDeltaMultiplier: 1f);
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
         SpawnRouteWorker(simulation, rule);
 
         _ = simulation.AdvanceTicks(1);
@@ -817,7 +817,7 @@ public sealed partial class MinorActorProgramRuntimeTests
         Assert.Equal(TraceStatusCodes.Selected, evt.StatusCode);
         Assert.Equal((routeQ, routeR), (evt.Q, evt.R));
         Assert.Equal((routeQ, routeR), (simulation.MinorActors.State.Q(1), simulation.MinorActors.State.R(1)));
-        Assert.True(simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, routeQ, routeR) > 0f);
+        Assert.True(simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, routeQ, routeR) > FixedScalar.FromSingle(0f));
     }
 
     [Fact]
@@ -835,10 +835,10 @@ public sealed partial class MinorActorProgramRuntimeTests
             PlaneCodes.Physical,
             radius: 4,
             sampleCount: 96,
-            weight: 1f,
-            workDeltaMultiplier: 1f);
-        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 1, 0, 24f, tick: 0);
-        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 1, -1, 24f, tick: 0);
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
+        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(24f), tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 1, -1, FixedScalar.FromSingle(24f), tick: 0);
 
         _ = simulation.AdvanceTicks(1);
 
@@ -848,13 +848,13 @@ public sealed partial class MinorActorProgramRuntimeTests
         Assert.Equal(TraceStatusCodes.Selected, evt.StatusCode);
         Assert.Equal(0, evt.SourceWorkTier);
         Assert.Equal(4, evt.EffectiveRadius);
-        Assert.True(evt.Score > 0f);
-        Assert.True(evt.Delta > 0f);
-        Assert.True(evt.ConnectedRawMass > 0f);
+        Assert.True(evt.ScoreUnits > FixedScalar.Zero.Units);
+        Assert.True(evt.DeltaUnits > FixedScalar.Zero.Units);
+        Assert.True(evt.ConnectedRawMassUnits > FixedScalar.Zero.Units);
     }
 
     [Fact]
-    public void VerbLayerReadsTargetCultureFieldsFromBoundaryProgramCache()
+    public void VerbLayerReadsCurrentTargetCultureLocality()
     {
         var simulation = CreateVerbSimulation(mainTickRatio: 1);
         SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 1);
@@ -868,10 +868,10 @@ public sealed partial class MinorActorProgramRuntimeTests
             PlaneCodes.Physical,
             radius: 1,
             sampleCount: 64,
-            weight: 1f,
-            workDeltaMultiplier: 1f);
-        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, 80f, tick: 0);
-        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 1, 0, 40f, tick: 0);
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
+        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(80f), tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(40f), tick: 0);
         _ = simulation.MinorActors.Spawn(
             cultureId: CultureId,
             sourceEntityId: SourceEntityId,
@@ -884,29 +884,23 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 4,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 0f,
+            workDelta: FixedScalar.FromSingle(0f),
             tick: 0);
-
-        Assert.Equal(0, simulation.CultureBoundaries.RebuildCount);
 
         _ = simulation.AdvanceTicks(1);
 
         var evt = Assert.Single(ReadMinorActorVerbEvents(simulation));
         Assert.Equal(TraceStatusCodes.NoReward, evt.StatusCode);
-        var rebuildCount = simulation.CultureBoundaries.RebuildCount;
-        Assert.True(rebuildCount > 0);
-
-        var boundary = simulation.CultureBoundaries.CellAt(
+        var locality = simulation.CultureLocality.CellAt(
             simulation.World,
             CultureId,
             PlaneCodes.Physical,
             evt.Q,
             evt.R);
 
-        Assert.Equal(rebuildCount, simulation.CultureBoundaries.RebuildCount);
-        Assert.Equal(boundary.CellKindCode, evt.CellKindCode);
-        Assert.Equal(boundary.LocalRawMass, evt.LocalRawMass);
-        Assert.Equal(boundary.ConnectedRawMass, evt.ConnectedRawMass);
+        Assert.Equal(locality.CellKindCode, evt.CellKindCode);
+        Assert.Equal(locality.LocalRawMass.Units, evt.LocalRawMassUnits);
+        Assert.Equal(locality.ConnectedRawMass.Units, evt.ConnectedRawMassUnits);
     }
 
     private static Simulation CreateVerbSimulation(int mainTickRatio = 1) =>
@@ -914,18 +908,17 @@ public sealed partial class MinorActorProgramRuntimeTests
         {
             MinorActorCapacity = 8,
             MinorActorRuleCapacity = 8,
-            MinorActorSourceRuleCapacity = 8,
             KernelTuning = new KernelTuningOptions
             {
                 Programs = new KernelProgramTuningOptions
                 {
-                    MinorActorMainTickRatio = mainTickRatio,
+                    MinorActorSubstepsPerPulse = mainTickRatio,
                     // These tests verify verb targeting; field decay would
                     // erode the small synthetic deltas they assert on.
                     CultureField = new CultureFieldTuningOptions
                     {
-                        DecayPerPulse = 0f,
-                        MinimumDecayPerPulse = 0f,
+                        DecayPerPulse = FixedScalar.FromSingle(0f),
+                        MinimumDecayPerPulse = FixedScalar.FromSingle(0f),
                     },
                 },
             },
@@ -936,7 +929,7 @@ public sealed partial class MinorActorProgramRuntimeTests
         {
             Programs = new KernelProgramTuningOptions
             {
-                CultureInfluenceActionScale = scale,
+                CultureInfluenceActionScale = FixedScalar.FromSingle(scale),
             },
         };
 
@@ -965,7 +958,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             spawnRadius: 0,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 5f);
+            workDelta: FixedScalar.FromSingle(5f));
 
     private static int RegisterRouteEmitter(Simulation simulation) =>
         simulation.MinorActors.RegisterEmitterRule(
@@ -981,7 +974,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             spawnRadius: 0,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 5f);
+            workDelta: FixedScalar.FromSingle(5f));
 
     private static void SpawnRouteWorker(Simulation simulation, int rule) =>
         _ = simulation.MinorActors.Spawn(
@@ -996,7 +989,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 4,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 5f,
+            workDelta: FixedScalar.FromSingle(5f),
             tick: 0,
             purposeCode: MinorActorPurposeCodes.RoadLabor);
 
@@ -1013,8 +1006,22 @@ public sealed partial class MinorActorProgramRuntimeTests
         }
     }
 
-    private static float SumCultureRaw(Simulation simulation, IEnumerable<(int Q, int R)> cells) =>
-        cells.Sum(cell => simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, cell.Q, cell.R));
+    private static FixedScalar SumCultureRaw(
+        Simulation simulation,
+        IEnumerable<(int Q, int R)> cells)
+    {
+        var total = FixedScalar.Zero;
+        foreach (var cell in cells)
+        {
+            total += simulation.World.GetCellCultureInfluenceRaw(
+                CultureId,
+                PlaneCodes.Physical,
+                cell.Q,
+                cell.R);
+        }
+
+        return total;
+    }
 
     private static int HexDistance(int aq, int ar, int bq, int br)
     {

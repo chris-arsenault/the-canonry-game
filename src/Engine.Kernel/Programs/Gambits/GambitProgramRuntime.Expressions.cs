@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 internal sealed partial class GambitProgramRuntime
 {
-    private float EvaluateScore(WorldState world, int gambitSlot, int entityId, int targetId)
+    private FixedScalar EvaluateScore(WorldState world, int gambitSlot, int entityId, int targetId)
     {
         return EvaluateExpression(
             world,
@@ -13,10 +13,10 @@ internal sealed partial class GambitProgramRuntime
             _expressionCodes,
             _expressionA,
             _expressionX,
-            defaultValue: 1f);
+            defaultValue: 1);
     }
 
-    private float EvaluateExpression(
+    private FixedScalar EvaluateExpression(
         WorldState world,
         int entityId,
         int targetId,
@@ -24,8 +24,8 @@ internal sealed partial class GambitProgramRuntime
         int count,
         int[] codes,
         int[] a,
-        float[] x,
-        float defaultValue)
+        FixedScalar[] x,
+        FixedScalar defaultValue)
     {
         return EvaluateExpression(
             world,
@@ -42,7 +42,7 @@ internal sealed partial class GambitProgramRuntime
             0);
     }
 
-    private float EvaluateExpression(
+    private FixedScalar EvaluateExpression(
         WorldState world,
         int entityId,
         int targetId,
@@ -50,10 +50,10 @@ internal sealed partial class GambitProgramRuntime
         int count,
         int[] codes,
         int[] a,
-        float[] x,
-        float defaultValue,
+        FixedScalar[] x,
+        FixedScalar defaultValue,
         global::System.ReadOnlySpan<int> variableIds,
-        global::System.ReadOnlySpan<float> variableValues,
+        global::System.ReadOnlySpan<FixedScalar> variableValues,
         int variableCount)
     {
         if (count == 0)
@@ -61,7 +61,7 @@ internal sealed partial class GambitProgramRuntime
             return defaultValue;
         }
 
-        global::System.Span<float> stack = _expressionStack;
+        global::System.Span<FixedScalar> stack = _expressionStack;
         var stackCount = 0;
         var end = first + count;
         for (var op = first; op < end; op++)
@@ -80,20 +80,20 @@ internal sealed partial class GambitProgramRuntime
                 variableCount);
         }
 
-        return stackCount == 0 ? 0f : stack[stackCount - 1];
+        return stackCount == 0 ? 0 : stack[stackCount - 1];
     }
 
     private void ExecuteExpressionOp(
         WorldState world,
         int code,
         int a,
-        float x,
+        FixedScalar x,
         int entityId,
         int targetId,
-        global::System.Span<float> stack,
+        global::System.Span<FixedScalar> stack,
         ref int stackCount,
         global::System.ReadOnlySpan<int> variableIds,
-        global::System.ReadOnlySpan<float> variableValues,
+        global::System.ReadOnlySpan<FixedScalar> variableValues,
         int variableCount)
     {
         if (TryExecuteValueExpressionOp(
@@ -120,13 +120,13 @@ internal sealed partial class GambitProgramRuntime
         WorldState world,
         int code,
         int a,
-        float x,
+        FixedScalar x,
         int entityId,
         int targetId,
-        global::System.Span<float> stack,
+        global::System.Span<FixedScalar> stack,
         ref int stackCount,
         global::System.ReadOnlySpan<int> variableIds,
-        global::System.ReadOnlySpan<float> variableValues,
+        global::System.ReadOnlySpan<FixedScalar> variableValues,
         int variableCount)
     {
         if (code == BehaviorExpressionCodes.Literal)
@@ -150,10 +150,10 @@ internal sealed partial class GambitProgramRuntime
         int a,
         int entityId,
         int targetId,
-        global::System.Span<float> stack,
+        global::System.Span<FixedScalar> stack,
         ref int stackCount,
         global::System.ReadOnlySpan<int> variableIds,
-        global::System.ReadOnlySpan<float> variableValues,
+        global::System.ReadOnlySpan<FixedScalar> variableValues,
         int variableCount)
     {
         if (code == BehaviorExpressionCodes.TargetAttribute)
@@ -171,10 +171,10 @@ internal sealed partial class GambitProgramRuntime
         int a,
         int entityId,
         int targetId,
-        global::System.Span<float> stack,
+        global::System.Span<FixedScalar> stack,
         ref int stackCount,
         global::System.ReadOnlySpan<int> variableIds,
-        global::System.ReadOnlySpan<float> variableValues,
+        global::System.ReadOnlySpan<FixedScalar> variableValues,
         int variableCount)
     {
         if (code == BehaviorExpressionCodes.Variable)
@@ -185,7 +185,7 @@ internal sealed partial class GambitProgramRuntime
 
         if (code == BehaviorExpressionCodes.SameCulture)
         {
-            Push(stack, ref stackCount, world.EntityCultureId(entityId) == world.EntityCultureId(targetId) ? 1f : 0f);
+            Push(stack, ref stackCount, world.EntityCultureId(entityId) == world.EntityCultureId(targetId) ? 1 : 0);
             return true;
         }
 
@@ -200,7 +200,7 @@ internal sealed partial class GambitProgramRuntime
 
     private static bool TryExecuteOperatorExpressionOp(
         int code,
-        global::System.Span<float> stack,
+        global::System.Span<FixedScalar> stack,
         ref int stackCount)
     {
         if (code == BehaviorExpressionCodes.Add)
@@ -220,7 +220,7 @@ internal sealed partial class GambitProgramRuntime
 
     private static bool TryExecuteOtherOperatorExpressionOp(
         int code,
-        global::System.Span<float> stack,
+        global::System.Span<FixedScalar> stack,
         ref int stackCount)
     {
         if (code == BehaviorExpressionCodes.Multiply)
@@ -240,7 +240,7 @@ internal sealed partial class GambitProgramRuntime
 
     private static bool TryExecuteFinalOperatorExpressionOp(
         int code,
-        global::System.Span<float> stack,
+        global::System.Span<FixedScalar> stack,
         ref int stackCount)
     {
         if (code == BehaviorExpressionCodes.Min)

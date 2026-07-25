@@ -39,8 +39,8 @@ internal static class RegionEntity
                 "Stress and corruption effects bite harder around this region.",
                 TraitMapDelta(K.Region, Attr.Stability, Effect.MapThreatAtLocation, -0.03f, 3f, PrimaryPlane.Semantic)),
         ],
-        MapSignal = MapSignal(radius: 2, capacity: 1.5f, support: 0.3f, threat: 0.3f,
-            baseMass: 6f, coverageScale: 0.10f, influenceScale: 0.03f, activityScale: 0.02f,
+        Locality = Locality(radius: 2, capacity: 1.5f, support: 0.3f, threat: 0.3f,
+            baseMass: 6f, coverageScale: 0.10f, influenceScale: 0.03f,
             healthScale: 0.03f, attractorRadius: 2),
         MovementProfiles = MovementProfiles(
             physicalDefault: Profile.Trail,

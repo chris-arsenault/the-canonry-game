@@ -125,6 +125,32 @@ Preferred patterns:
 Overflow must be explicit. Dropping an event, truncating a candidate list,
 or expanding a buffer are design choices and should be visible in tests/telemetry.
 
+## Invariant 4: Deterministic Durable Numeric State
+
+Durable additive simulation fields must use a field-specific integer
+representation before their values can be reduced across work items or shards.
+The contract for each field includes its range, scale, rounding rule,
+intermediate width, overflow behavior, clamp point, persistence layout, and
+consumer conversion.
+
+Required patterns:
+
+- quantize authored values and API inputs at a declared boundary;
+- quantize each contribution before entering a shared reduction;
+- use an intermediate wide enough for addition and multiplication;
+- reject invalid inputs and make saturation or checked overflow explicit;
+- apply semantic clamps in a deterministic place after reduction;
+- serialize and emit the integer units, with floats derived only for consumers.
+
+`Engine.Kernel` has a complete floating-point ban: no `System.Single`,
+`System.Double`, `MathF`, floating-point tables, or floating-point member
+signatures. Candidate scoring, probabilities, path costs, and other local
+runtime values use `FixedScalar` even when they are not reduced. Floating point
+remains valid only outside the kernel for authored configuration before
+compilation and for diagnostics or presentation after explicit unit conversion.
+Primitive event payloads and snapshots carry integer units and provide no
+floating-point compatibility views.
+
 ## Primitive Event Boundary
 
 The message bus should become a primitive event stream.
@@ -245,7 +271,7 @@ represent the current intended game behavior, not a temporary test convenience.
 
 Current tuning keys:
 
-- `programs.upkeep.aging_model`: `linear` or `late_life`.
+- `programs.lifecycle.aging_model`: `linear` or `late_life`.
 - `programs.generators.retry_fire_targets`: `true` or `false`.
 - `programs.generators.pulse_width_ticks`: positive integer.
 - `programs.generators.fires_per_pulse`: non-negative integer.

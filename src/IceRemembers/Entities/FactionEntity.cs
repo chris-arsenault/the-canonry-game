@@ -46,8 +46,8 @@ internal static class FactionEntity
                 TraitGambit(GambitId.FactionDeclaresTerritorialWar, scoreDelta: 0.18f, successDelta: -0.05f),
                 TraitGambit(GambitId.FactionSuesForPeace, scoreDelta: -0.12f, successDelta: -0.04f)),
         ],
-        MapSignal = MapSignal(radius: 2, capacity: 1.0f, support: 1.2f, threat: 0f,
-            baseMass: 8f, coverageScale: 0.2f, influenceScale: 0.10f, activityScale: 0.04f,
+        Locality = Locality(radius: 2, capacity: 1.0f, support: 1.2f, threat: 0f,
+            baseMass: 8f, coverageScale: 0.2f, influenceScale: 0.10f,
             healthScale: 0.06f, attractorRadius: 2),
         MovementProfiles = MovementProfiles(
             physicalDefault: Profile.Trail,

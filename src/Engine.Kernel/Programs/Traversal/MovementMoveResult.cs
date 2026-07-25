@@ -2,7 +2,7 @@ namespace Engine.Kernel;
 
 internal readonly record struct MovementMoveResult(
     bool Moved,
-    float StepCost,
+    FixedScalar StepCost,
     int PlaneCode,
     int FromQ,
     int FromR,

@@ -209,7 +209,7 @@ river/coast/ridge/cliff/pass/fracture edge masks. Base terrain is chosen by
 scored Ice Remembers rules over both aggregate and minority features, not a
 dominant-material count cascade. The kernel installs only that resolved base
 terrain plus the hex's superregion and continent ids. Movement, culture,
-placement, and map signals consume the effective hex terrain; gameplay use of
+placement, and locality queries consume the effective hex terrain; gameplay use of
 the richer summary is a follow-up. Kernel systems do not store or independently
 reinterpret the 24 triangles.
 
@@ -267,9 +267,9 @@ stalling.
 Forged cells are real cells: they hold terrain (`spire_tier`,
 `tunnel_gallery`), accept culture mass, and are enterable through vertical
 wander steps. Deliberate surface simplifications: roads, travel structures,
-culture boundary components, and route planning operate on the `z = 0`
+culture locality facts, and route planning operate on the `z = 0`
 surface only, and forged-cell culture mass feeds the culture power ledgers
-directly rather than the boundary component model. The semantic plane has no
+directly rather than surface locality. The semantic plane has no
 vertical axis yet.
 
 ## Coverage
@@ -303,10 +303,11 @@ Current strength bands are:
 | entrenched | `300+` |
 | nexus | `700+` |
 
-The `CultureBoundaries` kernel program derives interiors, borders, contested
-cells, isolated pockets, holes, and connected components from this tile layer.
-Consumers should query the boundary program or projection output rather than
-recomputing their own component math.
+`CultureLocality` derives current radius-two facts from this tile layer at the
+point of use: own and foreign mass/share, adjacent and ring-two support,
+connected local mass, cell kind, strength band, and a local interior-hole
+heuristic. The runtime does not construct connected components or component
+identity. Topology summaries exist only at the telemetry sampling boundary.
 
 Current culture influence sources:
 

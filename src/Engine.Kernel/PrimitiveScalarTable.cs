@@ -1,20 +1,20 @@
 namespace Engine.Kernel;
 
-internal sealed partial class PrimitiveFloatTable
+internal sealed partial class PrimitiveScalarTable
 {
     private readonly int[] _firstKeys;
     private readonly int[] _secondKeys;
-    private readonly float[] _values;
+    private readonly FixedScalar[] _values;
     private readonly int[] _occupiedSlots;
     private readonly int _slotMask;
     private int _count;
 
-    public PrimitiveFloatTable(int capacity)
+    public PrimitiveScalarTable(int capacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
+        NumericGuard.ThrowIfNegativeOrZero(capacity);
         _firstKeys = new int[capacity];
         _secondKeys = new int[capacity];
-        _values = new float[capacity];
+        _values = new FixedScalar[capacity];
         _occupiedSlots = new int[capacity];
         _slotMask = (capacity & (capacity - 1)) == 0 ? capacity - 1 : -1;
     }
@@ -23,23 +23,23 @@ internal sealed partial class PrimitiveFloatTable
 
     public int Count => _count;
 
-    public float GetOrDefault(int firstKey, int secondKey)
+    public FixedScalar GetOrDefault(int firstKey, int secondKey)
     {
-        return TryGet(firstKey, secondKey, out var value) ? value : 0f;
+        return TryGet(firstKey, secondKey, out var value) ? value : 0;
     }
 
-    public float GetOrDefault(int firstKey, int secondKey, float fallback)
+    public FixedScalar GetOrDefault(int firstKey, int secondKey, FixedScalar fallback)
     {
         return TryGet(firstKey, secondKey, out var value) ? value : fallback;
     }
 
-    public bool TryGet(int firstKey, int secondKey, out float value)
+    public bool TryGet(int firstKey, int secondKey, out FixedScalar value)
     {
         ValidateKeys(firstKey, secondKey);
         var slot = FindSlot(firstKey, secondKey, out var found);
         if (slot < 0)
         {
-            value = 0f;
+            value = 0;
             return false;
         }
 
@@ -49,11 +49,11 @@ internal sealed partial class PrimitiveFloatTable
             return true;
         }
 
-        value = 0f;
+        value = 0;
         return false;
     }
 
-    public void Set(int firstKey, int secondKey, float value)
+    public void Set(int firstKey, int secondKey, FixedScalar value)
     {
         ValidateKeys(firstKey, secondKey);
         var slot = FindSlot(firstKey, secondKey, out var found);
@@ -73,7 +73,7 @@ internal sealed partial class PrimitiveFloatTable
         _values[slot] = value;
     }
 
-    public void Add(int firstKey, int secondKey, float delta)
+    public void Add(int firstKey, int secondKey, FixedScalar delta)
     {
         ValidateKeys(firstKey, secondKey);
         var slot = FindSlot(firstKey, secondKey, out var found);
@@ -132,13 +132,13 @@ internal sealed partial class PrimitiveFloatTable
             var slot = _occupiedSlots[i];
             _firstKeys[slot] = 0;
             _secondKeys[slot] = 0;
-            _values[slot] = 0f;
+            _values[slot] = 0;
         }
 
         _count = 0;
     }
 
-    internal void GetEntry(int index, out int firstKey, out int secondKey, out float value)
+    internal void GetEntry(int index, out int firstKey, out int secondKey, out FixedScalar value)
     {
         if ((uint)index >= (uint)_count)
         {
@@ -212,6 +212,6 @@ internal sealed partial class PrimitiveFloatTable
 
     private static void ValidateFirstKey(int firstKey)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(firstKey);
+        NumericGuard.ThrowIfNegativeOrZero(firstKey);
     }
 }

@@ -10,7 +10,7 @@ internal sealed partial class GeneratorProgramRuntime
         int[] refEntityIds,
         int refCount)
     {
-        if (_effectValues[effectSlot] < 1f && simulation.NextFloat() > _effectValues[effectSlot])
+        if (_effectValues[effectSlot] < 1 && simulation.NextScalar() > _effectValues[effectSlot])
         {
             return;
         }

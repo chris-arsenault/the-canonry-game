@@ -19,18 +19,24 @@ Every kind declares one health-like attribute:
 - abilities use clarity;
 - monsters use containment.
 
-When that attribute reaches zero, the entity transitions from active to
-historical status. Historical entities remain in the graph for reference and
-relationship history, but they no longer participate in low-altitude programs.
+When that attribute reaches zero, the entity occurrence retires. Retirement
+ends all incident relationships, removes districts hosted by the entity,
+clears active-slot cooldown state, records compact chronicle role-retired facts,
+and then emits the historical status transition. Later simulation rules do not
+query the retired occurrence.
 
-## Upkeep
+## Entity Resolution
 
-The upkeep program applies kind-specific lifecycle drain every tick. The drain
-uses the entity's age, configured lifespan target, and tuning options.
+The effects program owns a single active-entity resolution pass. It selects
+only rules compiled for the entity kind, accumulates attribute effects,
+district healing, and kind-specific lifecycle drain, applies each affected
+attribute once, and retires the entity if its lifecycle attribute reaches
+zero. The drain uses the entity's age, configured lifespan target, and tuning
+options.
 
 Other low-altitude systems can counteract or worsen this drain through effects
 and minor actor labor. Support, own-culture influence, culture slot occupancy,
-home relationships, and favorable map signals can extend life. Threat, hostile
+home relationships, and favorable locality can extend life. Threat, hostile
 culture influence, crowding load, and hostile relationships can shorten it.
 
 Minor actor lifecycle maintenance is the active counterpart to passive decay:
@@ -41,9 +47,9 @@ workers a source can support and how far those workers can operate.
 ## Design Bias
 
 Death should be a normal source of churn, not only the result of a failed
-recovery action. The world should create enough historical material for
-generators and gambits to read without forcing every entity into a constant
-maintenance treadmill.
+recovery action. It should create enough event history for narrative and
+analysis without forcing the live simulation to carry dead rows as gameplay
+inputs.
 
 Regions are special. They have lifecycle state, but they should not become a
 primary actor in every low-altitude interaction.

@@ -303,8 +303,8 @@ public sealed class GameDomainKnowledgeTests
                 SourceEntityId: 100,
                 TargetEntityId: 200,
                 RelationshipId: ids.RelationshipId,
-                PreviousStrength: 0f,
-                NewStrength: 0.78f)),
+                PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f),
+                NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.78f))),
             invocationId: 1)));
     }
 

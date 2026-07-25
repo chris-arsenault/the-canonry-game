@@ -9,37 +9,37 @@ using Engine.Constants;
 /// </summary>
 internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
 {
-    private readonly float _decayPerPulse;
-    private readonly float _minimumDecayPerPulse;
-    private readonly float _cullFloorRawMass;
-    private readonly float _contestDecayMultiplier;
-    private readonly float _contestFloorRawMass;
-    private float _contestTide = 1f;
-    private float _globalTide = 1f;
+    private readonly int _decayPerPulseUnits;
+    private readonly int _minimumDecayPerPulseUnits;
+    private readonly int _cullFloorRawMassUnits;
+    private readonly int _contestDecayMultiplierUnits;
+    private readonly int _contestFloorRawMassUnits;
+    private int _contestTideUnits = KernelFixedPoint.RatioScale;
+    private int _globalTideUnits = KernelFixedPoint.RatioScale;
     private readonly int[] _scratchQ;
     private readonly int[] _scratchR;
     private readonly int[] _scratchZ;
-    private readonly float[] _scratchRaw;
+    private readonly int[] _scratchRaw;
 
     internal CultureFieldDecayProgramRuntime(CultureFieldTuningOptions tuning, int cellCapacity)
     {
         global::System.ArgumentNullException.ThrowIfNull(tuning);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cellCapacity);
-        _decayPerPulse = tuning.DecayPerPulse;
-        _minimumDecayPerPulse = tuning.MinimumDecayPerPulse;
-        _cullFloorRawMass = tuning.CullFloorRawMass;
-        _contestDecayMultiplier = tuning.ContestDecayMultiplier;
-        _contestFloorRawMass = tuning.ContestFloorRawMass;
+        NumericGuard.ThrowIfNegativeOrZero(cellCapacity);
+        _decayPerPulseUnits = KernelFixedPoint.RatioUnits(tuning.DecayPerPulse);
+        _minimumDecayPerPulseUnits = KernelFixedPoint.CultureMassUnits(tuning.MinimumDecayPerPulse);
+        _cullFloorRawMassUnits = KernelFixedPoint.CultureMassUnits(tuning.CullFloorRawMass);
+        _contestDecayMultiplierUnits = KernelFixedPoint.RatioUnits(tuning.ContestDecayMultiplier);
+        _contestFloorRawMassUnits = KernelFixedPoint.CultureMassUnits(tuning.ContestFloorRawMass);
         _scratchQ = new int[cellCapacity];
         _scratchR = new int[cellCapacity];
         _scratchZ = new int[cellCapacity];
-        _scratchRaw = new float[cellCapacity];
+        _scratchRaw = new int[cellCapacity];
     }
 
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        if (_decayPerPulse <= 0f && _minimumDecayPerPulse <= 0f)
+        if (_decayPerPulseUnits <= 0 && _minimumDecayPerPulseUnits <= 0)
         {
             return;
         }
@@ -54,7 +54,6 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
 
     private void DecayPlane(Simulation simulation, int cultureId, int planeCode, int tick)
     {
-        var world = simulation.World;
         var persistence = simulation.Knowledge.Modifier(
             cultureId,
             KnowledgeGrantDomainCodes.CulturePersistence,
@@ -63,18 +62,42 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
             cultureId,
             KnowledgeGrantDomainCodes.DecayTideResistance,
             planeCode);
-        var effectiveGlobalTide = _globalTide > 1f
-            ? 1f + ((_globalTide - 1f) * tideResistance)
-            : _globalTide;
+        var persistenceUnits = KernelFixedPoint.RatioUnits(persistence);
+        var tideResistanceUnits = KernelFixedPoint.RatioUnits(tideResistance);
+        var effectiveGlobalTideUnits = _globalTideUnits > KernelFixedPoint.RatioScale
+            ? KernelFixedPoint.RatioScale + KernelFixedPoint.MultiplyByRatio(
+                _globalTideUnits - KernelFixedPoint.RatioScale,
+                tideResistanceUnits,
+                0,
+                KernelFixedPoint.RatioMaximumUnits)
+            : _globalTideUnits;
+        var count = SnapshotPlaneCells(simulation.World, cultureId, planeCode);
+        ApplyDecay(
+            simulation,
+            cultureId,
+            planeCode,
+            tick,
+            count,
+            persistenceUnits,
+            effectiveGlobalTideUnits);
+    }
+
+    private int SnapshotPlaneCells(WorldState world, int cultureId, int planeCode)
+    {
         // Two-phase: snapshot cells first because applying decay mutates the
         // spatial index the cursor walks. Cells beyond scratch capacity skip
         // this pulse and decay on a later one.
         var count = 0;
         var cursor = world.RawCultureInfluenceCellsOf(cultureId, planeCode);
         while (count < _scratchQ.Length &&
-               world.MoveNextRawCultureInfluenceCell(ref cursor, out var q, out var r, out var z, out var raw))
+               world.MoveNextRawCultureInfluenceCellUnits(
+                   ref cursor,
+                   out var q,
+                   out var r,
+                   out var z,
+                   out var raw))
         {
-            if (raw <= 0f)
+            if (raw <= 0)
             {
                 continue;
             }
@@ -86,17 +109,41 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
             count++;
         }
 
+        return count;
+    }
+
+    private void ApplyDecay(
+        Simulation simulation,
+        int cultureId,
+        int planeCode,
+        int tick,
+        int count,
+        int persistenceUnits,
+        int effectiveGlobalTideUnits)
+    {
+        var world = simulation.World;
         for (var i = 0; i < count; i++)
         {
             var raw = _scratchRaw[i];
-            var contest = ContestMultiplier(world, cultureId, planeCode, _scratchQ[i], _scratchR[i], _scratchZ[i], raw);
-            var decay = global::System.MathF.Max(raw * _decayPerPulse, _minimumDecayPerPulse) * contest * effectiveGlobalTide * persistence;
-            if (raw - decay < _cullFloorRawMass)
+            var contestUnits = ContestMultiplierUnits(
+                world,
+                cultureId,
+                planeCode,
+                _scratchQ[i],
+                _scratchR[i],
+                _scratchZ[i],
+                raw);
+            var decay = DecayUnits(
+                raw,
+                contestUnits,
+                effectiveGlobalTideUnits,
+                persistenceUnits);
+            if (raw - decay < _cullFloorRawMassUnits)
             {
                 decay = raw;
             }
 
-            _ = simulation.ModifyCellCultureInfluenceRaw(
+            _ = simulation.ModifyCellCultureInfluenceRawUnits(
                 cultureId,
                 planeCode,
                 _scratchQ[i],
@@ -107,26 +154,70 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
         }
     }
 
+    private int DecayUnits(
+        int raw,
+        int contestUnits,
+        int effectiveGlobalTideUnits,
+        int persistenceUnits)
+    {
+        var decay = global::System.Math.Max(
+            KernelFixedPoint.MultiplyByRatio(
+                raw,
+                _decayPerPulseUnits,
+                0,
+                WorldState.CultureFullRawMassUnits),
+            _minimumDecayPerPulseUnits);
+        decay = KernelFixedPoint.MultiplyByRatio(
+            decay,
+            contestUnits,
+            0,
+            WorldState.CultureFullRawMassUnits);
+        decay = KernelFixedPoint.MultiplyByRatio(
+            decay,
+            effectiveGlobalTideUnits,
+            0,
+            WorldState.CultureFullRawMassUnits);
+        return KernelFixedPoint.MultiplyByRatio(
+            decay,
+            persistenceUnits,
+            0,
+            WorldState.CultureFullRawMassUnits);
+    }
+
     /// <summary>
     /// The standing tide: where a stronger rival culture holds the same
     /// cell, the locally weaker side decays faster - fronts form where
     /// cultures touch, and boundaries can visibly move.
     /// </summary>
     /// <summary>Age charges: the world-beat program scales the tides per open age each pulse.</summary>
-    public void SetContestTide(float tide) => _contestTide = tide;
+    public void SetContestTide(FixedScalar tide) => _contestTideUnits = KernelFixedPoint.RatioUnits(tide);
 
-    public void ScaleContestTide(float multiplier) => _contestTide *= multiplier;
+    public void ScaleContestTide(FixedScalar multiplier) =>
+        _contestTideUnits = KernelFixedPoint.MultiplyByRatio(
+            _contestTideUnits,
+            KernelFixedPoint.RatioUnits(multiplier),
+            0,
+            KernelFixedPoint.RatioMaximumUnits);
 
-    public void SetGlobalTide(float tide) => _globalTide = tide;
+    public void SetGlobalTide(FixedScalar tide) => _globalTideUnits = KernelFixedPoint.RatioUnits(tide);
 
-    public void ScaleGlobalTide(float multiplier) => _globalTide *= multiplier;
+    public void ScaleGlobalTide(FixedScalar multiplier) =>
+        _globalTideUnits = KernelFixedPoint.MultiplyByRatio(
+            _globalTideUnits,
+            KernelFixedPoint.RatioUnits(multiplier),
+            0,
+            KernelFixedPoint.RatioMaximumUnits);
 
-    private float ContestMultiplier(WorldState world, int cultureId, int planeCode, int q, int r, int z, float raw)
+    private int ContestMultiplierUnits(WorldState world, int cultureId, int planeCode, int q, int r, int z, int raw)
     {
-        var contested = _contestDecayMultiplier * _contestTide;
-        if (contested <= 1f || raw <= 0f)
+        var contested = KernelFixedPoint.MultiplyByRatio(
+            _contestDecayMultiplierUnits,
+            _contestTideUnits,
+            0,
+            KernelFixedPoint.RatioMaximumUnits);
+        if (contested <= KernelFixedPoint.RatioScale || raw <= 0)
         {
-            return 1f;
+            return KernelFixedPoint.RatioScale;
         }
 
         for (var other = 1; other <= world.CultureHighWatermark; other++)
@@ -136,13 +227,13 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
                 continue;
             }
 
-            var rival = world.GetCellCultureInfluenceRaw(other, planeCode, q, r, z);
-            if (rival > raw && rival >= _contestFloorRawMass)
+            var rival = world.GetCellCultureInfluenceRawUnits(other, planeCode, q, r, z);
+            if (rival > raw && rival >= _contestFloorRawMassUnits)
             {
                 return contested;
             }
         }
 
-        return 1f;
+        return KernelFixedPoint.RatioScale;
     }
 }

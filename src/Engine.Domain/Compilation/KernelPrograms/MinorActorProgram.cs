@@ -26,7 +26,7 @@ public sealed record MinorActorEmitterRule(
     int SpawnRadius,
     int MoveChancePermille,
     int ActionCadencePulses,
-    float WorkDelta,
+    FixedScalar WorkDelta,
     IReadOnlyList<MinorActorVerbRule> Verbs);
 
 public sealed record MinorActorVerbRule(
@@ -36,5 +36,5 @@ public sealed record MinorActorVerbRule(
     int PlaneCode,
     int Radius,
     int SampleCount,
-    float Weight,
-    float WorkDeltaMultiplier);
+    FixedScalar Weight,
+    FixedScalar WorkDeltaMultiplier);

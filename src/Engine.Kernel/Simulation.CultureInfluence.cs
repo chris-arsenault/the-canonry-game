@@ -4,32 +4,50 @@ using Engine.Constants;
 
 internal sealed partial class Simulation
 {
-    internal float ModifyCellCultureInfluenceRaw(int cultureId, int planeCode, int q, int r, float delta, int tick) =>
+    internal FixedScalar ModifyCellCultureInfluenceRaw(int cultureId, int planeCode, int q, int r, FixedScalar delta, int tick) =>
         ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, z: 0, delta, tick);
 
-    internal float ModifyCellCultureInfluenceRaw(int cultureId, int planeCode, int q, int r, int z, float delta, int tick)
+    internal FixedScalar ModifyCellCultureInfluenceRaw(int cultureId, int planeCode, int q, int r, int z, FixedScalar delta, int tick)
     {
-        var previousRaw = World.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r, z);
         var applied = World.ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, z, delta, tick, _executionContext);
-        // The boundary/component model is a surface model: forged-cell mass at
-        // z != 0 feeds the culture power ledgers directly and must not perturb
-        // surface component bookkeeping.
-        if (applied != 0f && z == 0)
+        // Culture locality is a surface model: forged-cell mass at z != 0
+        // feeds the culture power ledgers directly and must not perturb
+        // surface facts.
+        if (applied != 0 && z == 0)
         {
-            CultureBoundaries.MarkDirty(
-                cultureId,
-                planeCode,
-                q,
-                r,
-                previousRaw,
-                previousRaw + applied,
-                CultureBoundarySupportChanged(previousRaw, previousRaw + applied));
+            CultureLocality.MarkDirty(planeCode, q, r);
         }
 
         return applied;
     }
 
-    internal float ModifyCellCultureInfluenceRawFromEntity(int entityId, int planeCode, int q, int r, float delta, int tick)
+    internal int ModifyCellCultureInfluenceRawUnits(
+        int cultureId,
+        int planeCode,
+        int q,
+        int r,
+        int z,
+        int deltaUnits,
+        int tick)
+    {
+        var appliedUnits = World.ModifyCellCultureInfluenceRawUnits(
+            cultureId,
+            planeCode,
+            q,
+            r,
+            z,
+            deltaUnits,
+            tick,
+            _executionContext);
+        if (appliedUnits != 0 && z == 0)
+        {
+            CultureLocality.MarkDirty(planeCode, q, r);
+        }
+
+        return appliedUnits;
+    }
+
+    internal FixedScalar ModifyCellCultureInfluenceRawFromEntity(int entityId, int planeCode, int q, int r, FixedScalar delta, int tick)
     {
         // Physical-plane deposits land at the entity's current z layer, so
         // entities in tunnels or spires accumulate forged-cell mass.
@@ -39,7 +57,7 @@ internal sealed partial class Simulation
         // remittance share reinforces the anchor cell so roaming entities feed
         // their culture's center instead of painting unbounded trails.
         var remittanceShare = Options.KernelTuning.Programs.CultureField.RemittanceShare;
-        if (delta > 0f && remittanceShare > 0f)
+        if (delta > 0 && remittanceShare > 0)
         {
             var anchorQ = World.EntityCultureAnchorQ(entityId, planeCode);
             var anchorR = World.EntityCultureAnchorR(entityId, planeCode);
@@ -55,38 +73,28 @@ internal sealed partial class Simulation
         return ApplyCellCultureInfluenceRawFromEntity(entityId, planeCode, q, r, z, delta, tick);
     }
 
-    private float ApplyCellCultureInfluenceRawFromEntity(int entityId, int planeCode, int q, int r, int z, float delta, int tick)
+    private FixedScalar ApplyCellCultureInfluenceRawFromEntity(int entityId, int planeCode, int q, int r, int z, FixedScalar delta, int tick)
     {
         var cultureId = World.EntityCultureId(entityId);
         delta = CultureProductionScaled(cultureId, planeCode, delta);
         // Positive physical production takes root as readily as the ground
         // and the culture's taste allow; loss and semantic production are
         // untouched.
-        if (delta > 0f && planeCode == PlaneCodes.Physical)
+        if (delta > 0 && planeCode == PlaneCodes.Physical)
         {
             delta *= CultureGrowthMultiplier(cultureId, q, r);
         }
 
-        var previousRaw = cultureId > 0
-            ? World.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r, z)
-            : 0f;
         var applied = World.ModifyCellCultureInfluenceRawFromEntity(entityId, planeCode, q, r, z, delta, tick, _executionContext);
-        if (cultureId > 0 && applied != 0f && z == 0)
+        if (cultureId > 0 && applied != 0 && z == 0)
         {
-            CultureBoundaries.MarkDirty(
-                cultureId,
-                planeCode,
-                q,
-                r,
-                previousRaw,
-                previousRaw + applied,
-                CultureBoundarySupportChanged(previousRaw, previousRaw + applied));
+            CultureLocality.MarkDirty(planeCode, q, r);
         }
 
         return applied;
     }
 
-    internal float ReduceOtherCultureSourcesAtCell(int ownCultureId, int planeCode, int q, int r, float delta, int tick)
+    internal FixedScalar ReduceOtherCultureSourcesAtCell(int ownCultureId, int planeCode, int q, int r, FixedScalar delta, int tick)
     {
         var removed = World.ReduceOtherCultureSourcesAtCell(
             ownCultureId,
@@ -98,18 +106,9 @@ internal sealed partial class Simulation
             _executionContext,
             _dirtyCultureScratch,
             out var changedCultureCount);
-        for (var i = 0; i < changedCultureCount; i++)
+        if (changedCultureCount > 0)
         {
-            var cultureId = _dirtyCultureScratch[i];
-            var currentRaw = World.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r);
-            CultureBoundaries.MarkDirty(
-                cultureId,
-                planeCode,
-                q,
-                r,
-                currentRaw + delta,
-                currentRaw,
-                CultureBoundaryCleanupMayHaveChangedSupport(currentRaw, delta));
+            CultureLocality.MarkDirty(planeCode, q, r);
         }
 
         return removed;
@@ -120,17 +119,11 @@ internal sealed partial class Simulation
     /// production multiplier. Decay, cleanup, forge deposits, and player
     /// commands are not production and stay unscaled.
     /// </summary>
-    internal float CultureProductionScaled(int cultureId, int planeCode, float delta) =>
-        cultureId > 0 && delta > 0f
+    internal FixedScalar CultureProductionScaled(int cultureId, int planeCode, FixedScalar delta) =>
+        cultureId > 0 && delta > 0
             ? delta *
                 KernelData.Cultures.ProductionMultiplier(cultureId, planeCode) *
                 Knowledge.Modifier(cultureId, KnowledgeGrantDomainCodes.CultureProduction, planeCode)
             : delta;
 
-    private static bool CultureBoundarySupportChanged(float previousRaw, float currentRaw) =>
-        (previousRaw >= WorldState.CultureClaimedRawMass) != (currentRaw >= WorldState.CultureClaimedRawMass);
-
-    private static bool CultureBoundaryCleanupMayHaveChangedSupport(float currentRaw, float requestedDelta) =>
-        currentRaw < WorldState.CultureClaimedRawMass &&
-        currentRaw + requestedDelta >= WorldState.CultureClaimedRawMass;
 }

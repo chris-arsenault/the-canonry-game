@@ -12,8 +12,7 @@ All other per-entity differentiation should be authored as one of:
 - a trait operation that compiles to shared query, effect, or decision-modifier
   primitives;
 - relationship strength for graph-state gates and magnitude;
-- locality queries for physical or semantic context;
-- map signals for aggregate world context.
+- locality queries for current physical or semantic context.
 
 ## Retired Buckets
 
@@ -25,7 +24,7 @@ gambits could lean on without producing readable graph state.
 Do not revive old attributes such as `echo`, `warmth`, `dominion`, `shelter`,
 `reach`, `provisions`, `holding`, `pristiness`, `power`, or `resonance` as a
 generic second stock. If one of those concepts matters, re-author it as a
-specific trait, relationship, locality rule, map signal, or explicit gameplay
+specific trait, relationship, locality rule, or explicit gameplay
 system.
 
 ## Numeric Gates
@@ -36,8 +35,8 @@ For example, artifact cleansing should require a strong relevant edge such as
 requirements the event needs.
 
 Locality gates are also valid: "near a scar", "inside the target region",
-"within a threatened map signal", or "on the semantic margin" are often better
-than inventing a scalar attribute.
+"under current local threat", or "on the semantic margin" are often better than
+inventing a scalar attribute.
 
 ## Execution Boundary
 

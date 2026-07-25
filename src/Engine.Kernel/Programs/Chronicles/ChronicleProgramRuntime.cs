@@ -11,20 +11,20 @@ namespace Engine.Kernel;
 /// </summary>
 internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<ChronicleProgramData, ChronicleProgramState>
 {
-    private const float HeatDecayFactor = 0.99f;
-    private const float AmbientPairHeat = 0.25f;
-    private const float MaxHeat = 12f;
-    private const float InitialHeat = 1f;
-    private const float FadeHeatThreshold = 0.5f;
+    private static readonly FixedScalar HeatDecayFactor = FixedScalar.FromUnits(990000L);
+    private static readonly FixedScalar AmbientPairHeat = FixedScalar.FromUnits(250000L);
+    private static readonly FixedScalar MaxHeat = 12;
+    private static readonly FixedScalar InitialHeat = 1;
+    private static readonly FixedScalar FadeHeatThreshold = FixedScalar.FromUnits(500000L);
     private const int FadeQuietTicks = 1250;
     private const int FadeGraceTicks = 1500;
-    private const float HeatChargeSlope = 0.15f;
-    private const float MaxHeatChargeMultiplier = 4f;
+    private static readonly FixedScalar HeatChargeSlope = FixedScalar.FromUnits(150000L);
+    private static readonly FixedScalar MaxHeatChargeMultiplier = 4;
     private const int SuppressionTicks = 2000;
-    private const float ConvergenceHeatFloor = 4f;
-    private const float LegendaryHeatThreshold = 8f;
-    private const float ConvergencePullSlope = 0.3f;
-    private const float ConvergencePullMax = 2f;
+    private static readonly FixedScalar ConvergenceHeatFloor = 4;
+    private static readonly FixedScalar LegendaryHeatThreshold = 8;
+    private static readonly FixedScalar ConvergencePullSlope = FixedScalar.FromUnits(300000L);
+    private static readonly FixedScalar ConvergencePullMax = 2;
 
     private readonly int _chronicleCapacity;
 
@@ -99,9 +99,9 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
     /// convergence pushes stories toward their endings without decreeing
     /// them.
     /// </summary>
-    public float ScoreBias(int actorId, int targetId, int gambitId)
+    public FixedScalar ScoreBias(int actorId, int targetId, int gambitId)
     {
-        var total = 0f;
+        var total = FixedScalar.Zero;
         for (var chronicle = 1; chronicle <= State.HighWatermark; chronicle++)
         {
             if (!State.Active[chronicle])
@@ -116,21 +116,21 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
         return total;
     }
 
-    private float ConvergencePull(int chronicle, int actorId, int targetId)
+    private FixedScalar ConvergencePull(int chronicle, int actorId, int targetId)
     {
         var heat = State.Heat[chronicle];
         if (heat < ConvergenceHeatFloor ||
             !CastContains(chronicle, targetId) ||
             CastContains(chronicle, actorId))
         {
-            return 0f;
+            return 0;
         }
 
         var pull = (heat - ConvergenceHeatFloor) * ConvergencePullSlope;
         return pull > ConvergencePullMax ? ConvergencePullMax : pull;
     }
 
-    private const float PursuitHeatFloor = 2.5f;
+    private static readonly FixedScalar PursuitHeatFloor = FixedScalar.FromUnits(2500000L);
 
     /// <summary>
     /// The tale draws its cast together: the costar this entity should
@@ -139,9 +139,9 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
     /// costar carries the story to it. Read by the verb program's
     /// chronicle-pursuit target selector.
     /// </summary>
-    public int PursuitTargetFor(int entityId, out float heat)
+    public int PursuitTargetFor(int entityId, out FixedScalar heat)
     {
-        heat = 0f;
+        heat = 0;
         var target = 0;
         for (var chronicle = 1; chronicle <= State.HighWatermark; chronicle++)
         {
@@ -167,7 +167,7 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
     private int PursuitCostar(int chronicle, int entityId)
     {
         var primary = RoleEntity(chronicle, 0);
-        if (primary != entityId)
+        if (primary != entityId && RoleRemainsActive(chronicle, 0))
         {
             return primary;
         }
@@ -175,7 +175,7 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
         for (var role = 1; role < ChronicleProgramData.MaxRolesPerArchetype; role++)
         {
             var costar = RoleEntity(chronicle, role);
-            if (costar > 0)
+            if (costar > 0 && costar != entityId && RoleRemainsActive(chronicle, role))
             {
                 return costar;
             }
@@ -184,13 +184,17 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
         return 0;
     }
 
+    private bool RoleRemainsActive(int chronicle, int role) =>
+        RoleEntity(chronicle, role) > 0 &&
+        (State.RetiredRoleMasks[chronicle] & (1L << role)) == 0;
+
     /// <summary>
     /// The hottest running chronicle this entity is cast in; the world's
     /// remembrance machinery (generators) reads this to notice story-bearers.
     /// </summary>
-    public float HeatFor(int entityId)
+    public FixedScalar HeatFor(int entityId)
     {
-        var best = 0f;
+        var best = FixedScalar.Zero;
         for (var chronicle = 1; chronicle <= State.HighWatermark; chronicle++)
         {
             if (State.Active[chronicle] &&
@@ -243,9 +247,9 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
         return false;
     }
 
-    private float ChronicleBias(int chronicle, int actorId, int targetId, int gambitId)
+    private FixedScalar ChronicleBias(int chronicle, int actorId, int targetId, int gambitId)
     {
-        var total = 0f;
+        var total = FixedScalar.Zero;
         var archetype = State.ArchetypeSlots[chronicle];
         var beatStart = Data.ArchetypeBeatStarts[archetype];
         var beatEnd = beatStart + Data.ArchetypeBeatCounts[archetype];
@@ -262,7 +266,7 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
         return total;
     }
 
-    private float BeatChargeBias(int chronicle, int beat, int actorId, int targetId, int gambitId) =>
+    private FixedScalar BeatChargeBias(int chronicle, int beat, int actorId, int targetId, int gambitId) =>
         BeatChargeSum(chronicle, beat, actorId, targetId, gambitId, Data.ChargeScoreBonuses, heatScale: true);
 
     /// <summary>
@@ -271,9 +275,9 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
     /// uncharged one. Read by the gambit program's success roll. Success
     /// favor is never heat-scaled - it is authored, bounded encouragement.
     /// </summary>
-    public float SuccessBonus(int actorId, int targetId, int gambitId)
+    public FixedScalar SuccessBonus(int actorId, int targetId, int gambitId)
     {
-        var total = 0f;
+        var total = FixedScalar.Zero;
         for (var chronicle = 1; chronicle <= State.HighWatermark; chronicle++)
         {
             if (!State.Active[chronicle])
@@ -296,16 +300,16 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
         return total;
     }
 
-    private float BeatChargeSum(
+    private FixedScalar BeatChargeSum(
         int chronicle,
         int beat,
         int actorId,
         int targetId,
         int gambitId,
-        float[] bonuses,
+        FixedScalar[] bonuses,
         bool heatScale)
     {
-        var total = 0f;
+        var total = FixedScalar.Zero;
         var chargeStart = Data.BeatChargeStarts[beat];
         var chargeEnd = chargeStart + Data.BeatChargeCounts[beat];
         for (var charge = chargeStart; charge < chargeEnd; charge++)
@@ -324,7 +328,7 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
             var bonus = bonuses[charge];
             if (heatScale && Data.ChargeHeatScaled[charge] != 0)
             {
-                var multiplier = 1f + (State.Heat[chronicle] * HeatChargeSlope);
+                var multiplier = 1 + (State.Heat[chronicle] * HeatChargeSlope);
                 bonus *= multiplier < MaxHeatChargeMultiplier ? multiplier : MaxHeatChargeMultiplier;
             }
 
@@ -372,6 +376,25 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
 
     private void SetRoleEntity(int chronicle, int role, int entityId) =>
         State.RoleEntityIds[(chronicle * ChronicleProgramData.MaxRolesPerArchetype) + role] = entityId;
+
+    internal void NoteEntityRetired(int entityId)
+    {
+        for (var chronicle = 1; chronicle <= State.HighWatermark; chronicle++)
+        {
+            if (!State.Active[chronicle])
+            {
+                continue;
+            }
+
+            for (var role = 0; role < ChronicleProgramData.MaxRolesPerArchetype; role++)
+            {
+                if (RoleEntity(chronicle, role) == entityId)
+                {
+                    State.RetiredRoleMasks[chronicle] |= 1L << role;
+                }
+            }
+        }
+    }
 
     private bool CastContains(int chronicle, int entityId)
     {

@@ -2,24 +2,24 @@ namespace Engine.Kernel;
 
 internal sealed partial class LowAltitudeVerbProgramRuntime
 {
-    private const float CultureTraceRawInfluence = WorldState.CultureTraceRawMass;
-    private const float CultureSupportedRawInfluence = WorldState.CultureClaimedRawMass;
-    private const float CultureStrongRawInfluence = WorldState.CultureControlledRawMass;
-    private const float CultureNexusRawInfluence = WorldState.CultureNexusRawMass;
-    private const float CultureFieldRawInfluence = WorldState.CultureFullRawMass;
-    private const float CultureRouteBorderSupportWeight = 7f / 20f;
+    private static readonly FixedScalar CultureTraceRawInfluence = WorldState.CultureTraceRawMass;
+    private static readonly FixedScalar CultureSupportedRawInfluence = WorldState.CultureClaimedRawMass;
+    private static readonly FixedScalar CultureStrongRawInfluence = WorldState.CultureControlledRawMass;
+    private static readonly FixedScalar CultureNexusRawInfluence = WorldState.CultureNexusRawMass;
+    private static readonly FixedScalar CultureFieldRawInfluence = WorldState.CultureFullRawMass;
+    private static readonly FixedScalar CultureRouteBorderSupportWeight = FixedScalar.FromRatio(7, 20);
 
     private readonly struct CultureInfluenceNeighborhood
     {
         public CultureInfluenceNeighborhood(
-            float centerRaw,
-            float adjacentRawTotal,
-            float strongestAdjacentRaw,
+            FixedScalar centerRaw,
+            FixedScalar adjacentRawTotal,
+            FixedScalar strongestAdjacentRaw,
             int supportedAdjacentCount,
-            float ringTwoRawTotal,
-            float strongestRingTwoRaw,
+            FixedScalar ringTwoRawTotal,
+            FixedScalar strongestRingTwoRaw,
             int supportedRingTwoCount,
-            float connectedRaw)
+            FixedScalar connectedRaw)
         {
             CenterRaw = centerRaw;
             AdjacentRawTotal = adjacentRawTotal;
@@ -31,30 +31,29 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             ConnectedRaw = connectedRaw;
         }
 
-        public float CenterRaw { get; }
+        public FixedScalar CenterRaw { get; }
 
-        public float AdjacentRawTotal { get; }
+        public FixedScalar AdjacentRawTotal { get; }
 
-        public float StrongestAdjacentRaw { get; }
+        public FixedScalar StrongestAdjacentRaw { get; }
 
         public int SupportedAdjacentCount { get; }
 
-        public float RingTwoRawTotal { get; }
+        public FixedScalar RingTwoRawTotal { get; }
 
-        public float StrongestRingTwoRaw { get; }
+        public FixedScalar StrongestRingTwoRaw { get; }
 
         public int SupportedRingTwoCount { get; }
 
-        public float ConnectedRaw { get; }
+        public FixedScalar ConnectedRaw { get; }
     }
 
     private readonly record struct CultureInfluenceAttachment(
-        float ComponentMass,
+        FixedScalar ConnectedRawMass,
         int AdjacentSupportedCount,
-        int ComponentCount,
-        float LargestComponentSupport);
+        FixedScalar StrongCenterSupport);
 
-    private static CultureInfluenceNeighborhood CultureNeighborhood(in CultureBoundaryCell boundary)
+    private static CultureInfluenceNeighborhood CultureNeighborhood(in CultureLocalityCell boundary)
     {
         return new CultureInfluenceNeighborhood(
             boundary.RawMass,
@@ -67,7 +66,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             boundary.ConnectedRawMass);
     }
 
-    private float OwnCultureExpansionDriveAround(
+    private FixedScalar OwnCultureExpansionDriveAround(
         Simulation simulation,
         int entityId,
         int rule,
@@ -79,18 +78,18 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var cultureId = simulation.World.EntityCultureId(entityId);
         if (cultureId <= 0)
         {
-            return 0f;
+            return 0;
         }
 
         var targetingCode = EffectiveInfluenceTargetingCode(rule);
-        var best = 0f;
+        var best = FixedScalar.Zero;
         for (var dq = -radius; dq <= radius; dq++)
         {
             var minDr = global::System.Math.Max(-radius, -dq - radius);
             var maxDr = global::System.Math.Min(radius, -dq + radius);
             for (var dr = minDr; dr <= maxDr; dr++)
             {
-                best = global::System.MathF.Max(
+                best = FixedScalar.Max(
                     best,
                     OwnCultureExpansionDriveAt(
                         simulation,
@@ -106,7 +105,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         return best;
     }
 
-    private float TravelCultureRouteMultiplier(
+    private FixedScalar TravelCultureRouteMultiplier(
         Simulation simulation,
         int entityId,
         int rule,
@@ -115,9 +114,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int r)
     {
         if (Data.OperationCode(rule) != ProgramOpcodeCodes.MoveActor ||
-            Data.InfluenceDelta(rule) <= 0f)
+            Data.InfluenceDelta(rule) <= 0)
         {
-            return 1f;
+            return 1;
         }
 
         var world = simulation.World;
@@ -125,25 +124,25 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         if (cultureId <= 0 ||
             !CellTargetCoordinateAllowed(world, planeCode, q, r))
         {
-            return 1f;
+            return 1;
         }
 
-        var boundary = simulation.CultureBoundaries.CellAt(world, cultureId, planeCode, q, r);
+        var boundary = simulation.CultureLocality.CellAt(world, cultureId, planeCode, q, r);
         var ownCultureInfluence = boundary.Share;
         var foreignCultureInfluence = boundary.ForeignShare;
         var neighborhood = CultureNeighborhood(boundary);
         var connectedSupport = CultureConnectedSupport(neighborhood);
         var borderSupport = CultureEdgeSupport(neighborhood);
-        var culturePresence = Clamp01(ownCultureInfluence / 100f);
-        var foreignCulturePresence = Clamp01(foreignCultureInfluence / 100f);
-        return 0.55f +
-            (0.95f * connectedSupport) +
+        var culturePresence = Clamp01(ownCultureInfluence / 100);
+        var foreignCulturePresence = Clamp01(foreignCultureInfluence / 100);
+        return FixedScalar.FromUnits(550000L) +
+            (FixedScalar.FromUnits(950000L) * connectedSupport) +
             (CultureRouteBorderSupportWeight * borderSupport) +
-            (0.25f * culturePresence) +
-            (0.2f * foreignCulturePresence);
+            (FixedScalar.FromUnits(250000L) * culturePresence) +
+            (FixedScalar.FromUnits(200000L) * foreignCulturePresence);
     }
 
-    private float OwnCultureExpansionDriveAt(
+    private FixedScalar OwnCultureExpansionDriveAt(
         Simulation simulation,
         int entityId,
         int cultureId,
@@ -155,14 +154,14 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var world = simulation.World;
         if (!CellTargetCoordinateAllowed(world, planeCode, q, r))
         {
-            return 0f;
+            return 0;
         }
 
-        var boundary = simulation.CultureBoundaries.CellAt(world, cultureId, planeCode, q, r);
+        var boundary = simulation.CultureLocality.CellAt(world, cultureId, planeCode, q, r);
         var neighborhood = CultureNeighborhood(boundary);
         if (!OwnCultureExpansionTargetAllowed(targetingCode, boundary.RawMass, neighborhood))
         {
-            return 0f;
+            return 0;
         }
 
         var drive = OwnCultureExpansionDrive(
@@ -184,7 +183,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
     private static bool OwnCultureExpansionTargetAllowed(
         int targetingCode,
-        float ownCultureRaw,
+        FixedScalar ownCultureRaw,
         in CultureInfluenceNeighborhood neighborhood)
     {
         if (ownCultureRaw >= WorldState.CultureFullRawMass)
@@ -203,17 +202,17 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             return SpreadTargetHasSupport(ownCultureRaw, neighborhood);
         }
 
-        return ownCultureRaw > 0f ||
-            neighborhood.AdjacentRawTotal > 0f;
+        return ownCultureRaw > 0 ||
+            neighborhood.AdjacentRawTotal > 0;
     }
 
-    private static bool SpreadTargetHasSupport(float ownCultureRaw)
+    private static bool SpreadTargetHasSupport(FixedScalar ownCultureRaw)
     {
         return ownCultureRaw >= CultureTraceRawInfluence;
     }
 
     private static bool SpreadTargetHasSupport(
-        float ownCultureRaw,
+        FixedScalar ownCultureRaw,
         in CultureInfluenceNeighborhood neighborhood)
     {
         return SpreadTargetHasSupport(ownCultureRaw) ||
@@ -223,19 +222,18 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             neighborhood.RingTwoRawTotal >= CultureNexusRawInfluence;
     }
 
-    private static CultureInfluenceAttachment CultureAttachment(in CultureBoundaryCell boundary) =>
+    private static CultureInfluenceAttachment CultureAttachment(in CultureLocalityCell boundary) =>
         new(
-            boundary.AttachedComponentScoreMass,
+            boundary.ConnectedRawMass,
             boundary.SupportedAdjacentCount,
-            boundary.AttachedComponentCount,
-            boundary.IsLargestComponent ? 1f : 0f);
+            boundary.RawMass >= WorldState.CultureControlledRawMass ? 1 : 0);
 
-    private float OwnCultureExpansionDrive(
+    private FixedScalar OwnCultureExpansionDrive(
         int targetingCode,
-        float ownCultureInfluence,
-        float foreignCultureInfluence,
-        float foreignCultureRaw,
-        float ownCultureRaw,
+        FixedScalar ownCultureInfluence,
+        FixedScalar foreignCultureInfluence,
+        FixedScalar foreignCultureRaw,
+        FixedScalar ownCultureRaw,
         in CultureInfluenceNeighborhood neighborhood,
         in CultureInfluenceAttachment attachment)
     {
@@ -245,24 +243,23 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             ownCultureRaw,
             foreignCultureInfluence,
             foreignCultureRaw,
-            attachment.ComponentMass,
+            attachment.ConnectedRawMass,
             attachment.AdjacentSupportedCount,
-            attachment.ComponentCount,
-            attachment.LargestComponentSupport);
+            attachment.StrongCenterSupport);
         return CultureInfluenceTargetScorer.Score(input);
     }
 
-    private static float CultureConnectedSupport(in CultureInfluenceNeighborhood neighborhood) =>
+    private static FixedScalar CultureConnectedSupport(in CultureInfluenceNeighborhood neighborhood) =>
         Clamp01(neighborhood.ConnectedRaw / CultureFieldRawInfluence);
 
-    private static float CultureEdgeSupport(in CultureInfluenceNeighborhood neighborhood)
+    private static FixedScalar CultureEdgeSupport(in CultureInfluenceNeighborhood neighborhood)
     {
         var adjacentSupport = Clamp01(neighborhood.AdjacentRawTotal / CultureNexusRawInfluence);
         var centerHeadroom = Clamp01((CultureStrongRawInfluence - neighborhood.CenterRaw) / CultureStrongRawInfluence);
         return adjacentSupport * centerHeadroom;
     }
 
-    private static float OwnCultureFieldOpportunity(float culturalExpansionDrive) =>
+    private static FixedScalar OwnCultureFieldOpportunity(FixedScalar culturalExpansionDrive) =>
         Clamp01(culturalExpansionDrive);
 
     private int EffectiveInfluenceTargetingCode(int rule)
@@ -284,7 +281,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             : LowAltitudeInfluenceTargetingCodes.None;
     }
 
-    private static float StrongestOtherCultureInfluence(
+    private static FixedScalar StrongestOtherCultureInfluence(
         WorldState world,
         int ownCultureId,
         int planeCode,
@@ -293,7 +290,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         out int cultureId)
     {
         cultureId = 0;
-        var influence = 0f;
+        var influence = FixedScalar.Zero;
         for (var otherCultureId = 1; otherCultureId <= world.CultureHighWatermark; otherCultureId++)
         {
             if (otherCultureId == ownCultureId)
@@ -314,7 +311,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         return influence;
     }
 
-    private static float ForeignCultureInfluenceAt(
+    private static FixedScalar ForeignCultureInfluenceAt(
         Simulation simulation,
         int ownCultureId,
         int planeCode,
@@ -324,7 +321,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     {
         if (ownCultureId > 0)
         {
-            var boundary = simulation.CultureBoundaries.CellAt(simulation.World, ownCultureId, planeCode, q, r);
+            var boundary = simulation.CultureLocality.CellAt(simulation.World, ownCultureId, planeCode, q, r);
             foreignCultureId = boundary.ForeignCultureId;
             return boundary.ForeignShare;
         }
@@ -337,10 +334,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     /// genuinely contested cells (both sides established) draw the fight -
     /// verbs of both cultures weight the front.
     /// </summary>
-    private const float FrontierEstablishedRawMass = 4f;
-    private const float FrontierWeightMultiplier = 1.75f;
+    private static readonly FixedScalar FrontierEstablishedRawMass = 4;
+    private static readonly FixedScalar FrontierWeightMultiplier = FixedScalar.FromUnits(1750000L);
 
-    private (float ContestSupport, float Frontier) ContestSupportAndFrontier(
+    private (FixedScalar ContestSupport, FixedScalar Frontier) ContestSupportAndFrontier(
         Simulation simulation,
         int actorCultureId,
         int planeCode,
@@ -349,13 +346,13 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     {
         if (actorCultureId <= 0)
         {
-            return (0f, 1f);
+            return (0, 1);
         }
 
-        var boundary = simulation.CultureBoundaries.CellAt(simulation.World, actorCultureId, planeCode, q, r);
+        var boundary = simulation.CultureLocality.CellAt(simulation.World, actorCultureId, planeCode, q, r);
         var frontier = boundary.RawMass >= FrontierEstablishedRawMass && boundary.ForeignRawMass >= FrontierEstablishedRawMass
             ? FrontierWeightMultiplier
-            : 1f;
+            : 1;
         var attachment = CultureAttachment(boundary);
         var input = new CultureInfluenceTargetScoreInput(
             LowAltitudeInfluenceTargetingCodes.Contest,
@@ -363,10 +360,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             boundary.RawMass,
             boundary.ForeignShare,
             boundary.ForeignRawMass,
-            attachment.ComponentMass,
+            attachment.ConnectedRawMass,
             attachment.AdjacentSupportedCount,
-            attachment.ComponentCount,
-            attachment.LargestComponentSupport);
+            attachment.StrongCenterSupport);
         return (CultureInfluenceTargetScorer.Score(input), frontier);
     }
 
@@ -383,10 +379,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int q,
         int r,
         int influencerId,
-        float influence,
+        FixedScalar influence,
         int tick,
-        ref float totalWeight,
-        ref float sumAffordanceScore,
+        ref FixedScalar totalWeight,
+        ref FixedScalar sumAffordanceScore,
         ref VerbTargetCandidate selected)
     {
         var foreignCultureInfluence = ForeignCultureInfluenceAt(
@@ -396,25 +392,25 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             q,
             r,
             out _);
-        if (foreignCultureInfluence <= 0f)
+        if (foreignCultureInfluence <= 0)
         {
             return;
         }
 
         var (contestSupport, frontier) = ContestSupportAndFrontier(simulation, actorCultureId, planeCode, q, r);
 
-        if (contestSupport <= 0f)
+        if (contestSupport <= 0)
         {
             return;
         }
 
-        var influenceSignal = global::System.MathF.Max(influence, foreignCultureInfluence);
-        var presenceBias = Tuning.LowAltitudeVerbs.ForeignInfluencePresenceSamplingFactor * (influenceSignal / 100f);
+        var influenceSignal = FixedScalar.Max(influence, foreignCultureInfluence);
+        var presenceBias = Tuning.LowAltitudeVerbs.ForeignInfluencePresenceSamplingFactor * (influenceSignal / 100);
         var distance = DistancePref(rule, TargetSelectorCodes.OtherMapValue, actorQ, actorR, q, r);
         var saturationDivisor = CellSaturationDivisor(simulation, planeCode, q, r);
         var recencyKey = LowAltitudeVerbProgramState.PackCellTargetKey(planeCode, q, r);
         var recency = ComputeRecencyMultiplier(entityId, tick, recencyKey);
-        var baseWeight = scalars.Weight * (0.25f + presenceBias) * contestSupport * distance * saturationDivisor * recency * frontier;
+        var baseWeight = scalars.Weight * (FixedScalar.FromUnits(250000L) + presenceBias) * contestSupport * distance * saturationDivisor * recency * frontier;
         var influencerKindId = influencerId > 0 ? simulation.World.EntityKindId(influencerId) : actorKindId;
         var affordance = CombineAffordancesForInfluenceTarget(
             actorKindId,
@@ -423,7 +419,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             influencerKindId,
             AffordancePolarityCodes.Reduce,
             influenceSignal);
-        sumAffordanceScore += affordance.Score + (0.75f * contestSupport);
+        sumAffordanceScore += affordance.Score + (FixedScalar.FromUnits(750000L) * contestSupport);
         var candidate = Candidate(rule, planeCode, 0, influencerKindId, q, r, TargetS(planeCode, q, r), baseWeight, affordance, scalars.OpportunityBonus);
         ConsiderCandidate(simulation, candidate, ref totalWeight, ref selected);
     }

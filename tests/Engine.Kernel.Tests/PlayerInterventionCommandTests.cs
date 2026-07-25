@@ -23,14 +23,14 @@ public sealed class PlayerInterventionCommandTests
                 Q: 0,
                 R: 0,
                 Radius: 1,
-                Amount: 120f)),
+                Amount: FixedScalar.FromSingle(120f))),
             out _));
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(120f, simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0), precision: 2);
-        Assert.Equal(120f, simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 1, 0), precision: 2);
-        Assert.Equal(0f, simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 2, 0));
+        Assert.Equal(FixedScalar.FromSingle(120f), simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(120f), simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 1, 0));
+        Assert.Equal(FixedScalar.FromSingle(0f), simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 2, 0));
     }
 
     [Fact]
@@ -46,12 +46,12 @@ public sealed class PlayerInterventionCommandTests
                 Q: 0,
                 R: 0,
                 Radius: 1,
-                Amount: 120f)),
+                Amount: FixedScalar.FromSingle(120f))),
             out _));
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(0f, simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(0f), simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0));
     }
 
     [Fact]
@@ -67,18 +67,18 @@ public sealed class PlayerInterventionCommandTests
                 IssueVersion: (int)simulation.WorldVersion,
                 entity,
                 DurationTicks: 10,
-                MultiplierDelta: 1f)),
+                MultiplierDelta: FixedScalar.FromSingle(1f))),
             out _));
 
         simulation.AdvanceTicks(1);
 
-        _ = simulation.ModifyCellCultureInfluenceRawFromEntity(entity, PlaneCodes.Physical, 0, 0, 10f, simulation.CurrentTick);
-        Assert.Equal(20f, simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0), precision: 2);
+        _ = simulation.ModifyCellCultureInfluenceRawFromEntity(entity, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(10f), simulation.CurrentTick);
+        Assert.Equal(FixedScalar.FromSingle(20f), simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0));
 
         simulation.AdvanceTicks(15);
 
-        _ = simulation.ModifyCellCultureInfluenceRawFromEntity(entity, PlaneCodes.Physical, 0, 0, 10f, simulation.CurrentTick);
-        Assert.Equal(30f, simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0), precision: 2);
+        _ = simulation.ModifyCellCultureInfluenceRawFromEntity(entity, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(10f), simulation.CurrentTick);
+        Assert.Equal(FixedScalar.FromSingle(30f), simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0));
     }
 
     private static void SeedKnownDisc(Simulation simulation, int radius)
@@ -110,8 +110,8 @@ public sealed class PlayerInterventionCommandTests
                     // noise would smear them.
                     CultureField = new CultureFieldTuningOptions
                     {
-                        DecayPerPulse = 0f,
-                        MinimumDecayPerPulse = 0f,
+                        DecayPerPulse = FixedScalar.FromSingle(0f),
+                        MinimumDecayPerPulse = FixedScalar.FromSingle(0f),
                     },
                 },
             },

@@ -78,26 +78,27 @@ New relationships are primarily created by generators and gambits. Existing
 relationships can be strengthened, weakened, or culled by low-altitude drift,
 gambits, generators, and card effects.
 
-Culling moves a relationship out of active use while preserving history. The
-historical graph remains useful for narrative queries and generator
-preconditions.
+Culling emits the relationship-ended change and immediately releases the
+relationship slot for active reuse. The kernel has no ended-edge query.
+Relationship history is reconstructed from the event/provenance projections.
 
-Default relationship queries operate on hot-active edges only: the relationship
-itself must be active, and both endpoints must be active entities. Relationships
-whose source or target has moved to historical status are preserved for explicit
-history-facing queries, but they are excluded from ordinary low-altitude,
-gambit, generator, map-signal, and relationship-maintenance hot paths.
+Every relationship query therefore operates on active edges whose endpoints
+are active entities. Retiring either endpoint ends the edge through the same
+cull path. World-beat facts that need cumulative endings are maintained as
+explicit counters at mutation time rather than by scanning old edge rows.
 
 ## Interactions
 
 Low-altitude verbs use relationships for targeting, signed fitness scoring, and
 explicit relationship-strength mutation.
 
-Map signals use relationships to emit support or threat around related
-entities.
-
 Effects use relationships, culture influence, culture slot occupancy, and
 distance to modify health.
+
+Follow-configured relationships do not move targets from the relationship
+maintenance pass. They expose a current follow source to the target's ordinary
+low-altitude movement intent, so all physical placement uses the movement
+boundary once.
 
 Gambits and generators use relationships as preconditions and outputs.
 

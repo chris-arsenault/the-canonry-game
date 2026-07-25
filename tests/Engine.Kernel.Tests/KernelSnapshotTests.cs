@@ -7,29 +7,54 @@ using Engine.Kernel.Programs;
 public sealed class KernelSnapshotTests
 {
     [Fact]
+    public void ObsoleteSnapshotFormatIsRejectedWithoutCompatibilityFallback()
+    {
+        var simulation = CreateSimulation();
+        using var stream = new MemoryStream();
+        KernelSnapshot.SaveKernelState(simulation, stream);
+
+        stream.Position = sizeof(int);
+        using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+        {
+            writer.Write(48);
+        }
+
+        stream.Position = 0;
+        Assert.Throws<InvalidOperationException>(() => KernelSnapshot.LoadKernelState(stream));
+    }
+
+    [Fact]
     public void SaveAndLoadKernelStateRestoresWorldProgramsAndEmitsMaterializationEvents()
     {
         var simulation = CreateSimulation();
         simulation.World.SetMapRadius(1);
         simulation.RegisterTerrain(1, boundaryGroupId: 2);
-        simulation.RegisterAttribute(1, 10, 0f, 100f, 0f);
-        simulation.RegisterAttribute(2, 10, 0f, 100f, 0f);
+        simulation.RegisterAttribute(1, 10, FixedScalar.FromSingle(0f), FixedScalar.FromSingle(100f), FixedScalar.FromSingle(0f));
+        simulation.RegisterAttribute(2, 10, FixedScalar.FromSingle(0f), FixedScalar.FromSingle(100f), FixedScalar.FromSingle(0f));
         simulation.CreateCell(0, 0, terrainId: 1, ownerEntityId: 0);
         var actor = simulation.CreateEntity(1, 3, 4, 0, 0, 0, 0, 0, tick: 0);
         var target = simulation.CreateEntity(2, 3, 4, 1, 0, 1, 0, 0, tick: 0);
         simulation.World.SetCoverageOwner(0, 0, actor);
         using (simulation.EnterExecutionContext(simulation.StartupSourceCodeId, programId: 0))
         {
-            simulation.SetAttribute(actor, 10, 42f, tick: 0);
-            simulation.SetCellInfluence(actor, PlaneCodes.Physical, 0, 0, 55f, tick: 0);
+            simulation.SetAttribute(actor, 10, FixedScalar.FromSingle(42f), tick: 0);
+            simulation.SetCellInfluence(actor, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(55f), tick: 0);
         }
-        simulation.World.SetEntityStatus(target, EntityStatusCodes.Historical, tick: 0);
-        var relationshipId = simulation.CreateRelationship(
+        var endedRelationshipId = simulation.CreateRelationship(
             relationshipKindId: 6,
             polarityCode: RelationshipPolarityCodes.Negative,
             sourceEntityId: actor,
             targetEntityId: target,
-            strength: 0.75f,
+            strength: FixedScalar.FromSingle(0.75f),
+            tick: 0);
+        simulation.SetEntityStatus(target, EntityStatusCodes.Historical, tick: 0);
+        Assert.False(simulation.World.RelationshipIsActive(endedRelationshipId));
+        var relationshipId = simulation.CreateRelationship(
+            relationshipKindId: 6,
+            polarityCode: RelationshipPolarityCodes.Positive,
+            sourceEntityId: actor,
+            targetEntityId: actor,
+            strength: FixedScalar.FromSingle(0.5f),
             tick: 0);
         simulation.Generators.RegisterGenerator(
             generatorId: 50,
@@ -51,7 +76,7 @@ public sealed class KernelSnapshotTests
     }
 
     [Fact]
-    public void SaveAndLoadKernelStateRestoresProvenanceHistory()
+    public void SaveAndLoadKernelStateRestoresActiveCausalTokens()
     {
         var simulation = CreateSimulation();
         SeedSnapshotMap(simulation);
@@ -72,9 +97,6 @@ public sealed class KernelSnapshotTests
 
         Assert.Equal(invocationId, loaded.World.EntityCreatedByInvocationId(created));
         Assert.Equal(invocationId, loaded.World.RelationshipCreatedByInvocationId(relationship));
-        Assert.Equal(ProvenanceProducerKindCodes.Generator, loaded.World.ProvenanceInvocationProducerKindCode(invocationId));
-        Assert.Equal(50, loaded.World.ProvenanceInvocationProducerId(invocationId));
-        Assert.Equal(2, loaded.World.ProvenanceInvocationOutputCount(invocationId));
     }
 
     private static void SeedSnapshotMap(Simulation simulation)
@@ -111,7 +133,7 @@ public sealed class KernelSnapshotTests
             semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
-            createChance: 1f,
+            createChance: FixedScalar.FromSingle(1f),
             coverageModeCode: GeneratorCoverageModeCodes.None,
             coverageSourceRefCode: 0,
             coverageDesiredCellCount: 0,
@@ -124,7 +146,7 @@ public sealed class KernelSnapshotTests
             sourceRefCode: 2,
             destinationRefCode: GeneratorProgramConstants.TargetReferenceCode,
             relationshipKindId: 6,
-            strength: 0.75f,
+            strength: FixedScalar.FromSingle(0.75f),
             replaceExistingOutgoing: 0);
     }
 
@@ -140,7 +162,6 @@ public sealed class KernelSnapshotTests
             CommandCapacity = 16,
             GambitCapacity = 4,
             GambitStepCapacity = 16,
-            GambitCooldownCapacity = 16,
             GambitProviderSelectorCapacity = 4,
             GeneratorCapacity = 4,
             GeneratorItemCapacity = 16,
@@ -161,11 +182,11 @@ public sealed class KernelSnapshotTests
         {
             Programs = new KernelProgramTuningOptions
             {
-                MinorActorMainTickRatio = 7,
-                CultureInfluenceActionScale = 0.25f,
-                Upkeep = new UpkeepProgramTuningOptions
+                MinorActorSubstepsPerPulse = 7,
+                CultureInfluenceActionScale = FixedScalar.FromSingle(0.25f),
+                Lifecycle = new LifecycleTuningOptions
                 {
-                    AgingModelCode = UpkeepAgingModelCodes.LateLife,
+                    AgingModelCode = LifecycleAgingModelCodes.LateLife,
                 },
                 Generators = new GeneratorProgramTuningOptions
                 {
@@ -175,24 +196,24 @@ public sealed class KernelSnapshotTests
                 },
                 LowAltitudeVerbs = new LowAltitudeVerbTuningOptions
                 {
-                    OpportunityRate = 0.35f,
-                    OpportunityBonus = 1.75f,
+                    OpportunityRate = FixedScalar.FromSingle(0.35f),
+                    OpportunityBonus = FixedScalar.FromSingle(1.75f),
                     RecentTargetCooldownTicks = 77,
                     RecentTargetRingSize = 2,
-                    CellSaturationFactor = 0.5f,
-                    ExploreDistanceScale = 4.5f,
-                    TerrainDistanceScale = 5.5f,
-                    EntityKindDistanceScale = 6.5f,
-                    RelationshipTargetDistanceScale = 7.5f,
-                    OwnInfluenceDistanceScale = 8.5f,
-                    ForeignInfluenceDistanceScale = 9.5f,
+                    CellSaturationFactor = FixedScalar.FromSingle(0.5f),
+                    ExploreDistanceScale = FixedScalar.FromSingle(4.5f),
+                    TerrainDistanceScale = FixedScalar.FromSingle(5.5f),
+                    EntityKindDistanceScale = FixedScalar.FromSingle(6.5f),
+                    RelationshipTargetDistanceScale = FixedScalar.FromSingle(7.5f),
+                    OwnInfluenceDistanceScale = FixedScalar.FromSingle(8.5f),
+                    ForeignInfluenceDistanceScale = FixedScalar.FromSingle(9.5f),
                 },
                 CultureField = new CultureFieldTuningOptions
                 {
-                    DecayPerPulse = 0.01f,
-                    MinimumDecayPerPulse = 0.9f,
-                    CullFloorRawMass = 2f,
-                    DecayCadenceMainTicks = 3,
+                    DecayPerPulse = FixedScalar.FromSingle(0.01f),
+                    MinimumDecayPerPulse = FixedScalar.FromSingle(0.9f),
+                    CullFloorRawMass = FixedScalar.FromSingle(2f),
+                    DecayCadencePulses = 3,
                 },
             },
         };
@@ -209,37 +230,37 @@ public sealed class KernelSnapshotTests
         Assert.Equal(simulation.WorldVersion, loaded.WorldVersion);
         Assert.Equal(actor, loaded.World.EntityHighWatermark - 1);
         Assert.Equal(EntityStatusCodes.Historical, loaded.World.EntityStatus(target));
-        Assert.Equal(42f, loaded.World.GetAttribute(actor, 10));
-        Assert.Equal(55f, loaded.World.GetCellInfluence(actor, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(42f), loaded.World.GetAttribute(actor, 10));
+        Assert.Equal(FixedScalar.FromSingle(55f), loaded.World.GetCellInfluence(actor, PlaneCodes.Physical, 0, 0));
         Assert.Equal(1, loaded.World.CellTerrainId(0, 0));
         Assert.Equal(actor, loaded.World.CoverageOwnerAt(0, 0));
         Assert.Equal(1, loaded.World.CoverageOwnerCellCount(actor));
         Assert.Equal(2, loaded.World.TerrainBoundaryGroupId(1));
-        Assert.Equal(0.75f, loaded.World.RelationshipStrength(relationshipId));
+        Assert.Equal(FixedScalar.FromSingle(0.5f), loaded.World.RelationshipStrength(relationshipId));
         Assert.False(loaded.ProgramIsEnabled(KernelProgramCodes.Generators));
         Assert.True(loaded.Generators.TryGetGeneratorEnabledById(50, out var generatorEnabled));
         Assert.False(generatorEnabled);
-        Assert.Equal(7, loaded.Options.KernelTuning.Programs.MinorActorMainTickRatio);
-        Assert.Equal(0.25f, loaded.Options.KernelTuning.Programs.CultureInfluenceActionScale);
-        Assert.Equal(UpkeepAgingModelCodes.LateLife, loaded.Options.KernelTuning.Programs.Upkeep.AgingModelCode);
+        Assert.Equal(7, loaded.Options.KernelTuning.Programs.MinorActorSubstepsPerPulse);
+        Assert.Equal(FixedScalar.FromSingle(0.25f), loaded.Options.KernelTuning.Programs.CultureInfluenceActionScale);
+        Assert.Equal(LifecycleAgingModelCodes.LateLife, loaded.Options.KernelTuning.Programs.Lifecycle.AgingModelCode);
         Assert.False(loaded.Options.KernelTuning.Programs.Generators.RetryFireTargets);
         Assert.Equal(17, loaded.Options.KernelTuning.Programs.Generators.PulseWidthTicks);
         Assert.Equal(2, loaded.Options.KernelTuning.Programs.Generators.FiresPerPulse);
-        Assert.Equal(0.35f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.OpportunityRate);
-        Assert.Equal(1.75f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.OpportunityBonus);
+        Assert.Equal(FixedScalar.FromSingle(0.35f), loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.OpportunityRate);
+        Assert.Equal(FixedScalar.FromSingle(1.75f), loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.OpportunityBonus);
         Assert.Equal(77, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.RecentTargetCooldownTicks);
         Assert.Equal(2, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.RecentTargetRingSize);
-        Assert.Equal(0.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.CellSaturationFactor);
-        Assert.Equal(4.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.ExploreDistanceScale);
-        Assert.Equal(5.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.TerrainDistanceScale);
-        Assert.Equal(6.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.EntityKindDistanceScale);
-        Assert.Equal(7.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.RelationshipTargetDistanceScale);
-        Assert.Equal(8.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.OwnInfluenceDistanceScale);
-        Assert.Equal(9.5f, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.ForeignInfluenceDistanceScale);
-        Assert.Equal(0.01f, loaded.Options.KernelTuning.Programs.CultureField.DecayPerPulse);
-        Assert.Equal(0.9f, loaded.Options.KernelTuning.Programs.CultureField.MinimumDecayPerPulse);
-        Assert.Equal(2f, loaded.Options.KernelTuning.Programs.CultureField.CullFloorRawMass);
-        Assert.Equal(3, loaded.Options.KernelTuning.Programs.CultureField.DecayCadenceMainTicks);
+        Assert.Equal(FixedScalar.FromSingle(0.5f), loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.CellSaturationFactor);
+        Assert.Equal(FixedScalar.FromSingle(4.5f), loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.ExploreDistanceScale);
+        Assert.Equal(FixedScalar.FromSingle(5.5f), loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.TerrainDistanceScale);
+        Assert.Equal(FixedScalar.FromSingle(6.5f), loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.EntityKindDistanceScale);
+        Assert.Equal(FixedScalar.FromSingle(7.5f), loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.RelationshipTargetDistanceScale);
+        Assert.Equal(FixedScalar.FromSingle(8.5f), loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.OwnInfluenceDistanceScale);
+        Assert.Equal(FixedScalar.FromSingle(9.5f), loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.ForeignInfluenceDistanceScale);
+        Assert.Equal(FixedScalar.FromSingle(0.01f), loaded.Options.KernelTuning.Programs.CultureField.DecayPerPulse);
+        Assert.Equal(FixedScalar.FromSingle(0.9f), loaded.Options.KernelTuning.Programs.CultureField.MinimumDecayPerPulse);
+        Assert.Equal(FixedScalar.FromSingle(2f), loaded.Options.KernelTuning.Programs.CultureField.CullFloorRawMass);
+        Assert.Equal(3, loaded.Options.KernelTuning.Programs.CultureField.DecayCadencePulses);
         Assert.Equal(expectedRandom, loaded.NextInt(10000));
     }
 
@@ -254,9 +275,8 @@ public sealed class KernelSnapshotTests
 
         Assert.Contains(KernelEventType.CellCreated, eventTypes);
         Assert.Contains(KernelEventType.EntityCreated, eventTypes);
-        Assert.Contains(KernelEventType.EntityStatusChanged, eventTypes);
+        Assert.DoesNotContain(KernelEventType.EntityStatusChanged, eventTypes);
         Assert.Contains(KernelEventType.AttributeChanged, eventTypes);
-        Assert.Contains(KernelEventType.CellCultureInfluenceChanged, eventTypes);
         Assert.Contains(KernelEventType.RelationshipChanged, eventTypes);
     }
 }

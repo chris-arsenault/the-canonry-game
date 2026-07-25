@@ -122,13 +122,14 @@ public static partial class IceRemembersDefinition
         gambit.Writes.Add(AttributeRef.StructuralFact("districts", K.Settlement));
         // The artifact becomes a district. Its tile joins the city's
         // footprint with the relic at its core, its subtype-registered bonus
-        // becomes durable district state, the pinned consignment archives
-        // which artifact was installed, and the install mutation also sets
-        // the artifact historical until a reawakening. See
+        // becomes durable district state, and a compact template records how
+        // a new artifact will relate to the host if the district is consumed.
         // docs/design/artifact-districts.md.
-        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.ConsignedTo, RelationshipPolarity.Positive, 1f));
-        gambit.Mutations.Add(new InstallDistrictMutation());
-        gambit.Description = "A consigned artifact at rest among its keepers installs itself for good - shrine, library, hall, or chancery. The city grows a district around the sleeping core; the artifact keeps only its name in the record.";
+        gambit.Mutations.Add(new InstallDistrictMutation(
+            L(Rel.ConsignedTo),
+            RelationshipPolarity.Positive,
+            1f));
+        gambit.Description = "An artifact at rest among its keepers installs itself for good - shrine, library, hall, or chancery. The city grows a district around the gift; the retired occurrence is not preserved.";
         return gambit;
     }
 
@@ -152,9 +153,8 @@ public static partial class IceRemembersDefinition
         gambit.Reads.Add(AttributeRef.Self(A(Attr.TempHp), K.Settlement));
         gambit.Writes.Add(AttributeRef.StructuralFact("districts", K.Settlement));
         // The reawakening: a settlement in need takes up its newest sleeping
-        // core. The artifact returns to the world on its tile, the district
-        // bonus ends, and the tile stays city ground. A settlement with no
-        // sleeping core attempts and gains nothing.
+        // template. A new artifact occurrence forms on the district tile with
+        // a new relationship to the host; the district bonus ends.
         gambit.Mutations.Add(new ReawakenDistrictMutation());
         gambit.Description = "A hold in hard times wakes the relic sleeping under its district. The gift ends; the artifact walks the world again.";
         return gambit;

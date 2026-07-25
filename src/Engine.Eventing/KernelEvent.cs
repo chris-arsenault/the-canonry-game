@@ -118,8 +118,8 @@ public readonly record struct EntityMovedKernelEvent(
     [KernelEventIntSlot(10, "to_z", KernelEventSemanticKind.Coordinate)]
     int ToZ);
 
-[KernelEventLayout(KernelEventType.AttributeChanged, schemaMinor: 0)]
-public readonly record struct AttributeChangedKernelEvent(
+[KernelEventLayout(KernelEventType.AttributeChanged, schemaMinor: 1)]
+public readonly partial record struct AttributeChangedKernelEvent(
     int Tick,
     long WorldVersion,
     [KernelEventIntSlot(0, "entity_id", KernelEventSemanticKind.EntityId)]
@@ -128,10 +128,10 @@ public readonly record struct AttributeChangedKernelEvent(
     int AttributeId,
     [KernelEventIntSlot(2, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
     int SourceCodeId,
-    [KernelEventFloatSlot(0, "old_value", KernelEventSemanticKind.RawScalar)]
-    float OldValue,
-    [KernelEventFloatSlot(1, "new_value", KernelEventSemanticKind.RawScalar)]
-    float NewValue);
+    [KernelEventIntSlot(3, "old_value_units", KernelEventSemanticKind.RawScalar)]
+    int OldValueUnits,
+    [KernelEventIntSlot(4, "new_value_units", KernelEventSemanticKind.RawScalar)]
+    int NewValueUnits);
 
 [KernelEventLayout(KernelEventType.EntityCultureChanged, schemaMinor: 0)]
 public readonly record struct EntityCultureChangedKernelEvent(
@@ -174,7 +174,7 @@ public readonly record struct EntityTagChangedKernelEvent(
     [KernelEventIntSlot(3, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
     int SourceCodeId);
 
-[KernelEventLayout(KernelEventType.ChronicleChanged, schemaMinor: 1)]
+[KernelEventLayout(KernelEventType.ChronicleChanged, schemaMinor: 2)]
 public readonly record struct ChronicleChangedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -196,8 +196,8 @@ public readonly record struct ChronicleChangedKernelEvent(
     int RoleEntityId2,
     [KernelEventIntSlot(8, "role_entity_id_3", KernelEventSemanticKind.EntityId)]
     int RoleEntityId3,
-    [KernelEventFloatSlot(0, "heat", KernelEventSemanticKind.Strength)]
-    float Heat = 0f);
+    [KernelEventLongSlot(0, "heat_units", KernelEventSemanticKind.Strength)]
+    long HeatUnits = 0L);
 
 [KernelEventLayout(KernelEventType.WorldBeatChanged, schemaMinor: 0)]
 public readonly record struct WorldBeatChangedKernelEvent(
@@ -210,8 +210,8 @@ public readonly record struct WorldBeatChangedKernelEvent(
     [KernelEventIntSlot(2, "phase_code", KernelEventSemanticKind.StatusCode)]
     int PhaseCode);
 
-[KernelEventLayout(KernelEventType.RelationshipChanged, schemaMinor: 3)]
-public readonly record struct RelationshipChangedKernelEvent(
+[KernelEventLayout(KernelEventType.RelationshipChanged, schemaMinor: 4)]
+public readonly partial record struct RelationshipChangedKernelEvent(
     int Tick,
     long WorldVersion,
     [KernelEventIntSlot(0, "change_code_id", KernelEventSemanticKind.EventCodeId)]
@@ -228,10 +228,10 @@ public readonly record struct RelationshipChangedKernelEvent(
     int TargetEntityId,
     [KernelEventIntSlot(6, "relationship_id", KernelEventSemanticKind.RelationshipId)]
     int RelationshipId,
-    [KernelEventFloatSlot(0, "previous_strength", KernelEventSemanticKind.Strength)]
-    float PreviousStrength,
-    [KernelEventFloatSlot(1, "new_strength", KernelEventSemanticKind.Strength)]
-    float NewStrength,
+    [KernelEventIntSlot(8, "previous_strength_units", KernelEventSemanticKind.Strength)]
+    int PreviousStrengthUnits,
+    [KernelEventIntSlot(9, "new_strength_units", KernelEventSemanticKind.Strength)]
+    int NewStrengthUnits,
     [KernelEventIntSlot(7, "action_id", KernelEventSemanticKind.ActionId)]
     int ActionId = 0);
 
@@ -282,7 +282,7 @@ public readonly record struct GeneratorFiredKernelEvent(
     [KernelEventIntSlot(5, "output_lock_relationship_created_count", KernelEventSemanticKind.Count)]
     int OutputLockRelationshipCreatedCount = 0);
 
-[KernelEventLayout(KernelEventType.GeneratorTargetEvaluated, schemaMinor: 1)]
+[KernelEventLayout(KernelEventType.GeneratorTargetEvaluated, schemaMinor: 3)]
 public readonly record struct GeneratorTargetEvaluatedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -318,26 +318,14 @@ public readonly record struct GeneratorTargetEvaluatedKernelEvent(
     int SemanticFieldBandCode,
     [KernelEventIntSlot(15, "semantic_cell_kind_code", KernelEventSemanticKind.StatusCode)]
     int SemanticCellKindCode,
-    [KernelEventFloatSlot(0, "physical_local_raw_mass", KernelEventSemanticKind.RawScalar)]
-    float PhysicalLocalRawMass,
-    [KernelEventFloatSlot(1, "physical_connected_raw_mass", KernelEventSemanticKind.RawScalar)]
-    float PhysicalConnectedRawMass,
-    [KernelEventFloatSlot(2, "semantic_local_raw_mass", KernelEventSemanticKind.RawScalar)]
-    float SemanticLocalRawMass,
-    [KernelEventFloatSlot(3, "semantic_connected_raw_mass", KernelEventSemanticKind.RawScalar)]
-    float SemanticConnectedRawMass,
-    [KernelEventIntSlot(16, "physical_component_id", KernelEventSemanticKind.RawScalar)]
-    int PhysicalComponentId = 0,
-    [KernelEventIntSlot(17, "physical_component_cell_count", KernelEventSemanticKind.Count)]
-    int PhysicalComponentCellCount = 0,
-    [KernelEventIntSlot(18, "semantic_component_id", KernelEventSemanticKind.RawScalar)]
-    int SemanticComponentId = 0,
-    [KernelEventIntSlot(19, "semantic_component_cell_count", KernelEventSemanticKind.Count)]
-    int SemanticComponentCellCount = 0,
-    [KernelEventFloatSlot(4, "physical_component_raw_mass", KernelEventSemanticKind.RawScalar)]
-    float PhysicalComponentRawMass = 0f,
-    [KernelEventFloatSlot(5, "semantic_component_raw_mass", KernelEventSemanticKind.RawScalar)]
-    float SemanticComponentRawMass = 0f);
+    [KernelEventLongSlot(0, "physical_local_raw_mass_units", KernelEventSemanticKind.RawScalar)]
+    long PhysicalLocalRawMassUnits,
+    [KernelEventLongSlot(1, "physical_connected_raw_mass_units", KernelEventSemanticKind.RawScalar)]
+    long PhysicalConnectedRawMassUnits,
+    [KernelEventLongSlot(2, "semantic_local_raw_mass_units", KernelEventSemanticKind.RawScalar)]
+    long SemanticLocalRawMassUnits,
+    [KernelEventLongSlot(3, "semantic_connected_raw_mass_units", KernelEventSemanticKind.RawScalar)]
+    long SemanticConnectedRawMassUnits);
 
 [KernelEventLayout(KernelEventType.GambitEvaluated, schemaMinor: 0)]
 public readonly record struct GambitEvaluatedKernelEvent(
@@ -466,7 +454,7 @@ public readonly record struct CellChangedKernelEvent(
     [KernelEventIntSlot(9, "z", KernelEventSemanticKind.Coordinate)]
     int Z);
 
-[KernelEventLayout(KernelEventType.CellInfluenceChanged, schemaMinor: 2)]
+[KernelEventLayout(KernelEventType.CellInfluenceChanged, schemaMinor: 3)]
 public readonly record struct CellInfluenceChangedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -482,12 +470,12 @@ public readonly record struct CellInfluenceChangedKernelEvent(
     int EntityId,
     [KernelEventIntSlot(5, "action_id", KernelEventSemanticKind.ActionId)]
     int ActionId,
-    [KernelEventFloatSlot(0, "previous_influence", KernelEventSemanticKind.RawScalar)]
-    float PreviousInfluence,
-    [KernelEventFloatSlot(1, "current_influence", KernelEventSemanticKind.RawScalar)]
-    float CurrentInfluence);
+    [KernelEventLongSlot(0, "previous_influence_units", KernelEventSemanticKind.RawScalar)]
+    long PreviousInfluenceUnits,
+    [KernelEventLongSlot(1, "current_influence_units", KernelEventSemanticKind.RawScalar)]
+    long CurrentInfluenceUnits);
 
-[KernelEventLayout(KernelEventType.CellCultureInfluenceChanged, schemaMinor: 1)]
+[KernelEventLayout(KernelEventType.CellCultureInfluenceChanged, schemaMinor: 3)]
 public readonly record struct CellCultureInfluenceChangedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -503,18 +491,18 @@ public readonly record struct CellCultureInfluenceChangedKernelEvent(
     int CultureId,
     [KernelEventIntSlot(5, "z", KernelEventSemanticKind.Coordinate)]
     int Z,
-    [KernelEventFloatSlot(0, "previous_share", KernelEventSemanticKind.RawScalar)]
-    float PreviousShare,
-    [KernelEventFloatSlot(1, "current_share", KernelEventSemanticKind.RawScalar)]
-    float CurrentShare,
-    [KernelEventFloatSlot(2, "previous_raw_influence", KernelEventSemanticKind.RawScalar)]
-    float PreviousRawInfluence = 0f,
-    [KernelEventFloatSlot(3, "current_raw_influence", KernelEventSemanticKind.RawScalar)]
-    float CurrentRawInfluence = 0f,
-    [KernelEventFloatSlot(4, "current_total_raw_influence", KernelEventSemanticKind.RawScalar)]
-    float CurrentTotalRawInfluence = 0f);
+    [KernelEventLongSlot(0, "previous_share_units", KernelEventSemanticKind.RawScalar)]
+    long PreviousShareUnits,
+    [KernelEventLongSlot(1, "current_share_units", KernelEventSemanticKind.RawScalar)]
+    long CurrentShareUnits,
+    [KernelEventIntSlot(6, "previous_raw_influence_units", KernelEventSemanticKind.RawScalar)]
+    int PreviousRawInfluenceUnits = 0,
+    [KernelEventIntSlot(7, "current_raw_influence_units", KernelEventSemanticKind.RawScalar)]
+    int CurrentRawInfluenceUnits = 0,
+    [KernelEventIntSlot(8, "current_total_raw_influence_units", KernelEventSemanticKind.RawScalar)]
+    int CurrentTotalRawInfluenceUnits = 0);
 
-[KernelEventLayout(KernelEventType.CultureSlotOccupancyChanged, schemaMinor: 0)]
+[KernelEventLayout(KernelEventType.CultureSlotOccupancyChanged, schemaMinor: 1)]
 public readonly record struct CultureSlotOccupancyChangedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -530,12 +518,12 @@ public readonly record struct CultureSlotOccupancyChangedKernelEvent(
     int PreviousEntityId,
     [KernelEventIntSlot(5, "current_entity_id", KernelEventSemanticKind.EntityId)]
     int CurrentEntityId,
-    [KernelEventFloatSlot(0, "previous_score", KernelEventSemanticKind.RawScalar)]
-    float PreviousScore,
-    [KernelEventFloatSlot(1, "current_score", KernelEventSemanticKind.RawScalar)]
-    float CurrentScore);
+    [KernelEventLongSlot(0, "previous_score_units", KernelEventSemanticKind.RawScalar)]
+    long PreviousScoreUnits,
+    [KernelEventLongSlot(1, "current_score_units", KernelEventSemanticKind.RawScalar)]
+    long CurrentScoreUnits);
 
-[KernelEventLayout(KernelEventType.MinorActorVerbExecuted, schemaMinor: 1)]
+[KernelEventLayout(KernelEventType.MinorActorVerbExecuted, schemaMinor: 2)]
 public readonly record struct MinorActorVerbExecutedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -569,14 +557,14 @@ public readonly record struct MinorActorVerbExecutedKernelEvent(
     int StatusCode,
     [KernelEventIntSlot(14, "cell_kind_code", KernelEventSemanticKind.RawScalar)]
     int CellKindCode,
-    [KernelEventFloatSlot(0, "local_raw_mass", KernelEventSemanticKind.RawScalar)]
-    float LocalRawMass,
-    [KernelEventFloatSlot(1, "connected_raw_mass", KernelEventSemanticKind.RawScalar)]
-    float ConnectedRawMass,
-    [KernelEventFloatSlot(2, "score", KernelEventSemanticKind.RawScalar)]
-    float Score,
-    [KernelEventFloatSlot(3, "delta", KernelEventSemanticKind.RawScalar)]
-    float Delta);
+    [KernelEventLongSlot(0, "local_raw_mass_units", KernelEventSemanticKind.RawScalar)]
+    long LocalRawMassUnits,
+    [KernelEventLongSlot(1, "connected_raw_mass_units", KernelEventSemanticKind.RawScalar)]
+    long ConnectedRawMassUnits,
+    [KernelEventLongSlot(2, "score_units", KernelEventSemanticKind.RawScalar)]
+    long ScoreUnits,
+    [KernelEventLongSlot(3, "delta_units", KernelEventSemanticKind.RawScalar)]
+    long DeltaUnits);
 
 [KernelEventLayout(KernelEventType.MapCellStateChanged, schemaMinor: 1)]
 public readonly record struct MapCellStateChangedKernelEvent(
@@ -605,8 +593,8 @@ public readonly record struct MapCellStateChangedKernelEvent(
     [KernelEventIntSlot(10, "z", KernelEventSemanticKind.Coordinate)]
     int Z);
 
-[KernelEventLayout(KernelEventType.CellRoadChanged, schemaMinor: 0)]
-public readonly record struct CellRoadChangedKernelEvent(
+[KernelEventLayout(KernelEventType.CellRoadChanged, schemaMinor: 1)]
+public readonly partial record struct CellRoadChangedKernelEvent(
     int Tick,
     long WorldVersion,
     [KernelEventIntSlot(0, "plane_code", KernelEventSemanticKind.PlaneCode)]
@@ -619,10 +607,10 @@ public readonly record struct CellRoadChangedKernelEvent(
     int SourceCodeId,
     [KernelEventIntSlot(4, "travel_count", KernelEventSemanticKind.Count)]
     int TravelCount,
-    [KernelEventFloatSlot(0, "previous_quality", KernelEventSemanticKind.RawScalar)]
-    float PreviousQuality,
-    [KernelEventFloatSlot(1, "current_quality", KernelEventSemanticKind.RawScalar)]
-    float CurrentQuality);
+    [KernelEventIntSlot(5, "previous_quality_units", KernelEventSemanticKind.RawScalar)]
+    int PreviousQualityUnits,
+    [KernelEventIntSlot(6, "current_quality_units", KernelEventSemanticKind.RawScalar)]
+    int CurrentQualityUnits);
 
 [KernelEventLayout(KernelEventType.CellTravelStructureChanged, schemaMinor: 0)]
 public readonly record struct CellTravelStructureChangedKernelEvent(
@@ -681,7 +669,7 @@ public readonly record struct KernelStorageGrownKernelEvent(
     [KernelEventIntSlot(5, "threshold_permille", KernelEventSemanticKind.Threshold)]
     int ThresholdPermille);
 
-[KernelEventLayout(KernelEventType.Trace, schemaMinor: 3)]
+[KernelEventLayout(KernelEventType.Trace, schemaMinor: 4)]
 public readonly record struct TraceKernelEvent(
     int Tick,
     long WorldVersion,
@@ -729,18 +717,18 @@ public readonly record struct TraceKernelEvent(
     int HiddenAffordanceCount,
     [KernelEventIntSlot(21, "selection_bucket_code", KernelEventSemanticKind.RawScalar)]
     int SelectionBucketCode,
-    [KernelEventFloatSlot(0, "urgency", KernelEventSemanticKind.Score)]
-    float Urgency,
-    [KernelEventFloatSlot(1, "reward_or_base_score", KernelEventSemanticKind.Score)]
-    float RewardOrBaseScore,
-    [KernelEventFloatSlot(2, "raw_weight", KernelEventSemanticKind.Score)]
-    float RawWeight,
-    [KernelEventFloatSlot(3, "adjusted_weight", KernelEventSemanticKind.Score)]
-    float AdjustedWeight,
-    [KernelEventFloatSlot(4, "affordance_score", KernelEventSemanticKind.Score)]
-    float AffordanceScore,
-    [KernelEventFloatSlot(5, "affordance_bonus", KernelEventSemanticKind.Score)]
-    float AffordanceBonus);
+    [KernelEventLongSlot(0, "urgency_units", KernelEventSemanticKind.Score)]
+    long UrgencyUnits,
+    [KernelEventLongSlot(1, "reward_or_base_score_units", KernelEventSemanticKind.Score)]
+    long RewardOrBaseScoreUnits,
+    [KernelEventLongSlot(2, "raw_weight_units", KernelEventSemanticKind.Score)]
+    long RawWeightUnits,
+    [KernelEventLongSlot(3, "adjusted_weight_units", KernelEventSemanticKind.Score)]
+    long AdjustedWeightUnits,
+    [KernelEventLongSlot(4, "affordance_score_units", KernelEventSemanticKind.Score)]
+    long AffordanceScoreUnits,
+    [KernelEventLongSlot(5, "affordance_bonus_units", KernelEventSemanticKind.Score)]
+    long AffordanceBonusUnits);
 
 public readonly partial record struct KernelEvent
 {
@@ -766,12 +754,12 @@ public readonly partial record struct KernelEvent
     private readonly int _int19;
     private readonly int _int20;
     private readonly int _int21;
-    private readonly float _float0;
-    private readonly float _float1;
-    private readonly float _float2;
-    private readonly float _float3;
-    private readonly float _float4;
-    private readonly float _float5;
+    private readonly long _long0;
+    private readonly long _long1;
+    private readonly long _long2;
+    private readonly long _long3;
+    private readonly long _long4;
+    private readonly long _long5;
 
     private KernelEvent(
         KernelEventType eventType,
@@ -802,12 +790,12 @@ public readonly partial record struct KernelEvent
         int int19 = 0,
         int int20 = 0,
         int int21 = 0,
-        float float0 = 0f,
-        float float1 = 0f,
-        float float2 = 0f,
-        float float3 = 0f,
-        float float4 = 0f,
-        float float5 = 0f)
+        long long0 = 0L,
+        long long1 = 0L,
+        long long2 = 0L,
+        long long3 = 0L,
+        long long4 = 0L,
+        long long5 = 0L)
     {
         EventType = eventType;
         Tick = tick;
@@ -837,12 +825,12 @@ public readonly partial record struct KernelEvent
         _int19 = int19;
         _int20 = int20;
         _int21 = int21;
-        _float0 = float0;
-        _float1 = float1;
-        _float2 = float2;
-        _float3 = float3;
-        _float4 = float4;
-        _float5 = float5;
+        _long0 = long0;
+        _long1 = long1;
+        _long2 = long2;
+        _long3 = long3;
+        _long4 = long4;
+        _long5 = long5;
     }
 
     public KernelEventType EventType { get; }
@@ -853,7 +841,7 @@ public readonly partial record struct KernelEvent
     public int ProvenanceInvocationId { get; }
 
     public const int IntSlotCount = 22;
-    public const int FloatSlotCount = 6;
+    public const int LongSlotCount = 6;
 
     public KernelEvent WithExecutionContext(int programId, int sourceCodeId, int provenanceInvocationId = 0)
     {
@@ -889,12 +877,12 @@ public readonly partial record struct KernelEvent
             int19: _int19,
             int20: _int20,
             int21: _int21,
-            float0: _float0,
-            float1: _float1,
-            float2: _float2,
-            float3: _float3,
-            float4: _float4,
-            float5: _float5);
+            long0: _long0,
+            long1: _long1,
+            long2: _long2,
+            long3: _long3,
+            long4: _long4,
+            long5: _long5);
     }
 
 #pragma warning disable S1541 // Direct slot dispatch is intentionally allocation-free.
@@ -926,15 +914,15 @@ public readonly partial record struct KernelEvent
     };
 #pragma warning restore S1541
 
-    public float GetFloatSlot(int slot) => slot switch
+    public long GetLongSlot(int slot) => slot switch
     {
-        0 => _float0,
-        1 => _float1,
-        2 => _float2,
-        3 => _float3,
-        4 => _float4,
-        5 => _float5,
-        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Kernel event float slots are numbered 0 through 5."),
+        0 => _long0,
+        1 => _long1,
+        2 => _long2,
+        3 => _long3,
+        4 => _long4,
+        5 => _long5,
+        _ => throw new ArgumentOutOfRangeException(nameof(slot), slot, "Kernel event long slots are numbered 0 through 5."),
     };
 }
 

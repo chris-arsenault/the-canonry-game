@@ -20,4 +20,4 @@ public sealed class CompiledPlacementTasteData
     public IReadOnlyList<CompiledPlacementTasteWeight> CultureWeights { get; init; } = [];
 }
 
-public sealed record CompiledPlacementTasteWeight(int Id, int AxisCode, float Weight);
+public sealed record CompiledPlacementTasteWeight(int Id, int AxisCode, FixedScalar Weight);

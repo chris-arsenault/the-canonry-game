@@ -63,7 +63,7 @@ internal sealed partial class MovementProgramRuntime :
     public void RegisterTravelStructureMovementProfile(
         int travelStructureId,
         int movementProfileId,
-        float movementCost) =>
+        FixedScalar movementCost) =>
         Data.RegisterTravelStructureMovementProfile(travelStructureId, movementProfileId, movementCost);
 
     public int MovementProfileFor(Simulation simulation, int entityId, int planeCode)
@@ -102,7 +102,7 @@ internal sealed partial class MovementProgramRuntime :
         }
 
         var terrainId = simulation.World.CellTerrainId(planeCode, q, r, z);
-        return simulation.KernelData.Terrain.TravelCost(terrainId, movementProfileId) > 0f;
+        return simulation.KernelData.Terrain.TravelCost(terrainId, movementProfileId) > 0;
     }
 
     public bool CanEnterProfile(Simulation simulation, int planeCode, int movementProfileId, int q, int r)
@@ -120,32 +120,32 @@ internal sealed partial class MovementProgramRuntime :
                 out _);
     }
 
-    public float PhysicalTravelCost(Simulation simulation, int entityId, int q, int r, int tick)
+    public FixedScalar PhysicalTravelCost(Simulation simulation, int entityId, int q, int r, int tick)
     {
         return TravelCost(simulation, PlaneCodes.Physical, entityId, q, r, tick);
     }
 
-    public float TravelCost(Simulation simulation, int planeCode, int entityId, int q, int r, int tick)
+    public FixedScalar TravelCost(Simulation simulation, int planeCode, int entityId, int q, int r, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         var movementProfileId = Data.MovementProfileFor(simulation.World, entityId, planeCode);
         return TravelCostProfile(simulation, planeCode, movementProfileId, q, r, tick);
     }
 
-    public float TravelCostProfile(Simulation simulation, int planeCode, int movementProfileId, int q, int r, int tick)
+    public FixedScalar TravelCostProfile(Simulation simulation, int planeCode, int movementProfileId, int q, int r, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         if (!simulation.ProgramIsEnabled(KernelProgramCodes.Movement) ||
             !simulation.World.CellIsKnown(planeCode, q, r))
         {
-            return float.PositiveInfinity;
+            return FixedScalar.PositiveInfinity;
         }
 
         return SurfaceTravelCost(simulation, planeCode, movementProfileId, q, r, tick);
     }
 
-    public float RoadQuality(int planeCode, int q, int r, int tick) =>
-        State.RoadQuality(planeCode, q, r, tick, Data.RoadDecayPerTick, Tuning.MinorActorMainTickRatio);
+    public FixedScalar RoadQuality(int planeCode, int q, int r, int tick) =>
+        State.RoadQuality(planeCode, q, r, tick, Data.RoadDecayPerTick);
 
     public int RoadTravelCount(int planeCode, int q, int r) => State.RoadTravelCount(planeCode, q, r);
 
@@ -156,13 +156,13 @@ internal sealed partial class MovementProgramRuntime :
         int planeCode,
         int q,
         int r,
-        float amount,
+        FixedScalar amount,
         int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         ValidatePlane(planeCode);
         if (!simulation.ProgramIsEnabled(KernelProgramCodes.Movement) ||
-            amount <= 0f ||
+            amount <= 0 ||
             !simulation.World.CellIsKnown(planeCode, q, r))
         {
             return false;
@@ -176,10 +176,9 @@ internal sealed partial class MovementProgramRuntime :
             r,
             tick,
             amount * simulation.KernelData.Terrain.RoadBuildMultiplier(terrainId),
-            Data.RoadDecayPerTick,
-            Tuning.MinorActorMainTickRatio);
+            Data.RoadDecayPerTick);
         var currentQuality = RoadQuality(planeCode, q, r, tick);
-        if (global::System.MathF.Abs(currentQuality - previousQuality) <= 0.0001f)
+        if (FixedScalar.Abs(currentQuality - previousQuality) <= FixedScalar.FromUnits(100L))
         {
             return false;
         }
@@ -282,7 +281,7 @@ internal sealed partial class MovementProgramRuntime :
                 planeCode,
                 q,
                 r,
-                0f,
+                0,
                 RoadQuality(planeCode, q, r, tick),
                 travelCount);
         });
@@ -339,13 +338,13 @@ internal sealed partial class MovementProgramRuntime :
         if (fromQ == targetQ && fromR == targetR)
         {
             return new MovementMoveResult(
-                false, 0f, planeCode, fromQ, fromR, fromS, fromQ, fromR, fromS, MovementCauseCodes.Travel);
+                false, 0, planeCode, fromQ, fromR, fromS, fromQ, fromR, fromS, MovementCauseCodes.Travel);
         }
 
         if (!TryPlanNextStep(simulation, entityId, planeCode, fromQ, fromR, targetQ, targetR, tick, out var nextQ, out var nextR))
         {
             return new MovementMoveResult(
-                false, float.PositiveInfinity, planeCode, fromQ, fromR, fromS, fromQ, fromR, fromS, MovementCauseCodes.Travel);
+                false, FixedScalar.PositiveInfinity, planeCode, fromQ, fromR, fromS, fromQ, fromR, fromS, MovementCauseCodes.Travel);
         }
 
         return StepUnchecked(simulation, entityId, planeCode, nextQ, nextR, tick, MovementCauseCodes.Travel);
@@ -388,7 +387,7 @@ internal sealed partial class MovementProgramRuntime :
         if (selectedDirection < 0)
         {
             return new MovementMoveResult(
-                false, 0f, planeCode, fromQ, fromR, fromS, fromQ, fromR, fromS, MovementCauseCodes.Travel);
+                false, 0, planeCode, fromQ, fromR, fromS, fromQ, fromR, fromS, MovementCauseCodes.Travel);
         }
 
         var toQ = fromQ + DirectionQ(selectedDirection);
@@ -406,7 +405,7 @@ internal sealed partial class MovementProgramRuntime :
                     toR,
                     tick,
                     roadAware: true)
-            : 1f;
+            : 1;
         return StepUnchecked(simulation, entityId, planeCode, toQ, toR, toZ, tick, MovementCauseCodes.Travel, stepCost);
     }
 
@@ -441,7 +440,7 @@ internal sealed partial class MovementProgramRuntime :
             }
 
             candidateCount++;
-            if (simulation.NextFloat() * candidateCount < 1f)
+            if (simulation.NextScalar() * candidateCount < 1)
             {
                 selectedDirection = direction;
             }
@@ -497,7 +496,7 @@ internal sealed partial class MovementProgramRuntime :
         int r,
         int tick,
         int causeCode,
-        float stepCost) =>
+        FixedScalar stepCost) =>
         StepUnchecked(
             simulation,
             entityId,
@@ -518,7 +517,7 @@ internal sealed partial class MovementProgramRuntime :
         int z,
         int tick,
         int causeCode,
-        float stepCost)
+        FixedScalar stepCost)
     {
         var world = simulation.World;
         if (causeCode == MovementCauseCodes.Travel && planeCode == PlaneCodes.Physical)
@@ -599,9 +598,9 @@ internal sealed partial class MovementProgramRuntime :
         }
     }
 
-    private const float CarrierRoadSpeedFloor = 0.5f;
-    private const float CarrierRoadQualityThreshold = 40f;
-    private float _ageStepRateMultiplier = 1f;
+    private static readonly FixedScalar CarrierRoadSpeedFloor = FixedScalar.FromUnits(500000L);
+    private static readonly FixedScalar CarrierRoadQualityThreshold = 40;
+    private FixedScalar _ageStepRateMultiplier = 1;
 
     public void SetCarrierRelationshipKindId(int relationshipKindId) =>
         Data.CarrierRelationshipKindId = relationshipKindId;
@@ -611,9 +610,9 @@ internal sealed partial class MovementProgramRuntime :
     /// each pulse (below 1 = faster, so a Thaw or Wandering quickens travel).
     /// Applied to travel step cost, so it reads as more ground per tick.
     /// </summary>
-    public void SetAgeStepRateMultiplier(float multiplier) => _ageStepRateMultiplier = multiplier;
+    public void SetAgeStepRateMultiplier(FixedScalar multiplier) => _ageStepRateMultiplier = multiplier;
 
-    public void ScaleAgeStepRateMultiplier(float multiplier) => _ageStepRateMultiplier *= multiplier;
+    public void ScaleAgeStepRateMultiplier(FixedScalar multiplier) => _ageStepRateMultiplier *= multiplier;
 
     /// <summary>
     /// The railroad made concrete: a laden carrier on a good road covers
@@ -622,25 +621,25 @@ internal sealed partial class MovementProgramRuntime :
     /// The relationship check runs only on established road, keeping the hot
     /// path cheap.
     /// </summary>
-    private float CarrierRoadSpeedFactor(Simulation simulation, int planeCode, int entityId, int q, int r, int tick, int causeCode)
+    private FixedScalar CarrierRoadSpeedFactor(Simulation simulation, int planeCode, int entityId, int q, int r, int tick, int causeCode)
     {
         if (causeCode != MovementCauseCodes.Travel || Data.CarrierRelationshipKindId <= 0)
         {
-            return 1f;
+            return 1;
         }
 
         var roadQuality = RoadQuality(planeCode, q, r, tick);
         if (roadQuality < CarrierRoadQualityThreshold ||
             !simulation.World.HasOutgoingRelationshipOfKind(entityId, Data.CarrierRelationshipKindId))
         {
-            return 1f;
+            return 1;
         }
 
-        var strength = Clamp01(roadQuality / 100f);
-        return 1f - ((1f - CarrierRoadSpeedFloor) * strength);
+        var strength = Clamp01(roadQuality / 100);
+        return 1 - ((1 - CarrierRoadSpeedFloor) * strength);
     }
 
-    private float StepCostForMove(
+    private FixedScalar StepCostForMove(
         Simulation simulation,
         int planeCode,
         int entityId,
@@ -651,7 +650,7 @@ internal sealed partial class MovementProgramRuntime :
     {
         if (causeCode != MovementCauseCodes.Travel)
         {
-            return 1f;
+            return 1;
         }
 
         var world = simulation.World;
@@ -674,7 +673,7 @@ internal sealed partial class MovementProgramRuntime :
     /// Used by travel reach so a great river or a ridge line gates reach the
     /// way it gates walking.
     /// </summary>
-    internal float DirectedTravelCost(
+    internal FixedScalar DirectedTravelCost(
         Simulation simulation,
         int planeCode,
         int entityId,
@@ -684,7 +683,13 @@ internal sealed partial class MovementProgramRuntime :
         int toR,
         int tick)
     {
-        return TravelCost(simulation, planeCode, entityId, toQ, toR, tick) *
+        var travelCost = TravelCost(simulation, planeCode, entityId, toQ, toR, tick);
+        if (FixedScalar.IsPositiveInfinity(travelCost))
+        {
+            return FixedScalar.PositiveInfinity;
+        }
+
+        return travelCost *
             DirectedEdgeFactor(
                 simulation,
                 planeCode,
@@ -705,7 +710,7 @@ internal sealed partial class MovementProgramRuntime :
     /// becomes a bridge through use. Ridge and cliff surcharges are
     /// road-immune; worldgen already folded passes to open edges.
     /// </summary>
-    private float DirectedEdgeFactor(
+    private FixedScalar DirectedEdgeFactor(
         Simulation simulation,
         int planeCode,
         int movementProfileId,
@@ -718,13 +723,13 @@ internal sealed partial class MovementProgramRuntime :
     {
         if (planeCode != PlaneCodes.Physical)
         {
-            return 1f;
+            return 1;
         }
 
         var direction = DirectionBetween(toQ - fromQ, toR - fromR);
         if (direction < 0)
         {
-            return 1f;
+            return 1;
         }
 
         var crossingClass = PhysicalCrossingCodes.ClassAt(
@@ -732,16 +737,16 @@ internal sealed partial class MovementProgramRuntime :
             direction);
         if (crossingClass == PhysicalCrossingCodes.Open)
         {
-            return 1f;
+            return 1;
         }
 
         var factor = simulation.KernelData.Terrain.CrossingFactor(crossingClass, movementProfileId);
         if (roadAware && simulation.KernelData.Terrain.CrossingRoadNegated(crossingClass))
         {
-            var roadQuality = global::System.MathF.Max(
+            var roadQuality = FixedScalar.Max(
                 RoadQuality(planeCode, fromQ, fromR, tick),
                 RoadQuality(planeCode, toQ, toR, tick));
-            factor = 1f + ((factor - 1f) * (1f - Clamp01(roadQuality / 100f)));
+            factor = 1 + ((factor - 1) * (1 - Clamp01(roadQuality / 100)));
         }
 
         return factor;
@@ -760,7 +765,7 @@ internal sealed partial class MovementProgramRuntime :
         return -1;
     }
 
-    private float BaseTravelCost(
+    private FixedScalar BaseTravelCost(
         Simulation simulation,
         int planeCode,
         int entityId,
@@ -778,7 +783,7 @@ internal sealed partial class MovementProgramRuntime :
         int q,
         int r,
         int z,
-        float stepCost,
+        FixedScalar stepCost,
         int causeCode)
     {
         if (!simulation.ProgramIsEnabled(KernelProgramCodes.Movement))
@@ -791,8 +796,8 @@ internal sealed partial class MovementProgramRuntime :
             return true;
         }
 
-        return !float.IsInfinity(stepCost) &&
-            stepCost > 0f &&
+        return !FixedScalar.IsInfinity(stepCost) &&
+            stepCost > 0 &&
             CanEnter(simulation, planeCode, entityId, q, r, z);
     }
 
@@ -815,8 +820,7 @@ internal sealed partial class MovementProgramRuntime :
             r,
             tick,
             Data.RoadBuildPerTravel * simulation.KernelData.Terrain.RoadBuildMultiplier(terrainId) * roadWork,
-            Data.RoadDecayPerTick,
-            Tuning.MinorActorMainTickRatio);
+            Data.RoadDecayPerTick);
         var currentQuality = RoadQuality(planeCode, q, r, tick);
         simulation.EmitCellRoadChanged(
             tick,
@@ -828,7 +832,7 @@ internal sealed partial class MovementProgramRuntime :
             RoadTravelCount(planeCode, q, r));
     }
 
-    private float SurfaceTravelCost(
+    private FixedScalar SurfaceTravelCost(
         Simulation simulation,
         int planeCode,
         int movementProfileId,
@@ -846,15 +850,15 @@ internal sealed partial class MovementProgramRuntime :
                 out var baseCost,
                 out var terrainId))
         {
-            return float.PositiveInfinity;
+            return FixedScalar.PositiveInfinity;
         }
 
-        var normalizedRoadQuality = Clamp01(RoadQuality(planeCode, q, r, tick) / 100f);
-        var roadSpeed = 1f + ((simulation.KernelData.Terrain.RoadSpeedMultiplier(terrainId) - 1f) * normalizedRoadQuality);
+        var normalizedRoadQuality = Clamp01(RoadQuality(planeCode, q, r, tick) / 100);
+        var roadSpeed = 1 + ((simulation.KernelData.Terrain.RoadSpeedMultiplier(terrainId) - 1) * normalizedRoadQuality);
         return baseCost / roadSpeed;
     }
 
-    private float SurfaceBaseTravelCost(
+    private FixedScalar SurfaceBaseTravelCost(
         Simulation simulation,
         int planeCode,
         int movementProfileId,
@@ -871,7 +875,7 @@ internal sealed partial class MovementProgramRuntime :
             out var baseCost,
             out _)
             ? baseCost
-            : 0f;
+            : 0;
     }
 
     private bool TrySurfaceBaseTravelCost(
@@ -881,10 +885,10 @@ internal sealed partial class MovementProgramRuntime :
         int movementProfileId,
         int q,
         int r,
-        out float baseCost,
+        out FixedScalar baseCost,
         out int terrainId)
     {
-        baseCost = 0f;
+        baseCost = 0;
         terrainId = 0;
         if (!world.CellIsKnown(planeCode, q, r))
         {
@@ -893,13 +897,13 @@ internal sealed partial class MovementProgramRuntime :
 
         terrainId = world.CellTerrainId(planeCode, q, r);
         var terrainCost = simulation.KernelData.Terrain.TravelCost(terrainId, movementProfileId);
-        if (terrainCost > 0f && planeCode == PlaneCodes.Physical && Data.RoughnessCostWeight > 0f)
+        if (terrainCost > 0 && planeCode == PlaneCodes.Physical && Data.RoughnessCostWeight > 0)
         {
             // Broken ground within a terrain is slower than smooth ground
             // of the same terrain - the hex's real roughness fact, not a
             // second terrain table.
-            terrainCost *= 1f + (Data.RoughnessCostWeight *
-                world.PhysicalHexFact(q, r, PhysicalHexFactCodes.Roughness) / 255f);
+            terrainCost *= 1 + (Data.RoughnessCostWeight *
+                world.PhysicalHexFact(q, r, PhysicalHexFactCodes.Roughness) / 255);
         }
 
         var structureCost = Data.TravelStructureCost(
@@ -907,29 +911,29 @@ internal sealed partial class MovementProgramRuntime :
             planeCode,
             movementProfileId);
         baseCost = SelectSurfaceBaseCost(terrainCost, structureCost);
-        return baseCost > 0f;
+        return baseCost > 0;
     }
 
-    private static float SelectSurfaceBaseCost(float terrainCost, float structureCost)
+    private static FixedScalar SelectSurfaceBaseCost(FixedScalar terrainCost, FixedScalar structureCost)
     {
-        if (terrainCost <= 0f)
+        if (terrainCost <= 0)
         {
-            return structureCost > 0f ? structureCost : 0f;
+            return structureCost > 0 ? structureCost : 0;
         }
 
-        return structureCost > 0f && structureCost < terrainCost
+        return structureCost > 0 && structureCost < terrainCost
             ? structureCost
             : terrainCost;
     }
 
-    private static float Clamp01(float value)
+    private static FixedScalar Clamp01(FixedScalar value)
     {
-        if (value < 0f)
+        if (value < 0)
         {
-            return 0f;
+            return 0;
         }
 
-        return value > 1f ? 1f : value;
+        return value > 1 ? 1 : value;
     }
 
     private static int CurrentQ(WorldState world, int entityId, int planeCode) =>

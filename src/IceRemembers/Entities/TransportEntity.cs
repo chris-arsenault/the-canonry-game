@@ -42,8 +42,8 @@ internal static class TransportEntity
                 TraitMapDelta(K.Transport, Attr.Integrity, Effect.MapThreatAtLocation, -0.035f, 3f, PrimaryPlane.Physical),
                 TraitMapDelta(K.Transport, Attr.Integrity, Effect.MapCrowdingLoad, -0.025f, 0.5f, PrimaryPlane.Physical)),
         ],
-        MapSignal = MapSignal(radius: 2, capacity: 0.5f, support: 0.6f, threat: 0.4f,
-            baseMass: 8f, coverageScale: 0f, influenceScale: 0.05f, activityScale: 0.06f,
+        Locality = Locality(radius: 2, capacity: 0.5f, support: 0.6f, threat: 0.4f,
+            baseMass: 8f, coverageScale: 0f, influenceScale: 0.05f,
             healthScale: 0.06f, attractorRadius: 2),
         MovementProfiles = MovementProfiles(
             physicalDefault: Profile.Wake,

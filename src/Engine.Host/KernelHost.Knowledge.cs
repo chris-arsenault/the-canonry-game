@@ -91,7 +91,7 @@ public sealed partial class KernelHost
                 knowledge.Modifier(
                     cultureId,
                     DomainStartupSeedInstaller.KnowledgeGrantDomainCode(entry.Key.Domain),
-                    entry.Key.TargetId));
+                    entry.Key.TargetId).ToSingle());
         }
 
         return new KnowledgeCultureSnapshot(

@@ -1,5 +1,7 @@
 namespace Engine.Kernel;
 
+using Engine.Constants;
+
 internal sealed partial class WorldState
 {
     internal int EntityCultureAnchorQ(int entityId, int planeCode)
@@ -28,21 +30,21 @@ internal sealed partial class WorldState
         _entityAnchorSemanticR[entityId] = _entitySemanticR[anchorEntityId];
     }
 
-    internal void SetEntityFavor(int entityId, float multiplierDelta, int expiresAtTick)
+    internal void SetEntityFavor(int entityId, FixedScalar multiplierDelta, int expiresAtTick)
     {
         EnsureEntity(entityId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(multiplierDelta);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(expiresAtTick);
-        _entityFavorMultiplierDelta[entityId] = multiplierDelta;
+        NumericGuard.ThrowIfNegative(multiplierDelta);
+        NumericGuard.ThrowIfNegative(expiresAtTick);
+        _entityFavorMultiplierDelta[entityId] = KernelFixedPoint.ModifierUnits(multiplierDelta);
         _entityFavorExpiresAtTick[entityId] = expiresAtTick;
         AdvanceWorldVersion();
     }
 
-    internal float EntityFavorMultiplierDelta(int entityId)
+    internal FixedScalar EntityFavorMultiplierDelta(int entityId)
     {
         EnsureEntity(entityId);
         return CurrentTick < _entityFavorExpiresAtTick[entityId]
-            ? _entityFavorMultiplierDelta[entityId]
-            : 0f;
+            ? KernelFixedPoint.ModifierScalar(_entityFavorMultiplierDelta[entityId])
+            : 0;
     }
 }

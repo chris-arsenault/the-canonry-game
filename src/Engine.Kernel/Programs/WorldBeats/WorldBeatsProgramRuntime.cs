@@ -12,17 +12,14 @@ using Engine.Constants;
 /// </summary>
 internal sealed partial class WorldBeatsProgramRuntime : IKernelProgramRuntime<WorldBeatsProgramData, WorldBeatsProgramState>
 {
-    private readonly int[] _livingByRelationshipKind;
-    private readonly int[] _culledByRelationshipKind;
-
     public WorldBeatsProgramRuntime(SimulationOptions options)
     {
         global::System.ArgumentNullException.ThrowIfNull(options);
         Data = new WorldBeatsProgramData();
         Data.Allocate(options.WorldBeatAgeCapacity, options.WorldBeatItemCapacity);
-        State = new WorldBeatsProgramState(options.WorldBeatAgeCapacity);
-        _livingByRelationshipKind = new int[options.RelationshipKindIdCapacity + 1];
-        _culledByRelationshipKind = new int[options.RelationshipKindIdCapacity + 1];
+        State = new WorldBeatsProgramState(
+            options.WorldBeatAgeCapacity,
+            options.RelationshipKindIdCapacity);
     }
 
     public WorldBeatsProgramData Data { get; }
@@ -32,13 +29,13 @@ internal sealed partial class WorldBeatsProgramRuntime : IKernelProgramRuntime<W
     public int AddAge(int ageId, int trackCode, int priority, int minOpenTicks, int cooldownTicks) =>
         Data.AddAge(ageId, trackCode, priority, minOpenTicks, cooldownTicks);
 
-    public void AddOpenCondition(int ageSlot, int factCode, int comparatorCode, float value, int paramId) =>
+    public void AddOpenCondition(int ageSlot, int factCode, int comparatorCode, FixedScalar value, int paramId) =>
         Data.AddOpenCondition(ageSlot, factCode, comparatorCode, value, paramId);
 
-    public void AddCloseCondition(int ageSlot, int factCode, int comparatorCode, float value, int paramId) =>
+    public void AddCloseCondition(int ageSlot, int factCode, int comparatorCode, FixedScalar value, int paramId) =>
         Data.AddCloseCondition(ageSlot, factCode, comparatorCode, value, paramId);
 
-    public void AddCharge(int ageSlot, int domainCode, int targetId, float multiplier) =>
+    public void AddCharge(int ageSlot, int domainCode, int targetId, FixedScalar multiplier) =>
         Data.AddCharge(ageSlot, domainCode, targetId, multiplier);
 
     public int OpenAgeSlot(int trackCode) => State.OpenAgeSlots[trackCode];
@@ -50,6 +47,29 @@ internal sealed partial class WorldBeatsProgramRuntime : IKernelProgramRuntime<W
     }
 
     public int OpenedTick(int trackCode) => State.OpenedTicks[trackCode];
+
+    internal void NoteRelationshipCreated(int relationshipKindId)
+    {
+        if ((uint)relationshipKindId < (uint)State.ActiveRelationshipCountsByKind.Length)
+        {
+            State.ActiveRelationshipCountsByKind[relationshipKindId]++;
+        }
+    }
+
+    internal void NoteRelationshipEnded(int relationshipKindId)
+    {
+        if ((uint)relationshipKindId >= (uint)State.ActiveRelationshipCountsByKind.Length)
+        {
+            return;
+        }
+
+        if (State.ActiveRelationshipCountsByKind[relationshipKindId] > 0)
+        {
+            State.ActiveRelationshipCountsByKind[relationshipKindId]--;
+        }
+
+        State.EndedRelationshipCountsByKind[relationshipKindId]++;
+    }
 
     public void Tick(Simulation simulation, int tick)
     {
@@ -67,55 +87,15 @@ internal sealed partial class WorldBeatsProgramRuntime : IKernelProgramRuntime<W
 
     private void SampleFacts(Simulation simulation, int tick)
     {
-        var world = simulation.World;
-        for (var kind = 0; kind < _livingByRelationshipKind.Length; kind++)
-        {
-            _livingByRelationshipKind[kind] = 0;
-            _culledByRelationshipKind[kind] = 0;
-        }
-
-        for (var relationshipId = 1; relationshipId <= world.RelationshipHighWatermark; relationshipId++)
-        {
-            var kindId = world.RelationshipKindId(relationshipId);
-            if (kindId <= 0 || kindId >= _livingByRelationshipKind.Length)
-            {
-                continue;
-            }
-
-            if (world.RelationshipIsActive(relationshipId))
-            {
-                _livingByRelationshipKind[kindId]++;
-            }
-            else
-            {
-                _culledByRelationshipKind[kindId]++;
-            }
-        }
-
-        var mass = TotalCultureRawMass(world);
-        if (State.PreviousMassSampleTick >= 0 && State.PreviousTotalCultureMass > 0f)
+        var mass = simulation.World.TotalPhysicalCultureRawMass;
+        if (State.PreviousMassSampleTick >= 0 && State.PreviousTotalCultureMass > 0)
         {
             State.MassGrowthPermille =
-                1000f * (mass - State.PreviousTotalCultureMass) / State.PreviousTotalCultureMass;
+                1000 * (mass - State.PreviousTotalCultureMass) / State.PreviousTotalCultureMass;
         }
 
         State.PreviousTotalCultureMass = mass;
         State.PreviousMassSampleTick = tick;
-    }
-
-    private static float TotalCultureRawMass(WorldState world)
-    {
-        var total = 0f;
-        for (var cultureId = 1; cultureId <= world.CultureHighWatermark; cultureId++)
-        {
-            var cursor = world.RawCultureInfluenceCellsOf(cultureId, PlaneCodes.Physical);
-            while (world.MoveNextRawCultureInfluenceCell(ref cursor, out _, out _, out _, out var raw))
-            {
-                total += raw;
-            }
-        }
-
-        return total;
     }
 
     private void CloseEligibleAges(Simulation simulation, int tick)
@@ -232,7 +212,7 @@ internal sealed partial class WorldBeatsProgramRuntime : IKernelProgramRuntime<W
             : value < threshold;
     }
 
-    private float FactValue(Simulation simulation, int factCode, int paramId, int tick)
+    private FixedScalar FactValue(Simulation simulation, int factCode, int paramId, int tick)
     {
         return factCode switch
         {
@@ -243,17 +223,17 @@ internal sealed partial class WorldBeatsProgramRuntime : IKernelProgramRuntime<W
             WorldBeatFactCodes.TotalCultureRawMass => State.PreviousTotalCultureMass,
             WorldBeatFactCodes.CultureMassGrowthPermille => State.MassGrowthPermille,
             WorldBeatFactCodes.LegendaryResolutions => simulation.Chronicles.LegendaryResolutionCount,
-            _ => 0f,
+            _ => 0,
         };
     }
 
     private int LivingRelationships(int relationshipKindId) =>
-        relationshipKindId > 0 && relationshipKindId < _livingByRelationshipKind.Length
-            ? _livingByRelationshipKind[relationshipKindId]
+        relationshipKindId > 0 && relationshipKindId < State.ActiveRelationshipCountsByKind.Length
+            ? State.ActiveRelationshipCountsByKind[relationshipKindId]
             : 0;
 
     private int CulledRelationships(int relationshipKindId) =>
-        relationshipKindId > 0 && relationshipKindId < _culledByRelationshipKind.Length
-            ? _culledByRelationshipKind[relationshipKindId]
+        relationshipKindId > 0 && relationshipKindId < State.EndedRelationshipCountsByKind.Length
+            ? State.EndedRelationshipCountsByKind[relationshipKindId]
             : 0;
 }

@@ -651,10 +651,7 @@ public partial class HexTooltipPanel : PanelContainer
             $"Culture {influence.CultureId}");
         var kind = CultureCellKindName(influence.CellKindCode);
         var band = CultureStrengthBandName(influence.StrengthBandCode);
-        var component = influence.ComponentId > 0
-            ? $" c{influence.ComponentId}/{influence.ComponentCellCount}"
-            : string.Empty;
-        return $"{cultureName} {influence.Share:0}% raw {influence.RawMass:0} {kind}/{band}{component}";
+        return $"{cultureName} {influence.Share:0}% raw {influence.RawMass:0} {kind}/{band}";
     }
 
     private string FormatRunnerUpCulture(HexProjection cell)

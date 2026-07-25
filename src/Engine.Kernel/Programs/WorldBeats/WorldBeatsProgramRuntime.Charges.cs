@@ -17,9 +17,9 @@ internal sealed partial class WorldBeatsProgramRuntime
         simulation.Generators.ResetAgePulseWeightMultipliers();
         simulation.Gambits.ResetAgeScoreMultipliers();
         simulation.Gambits.ResetAgeSuccessMultipliers();
-        simulation.CultureFieldDecay.SetContestTide(1f);
-        simulation.CultureFieldDecay.SetGlobalTide(1f);
-        simulation.Movement.SetAgeStepRateMultiplier(1f);
+        simulation.CultureFieldDecay.SetContestTide(1);
+        simulation.CultureFieldDecay.SetGlobalTide(1);
+        simulation.Movement.SetAgeStepRateMultiplier(1);
 
         for (var track = 0; track < WorldBeatTrackCodes.Count; track++)
         {

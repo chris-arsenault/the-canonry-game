@@ -1,5 +1,6 @@
 namespace Engine.Host;
 
+using Engine.Constants;
 using Engine.Domain;
 using Engine.Kernel;
 
@@ -73,7 +74,7 @@ internal sealed class KernelStartupContext
         int entityId,
         int attributeId,
         float value) =>
-        _kernel.SeedAttribute(entityId, attributeId, value);
+        _kernel.SeedAttribute(entityId, attributeId, FixedScalar.FromSingle(value));
 
     public void SeedRelationship(
         int relationshipKindId,
@@ -86,5 +87,5 @@ internal sealed class KernelStartupContext
             polarityCode,
             sourceEntityId,
             targetEntityId,
-            strength);
+            FixedScalar.FromSingle(strength));
 }

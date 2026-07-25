@@ -1,0 +1,110 @@
+# Display / Projection Architecture: Discussion Summary
+
+## Constraint That Drives Everything
+
+The kernel is a **hard, programmatically enforced boundary**. This is an AI-development safety requirement: without mechanical enforcement, agents repeatedly couple the UI into the kernel. Convention is not sufficient — the compiler must make the violation impossible.
+
+Enforcement shape:
+
+- `Engine.Kernel` references no projection, UI, or store assembly. One-way dependency, compiler-enforced.
+- The projection layer **also** does not reference `Engine.Kernel`. It references a separate contract assembly of plain data records — no behavior, no kernel types. If projection could see the kernel, an agent would reach through it.
+- What crosses the boundary is a **stream of POD records**, not object references. Not `WorldState`, not `MapLayerSet`, not a snapshot object with methods. The renderer never touches kernel memory because it has no way to name it.
+
+Consequence: the kernel **emits**; it never exposes. Pointer-swap snapshot publishing — which would otherwise be the natural design — is disqualified, because the reference itself becomes a coupling surface.
+
+*Open item:* verify current `KernelEventLog` consumers are already on the correct side. If the `KernelEvent` type is shared between kernel and consumers, that shared type is the coupling surface and the contract assembly needs to be genuinely third-party to both. Answerable by reading project references.
+
+## Current Problem
+
+Single write head, multiple read heads, event stream bottlenecking UI rendering. Two candidate diagnoses with different fixes:
+
+1. **Write-side contention** — writer serialized on `TryWrite`, consumers slowing the writer. With one writer thread today there is no contention to relieve, so this is unlikely to be the current UI problem, though it is a parallelization blocker.
+2. **Read-side amplification** — each consumer scans the full stream and filters, so N read heads cost N full passes.
+
+(2) is the likely diagnosis. Distinguishing them matters: a datastore fixes (2) decisively and does nothing for (1).
+
+Also worth separating: is the bottleneck **throughput** (can't keep up with the stream) or **latency** (query too slow when the user acts)? Materialized views fix the first; the second may be a missing index.
+
+## Three Consumer Classes
+
+The UI decomposes into three genuinely different mechanics:
+
+**Per-tick map.** Not an event consumer. Snapshot-shaped — terrain cover, culture aggregate, occupancy, heat. If it currently reconstructs map state by replaying events, that is the bottleneck and no store fixes it as well as emitting layers directly. Under sharding, per-shard slabs composited by the renderer; skew below display interval is invisible.
+
+**Cadence overlays.** Snapshot-shaped, each at its own rate. Materialized views maintained by ingest, refreshed when a batch crosses that view's cadence. An overlay refreshing every 25 ticks costs 1/25 of one refreshing per tick.
+
+**On-open screens.** The only class that genuinely wants queries — unknown-at-build-time predicates, opened rarely, tolerant of tens of milliseconds. Do not materialize these. Query on open, subscribe to deltas while open, unsubscribe on close.
+
+This yields a **view registration model**: views are either always-on (map, overlays) or dynamically registered on screen open. Ingest maintains only what is registered, so cost scales with what the user is actually looking at.
+
+Cross-cutting distinction: **state views** (map, panels — snapshot-shaped, refreshed on cadence) versus **narrative views** (chronicle, deaths, gambit outcomes — event-shaped, must not drop entries under fast-forward). Different retention rules. At high tick rates the narrative log is the only place skipped ticks remain visible.
+
+## Emission Model
+
+Since the map cannot be read directly, map state is emitted as records. Options:
+
+- **Deltas only** — cells changed this tick. Sparse in most ticks; ingest maintains the full layer.
+- **Keyframe plus delta** — periodic full layer emission, deltas between. Standard codec shape; bounds reconstruction cost, provides resync points, and doubles as historical checkpoints.
+- **Display-cadence emission only** — if the map view refreshes at UI rate rather than per tick, no per-tick emission is needed.
+
+Keyframe-plus-delta is likely correct. *Open item:* confirm whether the map requirement is genuinely per-tick or actually per-frame.
+
+## Store Architecture
+
+```
+shard writers → per-shard append-only buffers (SPSC each; MP capture for free)
+                    ↓
+              ingest thread(s) — batch by watermark
+                    ↓
+              columnar in-memory store (recent window)
+                    ↓
+              archive tier (disk) — historical, ad-hoc
+```
+
+**Multi-producer capture falls out free** under sharding: N independent single-producer logs, merged by consumers on `(tick, shardId, localSeq)`. No shared cursor, no hot-path atomics, no MP queue needed.
+
+**Batch by watermark.** Accumulate until all shards have published tick T, insert, advance the store's visible watermark atomically. Per-event inserts into any columnar store will be slower than the log being replaced. This also yields a store that is always at a consistent tick.
+
+**On DuckDB specifically:** reasonable for analysis, wrong for the hot path. It is an OLAP engine — columnar, vectorized, tuned for scans over large batches, with parser/planner/optimizer overhead you would not use when running the same few parameterized queries repeatedly. For the render path prefer Arrow-backed columnar buffers with hand-written access, or per-view ring buffers maintained by ingest. Keep DuckDB **alongside, not inside** — pointed at persisted logs or Arrow buffers for ad-hoc analysis, Monte Carlo comparison, and post-run investigation.
+
+Dividing line: known and few queries → maintain views. Ad-hoc and exploratory → query engine. Most game UIs are the former, most analysis the latter; you likely want both on separate paths.
+
+## Purge and Tiering
+
+Requirement: kernel purges history; UI still queries it. This **inverts ownership** — the store becomes the durable record and the kernel becomes the ephemeral part. That is the right direction: the kernel's job is advancing the simulation, and retaining history costs it memory, provenance growth, and cache pressure.
+
+Two invariants:
+
+- **Durability before purge.** Ingest publishes a durable watermark; the kernel purges only below it. If ingest stalls, the kernel accumulates rather than losing data. Backpressure only when the gap exceeds a bound.
+- **Purge is a first-class kernel operation**, same tier as `ConvergeAt`, with retention policy per data class.
+
+**The classification that decides everything:** for each retained structure, *does the simulation read it, or only observers?* Simulation-read state (contact memory, cooldowns) stays in-kernel with its own lifetime. Observer-only state moves to the store and drops from the kernel once durable. Provenance is the likely large win — appended on every mutation, plausibly read by nothing in the tick loop. This is answerable by reading code rather than profiling, which makes it cheap, and it determines whether the ingest layer is worth building at all.
+
+**Tiering** follows: a hot recent window in memory serving overlays and open screens, and a disk archive below it. The tier boundary sits *later* than the purge watermark — data lives hot well after the kernel drops it, then ages out. Queries spanning both tiers do two queries and merge. Monte Carlo comparison across runs becomes queries over multiple archives, using the same infrastructure with no render path involved.
+
+## Event Schema Implications
+
+If the store is authoritative for history, events must carry enough to reconstruct any view later wanted. Two failure modes, both cheap to prevent up front and expensive to discover when someone opens a screen on a late-game tick:
+
+- **Dangling references** — events cite IDs whose meaning lived in purged kernel tables. Fix: denormalize at ingest, or emit entity metadata alongside.
+- **Reconstruction cost** — events too fine-grained, so historical queries replay millions of deltas. Fix: periodic state checkpoints in the store (which the keyframe emission already provides).
+
+## Control-Plane Hole
+
+The kernel must *receive* the durable watermark to know what it can drop, and must accept convergence requests. This is a deliberate, narrow inbound channel — control-plane, not data-plane.
+
+Keep it a **closed set of inbound message types**: `DurableWatermark(tick)`, convergence requests, nothing else. Closed is the operative property — an agent adding a case to a sealed union produces a visible diff in a way that adding a method to an interface does not. The moment it grows `GetEntityState(id)`, the boundary is gone.
+
+## Relationship to Parallelization Work
+
+This subsystem is **largely independent of the parallelization track choice**. Ingest, views, tiering, and purge work identically whether the kernel has one writer or N shards — the only difference is whether ingest drains one buffer or several. Under sharding the boundary gets *cheaper*, not more expensive: no shared snapshot object, no cross-boundary pointer lifetime, no ownership question.
+
+It is also independently valuable: it fixes the current UI bottleneck, reduces kernel memory pressure, and enables long runs regardless of whether tick rate ever improves. Given the prior agent-stall problem, it has the useful shape of a self-contained subsystem with a clear boundary, no kernel contract break beyond the purge handshake, and a visible payoff.
+
+## Open Items, Ordered by Cheapness
+
+1. **Simulation-read vs. observer-only classification** of retained structures — read code, determines purge viability.
+2. **Project reference audit** — is the event type shared between kernel and consumers? Determines whether the boundary is a refactor or an existing property to defend.
+3. **Map update requirement** — genuinely per-tick, or per-frame?
+4. **Consumer utilization** — what fraction of events does each UI consumer keep? High filtering ratio justifies views; low ratio means the fix is emitting fewer or coarser events.
+5. **Bottleneck character** — throughput or latency?

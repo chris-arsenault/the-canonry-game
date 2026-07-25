@@ -42,6 +42,31 @@ internal sealed partial class WorldState
         _firstEntityByKind[kindId] = entityId;
     }
 
+    private void RemoveEntityKindIndex(int entityId, int kindId)
+    {
+        EnsureKindIndex(kindId);
+        var current = _firstEntityByKind[kindId];
+        if (current == entityId)
+        {
+            _firstEntityByKind[kindId] = _nextEntityByKind[entityId];
+            _nextEntityByKind[entityId] = 0;
+            return;
+        }
+
+        while (current > 0)
+        {
+            var next = _nextEntityByKind[current];
+            if (next == entityId)
+            {
+                _nextEntityByKind[current] = _nextEntityByKind[entityId];
+                _nextEntityByKind[entityId] = 0;
+                return;
+            }
+
+            current = next;
+        }
+    }
+
     private void InsertEntityCultureIndex(int entityId, int cultureId)
     {
         EnsureCultureIndex(cultureId);
@@ -72,6 +97,215 @@ internal sealed partial class WorldState
 
             current = next;
         }
+    }
+
+    private void InsertActiveEntity(int entityId)
+    {
+        _previousActiveEntity[entityId] = _lastActiveEntity;
+        _nextActiveEntity[entityId] = 0;
+        if (_lastActiveEntity > 0)
+        {
+            _nextActiveEntity[_lastActiveEntity] = entityId;
+        }
+        else
+        {
+            _firstActiveEntity = entityId;
+        }
+
+        _lastActiveEntity = entityId;
+        _activeEntityCount++;
+    }
+
+    private void RemoveActiveEntity(int entityId)
+    {
+        var previous = _previousActiveEntity[entityId];
+        var next = _nextActiveEntity[entityId];
+        if (previous > 0)
+        {
+            _nextActiveEntity[previous] = next;
+        }
+        else
+        {
+            _firstActiveEntity = next;
+        }
+
+        if (next > 0)
+        {
+            _previousActiveEntity[next] = previous;
+        }
+        else
+        {
+            _lastActiveEntity = previous;
+        }
+
+        _previousActiveEntity[entityId] = 0;
+        _nextActiveEntity[entityId] = 0;
+        _activeEntityCount--;
+    }
+
+    private void InsertActiveRelationship(int relationshipId)
+    {
+        _previousActiveRelationship[relationshipId] = _lastActiveRelationship;
+        _nextActiveRelationship[relationshipId] = 0;
+        if (_lastActiveRelationship > 0)
+        {
+            _nextActiveRelationship[_lastActiveRelationship] = relationshipId;
+        }
+        else
+        {
+            _firstActiveRelationship = relationshipId;
+        }
+
+        _lastActiveRelationship = relationshipId;
+        _activeRelationshipCount++;
+    }
+
+    private void RemoveActiveRelationship(int relationshipId)
+    {
+        var previous = _previousActiveRelationship[relationshipId];
+        var next = _nextActiveRelationship[relationshipId];
+        if (previous > 0)
+        {
+            _nextActiveRelationship[previous] = next;
+        }
+        else
+        {
+            _firstActiveRelationship = next;
+        }
+
+        if (next > 0)
+        {
+            _previousActiveRelationship[next] = previous;
+        }
+        else
+        {
+            _lastActiveRelationship = previous;
+        }
+
+        _previousActiveRelationship[relationshipId] = 0;
+        _nextActiveRelationship[relationshipId] = 0;
+        _activeRelationshipCount--;
+    }
+
+    private void InsertIncidentRelationship(int relationshipId)
+    {
+        var sourceEntityId = _relationshipSourceId[relationshipId];
+        var targetEntityId = _relationshipTargetId[relationshipId];
+        InsertIncidentEndpoint(sourceEntityId, relationshipId);
+        if (targetEntityId != sourceEntityId)
+        {
+            InsertIncidentEndpoint(targetEntityId, relationshipId);
+        }
+    }
+
+    private void InsertIncidentEndpoint(int entityId, int relationshipId)
+    {
+        var current = _firstIncidentRelationship[entityId];
+        SetIncidentPrevious(entityId, relationshipId, 0);
+        SetIncidentNext(entityId, relationshipId, current);
+        if (current > 0)
+        {
+            SetIncidentPrevious(entityId, current, relationshipId);
+        }
+
+        _firstIncidentRelationship[entityId] = relationshipId;
+    }
+
+    private void RemoveIncidentRelationship(int relationshipId)
+    {
+        var sourceEntityId = _relationshipSourceId[relationshipId];
+        var targetEntityId = _relationshipTargetId[relationshipId];
+        RemoveIncidentEndpoint(sourceEntityId, relationshipId);
+        if (targetEntityId != sourceEntityId)
+        {
+            RemoveIncidentEndpoint(targetEntityId, relationshipId);
+        }
+    }
+
+    private void RemoveIncidentEndpoint(int entityId, int relationshipId)
+    {
+        var previous = IncidentPrevious(entityId, relationshipId);
+        var next = IncidentNext(entityId, relationshipId);
+        if (previous > 0)
+        {
+            SetIncidentNext(entityId, previous, next);
+        }
+        else
+        {
+            _firstIncidentRelationship[entityId] = next;
+        }
+
+        if (next > 0)
+        {
+            SetIncidentPrevious(entityId, next, previous);
+        }
+
+        SetIncidentPrevious(entityId, relationshipId, 0);
+        SetIncidentNext(entityId, relationshipId, 0);
+    }
+
+    private int IncidentNext(int entityId, int relationshipId)
+    {
+        if (_relationshipSourceId[relationshipId] == entityId)
+        {
+            return _nextIncidentRelationshipFromSource[relationshipId];
+        }
+
+        if (_relationshipTargetId[relationshipId] == entityId)
+        {
+            return _nextIncidentRelationshipFromTarget[relationshipId];
+        }
+
+        throw new global::System.InvalidOperationException();
+    }
+
+    private int IncidentPrevious(int entityId, int relationshipId)
+    {
+        if (_relationshipSourceId[relationshipId] == entityId)
+        {
+            return _previousIncidentRelationshipFromSource[relationshipId];
+        }
+
+        if (_relationshipTargetId[relationshipId] == entityId)
+        {
+            return _previousIncidentRelationshipFromTarget[relationshipId];
+        }
+
+        throw new global::System.InvalidOperationException();
+    }
+
+    private void SetIncidentNext(int entityId, int relationshipId, int nextRelationshipId)
+    {
+        if (_relationshipSourceId[relationshipId] == entityId)
+        {
+            _nextIncidentRelationshipFromSource[relationshipId] = nextRelationshipId;
+            return;
+        }
+
+        if (_relationshipTargetId[relationshipId] == entityId)
+        {
+            _nextIncidentRelationshipFromTarget[relationshipId] = nextRelationshipId;
+            return;
+        }
+
+        throw new global::System.InvalidOperationException();
+    }
+
+    private void SetIncidentPrevious(int entityId, int relationshipId, int previousRelationshipId)
+    {
+        if (_relationshipSourceId[relationshipId] == entityId)
+        {
+            _previousIncidentRelationshipFromSource[relationshipId] = previousRelationshipId;
+            return;
+        }
+
+        if (_relationshipTargetId[relationshipId] == entityId)
+        {
+            _previousIncidentRelationshipFromTarget[relationshipId] = previousRelationshipId;
+            return;
+        }
+
+        throw new global::System.InvalidOperationException();
     }
 
     private void InsertPhysicalOccupant(int entityId, int q, int r) =>
@@ -144,7 +378,7 @@ internal sealed partial class WorldState
     private int TraverseRelationshipsOfKind<TVisitor>(
         int startEntityId,
         int kindId,
-        float minimumStrength,
+        FixedScalar minimumStrength,
         int maxDepth,
         int directionCode,
         ref TVisitor visitor)
@@ -153,7 +387,7 @@ internal sealed partial class WorldState
         EnsureEntity(startEntityId);
         ValidateRelationshipKindIndex(kindId);
         ValidateRelationshipThreshold(minimumStrength);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(maxDepth);
+        NumericGuard.ThrowIfNegative(maxDepth);
         if (maxDepth == 0)
         {
             return 0;
@@ -193,7 +427,7 @@ internal sealed partial class WorldState
         int[] nextFrontier,
         int currentCount,
         int kindId,
-        float minimumStrength,
+        FixedScalar minimumStrength,
         int directionCode,
         int depth,
         ref int visitedCount,
@@ -222,7 +456,7 @@ internal sealed partial class WorldState
         int entityId,
         int[] nextFrontier,
         int kindId,
-        float minimumStrength,
+        FixedScalar minimumStrength,
         int directionCode,
         int depth,
         ref int nextCount,
@@ -362,13 +596,10 @@ internal sealed partial class WorldState
     {
         global::System.Array.Clear(offsets);
         global::System.Array.Clear(relationships);
-        for (var relationshipId = 1; relationshipId <= _relationshipHighWatermark; relationshipId++)
+        for (var relationshipId = _firstActiveRelationship;
+             relationshipId > 0;
+             relationshipId = _nextActiveRelationship[relationshipId])
         {
-            if (!RelationshipIsHotActive(relationshipId))
-            {
-                continue;
-            }
-
             var entityId = outgoing ? _relationshipSourceId[relationshipId] : _relationshipTargetId[relationshipId];
             var row = RelationshipRowIndexRaw(entityId, _relationshipKindId[relationshipId]);
             offsets[row + 1]++;
@@ -380,13 +611,10 @@ internal sealed partial class WorldState
         }
 
         global::System.Array.Copy(offsets, _relationshipBuildCursors, offsets.Length);
-        for (var relationshipId = 1; relationshipId <= _relationshipHighWatermark; relationshipId++)
+        for (var relationshipId = _firstActiveRelationship;
+             relationshipId > 0;
+             relationshipId = _nextActiveRelationship[relationshipId])
         {
-            if (!RelationshipIsHotActive(relationshipId))
-            {
-                continue;
-            }
-
             var entityId = outgoing ? _relationshipSourceId[relationshipId] : _relationshipTargetId[relationshipId];
             var row = RelationshipRowIndexRaw(entityId, _relationshipKindId[relationshipId]);
             var slot = _relationshipBuildCursors[row];
@@ -512,8 +740,8 @@ internal sealed partial class WorldState
         int tick,
         int changeCodeId,
         in KernelExecutionContext context,
-        float previousStrength,
-        float newStrength)
+        int previousStrengthUnits,
+        int newStrengthUnits)
     {
         Write(KernelEvent.From(new RelationshipChangedKernelEvent(
             tick,
@@ -525,8 +753,8 @@ internal sealed partial class WorldState
             _relationshipSourceId[relationshipId],
             _relationshipTargetId[relationshipId],
             relationshipId,
-            previousStrength,
-            newStrength,
+            previousStrengthUnits,
+            newStrengthUnits,
             context.ActionId)),
             context);
     }
@@ -561,7 +789,7 @@ internal sealed partial class WorldState
 
     private static void ValidatePositive(int value)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+        NumericGuard.ThrowIfNegativeOrZero(value);
     }
 
     private static void ValidateInfluencePlaneCode(int planeCode)
@@ -572,25 +800,25 @@ internal sealed partial class WorldState
         }
     }
 
-    private static void ValidateRelationshipThreshold(float minimumStrength)
+    private static void ValidateRelationshipThreshold(FixedScalar minimumStrength)
     {
-        if (global::System.Single.IsNaN(minimumStrength))
+        if (FixedScalar.IsNaN(minimumStrength))
         {
             throw new global::System.InvalidOperationException();
         }
     }
 
-    private static float Clamp01(float value)
+    private static FixedScalar Clamp01(FixedScalar value)
     {
-        if (value < 0f)
+        if (value < 0)
         {
-            return 0f;
+            return 0;
         }
 
-        return value > 1f ? 1f : value;
+        return value > 1 ? 1 : value;
     }
 
-    private float ClampAttribute(int attributeId, float value)
+    private FixedScalar ClampAttribute(int attributeId, FixedScalar value)
     {
         return _kernelData.Entities.ClampAttribute(attributeId, value);
     }

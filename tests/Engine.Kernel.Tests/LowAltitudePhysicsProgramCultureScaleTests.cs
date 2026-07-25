@@ -14,18 +14,18 @@ public sealed partial class LowAltitudePhysicsProgramTests
             {
                 Programs = new KernelProgramTuningOptions
                 {
-                    CultureInfluenceActionScale = 0.25f,
+                    CultureInfluenceActionScale = FixedScalar.FromSingle(0.25f),
                 },
             },
         });
         const int kindId = 1;
         simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
         simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        simulation.LowAltitudeVerbs.RegisterInitialInfluence(kindId, PlaneCodes.Physical, 10f);
+        simulation.LowAltitudeVerbs.RegisterInitialInfluence(kindId, PlaneCodes.Physical, FixedScalar.FromSingle(10f));
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(10f, simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(10f), simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
     }
 
     [Fact]
@@ -37,7 +37,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
             {
                 Programs = new KernelProgramTuningOptions
                 {
-                    CultureInfluenceActionScale = 0.25f,
+                    CultureInfluenceActionScale = FixedScalar.FromSingle(0.25f),
                 },
             },
         });
@@ -46,7 +46,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
         simulation.RegisterTerrain(1, boundaryGroupId: 1);
         simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        simulation.SetCellInfluence(entityId, PlaneCodes.Physical, 0, 0, 10f, tick: 0);
+        simulation.SetCellInfluence(entityId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(10f), tick: 0);
         var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
             kindId,
             verbId,
@@ -61,16 +61,16 @@ public sealed partial class LowAltitudePhysicsProgramTests
             dwellTicks: 1,
             targetRadius: 0,
             candidateSampleCount: 1,
-            weight: 1f,
-            influenceDelta: 4f,
+            weight: FixedScalar.FromSingle(1f),
+            influenceDelta: FixedScalar.FromSingle(4f),
             influenceRadius: 0,
-            coverageGrowthChance: 0f,
-            headquartersMoveChance: 0f,
-            requiredInfluence: 0f);
+            coverageGrowthChance: FixedScalar.FromSingle(0f),
+            headquartersMoveChance: FixedScalar.FromSingle(0f),
+            requiredInfluence: FixedScalar.FromSingle(0f));
         AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.AddOwnedCellScalar);
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(11f, simulation.World.GetCellInfluence(entityId, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(11f), simulation.World.GetCellInfluence(entityId, PlaneCodes.Physical, 0, 0));
     }
 }

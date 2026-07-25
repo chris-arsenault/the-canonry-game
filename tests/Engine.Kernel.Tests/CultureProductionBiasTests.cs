@@ -13,30 +13,30 @@ public sealed class CultureProductionBiasTests
     public void EntityProduction_ScalesByCulturePlaneMultiplier()
     {
         var simulation = CreateSimulation();
-        simulation.RegisterCultureProduction(BiasedCultureId, physicalMultiplier: 0.5f, semanticMultiplier: 2f);
+        simulation.RegisterCultureProduction(BiasedCultureId, physicalMultiplier: FixedScalar.FromSingle(0.5f), semanticMultiplier: FixedScalar.FromSingle(2f));
         var biased = simulation.CreateEntity(KindId, 1, BiasedCultureId, 0, 0, 0, 0, 0, tick: 0);
         var neutral = simulation.CreateEntity(KindId, 1, NeutralCultureId, 1, 0, 0, 0, 0, tick: 0);
 
-        _ = simulation.ModifyCellCultureInfluenceRawFromEntity(biased, PlaneCodes.Physical, 0, 0, 10f, tick: 1);
-        _ = simulation.ModifyCellCultureInfluenceRawFromEntity(biased, PlaneCodes.Semantic, 0, 0, 10f, tick: 1);
-        _ = simulation.ModifyCellCultureInfluenceRawFromEntity(neutral, PlaneCodes.Physical, 1, 0, 10f, tick: 1);
+        _ = simulation.ModifyCellCultureInfluenceRawFromEntity(biased, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(10f), tick: 1);
+        _ = simulation.ModifyCellCultureInfluenceRawFromEntity(biased, PlaneCodes.Semantic, 0, 0, FixedScalar.FromSingle(10f), tick: 1);
+        _ = simulation.ModifyCellCultureInfluenceRawFromEntity(neutral, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(10f), tick: 1);
 
-        Assert.Equal(5f, simulation.World.GetCellCultureInfluenceRaw(BiasedCultureId, PlaneCodes.Physical, 0, 0), precision: 2);
-        Assert.Equal(20f, simulation.World.GetCellCultureInfluenceRaw(BiasedCultureId, PlaneCodes.Semantic, 0, 0), precision: 2);
-        Assert.Equal(10f, simulation.World.GetCellCultureInfluenceRaw(NeutralCultureId, PlaneCodes.Physical, 1, 0), precision: 2);
+        Assert.Equal(FixedScalar.FromSingle(5f), simulation.World.GetCellCultureInfluenceRaw(BiasedCultureId, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(20f), simulation.World.GetCellCultureInfluenceRaw(BiasedCultureId, PlaneCodes.Semantic, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(10f), simulation.World.GetCellCultureInfluenceRaw(NeutralCultureId, PlaneCodes.Physical, 1, 0));
     }
 
     [Fact]
     public void NegativeDeltas_AreNotScaled()
     {
         var simulation = CreateSimulation();
-        simulation.RegisterCultureProduction(BiasedCultureId, physicalMultiplier: 2f, semanticMultiplier: 1f);
+        simulation.RegisterCultureProduction(BiasedCultureId, physicalMultiplier: FixedScalar.FromSingle(2f), semanticMultiplier: FixedScalar.FromSingle(1f));
         var entity = simulation.CreateEntity(KindId, 1, BiasedCultureId, 0, 0, 0, 0, 0, tick: 0);
 
-        _ = simulation.ModifyCellCultureInfluenceRawFromEntity(entity, PlaneCodes.Physical, 0, 0, 10f, tick: 1);
-        _ = simulation.ModifyCellCultureInfluenceRawFromEntity(entity, PlaneCodes.Physical, 0, 0, -10f, tick: 1);
+        _ = simulation.ModifyCellCultureInfluenceRawFromEntity(entity, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(10f), tick: 1);
+        _ = simulation.ModifyCellCultureInfluenceRawFromEntity(entity, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(-10f), tick: 1);
 
-        Assert.Equal(10f, simulation.World.GetCellCultureInfluenceRaw(BiasedCultureId, PlaneCodes.Physical, 0, 0), precision: 2);
+        Assert.Equal(FixedScalar.FromSingle(10f), simulation.World.GetCellCultureInfluenceRaw(BiasedCultureId, PlaneCodes.Physical, 0, 0));
     }
 
     private static Simulation CreateSimulation()
@@ -54,9 +54,9 @@ public sealed class CultureProductionBiasTests
                 {
                     CultureField = new CultureFieldTuningOptions
                     {
-                        DecayPerPulse = 0f,
-                        MinimumDecayPerPulse = 0f,
-                        RemittanceShare = 0f,
+                        DecayPerPulse = FixedScalar.FromSingle(0f),
+                        MinimumDecayPerPulse = FixedScalar.FromSingle(0f),
+                        RemittanceShare = FixedScalar.FromSingle(0f),
                     },
                 },
             },

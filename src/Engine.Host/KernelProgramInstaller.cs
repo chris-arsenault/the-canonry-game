@@ -1,5 +1,6 @@
 namespace Engine.Host;
 
+using Engine.Constants;
 using Engine.Domain;
 using Engine.Domain.Compilation.KernelPrograms;
 using Engine.Kernel;
@@ -17,7 +18,7 @@ internal static partial class KernelProgramInstaller
         ArgumentNullException.ThrowIfNull(programConfig);
 
         InstallGameplay(context, programs);
-        InstallUpkeep(context, programs.Upkeep);
+        InstallLifecycle(context, programs.Lifecycle);
         InstallGambits(context, programs.Gambits);
         InstallRelationships(context, programs.Relationships);
         InstallGenerators(context, programs.Generators);
@@ -34,20 +35,13 @@ internal static partial class KernelProgramInstaller
             KernelProgramCodes.LowAltitudeVerbs,
             programConfig.IsEnabled(KernelProgramCodes.LowAltitudeVerbs, programs.LowAltitudeVerbs.EnabledByDefault));
         context.SetProgramEnabled(
-            KernelProgramCodes.MapActivity,
-            programConfig.IsEnabled(KernelProgramCodes.MapActivity, programs.MapActivity.EnabledByDefault));
-        context.SetProgramEnabled(
-            KernelProgramCodes.MapSignals,
-            programConfig.IsEnabled(KernelProgramCodes.MapSignals, programs.MapSignals.EnabledByDefault));
-        context.SetProgramEnabled(
             KernelProgramCodes.Effects,
-            programConfig.IsEnabled(KernelProgramCodes.Effects, programs.Effects.EnabledByDefault));
+            programConfig.IsEnabled(
+                KernelProgramCodes.Effects,
+                programs.Effects.EnabledByDefault || programs.Lifecycle.EnabledByDefault));
         context.SetProgramEnabled(
             KernelProgramCodes.CultureSlots,
             programConfig.IsEnabled(KernelProgramCodes.CultureSlots, programs.CultureSlots.EnabledByDefault));
-        context.SetProgramEnabled(
-            KernelProgramCodes.Upkeep,
-            programConfig.IsEnabled(KernelProgramCodes.Upkeep, programs.Upkeep.EnabledByDefault));
         context.SetProgramEnabled(
             KernelProgramCodes.Gambits,
             programConfig.IsEnabled(KernelProgramCodes.Gambits, programs.Gambits.EnabledByDefault));
@@ -136,11 +130,11 @@ internal static partial class KernelProgramInstaller
         }
     }
 
-    private static void InstallUpkeep(KernelConfigurationContext context, UpkeepProgram program)
+    private static void InstallLifecycle(KernelConfigurationContext context, LifecycleProgram program)
     {
-        foreach (var lifecycle in program.LifecycleRules)
+        foreach (var lifecycle in program.Rules)
         {
-            context.RegisterLifecycleUpkeep(
+            context.RegisterLifecycle(
                 lifecycle.KindId,
                 new AttributeRuntimeId(lifecycle.HealthAttributeId),
                 lifecycle.BaseRate,
@@ -377,7 +371,8 @@ internal static partial class KernelProgramInstaller
             generator.CadenceJitterTicks,
             generator.TargetRequiredTagBits,
             generator.TargetWithoutTagBits);
-        if (generator.TargetChronicleHeatMin > 0f || generator.TargetChronicleLegendaryWithinTicks > 0)
+        if (generator.TargetChronicleHeatMin > FixedScalar.Zero ||
+            generator.TargetChronicleLegendaryWithinTicks > 0)
         {
             context.SetGeneratorTargetChronicleGates(
                 generatorSlot,
@@ -524,7 +519,7 @@ internal static partial class KernelProgramInstaller
             binding.KindId,
             resolved.AdjacentToTarget,
             GeneratorCultureMatchCode(resolved.CultureMatch),
-            resolved.SamePhysicalCultureComponentAsTarget,
+            resolved.RequireTargetCultureRoute,
             resolved.RequiredTagBits,
             resolved.WithoutTagBits,
             resolved.CultureId,
@@ -573,7 +568,7 @@ internal static partial class KernelProgramInstaller
             produced.SemanticPlacementMinRadius,
             produced.SemanticPlacementMaxRadius,
             GeneratorCulturePlacementCode(produced.CulturePlacement),
-            resolvedQuery.SamePhysicalCultureComponentAsTarget,
+            resolvedQuery.RequireTargetCultureRoute,
             resolvedQuery.RequiredTagBits,
             resolvedQuery.WithoutTagBits,
             resolvedQuery.CultureId,
@@ -651,10 +646,10 @@ internal static partial class KernelProgramInstaller
         GeneratorProducedEntityRule produced)
     {
         var hasAffinity =
-            produced.PhysicalPlacementWarmthAffinity != 0f ||
-            produced.PhysicalPlacementFireAffinity != 0f ||
-            produced.PhysicalPlacementAuroraAffinity != 0f ||
-            produced.PhysicalPlacementPressureAffinity != 0f;
+            produced.PhysicalPlacementWarmthAffinity != FixedScalar.Zero ||
+            produced.PhysicalPlacementFireAffinity != FixedScalar.Zero ||
+            produced.PhysicalPlacementAuroraAffinity != FixedScalar.Zero ||
+            produced.PhysicalPlacementPressureAffinity != FixedScalar.Zero;
         if (produced.PhysicalPlacementSiteFlags == 0 && !hasAffinity)
         {
             return;
@@ -933,7 +928,6 @@ internal static partial class KernelProgramInstaller
         code = precondition switch
         {
             BehaviorProgramPrecondition.PlaneDistance => BehaviorPreconditionCodes.PlaneDistance,
-            BehaviorProgramPrecondition.CooldownElapsed => BehaviorPreconditionCodes.CooldownElapsed,
             BehaviorProgramPrecondition.EntityCountAtLeast => BehaviorPreconditionCodes.EntityCountAtLeast,
             BehaviorProgramPrecondition.HasColocatedEntity => BehaviorPreconditionCodes.HasColocatedEntity,
             BehaviorProgramPrecondition.ContestedInfluence => BehaviorPreconditionCodes.ContestedInfluence,

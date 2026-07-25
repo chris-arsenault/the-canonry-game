@@ -106,7 +106,7 @@ public sealed class GeneratorProgramRuntimeCulturePlacementTests
     }
 
     [Fact]
-    public void SecondaryBinding_WithSameCultureComponent_RejectsRemoteSameCultureEntity()
+    public void SecondaryBinding_WithCultureRoute_RejectsRemoteSameCultureEntity()
     {
         var simulation = CreateSimulation();
         SeedMap(simulation, radius: 6);
@@ -121,7 +121,7 @@ public sealed class GeneratorProgramRuntimeCulturePlacementTests
             PatronKindId,
             adjacentToTarget: 0,
             cultureMatchCode: GeneratorCultureMatchCodes.SameAsTarget,
-            samePhysicalCultureComponentAsTarget: 1);
+            requireTargetCultureRoute: 1);
         AddCreatedEntity(
             simulation,
             slot,
@@ -207,7 +207,7 @@ public sealed class GeneratorProgramRuntimeCulturePlacementTests
             semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: placementRefCode,
             cultureRefCode: cultureRefCode,
-            createChance: 1f,
+            createChance: FixedScalar.FromSingle(1f),
             coverageModeCode: coverageModeCode,
             coverageSourceRefCode: 0,
             coverageDesiredCellCount: coverageDesiredCellCount,
@@ -221,7 +221,13 @@ public sealed class GeneratorProgramRuntimeCulturePlacementTests
             semanticPlacementMaxRadius: semanticMaxRadius,
             culturePlacementCode: culturePlacementCode);
 
-    private static void AddCulturePatch(Simulation simulation, int cultureId, int planeCode, int q, int r, float rawMass)
+    private static void AddCulturePatch(
+        Simulation simulation,
+        int cultureId,
+        int planeCode,
+        int q,
+        int r,
+        FixedScalar rawMass)
     {
         simulation.ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, rawMass, tick: 0);
         foreach (var (neighborQ, neighborR) in NeighborCells(q, r))

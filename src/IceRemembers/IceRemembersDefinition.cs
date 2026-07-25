@@ -128,7 +128,7 @@ public static partial class IceRemembersDefinition
             ],
             KindStages = CreateStageCatalogs(),
             Effects = CreateEffects(),
-            MapSignals = CreateMapSignals(),
+            Locality = CreateLocality(),
             MapControl =
             [
                 new MapControlDefinition(
@@ -513,12 +513,12 @@ public static partial class IceRemembersDefinition
             CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Positive, 0.085f * timeScale * ambient, threshold: 2.4f, plane: plane),
             CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Neutral, 0.04f * timeScale * ambient, threshold: 2.4f, plane: plane),
             CultureSlotEffect(kind, attribute, EffectCultureSlotPolarity.Negative, -0.035f * timeScale, threshold: 2.4f, plane: plane),
-            MapSignalEffect(kind, attribute, Effect.MapSupportAtLocation,
+            LocalityEffect(kind, attribute, Effect.MapSupportAtLocation,
                 0.035f * timeScale * ambient, threshold: 5f, plane: plane),
-            MapSignalEffect(kind, attribute, Effect.MapCrowdingComfort,
+            LocalityEffect(kind, attribute, Effect.MapCrowdingComfort,
                 0.025f * timeScale, threshold: 0.5f, plane: plane),
-            MapSignalEffect(kind, attribute, Effect.MapThreatAtLocation, -0.04f * timeScale, threshold: 4f, plane: plane),
-            MapSignalEffect(kind, attribute, Effect.MapCrowdingLoad, -0.08f * timeScale, threshold: 0.5f, plane: plane),
+            LocalityEffect(kind, attribute, Effect.MapThreatAtLocation, -0.04f * timeScale, threshold: 4f, plane: plane),
+            LocalityEffect(kind, attribute, Effect.MapCrowdingLoad, -0.08f * timeScale, threshold: 0.5f, plane: plane),
             // The carrying-capacity governor is a population-rate control, not
             // a lifespan pacing effect: it stays at full strength so growth
             // still equilibrates against culture support at the new time scale.
@@ -597,64 +597,63 @@ public static partial class IceRemembersDefinition
         MarineScale = 1.6f,
     };
 
-    private static MapSignalsConfig CreateMapSignals() =>
+    private static LocalityConfig CreateLocality() =>
         new()
         {
             SemanticBaseCapacity = 2f,
             CrowdingRadius = 1,
             PhysicalCapacityFormula = PhysicalCapacityFormula,
-            Terrains = CreateTerrainSignals(),
-            Kinds = IceRemembersEntities.CreateKindMapSignals(),
+            Terrains = CreateTerrainLocality(),
+            Kinds = IceRemembersEntities.CreateKindLocality(),
             Relationships =
             [
-                RelationshipSignal(Rel.AlliedWith, support: 2.0f, threat: 0f),
-                RelationshipSignal(Rel.HomeBase, support: 2.5f, threat: 0f),
-                RelationshipSignal(Rel.Anchored, support: 2.0f, threat: 0f),
-                RelationshipSignal(Rel.ControlledBy, support: 1.2f, threat: 0f),
-                RelationshipSignal(Rel.ClaimedBy, support: 1.0f, threat: 0f),
-                RelationshipSignal(Rel.MemberOf, support: 1.1f, threat: 0f),
-                RelationshipSignal(Rel.LedBy, support: 1.0f, threat: 0f),
-                RelationshipSignal(Rel.TradeRoute, support: 1.4f, threat: 0f),
-                RelationshipSignal(Rel.Memorializes, support: 1.1f, threat: 0f),
-                RelationshipSignal(Rel.CleansedBy, support: 1.5f, threat: 0f),
-                RelationshipSignal(Rel.ConduitOf, support: 1.2f, threat: 0f),
-                RelationshipSignal(Rel.RivalOf, support: 0f, threat: 1.5f),
-                RelationshipSignal(Rel.AtWarWith, support: 0f, threat: 3.0f),
-                RelationshipSignal(Rel.CorruptedBy, support: 0f, threat: 2.0f),
-                RelationshipSignal(Rel.BetrayedBy, support: 0f, threat: 1.5f),
-                RelationshipSignal(Rel.WardAgainst, support: 0f, threat: 1.0f),
+                RelationshipLocality(Rel.AlliedWith, support: 2.0f, threat: 0f),
+                RelationshipLocality(Rel.HomeBase, support: 2.5f, threat: 0f),
+                RelationshipLocality(Rel.Anchored, support: 2.0f, threat: 0f),
+                RelationshipLocality(Rel.ControlledBy, support: 1.2f, threat: 0f),
+                RelationshipLocality(Rel.ClaimedBy, support: 1.0f, threat: 0f),
+                RelationshipLocality(Rel.MemberOf, support: 1.1f, threat: 0f),
+                RelationshipLocality(Rel.LedBy, support: 1.0f, threat: 0f),
+                RelationshipLocality(Rel.TradeRoute, support: 1.4f, threat: 0f),
+                RelationshipLocality(Rel.Memorializes, support: 1.1f, threat: 0f),
+                RelationshipLocality(Rel.CleansedBy, support: 1.5f, threat: 0f),
+                RelationshipLocality(Rel.ConduitOf, support: 1.2f, threat: 0f),
+                RelationshipLocality(Rel.RivalOf, support: 0f, threat: 1.5f),
+                RelationshipLocality(Rel.AtWarWith, support: 0f, threat: 3.0f),
+                RelationshipLocality(Rel.CorruptedBy, support: 0f, threat: 2.0f),
+                RelationshipLocality(Rel.BetrayedBy, support: 0f, threat: 1.5f),
+                RelationshipLocality(Rel.WardAgainst, support: 0f, threat: 1.0f),
             ],
         };
 
     // Physical capacity is fact-derived through the capacity formula, so
     // terrain rows remain only for the semantic plane, whose hexes carry no
     // generated facts.
-    private static IReadOnlyList<TerrainMapSignalConfig> CreateTerrainSignals() =>
+    private static IReadOnlyList<TerrainLocalityConfig> CreateTerrainLocality() =>
     [
-        TerrainSignal(Terrain.Lineage, 2.4f),
-        TerrainSignal(Terrain.Yoke, 1.6f),
-        TerrainSignal(Terrain.Witness, 3.2f),
-        TerrainSignal(Terrain.Silence, 0.8f),
-        TerrainSignal(Terrain.Severance, 0.6f),
-        TerrainSignal(Terrain.Breakaway, 1.4f),
-        TerrainSignal(Terrain.BeaconSpire, 3.6f),
-        TerrainSignal(Terrain.TabooRidge, 0.4f),
-        TerrainSignal(Terrain.CavePocket, 0.9f),
-        TerrainSignal(Terrain.OpenField, 1.8f),
+        TerrainLocality(Terrain.Lineage, 2.4f),
+        TerrainLocality(Terrain.Yoke, 1.6f),
+        TerrainLocality(Terrain.Witness, 3.2f),
+        TerrainLocality(Terrain.Silence, 0.8f),
+        TerrainLocality(Terrain.Severance, 0.6f),
+        TerrainLocality(Terrain.Breakaway, 1.4f),
+        TerrainLocality(Terrain.BeaconSpire, 3.6f),
+        TerrainLocality(Terrain.TabooRidge, 0.4f),
+        TerrainLocality(Terrain.CavePocket, 0.9f),
+        TerrainLocality(Terrain.OpenField, 1.8f),
     ];
 
-    private static TerrainMapSignalConfig TerrainSignal(Terrain terrain, float baseCapacity) =>
+    private static TerrainLocalityConfig TerrainLocality(Terrain terrain, float baseCapacity) =>
         new()
         {
             Terrain = TerrainName(terrain),
             BaseCapacity = baseCapacity,
         };
 
-    private static RelationshipMapSignalConfig RelationshipSignal(Rel relationship, float support, float threat) =>
+    private static RelationshipLocalityConfig RelationshipLocality(Rel relationship, float support, float threat) =>
         new()
         {
             RelationshipKind = L(relationship),
-            SignalRadius = 1,
             SupportEmission = support,
             ThreatEmission = threat,
         };
@@ -797,7 +796,7 @@ public static partial class IceRemembersDefinition
             DeltaPerTick = deltaPerTick,
         };
 
-    private static AttributeDeltaEffectConfig MapSignalEffect(
+    private static AttributeDeltaEffectConfig LocalityEffect(
         EntityKind kind,
         Attr attribute,
         EffectCondition condition,

@@ -9,8 +9,8 @@ There is one simulation clock. Systems do not own separate clocks; they register
 a cadence and run when the current tick matches that cadence.
 
 Within a tick, program order is strict. Earlier same-tick writes are visible to
-later programs. Programs that intentionally read previous-tick derived signals
-must declare that dependency explicitly.
+later programs. Direct locality queries read current bounded world state and
+are not separate scheduled phases.
 
 Speed control changes how quickly ticks are requested by the host or driver. It
 does not change the deterministic tick sequence.
@@ -20,54 +20,55 @@ does not change the deterministic tick sequence.
 ```text
 Movement
 LowAltitudeVerbs
-MapActivity
-MapSignals
-CultureBoundaries
+CultureFieldDecay
 Relationships
 Effects
-Upkeep
 Gambits
+ChronicleDirector
 Generators
+WorldBeats
+MapFrontier
 CultureSlots
+Knowledge
 MinorActors
 ```
 
 Important dependency notes:
 
 - `Movement` owns route execution and road/travel-surface state.
-- `LowAltitudeVerbs` reads previous-tick map activity and map signals.
-- `MapActivity` records the current physical and semantic presence state.
-- `MapSignals` reads same-tick map activity and writes support, threat,
-  crowding, capacity, and attractor fields.
-- `CultureBoundaries` derives culture components and boundary classifications
-  from durable culture tile influence.
+- `LowAltitudeVerbs` reads direct current locality and culture-locality facts at
+  each candidate it evaluates.
+- `CultureFieldDecay` changes durable culture mass on its slower cadence.
 - `Relationships` can use same-tick position, culture influence, contact
   memory, and relationship maintenance config.
-- `Effects` reads same-tick map signals and relationship/culture evidence.
-- `Upkeep` applies lifecycle drain and moves dead entities to historical status.
+- `Effects` reads direct current locality and relationship/culture evidence,
+  combines all attribute deltas with district healing and lifecycle drain, then
+  moves dead entities to historical status.
 - `Gambits` and `Generators` see the low-altitude state created before them in
   the same tick.
-- `MinorActors` stores unnamed worker cohorts and runs on the simulation-tick
-  cadence.
+- `MinorActors` stores unnamed individual workers and runs bounded actor-only
+  substeps inside the world pulse.
 
 ## Cadence
 
-Every registered program has a cadence. A program with cadence `1` runs every
-tick. A program with cadence `5` keeps its registration order but only runs on
-eligible ticks.
+Every registered program has a cadence in world pulses. A program with cadence
+`1` runs every pulse. A program with cadence `5` keeps its registration order
+but only runs on eligible pulses.
 
 Cadence is a performance and pacing tool, not a separate simulation phase.
 
 Current default cadence:
 
-- `MinorActors`: every simulation tick.
-- Main graph programs (`Movement` through `Generators`): every
-  `MinorActorMainTickRatio` ticks, currently `5`.
-- `CultureSlots`: every ten main cadences.
+- ordinary movement, low-altitude verbs, relationships, effects/lifecycle,
+  gambits, chronicles, and generators: every world pulse;
+- culture-field decay: every five world pulses;
+- `CultureSlots` and `Knowledge`: every ten world pulses;
+- world beats and map frontier: every twenty-five world pulses;
+- `MinorActors`: five actor-only substeps per world pulse.
 
-Generator pulse windows and main-cadence age calculations are scaled by
-`MinorActorMainTickRatio`. With the current default, a configured generator
-pulse width of `25` main ticks spans `125` simulation ticks.
+There is no raw/main conversion. A configured generator pulse width of `25`
+spans exactly `25` world pulses. Changing minor-actor substeps changes labor
+resolution only; it does not retune graph pacing or the calendar.
 
 ## Calendar Mapping
 

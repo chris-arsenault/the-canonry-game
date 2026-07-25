@@ -12,7 +12,7 @@ internal enum KernelCommandPrimitiveKind
 {
     None = 0,
     Int32 = 1,
-    Float32 = 2,
+    Fixed64 = 2,
 }
 
 internal enum KernelCommandSemanticKind
@@ -97,11 +97,11 @@ internal static class KernelCommandSchemaRegistry
     private static void EnsureSlotBounds(int commandType, IReadOnlyList<KernelCommandSlotSchema> slots)
     {
         var intSlots = 0;
-        var floatSlots = 0;
+        var scalarSlots = 0;
         foreach (var slot in slots)
         {
-            var maxSlot = slot.PrimitiveKind == KernelCommandPrimitiveKind.Float32
-                ? KernelCommand.FloatSlotCount - 1
+            var maxSlot = slot.PrimitiveKind == KernelCommandPrimitiveKind.Fixed64
+                ? KernelCommand.ScalarSlotCount - 1
                 : KernelCommand.IntSlotCount - 1;
             if (slot.Slot < 0 || slot.Slot > maxSlot)
             {
@@ -110,14 +110,15 @@ internal static class KernelCommandSchemaRegistry
             }
 
             var slotMask = 1 << slot.Slot;
-            if (slot.PrimitiveKind == KernelCommandPrimitiveKind.Float32)
+            if (slot.PrimitiveKind == KernelCommandPrimitiveKind.Fixed64)
             {
-                if ((floatSlots & slotMask) != 0)
+                if ((scalarSlots & slotMask) != 0)
                 {
-                    throw new InvalidOperationException($"{commandType} declares duplicate float slot {slot.Slot}.");
+                    throw new InvalidOperationException(
+                        $"{commandType} declares duplicate fixed scalar slot {slot.Slot}.");
                 }
 
-                floatSlots |= slotMask;
+                scalarSlots |= slotMask;
             }
             else
             {

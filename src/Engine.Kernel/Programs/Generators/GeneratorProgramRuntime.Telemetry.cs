@@ -18,10 +18,10 @@ internal sealed partial class GeneratorProgramRuntime
         var semanticS = world.EntitySemanticS(targetId);
         var physicalField = cultureId <= 0
             ? default
-            : simulation.CultureBoundaries.CellAt(world, cultureId, PlaneCodes.Physical, physicalQ, physicalR);
+            : simulation.CultureLocality.CellAt(world, cultureId, PlaneCodes.Physical, physicalQ, physicalR);
         var semanticField = cultureId <= 0
             ? default
-            : simulation.CultureBoundaries.CellAt(world, cultureId, PlaneCodes.Semantic, semanticQ, semanticR);
+            : simulation.CultureLocality.CellAt(world, cultureId, PlaneCodes.Semantic, semanticQ, semanticR);
         simulation.EmitGeneratorTargetEvaluated(
             simulation.CurrentTick,
             _generatorIds[generatorSlot],
@@ -43,15 +43,9 @@ internal sealed partial class GeneratorProgramRuntime
             physicalField.LocalRawMass,
             physicalField.ConnectedRawMass,
             semanticField.LocalRawMass,
-            semanticField.ConnectedRawMass,
-            physicalField.ComponentId,
-            physicalField.ComponentCellCount,
-            physicalField.ComponentRawMass,
-            semanticField.ComponentId,
-            semanticField.ComponentCellCount,
-            semanticField.ComponentRawMass);
+            semanticField.ConnectedRawMass);
     }
 
-    private static int CultureFieldBand(in CultureBoundaryCell field) =>
+    private static int CultureFieldBand(in CultureLocalityCell field) =>
         field.StrengthBandCode;
 }

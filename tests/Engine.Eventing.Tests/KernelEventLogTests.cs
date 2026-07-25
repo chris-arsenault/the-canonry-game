@@ -65,12 +65,12 @@ public sealed class KernelEventLogTests
             GambitAffordanceCount: 0,
             HiddenAffordanceCount: 0,
             SelectionBucketCode: 0,
-            Urgency: 3.5f,
-            RewardOrBaseScore: 8.25f,
-            RawWeight: 1.5f,
-            AdjustedWeight: 2.5f,
-            AffordanceScore: 0f,
-            AffordanceBonus: 0f));
+            UrgencyUnits: FixedScalar.FromSingle(3.5f).Units,
+            RewardOrBaseScoreUnits: FixedScalar.FromSingle(8.25f).Units,
+            RawWeightUnits: FixedScalar.FromSingle(1.5f).Units,
+            AdjustedWeightUnits: FixedScalar.FromSingle(2.5f).Units,
+            AffordanceScoreUnits: FixedScalar.Zero.Units,
+            AffordanceBonusUnits: FixedScalar.Zero.Units));
 
         Assert.True(log.TryWrite(kernelEvent));
         Span<SequencedKernelEvent> destination = stackalloc SequencedKernelEvent[1];
@@ -98,8 +98,8 @@ public sealed class KernelEventLogTests
             SourceEntityId: 30,
             TargetEntityId: 40,
             RelationshipId: 50,
-            PreviousStrength: 0f,
-            NewStrength: 0.5f))));
+            PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f),
+            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.5f)))));
         Assert.True(log.TryWrite(KernelEvent.From(new TraceKernelEvent(
             Tick: 2,
             WorldVersion: 2,
@@ -125,12 +125,12 @@ public sealed class KernelEventLogTests
             GambitAffordanceCount: 0,
             HiddenAffordanceCount: 0,
             SelectionBucketCode: 0,
-            Urgency: 0f,
-            RewardOrBaseScore: 5f,
-            RawWeight: 5f,
-            AdjustedWeight: 5f,
-            AffordanceScore: 0f,
-            AffordanceBonus: 0f))));
+            UrgencyUnits: FixedScalar.Zero.Units,
+            RewardOrBaseScoreUnits: FixedScalar.FromInt(5).Units,
+            RawWeightUnits: FixedScalar.FromInt(5).Units,
+            AdjustedWeightUnits: FixedScalar.FromInt(5).Units,
+            AffordanceScoreUnits: FixedScalar.Zero.Units,
+            AffordanceBonusUnits: FixedScalar.Zero.Units))));
 
         Span<SequencedKernelEvent> destination = stackalloc SequencedKernelEvent[1];
         var result = log.ReadWithResult(cursor, destination);

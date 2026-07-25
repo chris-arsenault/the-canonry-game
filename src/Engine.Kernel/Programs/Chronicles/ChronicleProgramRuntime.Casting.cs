@@ -42,6 +42,7 @@ internal sealed partial class ChronicleProgramRuntime
         State.Heat[story] = InitialHeat;
         State.OpenMasks[story] = 0L;
         State.StruckMasks[story] = 0L;
+        State.RetiredRoleMasks[story] = 0L;
         State.NextChronicleSequence++;
         State.ChronicleSequences[story] = State.NextChronicleSequence;
         State.ArchetypeActiveCounts[archetype]++;
@@ -66,10 +67,11 @@ internal sealed partial class ChronicleProgramRuntime
         var minStrength = Data.ArchetypePrimaryRequiredRelMinStrengths[archetype];
         var bestId = 0;
         var bestCausalTick = -1;
-        for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
+        for (var entityId = world.FirstActiveEntity();
+             entityId > 0;
+             entityId = world.NextActiveEntity(entityId))
         {
-            if (!world.EntityIsActive(entityId) ||
-                world.EntityKindId(entityId) != kindId ||
+            if (world.EntityKindId(entityId) != kindId ||
                 RoleIsCastInArchetype(archetype, entityId) ||
                 RecentlyChronicled(entityId, tick))
             {
@@ -92,7 +94,7 @@ internal sealed partial class ChronicleProgramRuntime
         return bestId;
     }
 
-    private static int QualifyingEdgeCausalTick(WorldState world, int entityId, int relKindId, float minStrength)
+    private static int QualifyingEdgeCausalTick(WorldState world, int entityId, int relKindId, FixedScalar minStrength)
     {
         var best = -1;
         var cursor = world.OutgoingRelationshipsOfKind(entityId, relKindId);
@@ -103,8 +105,7 @@ internal sealed partial class ChronicleProgramRuntime
                 continue;
             }
 
-            var invocationId = world.RelationshipCreatedByInvocationId(relationshipId);
-            var causalTick = invocationId > 0 ? world.ProvenanceInvocationTick(invocationId) : 0;
+            var causalTick = world.RelationshipStartTick(relationshipId);
             if (causalTick > best)
             {
                 best = causalTick;

@@ -6,8 +6,8 @@ internal sealed class CultureSlotProgramRuntime :
     IKernelProgramRuntime<CultureSlotProgramData, CultureSlotProgramState>
 {
     private const int AnyPolarityFilterCode = -1;
-    private const float CultureSupportScoreScale = 30f;
-    private const float InfluenceProductionScoreScale = 100f;
+    private static readonly FixedScalar CultureSupportScoreScale = 30;
+    private static readonly FixedScalar InfluenceProductionScoreScale = 100;
 
     public CultureSlotProgramRuntime(CultureSlotProgramData data, CultureSlotProgramState state)
         : this(data, state, new KernelProgramTuningOptions())
@@ -37,24 +37,24 @@ internal sealed class CultureSlotProgramRuntime :
         int cultureId,
         int slotId,
         int polarityCode,
-        float minimumScore,
+        FixedScalar minimumScore,
         int minimumTenureTicks,
-        float displacementMargin,
-        float entityInfluenceMultiplierDelta,
-        float cultureInfluenceMultiplierDelta) =>
+        FixedScalar displacementMargin,
+        FixedScalar entityInfluenceMultiplierDelta,
+        FixedScalar cultureInfluenceMultiplierDelta) =>
         Data.RegisterSlot(
             cultureId,
             slotId,
             polarityCode,
             minimumScore,
-            Tuning.ScaleMainTicks(minimumTenureTicks),
+            minimumTenureTicks,
             displacementMargin,
             entityInfluenceMultiplierDelta,
             cultureInfluenceMultiplierDelta);
 
     public void AddAllowedKind(int slot, int kindId) => Data.AddAllowedKind(slot, kindId);
 
-    public void AddScoreRule(int slot, int signalCode, int relationshipKindId, float weight) =>
+    public void AddScoreRule(int slot, int signalCode, int relationshipKindId, FixedScalar weight) =>
         Data.AddScoreRule(slot, signalCode, relationshipKindId, weight);
 
     public int OccupantEntityId(int cultureId, int slotId)
@@ -63,19 +63,19 @@ internal sealed class CultureSlotProgramRuntime :
         return slot > 0 ? State.OccupantEntityId(slot) : 0;
     }
 
-    public float OccupancyEvidence(
+    public FixedScalar OccupancyEvidence(
         int entityId,
         int cultureId,
         int slotId,
         int polarityCode,
-        float threshold)
+        FixedScalar threshold)
     {
         if (entityId <= 0)
         {
-            return 0f;
+            return 0;
         }
 
-        var best = 0f;
+        var best = FixedScalar.Zero;
         for (var slot = 1; slot <= Data.SlotCount; slot++)
         {
             if (!SlotMatchesOccupancyFilter(slot, entityId, cultureId, slotId, polarityCode))
@@ -84,9 +84,9 @@ internal sealed class CultureSlotProgramRuntime :
             }
 
             var evidence = KernelQuery.ThresholdEvidence(State.OccupantScore(slot), threshold);
-            if (evidence >= 1f)
+            if (evidence >= 1)
             {
-                return 1f;
+                return 1;
             }
 
             if (evidence > best)
@@ -101,14 +101,14 @@ internal sealed class CultureSlotProgramRuntime :
     public void OccupancyEvidenceByPolarity(
         int entityId,
         int cultureId,
-        float threshold,
-        out float positive,
-        out float neutral,
-        out float negative)
+        FixedScalar threshold,
+        out FixedScalar positive,
+        out FixedScalar neutral,
+        out FixedScalar negative)
     {
-        positive = 0f;
-        neutral = 0f;
-        negative = 0f;
+        positive = 0;
+        neutral = 0;
+        negative = 0;
         if (entityId <= 0)
         {
             return;
@@ -125,13 +125,13 @@ internal sealed class CultureSlotProgramRuntime :
             switch (Data.PolarityCode(slot))
             {
                 case RelationshipPolarityCodes.Positive:
-                    positive = global::System.MathF.Max(positive, evidence);
+                    positive = FixedScalar.Max(positive, evidence);
                     break;
                 case RelationshipPolarityCodes.Neutral:
-                    neutral = global::System.MathF.Max(neutral, evidence);
+                    neutral = FixedScalar.Max(neutral, evidence);
                     break;
                 case RelationshipPolarityCodes.Negative:
-                    negative = global::System.MathF.Max(negative, evidence);
+                    negative = FixedScalar.Max(negative, evidence);
                     break;
             }
         }
@@ -241,7 +241,7 @@ internal sealed class CultureSlotProgramRuntime :
                 Data.PolarityCode(slot),
                 previousEntityId: 0,
                 currentEntityId: occupant,
-                previousScore: 0f,
+                previousScore: 0,
                 currentScore: State.OccupantScore(slot));
         }
     }
@@ -275,20 +275,20 @@ internal sealed class CultureSlotProgramRuntime :
         ChangeOccupant(simulation, slot, currentEntityId, best.EntityId, currentScore, best.Score, tick);
     }
 
-    private float CurrentOccupantScore(Simulation simulation, int currentEntityId, int slot)
+    private FixedScalar CurrentOccupantScore(Simulation simulation, int currentEntityId, int slot)
     {
         var world = simulation.World;
         return currentEntityId > 0 && world.EntityIsActive(currentEntityId)
             ? ScoreEntity(simulation, currentEntityId, slot)
-            : 0f;
+            : 0;
     }
 
-    private (int EntityId, float Score) BestCandidate(Simulation simulation, int slot)
+    private (int EntityId, FixedScalar Score) BestCandidate(Simulation simulation, int slot)
     {
         var world = simulation.World;
         var cultureId = Data.CultureId(slot);
         var bestEntityId = 0;
-        var bestScore = 0f;
+        var bestScore = FixedScalar.Zero;
         var allowedKindCount = Data.AllowedKindCount(slot);
         if (allowedKindCount == 0)
         {
@@ -322,7 +322,7 @@ internal sealed class CultureSlotProgramRuntime :
         int entityId,
         int cultureId,
         ref int bestEntityId,
-        ref float bestScore)
+        ref FixedScalar bestScore)
     {
         var world = simulation.World;
         if (!CandidateAllowed(world, entityId, cultureId))
@@ -345,9 +345,9 @@ internal sealed class CultureSlotProgramRuntime :
             world.EntityCultureId(entityId) == cultureId;
     }
 
-    private float ScoreEntity(Simulation simulation, int entityId, int slot)
+    private FixedScalar ScoreEntity(Simulation simulation, int entityId, int slot)
     {
-        var score = 0f;
+        var score = FixedScalar.Zero;
         for (var offset = 0; offset < Data.RuleCount(slot); offset++)
         {
             var rule = Data.RuleIndex(slot, offset);
@@ -357,13 +357,13 @@ internal sealed class CultureSlotProgramRuntime :
         return score;
     }
 
-    private float ScoreSignal(Simulation simulation, int entityId, int rule)
+    private FixedScalar ScoreSignal(Simulation simulation, int entityId, int rule)
     {
         var signalCode = Data.RuleSignalCode(rule);
         var world = simulation.World;
         return signalCode switch
         {
-            CultureSlotScoreSignalCodes.ActiveEntity => 1f,
+            CultureSlotScoreSignalCodes.ActiveEntity => 1,
             CultureSlotScoreSignalCodes.OutgoingRelationshipStrength => SumRelationships(
                 world,
                 entityId,
@@ -378,7 +378,7 @@ internal sealed class CultureSlotProgramRuntime :
         };
     }
 
-    private static float ScorePlaneSignal(Simulation simulation, int entityId, int signalCode)
+    private static FixedScalar ScorePlaneSignal(Simulation simulation, int entityId, int signalCode)
     {
         var world = simulation.World;
         return signalCode switch
@@ -391,35 +391,35 @@ internal sealed class CultureSlotProgramRuntime :
             CultureSlotScoreSignalCodes.SemanticCultureSupport => CultureSupportScore(simulation, entityId, PlaneCodes.Semantic),
             CultureSlotScoreSignalCodes.PhysicalInfluenceProduction => InfluenceProductionScore(world, entityId, PlaneCodes.Physical),
             CultureSlotScoreSignalCodes.SemanticInfluenceProduction => InfluenceProductionScore(world, entityId, PlaneCodes.Semantic),
-            _ => 0f,
+            _ => 0,
         };
     }
 
-    private static float CultureSupportScore(Simulation simulation, int entityId, int planeCode)
+    private static FixedScalar CultureSupportScore(Simulation simulation, int entityId, int planeCode)
     {
         var world = simulation.World;
         var cultureId = world.EntityCultureId(entityId);
         if (cultureId <= 0)
         {
-            return 0f;
+            return 0;
         }
 
         var q = planeCode == PlaneCodes.Semantic ? world.EntitySemanticQ(entityId) : world.EntityPhysicalQ(entityId);
         var r = planeCode == PlaneCodes.Semantic ? world.EntitySemanticR(entityId) : world.EntityPhysicalR(entityId);
-        var boundary = simulation.CultureBoundaries.CellAt(world, cultureId, planeCode, q, r);
-        return global::System.MathF.Min(10f, boundary.ConnectedRawMass / CultureSupportScoreScale);
+        var boundary = simulation.CultureLocality.CellAt(world, cultureId, planeCode, q, r);
+        return FixedScalar.Min(10, boundary.ConnectedRawMass / CultureSupportScoreScale);
     }
 
-    private static float InfluenceProductionScore(WorldState world, int entityId, int planeCode)
+    private static FixedScalar InfluenceProductionScore(WorldState world, int entityId, int planeCode)
     {
-        return global::System.MathF.Min(
-            10f,
+        return FixedScalar.Min(
+            10,
             world.EntityInfluenceProduction(entityId, planeCode) / InfluenceProductionScoreScale);
     }
 
-    private static float SumRelationships(WorldState world, int entityId, int relationshipKindId, bool outgoing)
+    private static FixedScalar SumRelationships(WorldState world, int entityId, int relationshipKindId, bool outgoing)
     {
-        var sum = 0f;
+        var sum = FixedScalar.Zero;
         var cursor = outgoing
             ? world.OutgoingRelationshipsOfKind(entityId, relationshipKindId)
             : world.IncomingRelationshipsOfKind(entityId, relationshipKindId);
@@ -431,7 +431,7 @@ internal sealed class CultureSlotProgramRuntime :
         return sum;
     }
 
-    private bool CanDisplace(int slot, float currentScore, float challengerScore, int tick)
+    private bool CanDisplace(int slot, FixedScalar currentScore, FixedScalar challengerScore, int tick)
     {
         var tenure = tick - State.OccupiedAtTick(slot);
         if (tenure < Data.MinimumTenureTicks(slot))
@@ -439,11 +439,11 @@ internal sealed class CultureSlotProgramRuntime :
             return false;
         }
 
-        var required = currentScore * (1f + Data.DisplacementMargin(slot));
+        var required = currentScore * (1 + Data.DisplacementMargin(slot));
         return challengerScore > required;
     }
 
-    private void TryVacate(Simulation simulation, int slot, int currentEntityId, float currentScore, int tick)
+    private void TryVacate(Simulation simulation, int slot, int currentEntityId, FixedScalar currentScore, int tick)
     {
         if (currentEntityId <= 0)
         {
@@ -457,7 +457,7 @@ internal sealed class CultureSlotProgramRuntime :
             return;
         }
 
-        ChangeOccupant(simulation, slot, currentEntityId, 0, currentScore, 0f, tick);
+        ChangeOccupant(simulation, slot, currentEntityId, 0, currentScore, 0, tick);
     }
 
     private void ChangeOccupant(
@@ -465,8 +465,8 @@ internal sealed class CultureSlotProgramRuntime :
         int slot,
         int previousEntityId,
         int currentEntityId,
-        float previousScore,
-        float currentScore,
+        FixedScalar previousScore,
+        FixedScalar currentScore,
         int tick)
     {
         simulation.World.AdvanceWorldVersion();
@@ -516,8 +516,8 @@ internal sealed class CultureSlotProgramRuntime :
             return;
         }
 
-        var cultureDelta = Data.CultureInfluenceMultiplierDelta(slot) * (isOccupied ? 1f : -1f);
-        if (cultureDelta != 0f)
+        var cultureDelta = Data.CultureInfluenceMultiplierDelta(slot) * (isOccupied ? 1 : -1);
+        if (cultureDelta != 0)
         {
             simulation.World.ModifyCultureInfluenceMultiplierDelta(
                 Data.CultureId(slot),

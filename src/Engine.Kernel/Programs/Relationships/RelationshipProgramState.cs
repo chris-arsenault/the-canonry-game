@@ -9,14 +9,14 @@ internal sealed partial class RelationshipProgramState : IKernelProgramState
 
     public RelationshipProgramState(int relationshipCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(relationshipCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(relationshipCapacity);
         _contactTicks = new int[relationshipCapacity + 1];
         _lastContactTicks = new int[relationshipCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.Relationships;
 
-    public int SchemaVersion => 2;
+    public int SchemaVersion => 3;
 
     public int ContactTicks(int relationshipId) => _contactTicks[relationshipId];
 
@@ -40,6 +40,13 @@ internal sealed partial class RelationshipProgramState : IKernelProgramState
         {
             _contactTicks[relationshipId]--;
         }
+    }
+
+    public void Reset(int relationshipId)
+    {
+        EnsureRelationship(relationshipId);
+        _contactTicks[relationshipId] = 0;
+        _lastContactTicks[relationshipId] = 0;
     }
 
     private void EnsureRelationship(int relationshipId)

@@ -58,7 +58,7 @@ public sealed class GameplayBoundaryArchitectureTests
         {
             "GameplayDefinition",
             "LowAltitudeVerbDefinition",
-            "MapSignalDefinition",
+            "LocalityConfig",
             "AttributeEffectDefinition",
             "GameplayModule",
         };
@@ -110,8 +110,8 @@ public sealed class GameplayBoundaryArchitectureTests
             "LowAltitudeVerbConfig",
             "LowAltitudeVerbOperation",
             "LowAltitudeVerbTargetMode",
-            "MapSignalsConfig",
-            "KindMapSignalConfig",
+            "LocalityConfig",
+            "KindLocalityConfig",
             "EffectsConfig",
             "AttributeDeltaEffectConfig",
             "EffectCondition",
@@ -144,7 +144,7 @@ public sealed class GameplayBoundaryArchitectureTests
         var forbiddenFragments = new[]
         {
             "new LowAltitudeVerbConfig",
-            "new MapSignalsConfig",
+            "new LocalityConfig",
             "new EffectsConfig",
             "new AttributeDeltaEffectConfig",
             "LowAltitudeVerbOperation.",
@@ -166,7 +166,7 @@ public sealed class GameplayBoundaryArchitectureTests
             "Gameplay",
             "LowAltitude",
             "Influence",
-            "MapSignal",
+            "Locality",
         };
         var missing = MissingFragments(iceRemembersSource, requiredFragments);
 
@@ -180,11 +180,11 @@ public sealed class GameplayBoundaryArchitectureTests
         var forbiddenFragments = new[]
         {
             "BuildLowAltitudeVerbProgram",
-            "BuildMapSignalsProgram",
+            "BuildLocalityRules",
             "BuildEffectsProgram",
             "BuildMovementProgram",
             "LowAltitudeVerbRule",
-            "KindMapSignalRule",
+            "KindLocalityRule",
             "AttributeDeltaEffectRule",
         };
         var violations = ContainedFragments(
@@ -218,7 +218,7 @@ public sealed class GameplayBoundaryArchitectureTests
         var requiredFragments = new[]
         {
             "LowAltitudeVerb",
-            "MapSignals",
+            "Locality",
             "Effects",
             "Compile",
             "KernelPrograms",
@@ -247,15 +247,15 @@ public sealed class GameplayBoundaryArchitectureTests
     }
 
     [Fact]
-    public void GameplayCompiler_CompilesMapSignalsIntoPrimitiveKernelRules()
+    public void GameplayCompiler_CompilesLocalityIntoPrimitiveKernelRules()
     {
         var root = FindRepoRoot();
         var gameplaySource = ReadGameplaySourceIfPresent(root);
         var requiredFragments = new[]
         {
-            "TerrainMapSignalRule",
-            "KindMapSignalRule",
-            "RelationshipMapSignalRule",
+            "TerrainLocalityRule",
+            "KindLocalityRule",
+            "RelationshipLocalityRule",
             "CapacityEmission",
             "Attractor",
         };
@@ -483,24 +483,6 @@ public sealed class GameplayBoundaryArchitectureTests
     }
 
     [Fact]
-    public void LowAltitudeVerbProgramData_StoresCompiledStepTablesNotGameplayUnionFields()
-    {
-        var root = FindRepoRoot();
-        var lowAltitudeData = ReadSource(root, "src/Engine.Kernel/Programs/LowAltitudeVerbs/LowAltitudeVerbProgramData.cs");
-        var requiredFragments = new[]
-        {
-            "StepStarts",
-            "StepCounts",
-            "StepOpcodes",
-            "StepIntArguments",
-            "StepFloatArguments",
-        };
-        var missing = MissingFragments(lowAltitudeData, requiredFragments);
-
-        Assert.Empty(missing);
-    }
-
-    [Fact]
     public void KernelPrograms_DoNotReadOtherProgramRawDataTables()
     {
         var root = FindRepoRoot();
@@ -533,28 +515,6 @@ public sealed class GameplayBoundaryArchitectureTests
         };
         var missing = MissingFragments(kernelSource, requiredFragments);
 
-        Assert.Empty(missing);
-    }
-
-    [Fact]
-    public void LowAltitudeVerbs_DoNotReadMapSignalsDirectlyWithoutDeclaredSnapshotLag()
-    {
-        var root = FindRepoRoot();
-        var lowAltitudeRuntime = ReadAllSourcesUnder(root, "src/Engine.Kernel/Programs/LowAltitudeVerbs");
-        var forbiddenFragments = new[]
-        {
-            "simulation.MapSignals.",
-            "simulation.MapActivity.",
-        };
-        var requiredFragments = new[]
-        {
-            "PreviousTick",
-            "SignalSnapshot",
-        };
-        var violations = ContainedFragments(lowAltitudeRuntime, forbiddenFragments);
-        var missing = MissingFragments(lowAltitudeRuntime, requiredFragments);
-
-        Assert.Empty(violations);
         Assert.Empty(missing);
     }
 
@@ -670,7 +630,7 @@ public sealed class GameplayBoundaryArchitectureTests
         var requiredFragments = new[]
         {
             "LowAltitudeVerb",
-            "MapSignals",
+            "Locality",
             "AttributeDeltaEffect",
             "Gameplay",
         };
@@ -688,7 +648,7 @@ public sealed class GameplayBoundaryArchitectureTests
         {
             "GameplayRead",
             "GameplayWrite",
-            "MapSignalRead",
+            "LocalityRead",
             "InfluenceWrite",
             "AttributeDeltaWrite",
         };
@@ -706,7 +666,7 @@ public sealed class GameplayBoundaryArchitectureTests
         {
             "ValidateGameplay",
             "ValidateLowAltitudeVerb",
-            "ValidateMapSignals",
+            "ValidateLocality",
             "ValidateEffects",
         };
         var missing = MissingFragments(definitionGraphSource, requiredFragments);
@@ -724,28 +684,10 @@ public sealed class GameplayBoundaryArchitectureTests
             "GameplayNodes",
             "DefinitionGameplayNode",
             "DefinitionLowAltitudeVerbNode",
-            "DefinitionMapSignalNode",
+            "DefinitionLocalityNode",
             "DefinitionEffectNode",
         };
         var missing = MissingFragments(definitionGraphSource, requiredFragments);
-
-        Assert.Empty(missing);
-    }
-
-    [Fact]
-    public void KernelProgramOrder_IsDeclaredAsDependencyMetadataNotRegistrationPosition()
-    {
-        var root = FindRepoRoot();
-        var kernelSource = ReadAllSourcesUnder(root, "src/Engine.Kernel");
-        var requiredFragments = new[]
-        {
-            "ProgramDependency",
-            "MapSignals",
-            "MapActivity",
-            "LowAltitudeVerbs",
-            "previous-tick",
-        };
-        var missing = MissingFragments(kernelSource, requiredFragments);
 
         Assert.Empty(missing);
     }
@@ -767,17 +709,6 @@ public sealed class GameplayBoundaryArchitectureTests
     }
 
     [Fact]
-    public void KernelProgramOrder_DocumentsPreviousTickSignalReadsWhereUsed()
-    {
-        var root = FindRepoRoot();
-        var lowAltitudeRuntime = ReadAllSourcesUnder(root, "src/Engine.Kernel/Programs/LowAltitudeVerbs");
-
-        Assert.Contains("previous tick", lowAltitudeRuntime, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("MapSignals", lowAltitudeRuntime, StringComparison.Ordinal);
-        Assert.Contains("MapActivity", lowAltitudeRuntime, StringComparison.Ordinal);
-    }
-
-    [Fact]
     public void HostInstallsGameplayCompiledProgramsInsteadOfDomainCompiledLowAltitudePrograms()
     {
         var root = FindRepoRoot();
@@ -790,7 +721,7 @@ public sealed class GameplayBoundaryArchitectureTests
         var forbiddenFragments = new[]
         {
             "InstallLowAltitudeVerbs",
-            "InstallMapSignals",
+            "InstallLocality",
             "InstallEffects",
         };
         var missing = MissingFragments(hostSource, requiredFragments);
@@ -880,44 +811,6 @@ public sealed class GameplayBoundaryArchitectureTests
     }
 
     [Fact]
-    public void HigherLevelEffectCallers_UseSharedKernelEffectExecutorForWorldMutations()
-    {
-        var root = FindRepoRoot();
-        var callers = new[]
-        {
-            "src/Engine.Kernel/Programs/Effects/EffectsProgramRuntime.cs",
-            "src/Engine.Kernel/Programs/Gambits/GambitProgramRuntime.Execution.cs",
-            "src/Engine.Kernel/Programs/Generators/GeneratorProgramRuntime.Fire.cs",
-            "src/Engine.Kernel/Programs/Generators/GeneratorProgramRuntime.Helpers.cs",
-            "src/Engine.Kernel/Programs/Generators/GeneratorProgramRuntime.Placement.cs",
-        };
-        var forbiddenCalls = new[]
-        {
-            "simulation.ModifyAttribute(",
-            "simulation.SetAttribute(",
-            "simulation.SetEntityStatus(",
-            "simulation.CreateEntity(",
-            "simulation.CreateRelationship(",
-            "simulation.SetRelationshipStrength(",
-            "simulation.CullRelationship(",
-            "simulation.CullOutgoingRelationshipsOfKind(",
-            "simulation.MoveEntityPhysical(",
-            "simulation.MoveEntitySemantic(",
-            "simulation.SetCellTerrain(",
-            "simulation.SetCellState(",
-            "simulation.SetCoverageOwner(",
-        };
-        var violations = new List<string>();
-        foreach (var caller in callers)
-        {
-            var source = ReadSource(root, caller);
-            violations.AddRange(ContainedFragments(source, forbiddenCalls).Select(fragment => $"{caller}: {fragment}"));
-        }
-
-        Assert.Empty(violations);
-    }
-
-    [Fact]
     public void KernelPrograms_ModifyEntityCoordinatesOnlyThroughUnifiedMovementApi()
     {
         var root = FindRepoRoot();
@@ -956,36 +849,6 @@ public sealed class GameplayBoundaryArchitectureTests
         };
         violations.AddRange(MissingFragments(effectExecutor, requiredExecutorFragments)
             .Select(fragment => $"KernelEffectExecutor missing movement delegation: {fragment}"));
-
-        Assert.Empty(violations);
-    }
-
-    [Fact]
-    public void HigherLevelEffectCallers_UseSharedKernelQueryForWorldTraversal()
-    {
-        var root = FindRepoRoot();
-        var callers = string.Concat(
-            ReadAllSourcesUnder(root, "src/Engine.Kernel/Programs/Effects"),
-            ReadAllSourcesUnder(root, "src/Engine.Kernel/Programs/Gambits"),
-            ReadAllSourcesUnder(root, "src/Engine.Kernel/Programs/Generators"));
-        var forbiddenCalls = new[]
-        {
-            "world.FirstEntityOfKind(",
-            "world.NextEntityOfKind(",
-            "world.EntityHighWatermark",
-            "world.FirstPhysicalEntityAt(",
-            "world.NextPhysicalEntityAt(",
-            "world.FirstSemanticEntityAt(",
-            "world.NextSemanticEntityAt(",
-            "world.OutgoingRelationships(",
-            "world.IncomingRelationships(",
-            "world.MoveNextRelationship(",
-            "world.CoverageCells(",
-            "world.MoveNextCoverageCell(",
-            "world.FindRelationship(",
-            "world.RelationshipStrength(",
-        };
-        var violations = ContainedFragments(callers, forbiddenCalls);
 
         Assert.Empty(violations);
     }

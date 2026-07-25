@@ -2,61 +2,45 @@ namespace Engine.Kernel;
 
 internal static partial class KernelQuery
 {
-    public static void ForEachEntity(WorldState world, global::System.Func<int, bool> visit)
-    {
-        for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
-        {
-            if (!visit(entityId))
-            {
-                return;
-            }
-        }
-    }
-
     public static void ForEachActiveEntity(WorldState world, global::System.Func<int, bool> visit)
     {
-        for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
+        for (var entityId = world.FirstActiveEntity(); entityId > 0;)
         {
-            if (!world.EntityIsActive(entityId))
-            {
-                continue;
-            }
-
+            var nextEntityId = world.NextActiveEntity(entityId);
             if (!visit(entityId))
             {
                 return;
             }
+
+            entityId = nextEntityId;
         }
     }
 
     public static void ForEachEntityOfKind(WorldState world, int kindId, global::System.Func<int, bool> visit)
     {
-        for (var entityId = world.FirstEntityOfKind(kindId);
-             entityId > 0;
-             entityId = world.NextEntityOfKind(entityId))
+        for (var entityId = world.FirstEntityOfKind(kindId); entityId > 0;)
         {
+            var nextEntityId = world.NextEntityOfKind(entityId);
             if (!visit(entityId))
             {
                 return;
             }
+
+            entityId = nextEntityId;
         }
     }
 
     public static void ForEachActiveEntityOfKind(WorldState world, int kindId, global::System.Func<int, bool> visit)
     {
-        for (var entityId = world.FirstEntityOfKind(kindId);
-             entityId > 0;
-             entityId = world.NextEntityOfKind(entityId))
+        for (var entityId = world.FirstEntityOfKind(kindId); entityId > 0;)
         {
-            if (!world.EntityIsActive(entityId))
-            {
-                continue;
-            }
-
+            var nextEntityId = world.NextEntityOfKind(entityId);
             if (!visit(entityId))
             {
                 return;
             }
+
+            entityId = nextEntityId;
         }
     }
 
@@ -107,7 +91,7 @@ internal static partial class KernelQuery
         WorldState world,
         int entityId,
         int relationshipKindId,
-        float minimumStrength,
+        FixedScalar minimumStrength,
         bool outgoing,
         global::System.Func<int, int, bool> visit)
     {
@@ -309,13 +293,11 @@ internal static partial class KernelQuery
 
         result = predicate.Code switch
         {
-            BehaviorPreconditionCodes.CooldownElapsed => binding.RecentActionCount(binding.Tick - predicate.A + 1) == 0,
             BehaviorPreconditionCodes.EntityCountAtLeast => ActiveEntityCountOfKind(world, predicate.A) >= predicate.B,
             BehaviorPreconditionCodes.SelfWorkTierBelow => binding.EntityWorkTier(binding.ActorId) < predicate.A,
             _ => false,
         };
-        return predicate.Code is BehaviorPreconditionCodes.CooldownElapsed or
-            BehaviorPreconditionCodes.EntityCountAtLeast or
+        return predicate.Code is BehaviorPreconditionCodes.EntityCountAtLeast or
             BehaviorPreconditionCodes.SelfWorkTierBelow;
     }
 
@@ -426,8 +408,8 @@ internal static partial class KernelQuery
         WorldState world,
         int entityId,
         int planeCode,
-        float minimumRawMass,
-        float minimumConnectedRawMass)
+        FixedScalar minimumRawMass,
+        FixedScalar minimumConnectedRawMass)
     {
         if (!world.EntityIsActive(entityId))
         {
@@ -490,7 +472,7 @@ internal static partial class KernelQuery
             BehaviorPreconditionCodes.EndpointRelationshipCountBelow;
     }
 
-    public static bool ValueInRange(float value, int hasMin, int hasMax, float min, float max)
+    public static bool ValueInRange(FixedScalar value, int hasMin, int hasMax, FixedScalar min, FixedScalar max)
     {
         if (hasMin != 0 && value < min)
         {
@@ -506,8 +488,8 @@ internal static partial class KernelQuery
         int attributeId,
         int hasMin,
         int hasMax,
-        float min,
-        float max) =>
+        FixedScalar min,
+        FixedScalar max) =>
         ValueInRange(world.GetAttribute(entityId, attributeId), hasMin, hasMax, min, max);
 
     public static int ActiveEntityCountOfKind(WorldState world, int kindId)
@@ -517,10 +499,7 @@ internal static partial class KernelQuery
              entityId > 0;
              entityId = world.NextEntityOfKind(entityId))
         {
-            if (world.EntityIsActive(entityId))
-            {
-                count++;
-            }
+            count++;
         }
 
         return count;
@@ -626,7 +605,7 @@ internal static partial class KernelQuery
         int targetId,
         int relationshipKindId,
         int hasMinimumStrength,
-        float minimumStrength)
+        FixedScalar minimumStrength)
     {
         var relationshipId = world.FindRelationship(sourceId, targetId, relationshipKindId);
         return relationshipId > 0 &&
@@ -638,7 +617,7 @@ internal static partial class KernelQuery
         int entityId,
         int relationshipKindId,
         int hasMinimumStrength,
-        float minimumStrength)
+        FixedScalar minimumStrength)
     {
         var cursor = world.OutgoingRelationshipsOfKind(entityId, relationshipKindId);
         while (world.MoveNextRelationship(ref cursor, out var relationshipId))
@@ -657,7 +636,7 @@ internal static partial class KernelQuery
         int entityId,
         int relationshipKindId,
         bool outgoing,
-        float minimumStrength = 0f)
+        FixedScalar minimumStrength = default)
     {
         var found = false;
         ForEachRelatedEndpoint(
@@ -678,7 +657,7 @@ internal static partial class KernelQuery
         WorldState world,
         int entityId,
         int[] relationshipKindIds,
-        float[] relationshipMinimumStrengths,
+        FixedScalar[] relationshipMinimumStrengths,
         int start,
         int count,
         bool outgoing)
@@ -724,7 +703,7 @@ internal static partial class KernelQuery
         WorldState world,
         int entityId,
         int[] relationshipKindIds,
-        float[] relationshipMinimumStrengths,
+        FixedScalar[] relationshipMinimumStrengths,
         int start,
         int count)
     {
@@ -754,7 +733,7 @@ internal static partial class KernelQuery
             world,
             entityId,
             relationshipKindId,
-            minimumStrength: 0f,
+            minimumStrength: 0,
             outgoing,
             (_, _) =>
             {
@@ -764,14 +743,14 @@ internal static partial class KernelQuery
         return count;
     }
 
-    public static float BestRelationshipStrengthBetween(
+    public static FixedScalar BestRelationshipStrengthBetween(
         WorldState world,
         int entityId,
         int targetEntityId,
         int relationshipKindId,
         int directionCode)
     {
-        var best = 0f;
+        var best = FixedScalar.Zero;
         if (directionCode is LowAltitudeVerbRelationshipDirectionCodes.Outgoing
             or LowAltitudeVerbRelationshipDirectionCodes.Either)
         {
@@ -796,7 +775,7 @@ internal static partial class KernelQuery
         int targetId,
         int relationshipKindId,
         int hasMinimumStrength,
-        float minimumStrength,
+        FixedScalar minimumStrength,
         out int relationshipId)
     {
         relationshipId = 0;
@@ -816,7 +795,7 @@ internal static partial class KernelQuery
         return true;
     }
 
-    public static float RelationshipStrength(WorldState world, int relationshipId) =>
+    public static FixedScalar RelationshipStrength(WorldState world, int relationshipId) =>
         world.RelationshipStrength(relationshipId);
 
     public static bool TryFirstRelationshipOfKind(
@@ -824,7 +803,7 @@ internal static partial class KernelQuery
         int entityId,
         int relationshipKindId,
         bool outgoing,
-        float minimumStrength,
+        FixedScalar minimumStrength,
         out int relationshipId)
     {
         relationshipId = 0;
@@ -853,7 +832,7 @@ internal static partial class KernelQuery
         int endpointId,
         int relationshipKindId,
         int hasMinimumStrength,
-        float minimumStrength)
+        FixedScalar minimumStrength)
     {
         var count = 0;
         var outgoing = world.OutgoingRelationshipsOfKind(endpointId, relationshipKindId);
@@ -894,8 +873,8 @@ internal static partial class KernelQuery
         int entityId,
         int targetId,
         int planeCode,
-        float selfMinimum,
-        float targetMinimum)
+        FixedScalar selfMinimum,
+        FixedScalar targetMinimum)
     {
         var selfCultureId = world.EntityCultureId(entityId);
         var targetCultureId = world.EntityCultureId(targetId);
@@ -917,39 +896,39 @@ internal static partial class KernelQuery
         return selfAtTarget >= selfMinimum && targetAtSelf >= targetMinimum;
     }
 
-    public static float ThresholdEvidence(float value, float threshold)
+    public static FixedScalar ThresholdEvidence(FixedScalar value, FixedScalar threshold)
     {
-        if (threshold <= 0f)
+        if (threshold <= 0)
         {
-            return value > 0f ? 1f : 0f;
+            return value > 0 ? 1 : 0;
         }
 
         return Clamp01(value / threshold);
     }
 
-    public static float DistanceEvidence(int distance, int maxDistance)
+    public static FixedScalar DistanceEvidence(int distance, int maxDistance)
     {
         if (maxDistance <= 0)
         {
-            return distance == 0 ? 1f : 0f;
+            return distance == 0 ? 1 : 0;
         }
 
         if (distance > maxDistance)
         {
-            return 0f;
+            return 0;
         }
 
-        return 1f - (distance / (float)(maxDistance + 1));
+        return 1 - (distance / (FixedScalar)(maxDistance + 1));
     }
 
-    public static float Clamp01(float value)
+    public static FixedScalar Clamp01(FixedScalar value)
     {
-        if (value < 0f)
+        if (value < 0)
         {
-            return 0f;
+            return 0;
         }
 
-        return value > 1f ? 1f : value;
+        return value > 1 ? 1 : value;
     }
 
     private static int SemanticDistance(WorldState world, int sourceId, int targetId)
@@ -964,7 +943,7 @@ internal static partial class KernelQuery
         WorldState world,
         int relationshipId,
         int hasMinimumStrength,
-        float minimumStrength) =>
+        FixedScalar minimumStrength) =>
         hasMinimumStrength == 0 || world.RelationshipStrength(relationshipId) >= minimumStrength;
 
     private static bool OutgoingRelationshipToCounterpartExists(
@@ -973,7 +952,7 @@ internal static partial class KernelQuery
         int counterpartId,
         int relationshipKindId,
         int hasMinimumStrength,
-        float minimumStrength)
+        FixedScalar minimumStrength)
     {
         var outgoing = world.OutgoingRelationshipsOfKind(endpointId, relationshipKindId);
         while (world.MoveNextRelationship(ref outgoing, out var relationshipId))
@@ -988,10 +967,10 @@ internal static partial class KernelQuery
         return false;
     }
 
-    private static float RelationshipStrengthBetween(WorldState world, int sourceId, int targetId, int relationshipKindId)
+    private static FixedScalar RelationshipStrengthBetween(WorldState world, int sourceId, int targetId, int relationshipKindId)
     {
         var relationshipId = FindRelationship(world, sourceId, targetId, relationshipKindId);
-        return relationshipId == 0 ? 0f : RelationshipStrength(world, relationshipId);
+        return relationshipId == 0 ? 0 : RelationshipStrength(world, relationshipId);
     }
 
     internal static bool SharedQueryMatchesCandidate(
@@ -1108,5 +1087,5 @@ internal static partial class KernelQuery
 
     private static int Min(int left, int right) => left <= right ? left : right;
 
-    private static float Max(float left, float right) => left >= right ? left : right;
+    private static FixedScalar Max(FixedScalar left, FixedScalar right) => left >= right ? left : right;
 }

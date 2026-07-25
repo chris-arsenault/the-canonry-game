@@ -22,19 +22,19 @@ public sealed class EntityTagTests
             TerrifiedTagId,
             PreysOnKindId,
             RelationshipMatchDirectionCodes.Incoming,
-            setAtOrAbove: 0.6f,
-            clearBelow: 0.3f);
+            setAtOrAbove: FixedScalar.FromSingle(0.6f),
+            clearBelow: FixedScalar.FromSingle(0.3f));
 
-        var predation = simulation.CreateRelationship(PreysOnKindId, 0, raider, settlement, 0.8f, tick: 0);
+        var predation = simulation.CreateRelationship(PreysOnKindId, 0, raider, settlement, FixedScalar.FromSingle(0.8f), tick: 0);
         simulation.AdvanceTicks(1);
         Assert.True(simulation.World.EntityHasTag(settlement, TerrifiedTagId));
 
         // Between clear and set thresholds: hysteresis holds the tag.
-        simulation.SetRelationshipStrength(predation, 0.45f, tick: 1);
+        simulation.SetRelationshipStrength(predation, FixedScalar.FromSingle(0.45f), tick: 1);
         simulation.AdvanceTicks(1);
         Assert.True(simulation.World.EntityHasTag(settlement, TerrifiedTagId));
 
-        simulation.SetRelationshipStrength(predation, 0.1f, tick: 2);
+        simulation.SetRelationshipStrength(predation, FixedScalar.FromSingle(0.1f), tick: 2);
         simulation.AdvanceTicks(1);
         Assert.False(simulation.World.EntityHasTag(settlement, TerrifiedTagId));
     }
@@ -78,7 +78,7 @@ public sealed class EntityTagTests
             semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
-            createChance: 1f,
+            createChance: FixedScalar.FromSingle(1f),
             coverageModeCode: GeneratorCoverageModeCodes.None,
             coverageSourceRefCode: 0,
             coverageDesiredCellCount: 0,

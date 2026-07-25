@@ -41,8 +41,8 @@ internal static class AbilityEntity
                 "Threat and repeated stress erode this ability's clarity.",
                 TraitMapDelta(K.Ability, Attr.Clarity, Effect.MapThreatAtLocation, -0.025f, 3f, PrimaryPlane.Semantic)),
         ],
-        MapSignal = MapSignal(radius: 1, capacity: 0.2f, support: 0.3f, threat: 0f,
-            baseMass: 3f, coverageScale: 0f, influenceScale: 0.02f, activityScale: 0.02f,
+        Locality = Locality(radius: 1, capacity: 0.2f, support: 0.3f, threat: 0f,
+            baseMass: 3f, coverageScale: 0f, influenceScale: 0.02f,
             healthScale: 0.03f, attractorRadius: 1),
         MovementProfiles = MovementProfiles(
             physicalDefault: Profile.Trail,

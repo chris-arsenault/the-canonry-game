@@ -155,5 +155,5 @@ internal sealed class LowAltitudeVerbShape
         PrimitiveSteps = [Step(ProgramOpcodeCodes.AdjustRelationshipStrength)],
     };
 
-    private static CompiledProgramStep Step(int opcode) => new(opcode, 0, 0f);
+    private static CompiledProgramStep Step(int opcode) => new(opcode, 0, FixedScalar.Zero);
 }

@@ -23,7 +23,7 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
     internal int[] ArchetypeBeatCounts = [];
     internal int[] ArchetypePrimaryKindIds = [];
     internal int[] ArchetypePrimaryRequiredRelKindIds = [];
-    internal float[] ArchetypePrimaryRequiredRelMinStrengths = [];
+    internal FixedScalar[] ArchetypePrimaryRequiredRelMinStrengths = [];
     internal int[] ArchetypeFadeOutcomeCodeIds = [];
     internal int[] ArchetypeFadeGraceTicks = [];
     internal int[] ArchetypeFadeQuietTicks = [];
@@ -32,18 +32,18 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
     internal int[] RoleKindIds = [];
     internal int[] RoleRelatedKindIds = [];
     internal int[] RoleRelatedIncoming = [];
-    internal float[] RoleRelatedMinStrengths = [];
+    internal FixedScalar[] RoleRelatedMinStrengths = [];
     internal int[] RoleOpen = [];
 
     // Beats (flat).
     internal int[] BeatCodeIds = [];
-    internal float[] BeatHeatGains = [];
+    internal FixedScalar[] BeatHeatGains = [];
     internal int[] BeatTerminalOutcomeCodeIds = [];
     internal int[] BeatOpenKinds = [];
     internal int[] BeatOpenRoleA = [];
     internal int[] BeatOpenRoleB = [];
     internal int[] BeatOpenRelOrAttrIds = [];
-    internal float[] BeatOpenValues = [];
+    internal FixedScalar[] BeatOpenValues = [];
     internal int[] BeatStrikeKinds = [];
     internal int[] BeatStrikeActorRoles = [];
     internal int[] BeatStrikeTargetRoles = [];
@@ -53,7 +53,7 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
     internal int[] BeatStrikeFactRoleA = [];
     internal int[] BeatStrikeFactRoleB = [];
     internal int[] BeatStrikeFactRelOrAttrIds = [];
-    internal float[] BeatStrikeFactValues = [];
+    internal FixedScalar[] BeatStrikeFactValues = [];
     internal int[] BeatJoinRoles = [];
     internal int[] BeatChargeStarts = [];
     internal int[] BeatChargeCounts = [];
@@ -64,8 +64,8 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
     internal int[] ChargeActorRoles = [];
     internal int[] ChargeTargetRoles = [];
     internal int[] ChargeGambitIds = [];
-    internal float[] ChargeScoreBonuses = [];
-    internal float[] ChargeSuccessBonuses = [];
+    internal FixedScalar[] ChargeScoreBonuses = [];
+    internal FixedScalar[] ChargeSuccessBonuses = [];
     internal int[] ChargeHeatScaled = [];
 
     // Grant rows (flat): chronicle-granted gambits available while the beat is open.
@@ -97,7 +97,7 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
         ArchetypeBeatCounts = new int[archetypeCapacity + 1];
         ArchetypePrimaryKindIds = new int[archetypeCapacity + 1];
         ArchetypePrimaryRequiredRelKindIds = new int[archetypeCapacity + 1];
-        ArchetypePrimaryRequiredRelMinStrengths = new float[archetypeCapacity + 1];
+        ArchetypePrimaryRequiredRelMinStrengths = new FixedScalar[archetypeCapacity + 1];
         ArchetypeFadeOutcomeCodeIds = new int[archetypeCapacity + 1];
         ArchetypeFadeGraceTicks = new int[archetypeCapacity + 1];
         ArchetypeFadeQuietTicks = new int[archetypeCapacity + 1];
@@ -108,20 +108,20 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
         RoleKindIds = new int[itemCapacity + 1];
         RoleRelatedKindIds = new int[itemCapacity + 1];
         RoleRelatedIncoming = new int[itemCapacity + 1];
-        RoleRelatedMinStrengths = new float[itemCapacity + 1];
+        RoleRelatedMinStrengths = new FixedScalar[itemCapacity + 1];
         RoleOpen = new int[itemCapacity + 1];
     }
 
     private void AllocateBeats(int itemCapacity)
     {
         BeatCodeIds = new int[itemCapacity + 1];
-        BeatHeatGains = new float[itemCapacity + 1];
+        BeatHeatGains = new FixedScalar[itemCapacity + 1];
         BeatTerminalOutcomeCodeIds = new int[itemCapacity + 1];
         BeatOpenKinds = new int[itemCapacity + 1];
         BeatOpenRoleA = new int[itemCapacity + 1];
         BeatOpenRoleB = new int[itemCapacity + 1];
         BeatOpenRelOrAttrIds = new int[itemCapacity + 1];
-        BeatOpenValues = new float[itemCapacity + 1];
+        BeatOpenValues = new FixedScalar[itemCapacity + 1];
         BeatStrikeKinds = new int[itemCapacity + 1];
         BeatStrikeActorRoles = new int[itemCapacity + 1];
         BeatStrikeTargetRoles = new int[itemCapacity + 1];
@@ -131,7 +131,7 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
         BeatStrikeFactRoleA = new int[itemCapacity + 1];
         BeatStrikeFactRoleB = new int[itemCapacity + 1];
         BeatStrikeFactRelOrAttrIds = new int[itemCapacity + 1];
-        BeatStrikeFactValues = new float[itemCapacity + 1];
+        BeatStrikeFactValues = new FixedScalar[itemCapacity + 1];
         BeatJoinRoles = new int[itemCapacity + 1];
         BeatChargeStarts = new int[itemCapacity + 1];
         BeatChargeCounts = new int[itemCapacity + 1];
@@ -144,8 +144,8 @@ internal sealed partial class ChronicleProgramData : IKernelProgramData
         ChargeActorRoles = new int[itemCapacity + 1];
         ChargeTargetRoles = new int[itemCapacity + 1];
         ChargeGambitIds = new int[itemCapacity + 1];
-        ChargeScoreBonuses = new float[itemCapacity + 1];
-        ChargeSuccessBonuses = new float[itemCapacity + 1];
+        ChargeScoreBonuses = new FixedScalar[itemCapacity + 1];
+        ChargeSuccessBonuses = new FixedScalar[itemCapacity + 1];
         ChargeHeatScaled = new int[itemCapacity + 1];
         GrantRoles = new int[itemCapacity + 1];
         GrantGambitIds = new int[itemCapacity + 1];

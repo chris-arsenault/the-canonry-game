@@ -151,9 +151,16 @@ public sealed class SetSelfHistoricalMutation : IMutation
 /// district: its tile joins the target's coverage, its registered subtype
 /// bonus becomes durable district state, and the artifact goes historical
 /// (docs/design/artifact-districts.md).</summary>
-public sealed class InstallDistrictMutation : IMutation
+public sealed class InstallDistrictMutation(
+    string reawakenedRelationshipKind,
+    RelationshipPolarity reawakenedRelationshipPolarity,
+    float reawakenedRelationshipStrength) : IMutation
 {
-    public string Describe() => "install_district";
+    public string ReawakenedRelationshipKind { get; } = reawakenedRelationshipKind;
+    public RelationshipPolarity ReawakenedRelationshipPolarity { get; } = reawakenedRelationshipPolarity;
+    public float ReawakenedRelationshipStrength { get; } = reawakenedRelationshipStrength;
+
+    public string Describe() => $"install_district(reawakened_relationship={ReawakenedRelationshipKind})";
 }
 
 /// <summary>Steps the acting entity down one stage — the hard-times half of
@@ -169,9 +176,8 @@ public sealed class DemoteTargetStageMutation : IMutation
     public string Describe() => "demote_target_stage";
 }
 
-/// <summary>The acting settlement reawakens its newest sleeping district
-/// core: the artifact returns to active on its tile and the district bonus
-/// ends. The tile remains the settlement's ground.</summary>
+/// <summary>The acting settlement consumes its newest district template and
+/// creates a fresh artifact occurrence with a new host relationship.</summary>
 public sealed class ReawakenDistrictMutation : IMutation
 {
     public string Describe() => "reawaken_district";

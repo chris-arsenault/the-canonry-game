@@ -1,37 +1,30 @@
-# System 22: Map Signals
+# System 22: Locality Queries
 
-Map signals are per-tick spatial summaries of where entities act, computed by
-the `MapSignals` kernel program during the low-altitude physics rewrite. They
-answer "what does this location feel like right now" without any consumer
-having to traverse the entity graph.
+Locality is the direct, bounded view of what a location supports right now.
+There is no `MapActivity` or `MapSignals` tick program and no second
+materialized spatial world.
 
-## The five fields
+## Current facts
 
-- **Support** — friendly presence pressure: nearby same-culture activity,
-  allies, sheltering structures.
-- **Threat** — hostile activity pressure: nearby negative-polarity
-  relationships and hostile entities acting.
-- **Crowding** — how many actors are pressing on the same cells.
-- **Capacity** — how much activity a location can sustain (terrain- and
-  crowding-derived).
-- **Attractors** — pull for movement and placement toward interesting
-  locations.
+- **Occupancy** counts active entities at the queried cell.
+- **Crowding** compares bounded local occupancy with current capacity.
+- **Capacity** combines terrain/geography, nearby kind rules, owned coverage,
+  culture maturity, and knowledge modifiers.
+- **Support and threat** combine nearby kind rules, incident active
+  relationships, current culture pressure, and owned coverage.
+- **Attractor mass** combines authored kind mass, current attributes, coverage,
+  culture maturity, chronicle heat, support, and threat.
 
-Both planes have all five fields. The domain tunes the weights in
-`CreateMapSignals()` (`MapSignalsConfig`).
+Both physical and semantic consumers use the same direct-query model. Authored
+weights live in `LocalityConfig` and compile to primitive `LocalityRules`.
 
-## Ordering and consumers
+## Consumer rule
 
-`MapSignals` reads same-tick map activity and writes its fields; consumers
-read on a declared lag so same-tick ordering cannot create feedback loops:
+Consumers ask only at the cell or entity they are already evaluating.
+Low-altitude verbs, effects, generator placement, frontier work, culture slots,
+and minor actors do not request a whole-map refresh.
 
-- `LowAltitudeVerbs` reads the *previous* tick's signals in verb weighting
-  (an entity under threat weighs flight and defensive verbs differently).
-- `Effects` reads same-tick signals through the `MapSupportAtLocation`,
-  `MapThreatAtLocation`, and crowding effect conditions (attribute drains and
-  shelter bonuses keyed on local pressure).
-
-Nothing else consumes signals today. Generator targeting, placement, and the
-culture systems do not read them. Before adding a new consumer, prefer the
-question "should this read the culture field instead?" — culture mass is the
-durable spatial memory; signals are the fast-decaying present tense.
+Historical visit heat and previous-tick signal lag are intentionally absent.
+If a mechanic needs durable memory, it must own a specific durable fact such as
+culture mass, road quality, coverage, relationship strength, or chronicle
+heat—not recreate a generic global activity field.

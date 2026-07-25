@@ -23,16 +23,21 @@ Minor actors are not:
 - chronicle event sources;
 - a hidden population/economy simulation.
 
-## Cadence
+## Cadence and Storage
 
-The `MinorActors` program runs every simulation tick. The main graph programs
-run on `MinorActorMainTickRatio`, currently `5`, so minor actors can provide
-more frequent low-impact labor without increasing generator/gambit/entity
-cadence.
+The simulation advances one world pulse at a time. `MinorActors` alone runs
+`MinorActorSubstepsPerPulse`, currently `5`, inside that pulse, so workers can
+provide frequent low-impact labor without repeating generator, gambit,
+relationship, or entity-resolution work.
 
 Emitter and action cadence are authored per source rule. Current Ice Remembers
 workers act every minor-actor pulse while alive; source emission cadence,
 worker TTL, work delta, and active-worker cap are configured by the domain.
+
+Workers remain individual. Their fields live in direct slot arrays, active
+slots are dense and reusable, and a deterministic due heap visits only workers
+whose next action or expiration is due. Per-source counts, emission deadlines,
+and work tiers use direct source/rule slots rather than hash tables.
 
 ## Source Rules
 

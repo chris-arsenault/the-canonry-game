@@ -12,13 +12,13 @@ public sealed record CultureSlotRuntimeRule(
     int PolarityCode,
     IReadOnlyList<int> AllowedKindIds,
     IReadOnlyList<CultureSlotScoreRuntimeRule> ScoreRules,
-    float MinimumScore,
+    FixedScalar MinimumScore,
     int MinimumTenureTicks,
-    float DisplacementMargin,
-    float EntityInfluenceMultiplierDelta,
-    float CultureInfluenceMultiplierDelta);
+    FixedScalar DisplacementMargin,
+    FixedScalar EntityInfluenceMultiplierDelta,
+    FixedScalar CultureInfluenceMultiplierDelta);
 
 public sealed record CultureSlotScoreRuntimeRule(
     int SignalCode,
     int RelationshipKindId,
-    float Weight);
+    FixedScalar Weight);

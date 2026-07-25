@@ -57,23 +57,23 @@ public static class DefinitionGraphBuilder
             {
                 Id = $"LowAltitudeVerb:{verb.Id}",
                 SourceConfig = verb,
-                Reads = [new MapSignalRead($"{verb.Kind}:{verb.TargetMode}")],
+                Reads = [new LocalityRead($"{verb.Kind}:{verb.TargetMode}")],
                 Writes = verb.Operation == LowAltitudeVerbOperation.Move
                     ? [new InfluenceWrite($"{verb.Kind}:movement-intent")]
                     : [new InfluenceWrite($"{verb.Kind}:{verb.Operation}")],
             });
         }
 
-        if (gameplay.MapSignals.Kinds.Count > 0 ||
-            gameplay.MapSignals.Terrains.Count > 0 ||
-            gameplay.MapSignals.Relationships.Count > 0)
+        if (gameplay.Locality.Kinds.Count > 0 ||
+            gameplay.Locality.Terrains.Count > 0 ||
+            gameplay.Locality.Relationships.Count > 0)
         {
-            nodes.Add(new DefinitionMapSignalNode
+            nodes.Add(new DefinitionLocalityNode
             {
-                Id = "MapSignals",
-                Source = "MapSignals",
-                Reads = [new MapSignalRead("map-activity"), new MapSignalRead("relationships")],
-                Writes = [new InfluenceWrite("map-signals")],
+                Id = "Locality",
+                Source = "Locality",
+                Reads = [new LocalityRead("occupancy"), new LocalityRead("relationships")],
+                Writes = [new InfluenceWrite("locality-facts")],
             });
         }
 
@@ -83,7 +83,7 @@ public static class DefinitionGraphBuilder
             {
                 Id = $"AttributeDeltaEffect:{effect.Kind}:{effect.Attribute}:{effect.Condition}",
                 SourceConfig = effect,
-                Reads = [new MapSignalRead($"{effect.Kind}:{effect.Condition}")],
+                Reads = [new LocalityRead($"{effect.Kind}:{effect.Condition}")],
                 Writes = [new AttributeDeltaWrite($"{effect.Kind}:{effect.Attribute}")],
             });
         }

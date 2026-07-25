@@ -28,7 +28,7 @@ public sealed class KernelQueryTests
             RelationshipPolarityCodes.Negative,
             blocked,
             target,
-            strength: 1f,
+            strength: FixedScalar.FromSingle(1f),
             tick: 0);
 
         var query = new SharedQuery(
@@ -72,7 +72,7 @@ public sealed class KernelQueryTests
             RelationshipPolarityCodes.Positive,
             actor,
             target,
-            strength: 0.75f,
+            strength: FixedScalar.FromSingle(0.75f),
             tick: 0);
         var binding = new QueryBinding(actor, target);
 
@@ -82,7 +82,7 @@ public sealed class KernelQueryTests
                 BehaviorPreconditionCodes.SelfHasRelationshipToTarget,
                 relationshipKindId,
                 b: 1,
-                x: 0.5f),
+                x: FixedScalar.FromSingle(0.5f)),
             binding);
 
         Assert.True(passes);

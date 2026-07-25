@@ -26,7 +26,7 @@ internal readonly record struct BlessCellCultureKernelCommand(
     int Q,
     int R,
     int Radius,
-    float Amount,
+    FixedScalar Amount,
     int SubmitterId = 0,
     int SubmitterSequence = 0);
 
@@ -34,7 +34,7 @@ internal readonly record struct FavorEntityKernelCommand(
     int IssueVersion,
     int EntityId,
     int DurationTicks,
-    float MultiplierDelta,
+    FixedScalar MultiplierDelta,
     int SubmitterId = 0,
     int SubmitterSequence = 0);
 
@@ -50,8 +50,8 @@ internal readonly partial record struct KernelCommand
     private readonly int _h;
     private readonly int _i;
     private readonly int _j;
-    private readonly float _x;
-    private readonly float _y;
+    private readonly FixedScalar _x;
+    private readonly FixedScalar _y;
 
     public KernelCommand(
         int commandType,
@@ -68,8 +68,8 @@ internal readonly partial record struct KernelCommand
         int h = 0,
         int i = 0,
         int j = 0,
-        float x = 0f,
-        float y = 0f)
+        FixedScalar x = default,
+        FixedScalar y = default)
     {
         CommandType = commandType;
         CommandId = 0;
@@ -106,8 +106,8 @@ internal readonly partial record struct KernelCommand
         int h,
         int i,
         int j,
-        float x,
-        float y)
+        FixedScalar x,
+        FixedScalar y)
     {
         CommandType = commandType;
         CommandId = commandId;
@@ -129,7 +129,7 @@ internal readonly partial record struct KernelCommand
     }
 
     public const int IntSlotCount = 10;
-    public const int FloatSlotCount = 2;
+    public const int ScalarSlotCount = 2;
 
     public int CommandType { get; }
     public int CommandId { get; }
@@ -159,8 +159,8 @@ internal readonly partial record struct KernelCommand
 
     public int GetIntSlot(int slot)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(slot);
-        global::System.ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(slot, IntSlotCount);
+        NumericGuard.ThrowIfNegative(slot);
+        NumericGuard.ThrowIfGreaterThanOrEqual(slot, IntSlotCount);
         return slot < 5 ? GetLowIntSlot(slot) : GetHighIntSlot(slot);
     }
 
@@ -186,15 +186,15 @@ internal readonly partial record struct KernelCommand
             _ => 0,
         };
 
-    public float GetFloatSlot(int slot)
+    public FixedScalar GetScalarSlot(int slot)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(slot);
-        global::System.ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(slot, FloatSlotCount);
+        NumericGuard.ThrowIfNegative(slot);
+        NumericGuard.ThrowIfGreaterThanOrEqual(slot, ScalarSlotCount);
         return slot switch
         {
             0 => _x,
             1 => _y,
-            _ => 0f,
+            _ => 0,
         };
     }
 }

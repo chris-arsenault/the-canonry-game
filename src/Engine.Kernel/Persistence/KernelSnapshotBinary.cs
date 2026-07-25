@@ -4,16 +4,18 @@ internal static class KernelSnapshotBinary
 {
     private const int TypeInt = 1;
     private const int TypeLong = 2;
-    private const int TypeFloat = 3;
+    private const int TypeFixedScalar = 3;
     private const int TypeBool = 4;
     private const int TypeUint = 5;
     private const int TypeIntArray = 6;
-    private const int TypeFloatArray = 7;
+    private const int TypeFixedScalarArray = 7;
     private const int TypeBoolArray = 8;
     private const int TypeIntTable = 9;
-    private const int TypeFloatTable = 10;
+    private const int TypeScalarTable = 10;
     private const int TypeSpatialLayerIndex = 11;
     private const int TypeMapLayerSet = 12;
+    private const int TypeLongArray = 13;
+    private const int TypeLongTable = 14;
 
     public static void WriteObject(global::System.IO.BinaryWriter writer, object target)
     {
@@ -62,9 +64,9 @@ internal static class KernelSnapshotBinary
             return true;
         }
 
-        if (code == TypeFloat)
+        if (code == TypeFixedScalar)
         {
-            writer.Write((float)value);
+            writer.Write(((FixedScalar)value).Units);
             return true;
         }
 
@@ -94,9 +96,15 @@ internal static class KernelSnapshotBinary
             return true;
         }
 
-        if (code == TypeFloatArray)
+        if (code == TypeFixedScalarArray)
         {
-            Write(writer, (float[])value);
+            Write(writer, (FixedScalar[])value);
+            return true;
+        }
+
+        if (code == TypeLongArray)
+        {
+            Write(writer, (long[])value);
             return true;
         }
 
@@ -120,9 +128,15 @@ internal static class KernelSnapshotBinary
             return true;
         }
 
-        if (code == TypeFloatTable)
+        if (code == TypeLongTable)
         {
-            ((PrimitiveFloatTable)value).WriteSnapshot(writer);
+            ((PrimitiveLongTable)value).WriteSnapshot(writer);
+            return true;
+        }
+
+        if (code == TypeScalarTable)
+        {
+            ((PrimitiveScalarTable)value).WriteSnapshot(writer);
             return true;
         }
 
@@ -198,9 +212,9 @@ internal static class KernelSnapshotBinary
             return true;
         }
 
-        if (code == TypeFloat)
+        if (code == TypeFixedScalar)
         {
-            field.SetValue(target, reader.ReadSingle());
+            field.SetValue(target, FixedScalar.FromUnits(reader.ReadInt64()));
             return true;
         }
 
@@ -231,9 +245,15 @@ internal static class KernelSnapshotBinary
             return true;
         }
 
-        if (code == TypeFloatArray)
+        if (code == TypeFixedScalarArray)
         {
-            Read(reader, (float[])field.GetValue(target)!);
+            Read(reader, (FixedScalar[])field.GetValue(target)!);
+            return true;
+        }
+
+        if (code == TypeLongArray)
+        {
+            Read(reader, (long[])field.GetValue(target)!);
             return true;
         }
 
@@ -258,9 +278,15 @@ internal static class KernelSnapshotBinary
             return true;
         }
 
-        if (code == TypeFloatTable)
+        if (code == TypeLongTable)
         {
-            ((PrimitiveFloatTable)field.GetValue(target)!).ReadSnapshot(reader);
+            ((PrimitiveLongTable)field.GetValue(target)!).ReadSnapshot(reader);
+            return true;
+        }
+
+        if (code == TypeScalarTable)
+        {
+            ((PrimitiveScalarTable)field.GetValue(target)!).ReadSnapshot(reader);
             return true;
         }
 
@@ -301,7 +327,7 @@ internal static class KernelSnapshotBinary
         }
     }
 
-    public static void Write(global::System.IO.BinaryWriter writer, float[] values)
+    public static void Write(global::System.IO.BinaryWriter writer, long[] values)
     {
         writer.Write(values.Length);
         for (var i = 0; i < values.Length; i++)
@@ -310,7 +336,7 @@ internal static class KernelSnapshotBinary
         }
     }
 
-    public static void Read(global::System.IO.BinaryReader reader, float[] values)
+    public static void Read(global::System.IO.BinaryReader reader, long[] values)
     {
         if (reader.ReadInt32() != values.Length)
         {
@@ -319,7 +345,29 @@ internal static class KernelSnapshotBinary
 
         for (var i = 0; i < values.Length; i++)
         {
-            values[i] = reader.ReadSingle();
+            values[i] = reader.ReadInt64();
+        }
+    }
+
+    public static void Write(global::System.IO.BinaryWriter writer, FixedScalar[] values)
+    {
+        writer.Write(values.Length);
+        for (var i = 0; i < values.Length; i++)
+        {
+            writer.Write(values[i].Units);
+        }
+    }
+
+    public static void Read(global::System.IO.BinaryReader reader, FixedScalar[] values)
+    {
+        if (reader.ReadInt32() != values.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        for (var i = 0; i < values.Length; i++)
+        {
+            values[i] = FixedScalar.FromUnits(reader.ReadInt64());
         }
     }
 
@@ -413,9 +461,9 @@ internal static class KernelSnapshotBinary
             return TypeLong;
         }
 
-        if (type == typeof(float))
+        if (type == typeof(FixedScalar))
         {
-            return TypeFloat;
+            return TypeFixedScalar;
         }
 
         if (type == typeof(bool))
@@ -438,9 +486,14 @@ internal static class KernelSnapshotBinary
             return TypeIntArray;
         }
 
-        if (type == typeof(float[]))
+        if (type == typeof(FixedScalar[]))
         {
-            return TypeFloatArray;
+            return TypeFixedScalarArray;
+        }
+
+        if (type == typeof(long[]))
+        {
+            return TypeLongArray;
         }
 
         if (type == typeof(bool[]))
@@ -458,9 +511,14 @@ internal static class KernelSnapshotBinary
             return TypeIntTable;
         }
 
-        if (type == typeof(PrimitiveFloatTable))
+        if (type == typeof(PrimitiveLongTable))
         {
-            return TypeFloatTable;
+            return TypeLongTable;
+        }
+
+        if (type == typeof(PrimitiveScalarTable))
+        {
+            return TypeScalarTable;
         }
 
         if (type == typeof(SpatialLayerIndex))

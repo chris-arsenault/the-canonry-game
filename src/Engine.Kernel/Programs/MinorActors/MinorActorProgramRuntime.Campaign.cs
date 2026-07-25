@@ -65,9 +65,9 @@ internal sealed partial class MinorActorProgramRuntime
         var distance = (global::System.Math.Abs(dq) + global::System.Math.Abs(dr) + global::System.Math.Abs(dq + dr)) / 2;
         for (var step = 0; step <= distance; step++)
         {
-            var t = distance == 0 ? 0f : step / (float)distance;
-            var q = anchorQ + (int)global::System.MathF.Round(dq * t, global::System.MidpointRounding.AwayFromZero);
-            var r = anchorR + (int)global::System.MathF.Round(dr * t, global::System.MidpointRounding.AwayFromZero);
+            var t = distance == 0 ? 0 : step / (FixedScalar)distance;
+            var q = anchorQ + (int)FixedScalar.Round(dq * t, global::System.MidpointRounding.AwayFromZero);
+            var r = anchorR + (int)FixedScalar.Round(dr * t, global::System.MidpointRounding.AwayFromZero);
             if (world.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r) >= WorldState.CultureTraceRawMass)
             {
                 anchorQ = q;
@@ -98,7 +98,7 @@ internal sealed partial class MinorActorProgramRuntime
     {
         q = anchorQ;
         r = anchorR;
-        var bestScore = 0f;
+        var bestScore = FixedScalar.Zero;
         for (var dq = -radius; dq <= radius; dq++)
         {
             var minDr = global::System.Math.Max(-radius, -dq - radius);
@@ -112,7 +112,7 @@ internal sealed partial class MinorActorProgramRuntime
                     continue;
                 }
 
-                var boundary = simulation.CultureBoundaries.CellAt(
+                var boundary = simulation.CultureLocality.CellAt(
                     simulation.World,
                     cultureId,
                     planeCode,
@@ -123,10 +123,10 @@ internal sealed partial class MinorActorProgramRuntime
                     continue;
                 }
 
-                var headroom = global::System.MathF.Max(
-                    0f,
-                    (2f * WorldState.CultureEntrenchedRawMass) - boundary.RawMass);
-                var score = 1f + (2f * boundary.ForeignRawMass) + (0.05f * headroom);
+                var headroom = FixedScalar.Max(
+                    0,
+                    (2 * WorldState.CultureEntrenchedRawMass) - boundary.RawMass);
+                var score = 1 + (2 * boundary.ForeignRawMass) + (FixedScalar.FromUnits(50000L) * headroom);
                 if (score > bestScore)
                 {
                     q = candidateQ;
@@ -136,6 +136,6 @@ internal sealed partial class MinorActorProgramRuntime
             }
         }
 
-        return bestScore > 0f;
+        return bestScore > 0;
     }
 }

@@ -2,6 +2,7 @@ namespace Engine.Observability;
 
 using System.Collections.ObjectModel;
 
+using Engine.Constants;
 using Engine.Eventing;
 using Engine.Projection;
 
@@ -432,7 +433,9 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     protected override void OnAttributeChanged(long sequence, in AttributeChangedKernelEvent evt)
     {
         var entity = GetOrCreateEntity(evt.EntityId);
-        entity.Attributes[evt.AttributeId] = evt.NewValue;
+        var oldValue = KernelFixedPoint.AttributeValue(evt.OldValueUnits);
+        var newValue = KernelFixedPoint.AttributeValue(evt.NewValueUnits);
+        entity.Attributes[evt.AttributeId] = newValue;
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
 
@@ -441,9 +444,9 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.Tick,
             evt.EntityId,
             evt.AttributeId,
-            evt.OldValue,
-            evt.NewValue,
-            evt.NewValue - evt.OldValue,
+            oldValue,
+            newValue,
+            newValue - oldValue,
             evt.SourceCodeId));
         MarkProjected(sequence);
     }
@@ -451,12 +454,14 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     protected override void OnRelationshipChanged(long sequence, in RelationshipChangedKernelEvent evt)
     {
         var key = new ObservedRelationshipKey(evt.SourceEntityId, evt.TargetEntityId, evt.RelationshipKindId);
+        var previousStrength = KernelFixedPoint.RelationshipStrengthValue(evt.PreviousStrengthUnits);
+        var newStrength = KernelFixedPoint.RelationshipStrengthValue(evt.NewStrengthUnits);
         _relationships[key] = new ObservedRelationshipProjection(
             key,
             evt.ChangeCodeId,
             evt.PolarityCode,
-            evt.NewStrength,
-            evt.NewStrength > 0f,
+            newStrength,
+            evt.NewStrengthUnits > 0,
             evt.Tick,
             evt.WorldVersion);
 
@@ -469,8 +474,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.PolarityCode,
             evt.SourceEntityId,
             evt.TargetEntityId,
-            evt.PreviousStrength,
-            evt.NewStrength,
+            previousStrength,
+            newStrength,
             evt.ActionId,
             _currentProvenanceInvocationId));
         MarkProjected(sequence);
@@ -550,6 +555,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
     protected override void OnCellInfluenceChanged(long sequence, in CellInfluenceChangedKernelEvent evt)
     {
+        var previousInfluence = FixedScalar.FromUnits(evt.PreviousInfluenceUnits).ToSingle();
+        var currentInfluence = FixedScalar.FromUnits(evt.CurrentInfluenceUnits).ToSingle();
         _batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(
             _runId,
             evt.Tick,
@@ -559,29 +566,9 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.PlaneCode,
             evt.Q,
             evt.R,
-            evt.PreviousInfluence,
-            evt.CurrentInfluence,
-            evt.CurrentInfluence - evt.PreviousInfluence));
-        MarkProjected(sequence);
-    }
-
-    protected override void OnCellCultureInfluenceChanged(long sequence, in CellCultureInfluenceChangedKernelEvent evt)
-    {
-        _batch.CellCultureInfluenceEvents.Add(new CellCultureInfluenceEventRow(
-            _runId,
-            evt.Tick,
-            evt.SourceCodeId,
-            evt.CultureId,
-            evt.PlaneCode,
-            evt.Q,
-            evt.R,
-            evt.PreviousShare,
-            evt.CurrentShare,
-            evt.CurrentShare - evt.PreviousShare,
-            evt.PreviousRawInfluence,
-            evt.CurrentRawInfluence,
-            evt.CurrentTotalRawInfluence,
-            evt.Z));
+            previousInfluence,
+            currentInfluence,
+            currentInfluence - previousInfluence));
         MarkProjected(sequence);
     }
 
@@ -596,8 +583,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.PolarityCode,
             evt.PreviousEntityId,
             evt.CurrentEntityId,
-            evt.PreviousScore,
-            evt.CurrentScore));
+            FixedScalar.FromUnits(evt.PreviousScoreUnits).ToSingle(),
+            FixedScalar.FromUnits(evt.CurrentScoreUnits).ToSingle()));
         MarkProjected(sequence);
     }
 
@@ -621,15 +608,17 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.R,
             evt.StatusCode,
             evt.CellKindCode,
-            evt.LocalRawMass,
-            evt.ConnectedRawMass,
-            evt.Score,
-            evt.Delta));
+            FixedScalar.FromUnits(evt.LocalRawMassUnits).ToSingle(),
+            FixedScalar.FromUnits(evt.ConnectedRawMassUnits).ToSingle(),
+            FixedScalar.FromUnits(evt.ScoreUnits).ToSingle(),
+            FixedScalar.FromUnits(evt.DeltaUnits).ToSingle()));
         MarkProjected(sequence);
     }
 
     protected override void OnCellRoadChanged(long sequence, in CellRoadChangedKernelEvent evt)
     {
+        var previousQuality = KernelFixedPoint.RoadQualityValue(evt.PreviousQualityUnits);
+        var currentQuality = KernelFixedPoint.RoadQualityValue(evt.CurrentQualityUnits);
         _batch.CellRoadEvents.Add(new CellRoadEventRow(
             _runId,
             evt.Tick,
@@ -638,9 +627,9 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.Q,
             evt.R,
             evt.TravelCount,
-            evt.PreviousQuality,
-            evt.CurrentQuality,
-            evt.CurrentQuality - evt.PreviousQuality));
+            previousQuality,
+            currentQuality,
+            currentQuality - previousQuality));
         MarkProjected(sequence);
     }
 
@@ -685,12 +674,12 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.GambitAffordanceCount,
             evt.HiddenAffordanceCount,
             evt.SelectionBucketCode,
-            evt.Urgency,
-            evt.RewardOrBaseScore,
-            evt.RawWeight,
-            evt.AdjustedWeight,
-            evt.AffordanceScore,
-            evt.AffordanceBonus));
+            FixedScalar.FromUnits(evt.UrgencyUnits).ToSingle(),
+            FixedScalar.FromUnits(evt.RewardOrBaseScoreUnits).ToSingle(),
+            FixedScalar.FromUnits(evt.RawWeightUnits).ToSingle(),
+            FixedScalar.FromUnits(evt.AdjustedWeightUnits).ToSingle(),
+            FixedScalar.FromUnits(evt.AffordanceScoreUnits).ToSingle(),
+            FixedScalar.FromUnits(evt.AffordanceBonusUnits).ToSingle()));
         MarkProjected(sequence);
     }
 
@@ -792,18 +781,12 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.RejectionReasonCode,
             evt.PhysicalFieldBandCode,
             evt.PhysicalCellKindCode,
-            evt.PhysicalLocalRawMass,
-            evt.PhysicalConnectedRawMass,
+            FixedScalar.FromUnits(evt.PhysicalLocalRawMassUnits).ToSingle(),
+            FixedScalar.FromUnits(evt.PhysicalConnectedRawMassUnits).ToSingle(),
             evt.SemanticFieldBandCode,
             evt.SemanticCellKindCode,
-            evt.SemanticLocalRawMass,
-            evt.SemanticConnectedRawMass,
-            evt.PhysicalComponentId,
-            evt.PhysicalComponentCellCount,
-            evt.PhysicalComponentRawMass,
-            evt.SemanticComponentId,
-            evt.SemanticComponentCellCount,
-            evt.SemanticComponentRawMass));
+            FixedScalar.FromUnits(evt.SemanticLocalRawMassUnits).ToSingle(),
+            FixedScalar.FromUnits(evt.SemanticConnectedRawMassUnits).ToSingle()));
         MarkProjected(sequence);
     }
 

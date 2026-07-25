@@ -238,25 +238,25 @@ public sealed class GameplayCompilerTests
         Assert.True(verb.ForeignInfluenceFilterEnabled);
         Assert.True(verb.ForeignInfluenceBlockPositiveRelationships);
         Assert.True(verb.ForeignInfluenceAllowNegativeRelationships);
-        Assert.Equal(0.2f, verb.ForeignInfluenceMinimumRelationshipStrength);
-        Assert.Equal(50f, verb.ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove);
+        Assert.Equal(FixedScalar.FromSingle(0.2f), verb.ForeignInfluenceMinimumRelationshipStrength);
+        Assert.Equal(FixedScalar.FromSingle(50f), verb.ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove);
     }
 
     [Fact]
-    public void CompileGameplay_CompilesMapSignalScalarInputs()
+    public void CompileGameplay_CompilesLocalityScalarInputs()
     {
         var result = GameplayCompiler.CompileGameplay(new GameplayDefinition
         {
-            MapSignals = new MapSignalsConfig
+            Locality = new LocalityConfig
             {
                 Kinds =
                 [
-                    new KindMapSignalConfig
+                    new KindLocalityConfig
                     {
                         Kind = "actor",
                         AttractorScalarInputs =
                         [
-                            new MapSignalScalarInputConfig
+                            new LocalityScalarInputConfig
                             {
                                 Attribute = "health",
                                 AttractorScale = 0.25f,
@@ -267,10 +267,10 @@ public sealed class GameplayCompilerTests
             },
         }, new TestGameplayContext());
 
-        var kindSignal = Assert.Single(result.Programs.MapSignals.Kinds);
+        var kindSignal = Assert.Single(result.Programs.Locality.Kinds);
         var scalarInput = Assert.Single(kindSignal.AttractorScalarInputs);
         Assert.Equal(40, scalarInput.AttributeId);
-        Assert.Equal(0.25f, scalarInput.AttractorScale);
+        Assert.Equal(FixedScalar.FromSingle(0.25f), scalarInput.AttractorScale);
     }
 
     [Fact]
@@ -306,7 +306,7 @@ public sealed class GameplayCompilerTests
         var modifier = Assert.Single(result.Programs.LowAltitudeVerbs.TraitWeightModifiers);
         Assert.Equal(50, modifier.TraitId);
         Assert.Equal(10, modifier.VerbId);
-        Assert.Equal(1.25f, modifier.OpportunityBonusDelta);
+        Assert.Equal(FixedScalar.FromSingle(1.25f), modifier.OpportunityBonusDelta);
 
         var effect = Assert.Single(result.Programs.Effects.AttributeDeltaEffects);
         Assert.Equal(0, effect.RequiredTargetTraitId);

@@ -67,7 +67,7 @@ public sealed class LowAltitudeMovementTraceTests
                 {
                     LowAltitudeVerbs = new LowAltitudeVerbTuningOptions
                     {
-                        OpportunityRate = 1f,
+                        OpportunityRate = FixedScalar.FromSingle(1f),
                     },
                 },
             },
@@ -126,12 +126,12 @@ public sealed class LowAltitudeMovementTraceTests
             dwellTicks: 0,
             targetRadius: 0,
             candidateSampleCount: 1,
-            weight: 1f,
-            influenceDelta: 0f,
+            weight: FixedScalar.FromSingle(1f),
+            influenceDelta: FixedScalar.FromSingle(0f),
             influenceRadius: 0,
-            coverageGrowthChance: 0f,
-            headquartersMoveChance: 0f,
-            requiredInfluence: 0f);
+            coverageGrowthChance: FixedScalar.FromSingle(0f),
+            headquartersMoveChance: FixedScalar.FromSingle(0f),
+            requiredInfluence: FixedScalar.FromSingle(0f));
 
     private static void RegisterPresenceAffordance(
         Simulation simulation,
@@ -150,8 +150,8 @@ public sealed class LowAltitudeMovementTraceTests
             relationshipDirectionCode: 0,
             operationCode: 0,
             polarityCode: AffordancePolarityCodes.None,
-            threshold: 0f,
-            weight: 0.5f);
+            threshold: FixedScalar.FromSingle(0f),
+            weight: FixedScalar.FromSingle(0.5f));
 
     private static void SeedPhysicalNeighborhood(Simulation simulation, int terrainId)
     {
@@ -169,21 +169,21 @@ public sealed class LowAltitudeMovementTraceTests
         simulation.RegisterTerrain(
             landTerrainId,
             boundaryGroupId: 1,
-            movementCost: 1f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f,
-            roadSpeedMultiplier: 1f);
+            movementCost: FixedScalar.FromSingle(1f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.RegisterTerrain(
             waterTerrainId,
             boundaryGroupId: 2,
-            movementCost: 0f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f,
-            roadSpeedMultiplier: 1f);
+            movementCost: FixedScalar.FromSingle(0f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.World.SetMapRadius(2);
         for (var q = -2; q <= 2; q++)
         {
@@ -197,7 +197,7 @@ public sealed class LowAltitudeMovementTraceTests
     }
 
     private static void AddPrimitiveSteps(Simulation simulation, int verbSlot, int operationCode) =>
-        simulation.LowAltitudeVerbs.AddPrimitiveStep(verbSlot, operationCode, 0, 0f);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(verbSlot, operationCode, 0, FixedScalar.FromSingle(0f));
 
     private static void AssertMovedByProgram(
         Simulation simulation,

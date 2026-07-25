@@ -469,7 +469,7 @@ internal sealed partial class MovementProgramRuntime
         Scratch.PathFScore.BeginEpoch();
         Scratch.PathOpenSet[0] = startIndex;
         Scratch.PathOpen.Add(startIndex);
-        Scratch.PathGScore.Set(startIndex, 0f);
+        Scratch.PathGScore.Set(startIndex, 0);
         Scratch.PathFScore.Set(startIndex, KernelQuery.HexDistance(startQ, startR, targetQ, targetR));
         return 1;
     }
@@ -587,13 +587,13 @@ internal sealed partial class MovementProgramRuntime
             neighborQ,
             neighborR,
             tick);
-        if (float.IsInfinity(movementCost) || movementCost <= 0f)
+        if (FixedScalar.IsInfinity(movementCost) || movementCost <= 0)
         {
             return true;
         }
 
-        var tentativeGScore = Scratch.PathGScore.GetOrDefault(currentIndex, float.PositiveInfinity) + movementCost;
-        if (tentativeGScore >= Scratch.PathGScore.GetOrDefault(neighborIndex, float.PositiveInfinity))
+        var tentativeGScore = Scratch.PathGScore.GetOrDefault(currentIndex, FixedScalar.PositiveInfinity) + movementCost;
+        if (tentativeGScore >= Scratch.PathGScore.GetOrDefault(neighborIndex, FixedScalar.PositiveInfinity))
         {
             return true;
         }
@@ -621,11 +621,11 @@ internal sealed partial class MovementProgramRuntime
     {
         var selectedSlot = 0;
         var selectedIndex = Scratch.PathOpenSet[0];
-        var selectedScore = Scratch.PathFScore.GetOrDefault(selectedIndex, float.PositiveInfinity);
+        var selectedScore = Scratch.PathFScore.GetOrDefault(selectedIndex, FixedScalar.PositiveInfinity);
         for (var slot = 1; slot < openCount; slot++)
         {
             var index = Scratch.PathOpenSet[slot];
-            var score = Scratch.PathFScore.GetOrDefault(index, float.PositiveInfinity);
+            var score = Scratch.PathFScore.GetOrDefault(index, FixedScalar.PositiveInfinity);
             if (score < selectedScore)
             {
                 selectedSlot = slot;

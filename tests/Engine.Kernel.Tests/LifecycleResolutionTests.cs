@@ -2,7 +2,7 @@ namespace Engine.Kernel.Tests;
 
 using Engine.Kernel;
 
-public sealed class UpkeepProgramTests
+public sealed class LifecycleResolutionTests
 {
     [Fact]
     public void LateLifeAgingModel_StartsWithLowerEarlyDrain()
@@ -13,19 +13,19 @@ public sealed class UpkeepProgramTests
         {
             Programs = new KernelProgramTuningOptions
             {
-                Upkeep = new UpkeepProgramTuningOptions
+                Lifecycle = new LifecycleTuningOptions
                 {
-                    AgingModelCode = UpkeepAgingModelCodes.LateLife,
+                    AgingModelCode = LifecycleAgingModelCodes.LateLife,
                 },
             },
         });
-        simulation.RegisterAttribute(kindId, healthAttributeId, minimum: 0f, maximum: 100f, defaultValue: 100f);
-        simulation.Upkeep.RegisterLifecycle(kindId, healthAttributeId, baseRate: 1f, ageCoefficient: 1f, variance: 0f);
+        simulation.RegisterAttribute(kindId, healthAttributeId, minimum: FixedScalar.FromSingle(0f), maximum: FixedScalar.FromSingle(100f), defaultValue: FixedScalar.FromSingle(100f));
+        simulation.Effects.RegisterLifecycle(kindId, healthAttributeId, baseRate: FixedScalar.FromSingle(1f), ageCoefficient: FixedScalar.FromSingle(1f), variance: FixedScalar.FromSingle(0f));
         var entity = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
 
         simulation.AdvanceTicks(1);
 
-        Assert.InRange(simulation.World.GetAttribute(entity, healthAttributeId), 99.49f, 99.50f);
+        Assert.InRange(simulation.World.GetAttribute(entity, healthAttributeId), FixedScalar.FromSingle(99.49f), FixedScalar.FromSingle(99.50f));
     }
 
     private static Simulation CreateSimulation(KernelTuningOptions? tuning = null) =>

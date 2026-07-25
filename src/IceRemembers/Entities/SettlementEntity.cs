@@ -46,8 +46,8 @@ internal static class SettlementEntity
                 "Crowding and raid load scale upward around this settlement.",
                 TraitMapDelta(K.Settlement, Attr.TempHp, Effect.MapCrowdingLoad, -0.04f, 0.5f, PrimaryPlane.Semantic)),
         ],
-        MapSignal = MapSignal(radius: 2, capacity: 3.0f, support: 2.5f, threat: 0f,
-            baseMass: 12f, coverageScale: 0.35f, influenceScale: 0.12f, activityScale: 0.05f,
+        Locality = Locality(radius: 2, capacity: 3.0f, support: 2.5f, threat: 0f,
+            baseMass: 12f, coverageScale: 0.35f, influenceScale: 0.12f,
             healthScale: 0.08f, attractorRadius: 2),
         MovementProfiles = MovementProfiles(
             physicalDefault: Profile.Trail,

@@ -23,7 +23,7 @@ internal sealed class KernelPhysicalGeographyData
 
     public KernelPhysicalGeographyData(int radiusCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(radiusCapacity);
+        NumericGuard.ThrowIfNegative(radiusCapacity);
         _radiusCapacity = radiusCapacity;
         _diameter = checked((radiusCapacity * 2) + 1);
         var cellCapacity = checked(_diameter * _diameter);
@@ -43,7 +43,7 @@ internal sealed class KernelPhysicalGeographyData
 
     internal void BeginInstall(int radius)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(radius);
+        NumericGuard.ThrowIfNegative(radius);
         if (radius > _radiusCapacity || _installedRadius != 0)
         {
             throw new global::System.InvalidOperationException();

@@ -27,8 +27,8 @@ public sealed class KernelEventSchemaRegistryTests
         {
             foreach (var slot in schema.Slots)
             {
-                var maxSlot = slot.PrimitiveKind == KernelEventPrimitiveKind.Float32
-                    ? KernelEvent.FloatSlotCount - 1
+                var maxSlot = slot.PrimitiveKind == KernelEventPrimitiveKind.Int64
+                    ? KernelEvent.LongSlotCount - 1
                     : KernelEvent.IntSlotCount - 1;
                 Assert.InRange(slot.Slot, 0, maxSlot);
             }

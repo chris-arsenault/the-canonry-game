@@ -78,11 +78,6 @@ public sealed class KernelHostBuilderTests
             host.DomainIds.AttributeIdOf(IceRemembersAttributeId.TempHp.ToDomainName()).Value,
             out var attributeSymbol));
         Assert.Equal("Temp HP", attributeSymbol.DisplayName);
-        Assert.True(host.Symbols.TryResolve(
-            ProjectionSymbolKind.SourceCode,
-            host.DomainIds.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode).Value,
-            out var upkeepSymbol));
-        Assert.Equal(DomainRuntimeNames.UpkeepSourceCode, upkeepSymbol.StableName);
         Assert.NotEmpty(host.CompiledDomain.Programs.Generators.Generators);
         var verbSymbolSeed = host.CompiledDomain.Symbols.First(symbol => symbol.Kind == DomainSymbolKind.Verb);
         Assert.True(host.Symbols.TryResolve(
@@ -102,10 +97,7 @@ public sealed class KernelHostBuilderTests
             causewayId,
             out var travelStructureSymbol));
         Assert.Equal(IceRemembersTravelStructure.IceCauseway.ToDomainName(), travelStructureSymbol.StableName);
-        Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Upkeep));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.LowAltitudeVerbs));
-        Assert.True(host.ProgramIsEnabled(KernelProgramCodes.MapActivity));
-        Assert.True(host.ProgramIsEnabled(KernelProgramCodes.MapSignals));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Effects));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Gambits));
         Assert.True(host.ProgramIsEnabled(KernelProgramCodes.Generators));
@@ -182,16 +174,24 @@ public sealed class KernelHostBuilderTests
     private static void ConfigureGenericStartupKernel(KernelConfigurationContext kernel)
     {
         kernel.SetMapRadius(1);
-        kernel.RegisterTerrain(1, boundaryGroupId: 1);
+        kernel.RegisterTerrain(
+            1,
+            1,
+            FixedScalar.One,
+            FixedScalar.One,
+            FixedScalar.One,
+            FixedScalar.One,
+            FixedScalar.One,
+            FixedScalar.One);
         kernel.RegisterAttribute(
             kindId: kernel.DomainIds.KindIdOf("test_kind").Value,
             attributeId: kernel.DomainIds.AttributeIdOf("test_attribute"),
-            minimum: 0f,
-            maximum: 100f,
-            defaultValue: 10f);
+            minimum: FixedScalar.FromSingle(0f),
+            maximum: FixedScalar.FromSingle(100f),
+            defaultValue: FixedScalar.FromSingle(10f));
         kernel.RegisterRelationshipKind(
             kernel.DomainIds.RelationshipKindIdOf("test_relationship"),
-            cullThreshold: 0.05f);
+            cullThreshold: FixedScalar.FromSingle(0.05f));
     }
 
     private static void SeedGenericStartup(KernelStartupContext startup)

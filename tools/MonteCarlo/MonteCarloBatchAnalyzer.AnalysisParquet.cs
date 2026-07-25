@@ -23,7 +23,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
         ExportAnalysisTable(connection, analysisDirectory, "gambit_success_rate", GambitSuccessRateSql);
         ExportAnalysisTable(connection, analysisDirectory, "generator_balance", GeneratorBalanceSql);
         ExportAnalysisTable(connection, analysisDirectory, "generated_subtype_coverage", GeneratedSubtypeCoverageSql);
-        WriteGeneratorEligibilityAnalysis(connection, analysisDirectory);
         ExportAnalysisTable(connection, analysisDirectory, "lifecycle", LifecycleSql);
         ExportAnalysisTable(connection, analysisDirectory, "experiment_comparison", ExperimentComparisonSql);
     }

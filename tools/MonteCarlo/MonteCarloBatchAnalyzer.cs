@@ -63,22 +63,19 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             WHERE FALSE
             """),
         new(
-            "cell_culture_influence_events",
+            "culture_field_cell_snapshots",
             """
             SELECT
                 CAST(NULL AS BIGINT) AS run_id,
                 CAST(NULL AS BIGINT) AS tick,
-                CAST(NULL AS BIGINT) AS source_code_id,
                 CAST(NULL AS BIGINT) AS culture_id,
                 CAST(NULL AS BIGINT) AS plane_code,
                 CAST(NULL AS BIGINT) AS q,
                 CAST(NULL AS BIGINT) AS r,
-                CAST(NULL AS DOUBLE) AS previous_share,
-                CAST(NULL AS DOUBLE) AS current_share,
-                CAST(NULL AS DOUBLE) AS delta,
-                CAST(NULL AS DOUBLE) AS previous_raw_influence,
-                CAST(NULL AS DOUBLE) AS current_raw_influence,
-                CAST(NULL AS DOUBLE) AS current_total_raw_influence
+                CAST(NULL AS DOUBLE) AS share,
+                CAST(NULL AS DOUBLE) AS raw_influence,
+                CAST(NULL AS DOUBLE) AS total_raw_influence,
+                CAST(NULL AS BIGINT) AS z
             WHERE FALSE
             """),
         new(

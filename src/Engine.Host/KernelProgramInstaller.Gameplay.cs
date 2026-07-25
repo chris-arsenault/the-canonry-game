@@ -10,23 +10,17 @@ internal static partial class KernelProgramInstaller
     // Installs the GameplayCompiler output as kernel primitive tables; the host does not compile gameplay.
     private static void InstallGameplay(KernelConfigurationContext context, KernelProgramSet programs)
     {
-        ConfigureMapActivity(context, programs.MapActivity);
-        ConfigureMapSignals(context, programs.MapSignals);
+        ConfigureLocality(context, programs.Locality);
         ConfigureLowAltitudeVerbs(context, programs.LowAltitudeVerbs);
         ConfigureGameplayEffects(context, programs.Effects);
     }
 
-    private static void ConfigureMapActivity(KernelConfigurationContext context, MapActivityProgram program)
+    private static void ConfigureLocality(KernelConfigurationContext context, LocalityRules rules)
     {
-        context.ConfigureMapActivity(program.PresenceHeat, program.HeatDecayPerTick, program.HeatEmaAlpha);
-    }
-
-    private static void ConfigureMapSignals(KernelConfigurationContext context, MapSignalsProgram program)
-    {
-        context.ConfigureMapSignals(program.SemanticBaseCapacity, program.CrowdingRadius);
-        if (program.PhysicalCapacityFormula is { } formula)
+        context.ConfigureLocality(rules.SemanticBaseCapacity, rules.CrowdingRadius);
+        if (rules.PhysicalCapacityFormula is { } formula)
         {
-            context.SetMapSignalsCapacityFormula(
+            context.SetLocalityCapacityFormula(
                 formula.ColdFloor,
                 formula.WarmPeak,
                 formula.GeothermalBlend,
@@ -39,44 +33,42 @@ internal static partial class KernelProgramInstaller
                 formula.MarineScale);
         }
 
-        foreach (var terrain in program.Terrains)
+        foreach (var terrain in rules.Terrains)
         {
-            context.RegisterTerrainMapSignal(terrain.TerrainId, terrain.BaseCapacity);
+            context.RegisterTerrainLocality(terrain.TerrainId, terrain.BaseCapacity);
         }
 
-        foreach (var kind in program.Kinds)
+        foreach (var kind in rules.Kinds)
         {
-            context.RegisterKindMapSignal(
+            context.RegisterKindLocality(
                 kind.KindId,
-                kind.SignalRadius,
+                kind.LocalityRadius,
                 kind.CapacityEmission,
                 kind.SupportEmission,
                 kind.ThreatEmission,
                 kind.BaseAttractorMass,
                 kind.CoverageAttractorScale,
                 kind.InfluenceAttractorScale,
-                kind.ActivityAttractorScale,
                 kind.AttractorRadius);
-            AddKindMapSignalAttractorScalars(context, kind);
+            AddKindLocalityAttractorScalars(context, kind);
         }
 
-        foreach (var relationship in program.Relationships)
+        foreach (var relationship in rules.Relationships)
         {
-            context.RegisterRelationshipMapSignal(
+            context.RegisterRelationshipLocality(
                 relationship.RelationshipKindId,
-                relationship.SignalRadius,
                 relationship.SupportEmission,
                 relationship.ThreatEmission);
         }
     }
 
-    private static void AddKindMapSignalAttractorScalars(
+    private static void AddKindLocalityAttractorScalars(
         KernelConfigurationContext context,
-        KindMapSignalRule kind)
+        KindLocalityRule kind)
     {
         foreach (var scalarInput in kind.AttractorScalarInputs)
         {
-            context.AddKindMapSignalAttractorScalar(
+            context.AddKindLocalityAttractorScalar(
                 kind.KindId,
                 scalarInput.AttributeId,
                 scalarInput.AttractorScale);
@@ -212,7 +204,7 @@ internal static partial class KernelProgramInstaller
                 slot,
                 step.Opcode,
                 step.IntArgument,
-                step.FloatArgument);
+                step.ScalarArgument);
         }
     }
 

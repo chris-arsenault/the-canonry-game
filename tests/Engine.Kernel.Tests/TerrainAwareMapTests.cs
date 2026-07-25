@@ -52,12 +52,12 @@ public sealed class TerrainAwareMapTests
         simulation.RegisterTerrain(
             terrainId,
             boundaryGroupId: 1,
-            movementCost: 2f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 20f,
-            roadSpeedMultiplier: 2f);
+            movementCost: FixedScalar.FromSingle(2f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(20f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(2f));
         simulation.World.SetMapRadius(1);
         simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
         simulation.SeedCell(1, 0, terrainId, ownerEntityId: 0);
@@ -67,8 +67,8 @@ public sealed class TerrainAwareMapTests
         simulation.AdvanceTicks(1);
 
         Assert.True(result.Moved);
-        Assert.True(simulation.Movement.RoadQuality(PlaneCodes.Physical, 1, 0, simulation.CurrentTick) > 0f);
-        Assert.True(simulation.Movement.PhysicalTravelCost(simulation, entityId, 1, 0, simulation.CurrentTick) < 2f);
+        Assert.True(simulation.Movement.RoadQuality(PlaneCodes.Physical, 1, 0, simulation.CurrentTick) > FixedScalar.FromSingle(0f));
+        Assert.True(simulation.Movement.PhysicalTravelCost(simulation, entityId, 1, 0, simulation.CurrentTick) < FixedScalar.FromSingle(2f));
     }
 
     [Fact]
@@ -80,12 +80,12 @@ public sealed class TerrainAwareMapTests
         simulation.RegisterTerrain(
             terrainId,
             boundaryGroupId: 1,
-            movementCost: 2f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 20f,
-            roadSpeedMultiplier: 2f);
+            movementCost: FixedScalar.FromSingle(2f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(20f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(2f));
         simulation.World.SetMapRadius(1);
         simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
         simulation.SeedCell(1, 0, terrainId, ownerEntityId: 0);
@@ -94,7 +94,7 @@ public sealed class TerrainAwareMapTests
         var result = simulation.MoveEntityPhysical(entityId, 1, 0, tick: 0, MovementCauseCodes.Placement);
 
         Assert.True(result.Moved);
-        Assert.Equal(0f, simulation.Movement.RoadQuality(PlaneCodes.Physical, 1, 0, simulation.CurrentTick));
+        Assert.Equal(FixedScalar.FromSingle(0f), simulation.Movement.RoadQuality(PlaneCodes.Physical, 1, 0, simulation.CurrentTick));
     }
 
     [Fact]
@@ -106,12 +106,12 @@ public sealed class TerrainAwareMapTests
         simulation.RegisterTerrain(
             terrainId,
             boundaryGroupId: 1,
-            movementCost: 6f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 20f,
-            roadSpeedMultiplier: 2f);
+            movementCost: FixedScalar.FromSingle(6f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(20f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(2f));
         simulation.World.SetMapRadius(1);
         simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
         simulation.SeedCell(1, 0, terrainId, ownerEntityId: 0);
@@ -127,9 +127,9 @@ public sealed class TerrainAwareMapTests
             maxDistanceFromAnchor: 1);
 
         Assert.True(result.Moved);
-        Assert.Equal(6f, result.StepCost);
+        Assert.Equal(FixedScalar.FromSingle(6f), result.StepCost);
         Assert.Equal((1, 0), (simulation.World.EntityPhysicalQ(entityId), simulation.World.EntityPhysicalR(entityId)));
-        Assert.True(simulation.Movement.RoadQuality(PlaneCodes.Physical, 1, 0, simulation.CurrentTick) > 0f);
+        Assert.True(simulation.Movement.RoadQuality(PlaneCodes.Physical, 1, 0, simulation.CurrentTick) > FixedScalar.FromSingle(0f));
         Assert.True(simulation.Movement.PhysicalTravelCost(simulation, entityId, 1, 0, simulation.CurrentTick) < result.StepCost);
     }
 
@@ -142,12 +142,12 @@ public sealed class TerrainAwareMapTests
         simulation.RegisterTerrain(
             terrainId,
             boundaryGroupId: 1,
-            movementCost: 2f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 20f,
-            roadSpeedMultiplier: 2f);
+            movementCost: FixedScalar.FromSingle(2f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(20f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(2f));
         simulation.World.SetMapRadius(1);
         simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
         simulation.SeedCell(1, 0, terrainId, ownerEntityId: 0);
@@ -173,16 +173,16 @@ public sealed class TerrainAwareMapTests
         var simulation = KernelTestSimulation.Create();
         const int terrainId = 1;
         const int kindId = 1;
-        simulation.Movement.Data.RoadBuildPerTravel = roadBuildPerTravel;
+        simulation.Movement.Data.RoadBuildPerTravel = FixedScalar.FromSingle(roadBuildPerTravel);
         simulation.RegisterTerrain(
             terrainId,
             boundaryGroupId: 1,
-            movementCost: 1f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f,
-            roadSpeedMultiplier: 2f);
+            movementCost: FixedScalar.FromSingle(1f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(2f));
         simulation.World.SetMapRadius(1);
         simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
         simulation.SeedCell(1, 0, terrainId, ownerEntityId: 0);
@@ -192,7 +192,10 @@ public sealed class TerrainAwareMapTests
         var agedQuality = simulation.Movement.RoadQuality(PlaneCodes.Physical, 1, 0, tick: 100_000);
 
         Assert.True(result.Moved);
-        Assert.InRange(agedQuality, expectedFloor, expectedFloor + 0.001f);
+        Assert.InRange(
+            agedQuality,
+            FixedScalar.FromSingle(expectedFloor),
+            FixedScalar.FromSingle(expectedFloor + 0.001f));
     }
 
     [Fact]
@@ -204,12 +207,12 @@ public sealed class TerrainAwareMapTests
         simulation.RegisterTerrain(
             terrainId,
             boundaryGroupId: 1,
-            movementCost: 3f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 20f,
-            roadSpeedMultiplier: 2f);
+            movementCost: FixedScalar.FromSingle(3f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(20f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(2f));
         simulation.World.SetMapRadius(2);
         KernelTestSimulation.SeedSemanticCells(simulation, 2);
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
@@ -224,14 +227,14 @@ public sealed class TerrainAwareMapTests
         simulation.AdvanceTicks(1);
 
         Assert.True(result.Moved);
-        Assert.Equal(3f, result.StepCost);
+        Assert.Equal(FixedScalar.FromSingle(3f), result.StepCost);
         Assert.Equal((1, -1, 0), (
             simulation.World.EntitySemanticQ(entityId),
             simulation.World.EntitySemanticR(entityId),
             simulation.World.EntitySemanticS(entityId)));
-        Assert.True(simulation.Movement.RoadQuality(PlaneCodes.Semantic, 1, -1, simulation.CurrentTick) > 0f);
-        Assert.True(simulation.Movement.TravelCost(simulation, PlaneCodes.Semantic, entityId, 1, -1, simulation.CurrentTick) < 3f);
-        Assert.Equal(0f, simulation.Movement.RoadQuality(PlaneCodes.Physical, 1, -1, simulation.CurrentTick));
+        Assert.True(simulation.Movement.RoadQuality(PlaneCodes.Semantic, 1, -1, simulation.CurrentTick) > FixedScalar.FromSingle(0f));
+        Assert.True(simulation.Movement.TravelCost(simulation, PlaneCodes.Semantic, entityId, 1, -1, simulation.CurrentTick) < FixedScalar.FromSingle(3f));
+        Assert.Equal(FixedScalar.FromSingle(0f), simulation.Movement.RoadQuality(PlaneCodes.Physical, 1, -1, simulation.CurrentTick));
     }
 
     [Fact]
@@ -269,21 +272,21 @@ public sealed class TerrainAwareMapTests
         simulation.RegisterTerrain(
             landTerrainId,
             boundaryGroupId: 1,
-            movementCost: 1f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f,
-            roadSpeedMultiplier: 1f);
+            movementCost: FixedScalar.FromSingle(1f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.RegisterTerrain(
             waterTerrainId,
             boundaryGroupId: 2,
-            movementCost: 0f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f,
-            roadSpeedMultiplier: 1f);
+            movementCost: FixedScalar.FromSingle(0f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.World.SetMapRadius(12);
         SeedHexMap(simulation, radius: 12, waterTerrainId);
         simulation.SeedCell(-6, -10, landTerrainId, ownerEntityId: 0);
@@ -411,8 +414,8 @@ public sealed class TerrainAwareMapTests
         const int shoreProfileId = 2;
         simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
         simulation.RegisterTerrain(waterTerrainId, boundaryGroupId: 1);
-        simulation.RegisterTerrainMovementProfile(waterTerrainId, trailProfileId, movementCost: 0f);
-        simulation.RegisterTerrainMovementProfile(waterTerrainId, shoreProfileId, movementCost: 6f);
+        simulation.RegisterTerrainMovementProfile(waterTerrainId, trailProfileId, movementCost: FixedScalar.FromSingle(0f));
+        simulation.RegisterTerrainMovementProfile(waterTerrainId, shoreProfileId, movementCost: FixedScalar.FromSingle(6f));
         simulation.Movement.RegisterDefaultMovementProfile(kindId, PlaneCodes.Physical, trailProfileId);
         simulation.Movement.RegisterSubtypeMovementProfile(kindId, shoreSubtypeId, PlaneCodes.Physical, shoreProfileId);
         simulation.Movement.RegisterTraitMovementProfile(kindId, swimTraitId, PlaneCodes.Physical, shoreProfileId);
@@ -427,7 +430,7 @@ public sealed class TerrainAwareMapTests
         Assert.False(simulation.Movement.CanEnter(simulation, trailEntityId, 1, 0));
         Assert.True(simulation.Movement.CanEnter(simulation, shoreEntityId, 1, 0));
         Assert.True(simulation.Movement.CanEnter(simulation, swimmerEntityId, 1, 0));
-        Assert.Equal(6f, simulation.Movement.PhysicalTravelCost(simulation, shoreEntityId, 1, 0, tick: 0));
+        Assert.Equal(FixedScalar.FromSingle(6f), simulation.Movement.PhysicalTravelCost(simulation, shoreEntityId, 1, 0, tick: 0));
     }
 
     [Fact]
@@ -441,12 +444,12 @@ public sealed class TerrainAwareMapTests
         simulation.RegisterTerrain(
             terrainId,
             boundaryGroupId: 1,
-            movementCost: 1f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f,
-            roadSpeedMultiplier: 1f);
+            movementCost: FixedScalar.FromSingle(1f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.World.SetMapRadius(2);
         SeedHexMap(simulation, radius: 2, terrainId);
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, actorCultureId, 0, 0, 0, 0, 0, tick: 0);
@@ -468,7 +471,7 @@ public sealed class TerrainAwareMapTests
                 tick: 0);
         }
 
-        var boundary = simulation.CultureBoundaries.CellAt(simulation.World, foreignCultureId, PlaneCodes.Physical, 1, 0);
+        var boundary = simulation.CultureLocality.CellAt(simulation.World, foreignCultureId, PlaneCodes.Physical, 1, 0);
         var canEnter = simulation.Movement.CanEnter(simulation, entityId, 1, 0);
         var canReach = simulation.Movement.CanReach(simulation, entityId, PlaneCodes.Physical, 1, 0, tick: 0);
         var result = simulation.MoveEntityPhysical(entityId, 1, 0, tick: 0, MovementCauseCodes.Travel);
@@ -495,7 +498,7 @@ public sealed class TerrainAwareMapTests
         const int travelStructureId = 1;
         const int movementProfileId = 1;
         simulation.Movement.RegisterTravelStructure(travelStructureId, PlaneCodes.Physical);
-        simulation.Movement.RegisterTravelStructureMovementProfile(travelStructureId, movementProfileId, movementCost: 2.5f);
+        simulation.Movement.RegisterTravelStructureMovementProfile(travelStructureId, movementProfileId, movementCost: FixedScalar.FromSingle(2.5f));
 
         var changed = simulation.Movement.SetTravelStructure(
             simulation,
@@ -514,7 +517,7 @@ public sealed class TerrainAwareMapTests
 
         Assert.True(changed);
         Assert.True(simulation.Movement.CanEnter(simulation, entityId, 0, 0));
-        Assert.Equal(2.5f, simulation.Movement.PhysicalTravelCost(simulation, entityId, 0, 0, tick: 0));
+        Assert.Equal(FixedScalar.FromSingle(2.5f), simulation.Movement.PhysicalTravelCost(simulation, entityId, 0, 0, tick: 0));
         Assert.True(simulation.Movement.CanReach(simulation, entityId, PlaneCodes.Physical, targetQ, targetR, tick: 0));
         Assert.True(result.Moved);
     }
@@ -525,7 +528,7 @@ public sealed class TerrainAwareMapTests
         var simulation = CreateWaterBarrierSimulation(out _, out _, out _);
         const int travelStructureId = 1;
         simulation.Movement.RegisterTravelStructure(travelStructureId, PlaneCodes.Physical);
-        simulation.Movement.RegisterTravelStructureMovementProfile(travelStructureId, movementProfileId: 1, movementCost: 2.5f);
+        simulation.Movement.RegisterTravelStructureMovementProfile(travelStructureId, movementProfileId: 1, movementCost: FixedScalar.FromSingle(2.5f));
         simulation.Movement.SetTravelStructure(
             simulation,
             PlaneCodes.Physical,
@@ -612,7 +615,7 @@ public sealed class TerrainAwareMapTests
             GeneratorProgramConstants.TargetReferenceCode,
             instanceSelectionCode: 1,
             optionCode: transformedTerrainId,
-            value: 1f,
+            value: FixedScalar.FromSingle(1f),
             radius: 1,
             maxCellCount: 2);
 
@@ -649,7 +652,7 @@ public sealed class TerrainAwareMapTests
             GeneratorProgramConstants.TargetReferenceCode,
             instanceSelectionCode: 1,
             optionCode: transformedTerrainId,
-            value: 1f,
+            value: FixedScalar.FromSingle(1f),
             radius: 0,
             maxCellCount: 1,
             planeCode: PlaneCodes.Semantic);
@@ -682,25 +685,25 @@ public sealed class TerrainAwareMapTests
         const int terrainId = 1;
         const int alternateTerrainId = 2;
         const int kindId = 1;
-        simulation.Movement.Data.RoadBuildPerTravel = roadBuildPerTravel;
+        simulation.Movement.Data.RoadBuildPerTravel = FixedScalar.FromSingle(roadBuildPerTravel);
         simulation.RegisterTerrain(
             terrainId,
             boundaryGroupId: 1,
-            movementCost: 1f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f,
-            roadSpeedMultiplier: 1f);
+            movementCost: FixedScalar.FromSingle(1f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.RegisterTerrain(
             alternateTerrainId,
             boundaryGroupId: 1,
-            movementCost: 1f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f,
-            roadSpeedMultiplier: 1f);
+            movementCost: FixedScalar.FromSingle(1f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.World.SetMapRadius(12);
         SeedHexMap(simulation, radius: 12, terrainId);
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, -12, 0, 0, 0, 0, tick: 0);
@@ -716,21 +719,21 @@ public sealed class TerrainAwareMapTests
         simulation.RegisterTerrain(
             landTerrainId,
             boundaryGroupId: 1,
-            movementCost: 1f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f,
-            roadSpeedMultiplier: 1f);
+            movementCost: FixedScalar.FromSingle(1f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.RegisterTerrain(
             waterTerrainId,
             boundaryGroupId: 2,
-            movementCost: 0f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f,
-            roadSpeedMultiplier: 1f);
+            movementCost: FixedScalar.FromSingle(0f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.World.SetMapRadius(2);
         for (var q = -2; q <= 2; q++)
         {

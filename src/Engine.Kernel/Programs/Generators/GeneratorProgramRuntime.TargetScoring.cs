@@ -40,8 +40,8 @@ internal sealed partial class GeneratorProgramRuntime
         int generatorSlot,
         int targetEntityId,
         int weight) =>
-        (int)global::System.MathF.Max(
-            1f,
+        (int)FixedScalar.Max(
+            1,
             weight * simulation.Knowledge.Modifier(
                 simulation.World.EntityCultureId(targetEntityId),
                 KnowledgeGrantDomainCodes.GeneratorPulseWeight,
@@ -55,7 +55,7 @@ internal sealed partial class GeneratorProgramRuntime
         int refCount)
     {
         if (_producedCreateIfMissing[produced] == 0 ||
-            _producedCreateChances[produced] <= 0f ||
+            _producedCreateChances[produced] <= 0 ||
             !CulturePlacementParticipatesInTargetSelection(_producedCulturePlacementCodes[produced]))
         {
             return 0;

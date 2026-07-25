@@ -40,7 +40,7 @@ public sealed class TerrainFamilyRuleTests
     {
         var simulation = CreateSimulation();
         RegisterTerrains(simulation);
-        simulation.Movement.Data.RoughnessCostWeight = 0.5f;
+        simulation.Movement.Data.RoughnessCostWeight = FixedScalar.FromSingle(0.5f);
         simulation.KernelData.PhysicalGeography.BeginInstall(4);
         InstallWithRoughness(simulation, 0, 0, roughness: 0);
         InstallWithRoughness(simulation, 1, 0, roughness: 255);
@@ -52,7 +52,7 @@ public sealed class TerrainFamilyRuleTests
         var smooth = simulation.Movement.TravelCost(simulation, PlaneCodes.Physical, actor, 0, 0, tick: 1);
         var rough = simulation.Movement.TravelCost(simulation, PlaneCodes.Physical, actor, 1, 0, tick: 1);
 
-        Assert.Equal(smooth * 1.5f, rough, precision: 2);
+        Assert.Equal(smooth * FixedScalar.FromSingle(1.5f), rough);
     }
 
     private static void InstallWithRoughness(Simulation simulation, int q, int r, byte roughness)
@@ -67,18 +67,18 @@ public sealed class TerrainFamilyRuleTests
     private static void RegisterTerrains(Simulation simulation)
     {
         simulation.RegisterTerrain(
-            LandTerrain, boundaryGroupId: 1, movementCost: 3f,
-            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f, roadSpeedMultiplier: 1f);
+            LandTerrain, boundaryGroupId: 1, movementCost: FixedScalar.FromSingle(3f),
+            influenceMultiplier: FixedScalar.FromSingle(1f), claimCostMultiplier: FixedScalar.FromSingle(1f), claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f), roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.RegisterTerrain(
-            WaterTerrain, boundaryGroupId: 2, movementCost: 4f,
-            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 0f, roadSpeedMultiplier: 1f);
+            WaterTerrain, boundaryGroupId: 2, movementCost: FixedScalar.FromSingle(4f),
+            influenceMultiplier: FixedScalar.FromSingle(1f), claimCostMultiplier: FixedScalar.FromSingle(1f), claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(0f), roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.KernelData.Terrain.SetWater(WaterTerrain);
         simulation.RegisterTerrain(
-            OtherLandTerrain, boundaryGroupId: 1, movementCost: 5f,
-            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f, roadSpeedMultiplier: 1f);
+            OtherLandTerrain, boundaryGroupId: 1, movementCost: FixedScalar.FromSingle(5f),
+            influenceMultiplier: FixedScalar.FromSingle(1f), claimCostMultiplier: FixedScalar.FromSingle(1f), claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f), roadSpeedMultiplier: FixedScalar.FromSingle(1f));
     }
 
     private static Simulation CreateSimulation() => KernelTestSimulation.Create(new SimulationOptions

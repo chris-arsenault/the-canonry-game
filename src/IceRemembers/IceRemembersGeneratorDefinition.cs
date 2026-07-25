@@ -80,11 +80,11 @@ public static partial class IceRemembersGeneratorDefinition
 
     private static string L(Rel relationship) => relationship.ToDomainName();
 
-    private static SemanticEntityQuery SameCultureAsTarget(bool samePhysicalComponent = false) =>
+    private static SemanticEntityQuery SameCultureAsTarget(bool requireCultureRoute = false) =>
         new()
         {
             TargetCultureMatch = QueryTargetCultureMatch.SameAsTarget,
-            SamePhysicalCultureComponentAsTarget = samePhysicalComponent,
+            RequireTargetCultureRoute = requireCultureRoute,
         };
 
     private static IReadOnlyList<SemanticGeneratorConfig> CoreGenerators() =>
@@ -166,7 +166,7 @@ public static partial class IceRemembersGeneratorDefinition
             {
                 Ref = "$patron",
                 Kind = K.Faction,
-                Query = SameCultureAsTarget(samePhysicalComponent: true),
+                Query = SameCultureAsTarget(requireCultureRoute: true),
             },
         ],
         Produces =
@@ -461,7 +461,7 @@ public static partial class IceRemembersGeneratorDefinition
             {
                 Ref = "$patron",
                 Kind = K.Faction,
-                Query = SameCultureAsTarget(samePhysicalComponent: true),
+                Query = SameCultureAsTarget(requireCultureRoute: true),
             },
         ],
         Produces =
@@ -511,7 +511,7 @@ public static partial class IceRemembersGeneratorDefinition
             {
                 Ref = "$caller",
                 Kind = K.Orca,
-                Query = SameCultureAsTarget(samePhysicalComponent: true),
+                Query = SameCultureAsTarget(requireCultureRoute: true),
             },
         ],
         Produces =
@@ -692,7 +692,7 @@ public static partial class IceRemembersGeneratorDefinition
             {
                 Ref = "$host",
                 Kind = K.Settlement,
-                Query = SameCultureAsTarget(samePhysicalComponent: true),
+                Query = SameCultureAsTarget(requireCultureRoute: true),
             },
         ],
         Produces =

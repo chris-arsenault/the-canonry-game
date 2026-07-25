@@ -17,9 +17,9 @@ public sealed class DecisionModifierTests
         var modifiers = new[]
         {
             default,
-            new DecisionModifier(gambitId, 0, traitId, TraitEffectBearerCodes.GambitTarget, value0: 2f, value1: 0.25f),
-            new DecisionModifier(gambitId + 1, 0, traitId, TraitEffectBearerCodes.GambitTarget, value0: 10f, value1: 1f),
-            new DecisionModifier(gambitId, 0, traitId + 1, TraitEffectBearerCodes.GambitTarget, value0: 10f, value1: 1f),
+            new DecisionModifier(gambitId, 0, traitId, TraitEffectBearerCodes.GambitTarget, value0: FixedScalar.FromSingle(2f), value1: FixedScalar.FromSingle(0.25f)),
+            new DecisionModifier(gambitId + 1, 0, traitId, TraitEffectBearerCodes.GambitTarget, value0: FixedScalar.FromSingle(10f), value1: FixedScalar.FromSingle(1f)),
+            new DecisionModifier(gambitId, 0, traitId + 1, TraitEffectBearerCodes.GambitTarget, value0: FixedScalar.FromSingle(10f), value1: FixedScalar.FromSingle(1f)),
         };
 
         var score = DecisionModifierEvaluation.SumGambitValue(
@@ -39,8 +39,8 @@ public sealed class DecisionModifierTests
             target,
             useValue1: true);
 
-        Assert.Equal(2f, score);
-        Assert.Equal(0.25f, success);
+        Assert.Equal(FixedScalar.FromSingle(2f), score);
+        Assert.Equal(FixedScalar.FromSingle(0.25f), success);
     }
 
     [Fact]
@@ -55,9 +55,9 @@ public sealed class DecisionModifierTests
         var modifiers = new[]
         {
             default,
-            new DecisionModifier(verbId, kindId, traitId, TraitEffectBearerCodes.Actor, 1f, 2f, 3f),
-            new DecisionModifier(0, kindId + 1, traitId, TraitEffectBearerCodes.Actor, 10f),
-            new DecisionModifier(verbId + 1, kindId, traitId, TraitEffectBearerCodes.Actor, 10f),
+            new DecisionModifier(verbId, kindId, traitId, TraitEffectBearerCodes.Actor, FixedScalar.FromSingle(1f), FixedScalar.FromSingle(2f), FixedScalar.FromSingle(3f)),
+            new DecisionModifier(0, kindId + 1, traitId, TraitEffectBearerCodes.Actor, FixedScalar.FromSingle(10f)),
+            new DecisionModifier(verbId + 1, kindId, traitId, TraitEffectBearerCodes.Actor, FixedScalar.FromSingle(10f)),
         };
 
         var totals = DecisionModifierEvaluation.SumLowAltitudeValues(
@@ -68,8 +68,8 @@ public sealed class DecisionModifierTests
             verbId,
             actor);
 
-        Assert.Equal(1f, totals.Weight);
-        Assert.Equal(2f, totals.OpportunityBonus);
-        Assert.Equal(3f, totals.FitnessWeight);
+        Assert.Equal(FixedScalar.FromSingle(1f), totals.Weight);
+        Assert.Equal(FixedScalar.FromSingle(2f), totals.OpportunityBonus);
+        Assert.Equal(FixedScalar.FromSingle(3f), totals.FitnessWeight);
     }
 }

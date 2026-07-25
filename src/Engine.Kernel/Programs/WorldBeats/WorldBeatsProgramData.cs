@@ -28,12 +28,12 @@ internal sealed class WorldBeatsProgramData : IKernelProgramData
     private int[] _conditionFactCodes = [];
     private int[] _conditionComparatorCodes = [];
     private int[] _conditionParamIds = [];
-    private float[] _conditionValues = [];
+    private FixedScalar[] _conditionValues = [];
     private int _conditionCount;
 
     private int[] _chargeDomainCodes = [];
     private int[] _chargeTargetIds = [];
-    private float[] _chargeMultipliers = [];
+    private FixedScalar[] _chargeMultipliers = [];
     private int _chargeCount;
 
     public int ProgramId => KernelProgramCodes.WorldBeats;
@@ -44,8 +44,8 @@ internal sealed class WorldBeatsProgramData : IKernelProgramData
 
     public void Allocate(int ageCapacity, int itemCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ageCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(itemCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(ageCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(itemCapacity);
         _ageIds = new int[ageCapacity + 1];
         _trackCodes = new int[ageCapacity + 1];
         _priorities = new int[ageCapacity + 1];
@@ -60,10 +60,10 @@ internal sealed class WorldBeatsProgramData : IKernelProgramData
         _conditionFactCodes = new int[itemCapacity];
         _conditionComparatorCodes = new int[itemCapacity];
         _conditionParamIds = new int[itemCapacity];
-        _conditionValues = new float[itemCapacity];
+        _conditionValues = new FixedScalar[itemCapacity];
         _chargeDomainCodes = new int[itemCapacity];
         _chargeTargetIds = new int[itemCapacity];
-        _chargeMultipliers = new float[itemCapacity];
+        _chargeMultipliers = new FixedScalar[itemCapacity];
     }
 
     /// <summary>Registers an age; conditions and charges must follow before the next AddAge.</summary>
@@ -91,7 +91,7 @@ internal sealed class WorldBeatsProgramData : IKernelProgramData
         return _ageCount;
     }
 
-    public void AddOpenCondition(int ageSlot, int factCode, int comparatorCode, float value, int paramId)
+    public void AddOpenCondition(int ageSlot, int factCode, int comparatorCode, FixedScalar value, int paramId)
     {
         RequireCurrentAge(ageSlot);
         if (_closeConditionCounts[ageSlot] > 0)
@@ -104,14 +104,14 @@ internal sealed class WorldBeatsProgramData : IKernelProgramData
         _closeConditionStarts[ageSlot] = _conditionCount;
     }
 
-    public void AddCloseCondition(int ageSlot, int factCode, int comparatorCode, float value, int paramId)
+    public void AddCloseCondition(int ageSlot, int factCode, int comparatorCode, FixedScalar value, int paramId)
     {
         RequireCurrentAge(ageSlot);
         AppendCondition(factCode, comparatorCode, value, paramId);
         _closeConditionCounts[ageSlot]++;
     }
 
-    public void AddCharge(int ageSlot, int domainCode, int targetId, float multiplier)
+    public void AddCharge(int ageSlot, int domainCode, int targetId, FixedScalar multiplier)
     {
         RequireCurrentAge(ageSlot);
         if (_chargeCount >= _chargeDomainCodes.Length)
@@ -154,15 +154,15 @@ internal sealed class WorldBeatsProgramData : IKernelProgramData
 
     public int ConditionParamId(int condition) => _conditionParamIds[condition];
 
-    public float ConditionValue(int condition) => _conditionValues[condition];
+    public FixedScalar ConditionValue(int condition) => _conditionValues[condition];
 
     public int ChargeDomainCode(int charge) => _chargeDomainCodes[charge];
 
     public int ChargeTargetId(int charge) => _chargeTargetIds[charge];
 
-    public float ChargeMultiplier(int charge) => _chargeMultipliers[charge];
+    public FixedScalar ChargeMultiplier(int charge) => _chargeMultipliers[charge];
 
-    private void AppendCondition(int factCode, int comparatorCode, float value, int paramId)
+    private void AppendCondition(int factCode, int comparatorCode, FixedScalar value, int paramId)
     {
         if (_conditionCount >= _conditionFactCodes.Length)
         {

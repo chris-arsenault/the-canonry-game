@@ -1,15 +1,17 @@
 namespace Engine.Kernel;
 
+using Engine.Constants;
+
 internal sealed partial class MovementProgramState : IKernelProgramState
 {
     internal const int RoadMarkNone = 0;
     internal const int RoadMarkLow = 1;
     internal const int RoadMarkHigh = 2;
-    internal const float LowRoadQualityCheckpoint = 25f;
-    internal const float HighRoadQualityCheckpoint = 75f;
+    internal static readonly FixedScalar LowRoadQualityCheckpoint = 25;
+    internal static readonly FixedScalar HighRoadQualityCheckpoint = 75;
 
-    private readonly PrimitiveFloatTable _roadQuality;
-    private readonly PrimitiveFloatTable _roadQualityFloors;
+    private readonly PrimitiveIntTable _roadQuality;
+    private readonly PrimitiveIntTable _roadQualityFloors;
     private readonly PrimitiveIntTable _roadTravelCounts;
     private readonly PrimitiveIntTable _lastRoadTicks;
     private readonly PrimitiveIntTable _travelStructureIds;
@@ -36,9 +38,9 @@ internal sealed partial class MovementProgramState : IKernelProgramState
 
     public MovementProgramState(int cellCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cellCapacity);
-        _roadQuality = new PrimitiveFloatTable(cellCapacity);
-        _roadQualityFloors = new PrimitiveFloatTable(cellCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(cellCapacity);
+        _roadQuality = new PrimitiveIntTable(cellCapacity);
+        _roadQualityFloors = new PrimitiveIntTable(cellCapacity);
         _roadTravelCounts = new PrimitiveIntTable(cellCapacity);
         _lastRoadTicks = new PrimitiveIntTable(cellCapacity);
         _travelStructureIds = new PrimitiveIntTable(cellCapacity);
@@ -61,7 +63,7 @@ internal sealed partial class MovementProgramState : IKernelProgramState
 
     public int ProgramId => KernelProgramCodes.Movement;
 
-    public int SchemaVersion => 6;
+    public int SchemaVersion => 7;
 
     internal int RoadCellCount => _roadQuality.Count;
 
@@ -73,8 +75,9 @@ internal sealed partial class MovementProgramState : IKernelProgramState
 
     internal int RouteCacheCount => _routeCacheCount;
 
-    public float RoadQuality(int planeCode, int q, int r, int tick, float roadDecayPerTick, int mainTickRatio) =>
-        DecayedRoadQuality(planeCode, CoordinateKey(q, r), tick, roadDecayPerTick, mainTickRatio);
+    public FixedScalar RoadQuality(int planeCode, int q, int r, int tick, FixedScalar roadDecayPerTick) =>
+        KernelFixedPoint.RoadQualityScalar(
+            DecayedRoadQualityUnits(planeCode, CoordinateKey(q, r), tick, roadDecayPerTick));
 
     public int RoadTravelCount(int planeCode, int q, int r) =>
         _roadTravelCounts.GetOrDefault(planeCode, CoordinateKey(q, r));
@@ -100,16 +103,19 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         int q,
         int r,
         int tick,
-        float roadBuild,
-        float roadDecayPerTick,
-        int mainTickRatio)
+        FixedScalar roadBuild,
+        FixedScalar roadDecayPerTick)
     {
         var key = CoordinateKey(q, r);
-        var decayedQuality = DecayedRoadQuality(planeCode, key, tick, roadDecayPerTick, mainTickRatio);
-        var nextQuality = Clamp(decayedQuality + roadBuild, 0f, 100f);
-        var previousMark = RoadMarkForQuality(decayedQuality);
-        var nextMark = RoadMarkForQuality(nextQuality);
-        var nextFloor = QualityFloor(nextQuality);
+        var decayedQuality = DecayedRoadQualityUnits(planeCode, key, tick, roadDecayPerTick);
+        var nextQuality = KernelFixedPoint.SaturatingAdd(
+            decayedQuality,
+            KernelFixedPoint.RoadWorkUnits(roadBuild),
+            0,
+            KernelFixedPoint.RoadQualityMaximumUnits);
+        var previousMark = RoadMarkForQualityUnits(decayedQuality);
+        var nextMark = RoadMarkForQualityUnits(nextQuality);
+        var nextFloor = QualityFloorUnits(nextQuality);
         if (nextFloor > _roadQualityFloors.GetOrDefault(planeCode, key))
         {
             _roadQualityFloors.Set(planeCode, key, nextFloor);
@@ -264,7 +270,7 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         _routeCachePortalR[slot] = portalR;
     }
 
-    internal void ForEachRoadCell(global::System.Action<int, int, float, int, int> visitor)
+    internal void ForEachRoadCell(global::System.Action<int, int, FixedScalar, int, int> visitor)
     {
         global::System.ArgumentNullException.ThrowIfNull(visitor);
         for (var index = 0; index < _roadQuality.Count; index++)
@@ -293,11 +299,12 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         int index,
         out int planeCode,
         out int coordinateKey,
-        out float quality,
+        out FixedScalar quality,
         out int lastTick,
         out int travelCount)
     {
-        _roadQuality.GetEntry(index, out planeCode, out coordinateKey, out quality);
+        _roadQuality.GetEntry(index, out planeCode, out coordinateKey, out var qualityUnits);
+        quality = KernelFixedPoint.RoadQualityScalar(qualityUnits);
         lastTick = _lastRoadTicks.GetOrDefault(planeCode, coordinateKey);
         travelCount = _roadTravelCounts.GetOrDefault(planeCode, coordinateKey);
     }
@@ -396,48 +403,49 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         }
     }
 
-    private float DecayedRoadQuality(int planeCode, int key, int tick, float roadDecayPerTick, int mainTickRatio)
+    private int DecayedRoadQualityUnits(int planeCode, int key, int tick, FixedScalar roadDecayPerTick)
     {
         if (!_roadQuality.TryGet(planeCode, key, out var roadQuality))
         {
-            return 0f;
+            return 0;
         }
 
         var floor = _roadQualityFloors.GetOrDefault(planeCode, key);
-        if (roadQuality <= 0f)
+        if (roadQuality <= 0)
         {
             return floor > roadQuality ? floor : roadQuality;
         }
 
-        var elapsedTicks = MainTickAge(_lastRoadTicks.GetOrDefault(planeCode, key), tick, mainTickRatio);
+        var startedTick = _lastRoadTicks.GetOrDefault(planeCode, key);
+        var elapsedTicks = tick <= startedTick ? 0 : tick - startedTick;
         if (elapsedTicks <= 0)
         {
             return floor > roadQuality ? floor : roadQuality;
         }
 
-        var decayed = roadQuality * (float)global::System.Math.Pow(Clamp(roadDecayPerTick, 0f, 1f), elapsedTicks);
+        var decayRatio = KernelFixedPoint.RatioUnits(Clamp(roadDecayPerTick, 0, 1));
+        var compoundedRatio = PowRatio(decayRatio, elapsedTicks);
+        var decayed = KernelFixedPoint.MultiplyByRatio(
+            roadQuality,
+            compoundedRatio,
+            0,
+            KernelFixedPoint.RoadQualityMaximumUnits);
         return floor > decayed ? floor : decayed;
     }
 
-    private static int MainTickAge(int startedTick, int currentTick, int mainTickRatio)
+    private static int QualityFloorUnits(int roadQualityUnits)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(mainTickRatio);
-        return currentTick <= startedTick ? 0 : (currentTick - startedTick) / mainTickRatio;
-    }
-
-    private static float QualityFloor(float roadQuality)
-    {
-        if (roadQuality >= HighRoadQualityCheckpoint)
+        if (roadQualityUnits >= KernelFixedPoint.RoadQualityUnits(HighRoadQualityCheckpoint))
         {
-            return HighRoadQualityCheckpoint;
+            return KernelFixedPoint.RoadQualityUnits(HighRoadQualityCheckpoint);
         }
 
-        return roadQuality >= LowRoadQualityCheckpoint
-            ? LowRoadQualityCheckpoint
-            : 0f;
+        return roadQualityUnits >= KernelFixedPoint.RoadQualityUnits(LowRoadQualityCheckpoint)
+            ? KernelFixedPoint.RoadQualityUnits(LowRoadQualityCheckpoint)
+            : 0;
     }
 
-    internal static int RoadMarkForQuality(float roadQuality)
+    internal static int RoadMarkForQuality(FixedScalar roadQuality)
     {
         if (roadQuality >= HighRoadQualityCheckpoint)
         {
@@ -449,7 +457,49 @@ internal sealed partial class MovementProgramState : IKernelProgramState
             : RoadMarkNone;
     }
 
-    private static float Clamp(float value, float minimum, float maximum)
+    private static int RoadMarkForQualityUnits(int roadQualityUnits)
+    {
+        if (roadQualityUnits >= KernelFixedPoint.RoadQualityUnits(HighRoadQualityCheckpoint))
+        {
+            return RoadMarkHigh;
+        }
+
+        return roadQualityUnits >= KernelFixedPoint.RoadQualityUnits(LowRoadQualityCheckpoint)
+            ? RoadMarkLow
+            : RoadMarkNone;
+    }
+
+    private static int PowRatio(int ratioUnits, int exponent)
+    {
+        var result = KernelFixedPoint.RatioScale;
+        var factor = ratioUnits;
+        var remaining = exponent;
+        while (remaining > 0)
+        {
+            if ((remaining & 1) != 0)
+            {
+                result = KernelFixedPoint.MultiplyByRatio(
+                    result,
+                    factor,
+                    0,
+                    KernelFixedPoint.RatioScale);
+            }
+
+            remaining >>= 1;
+            if (remaining > 0)
+            {
+                factor = KernelFixedPoint.MultiplyByRatio(
+                    factor,
+                    factor,
+                    0,
+                    KernelFixedPoint.RatioScale);
+            }
+        }
+
+        return result;
+    }
+
+    private static FixedScalar Clamp(FixedScalar value, FixedScalar minimum, FixedScalar maximum)
     {
         if (value < minimum)
         {

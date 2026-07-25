@@ -27,7 +27,7 @@ The graph contains:
 - lifecycle nodes;
 - generator nodes;
 - gambit nodes;
-- gameplay nodes for low-altitude verbs, map signals, and effects;
+- gameplay nodes for low-altitude verbs, locality rules, and effects;
 - semantic stock/flow nodes.
 
 The removed low-altitude process deck is not part of the current definition
@@ -38,7 +38,7 @@ graph. Generic behavior bytecode remains only where gambits need it.
 Gameplay nodes represent reusable mechanics compiled through `Engine.Gameplay`:
 
 - low-altitude verbs;
-- map signals;
+- locality rules;
 - health effects.
 
 They are included so semantic drift checks see the current primary behavior

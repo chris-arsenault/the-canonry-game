@@ -5,9 +5,6 @@ using Engine.Eventing;
 
 internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<GambitProgramData, GambitProgramState>
 {
-    internal const int GambitHistoryLength = 60;
-    private const int RecencyWindow = 10;
-    private const float RecencyDecayFactor = 0.5f;
     private const int PreconditionFailed = 0;
     private const int PreconditionPassed = 1;
 
@@ -20,11 +17,11 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     {
         for (var slot = 1; slot <= Data.GambitCount; slot++)
         {
-            Data.AgeScoreMultipliers[slot] = 1f;
+            Data.AgeScoreMultipliers[slot] = 1;
         }
     }
 
-    public void ApplyAgeScoreMultiplier(int gambitId, float multiplier)
+    public void ApplyAgeScoreMultiplier(int gambitId, FixedScalar multiplier)
     {
         for (var slot = 1; slot <= Data.GambitCount; slot++)
         {
@@ -39,11 +36,11 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     {
         for (var slot = 1; slot <= Data.GambitCount; slot++)
         {
-            Data.AgeSuccessMultipliers[slot] = 1f;
+            Data.AgeSuccessMultipliers[slot] = 1;
         }
     }
 
-    public void ApplyAgeSuccessMultiplier(int gambitId, float multiplier)
+    public void ApplyAgeSuccessMultiplier(int gambitId, FixedScalar multiplier)
     {
         for (var slot = 1; slot <= Data.GambitCount; slot++)
         {
@@ -55,7 +52,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     }
     private int[] _gambitCooldownTicks => Data.GambitCooldownTicks;
     private int[] _gambitEntityCooldownTicks => Data.GambitEntityCooldownTicks;
-    private float[] _gambitSuccessChances => Data.GambitSuccessChances;
+    private FixedScalar[] _gambitSuccessChances => Data.GambitSuccessChances;
     private int[] _gambitTargetKindIds => Data.GambitTargetKindIds;
     private int[] _gambitTargetModes => Data.GambitTargetModes;
     private int[] _gambitPreconditionStarts => Data.GambitPreconditionStarts;
@@ -72,38 +69,34 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     private int[] _preB => Data.PreB;
     private int[] _preC => Data.PreC;
     private int[] _preD => Data.PreD;
-    private float[] _preX => Data.PreX;
-    private float[] _preY => Data.PreY;
+    private FixedScalar[] _preX => Data.PreX;
+    private FixedScalar[] _preY => Data.PreY;
     private int[] _expressionCodes => Data.ExpressionCodes;
     private int[] _expressionA => Data.ExpressionA;
-    private float[] _expressionX => Data.ExpressionX;
+    private FixedScalar[] _expressionX => Data.ExpressionX;
     private int[] _stepOperationCodes => Data.StepOperationCodes;
     private int[] _stepA => Data.StepA;
     private int[] _stepB => Data.StepB;
     private int[] _stepC => Data.StepC;
     private int[] _stepD => Data.StepD;
-    private float[] _stepX => Data.StepX;
-    private float[] _stepY => Data.StepY;
+    private FixedScalar[] _stepX => Data.StepX;
+    private FixedScalar[] _stepY => Data.StepY;
     private int[] _stepExpressionStarts => Data.StepExpressionStarts;
     private int[] _stepExpressionCounts => Data.StepExpressionCounts;
     private int[] _mutationExpressionCodes => Data.MutationExpressionCodes;
     private int[] _mutationExpressionA => Data.MutationExpressionA;
-    private float[] _mutationExpressionX => Data.MutationExpressionX;
-    private PrimitiveIntTable _cooldowns => State.Cooldowns;
-    private PrimitiveIntTable _entityCooldowns => State.EntityCooldowns;
-    private int[] _actionHistoryTicks => State.ActionHistoryTicks;
-    private int[] _actionHistoryGambitIds => State.ActionHistoryGambitIds;
-    private int[] _actionHistoryCounts => State.ActionHistoryCounts;
-    private int[] _actionHistoryNextSlots => State.ActionHistoryNextSlots;
+    private FixedScalar[] _mutationExpressionX => Data.MutationExpressionX;
+    private int[] _cooldownExpiresAtTicks => State.CooldownExpiresAtTicks;
+    private int[] _entityCooldownExpiresAtTicks => State.EntityCooldownExpiresAtTicks;
     private bool[] _preconditionStack => _scratch.PreconditionStack;
-    private float[] _expressionStack => _scratch.ExpressionStack;
+    private FixedScalar[] _expressionStack => _scratch.ExpressionStack;
     private int[] _variableIds => _scratch.VariableIds;
-    private float[] _variableValues => _scratch.VariableValues;
+    private FixedScalar[] _variableValues => _scratch.VariableValues;
     private int[] _providerSelectorCodes => Data.ProviderSelectorCodes;
     private int[] _providerSelectorKindIds => Data.ProviderSelectorKindIds;
     private int[] _providerSelectorValueIds => Data.ProviderSelectorValueIds;
     private int[] _providerSelectorRelationshipKindIds => Data.ProviderSelectorRelationshipKindIds;
-    private float[] _providerSelectorMinimumStrengths => Data.ProviderSelectorMinimumStrengths;
+    private FixedScalar[] _providerSelectorMinimumStrengths => Data.ProviderSelectorMinimumStrengths;
     private ref int _gambitCount => ref Data.GambitCount;
     private ref int _preconditionCount => ref Data.PreconditionCount;
     private ref int _expressionCount => ref Data.ExpressionCount;
@@ -152,14 +145,15 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         int entityCooldownTicks = 0,
         int targetMode = BehaviorTargetModeCodes.Self,
         int targetKindId = 0,
-        float successChance = 1f)
+        FixedScalar? successChance = null)
     {
+        var compiledSuccessChance = successChance ?? FixedScalar.One;
         ValidatePositive(kindId);
         ValidatePositive(gambitId);
         ValidatePositive(targetMode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(cooldownTicks);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(entityCooldownTicks);
-        if (successChance < 0f || successChance > 1f)
+        NumericGuard.ThrowIfNegative(cooldownTicks);
+        NumericGuard.ThrowIfNegative(entityCooldownTicks);
+        if (compiledSuccessChance < 0 || compiledSuccessChance > 1)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(successChance));
         }
@@ -175,7 +169,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         _gambitIds[slot] = gambitId;
         _gambitCooldownTicks[slot] = cooldownTicks;
         _gambitEntityCooldownTicks[slot] = entityCooldownTicks;
-        _gambitSuccessChances[slot] = successChance;
+        _gambitSuccessChances[slot] = compiledSuccessChance;
         _gambitTargetModes[slot] = targetMode;
         _gambitTargetKindIds[slot] = targetKindId;
         _gambitPreconditionStarts[slot] = _preconditionCount + 1;
@@ -201,8 +195,8 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         int gambitId,
         int traitId,
         int bearerCode,
-        float scoreDelta,
-        float successChanceDelta)
+        FixedScalar scoreDelta,
+        FixedScalar successChanceDelta)
     {
         ValidatePositive(gambitId);
         ValidatePositive(traitId);
@@ -232,8 +226,8 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         int b = 0,
         int c = 0,
         int d = 0,
-        float x = 0f,
-        float y = 0f)
+        FixedScalar x = default,
+        FixedScalar y = default)
     {
         EnsureOpenGambit(gambitSlot);
         if (_preconditionCount + 1 >= _preconditionCodes.Length)
@@ -243,9 +237,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
 
         _preconditionCount++;
         _preconditionCodes[_preconditionCount] = preconditionCode;
-        _preA[_preconditionCount] = preconditionCode == BehaviorPreconditionCodes.CooldownElapsed
-            ? Tuning.ScaleMainTicks(a)
-            : a;
+        _preA[_preconditionCount] = a;
         _preB[_preconditionCount] = b;
         _preC[_preconditionCount] = c;
         _preD[_preconditionCount] = d;
@@ -254,7 +246,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         _gambitPreconditionCounts[gambitSlot]++;
     }
 
-    public void AddExpressionOp(int gambitSlot, int expressionCode, int a = 0, float x = 0f)
+    public void AddExpressionOp(int gambitSlot, int expressionCode, int a = 0, FixedScalar x = default)
     {
         EnsureOpenGambit(gambitSlot);
         if (_expressionCount + 1 >= _expressionCodes.Length)
@@ -275,13 +267,13 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         int kindId = 0,
         int valueId = 0,
         int relationshipKindId = 0,
-        float minimumStrength = 0f)
+        FixedScalar minimumStrength = default)
     {
         EnsureOpenGambit(gambitSlot);
         ValidatePositive(selectorCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(kindId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(valueId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(relationshipKindId);
+        NumericGuard.ThrowIfNegative(kindId);
+        NumericGuard.ThrowIfNegative(valueId);
+        NumericGuard.ThrowIfNegative(relationshipKindId);
         if (_providerSelectorCount + 1 >= _providerSelectorCodes.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -303,8 +295,8 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         int b = 0,
         int c = 0,
         int d = 0,
-        float x = 0f,
-        float y = 0f)
+        FixedScalar x = default,
+        FixedScalar y = default)
     {
         EnsureOpenGambit(gambitSlot);
         if (_stepCount + 1 >= _stepOperationCodes.Length)
@@ -325,7 +317,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         return _stepCount;
     }
 
-    public void AddStepExpressionOp(int stepSlot, int expressionCode, int a = 0, float x = 0f)
+    public void AddStepExpressionOp(int stepSlot, int expressionCode, int a = 0, FixedScalar x = default)
     {
         if ((uint)stepSlot == 0u || stepSlot > _stepCount)
         {
@@ -403,12 +395,13 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
 
     private void TickEntity(Simulation simulation, int entityId, int tick)
     {
-        if (tick < _entityCooldowns.GetOrDefault(entityId, 1))
+        var world = simulation.World;
+        if (world.EntityCreatedAt(entityId) >= tick ||
+            tick < _entityCooldownExpiresAtTicks[entityId])
         {
             return;
         }
 
-        var world = simulation.World;
         var kindId = world.EntityKindId(entityId);
         var candidateCount = 0;
         var totalWeight = EvaluateGambitWeights(simulation, entityId, kindId, tick, ref candidateCount);
@@ -417,13 +410,13 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
             return;
         }
 
-        if (totalWeight <= 0f)
+        if (totalWeight <= 0)
         {
             WriteGambitEvaluated(simulation, tick, entityId, kindId, 0, candidateCount, KernelEventState.None);
             return;
         }
 
-        var roll = simulation.NextFloat() * totalWeight;
+        var roll = simulation.NextScalar() * totalWeight;
         var selectedGambitSlot = SelectGambitSlot(simulation, entityId, kindId, tick, roll, out var selectedTargetId);
         if (selectedGambitSlot == 0)
         {
@@ -433,14 +426,14 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         RunSelectedGambit(simulation, entityId, selectedTargetId, selectedGambitSlot, kindId, tick, candidateCount);
     }
 
-    private float EvaluateGambitWeights(
+    private FixedScalar EvaluateGambitWeights(
         Simulation simulation,
         int entityId,
         int kindId,
         int tick,
         ref int candidateCount)
     {
-        var totalWeight = 0f;
+        var totalWeight = FixedScalar.Zero;
         for (var gambitSlot = 1; gambitSlot <= _gambitCount; gambitSlot++)
         {
             if (GambitCanRunForEntity(simulation, gambitSlot, kindId, entityId, tick))
@@ -451,7 +444,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
                     entityId,
                     tick,
                     ref candidateCount,
-                    selectRoll: -1f,
+                    selectRoll: -1,
                     out _);
             }
         }
@@ -464,10 +457,10 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         int entityId,
         int kindId,
         int tick,
-        float roll,
+        FixedScalar roll,
         out int selectedTargetId)
     {
-        var cumulative = 0f;
+        var cumulative = FixedScalar.Zero;
         var ignoredCandidateCount = 0;
         selectedTargetId = 0;
         for (var gambitSlot = 1; gambitSlot <= _gambitCount; gambitSlot++)
@@ -516,8 +509,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
             ExecuteGambit(simulation, entityId, selectedTargetId, selectedGambitSlot, tick);
         }
 
-        RecordGambit(entityId, gambitId, tick);
-        ApplyGambitCooldowns(simulation, entityId, selectedGambitSlot, gambitId, tick);
+        ApplyGambitCooldowns(simulation, entityId, selectedGambitSlot, tick);
         WriteGambitEvaluated(simulation, tick, entityId, kindId, gambitId, candidateCount, KernelEventState.Succeeded);
         WriteGambitExecuted(simulation, tick, entityId, selectedTargetId, kindId, gambitId, state);
         simulation.Chronicles.NoteExecution(entityId, selectedTargetId, gambitId, state == KernelEventState.Succeeded);
@@ -552,19 +544,20 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         Simulation simulation,
         int entityId,
         int selectedGambitSlot,
-        int gambitId,
         int tick)
     {
-        var cooldown = Tuning.ScaleMainTicks(_gambitCooldownTicks[selectedGambitSlot]);
+        var cooldown = _gambitCooldownTicks[selectedGambitSlot];
         if (cooldown > 0)
         {
-            _cooldowns.Set(entityId, gambitId, tick + CooldownWithJitter(simulation, cooldown));
+            _cooldownExpiresAtTicks[CooldownIndex(entityId, selectedGambitSlot)] =
+                tick + CooldownWithJitter(simulation, cooldown);
         }
 
-        var entityCooldown = Tuning.ScaleMainTicks(_gambitEntityCooldownTicks[selectedGambitSlot]);
+        var entityCooldown = _gambitEntityCooldownTicks[selectedGambitSlot];
         if (entityCooldown > 0)
         {
-            _entityCooldowns.Set(entityId, 1, tick + CooldownWithJitter(simulation, entityCooldown));
+            _entityCooldownExpiresAtTicks[entityId] =
+                tick + CooldownWithJitter(simulation, entityCooldown);
         }
     }
 
@@ -572,10 +565,27 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
     {
         return _gambitEnabled[gambitSlot] &&
                _gambitKindIds[gambitSlot] == kindId &&
-               tick >= _cooldowns.GetOrDefault(entityId, _gambitIds[gambitSlot]) &&
+               tick >= _cooldownExpiresAtTicks[CooldownIndex(entityId, gambitSlot)] &&
                (Data.GambitChronicleGranted[gambitSlot] == 0 ||
                    simulation.Chronicles.GrantsGambit(entityId, _gambitIds[gambitSlot]));
     }
+
+    internal void NoteEntityRetired(int entityId)
+    {
+        if ((uint)entityId >= (uint)_entityCooldownExpiresAtTicks.Length)
+        {
+            return;
+        }
+
+        _entityCooldownExpiresAtTicks[entityId] = 0;
+        global::System.Array.Clear(
+            _cooldownExpiresAtTicks,
+            entityId * State.CooldownStride,
+            State.CooldownStride);
+    }
+
+    private int CooldownIndex(int entityId, int gambitSlot) =>
+        (entityId * State.CooldownStride) + gambitSlot;
 
     private KernelEventState RollGambitState(Simulation simulation, int gambitSlot, int entityId, int targetId)
     {
@@ -588,12 +598,12 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
                     _gambitIds[gambitSlot])) +
             GambitSuccessDecisionDelta(simulation.World, _gambitIds[gambitSlot], entityId, targetId) +
             simulation.Chronicles.SuccessBonus(entityId, targetId, _gambitIds[gambitSlot]));
-        return successChance >= 1f || simulation.NextFloat() <= successChance
+        return successChance >= 1 || simulation.NextScalar() <= successChance
             ? KernelEventState.Succeeded
             : KernelEventState.Failed;
     }
 
-    private float GambitScoreDecisionDelta(WorldState world, int gambitId, int entityId, int targetId) =>
+    private FixedScalar GambitScoreDecisionDelta(WorldState world, int gambitId, int entityId, int targetId) =>
         DecisionModifierEvaluation.SumGambitValue(
             world,
             _traitModifierCount,
@@ -603,7 +613,7 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
             targetId,
             useValue1: false);
 
-    private float GambitSuccessDecisionDelta(WorldState world, int gambitId, int entityId, int targetId) =>
+    private FixedScalar GambitSuccessDecisionDelta(WorldState world, int gambitId, int entityId, int targetId) =>
         DecisionModifierEvaluation.SumGambitValue(
             world,
             _traitModifierCount,

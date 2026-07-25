@@ -50,30 +50,29 @@ foundation and can also accumulate as culture map influence. It is:
 | Health And Traits (#3) | Culture may influence trait probabilities and naming. |
 | Entity Behaviors (#6) | Cultural tendencies can influence low-altitude verb weights, initial semantic position, relationship maintenance, and gambit targeting. |
 | Relationships (#7) | Shared culture is a factor in relationship strength modification (same culture trends positive). Cultural difference feeds into disposition calculation via semantic plane distance. |
-| Map Signals (#4) | Cultural distribution is available as locality and semantic-map evidence. |
+| Locality Queries (#22) | Cultural distribution is available as direct physical and semantic locality evidence. |
 | Narrative Domain (#19) | Culture list and per-culture definitions (tendencies, naming rules, modifiers) are defined by the domain. |
-| Map Visualization (#10) | Cultural distribution can be visualized as an overlay using kernel boundary classifications. |
+| Map Visualization (#10) | Cultural distribution can be visualized as an overlay using sampled locality classifications. |
 | Generator Executor (#16) | New entities inherit culture from context (location, parent entity, domain rules). |
 
-## Cultural Influence And Boundaries
+## Cultural Influence And Locality
 
 Cultural influence is stored as a kernel tile layer, not as per-entity influence
-and not as authored culture objects. The `CultureBoundaries` kernel program
-derives the shared boundary model from that layer:
+and not as authored culture objects. `CultureLocality` derives a bounded,
+read-only descriptor at the point of use:
 
 - raw culture mass, capped at `2000` per culture/cell/plane;
 - dominance share, recalculated from all raw culture mass at the cell;
-- per-culture connected components on the physical and semantic planes;
 - cell kind: none, interior, border, isolated, or contested;
 - strength band: none, trace, claimed, controlled, entrenched, or nexus;
-- component size and raw mass;
 - strongest foreign culture/share at the cell;
-- interior holes as derived component gaps.
+- adjacent and ring-two support and connected local mass;
+- interior holes as a local enclosure heuristic.
 
-Consumers should query the kernel boundary program or a projection populated
-from it. Minor actors, low-altitude influence verbs, generator placement,
-culture slots, MC telemetry, and UI overlays should not reimplement their own
-boundary/component formulas.
+Minor actors, low-altitude influence verbs, generator placement, and culture
+slots query this descriptor. UI overlays use bounded dirty-cell refreshes.
+Monte Carlo may compute global topology at its sampling boundary; global
+component identity is not a runtime gameplay fact.
 
 The current strength thresholds are:
 
@@ -97,7 +96,7 @@ evidence, especially for culture slots. It is not the durable territorial layer.
 ### Decay, Remittances, And Concentration
 
 Raw culture mass decays. The `CultureFieldDecay` kernel program applies a
-multiplicative decay per pulse (default `0.5%` every 5 main ticks) with a
+multiplicative decay per pulse (default `0.5%` every 5 world pulses) with a
 minimum decay floor and a cull threshold that removes near-zero cells. The
 field therefore reflects the balance of current production against loss:
 unsustained wander-trails and satellites fade, while cells near sustained
@@ -112,12 +111,11 @@ a remittance share (default 50%) back to the anchor cell, so roaming entities
 feed their culture's center instead of painting unbounded trails.
 
 Concentration is self-reinforcing. Reinforce-style influence targeting keeps a
-positive floor near the cap and gains a gravity bonus inside the culture's
-largest connected component. Minor actor sources standing in an own-culture
-nexus cell emit stronger work. Generator outputs using `CultureInterior` or
-`CultureRoute` placement require existing own-culture support at the candidate
-cell and are rejected in unsupported void, which prevents satellite-founding
-from fragmenting territory.
+positive floor near the cap and gains a bonus at a strong current center.
+Minor actor sources standing in an own-culture nexus cell emit stronger work.
+Generator outputs using `CultureInterior` or `CultureRoute` placement require
+existing local own-culture support at the candidate cell and are rejected in
+unsupported void, which prevents unanchored satellite founding.
 
 ## Culture Power Ledgers
 

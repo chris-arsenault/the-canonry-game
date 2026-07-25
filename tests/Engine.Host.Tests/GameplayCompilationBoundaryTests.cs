@@ -106,8 +106,8 @@ public sealed class GameplayCompilationBoundaryTests
             Assert.True(verb.ForeignInfluenceFilterEnabled);
             Assert.True(verb.ForeignInfluenceBlockPositiveRelationships);
             Assert.True(verb.ForeignInfluenceAllowNegativeRelationships);
-            Assert.Equal(0.05f, verb.ForeignInfluenceMinimumRelationshipStrength);
-            Assert.Equal(50f, verb.ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove);
+            Assert.Equal(FixedScalar.FromSingle(0.05f), verb.ForeignInfluenceMinimumRelationshipStrength);
+            Assert.Equal(FixedScalar.FromSingle(50f), verb.ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove);
         });
     }
 

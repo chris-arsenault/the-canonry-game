@@ -191,14 +191,6 @@ public sealed class RelatedEntityMatchesTarget(string relationshipKind, bool beh
     public string Describe() => $"related_matches_target({RelationshipKind})";
 }
 
-/// <summary>Checks that enough ticks have passed since the current behavior last fired.</summary>
-public sealed class CooldownCheck(int minimumTicksSinceFire) : IPrecondition
-{
-    public int MinimumTicksSinceFire => minimumTicksSinceFire;
-
-    public string Describe() => $"cooldown(min_ticks={minimumTicksSinceFire})";
-}
-
 /// <summary>Checks the current entity's own attribute against a threshold.</summary>
 public sealed class SelfAttributeThreshold(string attributeName, float? min, float? max, bool behaviorRelevant = true) : IPrecondition
 {

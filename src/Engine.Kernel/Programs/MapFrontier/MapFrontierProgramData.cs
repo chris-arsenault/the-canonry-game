@@ -12,8 +12,8 @@ internal sealed partial class MapFrontierProgramData : IKernelProgramData
 {
     public MapFrontierProgramData(int mapGenerationRadiusCapacity = 0, int kindIdCapacity = 0)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(mapGenerationRadiusCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(kindIdCapacity);
+        NumericGuard.ThrowIfNegative(mapGenerationRadiusCapacity);
+        NumericGuard.ThrowIfNegative(kindIdCapacity);
         InitializeSemanticBlueprint(mapGenerationRadiusCapacity);
         _kindRevealRadius = new int[kindIdCapacity + 1];
     }
@@ -67,7 +67,7 @@ internal sealed partial class MapFrontierProgramData : IKernelProgramData
 
     public void RegisterKindRevealRadius(int kindId, int radius)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(radius);
+        NumericGuard.ThrowIfNegativeOrZero(radius);
         if (kindId <= 0 || kindId >= _kindRevealRadius.Length)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(kindId));
@@ -82,25 +82,25 @@ internal sealed partial class MapFrontierProgramData : IKernelProgramData
     public int FrostTemperatureCeiling = 64;
 
     /// <summary>Pressure added per byte of resident ice thickness.</summary>
-    public float IceThicknessPressureWeight = 0.25f;
+    public FixedScalar IceThicknessPressureWeight = FixedScalar.FromUnits(250000L);
 
     /// <summary>Pressure relieved per byte of geothermal heat.</summary>
-    public float GeothermalRefugeWeight = 0.5f;
+    public FixedScalar GeothermalRefugeWeight = FixedScalar.FromUnits(500000L);
 
     /// <summary>Pressure scalar while a freeze age is open (advance pass).</summary>
-    public float FreezeAgePressureScalar = 1f;
+    public FixedScalar FreezeAgePressureScalar = 1;
 
     /// <summary>Pressure scalar while a thaw age is open (retreat pass).</summary>
-    public float ThawAgePressureScalar = 0.5f;
+    public FixedScalar ThawAgePressureScalar = FixedScalar.FromUnits(500000L);
 
     /// <summary>Resistance every known cell holds against the ice.</summary>
-    public float BaseIceResistance = 8f;
+    public FixedScalar BaseIceResistance = 8;
 
     /// <summary>Resistance per point of strongest-culture raw mass.</summary>
-    public float CultureMassResistanceScale = 4f;
+    public FixedScalar CultureMassResistanceScale = 4;
 
     /// <summary>Resistance per road crossing the cell.</summary>
-    public float RoadIceResistance = 40f;
+    public FixedScalar RoadIceResistance = 40;
 
     /// <summary>Maximum cells the ice covers per advance pulse.</summary>
     public int IceAdvanceBudgetPerPulse = 24;
@@ -145,7 +145,7 @@ internal sealed partial class MapFrontierProgramData : IKernelProgramData
 
     public void AddSeaIceEligibleTerrain(int terrainId)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(terrainId);
+        NumericGuard.ThrowIfNegativeOrZero(terrainId);
         if (SeaIceEligibleTerrainCount >= MaxSeaIceEligibleTerrains ||
             SeaIceEligibleTerrain(terrainId))
         {
@@ -166,7 +166,7 @@ internal sealed partial class MapFrontierProgramData : IKernelProgramData
     public int SemanticMaxRadius = 40;
 
     /// <summary>A semantic frontier cell must hold at least this raw idea-mass to open new ground.</summary>
-    public float SemanticFrontierMassThreshold = 30f;
+    public FixedScalar SemanticFrontierMassThreshold = 30;
 
     /// <summary>Maximum semantic cells opened per pulse.</summary>
     public int SemanticBudgetPerPulse = 24;

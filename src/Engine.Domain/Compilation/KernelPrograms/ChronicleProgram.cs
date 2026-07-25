@@ -12,7 +12,7 @@ public sealed record CompiledChronicleArchetypeRule(
     int CastingCadenceTicks,
     int PrimaryKindId,
     int PrimaryRequiredRelKindId,
-    float PrimaryRequiredRelMinStrength,
+    FixedScalar PrimaryRequiredRelMinStrength,
     int FadeOutcomeCodeId,
     int FadeGraceTicks,
     int FadeQuietTicks,
@@ -23,12 +23,12 @@ public sealed record CompiledChronicleRole(
     int KindId,
     int RelatedKindId,
     bool RelatedIncoming,
-    float RelatedMinStrength,
+    FixedScalar RelatedMinStrength,
     bool Open = false);
 
 public sealed record CompiledChronicleBeat(
     int BeatCodeId,
-    float HeatGain,
+    FixedScalar HeatGain,
     int TerminalOutcomeCodeId,
     CompiledChronicleCondition Open,
     int StrikeKind,
@@ -46,14 +46,14 @@ public sealed record CompiledChronicleCondition(
     int RoleA,
     int RoleB,
     int RelOrAttrId,
-    float Value);
+    FixedScalar Value);
 
 public sealed record CompiledChronicleCharge(
     int ActorRole,
     int TargetRole,
     int GambitId,
-    float ScoreBonus,
-    float SuccessBonus,
+    FixedScalar ScoreBonus,
+    FixedScalar SuccessBonus,
     bool HeatScaled);
 
 public sealed record CompiledChronicleGrant(

@@ -11,7 +11,7 @@ internal sealed partial class ChronicleProgramRuntime
         int castingCadenceTicks,
         int primaryKindId,
         int primaryRequiredRelKindId,
-        float primaryRequiredRelMinStrength,
+        FixedScalar primaryRequiredRelMinStrength,
         int fadeOutcomeCodeId,
         int fadeGraceTicks = 0,
         int fadeQuietTicks = 0)
@@ -41,11 +41,11 @@ internal sealed partial class ChronicleProgramRuntime
         Data.ArchetypeBeatStarts[slot] = Data.BeatCount + 1;
         _openArchetypeSlot = slot;
         _openBeatSlot = 0;
-        AddRole(slot, primaryKindId, 0, 0, 0f);
+        AddRole(slot, primaryKindId, 0, 0, 0);
         return slot;
     }
 
-    public void AddRole(int archetypeSlot, int kindId, int relatedKindId, int relatedIncoming, float relatedMinStrength, int open = 0)
+    public void AddRole(int archetypeSlot, int kindId, int relatedKindId, int relatedIncoming, FixedScalar relatedMinStrength, int open = 0)
     {
         EnsureOpenArchetype(archetypeSlot);
         ValidatePositive(kindId);
@@ -67,13 +67,13 @@ internal sealed partial class ChronicleProgramRuntime
     public int AddBeat(
         int archetypeSlot,
         int beatCodeId,
-        float heatGain,
+        FixedScalar heatGain,
         int terminalOutcomeCodeId,
         int openKind,
         int openRoleA,
         int openRoleB,
         int openRelOrAttrId,
-        float openValue,
+        FixedScalar openValue,
         int strikeKind,
         int strikeActorRole,
         int strikeTargetRole,
@@ -84,7 +84,7 @@ internal sealed partial class ChronicleProgramRuntime
         int strikeFactRoleA,
         int strikeFactRoleB,
         int strikeFactRelOrAttrId,
-        float strikeFactValue)
+        FixedScalar strikeFactValue)
     {
         EnsureOpenArchetype(archetypeSlot);
         ValidatePositive(beatCodeId);
@@ -122,7 +122,7 @@ internal sealed partial class ChronicleProgramRuntime
         return beat;
     }
 
-    public void AddBeatCharge(int beatSlot, int actorRole, int targetRole, int gambitId, float scoreBonus, int heatScaled, float successBonus = 0f)
+    public void AddBeatCharge(int beatSlot, int actorRole, int targetRole, int gambitId, FixedScalar scoreBonus, int heatScaled, FixedScalar successBonus = default)
     {
         EnsureOpenBeat(beatSlot);
         if (Data.ChargeCount + 1 >= Data.ChargeActorRoles.Length)
@@ -173,6 +173,6 @@ internal sealed partial class ChronicleProgramRuntime
 
     private static void ValidatePositive(int value)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+        NumericGuard.ThrowIfNegativeOrZero(value);
     }
 }

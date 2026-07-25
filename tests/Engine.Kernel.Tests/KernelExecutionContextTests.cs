@@ -21,9 +21,9 @@ public sealed class KernelExecutionContextTests
         simulation.RegisterAttribute(
             kindId: 1,
             attributeId,
-            minimum: 0f,
-            maximum: 100f,
-            defaultValue: 0f);
+            minimum: FixedScalar.FromSingle(0f),
+            maximum: FixedScalar.FromSingle(100f),
+            defaultValue: FixedScalar.FromSingle(0f));
         var entityId = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, tick: 0);
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
 
@@ -31,7 +31,7 @@ public sealed class KernelExecutionContextTests
                    activeSourceCodeId,
                    KernelProgramCodes.Effects))
         {
-            simulation.SetAttribute(entityId, attributeId, 10f, tick: 0);
+            simulation.SetAttribute(entityId, attributeId, FixedScalar.FromSingle(10f), tick: 0);
 
             Assert.Equal(
                 new KernelExecutionContext(
@@ -209,13 +209,13 @@ public sealed class KernelExecutionContextTests
         simulation.RegisterAttribute(
             kindId,
             attributeId,
-            minimum: 0f,
-            maximum: 100f,
-            defaultValue: 0f);
+            minimum: FixedScalar.FromSingle(0f),
+            maximum: FixedScalar.FromSingle(100f),
+            defaultValue: FixedScalar.FromSingle(0f));
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         simulation.RegisterSystem(
             cadence: 1,
-            new RecordingSystem((sim, tick) => sim.SetAttribute(entityId, attributeId, 10f, tick)));
+            new RecordingSystem((sim, tick) => sim.SetAttribute(entityId, attributeId, FixedScalar.FromSingle(10f), tick)));
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
 
         using (simulation.EnterExecutionContext(
@@ -321,15 +321,12 @@ public sealed class KernelExecutionContextTests
 
     private static int[] AllProgramIds() =>
     [
-        KernelProgramCodes.Upkeep,
         KernelProgramCodes.Relationships,
         KernelProgramCodes.Generators,
         KernelProgramCodes.Gambits,
         KernelProgramCodes.Movement,
-        KernelProgramCodes.MapActivity,
         KernelProgramCodes.LowAltitudeVerbs,
         KernelProgramCodes.Effects,
-        KernelProgramCodes.MapSignals,
     ];
 
     private static void RegisterAttributesForPrograms(
@@ -343,9 +340,9 @@ public sealed class KernelExecutionContextTests
             simulation.RegisterAttribute(
                 kindId,
                 firstAttributeId + i,
-                minimum: 0f,
-                maximum: 100f,
-                defaultValue: 0f);
+                minimum: FixedScalar.FromSingle(0f),
+                maximum: FixedScalar.FromSingle(100f),
+                defaultValue: FixedScalar.FromSingle(0f));
         }
     }
 
@@ -422,13 +419,13 @@ public sealed class KernelExecutionContextTests
     private sealed class RecordingEventSystem : ISimulationSystem
     {
         private readonly int _entityId;
-        private readonly float _value;
+        private readonly FixedScalar _value;
 
         public RecordingEventSystem(
             int programId,
             int entityId,
             int attributeId,
-            float value)
+            FixedScalar value)
         {
             ProgramId = programId;
             _entityId = entityId;

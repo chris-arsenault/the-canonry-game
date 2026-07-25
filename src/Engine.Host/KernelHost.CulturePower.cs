@@ -8,7 +8,7 @@ using Engine.Projection;
 
 public sealed partial class KernelHost
 {
-    private const float WitnessHeightWeight = 0.25f;
+    private static readonly FixedScalar WitnessHeightWeight = FixedScalar.FromRatio(1, 4);
 
     private CulturePowerVocabulary? _culturePowerVocabulary;
 
@@ -68,7 +68,7 @@ public sealed partial class KernelHost
             {
                 if (z >= 0)
                 {
-                    accumulator.WitnessMass += raw * (1f + (WitnessHeightWeight * z));
+                    accumulator.WitnessMass += raw * (FixedScalar.One + (WitnessHeightWeight * z));
                 }
                 else
                 {
@@ -100,7 +100,7 @@ public sealed partial class KernelHost
             }
 
             var strength = world.RelationshipStrength(relationshipId);
-            if (strength <= 0f)
+            if (strength <= FixedScalar.Zero)
             {
                 continue;
             }
@@ -114,7 +114,7 @@ public sealed partial class KernelHost
         CulturePowerAccumulator[] accumulators,
         CulturePowerVocabulary vocabulary,
         int relationshipId,
-        float strength)
+        FixedScalar strength)
     {
         var kindId = world.RelationshipKindId(relationshipId);
         if (vocabulary.IsCustodyRelationship(kindId))
@@ -151,7 +151,7 @@ public sealed partial class KernelHost
         CulturePowerAccumulator[] accumulators,
         CulturePowerVocabulary vocabulary,
         int relationshipId,
-        float strength)
+        FixedScalar strength)
     {
         AccumulateCustodyEndpoint(world, accumulators, vocabulary, world.RelationshipSourceId(relationshipId), strength);
         AccumulateCustodyEndpoint(world, accumulators, vocabulary, world.RelationshipTargetId(relationshipId), strength);
@@ -162,7 +162,7 @@ public sealed partial class KernelHost
         CulturePowerAccumulator[] accumulators,
         CulturePowerVocabulary vocabulary,
         int entityId,
-        float strength)
+        FixedScalar strength)
     {
         if (!world.EntityIsActive(entityId) || !vocabulary.IsCustodyKind(world.EntityKindId(entityId)))
         {
@@ -180,7 +180,7 @@ public sealed partial class KernelHost
         WorldState world,
         CulturePowerAccumulator[] accumulators,
         int relationshipId,
-        float strength)
+        FixedScalar strength)
     {
         var sourceCultureId = ActiveEntityCultureId(world, world.RelationshipSourceId(relationshipId));
         var targetCultureId = ActiveEntityCultureId(world, world.RelationshipTargetId(relationshipId));
@@ -232,30 +232,30 @@ public sealed partial class KernelHost
 
         return new CulturePowerSummary(
             cultureId,
-            Share(accumulator.WitnessMass, totals.WitnessMass),
-            shadow.Mean,
-            wake.Mean,
-            accumulator.WitnessMass,
-            accumulator.HiddenMass,
-            accumulator.SemanticMass,
-            accumulator.CustodyStrength,
-            accumulator.ClaimStrength,
-            accumulator.WarStrength,
-            accumulator.OfferingStrength);
+            Share(accumulator.WitnessMass, totals.WitnessMass).ToSingle(),
+            shadow.Mean.ToSingle(),
+            wake.Mean.ToSingle(),
+            accumulator.WitnessMass.ToSingle(),
+            accumulator.HiddenMass.ToSingle(),
+            accumulator.SemanticMass.ToSingle(),
+            accumulator.CustodyStrength.ToSingle(),
+            accumulator.ClaimStrength.ToSingle(),
+            accumulator.WarStrength.ToSingle(),
+            accumulator.OfferingStrength.ToSingle());
     }
 
-    private static float Share(float value, float total) =>
-        total <= 0f ? 0f : value * 100f / total;
+    private static FixedScalar Share(FixedScalar value, FixedScalar total) =>
+        total <= FixedScalar.Zero ? FixedScalar.Zero : value * 100 / total;
 
     private struct CulturePowerAccumulator
     {
-        public float WitnessMass;
-        public float HiddenMass;
-        public float SemanticMass;
-        public float CustodyStrength;
-        public float ClaimStrength;
-        public float WarStrength;
-        public float OfferingStrength;
+        public FixedScalar WitnessMass;
+        public FixedScalar HiddenMass;
+        public FixedScalar SemanticMass;
+        public FixedScalar CustodyStrength;
+        public FixedScalar ClaimStrength;
+        public FixedScalar WarStrength;
+        public FixedScalar OfferingStrength;
 
         public void AddFrom(in CulturePowerAccumulator other)
         {
@@ -271,14 +271,14 @@ public sealed partial class KernelHost
 
     private struct ComponentMean
     {
-        private float _sum;
+        private FixedScalar _sum;
         private int _count;
 
-        public float Mean => _count == 0 ? 0f : _sum / _count;
+        public readonly FixedScalar Mean => _count == 0 ? FixedScalar.Zero : _sum / _count;
 
-        public void Add(float value, float total)
+        public void Add(FixedScalar value, FixedScalar total)
         {
-            if (total <= 0f)
+            if (total <= FixedScalar.Zero)
             {
                 return;
             }

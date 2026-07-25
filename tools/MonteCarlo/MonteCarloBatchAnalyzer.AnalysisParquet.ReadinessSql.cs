@@ -30,7 +30,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
             SELECT 24, COUNT(*) FROM raw_cell_influence_events UNION ALL
             SELECT 25, COUNT(*) FROM raw_gambit_events UNION ALL
             SELECT 26, COUNT(*) FROM raw_cell_road_events UNION ALL
-            SELECT 27, COUNT(*) FROM raw_cell_culture_influence_events UNION ALL
+            SELECT 27, COUNT(*) FROM raw_culture_field_cell_snapshots UNION ALL
             SELECT 28, COUNT(*) FROM raw_culture_slot_occupancy_events
         ),
         features(feature_code, source_table_code) AS (

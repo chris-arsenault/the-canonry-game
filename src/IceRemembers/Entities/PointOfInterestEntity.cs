@@ -42,8 +42,8 @@ internal static class PointOfInterestEntity
                 "Threat signals erode this place more quickly.",
                 TraitMapDelta(K.PointOfInterest, Attr.Presence, Effect.MapThreatAtLocation, -0.035f, 3f, PrimaryPlane.Semantic)),
         ],
-        MapSignal = MapSignal(radius: 1, capacity: 0.6f, support: 0.5f, threat: 0f,
-            baseMass: 4f, coverageScale: 0f, influenceScale: 0.03f, activityScale: 0.02f,
+        Locality = Locality(radius: 1, capacity: 0.6f, support: 0.5f, threat: 0f,
+            baseMass: 4f, coverageScale: 0f, influenceScale: 0.03f,
             healthScale: 0.04f, attractorRadius: 1),
         MovementProfiles = MovementProfiles(
             physicalDefault: Profile.Trail,

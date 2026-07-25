@@ -33,7 +33,7 @@ internal sealed class RelationshipProgramRuntime :
 
     public int RegisterRelationshipKind(
         int kindId,
-        float cullThreshold,
+        FixedScalar cullThreshold,
         bool targetFollowsSourcePhysical = false,
         bool isExclusive = false,
         bool isCultureAnchor = false) =>
@@ -48,24 +48,25 @@ internal sealed class RelationshipProgramRuntime :
         int conditionCode,
         int planeCode,
         int maxDistance,
-        float threshold,
-        float delta) =>
+        FixedScalar threshold,
+        FixedScalar delta) =>
         Data.AddMaintenanceRule(kindId, conditionCode, planeCode, maxDistance, threshold, delta);
 
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         var world = simulation.World;
-        for (var relationshipId = 1; relationshipId <= world.RelationshipHighWatermark; relationshipId++)
+        for (var relationshipId = world.FirstActiveRelationship(); relationshipId > 0;)
         {
-            if (!world.RelationshipIsActive(relationshipId))
-            {
-                continue;
-            }
-
+            var nextRelationshipId = world.NextActiveRelationship(relationshipId);
             TickRelationship(simulation, world, relationshipId, tick);
+            relationshipId = nextRelationshipId;
         }
     }
+
+    public void NoteRelationshipCreated(int relationshipId) => State.Reset(relationshipId);
+
+    public void NoteRelationshipCulled(int relationshipId) => State.Reset(relationshipId);
 
     private void TickRelationship(Simulation simulation, WorldState world, int relationshipId, int tick)
     {
@@ -81,31 +82,32 @@ internal sealed class RelationshipProgramRuntime :
             world.EntityCultureId(targetId),
             KnowledgeGrantDomainCodes.RelationshipMaintenance,
             relationshipKindId);
-        var modifier = global::System.MathF.Max(sourceModifier, targetModifier);
-        var delta = 0f;
-        for (var rule = 1; rule <= Data.MaintenanceRuleCount; rule++)
+        var modifier = FixedScalar.Max(sourceModifier, targetModifier);
+        long deltaUnits = 0;
+        for (var rule = Data.FirstMaintenanceRule(relationshipKindId);
+             rule > 0;
+             rule = Data.NextMaintenanceRule(rule))
         {
-            if (Data.MaintenanceKindId(rule) == relationshipKindId)
-            {
-                var ruleDelta = ComputeRuleDelta(world, relationshipId, sourceId, targetId, rule);
-                delta += ruleDelta > 0f ? ruleDelta * modifier : ruleDelta / modifier;
-            }
+            var ruleDelta = ComputeRuleDelta(world, relationshipId, sourceId, targetId, rule);
+            var adjustedDelta = ruleDelta > 0 ? ruleDelta * modifier : ruleDelta / modifier;
+            deltaUnits = checked(
+                deltaUnits + KernelFixedPoint.RelationshipStrengthDeltaUnits(adjustedDelta));
         }
 
-        if (delta != 0f)
+        if (deltaUnits != 0)
         {
-            simulation.SetRelationshipStrength(relationshipId, world.RelationshipStrength(relationshipId) + delta, tick);
+            simulation.ModifyRelationshipStrengthUnits(
+                relationshipId,
+                KernelFixedPoint.ClampToInt(
+                    deltaUnits,
+                    -KernelFixedPoint.RelationshipStrengthMaximumUnits,
+                    KernelFixedPoint.RelationshipStrengthMaximumUnits),
+                tick);
         }
 
         if (world.RelationshipStrength(relationshipId) <= Data.CullThreshold(world.RelationshipKindId(relationshipId)))
         {
             simulation.CullRelationship(relationshipId, tick);
-            return;
-        }
-
-        if (Data.TargetFollowsSourcePhysical(relationshipKindId))
-        {
-            MoveTargetToSourcePhysical(simulation, world, sourceId, targetId, tick);
         }
     }
 
@@ -114,45 +116,25 @@ internal sealed class RelationshipProgramRuntime :
     /// this entity's physical position (it is being carried), so other
     /// programs can suspend their own movement of it.
     /// </summary>
-    public bool TargetIsFollowGoverned(WorldState world, int entityId)
+    public bool TryResolveFollowSource(WorldState world, int entityId, out int sourceEntityId)
     {
         global::System.ArgumentNullException.ThrowIfNull(world);
-        for (var rule = 1; rule <= Data.Count; rule++)
+        for (var index = 1; index <= Data.FollowKindCount; index++)
         {
-            if (!Data.RuleTargetFollowsSourcePhysical(rule))
-            {
-                continue;
-            }
-
-            var cursor = world.IncomingRelationshipsOfKind(entityId, Data.RuleKindId(rule));
+            var cursor = world.IncomingRelationshipsOfKind(entityId, Data.FollowKindId(index));
             while (world.MoveNextRelationship(ref cursor, out var relationshipId))
             {
-                if (world.RelationshipIsActive(relationshipId) &&
-                    world.EntityIsActive(world.RelationshipSourceId(relationshipId)))
+                var sourceId = world.RelationshipSourceId(relationshipId);
+                if (world.EntityIsActive(sourceId))
                 {
+                    sourceEntityId = sourceId;
                     return true;
                 }
             }
         }
 
+        sourceEntityId = 0;
         return false;
-    }
-
-    private static void MoveTargetToSourcePhysical(Simulation simulation, WorldState world, int sourceId, int targetId, int tick)
-    {
-        if (!world.EntityIsActive(sourceId) || !world.EntityIsActive(targetId))
-        {
-            return;
-        }
-
-        var sourceQ = world.EntityPhysicalQ(sourceId);
-        var sourceR = world.EntityPhysicalR(sourceId);
-        if (world.EntityPhysicalQ(targetId) == sourceQ && world.EntityPhysicalR(targetId) == sourceR)
-        {
-            return;
-        }
-
-        simulation.Movement.Place(simulation, targetId, PlaneCodes.Physical, sourceQ, sourceR, tick, MovementCauseCodes.Follow);
     }
 
     private void UpdateContactMemory(WorldState world, int relationshipId, int relationshipKindId, int tick)
@@ -160,10 +142,11 @@ internal sealed class RelationshipProgramRuntime :
         var sourceId = world.RelationshipSourceId(relationshipId);
         var targetId = world.RelationshipTargetId(relationshipId);
         var sawContactMemoryRule = false;
-        for (var rule = 1; rule <= Data.MaintenanceRuleCount; rule++)
+        for (var rule = Data.FirstMaintenanceRule(relationshipKindId);
+             rule > 0;
+             rule = Data.NextMaintenanceRule(rule))
         {
-            if (Data.MaintenanceKindId(rule) != relationshipKindId ||
-                Data.MaintenanceConditionCode(rule) != RelationshipMaintenanceConditionCodes.ContactMemory)
+            if (Data.MaintenanceConditionCode(rule) != RelationshipMaintenanceConditionCodes.ContactMemory)
             {
                 continue;
             }
@@ -186,7 +169,7 @@ internal sealed class RelationshipProgramRuntime :
         State.DecayContact(relationshipId);
     }
 
-    private float ComputeRuleDelta(
+    private FixedScalar ComputeRuleDelta(
         WorldState world,
         int relationshipId,
         int sourceId,
@@ -194,10 +177,10 @@ internal sealed class RelationshipProgramRuntime :
         int rule)
     {
         var evidence = Evidence(world, relationshipId, sourceId, targetId, rule);
-        return evidence <= 0f ? 0f : Data.MaintenanceDelta(rule) * evidence;
+        return evidence <= 0 ? 0 : Data.MaintenanceDelta(rule) * evidence;
     }
 
-    private float Evidence(
+    private FixedScalar Evidence(
         WorldState world,
         int relationshipId,
         int sourceId,
@@ -207,7 +190,7 @@ internal sealed class RelationshipProgramRuntime :
         var condition = Data.MaintenanceConditionCode(rule);
         if (condition == RelationshipMaintenanceConditionCodes.Always)
         {
-            return 1f;
+            return 1;
         }
 
         if (TryCultureEvidence(world, sourceId, targetId, condition, out var evidence) ||
@@ -219,7 +202,7 @@ internal sealed class RelationshipProgramRuntime :
 
         return condition == RelationshipMaintenanceConditionCodes.ContactMemory
             ? ContactEvidence(relationshipId, Data.MaintenanceThreshold(rule))
-            : 0f;
+            : 0;
     }
 
     private static bool TryCultureEvidence(
@@ -227,21 +210,21 @@ internal sealed class RelationshipProgramRuntime :
         int sourceId,
         int targetId,
         int condition,
-        out float evidence)
+        out FixedScalar evidence)
     {
         if (condition == RelationshipMaintenanceConditionCodes.SameCulture)
         {
-            evidence = world.EntityCultureId(sourceId) == world.EntityCultureId(targetId) ? 1f : 0f;
+            evidence = world.EntityCultureId(sourceId) == world.EntityCultureId(targetId) ? 1 : 0;
             return true;
         }
 
         if (condition == RelationshipMaintenanceConditionCodes.DifferentCulture)
         {
-            evidence = world.EntityCultureId(sourceId) != world.EntityCultureId(targetId) ? 1f : 0f;
+            evidence = world.EntityCultureId(sourceId) != world.EntityCultureId(targetId) ? 1 : 0;
             return true;
         }
 
-        evidence = 0f;
+        evidence = 0;
         return false;
     }
 
@@ -251,7 +234,7 @@ internal sealed class RelationshipProgramRuntime :
         int targetId,
         int condition,
         int rule,
-        out float evidence)
+        out FixedScalar evidence)
     {
         if (condition == RelationshipMaintenanceConditionCodes.PhysicalDistanceWithin)
         {
@@ -273,21 +256,21 @@ internal sealed class RelationshipProgramRuntime :
         int sourceId,
         int targetId,
         int condition,
-        out float evidence)
+        out FixedScalar evidence)
     {
         if (condition == RelationshipMaintenanceConditionCodes.PhysicalCoPresence)
         {
-            evidence = PhysicalDistance(world, sourceId, targetId) == 0 ? 1f : 0f;
+            evidence = PhysicalDistance(world, sourceId, targetId) == 0 ? 1 : 0;
             return true;
         }
 
         if (condition == RelationshipMaintenanceConditionCodes.SemanticCoPresence)
         {
-            evidence = SemanticDistance(world, sourceId, targetId) == 0 ? 1f : 0f;
+            evidence = SemanticDistance(world, sourceId, targetId) == 0 ? 1 : 0;
             return true;
         }
 
-        evidence = 0f;
+        evidence = 0;
         return false;
     }
 
@@ -297,21 +280,21 @@ internal sealed class RelationshipProgramRuntime :
         int targetId,
         int condition,
         int rule,
-        out float evidence)
+        out FixedScalar evidence)
     {
         if (condition == RelationshipMaintenanceConditionCodes.SourceInfluenceAtTarget)
         {
             var planeCode = InfluencePlaneCode(rule);
             if (planeCode == PlaneCodes.None)
             {
-                evidence = 0f;
+                evidence = 0;
                 return true;
             }
 
             var sourceCultureId = world.EntityCultureId(sourceId);
             evidence = InfluenceEvidence(
                 sourceCultureId <= 0
-                    ? 0f
+                    ? 0
                     : world.GetCellCultureInfluenceRaw(
                         sourceCultureId,
                         planeCode,
@@ -326,14 +309,14 @@ internal sealed class RelationshipProgramRuntime :
             var planeCode = InfluencePlaneCode(rule);
             if (planeCode == PlaneCodes.None)
             {
-                evidence = 0f;
+                evidence = 0;
                 return true;
             }
 
             var targetCultureId = world.EntityCultureId(targetId);
             evidence = InfluenceEvidence(
                 targetCultureId <= 0
-                    ? 0f
+                    ? 0
                     : world.GetCellCultureInfluenceRaw(
                         targetCultureId,
                         planeCode,
@@ -343,40 +326,40 @@ internal sealed class RelationshipProgramRuntime :
             return true;
         }
 
-        evidence = 0f;
+        evidence = 0;
         return false;
     }
 
-    private static float DistanceEvidence(int distance, int maxDistance)
+    private static FixedScalar DistanceEvidence(int distance, int maxDistance)
     {
         if (maxDistance <= 0)
         {
-            return distance == 0 ? 1f : 0f;
+            return distance == 0 ? 1 : 0;
         }
 
         if (distance > maxDistance)
         {
-            return 0f;
+            return 0;
         }
 
-        return 1f - (distance / (float)(maxDistance + 1));
+        return 1 - (distance / (FixedScalar)(maxDistance + 1));
     }
 
-    private static float InfluenceEvidence(float influence, float threshold)
+    private static FixedScalar InfluenceEvidence(FixedScalar influence, FixedScalar threshold)
     {
-        if (threshold <= 0f)
+        if (threshold <= 0)
         {
-            return influence > 0f ? 1f : 0f;
+            return influence > 0 ? 1 : 0;
         }
 
         return Clamp01(influence / threshold);
     }
 
-    private float ContactEvidence(int relationshipId, float threshold)
+    private FixedScalar ContactEvidence(int relationshipId, FixedScalar threshold)
     {
-        if (threshold <= 0f)
+        if (threshold <= 0)
         {
-            return State.ContactTicks(relationshipId) > 0 ? 1f : 0f;
+            return State.ContactTicks(relationshipId) > 0 ? 1 : 0;
         }
 
         return Clamp01(State.ContactTicks(relationshipId) / threshold);
@@ -427,14 +410,14 @@ internal sealed class RelationshipProgramRuntime :
 
     private static int Max(int left, int right) => left >= right ? left : right;
 
-    private static float Clamp01(float value)
+    private static FixedScalar Clamp01(FixedScalar value)
     {
-        if (value < 0f)
+        if (value < 0)
         {
-            return 0f;
+            return 0;
         }
 
-        return value > 1f ? 1f : value;
+        return value > 1 ? 1 : value;
     }
 
 }

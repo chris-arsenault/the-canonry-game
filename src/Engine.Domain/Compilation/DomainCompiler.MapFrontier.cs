@@ -27,18 +27,19 @@ public static partial class DomainCompiler
                 [.. frontier.KindRevealRadii.Select(entry =>
                     (ids.KindIdOf(entry.Kind.Value).Value, entry.Radius))],
             FrostTemperatureCeiling = frontier.FrostTemperatureCeiling,
-            IceThicknessPressureWeight = frontier.IceThicknessPressureWeight,
-            GeothermalRefugeWeight = frontier.GeothermalRefugeWeight,
-            FreezeAgePressureScalar = frontier.FreezeAgePressureScalar,
-            ThawAgePressureScalar = frontier.ThawAgePressureScalar,
-            BaseIceResistance = frontier.BaseIceResistance,
-            CultureMassResistanceScale = frontier.CultureMassResistanceScale,
-            RoadIceResistance = frontier.RoadIceResistance,
+            IceThicknessPressureWeight = FixedScalar.FromSingle(frontier.IceThicknessPressureWeight),
+            GeothermalRefugeWeight = FixedScalar.FromSingle(frontier.GeothermalRefugeWeight),
+            FreezeAgePressureScalar = FixedScalar.FromSingle(frontier.FreezeAgePressureScalar),
+            ThawAgePressureScalar = FixedScalar.FromSingle(frontier.ThawAgePressureScalar),
+            BaseIceResistance = FixedScalar.FromSingle(frontier.BaseIceResistance),
+            CultureMassResistanceScale = FixedScalar.FromSingle(frontier.CultureMassResistanceScale),
+            RoadIceResistance = FixedScalar.FromSingle(frontier.RoadIceResistance),
             IceAdvanceBudgetPerPulse = frontier.IceAdvanceBudgetPerPulse,
             IceRetreatBudgetPerPulse = frontier.IceRetreatBudgetPerPulse,
             SemanticGrowthEnabled = frontier.SemanticGrowthEnabled,
             SemanticMaxRadius = frontier.SemanticMaxRadius,
-            SemanticFrontierMassThreshold = frontier.SemanticFrontierMassThreshold,
+            SemanticFrontierMassThreshold = KernelFixedPoint.CultureMassScalar(
+                KernelFixedPoint.CultureMassUnits(frontier.SemanticFrontierMassThreshold)),
             SemanticBudgetPerPulse = frontier.SemanticBudgetPerPulse,
             SeaIceCoverTerrainId = frontier.SeaIceCoverTerrain is null
                 ? 0

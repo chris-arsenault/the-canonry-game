@@ -20,7 +20,7 @@ public sealed class GambitGeographyPreconditionTests
         var simulation = CreateSimulation();
         InstallGeography(simulation, warmQ: 1, warmR: 0, geothermal: 150);
         const int kindId = 1;
-        simulation.RegisterAttribute(kindId, AttributeId, 0f, 100f, 10f);
+        simulation.RegisterAttribute(kindId, AttributeId, FixedScalar.FromSingle(0f), FixedScalar.FromSingle(100f), FixedScalar.FromSingle(10f));
         var onWarm = simulation.CreateEntity(kindId, 1, 1, 1, 0, 0, 0, 0, 0);
         var onCold = simulation.CreateEntity(kindId, 1, 1, -1, 0, 0, 0, 0, 0);
 
@@ -28,20 +28,20 @@ public sealed class GambitGeographyPreconditionTests
             kindId,
             gambitId: 100,
             targetMode: BehaviorTargetModeCodes.Self,
-            successChance: 1f);
+            successChance: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddPrecondition(
             gambit,
             BehaviorPreconditionCodes.SelfHexFactRange,
             a: PhysicalHexFactCodes.Geothermal,
             b: 100,
             c: 255);
-        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
-        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, AttributeId, x: 20f);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, AttributeId, x: FixedScalar.FromSingle(20f));
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(30f, simulation.World.GetAttribute(onWarm, AttributeId));
-        Assert.Equal(10f, simulation.World.GetAttribute(onCold, AttributeId));
+        Assert.Equal(FixedScalar.FromSingle(30f), simulation.World.GetAttribute(onWarm, AttributeId));
+        Assert.Equal(FixedScalar.FromSingle(10f), simulation.World.GetAttribute(onCold, AttributeId));
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed class GambitGeographyPreconditionTests
         InstallGeography(simulation, warmQ: 1, warmR: 0, geothermal: 150);
         const int actorKindId = 1;
         const int targetKindId = 2;
-        simulation.RegisterAttribute(actorKindId, AttributeId, 0f, 100f, 10f);
+        simulation.RegisterAttribute(actorKindId, AttributeId, FixedScalar.FromSingle(0f), FixedScalar.FromSingle(100f), FixedScalar.FromSingle(10f));
         var actor = simulation.CreateEntity(actorKindId, 1, 1, -1, 0, 0, 0, 0, 0);
         simulation.CreateEntity(targetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
 
@@ -60,7 +60,7 @@ public sealed class GambitGeographyPreconditionTests
             gambitId: 101,
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
-            successChance: 1f);
+            successChance: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
         simulation.Gambits.AddPrecondition(
             gambit,
@@ -68,13 +68,13 @@ public sealed class GambitGeographyPreconditionTests
             a: PhysicalHexFactCodes.Geothermal,
             b: 100,
             c: 255);
-        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: 1f);
-        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, AttributeId, x: 20f);
+        simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
+        simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, AttributeId, x: FixedScalar.FromSingle(20f));
 
         simulation.AdvanceTicks(1);
 
         // The actor stands on cold ground; only the target's warm hex is read.
-        Assert.Equal(30f, simulation.World.GetAttribute(actor, AttributeId));
+        Assert.Equal(FixedScalar.FromSingle(30f), simulation.World.GetAttribute(actor, AttributeId));
     }
 
     [Fact]
@@ -84,8 +84,8 @@ public sealed class GambitGeographyPreconditionTests
         InstallGeography(simulation, warmQ: 1, warmR: 0, geothermal: 150);
         const int wantsWarmKind = 1;
         const int wantsOpenKind = 2;
-        simulation.RegisterAttribute(wantsWarmKind, AttributeId, 0f, 100f, 10f);
-        simulation.RegisterAttribute(wantsOpenKind, AttributeId, 0f, 100f, 10f);
+        simulation.RegisterAttribute(wantsWarmKind, AttributeId, FixedScalar.FromSingle(0f), FixedScalar.FromSingle(100f), FixedScalar.FromSingle(10f));
+        simulation.RegisterAttribute(wantsOpenKind, AttributeId, FixedScalar.FromSingle(0f), FixedScalar.FromSingle(100f), FixedScalar.FromSingle(10f));
         var onWarmGround = simulation.CreateEntity(wantsWarmKind, 1, 1, 1, 0, 0, 0, 0, 0);
         var alsoOnWarmGround = simulation.CreateEntity(wantsOpenKind, 1, 1, 1, 1, 0, 0, 0, 0);
 
@@ -93,27 +93,27 @@ public sealed class GambitGeographyPreconditionTests
             wantsWarmKind,
             gambitId: 102,
             targetMode: BehaviorTargetModeCodes.Self,
-            successChance: 1f);
+            successChance: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddPrecondition(
             wantsWarm, BehaviorPreconditionCodes.SelfOnTerrainGroup, a: WarmGroup);
-        simulation.Gambits.AddExpressionOp(wantsWarm, BehaviorExpressionCodes.Literal, x: 1f);
-        simulation.Gambits.AddStep(wantsWarm, BehaviorOperationCodes.AddAttribute, AttributeId, x: 20f);
+        simulation.Gambits.AddExpressionOp(wantsWarm, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
+        simulation.Gambits.AddStep(wantsWarm, BehaviorOperationCodes.AddAttribute, AttributeId, x: FixedScalar.FromSingle(20f));
 
         var wantsOpen = simulation.Gambits.RegisterGambit(
             wantsOpenKind,
             gambitId: 103,
             targetMode: BehaviorTargetModeCodes.Self,
-            successChance: 1f);
+            successChance: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddPrecondition(
             wantsOpen, BehaviorPreconditionCodes.SelfOnTerrainGroup, a: OpenGroup);
-        simulation.Gambits.AddExpressionOp(wantsOpen, BehaviorExpressionCodes.Literal, x: 1f);
-        simulation.Gambits.AddStep(wantsOpen, BehaviorOperationCodes.AddAttribute, AttributeId, x: 20f);
+        simulation.Gambits.AddExpressionOp(wantsOpen, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
+        simulation.Gambits.AddStep(wantsOpen, BehaviorOperationCodes.AddAttribute, AttributeId, x: FixedScalar.FromSingle(20f));
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(30f, simulation.World.GetAttribute(onWarmGround, AttributeId));
+        Assert.Equal(FixedScalar.FromSingle(30f), simulation.World.GetAttribute(onWarmGround, AttributeId));
         // (1,1) is warm-group ground too, so the open-group gate blocks there.
-        Assert.Equal(10f, simulation.World.GetAttribute(alsoOnWarmGround, AttributeId));
+        Assert.Equal(FixedScalar.FromSingle(10f), simulation.World.GetAttribute(alsoOnWarmGround, AttributeId));
     }
 
     // A radius-2 field of open terrain with one warm patch: the flagged hex
@@ -122,13 +122,13 @@ public sealed class GambitGeographyPreconditionTests
     private static void InstallGeography(Simulation simulation, int warmQ, int warmR, byte geothermal)
     {
         simulation.RegisterTerrain(
-            OpenTerrain, boundaryGroupId: OpenGroup, movementCost: 3f,
-            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f, roadSpeedMultiplier: 1f);
+            OpenTerrain, boundaryGroupId: OpenGroup, movementCost: FixedScalar.FromSingle(3f),
+            influenceMultiplier: FixedScalar.FromSingle(1f), claimCostMultiplier: FixedScalar.FromSingle(1f), claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f), roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.RegisterTerrain(
-            WarmTerrain, boundaryGroupId: WarmGroup, movementCost: 3f,
-            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f, roadSpeedMultiplier: 1f);
+            WarmTerrain, boundaryGroupId: WarmGroup, movementCost: FixedScalar.FromSingle(3f),
+            influenceMultiplier: FixedScalar.FromSingle(1f), claimCostMultiplier: FixedScalar.FromSingle(1f), claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f), roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.KernelData.PhysicalGeography.BeginInstall(4);
         simulation.World.SetMapRadius(4);
         ForEachHex(2, (q, r) =>
@@ -171,7 +171,6 @@ public sealed class GambitGeographyPreconditionTests
         EventCapacity = 512,
         GambitCapacity = 4,
         GambitStepCapacity = 32,
-        GambitCooldownCapacity = 32,
         GeneratorCapacity = 4,
         RelationshipKindIdCapacity = 64,
         TerrainIdCapacity = 8,

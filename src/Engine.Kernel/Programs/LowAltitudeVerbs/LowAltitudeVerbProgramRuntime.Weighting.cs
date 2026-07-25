@@ -5,23 +5,24 @@ using Engine.Constants;
 internal sealed partial class LowAltitudeVerbProgramRuntime
 {
     private const int AffordanceOverlapCap = 6;
-    private const float CultureSlotAgencyEvidenceThreshold = 2.4f;
-    private const float CultureSlotForeignReductionPositiveAgencyWeight = 7f / 20f;
+    private static readonly FixedScalar CultureSlotAgencyEvidenceThreshold = FixedScalar.FromUnits(2400000L);
+    private static readonly FixedScalar CultureSlotForeignReductionPositiveAgencyWeight =
+        FixedScalar.FromRatio(7, 20);
 
-    private static readonly float[] AffordanceDiminishingFactors =
+    private static readonly FixedScalar[] AffordanceDiminishingFactors =
     [
-        1.0f,
-        0.7f,
-        0.5f,
-        0.4f,
-        0.3f,
-        0.25f,
+        FixedScalar.FromUnits(1000000L),
+        FixedScalar.FromUnits(700000L),
+        FixedScalar.FromUnits(500000L),
+        FixedScalar.FromUnits(400000L),
+        FixedScalar.FromUnits(300000L),
+        FixedScalar.FromUnits(250000L),
     ];
 
-    private float EffectiveDistanceScale(int rule, int targetMode)
+    private FixedScalar EffectiveDistanceScale(int rule, int targetMode)
     {
         var verbOverride = Data.DistanceScaleOverride(rule);
-        if (verbOverride > 0f)
+        if (verbOverride > 0)
         {
             return verbOverride;
         }
@@ -53,32 +54,32 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 Data.VerbId(rule));
         var globalBonus = Tuning.LowAltitudeVerbs.OpportunityBonus;
         var verbOverride = Data.OpportunityBonusOverride(rule);
-        var opportunityBonus = (verbOverride > 0f ? verbOverride : globalBonus) + totals.OpportunityBonus;
+        var opportunityBonus = (verbOverride > 0 ? verbOverride : globalBonus) + totals.OpportunityBonus;
         var fitnessWeight = Data.FitnessWeight(rule) + totals.FitnessWeight;
 
         return new EffectiveVerbScalars(
-            weight < 0.01f ? 0.01f : weight,
-            opportunityBonus < 0f ? 0f : opportunityBonus,
-            fitnessWeight < 0f ? 0f : fitnessWeight);
+            weight < FixedScalar.FromUnits(10000L) ? FixedScalar.FromUnits(10000L) : weight,
+            opportunityBonus < 0 ? 0 : opportunityBonus,
+            fitnessWeight < 0 ? 0 : fitnessWeight);
     }
 
-    private float CultureSlotAgencyMultiplier(Simulation simulation, int entityId, int rule)
+    private FixedScalar CultureSlotAgencyMultiplier(Simulation simulation, int entityId, int rule)
     {
         var operationCode = Data.OperationCode(rule);
         var hasTravelInfluence = operationCode == ProgramOpcodeCodes.MoveActor &&
-            Data.InfluenceDelta(rule) > 0f;
+            Data.InfluenceDelta(rule) > 0;
         if (!hasTravelInfluence &&
             !OperationBuildsOwnedInfluence(operationCode) &&
             operationCode != ProgramOpcodeCodes.SubtractOtherCellScalar &&
             operationCode != ProgramOpcodeCodes.AdjustRelationshipStrength)
         {
-            return 1f;
+            return 1;
         }
 
         var cultureId = simulation.World.EntityCultureId(entityId);
         if (cultureId <= 0)
         {
-            return 1f;
+            return 1;
         }
 
         simulation.CultureSlots.OccupancyEvidenceByPolarity(
@@ -91,19 +92,19 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
         if (OperationBuildsOwnedInfluence(operationCode) || hasTravelInfluence)
         {
-            return 1f + (0.85f * positive) + (0.45f * neutral) + (0.15f * negative);
+            return 1 + (FixedScalar.FromUnits(850000L) * positive) + (FixedScalar.FromUnits(450000L) * neutral) + (FixedScalar.FromUnits(150000L) * negative);
         }
 
         if (operationCode == ProgramOpcodeCodes.SubtractOtherCellScalar)
         {
-            return 1f + (CultureSlotForeignReductionPositiveAgencyWeight * positive) + (0.2f * neutral) + (0.65f * negative);
+            return 1 + (CultureSlotForeignReductionPositiveAgencyWeight * positive) + (FixedScalar.FromUnits(200000L) * neutral) + (FixedScalar.FromUnits(650000L) * negative);
         }
 
-        var best = global::System.MathF.Max(positive, global::System.MathF.Max(neutral, negative));
-        return 1f + (0.25f * best);
+        var best = FixedScalar.Max(positive, FixedScalar.Max(neutral, negative));
+        return 1 + (FixedScalar.FromUnits(250000L) * best);
     }
 
-    private float CultureSlotInfluenceEffectivenessMultiplier(
+    private FixedScalar CultureSlotInfluenceEffectivenessMultiplier(
         Simulation simulation,
         int entityId,
         int rule,
@@ -112,7 +113,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var cultureId = simulation.World.EntityCultureId(entityId);
         if (cultureId <= 0)
         {
-            return 1f;
+            return 1;
         }
 
         simulation.CultureSlots.OccupancyEvidenceByPolarity(
@@ -124,87 +125,89 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             out var negative);
 
         return reducingForeign
-            ? 1f + (0.15f * positive) + (0.1f * neutral) + (0.25f * negative)
-            : 1f + (0.25f * positive) + (0.15f * neutral) + (0.05f * negative);
+            ? 1 + (FixedScalar.FromUnits(150000L) * positive) + (FixedScalar.FromUnits(100000L) * neutral) + (FixedScalar.FromUnits(250000L) * negative)
+            : 1 + (FixedScalar.FromUnits(250000L) * positive) + (FixedScalar.FromUnits(150000L) * neutral) + (FixedScalar.FromUnits(50000L) * negative);
     }
 
     private LowAltitudeDecisionModifierTotals TraitTotals(WorldState world, int entityId, int rule)
     {
-        return DecisionModifierEvaluation.SumLowAltitudeValues(
-            world,
-            Data.TraitWeightModifierCount,
-            Data.ReadDecisionModifier,
-            world.EntityKindId(entityId),
-            Data.VerbId(rule),
-            entityId);
+        var totals = new LowAltitudeDecisionModifierTotals();
+        var kindId = world.EntityKindId(entityId);
+        var verbId = Data.VerbId(rule);
+        for (var modifierSlot = Data.FirstTraitModifierForKind(kindId);
+             modifierSlot > 0;
+             modifierSlot = Data.NextTraitModifierForKind(modifierSlot))
+        {
+            var modifier = Data.ReadDecisionModifier(modifierSlot);
+            if (modifier.AppliesToLowAltitudeVerb(world, kindId, verbId, entityId))
+            {
+                totals.Add(modifier);
+            }
+        }
+
+        return totals;
     }
 
-    private float DistancePref(int rule, int targetMode, int actorQ, int actorR, int targetQ, int targetR)
+    private FixedScalar DistancePref(int rule, int targetMode, int actorQ, int actorR, int targetQ, int targetR)
     {
         var distance = HexDistance(actorQ, actorR, targetQ, targetR);
         var scale = EffectiveDistanceScale(rule, targetMode);
-        if (scale <= 0f)
+        if (scale <= 0)
         {
-            return 1f;
+            return 1;
         }
 
-        return 1f / (1f + (distance / scale));
+        return 1 / (1 + (distance / scale));
     }
 
-    // MapActivity/MapSignals-derived occupancy reads are intentionally previous tick
-    // (PreviousTick) because LowAltitudeVerbs run before those signal programs refresh
-    // in the kernel program order.
     // The departure half of carrying capacity: an entity standing on
     // overloaded ground weights its movement verbs up in proportion to the
     // local crowding, so crowded hubs shed excess actors toward the open
     // ground the destination saturation divisor already favors. Non-movement
     // verbs are unaffected; comfortable ground changes nothing.
-    private float CrowdedOriginDepartureMultiplier(Simulation simulation, int entityId, int rule)
+    private FixedScalar CrowdedOriginDepartureMultiplier(Simulation simulation, int entityId, int rule)
     {
         if (Data.OperationCode(rule) != ProgramOpcodeCodes.MoveActor)
         {
-            return 1f;
+            return 1;
         }
 
         var planeCode = Data.PlaneCode(rule);
-        var load = simulation.ReadLowAltitudeSignalSnapshot(
-            planeCode,
-            CurrentQ(simulation.World, entityId, planeCode),
-            CurrentR(simulation.World, entityId, planeCode)).CrowdingLoad;
-        return load <= 0f ? 1f : 1f + global::System.MathF.Min(load, 2f);
+        var load = simulation.Locality.EntityCrowdingLoad(simulation, entityId, planeCode);
+        return load <= 0 ? 1 : 1 + FixedScalar.Min(load, 2);
     }
 
-    private float CellSaturationDivisor(Simulation simulation, int planeCode, int q, int r)
+    private FixedScalar CellSaturationDivisor(Simulation simulation, int planeCode, int q, int r)
     {
         var occupancyOneRing = simulation.ReadCellOccupancyOneRingSum(planeCode, q, r);
         var factor = Tuning.LowAltitudeVerbs.CellSaturationFactor;
-        return 1f / (1f + (occupancyOneRing * factor));
+        return 1 / (1 + (occupancyOneRing * factor));
     }
 
-    private float InfluenceTargetSaturationDivisor(
+    private FixedScalar InfluenceTargetSaturationDivisor(
         Simulation simulation,
         int targetingCode,
         int planeCode,
         int q,
         int r) =>
         targetingCode == LowAltitudeInfluenceTargetingCodes.Reinforce
-            ? 1f
+            ? 1
             : CellSaturationDivisor(simulation, planeCode, q, r);
 
-    private float ComputeRecencyMultiplier(int entityId, int tick, long targetKey)
+    private FixedScalar ComputeRecencyMultiplier(int entityId, int tick, long targetKey)
     {
         if (targetKey == 0L)
         {
-            return 1f;
+            return 1;
         }
 
-        var cooldown = Tuning.ScaleMainTicks(Tuning.LowAltitudeVerbs.RecentTargetCooldownTicks);
+        var cooldown = Tuning.LowAltitudeVerbs.RecentTargetCooldownTicks;
         if (cooldown <= 0)
         {
-            return 1f;
+            return 1;
         }
 
-        var multiplier = 1f;
+        var multiplier = FixedScalar.One;
         var count = State.RecentTargetCount(entityId);
         for (var slot = 0; slot < count; slot++)
         {
@@ -214,7 +217,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             }
 
             var elapsed = tick - State.RecentTargetTick(entityId, slot);
-            var cooled = Clamp01((float)elapsed / cooldown);
+            var cooled = Clamp01((FixedScalar)elapsed / cooldown);
             if (cooled < multiplier)
             {
                 multiplier = cooled;
@@ -224,9 +227,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         return multiplier;
     }
 
-    private static float ClampCandidateWeight(float weight) => weight <= 0.001f ? 0.001f : weight;
+    private static FixedScalar ClampCandidateWeight(FixedScalar weight) => weight <= FixedScalar.FromUnits(1000L) ? FixedScalar.FromUnits(1000L) : weight;
 
-    private float RelationshipFitness(
+    private FixedScalar RelationshipFitness(
         WorldState world,
         int entityId,
         int targetEntityId,
@@ -236,7 +239,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var fitnessRelationshipKindId = Data.FitnessRelationshipKindId(rule);
         if (fitnessRelationshipKindId == 0)
         {
-            return 1f;
+            return 1;
         }
 
         var strength = KernelQuery.BestRelationshipStrengthBetween(
@@ -253,38 +256,38 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             AffordancePolarityCodes.Weaken => SurplusOpportunity(strength, threshold),
             _ => strength,
         };
-        return 1f + (scalars.FitnessWeight * basis);
+        return 1 + (scalars.FitnessWeight * basis);
     }
 
-    private static float DeficitOpportunity(float currentStrength, float threshold)
+    private static FixedScalar DeficitOpportunity(FixedScalar currentStrength, FixedScalar threshold)
     {
-        if (threshold <= 0f)
+        if (threshold <= 0)
         {
-            return 0f;
+            return 0;
         }
 
         if (currentStrength >= threshold)
         {
-            return 0f;
+            return 0;
         }
 
         return (threshold - currentStrength) / threshold;
     }
 
-    private static float SurplusOpportunity(float currentStrength, float threshold)
+    private static FixedScalar SurplusOpportunity(FixedScalar currentStrength, FixedScalar threshold)
     {
         if (currentStrength <= threshold)
         {
-            return 0f;
+            return 0;
         }
 
-        var denominator = global::System.MathF.Max(0.01f, 1f - threshold);
+        var denominator = FixedScalar.Max(FixedScalar.FromUnits(10000L), 1 - threshold);
         return Clamp01((currentStrength - threshold) / denominator);
     }
 
     private struct AffordanceAccumulator
     {
-        public float[] SortedWeights;
+        public FixedScalar[] SortedWeights;
         public int[] SortedSourceKinds;
         public int[] SortedSourceIds;
         public int[] SortedShapes;
@@ -297,7 +300,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
         public static AffordanceAccumulator Create() => new()
         {
-            SortedWeights = new float[AffordanceOverlapCap],
+            SortedWeights = new FixedScalar[AffordanceOverlapCap],
             SortedSourceKinds = new int[AffordanceOverlapCap],
             SortedSourceIds = new int[AffordanceOverlapCap],
             SortedShapes = new int[AffordanceOverlapCap],
@@ -307,9 +310,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     private void RecordAffordanceContribution(
         ref AffordanceAccumulator accumulator,
         int affordance,
-        float effectiveWeight)
+        FixedScalar effectiveWeight)
     {
-        if (effectiveWeight <= 0f)
+        if (effectiveWeight <= 0)
         {
             return;
         }
@@ -351,7 +354,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         }
 
         var accumulator = AffordanceAccumulator.Create();
-        for (var affordance = 1; affordance <= Data.AffordanceCount; affordance++)
+        for (var affordance = Data.FirstAffordanceForActorKind(actorKindId);
+             affordance > 0;
+             affordance = Data.NextAffordanceForActorKind(affordance))
         {
             if (!EntityTargetAffordanceMatches(affordance, actorKindId, planeCode, candidateKindId))
             {
@@ -377,8 +382,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int planeCode,
         int relationshipKindId,
         int relationshipDirectionCode,
-        float currentStrength,
-        float strengthDelta)
+        FixedScalar currentStrength,
+        FixedScalar strengthDelta)
     {
         var accumulator = AffordanceAccumulator.Create();
         AccumulateEntityPresenceForRelationship(ref accumulator, actorKindId, planeCode, candidateKindId);
@@ -404,7 +409,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             return;
         }
 
-        for (var affordance = 1; affordance <= Data.AffordanceCount; affordance++)
+        for (var affordance = Data.FirstAffordanceForActorKind(actorKindId);
+             affordance > 0;
+             affordance = Data.NextAffordanceForActorKind(affordance))
         {
             if (!EntityTargetAffordanceMatches(affordance, actorKindId, planeCode, candidateKindId))
             {
@@ -421,10 +428,12 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int planeCode,
         int relationshipKindId,
         int relationshipDirectionCode,
-        float currentStrength,
-        float strengthDelta)
+        FixedScalar currentStrength,
+        FixedScalar strengthDelta)
     {
-        for (var affordance = 1; affordance <= Data.AffordanceCount; affordance++)
+        for (var affordance = Data.FirstAffordanceForActorKind(actorKindId);
+             affordance > 0;
+             affordance = Data.NextAffordanceForActorKind(affordance))
         {
             if (!AffordanceMatchesActorPlane(affordance, actorKindId, planeCode) ||
                 !AffordanceRelationshipMatches(affordance, relationshipKindId, relationshipDirectionCode))
@@ -437,11 +446,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         }
     }
 
-    private float ResolveRelationshipShapeWeight(int affordance, float currentStrength, float strengthDelta)
+    private FixedScalar ResolveRelationshipShapeWeight(int affordance, FixedScalar currentStrength, FixedScalar strengthDelta)
     {
         var shapeCode = Data.AffordanceShapeCode(affordance);
         if (shapeCode == LowAltitudeAffordanceShapeCodes.RelationshipStrengthChange &&
-            strengthDelta != 0f &&
+            strengthDelta != 0 &&
             AffordanceOperationMatches(affordance, ProgramOpcodeCodes.AdjustRelationshipStrength) &&
             AffordancePolarityMatchesStrengthDelta(affordance, strengthDelta))
         {
@@ -452,7 +461,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             return Data.AffordanceWeight(affordance) * opportunity;
         }
 
-        return 0f;
+        return 0;
     }
 
     private AffordanceContribution CombineAffordancesForInfluenceTarget(
@@ -461,10 +470,12 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int operationCode,
         int candidateKindId,
         int polarityCode,
-        float currentInfluence)
+        FixedScalar currentInfluence)
     {
         var accumulator = AffordanceAccumulator.Create();
-        for (var affordance = 1; affordance <= Data.AffordanceCount; affordance++)
+        for (var affordance = Data.FirstAffordanceForActorKind(actorKindId);
+             affordance > 0;
+             affordance = Data.NextAffordanceForActorKind(affordance))
         {
             if (!InfluenceAffordanceMatches(affordance, actorKindId, planeCode, operationCode, candidateKindId, polarityCode))
             {
@@ -498,7 +509,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
     private static AffordanceContribution BuildContribution(ref AffordanceAccumulator accumulator)
     {
-        var combined = 0f;
+        var combined = FixedScalar.Zero;
         for (var i = 0; i < accumulator.InsertedCount; i++)
         {
             combined += accumulator.SortedWeights[i] * AffordanceDiminishingFactors[i];
@@ -509,7 +520,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var topShape = accumulator.InsertedCount > 0 ? accumulator.SortedShapes[0] : 0;
         var topScore = accumulator.InsertedCount > 0
             ? accumulator.SortedWeights[0] * AffordanceDiminishingFactors[0]
-            : 0f;
+            : 0;
 
         return new AffordanceContribution(
             combined,
@@ -526,11 +537,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
     private static void InsertSortedDescending(
         ref int insertedCount,
-        float[] sortedWeights,
+        FixedScalar[] sortedWeights,
         int[] sortedSourceKinds,
         int[] sortedSourceIds,
         int[] sortedShapes,
-        float weight,
+        FixedScalar weight,
         int sourceKindCode,
         int sourceId,
         int shapeCode)
@@ -600,9 +611,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         return required == AffordancePolarityCodes.None || required == polarityCode;
     }
 
-    private bool AffordancePolarityMatchesStrengthDelta(int affordance, float strengthDelta)
+    private bool AffordancePolarityMatchesStrengthDelta(int affordance, FixedScalar strengthDelta)
     {
-        var polarityCode = strengthDelta > 0f
+        var polarityCode = strengthDelta > 0
             ? AffordancePolarityCodes.Strengthen
             : AffordancePolarityCodes.Weaken;
         return AffordancePolarityMatches(affordance, polarityCode);
@@ -613,34 +624,34 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         candidateDirectionCode == LowAltitudeVerbRelationshipDirectionCodes.Either ||
         affordanceDirectionCode == candidateDirectionCode;
 
-    private static float RelationshipStrengthOpportunity(float currentStrength, float threshold, int polarityCode) =>
+    private static FixedScalar RelationshipStrengthOpportunity(FixedScalar currentStrength, FixedScalar threshold, int polarityCode) =>
         polarityCode == AffordancePolarityCodes.Weaken
-            ? DecreaseOpportunity(currentStrength, threshold, maximum: 1f)
+            ? DecreaseOpportunity(currentStrength, threshold, maximum: 1)
             : IncreaseOpportunity(currentStrength, threshold);
 
-    private static float InfluenceOpportunity(float currentInfluence, float threshold, int polarityCode) =>
+    private static FixedScalar InfluenceOpportunity(FixedScalar currentInfluence, FixedScalar threshold, int polarityCode) =>
         polarityCode == AffordancePolarityCodes.Reduce
-            ? DecreaseOpportunity(currentInfluence, threshold, maximum: 100f)
+            ? DecreaseOpportunity(currentInfluence, threshold, maximum: 100)
             : IncreaseOpportunity(currentInfluence, threshold);
 
-    private static float IncreaseOpportunity(float currentValue, float threshold)
+    private static FixedScalar IncreaseOpportunity(FixedScalar currentValue, FixedScalar threshold)
     {
-        if (threshold <= 0f)
+        if (threshold <= 0)
         {
-            return 1f;
+            return 1;
         }
 
-        return currentValue >= threshold ? 0f : Clamp01((threshold - currentValue) / threshold);
+        return currentValue >= threshold ? 0 : Clamp01((threshold - currentValue) / threshold);
     }
 
-    private static float DecreaseOpportunity(float currentValue, float threshold, float maximum)
+    private static FixedScalar DecreaseOpportunity(FixedScalar currentValue, FixedScalar threshold, FixedScalar maximum)
     {
         if (currentValue <= threshold)
         {
-            return 0f;
+            return 0;
         }
 
-        var denominator = global::System.MathF.Max(0.01f, maximum - threshold);
+        var denominator = FixedScalar.Max(FixedScalar.FromUnits(10000L), maximum - threshold);
         return Clamp01((currentValue - threshold) / denominator);
     }
 
@@ -660,11 +671,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     };
 
     private readonly record struct AffordanceContribution(
-        float Score,
+        FixedScalar Score,
         int SourceKindCode,
         int SourceId,
         int ShapeCode,
-        float TopScore,
+        FixedScalar TopScore,
         int SourceKindMask,
         int ShapeMask,
         int ContributionCount,
@@ -672,7 +683,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int GambitContributionCount);
 
     private readonly record struct EffectiveVerbScalars(
-        float Weight,
-        float OpportunityBonus,
-        float FitnessWeight);
+        FixedScalar Weight,
+        FixedScalar OpportunityBonus,
+        FixedScalar FitnessWeight);
 }

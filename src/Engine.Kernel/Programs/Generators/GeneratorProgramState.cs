@@ -17,8 +17,8 @@ internal sealed partial class GeneratorProgramState : IKernelProgramState
 
     public GeneratorProgramState(int generatorCapacity, int provinceCapacity = 64)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(generatorCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(provinceCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(generatorCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(provinceCapacity);
         RunCounts = new int[generatorCapacity + 1];
         Enabled = new bool[generatorCapacity + 1];
         NextCadenceFireTicks = new int[generatorCapacity + 1];

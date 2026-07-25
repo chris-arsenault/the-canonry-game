@@ -177,7 +177,7 @@ public sealed class UiChronicleProjection : KernelEventProjector
             ResolvedOutcomeName(evt, resolved, previous),
             cast,
             roleIds,
-            evt.Heat);
+            FixedScalar.FromUnits(evt.HeatUnits).ToSingle());
         _tales[evt.ChronicleSequence] = tale;
         RebuildTaleOrder();
         return tale;

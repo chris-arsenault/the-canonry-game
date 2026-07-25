@@ -7,7 +7,7 @@ internal sealed partial class GeneratorProgramRuntime
         int sourceRefCode,
         int destinationRefCode,
         int relationshipKindId,
-        float strength,
+        FixedScalar strength,
         int replaceExistingOutgoing)
     {
         EnsureOpenGenerator(generatorSlot);
@@ -34,13 +34,13 @@ internal sealed partial class GeneratorProgramRuntime
         int kindId,
         int adjacentToTarget,
         int cultureMatchCode,
-        int samePhysicalCultureComponentAsTarget = 0,
+        int requireTargetCultureRoute = 0,
         int requiredTagBits = 0,
         int withoutTagBits = 0,
         int cultureId = 0,
         int relatedToTargetKindId = 0,
         int relatedToTargetIncoming = 0,
-        float relatedToTargetMinStrength = 0f)
+        FixedScalar relatedToTargetMinStrength = default)
     {
         EnsureOpenGenerator(generatorSlot);
         ValidatePositive(refCode);
@@ -56,7 +56,7 @@ internal sealed partial class GeneratorProgramRuntime
         _bindingKindIds[_bindingCount] = kindId;
         _bindingAdjacentToTarget[_bindingCount] = adjacentToTarget;
         _bindingCultureMatchCodes[_bindingCount] = cultureMatchCode;
-        _bindingSamePhysicalCultureComponentAsTarget[_bindingCount] = samePhysicalCultureComponentAsTarget;
+        _bindingRequireTargetCultureRoute[_bindingCount] = requireTargetCultureRoute;
         _bindingRequiredTagBits[_bindingCount] = requiredTagBits;
         _bindingWithoutTagBits[_bindingCount] = withoutTagBits;
         _bindingCultureIds[_bindingCount] = cultureId;
@@ -77,7 +77,7 @@ internal sealed partial class GeneratorProgramRuntime
         int refOrKindId,
         int instanceSelectionCode = GeneratorRelationshipInstanceSelectionCodes.AllTargetRelationships,
         int optionCode = 0,
-        float value = 0f,
+        FixedScalar value = default,
         int radius = 0,
         int maxCellCount = 0,
         int planeCode = PlaneCodes.Physical)
@@ -87,9 +87,9 @@ internal sealed partial class GeneratorProgramRuntime
         ValidatePositive(refOrKindId);
         ValidateEffectInstanceSelection(effectTypeCode, instanceSelectionCode);
         ValidatePlaneCode(planeCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(optionCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(radius);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(maxCellCount);
+        NumericGuard.ThrowIfNegative(optionCode);
+        NumericGuard.ThrowIfNegative(radius);
+        NumericGuard.ThrowIfNegative(maxCellCount);
         if (_effectCount + 1 >= _effectTypeCodes.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -120,7 +120,7 @@ internal sealed partial class GeneratorProgramRuntime
             return;
         }
 
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(instanceSelectionCode);
+        NumericGuard.ThrowIfNegative(instanceSelectionCode);
     }
 
     private static void ValidatePlaneCode(int planeCode)
@@ -153,7 +153,7 @@ internal sealed partial class GeneratorProgramRuntime
         int semanticPlacementCode,
         int placementRefCode,
         int cultureRefCode,
-        float createChance,
+        FixedScalar createChance,
         int coverageModeCode,
         int coverageSourceRefCode,
         int coverageDesiredCellCount,
@@ -166,14 +166,14 @@ internal sealed partial class GeneratorProgramRuntime
         int semanticPlacementMinRadius = GeneratorProgramConstants.DefaultPlacementMinRadius,
         int semanticPlacementMaxRadius = GeneratorProgramConstants.DefaultPlacementMaxRadius,
         int culturePlacementCode = GeneratorCulturePlacementCodes.PreferInheritedCulture,
-        int querySamePhysicalCultureComponentAsTarget = 0,
+        int queryRequireTargetCultureRoute = 0,
         int fixedCultureId = 0,
         int queryRequiredTagBits = 0,
         int queryWithoutTagBits = 0,
         int queryCultureId = 0,
         int queryRelatedToTargetKindId = 0,
         int queryRelatedToTargetIncoming = 0,
-        float queryRelatedToTargetMinStrength = 0f)
+        FixedScalar queryRelatedToTargetMinStrength = default)
     {
         EnsureOpenGenerator(generatorSlot);
         ValidateProducedIdentity(refCode, kindId, subtypeId, queryCultureMatchCode);
@@ -221,7 +221,7 @@ internal sealed partial class GeneratorProgramRuntime
             semanticPlacementMinRadius,
             semanticPlacementMaxRadius,
             culturePlacementCode,
-            querySamePhysicalCultureComponentAsTarget);
+            queryRequireTargetCultureRoute);
         StoreProducedQueryFilters(
             _producedCount,
             queryRequiredTagBits,
@@ -242,7 +242,7 @@ internal sealed partial class GeneratorProgramRuntime
         int queryCultureId,
         int queryRelatedToTargetKindId,
         int queryRelatedToTargetIncoming,
-        float queryRelatedToTargetMinStrength)
+        FixedScalar queryRelatedToTargetMinStrength)
     {
         _producedQueryRequiredTagBits[producedSlot] = queryRequiredTagBits;
         _producedQueryWithoutTagBits[producedSlot] = queryWithoutTagBits;
@@ -256,7 +256,7 @@ internal sealed partial class GeneratorProgramRuntime
     {
         ValidatePositive(refCode);
         ValidatePositive(kindId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(subtypeId);
+        NumericGuard.ThrowIfNegative(subtypeId);
         ValidatePositive(queryCultureMatchCode);
     }
 
@@ -281,9 +281,9 @@ internal sealed partial class GeneratorProgramRuntime
             semanticPlacementMaxRadius);
     }
 
-    private static void ValidateProducedCreateChance(float createChance)
+    private static void ValidateProducedCreateChance(FixedScalar createChance)
     {
-        if (createChance < 0f || createChance > 1f)
+        if (createChance < 0 || createChance > 1)
         {
             throw new global::System.InvalidOperationException();
         }
@@ -303,10 +303,10 @@ internal sealed partial class GeneratorProgramRuntime
         int semanticPlacementMinRadius,
         int semanticPlacementMaxRadius)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(physicalPlacementMinRadius);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(physicalPlacementMaxRadius);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(semanticPlacementMinRadius);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(semanticPlacementMaxRadius);
+        NumericGuard.ThrowIfNegative(physicalPlacementMinRadius);
+        NumericGuard.ThrowIfNegative(physicalPlacementMaxRadius);
+        NumericGuard.ThrowIfNegative(semanticPlacementMinRadius);
+        NumericGuard.ThrowIfNegative(semanticPlacementMaxRadius);
         if (physicalPlacementMaxRadius < physicalPlacementMinRadius ||
             semanticPlacementMaxRadius < semanticPlacementMinRadius)
         {
@@ -328,7 +328,7 @@ internal sealed partial class GeneratorProgramRuntime
         int placementRefCode,
         int cultureRefCode,
         int fixedCultureId,
-        float createChance,
+        FixedScalar createChance,
         int coverageModeCode,
         int coverageSourceRefCode,
         int coverageDesiredCellCount,
@@ -341,7 +341,7 @@ internal sealed partial class GeneratorProgramRuntime
         int semanticPlacementMinRadius,
         int semanticPlacementMaxRadius,
         int culturePlacementCode,
-        int querySamePhysicalCultureComponentAsTarget)
+        int queryRequireTargetCultureRoute)
     {
         _producedRefCodes[producedSlot] = refCode;
         _producedKindIds[producedSlot] = kindId;
@@ -361,7 +361,7 @@ internal sealed partial class GeneratorProgramRuntime
         _producedCreateChances[producedSlot] = createChance;
         _producedQueryAdjacentToTarget[producedSlot] = queryAdjacentToTarget;
         _producedQueryCultureMatchCodes[producedSlot] = queryCultureMatchCode;
-        _producedQuerySamePhysicalCultureComponentAsTarget[producedSlot] = querySamePhysicalCultureComponentAsTarget;
+        _producedQueryRequireTargetCultureRoute[producedSlot] = queryRequireTargetCultureRoute;
         _producedCoverageModeCodes[producedSlot] = coverageModeCode;
         _producedCoverageSourceRefCodes[producedSlot] = coverageSourceRefCode;
         _producedCoverageDesiredCellCounts[producedSlot] = coverageDesiredCellCount;

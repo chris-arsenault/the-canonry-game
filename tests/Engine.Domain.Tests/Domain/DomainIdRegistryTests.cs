@@ -89,7 +89,7 @@ public sealed class DomainIdRegistryTests
         Assert.True(registry.CultureIdOf(DomainRuntimeNames.NoneCultureId).Value > 0);
         Assert.True(registry.EventCodeIdOf(DomainRuntimeNames.RelationshipCreatedCode).Value > 0);
         Assert.True(registry.SourceCodeIdOf(DomainRuntimeNames.LowAltitudeVerbSourceCode).Value > 0);
-        Assert.True(registry.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode).Value > 0);
+        Assert.True(registry.SourceCodeIdOf(DomainRuntimeNames.EffectsSourceCode).Value > 0);
         Assert.Contains(compiled.Symbols, symbol =>
             symbol.Kind == DomainSymbolKind.Kind &&
             symbol.Id == registry.KindIdOf(IceRemembersKinds.Settlement).Value &&
@@ -109,8 +109,8 @@ public sealed class DomainIdRegistryTests
             registry.AttributeIdOf("temp_hp"),
             clone.AttributeIdOf("temp_hp"));
         Assert.Equal(
-            registry.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode),
-            clone.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode));
+            registry.SourceCodeIdOf(DomainRuntimeNames.EffectsSourceCode),
+            clone.SourceCodeIdOf(DomainRuntimeNames.EffectsSourceCode));
 
         clone.RegisterKind("clone_only_kind");
 

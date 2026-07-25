@@ -312,13 +312,13 @@ internal sealed partial class GambitProgramRuntime
             _providerSelectorMinimumStrengths[selector]);
     }
 
-    private float EvaluateTargets(
+    private FixedScalar EvaluateTargets(
         Simulation simulation,
         int gambitSlot,
         int entityId,
         int tick,
         ref int candidateCount,
-        float selectRoll,
+        FixedScalar selectRoll,
         out int selectedTargetId)
     {
         selectedTargetId = 0;
@@ -357,13 +357,13 @@ internal sealed partial class GambitProgramRuntime
             out selectedTargetId);
     }
 
-    private float EvaluateSelfTarget(
+    private FixedScalar EvaluateSelfTarget(
         Simulation simulation,
         int gambitSlot,
         int entityId,
         int tick,
         ref int candidateCount,
-        float selectRoll,
+        FixedScalar selectRoll,
         out int selectedTargetId)
     {
         candidateCount++;
@@ -377,17 +377,17 @@ internal sealed partial class GambitProgramRuntime
             out selectedTargetId);
     }
 
-    private float EvaluateKindTargets(
+    private FixedScalar EvaluateKindTargets(
         Simulation simulation,
         int gambitSlot,
         int entityId,
         int tick,
         ref int candidateCount,
-        float selectRoll,
+        FixedScalar selectRoll,
         out int selectedTargetId)
     {
         selectedTargetId = 0;
-        var total = 0f;
+        var total = FixedScalar.Zero;
         var world = simulation.World;
         var state = new TargetSelectionState(candidateCount);
         KernelQuery.ForEachActiveEntityOfKind(
@@ -412,17 +412,17 @@ internal sealed partial class GambitProgramRuntime
         return total;
     }
 
-    private float EvaluateAllTargets(
+    private FixedScalar EvaluateAllTargets(
         Simulation simulation,
         int gambitSlot,
         int entityId,
         int tick,
         ref int candidateCount,
-        float selectRoll,
+        FixedScalar selectRoll,
         out int selectedTargetId)
     {
         selectedTargetId = 0;
-        var total = 0f;
+        var total = FixedScalar.Zero;
         var world = simulation.World;
         var state = new TargetSelectionState(candidateCount);
         KernelQuery.ForEachActiveEntity(
@@ -446,22 +446,22 @@ internal sealed partial class GambitProgramRuntime
         return total;
     }
 
-    private float EvaluateTargetCandidate(
+    private FixedScalar EvaluateTargetCandidate(
         Simulation simulation,
         int gambitSlot,
         int entityId,
         int targetId,
         int tick,
         TargetSelectionState state,
-        float selectRoll,
-        float total)
+        FixedScalar selectRoll,
+        FixedScalar total)
     {
         var world = simulation.World;
         if (!world.EntityIsActive(targetId) ||
             targetId == entityId ||
             !TargetEligibleForGambit(world, entityId, gambitSlot, forcedTargetId: 0, targetId))
         {
-            return 0f;
+            return 0;
         }
 
         state.CandidateCount++;
@@ -471,7 +471,7 @@ internal sealed partial class GambitProgramRuntime
             entityId,
             targetId,
             tick,
-            selectRoll < 0f ? -1f : selectRoll - total,
+            selectRoll < 0 ? -1 : selectRoll - total,
             out var selectedTargetId);
         if (selectedTargetId > 0)
         {
@@ -481,20 +481,20 @@ internal sealed partial class GambitProgramRuntime
         return score;
     }
 
-    private float EvaluateCandidate(
+    private FixedScalar EvaluateCandidate(
         Simulation simulation,
         int gambitSlot,
         int entityId,
         int targetId,
         int tick,
-        float selectRoll,
+        FixedScalar selectRoll,
         out int selectedTargetId)
     {
         selectedTargetId = 0;
         var preconditionResult = PreconditionsResult(simulation, gambitSlot, entityId, targetId, tick);
         if (preconditionResult == PreconditionFailed)
         {
-            return 0f;
+            return 0;
         }
 
         var score = (EvaluateScore(simulation.World, gambitSlot, entityId, targetId) +
@@ -505,21 +505,12 @@ internal sealed partial class GambitProgramRuntime
                 simulation.World.EntityCultureId(entityId),
                 KnowledgeGrantDomainCodes.GambitScore,
                 _gambitIds[gambitSlot]);
-        var recentActionCount = CountRecentActions(
-            entityId,
-            _gambitIds[gambitSlot],
-            tick - Tuning.ScaleMainTicks(RecencyWindow));
-        for (var i = 0; i < recentActionCount; i++)
+        if (score <= 0)
         {
-            score *= RecencyDecayFactor;
+            return 0;
         }
 
-        if (score <= 0f)
-        {
-            return 0f;
-        }
-
-        if (selectRoll >= 0f && selectRoll <= score)
+        if (selectRoll >= 0 && selectRoll <= score)
         {
             selectedTargetId = targetId;
         }
@@ -677,7 +668,6 @@ internal sealed partial class GambitProgramRuntime
             targetId,
             tick,
             _gambitIds[gambitSlot],
-            recentActionCounter: CountRecentActions,
             entityWorkTierReader: simulation.MinorActors.WorkTier,
             travelCostReader: simulation.TravelReachCost);
         return KernelQuery.EvaluatePredicate(simulation.World, predicate, binding);

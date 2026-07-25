@@ -148,7 +148,7 @@ internal sealed partial class GeneratorProgramRuntime
         int subtypeCount,
         int adjacentToTarget,
         int cultureMatchCode,
-        int samePhysicalCultureComponentAsTarget,
+        int requireTargetCultureRoute,
         int withoutOutgoingStart,
         int withoutOutgoingCount,
         int withoutIncomingStart,
@@ -158,7 +158,7 @@ internal sealed partial class GeneratorProgramRuntime
         int queryCultureId = 0,
         int relatedToTargetKindId = 0,
         int relatedToTargetIncoming = 0,
-        float relatedToTargetMinStrength = 0f)
+        FixedScalar relatedToTargetMinStrength = default)
     {
         var query = new SharedQuery(
             kindId,
@@ -190,7 +190,7 @@ internal sealed partial class GeneratorProgramRuntime
             simulation,
             query,
             binding,
-            samePhysicalCultureComponentAsTarget,
+            requireTargetCultureRoute,
             selectedOrdinal: -1).Count;
         if (count == 0)
         {
@@ -203,7 +203,7 @@ internal sealed partial class GeneratorProgramRuntime
             simulation,
             query,
             binding,
-            samePhysicalCultureComponentAsTarget,
+            requireTargetCultureRoute,
             selectedOrdinal).SelectedEntityId;
     }
 
@@ -212,10 +212,10 @@ internal sealed partial class GeneratorProgramRuntime
         Simulation? simulation,
         in SharedQuery query,
         in QueryBinding binding,
-        int samePhysicalCultureComponentAsTarget,
+        int requireTargetCultureRoute,
         int selectedOrdinal)
     {
-        if (samePhysicalCultureComponentAsTarget == 0)
+        if (requireTargetCultureRoute == 0)
         {
             return KernelQuery.EvaluateSharedQuery(world, query, binding, selectedOrdinal);
         }
@@ -234,7 +234,7 @@ internal sealed partial class GeneratorProgramRuntime
             entityId =>
             {
                 if (!KernelQuery.SharedQueryMatchesCandidate(world, queryValue, bindingValue, entityId) ||
-                    !SharedEntityMatchesTargetCultureComponent(simulation, bindingValue.TargetId, entityId))
+                    !SharedEntityMatchesTargetCultureRoute(simulation, bindingValue.TargetId, entityId))
                 {
                     return true;
                 }
@@ -250,7 +250,7 @@ internal sealed partial class GeneratorProgramRuntime
         return new QueryEvaluation(count, selectedEntityId);
     }
 
-    private bool SharedEntityMatchesTargetCultureComponent(
+    private bool SharedEntityMatchesTargetCultureRoute(
         Simulation simulation,
         int targetId,
         int entityId)
@@ -262,24 +262,29 @@ internal sealed partial class GeneratorProgramRuntime
             return false;
         }
 
-        var targetBoundary = simulation.CultureBoundaries.CellAt(
+        var targetLocality = simulation.CultureLocality.CellAt(
             world,
             cultureId,
             PlaneCodes.Physical,
             world.EntityPhysicalQ(targetId),
             world.EntityPhysicalR(targetId));
-        if (targetBoundary.ComponentId <= 0)
+        if (targetLocality.ConnectedRawMass < WorldState.CultureClaimedRawMass)
         {
             return false;
         }
 
-        var candidateBoundary = simulation.CultureBoundaries.CellAt(
+        var candidateLocality = simulation.CultureLocality.CellAt(
             world,
             cultureId,
             PlaneCodes.Physical,
             world.EntityPhysicalQ(entityId),
             world.EntityPhysicalR(entityId));
-        return candidateBoundary.ComponentId == targetBoundary.ComponentId;
+        return candidateLocality.ConnectedRawMass >= WorldState.CultureClaimedRawMass &&
+            KernelQuery.HexDistance(
+                world.EntityPhysicalQ(targetId),
+                world.EntityPhysicalR(targetId),
+                world.EntityPhysicalQ(entityId),
+                world.EntityPhysicalR(entityId)) <= 12;
     }
 
     private void PublishGeneratorEvaluationStats(Simulation simulation, int tick)
@@ -344,16 +349,16 @@ internal sealed partial class GeneratorProgramRuntime
         bool allowSlotCausalLimitMultiplier = false) =>
         AddRelationshipKindFilter(
             relationshipKindId,
-            minimumStrength: 0f,
+            minimumStrength: 0,
             allowSlotCausalLimitMultiplier);
 
     private void AddRelationshipKindFilter(
         int relationshipKindId,
-        float minimumStrength,
+        FixedScalar minimumStrength,
         bool allowSlotCausalLimitMultiplier = false)
     {
         ValidatePositive(relationshipKindId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(minimumStrength);
+        NumericGuard.ThrowIfNegative(minimumStrength);
         if (_relationshipKindFilterCount + 1 >= _relationshipKindFilterIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -438,7 +443,7 @@ internal sealed partial class GeneratorProgramRuntime
 
     private static void ValidatePositive(int value)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+        NumericGuard.ThrowIfNegativeOrZero(value);
     }
 
 }

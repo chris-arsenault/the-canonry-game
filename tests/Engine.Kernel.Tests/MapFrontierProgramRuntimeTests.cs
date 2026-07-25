@@ -134,7 +134,7 @@ public sealed class MapFrontierProgramRuntimeTests
         var simulation = CreateRevealedFrontierSimulation();
         // Enough mass that resistance (8 + 4 x mass) beats the cold's
         // pressure at temperature zero (64 x scalar 1).
-        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 2, 0, 20f, tick: 4);
+        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 2, 0, FixedScalar.FromSingle(20f), tick: 4);
         OpenIceAge(simulation, ReclaimAgeId, priority: 20, tick: 5);
 
         simulation.MapFrontier.Tick(simulation, tick: 6);
@@ -153,7 +153,7 @@ public sealed class MapFrontierProgramRuntimeTests
         // The covered cell is still known ground: the ice closes, it does
         // not erase. Culture mass then melts it out in the thaw.
         Assert.True(simulation.World.CellIsKnown(PlaneCodes.Physical, 2, 0));
-        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 2, 0, 20f, tick: 7);
+        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 2, 0, FixedScalar.FromSingle(20f), tick: 7);
         OpenIceAge(simulation, ThawAgeId, priority: 30, tick: 8);
         for (var tick = 9; tick < 13 &&
             simulation.World.CellTerrainCoverId(PlaneCodes.Physical, 2, 0) != 0; tick++)
@@ -176,9 +176,9 @@ public sealed class MapFrontierProgramRuntimeTests
         simulation.MapFrontier.SetSemanticConfiguration(
             enabled: true,
             maxRadius: 64,
-            frontierMassThreshold: 10f,
+            frontierMassThreshold: FixedScalar.FromSingle(10f),
             budgetPerPulse: 48);
-        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Semantic, 0, 0, 40f, tick: 11);
+        _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Semantic, 0, 0, FixedScalar.FromSingle(40f), tick: 11);
 
         simulation.MapFrontier.Tick(simulation, tick: 12);
 
@@ -302,21 +302,21 @@ public sealed class MapFrontierProgramRuntimeTests
     private static void RegisterTerrains(Simulation simulation)
     {
         simulation.RegisterTerrain(
-            TundraTerrain, boundaryGroupId: 1, movementCost: 3f,
-            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 4f, roadSpeedMultiplier: 2f);
+            TundraTerrain, boundaryGroupId: 1, movementCost: FixedScalar.FromSingle(3f),
+            influenceMultiplier: FixedScalar.FromSingle(1f), claimCostMultiplier: FixedScalar.FromSingle(1f), claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(4f), roadSpeedMultiplier: FixedScalar.FromSingle(2f));
         simulation.RegisterTerrain(
-            DeepIceTerrain, boundaryGroupId: 1, movementCost: 9f,
-            influenceMultiplier: 0.2f, claimCostMultiplier: 3f, claimChanceMultiplier: 0.05f,
-            roadBuildMultiplier: 0f, roadSpeedMultiplier: 1f);
+            DeepIceTerrain, boundaryGroupId: 1, movementCost: FixedScalar.FromSingle(9f),
+            influenceMultiplier: FixedScalar.FromSingle(0.2f), claimCostMultiplier: FixedScalar.FromSingle(3f), claimChanceMultiplier: FixedScalar.FromSingle(0.05f),
+            roadBuildMultiplier: FixedScalar.FromSingle(0f), roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.RegisterTerrain(
-            MountainTerrain, boundaryGroupId: 2, movementCost: 6f,
-            influenceMultiplier: 0.8f, claimCostMultiplier: 1.5f, claimChanceMultiplier: 0.7f,
-            roadBuildMultiplier: 6f, roadSpeedMultiplier: 2f);
+            MountainTerrain, boundaryGroupId: 2, movementCost: FixedScalar.FromSingle(6f),
+            influenceMultiplier: FixedScalar.FromSingle(0.8f), claimCostMultiplier: FixedScalar.FromSingle(1.5f), claimChanceMultiplier: FixedScalar.FromSingle(0.7f),
+            roadBuildMultiplier: FixedScalar.FromSingle(6f), roadSpeedMultiplier: FixedScalar.FromSingle(2f));
         simulation.RegisterTerrain(
-            SeaIceTerrain, boundaryGroupId: 1, movementCost: 5.5f,
-            influenceMultiplier: 0.6f, claimCostMultiplier: 1.5f, claimChanceMultiplier: 0.6f,
-            roadBuildMultiplier: 0.2f, roadSpeedMultiplier: 1f);
+            SeaIceTerrain, boundaryGroupId: 1, movementCost: FixedScalar.FromSingle(5.5f),
+            influenceMultiplier: FixedScalar.FromSingle(0.6f), claimCostMultiplier: FixedScalar.FromSingle(1.5f), claimChanceMultiplier: FixedScalar.FromSingle(0.6f),
+            roadBuildMultiplier: FixedScalar.FromSingle(0.2f), roadSpeedMultiplier: FixedScalar.FromSingle(1f));
     }
 
     private static void OpenIceAge(Simulation simulation, int ageId, int priority = 10, int tick = 1)

@@ -212,8 +212,8 @@ internal static class MonteCarloCli
 
         using var summaryRecorder = new MonteCarloRunSummaryRecorder(run);
         using var stateRecorder = CreateStateRecorder(run, options, runId, seed);
-        var boundaryBirthEntityIds = new HashSet<int>();
-        RecordStateSnapshots(run, stateRecorder, run.Host.CurrentTick, options, boundaryBirthEntityIds);
+        var localityBirthEntityIds = new HashSet<int>();
+        RecordStateSnapshots(run, stateRecorder, run.Host.CurrentTick, options, localityBirthEntityIds);
 
         var rowsWritten = 0L;
         var elapsed = Stopwatch.StartNew();
@@ -223,7 +223,7 @@ internal static class MonteCarloCli
             summaryRecorder,
             stateRecorder,
             stateStore,
-            boundaryBirthEntityIds,
+            localityBirthEntityIds,
             seed,
             ref rowsWritten);
         var summary = summaryRecorder.Snapshot();
@@ -294,7 +294,7 @@ internal static class MonteCarloCli
         MonteCarloRunSummaryRecorder summaryRecorder,
         KernelTelemetryRecorder stateRecorder,
         BufferedDuckDbTelemetryWriter stateStore,
-        ISet<int> boundaryBirthEntityIds,
+        ISet<int> localityBirthEntityIds,
         int seed,
         ref long rowsWritten)
     {
@@ -311,7 +311,7 @@ internal static class MonteCarloCli
             processedTicks += advanced;
             var currentTick = run.Host.CurrentTick;
             summaryRecorder.DrainAvailable();
-            RecordStateSnapshots(run, stateRecorder, currentTick, options, boundaryBirthEntityIds);
+            RecordStateSnapshots(run, stateRecorder, currentTick, options, localityBirthEntityIds);
             rowsWritten += FlushStateTelemetryIfNeeded(stateRecorder, stateStore);
             rowsWritten += RunWindowActions(run, options, stateRecorder, stateStore, progress, seed, currentTick);
         }
@@ -415,14 +415,14 @@ internal static class MonteCarloCli
         KernelTelemetryRecorder recorder,
         int tick,
         MonteCarloOptions options,
-        ISet<int> boundaryBirthEntityIds)
+        ISet<int> localityBirthEntityIds)
     {
         var includeEntities = IncludeEntitySnapshot(options, tick);
         recorder.RecordSnapshots(tick, includeEntities);
-        run.Host.RecordCultureBoundaryBirthTelemetry(recorder.Batch, recorder.RunId, boundaryBirthEntityIds);
+        run.Host.RecordCultureLocalityBirthTelemetry(recorder.Batch, recorder.RunId, localityBirthEntityIds);
         if (ShouldRecordSnapshot(tick, options.EntitySnapshotCadence))
         {
-            run.Host.RecordCultureBoundaryTelemetry(recorder.Batch, recorder.RunId, tick, includeEntities);
+            run.Host.RecordCultureLocalityTelemetry(recorder.Batch, recorder.RunId, tick, includeEntities);
             run.Host.RecordCulturePowerTelemetry(recorder.Batch, recorder.RunId, tick);
             run.Host.RecordKnowledgeTelemetry(recorder.Batch, recorder.RunId, tick);
         }
@@ -488,7 +488,7 @@ internal static class MonteCarloCli
         batch.MapGenerationEvents.Count +
         batch.MapCellEvents.Count +
         batch.CellInfluenceEvents.Count +
-        batch.CellCultureInfluenceEvents.Count +
+        batch.CultureFieldCellSnapshots.Count +
         batch.CultureSlotOccupancyEvents.Count +
         batch.MinorActorVerbEvents.Count +
         batch.CultureFieldComponentSnapshots.Count +

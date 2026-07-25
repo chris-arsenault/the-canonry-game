@@ -15,19 +15,19 @@ internal sealed partial class RandomSource
 
     public int NextInt(int exclusiveMaximum)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(exclusiveMaximum);
+        NumericGuard.ThrowIfNegativeOrZero(exclusiveMaximum);
         return (int)(NextUInt() % (uint)exclusiveMaximum);
     }
 
     public int NextInclusive(int minimum, int maximum)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfLessThan(maximum, minimum);
+        NumericGuard.ThrowIfLessThan(maximum, minimum);
         return minimum + NextInt(maximum - minimum + 1);
     }
 
-    public float NextFloat()
+    public FixedScalar NextScalar()
     {
-        return (NextUInt() >> 8) * (1f / 16777216f);
+        return FixedScalar.FromRatio(NextUInt() >> 8, 16_777_216);
     }
 
     private uint NextUInt()

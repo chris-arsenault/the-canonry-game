@@ -103,8 +103,8 @@ public static partial class DefinitionGraphValidator
                 case DefinitionLowAltitudeVerbNode lowAltitudeVerb:
                     ValidateLowAltitudeVerb(lowAltitudeVerb, errors);
                     break;
-                case DefinitionMapSignalNode mapSignals:
-                    ValidateMapSignals(mapSignals, errors);
+                case DefinitionLocalityNode locality:
+                    ValidateLocality(locality, errors);
                     break;
                 case DefinitionEffectNode effect:
                     ValidateEffects(effect, errors);
@@ -121,11 +121,11 @@ public static partial class DefinitionGraphValidator
         }
     }
 
-    private static void ValidateMapSignals(DefinitionMapSignalNode node, List<string> errors)
+    private static void ValidateLocality(DefinitionLocalityNode node, List<string> errors)
     {
         if (node.Writes.Count == 0)
         {
-            errors.Add($"Gameplay map signal node '{node.Id}' must declare writes.");
+            errors.Add($"Gameplay locality node '{node.Id}' must declare writes.");
         }
     }
 

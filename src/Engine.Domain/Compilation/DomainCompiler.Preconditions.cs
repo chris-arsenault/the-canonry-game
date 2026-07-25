@@ -18,8 +18,12 @@ public static partial class DomainCompiler
             ids.AttributeIdOf(attributeName).Value,
             min.HasValue ? 1 : 0,
             max.HasValue ? 1 : 0,
-            X: min ?? 0f,
-            Y: max ?? 0f));
+            X: min.HasValue
+                ? KernelFixedPoint.AttributeScalar(KernelFixedPoint.AttributeUnits(min.Value))
+                : FixedScalar.Zero,
+            Y: max.HasValue
+                ? KernelFixedPoint.AttributeScalar(KernelFixedPoint.AttributeUnits(max.Value))
+                : FixedScalar.Zero));
     }
 
     private static void AddPlaneDistancePrecondition(
@@ -45,7 +49,10 @@ public static partial class DomainCompiler
             operatorCode,
             ids.RelationshipKindIdOf(relationshipKind).Value,
             minStrength.HasValue ? 1 : 0,
-            X: minStrength ?? 0f));
+            X: minStrength.HasValue
+                ? KernelFixedPoint.RelationshipStrengthScalar(
+                    KernelFixedPoint.RelationshipStrengthUnits(minStrength.Value))
+                : FixedScalar.Zero));
     }
 
     private static void AddRelationshipExistsPrecondition(
@@ -59,6 +66,9 @@ public static partial class DomainCompiler
             relationship.MinStrength.HasValue ? 1 : 0,
             relationship.SourceId.Value,
             relationship.TargetId.Value,
-            relationship.MinStrength ?? 0f));
+            relationship.MinStrength.HasValue
+                ? KernelFixedPoint.RelationshipStrengthScalar(
+                    KernelFixedPoint.RelationshipStrengthUnits(relationship.MinStrength.Value))
+                : FixedScalar.Zero));
     }
 }

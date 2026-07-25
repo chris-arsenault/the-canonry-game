@@ -7,5 +7,5 @@ internal record struct RelationshipGraphCursor
     internal int FrozenEnd;
     internal int DeltaIndex;
     internal int DeltaEnd;
-    internal float MinimumStrength;
+    internal int MinimumStrengthUnits;
 }

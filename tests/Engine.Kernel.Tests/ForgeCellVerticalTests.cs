@@ -52,9 +52,8 @@ public sealed class ForgeCellVerticalTests
 
         Assert.Equal(
             WorldState.CultureClaimedRawMass,
-            simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, -1),
-            precision: 2);
-        Assert.Equal(0f, simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0));
+            simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, -1));
+        Assert.Equal(FixedScalar.FromSingle(0f), simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0));
     }
 
     [Fact]
@@ -109,8 +108,8 @@ public sealed class ForgeCellVerticalTests
                 {
                     CultureField = new CultureFieldTuningOptions
                     {
-                        DecayPerPulse = 0f,
-                        MinimumDecayPerPulse = 0f,
+                        DecayPerPulse = FixedScalar.FromSingle(0f),
+                        MinimumDecayPerPulse = FixedScalar.FromSingle(0f),
                     },
                 },
             },

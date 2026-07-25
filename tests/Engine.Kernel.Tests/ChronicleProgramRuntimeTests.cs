@@ -39,7 +39,7 @@ public sealed class ChronicleProgramRuntimeTests
 
         // The terminal beat recognizes the quarry's death; the director
         // resolves without writing any world state of its own.
-        simulation.World.SetEntityStatus(quarry, EntityStatusCodes.Historical, tick: 35);
+        simulation.SetEntityStatus(quarry, EntityStatusCodes.Historical, tick: 35);
         simulation.Chronicles.Tick(simulation, tick: 35);
         Assert.False(simulation.Chronicles.State.Active[1]);
         AssertResolvedWithOutcome(simulation, DeathOutcomeCode);
@@ -52,22 +52,22 @@ public sealed class ChronicleProgramRuntimeTests
         var (quarry, hunter) = SeedHuntWorld(simulation);
         DefineHuntArchetype(simulation);
 
-        Assert.Equal(0f, simulation.Chronicles.ScoreBias(hunter, quarry, SlayGambitId));
+        Assert.Equal(FixedScalar.FromSingle(0f), simulation.Chronicles.ScoreBias(hunter, quarry, SlayGambitId));
         Assert.False(simulation.Chronicles.GrantsGambit(hunter, SlayGambitId));
 
         simulation.Chronicles.Tick(simulation, tick: 20);
         simulation.Chronicles.Tick(simulation, tick: 25);
 
-        Assert.Equal(2f, simulation.Chronicles.ScoreBias(hunter, quarry, SlayGambitId));
-        Assert.Equal(0.3f, simulation.Chronicles.SuccessBonus(hunter, quarry, SlayGambitId));
+        Assert.Equal(FixedScalar.FromSingle(2f), simulation.Chronicles.ScoreBias(hunter, quarry, SlayGambitId));
+        Assert.Equal(FixedScalar.FromSingle(0.3f), simulation.Chronicles.SuccessBonus(hunter, quarry, SlayGambitId));
         Assert.True(simulation.Chronicles.GrantsGambit(hunter, SlayGambitId));
         Assert.False(simulation.Chronicles.GrantsGambit(quarry, SlayGambitId));
 
         // Striking the beat closes it; its charge and grant fall away.
         simulation.Chronicles.NoteExecution(hunter, quarry, SlayGambitId, succeeded: true);
         simulation.Chronicles.Tick(simulation, tick: 30);
-        Assert.Equal(0f, simulation.Chronicles.ScoreBias(hunter, quarry, SlayGambitId));
-        Assert.Equal(0f, simulation.Chronicles.SuccessBonus(hunter, quarry, SlayGambitId));
+        Assert.Equal(FixedScalar.FromSingle(0f), simulation.Chronicles.ScoreBias(hunter, quarry, SlayGambitId));
+        Assert.Equal(FixedScalar.FromSingle(0f), simulation.Chronicles.SuccessBonus(hunter, quarry, SlayGambitId));
         Assert.False(simulation.Chronicles.GrantsGambit(hunter, SlayGambitId));
     }
 
@@ -80,13 +80,13 @@ public sealed class ChronicleProgramRuntimeTests
         _ = simulation.Chronicles.AddBeat(
             archetype,
             PairBeatCode,
-            heatGain: 2f,
+            heatGain: FixedScalar.FromSingle(2f),
             terminalOutcomeCodeId: 0,
             openKind: ChronicleConditionCodes.Always,
             openRoleA: 0,
             openRoleB: 0,
             openRelOrAttrId: 0,
-            openValue: 0f,
+            openValue: FixedScalar.FromSingle(0f),
             strikeKind: ChronicleStrikeCodes.RoleGambit,
             strikeActorRole: 1,
             strikeTargetRole: 0,
@@ -97,17 +97,17 @@ public sealed class ChronicleProgramRuntimeTests
             strikeFactRoleA: 0,
             strikeFactRoleB: 0,
             strikeFactRelOrAttrId: 0,
-            strikeFactValue: 0f);
+            strikeFactValue: FixedScalar.FromSingle(0f));
         _ = simulation.Chronicles.AddBeat(
             archetype,
             DeathBeatCode,
-            heatGain: 2f,
+            heatGain: FixedScalar.FromSingle(2f),
             terminalOutcomeCodeId: 0,
             openKind: ChronicleConditionCodes.Always,
             openRoleA: 0,
             openRoleB: 0,
             openRelOrAttrId: 0,
-            openValue: 0f,
+            openValue: FixedScalar.FromSingle(0f),
             strikeKind: ChronicleStrikeCodes.GeneratorOnRole,
             strikeActorRole: 0,
             strikeTargetRole: 0,
@@ -118,7 +118,7 @@ public sealed class ChronicleProgramRuntimeTests
             strikeFactRoleA: 0,
             strikeFactRoleB: 0,
             strikeFactRelOrAttrId: 0,
-            strikeFactValue: 0f);
+            strikeFactValue: FixedScalar.FromSingle(0f));
 
         simulation.Chronicles.Tick(simulation, tick: 20);
         Assert.True(simulation.Chronicles.State.Active[1]);
@@ -141,9 +141,9 @@ public sealed class ChronicleProgramRuntimeTests
             castingCadenceTicks: 10,
             primaryKindId: MonsterKind,
             primaryRequiredRelKindId: HoldsRel,
-            primaryRequiredRelMinStrength: 0.5f,
+            primaryRequiredRelMinStrength: FixedScalar.FromSingle(0.5f),
             fadeOutcomeCodeId: FadeOutcomeCode);
-        simulation.Chronicles.AddRole(archetype, PenguinKind, AtWarRel, relatedIncoming: 0, relatedMinStrength: 0.3f);
+        simulation.Chronicles.AddRole(archetype, PenguinKind, AtWarRel, relatedIncoming: 0, relatedMinStrength: FixedScalar.FromSingle(0.3f));
         return archetype;
     }
 
@@ -154,17 +154,17 @@ public sealed class ChronicleProgramRuntimeTests
         var (quarry, hunter) = SeedHuntWorld(simulation);
         var second = simulation.CreateEntity(PenguinKind, 1, 1, 0, 3, 0, 0, 0, 0);
         var archetype = DefineMinimalArchetype(simulation);
-        simulation.Chronicles.AddRole(archetype, PenguinKind, 0, relatedIncoming: 0, relatedMinStrength: 0f, open: 1);
+        simulation.Chronicles.AddRole(archetype, PenguinKind, 0, relatedIncoming: 0, relatedMinStrength: FixedScalar.FromSingle(0f), open: 1);
         _ = simulation.Chronicles.AddBeat(
             archetype,
             PairBeatCode,
-            heatGain: 2.5f,
+            heatGain: FixedScalar.FromSingle(2.5f),
             terminalOutcomeCodeId: 0,
             openKind: ChronicleConditionCodes.Always,
             openRoleA: 0,
             openRoleB: 0,
             openRelOrAttrId: 0,
-            openValue: 0f,
+            openValue: FixedScalar.FromSingle(0f),
             strikeKind: ChronicleStrikeCodes.OutsiderGambitOnRole,
             strikeActorRole: 0,
             strikeTargetRole: 0,
@@ -175,7 +175,7 @@ public sealed class ChronicleProgramRuntimeTests
             strikeFactRoleA: 0,
             strikeFactRoleB: 0,
             strikeFactRelOrAttrId: 0,
-            strikeFactValue: 0f);
+            strikeFactValue: FixedScalar.FromSingle(0f));
 
         simulation.Chronicles.Tick(simulation, tick: 20);
         Assert.True(simulation.Chronicles.State.Active[1]);
@@ -228,19 +228,19 @@ public sealed class ChronicleProgramRuntimeTests
             castingCadenceTicks: 10,
             primaryKindId: MonsterKind,
             primaryRequiredRelKindId: HoldsRel,
-            primaryRequiredRelMinStrength: 0.5f,
+            primaryRequiredRelMinStrength: FixedScalar.FromSingle(0.5f),
             fadeOutcomeCodeId: FadeOutcomeCode);
-        simulation.Chronicles.AddRole(archetype, PenguinKind, AtWarRel, relatedIncoming: 0, relatedMinStrength: 0.3f);
+        simulation.Chronicles.AddRole(archetype, PenguinKind, AtWarRel, relatedIncoming: 0, relatedMinStrength: FixedScalar.FromSingle(0.3f));
         var pairBeat = simulation.Chronicles.AddBeat(
             archetype,
             PairBeatCode,
-            heatGain: 5f,
+            heatGain: FixedScalar.FromSingle(5f),
             terminalOutcomeCodeId: 0,
             openKind: ChronicleConditionCodes.Always,
             openRoleA: 0,
             openRoleB: 0,
             openRelOrAttrId: 0,
-            openValue: 0f,
+            openValue: FixedScalar.FromSingle(0f),
             strikeKind: ChronicleStrikeCodes.RolePairGambit,
             strikeActorRole: 1,
             strikeTargetRole: 0,
@@ -251,19 +251,19 @@ public sealed class ChronicleProgramRuntimeTests
             strikeFactRoleA: 0,
             strikeFactRoleB: 0,
             strikeFactRelOrAttrId: 0,
-            strikeFactValue: 0f);
-        simulation.Chronicles.AddBeatCharge(pairBeat, actorRole: 1, targetRole: 0, gambitId: SlayGambitId, scoreBonus: 2f, heatScaled: 0, successBonus: 0.3f);
+            strikeFactValue: FixedScalar.FromSingle(0f));
+        simulation.Chronicles.AddBeatCharge(pairBeat, actorRole: 1, targetRole: 0, gambitId: SlayGambitId, scoreBonus: FixedScalar.FromSingle(2f), heatScaled: 0, successBonus: FixedScalar.FromSingle(0.3f));
         simulation.Chronicles.AddBeatGrant(pairBeat, role: 1, gambitId: SlayGambitId);
         _ = simulation.Chronicles.AddBeat(
             archetype,
             DeathBeatCode,
-            heatGain: 3f,
+            heatGain: FixedScalar.FromSingle(3f),
             terminalOutcomeCodeId: DeathOutcomeCode,
             openKind: ChronicleConditionCodes.Always,
             openRoleA: 0,
             openRoleB: 0,
             openRelOrAttrId: 0,
-            openValue: 0f,
+            openValue: FixedScalar.FromSingle(0f),
             strikeKind: ChronicleStrikeCodes.StateFact,
             strikeActorRole: 0,
             strikeTargetRole: 0,
@@ -274,7 +274,7 @@ public sealed class ChronicleProgramRuntimeTests
             strikeFactRoleA: 0,
             strikeFactRoleB: 0,
             strikeFactRelOrAttrId: 0,
-            strikeFactValue: 0f);
+            strikeFactValue: FixedScalar.FromSingle(0f));
     }
 
     private static (int Quarry, int Hunter) SeedHuntWorld(Simulation simulation)
@@ -282,8 +282,8 @@ public sealed class ChronicleProgramRuntimeTests
         var quarry = simulation.CreateEntity(MonsterKind, 1, 1, 0, 0, 0, 0, 0, 0);
         var hoard = simulation.CreateEntity(MonsterKind, 1, 1, 0, 1, 0, 0, 0, 0);
         var hunter = simulation.CreateEntity(PenguinKind, 1, 1, 0, 2, 0, 0, 0, 0);
-        simulation.CreateRelationship(HoldsRel, RelationshipPolarityCodes.Positive, quarry, hoard, 0.8f, tick: 0);
-        simulation.CreateRelationship(AtWarRel, RelationshipPolarityCodes.Negative, hunter, quarry, 0.6f, tick: 0);
+        simulation.CreateRelationship(HoldsRel, RelationshipPolarityCodes.Positive, quarry, hoard, FixedScalar.FromSingle(0.8f), tick: 0);
+        simulation.CreateRelationship(AtWarRel, RelationshipPolarityCodes.Negative, hunter, quarry, FixedScalar.FromSingle(0.6f), tick: 0);
         return (quarry, hunter);
     }
 

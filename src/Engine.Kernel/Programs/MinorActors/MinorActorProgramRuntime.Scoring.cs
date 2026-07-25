@@ -4,17 +4,17 @@ using Engine.Constants;
 
 internal sealed partial class MinorActorProgramRuntime
 {
-    private float MinorVerbScore(
+    private FixedScalar MinorVerbScore(
         Simulation simulation,
         int actorId,
         int verb,
         int planeCode,
         int q,
         int r,
-        float ownShare,
-        float ownRaw,
-        float foreignShare,
-        float foreignRaw,
+        FixedScalar ownShare,
+        FixedScalar ownRaw,
+        FixedScalar foreignShare,
+        FixedScalar foreignRaw,
         in MinorActorCultureField neighborhood,
         in MinorActorCultureAttachment attachment,
         int tick)
@@ -61,41 +61,42 @@ internal sealed partial class MinorActorProgramRuntime
 
     /// <summary>
     /// A campaign column brings its own support: it presses from thin own
-    /// ground with local presence, not from a deep connected home component.
+    /// ground with local presence, not from a deep home field.
     /// Press rewards a target-facing cell where own mass is adjacent and
     /// there is foreign ground or headroom to take; break rewards enemy mass
     /// the column can reach. Both stay finite on the thin frontier where the
     /// interior scorers collapse to zero.
     /// </summary>
-    private static float CampaignVerbScore(
+    private static FixedScalar CampaignVerbScore(
         int targetingCode,
-        float ownRaw,
-        float foreignRaw,
+        FixedScalar ownRaw,
+        FixedScalar foreignRaw,
         in MinorActorCultureField neighborhood)
     {
-        var localPresence = Clamp01(neighborhood.SupportedAdjacentCount / 3f);
-        if (localPresence <= 0f)
+        var localPresence = Clamp01(
+            FixedScalar.FromRatio(neighborhood.SupportedAdjacentCount, 3));
+        if (localPresence <= 0)
         {
-            return 0f;
+            return 0;
         }
 
         if (targetingCode == MinorActorVerbTargetingCodes.ReduceOtherCulture)
         {
             var enemy = Saturating(foreignRaw, CultureSupportedRawInfluence);
-            return enemy <= 0f ? 0f : (0.5f + localPresence) * enemy;
+            return enemy <= 0 ? 0 : (FixedScalar.FromUnits(500000L) + localPresence) * enemy;
         }
 
         var headroom = Clamp01((CultureStrongRawInfluence - ownRaw) / CultureStrongRawInfluence);
         var contest = Saturating(foreignRaw, CultureSupportedRawInfluence);
-        return localPresence * (0.35f + headroom) * (0.5f + contest);
+        return localPresence * (FixedScalar.FromUnits(350000L) + headroom) * (FixedScalar.FromUnits(500000L) + contest);
     }
 
-    private static float CultureTargetScore(
+    private static FixedScalar CultureTargetScore(
         int targetingCode,
-        float ownShare,
-        float ownRaw,
-        float foreignShare,
-        float foreignRaw,
+        FixedScalar ownShare,
+        FixedScalar ownRaw,
+        FixedScalar foreignShare,
+        FixedScalar foreignRaw,
         in MinorActorCultureField neighborhood,
         in MinorActorCultureAttachment attachment)
     {
@@ -111,20 +112,20 @@ internal sealed partial class MinorActorProgramRuntime
                 foreignRaw,
                 neighborhood,
                 attachment),
-            _ => 0f,
+            _ => 0,
         };
     }
 
-    private static float LifecycleMaintenanceScore(
+    private static FixedScalar LifecycleMaintenanceScore(
         Simulation simulation,
         int sourceEntityId,
-        float ownShare,
-        float ownRaw,
+        FixedScalar ownShare,
+        FixedScalar ownRaw,
         in MinorActorCultureField neighborhood,
         in MinorActorCultureAttachment attachment,
         int tick)
     {
-        if (!simulation.Upkeep.TryGetLifecycleMaintenanceNeed(
+        if (!simulation.Effects.TryGetLifecycleMaintenanceNeed(
                 simulation,
                 sourceEntityId,
                 tick,
@@ -132,212 +133,216 @@ internal sealed partial class MinorActorProgramRuntime
                 out var ageDrainComponent,
                 out var healthShortfall))
         {
-            return 0f;
+            return 0;
         }
 
-        var connectedSupport = global::System.MathF.Max(
-            Saturating(attachment.ComponentMass, 4f),
+        var connectedSupport = FixedScalar.Max(
+            Saturating(attachment.ConnectedRawMass, 4),
             Clamp01(neighborhood.ConnectedRaw / CultureFieldRawInfluence));
-        if (connectedSupport <= 0f)
+        if (connectedSupport <= 0)
         {
-            return 0f;
+            return 0;
         }
 
-        var ownPresence = global::System.MathF.Max(
-            Clamp01(ownShare / 100f),
+        var ownPresence = FixedScalar.Max(
+            Clamp01(ownShare / 100),
             Saturating(ownRaw, CultureSupportedRawInfluence));
-        var ageLoad = Saturating(ageDrainComponent, 0.20f);
+        var ageLoad = Saturating(ageDrainComponent, FixedScalar.FromUnits(200000L));
         var maintenanceNeed = Clamp01(healthShortfall + (LifecycleMaintenanceEarlyNeedScale * ageLoad));
         return maintenanceNeed *
-            (0.50f + ageLoad) *
+            (FixedScalar.FromUnits(500000L) + ageLoad) *
             connectedSupport *
-            (0.50f + ownPresence) *
+            (FixedScalar.FromUnits(500000L) + ownPresence) *
             LifecycleMaintenanceScoreScale;
     }
 
-    private static float ReinforceCoreScore(
-        float ownShare,
-        float ownRaw,
-        float foreignShare,
+    private static FixedScalar ReinforceCoreScore(
+        FixedScalar ownShare,
+        FixedScalar ownRaw,
+        FixedScalar foreignShare,
         in MinorActorCultureField neighborhood,
         in MinorActorCultureAttachment attachment)
     {
         var interiorHoleSupport = InteriorHoleSupport(ownRaw, attachment);
-        if (ownRaw < CultureTraceRawInfluence && interiorHoleSupport <= 0f)
+        if (ownRaw < CultureTraceRawInfluence && interiorHoleSupport <= 0)
         {
-            return 0f;
+            return 0;
         }
 
-        var ownPresence = global::System.MathF.Max(
+        var ownPresence = FixedScalar.Max(
             Saturating(ownRaw, CultureSupportedRawInfluence),
-            interiorHoleSupport * 0.75f);
-        var componentSupport = global::System.MathF.Max(
-            Saturating(attachment.ComponentMass, 4f),
+            interiorHoleSupport * FixedScalar.FromUnits(750000L));
+        var localitySupport = FixedScalar.Max(
+            Saturating(attachment.ConnectedRawMass, 4),
             interiorHoleSupport);
-        var neighborSupport = Clamp01(neighborhood.SupportedAdjacentCount / 5f);
+        var neighborSupport = Clamp01(
+            FixedScalar.FromRatio(neighborhood.SupportedAdjacentCount, 5));
         var rawHeadroom = Clamp01((CultureFieldRawInfluence - ownRaw) / CultureFieldRawInfluence);
         return InteriorHoleBoost(interiorHoleSupport) *
             ownPresence *
-            (0.35f + componentSupport) *
-            (0.45f + neighborSupport) *
-            (0.25f + rawHeadroom) *
-            CultureInfluenceTargetScorer.ComponentGravityBoost(attachment.LargestComponentSupport) *
+            (FixedScalar.FromUnits(350000L) + localitySupport) *
+            (FixedScalar.FromUnits(450000L) + neighborSupport) *
+            (FixedScalar.FromUnits(250000L) + rawHeadroom) *
+            CultureInfluenceTargetScorer.StrongCenterBoost(attachment.StrongCenterSupport) *
             ExpansionForeignDrag(ownShare, ownRaw, foreignShare);
     }
 
-    private static float ExtendBorderScore(
-        float ownShare,
-        float ownRaw,
-        float foreignShare,
+    private static FixedScalar ExtendBorderScore(
+        FixedScalar ownShare,
+        FixedScalar ownRaw,
+        FixedScalar foreignShare,
         in MinorActorCultureAttachment attachment)
     {
-        if (attachment.ComponentMass <= 0f ||
+        if (attachment.ConnectedRawMass <= 0 ||
             attachment.AdjacentSupportedCount <= 0 ||
             ownRaw >= CultureStrongRawInfluence)
         {
-            return 0f;
+            return 0;
         }
 
-        var shareHeadroom = Clamp01((100f - ownShare) / 100f);
+        var shareHeadroom = Clamp01((100 - ownShare) / 100);
         var rawShortfall = Clamp01((CultureStrongRawInfluence - ownRaw) / CultureStrongRawInfluence);
-        var componentSupport = Saturating(attachment.ComponentMass, 4f);
-        var edgeSupport = Saturating(attachment.AdjacentSupportedCount, 2f);
-        var contestBoost = 1f + (0.35f * Clamp01(foreignShare / 100f));
+        var localitySupport = Saturating(attachment.ConnectedRawMass, 4);
+        var edgeSupport = Saturating(attachment.AdjacentSupportedCount, 2);
+        var contestBoost = 1 + (FixedScalar.FromUnits(350000L) * Clamp01(foreignShare / 100));
         return InteriorHoleBoost(InteriorHoleSupport(ownRaw, attachment)) *
-            componentSupport *
+            localitySupport *
             edgeSupport *
             shareHeadroom *
-            (0.25f + rawShortfall) *
+            (FixedScalar.FromUnits(250000L) + rawShortfall) *
             contestBoost *
             ExpansionForeignDrag(ownShare, ownRaw, foreignShare);
     }
 
-    private static float BridgeGapScore(
-        float ownShare,
-        float ownRaw,
-        float foreignShare,
+    private static FixedScalar BridgeGapScore(
+        FixedScalar ownShare,
+        FixedScalar ownRaw,
+        FixedScalar foreignShare,
         in MinorActorCultureAttachment attachment)
     {
-        if (attachment.ComponentCount < 2 ||
+        if (attachment.AdjacentSupportedCount < 2 ||
             ownRaw >= CultureSupportedRawInfluence)
         {
-            return 0f;
+            return 0;
         }
 
-        var shareHeadroom = Clamp01((100f - ownShare) / 100f);
-        var componentSupport = Saturating(attachment.ComponentMass, 4f);
-        var bridgeSupport = 1f + (0.45f * global::System.Math.Min(3, attachment.ComponentCount - 1));
+        var shareHeadroom = Clamp01((100 - ownShare) / 100);
+        var localitySupport = Saturating(attachment.ConnectedRawMass, 4);
+        var bridgeSupport = 1 +
+            (FixedScalar.FromUnits(150000L) * global::System.Math.Min(3, attachment.AdjacentSupportedCount - 1));
         return InteriorHoleBoost(InteriorHoleSupport(ownRaw, attachment)) *
-            componentSupport *
+            localitySupport *
             shareHeadroom *
             bridgeSupport *
             ExpansionForeignDrag(ownShare, ownRaw, foreignShare);
     }
 
-    private static float ReduceOtherCultureScore(
-        float ownShare,
-        float ownRaw,
-        float foreignShare,
-        float foreignRaw,
+    private static FixedScalar ReduceOtherCultureScore(
+        FixedScalar ownShare,
+        FixedScalar ownRaw,
+        FixedScalar foreignShare,
+        FixedScalar foreignRaw,
         in MinorActorCultureField neighborhood,
         in MinorActorCultureAttachment attachment)
     {
-        if (foreignRaw <= 0f && foreignShare <= 0f)
+        if (foreignRaw <= 0 && foreignShare <= 0)
         {
-            return 0f;
+            return 0;
         }
 
-        var componentSupport = Saturating(attachment.ComponentMass, 4f);
+        var localitySupport = Saturating(attachment.ConnectedRawMass, 4);
         var connectedSupport = Clamp01(neighborhood.ConnectedRaw / CultureFieldRawInfluence);
         var interiorHoleSupport = InteriorHoleSupport(ownRaw, attachment);
-        var support = global::System.MathF.Max(
-            global::System.MathF.Max(componentSupport, connectedSupport),
+        var support = FixedScalar.Max(
+            FixedScalar.Max(localitySupport, connectedSupport),
             interiorHoleSupport);
-        if (support <= 0f)
+        if (support <= 0)
         {
-            return 0f;
+            return 0;
         }
 
-        var ownPresence = global::System.MathF.Max(
-            global::System.MathF.Max(
-                Clamp01(ownShare / 100f),
+        var ownPresence = FixedScalar.Max(
+            FixedScalar.Max(
+                Clamp01(ownShare / 100),
                 Saturating(ownRaw, CultureSupportedRawInfluence)),
             interiorHoleSupport);
         var foreignPresence = ForeignCleanupSignal(foreignShare, foreignRaw);
         return InteriorHoleBoost(interiorHoleSupport) *
             foreignPresence *
             support *
-            (0.35f + ownPresence) *
-            (0.75f + (0.5f * ownPresence));
+            (FixedScalar.FromUnits(350000L) + ownPresence) *
+            (FixedScalar.FromUnits(750000L) + (FixedScalar.FromUnits(500000L) * ownPresence));
     }
 
-    private static float InteriorHoleSupport(float ownRaw, in MinorActorCultureAttachment attachment) =>
+    private static FixedScalar InteriorHoleSupport(FixedScalar ownRaw, in MinorActorCultureAttachment attachment) =>
         CultureInfluenceTargetScorer.InteriorHoleSupport(
             ownRaw,
-            attachment.ComponentMass,
+            attachment.ConnectedRawMass,
             attachment.AdjacentSupportedCount);
 
-    private static float InteriorHoleBoost(float support) =>
-        1f + (2f * support);
+    private static FixedScalar InteriorHoleBoost(FixedScalar support) =>
+        1 + (2 * support);
 
-    private static float ExpansionForeignDrag(float ownShare, float ownRaw, float foreignShare)
+    private static FixedScalar ExpansionForeignDrag(FixedScalar ownShare, FixedScalar ownRaw, FixedScalar foreignShare)
     {
         var foreignCompetition = ForeignContestSignal(foreignShare);
-        if (foreignCompetition <= 0f)
+        if (foreignCompetition <= 0)
         {
-            return 1f;
+            return 1;
         }
 
-        var ownBoundary = global::System.MathF.Max(
-            Clamp01(ownShare / 100f),
+        var ownBoundary = FixedScalar.Max(
+            Clamp01(ownShare / 100),
             Saturating(ownRaw, CultureStrongRawInfluence));
-        return 1f - (0.7f * foreignCompetition * (1f - ownBoundary));
+        return 1 - (FixedScalar.FromUnits(700000L) * foreignCompetition * (1 - ownBoundary));
     }
 
-    private static float ForeignCleanupSignal(float foreignShare, float foreignRaw)
+    private static FixedScalar ForeignCleanupSignal(FixedScalar foreignShare, FixedScalar foreignRaw)
     {
         var shareSignal = ForeignContestSignal(foreignShare);
-        var rawSignal = Saturating(foreignRaw, CultureSupportedRawInfluence) * 0.65f;
-        return global::System.MathF.Max(shareSignal, rawSignal);
+        var rawSignal = Saturating(foreignRaw, CultureSupportedRawInfluence) * FixedScalar.FromUnits(650000L);
+        return FixedScalar.Max(shareSignal, rawSignal);
     }
 
-    private static float ForeignContestSignal(float foreignShare)
+    private static FixedScalar ForeignContestSignal(FixedScalar foreignShare)
     {
         if (foreignShare <= CultureForeignTraceToleranceShare)
         {
-            return 0f;
+            return 0;
         }
 
         return Clamp01((foreignShare - CultureForeignTraceToleranceShare) / CultureForeignContestScaleShare);
     }
 
-    private static float RouteCultureScore(
+    private static FixedScalar RouteCultureScore(
         Simulation simulation,
         int planeCode,
         int q,
         int r,
-        float ownRaw,
+        FixedScalar ownRaw,
         in MinorActorCultureField neighborhood,
         in MinorActorCultureAttachment attachment,
         int tick)
     {
         var roadQuality = simulation.Movement.RoadQuality(planeCode, q, r, tick);
         var travelCount = simulation.Movement.RoadTravelCount(planeCode, q, r);
-        var roadMemory = global::System.MathF.Max(Clamp01(roadQuality / 100f), Clamp01(travelCount / 4f));
-        if (roadMemory <= 0f)
+        var roadMemory = FixedScalar.Max(
+            Clamp01(roadQuality / 100),
+            Clamp01(FixedScalar.FromRatio(travelCount, 4)));
+        if (roadMemory <= 0)
         {
-            return 0f;
+            return 0;
         }
 
         var rawHeadroom = Clamp01((CultureStrongRawInfluence - ownRaw) / CultureStrongRawInfluence);
         var localCultureSupport = Clamp01(neighborhood.ConnectedRaw / CultureFieldRawInfluence);
-        var componentSupport = Saturating(attachment.ComponentMass, 4f);
+        var localitySupport = Saturating(attachment.ConnectedRawMass, 4);
         return roadMemory *
             rawHeadroom *
-            (0.25f + localCultureSupport + componentSupport);
+            (FixedScalar.FromUnits(250000L) + localCultureSupport + localitySupport);
     }
 
-    private static float RoadMaintenanceScore(
+    private static FixedScalar RoadMaintenanceScore(
         Simulation simulation,
         int planeCode,
         int q,
@@ -347,14 +352,14 @@ internal sealed partial class MinorActorProgramRuntime
     {
         var roadQuality = simulation.Movement.RoadQuality(planeCode, q, r, tick);
         var travelCount = simulation.Movement.RoadTravelCount(planeCode, q, r);
-        var roadNeed = Clamp01((100f - roadQuality) / 100f);
-        var travelMemory = Clamp01(travelCount / 8f);
+        var roadNeed = Clamp01((100 - roadQuality) / 100);
+        var travelMemory = Clamp01(FixedScalar.FromRatio(travelCount, 8));
         var cultureSupport = Clamp01(neighborhood.ConnectedRaw / CultureFieldRawInfluence);
-        if (travelMemory <= 0f && cultureSupport <= 0f)
+        if (travelMemory <= 0 && cultureSupport <= 0)
         {
-            return 0f;
+            return 0;
         }
 
-        return (0.25f + cultureSupport) * (0.35f + travelMemory) * (0.2f + roadNeed);
+        return (FixedScalar.FromUnits(250000L) + cultureSupport) * (FixedScalar.FromUnits(350000L) + travelMemory) * (FixedScalar.FromUnits(200000L) + roadNeed);
     }
 }

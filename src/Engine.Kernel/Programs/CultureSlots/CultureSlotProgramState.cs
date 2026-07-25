@@ -8,14 +8,14 @@ internal sealed partial class CultureSlotProgramState : IKernelProgramState
     private const int SlotValueKey = 1;
     private readonly PrimitiveIntTable _occupantEntityIds;
     private readonly PrimitiveIntTable _occupiedAtTicks;
-    private readonly PrimitiveFloatTable _occupantScores;
+    private readonly PrimitiveScalarTable _occupantScores;
 
     public CultureSlotProgramState(int slotCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(slotCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(slotCapacity);
         _occupantEntityIds = new PrimitiveIntTable(slotCapacity);
         _occupiedAtTicks = new PrimitiveIntTable(slotCapacity);
-        _occupantScores = new PrimitiveFloatTable(slotCapacity);
+        _occupantScores = new PrimitiveScalarTable(slotCapacity);
     }
 
     public int ProgramId => KernelProgramCodes.CultureSlots;
@@ -26,16 +26,16 @@ internal sealed partial class CultureSlotProgramState : IKernelProgramState
 
     public int OccupiedAtTick(int slot) => _occupiedAtTicks.GetOrDefault(slot, SlotValueKey);
 
-    public float OccupantScore(int slot) => _occupantScores.GetOrDefault(slot, SlotValueKey);
+    public FixedScalar OccupantScore(int slot) => _occupantScores.GetOrDefault(slot, SlotValueKey);
 
-    public void SetOccupant(int slot, int entityId, float score, int tick)
+    public void SetOccupant(int slot, int entityId, FixedScalar score, int tick)
     {
         _occupantEntityIds.Set(slot, SlotValueKey, entityId);
         _occupantScores.Set(slot, SlotValueKey, score);
         _occupiedAtTicks.Set(slot, SlotValueKey, entityId > 0 ? tick : 0);
     }
 
-    public void RefreshScore(int slot, float score)
+    public void RefreshScore(int slot, FixedScalar score)
     {
         _occupantScores.Set(slot, SlotValueKey, score);
     }

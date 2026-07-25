@@ -38,7 +38,7 @@ public sealed class IceRemembersEntityDefinition
     public IReadOnlyList<TraitConfig> Traits { get; init; } = [];
     public string? Description { get; init; }
     public IReadOnlyList<PrimaryPlane> InitialInfluencePlanes { get; init; } = [PrimaryPlane.Semantic];
-    public required IceRemembersKindMapSignalProfile MapSignal { get; init; }
+    public required IceRemembersKindLocalityProfile Locality { get; init; }
     public bool CreatesSemanticStock { get; init; } = true;
     public string SemanticStockNotes { get; init; } = "Health (integrity). Dies at 0.";
     public required MovementProfileAssignmentConfig MovementProfiles { get; init; }
@@ -53,7 +53,7 @@ public sealed class IceRemembersEntityDefinition
     public IReadOnlyList<PlacementTasteWeightConfig> PlacementTaste { get; init; } = [];
 }
 
-public sealed record IceRemembersKindMapSignalProfile(
+public sealed record IceRemembersKindLocalityProfile(
     int Radius,
     float Capacity,
     float Support,
@@ -61,7 +61,6 @@ public sealed record IceRemembersKindMapSignalProfile(
     float BaseMass,
     float CoverageScale,
     float InfluenceScale,
-    float ActivityScale,
     float HealthScale,
     int AttractorRadius);
 
@@ -208,7 +207,7 @@ public static class IceRemembersEntities
     private const float NominalInitialHealth = 90f;
     private const float LifecycleFlatDrainShare = 0.2f;
 
-    private static readonly IReadOnlyList<EntityKind> KindSignalOrder =
+    private static readonly IReadOnlyList<EntityKind> KindLocalityOrder =
     [
         IceRemembersKinds.Settlement,
         IceRemembersKinds.Faction,
@@ -301,31 +300,30 @@ public static class IceRemembersEntities
         return result;
     }
 
-    public static IReadOnlyList<KindMapSignalConfig> CreateKindMapSignals()
+    public static IReadOnlyList<KindLocalityConfig> CreateKindLocality()
     {
-        var result = new List<KindMapSignalConfig>();
-        foreach (var kind in KindSignalOrder)
+        var result = new List<KindLocalityConfig>();
+        foreach (var kind in KindLocalityOrder)
         {
             var entity = Entity(kind);
-            var signal = entity.MapSignal;
-            result.Add(new KindMapSignalConfig
+            var locality = entity.Locality;
+            result.Add(new KindLocalityConfig
             {
                 Kind = entity.Kind.Value,
-                SignalRadius = signal.Radius,
-                CapacityEmission = signal.Capacity,
-                SupportEmission = signal.Support,
-                ThreatEmission = signal.Threat,
-                BaseAttractorMass = signal.BaseMass,
-                CoverageAttractorScale = signal.CoverageScale,
-                InfluenceAttractorScale = signal.InfluenceScale,
-                ActivityAttractorScale = signal.ActivityScale,
-                AttractorRadius = signal.AttractorRadius,
+                LocalityRadius = locality.Radius,
+                CapacityEmission = locality.Capacity,
+                SupportEmission = locality.Support,
+                ThreatEmission = locality.Threat,
+                BaseAttractorMass = locality.BaseMass,
+                CoverageAttractorScale = locality.CoverageScale,
+                InfluenceAttractorScale = locality.InfluenceScale,
+                AttractorRadius = locality.AttractorRadius,
                 AttractorScalarInputs =
                 [
-                    new MapSignalScalarInputConfig
+                    new LocalityScalarInputConfig
                     {
                         Attribute = entity.HealthAttribute.ToDomainName(),
-                        AttractorScale = signal.HealthScale,
+                        AttractorScale = locality.HealthScale,
                     },
                 ],
             });
@@ -373,10 +371,9 @@ public static class IceRemembersEntities
             DefaultVariance = HealthDefaultVariance,
         };
 
-    // Band targets are main ticks (see SimulationOptions.MainTickAge; 5 raw
-    // ticks = 1 main tick) at the canonical calibration of 250 raw ticks per
-    // in-world year. Observed median lifespan lands near band x 5 x ~1.14 raw
-    // ticks (main-tick conversion plus healing surplus): Brief ~45y,
+    // Band targets are world pulses at the canonical calibration of 50 pulses
+    // per in-world year. Observed median lifespan lands near band x ~1.14
+    // pulses (including healing surplus): Brief ~45y,
     // Standard ~80y, Enduring ~100y, Generational ~230y, Monumental ~450y.
     // WorldAnchor kinds are ageless: no lifecycle drain; they end only
     // through deliberate acts (gambits/generators), never old age.
@@ -446,7 +443,7 @@ internal static class IceRemembersEntityDsl
     public static IReadOnlySet<string> Subtypes(params string[] subtypes) =>
         new HashSet<string>(subtypes, StringComparer.Ordinal);
 
-    public static IceRemembersKindMapSignalProfile MapSignal(
+    public static IceRemembersKindLocalityProfile Locality(
         int radius,
         float capacity,
         float support,
@@ -454,7 +451,6 @@ internal static class IceRemembersEntityDsl
         float baseMass,
         float coverageScale,
         float influenceScale,
-        float activityScale,
         float healthScale,
         int attractorRadius) =>
         new(
@@ -465,7 +461,6 @@ internal static class IceRemembersEntityDsl
             baseMass,
             coverageScale,
             influenceScale,
-            activityScale,
             healthScale,
             attractorRadius);
 

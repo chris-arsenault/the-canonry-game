@@ -9,12 +9,12 @@ public sealed class CompiledEntityData
 public sealed record CompiledEntityAttributeData(
     int KindId,
     int AttributeId,
-    float Minimum,
-    float Maximum,
-    float DefaultValue,
-    float DefaultVariance);
+    FixedScalar Minimum,
+    FixedScalar Maximum,
+    FixedScalar DefaultValue,
+    FixedScalar DefaultVariance);
 
 public sealed record CompiledEntityTraitData(
     int KindId,
     int TraitId,
-    float AssignmentChance);
+    FixedScalar AssignmentChance);

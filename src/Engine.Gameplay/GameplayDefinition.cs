@@ -6,7 +6,7 @@ public sealed class GameplayDefinition
 
     public IReadOnlyList<LowAltitudeVerbConfig> LowAltitudeVerbs { get; init; } = [];
 
-    public MapSignalsConfig MapSignals { get; init; } = new();
+    public LocalityConfig Locality { get; init; } = new();
 
     public EffectsConfig Effects { get; init; } = new();
 
@@ -31,11 +31,6 @@ public sealed record LowAltitudeVerbDefinition(
     string Kind,
     string Operation,
     string TargetMode,
-    string Plane);
-
-public sealed record MapSignalDefinition(
-    string Id,
-    string SourceKind,
     string Plane);
 
 public sealed record AttributeEffectDefinition(

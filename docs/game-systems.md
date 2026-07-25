@@ -104,11 +104,19 @@ Reusable gameplay vocabulary lives in `Engine.Gameplay` and compiles down into
 primitive kernel program data. The kernel executes only ids, numeric codes, and
 fixed-capacity arrays.
 
+Shared additive state is deterministic fixed point in the kernel. Culture mass,
+relationship strength, persistent attributes and health, road quality/work, and
+persistent local modifiers each have an independent scale suited to their
+range. Candidate scoring, probabilities, heat, ratios, and path costs use the
+generic signed `FixedScalar` representation. Authored values may remain
+ordinary floats before compilation, while presentation may convert after the
+query/event boundary; compiled records and kernel execution are integer-backed.
+
 ## Runtime Altitudes
 
 Low altitude is always-on per-tick physics. It keeps the world visibly alive,
-ages entities, drifts existing relationship strength, and writes map signals
-that later systems can read. It does not create named entities or declare major
+ages entities, drifts existing relationship strength, and reads direct locality
+facts where actors work. It does not create named entities or declare major
 story outcomes.
 
 Minor actors are the low-salience labor layer. They are unnamed cohorts stored
@@ -121,6 +129,11 @@ success criteria, and effects such as creating or changing relationships. A
 gambit may use shared behavior bytecode, shared query predicates, and shared
 effect execution, but it is not the removed low-altitude process system or the
 removed generic planning program.
+
+Gambit repetition is controlled by the actor's current per-gambit and
+whole-actor expiry ticks. The runtime does not retain lifetime action history or
+apply an implicit recency penalty. Retirement clears the occurrence's cooldown
+row.
 
 Generators are intermittent high-altitude events. They create named entities
 and relationship bundles when their preconditions are met. Generator selection
@@ -142,6 +155,9 @@ frozen frontier blocks reach and roads extend it. See
 World beats are the macro-chronicle: authored Ages on three regime tracks
 (Ice, Peoples, Memory) recognized from macro world state - population, wars
 living and ended, culture mass and its growth, canons, legendary resolutions.
+Living and ended relationship totals are updated at relationship creation and
+retirement, so recognizing an Age does not rescan a lifetime relationship
+archive.
 An open age charges ordinary authored content (generator weights, verb
 weights, gambit scores, the decay tide); the Age of Striving arms campaigns,
 whose labor columns are the world's mass-projection at contested fronts. See
@@ -150,7 +166,7 @@ whose labor columns are the world's mass-projection at contested fronts. See
 Knowledge is claimed spatially rather than researched through a queue. The 27
 authored technologies occupy tiered semantic-map sites; current culture claims
 activate explicit grants over existing verbs, generators, gambits, movement,
-relationships, map signals, culture fields, minor actors, and frontier rules.
+relationships, locality, culture fields, minor actors, and frontier rules.
 Claims and grants disappear if culture loses the site. See
 [systems/27-knowledge.md](./systems/27-knowledge.md).
 
@@ -181,19 +197,16 @@ programs:
   anchor relocation, and work-tier growth.
 - `Movement`: route planning, movement execution, road quality, and travel
   structures.
-- `MapActivity`: physical and semantic presence heat, visit counts, and
-  occupancy.
-- `MapSignals`: terrain, entity, relationship, activity, crowding, support,
-  threat, and attractor fields.
-- `CultureBoundaries`: derived culture components, interiors, borders,
-  contested cells, isolated pockets, holes, and strength bands.
+- `Locality`: direct current terrain capacity, occupancy, crowding, support,
+  threat, and attractor queries at the bounded point of use.
+- `CultureLocality`: direct radius-two culture mass, share, foreign pressure,
+  local connection, cell-kind, hole, and strength facts.
 - `CultureFieldDecay`: slow global decay of raw culture mass so territory
   reflects current production against loss instead of accumulated history.
 - `Relationships`: existing relationship strength drift and culling.
-- `Effects`: health modifiers derived from relationship,
-  culture influence, distance, support, threat, and crowding evidence.
-- `Upkeep`: lifecycle drain and historical-status transition on death.
-- `MinorActors`: unnamed worker cohorts that maintain culture, roads, and
+- `Effects`: one per-entity resolution stage for relationship and locality
+  effects, district healing, lifecycle drain, and retirement.
+- `MinorActors`: unnamed individual workers that maintain culture, roads, and
   source lifecycle without adding graph nodes.
 - `Knowledge`: slow claim recomputation and culture-scoped modifiers derived
   from authored semantic-map sites.
@@ -203,13 +216,9 @@ The current default tick order is:
 ```text
 Movement
 LowAltitudeVerbs
-MapActivity
-MapSignals
 CultureFieldDecay
-CultureBoundaries
 Relationships
 Effects
-Upkeep
 Gambits
 ChronicleDirector
 Generators
@@ -220,14 +229,15 @@ Knowledge
 MinorActors
 ```
 
-`LowAltitudeVerbs` intentionally reads previous-tick map activity and map
-signals so same-tick ordering does not create feedback loops. `MapSignals`,
-`CultureBoundaries`, `Relationships`, and `Effects` read same-tick state after
-movement and activity have been materialized.
+Locality facts are calculated from current bounded state when a consumer acts;
+there is no map-activity or map-signal tick phase. Culture classification is
+also local and read-only. Only scheduled mutating programs participate in tick
+ordering.
 
-By default, minor actors run every simulation tick. The main graph programs run
-every `MinorActorMainTickRatio` ticks, currently `5`; generator pulse widths
-and main-cadence ages are scaled by the same ratio.
+Every `AdvanceTicks` step advances one world pulse. Authored durations and
+generator windows use that clock directly. Minor actors alone run
+`MinorActorSubstepsPerPulse` bounded labor substeps inside each world pulse,
+currently `5`.
 
 ## High-Altitude Systems
 
@@ -305,7 +315,7 @@ kernel tick advanced. Current UI presentation principles are recorded in
 - [19 Narrative Domain](./systems/19-narrative-domain.md)
 - [20 Generator Causal Limits](./systems/20-generator-causal-limits.md)
 - [21 Minor Actors](./systems/21-minor-actors.md)
-- [22 Map Signals](./systems/22-map-signals.md)
+- [22 Locality Queries](./systems/22-map-signals.md)
 - [23 Tags And Status State Machines](./systems/23-tags.md)
 - [24 Canons And Jurisdictions](./systems/24-canons-and-jurisdictions.md)
 - [25 World Beats](./systems/25-world-beats.md)

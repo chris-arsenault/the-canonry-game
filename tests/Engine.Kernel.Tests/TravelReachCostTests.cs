@@ -25,7 +25,7 @@ public sealed class TravelReachCostTests
 
         // Three steps of open terrain (cost 3 each) between the endpoints.
         var cost = simulation.TravelReachCost(actor, target, PlaneCodes.Physical, tick: 1);
-        Assert.Equal(9f, cost, precision: 2);
+        Assert.Equal(FixedScalar.FromSingle(9f), cost);
     }
 
     [Fact]
@@ -42,7 +42,7 @@ public sealed class TravelReachCostTests
         var target = simulation.CreateEntity(KindId, 1, 1, 2, 0, 0, 0, 0, tick: 0);
 
         var cost = simulation.TravelReachCost(actor, target, PlaneCodes.Physical, tick: 1);
-        Assert.True(float.IsPositiveInfinity(cost));
+        Assert.True(FixedScalar.IsPositiveInfinity(cost));
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public sealed class TravelReachCostTests
         var actor = simulation.CreateEntity(KindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
         var target = simulation.CreateEntity(KindId, 1, 1, 2, 0, 0, 0, 0, tick: 0);
 
-        Assert.True(float.IsPositiveInfinity(
+        Assert.True(FixedScalar.IsPositiveInfinity(
             simulation.TravelReachCost(actor, target, PlaneCodes.Physical, tick: 1)));
     }
 
@@ -92,15 +92,15 @@ public sealed class TravelReachCostTests
     private static void RegisterTerrains(Simulation simulation)
     {
         simulation.RegisterTerrain(
-            OpenTerrain, boundaryGroupId: 1, movementCost: 3f,
-            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 20f, roadSpeedMultiplier: 2f);
+            OpenTerrain, boundaryGroupId: 1, movementCost: FixedScalar.FromSingle(3f),
+            influenceMultiplier: FixedScalar.FromSingle(1f), claimCostMultiplier: FixedScalar.FromSingle(1f), claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(20f), roadSpeedMultiplier: FixedScalar.FromSingle(2f));
         // Deep ice is impassable: base travel cost 0 makes the surface cost
         // infinite, exactly as the domain's all-zero movement profiles do.
         simulation.RegisterTerrain(
-            DeepIceTerrain, boundaryGroupId: 1, movementCost: 0f,
-            influenceMultiplier: 0.2f, claimCostMultiplier: 3f, claimChanceMultiplier: 0.05f,
-            roadBuildMultiplier: 0f, roadSpeedMultiplier: 1f);
+            DeepIceTerrain, boundaryGroupId: 1, movementCost: FixedScalar.FromSingle(0f),
+            influenceMultiplier: FixedScalar.FromSingle(0.2f), claimCostMultiplier: FixedScalar.FromSingle(3f), claimChanceMultiplier: FixedScalar.FromSingle(0.05f),
+            roadBuildMultiplier: FixedScalar.FromSingle(0f), roadSpeedMultiplier: FixedScalar.FromSingle(1f));
     }
 
     private static Simulation CreateSimulation() => KernelTestSimulation.Create(new SimulationOptions

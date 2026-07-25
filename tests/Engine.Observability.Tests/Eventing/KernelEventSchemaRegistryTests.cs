@@ -29,7 +29,8 @@ public sealed class KernelEventSchemaRegistryTests
                     slot.SemanticKind == KernelEventSemanticKind.SourceCodeId);
         Assert.Contains(
             schema.Slots,
-            slot => slot.Name == "new_strength" &&
-                    slot.PrimitiveKind == KernelEventPrimitiveKind.Float32);
+            slot => slot.Name == "new_strength_units" &&
+                    slot.PrimitiveKind == KernelEventPrimitiveKind.Int32 &&
+                    slot.SemanticKind == KernelEventSemanticKind.Strength);
     }
 }

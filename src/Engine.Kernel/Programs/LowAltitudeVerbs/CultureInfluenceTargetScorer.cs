@@ -2,44 +2,41 @@ namespace Engine.Kernel;
 
 internal readonly record struct CultureInfluenceTargetScoreInput(
     int TargetingCode,
-    float OwnShare,
-    float OwnRaw,
-    float ForeignShare,
-    float ForeignRaw,
-    float AttachedComponentMass,
+    FixedScalar OwnShare,
+    FixedScalar OwnRaw,
+    FixedScalar ForeignShare,
+    FixedScalar ForeignRaw,
+    FixedScalar ConnectedRawMass,
     int AdjacentSupportedCount,
-    int AttachedComponentCount,
-    float LargestComponentSupport);
+    FixedScalar StrongCenterSupport);
 
 internal static class CultureInfluenceTargetScorer
 {
-    private const float ClaimedRawInfluence = WorldState.CultureClaimedRawMass;
-    private const float ControlledRawInfluence = WorldState.CultureControlledRawMass;
-    private const float FullRawInfluence = WorldState.CultureFullRawMass;
-    private const float ComponentMassScale = 6f;
-    private const float AttachmentScale = 2f;
-    private const float BridgeBonusPerComponent = 0.2f;
-    private const float BridgeBonusCap = 7f / 20f;
+    private static readonly FixedScalar ClaimedRawInfluence = WorldState.CultureClaimedRawMass;
+    private static readonly FixedScalar ControlledRawInfluence = WorldState.CultureControlledRawMass;
+    private static readonly FixedScalar FullRawInfluence = WorldState.CultureFullRawMass;
+    private static readonly FixedScalar ConnectedMassScale = 6;
+    private static readonly FixedScalar AdjacentSupportScale = 2;
     private const int InteriorHoleAdjacentSupportThreshold = 4;
-    private const float InteriorHoleComponentMassScale = 4f;
-    private const float InteriorHoleUtilityMultiplier = 2f;
-    private const float ForeignTraceToleranceShare = 10f;
-    private const float ForeignContestScaleShare = 45f;
-    internal const float LargestComponentGravity = 0.75f;
+    private static readonly FixedScalar InteriorHoleConnectedMassScale = 4;
+    private static readonly FixedScalar InteriorHoleUtilityMultiplier = 2;
+    private static readonly FixedScalar ForeignTraceToleranceShare = 10;
+    private static readonly FixedScalar ForeignContestScaleShare = 45;
+    internal static readonly FixedScalar StrongCenterGravity = FixedScalar.FromUnits(750000L);
 
-    internal static float Score(in CultureInfluenceTargetScoreInput input)
+    internal static FixedScalar Score(in CultureInfluenceTargetScoreInput input)
     {
         var utility = Utility(input);
-        if (utility <= 0f)
+        if (utility <= 0)
         {
-            return 0f;
+            return 0;
         }
 
-        var priority = ComponentPriority(input);
-        return priority <= 0f ? 0f : priority * utility;
+        var priority = LocalityPriority(input);
+        return priority <= 0 ? 0 : priority * utility;
     }
 
-    private static float Utility(in CultureInfluenceTargetScoreInput input) =>
+    private static FixedScalar Utility(in CultureInfluenceTargetScoreInput input) =>
         input.TargetingCode switch
         {
             LowAltitudeInfluenceTargetingCodes.Reinforce => ReinforceUtility(input),
@@ -48,157 +45,151 @@ internal static class CultureInfluenceTargetScorer
             _ => SpreadUtility(input),
         };
 
-    private static float ComponentPriority(in CultureInfluenceTargetScoreInput input)
+    private static FixedScalar LocalityPriority(in CultureInfluenceTargetScoreInput input)
     {
-        var attachedComponentMass = input.AttachedComponentMass;
-        var adjacentSupportedCount = input.AdjacentSupportedCount;
-        var attachedComponentCount = input.AttachedComponentCount;
-        if (attachedComponentMass <= 0f &&
+        var connectedRawMass = input.ConnectedRawMass;
+        var localSupportCount = input.AdjacentSupportedCount + (input.OwnRaw > 0 ? 1 : 0);
+        if (connectedRawMass <= 0 &&
             input.TargetingCode != LowAltitudeInfluenceTargetingCodes.Contest)
         {
-            attachedComponentMass = Clamp01(input.OwnRaw / ControlledRawInfluence);
-            adjacentSupportedCount = attachedComponentMass > 0f ? 1 : 0;
-            attachedComponentCount = adjacentSupportedCount;
+            connectedRawMass = input.OwnRaw;
         }
 
-        if (attachedComponentMass <= 0f || attachedComponentCount <= 0)
+        if (connectedRawMass <= 0 || localSupportCount <= 0)
         {
-            return 0f;
+            return 0;
         }
 
-        var componentSupport = Saturating(attachedComponentMass, ComponentMassScale);
-        var attachmentSupport = Saturating(global::System.Math.Max(adjacentSupportedCount, attachedComponentCount), AttachmentScale);
-        var bridgeBonus = 1f + global::System.MathF.Min(
-            BridgeBonusCap,
-            global::System.Math.Max(0, attachedComponentCount - 1) * BridgeBonusPerComponent);
-        return componentSupport * componentSupport * attachmentSupport * bridgeBonus;
+        var connectedSupport = Saturating(connectedRawMass, ConnectedMassScale);
+        var localAnchorSupport = Saturating(localSupportCount, AdjacentSupportScale);
+        return connectedSupport * connectedSupport * localAnchorSupport;
     }
 
-    private static float SpreadUtility(in CultureInfluenceTargetScoreInput input)
+    private static FixedScalar SpreadUtility(in CultureInfluenceTargetScoreInput input)
     {
         var headroom = Clamp01((ControlledRawInfluence - input.OwnRaw) / ControlledRawInfluence);
-        if (headroom <= 0f)
+        if (headroom <= 0)
         {
-            return 0f;
+            return 0;
         }
 
         var rawShortfall = Clamp01((ControlledRawInfluence - input.OwnRaw) / ControlledRawInfluence);
         return InteriorHoleBoost(input) *
-            global::System.MathF.Pow(headroom, 1.25f) *
-            ((7f / 20f) + ((13f / 20f) * rawShortfall)) *
+            FixedScalar.Pow(headroom, FixedScalar.FromUnits(1250000L)) *
+            (FixedScalar.FromRatio(7, 20) + (FixedScalar.FromRatio(13, 20) * rawShortfall)) *
             ExpansionForeignDrag(input);
     }
 
-    private static float ReinforceUtility(in CultureInfluenceTargetScoreInput input)
+    private static FixedScalar ReinforceUtility(in CultureInfluenceTargetScoreInput input)
     {
         var interiorHoleSupport = InteriorHoleSupport(input);
-        var ownPresence = global::System.MathF.Max(
+        var ownPresence = FixedScalar.Max(
             Saturating(input.OwnRaw, ClaimedRawInfluence),
-            interiorHoleSupport * 0.75f);
-        if (ownPresence <= 0f)
+            interiorHoleSupport * FixedScalar.FromUnits(750000L));
+        if (ownPresence <= 0)
         {
-            return 0f;
+            return 0;
         }
 
         // Shortfall keeps a floor so core cells stay valid reinforcement targets
-        // near the cap; largest-component gravity concentrates work on the
-        // culture's main mass instead of leveling every component equally.
+        // near the cap; a strong current center concentrates work without
+        // requiring global component topology.
         var rawShortfall = Clamp01((FullRawInfluence - input.OwnRaw) / FullRawInfluence);
         return InteriorHoleBoost(interiorHoleSupport) *
             ownPresence *
-            ((3f / 10f) + ((7f / 10f) * rawShortfall)) *
-            ComponentGravityBoost(input.LargestComponentSupport) *
+            (FixedScalar.FromRatio(3, 10) + (FixedScalar.FromRatio(7, 10) * rawShortfall)) *
+            StrongCenterBoost(input.StrongCenterSupport) *
             ExpansionForeignDrag(input);
     }
 
-    internal static float ComponentGravityBoost(float largestComponentSupport) =>
-        1f + (LargestComponentGravity * Clamp01(largestComponentSupport));
+    internal static FixedScalar StrongCenterBoost(FixedScalar strongCenterSupport) =>
+        1 + (StrongCenterGravity * Clamp01(strongCenterSupport));
 
-    private static float ContestUtility(in CultureInfluenceTargetScoreInput input)
+    private static FixedScalar ContestUtility(in CultureInfluenceTargetScoreInput input)
     {
         var foreignPresence = ForeignCleanupSignal(input.ForeignShare, input.ForeignRaw);
-        if (foreignPresence <= 0f)
+        if (foreignPresence <= 0)
         {
-            return 0f;
+            return 0;
         }
 
-        var ownAnchor = global::System.MathF.Max(
-            global::System.MathF.Max(
-                Clamp01(input.OwnShare / 100f),
+        var ownAnchor = FixedScalar.Max(
+            FixedScalar.Max(
+                Clamp01(input.OwnShare / 100),
                 Saturating(input.OwnRaw, ClaimedRawInfluence)),
             InteriorHoleSupport(input));
-        return foreignPresence * (0.5f + ownAnchor) * (0.75f + (0.5f * ownAnchor));
+        return foreignPresence * (FixedScalar.FromUnits(500000L) + ownAnchor) * (FixedScalar.FromUnits(750000L) + (FixedScalar.FromUnits(500000L) * ownAnchor));
     }
 
-    private static float ExpansionForeignDrag(in CultureInfluenceTargetScoreInput input)
+    private static FixedScalar ExpansionForeignDrag(in CultureInfluenceTargetScoreInput input)
     {
         var foreignCompetition = ForeignContestSignal(input.ForeignShare);
-        if (foreignCompetition <= 0f)
+        if (foreignCompetition <= 0)
         {
-            return 1f;
+            return 1;
         }
 
-        var ownBoundary = global::System.MathF.Max(
-            global::System.MathF.Max(
-                Clamp01(input.OwnShare / 100f),
+        var ownBoundary = FixedScalar.Max(
+            FixedScalar.Max(
+                Clamp01(input.OwnShare / 100),
                 Saturating(input.OwnRaw, ControlledRawInfluence)),
             InteriorHoleSupport(input));
-        return 1f - (0.7f * foreignCompetition * (1f - ownBoundary));
+        return 1 - (FixedScalar.FromUnits(700000L) * foreignCompetition * (1 - ownBoundary));
     }
 
-    internal static float InteriorHoleSupport(float ownRaw, float attachedComponentMass, int adjacentSupportedCount)
+    internal static FixedScalar InteriorHoleSupport(FixedScalar ownRaw, FixedScalar connectedRawMass, int adjacentSupportedCount)
     {
         if (ownRaw >= ControlledRawInfluence ||
             adjacentSupportedCount < InteriorHoleAdjacentSupportThreshold ||
-            attachedComponentMass <= 0f)
+            connectedRawMass <= 0)
         {
-            return 0f;
+            return 0;
         }
 
         var adjacentSupport = Clamp01(
             (adjacentSupportedCount - (InteriorHoleAdjacentSupportThreshold - 1)) /
-            (float)(7 - InteriorHoleAdjacentSupportThreshold));
-        var componentSupport = Saturating(attachedComponentMass, InteriorHoleComponentMassScale);
+            (FixedScalar)(7 - InteriorHoleAdjacentSupportThreshold));
+        var connectedSupport = Saturating(connectedRawMass, InteriorHoleConnectedMassScale);
         var rawHeadroom = Clamp01((ControlledRawInfluence - ownRaw) / ControlledRawInfluence);
-        return adjacentSupport * componentSupport * rawHeadroom;
+        return adjacentSupport * connectedSupport * rawHeadroom;
     }
 
-    private static float InteriorHoleSupport(in CultureInfluenceTargetScoreInput input) =>
-        InteriorHoleSupport(input.OwnRaw, input.AttachedComponentMass, input.AdjacentSupportedCount);
+    private static FixedScalar InteriorHoleSupport(in CultureInfluenceTargetScoreInput input) =>
+        InteriorHoleSupport(input.OwnRaw, input.ConnectedRawMass, input.AdjacentSupportedCount);
 
-    private static float InteriorHoleBoost(in CultureInfluenceTargetScoreInput input) =>
+    private static FixedScalar InteriorHoleBoost(in CultureInfluenceTargetScoreInput input) =>
         InteriorHoleBoost(InteriorHoleSupport(input));
 
-    private static float InteriorHoleBoost(float support) =>
-        1f + (InteriorHoleUtilityMultiplier * support);
+    private static FixedScalar InteriorHoleBoost(FixedScalar support) =>
+        1 + (InteriorHoleUtilityMultiplier * support);
 
-    private static float ForeignCleanupSignal(float foreignShare, float foreignRaw)
+    private static FixedScalar ForeignCleanupSignal(FixedScalar foreignShare, FixedScalar foreignRaw)
     {
         var shareSignal = ForeignContestSignal(foreignShare);
-        var rawSignal = Saturating(foreignRaw, ClaimedRawInfluence) * 0.65f;
-        return global::System.MathF.Max(shareSignal, rawSignal);
+        var rawSignal = Saturating(foreignRaw, ClaimedRawInfluence) * FixedScalar.FromUnits(650000L);
+        return FixedScalar.Max(shareSignal, rawSignal);
     }
 
-    private static float ForeignContestSignal(float foreignShare)
+    private static FixedScalar ForeignContestSignal(FixedScalar foreignShare)
     {
         if (foreignShare <= ForeignTraceToleranceShare)
         {
-            return 0f;
+            return 0;
         }
 
         return Clamp01((foreignShare - ForeignTraceToleranceShare) / ForeignContestScaleShare);
     }
 
-    private static float Saturating(float value, float scale) =>
-        value <= 0f ? 0f : 1f - global::System.MathF.Exp(-value / scale);
+    private static FixedScalar Saturating(FixedScalar value, FixedScalar scale) =>
+        value <= 0 ? 0 : 1 - FixedScalar.Exp(-value / scale);
 
-    private static float Clamp01(float value)
+    private static FixedScalar Clamp01(FixedScalar value)
     {
-        if (value < 0f)
+        if (value < 0)
         {
-            return 0f;
+            return 0;
         }
 
-        return value > 1f ? 1f : value;
+        return value > 1 ? 1 : value;
     }
 }

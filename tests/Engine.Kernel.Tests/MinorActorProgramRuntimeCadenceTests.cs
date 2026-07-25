@@ -6,7 +6,7 @@ using Engine.Kernel;
 public sealed partial class MinorActorProgramRuntimeTests
 {
     [Fact]
-    public void ConfiguredMainTickRatioDoesNotCreateMinorActorSubsteps()
+    public void ConfiguredSubstepsRunInsideOneWorldPulse()
     {
         var simulation = new Simulation(new SimulationOptions
         {
@@ -15,7 +15,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             {
                 Programs = new KernelProgramTuningOptions
                 {
-                    MinorActorMainTickRatio = 3,
+                    MinorActorSubstepsPerPulse = 3,
                 },
             },
         });
@@ -31,17 +31,13 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 3,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 0f,
+            workDelta: FixedScalar.FromSingle(0f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(1);
 
-        Assert.Equal(1, simulation.MinorActors.State.Pulse);
-        Assert.Equal(1, simulation.MinorActors.State.ActiveCount);
-
-        _ = simulation.AdvanceTicks(2);
-
         Assert.Equal(3, simulation.MinorActors.State.Pulse);
+        Assert.Equal(1, simulation.CurrentTick);
         Assert.Equal(0, simulation.MinorActors.State.ActiveCount);
     }
 
@@ -66,12 +62,12 @@ public sealed partial class MinorActorProgramRuntimeTests
             ttlPulses: 10,
             moveChancePermille: 0,
             actionCadencePulses: 1,
-            workDelta: 1f,
+            workDelta: FixedScalar.FromSingle(1f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(1);
 
-        Assert.Equal(1, simulation.MinorActors.State.Pulse);
-        Assert.Equal(1f, simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(5, simulation.MinorActors.State.Pulse);
+        Assert.Equal(FixedScalar.FromSingle(5f), simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
     }
 }

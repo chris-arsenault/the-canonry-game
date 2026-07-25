@@ -204,7 +204,6 @@ public static partial class DomainCompiler
     private static void RegisterSourceCodes(CatalogRegistrationState state)
     {
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.GambitSourceCode, state.Registry.RegisterSourceCode, "source code");
-        RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.UpkeepSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.StartupSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.RelationshipSourceCode, state.Registry.RegisterSourceCode, "source code");
         RegisterOnceStrict(state.SourceCodes, DomainRuntimeNames.GeneratorSourceCode, state.Registry.RegisterSourceCode, "source code");

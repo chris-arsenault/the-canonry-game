@@ -1,5 +1,6 @@
 namespace Engine.Projection;
 
+using Engine.Constants;
 using Engine.Eventing;
 using Engine.Kinds;
 
@@ -282,7 +283,12 @@ public sealed partial class UiProjectionState : KernelEventProjector
 
     protected override void OnEntityCultureChanged(long sequence, in EntityCultureChangedKernelEvent evt)
     {
-        var entity = GetOrCreateEntity(evt.EntityId);
+        if (!_entities.TryGetValue(evt.EntityId, out var entity))
+        {
+            MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+            return;
+        }
+
         entity.KindId = evt.KindId;
         entity.SubtypeId = evt.SubtypeId;
         entity.CultureId = evt.CurrentCultureId;
@@ -297,33 +303,36 @@ public sealed partial class UiProjectionState : KernelEventProjector
 
     protected override void OnEntityStatusChanged(long sequence, in EntityStatusChangedKernelEvent evt)
     {
-        var entity = GetOrCreateEntity(evt.EntityId);
-        var wasActive = entity.StatusCode == EntityStatusCodes.Active;
-        var isActive = evt.CurrentStatusCode == EntityStatusCodes.Active;
-        entity.KindId = evt.KindId;
-        entity.SubtypeId = evt.SubtypeId;
-        entity.PreviousStatusCode = evt.PreviousStatusCode;
-        entity.StatusCode = evt.CurrentStatusCode;
-        entity.LastUpdatedTick = evt.Tick;
-        entity.WorldVersion = evt.WorldVersion;
-        if (wasActive != isActive)
+        if (!_entities.TryGetValue(evt.EntityId, out var entity) ||
+            evt.CurrentStatusCode == EntityStatusCodes.Active)
         {
-            if (wasActive)
-            {
-                RemoveActiveOccupants(entity);
-            }
-
-            ActiveEntityCount += isActive ? 1 : -1;
-            TopBarVersion++;
-            EntityMapVersion++;
+            MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+            return;
         }
 
-        if (isActive && !wasActive)
+        var retiredEntityId = evt.EntityId;
+        RemoveActiveOccupants(entity);
+        foreach (var key in _relationships.Keys
+            .Where(key => key.SourceEntityId == retiredEntityId || key.TargetEntityId == retiredEntityId)
+            .ToArray())
         {
-            AddActiveOccupants(entity);
+            RemoveIndexedRelationship(key);
+            _relationships.Remove(key);
         }
 
-        ReindexRelationshipsForEntity(evt.EntityId);
+        foreach (var slot in _cultureSlots
+            .Where(pair => pair.Value.CurrentEntityId == retiredEntityId)
+            .Select(pair => pair.Key)
+            .ToArray())
+        {
+            _cultureSlots.Remove(slot);
+        }
+
+        _entities.Remove(evt.EntityId);
+        ActiveEntityCount--;
+        TopBarVersion++;
+        EntityMapVersion++;
+        RelationshipVersion++;
         EntityDetailVersion++;
         MarkEntityBrowserStructureChanged(evt.EntityId);
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
@@ -331,7 +340,12 @@ public sealed partial class UiProjectionState : KernelEventProjector
 
     protected override void OnEntityMoved(long sequence, in EntityMovedKernelEvent evt)
     {
-        var entity = GetOrCreateEntity(evt.EntityId);
+        if (!_entities.TryGetValue(evt.EntityId, out var entity))
+        {
+            MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+            return;
+        }
+
         var wasActive = entity.StatusCode == EntityStatusCodes.Active;
         var fromCoord = new HexCoord(evt.FromQ, evt.FromR);
         var toCoord = new HexCoord(evt.ToQ, evt.ToR);
@@ -385,7 +399,7 @@ public sealed partial class UiProjectionState : KernelEventProjector
                 key,
                 evt.PolarityCode,
                 evt.CurrentEntityId,
-                evt.CurrentScore,
+                FixedScalar.FromUnits(evt.CurrentScoreUnits).ToSingle(),
                 evt.Tick,
                 evt.WorldVersion);
         }
@@ -439,10 +453,10 @@ public sealed partial class UiProjectionState : KernelEventProjector
             evt.R,
             evt.StatusCode,
             evt.CellKindCode,
-            evt.LocalRawMass,
-            evt.ConnectedRawMass,
-            evt.Score,
-            evt.Delta,
+            FixedScalar.FromUnits(evt.LocalRawMassUnits).ToSingle(),
+            FixedScalar.FromUnits(evt.ConnectedRawMassUnits).ToSingle(),
+            FixedScalar.FromUnits(evt.ScoreUnits).ToSingle(),
+            FixedScalar.FromUnits(evt.DeltaUnits).ToSingle(),
             evt.WorldVersion));
 
         if (_minorActorActivities.Count > MinorActorActivityCapacity)
@@ -462,12 +476,17 @@ public sealed partial class UiProjectionState : KernelEventProjector
 
     protected override void OnAttributeChanged(long sequence, in AttributeChangedKernelEvent evt)
     {
-        var entity = GetOrCreateEntity(evt.EntityId);
+        if (!_entities.TryGetValue(evt.EntityId, out var entity))
+        {
+            MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+            return;
+        }
+
         entity.Attributes[evt.AttributeId] = new UiAttributeProjection(
             evt.AttributeId,
             evt.SourceCodeId,
-            evt.OldValue,
-            evt.NewValue,
+            KernelFixedPoint.AttributeValue(evt.OldValueUnits),
+            KernelFixedPoint.AttributeValue(evt.NewValueUnits),
             evt.Tick,
             evt.WorldVersion);
         entity.LastUpdatedTick = evt.Tick;
@@ -478,7 +497,12 @@ public sealed partial class UiProjectionState : KernelEventProjector
 
     protected override void OnTraitAssigned(long sequence, in TraitAssignedKernelEvent evt)
     {
-        var entity = GetOrCreateEntity(evt.EntityId);
+        if (!_entities.TryGetValue(evt.EntityId, out var entity))
+        {
+            MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+            return;
+        }
+
         entity.Traits.Add(evt.TraitId);
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
@@ -492,17 +516,27 @@ public sealed partial class UiProjectionState : KernelEventProjector
             evt.SourceEntityId,
             evt.TargetEntityId,
             evt.RelationshipKindId);
-        _relationships[key] = new UiRelationshipProjection(
-            key,
-            evt.ChangeCodeId,
-            evt.SourceCodeId,
-            evt.PolarityCode,
-            evt.PreviousStrength,
-            evt.NewStrength,
-            evt.NewStrength > 0f,
-            evt.Tick,
-            evt.WorldVersion);
-        ReindexRelationship(key);
+        if (evt.NewStrengthUnits > 0 &&
+            _entities.ContainsKey(evt.SourceEntityId) &&
+            _entities.ContainsKey(evt.TargetEntityId))
+        {
+            _relationships[key] = new UiRelationshipProjection(
+                key,
+                evt.ChangeCodeId,
+                evt.SourceCodeId,
+                evt.PolarityCode,
+                KernelFixedPoint.RelationshipStrengthValue(evt.PreviousStrengthUnits),
+                KernelFixedPoint.RelationshipStrengthValue(evt.NewStrengthUnits),
+                true,
+                evt.Tick,
+                evt.WorldVersion);
+            ReindexRelationship(key);
+        }
+        else
+        {
+            RemoveIndexedRelationship(key);
+            _relationships.Remove(key);
+        }
         RelationshipVersion++;
         EntityDetailVersion++;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
@@ -510,7 +544,12 @@ public sealed partial class UiProjectionState : KernelEventProjector
 
     protected override void OnGoalGenerated(long sequence, in GoalGeneratedKernelEvent evt)
     {
-        var entity = GetOrCreateEntity(evt.EntityId);
+        if (!_entities.TryGetValue(evt.EntityId, out var entity))
+        {
+            MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+            return;
+        }
+
         entity.KindId = evt.KindId;
         entity.LastGoalGeneration = new UiGoalGenerationProjection(
             evt.Tick,

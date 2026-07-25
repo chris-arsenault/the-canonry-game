@@ -7,9 +7,9 @@ internal readonly struct DecisionModifier
         int kindId,
         int traitId,
         int bearerCode,
-        float value0 = 0f,
-        float value1 = 0f,
-        float value2 = 0f)
+        FixedScalar value0 = default,
+        FixedScalar value1 = default,
+        FixedScalar value2 = default)
     {
         SubjectId = subjectId;
         KindId = kindId;
@@ -28,11 +28,11 @@ internal readonly struct DecisionModifier
 
     public int BearerCode { get; }
 
-    public float Value0 { get; }
+    public FixedScalar Value0 { get; }
 
-    public float Value1 { get; }
+    public FixedScalar Value1 { get; }
 
-    public float Value2 { get; }
+    public FixedScalar Value2 { get; }
 
     public bool AppliesToGambit(WorldState world, int gambitId, int actorId, int targetId) =>
         SubjectId == gambitId && BearerHasTrait(world, actorId, targetId);
@@ -57,7 +57,7 @@ internal delegate DecisionModifier DecisionModifierReader(int modifier);
 
 internal static class DecisionModifierEvaluation
 {
-    public static float SumGambitValue(
+    public static FixedScalar SumGambitValue(
         WorldState world,
         int modifierCount,
         DecisionModifierReader read,
@@ -66,7 +66,7 @@ internal static class DecisionModifierEvaluation
         int targetId,
         bool useValue1)
     {
-        var total = 0f;
+        var total = FixedScalar.Zero;
         for (var modifierSlot = 1; modifierSlot <= modifierCount; modifierSlot++)
         {
             var modifier = read(modifierSlot);
@@ -105,9 +105,9 @@ internal static class DecisionModifierEvaluation
 
 internal struct LowAltitudeDecisionModifierTotals
 {
-    public float Weight;
-    public float OpportunityBonus;
-    public float FitnessWeight;
+    public FixedScalar Weight;
+    public FixedScalar OpportunityBonus;
+    public FixedScalar FitnessWeight;
 
     public void Add(in DecisionModifier modifier)
     {

@@ -79,7 +79,7 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Empty(recorder.Batch.CultureEntityFieldSnapshots);
         Assert.Empty(recorder.Batch.CultureEntityBirthFieldEvents);
         Assert.Empty(recorder.Batch.CultureInfluenceActionFieldEvents);
-        Assert.Equal(2, recorder.Batch.CellCultureInfluenceEvents.Count);
+        Assert.Empty(recorder.Batch.CultureFieldCellSnapshots);
     }
 
     private static void WriteCultureFieldMetricEvents(KernelEventLog log)
@@ -129,11 +129,11 @@ public sealed class KernelTelemetryRecorderTests
             PlaneCode: PlaneCodes.Physical,
             CultureId: 3,
             Z: 0,
-            PreviousShare: 0f,
-            CurrentShare: currentShare,
-            PreviousRawInfluence: 0f,
-            CurrentRawInfluence: currentRaw,
-            CurrentTotalRawInfluence: currentRaw))));
+            PreviousShareUnits: FixedScalar.Zero.Units,
+            CurrentShareUnits: FixedScalar.FromSingle(currentShare).Units,
+            PreviousRawInfluenceUnits: KernelFixedPoint.CultureMassUnits(0f),
+            CurrentRawInfluenceUnits: KernelFixedPoint.CultureMassUnits(currentRaw),
+            CurrentTotalRawInfluenceUnits: KernelFixedPoint.CultureMassUnits(currentRaw)))));
     }
 
     private static void WriteCultureFieldMetricAction(KernelEventLog log)
@@ -147,8 +147,8 @@ public sealed class KernelTelemetryRecorderTests
             PlaneCode: PlaneCodes.Physical,
             EntityId: 100,
             ActionId: 11,
-            PreviousInfluence: 10f,
-            CurrentInfluence: 35f))));
+            PreviousInfluenceUnits: FixedScalar.FromInt(10).Units,
+            CurrentInfluenceUnits: FixedScalar.FromInt(35).Units))));
     }
 
     private static ProjectionSymbolCatalog CreateTestSymbols() =>
@@ -212,8 +212,8 @@ public sealed class KernelTelemetryRecorderTests
             EntityId: 100,
             AttributeId: 4,
             SourceCodeId: 5,
-            OldValue: 5f,
-            NewValue: 7f))));
+            OldValueUnits: KernelFixedPoint.AttributeUnits(5f),
+            NewValueUnits: KernelFixedPoint.AttributeUnits(7f)))));
         Assert.True(log.TryWrite(KernelEvent.From(new EntityMovedKernelEvent(
             Tick: 2,
             WorldVersion: 4,
@@ -238,8 +238,8 @@ public sealed class KernelTelemetryRecorderTests
             SourceEntityId: 100,
             TargetEntityId: 101,
             RelationshipId: 300,
-            PreviousStrength: 0f,
-            NewStrength: 0.75f,
+            PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f),
+            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.75f),
             ActionId: 12))));
     }
 
@@ -266,8 +266,8 @@ public sealed class KernelTelemetryRecorderTests
             R: -1,
             SourceCodeId: 5,
             TravelCount: 2,
-            PreviousQuality: 30f,
-            CurrentQuality: 45f))));
+            PreviousQualityUnits: KernelFixedPoint.RoadQualityUnits(30f),
+            CurrentQualityUnits: KernelFixedPoint.RoadQualityUnits(45f)))));
         Assert.True(log.TryWrite(KernelEvent.From(new CellInfluenceChangedKernelEvent(
             Tick: 2,
             WorldVersion: 5,
@@ -277,8 +277,8 @@ public sealed class KernelTelemetryRecorderTests
             PlaneCode: PlaneCodes.Physical,
             EntityId: 100,
             ActionId: 11,
-            PreviousInfluence: 10f,
-            CurrentInfluence: 30f))));
+            PreviousInfluenceUnits: FixedScalar.FromInt(10).Units,
+            CurrentInfluenceUnits: FixedScalar.FromInt(30).Units))));
         WriteMoreMapStateEvents(log);
     }
 
@@ -293,8 +293,8 @@ public sealed class KernelTelemetryRecorderTests
             PlaneCode: PlaneCodes.Physical,
             CultureId: 3,
             Z: 0,
-            PreviousShare: 25f,
-            CurrentShare: 75f))));
+            PreviousShareUnits: FixedScalar.FromInt(25).Units,
+            CurrentShareUnits: FixedScalar.FromInt(75).Units))));
         WriteCultureSlotOccupancyChanged(log);
         Assert.True(log.TryWrite(KernelEvent.From(new CellChangedKernelEvent(
             Tick: 3,
@@ -352,8 +352,8 @@ public sealed class KernelTelemetryRecorderTests
             PolarityCode: RelationshipPolarityCodes.Positive,
             PreviousEntityId: 0,
             CurrentEntityId: 100,
-            PreviousScore: 0f,
-            CurrentScore: 4.25f))));
+            PreviousScoreUnits: FixedScalar.Zero.Units,
+            CurrentScoreUnits: FixedScalar.FromSingle(4.25f).Units))));
     }
 
     private static void WriteActionAndGeneratorEvents(KernelEventLog log)
@@ -383,12 +383,12 @@ public sealed class KernelTelemetryRecorderTests
             GambitAffordanceCount: 0,
             HiddenAffordanceCount: 0,
             SelectionBucketCode: 0,
-            Urgency: 0.5f,
-            RewardOrBaseScore: 0.75f,
-            RawWeight: 1.25f,
-            AdjustedWeight: 1.5f,
-            AffordanceScore: 0f,
-            AffordanceBonus: 0f))));
+            UrgencyUnits: FixedScalar.FromSingle(0.5f).Units,
+            RewardOrBaseScoreUnits: FixedScalar.FromSingle(0.75f).Units,
+            RawWeightUnits: FixedScalar.FromSingle(1.25f).Units,
+            AdjustedWeightUnits: FixedScalar.FromSingle(1.5f).Units,
+            AffordanceScoreUnits: FixedScalar.Zero.Units,
+            AffordanceBonusUnits: FixedScalar.Zero.Units))));
         WriteGeneratorTargetEvaluated(log);
         Assert.True(log.TryWrite(KernelEvent.From(new GeneratorFiredKernelEvent(
             Tick: 3,
@@ -422,10 +422,10 @@ public sealed class KernelTelemetryRecorderTests
             PhysicalCellKindCode: CultureFieldCellKindCodes.Interior,
             SemanticFieldBandCode: CultureFieldStrengthBandCodes.Trace,
             SemanticCellKindCode: CultureFieldCellKindCodes.Border,
-            PhysicalLocalRawMass: 60f,
-            PhysicalConnectedRawMass: 90f,
-            SemanticLocalRawMass: 10f,
-            SemanticConnectedRawMass: 25f))));
+            PhysicalLocalRawMassUnits: FixedScalar.FromInt(60).Units,
+            PhysicalConnectedRawMassUnits: FixedScalar.FromInt(90).Units,
+            SemanticLocalRawMassUnits: FixedScalar.FromInt(10).Units,
+            SemanticConnectedRawMassUnits: FixedScalar.FromInt(25).Units))));
     }
 
     private static void AssertTelemetryBatch(TelemetryBatch batch)
@@ -474,10 +474,6 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(100, influence.EntityId);
         Assert.Equal(11, influence.ActionId);
         Assert.Equal(20f, influence.Delta);
-
-        var cultureInfluence = Assert.Single(batch.CellCultureInfluenceEvents);
-        Assert.Equal(3, cultureInfluence.CultureId);
-        Assert.Equal(50f, cultureInfluence.Delta);
 
         AssertCultureSlotOccupancyRows(batch);
 

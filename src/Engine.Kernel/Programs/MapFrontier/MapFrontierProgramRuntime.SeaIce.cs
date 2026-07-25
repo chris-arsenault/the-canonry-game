@@ -125,9 +125,9 @@ internal sealed partial class MapFrontierProgramRuntime
         int freezeBudgetPerPulse,
         int meltBudgetPerPulse)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(coverTerrainId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(freezeBudgetPerPulse);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(meltBudgetPerPulse);
+        NumericGuard.ThrowIfNegative(coverTerrainId);
+        NumericGuard.ThrowIfNegative(freezeBudgetPerPulse);
+        NumericGuard.ThrowIfNegative(meltBudgetPerPulse);
         Data.SeaIceCoverTerrainId = coverTerrainId;
         Data.SeaIceFreezeBudgetPerPulse = freezeBudgetPerPulse;
         Data.SeaIceMeltBudgetPerPulse = meltBudgetPerPulse;

@@ -24,7 +24,7 @@ internal sealed class MapFrontierProgramState : IKernelProgramState
 
     public MapFrontierProgramState(int capacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
+        NumericGuard.ThrowIfNegativeOrZero(capacity);
         ThawedQ = new int[capacity];
         ThawedR = new int[capacity];
     }

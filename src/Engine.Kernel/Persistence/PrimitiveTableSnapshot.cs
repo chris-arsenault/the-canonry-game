@@ -30,7 +30,27 @@ internal sealed partial class PrimitiveIntTable
     }
 }
 
-internal sealed partial class PrimitiveFloatTable
+internal sealed partial class PrimitiveLongTable
+{
+    internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
+    {
+        writer.Write(_count);
+        KernelSnapshotBinary.Write(writer, _firstKeys);
+        KernelSnapshotBinary.Write(writer, _secondKeys);
+        KernelSnapshotBinary.Write(writer, _values);
+    }
+
+    internal void ReadSnapshot(global::System.IO.BinaryReader reader)
+    {
+        _ = reader.ReadInt32();
+        KernelSnapshotBinary.Read(reader, _firstKeys);
+        KernelSnapshotBinary.Read(reader, _secondKeys);
+        KernelSnapshotBinary.Read(reader, _values);
+        RebuildOccupiedSlots();
+    }
+}
+
+internal sealed partial class PrimitiveScalarTable
 {
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
     {
@@ -49,7 +69,7 @@ internal sealed partial class PrimitiveFloatTable
         RebuildOccupiedSlots();
     }
 
-    internal void ForEach(global::System.Action<int, int, float> visitor)
+    internal void ForEach(global::System.Action<int, int, FixedScalar> visitor)
     {
         global::System.ArgumentNullException.ThrowIfNull(visitor);
         for (var i = 0; i < _count; i++)

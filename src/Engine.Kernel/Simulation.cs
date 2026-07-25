@@ -24,7 +24,7 @@ internal sealed partial class Simulation : IKernel
     public Simulation(SimulationOptions? options = null)
     {
         options ??= new SimulationOptions();
-        if (options.KernelTuning.Programs.MinorActorMainTickRatio <= 0)
+        if (options.KernelTuning.Programs.MinorActorSubstepsPerPulse <= 0)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(options));
         }
@@ -45,17 +45,19 @@ internal sealed partial class Simulation : IKernel
             new KernelPlacementTasteData(options.KindIdCapacity, options.CultureIdCapacity),
             new KernelGeologicalFeatureData(options.GeologicalFeatureCapacity));
         World = new WorldState(Events, options, KernelData);
-        CultureBoundaries = CreateCultureBoundaryRuntime(options);
-        World.AttachCultureBoundaries(CultureBoundaries);
+        CultureLocality = new CultureLocality(options.MapInfluenceCapacity);
+        World.AttachCultureLocality(CultureLocality);
         LowAltitudeVerbs = CreateLowAltitudeVerbRuntime(options);
         Movement = CreateMovementRuntime(options);
-        MapActivity = CreateMapActivityRuntime(options);
-        MapSignals = CreateMapSignalsRuntime(options);
+        Locality = new LocalityQuery(
+            new LocalityData(
+                options.TerrainIdCapacity,
+                options.KindIdCapacity,
+                options.RelationshipKindIdCapacity));
         Effects = CreateEffectsRuntime(options);
         CultureSlots = CreateCultureSlotRuntime(options);
         Gambits = CreateGambitRuntime(options);
         Generators = CreateGeneratorRuntime(options);
-        Upkeep = CreateUpkeepRuntime(options);
         Relationships = CreateRelationshipRuntime(options);
         MinorActors = CreateMinorActorRuntime(options);
         CultureFieldDecay = CreateCultureFieldDecayRuntime(options);
@@ -83,28 +85,22 @@ internal sealed partial class Simulation : IKernel
     private void AssignRuntimeCodes(KernelRuntimeCodes codes)
     {
         GambitSourceCodeId = codes.GambitSourceCodeId;
-        UpkeepSourceCodeId = codes.UpkeepSourceCodeId;
         StartupSourceCodeId = codes.StartupSourceCodeId;
         RelationshipSourceCodeId = codes.RelationshipSourceCodeId;
         GeneratorSourceCodeId = codes.GeneratorSourceCodeId;
-        MapActivitySourceCodeId = codes.MapActivitySourceCodeId;
-        MapSignalsSourceCodeId = codes.MapSignalsSourceCodeId;
+        MapSourceCodeId = codes.MapSourceCodeId;
         LowAltitudeVerbSourceCodeId = codes.LowAltitudeVerbSourceCodeId;
         EffectsSourceCodeId = codes.EffectsSourceCodeId;
         PlayerSourceCodeId = codes.PlayerSourceCodeId;
         ChronicleSourceCodeId = codes.ChronicleSourceCodeId;
     }
 
-    private static CultureBoundaryProgramRuntime CreateCultureBoundaryRuntime(SimulationOptions options) =>
-        new(
-            new CultureBoundaryProgramData(),
-            new CultureBoundaryProgramState(),
-            options.MapInfluenceCapacity,
-            options.CultureIdCapacity);
-
     private static LowAltitudeVerbProgramRuntime CreateLowAltitudeVerbRuntime(SimulationOptions options) =>
         new(
-            new LowAltitudeVerbProgramData(options.LowAltitudeVerbRuleCapacity, options.LowAltitudeVerbItemCapacity),
+            new LowAltitudeVerbProgramData(
+                options.LowAltitudeVerbRuleCapacity,
+                options.LowAltitudeVerbItemCapacity,
+                options.KindIdCapacity),
             new LowAltitudeVerbProgramState(
                 options.EntityCapacity,
                 options.KernelTuning.Programs.LowAltitudeVerbs.RecentTargetRingSize),
@@ -112,29 +108,21 @@ internal sealed partial class Simulation : IKernel
 
     private static MovementProgramRuntime CreateMovementRuntime(SimulationOptions options) =>
         new(
-            new MovementProgramData(options.MovementProfileRuleCapacity),
+            new MovementProgramData(
+                options.MovementProfileRuleCapacity,
+                kindCapacity: options.KindIdCapacity),
             new MovementProgramState(options.MovementCellCapacity),
             new MovementProgramScratch(options.MapCellCapacity),
             options.KernelTuning.Programs);
 
-    private static MapActivityProgramRuntime CreateMapActivityRuntime(SimulationOptions options) =>
-        new(
-            new MapActivityProgramData(),
-            new MapActivityProgramState(options.MapActivityCellCapacity),
-            options.KernelTuning.Programs);
-
-    private static MapSignalsProgramRuntime CreateMapSignalsRuntime(SimulationOptions options) =>
-        new(
-            new MapSignalsProgramData(
-                options.TerrainIdCapacity,
-                options.KindIdCapacity,
-                options.RelationshipKindIdCapacity),
-            new MapSignalsProgramState(options.MapSignalCellCapacity, options.EntityCapacity));
-
     private static EffectsProgramRuntime CreateEffectsRuntime(SimulationOptions options) =>
         new(
-            new EffectsProgramData(options.EffectRuleCapacity),
-            new EffectsProgramState());
+            new EffectsProgramData(
+                options.EffectRuleCapacity,
+                options.LifecycleRuleCapacity,
+                options.KindIdCapacity),
+            new EffectsProgramState(),
+            options.KernelTuning.Programs);
 
     private static CultureSlotProgramRuntime CreateCultureSlotRuntime(SimulationOptions options) =>
         new(
@@ -147,11 +135,12 @@ internal sealed partial class Simulation : IKernel
 
     private static MinorActorProgramRuntime CreateMinorActorRuntime(SimulationOptions options) =>
         new(
-            new MinorActorProgramData(options.MinorActorRuleCapacity),
+            new MinorActorProgramData(options.MinorActorRuleCapacity, options.KindIdCapacity),
             new MinorActorProgramState(
                 options.MinorActorCapacity,
-                options.MinorActorSourceRuleCapacity,
-                options.EntityCapacity));
+                options.MinorActorRuleCapacity,
+                options.EntityCapacity),
+            options.KernelTuning.Programs.MinorActorSubstepsPerPulse);
 
     private static GambitProgramRuntime CreateGambitRuntime(SimulationOptions options) =>
         new(
@@ -161,7 +150,6 @@ internal sealed partial class Simulation : IKernel
                 options.GambitProviderSelectorCapacity),
             new GambitProgramState(
                 options.GambitCapacity,
-                options.GambitCooldownCapacity,
                 options.EntityCapacity),
             new GambitProgramScratch(options.EntityCapacity),
             options.KernelTuning.Programs);
@@ -185,57 +173,41 @@ internal sealed partial class Simulation : IKernel
             options.KernelTuning.Programs.CultureField,
             options.MapInfluenceCapacity);
 
-    private static UpkeepProgramRuntime CreateUpkeepRuntime(SimulationOptions options) =>
-        new(
-            new UpkeepProgramData(options.LifecycleRuleCapacity),
-            new UpkeepProgramState(),
-            options.KernelTuning.Programs);
-
     private static RelationshipProgramRuntime CreateRelationshipRuntime(SimulationOptions options) =>
         new(
-            new RelationshipProgramData(options.RelationshipRuleCapacity),
+            new RelationshipProgramData(options.RelationshipRuleCapacity, options.RelationshipKindIdCapacity),
             new RelationshipProgramState(options.RelationshipCapacity),
             options.KernelTuning.Programs);
 
     private void RegisterDefaultPrograms()
     {
-        var mainCadence = MainTickRatio;
-        RegisterProgram(KernelProgramCodes.Movement, mainCadence, Movement);
-        RegisterProgram(KernelProgramCodes.LowAltitudeVerbs, mainCadence, LowAltitudeVerbs);
-        RegisterProgram(KernelProgramCodes.MapActivity, mainCadence, MapActivity);
-        RegisterProgram(KernelProgramCodes.MapSignals, mainCadence, MapSignals);
+        RegisterProgram(KernelProgramCodes.Movement, 1, Movement);
+        RegisterProgram(KernelProgramCodes.LowAltitudeVerbs, 1, LowAltitudeVerbs);
         RegisterProgram(
             KernelProgramCodes.CultureFieldDecay,
-            Options.KernelTuning.Programs.CultureField.DecayCadenceMainTicks * mainCadence,
+            Options.KernelTuning.Programs.CultureField.DecayCadencePulses,
             CultureFieldDecay);
-        RegisterProgram(KernelProgramCodes.CultureBoundaries, mainCadence, CultureBoundaries);
-        RegisterProgram(KernelProgramCodes.Relationships, mainCadence, Relationships);
-        RegisterProgram(KernelProgramCodes.Effects, mainCadence, Effects);
-        RegisterProgram(KernelProgramCodes.Upkeep, mainCadence, Upkeep);
-        RegisterProgram(KernelProgramCodes.Gambits, mainCadence, Gambits);
-        RegisterProgram(KernelProgramCodes.ChronicleDirector, mainCadence, Chronicles);
-        RegisterProgram(KernelProgramCodes.Generators, mainCadence, Generators);
+        RegisterProgram(KernelProgramCodes.Relationships, 1, Relationships);
+        RegisterProgram(KernelProgramCodes.Effects, 1, Effects);
+        RegisterProgram(KernelProgramCodes.Gambits, 1, Gambits);
+        RegisterProgram(KernelProgramCodes.ChronicleDirector, 1, Chronicles);
+        RegisterProgram(KernelProgramCodes.Generators, 1, Generators);
         RegisterProgram(
             KernelProgramCodes.WorldBeats,
-            Options.KernelTuning.Programs.WorldBeats.CadenceMainTicks * mainCadence,
+            Options.KernelTuning.Programs.WorldBeats.CadencePulses,
             WorldBeats);
         RegisterProgram(
             KernelProgramCodes.MapFrontier,
-            Options.KernelTuning.Programs.MapFrontier.CadenceMainTicks * mainCadence,
+            Options.KernelTuning.Programs.MapFrontier.CadencePulses,
             MapFrontier);
-        RegisterProgram(KernelProgramCodes.CultureSlots, 10 * mainCadence, CultureSlots);
+        RegisterProgram(KernelProgramCodes.CultureSlots, 10, CultureSlots);
         // Claims change slowly; recompute knowledge modifiers on the same slow
-        // cadence as culture slots rather than every main tick.
-        RegisterProgram(KernelProgramCodes.Knowledge, 10 * mainCadence, Knowledge);
-        RegisterProgram(
-            KernelProgramCodes.MinorActors,
-            1,
-            MinorActors);
+        // cadence as culture slots rather than every world pulse.
+        RegisterProgram(KernelProgramCodes.Knowledge, 10, Knowledge);
+        RegisterProgram(KernelProgramCodes.MinorActors, 1, MinorActors);
         ValidateProgramDependencies();
     }
 
-    // PreviousTick reads are previous-tick dependencies: they intentionally consume materialized state from
-    // the prior tick so low-altitude decisions are not order-coupled to same-tick signal production.
     private static readonly ProgramMetadata[] ProgramDependencyMetadata =
     [
         new(
@@ -243,12 +215,6 @@ internal sealed partial class Simulation : IKernel
             [
                 new ProgramReadDependency(
                     ProgramDependencyChannelCodes.MovementSurface,
-                    ProgramDependencyLag.PreviousTick),
-                new ProgramReadDependency(
-                    ProgramDependencyChannelCodes.MapActivitySignals,
-                    ProgramDependencyLag.PreviousTick),
-                new ProgramReadDependency(
-                    ProgramDependencyChannelCodes.MapSignals,
                     ProgramDependencyLag.PreviousTick),
             ],
             []),
@@ -260,34 +226,6 @@ internal sealed partial class Simulation : IKernel
                     ProgramDependencyChannelCodes.MovementSurface,
                     ProgramDependencyLag.SameTick),
             ]),
-        new(
-            KernelProgramCodes.MapActivity,
-            [],
-            [
-                new ProgramWriteDependency(
-                    ProgramDependencyChannelCodes.MapActivitySignals,
-                    ProgramDependencyLag.SameTick),
-            ]),
-        new(
-            KernelProgramCodes.MapSignals,
-            [
-                new ProgramReadDependency(
-                    ProgramDependencyChannelCodes.MapActivitySignals,
-                    ProgramDependencyLag.SameTick),
-            ],
-            [
-                new ProgramWriteDependency(
-                    ProgramDependencyChannelCodes.MapSignals,
-                    ProgramDependencyLag.SameTick),
-            ]),
-        new(
-            KernelProgramCodes.Effects,
-            [
-                new ProgramReadDependency(
-                    ProgramDependencyChannelCodes.MapSignals,
-                    ProgramDependencyLag.SameTick),
-            ],
-            []),
         new(
             KernelProgramCodes.Gambits,
             [
@@ -366,9 +304,8 @@ internal sealed partial class Simulation : IKernel
     internal KernelCommandRing Commands { get; }
     internal LowAltitudeVerbProgramRuntime LowAltitudeVerbs { get; }
     internal MovementProgramRuntime Movement { get; }
-    internal MapActivityProgramRuntime MapActivity { get; }
-    internal MapSignalsProgramRuntime MapSignals { get; }
-    internal CultureBoundaryProgramRuntime CultureBoundaries { get; }
+    internal LocalityQuery Locality { get; }
+    internal CultureLocality CultureLocality { get; }
     internal EffectsProgramRuntime Effects { get; }
     internal CultureSlotProgramRuntime CultureSlots { get; }
     internal GambitProgramRuntime Gambits { get; }
@@ -378,53 +315,35 @@ internal sealed partial class Simulation : IKernel
     internal WorldBeatsProgramRuntime WorldBeats { get; }
     internal MapFrontierProgramRuntime MapFrontier { get; }
     internal KnowledgeProgramRuntime Knowledge { get; }
-    internal UpkeepProgramRuntime Upkeep { get; }
     internal RelationshipProgramRuntime Relationships { get; }
     internal MinorActorProgramRuntime MinorActors { get; }
     internal CultureFieldDecayProgramRuntime CultureFieldDecay { get; }
     internal int GambitSourceCodeId { get; private set; }
-    internal int UpkeepSourceCodeId { get; private set; }
     internal int StartupSourceCodeId { get; private set; }
     internal int RelationshipSourceCodeId { get; private set; }
     internal int GeneratorSourceCodeId { get; private set; }
 
     internal int ChronicleSourceCodeId { get; private set; }
-    internal int MapActivitySourceCodeId { get; private set; }
-    internal int MapSignalsSourceCodeId { get; private set; }
+    internal int MapSourceCodeId { get; private set; }
     internal int LowAltitudeVerbSourceCodeId { get; private set; }
     internal int EffectsSourceCodeId { get; private set; }
     internal int PlayerSourceCodeId { get; private set; }
     internal KernelExecutionContext ExecutionContext => _executionContext;
     public int CurrentTick { get; private set; }
-    internal int MainTickRatio => Options.KernelTuning.Programs.MinorActorMainTickRatio;
     public long CurrentVersion => WorldVersion;
     public long WorldVersion => World.WorldVersion;
     internal SimulationOptions Options { get; }
 
-    internal LowAltitudeSignalSnapshot ReadLowAltitudeSignalSnapshot(
-        int planeCode,
-        int q,
-        int r)
-    {
-        return new LowAltitudeSignalSnapshot
-        {
-            CurrentOccupancy = MapActivity.CurrentOccupancy(planeCode, q, r),
-            CrowdingLoad = MapSignals.CrowdingLoadAt(planeCode, q, r),
-        };
-    }
-
-    // Previous-tick read by kernel program order: LowAltitudeVerbs run before
-    // MapSignals refreshes, so trek targeting sees the prior pulse's field.
-    internal float ReadAttractorMassSnapshot(int planeCode, int q, int r) =>
-        MapSignals.AttractorMassAt(planeCode, q, r);
+    internal FixedScalar ReadAttractorMass(int planeCode, int q, int r) =>
+        Locality.AttractorMassAt(this, planeCode, q, r);
 
     internal int ReadCellOccupancyOneRingSum(int planeCode, int q, int r)
     {
-        var sum = MapActivity.CurrentOccupancy(planeCode, q, r);
+        var sum = Locality.OccupancyAt(World, planeCode, q, r);
         for (var direction = 0; direction < 6; direction++)
         {
             var (dq, dr) = HexDirectionOffset(direction);
-            sum += MapActivity.CurrentOccupancy(planeCode, q + dq, r + dr);
+            sum += Locality.OccupancyAt(World, planeCode, q + dq, r + dr);
         }
 
         return sum;
@@ -443,10 +362,10 @@ internal sealed partial class Simulation : IKernel
     internal int RegisterAttribute(
         int kindId,
         int attributeId,
-        float minimum,
-        float maximum,
-        float defaultValue,
-        float defaultVariance = 0f)
+        FixedScalar minimum,
+        FixedScalar maximum,
+        FixedScalar defaultValue,
+        FixedScalar defaultVariance = default)
     {
         return KernelData.Entities.RegisterAttribute(
             kindId,
@@ -457,12 +376,12 @@ internal sealed partial class Simulation : IKernel
             defaultVariance);
     }
 
-    internal int RegisterTrait(int kindId, int traitId, float assignmentChance)
+    internal int RegisterTrait(int kindId, int traitId, FixedScalar assignmentChance)
     {
         return KernelData.Entities.RegisterTrait(kindId, traitId, assignmentChance);
     }
 
-    internal void RegisterCultureProduction(int cultureId, float physicalMultiplier, float semanticMultiplier)
+    internal void RegisterCultureProduction(int cultureId, FixedScalar physicalMultiplier, FixedScalar semanticMultiplier)
     {
         KernelData.Cultures.RegisterCultureProduction(cultureId, physicalMultiplier, semanticMultiplier);
     }
@@ -470,7 +389,7 @@ internal sealed partial class Simulation : IKernel
     internal int RegisterKnowledgeSite(int q, int r, int tier) =>
         Knowledge.RegisterSite(q, r, tier);
 
-    internal void RegisterKnowledgeGrant(int site, int domain, int target, float multiplier) =>
+    internal void RegisterKnowledgeGrant(int site, int domain, int target, FixedScalar multiplier) =>
         Knowledge.RegisterGrant(site, domain, target, multiplier);
 
     internal int RegisterTerrain(int terrainId, int boundaryGroupId)
@@ -482,12 +401,12 @@ internal sealed partial class Simulation : IKernel
     internal int RegisterTerrain(
         int terrainId,
         int boundaryGroupId,
-        float movementCost,
-        float influenceMultiplier,
-        float claimCostMultiplier,
-        float claimChanceMultiplier,
-        float roadBuildMultiplier,
-        float roadSpeedMultiplier)
+        FixedScalar movementCost,
+        FixedScalar influenceMultiplier,
+        FixedScalar claimCostMultiplier,
+        FixedScalar claimChanceMultiplier,
+        FixedScalar roadBuildMultiplier,
+        FixedScalar roadSpeedMultiplier)
     {
         KernelData.Terrain.RegisterTerrain(
             terrainId,
@@ -504,7 +423,7 @@ internal sealed partial class Simulation : IKernel
     internal void RegisterTerrainMovementProfile(
         int terrainId,
         int movementProfileId,
-        float movementCost)
+        FixedScalar movementCost)
     {
         KernelData.Terrain.RegisterTerrainMovementProfile(terrainId, movementProfileId, movementCost);
     }
@@ -512,7 +431,7 @@ internal sealed partial class Simulation : IKernel
     internal void RegisterCrossingProfile(
         int crossingClass,
         int movementProfileId,
-        float factor,
+        FixedScalar factor,
         bool roadNegated)
     {
         KernelData.Terrain.RegisterCrossingProfile(crossingClass, movementProfileId, factor, roadNegated);
@@ -523,9 +442,9 @@ internal sealed partial class Simulation : IKernel
         int terrainId,
         int kindId,
         int fieldFlags,
-        float influenceMultiplier,
-        float claimCostMultiplier,
-        float claimChanceMultiplier)
+        FixedScalar influenceMultiplier,
+        FixedScalar claimCostMultiplier,
+        FixedScalar claimChanceMultiplier)
     {
         KernelData.Terrain.RegisterTerrainKindProfile(
             terrainId,
@@ -633,7 +552,7 @@ internal sealed partial class Simulation : IKernel
     internal void SeedAttribute(
         int entityId,
         int attributeId,
-        float value)
+        FixedScalar value)
     {
         AssertStartupSeedTick();
         SetAttribute(entityId, attributeId, value, CurrentTick);
@@ -644,7 +563,7 @@ internal sealed partial class Simulation : IKernel
         int polarityCode,
         int sourceEntityId,
         int targetEntityId,
-        float strength)
+        FixedScalar strength)
     {
         AssertStartupSeedTick();
         _ = CreateRelationship(
@@ -659,7 +578,7 @@ internal sealed partial class Simulation : IKernel
     internal void SetAttribute(
         int entityId,
         int attributeId,
-        float value,
+        FixedScalar value,
         int tick)
     {
         World.SetAttribute(entityId, attributeId, value, tick, _executionContext);
@@ -668,14 +587,29 @@ internal sealed partial class Simulation : IKernel
     internal void ModifyAttribute(
         int entityId,
         int attributeId,
-        float delta,
+        FixedScalar delta,
         int tick)
     {
         World.ModifyAttribute(entityId, attributeId, delta, tick, _executionContext);
     }
 
+    internal void ModifyAttributeUnits(
+        int entityId,
+        int attributeId,
+        int deltaUnits,
+        int tick)
+    {
+        World.ModifyAttributeUnits(entityId, attributeId, deltaUnits, tick, _executionContext);
+    }
+
     internal void SetEntityStatus(int entityId, int statusCode, int tick)
     {
+        if (statusCode == EntityStatusCodes.Historical)
+        {
+            RetireEntity(entityId, tick);
+            return;
+        }
+
         World.SetEntityStatus(entityId, statusCode, tick, _executionContext);
     }
 
@@ -710,7 +644,7 @@ internal sealed partial class Simulation : IKernel
         int polarityCode,
         int sourceEntityId,
         int targetEntityId,
-        float strength,
+        FixedScalar strength,
         int tick)
     {
         var relationshipId = World.CreateRelationship(
@@ -721,37 +655,78 @@ internal sealed partial class Simulation : IKernel
             strength,
             tick,
             _executionContext);
+        if (relationshipId > 0)
+        {
+            Relationships.NoteRelationshipCreated(relationshipId);
+        }
+
         if (relationshipId > 0 && Relationships.KindIsCultureAnchor(relationshipKindId))
         {
             World.SetEntityCultureAnchorToEntity(sourceEntityId, targetEntityId);
         }
 
+        if (relationshipId > 0)
+        {
+            WorldBeats.NoteRelationshipCreated(relationshipKindId);
+        }
+
         return relationshipId;
     }
 
-    internal void SetRelationshipStrength(int relationshipId, float strength, int tick)
+    internal void SetRelationshipStrength(int relationshipId, FixedScalar strength, int tick)
     {
         World.SetRelationshipStrength(relationshipId, strength, tick, _executionContext);
     }
 
+    internal void ModifyRelationshipStrengthUnits(int relationshipId, int deltaUnits, int tick)
+    {
+        World.ModifyRelationshipStrengthUnits(relationshipId, deltaUnits, tick, _executionContext);
+    }
+
     internal void CullRelationship(int relationshipId, int tick)
     {
+        if (!World.RelationshipIsActive(relationshipId))
+        {
+            return;
+        }
+
+        var relationshipKindId = World.RelationshipKindId(relationshipId);
+        Relationships.NoteRelationshipCulled(relationshipId);
         World.CullRelationship(relationshipId, tick, _executionContext);
+        WorldBeats.NoteRelationshipEnded(relationshipKindId);
     }
 
     internal void CullIncomingRelationshipsOfKind(int targetEntityId, int kindId, int tick)
     {
-        World.CullIncomingRelationshipsOfKind(targetEntityId, kindId, tick, _executionContext);
+        while (true)
+        {
+            var cursor = World.IncomingRelationshipsOfKind(targetEntityId, kindId);
+            if (!World.MoveNextRelationship(ref cursor, out var relationshipId))
+            {
+                return;
+            }
+
+            CullRelationship(relationshipId, tick);
+        }
     }
 
     internal void CullOutgoingRelationshipsOfKind(int sourceEntityId, int kindId, int tick)
     {
-        World.CullOutgoingRelationshipsOfKind(sourceEntityId, kindId, tick, _executionContext);
+        while (true)
+        {
+            var cursor = World.OutgoingRelationshipsOfKind(sourceEntityId, kindId);
+            if (!World.MoveNextRelationship(ref cursor, out var relationshipId))
+            {
+                return;
+            }
+
+            CullRelationship(relationshipId, tick);
+        }
     }
 
     internal int RegisterSystem(int cadence, ISimulationSystem system)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cadence);
+        NumericGuard.ThrowIfNegativeOrZero(cadence);
         global::System.ArgumentNullException.ThrowIfNull(system);
 
         var slot = FindSystemSlot();
@@ -773,7 +748,7 @@ internal sealed partial class Simulation : IKernel
         int cadence,
         ISimulationSystem system)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(programId);
+        NumericGuard.ThrowIfNegativeOrZero(programId);
         var sourceCodeId = SourceCodeIdForProgram(programId);
         if (sourceCodeId <= 0)
         {
@@ -792,9 +767,9 @@ internal sealed partial class Simulation : IKernel
         int programId,
         int actionId = 0)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(sourceCodeId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(programId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(actionId);
+        NumericGuard.ThrowIfNegative(sourceCodeId);
+        NumericGuard.ThrowIfNegative(programId);
+        NumericGuard.ThrowIfNegative(actionId);
         var previous = _executionContext;
         var previousDepth = _executionContextDepth;
         _executionContext = new KernelExecutionContext(programId, sourceCodeId, actionId);
@@ -804,7 +779,7 @@ internal sealed partial class Simulation : IKernel
 
     internal KernelExecutionScope EnterActionExecutionContext(int actionId)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(actionId);
+        NumericGuard.ThrowIfNegativeOrZero(actionId);
         var previous = _executionContext;
         var previousDepth = _executionContextDepth;
         _executionContext = previous with { ActionId = actionId };
@@ -821,7 +796,7 @@ internal sealed partial class Simulation : IKernel
         int triggerId = 0,
         int parentInvocationId = -1)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfLessThan(parentInvocationId, -1);
+        NumericGuard.ThrowIfLessThan(parentInvocationId, -1);
 
         var previous = _executionContext;
         var previousDepth = _executionContextDepth;
@@ -845,18 +820,18 @@ internal sealed partial class Simulation : IKernel
 
     internal void CompleteProvenanceInvocation(int invocationId)
     {
-        World.CompleteProvenanceInvocation(invocationId);
+        var record = World.CompleteProvenanceInvocation(invocationId);
         EmitProvenanceInvocationRecorded(
-            CurrentTick,
-            invocationId,
-            World.ProvenanceInvocationProducerKindCode(invocationId),
-            World.ProvenanceInvocationProducerId(invocationId),
-            World.ProvenanceInvocationPrimaryEntityId(invocationId),
-            World.ProvenanceInvocationSecondaryEntityId(invocationId),
-            World.ProvenanceInvocationParentInvocationId(invocationId),
-            World.ProvenanceInvocationTriggerKindCode(invocationId),
-            World.ProvenanceInvocationTriggerId(invocationId),
-            World.ProvenanceInvocationOutputCount(invocationId));
+            record.Tick,
+            record.InvocationId,
+            record.ProducerKindCode,
+            record.ProducerId,
+            record.PrimaryEntityId,
+            record.SecondaryEntityId,
+            record.ParentInvocationId,
+            record.TriggerKindCode,
+            record.TriggerId,
+            record.OutputCount);
     }
 
     internal void RestoreExecutionContext(in KernelExecutionContext context, int depth)
@@ -898,7 +873,7 @@ internal sealed partial class Simulation : IKernel
 
     public int AdvanceTicks(int count, in AdvanceOptions options = default)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(count);
+        NumericGuard.ThrowIfNegative(count);
         EnterWriterThread();
         try
         {
@@ -932,7 +907,6 @@ internal sealed partial class Simulation : IKernel
     {
         CurrentTick++;
         World.BeginTick(CurrentTick);
-        World.GrowStorageIfNeeded(CurrentTick, _executionContext);
         DrainCommands();
         TickSystems();
 
@@ -949,9 +923,9 @@ internal sealed partial class Simulation : IKernel
         return _random.NextInclusive(minimum, maximum);
     }
 
-    internal float NextFloat()
+    internal FixedScalar NextScalar()
     {
-        return _random.NextFloat();
+        return _random.NextScalar();
     }
 
     private int FindSystemSlot()
@@ -1042,17 +1016,17 @@ internal sealed partial class Simulation : IKernel
         if (!IsFiniteNonNegative(cultureField.DecayPerPulse) ||
             !IsFiniteNonNegative(cultureField.MinimumDecayPerPulse) ||
             !IsFiniteNonNegative(cultureField.CullFloorRawMass) ||
-            cultureField.DecayCadenceMainTicks <= 0 ||
+            cultureField.DecayCadencePulses <= 0 ||
             !IsFiniteNonNegative(cultureField.RemittanceShare) ||
-            cultureField.RemittanceShare > 1f ||
+            cultureField.RemittanceShare > 1 ||
             cultureField.RemittanceMinimumDistance < 0)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(options));
         }
     }
 
-    private static bool IsFiniteNonNegative(float value) =>
-        !float.IsNaN(value) && !float.IsInfinity(value) && value >= 0f;
+    private static bool IsFiniteNonNegative(FixedScalar value) =>
+        !FixedScalar.IsNaN(value) && !FixedScalar.IsInfinity(value) && value >= 0;
 
     private int SourceCodeIdForProgram(int programId)
     {
@@ -1074,30 +1048,26 @@ internal sealed partial class Simulation : IKernel
         // WorldBeats writes no world state; its events attribute to the
         // chronicle source (the macro-chronicle is the director's sibling).
         KernelProgramCodes.WorldBeats => ChronicleSourceCodeId,
-        KernelProgramCodes.MapFrontier => MapActivitySourceCodeId,
-        KernelProgramCodes.Movement => MapActivitySourceCodeId,
+        KernelProgramCodes.MapFrontier => MapSourceCodeId,
+        KernelProgramCodes.Movement => MapSourceCodeId,
         KernelProgramCodes.Effects => EffectsSourceCodeId,
-        KernelProgramCodes.MinorActors => MapActivitySourceCodeId,
+        KernelProgramCodes.MinorActors => MapSourceCodeId,
         _ => 0,
     };
 
     private int SourceCodeIdForCultureProgram(int programId) => programId switch
     {
-        KernelProgramCodes.MapSignals => MapSignalsSourceCodeId,
-        KernelProgramCodes.CultureBoundaries => MapSignalsSourceCodeId,
-        KernelProgramCodes.CultureFieldDecay => MapSignalsSourceCodeId,
-        KernelProgramCodes.CultureSlots => MapSignalsSourceCodeId,
+        KernelProgramCodes.CultureFieldDecay => MapSourceCodeId,
+        KernelProgramCodes.CultureSlots => MapSourceCodeId,
         // The knowledge program writes only derived scalar modifiers (no world
         // events); it borrows the culture source for a valid, unused attribution.
-        KernelProgramCodes.Knowledge => MapSignalsSourceCodeId,
+        KernelProgramCodes.Knowledge => MapSourceCodeId,
         _ => 0,
     };
 
     private int SourceCodeIdForLowAltitudeProgram(int programId) => programId switch
     {
         KernelProgramCodes.LowAltitudeVerbs => LowAltitudeVerbSourceCodeId,
-        KernelProgramCodes.MapActivity => MapActivitySourceCodeId,
-        KernelProgramCodes.Upkeep => UpkeepSourceCodeId,
         KernelProgramCodes.Relationships => RelationshipSourceCodeId,
         _ => 0,
     };

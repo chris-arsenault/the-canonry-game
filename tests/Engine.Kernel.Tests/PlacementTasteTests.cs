@@ -24,11 +24,11 @@ public sealed class PlacementTasteTests
 
         // The ocean culture loves water and pressure; the ice culture loves
         // ice and shuns aurora. The kind itself only needs capacity.
-        simulation.RegisterKindPlacementTaste(KindId, PlacementTasteAxisCodes.Capacity, 0.4f);
-        simulation.RegisterCulturePlacementTaste(OceanCultureId, PlacementTasteAxisCodes.WaterFraction, 1f);
-        simulation.RegisterCulturePlacementTaste(OceanCultureId, PlacementTasteAxisCodes.PressureMean, 0.5f);
-        simulation.RegisterCulturePlacementTaste(IceCultureId, PlacementTasteAxisCodes.IceThickness, 1f);
-        simulation.RegisterCulturePlacementTaste(IceCultureId, PlacementTasteAxisCodes.AuroraMean, -0.8f);
+        simulation.RegisterKindPlacementTaste(KindId, PlacementTasteAxisCodes.Capacity, FixedScalar.FromSingle(0.4f));
+        simulation.RegisterCulturePlacementTaste(OceanCultureId, PlacementTasteAxisCodes.WaterFraction, FixedScalar.FromSingle(1f));
+        simulation.RegisterCulturePlacementTaste(OceanCultureId, PlacementTasteAxisCodes.PressureMean, FixedScalar.FromSingle(0.5f));
+        simulation.RegisterCulturePlacementTaste(IceCultureId, PlacementTasteAxisCodes.IceThickness, FixedScalar.FromSingle(1f));
+        simulation.RegisterCulturePlacementTaste(IceCultureId, PlacementTasteAxisCodes.AuroraMean, FixedScalar.FromSingle(-0.8f));
 
         var oceanAtSea = simulation.PlacementTasteScore(KindId, OceanCultureId, 1, 0);
         var oceanOnIce = simulation.PlacementTasteScore(KindId, OceanCultureId, 0, 1);
@@ -44,7 +44,7 @@ public sealed class PlacementTasteTests
     {
         var simulation = CreateSimulation();
         InstallWorld(simulation);
-        simulation.RegisterKindPlacementTaste(KindId, PlacementTasteAxisCodes.CoastAdjacency, 1f);
+        simulation.RegisterKindPlacementTaste(KindId, PlacementTasteAxisCodes.CoastAdjacency, FixedScalar.FromSingle(1f));
 
         // (0,0) land beside water at (1,0) is coastal; (0,2) sits fully
         // inside the icefield with only land neighbours.
@@ -52,7 +52,7 @@ public sealed class PlacementTasteTests
         var interior = simulation.PlacementTasteScore(KindId, cultureId: 0, 0, 2);
 
         Assert.True(coastal > interior, $"coast should score above interior: {coastal} vs {interior}");
-        Assert.Equal(0f, interior, precision: 2);
+        Assert.Equal(FixedScalar.FromSingle(0f), interior);
     }
 
     [Fact]
@@ -60,8 +60,8 @@ public sealed class PlacementTasteTests
     {
         var simulation = CreateSimulation();
         InstallWorld(simulation);
-        simulation.RegisterCulturePlacementTaste(OceanCultureId, PlacementTasteAxisCodes.WaterFraction, 1f);
-        simulation.RegisterCulturePlacementTaste(IceCultureId, PlacementTasteAxisCodes.IceThickness, 1f);
+        simulation.RegisterCulturePlacementTaste(OceanCultureId, PlacementTasteAxisCodes.WaterFraction, FixedScalar.FromSingle(1f));
+        simulation.RegisterCulturePlacementTaste(IceCultureId, PlacementTasteAxisCodes.IceThickness, FixedScalar.FromSingle(1f));
 
         // The same territorial drive lands differently per culture: the
         // ocean culture's field takes root at sea, the ice culture's on ice.
@@ -79,19 +79,19 @@ public sealed class PlacementTasteTests
         var simulation = CreateSimulation();
         InstallWorld(simulation);
 
-        Assert.Equal(0f, simulation.PlacementTasteScore(KindId, OceanCultureId, 0, 0), precision: 3);
+        Assert.Equal(FixedScalar.FromSingle(0f), simulation.PlacementTasteScore(KindId, OceanCultureId, 0, 0));
     }
 
     private static void InstallWorld(Simulation simulation)
     {
         simulation.RegisterTerrain(
-            LandTerrain, boundaryGroupId: 1, movementCost: 3f,
-            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f, roadSpeedMultiplier: 1f);
+            LandTerrain, boundaryGroupId: 1, movementCost: FixedScalar.FromSingle(3f),
+            influenceMultiplier: FixedScalar.FromSingle(1f), claimCostMultiplier: FixedScalar.FromSingle(1f), claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f), roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.RegisterTerrain(
-            WaterTerrain, boundaryGroupId: 2, movementCost: 4f,
-            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 0f, roadSpeedMultiplier: 1f);
+            WaterTerrain, boundaryGroupId: 2, movementCost: FixedScalar.FromSingle(4f),
+            influenceMultiplier: FixedScalar.FromSingle(1f), claimCostMultiplier: FixedScalar.FromSingle(1f), claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(0f), roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.KernelData.Terrain.SetWater(WaterTerrain);
         simulation.KernelData.PhysicalGeography.BeginInstall(4);
 

@@ -30,7 +30,10 @@ A gambit declares:
 
 Preconditions use shared kernel query predicates. Trait-authored score and
 success modifiers use the shared decision-modifier path. Score expressions,
-target selection, and cooldown policy remain gambit policy.
+target selection, and cooldown policy remain gambit policy. Cooldowns are
+current expiry ticks indexed by actor occurrence and gambit slot. They are
+cleared on retirement; there is no lifetime gambit-action history or implicit
+recency-score decay.
 
 Effects are usually graph and health mutations:
 

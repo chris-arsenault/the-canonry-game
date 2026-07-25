@@ -34,7 +34,7 @@ public sealed class TelemetryBatch
     public Collection<MapGenerationEventRow> MapGenerationEvents { get; } = Rows<MapGenerationEventRow>();
     public Collection<MapCellEventRow> MapCellEvents { get; } = Rows<MapCellEventRow>();
     public Collection<CellInfluenceEventRow> CellInfluenceEvents { get; } = Rows<CellInfluenceEventRow>();
-    public Collection<CellCultureInfluenceEventRow> CellCultureInfluenceEvents { get; } = Rows<CellCultureInfluenceEventRow>();
+    public Collection<CultureFieldCellSnapshotRow> CultureFieldCellSnapshots { get; } = Rows<CultureFieldCellSnapshotRow>();
     public Collection<CultureSlotOccupancyEventRow> CultureSlotOccupancyEvents { get; } = Rows<CultureSlotOccupancyEventRow>();
     public Collection<MinorActorVerbEventRow> MinorActorVerbEvents { get; } = Rows<MinorActorVerbEventRow>();
     public Collection<CultureFieldComponentSnapshotRow> CultureFieldComponentSnapshots { get; } = Rows<CultureFieldComponentSnapshotRow>();
@@ -82,7 +82,7 @@ public sealed class TelemetryBatch
         MapGenerationEvents.Clear();
         MapCellEvents.Clear();
         CellInfluenceEvents.Clear();
-        CellCultureInfluenceEvents.Clear();
+        CultureFieldCellSnapshots.Clear();
         CultureSlotOccupancyEvents.Clear();
         MinorActorVerbEvents.Clear();
         ClearCultureAndNarrativeRows();
@@ -381,13 +381,7 @@ public sealed record GeneratorTargetEvaluationRow(
     int SemanticFieldBandCode,
     int SemanticCellKindCode,
     float SemanticLocalRawMass,
-    float SemanticConnectedRawMass,
-    int PhysicalComponentId = 0,
-    int PhysicalComponentCellCount = 0,
-    float PhysicalComponentRawMass = 0f,
-    int SemanticComponentId = 0,
-    int SemanticComponentCellCount = 0,
-    float SemanticComponentRawMass = 0f);
+    float SemanticConnectedRawMass);
 
 public sealed record GeneratorOutputRow(
     int RunId,
@@ -486,20 +480,16 @@ public sealed record CellInfluenceEventRow(
     float CurrentInfluence,
     float Delta);
 
-public sealed record CellCultureInfluenceEventRow(
+public sealed record CultureFieldCellSnapshotRow(
     int RunId,
     int Tick,
-    int SourceCodeId,
     int CultureId,
     int PlaneCode,
     int Q,
     int R,
-    float PreviousShare,
-    float CurrentShare,
-    float Delta,
-    float PreviousRawInfluence = 0f,
-    float CurrentRawInfluence = 0f,
-    float CurrentTotalRawInfluence = 0f,
+    float Share,
+    float RawInfluence,
+    float TotalRawInfluence,
     int Z = 0);
 
 public sealed record CultureSlotOccupancyEventRow(
@@ -628,9 +618,6 @@ public sealed record CultureEntityFieldSnapshotRow(
     int StrengthBandCode = 0,
     float RawMass = 0f,
     float TotalRawMass = 0f,
-    int ComponentId = 0,
-    int ComponentCellCount = 0,
-    float ComponentRawMass = 0f,
     int ForeignCultureId = 0,
     float ForeignShare = 0f,
     float ForeignRawMass = 0f);

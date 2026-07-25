@@ -90,10 +90,7 @@ public sealed record HexCultureInfluenceProjection(
     float ForeignShare = 0f,
     float ForeignRawMass = 0f,
     int CellKindCode = 0,
-    int StrengthBandCode = 0,
-    int ComponentId = 0,
-    int ComponentCellCount = 0,
-    float ComponentRawMass = 0f);
+    int StrengthBandCode = 0);
 
 public sealed record CultureTheaterProjection(
     int PlaneCode,
@@ -354,8 +351,9 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
 
         var entityId = evt.EntityId;
         var influenceWasActive = existing.Influences.Any(influence => influence.EntityId == entityId);
-        var influenceIsActive = evt.CurrentInfluence > 0f;
-        var influences = UpsertInfluence(existing.Influences, entityId, evt.CurrentInfluence, evt.Tick, sequence);
+        var currentInfluence = FixedScalar.FromUnits(evt.CurrentInfluenceUnits).ToSingle();
+        var influenceIsActive = evt.CurrentInfluenceUnits > 0;
+        var influences = UpsertInfluence(existing.Influences, entityId, currentInfluence, evt.Tick, sequence);
         GetSurface(evt.PlaneCode).HexesById[existing.HexId] = existing with
         {
             Influences = influences,
@@ -370,32 +368,7 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
-    protected override void OnCellCultureInfluenceChanged(long sequence, in CellCultureInfluenceChangedKernelEvent evt)
-    {
-        if (evt.Z != 0)
-        {
-            // Forged-cell mass is a ledger concern; it must not perturb the
-            // surface culture shares this projection renders.
-            MarkProjected(sequence, evt.Tick, evt.WorldVersion);
-            return;
-        }
-
-        var existing = EnsureCell(sequence, evt.Tick, evt.WorldVersion, evt.PlaneCode, evt.Q, evt.R);
-        var cultureInfluences = UpsertCultureInfluence(existing.CultureInfluences, evt.CultureId, evt.CurrentShare, evt.Tick, sequence);
-        GetSurface(evt.PlaneCode).HexesById[existing.HexId] = existing with
-        {
-            CultureInfluences = cultureInfluences,
-            Tick = evt.Tick,
-            WorldVersion = evt.WorldVersion,
-            Sequence = sequence,
-        };
-        CellVersion++;
-        CultureOverlayVersion++;
-        MarkCellDirty(evt.PlaneCode, existing.HexId);
-        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
-    }
-
-    public void SetCultureInfluencesFromBoundaries(
+    public void SetCultureInfluencesFromLocality(
         int planeCode,
         HexCoord coord,
         IReadOnlyList<HexCultureInfluenceProjection> cultureInfluences,
@@ -461,7 +434,7 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         var existing = EnsureCell(sequence, evt.Tick, evt.WorldVersion, evt.PlaneCode, evt.Q, evt.R);
         GetSurface(evt.PlaneCode).HexesById[existing.HexId] = existing with
         {
-            RoadQuality = evt.CurrentQuality,
+            RoadQuality = KernelFixedPoint.RoadQualityValue(evt.CurrentQualityUnits),
             RoadTravelCount = evt.TravelCount,
             Tick = evt.Tick,
             WorldVersion = evt.WorldVersion,
@@ -752,41 +725,6 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             .ToArray();
     }
 
-    private static HexCultureInfluenceProjection[] UpsertCultureInfluence(
-        IReadOnlyList<HexCultureInfluenceProjection> existing,
-        int cultureId,
-        float share,
-        int tick,
-        long sequence)
-    {
-        var influences = new List<HexCultureInfluenceProjection>(existing.Count + 1);
-        var updated = false;
-        foreach (var influence in existing)
-        {
-            if (influence.CultureId != cultureId)
-            {
-                influences.Add(influence);
-                continue;
-            }
-
-            updated = true;
-            if (share > 0f)
-            {
-                influences.Add(new HexCultureInfluenceProjection(cultureId, share, tick, sequence));
-            }
-        }
-
-        if (!updated && share > 0f)
-        {
-            influences.Add(new HexCultureInfluenceProjection(cultureId, share, tick, sequence));
-        }
-
-        return influences
-            .OrderByDescending(influence => influence.Share)
-            .ThenBy(influence => influence.CultureId)
-            .ToArray();
-    }
-
     private static bool CultureInfluencesEqual(
         IReadOnlyList<HexCultureInfluenceProjection> existing,
         HexCultureInfluenceProjection[] replacement)
@@ -802,8 +740,7 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
             var right = replacement[i];
             if (!CultureInfluenceCoreEqual(left, right) ||
                 !CultureInfluenceForeignEqual(left, right) ||
-                !CultureInfluenceBoundaryEqual(left, right) ||
-                !CultureInfluenceComponentEqual(left, right))
+                !CultureInfluenceBoundaryEqual(left, right))
             {
                 return false;
             }
@@ -832,13 +769,6 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         HexCultureInfluenceProjection right) =>
         left.CellKindCode == right.CellKindCode &&
         left.StrengthBandCode == right.StrengthBandCode;
-
-    private static bool CultureInfluenceComponentEqual(
-        HexCultureInfluenceProjection left,
-        HexCultureInfluenceProjection right) =>
-        left.ComponentId == right.ComponentId &&
-        left.ComponentCellCount == right.ComponentCellCount &&
-        FloatEqual(left.ComponentRawMass, right.ComponentRawMass);
 
     private static bool FloatEqual(float left, float right) =>
         Math.Abs(left - right) <= 0.0001f;

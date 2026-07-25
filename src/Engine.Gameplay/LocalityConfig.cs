@@ -1,12 +1,12 @@
 namespace Engine.Gameplay;
 
-public sealed class MapSignalsConfig
+public sealed class LocalityConfig
 {
     public float SemanticBaseCapacity { get; init; } = 2f;
 
     public int CrowdingRadius { get; init; } = 1;
 
-    public IReadOnlyList<TerrainMapSignalConfig> Terrains { get; init; } = [];
+    public IReadOnlyList<TerrainLocalityConfig> Terrains { get; init; } = [];
 
     /// <summary>
     /// Physical carrying capacity derived from hex facts. When set, physical
@@ -15,23 +15,23 @@ public sealed class MapSignalsConfig
     /// </summary>
     public PhysicalCapacityFormulaConfig? PhysicalCapacityFormula { get; init; }
 
-    public IReadOnlyList<KindMapSignalConfig> Kinds { get; init; } = [];
+    public IReadOnlyList<KindLocalityConfig> Kinds { get; init; } = [];
 
-    public IReadOnlyList<RelationshipMapSignalConfig> Relationships { get; init; } = [];
+    public IReadOnlyList<RelationshipLocalityConfig> Relationships { get; init; } = [];
 }
 
-public sealed class TerrainMapSignalConfig
+public sealed class TerrainLocalityConfig
 {
     public required string Terrain { get; init; }
 
     public required float BaseCapacity { get; init; }
 }
 
-public sealed class KindMapSignalConfig
+public sealed class KindLocalityConfig
 {
     public required string Kind { get; init; }
 
-    public int SignalRadius { get; init; } = 1;
+    public int LocalityRadius { get; init; } = 1;
 
     public float CapacityEmission { get; init; }
 
@@ -45,25 +45,21 @@ public sealed class KindMapSignalConfig
 
     public float InfluenceAttractorScale { get; init; }
 
-    public float ActivityAttractorScale { get; init; }
-
-    public IReadOnlyList<MapSignalScalarInputConfig> AttractorScalarInputs { get; init; } = [];
+    public IReadOnlyList<LocalityScalarInputConfig> AttractorScalarInputs { get; init; } = [];
 
     public int AttractorRadius { get; init; } = 1;
 }
 
-public sealed class MapSignalScalarInputConfig
+public sealed class LocalityScalarInputConfig
 {
     public required string Attribute { get; init; }
 
     public required float AttractorScale { get; init; }
 }
 
-public sealed class RelationshipMapSignalConfig
+public sealed class RelationshipLocalityConfig
 {
     public required string RelationshipKind { get; init; }
-
-    public int SignalRadius { get; init; } = 1;
 
     public float SupportEmission { get; init; }
 

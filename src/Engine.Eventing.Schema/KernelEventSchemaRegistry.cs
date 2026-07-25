@@ -83,11 +83,11 @@ internal static class KernelEventSchemaRegistry
     private static void EnsureSlotBounds(KernelEventType eventType, IReadOnlyList<KernelEventSlotSchema> slots)
     {
         var intSlots = 0;
-        var floatSlots = 0;
+        var longSlots = 0;
         foreach (var slot in slots)
         {
-            var maxSlot = slot.PrimitiveKind == KernelEventPrimitiveKind.Float32
-                ? KernelEvent.FloatSlotCount - 1
+            var maxSlot = slot.PrimitiveKind == KernelEventPrimitiveKind.Int64
+                ? KernelEvent.LongSlotCount - 1
                 : KernelEvent.IntSlotCount - 1;
             if (slot.Slot < 0 || slot.Slot > maxSlot)
             {
@@ -96,14 +96,14 @@ internal static class KernelEventSchemaRegistry
             }
 
             var slotMask = 1 << slot.Slot;
-            if (slot.PrimitiveKind == KernelEventPrimitiveKind.Float32)
+            if (slot.PrimitiveKind == KernelEventPrimitiveKind.Int64)
             {
-                if ((floatSlots & slotMask) != 0)
+                if ((longSlots & slotMask) != 0)
                 {
-                    throw new InvalidOperationException($"{eventType} declares duplicate float slot {slot.Slot}.");
+                    throw new InvalidOperationException($"{eventType} declares duplicate long slot {slot.Slot}.");
                 }
 
-                floatSlots |= slotMask;
+                longSlots |= slotMask;
             }
             else
             {

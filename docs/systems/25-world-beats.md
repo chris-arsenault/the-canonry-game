@@ -42,6 +42,10 @@ ticks) the program samples macro facts from world state:
 - total physical culture raw mass and its growth per pulse window,
 - cumulative legendary chronicle resolutions (from the Chronicle Director).
 
+Living and ended relationship counts are updated explicitly when relationships
+are created or culled. The pulse does not scan relationship storage, and ended
+edges do not remain resident merely to support age recognition.
+
 An open age closes when **any** closing condition holds, after its authored
 minimum span. Each pulse the highest-priority age whose opening conditions
 **all** hold (and whose post-close cooldown has passed) takes each track: it

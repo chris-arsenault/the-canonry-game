@@ -40,8 +40,8 @@ internal static class OrcaEntity
                 "Conflict stress burns endurance faster.",
                 TraitRelationshipDelta(K.Orca, Attr.Endurance, Rel.RivalOf, EffectRelationshipDirection.Either, -0.035f, 2, PrimaryPlane.Physical)),
         ],
-        MapSignal = MapSignal(radius: 2, capacity: 0.4f, support: 0.3f, threat: 0.6f,
-            baseMass: 5f, coverageScale: 0f, influenceScale: 0.03f, activityScale: 0.04f,
+        Locality = Locality(radius: 2, capacity: 0.4f, support: 0.3f, threat: 0.6f,
+            baseMass: 5f, coverageScale: 0f, influenceScale: 0.03f,
             healthScale: 0.04f, attractorRadius: 2),
         MovementProfiles = MovementProfiles(
             physicalDefault: Profile.Wake,

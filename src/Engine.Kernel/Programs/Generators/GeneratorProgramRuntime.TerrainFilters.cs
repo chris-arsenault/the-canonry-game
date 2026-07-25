@@ -39,7 +39,7 @@ internal sealed partial class GeneratorProgramRuntime
     {
         EnsureOpenProduced(producedSlot);
         ValidatePlaneCode(planeCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(terrainId);
+        NumericGuard.ThrowIfNegative(terrainId);
         _producedPlacementFallbackTerrainIds[PlacementTerrainSlot(producedSlot, planeCode)] = terrainId;
     }
 
@@ -57,10 +57,10 @@ internal sealed partial class GeneratorProgramRuntime
     public void SetProducedPlacementGeography(
         int producedSlot,
         int siteFlags,
-        float warmthAffinity,
-        float fireAffinity,
-        float auroraAffinity,
-        float pressureAffinity)
+        FixedScalar warmthAffinity,
+        FixedScalar fireAffinity,
+        FixedScalar auroraAffinity,
+        FixedScalar pressureAffinity)
     {
         EnsureOpenProduced(producedSlot);
         if ((siteFlags & ~PhysicalHexFieldCodes.WordMask) != 0)
@@ -77,14 +77,14 @@ internal sealed partial class GeneratorProgramRuntime
         affinities[baseIndex + GeneratorProgramData.PlacementPressureAffinityOffset] = ClampAffinity(pressureAffinity);
     }
 
-    private static float ClampAffinity(float value)
+    private static FixedScalar ClampAffinity(FixedScalar value)
     {
-        if (value < -1f)
+        if (value < -1)
         {
-            return -1f;
+            return -1;
         }
 
-        return value > 1f ? 1f : value;
+        return value > 1 ? 1 : value;
     }
 
     public void AddProducedCoveragePreferredTerrain(int producedSlot, int terrainId)

@@ -34,9 +34,9 @@ public sealed class KernelEventIntSlotAttribute : Attribute
 }
 
 [AttributeUsage(AttributeTargets.Parameter)]
-public sealed class KernelEventFloatSlotAttribute : Attribute
+public sealed class KernelEventLongSlotAttribute : Attribute
 {
-    public KernelEventFloatSlotAttribute(int slot, string name, KernelEventSemanticKind semanticKind)
+    public KernelEventLongSlotAttribute(int slot, string name, KernelEventSemanticKind semanticKind)
     {
         Slot = slot;
         Name = name;
@@ -58,7 +58,7 @@ public enum KernelEventPrimitiveKind
 {
     None = 0,
     Int32 = 1,
-    Float32 = 2,
+    Int64 = 2,
 }
 
 [SuppressMessage(

@@ -63,7 +63,7 @@ IceRemembers.Seed
 
 `Engine.Kernel` must remain domain-agnostic. Domain names compile to stable ids
 before reaching the kernel. Gameplay concepts such as low-altitude verb shapes,
-map signals, effects, and map control live in `Engine.Gameplay`; the kernel
+locality rules, effects, and map control live in `Engine.Gameplay`; the kernel
 only executes the primitive program representation.
 
 ## Runtime Composition
@@ -130,13 +130,9 @@ Current default program order:
 ```text
 Movement
 LowAltitudeVerbs
-MapActivity
-MapSignals
 CultureFieldDecay
-CultureBoundaries
 Relationships
 Effects
-Upkeep
 Gambits
 ChronicleDirector
 Generators
@@ -147,18 +143,18 @@ Knowledge
 MinorActors
 ```
 
-The program dependency metadata makes the load-bearing ordering explicit.
-`LowAltitudeVerbs` consumes previous-tick activity/signals. `MapSignals`
-consumes same-tick activity. `CultureBoundaries` rebuilds derived culture
-component caches from durable culture tile influence. `Effects` consumes
-same-tick map signals and culture evidence.
+The program dependency metadata makes load-bearing ordering explicit.
+Locality and culture-locality facts are direct bounded queries over current
+world state, not scheduled programs or materialized fields. `LowAltitudeVerbs`,
+`Effects`, generators, culture slots, and minor actors read those facts only
+where they act.
 
-The default cadence separates high-frequency minor labor from the main graph
-cadence. `MinorActors` runs every simulation tick. The main graph programs run
-every `MinorActorMainTickRatio` ticks, currently `5`, while `CultureSlots` runs
-every ten main cadences. Generator pulse widths and other main-cadence tuning
-are scaled through the same ratio so changing the ratio does not silently
-retune graph pacing.
+The kernel has one world-pulse clock. Authored durations, cooldowns, generator
+windows, and scheduled program cadences are expressed directly in world
+pulses. `MinorActors` alone may run multiple bounded substeps inside one world
+pulse (`MinorActorSubstepsPerPulse`, currently `5`) so frequent worker labor
+does not force duplicate graph, effects, or relationship passes. `CultureSlots`
+and `Knowledge` run every ten world pulses.
 
 ## Runtime State
 
@@ -168,11 +164,28 @@ The kernel world contains:
 - relationships and relationship strength;
 - physical and semantic map cells with independent live extents, effective
   terrain, physical base terrain and transient cover, named coverage, roads,
-  culture influence tile layers, and derived culture boundary caches;
+  and culture influence tile layers;
 - installed radius-bounded per-hex latent geography: physical base terrain,
   superregion, and continent ids, plus varied semantic terrain;
-- provenance invocation/output history for high-altitude and authored effects;
+- direct locality rules and bounded culture-locality dirty-cell tracking;
+- a bounded stack of current provenance invocations and compact causal tokens
+  on active entities and relationships;
 - program data/state/scratch for each registered kernel program.
+
+Durable additive state uses field-specific fixed-point integers: culture mass,
+relationship strength, persistent attributes and health, road quality/work, and
+persistent local modifiers. Each field owns its scale, bounds, and clamp rule;
+there is no universal simulation scale. Other runtime values—candidate scores,
+probabilities, ratios, heat, and path costs—use the signed `FixedScalar` type.
+Authored rules may remain readable floats before the domain/gameplay compiler
+boundary. `Engine.Kernel` and compiled runtime records contain no floating-point
+members.
+
+Retirement is final for an entity occurrence. It ends every incident
+relationship and removes hosted districts before publishing the historical
+status transition. Ended relationships and consumed districts release their
+active slots; durable history belongs to the primitive event stream and its
+consumer projections, not to parallel historical tables in the kernel.
 
 The kernel does not store the physical microtriangle field or the generation
 process that produced it. Those immutable startup facts remain outside the
@@ -192,12 +205,10 @@ state mutation:
 - movement routing and road reinforcement;
 - low-altitude verbs for movement, culture influence, coverage, anchor
   relocation, work-tier growth, and explicit relationship-strength mutation;
-- map activity;
-- map signals;
-- culture boundary derivation;
+- direct locality and culture-locality queries;
 - relationship maintenance;
 - health effects;
-- upkeep/lifecycle.
+- merged effects/lifecycle resolution.
 
 Minor actors are a separate low-salience runtime layer. They are not graph
 entities and do not create narrative events; they are unnamed cohorts emitted by
@@ -300,7 +311,7 @@ between endpoints, so frozen frontier blocks reach and roads extend it. See
 The former macro aggregate layer has been removed. Generator, gambit, trait,
 and card work use shared query, effect, and decision-modifier primitives.
 Relationship strength and locality queries are the default numeric gates when
-health, culture influence, coverage, or map signals are not the actual subject.
+health, culture influence, or coverage are not the actual subject.
 
 The detailed execution boundary is recorded in
 [shared-query-effect-executor.md](./kernel/shared-query-effect-executor.md).
@@ -311,6 +322,10 @@ Kernel events are fixed primitive records. Strings, display names, and
 human-readable diagnostics are resolved by consumers through symbol catalogs.
 The kernel can emit typed event ids and numeric payload slots; it cannot write
 logs, allocate trace objects, or query projection state.
+
+State-change events for fixed-point fields carry the integer runtime units.
+They provide no typed floating-point compatibility properties. Projection,
+telemetry, and UI code convert explicit unit fields after consuming the event.
 
 The Host also converts the immutable startup physical-geography blueprint into
 a presentation-owned `PhysicalGeographyProjection`. It contains the complete
@@ -332,11 +347,12 @@ playback state. Its mesh cache, orthographic camera, ray picking, wireframe,
 water, feature, and vertical-exaggeration controls do not create kernel state or
 make microtriangles interactive gameplay coordinates.
 
-Provenance is kernel state and primitive event data. The kernel records
-producer kind/id, parent invocation, trigger evidence, and outputs. It does not
-interpret narrative chains. `Engine.Projection` exposes a generic provenance
-read model over those records; domain content compiles chronicle query patterns
-to runtime ids; `TheCanonryGame.Game` executes those patterns for presentation.
+Provenance crosses the primitive event boundary. While an authored action runs,
+the kernel retains only its bounded current frame and an output count; on
+completion it streams producer, parent, trigger, and output-bearing mutation
+events. `Engine.Projection` builds the durable generic provenance read model
+from that stream. The kernel does not retain completed invocation or output
+rows and does not interpret narrative chains.
 
 Parquet exports and analysis reports are observability products, not kernel
 state. They must be reconstructable from the event stream and symbol tables.

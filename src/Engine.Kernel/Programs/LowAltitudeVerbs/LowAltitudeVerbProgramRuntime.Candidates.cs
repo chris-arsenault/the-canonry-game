@@ -4,7 +4,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 {
     private readonly struct CandidateBuildResult
     {
-        public CandidateBuildResult(VerbTargetCandidate candidate, float sumAffordanceScore)
+        public CandidateBuildResult(VerbTargetCandidate candidate, FixedScalar sumAffordanceScore)
         {
             ChosenCandidate = candidate;
             SumAffordanceScore = sumAffordanceScore;
@@ -13,7 +13,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
         public VerbTargetCandidate ChosenCandidate { get; }
 
-        public float SumAffordanceScore { get; }
+        public FixedScalar SumAffordanceScore { get; }
 
         public bool HasChosenCandidate { get; }
 
@@ -44,7 +44,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
     /// <summary>
     /// Journeys toward the pull of the world: sample distant cells and weigh
-    /// them by attractor mass (previous pulse), so entities trek to where
+    /// them by current local attractor mass, so entities trek to where
     /// life gathers - settlements, works, and the cast of hot chronicles.
     /// </summary>
     private CandidateBuildResult TryBuildAttractorTrekCandidate(
@@ -60,7 +60,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var actorR = CurrentR(world, entityId, planeCode);
         var searchRadius = global::System.Math.Max(TrekMinDistance + 2, CellTargetSearchRadius(world, rule, TargetSelectorCodes.AttractorTrek));
         var samples = global::System.Math.Max(4, Data.CandidateSampleCount(rule));
-        var totalWeight = 0f;
+        var totalWeight = FixedScalar.Zero;
         var selected = default(VerbTargetCandidate);
         for (var i = 0; i < samples; i++)
         {
@@ -78,8 +78,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 continue;
             }
 
-            var pull = simulation.ReadAttractorMassSnapshot(planeCode, q, r);
-            if (pull <= 0f)
+            var pull = simulation.ReadAttractorMass(planeCode, q, r);
+            if (pull <= 0)
             {
                 continue;
             }
@@ -89,7 +89,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             ConsiderCandidate(simulation, candidate, ref totalWeight, ref selected);
         }
 
-        return new CandidateBuildResult(selected, 0f);
+        return new CandidateBuildResult(selected, 0);
     }
 
     private const int PursuitMinDistance = 5;
@@ -128,7 +128,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
         var scalars = EffectiveScalars(simulation, entityId, rule);
         var targetS = planeCode == PlaneCodes.Semantic ? world.EntitySemanticS(costarId) : 0;
-        var weight = scalars.Weight * (1f + (heat * 0.15f));
+        var weight = scalars.Weight * (1 + (heat * FixedScalar.FromUnits(150000L)));
         var candidate = new VerbTargetCandidate(
             RuleSlot: rule,
             PlaneCode: planeCode,
@@ -138,8 +138,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             R: targetR,
             S: targetS,
             BaseWeight: weight,
-            AffordanceScore: 0f,
-            AffordanceBonus: 0f,
+            AffordanceScore: 0,
+            AffordanceBonus: 0,
             AffordanceSourceKindCode: 0,
             AffordanceSourceId: 0,
             AffordanceShapeCode: 0,
@@ -150,7 +150,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             GambitAffordanceCount: 0,
             HiddenAffordanceCount: 0,
             Weight: weight);
-        return new CandidateBuildResult(candidate, 0f);
+        return new CandidateBuildResult(candidate, 0);
     }
 
     private CandidateBuildResult TryBuildExploreCandidate(
@@ -164,8 +164,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var actorQ = CurrentQ(simulation.World, entityId, planeCode);
         var actorR = CurrentR(simulation.World, entityId, planeCode);
         var searchRadius = CellTargetSearchRadius(simulation.World, rule, TargetSelectorCodes.Explore);
-        var totalWeight = 0f;
-        var sumAffordanceScore = 0f;
+        var totalWeight = FixedScalar.Zero;
+        var sumAffordanceScore = FixedScalar.Zero;
         var selected = default(VerbTargetCandidate);
         for (var dq = -searchRadius; dq <= searchRadius; dq++)
         {
@@ -210,8 +210,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var actorQ = CurrentQ(simulation.World, entityId, planeCode);
         var actorR = CurrentR(simulation.World, entityId, planeCode);
         var searchRadius = CellTargetSearchRadius(simulation.World, rule, TargetSelectorCodes.Terrain);
-        var totalWeight = 0f;
-        var sumAffordanceScore = 0f;
+        var totalWeight = FixedScalar.Zero;
+        var sumAffordanceScore = FixedScalar.Zero;
         var selected = default(VerbTargetCandidate);
         for (var dq = -searchRadius; dq <= searchRadius; dq++)
         {
@@ -269,19 +269,19 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var scalars = EffectiveScalars(simulation, entityId, rule);
         var actorQ = CurrentQ(world, entityId, planeCode);
         var actorR = CurrentR(world, entityId, planeCode);
-        var totalWeight = 0f;
-        var sumAffordanceScore = 0f;
+        var totalWeight = FixedScalar.Zero;
+        var sumAffordanceScore = FixedScalar.Zero;
         var selected = default(VerbTargetCandidate);
         if (!ActorCanBuildOwnedInfluence(world, entityId, rule))
         {
             return CandidateBuildResult.Empty;
         }
 
-        for (var targetEntityId = 1; targetEntityId <= world.EntityHighWatermark; targetEntityId++)
+        for (var targetEntityId = world.FirstEntityOfKind(targetKindId);
+             targetEntityId > 0;
+             targetEntityId = world.NextEntityOfKind(targetEntityId))
         {
-            if (targetEntityId == entityId ||
-                !world.EntityIsActive(targetEntityId) ||
-                world.EntityKindId(targetEntityId) != targetKindId)
+            if (targetEntityId == entityId)
             {
                 continue;
             }
@@ -345,8 +345,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int targetEntityId,
         int targetQ,
         int targetR,
-        ref float totalWeight,
-        ref float sumAffordanceScore,
+        ref FixedScalar totalWeight,
+        ref FixedScalar sumAffordanceScore,
         ref VerbTargetCandidate selected)
     {
         var world = simulation.World;
@@ -376,7 +376,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int planeCode,
         int targetQ,
         int targetR,
-        ref float baseWeight)
+        ref FixedScalar baseWeight)
     {
         if (!OperationBuildsOwnedInfluence(Data.OperationCode(rule)))
         {
@@ -391,7 +391,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             targetQ,
             targetR,
             Data.InfluenceRadius(rule));
-        if (expansionDrive <= 0f)
+        if (expansionDrive <= 0)
         {
             return false;
         }
@@ -411,8 +411,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             return CandidateBuildResult.Empty;
         }
 
-        var totalWeight = 0f;
-        var sumAffordanceScore = 0f;
+        var totalWeight = FixedScalar.Zero;
+        var sumAffordanceScore = FixedScalar.Zero;
         var selected = default(VerbTargetCandidate);
         if (Data.RelationshipDirectionCode(rule) is LowAltitudeVerbRelationshipDirectionCodes.Outgoing
             or LowAltitudeVerbRelationshipDirectionCodes.Either)
@@ -435,8 +435,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int rule,
         int tick,
         bool outgoing,
-        ref float totalWeight,
-        ref float sumAffordanceScore,
+        ref FixedScalar totalWeight,
+        ref FixedScalar sumAffordanceScore,
         ref VerbTargetCandidate selected)
     {
         var world = simulation.World;
@@ -507,8 +507,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var actorQ = CurrentQ(world, entityId, planeCode);
         var actorR = CurrentR(world, entityId, planeCode);
         var searchRadius = CellTargetSearchRadius(world, rule, TargetSelectorCodes.SelfMapValue);
-        var totalWeight = 0f;
-        var sumAffordanceScore = 0f;
+        var totalWeight = FixedScalar.Zero;
+        var sumAffordanceScore = FixedScalar.Zero;
         var selected = default(VerbTargetCandidate);
         for (var dq = -searchRadius; dq <= searchRadius; dq++)
         {
@@ -557,11 +557,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int q,
         int r,
         EffectiveVerbScalars scalars,
-        ref float totalWeight,
-        ref float sumAffordanceScore,
+        ref FixedScalar totalWeight,
+        ref FixedScalar sumAffordanceScore,
         ref VerbTargetCandidate selected)
     {
-        var boundary = simulation.CultureBoundaries.CellAt(simulation.World, cultureId, planeCode, q, r);
+        var boundary = simulation.CultureLocality.CellAt(simulation.World, cultureId, planeCode, q, r);
         var neighborhood = CultureNeighborhood(boundary);
         var targetingCode = EffectiveInfluenceTargetingCode(rule);
         if (!OwnCultureExpansionTargetAllowed(targetingCode, boundary.RawMass, neighborhood))
@@ -628,14 +628,14 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int q,
         int r,
         int s,
-        float ownCultureInfluence,
-        float foreignCultureInfluence,
-        float foreignCultureRaw,
-        float ownCultureRaw,
+        FixedScalar ownCultureInfluence,
+        FixedScalar foreignCultureInfluence,
+        FixedScalar foreignCultureRaw,
+        FixedScalar ownCultureRaw,
         CultureInfluenceNeighborhood neighborhood,
         CultureInfluenceAttachment attachment,
         EffectiveVerbScalars scalars,
-        out float affordanceScore)
+        out FixedScalar affordanceScore)
     {
         var actorKindId = simulation.World.EntityKindId(entityId);
         var actorQ = CurrentQ(simulation.World, entityId, planeCode);
@@ -649,9 +649,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             ownCultureRaw,
             neighborhood,
             attachment);
-        if (culturalExpansionDrive <= 0f)
+        if (culturalExpansionDrive <= 0)
         {
-            affordanceScore = 0f;
+            affordanceScore = 0;
             return default;
         }
 
@@ -712,8 +712,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int actorR,
         int searchRadius)
     {
-        var totalWeight = 0f;
-        var sumAffordanceScore = 0f;
+        var totalWeight = FixedScalar.Zero;
+        var sumAffordanceScore = FixedScalar.Zero;
         var selected = default(VerbTargetCandidate);
         for (var dq = -searchRadius; dq <= searchRadius; dq++)
         {
@@ -768,8 +768,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int actorR,
         int q,
         int r,
-        ref float totalWeight,
-        ref float sumAffordanceScore,
+        ref FixedScalar totalWeight,
+        ref FixedScalar sumAffordanceScore,
         ref VerbTargetCandidate selected)
     {
         _ = rule;
@@ -808,11 +808,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     private static void ConsiderCandidate(
         Simulation simulation,
         VerbTargetCandidate candidate,
-        ref float totalWeight,
+        ref FixedScalar totalWeight,
         ref VerbTargetCandidate selected)
     {
         totalWeight += candidate.Weight;
-        if (totalWeight > 0f && simulation.NextFloat() * totalWeight <= candidate.Weight)
+        if (totalWeight > 0 && simulation.NextScalar() * totalWeight <= candidate.Weight)
         {
             selected = candidate;
         }
@@ -853,28 +853,28 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     // fraction of its target weight, so ordinary life orbits the strongholds.
     // Fog-adjacent exploration verbs are exempt - ranging is their job - and
     // cultureless entities answer to no hearth.
-    private float SupportLeashMultiplier(Simulation simulation, int entityId, int rule, int planeCode, int q, int r)
+    private FixedScalar SupportLeashMultiplier(Simulation simulation, int entityId, int rule, int planeCode, int q, int r)
     {
         if (planeCode != PlaneCodes.Physical || Data.RequiresFogAdjacent(rule))
         {
-            return 1f;
+            return 1;
         }
 
         var world = simulation.World;
         var cultureId = world.EntityCultureId(entityId);
         if (cultureId <= 0)
         {
-            return 1f;
+            return 1;
         }
 
         var tuning = simulation.Options.KernelTuning.Programs.LowAltitudeVerbs;
         var threshold = tuning.SupportThresholdRawMass * simulation.Knowledge.Modifier(
             cultureId,
             KnowledgeGrantDomainCodes.FrontierThawThreshold);
-        if (threshold <= 0f ||
+        if (threshold <= 0 ||
             world.CultureFieldAt(cultureId, PlaneCodes.Physical, q, r).TotalRawMass >= threshold)
         {
-            return 1f;
+            return 1;
         }
 
         return tuning.UnsupportedTargetMultiplier;

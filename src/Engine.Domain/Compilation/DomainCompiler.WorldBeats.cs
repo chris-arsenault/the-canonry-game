@@ -49,7 +49,7 @@ public static partial class DomainCompiler
             condition.Comparator == WorldBeatComparator.AtLeast
                 ? WorldBeatComparatorCodes.AtLeast
                 : WorldBeatComparatorCodes.Below,
-            condition.Value,
+            FixedScalar.FromSingle(condition.Value),
             paramId);
     }
 
@@ -65,7 +65,10 @@ public static partial class DomainCompiler
         }
 
         var targetId = charge.Target is null ? 0 : ResolveChargeTarget(age, charge, ids);
-        return new CompiledWorldBeatCharge(WorldBeatChargeDomainCode(charge.Domain), targetId, charge.Multiplier);
+        return new CompiledWorldBeatCharge(
+            WorldBeatChargeDomainCode(charge.Domain),
+            targetId,
+            FixedScalar.FromSingle(charge.Multiplier));
     }
 
     private static int ResolveChargeTarget(WorldBeatAgeConfig age, WorldBeatChargeConfig charge, DomainIdRegistry ids) =>

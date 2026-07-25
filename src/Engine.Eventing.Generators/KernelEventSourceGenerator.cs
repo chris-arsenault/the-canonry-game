@@ -13,7 +13,7 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
 {
     private const string LayoutAttributeName = "Engine.Eventing.KernelEventLayoutAttribute";
     private const string IntSlotAttributeName = "Engine.Eventing.KernelEventIntSlotAttribute";
-    private const string FloatSlotAttributeName = "Engine.Eventing.KernelEventFloatSlotAttribute";
+    private const string LongSlotAttributeName = "Engine.Eventing.KernelEventLongSlotAttribute";
     private const string TickFieldName = "Tick";
     private const string WorldVersionFieldName = "WorldVersion";
 
@@ -39,7 +39,7 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
         }
 
         var intSlotCount = ConstInt(symbols.KernelEvent, "IntSlotCount");
-        var floatSlotCount = ConstInt(symbols.KernelEvent, "FloatSlotCount");
+        var longSlotCount = ConstInt(symbols.KernelEvent, "LongSlotCount");
         var layouts = new List<EventLayout>();
         foreach (var type in AllTypes(compilation.Assembly.GlobalNamespace))
         {
@@ -49,10 +49,10 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
                     symbols.LayoutAttribute,
                     symbols.EventType,
                     symbols.IntSlotAttribute,
-                    symbols.FloatSlotAttribute,
+                    symbols.LongSlotAttribute,
                     symbols.SemanticKind,
                     intSlotCount,
-                    floatSlotCount,
+                    longSlotCount,
                     out var layout))
             {
                 layouts.Add(layout);
@@ -83,10 +83,10 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
         INamedTypeSymbol layoutAttribute,
         INamedTypeSymbol eventType,
         INamedTypeSymbol intSlotAttribute,
-        INamedTypeSymbol floatSlotAttribute,
+        INamedTypeSymbol longSlotAttribute,
         INamedTypeSymbol semanticKind,
         int intSlotCount,
-        int floatSlotCount,
+        int longSlotCount,
         out EventLayout layout)
     {
         layout = default!;
@@ -103,12 +103,12 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
             return false;
         }
 
-        if (!TryCollectSlots(context, type, constructor, intSlotAttribute, floatSlotAttribute, semanticKind, out var slots))
+        if (!TryCollectSlots(context, type, constructor, intSlotAttribute, longSlotAttribute, semanticKind, out var slots))
         {
             return false;
         }
 
-        ValidateSlots(context, type, slots, intSlotCount, floatSlotCount);
+        ValidateSlots(context, type, slots, intSlotCount, longSlotCount);
         layout = new EventLayout(
             layoutMetadata.EventTypeName,
             layoutMetadata.EventTypeValue,
@@ -123,7 +123,7 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
         INamedTypeSymbol type,
         IMethodSymbol constructor,
         INamedTypeSymbol intSlotAttribute,
-        INamedTypeSymbol floatSlotAttribute,
+        INamedTypeSymbol longSlotAttribute,
         INamedTypeSymbol semanticKind,
         out List<SlotLayout> slots)
     {
@@ -136,7 +136,7 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
                 continue;
             }
 
-            if (TryCreateSlot(context, type, parameter, intSlotAttribute, floatSlotAttribute, semanticKind, out var slot) &&
+            if (TryCreateSlot(context, type, parameter, intSlotAttribute, longSlotAttribute, semanticKind, out var slot) &&
                 slot is not null)
             {
                 slots.Add(slot);
@@ -155,20 +155,20 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
         INamedTypeSymbol type,
         IParameterSymbol parameter,
         INamedTypeSymbol intSlotAttribute,
-        INamedTypeSymbol floatSlotAttribute,
+        INamedTypeSymbol longSlotAttribute,
         INamedTypeSymbol semanticKind,
         out SlotLayout? slot)
     {
         slot = null;
         var intSlot = SlotMetadata(parameter, intSlotAttribute, semanticKind, KernelEventSlotKind.Int);
-        var floatSlot = SlotMetadata(parameter, floatSlotAttribute, semanticKind, KernelEventSlotKind.Float);
-        if (intSlot is not null && floatSlot is not null)
+        var longSlot = SlotMetadata(parameter, longSlotAttribute, semanticKind, KernelEventSlotKind.Long);
+        if (intSlot is not null && longSlot is not null)
         {
-            Report(context, parameter, $"{type.Name}.{parameter.Name} declares both int and float slots.");
+            Report(context, parameter, $"{type.Name}.{parameter.Name} declares both int and long slots.");
             return false;
         }
 
-        var metadata = intSlot ?? floatSlot;
+        var metadata = intSlot ?? longSlot;
         if (metadata is null)
         {
             Report(context, parameter, $"{type.Name}.{parameter.Name} must declare exactly one kernel event slot.");
@@ -190,21 +190,21 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
     private static bool SlotTypeMatches(SlotLayout slot, IParameterSymbol parameter) =>
         slot.Kind == KernelEventSlotKind.Int
             ? IsIntSlotType(parameter.Type)
-            : parameter.Type.SpecialType == SpecialType.System_Single;
+            : parameter.Type.SpecialType == SpecialType.System_Int64;
 
     private sealed class RequiredSymbols
     {
         private RequiredSymbols(
             INamedTypeSymbol layoutAttribute,
             INamedTypeSymbol intSlotAttribute,
-            INamedTypeSymbol floatSlotAttribute,
+            INamedTypeSymbol longSlotAttribute,
             INamedTypeSymbol kernelEvent,
             INamedTypeSymbol eventType,
             INamedTypeSymbol semanticKind)
         {
             LayoutAttribute = layoutAttribute;
             IntSlotAttribute = intSlotAttribute;
-            FloatSlotAttribute = floatSlotAttribute;
+            LongSlotAttribute = longSlotAttribute;
             KernelEvent = kernelEvent;
             EventType = eventType;
             SemanticKind = semanticKind;
@@ -212,7 +212,7 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
 
         public INamedTypeSymbol LayoutAttribute { get; }
         public INamedTypeSymbol IntSlotAttribute { get; }
-        public INamedTypeSymbol FloatSlotAttribute { get; }
+        public INamedTypeSymbol LongSlotAttribute { get; }
         public INamedTypeSymbol KernelEvent { get; }
         public INamedTypeSymbol EventType { get; }
         public INamedTypeSymbol SemanticKind { get; }
@@ -221,14 +221,14 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
         {
             var layoutAttribute = compilation.GetTypeByMetadataName(LayoutAttributeName);
             var intSlotAttribute = compilation.GetTypeByMetadataName(IntSlotAttributeName);
-            var floatSlotAttribute = compilation.GetTypeByMetadataName(FloatSlotAttributeName);
+            var longSlotAttribute = compilation.GetTypeByMetadataName(LongSlotAttributeName);
             var kernelEvent = compilation.GetTypeByMetadataName("Engine.Eventing.KernelEvent");
             var eventType = compilation.GetTypeByMetadataName("Engine.Eventing.KernelEventType");
             var semanticKind = compilation.GetTypeByMetadataName("Engine.Eventing.KernelEventSemanticKind");
 
             if (layoutAttribute is null ||
                 intSlotAttribute is null ||
-                floatSlotAttribute is null ||
+                longSlotAttribute is null ||
                 kernelEvent is null ||
                 eventType is null ||
                 semanticKind is null)
@@ -236,7 +236,7 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
                 return null;
             }
 
-            return new RequiredSymbols(layoutAttribute, intSlotAttribute, floatSlotAttribute, kernelEvent, eventType, semanticKind);
+            return new RequiredSymbols(layoutAttribute, intSlotAttribute, longSlotAttribute, kernelEvent, eventType, semanticKind);
         }
     }
 
@@ -358,7 +358,7 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
                     .Append(", \"")
                     .Append(slot.SchemaName)
                     .Append("\", KernelEventPrimitiveKind.")
-                    .Append(slot.Kind == KernelEventSlotKind.Int ? "Int32" : "Float32")
+                    .Append(slot.Kind == KernelEventSlotKind.Int ? "Int32" : "Int64")
                     .Append(", KernelEventSemanticKind.")
                     .Append(slot.SemanticKindName)
                     .Append(", \"")
@@ -465,11 +465,11 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
         INamedTypeSymbol type,
         IReadOnlyList<SlotLayout> slots,
         int intSlotCount,
-        int floatSlotCount)
+        int longSlotCount)
     {
         foreach (var slot in slots)
         {
-            var maxSlot = slot.Kind == KernelEventSlotKind.Int ? intSlotCount - 1 : floatSlotCount - 1;
+            var maxSlot = slot.Kind == KernelEventSlotKind.Int ? intSlotCount - 1 : longSlotCount - 1;
             if (slot.Slot < 0 || slot.Slot > maxSlot)
             {
                 Report(context, type, $"{type.Name} declares {slot.Kind} slot {slot.Slot}, outside 0..{maxSlot}.");
@@ -502,7 +502,7 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
 
     private static string SlotArgumentName(SlotLayout slot) =>
         slot.Kind == KernelEventSlotKind.Int ? "int" + slot.Slot.ToString(CultureInfo.InvariantCulture) :
-            "float" + slot.Slot.ToString(CultureInfo.InvariantCulture);
+            "long" + slot.Slot.ToString(CultureInfo.InvariantCulture);
 
     private static string PackExpression(SlotLayout slot)
     {
@@ -517,7 +517,7 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
     private static string UnpackExpression(SlotLayout slot)
     {
         var field = slot.Kind == KernelEventSlotKind.Int ? "_int" + slot.Slot.ToString(CultureInfo.InvariantCulture) :
-            "_float" + slot.Slot.ToString(CultureInfo.InvariantCulture);
+            "_long" + slot.Slot.ToString(CultureInfo.InvariantCulture);
         if (slot.Kind == KernelEventSlotKind.Int && !string.Equals(slot.PayloadTypeName, "int", StringComparison.Ordinal))
         {
             return "(" + slot.PayloadTypeName + ")" + field;
@@ -630,6 +630,6 @@ public sealed class KernelEventSourceGenerator : ISourceGenerator
     private enum KernelEventSlotKind
     {
         Int = 0,
-        Float = 1,
+        Long = 1,
     }
 }

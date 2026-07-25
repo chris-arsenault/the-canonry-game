@@ -11,8 +11,8 @@ public sealed record CompiledTraitGambitModifierRule(
     int GambitId,
     int TraitId,
     int BearerCode,
-    float ScoreDelta,
-    float SuccessChanceDelta);
+    FixedScalar ScoreDelta,
+    FixedScalar SuccessChanceDelta);
 
 public sealed record CompiledGambitRule(
     int KindId,
@@ -21,7 +21,7 @@ public sealed record CompiledGambitRule(
     int EntityCooldownTicks,
     BehaviorProgramTargetMode TargetMode,
     int TargetKindId,
-    float SuccessChance,
+    FixedScalar SuccessChance,
     bool ChronicleGranted,
     IReadOnlyList<BehaviorProgramProviderSelectorRule> ProviderSelectors,
     IReadOnlyList<BehaviorProgramPreconditionOp> Preconditions,

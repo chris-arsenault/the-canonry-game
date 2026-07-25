@@ -1,5 +1,6 @@
 namespace Engine.Host;
 
+using Engine.Constants;
 using Engine.Domain;
 using Engine.Kernel;
 
@@ -71,12 +72,12 @@ internal sealed class KernelConfigurationContext
     public int RegisterTerrain(
         TerrainRuntimeId terrainId,
         int boundaryGroupId,
-        float movementCost = 1f,
-        float influenceMultiplier = 1f,
-        float claimCostMultiplier = 1f,
-        float claimChanceMultiplier = 1f,
-        float roadBuildMultiplier = 1f,
-        float roadSpeedMultiplier = 1f)
+        FixedScalar movementCost,
+        FixedScalar influenceMultiplier,
+        FixedScalar claimCostMultiplier,
+        FixedScalar claimChanceMultiplier,
+        FixedScalar roadBuildMultiplier,
+        FixedScalar roadSpeedMultiplier)
     {
         _kernel.RegisterTerrain(
             terrainId.Value,
@@ -93,12 +94,12 @@ internal sealed class KernelConfigurationContext
     public int RegisterTerrain(
         int terrainId,
         int boundaryGroupId,
-        float movementCost = 1f,
-        float influenceMultiplier = 1f,
-        float claimCostMultiplier = 1f,
-        float claimChanceMultiplier = 1f,
-        float roadBuildMultiplier = 1f,
-        float roadSpeedMultiplier = 1f)
+        FixedScalar movementCost,
+        FixedScalar influenceMultiplier,
+        FixedScalar claimCostMultiplier,
+        FixedScalar claimChanceMultiplier,
+        FixedScalar roadBuildMultiplier,
+        FixedScalar roadSpeedMultiplier)
     {
         _kernel.RegisterTerrain(
             terrainId,
@@ -116,9 +117,9 @@ internal sealed class KernelConfigurationContext
         int terrainId,
         int kindId,
         int fieldFlags,
-        float influenceMultiplier,
-        float claimCostMultiplier,
-        float claimChanceMultiplier) =>
+        FixedScalar influenceMultiplier,
+        FixedScalar claimCostMultiplier,
+        FixedScalar claimChanceMultiplier) =>
         _kernel.RegisterTerrainKindProfile(
             terrainId,
             kindId,
@@ -130,22 +131,22 @@ internal sealed class KernelConfigurationContext
     public void RegisterTerrainMovementProfile(
         int terrainId,
         int movementProfileId,
-        float movementCost) =>
+        FixedScalar movementCost) =>
         _kernel.RegisterTerrainMovementProfile(terrainId, movementProfileId, movementCost);
 
     public void SetTerrainWater(int terrainId) =>
         _kernel.KernelData.Terrain.SetWater(terrainId);
 
-    public void RegisterKindPlacementTaste(int kindId, int axisCode, float weight) =>
+    public void RegisterKindPlacementTaste(int kindId, int axisCode, FixedScalar weight) =>
         _kernel.RegisterKindPlacementTaste(kindId, axisCode, weight);
 
-    public void RegisterCulturePlacementTaste(int cultureId, int axisCode, float weight) =>
+    public void RegisterCulturePlacementTaste(int cultureId, int axisCode, FixedScalar weight) =>
         _kernel.RegisterCulturePlacementTaste(cultureId, axisCode, weight);
 
     public void RegisterCrossingProfile(
         int crossingClass,
         int movementProfileId,
-        float factor,
+        FixedScalar factor,
         bool roadNegated) =>
         _kernel.RegisterCrossingProfile(crossingClass, movementProfileId, factor, roadNegated);
 
@@ -177,16 +178,16 @@ internal sealed class KernelConfigurationContext
     public void RegisterTravelStructureMovementProfile(
         int travelStructureId,
         int movementProfileId,
-        float movementCost) =>
+        FixedScalar movementCost) =>
         _kernel.Movement.RegisterTravelStructureMovementProfile(travelStructureId, movementProfileId, movementCost);
 
     public int RegisterAttribute(
         int kindId,
         AttributeRuntimeId attributeId,
-        float minimum,
-        float maximum,
-        float defaultValue,
-        float defaultVariance = 0f) =>
+        FixedScalar minimum,
+        FixedScalar maximum,
+        FixedScalar defaultValue,
+        FixedScalar defaultVariance = default) =>
         _kernel.RegisterAttribute(
             kindId,
             attributeId.Value,
@@ -198,12 +199,12 @@ internal sealed class KernelConfigurationContext
     public int RegisterTrait(
         int kindId,
         TraitRuntimeId traitId,
-        float assignmentChance) =>
+        FixedScalar assignmentChance) =>
         _kernel.RegisterTrait(kindId, traitId.Value, assignmentChance);
 
     public int RegisterRelationshipKind(
         RelationshipKindRuntimeId kindId,
-        float cullThreshold,
+        FixedScalar cullThreshold,
         bool targetFollowsSourcePhysical = false,
         bool isExclusive = false,
         bool isCultureAnchor = false) =>
@@ -219,8 +220,8 @@ internal sealed class KernelConfigurationContext
         int conditionCode,
         int planeCode,
         int maxDistance,
-        float threshold,
-        float delta) =>
+        FixedScalar threshold,
+        FixedScalar delta) =>
         _kernel.Relationships.AddMaintenanceRule(
             kindId.Value,
             conditionCode,
@@ -229,13 +230,13 @@ internal sealed class KernelConfigurationContext
             threshold,
             delta);
 
-    public int RegisterLifecycleUpkeep(
+    public int RegisterLifecycle(
         int kindId,
         AttributeRuntimeId attributeId,
-        float baseRate,
-        float ageCoefficient,
-        float variance = 0.2f) =>
-        _kernel.Upkeep.RegisterLifecycle(kindId, attributeId.Value, baseRate, ageCoefficient, variance);
+        FixedScalar baseRate,
+        FixedScalar ageCoefficient,
+        FixedScalar variance) =>
+        _kernel.Effects.RegisterLifecycle(kindId, attributeId.Value, baseRate, ageCoefficient, variance);
 
     public int RegisterAttributeDeltaEffect(
         int kindId,
@@ -245,15 +246,15 @@ internal sealed class KernelConfigurationContext
         int relationshipDirectionCode,
         int planeCode,
         int maxDistance,
-        float threshold,
-        float minimumRelationshipStrength,
-        float deltaPerTick,
+        FixedScalar threshold,
+        FixedScalar minimumRelationshipStrength,
+        FixedScalar deltaPerTick,
         int requiredTargetTraitId = 0,
         int requiredRelatedTraitId = 0,
         int cultureId = 0,
         int cultureSlotId = 0,
         int cultureSlotPolarityCode = -1,
-        float supportScale = 0f,
+        FixedScalar supportScale = default,
         int coverageOwnerKindId = 0,
         int coverageOwnerSubtypeId = 0) =>
         _kernel.Effects.RegisterAttributeDeltaEffect(
@@ -281,8 +282,8 @@ internal sealed class KernelConfigurationContext
         int tagId,
         int relationshipKindId,
         int relationshipDirectionCode,
-        float setAtOrAbove,
-        float clearBelow,
+        FixedScalar setAtOrAbove,
+        FixedScalar clearBelow,
         int insideCoverageOwnerKindId = 0,
         int insideCoverageOwnerSubtypeId = 0,
         int insideCoveragePlaneCode = PlaneCodes.Semantic) =>
@@ -297,18 +298,18 @@ internal sealed class KernelConfigurationContext
             insideCoverageOwnerSubtypeId,
             insideCoveragePlaneCode);
 
-    public void RegisterCultureProduction(int cultureId, float physicalMultiplier, float semanticMultiplier) =>
+    public void RegisterCultureProduction(int cultureId, FixedScalar physicalMultiplier, FixedScalar semanticMultiplier) =>
         _kernel.RegisterCultureProduction(cultureId, physicalMultiplier, semanticMultiplier);
 
     public int RegisterCultureSlot(
         int cultureId,
         int slotId,
         int polarityCode,
-        float minimumScore,
+        FixedScalar minimumScore,
         int minimumTenureTicks,
-        float displacementMargin,
-        float entityInfluenceMultiplierDelta,
-        float cultureInfluenceMultiplierDelta) =>
+        FixedScalar displacementMargin,
+        FixedScalar entityInfluenceMultiplierDelta,
+        FixedScalar cultureInfluenceMultiplierDelta) =>
         _kernel.CultureSlots.RegisterSlot(
             cultureId,
             slotId,
@@ -326,7 +327,7 @@ internal sealed class KernelConfigurationContext
         int slot,
         int signalCode,
         int relationshipKindId,
-        float weight) =>
+        FixedScalar weight) =>
         _kernel.CultureSlots.AddScoreRule(slot, signalCode, relationshipKindId, weight);
 
     public int RegisterMinorActorEmitterRule(
@@ -342,7 +343,7 @@ internal sealed class KernelConfigurationContext
         int spawnRadius,
         int moveChancePermille,
         int actionCadencePulses,
-        float workDelta) =>
+        FixedScalar workDelta) =>
         _kernel.MinorActors.RegisterEmitterRule(
             sourceKindId,
             sourceSubtypeId,
@@ -366,8 +367,8 @@ internal sealed class KernelConfigurationContext
         int planeCode,
         int radius,
         int sampleCount,
-        float weight,
-        float workDeltaMultiplier) =>
+        FixedScalar weight,
+        FixedScalar workDeltaMultiplier) =>
         _kernel.MinorActors.RegisterVerb(
             sourceRuleSlot,
             verbId,
@@ -393,26 +394,26 @@ internal sealed class KernelConfigurationContext
         int dwellTicks,
         int targetRadius,
         int candidateSampleCount,
-        float weight,
-        float opportunityBonusOverride,
-        float fitnessWeight,
-        float distanceScaleOverride,
+        FixedScalar weight,
+        FixedScalar opportunityBonusOverride,
+        FixedScalar fitnessWeight,
+        FixedScalar distanceScaleOverride,
         int fitnessRelationshipKindId,
         int fitnessRelationshipDirectionCode,
         int fitnessPolarityCode,
-        float fitnessThreshold,
-        float influenceDelta,
+        FixedScalar fitnessThreshold,
+        FixedScalar influenceDelta,
         int influenceRadius,
-        float coverageGrowthChance,
-        float headquartersMoveChance,
-        float requiredInfluence,
-        int foreignInfluenceFilterEnabled = 0,
-        int foreignInfluenceBlockPositiveRelationships = 0,
-        int foreignInfluenceAllowNegativeRelationships = 0,
-        float foreignInfluenceMinimumRelationshipStrength = 0f,
-        float foreignInfluenceAllowUnrelatedInfluenceAtOrAbove = -1f,
-        float relationshipStrengthDelta = 0f,
-        int influenceTargetingCode = LowAltitudeInfluenceTargetingCodes.None) =>
+        FixedScalar coverageGrowthChance,
+        FixedScalar headquartersMoveChance,
+        FixedScalar requiredInfluence,
+        int foreignInfluenceFilterEnabled,
+        int foreignInfluenceBlockPositiveRelationships,
+        int foreignInfluenceAllowNegativeRelationships,
+        FixedScalar foreignInfluenceMinimumRelationshipStrength,
+        FixedScalar foreignInfluenceAllowUnrelatedInfluenceAtOrAbove,
+        FixedScalar relationshipStrengthDelta,
+        int influenceTargetingCode) =>
         _kernel.LowAltitudeVerbs.RegisterVerb(
             kindId,
             verbId,
@@ -452,8 +453,8 @@ internal sealed class KernelConfigurationContext
         int verbSlot,
         int opcode,
         int intArgument,
-        float floatArgument) =>
-        _kernel.LowAltitudeVerbs.AddPrimitiveStep(verbSlot, opcode, intArgument, floatArgument);
+        FixedScalar scalarArgument) =>
+        _kernel.LowAltitudeVerbs.AddPrimitiveStep(verbSlot, opcode, intArgument, scalarArgument);
 
     public void AddLowAltitudeVerbTerrainFilter(int verbSlot, int terrainId) =>
         _kernel.LowAltitudeVerbs.AddTerrainFilter(verbSlot, terrainId);
@@ -464,22 +465,22 @@ internal sealed class KernelConfigurationContext
     public void SetLowAltitudeVerbRestAtDestination(int verbSlot) =>
         _kernel.LowAltitudeVerbs.SetRestAtDestination(verbSlot);
 
-    public void RegisterDistrictBonus(int subtypeId, int bonusKindCode, float magnitude) =>
+    public void RegisterDistrictBonus(int subtypeId, int bonusKindCode, FixedScalar magnitude) =>
         _kernel.RegisterDistrictBonus(subtypeId, bonusKindCode, magnitude);
 
     public void RegisterStageProperties(
         int kindId,
         int stageIndex,
-        float bandMultiplier,
+        FixedScalar bandMultiplier,
         int workerBonus,
-        float ambientEmission,
+        FixedScalar ambientEmission,
         int districtCapacity) =>
         _kernel.RegisterStageProperties(kindId, stageIndex, bandMultiplier, workerBonus, ambientEmission, districtCapacity);
 
     public int RegisterLowAltitudeInitialInfluence(
         int kindId,
         int planeCode,
-        float influenceValue) =>
+        FixedScalar influenceValue) =>
         _kernel.LowAltitudeVerbs.RegisterInitialInfluence(kindId, planeCode, influenceValue);
 
     public int RegisterLowAltitudeAffordance(
@@ -493,8 +494,8 @@ internal sealed class KernelConfigurationContext
         int relationshipDirectionCode,
         int operationCode,
         int polarityCode,
-        float threshold,
-        float weight) =>
+        FixedScalar threshold,
+        FixedScalar weight) =>
         _kernel.LowAltitudeVerbs.RegisterAffordance(
             sourceKindCode,
             sourceId,
@@ -513,9 +514,9 @@ internal sealed class KernelConfigurationContext
         int kindId,
         int traitId,
         int verbId,
-        float weightDelta,
-        float opportunityBonusDelta,
-        float fitnessWeightDelta) =>
+        FixedScalar weightDelta,
+        FixedScalar opportunityBonusDelta,
+        FixedScalar fitnessWeightDelta) =>
         _kernel.LowAltitudeVerbs.RegisterTraitWeightModifier(
             kindId,
             traitId,
@@ -524,34 +525,27 @@ internal sealed class KernelConfigurationContext
             opportunityBonusDelta,
             fitnessWeightDelta);
 
-    public void ConfigureMapActivity(float presenceHeat, float heatDecayPerTick, float heatEmaAlpha)
+    public void ConfigureLocality(FixedScalar semanticBaseCapacity, int crowdingRadius)
     {
-        _kernel.MapActivity.Data.PresenceHeat = presenceHeat;
-        _kernel.MapActivity.Data.HeatDecayPerTick = heatDecayPerTick;
-        _kernel.MapActivity.Data.HeatEmaAlpha = heatEmaAlpha;
+        _kernel.Locality.Data.SemanticBaseCapacity = semanticBaseCapacity;
+        _kernel.Locality.Data.CrowdingRadius = Math.Max(0, crowdingRadius);
     }
 
-    public void ConfigureMapSignals(float semanticBaseCapacity, int crowdingRadius)
-    {
-        _kernel.MapSignals.Data.SemanticBaseCapacity = semanticBaseCapacity;
-        _kernel.MapSignals.Data.CrowdingRadius = Math.Max(0, crowdingRadius);
-    }
+    public void RegisterTerrainLocality(int terrainId, FixedScalar baseCapacity) =>
+        _kernel.Locality.RegisterTerrainCapacity(terrainId, baseCapacity);
 
-    public void RegisterTerrainMapSignal(int terrainId, float baseCapacity) =>
-        _kernel.MapSignals.RegisterTerrainCapacity(terrainId, baseCapacity);
-
-    public void SetMapSignalsCapacityFormula(
-        float coldFloor,
-        float warmPeak,
-        float geothermalBlend,
-        float freshwaterWeight,
-        float fertileWeight,
-        float reliefComfort,
-        float reliefPenalty,
-        float roughnessPenalty,
-        float landScale,
-        float marineScale) =>
-        _kernel.MapSignals.Data.SetCapacityFormula(
+    public void SetLocalityCapacityFormula(
+        FixedScalar coldFloor,
+        FixedScalar warmPeak,
+        FixedScalar geothermalBlend,
+        FixedScalar freshwaterWeight,
+        FixedScalar fertileWeight,
+        FixedScalar reliefComfort,
+        FixedScalar reliefPenalty,
+        FixedScalar roughnessPenalty,
+        FixedScalar landScale,
+        FixedScalar marineScale) =>
+        _kernel.Locality.Data.SetCapacityFormula(
             coldFloor,
             warmPeak,
             geothermalBlend,
@@ -563,51 +557,47 @@ internal sealed class KernelConfigurationContext
             landScale,
             marineScale);
 
-    public void RegisterKindMapSignal(
+    public void RegisterKindLocality(
         int kindId,
-        int signalRadius,
-        float capacityEmission,
-        float supportEmission,
-        float threatEmission,
-        float baseAttractorMass,
-        float coverageAttractorScale,
-        float influenceAttractorScale,
-        float activityAttractorScale,
+        int localityRadius,
+        FixedScalar capacityEmission,
+        FixedScalar supportEmission,
+        FixedScalar threatEmission,
+        FixedScalar baseAttractorMass,
+        FixedScalar coverageAttractorScale,
+        FixedScalar influenceAttractorScale,
         int attractorRadius) =>
-        _kernel.MapSignals.RegisterKindSignal(
+        _kernel.Locality.RegisterKind(
             kindId,
-            signalRadius,
+            localityRadius,
             capacityEmission,
             supportEmission,
             threatEmission,
             baseAttractorMass,
             coverageAttractorScale,
             influenceAttractorScale,
-            activityAttractorScale,
             attractorRadius);
 
-    public void AddKindMapSignalAttractorScalar(int kindId, int attributeId, float attractorScale) =>
-        _kernel.MapSignals.AddKindAttractorScalar(kindId, attributeId, attractorScale);
+    public void AddKindLocalityAttractorScalar(int kindId, int attributeId, FixedScalar attractorScale) =>
+        _kernel.Locality.AddKindAttractorScalar(kindId, attributeId, attractorScale);
 
-    public void RegisterRelationshipMapSignal(
+    public void RegisterRelationshipLocality(
         int relationshipKindId,
-        int signalRadius,
-        float supportEmission,
-        float threatEmission) =>
-        _kernel.MapSignals.RegisterRelationshipSignal(
+        FixedScalar supportEmission,
+        FixedScalar threatEmission) =>
+        _kernel.Locality.RegisterRelationship(
             relationshipKindId,
-            signalRadius,
             supportEmission,
             threatEmission);
 
     public int RegisterGambit(
         int kindId,
         int gambitId,
-        int cooldownTicks = 0,
-        int entityCooldownTicks = 0,
-        int targetMode = BehaviorTargetModeCodes.Self,
-        int targetKindId = 0,
-        float successChance = 1f) =>
+        int cooldownTicks,
+        int entityCooldownTicks,
+        int targetMode,
+        int targetKindId,
+        FixedScalar successChance) =>
         _kernel.Gambits.RegisterGambit(
             kindId,
             gambitId,
@@ -627,11 +617,15 @@ internal sealed class KernelConfigurationContext
         int b = 0,
         int c = 0,
         int d = 0,
-        float x = 0f,
-        float y = 0f) =>
+        FixedScalar x = default,
+        FixedScalar y = default) =>
         _kernel.Gambits.AddPrecondition(gambitSlot, preconditionCode, a, b, c, d, x, y);
 
-    public void AddGambitScoreExpressionOp(int gambitSlot, int expressionCode, int a = 0, float x = 0f) =>
+    public void AddGambitScoreExpressionOp(
+        int gambitSlot,
+        int expressionCode,
+        int a = 0,
+        FixedScalar x = default) =>
         _kernel.Gambits.AddExpressionOp(gambitSlot, expressionCode, a, x);
 
     public void AddGambitProviderSelector(
@@ -640,7 +634,7 @@ internal sealed class KernelConfigurationContext
         int kindId = 0,
         int valueId = 0,
         int relationshipKindId = 0,
-        float minimumStrength = 0f) =>
+        FixedScalar minimumStrength = default) =>
         _kernel.Gambits.AddProviderSelector(
             gambitSlot,
             selectorCode,
@@ -656,19 +650,23 @@ internal sealed class KernelConfigurationContext
         int b = 0,
         int c = 0,
         int d = 0,
-        float x = 0f,
-        float y = 0f) =>
+        FixedScalar x = default,
+        FixedScalar y = default) =>
         _kernel.Gambits.AddStep(gambitSlot, operationCode, a, b, c, d, x, y);
 
-    public void AddGambitStepExpressionOp(int stepSlot, int expressionCode, int a = 0, float x = 0f) =>
+    public void AddGambitStepExpressionOp(
+        int stepSlot,
+        int expressionCode,
+        int a = 0,
+        FixedScalar x = default) =>
         _kernel.Gambits.AddStepExpressionOp(stepSlot, expressionCode, a, x);
 
     public int RegisterTraitGambitModifier(
         int gambitId,
         int traitId,
         int bearerCode,
-        float scoreDelta,
-        float successChanceDelta) =>
+        FixedScalar scoreDelta,
+        FixedScalar successChanceDelta) =>
         _kernel.Gambits.RegisterTraitModifier(gambitId, traitId, bearerCode, scoreDelta, successChanceDelta);
 
     public int RegisterGenerator(
@@ -696,19 +694,19 @@ internal sealed class KernelConfigurationContext
     public void AddGeneratorTargetRequiredOutgoingRelationship(
         int generatorSlot,
         int relationshipKindId,
-        float minimumStrength = 0f) =>
+        FixedScalar minimumStrength = default) =>
         _kernel.Generators.AddTargetRequiredOutgoingRelationship(generatorSlot, relationshipKindId, minimumStrength);
 
     public void AddGeneratorTargetRequiredIncomingRelationship(
         int generatorSlot,
         int relationshipKindId,
-        float minimumStrength = 0f) =>
+        FixedScalar minimumStrength = default) =>
         _kernel.Generators.AddTargetRequiredIncomingRelationship(generatorSlot, relationshipKindId, minimumStrength);
 
     public void AddGeneratorTargetRequiredRelationship(
         int generatorSlot,
         int relationshipKindId,
-        float minimumStrength = 0f) =>
+        FixedScalar minimumStrength = default) =>
         _kernel.Generators.AddTargetRequiredRelationship(generatorSlot, relationshipKindId, minimumStrength);
 
     public void AddGeneratorTargetWithoutOutgoingRelationship(int generatorSlot, int relationshipKindId) =>
@@ -733,20 +731,20 @@ internal sealed class KernelConfigurationContext
         int kindId,
         bool adjacentToTarget,
         int cultureMatchCode,
-        bool samePhysicalCultureComponentAsTarget,
+        bool requireTargetCultureRoute,
         int requiredTagBits = 0,
         int withoutTagBits = 0,
         int cultureId = 0,
         int relatedToTargetKindId = 0,
         bool relatedToTargetIncoming = false,
-        float relatedToTargetMinStrength = 0f) =>
+        FixedScalar relatedToTargetMinStrength = default) =>
         _kernel.Generators.AddSecondaryBinding(
             generatorSlot,
             refCode,
             kindId,
             adjacentToTarget ? 1 : 0,
             cultureMatchCode,
-            samePhysicalCultureComponentAsTarget ? 1 : 0,
+            requireTargetCultureRoute ? 1 : 0,
             requiredTagBits,
             withoutTagBits,
             cultureId,
@@ -777,7 +775,7 @@ internal sealed class KernelConfigurationContext
         int placementRefCode,
         int cultureRefCode,
         int fixedCultureId,
-        float createChance,
+        FixedScalar createChance,
         int coverageModeCode,
         int coverageSourceRefCode,
         int coverageDesiredCellCount,
@@ -790,13 +788,13 @@ internal sealed class KernelConfigurationContext
         int semanticPlacementMinRadius,
         int semanticPlacementMaxRadius,
         int culturePlacementCode,
-        bool querySamePhysicalCultureComponentAsTarget,
+        bool queryRequireTargetCultureRoute,
         int queryRequiredTagBits = 0,
         int queryWithoutTagBits = 0,
         int queryCultureId = 0,
         int queryRelatedToTargetKindId = 0,
         bool queryRelatedToTargetIncoming = false,
-        float queryRelatedToTargetMinStrength = 0f) =>
+        FixedScalar queryRelatedToTargetMinStrength = default) =>
         _kernel.Generators.AddProduced(
             generatorSlot,
             refCode,
@@ -823,7 +821,7 @@ internal sealed class KernelConfigurationContext
             semanticPlacementMinRadius,
             semanticPlacementMaxRadius,
             culturePlacementCode,
-            querySamePhysicalCultureComponentAsTarget ? 1 : 0,
+            queryRequireTargetCultureRoute ? 1 : 0,
             fixedCultureId,
             queryRequiredTagBits,
             queryWithoutTagBits,
@@ -832,19 +830,19 @@ internal sealed class KernelConfigurationContext
             queryRelatedToTargetIncoming ? 1 : 0,
             queryRelatedToTargetMinStrength);
 
-    public void SetGeneratorTargetChronicleGates(int generatorSlot, float heatMin, int legendaryWithinTicks) =>
+    public void SetGeneratorTargetChronicleGates(int generatorSlot, FixedScalar heatMin, int legendaryWithinTicks) =>
         _kernel.Generators.SetTargetChronicleGates(generatorSlot, heatMin, legendaryWithinTicks);
 
     public int AddWorldBeatAge(int ageId, int trackCode, int priority, int minOpenTicks, int cooldownTicks) =>
         _kernel.WorldBeats.AddAge(ageId, trackCode, priority, minOpenTicks, cooldownTicks);
 
-    public void AddWorldBeatOpenCondition(int ageSlot, int factCode, int comparatorCode, float value, int paramId) =>
+    public void AddWorldBeatOpenCondition(int ageSlot, int factCode, int comparatorCode, FixedScalar value, int paramId) =>
         _kernel.WorldBeats.AddOpenCondition(ageSlot, factCode, comparatorCode, value, paramId);
 
-    public void AddWorldBeatCloseCondition(int ageSlot, int factCode, int comparatorCode, float value, int paramId) =>
+    public void AddWorldBeatCloseCondition(int ageSlot, int factCode, int comparatorCode, FixedScalar value, int paramId) =>
         _kernel.WorldBeats.AddCloseCondition(ageSlot, factCode, comparatorCode, value, paramId);
 
-    public void AddWorldBeatCharge(int ageSlot, int domainCode, int targetId, float multiplier) =>
+    public void AddWorldBeatCharge(int ageSlot, int domainCode, int targetId, FixedScalar multiplier) =>
         _kernel.WorldBeats.AddCharge(ageSlot, domainCode, targetId, multiplier);
 
     public void SetMinorActorCampaignRelationshipKind(int relationshipKindId) =>
@@ -853,8 +851,8 @@ internal sealed class KernelConfigurationContext
     public void SetMovementCarrierRelationshipKind(int relationshipKindId) =>
         _kernel.Movement.SetCarrierRelationshipKindId(relationshipKindId);
 
-    public void SetMovementRoughnessCostWeight(float weight) =>
-        _kernel.Movement.Data.RoughnessCostWeight = weight < 0f ? 0f : weight;
+    public void SetMovementRoughnessCostWeight(FixedScalar weight) =>
+        _kernel.Movement.Data.RoughnessCostWeight = FixedScalar.Max(FixedScalar.Zero, weight);
 
     public void SetMapFrontierConfiguration(
         int thawAgeId,
@@ -873,13 +871,13 @@ internal sealed class KernelConfigurationContext
 
     public void SetMapFrontierIcePressureConfiguration(
         int frostTemperatureCeiling,
-        float iceThicknessPressureWeight,
-        float geothermalRefugeWeight,
-        float freezeAgePressureScalar,
-        float thawAgePressureScalar,
-        float baseIceResistance,
-        float cultureMassResistanceScale,
-        float roadIceResistance) =>
+        FixedScalar iceThicknessPressureWeight,
+        FixedScalar geothermalRefugeWeight,
+        FixedScalar freezeAgePressureScalar,
+        FixedScalar thawAgePressureScalar,
+        FixedScalar baseIceResistance,
+        FixedScalar cultureMassResistanceScale,
+        FixedScalar roadIceResistance) =>
         _kernel.MapFrontier.SetIcePressureConfiguration(
             frostTemperatureCeiling,
             iceThicknessPressureWeight,
@@ -914,32 +912,32 @@ internal sealed class KernelConfigurationContext
     public int RegisterKnowledgeSite(int q, int r, int tier) =>
         _kernel.RegisterKnowledgeSite(q, r, tier);
 
-    public void RegisterKnowledgeGrant(int site, int domain, int target, float multiplier) =>
+    public void RegisterKnowledgeGrant(int site, int domain, int target, FixedScalar multiplier) =>
         _kernel.RegisterKnowledgeGrant(site, domain, target, multiplier);
 
     public void SetMapFrontierSemanticConfiguration(
         bool enabled,
         int maxRadius,
-        float frontierMassThreshold,
+        FixedScalar frontierMassThreshold,
         int budgetPerPulse) =>
         _kernel.MapFrontier.SetSemanticConfiguration(enabled, maxRadius, frontierMassThreshold, budgetPerPulse);
 
-    public int AddChronicleArchetype(int archetypeId, int maxActive, int castingCadenceTicks, int primaryKindId, int primaryRequiredRelKindId, float primaryRequiredRelMinStrength, int fadeOutcomeCodeId, int fadeGraceTicks, int fadeQuietTicks) =>
+    public int AddChronicleArchetype(int archetypeId, int maxActive, int castingCadenceTicks, int primaryKindId, int primaryRequiredRelKindId, FixedScalar primaryRequiredRelMinStrength, int fadeOutcomeCodeId, int fadeGraceTicks, int fadeQuietTicks) =>
         _kernel.Chronicles.AddArchetype(archetypeId, maxActive, castingCadenceTicks, primaryKindId, primaryRequiredRelKindId, primaryRequiredRelMinStrength, fadeOutcomeCodeId, fadeGraceTicks, fadeQuietTicks);
 
-    public void AddChronicleRole(int archetypeSlot, int kindId, int relatedKindId, bool relatedIncoming, float relatedMinStrength, bool open = false) =>
+    public void AddChronicleRole(int archetypeSlot, int kindId, int relatedKindId, bool relatedIncoming, FixedScalar relatedMinStrength, bool open = false) =>
         _kernel.Chronicles.AddRole(archetypeSlot, kindId, relatedKindId, relatedIncoming ? 1 : 0, relatedMinStrength, open ? 1 : 0);
 
     public int AddChronicleBeat(
         int archetypeSlot,
         int beatCodeId,
-        float heatGain,
+        FixedScalar heatGain,
         int terminalOutcomeCodeId,
         int openKind,
         int openRoleA,
         int openRoleB,
         int openRelOrAttrId,
-        float openValue,
+        FixedScalar openValue,
         int strikeKind,
         int strikeActorRole,
         int strikeTargetRole,
@@ -950,7 +948,7 @@ internal sealed class KernelConfigurationContext
         int strikeFactRoleA,
         int strikeFactRoleB,
         int strikeFactRelOrAttrId,
-        float strikeFactValue) =>
+        FixedScalar strikeFactValue) =>
         _kernel.Chronicles.AddBeat(
             archetypeSlot,
             beatCodeId,
@@ -973,7 +971,7 @@ internal sealed class KernelConfigurationContext
             strikeFactRelOrAttrId,
             strikeFactValue);
 
-    public void AddChronicleBeatCharge(int beatSlot, int actorRole, int targetRole, int gambitId, float scoreBonus, bool heatScaled, float successBonus) =>
+    public void AddChronicleBeatCharge(int beatSlot, int actorRole, int targetRole, int gambitId, FixedScalar scoreBonus, bool heatScaled, FixedScalar successBonus) =>
         _kernel.Chronicles.AddBeatCharge(beatSlot, actorRole, targetRole, gambitId, scoreBonus, heatScaled ? 1 : 0, successBonus);
 
     public void AddChronicleBeatGrant(int beatSlot, int role, int gambitId) =>
@@ -1003,10 +1001,10 @@ internal sealed class KernelConfigurationContext
     public void SetGeneratorProducedPlacementGeography(
         int producedSlot,
         int siteFlags,
-        float warmthAffinity,
-        float fireAffinity,
-        float auroraAffinity,
-        float pressureAffinity) =>
+        FixedScalar warmthAffinity,
+        FixedScalar fireAffinity,
+        FixedScalar auroraAffinity,
+        FixedScalar pressureAffinity) =>
         _kernel.Generators.SetProducedPlacementGeography(
             producedSlot, siteFlags, warmthAffinity, fireAffinity, auroraAffinity, pressureAffinity);
 
@@ -1030,7 +1028,7 @@ internal sealed class KernelConfigurationContext
         int sourceRefCode,
         int destinationRefCode,
         int relationshipKindId,
-        float strength,
+        FixedScalar strength,
         bool replaceExistingOutgoing) =>
         _kernel.Generators.AddRelationship(
             generatorSlot,
@@ -1046,7 +1044,7 @@ internal sealed class KernelConfigurationContext
         int refOrKindId,
         int instanceSelectionCode,
         int optionCode,
-        float value = 0f,
+        FixedScalar value = default,
         int radius = 0,
         int maxCellCount = 0,
         int planeCode = PlaneCodes.Physical) =>

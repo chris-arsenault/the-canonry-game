@@ -59,12 +59,12 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int q,
         int r,
         int s,
-        float baseWeight,
+        FixedScalar baseWeight,
         AffordanceContribution affordance,
-        float opportunityBonus)
+        FixedScalar opportunityBonus)
     {
         var affordanceBonus = affordance.Score * opportunityBonus;
-        var weight = ClampCandidateWeight(baseWeight * (1f + affordanceBonus));
+        var weight = ClampCandidateWeight(baseWeight * (1 + affordanceBonus));
         var hiddenAffordanceCount = affordance.ContributionCount > 0
             ? affordance.ContributionCount - 1
             : 0;
@@ -112,8 +112,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             ? EffectiveSemanticRadius(world)
             : world.PhysicalMapRadius;
         var distanceScale = EffectiveDistanceScale(rule, targetMode);
-        var scaledRadius = distanceScale > 0f
-            ? (int)global::System.MathF.Ceiling(distanceScale * 2f)
+        var scaledRadius = distanceScale > 0
+            ? (int)FixedScalar.Ceiling(distanceScale * 2)
             : 1;
         var radius = global::System.Math.Max(1, global::System.Math.Max(scaledRadius, Data.TargetRadius(rule)));
         return global::System.Math.Min(planeRadius, radius);
@@ -127,14 +127,14 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
     private static int TargetS(int planeCode, int q, int r) =>
         planeCode == PlaneCodes.Semantic ? -q - r : 0;
 
-    private static float Clamp01(float value)
+    private static FixedScalar Clamp01(FixedScalar value)
     {
-        if (value < 0f)
+        if (value < 0)
         {
-            return 0f;
+            return 0;
         }
 
-        return value > 1f ? 1f : value;
+        return value > 1 ? 1 : value;
     }
 
     private readonly record struct VerbTargetCandidate(
@@ -145,9 +145,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int Q,
         int R,
         int S,
-        float BaseWeight,
-        float AffordanceScore,
-        float AffordanceBonus,
+        FixedScalar BaseWeight,
+        FixedScalar AffordanceScore,
+        FixedScalar AffordanceBonus,
         int AffordanceSourceKindCode,
         int AffordanceSourceId,
         int AffordanceShapeCode,
@@ -157,5 +157,5 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int GeneratorAffordanceCount,
         int GambitAffordanceCount,
         int HiddenAffordanceCount,
-        float Weight);
+        FixedScalar Weight);
 }

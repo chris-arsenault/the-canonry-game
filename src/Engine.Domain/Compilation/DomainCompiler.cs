@@ -36,12 +36,10 @@ public static partial class DomainCompiler
                 ids.EventCodeIdOf(DomainRuntimeNames.RelationshipCulledCode),
                 ids.EventCodeIdOf(DomainRuntimeNames.RelationshipStrengthChangedCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.GambitSourceCode),
-                ids.SourceCodeIdOf(DomainRuntimeNames.UpkeepSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.StartupSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.RelationshipSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.GeneratorSourceCode),
-                ids.SourceCodeIdOf(DomainRuntimeNames.MapActivitySourceCode),
-                ids.SourceCodeIdOf(DomainRuntimeNames.MapSignalsSourceCode),
+                ids.SourceCodeIdOf(DomainRuntimeNames.MapSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.LowAltitudeVerbSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.EffectsSourceCode),
                 ids.SourceCodeIdOf(DomainRuntimeNames.PlayerSourceCode),
@@ -67,17 +65,17 @@ public static partial class DomainCompiler
             attributes.Add(new CompiledEntityAttributeData(
                 kindId,
                 ids.AttributeIdOf(health.Name).Value,
-                health.Min,
-                health.Max,
-                health.Default,
-                health.DefaultVariance));
+                KernelFixedPoint.AttributeScalar(KernelFixedPoint.AttributeUnits(health.Min)),
+                KernelFixedPoint.AttributeScalar(KernelFixedPoint.AttributeUnits(health.Max)),
+                KernelFixedPoint.AttributeScalar(KernelFixedPoint.AttributeUnits(health.Default)),
+                FixedScalar.FromSingle(health.DefaultVariance)));
 
             foreach (var trait in kindConfig.Traits)
             {
                 traits.Add(new CompiledEntityTraitData(
                     kindId,
                     ids.TraitIdOf(trait.Name).Value,
-                    trait.AssignmentChance));
+                    FixedScalar.FromSingle(trait.AssignmentChance)));
             }
         }
 
@@ -111,9 +109,10 @@ public static partial class DomainCompiler
             SubtypeRules = subtypeRules,
             TraitRules = traitRules,
             TravelStructures = BuildTravelStructureData(config, ids, movementProfileIds),
-            RoughnessCostWeight = config.MovementRoughnessCostWeight < 0f
-                ? 0f
-                : config.MovementRoughnessCostWeight,
+            RoughnessCostWeight = FixedScalar.FromSingle(
+                config.MovementRoughnessCostWeight < 0f
+                    ? 0f
+                    : config.MovementRoughnessCostWeight),
         };
     }
 
@@ -151,7 +150,7 @@ public static partial class DomainCompiler
             compiled.Add(new CompiledTravelStructureMovementProfileDefinition(
                 structureId,
                 ResolveMovementProfileId(profile.Profile, movementProfileIds),
-                profile.MovementCost < 0f ? 0f : profile.MovementCost));
+                FixedScalar.FromSingle(profile.MovementCost < 0f ? 0f : profile.MovementCost)));
         }
 
         return compiled;
@@ -255,26 +254,27 @@ public static partial class DomainCompiler
         throw new InvalidOperationException($"Unknown movement profile '{profile}'.");
     }
 
-    private static UpkeepProgram BuildUpkeepProgram(
+    private static LifecycleProgram BuildLifecycleProgram(
         DomainConfig config,
         DomainIdRegistry ids)
     {
-        var lifecycleRules = new List<LifecycleUpkeepRule>();
+        var lifecycleRules = new List<LifecycleRule>();
 
         foreach (var (kind, lifecycle) in config.Lifecycles)
         {
             var kindId = ids.KindIdOf(kind).Value;
             var healthAttributeId = ids.AttributeIdOf(lifecycle.Health).Value;
-            lifecycleRules.Add(new LifecycleUpkeepRule(
+            lifecycleRules.Add(new LifecycleRule(
                 kindId,
                 healthAttributeId,
-                lifecycle.BaseRate,
-                lifecycle.AgeCoefficient));
+                KernelFixedPoint.AttributeScalar(KernelFixedPoint.AttributeUnits(lifecycle.BaseRate)),
+                KernelFixedPoint.AttributeScalar(KernelFixedPoint.AttributeUnits(lifecycle.AgeCoefficient)),
+                FixedScalar.FromUnits(200_000L)));
         }
 
-        return new UpkeepProgram
+        return new LifecycleProgram
         {
-            LifecycleRules = lifecycleRules,
+            Rules = lifecycleRules,
         };
     }
 
@@ -293,7 +293,7 @@ public static partial class DomainCompiler
                 gambit.EntityCooldown,
                 ResolveTargetMode(gambit, targetKindId),
                 targetKindId,
-                gambit.SuccessChance,
+                FixedScalar.FromSingle(gambit.SuccessChance),
                 gambit.ChronicleGranted,
                 CompileProviderSelectors(gambit, ids),
                 CompilePreconditions(gambit.Precondition, ids),
@@ -329,8 +329,8 @@ public static partial class DomainCompiler
                         ids.GambitIdOf(modifier.Gambit).Value,
                         ids.TraitIdOf(trait.Name).Value,
                         TraitEffectBearerCode(modifier.TraitBearer),
-                        modifier.ScoreDelta,
-                        modifier.SuccessChanceDelta));
+                        FixedScalar.FromSingle(modifier.ScoreDelta),
+                        FixedScalar.FromSingle(modifier.SuccessChanceDelta)));
                 }
             }
         }
@@ -387,7 +387,7 @@ public static partial class DomainCompiler
                 selector.Kind is { } kind ? ids.KindIdOf(kind).Value : 0,
                 ProviderSelectorValueId(selector, ids),
                 ProviderSelectorRelationshipKindId(selector, ids),
-                0f));
+                FixedScalar.Zero));
         }
 
         return selectors;
@@ -507,24 +507,25 @@ public static partial class DomainCompiler
                 ops.Add(new BehaviorProgramPreconditionOp(
                     BehaviorProgramPrecondition.WithinTravelReach,
                     B: PlaneCode(reach.Plane),
-                    X: reach.MaxCost));
+                    X: FixedScalar.FromSingle(reach.MaxCost)));
                 return true;
             case ContestedInfluencePrecondition contested:
                 ops.Add(new BehaviorProgramPreconditionOp(
                     BehaviorProgramPrecondition.ContestedInfluence,
                     PlaneCode(contested.Plane),
-                    X: contested.SelfMinimum,
-                    Y: contested.TargetMinimum));
+                    X: KernelFixedPoint.CultureMassScalar(
+                        KernelFixedPoint.CultureMassUnits(contested.SelfMinimum)),
+                    Y: KernelFixedPoint.CultureMassScalar(
+                        KernelFixedPoint.CultureMassUnits(contested.TargetMinimum))));
                 return true;
             case SharedInfluencePrecondition shared:
                 ops.Add(new BehaviorProgramPreconditionOp(
                     BehaviorProgramPrecondition.SharedInfluence,
                     PlaneCode(shared.Plane),
-                    X: shared.SelfMinimum,
-                    Y: shared.TargetMinimum));
-                return true;
-            case CooldownCheck cooldown:
-                ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.CooldownElapsed, cooldown.MinimumTicksSinceFire));
+                    X: KernelFixedPoint.CultureMassScalar(
+                        KernelFixedPoint.CultureMassUnits(shared.SelfMinimum)),
+                    Y: KernelFixedPoint.CultureMassScalar(
+                        KernelFixedPoint.CultureMassUnits(shared.TargetMinimum))));
                 return true;
             case EntityCountCheck count:
                 ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.EntityCountAtLeast, ids.KindIdOf(count.Kind).Value, count.Min));
@@ -559,7 +560,9 @@ public static partial class DomainCompiler
                     (relationship.MinStrength.HasValue ? 1 : 0) | (relationship.Incoming ? 2 : 0),
                     ids.KindIdOf(relationship.TargetKind.Value).Value,
                     relationship.TargetSubtype is null ? 0 : ids.SubtypeIdOf(relationship.TargetSubtype).Value,
-                    X: relationship.MinStrength ?? 0f));
+                    X: relationship.MinStrength.HasValue
+                        ? KernelFixedPoint.RelationshipStrengthScalar(KernelFixedPoint.RelationshipStrengthUnits(relationship.MinStrength.Value))
+                        : FixedScalar.Zero));
                 return true;
             case EndpointRelationshipCountBelow relationship:
                 ops.Add(new BehaviorProgramPreconditionOp(
@@ -568,7 +571,9 @@ public static partial class DomainCompiler
                     (int)EndpointCode(relationship.Endpoint),
                     relationship.MaximumExclusive,
                     relationship.MinStrength.HasValue ? 1 : 0,
-                    X: relationship.MinStrength ?? 0f));
+                    X: relationship.MinStrength.HasValue
+                        ? KernelFixedPoint.RelationshipStrengthScalar(KernelFixedPoint.RelationshipStrengthUnits(relationship.MinStrength.Value))
+                        : FixedScalar.Zero));
                 return true;
             case RelatedEntityMatchesTarget relationship:
                 ops.Add(new BehaviorProgramPreconditionOp(
@@ -658,7 +663,9 @@ public static partial class DomainCompiler
         switch (expression)
         {
             case Literal literal:
-                ops.Add(new BehaviorProgramExpressionOp(BehaviorProgramExpression.Literal, X: literal.Value));
+                ops.Add(new BehaviorProgramExpressionOp(
+                    BehaviorProgramExpression.Literal,
+                    X: FixedScalar.FromSingle(literal.Value)));
                 return true;
             case AttributePath attr:
                 AddAttributeExpression(ops, attr, ids);
@@ -801,7 +808,7 @@ public static partial class DomainCompiler
                     createRelationship.SourceId.Value,
                     createRelationship.TargetId.Value,
                     (int)createRelationship.Polarity,
-                    createRelationship.Strength));
+                    KernelFixedPoint.RelationshipStrengthScalar(KernelFixedPoint.RelationshipStrengthUnits(createRelationship.Strength))));
                 return true;
             case CreateContextRelationshipMutation createRelationship:
                 steps.Add(new BehaviorProgramStepRule(
@@ -810,7 +817,7 @@ public static partial class DomainCompiler
                     (int)EndpointCode(createRelationship.Source),
                     (int)EndpointCode(createRelationship.Target),
                     (int)createRelationship.Polarity,
-                    createRelationship.Strength));
+                    KernelFixedPoint.RelationshipStrengthScalar(KernelFixedPoint.RelationshipStrengthUnits(createRelationship.Strength))));
                 return true;
             case SetContextRelationshipStrengthMutation relationshipStrength:
                 steps.Add(new BehaviorProgramStepRule(
@@ -818,7 +825,7 @@ public static partial class DomainCompiler
                     ids.RelationshipKindIdOf(relationshipStrength.RelationshipKind).Value,
                     (int)EndpointCode(relationshipStrength.Source),
                     (int)EndpointCode(relationshipStrength.Target),
-                    X: relationshipStrength.Strength));
+                    X: KernelFixedPoint.RelationshipStrengthScalar(KernelFixedPoint.RelationshipStrengthUnits(relationshipStrength.Strength))));
                 return true;
             case CullEndpointIncomingRelationshipsMutation cullIncoming:
                 steps.Add(new BehaviorProgramStepRule(
@@ -837,11 +844,14 @@ public static partial class DomainCompiler
                 steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.SetTargetCultureFromSelf));
                 return true;
             default:
-                return TryCompileHistoricalStep(steps, mutation);
+                return TryCompileHistoricalStep(steps, mutation, ids);
         }
     }
 
-    private static bool TryCompileHistoricalStep(List<BehaviorProgramStepRule> steps, IMutation mutation)
+    private static bool TryCompileHistoricalStep(
+        List<BehaviorProgramStepRule> steps,
+        IMutation mutation,
+        DomainIdRegistry ids)
     {
         switch (mutation)
         {
@@ -858,8 +868,14 @@ public static partial class DomainCompiler
                     BehaviorProgramOperation.SetHistorical,
                     B: (int)BehaviorProgramEndpoint.Self));
                 return true;
-            case InstallDistrictMutation:
-                steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.InstallDistrict));
+            case InstallDistrictMutation installDistrict:
+                steps.Add(new BehaviorProgramStepRule(
+                    BehaviorProgramOperation.InstallDistrict,
+                    ids.RelationshipKindIdOf(installDistrict.ReawakenedRelationshipKind).Value,
+                    C: (int)installDistrict.ReawakenedRelationshipPolarity,
+                    X: KernelFixedPoint.RelationshipStrengthScalar(
+                        KernelFixedPoint.RelationshipStrengthUnits(
+                            installDistrict.ReawakenedRelationshipStrength))));
                 return true;
             case ReawakenDistrictMutation:
                 steps.Add(new BehaviorProgramStepRule(BehaviorProgramOperation.ReawakenDistrict));
@@ -956,7 +972,8 @@ public static partial class DomainCompiler
                 steps.Add(new BehaviorProgramStepRule(
                     BehaviorProgramOperation.ErodeTargetCulture,
                     erode.Radius,
-                    X: erode.AmountPerCell));
+                    X: KernelFixedPoint.CultureMassScalar(
+                        KernelFixedPoint.CultureMassUnits(erode.AmountPerCell))));
                 return true;
             default:
                 return false;
@@ -1012,7 +1029,7 @@ public static partial class DomainCompiler
         steps.Add(new BehaviorProgramStepRule(
             operation,
             ids.AttributeIdOf(attributeName).Value,
-            X: delta));
+            X: KernelFixedPoint.AttributeScalar(KernelFixedPoint.AttributeUnits(delta))));
     }
 
     private static void AddTransferAttributeStep(
@@ -1026,7 +1043,7 @@ public static partial class DomainCompiler
             ids.AttributeIdOf(transfer.SourceAttribute).Value,
             (int)EndpointCode(transfer.Destination),
             ids.AttributeIdOf(transfer.DestinationAttribute).Value,
-            transfer.Amount));
+            KernelFixedPoint.AttributeScalar(KernelFixedPoint.AttributeUnits(transfer.Amount))));
     }
 
     private static void AddRelatedEntitiesAttributeStep(
@@ -1042,7 +1059,7 @@ public static partial class DomainCompiler
                 ? (int)BehaviorProgramRelationshipTraversalDirection.Incoming
                 : (int)BehaviorProgramRelationshipTraversalDirection.Outgoing,
             related.UseTargetEntity ? 1 : 0,
-            related.Delta));
+            KernelFixedPoint.AttributeScalar(KernelFixedPoint.AttributeUnits(related.Delta))));
     }
 
     private static void AddVariableAttributeStep(
@@ -1056,7 +1073,7 @@ public static partial class DomainCompiler
             operation,
             ids.AttributeIdOf(attributeName).Value,
             StableRuntimeCode(variableName),
-            X: 1f));
+            X: FixedScalar.One));
     }
 
 }

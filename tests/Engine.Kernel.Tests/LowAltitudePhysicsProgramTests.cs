@@ -32,12 +32,12 @@ public sealed partial class LowAltitudePhysicsProgramTests
             dwellTicks: 0,
             targetRadius: 0,
             candidateSampleCount: 1,
-            weight: 1f,
-            influenceDelta: 0f,
+            weight: FixedScalar.FromSingle(1f),
+            influenceDelta: FixedScalar.FromSingle(0f),
             influenceRadius: 0,
-            coverageGrowthChance: 0f,
-            headquartersMoveChance: 0f,
-            requiredInfluence: 0f);
+            coverageGrowthChance: FixedScalar.FromSingle(0f),
+            headquartersMoveChance: FixedScalar.FromSingle(0f),
+            requiredInfluence: FixedScalar.FromSingle(0f));
         AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.MoveActor);
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
 
@@ -61,7 +61,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
         var simulation = KernelTestSimulation.Create(new SimulationOptions
         {
             Seed = 31,
-            KernelTuning = CultureInfluenceActionScaleTuning(1f),
+            KernelTuning = CultureInfluenceActionScaleTuning(FixedScalar.FromSingle(1f)),
         });
         const int terrainId = 1;
         const int actorKindId = 1;
@@ -86,18 +86,18 @@ public sealed partial class LowAltitudePhysicsProgramTests
             dwellTicks: 0,
             targetRadius: 0,
             candidateSampleCount: 1,
-            weight: 1f,
-            influenceDelta: 2f,
+            weight: FixedScalar.FromSingle(1f),
+            influenceDelta: FixedScalar.FromSingle(2f),
             influenceRadius: 0,
-            coverageGrowthChance: 0f,
-            headquartersMoveChance: 0f,
-            requiredInfluence: 0f);
+            coverageGrowthChance: FixedScalar.FromSingle(0f),
+            headquartersMoveChance: FixedScalar.FromSingle(0f),
+            requiredInfluence: FixedScalar.FromSingle(0f));
         AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.MoveActor);
 
         simulation.AdvanceTicks(1);
 
         Assert.Equal((1, 0), (simulation.World.EntityPhysicalQ(actorId), simulation.World.EntityPhysicalR(actorId)));
-        Assert.Equal(2f, simulation.World.GetCellInfluence(actorId, PlaneCodes.Physical, 1, 0));
+        Assert.Equal(FixedScalar.FromSingle(2f), simulation.World.GetCellInfluence(actorId, PlaneCodes.Physical, 1, 0));
     }
 
     [Fact]
@@ -127,12 +127,12 @@ public sealed partial class LowAltitudePhysicsProgramTests
             dwellTicks: 0,
             targetRadius: 0,
             candidateSampleCount: 1,
-            weight: 1f,
-            influenceDelta: 0f,
+            weight: FixedScalar.FromSingle(1f),
+            influenceDelta: FixedScalar.FromSingle(0f),
             influenceRadius: 0,
-            coverageGrowthChance: 0f,
-            headquartersMoveChance: 0f,
-            requiredInfluence: 0f);
+            coverageGrowthChance: FixedScalar.FromSingle(0f),
+            headquartersMoveChance: FixedScalar.FromSingle(0f),
+            requiredInfluence: FixedScalar.FromSingle(0f));
         AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.MoveActor);
 
         simulation.AdvanceTicks(1);
@@ -198,7 +198,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
             RelationshipPolarityCodes.Positive,
             actorId,
             relatedTargetId,
-            1f,
+            FixedScalar.FromSingle(1f),
             tick: 0);
         var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
             actorKindId,
@@ -214,15 +214,15 @@ public sealed partial class LowAltitudePhysicsProgramTests
             dwellTicks: 0,
             targetRadius: 0,
             candidateSampleCount: 2,
-            weight: 0.01f,
-            fitnessWeight: 1000f,
+            weight: FixedScalar.FromSingle(0.01f),
+            fitnessWeight: FixedScalar.FromSingle(1000f),
             fitnessRelationshipKindId: fitnessRelationshipKindId,
             fitnessRelationshipDirectionCode: LowAltitudeVerbRelationshipDirectionCodes.Outgoing,
-            influenceDelta: 0f,
+            influenceDelta: FixedScalar.FromSingle(0f),
             influenceRadius: 0,
-            coverageGrowthChance: 0f,
-            headquartersMoveChance: 0f,
-            requiredInfluence: 0f);
+            coverageGrowthChance: FixedScalar.FromSingle(0f),
+            headquartersMoveChance: FixedScalar.FromSingle(0f),
+            requiredInfluence: FixedScalar.FromSingle(0f));
         AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.MoveActor);
 
         simulation.AdvanceTicks(1);
@@ -245,9 +245,9 @@ public sealed partial class LowAltitudePhysicsProgramTests
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         var favoredInfluencerId = simulation.CreateEntity(favoredKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
         var otherInfluencerId = simulation.CreateEntity(otherKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
-        simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, 30f, tick: 0);
-        simulation.SetCellInfluence(favoredInfluencerId, PlaneCodes.Physical, 1, 0, 100f, tick: 0);
-        simulation.SetCellInfluence(otherInfluencerId, PlaneCodes.Physical, -1, 0, 100f, tick: 0);
+        simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(30f), tick: 0);
+        simulation.SetCellInfluence(favoredInfluencerId, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(100f), tick: 0);
+        simulation.SetCellInfluence(otherInfluencerId, PlaneCodes.Physical, -1, 0, FixedScalar.FromSingle(100f), tick: 0);
         RegisterForeignInfluenceAffordance(simulation, actorKindId, favoredKindId);
         var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
             actorKindId,
@@ -263,13 +263,13 @@ public sealed partial class LowAltitudePhysicsProgramTests
             dwellTicks: 0,
             targetRadius: 0,
             candidateSampleCount: 128,
-            weight: 0.01f,
-            opportunityBonusOverride: 1_000_000f,
-            influenceDelta: 0f,
+            weight: FixedScalar.FromSingle(0.01f),
+            opportunityBonusOverride: FixedScalar.FromSingle(1_000_000f),
+            influenceDelta: FixedScalar.FromSingle(0f),
             influenceRadius: 0,
-            coverageGrowthChance: 0f,
-            headquartersMoveChance: 0f,
-            requiredInfluence: 0f);
+            coverageGrowthChance: FixedScalar.FromSingle(0f),
+            headquartersMoveChance: FixedScalar.FromSingle(0f),
+            requiredInfluence: FixedScalar.FromSingle(0f));
         AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.SubtractOtherCellScalar);
 
         simulation.AdvanceTicks(1);
@@ -296,15 +296,15 @@ public sealed partial class LowAltitudePhysicsProgramTests
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         var hostileInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
         var unrelatedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
-        simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, 30f, tick: 0);
-        simulation.SetCellInfluence(hostileInfluencerId, PlaneCodes.Physical, 1, 0, 20f, tick: 0);
-        simulation.SetCellInfluence(unrelatedInfluencerId, PlaneCodes.Physical, -1, 0, 40f, tick: 0);
+        simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(30f), tick: 0);
+        simulation.SetCellInfluence(hostileInfluencerId, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(20f), tick: 0);
+        simulation.SetCellInfluence(unrelatedInfluencerId, PlaneCodes.Physical, -1, 0, FixedScalar.FromSingle(40f), tick: 0);
         _ = simulation.CreateRelationship(
             relationshipKindId,
             RelationshipPolarityCodes.Negative,
             actorId,
             hostileInfluencerId,
-            0.5f,
+            FixedScalar.FromSingle(0.5f),
             tick: 0);
         var hostileBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 1, 0);
         var unrelatedBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, -1, 0);
@@ -338,12 +338,12 @@ public sealed partial class LowAltitudePhysicsProgramTests
         var foreignAId = simulation.CreateEntity(foreignKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
         var foreignBId = simulation.CreateEntity(foreignKindId, subtypeId: 1, cultureId: 3, 0, 0, 0, 0, 0, tick: 0);
         var ownSourceId = simulation.CreateEntity(ownKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, 30f, tick: 0);
-        simulation.SetCellInfluence(foreignAId, PlaneCodes.Physical, 1, 0, 20f, tick: 0);
-        simulation.SetCellInfluence(foreignBId, PlaneCodes.Physical, 1, 0, 18f, tick: 0);
-        simulation.SetCellInfluence(ownSourceId, PlaneCodes.Physical, 1, 0, 16f, tick: 0);
-        simulation.ModifyCellCultureLaborInfluenceRaw(2, PlaneCodes.Physical, 1, 0, 9f, tick: 0);
-        simulation.ModifyCellCultureLaborInfluenceRaw(1, PlaneCodes.Physical, 1, 0, 8f, tick: 0);
+        simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(30f), tick: 0);
+        simulation.SetCellInfluence(foreignAId, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(20f), tick: 0);
+        simulation.SetCellInfluence(foreignBId, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(18f), tick: 0);
+        simulation.SetCellInfluence(ownSourceId, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(16f), tick: 0);
+        simulation.ModifyCellCultureLaborInfluenceRaw(2, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(9f), tick: 0);
+        simulation.ModifyCellCultureLaborInfluenceRaw(1, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(8f), tick: 0);
         var foreignCultureTwoBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 1, 0);
         var foreignCultureThreeBefore = simulation.World.GetCellCultureInfluenceRaw(3, PlaneCodes.Physical, 1, 0);
         var ownCultureBefore = simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 1, 0);
@@ -354,7 +354,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
             ProgramOpcodeCodes.SubtractOtherCellScalar,
             TargetSelectorCodes.OtherMapValue,
             targetKindId: 0,
-            influenceDelta: 5f,
+            influenceDelta: FixedScalar.FromSingle(5f),
             influenceRadius: 0);
 
         simulation.AdvanceTicks(1);
@@ -385,15 +385,15 @@ public sealed partial class LowAltitudePhysicsProgramTests
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         var alliedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
         var overextendedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
-        simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, 30f, tick: 0);
-        simulation.SetCellInfluence(alliedInfluencerId, PlaneCodes.Physical, 1, 0, 100f, tick: 0);
-        simulation.SetCellInfluence(overextendedInfluencerId, PlaneCodes.Physical, -1, 0, 60f, tick: 0);
+        simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(30f), tick: 0);
+        simulation.SetCellInfluence(alliedInfluencerId, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(100f), tick: 0);
+        simulation.SetCellInfluence(overextendedInfluencerId, PlaneCodes.Physical, -1, 0, FixedScalar.FromSingle(60f), tick: 0);
         _ = simulation.CreateRelationship(
             relationshipKindId,
             RelationshipPolarityCodes.Positive,
             actorId,
             alliedInfluencerId,
-            0.5f,
+            FixedScalar.FromSingle(0.5f),
             tick: 0);
         var alliedBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 1, 0);
         var overextendedBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, -1, 0);
@@ -427,22 +427,22 @@ public sealed partial class LowAltitudePhysicsProgramTests
         var actorId = simulation.CreateEntity(actorKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         var mixedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
         var overextendedInfluencerId = simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 2, 0, 0, 0, 0, 0, tick: 0);
-        simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, 30f, tick: 0);
-        simulation.SetCellInfluence(mixedInfluencerId, PlaneCodes.Physical, 1, 0, 100f, tick: 0);
-        simulation.SetCellInfluence(overextendedInfluencerId, PlaneCodes.Physical, -1, 0, 60f, tick: 0);
+        simulation.SetCellInfluence(actorId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(30f), tick: 0);
+        simulation.SetCellInfluence(mixedInfluencerId, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(100f), tick: 0);
+        simulation.SetCellInfluence(overextendedInfluencerId, PlaneCodes.Physical, -1, 0, FixedScalar.FromSingle(60f), tick: 0);
         _ = simulation.CreateRelationship(
             relationshipKindId,
             RelationshipPolarityCodes.Negative,
             actorId,
             mixedInfluencerId,
-            0.5f,
+            FixedScalar.FromSingle(0.5f),
             tick: 0);
         _ = simulation.CreateRelationship(
             relationshipKindId,
             RelationshipPolarityCodes.Positive,
             mixedInfluencerId,
             actorId,
-            0.5f,
+            FixedScalar.FromSingle(0.5f),
             tick: 0);
         var mixedBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 1, 0);
         var overextendedBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, -1, 0);
@@ -536,7 +536,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
         var simulation = KernelTestSimulation.Create(new SimulationOptions
         {
             Seed = 19,
-            KernelTuning = CultureInfluenceActionScaleTuning(1f),
+            KernelTuning = CultureInfluenceActionScaleTuning(FixedScalar.FromSingle(1f)),
         });
         const int terrainId = 1;
         const int settlementKindId = 1;
@@ -547,25 +547,22 @@ public sealed partial class LowAltitudePhysicsProgramTests
         simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
         var settlementId = simulation.CreateEntity(settlementKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         var factionId = simulation.CreateEntity(factionKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        simulation.SetCellInfluence(factionId, PlaneCodes.Physical, 0, 0, 20f, tick: 0);
-        simulation.LowAltitudeVerbs.RegisterInitialInfluence(settlementKindId, PlaneCodes.Physical, 35f);
+        simulation.SetCellInfluence(factionId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(20f), tick: 0);
+        simulation.LowAltitudeVerbs.RegisterInitialInfluence(settlementKindId, PlaneCodes.Physical, FixedScalar.FromSingle(35f));
         RegisterInfluenceVerb(
             simulation,
             settlementKindId,
             verbId,
             ProgramOpcodeCodes.AddOwnedCellScalar,
             TargetSelectorCodes.SelfMapValue,
-            influenceDelta: 10f,
+            influenceDelta: FixedScalar.FromSingle(10f),
             influenceRadius: 0);
-        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
-
         simulation.AdvanceTicks(2);
 
-        Assert.True(simulation.World.GetCellInfluence(settlementId, PlaneCodes.Physical, 0, 0) >= 45f);
+        Assert.True(simulation.World.GetCellInfluence(settlementId, PlaneCodes.Physical, 0, 0) >= FixedScalar.FromSingle(45f));
         _ = factionId;
-        Assert.True(simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0) >= 65f);
+        Assert.True(simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0) >= FixedScalar.FromSingle(65f));
         Assert.Equal(0, simulation.World.CoverageOwnerAt(0, 0));
-        AssertCellInfluenceAction(simulation, cursor, settlementId, verbId);
     }
 
     [Fact]
@@ -579,14 +576,14 @@ public sealed partial class LowAltitudePhysicsProgramTests
         simulation.World.SetMapRadius(3);
         KernelTestSimulation.SeedSemanticCells(simulation, 3);
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 2, -1, -1, tick: 0);
-        simulation.LowAltitudeVerbs.RegisterInitialInfluence(kindId, PlaneCodes.Semantic, 35f);
+        simulation.LowAltitudeVerbs.RegisterInitialInfluence(kindId, PlaneCodes.Semantic, FixedScalar.FromSingle(35f));
         RegisterInfluenceVerb(
             simulation,
             kindId,
             verbId,
             ProgramOpcodeCodes.AddOwnedCellScalar,
             TargetSelectorCodes.SelfMapValue,
-            influenceDelta: 10f,
+            influenceDelta: FixedScalar.FromSingle(10f),
             influenceRadius: 0,
             planeCode: PlaneCodes.Semantic);
 
@@ -594,8 +591,8 @@ public sealed partial class LowAltitudePhysicsProgramTests
 
         var targetQ = simulation.LowAltitudeVerbs.State.TargetQ(entityId);
         var targetR = simulation.LowAltitudeVerbs.State.TargetR(entityId);
-        Assert.True(simulation.World.GetCellInfluence(entityId, PlaneCodes.Semantic, targetQ, targetR) > 0f);
-        Assert.Equal(0f, simulation.World.GetCellInfluence(entityId, PlaneCodes.Physical, targetQ, targetR));
+        Assert.True(simulation.World.GetCellInfluence(entityId, PlaneCodes.Semantic, targetQ, targetR) > FixedScalar.FromSingle(0f));
+        Assert.Equal(FixedScalar.FromSingle(0f), simulation.World.GetCellInfluence(entityId, PlaneCodes.Physical, targetQ, targetR));
     }
 
     [Fact]
@@ -604,7 +601,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
         var simulation = KernelTestSimulation.Create(new SimulationOptions
         {
             Seed = 32,
-            KernelTuning = CultureInfluenceActionScaleTuning(1f),
+            KernelTuning = CultureInfluenceActionScaleTuning(FixedScalar.FromSingle(1f)),
         });
         const int terrainId = 1;
         const int kindId = 1;
@@ -613,7 +610,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
         simulation.World.SetMapRadius(0);
         simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        simulation.SetCellInfluence(entityId, PlaneCodes.Physical, 0, 0, 10f, tick: 0);
+        simulation.SetCellInfluence(entityId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(10f), tick: 0);
         var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
             kindId,
             verbId,
@@ -628,23 +625,23 @@ public sealed partial class LowAltitudePhysicsProgramTests
             dwellTicks: 1,
             targetRadius: 0,
             candidateSampleCount: 1,
-            weight: 1f,
-            influenceDelta: 2f,
+            weight: FixedScalar.FromSingle(1f),
+            influenceDelta: FixedScalar.FromSingle(2f),
             influenceRadius: 0,
-            coverageGrowthChance: 0f,
-            headquartersMoveChance: 0f,
-            requiredInfluence: 0f);
+            coverageGrowthChance: FixedScalar.FromSingle(0f),
+            headquartersMoveChance: FixedScalar.FromSingle(0f),
+            requiredInfluence: FixedScalar.FromSingle(0f));
         AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.AddOwnedCellScalar);
 
         simulation.AdvanceTicks(1);
 
         var firstIntentId = simulation.LowAltitudeVerbs.State.IntentId(entityId);
-        Assert.Equal(12f, simulation.World.GetCellInfluence(entityId, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(12f), simulation.World.GetCellInfluence(entityId, PlaneCodes.Physical, 0, 0));
 
         simulation.AdvanceTicks(2);
 
         Assert.Equal(firstIntentId, simulation.LowAltitudeVerbs.State.IntentId(entityId));
-        Assert.Equal(16f, simulation.World.GetCellInfluence(entityId, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(16f), simulation.World.GetCellInfluence(entityId, PlaneCodes.Physical, 0, 0));
 
         simulation.AdvanceTicks(2);
 
@@ -670,7 +667,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
             RelationshipPolarityCodes.Positive,
             actorId,
             targetId,
-            0.4f,
+            FixedScalar.FromSingle(0.4f),
             tick: 0);
         var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
             actorKindId,
@@ -686,42 +683,20 @@ public sealed partial class LowAltitudePhysicsProgramTests
             dwellTicks: 0,
             targetRadius: 0,
             candidateSampleCount: 1,
-            weight: 1f,
-            influenceDelta: 0f,
+            weight: FixedScalar.FromSingle(1f),
+            influenceDelta: FixedScalar.FromSingle(0f),
             influenceRadius: 0,
-            coverageGrowthChance: 0f,
-            headquartersMoveChance: 0f,
-            requiredInfluence: 0f,
-            relationshipStrengthDelta: 0.1f);
-        simulation.LowAltitudeVerbs.AddPrimitiveStep(verbSlot, ProgramOpcodeCodes.AdjustRelationshipStrength, 0, 0f);
+            coverageGrowthChance: FixedScalar.FromSingle(0f),
+            headquartersMoveChance: FixedScalar.FromSingle(0f),
+            requiredInfluence: FixedScalar.FromSingle(0f),
+            relationshipStrengthDelta: FixedScalar.FromSingle(0.1f));
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(verbSlot, ProgramOpcodeCodes.AdjustRelationshipStrength, 0, FixedScalar.FromSingle(0f));
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(0.5f, simulation.World.RelationshipStrength(relationshipId), precision: 4);
+        Assert.Equal(FixedScalar.FromSingle(0.5f), simulation.World.RelationshipStrength(relationshipId));
         AssertRelationshipChangedByProgram(simulation, cursor, relationshipId, verbId);
-    }
-
-    [Fact]
-    public void MapActivityProgram_DecaysAbandonedHeatInsteadOfLeavingPermanentHotspots()
-    {
-        var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 33 });
-        const int terrainId = 1;
-        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
-        simulation.World.SetMapRadius(1);
-        SeedPhysicalNeighborhood(simulation, terrainId);
-        var entityId = simulation.CreateEntity(kindId: 1, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-
-        simulation.AdvanceTicks(80);
-
-        var activeHeat = simulation.MapActivity.Heat(PlaneCodes.Physical, 0, 0, simulation.CurrentTick);
-        simulation.MoveEntityPhysical(entityId, 1, 0, simulation.CurrentTick);
-        simulation.AdvanceTicks(240);
-
-        var abandonedHeat = simulation.MapActivity.Heat(PlaneCodes.Physical, 0, 0, simulation.CurrentTick);
-
-        Assert.InRange(activeHeat, 30f, 100f);
-        Assert.True(abandonedHeat < activeHeat * 0.25f);
     }
 
     [Fact]
@@ -730,7 +705,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
         var simulation = KernelTestSimulation.Create(new SimulationOptions
         {
             Seed = 23,
-            KernelTuning = CultureInfluenceActionScaleTuning(1f),
+            KernelTuning = CultureInfluenceActionScaleTuning(FixedScalar.FromSingle(1f)),
         });
         const int terrainId = 1;
         const int settlementKindId = 1;
@@ -739,17 +714,17 @@ public sealed partial class LowAltitudePhysicsProgramTests
         simulation.World.SetMapRadius(0);
         simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
         var settlementId = simulation.CreateEntity(settlementKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        simulation.LowAltitudeVerbs.RegisterInitialInfluence(settlementKindId, PlaneCodes.Physical, 35f);
+        simulation.LowAltitudeVerbs.RegisterInitialInfluence(settlementKindId, PlaneCodes.Physical, FixedScalar.FromSingle(35f));
         RegisterInfluenceVerb(
             simulation,
             settlementKindId,
             verbId,
             ProgramOpcodeCodes.TryClaimCell,
             TargetSelectorCodes.SelfMapValue,
-            influenceDelta: 30f,
+            influenceDelta: FixedScalar.FromSingle(30f),
             influenceRadius: 1,
-            coverageGrowthChance: 1f,
-            requiredInfluence: 50f);
+            coverageGrowthChance: FixedScalar.FromSingle(1f),
+            requiredInfluence: FixedScalar.FromSingle(50f));
 
         simulation.AdvanceTicks(2);
 
@@ -772,7 +747,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
         simulation.SeedCell(1, 0, terrainId, ownerEntityId: 0);
         var factionId = simulation.CreateEntity(factionKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
         simulation.CreateEntity(settlementKindId, subtypeId: 1, cultureId: 1, 1, 0, 0, 0, 0, tick: 0);
-        simulation.SetCellInfluence(factionId, PlaneCodes.Physical, 1, 0, 80f, tick: 0);
+        simulation.SetCellInfluence(factionId, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(80f), tick: 0);
         RegisterInfluenceVerb(
             simulation,
             factionKindId,
@@ -780,10 +755,10 @@ public sealed partial class LowAltitudePhysicsProgramTests
             ProgramOpcodeCodes.TryRelocateEntity,
             TargetSelectorCodes.EntityKind,
             targetKindId: settlementKindId,
-            influenceDelta: 0f,
+            influenceDelta: FixedScalar.FromSingle(0f),
             influenceRadius: 0,
-            headquartersMoveChance: 1f,
-            requiredInfluence: 50f);
+            headquartersMoveChance: FixedScalar.FromSingle(1f),
+            requiredInfluence: FixedScalar.FromSingle(50f));
 
         simulation.AdvanceTicks(2);
 
@@ -791,21 +766,21 @@ public sealed partial class LowAltitudePhysicsProgramTests
     }
 
     [Fact]
-    public void UpkeepProgram_OnlyLifecycleHealthChanges()
+    public void EntityResolution_OnlyLifecycleHealthChanges()
     {
         var simulation = KernelTestSimulation.Create();
         const int kindId = 1;
         const int healthAttributeId = 1;
         const int staticAttributeId = 2;
-        simulation.RegisterAttribute(kindId, healthAttributeId, minimum: 0f, maximum: 100f, defaultValue: 10f);
-        simulation.RegisterAttribute(kindId, staticAttributeId, minimum: 0f, maximum: 100f, defaultValue: 50f);
-        simulation.Upkeep.RegisterLifecycle(kindId, healthAttributeId, baseRate: 1f, ageCoefficient: 0f, variance: 0f);
+        simulation.RegisterAttribute(kindId, healthAttributeId, minimum: FixedScalar.FromSingle(0f), maximum: FixedScalar.FromSingle(100f), defaultValue: FixedScalar.FromSingle(10f));
+        simulation.RegisterAttribute(kindId, staticAttributeId, minimum: FixedScalar.FromSingle(0f), maximum: FixedScalar.FromSingle(100f), defaultValue: FixedScalar.FromSingle(50f));
+        simulation.Effects.RegisterLifecycle(kindId, healthAttributeId, baseRate: FixedScalar.FromSingle(1f), ageCoefficient: FixedScalar.FromSingle(0f), variance: FixedScalar.FromSingle(0f));
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(9f, simulation.World.GetAttribute(entityId, healthAttributeId));
-        Assert.Equal(50f, simulation.World.GetAttribute(entityId, staticAttributeId));
+        Assert.Equal(FixedScalar.FromSingle(9f), simulation.World.GetAttribute(entityId, healthAttributeId));
+        Assert.Equal(FixedScalar.FromSingle(50f), simulation.World.GetAttribute(entityId, staticAttributeId));
     }
 
     private static void SeedPhysicalNeighborhood(Simulation simulation, int terrainId)
@@ -817,7 +792,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
         }
     }
 
-    private static KernelTuningOptions CultureInfluenceActionScaleTuning(float scale) =>
+    private static KernelTuningOptions CultureInfluenceActionScaleTuning(FixedScalar scale) =>
         new()
         {
             Programs = new KernelProgramTuningOptions
@@ -832,12 +807,12 @@ public sealed partial class LowAltitudePhysicsProgramTests
         int verbId,
         int operationCode,
         int targetModeCode,
-        float influenceDelta,
+        FixedScalar influenceDelta,
         int influenceRadius,
         int targetKindId = 0,
-        float coverageGrowthChance = 0f,
-        float headquartersMoveChance = 0f,
-        float requiredInfluence = 0f,
+        FixedScalar coverageGrowthChance = default,
+        FixedScalar headquartersMoveChance = default,
+        FixedScalar requiredInfluence = default,
         int planeCode = PlaneCodes.Physical)
     {
         var verbSlot = simulation.LowAltitudeVerbs.RegisterVerb(
@@ -854,7 +829,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
             dwellTicks: 0,
             targetRadius: 0,
             candidateSampleCount: 16,
-            weight: 1f,
+            weight: FixedScalar.FromSingle(1f),
             influenceDelta: influenceDelta,
             influenceRadius: influenceRadius,
             coverageGrowthChance: coverageGrowthChance,
@@ -882,17 +857,17 @@ public sealed partial class LowAltitudePhysicsProgramTests
             dwellTicks: 0,
             targetRadius: 0,
             candidateSampleCount: 512,
-            weight: 1f,
-            influenceDelta: 5f,
+            weight: FixedScalar.FromSingle(1f),
+            influenceDelta: FixedScalar.FromSingle(5f),
             influenceRadius: 0,
-            coverageGrowthChance: 0f,
-            headquartersMoveChance: 0f,
-            requiredInfluence: 0f,
+            coverageGrowthChance: FixedScalar.FromSingle(0f),
+            headquartersMoveChance: FixedScalar.FromSingle(0f),
+            requiredInfluence: FixedScalar.FromSingle(0f),
             foreignInfluenceFilterEnabled: 1,
             foreignInfluenceBlockPositiveRelationships: 1,
             foreignInfluenceAllowNegativeRelationships: 1,
-            foreignInfluenceMinimumRelationshipStrength: 0.05f,
-            foreignInfluenceAllowUnrelatedInfluenceAtOrAbove: 50f);
+            foreignInfluenceMinimumRelationshipStrength: FixedScalar.FromSingle(0.05f),
+            foreignInfluenceAllowUnrelatedInfluenceAtOrAbove: FixedScalar.FromSingle(50f));
         AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.SubtractOtherCellScalar);
     }
 
@@ -922,12 +897,12 @@ public sealed partial class LowAltitudePhysicsProgramTests
             dwellTicks: dwellTicks,
             targetRadius: targetRadius,
             candidateSampleCount: 4,
-            weight: 1f,
-            influenceDelta: 0f,
+            weight: FixedScalar.FromSingle(1f),
+            influenceDelta: FixedScalar.FromSingle(0f),
             influenceRadius: 0,
-            coverageGrowthChance: 0f,
-            headquartersMoveChance: 0f,
-            requiredInfluence: 0f);
+            coverageGrowthChance: FixedScalar.FromSingle(0f),
+            headquartersMoveChance: FixedScalar.FromSingle(0f),
+            requiredInfluence: FixedScalar.FromSingle(0f));
         AddPrimitiveSteps(simulation, verbSlot, ProgramOpcodeCodes.MoveActor);
     }
 
@@ -935,17 +910,17 @@ public sealed partial class LowAltitudePhysicsProgramTests
     {
         if (operationCode is ProgramOpcodeCodes.TryClaimCell or ProgramOpcodeCodes.TryRelocateEntity)
         {
-            simulation.LowAltitudeVerbs.AddPrimitiveStep(verbSlot, ProgramOpcodeCodes.AddOwnedCellScalar, 0, 0f);
+            simulation.LowAltitudeVerbs.AddPrimitiveStep(verbSlot, ProgramOpcodeCodes.AddOwnedCellScalar, 0, FixedScalar.FromSingle(0f));
         }
 
-        simulation.LowAltitudeVerbs.AddPrimitiveStep(verbSlot, operationCode, 0, 0f);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(verbSlot, operationCode, 0, FixedScalar.FromSingle(0f));
     }
 
     private static void AssertSelectedForeignCultureCellReduced(
         Simulation simulation,
         int actorId,
         int cultureId,
-        params (int Q, int R, float Before)[] candidates)
+        params (int Q, int R, FixedScalar Before)[] candidates)
     {
         var target = (simulation.LowAltitudeVerbs.State.TargetQ(actorId), simulation.LowAltitudeVerbs.State.TargetR(actorId));
         Assert.Contains(candidates, candidate => (candidate.Q, candidate.R) == target);
@@ -989,36 +964,6 @@ public sealed partial class LowAltitudePhysicsProgramTests
         Assert.Fail("Expected entity movement event.");
     }
 
-    private static void AssertCellInfluenceAction(
-        Simulation simulation,
-        KernelEventCursor cursor,
-        int entityId,
-        int actionId)
-    {
-        _ = actionId;
-        var cultureId = simulation.World.EntityCultureId(entityId);
-        while (simulation.Events.TryRead(cursor, out var read))
-        {
-            if (read.Event.EventType != KernelEventType.CellCultureInfluenceChanged)
-            {
-                continue;
-            }
-
-            var changed = read.Event.AsCellCultureInfluenceChanged();
-            if (changed.CultureId != cultureId)
-            {
-                continue;
-            }
-
-            Assert.Equal(KernelProgramCodes.LowAltitudeVerbs, read.Event.ProgramId);
-            Assert.Equal(simulation.LowAltitudeVerbSourceCodeId, read.Event.SourceCodeId);
-            Assert.True(changed.CurrentRawInfluence > changed.PreviousRawInfluence);
-            return;
-        }
-
-        Assert.Fail("Expected cell culture influence event attributed to the low-altitude verb program.");
-    }
-
     private static void RegisterForeignInfluenceAffordance(Simulation simulation, int actorKindId, int favoredKindId) =>
         simulation.LowAltitudeVerbs.RegisterAffordance(
             sourceKindCode: AffordanceSourceKindCodes.Generator,
@@ -1031,8 +976,8 @@ public sealed partial class LowAltitudePhysicsProgramTests
             relationshipDirectionCode: 0,
             operationCode: ProgramOpcodeCodes.SubtractOtherCellScalar,
             polarityCode: AffordancePolarityCodes.Reduce,
-            threshold: 0f,
-            weight: 3f);
+            threshold: FixedScalar.FromSingle(0f),
+            weight: FixedScalar.FromSingle(3f));
 
     private static void AssertRelationshipChangedByProgram(
         Simulation simulation,
@@ -1056,7 +1001,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
             Assert.Equal(KernelProgramCodes.LowAltitudeVerbs, read.Event.ProgramId);
             Assert.Equal(simulation.LowAltitudeVerbSourceCodeId, read.Event.SourceCodeId);
             Assert.Equal(actionId, changed.ActionId);
-            Assert.True(changed.NewStrength > changed.PreviousStrength);
+            Assert.True(changed.NewStrengthUnits > changed.PreviousStrengthUnits);
             return;
         }
 

@@ -224,11 +224,8 @@ public sealed class KernelRuntimeFactory
     {
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Movement, enabled.Movement);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.LowAltitudeVerbs, enabled.LowAltitudeVerbs);
-        ApplyProgramEnabledOverride(programs, KernelProgramCodes.MapActivity, enabled.MapActivity);
-        ApplyProgramEnabledOverride(programs, KernelProgramCodes.MapSignals, enabled.MapSignals);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Effects, enabled.Effects);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.CultureSlots, enabled.CultureSlots);
-        ApplyProgramEnabledOverride(programs, KernelProgramCodes.Upkeep, enabled.Upkeep);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Gambits, enabled.Gambits);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Relationships, enabled.Relationships);
         ApplyProgramEnabledOverride(programs, KernelProgramCodes.Generators, enabled.Generators);
@@ -304,7 +301,7 @@ public sealed class KernelUiRuntime : IDisposable
 
     private readonly KernelRuntime _runtime;
     private readonly RunLogger? _runLogger;
-    private long _lastCultureBoundaryRevision = -1;
+    private long _lastCultureLocalityRevision = -1;
     private IReadOnlyList<CulturePowerSummary> _culturePowers = [];
     private int _culturePowersTick = -1;
     private KnowledgeOverviewSnapshot? _knowledgeOverview;
@@ -339,7 +336,7 @@ public sealed class KernelUiRuntime : IDisposable
         MinorActorFlow = minorActorFlow;
         EntityTrails = entityTrails;
         _runLogger = runLogger;
-        RefreshCultureBoundariesIfChanged();
+        RefreshCultureLocalityIfChanged();
     }
 
     public HexMapProjection Map { get; }
@@ -377,7 +374,7 @@ public sealed class KernelUiRuntime : IDisposable
         var previousTick = Ui.CurrentTick;
         _runtime.Host.DrainConsumers();
         var currentTick = Ui.CurrentTick;
-        RefreshCultureBoundariesIfChanged();
+        RefreshCultureLocalityIfChanged();
 
         if (_runLogger is not null)
         {
@@ -418,16 +415,16 @@ public sealed class KernelUiRuntime : IDisposable
         return _knowledgeOverview;
     }
 
-    private void RefreshCultureBoundariesIfChanged()
+    private void RefreshCultureLocalityIfChanged()
     {
-        var revision = _runtime.Host.CultureBoundaryRevision;
-        if (_lastCultureBoundaryRevision == revision)
+        var revision = _runtime.Host.CultureLocalityRevision;
+        if (_lastCultureLocalityRevision == revision)
         {
             return;
         }
 
-        _runtime.Host.RefreshCultureBoundaries(Map, incremental: _lastCultureBoundaryRevision >= 0);
-        _lastCultureBoundaryRevision = revision;
+        _runtime.Host.RefreshCultureLocality(Map, incremental: _lastCultureLocalityRevision >= 0);
+        _lastCultureLocalityRevision = revision;
     }
 
     public void Dispose()

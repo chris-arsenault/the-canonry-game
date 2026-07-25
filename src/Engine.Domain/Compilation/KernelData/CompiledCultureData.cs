@@ -7,5 +7,5 @@ public sealed class CompiledCultureData
 
 public sealed record CompiledCultureDefinition(
     int CultureId,
-    float PhysicalInfluenceProductionMultiplier,
-    float SemanticInfluenceProductionMultiplier);
+    FixedScalar PhysicalInfluenceProductionMultiplier,
+    FixedScalar SemanticInfluenceProductionMultiplier);

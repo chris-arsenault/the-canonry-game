@@ -14,16 +14,21 @@ internal sealed class WorldBeatsProgramState : IKernelProgramState
     internal readonly int[] OpenAgeSlots;
     internal readonly int[] OpenedTicks;
     internal readonly int[] LastClosedTicks;
-    internal float PreviousTotalCultureMass;
+    internal readonly int[] ActiveRelationshipCountsByKind;
+    internal readonly int[] EndedRelationshipCountsByKind;
+    internal FixedScalar PreviousTotalCultureMass;
     internal int PreviousMassSampleTick;
-    internal float MassGrowthPermille;
+    internal FixedScalar MassGrowthPermille;
 
-    public WorldBeatsProgramState(int ageCapacity)
+    public WorldBeatsProgramState(int ageCapacity, int relationshipKindCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ageCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(ageCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(relationshipKindCapacity);
         OpenAgeSlots = new int[WorldBeatTrackCodes.Count];
         OpenedTicks = new int[WorldBeatTrackCodes.Count];
         LastClosedTicks = new int[ageCapacity + 1];
+        ActiveRelationshipCountsByKind = new int[relationshipKindCapacity + 1];
+        EndedRelationshipCountsByKind = new int[relationshipKindCapacity + 1];
         for (var slot = 0; slot < LastClosedTicks.Length; slot++)
         {
             LastClosedTicks[slot] = NeverClosed;
@@ -34,5 +39,5 @@ internal sealed class WorldBeatsProgramState : IKernelProgramState
 
     public int ProgramId => KernelProgramCodes.WorldBeats;
 
-    public int SchemaVersion => 2;
+    public int SchemaVersion => 3;
 }

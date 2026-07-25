@@ -41,8 +41,8 @@ internal static class OccurrenceEntity
                 TraitMapDelta(K.Occurrence, Attr.Momentum, Effect.MapThreatAtLocation, -0.035f, 3f, PrimaryPlane.Semantic),
                 TraitMapDelta(K.Occurrence, Attr.Momentum, Effect.MapCrowdingLoad, -0.025f, 0.5f, PrimaryPlane.Semantic)),
         ],
-        MapSignal = MapSignal(radius: 2, capacity: 0.4f, support: 0.5f, threat: 0.5f,
-            baseMass: 5f, coverageScale: 0f, influenceScale: 0.04f, activityScale: 0.05f,
+        Locality = Locality(radius: 2, capacity: 0.4f, support: 0.5f, threat: 0.5f,
+            baseMass: 5f, coverageScale: 0f, influenceScale: 0.04f,
             healthScale: 0.04f, attractorRadius: 2),
         MovementProfiles = MovementProfiles(
             physicalDefault: Profile.Trail,

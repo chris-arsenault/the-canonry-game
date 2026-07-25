@@ -1,8 +1,7 @@
 # Pre-Parallelization Simulation Redesign Plan
 
-Status: Phase 1 complete on 2026-07-24. This is not current architecture.
-Runtime implementation begins only when the applicable later phase is
-authorized.
+Status: Phases 1-5 complete on 2026-07-24. Completed phase results describe the
+current implementation; Phase 6 and later remain unimplemented directions.
 
 Phase 1 code basis: `main` at `7344037` on 2026-07-24.
 
@@ -336,8 +335,11 @@ phase in this plan depends on it.
 
 ## Fixed-Point Direction
 
-Fixed-point conversion is field-specific. It is not a blanket ban on floating
-point.
+Fixed-point precision is field-specific, but the kernel boundary is not.
+`Engine.Kernel` contains no `System.Single` or `System.Double` runtime state,
+signatures, arithmetic, tables, event compatibility views, or snapshot fields.
+All values compiled for kernel execution cross the compiler boundary as
+integer-backed types.
 
 ### Convert
 
@@ -346,12 +348,12 @@ point.
 - health and persistent attributes that receive additive deltas;
 - road quality and road work;
 - district and other persistent local modifiers;
-- any accumulator that is merged across work items or shards.
+- local candidate weights, probabilities, scores, ratios, heat, and path costs;
+- every other numeric value stored or calculated by the kernel.
 
-### May remain floating point
+### Floating point outside the kernel
 
 - authored JSON/C# configuration before compilation;
-- local candidate weights and probabilities that are not reduced;
 - diagnostic calculations outside the kernel;
 - presentation values derived from fixed-point state.
 
@@ -602,6 +604,13 @@ the reduced serial kernel meets it, Phase 8 selects no parallel strategy.
 Otherwise a parallel strategy must beat that reduced one-worker model
 end-to-end; worker-loop speedup alone does not pass.
 
+Phase 4 subsequently removed the five-to-one raw/main clock. In the current
+clock, the same accepted evidence horizon is `20,000` world pulses and the same
+throughput gate is `12` world pulses/s: one current pulse performs the main
+simulation work formerly scheduled every fifth raw tick and also runs five
+minor-actor substeps. A `100,000`-world-pulse run is now a separate five-times
+longer product horizon, not the old performance gate under a renamed counter.
+
 #### Phase 1 result
 
 `preparallel-phase1-1x1000-20260724` completed successfully with a fresh
@@ -675,6 +684,8 @@ Will not change:
 
 ### Phase 2: Break Accidental History Dependencies
 
+Status: complete on 2026-07-24.
+
 Owner: `Engine.Kernel`, `Engine.Domain`, `Engine.Gameplay`, `IceRemembers`,
 projection, and observability at their existing boundaries.
 
@@ -725,7 +736,44 @@ Will not change:
 - map activity/signals/boundaries yet;
 - threading.
 
+#### Phase 2 result
+
+- Retirement is final at the simulation mutation boundary. It records compact
+  chronicle role-retired facts, ends and immediately releases incident
+  relationships, removes hosted districts, and clears the occurrence's
+  gambit-cooldown row.
+- Relationship rows are active-only and reusable. World-beat living and ended
+  relationship facts are maintained on create/end rather than reconstructed
+  by scanning a lifetime edge archive.
+- Artifact districts are dense active templates. Installation preserves only
+  the authored kind/subtype/culture, host, cell, bonus, and future relationship
+  rule. Reawakening consumes the template and creates a fresh artifact
+  occurrence with a fresh relationship; it never revives the retired source,
+  and the new occurrence cannot act until the following tick.
+- Chronicles retain compact role-retired bits and relationship start ticks
+  instead of querying completed provenance or dereferencing retired cast
+  members for pursuit and beat conditions.
+- Gambit lifetime action history, implicit recency decay, generic
+  history-count preconditions, and sparse lifetime cooldown tables are gone.
+  Current cooldowns are direct bounded expiry arrays and are cleared on
+  retirement.
+- Completed provenance invocation/output tables and their growable-storage
+  machinery are gone. Active invocation frames count outputs while primitive
+  mutation events and one completion record stream the durable facts to the
+  external provenance projection.
+- The live UI and snapshot materialization boundary expose active entities and
+  relationships only. Retired entity slots are not yet recycled inside the
+  kernel snapshot because generation-safe occurrence handles are the Phase 6
+  prerequisite; this is an explicit storage boundary, not a retained gameplay
+  dependency.
+- The behavioral contracts cover final incident-edge retirement and reuse,
+  fresh artifact reawakening, compact chronicle retirement facts, incremental
+  world-beat counts, streamed provenance, and active-only snapshot/projection
+  output.
+
 ### Phase 3: Remove Materialized Global And Observer Work
+
+Status: complete on 2026-07-24.
 
 Owner: `Engine.Kernel` for simulation facts, host/projection/observability for
 external consumers, and Ice Remembers for simplified authored conditions.
@@ -782,6 +830,40 @@ Will not change:
 - the individual cohort model;
 - parallel execution.
 
+#### Phase 3 result
+
+- `MapActivity`, `MapSignals`, and `CultureBoundaries` are no longer tick
+  programs. Their registrations, state arrays, snapshots, dependency channels,
+  installers, program codes, and runtime configuration capacities are deleted.
+- Authored map-signal configuration is now domain-agnostic `Locality`
+  configuration. Consumers calculate current occupancy, terrain capacity,
+  crowding, nearby kind support/threat, relationship support/threat, and
+  attractor mass directly at the bounded point where they act. Historical
+  activity heat is intentionally gone.
+- Culture consumers use a radius-two `CultureLocality` descriptor containing
+  current own and foreign mass/share, adjacent and ring-two support, connected
+  local mass, strength, and a local interior-hole heuristic. Runtime connected
+  components, component identity, largest-component gravity, and read-triggered
+  cache rebuilds are gone.
+- Generator "same component" binding is now a bounded same-culture route
+  requirement. It requires locally supported endpoints within a fixed physical
+  distance; it does not preserve arbitrary historical connectivity.
+- Component and hole summaries are computed only at the host telemetry sampling
+  boundary. The UI consumes dirty radius-two locality refreshes, while ordinary
+  headless runs keep the existing opt-in consumer registration and construct no
+  UI projections.
+- Raw culture mutation no longer advances the world version, records scalar
+  provenance outputs, or emits one `CellCultureInfluenceChanged` event per
+  culture/cell mutation. Semantic action events remain, and Monte Carlo exports
+  sampled `culture_field_cell_snapshots` instead.
+- The world maintains total physical culture raw mass incrementally for the
+  rare global world-beat query rather than scanning every culture cell at each
+  sample.
+- Snapshot format `46` removes the deleted program state and obsolete capacity
+  knobs. Behavioral contracts now cover direct locality queries, local culture
+  descriptors, bounded dirty refresh, sampled telemetry, and the single-cell
+  anchor needed by ordinary influence work.
+
 ### Phase 4: Simplify Low-Altitude Execution
 
 Owner: `Engine.Kernel` runtime plus authored rule compilation in
@@ -828,6 +910,44 @@ Will not change:
 - authored generator/chronicle catalogs except conditions invalidated by
   removed runtime facts.
 
+#### Phase 4 result
+
+- `WorldState` now maintains active entity and active relationship lists.
+  Retiring an entity removes it from active kind, culture, and spatial indexes;
+  retiring either relationship endpoint still ends and releases each incident
+  edge.
+- Low-altitude verb, movement-profile, relationship-maintenance, effect,
+  lifecycle, minor-actor emitter, and minor-actor verb rules are indexed by the
+  kind or source rule that can use them. Hot paths no longer filter unrelated
+  global rule tables for every active occurrence.
+- Follow-configured relationships expose entity movement intent. The
+  relationship pass owns contact memory, strength drift, and culling only;
+  target placement flows through the ordinary movement boundary.
+- Effects and upkeep are one active-entity resolution pass. Compatible
+  attribute deltas, district healing, and lifecycle drain accumulate before
+  each affected attribute is written once, followed by lifecycle retirement.
+  The separate upkeep runtime, snapshot, program registration, and enable flag
+  are deleted.
+- District installation/removal incrementally maintains direct per-host
+  healing totals and compact per-culture/cell emission totals. The effects pass
+  consumes those totals rather than rescanning every district for every entity.
+- The raw/main clock split is deleted. Authored cadences and durations are
+  world pulses; minor actors alone take a configurable number of bounded
+  substeps inside a pulse.
+- Minor actors remain individual. Direct reusable slots replace hash-table
+  actor fields, source/rule state is direct-indexed, active slots are dense, and
+  a deterministic due heap visits only actors whose action or expiration is
+  due.
+- Snapshot format `47` records the new active indexes, rule indexes, direct
+  minor-actor state, unified tuning clock, and merged entity-resolution data.
+- Repo test targets now persist complete output under
+  `.artifacts/test-logs/` and print a bounded failure summary without losing the
+  original `dotnet test` exit code.
+
+Phase 4 deliberately does not introduce fixed-point arithmetic,
+generation-safe occurrence handles, delta epochs, cohort aggregation, or
+parallel execution.
+
 ### Phase 5: Define Fixed-Point Numeric Contracts
 
 Owner: kernel data contract and domain compiler boundary.
@@ -854,13 +974,90 @@ Exit gate:
 
 - every shared accumulator has a documented integer representation and
   deterministic reduction rule;
+- the `Engine.Kernel` and primitive event assemblies expose no floating-point
+  member signatures;
+- compiled domain and gameplay runtime records are integer-backed before
+  installation;
 - no silent overflow;
 - authored content remains readable and does not expose kernel scaling units.
 
 Will not change:
 
 - threading;
-- candidate weighting that has no reduction/determinism requirement.
+- candidate weighting and selection semantics except for bounded quantization.
+
+#### Phase 5 result
+
+Status: complete on 2026-07-24.
+
+The serial kernel is now fully fixed point. It has no `float`, `double`,
+`MathF`, floating-point table, or floating-point member signature. Durable
+semantic stocks use field-specific integer units; dimensionless probabilities,
+weights, scores, ratios, heat, and path costs use the signed `FixedScalar`
+representation. Authored content may remain ordinary floating point before
+compilation. `Engine.Domain` and `Engine.Gameplay` quantize every compiled
+runtime record before the host installs it, and presentation/telemetry perform
+explicit conversion after values leave the event or query boundary. Conversion
+uses round-to-nearest with midpoint values away from zero. Non-finite and
+out-of-contract authored values are rejected.
+
+The range audit used the compiled definitions, kernel limits, tests, and the
+bounded Release sample
+`preparallel-phase5-fixedpoint-1x1000-20260724`. It did not require a long Monte
+Carlo run. That earlier run measured the first field-family conversion and is
+retained only as historical directional evidence; it is not the acceptance
+evidence for the completed floating-point boundary removal.
+
+That sample advanced 1,000 current world pulses in `16.006344` seconds, or
+`62.5` world pulses/s. Its tick label must not be compared directly with Phase
+1's `221.2` raw ticks/s: 1,000 current pulses perform the work of 5,000 former
+raw ticks, including 5,000 minor-actor substeps. That is `312.4` former-raw-tick
+equivalents/s while reaching a world five times farther into simulation. The
+short result is directional evidence that the completed simplification and
+fixed-point work did not introduce the apparent `3.5x` regression suggested by
+the unconverted tick labels; Phase 8 still owns late-horizon profiling.
+
+The full-conversion remediation was accepted with repository-wide `make ci`
+(1,068 fast tests) and the registered Release smoke run
+`preparallel-phase5-full-fixedpoint-1x250-20260724`. Seed `9100` advanced 250
+world pulses in `10.7629472` simulation seconds (`23.2278` pulses/s), produced
+379,257 telemetry rows and 16 generator fires, and reported
+`map_degenerate=0`. This short run proves executable integration and supplies a
+post-remediation sanity point; it is deliberately not a late-horizon
+performance or balance claim.
+
+| Field family | Authored and current runtime range | Runtime representation and precision | Reduction, clamp, and overflow | Persistence, events, and presentation |
+| --- | --- | --- | --- | --- |
+| Raw culture mass and deltas | Current per-cell state is `[0, 2000]`; authored thresholds reach `300`, initial sources reach `35`, district emission reaches `2`, and erosion reaches `25` per application. The generic conversion accepts signed deltas through `+/-1,000,000`. Zero cells are removed by the sparse layer. | `int32`, scale `1,000`, precision `0.001`; total physical culture is `int64` units. | Each contribution is quantized before merge. Adds use an `int64` intermediate and saturate at the per-cell `[0, 2,000,000]` unit clamp. Ratio products use `int64` and deterministic midpoint-away rounding. The world total is checked rather than wrapped. | Snapshot 49 stores integer cell values and the integer total. Culture state-change events expose only integer units; projection and telemetry divide at their own boundary. |
+| Relationship strength and deltas | Strength is `[0, 1]`; authored conditions observed through `0.85`, with current deltas approximately `[-0.32, +0.04]`. Zero or a compiled cull threshold ends an active relationship. | `int32`, scale `1,000,000`, precision `0.000001`. | Maintenance and effect contributions are quantized independently, summed with saturating `int64` addition, then clamped to `[0, 1,000,000]`. Cull is tested after the deterministic merge. | Snapshot 49 and relationship events store integer strength units. Projection and telemetry explicitly divide outside the runtime boundary. |
+| Persistent attributes, including health | The shared contract is `[-10,000, +10,000]`; Ice Remembers health is authored as `[0, 100]` with default `90`, and current effects include both small continuous changes and discrete changes up to roughly `30`. | `int32`, scale `100,000`, precision `0.00001`. | Every effect contribution is quantized before accumulation. Adds use `int64` and saturate at the shared numeric envelope, followed by the compiled per-attribute min/max clamp. Invalid authored bounds are rejected. | Snapshot 49 and attribute events store integer units. Domain definitions may remain readable floats before compilation; projection and telemetry divide outside the runtime boundary. |
+| Road quality and work | Quality is `[0, 100]`; active checkpoints are `25` and `75`, ordinary authored work is around `1`, minor-actor work reaches about `1.6`, and the current per-pulse decay ratio is `0.9995`. | `int32`, scale `1,000`, precision `0.001`; decay ratios use scale `1,000,000`. | Work uses saturating `int64` addition followed by `[0, 100,000]` clamp. Lazy decay uses integer exponentiation by squaring and `int64` ratio products with midpoint-away rounding; checkpoint floors are integer units. | Movement-state schema 7 and snapshot 49 store integer quality and floor tables. Road events store integer units; path scoring remains fixed point and off-kernel consumers convert explicitly. |
+| Persistent local modifiers | District healing uses attribute units; district culture emission uses culture units. Entity influence/favor deltas use scale `100,000` and a shared `+/-10,000` envelope. Knowledge and decay multipliers use scale `1,000,000` and a shared `+/-100` envelope; current derived influence is clamped to `[0.1, 3]`. | `int32`, using the destination field's scale or the explicit modifier/ratio scale. This avoids a misleading universal modifier precision. | District totals and entity modifier deltas use saturating `int64` addition. Multiplier composition uses `int64` products and deterministic midpoint-away division. Semantic clamps occur after the integer merge. | Snapshot 49 stores the integer tables and arrays. Authored district bonuses and multipliers may stay floats before compilation; off-kernel consumers divide by the selected scale. |
+| Dimensionless runtime scalars | Probabilities, candidate weights, scores, ratios, heat, path costs, affinities, and other non-stock values use the ranges required by their owning rule. | Signed `int64` `FixedScalar`, scale `1,000,000`, precision `0.000001`; positive infinity has an explicit sentinel. | Adds saturate, multiply and divide use `Int128` intermediates, and division rounds midpoint values away from zero. Owning rules apply their semantic clamps. | Compiled program records, primitive scalar tables, snapshot fields, command slots, and event long slots carry integer units. Only authored and off-kernel presentation APIs convert to floating point. |
+
+The converted families are:
+
+- world attributes and health;
+- active relationship strength, direct deltas, and maintenance reductions;
+- raw culture layers, influence production, decay, anchors, and physical totals;
+- road quality, work, floors, and lazy decay;
+- district aggregates, culture/favor deltas, and knowledge multipliers.
+
+The primitive state-change event boundary now carries the integer units for
+attributes, relationships, raw culture, roads, and generic scalars. It exposes
+no typed floating-point compatibility properties. Consumers convert explicit
+unit fields. Snapshot format `49` intentionally replaces the prior numeric
+layout and the partial-conversion format without a legacy compatibility layer.
+
+Floating point remains only before the compiler boundary in authored
+configuration and after the kernel/event boundary in diagnostics, analysis, and
+presentation. Candidate weights and probabilities, terrain/path scoring,
+culture-slot candidate scores, minor-actor input rates, and chronicle selection
+heat are fixed point while compiled or executing.
+
+Phase 5 deliberately does not introduce generation-safe occurrence handles,
+delta epochs, active-only pool storage, candidate-weight changes, or parallel
+execution.
 
 ### Phase 6: Rebuild Active-Only Dense Storage
 

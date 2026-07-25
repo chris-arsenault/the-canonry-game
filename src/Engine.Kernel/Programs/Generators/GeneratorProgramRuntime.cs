@@ -20,7 +20,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _generatorIds => Data.GeneratorIds;
     private int[] _targetKindIds => Data.TargetKindIds;
     private int[] _pulseWeights => Data.PulseWeights;
-    private float[] _agePulseWeightMultipliers => Data.AgePulseWeightMultipliers;
+    private FixedScalar[] _agePulseWeightMultipliers => Data.AgePulseWeightMultipliers;
     private int[] _cadenceTicks => Data.CadenceTicks;
     private int[] _cadenceJitterTicks => Data.CadenceJitterTicks;
     private int[] _targetRequiredTagBits => Data.TargetRequiredTagBits;
@@ -30,13 +30,13 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _bindingCultureIds => Data.BindingCultureIds;
     private int[] _bindingRelatedToTargetKindIds => Data.BindingRelatedToTargetKindIds;
     private int[] _bindingRelatedToTargetIncoming => Data.BindingRelatedToTargetIncoming;
-    private float[] _bindingRelatedToTargetMinStrengths => Data.BindingRelatedToTargetMinStrengths;
+    private FixedScalar[] _bindingRelatedToTargetMinStrengths => Data.BindingRelatedToTargetMinStrengths;
     private int[] _producedQueryRequiredTagBits => Data.ProducedQueryRequiredTagBits;
     private int[] _producedQueryWithoutTagBits => Data.ProducedQueryWithoutTagBits;
     private int[] _producedQueryCultureIds => Data.ProducedQueryCultureIds;
     private int[] _producedQueryRelatedToTargetKindIds => Data.ProducedQueryRelatedToTargetKindIds;
     private int[] _producedQueryRelatedToTargetIncoming => Data.ProducedQueryRelatedToTargetIncoming;
-    private float[] _producedQueryRelatedToTargetMinStrengths => Data.ProducedQueryRelatedToTargetMinStrengths;
+    private FixedScalar[] _producedQueryRelatedToTargetMinStrengths => Data.ProducedQueryRelatedToTargetMinStrengths;
     private int[] _nextCadenceFireTicks => State.NextCadenceFireTicks;
     private int[] _maxRuns => Data.MaxRuns;
     private int[] _runCounts => State.RunCounts;
@@ -85,7 +85,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _pulseFailedFireCounts => _scratch.PulseFailedFireCounts;
     private int[] _subtypeIds => Data.SubtypeIds;
     private int[] _relationshipKindFilterIds => Data.RelationshipKindFilterIds;
-    private float[] _relationshipKindFilterMinimumStrengths => Data.RelationshipKindFilterMinimumStrengths;
+    private FixedScalar[] _relationshipKindFilterMinimumStrengths => Data.RelationshipKindFilterMinimumStrengths;
     private int[] _relationshipKindFilterAllowsSlotCausalLimitMultiplier => Data.RelationshipKindFilterAllowsSlotCausalLimitMultiplier;
     private int[] _terrainFilterIds => Data.TerrainFilterIds;
     private int[] _targetTerrainRequirementTerrainIds => Data.TargetTerrainRequirementTerrainIds;
@@ -96,7 +96,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _bindingKindIds => Data.BindingKindIds;
     private int[] _bindingAdjacentToTarget => Data.BindingAdjacentToTarget;
     private int[] _bindingCultureMatchCodes => Data.BindingCultureMatchCodes;
-    private int[] _bindingSamePhysicalCultureComponentAsTarget => Data.BindingSamePhysicalCultureComponentAsTarget;
+    private int[] _bindingRequireTargetCultureRoute => Data.BindingRequireTargetCultureRoute;
     private int[] _bindingSubtypeStarts => Data.BindingSubtypeStarts;
     private int[] _bindingSubtypeCounts => Data.BindingSubtypeCounts;
     private int[] _bindingWithoutOutgoingStarts => Data.BindingWithoutOutgoingStarts;
@@ -126,14 +126,14 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _producedFixedCultureIds => Data.ProducedFixedCultureIds;
     private int[] _producedCulturePlacementCodes => Data.ProducedCulturePlacementCodes;
     private int[] _producedFeatureKinds => Data.ProducedFeatureKinds;
-    private float[] _producedCreateChances => Data.ProducedCreateChances;
+    private FixedScalar[] _producedCreateChances => Data.ProducedCreateChances;
     private int[] _producedSubtypeChoiceStarts => Data.ProducedSubtypeChoiceStarts;
     private int[] _producedSubtypeChoiceCounts => Data.ProducedSubtypeChoiceCounts;
     private int[] _producedQuerySubtypeStarts => Data.ProducedQuerySubtypeStarts;
     private int[] _producedQuerySubtypeCounts => Data.ProducedQuerySubtypeCounts;
     private int[] _producedQueryAdjacentToTarget => Data.ProducedQueryAdjacentToTarget;
     private int[] _producedQueryCultureMatchCodes => Data.ProducedQueryCultureMatchCodes;
-    private int[] _producedQuerySamePhysicalCultureComponentAsTarget => Data.ProducedQuerySamePhysicalCultureComponentAsTarget;
+    private int[] _producedQueryRequireTargetCultureRoute => Data.ProducedQueryRequireTargetCultureRoute;
     private int[] _producedQueryWithoutOutgoingStarts => Data.ProducedQueryWithoutOutgoingStarts;
     private int[] _producedQueryWithoutOutgoingCounts => Data.ProducedQueryWithoutOutgoingCounts;
     private int[] _producedQueryWithoutIncomingStarts => Data.ProducedQueryWithoutIncomingStarts;
@@ -153,7 +153,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _relationshipDestinationRefCodes => Data.RelationshipDestinationRefCodes;
     private int[] _relationshipKindIds => Data.RelationshipKindIds;
     private int[] _relationshipReplaceExistingOutgoing => Data.RelationshipReplaceExistingOutgoing;
-    private float[] _relationshipStrengths => Data.RelationshipStrengths;
+    private FixedScalar[] _relationshipStrengths => Data.RelationshipStrengths;
     private int[] _effectTypeCodes => Data.EffectTypeCodes;
     private int[] _effectRefOrKindIds => Data.EffectRefOrKindIds;
     private int[] _effectInstanceSelectionCodes => Data.EffectInstanceSelectionCodes;
@@ -165,7 +165,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _effectPreferredTerrainCounts => Data.EffectPreferredTerrainCounts;
     private int[] _effectAllowedTerrainStarts => Data.EffectAllowedTerrainStarts;
     private int[] _effectAllowedTerrainCounts => Data.EffectAllowedTerrainCounts;
-    private float[] _effectValues => Data.EffectValues;
+    private FixedScalar[] _effectValues => Data.EffectValues;
     private int[] _scratchQ => _scratch.Q;
     private int[] _scratchR => _scratch.R;
     private int[] _scratchScore => _scratch.Score;
@@ -276,9 +276,9 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     {
         ValidatePositive(generatorId);
         ValidatePositive(targetKindId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(pulseWeight);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(maxRuns);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(cadenceTicks);
+        NumericGuard.ThrowIfNegative(pulseWeight);
+        NumericGuard.ThrowIfNegative(maxRuns);
+        NumericGuard.ThrowIfNegative(cadenceTicks);
         if (cadenceJitterTicks < 0 || (cadenceTicks > 0 && cadenceJitterTicks >= cadenceTicks))
         {
             throw new global::System.InvalidOperationException();
@@ -322,7 +322,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _targetSubtypeCounts[generatorSlot]++;
     }
 
-    public void AddTargetRequiredOutgoingRelationship(int generatorSlot, int relationshipKindId, float minimumStrength = 0f)
+    public void AddTargetRequiredOutgoingRelationship(int generatorSlot, int relationshipKindId, FixedScalar minimumStrength = default)
     {
         EnsureOpenGenerator(generatorSlot);
         if (_targetRequiredOutgoingCounts[generatorSlot] == 0)
@@ -334,7 +334,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _targetRequiredOutgoingCounts[generatorSlot]++;
     }
 
-    public void AddTargetRequiredIncomingRelationship(int generatorSlot, int relationshipKindId, float minimumStrength = 0f)
+    public void AddTargetRequiredIncomingRelationship(int generatorSlot, int relationshipKindId, FixedScalar minimumStrength = default)
     {
         EnsureOpenGenerator(generatorSlot);
         if (_targetRequiredIncomingCounts[generatorSlot] == 0)
@@ -351,14 +351,14 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     /// system vouches for - currently cast in a chronicle at or above the
     /// heat, or recently resolved out of a legendary one.
     /// </summary>
-    public void SetTargetChronicleGates(int generatorSlot, float heatMin, int legendaryWithinTicks)
+    public void SetTargetChronicleGates(int generatorSlot, FixedScalar heatMin, int legendaryWithinTicks)
     {
         EnsureGenerator(generatorSlot);
         Data.TargetChronicleHeatMin[generatorSlot] = heatMin;
         Data.TargetChronicleLegendaryWithinTicks[generatorSlot] = legendaryWithinTicks;
     }
 
-    public void AddTargetRequiredRelationship(int generatorSlot, int relationshipKindId, float minimumStrength = 0f)
+    public void AddTargetRequiredRelationship(int generatorSlot, int relationshipKindId, FixedScalar minimumStrength = default)
     {
         EnsureOpenGenerator(generatorSlot);
         if (_targetRequiredAnyCounts[generatorSlot] == 0)
@@ -398,8 +398,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     {
         EnsureOpenGenerator(generatorSlot);
         ValidatePositive(terrainId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(radius);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(maximumExclusive);
+        NumericGuard.ThrowIfNegative(radius);
+        NumericGuard.ThrowIfNegativeOrZero(maximumExclusive);
         if (_targetTerrainRequirementCount + 1 >= _targetTerrainRequirementTerrainIds.Length)
         {
             throw new KernelCapacityExceededException(
@@ -550,7 +550,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             return;
         }
 
-        var width = Tuning.ScaleMainTicks(Tuning.Generators.PulseWidthTicks * ProvinceWidthMultiplier(band));
+        var width = Tuning.Generators.PulseWidthTicks * ProvinceWidthMultiplier(band);
         var pulseIndex = (tick - 1) / width;
         if (State.ProvincePulseIndices[province] != pulseIndex)
         {
@@ -600,7 +600,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     // keeps them out of the snapshot.
     private void RefreshProvincesIfDue(Simulation simulation, int tick)
     {
-        var refreshTicks = Tuning.ScaleMainTicks(Tuning.Generators.ProvinceBandRefreshTicks);
+        var refreshTicks = Tuning.Generators.ProvinceBandRefreshTicks;
         if (_lastProvinceRefreshTick >= 0 && tick - _lastProvinceRefreshTick < refreshTicks)
         {
             return;
@@ -818,10 +818,10 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
 
         var (candidateCount, slotFillBonus, knowledgeWeight) = CountEligibleTargetsAndSlotFillBonus(simulation, slot);
         _pulseCandidateCounts[slot] = candidateCount;
-        var agedWeight = (int)global::System.MathF.Max(0f, _pulseWeights[slot] * _agePulseWeightMultipliers[slot]);
+        var agedWeight = (int)FixedScalar.Max(0, _pulseWeights[slot] * _agePulseWeightMultipliers[slot]);
         _pulseSelectionWeights[slot] = candidateCount == 0
             ? 0
-            : (int)global::System.MathF.Max(1f, (agedWeight + slotFillBonus) * (knowledgeWeight / candidateCount));
+            : (int)FixedScalar.Max(1, (agedWeight + slotFillBonus) * (knowledgeWeight / candidateCount));
         _pulseStatusCodes[slot] = candidateCount == 0
             ? GeneratorStatusCodes.Blocked
             : GeneratorStatusCodes.Eligible;
@@ -832,11 +832,11 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     {
         for (var slot = 1; slot <= _generatorCount; slot++)
         {
-            _agePulseWeightMultipliers[slot] = 1f;
+            _agePulseWeightMultipliers[slot] = 1;
         }
     }
 
-    public void ApplyAgePulseWeightMultiplier(int generatorId, float multiplier)
+    public void ApplyAgePulseWeightMultiplier(int generatorId, FixedScalar multiplier)
     {
         for (var slot = 1; slot <= _generatorCount; slot++)
         {
@@ -884,13 +884,13 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         return false;
     }
 
-    private (int CandidateCount, int SlotFillBonus, float KnowledgeWeight) CountEligibleTargetsAndSlotFillBonus(
+    private (int CandidateCount, int SlotFillBonus, FixedScalar KnowledgeWeight) CountEligibleTargetsAndSlotFillBonus(
         Simulation simulation,
         int generatorSlot)
     {
         var count = 0;
         var maxSlotFitCount = 0;
-        var knowledgeWeight = 0f;
+        var knowledgeWeight = FixedScalar.Zero;
         var world = simulation.World;
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
@@ -951,7 +951,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         var endProduced = firstProduced + _producedCounts[generatorSlot];
         for (var produced = firstProduced; produced < endProduced; produced++)
         {
-            if (_producedCreateIfMissing[produced] == 0 || _producedCreateChances[produced] <= 0f)
+            if (_producedCreateIfMissing[produced] == 0 || _producedCreateChances[produced] <= 0)
             {
                 continue;
             }

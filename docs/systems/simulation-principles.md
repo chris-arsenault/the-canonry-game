@@ -21,14 +21,30 @@ These goals are coupled. A map can look busy while the graph is poor; a graph
 can be diverse while every entity sits in one cluster. Tuning should measure all
 three before declaring success.
 
+## Numeric Determinism
+
+Durable additive simulation state is field-specific fixed point. Contributions
+are quantized before they enter a shared reduction, merged with explicit
+overflow behavior, and clamped once at the owning field's semantic boundary.
+Changing work partitioning must not change the result of culture, relationship,
+attribute, road, or persistent-modifier reductions.
+
+The kernel boundary is a blanket ban on floating point. Local probabilities,
+candidate scores, heat, ratios, and path costs use `FixedScalar` even when they
+are not shared accumulators. Authored rules may remain readable floats before
+compilation, and diagnostics or presentation may convert explicit units after
+the query/event boundary. Every runtime field still owns an explicit range,
+scale, rounding, intermediate-width, overflow, clamp, serialization, and
+projection contract.
+
 ## Time Calibration
 
-The canonical time mapping is **250 raw ticks ≈ 1 in-world year** (50 main
-ticks per year; `MinorActorMainTickRatio = 5` makes 5 raw ticks = 1 main tick,
-and all authored durations — lifecycle bands, gambit cooldowns, verb
-commitments, tenure — are main ticks converted uniformly by the kernel). A
-full simulation is on the order of 10,000 years (~2.5M raw ticks); a 25k-tick
-evidence run is roughly 100 years, or 1-3 generations.
+The canonical time mapping is **50 world pulses ≈ 1 in-world year**. Authored
+durations—lifecycle bands, gambit cooldowns, verb commitments, and tenure—are
+world pulses with no raw/main conversion. Minor actors currently take five
+labor substeps inside each world pulse, but those substeps do not advance the
+calendar. A full simulation is on the order of 10,000 years (~500k world
+pulses); a 25k-pulse evidence run is roughly 500 years.
 
 The lifespan feel target is a strong divide: ordinary mortals live decades,
 legendary entities reach centuries through active in-universe renewal (never
@@ -59,9 +75,9 @@ engagement, so:
 ## Altitude Boundaries
 
 Low altitude is the per-tick substrate. It may move entities, change health,
-read traits, write map activity and culture influence, run minor labor, and
-drift existing relationship strengths. It should not create named entities,
-introduce relationship kinds, or declare major narrative outcomes.
+read traits and direct locality facts, write culture influence, run minor
+labor, and drift existing relationship strengths. It should not create named
+entities, introduce relationship kinds, or declare major narrative outcomes.
 
 Gambits are entity-authored high-stakes actions. They are rarer than low
 altitude verbs and can create, strengthen, weaken, or reverse relationships.

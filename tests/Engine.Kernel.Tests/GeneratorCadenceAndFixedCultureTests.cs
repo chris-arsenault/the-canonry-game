@@ -90,7 +90,7 @@ public sealed class GeneratorCadenceAndFixedCultureTests
             semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: fixedCultureId > 0 ? 0 : GeneratorProgramConstants.TargetReferenceCode,
-            createChance: 1f,
+            createChance: FixedScalar.FromSingle(1f),
             coverageModeCode: GeneratorCoverageModeCodes.None,
             coverageSourceRefCode: 0,
             coverageDesiredCellCount: 0,

@@ -105,7 +105,7 @@ internal sealed partial class GeneratorProgramRuntime
     private bool TargetChronicleGatesPass(Simulation simulation, int generatorSlot, int targetId)
     {
         var heatMin = Data.TargetChronicleHeatMin[generatorSlot];
-        if (heatMin > 0f && simulation.Chronicles.HeatFor(targetId) < heatMin)
+        if (heatMin > 0 && simulation.Chronicles.HeatFor(targetId) < heatMin)
         {
             return false;
         }
@@ -302,7 +302,7 @@ internal sealed partial class GeneratorProgramRuntime
                 _bindingSubtypeCounts[binding],
                 _bindingAdjacentToTarget[binding],
                 _bindingCultureMatchCodes[binding],
-                _bindingSamePhysicalCultureComponentAsTarget[binding],
+                _bindingRequireTargetCultureRoute[binding],
                 _bindingWithoutOutgoingStarts[binding],
                 _bindingWithoutOutgoingCounts[binding],
                 _bindingWithoutIncomingStarts[binding],

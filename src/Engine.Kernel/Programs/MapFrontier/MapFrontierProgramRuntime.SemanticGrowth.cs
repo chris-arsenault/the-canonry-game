@@ -94,7 +94,7 @@ internal sealed partial class MapFrontierProgramRuntime
     public void SetSemanticConfiguration(
         bool enabled,
         int maxRadius,
-        float frontierMassThreshold,
+        FixedScalar frontierMassThreshold,
         int budgetPerPulse)
     {
         ValidateRadiusAndBudget(maxRadius, budgetPerPulse);

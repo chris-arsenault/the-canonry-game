@@ -26,8 +26,8 @@ internal sealed partial class SpatialLayerIndex
 
     internal SpatialLayerIndex(int valueCapacity, int cellCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(valueCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cellCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(valueCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(cellCapacity);
         _entryByCell = new PrimitiveIntTable(cellCapacity);
         _entryCellKeys = new int[cellCapacity + 1];
         _entryQ = new int[cellCapacity + 1];
@@ -353,12 +353,12 @@ internal sealed partial class SpatialLayerIndex
 
     private void ValidateValue(int value)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(value);
-        global::System.ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(value, _valueCounts.Length);
+        NumericGuard.ThrowIfNegative(value);
+        NumericGuard.ThrowIfGreaterThanOrEqual(value, _valueCounts.Length);
     }
 
     private static void ValidateCellKey(int cellKey)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cellKey);
+        NumericGuard.ThrowIfNegativeOrZero(cellKey);
     }
 }

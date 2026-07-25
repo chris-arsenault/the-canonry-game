@@ -1,5 +1,7 @@
 namespace Engine.Kernel;
 
+using Engine.Constants;
+
 internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgramData, EffectsProgramState>
 {
     private int[] _attributeDeltaKindIds => Data.AttributeDeltaKindIds;
@@ -9,16 +11,16 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     private int[] _attributeDeltaRelationshipDirectionCodes => Data.AttributeDeltaRelationshipDirectionCodes;
     private int[] _attributeDeltaPlaneCodes => Data.AttributeDeltaPlaneCodes;
     private int[] _attributeDeltaMaxDistances => Data.AttributeDeltaMaxDistances;
-    private float[] _attributeDeltaThresholds => Data.AttributeDeltaThresholds;
-    private float[] _attributeDeltaMinimumRelationshipStrengths => Data.AttributeDeltaMinimumRelationshipStrengths;
-    private float[] _attributeDeltaDeltas => Data.AttributeDeltaDeltas;
+    private FixedScalar[] _attributeDeltaThresholds => Data.AttributeDeltaThresholds;
+    private FixedScalar[] _attributeDeltaMinimumRelationshipStrengths => Data.AttributeDeltaMinimumRelationshipStrengths;
+    private FixedScalar[] _attributeDeltaDeltas => Data.AttributeDeltaDeltas;
     private int[] _attributeDeltaRequiredTargetTraitIds => Data.AttributeDeltaRequiredTargetTraitIds;
     private int[] _attributeDeltaRequiredRelatedTraitIds => Data.AttributeDeltaRequiredRelatedTraitIds;
     private int[] _attributeDeltaCultureIds => Data.AttributeDeltaCultureIds;
     private int[] _attributeDeltaCultureSlotIds => Data.AttributeDeltaCultureSlotIds;
     private int[] _attributeDeltaCultureSlotPolarityCodes => Data.AttributeDeltaCultureSlotPolarityCodes;
     private ref int _attributeDeltaRuleCount => ref Data.AttributeDeltaRuleCount;
-    private float[] _attributeDeltaSupportScales => Data.AttributeDeltaSupportScales;
+    private FixedScalar[] _attributeDeltaSupportScales => Data.AttributeDeltaSupportScales;
     private int[] _attributeDeltaCoverageOwnerKindIds => Data.AttributeDeltaCoverageOwnerKindIds;
     private int[] _attributeDeltaCoverageOwnerSubtypeIds => Data.AttributeDeltaCoverageOwnerSubtypeIds;
     private int[] _tagRuleCoverageOwnerKindIds => Data.TagRuleCoverageOwnerKindIds;
@@ -28,23 +30,43 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     private int[] _tagRuleTagIds => Data.TagRuleTagIds;
     private int[] _tagRuleRelationshipKindIds => Data.TagRuleRelationshipKindIds;
     private int[] _tagRuleDirectionCodes => Data.TagRuleDirectionCodes;
-    private float[] _tagRuleSetThresholds => Data.TagRuleSetThresholds;
-    private float[] _tagRuleClearThresholds => Data.TagRuleClearThresholds;
+    private FixedScalar[] _tagRuleSetThresholds => Data.TagRuleSetThresholds;
+    private FixedScalar[] _tagRuleClearThresholds => Data.TagRuleClearThresholds;
     private ref int _tagRuleCount => ref Data.TagRuleCount;
+    private readonly int[] _attributeDeltaScratchIds;
+    private readonly long[] _attributeDeltaScratchValues;
 
     public EffectsProgramRuntime(EffectsProgramData data, EffectsProgramState state)
+        : this(data, state, new KernelProgramTuningOptions())
+    {
+    }
+
+    public EffectsProgramRuntime(
+        EffectsProgramData data,
+        EffectsProgramState state,
+        KernelProgramTuningOptions tuning)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
+        global::System.ArgumentNullException.ThrowIfNull(tuning);
         Data = data;
         State = state;
+        Tuning = tuning;
+        _attributeDeltaScratchIds = new int[
+            data.AttributeDeltaAttributeIds.Length +
+            data.LifecycleAttributeIds.Length];
+        _attributeDeltaScratchValues = new long[_attributeDeltaScratchIds.Length];
     }
 
     public EffectsProgramData Data { get; }
 
     public EffectsProgramState State { get; }
 
+    public KernelProgramTuningOptions Tuning { get; }
+
     public int AttributeDeltaRuleCount => _attributeDeltaRuleCount;
+
+    public int LifecycleRuleCount => Data.LifecycleRuleCount;
 
     public int RegisterAttributeDeltaEffect(
         int kindId,
@@ -54,32 +76,32 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         int relationshipDirectionCode,
         int planeCode,
         int maxDistance,
-        float threshold,
-        float minimumRelationshipStrength,
-        float deltaPerTick,
+        FixedScalar threshold,
+        FixedScalar minimumRelationshipStrength,
+        FixedScalar deltaPerTick,
         int requiredTargetTraitId = 0,
         int requiredRelatedTraitId = 0,
         int cultureId = 0,
         int cultureSlotId = 0,
         int cultureSlotPolarityCode = -1,
-        float supportScale = 0f,
+        FixedScalar supportScale = default,
         int coverageOwnerKindId = 0,
         int coverageOwnerSubtypeId = 0)
     {
         ValidatePositive(kindId);
         ValidatePositive(attributeId);
         ValidatePositive(conditionCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(relationshipKindId);
+        NumericGuard.ThrowIfNegative(relationshipKindId);
         ValidatePositive(relationshipDirectionCode);
         ValidatePositive(planeCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(maxDistance);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(threshold);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(minimumRelationshipStrength);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(requiredTargetTraitId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(requiredRelatedTraitId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(cultureId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(cultureSlotId);
-        global::System.ArgumentOutOfRangeException.ThrowIfLessThan(cultureSlotPolarityCode, -1);
+        NumericGuard.ThrowIfNegative(maxDistance);
+        NumericGuard.ThrowIfNegative(threshold);
+        NumericGuard.ThrowIfNegative(minimumRelationshipStrength);
+        NumericGuard.ThrowIfNegative(requiredTargetTraitId);
+        NumericGuard.ThrowIfNegative(requiredRelatedTraitId);
+        NumericGuard.ThrowIfNegative(cultureId);
+        NumericGuard.ThrowIfNegative(cultureSlotId);
+        NumericGuard.ThrowIfLessThan(cultureSlotPolarityCode, -1);
         if (_attributeDeltaRuleCount + 1 >= _attributeDeltaKindIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -105,6 +127,12 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         _attributeDeltaSupportScales[slot] = supportScale;
         _attributeDeltaCoverageOwnerKindIds[slot] = coverageOwnerKindId;
         _attributeDeltaCoverageOwnerSubtypeIds[slot] = coverageOwnerSubtypeId;
+        AppendRuleByKind(
+            kindId,
+            slot,
+            Data.FirstAttributeDeltaRuleByKind,
+            Data.LastAttributeDeltaRuleByKind,
+            Data.NextAttributeDeltaRuleByKind);
         return slot;
     }
 
@@ -113,8 +141,8 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         int tagId,
         int relationshipKindId,
         int relationshipDirectionCode,
-        float setAtOrAbove,
-        float clearBelow,
+        FixedScalar setAtOrAbove,
+        FixedScalar clearBelow,
         int insideCoverageOwnerKindId = 0,
         int insideCoverageOwnerSubtypeId = 0,
         int insideCoveragePlaneCode = PlaneCodes.Semantic)
@@ -139,24 +167,128 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         _tagRuleCoverageOwnerKindIds[slot] = insideCoverageOwnerKindId;
         _tagRuleCoverageOwnerSubtypeIds[slot] = insideCoverageOwnerSubtypeId;
         _tagRuleCoveragePlaneCodes[slot] = insideCoveragePlaneCode;
+        AppendRuleByKind(
+            kindId,
+            slot,
+            Data.FirstTagRuleByKind,
+            Data.LastTagRuleByKind,
+            Data.NextTagRuleByKind);
         return slot;
+    }
+
+    public int RegisterLifecycle(
+        int kindId,
+        int healthAttributeId,
+        FixedScalar baseRate,
+        FixedScalar ageCoefficient,
+        FixedScalar? variance = null)
+    {
+        var compiledVariance = variance ?? FixedScalar.FromUnits(200_000L);
+        ValidatePositive(kindId);
+        ValidatePositive(healthAttributeId);
+        NumericGuard.ThrowIfNegative(compiledVariance);
+        if ((uint)kindId >= (uint)Data.LifecycleRuleByKind.Length ||
+            Data.LifecycleRuleByKind[kindId] != 0 ||
+            Data.LifecycleRuleCount + 1 >= Data.LifecycleKindIds.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        var slot = ++Data.LifecycleRuleCount;
+        Data.LifecycleKindIds[slot] = kindId;
+        Data.LifecycleAttributeIds[slot] = healthAttributeId;
+        Data.LifecycleBaseRates[slot] = baseRate;
+        Data.LifecycleAgeCoefficients[slot] = ageCoefficient;
+        Data.LifecycleVariances[slot] = compiledVariance;
+        Data.LifecycleRuleByKind[kindId] = slot;
+        return slot;
+    }
+
+    public int LifecycleAttributeId(int kindId)
+    {
+        var rule = LifecycleRuleForKind(kindId);
+        return rule > 0 ? Data.LifecycleAttributeIds[rule] : 0;
+    }
+
+    public bool TryGetLifecycleMaintenanceNeed(
+        Simulation simulation,
+        int entityId,
+        int tick,
+        out int attributeId,
+        out FixedScalar ageDrainComponent,
+        out FixedScalar healthShortfall)
+    {
+        attributeId = 0;
+        ageDrainComponent = 0;
+        healthShortfall = 0;
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        var world = simulation.World;
+        if (entityId <= 0 || !world.EntityIsActive(entityId))
+        {
+            return false;
+        }
+
+        var rule = LifecycleRuleForKind(world.EntityKindId(entityId));
+        if (rule == 0)
+        {
+            return false;
+        }
+
+        attributeId = Data.LifecycleAttributeIds[rule];
+        var age = global::System.Math.Max(0, tick - world.EntityCreatedAt(entityId));
+        ageDrainComponent = LifecycleAgeDrainComponent(rule, age);
+        var maximum = simulation.KernelData.Entities.AttributeMaximum(attributeId);
+        if (maximum > 0)
+        {
+            healthShortfall = KernelQuery.Clamp01(
+                (maximum - world.GetAttribute(entityId, attributeId)) / maximum);
+        }
+
+        return ageDrainComponent > 0 && healthShortfall > 0;
     }
 
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         var world = simulation.World;
-        KernelQuery.ForEachActiveEntity(
-            world,
-            entityId =>
-            {
-                var kindId = world.EntityKindId(entityId);
-                ApplyAttributeDeltaEffectsForKind(simulation, entityId, tick, kindId);
-                ApplyTagRulesForKind(simulation, entityId, tick, kindId);
-                ApplyStageAmbientEmission(simulation, world, entityId, kindId, tick);
-                return true;
-            });
-        ApplyDistrictBonuses(simulation, world, tick);
+        for (var entityId = world.FirstActiveEntity(); entityId > 0;)
+        {
+            var nextEntityId = world.NextActiveEntity(entityId);
+            ResolveEntity(simulation, world, entityId, tick);
+            entityId = nextEntityId;
+        }
+
+        ApplyDistrictCultureModifiers(simulation, world, tick);
+    }
+
+    private void ResolveEntity(Simulation simulation, WorldState world, int entityId, int tick)
+    {
+        var kindId = world.EntityKindId(entityId);
+        var deltaCount = 0;
+        ApplyAttributeDeltaEffectsForKind(simulation, entityId, tick, kindId, ref deltaCount);
+        ApplyTagRulesForKind(simulation, entityId, tick, kindId);
+        ApplyStageAmbientEmission(simulation, world, entityId, kindId, tick);
+
+        var lifecycleRule = LifecycleRuleForKind(kindId);
+        if (lifecycleRule > 0)
+        {
+            var healthAttributeId = Data.LifecycleAttributeIds[lifecycleRule];
+            AccumulateAttributeDeltaUnits(
+                healthAttributeId,
+                world.DistrictHealingMagnitudeUnits(entityId),
+                ref deltaCount);
+            AccumulateAttributeDelta(
+                healthAttributeId,
+                -LifecycleDrain(simulation, entityId, kindId, lifecycleRule, tick),
+                ref deltaCount);
+        }
+
+        ApplyAccumulatedAttributeDeltas(simulation, entityId, deltaCount);
+        if (lifecycleRule > 0 &&
+            world.GetAttribute(entityId, Data.LifecycleAttributeIds[lifecycleRule]) <= 0)
+        {
+            simulation.SetEntityStatus(entityId, EntityStatusCodes.Historical, tick);
+        }
     }
 
     // Stage-catalog entities radiate ambient culture at their tile scaled by
@@ -166,7 +298,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     {
         var stageRule = world.StageRuleFor(kindId, simulation.MinorActors.WorkTier(entityId));
         var emission = world.StageAmbientEmission(stageRule);
-        if (emission <= 0f)
+        if (emission <= 0)
         {
             return;
         }
@@ -186,64 +318,27 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             tick);
     }
 
-    // Installed districts sustain their hosts each tick: Healing feeds the
-    // host's health attribute, Culture presses the host culture's influence
-    // on the district tile (docs/design/artifact-districts.md).
-    private static void ApplyDistrictBonuses(Simulation simulation, WorldState world, int tick)
+    private static void ApplyDistrictCultureModifiers(Simulation simulation, WorldState world, int tick)
     {
-        for (var district = 1; district <= world.DistrictCount; district++)
+        for (var modifier = 1; modifier <= world.DistrictCultureModifierCount; modifier++)
         {
-            if (!world.DistrictIsActive(district))
-            {
-                continue;
-            }
-
-            var hostId = world.DistrictHostId(district);
-            if (!world.EntityIsActive(hostId))
-            {
-                continue;
-            }
-
-            var magnitude = world.DistrictMagnitude(district);
-            switch (world.DistrictBonusKindCode(district))
-            {
-                case DistrictBonusKindCodes.Healing:
-                    var attributeId = simulation.Upkeep.LifecycleAttributeId(world.EntityKindId(hostId));
-                    if (attributeId > 0)
-                    {
-                        KernelEffectExecutor.ModifyAttribute(simulation, hostId, attributeId, magnitude);
-                    }
-
-                    break;
-                case DistrictBonusKindCodes.Culture:
-                    var cultureId = world.EntityCultureId(hostId);
-                    if (cultureId > 0)
-                    {
-                        _ = simulation.ModifyCellCultureInfluenceRaw(
-                            cultureId,
-                            PlaneCodes.Physical,
-                            world.DistrictQ(district),
-                            world.DistrictR(district),
-                            magnitude,
-                            tick);
-                    }
-
-                    break;
-                default:
-                    break;
-            }
+            _ = simulation.ModifyCellCultureInfluenceRawUnits(
+                world.DistrictCultureModifierCultureId(modifier),
+                PlaneCodes.Physical,
+                world.DistrictCultureModifierQ(modifier),
+                world.DistrictCultureModifierR(modifier),
+                0,
+                world.DistrictCultureModifierMagnitudeUnits(modifier),
+                tick);
         }
     }
 
     private void ApplyTagRulesForKind(Simulation simulation, int entityId, int tick, int kindId)
     {
-        for (var rule = 1; rule <= _tagRuleCount; rule++)
+        for (var rule = FirstRuleForKind(kindId, Data.FirstTagRuleByKind);
+             rule > 0;
+             rule = Data.NextTagRuleByKind[rule])
         {
-            if (_tagRuleKindIds[rule] != kindId)
-            {
-                continue;
-            }
-
             var insideJurisdiction = InsideJurisdiction(
                 simulation.World,
                 entityId,
@@ -256,7 +351,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
                     entityId,
                     _tagRuleRelationshipKindIds[rule],
                     _tagRuleDirectionCodes[rule])
-                : 0f;
+                : 0;
             if (sum >= _tagRuleSetThresholds[rule])
             {
                 _ = simulation.SetEntityTag(entityId, _tagRuleTagIds[rule], assigned: true, tick);
@@ -268,55 +363,46 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         }
     }
 
-    private static float SummedRelationshipStrength(
+    private static FixedScalar SummedRelationshipStrength(
         WorldState world,
         int entityId,
         int relationshipKindId,
         int directionCode)
     {
-        var sum = 0f;
+        var sum = FixedScalar.Zero;
         if (directionCode is RelationshipMatchDirectionCodes.Outgoing or RelationshipMatchDirectionCodes.Either)
         {
-            KernelQuery.ForEachRelatedEndpoint(
-                world,
-                entityId,
-                relationshipKindId,
-                minimumStrength: 0f,
-                outgoing: true,
-                (relationshipId, _) =>
-                {
-                    sum += KernelQuery.RelationshipStrength(world, relationshipId);
-                    return true;
-                });
+            var cursor = world.OutgoingRelationshipsOfKind(entityId, relationshipKindId);
+            while (world.MoveNextRelationship(ref cursor, out var relationshipId))
+            {
+                sum += world.RelationshipStrength(relationshipId);
+            }
         }
 
         if (directionCode is RelationshipMatchDirectionCodes.Incoming or RelationshipMatchDirectionCodes.Either)
         {
-            KernelQuery.ForEachRelatedEndpoint(
-                world,
-                entityId,
-                relationshipKindId,
-                minimumStrength: 0f,
-                outgoing: false,
-                (relationshipId, _) =>
-                {
-                    sum += KernelQuery.RelationshipStrength(world, relationshipId);
-                    return true;
-                });
+            var cursor = world.IncomingRelationshipsOfKind(entityId, relationshipKindId);
+            while (world.MoveNextRelationship(ref cursor, out var relationshipId))
+            {
+                sum += world.RelationshipStrength(relationshipId);
+            }
         }
 
         return sum;
     }
 
-    private void ApplyAttributeDeltaEffectsForKind(Simulation simulation, int entityId, int tick, int kindId)
+    private void ApplyAttributeDeltaEffectsForKind(
+        Simulation simulation,
+        int entityId,
+        int tick,
+        int kindId,
+        ref int deltaCount)
     {
-        for (var rule = 1; rule <= _attributeDeltaRuleCount; rule++)
+        _ = tick;
+        for (var rule = FirstRuleForKind(kindId, Data.FirstAttributeDeltaRuleByKind);
+             rule > 0;
+             rule = Data.NextAttributeDeltaRuleByKind[rule])
         {
-            if (_attributeDeltaKindIds[rule] != kindId)
-            {
-                continue;
-            }
-
             if (!KernelQuery.TraitFilterPasses(simulation.World, entityId, _attributeDeltaRequiredTargetTraitIds[rule]))
             {
                 continue;
@@ -328,16 +414,15 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             }
 
             var evidence = EffectEvidence(simulation, entityId, rule);
-            if (evidence <= 0f)
+            if (evidence <= 0)
             {
                 continue;
             }
 
-            KernelEffectExecutor.ModifyAttribute(
-                simulation,
-                entityId,
+            AccumulateAttributeDelta(
                 _attributeDeltaAttributeIds[rule],
-                _attributeDeltaDeltas[rule] * evidence);
+                _attributeDeltaDeltas[rule] * evidence,
+                ref deltaCount);
         }
     }
 
@@ -348,7 +433,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         _attributeDeltaConditionCodes[rule] == EffectConditionCodes.CultureSlotOccupancy ||
         world.EntityCultureId(entityId) == _attributeDeltaCultureIds[rule];
 
-    private float EffectEvidence(Simulation simulation, int entityId, int rule)
+    private FixedScalar EffectEvidence(Simulation simulation, int entityId, int rule)
     {
         var conditionCode = _attributeDeltaConditionCodes[rule];
         if (conditionCode == EffectConditionCodes.RelationshipMapValueAtLocation)
@@ -406,7 +491,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             (ownerSubtypeId == 0 || world.EntitySubtypeId(ownerId) == ownerSubtypeId);
     }
 
-    private float InsideOwnedCoverageEvidence(WorldState world, int entityId, int rule)
+    private FixedScalar InsideOwnedCoverageEvidence(WorldState world, int entityId, int rule)
     {
         return InsideJurisdiction(
             world,
@@ -414,29 +499,29 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             _attributeDeltaCoverageOwnerKindIds[rule],
             _attributeDeltaCoverageOwnerSubtypeIds[rule],
             _attributeDeltaPlaneCodes[rule])
-            ? 1f
-            : 0f;
+            ? 1
+            : 0;
     }
 
     // Local carrying capacity: crowding strain discounted by own-culture
     // mass support. Asymptotic (scale / (scale + mass)), never a hard cap:
     // growing the territory's culture mass is the built-in escape, and later
     // mechanisms may raise support the same way age can be extended.
-    private float CrowdingBeyondCultureSupportEvidence(Simulation simulation, int entityId, int rule)
+    private FixedScalar CrowdingBeyondCultureSupportEvidence(Simulation simulation, int entityId, int rule)
     {
         var planeCode = _attributeDeltaPlaneCodes[rule];
         var crowding = KernelQuery.ThresholdEvidence(
-            simulation.MapSignals.EntityCrowdingLoad(entityId, planeCode),
+            simulation.Locality.EntityCrowdingLoad(simulation, entityId, planeCode),
             _attributeDeltaThresholds[rule]);
-        if (crowding <= 0f)
+        if (crowding <= 0)
         {
-            return 0f;
+            return 0;
         }
 
         var world = simulation.World;
         var cultureId = world.EntityCultureId(entityId);
         var supportScale = _attributeDeltaSupportScales[rule];
-        if (cultureId <= 0 || supportScale <= 0f)
+        if (cultureId <= 0 || supportScale <= 0)
         {
             return crowding;
         }
@@ -447,25 +532,25 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         return crowding * (supportScale / (supportScale + mass));
     }
 
-    private float SpatialEvidence(Simulation simulation, int entityId, int rule, int conditionCode) =>
+    private FixedScalar SpatialEvidence(Simulation simulation, int entityId, int rule, int conditionCode) =>
         conditionCode switch
         {
             EffectConditionCodes.CrowdingBeyondCultureSupport => CrowdingBeyondCultureSupportEvidence(simulation, entityId, rule),
             EffectConditionCodes.InsideOwnedCoverage => InsideOwnedCoverageEvidence(simulation.World, entityId, rule),
             EffectConditionCodes.CultureSlotOccupancy => CultureSlotOccupancyEvidence(simulation, entityId, rule),
-            _ => 0f,
+            _ => 0,
         };
 
-    private float SignalEvidence(Simulation simulation, int entityId, int rule, int conditionCode)
+    private FixedScalar SignalEvidence(Simulation simulation, int entityId, int rule, int conditionCode)
     {
         var planeCode = _attributeDeltaPlaneCodes[rule];
         var value = conditionCode switch
         {
-            EffectConditionCodes.LocalPositiveSignal => simulation.MapSignals.EntitySupport(entityId, planeCode),
-            EffectConditionCodes.LocalNegativeSignal => simulation.MapSignals.EntityThreat(entityId, planeCode),
-            EffectConditionCodes.LocalCrowdingLoadSignal => simulation.MapSignals.EntityCrowdingLoad(entityId, planeCode),
+            EffectConditionCodes.LocalPositiveSignal => simulation.Locality.EntitySupport(simulation, entityId, planeCode),
+            EffectConditionCodes.LocalNegativeSignal => simulation.Locality.EntityThreat(simulation, entityId, planeCode),
+            EffectConditionCodes.LocalCrowdingLoadSignal => simulation.Locality.EntityCrowdingLoad(simulation, entityId, planeCode),
             EffectConditionCodes.LocalSolitudeSignal => SolitudeSignal(simulation, entityId, planeCode),
-            _ => simulation.MapSignals.EntityCrowdingComfort(entityId, planeCode),
+            _ => simulation.Locality.EntityCrowdingComfort(simulation, entityId, planeCode),
         };
         return KernelQuery.ThresholdEvidence(value, _attributeDeltaThresholds[rule]);
     }
@@ -473,23 +558,23 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     // Solitude is the inverse of crowding comfort: 1 when the entity stands
     // alone, fading toward 0 as local population approaches capacity, and 0
     // when the cell is over capacity (crowding load owns that regime).
-    private static float SolitudeSignal(Simulation simulation, int entityId, int planeCode)
+    private static FixedScalar SolitudeSignal(Simulation simulation, int entityId, int planeCode)
     {
-        if (simulation.MapSignals.EntityCrowdingLoad(entityId, planeCode) > 0f)
+        if (simulation.Locality.EntityCrowdingLoad(simulation, entityId, planeCode) > 0)
         {
-            return 0f;
+            return 0;
         }
 
-        var comfort = simulation.MapSignals.EntityCrowdingComfort(entityId, planeCode);
-        return comfort >= 1f ? 0f : 1f - comfort;
+        var comfort = simulation.Locality.EntityCrowdingComfort(simulation, entityId, planeCode);
+        return comfort >= 1 ? 0 : 1 - comfort;
     }
 
-    private float OwnCultureInfluenceEvidence(WorldState world, int entityId, int rule)
+    private FixedScalar OwnCultureInfluenceEvidence(WorldState world, int entityId, int rule)
     {
         var cultureId = world.EntityCultureId(entityId);
         if (cultureId <= 0)
         {
-            return 0f;
+            return 0;
         }
 
         var planeCode = _attributeDeltaPlaneCodes[rule];
@@ -504,13 +589,13 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     // none at or beyond the threshold. Cultureless entities answer to no
     // hearth and feel nothing. Knowledge range grants lower the threshold,
     // so a far-walking culture's people range farther before the cold bites.
-    private float BeyondCultureSupportEvidence(Simulation simulation, int entityId, int rule)
+    private FixedScalar BeyondCultureSupportEvidence(Simulation simulation, int entityId, int rule)
     {
         var world = simulation.World;
         var cultureId = world.EntityCultureId(entityId);
         if (cultureId <= 0)
         {
-            return 0f;
+            return 0;
         }
 
         var planeCode = _attributeDeltaPlaneCodes[rule];
@@ -519,16 +604,16 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         var threshold = _attributeDeltaThresholds[rule] * simulation.Knowledge.Modifier(
             cultureId,
             KnowledgeGrantDomainCodes.FrontierThawThreshold);
-        if (threshold <= 0f)
+        if (threshold <= 0)
         {
-            return 0f;
+            return 0;
         }
 
         var supported = world.CultureFieldAt(cultureId, planeCode, q, r).TotalRawMass;
-        return supported >= threshold ? 0f : 1f - (supported / threshold);
+        return supported >= threshold ? 0 : 1 - (supported / threshold);
     }
 
-    private float CultureSlotOccupancyEvidence(Simulation simulation, int entityId, int rule)
+    private FixedScalar CultureSlotOccupancyEvidence(Simulation simulation, int entityId, int rule)
     {
         return simulation.CultureSlots.OccupancyEvidence(
             entityId,
@@ -538,18 +623,18 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             _attributeDeltaThresholds[rule]);
     }
 
-    private float RelatedInfluenceEvidence(WorldState world, int entityId, int rule)
+    private FixedScalar RelatedInfluenceEvidence(WorldState world, int entityId, int rule)
     {
         var direction = _attributeDeltaRelationshipDirectionCodes[rule];
-        var total = 0f;
+        var total = FixedScalar.Zero;
         if (direction is RelationshipMatchDirectionCodes.Outgoing or RelationshipMatchDirectionCodes.Either)
         {
             total += RelatedInfluenceEvidenceForDirection(world, entityId, rule, outgoing: true);
         }
 
-        if (total >= 1f)
+        if (total >= 1)
         {
-            return 1f;
+            return 1;
         }
 
         if (direction is RelationshipMatchDirectionCodes.Incoming or RelationshipMatchDirectionCodes.Either)
@@ -560,7 +645,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         return KernelQuery.Clamp01(total);
     }
 
-    private float RelatedInfluenceEvidenceForDirection(
+    private FixedScalar RelatedInfluenceEvidenceForDirection(
         WorldState world,
         int entityId,
         int rule,
@@ -569,54 +654,53 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         var planeCode = _attributeDeltaPlaneCodes[rule];
         var q = KernelQuery.CurrentQ(world, entityId, planeCode);
         var r = KernelQuery.CurrentR(world, entityId, planeCode);
-        var total = 0f;
-        KernelQuery.ForEachRelatedEndpoint(
-            world,
-            entityId,
-            _attributeDeltaRelationshipKindIds[rule],
-            _attributeDeltaMinimumRelationshipStrengths[rule],
-            outgoing,
-            (relationshipId, otherEntityId) =>
+        var total = FixedScalar.Zero;
+        var cursor = outgoing
+            ? world.OutgoingRelationshipsOfKindAbove(
+                entityId,
+                _attributeDeltaRelationshipKindIds[rule],
+                _attributeDeltaMinimumRelationshipStrengths[rule])
+            : world.IncomingRelationshipsOfKindAbove(
+                entityId,
+                _attributeDeltaRelationshipKindIds[rule],
+                _attributeDeltaMinimumRelationshipStrengths[rule]);
+        while (total < 1 && world.MoveNextRelationship(ref cursor, out var relationshipId))
+        {
+            var otherEntityId = outgoing
+                ? world.RelationshipTargetId(relationshipId)
+                : world.RelationshipSourceId(relationshipId);
+            if (!world.EntityIsActive(otherEntityId) ||
+                !KernelQuery.TraitFilterPasses(world, otherEntityId, _attributeDeltaRequiredRelatedTraitIds[rule]))
             {
-                if (!world.EntityIsActive(otherEntityId))
-                {
-                    return true;
-                }
+                continue;
+            }
 
-                if (!KernelQuery.TraitFilterPasses(world, otherEntityId, _attributeDeltaRequiredRelatedTraitIds[rule]))
-                {
-                    return true;
-                }
-
-                var otherCultureId = world.EntityCultureId(otherEntityId);
-                var influence = otherCultureId <= 0
-                    ? 0f
-                    : world.GetCellCultureInfluenceRaw(otherCultureId, planeCode, q, r);
-                if (influence <= 0f)
-                {
-                    return true;
-                }
-
+            var otherCultureId = world.EntityCultureId(otherEntityId);
+            var influence = otherCultureId <= 0
+                ? 0
+                : world.GetCellCultureInfluenceRaw(otherCultureId, planeCode, q, r);
+            if (influence > 0)
+            {
                 total += KernelQuery.ThresholdEvidence(influence, _attributeDeltaThresholds[rule]) *
                     KernelQuery.RelationshipStrength(world, relationshipId);
-                return total < 1f;
-            });
+            }
+        }
 
         return total;
     }
 
-    private float RelatedDistanceEvidence(WorldState world, int entityId, int rule)
+    private FixedScalar RelatedDistanceEvidence(WorldState world, int entityId, int rule)
     {
         var direction = _attributeDeltaRelationshipDirectionCodes[rule];
-        var total = 0f;
+        var total = FixedScalar.Zero;
         if (direction is RelationshipMatchDirectionCodes.Outgoing or RelationshipMatchDirectionCodes.Either)
         {
             total += RelatedDistanceEvidenceForDirection(world, entityId, rule, outgoing: true);
         }
 
-        if (total >= 1f)
+        if (total >= 1)
         {
-            return 1f;
+            return 1;
         }
 
         if (direction is RelationshipMatchDirectionCodes.Incoming or RelationshipMatchDirectionCodes.Either)
@@ -627,43 +711,177 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         return KernelQuery.Clamp01(total);
     }
 
-    private float RelatedDistanceEvidenceForDirection(
+    private FixedScalar RelatedDistanceEvidenceForDirection(
         WorldState world,
         int entityId,
         int rule,
         bool outgoing)
     {
-        var total = 0f;
-        KernelQuery.ForEachRelatedEndpoint(
-            world,
-            entityId,
-            _attributeDeltaRelationshipKindIds[rule],
-            _attributeDeltaMinimumRelationshipStrengths[rule],
-            outgoing,
-            (relationshipId, otherEntityId) =>
+        var total = FixedScalar.Zero;
+        var cursor = outgoing
+            ? world.OutgoingRelationshipsOfKindAbove(
+                entityId,
+                _attributeDeltaRelationshipKindIds[rule],
+                _attributeDeltaMinimumRelationshipStrengths[rule])
+            : world.IncomingRelationshipsOfKindAbove(
+                entityId,
+                _attributeDeltaRelationshipKindIds[rule],
+                _attributeDeltaMinimumRelationshipStrengths[rule]);
+        while (total < 1 && world.MoveNextRelationship(ref cursor, out var relationshipId))
+        {
+            var otherEntityId = outgoing
+                ? world.RelationshipTargetId(relationshipId)
+                : world.RelationshipSourceId(relationshipId);
+            if (!world.EntityIsActive(otherEntityId) ||
+                !KernelQuery.TraitFilterPasses(world, otherEntityId, _attributeDeltaRequiredRelatedTraitIds[rule]))
             {
-                if (!world.EntityIsActive(otherEntityId))
-                {
-                    return true;
-                }
+                continue;
+            }
 
-                if (!KernelQuery.TraitFilterPasses(world, otherEntityId, _attributeDeltaRequiredRelatedTraitIds[rule]))
-                {
-                    return true;
-                }
-
-                var distance = KernelQuery.PlaneDistance(world, entityId, otherEntityId, _attributeDeltaPlaneCodes[rule]);
-                var evidence = KernelQuery.DistanceEvidence(distance, _attributeDeltaMaxDistances[rule]) *
-                    KernelQuery.RelationshipStrength(world, relationshipId);
-                total += evidence;
-                return total < 1f;
-            });
+            var distance = KernelQuery.PlaneDistance(world, entityId, otherEntityId, _attributeDeltaPlaneCodes[rule]);
+            total += KernelQuery.DistanceEvidence(distance, _attributeDeltaMaxDistances[rule]) *
+                KernelQuery.RelationshipStrength(world, relationshipId);
+        }
 
         return total;
     }
 
+    private void AccumulateAttributeDelta(int attributeId, FixedScalar delta, ref int count)
+    {
+        AccumulateAttributeDeltaUnits(
+            attributeId,
+            KernelFixedPoint.AttributeUnits(delta),
+            ref count);
+    }
+
+    private void AccumulateAttributeDeltaUnits(int attributeId, int deltaUnits, ref int count)
+    {
+        if (deltaUnits == 0)
+        {
+            return;
+        }
+
+        for (var index = 0; index < count; index++)
+        {
+            if (_attributeDeltaScratchIds[index] == attributeId)
+            {
+                _attributeDeltaScratchValues[index] = checked(
+                    _attributeDeltaScratchValues[index] + deltaUnits);
+                return;
+            }
+        }
+
+        if (count >= _attributeDeltaScratchIds.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _attributeDeltaScratchIds[count] = attributeId;
+        _attributeDeltaScratchValues[count] = deltaUnits;
+        count++;
+    }
+
+    private void ApplyAccumulatedAttributeDeltas(Simulation simulation, int entityId, int count)
+    {
+        for (var index = 0; index < count; index++)
+        {
+            KernelEffectExecutor.ModifyAttributeUnits(
+                simulation,
+                entityId,
+                _attributeDeltaScratchIds[index],
+                KernelFixedPoint.ClampToInt(
+                    _attributeDeltaScratchValues[index],
+                    KernelFixedPoint.AttributeMinimumUnits,
+                    KernelFixedPoint.AttributeMaximumUnits));
+            _attributeDeltaScratchIds[index] = 0;
+            _attributeDeltaScratchValues[index] = 0;
+        }
+    }
+
+    private FixedScalar LifecycleDrain(
+        Simulation simulation,
+        int entityId,
+        int kindId,
+        int rule,
+        int tick)
+    {
+        var age = global::System.Math.Max(0, tick - simulation.World.EntityCreatedAt(entityId));
+        var multiplier = StageLifespanMultiplier(simulation, entityId, kindId);
+        var drain = LifecycleBaseDrain(rule, (int)(age / multiplier)) / multiplier;
+        var variance = Data.LifecycleVariances[rule];
+        if (variance > 0)
+        {
+            var factor = 1 + (((simulation.NextScalar() * 2) - 1) * variance);
+            drain *= FixedScalar.Max(0, factor);
+        }
+
+        return drain;
+    }
+
+    private static FixedScalar StageLifespanMultiplier(Simulation simulation, int entityId, int kindId)
+    {
+        var world = simulation.World;
+        var stageRule = world.StageRuleFor(kindId, simulation.MinorActors.WorkTier(entityId));
+        var multiplier = world.StageBandMultiplier(stageRule);
+        return multiplier <= 0 ? 1 : multiplier;
+    }
+
+    private FixedScalar LifecycleBaseDrain(int rule, int age)
+    {
+        if (Tuning.Lifecycle.AgingModelCode != LifecycleAgingModelCodes.LateLife)
+        {
+            return Data.LifecycleBaseRates[rule] + LifecycleAgeDrainComponent(rule, age);
+        }
+
+        return (Data.LifecycleBaseRates[rule] * FixedScalar.FromUnits(500000L)) + LifecycleAgeDrainComponent(rule, age);
+    }
+
+    private FixedScalar LifecycleAgeDrainComponent(int rule, int age)
+    {
+        if (Tuning.Lifecycle.AgingModelCode != LifecycleAgingModelCodes.LateLife)
+        {
+            return age * Data.LifecycleAgeCoefficients[rule];
+        }
+
+        var scaledAge = (age * age) / 500;
+        return scaledAge * Data.LifecycleAgeCoefficients[rule];
+    }
+
+    private int LifecycleRuleForKind(int kindId) =>
+        (uint)kindId < (uint)Data.LifecycleRuleByKind.Length
+            ? Data.LifecycleRuleByKind[kindId]
+            : 0;
+
+    private static int FirstRuleForKind(int kindId, int[] firstRuleByKind) =>
+        (uint)kindId < (uint)firstRuleByKind.Length ? firstRuleByKind[kindId] : 0;
+
+    private static void AppendRuleByKind(
+        int kindId,
+        int rule,
+        int[] firstRuleByKind,
+        int[] lastRuleByKind,
+        int[] nextRuleByKind)
+    {
+        if ((uint)kindId >= (uint)firstRuleByKind.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        var previous = lastRuleByKind[kindId];
+        if (previous > 0)
+        {
+            nextRuleByKind[previous] = rule;
+        }
+        else
+        {
+            firstRuleByKind[kindId] = rule;
+        }
+
+        lastRuleByKind[kindId] = rule;
+    }
+
     private static void ValidatePositive(int value)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+        NumericGuard.ThrowIfNegativeOrZero(value);
     }
 }

@@ -12,7 +12,7 @@ public sealed partial class KernelHost : IDisposable
 {
     private readonly Simulation _kernel;
     private readonly KernelCommandCompletionPump _commandCompletions;
-    private readonly CultureBoundaryDirtyCell[] _cultureBoundaryRefreshCells;
+    private readonly CultureLocalityDirtyCell[] _cultureLocalityRefreshCells;
     private readonly IReadOnlyList<DomainKnowledgeSite> _knowledgeSites;
     private bool _knowledgeSiteSymbolsRecorded;
     private bool _disposed;
@@ -30,7 +30,7 @@ public sealed partial class KernelHost : IDisposable
         IReadOnlyList<DomainKnowledgeSite>? knowledgeSites = null)
     {
         _kernel = kernel;
-        _cultureBoundaryRefreshCells = new CultureBoundaryDirtyCell[kernel.Options.MapCellCapacity];
+        _cultureLocalityRefreshCells = new CultureLocalityDirtyCell[kernel.Options.MapCellCapacity];
         _knowledgeSites = knowledgeSites ?? [];
         Events = kernel.Events;
         DomainIds = domainIds;

@@ -1,35 +1,25 @@
 namespace Engine.Kernel;
 
-using Engine.Kernel.Programs;
-
 internal sealed partial class GambitProgramState : IKernelProgramState
 {
     internal readonly bool[] GambitEnabled;
-    internal readonly PrimitiveIntTable Cooldowns;
-    internal readonly PrimitiveIntTable EntityCooldowns;
-    internal readonly int[] ActionHistoryTicks;
-    internal readonly int[] ActionHistoryGambitIds;
-    internal readonly int[] ActionHistoryCounts;
-    internal readonly int[] ActionHistoryNextSlots;
+    internal readonly int[] CooldownExpiresAtTicks;
+    internal readonly int[] EntityCooldownExpiresAtTicks;
+    internal readonly int CooldownStride;
 
     public GambitProgramState(
         int gambitCapacity,
-        int cooldownCapacity,
         int entityCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(gambitCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(cooldownCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(entityCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(gambitCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(entityCapacity);
         GambitEnabled = new bool[gambitCapacity + 1];
-        Cooldowns = new PrimitiveIntTable(cooldownCapacity);
-        EntityCooldowns = new PrimitiveIntTable(cooldownCapacity);
-        ActionHistoryTicks = new int[(entityCapacity + 1) * GambitProgramRuntime.GambitHistoryLength];
-        ActionHistoryGambitIds = new int[(entityCapacity + 1) * GambitProgramRuntime.GambitHistoryLength];
-        ActionHistoryCounts = new int[entityCapacity + 1];
-        ActionHistoryNextSlots = new int[entityCapacity + 1];
+        CooldownStride = gambitCapacity + 1;
+        CooldownExpiresAtTicks = new int[(entityCapacity + 1) * CooldownStride];
+        EntityCooldownExpiresAtTicks = new int[entityCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.Gambits;
 
-    public int SchemaVersion => 3;
+    public int SchemaVersion => 4;
 }

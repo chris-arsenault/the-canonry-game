@@ -16,15 +16,15 @@ public sealed class LowAltitudeVerbProgram
 public sealed record CompiledStageRule(
     int KindId,
     int StageIndex,
-    float BandMultiplier,
+    FixedScalar BandMultiplier,
     int WorkerBonus,
-    float AmbientEmission,
+    FixedScalar AmbientEmission,
     int DistrictCapacity);
 
 public sealed record CompiledDistrictBonusRule(
     int SubtypeId,
     int BonusKindCode,
-    float Magnitude);
+    FixedScalar Magnitude);
 
 public sealed record LowAltitudeVerbRule(
     int KindId,
@@ -42,25 +42,25 @@ public sealed record LowAltitudeVerbRule(
     int DwellTicks,
     int TargetRadius,
     int CandidateSampleCount,
-    float Weight,
-    float OpportunityBonusOverride,
-    float FitnessWeight,
-    float DistanceScaleOverride,
+    FixedScalar Weight,
+    FixedScalar OpportunityBonusOverride,
+    FixedScalar FitnessWeight,
+    FixedScalar DistanceScaleOverride,
     bool ForeignInfluenceFilterEnabled,
     bool ForeignInfluenceBlockPositiveRelationships,
     bool ForeignInfluenceAllowNegativeRelationships,
-    float ForeignInfluenceMinimumRelationshipStrength,
-    float ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove,
+    FixedScalar ForeignInfluenceMinimumRelationshipStrength,
+    FixedScalar ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove,
     int FitnessRelationshipKindId,
     int FitnessRelationshipDirectionCode,
     int FitnessPolarityCode,
-    float FitnessThreshold,
-    float InfluenceDelta,
+    FixedScalar FitnessThreshold,
+    FixedScalar InfluenceDelta,
     int InfluenceRadius,
-    float CoverageGrowthChance,
-    float HeadquartersMoveChance,
-    float RequiredInfluence,
-    float RelationshipStrengthDelta,
+    FixedScalar CoverageGrowthChance,
+    FixedScalar HeadquartersMoveChance,
+    FixedScalar RequiredInfluence,
+    FixedScalar RelationshipStrengthDelta,
     IReadOnlyList<CompiledProgramStep> PrimitiveSteps,
     int MinTemperature = 0,
     int SiteFlags = 0,
@@ -70,12 +70,12 @@ public sealed record LowAltitudeVerbRule(
 public sealed record CompiledProgramStep(
     int Opcode,
     int IntArgument,
-    float FloatArgument);
+    FixedScalar ScalarArgument);
 
 public sealed record CompiledInitialInfluenceRule(
     int KindId,
     int PlaneCode,
-    float InfluenceValue);
+    FixedScalar InfluenceValue);
 
 public sealed record CompiledAffordanceRule(
     int SourceKindCode,
@@ -88,73 +88,62 @@ public sealed record CompiledAffordanceRule(
     int RelationshipDirectionCode,
     int OperationCode,
     int PolarityCode,
-    float Threshold,
-    float Weight);
+    FixedScalar Threshold,
+    FixedScalar Weight);
 
 public sealed record CompiledTraitLowAltitudeWeightModifierRule(
     int KindId,
     int TraitId,
     int VerbId,
-    float WeightDelta,
-    float OpportunityBonusDelta,
-    float FitnessWeightDelta);
+    FixedScalar WeightDelta,
+    FixedScalar OpportunityBonusDelta,
+    FixedScalar FitnessWeightDelta);
 
-public sealed class MapActivityProgram
+public sealed class LocalityRules
 {
-    public bool EnabledByDefault { get; init; } = true;
-    public float PresenceHeat { get; init; } = 1f;
-    public float HeatDecayPerTick { get; init; } = 0.99f;
-    public float HeatEmaAlpha { get; init; } = 0.01f;
-}
-
-public sealed class MapSignalsProgram
-{
-    public bool EnabledByDefault { get; init; } = true;
-    public float SemanticBaseCapacity { get; init; } = 2f;
+    public FixedScalar SemanticBaseCapacity { get; init; } = FixedScalar.FromInt(2);
     public int CrowdingRadius { get; init; } = 1;
-    public IReadOnlyList<TerrainMapSignalRule> Terrains { get; init; } = [];
+    public IReadOnlyList<TerrainLocalityRule> Terrains { get; init; } = [];
     public CompiledPhysicalCapacityFormula? PhysicalCapacityFormula { get; init; }
-    public IReadOnlyList<KindMapSignalRule> Kinds { get; init; } = [];
-    public IReadOnlyList<RelationshipMapSignalRule> Relationships { get; init; } = [];
+    public IReadOnlyList<KindLocalityRule> Kinds { get; init; } = [];
+    public IReadOnlyList<RelationshipLocalityRule> Relationships { get; init; } = [];
 }
 
-public sealed record TerrainMapSignalRule(int TerrainId, float BaseCapacity);
+public sealed record TerrainLocalityRule(int TerrainId, FixedScalar BaseCapacity);
 
 /// <summary>Fact-derived physical capacity, temperatures quantized to byte scale.</summary>
 public sealed record CompiledPhysicalCapacityFormula(
-    float ColdFloor,
-    float WarmPeak,
-    float GeothermalBlend,
-    float FreshwaterWeight,
-    float FertileWeight,
-    float ReliefComfort,
-    float ReliefPenalty,
-    float RoughnessPenalty,
-    float LandScale,
-    float MarineScale);
+    FixedScalar ColdFloor,
+    FixedScalar WarmPeak,
+    FixedScalar GeothermalBlend,
+    FixedScalar FreshwaterWeight,
+    FixedScalar FertileWeight,
+    FixedScalar ReliefComfort,
+    FixedScalar ReliefPenalty,
+    FixedScalar RoughnessPenalty,
+    FixedScalar LandScale,
+    FixedScalar MarineScale);
 
-public sealed record KindMapSignalRule(
+public sealed record KindLocalityRule(
     int KindId,
-    int SignalRadius,
-    float CapacityEmission,
-    float SupportEmission,
-    float ThreatEmission,
-    float BaseAttractorMass,
-    float CoverageAttractorScale,
-    float InfluenceAttractorScale,
-    float ActivityAttractorScale,
+    int LocalityRadius,
+    FixedScalar CapacityEmission,
+    FixedScalar SupportEmission,
+    FixedScalar ThreatEmission,
+    FixedScalar BaseAttractorMass,
+    FixedScalar CoverageAttractorScale,
+    FixedScalar InfluenceAttractorScale,
     int AttractorRadius,
-    IReadOnlyList<MapSignalScalarInputRule> AttractorScalarInputs);
+    IReadOnlyList<LocalityScalarInputRule> AttractorScalarInputs);
 
-public sealed record MapSignalScalarInputRule(
+public sealed record LocalityScalarInputRule(
     int AttributeId,
-    float AttractorScale);
+    FixedScalar AttractorScale);
 
-public sealed record RelationshipMapSignalRule(
+public sealed record RelationshipLocalityRule(
     int RelationshipKindId,
-    int SignalRadius,
-    float SupportEmission,
-    float ThreatEmission);
+    FixedScalar SupportEmission,
+    FixedScalar ThreatEmission);
 
 public sealed class EffectsProgram
 {
@@ -168,8 +157,8 @@ public sealed record RelationshipTagRule(
     int TagId,
     int RelationshipKindId,
     int RelationshipDirectionCode,
-    float SetAtOrAbove,
-    float ClearBelow,
+    FixedScalar SetAtOrAbove,
+    FixedScalar ClearBelow,
     int InsideCoverageOwnerKindId = 0,
     int InsideCoverageOwnerSubtypeId = 0,
     int InsideCoveragePlaneCode = PlaneCodes.Semantic);
@@ -182,14 +171,14 @@ public sealed record AttributeDeltaEffectRule(
     int RelationshipDirectionCode,
     int PlaneCode,
     int MaxDistance,
-    float Threshold,
-    float MinimumRelationshipStrength,
-    float DeltaPerTick,
+    FixedScalar Threshold,
+    FixedScalar MinimumRelationshipStrength,
+    FixedScalar DeltaPerTick,
     int RequiredTargetTraitId,
     int RequiredRelatedTraitId,
     int CultureId = 0,
     int CultureSlotId = 0,
     int CultureSlotPolarityCode = -1,
-    float SupportScale = 0f,
+    FixedScalar SupportScale = default,
     int CoverageOwnerKindId = 0,
     int CoverageOwnerSubtypeId = 0);

@@ -32,7 +32,5 @@ internal sealed partial class Simulation
         options.MapCellCapacity < twoPlaneCellCount ||
             options.MapInfluenceCapacity < twoPlaneCellCount ||
             options.MovementCellCapacity < twoPlaneCellCount ||
-            options.MapActivityCellCapacity < twoPlaneCellCount ||
-            options.MapSignalCellCapacity < twoPlaneCellCount ||
             options.MapFrontierThawRingCapacity < planeCellCount;
 }

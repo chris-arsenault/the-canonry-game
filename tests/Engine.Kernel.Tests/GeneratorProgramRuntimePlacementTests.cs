@@ -123,12 +123,12 @@ public sealed class GeneratorProgramRuntimePlacementTests
         simulation.RegisterTerrain(
             terrainId: 2,
             boundaryGroupId: 1,
-            movementCost: 20f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f,
-            roadSpeedMultiplier: 1f);
+            movementCost: FixedScalar.FromSingle(20f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.World.SetCellTerrain(1, 0, terrainId: 1);
         simulation.World.SetCellTerrain(-1, 0, terrainId: 2);
         CreateTarget(simulation);
@@ -155,7 +155,7 @@ public sealed class GeneratorProgramRuntimePlacementTests
         var simulation = CreateSimulation();
         SeedMap(simulation);
         var target = CreateTarget(simulation);
-        simulation.SetCellInfluence(target, PlaneCodes.Physical, -1, 0, 100f, tick: 0);
+        simulation.SetCellInfluence(target, PlaneCodes.Physical, -1, 0, FixedScalar.FromSingle(100f), tick: 0);
         var slot = RegisterGenerator(simulation, includeProduced: false);
         AddAreaProducedEntity(
             simulation,
@@ -184,7 +184,7 @@ public sealed class GeneratorProgramRuntimePlacementTests
         simulation.World.SetCellTerrain(0, 1, terrainId: 2);
         simulation.World.SetCellTerrain(1, -1, terrainId: 2);
         var target = CreateTarget(simulation);
-        simulation.SetCellInfluence(target, PlaneCodes.Physical, -1, 0, 0.6f, tick: 0);
+        simulation.SetCellInfluence(target, PlaneCodes.Physical, -1, 0, FixedScalar.FromSingle(0.6f), tick: 0);
         var slot = RegisterGenerator(simulation, includeProduced: false);
         var producedSlot = AddAreaProducedEntity(
             simulation,
@@ -233,7 +233,7 @@ public sealed class GeneratorProgramRuntimePlacementTests
     }
 
     [Fact]
-    public void Fire_WithHostileIntrusionCulturePlacement_AllowsForeignBoundaryPlacement()
+    public void Fire_WithHostileIntrusionCulturePlacement_AllowsForeignLocalityPlacement()
     {
         var simulation = CreateSimulation();
         SeedMap(simulation);
@@ -244,9 +244,9 @@ public sealed class GeneratorProgramRuntimePlacementTests
         CreateTarget(simulation);
         simulation.ModifyCellCultureInfluenceRaw(3, PlaneCodes.Physical, -1, 0, WorldState.CultureNexusRawMass, tick: 0);
         simulation.ModifyCellCultureInfluenceRaw(3, PlaneCodes.Physical, -2, 0, WorldState.CultureControlledRawMass, tick: 0);
-        var foreignBoundary = simulation.CultureBoundaries.CellAt(simulation.World, 3, PlaneCodes.Physical, -1, 0);
-        Assert.Equal(CultureFieldCellKindCodes.Border, foreignBoundary.CellKindCode);
-        Assert.Equal(CultureFieldStrengthBandCodes.Nexus, foreignBoundary.StrengthBandCode);
+        var foreignLocality = simulation.CultureLocality.CellAt(simulation.World, 3, PlaneCodes.Physical, -1, 0);
+        Assert.Equal(CultureFieldCellKindCodes.Border, foreignLocality.CellKindCode);
+        Assert.Equal(CultureFieldStrengthBandCodes.Nexus, foreignLocality.StrengthBandCode);
         var slot = RegisterGenerator(simulation, includeProduced: false);
         var producedSlot = AddAreaProducedEntity(
             simulation,
@@ -276,12 +276,12 @@ public sealed class GeneratorProgramRuntimePlacementTests
         simulation.RegisterTerrain(
             terrainId: 2,
             boundaryGroupId: 2,
-            movementCost: 20f,
-            influenceMultiplier: 1f,
-            claimCostMultiplier: 1f,
-            claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f,
-            roadSpeedMultiplier: 1f);
+            movementCost: FixedScalar.FromSingle(20f),
+            influenceMultiplier: FixedScalar.FromSingle(1f),
+            claimCostMultiplier: FixedScalar.FromSingle(1f),
+            claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f),
+            roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.World.SetCellTerrain(PlaneCodes.Semantic, 1, 0, terrainId: 1);
         simulation.World.SetCellTerrain(PlaneCodes.Semantic, -1, 0, terrainId: 2);
         CreateTarget(simulation);
@@ -326,7 +326,7 @@ public sealed class GeneratorProgramRuntimePlacementTests
             semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
-            createChance: 1f,
+            createChance: FixedScalar.FromSingle(1f),
             coverageModeCode: GeneratorCoverageModeCodes.None,
             coverageSourceRefCode: 0,
             coverageDesiredCellCount: 0,
@@ -399,7 +399,7 @@ public sealed class GeneratorProgramRuntimePlacementTests
             semanticPlacementCode: GeneratorPlacementCodes.Locality,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
-            createChance: 1f,
+            createChance: FixedScalar.FromSingle(1f),
             coverageModeCode: GeneratorCoverageModeCodes.None,
             coverageSourceRefCode: 0,
             coverageDesiredCellCount: 0,
@@ -492,7 +492,7 @@ public sealed class GeneratorProgramRuntimePlacementTests
             semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
-            createChance: 1f,
+            createChance: FixedScalar.FromSingle(1f),
             coverageModeCode: GeneratorCoverageModeCodes.None,
             coverageSourceRefCode: 0,
             coverageDesiredCellCount: 0,

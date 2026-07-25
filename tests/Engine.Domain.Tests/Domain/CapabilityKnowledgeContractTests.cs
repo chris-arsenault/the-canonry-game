@@ -35,7 +35,7 @@ public sealed class CapabilityKnowledgeContractTests
         // Physical identity flows through site flags and placement taste
         // now; ordered physical terrain lists carry only named flavor.
         Assert.Contains(compiledRule.ProducedEntities, produced =>
-            produced.CreateChance == 0.45f &&
+            produced.CreateChance == FixedScalar.FromSingle(0.45f) &&
             produced.PhysicalPlacement == GeneratorProgramPlacement.Area &&
             produced.PhysicalPlacementSiteFlags == PhysicalHexFieldCodes.AnomalyFlag &&
             produced.SemanticPlacementPreferredTerrainIds.Count > 0);
@@ -101,14 +101,14 @@ public sealed class CapabilityKnowledgeContractTests
             modifier.GambitId == cleanseId &&
             modifier.TraitId == restorativeAuraId &&
             modifier.BearerCode == TraitEffectBearerCodes.Actor &&
-            modifier.ScoreDelta == 0.10f &&
-            modifier.SuccessChanceDelta == 0.10f);
+            modifier.ScoreDelta == FixedScalar.FromSingle(0.10f) &&
+            modifier.SuccessChanceDelta == FixedScalar.FromSingle(0.10f));
 
         Assert.Contains(compiled.Programs.Gambits.TraitModifiers, modifier =>
             modifier.GambitId == warId &&
             modifier.TraitId == fractiousCouncilId &&
             modifier.BearerCode == TraitEffectBearerCodes.Actor &&
-            modifier.ScoreDelta == 0.18f &&
-            modifier.SuccessChanceDelta == -0.05f);
+            modifier.ScoreDelta == FixedScalar.FromSingle(0.18f) &&
+            modifier.SuccessChanceDelta == FixedScalar.FromSingle(-0.05f));
     }
 }

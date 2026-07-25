@@ -35,7 +35,7 @@ public sealed class DefinitionLowAltitudeVerbNode : DefinitionGameplayNode
     public required LowAltitudeVerbConfig SourceConfig { get; init; }
 }
 
-public sealed class DefinitionMapSignalNode : DefinitionGameplayNode
+public sealed class DefinitionLocalityNode : DefinitionGameplayNode
 {
     public required string Source { get; init; }
 }
@@ -49,7 +49,7 @@ public abstract record GameplayRead(string Label);
 
 public abstract record GameplayWrite(string Label);
 
-public sealed record MapSignalRead(string Label) : GameplayRead(Label);
+public sealed record LocalityRead(string Label) : GameplayRead(Label);
 
 public sealed record InfluenceWrite(string Label) : GameplayWrite(Label);
 
@@ -356,7 +356,7 @@ public sealed class DefinitionEntityQuery
     public string? Culture { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
     public bool AdjacentToTarget { get; init; }
-    public bool SamePhysicalCultureComponentAsTarget { get; init; }
+    public bool RequireTargetCultureRoute { get; init; }
     public IReadOnlySet<string>? WithoutOutgoingRelationships { get; init; }
     public IReadOnlySet<string>? WithoutIncomingRelationships { get; init; }
     public QueryTargetCultureMatch TargetCultureMatch { get; init; } = QueryTargetCultureMatch.Any;

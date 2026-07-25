@@ -1,5 +1,6 @@
 namespace Engine.Kernel;
 
+using Engine.Constants;
 using Engine.Eventing;
 
 internal sealed partial class GeneratorProgramRuntime
@@ -197,7 +198,7 @@ internal sealed partial class GeneratorProgramRuntime
         WorldState world,
         int targetId,
         int relationshipKindId,
-        float minimumStrength,
+        FixedScalar minimumStrength,
         bool outgoing,
         out int relationshipId) =>
         KernelQuery.TryFirstRelationshipOfKind(world, targetId, relationshipKindId, outgoing, minimumStrength, out relationshipId);
@@ -251,8 +252,8 @@ internal sealed partial class GeneratorProgramRuntime
         out int failureReasonCode)
     {
         failureReasonCode = GeneratorTargetRejectionReasonCodes.None;
-        if (_producedCreateChances[produced] < 1f &&
-            simulation.NextFloat() > _producedCreateChances[produced])
+        if (_producedCreateChances[produced] < 1 &&
+            simulation.NextScalar() > _producedCreateChances[produced])
         {
             SetRef(refCodes, refEntityIds, ref refCount, _producedRefCodes[produced], 0);
             return true;
@@ -321,7 +322,7 @@ internal sealed partial class GeneratorProgramRuntime
             _producedQuerySubtypeCounts[produced],
             _producedQueryAdjacentToTarget[produced],
             _producedQueryCultureMatchCodes[produced],
-            _producedQuerySamePhysicalCultureComponentAsTarget[produced],
+            _producedQueryRequireTargetCultureRoute[produced],
             _producedQueryWithoutOutgoingStarts[produced],
             _producedQueryWithoutOutgoingCounts[produced],
             _producedQueryWithoutIncomingStarts[produced],
@@ -737,7 +738,7 @@ internal sealed partial class GeneratorProgramRuntime
             for (var dr = global::System.Math.Max(-radius, -dq - radius); dr <= global::System.Math.Min(radius, -dq + radius); dr++)
             {
                 var distance = (global::System.Math.Abs(dq) + global::System.Math.Abs(dr) + global::System.Math.Abs(dq + dr)) / 2;
-                var falloff = 1f - (distance / (radius + 1f));
+                var falloff = 1 - FixedScalar.FromRatio(distance, radius + 1);
                 _ = simulation.ModifyCellCultureInfluenceRaw(
                     cultureId,
                     PlaneCodes.Physical,
@@ -875,7 +876,7 @@ internal sealed partial class GeneratorProgramRuntime
                    targetId,
                    relationshipKindId,
                    outgoing: true,
-                   minimumStrength: 0f,
+                   minimumStrength: 0,
                    out var relationshipId))
         {
             KernelEffectExecutor.CullRelationship(simulation, relationshipId);
@@ -887,7 +888,7 @@ internal sealed partial class GeneratorProgramRuntime
                    targetId,
                    relationshipKindId,
                    outgoing: false,
-                   minimumStrength: 0f,
+                   minimumStrength: 0,
                    out var relationshipId))
         {
             KernelEffectExecutor.CullRelationship(simulation, relationshipId);
@@ -902,7 +903,7 @@ internal sealed partial class GeneratorProgramRuntime
         WorldState world,
         int targetId,
         int relationshipKindId,
-        float delta,
+        FixedScalar delta,
         int instanceSelectionCode,
         int optionCode,
         int causalSpendLimitMultiplier,
@@ -936,7 +937,7 @@ internal sealed partial class GeneratorProgramRuntime
         WorldState world,
         int entityId,
         int relationshipKindId,
-        float delta,
+        FixedScalar delta,
         int causalSpendLimitMultiplier)
     {
         var spendCount = 0;
@@ -944,7 +945,7 @@ internal sealed partial class GeneratorProgramRuntime
             world,
             entityId,
             relationshipKindId,
-            minimumStrength: 0f,
+            minimumStrength: 0,
             outgoing: true,
             (relationshipId, _) =>
             {
@@ -960,7 +961,7 @@ internal sealed partial class GeneratorProgramRuntime
             world,
             entityId,
             relationshipKindId,
-            minimumStrength: 0f,
+            minimumStrength: 0,
             outgoing: false,
             (relationshipId, endpointId) =>
             {
@@ -983,7 +984,7 @@ internal sealed partial class GeneratorProgramRuntime
         Simulation simulation,
         WorldState world,
         int relationshipKindId,
-        float delta,
+        FixedScalar delta,
         int optionCode,
         int causalSpendLimitMultiplier,
         int triggerKindCode,
@@ -1026,20 +1027,20 @@ internal sealed partial class GeneratorProgramRuntime
         Simulation simulation,
         WorldState world,
         int relationshipId,
-        float delta,
+        FixedScalar delta,
         int causalSpendLimitMultiplier)
     {
         var previous = KernelQuery.RelationshipStrength(world, relationshipId);
         var adjustedDelta = AdjustedCausalSpendDelta(delta, causalSpendLimitMultiplier);
-        KernelEffectExecutor.SetRelationshipStrength(
+        KernelEffectExecutor.ModifyRelationshipStrengthUnits(
             simulation,
             relationshipId,
-            previous + adjustedDelta);
-        return adjustedDelta < 0f && previous > previous + adjustedDelta ? 1 : 0;
+            KernelFixedPoint.RelationshipStrengthDeltaUnits(adjustedDelta));
+        return adjustedDelta < 0 && previous > previous + adjustedDelta ? 1 : 0;
     }
 
-    private static float AdjustedCausalSpendDelta(float delta, int causalSpendLimitMultiplier) =>
-        delta < 0f && causalSpendLimitMultiplier > 1
+    private static FixedScalar AdjustedCausalSpendDelta(FixedScalar delta, int causalSpendLimitMultiplier) =>
+        delta < 0 && causalSpendLimitMultiplier > 1
             ? delta / causalSpendLimitMultiplier
             : delta;
 

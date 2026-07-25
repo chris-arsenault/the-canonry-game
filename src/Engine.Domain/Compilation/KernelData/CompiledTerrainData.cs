@@ -10,18 +10,18 @@ public sealed class CompiledTerrainData
 public sealed record CompiledCrossingProfileDefinition(
     int CrossingClass,
     int MovementProfileId,
-    float Factor,
+    FixedScalar Factor,
     bool RoadNegated);
 
 public sealed record CompiledTerrainDefinition(
     int TerrainId,
     int BoundaryGroupId,
-    float MovementCost,
-    float InfluenceMultiplier,
-    float ClaimCostMultiplier,
-    float ClaimChanceMultiplier,
-    float RoadBuildMultiplier,
-    float RoadSpeedMultiplier,
+    FixedScalar MovementCost,
+    FixedScalar InfluenceMultiplier,
+    FixedScalar ClaimCostMultiplier,
+    FixedScalar ClaimChanceMultiplier,
+    FixedScalar RoadBuildMultiplier,
+    FixedScalar RoadSpeedMultiplier,
     IReadOnlyList<CompiledTerrainMovementProfileDefinition> MovementProfiles,
     IReadOnlyList<CompiledTerrainKindProfileDefinition> KindProfiles,
     bool IsWater = false);
@@ -29,12 +29,12 @@ public sealed record CompiledTerrainDefinition(
 public sealed record CompiledTerrainMovementProfileDefinition(
     int TerrainId,
     int MovementProfileId,
-    float MovementCost);
+    FixedScalar MovementCost);
 
 public sealed record CompiledTerrainKindProfileDefinition(
     int TerrainId,
     int KindId,
     int FieldFlags,
-    float InfluenceMultiplier,
-    float ClaimCostMultiplier,
-    float ClaimChanceMultiplier);
+    FixedScalar InfluenceMultiplier,
+    FixedScalar ClaimCostMultiplier,
+    FixedScalar ClaimChanceMultiplier);

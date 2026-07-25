@@ -261,7 +261,7 @@ internal sealed class GameDomainKnowledge
             step.A,
             stableName,
             DisplayName(symbols, ProjectionSymbolKind.RelationshipKind, step.A, stableName),
-            step.X);
+            step.X.ToSingle());
     }
 
     private static CardTerrainTransformDescriptor TerrainTransformDescriptor(
@@ -286,8 +286,8 @@ internal sealed class GameDomainKnowledge
             modifier.TraitId,
             stableName,
             DisplayName(symbols, ProjectionSymbolKind.Trait, modifier.TraitId, stableName),
-            modifier.ScoreDelta,
-            modifier.SuccessChanceDelta);
+            modifier.ScoreDelta.ToSingle(),
+            modifier.SuccessChanceDelta.ToSingle());
     }
 
     private static string EndpointLabel(BehaviorProgramOperation operation, int endpointCode)

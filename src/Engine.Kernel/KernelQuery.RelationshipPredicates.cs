@@ -28,7 +28,7 @@ internal static partial class KernelQuery
         int flags,
         int counterpartKindId,
         int counterpartSubtypeId,
-        float minimumStrength)
+        FixedScalar minimumStrength)
     {
         var hasMinimumStrength = flags & 1;
         var incoming = (flags & 2) != 0;

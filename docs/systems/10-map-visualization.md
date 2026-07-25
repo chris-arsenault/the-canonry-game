@@ -18,8 +18,9 @@ and dirty sets, while Godot render components own node mutation.
   projection data.
 - Render activity and signal overlays when useful for debugging or play.
 - Show active entities by default.
-- Keep historical/dead entities available for explicit history views rather
-  than default hot-path map rendering.
+- Remove retired entities and ended relationships from the live projection.
+  Historical context belongs to immutable journal and chronicle entries, not a
+  hidden lifetime graph behind the map.
 - Keep the tableau inspectable without covering the entity list or hiding the
   map.
 
@@ -127,10 +128,9 @@ Useful overlays for tuning:
 
 - legacy/entity-attribution physical influence
 - legacy/entity-attribution semantic influence
-- cultural boundary kind and strength band
-- cultural component id and size
+- cultural locality kind and strength band
+- local own/foreign and connected culture mass
 - recent movement trails
 - recent verb commitments
-- map activity heat
-- map support/threat/crowding signals
+- current occupancy/capacity/support/threat probes
 - generator target availability

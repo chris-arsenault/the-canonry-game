@@ -71,9 +71,9 @@ bounds, and coverage constraints pass.
 
 ## Pulse model
 
-* The generator runtime evaluates on the main graph cadence.
+* The generator runtime evaluates every world pulse.
 * A pulse window resets fire budget. Default tuning is
-`PulseWidthTicks = 25` main ticks and `FiresPerPulse = 1`.
+`PulseWidthTicks = 25` world pulses and `FiresPerPulse = 1`.
 * A generator may fire on any eligible generator tick inside the current pulse
 window while fire budget remains.
 * Applicable = on the tableau AND has at least one target entity whose

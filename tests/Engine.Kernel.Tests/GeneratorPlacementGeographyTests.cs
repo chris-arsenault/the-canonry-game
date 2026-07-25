@@ -26,7 +26,7 @@ public sealed class GeneratorPlacementGeographyTests
         var slot = RegisterGeneratorWithGeography(
             simulation,
             siteFlags: PhysicalHexFieldCodes.SummitFlag,
-            auroraAffinity: 0f);
+            auroraAffinity: FixedScalar.Zero);
         _ = slot;
         _ = simulation.CreateEntity(TargetKindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
 
@@ -47,7 +47,10 @@ public sealed class GeneratorPlacementGeographyTests
             flaggedR: 1,
             fieldWord: 0,
             auroraMean: 255);
-        _ = RegisterGeneratorWithGeography(simulation, siteFlags: 0, auroraAffinity: 1f);
+        _ = RegisterGeneratorWithGeography(
+            simulation,
+            siteFlags: 0,
+            auroraAffinity: FixedScalar.One);
         _ = simulation.CreateEntity(TargetKindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
 
         simulation.AdvanceTicks(1);
@@ -118,13 +121,13 @@ public sealed class GeneratorPlacementGeographyTests
     private static void InstallPartitionedGeography(Simulation simulation)
     {
         simulation.RegisterTerrain(
-            OpenTerrain, boundaryGroupId: 1, movementCost: 3f,
-            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f, roadSpeedMultiplier: 1f);
+            OpenTerrain, boundaryGroupId: 1, movementCost: FixedScalar.FromSingle(3f),
+            influenceMultiplier: FixedScalar.FromSingle(1f), claimCostMultiplier: FixedScalar.FromSingle(1f), claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f), roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.RegisterTerrain(
-            WaterTerrain, boundaryGroupId: 2, movementCost: 4f,
-            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 0f, roadSpeedMultiplier: 1f);
+            WaterTerrain, boundaryGroupId: 2, movementCost: FixedScalar.FromSingle(4f),
+            influenceMultiplier: FixedScalar.FromSingle(1f), claimCostMultiplier: FixedScalar.FromSingle(1f), claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(0f), roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.KernelData.PhysicalGeography.BeginInstall(4);
         simulation.World.SetMapRadius(4);
         ForEachHex(2, (q, r) =>
@@ -166,7 +169,7 @@ public sealed class GeneratorPlacementGeographyTests
             semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
-            createChance: 1f,
+            createChance: FixedScalar.FromSingle(1f),
             coverageModeCode: GeneratorCoverageModeCodes.None,
             coverageSourceRefCode: 0,
             coverageDesiredCellCount: 0,
@@ -192,7 +195,7 @@ public sealed class GeneratorPlacementGeographyTests
     private static int RegisterGeneratorWithGeography(
         Simulation simulation,
         int siteFlags,
-        float auroraAffinity)
+        FixedScalar auroraAffinity)
     {
         var slot = simulation.Generators.RegisterGenerator(
             GeneratorId,
@@ -213,7 +216,7 @@ public sealed class GeneratorPlacementGeographyTests
             semanticPlacementCode: GeneratorPlacementCodes.Area,
             placementRefCode: GeneratorProgramConstants.TargetReferenceCode,
             cultureRefCode: GeneratorProgramConstants.TargetReferenceCode,
-            createChance: 1f,
+            createChance: FixedScalar.FromSingle(1f),
             coverageModeCode: GeneratorCoverageModeCodes.None,
             coverageSourceRefCode: 0,
             coverageDesiredCellCount: 0,
@@ -224,10 +227,10 @@ public sealed class GeneratorPlacementGeographyTests
         simulation.Generators.SetProducedPlacementGeography(
             producedSlot,
             siteFlags,
-            warmthAffinity: 0f,
-            fireAffinity: 0f,
+            warmthAffinity: FixedScalar.FromSingle(0f),
+            fireAffinity: FixedScalar.FromSingle(0f),
             auroraAffinity: auroraAffinity,
-            pressureAffinity: 0f);
+            pressureAffinity: FixedScalar.FromSingle(0f));
         return slot;
     }
 
@@ -239,9 +242,9 @@ public sealed class GeneratorPlacementGeographyTests
         byte auroraMean)
     {
         simulation.RegisterTerrain(
-            OpenTerrain, boundaryGroupId: 1, movementCost: 3f,
-            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f, roadSpeedMultiplier: 1f);
+            OpenTerrain, boundaryGroupId: 1, movementCost: FixedScalar.FromSingle(3f),
+            influenceMultiplier: FixedScalar.FromSingle(1f), claimCostMultiplier: FixedScalar.FromSingle(1f), claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f), roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         simulation.KernelData.PhysicalGeography.BeginInstall(4);
         simulation.World.SetMapRadius(4);
         ForEachHex(1, (q, r) =>

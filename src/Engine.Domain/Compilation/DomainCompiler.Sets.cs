@@ -22,10 +22,9 @@ public static partial class DomainCompiler
         return new KernelProgramSet
         {
             LowAltitudeVerbs = gameplayPrograms.LowAltitudeVerbs,
-            MapActivity = gameplayPrograms.MapActivity,
-            MapSignals = gameplayPrograms.MapSignals,
+            Locality = gameplayPrograms.Locality,
             Effects = gameplayPrograms.Effects,
-            Upkeep = BuildUpkeepProgram(config, ids),
+            Lifecycle = BuildLifecycleProgram(config, ids),
             Gambits = BuildGambitProgram(config, ids),
             Relationships = BuildRelationshipProgram(config, ids),
             Generators = BuildGeneratorProgram(config, ids, graph),
@@ -58,7 +57,7 @@ public static partial class DomainCompiler
                 rule.SpawnRadius,
                 rule.MoveChancePermille,
                 rule.ActionCadencePulses,
-                rule.WorkDelta,
+                FixedScalar.FromSingle(rule.WorkDelta),
                 rule.Verbs
                     .Select(verb => new MinorActorVerbRule(
                         ids.VerbIdOf(verb.Id).Value,
@@ -67,8 +66,8 @@ public static partial class DomainCompiler
                         verb.PlaneCode == Engine.Constants.PlaneCodes.None ? planeCode : verb.PlaneCode,
                         verb.Radius,
                         verb.SampleCount,
-                        verb.Weight,
-                        verb.WorkDeltaMultiplier))
+                        FixedScalar.FromSingle(verb.Weight),
+                        FixedScalar.FromSingle(verb.WorkDeltaMultiplier)))
                     .ToArray()));
         }
 
@@ -101,13 +100,13 @@ public static partial class DomainCompiler
                         .Select(rule => new CultureSlotScoreRuntimeRule(
                             rule.SignalCode,
                             rule.RelationshipKindId,
-                            rule.Weight))
+                            FixedScalar.FromSingle(rule.Weight)))
                         .ToArray(),
-                    slot.MinimumScore,
+                    FixedScalar.FromSingle(slot.MinimumScore),
                     slot.MinimumTenureTicks,
-                    slot.DisplacementMargin,
-                    slot.EntityInfluenceMultiplierDelta,
-                    slot.CultureInfluenceMultiplierDelta));
+                    FixedScalar.FromSingle(slot.DisplacementMargin),
+                    FixedScalar.FromSingle(slot.EntityInfluenceMultiplierDelta),
+                    FixedScalar.FromSingle(slot.CultureInfluenceMultiplierDelta)));
             }
         }
 
@@ -144,7 +143,7 @@ public static partial class DomainCompiler
                 kindWeights.Add(new CompiledPlacementTasteWeight(
                     kindId,
                     PlacementTasteAxisNames.CodeOf(weight.Axis),
-                    weight.Weight));
+                    FixedScalar.FromSingle(weight.Weight)));
             }
         }
 
@@ -157,7 +156,7 @@ public static partial class DomainCompiler
                 cultureWeights.Add(new CompiledPlacementTasteWeight(
                     cultureId,
                     PlacementTasteAxisNames.CodeOf(weight.Axis),
-                    weight.Weight));
+                    FixedScalar.FromSingle(weight.Weight)));
             }
         }
 
@@ -182,8 +181,8 @@ public static partial class DomainCompiler
 
             cultures.Add(new CompiledCultureDefinition(
                 ids.CultureIdOf(culture.Id).Value,
-                culture.PhysicalInfluenceProductionMultiplier,
-                culture.SemanticInfluenceProductionMultiplier));
+                FixedScalar.FromSingle(culture.PhysicalInfluenceProductionMultiplier),
+                FixedScalar.FromSingle(culture.SemanticInfluenceProductionMultiplier)));
         }
 
         return new CompiledCultureData { Cultures = cultures };

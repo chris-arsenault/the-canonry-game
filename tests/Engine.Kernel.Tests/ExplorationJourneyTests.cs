@@ -21,9 +21,9 @@ public sealed class ExplorationJourneyTests
     {
         var simulation = CreateSimulation();
         simulation.RegisterTerrain(
-            OpenTerrain, boundaryGroupId: 1, movementCost: 3f,
-            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 1f, roadSpeedMultiplier: 1f);
+            OpenTerrain, boundaryGroupId: 1, movementCost: FixedScalar.FromSingle(3f),
+            influenceMultiplier: FixedScalar.FromSingle(1f), claimCostMultiplier: FixedScalar.FromSingle(1f), claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(1f), roadSpeedMultiplier: FixedScalar.FromSingle(1f));
         InstallLatentDisk(simulation, latentRadius: 6, knownRadius: 2);
         simulation.World.SetMapRadius(8);
         var slot = simulation.LowAltitudeVerbs.RegisterVerb(
@@ -40,9 +40,9 @@ public sealed class ExplorationJourneyTests
             dwellTicks: 4,
             targetRadius: 1,
             candidateSampleCount: 16,
-            weight: 2f);
+            weight: FixedScalar.FromSingle(2f));
         simulation.LowAltitudeVerbs.SetGeographyFilter(slot, minTemperature: 0, siteFlags: 0, fogAdjacent: 1);
-        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.MoveActor, 0, 0f);
+        simulation.LowAltitudeVerbs.AddPrimitiveStep(slot, ProgramOpcodeCodes.MoveActor, 0, FixedScalar.FromSingle(0f));
         var scout = simulation.CreateEntity(KindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
         var knownAtStart = CountKnown(simulation, radius: 6);
 

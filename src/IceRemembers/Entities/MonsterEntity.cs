@@ -41,8 +41,8 @@ internal static class MonsterEntity
                 "Threat stress erodes containment faster.",
                 TraitMapDelta(K.Monster, Attr.Containment, Effect.MapThreatAtLocation, -0.04f, 3f, PrimaryPlane.Physical)),
         ],
-        MapSignal = MapSignal(radius: 2, capacity: 0.3f, support: 0f, threat: 1.0f,
-            baseMass: 6f, coverageScale: 0f, influenceScale: 0.03f, activityScale: 0.04f,
+        Locality = Locality(radius: 2, capacity: 0.3f, support: 0f, threat: 1.0f,
+            baseMass: 6f, coverageScale: 0f, influenceScale: 0.03f,
             healthScale: 0.05f, attractorRadius: 2),
         MovementProfiles = MovementProfiles(
             physicalDefault: Profile.Trail,

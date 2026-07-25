@@ -13,41 +13,40 @@ internal sealed partial class MinorActorProgramRuntime
             global::System.Math.Abs(asCoord - bsCoord)) / 2;
     }
 
-    private static float Saturating(float value, float scale) =>
-        value <= 0f ? 0f : 1f - global::System.MathF.Exp(-value / scale);
+    private static FixedScalar Saturating(FixedScalar value, FixedScalar scale) =>
+        value <= 0 ? 0 : 1 - FixedScalar.Exp(-value / scale);
 
-    private static float Clamp01(float value)
+    private static FixedScalar Clamp01(FixedScalar value)
     {
-        if (value < 0f)
+        if (value < 0)
         {
-            return 0f;
+            return 0;
         }
 
-        return value > 1f ? 1f : value;
+        return value > 1 ? 1 : value;
     }
 
     private readonly record struct MinorActorCultureField(
-        float RawMass,
-        float LocalRaw,
-        float ConnectedRaw,
+        FixedScalar RawMass,
+        FixedScalar LocalRaw,
+        FixedScalar ConnectedRaw,
         int SupportedAdjacentCount,
         int SupportedRingTwoCount);
 
     private readonly record struct MinorActorCultureAttachment(
-        float ComponentMass,
+        FixedScalar ConnectedRawMass,
         int AdjacentSupportedCount,
-        int ComponentCount,
-        float LargestComponentSupport);
+        FixedScalar StrongCenterSupport);
 
     private readonly record struct MinorActorCellTarget(
         int Q,
         int R,
         int DistanceFromActor,
         int DistanceFromSource,
-        float OwnShare,
-        float OwnRaw,
-        float ForeignShare,
-        float ForeignRaw,
+        FixedScalar OwnShare,
+        FixedScalar OwnRaw,
+        FixedScalar ForeignShare,
+        FixedScalar ForeignRaw,
         MinorActorCultureField CultureField,
         MinorActorCultureAttachment Attachment,
         int CellKindCode);
@@ -61,8 +60,8 @@ internal sealed partial class MinorActorProgramRuntime
         int R,
         int CellKindCode,
         int EffectiveRadius,
-        float LocalRawMass,
-        float ConnectedRawMass,
-        float Score,
-        float WorkDeltaMultiplier);
+        FixedScalar LocalRawMass,
+        FixedScalar ConnectedRawMass,
+        FixedScalar Score,
+        FixedScalar WorkDeltaMultiplier);
 }

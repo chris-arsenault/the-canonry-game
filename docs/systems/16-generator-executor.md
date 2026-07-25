@@ -114,11 +114,10 @@ hostile intrusion.
 
 ## Pulse Budget
 
-Generators run on the main graph cadence, not every minor-actor tick. Fire
+Generators run every world pulse, independently of minor-actor substeps. Fire
 budget is reset by pulse windows. The default tuning is `PulseWidthTicks = 25`
-main ticks and `FiresPerPulse = 1`. With the current
-`MinorActorMainTickRatio = 5`, the default pulse width spans `125` simulation
-ticks. A generator can fire on any eligible generator tick inside the current
+world pulses and `FiresPerPulse = 1`. A generator can fire on any eligible
+generator tick inside the current
 pulse window while budget remains, instead of only on an exact modulo boundary.
 
 When multiple generators are eligible, selection is weighted by authored pulse

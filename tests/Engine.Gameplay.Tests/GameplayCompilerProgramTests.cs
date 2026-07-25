@@ -30,7 +30,7 @@ public sealed class GameplayCompilerProgramTests
         var initialInfluence = Assert.Single(result.Programs.LowAltitudeVerbs.InitialInfluence);
         Assert.Equal(1, initialInfluence.KindId);
         Assert.Equal(PlaneCodes.Semantic, initialInfluence.PlaneCode);
-        Assert.Equal(0.75f, initialInfluence.InfluenceValue);
+        Assert.Equal(FixedScalar.FromSingle(0.75f), initialInfluence.InfluenceValue);
 
         var affordance = Assert.Single(result.Programs.LowAltitudeVerbs.Affordances);
         Assert.Equal(AffordanceSourceKindCodes.Generator, affordance.SourceKindCode);
@@ -38,7 +38,7 @@ public sealed class GameplayCompilerProgramTests
         Assert.Equal(LowAltitudeAffordanceShapeCodes.PresenceNearEntity, affordance.ShapeCode);
         Assert.Equal(1, affordance.ActorKindId);
         Assert.Equal(5, affordance.CandidateKindId);
-        Assert.Equal(1f, affordance.Weight);
+        Assert.Equal(FixedScalar.FromSingle(1f), affordance.Weight);
     }
 
     [Fact]
@@ -107,12 +107,12 @@ public sealed class GameplayCompilerProgramTests
         Assert.Equal(RelationshipMatchDirectionCodes.Outgoing, relationshipVerb.RelationshipDirectionCode);
         Assert.Equal(32, relationshipVerb.FitnessRelationshipKindId);
         Assert.Equal(RelationshipMatchDirectionCodes.Incoming, relationshipVerb.FitnessRelationshipDirectionCode);
-        Assert.Equal(2.5f, relationshipVerb.FitnessWeight);
+        Assert.Equal(FixedScalar.FromSingle(2.5f), relationshipVerb.FitnessWeight);
         Assert.Equal(4, relationshipVerb.TargetRadius);
         Assert.Equal(7, relationshipVerb.CandidateSampleCount);
-        Assert.Equal(1.2f, relationshipVerb.Weight);
-        Assert.Equal(0.8f, relationshipVerb.OpportunityBonusOverride);
-        Assert.Equal(0.75f, relationshipVerb.InfluenceDelta);
+        Assert.Equal(FixedScalar.FromSingle(1.2f), relationshipVerb.Weight);
+        Assert.Equal(FixedScalar.FromSingle(0.8f), relationshipVerb.OpportunityBonusOverride);
+        Assert.Equal(FixedScalar.FromSingle(0.75f), relationshipVerb.InfluenceDelta);
         Assert.Equal(1, relationshipVerb.InfluenceRadius);
 
         var terrainVerb = result.Programs.LowAltitudeVerbs.Verbs[1];
@@ -146,10 +146,10 @@ public sealed class GameplayCompilerProgramTests
         Assert.Equal(
             [ProgramOpcodeCodes.AddOwnedCellScalar, ProgramOpcodeCodes.TryRelocateEntity],
             verb.PrimitiveSteps.Select(step => step.Opcode).ToArray());
-        Assert.Equal(0.5f, verb.InfluenceDelta);
+        Assert.Equal(FixedScalar.FromSingle(0.5f), verb.InfluenceDelta);
         Assert.Equal(2, verb.InfluenceRadius);
-        Assert.Equal(0.25f, verb.HeadquartersMoveChance);
-        Assert.Equal(55f, verb.RequiredInfluence);
+        Assert.Equal(FixedScalar.FromSingle(0.25f), verb.HeadquartersMoveChance);
+        Assert.Equal(FixedScalar.FromSingle(55f), verb.RequiredInfluence);
     }
 
     [Fact]
@@ -177,24 +177,24 @@ public sealed class GameplayCompilerProgramTests
         Assert.Equal(TargetSelectorCodes.RelationshipTarget, verb.TargetModeCode);
         Assert.Equal(31, verb.RelationshipKindId);
         Assert.Equal(RelationshipMatchDirectionCodes.Incoming, verb.RelationshipDirectionCode);
-        Assert.Equal(0.075f, verb.RelationshipStrengthDelta);
+        Assert.Equal(FixedScalar.FromSingle(0.075f), verb.RelationshipStrengthDelta);
         Assert.Equal(
             [ProgramOpcodeCodes.AdjustRelationshipStrength],
             verb.PrimitiveSteps.Select(step => step.Opcode).ToArray());
     }
 
     [Fact]
-    public void CompileGameplay_CompilesTerrainAndRelationshipMapSignals()
+    public void CompileGameplay_CompilesTerrainAndRelationshipLocality()
     {
         var result = GameplayCompiler.CompileGameplay(new GameplayDefinition
         {
-            MapSignals = new MapSignalsConfig
+            Locality = new LocalityConfig
             {
                 SemanticBaseCapacity = 3.5f,
                 CrowdingRadius = 4,
                 Terrains =
                 [
-                    new TerrainMapSignalConfig
+                    new TerrainLocalityConfig
                     {
                         Terrain = "ocean",
                         BaseCapacity = 8f,
@@ -202,10 +202,9 @@ public sealed class GameplayCompilerProgramTests
                 ],
                 Relationships =
                 [
-                    new RelationshipMapSignalConfig
+                    new RelationshipLocalityConfig
                     {
                         RelationshipKind = "allies",
-                        SignalRadius = 6,
                         SupportEmission = 0.4f,
                         ThreatEmission = 0.2f,
                     },
@@ -213,31 +212,30 @@ public sealed class GameplayCompilerProgramTests
             },
         }, new ConfigurableGameplayContext());
 
-        Assert.Equal(3.5f, result.Programs.MapSignals.SemanticBaseCapacity);
-        Assert.Equal(4, result.Programs.MapSignals.CrowdingRadius);
+        Assert.Equal(FixedScalar.FromSingle(3.5f), result.Programs.Locality.SemanticBaseCapacity);
+        Assert.Equal(4, result.Programs.Locality.CrowdingRadius);
 
-        var terrain = Assert.Single(result.Programs.MapSignals.Terrains);
+        var terrain = Assert.Single(result.Programs.Locality.Terrains);
         Assert.Equal(20, terrain.TerrainId);
-        Assert.Equal(8f, terrain.BaseCapacity);
+        Assert.Equal(FixedScalar.FromSingle(8f), terrain.BaseCapacity);
 
-        var relationship = Assert.Single(result.Programs.MapSignals.Relationships);
+        var relationship = Assert.Single(result.Programs.Locality.Relationships);
         Assert.Equal(31, relationship.RelationshipKindId);
-        Assert.Equal(6, relationship.SignalRadius);
-        Assert.Equal(0.4f, relationship.SupportEmission);
-        Assert.Equal(0.2f, relationship.ThreatEmission);
+        Assert.Equal(FixedScalar.FromSingle(0.4f), relationship.SupportEmission);
+        Assert.Equal(FixedScalar.FromSingle(0.2f), relationship.ThreatEmission);
     }
 
     [Fact]
-    public void CompileGameplay_RejectsUnknownTerrainMapSignal()
+    public void CompileGameplay_RejectsUnknownTerrainLocality()
     {
         var exception = Assert.Throws<InvalidOperationException>(() =>
             GameplayCompiler.CompileGameplay(new GameplayDefinition
             {
-                MapSignals = new MapSignalsConfig
+                Locality = new LocalityConfig
                 {
                     Terrains =
                     [
-                        new TerrainMapSignalConfig
+                        new TerrainLocalityConfig
                         {
                             Terrain = "unknown",
                             BaseCapacity = 1f,
@@ -250,16 +248,16 @@ public sealed class GameplayCompilerProgramTests
     }
 
     [Fact]
-    public void CompileGameplay_RejectsUnknownRelationshipMapSignal()
+    public void CompileGameplay_RejectsUnknownRelationshipLocality()
     {
         var exception = Assert.Throws<InvalidOperationException>(() =>
             GameplayCompiler.CompileGameplay(new GameplayDefinition
             {
-                MapSignals = new MapSignalsConfig
+                Locality = new LocalityConfig
                 {
                     Relationships =
                     [
-                        new RelationshipMapSignalConfig
+                        new RelationshipLocalityConfig
                         {
                             RelationshipKind = "unknown",
                             SupportEmission = 1f,
@@ -272,21 +270,21 @@ public sealed class GameplayCompilerProgramTests
     }
 
     [Fact]
-    public void CompileGameplay_RejectsUnknownMapSignalScalarAttribute()
+    public void CompileGameplay_RejectsUnknownLocalityScalarAttribute()
     {
         var exception = Assert.Throws<InvalidOperationException>(() =>
             GameplayCompiler.CompileGameplay(new GameplayDefinition
             {
-                MapSignals = new MapSignalsConfig
+                Locality = new LocalityConfig
                 {
                     Kinds =
                     [
-                        new KindMapSignalConfig
+                        new KindLocalityConfig
                         {
                             Kind = "actor",
                             AttractorScalarInputs =
                             [
-                                new MapSignalScalarInputConfig
+                                new LocalityScalarInputConfig
                                 {
                                     Attribute = "missing",
                                     AttractorScale = 1f,
@@ -343,9 +341,9 @@ public sealed class GameplayCompilerProgramTests
         Assert.Equal(RelationshipMatchDirectionCodes.Incoming, relationshipEffect.RelationshipDirectionCode);
         Assert.Equal(PlaneCodes.Semantic, relationshipEffect.PlaneCode);
         Assert.Equal(5, relationshipEffect.MaxDistance);
-        Assert.Equal(2f, relationshipEffect.Threshold);
-        Assert.Equal(0.3f, relationshipEffect.MinimumRelationshipStrength);
-        Assert.Equal(-0.04f, relationshipEffect.DeltaPerTick);
+        Assert.Equal(FixedScalar.FromSingle(2f), relationshipEffect.Threshold);
+        Assert.Equal(FixedScalar.FromSingle(0.3f), relationshipEffect.MinimumRelationshipStrength);
+        Assert.Equal(FixedScalar.FromSingle(-0.04f), relationshipEffect.DeltaPerTick);
 
         var mapEffect = result.Programs.Effects.AttributeDeltaEffects[1];
         Assert.Equal(41, mapEffect.AttributeId);
@@ -573,9 +571,9 @@ public sealed class GameplayCompilerProgramTests
         Assert.Equal(1, modifier.KindId);
         Assert.Equal(50, modifier.TraitId);
         Assert.Equal(0, modifier.VerbId);
-        Assert.Equal(0.2f, modifier.WeightDelta);
-        Assert.Equal(0.7f, modifier.OpportunityBonusDelta);
-        Assert.Equal(0.8f, modifier.FitnessWeightDelta);
+        Assert.Equal(FixedScalar.FromSingle(0.2f), modifier.WeightDelta);
+        Assert.Equal(FixedScalar.FromSingle(0.7f), modifier.OpportunityBonusDelta);
+        Assert.Equal(FixedScalar.FromSingle(0.8f), modifier.FitnessWeightDelta);
     }
 
     private sealed class ConfigurableGameplayContext : IGameplayCompilationContext

@@ -20,7 +20,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         }
 
         var selected = candidate;
-        var totalWeight = 0f;
+        var totalWeight = FixedScalar.Zero;
         var attempts = Data.CandidateSampleCount(candidate.RuleSlot);
         for (var i = 0; i < attempts; i++)
         {
@@ -31,7 +31,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
             var weight = MovementShapeCellWeight(simulation, candidate.RuleSlot, candidate.PlaneCode, q, r);
             totalWeight += weight;
-            if (simulation.NextFloat() * totalWeight <= weight)
+            if (simulation.NextScalar() * totalWeight <= weight)
             {
                 selected = candidate with { Q = q, R = r, S = -q - r };
             }
@@ -137,7 +137,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             return;
         }
 
-        if (float.IsInfinity(result.StepCost))
+        if (FixedScalar.IsInfinity(result.StepCost))
         {
             ClearIntentAndPushRecent(entityId, tick);
         }
@@ -183,7 +183,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int tick)
     {
         var delta = EffectiveInfluenceDelta(simulation, entityId, rule, reducingForeign: false);
-        if (delta <= 0f)
+        if (delta <= 0)
         {
             return;
         }
@@ -225,7 +225,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             MovementTargetReachable(simulation, entityId, rule, planeCode, q, r, tick);
     }
 
-    private float MovementShapeCellWeight(Simulation simulation, int rule, int planeCode, int q, int r)
+    private FixedScalar MovementShapeCellWeight(Simulation simulation, int rule, int planeCode, int q, int r)
     {
         var saturation = CellSaturationDivisor(simulation, planeCode, q, r);
         return Data.Weight(rule) * saturation;

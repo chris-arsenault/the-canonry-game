@@ -5,9 +5,9 @@ internal sealed partial class Simulation
     internal void RegisterStageProperties(
         int kindId,
         int stageIndex,
-        float bandMultiplier,
+        FixedScalar bandMultiplier,
         int workerBonus,
-        float ambientEmission,
+        FixedScalar ambientEmission,
         int districtCapacity) =>
         World.RegisterStageProperties(kindId, stageIndex, bandMultiplier, workerBonus, ambientEmission, districtCapacity);
 }
@@ -23,27 +23,27 @@ internal sealed partial class WorldState
     private int _stageRuleCount;
     private int[] _stageKindIds = [];
     private int[] _stageIndices = [];
-    private float[] _stageBandMultipliers = [];
+    private FixedScalar[] _stageBandMultipliers = [];
     private int[] _stageWorkerBonuses = [];
-    private float[] _stageAmbientEmissions = [];
+    private FixedScalar[] _stageAmbientEmissions = [];
     private int[] _stageDistrictCapacities = [];
 
     private void InitializeStageStorage()
     {
         _stageKindIds = new int[129];
         _stageIndices = new int[129];
-        _stageBandMultipliers = new float[129];
+        _stageBandMultipliers = new FixedScalar[129];
         _stageWorkerBonuses = new int[129];
-        _stageAmbientEmissions = new float[129];
+        _stageAmbientEmissions = new FixedScalar[129];
         _stageDistrictCapacities = new int[129];
     }
 
     internal void RegisterStageProperties(
         int kindId,
         int stageIndex,
-        float bandMultiplier,
+        FixedScalar bandMultiplier,
         int workerBonus,
-        float ambientEmission,
+        FixedScalar ambientEmission,
         int districtCapacity)
     {
         if (_stageRuleCount + 1 >= _stageKindIds.Length)
@@ -97,11 +97,11 @@ internal sealed partial class WorldState
         return best;
     }
 
-    internal float StageBandMultiplier(int stageRule) => stageRule == 0 ? 1f : _stageBandMultipliers[stageRule];
+    internal FixedScalar StageBandMultiplier(int stageRule) => stageRule == 0 ? 1 : _stageBandMultipliers[stageRule];
 
     internal int StageWorkerBonus(int stageRule) => _stageWorkerBonuses[stageRule];
 
-    internal float StageAmbientEmission(int stageRule) => stageRule == 0 ? 0f : _stageAmbientEmissions[stageRule];
+    internal FixedScalar StageAmbientEmission(int stageRule) => stageRule == 0 ? 0 : _stageAmbientEmissions[stageRule];
 
     /// <summary>0 means uncapped (kinds without catalogs).</summary>
     internal int StageDistrictCapacity(int stageRule) => stageRule == 0 ? 0 : _stageDistrictCapacities[stageRule];

@@ -19,10 +19,10 @@ public sealed record CompiledWorldBeatAge(
 public sealed record CompiledWorldBeatCondition(
     int FactCode,
     int ComparatorCode,
-    float Value,
+    FixedScalar Value,
     int ParamId);
 
 public sealed record CompiledWorldBeatCharge(
     int DomainCode,
     int TargetId,
-    float Multiplier);
+    FixedScalar Multiplier);

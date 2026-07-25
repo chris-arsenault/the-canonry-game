@@ -7,7 +7,7 @@ internal sealed partial class GambitProgramRuntime
     private void ExecuteGambit(Simulation simulation, int entityId, int targetId, int gambitSlot, int tick)
     {
         global::System.Span<int> variableIds = _variableIds;
-        global::System.Span<float> variableValues = _variableValues;
+        global::System.Span<FixedScalar> variableValues = _variableValues;
         var variableCount = 0;
         var firstStep = _gambitStepStarts[gambitSlot];
         var endStep = firstStep + _gambitStepCounts[gambitSlot];
@@ -32,7 +32,7 @@ internal sealed partial class GambitProgramRuntime
         int tick,
         int step,
         global::System.Span<int> variableIds,
-        global::System.Span<float> variableValues,
+        global::System.Span<FixedScalar> variableValues,
         ref int variableCount)
     {
         var world = simulation.World;
@@ -57,7 +57,7 @@ internal sealed partial class GambitProgramRuntime
         int step,
         int operationCode,
         global::System.Span<int> variableIds,
-        global::System.Span<float> variableValues,
+        global::System.Span<FixedScalar> variableValues,
         ref int variableCount)
     {
         switch (operationCode)
@@ -175,7 +175,7 @@ internal sealed partial class GambitProgramRuntime
     /// Conflict scars the field: erode the target's culture influence around
     /// the target's physical position, strongest at the center.
     /// </summary>
-    private static void ErodeTargetCulture(Simulation simulation, WorldState world, int targetId, int tick, int radius, float amountPerCell)
+    private static void ErodeTargetCulture(Simulation simulation, WorldState world, int targetId, int tick, int radius, FixedScalar amountPerCell)
     {
         if (targetId <= 0 || !world.EntityIsActive(targetId))
         {
@@ -195,7 +195,7 @@ internal sealed partial class GambitProgramRuntime
             for (var dr = global::System.Math.Max(-radius, -dq - radius); dr <= global::System.Math.Min(radius, -dq + radius); dr++)
             {
                 var distance = (global::System.Math.Abs(dq) + global::System.Math.Abs(dr) + global::System.Math.Abs(dq + dr)) / 2;
-                var falloff = 1f - (distance / (radius + 1f));
+                var falloff = 1 - FixedScalar.FromRatio(distance, radius + 1);
                 _ = simulation.ModifyCellCultureInfluenceRaw(
                     cultureId,
                     PlaneCodes.Physical,
@@ -213,41 +213,78 @@ internal sealed partial class GambitProgramRuntime
     // acting settlement's newest sleeping core returns to the world on its
     // tile while the tile stays city ground. See
     // docs/design/artifact-districts.md.
-    private static bool ExecuteDistrictStep(Simulation simulation, WorldState world, int entityId, int targetId, int operationCode)
+    private bool ExecuteDistrictStep(
+        Simulation simulation,
+        WorldState world,
+        int entityId,
+        int targetId,
+        int step,
+        int operationCode)
     {
-        if (operationCode == BehaviorOperationCodes.InstallDistrict)
+        return operationCode switch
         {
-            if (!world.TryGetDistrictBonus(world.EntitySubtypeId(entityId), out var bonusKindCode, out var magnitude))
-            {
-                return true;
-            }
+            BehaviorOperationCodes.InstallDistrict =>
+                InstallDistrict(simulation, world, entityId, targetId, step),
+            BehaviorOperationCodes.ReawakenDistrict =>
+                ReawakenDistrict(simulation, world, entityId),
+            _ => false,
+        };
+    }
 
-            var capacity = world.StageDistrictCapacity(
-                world.StageRuleFor(world.EntityKindId(targetId), simulation.MinorActors.WorkTier(targetId)));
-            if (capacity > 0 && world.ActiveDistrictCount(targetId) >= capacity)
-            {
-                return true;
-            }
-
-            var q = world.EntityPhysicalQ(entityId);
-            var r = world.EntityPhysicalR(entityId);
-            KernelEffectExecutor.SetCoverageOwner(simulation, q, r, targetId);
-            _ = world.InstallDistrict(entityId, targetId, q, r, bonusKindCode, magnitude);
-            KernelEffectExecutor.SetEntityStatus(simulation, entityId, EntityStatusCodes.Historical);
+    private bool InstallDistrict(Simulation simulation, WorldState world, int entityId, int targetId, int step)
+    {
+        if (!world.TryGetDistrictBonus(world.EntitySubtypeId(entityId), out var bonusKindCode, out var magnitude))
+        {
             return true;
         }
 
-        if (operationCode != BehaviorOperationCodes.ReawakenDistrict)
+        var capacity = world.StageDistrictCapacity(
+            world.StageRuleFor(world.EntityKindId(targetId), simulation.MinorActors.WorkTier(targetId)));
+        if (capacity > 0 && world.ActiveDistrictCount(targetId) >= capacity)
         {
-            return false;
+            return true;
         }
 
-        var district = world.DeactivateNewestDistrictOf(entityId);
-        if (district != 0)
+        var q = world.EntityPhysicalQ(entityId);
+        var r = world.EntityPhysicalR(entityId);
+        KernelEffectExecutor.SetCoverageOwner(simulation, q, r, targetId);
+        _ = world.InstallDistrict(
+            world.EntityKindId(entityId),
+            world.EntitySubtypeId(entityId),
+            world.EntityCultureId(entityId),
+            targetId,
+            q,
+            r,
+            bonusKindCode,
+            magnitude,
+            _stepA[step],
+            _stepC[step],
+            _stepX[step]);
+        KernelEffectExecutor.SetEntityStatus(simulation, entityId, EntityStatusCodes.Historical);
+        return true;
+    }
+
+    private static bool ReawakenDistrict(Simulation simulation, WorldState world, int entityId)
+    {
+        if (world.TryRemoveNewestDistrictOf(entityId, out var template))
         {
-            var artifactId = world.DistrictSourceArtifactId(district);
-            KernelEffectExecutor.SetEntityStatus(simulation, artifactId, EntityStatusCodes.Active);
-            KernelEffectExecutor.MovePhysical(simulation, artifactId, world.DistrictQ(district), world.DistrictR(district));
+            var artifactId = KernelEffectExecutor.CreateEntity(
+                simulation,
+                template.ArtifactKindId,
+                template.ArtifactSubtypeId,
+                template.ArtifactCultureId,
+                template.Q,
+                template.R,
+                world.EntitySemanticQ(entityId),
+                world.EntitySemanticR(entityId),
+                world.EntitySemanticS(entityId));
+            _ = KernelEffectExecutor.CreateRelationship(
+                simulation,
+                template.RelationshipKindId,
+                template.RelationshipPolarityCode,
+                artifactId,
+                entityId,
+                template.RelationshipStrength);
         }
 
         return true;
@@ -259,7 +296,7 @@ internal sealed partial class GambitProgramRuntime
         {
             case BehaviorOperationCodes.InstallDistrict:
             case BehaviorOperationCodes.ReawakenDistrict:
-                return ExecuteDistrictStep(simulation, world, entityId, targetId, operationCode);
+                return ExecuteDistrictStep(simulation, world, entityId, targetId, step, operationCode);
             case BehaviorOperationCodes.DemoteStage:
                 _ = simulation.MinorActors.DecreaseWorkTier(
                     EndpointEntityId(entityId, targetId, _stepB[step]));
@@ -390,7 +427,7 @@ internal sealed partial class GambitProgramRuntime
         out int q,
         out int r)
     {
-        var t = (float)index / distance;
+        var t = (FixedScalar)index / distance;
         var startS = -startQ - startR;
         var targetS = -targetQ - targetR;
         var x = Lerp(startQ, targetQ, t);
@@ -399,16 +436,16 @@ internal sealed partial class GambitProgramRuntime
         CubeRound(x, y, z, out q, out r);
     }
 
-    private static float Lerp(int start, int target, float t) => start + ((target - start) * t);
+    private static FixedScalar Lerp(int start, int target, FixedScalar t) => start + ((target - start) * t);
 
-    private static void CubeRound(float x, float y, float z, out int q, out int r)
+    private static void CubeRound(FixedScalar x, FixedScalar y, FixedScalar z, out int q, out int r)
     {
-        var roundedX = (int)global::System.MathF.Round(x, global::System.MidpointRounding.AwayFromZero);
-        var roundedY = (int)global::System.MathF.Round(y, global::System.MidpointRounding.AwayFromZero);
-        var roundedZ = (int)global::System.MathF.Round(z, global::System.MidpointRounding.AwayFromZero);
-        var xDiff = global::System.MathF.Abs(roundedX - x);
-        var yDiff = global::System.MathF.Abs(roundedY - y);
-        var zDiff = global::System.MathF.Abs(roundedZ - z);
+        var roundedX = (int)FixedScalar.Round(x, global::System.MidpointRounding.AwayFromZero);
+        var roundedY = (int)FixedScalar.Round(y, global::System.MidpointRounding.AwayFromZero);
+        var roundedZ = (int)FixedScalar.Round(z, global::System.MidpointRounding.AwayFromZero);
+        var xDiff = FixedScalar.Abs(roundedX - x);
+        var yDiff = FixedScalar.Abs(roundedY - y);
+        var zDiff = FixedScalar.Abs(roundedZ - z);
         if (xDiff > yDiff && xDiff > zDiff)
         {
             roundedX = -roundedY - roundedZ;
@@ -433,14 +470,14 @@ internal sealed partial class GambitProgramRuntime
         int tick,
         int step,
         global::System.Span<int> variableIds,
-        global::System.Span<float> variableValues,
+        global::System.Span<FixedScalar> variableValues,
         int variableCount)
     {
         KernelEffectExecutor.ModifyAttribute(
             simulation,
             entityId,
             _stepA[step],
-            VariableValue(variableIds, variableValues, variableCount, _stepB[step]) * (_stepX[step] == 0f ? 1f : _stepX[step]));
+            VariableValue(variableIds, variableValues, variableCount, _stepB[step]) * (_stepX[step] == 0 ? 1 : _stepX[step]));
     }
 
     private void TransferAttribute(
@@ -491,7 +528,7 @@ internal sealed partial class GambitProgramRuntime
             world,
             anchorId,
             _stepA[step],
-            minimumStrength: 0f,
+            minimumStrength: 0,
             outgoing: _stepC[step] != RelationshipTraversalDirectionCodes.Incoming,
             (_, relatedEntityId) =>
             {
@@ -504,13 +541,13 @@ internal sealed partial class GambitProgramRuntime
             });
     }
 
-    private float EvaluateMutationExpression(
+    private FixedScalar EvaluateMutationExpression(
         WorldState world,
         int entityId,
         int targetId,
         int step,
         global::System.ReadOnlySpan<int> variableIds,
-        global::System.ReadOnlySpan<float> variableValues,
+        global::System.ReadOnlySpan<FixedScalar> variableValues,
         int variableCount)
     {
         return EvaluateExpression(
@@ -522,7 +559,7 @@ internal sealed partial class GambitProgramRuntime
             _mutationExpressionCodes,
             _mutationExpressionA,
             _mutationExpressionX,
-            defaultValue: 0f,
+            defaultValue: 0,
             variableIds,
             variableValues,
             variableCount);
@@ -624,9 +661,9 @@ internal sealed partial class GambitProgramRuntime
         return endpointCode == BehaviorEndpointCodes.Target ? targetId : entityId;
     }
 
-    private static float VariableValue(
+    private static FixedScalar VariableValue(
         global::System.ReadOnlySpan<int> variableIds,
-        global::System.ReadOnlySpan<float> variableValues,
+        global::System.ReadOnlySpan<FixedScalar> variableValues,
         int variableCount,
         int variableId)
     {
@@ -638,15 +675,15 @@ internal sealed partial class GambitProgramRuntime
             }
         }
 
-        return 0f;
+        return 0;
     }
 
     private static void SetVariable(
         global::System.Span<int> variableIds,
-        global::System.Span<float> variableValues,
+        global::System.Span<FixedScalar> variableValues,
         ref int variableCount,
         int variableId,
-        float value)
+        FixedScalar value)
     {
         for (var i = 0; i < variableCount; i++)
         {
@@ -667,65 +704,21 @@ internal sealed partial class GambitProgramRuntime
         variableCount++;
     }
 
-    private void RecordGambit(int entityId, int gambitId, int tick)
-    {
-        if ((uint)entityId >= (uint)_actionHistoryCounts.Length)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        var slot = _actionHistoryNextSlots[entityId];
-        var index = GambitHistoryIndex(entityId, slot);
-        _actionHistoryTicks[index] = tick;
-        _actionHistoryGambitIds[index] = gambitId;
-        _actionHistoryNextSlots[entityId] = (slot + 1) % GambitHistoryLength;
-        if (_actionHistoryCounts[entityId] < GambitHistoryLength)
-        {
-            _actionHistoryCounts[entityId]++;
-        }
-    }
-
-    private int CountRecentActions(int entityId, int gambitId, int sinceTick)
-    {
-        if ((uint)entityId >= (uint)_actionHistoryCounts.Length)
-        {
-            return 0;
-        }
-
-        var count = 0;
-        var historyCount = _actionHistoryCounts[entityId];
-        for (var slot = 0; slot < historyCount; slot++)
-        {
-            var index = GambitHistoryIndex(entityId, slot);
-            if (_actionHistoryGambitIds[index] == gambitId && _actionHistoryTicks[index] >= sinceTick)
-            {
-                count++;
-            }
-        }
-
-        return count;
-    }
-
-    private static int GambitHistoryIndex(int entityId, int slot)
-    {
-        return (entityId * GambitHistoryLength) + slot;
-    }
-
     private static int CooldownWithJitter(Simulation simulation, int cooldown)
     {
-        var jitter = 1f + ((simulation.NextFloat() * 0.5f) - 0.25f);
+        var jitter = 1 + ((simulation.NextScalar() * FixedScalar.FromUnits(500000L)) - FixedScalar.FromUnits(250000L));
         var ticks = (int)(cooldown * jitter);
         return ticks < 1 ? 1 : ticks;
     }
 
-    private static float Clamp01(float value)
+    private static FixedScalar Clamp01(FixedScalar value)
     {
-        if (value < 0f)
+        if (value < 0)
         {
-            return 0f;
+            return 0;
         }
 
-        return value > 1f ? 1f : value;
+        return value > 1 ? 1 : value;
     }
 
 }

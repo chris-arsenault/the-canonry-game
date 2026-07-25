@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 44;
+    private const int FormatVersion = 49;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -18,9 +18,7 @@ internal static class KernelSnapshot
         KernelSnapshotOptions.Write(
             writer,
             simulation.Options,
-            simulation.SnapshotEventCount(),
-            simulation.World.ProvenanceInvocationCapacity,
-            simulation.World.ProvenanceOutputCapacity);
+            simulation.SnapshotEventCount());
         simulation.WriteSnapshot(writer);
         writer.Flush();
     }
@@ -52,11 +50,9 @@ internal static class KernelSnapshotOptions
     public static void Write(
         global::System.IO.BinaryWriter writer,
         SimulationOptions options,
-        int eventCount,
-        int provenanceInvocationCapacity,
-        int provenanceOutputCapacity)
+        int eventCount)
     {
-        WriteStorageCapacities(writer, options, provenanceInvocationCapacity, provenanceOutputCapacity);
+        WriteStorageCapacities(writer, options);
         WriteProgramCapacities(writer, options);
         WriteWorldCapacities(writer, options);
         WriteRuntimeCodes(writer, options.RuntimeCodes);
@@ -67,20 +63,12 @@ internal static class KernelSnapshotOptions
 
     private static void WriteStorageCapacities(
         global::System.IO.BinaryWriter writer,
-        SimulationOptions options,
-        int provenanceInvocationCapacity,
-        int provenanceOutputCapacity)
+        SimulationOptions options)
     {
         writer.Write(options.EntityCapacity);
         writer.Write(options.RelationshipCapacity);
         writer.Write(options.AttributeCapacity);
         writer.Write(options.TraitCapacity);
-        writer.Write(provenanceInvocationCapacity);
-        writer.Write(provenanceOutputCapacity);
-        writer.Write(options.GrowableStorageModeCode);
-        writer.Write(options.GrowableStorageCheckCadenceTicks);
-        writer.Write(options.GrowableStorageThresholdPermille);
-        writer.Write(options.GrowableStorageGrowthFactor);
         writer.Write(options.MapCellCapacity);
         writer.Write(options.MapGenerationRadiusCapacity);
         writer.Write(options.MapInfluenceCapacity);
@@ -96,7 +84,6 @@ internal static class KernelSnapshotOptions
     {
         writer.Write(options.GambitCapacity);
         writer.Write(options.GambitStepCapacity);
-        writer.Write(options.GambitCooldownCapacity);
         writer.Write(options.GambitProviderSelectorCapacity);
         writer.Write(options.GeneratorCapacity);
         writer.Write(options.GeneratorItemCapacity);
@@ -111,15 +98,12 @@ internal static class KernelSnapshotOptions
         writer.Write(options.LowAltitudeVerbItemCapacity);
         writer.Write(options.MovementCellCapacity);
         writer.Write(options.MovementProfileRuleCapacity);
-        writer.Write(options.MapActivityCellCapacity);
-        writer.Write(options.MapSignalCellCapacity);
         writer.Write(options.EffectRuleCapacity);
         writer.Write(options.CultureSlotCapacity);
         writer.Write(options.CultureSlotAllowedKindCapacity);
         writer.Write(options.CultureSlotScoreRuleCapacity);
         writer.Write(options.MinorActorCapacity);
         writer.Write(options.MinorActorRuleCapacity);
-        writer.Write(options.MinorActorSourceRuleCapacity);
         writer.Write(options.EntityAttributeCapacity);
         writer.Write(options.EntityTraitCapacity);
         writer.Write(options.AttributeIdCapacity);
@@ -142,12 +126,10 @@ internal static class KernelSnapshotOptions
         writer.Write(runtimeCodes.RelationshipCulledCodeId);
         writer.Write(runtimeCodes.RelationshipStrengthChangedCodeId);
         writer.Write(runtimeCodes.GambitSourceCodeId);
-        writer.Write(runtimeCodes.UpkeepSourceCodeId);
         writer.Write(runtimeCodes.StartupSourceCodeId);
         writer.Write(runtimeCodes.RelationshipSourceCodeId);
         writer.Write(runtimeCodes.GeneratorSourceCodeId);
-        writer.Write(runtimeCodes.MapActivitySourceCodeId);
-        writer.Write(runtimeCodes.MapSignalsSourceCodeId);
+        writer.Write(runtimeCodes.MapSourceCodeId);
         writer.Write(runtimeCodes.LowAltitudeVerbSourceCodeId);
         writer.Write(runtimeCodes.EffectsSourceCodeId);
         writer.Write(runtimeCodes.PlayerSourceCodeId);
@@ -159,9 +141,9 @@ internal static class KernelSnapshotOptions
         KernelTuningOptions kernelTuning)
     {
         WriteProgramEnabledOverrides(writer, kernelTuning.Programs.Enabled);
-        writer.Write(kernelTuning.Programs.MinorActorMainTickRatio);
-        writer.Write(kernelTuning.Programs.CultureInfluenceActionScale);
-        writer.Write(kernelTuning.Programs.Upkeep.AgingModelCode);
+        writer.Write(kernelTuning.Programs.MinorActorSubstepsPerPulse);
+        writer.Write(kernelTuning.Programs.CultureInfluenceActionScale.Units);
+        writer.Write(kernelTuning.Programs.Lifecycle.AgingModelCode);
         writer.Write(kernelTuning.Programs.Generators.RetryFireTargets);
         writer.Write(kernelTuning.Programs.Generators.PulseWidthTicks);
         writer.Write(kernelTuning.Programs.Generators.FiresPerPulse);
@@ -170,27 +152,27 @@ internal static class KernelSnapshotOptions
         writer.Write(kernelTuning.Programs.Generators.SettledCoveredCellThreshold);
         writer.Write(kernelTuning.Programs.Generators.HeartlandCoveredCellThreshold);
         writer.Write(kernelTuning.Programs.Generators.ProvinceBandRefreshTicks);
-        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.OpportunityRate);
-        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.OpportunityBonus);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.OpportunityRate.Units);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.OpportunityBonus.Units);
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.RecentTargetCooldownTicks);
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.RecentTargetRingSize);
-        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.CellSaturationFactor);
-        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ExploreDistanceScale);
-        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.TerrainDistanceScale);
-        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.EntityKindDistanceScale);
-        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.RelationshipTargetDistanceScale);
-        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.OwnInfluenceDistanceScale);
-        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ForeignInfluenceDistanceScale);
-        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.InfluenceShortfallSamplingFactor);
-        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ForeignInfluencePresenceSamplingFactor);
-        writer.Write(kernelTuning.Programs.CultureField.DecayPerPulse);
-        writer.Write(kernelTuning.Programs.CultureField.MinimumDecayPerPulse);
-        writer.Write(kernelTuning.Programs.CultureField.CullFloorRawMass);
-        writer.Write(kernelTuning.Programs.CultureField.DecayCadenceMainTicks);
-        writer.Write(kernelTuning.Programs.CultureField.RemittanceShare);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.CellSaturationFactor.Units);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ExploreDistanceScale.Units);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.TerrainDistanceScale.Units);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.EntityKindDistanceScale.Units);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.RelationshipTargetDistanceScale.Units);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.OwnInfluenceDistanceScale.Units);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ForeignInfluenceDistanceScale.Units);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.InfluenceShortfallSamplingFactor.Units);
+        writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ForeignInfluencePresenceSamplingFactor.Units);
+        writer.Write(kernelTuning.Programs.CultureField.DecayPerPulse.Units);
+        writer.Write(kernelTuning.Programs.CultureField.MinimumDecayPerPulse.Units);
+        writer.Write(kernelTuning.Programs.CultureField.CullFloorRawMass.Units);
+        writer.Write(kernelTuning.Programs.CultureField.DecayCadencePulses);
+        writer.Write(kernelTuning.Programs.CultureField.RemittanceShare.Units);
         writer.Write(kernelTuning.Programs.CultureField.RemittanceMinimumDistance);
-        writer.Write(kernelTuning.Programs.CultureField.ContestDecayMultiplier);
-        writer.Write(kernelTuning.Programs.CultureField.ContestFloorRawMass);
+        writer.Write(kernelTuning.Programs.CultureField.ContestDecayMultiplier.Units);
+        writer.Write(kernelTuning.Programs.CultureField.ContestFloorRawMass.Units);
     }
 
     private static void WriteProgramEnabledOverrides(
@@ -199,11 +181,8 @@ internal static class KernelSnapshotOptions
     {
         writer.Write(enabled.Movement);
         writer.Write(enabled.LowAltitudeVerbs);
-        writer.Write(enabled.MapActivity);
-        writer.Write(enabled.MapSignals);
         writer.Write(enabled.Effects);
         writer.Write(enabled.CultureSlots);
-        writer.Write(enabled.Upkeep);
         writer.Write(enabled.Gambits);
         writer.Write(enabled.Relationships);
         writer.Write(enabled.Generators);
@@ -229,12 +208,6 @@ internal static class KernelSnapshotOptions
             RelationshipCapacity = reader.ReadInt32(),
             AttributeCapacity = reader.ReadInt32(),
             TraitCapacity = reader.ReadInt32(),
-            ProvenanceInvocationCapacity = reader.ReadInt32(),
-            ProvenanceOutputCapacity = reader.ReadInt32(),
-            GrowableStorageModeCode = reader.ReadInt32(),
-            GrowableStorageCheckCadenceTicks = reader.ReadInt32(),
-            GrowableStorageThresholdPermille = reader.ReadInt32(),
-            GrowableStorageGrowthFactor = reader.ReadInt32(),
             MapCellCapacity = reader.ReadInt32(),
             MapGenerationRadiusCapacity = reader.ReadInt32(),
             MapInfluenceCapacity = reader.ReadInt32(),
@@ -258,7 +231,6 @@ internal static class KernelSnapshotOptions
     {
         values.GambitCapacity = reader.ReadInt32();
         values.GambitStepCapacity = reader.ReadInt32();
-        values.GambitCooldownCapacity = reader.ReadInt32();
         values.GambitProviderSelectorCapacity = reader.ReadInt32();
         values.GeneratorCapacity = reader.ReadInt32();
         values.GeneratorItemCapacity = reader.ReadInt32();
@@ -273,15 +245,12 @@ internal static class KernelSnapshotOptions
         values.LowAltitudeVerbItemCapacity = reader.ReadInt32();
         values.MovementCellCapacity = reader.ReadInt32();
         values.MovementProfileRuleCapacity = reader.ReadInt32();
-        values.MapActivityCellCapacity = reader.ReadInt32();
-        values.MapSignalCellCapacity = reader.ReadInt32();
         values.EffectRuleCapacity = reader.ReadInt32();
         values.CultureSlotCapacity = reader.ReadInt32();
         values.CultureSlotAllowedKindCapacity = reader.ReadInt32();
         values.CultureSlotScoreRuleCapacity = reader.ReadInt32();
         values.MinorActorCapacity = reader.ReadInt32();
         values.MinorActorRuleCapacity = reader.ReadInt32();
-        values.MinorActorSourceRuleCapacity = reader.ReadInt32();
         values.EntityAttributeCapacity = reader.ReadInt32();
         values.EntityTraitCapacity = reader.ReadInt32();
         values.AttributeIdCapacity = reader.ReadInt32();
@@ -304,12 +273,10 @@ internal static class KernelSnapshotOptions
         values.RelationshipCulledCodeId = reader.ReadInt32();
         values.RelationshipStrengthChangedCodeId = reader.ReadInt32();
         values.GambitSourceCodeId = reader.ReadInt32();
-        values.UpkeepSourceCodeId = reader.ReadInt32();
         values.StartupSourceCodeId = reader.ReadInt32();
         values.RelationshipSourceCodeId = reader.ReadInt32();
         values.GeneratorSourceCodeId = reader.ReadInt32();
-        values.MapActivitySourceCodeId = reader.ReadInt32();
-        values.MapSignalsSourceCodeId = reader.ReadInt32();
+        values.MapSourceCodeId = reader.ReadInt32();
         values.LowAltitudeVerbSourceCodeId = reader.ReadInt32();
         values.EffectsSourceCodeId = reader.ReadInt32();
         values.PlayerSourceCodeId = reader.ReadInt32();
@@ -322,40 +289,37 @@ internal static class KernelSnapshotOptions
     {
         values.MovementProgramEnabled = reader.ReadInt32();
         values.LowAltitudeVerbProgramEnabled = reader.ReadInt32();
-        values.MapActivityProgramEnabled = reader.ReadInt32();
-        values.MapSignalsProgramEnabled = reader.ReadInt32();
         values.EffectsProgramEnabled = reader.ReadInt32();
         values.CultureSlotsProgramEnabled = reader.ReadInt32();
-        values.UpkeepProgramEnabled = reader.ReadInt32();
         values.GambitsProgramEnabled = reader.ReadInt32();
         values.RelationshipsProgramEnabled = reader.ReadInt32();
         values.GeneratorsProgramEnabled = reader.ReadInt32();
         values.MinorActorsProgramEnabled = reader.ReadInt32();
-        values.MinorActorMainTickRatio = reader.ReadInt32();
-        values.CultureInfluenceActionScale = reader.ReadSingle();
-        values.UpkeepAgingModelCode = reader.ReadInt32();
+        values.MinorActorSubstepsPerPulse = reader.ReadInt32();
+        values.CultureInfluenceActionScale = FixedScalar.FromUnits(reader.ReadInt64());
+        values.LifecycleAgingModelCode = reader.ReadInt32();
         ReadGeneratorTuningValues(reader, ref values);
-        values.LowAltitudeOpportunityRate = reader.ReadSingle();
-        values.LowAltitudeOpportunityBonus = reader.ReadSingle();
+        values.LowAltitudeOpportunityRate = FixedScalar.FromUnits(reader.ReadInt64());
+        values.LowAltitudeOpportunityBonus = FixedScalar.FromUnits(reader.ReadInt64());
         values.LowAltitudeRecentTargetCooldownTicks = reader.ReadInt32();
         values.LowAltitudeRecentTargetRingSize = reader.ReadInt32();
-        values.LowAltitudeCellSaturationFactor = reader.ReadSingle();
-        values.LowAltitudeExploreDistanceScale = reader.ReadSingle();
-        values.LowAltitudeTerrainDistanceScale = reader.ReadSingle();
-        values.LowAltitudeEntityKindDistanceScale = reader.ReadSingle();
-        values.LowAltitudeRelationshipTargetDistanceScale = reader.ReadSingle();
-        values.LowAltitudeOwnInfluenceDistanceScale = reader.ReadSingle();
-        values.LowAltitudeForeignInfluenceDistanceScale = reader.ReadSingle();
-        values.LowAltitudeInfluenceShortfallSamplingFactor = reader.ReadSingle();
-        values.LowAltitudeForeignInfluencePresenceSamplingFactor = reader.ReadSingle();
-        values.CultureFieldDecayPerPulse = reader.ReadSingle();
-        values.CultureFieldMinimumDecayPerPulse = reader.ReadSingle();
-        values.CultureFieldCullFloorRawMass = reader.ReadSingle();
-        values.CultureFieldDecayCadenceMainTicks = reader.ReadInt32();
-        values.CultureFieldRemittanceShare = reader.ReadSingle();
+        values.LowAltitudeCellSaturationFactor = FixedScalar.FromUnits(reader.ReadInt64());
+        values.LowAltitudeExploreDistanceScale = FixedScalar.FromUnits(reader.ReadInt64());
+        values.LowAltitudeTerrainDistanceScale = FixedScalar.FromUnits(reader.ReadInt64());
+        values.LowAltitudeEntityKindDistanceScale = FixedScalar.FromUnits(reader.ReadInt64());
+        values.LowAltitudeRelationshipTargetDistanceScale = FixedScalar.FromUnits(reader.ReadInt64());
+        values.LowAltitudeOwnInfluenceDistanceScale = FixedScalar.FromUnits(reader.ReadInt64());
+        values.LowAltitudeForeignInfluenceDistanceScale = FixedScalar.FromUnits(reader.ReadInt64());
+        values.LowAltitudeInfluenceShortfallSamplingFactor = FixedScalar.FromUnits(reader.ReadInt64());
+        values.LowAltitudeForeignInfluencePresenceSamplingFactor = FixedScalar.FromUnits(reader.ReadInt64());
+        values.CultureFieldDecayPerPulse = FixedScalar.FromUnits(reader.ReadInt64());
+        values.CultureFieldMinimumDecayPerPulse = FixedScalar.FromUnits(reader.ReadInt64());
+        values.CultureFieldCullFloorRawMass = FixedScalar.FromUnits(reader.ReadInt64());
+        values.CultureFieldDecayCadencePulses = reader.ReadInt32();
+        values.CultureFieldRemittanceShare = FixedScalar.FromUnits(reader.ReadInt64());
         values.CultureFieldRemittanceMinimumDistance = reader.ReadInt32();
-        values.CultureFieldContestDecayMultiplier = reader.ReadSingle();
-        values.CultureFieldContestFloorRawMass = reader.ReadSingle();
+        values.CultureFieldContestDecayMultiplier = FixedScalar.FromUnits(reader.ReadInt64());
+        values.CultureFieldContestFloorRawMass = FixedScalar.FromUnits(reader.ReadInt64());
     }
 
     private static void ApplyEventCapacityFloor(ref SnapshotOptionValues values, int eventCount)
@@ -399,12 +363,6 @@ internal static class KernelSnapshotOptions
             RelationshipCapacity = values.RelationshipCapacity,
             AttributeCapacity = values.AttributeCapacity,
             TraitCapacity = values.TraitCapacity,
-            ProvenanceInvocationCapacity = values.ProvenanceInvocationCapacity,
-            ProvenanceOutputCapacity = values.ProvenanceOutputCapacity,
-            GrowableStorageModeCode = values.GrowableStorageModeCode,
-            GrowableStorageCheckCadenceTicks = values.GrowableStorageCheckCadenceTicks,
-            GrowableStorageThresholdPermille = values.GrowableStorageThresholdPermille,
-            GrowableStorageGrowthFactor = values.GrowableStorageGrowthFactor,
             MapCellCapacity = values.MapCellCapacity,
             MapGenerationRadiusCapacity = values.MapGenerationRadiusCapacity,
             MapInfluenceCapacity = values.MapInfluenceCapacity,
@@ -415,7 +373,6 @@ internal static class KernelSnapshotOptions
             CommandCapacity = values.CommandCapacity,
             GambitCapacity = values.GambitCapacity,
             GambitStepCapacity = values.GambitStepCapacity,
-            GambitCooldownCapacity = values.GambitCooldownCapacity,
             GambitProviderSelectorCapacity = values.GambitProviderSelectorCapacity,
             GeneratorCapacity = values.GeneratorCapacity,
             GeneratorItemCapacity = values.GeneratorItemCapacity,
@@ -424,15 +381,12 @@ internal static class KernelSnapshotOptions
             LowAltitudeVerbItemCapacity = values.LowAltitudeVerbItemCapacity,
             MovementCellCapacity = values.MovementCellCapacity,
             MovementProfileRuleCapacity = values.MovementProfileRuleCapacity,
-            MapActivityCellCapacity = values.MapActivityCellCapacity,
-            MapSignalCellCapacity = values.MapSignalCellCapacity,
             EffectRuleCapacity = values.EffectRuleCapacity,
             CultureSlotCapacity = values.CultureSlotCapacity,
             CultureSlotAllowedKindCapacity = values.CultureSlotAllowedKindCapacity,
             CultureSlotScoreRuleCapacity = values.CultureSlotScoreRuleCapacity,
             MinorActorCapacity = values.MinorActorCapacity,
             MinorActorRuleCapacity = values.MinorActorRuleCapacity,
-            MinorActorSourceRuleCapacity = values.MinorActorSourceRuleCapacity,
             EntityAttributeCapacity = values.EntityAttributeCapacity,
             EntityTraitCapacity = values.EntityTraitCapacity,
             AttributeIdCapacity = values.AttributeIdCapacity,
@@ -457,12 +411,10 @@ internal static class KernelSnapshotOptions
             values.RelationshipCulledCodeId,
             values.RelationshipStrengthChangedCodeId,
             values.GambitSourceCodeId,
-            values.UpkeepSourceCodeId,
             values.StartupSourceCodeId,
             values.RelationshipSourceCodeId,
             values.GeneratorSourceCodeId,
-            values.MapActivitySourceCodeId,
-            values.MapSignalsSourceCodeId,
+            values.MapSourceCodeId,
             values.LowAltitudeVerbSourceCodeId,
             values.EffectsSourceCodeId,
             values.PlayerSourceCodeId,
@@ -504,21 +456,18 @@ internal static class KernelSnapshotOptions
                 {
                     Movement = values.MovementProgramEnabled,
                     LowAltitudeVerbs = values.LowAltitudeVerbProgramEnabled,
-                    MapActivity = values.MapActivityProgramEnabled,
-                    MapSignals = values.MapSignalsProgramEnabled,
                     Effects = values.EffectsProgramEnabled,
                     CultureSlots = values.CultureSlotsProgramEnabled,
-                    Upkeep = values.UpkeepProgramEnabled,
                     Gambits = values.GambitsProgramEnabled,
                     Relationships = values.RelationshipsProgramEnabled,
                     Generators = values.GeneratorsProgramEnabled,
                     MinorActors = values.MinorActorsProgramEnabled,
                 },
-                MinorActorMainTickRatio = values.MinorActorMainTickRatio,
+                MinorActorSubstepsPerPulse = values.MinorActorSubstepsPerPulse,
                 CultureInfluenceActionScale = values.CultureInfluenceActionScale,
-                Upkeep = new UpkeepProgramTuningOptions
+                Lifecycle = new LifecycleTuningOptions
                 {
-                    AgingModelCode = values.UpkeepAgingModelCode,
+                    AgingModelCode = values.LifecycleAgingModelCode,
                 },
                 Generators = CreateGeneratorTuning(values),
                 LowAltitudeVerbs = new LowAltitudeVerbTuningOptions
@@ -544,7 +493,7 @@ internal static class KernelSnapshotOptions
                     ContestFloorRawMass = values.CultureFieldContestFloorRawMass,
                     MinimumDecayPerPulse = values.CultureFieldMinimumDecayPerPulse,
                     CullFloorRawMass = values.CultureFieldCullFloorRawMass,
-                    DecayCadenceMainTicks = values.CultureFieldDecayCadenceMainTicks,
+                    DecayCadencePulses = values.CultureFieldDecayCadencePulses,
                     RemittanceShare = values.CultureFieldRemittanceShare,
                     RemittanceMinimumDistance = values.CultureFieldRemittanceMinimumDistance,
                 },
@@ -557,12 +506,6 @@ internal static class KernelSnapshotOptions
         public int RelationshipCapacity;
         public int AttributeCapacity;
         public int TraitCapacity;
-        public int ProvenanceInvocationCapacity;
-        public int ProvenanceOutputCapacity;
-        public int GrowableStorageModeCode;
-        public int GrowableStorageCheckCadenceTicks;
-        public int GrowableStorageThresholdPermille;
-        public int GrowableStorageGrowthFactor;
         public int MapCellCapacity;
         public int MapGenerationRadiusCapacity;
         public int MapInfluenceCapacity;
@@ -572,7 +515,6 @@ internal static class KernelSnapshotOptions
         public int CommandCapacity;
         public int GambitCapacity;
         public int GambitStepCapacity;
-        public int GambitCooldownCapacity;
         public int GambitProviderSelectorCapacity;
         public int GeneratorCapacity;
         public int GeneratorItemCapacity;
@@ -581,15 +523,12 @@ internal static class KernelSnapshotOptions
         public int LowAltitudeVerbItemCapacity;
         public int MovementCellCapacity;
         public int MovementProfileRuleCapacity;
-        public int MapActivityCellCapacity;
-        public int MapSignalCellCapacity;
         public int EffectRuleCapacity;
         public int CultureSlotCapacity;
         public int CultureSlotAllowedKindCapacity;
         public int CultureSlotScoreRuleCapacity;
         public int MinorActorCapacity;
         public int MinorActorRuleCapacity;
-        public int MinorActorSourceRuleCapacity;
         public int EntityAttributeCapacity;
         public int EntityTraitCapacity;
         public int AttributeIdCapacity;
@@ -606,30 +545,25 @@ internal static class KernelSnapshotOptions
         public int RelationshipCulledCodeId;
         public int RelationshipStrengthChangedCodeId;
         public int GambitSourceCodeId;
-        public int UpkeepSourceCodeId;
         public int StartupSourceCodeId;
         public int RelationshipSourceCodeId;
         public int GeneratorSourceCodeId;
-        public int MapActivitySourceCodeId;
-        public int MapSignalsSourceCodeId;
+        public int MapSourceCodeId;
         public int LowAltitudeVerbSourceCodeId;
         public int EffectsSourceCodeId;
         public int PlayerSourceCodeId;
         public int ChronicleSourceCodeId;
         public int MovementProgramEnabled;
         public int LowAltitudeVerbProgramEnabled;
-        public int MapActivityProgramEnabled;
-        public int MapSignalsProgramEnabled;
         public int EffectsProgramEnabled;
         public int CultureSlotsProgramEnabled;
-        public int UpkeepProgramEnabled;
         public int GambitsProgramEnabled;
         public int RelationshipsProgramEnabled;
         public int GeneratorsProgramEnabled;
         public int MinorActorsProgramEnabled;
-        public int MinorActorMainTickRatio;
-        public float CultureInfluenceActionScale;
-        public int UpkeepAgingModelCode;
+        public int MinorActorSubstepsPerPulse;
+        public FixedScalar CultureInfluenceActionScale;
+        public int LifecycleAgingModelCode;
         public bool GeneratorRetryFireTargets;
         public int GeneratorPulseWidthTicks;
         public int GeneratorFiresPerPulse;
@@ -638,26 +572,26 @@ internal static class KernelSnapshotOptions
         public int GeneratorSettledCoveredCellThreshold;
         public int GeneratorHeartlandCoveredCellThreshold;
         public int GeneratorProvinceBandRefreshTicks;
-        public float LowAltitudeOpportunityRate;
-        public float LowAltitudeOpportunityBonus;
+        public FixedScalar LowAltitudeOpportunityRate;
+        public FixedScalar LowAltitudeOpportunityBonus;
         public int LowAltitudeRecentTargetCooldownTicks;
         public int LowAltitudeRecentTargetRingSize;
-        public float LowAltitudeCellSaturationFactor;
-        public float LowAltitudeExploreDistanceScale;
-        public float LowAltitudeTerrainDistanceScale;
-        public float LowAltitudeEntityKindDistanceScale;
-        public float LowAltitudeRelationshipTargetDistanceScale;
-        public float LowAltitudeOwnInfluenceDistanceScale;
-        public float LowAltitudeForeignInfluenceDistanceScale;
-        public float LowAltitudeInfluenceShortfallSamplingFactor;
-        public float LowAltitudeForeignInfluencePresenceSamplingFactor;
-        public float CultureFieldDecayPerPulse;
-        public float CultureFieldContestDecayMultiplier;
-        public float CultureFieldContestFloorRawMass;
-        public float CultureFieldMinimumDecayPerPulse;
-        public float CultureFieldCullFloorRawMass;
-        public int CultureFieldDecayCadenceMainTicks;
-        public float CultureFieldRemittanceShare;
+        public FixedScalar LowAltitudeCellSaturationFactor;
+        public FixedScalar LowAltitudeExploreDistanceScale;
+        public FixedScalar LowAltitudeTerrainDistanceScale;
+        public FixedScalar LowAltitudeEntityKindDistanceScale;
+        public FixedScalar LowAltitudeRelationshipTargetDistanceScale;
+        public FixedScalar LowAltitudeOwnInfluenceDistanceScale;
+        public FixedScalar LowAltitudeForeignInfluenceDistanceScale;
+        public FixedScalar LowAltitudeInfluenceShortfallSamplingFactor;
+        public FixedScalar LowAltitudeForeignInfluencePresenceSamplingFactor;
+        public FixedScalar CultureFieldDecayPerPulse;
+        public FixedScalar CultureFieldContestDecayMultiplier;
+        public FixedScalar CultureFieldContestFloorRawMass;
+        public FixedScalar CultureFieldMinimumDecayPerPulse;
+        public FixedScalar CultureFieldCullFloorRawMass;
+        public int CultureFieldDecayCadencePulses;
+        public FixedScalar CultureFieldRemittanceShare;
         public int CultureFieldRemittanceMinimumDistance;
         public int Seed;
     }

@@ -25,7 +25,7 @@ effects, and read by lifecycle.
 The removed internal/external attribute pair should not be reintroduced as a
 generic numeric personality model. If a second scalar seems necessary, first
 ask whether it is really a trait, a relationship strength, a locality query, a
-map signal, or authored entity state that should stay explicit.
+direct world fact, or authored entity state that should stay explicit.
 
 ## Traits
 

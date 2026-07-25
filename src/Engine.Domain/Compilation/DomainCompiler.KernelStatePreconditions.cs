@@ -15,8 +15,10 @@ public static partial class DomainCompiler
                 ops.Add(new BehaviorProgramPreconditionOp(
                     BehaviorProgramPrecondition.SelfCultureMass,
                     PlaneCode(mass.Plane),
-                    X: mass.MinimumRawMass,
-                    Y: mass.MinimumConnectedRawMass));
+                    X: KernelFixedPoint.CultureMassScalar(
+                        KernelFixedPoint.CultureMassUnits(mass.MinimumRawMass)),
+                    Y: KernelFixedPoint.CultureMassScalar(
+                        KernelFixedPoint.CultureMassUnits(mass.MinimumConnectedRawMass))));
                 return true;
             case SelfWorkTierBelowPrecondition tier:
                 ops.Add(new BehaviorProgramPreconditionOp(

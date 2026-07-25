@@ -6,14 +6,14 @@ internal sealed class MovementProgramScratch
     internal EpochStampSet PathOpen;
     internal EpochStampSet PathClosed;
     internal EpochStampedArray<int> PathCameFrom;
-    internal EpochStampedArray<float> PathGScore;
-    internal EpochStampedArray<float> PathFScore;
+    internal EpochStampedArray<FixedScalar> PathGScore;
+    internal EpochStampedArray<FixedScalar> PathFScore;
     internal readonly int[] SegmentOpenSet;
     internal EpochStampSet SegmentOpen;
     internal EpochStampSet SegmentClosed;
     internal EpochStampedArray<int> SegmentCameFrom;
-    internal EpochStampedArray<float> SegmentGScore;
-    internal EpochStampedArray<float> SegmentFScore;
+    internal EpochStampedArray<FixedScalar> SegmentGScore;
+    internal EpochStampedArray<FixedScalar> SegmentFScore;
     internal readonly int[] SegmentEdgeCachePlaneCodes;
     internal readonly int[] SegmentEdgeCacheProfileIds;
     internal readonly int[] SegmentEdgeCacheLevelSizes;
@@ -21,25 +21,25 @@ internal sealed class MovementProgramScratch
     internal readonly int[] SegmentEdgeCacheToSegments;
     internal readonly int[] SegmentEdgeCacheTopologyEpochs;
     internal readonly int[] SegmentEdgeCacheRoadEpochs;
-    internal readonly float[] SegmentEdgeCacheCosts;
+    internal readonly FixedScalar[] SegmentEdgeCacheCosts;
     internal readonly bool[] SegmentEdgeCacheFound;
     internal readonly bool[] SegmentEdgeCacheOccupied;
 
     public MovementProgramScratch(int pathCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(pathCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(pathCapacity);
         PathOpenSet = new int[pathCapacity];
         PathOpen = new EpochStampSet(pathCapacity);
         PathClosed = new EpochStampSet(pathCapacity);
         PathCameFrom = new EpochStampedArray<int>(pathCapacity);
-        PathGScore = new EpochStampedArray<float>(pathCapacity);
-        PathFScore = new EpochStampedArray<float>(pathCapacity);
+        PathGScore = new EpochStampedArray<FixedScalar>(pathCapacity);
+        PathFScore = new EpochStampedArray<FixedScalar>(pathCapacity);
         SegmentOpenSet = new int[pathCapacity];
         SegmentOpen = new EpochStampSet(pathCapacity);
         SegmentClosed = new EpochStampSet(pathCapacity);
         SegmentCameFrom = new EpochStampedArray<int>(pathCapacity);
-        SegmentGScore = new EpochStampedArray<float>(pathCapacity);
-        SegmentFScore = new EpochStampedArray<float>(pathCapacity);
+        SegmentGScore = new EpochStampedArray<FixedScalar>(pathCapacity);
+        SegmentFScore = new EpochStampedArray<FixedScalar>(pathCapacity);
         SegmentEdgeCachePlaneCodes = new int[pathCapacity];
         SegmentEdgeCacheProfileIds = new int[pathCapacity];
         SegmentEdgeCacheLevelSizes = new int[pathCapacity];
@@ -47,7 +47,7 @@ internal sealed class MovementProgramScratch
         SegmentEdgeCacheToSegments = new int[pathCapacity];
         SegmentEdgeCacheTopologyEpochs = new int[pathCapacity];
         SegmentEdgeCacheRoadEpochs = new int[pathCapacity];
-        SegmentEdgeCacheCosts = new float[pathCapacity];
+        SegmentEdgeCacheCosts = new FixedScalar[pathCapacity];
         SegmentEdgeCacheFound = new bool[pathCapacity];
         SegmentEdgeCacheOccupied = new bool[pathCapacity];
     }

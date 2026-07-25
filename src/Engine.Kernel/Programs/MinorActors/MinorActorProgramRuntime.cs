@@ -6,26 +6,37 @@ internal sealed partial class MinorActorProgramRuntime :
     IKernelProgramRuntime<MinorActorProgramData, MinorActorProgramState>
 {
     private const int LocalVerbStepRadius = 1;
-    private const float CultureTraceRawInfluence = WorldState.CultureTraceRawMass;
-    private const float CultureSupportedRawInfluence = WorldState.CultureControlledRawMass;
-    private const float CultureStrongRawInfluence = WorldState.CultureEntrenchedRawMass;
-    private const float CultureFieldRawInfluence = WorldState.CultureFullRawMass;
-    private const float CultureForeignTraceToleranceShare = 10f;
-    private const float CultureForeignContestScaleShare = 45f;
-    private const float LifecycleMaintenanceCoverageScale = 0.03f;
-    private const float LifecycleMaintenanceEarlyNeedScale = 0.20f;
-    private const float LifecycleMaintenanceScoreScale = 1.35f;
-    private const float NexusSourceCultureMultiplier = 1.5f;
+    private static readonly FixedScalar CultureTraceRawInfluence = WorldState.CultureTraceRawMass;
+    private static readonly FixedScalar CultureSupportedRawInfluence = WorldState.CultureControlledRawMass;
+    private static readonly FixedScalar CultureStrongRawInfluence = WorldState.CultureEntrenchedRawMass;
+    private static readonly FixedScalar CultureFieldRawInfluence = WorldState.CultureFullRawMass;
+    private static readonly FixedScalar CultureForeignTraceToleranceShare = 10;
+    private static readonly FixedScalar CultureForeignContestScaleShare = 45;
+    private static readonly FixedScalar LifecycleMaintenanceCoverageScale = FixedScalar.FromUnits(30000L);
+    private static readonly FixedScalar LifecycleMaintenanceEarlyNeedScale = FixedScalar.FromUnits(200000L);
+    private static readonly FixedScalar LifecycleMaintenanceScoreScale = FixedScalar.FromUnits(1350000L);
+    private static readonly FixedScalar NexusSourceCultureMultiplier = FixedScalar.FromUnits(1500000L);
     private static readonly int[] NeighborDQ = [1, 1, 0, -1, -1, 0];
     private static readonly int[] NeighborDR = [0, -1, -1, 0, 1, 1];
     private readonly MinorActorCellTarget[] _verbTargetCells = new MinorActorCellTarget[7];
+    private readonly int _substepsPerPulse;
 
     public MinorActorProgramRuntime(MinorActorProgramData data, MinorActorProgramState state)
+        : this(data, state, substepsPerPulse: 1)
+    {
+    }
+
+    public MinorActorProgramRuntime(
+        MinorActorProgramData data,
+        MinorActorProgramState state,
+        int substepsPerPulse)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
+        NumericGuard.ThrowIfNegativeOrZero(substepsPerPulse);
         Data = data;
         State = state;
+        _substepsPerPulse = substepsPerPulse;
     }
 
     public MinorActorProgramData Data { get; }
@@ -44,7 +55,7 @@ internal sealed partial class MinorActorProgramRuntime :
         int spawnRadius,
         int moveChancePermille,
         int actionCadencePulses,
-        float workDelta) =>
+        FixedScalar workDelta) =>
         RegisterEmitterRule(
             sourceKindId,
             sourceSubtypeId,
@@ -73,7 +84,7 @@ internal sealed partial class MinorActorProgramRuntime :
         int spawnRadius,
         int moveChancePermille,
         int actionCadencePulses,
-        float workDelta) =>
+        FixedScalar workDelta) =>
         Data.RegisterEmitterRule(
             sourceKindId,
             sourceSubtypeId,
@@ -97,8 +108,8 @@ internal sealed partial class MinorActorProgramRuntime :
         int planeCode,
         int radius,
         int sampleCount,
-        float weight,
-        float workDeltaMultiplier) =>
+        FixedScalar weight,
+        FixedScalar workDeltaMultiplier) =>
         Data.RegisterVerb(
             sourceRuleId,
             verbId,
@@ -122,7 +133,7 @@ internal sealed partial class MinorActorProgramRuntime :
         int ttlPulses,
         int moveChancePermille,
         int actionCadencePulses,
-        float workDelta,
+        FixedScalar workDelta,
         int tick,
         int purposeCode = MinorActorPurposeCodes.CulturalLabor) =>
         State.Spawn(
@@ -153,9 +164,12 @@ internal sealed partial class MinorActorProgramRuntime :
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        var pulse = State.AdvancePulse();
-        EmitFromSources(simulation, tick, pulse);
-        TickActors(simulation, tick, pulse);
+        for (var substep = 0; substep < _substepsPerPulse; substep++)
+        {
+            var actorPulse = State.AdvancePulse();
+            EmitFromSources(simulation, tick, actorPulse);
+            TickActors(simulation, tick, actorPulse);
+        }
     }
 
     private void EmitFromSources(Simulation simulation, int tick, int pulse)
@@ -166,14 +180,12 @@ internal sealed partial class MinorActorProgramRuntime :
         }
 
         var world = simulation.World;
-        for (var entityId = 1; entityId <= world.EntityHighWatermark; entityId++)
+        for (var rule = 1; rule <= Data.RuleCount; rule++)
         {
-            if (!world.EntityIsActive(entityId))
-            {
-                continue;
-            }
-
-            for (var rule = 1; rule <= Data.RuleCount; rule++)
+            var sourceKindId = Data.SourceKindIds[rule];
+            for (var entityId = world.FirstEntityOfKind(sourceKindId);
+                 entityId > 0;
+                 entityId = world.NextEntityOfKind(entityId))
             {
                 TryEmitFromSource(simulation, world, entityId, rule, tick, pulse);
             }
@@ -247,12 +259,9 @@ internal sealed partial class MinorActorProgramRuntime :
 
     private void TickActors(Simulation simulation, int tick, int pulse)
     {
-        for (var actorId = 1; actorId <= State.HighWatermark; actorId++)
+        while (State.TryTakeDueActor(pulse, out var actorId))
         {
-            if (State.IsActive(actorId))
-            {
-                TickActor(simulation, actorId, tick, pulse);
-            }
+            TickActor(simulation, actorId, tick, pulse);
         }
     }
 
@@ -272,21 +281,20 @@ internal sealed partial class MinorActorProgramRuntime :
             }
 
             State.SetNextActionPulse(actorId, pulse + State.ActionCadencePulses(actorId));
+            if (!hasVerbLayer)
+            {
+                TryMoveRandomly(simulation, actorId);
+            }
         }
 
-        if (!hasVerbLayer)
-        {
-            TryMoveRandomly(simulation, actorId);
-        }
-
-        var remaining = State.RemainingPulses(actorId) - 1;
-        if (remaining <= 0)
+        if (pulse >= State.ExpiresAtPulse(actorId))
         {
             _ = State.Deactivate(actorId);
-            return;
         }
-
-        State.SetRemainingPulses(actorId, remaining);
+        else
+        {
+            State.Schedule(actorId);
+        }
     }
 
     private bool HasVerbLayer(int sourceRule)
@@ -296,7 +304,7 @@ internal sealed partial class MinorActorProgramRuntime :
     {
         if (!TrySelectVerbCandidate(simulation, actorId, tick, out var selected))
         {
-            EmitMinorActorVerb(simulation, actorId, tick, default, TraceStatusCodes.NoTarget, delta: 0f);
+            EmitMinorActorVerb(simulation, actorId, tick, default, TraceStatusCodes.NoTarget, delta: 0);
             return;
         }
 
@@ -314,7 +322,7 @@ internal sealed partial class MinorActorProgramRuntime :
         {
             delta *= simulation.Knowledge.Modifier(cultureId, KnowledgeGrantDomainCodes.RoadWork);
         }
-        if (delta <= 0f)
+        if (delta <= 0)
         {
             EmitMinorActorVerb(simulation, actorId, tick, selected, TraceStatusCodes.NoReward, delta);
             return;
@@ -322,7 +330,7 @@ internal sealed partial class MinorActorProgramRuntime :
 
         var appliedDelta = ApplySelectedVerbAction(simulation, actorId, selected, delta, tick);
 
-        if (appliedDelta <= 0f)
+        if (appliedDelta <= 0)
         {
             EmitMinorActorVerb(simulation, actorId, tick, selected, TraceStatusCodes.NoReward, appliedDelta);
             return;
@@ -331,11 +339,11 @@ internal sealed partial class MinorActorProgramRuntime :
         EmitMinorActorVerb(simulation, actorId, tick, selected, TraceStatusCodes.Selected, appliedDelta);
     }
 
-    private float ApplySelectedVerbAction(
+    private FixedScalar ApplySelectedVerbAction(
         Simulation simulation,
         int actorId,
         in MinorActorVerbCandidate selected,
-        float delta,
+        FixedScalar delta,
         int tick)
     {
         switch (selected.ActionCode)
@@ -374,17 +382,17 @@ internal sealed partial class MinorActorProgramRuntime :
                     delta,
                     tick);
             default:
-                return 0f;
+                return 0;
         }
     }
 
-    private static float SourceSlotWorkMultiplier(Simulation simulation, int sourceEntityId)
+    private static FixedScalar SourceSlotWorkMultiplier(Simulation simulation, int sourceEntityId)
     {
         var slotMultiplier = simulation.CultureSlots.CausalSpendLimitMultiplier(sourceEntityId);
-        return 1f + ((global::System.Math.Max(1, slotMultiplier) - 1) * 0.5f);
+        return 1 + ((global::System.Math.Max(1, slotMultiplier) - 1) * FixedScalar.FromUnits(500000L));
     }
 
-    private float NexusSourceMultiplier(Simulation simulation, int actorId, int planeCode)
+    private FixedScalar NexusSourceMultiplier(Simulation simulation, int actorId, int planeCode)
     {
         var cultureId = State.CultureId(actorId);
         if (cultureId <= 0 ||
@@ -395,13 +403,13 @@ internal sealed partial class MinorActorProgramRuntime :
                 out var sourceQ,
                 out var sourceR))
         {
-            return 1f;
+            return 1;
         }
 
         var sourceRaw = simulation.World.GetCellCultureInfluenceRaw(cultureId, planeCode, sourceQ, sourceR);
         return sourceRaw >= WorldState.CultureNexusRawMass
             ? NexusSourceCultureMultiplier
-            : 1f;
+            : 1;
     }
 
     private bool TrySelectVerbCandidate(
@@ -411,10 +419,12 @@ internal sealed partial class MinorActorProgramRuntime :
         out MinorActorVerbCandidate selected)
     {
         selected = default;
-        var totalScore = 0f;
+        var totalScore = FixedScalar.Zero;
         var sourceRule = State.SourceRuleId(actorId);
         var processedPlaneMask = 0;
-        for (var verb = 1; verb <= Data.VerbCount; verb++)
+        for (var verb = Data.FirstVerbForRule(sourceRule);
+             verb > 0;
+             verb = Data.NextVerbForRule(verb))
         {
             if (!VerbSelectableForRule(verb, sourceRule))
             {
@@ -440,7 +450,7 @@ internal sealed partial class MinorActorProgramRuntime :
             }
         }
 
-        return totalScore > 0f;
+        return totalScore > 0;
     }
 
     private static int PlaneBit(int planeCode) =>
@@ -508,7 +518,7 @@ internal sealed partial class MinorActorProgramRuntime :
         out MinorActorVerbCandidate selected)
     {
         selected = default;
-        var totalScore = 0f;
+        var totalScore = FixedScalar.Zero;
         for (var verb = 1; verb <= Data.VerbCount; verb++)
         {
             if (!VerbSelectableForRule(verb, sourceRule) ||
@@ -541,25 +551,25 @@ internal sealed partial class MinorActorProgramRuntime :
             }
         }
 
-        return totalScore > 0f;
+        return totalScore > 0;
     }
 
     private static bool TrySelectWeightedCandidate(
         Simulation simulation,
         in MinorActorVerbCandidate candidate,
-        ref float totalScore)
+        ref FixedScalar totalScore)
     {
-        if (candidate.Score <= 0f)
+        if (candidate.Score <= 0)
         {
             return false;
         }
 
         totalScore += candidate.Score;
-        return simulation.NextFloat() * totalScore <= candidate.Score;
+        return simulation.NextScalar() * totalScore <= candidate.Score;
     }
 
     private bool VerbSelectableForRule(int verb, int sourceRule) =>
-        Data.VerbSourceRuleIds[verb] == sourceRule && Data.VerbWeights[verb] > 0f;
+        Data.VerbSourceRuleIds[verb] == sourceRule && Data.VerbWeights[verb] > 0;
 
     private int MaxVerbOperatingRadius(int sourceRule, int planeCode, int sourceWorkTier)
     {
@@ -639,7 +649,7 @@ internal sealed partial class MinorActorProgramRuntime :
         int distanceFromActor,
         int distanceFromSource)
     {
-        var boundary = simulation.CultureBoundaries.CellAt(simulation.World, cultureId, planeCode, q, r);
+        var boundary = simulation.CultureLocality.CellAt(simulation.World, cultureId, planeCode, q, r);
         var cultureField = new MinorActorCultureField(
             boundary.RawMass,
             boundary.LocalRawMass,
@@ -647,10 +657,9 @@ internal sealed partial class MinorActorProgramRuntime :
             boundary.SupportedAdjacentCount,
             boundary.SupportedRingTwoCount);
         var attachment = new MinorActorCultureAttachment(
-            boundary.AttachedComponentScoreMass,
+            boundary.ConnectedRawMass,
             boundary.SupportedAdjacentCount,
-            boundary.AttachedComponentCount,
-            boundary.IsLargestComponent ? 1f : 0f);
+            boundary.RawMass >= WorldState.CultureControlledRawMass ? 1 : 0);
         return new MinorActorCellTarget(
             q,
             r,
@@ -689,12 +698,12 @@ internal sealed partial class MinorActorProgramRuntime :
             target.Attachment,
             tick);
 
-        if (score <= 0f)
+        if (score <= 0)
         {
             return default;
         }
 
-        var distanceBias = 1f / (1f + (0.1f * target.DistanceFromActor));
+        var distanceBias = 1 / (1 + (FixedScalar.FromUnits(100000L) * target.DistanceFromActor));
         score *= Data.VerbWeights[verb] * distanceBias;
         return new MinorActorVerbCandidate(
             Data.VerbIds[verb],
@@ -719,7 +728,7 @@ internal sealed partial class MinorActorProgramRuntime :
                 cultureId,
                 KnowledgeGrantDomainCodes.MinorActorWork,
                 State.PurposeCode(actorId));
-        if (workDelta <= 0f)
+        if (workDelta <= 0)
         {
             return;
         }
@@ -766,16 +775,16 @@ internal sealed partial class MinorActorProgramRuntime :
         }
     }
 
-    private static float CultureInfluenceActionDelta(Simulation simulation, float delta) =>
+    private static FixedScalar CultureInfluenceActionDelta(Simulation simulation, FixedScalar delta) =>
         delta * simulation.Options.KernelTuning.Programs.CultureInfluenceActionScale;
 
-    private float ApplyCultureExpansion(
+    private FixedScalar ApplyCultureExpansion(
         Simulation simulation,
         int actorId,
         int planeCode,
         int q,
         int r,
-        float delta,
+        FixedScalar delta,
         int tick)
     {
         var sourceEntityId = State.SourceEntityId(actorId);
@@ -794,26 +803,26 @@ internal sealed partial class MinorActorProgramRuntime :
             tick);
     }
 
-    private static float ReduceOtherCultureSources(
+    private static FixedScalar ReduceOtherCultureSources(
         Simulation simulation,
         int ownCultureId,
         int planeCode,
         int q,
         int r,
-        float delta,
+        FixedScalar delta,
         int tick)
     {
         return simulation.ReduceOtherCultureSourcesAtCell(ownCultureId, planeCode, q, r, delta, tick);
     }
 
-    private static float ApplyLifecycleMaintenance(
+    private static FixedScalar ApplyLifecycleMaintenance(
         Simulation simulation,
         int sourceEntityId,
-        float coverage,
+        FixedScalar coverage,
         int tick)
     {
-        if (coverage <= 0f ||
-            !simulation.Upkeep.TryGetLifecycleMaintenanceNeed(
+        if (coverage <= 0 ||
+            !simulation.Effects.TryGetLifecycleMaintenanceNeed(
                 simulation,
                 sourceEntityId,
                 tick,
@@ -821,13 +830,13 @@ internal sealed partial class MinorActorProgramRuntime :
                 out var ageDrainComponent,
                 out _))
         {
-            return 0f;
+            return 0;
         }
 
         var delta = ageDrainComponent * coverage * LifecycleMaintenanceCoverageScale;
-        if (delta <= 0f)
+        if (delta <= 0)
         {
-            return 0f;
+            return 0;
         }
 
         var previous = simulation.World.GetAttribute(sourceEntityId, attributeId);
@@ -858,7 +867,7 @@ internal sealed partial class MinorActorProgramRuntime :
         int tick,
         in MinorActorVerbCandidate selected,
         int statusCode,
-        float delta)
+        FixedScalar delta)
     {
         var sourceEntityId = State.SourceEntityId(actorId);
         var sourceWorkTier = State.WorkTier(sourceEntityId);
@@ -992,7 +1001,7 @@ internal sealed partial class MinorActorProgramRuntime :
 
         q = sourceQ;
         r = sourceR;
-        var bestScore = simulation.World.CellIsKnown(planeCode, q, r) ? 0.01f : 0f;
+        var bestScore = simulation.World.CellIsKnown(planeCode, q, r) ? FixedScalar.FromUnits(10000L) : 0;
         for (var dq = -radius; dq <= radius; dq++)
         {
             var minDr = global::System.Math.Max(-radius, -dq - radius);
@@ -1006,7 +1015,7 @@ internal sealed partial class MinorActorProgramRuntime :
                     continue;
                 }
 
-                var field = simulation.CultureBoundaries.CellAt(
+                var field = simulation.CultureLocality.CellAt(
                     simulation.World,
                     cultureId,
                     planeCode,
@@ -1022,7 +1031,7 @@ internal sealed partial class MinorActorProgramRuntime :
             }
         }
 
-        return bestScore > 0f;
+        return bestScore > 0;
     }
 
 }

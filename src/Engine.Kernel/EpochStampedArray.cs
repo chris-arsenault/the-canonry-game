@@ -8,7 +8,7 @@ internal struct EpochStampedArray<T>
 
     public EpochStampedArray(int capacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
+        NumericGuard.ThrowIfNegativeOrZero(capacity);
         _epochs = new int[capacity];
         _values = new T[capacity];
         _epoch = 0;
@@ -50,7 +50,7 @@ internal struct EpochStampSet
 
     public EpochStampSet(int capacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
+        NumericGuard.ThrowIfNegativeOrZero(capacity);
         _epochs = new int[capacity];
         _epoch = 0;
     }

@@ -39,8 +39,8 @@ public sealed class KernelStartupSeedingTests
             semanticR: 0,
             semanticS: 0);
 
-        Assert.Equal(42f, created.World.GetAttribute(createdEntityId, attributeId));
-        Assert.Equal(42f, seeded.World.GetAttribute(entityId, attributeId));
+        Assert.Equal(FixedScalar.FromSingle(42f), created.World.GetAttribute(createdEntityId, attributeId));
+        Assert.Equal(FixedScalar.FromSingle(42f), seeded.World.GetAttribute(entityId, attributeId));
         AssertEventTypes(
             created,
             KernelEventType.EntityCreated,
@@ -78,8 +78,8 @@ public sealed class KernelStartupSeedingTests
         using var changedCursor = changed.Events.CreateCursor(KernelEventCursorStart.Latest);
         using var seededCursor = seeded.Events.CreateCursor(KernelEventCursorStart.Latest);
 
-        changed.SetAttribute(entityId: 1, attributeId: 4, value: 11f, tick: 0);
-        seeded.SeedAttribute(entityId: 1, attributeId: 4, value: 11f);
+        changed.SetAttribute(entityId: 1, attributeId: 4, value: FixedScalar.FromSingle(11f), tick: 0);
+        seeded.SeedAttribute(entityId: 1, attributeId: 4, value: FixedScalar.FromSingle(11f));
 
         Assert.Equal(changed.World.GetAttribute(1, 4), seeded.World.GetAttribute(1, 4));
         AssertEventTypes(changed, changedCursor, KernelEventType.AttributeChanged);
@@ -100,14 +100,14 @@ public sealed class KernelStartupSeedingTests
             polarityCode: RelationshipPolarityCodes.Negative,
             sourceEntityId: 1,
             targetEntityId: 2,
-            strength: 0.5f,
+            strength: FixedScalar.FromSingle(0.5f),
             tick: 0);
         seeded.SeedRelationship(
             relationshipKindId: 7,
             polarityCode: RelationshipPolarityCodes.Negative,
             sourceEntityId: 1,
             targetEntityId: 2,
-            strength: 0.5f);
+            strength: FixedScalar.FromSingle(0.5f));
 
         Assert.Equal(createdRelationship, seeded.World.FindRelationship(1, 2, 7));
         AssertEventTypes(created, createdCursor, KernelEventType.RelationshipChanged);
@@ -198,9 +198,9 @@ public sealed class KernelStartupSeedingTests
         simulation.RegisterAttribute(
             kindId,
             attributeId,
-            minimum: 0f,
-            maximum: 100f,
-            defaultValue: 42f);
+            minimum: FixedScalar.FromSingle(0f),
+            maximum: FixedScalar.FromSingle(100f),
+            defaultValue: FixedScalar.FromSingle(42f));
         return simulation;
     }
 }

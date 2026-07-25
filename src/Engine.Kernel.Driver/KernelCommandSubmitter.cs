@@ -1,5 +1,7 @@
 namespace Engine.Kernel.Driver;
 
+using Engine.Constants;
+
 internal sealed class KernelCommandSubmitter : ICommandSubmitter
 {
     private readonly KernelCommandRing _commands;
@@ -45,7 +47,7 @@ internal sealed class KernelCommandSubmitter : ICommandSubmitter
             command.Q,
             command.R,
             command.Radius,
-            command.Amount,
+            FixedScalar.FromSingle(command.Amount),
             command.SubmitterId,
             command.SubmitterSequence));
         return TryEnqueue(in kernelCommand, out handle);
@@ -57,7 +59,7 @@ internal sealed class KernelCommandSubmitter : ICommandSubmitter
             command.IssueVersion,
             command.EntityId,
             command.DurationTicks,
-            command.MultiplierDelta,
+            FixedScalar.FromSingle(command.MultiplierDelta),
             command.SubmitterId,
             command.SubmitterSequence));
         return TryEnqueue(in kernelCommand, out handle);

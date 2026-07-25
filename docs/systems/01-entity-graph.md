@@ -1,14 +1,15 @@
 # System 1: Entity Graph
 
-The entity graph is the named-world state: entities, relationships, identity,
-status, and history.
+The entity graph is the active named-world state: entities, relationships,
+identity, status, and current placement.
 
 ## Purpose
 
 The graph tracks the named things the simulation cares about. The world is
 richer than the named graph, but only named entities are simulated directly.
-When an entity dies, collapses, or becomes irrelevant, it should become
-historical rather than being erased.
+When an entity dies, collapses, or becomes irrelevant, its occurrence retires.
+The transition remains in the event record; active graph state does not become
+a second historical archive.
 
 ## Current Contract
 
@@ -22,8 +23,10 @@ historical rather than being erased.
   culture influence, changes health, and adjusts relationship strengths.
 - Relationship absence is meaningful. A generator or gambit can require that an
   edge is absent.
-- Historical entities remain queryable so later generators, gambits, and UI
-  views can refer to memory and lineage.
+- Retired occurrences and ended edges are not valid inputs to later generators
+  or gambits. Narrative and analysis consumers reconstruct history from events.
+- Snapshot materialization publishes active entities, their active attributes
+  and traits, and active relationships only.
 
 ## Boundaries
 

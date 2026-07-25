@@ -26,7 +26,7 @@ public sealed class WorldStateIndexTests
         Assert.DoesNotContain(first, PhysicalEntitiesAt(simulation.World, 0, 0));
         Assert.Contains(first, PhysicalEntitiesAt(simulation.World, 1, 0));
 
-        var relationship = simulation.World.CreateRelationship(7, 0, first, third, 1f, 2);
+        var relationship = simulation.World.CreateRelationship(7, 0, first, third, FixedScalar.FromSingle(1f), 2);
 
         Assert.Equal(relationship, FirstOutgoingByCursor(simulation.World, first, 7));
         Assert.Equal(relationship, FirstIncomingByCursor(simulation.World, third, 7));
@@ -65,12 +65,12 @@ public sealed class WorldStateIndexTests
         var highSource = simulation.CreateEntity(1, 1, 1, 5, 0, 0, 0, 0, 0);
         var midSource = simulation.CreateEntity(1, 1, 1, 6, 0, 0, 0, 0, 0);
         var sink = simulation.CreateEntity(2, 1, 1, 7, 0, 0, 0, 0, 0);
-        var low = simulation.World.CreateRelationship(9, 0, source, lowTarget, 0.2f, 0);
-        var high = simulation.World.CreateRelationship(9, 0, source, highTarget, 0.9f, 0);
-        var mid = simulation.World.CreateRelationship(9, 0, source, midTarget, 0.5f, 0);
-        var incomingLow = simulation.World.CreateRelationship(9, 0, lowSource, sink, 0.1f, 0);
-        var incomingHigh = simulation.World.CreateRelationship(9, 0, highSource, sink, 0.8f, 0);
-        var incomingMid = simulation.World.CreateRelationship(9, 0, midSource, sink, 0.4f, 0);
+        var low = simulation.World.CreateRelationship(9, 0, source, lowTarget, FixedScalar.FromSingle(0.2f), 0);
+        var high = simulation.World.CreateRelationship(9, 0, source, highTarget, FixedScalar.FromSingle(0.9f), 0);
+        var mid = simulation.World.CreateRelationship(9, 0, source, midTarget, FixedScalar.FromSingle(0.5f), 0);
+        var incomingLow = simulation.World.CreateRelationship(9, 0, lowSource, sink, FixedScalar.FromSingle(0.1f), 0);
+        var incomingHigh = simulation.World.CreateRelationship(9, 0, highSource, sink, FixedScalar.FromSingle(0.8f), 0);
+        var incomingMid = simulation.World.CreateRelationship(9, 0, midSource, sink, FixedScalar.FromSingle(0.4f), 0);
 
         Assert.Equal([low, high, mid], OutgoingRelationshipsOfKind(simulation.World, source, 9));
         Assert.Equal([incomingLow, incomingHigh, incomingMid], IncomingRelationshipsOfKind(simulation.World, sink, 9));
@@ -82,8 +82,8 @@ public sealed class WorldStateIndexTests
         Assert.Equal([high, mid], OutgoingRelationshipsOfKindAbove(simulation.World, source, 9, 0.5f));
         Assert.Equal([incomingHigh], IncomingRelationshipsOfKindAbove(simulation.World, sink, 9, 0.5f));
 
-        simulation.World.SetRelationshipStrength(low, 0.95f, 1);
-        simulation.World.SetRelationshipStrength(incomingLow, 0.85f, 1);
+        simulation.World.SetRelationshipStrength(low, FixedScalar.FromSingle(0.95f), 1);
+        simulation.World.SetRelationshipStrength(incomingLow, FixedScalar.FromSingle(0.85f), 1);
 
         Assert.Equal([low, high, mid], OutgoingRelationshipsOfKind(simulation.World, source, 9));
         Assert.Equal([incomingLow, incomingHigh, incomingMid], IncomingRelationshipsOfKind(simulation.World, sink, 9));
@@ -96,26 +96,23 @@ public sealed class WorldStateIndexTests
     }
 
     [Fact]
-    public void DefaultRelationshipCursorsSkipRelationshipsWithHistoricalEndpoints()
+    public void RetirementEndsIncidentRelationshipsAndReusesTheirSlots()
     {
         var simulation = CreateSimulation();
         var source = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
         var activeTarget = simulation.CreateEntity(2, 1, 1, 1, 0, 0, 0, 0, 0);
         var historicalTarget = simulation.CreateEntity(2, 1, 1, 2, 0, 0, 0, 0, 0);
-        var kept = simulation.World.CreateRelationship(9, 0, source, activeTarget, 0.9f, 0);
-        var archived = simulation.World.CreateRelationship(9, 0, source, historicalTarget, 0.9f, 0);
+        var kept = simulation.CreateRelationship(9, 0, source, activeTarget, FixedScalar.FromSingle(0.9f), 0);
+        var ended = simulation.CreateRelationship(9, 0, source, historicalTarget, FixedScalar.FromSingle(0.9f), 0);
 
-        simulation.World.SetEntityStatus(historicalTarget, EntityStatusCodes.Historical, 1);
+        simulation.SetEntityStatus(historicalTarget, EntityStatusCodes.Historical, 1);
 
-        Assert.True(simulation.World.RelationshipIsStoredActive(archived));
-        Assert.False(simulation.World.RelationshipIsActive(archived));
+        Assert.False(simulation.World.RelationshipIsActive(ended));
         Assert.Equal(0, simulation.World.FindRelationship(source, historicalTarget, 9));
-        Assert.Equal(archived, simulation.World.FindRelationshipIncludingHistoricalEndpoints(source, historicalTarget, 9));
         Assert.Equal([kept], OutgoingRelationshipsOfKind(simulation.World, source, 9));
 
-        simulation.World.CompactRelationshipGraph();
-
-        Assert.Equal([kept], OutgoingRelationshipsOfKind(simulation.World, source, 9));
+        var replacement = simulation.CreateRelationship(9, 0, activeTarget, source, FixedScalar.FromSingle(0.8f), 2);
+        Assert.Equal(ended, replacement);
     }
 
     [Fact]
@@ -126,15 +123,15 @@ public sealed class WorldStateIndexTests
         var second = simulation.CreateEntity(1, 1, 1, 1, 0, 0, 0, 0, 0);
         var third = simulation.CreateEntity(1, 1, 1, 2, 0, 0, 0, 0, 0);
         var fourth = simulation.CreateEntity(1, 1, 1, 3, 0, 0, 0, 0, 0);
-        var firstToSecond = simulation.World.CreateRelationship(9, 0, first, second, 0.9f, 0);
-        var firstToThird = simulation.World.CreateRelationship(9, 0, first, third, 0.6f, 0);
-        var secondToFourth = simulation.World.CreateRelationship(9, 0, second, fourth, 0.7f, 0);
-        simulation.World.CreateRelationship(9, 0, third, fourth, 0.4f, 0);
-        simulation.World.CreateRelationship(10, 0, first, fourth, 1f, 0);
+        var firstToSecond = simulation.World.CreateRelationship(9, 0, first, second, FixedScalar.FromSingle(0.9f), 0);
+        var firstToThird = simulation.World.CreateRelationship(9, 0, first, third, FixedScalar.FromSingle(0.6f), 0);
+        var secondToFourth = simulation.World.CreateRelationship(9, 0, second, fourth, FixedScalar.FromSingle(0.7f), 0);
+        simulation.World.CreateRelationship(9, 0, third, fourth, FixedScalar.FromSingle(0.4f), 0);
+        simulation.World.CreateRelationship(10, 0, first, fourth, FixedScalar.FromSingle(1f), 0);
         simulation.World.CompactRelationshipGraph();
 
         var outgoing = new RecordingTraversalVisitor(8);
-        var outgoingCount = simulation.World.TraverseOutgoingRelationshipsOfKind(first, 9, 0.5f, 2, ref outgoing);
+        var outgoingCount = simulation.World.TraverseOutgoingRelationshipsOfKind(first, 9, FixedScalar.FromSingle(0.5f), 2, ref outgoing);
 
         Assert.Equal(3, outgoingCount);
         Assert.Equal(3, outgoing.Count);
@@ -149,7 +146,7 @@ public sealed class WorldStateIndexTests
         Assert.Equal(2, outgoing.DepthAt(2));
 
         var incoming = new RecordingTraversalVisitor(8);
-        var incomingCount = simulation.World.TraverseIncomingRelationshipsOfKind(fourth, 9, 0.5f, 2, ref incoming);
+        var incomingCount = simulation.World.TraverseIncomingRelationshipsOfKind(fourth, 9, FixedScalar.FromSingle(0.5f), 2, ref incoming);
 
         Assert.Equal(2, incomingCount);
         Assert.Equal(second, incoming.EntityAt(0));
@@ -211,21 +208,33 @@ public sealed class WorldStateIndexTests
         const int cellKey = 1;
 
         layers.Coverage.SetValue(PlaneCodes.Physical, cellKey, 0, 0, value: 1);
-        layers.RawCultureInfluence.SetValue(entityId: 1, PlaneCodes.Physical, cellKey, q: 0, r: 0, value: 40f);
-        layers.RawCultureInfluence.SetValue(entityId: 2, PlaneCodes.Physical, cellKey, q: 0, r: 0, value: 60f);
+        layers.RawCultureInfluence.SetValue(
+            entityId: 1,
+            PlaneCodes.Physical,
+            cellKey,
+            q: 0,
+            r: 0,
+            value: KernelFixedPoint.CultureMassUnits(40f));
+        layers.RawCultureInfluence.SetValue(
+            entityId: 2,
+            PlaneCodes.Physical,
+            cellKey,
+            q: 0,
+            r: 0,
+            value: KernelFixedPoint.CultureMassUnits(60f));
 
         Assert.Equal(1, layers.Coverage.ValueAt(PlaneCodes.Physical, cellKey));
-        Assert.Equal(40f, layers.RawCultureInfluence.ValueAt(entityId: 1, PlaneCodes.Physical, cellKey));
-        Assert.Equal(60f, layers.RawCultureInfluence.ValueAt(entityId: 2, PlaneCodes.Physical, cellKey));
-        Assert.Equal(0f, layers.RawCultureInfluence.ValueAt(entityId: 1, PlaneCodes.Semantic, cellKey));
+        Assert.Equal(KernelFixedPoint.CultureMassUnits(40f), layers.RawCultureInfluence.ValueAt(entityId: 1, PlaneCodes.Physical, cellKey));
+        Assert.Equal(KernelFixedPoint.CultureMassUnits(60f), layers.RawCultureInfluence.ValueAt(entityId: 2, PlaneCodes.Physical, cellKey));
+        Assert.Equal(0, layers.RawCultureInfluence.ValueAt(entityId: 1, PlaneCodes.Semantic, cellKey));
 
         layers.Coverage.SetValue(PlaneCodes.Physical, cellKey, 0, 0, value: 2);
 
         Assert.Equal(2, layers.Coverage.ValueAt(PlaneCodes.Physical, cellKey));
         Assert.Equal(0, layers.Coverage.ValueCellCount(1, PlaneCodes.Physical));
         Assert.Equal(1, layers.Coverage.ValueCellCount(2, PlaneCodes.Physical));
-        Assert.Equal(40f, layers.RawCultureInfluence.ValueAt(entityId: 1, PlaneCodes.Physical, cellKey));
-        Assert.Equal(60f, layers.RawCultureInfluence.ValueAt(entityId: 2, PlaneCodes.Physical, cellKey));
+        Assert.Equal(KernelFixedPoint.CultureMassUnits(40f), layers.RawCultureInfluence.ValueAt(entityId: 1, PlaneCodes.Physical, cellKey));
+        Assert.Equal(KernelFixedPoint.CultureMassUnits(60f), layers.RawCultureInfluence.ValueAt(entityId: 2, PlaneCodes.Physical, cellKey));
     }
 
     [Fact]
@@ -235,7 +244,13 @@ public sealed class WorldStateIndexTests
         var loaded = new MapLayerSet(entityCapacity: 4, cultureIdCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
         const int cellKey = 2;
         layers.Coverage.SetValue(PlaneCodes.Semantic, cellKey, 1, -1, value: 3);
-        layers.RawCultureInfluence.SetValue(entityId: 3, PlaneCodes.Semantic, cellKey, q: 1, r: -1, value: 75f);
+        layers.RawCultureInfluence.SetValue(
+            entityId: 3,
+            PlaneCodes.Semantic,
+            cellKey,
+            q: 1,
+            r: -1,
+            value: KernelFixedPoint.CultureMassUnits(75f));
 
         using var stream = new MemoryStream();
         using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, leaveOpen: true))
@@ -250,7 +265,7 @@ public sealed class WorldStateIndexTests
         }
 
         Assert.Equal(3, loaded.Coverage.ValueAt(PlaneCodes.Semantic, cellKey));
-        Assert.Equal(75f, loaded.RawCultureInfluence.ValueAt(entityId: 3, PlaneCodes.Semantic, cellKey));
+        Assert.Equal(KernelFixedPoint.CultureMassUnits(75f), loaded.RawCultureInfluence.ValueAt(entityId: 3, PlaneCodes.Semantic, cellKey));
         Assert.Equal([(1, -1, 75f)], InfluenceCellsOf(loaded.RawCultureInfluence, entityId: 3, PlaneCodes.Semantic));
     }
 
@@ -258,10 +273,10 @@ public sealed class WorldStateIndexTests
     public void MaintainsCultureInfluenceLayerReverseIndexByCultureAndPlane()
     {
         var simulation = CreateSimulation();
-        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0, 40f, tick: 0);
-        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 1, 0, 55f, tick: 0);
-        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Semantic, 2, -1, 65f, tick: 0);
-        simulation.ModifyCellCultureInfluenceRaw(2, PlaneCodes.Physical, 0, 0, 75f, tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(40f), tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(55f), tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Semantic, 2, -1, FixedScalar.FromSingle(65f), tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(2, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(75f), tick: 0);
 
         Assert.Equal(2, simulation.World.CultureInfluenceCellCount(1, PlaneCodes.Physical));
         var physicalCultureOne = CultureInfluenceCellsOf(simulation.World, 1, PlaneCodes.Physical);
@@ -273,11 +288,11 @@ public sealed class WorldStateIndexTests
         Assert.Equal((0, 0), (physicalCultureTwo.Q, physicalCultureTwo.R));
         Assert.True(physicalCultureTwo.Value > 65f && physicalCultureTwo.Value < 66f);
 
-        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0, -40f, tick: 1);
+        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(-40f), tick: 1);
 
         Assert.Equal(1, simulation.World.CultureInfluenceCellCount(1, PlaneCodes.Physical));
         Assert.Equal([(1, 0, 100f)], CultureInfluenceCellsOf(simulation.World, 1, PlaneCodes.Physical));
-        Assert.Equal(0f, simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(0f), simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
     }
 
     [Fact]
@@ -286,10 +301,10 @@ public sealed class WorldStateIndexTests
         var simulation = CreateSimulation();
         for (var i = 0; i < 20; i++)
         {
-            simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, i, -i, 25f + i, tick: 0);
+            simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, i, -i, FixedScalar.FromSingle(25f) + i, tick: 0);
         }
 
-        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0, -25f, tick: 1);
+        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(-25f), tick: 1);
 
         var cells = CultureInfluenceCellsOf(simulation.World, 1, PlaneCodes.Physical);
         Assert.Equal(19, cells.Length);
@@ -305,16 +320,16 @@ public sealed class WorldStateIndexTests
         var auroraB = simulation.CreateEntity(1, 1, 1, 1, 0, 0, 0, 0, 0);
         var wake = simulation.CreateEntity(1, 1, 2, 0, 1, 0, 0, 0, 0);
 
-        simulation.SetCellInfluence(auroraA, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
-        simulation.SetCellInfluence(wake, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+        simulation.SetCellInfluence(auroraA, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(100f), tick: 0);
+        simulation.SetCellInfluence(wake, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(100f), tick: 0);
 
-        Assert.Equal(50f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
-        Assert.Equal(50f, simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(FixedScalar.FromSingle(50f), simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(50f), simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0));
 
-        simulation.SetCellInfluence(auroraB, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+        simulation.SetCellInfluence(auroraB, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(100f), tick: 0);
 
-        Assert.Equal(66.667f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
-        Assert.Equal(33.333f, simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(FixedScalar.FromRatio(200, 3), simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromRatio(100, 3), simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0));
         var cells = CultureInfluenceCellsOf(simulation.World, 1, PlaneCodes.Physical);
         var cell = Assert.Single(cells);
         Assert.Equal((0, 0), (cell.Q, cell.R));
@@ -327,22 +342,20 @@ public sealed class WorldStateIndexTests
         var simulation = CreateSimulation();
         var aurora = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
 
-        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, 0.6f, tick: 0);
+        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(0.6f), tick: 0);
 
-        Assert.Equal(100f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(FixedScalar.FromSingle(100f), simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0));
         Assert.Equal(
-            0.6f * 100f / WorldState.CultureFullRawMass,
-            simulation.World.GetCellCultureMaturity(1, PlaneCodes.Physical, 0, 0),
-            precision: 3);
+            FixedScalar.FromSingle(0.6f) * FixedScalar.FromSingle(100f) / WorldState.CultureFullRawMass,
+            simulation.World.GetCellCultureMaturity(1, PlaneCodes.Physical, 0, 0));
 
-        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, 6f, tick: 1);
+        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(6f), tick: 1);
 
         var influence = simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0);
-        Assert.Equal(100f, influence, precision: 3);
+        Assert.Equal(FixedScalar.FromSingle(100f), influence);
         Assert.Equal(
-            6f * 100f / WorldState.CultureFullRawMass,
-            simulation.World.GetCellCultureMaturity(1, PlaneCodes.Physical, 0, 0),
-            precision: 3);
+            FixedScalar.FromSingle(6f) * FixedScalar.FromSingle(100f) / WorldState.CultureFullRawMass,
+            simulation.World.GetCellCultureMaturity(1, PlaneCodes.Physical, 0, 0));
     }
 
     [Fact]
@@ -355,13 +368,13 @@ public sealed class WorldStateIndexTests
 
         foreach (var (q, r) in new[] { (0, 0), (1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1) })
         {
-            simulation.SetCellInfluence(aurora, PlaneCodes.Physical, q, r, 100f, tick: 0);
+            simulation.SetCellInfluence(aurora, PlaneCodes.Physical, q, r, FixedScalar.FromSingle(100f), tick: 0);
         }
 
         var interior = simulation.World.CultureFieldAt(1, PlaneCodes.Physical, 0, 0);
-        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 3, -3, 100f, tick: 0);
-        simulation.SetCellInfluence(rival, PlaneCodes.Physical, 1, 0, 20f, tick: 0);
-        simulation.SetCellInfluence(rival, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 3, -3, FixedScalar.FromSingle(100f), tick: 0);
+        simulation.SetCellInfluence(rival, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(20f), tick: 0);
+        simulation.SetCellInfluence(rival, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(100f), tick: 0);
 
         var border = simulation.World.CultureFieldAt(1, PlaneCodes.Physical, 1, 0);
         var isolated = simulation.World.CultureFieldAt(1, PlaneCodes.Physical, 3, -3);
@@ -374,37 +387,29 @@ public sealed class WorldStateIndexTests
         Assert.Equal(CultureFieldCellKindCodes.Isolated, isolated.CellKindCode);
         Assert.Equal(CultureFieldCellKindCodes.Contested, contested.CellKindCode);
         Assert.True(border.ConnectedRawMass > border.LocalRawMass);
-        Assert.True(contested.ForeignShare > 0f);
+        Assert.True(contested.ForeignShare > FixedScalar.FromSingle(0f));
     }
 
     [Fact]
-    public void CultureFieldQuery_DelegatesToBoundaryProgramCache()
+    public void CultureFieldQuery_UsesCurrentLocalityFacts()
     {
         var simulation = CreateSimulation();
         var aurora = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
-        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
-
-        Assert.Equal(0, simulation.CultureBoundaries.RebuildCount);
+        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(100f), tick: 0);
 
         var field = simulation.World.CultureFieldAt(1, PlaneCodes.Physical, 0, 0);
-        var firstRebuildCount = simulation.CultureBoundaries.RebuildCount;
-        var boundary = simulation.CultureBoundaries.CellAt(simulation.World, 1, PlaneCodes.Physical, 0, 0);
+        var locality = simulation.CultureLocality.CellAt(
+            simulation.World,
+            1,
+            PlaneCodes.Physical,
+            0,
+            0);
 
-        Assert.True(firstRebuildCount > 0);
-        Assert.Equal(boundary.RawMass, field.RawMass);
-        Assert.Equal(boundary.TotalRawMass, field.TotalRawMass);
-        Assert.Equal(boundary.ForeignRawMass, field.ForeignRawMass);
-        Assert.Equal(boundary.ConnectedRawMass, field.ConnectedRawMass);
-        Assert.Equal(boundary.CellKindCode, field.CellKindCode);
-
-        _ = simulation.World.CultureFieldAt(1, PlaneCodes.Physical, 0, 0);
-
-        Assert.Equal(firstRebuildCount, simulation.CultureBoundaries.RebuildCount);
-
-        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 1, 0, 100f, tick: 1);
-        _ = simulation.World.CultureFieldAt(1, PlaneCodes.Physical, 1, 0);
-
-        Assert.True(simulation.CultureBoundaries.RebuildCount > firstRebuildCount);
+        Assert.Equal(locality.RawMass, field.RawMass);
+        Assert.Equal(locality.TotalRawMass, field.TotalRawMass);
+        Assert.Equal(locality.ForeignRawMass, field.ForeignRawMass);
+        Assert.Equal(locality.ConnectedRawMass, field.ConnectedRawMass);
+        Assert.Equal(locality.CellKindCode, field.CellKindCode);
     }
 
     [Fact]
@@ -413,12 +418,12 @@ public sealed class WorldStateIndexTests
         var simulation = CreateSimulation();
         var cultureId = simulation.World.EntityCapacity + 10;
         var aurora = simulation.CreateEntity(1, 1, cultureId, 0, 0, 0, 0, 0, 0);
-        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(100f), tick: 0);
 
         var field = simulation.World.CultureFieldAt(cultureId, PlaneCodes.Physical, 0, 0);
 
-        Assert.Equal(100f, field.RawMass);
-        Assert.Equal(1, simulation.CultureBoundaries.ComponentCount(simulation.World, cultureId, PlaneCodes.Physical));
+        Assert.Equal(FixedScalar.FromSingle(100f), field.RawMass);
+        Assert.True(field.ConnectedRawMass >= field.RawMass);
     }
 
     [Fact]
@@ -431,21 +436,21 @@ public sealed class WorldStateIndexTests
         var fieldMaker = simulation.CreateEntity(2, 1, 1, 0, 0, 0, 0, 0, 0);
         foreach (var (q, r) in new[] { (0, 0), (1, 0), (1, -1), (0, -1), (-1, 0), (-1, 1), (0, 1) })
         {
-            simulation.SetCellInfluence(fieldMaker, PlaneCodes.Physical, q, r, 100f, tick: 0);
+            simulation.SetCellInfluence(fieldMaker, PlaneCodes.Physical, q, r, FixedScalar.FromSingle(100f), tick: 0);
         }
 
         var slot = simulation.CultureSlots.RegisterSlot(
             cultureId: 1,
             slotId: 1,
             polarityCode: RelationshipPolarityCodes.Positive,
-            minimumScore: 1f,
+            minimumScore: FixedScalar.FromSingle(1f),
             minimumTenureTicks: 0,
-            displacementMargin: 0f,
-            entityInfluenceMultiplierDelta: 0f,
-            cultureInfluenceMultiplierDelta: 0f);
+            displacementMargin: FixedScalar.FromSingle(0f),
+            entityInfluenceMultiplierDelta: FixedScalar.FromSingle(0f),
+            cultureInfluenceMultiplierDelta: FixedScalar.FromSingle(0f));
         simulation.CultureSlots.AddAllowedKind(slot, 1);
-        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.ActiveEntity, relationshipKindId: 0, weight: 1f);
-        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.PhysicalCultureSupport, relationshipKindId: 0, weight: 1f);
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.ActiveEntity, relationshipKindId: 0, weight: FixedScalar.FromSingle(1f));
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.PhysicalCultureSupport, relationshipKindId: 0, weight: FixedScalar.FromSingle(1f));
 
         simulation.AdvanceTicks(10);
 
@@ -454,7 +459,7 @@ public sealed class WorldStateIndexTests
     }
 
     [Fact]
-    public void CultureSlotScoringReadsSupportFromBoundaryInteriorHoles()
+    public void CultureSlotScoringReadsSupportFromLocalInteriorHoles()
     {
         var simulation = CreateSimulation();
         simulation.World.SetMapRadius(3);
@@ -465,23 +470,23 @@ public sealed class WorldStateIndexTests
             simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, q, r, WorldState.CultureControlledRawMass, tick: 0);
         }
 
-        var boundary = simulation.CultureBoundaries.CellAt(simulation.World, 1, PlaneCodes.Physical, 0, 0);
-        Assert.True(boundary.IsInteriorHole);
-        Assert.Equal(0f, boundary.RawMass);
-        Assert.True(boundary.ConnectedRawMass > 0f);
+        var locality = simulation.CultureLocality.CellAt(simulation.World, 1, PlaneCodes.Physical, 0, 0);
+        Assert.True(locality.IsInteriorHole);
+        Assert.Equal(FixedScalar.FromSingle(0f), locality.RawMass);
+        Assert.True(locality.ConnectedRawMass > FixedScalar.FromSingle(0f));
 
         var slot = simulation.CultureSlots.RegisterSlot(
             cultureId: 1,
             slotId: 1,
             polarityCode: RelationshipPolarityCodes.Positive,
-            minimumScore: 1f,
+            minimumScore: FixedScalar.FromSingle(1f),
             minimumTenureTicks: 0,
-            displacementMargin: 0f,
-            entityInfluenceMultiplierDelta: 0f,
-            cultureInfluenceMultiplierDelta: 0f);
+            displacementMargin: FixedScalar.FromSingle(0f),
+            entityInfluenceMultiplierDelta: FixedScalar.FromSingle(0f),
+            cultureInfluenceMultiplierDelta: FixedScalar.FromSingle(0f));
         simulation.CultureSlots.AddAllowedKind(slot, 1);
-        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.ActiveEntity, relationshipKindId: 0, weight: 1f);
-        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.PhysicalCultureSupport, relationshipKindId: 0, weight: 1f);
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.ActiveEntity, relationshipKindId: 0, weight: FixedScalar.FromSingle(1f));
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.PhysicalCultureSupport, relationshipKindId: 0, weight: FixedScalar.FromSingle(1f));
 
         simulation.AdvanceTicks(10);
 
@@ -496,26 +501,26 @@ public sealed class WorldStateIndexTests
         var quiet = simulation.CreateEntity(1, 1, 1, -1, 0, 0, 0, 0, 0);
         var producer = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
 
-        simulation.SetCellInfluence(producer, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
-        simulation.SetCellInfluence(producer, PlaneCodes.Physical, 0, 0, 0f, tick: 1);
+        simulation.SetCellInfluence(producer, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(100f), tick: 0);
+        simulation.SetCellInfluence(producer, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(0f), tick: 1);
 
         var slot = simulation.CultureSlots.RegisterSlot(
             cultureId: 1,
             slotId: 1,
             polarityCode: RelationshipPolarityCodes.Positive,
-            minimumScore: 1f,
+            minimumScore: FixedScalar.FromSingle(1f),
             minimumTenureTicks: 0,
-            displacementMargin: 0f,
-            entityInfluenceMultiplierDelta: 0f,
-            cultureInfluenceMultiplierDelta: 0f);
+            displacementMargin: FixedScalar.FromSingle(0f),
+            entityInfluenceMultiplierDelta: FixedScalar.FromSingle(0f),
+            cultureInfluenceMultiplierDelta: FixedScalar.FromSingle(0f));
         simulation.CultureSlots.AddAllowedKind(slot, 1);
-        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.ActiveEntity, relationshipKindId: 0, weight: 1f);
-        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.PhysicalInfluenceProduction, relationshipKindId: 0, weight: 0.1f);
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.ActiveEntity, relationshipKindId: 0, weight: FixedScalar.FromSingle(1f));
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.PhysicalInfluenceProduction, relationshipKindId: 0, weight: FixedScalar.FromSingle(0.1f));
 
         simulation.AdvanceTicks(10);
 
-        Assert.Equal(0f, simulation.World.GetCellInfluence(producer, PlaneCodes.Physical, 0, 0));
-        Assert.True(simulation.World.EntityInfluenceProduction(producer, PlaneCodes.Physical) > 0f);
+        Assert.Equal(FixedScalar.FromSingle(0f), simulation.World.GetCellInfluence(producer, PlaneCodes.Physical, 0, 0));
+        Assert.True(simulation.World.EntityInfluenceProduction(producer, PlaneCodes.Physical) > FixedScalar.FromSingle(0f));
         Assert.NotEqual(quiet, simulation.CultureSlots.OccupantEntityId(1, slotId: 1));
         Assert.Equal(producer, simulation.CultureSlots.OccupantEntityId(1, slotId: 1));
     }
@@ -526,24 +531,24 @@ public sealed class WorldStateIndexTests
         var simulation = CreateSimulation();
         var aurora = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
         var wake = simulation.CreateEntity(1, 1, 2, 0, 1, 0, 0, 0, 0);
-        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
-        simulation.SetCellInfluence(wake, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(100f), tick: 0);
+        simulation.SetCellInfluence(wake, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(100f), tick: 0);
         var slot = simulation.CultureSlots.RegisterSlot(
             cultureId: 1,
             slotId: 1,
             polarityCode: RelationshipPolarityCodes.Positive,
-            minimumScore: 0.5f,
+            minimumScore: FixedScalar.FromSingle(0.5f),
             minimumTenureTicks: 0,
-            displacementMargin: 0f,
-            entityInfluenceMultiplierDelta: 1f,
-            cultureInfluenceMultiplierDelta: 0f);
+            displacementMargin: FixedScalar.FromSingle(0f),
+            entityInfluenceMultiplierDelta: FixedScalar.FromSingle(1f),
+            cultureInfluenceMultiplierDelta: FixedScalar.FromSingle(0f));
         simulation.CultureSlots.AddAllowedKind(slot, 1);
-        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.ActiveEntity, relationshipKindId: 0, weight: 1f);
+        simulation.CultureSlots.AddScoreRule(slot, CultureSlotScoreSignalCodes.ActiveEntity, relationshipKindId: 0, weight: FixedScalar.FromSingle(1f));
 
         simulation.AdvanceTicks(10);
 
-        Assert.Equal(50f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
-        Assert.Equal(50f, simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(FixedScalar.FromSingle(50f), simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(50f), simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0));
     }
 
     [Fact]
@@ -552,13 +557,13 @@ public sealed class WorldStateIndexTests
         var simulation = CreateSimulation();
         var aurora = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
         var wake = simulation.CreateEntity(1, 1, 2, 0, 1, 0, 0, 0, 0);
-        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
-        simulation.SetCellInfluence(wake, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+        simulation.SetCellInfluence(aurora, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(100f), tick: 0);
+        simulation.SetCellInfluence(wake, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(100f), tick: 0);
 
         simulation.SetEntityStatus(wake, EntityStatusCodes.Historical, tick: 1);
 
-        Assert.Equal(50f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
-        Assert.Equal(50f, simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(FixedScalar.FromSingle(50f), simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(50f), simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0));
         Assert.Equal(1, simulation.World.CultureInfluenceCellCount(2, PlaneCodes.Physical));
     }
 
@@ -568,14 +573,14 @@ public sealed class WorldStateIndexTests
         var simulation = CreateSimulation();
         var place = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
         var rival = simulation.CreateEntity(1, 1, 2, 0, 1, 0, 0, 0, 0);
-        simulation.SetCellInfluence(place, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
-        simulation.SetCellInfluence(rival, PlaneCodes.Physical, 0, 0, 100f, tick: 0);
+        simulation.SetCellInfluence(place, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(100f), tick: 0);
+        simulation.SetCellInfluence(rival, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(100f), tick: 0);
 
         simulation.SetEntityCulture(place, 3, tick: 1);
 
-        Assert.Equal(50f, simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0), precision: 3);
-        Assert.Equal(50f, simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0), precision: 3);
-        Assert.Equal(0f, simulation.World.GetCellCultureInfluence(3, PlaneCodes.Physical, 0, 0), precision: 3);
+        Assert.Equal(FixedScalar.FromSingle(50f), simulation.World.GetCellCultureInfluence(1, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(50f), simulation.World.GetCellCultureInfluence(2, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(FixedScalar.FromSingle(0f), simulation.World.GetCellCultureInfluence(3, PlaneCodes.Physical, 0, 0));
         Assert.Equal(1, simulation.World.CultureInfluenceCellCount(1, PlaneCodes.Physical));
     }
 
@@ -590,7 +595,6 @@ public sealed class WorldStateIndexTests
             EventCapacity = 128,
             GambitCapacity = 8,
             GambitStepCapacity = 64,
-            GambitCooldownCapacity = 32,
             GeneratorCapacity = 4,
             GeneratorItemCapacity = 32,
             LifecycleRuleCapacity = 8,
@@ -632,14 +636,17 @@ public sealed class WorldStateIndexTests
         return result[..count];
     }
 
-    private static (int Q, int R, float Value)[] InfluenceCellsOf(MapScalarEntityLayer layer, int entityId, int planeCode)
+    private static (int Q, int R, float Value)[] InfluenceCellsOf(
+        MapFixedScalarEntityLayer layer,
+        int entityId,
+        int planeCode)
     {
         var result = new (int Q, int R, float Value)[64];
         var count = 0;
         var cursor = layer.CellsOfValue(entityId, planeCode);
         while (layer.MoveNextCell(ref cursor, out var q, out var r, out var value))
         {
-            result[count++] = (q, r, value);
+            result[count++] = (q, r, KernelFixedPoint.CultureMassValue(value));
         }
 
         Array.Sort(result, 0, count);
@@ -653,7 +660,7 @@ public sealed class WorldStateIndexTests
         var cursor = world.CultureInfluenceCells(cultureId, planeCode);
         while (world.MoveNextCultureInfluenceCell(ref cursor, out var q, out var r, out var value))
         {
-            result[count++] = (q, r, value);
+            result[count++] = (q, r, value.ToSingle());
         }
 
         Array.Sort(result, 0, count);
@@ -677,7 +684,10 @@ public sealed class WorldStateIndexTests
     {
         var result = new int[8];
         var count = 0;
-        var cursor = world.OutgoingRelationshipsOfKindAbove(source, kindId, minimumStrength);
+        var cursor = world.OutgoingRelationshipsOfKindAbove(
+            source,
+            kindId,
+            FixedScalar.FromSingle(minimumStrength));
         while (world.MoveNextRelationship(ref cursor, out var relationshipId))
         {
             result[count++] = relationshipId;
@@ -703,7 +713,10 @@ public sealed class WorldStateIndexTests
     {
         var result = new int[8];
         var count = 0;
-        var cursor = world.IncomingRelationshipsOfKindAbove(target, kindId, minimumStrength);
+        var cursor = world.IncomingRelationshipsOfKindAbove(
+            target,
+            kindId,
+            FixedScalar.FromSingle(minimumStrength));
         while (world.MoveNextRelationship(ref cursor, out var relationshipId))
         {
             result[count++] = relationshipId;

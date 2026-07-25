@@ -14,7 +14,7 @@ internal static class CultureInfluenceTestExtensions
         int planeCode,
         int q,
         int r,
-        float value,
+        FixedScalar value,
         int tick)
     {
         var cultureId = simulation.World.EntityCultureId(entityId);
@@ -27,16 +27,16 @@ internal static class CultureInfluenceTestExtensions
         var ledger = InfluenceLedgers.GetValue(simulation, static _ => new InfluenceLedger());
         ledger.Values.TryGetValue(key, out var previousValue);
         var delta = value - previousValue;
-        if (delta > 0f)
+        if (delta > FixedScalar.Zero)
         {
             simulation.ModifyCellCultureInfluenceRawFromEntity(entityId, planeCode, q, r, delta, tick);
         }
-        else if (delta < 0f)
+        else if (delta < FixedScalar.Zero)
         {
             simulation.ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, delta, tick);
         }
 
-        if (value > 0f)
+        if (value > FixedScalar.Zero)
         {
             ledger.Values[key] = value;
         }
@@ -46,7 +46,7 @@ internal static class CultureInfluenceTestExtensions
         }
     }
 
-    internal static float GetCellInfluence(
+    internal static FixedScalar GetCellInfluence(
         this WorldState world,
         int entityId,
         int planeCode,
@@ -54,7 +54,9 @@ internal static class CultureInfluenceTestExtensions
         int r)
     {
         var cultureId = world.EntityCultureId(entityId);
-        return cultureId <= 0 ? 0f : world.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r);
+        return cultureId <= 0
+            ? FixedScalar.Zero
+            : world.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r);
     }
 
     internal static int InfluenceCellCount(this WorldState world, int entityId, int planeCode)
@@ -74,7 +76,7 @@ internal static class CultureInfluenceTestExtensions
         ref SpatialLayerCellCursor cursor,
         out int q,
         out int r,
-        out float value)
+        out FixedScalar value)
     {
         return world.MoveNextCultureInfluenceCell(ref cursor, out q, out r, out value);
     }
@@ -85,13 +87,13 @@ internal static class CultureInfluenceTestExtensions
         int planeCode,
         int q,
         int r,
-        float delta,
+        FixedScalar delta,
         int tick)
     {
         simulation.ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, delta, tick);
     }
 
-    internal static float GetCellCultureLaborInfluenceRaw(
+    internal static FixedScalar GetCellCultureLaborInfluenceRaw(
         this WorldState world,
         int cultureId,
         int planeCode,
@@ -105,6 +107,6 @@ internal static class CultureInfluenceTestExtensions
 
     private sealed class InfluenceLedger
     {
-        public Dictionary<InfluenceKey, float> Values { get; } = [];
+        public Dictionary<InfluenceKey, FixedScalar> Values { get; } = [];
     }
 }

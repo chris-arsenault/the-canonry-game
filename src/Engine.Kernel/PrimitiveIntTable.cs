@@ -11,7 +11,7 @@ internal sealed partial class PrimitiveIntTable
 
     public PrimitiveIntTable(int capacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
+        NumericGuard.ThrowIfNegativeOrZero(capacity);
         _firstKeys = new int[capacity];
         _secondKeys = new int[capacity];
         _values = new int[capacity];
@@ -26,6 +26,11 @@ internal sealed partial class PrimitiveIntTable
     public int GetOrDefault(int firstKey, int secondKey)
     {
         return TryGet(firstKey, secondKey, out var value) ? value : 0;
+    }
+
+    public int GetOrDefault(int firstKey, int secondKey, int fallback)
+    {
+        return TryGet(firstKey, secondKey, out var value) ? value : fallback;
     }
 
     public bool TryGet(int firstKey, int secondKey, out int value)
@@ -170,6 +175,6 @@ internal sealed partial class PrimitiveIntTable
 
     private static void ValidateKeys(int firstKey, int secondKey)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(firstKey);
+        NumericGuard.ThrowIfNegativeOrZero(firstKey);
     }
 }

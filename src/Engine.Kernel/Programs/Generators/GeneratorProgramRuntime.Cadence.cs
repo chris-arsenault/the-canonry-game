@@ -22,11 +22,11 @@ internal sealed partial class GeneratorProgramRuntime
 
     private void TickCadenceGenerator(Simulation simulation, int slot, int tick)
     {
-        var scaledCadence = global::System.Math.Max(1, Tuning.ScaleMainTicks(_cadenceTicks[slot]));
+        var cadence = global::System.Math.Max(1, _cadenceTicks[slot]);
         if (_nextCadenceFireTicks[slot] == 0)
         {
             // First sighting: desynchronize timelines across generators.
-            _nextCadenceFireTicks[slot] = tick + 1 + simulation.NextInt(scaledCadence);
+            _nextCadenceFireTicks[slot] = tick + 1 + simulation.NextInt(cadence);
             return;
         }
 
@@ -35,7 +35,7 @@ internal sealed partial class GeneratorProgramRuntime
             return;
         }
 
-        _nextCadenceFireTicks[slot] = tick + global::System.Math.Max(1, scaledCadence + CadenceJitter(simulation, slot));
+        _nextCadenceFireTicks[slot] = tick + global::System.Math.Max(1, cadence + CadenceJitter(simulation, slot));
         for (var other = 1; other <= _generatorCount; other++)
         {
             ResetPulseScratch(other);
@@ -50,7 +50,7 @@ internal sealed partial class GeneratorProgramRuntime
 
     private int CadenceJitter(Simulation simulation, int slot)
     {
-        var jitter = Tuning.ScaleMainTicks(_cadenceJitterTicks[slot]);
+        var jitter = _cadenceJitterTicks[slot];
         return jitter <= 0 ? 0 : simulation.NextInt((2 * jitter) + 1) - jitter;
     }
 

@@ -15,12 +15,12 @@ internal sealed partial class CultureSlotProgramData : IKernelProgramData
     private readonly int[] _ruleCounts;
     private readonly int[] _ruleSignalCodes;
     private readonly int[] _ruleRelationshipKindIds;
-    private readonly float[] _ruleWeights;
-    private readonly float[] _minimumScores;
+    private readonly FixedScalar[] _ruleWeights;
+    private readonly FixedScalar[] _minimumScores;
     private readonly int[] _minimumTenureTicks;
-    private readonly float[] _displacementMargins;
-    private readonly float[] _entityInfluenceMultiplierDeltas;
-    private readonly float[] _cultureInfluenceMultiplierDeltas;
+    private readonly FixedScalar[] _displacementMargins;
+    private readonly FixedScalar[] _entityInfluenceMultiplierDeltas;
+    private readonly FixedScalar[] _cultureInfluenceMultiplierDeltas;
     private int _slotCount;
     private int _allowedKindCount;
     private int _ruleCount;
@@ -30,9 +30,9 @@ internal sealed partial class CultureSlotProgramData : IKernelProgramData
         int allowedKindCapacity,
         int ruleCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(slotCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(allowedKindCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(ruleCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(slotCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(allowedKindCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(ruleCapacity);
         _cultureIds = new int[slotCapacity + 1];
         _slotIds = new int[slotCapacity + 1];
         _polarityCodes = new int[slotCapacity + 1];
@@ -43,12 +43,12 @@ internal sealed partial class CultureSlotProgramData : IKernelProgramData
         _ruleCounts = new int[slotCapacity + 1];
         _ruleSignalCodes = new int[ruleCapacity + 1];
         _ruleRelationshipKindIds = new int[ruleCapacity + 1];
-        _ruleWeights = new float[ruleCapacity + 1];
-        _minimumScores = new float[slotCapacity + 1];
+        _ruleWeights = new FixedScalar[ruleCapacity + 1];
+        _minimumScores = new FixedScalar[slotCapacity + 1];
         _minimumTenureTicks = new int[slotCapacity + 1];
-        _displacementMargins = new float[slotCapacity + 1];
-        _entityInfluenceMultiplierDeltas = new float[slotCapacity + 1];
-        _cultureInfluenceMultiplierDeltas = new float[slotCapacity + 1];
+        _displacementMargins = new FixedScalar[slotCapacity + 1];
+        _entityInfluenceMultiplierDeltas = new FixedScalar[slotCapacity + 1];
+        _cultureInfluenceMultiplierDeltas = new FixedScalar[slotCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.CultureSlots;
@@ -61,18 +61,18 @@ internal sealed partial class CultureSlotProgramData : IKernelProgramData
         int cultureId,
         int slotId,
         int polarityCode,
-        float minimumScore,
+        FixedScalar minimumScore,
         int minimumTenureTicks,
-        float displacementMargin,
-        float entityInfluenceMultiplierDelta,
-        float cultureInfluenceMultiplierDelta)
+        FixedScalar displacementMargin,
+        FixedScalar entityInfluenceMultiplierDelta,
+        FixedScalar cultureInfluenceMultiplierDelta)
     {
         ValidatePositive(cultureId);
         ValidatePositive(slotId);
         ValidatePolarity(polarityCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(minimumScore);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(minimumTenureTicks);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(displacementMargin);
+        NumericGuard.ThrowIfNegative(minimumScore);
+        NumericGuard.ThrowIfNegative(minimumTenureTicks);
+        NumericGuard.ThrowIfNegative(displacementMargin);
         if (_slotCount + 1 >= _cultureIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -114,7 +114,7 @@ internal sealed partial class CultureSlotProgramData : IKernelProgramData
         int slot,
         int signalCode,
         int relationshipKindId,
-        float weight)
+        FixedScalar weight)
     {
         EnsureSlot(slot);
         ValidateScoreSignal(signalCode);
@@ -158,7 +158,7 @@ internal sealed partial class CultureSlotProgramData : IKernelProgramData
         return _polarityCodes[slot];
     }
 
-    public float MinimumScore(int slot)
+    public FixedScalar MinimumScore(int slot)
     {
         EnsureSlot(slot);
         return _minimumScores[slot];
@@ -170,19 +170,19 @@ internal sealed partial class CultureSlotProgramData : IKernelProgramData
         return _minimumTenureTicks[slot];
     }
 
-    public float DisplacementMargin(int slot)
+    public FixedScalar DisplacementMargin(int slot)
     {
         EnsureSlot(slot);
         return _displacementMargins[slot];
     }
 
-    public float EntityInfluenceMultiplierDelta(int slot)
+    public FixedScalar EntityInfluenceMultiplierDelta(int slot)
     {
         EnsureSlot(slot);
         return _entityInfluenceMultiplierDeltas[slot];
     }
 
-    public float CultureInfluenceMultiplierDelta(int slot)
+    public FixedScalar CultureInfluenceMultiplierDelta(int slot)
     {
         EnsureSlot(slot);
         return _cultureInfluenceMultiplierDeltas[slot];
@@ -247,7 +247,7 @@ internal sealed partial class CultureSlotProgramData : IKernelProgramData
 
     public int RuleRelationshipKindId(int rule) => _ruleRelationshipKindIds[rule];
 
-    public float RuleWeight(int rule) => _ruleWeights[rule];
+    public FixedScalar RuleWeight(int rule) => _ruleWeights[rule];
 
     private void EnsureSlot(int slot)
     {
@@ -263,7 +263,7 @@ internal sealed partial class CultureSlotProgramData : IKernelProgramData
 
     private static void ValidatePositive(int value)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+        NumericGuard.ThrowIfNegativeOrZero(value);
     }
 
     private static void ValidatePolarity(int polarityCode)

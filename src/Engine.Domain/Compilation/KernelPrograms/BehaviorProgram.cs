@@ -73,7 +73,6 @@ public enum BehaviorProgramPrecondition
     SelfHasOutgoingRelationship,
     RelatedEntityMatchesTarget,
     RelationshipExists,
-    CooldownElapsed,
     And,
     Or,
     Not,
@@ -125,7 +124,7 @@ public sealed record BehaviorProgramProviderSelectorRule(
     int KindId,
     int ValueId,
     int RelationshipKindId,
-    float MinimumStrength);
+    FixedScalar MinimumStrength);
 
 public sealed record BehaviorProgramPreconditionOp(
     BehaviorProgramPrecondition Code,
@@ -133,13 +132,13 @@ public sealed record BehaviorProgramPreconditionOp(
     int B = 0,
     int C = 0,
     int D = 0,
-    float X = 0f,
-    float Y = 0f);
+    FixedScalar X = default,
+    FixedScalar Y = default);
 
 public sealed record BehaviorProgramExpressionOp(
     BehaviorProgramExpression Code,
     int A = 0,
-    float X = 0f);
+    FixedScalar X = default);
 
 public sealed record BehaviorProgramStepRule(
     BehaviorProgramOperation Operation,
@@ -147,6 +146,6 @@ public sealed record BehaviorProgramStepRule(
     int B = 0,
     int C = 0,
     int D = 0,
-    float X = 0f,
-    float Y = 0f,
+    FixedScalar X = default,
+    FixedScalar Y = default,
     IReadOnlyList<BehaviorProgramExpressionOp>? Expression = null);

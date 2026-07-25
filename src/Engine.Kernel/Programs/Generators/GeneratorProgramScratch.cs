@@ -42,10 +42,10 @@ internal sealed class GeneratorProgramScratch
         int resolvedReferenceCapacity,
         int retryTargetCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(generatorCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(scratchCellCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(resolvedReferenceCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(retryTargetCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(generatorCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(scratchCellCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(resolvedReferenceCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(retryTargetCapacity);
         PulseStatusCodes = new int[generatorCapacity + 1];
         PulseCandidateCounts = new int[generatorCapacity + 1];
         PulseSelectionWeights = new int[generatorCapacity + 1];

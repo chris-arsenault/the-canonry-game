@@ -30,7 +30,7 @@ public static partial class IceRemembersGeneratorDefinition
             {
                 Ref = "$patron",
                 Kind = K.Faction,
-                Query = SameCultureAsTarget(samePhysicalComponent: true),
+                Query = SameCultureAsTarget(requireCultureRoute: true),
             },
         ],
         Produces =
@@ -100,7 +100,7 @@ public static partial class IceRemembersGeneratorDefinition
             {
                 Ref = "$port",
                 Kind = K.Settlement,
-                Query = SameCultureAsTarget(samePhysicalComponent: true),
+                Query = SameCultureAsTarget(requireCultureRoute: true),
             },
         ],
         Produces =
@@ -140,7 +140,7 @@ public static partial class IceRemembersGeneratorDefinition
             {
                 Ref = "$patron",
                 Kind = K.Faction,
-                Query = SameCultureAsTarget(samePhysicalComponent: true),
+                Query = SameCultureAsTarget(requireCultureRoute: true),
             },
         ],
         Produces =

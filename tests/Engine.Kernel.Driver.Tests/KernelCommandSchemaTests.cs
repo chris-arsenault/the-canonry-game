@@ -24,8 +24,8 @@ public sealed class KernelCommandSchemaTests
         {
             foreach (var slot in schema.Slots)
             {
-                var maxSlot = slot.PrimitiveKind == KernelCommandPrimitiveKind.Float32
-                    ? KernelCommand.FloatSlotCount - 1
+                var maxSlot = slot.PrimitiveKind == KernelCommandPrimitiveKind.Fixed64
+                    ? KernelCommand.ScalarSlotCount - 1
                     : KernelCommand.IntSlotCount - 1;
                 Assert.InRange(slot.Slot, 0, maxSlot);
             }

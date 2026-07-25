@@ -17,7 +17,7 @@ internal sealed class KernelGeologicalFeatureData
 
     public KernelGeologicalFeatureData(int capacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(capacity);
+        NumericGuard.ThrowIfNegative(capacity);
         _kinds = new int[capacity];
         _anchorQ = new int[capacity];
         _anchorR = new int[capacity];
@@ -31,9 +31,9 @@ internal sealed class KernelGeologicalFeatureData
 
     public void Install(int kind, int anchorQ, int anchorR, int magnitude, int hexCount)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(kind);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(magnitude);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(hexCount);
+        NumericGuard.ThrowIfNegative(kind);
+        NumericGuard.ThrowIfNegative(magnitude);
+        NumericGuard.ThrowIfNegativeOrZero(hexCount);
         if (Count >= _kinds.Length)
         {
             throw new global::System.InvalidOperationException();

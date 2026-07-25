@@ -74,8 +74,8 @@ public sealed class PrimitiveEventProjectionTests
             SourceEntityId: 200,
             TargetEntityId: 100,
             RelationshipId: 12,
-            PreviousStrength: 0.4f,
-            NewStrength: 0f))));
+            PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.4f),
+            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f)))));
 
         for (var i = 0; i < 200; i++)
         {
@@ -210,8 +210,8 @@ public sealed class PrimitiveEventProjectionTests
             PlaneCode: PlaneCodes.Physical,
             EntityId: 200,
             ActionId: 0,
-            PreviousInfluence: 0f,
-            CurrentInfluence: 35f))));
+            PreviousInfluenceUnits: FixedScalar.Zero.Units,
+            CurrentInfluenceUnits: FixedScalar.FromInt(35).Units))));
         Assert.True(log.TryWrite(KernelEvent.From(new CellInfluenceChangedKernelEvent(
             Tick: 1,
             WorldVersion: 3,
@@ -221,8 +221,8 @@ public sealed class PrimitiveEventProjectionTests
             PlaneCode: PlaneCodes.Physical,
             EntityId: 300,
             ActionId: 0,
-            PreviousInfluence: 0f,
-            CurrentInfluence: 20f))));
+            PreviousInfluenceUnits: FixedScalar.Zero.Units,
+            CurrentInfluenceUnits: FixedScalar.FromInt(20).Units))));
 
         pump.DrainAvailable();
 
@@ -233,39 +233,18 @@ public sealed class PrimitiveEventProjectionTests
     }
 
     [Fact]
-    public void HexMapProjection_AppliesCultureInfluenceAsProportionalCellState()
+    public void HexMapProjection_AppliesCultureLocalityAsProportionalCellState()
     {
-        var log = new KernelEventLog(capacity: 4);
         var projection = new HexMapProjection();
-        using var pump = new KernelEventProjectionPump(
-            log,
-            KernelEventCursorStart.EarliestAvailable,
-            projection);
-
-        Assert.True(log.TryWrite(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
-            Tick: 1,
-            WorldVersion: 2,
-            Q: 0,
-            R: 0,
-            SourceCodeId: 6,
-            PlaneCode: PlaneCodes.Physical,
-            CultureId: 10,
-            Z: 0,
-            PreviousShare: 0f,
-            CurrentShare: 66.667f))));
-        Assert.True(log.TryWrite(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
-            Tick: 1,
-            WorldVersion: 2,
-            Q: 0,
-            R: 0,
-            SourceCodeId: 6,
-            PlaneCode: PlaneCodes.Physical,
-            CultureId: 20,
-            Z: 0,
-            PreviousShare: 0f,
-            CurrentShare: 33.333f))));
-
-        pump.DrainAvailable();
+        projection.SetCultureInfluencesFromLocality(
+            PlaneCodes.Physical,
+            new HexCoord(0, 0),
+            [
+                new HexCultureInfluenceProjection(10, 66.667f, Tick: 1, Sequence: 0),
+                new HexCultureInfluenceProjection(20, 33.333f, Tick: 1, Sequence: 0),
+            ],
+            tick: 1,
+            worldVersion: 2);
 
         Assert.True(projection.TryGetHex(PlaneCodes.Physical, new HexCoord(0, 0), out var cell));
         Assert.Equal([10, 20], cell.CultureInfluences.Select(influence => influence.CultureId).ToArray());
@@ -294,8 +273,7 @@ public sealed class PrimitiveEventProjectionTests
         Assert.Equal(frameVersion, projection.FrameVersion);
         AssertOverlayVersions(projection, culture: 0, influence: 1, road: 0, route: 0);
 
-        WritePhysicalCultureChanged(log);
-        pump.DrainAvailable();
+        ApplyPhysicalCultureLocality(projection);
 
         AssertOverlayVersions(projection, culture: 1, influence: 1, road: 0, route: 0);
 
@@ -348,8 +326,8 @@ public sealed class PrimitiveEventProjectionTests
             PlaneCode: PlaneCodes.Semantic,
             EntityId: 200,
             ActionId: 0,
-            PreviousInfluence: 0f,
-            CurrentInfluence: 35f))));
+            PreviousInfluenceUnits: FixedScalar.Zero.Units,
+            CurrentInfluenceUnits: FixedScalar.FromInt(35).Units))));
         Assert.True(log.TryWrite(KernelEvent.From(new CellRoadChangedKernelEvent(
             Tick: 2,
             WorldVersion: 3,
@@ -358,8 +336,8 @@ public sealed class PrimitiveEventProjectionTests
             R: 1,
             SourceCodeId: 7,
             TravelCount: 4,
-            PreviousQuality: 20f,
-            CurrentQuality: 80f))));
+            PreviousQualityUnits: KernelFixedPoint.RoadQualityUnits(20f),
+            CurrentQualityUnits: KernelFixedPoint.RoadQualityUnits(80f)))));
         Assert.True(log.TryWrite(KernelEvent.From(new CellTravelStructureChangedKernelEvent(
             Tick: 3,
             WorldVersion: 4,
@@ -485,23 +463,18 @@ public sealed class PrimitiveEventProjectionTests
             PlaneCode: PlaneCodes.Physical,
             EntityId: entityId,
             ActionId: 0,
-            PreviousInfluence: 0f,
-            CurrentInfluence: value))));
+            PreviousInfluenceUnits: FixedScalar.Zero.Units,
+            CurrentInfluenceUnits: FixedScalar.FromSingle(value).Units))));
     }
 
-    private static void WritePhysicalCultureChanged(KernelEventLog log)
+    private static void ApplyPhysicalCultureLocality(HexMapProjection projection)
     {
-        Assert.True(log.TryWrite(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
-            Tick: 3,
-            WorldVersion: 3,
-            Q: 0,
-            R: 0,
-            SourceCodeId: 6,
-            PlaneCode: PlaneCodes.Physical,
-            CultureId: 10,
-            Z: 0,
-            PreviousShare: 0f,
-            CurrentShare: 80f))));
+        projection.SetCultureInfluencesFromLocality(
+            PlaneCodes.Physical,
+            new HexCoord(0, 0),
+            [new HexCultureInfluenceProjection(10, 80f, Tick: 3, Sequence: 0)],
+            tick: 3,
+            worldVersion: 3);
     }
 
     private static void WritePhysicalRoadChanged(KernelEventLog log)
@@ -514,8 +487,8 @@ public sealed class PrimitiveEventProjectionTests
             R: 0,
             SourceCodeId: 7,
             TravelCount: 1,
-            PreviousQuality: 0f,
-            CurrentQuality: 60f))));
+            PreviousQualityUnits: KernelFixedPoint.RoadQualityUnits(0f),
+            CurrentQualityUnits: KernelFixedPoint.RoadQualityUnits(60f)))));
     }
 
     private static void WritePhysicalTravelStructureChanged(KernelEventLog log)

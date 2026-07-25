@@ -19,7 +19,7 @@ public sealed record CompiledGeneratorRule(
     int CadenceJitterTicks,
     int TargetRequiredTagBits,
     int TargetWithoutTagBits,
-    float TargetChronicleHeatMin,
+    FixedScalar TargetChronicleHeatMin,
     int TargetChronicleLegendaryWithinTicks,
     IReadOnlyList<GeneratorTriggerRule> Triggers,
     IReadOnlyList<GeneratorBindingRule> SecondaryBindings,
@@ -32,7 +32,7 @@ public sealed record GeneratorEffectRule(
     int RefOrKindId,
     int InstanceSelectionCode = GeneratorRelationshipInstanceSelectionCodes.AllTargetRelationships,
     int OptionCode = 0,
-    float Value = 0f,
+    FixedScalar Value = default,
     int Radius = 0,
     int MaxCellCount = 0,
     IReadOnlyList<int>? PreferredTerrainIds = null,
@@ -47,7 +47,7 @@ public sealed record GeneratorTargetRelationshipRequirements(
     IReadOnlyList<int> WithoutOutgoingRelationshipKindIds,
     IReadOnlyList<int> WithoutIncomingRelationshipKindIds);
 
-public sealed record GeneratorRelationshipRequirementRule(int RelationshipKindId, float MinimumStrength);
+public sealed record GeneratorRelationshipRequirementRule(int RelationshipKindId, FixedScalar MinimumStrength);
 
 public sealed record GeneratorTerrainCountRequirementRule(int TerrainId, int Radius, int MaximumExclusive);
 
@@ -84,19 +84,19 @@ public sealed record GeneratorProducedEntityRule(
     int CultureRefCode,
     int FixedCultureId,
     GeneratorProgramCulturePlacement CulturePlacement,
-    float CreateChance,
+    FixedScalar CreateChance,
     GeneratorCoverageRule? Coverage,
     int PhysicalPlacementSiteFlags = 0,
-    float PhysicalPlacementWarmthAffinity = 0f,
-    float PhysicalPlacementFireAffinity = 0f,
-    float PhysicalPlacementAuroraAffinity = 0f,
-    float PhysicalPlacementPressureAffinity = 0f,
+    FixedScalar PhysicalPlacementWarmthAffinity = default,
+    FixedScalar PhysicalPlacementFireAffinity = default,
+    FixedScalar PhysicalPlacementAuroraAffinity = default,
+    FixedScalar PhysicalPlacementPressureAffinity = default,
     int PhysicalPlacementFeatureKind = -1);
 
 public sealed record GeneratorEntityQueryRule(
     IReadOnlyList<int> SubtypeIds,
     bool AdjacentToTarget,
-    bool SamePhysicalCultureComponentAsTarget,
+    bool RequireTargetCultureRoute,
     GeneratorProgramCultureMatch CultureMatch,
     IReadOnlyList<int> WithoutOutgoingRelationshipKindIds,
     IReadOnlyList<int> WithoutIncomingRelationshipKindIds,
@@ -105,7 +105,7 @@ public sealed record GeneratorEntityQueryRule(
     int CultureId = 0,
     int RelatedToTargetKindId = 0,
     bool RelatedToTargetIncoming = false,
-    float RelatedToTargetMinStrength = 0f);
+    FixedScalar RelatedToTargetMinStrength = default);
 
 public sealed record GeneratorCoverageRule(
     GeneratorProgramCoverageMode Mode,
@@ -122,7 +122,7 @@ public sealed record GeneratorRelationshipRule(
     int SourceRefCode,
     int DestinationRefCode,
     int RelationshipKindId,
-    float Strength,
+    FixedScalar Strength,
     bool ReplaceExistingOutgoing);
 
 public enum GeneratorProgramPlacement

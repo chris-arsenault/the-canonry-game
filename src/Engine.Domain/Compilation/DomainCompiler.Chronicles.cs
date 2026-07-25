@@ -36,7 +36,10 @@ public static partial class DomainCompiler
             archetype.CastingCadenceTicks,
             ids.KindIdOf(archetype.PrimaryRole.Kind.Value).Value,
             primaryRequirement is null ? 0 : ids.RelationshipKindIdOf(primaryRequirement.RelationshipKind).Value,
-            primaryRequirement?.MinimumStrength ?? 0f,
+            primaryRequirement is null
+                ? FixedScalar.Zero
+                : KernelFixedPoint.RelationshipStrengthScalar(
+                    KernelFixedPoint.RelationshipStrengthUnits(primaryRequirement.MinimumStrength)),
             ids.ReasonCodeIdOf(archetype.FadeOutcomeId).Value,
             archetype.FadeGraceTicks,
             archetype.FadeQuietTicks,
@@ -82,7 +85,10 @@ public static partial class DomainCompiler
                 ids.KindIdOf(role.Kind.Value).Value,
                 query?.RelatedToTargetRelationship is null ? 0 : ids.RelationshipKindIdOf(query.RelatedToTargetRelationship).Value,
                 query?.RelatedToTargetIncoming ?? false,
-                query?.RelatedToTargetMinStrength ?? 0f));
+                query is null
+                    ? FixedScalar.Zero
+                    : KernelFixedPoint.RelationshipStrengthScalar(
+                        KernelFixedPoint.RelationshipStrengthUnits(query.RelatedToTargetMinStrength))));
         }
 
         foreach (var open in archetype.OpenRoles)
@@ -91,7 +97,7 @@ public static partial class DomainCompiler
                 ids.KindIdOf(open.Kind.Value).Value,
                 RelatedKindId: 0,
                 RelatedIncoming: false,
-                RelatedMinStrength: 0f,
+                RelatedMinStrength: FixedScalar.Zero,
                 Open: true));
         }
 
@@ -108,7 +114,7 @@ public static partial class DomainCompiler
         ValidateStrike(archetype, beat);
         return new CompiledChronicleBeat(
             ids.ReasonCodeIdOf(beat.Id).Value,
-            beat.HeatGain,
+            FixedScalar.FromSingle(beat.HeatGain),
             beat.TerminalOutcomeId is null ? 0 : ids.ReasonCodeIdOf(beat.TerminalOutcomeId).Value,
             CompileChronicleCondition(archetype, beat.Open, ids, roleIndices),
             (int)strike.Kind,
@@ -118,7 +124,7 @@ public static partial class DomainCompiler
             strike.AcceptFailure,
             CompileJoinRole(archetype, beat, roleIndices),
             strike.Fact is null
-                ? new CompiledChronicleCondition(ChronicleConditionCodes.None, 0, 0, 0, 0f)
+                ? new CompiledChronicleCondition(ChronicleConditionCodes.None, 0, 0, 0, FixedScalar.Zero)
                 : CompileChronicleCondition(archetype, strike.Fact, ids, roleIndices),
             CompileCharges(archetype, beat, ids, roleIndices),
             CompileGrants(archetype, beat, ids, roleIndices));
@@ -200,8 +206,8 @@ public static partial class DomainCompiler
                 RoleIndex(archetype, charge.ActorRole, roleIndices),
                 RoleIndex(archetype, charge.TargetRole, roleIndices),
                 charge.Gambit is null ? 0 : ids.GambitIdOf(charge.Gambit).Value,
-                charge.ScoreBonus,
-                charge.SuccessBonus,
+                FixedScalar.FromSingle(charge.ScoreBonus),
+                FixedScalar.FromSingle(charge.SuccessBonus),
                 charge.HeatScaled))
             .ToList();
 
@@ -226,7 +232,7 @@ public static partial class DomainCompiler
             RoleIndex(archetype, condition.RoleA, roleIndices),
             RoleIndex(archetype, condition.RoleB, roleIndices),
             ChronicleConditionRelOrAttrId(archetype, condition, ids),
-            condition.Value);
+            FixedScalar.FromSingle(condition.Value));
 
     private static readonly Dictionary<ChronicleConditionKind, int> ChronicleConditionCodesByKind =
         new()

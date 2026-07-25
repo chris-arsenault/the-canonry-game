@@ -861,7 +861,7 @@ public static class DefinitionGeneratorBuilder
             WithoutTags = CopyRelationshipSet(query.WithoutTags),
             Culture = query.Culture,
             AdjacentToTarget = query.AdjacentToTarget,
-            SamePhysicalCultureComponentAsTarget = query.SamePhysicalCultureComponentAsTarget,
+            RequireTargetCultureRoute = query.RequireTargetCultureRoute,
             WithoutOutgoingRelationships = query.WithoutOutgoingRelationships is null
                 ? null
                 : new HashSet<string>(query.WithoutOutgoingRelationships, StringComparer.Ordinal),

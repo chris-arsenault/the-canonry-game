@@ -8,36 +8,48 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
     private readonly int[] _targetFollowsSourcePhysical;
     private readonly int[] _isExclusive;
     private readonly int[] _isCultureAnchor;
-    private readonly float[] _cullThresholds;
+    private readonly FixedScalar[] _cullThresholds;
     private readonly int[] _maintenanceKindIds;
     private readonly int[] _maintenanceConditionCodes;
     private readonly int[] _maintenancePlaneCodes;
     private readonly int[] _maintenanceMaxDistances;
-    private readonly float[] _maintenanceThresholds;
-    private readonly float[] _maintenanceDeltas;
+    private readonly FixedScalar[] _maintenanceThresholds;
+    private readonly FixedScalar[] _maintenanceDeltas;
+    private readonly int[] _ruleSlotByKind;
+    private readonly int[] _firstMaintenanceRuleByKind;
+    private readonly int[] _lastMaintenanceRuleByKind;
+    private readonly int[] _nextMaintenanceRule;
+    private readonly int[] _followKindIds;
     private int _ruleCount;
     private int _maintenanceRuleCount;
+    private int _followKindCount;
 
-    public RelationshipProgramData(int relationshipRuleCapacity)
+    public RelationshipProgramData(int relationshipRuleCapacity, int relationshipKindCapacity = 256)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(relationshipRuleCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(relationshipRuleCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(relationshipKindCapacity);
         _kindIds = new int[relationshipRuleCapacity + 1];
         _targetFollowsSourcePhysical = new int[relationshipRuleCapacity + 1];
         _isExclusive = new int[relationshipRuleCapacity + 1];
         _isCultureAnchor = new int[relationshipRuleCapacity + 1];
-        _cullThresholds = new float[relationshipRuleCapacity + 1];
+        _cullThresholds = new FixedScalar[relationshipRuleCapacity + 1];
         var maintenanceCapacity = relationshipRuleCapacity * 4;
         _maintenanceKindIds = new int[maintenanceCapacity + 1];
         _maintenanceConditionCodes = new int[maintenanceCapacity + 1];
         _maintenancePlaneCodes = new int[maintenanceCapacity + 1];
         _maintenanceMaxDistances = new int[maintenanceCapacity + 1];
-        _maintenanceThresholds = new float[maintenanceCapacity + 1];
-        _maintenanceDeltas = new float[maintenanceCapacity + 1];
+        _maintenanceThresholds = new FixedScalar[maintenanceCapacity + 1];
+        _maintenanceDeltas = new FixedScalar[maintenanceCapacity + 1];
+        _ruleSlotByKind = new int[relationshipKindCapacity + 1];
+        _firstMaintenanceRuleByKind = new int[relationshipKindCapacity + 1];
+        _lastMaintenanceRuleByKind = new int[relationshipKindCapacity + 1];
+        _nextMaintenanceRule = new int[maintenanceCapacity + 1];
+        _followKindIds = new int[relationshipRuleCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.Relationships;
 
-    public int SchemaVersion => 5;
+    public int SchemaVersion => 6;
 
     public int Count => _ruleCount;
 
@@ -47,14 +59,15 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
 
     public int RegisterRelationshipKind(
         int kindId,
-        float cullThreshold,
+        FixedScalar cullThreshold,
         bool targetFollowsSourcePhysical = false,
         bool isExclusive = false,
         bool isCultureAnchor = false)
     {
         ValidatePositive(kindId);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(cullThreshold);
-        if (_ruleCount + 1 >= _kindIds.Length)
+        EnsureKindCapacity(kindId);
+        NumericGuard.ThrowIfNegative(cullThreshold);
+        if (_ruleCount + 1 >= _kindIds.Length || _ruleSlotByKind[kindId] != 0)
         {
             throw new global::System.InvalidOperationException();
         }
@@ -66,6 +79,12 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
         _isExclusive[slot] = isExclusive ? 1 : 0;
         _isCultureAnchor[slot] = isCultureAnchor ? 1 : 0;
         _cullThresholds[slot] = cullThreshold;
+        _ruleSlotByKind[kindId] = slot;
+        if (targetFollowsSourcePhysical)
+        {
+            _followKindIds[++_followKindCount] = kindId;
+        }
+
         return slot;
     }
 
@@ -74,13 +93,14 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
         int conditionCode,
         int planeCode,
         int maxDistance,
-        float threshold,
-        float delta)
+        FixedScalar threshold,
+        FixedScalar delta)
     {
         ValidatePositive(kindId);
+        EnsureKindCapacity(kindId);
         ValidateMaintenanceCondition(conditionCode);
         ValidatePlaneCode(planeCode);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(maxDistance);
+        NumericGuard.ThrowIfNegative(maxDistance);
         if (_maintenanceRuleCount + 1 >= _maintenanceKindIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -94,6 +114,17 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
         _maintenanceMaxDistances[slot] = maxDistance;
         _maintenanceThresholds[slot] = threshold;
         _maintenanceDeltas[slot] = delta;
+        var previous = _lastMaintenanceRuleByKind[kindId];
+        if (previous > 0)
+        {
+            _nextMaintenanceRule[previous] = slot;
+        }
+        else
+        {
+            _firstMaintenanceRuleByKind[kindId] = slot;
+        }
+
+        _lastMaintenanceRuleByKind[kindId] = slot;
         return slot;
     }
 
@@ -103,7 +134,7 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
         return _kindIds[ruleSlot];
     }
 
-    public float RuleCullThreshold(int ruleSlot)
+    public FixedScalar RuleCullThreshold(int ruleSlot)
     {
         EnsureRule(ruleSlot);
         return _cullThresholds[ruleSlot];
@@ -129,60 +160,54 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
 
     public int MaintenanceMaxDistance(int ruleSlot) => _maintenanceMaxDistances[ruleSlot];
 
-    public float MaintenanceThreshold(int ruleSlot) => _maintenanceThresholds[ruleSlot];
+    public FixedScalar MaintenanceThreshold(int ruleSlot) => _maintenanceThresholds[ruleSlot];
 
-    public float MaintenanceDelta(int ruleSlot) => _maintenanceDeltas[ruleSlot];
+    public FixedScalar MaintenanceDelta(int ruleSlot) => _maintenanceDeltas[ruleSlot];
 
-    public float CullThreshold(int kindId)
+    public int FirstMaintenanceRule(int kindId) =>
+        (uint)kindId < (uint)_firstMaintenanceRuleByKind.Length
+            ? _firstMaintenanceRuleByKind[kindId]
+            : 0;
+
+    public int NextMaintenanceRule(int ruleSlot) => _nextMaintenanceRule[ruleSlot];
+
+    public int FollowKindCount => _followKindCount;
+
+    public int FollowKindId(int index) => _followKindIds[index];
+
+    public FixedScalar CullThreshold(int kindId)
     {
-        for (var rule = 1; rule <= _ruleCount; rule++)
-        {
-            if (_kindIds[rule] == kindId)
-            {
-                return _cullThresholds[rule];
-            }
-        }
-
-        return 0.05f;
+        var rule = RuleForKind(kindId);
+        return rule > 0 ? _cullThresholds[rule] : FixedScalar.FromUnits(50000L);
     }
 
     public bool TargetFollowsSourcePhysical(int kindId)
     {
-        for (var rule = 1; rule <= _ruleCount; rule++)
-        {
-            if (_kindIds[rule] == kindId)
-            {
-                return _targetFollowsSourcePhysical[rule] != 0;
-            }
-        }
-
-        return false;
+        var rule = RuleForKind(kindId);
+        return rule > 0 && _targetFollowsSourcePhysical[rule] != 0;
     }
 
     public bool IsCultureAnchor(int kindId)
     {
-        for (var rule = 1; rule <= _ruleCount; rule++)
-        {
-            if (_kindIds[rule] == kindId)
-            {
-                return _isCultureAnchor[rule] != 0;
-            }
-        }
-
-        return false;
+        var rule = RuleForKind(kindId);
+        return rule > 0 && _isCultureAnchor[rule] != 0;
     }
 
     public bool KindIsExclusive(int kindId)
     {
-        for (var rule = 1; rule <= _ruleCount; rule++)
-        {
-            if (_kindIds[rule] == kindId)
-            {
-                return _isExclusive[rule] != 0;
-            }
-        }
+        var rule = RuleForKind(kindId);
+        return rule > 0 && _isExclusive[rule] != 0;
+    }
 
-        return false;
+    private int RuleForKind(int kindId) =>
+        (uint)kindId < (uint)_ruleSlotByKind.Length ? _ruleSlotByKind[kindId] : 0;
+
+    private void EnsureKindCapacity(int kindId)
+    {
+        if ((uint)kindId >= (uint)_ruleSlotByKind.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
     }
 
     private void EnsureRule(int ruleSlot)
@@ -195,7 +220,7 @@ internal sealed partial class RelationshipProgramData : IKernelProgramData
 
     private static void ValidatePositive(int value)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+        NumericGuard.ThrowIfNegativeOrZero(value);
     }
 
     private static void ValidateMaintenanceCondition(int conditionCode)

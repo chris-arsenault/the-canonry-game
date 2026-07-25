@@ -1,7 +1,9 @@
 # Kernel Parallelization Brief
 
-Status: current-state briefing for external architecture discussion, not an
-approved implementation plan.
+Status: historical pre-Phase-4 briefing for external architecture discussion,
+not current architecture or an approved implementation plan. The current
+direction and completed groundwork are recorded in
+`pre-parallelization-simulation-redesign-plan.md`.
 
 Code basis: `main` at `c81d507` on 2026-07-24. The earlier parallel experiment
 is preserved separately at `origin/kernel-parallel-execution` commit
@@ -254,10 +256,10 @@ Minor actors run every raw tick and have two passes:
 2. scan active actors, select a bounded local verb target, write culture/road/
    lifecycle consequences, update position/cadence/TTL, and expire actors.
 
-Actor state currently stores 15 integer fields plus floats in open-addressed
-primitive tables. Source active counts and emission clocks are also shared
-tables. Different actors frequently target the same culture cell or named
-source, so actor ownership alone does not make action application independent.
+Actor state stores integer fields and `FixedScalar` values in bounded primitive
+tables. Source active counts and emission clocks are also shared tables.
+Different actors frequently target the same culture cell or named source, so
+actor ownership alone does not make action application independent.
 
 The July branch converted actor evaluation to worker jobs and experimented with
 direct per-actor arrays, but that storage rewrite never reached main.

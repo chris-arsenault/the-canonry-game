@@ -40,7 +40,7 @@ internal sealed partial class GambitProgramRuntime
             state);
     }
 
-    private static void Push(global::System.Span<float> stack, ref int stackCount, float value)
+    private static void Push(global::System.Span<FixedScalar> stack, ref int stackCount, FixedScalar value)
     {
         if (stackCount >= stack.Length)
         {
@@ -51,7 +51,7 @@ internal sealed partial class GambitProgramRuntime
         stackCount++;
     }
 
-    private static float Pop(global::System.Span<float> stack, ref int stackCount)
+    private static FixedScalar Pop(global::System.Span<FixedScalar> stack, ref int stackCount)
     {
         if (stackCount <= 0)
         {
@@ -62,40 +62,40 @@ internal sealed partial class GambitProgramRuntime
         return stack[stackCount];
     }
 
-    private static void PushBinary(global::System.Span<float> stack, ref int stackCount, float value)
+    private static void PushBinary(global::System.Span<FixedScalar> stack, ref int stackCount, FixedScalar value)
     {
         Push(stack, ref stackCount, value);
     }
 
-    private static void Subtract(global::System.Span<float> stack, ref int stackCount)
+    private static void Subtract(global::System.Span<FixedScalar> stack, ref int stackCount)
     {
         var right = Pop(stack, ref stackCount);
         var left = Pop(stack, ref stackCount);
         Push(stack, ref stackCount, left - right);
     }
 
-    private static void Divide(global::System.Span<float> stack, ref int stackCount)
+    private static void Divide(global::System.Span<FixedScalar> stack, ref int stackCount)
     {
         var right = Pop(stack, ref stackCount);
         var left = Pop(stack, ref stackCount);
-        Push(stack, ref stackCount, right == 0f ? 0f : left / right);
+        Push(stack, ref stackCount, right == 0 ? 0 : left / right);
     }
 
-    private static void Min(global::System.Span<float> stack, ref int stackCount)
+    private static void Min(global::System.Span<FixedScalar> stack, ref int stackCount)
     {
         var right = Pop(stack, ref stackCount);
         var left = Pop(stack, ref stackCount);
         Push(stack, ref stackCount, left < right ? left : right);
     }
 
-    private static void Max(global::System.Span<float> stack, ref int stackCount)
+    private static void Max(global::System.Span<FixedScalar> stack, ref int stackCount)
     {
         var right = Pop(stack, ref stackCount);
         var left = Pop(stack, ref stackCount);
         Push(stack, ref stackCount, left > right ? left : right);
     }
 
-    private static void Clamp(global::System.Span<float> stack, ref int stackCount)
+    private static void Clamp(global::System.Span<FixedScalar> stack, ref int stackCount)
     {
         var max = Pop(stack, ref stackCount);
         var min = Pop(stack, ref stackCount);
@@ -134,9 +134,9 @@ internal sealed partial class GambitProgramRuntime
         return stack[stackCount];
     }
 
-    private static float Abs(float value)
+    private static FixedScalar Abs(FixedScalar value)
     {
-        return value < 0f ? -value : value;
+        return value < 0 ? -value : value;
     }
 
     private void EnsureOpenGambit(int gambitSlot)
@@ -158,6 +158,6 @@ internal sealed partial class GambitProgramRuntime
 
     private static void ValidatePositive(int value)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(value);
+        NumericGuard.ThrowIfNegativeOrZero(value);
     }
 }

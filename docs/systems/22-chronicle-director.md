@@ -95,15 +95,18 @@ game-layer presentation.
 
 `Engine.Kernel/Programs/Chronicles` holds flat definition arrays (archetypes,
 roles, beats, charges, grants) and fixed per-chronicle state: heat, open and
-struck bitmasks (max 64 beats per archetype), role entity ids, and a
+struck bitmasks (max 64 beats per archetype), role entity ids, a compact
+role-retired bitmask, and a
 suppression ring so resolved cast members are not immediately recast as
 primaries. The gambit program reports every execution through
 `Chronicles.NoteExecution`, the generator program reports every targeted fire
 through `Chronicles.NoteGeneratorFire` (both land in a pending ring consumed
 on the next director pulse), and the gambit program reads
 `ScoreBias`/`GrantsGambit` during candidate evaluation.
-Casting is unchanged from R5: generator-grade queries, provenance-recency
-primary selection, global and per-archetype concurrency caps.
+Casting uses generator-grade queries, active relationship start ticks for
+causal recency, and global/per-archetype concurrency caps. A historical-role
+beat reads the retained role-retired bit rather than dereferencing a retired
+entity.
 
 Telemetry: `ChronicleChanged` events carry Cast / BeatStruck / Resolved, with
 beat and outcome codes in reason-code space and the chronicle's heat

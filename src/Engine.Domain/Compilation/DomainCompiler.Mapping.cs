@@ -36,7 +36,8 @@ public static partial class DomainCompiler
             var relationshipKindId = ids.RelationshipKindIdOf(relationship.Name).Value;
             relationships.Add(new RelationshipRuntimeRule(
                 relationshipKindId,
-                relationship.CullThreshold,
+                KernelFixedPoint.RelationshipStrengthScalar(
+                    KernelFixedPoint.RelationshipStrengthUnits(relationship.CullThreshold)),
                 relationship.TargetFollowsSourcePhysical,
                 relationship.IsExclusive,
                 relationship.IsCultureAnchor));
@@ -47,8 +48,9 @@ public static partial class DomainCompiler
                     RelationshipMaintenanceConditionCode(maintenance.Condition, maintenance.Plane),
                     RelationshipMaintenancePlaneCode(maintenance.Condition, maintenance.Plane),
                     maintenance.MaxDistance,
-                    maintenance.Threshold,
-                    maintenance.Delta));
+                    FixedScalar.FromSingle(maintenance.Threshold),
+                    KernelFixedPoint.RelationshipStrengthScalar(
+                        KernelFixedPoint.RelationshipStrengthDeltaUnits(maintenance.Delta))));
             }
         }
 
@@ -260,7 +262,7 @@ public static partial class DomainCompiler
                 Math.Max(generator.CadenceJitterTicks, 0),
                 CompileTagBits(generator.Target.RequiredTags, ids),
                 CompileTagBits(generator.Target.WithoutTags, ids),
-                generator.Target.ChronicleHeatMin,
+                FixedScalar.FromSingle(generator.Target.ChronicleHeatMin),
                 generator.Target.ChronicleLegendaryWithinTicks,
                 CompileGeneratorTriggers(generator.Triggers, ids),
                 CompileGeneratorBindings(generator.SecondaryTargets, ids, refCodes),
@@ -335,7 +337,7 @@ public static partial class DomainCompiler
             {
                 compiled.Add(new GeneratorRelationshipRequirementRule(
                     ids.RelationshipKindIdOf(relationshipKind).Value,
-                    0f));
+                    FixedScalar.Zero));
             }
         }
 
@@ -343,7 +345,8 @@ public static partial class DomainCompiler
         {
             compiled.Add(new GeneratorRelationshipRequirementRule(
                 requirement.RelationshipRuntimeId,
-                requirement.MinimumStrength));
+                KernelFixedPoint.RelationshipStrengthScalar(
+                    KernelFixedPoint.RelationshipStrengthUnits(requirement.MinimumStrength))));
         }
 
         return compiled;
@@ -420,7 +423,7 @@ public static partial class DomainCompiler
                 produced.InheritCultureFrom is null ? 0 : refCodes[produced.InheritCultureFrom],
                 produced.Culture is null ? 0 : ids.CultureIdOf(produced.Culture).Value,
                 ToGeneratorCulturePlacement(produced.CulturePlacement),
-                produced.CreateChance,
+                FixedScalar.FromSingle(produced.CreateChance),
                 CompileGeneratorCoverage(produced.Coverage, terrainByName, refCodes, ids),
                 PhysicalPlacementSiteFlags: CompilePlacementSiteFlags(produced.PhysicalPlacementPreferredSites),
                 PhysicalPlacementFeatureKind: CompileFeatureKind(produced.FeatureKind),
@@ -457,7 +460,8 @@ public static partial class DomainCompiler
         return flags;
     }
 
-    private static float ClampAffinity(float value) => Math.Clamp(value, -1f, 1f);
+    private static FixedScalar ClampAffinity(float value) =>
+        FixedScalar.FromSingle(Math.Clamp(value, -1f, 1f));
 
     private static GeneratorEntityQueryRule? CompileGeneratorQuery(
         DefinitionEntityQuery? query,
@@ -472,7 +476,7 @@ public static partial class DomainCompiler
         return new GeneratorEntityQueryRule(
             CompileGeneratorSubtypeIds(subtypeSource ?? query.Subtypes, ids),
             query.AdjacentToTarget,
-            query.SamePhysicalCultureComponentAsTarget,
+            query.RequireTargetCultureRoute,
             ToGeneratorCultureMatch(query.TargetCultureMatch),
             CompileRelationshipKindIds(query.WithoutOutgoingRelationships, ids),
             CompileRelationshipKindIds(query.WithoutIncomingRelationships, ids),
@@ -481,7 +485,8 @@ public static partial class DomainCompiler
             query.Culture is null ? 0 : ids.CultureIdOf(query.Culture).Value,
             query.RelatedToTargetRelationship is null ? 0 : ids.RelationshipKindIdOf(query.RelatedToTargetRelationship).Value,
             query.RelatedToTargetIncoming,
-            query.RelatedToTargetMinStrength);
+            KernelFixedPoint.RelationshipStrengthScalar(
+                KernelFixedPoint.RelationshipStrengthUnits(query.RelatedToTargetMinStrength)));
     }
 
     private static GeneratorCoverageRule? CompileGeneratorCoverage(
@@ -532,7 +537,8 @@ public static partial class DomainCompiler
                 refCodes[relationship.SourceRef],
                 refCodes[relationship.DestinationRef],
                 relationship.RelationshipRuntimeId,
-                relationship.Strength,
+                KernelFixedPoint.RelationshipStrengthScalar(
+                    KernelFixedPoint.RelationshipStrengthUnits(relationship.Strength)),
                 relationship.ReplaceExistingOutgoingOfSameKind ||
                 graph.Relationships[relationship.RelationshipId].SourceConfig.IsExclusive));
         }
@@ -574,13 +580,13 @@ public static partial class DomainCompiler
                         adjustRelationship.RelationshipKindId,
                         ToGeneratorRelationshipInstanceSelection(adjustRelationship.InstanceSelection),
                         adjustRelationship.IncludeReciprocal ? 1 : 0,
-                        adjustRelationship.Delta));
+                        KernelFixedPoint.RelationshipStrengthScalar(KernelFixedPoint.RelationshipStrengthDeltaUnits(adjustRelationship.Delta))));
                     break;
                 case DefinitionErodeCultureAtTargetEffect erode:
                     compiled.Add(new GeneratorEffectRule(
                         GeneratorEffectTypeCodes.ErodeCultureAtTarget,
                         GeneratorProgramConstants.TargetReferenceCode,
-                        Value: erode.AmountPerCell,
+                        Value: KernelFixedPoint.CultureMassScalar(KernelFixedPoint.CultureMassUnits(erode.AmountPerCell)),
                         Radius: erode.Radius));
                     break;
                 case DefinitionClaimSemanticJurisdictionEffect claim:
@@ -630,7 +636,7 @@ public static partial class DomainCompiler
             refCodes[setTerrainPatch.CenterRef],
             setTerrainPatch.RespectTerrainBoundaries ? 1 : 0,
             ids.TerrainIdOf(terrain.Name).Value,
-            setTerrainPatch.Chance,
+            FixedScalar.FromSingle(setTerrainPatch.Chance),
             setTerrainPatch.Radius,
             setTerrainPatch.MaxCellCount,
             CompileTerrainIds(setTerrainPatch.PreferredTerrains, terrainByName, ids),
@@ -817,8 +823,10 @@ public static partial class DomainCompiler
         _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, null),
     };
 
-    private static float ClampNonNegative(float value) => value < 0f ? 0f : value;
+    private static FixedScalar ClampNonNegative(float value) =>
+        FixedScalar.FromSingle(value < 0f ? 0f : value);
 
-    private static float ClampAtLeast(float value, float minimum) => value < minimum ? minimum : value;
+    private static FixedScalar ClampAtLeast(float value, float minimum) =>
+        FixedScalar.FromSingle(value < minimum ? minimum : value);
 
 }

@@ -7,7 +7,7 @@ public sealed class CompiledMovementData
     public IReadOnlyList<CompiledMovementProfileTraitRule> TraitRules { get; init; } = [];
     public IReadOnlyList<CompiledTravelStructureDefinition> TravelStructures { get; init; } = [];
 
-    public float RoughnessCostWeight { get; init; }
+    public FixedScalar RoughnessCostWeight { get; init; }
 }
 
 public sealed record CompiledMovementProfileDefault(
@@ -35,4 +35,4 @@ public sealed record CompiledTravelStructureDefinition(
 public sealed record CompiledTravelStructureMovementProfileDefinition(
     int TravelStructureId,
     int MovementProfileId,
-    float MovementCost);
+    FixedScalar MovementCost);

@@ -46,8 +46,8 @@ internal static class PenguinEntity
                 TraitVerbWeight(Verb.PenguinExplore, weightDelta: -0.7f),
                 TraitVerbWeight(Verb.PenguinVisitRookery, weightDelta: 0.6f, fitnessWeightDelta: 0.4f)),
         ],
-        MapSignal = MapSignal(radius: 1, capacity: 0.2f, support: 0.2f, threat: 0f,
-            baseMass: 2f, coverageScale: 0f, influenceScale: 0.02f, activityScale: 0.02f,
+        Locality = Locality(radius: 1, capacity: 0.2f, support: 0.2f, threat: 0f,
+            baseMass: 2f, coverageScale: 0f, influenceScale: 0.02f,
             healthScale: 0.02f, attractorRadius: 1),
         MovementProfiles = MovementProfiles(
             physicalDefault: Profile.Trail,

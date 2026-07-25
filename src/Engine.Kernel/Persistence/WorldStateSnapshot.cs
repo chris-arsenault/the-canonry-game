@@ -22,22 +22,17 @@ internal sealed partial class WorldState
 
         for (var entityId = 1; entityId <= _entityHighWatermark; entityId++)
         {
-            if (!_entityAllocated[entityId])
+            if (!EntityIsActiveRaw(entityId))
             {
                 continue;
             }
 
             count++;
-            if (_entityStatus[entityId] != EntityStatusCodes.Active)
-            {
-                count++;
-            }
         }
 
-        count += _attributes.Count;
-        count += _traits.Count;
+        count += SnapshotAttributeEventCount();
+        count += SnapshotTraitEventCount();
         count += SnapshotTagEventCount();
-        count += _mapLayers.CultureInfluence.Count;
         for (var relationshipId = 1; relationshipId <= _relationshipHighWatermark; relationshipId++)
         {
             if (_relationshipAllocated[relationshipId] && _relationshipActive[relationshipId])
@@ -59,7 +54,6 @@ internal sealed partial class WorldState
         EmitSnapshotTraits(context, tick, version);
         EmitSnapshotTags(context, tick, version);
         EmitSnapshotInfluence(context, tick, version);
-        EmitSnapshotCultureInfluence(context, tick, version);
         EmitSnapshotRelationships(context, tick, version);
     }
 
@@ -179,7 +173,7 @@ internal sealed partial class WorldState
     {
         for (var entityId = 1; entityId <= _entityHighWatermark; entityId++)
         {
-            if (!_entityAllocated[entityId])
+            if (!EntityIsActiveRaw(entityId))
             {
                 continue;
             }
@@ -199,19 +193,6 @@ internal sealed partial class WorldState
                 _entitySemanticS[entityId])),
                 context);
 
-            if (_entityStatus[entityId] != EntityStatusCodes.Active)
-            {
-                Write(KernelEvent.From(new EntityStatusChangedKernelEvent(
-                    tick,
-                    version,
-                    entityId,
-                    context.SourceCodeId,
-                    _entityKindId[entityId],
-                    _entitySubtypeId[entityId],
-                    EntityStatusCodes.Active,
-                    _entityStatus[entityId])),
-                    context);
-            }
         }
     }
 
@@ -219,7 +200,7 @@ internal sealed partial class WorldState
     {
         _attributes.ForEach((entityId, attributeId, value) =>
         {
-            if (_entityAllocated[entityId])
+            if (EntityIsActiveRaw(entityId))
             {
                 Write(KernelEvent.From(new AttributeChangedKernelEvent(
                     tick,
@@ -227,7 +208,7 @@ internal sealed partial class WorldState
                     entityId,
                     attributeId,
                     context.SourceCodeId,
-                    0f,
+                    0,
                     value)),
                     context);
             }
@@ -238,7 +219,7 @@ internal sealed partial class WorldState
     {
         _traits.ForEach((entityId, traitId, assigned) =>
         {
-            if (_entityAllocated[entityId] && assigned != 0)
+            if (EntityIsActiveRaw(entityId) && assigned != 0)
             {
                 Write(KernelEvent.From(new TraitAssignedKernelEvent(
                     tick,
@@ -256,7 +237,7 @@ internal sealed partial class WorldState
         var count = 0;
         for (var entityId = 1; entityId <= _entityHighWatermark; entityId++)
         {
-            if (_entityAllocated[entityId])
+            if (EntityIsActiveRaw(entityId))
             {
                 count += global::System.Numerics.BitOperations.PopCount((uint)_entityTagBits[entityId]);
             }
@@ -269,7 +250,7 @@ internal sealed partial class WorldState
     {
         for (var entityId = 1; entityId <= _entityHighWatermark; entityId++)
         {
-            if (!_entityAllocated[entityId] || _entityTagBits[entityId] == 0)
+            if (!EntityIsActiveRaw(entityId) || _entityTagBits[entityId] == 0)
             {
                 continue;
             }
@@ -291,55 +272,41 @@ internal sealed partial class WorldState
         }
     }
 
+    private int SnapshotAttributeEventCount()
+    {
+        var count = 0;
+        for (var index = 0; index < _attributes.Count; index++)
+        {
+            _attributes.GetEntry(index, out var entityId, out _, out _);
+            if (EntityIsActiveRaw(entityId))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private int SnapshotTraitEventCount()
+    {
+        var count = 0;
+        for (var index = 0; index < _traits.Count; index++)
+        {
+            _traits.GetEntry(index, out var entityId, out _, out var assigned);
+            if (EntityIsActiveRaw(entityId) && assigned != 0)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
     private static void EmitSnapshotInfluence(KernelExecutionContext context, int tick, long version)
     {
         _ = context;
         _ = tick;
         _ = version;
-    }
-
-    private void EmitSnapshotCultureInfluence(KernelExecutionContext context, int tick, long version)
-    {
-        for (var cultureId = 1; cultureId <= _cultureHighWatermark; cultureId++)
-        {
-            EmitSnapshotCultureInfluencePlane(context, tick, version, cultureId, PlaneCodes.Physical);
-            EmitSnapshotCultureInfluencePlane(context, tick, version, cultureId, PlaneCodes.Semantic);
-        }
-    }
-
-    private void EmitSnapshotCultureInfluencePlane(
-        KernelExecutionContext context,
-        int tick,
-        long version,
-        int cultureId,
-        int planeCode)
-    {
-        var cursor = _mapLayers.CultureInfluence.CellsOfValue(cultureId, planeCode);
-        while (_mapLayers.CultureInfluence.MoveNextCell(ref cursor, out var q, out var r, out var z, out var value))
-        {
-            if (value <= 0f)
-            {
-                continue;
-            }
-
-            var coordinateKey = CoordinateKey(q, r, z);
-            var raw = PositiveCultureInfluenceRaw(cultureId, planeCode, coordinateKey);
-            Write(KernelEvent.From(new CellCultureInfluenceChangedKernelEvent(
-                tick,
-                version,
-                q,
-                r,
-                context.SourceCodeId,
-                planeCode,
-                cultureId,
-                z,
-                0f,
-                value,
-                0f,
-                raw,
-                CultureRawTotalAt(planeCode, coordinateKey))),
-                context);
-        }
     }
 
     private void EmitSnapshotRelationships(KernelExecutionContext context, int tick, long version)
@@ -361,7 +328,7 @@ internal sealed partial class WorldState
                 _relationshipSourceId[relationshipId],
                 _relationshipTargetId[relationshipId],
                 relationshipId,
-                0f,
+                0,
                 _relationshipStrength[relationshipId],
                 context.ActionId)),
                 context);

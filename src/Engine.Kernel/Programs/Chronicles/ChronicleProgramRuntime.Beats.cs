@@ -333,7 +333,7 @@ internal sealed partial class ChronicleProgramRuntime
         return false;
     }
 
-    private void AddHeat(int chronicle, float delta)
+    private void AddHeat(int chronicle, FixedScalar delta)
     {
         var heat = State.Heat[chronicle] + delta;
         State.Heat[chronicle] = heat > MaxHeat ? MaxHeat : heat;
@@ -346,7 +346,7 @@ internal sealed partial class ChronicleProgramRuntime
         int roleA,
         int roleB,
         int relOrAttrId,
-        float value)
+        FixedScalar value)
     {
         switch (conditionKind)
         {
@@ -372,13 +372,12 @@ internal sealed partial class ChronicleProgramRuntime
         int roleA,
         int roleB,
         int relOrAttrId,
-        float value)
+        FixedScalar value)
     {
         switch (conditionKind)
         {
             case ChronicleConditionCodes.RoleHistorical:
-                var entityId = RoleEntity(chronicle, roleA);
-                return entityId > 0 && !world.EntityIsActive(entityId);
+                return (State.RetiredRoleMasks[chronicle] & (1L << roleA)) != 0;
             case ChronicleConditionCodes.RoleAttributeBelow:
                 return RoleAttributeHolds(world, chronicle, roleA, relOrAttrId, value, below: true);
             case ChronicleConditionCodes.RoleAttributeAtLeast:
@@ -397,11 +396,11 @@ internal sealed partial class ChronicleProgramRuntime
         int chronicle,
         int roleA,
         int attributeId,
-        float value,
+        FixedScalar value,
         bool below)
     {
         var subjectId = RoleEntity(chronicle, roleA);
-        if (subjectId <= 0 || !world.EntityIsActive(subjectId))
+        if (!RoleRemainsActive(chronicle, roleA) || !world.EntityIsActive(subjectId))
         {
             return false;
         }
@@ -416,11 +415,12 @@ internal sealed partial class ChronicleProgramRuntime
         int roleA,
         int roleB,
         int relKindId,
-        float minStrength)
+        FixedScalar minStrength)
     {
         var sourceId = RoleEntity(chronicle, roleA);
         var targetId = RoleEntity(chronicle, roleB);
-        if (sourceId <= 0 || targetId <= 0)
+        if (!RoleRemainsActive(chronicle, roleA) ||
+            !RoleRemainsActive(chronicle, roleB))
         {
             return false;
         }
@@ -434,12 +434,13 @@ internal sealed partial class ChronicleProgramRuntime
         int chronicle,
         int roleA,
         int roleB,
-        float distance,
+        FixedScalar distance,
         bool within)
     {
         var sourceId = RoleEntity(chronicle, roleA);
         var targetId = RoleEntity(chronicle, roleB);
-        if (sourceId <= 0 || targetId <= 0 ||
+        if (!RoleRemainsActive(chronicle, roleA) ||
+            !RoleRemainsActive(chronicle, roleB) ||
             !world.EntityIsActive(sourceId) || !world.EntityIsActive(targetId))
         {
             return false;

@@ -12,7 +12,7 @@ internal sealed class KernelCommandRing
 
     public KernelCommandRing(int capacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
+        NumericGuard.ThrowIfNegativeOrZero(capacity);
         _commands = new KernelCommand[capacity];
     }
 

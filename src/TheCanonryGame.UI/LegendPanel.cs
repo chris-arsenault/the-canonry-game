@@ -161,7 +161,7 @@ public partial class LegendPanel : PanelContainer
         AddMutedLine(
             $"culture:{cultureId}:nation",
             $"territory {nation.InfluencedCells}{trend.Territory}  " +
-            $"heartland {nation.LargestComponentShare:0}%{trend.Heartland}  " +
+            $"heartland {nation.HeartlandShare:0}%{trend.Heartland}  " +
             $"nexus {nation.NexusCells}{trend.Nexus}  " +
             $"contested {nation.ContestedCells}{trend.Contested}");
     }
@@ -561,34 +561,51 @@ public partial class LegendPanel : PanelContainer
         int InfluencedCells,
         int NexusCells,
         int ContestedCells,
-        int LargestComponentCells)
+        int HeartlandCells)
     {
-        public float LargestComponentShare =>
-            InfluencedCells == 0 ? 0f : LargestComponentCells * 100f / InfluencedCells;
+        public float HeartlandShare =>
+            InfluencedCells == 0 ? 0f : HeartlandCells * 100f / InfluencedCells;
 
         public static NationSummary For(int cultureId, HexProjection[] cells)
         {
             var influenced = 0;
             var nexus = 0;
             var contested = 0;
-            var largestComponent = 0;
+            var heartland = 0;
             foreach (var cell in cells)
             {
                 foreach (var influence in cell.CultureInfluences)
                 {
-                    if (influence.CultureId != cultureId || influence.RawMass <= 0f)
-                    {
-                        continue;
-                    }
-
-                    influenced++;
-                    nexus += influence.StrengthBandCode >= CultureFieldStrengthBandCodes.Nexus ? 1 : 0;
-                    contested += influence.CellKindCode == CultureFieldCellKindCodes.Contested ? 1 : 0;
-                    largestComponent = Math.Max(largestComponent, influence.ComponentCellCount);
+                    AddCultureInfluence(
+                        cultureId,
+                        influence,
+                        ref influenced,
+                        ref nexus,
+                        ref contested,
+                        ref heartland);
                 }
             }
 
-            return new NationSummary(influenced, nexus, contested, largestComponent);
+            return new NationSummary(influenced, nexus, contested, heartland);
+        }
+
+        private static void AddCultureInfluence(
+            int cultureId,
+            HexCultureInfluenceProjection influence,
+            ref int influenced,
+            ref int nexus,
+            ref int contested,
+            ref int heartland)
+        {
+            if (influence.CultureId != cultureId || influence.RawMass <= 0f)
+            {
+                return;
+            }
+
+            influenced++;
+            nexus += influence.StrengthBandCode >= CultureFieldStrengthBandCodes.Nexus ? 1 : 0;
+            contested += influence.CellKindCode == CultureFieldCellKindCodes.Contested ? 1 : 0;
+            heartland += influence.CellKindCode == CultureFieldCellKindCodes.Interior ? 1 : 0;
         }
     }
 
@@ -617,7 +634,7 @@ public partial class LegendPanel : PanelContainer
             {
                 _trend = new NationTrend(
                     Arrow(current.InfluencedCells - _sample.InfluencedCells),
-                    Arrow((int)(current.LargestComponentShare - _sample.LargestComponentShare)),
+                    Arrow((int)(current.HeartlandShare - _sample.HeartlandShare)),
                     Arrow(current.NexusCells - _sample.NexusCells),
                     Arrow(current.ContestedCells - _sample.ContestedCells));
                 _sampleTick = currentTick;

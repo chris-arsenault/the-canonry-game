@@ -294,7 +294,6 @@ public static class BehaviorPreconditionCodes
     public const int TargetHasRelationshipToSelf = 9;
     public const int RelatedEntityMatchesTarget = 10;
     public const int RelationshipExists = 11;
-    public const int CooldownElapsed = 13;
     public const int And = 14;
     public const int Or = 15;
     public const int Not = 16;
@@ -400,7 +399,7 @@ public static class AffordancePolarityCodes
     public const int Reduce = 4;
 }
 
-public static class UpkeepAgingModelCodes
+public static class LifecycleAgingModelCodes
 {
     public const int Linear = 1;
     public const int LateLife = 2;
@@ -515,18 +514,14 @@ public static class GeneratorCoverageModeCodes
 
 public static class KernelProgramCodes
 {
-    public const int Upkeep = 1;
     public const int Relationships = 3;
     public const int Generators = 5;
     public const int Gambits = 7;
     public const int Movement = 9;
-    public const int MapActivity = 10;
     public const int LowAltitudeVerbs = 11;
     public const int Effects = 12;
-    public const int MapSignals = 13;
     public const int CultureSlots = 14;
     public const int MinorActors = 15;
-    public const int CultureBoundaries = 16;
     public const int CultureFieldDecay = 17;
     public const int ChronicleDirector = 18;
     public const int WorldBeats = 19;
@@ -717,8 +712,6 @@ public static class ProgramDependencyLagCodes
 
 public static class ProgramDependencyChannelCodes
 {
-    public const int MapActivitySignals = 1;
-    public const int MapSignals = 2;
     public const int MovementSurface = 3;
 }
 
@@ -903,12 +896,6 @@ public static class KernelCapacityCodes
     public const int ProvenanceInvocation = 1;
     public const int ProvenanceOutput = 2;
     public const int GeneratorTargetTerrainRequirement = 3;
-}
-
-public static class KernelGrowableStorageModeCodes
-{
-    public const int Fixed = 0;
-    public const int Enabled = 1;
 }
 
 public static class KernelStorageCodes

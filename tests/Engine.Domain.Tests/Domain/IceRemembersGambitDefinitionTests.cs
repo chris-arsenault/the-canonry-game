@@ -119,7 +119,7 @@ public sealed class IceRemembersGambitDefinitionTests
             {
                 // Grant gambits carry authored reliability: renewal and other
                 // granted acts are dependable by design, not baseline-tuned.
-                Assert.InRange(gambit.SuccessChance, 0.5f, 0.85f);
+                Assert.InRange(gambit.SuccessChance, FixedScalar.FromSingle(0.5f), FixedScalar.FromSingle(0.85f));
                 return;
             }
 
@@ -127,11 +127,12 @@ public sealed class IceRemembersGambitDefinitionTests
             {
                 // Chronicle-granted gambits exist only while a beat holds
                 // them open; their chance is authored to the story moment.
-                Assert.InRange(gambit.SuccessChance, 0.25f, 0.85f);
+                Assert.InRange(gambit.SuccessChance, FixedScalar.FromSingle(0.25f), FixedScalar.FromSingle(0.85f));
                 return;
             }
 
-            var expected = workTierGambitIds.Contains(gambit.GambitId) ? 0.75f : 0.25f;
+            var expected = FixedScalar.FromSingle(
+                workTierGambitIds.Contains(gambit.GambitId) ? 0.75f : 0.25f);
             Assert.Equal(expected, gambit.SuccessChance);
         });
     }
@@ -196,9 +197,11 @@ public sealed class IceRemembersGambitDefinitionTests
         Assert.Equal(2, routeSteps.Length);
         Assert.All(routeSteps, step =>
         {
-            Assert.Equal(IceRemembersRelationshipStrengths.InitialTradeRoute, step.X);
-            Assert.True(step.X > 0.05f);
-            Assert.True(step.X < 0.70f);
+            Assert.Equal(
+                FixedScalar.FromSingle(IceRemembersRelationshipStrengths.InitialTradeRoute),
+                step.X);
+            Assert.True(step.X > FixedScalar.FromSingle(0.05f));
+            Assert.True(step.X < FixedScalar.FromSingle(0.70f));
         });
     }
 

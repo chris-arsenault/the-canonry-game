@@ -26,8 +26,8 @@ public sealed class KernelEventStreamTests
             EntityId: 11,
             AttributeId: 30,
             SourceCodeId: 7,
-            OldValue: 1.5f,
-            NewValue: 2.5f))));
+            OldValueUnits: KernelFixedPoint.AttributeUnits(1.5f),
+            NewValueUnits: KernelFixedPoint.AttributeUnits(2.5f)))));
 
         Assert.True(stream.TryRead(cursor, out var first));
         Assert.Equal(0, first.Sequence);
@@ -48,8 +48,8 @@ public sealed class KernelEventStreamTests
         Assert.Equal(102, secondPayload.WorldVersion);
         Assert.Equal(11, secondPayload.EntityId);
         Assert.Equal(30, secondPayload.AttributeId);
-        Assert.Equal(1.5f, secondPayload.OldValue);
-        Assert.Equal(2.5f, secondPayload.NewValue);
+        Assert.Equal(KernelFixedPoint.AttributeUnits(1.5f), secondPayload.OldValueUnits);
+        Assert.Equal(KernelFixedPoint.AttributeUnits(2.5f), secondPayload.NewValueUnits);
 
         Assert.False(stream.TryRead(cursor, out _));
     }
@@ -136,8 +136,8 @@ public sealed class KernelEventStreamTests
             EntityId: 1,
             AttributeId: 4,
             SourceCodeId: 5,
-            OldValue: 6f,
-            NewValue: 7f)));
+            OldValueUnits: KernelFixedPoint.AttributeUnits(6f),
+            NewValueUnits: KernelFixedPoint.AttributeUnits(7f))));
 
         Assert.True(stream.TryRead(cursor, out var firstAvailable));
         Assert.Equal(1, firstAvailable.Sequence);
@@ -225,8 +225,8 @@ public sealed class KernelEventStreamTests
             EntityId: 1,
             AttributeId: 4,
             SourceCodeId: 5,
-            OldValue: 6f,
-            NewValue: 7f)));
+            OldValueUnits: KernelFixedPoint.AttributeUnits(6f),
+            NewValueUnits: KernelFixedPoint.AttributeUnits(7f))));
 
         var read = stream.Read(cursor, destination);
 
@@ -245,8 +245,8 @@ public sealed class KernelEventStreamTests
             EntityId: 3,
             AttributeId: 4,
             SourceCodeId: 6,
-            OldValue: 7f,
-            NewValue: 8f));
+            OldValueUnits: KernelFixedPoint.AttributeUnits(7f),
+            NewValueUnits: KernelFixedPoint.AttributeUnits(8f)));
 
         Assert.Throws<InvalidOperationException>(() => kernelEvent.AsRelationshipChanged());
     }

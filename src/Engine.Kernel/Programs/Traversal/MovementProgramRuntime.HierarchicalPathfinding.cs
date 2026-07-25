@@ -173,7 +173,7 @@ internal sealed partial class MovementProgramRuntime
         Scratch.SegmentFScore.BeginEpoch();
         Scratch.SegmentOpenSet[0] = startSegment;
         Scratch.SegmentOpen.Add(startSegment);
-        Scratch.SegmentGScore.Set(startSegment, 0f);
+        Scratch.SegmentGScore.Set(startSegment, 0);
         Scratch.SegmentFScore.Set(startSegment, SegmentHeuristic(startSegment, targetSegment, segmentGridWidth));
         return 1;
     }
@@ -272,11 +272,11 @@ internal sealed partial class MovementProgramRuntime
         int currentSegment,
         int targetSegment,
         int segmentGridWidth,
-        float edgeCost,
+        FixedScalar edgeCost,
         ref int openCount)
     {
-        var tentativeGScore = Scratch.SegmentGScore.GetOrDefault(currentSegment, float.PositiveInfinity) + edgeCost;
-        if (tentativeGScore >= Scratch.SegmentGScore.GetOrDefault(neighborSegment, float.PositiveInfinity))
+        var tentativeGScore = Scratch.SegmentGScore.GetOrDefault(currentSegment, FixedScalar.PositiveInfinity) + edgeCost;
+        if (tentativeGScore >= Scratch.SegmentGScore.GetOrDefault(neighborSegment, FixedScalar.PositiveInfinity))
         {
             return true;
         }
@@ -306,11 +306,11 @@ internal sealed partial class MovementProgramRuntime
     {
         var selectedSlot = 0;
         var selectedSegment = Scratch.SegmentOpenSet[0];
-        var selectedScore = Scratch.SegmentFScore.GetOrDefault(selectedSegment, float.PositiveInfinity);
+        var selectedScore = Scratch.SegmentFScore.GetOrDefault(selectedSegment, FixedScalar.PositiveInfinity);
         for (var slot = 1; slot < openCount; slot++)
         {
             var segment = Scratch.SegmentOpenSet[slot];
-            var score = Scratch.SegmentFScore.GetOrDefault(segment, float.PositiveInfinity);
+            var score = Scratch.SegmentFScore.GetOrDefault(segment, FixedScalar.PositiveInfinity);
             if (score < selectedScore)
             {
                 selectedSlot = slot;
@@ -359,11 +359,11 @@ internal sealed partial class MovementProgramRuntime
         int toSegment,
         out int portalQ,
         out int portalR,
-        out float edgeCost)
+        out FixedScalar edgeCost)
     {
         portalQ = 0;
         portalR = 0;
-        edgeCost = float.PositiveInfinity;
+        edgeCost = FixedScalar.PositiveInfinity;
         if (!TrySegmentDirection(context.GridWidth, fromSegment, toSegment, out var direction) ||
             !TrySegmentBounds(
                 context.Radius,
@@ -379,7 +379,7 @@ internal sealed partial class MovementProgramRuntime
         }
 
         var found = false;
-        var bestScore = float.PositiveInfinity;
+        var bestScore = FixedScalar.PositiveInfinity;
         var edgeBaseCost = SegmentEdgeBaseCost(planeCode, context.SegmentSize, fromSegment, toSegment);
         EvaluateSegmentPortalBoundary(
             simulation,
@@ -414,9 +414,9 @@ internal sealed partial class MovementProgramRuntime
         int fromSegment,
         int toSegment,
         int direction,
-        out float edgeCost)
+        out FixedScalar edgeCost)
     {
-        edgeCost = float.PositiveInfinity;
+        edgeCost = FixedScalar.PositiveInfinity;
         var topologyEpoch = State.PathingTopologyEpoch;
         var roadEpoch = State.RoadMarkEpoch;
         if (TryGetSegmentEdgeCostCache(
@@ -485,7 +485,7 @@ internal sealed partial class MovementProgramRuntime
         int topologyEpoch,
         int roadEpoch,
         out bool found,
-        out float edgeCost)
+        out FixedScalar edgeCost)
     {
         var slot = SegmentEdgeCostCacheSlot(
             planeCode,
@@ -510,7 +510,7 @@ internal sealed partial class MovementProgramRuntime
         }
 
         found = false;
-        edgeCost = float.PositiveInfinity;
+        edgeCost = FixedScalar.PositiveInfinity;
         return false;
     }
 
@@ -523,7 +523,7 @@ internal sealed partial class MovementProgramRuntime
         int topologyEpoch,
         int roadEpoch,
         bool found,
-        float edgeCost)
+        FixedScalar edgeCost)
     {
         var slot = SegmentEdgeCostCacheSlot(
             planeCode,
@@ -581,12 +581,12 @@ internal sealed partial class MovementProgramRuntime
         int targetQ,
         int targetR,
         int movementProfileId,
-        float edgeBaseCost,
+        FixedScalar edgeBaseCost,
         ref bool found,
-        ref float bestScore,
+        ref FixedScalar bestScore,
         ref int portalQ,
         ref int portalR,
-        ref float edgeCost)
+        ref FixedScalar edgeCost)
     {
         switch (direction)
         {
@@ -655,9 +655,9 @@ internal sealed partial class MovementProgramRuntime
         int maxQ,
         int maxR,
         int movementProfileId,
-        float edgeBaseCost,
+        FixedScalar edgeBaseCost,
         ref bool found,
-        ref float edgeCost)
+        ref FixedScalar edgeCost)
     {
         switch (direction)
         {
@@ -723,12 +723,12 @@ internal sealed partial class MovementProgramRuntime
         int targetQ,
         int targetR,
         int movementProfileId,
-        float edgeBaseCost,
+        FixedScalar edgeBaseCost,
         ref bool found,
-        ref float bestScore,
+        ref FixedScalar bestScore,
         ref int portalQ,
         ref int portalR,
-        ref float edgeCost)
+        ref FixedScalar edgeCost)
     {
         if (!TryGetPortalSurfaceCost(simulation, world, planeCode, q, r, movementProfileId, out _) ||
             !TryGetPortalSurfaceCost(simulation, world, planeCode, neighborQ, neighborR, movementProfileId, out var neighborTerrainCost))
@@ -739,7 +739,7 @@ internal sealed partial class MovementProgramRuntime
         neighborTerrainCost *= DirectedEdgeFactor(
             simulation, planeCode, movementProfileId, q, r, neighborQ, neighborR, tick: 0, roadAware: false);
         var candidateCost = SegmentPortalEdgeCost(edgeBaseCost, neighborTerrainCost);
-        if (float.IsInfinity(candidateCost))
+        if (FixedScalar.IsInfinity(candidateCost))
         {
             return;
         }
@@ -768,9 +768,9 @@ internal sealed partial class MovementProgramRuntime
         int neighborQ,
         int neighborR,
         int movementProfileId,
-        float edgeBaseCost,
+        FixedScalar edgeBaseCost,
         ref bool found,
-        ref float edgeCost)
+        ref FixedScalar edgeCost)
     {
         if (!TryGetPortalSurfaceCost(simulation, world, planeCode, q, r, movementProfileId, out _) ||
             !TryGetPortalSurfaceCost(simulation, world, planeCode, neighborQ, neighborR, movementProfileId, out var neighborTerrainCost))
@@ -790,7 +790,7 @@ internal sealed partial class MovementProgramRuntime
         found = true;
     }
 
-    private float SegmentEdgeBaseCost(
+    private FixedScalar SegmentEdgeBaseCost(
         int planeCode,
         int segmentSize,
         int fromSegment,
@@ -802,11 +802,11 @@ internal sealed partial class MovementProgramRuntime
         return segmentSize * RoadMarkCostMultiplier(mark);
     }
 
-    private static float SegmentPortalEdgeCost(float edgeBaseCost, float terrainCost)
+    private static FixedScalar SegmentPortalEdgeCost(FixedScalar edgeBaseCost, FixedScalar terrainCost)
     {
-        return global::System.MathF.Max(
-            1f,
-            edgeBaseCost + global::System.MathF.Min(terrainCost, 10f));
+        return FixedScalar.Max(
+            1,
+            edgeBaseCost + FixedScalar.Min(terrainCost, 10));
     }
 
     private bool TryGetPortalSurfaceCost(
@@ -816,7 +816,7 @@ internal sealed partial class MovementProgramRuntime
         int q,
         int r,
         int movementProfileId,
-        out float terrainCost)
+        out FixedScalar terrainCost)
     {
         return TrySurfaceBaseTravelCost(
             simulation,
@@ -829,13 +829,13 @@ internal sealed partial class MovementProgramRuntime
             out _);
     }
 
-    private static float RoadMarkCostMultiplier(int mark)
+    private static FixedScalar RoadMarkCostMultiplier(int mark)
     {
         return mark switch
         {
-            MovementProgramState.RoadMarkHigh => 0.65f,
-            MovementProgramState.RoadMarkLow => 0.85f,
-            _ => 1f,
+            MovementProgramState.RoadMarkHigh => FixedScalar.FromUnits(650000L),
+            MovementProgramState.RoadMarkLow => FixedScalar.FromUnits(850000L),
+            _ => 1,
         };
     }
 

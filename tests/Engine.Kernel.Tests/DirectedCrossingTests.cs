@@ -17,34 +17,40 @@ public sealed class DirectedCrossingTests
     [Fact]
     public void TravelReach_PaysTheCrossingSurchargeOnTheCrossedEdge()
     {
-        var flat = ReachAcrossLine(crossingClass: PhysicalCrossingCodes.Open, factor: 1f);
-        var ridged = ReachAcrossLine(crossingClass: PhysicalCrossingCodes.Ridge, factor: 2f);
+        var flat = ReachAcrossLine(
+            crossingClass: PhysicalCrossingCodes.Open,
+            factor: FixedScalar.One);
+        var ridged = ReachAcrossLine(
+            crossingClass: PhysicalCrossingCodes.Ridge,
+            factor: FixedScalar.FromInt(2));
 
         // One of the two steps crosses the ridge edge: 3 + 6 instead of 3 + 3.
-        Assert.Equal(6f, flat, precision: 2);
-        Assert.Equal(9f, ridged, precision: 2);
+        Assert.Equal(FixedScalar.FromInt(6), flat);
+        Assert.Equal(FixedScalar.FromInt(9), ridged);
     }
 
     [Fact]
     public void CrossingsSurchargeButNeverBlock()
     {
-        var cliffed = ReachAcrossLine(crossingClass: PhysicalCrossingCodes.Cliff, factor: 4f);
-        Assert.False(float.IsPositiveInfinity(cliffed));
-        Assert.Equal(15f, cliffed, precision: 2);
+        var cliffed = ReachAcrossLine(
+            crossingClass: PhysicalCrossingCodes.Cliff,
+            factor: FixedScalar.FromInt(4));
+        Assert.False(FixedScalar.IsPositiveInfinity(cliffed));
+        Assert.Equal(FixedScalar.FromInt(15), cliffed);
     }
 
     [Fact]
     public void RoadQualityNegatesRiverCrossingsButNotRidges()
     {
-        var riverBefore = 0f;
-        var riverAfter = 0f;
+        var riverBefore = FixedScalar.Zero;
+        var riverAfter = FixedScalar.Zero;
         MeasureRoadEffect(PhysicalCrossingCodes.River, roadNegated: true, ref riverBefore, ref riverAfter);
         Assert.True(
             riverAfter < riverBefore,
             $"expected roads to erase the river surcharge: before {riverBefore}, after {riverAfter}");
 
-        var ridgeBefore = 0f;
-        var ridgeAfter = 0f;
+        var ridgeBefore = FixedScalar.Zero;
+        var ridgeAfter = FixedScalar.Zero;
         MeasureRoadEffect(PhysicalCrossingCodes.Ridge, roadNegated: false, ref ridgeBefore, ref ridgeAfter);
 
         // Roads discount the surface cost on both lines equally; the ridge
@@ -59,7 +65,10 @@ public sealed class DirectedCrossingTests
     [Fact]
     public void WanderAndNavigationRemainPossibleAcrossCrossings()
     {
-        var simulation = CreateCrossingSimulation(PhysicalCrossingCodes.Cliff, factor: 4f, roadNegated: false);
+        var simulation = CreateCrossingSimulation(
+            PhysicalCrossingCodes.Cliff,
+            factor: FixedScalar.FromInt(4),
+            roadNegated: false);
         var actor = simulation.CreateEntity(KindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
 
         var result = simulation.Movement.Navigate(simulation, actor, PlaneCodes.Physical, 1, 0, tick: 1);
@@ -71,10 +80,13 @@ public sealed class DirectedCrossingTests
     private static void MeasureRoadEffect(
         int crossingClass,
         bool roadNegated,
-        ref float before,
-        ref float after)
+        ref FixedScalar before,
+        ref FixedScalar after)
     {
-        var simulation = CreateCrossingSimulation(crossingClass, factor: 3f, roadNegated);
+        var simulation = CreateCrossingSimulation(
+            crossingClass,
+            factor: FixedScalar.FromInt(3),
+            roadNegated);
         var actor = simulation.CreateEntity(KindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
         var target = simulation.CreateEntity(KindId, 1, 1, 2, 0, 0, 0, 0, tick: 0);
         before = simulation.TravelReachCost(actor, target, PlaneCodes.Physical, tick: 1);
@@ -88,7 +100,7 @@ public sealed class DirectedCrossingTests
         after = simulation.TravelReachCost(actor, target, PlaneCodes.Physical, tick: 1);
     }
 
-    private static float ReachAcrossLine(int crossingClass, float factor)
+    private static FixedScalar ReachAcrossLine(int crossingClass, FixedScalar factor)
     {
         var simulation = CreateCrossingSimulation(crossingClass, factor, roadNegated: false);
         var actor = simulation.CreateEntity(KindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
@@ -98,7 +110,10 @@ public sealed class DirectedCrossingTests
 
     // Three cells east in a line; the edge between (0,0) and (1,0) carries
     // the crossing class in both cells' words (reciprocity by construction).
-    private static Simulation CreateCrossingSimulation(int crossingClass, float factor, bool roadNegated)
+    private static Simulation CreateCrossingSimulation(
+        int crossingClass,
+        FixedScalar factor,
+        bool roadNegated)
     {
         var simulation = KernelTestSimulation.Create(new SimulationOptions
         {
@@ -109,9 +124,9 @@ public sealed class DirectedCrossingTests
             MapGenerationRadiusCapacity = 8,
         });
         simulation.RegisterTerrain(
-            OpenTerrain, boundaryGroupId: 1, movementCost: 3f,
-            influenceMultiplier: 1f, claimCostMultiplier: 1f, claimChanceMultiplier: 1f,
-            roadBuildMultiplier: 20f, roadSpeedMultiplier: 2f);
+            OpenTerrain, boundaryGroupId: 1, movementCost: FixedScalar.FromSingle(3f),
+            influenceMultiplier: FixedScalar.FromSingle(1f), claimCostMultiplier: FixedScalar.FromSingle(1f), claimChanceMultiplier: FixedScalar.FromSingle(1f),
+            roadBuildMultiplier: FixedScalar.FromSingle(20f), roadSpeedMultiplier: FixedScalar.FromSingle(2f));
         if (crossingClass != PhysicalCrossingCodes.Open)
         {
             simulation.RegisterCrossingProfile(crossingClass, DefaultProfile, factor, roadNegated);

@@ -16,23 +16,23 @@ internal readonly struct LowAltitudeVerbRegistration
     public int DwellTicks { get; init; }
     public int TargetRadius { get; init; }
     public int CandidateSampleCount { get; init; }
-    public float Weight { get; init; }
-    public float OpportunityBonusOverride { get; init; }
-    public float FitnessWeight { get; init; }
-    public float DistanceScaleOverride { get; init; }
+    public FixedScalar Weight { get; init; }
+    public FixedScalar OpportunityBonusOverride { get; init; }
+    public FixedScalar FitnessWeight { get; init; }
+    public FixedScalar DistanceScaleOverride { get; init; }
     public int ForeignInfluenceFilterEnabled { get; init; }
     public int ForeignInfluenceBlockPositiveRelationships { get; init; }
     public int ForeignInfluenceAllowNegativeRelationships { get; init; }
-    public float ForeignInfluenceMinimumRelationshipStrength { get; init; }
-    public float ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove { get; init; }
+    public FixedScalar ForeignInfluenceMinimumRelationshipStrength { get; init; }
+    public FixedScalar ForeignInfluenceAllowUnrelatedInfluenceAtOrAbove { get; init; }
     public int FitnessRelationshipKindId { get; init; }
     public int FitnessRelationshipDirectionCode { get; init; }
     public int FitnessPolarityCode { get; init; }
-    public float FitnessThreshold { get; init; }
-    public float InfluenceDelta { get; init; }
+    public FixedScalar FitnessThreshold { get; init; }
+    public FixedScalar InfluenceDelta { get; init; }
     public int InfluenceRadius { get; init; }
-    public float CoverageChance { get; init; }
-    public float RelocationChance { get; init; }
-    public float RequiredMapValue { get; init; }
-    public float RelationshipStrengthDelta { get; init; }
+    public FixedScalar CoverageChance { get; init; }
+    public FixedScalar RelocationChance { get; init; }
+    public FixedScalar RequiredMapValue { get; init; }
+    public FixedScalar RelationshipStrengthDelta { get; init; }
 }

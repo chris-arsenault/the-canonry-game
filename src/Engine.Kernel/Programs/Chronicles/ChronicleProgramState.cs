@@ -16,9 +16,10 @@ internal sealed class ChronicleProgramState : IKernelProgramState
     internal readonly int[] ArchetypeSlots;
     internal readonly int[] StartTicks;
     internal readonly int[] LastStrikeTicks;
-    internal readonly float[] Heat;
+    internal readonly FixedScalar[] Heat;
     internal readonly long[] OpenMasks;
     internal readonly long[] StruckMasks;
+    internal readonly long[] RetiredRoleMasks;
     internal readonly int[] RoleEntityIds;
     internal readonly int[] ChronicleSequences;
     internal int NextChronicleSequence;
@@ -26,7 +27,7 @@ internal sealed class ChronicleProgramState : IKernelProgramState
     internal readonly int[] NextCastTicks;
     internal readonly int[] RecentCastEntityIds;
     internal readonly int[] RecentCastTicks;
-    internal readonly float[] RecentCastHeat;
+    internal readonly FixedScalar[] RecentCastHeat;
     internal int RecentCastNext;
     internal readonly int[] PendingKinds;
     internal readonly int[] PendingActorIds;
@@ -39,22 +40,23 @@ internal sealed class ChronicleProgramState : IKernelProgramState
 
     public ChronicleProgramState(int chronicleCapacity, int archetypeCapacity)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(chronicleCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(archetypeCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(chronicleCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(archetypeCapacity);
         Active = new bool[chronicleCapacity + 1];
         ArchetypeSlots = new int[chronicleCapacity + 1];
         StartTicks = new int[chronicleCapacity + 1];
         LastStrikeTicks = new int[chronicleCapacity + 1];
-        Heat = new float[chronicleCapacity + 1];
+        Heat = new FixedScalar[chronicleCapacity + 1];
         OpenMasks = new long[chronicleCapacity + 1];
         StruckMasks = new long[chronicleCapacity + 1];
+        RetiredRoleMasks = new long[chronicleCapacity + 1];
         RoleEntityIds = new int[((chronicleCapacity + 1) * ChronicleProgramData.MaxRolesPerArchetype) + 1];
         ChronicleSequences = new int[chronicleCapacity + 1];
         ArchetypeActiveCounts = new int[archetypeCapacity + 1];
         NextCastTicks = new int[archetypeCapacity + 1];
         RecentCastEntityIds = new int[SuppressionRingCapacity];
         RecentCastTicks = new int[SuppressionRingCapacity];
-        RecentCastHeat = new float[SuppressionRingCapacity];
+        RecentCastHeat = new FixedScalar[SuppressionRingCapacity];
         PendingKinds = new int[PendingExecutionCapacity];
         PendingActorIds = new int[PendingExecutionCapacity];
         PendingTargetIds = new int[PendingExecutionCapacity];
@@ -64,5 +66,5 @@ internal sealed class ChronicleProgramState : IKernelProgramState
 
     public int ProgramId => KernelProgramCodes.ChronicleDirector;
 
-    public int SchemaVersion => 7;
+    public int SchemaVersion => 8;
 }

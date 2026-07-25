@@ -33,8 +33,8 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
 
     public LowAltitudeVerbProgramState(int entityCapacity, int recentTargetRingSize)
     {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(entityCapacity);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(recentTargetRingSize);
+        NumericGuard.ThrowIfNegativeOrZero(entityCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(recentTargetRingSize);
         var length = entityCapacity + 1;
         _recentTargetRingSize = recentTargetRingSize;
         _activeVerbSlots = new int[length];
@@ -182,12 +182,15 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
         return tick >= _nextStepTicks[entityId];
     }
 
-    public void MarkStepped(int entityId, int tick, float stepCost = 1f)
+    public void MarkStepped(int entityId, int tick, FixedScalar? stepCost = null)
     {
         EnsureEntity(entityId);
         var interval = _stepIntervalTicks[entityId];
         var baseInterval = interval <= 0 ? 1 : interval;
-        var adjustedInterval = (int)global::System.MathF.Ceiling(baseInterval * global::System.MathF.Max(0.01f, stepCost));
+        var adjustedInterval = (int)FixedScalar.Ceiling(
+            baseInterval * FixedScalar.Max(
+                FixedScalar.FromUnits(10_000L),
+                stepCost ?? FixedScalar.One));
         _nextStepTicks[entityId] = tick + global::System.Math.Max(1, adjustedInterval);
     }
 
