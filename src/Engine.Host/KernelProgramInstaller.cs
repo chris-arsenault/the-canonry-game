@@ -75,13 +75,11 @@ internal static partial class KernelProgramInstaller
                 rule.SourceSubtypeId,
                 rule.PurposeCode,
                 rule.ActorKindCode,
-                rule.ActionCode,
                 rule.PlaneCode,
                 rule.TtlPulses,
                 rule.EmitCadencePulses,
                 rule.MaxActivePerSource,
                 rule.SpawnRadius,
-                rule.MoveChancePermille,
                 rule.ActionCadencePulses,
                 rule.WorkDelta);
 

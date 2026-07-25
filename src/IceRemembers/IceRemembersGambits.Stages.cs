@@ -24,17 +24,9 @@ public static partial class IceRemembersDefinition
 
     private static readonly Dictionary<EntityKind, GambitId> WorkTierGambitIds = new()
     {
-        [K.Region] = GambitId.RegionDeepensTheHolding,
         [K.Settlement] = GambitId.SettlementDeepensTheHolding,
         [K.Faction] = GambitId.FactionDeepensTheHolding,
-        [K.Penguin] = GambitId.PenguinDeepensTheHolding,
         [K.Artifact] = GambitId.ArtifactDeepensTheHolding,
-        [K.Orca] = GambitId.OrcaDeepensTheHolding,
-        [K.PointOfInterest] = GambitId.PointOfInterestDeepensTheHolding,
-        [K.Ability] = GambitId.AbilityDeepensTheHolding,
-        [K.Monster] = GambitId.MonsterDeepensTheHolding,
-        [K.Transport] = GambitId.TransportDeepensTheHolding,
-        [K.Occurrence] = GambitId.OccurrenceDeepensTheHolding,
         [K.Canon] = GambitId.CanonDeepensTheHolding,
     };
 

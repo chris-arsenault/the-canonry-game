@@ -27,6 +27,8 @@ internal sealed partial class WorldState
     private int[] _entityPhysicalInfluenceProduction = [];
     private int[] _entitySemanticInfluenceProduction = [];
     private int[] _cultureInfluenceMultiplierDeltas = [];
+    private long[] _cultureFieldRevisions = [];
+    private long[] _cultureWorkRevisions = [];
     private int[] _entityPhysicalQ = [];
     private int[] _entityPhysicalR = [];
     private int[] _entitySemanticQ = [];
@@ -39,6 +41,7 @@ internal sealed partial class WorldState
     private int[] _entityAnchorSemanticR = [];
     private int[] _entityFavorMultiplierDelta = [];
     private int[] _entityFavorExpiresAtTick = [];
+    private int[] _entityWorkTiers = [];
     private int[] _entityCreatedAt = [];
     private int[] _entityUpdatedAt = [];
     private int[] _firstEntityByKind = [];
@@ -124,7 +127,7 @@ internal sealed partial class WorldState
             options.MapInfluenceCapacity);
         InitializeEntityStorage(options);
         InitializeDistrictStorage(options);
-        InitializeStageStorage();
+        InitializeStageStorage(options);
         InitializeRelationshipStorage(options);
         InitializeRelationshipGraphStorage(options);
         InitializeProvenanceStorage(options);
@@ -143,6 +146,8 @@ internal sealed partial class WorldState
         _entityPhysicalInfluenceProduction = new int[options.EntityCapacity + 1];
         _entitySemanticInfluenceProduction = new int[options.EntityCapacity + 1];
         _cultureInfluenceMultiplierDeltas = new int[options.CultureIdCapacity + 1];
+        _cultureFieldRevisions = new long[options.CultureIdCapacity + 1];
+        _cultureWorkRevisions = new long[options.CultureIdCapacity + 1];
         _entityPhysicalQ = new int[options.EntityCapacity + 1];
         _entityPhysicalR = new int[options.EntityCapacity + 1];
         _entitySemanticQ = new int[options.EntityCapacity + 1];
@@ -155,6 +160,7 @@ internal sealed partial class WorldState
         _entityAnchorSemanticR = new int[options.EntityCapacity + 1];
         _entityFavorMultiplierDelta = new int[options.EntityCapacity + 1];
         _entityFavorExpiresAtTick = new int[options.EntityCapacity + 1];
+        _entityWorkTiers = new int[options.EntityCapacity + 1];
         _entityCreatedAt = new int[options.EntityCapacity + 1];
         _entityUpdatedAt = new int[options.EntityCapacity + 1];
         _firstEntityByKind = new int[options.KindIdCapacity + 1];
@@ -218,6 +224,8 @@ internal sealed partial class WorldState
         _relationshipGraphDeltaMergeThreshold = options.RelationshipGraphDeltaMergeThreshold;
     }
 
+    private int _worldVersionTick = int.MinValue;
+
     public int CurrentTick { get; private set; }
     public long WorldVersion { get; private set; }
     public int EntityCapacity => _entityAllocated.Length - 1;
@@ -279,6 +287,7 @@ internal sealed partial class WorldState
         _entityAnchorPhysicalR[entityId] = physicalR;
         _entityAnchorSemanticQ[entityId] = semanticQ;
         _entityAnchorSemanticR[entityId] = semanticR;
+        _entityWorkTiers[entityId] = 0;
         _entityCreatedAt[entityId] = tick;
         _entityUpdatedAt[entityId] = tick;
         InsertEntityKindIndex(entityId, kindId);
@@ -291,6 +300,7 @@ internal sealed partial class WorldState
             _entityHighWatermark = entityId;
         }
 
+        MarkCultureWorkDirty(cultureId);
         AdvanceWorldVersion();
         RecordProvenanceEntityCreated(entityId, kindId, context);
         return entityId;
@@ -329,15 +339,8 @@ internal sealed partial class WorldState
 
         _entityStatus[entityId] = statusCode;
         _entityUpdatedAt[entityId] = tick;
+        MarkCultureWorkDirty(_entityCultureId[entityId]);
         AdvanceWorldVersion();
-        RecordProvenanceOutput(
-            context,
-            ProvenanceOutputKindCodes.EntityStatusChanged,
-            entityId,
-            entityId,
-            0,
-            statusCode,
-            ProvenanceOutputKindCodes.EntityStatusChanged);
         Write(KernelEvent.From(new EntityStatusChangedKernelEvent(
             tick,
             WorldVersion,
@@ -377,15 +380,9 @@ internal sealed partial class WorldState
             InsertEntityCultureIndex(entityId, cultureId);
         }
         _entityUpdatedAt[entityId] = tick;
+        MarkCultureWorkDirty(previous);
+        MarkCultureWorkDirty(cultureId);
         AdvanceWorldVersion();
-        RecordProvenanceOutput(
-            context,
-            ProvenanceOutputKindCodes.EntityCultureChanged,
-            entityId,
-            entityId,
-            0,
-            cultureId,
-            ProvenanceOutputKindCodes.EntityCultureChanged);
         Write(KernelEvent.From(new EntityCultureChangedKernelEvent(
             tick,
             WorldVersion,
@@ -422,15 +419,8 @@ internal sealed partial class WorldState
 
         _traits.Set(entityId, traitId, 1);
         _entityUpdatedAt[entityId] = tick;
+        MarkEntityCultureWorkDirty(entityId);
         AdvanceWorldVersion();
-        RecordProvenanceOutput(
-            context,
-            ProvenanceOutputKindCodes.TraitAssigned,
-            entityId,
-            entityId,
-            0,
-            traitId,
-            ProvenanceOutputKindCodes.TraitAssigned);
         Write(KernelEvent.From(new TraitAssignedKernelEvent(
             tick,
             WorldVersion,
@@ -489,20 +479,10 @@ internal sealed partial class WorldState
         InsertActiveRelationship(relationshipId);
         InsertIncidentRelationship(relationshipId);
         AddRelationshipToGraphDelta(relationshipId);
+        MarkEntityCultureWorkDirty(sourceEntityId);
+        MarkEntityCultureWorkDirty(targetEntityId);
         AdvanceWorldVersion();
-        RecordProvenanceOutput(
-            context,
-            ProvenanceOutputKindCodes.RelationshipChanged,
-            relationshipId,
-            sourceEntityId,
-            targetEntityId,
-            kindId,
-            _relationshipCreatedCodeId);
-        if (context.ProvenanceInvocationId > 0)
-        {
-            _relationshipCreatedByInvocationId[relationshipId] = context.ProvenanceInvocationId;
-            _relationshipLastChangedByInvocationId[relationshipId] = context.ProvenanceInvocationId;
-        }
+        RecordProvenanceRelationshipCreated(relationshipId, context);
         WriteRelationshipChanged(
             relationshipId,
             tick,
@@ -531,15 +511,9 @@ internal sealed partial class WorldState
         RemoveActiveRelationship(relationshipId);
         RemoveIncidentRelationship(relationshipId);
         RemoveRelationshipFromGraphDelta(relationshipId);
+        MarkEntityCultureWorkDirty(_relationshipSourceId[relationshipId]);
+        MarkEntityCultureWorkDirty(_relationshipTargetId[relationshipId]);
         AdvanceWorldVersion();
-        RecordProvenanceOutput(
-            context,
-            ProvenanceOutputKindCodes.RelationshipChanged,
-            relationshipId,
-            _relationshipSourceId[relationshipId],
-            _relationshipTargetId[relationshipId],
-            _relationshipKindId[relationshipId],
-            _relationshipCulledCodeId);
         if (context.ProvenanceInvocationId > 0)
         {
             _relationshipLastChangedByInvocationId[relationshipId] = context.ProvenanceInvocationId;
@@ -598,15 +572,9 @@ internal sealed partial class WorldState
         }
 
         _relationshipStrength[relationshipId] = next;
+        MarkEntityCultureWorkDirty(_relationshipSourceId[relationshipId]);
+        MarkEntityCultureWorkDirty(_relationshipTargetId[relationshipId]);
         AdvanceWorldVersion();
-        RecordProvenanceOutput(
-            context,
-            ProvenanceOutputKindCodes.RelationshipChanged,
-            relationshipId,
-            _relationshipSourceId[relationshipId],
-            _relationshipTargetId[relationshipId],
-            _relationshipKindId[relationshipId],
-            _relationshipStrengthChangedCodeId);
         if (context.ProvenanceInvocationId > 0)
         {
             _relationshipLastChangedByInvocationId[relationshipId] = context.ProvenanceInvocationId;

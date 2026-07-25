@@ -158,7 +158,8 @@ public sealed class ProjectionSymbolCatalogTests
             KernelEvent.From(new EntityCreatedKernelEvent(
                 Tick: invocationId, WorldVersion: invocationId + 10, EntityId: entityId,
                 SourceCodeId: 1, KindId: kindId, SubtypeId: 0, CultureId: cultureId,
-                PhysicalQ: 0, PhysicalR: 0, SemanticQ: 0, SemanticR: 0, SemanticS: 0)),
+                PhysicalQ: 0, PhysicalR: 0, SemanticQ: 0, SemanticR: 0, SemanticS: 0,
+                NameSeed: entityId)),
             invocationId)));
     }
 
@@ -173,7 +174,8 @@ public sealed class ProjectionSymbolCatalogTests
                 RelationshipKindId: relationshipKindId, PolarityCode: RelationshipPolarityCodes.Positive,
                 SourceEntityId: 10, TargetEntityId: 20, RelationshipId: 30,
                 PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f),
-                NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.78f))),
+                NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.78f),
+                ActionId: 0, IsActive: 1)),
             invocationId)));
     }
 

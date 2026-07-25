@@ -60,7 +60,9 @@ public sealed class KernelFixedPointTests
             TargetEntityId: 8,
             RelationshipId: 9,
             PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.75f),
-            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.625f));
+            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.625f),
+            ActionId: 0,
+            IsActive: 1);
         Assert.Equal(KernelFixedPoint.AttributeUnits(50.125f), attribute.OldValueUnits);
         Assert.Equal(KernelFixedPoint.AttributeUnits(49.875f), attribute.NewValueUnits);
         Assert.Equal(

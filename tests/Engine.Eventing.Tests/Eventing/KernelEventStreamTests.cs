@@ -73,7 +73,8 @@ public sealed class KernelEventStreamTests
             PhysicalR: 6,
             SemanticQ: 7,
             SemanticR: 8,
-            SemanticS: -15)));
+            SemanticS: -15,
+            NameSeed: 1)));
         stream.TryWrite(KernelEvent.From(new EntityMovedKernelEvent(
             Tick: 2,
             WorldVersion: 2,
@@ -204,7 +205,8 @@ public sealed class KernelEventStreamTests
             PhysicalR: 6,
             SemanticQ: 7,
             SemanticR: 8,
-            SemanticS: -15)));
+            SemanticS: -15,
+            NameSeed: 1)));
         stream.TryWrite(KernelEvent.From(new EntityMovedKernelEvent(
             Tick: 2,
             WorldVersion: 2,

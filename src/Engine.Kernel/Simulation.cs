@@ -176,7 +176,7 @@ internal sealed partial class Simulation : IKernel
     private static RelationshipProgramRuntime CreateRelationshipRuntime(SimulationOptions options) =>
         new(
             new RelationshipProgramData(options.RelationshipRuleCapacity, options.RelationshipKindIdCapacity),
-            new RelationshipProgramState(options.RelationshipCapacity),
+            new RelationshipProgramState(options.RelationshipCapacity, options.EntityCapacity),
             options.KernelTuning.Programs);
 
     private void RegisterDefaultPrograms()
@@ -529,6 +529,18 @@ internal sealed partial class Simulation : IKernel
             semanticS,
             tick,
             _executionContext);
+        var physicalLocality = CultureLocality.CellAt(
+            World,
+            cultureId,
+            PlaneCodes.Physical,
+            physicalQ,
+            physicalR);
+        var semanticLocality = CultureLocality.CellAt(
+            World,
+            cultureId,
+            PlaneCodes.Semantic,
+            semanticQ,
+            semanticR);
         WriteKernelEvent(KernelEvent.From(new EntityCreatedKernelEvent(
             tick,
             WorldVersion,
@@ -541,7 +553,16 @@ internal sealed partial class Simulation : IKernel
             physicalR,
             semanticQ,
             semanticR,
-            semanticS)));
+            semanticS,
+            createdEntityId,
+            physicalLocality.StrengthBandCode,
+            physicalLocality.CellKindCode,
+            semanticLocality.StrengthBandCode,
+            semanticLocality.CellKindCode,
+            physicalLocality.LocalRawMass.Units,
+            physicalLocality.ConnectedRawMass.Units,
+            semanticLocality.LocalRawMass.Units,
+            semanticLocality.ConnectedRawMass.Units)));
         KernelData.Entities.InitializeEntity(this, createdEntityId, tick);
         // An entity coming into the world lights the ground around it the
         // same way a traveller's arrival does.
@@ -657,7 +678,7 @@ internal sealed partial class Simulation : IKernel
             _executionContext);
         if (relationshipId > 0)
         {
-            Relationships.NoteRelationshipCreated(relationshipId);
+            Relationships.NoteRelationshipCreated(World, relationshipId);
         }
 
         if (relationshipId > 0 && Relationships.KindIsCultureAnchor(relationshipKindId))
@@ -691,7 +712,7 @@ internal sealed partial class Simulation : IKernel
         }
 
         var relationshipKindId = World.RelationshipKindId(relationshipId);
-        Relationships.NoteRelationshipCulled(relationshipId);
+        Relationships.NoteRelationshipCulled(World, relationshipId);
         World.CullRelationship(relationshipId, tick, _executionContext);
         WorldBeats.NoteRelationshipEnded(relationshipKindId);
     }

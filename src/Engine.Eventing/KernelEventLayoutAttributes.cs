@@ -110,9 +110,6 @@ public enum KernelEventSemanticKind
     ProvenanceProducerKindCode = 47,
     ProvenanceTriggerKindCode = 48,
     ProvenanceProducerId = 49,
-    StorageCode = 50,
-    Capacity = 51,
-    Threshold = 52,
     IntentId = 53,
 }
 

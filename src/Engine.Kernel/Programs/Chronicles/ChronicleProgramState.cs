@@ -10,7 +10,6 @@ namespace Engine.Kernel;
 internal sealed class ChronicleProgramState : IKernelProgramState
 {
     internal const int SuppressionRingCapacity = 64;
-    internal const int PendingExecutionCapacity = 256;
 
     internal readonly bool[] Active;
     internal readonly int[] ArchetypeSlots;
@@ -38,10 +37,11 @@ internal sealed class ChronicleProgramState : IKernelProgramState
     internal int HighWatermark;
     internal int LegendaryResolutionCount;
 
-    public ChronicleProgramState(int chronicleCapacity, int archetypeCapacity)
+    public ChronicleProgramState(int chronicleCapacity, int archetypeCapacity, int pendingExecutionCapacity)
     {
         NumericGuard.ThrowIfNegativeOrZero(chronicleCapacity);
         NumericGuard.ThrowIfNegativeOrZero(archetypeCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(pendingExecutionCapacity);
         Active = new bool[chronicleCapacity + 1];
         ArchetypeSlots = new int[chronicleCapacity + 1];
         StartTicks = new int[chronicleCapacity + 1];
@@ -57,14 +57,14 @@ internal sealed class ChronicleProgramState : IKernelProgramState
         RecentCastEntityIds = new int[SuppressionRingCapacity];
         RecentCastTicks = new int[SuppressionRingCapacity];
         RecentCastHeat = new FixedScalar[SuppressionRingCapacity];
-        PendingKinds = new int[PendingExecutionCapacity];
-        PendingActorIds = new int[PendingExecutionCapacity];
-        PendingTargetIds = new int[PendingExecutionCapacity];
-        PendingProducerIds = new int[PendingExecutionCapacity];
-        PendingSucceeded = new int[PendingExecutionCapacity];
+        PendingKinds = new int[pendingExecutionCapacity];
+        PendingActorIds = new int[pendingExecutionCapacity];
+        PendingTargetIds = new int[pendingExecutionCapacity];
+        PendingProducerIds = new int[pendingExecutionCapacity];
+        PendingSucceeded = new int[pendingExecutionCapacity];
     }
 
     public int ProgramId => KernelProgramCodes.ChronicleDirector;
 
-    public int SchemaVersion => 8;
+    public int SchemaVersion => 9;
 }

@@ -16,8 +16,6 @@ internal sealed partial class MinorActorProgramRuntime :
     private static readonly FixedScalar LifecycleMaintenanceEarlyNeedScale = FixedScalar.FromUnits(200000L);
     private static readonly FixedScalar LifecycleMaintenanceScoreScale = FixedScalar.FromUnits(1350000L);
     private static readonly FixedScalar NexusSourceCultureMultiplier = FixedScalar.FromUnits(1500000L);
-    private static readonly int[] NeighborDQ = [1, 1, 0, -1, -1, 0];
-    private static readonly int[] NeighborDR = [0, -1, -1, 0, 1, 1];
     private readonly MinorActorCellTarget[] _verbTargetCells = new MinorActorCellTarget[7];
     private readonly int _substepsPerPulse;
 
@@ -46,43 +44,13 @@ internal sealed partial class MinorActorProgramRuntime :
     public int RegisterEmitterRule(
         int sourceKindId,
         int sourceSubtypeId,
-        int actorKindCode,
-        int actionCode,
-        int planeCode,
-        int ttlPulses,
-        int emitCadencePulses,
-        int maxActivePerSource,
-        int spawnRadius,
-        int moveChancePermille,
-        int actionCadencePulses,
-        FixedScalar workDelta) =>
-        RegisterEmitterRule(
-            sourceKindId,
-            sourceSubtypeId,
-            MinorActorPurposeCodes.CulturalLabor,
-            actorKindCode,
-            actionCode,
-            planeCode,
-            ttlPulses,
-            emitCadencePulses,
-            maxActivePerSource,
-            spawnRadius,
-            moveChancePermille,
-            actionCadencePulses,
-            workDelta);
-
-    public int RegisterEmitterRule(
-        int sourceKindId,
-        int sourceSubtypeId,
         int purposeCode,
         int actorKindCode,
-        int actionCode,
         int planeCode,
         int ttlPulses,
         int emitCadencePulses,
         int maxActivePerSource,
         int spawnRadius,
-        int moveChancePermille,
         int actionCadencePulses,
         FixedScalar workDelta) =>
         Data.RegisterEmitterRule(
@@ -90,13 +58,11 @@ internal sealed partial class MinorActorProgramRuntime :
             sourceSubtypeId,
             purposeCode,
             actorKindCode,
-            actionCode,
             planeCode,
             ttlPulses,
             emitCadencePulses,
             maxActivePerSource,
             spawnRadius,
-            moveChancePermille,
             actionCadencePulses,
             workDelta);
 
@@ -126,40 +92,35 @@ internal sealed partial class MinorActorProgramRuntime :
         int sourceEntityId,
         int sourceRuleId,
         int actorKindCode,
-        int actionCode,
         int planeCode,
         int q,
         int r,
         int ttlPulses,
-        int moveChancePermille,
         int actionCadencePulses,
         FixedScalar workDelta,
         int tick,
-        int purposeCode = MinorActorPurposeCodes.CulturalLabor) =>
-        State.Spawn(
+        int purposeCode = MinorActorPurposeCodes.CulturalLabor)
+    {
+        if (!Data.RuleHasVerbs(sourceRuleId))
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(sourceRuleId));
+        }
+
+        return State.Spawn(
             cultureId,
             sourceEntityId,
             sourceRuleId,
             actorKindCode,
-            actionCode,
             planeCode,
             q,
             r,
             ttlPulses,
-            moveChancePermille,
             actionCadencePulses,
             workDelta,
             tick,
             State.Pulse,
             purposeCode);
-
-    public int WorkTier(int sourceEntityId) => State.WorkTier(sourceEntityId);
-
-    public int IncreaseWorkTier(int sourceEntityId, int maxTier) =>
-        State.IncreaseWorkTier(sourceEntityId, maxTier);
-
-    public int DecreaseWorkTier(int sourceEntityId) =>
-        State.DecreaseWorkTier(sourceEntityId);
+    }
 
     public void Tick(Simulation simulation, int tick)
     {
@@ -180,12 +141,14 @@ internal sealed partial class MinorActorProgramRuntime :
         }
 
         var world = simulation.World;
-        for (var rule = 1; rule <= Data.RuleCount; rule++)
+        for (var entityId = world.FirstActiveEntity();
+             entityId > 0;
+             entityId = world.NextActiveEntity(entityId))
         {
-            var sourceKindId = Data.SourceKindIds[rule];
-            for (var entityId = world.FirstEntityOfKind(sourceKindId);
-                 entityId > 0;
-                 entityId = world.NextEntityOfKind(entityId))
+            var sourceKindId = world.EntityKindId(entityId);
+            for (var rule = Data.FirstRuleForSourceKind(sourceKindId);
+                 rule > 0;
+                 rule = Data.NextRuleForSourceKind(rule))
             {
                 TryEmitFromSource(simulation, world, entityId, rule, tick, pulse);
             }
@@ -201,8 +164,9 @@ internal sealed partial class MinorActorProgramRuntime :
         int pulse)
     {
         var slotMultiplier = simulation.CultureSlots.CausalSpendLimitMultiplier(sourceEntityId);
-        var workTier = State.WorkTier(sourceEntityId);
-        if (!Data.RuleMatches(world, sourceEntityId, rule) ||
+        var workTier = world.EntityWorkTier(sourceEntityId);
+        if (!Data.RuleHasVerbs(rule) ||
+            !Data.RuleMatches(world, sourceEntityId, rule) ||
             State.SourceActiveCount(sourceEntityId, rule) >= EffectiveMaxActivePerSource(world, sourceEntityId, rule, slotMultiplier, workTier) ||
             pulse < State.NextEmissionPulse(sourceEntityId, rule))
         {
@@ -227,12 +191,10 @@ internal sealed partial class MinorActorProgramRuntime :
             sourceEntityId,
             rule,
             Data.ActorKindCodes[rule],
-            Data.ActionCodes[rule],
             Data.PlaneCodes[rule],
             q,
             r,
             Data.TtlPulses[rule],
-            Data.MoveChancePermille[rule],
             Data.ActionCadencePulses[rule],
             Data.WorkDeltas[rule],
             tick,
@@ -267,24 +229,16 @@ internal sealed partial class MinorActorProgramRuntime :
 
     private void TickActor(Simulation simulation, int actorId, int tick, int pulse)
     {
-        var sourceRule = State.SourceRuleId(actorId);
-        var hasVerbLayer = HasVerbLayer(sourceRule);
+        if (!simulation.World.EntityIsActive(State.SourceEntityId(actorId)))
+        {
+            _ = State.Deactivate(actorId);
+            return;
+        }
+
         if (pulse >= State.NextActionPulse(actorId))
         {
-            if (hasVerbLayer)
-            {
-                ApplySelectedVerb(simulation, actorId, tick);
-            }
-            else
-            {
-                ApplyLegacyWork(simulation, actorId, tick);
-            }
-
+            ApplySelectedVerb(simulation, actorId, tick);
             State.SetNextActionPulse(actorId, pulse + State.ActionCadencePulses(actorId));
-            if (!hasVerbLayer)
-            {
-                TryMoveRandomly(simulation, actorId);
-            }
         }
 
         if (pulse >= State.ExpiresAtPulse(actorId))
@@ -296,9 +250,6 @@ internal sealed partial class MinorActorProgramRuntime :
             State.Schedule(actorId);
         }
     }
-
-    private bool HasVerbLayer(int sourceRule)
-        => (uint)(sourceRule - 1) < (uint)Data.RuleCapacity && Data.RuleHasVerbs[sourceRule];
 
     private void ApplySelectedVerb(Simulation simulation, int actorId, int tick)
     {
@@ -478,7 +429,7 @@ internal sealed partial class MinorActorProgramRuntime :
             sourceR = actorR;
         }
 
-        var sourceWorkTier = State.WorkTier(State.SourceEntityId(actorId));
+        var sourceWorkTier = simulation.World.EntityWorkTier(State.SourceEntityId(actorId));
         var maxOperatingRadius = MaxVerbOperatingRadius(sourceRule, planeCode, sourceWorkTier);
         var cultureId = State.CultureId(actorId);
         var targetCount = BuildVerbTargetCells(
@@ -519,7 +470,9 @@ internal sealed partial class MinorActorProgramRuntime :
     {
         selected = default;
         var totalScore = FixedScalar.Zero;
-        for (var verb = 1; verb <= Data.VerbCount; verb++)
+        for (var verb = Data.FirstVerbForRule(sourceRule);
+             verb > 0;
+             verb = Data.NextVerbForRule(verb))
         {
             if (!VerbSelectableForRule(verb, sourceRule) ||
                 Data.VerbPlaneCodes[verb] != planeCode)
@@ -574,7 +527,9 @@ internal sealed partial class MinorActorProgramRuntime :
     private int MaxVerbOperatingRadius(int sourceRule, int planeCode, int sourceWorkTier)
     {
         var radius = 0;
-        for (var verb = 1; verb <= Data.VerbCount; verb++)
+        for (var verb = Data.FirstVerbForRule(sourceRule);
+             verb > 0;
+             verb = Data.NextVerbForRule(verb))
         {
             if (VerbSelectableForRule(verb, sourceRule) &&
                 Data.VerbPlaneCodes[verb] == planeCode)
@@ -720,61 +675,6 @@ internal sealed partial class MinorActorProgramRuntime :
             Data.VerbWorkDeltaMultipliers[verb]);
     }
 
-    private void ApplyLegacyWork(Simulation simulation, int actorId, int tick)
-    {
-        var cultureId = State.CultureId(actorId);
-        var workDelta = State.WorkDelta(actorId) *
-            simulation.Knowledge.Modifier(
-                cultureId,
-                KnowledgeGrantDomainCodes.MinorActorWork,
-                State.PurposeCode(actorId));
-        if (workDelta <= 0)
-        {
-            return;
-        }
-
-        var planeCode = State.PlaneCode(actorId);
-        var q = State.Q(actorId);
-        var r = State.R(actorId);
-        if (!simulation.World.CellIsKnown(planeCode, q, r))
-        {
-            return;
-        }
-
-        switch (State.ActionCode(actorId))
-        {
-            case MinorActorActionCodes.CultureExpansion:
-                _ = ApplyCultureExpansion(
-                    simulation,
-                    actorId,
-                    planeCode,
-                    q,
-                    r,
-                    CultureInfluenceActionDelta(simulation, workDelta),
-                    tick);
-                break;
-            case MinorActorActionCodes.RoadMaintenance:
-                _ = simulation.Movement.ReinforceRoad(
-                    simulation,
-                    planeCode,
-                    q,
-                    r,
-                    workDelta * simulation.Knowledge.Modifier(cultureId, KnowledgeGrantDomainCodes.RoadWork),
-                    tick);
-                break;
-            case MinorActorActionCodes.CultureCleanup:
-                _ = ReduceOtherCultureSources(
-                    simulation,
-                    State.CultureId(actorId),
-                    planeCode,
-                    q,
-                    r,
-                    CultureInfluenceActionDelta(simulation, workDelta),
-                    tick);
-                break;
-        }
-    }
-
     private static FixedScalar CultureInfluenceActionDelta(Simulation simulation, FixedScalar delta) =>
         delta * simulation.Options.KernelTuning.Programs.CultureInfluenceActionScale;
 
@@ -844,23 +744,6 @@ internal sealed partial class MinorActorProgramRuntime :
         return simulation.World.GetAttribute(sourceEntityId, attributeId) - previous;
     }
 
-    private void TryMoveRandomly(Simulation simulation, int actorId)
-    {
-        var moveChancePermille = State.MoveChancePermille(actorId);
-        if (moveChancePermille <= 0 || simulation.NextInt(1000) >= moveChancePermille)
-        {
-            return;
-        }
-
-        var direction = simulation.NextInt(6);
-        var q = State.Q(actorId) + NeighborDQ[direction];
-        var r = State.R(actorId) + NeighborDR[direction];
-        if (simulation.World.CellIsKnown(State.PlaneCode(actorId), q, r))
-        {
-            State.SetPosition(actorId, q, r);
-        }
-    }
-
     private void EmitMinorActorVerb(
         Simulation simulation,
         int actorId,
@@ -870,7 +753,7 @@ internal sealed partial class MinorActorProgramRuntime :
         FixedScalar delta)
     {
         var sourceEntityId = State.SourceEntityId(actorId);
-        var sourceWorkTier = State.WorkTier(sourceEntityId);
+        var sourceWorkTier = simulation.World.EntityWorkTier(sourceEntityId);
         simulation.EmitMinorActorVerbExecuted(
             tick,
             actorId,

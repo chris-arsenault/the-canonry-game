@@ -30,17 +30,6 @@ internal sealed partial class TelemetryEventProjection
         return (float)(total / entity.Attributes.Count);
     }
 
-    private sealed class PendingGeneratorFire(int tick, int generatorId, int causeId, int remaining)
-    {
-        public int Tick { get; } = tick;
-
-        public int GeneratorId { get; } = generatorId;
-
-        public int CauseId { get; } = causeId;
-
-        public int Remaining { get; set; } = remaining;
-    }
-
     private sealed record PendingCreatedEntity(
         int EntityId,
         int KindId,

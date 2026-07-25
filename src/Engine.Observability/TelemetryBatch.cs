@@ -37,7 +37,6 @@ public sealed class TelemetryBatch
     public Collection<CultureFieldCellSnapshotRow> CultureFieldCellSnapshots { get; } = Rows<CultureFieldCellSnapshotRow>();
     public Collection<CultureSlotOccupancyEventRow> CultureSlotOccupancyEvents { get; } = Rows<CultureSlotOccupancyEventRow>();
     public Collection<MinorActorVerbEventRow> MinorActorVerbEvents { get; } = Rows<MinorActorVerbEventRow>();
-    public Collection<CultureFieldComponentSnapshotRow> CultureFieldComponentSnapshots { get; } = Rows<CultureFieldComponentSnapshotRow>();
     public Collection<CulturePowerSnapshotRow> CulturePowerSnapshots { get; } = Rows<CulturePowerSnapshotRow>();
     public Collection<KnowledgeSnapshotRow> KnowledgeSnapshots { get; } = Rows<KnowledgeSnapshotRow>();
     public Collection<KnowledgeClaimSnapshotRow> KnowledgeClaimSnapshots { get; } = Rows<KnowledgeClaimSnapshotRow>();
@@ -90,7 +89,6 @@ public sealed class TelemetryBatch
 
     private void ClearCultureAndNarrativeRows()
     {
-        CultureFieldComponentSnapshots.Clear();
         CulturePowerSnapshots.Clear();
         KnowledgeSnapshots.Clear();
         KnowledgeClaimSnapshots.Clear();
@@ -588,21 +586,6 @@ public sealed record KnowledgeClaimSnapshotRow(
     int CultureId,
     int SiteIndex,
     int Tier);
-
-public sealed record CultureFieldComponentSnapshotRow(
-    int RunId,
-    int Tick,
-    int PlaneCode,
-    int CultureId,
-    int InfluencedCellCount,
-    int ComponentCount,
-    int LargestComponentCellCount,
-    float LargestComponentShare,
-    int InteriorCellCount,
-    int BorderCellCount,
-    int IsolatedCellCount,
-    int ContestedCellCount,
-    int HoleCellCount = 0);
 
 public sealed record CultureEntityFieldSnapshotRow(
     int RunId,

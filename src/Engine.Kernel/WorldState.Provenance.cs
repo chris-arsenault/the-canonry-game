@@ -143,27 +143,19 @@ internal sealed partial class WorldState
         _entityCreatedByInvocationId[entityId] = context.ProvenanceInvocationId;
     }
 
-    private void RecordProvenanceOutput(
-        in KernelExecutionContext context,
-        int outputKindCode,
-        int outputId,
-        int subjectEntityId,
-        int secondaryEntityId,
-        int valueId,
-        int changeCodeId)
+    private void RecordProvenanceRelationshipCreated(
+        int relationshipId,
+        in KernelExecutionContext context)
     {
         if (context.ProvenanceInvocationId == 0)
         {
             return;
         }
 
-        ValidatePositive(outputKindCode);
-        NumericGuard.ThrowIfNegative(outputId);
-        NumericGuard.ThrowIfNegative(subjectEntityId);
-        NumericGuard.ThrowIfNegative(secondaryEntityId);
-        NumericGuard.ThrowIfNegative(valueId);
-        NumericGuard.ThrowIfNegative(changeCodeId);
+        ValidatePositive(relationshipId);
         NoteProvenanceOutput(context.ProvenanceInvocationId);
+        _relationshipCreatedByInvocationId[relationshipId] = context.ProvenanceInvocationId;
+        _relationshipLastChangedByInvocationId[relationshipId] = context.ProvenanceInvocationId;
     }
 
     private void NoteProvenanceOutput(int invocationId)

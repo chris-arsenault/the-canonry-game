@@ -54,15 +54,8 @@ internal sealed partial class WorldState
 
         _attributes.Set(entityId, attributeId, clamped);
         _entityUpdatedAt[entityId] = tick;
+        MarkEntityCultureWorkDirty(entityId);
         AdvanceWorldVersion();
-        RecordProvenanceOutput(
-            context,
-            ProvenanceOutputKindCodes.AttributeChanged,
-            entityId,
-            entityId,
-            0,
-            attributeId,
-            ProvenanceOutputKindCodes.AttributeChanged);
         Write(KernelEvent.From(new AttributeChangedKernelEvent(
             tick,
             WorldVersion,

@@ -1,7 +1,9 @@
 # Pre-Parallelization Simulation Redesign Plan
 
-Status: Phases 1-5 complete on 2026-07-24. Completed phase results describe the
-current implementation; Phase 6 and later remain unimplemented directions.
+Status: Phases 1-5 complete. Phases 2-4 were reopened and remediated on
+2026-07-25 after a non-fixed-point completion audit. Completed phase results
+and their remediation addenda describe the current implementation; Phase 6 and
+later remain unimplemented directions.
 
 Phase 1 code basis: `main` at `7344037` on 2026-07-24.
 
@@ -67,6 +69,12 @@ reintroduce an earlier rejected assumption.
 8. Same-seed repeatability under the new model is the intended determinism
    invariant. Exact legacy event history, RNG consumption, IDs, and
    same-pulse outcomes are not.
+9. The kernel-to-consumer boundary is the shared primitive record assembly,
+   not a live kernel snapshot or object reference. UI views, archives, parquet,
+   and narrative retention own their materialization and cadence outside the
+   kernel. A future view store or durable-watermark handshake is separable
+   consumer infrastructure, not a reason to retain observer history in kernel
+   state.
 
 ## Proposal Contract
 
@@ -507,7 +515,8 @@ This is shuffle-invariance, not legacy equivalence.
 
 Owner: cross-layer design and analysis.
 
-Status: complete on 2026-07-24.
+Status: reopened and remediated on 2026-07-25 after the non-fixed-point
+completion audit.
 
 #### Accepted outcome envelope
 
@@ -771,9 +780,74 @@ Will not change:
   world-beat counts, streamed provenance, and active-only snapshot/projection
   output.
 
+#### Phase 2 completion-audit addendum
+
+The 2026-07-25 audit found that the kernel-side retirement changes are sound,
+but the external history boundary is not complete:
+
+- culture-locality birth telemetry and entity snapshots still scan the entity
+  lifetime high-water mark and read retained retired rows;
+- UI and telemetry infer generator attribution by correlating independent events
+  on the same tick instead of consuming an explicit creation cause;
+- entity creation does not carry the stable name seed and initial state needed
+  to form durable external records without later kernel-row reconstruction;
+- relationship removal is inferred from strength rather than represented by an
+  explicit lifecycle fact; and
+- `ProvenanceProjection` retains lifetime invocation/output/relationship maps
+  even when only compact active causality and already-rendered journal facts are
+  still useful.
+
+Remediation reopens Phase 2. It will capture creation-time identity, locality,
+cause, and relationship-lifecycle facts at the primitive event boundary; make
+active snapshots iterate active occurrences only; form durable names and
+narrative facts at event ingestion; and compact or release raw projection
+history once no active consumer needs it.
+
+Additional intended files:
+
+- `src/Engine.Eventing/KernelEvent*.cs`
+- `src/Engine.Host/KernelHost.CultureLocality.cs`
+- `src/Engine.Host/KernelRuntimeFactory.cs`
+- `src/Engine.Projection/UiProjectionState.cs`
+- `src/Engine.Projection/ProvenanceProjection.cs`
+- `src/Engine.Projection/ProjectionSymbolCatalog.cs`
+- `src/Engine.Observability/TelemetryEventProjection*.cs`
+- `src/Engine.UI/GameRuntimeChronicle.cs`
+- directly affected event/projection behavior tests
+
+The reopened exit gate additionally requires that no production telemetry or
+projection path reconstruct creation facts from retired kernel rows, same-tick
+event ordering, or an unbounded raw provenance archive.
+
+The separate display/projection discussion that had remained in
+`.sulion-paste` has now been resolved into this contract. `Engine.Eventing` is
+the plain-record assembly shared by producer and consumers;
+`Engine.Projection` does not reference `Engine.Kernel`. The completed Phase 2
+remediation therefore keeps active causality and a bounded recent window in the
+live projection, while any future hot view store, keyframes, or archive tier
+remain consumer-side work rather than a kernel compatibility layer.
+
+#### Phase 2 completion-audit remediation
+
+- `EntityCreated` now carries a required stable name seed and creation-time
+  physical/semantic locality facts. Birth telemetry consumes that event
+  directly, and current entity sampling iterates the active list.
+- `RelationshipChanged` carries explicit active/end state. Projection and
+  telemetry no longer infer relationship lifetime from strength.
+- Generator-created entities are joined to generator invocations through the
+  event execution-context token and the invocation completion record; the
+  same-tick inference dictionaries and future-migration placeholders are gone.
+- The live provenance projection retains structural creation outputs, active
+  causal parent chains, and a bounded recent window. References are released
+  when their active entity or relationship ends.
+- Obsolete provenance growth capacity codes, growth reasons, and the
+  `KernelStorageGrown` event family were deleted with the storage they once
+  described.
+
 ### Phase 3: Remove Materialized Global And Observer Work
 
-Status: complete on 2026-07-24.
+Status: reopened and remediated on 2026-07-25 after the non-fixed-point
+completion audit.
 
 Owner: `Engine.Kernel` for simulation facts, host/projection/observability for
 external consumers, and Ice Remembers for simplified authored conditions.
@@ -864,7 +938,70 @@ Will not change:
   descriptors, bounded dirty refresh, sampled telemetry, and the single-cell
   anchor needed by ordinary influence work.
 
+#### Phase 3 completion-audit addendum
+
+The 2026-07-25 audit found that the deleted global programs stayed deleted, but
+several observer costs were narrowed or relocated instead of removed:
+
+- scalar entity, relationship, attribute, position, terrain, and coverage
+  mutations still advance versions and call a provenance-output adapter whose
+  detailed arguments are discarded;
+- physical map changes and snapshots emit both the plane-aware map event and a
+  legacy physical-only compatibility event;
+- culture component and hole topology is allocated and calculated synchronously
+  in the Monte Carlo host at sample time rather than derived offline from the
+  sampled cell field; and
+- the stable repository instructions still describe deleted MapActivity,
+  MapSignals, CultureBoundaries, and separate upkeep programs as current.
+
+Remediation reopens Phase 3. It will replace the remaining scalar provenance
+adapter with semantic action/structural events and bounded sampled revisions;
+collapse map state to one plane-aware event contract; export the raw sampled
+culture field without synchronous topology analysis; move component/hole
+derivation to the existing DuckDB/Python analysis boundary; and update stable
+architecture instructions to describe the surviving runtime.
+
+Additional intended files:
+
+- `src/Engine.Kernel/WorldState.cs`
+- `src/Engine.Kernel/WorldState.Attributes.cs`
+- `src/Engine.Kernel/WorldState.EntityPosition.cs`
+- `src/Engine.Kernel/WorldState.MapLayers.cs`
+- `src/Engine.Kernel/WorldState.Provenance.cs`
+- `src/Engine.Kernel/Persistence/WorldStateSnapshot.cs`
+- `src/Engine.Eventing/KernelEvent*.cs`
+- `src/Engine.Host/KernelHost.CultureLocality.cs`
+- `src/Engine.Projection/HexMapProjection.cs`
+- `src/Engine.Projection/UiProjectionState.cs`
+- `src/Engine.Observability/TelemetryEventProjection*.cs`
+- `tools/MonteCarlo/**` and its DuckDB/Python analysis
+- `AGENTS.md`, `docs/architecture.md`, and `docs/game-systems.md`
+- directly affected event, projection, and analysis contract tests
+
+The reopened exit gate additionally requires one canonical map event family, no
+discard-only provenance mapper, and no topology allocation or traversal on the
+simulation/telemetry capture path.
+
+#### Phase 3 completion-audit remediation
+
+- The discard-only scalar provenance adapter and its callers are deleted.
+  World revisions advance at most once per world pulse instead of once per
+  scalar mutation; semantic events and structural provenance remain explicit.
+- `MapCellStateChanged` is the only map-cell lifecycle event. The physical-only
+  compatibility event family, duplicate emission, projection dispatch, and
+  tests were removed.
+- The host captures raw culture-field cells only. Component derivation moved to
+  the Monte Carlo DuckDB analysis query, so capture does not allocate or walk
+  culture components and holes.
+- Stable architecture and simulation documents now describe direct locality,
+  unified effects/lifecycle resolution, the deleted graph/runtime programs, and
+  explicit future mutation ownership rather than treating one writer as a
+  permanent constraint.
+
 ### Phase 4: Simplify Low-Altitude Execution
+
+Status: reopened and remediated on 2026-07-25 after the non-fixed-point
+completion audit.
 
 Owner: `Engine.Kernel` runtime plus authored rule compilation in
 `Engine.Gameplay`/`Engine.Domain`.
@@ -947,6 +1084,92 @@ Will not change:
 Phase 4 deliberately does not introduce fixed-point arithmetic,
 generation-safe occurrence handles, delta epochs, cohort aggregation, or
 parallel execution.
+
+#### Phase 4 completion-audit addendum
+
+The 2026-07-25 audit found several incomplete hot-path conversions and retained
+compatibility mechanisms:
+
+- minor-actor source-kind and source-rule indexes are populated but the runtime
+  still scans all emitter rules and all verbs;
+- knowledge clears and rebuilds all culture state on cadence, rescanning every
+  site and every grant, while culture slots reevaluate every slot and compatible
+  entity instead of using dirty/due work;
+- follow movement repeatedly searches incoming relationship kinds from the
+  active-entity loop instead of consuming a direct follow source or a
+  relationship-driven intent pass;
+- locality scoring recomputes overlapping support, threat, capacity, and
+  attractor neighborhoods within the same candidate decision;
+- low-altitude verb selection silently ignores compatible rules after a
+  hard-coded 64-entry scratch limit, while chronicle strike capture silently
+  drops executions after a hard-coded 256-entry pending limit;
+- the unused no-verb minor-actor action path preserves the retired behavior
+  model even though production minor actors are verb-authored;
+- stage-rule lookup still scans the global stage catalog in entity hot paths;
+  named-entity stage state is misleadingly owned by minor-actor state;
+- the unused object `WorldGraph`, historical entity/relationship model, graph
+  events, QuikGraph dependency, and their legacy tests remain beside the kernel;
+  and
+- old tracked `TestResults` files remain after test output moved to
+  `.artifacts/test-logs`.
+
+Remediation reopens Phase 4. It will consume compiled indexes end to end; add
+explicit dirty/due invalidation for knowledge and culture slots; make follow
+ownership directly iterable; share composite locality samples inside a
+decision; derive bounded scratch capacities from validated compiled maxima or
+fail installation explicitly; require verb-authored minor actors; preindex
+stage rules; move named-entity stage data to an appropriate entity program
+owner; remove the dead graph runtime and dependency while retaining the live
+primitive IDs; and delete obsolete generated test output.
+
+Additional intended files:
+
+- `src/Engine.Kernel/Programs/MinorActors/*`
+- `src/Engine.Kernel/Programs/Knowledge/*`
+- `src/Engine.Kernel/Programs/CultureSlots/*`
+- `src/Engine.Kernel/Programs/LowAltitudeVerbs/*`
+- `src/Engine.Kernel/Programs/Relationships/*`
+- `src/Engine.Kernel/Programs/Chronicles/*`
+- `src/Engine.Kernel/Programs/Effects/*`
+- `src/Engine.Kernel/LocalityQuery.cs`
+- `src/Engine.Kernel/WorldState.Stages.cs`
+- `src/Engine.Domain/Compilation/KernelPrograms/*`
+- `src/Engine.Domain/World/*` and live primitive-ID replacements
+- `src/Engine.Domain/Engine.Domain.csproj`
+- `tests/Engine.Domain.Tests/Graph/*`
+- `.gitignore` and tracked `tests/**/TestResults/*`
+- directly affected compiler, runtime, overflow, and architecture tests
+
+The reopened exit gate additionally requires that hot paths consume only
+compatible indexed work, dirty/due systems do not rebuild clean cultures or
+slots, capacity overflow is explicit rather than silent, and no retired runtime
+model survives only for compatibility.
+
+#### Phase 4 completion-audit remediation
+
+- Minor-actor emission consumes its source-kind rule index and verb selection
+  consumes the source-rule verb index. Source-less and verb-less cohorts are
+  invalid, and active cohorts retire with their named source.
+- Knowledge recomputes only cultures whose relevant world revision changed.
+  Culture slots reevaluate changed slots and separately due tenure expirations
+  rather than rescanning every slot/entity pair on cadence.
+- Follow movement reads a direct target-to-follow-relationship index maintained
+  with relationship creation and retirement. Locality candidates reuse
+  composite pressure and crowding samples instead of repeating overlapping
+  neighborhood queries.
+- Low-altitude candidate scratch is sized from validated compiled rule
+  capacity. Chronicle pending strike storage is sized from configured entity
+  and generator capacity, and overflow fails explicitly rather than silently
+  truncating at 64 or 256.
+- Stage rules are indexed by entity kind. Named-entity work tiers moved from
+  minor-actor state into `WorldState`; obsolete non-catalog stage entries were
+  removed from Ice Remembers.
+- The unused object graph, historical entity/relationship classes, graph
+  events, QuikGraph dependency, and legacy graph tests are deleted. Host
+  relationship sampling now also consumes the active relationship list.
+- Generated `tests/**/TestResults` artifacts are ignored and removed. A
+  misleading test-only “culture labor influence” alias that merely forwarded
+  to raw culture mass was also deleted.
 
 ### Phase 5: Define Fixed-Point Numeric Contracts
 

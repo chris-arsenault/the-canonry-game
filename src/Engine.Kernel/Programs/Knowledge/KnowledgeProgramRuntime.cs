@@ -11,17 +11,22 @@ internal sealed class KnowledgeProgramRuntime : ISimulationSystem
     private readonly int[] _siteQ;
     private readonly int[] _siteR;
     private readonly int[] _siteTier;
-    private readonly int[] _grantSite;
     private readonly int[] _grantDomain;
     private readonly int[] _grantTarget;
     private readonly int[] _grantMultiplier;
+    private readonly int[] _firstGrantBySite;
+    private readonly int[] _lastGrantBySite;
+    private readonly int[] _nextGrant;
+    private readonly int[] _modifierKeys;
     private readonly int[] _claimedTechs;
     private readonly int[] _maxTier;
     private readonly byte[] _claimedSites;
+    private readonly long[] _seenCultureFieldRevisions;
     private readonly PrimitiveIntTable _modifiers;
     private readonly int _siteCapacity;
     private int _siteCount;
     private int _grantCount;
+    private int _modifierKeyCount;
     private long _revision;
 
     internal KnowledgeProgramRuntime(
@@ -37,16 +42,21 @@ internal sealed class KnowledgeProgramRuntime : ISimulationSystem
         _siteQ = new int[siteCapacity];
         _siteR = new int[siteCapacity];
         _siteTier = new int[siteCapacity];
-        _grantSite = new int[grantCapacity];
         _grantDomain = new int[grantCapacity];
         _grantTarget = new int[grantCapacity];
         _grantMultiplier = new int[grantCapacity];
+        _firstGrantBySite = new int[siteCapacity];
+        _lastGrantBySite = new int[siteCapacity];
+        _nextGrant = new int[grantCapacity];
+        _modifierKeys = new int[grantCapacity];
         _claimedTechs = new int[cultureIdCapacity + 1];
         _maxTier = new int[cultureIdCapacity + 1];
         _claimedSites = new byte[checked((cultureIdCapacity + 1) * siteCapacity)];
+        _seenCultureFieldRevisions = new long[cultureIdCapacity + 1];
         _modifiers = new PrimitiveIntTable(modifierCapacity);
         _siteCapacity = siteCapacity;
         global::System.Array.Fill(_maxTier, -1);
+        global::System.Array.Fill(_seenCultureFieldRevisions, -1);
     }
 
     internal int SiteCount => _siteCount;
@@ -71,7 +81,7 @@ internal sealed class KnowledgeProgramRuntime : ISimulationSystem
     internal void RegisterGrant(int site, int domain, int target, FixedScalar multiplier)
     {
         if ((uint)site >= (uint)_siteCount ||
-            _grantCount >= _grantSite.Length ||
+            _grantCount >= _grantDomain.Length ||
             domain <= 0 ||
             target < 0 ||
             target > TargetMask ||
@@ -80,10 +90,22 @@ internal sealed class KnowledgeProgramRuntime : ISimulationSystem
             throw new global::System.InvalidOperationException();
         }
 
-        _grantSite[_grantCount] = site;
-        _grantDomain[_grantCount] = domain;
-        _grantTarget[_grantCount] = target;
-        _grantMultiplier[_grantCount] = KernelFixedPoint.RatioUnits(multiplier);
+        var key = ModifierKey(domain, target);
+        var grant = _grantCount;
+        _grantDomain[grant] = domain;
+        _grantTarget[grant] = target;
+        _grantMultiplier[grant] = KernelFixedPoint.RatioUnits(multiplier);
+        var previous = _lastGrantBySite[site];
+        if (previous == 0)
+        {
+            _firstGrantBySite[site] = grant + 1;
+        }
+        else
+        {
+            _nextGrant[previous - 1] = grant + 1;
+        }
+        _lastGrantBySite[site] = grant + 1;
+        RegisterModifierKey(key);
         _grantCount++;
     }
 
@@ -126,18 +148,22 @@ internal sealed class KnowledgeProgramRuntime : ISimulationSystem
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        _modifiers.Clear();
-        global::System.Array.Clear(_claimedSites);
-        global::System.Array.Clear(_claimedTechs);
-        global::System.Array.Fill(_maxTier, -1);
-
         var world = simulation.World;
+        var changed = false;
         for (var cultureId = 1; cultureId <= world.CultureHighWatermark; cultureId++)
         {
+            var revision = world.CultureFieldRevision(cultureId);
+            if (_seenCultureFieldRevisions[cultureId] == revision)
+            {
+                continue;
+            }
+
             RecomputeCulture(world, cultureId);
+            _seenCultureFieldRevisions[cultureId] = revision;
+            changed = true;
         }
 
-        if (_revision < long.MaxValue)
+        if (changed && _revision < long.MaxValue)
         {
             _revision++;
         }
@@ -145,6 +171,16 @@ internal sealed class KnowledgeProgramRuntime : ISimulationSystem
 
     private void RecomputeCulture(WorldState world, int cultureId)
     {
+        global::System.Array.Clear(
+            _claimedSites,
+            cultureId * _siteCapacity,
+            _siteCapacity);
+        _claimedTechs[cultureId] = 0;
+        for (var index = 0; index < _modifierKeyCount; index++)
+        {
+            _modifiers.Set(cultureId, _modifierKeys[index], KernelFixedPoint.RatioScale);
+        }
+
         var maxTier = -1;
         for (var site = 0; site < _siteCount; site++)
         {
@@ -164,12 +200,9 @@ internal sealed class KnowledgeProgramRuntime : ISimulationSystem
 
     private void ApplySiteGrants(int cultureId, int site)
     {
-        for (var grant = 0; grant < _grantCount; grant++)
+        for (var link = _firstGrantBySite[site]; link > 0; link = _nextGrant[link - 1])
         {
-            if (_grantSite[grant] != site)
-            {
-                continue;
-            }
+            var grant = link - 1;
 
             var key = ModifierKey(_grantDomain[grant], _grantTarget[grant]);
             var current = _modifiers.GetOrDefault(
@@ -185,6 +218,25 @@ internal sealed class KnowledgeProgramRuntime : ISimulationSystem
                     0,
                     KernelFixedPoint.RatioMaximumUnits));
         }
+    }
+
+    private void RegisterModifierKey(int key)
+    {
+        for (var index = 0; index < _modifierKeyCount; index++)
+        {
+            if (_modifierKeys[index] == key)
+            {
+                return;
+            }
+        }
+
+        if (_modifierKeyCount >= _modifierKeys.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _modifierKeys[_modifierKeyCount] = key;
+        _modifierKeyCount++;
     }
 
     private bool CultureHoldsSite(WorldState world, int cultureId, int index)

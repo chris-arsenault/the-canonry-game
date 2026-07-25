@@ -1,17 +1,13 @@
 namespace Engine.Kinds;
 
-using Engine.Graph;
-
 /// <summary>
 /// Central registry of entity kind definitions and relationship kind definitions.
 /// Provides validation for entity creation and relationship creation.
-/// Supports behavior dispatch via registered per-kind handlers.
 /// </summary>
 public sealed class KindRegistry
 {
     private readonly Dictionary<EntityKind, KindDefinition> _kindDefs = [];
     private readonly Dictionary<string, RelationshipKindDefinition> _relKindDefs = [];
-    private readonly Dictionary<EntityKind, Action<Entity>> _behaviorHandlers = [];
 
     // --- Kind Registration ---
 
@@ -25,12 +21,6 @@ public sealed class KindRegistry
     {
         ArgumentNullException.ThrowIfNull(definition);
         _relKindDefs[definition.Name] = definition;
-    }
-
-    public void RegisterBehaviorHandler(EntityKind kind, Action<Entity> handler)
-    {
-        ArgumentNullException.ThrowIfNull(handler);
-        _behaviorHandlers[kind] = handler;
     }
 
     // --- Lookups ---
@@ -100,26 +90,11 @@ public sealed class KindRegistry
     }
 
     /// <summary>
-    /// Checks whether a relationship kind is exclusive and already exists from the source.
-    /// Used by WorldGraph to enforce exclusivity constraints.
+    /// Checks whether a relationship kind is exclusive.
     /// </summary>
     public bool IsExclusiveRelationship(string relationshipKind)
     {
         var relDef = GetRelationshipKindDefinition(relationshipKind);
         return relDef?.IsExclusive ?? false;
     }
-
-    // --- Behavior Dispatch ---
-
-    public void DispatchBehavior(Entity entity)
-    {
-        ArgumentNullException.ThrowIfNull(entity);
-
-        if (_behaviorHandlers.TryGetValue(entity.Kind, out var handler))
-        {
-            handler(entity);
-        }
-    }
-
-    public bool HasBehaviorHandler(EntityKind kind) => _behaviorHandlers.ContainsKey(kind);
 }

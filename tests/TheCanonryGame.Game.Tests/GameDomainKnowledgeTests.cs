@@ -286,7 +286,8 @@ public sealed class GameDomainKnowledgeTests
             PhysicalR: 0,
             SemanticQ: 0,
             SemanticR: 0,
-            SemanticS: 0));
+            SemanticS: 0,
+            NameSeed: entityId));
         Assert.True(log.TryWrite(invocationId == 0 ? evt : WithProvenance(evt, invocationId)));
     }
 
@@ -304,7 +305,9 @@ public sealed class GameDomainKnowledgeTests
                 TargetEntityId: 200,
                 RelationshipId: ids.RelationshipId,
                 PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f),
-                NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.78f))),
+                NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.78f),
+                ActionId: 0,
+                IsActive: 1)),
             invocationId: 1)));
     }
 

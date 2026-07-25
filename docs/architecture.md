@@ -1,8 +1,11 @@
 # System Architecture
 
 The engine is a deterministic microkernel hosted by the Godot game runtime.
-The kernel owns mutation. UI, projections, run logs, telemetry, exports, and
-Monte Carlo analysis consume the primitive event stream outside the sim thread.
+Kernel phases own mutation explicitly. The current scheduler runs those phases
+on one thread; future phase or shard owners may run concurrently only across
+published boundaries with deterministic reduction. UI, projections, run logs,
+telemetry, exports, and Monte Carlo analysis consume primitive records outside
+kernel state.
 
 The controlling kernel rules live in
 [simulation-kernel-discipline.md](./kernel/simulation-kernel-discipline.md).
@@ -101,9 +104,9 @@ replaces the current runtime via the ordinary asynchronous startup/loading
 surface. Release artifacts are built through `tools/WorldGenerator`, keeping
 generation out of the Godot UI process.
 
-Consumers must not stall kernel advancement. If a consumer needs richer
-materialized state, it builds that state from events or snapshots on its own
-side of the boundary.
+Consumers must not stall kernel advancement or retain live kernel references.
+If a consumer needs richer materialized state, it builds that state from
+primitive events or published snapshots on its own side of the boundary.
 
 The Godot UI follows the same consumer boundary. Projections expose versions,
 dirty sets, and active-state indexes; render components own Godot subtrees and
@@ -154,7 +157,8 @@ windows, and scheduled program cadences are expressed directly in world
 pulses. `MinorActors` alone may run multiple bounded substeps inside one world
 pulse (`MinorActorSubstepsPerPulse`, currently `5`) so frequent worker labor
 does not force duplicate graph, effects, or relationship passes. `CultureSlots`
-and `Knowledge` run every ten world pulses.
+and `Knowledge` retain their ordinary schedule, but their work is revision- and
+due-driven: unchanged slots and cultures are not globally rebuilt.
 
 ## Runtime State
 
@@ -348,11 +352,20 @@ water, feature, and vertical-exaggeration controls do not create kernel state or
 make microtriangles interactive gameplay coordinates.
 
 Provenance crosses the primitive event boundary. While an authored action runs,
-the kernel retains only its bounded current frame and an output count; on
-completion it streams producer, parent, trigger, and output-bearing mutation
-events. `Engine.Projection` builds the durable generic provenance read model
-from that stream. The kernel does not retain completed invocation or output
-rows and does not interpret narrative chains.
+the kernel retains only its bounded current frame and a structural output
+count. Entity and relationship creation events carry the invocation token;
+completion streams producer, parent, and trigger evidence.
+`Engine.Projection` retains active causal chains plus a bounded recent window,
+while the chronicle captures immutable rendered facts. Neither the kernel nor
+the live projection retains an unbounded completed invocation archive.
+
+Creation and lifecycle facts are explicit at that same boundary.
+`EntityCreated` carries its stable name seed, initial coordinates, creation
+cause, and birth-locality sample; relationship changes carry active/end state;
+and `MapCellStateChanged` is the sole plane-aware map-cell lifecycle event.
+Consumers do not recover those facts from retired rows or same-tick event
+correlation.
 
 Parquet exports and analysis reports are observability products, not kernel
-state. They must be reconstructable from the event stream and symbol tables.
+state. Raw sampled culture cells cross the capture boundary; culture components
+and holes are derived later in DuckDB rather than synchronously in the host.

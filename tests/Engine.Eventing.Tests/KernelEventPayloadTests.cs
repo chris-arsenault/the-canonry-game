@@ -22,7 +22,8 @@ public sealed class KernelEventPayloadTests
             RelationshipId: 19,
             PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.25f),
             NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.75f),
-            ActionId: 23));
+            ActionId: 23,
+            IsActive: 1));
 
         Assert.Equal(7, kernelEvent.GetIntSlot(0));
         Assert.Equal(41, kernelEvent.GetIntSlot(1));
@@ -34,6 +35,7 @@ public sealed class KernelEventPayloadTests
         Assert.Equal(23, kernelEvent.GetIntSlot(7));
         Assert.Equal(KernelFixedPoint.RelationshipStrengthUnits(0.25f), kernelEvent.GetIntSlot(8));
         Assert.Equal(KernelFixedPoint.RelationshipStrengthUnits(0.75f), kernelEvent.GetIntSlot(9));
+        Assert.Equal(1, kernelEvent.GetIntSlot(10));
         Assert.Throws<ArgumentOutOfRangeException>(() => kernelEvent.GetIntSlot(KernelEvent.IntSlotCount));
         Assert.Throws<ArgumentOutOfRangeException>(() => kernelEvent.GetLongSlot(KernelEvent.LongSlotCount));
     }
@@ -47,7 +49,7 @@ public sealed class KernelEventPayloadTests
 
     private static void AssertEntityAndChangeEventsRoundTrip()
     {
-        var entityCreated = new EntityCreatedKernelEvent(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, -21);
+        var entityCreated = new EntityCreatedKernelEvent(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, -21, 3);
         Assert.Equal(entityCreated, KernelEvent.From(entityCreated).AsEntityCreated());
 
         var entityStatusChanged = new EntityStatusChangedKernelEvent(2, 3, 4, 5, 6, 7, 8, 9);
@@ -80,7 +82,9 @@ public sealed class KernelEventPayloadTests
             12,
             13,
             KernelFixedPoint.RelationshipStrengthUnits(0.125f),
-            KernelFixedPoint.RelationshipStrengthUnits(0.875f));
+            KernelFixedPoint.RelationshipStrengthUnits(0.875f),
+            0,
+            1);
         Assert.Equal(relationshipChanged, KernelEvent.From(relationshipChanged).AsRelationshipChanged());
     }
 
@@ -131,12 +135,6 @@ public sealed class KernelEventPayloadTests
 
         var generatorEnabledChanged = new GeneratorEnabledChangedKernelEvent(17, 18, 19, 1);
         Assert.Equal(generatorEnabledChanged, KernelEvent.From(generatorEnabledChanged).AsGeneratorEnabledChanged());
-
-        var cellCreated = new CellCreatedKernelEvent(18, 19, 1, -1, 2, 3, 4, 5, 6, -2);
-        Assert.Equal(cellCreated, KernelEvent.From(cellCreated).AsCellCreated());
-
-        var cellChanged = new CellChangedKernelEvent(19, 20, 2, -2, 3, 4, 5, 6, 7, 8, 9, 1);
-        Assert.Equal(cellChanged, KernelEvent.From(cellChanged).AsCellChanged());
 
         var cellInfluenceChanged = new CellInfluenceChangedKernelEvent(
             20,
@@ -230,9 +228,6 @@ public sealed class KernelEventPayloadTests
     {
         var provenanceInvocationRecorded = new ProvenanceInvocationRecordedKernelEvent(21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31);
         Assert.Equal(provenanceInvocationRecorded, KernelEvent.From(provenanceInvocationRecorded).AsProvenanceInvocationRecorded());
-
-        var kernelStorageGrown = new KernelStorageGrownKernelEvent(22, 23, 24, 25, 26, 27, 28, 29);
-        Assert.Equal(kernelStorageGrown, KernelEvent.From(kernelStorageGrown).AsKernelStorageGrown());
 
         var trace = new TraceKernelEvent(
             23,

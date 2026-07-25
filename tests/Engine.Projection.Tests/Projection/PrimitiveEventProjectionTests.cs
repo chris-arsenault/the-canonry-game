@@ -75,7 +75,9 @@ public sealed class PrimitiveEventProjectionTests
             TargetEntityId: 100,
             RelationshipId: 12,
             PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.4f),
-            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f)))));
+            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f),
+            ActionId: 0,
+            IsActive: 0))));
 
         for (var i = 0; i < 200; i++)
         {
@@ -135,7 +137,7 @@ public sealed class PrimitiveEventProjectionTests
     }
 
     [Fact]
-    public void HexMapProjection_AppliesCellChangedAsRuntimeCellState()
+    public void HexMapProjection_AppliesMapCellStateChanged()
     {
         var log = new KernelEventLog(capacity: 4);
         var projection = new HexMapProjection();
@@ -144,20 +146,24 @@ public sealed class PrimitiveEventProjectionTests
             KernelEventCursorStart.EarliestAvailable,
             projection);
 
-        Assert.True(log.TryWrite(KernelEvent.From(new CellCreatedKernelEvent(
+        Assert.True(log.TryWrite(KernelEvent.From(new MapCellStateChangedKernelEvent(
             Tick: 0,
             WorldVersion: 1,
+            PlaneCode: PlaneCodes.Physical,
             Q: 1,
             R: -1,
             SourceCodeId: 5,
-            TerrainId: 10,
-            OwnerEntityId: 100,
+            PreviousTerrainId: 0,
+            CurrentTerrainId: 10,
+            PreviousOwnerEntityId: 0,
+            CurrentOwnerEntityId: 100,
             SuperregionId: 2,
             ContinentId: 1,
             Z: 0))));
-        Assert.True(log.TryWrite(KernelEvent.From(new CellChangedKernelEvent(
+        Assert.True(log.TryWrite(KernelEvent.From(new MapCellStateChangedKernelEvent(
             Tick: 2,
             WorldVersion: 2,
+            PlaneCode: PlaneCodes.Physical,
             Q: 1,
             R: -1,
             SourceCodeId: 6,
@@ -190,14 +196,17 @@ public sealed class PrimitiveEventProjectionTests
             KernelEventCursorStart.EarliestAvailable,
             projection);
 
-        Assert.True(log.TryWrite(KernelEvent.From(new CellCreatedKernelEvent(
+        Assert.True(log.TryWrite(KernelEvent.From(new MapCellStateChangedKernelEvent(
             Tick: 0,
             WorldVersion: 1,
+            PlaneCode: PlaneCodes.Physical,
             Q: 0,
             R: 0,
             SourceCodeId: 5,
-            TerrainId: 10,
-            OwnerEntityId: 100,
+            PreviousTerrainId: 0,
+            CurrentTerrainId: 10,
+            PreviousOwnerEntityId: 0,
+            CurrentOwnerEntityId: 100,
             SuperregionId: 3,
             ContinentId: 1,
             Z: 0))));
@@ -261,7 +270,7 @@ public sealed class PrimitiveEventProjectionTests
             KernelEventCursorStart.EarliestAvailable,
             projection);
 
-        WritePhysicalCellCreated(log, ownerEntityId: 100);
+        WritePhysicalMapCellCreated(log, ownerEntityId: 100);
         pump.DrainAvailable();
 
         var frameVersion = projection.FrameVersion;
@@ -371,7 +380,7 @@ public sealed class PrimitiveEventProjectionTests
             KernelEventCursorStart.EarliestAvailable,
             projection);
 
-        WritePhysicalCellCreated(log, ownerEntityId: 100);
+        WritePhysicalMapCellCreated(log, ownerEntityId: 100);
         pump.DrainAvailable();
 
         Assert.True(projection.TryGetHex(PlaneCodes.Physical, new HexCoord(0, 0), out var cell));
@@ -433,16 +442,19 @@ public sealed class PrimitiveEventProjectionTests
             State: KernelEventState.None))));
     }
 
-    private static void WritePhysicalCellCreated(KernelEventLog log, int ownerEntityId)
+    private static void WritePhysicalMapCellCreated(KernelEventLog log, int ownerEntityId)
     {
-        Assert.True(log.TryWrite(KernelEvent.From(new CellCreatedKernelEvent(
+        Assert.True(log.TryWrite(KernelEvent.From(new MapCellStateChangedKernelEvent(
             Tick: 0,
             WorldVersion: 1,
+            PlaneCode: PlaneCodes.Physical,
             Q: 0,
             R: 0,
             SourceCodeId: 5,
-            TerrainId: 10,
-            OwnerEntityId: ownerEntityId,
+            PreviousTerrainId: 0,
+            CurrentTerrainId: 10,
+            PreviousOwnerEntityId: 0,
+            CurrentOwnerEntityId: ownerEntityId,
             SuperregionId: 3,
             ContinentId: 1,
             Z: 0))));

@@ -85,12 +85,6 @@ public sealed class KernelExecutionContextTests
         Assert.Equal(2, changed.CurrentTerrainId);
         Assert.Equal(0, changed.PreviousOwnerEntityId);
         Assert.Equal(ownerEntityId, changed.CurrentOwnerEntityId);
-        Assert.True(simulation.Events.TryRead(cursor, out var legacyRead));
-        Assert.Equal(KernelProgramCodes.Generators, legacyRead.Event.ProgramId);
-        Assert.Equal(activeSourceCodeId, legacyRead.Event.SourceCodeId);
-        Assert.Equal(KernelEventType.CellChanged, legacyRead.Event.EventType);
-        var legacyChanged = legacyRead.Event.AsCellChanged();
-        Assert.Equal(activeSourceCodeId, legacyChanged.SourceCodeId);
         Assert.False(simulation.Events.TryRead(cursor, out _));
     }
 

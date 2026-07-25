@@ -6,7 +6,6 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
 {
     private readonly bool[] _active;
     private readonly int[] _actorKindCodes;
-    private readonly int[] _actionCodes;
     private readonly int[] _cultureIds;
     private readonly int[] _sourceEntityIds;
     private readonly int[] _sourceRuleIds;
@@ -16,7 +15,6 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
     private readonly int[] _expiresAtPulses;
     private readonly int[] _createdAtTicks;
     private readonly int[] _nextActionPulses;
-    private readonly int[] _moveChancePermille;
     private readonly int[] _actionCadencePulses;
     private readonly int[] _purposeCodes;
     private readonly FixedScalar[] _workDeltas;
@@ -28,7 +26,6 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
     private readonly int[] _dueHeapPositions;
     private readonly int[] _sourceActiveCounts;
     private readonly int[] _nextEmissionPulses;
-    private readonly int[] _sourceWorkTiers;
     private readonly int _sourceRuleStride;
     private int _freeActorCount;
     private int _dueHeapCount;
@@ -44,7 +41,6 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         ActorCapacity = actorCapacity;
         _active = new bool[actorCapacity + 1];
         _actorKindCodes = new int[actorCapacity + 1];
-        _actionCodes = new int[actorCapacity + 1];
         _cultureIds = new int[actorCapacity + 1];
         _sourceEntityIds = new int[actorCapacity + 1];
         _sourceRuleIds = new int[actorCapacity + 1];
@@ -54,7 +50,6 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         _expiresAtPulses = new int[actorCapacity + 1];
         _createdAtTicks = new int[actorCapacity + 1];
         _nextActionPulses = new int[actorCapacity + 1];
-        _moveChancePermille = new int[actorCapacity + 1];
         _actionCadencePulses = new int[actorCapacity + 1];
         _purposeCodes = new int[actorCapacity + 1];
         _workDeltas = new FixedScalar[actorCapacity + 1];
@@ -68,12 +63,11 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         var sourceStateLength = checked((sourceEntityCapacity + 1) * _sourceRuleStride);
         _sourceActiveCounts = new int[sourceStateLength];
         _nextEmissionPulses = new int[sourceStateLength];
-        _sourceWorkTiers = new int[sourceEntityCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.MinorActors;
 
-    public int SchemaVersion => 4;
+    public int SchemaVersion => 5;
 
     public int ActorCapacity { get; }
 
@@ -93,35 +87,10 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         return Pulse;
     }
 
-    public int WorkTier(int sourceEntityId) =>
-        (uint)sourceEntityId < (uint)_sourceWorkTiers.Length
-            ? _sourceWorkTiers[sourceEntityId]
-            : 0;
-
-    public int DecreaseWorkTier(int sourceEntityId)
-    {
-        EnsureSourceEntity(sourceEntityId);
-        var next = global::System.Math.Max(0, _sourceWorkTiers[sourceEntityId] - 1);
-        _sourceWorkTiers[sourceEntityId] = next;
-        return next;
-    }
-
-    public int IncreaseWorkTier(int sourceEntityId, int maxTier)
-    {
-        EnsureSourceEntity(sourceEntityId);
-        NumericGuard.ThrowIfNegative(maxTier);
-        var uncapped = _sourceWorkTiers[sourceEntityId] + 1;
-        var next = maxTier > 0 ? global::System.Math.Min(maxTier, uncapped) : uncapped;
-        _sourceWorkTiers[sourceEntityId] = next;
-        return next;
-    }
-
     public bool IsActive(int actorId) =>
         (uint)actorId < (uint)_active.Length && _active[actorId];
 
     public int ActorKindCode(int actorId) => ValueAt(_actorKindCodes, actorId);
-
-    public int ActionCode(int actorId) => ValueAt(_actionCodes, actorId);
 
     public int CultureId(int actorId) => ValueAt(_cultureIds, actorId);
 
@@ -143,8 +112,6 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
     public int CreatedAtTick(int actorId) => ValueAt(_createdAtTicks, actorId);
 
     public int NextActionPulse(int actorId) => ValueAt(_nextActionPulses, actorId);
-
-    public int MoveChancePermille(int actorId) => ValueAt(_moveChancePermille, actorId);
 
     public int ActionCadencePulses(int actorId) => ValueAt(_actionCadencePulses, actorId);
 
@@ -187,12 +154,10 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         int sourceEntityId,
         int sourceRuleId,
         int actorKindCode,
-        int actionCode,
         int planeCode,
         int q,
         int r,
         int ttlPulses,
-        int moveChancePermille,
         int actionCadencePulses,
         FixedScalar workDelta,
         int tick,
@@ -205,10 +170,8 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
             sourceRuleId,
             purposeCode,
             actorKindCode,
-            actionCode,
             planeCode,
             ttlPulses,
-            moveChancePermille,
             actionCadencePulses,
             workDelta,
             tick,
@@ -217,7 +180,6 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         var actorId = FindFreeActorSlot();
         _active[actorId] = true;
         _actorKindCodes[actorId] = actorKindCode;
-        _actionCodes[actorId] = actionCode;
         _cultureIds[actorId] = cultureId;
         _sourceEntityIds[actorId] = sourceEntityId;
         _sourceRuleIds[actorId] = sourceRuleId;
@@ -227,17 +189,13 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         _expiresAtPulses[actorId] = checked(pulse + ttlPulses - 1);
         _createdAtTicks[actorId] = tick;
         _nextActionPulses[actorId] = pulse;
-        _moveChancePermille[actorId] = moveChancePermille;
         _actionCadencePulses[actorId] = actionCadencePulses;
         _purposeCodes[actorId] = purposeCode;
         _workDeltas[actorId] = workDelta;
         AddActiveActor(actorId);
         Schedule(actorId);
         TotalSpawned++;
-        if (sourceEntityId > 0 && sourceRuleId > 0)
-        {
-            _sourceActiveCounts[SourceRuleIndex(sourceEntityId, sourceRuleId)]++;
-        }
+        _sourceActiveCounts[SourceRuleIndex(sourceEntityId, sourceRuleId)]++;
 
         return actorId;
     }
@@ -256,10 +214,7 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         _active[actorId] = false;
         _expiresAtPulses[actorId] = 0;
         TotalExpired++;
-        if (sourceEntityId > 0 && sourceRuleId > 0)
-        {
-            _sourceActiveCounts[SourceRuleIndex(sourceEntityId, sourceRuleId)]--;
-        }
+        _sourceActiveCounts[SourceRuleIndex(sourceEntityId, sourceRuleId)]--;
 
         _freeActorIds[_freeActorCount++] = actorId;
         return true;
@@ -447,7 +402,8 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
 
     private void EnsureSourceEntity(int sourceEntityId)
     {
-        if ((uint)sourceEntityId == 0u || sourceEntityId >= _sourceWorkTiers.Length)
+        if ((uint)sourceEntityId == 0u ||
+            sourceEntityId >= _sourceActiveCounts.Length / _sourceRuleStride)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(sourceEntityId));
         }
@@ -477,18 +433,16 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         int sourceRuleId,
         int purposeCode,
         int actorKindCode,
-        int actionCode,
         int planeCode,
         int ttlPulses,
-        int moveChancePermille,
         int actionCadencePulses,
         FixedScalar workDelta,
         int tick,
         int pulse)
     {
         NumericGuard.ThrowIfNegativeOrZero(cultureId);
-        NumericGuard.ThrowIfNegative(sourceEntityId);
-        NumericGuard.ThrowIfNegative(sourceRuleId);
+        NumericGuard.ThrowIfNegativeOrZero(sourceEntityId);
+        NumericGuard.ThrowIfNegativeOrZero(sourceRuleId);
         if (purposeCode is not (
                 MinorActorPurposeCodes.CulturalLabor or
                 MinorActorPurposeCodes.RoadLabor or
@@ -498,22 +452,12 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         }
 
         NumericGuard.ThrowIfNegativeOrZero(actorKindCode);
-        if (actionCode is not (
-                MinorActorActionCodes.CultureExpansion or
-                MinorActorActionCodes.RoadMaintenance or
-                MinorActorActionCodes.CultureCleanup or
-                MinorActorActionCodes.LifecycleMaintenance))
-        {
-            throw new global::System.ArgumentOutOfRangeException(nameof(actionCode));
-        }
-
         if (planeCode is not (Engine.Constants.PlaneCodes.Physical or Engine.Constants.PlaneCodes.Semantic))
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(planeCode));
         }
 
         NumericGuard.ThrowIfNegativeOrZero(ttlPulses);
-        NumericGuard.ThrowIfGreaterThan(moveChancePermille, 1000);
         NumericGuard.ThrowIfNegativeOrZero(actionCadencePulses);
         NumericGuard.ThrowIfNegative(workDelta);
         NumericGuard.ThrowIfNegative(tick);

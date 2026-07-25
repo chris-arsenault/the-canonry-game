@@ -19,11 +19,8 @@ public enum KernelEventType
     TickCompleted = 16,
     GeneratorEnabledChanged = 17,
     GambitEvaluated = 18,
-    CellCreated = 20,
-    CellChanged = 21,
     CellInfluenceChanged = 22,
     ProvenanceInvocationRecorded = 23,
-    KernelStorageGrown = 24,
     MapCellStateChanged = 25,
     CellRoadChanged = 26,
     CellTravelStructureChanged = 27,
@@ -49,7 +46,7 @@ public enum KernelEventState
     Failed = 1 << 4,
 }
 
-[KernelEventLayout(KernelEventType.EntityCreated, schemaMinor: 1)]
+[KernelEventLayout(KernelEventType.EntityCreated, schemaMinor: 3)]
 public readonly record struct EntityCreatedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -72,7 +69,25 @@ public readonly record struct EntityCreatedKernelEvent(
     [KernelEventIntSlot(8, "semantic_r", KernelEventSemanticKind.Coordinate)]
     int SemanticR,
     [KernelEventIntSlot(9, "semantic_s", KernelEventSemanticKind.Coordinate)]
-    int SemanticS);
+    int SemanticS,
+    [KernelEventIntSlot(10, "name_seed", KernelEventSemanticKind.Index)]
+    int NameSeed,
+    [KernelEventIntSlot(11, "physical_field_band_code", KernelEventSemanticKind.StatusCode)]
+    int PhysicalFieldBandCode = 0,
+    [KernelEventIntSlot(12, "physical_cell_kind_code", KernelEventSemanticKind.StatusCode)]
+    int PhysicalCellKindCode = 0,
+    [KernelEventIntSlot(13, "semantic_field_band_code", KernelEventSemanticKind.StatusCode)]
+    int SemanticFieldBandCode = 0,
+    [KernelEventIntSlot(14, "semantic_cell_kind_code", KernelEventSemanticKind.StatusCode)]
+    int SemanticCellKindCode = 0,
+    [KernelEventLongSlot(0, "physical_local_raw_mass_units", KernelEventSemanticKind.RawScalar)]
+    long PhysicalLocalRawMassUnits = 0,
+    [KernelEventLongSlot(1, "physical_connected_raw_mass_units", KernelEventSemanticKind.RawScalar)]
+    long PhysicalConnectedRawMassUnits = 0,
+    [KernelEventLongSlot(2, "semantic_local_raw_mass_units", KernelEventSemanticKind.RawScalar)]
+    long SemanticLocalRawMassUnits = 0,
+    [KernelEventLongSlot(3, "semantic_connected_raw_mass_units", KernelEventSemanticKind.RawScalar)]
+    long SemanticConnectedRawMassUnits = 0);
 
 [KernelEventLayout(KernelEventType.EntityStatusChanged, schemaMinor: 1)]
 public readonly record struct EntityStatusChangedKernelEvent(
@@ -210,7 +225,7 @@ public readonly record struct WorldBeatChangedKernelEvent(
     [KernelEventIntSlot(2, "phase_code", KernelEventSemanticKind.StatusCode)]
     int PhaseCode);
 
-[KernelEventLayout(KernelEventType.RelationshipChanged, schemaMinor: 4)]
+[KernelEventLayout(KernelEventType.RelationshipChanged, schemaMinor: 5)]
 public readonly partial record struct RelationshipChangedKernelEvent(
     int Tick,
     long WorldVersion,
@@ -233,7 +248,9 @@ public readonly partial record struct RelationshipChangedKernelEvent(
     [KernelEventIntSlot(9, "new_strength_units", KernelEventSemanticKind.Strength)]
     int NewStrengthUnits,
     [KernelEventIntSlot(7, "action_id", KernelEventSemanticKind.ActionId)]
-    int ActionId = 0);
+    int ActionId,
+    [KernelEventIntSlot(10, "is_active", KernelEventSemanticKind.Enabled)]
+    int IsActive);
 
 [KernelEventLayout(KernelEventType.GoalGenerated, schemaMinor: 0)]
 public readonly record struct GoalGeneratedKernelEvent(
@@ -407,52 +424,6 @@ public readonly record struct GambitEnabledChangedKernelEvent(
     int GambitId,
     [KernelEventIntSlot(1, "enabled", KernelEventSemanticKind.Enabled)]
     int Enabled);
-
-[KernelEventLayout(KernelEventType.CellCreated, schemaMinor: 3)]
-public readonly record struct CellCreatedKernelEvent(
-    int Tick,
-    long WorldVersion,
-    [KernelEventIntSlot(0, "q", KernelEventSemanticKind.Coordinate)]
-    int Q,
-    [KernelEventIntSlot(1, "r", KernelEventSemanticKind.Coordinate)]
-    int R,
-    [KernelEventIntSlot(2, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
-    int SourceCodeId,
-    [KernelEventIntSlot(3, "terrain_id", KernelEventSemanticKind.TerrainId)]
-    int TerrainId,
-    [KernelEventIntSlot(4, "owner_entity_id", KernelEventSemanticKind.EntityId)]
-    int OwnerEntityId,
-    [KernelEventIntSlot(5, "superregion_id", KernelEventSemanticKind.SuperregionId)]
-    int SuperregionId,
-    [KernelEventIntSlot(6, "continent_id", KernelEventSemanticKind.ContinentId)]
-    int ContinentId,
-    [KernelEventIntSlot(7, "z", KernelEventSemanticKind.Coordinate)]
-    int Z);
-
-[KernelEventLayout(KernelEventType.CellChanged, schemaMinor: 2)]
-public readonly record struct CellChangedKernelEvent(
-    int Tick,
-    long WorldVersion,
-    [KernelEventIntSlot(0, "q", KernelEventSemanticKind.Coordinate)]
-    int Q,
-    [KernelEventIntSlot(1, "r", KernelEventSemanticKind.Coordinate)]
-    int R,
-    [KernelEventIntSlot(2, "source_code_id", KernelEventSemanticKind.SourceCodeId)]
-    int SourceCodeId,
-    [KernelEventIntSlot(3, "previous_terrain_id", KernelEventSemanticKind.TerrainId)]
-    int PreviousTerrainId,
-    [KernelEventIntSlot(4, "current_terrain_id", KernelEventSemanticKind.TerrainId)]
-    int CurrentTerrainId,
-    [KernelEventIntSlot(5, "previous_owner_entity_id", KernelEventSemanticKind.EntityId)]
-    int PreviousOwnerEntityId,
-    [KernelEventIntSlot(6, "current_owner_entity_id", KernelEventSemanticKind.EntityId)]
-    int CurrentOwnerEntityId,
-    [KernelEventIntSlot(7, "superregion_id", KernelEventSemanticKind.SuperregionId)]
-    int SuperregionId,
-    [KernelEventIntSlot(8, "continent_id", KernelEventSemanticKind.ContinentId)]
-    int ContinentId,
-    [KernelEventIntSlot(9, "z", KernelEventSemanticKind.Coordinate)]
-    int Z);
 
 [KernelEventLayout(KernelEventType.CellInfluenceChanged, schemaMinor: 3)]
 public readonly record struct CellInfluenceChangedKernelEvent(
@@ -651,23 +622,6 @@ public readonly record struct ProvenanceInvocationRecordedKernelEvent(
     int TriggerId,
     [KernelEventIntSlot(8, "output_count", KernelEventSemanticKind.Count)]
     int OutputCount);
-
-[KernelEventLayout(KernelEventType.KernelStorageGrown, schemaMinor: 0)]
-public readonly record struct KernelStorageGrownKernelEvent(
-    int Tick,
-    long WorldVersion,
-    [KernelEventIntSlot(0, "storage_code", KernelEventSemanticKind.StorageCode)]
-    int StorageCode,
-    [KernelEventIntSlot(1, "reason_code", KernelEventSemanticKind.ReasonCodeId)]
-    int ReasonCode,
-    [KernelEventIntSlot(2, "high_watermark", KernelEventSemanticKind.Count)]
-    int HighWatermark,
-    [KernelEventIntSlot(3, "previous_capacity", KernelEventSemanticKind.Capacity)]
-    int PreviousCapacity,
-    [KernelEventIntSlot(4, "current_capacity", KernelEventSemanticKind.Capacity)]
-    int CurrentCapacity,
-    [KernelEventIntSlot(5, "threshold_permille", KernelEventSemanticKind.Threshold)]
-    int ThresholdPermille);
 
 [KernelEventLayout(KernelEventType.Trace, schemaMinor: 4)]
 public readonly record struct TraceKernelEvent(

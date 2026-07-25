@@ -162,7 +162,6 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("culture_field_cell_snapshots");
         ExportTable("culture_slot_occupancy_events");
         ExportTable("minor_actor_verb_events");
-        ExportTable("culture_field_component_snapshots");
         ExportTable("culture_power_snapshots");
         ExportTable("knowledge_snapshots");
         ExportTable("knowledge_claim_snapshots");
@@ -233,7 +232,6 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("culture_field_cell_snapshots", typeof(CultureFieldCellSnapshotRow));
         EnsureTable("culture_slot_occupancy_events", typeof(CultureSlotOccupancyEventRow));
         EnsureTable("minor_actor_verb_events", typeof(MinorActorVerbEventRow));
-        EnsureTable("culture_field_component_snapshots", typeof(CultureFieldComponentSnapshotRow));
         EnsureTable("culture_power_snapshots", typeof(CulturePowerSnapshotRow));
         EnsureTable("knowledge_snapshots", typeof(KnowledgeSnapshotRow));
         EnsureTable("knowledge_claim_snapshots", typeof(KnowledgeClaimSnapshotRow));
@@ -307,7 +305,6 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("culture_field_cell_snapshots", batch.CultureFieldCellSnapshots);
         AppendTable("culture_slot_occupancy_events", batch.CultureSlotOccupancyEvents);
         AppendTable("minor_actor_verb_events", batch.MinorActorVerbEvents);
-        AppendTable("culture_field_component_snapshots", batch.CultureFieldComponentSnapshots);
         AppendTable("culture_power_snapshots", batch.CulturePowerSnapshots);
         AppendTable("knowledge_snapshots", batch.KnowledgeSnapshots);
         AppendTable("knowledge_claim_snapshots", batch.KnowledgeClaimSnapshots);
@@ -584,7 +581,6 @@ internal static class TelemetryBatchExtensions
         batch.CultureFieldCellSnapshots.Count +
         batch.CultureSlotOccupancyEvents.Count +
         batch.MinorActorVerbEvents.Count +
-        batch.CultureFieldComponentSnapshots.Count +
         batch.CulturePowerSnapshots.Count +
         batch.KnowledgeSnapshots.Count +
         batch.KnowledgeClaimSnapshots.Count +
@@ -646,7 +642,6 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.CultureFieldCellSnapshots, source.CultureFieldCellSnapshots);
         AppendRows(destination.CultureSlotOccupancyEvents, source.CultureSlotOccupancyEvents);
         AppendRows(destination.MinorActorVerbEvents, source.MinorActorVerbEvents);
-        AppendRows(destination.CultureFieldComponentSnapshots, source.CultureFieldComponentSnapshots);
         AppendRows(destination.CulturePowerSnapshots, source.CulturePowerSnapshots);
         AppendRows(destination.KnowledgeSnapshots, source.KnowledgeSnapshots);
         AppendRows(destination.KnowledgeClaimSnapshots, source.KnowledgeClaimSnapshots);

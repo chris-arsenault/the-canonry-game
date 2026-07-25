@@ -85,6 +85,9 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
     private FixedScalar[] _ageWeightMultipliers = [];
     private int _affordanceCount;
     private int _traitWeightModifierCount;
+
+    internal int RuleCapacity => _kindIds.Length - 1;
+
     public LowAltitudeVerbProgramData(int ruleCapacity, int itemCapacity, int kindCapacity = 256)
     {
         NumericGuard.ThrowIfNegativeOrZero(ruleCapacity);

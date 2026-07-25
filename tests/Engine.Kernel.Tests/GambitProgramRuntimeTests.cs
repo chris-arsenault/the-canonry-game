@@ -103,7 +103,7 @@ public sealed class GambitProgramRuntimeTests
         Assert.Equal(0, recorded.ParentInvocationId);
         Assert.Equal(ProvenanceTriggerKindCodes.Entity, recorded.TriggerKindCode);
         Assert.Equal(entityId, recorded.TriggerId);
-        Assert.Equal(1, recorded.OutputCount);
+        Assert.Equal(0, recorded.OutputCount);
         Assert.Contains(events, evt =>
             evt.EventType == KernelEventType.GambitExecuted &&
             evt.ProvenanceInvocationId == recorded.InvocationId);
@@ -747,7 +747,7 @@ public sealed class GambitProgramRuntimeTests
         simulation.AdvanceTicks(1);
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(1, simulation.MinorActors.WorkTier(actor));
+        Assert.Equal(1, simulation.World.EntityWorkTier(actor));
     }
 
     [Fact]
@@ -778,7 +778,7 @@ public sealed class GambitProgramRuntimeTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(0, simulation.MinorActors.WorkTier(actor));
+        Assert.Equal(0, simulation.World.EntityWorkTier(actor));
     }
 
     [Fact]

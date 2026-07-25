@@ -672,7 +672,7 @@ internal sealed partial class GeneratorProgramRuntime
             return;
         }
 
-        _ = simulation.MinorActors.DecreaseWorkTier(bindingEntityId);
+        _ = simulation.World.DecreaseEntityWorkTier(bindingEntityId);
     }
 
     private void ApplyMapEffect(

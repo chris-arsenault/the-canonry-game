@@ -153,25 +153,6 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             WHERE FALSE
             """),
         new(
-            "culture_field_component_snapshots",
-            """
-            SELECT
-                CAST(NULL AS BIGINT) AS run_id,
-                CAST(NULL AS BIGINT) AS tick,
-                CAST(NULL AS BIGINT) AS plane_code,
-                CAST(NULL AS BIGINT) AS culture_id,
-                CAST(NULL AS BIGINT) AS influenced_cell_count,
-                CAST(NULL AS BIGINT) AS component_count,
-                CAST(NULL AS BIGINT) AS largest_component_cell_count,
-                CAST(NULL AS DOUBLE) AS largest_component_share,
-                CAST(NULL AS BIGINT) AS interior_cell_count,
-                CAST(NULL AS BIGINT) AS border_cell_count,
-                CAST(NULL AS BIGINT) AS isolated_cell_count,
-                CAST(NULL AS BIGINT) AS contested_cell_count,
-                CAST(NULL AS BIGINT) AS hole_cell_count
-            WHERE FALSE
-            """),
-        new(
             "culture_entity_birth_field_events",
             """
             SELECT

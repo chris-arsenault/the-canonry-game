@@ -27,7 +27,8 @@ public sealed class UiProjectionStateTests
             PhysicalR: 0,
             SemanticQ: 0,
             SemanticR: 0,
-            SemanticS: 0))));
+            SemanticS: 0,
+            NameSeed: 10))));
         Assert.True(log.TryWrite(KernelEvent.From(new EntityMovedKernelEvent(
             Tick: 2,
             WorldVersion: 2,
@@ -89,7 +90,8 @@ public sealed class UiProjectionStateTests
             PhysicalR: 0,
             SemanticQ: 0,
             SemanticR: 0,
-            SemanticS: 0))));
+            SemanticS: 0,
+            NameSeed: 10))));
         Assert.True(log.TryWrite(KernelEvent.From(new EntityStatusChangedKernelEvent(
             Tick: 2,
             WorldVersion: 2,
@@ -136,7 +138,8 @@ public sealed class UiProjectionStateTests
             PhysicalR: 0,
             SemanticQ: 0,
             SemanticR: 0,
-            SemanticS: 0))));
+            SemanticS: 0,
+            NameSeed: 10))));
         Assert.True(log.TryWrite(KernelEvent.From(new EntityCultureChangedKernelEvent(
             Tick: 2,
             WorldVersion: 2,
@@ -252,7 +255,7 @@ public sealed class UiProjectionStateTests
     }
 
     [Fact]
-    public void Projection_AttributesGeneratedEntitiesBySameTickFire()
+    public void Projection_AttributesGeneratedEntitiesByProvenanceInvocation()
     {
         var log = new KernelEventLog(capacity: 16);
         var projection = new UiProjectionState();
@@ -261,55 +264,88 @@ public sealed class UiProjectionStateTests
             KernelEventCursorStart.EarliestAvailable,
             projection);
 
-        Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
-            Tick: 4,
-            WorldVersion: 4,
-            EntityId: 30,
-            SourceCodeId: 40,
-            KindId: 2,
-            SubtypeId: 3,
-            CultureId: 4,
-            PhysicalQ: 0,
-            PhysicalR: 0,
-            SemanticQ: 0,
-            SemanticR: 0,
-            SemanticS: 0))));
-        Assert.True(log.TryWrite(KernelEvent.From(new GeneratorFiredKernelEvent(
-            Tick: 4,
-            WorldVersion: 5,
-            GeneratorId: 90,
-            TargetEntityId: 12,
-            CreatedEntityCount: 1,
-            CreatedRelationshipCount: 0))));
-        Assert.True(log.TryWrite(KernelEvent.From(new GeneratorFiredKernelEvent(
-            Tick: 5,
-            WorldVersion: 6,
-            GeneratorId: 91,
-            TargetEntityId: 13,
-            CreatedEntityCount: 1,
-            CreatedRelationshipCount: 0))));
-        Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
-            Tick: 5,
-            WorldVersion: 7,
-            EntityId: 31,
-            SourceCodeId: 40,
-            KindId: 2,
-            SubtypeId: 3,
-            CultureId: 4,
-            PhysicalQ: 1,
-            PhysicalR: 0,
-            SemanticQ: 1,
-            SemanticR: -1,
-            SemanticS: 0))));
+        WriteGeneratedEntity(log, invocationId: 17, tick: 4, entityId: 30, q: 0, r: 0);
+        WriteGeneratorFire(log, invocationId: 17, tick: 6, generatorId: 90, targetEntityId: 12);
+        WriteGeneratorInvocation(log, invocationId: 17, tick: 6, generatorId: 90, targetEntityId: 12);
+        WriteGeneratorFire(log, invocationId: 18, tick: 5, generatorId: 91, targetEntityId: 13);
+        WriteGeneratedEntity(log, invocationId: 18, tick: 7, entityId: 31, q: 1, r: 0);
+        WriteGeneratorInvocation(log, invocationId: 18, tick: 7, generatorId: 91, targetEntityId: 13);
 
         pump.DrainAvailable();
 
         Assert.Equal(90, projection.Entities[30].CreatedByGeneratorId);
-        Assert.Equal(4, projection.Entities[30].CreatedByGeneratorTick);
+        Assert.Equal(6, projection.Entities[30].CreatedByGeneratorTick);
         Assert.Equal(12, projection.Entities[30].CreatedByGeneratorTargetEntityId);
         Assert.Equal([30], projection.GeneratorFires[0].CreatedEntityIds);
         Assert.Equal(91, projection.Entities[31].CreatedByGeneratorId);
         Assert.Equal([31], projection.GeneratorFires[1].CreatedEntityIds);
+    }
+
+    private static void WriteGeneratedEntity(
+        KernelEventLog log,
+        int invocationId,
+        int tick,
+        int entityId,
+        int q,
+        int r)
+    {
+        Assert.True(log.TryWrite(WithProvenance(
+            KernelEvent.From(new EntityCreatedKernelEvent(
+                Tick: tick,
+                WorldVersion: tick,
+                EntityId: entityId,
+                SourceCodeId: 40,
+                KindId: 2,
+                SubtypeId: 3,
+                CultureId: 4,
+                PhysicalQ: q,
+                PhysicalR: r,
+                SemanticQ: q,
+                SemanticR: r,
+                SemanticS: -q - r,
+                NameSeed: entityId)),
+            invocationId)));
+    }
+
+    private static void WriteGeneratorFire(
+        KernelEventLog log,
+        int invocationId,
+        int tick,
+        int generatorId,
+        int targetEntityId)
+    {
+        Assert.True(log.TryWrite(WithProvenance(
+            KernelEvent.From(new GeneratorFiredKernelEvent(
+                Tick: tick,
+                WorldVersion: tick,
+                GeneratorId: generatorId,
+                TargetEntityId: targetEntityId,
+                CreatedEntityCount: 1,
+                CreatedRelationshipCount: 0)),
+            invocationId)));
+    }
+
+    private static void WriteGeneratorInvocation(
+        KernelEventLog log,
+        int invocationId,
+        int tick,
+        int generatorId,
+        int targetEntityId)
+    {
+        Assert.True(log.TryWrite(WithProvenance(
+            KernelEvent.From(new ProvenanceInvocationRecordedKernelEvent(
+                Tick: tick,
+                WorldVersion: tick,
+                InvocationId: invocationId,
+                ProducerKindCode: ProvenanceProducerKindCodes.Generator,
+                ProducerId: generatorId,
+                PrimaryEntityId: targetEntityId,
+                SecondaryEntityId: 0,
+                ParentInvocationId: 0,
+                TriggerKindCode: 0,
+                TriggerId: 0,
+                OutputCount: 1)),
+            invocationId)));
     }
 
     [Fact]
@@ -437,7 +473,8 @@ public sealed class UiProjectionStateTests
             PhysicalR: 0,
             SemanticQ: 0,
             SemanticR: 0,
-            SemanticS: 0))));
+            SemanticS: 0,
+            NameSeed: 10))));
     }
 
     private static void WriteVersionTestEntityMoved(KernelEventLog log)
@@ -471,7 +508,9 @@ public sealed class UiProjectionStateTests
             TargetEntityId: 11,
             RelationshipId: 12,
             PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f),
-            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(1f)))));
+            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(1f),
+            ActionId: 0,
+            IsActive: 1))));
     }
 
     private static void AssertBrowserInvalidation(
@@ -526,7 +565,8 @@ public sealed class UiProjectionStateTests
             PhysicalR: physicalR,
             SemanticQ: semanticQ,
             SemanticR: semanticR,
-            SemanticS: -semanticQ - semanticR))));
+            SemanticS: -semanticQ - semanticR,
+            NameSeed: entityId))));
     }
 
     private static void WriteEntityMoved(KernelEventLog log, int entityId, int fromQ, int fromR, int toQ, int toR)
@@ -581,7 +621,9 @@ public sealed class UiProjectionStateTests
             TargetEntityId: targetEntityId,
             RelationshipId: 12,
             PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f),
-            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(strength)))));
+            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(strength),
+            ActionId: 0,
+            IsActive: strength > 0 ? 1 : 0))));
     }
 
     private static void WritePrimitiveEntityAndMutationEvents(KernelEventLog log)
@@ -598,7 +640,8 @@ public sealed class UiProjectionStateTests
             PhysicalR: 6,
             SemanticQ: 1,
             SemanticR: -1,
-            SemanticS: 0))));
+            SemanticS: 0,
+            NameSeed: 10))));
         Assert.True(log.TryWrite(KernelEvent.From(new EntityMovedKernelEvent(
             Tick: 2,
             WorldVersion: 2,
@@ -654,7 +697,9 @@ public sealed class UiProjectionStateTests
             TargetEntityId: 21,
             RelationshipId: 22,
             PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f),
-            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.75f)))));
+            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.75f),
+            ActionId: 0,
+            IsActive: 1))));
         Assert.True(log.TryWrite(KernelEvent.From(new GeneratorEvaluatedKernelEvent(
             Tick: 3,
             WorldVersion: 3,
@@ -704,7 +749,8 @@ public sealed class UiProjectionStateTests
             PhysicalR: 0,
             SemanticQ: 0,
             SemanticR: 0,
-            SemanticS: 0))));
+            SemanticS: 0,
+            NameSeed: 1))));
         Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
             Tick: 2,
             WorldVersion: 2,
@@ -717,7 +763,8 @@ public sealed class UiProjectionStateTests
             PhysicalR: 0,
             SemanticQ: 0,
             SemanticR: 0,
-            SemanticS: 0))));
+            SemanticS: 0,
+            NameSeed: 2))));
 
         pump.DrainAvailable();
 
@@ -727,17 +774,10 @@ public sealed class UiProjectionStateTests
         Assert.True(projection.Entities.ContainsKey(2));
     }
 
-    [Fact]
-    public void Projection_ListsKnownFutureMigrationItems()
-    {
-        Assert.Contains(
-            UiProjectionState.FutureMigrationItems,
-            item => item.Area == "initial attributes");
-        Assert.Contains(
-            UiProjectionState.FutureMigrationItems,
-            item => item.Area == "generated entity attribution");
-        Assert.Contains(
-            UiProjectionState.FutureMigrationItems,
-            item => item.Area == "relationship removal semantics");
-    }
+    private static KernelEvent WithProvenance(KernelEvent kernelEvent, int invocationId) =>
+        kernelEvent.WithExecutionContext(
+            programId: 0,
+            sourceCodeId: 1,
+            provenanceInvocationId: invocationId);
+
 }

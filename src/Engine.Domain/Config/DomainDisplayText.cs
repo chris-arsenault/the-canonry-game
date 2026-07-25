@@ -1,6 +1,5 @@
 namespace Engine.Domain.Config;
 
-using Engine.Graph;
 using Engine.Kinds;
 
 public static class DomainDisplayText
@@ -12,12 +11,6 @@ public static class DomainDisplayText
 
         return config.Cultures.FirstOrDefault(c => string.Equals(c.Id, cultureId, StringComparison.Ordinal))?.DisplayName
             ?? cultureId;
-    }
-
-    public static string GetAttributeDisplayName(this DomainConfig config, Entity entity, string attributeName)
-    {
-        ArgumentNullException.ThrowIfNull(entity);
-        return config.GetAttributeDisplayName(entity.Kind, entity.Culture, attributeName);
     }
 
     public static string GetAttributeDisplayName(this DomainConfig config, EntityKind kind, string? cultureId, string attributeName)

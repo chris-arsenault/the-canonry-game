@@ -65,8 +65,8 @@ public sealed class KernelStartupSeedingTests
 
         Assert.Equal(created.World.CellTerrainId(1, -1), seeded.World.CellTerrainId(1, -1));
         Assert.Equal(created.World.CoverageOwnerAt(1, -1), seeded.World.CoverageOwnerAt(1, -1));
-        AssertEventTypes(created, createdCursor, KernelEventType.MapCellStateChanged, KernelEventType.CellCreated);
-        AssertEventTypes(seeded, seededCursor, KernelEventType.MapCellStateChanged, KernelEventType.CellCreated);
+        AssertEventTypes(created, createdCursor, KernelEventType.MapCellStateChanged);
+        AssertEventTypes(seeded, seededCursor, KernelEventType.MapCellStateChanged);
     }
 
     [Fact]

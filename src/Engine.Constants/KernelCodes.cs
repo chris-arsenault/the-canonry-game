@@ -880,32 +880,10 @@ public static class ProvenanceTriggerKindCodes
 public static class ProvenanceOutputKindCodes
 {
     public const int EntityCreated = 1;
-    public const int EntityStatusChanged = 2;
-    public const int EntityMoved = 3;
-    public const int AttributeChanged = 4;
-    public const int TraitAssigned = 5;
-    public const int EntityCultureChanged = 6;
     public const int RelationshipChanged = 7;
-    public const int CellChanged = 8;
-    public const int CellInfluenceChanged = 9;
-    public const int CellCultureInfluenceChanged = 10;
 }
 
 public static class KernelCapacityCodes
 {
-    public const int ProvenanceInvocation = 1;
-    public const int ProvenanceOutput = 2;
     public const int GeneratorTargetTerrainRequirement = 3;
-}
-
-public static class KernelStorageCodes
-{
-    public const int ProvenanceInvocation = KernelCapacityCodes.ProvenanceInvocation;
-    public const int ProvenanceOutput = KernelCapacityCodes.ProvenanceOutput;
-}
-
-public static class KernelStorageGrowthReasonCodes
-{
-    public const int Threshold = 1;
-    public const int Reserve = 2;
 }

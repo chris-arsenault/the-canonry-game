@@ -33,7 +33,10 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
         _chronicleCapacity = options.ChronicleCapacity;
         Data = new ChronicleProgramData();
         Data.Allocate(options.ChronicleArchetypeCapacity, options.ChronicleItemCapacity);
-        State = new ChronicleProgramState(options.ChronicleCapacity, options.ChronicleArchetypeCapacity);
+        State = new ChronicleProgramState(
+            options.ChronicleCapacity,
+            options.ChronicleArchetypeCapacity,
+            checked(options.EntityCapacity + options.GeneratorCapacity));
     }
 
     public ChronicleProgramData Data { get; }
@@ -77,9 +80,9 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
 
     private void NotePending(int kind, int actorId, int targetId, int producerId, bool succeeded)
     {
-        if (State.PendingCount >= ChronicleProgramState.PendingExecutionCapacity)
+        if (State.PendingCount >= State.PendingKinds.Length)
         {
-            return;
+            throw new global::System.InvalidOperationException();
         }
 
         State.PendingKinds[State.PendingCount] = kind;

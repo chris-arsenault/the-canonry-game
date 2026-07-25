@@ -12,28 +12,28 @@ public sealed partial class MinorActorProgramRuntimeTests
     private const int CultureVerbId = 101;
 
     [Fact]
-    public void Spawn_DoesNotCreateGraphEntity()
+    public void Spawn_DoesNotCreateAdditionalGraphEntity()
     {
         var simulation = new Simulation(new SimulationOptions { MinorActorCapacity = 8 });
+        SeedSourceEntity(simulation);
+        var rule = RegisterCultureExpansionEmitter(simulation);
 
         var actorId = simulation.MinorActors.Spawn(
             cultureId: 1,
-            sourceEntityId: 0,
-            sourceRuleId: 0,
+            sourceEntityId: SourceEntityId,
+            sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
             ttlPulses: 10,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(0f),
             tick: 0);
 
         Assert.Equal(1, actorId);
         Assert.Equal(1, simulation.MinorActors.State.ActiveCount);
-        Assert.Equal(0, simulation.World.EntityHighWatermark);
+        Assert.Equal(1, simulation.World.EntityHighWatermark);
     }
 
     [Fact]
@@ -45,26 +45,39 @@ public sealed partial class MinorActorProgramRuntimeTests
             KernelTuning = CultureInfluenceActionScaleTuning(1f),
         });
         simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
+        SeedSourceEntity(simulation);
+        simulation.ModifyCellCultureInfluenceRaw(
+            CultureId,
+            PlaneCodes.Physical,
+            0,
+            0,
+            FixedScalar.FromSingle(30f),
+            tick: 0);
+        var rule = RegisterCultureExpansionEmitter(simulation);
+        var before = simulation.World.GetCellCultureInfluenceRaw(
+            CultureId,
+            PlaneCodes.Physical,
+            0,
+            0);
         _ = simulation.MinorActors.Spawn(
             cultureId: 1,
-            sourceEntityId: 0,
-            sourceRuleId: 0,
+            sourceEntityId: SourceEntityId,
+            sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 2,
-            moveChancePermille: 0,
-            actionCadencePulses: 1,
+            ttlPulses: 10,
+            actionCadencePulses: 10,
             workDelta: FixedScalar.FromSingle(2f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(1);
 
-        Assert.Equal(FixedScalar.FromSingle(2f), simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
-        Assert.Equal(FixedScalar.FromSingle(2f), simulation.World.GetCellCultureLaborInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
-        Assert.Equal(0, simulation.World.EntityHighWatermark);
+        Assert.Equal(
+            (before + FixedScalar.FromSingle(2f)).Units,
+            simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0).Units);
+        Assert.Equal(1, simulation.World.EntityHighWatermark);
     }
 
     [Fact]
@@ -82,19 +95,28 @@ public sealed partial class MinorActorProgramRuntimeTests
             semanticQ: 0,
             semanticR: 0,
             semanticS: 0);
-        _ = simulation.MinorActors.RegisterEmitterRule(
+        var rule = simulation.MinorActors.RegisterEmitterRule(
             sourceKindId: 1,
             sourceSubtypeId: 0,
+            purposeCode: MinorActorPurposeCodes.CulturalLabor,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             ttlPulses: 4,
             emitCadencePulses: 1,
             maxActivePerSource: 1,
             spawnRadius: 0,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(0f));
+        _ = simulation.MinorActors.RegisterVerb(
+            rule,
+            CultureVerbId,
+            MinorActorActionCodes.CultureExpansion,
+            MinorActorVerbTargetingCodes.ReinforceHomeMass,
+            PlaneCodes.Physical,
+            radius: 1,
+            sampleCount: 8,
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
 
         _ = simulation.AdvanceTicks(1);
 
@@ -111,22 +133,31 @@ public sealed partial class MinorActorProgramRuntimeTests
         var rule = simulation.MinorActors.RegisterEmitterRule(
             sourceKindId: SourceKindId,
             sourceSubtypeId: 0,
+            purposeCode: MinorActorPurposeCodes.CulturalLabor,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             ttlPulses: 6,
             emitCadencePulses: 1,
             maxActivePerSource: 1,
             spawnRadius: 0,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(0f));
+        _ = simulation.MinorActors.RegisterVerb(
+            rule,
+            CultureVerbId,
+            MinorActorActionCodes.CultureExpansion,
+            MinorActorVerbTargetingCodes.ReinforceHomeMass,
+            PlaneCodes.Physical,
+            radius: 1,
+            sampleCount: 8,
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
 
         _ = simulation.AdvanceTicks(1);
         _ = simulation.AdvanceTicks(1);
         Assert.Equal(1, simulation.MinorActors.State.SourceActiveCount(SourceEntityId, rule));
 
-        Assert.Equal(1, simulation.MinorActors.IncreaseWorkTier(SourceEntityId, maxTier: 3));
+        Assert.Equal(1, simulation.World.IncreaseEntityWorkTier(SourceEntityId, maxTier: 3));
         _ = simulation.AdvanceTicks(1);
 
         Assert.Equal(2, simulation.MinorActors.State.SourceActiveCount(SourceEntityId, rule));
@@ -136,11 +167,12 @@ public sealed partial class MinorActorProgramRuntimeTests
     public void WorkTierCanIncreaseWithoutCap()
     {
         var simulation = new Simulation(new SimulationOptions { MinorActorCapacity = 8 });
+        SeedSourceEntity(simulation);
 
-        Assert.Equal(1, simulation.MinorActors.IncreaseWorkTier(SourceEntityId, maxTier: 0));
-        Assert.Equal(2, simulation.MinorActors.IncreaseWorkTier(SourceEntityId, maxTier: 0));
-        Assert.Equal(3, simulation.MinorActors.IncreaseWorkTier(SourceEntityId, maxTier: 3));
-        Assert.Equal(3, simulation.MinorActors.IncreaseWorkTier(SourceEntityId, maxTier: 3));
+        Assert.Equal(1, simulation.World.IncreaseEntityWorkTier(SourceEntityId, maxTier: 0));
+        Assert.Equal(2, simulation.World.IncreaseEntityWorkTier(SourceEntityId, maxTier: 0));
+        Assert.Equal(3, simulation.World.IncreaseEntityWorkTier(SourceEntityId, maxTier: 3));
+        Assert.Equal(3, simulation.World.IncreaseEntityWorkTier(SourceEntityId, maxTier: 3));
     }
 
     [Fact]
@@ -162,18 +194,16 @@ public sealed partial class MinorActorProgramRuntimeTests
             workDeltaMultiplier: FixedScalar.FromSingle(1f));
         simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 2, 0, FixedScalar.FromSingle(30f), tick: 0);
         var before = simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 2, 0);
-        Assert.Equal(1, simulation.MinorActors.IncreaseWorkTier(SourceEntityId, maxTier: 3));
+        Assert.Equal(1, simulation.World.IncreaseEntityWorkTier(SourceEntityId, maxTier: 3));
         _ = simulation.MinorActors.Spawn(
             cultureId: CultureId,
             sourceEntityId: SourceEntityId,
             sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 1,
             r: 0,
             ttlPulses: 4,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
@@ -193,34 +223,42 @@ public sealed partial class MinorActorProgramRuntimeTests
     public void SnapshotRoundTripsMinorActorStateAndRules()
     {
         var simulation = new Simulation(new SimulationOptions { MinorActorCapacity = 8 });
-        _ = simulation.MinorActors.RegisterEmitterRule(
+        var rule = simulation.MinorActors.RegisterEmitterRule(
             sourceKindId: 1,
             sourceSubtypeId: 0,
+            purposeCode: MinorActorPurposeCodes.CulturalLabor,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             ttlPulses: 4,
             emitCadencePulses: 1,
             maxActivePerSource: 1,
             spawnRadius: 0,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(0f));
+        _ = simulation.MinorActors.RegisterVerb(
+            rule,
+            CultureVerbId,
+            MinorActorActionCodes.CultureExpansion,
+            MinorActorVerbTargetingCodes.ReinforceHomeMass,
+            PlaneCodes.Physical,
+            radius: 1,
+            sampleCount: 8,
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
+        SeedSourceEntity(simulation);
         _ = simulation.MinorActors.Spawn(
             cultureId: 1,
-            sourceEntityId: 0,
-            sourceRuleId: 0,
+            sourceEntityId: SourceEntityId,
+            sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 2,
             r: -1,
             ttlPulses: 3,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(0f),
             tick: 0);
-        _ = simulation.MinorActors.IncreaseWorkTier(1, maxTier: 3);
+        _ = simulation.World.IncreaseEntityWorkTier(1, maxTier: 3);
         using var stream = new MemoryStream();
 
         KernelSnapshot.SaveKernelState(simulation, stream);
@@ -228,10 +266,11 @@ public sealed partial class MinorActorProgramRuntimeTests
         var loaded = KernelSnapshot.LoadKernelState(stream);
 
         Assert.Equal(1, loaded.MinorActors.Data.RuleCount);
+        Assert.Equal(1, loaded.MinorActors.Data.VerbCount);
         Assert.Equal(1, loaded.MinorActors.State.ActiveCount);
         Assert.Equal(2, loaded.MinorActors.State.Q(1));
         Assert.Equal(-1, loaded.MinorActors.State.R(1));
-        Assert.Equal(1, loaded.MinorActors.WorkTier(1));
+        Assert.Equal(1, loaded.World.EntityWorkTier(1));
     }
 
     [Fact]
@@ -296,12 +335,10 @@ public sealed partial class MinorActorProgramRuntimeTests
             sourceEntityId: SourceEntityId,
             sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
             ttlPulses: 4,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
@@ -348,12 +385,10 @@ public sealed partial class MinorActorProgramRuntimeTests
             sourceEntityId: SourceEntityId,
             sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
             ttlPulses: 4,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
@@ -396,12 +431,10 @@ public sealed partial class MinorActorProgramRuntimeTests
             sourceEntityId: SourceEntityId,
             sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
             ttlPulses: 4,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
@@ -448,12 +481,10 @@ public sealed partial class MinorActorProgramRuntimeTests
             sourceEntityId: SourceEntityId,
             sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
             ttlPulses: 40,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
@@ -500,12 +531,10 @@ public sealed partial class MinorActorProgramRuntimeTests
             sourceEntityId: SourceEntityId,
             sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
             ttlPulses: 4,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
@@ -521,6 +550,7 @@ public sealed partial class MinorActorProgramRuntimeTests
     {
         var simulation = CreateVerbSimulation(mainTickRatio: 1);
         SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 4);
+        SeedSourceEntity(simulation);
         var rule = RegisterCultureEmitter(simulation);
         _ = simulation.MinorActors.RegisterVerb(
             rule,
@@ -543,24 +573,22 @@ public sealed partial class MinorActorProgramRuntimeTests
         simulation.SetCellInfluence(foreignEntityA, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(12f), tick: 0);
         simulation.SetCellInfluence(foreignEntityB, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(9f), tick: 0);
         simulation.SetCellInfluence(ownEntity, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(8f), tick: 0);
-        simulation.ModifyCellCultureLaborInfluenceRaw(2, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(7f), tick: 0);
-        simulation.ModifyCellCultureLaborInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(6f), tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(2, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(7f), tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(6f), tick: 0);
         var foreignABefore = simulation.World.GetCellInfluence(foreignEntityA, PlaneCodes.Physical, 0, 0);
         var foreignBBefore = simulation.World.GetCellInfluence(foreignEntityB, PlaneCodes.Physical, 0, 0);
         var ownEntityBefore = simulation.World.GetCellInfluence(ownEntity, PlaneCodes.Physical, 0, 0);
-        var foreignLaborBefore = simulation.World.GetCellCultureLaborInfluenceRaw(2, PlaneCodes.Physical, 0, 0);
-        var ownLaborBefore = simulation.World.GetCellCultureLaborInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0);
+        var foreignCultureBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 0, 0);
+        var ownCultureBefore = simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0);
         _ = simulation.MinorActors.Spawn(
             cultureId: CultureId,
-            sourceEntityId: 0,
+            sourceEntityId: SourceEntityId,
             sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
             ttlPulses: 4,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
@@ -573,9 +601,9 @@ public sealed partial class MinorActorProgramRuntimeTests
         Assert.Equal(TraceStatusCodes.Selected, evt.StatusCode);
         Assert.True(simulation.World.GetCellInfluence(foreignEntityA, PlaneCodes.Physical, 0, 0) < foreignABefore);
         Assert.True(simulation.World.GetCellInfluence(foreignEntityB, PlaneCodes.Physical, 0, 0) < foreignBBefore);
-        Assert.True(simulation.World.GetCellCultureLaborInfluenceRaw(2, PlaneCodes.Physical, 0, 0) < foreignLaborBefore);
+        Assert.True(simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 0, 0) < foreignCultureBefore);
         Assert.Equal(ownEntityBefore, simulation.World.GetCellInfluence(ownEntity, PlaneCodes.Physical, 0, 0));
-        Assert.Equal(ownLaborBefore, simulation.World.GetCellCultureLaborInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(ownCultureBefore, simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0));
     }
 
     [Fact]
@@ -583,6 +611,7 @@ public sealed partial class MinorActorProgramRuntimeTests
     {
         var simulation = CreateVerbSimulation(mainTickRatio: 1);
         SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 4);
+        SeedSourceEntity(simulation);
         var rule = RegisterCultureEmitter(simulation);
         _ = simulation.MinorActors.RegisterVerb(
             rule,
@@ -598,15 +627,13 @@ public sealed partial class MinorActorProgramRuntimeTests
         var foreignBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 0, 0);
         _ = simulation.MinorActors.Spawn(
             cultureId: CultureId,
-            sourceEntityId: 0,
+            sourceEntityId: SourceEntityId,
             sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
             ttlPulses: 4,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
@@ -649,12 +676,10 @@ public sealed partial class MinorActorProgramRuntimeTests
             sourceEntityId: SourceEntityId,
             sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
             ttlPulses: 4,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(100f),
             tick: 0);
@@ -708,12 +733,10 @@ public sealed partial class MinorActorProgramRuntimeTests
             sourceEntityId: SourceEntityId,
             sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
             ttlPulses: 60,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
@@ -754,12 +777,10 @@ public sealed partial class MinorActorProgramRuntimeTests
             sourceEntityId: SourceEntityId,
             sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
             ttlPulses: 4,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(100f),
             tick: 0);
@@ -877,12 +898,10 @@ public sealed partial class MinorActorProgramRuntimeTests
             sourceEntityId: SourceEntityId,
             sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
             ttlPulses: 4,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(0f),
             tick: 0);
@@ -930,6 +949,11 @@ public sealed partial class MinorActorProgramRuntimeTests
             Programs = new KernelProgramTuningOptions
             {
                 CultureInfluenceActionScale = FixedScalar.FromSingle(scale),
+                CultureField = new CultureFieldTuningOptions
+                {
+                    DecayPerPulse = FixedScalar.Zero,
+                    MinimumDecayPerPulse = FixedScalar.Zero,
+                },
             },
         };
 
@@ -949,16 +973,31 @@ public sealed partial class MinorActorProgramRuntimeTests
         simulation.MinorActors.RegisterEmitterRule(
             sourceKindId: SourceKindId,
             sourceSubtypeId: 0,
+            purposeCode: MinorActorPurposeCodes.CulturalLabor,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             ttlPulses: 4,
             emitCadencePulses: 10,
             maxActivePerSource: 1,
             spawnRadius: 0,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(5f));
+
+    private static int RegisterCultureExpansionEmitter(Simulation simulation)
+    {
+        var rule = RegisterCultureEmitter(simulation);
+        _ = simulation.MinorActors.RegisterVerb(
+            rule,
+            CultureVerbId,
+            MinorActorActionCodes.CultureExpansion,
+            MinorActorVerbTargetingCodes.ReinforceHomeMass,
+            PlaneCodes.Physical,
+            radius: 1,
+            sampleCount: 8,
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
+        return rule;
+    }
 
     private static int RegisterRouteEmitter(Simulation simulation) =>
         simulation.MinorActors.RegisterEmitterRule(
@@ -966,13 +1005,11 @@ public sealed partial class MinorActorProgramRuntimeTests
             sourceSubtypeId: 0,
             purposeCode: MinorActorPurposeCodes.RoadLabor,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.RoadMaintenance,
             planeCode: PlaneCodes.Physical,
             ttlPulses: 4,
             emitCadencePulses: 10,
             maxActivePerSource: 1,
             spawnRadius: 0,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(5f));
 
@@ -982,12 +1019,10 @@ public sealed partial class MinorActorProgramRuntimeTests
             sourceEntityId: SourceEntityId,
             sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.RoadMaintenance,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
             ttlPulses: 4,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0,

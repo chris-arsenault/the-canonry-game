@@ -81,28 +81,6 @@ internal static class CultureInfluenceTestExtensions
         return world.MoveNextCultureInfluenceCell(ref cursor, out q, out r, out value);
     }
 
-    internal static void ModifyCellCultureLaborInfluenceRaw(
-        this Simulation simulation,
-        int cultureId,
-        int planeCode,
-        int q,
-        int r,
-        FixedScalar delta,
-        int tick)
-    {
-        simulation.ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, delta, tick);
-    }
-
-    internal static FixedScalar GetCellCultureLaborInfluenceRaw(
-        this WorldState world,
-        int cultureId,
-        int planeCode,
-        int q,
-        int r)
-    {
-        return world.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r);
-    }
-
     private readonly record struct InfluenceKey(int EntityId, int PlaneCode, int Q, int R);
 
     private sealed class InfluenceLedger

@@ -201,13 +201,20 @@ independently.
 
 ## Thread Discipline
 
-The default model is one sim writer thread.
+The current scheduler runs kernel phases on one thread. That is the simplest
+present execution strategy, not a permanent one-writer architecture rule.
+
+Any future parallel phase must give each mutable slot, relationship, or cell one
+exclusive owner for that phase. Cross-owner effects travel as bounded primitive
+deltas and become visible only after deterministic reduction at a published
+phase boundary. A phase may not read a field while another owner is mutating
+the version it sees.
 
 Allowed off-thread work:
 
 - UI formatting and debug trace building
 - log writing
-- Monte Carlo parquet/CSV export
+- Monte Carlo parquet export
 - batch analysis
 - profiler analysis
 - activity computation from immutable snapshots
@@ -215,14 +222,15 @@ Allowed off-thread work:
 
 Disallowed off-thread work:
 
-- mutating `WorldGraph`, entities, attributes, goals, relationships, or
-  cooldown state
+- concurrent mutation without explicit phase ownership
+- reading unpublished or concurrently mutating kernel state
 - retaining live engine object references from the sim thread
-- applying worker results without sim-thread validation
+- applying worker results without deterministic validation and reduction
 
-Cross-thread data must be primitive, immutable, and versioned. A worker may
-return `PlanIntent` records, but the sim thread decides whether the source world
-version is still current and whether the intent remains legal.
+Cross-thread data must be primitive, immutable, and versioned. In the current
+scheduler, the sim thread validates and applies returned intents. A future
+parallel scheduler may instead route them to the owning phase or shard, but
+must preserve the same explicit version, legality, and reduction contract.
 
 Async work belongs on the consumer side of the primitive event boundary. UI,
 logs, telemetry, profiler analysis, Monte Carlo export, debug trace building,
@@ -235,12 +243,13 @@ paced.
 Async activity workers are only desirable after the primitive event boundary is
 clean.
 
-Any future worker should use this shape:
+Any future derived-work worker should use this shape:
 
 1. Sim thread publishes an immutable primitive world/activity snapshot.
 2. Worker reads only that snapshot and immutable domain registries.
 3. Worker emits primitive activity intents.
-4. Sim thread validates source tick/version and applies or discards intents.
+4. The current sim thread, or the future explicit owner, validates source
+   tick/version and applies or discards intents.
 
 The worker must not read live entities or write activity state directly.
 

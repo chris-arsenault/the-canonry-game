@@ -14,8 +14,8 @@ analysis remains in parquet telemetry.
 - Low-altitude verbs: movement commitments, culture influence changes, coverage
   growth, work-tier growth, and headquarters moves when surfaced.
 - Relationship maintenance: significant relationship strength changes or culls.
-- Effects/upkeep/lifecycle: health changes, aging, death, collapse, historical
-  transitions.
+- Unified effects/lifecycle resolution: health changes, aging, death, collapse,
+  and historical transitions.
 - Gambits: declarations, betrayals, wielding, killing, relationship inversions.
 - Generators: created entity and relationship bundles, plus provenance links.
 

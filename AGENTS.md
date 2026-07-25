@@ -163,7 +163,10 @@ primitive kernel data. The kernel does not own domain strings or gameplay prose.
 
 `Engine.Kernel` must preserve the microkernel constraints: primitive event
 boundary, fixed-capacity state, no runtime strings, no hot-path allocations, no
-async/threading/I/O, and one sim writer thread.
+async or I/O, and deterministic explicit mutation ownership. The current
+single-threaded scheduler is an implementation state, not a permanent
+architecture constraint; future phase-owned or sharded mutation must use
+published boundaries, exclusive owners, and deterministic reduction.
 
 ## Memory Budget
 

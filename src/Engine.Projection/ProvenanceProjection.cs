@@ -5,8 +5,12 @@ using Engine.Eventing;
 
 public sealed class ProvenanceProjection : KernelEventProjector
 {
+    private const int RecentInvocationCapacity = 4096;
+    private const int RecentInvocationTrimCount = 1024;
+
     private readonly Dictionary<int, ProvenanceInvocationProjection> _invocations = [];
     private readonly Dictionary<int, List<ProvenanceOutputProjection>> _outputsByInvocation = [];
+    private readonly Dictionary<int, int> _invocationReferenceCounts = [];
     private readonly Dictionary<int, int> _entityCreatedByInvocation = [];
     private readonly Dictionary<int, int> _relationshipCreatedByInvocation = [];
     private readonly Dictionary<int, int> _relationshipLastChangedByInvocation = [];
@@ -17,6 +21,8 @@ public sealed class ProvenanceProjection : KernelEventProjector
     public IReadOnlyDictionary<int, ProvenanceInvocationProjection> Invocations => _invocations;
 
     public IReadOnlyList<ProvenanceInvocationProjection> InvocationsInProjectionOrder => _invocationsInProjectionOrder;
+
+    public long InvocationProjectionStartIndex { get; private set; }
 
     public long LastProjectedSequence { get; private set; } = -1;
 
@@ -49,53 +55,55 @@ public sealed class ProvenanceProjection : KernelEventProjector
             evt.KindId,
             ProvenanceOutputKindCodes.EntityCreated);
         _entityCreatedByInvocation[evt.EntityId] = _currentInvocationId;
+        AddInvocationReference(_currentInvocationId);
     }
 
     protected override void OnEntityStatusChanged(long sequence, in EntityStatusChangedKernelEvent evt)
     {
-        AddEntityOutput(sequence, evt.Tick, ProvenanceOutputKindCodes.EntityStatusChanged, evt.EntityId, evt.CurrentStatusCode);
-    }
+        if (evt.CurrentStatusCode == EntityStatusCodes.Active ||
+            !_entityCreatedByInvocation.Remove(evt.EntityId, out var invocationId))
+        {
+            return;
+        }
 
-    protected override void OnEntityMoved(long sequence, in EntityMovedKernelEvent evt)
-    {
-        AddEntityOutput(sequence, evt.Tick, ProvenanceOutputKindCodes.EntityMoved, evt.EntityId, evt.PlaneCode);
-    }
-
-    protected override void OnAttributeChanged(long sequence, in AttributeChangedKernelEvent evt)
-    {
-        AddEntityOutput(sequence, evt.Tick, ProvenanceOutputKindCodes.AttributeChanged, evt.EntityId, evt.AttributeId);
-    }
-
-    protected override void OnTraitAssigned(long sequence, in TraitAssignedKernelEvent evt)
-    {
-        AddEntityOutput(sequence, evt.Tick, ProvenanceOutputKindCodes.TraitAssigned, evt.EntityId, evt.TraitId);
+        RemoveInvocationReference(invocationId);
     }
 
     protected override void OnRelationshipChanged(long sequence, in RelationshipChangedKernelEvent evt)
     {
         if (_currentInvocationId == 0)
         {
+            if (evt.IsActive == 0)
+            {
+                RemoveRelationshipReferences(evt.RelationshipId);
+            }
             return;
         }
 
-        AddOutput(
-            sequence,
-            evt.Tick,
-            ProvenanceOutputKindCodes.RelationshipChanged,
-            evt.RelationshipId,
-            evt.SourceEntityId,
-            evt.TargetEntityId,
-            evt.RelationshipKindId,
-            evt.ChangeCodeId);
-
-        if (!_relationshipCreatedByInvocation.ContainsKey(evt.RelationshipId) &&
+        var created = !_relationshipCreatedByInvocation.ContainsKey(evt.RelationshipId) &&
             evt.PreviousStrengthUnits <= 0 &&
-            evt.NewStrengthUnits > 0)
+            evt.IsActive != 0;
+        if (created)
         {
             _relationshipCreatedByInvocation[evt.RelationshipId] = _currentInvocationId;
+            AddInvocationReference(_currentInvocationId);
+            AddOutput(
+                sequence,
+                evt.Tick,
+                ProvenanceOutputKindCodes.RelationshipChanged,
+                evt.RelationshipId,
+                evt.SourceEntityId,
+                evt.TargetEntityId,
+                evt.RelationshipKindId,
+                evt.ChangeCodeId);
         }
 
+        if (_relationshipLastChangedByInvocation.Remove(evt.RelationshipId, out var previousInvocationId))
+        {
+            RemoveInvocationReference(previousInvocationId);
+        }
         _relationshipLastChangedByInvocation[evt.RelationshipId] = _currentInvocationId;
+        AddInvocationReference(_currentInvocationId);
         _relationships[evt.RelationshipId] = new ProvenanceRelationshipProjection(
             evt.RelationshipId,
             evt.RelationshipKindId,
@@ -103,43 +111,27 @@ public sealed class ProvenanceProjection : KernelEventProjector
             evt.SourceEntityId,
             evt.TargetEntityId,
             KernelFixedPoint.RelationshipStrengthValue(evt.NewStrengthUnits),
-            evt.NewStrengthUnits > 0);
-    }
+            evt.IsActive != 0);
 
-    protected override void OnCellChanged(long sequence, in CellChangedKernelEvent evt)
-    {
-        if (_currentInvocationId == 0)
+        if (evt.IsActive != 0)
         {
             return;
         }
 
-        AddOutput(
-            sequence,
-            evt.Tick,
-            ProvenanceOutputKindCodes.CellChanged,
-            CoordinateKey(evt.Q, evt.R),
-            evt.CurrentOwnerEntityId,
-            0,
-            evt.CurrentTerrainId,
-            ProvenanceOutputKindCodes.CellChanged);
+        RemoveRelationshipReferences(evt.RelationshipId);
     }
 
-    protected override void OnCellInfluenceChanged(long sequence, in CellInfluenceChangedKernelEvent evt)
+    private void RemoveRelationshipReferences(int relationshipId)
     {
-        if (_currentInvocationId == 0)
+        _relationships.Remove(relationshipId);
+        if (_relationshipCreatedByInvocation.Remove(relationshipId, out var createdByInvocationId))
         {
-            return;
+            RemoveInvocationReference(createdByInvocationId);
         }
-
-        AddOutput(
-            sequence,
-            evt.Tick,
-            ProvenanceOutputKindCodes.CellInfluenceChanged,
-            CoordinateKey(evt.Q, evt.R),
-            evt.EntityId,
-            0,
-            evt.PlaneCode,
-            ProvenanceOutputKindCodes.CellInfluenceChanged);
+        if (_relationshipLastChangedByInvocation.Remove(relationshipId, out var lastChangedByInvocationId))
+        {
+            RemoveInvocationReference(lastChangedByInvocationId);
+        }
     }
 
     protected override void OnProvenanceInvocationRecorded(long sequence, in ProvenanceInvocationRecordedKernelEvent evt)
@@ -158,6 +150,12 @@ public sealed class ProvenanceProjection : KernelEventProjector
             evt.OutputCount);
         _invocations[evt.InvocationId] = invocation;
         _invocationsInProjectionOrder.Add(invocation);
+        if (_invocationReferenceCounts.GetValueOrDefault(evt.InvocationId) > 0 &&
+            evt.ParentInvocationId > 0)
+        {
+            AddInvocationReference(evt.ParentInvocationId);
+        }
+        TrimRecentInvocations();
     }
 
     public bool TryGetInvocation(int invocationId, out ProvenanceInvocationProjection invocation) =>
@@ -228,22 +226,77 @@ public sealed class ProvenanceProjection : KernelEventProjector
         return true;
     }
 
-    private void AddEntityOutput(long sequence, int tick, int outputKindCode, int entityId, int valueId)
+    private void AddInvocationReference(int invocationId)
     {
-        if (_currentInvocationId == 0)
+        if (invocationId <= 0)
         {
             return;
         }
 
-        AddOutput(
-            sequence,
-            tick,
-            outputKindCode,
-            entityId,
-            entityId,
-            0,
-            valueId,
-            outputKindCode);
+        var previous = _invocationReferenceCounts.GetValueOrDefault(invocationId);
+        _invocationReferenceCounts[invocationId] = previous + 1;
+        if (previous == 0 &&
+            _invocations.TryGetValue(invocationId, out var invocation) &&
+            invocation.ParentInvocationId > 0)
+        {
+            AddInvocationReference(invocation.ParentInvocationId);
+        }
+    }
+
+    private void RemoveInvocationReference(int invocationId)
+    {
+        if (!_invocationReferenceCounts.TryGetValue(invocationId, out var count))
+        {
+            return;
+        }
+
+        if (count > 1)
+        {
+            _invocationReferenceCounts[invocationId] = count - 1;
+            return;
+        }
+
+        _invocationReferenceCounts.Remove(invocationId);
+        if (_invocations.TryGetValue(invocationId, out var invocation) &&
+            invocation.ParentInvocationId > 0)
+        {
+            RemoveInvocationReference(invocation.ParentInvocationId);
+        }
+
+        TryPruneInvocation(invocationId);
+    }
+
+    private void TrimRecentInvocations()
+    {
+        if (_invocationsInProjectionOrder.Count <= RecentInvocationCapacity)
+        {
+            return;
+        }
+
+        var removedIds = new int[RecentInvocationTrimCount];
+        for (var index = 0; index < RecentInvocationTrimCount; index++)
+        {
+            removedIds[index] = _invocationsInProjectionOrder[index].InvocationId;
+        }
+        _invocationsInProjectionOrder.RemoveRange(0, RecentInvocationTrimCount);
+        InvocationProjectionStartIndex += RecentInvocationTrimCount;
+        foreach (var invocationId in removedIds)
+        {
+            TryPruneInvocation(invocationId);
+        }
+    }
+
+    private void TryPruneInvocation(int invocationId)
+    {
+        if (_invocationReferenceCounts.ContainsKey(invocationId) ||
+            _invocationsInProjectionOrder.Count == 0 ||
+            invocationId >= _invocationsInProjectionOrder[0].InvocationId)
+        {
+            return;
+        }
+
+        _invocations.Remove(invocationId);
+        _outputsByInvocation.Remove(invocationId);
     }
 
     private void AddOutput(
@@ -274,16 +327,6 @@ public sealed class ProvenanceProjection : KernelEventProjector
             changeCodeId));
     }
 
-    private static int CoordinateKey(int q, int r)
-    {
-        unchecked
-        {
-            var hash = (uint)q * 2654435761u;
-            hash ^= (uint)r * 2246822519u;
-            var value = (int)(hash & 2147483647u);
-            return value == 0 ? 1 : value;
-        }
-    }
 }
 
 public readonly record struct ProvenanceInvocationProjection(

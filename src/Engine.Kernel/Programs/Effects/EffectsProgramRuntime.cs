@@ -296,7 +296,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     // worker treadmill's holding job (docs/design/entity-stages.md).
     private static void ApplyStageAmbientEmission(Simulation simulation, WorldState world, int entityId, int kindId, int tick)
     {
-        var stageRule = world.StageRuleFor(kindId, simulation.MinorActors.WorkTier(entityId));
+        var stageRule = world.StageRuleFor(kindId, world.EntityWorkTier(entityId));
         var emission = world.StageAmbientEmission(stageRule);
         if (emission <= 0)
         {
@@ -560,13 +560,13 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     // when the cell is over capacity (crowding load owns that regime).
     private static FixedScalar SolitudeSignal(Simulation simulation, int entityId, int planeCode)
     {
-        if (simulation.Locality.EntityCrowdingLoad(simulation, entityId, planeCode) > 0)
+        var crowding = simulation.Locality.EntityCrowding(simulation, entityId, planeCode);
+        if (crowding.Load > 0)
         {
             return 0;
         }
 
-        var comfort = simulation.Locality.EntityCrowdingComfort(simulation, entityId, planeCode);
-        return comfort >= 1 ? 0 : 1 - comfort;
+        return crowding.Comfort >= 1 ? 0 : 1 - crowding.Comfort;
     }
 
     private FixedScalar OwnCultureInfluenceEvidence(WorldState world, int entityId, int rule)
@@ -821,7 +821,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     private static FixedScalar StageLifespanMultiplier(Simulation simulation, int entityId, int kindId)
     {
         var world = simulation.World;
-        var stageRule = world.StageRuleFor(kindId, simulation.MinorActors.WorkTier(entityId));
+        var stageRule = world.StageRuleFor(kindId, world.EntityWorkTier(entityId));
         var multiplier = world.StageBandMultiplier(stageRule);
         return multiplier <= 0 ? 1 : multiplier;
     }

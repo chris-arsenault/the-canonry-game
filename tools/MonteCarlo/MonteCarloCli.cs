@@ -212,8 +212,7 @@ internal static class MonteCarloCli
 
         using var summaryRecorder = new MonteCarloRunSummaryRecorder(run);
         using var stateRecorder = CreateStateRecorder(run, options, runId, seed);
-        var localityBirthEntityIds = new HashSet<int>();
-        RecordStateSnapshots(run, stateRecorder, run.Host.CurrentTick, options, localityBirthEntityIds);
+        RecordStateSnapshots(run, stateRecorder, run.Host.CurrentTick, options);
 
         var rowsWritten = 0L;
         var elapsed = Stopwatch.StartNew();
@@ -223,7 +222,6 @@ internal static class MonteCarloCli
             summaryRecorder,
             stateRecorder,
             stateStore,
-            localityBirthEntityIds,
             seed,
             ref rowsWritten);
         var summary = summaryRecorder.Snapshot();
@@ -294,7 +292,6 @@ internal static class MonteCarloCli
         MonteCarloRunSummaryRecorder summaryRecorder,
         KernelTelemetryRecorder stateRecorder,
         BufferedDuckDbTelemetryWriter stateStore,
-        ISet<int> localityBirthEntityIds,
         int seed,
         ref long rowsWritten)
     {
@@ -311,7 +308,7 @@ internal static class MonteCarloCli
             processedTicks += advanced;
             var currentTick = run.Host.CurrentTick;
             summaryRecorder.DrainAvailable();
-            RecordStateSnapshots(run, stateRecorder, currentTick, options, localityBirthEntityIds);
+            RecordStateSnapshots(run, stateRecorder, currentTick, options);
             rowsWritten += FlushStateTelemetryIfNeeded(stateRecorder, stateStore);
             rowsWritten += RunWindowActions(run, options, stateRecorder, stateStore, progress, seed, currentTick);
         }
@@ -414,12 +411,10 @@ internal static class MonteCarloCli
         MonteCarloKernelRun run,
         KernelTelemetryRecorder recorder,
         int tick,
-        MonteCarloOptions options,
-        ISet<int> localityBirthEntityIds)
+        MonteCarloOptions options)
     {
         var includeEntities = IncludeEntitySnapshot(options, tick);
         recorder.RecordSnapshots(tick, includeEntities);
-        run.Host.RecordCultureLocalityBirthTelemetry(recorder.Batch, recorder.RunId, localityBirthEntityIds);
         if (ShouldRecordSnapshot(tick, options.EntitySnapshotCadence))
         {
             run.Host.RecordCultureLocalityTelemetry(recorder.Batch, recorder.RunId, tick, includeEntities);
@@ -491,7 +486,6 @@ internal static class MonteCarloCli
         batch.CultureFieldCellSnapshots.Count +
         batch.CultureSlotOccupancyEvents.Count +
         batch.MinorActorVerbEvents.Count +
-        batch.CultureFieldComponentSnapshots.Count +
         batch.CulturePowerSnapshots.Count +
         batch.EntityTagEvents.Count +
         batch.CultureEntityFieldSnapshots.Count +

@@ -6,11 +6,6 @@ using Engine.Constants;
 using Engine.Eventing;
 using Engine.Projection;
 
-internal sealed record ObservabilityProjectionMigrationItem(
-    string Area,
-    string RequiredPrimitiveSource,
-    string Reason);
-
 internal sealed partial class TelemetryEventProjection : KernelEventProjector
 {
     private readonly int _runId;
@@ -22,9 +17,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     private readonly Dictionary<int, GeneratorStateProjection> _generatorStates = [];
     private readonly HashSet<int> _recordedMapSnapshotTicks = [];
     private readonly HashSet<int> _recordedGeneratorSnapshotTicks = [];
-    private readonly Dictionary<int, Queue<PendingCreatedEntity>> _unassignedCreatedEntitiesByTick = [];
+    private readonly Dictionary<int, List<PendingCreatedEntity>> _createdEntitiesByInvocation = [];
     private readonly HashSet<int> _exportedEntityNameSymbols = [];
-    private readonly List<PendingGeneratorFire> _pendingGeneratorFires = [];
     private readonly Dictionary<KindSnapshotKey, KindSnapshotAccumulator> _kindSnapshotAccumulators = [];
     private readonly List<KindSnapshotKey> _kindSnapshotKeys = [];
     private readonly Dictionary<int, RelationshipSnapshotAccumulator> _relationshipSnapshotAccumulators = [];
@@ -54,18 +48,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         _symbols = symbols;
     }
 
-    public static IReadOnlyList<ObservabilityProjectionMigrationItem> FutureMigrationItems { get; } =
-    [
-        new(
-            "generated entity attribution",
-            "generator-fired event payload listing created entity IDs or creation-cause IDs on EntityCreated",
-            "GeneratedEntityRow is inferred by matching EntityCreated events on the same tick until the kernel emits explicit attribution."),
-        new(
-            "entity display name seeds",
-            "entity-created name seed or startup entity-name snapshot",
-            "EntityCreatedKernelEvent carries identity IDs but not the stable user-space name seed.")
-    ];
-
     public IReadOnlyDictionary<int, ObservedEntityProjection> Entities =>
         new ReadOnlyDictionary<int, ObservedEntityProjection>(_entities);
 
@@ -88,6 +70,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     {
         DroppedEvents += droppedEventCount;
         LastProjectedSequence = Math.Max(LastProjectedSequence, nextSequence - 1);
+        _createdEntitiesByInvocation.Clear();
     }
 
     protected override void OnProjectingEvent(in SequencedKernelEvent kernelEvent)
@@ -272,7 +255,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         entity.KindId = evt.KindId;
         entity.SubtypeId = evt.SubtypeId;
         entity.CultureId = evt.CultureId;
-        entity.NameSeed = evt.EntityId;
+        entity.NameSeed = evt.NameSeed;
         entity.StatusCode = EntityStatusCodes.Active;
         entity.PhysicalQ = evt.PhysicalQ;
         entity.PhysicalR = evt.PhysicalR;
@@ -300,6 +283,22 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.SemanticQ,
             evt.SemanticR,
             evt.SemanticS));
+        if (evt.CultureId > 0)
+        {
+            _batch.CultureEntityBirthFieldEvents.Add(new CultureEntityBirthFieldEventRow(
+                _runId,
+                evt.Tick,
+                evt.EntityId,
+                evt.CultureId,
+                evt.PhysicalFieldBandCode,
+                evt.PhysicalCellKindCode,
+                FixedScalar.FromUnits(evt.PhysicalLocalRawMassUnits).ToSingle(),
+                FixedScalar.FromUnits(evt.PhysicalConnectedRawMassUnits).ToSingle(),
+                evt.SemanticFieldBandCode,
+                evt.SemanticCellKindCode,
+                FixedScalar.FromUnits(evt.SemanticLocalRawMassUnits).ToSingle(),
+                FixedScalar.FromUnits(evt.SemanticConnectedRawMassUnits).ToSingle()));
+        }
 
         TrackCreatedEntityForGeneratorAttribution(evt);
         MarkProjected(sequence);
@@ -461,7 +460,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.ChangeCodeId,
             evt.PolarityCode,
             newStrength,
-            evt.NewStrengthUnits > 0,
+            evt.IsActive != 0,
             evt.Tick,
             evt.WorldVersion);
 
@@ -478,58 +477,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             newStrength,
             evt.ActionId,
             _currentProvenanceInvocationId));
-        MarkProjected(sequence);
-    }
-
-    protected override void OnCellCreated(long sequence, in CellCreatedKernelEvent evt)
-    {
-        var key = new ObservedMapCellKey(PlaneCodes.Physical, evt.Q, evt.R, evt.Z);
-        if (!_mapCells.ContainsKey(key))
-        {
-            RecordMapCellState(
-                evt.Tick,
-                evt.WorldVersion,
-                (int)KernelEventType.CellCreated,
-                evt.SourceCodeId,
-                PlaneCodes.Physical,
-                evt.Q,
-                evt.R,
-                evt.SuperregionId,
-                evt.ContinentId,
-                previousTerrainId: 0,
-                evt.TerrainId,
-                previousOwnerEntityId: 0,
-                evt.OwnerEntityId,
-                evt.Z);
-        }
-
-        MarkProjected(sequence);
-    }
-
-    protected override void OnCellChanged(long sequence, in CellChangedKernelEvent evt)
-    {
-        var key = new ObservedMapCellKey(PlaneCodes.Physical, evt.Q, evt.R, evt.Z);
-        if (!_mapCells.TryGetValue(key, out var cell) ||
-            cell.TerrainId != evt.CurrentTerrainId ||
-            cell.OwnerEntityId != evt.CurrentOwnerEntityId)
-        {
-            RecordMapCellState(
-                evt.Tick,
-                evt.WorldVersion,
-                (int)KernelEventType.CellChanged,
-                evt.SourceCodeId,
-                PlaneCodes.Physical,
-                evt.Q,
-                evt.R,
-                evt.SuperregionId,
-                evt.ContinentId,
-                evt.PreviousTerrainId,
-                evt.CurrentTerrainId,
-                evt.PreviousOwnerEntityId,
-                evt.CurrentOwnerEntityId,
-                evt.Z);
-        }
-
         MarkProjected(sequence);
     }
 
@@ -753,12 +700,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
                 PlacementEventId: 0));
         }
 
-        if (evt.CreatedEntityCount > 0)
-        {
-            _pendingGeneratorFires.Add(new PendingGeneratorFire(evt.Tick, evt.GeneratorId, causeId, evt.CreatedEntityCount));
-            AssignGeneratedEntities(evt.Tick);
-        }
-
         MarkProjected(sequence);
     }
 
@@ -951,13 +892,20 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
     private void TrackCreatedEntityForGeneratorAttribution(in EntityCreatedKernelEvent evt)
     {
-        if (!_unassignedCreatedEntitiesByTick.TryGetValue(evt.Tick, out var createdEntities))
+        if (_currentProvenanceInvocationId <= 0)
         {
-            createdEntities = [];
-            _unassignedCreatedEntitiesByTick[evt.Tick] = createdEntities;
+            return;
         }
 
-        createdEntities.Enqueue(new PendingCreatedEntity(
+        if (!_createdEntitiesByInvocation.TryGetValue(
+                _currentProvenanceInvocationId,
+                out var createdEntities))
+        {
+            createdEntities = [];
+            _createdEntitiesByInvocation[_currentProvenanceInvocationId] = createdEntities;
+        }
+
+        createdEntities.Add(new PendingCreatedEntity(
             evt.EntityId,
             evt.KindId,
             evt.SubtypeId,
@@ -967,41 +915,41 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.SemanticQ,
             evt.SemanticR,
             evt.SemanticS));
-        AssignGeneratedEntities(evt.Tick);
     }
 
-    private void AssignGeneratedEntities(int tick)
+    protected override void OnProvenanceInvocationRecorded(
+        long sequence,
+        in ProvenanceInvocationRecordedKernelEvent evt)
     {
-        if (!_unassignedCreatedEntitiesByTick.TryGetValue(tick, out var createdEntities))
+        if (evt.ProducerKindCode != ProvenanceProducerKindCodes.Generator ||
+            !_createdEntitiesByInvocation.Remove(evt.InvocationId, out var createdEntities))
         {
+            MarkProjected(sequence);
             return;
         }
 
-        foreach (var pending in _pendingGeneratorFires.Where(pending => pending.Tick == tick && pending.Remaining > 0))
+        foreach (var entity in createdEntities)
         {
-            while (pending.Remaining > 0 && createdEntities.Count > 0)
-            {
-                var entity = createdEntities.Dequeue();
-                RecordGeneratedEntity(tick, pending, entity);
-                pending.Remaining--;
-            }
+            RecordGeneratedEntity(
+                evt.Tick,
+                evt.ProducerId,
+                evt.InvocationId,
+                entity);
         }
-
-        if (createdEntities.Count == 0)
-        {
-            _unassignedCreatedEntitiesByTick.Remove(tick);
-        }
-
-        _pendingGeneratorFires.RemoveAll(pending => pending.Remaining == 0);
+        MarkProjected(sequence);
     }
 
-    private void RecordGeneratedEntity(int tick, PendingGeneratorFire pending, PendingCreatedEntity entity)
+    private void RecordGeneratedEntity(
+        int tick,
+        int generatorId,
+        int causeId,
+        PendingCreatedEntity entity)
     {
         RegisterEntityNameSymbol(GetOrCreateEntity(entity.EntityId));
         _batch.GeneratedEntities.Add(new GeneratedEntityRow(
             _runId,
             tick,
-            pending.GeneratorId,
+            generatorId,
             entity.EntityId,
             entity.KindId,
             entity.SubtypeId,
@@ -1014,8 +962,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         _batch.GeneratorOutputs.Add(new GeneratorOutputRow(
             _runId,
             tick,
-            pending.CauseId,
-            pending.GeneratorId,
+            causeId,
+            generatorId,
             OutputDomainCode: 1,
             entity.EntityId,
             OutputRelationshipKindId: 0,
@@ -1024,10 +972,10 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             entity.PhysicalQ,
             entity.PhysicalR,
             OutputS: 0,
-            pending.CauseId));
+            causeId));
         AddPlacementEvent(
             tick,
-            pending.CauseId,
+            causeId,
             entity.EntityId,
             PlaneCodes.Physical,
             entity.PhysicalQ,
@@ -1035,7 +983,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             -entity.PhysicalQ - entity.PhysicalR);
         AddPlacementEvent(
             tick,
-            pending.CauseId,
+            causeId,
             entity.EntityId,
             PlaneCodes.Semantic,
             entity.SemanticQ,

@@ -120,9 +120,10 @@ facts where actors work. It does not create named entities or declare major
 story outcomes.
 
 Minor actors are the low-salience labor layer. They are unnamed cohorts stored
-inside a kernel program, not graph entities. They act more frequently than the
-main graph cadence and do bounded local work for their source entity and
-culture.
+inside a kernel program, not graph entities. Every cohort belongs to an active
+named source and executes one of that source rule's authored verbs; it retires
+when its source retires. Direct source-kind, source-rule, active-slot, and due
+indexes keep their frequent local culture, road, and lifecycle work bounded.
 
 Gambits are high-stakes entity actions. A gambit has an actor, target, intrinsic
 success criteria, and effects such as creating or changing relationships. A
@@ -206,10 +207,11 @@ programs:
 - `Relationships`: existing relationship strength drift and culling.
 - `Effects`: one per-entity resolution stage for relationship and locality
   effects, district healing, lifecycle drain, and retirement.
-- `MinorActors`: unnamed individual workers that maintain culture, roads, and
-  source lifecycle without adding graph nodes.
-- `Knowledge`: slow claim recomputation and culture-scoped modifiers derived
-  from authored semantic-map sites.
+- `MinorActors`: unnamed individual workers that execute source-authored verbs
+  for culture, roads, and source lifecycle without adding graph nodes.
+- `Knowledge`: culture-scoped claims and modifiers derived from authored
+  semantic-map sites, recomputed only when that culture's relevant state
+  revision changes.
 
 The current default tick order is:
 

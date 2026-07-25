@@ -100,7 +100,7 @@ internal sealed partial class GambitProgramRuntime
             return false;
         }
 
-        _ = simulation.MinorActors.IncreaseWorkTier(entityId, _stepA[step]);
+        _ = simulation.World.IncreaseEntityWorkTier(entityId, _stepA[step]);
         return true;
     }
 
@@ -239,7 +239,7 @@ internal sealed partial class GambitProgramRuntime
         }
 
         var capacity = world.StageDistrictCapacity(
-            world.StageRuleFor(world.EntityKindId(targetId), simulation.MinorActors.WorkTier(targetId)));
+            world.StageRuleFor(world.EntityKindId(targetId), world.EntityWorkTier(targetId)));
         if (capacity > 0 && world.ActiveDistrictCount(targetId) >= capacity)
         {
             return true;
@@ -298,7 +298,7 @@ internal sealed partial class GambitProgramRuntime
             case BehaviorOperationCodes.ReawakenDistrict:
                 return ExecuteDistrictStep(simulation, world, entityId, targetId, step, operationCode);
             case BehaviorOperationCodes.DemoteStage:
-                _ = simulation.MinorActors.DecreaseWorkTier(
+                _ = world.DecreaseEntityWorkTier(
                     EndpointEntityId(entityId, targetId, _stepB[step]));
                 return true;
             case BehaviorOperationCodes.SetStatus:

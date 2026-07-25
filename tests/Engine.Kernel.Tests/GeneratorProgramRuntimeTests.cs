@@ -524,7 +524,7 @@ public sealed class GeneratorProgramRuntimeTests
     }
 
     [Fact]
-    public void Fire_WithProducedCoverage_EmitsCellChangedForClaimedCells()
+    public void Fire_WithProducedCoverage_EmitsMapCellStateChangedForClaimedCells()
     {
         var simulation = CreateSimulation();
         SeedMap(simulation);
@@ -558,8 +558,8 @@ public sealed class GeneratorProgramRuntimeTests
 
         var created = simulation.World.EntityHighWatermark;
         var cellChanges = ReadAvailableEvents(simulation, cursor)
-            .Where(evt => evt.EventType == KernelEventType.CellChanged)
-            .Select(evt => evt.AsCellChanged())
+            .Where(evt => evt.EventType == KernelEventType.MapCellStateChanged)
+            .Select(evt => evt.AsMapCellStateChanged())
             .ToArray();
         Assert.NotEmpty(cellChanges);
         Assert.All(cellChanges, evt =>

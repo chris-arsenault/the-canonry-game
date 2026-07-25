@@ -3,10 +3,8 @@ namespace Engine.Kernel;
 internal sealed partial class LowAltitudeVerbProgramRuntime :
     IKernelProgramRuntime<LowAltitudeVerbProgramData, LowAltitudeVerbProgramState>
 {
-    private const int VerbBucketCapacity = 64;
-
-    private readonly VerbTargetCandidate[] _verbCandidateScratch = new VerbTargetCandidate[VerbBucketCapacity];
-    private readonly FixedScalar[] _verbAffordanceSumScratch = new FixedScalar[VerbBucketCapacity];
+    private readonly VerbTargetCandidate[] _verbCandidateScratch;
+    private readonly FixedScalar[] _verbAffordanceSumScratch;
 
     public LowAltitudeVerbProgramRuntime(LowAltitudeVerbProgramData data, LowAltitudeVerbProgramState state)
         : this(data, state, new KernelProgramTuningOptions())
@@ -24,6 +22,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         Data = data;
         State = state;
         Tuning = tuning;
+        _verbCandidateScratch = new VerbTargetCandidate[data.RuleCapacity];
+        _verbAffordanceSumScratch = new FixedScalar[data.RuleCapacity];
     }
 
     public LowAltitudeVerbProgramData Data { get; }
@@ -369,7 +369,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         var kindId = simulation.World.EntityKindId(entityId);
         var traceIntentId = State.NextIntentId();
         for (var rule = Data.FirstRuleForKind(kindId);
-             rule > 0 && bucket.VerbCount < VerbBucketCapacity;
+             rule > 0;
              rule = Data.NextRuleForKind(rule))
         {
             if (PhysicalMovementSuspendedByCarry(simulation, entityId, rule))

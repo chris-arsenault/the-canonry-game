@@ -28,15 +28,8 @@ internal sealed partial class WorldState
         RemovePhysicalOccupant(entityId, fromQ, fromR, fromZ);
         InsertPhysicalOccupant(entityId, q, r, z);
         _entityUpdatedAt[entityId] = tick;
+        MarkEntityCultureWorkDirty(entityId);
         AdvanceWorldVersion();
-        RecordProvenanceOutput(
-            context,
-            ProvenanceOutputKindCodes.EntityMoved,
-            entityId,
-            entityId,
-            0,
-            PlaneCodes.Physical,
-            ProvenanceOutputKindCodes.EntityMoved);
         Write(KernelEvent.From(new EntityMovedKernelEvent(
             tick,
             WorldVersion,
@@ -75,15 +68,8 @@ internal sealed partial class WorldState
         RemoveSemanticOccupant(entityId, fromQ, fromR);
         InsertSemanticOccupant(entityId, q, r);
         _entityUpdatedAt[entityId] = tick;
+        MarkEntityCultureWorkDirty(entityId);
         AdvanceWorldVersion();
-        RecordProvenanceOutput(
-            context,
-            ProvenanceOutputKindCodes.EntityMoved,
-            entityId,
-            entityId,
-            0,
-            PlaneCodes.Semantic,
-            ProvenanceOutputKindCodes.EntityMoved);
         Write(KernelEvent.From(new EntityMovedKernelEvent(
             tick,
             WorldVersion,

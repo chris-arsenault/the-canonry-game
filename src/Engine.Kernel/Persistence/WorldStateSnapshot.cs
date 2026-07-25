@@ -17,8 +17,8 @@ internal sealed partial class WorldState
     internal int SnapshotEventCount()
     {
         var count = 0;
-        count += SnapshotCellEventCount(PlaneCodes.Physical, emitLegacyPhysicalEvents: true);
-        count += SnapshotCellEventCount(PlaneCodes.Semantic, emitLegacyPhysicalEvents: false);
+        count += SnapshotCellEventCount(PlaneCodes.Physical);
+        count += SnapshotCellEventCount(PlaneCodes.Semantic);
 
         for (var entityId = 1; entityId <= _entityHighWatermark; entityId++)
         {
@@ -59,11 +59,11 @@ internal sealed partial class WorldState
 
     private void EmitSnapshotCells(KernelExecutionContext context, int tick, long version)
     {
-        EmitSnapshotCells(context, tick, version, PlaneCodes.Physical, emitLegacyPhysicalEvents: true);
-        EmitSnapshotCells(context, tick, version, PlaneCodes.Semantic, emitLegacyPhysicalEvents: false);
+        EmitSnapshotCells(context, tick, version, PlaneCodes.Physical);
+        EmitSnapshotCells(context, tick, version, PlaneCodes.Semantic);
     }
 
-    private int SnapshotCellEventCount(int planeCode, bool emitLegacyPhysicalEvents)
+    private int SnapshotCellEventCount(int planeCode)
     {
         var count = 0;
         var radius = MapRadiusForPlane(planeCode);
@@ -73,14 +73,14 @@ internal sealed partial class WorldState
             var maxR = global::System.Math.Min(radius, -q + radius);
             for (var r = minR; r <= maxR; r++)
             {
-                count += SnapshotCellColumnEventCount(planeCode, q, r, emitLegacyPhysicalEvents);
+                count += SnapshotCellColumnEventCount(planeCode, q, r);
             }
         }
 
         return count;
     }
 
-    private int SnapshotCellColumnEventCount(int planeCode, int q, int r, bool emitLegacyPhysicalEvents)
+    private int SnapshotCellColumnEventCount(int planeCode, int q, int r)
     {
         var count = 0;
         var minZ = planeCode == PlaneCodes.Physical ? MinCellZ : 0;
@@ -92,7 +92,7 @@ internal sealed partial class WorldState
                 continue;
             }
 
-            count += emitLegacyPhysicalEvents ? 2 : 1;
+            count++;
         }
 
         return count;
@@ -102,8 +102,7 @@ internal sealed partial class WorldState
         KernelExecutionContext context,
         int tick,
         long version,
-        int planeCode,
-        bool emitLegacyPhysicalEvents)
+        int planeCode)
     {
         var minZ = planeCode == PlaneCodes.Physical ? MinCellZ : 0;
         var maxZ = planeCode == PlaneCodes.Physical ? MaxCellZ : 0;
@@ -116,7 +115,7 @@ internal sealed partial class WorldState
             {
                 for (var z = minZ; z <= maxZ; z++)
                 {
-                    EmitSnapshotCell(context, tick, version, planeCode, q, r, z, emitLegacyPhysicalEvents);
+                    EmitSnapshotCell(context, tick, version, planeCode, q, r, z);
                 }
             }
         }
@@ -129,8 +128,7 @@ internal sealed partial class WorldState
         int planeCode,
         int q,
         int r,
-        int z,
-        bool emitLegacyPhysicalEvents)
+        int z)
     {
         if (!CellIsKnown(planeCode, q, r, z))
         {
@@ -152,25 +150,12 @@ internal sealed partial class WorldState
             _mapCellContinentIds.GetOrDefault(CoordinateKey(q, r, z), planeCode),
             z)),
             context);
-        if (emitLegacyPhysicalEvents)
-        {
-            Write(KernelEvent.From(new CellCreatedKernelEvent(
-                tick,
-                version,
-                q,
-                r,
-                context.SourceCodeId,
-                CellTerrainId(PlaneCodes.Physical, q, r, z),
-                _mapLayers.Coverage.ValueAt(PlaneCodes.Physical, CoordinateKey(q, r, z)),
-                _mapCellSuperregionIds.GetOrDefault(CoordinateKey(q, r, z), PlaneCodes.Physical),
-                _mapCellContinentIds.GetOrDefault(CoordinateKey(q, r, z), PlaneCodes.Physical),
-                z)),
-                context);
-        }
     }
 
     private void EmitSnapshotEntities(KernelExecutionContext context, int tick, long version)
     {
+        var cultureLocality = _cultureLocality ??
+            throw new global::System.InvalidOperationException();
         for (var entityId = 1; entityId <= _entityHighWatermark; entityId++)
         {
             if (!EntityIsActiveRaw(entityId))
@@ -178,6 +163,19 @@ internal sealed partial class WorldState
                 continue;
             }
 
+            var cultureId = _entityCultureId[entityId];
+            var physicalLocality = cultureLocality.CellAt(
+                this,
+                cultureId,
+                PlaneCodes.Physical,
+                _entityPhysicalQ[entityId],
+                _entityPhysicalR[entityId]);
+            var semanticLocality = cultureLocality.CellAt(
+                this,
+                cultureId,
+                PlaneCodes.Semantic,
+                _entitySemanticQ[entityId],
+                _entitySemanticR[entityId]);
             Write(KernelEvent.From(new EntityCreatedKernelEvent(
                 tick,
                 version,
@@ -190,7 +188,16 @@ internal sealed partial class WorldState
                 _entityPhysicalR[entityId],
                 _entitySemanticQ[entityId],
                 _entitySemanticR[entityId],
-                _entitySemanticS[entityId])),
+                _entitySemanticS[entityId],
+                entityId,
+                physicalLocality.StrengthBandCode,
+                physicalLocality.CellKindCode,
+                semanticLocality.StrengthBandCode,
+                semanticLocality.CellKindCode,
+                physicalLocality.LocalRawMass.Units,
+                physicalLocality.ConnectedRawMass.Units,
+                semanticLocality.LocalRawMass.Units,
+                semanticLocality.ConnectedRawMass.Units)),
                 context);
 
         }
@@ -330,7 +337,8 @@ internal sealed partial class WorldState
                 relationshipId,
                 0,
                 _relationshipStrength[relationshipId],
-                context.ActionId)),
+                context.ActionId,
+                1)),
                 context);
         }
     }

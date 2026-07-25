@@ -482,16 +482,14 @@ public sealed class MinorActorRuleConfig
     public string? SourceSubtype { get; init; }
     public int PurposeCode { get; init; } = MinorActorPurposeCodes.CulturalLabor;
     public int ActorKindCode { get; init; } = MinorActorKindCodes.Worker;
-    public int ActionCode { get; init; } = MinorActorActionCodes.CultureExpansion;
     public int PlaneCode { get; init; } = PlaneCodes.Physical;
     public int TtlPulses { get; init; } = 80;
     public int EmitCadencePulses { get; init; } = 60;
     public int MaxActivePerSource { get; init; } = 1;
     public int SpawnRadius { get; init; } = 1;
-    public int MoveChancePermille { get; init; } = 250;
     public int ActionCadencePulses { get; init; } = 8;
     public float WorkDelta { get; init; } = 0.25f;
-    public IReadOnlyList<MinorActorVerbConfig> Verbs { get; init; } = [];
+    public required IReadOnlyList<MinorActorVerbConfig> Verbs { get; init; }
 }
 
 public sealed class MinorActorVerbConfig

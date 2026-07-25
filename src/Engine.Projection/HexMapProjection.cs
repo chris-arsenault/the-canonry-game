@@ -277,48 +277,6 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
         LastProjectedSequence = Math.Max(LastProjectedSequence, nextSequence - 1);
     }
 
-    protected override void OnCellCreated(long sequence, in CellCreatedKernelEvent evt)
-    {
-        if (evt.Z != 0)
-        {
-            UpdateForgedColumn(sequence, evt.Tick, evt.WorldVersion, PlaneCodes.Physical, evt.Q, evt.R, evt.Z);
-            return;
-        }
-
-        UpsertCell(
-            sequence,
-            evt.Tick,
-            evt.WorldVersion,
-            PlaneCodes.Physical,
-            evt.Q,
-            evt.R,
-            evt.TerrainId,
-            evt.OwnerEntityId,
-            evt.SuperregionId,
-            evt.ContinentId);
-    }
-
-    protected override void OnCellChanged(long sequence, in CellChangedKernelEvent evt)
-    {
-        if (evt.Z != 0)
-        {
-            UpdateForgedColumn(sequence, evt.Tick, evt.WorldVersion, PlaneCodes.Physical, evt.Q, evt.R, evt.Z);
-            return;
-        }
-
-        UpsertCell(
-            sequence,
-            evt.Tick,
-            evt.WorldVersion,
-            PlaneCodes.Physical,
-            evt.Q,
-            evt.R,
-            evt.CurrentTerrainId,
-            evt.CurrentOwnerEntityId,
-            evt.SuperregionId,
-            evt.ContinentId);
-    }
-
     // Forged cells above or below the surface never overwrite the surface hex
     // record; they only raise the column's forged tier/depth summary.
     private void UpdateForgedColumn(long sequence, int tick, long worldVersion, int planeCode, int q, int r, int z)

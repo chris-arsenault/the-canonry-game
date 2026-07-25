@@ -194,17 +194,16 @@ public sealed class KernelSchedulingTests
             semanticR: 0,
             semanticS: 0);
         _ = simulation.LowAltitudeVerbs.RegisterInitialInfluence(1, PlaneCodes.Physical, FixedScalar.FromSingle(10f));
+        var rule = RegisterCultureLaborRule(simulation);
         _ = simulation.MinorActors.Spawn(
             cultureId: 1,
-            sourceEntityId: 0,
-            sourceRuleId: 0,
+            sourceEntityId: 1,
+            sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
             ttlPulses: 10,
-            moveChancePermille: 0,
             actionCadencePulses: 1,
             workDelta: FixedScalar.FromSingle(0f),
             tick: 0);
@@ -247,6 +246,33 @@ public sealed class KernelSchedulingTests
         _ = simulation.AdvanceTicks(3);
 
         Assert.Equal(1, simulation.Generators.State.ProvincePulseIndices[1]);
+    }
+
+    private static int RegisterCultureLaborRule(Simulation simulation)
+    {
+        var rule = simulation.MinorActors.RegisterEmitterRule(
+            sourceKindId: 1,
+            sourceSubtypeId: 0,
+            purposeCode: MinorActorPurposeCodes.CulturalLabor,
+            actorKindCode: MinorActorKindCodes.Worker,
+            planeCode: PlaneCodes.Physical,
+            ttlPulses: 10,
+            emitCadencePulses: 20,
+            maxActivePerSource: 1,
+            spawnRadius: 0,
+            actionCadencePulses: 1,
+            workDelta: FixedScalar.Zero);
+        _ = simulation.MinorActors.RegisterVerb(
+            rule,
+            1,
+            MinorActorActionCodes.CultureExpansion,
+            MinorActorVerbTargetingCodes.ReinforceHomeMass,
+            PlaneCodes.Physical,
+            radius: 1,
+            sampleCount: 8,
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
+        return rule;
     }
 
     private sealed class RecordingSystem(Action<Simulation, int> onTick) : ISimulationSystem

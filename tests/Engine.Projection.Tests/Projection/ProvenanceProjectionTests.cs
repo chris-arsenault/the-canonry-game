@@ -47,7 +47,8 @@ public sealed class ProvenanceProjectionTests
                 RelationshipKindId: relationshipKindId, PolarityCode: RelationshipPolarityCodes.Positive,
                 SourceEntityId: sourceId, TargetEntityId: targetId, RelationshipId: relationshipId,
                 PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f),
-                NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.78f))),
+                NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.78f),
+                ActionId: 0, IsActive: 1)),
             invocationId)));
     }
 

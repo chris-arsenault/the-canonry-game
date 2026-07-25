@@ -335,13 +335,11 @@ internal sealed class KernelConfigurationContext
         int sourceSubtypeId,
         int purposeCode,
         int actorKindCode,
-        int actionCode,
         int planeCode,
         int ttlPulses,
         int emitCadencePulses,
         int maxActivePerSource,
         int spawnRadius,
-        int moveChancePermille,
         int actionCadencePulses,
         FixedScalar workDelta) =>
         _kernel.MinorActors.RegisterEmitterRule(
@@ -349,13 +347,11 @@ internal sealed class KernelConfigurationContext
             sourceSubtypeId,
             purposeCode,
             actorKindCode,
-            actionCode,
             planeCode,
             ttlPulses,
             emitCadencePulses,
             maxActivePerSource,
             spawnRadius,
-            moveChancePermille,
             actionCadencePulses,
             workDelta);
 

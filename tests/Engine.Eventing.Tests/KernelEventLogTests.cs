@@ -99,7 +99,9 @@ public sealed class KernelEventLogTests
             TargetEntityId: 40,
             RelationshipId: 50,
             PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f),
-            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.5f)))));
+            NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.5f),
+            ActionId: 0,
+            IsActive: 1))));
         Assert.True(log.TryWrite(KernelEvent.From(new TraceKernelEvent(
             Tick: 2,
             WorldVersion: 2,

@@ -6,7 +6,13 @@ internal sealed partial class WorldState
 {
     public void AdvanceWorldVersion()
     {
+        if (_worldVersionTick == CurrentTick)
+        {
+            return;
+        }
+
         WorldVersion++;
+        _worldVersionTick = CurrentTick;
     }
 
     private int FindEntitySlot()
@@ -755,7 +761,8 @@ internal sealed partial class WorldState
             relationshipId,
             previousStrengthUnits,
             newStrengthUnits,
-            context.ActionId)),
+            context.ActionId,
+            newStrengthUnits > 0 ? 1 : 0)),
             context);
     }
 

@@ -8,16 +8,13 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
     internal readonly int[] SourceSubtypeIds;
     internal readonly int[] PurposeCodes;
     internal readonly int[] ActorKindCodes;
-    internal readonly int[] ActionCodes;
     internal readonly int[] PlaneCodes;
     internal readonly int[] TtlPulses;
     internal readonly int[] EmitCadencePulses;
     internal readonly int[] MaxActivePerSource;
     internal readonly int[] SpawnRadii;
-    internal readonly int[] MoveChancePermille;
     internal readonly int[] ActionCadencePulses;
     internal readonly FixedScalar[] WorkDeltas;
-    internal readonly bool[] RuleHasVerbs;
     internal readonly int[] RuleMaxVerbRadii;
     internal readonly int[] VerbSourceRuleIds;
     internal readonly int[] VerbIds;
@@ -44,16 +41,13 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         SourceSubtypeIds = new int[ruleCapacity + 1];
         PurposeCodes = new int[ruleCapacity + 1];
         ActorKindCodes = new int[ruleCapacity + 1];
-        ActionCodes = new int[ruleCapacity + 1];
         PlaneCodes = new int[ruleCapacity + 1];
         TtlPulses = new int[ruleCapacity + 1];
         EmitCadencePulses = new int[ruleCapacity + 1];
         MaxActivePerSource = new int[ruleCapacity + 1];
         SpawnRadii = new int[ruleCapacity + 1];
-        MoveChancePermille = new int[ruleCapacity + 1];
         ActionCadencePulses = new int[ruleCapacity + 1];
         WorkDeltas = new FixedScalar[ruleCapacity + 1];
-        RuleHasVerbs = new bool[ruleCapacity + 1];
         RuleMaxVerbRadii = new int[ruleCapacity + 1];
         VerbSourceRuleIds = new int[verbCapacity + 1];
         VerbIds = new int[verbCapacity + 1];
@@ -74,7 +68,7 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.MinorActors;
 
-    public int SchemaVersion => 3;
+    public int SchemaVersion => 4;
 
     public int RuleCapacity => SourceKindIds.Length - 1;
 
@@ -89,13 +83,11 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         int sourceSubtypeId,
         int purposeCode,
         int actorKindCode,
-        int actionCode,
         int planeCode,
         int ttlPulses,
         int emitCadencePulses,
         int maxActivePerSource,
         int spawnRadius,
-        int moveChancePermille,
         int actionCadencePulses,
         FixedScalar workDelta)
     {
@@ -104,13 +96,11 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
             sourceSubtypeId,
             purposeCode,
             actorKindCode,
-            actionCode,
             planeCode,
             ttlPulses,
             emitCadencePulses,
             maxActivePerSource,
             spawnRadius,
-            moveChancePermille,
             actionCadencePulses,
             workDelta);
 
@@ -124,13 +114,11 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         SourceSubtypeIds[rule] = sourceSubtypeId;
         PurposeCodes[rule] = purposeCode;
         ActorKindCodes[rule] = actorKindCode;
-        ActionCodes[rule] = actionCode;
         PlaneCodes[rule] = planeCode;
         TtlPulses[rule] = ttlPulses;
         EmitCadencePulses[rule] = emitCadencePulses;
         MaxActivePerSource[rule] = maxActivePerSource;
         SpawnRadii[rule] = spawnRadius;
-        MoveChancePermille[rule] = moveChancePermille;
         ActionCadencePulses[rule] = actionCadencePulses;
         WorkDeltas[rule] = workDelta;
         AppendIndex(
@@ -179,7 +167,6 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         VerbSampleCounts[verb] = sampleCount;
         VerbWeights[verb] = weight;
         VerbWorkDeltaMultipliers[verb] = workDeltaMultiplier;
-        RuleHasVerbs[sourceRuleId] = true;
         RuleMaxVerbRadii[sourceRuleId] = global::System.Math.Max(RuleMaxVerbRadii[sourceRuleId], radius);
         AppendIndex(
             sourceRuleId,
@@ -193,7 +180,14 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
     public int FirstVerbForRule(int rule) =>
         (uint)rule < (uint)FirstVerbBySourceRule.Length ? FirstVerbBySourceRule[rule] : 0;
 
+    public bool RuleHasVerbs(int rule) => FirstVerbForRule(rule) > 0;
+
     public int NextVerbForRule(int verb) => NextVerbBySourceRule[verb];
+
+    public int FirstRuleForSourceKind(int kindId) =>
+        (uint)kindId < (uint)FirstRuleBySourceKind.Length ? FirstRuleBySourceKind[kindId] : 0;
+
+    public int NextRuleForSourceKind(int rule) => NextRuleBySourceKind[rule];
 
     /// <summary>Domain-configured relationship kind that carries a campaign (0 = campaigns disabled).</summary>
     internal int CampaignRelationshipKindId;
@@ -215,13 +209,11 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         int sourceSubtypeId,
         int purposeCode,
         int actorKindCode,
-        int actionCode,
         int planeCode,
         int ttlPulses,
         int emitCadencePulses,
         int maxActivePerSource,
         int spawnRadius,
-        int moveChancePermille,
         int actionCadencePulses,
         FixedScalar workDelta)
     {
@@ -229,13 +221,11 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         NumericGuard.ThrowIfNegative(sourceSubtypeId);
         ValidatePurposeCode(purposeCode);
         NumericGuard.ThrowIfNegativeOrZero(actorKindCode);
-        ValidateActionCode(actionCode);
         ValidatePlaneCode(planeCode);
         NumericGuard.ThrowIfNegativeOrZero(ttlPulses);
         NumericGuard.ThrowIfNegativeOrZero(emitCadencePulses);
         NumericGuard.ThrowIfNegativeOrZero(maxActivePerSource);
         NumericGuard.ThrowIfNegative(spawnRadius);
-        NumericGuard.ThrowIfGreaterThan(moveChancePermille, 1000);
         NumericGuard.ThrowIfNegativeOrZero(actionCadencePulses);
         NumericGuard.ThrowIfNegative(workDelta);
     }

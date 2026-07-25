@@ -133,7 +133,7 @@ public abstract class KernelEventProjector : IKernelEventProjection
             return;
         }
 
-        if (eventType is KernelEventType.ProvenanceInvocationRecorded or KernelEventType.KernelStorageGrown)
+        if (eventType == KernelEventType.ProvenanceInvocationRecorded)
         {
             ProjectWorldRecordEvent(kernelEvent);
             return;
@@ -164,12 +164,6 @@ public abstract class KernelEventProjector : IKernelEventProjection
         var evt = kernelEvent.Event;
         switch (evt.EventType)
         {
-            case KernelEventType.CellCreated:
-                OnCellCreated(kernelEvent.Sequence, evt.AsCellCreated());
-                break;
-            case KernelEventType.CellChanged:
-                OnCellChanged(kernelEvent.Sequence, evt.AsCellChanged());
-                break;
             case KernelEventType.CellInfluenceChanged:
                 OnCellInfluenceChanged(kernelEvent.Sequence, evt.AsCellInfluenceChanged());
                 break;
@@ -195,9 +189,6 @@ public abstract class KernelEventProjector : IKernelEventProjection
         {
             case KernelEventType.ProvenanceInvocationRecorded:
                 OnProvenanceInvocationRecorded(kernelEvent.Sequence, evt.AsProvenanceInvocationRecorded());
-                break;
-            case KernelEventType.KernelStorageGrown:
-                OnKernelStorageGrown(kernelEvent.Sequence, evt.AsKernelStorageGrown());
                 break;
         }
     }
@@ -286,14 +277,6 @@ public abstract class KernelEventProjector : IKernelEventProjection
     {
     }
 
-    protected virtual void OnCellCreated(long sequence, in CellCreatedKernelEvent evt)
-    {
-    }
-
-    protected virtual void OnCellChanged(long sequence, in CellChangedKernelEvent evt)
-    {
-    }
-
     protected virtual void OnCellInfluenceChanged(long sequence, in CellInfluenceChangedKernelEvent evt)
     {
     }
@@ -323,10 +306,6 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnProvenanceInvocationRecorded(long sequence, in ProvenanceInvocationRecordedKernelEvent evt)
-    {
-    }
-
-    protected virtual void OnKernelStorageGrown(long sequence, in KernelStorageGrownKernelEvent evt)
     {
     }
 

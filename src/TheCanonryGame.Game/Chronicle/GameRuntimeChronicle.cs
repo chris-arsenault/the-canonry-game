@@ -25,7 +25,7 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
     private readonly List<UiChronicleEntry> _chainEntries = [];
     private IReadOnlyList<UiChronicleEntry> _cachedEntries = [];
     private IReadOnlyList<string> _cachedLines = [];
-    private int _nextInvocationIndex;
+    private long _nextInvocationIndex;
     private long _lastBaseChronicleVersion = -1;
     private long _lastProvenanceSequence = -1;
     private long _lastCombinedChainVersion = -1;
@@ -227,7 +227,8 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
     {
         if (_knowledge.ChronicleQueries.Count == 0)
         {
-            _nextInvocationIndex = _provenance.InvocationsInProjectionOrder.Count;
+            _nextInvocationIndex = _provenance.InvocationProjectionStartIndex +
+                _provenance.InvocationsInProjectionOrder.Count;
             return;
         }
 
@@ -238,9 +239,16 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
     private void EnqueueNewChainCandidates()
     {
         var invocations = _provenance.InvocationsInProjectionOrder;
-        for (; _nextInvocationIndex < invocations.Count; _nextInvocationIndex++)
+        var startIndex = _provenance.InvocationProjectionStartIndex;
+        if (_nextInvocationIndex < startIndex)
         {
-            var invocation = invocations[_nextInvocationIndex];
+            _nextInvocationIndex = startIndex;
+        }
+
+        var endIndex = startIndex + invocations.Count;
+        for (; _nextInvocationIndex < endIndex; _nextInvocationIndex++)
+        {
+            var invocation = invocations[(int)(_nextInvocationIndex - startIndex)];
             if (IsChainChildCandidate(invocation))
             {
                 _pendingChainCandidates.Add(invocation);

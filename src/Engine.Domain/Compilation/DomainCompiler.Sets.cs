@@ -41,6 +41,12 @@ public static partial class DomainCompiler
         var rules = new List<MinorActorEmitterRule>();
         foreach (var rule in config.MinorActors)
         {
+            if (rule.Verbs.Count == 0)
+            {
+                throw new InvalidOperationException(
+                    $"Minor-actor emitter '{rule.SourceKind}' must define at least one verb.");
+            }
+
             var planeCode = rule.PlaneCode;
             rules.Add(new MinorActorEmitterRule(
                 ids.KindIdOf(rule.SourceKind).Value,
@@ -49,13 +55,11 @@ public static partial class DomainCompiler
                     : ids.SubtypeIdOf(rule.SourceSubtype).Value,
                 rule.PurposeCode,
                 rule.ActorKindCode,
-                rule.ActionCode,
                 planeCode,
                 rule.TtlPulses,
                 rule.EmitCadencePulses,
                 rule.MaxActivePerSource,
                 rule.SpawnRadius,
-                rule.MoveChancePermille,
                 rule.ActionCadencePulses,
                 FixedScalar.FromSingle(rule.WorkDelta),
                 rule.Verbs

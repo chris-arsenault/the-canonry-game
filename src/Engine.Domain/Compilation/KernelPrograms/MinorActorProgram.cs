@@ -18,13 +18,11 @@ public sealed record MinorActorEmitterRule(
     int SourceSubtypeId,
     int PurposeCode,
     int ActorKindCode,
-    int ActionCode,
     int PlaneCode,
     int TtlPulses,
     int EmitCadencePulses,
     int MaxActivePerSource,
     int SpawnRadius,
-    int MoveChancePermille,
     int ActionCadencePulses,
     FixedScalar WorkDelta,
     IReadOnlyList<MinorActorVerbRule> Verbs);

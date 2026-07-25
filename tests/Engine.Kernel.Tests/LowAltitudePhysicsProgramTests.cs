@@ -342,8 +342,8 @@ public sealed partial class LowAltitudePhysicsProgramTests
         simulation.SetCellInfluence(foreignAId, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(20f), tick: 0);
         simulation.SetCellInfluence(foreignBId, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(18f), tick: 0);
         simulation.SetCellInfluence(ownSourceId, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(16f), tick: 0);
-        simulation.ModifyCellCultureLaborInfluenceRaw(2, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(9f), tick: 0);
-        simulation.ModifyCellCultureLaborInfluenceRaw(1, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(8f), tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(2, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(9f), tick: 0);
+        simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Physical, 1, 0, FixedScalar.FromSingle(8f), tick: 0);
         var foreignCultureTwoBefore = simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 1, 0);
         var foreignCultureThreeBefore = simulation.World.GetCellCultureInfluenceRaw(3, PlaneCodes.Physical, 1, 0);
         var ownCultureBefore = simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 1, 0);

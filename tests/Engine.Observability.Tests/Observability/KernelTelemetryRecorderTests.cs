@@ -24,7 +24,8 @@ public sealed class KernelTelemetryRecorderTests
             PhysicalR: 0,
             SemanticQ: 0,
             SemanticR: 0,
-            SemanticS: 0))));
+            SemanticS: 0,
+            NameSeed: 100))));
         recorder.RecordSnapshots(tick: 1);
 
         var completed = recorder.DetachBatch();
@@ -65,7 +66,7 @@ public sealed class KernelTelemetryRecorderTests
     }
 
     [Fact]
-    public void Recorder_DoesNotRecomputeCultureBoundaryMetricsFromEventLog()
+    public void Recorder_ProjectsExplicitBirthLocalityWithoutRecomputingCultureTopology()
     {
         var log = new KernelEventLog(capacity: 64);
         var symbols = CreateTestSymbols();
@@ -75,9 +76,12 @@ public sealed class KernelTelemetryRecorderTests
 
         recorder.RecordSnapshots(tick: 3);
 
-        Assert.Empty(recorder.Batch.CultureFieldComponentSnapshots);
         Assert.Empty(recorder.Batch.CultureEntityFieldSnapshots);
-        Assert.Empty(recorder.Batch.CultureEntityBirthFieldEvents);
+        var birth = Assert.Single(recorder.Batch.CultureEntityBirthFieldEvents);
+        Assert.Equal(CultureFieldStrengthBandCodes.Strong, birth.PhysicalFieldBandCode);
+        Assert.Equal(CultureFieldCellKindCodes.Interior, birth.PhysicalCellKindCode);
+        Assert.Equal(60f, birth.PhysicalLocalRawMass);
+        Assert.Equal(90f, birth.PhysicalConnectedRawMass);
         Assert.Empty(recorder.Batch.CultureInfluenceActionFieldEvents);
         Assert.Empty(recorder.Batch.CultureFieldCellSnapshots);
     }
@@ -104,7 +108,16 @@ public sealed class KernelTelemetryRecorderTests
             PhysicalR: 0,
             SemanticQ: 0,
             SemanticR: 0,
-            SemanticS: 0))));
+            SemanticS: 0,
+            NameSeed: 100,
+            PhysicalFieldBandCode: CultureFieldStrengthBandCodes.Strong,
+            PhysicalCellKindCode: CultureFieldCellKindCodes.Interior,
+            SemanticFieldBandCode: CultureFieldStrengthBandCodes.Trace,
+            SemanticCellKindCode: CultureFieldCellKindCodes.Border,
+            PhysicalLocalRawMassUnits: FixedScalar.FromSingle(60f).Units,
+            PhysicalConnectedRawMassUnits: FixedScalar.FromSingle(90f).Units,
+            SemanticLocalRawMassUnits: FixedScalar.FromSingle(10f).Units,
+            SemanticConnectedRawMassUnits: FixedScalar.FromSingle(25f).Units))));
     }
 
     private static void WriteCultureFieldMetricCells(KernelEventLog log)
@@ -187,8 +200,9 @@ public sealed class KernelTelemetryRecorderTests
             PhysicalR: 0,
             SemanticQ: 0,
             SemanticR: 1,
-            SemanticS: -1))));
-        Assert.True(log.TryWrite(KernelEvent.From(new EntityCreatedKernelEvent(
+            SemanticS: -1,
+            NameSeed: 100))));
+        Assert.True(log.TryWrite(WithProvenance(KernelEvent.From(new EntityCreatedKernelEvent(
             Tick: 3,
             WorldVersion: 7,
             EntityId: 101,
@@ -200,7 +214,8 @@ public sealed class KernelTelemetryRecorderTests
             PhysicalR: -1,
             SemanticQ: 1,
             SemanticR: 0,
-            SemanticS: -1))));
+            SemanticS: -1,
+            NameSeed: 101)), invocationId: 77)));
     }
 
     private static void WriteStateChangeEvents(KernelEventLog log)
@@ -240,22 +255,12 @@ public sealed class KernelTelemetryRecorderTests
             RelationshipId: 300,
             PreviousStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0f),
             NewStrengthUnits: KernelFixedPoint.RelationshipStrengthUnits(0.75f),
-            ActionId: 12))));
+            ActionId: 12,
+            IsActive: 1))));
     }
 
     private static void WriteMapStateEvents(KernelEventLog log)
     {
-        Assert.True(log.TryWrite(KernelEvent.From(new CellCreatedKernelEvent(
-            Tick: 1,
-            WorldVersion: 2,
-            Q: 2,
-            R: -1,
-            SourceCodeId: 5,
-            TerrainId: 12,
-            OwnerEntityId: 100,
-            SuperregionId: 4,
-            ContinentId: 2,
-            Z: 0))));
         WriteMapCellStateChanged(log, tick: 1, planeCode: PlaneCodes.Physical, q: 2, r: -1, previousTerrainId: 0, currentTerrainId: 12, previousOwnerEntityId: 0, currentOwnerEntityId: 100, superregionId: 4, continentId: 2);
         WriteMapCellStateChanged(log, tick: 1, planeCode: PlaneCodes.Semantic, q: 4, r: -2, previousTerrainId: 0, currentTerrainId: 14, previousOwnerEntityId: 0, currentOwnerEntityId: 100, superregionId: 0, continentId: 0);
         Assert.True(log.TryWrite(KernelEvent.From(new CellRoadChangedKernelEvent(
@@ -296,19 +301,6 @@ public sealed class KernelTelemetryRecorderTests
             PreviousShareUnits: FixedScalar.FromInt(25).Units,
             CurrentShareUnits: FixedScalar.FromInt(75).Units))));
         WriteCultureSlotOccupancyChanged(log);
-        Assert.True(log.TryWrite(KernelEvent.From(new CellChangedKernelEvent(
-            Tick: 3,
-            WorldVersion: 8,
-            Q: 2,
-            R: -1,
-            SourceCodeId: 5,
-            PreviousTerrainId: 12,
-            CurrentTerrainId: 13,
-            PreviousOwnerEntityId: 100,
-            CurrentOwnerEntityId: 101,
-            SuperregionId: 4,
-            ContinentId: 2,
-            Z: 0))));
         WriteMapCellStateChanged(log, tick: 3, planeCode: PlaneCodes.Physical, q: 2, r: -1, previousTerrainId: 12, currentTerrainId: 13, previousOwnerEntityId: 100, currentOwnerEntityId: 101, superregionId: 4, continentId: 2);
     }
 
@@ -390,7 +382,7 @@ public sealed class KernelTelemetryRecorderTests
             AffordanceScoreUnits: FixedScalar.Zero.Units,
             AffordanceBonusUnits: FixedScalar.Zero.Units))));
         WriteGeneratorTargetEvaluated(log);
-        Assert.True(log.TryWrite(KernelEvent.From(new GeneratorFiredKernelEvent(
+        Assert.True(log.TryWrite(WithProvenance(KernelEvent.From(new GeneratorFiredKernelEvent(
             Tick: 3,
             WorldVersion: 6,
             GeneratorId: 10,
@@ -398,7 +390,21 @@ public sealed class KernelTelemetryRecorderTests
             CreatedEntityCount: 1,
             CreatedRelationshipCount: 2,
             RelationshipSpendCount: 1,
-            OutputLockRelationshipCreatedCount: 2))));
+            OutputLockRelationshipCreatedCount: 2)), invocationId: 77)));
+        Assert.True(log.TryWrite(WithProvenance(
+            KernelEvent.From(new ProvenanceInvocationRecordedKernelEvent(
+                Tick: 3,
+                WorldVersion: 7,
+                InvocationId: 77,
+                ProducerKindCode: ProvenanceProducerKindCodes.Generator,
+                ProducerId: 10,
+                PrimaryEntityId: 200,
+                SecondaryEntityId: 0,
+                ParentInvocationId: 0,
+                TriggerKindCode: 0,
+                TriggerId: 0,
+                OutputCount: 1)),
+            invocationId: 77)));
     }
 
     private static void WriteGeneratorTargetEvaluated(KernelEventLog log)
@@ -605,4 +611,9 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(0, semanticMap.ActiveEntityCount);
     }
 
+    private static KernelEvent WithProvenance(KernelEvent kernelEvent, int invocationId) =>
+        kernelEvent.WithExecutionContext(
+            programId: 0,
+            sourceCodeId: 5,
+            provenanceInvocationId: invocationId);
 }

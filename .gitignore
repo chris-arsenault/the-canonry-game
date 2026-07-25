@@ -8,6 +8,7 @@ obj/
 packages/
 *.nupkg
 *.snupkg
+**/TestResults/
 
 # NuGet lock files (generated, not committed)
 packages.lock.json

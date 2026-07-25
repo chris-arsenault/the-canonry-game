@@ -4,11 +4,6 @@ using Engine.Constants;
 using Engine.Eventing;
 using Engine.Kinds;
 
-public sealed record UiProjectionMigrationItem(
-    string Area,
-    string RequiredPrimitiveSource,
-    string Reason);
-
 public sealed partial class UiProjectionState : KernelEventProjector
 {
     private const int MinorActorActivityCapacity = 320;
@@ -21,38 +16,19 @@ public sealed partial class UiProjectionState : KernelEventProjector
     private readonly Dictionary<int, HashSet<HexCoord>> _dirtyEntityHexesByPlane = [];
     private readonly Dictionary<int, UiGeneratorProjection> _generators = [];
     private readonly List<UiGeneratorFireProjection> _generatorFires = [];
-    private readonly Dictionary<int, Queue<PendingCreatedEntityProjection>> _unassignedCreatedEntitiesByTick = [];
-    private readonly List<PendingGeneratorFireProjection> _pendingGeneratorFires = [];
+    private readonly Dictionary<int, List<int>> _createdEntitiesByInvocation = [];
+    private readonly Dictionary<int, UiGeneratorFireProjection> _generatorFiresByInvocation = [];
     private readonly Dictionary<int, UiGambitProjection> _gambits = [];
     private IReadOnlyDictionary<UiCultureSlotKey, UiCultureSlotDefinitionProjection> _cultureSlotDefinitions =
         new Dictionary<UiCultureSlotKey, UiCultureSlotDefinitionProjection>();
     private readonly Dictionary<UiCultureSlotKey, UiCultureSlotOccupancyProjection> _cultureSlots = [];
     private readonly List<UiMinorActorActivityProjection> _minorActorActivities = [];
     private readonly HashSet<int> _dirtyEntityBrowserRows = [];
+    private int _currentProvenanceInvocationId;
 
     private IReadOnlyDictionary<int, EntityTier> _tierByKindId = new Dictionary<int, EntityTier>();
     private Dictionary<int, UiHealthAttributeDefinitionProjection> _healthAttributeByKindId = [];
     private IReadOnlySet<int> _affiliationRelationshipKindIds = new HashSet<int>();
-
-    public static IReadOnlyList<UiProjectionMigrationItem> FutureMigrationItems { get; } =
-    [
-        new(
-            "entity display names",
-            "entity-created name seed or startup entity-name snapshot",
-            "EntityCreatedKernelEvent currently carries primitive identity but not display-name seed material."),
-        new(
-            "initial attributes",
-            "startup attribute snapshot or attribute-created/initialized events",
-            "AttributeChangedKernelEvent can replay deltas after the cursor starts, but not untouched initial values."),
-        new(
-            "generated entity attribution",
-            "generator-fired event payload listing created entity IDs or creation-cause IDs on EntityCreated",
-            "UiProjectionState infers generator output by matching EntityCreated events on the same tick until the kernel emits explicit attribution."),
-        new(
-            "relationship removal semantics",
-            "explicit relationship inactive/cull code contract",
-            "Projection currently treats zero-or-lower new strength as inactive because no generic active flag exists.")
-    ];
 
     public IReadOnlyDictionary<int, UiEntityProjection> Entities => _entities;
 
@@ -117,6 +93,11 @@ public sealed partial class UiProjectionState : KernelEventProjector
     public long MinorActorActivityVersion { get; private set; }
 
     public long DroppedEvents { get; private set; }
+
+    protected override void OnProjectingEvent(in SequencedKernelEvent kernelEvent)
+    {
+        _currentProvenanceInvocationId = kernelEvent.Event.ProvenanceInvocationId;
+    }
 
     public bool IsComplete => DroppedEvents == 0;
 
@@ -229,6 +210,8 @@ public sealed partial class UiProjectionState : KernelEventProjector
     {
         DroppedEvents += droppedEventCount;
         LastProjectedSequence = Math.Max(LastProjectedSequence, nextSequence - 1);
+        _createdEntitiesByInvocation.Clear();
+        _generatorFiresByInvocation.Clear();
     }
 
     protected override void OnWorldBeatChanged(long sequence, in WorldBeatChangedKernelEvent evt)
@@ -257,9 +240,7 @@ public sealed partial class UiProjectionState : KernelEventProjector
         entity.KindId = evt.KindId;
         entity.SubtypeId = evt.SubtypeId;
         entity.CultureId = evt.CultureId;
-        // MIGRATION: EntityCreatedKernelEvent does not yet carry a name seed.
-        // EntityId keeps generated projection names stable until the kernel adds it.
-        entity.NameSeed = evt.EntityId;
+        entity.NameSeed = evt.NameSeed;
         entity.StatusCode = EntityStatusCodes.Active;
         entity.PhysicalQ = evt.PhysicalQ;
         entity.PhysicalR = evt.PhysicalR;
@@ -516,7 +497,7 @@ public sealed partial class UiProjectionState : KernelEventProjector
             evt.SourceEntityId,
             evt.TargetEntityId,
             evt.RelationshipKindId);
-        if (evt.NewStrengthUnits > 0 &&
+        if (evt.IsActive != 0 &&
             _entities.ContainsKey(evt.SourceEntityId) &&
             _entities.ContainsKey(evt.TargetEntityId))
         {
@@ -590,15 +571,9 @@ public sealed partial class UiProjectionState : KernelEventProjector
         generator.TotalFired++;
         generator.LastFire = fire;
         _generatorFires.Add(fire);
-        if (evt.CreatedEntityCount > 0)
+        if (_currentProvenanceInvocationId > 0)
         {
-            _pendingGeneratorFires.Add(new PendingGeneratorFireProjection(
-                evt.Tick,
-                evt.GeneratorId,
-                evt.TargetEntityId,
-                evt.CreatedEntityCount,
-                fire));
-            AssignGeneratedEntities(evt.Tick);
+            _generatorFiresByInvocation[_currentProvenanceInvocationId] = fire;
         }
 
         TopBarVersion++;
@@ -864,62 +839,73 @@ public sealed partial class UiProjectionState : KernelEventProjector
         dirtyHexes.Add(coord);
     }
 
-    private void TrackCreatedEntityForGeneratorAttribution(in EntityCreatedKernelEvent evt)
+    protected override void OnProvenanceInvocationRecorded(
+        long sequence,
+        in ProvenanceInvocationRecordedKernelEvent evt)
     {
-        if (!_unassignedCreatedEntitiesByTick.TryGetValue(evt.Tick, out var createdEntities))
+        if (evt.ProducerKindCode != ProvenanceProducerKindCodes.Generator ||
+            !_createdEntitiesByInvocation.Remove(evt.InvocationId, out var createdEntities))
         {
-            createdEntities = [];
-            _unassignedCreatedEntitiesByTick[evt.Tick] = createdEntities;
+            _generatorFiresByInvocation.Remove(evt.InvocationId);
+            MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+            return;
         }
 
-        createdEntities.Enqueue(new PendingCreatedEntityProjection(evt.EntityId));
-        AssignGeneratedEntities(evt.Tick);
+        _generatorFiresByInvocation.Remove(evt.InvocationId, out var fire);
+        foreach (var entityId in createdEntities)
+        {
+            RecordGeneratedEntity(
+                evt.Tick,
+                evt.ProducerId,
+                evt.PrimaryEntityId,
+                fire,
+                entityId);
+        }
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
-    private void AssignGeneratedEntities(int tick)
+    private void TrackCreatedEntityForGeneratorAttribution(in EntityCreatedKernelEvent evt)
     {
-        if (!_unassignedCreatedEntitiesByTick.TryGetValue(tick, out var createdEntities))
+        if (_currentProvenanceInvocationId <= 0)
         {
             return;
         }
 
-        foreach (var pending in _pendingGeneratorFires.Where(pending => pending.Tick == tick && pending.Remaining > 0))
+        if (!_createdEntitiesByInvocation.TryGetValue(
+                _currentProvenanceInvocationId,
+                out var createdEntities))
         {
-            while (pending.Remaining > 0 && createdEntities.Count > 0)
-            {
-                var created = createdEntities.Dequeue();
-                RecordGeneratedEntity(tick, pending, created.EntityId);
-                pending.Remaining--;
-            }
+            createdEntities = [];
+            _createdEntitiesByInvocation[_currentProvenanceInvocationId] = createdEntities;
         }
 
-        if (createdEntities.Count == 0)
-        {
-            _unassignedCreatedEntitiesByTick.Remove(tick);
-        }
-
-        _pendingGeneratorFires.RemoveAll(pending => pending.Remaining == 0);
+        createdEntities.Add(evt.EntityId);
     }
 
-    private void RecordGeneratedEntity(int tick, PendingGeneratorFireProjection pending, int entityId)
+    private void RecordGeneratedEntity(
+        int tick,
+        int generatorId,
+        int targetEntityId,
+        UiGeneratorFireProjection? fire,
+        int entityId)
     {
-        pending.Fire.AddCreatedEntityId(entityId);
+        fire?.AddCreatedEntityId(entityId);
         if (!_entities.TryGetValue(entityId, out var entity))
         {
             return;
         }
 
-        var targetEntityId = pending.TargetEntityId == 0 ? (int?)null : pending.TargetEntityId;
-        if (entity.CreatedByGeneratorId == pending.GeneratorId &&
+        var nullableTargetEntityId = targetEntityId == 0 ? (int?)null : targetEntityId;
+        if (entity.CreatedByGeneratorId == generatorId &&
             entity.CreatedByGeneratorTick == tick &&
-            entity.CreatedByGeneratorTargetEntityId == targetEntityId)
+            entity.CreatedByGeneratorTargetEntityId == nullableTargetEntityId)
         {
             return;
         }
 
-        entity.CreatedByGeneratorId = pending.GeneratorId;
+        entity.CreatedByGeneratorId = generatorId;
         entity.CreatedByGeneratorTick = tick;
-        entity.CreatedByGeneratorTargetEntityId = targetEntityId;
+        entity.CreatedByGeneratorTargetEntityId = nullableTargetEntityId;
         MarkEntityHexDirty(PlaneCodes.Physical, new HexCoord(entity.PhysicalQ, entity.PhysicalR));
         MarkEntityHexDirty(PlaneCodes.Semantic, new HexCoord(entity.SemanticQ, entity.SemanticR));
         EntityMapVersion++;
@@ -975,26 +961,6 @@ public sealed partial class UiProjectionState : KernelEventProjector
         WorldVersion = Math.Max(WorldVersion, worldVersion);
     }
 
-
-    private sealed class PendingGeneratorFireProjection(
-        int tick,
-        int generatorId,
-        int targetEntityId,
-        int remaining,
-        UiGeneratorFireProjection fire)
-    {
-        public int Tick { get; } = tick;
-
-        public int GeneratorId { get; } = generatorId;
-
-        public int TargetEntityId { get; } = targetEntityId;
-
-        public int Remaining { get; set; } = remaining;
-
-        public UiGeneratorFireProjection Fire { get; } = fire;
-    }
-
-    private sealed record PendingCreatedEntityProjection(int EntityId);
 }
 
 public sealed class UiEntityProjection(int entityId)

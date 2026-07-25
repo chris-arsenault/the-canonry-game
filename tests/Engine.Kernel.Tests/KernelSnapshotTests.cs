@@ -273,7 +273,7 @@ public sealed class KernelSnapshotTests
             eventTypes.Add(sequenced.Event.EventType);
         }
 
-        Assert.Contains(KernelEventType.CellCreated, eventTypes);
+        Assert.Contains(KernelEventType.MapCellStateChanged, eventTypes);
         Assert.Contains(KernelEventType.EntityCreated, eventTypes);
         Assert.DoesNotContain(KernelEventType.EntityStatusChanged, eventTypes);
         Assert.Contains(KernelEventType.AttributeChanged, eventTypes);

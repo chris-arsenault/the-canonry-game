@@ -148,52 +148,6 @@ public class KindRegistryTests
         Assert.False(_registry.IsExclusiveRelationship("allied_with"));
     }
 
-    // --- Behavior Dispatch ---
-
-    [Fact]
-    public void DispatchBehavior_CallsRegisteredHandler()
-    {
-        var registry = TestDefaultRegistry.Create();
-        var called = false;
-
-        registry.RegisterBehaviorHandler(TestKinds.Faction, _ => called = true);
-
-        var entity = new Entity(
-            new EntityId(0), TestKinds.Faction, "order", "TestNation", "culture_a", 0);
-
-        registry.DispatchBehavior(entity);
-
-        Assert.True(called);
-    }
-
-    [Fact]
-    public void DispatchBehavior_DoesNotThrowForUnregisteredKind()
-    {
-        var entity = new Entity(
-            new EntityId(0), TestKinds.Region, "generic_region", "TestRegion", "culture_a", 0);
-
-        var ex = Record.Exception(() => _registry.DispatchBehavior(entity));
-
-        Assert.Null(ex);
-    }
-
-    [Fact]
-    public void DispatchBehavior_RoutesToCorrectKind()
-    {
-        var registry = TestDefaultRegistry.Create();
-        EntityKind? dispatched = null;
-
-        registry.RegisterBehaviorHandler(TestKinds.Faction, e => dispatched = e.Kind);
-        registry.RegisterBehaviorHandler(TestKinds.Penguin, e => dispatched = e.Kind);
-
-        var npc = new Entity(
-            new EntityId(0), TestKinds.Penguin, "warden", "Hero", "culture_a", 0);
-
-        registry.DispatchBehavior(npc);
-
-        Assert.Equal(TestKinds.Penguin, dispatched);
-    }
-
     // --- Kind Definition Properties ---
 
     [Fact]

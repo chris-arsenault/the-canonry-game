@@ -99,9 +99,9 @@ churn.
 
 Resources are not primary low-altitude drivers today. The former macro
 aggregate layer has been removed rather than retained as telemetry. Current
-low-altitude quality should be judged through movement, culture influence, map
-signals, minor actor labor, health effects, upkeep, relationships, gambits, and
-generators.
+low-altitude quality should be judged through movement, culture influence,
+direct locality, minor actor labor, unified health/lifecycle effects,
+relationships, gambits, and generators.
 
 Health provides lifecycle state. Traits provide mostly static individual
 variance. Neither should force a recovery treadmill where entities spend the

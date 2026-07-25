@@ -331,16 +331,16 @@ internal sealed partial class WorldState
         }
 
         WriteCell(planeCode, q, r, z, terrainId, ownerEntityId, superregionId, continentId);
+        if (previousOwnerEntityId > 0)
+        {
+            MarkEntityCultureWorkDirty(previousOwnerEntityId);
+        }
+        if (ownerEntityId > 0)
+        {
+            MarkEntityCultureWorkDirty(ownerEntityId);
+        }
         var nextTerrainId = CellTerrainId(planeCode, q, r, z);
         AdvanceWorldVersion();
-        RecordProvenanceOutput(
-            context,
-            ProvenanceOutputKindCodes.CellChanged,
-            CoordinateKey(q, r, z),
-            ownerEntityId,
-            0,
-            terrainId,
-            ProvenanceOutputKindCodes.CellChanged);
         WriteCellStateEvents(
             planeCode, q, r, z, tick, previousTerrainId, nextTerrainId,
             previousOwnerEntityId, ownerEntityId, superregionId, continentId, context);
@@ -399,14 +399,6 @@ internal sealed partial class WorldState
         _mapCellTerrainCoverIds.Set(key, PlaneCodes.Physical, coverTerrainId);
         var nextTerrainId = CellTerrainId(PlaneCodes.Physical, q, r);
         AdvanceWorldVersion();
-        RecordProvenanceOutput(
-            context,
-            ProvenanceOutputKindCodes.CellChanged,
-            key,
-            ownerEntityId,
-            0,
-            nextTerrainId,
-            ProvenanceOutputKindCodes.CellChanged);
         WriteCellStateEvents(
             PlaneCodes.Physical, q, r, z: 0, tick, previousTerrainId, nextTerrainId,
             ownerEntityId, ownerEntityId, superregionId, continentId, context);
@@ -431,14 +423,6 @@ internal sealed partial class WorldState
             previousTerrainId, nextTerrainId, previousOwnerEntityId, ownerEntityId,
             superregionId, continentId, z)),
             context);
-        if (planeCode == PlaneCodes.Physical)
-        {
-            Write(KernelEvent.From(new CellChangedKernelEvent(
-                tick, WorldVersion, q, r, context.SourceCodeId,
-                previousTerrainId, nextTerrainId, previousOwnerEntityId, ownerEntityId,
-                superregionId, continentId, z)),
-                context);
-        }
     }
 
     internal int CoverageOwnerCellCount(int ownerEntityId) => CoverageOwnerCellCount(ownerEntityId, PlaneCodes.Physical);
@@ -660,6 +644,7 @@ internal sealed partial class WorldState
                 _totalPhysicalCultureRawMass + current - previous);
         }
 
+        MarkCultureFieldDirty(cultureId);
         _ = tick;
         _ = context;
         return current - previous;
@@ -803,6 +788,7 @@ internal sealed partial class WorldState
             KernelFixedPoint.ModifierUnits(delta),
             KernelFixedPoint.ModifierMinimumUnits,
             KernelFixedPoint.ModifierMaximumUnits);
+        MarkEntityCultureWorkDirty(entityId);
         _ = tick;
         _ = context;
     }
@@ -829,6 +815,7 @@ internal sealed partial class WorldState
             KernelFixedPoint.ModifierUnits(delta),
             KernelFixedPoint.ModifierMinimumUnits,
             KernelFixedPoint.ModifierMaximumUnits);
+        MarkCultureWorkDirty(cultureId);
         _ = tick;
         _ = context;
     }
@@ -842,6 +829,7 @@ internal sealed partial class WorldState
                 deltaUnits,
                 0,
                 KernelFixedPoint.CultureMassMaximumUnits);
+            MarkEntityCultureWorkDirty(entityId);
             return;
         }
 
@@ -850,6 +838,7 @@ internal sealed partial class WorldState
             deltaUnits,
             0,
             KernelFixedPoint.CultureMassMaximumUnits);
+        MarkEntityCultureWorkDirty(entityId);
     }
 
     private FixedScalar PositiveCultureInfluenceRaw(int cultureId, int planeCode, int key)

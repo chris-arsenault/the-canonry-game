@@ -76,16 +76,18 @@ internal sealed class LocalityQuery
             simulation.Knowledge.Modifier(cultureId, KnowledgeGrantDomainCodes.CarryingCapacity, planeCode);
     }
 
-    public FixedScalar EntitySupport(Simulation simulation, int entityId, int planeCode)
+    public LocalityPressure EntityPressure(Simulation simulation, int entityId, int planeCode)
     {
         var world = simulation.World;
         var q = CurrentQ(world, entityId, planeCode);
         var r = CurrentR(world, entityId, planeCode);
-        KindLocalityAt(world, planeCode, q, r, out _, out var support, out _);
+        KindLocalityAt(world, planeCode, q, r, out _, out var support, out var threat);
         var cultureId = world.EntityCultureId(entityId);
         if (cultureId > 0)
         {
             support += world.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r) / CultureSignalRawScale;
+            var locality = simulation.CultureLocality.CellAt(world, cultureId, planeCode, q, r);
+            threat += locality.ForeignRawMass / CultureSignalRawScale;
         }
 
         if (world.CoverageOwnerAt(planeCode, q, r) == entityId)
@@ -93,46 +95,35 @@ internal sealed class LocalityQuery
             support += 1;
         }
 
-        RelationshipLocalityFor(world, entityId, out var relationshipSupport, out _);
-        return support + relationshipSupport;
+        RelationshipLocalityFor(world, entityId, out var relationshipSupport, out var relationshipThreat);
+        return new LocalityPressure(
+            support + relationshipSupport,
+            threat + relationshipThreat);
     }
 
-    public FixedScalar EntityThreat(Simulation simulation, int entityId, int planeCode)
+    public FixedScalar EntitySupport(Simulation simulation, int entityId, int planeCode) =>
+        EntityPressure(simulation, entityId, planeCode).Support;
+
+    public FixedScalar EntityThreat(Simulation simulation, int entityId, int planeCode) =>
+        EntityPressure(simulation, entityId, planeCode).Threat;
+
+    public LocalityCrowding EntityCrowding(Simulation simulation, int entityId, int planeCode)
     {
         var world = simulation.World;
         var q = CurrentQ(world, entityId, planeCode);
         var r = CurrentR(world, entityId, planeCode);
-        KindLocalityAt(world, planeCode, q, r, out _, out _, out var threat);
-        var cultureId = world.EntityCultureId(entityId);
-        if (cultureId > 0)
-        {
-            var locality = simulation.CultureLocality.CellAt(world, cultureId, planeCode, q, r);
-            threat += locality.ForeignRawMass / CultureSignalRawScale;
-        }
-
-        RelationshipLocalityFor(world, entityId, out _, out var relationshipThreat);
-        return threat + relationshipThreat;
+        var occupancy = LocalOccupancy(world, planeCode, q, r, Data.CrowdingRadius);
+        var capacity = EntityCapacity(simulation, entityId, planeCode);
+        return new LocalityCrowding(
+            CrowdingLoad(occupancy, capacity),
+            CrowdingComfort(occupancy, capacity));
     }
 
-    public FixedScalar EntityCrowdingLoad(Simulation simulation, int entityId, int planeCode)
-    {
-        var world = simulation.World;
-        var q = CurrentQ(world, entityId, planeCode);
-        var r = CurrentR(world, entityId, planeCode);
-        return CrowdingLoad(
-            LocalOccupancy(world, planeCode, q, r, Data.CrowdingRadius),
-            EntityCapacity(simulation, entityId, planeCode));
-    }
+    public FixedScalar EntityCrowdingLoad(Simulation simulation, int entityId, int planeCode) =>
+        EntityCrowding(simulation, entityId, planeCode).Load;
 
-    public FixedScalar EntityCrowdingComfort(Simulation simulation, int entityId, int planeCode)
-    {
-        var world = simulation.World;
-        var q = CurrentQ(world, entityId, planeCode);
-        var r = CurrentR(world, entityId, planeCode);
-        return CrowdingComfort(
-            LocalOccupancy(world, planeCode, q, r, Data.CrowdingRadius),
-            EntityCapacity(simulation, entityId, planeCode));
-    }
+    public FixedScalar EntityCrowdingComfort(Simulation simulation, int entityId, int planeCode) =>
+        EntityCrowding(simulation, entityId, planeCode).Comfort;
 
     public FixedScalar AttractorMassAt(Simulation simulation, int planeCode, int q, int r)
     {
@@ -197,8 +188,8 @@ internal sealed class LocalityQuery
         }
 
         mass += simulation.Chronicles.HeatFor(entityId) * ChronicleAttractorScale;
-        mass += EntitySupport(simulation, entityId, planeCode) -
-            EntityThreat(simulation, entityId, planeCode);
+        var pressure = EntityPressure(simulation, entityId, planeCode);
+        mass += pressure.Support - pressure.Threat;
         return FixedScalar.Max(0, mass) *
             simulation.Knowledge.Modifier(cultureId, KnowledgeGrantDomainCodes.Attraction, planeCode);
     }
@@ -423,3 +414,7 @@ internal sealed class LocalityQuery
         return value > 1 ? 1 : value;
     }
 }
+
+internal readonly record struct LocalityPressure(FixedScalar Support, FixedScalar Threat);
+
+internal readonly record struct LocalityCrowding(FixedScalar Load, FixedScalar Comfort);

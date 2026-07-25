@@ -57,6 +57,8 @@ internal sealed partial class CultureSlotProgramData : IKernelProgramData
 
     public int SlotCount => _slotCount;
 
+    internal int SlotCapacity => _cultureIds.Length - 1;
+
     public int RegisterSlot(
         int cultureId,
         int slotId,

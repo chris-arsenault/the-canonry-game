@@ -92,13 +92,10 @@ public sealed partial class KernelHost
             return;
         }
 
-        for (var relationshipId = 1; relationshipId <= world.RelationshipHighWatermark; relationshipId++)
+        for (var relationshipId = world.FirstActiveRelationship();
+             relationshipId > 0;
+             relationshipId = world.NextActiveRelationship(relationshipId))
         {
-            if (!world.RelationshipIsActive(relationshipId))
-            {
-                continue;
-            }
-
             var strength = world.RelationshipStrength(relationshipId);
             if (strength <= FixedScalar.Zero)
             {

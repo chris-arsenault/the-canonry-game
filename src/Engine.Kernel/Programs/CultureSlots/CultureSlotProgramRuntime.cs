@@ -8,6 +8,8 @@ internal sealed class CultureSlotProgramRuntime :
     private const int AnyPolarityFilterCode = -1;
     private static readonly FixedScalar CultureSupportScoreScale = 30;
     private static readonly FixedScalar InfluenceProductionScoreScale = 100;
+    private readonly long[] _seenCultureWorkRevisions;
+    private readonly int[] _nextDueTicks;
 
     public CultureSlotProgramRuntime(CultureSlotProgramData data, CultureSlotProgramState state)
         : this(data, state, new KernelProgramTuningOptions())
@@ -25,6 +27,10 @@ internal sealed class CultureSlotProgramRuntime :
         Data = data;
         State = state;
         Tuning = tuning;
+        _seenCultureWorkRevisions = new long[data.SlotCapacity + 1];
+        _nextDueTicks = new int[data.SlotCapacity + 1];
+        global::System.Array.Fill(_seenCultureWorkRevisions, -1);
+        global::System.Array.Fill(_nextDueTicks, int.MaxValue);
     }
 
     public CultureSlotProgramData Data { get; }
@@ -206,7 +212,18 @@ internal sealed class CultureSlotProgramRuntime :
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         for (var slot = 1; slot <= Data.SlotCount; slot++)
         {
+            var cultureId = Data.CultureId(slot);
+            var revision = simulation.World.CultureWorkRevision(cultureId);
+            if (_seenCultureWorkRevisions[slot] == revision &&
+                tick < _nextDueTicks[slot])
+            {
+                continue;
+            }
+
+            _nextDueTicks[slot] = int.MaxValue;
             TickSlot(simulation, slot, tick);
+            _seenCultureWorkRevisions[slot] =
+                simulation.World.CultureWorkRevision(cultureId);
         }
     }
 
@@ -265,11 +282,21 @@ internal sealed class CultureSlotProgramRuntime :
         }
 
         var currentScore = CurrentOccupantScore(simulation, currentEntityId, slot);
-        if (currentEntityId > 0 &&
-            !CanDisplace(slot, currentScore, best.Score, tick))
+        if (currentEntityId > 0)
         {
-            State.RefreshScore(slot, currentScore);
-            return;
+            var tenureDueTick = State.OccupiedAtTick(slot) + Data.MinimumTenureTicks(slot);
+            if (tick < tenureDueTick)
+            {
+                _nextDueTicks[slot] = tenureDueTick;
+                State.RefreshScore(slot, currentScore);
+                return;
+            }
+
+            if (!CanDisplace(slot, currentScore, best.Score))
+            {
+                State.RefreshScore(slot, currentScore);
+                return;
+            }
         }
 
         ChangeOccupant(simulation, slot, currentEntityId, best.EntityId, currentScore, best.Score, tick);
@@ -431,14 +458,8 @@ internal sealed class CultureSlotProgramRuntime :
         return sum;
     }
 
-    private bool CanDisplace(int slot, FixedScalar currentScore, FixedScalar challengerScore, int tick)
+    private bool CanDisplace(int slot, FixedScalar currentScore, FixedScalar challengerScore)
     {
-        var tenure = tick - State.OccupiedAtTick(slot);
-        if (tenure < Data.MinimumTenureTicks(slot))
-        {
-            return false;
-        }
-
         var required = currentScore * (1 + Data.DisplacementMargin(slot));
         return challengerScore > required;
     }
@@ -450,9 +471,10 @@ internal sealed class CultureSlotProgramRuntime :
             return;
         }
 
-        var tenure = tick - State.OccupiedAtTick(slot);
-        if (tenure < Data.MinimumTenureTicks(slot))
+        var tenureDueTick = State.OccupiedAtTick(slot) + Data.MinimumTenureTicks(slot);
+        if (tick < tenureDueTick)
         {
+            _nextDueTicks[slot] = tenureDueTick;
             State.RefreshScore(slot, currentScore);
             return;
         }

@@ -185,20 +185,6 @@ internal sealed partial class Simulation
             superregionId,
             continentId,
             0)));
-        if (planeCode == PlaneCodes.Physical)
-        {
-            WriteKernelEvent(KernelEvent.From(new CellCreatedKernelEvent(
-                CurrentTick,
-                WorldVersion,
-                q,
-                r,
-                _executionContext.SourceCodeId,
-                terrainId,
-                ownerEntityId,
-                superregionId,
-                continentId,
-                0)));
-        }
     }
 
     internal bool TryForgeCellVertical(int entityId, int direction, int terrainId, int tick)
@@ -271,13 +257,16 @@ internal sealed partial class Simulation
     {
         World.WriteForgedCell(PlaneCodes.Physical, q, r, z, terrainId);
         Movement.RecordTopologyChanged();
-        WriteKernelEvent(KernelEvent.From(new CellCreatedKernelEvent(
+        WriteKernelEvent(KernelEvent.From(new MapCellStateChangedKernelEvent(
             CurrentTick,
             WorldVersion,
+            PlaneCodes.Physical,
             q,
             r,
             _executionContext.SourceCodeId,
+            0,
             terrainId,
+            0,
             0,
             0,
             0,

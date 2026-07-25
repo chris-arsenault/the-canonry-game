@@ -16,28 +16,47 @@ public sealed partial class MinorActorProgramRuntimeTests
                 Programs = new KernelProgramTuningOptions
                 {
                     CultureInfluenceActionScale = FixedScalar.FromSingle(0.25f),
+                    CultureField = new CultureFieldTuningOptions
+                    {
+                        DecayPerPulse = FixedScalar.Zero,
+                        MinimumDecayPerPulse = FixedScalar.Zero,
+                    },
                 },
             },
         });
         simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
+        SeedSourceEntity(simulation);
+        simulation.ModifyCellCultureInfluenceRaw(
+            CultureId,
+            PlaneCodes.Physical,
+            0,
+            0,
+            FixedScalar.FromSingle(30f),
+            tick: 0);
+        var rule = RegisterCultureExpansionEmitter(simulation);
+        var before = simulation.World.GetCellCultureInfluenceRaw(
+            CultureId,
+            PlaneCodes.Physical,
+            0,
+            0);
         _ = simulation.MinorActors.Spawn(
             cultureId: 1,
-            sourceEntityId: 0,
-            sourceRuleId: 0,
+            sourceEntityId: SourceEntityId,
+            sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureExpansion,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 2,
-            moveChancePermille: 0,
-            actionCadencePulses: 1,
+            ttlPulses: 10,
+            actionCadencePulses: 10,
             workDelta: FixedScalar.FromSingle(2f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(1);
 
-        Assert.Equal(FixedScalar.FromSingle(0.5f), simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(
+            (before + FixedScalar.FromSingle(0.5f)).Units,
+            simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0).Units);
     }
 
     [Fact]
@@ -51,28 +70,52 @@ public sealed partial class MinorActorProgramRuntimeTests
                 Programs = new KernelProgramTuningOptions
                 {
                     CultureInfluenceActionScale = FixedScalar.FromSingle(0.25f),
+                    CultureField = new CultureFieldTuningOptions
+                    {
+                        DecayPerPulse = FixedScalar.Zero,
+                        MinimumDecayPerPulse = FixedScalar.Zero,
+                    },
                 },
             },
         });
         simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
         simulation.ModifyCellCultureInfluenceRaw(2, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(8f), tick: 0);
+        SeedSourceEntity(simulation);
+        simulation.ModifyCellCultureInfluenceRaw(
+            CultureId,
+            PlaneCodes.Physical,
+            0,
+            0,
+            FixedScalar.FromSingle(30f),
+            tick: 0);
+        var rule = RegisterCultureEmitter(simulation);
+        _ = simulation.MinorActors.RegisterVerb(
+            rule,
+            CultureVerbId,
+            MinorActorActionCodes.CultureCleanup,
+            MinorActorVerbTargetingCodes.ReduceOtherCulture,
+            PlaneCodes.Physical,
+            radius: 1,
+            sampleCount: 8,
+            weight: FixedScalar.FromSingle(1f),
+            workDeltaMultiplier: FixedScalar.FromSingle(1f));
         _ = simulation.MinorActors.Spawn(
             cultureId: 1,
-            sourceEntityId: 0,
-            sourceRuleId: 0,
+            sourceEntityId: SourceEntityId,
+            sourceRuleId: rule,
             actorKindCode: MinorActorKindCodes.Worker,
-            actionCode: MinorActorActionCodes.CultureCleanup,
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 2,
-            moveChancePermille: 0,
-            actionCadencePulses: 1,
+            ttlPulses: 10,
+            actionCadencePulses: 10,
             workDelta: FixedScalar.FromSingle(4f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(1);
 
-        Assert.Equal(FixedScalar.FromSingle(7f), simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(
+            FixedScalar.FromSingle(7f).Units,
+            simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 0, 0).Units);
     }
 }
