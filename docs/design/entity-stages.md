@@ -25,8 +25,8 @@ A stage is an authored object with a stable name, a display name, and an
   base band (settlement base = town ≈ Standard; city ×3 ≈ Generational;
   capital ×6 ≈ Monumental). Founding fragility and earned permanence come
   from one mechanism.
-- **Worker bonus** — cohort slots granted at this stage (replaces the raw
-  `+tier` term in the minor-actor cohort formula; steps at promotions).
+- **Worker bonus** — strength granted to the source's persistent minor actors
+  (replaces the raw `+tier` term without multiplying actor count).
 - **Ambient emission** — per-tick culture influence the entity radiates at
   this stage (the structured replacement for treadmill mesh-holding).
 - **District capacity** — installed-artifact cores the entity may hold.
@@ -67,22 +67,23 @@ holding interior ground), while entity travel/verb/birth influence nets
 +451k — already the growth engine. Removing the grind removes the treadmill,
 so interior holding moves to structured sources:
 
-1. Per-stage ambient emission (above) — interior mass follows civic
-   maturity, and promotion becomes mesh-consequential.
+1. Per-stage ambient emission (above) — interior mass follows civic maturity,
+   while persistent cultural fronts work only supported borders, holes, and
+   contests.
 2. District culture tiles tuned up from their current trivial magnitude.
 3. `DecayPerPulse` 0.005 → 0.004 (the rate was calibrated against
    treadmill-era gross input).
 4. Optional: travel influence on one or two more mobile verbs.
 
-**Known risk to gate on:** lifecycle-maintenance labor is 78% tier-carried
-today; mobile kinds losing grind tiers shortens their effective lifespans.
-Mortal churn must be re-verified within its healthy band.
+Lifecycle maintenance is no longer minor-actor work. The unified lifecycle
+formula owns health drain directly, so worker strength cannot silently extend
+named-entity lifespan.
 
 ## Phases
 
 - **P1 kernel/vocabulary**: stage catalogs in domain config compiled to
   per-(kind, stage) registries (band multiplier consumed by upkeep, worker
-  bonus consumed by minor actors, emission consumed by effects, district
+  bonus consumed as minor-actor strength, emission consumed by effects, district
   capacity consumed by install); demote op + mutation + generator effect;
   stage identity in telemetry.
 - **P2 authored**: promotion gambits with scaling gates for settlement,
@@ -96,5 +97,8 @@ Mortal churn must be re-verified within its healthy band.
 
 ## Not changed
 
-Decay model (rate tweak only), minor-actor emission machinery, provincial
-fire windows, the district model, band enum values, mortal death mechanics.
+This design does not own minor-actor identity or assignment. The later
+persistent-actor design consumes worker bonus as strength and has removed the
+former emission, cap, and TTL machinery. Provincial fire windows, the district
+model, band enum values, and mortal death mechanics remain outside this stage
+model.

@@ -20,7 +20,7 @@ internal static class GameInterventionIds
 {
     internal const int Consecrate = 1;
     internal const int Favor = 2;
-    internal const int CooldownTicks = 2500;
+    internal const int CooldownTicks = 500;
 }
 
 internal sealed record GameTableauGeneratorFire(string GeneratorName, int Tick);

@@ -133,7 +133,7 @@ public static class IceRemembersKnowledge
             "Coordinated hunters score and succeed more often in major hunts and slayings."),
         new("pod_coordination", "Pod Coordination", 3, KnowledgeDiscipline.Song,
             [
-                Purpose(MinorActorPurposeCodes.CampaignLabor, 1.25f), VerbWeight(Verb.OrcaReinforcePodTie, 1.25f),
+                Purpose(MinorActorRoleCodes.CampaignColumn, 1.25f), VerbWeight(Verb.OrcaReinforcePodTie, 1.25f),
                 VerbWeight(Verb.FactionFeedTheColumn, 1.25f), GambitScore(Gambit.FactionMarchesTheBanners, 1.20f),
                 GambitSuccess(Gambit.FactionMarchesTheBanners, 1.12f),
             ],

@@ -4,7 +4,7 @@ public sealed class MinorActorProgram
 {
     public bool EnabledByDefault { get; init; }
 
-    public IReadOnlyList<MinorActorEmitterRule> EmitterRules { get; init; } = [];
+    public IReadOnlyList<MinorActorRoleRule> RoleRules { get; init; } = [];
 
     /// <summary>Relationship kind whose living edges aim campaign-labor cohorts (0 = none).</summary>
     public int CampaignRelationshipKindId { get; init; }
@@ -13,26 +13,13 @@ public sealed class MinorActorProgram
     public int CarrierRelationshipKindId { get; init; }
 }
 
-public sealed record MinorActorEmitterRule(
+public sealed record MinorActorRoleRule(
     int SourceKindId,
     int SourceSubtypeId,
-    int PurposeCode,
-    int ActorKindCode,
+    int RoleCode,
     int PlaneCode,
-    int TtlTicks,
-    int EmitCadenceTicks,
-    int MaxActivePerSource,
-    int SpawnRadius,
-    int ActionCadenceTicks,
-    FixedScalar WorkDelta,
-    IReadOnlyList<MinorActorVerbRule> Verbs);
-
-public sealed record MinorActorVerbRule(
-    int VerbId,
-    int ActionCode,
-    int TargetingCode,
-    int PlaneCode,
-    int Radius,
-    int SampleCount,
-    FixedScalar Weight,
-    FixedScalar WorkDeltaMultiplier);
+    int AssignmentRadius,
+    int Stride,
+    int CommitmentTicks,
+    int ReplanTicks,
+    FixedScalar BaseStrength);

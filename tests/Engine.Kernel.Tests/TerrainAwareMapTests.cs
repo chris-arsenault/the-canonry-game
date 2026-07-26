@@ -189,7 +189,7 @@ public sealed class TerrainAwareMapTests
         var entityId = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
 
         var result = simulation.MoveEntityPhysical(entityId, 1, 0, tick: 0, MovementCauseCodes.Travel);
-        var agedQuality = simulation.Movement.RoadQuality(PlaneCodes.Physical, 1, 0, tick: 100_000);
+        var agedQuality = simulation.Movement.RoadQuality(PlaneCodes.Physical, 1, 0, tick: 20_000);
 
         Assert.True(result.Moved);
         Assert.InRange(

@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 53;
+    private const int FormatVersion = 54;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -144,7 +144,6 @@ internal static class KernelSnapshotOptions
         KernelTuningOptions kernelTuning)
     {
         WriteProgramEnabledOverrides(writer, kernelTuning.Programs.Enabled);
-        writer.Write(kernelTuning.Programs.MainProgramCadenceTicks);
         writer.Write(kernelTuning.Programs.CultureInfluenceActionScale.Units);
         writer.Write(kernelTuning.Programs.Lifecycle.AgingModelCode);
         writer.Write(kernelTuning.Programs.Generators.RetryFireTargets);
@@ -301,7 +300,6 @@ internal static class KernelSnapshotOptions
         values.RelationshipsProgramEnabled = reader.ReadInt32();
         values.GeneratorsProgramEnabled = reader.ReadInt32();
         values.MinorActorsProgramEnabled = reader.ReadInt32();
-        values.MainProgramCadenceTicks = reader.ReadInt32();
         values.CultureInfluenceActionScale = FixedScalar.FromUnits(reader.ReadInt64());
         values.LifecycleAgingModelCode = reader.ReadInt32();
         ReadGeneratorTuningValues(reader, ref values);
@@ -475,7 +473,6 @@ internal static class KernelSnapshotOptions
                     Generators = values.GeneratorsProgramEnabled,
                     MinorActors = values.MinorActorsProgramEnabled,
                 },
-                MainProgramCadenceTicks = values.MainProgramCadenceTicks,
                 CultureInfluenceActionScale = values.CultureInfluenceActionScale,
                 Lifecycle = new LifecycleTuningOptions
                 {
@@ -573,7 +570,6 @@ internal static class KernelSnapshotOptions
         public int RelationshipsProgramEnabled;
         public int GeneratorsProgramEnabled;
         public int MinorActorsProgramEnabled;
-        public int MainProgramCadenceTicks;
         public FixedScalar CultureInfluenceActionScale;
         public int LifecycleAgingModelCode;
         public bool GeneratorRetryFireTargets;

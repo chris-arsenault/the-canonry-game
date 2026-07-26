@@ -9,7 +9,7 @@ using IceRemembers.Seed;
 [Trait("Category", "Slow")]
 public sealed class CulturePowerTests
 {
-    private const int Ticks = 400;
+    private const int Ticks = 80;
 
     [Fact]
     public void ComputeCulturePower_ReportsAllCulturesWithSharesThatPartitionEachAxis()

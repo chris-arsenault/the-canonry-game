@@ -40,7 +40,7 @@ public sealed class DomainConfig
     /// </summary>
     public IReadOnlyList<CrossingProfileConfig> CrossingProfiles { get; init; } = [];
 
-    /// <summary>Rules for short-lived non-graph actors emitted by named entities.</summary>
+    /// <summary>Rules for persistent non-graph actors caused by named entities or campaign edges.</summary>
     public IReadOnlyList<MinorActorRuleConfig> MinorActors { get; init; } = [];
 
     public MinorActorCampaignConfig? MinorActorCampaign { get; init; }
@@ -480,29 +480,13 @@ public sealed class MinorActorRuleConfig
 {
     public required EntityKind SourceKind { get; init; }
     public string? SourceSubtype { get; init; }
-    public int PurposeCode { get; init; } = MinorActorPurposeCodes.CulturalLabor;
-    public int ActorKindCode { get; init; } = MinorActorKindCodes.Worker;
+    public int RoleCode { get; init; } = MinorActorRoleCodes.CulturalFront;
     public int PlaneCode { get; init; } = PlaneCodes.Physical;
-    public int TtlTicks { get; init; } = 80;
-    public int EmitCadenceTicks { get; init; } = 60;
-    public int MaxActivePerSource { get; init; } = 1;
-    public int SpawnRadius { get; init; } = 1;
-    public int ActionCadenceTicks { get; init; } = 8;
-    public float WorkDelta { get; init; } = 0.25f;
-    public required IReadOnlyList<MinorActorVerbConfig> Verbs { get; init; }
-}
-
-public sealed class MinorActorVerbConfig
-{
-    public required string Id { get; init; }
-    public string? DisplayName { get; init; }
-    public int ActionCode { get; init; } = MinorActorActionCodes.CultureExpansion;
-    public int TargetingCode { get; init; } = MinorActorVerbTargetingCodes.ReinforceHomeMass;
-    public int PlaneCode { get; init; } = PlaneCodes.None;
-    public int Radius { get; init; } = 4;
-    public int SampleCount { get; init; } = 32;
-    public float Weight { get; init; } = 1f;
-    public float WorkDeltaMultiplier { get; init; } = 1f;
+    public int AssignmentRadius { get; init; } = 5;
+    public int Stride { get; init; } = 2;
+    public int CommitmentTicks { get; init; } = 8;
+    public int ReplanTicks { get; init; } = 12;
+    public float BaseStrength { get; init; } = 1f;
 }
 
 public sealed class TerrainKindProfileConfig

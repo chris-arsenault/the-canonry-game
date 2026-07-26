@@ -5,22 +5,16 @@ using Engine.Constants;
 internal sealed partial class MinorActorProgramRuntime :
     IKernelProgramRuntime<MinorActorProgramData, MinorActorProgramState>
 {
-    internal void NoteEntityRetired(int entityId)
-    {
-        State.DeactivateSource(entityId);
-    }
-    private const int LocalVerbStepRadius = 1;
-    private static readonly FixedScalar CultureTraceRawInfluence = WorldState.CultureTraceRawMass;
-    private static readonly FixedScalar CultureSupportedRawInfluence = WorldState.CultureControlledRawMass;
-    private static readonly FixedScalar CultureStrongRawInfluence = WorldState.CultureEntrenchedRawMass;
-    private static readonly FixedScalar CultureFieldRawInfluence = WorldState.CultureFullRawMass;
-    private static readonly FixedScalar CultureForeignTraceToleranceShare = 10;
-    private static readonly FixedScalar CultureForeignContestScaleShare = 45;
-    private static readonly FixedScalar LifecycleMaintenanceCoverageScale = FixedScalar.FromUnits(30000L);
-    private static readonly FixedScalar LifecycleMaintenanceEarlyNeedScale = FixedScalar.FromUnits(200000L);
-    private static readonly FixedScalar LifecycleMaintenanceScoreScale = FixedScalar.FromUnits(1350000L);
-    private static readonly FixedScalar NexusSourceCultureMultiplier = FixedScalar.FromUnits(1500000L);
-    private readonly MinorActorCellTarget[] _verbTargetCells = new MinorActorCellTarget[7];
+    private static readonly int[] NeighborDQ = [1, 1, 0, -1, -1, 0];
+    private static readonly int[] NeighborDR = [0, -1, -1, 0, 1, 1];
+    private static readonly FixedScalar StageStrengthStep = FixedScalar.FromUnits(500000L);
+    private static readonly FixedScalar RecoveryShare = FixedScalar.FromUnits(100000L);
+    private static readonly FixedScalar FriendlySupportChance = FixedScalar.FromUnits(40000L);
+    private static readonly FixedScalar HostileClashChance = FixedScalar.FromUnits(80000L);
+    private static readonly FixedScalar FriendlySupportShare = FixedScalar.FromUnits(100000L);
+    private static readonly FixedScalar HostileDamageShare = FixedScalar.FromUnits(150000L);
+    private static readonly FixedScalar CampaignDamageShare = FixedScalar.FromUnits(250000L);
+    private static readonly FixedScalar StrongFrontThreshold = FixedScalar.FromSingle(2.5f);
 
     public MinorActorProgramRuntime(MinorActorProgramData data, MinorActorProgramState state)
     {
@@ -34,965 +28,898 @@ internal sealed partial class MinorActorProgramRuntime :
 
     public MinorActorProgramState State { get; }
 
-    public int RegisterEmitterRule(
+    internal void NoteEntityRetired(Simulation simulation, int entityId, int tick)
+    {
+        for (var index = State.ActiveCount - 1; index >= 0; index--)
+        {
+            var actorId = State.ActiveActorAt(index);
+            if (State.SourceEntityId(actorId) == entityId)
+            {
+                _ = RetireActor(
+                    simulation,
+                    actorId,
+                    tick,
+                    MinorActorRetirementReasonCodes.SourceRetired);
+            }
+        }
+    }
+
+    public int RegisterRoleRule(
         int sourceKindId,
         int sourceSubtypeId,
-        int purposeCode,
-        int actorKindCode,
+        int roleCode,
         int planeCode,
-        int ttlTicks,
-        int emitCadenceTicks,
-        int maxActivePerSource,
-        int spawnRadius,
-        int actionCadenceTicks,
-        FixedScalar workDelta) =>
-        Data.RegisterEmitterRule(
+        int assignmentRadius,
+        int stride,
+        int commitmentTicks,
+        int replanTicks,
+        FixedScalar baseStrength) =>
+        Data.RegisterRoleRule(
             sourceKindId,
             sourceSubtypeId,
-            purposeCode,
-            actorKindCode,
+            roleCode,
             planeCode,
-            ttlTicks,
-            emitCadenceTicks,
-            maxActivePerSource,
-            spawnRadius,
-            actionCadenceTicks,
-            workDelta);
+            assignmentRadius,
+            stride,
+            commitmentTicks,
+            replanTicks,
+            baseStrength);
 
-    public int RegisterVerb(
-        int sourceRuleId,
-        int verbId,
-        int actionCode,
-        int targetingCode,
-        int planeCode,
-        int radius,
-        int sampleCount,
-        FixedScalar weight,
-        FixedScalar workDeltaMultiplier) =>
-        Data.RegisterVerb(
-            sourceRuleId,
-            verbId,
-            actionCode,
-            targetingCode,
-            planeCode,
-            radius,
-            sampleCount,
-            weight,
-            workDeltaMultiplier);
-
-    public int Spawn(
-        int cultureId,
-        int sourceEntityId,
-        int sourceRuleId,
-        int actorKindCode,
-        int planeCode,
-        int q,
-        int r,
-        int ttlTicks,
-        int actionCadenceTicks,
-        FixedScalar workDelta,
-        int tick,
-        int purposeCode = MinorActorPurposeCodes.CulturalLabor)
-    {
-        if (!Data.RuleHasVerbs(sourceRuleId))
-        {
-            throw new global::System.ArgumentOutOfRangeException(nameof(sourceRuleId));
-        }
-
-        return State.Spawn(
-            cultureId,
-            sourceEntityId,
-            sourceRuleId,
-            actorKindCode,
-            planeCode,
-            q,
-            r,
-            ttlTicks,
-            actionCadenceTicks,
-            workDelta,
-            tick,
-            purposeCode);
-    }
+    public void SetCampaignRelationshipKindId(int relationshipKindId) =>
+        Data.CampaignRelationshipKindId = relationshipKindId;
 
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        EmitFromSources(simulation, tick);
-        TickActors(simulation, tick);
+        EnsureSourceActors(simulation, tick);
+        TickActiveActors(simulation, tick);
     }
 
-    private void EmitFromSources(Simulation simulation, int tick)
+    private void EnsureSourceActors(Simulation simulation, int tick)
     {
-        if (Data.RuleCount == 0)
+        var world = simulation.World;
+        for (var index = 0; index < simulation.FrozenEntityCount; index++)
+        {
+            var sourceEntityId = simulation.FrozenEntityAt(index);
+            var sourceKindId = world.EntityKindId(sourceEntityId);
+            for (var rule = Data.FirstRuleForSourceKind(sourceKindId);
+                 rule > 0;
+                 rule = Data.NextRuleForSourceKind(rule))
+            {
+                if (!Data.RuleMatches(world, sourceEntityId, rule))
+                {
+                    continue;
+                }
+
+                if (Data.RoleCodes[rule] == MinorActorRoleCodes.CampaignColumn)
+                {
+                    EnsureCampaignColumnsForSource(
+                        simulation,
+                        sourceEntityId,
+                        rule,
+                        tick);
+                    continue;
+                }
+
+                if (
+                    State.ActorForSourceRule(sourceEntityId, rule) > 0 ||
+                    !SourceProbeIsDue(sourceEntityId, rule, Data.ReplanTicks[rule], tick))
+                {
+                    continue;
+                }
+
+                CreateActorIfAssignable(
+                    simulation,
+                    sourceEntityId,
+                    rule,
+                    bindingRelationshipId: 0,
+                    tick);
+            }
+        }
+    }
+
+    private void EnsureCampaignColumnsForSource(
+        Simulation simulation,
+        int sourceEntityId,
+        int rule,
+        int tick)
+    {
+        if (Data.CampaignRelationshipKindId <= 0)
         {
             return;
         }
 
         var world = simulation.World;
-        for (var index = 0; index < simulation.FrozenEntityCount; index++)
+        var cursor = world.OutgoingRelationshipsOfKind(
+            sourceEntityId,
+            Data.CampaignRelationshipKindId);
+        while (world.MoveNextRelationship(ref cursor, out var relationshipId))
         {
-            var entityId = simulation.FrozenEntityAt(index);
-            var sourceKindId = world.EntityKindId(entityId);
-            for (var rule = Data.FirstRuleForSourceKind(sourceKindId);
-                 rule > 0;
-                 rule = Data.NextRuleForSourceKind(rule))
+            if (State.ActorForRelationship(relationshipId) > 0)
             {
-                TryEmitFromSource(simulation, world, entityId, rule, tick);
+                continue;
+            }
+
+            CreateActorIfAssignable(simulation, sourceEntityId, rule, relationshipId, tick);
+        }
+    }
+
+    private void CreateActorIfAssignable(
+        Simulation simulation,
+        int sourceEntityId,
+        int rule,
+        int bindingRelationshipId,
+        int tick)
+    {
+        var world = simulation.World;
+        var planeCode = Data.PlaneCodes[rule];
+        if (!TryResolveEntityPosition(world, sourceEntityId, planeCode, out var q, out var r) ||
+            !world.TryGetCellId(planeCode, q, r, z: 0, out var cellId) ||
+            !TryFindAssignment(
+                simulation,
+                sourceEntityId,
+                rule,
+                bindingRelationshipId,
+                q,
+                r,
+                out var assignment))
+        {
+            return;
+        }
+
+        var relationshipOccurrenceHandle = bindingRelationshipId > 0
+            ? world.RelationshipOccurrenceHandle(bindingRelationshipId)
+            : 0;
+        var actorId = State.Create(
+            world.EntityCultureId(sourceEntityId),
+            sourceEntityId,
+            world.EntityOccurrenceHandle(sourceEntityId),
+            rule,
+            bindingRelationshipId,
+            relationshipOccurrenceHandle,
+            Data.RoleCodes[rule],
+            planeCode,
+            q,
+            r,
+            cellId,
+            EffectiveStrength(simulation, sourceEntityId, rule),
+            tick);
+        State.SetAssignment(
+            actorId,
+            assignment.Q,
+            assignment.R,
+            assignment.TargetingCode,
+            checked(tick + Data.ReplanTicks[rule]),
+            checked(tick + Data.CommitmentTicks[rule]));
+        EmitCreated(simulation, actorId, tick);
+        EmitAssigned(simulation, actorId, previousTargetQ: 0, previousTargetR: 0, tick);
+    }
+
+    private void TickActiveActors(Simulation simulation, int tick)
+    {
+        for (var index = 0; index < State.ActiveCount;)
+        {
+            var actorId = State.ActiveActorAt(index);
+            if (TickActor(simulation, actorId, tick))
+            {
+                index++;
             }
         }
     }
 
-    private void TryEmitFromSource(
-        Simulation simulation,
+    private bool TickActor(Simulation simulation, int actorId, int tick)
+    {
+        var world = simulation.World;
+        if (!TryResolveActorSource(world, actorId, out var sourceEntityId, out var reasonCode))
+        {
+            _ = RetireActor(simulation, actorId, tick, reasonCode);
+            return false;
+        }
+
+        var rule = State.SourceRuleId(actorId);
+        var maximumStrength = EffectiveStrength(simulation, sourceEntityId, rule);
+        var strength = FixedScalar.Min(
+            maximumStrength,
+            State.Strength(actorId) + (maximumStrength * RecoveryShare));
+        State.SetStrength(actorId, strength);
+        State.SetWorkCharge(actorId, strength);
+
+        var assignmentValid = AssignmentIsValid(simulation, actorId);
+        if (!assignmentValid ||
+            (tick >= State.NextReplanTick(actorId) &&
+             tick >= State.CommitmentUntilTick(actorId)))
+        {
+            if (!TryReplanActor(simulation, actorId, sourceEntityId, rule, tick))
+            {
+                _ = RetireActor(
+                    simulation,
+                    actorId,
+                    tick,
+                    MinorActorRetirementReasonCodes.NoAssignment);
+                return false;
+            }
+        }
+
+        MoveTowardAssignment(simulation, actorId, Data.Strides[rule], tick);
+        ResolveLocalEncounters(simulation, actorId, tick);
+        ApplyRoleWork(simulation, actorId, tick);
+        return State.IsActive(actorId);
+    }
+
+    private bool TryResolveActorSource(
         WorldState world,
+        int actorId,
+        out int sourceEntityId,
+        out int reasonCode)
+    {
+        if (!world.TryResolveEntityOccurrence(
+                State.SourceEntityOccurrenceHandle(actorId),
+                out sourceEntityId) ||
+            sourceEntityId != State.SourceEntityId(actorId) ||
+            !Data.RuleMatches(world, sourceEntityId, State.SourceRuleId(actorId)))
+        {
+            reasonCode = MinorActorRetirementReasonCodes.SourceInvalid;
+            return false;
+        }
+
+        reasonCode = MinorActorRetirementReasonCodes.BindingInvalid;
+        return BindingIsValid(world, actorId);
+    }
+
+    private bool TryReplanActor(
+        Simulation simulation,
+        int actorId,
         int sourceEntityId,
         int rule,
         int tick)
     {
-        var slotMultiplier = simulation.CultureSlots.CausalSpendLimitMultiplier(sourceEntityId);
-        var workTier = world.EntityWorkTier(sourceEntityId);
-        if (!Data.RuleHasVerbs(rule) ||
-            !Data.RuleMatches(world, sourceEntityId, rule) ||
-            State.SourceActiveCount(sourceEntityId, rule) >= EffectiveMaxActivePerSource(world, sourceEntityId, rule, slotMultiplier, workTier) ||
-            tick < State.NextEmissionTick(sourceEntityId, rule))
+        if (!TryFindAssignment(
+                simulation,
+                sourceEntityId,
+                rule,
+                State.BindingRelationshipId(actorId),
+                State.Q(actorId),
+                State.R(actorId),
+                out var assignment))
         {
-            return;
+            return false;
         }
 
-        var anchorEntityId = sourceEntityId;
-        if (Data.PurposeCodes[rule] == MinorActorPurposeCodes.CampaignLabor &&
-            !TryResolveCampaignTarget(world, sourceEntityId, out anchorEntityId))
-        {
-            return;
-        }
-
-        State.SetNextEmissionTick(sourceEntityId, rule, tick + EffectiveEmitCadence(rule, slotMultiplier));
-        if (!TryResolveSpawnPosition(simulation, world, sourceEntityId, anchorEntityId, rule, out var q, out var r))
-        {
-            return;
-        }
-
-        _ = State.Spawn(
-            world.EntityCultureId(sourceEntityId),
-            sourceEntityId,
-            rule,
-            Data.ActorKindCodes[rule],
-            Data.PlaneCodes[rule],
-            q,
-            r,
-            Data.TtlTicks[rule],
-            Data.ActionCadenceTicks[rule],
-            Data.WorkDeltas[rule],
-            tick,
-            Data.PurposeCodes[rule]);
+        var previousTargetQ = State.TargetQ(actorId);
+        var previousTargetR = State.TargetR(actorId);
+        State.SetAssignment(
+            actorId,
+            assignment.Q,
+            assignment.R,
+            assignment.TargetingCode,
+            checked(tick + Data.ReplanTicks[rule]),
+            checked(tick + Data.CommitmentTicks[rule]));
+        EmitAssigned(simulation, actorId, previousTargetQ, previousTargetR, tick);
+        return true;
     }
 
-
-
-    // Catalog kinds draw their bonus workers from the stage table (steps at
-    // promotions); legacy kinds keep the raw additive tier.
-    private int EffectiveMaxActivePerSource(WorldState world, int sourceEntityId, int rule, int slotMultiplier, int workTier)
+    private bool BindingIsValid(WorldState world, int actorId)
     {
-        var kindId = world.EntityKindId(sourceEntityId);
-        var progressionBonus = world.KindHasStages(kindId)
-            ? world.StageWorkerBonus(world.StageRuleFor(kindId, workTier))
-            : workTier;
-        return (Data.MaxActivePerSource[rule] * global::System.Math.Max(1, slotMultiplier)) +
-            global::System.Math.Max(0, progressionBonus);
+        var relationshipHandle = State.BindingRelationshipOccurrenceHandle(actorId);
+        if (State.RoleCode(actorId) != MinorActorRoleCodes.CampaignColumn)
+        {
+            return relationshipHandle == 0;
+        }
+
+        return world.TryResolveRelationshipOccurrence(relationshipHandle, out var relationshipId) &&
+            relationshipId == State.BindingRelationshipId(actorId) &&
+            world.RelationshipKindId(relationshipId) == Data.CampaignRelationshipKindId;
     }
 
-    private int EffectiveEmitCadence(int rule, int slotMultiplier) =>
-        global::System.Math.Max(1, Data.EmitCadenceTicks[rule] / global::System.Math.Max(1, slotMultiplier));
-
-    private void TickActors(Simulation simulation, int tick)
+    private bool AssignmentIsValid(Simulation simulation, int actorId)
     {
-        while (State.TryTakeDueActor(tick, out var actorId))
+        var targetingCode = State.TargetingCode(actorId);
+        if (targetingCode == 0 ||
+            !simulation.World.CellIsKnown(
+                State.PlaneCode(actorId),
+                State.TargetQ(actorId),
+                State.TargetR(actorId)))
         {
-            TickActor(simulation, actorId, tick);
+            return false;
         }
+
+        return State.RoleCode(actorId) switch
+        {
+            MinorActorRoleCodes.CulturalFront => CulturalOpportunityAt(
+                simulation,
+                State.CultureId(actorId),
+                State.PlaneCode(actorId),
+                State.TargetQ(actorId),
+                State.TargetR(actorId),
+                out _,
+                out _),
+            MinorActorRoleCodes.RoadCrew =>
+                simulation.Movement.RoadTravelCount(
+                    State.PlaneCode(actorId),
+                    State.TargetQ(actorId),
+                    State.TargetR(actorId)) > 0 &&
+                simulation.Movement.RoadQuality(
+                    State.PlaneCode(actorId),
+                    State.TargetQ(actorId),
+                    State.TargetR(actorId),
+                    simulation.CurrentTick) < 95,
+            MinorActorRoleCodes.CampaignColumn => true,
+            _ => false,
+        };
     }
 
-    private void TickActor(Simulation simulation, int actorId, int tick)
-    {
-        if (!simulation.World.EntityIsActive(State.SourceEntityId(actorId)))
-        {
-            _ = State.Deactivate(actorId);
-            return;
-        }
-
-        if (tick >= State.NextActionTick(actorId))
-        {
-            ApplySelectedVerb(simulation, actorId, tick);
-            State.SetNextActionTick(actorId, tick + State.ActionCadenceTicks(actorId));
-        }
-
-        if (tick >= State.ExpiresAtTick(actorId))
-        {
-            _ = State.Deactivate(actorId);
-        }
-        else
-        {
-            State.Schedule(actorId);
-        }
-    }
-
-    private void ApplySelectedVerb(Simulation simulation, int actorId, int tick)
-    {
-        if (!TrySelectVerbCandidate(simulation, actorId, tick, out var selected))
-        {
-            EmitMinorActorVerb(simulation, actorId, tick, default, TraceStatusCodes.NoTarget, delta: 0);
-            return;
-        }
-
-        State.SetPosition(actorId, selected.Q, selected.R);
-        var cultureId = State.CultureId(actorId);
-        var delta = State.WorkDelta(actorId) *
-            selected.WorkDeltaMultiplier *
-            SourceSlotWorkMultiplier(simulation, State.SourceEntityId(actorId)) *
-            NexusSourceMultiplier(simulation, actorId, selected.PlaneCode) *
-            simulation.Knowledge.Modifier(
-                cultureId,
-                KnowledgeGrantDomainCodes.MinorActorWork,
-                State.PurposeCode(actorId));
-        if (selected.ActionCode == MinorActorActionCodes.RoadMaintenance)
-        {
-            delta *= simulation.Knowledge.Modifier(cultureId, KnowledgeGrantDomainCodes.RoadWork);
-        }
-        if (delta <= 0)
-        {
-            EmitMinorActorVerb(simulation, actorId, tick, selected, TraceStatusCodes.NoReward, delta);
-            return;
-        }
-
-        var appliedDelta = ApplySelectedVerbAction(simulation, actorId, selected, delta, tick);
-
-        if (appliedDelta <= 0)
-        {
-            EmitMinorActorVerb(simulation, actorId, tick, selected, TraceStatusCodes.NoReward, appliedDelta);
-            return;
-        }
-
-        EmitMinorActorVerb(simulation, actorId, tick, selected, TraceStatusCodes.Selected, appliedDelta);
-    }
-
-    private FixedScalar ApplySelectedVerbAction(
+    private bool TryFindAssignment(
         Simulation simulation,
-        int actorId,
-        in MinorActorVerbCandidate selected,
-        FixedScalar delta,
-        int tick)
+        int sourceEntityId,
+        int rule,
+        int bindingRelationshipId,
+        int actorQ,
+        int actorR,
+        out MinorActorAssignment assignment)
     {
-        switch (selected.ActionCode)
+        return Data.RoleCodes[rule] switch
         {
-            case MinorActorActionCodes.CultureExpansion:
-                return ApplyCultureExpansion(
-                    simulation,
-                    actorId,
-                    selected.PlaneCode,
-                    selected.Q,
-                    selected.R,
-                    CultureInfluenceActionDelta(simulation, delta),
-                    tick);
-            case MinorActorActionCodes.RoadMaintenance:
-                _ = simulation.Movement.ReinforceRoad(
-                    simulation,
-                    selected.PlaneCode,
-                    selected.Q,
-                    selected.R,
-                    delta,
-                    tick);
-                return delta;
-            case MinorActorActionCodes.CultureCleanup:
-                return ReduceOtherCultureSources(
-                    simulation,
-                    State.CultureId(actorId),
-                    selected.PlaneCode,
-                    selected.Q,
-                    selected.R,
-                    CultureInfluenceActionDelta(simulation, delta),
-                    tick);
-            case MinorActorActionCodes.LifecycleMaintenance:
-                return ApplyLifecycleMaintenance(
-                    simulation,
-                    State.SourceEntityId(actorId),
-                    delta,
-                    tick);
-            default:
-                return 0;
-        }
+            MinorActorRoleCodes.CulturalFront => TryFindCulturalFrontAssignment(
+                simulation,
+                sourceEntityId,
+                rule,
+                actorQ,
+                actorR,
+                out assignment),
+            MinorActorRoleCodes.RoadCrew => TryFindRoadAssignment(
+                simulation,
+                sourceEntityId,
+                rule,
+                actorQ,
+                actorR,
+                out assignment),
+            MinorActorRoleCodes.CampaignColumn => TryFindCampaignAssignment(
+                simulation,
+                sourceEntityId,
+                rule,
+                bindingRelationshipId,
+                actorQ,
+                actorR,
+                out assignment),
+            _ => ThrowUnknownRole(out assignment),
+        };
     }
 
-    private static FixedScalar SourceSlotWorkMultiplier(Simulation simulation, int sourceEntityId)
+    private bool TryFindCulturalFrontAssignment(
+        Simulation simulation,
+        int sourceEntityId,
+        int rule,
+        int actorQ,
+        int actorR,
+        out MinorActorAssignment assignment)
     {
-        var slotMultiplier = simulation.CultureSlots.CausalSpendLimitMultiplier(sourceEntityId);
-        return 1 + ((global::System.Math.Max(1, slotMultiplier) - 1) * FixedScalar.FromUnits(500000L));
-    }
-
-    private FixedScalar NexusSourceMultiplier(Simulation simulation, int actorId, int planeCode)
-    {
-        var cultureId = State.CultureId(actorId);
-        if (cultureId <= 0 ||
-            !TryResolveSourcePosition(
+        assignment = default;
+        var planeCode = Data.PlaneCodes[rule];
+        if (!TryResolveEntityPosition(
                 simulation.World,
-                State.SourceEntityId(actorId),
+                sourceEntityId,
                 planeCode,
                 out var sourceQ,
                 out var sourceR))
         {
-            return 1;
-        }
-
-        var sourceRaw = simulation.World.GetCellCultureInfluenceRaw(cultureId, planeCode, sourceQ, sourceR);
-        return sourceRaw >= WorldState.CultureNexusRawMass
-            ? NexusSourceCultureMultiplier
-            : 1;
-    }
-
-    private bool TrySelectVerbCandidate(
-        Simulation simulation,
-        int actorId,
-        int tick,
-        out MinorActorVerbCandidate selected)
-    {
-        selected = default;
-        var totalScore = FixedScalar.Zero;
-        var selectedPriority = FixedScalar.Zero;
-        var sourceRule = State.SourceRuleId(actorId);
-        var processedPlaneMask = 0;
-        var lifecycleNeed = new MinorActorLifecycleNeed();
-        for (var verb = Data.FirstVerbForRule(sourceRule);
-             verb > 0;
-             verb = Data.NextVerbForRule(verb))
-        {
-            if (!VerbSelectableForRule(verb, sourceRule))
-            {
-                continue;
-            }
-
-            var planeCode = Data.VerbPlaneCodes[verb];
-            var planeBit = PlaneBit(planeCode);
-            if ((processedPlaneMask & planeBit) != 0)
-            {
-                continue;
-            }
-
-            processedPlaneMask |= planeBit;
-            if (!TrySelectVerbCandidateForPlane(
-                    simulation,
-                    actorId,
-                    sourceRule,
-                    planeCode,
-                    tick,
-                    ref lifecycleNeed,
-                    out var candidate,
-                    out var candidatePriority))
-            {
-                continue;
-            }
-
-            if (TrySelectPrioritizedCandidate(
-                    candidate,
-                    candidatePriority,
-                    ref totalScore,
-                    ref selectedPriority,
-                    selected))
-            {
-                selected = candidate;
-            }
-        }
-
-        return totalScore > 0;
-    }
-
-    private static int PlaneBit(int planeCode) =>
-        planeCode == PlaneCodes.Physical ? 1 : 2;
-
-    private bool TrySelectVerbCandidateForPlane(
-        Simulation simulation,
-        int actorId,
-        int sourceRule,
-        int planeCode,
-        int tick,
-        ref MinorActorLifecycleNeed lifecycleNeed,
-        out MinorActorVerbCandidate selected,
-        out FixedScalar selectedPriority)
-    {
-        selected = default;
-        selectedPriority = 0;
-        if (!TryResolveActorPosition(actorId, planeCode, out var actorQ, out var actorR))
-        {
             return false;
         }
 
-        var sourceQ = actorQ;
-        var sourceR = actorR;
-        if (!TryResolveSourcePosition(simulation.World, State.SourceEntityId(actorId), planeCode, out sourceQ, out sourceR))
-        {
-            sourceQ = actorQ;
-            sourceR = actorR;
-        }
-
-        var sourceWorkTier = simulation.World.EntityWorkTier(State.SourceEntityId(actorId));
-        var maxOperatingRadius = MaxVerbOperatingRadius(sourceRule, planeCode, sourceWorkTier);
-        var cultureId = State.CultureId(actorId);
-        var targetCount = BuildVerbTargetCells(
+        var cultureId = simulation.World.EntityCultureId(sourceEntityId);
+        FindCulturalCandidate(
             simulation,
             cultureId,
             planeCode,
-            actorQ,
-            actorR,
+            Data.AssignmentRadii[rule],
             sourceQ,
             sourceR,
-            maxOperatingRadius,
-            _verbTargetCells);
-        if (targetCount == 0)
-        {
-            return false;
-        }
-
-        return TryScoreVerbTargetsForPlane(
-            simulation,
-            actorId,
-            sourceRule,
-            planeCode,
-            sourceWorkTier,
-            targetCount,
-            tick,
-            ref lifecycleNeed,
-            out selected,
-            out selectedPriority);
+            actorQ,
+            actorR,
+            ref assignment);
+        return assignment.Score > 0;
     }
 
-    private bool TryScoreVerbTargetsForPlane(
-        Simulation simulation,
-        int actorId,
-        int sourceRule,
-        int planeCode,
-        int sourceWorkTier,
-        int targetCount,
-        int tick,
-        ref MinorActorLifecycleNeed lifecycleNeed,
-        out MinorActorVerbCandidate selected,
-        out FixedScalar selectedPriority)
-    {
-        selected = default;
-        selectedPriority = 0;
-        var totalScore = FixedScalar.Zero;
-        for (var verb = Data.FirstVerbForRule(sourceRule);
-             verb > 0;
-             verb = Data.NextVerbForRule(verb))
-        {
-            if (!VerbSelectableForRule(verb, sourceRule) ||
-                Data.VerbPlaneCodes[verb] != planeCode)
-            {
-                continue;
-            }
-
-            var operatingRadius = Data.VerbRadii[verb] + sourceWorkTier;
-            for (var i = 0; i < targetCount; i++)
-            {
-                var target = _verbTargetCells[i];
-                if (target.DistanceFromSource > operatingRadius)
-                {
-                    continue;
-                }
-
-                var candidate = ScoreVerbTarget(
-                    simulation,
-                    actorId,
-                    verb,
-                    planeCode,
-                    target,
-                    operatingRadius,
-                    tick,
-                    ref lifecycleNeed);
-                if (TrySelectWeightedCandidate(
-                        simulation,
-                        actorId,
-                        candidate,
-                        ref totalScore,
-                        ref selectedPriority,
-                        selected))
-                {
-                    selected = candidate;
-                }
-            }
-        }
-
-        return totalScore > 0;
-    }
-
-    private static bool TrySelectWeightedCandidate(
-        Simulation simulation,
-        int actorId,
-        in MinorActorVerbCandidate candidate,
-        ref FixedScalar totalScore,
-        ref FixedScalar selectedPriority,
-        in MinorActorVerbCandidate selected)
-    {
-        if (candidate.Score <= 0)
-        {
-            return false;
-        }
-
-        totalScore += candidate.Score;
-        var candidateKey = MinorActorCandidateKey(candidate);
-        var candidatePriority = simulation.RandomScalar(
-            actorId,
-            candidate.VerbId,
-            KernelRandomPurposeCodes.MinorActorVerbSelection,
-            candidateKey) * candidate.Score;
-        return TrySelectPrioritizedCandidate(
-            candidate,
-            candidatePriority,
-            ref totalScore,
-            ref selectedPriority,
-            selected,
-            scoreAlreadyAdded: true);
-    }
-
-    private static bool TrySelectPrioritizedCandidate(
-        in MinorActorVerbCandidate candidate,
-        FixedScalar candidatePriority,
-        ref FixedScalar totalScore,
-        ref FixedScalar selectedPriority,
-        in MinorActorVerbCandidate selected,
-        bool scoreAlreadyAdded = false)
-    {
-        if (candidate.Score <= 0)
-        {
-            return false;
-        }
-
-        if (!scoreAlreadyAdded)
-        {
-            totalScore += candidate.Score;
-        }
-
-        if (selected.Score <= 0)
-        {
-            selectedPriority = candidatePriority;
-            return true;
-        }
-
-        var candidateKey = MinorActorCandidateKey(candidate);
-        var selectedKey = MinorActorCandidateKey(selected);
-        if (candidatePriority <= selectedPriority &&
-            (candidatePriority != selectedPriority || candidateKey >= selectedKey))
-        {
-            return false;
-        }
-
-        selectedPriority = candidatePriority;
-        return true;
-    }
-
-    private static int MinorActorCandidateKey(in MinorActorVerbCandidate candidate)
-    {
-        unchecked
-        {
-            var hash = (uint)candidate.Q * 2654435761u;
-            hash ^= (uint)candidate.R * 2246822519u;
-            hash ^= (uint)candidate.VerbId * 3266489917u;
-            return (int)(hash ^ (hash >> 16));
-        }
-    }
-
-    private bool VerbSelectableForRule(int verb, int sourceRule) =>
-        Data.VerbSourceRuleIds[verb] == sourceRule && Data.VerbWeights[verb] > 0;
-
-    private int MaxVerbOperatingRadius(int sourceRule, int planeCode, int sourceWorkTier)
-    {
-        var radius = 0;
-        for (var verb = Data.FirstVerbForRule(sourceRule);
-             verb > 0;
-             verb = Data.NextVerbForRule(verb))
-        {
-            if (VerbSelectableForRule(verb, sourceRule) &&
-                Data.VerbPlaneCodes[verb] == planeCode)
-            {
-                radius = global::System.Math.Max(radius, Data.VerbRadii[verb] + sourceWorkTier);
-            }
-        }
-
-        return radius;
-    }
-
-    private int BuildVerbTargetCells(
+    private static void FindCulturalCandidate(
         Simulation simulation,
         int cultureId,
         int planeCode,
-        int actorQ,
-        int actorR,
+        int radius,
         int sourceQ,
         int sourceR,
-        int maxOperatingRadius,
-        MinorActorCellTarget[] targets)
+        int actorQ,
+        int actorR,
+        ref MinorActorAssignment assignment)
     {
-        var radius = maxOperatingRadius <= 0 ? 0 : LocalVerbStepRadius;
-        var count = 0;
         for (var dq = -radius; dq <= radius; dq++)
         {
             var minDr = global::System.Math.Max(-radius, -dq - radius);
             var maxDr = global::System.Math.Min(radius, -dq + radius);
             for (var dr = minDr; dr <= maxDr; dr++)
             {
-                var q = actorQ + dq;
-                var r = actorR + dr;
+                var q = sourceQ + dq;
+                var r = sourceR + dr;
+                if (!CulturalOpportunityAt(
+                        simulation,
+                        cultureId,
+                        planeCode,
+                        q,
+                        r,
+                        out var targetingCode,
+                        out var baseScore))
+                {
+                    continue;
+                }
+
+                var distance = HexDistance(actorQ, actorR, q, r);
+                var score = baseScore / (1 + distance);
+                SelectAssignment(q, r, targetingCode, score, ref assignment);
+            }
+        }
+    }
+
+    private static bool CulturalOpportunityAt(
+        Simulation simulation,
+        int cultureId,
+        int planeCode,
+        int q,
+        int r,
+        out int targetingCode,
+        out FixedScalar score)
+    {
+        targetingCode = 0;
+        score = 0;
+        if (!simulation.World.CellIsKnown(planeCode, q, r))
+        {
+            return false;
+        }
+
+        var boundary = simulation.CultureLocality.CellAt(
+            simulation.World,
+            cultureId,
+            planeCode,
+            q,
+            r);
+        if (boundary.ForeignRawMass >= WorldState.CultureTraceRawMass &&
+            (boundary.ConnectedRawMass > 0 || boundary.SupportedAdjacentCount > 0))
+        {
+            targetingCode = MinorActorTargetingCodes.ContestCulture;
+            score = 1000 + (10 * boundary.ForeignRawMass) +
+                FixedScalar.Max(0, WorldState.CultureControlledRawMass - boundary.RawMass);
+            return true;
+        }
+
+        if (boundary.RawMass >= WorldState.CultureControlledRawMass)
+        {
+            return false;
+        }
+
+        if (boundary.SupportedAdjacentCount >= 2)
+        {
+            targetingCode = MinorActorTargetingCodes.BridgeGap;
+            score = 500 + (50 * boundary.SupportedAdjacentCount) +
+                FixedScalar.Max(0, WorldState.CultureControlledRawMass - boundary.RawMass);
+            return true;
+        }
+
+        if (boundary.ConnectedRawMass > 0 || boundary.SupportedAdjacentCount > 0)
+        {
+            targetingCode = MinorActorTargetingCodes.ExtendBorder;
+            score = 100 + boundary.ConnectedRawMass +
+                FixedScalar.Max(0, WorldState.CultureControlledRawMass - boundary.RawMass);
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryFindRoadAssignment(
+        Simulation simulation,
+        int sourceEntityId,
+        int rule,
+        int actorQ,
+        int actorR,
+        out MinorActorAssignment assignment)
+    {
+        assignment = default;
+        var planeCode = Data.PlaneCodes[rule];
+        if (!TryResolveEntityPosition(
+                simulation.World,
+                sourceEntityId,
+                planeCode,
+                out var sourceQ,
+                out var sourceR))
+        {
+            return false;
+        }
+
+        var radius = Data.AssignmentRadii[rule];
+        for (var dq = -radius; dq <= radius; dq++)
+        {
+            var minDr = global::System.Math.Max(-radius, -dq - radius);
+            var maxDr = global::System.Math.Min(radius, -dq + radius);
+            for (var dr = minDr; dr <= maxDr; dr++)
+            {
+                var q = sourceQ + dq;
+                var r = sourceR + dr;
                 if (!simulation.World.CellIsKnown(planeCode, q, r))
                 {
                     continue;
                 }
 
-                var distanceFromSource = HexDistance(sourceQ, sourceR, q, r);
-                if (distanceFromSource > maxOperatingRadius)
+                var travelCount = simulation.Movement.RoadTravelCount(planeCode, q, r);
+                if (travelCount <= 0)
                 {
                     continue;
                 }
 
-                targets[count] = BuildVerbTargetCell(
-                    simulation,
-                    cultureId,
+                var quality = simulation.Movement.RoadQuality(
                     planeCode,
                     q,
                     r,
-                    HexDistance(actorQ, actorR, q, r),
-                    distanceFromSource);
-                count++;
+                    simulation.CurrentTick);
+                if (quality >= 95)
+                {
+                    continue;
+                }
+
+                var distance = HexDistance(actorQ, actorR, q, r);
+                var score = (travelCount * (101 - quality)) / (1 + distance);
+                SelectAssignment(
+                    q,
+                    r,
+                    MinorActorTargetingCodes.MaintainRoad,
+                    score,
+                    ref assignment);
             }
         }
 
-        return count;
+        return assignment.Score > 0;
     }
 
-    private bool TryResolveActorPosition(int actorId, int planeCode, out int q, out int r)
-    {
-        q = State.Q(actorId);
-        r = State.R(actorId);
-        return State.PlaneCode(actorId) == planeCode;
-    }
-
-    private MinorActorCellTarget BuildVerbTargetCell(
-        Simulation simulation,
-        int cultureId,
-        int planeCode,
-        int q,
-        int r,
-        int distanceFromActor,
-        int distanceFromSource)
-    {
-        var boundary = simulation.CultureLocality.CellAt(simulation.World, cultureId, planeCode, q, r);
-        var cultureField = new MinorActorCultureField(
-            boundary.RawMass,
-            boundary.LocalRawMass,
-            boundary.ConnectedRawMass,
-            boundary.SupportedAdjacentCount,
-            boundary.SupportedRingTwoCount);
-        var attachment = new MinorActorCultureAttachment(
-            boundary.ConnectedRawMass,
-            boundary.SupportedAdjacentCount,
-            boundary.RawMass >= WorldState.CultureControlledRawMass ? 1 : 0);
-        return new MinorActorCellTarget(
-            q,
-            r,
-            distanceFromActor,
-            distanceFromSource,
-            boundary.Share,
-            boundary.RawMass,
-            boundary.ForeignShare,
-            boundary.ForeignRawMass,
-            cultureField,
-            attachment,
-            boundary.CellKindCode);
-    }
-
-    private MinorActorVerbCandidate ScoreVerbTarget(
-        Simulation simulation,
-        int actorId,
-        int verb,
-        int planeCode,
-        in MinorActorCellTarget target,
-        int effectiveRadius,
-        int tick,
-        ref MinorActorLifecycleNeed lifecycleNeed)
-    {
-        var score = MinorVerbScore(
-            simulation,
-            actorId,
-            verb,
-            planeCode,
-            target.Q,
-            target.R,
-            target.OwnShare,
-            target.OwnRaw,
-            target.ForeignShare,
-            target.ForeignRaw,
-            target.CultureField,
-            target.Attachment,
-            tick,
-            ref lifecycleNeed);
-
-        if (score <= 0)
-        {
-            return default;
-        }
-
-        var distanceBias = 1 / (1 + (FixedScalar.FromUnits(100000L) * target.DistanceFromActor));
-        score *= Data.VerbWeights[verb] * distanceBias;
-        return new MinorActorVerbCandidate(
-            Data.VerbIds[verb],
-            Data.VerbActionCodes[verb],
-            Data.VerbTargetingCodes[verb],
-            planeCode,
-            target.Q,
-            target.R,
-            target.CellKindCode,
-            effectiveRadius,
-            target.CultureField.LocalRaw,
-            target.CultureField.ConnectedRaw,
-            score,
-            Data.VerbWorkDeltaMultipliers[verb]);
-    }
-
-    private static FixedScalar CultureInfluenceActionDelta(Simulation simulation, FixedScalar delta) =>
-        delta * simulation.Options.KernelTuning.Programs.CultureInfluenceActionScale;
-
-    private FixedScalar ApplyCultureExpansion(
-        Simulation simulation,
-        int actorId,
-        int planeCode,
-        int q,
-        int r,
-        FixedScalar delta,
-        int tick)
-    {
-        var sourceEntityId = State.SourceEntityId(actorId);
-        if (sourceEntityId > 0)
-        {
-            simulation.ModifyCellCultureInfluenceRawFromEntity(sourceEntityId, planeCode, q, r, delta, tick);
-            return delta;
-        }
-
-        return simulation.ModifyCellCultureInfluenceRaw(
-            State.CultureId(actorId),
-            planeCode,
-            q,
-            r,
-            simulation.CultureProductionScaled(State.CultureId(actorId), planeCode, delta),
-            tick);
-    }
-
-    private static FixedScalar ReduceOtherCultureSources(
-        Simulation simulation,
-        int ownCultureId,
-        int planeCode,
-        int q,
-        int r,
-        FixedScalar delta,
-        int tick)
-    {
-        return simulation.ReduceOtherCultureSourcesAtCell(ownCultureId, planeCode, q, r, delta, tick);
-    }
-
-    private static FixedScalar ApplyLifecycleMaintenance(
+    private bool TryFindCampaignAssignment(
         Simulation simulation,
         int sourceEntityId,
-        FixedScalar coverage,
-        int tick)
-    {
-        if (coverage <= 0 ||
-            !simulation.Effects.TryGetLifecycleMaintenanceNeed(
-                simulation,
-                sourceEntityId,
-                tick,
-                out var attributeId,
-                out var ageDrainComponent,
-                out _))
-        {
-            return 0;
-        }
-
-        var delta = ageDrainComponent * coverage * LifecycleMaintenanceCoverageScale;
-        if (delta <= 0)
-        {
-            return 0;
-        }
-
-        simulation.ModifyAttribute(sourceEntityId, attributeId, delta, tick);
-        return delta;
-    }
-
-    private void EmitMinorActorVerb(
-        Simulation simulation,
-        int actorId,
-        int tick,
-        in MinorActorVerbCandidate selected,
-        int statusCode,
-        FixedScalar delta)
-    {
-        var sourceEntityId = State.SourceEntityId(actorId);
-        var sourceWorkTier = simulation.World.EntityWorkTier(sourceEntityId);
-        simulation.EmitMinorActorVerbExecuted(
-            tick,
-            actorId,
-            sourceEntityId,
-            State.SourceRuleId(actorId),
-            sourceWorkTier,
-            EffectiveActorRadius(actorId, sourceWorkTier, selected),
-            State.CultureId(actorId),
-            selected.VerbId,
-            State.PurposeCode(actorId),
-            selected.ActionCode,
-            selected.TargetingCode,
-            selected.PlaneCode == 0 ? State.PlaneCode(actorId) : selected.PlaneCode,
-            selected.Q,
-            selected.R,
-            statusCode,
-            selected.CellKindCode,
-            selected.LocalRawMass,
-            selected.ConnectedRawMass,
-            selected.Score,
-            delta);
-    }
-
-    private int EffectiveActorRadius(int actorId, int sourceWorkTier, in MinorActorVerbCandidate selected)
-    {
-        if (selected.EffectiveRadius > 0)
-        {
-            return selected.EffectiveRadius;
-        }
-
-        var sourceRule = State.SourceRuleId(actorId);
-        return (uint)(sourceRule - 1) < (uint)Data.RuleCapacity
-            ? Data.RuleMaxVerbRadii[sourceRule] + sourceWorkTier
-            : 0;
-    }
-
-    private static bool TryResolveSourcePosition(
-        WorldState world,
-        int sourceEntityId,
-        int planeCode,
-        out int q,
-        out int r)
-    {
-        if (sourceEntityId <= 0 || !world.EntityIsActive(sourceEntityId))
-        {
-            q = 0;
-            r = 0;
-            return false;
-        }
-
-        if (planeCode == PlaneCodes.Physical)
-        {
-            q = world.EntityPhysicalQ(sourceEntityId);
-            r = world.EntityPhysicalR(sourceEntityId);
-            return true;
-        }
-
-        if (planeCode == PlaneCodes.Semantic)
-        {
-            q = world.EntitySemanticQ(sourceEntityId);
-            r = world.EntitySemanticR(sourceEntityId);
-            return true;
-        }
-
-        q = 0;
-        r = 0;
-        return false;
-    }
-
-    private bool TryResolveSpawnPosition(
-        Simulation simulation,
-        WorldState world,
-        int sourceEntityId,
-        int anchorEntityId,
         int rule,
-        out int q,
-        out int r)
+        int relationshipId,
+        int actorQ,
+        int actorR,
+        out MinorActorAssignment assignment)
     {
-        q = 0;
-        r = 0;
-        if (!TryResolveSourcePosition(world, anchorEntityId, Data.PlaneCodes[rule], out var sourceQ, out var sourceR))
+        assignment = default;
+        var world = simulation.World;
+        if (relationshipId <= 0 ||
+            !world.TryResolveRelationshipOccurrence(
+                world.RelationshipOccurrenceHandle(relationshipId),
+                out var resolvedRelationshipId) ||
+            resolvedRelationshipId != relationshipId)
         {
             return false;
         }
 
-        if (anchorEntityId != sourceEntityId)
+        var targetEntityId = world.RelationshipTargetId(relationshipId);
+        var planeCode = Data.PlaneCodes[rule];
+        if (!TryResolveEntityPosition(world, sourceEntityId, planeCode, out var homeQ, out var homeR) ||
+            !TryResolveEntityPosition(world, targetEntityId, planeCode, out var targetQ, out var targetR))
         {
-            AdvanceAnchorToFrontier(world, sourceEntityId, Data.PlaneCodes[rule], ref sourceQ, ref sourceR);
+            return false;
         }
 
-        return Data.PurposeCodes[rule] == MinorActorPurposeCodes.CampaignLabor
-            ? TrySelectCampaignSpawnCell(
-                simulation,
-                world.EntityCultureId(sourceEntityId),
-                Data.PlaneCodes[rule],
-                sourceQ,
-                sourceR,
-                Data.SpawnRadii[rule],
-                out q,
-                out r)
-            : TrySelectSpawnCell(
-                simulation,
-                world.EntityCultureId(sourceEntityId),
-                Data.PlaneCodes[rule],
-                sourceQ,
-                sourceR,
-                Data.SpawnRadii[rule],
-                out q,
-                out r);
+        var cultureId = world.EntityCultureId(sourceEntityId);
+        FindSupportedCampaignFrontier(
+            world,
+            cultureId,
+            planeCode,
+            homeQ,
+            homeR,
+            ref targetQ,
+            ref targetR);
+        FindCampaignCandidate(
+            simulation,
+            cultureId,
+            planeCode,
+            Data.AssignmentRadii[rule],
+            targetQ,
+            targetR,
+            actorQ,
+            actorR,
+            ref assignment);
+        if (assignment.Score > 0)
+        {
+            return true;
+        }
+
+        assignment = new MinorActorAssignment(
+            targetQ,
+            targetR,
+            MinorActorTargetingCodes.AdvanceCampaign,
+            1);
+        return world.CellIsKnown(planeCode, targetQ, targetR);
     }
 
-    private bool TrySelectSpawnCell(
+    private static void FindCampaignCandidate(
         Simulation simulation,
         int cultureId,
         int planeCode,
-        int sourceQ,
-        int sourceR,
         int radius,
-        out int q,
-        out int r)
+        int targetQ,
+        int targetR,
+        int actorQ,
+        int actorR,
+        ref MinorActorAssignment assignment)
     {
-        if (radius <= 0 || cultureId <= 0)
-        {
-            q = sourceQ;
-            r = sourceR;
-            return simulation.World.CellIsKnown(planeCode, q, r);
-        }
-
-        q = sourceQ;
-        r = sourceR;
-        var bestScore = simulation.World.CellIsKnown(planeCode, q, r) ? FixedScalar.FromUnits(10000L) : 0;
+        var world = simulation.World;
         for (var dq = -radius; dq <= radius; dq++)
         {
             var minDr = global::System.Math.Max(-radius, -dq - radius);
             var maxDr = global::System.Math.Min(radius, -dq + radius);
             for (var dr = minDr; dr <= maxDr; dr++)
             {
-                var candidateQ = sourceQ + dq;
-                var candidateR = sourceR + dr;
-                if (!simulation.World.CellIsKnown(planeCode, candidateQ, candidateR))
+                var q = targetQ + dq;
+                var r = targetR + dr;
+                if (!world.CellIsKnown(planeCode, q, r))
                 {
                     continue;
                 }
 
-                var field = simulation.CultureLocality.CellAt(
-                    simulation.World,
-                    cultureId,
-                    planeCode,
-                    candidateQ,
-                    candidateR);
-                var score = field.ConnectedRawMass;
-                if (score > bestScore)
+                var boundary = simulation.CultureLocality.CellAt(world, cultureId, planeCode, q, r);
+                if (boundary.ConnectedRawMass <= 0 && boundary.SupportedAdjacentCount <= 0)
                 {
-                    q = candidateQ;
-                    r = candidateR;
-                    bestScore = score;
+                    continue;
                 }
+
+                var distance = HexDistance(actorQ, actorR, q, r);
+                var score = (800 + (20 * boundary.ForeignRawMass) +
+                    FixedScalar.Max(0, WorldState.CultureEntrenchedRawMass - boundary.RawMass)) /
+                    (1 + distance);
+                SelectAssignment(
+                    q,
+                    r,
+                    MinorActorTargetingCodes.AdvanceCampaign,
+                    score,
+                    ref assignment);
+            }
+        }
+    }
+
+    private static void FindSupportedCampaignFrontier(
+        WorldState world,
+        int cultureId,
+        int planeCode,
+        int homeQ,
+        int homeR,
+        ref int targetQ,
+        ref int targetR)
+    {
+        var dq = homeQ - targetQ;
+        var dr = homeR - targetR;
+        var distance = HexDistance(homeQ, homeR, targetQ, targetR);
+        for (var step = 0; step <= distance; step++)
+        {
+            var ratio = distance == 0 ? 0 : step / (FixedScalar)distance;
+            var q = targetQ + (int)FixedScalar.Round(
+                dq * ratio,
+                global::System.MidpointRounding.AwayFromZero);
+            var r = targetR + (int)FixedScalar.Round(
+                dr * ratio,
+                global::System.MidpointRounding.AwayFromZero);
+            if (world.GetCellCultureInfluenceRaw(cultureId, planeCode, q, r) >=
+                WorldState.CultureTraceRawMass)
+            {
+                targetQ = q;
+                targetR = r;
+                return;
             }
         }
 
-        return bestScore > 0;
+        targetQ = homeQ;
+        targetR = homeR;
     }
+
+    private void MoveTowardAssignment(
+        Simulation simulation,
+        int actorId,
+        int stride,
+        int tick)
+    {
+        var planeCode = State.PlaneCode(actorId);
+        var q = State.Q(actorId);
+        var r = State.R(actorId);
+        var targetQ = State.TargetQ(actorId);
+        var targetR = State.TargetR(actorId);
+        for (var step = 0; step < stride && (q != targetQ || r != targetR); step++)
+        {
+            if (!TrySelectNextCell(
+                    simulation.World,
+                    planeCode,
+                    q,
+                    r,
+                    targetQ,
+                    targetR,
+                    out var nextQ,
+                    out var nextR))
+            {
+                State.SetPosture(actorId, MinorActorPostureCodes.Disrupted);
+                break;
+            }
+
+            q = nextQ;
+            r = nextR;
+        }
+
+        if ((q != State.Q(actorId) || r != State.R(actorId)) &&
+            simulation.World.TryGetCellId(planeCode, q, r, z: 0, out var cellId))
+        {
+            var previousQ = State.Q(actorId);
+            var previousR = State.R(actorId);
+            State.SetPosition(actorId, q, r, cellId);
+            EmitMoved(simulation, actorId, previousQ, previousR, tick);
+        }
+    }
+
+    private static bool TrySelectNextCell(
+        WorldState world,
+        int planeCode,
+        int q,
+        int r,
+        int targetQ,
+        int targetR,
+        out int nextQ,
+        out int nextR)
+    {
+        nextQ = q;
+        nextR = r;
+        var bestDistance = HexDistance(q, r, targetQ, targetR);
+        for (var direction = 0; direction < NeighborDQ.Length; direction++)
+        {
+            var candidateQ = q + NeighborDQ[direction];
+            var candidateR = r + NeighborDR[direction];
+            if (!world.CellIsKnown(planeCode, candidateQ, candidateR))
+            {
+                continue;
+            }
+
+            var distance = HexDistance(candidateQ, candidateR, targetQ, targetR);
+            if (distance < bestDistance)
+            {
+                nextQ = candidateQ;
+                nextR = candidateR;
+                bestDistance = distance;
+            }
+        }
+
+        return nextQ != q || nextR != r;
+    }
+
+    private void ApplyRoleWork(Simulation simulation, int actorId, int tick)
+    {
+        if (!State.IsActive(actorId) ||
+            State.Q(actorId) != State.TargetQ(actorId) ||
+            State.R(actorId) != State.TargetR(actorId))
+        {
+            return;
+        }
+
+        var work = State.WorkCharge(actorId);
+        if (work <= 0)
+        {
+            return;
+        }
+
+        var applied = State.RoleCode(actorId) switch
+        {
+            MinorActorRoleCodes.CulturalFront => ApplyCulturalFrontWork(
+                simulation,
+                actorId,
+                work,
+                tick),
+            MinorActorRoleCodes.RoadCrew => ApplyRoadWork(
+                simulation,
+                actorId,
+                work,
+                tick),
+            MinorActorRoleCodes.CampaignColumn => ApplyCampaignWork(
+                simulation,
+                actorId,
+                work,
+                tick),
+            _ => 0,
+        };
+
+        if (applied > 0)
+        {
+            EmitWorkEvent(simulation, actorId, applied, tick);
+        }
+    }
+
+    private FixedScalar ApplyCulturalFrontWork(
+        Simulation simulation,
+        int actorId,
+        FixedScalar work,
+        int tick)
+    {
+        var delta = CultureWorkDelta(simulation, actorId, work);
+        var applied = FixedScalar.Zero;
+        if (State.TargetingCode(actorId) == MinorActorTargetingCodes.ContestCulture)
+        {
+            applied = simulation.ReduceOtherCultureSourcesAtCell(
+                State.CultureId(actorId),
+                State.PlaneCode(actorId),
+                State.Q(actorId),
+                State.R(actorId),
+                delta,
+                tick);
+            if (State.Strength(actorId) < StrongFrontThreshold)
+            {
+                return applied;
+            }
+
+            delta /= 2;
+        }
+
+        simulation.ModifyCellCultureInfluenceRawFromEntity(
+            State.SourceEntityId(actorId),
+            State.PlaneCode(actorId),
+            State.Q(actorId),
+            State.R(actorId),
+            delta,
+            tick);
+        return applied + delta;
+    }
+
+    private static FixedScalar ApplyRoadWork(
+        Simulation simulation,
+        int actorId,
+        FixedScalar work,
+        int tick)
+    {
+        var cultureId = simulation.MinorActors.State.CultureId(actorId);
+        var delta = work * simulation.Knowledge.Modifier(
+            cultureId,
+            KnowledgeGrantDomainCodes.RoadWork);
+        return simulation.Movement.ReinforceRoad(
+            simulation,
+            simulation.MinorActors.State.PlaneCode(actorId),
+            simulation.MinorActors.State.Q(actorId),
+            simulation.MinorActors.State.R(actorId),
+            delta,
+            tick)
+            ? delta
+            : 0;
+    }
+
+    private FixedScalar ApplyCampaignWork(
+        Simulation simulation,
+        int actorId,
+        FixedScalar work,
+        int tick)
+    {
+        var delta = CultureWorkDelta(simulation, actorId, work);
+        var applied = simulation.ReduceOtherCultureSourcesAtCell(
+            State.CultureId(actorId),
+            State.PlaneCode(actorId),
+            State.Q(actorId),
+            State.R(actorId),
+            delta,
+            tick);
+        simulation.ModifyCellCultureInfluenceRawFromEntity(
+            State.SourceEntityId(actorId),
+            State.PlaneCode(actorId),
+            State.Q(actorId),
+            State.R(actorId),
+            delta,
+            tick);
+        return applied + delta;
+    }
+
+    private FixedScalar CultureWorkDelta(
+        Simulation simulation,
+        int actorId,
+        FixedScalar work) =>
+        work *
+        simulation.Options.KernelTuning.Programs.CultureInfluenceActionScale *
+        simulation.Knowledge.Modifier(
+            State.CultureId(actorId),
+            KnowledgeGrantDomainCodes.MinorActorWork,
+            State.RoleCode(actorId));
 
 }

@@ -726,7 +726,6 @@ public sealed class LowAltitudeVerbSelectionTests
             {
                 Programs = new KernelProgramTuningOptions
                 {
-                    MainProgramCadenceTicks = 1,
                     LowAltitudeVerbs = new LowAltitudeVerbTuningOptions
                     {
                         OpportunityRate = opportunityRate ?? FixedScalar.FromSingle(0.4f),

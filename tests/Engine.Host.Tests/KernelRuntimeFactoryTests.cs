@@ -89,7 +89,6 @@ public sealed class KernelRuntimeFactoryTests
             {
               "kernelTuning": {
                 "programs": {
-                  "mainProgramCadenceTicks": 7,
                   "cultureInfluenceActionScale": 0.25,
                   "lowAltitudeVerbs": {
                     "enabled": false,
@@ -145,7 +144,6 @@ public sealed class KernelRuntimeFactoryTests
             fires_per_window = 2
 
             [kernel_tuning.programs]
-            main_program_cadence_ticks = 7
             culture_influence_action_scale = 0.25
 
             [kernel_tuning.programs.movement]
@@ -254,7 +252,6 @@ public sealed class KernelRuntimeFactoryTests
     private static void AssertConfiguredTuningOptions(SimulationOptions options)
     {
         Assert.False(options.KernelTuning.Programs.Generators.RetryFireTargets);
-        Assert.Equal(7, options.KernelTuning.Programs.MainProgramCadenceTicks);
         Assert.Equal(FixedScalar.FromSingle(0.25f), options.KernelTuning.Programs.CultureInfluenceActionScale);
         Assert.Equal(17, options.KernelTuning.Programs.Generators.FireWindowTicks);
         Assert.Equal(2, options.KernelTuning.Programs.Generators.FiresPerWindow);

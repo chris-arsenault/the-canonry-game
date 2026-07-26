@@ -187,7 +187,6 @@ public sealed class KernelSnapshotTests
         {
             Programs = new KernelProgramTuningOptions
             {
-                MainProgramCadenceTicks = 7,
                 CultureInfluenceActionScale = FixedScalar.FromSingle(0.25f),
                 Lifecycle = new LifecycleTuningOptions
                 {
@@ -245,7 +244,6 @@ public sealed class KernelSnapshotTests
         Assert.False(loaded.ProgramIsEnabled(KernelProgramCodes.Generators));
         Assert.True(loaded.Generators.TryGetGeneratorEnabledById(50, out var generatorEnabled));
         Assert.False(generatorEnabled);
-        Assert.Equal(7, loaded.Options.KernelTuning.Programs.MainProgramCadenceTicks);
         Assert.Equal(FixedScalar.FromSingle(0.25f), loaded.Options.KernelTuning.Programs.CultureInfluenceActionScale);
         Assert.Equal(LifecycleAgingModelCodes.LateLife, loaded.Options.KernelTuning.Programs.Lifecycle.AgingModelCode);
         Assert.False(loaded.Options.KernelTuning.Programs.Generators.RetryFireTargets);

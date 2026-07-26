@@ -74,7 +74,6 @@ internal static class KernelStartupConfigLoader
         tuning = ApplyJsonLifecycleTuning(programs, tuning);
         tuning = ApplyJsonGeneratorTuning(programs, tuning);
         tuning = ApplyJsonLowAltitudeVerbTuning(programs, tuning);
-        tuning = ApplyJsonMainProgramCadenceTuning(programs, tuning);
         tuning = ApplyJsonCultureInfluenceActionScaleTuning(programs, tuning);
         tuning = ApplyJsonCultureFieldTuning(programs, tuning);
         return ApplyJsonProgramEnabledTuning(programs, tuning);
@@ -223,13 +222,6 @@ internal static class KernelStartupConfigLoader
         }
 
         return WithAgingModel(tuning, agingModelCode);
-    }
-
-    private static KernelTuningOptions ApplyJsonMainProgramCadenceTuning(JsonElement programs, KernelTuningOptions tuning)
-    {
-        return TryGetInt(programs, out var cadence, "mainProgramCadenceTicks", "main_program_cadence_ticks")
-            ? WithMainProgramCadenceTicks(tuning, cadence)
-            : tuning;
     }
 
     private static KernelTuningOptions ApplyJsonCultureInfluenceActionScaleTuning(JsonElement programs, KernelTuningOptions tuning)
@@ -382,12 +374,6 @@ internal static class KernelStartupConfigLoader
         KernelTuningOptions tuning)
     {
         var scalar = ReadBareTomlValue(value);
-        if (string.Equals(key, "MAINPROGRAMCADENCETICKS", StringComparison.Ordinal) &&
-            int.TryParse(scalar, CultureInfo.InvariantCulture, out var cadence))
-        {
-            return WithMainProgramCadenceTicks(tuning, cadence);
-        }
-
         return string.Equals(key, "CULTUREINFLUENCEACTIONSCALE", StringComparison.Ordinal) &&
             float.TryParse(scalar, NumberStyles.Float, CultureInfo.InvariantCulture, out var scale)
             ? WithCultureInfluenceActionScale(tuning, scale)
@@ -817,15 +803,6 @@ internal static class KernelStartupConfigLoader
                 {
                     ForeignInfluenceDistanceScale = FixedScalar.FromSingle(value),
                 },
-            },
-        };
-
-    private static KernelTuningOptions WithMainProgramCadenceTicks(KernelTuningOptions tuning, int value) =>
-        tuning with
-        {
-            Programs = tuning.Programs with
-            {
-                MainProgramCadenceTicks = value,
             },
         };
 

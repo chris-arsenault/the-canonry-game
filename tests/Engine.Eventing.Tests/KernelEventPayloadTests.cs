@@ -181,29 +181,46 @@ public sealed class KernelEventPayloadTests
 
     private static void AssertWorldActorAndTravelEventsRoundTrip()
     {
-        var minorActorVerbExecuted = new MinorActorVerbExecutedKernelEvent(
-            20,
-            21,
-            22,
-            23,
-            24,
-            25,
-            26,
-            27,
-            28,
-            29,
-            30,
-            31,
-            PlaneCodes.Physical,
-            -3,
-            3,
-            32,
-            33,
-            FixedScalar.FromSingle(1.25f).Units,
-            FixedScalar.FromSingle(2.5f).Units,
-            FixedScalar.FromSingle(3.75f).Units,
-            FixedScalar.FromSingle(5f).Units);
-        Assert.Equal(minorActorVerbExecuted, KernelEvent.From(minorActorVerbExecuted).AsMinorActorVerbExecuted());
+        var minorActorCreated = new MinorActorCreatedKernelEvent(
+            20, 21, 22, 23, 24, 0, 25, MinorActorRoleCodes.CulturalFront,
+            PlaneCodes.Physical, -3, 3, MinorActorPostureCodes.Traveling,
+            FixedScalar.FromSingle(3.75f).Units);
+        Assert.Equal(minorActorCreated, KernelEvent.From(minorActorCreated).AsMinorActorCreated());
+
+        var minorActorAssigned = new MinorActorAssignedKernelEvent(
+            20, 21, 22, 23, MinorActorRoleCodes.CulturalFront, PlaneCodes.Physical,
+            -3, 3, 4, -2, MinorActorTargetingCodes.ExtendBorder,
+            MinorActorPostureCodes.Traveling, 30, 25, FixedScalar.FromSingle(3.75f).Units);
+        Assert.Equal(minorActorAssigned, KernelEvent.From(minorActorAssigned).AsMinorActorAssigned());
+
+        var minorActorMoved = new MinorActorMovedKernelEvent(
+            20, 21, 22, 23, 25, MinorActorRoleCodes.CulturalFront,
+            PlaneCodes.Physical, -3, 3, -2, 3, 4, -2,
+            MinorActorPostureCodes.Traveling, FixedScalar.FromSingle(3.5f).Units);
+        Assert.Equal(minorActorMoved, KernelEvent.From(minorActorMoved).AsMinorActorMoved());
+
+        var minorActorWorked = new MinorActorWorkedKernelEvent(
+            20, 21, 22, 23, 24, 2, 5, 25, MinorActorRoleCodes.CulturalFront,
+            MinorActorActionCodes.BuildCulture, MinorActorTargetingCodes.ExtendBorder,
+            PlaneCodes.Physical, -2, 3, CultureFieldCellKindCodes.Border,
+            FixedScalar.FromSingle(1.25f).Units, FixedScalar.FromSingle(2.5f).Units,
+            FixedScalar.FromSingle(3.75f).Units, FixedScalar.FromSingle(5f).Units);
+        Assert.Equal(minorActorWorked, KernelEvent.From(minorActorWorked).AsMinorActorWorked());
+
+        var minorActorEncountered = new MinorActorEncounteredKernelEvent(
+            20, 21, 22, 26, 25, 27, MinorActorRoleCodes.CulturalFront,
+            MinorActorRoleCodes.CampaignColumn, PlaneCodes.Physical, -2, 3,
+            MinorActorEncounterCodes.CampaignDisruption,
+            MinorActorPostureCodes.Working, MinorActorPostureCodes.Disrupted,
+            FixedScalar.FromSingle(2f).Units, FixedScalar.FromSingle(1f).Units,
+            FixedScalar.FromSingle(0.5f).Units);
+        Assert.Equal(minorActorEncountered, KernelEvent.From(minorActorEncountered).AsMinorActorEncountered());
+
+        var minorActorRetired = new MinorActorRetiredKernelEvent(
+            20, 21, 22, 23, 24, 0, 25, MinorActorRoleCodes.CulturalFront,
+            PlaneCodes.Physical, -2, 3, MinorActorRetirementReasonCodes.NoAssignment,
+            MinorActorPostureCodes.Working, FixedScalar.FromSingle(2f).Units);
+        Assert.Equal(minorActorRetired, KernelEvent.From(minorActorRetired).AsMinorActorRetired());
 
         var mapCellStateChanged = new MapCellStateChangedKernelEvent(20, 21, PlaneCodes.Semantic, -3, 3, 4, 5, 6, 7, 8, 9, 10, 0);
         Assert.Equal(mapCellStateChanged, KernelEvent.From(mapCellStateChanged).AsMapCellStateChanged());

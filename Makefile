@@ -80,7 +80,7 @@ mutation:
 # the tools' current argument names.
 
 MC_RUNS ?= 6
-MC_TICKS ?= 1000
+MC_TICKS ?= 200
 MC_SEED ?= 1000
 MC_EXTRA ?=
 RUN_ID ?= dev-$(shell date +%Y%m%d-%H%M%S)
@@ -88,13 +88,13 @@ MC_STATS ?=
 SEED ?= 42
 DIAG_FLAGS ?= --hex-contract
 PROFILE_RUN_ID ?= preparallel-profile-$(shell date +%Y%m%d-%H%M%S)
-PROFILE_TICKS ?= 5000
+PROFILE_TICKS ?= 1000
 PROFILE_SEED ?= 4200
 PROFILE_WORLD ?= worlds/ice-remembers-seed-$(PROFILE_SEED).world
 PROFILE_BASE ?= .artifacts/profiles/$(PROFILE_RUN_ID)
 DOTNET_TRACE ?= $(HOME)/.dotnet/tools/dotnet-trace
 MONTE_CARLO_DLL ?= .artifacts/bin/MonteCarlo/Release/net8.0/MonteCarlo.dll
-MC_SMOKE_TICKS ?= 5000
+MC_SMOKE_TICKS ?= 1000
 MC_SMOKE_SEED ?= 4200
 MC_SMOKE_WORLD ?= worlds/ice-remembers-seed-$(MC_SMOKE_SEED).world
 
@@ -102,7 +102,7 @@ MC_SMOKE_WORLD ?= worlds/ice-remembers-seed-$(MC_SMOKE_SEED).world
 
 # Monte Carlo batch. Sizing guide: quick "did the number move" check =
 # MC_RUNS=2; calibration report = MC_RUNS=6+ at the horizon you are judging.
-# Example: make mc MC_RUNS=2 MC_TICKS=25000 RUN_ID=my-question
+# Example: make mc MC_RUNS=2 MC_TICKS=5000 RUN_ID=my-question
 mc:
 	dotnet run --project tools/MonteCarlo/MonteCarlo.csproj -c Release -- \
 		--runs $(MC_RUNS) --ticks $(MC_TICKS) --seed $(MC_SEED) \
@@ -154,9 +154,9 @@ profile-kernel:
 # not the sum, and each seed's data lands as soon as it finishes. Streams
 # core scorecard tables to <run-id>-s<seed>/stream/ every MC_STREAM_EVERY
 # ticks for mid-run analysis. Skips the per-run analyzer (score externally).
-# Example: make mc-fan MC_TICKS=100000 MC_SEEDS="9100 9101 9102" RUN_ID=my-question
+# Example: make mc-fan MC_TICKS=20000 MC_SEEDS="9100 9101 9102" RUN_ID=my-question
 MC_SEEDS ?= 9100 9101 9102
-MC_STREAM_EVERY ?= 12500
+MC_STREAM_EVERY ?= 2500
 mc-fan:
 	dotnet build tools/MonteCarlo/MonteCarlo.csproj -c Release
 	for seed in $(MC_SEEDS); do \

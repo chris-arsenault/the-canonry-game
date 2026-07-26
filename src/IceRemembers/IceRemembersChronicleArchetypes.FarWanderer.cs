@@ -45,10 +45,10 @@ public static partial class IceRemembersChronicleArchetypes
         Beats = [.. WandererWalkBeats(), .. WandererTrailBeats(), .. WandererEndBeats()],
         FadeOutcomeId = "the_snow_closes_over",
         FadeNarrative = "New snow closed over the walk of {$wanderer}. The trail is still down there, for whoever learns to read it.",
-        FadeGraceTicks = 3000,
-        FadeQuietTicks = 2500,
+        FadeGraceTicks = 600,
+        FadeQuietTicks = 500,
         MaxActive = 1,
-        CastingCadenceTicks = 600,
+        CastingCadenceTicks = 120,
     };
 
     private static List<ChronicleBeatConfig> WandererWalkBeats() =>

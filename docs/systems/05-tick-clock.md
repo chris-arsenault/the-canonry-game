@@ -60,21 +60,18 @@ Cadence is a performance and pacing tool, not a separate simulation phase.
 Current default cadence:
 
 - ordinary movement, low-altitude verbs, relationships, effects/lifecycle,
-  gambits, chronicles, and generators: every five ticks;
-- culture-field decay: every twenty-five ticks;
-- `CultureSlots` and `Knowledge`: every fifty ticks;
-- world beats and map frontier: every one hundred twenty-five ticks;
-- `MinorActors`: every tick.
+  gambits, chronicles, generators, and minor actors: every tick;
+- culture-field decay: every five ticks;
+- `CultureSlots` and `Knowledge`: every ten ticks;
+- world beats and map frontier: every twenty-five ticks.
 
-There is no raw/main clock conversion and there are no sub-ticks. The
-`MainProgramCadenceTicks` setting is an ordinary program cadence. Authored
-durations owned by main-cadence systems are normalized once into global tick
-deadlines when installed; runtime state and snapshot data store those global
-tick deadlines. Minor-actor TTL, emission, and action cadence are already
-global tick values and are never scaled through the main cadence.
+There is no raw/main clock conversion, configurable main cadence, or sub-tick.
+One tick is one complete ordinary simulation opportunity. Authored durations
+are direct tick values; runtime state and snapshot data store those same units
+without a cadence mapper.
 
 ## Calendar Mapping
 
-The in-world meaning of one tick is not fixed to a day/week/year mapping.
-Simulation quality is judged by behavior over ticks: visible motion, graph
-change, pacing, and long-run stability.
+The canonical calibration is 50 ticks per in-world year. Simulation quality is
+still judged by behavior over ticks: visible motion, graph change, pacing, and
+long-run stability.

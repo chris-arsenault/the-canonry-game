@@ -161,7 +161,9 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("cell_influence_events");
         ExportTable("culture_field_cell_snapshots");
         ExportTable("culture_slot_occupancy_events");
-        ExportTable("minor_actor_verb_events");
+        ExportTable("minor_actor_lifecycle_events");
+        ExportTable("minor_actor_work_events");
+        ExportTable("minor_actor_encounter_events");
         ExportTable("culture_power_snapshots");
         ExportTable("knowledge_snapshots");
         ExportTable("knowledge_claim_snapshots");
@@ -231,7 +233,9 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("cell_influence_events", typeof(CellInfluenceEventRow));
         EnsureTable("culture_field_cell_snapshots", typeof(CultureFieldCellSnapshotRow));
         EnsureTable("culture_slot_occupancy_events", typeof(CultureSlotOccupancyEventRow));
-        EnsureTable("minor_actor_verb_events", typeof(MinorActorVerbEventRow));
+        EnsureTable("minor_actor_lifecycle_events", typeof(MinorActorLifecycleEventRow));
+        EnsureTable("minor_actor_work_events", typeof(MinorActorWorkEventRow));
+        EnsureTable("minor_actor_encounter_events", typeof(MinorActorEncounterEventRow));
         EnsureTable("culture_power_snapshots", typeof(CulturePowerSnapshotRow));
         EnsureTable("knowledge_snapshots", typeof(KnowledgeSnapshotRow));
         EnsureTable("knowledge_claim_snapshots", typeof(KnowledgeClaimSnapshotRow));
@@ -304,7 +308,9 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("cell_influence_events", batch.CellInfluenceEvents);
         AppendTable("culture_field_cell_snapshots", batch.CultureFieldCellSnapshots);
         AppendTable("culture_slot_occupancy_events", batch.CultureSlotOccupancyEvents);
-        AppendTable("minor_actor_verb_events", batch.MinorActorVerbEvents);
+        AppendTable("minor_actor_lifecycle_events", batch.MinorActorLifecycleEvents);
+        AppendTable("minor_actor_work_events", batch.MinorActorWorkEvents);
+        AppendTable("minor_actor_encounter_events", batch.MinorActorEncounterEvents);
         AppendTable("culture_power_snapshots", batch.CulturePowerSnapshots);
         AppendTable("knowledge_snapshots", batch.KnowledgeSnapshots);
         AppendTable("knowledge_claim_snapshots", batch.KnowledgeClaimSnapshots);
@@ -580,7 +586,9 @@ internal static class TelemetryBatchExtensions
         batch.CellInfluenceEvents.Count +
         batch.CultureFieldCellSnapshots.Count +
         batch.CultureSlotOccupancyEvents.Count +
-        batch.MinorActorVerbEvents.Count +
+        batch.MinorActorLifecycleEvents.Count +
+        batch.MinorActorWorkEvents.Count +
+        batch.MinorActorEncounterEvents.Count +
         batch.CulturePowerSnapshots.Count +
         batch.KnowledgeSnapshots.Count +
         batch.KnowledgeClaimSnapshots.Count +
@@ -641,7 +649,9 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.CellInfluenceEvents, source.CellInfluenceEvents);
         AppendRows(destination.CultureFieldCellSnapshots, source.CultureFieldCellSnapshots);
         AppendRows(destination.CultureSlotOccupancyEvents, source.CultureSlotOccupancyEvents);
-        AppendRows(destination.MinorActorVerbEvents, source.MinorActorVerbEvents);
+        AppendRows(destination.MinorActorLifecycleEvents, source.MinorActorLifecycleEvents);
+        AppendRows(destination.MinorActorWorkEvents, source.MinorActorWorkEvents);
+        AppendRows(destination.MinorActorEncounterEvents, source.MinorActorEncounterEvents);
         AppendRows(destination.CulturePowerSnapshots, source.CulturePowerSnapshots);
         AppendRows(destination.KnowledgeSnapshots, source.KnowledgeSnapshots);
         AppendRows(destination.KnowledgeClaimSnapshots, source.KnowledgeClaimSnapshots);

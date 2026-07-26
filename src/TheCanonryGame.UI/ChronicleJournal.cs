@@ -228,7 +228,7 @@ public partial class ChronicleJournal : PanelContainer
     private static List<string> DetailLines(UiChronicleTaleView view)
     {
         var tale = view.Tale;
-        var years = (tale.LastEventTick - tale.StartTick) / 250f;
+        var years = (tale.LastEventTick - tale.StartTick) / 50f;
         var lines = new List<string>
         {
             $"[b][color=#{TaleColor}]{view.Title}[/color][/b]",

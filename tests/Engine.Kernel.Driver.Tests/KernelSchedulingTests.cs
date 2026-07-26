@@ -179,7 +179,7 @@ public sealed class KernelSchedulingTests
     }
 
     [Fact]
-    public void DefaultProgramsUseOneTickClockWithSlowerMainProgramCadence()
+    public void DefaultProgramsUseOneCompleteOpportunityPerTick()
     {
         var simulation = new Simulation(new SimulationOptions { MinorActorCapacity = 8 });
         simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
@@ -194,28 +194,14 @@ public sealed class KernelSchedulingTests
             semanticR: 0,
             semanticS: 0);
         _ = simulation.LowAltitudeVerbs.RegisterInitialInfluence(1, PlaneCodes.Physical, FixedScalar.FromSingle(10f));
-        var rule = RegisterCultureLaborRule(simulation);
-        _ = simulation.MinorActors.Spawn(
-            cultureId: 1,
-            sourceEntityId: 1,
-            sourceRuleId: rule,
-            actorKindCode: MinorActorKindCodes.Worker,
-            planeCode: PlaneCodes.Physical,
-            q: 0,
-            r: 0,
-            ttlTicks: 10,
-            actionCadenceTicks: 1,
-            workDelta: FixedScalar.FromSingle(0f),
-            tick: 0);
+        _ = simulation.AdvanceTicks(4);
 
-        _ = simulation.AdvanceTicks(24);
-
-        Assert.Equal(24, simulation.CurrentTick);
+        Assert.Equal(4, simulation.CurrentTick);
         Assert.Equal(FixedScalar.FromSingle(10f), simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
 
         _ = simulation.AdvanceTicks(1);
 
-        Assert.Equal(25, simulation.CurrentTick);
+        Assert.Equal(5, simulation.CurrentTick);
         Assert.Equal(
             FixedScalar.FromSingle(9.4f),
             simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
@@ -230,7 +216,6 @@ public sealed class KernelSchedulingTests
             {
                 Programs = new KernelProgramTuningOptions
                 {
-                    MainProgramCadenceTicks = 5,
                     Generators = new GeneratorProgramTuningOptions
                     {
                         FireWindowTicks = 2,
@@ -242,36 +227,9 @@ public sealed class KernelSchedulingTests
         });
         simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
 
-        _ = simulation.AdvanceTicks(15);
+        _ = simulation.AdvanceTicks(3);
 
         Assert.Equal(1, simulation.Generators.State.ProvinceWindowIndices[1]);
-    }
-
-    private static int RegisterCultureLaborRule(Simulation simulation)
-    {
-        var rule = simulation.MinorActors.RegisterEmitterRule(
-            sourceKindId: 1,
-            sourceSubtypeId: 0,
-            purposeCode: MinorActorPurposeCodes.CulturalLabor,
-            actorKindCode: MinorActorKindCodes.Worker,
-            planeCode: PlaneCodes.Physical,
-            ttlTicks: 10,
-            emitCadenceTicks: 20,
-            maxActivePerSource: 1,
-            spawnRadius: 0,
-            actionCadenceTicks: 1,
-            workDelta: FixedScalar.Zero);
-        _ = simulation.MinorActors.RegisterVerb(
-            rule,
-            1,
-            MinorActorActionCodes.CultureExpansion,
-            MinorActorVerbTargetingCodes.ReinforceHomeMass,
-            PlaneCodes.Physical,
-            radius: 1,
-            sampleCount: 8,
-            weight: FixedScalar.FromSingle(1f),
-            workDeltaMultiplier: FixedScalar.FromSingle(1f));
-        return rule;
     }
 
     private sealed class RecordingSystem(Action<Simulation, int> onTick) : ISimulationSystem

@@ -78,7 +78,7 @@ public sealed class RegistryHierarchySmokeTests
     {
         using var runtime = CanonryGameRuntimeFactory.Start(GameSeedPolicy.Requested(73));
         runtime.Controls.Resume();
-        runtime.Controls.Step(50);
+        runtime.Controls.Step(10);
         for (var i = 0; i < 70; i++)
         {
             runtime.Update();

@@ -156,7 +156,7 @@ internal sealed partial class MovementProgramRuntime :
                 cellId,
                 tick,
                 Data.RoadDecayPerTick,
-                Tuning.MainProgramCadenceTicks)
+                decayCadenceTicks: 1)
             : 0;
 
     public int RoadTravelCount(int planeCode, int q, int r) =>
@@ -193,7 +193,7 @@ internal sealed partial class MovementProgramRuntime :
             tick,
             amount * simulation.KernelData.Terrain.RoadBuildMultiplier(terrainId),
             Data.RoadDecayPerTick,
-            Tuning.MainProgramCadenceTicks);
+            decayCadenceTicks: 1);
         var currentQuality = RoadQuality(planeCode, q, r, tick);
         if (FixedScalar.Abs(currentQuality - previousQuality) <= FixedScalar.FromUnits(100L))
         {
@@ -874,7 +874,7 @@ internal sealed partial class MovementProgramRuntime :
             tick,
             Data.RoadBuildPerTravel * simulation.KernelData.Terrain.RoadBuildMultiplier(terrainId) * roadWork,
             Data.RoadDecayPerTick,
-            Tuning.MainProgramCadenceTicks);
+            decayCadenceTicks: 1);
         var currentQuality = RoadQuality(planeCode, q, r, tick);
         simulation.EmitCellRoadChanged(
             tick,

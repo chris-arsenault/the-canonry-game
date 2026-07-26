@@ -219,48 +219,6 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         return rule > 0 ? Data.LifecycleAttributeIds[rule] : 0;
     }
 
-    public bool TryGetLifecycleMaintenanceNeed(
-        Simulation simulation,
-        int entityId,
-        int tick,
-        out int attributeId,
-        out FixedScalar ageDrainComponent,
-        out FixedScalar healthShortfall)
-    {
-        attributeId = 0;
-        ageDrainComponent = 0;
-        healthShortfall = 0;
-        global::System.ArgumentNullException.ThrowIfNull(simulation);
-        var world = simulation.World;
-        if (entityId <= 0 || !world.EntityIsActive(entityId))
-        {
-            return false;
-        }
-
-        var rule = LifecycleRuleForKind(world.EntityKindId(entityId));
-        if (rule == 0)
-        {
-            return false;
-        }
-
-        attributeId = Data.LifecycleAttributeIds[rule];
-        var age = global::System.Math.Max(0, tick - world.EntityCreatedAt(entityId));
-        var multiplier = StageLifespanMultiplier(simulation, entityId, world.EntityKindId(entityId));
-        ageDrainComponent = LifecycleDrainComponent(
-            rule,
-            age,
-            multiplier,
-            includeFlatDrain: false);
-        var maximum = simulation.KernelData.Entities.AttributeMaximum(attributeId);
-        if (maximum > 0)
-        {
-            healthShortfall = KernelQuery.Clamp01(
-                (maximum - world.GetAttribute(entityId, attributeId)) / maximum);
-        }
-
-        return ageDrainComponent > 0 && healthShortfall > 0;
-    }
-
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
@@ -857,7 +815,7 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     {
         var previousAge = global::System.Math.Max(
             0,
-            age - Tuning.MainProgramCadenceTicks);
+            age - 1);
         var current = LifecycleCumulativeDrain(
             rule,
             age,

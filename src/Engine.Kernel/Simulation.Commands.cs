@@ -5,7 +5,7 @@ internal sealed partial class Simulation
     private const int BlessCellCultureMaxRadius = 2;
     private static readonly FixedScalar BlessCellCultureMaxAmount = 500;
     private static readonly FixedScalar FavorEntityMaxMultiplierDelta = 4;
-    private const int FavorEntityMaxDurationTicks = 50000;
+    private const int FavorEntityMaxDurationTicks = 10000;
 
     private void DrainCommands()
     {

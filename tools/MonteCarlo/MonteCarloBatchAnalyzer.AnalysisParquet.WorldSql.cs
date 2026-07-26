@@ -222,15 +222,15 @@ internal sealed partial class MonteCarloBatchAnalyzer
             culture_id,
             plane_code,
             cell_kind_code,
+            role_code,
             action_code,
             targeting_code,
-            status_code,
             COUNT(*) AS action_count,
             COALESCE(SUM(delta), 0.0) AS net_delta,
-            COALESCE(AVG(score), 0.0) AS average_score,
+            COALESCE(AVG(strength), 0.0) AS average_strength,
             COALESCE(AVG(local_raw_mass), 0.0) AS average_local_raw_mass,
             COALESCE(AVG(connected_raw_mass), 0.0) AS average_connected_raw_mass
-        FROM raw_minor_actor_verb_events
-        GROUP BY run_id, culture_id, plane_code, cell_kind_code, action_code, targeting_code, status_code
+        FROM raw_minor_actor_work_events
+        GROUP BY run_id, culture_id, plane_code, cell_kind_code, role_code, action_code, targeting_code
         """;
 }

@@ -243,8 +243,9 @@ programs:
   frozen sorted adjacency plus bounded sorted per-row live deltas.
 - `Effects`: one per-entity resolution stage for relationship and locality
   effects, district healing, lifecycle drain, and retirement.
-- `MinorActors`: unnamed individual workers that execute source-authored verbs
-  for culture, roads, and source lifecycle without adding graph nodes.
+- `MinorActors`: persistent unnamed cultural fronts, road crews, and campaign
+  columns with bounded assignments, macro movement, local encounters, and
+  source-owned culture or road work without graph nodes.
 - `Knowledge`: culture-scoped claims and modifiers derived from authored
   semantic-map sites, recomputed only when that culture's relevant state
   revision changes.
@@ -272,10 +273,11 @@ there is no map-activity or map-signal tick phase. Culture classification is
 also local and read-only. Only scheduled mutating programs participate in tick
 ordering.
 
-Every `AdvanceTicks` iteration advances one tick. Minor actors run once on every
-tick. Main programs run every five ticks by default, and program-specific
-durations are normalized into deadlines on that same tick clock. There are no
-sub-ticks or secondary calendar counters.
+Every `AdvanceTicks` iteration advances one tick. Movement, low-altitude verbs,
+relationships, effects, gambits, chronicles, generators, and minor actors each
+receive one opportunity in that tick. Program-specific durations are direct
+values on the same clock. There are no sub-ticks, cadence mappers, or secondary
+calendar counters.
 
 ## High-Altitude Systems
 

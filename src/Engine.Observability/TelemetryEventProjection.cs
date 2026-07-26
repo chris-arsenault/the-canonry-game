@@ -535,33 +535,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         MarkProjected(sequence);
     }
 
-    protected override void OnMinorActorVerbExecuted(long sequence, in MinorActorVerbExecutedKernelEvent evt)
-    {
-        _batch.MinorActorVerbEvents.Add(new MinorActorVerbEventRow(
-            _runId,
-            evt.Tick,
-            evt.ActorId,
-            evt.SourceEntityId,
-            evt.SourceRuleId,
-            evt.SourceWorkTier,
-            evt.EffectiveRadius,
-            evt.CultureId,
-            evt.VerbId,
-            evt.PurposeCode,
-            evt.ActionCode,
-            evt.TargetingCode,
-            evt.PlaneCode,
-            evt.Q,
-            evt.R,
-            evt.StatusCode,
-            evt.CellKindCode,
-            FixedScalar.FromUnits(evt.LocalRawMassUnits).ToSingle(),
-            FixedScalar.FromUnits(evt.ConnectedRawMassUnits).ToSingle(),
-            FixedScalar.FromUnits(evt.ScoreUnits).ToSingle(),
-            FixedScalar.FromUnits(evt.DeltaUnits).ToSingle()));
-        MarkProjected(sequence);
-    }
-
     protected override void OnCellRoadChanged(long sequence, in CellRoadChangedKernelEvent evt)
     {
         var previousQuality = KernelFixedPoint.RoadQualityValue(evt.PreviousQualityUnits);

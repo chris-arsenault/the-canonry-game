@@ -63,7 +63,7 @@ at the midpoint of its tier band along its discipline spoke. A culture claims a
 site when any known semantic cell within radius 2 holds at least claimed-band
 raw culture mass.
 
-`KnowledgeProgramRuntime` recomputes claims every fifty ticks. Claims and
+`KnowledgeProgramRuntime` recomputes claims every ten ticks. Claims and
 modifiers are derived state over the serialized culture field:
 
 - current claims are recalculated rather than serialized;

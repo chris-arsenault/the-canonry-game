@@ -95,30 +95,79 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
             WHERE FALSE
             """),
         new(
-            "minor_actor_verb_events",
+            "minor_actor_lifecycle_events",
             """
             SELECT
                 CAST(NULL AS BIGINT) AS run_id,
                 CAST(NULL AS BIGINT) AS tick,
-                CAST(NULL AS BIGINT) AS actor_id,
+                CAST(NULL AS BIGINT) AS event_code,
+                CAST(NULL AS BIGINT) AS actor_occurrence,
+                CAST(NULL AS BIGINT) AS source_entity_id,
+                CAST(NULL AS BIGINT) AS source_rule_id,
+                CAST(NULL AS BIGINT) AS binding_relationship_id,
+                CAST(NULL AS BIGINT) AS culture_id,
+                CAST(NULL AS BIGINT) AS role_code,
+                CAST(NULL AS BIGINT) AS plane_code,
+                CAST(NULL AS BIGINT) AS from_q,
+                CAST(NULL AS BIGINT) AS from_r,
+                CAST(NULL AS BIGINT) AS q,
+                CAST(NULL AS BIGINT) AS r,
+                CAST(NULL AS BIGINT) AS target_q,
+                CAST(NULL AS BIGINT) AS target_r,
+                CAST(NULL AS BIGINT) AS targeting_code,
+                CAST(NULL AS BIGINT) AS posture_code,
+                CAST(NULL AS BIGINT) AS reason_code,
+                CAST(NULL AS BIGINT) AS next_replan_tick,
+                CAST(NULL AS BIGINT) AS commitment_until_tick,
+                CAST(NULL AS DOUBLE) AS strength
+            WHERE FALSE
+            """),
+        new(
+            "minor_actor_work_events",
+            """
+            SELECT
+                CAST(NULL AS BIGINT) AS run_id,
+                CAST(NULL AS BIGINT) AS tick,
+                CAST(NULL AS BIGINT) AS actor_occurrence,
                 CAST(NULL AS BIGINT) AS source_entity_id,
                 CAST(NULL AS BIGINT) AS source_rule_id,
                 CAST(NULL AS BIGINT) AS source_work_tier,
                 CAST(NULL AS BIGINT) AS effective_radius,
                 CAST(NULL AS BIGINT) AS culture_id,
-                CAST(NULL AS BIGINT) AS verb_id,
-                CAST(NULL AS BIGINT) AS purpose_code,
+                CAST(NULL AS BIGINT) AS role_code,
                 CAST(NULL AS BIGINT) AS action_code,
                 CAST(NULL AS BIGINT) AS targeting_code,
                 CAST(NULL AS BIGINT) AS plane_code,
                 CAST(NULL AS BIGINT) AS q,
                 CAST(NULL AS BIGINT) AS r,
-                CAST(NULL AS BIGINT) AS status_code,
                 CAST(NULL AS BIGINT) AS cell_kind_code,
                 CAST(NULL AS DOUBLE) AS local_raw_mass,
                 CAST(NULL AS DOUBLE) AS connected_raw_mass,
-                CAST(NULL AS DOUBLE) AS score,
+                CAST(NULL AS DOUBLE) AS strength,
                 CAST(NULL AS DOUBLE) AS delta
+            WHERE FALSE
+            """),
+        new(
+            "minor_actor_encounter_events",
+            """
+            SELECT
+                CAST(NULL AS BIGINT) AS run_id,
+                CAST(NULL AS BIGINT) AS tick,
+                CAST(NULL AS BIGINT) AS actor_occurrence,
+                CAST(NULL AS BIGINT) AS other_actor_occurrence,
+                CAST(NULL AS BIGINT) AS actor_culture_id,
+                CAST(NULL AS BIGINT) AS other_culture_id,
+                CAST(NULL AS BIGINT) AS actor_role_code,
+                CAST(NULL AS BIGINT) AS other_role_code,
+                CAST(NULL AS BIGINT) AS plane_code,
+                CAST(NULL AS BIGINT) AS q,
+                CAST(NULL AS BIGINT) AS r,
+                CAST(NULL AS BIGINT) AS encounter_code,
+                CAST(NULL AS BIGINT) AS actor_posture_code,
+                CAST(NULL AS BIGINT) AS other_posture_code,
+                CAST(NULL AS DOUBLE) AS actor_strength,
+                CAST(NULL AS DOUBLE) AS other_strength,
+                CAST(NULL AS DOUBLE) AS effect
             WHERE FALSE
             """),
         new(

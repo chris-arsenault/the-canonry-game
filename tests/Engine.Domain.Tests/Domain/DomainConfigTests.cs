@@ -614,14 +614,14 @@ public class DomainConfigTests
     {
         var config = IceRemembersDefinition.Create();
 
-        AssertLifecycleTarget(config.Lifecycles[TestKinds.Penguin], targetTicks: 10000);
-        AssertLifecycleTarget(config.Lifecycles[TestKinds.Faction], targetTicks: 50000);
-        AssertLifecycleTarget(config.Lifecycles[TestKinds.Settlement], targetTicks: 17500);
-        AssertLifecycleTarget(config.Lifecycles[IceRemembersKinds.Orca], targetTicks: 17500);
-        AssertLifecycleTarget(config.Lifecycles[IceRemembersKinds.Ability], targetTicks: 50000);
-        AssertLifecycleTarget(config.Lifecycles[IceRemembersKinds.Monster], targetTicks: 22500);
-        AssertLifecycleTarget(config.Lifecycles[TestKinds.Artifact], targetTicks: 22500);
-        AssertLifecycleTarget(config.Lifecycles[IceRemembersKinds.PointOfInterest], targetTicks: 100000);
+        AssertLifecycleTarget(config.Lifecycles[TestKinds.Penguin], targetTicks: 2000);
+        AssertLifecycleTarget(config.Lifecycles[TestKinds.Faction], targetTicks: 10000);
+        AssertLifecycleTarget(config.Lifecycles[TestKinds.Settlement], targetTicks: 3500);
+        AssertLifecycleTarget(config.Lifecycles[IceRemembersKinds.Orca], targetTicks: 3500);
+        AssertLifecycleTarget(config.Lifecycles[IceRemembersKinds.Ability], targetTicks: 10000);
+        AssertLifecycleTarget(config.Lifecycles[IceRemembersKinds.Monster], targetTicks: 4500);
+        AssertLifecycleTarget(config.Lifecycles[TestKinds.Artifact], targetTicks: 4500);
+        AssertLifecycleTarget(config.Lifecycles[IceRemembersKinds.PointOfInterest], targetTicks: 20000);
     }
 
     [Fact]

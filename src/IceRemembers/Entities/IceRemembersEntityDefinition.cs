@@ -370,9 +370,9 @@ public static class IceRemembersEntities
             DefaultVariance = HealthDefaultVariance,
         };
 
-    // Band targets are simulation ticks at the canonical calibration of 250
+    // Band targets are simulation ticks at the canonical calibration of 50
     // ticks per in-world year. Observed median lifespan lands near band x
-    // ~1.14 ticks (including healing surplus): Brief ~45y,
+    // ~1.14 years (including healing surplus): Brief ~45y,
     // Standard ~80y, Enduring ~100y, Generational ~230y, Monumental ~450y.
     // WorldAnchor kinds are ageless: no lifecycle drain; they end only
     // through deliberate acts (gambits/generators), never old age.
@@ -385,11 +385,11 @@ public static class IceRemembersEntities
 
         var targetTicks = lifespan switch
         {
-            IceRemembersLifecycleBand.Brief => 10000,
-            IceRemembersLifecycleBand.Standard => 17500,
-            IceRemembersLifecycleBand.Enduring => 22500,
-            IceRemembersLifecycleBand.Generational => 50000,
-            IceRemembersLifecycleBand.Monumental => 100000,
+            IceRemembersLifecycleBand.Brief => 2000,
+            IceRemembersLifecycleBand.Standard => 3500,
+            IceRemembersLifecycleBand.Enduring => 4500,
+            IceRemembersLifecycleBand.Generational => 10000,
+            IceRemembersLifecycleBand.Monumental => 20000,
             _ => throw new ArgumentOutOfRangeException(nameof(lifespan), lifespan, null),
         };
 
@@ -402,18 +402,18 @@ public static class IceRemembersEntities
     }
 
     // Health-effect deltas were tuned against the pre-recalibration target
-    // ticks (Brief 2,500 / Standard 4,000 / Enduring 6,000). Lifecycle drain
+    // ticks (Brief 500 / Standard 800 / Enduring 1,200). Lifecycle drain
     // scales as 1/target, so each kind's shelter/stress deltas shrink by the
     // same old/new ratio or healing overwhelms the flattened aging curve.
     // WorldAnchor has no drain to balance and keeps full-strength effects.
     public static float HealthEffectTimeScale(IceRemembersLifecycleBand lifespan) =>
         lifespan switch
         {
-            IceRemembersLifecycleBand.Brief => 2500f / 10000f,
-            IceRemembersLifecycleBand.Standard => 4000f / 17500f,
-            IceRemembersLifecycleBand.Enduring => 6000f / 22500f,
-            IceRemembersLifecycleBand.Generational => 4000f / 50000f,
-            IceRemembersLifecycleBand.Monumental => 6000f / 100000f,
+            IceRemembersLifecycleBand.Brief => 500f / 2000f,
+            IceRemembersLifecycleBand.Standard => 800f / 3500f,
+            IceRemembersLifecycleBand.Enduring => 1200f / 4500f,
+            IceRemembersLifecycleBand.Generational => 800f / 10000f,
+            IceRemembersLifecycleBand.Monumental => 1200f / 20000f,
             IceRemembersLifecycleBand.WorldAnchor => 1f,
             _ => throw new ArgumentOutOfRangeException(nameof(lifespan), lifespan, null),
         };

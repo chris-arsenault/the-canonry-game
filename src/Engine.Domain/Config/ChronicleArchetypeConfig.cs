@@ -68,7 +68,7 @@ public sealed class ChronicleArchetypeConfig
     public int MaxActive { get; init; } = 4;
 
     /// <summary>Director runs between casting attempts.</summary>
-    public int CastingCadenceTicks { get; init; } = 40;
+    public int CastingCadenceTicks { get; init; } = 8;
 }
 
 /// <summary>

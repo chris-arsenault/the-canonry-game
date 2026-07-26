@@ -6,7 +6,7 @@ using Engine.Kinds;
 
 public sealed partial class UiProjectionState : KernelEventProjector
 {
-    private const int MinorActorActivityCapacity = 320;
+    private const int MinorActorWorkCapacity = 320;
 
     private readonly Dictionary<int, UiEntityProjection> _entities = [];
     private readonly Dictionary<UiRelationshipKey, UiRelationshipProjection> _relationships = [];
@@ -22,7 +22,8 @@ public sealed partial class UiProjectionState : KernelEventProjector
     private IReadOnlyDictionary<UiCultureSlotKey, UiCultureSlotDefinitionProjection> _cultureSlotDefinitions =
         new Dictionary<UiCultureSlotKey, UiCultureSlotDefinitionProjection>();
     private readonly Dictionary<UiCultureSlotKey, UiCultureSlotOccupancyProjection> _cultureSlots = [];
-    private readonly List<UiMinorActorActivityProjection> _minorActorActivities = [];
+    private readonly Dictionary<int, UiMinorActorProjection> _minorActors = [];
+    private readonly List<UiMinorActorWorkProjection> _minorActorWork = [];
     private readonly HashSet<int> _dirtyEntityBrowserRows = [];
     private int _currentProvenanceInvocationId;
 
@@ -48,7 +49,9 @@ public sealed partial class UiProjectionState : KernelEventProjector
     public IReadOnlyDictionary<int, UiHealthAttributeDefinitionProjection> HealthAttributesByKindId =>
         _healthAttributeByKindId;
 
-    public IReadOnlyList<UiMinorActorActivityProjection> MinorActorActivities => _minorActorActivities;
+    public IReadOnlyDictionary<int, UiMinorActorProjection> MinorActors => _minorActors;
+
+    public IReadOnlyList<UiMinorActorWorkProjection> MinorActorWork => _minorActorWork;
 
     public long LastProjectedSequence { get; private set; } = -1;
 
@@ -92,7 +95,7 @@ public sealed partial class UiProjectionState : KernelEventProjector
 
     public long TableauVersion { get; private set; }
 
-    public long MinorActorActivityVersion { get; private set; }
+    public long MinorActorVersion { get; private set; }
 
     public long DroppedEvents { get; private set; }
 
@@ -406,54 +409,6 @@ public sealed partial class UiProjectionState : KernelEventProjector
         MarkEntityVisualDirty(evt.CurrentEntityId);
         MarkEntityBrowserStructureChanged(evt.PreviousEntityId, evt.CurrentEntityId);
         EntityDetailVersion++;
-        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
-    }
-
-    protected override void OnMinorActorVerbExecuted(long sequence, in MinorActorVerbExecutedKernelEvent evt)
-    {
-        var browserChanged = false;
-        if (_entities.TryGetValue(evt.SourceEntityId, out var source) &&
-            source.WorkTier != evt.SourceWorkTier)
-        {
-            source.WorkTier = evt.SourceWorkTier;
-            browserChanged = true;
-        }
-
-        _minorActorActivities.Add(new UiMinorActorActivityProjection(
-            sequence,
-            evt.Tick,
-            evt.ActorId,
-            evt.SourceEntityId,
-            evt.SourceRuleId,
-            evt.SourceWorkTier,
-            evt.CultureId,
-            evt.VerbId,
-            evt.PurposeCode,
-            evt.ActionCode,
-            evt.TargetingCode,
-            evt.PlaneCode,
-            evt.Q,
-            evt.R,
-            evt.StatusCode,
-            evt.CellKindCode,
-            FixedScalar.FromUnits(evt.LocalRawMassUnits).ToSingle(),
-            FixedScalar.FromUnits(evt.ConnectedRawMassUnits).ToSingle(),
-            FixedScalar.FromUnits(evt.ScoreUnits).ToSingle(),
-            FixedScalar.FromUnits(evt.DeltaUnits).ToSingle(),
-            evt.WorldVersion));
-
-        if (_minorActorActivities.Count > MinorActorActivityCapacity)
-        {
-            _minorActorActivities.RemoveRange(0, _minorActorActivities.Count - MinorActorActivityCapacity);
-        }
-
-        MinorActorActivityVersion++;
-        if (browserChanged)
-        {
-            MarkEntityBrowserStructureChanged(evt.SourceEntityId);
-            EntityDetailVersion++;
-        }
-
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
@@ -1086,29 +1041,6 @@ public sealed record UiCultureSlotOccupancyProjection(
     int CurrentEntityId,
     float CurrentScore,
     int Tick,
-    long WorldVersion);
-
-public sealed record UiMinorActorActivityProjection(
-    long Sequence,
-    int Tick,
-    int ActorId,
-    int SourceEntityId,
-    int SourceRuleId,
-    int SourceWorkTier,
-    int CultureId,
-    int VerbId,
-    int PurposeCode,
-    int ActionCode,
-    int TargetingCode,
-    int PlaneCode,
-    int Q,
-    int R,
-    int StatusCode,
-    int CellKindCode,
-    float LocalRawMass,
-    float ConnectedRawMass,
-    float Score,
-    float Delta,
     long WorldVersion);
 
 public sealed record UiAttributeProjection(

@@ -18,7 +18,7 @@ public partial class EntityLayer : Node2D
 {
     private const float ExpandedStackZoom = 2.1f;
     private const float MotionDurationSeconds = 0.22f;
-    private const int RecentActionTicks = 80;
+    private const int RecentActionTicks = 16;
     private const long StackCycleWindowMs = 850;
 
     private readonly Dictionary<int, RenderedEntity> _renderedEntities = [];

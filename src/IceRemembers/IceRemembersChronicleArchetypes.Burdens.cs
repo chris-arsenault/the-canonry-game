@@ -48,10 +48,10 @@ public static partial class IceRemembersChronicleArchetypes
         // The land's story runs on the land's clock: corruption eats
         // stability over thousands of ticks, so the telling waits longer
         // than a hunt would before calling the ground quiet.
-        FadeGraceTicks = 6000,
-        FadeQuietTicks = 4500,
+        FadeGraceTicks = 1200,
+        FadeQuietTicks = 900,
         MaxActive = 1,
-        CastingCadenceTicks = 700,
+        CastingCadenceTicks = 140,
     };
 
     private static List<ChronicleBeatConfig> ScarWoundBeats() =>
@@ -184,7 +184,7 @@ public static partial class IceRemembersChronicleArchetypes
         FadeOutcomeId = "the_count_continues",
         FadeNarrative = "The burden went quiet in the keeping of {$bearer}. Quiet is not finished. Somewhere, the count continues.",
         MaxActive = 1,
-        CastingCadenceTicks = 800,
+        CastingCadenceTicks = 160,
     };
 
     private static List<ChronicleBeatConfig> BurdenCarryBeats() =>

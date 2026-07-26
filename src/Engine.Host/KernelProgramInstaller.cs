@@ -68,34 +68,18 @@ internal static partial class KernelProgramInstaller
             context.SetMovementCarrierRelationshipKind(program.CarrierRelationshipKindId);
         }
 
-        foreach (var rule in program.EmitterRules)
+        foreach (var rule in program.RoleRules)
         {
-            var ruleSlot = context.RegisterMinorActorEmitterRule(
+            _ = context.RegisterMinorActorRoleRule(
                 rule.SourceKindId,
                 rule.SourceSubtypeId,
-                rule.PurposeCode,
-                rule.ActorKindCode,
+                rule.RoleCode,
                 rule.PlaneCode,
-                rule.TtlTicks,
-                rule.EmitCadenceTicks,
-                rule.MaxActivePerSource,
-                rule.SpawnRadius,
-                rule.ActionCadenceTicks,
-                rule.WorkDelta);
-
-            foreach (var verb in rule.Verbs)
-            {
-                _ = context.RegisterMinorActorVerb(
-                    ruleSlot,
-                    verb.VerbId,
-                    verb.ActionCode,
-                    verb.TargetingCode,
-                    verb.PlaneCode,
-                    verb.Radius,
-                    verb.SampleCount,
-                    verb.Weight,
-                    verb.WorkDeltaMultiplier);
-            }
+                rule.AssignmentRadius,
+                rule.Stride,
+                rule.CommitmentTicks,
+                rule.ReplanTicks,
+                rule.BaseStrength);
         }
     }
 

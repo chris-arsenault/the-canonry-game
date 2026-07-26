@@ -637,36 +637,51 @@ public static class ChroniclePendingKindCodes
     public const int GeneratorFire = 1;
 }
 
-public static class MinorActorKindCodes
-{
-    public const int Worker = 1;
-    public const int Soldier = 2;
-    public const int Carrier = 3;
-}
-
 public static class MinorActorActionCodes
 {
-    public const int CultureExpansion = 1;
+    public const int BuildCulture = 1;
     public const int RoadMaintenance = 2;
-    public const int CultureCleanup = 3;
-    public const int LifecycleMaintenance = 4;
+    public const int ContestCulture = 3;
 }
 
-public static class MinorActorPurposeCodes
+public static class MinorActorRoleCodes
 {
-    public const int CulturalLabor = 1;
-    public const int RoadLabor = 2;
-    public const int CampaignLabor = 3;
+    public const int CulturalFront = 1;
+    public const int RoadCrew = 2;
+    public const int CampaignColumn = 3;
 }
 
-public static class MinorActorVerbTargetingCodes
+public static class MinorActorTargetingCodes
 {
-    public const int ReinforceHomeMass = 1;
-    public const int ExtendConnectedBorder = 2;
-    public const int MaintainRoad = 3;
-    public const int BridgeGap = 4;
-    public const int ReduceOtherCulture = 5;
-    public const int MaintainSourceLifecycle = 6;
+    public const int ExtendBorder = 1;
+    public const int BridgeGap = 2;
+    public const int ContestCulture = 3;
+    public const int MaintainRoad = 4;
+    public const int AdvanceCampaign = 5;
+}
+
+public static class MinorActorPostureCodes
+{
+    public const int Unassigned = 0;
+    public const int Traveling = 1;
+    public const int Working = 2;
+    public const int Disrupted = 3;
+}
+
+public static class MinorActorEncounterCodes
+{
+    public const int None = 0;
+    public const int FriendlySupport = 1;
+    public const int HostileClash = 2;
+    public const int CampaignDisruption = 3;
+}
+
+public static class MinorActorRetirementReasonCodes
+{
+    public const int SourceInvalid = 1;
+    public const int BindingInvalid = 2;
+    public const int NoAssignment = 3;
+    public const int SourceRetired = 4;
 }
 
 public static class CultureSlotScoreSignalCodes
@@ -772,7 +787,7 @@ public static class ActionFamilyCodes
 {
     public const int Gambit = 1;
     public const int LowAltitudeVerb = 2;
-    public const int MinorActorVerb = 3;
+    public const int MinorActorWork = 3;
 }
 
 public static class TraceSubjectCodes

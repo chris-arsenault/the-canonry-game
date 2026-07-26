@@ -18,7 +18,7 @@ public sealed class KnowledgeOverviewTests
             KernelFunctionProfile.ManualStep));
 
         var initial = runtime.KnowledgeOverview();
-        _ = runtime.Time.AdvanceSingleStep(400);
+        _ = runtime.Time.AdvanceSingleStep(80);
         _ = runtime.Pump();
         var current = runtime.KnowledgeOverview();
 

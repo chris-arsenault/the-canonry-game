@@ -16,7 +16,7 @@ public partial class HexMapFrameLayer : Node2D
     private const float CultureFillAlphaRange = 0.28f;
     private const float CultureStrokeAlphaBase = 0.54f;
     private const float CultureStrokeAlphaRange = 0.24f;
-    private const int MinorActorActivityWindowTicks = 160;
+    private const int MinorActorActivityWindowTicks = 32;
     private const int MinorActorActivityGroupLimit = 96;
 
     private readonly Dictionary<int, Color> _ownerColors = [];
@@ -235,7 +235,7 @@ public partial class HexMapFrameLayer : Node2D
         }
 
         var currentTick = _projection.CurrentTick;
-        var groups = _projection.MinorActorActivities
+        var groups = _projection.MinorActorWork
             .Where(activity => MinorActorActivityIsVisible(activity, planeCode, currentTick))
             .GroupBy(activity => new MinorActorActivityKey(
                 activity.Q,
@@ -260,10 +260,9 @@ public partial class HexMapFrameLayer : Node2D
         }
     }
 
-    private bool MinorActorActivityIsVisible(UiMinorActorActivityProjection activity, int planeCode, int currentTick)
+    private bool MinorActorActivityIsVisible(UiMinorActorWorkProjection activity, int planeCode, int currentTick)
     {
-        if (activity.StatusCode != TraceStatusCodes.Selected ||
-            activity.PlaneCode != planeCode ||
+        if (activity.PlaneCode != planeCode ||
             activity.CultureId <= 0 ||
             currentTick - activity.Tick > MinorActorActivityWindowTicks)
         {
@@ -274,7 +273,7 @@ public partial class HexMapFrameLayer : Node2D
     }
 
     private static MinorActorActivityGroup BuildMinorActorActivityGroup(
-        IGrouping<MinorActorActivityKey, UiMinorActorActivityProjection> group)
+        IGrouping<MinorActorActivityKey, UiMinorActorWorkProjection> group)
     {
         var count = 0;
         var newestTick = 0;

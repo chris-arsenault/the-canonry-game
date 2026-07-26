@@ -16,11 +16,11 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
     private static readonly FixedScalar MaxHeat = 12;
     private static readonly FixedScalar InitialHeat = 1;
     private static readonly FixedScalar FadeHeatThreshold = FixedScalar.FromUnits(500000L);
-    private const int FadeQuietTicks = 1250;
-    private const int FadeGraceTicks = 1500;
+    private const int FadeQuietTicks = 250;
+    private const int FadeGraceTicks = 300;
     private static readonly FixedScalar HeatChargeSlope = FixedScalar.FromUnits(150000L);
     private static readonly FixedScalar MaxHeatChargeMultiplier = 4;
-    private const int SuppressionTicks = 2000;
+    private const int SuppressionTicks = 400;
     private static readonly FixedScalar ConvergenceHeatFloor = 4;
     private static readonly FixedScalar LegendaryHeatThreshold = 8;
     private static readonly FixedScalar ConvergencePullSlope = FixedScalar.FromUnits(300000L);

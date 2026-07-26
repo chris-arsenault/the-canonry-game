@@ -12,7 +12,7 @@ namespace TheCanonryGame.UI;
 /// </summary>
 public partial class EntityTrailLayer : Node2D
 {
-    private const int FadeTicks = 90;
+    private const int FadeTicks = 18;
 
     private readonly EntityTrailSegment[] _buffer = new EntityTrailSegment[4096];
     private EntityTrailProjection? _trails;

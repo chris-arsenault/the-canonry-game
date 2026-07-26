@@ -56,7 +56,7 @@ public static class IceRemembersAges
         Description = "The sun does not set. Seas teem with krill, the ice retreats, and the colonies gorge and forget. An ordinary good season - the mood the world keeps when nothing presses harder.",
         Track = WorldBeatTrack.World,
         Priority = 1,
-        MinOpenTicks = 2000,
+        MinOpenTicks = 400,
         CooldownTicks = 0,
         Charges =
         [
@@ -73,8 +73,8 @@ public static class IceRemembersAges
         Description = "The ice-break screams across the Berg. Channels open, new waters bare themselves, and the bold go out into ground no banner has stood on. The world is opening.",
         Track = WorldBeatTrack.World,
         Priority = 3,
-        MinOpenTicks = 1500,
-        CooldownTicks = 1500,
+        MinOpenTicks = 300,
+        CooldownTicks = 300,
         OpenWhen = [Growth(WorldBeatComparator.AtLeast, 30f)],
         CloseWhen = [Growth(WorldBeatComparator.Below, 20f)],
         Charges =
@@ -94,8 +94,8 @@ public static class IceRemembersAges
         Description = "The quartermasters post the food arithmetic - calories per penguin against days remaining. Channels narrow, the Last Catch runs like a war, and everyone draws in.",
         Track = WorldBeatTrack.World,
         Priority = 3,
-        MinOpenTicks = 1500,
-        CooldownTicks = 1500,
+        MinOpenTicks = 300,
+        CooldownTicks = 300,
         OpenWhen = [Growth(WorldBeatComparator.Below, 12f)],
         CloseWhen = [Growth(WorldBeatComparator.AtLeast, 18f)],
         Charges =
@@ -114,8 +114,8 @@ public static class IceRemembersAges
         Description = "Four months without sunrise. The sea seals for miles, the aurora burns brighter than ever, and the boundary with the ice-memory grows thin - the dead speak, and the untended edges recede into the ice.",
         Track = WorldBeatTrack.World,
         Priority = 4,
-        MinOpenTicks = 2000,
-        CooldownTicks = 2500,
+        MinOpenTicks = 400,
+        CooldownTicks = 500,
         OpenWhen = [Growth(WorldBeatComparator.Below, 3f)],
         CloseWhen = [Growth(WorldBeatComparator.AtLeast, 8f)],
         Charges =
@@ -145,8 +145,8 @@ public static class IceRemembersAges
         Description = "The Corpse Current runs warmer and reaches farther. The Dead God stirs in its dreaming; the deep ice wakes what should sleep, and the Wake-Singers grow bold with the smell of copper in the water.",
         Track = WorldBeatTrack.World,
         Priority = 8,
-        MinOpenTicks = 2500,
-        CooldownTicks = 3000,
+        MinOpenTicks = 500,
+        CooldownTicks = 600,
         OpenWhen = [Kind(WorldBeatComparator.AtLeast, 10f, "monster")],
         CloseWhen = [Kind(WorldBeatComparator.Below, 6f, "monster")],
         Charges =
@@ -166,8 +166,8 @@ public static class IceRemembersAges
         Description = "The melt bares what should stay buried. Relics with serial numbers in no known tongue rise from the deep ice, radiating power that makes the ice-memory itself recoil - and every hunter and shadow-broker wants them.",
         Track = WorldBeatTrack.World,
         Priority = 7,
-        MinOpenTicks = 2500,
-        CooldownTicks = 3000,
+        MinOpenTicks = 500,
+        CooldownTicks = 600,
         OpenWhen = [Kind(WorldBeatComparator.AtLeast, 65f, "artifact")],
         CloseWhen = [Kind(WorldBeatComparator.Below, 50f, "artifact")],
         Charges =
@@ -186,11 +186,11 @@ public static class IceRemembersAges
         Description = "The great sheets retreat all at once. An age of expansion and optimism - waters rich with krill and ancient secrets, bold explorers claiming ground, guild halls rising on charters of pressed ice. The world opens wide.",
         Track = WorldBeatTrack.World,
         Priority = 9,
-        MinOpenTicks = 3000,
-        CooldownTicks = 6000,
+        MinOpenTicks = 600,
+        CooldownTicks = 1200,
         OpenWhen =
         [
-            new(WorldBeatFact.TicksSinceStart, WorldBeatComparator.Below, 9000f),
+            new(WorldBeatFact.TicksSinceStart, WorldBeatComparator.Below, 1800f),
             Growth(WorldBeatComparator.AtLeast, 55f),
         ],
         CloseWhen = [Growth(WorldBeatComparator.Below, 35f)],
@@ -212,11 +212,11 @@ public static class IceRemembersAges
         Description = "The Final Seal writ across the whole Berg. Growth does not slow - it reverses. The cold does not hunt; it waits, and takes back everything the living no longer press to hold.",
         Track = WorldBeatTrack.World,
         Priority = 9,
-        MinOpenTicks = 3000,
-        CooldownTicks = 6000,
+        MinOpenTicks = 600,
+        CooldownTicks = 1200,
         OpenWhen =
         [
-            new(WorldBeatFact.TicksSinceStart, WorldBeatComparator.AtLeast, 12000f),
+            new(WorldBeatFact.TicksSinceStart, WorldBeatComparator.AtLeast, 2400f),
             Growth(WorldBeatComparator.Below, 0f),
         ],
         CloseWhen = [Growth(WorldBeatComparator.AtLeast, 6f)],
@@ -239,7 +239,7 @@ public static class IceRemembersAges
         Description = "The ordinary work of being seen. Names accumulate their echoes, deeds are recited in the Trade Terraces, and the ice records who the living are becoming. The mood the peoples keep between the greater eras.",
         Track = WorldBeatTrack.Peoples,
         Priority = 1,
-        MinOpenTicks = 2000,
+        MinOpenTicks = 400,
         CooldownTicks = 0,
         Charges =
         [
@@ -256,8 +256,8 @@ public static class IceRemembersAges
         Description = "The mood of the Great Thaw returns: bold crews walk past the last remembrance-stone, ships stand out beyond the charts, and every marginal rookery dreams of becoming a great berg. The ice from such years has a brightness, as if even the frost believed things were going well.",
         Track = WorldBeatTrack.Peoples,
         Priority = 4,
-        MinOpenTicks = 1800,
-        CooldownTicks = 1500,
+        MinOpenTicks = 360,
+        CooldownTicks = 300,
         OpenWhen = [Kind(WorldBeatComparator.AtLeast, 7f, "settlement")],
         CloseWhen = [Kind(WorldBeatComparator.Below, 5f, "settlement")],
         Charges =
@@ -281,8 +281,8 @@ public static class IceRemembersAges
         Description = "Once in a generation the peoples attempt what Piien attempted: a crossing meant to outlast the food math. Whole flotillas commit to the far water, and either the charts grow a new coast or the sea keeps its answer. The ice records these years carefully, the way it does before events it considers significant.",
         Track = WorldBeatTrack.Peoples,
         Priority = 6,
-        MinOpenTicks = 1200,
-        CooldownTicks = 6000,
+        MinOpenTicks = 240,
+        CooldownTicks = 1200,
         OpenWhen =
         [
             Kind(WorldBeatComparator.AtLeast, 10f, "settlement"),
@@ -306,8 +306,8 @@ public static class IceRemembersAges
         Description = "Quarry is on the ice and in the water. The orca sing their tactics, the penguins take up the old forms, and the beast is cornered and slain - for the hunt is the fundamental activity of being alive here.",
         Track = WorldBeatTrack.Peoples,
         Priority = 4,
-        MinOpenTicks = 1500,
-        CooldownTicks = 1000,
+        MinOpenTicks = 300,
+        CooldownTicks = 200,
         OpenWhen = [Kind(WorldBeatComparator.AtLeast, 3f, "monster")],
         CloseWhen = [Kind(WorldBeatComparator.Below, 1f, "monster")],
         Charges =
@@ -327,8 +327,8 @@ public static class IceRemembersAges
         Description = "The couriers walk the Accord route and the shipments move. Fire-cores rise to the surface, aurora-crystals sink to the dark, and neither colony can afford to let the other die. Commerce, not friendship - but commerce.",
         Track = WorldBeatTrack.Peoples,
         Priority = 4,
-        MinOpenTicks = 1800,
-        CooldownTicks = 1200,
+        MinOpenTicks = 360,
+        CooldownTicks = 240,
         OpenWhen =
         [
             Kind(WorldBeatComparator.AtLeast, 8f, "settlement"),
@@ -351,8 +351,8 @@ public static class IceRemembersAges
         Description = "The forms pass from hand to hand. Ice-readers deepen their sight, forge-masters teach the core-crack, and technique spreads faster than any one keeper can hold it. The craft is alive in the world.",
         Track = WorldBeatTrack.Peoples,
         Priority = 4,
-        MinOpenTicks = 1800,
-        CooldownTicks = 1200,
+        MinOpenTicks = 360,
+        CooldownTicks = 240,
         OpenWhen = [Kind(WorldBeatComparator.AtLeast, 5f, "ability")],
         CloseWhen = [Kind(WorldBeatComparator.Below, 3f, "ability")],
         Charges =
@@ -375,8 +375,8 @@ public static class IceRemembersAges
         Description = "Trade routes become battle lines. Old alliances fracture along cultural fault lines and each faction claims the true path to survival - dressed in ideology to make it seem about something other than krill.",
         Track = WorldBeatTrack.Peoples,
         Priority = 9,
-        MinOpenTicks = 3000,
-        CooldownTicks = 3000,
+        MinOpenTicks = 600,
+        CooldownTicks = 600,
         OpenWhen = [War(WorldBeatComparator.AtLeast, 20f)],
         CloseWhen = [War(WorldBeatComparator.Below, 12f)],
         Charges =
@@ -398,8 +398,8 @@ public static class IceRemembersAges
         Description = "The orca come not as raiders but as conquerors, their war-pods striking with coordination that speaks of dark intelligence. Old feuds between Stack and Shelf fade as the colonies band together against extinction.",
         Track = WorldBeatTrack.Peoples,
         Priority = 8,
-        MinOpenTicks = 3000,
-        CooldownTicks = 3000,
+        MinOpenTicks = 600,
+        CooldownTicks = 600,
         OpenWhen = [Kind(WorldBeatComparator.AtLeast, 9f, "orca")],
         CloseWhen = [Kind(WorldBeatComparator.Below, 6f, "orca")],
         Charges =
@@ -419,8 +419,8 @@ public static class IceRemembersAges
         Description = "Not peace - exhaustion dressed as stability. The threat recedes, leaving generational scars; survivors rebuild the bonds between cultures, and great festivals return, tinged with remembrance for the fallen.",
         Track = WorldBeatTrack.Peoples,
         Priority = 6,
-        MinOpenTicks = 3000,
-        CooldownTicks = 3000,
+        MinOpenTicks = 600,
+        CooldownTicks = 600,
         OpenWhen =
         [
             new(WorldBeatFact.CulledRelationshipsOfKind, WorldBeatComparator.AtLeast, 30f, RelationshipKind: "at_war_with"),
@@ -444,8 +444,8 @@ public static class IceRemembersAges
         Description = "War-weary, the civilizations turn to cleverness over conflict. Guilds found schools of magic and workshops of invention, unlocking fire-cores and spectralum lenses. An age of wonders - and of things the ice records but the histories do not name.",
         Track = WorldBeatTrack.Peoples,
         Priority = 7,
-        MinOpenTicks = 3000,
-        CooldownTicks = 4000,
+        MinOpenTicks = 600,
+        CooldownTicks = 800,
         OpenWhen = [Kind(WorldBeatComparator.AtLeast, 10f, "ability")],
         CloseWhen = [Kind(WorldBeatComparator.Below, 7f, "ability")],
         Charges =

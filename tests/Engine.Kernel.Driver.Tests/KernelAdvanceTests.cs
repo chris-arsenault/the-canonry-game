@@ -22,10 +22,10 @@ public sealed class KernelAdvanceTests
     {
         var simulation = new Simulation();
 
-        var advanced = simulation.AdvanceTicks(500);
+        var advanced = simulation.AdvanceTicks(100);
 
-        Assert.Equal(500, advanced);
-        Assert.Equal(500, simulation.CurrentTick);
+        Assert.Equal(100, advanced);
+        Assert.Equal(100, simulation.CurrentTick);
     }
 
     [Fact]

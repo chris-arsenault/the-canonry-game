@@ -11,8 +11,8 @@ namespace TheCanonryGame.UI;
 
 public partial class LegendPanel : PanelContainer
 {
-    private const int MinorActorActivityWindowTicks = 160;
-    private const int NationTrendSampleTicks = 500;
+    private const int MinorActorActivityWindowTicks = 32;
+    private const int NationTrendSampleTicks = 100;
 
     private readonly Dictionary<(int CultureId, int PlaneCode), NationTrendTracker> _nationTrends = [];
     private readonly List<LegendRowData> _pendingRows = [];
@@ -666,10 +666,9 @@ public partial class LegendPanel : PanelContainer
             var cultureActions = 0;
             var roadActions = 0;
             var latestTick = 0;
-            foreach (var activity in projection.MinorActorActivities)
+            foreach (var activity in projection.MinorActorWork)
             {
-                if (activity.StatusCode != TraceStatusCodes.Selected ||
-                    activity.CultureId != cultureId ||
+                if (activity.CultureId != cultureId ||
                     activity.PlaneCode != planeCode ||
                     projection.CurrentTick - activity.Tick > MinorActorActivityWindowTicks)
                 {

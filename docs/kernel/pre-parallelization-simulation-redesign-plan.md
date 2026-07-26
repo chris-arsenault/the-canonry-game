@@ -1,12 +1,14 @@
 # Pre-Parallelization Simulation Redesign Plan
 
-Status: Phases 1-9 complete. Phases 2-4 were reopened and remediated on
+Status: Phases 1-10 complete. Phase 10 was implemented and validated on
+`feature/unified-tick-minor-actors`. Phases 2-4 were reopened and remediated on
 2026-07-25 after a non-fixed-point completion audit. Phase 8 corrected the
 clock and lifecycle contracts after the Phase 7 performance remediation.
 Completed phase results and their remediation addenda describe the current
-implementation. Phase 9 selected a typed-owner bulk-synchronous candidate;
-parallel execution remains unimplemented pending approval of the implementation
-proposal recorded in that phase.
+implementation. Phase 9 selected a typed-owner bulk-synchronous candidate.
+Phase 10 removed the differential minor-actor cadence and replaced emitted
+short-lived workers with persistent discrete task cohorts before parallel
+execution begins.
 
 Phase 1 code basis: `main` at `7344037` on 2026-07-24.
 
@@ -78,10 +80,12 @@ reintroduce an earlier rejected assumption.
    kernel. A future view store or durable-watermark handshake is separable
    consumer infrastructure, not a reason to retain observer history in kernel
    state.
-10. The simulation has one clock and one public unit: ticks. Minor actors run
-    once per tick; main programs use a five-tick cadence. Phases are ownership
-    boundaries inside a tick, not clocks. No second-clock revision, sub-tick
-    counter, or bundled advance unit is retained.
+10. The simulation has one clock and one public unit: ticks. Phases are
+    ownership boundaries inside a tick, not clocks. No second-clock revision,
+    sub-tick counter, or bundled advance unit is retained. Phase 10 supersedes
+    the earlier five-tick main-program cadence: one new tick is one complete
+    ordinary simulation opportunity, and minor actors also receive at most one
+    movement/interaction/work opportunity in that tick.
 11. Lifecycle configuration expresses target ticks and curve shape. The kernel
     derives interval drain from a normalized cumulative health-budget curve;
     authored content does not store tiny base-rate or age-coefficient values.
@@ -2657,6 +2661,443 @@ add useful throughput.
 
 Final `make ci` passed all 1,047 fast tests on 2026-07-25 with zero build
 warnings or errors and a passing domain-boundary check.
+
+### Phase 10: Unify Tick Cadence And Rebuild Minor Actors As Persistent Tasks
+
+Status: implemented and validated on 2026-07-26.
+
+This phase is preparatory work before the Phase 9 typed-owner parallel
+scheduler. It deliberately removes work from the dominant minor-actor path and
+makes each surviving actor a durable, visually legible unit of local causality.
+It does not reopen the rejected persistent-geographic-shard scheduler: minor
+actors are simulation objects partitionable by stable actor ID, not owners of
+arbitrary world state.
+
+#### Owning layers
+
+- `Engine.Kernel` owns the one-tick scheduler, persistent actor slots,
+  generation-safe actor identity, bounded assignment/encounter state, movement,
+  work intents, deterministic interaction resolution, and snapshots.
+- `Engine.Domain` and `Engine.Gameplay` own the authored vocabulary compiled
+  into front, road, and campaign task rules. Emission cadence, worker TTL, and
+  duplicate-worker caps do not survive as compatibility fields.
+- `IceRemembers` owns which named sources can sustain each task, task strength,
+  reach/stride, commitment, replanning, and authored chaotic interactions.
+- `Engine.Eventing` publishes primitive actor-created, assigned, moved, worked,
+  encountered, and retired facts.
+- `Engine.Projection` and the UI turn those facts into persistent map motion
+  and activity. They do not decide actor behavior.
+- `Engine.Observability` and Monte Carlo analysis measure actor population,
+  assignment churn, work mix, travel, encounters, culture shape, and cost.
+
+#### Observed failure
+
+Minor actors are the only program family that receives an opportunity on every
+current tick. Ordinary movement, verbs, relationships, effects, gambits,
+chronicles, and generators run every five ticks. Four ticks out of five
+therefore exist primarily to service short-lived workers, even though the
+public simulation model has one clock.
+
+The current actor runtime compounds that scheduling tax:
+
+- named sources repeatedly emit expiring workers;
+- stages manufacture multiple near-identical workers through a worker-count
+  bonus;
+- each due worker repeatedly scores local verb/cell combinations;
+- 81.44% of measured selected work reinforces established home mass already
+  held by stage ambient emission and districts;
+- lifecycle support produces only 0.023% of selected actor delta despite
+  consuming 2.86% of selections; and
+- projection receives transient action events rather than a persistent moving
+  front, road crew, or campaign column.
+
+The final-code sampled trace
+`phase9-gambit-branchplan-cpu-1x25000-20260726a` attributes 33.99% of
+`AdvanceTicks` to minor-actor selected-verb work. Perfectly deleting that
+subtree would cap equivalent-work whole-simulation speedup at about `1.52x`.
+This phase therefore does not promise a `3x` CPU gain by itself. Its larger
+user-facing benefit is that one public tick advances the whole simulation
+instead of spending four intervening ticks on worker-only activity.
+
+#### Causal hypothesis
+
+If one tick represents the current complete main-program opportunity, ordinary
+programs and minor actors can all run at cadence one without substeps or a
+second clock. Calendar and slower-system durations can be reauthored directly
+in the new tick unit.
+
+If minor actors persist while a real front, road task, or campaign exists,
+assignment selection moves from every actor action to explicit creation or
+replanning boundaries. Replacing duplicate stage workers with actor strength
+reduces active actor count without making culture act autonomously. Removing
+routine core reinforcement lets actors concentrate on visible border, route,
+and campaign changes while stage emission and districts retain their already
+approved interior-holding role.
+
+The resulting actor loop should scale with active meaningful tasks rather than
+source count multiplied by stage bonus multiplied by emission/expiry churn.
+Its stable actor IDs and destination-keyed culture/road effects remain suitable
+for the Phase 9 evaluation-worker and cell-owner topology.
+
+#### Dispositions
+
+| Existing portion | Disposition | Reason |
+| --- | --- | --- |
+| One public tick and phase revisions | Keep | They correctly prevent hidden clocks and preserve published deterministic boundaries. |
+| Five-tick main-program cadence | Replace | It exists to create worker-only opportunities and makes the public tick a poor unit of perceived progress. |
+| Fixed-point fields, typed deltas, keyed randomness, occurrence handles | Keep | Their contracts are sound and are prerequisites for deterministic owner reduction. |
+| Minor-actor direct reusable slots and dense active iteration | Extend | The storage shape is appropriate, but actor occurrence identity and persistent assignment fields are missing. |
+| Emission deadlines, TTL, per-source duplicate count, action due heap | Remove | Persistent source/task actors do not need recurring emission or expiry churn. |
+| Stage worker bonus | Correct | Interpret it as task strength/work capacity, not automatic duplicate cohort count. Additional detachments require a separate future authored property. |
+| Culture core-reinforcement treadmill | Remove | Stage ambient emission and districts now own interior holding. |
+| Cultural border/hole/contest work | Replace internally | Preserve it as discrete moving cultural-front actors with persistent direction and assignment. |
+| Road maintenance | Extend | Preserve discrete crews, but bind them to actual used/degrading route work instead of repeated generic local selection. |
+| Campaign columns | Extend | Preserve one discrete column per active campaign relationship and give opposing/local actors explicit encounters. |
+| Default lifecycle maintenance | Remove | Its measured effect is negligible. A future relief column must be an explicit role with visible consequences. |
+| Per-action weighted random cell scoring | Replace | Replan against bounded opportunities only when a task starts, invalidates, or reaches a commitment deadline. |
+| Minor-actor action telemetry | Replace | Publish persistent lifecycle, movement, work, and encounter facts rather than reconstructing an actor from unrelated action motes. |
+
+#### Unified tick contract
+
+One Phase 10 tick is the old complete main-program opportunity, equivalent to
+five Phase 8/9 ticks for calendar and throughput comparisons.
+
+- Movement, low-altitude verbs, relationships, effects, gambits, chronicles,
+  generators, and minor actors register at cadence `1`.
+- Culture decay changes from `25` old ticks to `5` new ticks.
+- Culture slots and knowledge change from `50` old ticks to `10` new ticks.
+- World beats and map frontier change from `125` old ticks to `25` new ticks.
+- The canonical calendar changes from `250` ticks/year to `50` ticks/year.
+- Lifecycle targets and every authored absolute-calendar tick value are divided
+  by five at their owning definition.
+- Values authored in main-program opportunities keep their numeric value.
+  `ScaleMainProgramDuration` and `MainProgramCadenceTicks` are deleted; there
+  is no runtime compatibility mapper.
+- Minor actors receive one bounded movement/interaction/work decision per
+  tick. A configured macro stride may publish one endpoint several cells away,
+  but it does not execute hidden intermediate time steps.
+
+Raw new ticks/second must not be compared to Phase 9 raw ticks/second. Evidence
+reports new ticks/second, world-years/second, and old-tick-equivalents/second.
+Equivalent-work regression is not accepted merely because the public world
+appears to advance faster.
+
+#### Persistent actor state
+
+Each live minor actor is an unnamed task cohort with:
+
+- a generation-safe actor occurrence handle;
+- a generation-safe source entity occurrence handle;
+- culture, plane, and purpose (`CulturalFront`, `RoadCrew`, or
+  `CampaignColumn`);
+- current and previous cell;
+- assignment kind and target cell;
+- strength and remaining per-tick work charge;
+- commitment and next-replan tick;
+- optional active campaign relationship handle or road-segment binding; and
+- a bounded posture code such as advancing, working, blocked, withdrawing, or
+  disrupted.
+
+There is normally at most one actor per active source/purpose rule. A stage
+worker bonus increases its strength and effective work charge. It does not
+create additional actors. Actor slots remain fixed capacity, dense, reusable,
+and cleared on retirement. An actor survives until its source or bound task
+becomes invalid; completing one assignment returns it to bounded replanning
+rather than expiring and requiring re-emission.
+
+#### Role behavior
+
+**Cultural fronts**
+
+- Exist only when a reachable border, hole, bridge, or contested opportunity
+  exists on the rule's labor plane.
+- Carry culture from their named source; culture never expands without a
+  discrete actor or another already-authored named-entity effect.
+- Move toward a persistent assignment, repair a local hole, bridge nearby
+  supported mass, extend a supported border, or contest foreign mass.
+- Do not repeatedly reinforce established interior mass. Ambient stage
+  emission and districts own that function.
+- Replan when the target becomes invalid, the local culture band materially
+  changes, the actor is displaced, or its bounded commitment expires.
+
+**Road crews**
+
+- Bind to current travel demand and a degrading road segment or bounded route
+  span.
+- Travel to the task and apply road work once per tick.
+- May be delayed, diverted, escorted, or disrupted by local actor encounters.
+- Return to replanning after the segment is healthy or route demand disappears.
+
+**Campaign columns**
+
+- Bind one-to-one with an active authored campaign relationship such as
+  `wages_campaign_against`.
+- Advance from friendly support toward the target frontier, project culture,
+  and reduce hostile local control according to authored work strength.
+- Withdraw or retire when the relationship ends or either endpoint is no
+  longer active.
+- Interact with opposing columns, cultural fronts, and road crews locally
+  rather than through a global all-pairs pass.
+
+#### Tick execution and chaos
+
+For every active actor in stable occurrence order:
+
+1. validate its source, binding, and assignment against the published tick
+   view;
+2. replan only if invalid, unassigned, displaced, or due;
+3. publish one macro movement endpoint toward the assignment;
+4. discover encounters through a direct actor-by-cell index using only
+   co-location and adjacent cells;
+5. resolve authored local interactions through keyed randomness and bounded
+   typed intents; and
+6. spend the remaining work charge once on its assigned cell.
+
+Authored chaotic interactions may include:
+
+- allied temporary strength joins;
+- a high-strength front splitting its work across two adjacent opportunities
+  without creating a permanent extra actor;
+- hostile front or campaign clashes that damage strength or displace one side;
+- campaign disruption or diversion of a road crew;
+- road-crew support or escort of a friendly column;
+- overextension causing a retreat/replan posture;
+- competing friendly tasks redirecting the lower-priority actor; and
+- a rare opportunistic adjacent retarget.
+
+Eligibility is local and primitive: cell/adjacency, purpose, culture, posture,
+local band, and optional campaign/road binding. Randomness is keyed by tick,
+actor occurrence handles, interaction code, and attempt so traversal order and
+future worker count do not change outcomes. There is no actor all-pairs scan,
+general graph identity, or hidden population model.
+
+#### Presentation contract
+
+Primitive events cover actor creation, assignment, movement, work, encounter,
+posture change, and retirement. Projection stores active actor views keyed by
+actor occurrence handle and interpolates from previous to current cell.
+Cultural fronts, road crews, and campaign columns have distinct map
+presentation; strength changes density/intensity without multiplying actor
+objects. UI interpolation is visual only and never feeds simulation state.
+
+#### Implementation batches
+
+**Batch A: tick and calendar foundation**
+
+- Remove `MainProgramCadenceTicks` and `ScaleMainProgramDuration`.
+- Register ordinary programs at cadence one and normalize the slower scheduler
+  cadences.
+- Reauthor canonical calendar, lifecycle targets, absolute cooldowns/windows,
+  minor-actor rule timing, persistence, host tuning, and tests in the new unit.
+- Keep phase ownership and `TickCompleted`; do not add a replacement clock or
+  compatibility view.
+
+Intended files:
+
+- `src/Engine.Kernel/Simulation.cs`,
+  `src/Engine.Kernel/SimulationOptions.cs`, and
+  `src/Engine.Kernel/Execution/*`;
+- affected cadence/duration owners under
+  `src/Engine.Kernel/Programs/{LowAltitudeVerbs,Movement,Gambits,Generators,Chronicles,CultureField,CultureSlots,Knowledge,WorldBeats,MapFrontier,Effects}`;
+- `src/Engine.Kernel/Persistence/KernelSnapshot.cs`;
+- host tuning/configuration, Monte Carlo progress/calendar reporting, Ice
+  Remembers lifecycle and duration definitions, and durable cadence/lifecycle
+  contract tests.
+
+**Batch B: persistent actor vocabulary and storage**
+
+- Replace emitter/TTL/cap fields with task strength, stride, commitment,
+  replan, and interaction fields through authoring, compiler, installer, kernel
+  data, and snapshots.
+- Add actor occurrence generations, assignment/binding/posture state, and the
+  actor-by-cell index.
+- Replace stage duplicate-worker bonuses with strength contribution.
+- Remove the due heap if all actors act once per tick; retain only direct
+  replan deadlines.
+
+Intended files:
+
+- `src/Engine.Domain/Config/DomainConfig.cs`;
+- `src/Engine.Domain/Compilation/DomainCompiler.Sets.cs` and
+  `src/Engine.Domain/Compilation/KernelPrograms/MinorActorProgram.cs`;
+- `src/Engine.Gameplay` minor-actor vocabulary;
+- `src/Engine.Host/KernelProgramInstaller*.cs`;
+- `src/Engine.Kernel/Programs/MinorActors/*`;
+- `src/Engine.Kernel/WorldState.Stages.cs`; and
+- actor compilation, capacity, stale-handle, churn, and snapshot contract
+  tests.
+
+**Batch C: assignments, roles, and encounters**
+
+- Implement bounded opportunity discovery and persistent replanning.
+- Implement cultural-front, road-crew, and campaign-column movement/work.
+- Remove core reinforcement and default lifecycle maintenance end to end.
+- Implement the local actor-cell encounter pass and authored interaction table.
+- Preserve culture, road, campaign, and source ownership through typed deltas.
+
+Intended files:
+
+- `src/Engine.Kernel/Programs/MinorActors/*`;
+- `src/IceRemembers/IceRemembersMinorActors.cs`;
+- campaign relationship and road-demand query/index owners;
+- culture locality and movement/path helpers used by bounded assignment; and
+- durable behavior tests for source ownership, task persistence, role work,
+  local encounters, and deterministic replanning.
+
+**Batch D: event, projection, persistence, and stable documentation**
+
+- Publish and project persistent actor lifecycle/motion/work/encounter facts.
+- Replace transient-only minor-actor map motes with active role projections.
+- Replace snapshot formats directly; do not read old actor or cadence layouts.
+- Update stable architecture, game-system, minor-actor, entity-stage, and
+  simulation-principle documents to the implemented model.
+
+Intended files:
+
+- `src/Engine.Eventing/KernelEvent*.cs`;
+- `src/Engine.Kernel/Simulation.Events.cs`;
+- `src/Engine.Projection/MinorActorFlowProjection.cs`,
+  `src/Engine.Projection/UiProjectionState.cs`, and relevant map activity
+  layers;
+- `src/Engine.Observability/TelemetryEventProjection*.cs`;
+- kernel and simulation snapshot files;
+- `docs/architecture.md`, `docs/game-systems.md`,
+  `docs/systems/21-minor-actors.md`, `docs/design/entity-stages.md`, and
+  `docs/systems/simulation-principles.md`.
+
+**Batch E: verification and performance gate**
+
+- Run the durable repository behavior/determinism suite and final `make ci`.
+- Use one registered pre-rendered-world Release smoke to validate live
+  simulation shape without paying world-generation cost.
+- Compare a same-world 25,000-old-tick-equivalent workload with the corrected
+  Phase 9 reference. Report new ticks, old-tick equivalents, and world-years.
+- Append actor count, replan rate, assignment mix, encounter rate, work mix,
+  culture shape, road work, campaign work, phase time, and memory findings to
+  the MC registry.
+- Reprofile before starting Phase 9 Batch A. Update the typed-owner work
+  partition from the new active actor population rather than assuming the old
+  0.985 actor-ID balance still applies.
+
+#### Implementation result
+
+The feature branch `feature/unified-tick-minor-actors` implements Batches A-D
+as a direct replacement:
+
+- ordinary programs now receive one opportunity per tick, slower cadences and
+  the 50-tick/year calendar are reauthored in the new unit, and the main
+  cadence field/scaler/snapshot value are gone;
+- full-world and Monte Carlo horizons that represented elapsed simulation time
+  use one-fifth their former count, while kernel tests that already forced
+  cadence one retain their behavior-opportunity counts;
+- minor-actor emitter rules, TTL, caps, verb registration, due heap,
+  per-source count rows, lifecycle-maintenance work, core reinforcement, and
+  old snapshot reader are removed;
+- persistent actor state uses generation-safe actor/source/relationship
+  occurrences, dense active slots, direct source/rule and campaign indexes,
+  direct actor-cell links, persistent assignments, and strength rather than
+  duplicate workers;
+- cultural fronts, road crews, campaign columns, macro movement, bounded
+  replanning, and same/adjacent-cell encounters are live;
+- primitive creation, assignment, movement, work, encounter, and retirement
+  events replace `MinorActorVerbExecuted`; projection retains active role
+  actors plus bounded work history; telemetry exports separate lifecycle,
+  work, and encounter tables; and
+- stable tick, architecture, game-system, entity-stage, simulation-principle,
+  and minor-actor documents describe the implemented model.
+
+The final source state passed `make ci`: warning-as-error Release build,
+whitespace/style verification, all 1,031 tests, and the engine domain-boundary
+check completed with zero failures.
+
+#### Registered Phase 10 evidence
+
+All evidence below loads the existing Release-generated seed-9100 world rather
+than regenerating geography.
+
+`phase10-persistent-actors-smoke-1x1000-20260726a`:
+
+- 1,000 new ticks = 5,000 old-tick equivalents;
+- `107.146` new ticks/s = `535.729` old-tick equivalents/s; and
+- `1.259x` versus the Phase 9 first-window `425.6` old ticks/s. This is the
+  deliberately short regression gate, not the final speedup claim.
+
+`phase10-persistent-actors-midgame-1x5000-20260726a`:
+
+- 5,000 new ticks = 25,000 old-tick equivalents;
+- `49.629` new ticks/s = `248.144` old-tick equivalents/s overall;
+- `2.009x` versus the corrected Phase 9 whole-run `123.487` old ticks/s;
+- the final window reached `31.7` new ticks/s = `158.5` old-tick
+  equivalents/s, `2.119x` versus Phase 9's `74.8`; and
+- window throughput still declines sharply (`102.1`, `86.4`, `46.2`, `38.2`,
+  `31.7` new ticks/s). The unified actor model improves but does not remove
+  the previously diagnosed growth-sensitive costs outside the actor runtime.
+
+`phase10-persistent-actors-cpu-1x1000-20260726a`:
+
+- the profiled run sustained `101.637` new ticks/s;
+- `TickActiveActors` occupied `1.75%` of the full trace while
+  `AdvanceTicks` occupied `22.43%`, approximately `7.8%` of sampled advance
+  time; and
+- deleting all remaining actor execution would therefore have only about a
+  `1.085x` upper bound on the new kernel. Reaching `3x` versus Phase 9 cannot
+  come from more minor-actor semantic removal; low-altitude evaluation,
+  effects/locality, event publication, generators, and later-world growth own
+  the remaining work.
+
+`phase10-persistent-actors-behavior-1x200-20260726a`:
+
+- 57 actors were created and remained active: 53 cultural fronts and four road
+  crews; no campaign relationship existed in this short sample;
+- 960 assignments, 276 movement facts, 9,969 work facts, and 359 encounters
+  were published;
+- encounters comprised 283 friendly supports and 76 hostile clashes;
+- work covered supported extensions, bridge gaps, contests, and roads; and
+- `map_degenerate=0`. The one-column-per-active-campaign contract is covered
+  by the kernel campaign behavior test.
+
+Phase 10 therefore clears the user's no-less-than-`2x` equivalent-work floor,
+but it is not represented as a `3x` actor optimization. The next material
+speedup belongs to the already-selected broader typed-owner parallel boundary
+or to independently evidenced non-actor serial reductions.
+
+#### Acceptance and stop rules
+
+- One `AdvanceTicks(1)` call advances exactly one public tick and no subsystem
+  executes an internal time substep.
+- Ordinary programs and minor actors receive at most one opportunity per tick;
+  slower programs use explicit integer tick cadences.
+- There is no main-cadence tuning field, duration scaling helper, old/new tick
+  adapter, actor emission deadline, actor TTL, or compatibility snapshot reader.
+- Culture expansion remains traceable to a named entity, persistent minor
+  actor, district, or another explicit authored source; it does not become an
+  autonomous field process.
+- Fronts, road crews, and campaign columns remain discrete, spatial, persistent,
+  and visually distinguishable.
+- Routine core reinforcement and default lifecycle labor are absent.
+- Same seed and commands produce identical published state under reversed
+  evaluation and supported logical-shard counts.
+- Actor work has no global all-pairs pass and no hot-path allocation.
+- Equivalent-work one-worker performance may not regress from the corrected
+  Phase 9 baseline. A perceived calendar acceleration does not excuse a CPU
+  regression.
+- The actor rewrite is not claimed as a `3x` CPU optimization. Its measured
+  whole-simulation gain and the remaining typed-owner headroom are reported
+  honestly before parallel implementation resumes.
+- Application working set remains within the accepted 8 GB ceiling.
+
+#### Explicit non-goals
+
+- no OS worker threads in this phase;
+- no aggregate or autonomous culture simulation;
+- no graph-entity promotion for minor actors;
+- no generic economy, supply, or population model;
+- no restoration of pulses, substeps, steps, bundled advances, or a second
+  calendar clock;
+- no legacy snapshot, cadence, or minor-actor compatibility mapper;
+- no long 100,000-old-tick-equivalent run before the short and midgame gates
+  pass; and
+- no authored terrain-reach or unrelated semantic cleanup.
 
 ## Strategy Consequences After The Measurement
 

@@ -56,30 +56,30 @@ public sealed class WorldBeatsProgramRuntimeTests
     public void WorldBeats_MinOpenSpanAndCooldownGateTransitions()
     {
         var simulation = CreateSimulation();
-        DefineStrivingAge(simulation, minOpenTicks: 100, cooldownTicks: 200);
+        DefineStrivingAge(simulation, minOpenTicks: 20, cooldownTicks: 40);
         var (a, b) = SeedFactions(simulation);
         var war1 = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, a, b, FixedScalar.FromSingle(0.8f), tick: 0);
         var war2 = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, b, a, FixedScalar.FromSingle(0.8f), tick: 0);
 
-        simulation.WorldBeats.Tick(simulation, tick: 10);
+        simulation.WorldBeats.Tick(simulation, tick: 2);
         Assert.Equal(StrivingAgeId, simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.Peoples));
 
         // Close condition holds, but the minimum span has not elapsed.
-        simulation.CullRelationship(war1, tick: 20);
-        simulation.CullRelationship(war2, tick: 20);
+        simulation.CullRelationship(war1, tick: 4);
+        simulation.CullRelationship(war2, tick: 4);
         Assert.Equal(0, simulation.WorldBeats.State.ActiveRelationshipCountsByKind[WarRel]);
         Assert.Equal(2, simulation.WorldBeats.State.EndedRelationshipCountsByKind[WarRel]);
-        simulation.WorldBeats.Tick(simulation, tick: 30);
+        simulation.WorldBeats.Tick(simulation, tick: 6);
         Assert.Equal(StrivingAgeId, simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.Peoples));
 
         // Past the minimum span it closes; during cooldown it cannot reopen.
-        simulation.WorldBeats.Tick(simulation, tick: 120);
+        simulation.WorldBeats.Tick(simulation, tick: 24);
         Assert.Equal(0, simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.Peoples));
-        _ = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, a, b, FixedScalar.FromSingle(0.8f), tick: 130);
-        _ = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, b, a, FixedScalar.FromSingle(0.8f), tick: 130);
-        simulation.WorldBeats.Tick(simulation, tick: 140);
+        _ = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, a, b, FixedScalar.FromSingle(0.8f), tick: 26);
+        _ = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, b, a, FixedScalar.FromSingle(0.8f), tick: 26);
+        simulation.WorldBeats.Tick(simulation, tick: 28);
         Assert.Equal(0, simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.Peoples));
-        simulation.WorldBeats.Tick(simulation, tick: 330);
+        simulation.WorldBeats.Tick(simulation, tick: 66);
         Assert.Equal(StrivingAgeId, simulation.WorldBeats.OpenAgeId(WorldBeatTrackCodes.Peoples));
     }
 

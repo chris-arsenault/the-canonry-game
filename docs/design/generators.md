@@ -71,7 +71,7 @@ bounds, and coverage constraints pass.
 
 ## Fire-window model
 
-* The generator runtime evaluates on the main-program cadence.
+* The generator runtime evaluates once per tick.
 * A provincial fire window resets fire budget. Default tuning is
 `FireWindowTicks = 50` and `FiresPerWindow = 1`; runtime deadlines use the
 single global tick clock.

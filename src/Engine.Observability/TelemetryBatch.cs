@@ -36,7 +36,9 @@ public sealed class TelemetryBatch
     public Collection<CellInfluenceEventRow> CellInfluenceEvents { get; } = Rows<CellInfluenceEventRow>();
     public Collection<CultureFieldCellSnapshotRow> CultureFieldCellSnapshots { get; } = Rows<CultureFieldCellSnapshotRow>();
     public Collection<CultureSlotOccupancyEventRow> CultureSlotOccupancyEvents { get; } = Rows<CultureSlotOccupancyEventRow>();
-    public Collection<MinorActorVerbEventRow> MinorActorVerbEvents { get; } = Rows<MinorActorVerbEventRow>();
+    public Collection<MinorActorLifecycleEventRow> MinorActorLifecycleEvents { get; } = Rows<MinorActorLifecycleEventRow>();
+    public Collection<MinorActorWorkEventRow> MinorActorWorkEvents { get; } = Rows<MinorActorWorkEventRow>();
+    public Collection<MinorActorEncounterEventRow> MinorActorEncounterEvents { get; } = Rows<MinorActorEncounterEventRow>();
     public Collection<CulturePowerSnapshotRow> CulturePowerSnapshots { get; } = Rows<CulturePowerSnapshotRow>();
     public Collection<KnowledgeSnapshotRow> KnowledgeSnapshots { get; } = Rows<KnowledgeSnapshotRow>();
     public Collection<KnowledgeClaimSnapshotRow> KnowledgeClaimSnapshots { get; } = Rows<KnowledgeClaimSnapshotRow>();
@@ -83,7 +85,9 @@ public sealed class TelemetryBatch
         CellInfluenceEvents.Clear();
         CultureFieldCellSnapshots.Clear();
         CultureSlotOccupancyEvents.Clear();
-        MinorActorVerbEvents.Clear();
+        MinorActorLifecycleEvents.Clear();
+        MinorActorWorkEvents.Clear();
+        MinorActorEncounterEvents.Clear();
         ClearCultureAndNarrativeRows();
     }
 
@@ -502,28 +506,69 @@ public sealed record CultureSlotOccupancyEventRow(
     float PreviousScore,
     float CurrentScore);
 
-public sealed record MinorActorVerbEventRow(
+public sealed record MinorActorLifecycleEventRow(
     int RunId,
     int Tick,
-    int ActorId,
+    int EventCode,
+    int ActorOccurrence,
+    int SourceEntityId,
+    int SourceRuleId,
+    int BindingRelationshipId,
+    int CultureId,
+    int RoleCode,
+    int PlaneCode,
+    int FromQ,
+    int FromR,
+    int Q,
+    int R,
+    int TargetQ,
+    int TargetR,
+    int TargetingCode,
+    int PostureCode,
+    int ReasonCode,
+    int NextReplanTick,
+    int CommitmentUntilTick,
+    float Strength);
+
+public sealed record MinorActorWorkEventRow(
+    int RunId,
+    int Tick,
+    int ActorOccurrence,
     int SourceEntityId,
     int SourceRuleId,
     int SourceWorkTier,
     int EffectiveRadius,
     int CultureId,
-    int VerbId,
-    int PurposeCode,
+    int RoleCode,
     int ActionCode,
     int TargetingCode,
     int PlaneCode,
     int Q,
     int R,
-    int StatusCode,
     int CellKindCode,
     float LocalRawMass,
     float ConnectedRawMass,
-    float Score,
+    float Strength,
     float Delta);
+
+public sealed record MinorActorEncounterEventRow(
+    int RunId,
+    int Tick,
+    int ActorOccurrence,
+    int OtherActorOccurrence,
+    int ActorCultureId,
+    int OtherCultureId,
+    int ActorRoleCode,
+    int OtherRoleCode,
+    int PlaneCode,
+    int Q,
+    int R,
+    int EncounterCode,
+    int ActorPostureCode,
+    int OtherPostureCode,
+    float ActorStrength,
+    float OtherStrength,
+    float Effect);
 
 public sealed record WorldBeatEventRow(
     int RunId,

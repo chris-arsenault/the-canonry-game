@@ -23,7 +23,7 @@ public static partial class IceRemembersGeneratorDefinition
         LegendEntersTheCanon(),
     ];
 
-    private const int LegendEntersTheCanonWindowTicks = 1500;
+    private const int LegendEntersTheCanonWindowTicks = 300;
     private const int SagaJurisdictionRadius = 2;
 
     private static SemanticGeneratorConfig TheIceTakesNotice() => new()

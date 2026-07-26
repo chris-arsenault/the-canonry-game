@@ -100,11 +100,6 @@ internal sealed partial class Simulation : IKernel
 
     private static void ValidateOptions(SimulationOptions options)
     {
-        if (options.KernelTuning.Programs.MainProgramCadenceTicks <= 0)
-        {
-            throw new global::System.ArgumentOutOfRangeException(nameof(options));
-        }
-
         ValidateCultureTuning(options);
         ValidateMapCapacities(options);
         ValidateExecutionOptions(options.Execution);
@@ -168,7 +163,9 @@ internal sealed partial class Simulation : IKernel
             new MinorActorProgramState(
                 options.MinorActorCapacity,
                 options.MinorActorRuleCapacity,
-                options.EntityCapacity));
+                options.EntityCapacity,
+                options.RelationshipCapacity,
+                options.MapCellCapacity));
 
     private static GambitProgramRuntime CreateGambitRuntime(SimulationOptions options) =>
         new(
@@ -212,18 +209,17 @@ internal sealed partial class Simulation : IKernel
 
     private void RegisterDefaultPrograms()
     {
-        var mainCadence = Options.KernelTuning.Programs.MainProgramCadenceTicks;
-        RegisterProgram(KernelProgramCodes.Movement, mainCadence, Movement);
-        RegisterProgram(KernelProgramCodes.LowAltitudeVerbs, mainCadence, LowAltitudeVerbs);
+        RegisterProgram(KernelProgramCodes.Movement, 1, Movement);
+        RegisterProgram(KernelProgramCodes.LowAltitudeVerbs, 1, LowAltitudeVerbs);
         RegisterProgram(
             KernelProgramCodes.CultureFieldDecay,
             Options.KernelTuning.Programs.CultureField.DecayCadenceTicks,
             CultureFieldDecay);
-        RegisterProgram(KernelProgramCodes.Relationships, mainCadence, Relationships);
-        RegisterProgram(KernelProgramCodes.Effects, mainCadence, Effects);
-        RegisterProgram(KernelProgramCodes.Gambits, mainCadence, Gambits);
-        RegisterProgram(KernelProgramCodes.ChronicleDirector, mainCadence, Chronicles);
-        RegisterProgram(KernelProgramCodes.Generators, mainCadence, Generators);
+        RegisterProgram(KernelProgramCodes.Relationships, 1, Relationships);
+        RegisterProgram(KernelProgramCodes.Effects, 1, Effects);
+        RegisterProgram(KernelProgramCodes.Gambits, 1, Gambits);
+        RegisterProgram(KernelProgramCodes.ChronicleDirector, 1, Chronicles);
+        RegisterProgram(KernelProgramCodes.Generators, 1, Generators);
         RegisterProgram(
             KernelProgramCodes.WorldBeats,
             Options.KernelTuning.Programs.WorldBeats.CadenceTicks,
@@ -232,10 +228,10 @@ internal sealed partial class Simulation : IKernel
             KernelProgramCodes.MapFrontier,
             Options.KernelTuning.Programs.MapFrontier.CadenceTicks,
             MapFrontier);
-        RegisterProgram(KernelProgramCodes.CultureSlots, 10 * mainCadence, CultureSlots);
+        RegisterProgram(KernelProgramCodes.CultureSlots, 10, CultureSlots);
         // Claims change slowly; recompute knowledge modifiers on the same slow
-        // cadence as culture slots rather than every main-program boundary.
-        RegisterProgram(KernelProgramCodes.Knowledge, 10 * mainCadence, Knowledge);
+        // cadence as culture slots rather than every tick.
+        RegisterProgram(KernelProgramCodes.Knowledge, 10, Knowledge);
         RegisterProgram(KernelProgramCodes.MinorActors, 1, MinorActors);
         ValidateProgramDependencies();
     }

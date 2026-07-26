@@ -38,47 +38,27 @@ public static partial class DomainCompiler
 
     private static MinorActorProgram BuildMinorActorProgram(DomainConfig config, DomainIdRegistry ids)
     {
-        var rules = new List<MinorActorEmitterRule>();
+        var rules = new List<MinorActorRoleRule>();
         foreach (var rule in config.MinorActors)
         {
-            if (rule.Verbs.Count == 0)
-            {
-                throw new InvalidOperationException(
-                    $"Minor-actor emitter '{rule.SourceKind}' must define at least one verb.");
-            }
-
-            var planeCode = rule.PlaneCode;
-            rules.Add(new MinorActorEmitterRule(
+            rules.Add(new MinorActorRoleRule(
                 ids.KindIdOf(rule.SourceKind).Value,
                 string.IsNullOrWhiteSpace(rule.SourceSubtype)
                     ? 0
                     : ids.SubtypeIdOf(rule.SourceSubtype).Value,
-                rule.PurposeCode,
-                rule.ActorKindCode,
-                planeCode,
-                rule.TtlTicks,
-                rule.EmitCadenceTicks,
-                rule.MaxActivePerSource,
-                rule.SpawnRadius,
-                rule.ActionCadenceTicks,
-                FixedScalar.FromSingle(rule.WorkDelta),
-                rule.Verbs
-                    .Select(verb => new MinorActorVerbRule(
-                        ids.VerbIdOf(verb.Id).Value,
-                        verb.ActionCode,
-                        verb.TargetingCode,
-                        verb.PlaneCode == Engine.Constants.PlaneCodes.None ? planeCode : verb.PlaneCode,
-                        verb.Radius,
-                        verb.SampleCount,
-                        FixedScalar.FromSingle(verb.Weight),
-                        FixedScalar.FromSingle(verb.WorkDeltaMultiplier)))
-                    .ToArray()));
+                rule.RoleCode,
+                rule.PlaneCode,
+                rule.AssignmentRadius,
+                rule.Stride,
+                rule.CommitmentTicks,
+                rule.ReplanTicks,
+                FixedScalar.FromSingle(rule.BaseStrength)));
         }
 
         return new MinorActorProgram
         {
             EnabledByDefault = rules.Count > 0,
-            EmitterRules = rules,
+            RoleRules = rules,
             CampaignRelationshipKindId = config.MinorActorCampaign is null
                 ? 0
                 : ids.RelationshipKindIdOf(config.MinorActorCampaign.RelationshipKind).Value,

@@ -131,11 +131,11 @@ public sealed class ObservabilitySmokeTests
             seed: 7100);
 
         recorder.RecordSnapshots(host.CurrentTick);
-        for (var i = 0; i < 50; i++)
+        for (var i = 0; i < 10; i++)
         {
             var advanced = host.Time.AdvanceSingleStep(1);
             Assert.Equal(1, advanced);
-            recorder.RecordSnapshots(host.CurrentTick, includeEntities: host.CurrentTick % 10 == 0);
+            recorder.RecordSnapshots(host.CurrentTick, includeEntities: host.CurrentTick % 2 == 0);
         }
 
         recorder.DrainAvailable();

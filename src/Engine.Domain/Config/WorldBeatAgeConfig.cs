@@ -70,10 +70,10 @@ public sealed class WorldBeatAgeConfig
     public int Priority { get; init; }
 
     /// <summary>Minimum tick span before closing conditions are consulted.</summary>
-    public int MinOpenTicks { get; init; } = 2000;
+    public int MinOpenTicks { get; init; } = 400;
 
     /// <summary>Tick span after closing during which this age cannot reopen.</summary>
-    public int CooldownTicks { get; init; } = 2000;
+    public int CooldownTicks { get; init; } = 400;
 
     /// <summary>All must hold to open. Empty means always eligible (the track's fallback).</summary>
     public IReadOnlyList<WorldBeatConditionConfig> OpenWhen { get; init; } = [];

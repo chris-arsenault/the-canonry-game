@@ -209,7 +209,7 @@ public sealed class UiProjectionStateTests
     }
 
     [Fact]
-    public void Projection_ReplaysMinorActorActivityEvents()
+    public void Projection_ReplaysPersistentMinorActorLifecycleAndWork()
     {
         var log = new KernelEventLog(capacity: 16);
         var projection = new UiProjectionState();
@@ -218,41 +218,122 @@ public sealed class UiProjectionStateTests
             KernelEventCursorStart.EarliestAvailable,
             projection);
 
-        Assert.True(log.TryWrite(KernelEvent.From(new MinorActorVerbExecutedKernelEvent(
+        Assert.True(log.TryWrite(MinorActorCreatedEvent()));
+        Assert.True(log.TryWrite(MinorActorAssignedEvent()));
+        Assert.True(log.TryWrite(MinorActorMovedEvent()));
+        Assert.True(log.TryWrite(MinorActorWorkedEvent()));
+
+        pump.DrainAvailable();
+
+        var actor = Assert.Single(projection.MinorActors).Value;
+        var activity = Assert.Single(projection.MinorActorWork);
+        Assert.Equal(4, projection.MinorActorVersion);
+        Assert.Equal(7, projection.CurrentTick);
+        Assert.Equal(-2, actor.Q);
+        Assert.Equal(MinorActorPostureCodes.Working, actor.PostureCode);
+        Assert.Equal(12, activity.CultureId);
+        Assert.Equal(MinorActorActionCodes.BuildCulture, activity.ActionCode);
+        Assert.Equal(PlaneCodes.Physical, activity.PlaneCode);
+        Assert.Equal(-2, activity.Q);
+        Assert.Equal(1.5f, activity.Delta);
+
+        Assert.True(log.TryWrite(MinorActorRetiredEvent()));
+        pump.DrainAvailable();
+
+        Assert.Empty(projection.MinorActors);
+        Assert.Equal(5, projection.MinorActorVersion);
+    }
+
+    private static KernelEvent MinorActorCreatedEvent() =>
+        KernelEvent.From(new MinorActorCreatedKernelEvent(
             Tick: 7,
             WorldVersion: 8,
-            ActorId: 9,
+            ActorOccurrence: 9,
+            SourceEntityId: 10,
+            SourceRuleId: 11,
+            BindingRelationshipId: 0,
+            CultureId: 12,
+            RoleCode: MinorActorRoleCodes.CulturalFront,
+            PlaneCode: PlaneCodes.Physical,
+            Q: -3,
+            R: 3,
+            PostureCode: MinorActorPostureCodes.Traveling,
+            StrengthUnits: FixedScalar.FromSingle(3.25f).Units));
+
+    private static KernelEvent MinorActorAssignedEvent() =>
+        KernelEvent.From(new MinorActorAssignedKernelEvent(
+            Tick: 7,
+            WorldVersion: 8,
+            ActorOccurrence: 9,
+            SourceEntityId: 10,
+            RoleCode: MinorActorRoleCodes.CulturalFront,
+            PlaneCode: PlaneCodes.Physical,
+            PreviousTargetQ: -3,
+            PreviousTargetR: 3,
+            TargetQ: -2,
+            TargetR: 3,
+            TargetingCode: MinorActorTargetingCodes.ExtendBorder,
+            PostureCode: MinorActorPostureCodes.Traveling,
+            NextReplanTick: 19,
+            CommitmentUntilTick: 15,
+            StrengthUnits: FixedScalar.FromSingle(3.25f).Units));
+
+    private static KernelEvent MinorActorMovedEvent() =>
+        KernelEvent.From(new MinorActorMovedKernelEvent(
+            Tick: 7,
+            WorldVersion: 9,
+            ActorOccurrence: 9,
+            SourceEntityId: 10,
+            CultureId: 12,
+            RoleCode: MinorActorRoleCodes.CulturalFront,
+            PlaneCode: PlaneCodes.Physical,
+            FromQ: -3,
+            FromR: 3,
+            ToQ: -2,
+            ToR: 3,
+            TargetQ: -2,
+            TargetR: 3,
+            PostureCode: MinorActorPostureCodes.Working,
+            StrengthUnits: FixedScalar.FromSingle(3.25f).Units));
+
+    private static KernelEvent MinorActorWorkedEvent() =>
+        KernelEvent.From(new MinorActorWorkedKernelEvent(
+            Tick: 7,
+            WorldVersion: 10,
+            ActorOccurrence: 9,
             SourceEntityId: 10,
             SourceRuleId: 11,
             SourceWorkTier: 2,
             EffectiveRadius: 5,
             CultureId: 12,
-            VerbId: 13,
-            PurposeCode: MinorActorPurposeCodes.CulturalLabor,
-            ActionCode: MinorActorActionCodes.CultureExpansion,
-            TargetingCode: MinorActorVerbTargetingCodes.ExtendConnectedBorder,
+            RoleCode: MinorActorRoleCodes.CulturalFront,
+            ActionCode: MinorActorActionCodes.BuildCulture,
+            TargetingCode: MinorActorTargetingCodes.ExtendBorder,
             PlaneCode: PlaneCodes.Physical,
             Q: -2,
             R: 3,
-            StatusCode: TraceStatusCodes.Selected,
             CellKindCode: CultureFieldCellKindCodes.Border,
             LocalRawMassUnits: FixedScalar.FromSingle(14.5f).Units,
             ConnectedRawMassUnits: FixedScalar.FromSingle(21.5f).Units,
-            ScoreUnits: FixedScalar.FromSingle(3.25f).Units,
-            DeltaUnits: FixedScalar.FromSingle(1.5f).Units))));
+            StrengthUnits: FixedScalar.FromSingle(3.25f).Units,
+            DeltaUnits: FixedScalar.FromSingle(1.5f).Units));
 
-        pump.DrainAvailable();
-
-        var activity = Assert.Single(projection.MinorActorActivities);
-        Assert.Equal(1, projection.MinorActorActivityVersion);
-        Assert.Equal(7, projection.CurrentTick);
-        Assert.Equal(12, activity.CultureId);
-        Assert.Equal(MinorActorActionCodes.CultureExpansion, activity.ActionCode);
-        Assert.Equal(PlaneCodes.Physical, activity.PlaneCode);
-        Assert.Equal(-2, activity.Q);
-        Assert.Equal(TraceStatusCodes.Selected, activity.StatusCode);
-        Assert.Equal(1.5f, activity.Delta);
-    }
+    private static KernelEvent MinorActorRetiredEvent() =>
+        KernelEvent.From(new MinorActorRetiredKernelEvent(
+            Tick: 8,
+            WorldVersion: 11,
+            ActorOccurrence: 9,
+            SourceEntityId: 10,
+            SourceRuleId: 11,
+            BindingRelationshipId: 0,
+            CultureId: 12,
+            RoleCode: MinorActorRoleCodes.CulturalFront,
+            PlaneCode: PlaneCodes.Physical,
+            Q: -2,
+            R: 3,
+            ReasonCode: MinorActorRetirementReasonCodes.NoAssignment,
+            PostureCode: MinorActorPostureCodes.Working,
+            StrengthUnits: FixedScalar.FromSingle(3.25f).Units));
 
     [Fact]
     public void Projection_AttributesGeneratedEntitiesByProvenanceInvocation()

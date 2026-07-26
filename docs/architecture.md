@@ -196,13 +196,20 @@ memoization for repeated reads of the same culture and cell; culture mutation
 invalidates entries by advancing the revision, without maintaining connected
 components or another source of truth.
 
-The kernel has one tick clock. Minor actors run once per tick. The main
-movement, verb, relationship, effect, gambit, chronicle, and generator programs
-run every five ticks by default; slower programs retain explicit tick cadences.
-Authored durations owned by those main programs are normalized once into tick
-deadlines when installed. There is no sub-tick counter or second calendar.
+The kernel has one tick clock. Movement, verbs, relationships, effects,
+gambits, chronicles, generators, and minor actors each receive one opportunity
+per tick; slower programs retain explicit tick cadences. Authored durations are
+direct tick values with no main-cadence mapper. There is no sub-tick counter or
+second calendar.
 `CultureSlots` and `Knowledge` retain their slower schedule, but their work is
 revision- and due-driven: unchanged slots and cultures are not globally rebuilt.
+
+Minor actors are persistent fixed-capacity task cohorts rather than emitted
+TTL workers. Source/rule and campaign-relationship indexes own identity;
+actor-cell links bound encounters to the same or adjacent cells. Cultural
+fronts, road crews, and campaign columns publish lifecycle and work events so
+projection can retain active map actors without promoting them to graph
+entities.
 
 ## Runtime State
 

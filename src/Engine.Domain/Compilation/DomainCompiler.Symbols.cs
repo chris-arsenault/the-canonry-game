@@ -182,15 +182,6 @@ public static partial class DomainCompiler
                 verb.DisplayName);
         }
 
-        foreach (var verb in config.MinorActors.SelectMany(rule => rule.Verbs))
-        {
-            symbols.Add(
-                DomainSymbolKind.Verb,
-                ids.VerbIdOf(verb.Id).Value,
-                verb.Id,
-                verb.DisplayName);
-        }
-
         foreach (var gambit in config.Gambits)
         {
             symbols.Add(

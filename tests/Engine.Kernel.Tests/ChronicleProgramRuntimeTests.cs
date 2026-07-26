@@ -24,7 +24,7 @@ public sealed class ChronicleProgramRuntimeTests
         var (quarry, hunter) = SeedHuntWorld(simulation);
         DefineHuntArchetype(simulation);
 
-        simulation.Chronicles.Tick(simulation, tick: 20);
+        simulation.Chronicles.Tick(simulation, tick: 4);
         Assert.True(simulation.Chronicles.State.Active[1]);
         Assert.Equal(quarry, simulation.Chronicles.State.RoleEntityIds[ChronicleProgramData.MaxRolesPerArchetype]);
 
@@ -201,14 +201,14 @@ public sealed class ChronicleProgramRuntimeTests
         _ = SeedHuntWorld(simulation);
         DefineHuntArchetype(simulation);
 
-        simulation.Chronicles.Tick(simulation, tick: 20);
+        simulation.Chronicles.Tick(simulation, tick: 4);
         Assert.True(simulation.Chronicles.State.Active[1]);
 
         // Decay the heat well below the fade threshold, then step past the
         // grace and quiet windows with no strikes. The tale fades mid-loop.
         for (var run = 0; run < 400; run++)
         {
-            simulation.Chronicles.Tick(simulation, tick: 25 + (run * 5));
+            simulation.Chronicles.Tick(simulation, tick: 5 + run);
         }
 
         Assert.False(simulation.Chronicles.State.Active[1]);
@@ -216,7 +216,7 @@ public sealed class ChronicleProgramRuntimeTests
 
         // The faded cast sits in the suppression ring: the same primary is
         // not immediately recast even though the world still qualifies it.
-        simulation.Chronicles.Tick(simulation, tick: 2030);
+        simulation.Chronicles.Tick(simulation, tick: 406);
         Assert.False(simulation.Chronicles.State.Active[1]);
     }
 

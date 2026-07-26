@@ -81,7 +81,7 @@ public static partial class IceRemembersChronicleArchetypes
         FadeOutcomeId = "outlasted_the_telling",
         FadeNarrative = "The ice grew quiet. Whatever hunted between {$hunter} and {$quarry} outlasted the telling.",
         MaxActive = 1,
-        CastingCadenceTicks = 400,
+        CastingCadenceTicks = 80,
     };
 
     private static List<ChronicleBeatConfig> HuntBeats() =>
@@ -231,7 +231,7 @@ public static partial class IceRemembersChronicleArchetypes
         FadeOutcomeId = "the_grudge_cools",
         FadeNarrative = "Neither {$challenger} nor {$rival} pressed the grievance further. The grudge cools in the dark.",
         MaxActive = 1,
-        CastingCadenceTicks = 500,
+        CastingCadenceTicks = 100,
     };
 
     private static List<ChronicleBeatConfig> RivalryBeats() =>
@@ -391,10 +391,10 @@ public static partial class IceRemembersChronicleArchetypes
         Beats = [.. TeachingBeats()],
         FadeOutcomeId = "the_lesson_rests",
         FadeNarrative = "The teaching of {$student} settled into silence, the way most teachings do.",
-        FadeGraceTicks = 3500,
-        FadeQuietTicks = 2500,
+        FadeGraceTicks = 700,
+        FadeQuietTicks = 500,
         MaxActive = 1,
-        CastingCadenceTicks = 700,
+        CastingCadenceTicks = 140,
     };
 
     private static List<ChronicleBeatConfig> TeachingBeats() =>
@@ -555,10 +555,10 @@ public static partial class IceRemembersChronicleArchetypes
         Beats = [.. RoadBeats()],
         FadeOutcomeId = "the_road_endures_quietly",
         FadeNarrative = "The road between {$port} and {$partner} needs no more telling. It simply endures.",
-        FadeGraceTicks = 2500,
-        FadeQuietTicks = 2000,
+        FadeGraceTicks = 500,
+        FadeQuietTicks = 400,
         MaxActive = 1,
-        CastingCadenceTicks = 900,
+        CastingCadenceTicks = 180,
     };
 
     private static List<ChronicleBeatConfig> RoadBeats() =>
@@ -704,7 +704,7 @@ public static partial class IceRemembersChronicleArchetypes
         FadeOutcomeId = "the_haunt_settles_in",
         FadeNarrative = "The haunting of {$vessel} became just another sound of the run.",
         MaxActive = 1,
-        CastingCadenceTicks = 500,
+        CastingCadenceTicks = 100,
     };
 
     private static List<ChronicleBeatConfig> HauntedRunBeats() =>
@@ -792,10 +792,10 @@ public static partial class IceRemembersChronicleArchetypes
         Beats = [.. PracticeBeats(), .. PracticeEndBeats()],
         FadeOutcomeId = "the_practice_endures",
         FadeNarrative = "{$practice} was kept without drama, season after season. That, too, is a story.",
-        FadeGraceTicks = 3000,
-        FadeQuietTicks = 2000,
+        FadeGraceTicks = 600,
+        FadeQuietTicks = 400,
         MaxActive = 1,
-        CastingCadenceTicks = 1000,
+        CastingCadenceTicks = 200,
     };
 
     private static List<ChronicleBeatConfig> PracticeBeats() =>
@@ -903,7 +903,7 @@ public static partial class IceRemembersChronicleArchetypes
         FadeOutcomeId = "the_tide_forgets",
         FadeNarrative = "The raids thinned, the watches ended. The tide forgot what {$terror} and {$foe} owed each other.",
         MaxActive = 1,
-        CastingCadenceTicks = 350,
+        CastingCadenceTicks = 70,
     };
 
     private static List<ChronicleBeatConfig> TerrorBeats() =>

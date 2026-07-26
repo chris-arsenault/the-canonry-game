@@ -342,7 +342,6 @@ Current tuning keys:
 
 - `programs.lifecycle.aging_model`: `linear` or `late_life`.
 - `programs.generators.retry_fire_targets`: `true` or `false`.
-- `programs.main_program_cadence_ticks`: positive integer.
 - `programs.generators.fire_window_ticks`: positive integer.
 - `programs.generators.fires_per_window`: non-negative integer.
 

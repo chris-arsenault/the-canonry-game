@@ -295,8 +295,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _targetKindIds[slot] = targetKindId;
         _fireWeights[slot] = fireWeight;
         _maxRuns[slot] = maxRuns;
-        _cadenceTicks[slot] = Tuning.ScaleMainProgramDuration(cadenceTicks);
-        _cadenceJitterTicks[slot] = Tuning.ScaleMainProgramDuration(cadenceJitterTicks);
+        _cadenceTicks[slot] = cadenceTicks;
+        _cadenceJitterTicks[slot] = cadenceJitterTicks;
         _targetRequiredTagBits[slot] = targetRequiredTagBits;
         _targetWithoutTagBits[slot] = targetWithoutTagBits;
         _targetSubtypeStarts[slot] = _subtypeCount + 1;
@@ -551,8 +551,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             return;
         }
 
-        var width = Tuning.ScaleMainProgramDuration(
-            Tuning.Generators.FireWindowTicks * ProvinceWidthMultiplier(band));
+        var width =
+            Tuning.Generators.FireWindowTicks * ProvinceWidthMultiplier(band);
         var windowIndex = (tick - 1) / width;
         if (State.ProvinceWindowIndices[province] != windowIndex)
         {
@@ -602,8 +602,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     // keeps them out of the snapshot.
     private void RefreshProvincesIfDue(Simulation simulation, int tick)
     {
-        var refreshTicks = Tuning.ScaleMainProgramDuration(
-            Tuning.Generators.ProvinceBandRefreshTicks);
+        var refreshTicks = Tuning.Generators.ProvinceBandRefreshTicks;
         if (_lastProvinceRefreshTick >= 0 && tick - _lastProvinceRefreshTick < refreshTicks)
         {
             return;

@@ -114,10 +114,10 @@ hostile intrusion.
 
 ## Fire-Window Budget
 
-Generators are evaluated on the main-program cadence. Fire budget is reset by
+Generators are evaluated once per tick. Fire budget is reset by
 provincial fire windows. The default tuning is `FireWindowTicks = 50` and
 `FiresPerWindow = 1`; the window is normalized to the global tick clock using
-the main-program cadence. A generator can fire on any eligible scheduled tick
+the unified tick cadence. A generator can fire on any eligible scheduled tick
 inside the current window while budget remains, instead of only on an exact
 modulo boundary.
 

@@ -85,7 +85,6 @@ internal sealed record KernelTuningOptions
 
 internal sealed record KernelProgramTuningOptions
 {
-    public int MainProgramCadenceTicks { get; init; } = 5;
     public FixedScalar CultureInfluenceActionScale { get; init; } = FixedScalar.FromUnits(150000L);
     public ProgramEnabledTuningOptions Enabled { get; init; } = new();
     public LifecycleTuningOptions Lifecycle { get; init; } = new();
@@ -94,13 +93,6 @@ internal sealed record KernelProgramTuningOptions
     public CultureFieldTuningOptions CultureField { get; init; } = new();
     public WorldBeatsTuningOptions WorldBeats { get; init; } = new();
     public MapFrontierTuningOptions MapFrontier { get; init; } = new();
-
-    public int ScaleMainProgramDuration(int duration)
-    {
-        global::System.ArgumentOutOfRangeException.ThrowIfNegative(duration);
-        NumericGuard.ThrowIfNegativeOrZero(MainProgramCadenceTicks);
-        return duration == 0 ? 0 : checked(duration * MainProgramCadenceTicks);
-    }
 }
 
 internal sealed record ProgramEnabledTuningOptions
@@ -128,7 +120,7 @@ internal sealed record CultureFieldTuningOptions
     public FixedScalar DecayPerRun { get; init; } = FixedScalar.FromUnits(4000L);
     public FixedScalar MinimumDecayPerRun { get; init; } = FixedScalar.FromUnits(600000L);
     public FixedScalar CullFloorRawMass { get; init; } = 1;
-    public int DecayCadenceTicks { get; init; } = 25;
+    public int DecayCadenceTicks { get; init; } = 5;
     public FixedScalar RemittanceShare { get; init; } = FixedScalar.FromUnits(500000L);
     public int RemittanceMinimumDistance { get; init; } = 6;
 
@@ -145,12 +137,12 @@ internal sealed record CultureFieldTuningOptions
 
 internal sealed record WorldBeatsTuningOptions
 {
-    public int CadenceTicks { get; init; } = 125;
+    public int CadenceTicks { get; init; } = 25;
 }
 
 internal sealed record MapFrontierTuningOptions
 {
-    public int CadenceTicks { get; init; } = 125;
+    public int CadenceTicks { get; init; } = 25;
 }
 
 internal sealed record GeneratorProgramTuningOptions

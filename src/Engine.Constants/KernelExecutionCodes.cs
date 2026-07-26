@@ -29,7 +29,7 @@ public static class KernelRandomPurposeCodes
     public const int VerbCoverageClaim = 20;
     public const int VerbHeadquartersMove = 21;
     public const int MovementDirection = 30;
-    public const int MinorActorVerbSelection = 40;
+    public const int MinorActorEncounter = 40;
     public const int LifecycleVariance = 50;
     public const int GambitSelection = 60;
     public const int GambitSuccess = 61;

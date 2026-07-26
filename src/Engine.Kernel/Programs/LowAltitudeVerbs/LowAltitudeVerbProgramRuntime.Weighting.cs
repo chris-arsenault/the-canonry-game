@@ -201,8 +201,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             return 1;
         }
 
-        var cooldown = Tuning.ScaleMainProgramDuration(
-            Tuning.LowAltitudeVerbs.RecentTargetCooldownTicks);
+        var cooldown = Tuning.LowAltitudeVerbs.RecentTargetCooldownTicks;
         if (cooldown <= 0)
         {
             return 1;

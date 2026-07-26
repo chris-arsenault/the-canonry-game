@@ -1,103 +1,127 @@
 # System 21: Minor Actors
 
-Minor actors are low-salience worker cohorts. They create background cultural
-labor without adding more named entities to the graph.
+Minor actors are persistent, low-salience worker cohorts. They make cultural
+fronts, roads, and campaigns spatially visible without adding more named
+entities to the graph.
 
 ## Contract
 
 Minor actors are:
 
-- unnamed and short-lived;
-- stored inside the `MinorActors` kernel program;
-- emitted by active named source entities;
+- unnamed fixed-capacity kernel actors with generation-safe occurrence handles;
+- created from an active named source and owned by that source;
+- persistent across ticks and assignments;
 - culture-bearing through their source entity;
-- limited to bounded local labor verbs;
-- visible through telemetry and map effects, not through the entity browser.
+- spatially indexed by current map cell;
+- represented as cultural fronts, road crews, or campaign columns; and
+- visible as active map actors as well as through primitive telemetry.
 
 Minor actors are not:
 
-- graph entities;
-- relationship endpoints;
+- graph entities or relationship endpoints;
 - culture slot occupants;
-- generator or gambit targets;
-- chronicle event sources;
-- a hidden population/economy simulation.
+- generator, gambit, or chronicle targets;
+- an aggregate culture field that expands on its own;
+- a hidden population or economy simulation; or
+- emitted disposable workers with TTLs and per-source caps.
 
-## Cadence and Storage
+## Tick and Storage
 
-The simulation advances one tick at a time. `MinorActors` runs once per tick.
-Main graph, relationship, effect, gambit, and generator programs run every five
-ticks by default, so worker labor remains frequent without a second clock or
-repeating the more expensive passes on every tick.
+The simulation advances one complete ordinary opportunity at a time.
+`MinorActors`, movement, relationships, effects, gambits, chronicles, and
+generators each run once per tick. There is no worker-only cadence, second
+clock, or internal substep.
 
-Emitter and action cadence are authored per source rule. Current Ice Remembers
-workers act every tick while alive; source emission cadence,
-worker TTL, work delta, and active-worker cap are configured by the domain.
+Actor state uses direct fixed-capacity arrays. The live set is dense and stable
+by actor occurrence, retired slots are reusable, and a direct cell-linked index
+supports local encounters. Source/rule and campaign-relationship indexes
+enforce one ordinary actor per source rule and one campaign column per active
+campaign relationship. Snapshots persist only active actor state and rebuild
+free, source, relationship, and cell indexes directly; no emitter, deadline,
+TTL, or legacy snapshot shape remains.
 
-Workers remain individual. Their fields live in direct slot arrays, active
-slots are dense and reusable, and a deterministic due heap visits only workers
-whose next action or expiration is due. Per-source counts, emission deadlines,
-and work tiers use direct source/rule slots rather than hash tables.
-Retiring a named source immediately deactivates its cohorts and clears its
-emission rows before that entity slot can be reused. Active-state snapshots
-persist live cohorts and sparse emission deadlines, then rebuild free slots,
-per-source counts, and the due heap on load.
+Each actor stores its source and optional relationship occurrence, role,
+culture, plane, current and previous cell, target, targeting mode, posture,
+strength, per-tick work charge, commitment deadline, and next replan tick.
+Stage worker bonuses and culture-slot leverage increase actor strength. They do
+not multiply actor count.
 
-## Source Rules
+## Assignment Lifecycle
 
-Ice Remembers registers culture workers for every current entity kind on the
-plane that is not the entity's primary mobility plane. A physical-primary
-penguin can therefore support semantic culture labor, while a semantic-primary
-region can support physical culture labor.
+An eligible source creates an actor only when a valid task exists. The actor
+keeps that assignment until it becomes invalid or both its replan and
+commitment deadlines are due. It moves by one authored macro stride, resolves
+same-cell and adjacent-cell encounters, and spends its work charge at the
+assigned cell. It does not run hidden intermediate time steps.
 
-Transports also emit road crews on the physical plane. Road crews maintain road
-quality and can spread culture along used routes.
+Actors retire when:
 
-Slots, work tier, and nexus standing modify source productivity:
+- their source occurrence is invalid or no longer matches the source rule;
+- a campaign relationship occurrence ends or changes;
+- no valid assignment remains; or
+- the source entity retires.
 
-- a culture slot occupant gets a higher effective active-worker limit and
-  faster emission cadence;
-- each work tier adds worker capacity and expands operating radius;
-- slot benefits increase worker effect through the source slot multiplier;
-- a source standing in an own-culture nexus cell on the labor plane gets a
-  1.5x work delta multiplier, making established centers self-reinforcing.
+Completing or invalidating one task normally triggers bounded reassignment.
+There is no ordinary per-tick spawn/expire churn.
 
-## Verb Layer
+## Roles
 
-Minor actors use a constrained verb layer, not free graph behavior. Workers
-choose among local candidate cells within one step of their current position
-and inside the source operating radius. Applying a verb can move the worker to
-that selected local cell.
+### Cultural fronts
 
-Current targeting modes:
+Every current entity kind can author a front on the plane complementary to its
+primary mobility. A front chooses a supported border extension, a bridge or
+hole repair, or a contested cell within the source radius. It carries culture
+from its named source and can reduce foreign mass before adding its own.
 
-- `ReinforceHomeMass`: strengthen existing or nearly enclosed own-culture mass.
-- `ExtendConnectedBorder`: add culture at cells attached to a supported
-  component edge.
-- `BridgeGap`: connect nearby supported components or repair holes.
-- `ReduceOtherCulture`: remove raw mass for all non-own cultures at the cell.
-- `MaintainRoad`: reinforce road quality on cells with travel memory or culture
-  support.
-- `MaintainSourceLifecycle`: restore part of the source entity's age-related
-  health drain when local culture support exists.
+Cultural fronts do not reinforce already controlled interior cells. Ambient
+stage emission and districts own stable interior support. Culture therefore
+does not spread through an autonomous field process, but the worker layer also
+does not recreate the former interior-maintenance treadmill.
 
-The selection is weighted random over positive-scoring candidates. Scores use
-kernel culture-boundary fields such as raw mass, connected mass, supported
-adjacency, component attachment, foreign pressure, and headroom.
+### Road crews
 
-Lifecycle-maintenance need is a source/tick fact. Candidate scoring resolves
-the source entity's age load and health shortfall at most once per worker
-selection, then combines that unchanged need with each candidate cell's local
-culture support. The hoist changes neither the maintenance formula nor the
-weighted candidate order.
+Transport sources can author a physical road crew. It selects a used road cell
+whose quality has degraded, travels there, and reinforces it according to
+current work strength and knowledge modifiers. When the segment is healthy or
+demand disappears, it replans or retires.
 
-## Telemetry
+### Campaign columns
 
-Minor actor telemetry should explain culture growth without promoting workers
-to narrative entities. The event records source entity, source rule, work tier,
-actor kind, purpose, verb/action/targeting code, plane, target cell, boundary
-cell kind, local and connected raw mass, score, status, and applied delta.
+Faction campaign rules bind one column to each active authored campaign
+relationship. A column advances from friendly support toward the target
+frontier, contests foreign culture, and projects source-owned culture. It
+retires when the relationship or either endpoint becomes invalid.
 
-Monte Carlo analysis should use this telemetry to answer whether culture grew
-through worker action near existing masses, roads, borders, holes, and source
-entities.
+## Local Encounters
+
+Actors inspect only their current and adjacent cells through the actor-cell
+index. A keyed random decision can produce:
+
+- friendly support that raises both actors' available work;
+- a hostile clash that reduces both actors' strength; or
+- stronger campaign disruption when either actor is a campaign column.
+
+An exhausted actor becomes disrupted, drops its assignment, and must recover
+and replan. Each unordered pair is resolved once. There is no global all-pairs
+pass and no traversal-order random stream.
+
+## Events, Projection, and Telemetry
+
+Primitive kernel events publish actor creation, assignment, movement, work,
+encounter, and retirement. Projection keeps active actors keyed by occurrence
+handle and a separate bounded trail of recent work. Cultural fronts, road
+crews, and campaign columns use distinct map markers; recent work remains a
+short visual effect rather than the source of actor identity.
+
+Monte Carlo output separates:
+
+- `minor_actor_lifecycle_events` for creation, assignment, movement, and
+  retirement;
+- `minor_actor_work_events` for role, targeting, boundary kind, strength, and
+  applied delta; and
+- `minor_actor_encounter_events` for local support, clashes, disruption, and
+  resulting strengths.
+
+Analysis should lead with active counts, assignment and replan mix, work by
+role and boundary kind, local encounter rates, cultural shape, and road and
+campaign outcomes.

@@ -53,7 +53,7 @@ internal sealed class CultureSlotProgramRuntime :
             slotId,
             polarityCode,
             minimumScore,
-            Tuning.ScaleMainProgramDuration(minimumTenureTicks),
+            minimumTenureTicks,
             displacementMargin,
             entityInfluenceMultiplierDelta,
             cultureInfluenceMultiplierDelta);

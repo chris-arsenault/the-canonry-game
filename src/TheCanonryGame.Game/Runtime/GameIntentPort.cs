@@ -72,7 +72,7 @@ internal sealed class GameIntentPort
         var command = new FavorEntityCommand(
             IssueVersionNow(),
             entityId,
-            DurationTicks: 500,
+            DurationTicks: 100,
             MultiplierDelta: 1f,
             SubmitterId: 1,
             SubmitterSequence: ++_submitterSequence);

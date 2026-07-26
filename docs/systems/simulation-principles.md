@@ -68,12 +68,12 @@ so projections can distinguish published state from in-progress work.
 
 ## Time Calibration
 
-The canonical time mapping is **250 ticks ≈ 1 in-world year**. Minor actors run
-once per tick; main programs run every five ticks by default. Lifecycle targets
-are stored directly in ticks. Main-program cooldowns, commitments, windows, and
-tenure are converted once to tick deadlines when installed, then use the same
-clock. A full simulation is on the order of 10,000 years (~2.5M ticks); a
-125k-tick evidence run is roughly 500 years.
+The canonical time mapping is **50 ticks ≈ 1 in-world year**. Movement,
+low-altitude verbs, relationships, effects, gambits, chronicles, generators,
+and minor actors each receive one opportunity per tick. Lifecycle targets,
+cooldowns, commitments, windows, and tenure are stored directly in ticks with
+no cadence conversion. A full simulation is on the order of 10,000 years
+(~500k ticks); a 25k-tick evidence run is roughly 500 years.
 
 The lifespan feel target is a strong divide: ordinary mortals live decades,
 legendary entities reach centuries through active in-universe renewal (never

@@ -337,51 +337,26 @@ internal sealed partial class KernelConfigurationContext
         FixedScalar weight) =>
         _kernel.CultureSlots.AddScoreRule(slot, signalCode, relationshipKindId, weight);
 
-    public int RegisterMinorActorEmitterRule(
+    public int RegisterMinorActorRoleRule(
         int sourceKindId,
         int sourceSubtypeId,
-        int purposeCode,
-        int actorKindCode,
+        int roleCode,
         int planeCode,
-        int ttlTicks,
-        int emitCadenceTicks,
-        int maxActivePerSource,
-        int spawnRadius,
-        int actionCadenceTicks,
-        FixedScalar workDelta) =>
-        _kernel.MinorActors.RegisterEmitterRule(
+        int assignmentRadius,
+        int stride,
+        int commitmentTicks,
+        int replanTicks,
+        FixedScalar baseStrength) =>
+        _kernel.MinorActors.RegisterRoleRule(
             sourceKindId,
             sourceSubtypeId,
-            purposeCode,
-            actorKindCode,
+            roleCode,
             planeCode,
-            ttlTicks,
-            emitCadenceTicks,
-            maxActivePerSource,
-            spawnRadius,
-            actionCadenceTicks,
-            workDelta);
-
-    public int RegisterMinorActorVerb(
-        int sourceRuleSlot,
-        int verbId,
-        int actionCode,
-        int targetingCode,
-        int planeCode,
-        int radius,
-        int sampleCount,
-        FixedScalar weight,
-        FixedScalar workDeltaMultiplier) =>
-        _kernel.MinorActors.RegisterVerb(
-            sourceRuleSlot,
-            verbId,
-            actionCode,
-            targetingCode,
-            planeCode,
-            radius,
-            sampleCount,
-            weight,
-            workDeltaMultiplier);
+            assignmentRadius,
+            stride,
+            commitmentTicks,
+            replanTicks,
+            baseStrength);
 
     public int RegisterLowAltitudeVerb(
         int kindId,

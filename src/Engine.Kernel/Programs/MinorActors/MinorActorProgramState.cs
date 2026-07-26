@@ -5,90 +5,160 @@ using Engine.Constants;
 internal sealed partial class MinorActorProgramState : IKernelProgramState
 {
     private readonly bool[] _active;
-    private readonly int[] _actorKindCodes;
+    private readonly int[] _generations;
     private readonly int[] _cultureIds;
     private readonly int[] _sourceEntityIds;
+    private readonly int[] _sourceEntityOccurrenceHandles;
     private readonly int[] _sourceRuleIds;
+    private readonly int[] _bindingRelationshipIds;
+    private readonly int[] _bindingRelationshipOccurrenceHandles;
+    private readonly int[] _roleCodes;
     private readonly int[] _planeCodes;
     private readonly int[] _q;
     private readonly int[] _r;
-    private readonly int[] _expiresAtTicks;
+    private readonly int[] _previousQ;
+    private readonly int[] _previousR;
+    private readonly int[] _targetQ;
+    private readonly int[] _targetR;
+    private readonly int[] _targetingCodes;
+    private readonly int[] _postureCodes;
     private readonly int[] _createdAtTicks;
-    private readonly int[] _nextActionTicks;
-    private readonly int[] _actionCadenceTicks;
-    private readonly int[] _purposeCodes;
-    private readonly FixedScalar[] _workDeltas;
+    private readonly int[] _nextReplanTicks;
+    private readonly int[] _commitmentUntilTicks;
+    private readonly FixedScalar[] _strengths;
+    private readonly FixedScalar[] _workCharges;
+    private readonly int[] _cellIds;
+    private readonly int[] _firstActorByCell;
+    private readonly int[] _nextActorByCell;
+    private readonly int[] _previousActorByCell;
     private readonly int[] _activeActorIds;
     private readonly int[] _activeActorPositions;
     private readonly int[] _freeActorIds;
-    private readonly int[] _dueHeapActorIds;
-    private readonly int[] _dueHeapTicks;
-    private readonly int[] _dueHeapPositions;
-    private readonly int[] _sourceActiveCounts;
-    private readonly int[] _nextEmissionTicks;
+    private readonly int[] _actorBySourceRule;
+    private readonly int[] _actorByRelationship;
     private readonly int _sourceRuleStride;
     private int _freeActorCount;
-    private int _dueHeapCount;
 
     public MinorActorProgramState(
         int actorCapacity,
         int sourceRuleCapacity,
-        int sourceEntityCapacity)
+        int sourceEntityCapacity,
+        int relationshipCapacity,
+        int mapCellCapacity)
     {
         NumericGuard.ThrowIfNegativeOrZero(actorCapacity);
         NumericGuard.ThrowIfNegativeOrZero(sourceRuleCapacity);
         NumericGuard.ThrowIfNegativeOrZero(sourceEntityCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(relationshipCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(mapCellCapacity);
         ActorCapacity = actorCapacity;
-        _active = new bool[actorCapacity + 1];
-        _actorKindCodes = new int[actorCapacity + 1];
-        _cultureIds = new int[actorCapacity + 1];
-        _sourceEntityIds = new int[actorCapacity + 1];
-        _sourceRuleIds = new int[actorCapacity + 1];
-        _planeCodes = new int[actorCapacity + 1];
-        _q = new int[actorCapacity + 1];
-        _r = new int[actorCapacity + 1];
-        _expiresAtTicks = new int[actorCapacity + 1];
-        _createdAtTicks = new int[actorCapacity + 1];
-        _nextActionTicks = new int[actorCapacity + 1];
-        _actionCadenceTicks = new int[actorCapacity + 1];
-        _purposeCodes = new int[actorCapacity + 1];
-        _workDeltas = new FixedScalar[actorCapacity + 1];
-        _activeActorIds = new int[actorCapacity];
-        _activeActorPositions = new int[actorCapacity + 1];
-        _freeActorIds = new int[actorCapacity];
-        _dueHeapActorIds = new int[actorCapacity + 1];
-        _dueHeapTicks = new int[actorCapacity + 1];
-        _dueHeapPositions = new int[actorCapacity + 1];
+        EntityCapacity = sourceEntityCapacity;
+        RelationshipCapacity = relationshipCapacity;
+        (_active, _generations, _cultureIds, _sourceEntityIds) = (
+            new bool[actorCapacity + 1],
+            new int[actorCapacity + 1],
+            new int[actorCapacity + 1],
+            new int[actorCapacity + 1]);
+        (_sourceEntityOccurrenceHandles, _sourceRuleIds, _bindingRelationshipIds) = (
+            new int[actorCapacity + 1],
+            new int[actorCapacity + 1],
+            new int[actorCapacity + 1]);
+        (_bindingRelationshipOccurrenceHandles, _roleCodes, _planeCodes) = (
+            new int[actorCapacity + 1],
+            new int[actorCapacity + 1],
+            new int[actorCapacity + 1]);
+        (_q, _r, _previousQ, _previousR) = (
+            new int[actorCapacity + 1],
+            new int[actorCapacity + 1],
+            new int[actorCapacity + 1],
+            new int[actorCapacity + 1]);
+        (_targetQ, _targetR, _targetingCodes, _postureCodes) = (
+            new int[actorCapacity + 1],
+            new int[actorCapacity + 1],
+            new int[actorCapacity + 1],
+            new int[actorCapacity + 1]);
+        (_createdAtTicks, _nextReplanTicks, _commitmentUntilTicks) = (
+            new int[actorCapacity + 1],
+            new int[actorCapacity + 1],
+            new int[actorCapacity + 1]);
+        (_strengths, _workCharges) = (
+            new FixedScalar[actorCapacity + 1],
+            new FixedScalar[actorCapacity + 1]);
+        (_cellIds, _nextActorByCell, _previousActorByCell) = (
+            new int[actorCapacity + 1],
+            new int[actorCapacity + 1],
+            new int[actorCapacity + 1]);
+        (_firstActorByCell, _activeActorIds, _activeActorPositions, _freeActorIds) = (
+            new int[mapCellCapacity + 1],
+            new int[actorCapacity],
+            new int[actorCapacity + 1],
+            new int[actorCapacity]);
         _sourceRuleStride = sourceRuleCapacity + 1;
-        var sourceStateLength = checked((sourceEntityCapacity + 1) * _sourceRuleStride);
-        _sourceActiveCounts = new int[sourceStateLength];
-        _nextEmissionTicks = new int[sourceStateLength];
+        _actorBySourceRule = new int[checked((sourceEntityCapacity + 1) * _sourceRuleStride)];
+        _actorByRelationship = new int[relationshipCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.MinorActors;
 
-    public int SchemaVersion => 6;
+    public int SchemaVersion => 7;
 
     public int ActorCapacity { get; }
+
+    public int EntityCapacity { get; }
+
+    public int RelationshipCapacity { get; }
 
     public int HighWatermark { get; private set; }
 
     public int ActiveCount { get; private set; }
 
-    public int TotalSpawned { get; private set; }
+    public int TotalCreated { get; private set; }
 
-    public int TotalExpired { get; private set; }
+    public int TotalRetired { get; private set; }
+
+    public int ActiveActorAt(int index) =>
+        (uint)index < (uint)ActiveCount
+            ? _activeActorIds[index]
+            : throw new global::System.ArgumentOutOfRangeException(nameof(index));
 
     public bool IsActive(int actorId) =>
         (uint)actorId < (uint)_active.Length && _active[actorId];
 
-    public int ActorKindCode(int actorId) => ValueAt(_actorKindCodes, actorId);
+    public int OccurrenceHandle(int actorId)
+    {
+        EnsureActive(actorId);
+        return checked((_generations[actorId] * ActorCapacity) + actorId);
+    }
+
+    public bool TryResolveOccurrence(int occurrenceHandle, out int actorId)
+    {
+        if (occurrenceHandle <= 0)
+        {
+            actorId = 0;
+            return false;
+        }
+
+        actorId = ((occurrenceHandle - 1) % ActorCapacity) + 1;
+        var generation = (occurrenceHandle - actorId) / ActorCapacity;
+        return _active[actorId] && _generations[actorId] == generation;
+    }
 
     public int CultureId(int actorId) => ValueAt(_cultureIds, actorId);
 
     public int SourceEntityId(int actorId) => ValueAt(_sourceEntityIds, actorId);
 
+    public int SourceEntityOccurrenceHandle(int actorId) =>
+        ValueAt(_sourceEntityOccurrenceHandles, actorId);
+
     public int SourceRuleId(int actorId) => ValueAt(_sourceRuleIds, actorId);
+
+    public int BindingRelationshipId(int actorId) =>
+        ValueAt(_bindingRelationshipIds, actorId);
+
+    public int BindingRelationshipOccurrenceHandle(int actorId) =>
+        ValueAt(_bindingRelationshipOccurrenceHandles, actorId);
+
+    public int RoleCode(int actorId) => ValueAt(_roleCodes, actorId);
 
     public int PlaneCode(int actorId) => ValueAt(_planeCodes, actorId);
 
@@ -96,220 +166,295 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
 
     public int R(int actorId) => ValueAt(_r, actorId);
 
-    public int ExpiresAtTick(int actorId) => ValueAt(_expiresAtTicks, actorId);
+    public int PreviousQ(int actorId) => ValueAt(_previousQ, actorId);
+
+    public int PreviousR(int actorId) => ValueAt(_previousR, actorId);
+
+    public int TargetQ(int actorId) => ValueAt(_targetQ, actorId);
+
+    public int TargetR(int actorId) => ValueAt(_targetR, actorId);
+
+    public int TargetingCode(int actorId) => ValueAt(_targetingCodes, actorId);
+
+    public int PostureCode(int actorId) => ValueAt(_postureCodes, actorId);
 
     public int CreatedAtTick(int actorId) => ValueAt(_createdAtTicks, actorId);
 
-    public int NextActionTick(int actorId) => ValueAt(_nextActionTicks, actorId);
+    public int NextReplanTick(int actorId) => ValueAt(_nextReplanTicks, actorId);
 
-    public int ActionCadenceTicks(int actorId) => ValueAt(_actionCadenceTicks, actorId);
+    public int CommitmentUntilTick(int actorId) =>
+        ValueAt(_commitmentUntilTicks, actorId);
 
-    public int PurposeCode(int actorId) => ValueAt(_purposeCodes, actorId);
-
-    public FixedScalar WorkDelta(int actorId)
+    public FixedScalar Strength(int actorId)
     {
-        EnsureActorId(actorId);
-        return _workDeltas[actorId];
+        EnsureActive(actorId);
+        return _strengths[actorId];
     }
 
-    public int SourceActiveCount(int sourceEntityId, int sourceRuleId)
+    public FixedScalar WorkCharge(int actorId)
     {
-        if (sourceEntityId <= 0 || sourceRuleId <= 0)
+        EnsureActive(actorId);
+        return _workCharges[actorId];
+    }
+
+    public int FirstActorInCell(int cellId) =>
+        (uint)cellId < (uint)_firstActorByCell.Length
+            ? _firstActorByCell[cellId]
+            : 0;
+
+    public int NextActorInCell(int actorId) => ValueAt(_nextActorByCell, actorId);
+
+    public int ActorForSourceRule(int sourceEntityId, int sourceRuleId)
+    {
+        var index = SourceRuleIndex(sourceEntityId, sourceRuleId);
+        var handle = _actorBySourceRule[index];
+        if (TryResolveOccurrence(handle, out var actorId))
         {
-            return 0;
+            return actorId;
         }
 
-        return _sourceActiveCounts[SourceRuleIndex(sourceEntityId, sourceRuleId)];
+        _actorBySourceRule[index] = 0;
+        return 0;
     }
 
-    public int NextEmissionTick(int sourceEntityId, int sourceRuleId)
+    public int ActorForRelationship(int relationshipId)
     {
-        if (sourceEntityId <= 0 || sourceRuleId <= 0)
+        EnsureRelationshipId(relationshipId);
+        var handle = _actorByRelationship[relationshipId];
+        if (TryResolveOccurrence(handle, out var actorId))
         {
-            return 0;
+            return actorId;
         }
 
-        return _nextEmissionTicks[SourceRuleIndex(sourceEntityId, sourceRuleId)];
+        _actorByRelationship[relationshipId] = 0;
+        return 0;
     }
 
-    public void SetNextEmissionTick(int sourceEntityId, int sourceRuleId, int tick)
-    {
-        NumericGuard.ThrowIfNegative(tick);
-        _nextEmissionTicks[SourceRuleIndex(sourceEntityId, sourceRuleId)] = tick;
-    }
-
-    public int Spawn(
+    public int Create(
         int cultureId,
         int sourceEntityId,
+        int sourceEntityOccurrenceHandle,
         int sourceRuleId,
-        int actorKindCode,
+        int bindingRelationshipId,
+        int bindingRelationshipOccurrenceHandle,
+        int roleCode,
         int planeCode,
         int q,
         int r,
-        int ttlTicks,
-        int actionCadenceTicks,
-        FixedScalar workDelta,
-        int tick,
-        int purposeCode = MinorActorPurposeCodes.CulturalLabor)
+        int cellId,
+        FixedScalar strength,
+        int tick)
     {
-        ValidateSpawn(
+        ValidateCreate(
             cultureId,
             sourceEntityId,
+            sourceEntityOccurrenceHandle,
             sourceRuleId,
-            purposeCode,
-            actorKindCode,
+            bindingRelationshipId,
+            bindingRelationshipOccurrenceHandle,
+            roleCode,
             planeCode,
-            ttlTicks,
-            actionCadenceTicks,
-            workDelta,
+            cellId,
+            strength,
             tick);
+        if (roleCode == MinorActorRoleCodes.CampaignColumn)
+        {
+            if (ActorForRelationship(bindingRelationshipId) > 0)
+            {
+                throw new global::System.InvalidOperationException();
+            }
+        }
+        else if (ActorForSourceRule(sourceEntityId, sourceRuleId) > 0)
+        {
+            throw new global::System.InvalidOperationException();
+        }
 
         var actorId = FindFreeActorSlot();
         _active[actorId] = true;
-        _actorKindCodes[actorId] = actorKindCode;
         _cultureIds[actorId] = cultureId;
         _sourceEntityIds[actorId] = sourceEntityId;
+        _sourceEntityOccurrenceHandles[actorId] = sourceEntityOccurrenceHandle;
         _sourceRuleIds[actorId] = sourceRuleId;
+        _bindingRelationshipIds[actorId] = bindingRelationshipId;
+        _bindingRelationshipOccurrenceHandles[actorId] = bindingRelationshipOccurrenceHandle;
+        _roleCodes[actorId] = roleCode;
         _planeCodes[actorId] = planeCode;
         _q[actorId] = q;
         _r[actorId] = r;
-        _expiresAtTicks[actorId] = checked(tick + ttlTicks - 1);
+        _previousQ[actorId] = q;
+        _previousR[actorId] = r;
         _createdAtTicks[actorId] = tick;
-        _nextActionTicks[actorId] = tick;
-        _actionCadenceTicks[actorId] = actionCadenceTicks;
-        _purposeCodes[actorId] = purposeCode;
-        _workDeltas[actorId] = workDelta;
+        _nextReplanTicks[actorId] = tick;
+        _postureCodes[actorId] = MinorActorPostureCodes.Unassigned;
+        _strengths[actorId] = strength;
+        _workCharges[actorId] = strength;
+        LinkToCell(actorId, cellId);
         AddActiveActor(actorId);
-        Schedule(actorId);
-        TotalSpawned++;
-        _sourceActiveCounts[SourceRuleIndex(sourceEntityId, sourceRuleId)]++;
+        TotalCreated++;
+
+        var handle = OccurrenceHandle(actorId);
+        if (roleCode == MinorActorRoleCodes.CampaignColumn)
+        {
+            _actorByRelationship[bindingRelationshipId] = handle;
+        }
+        else
+        {
+            _actorBySourceRule[SourceRuleIndex(sourceEntityId, sourceRuleId)] = handle;
+        }
 
         return actorId;
     }
 
-    public bool Deactivate(int actorId)
+    public bool Retire(int actorId)
     {
         if (!IsActive(actorId))
         {
             return false;
         }
 
-        var sourceEntityId = _sourceEntityIds[actorId];
-        var sourceRuleId = _sourceRuleIds[actorId];
-        RemoveDueActor(actorId);
+        var sourceIndex = SourceRuleIndex(_sourceEntityIds[actorId], _sourceRuleIds[actorId]);
+        var relationshipId = _bindingRelationshipIds[actorId];
+        var handle = OccurrenceHandle(actorId);
+        if (_actorBySourceRule[sourceIndex] == handle)
+        {
+            _actorBySourceRule[sourceIndex] = 0;
+        }
+
+        if (relationshipId > 0 && _actorByRelationship[relationshipId] == handle)
+        {
+            _actorByRelationship[relationshipId] = 0;
+        }
+
+        UnlinkFromCell(actorId);
         RemoveActiveActor(actorId);
         _active[actorId] = false;
-        _actorKindCodes[actorId] = 0;
-        _cultureIds[actorId] = 0;
-        _sourceEntityIds[actorId] = 0;
-        _sourceRuleIds[actorId] = 0;
-        _planeCodes[actorId] = 0;
-        _q[actorId] = 0;
-        _r[actorId] = 0;
-        _expiresAtTicks[actorId] = 0;
-        _createdAtTicks[actorId] = 0;
-        _nextActionTicks[actorId] = 0;
-        _actionCadenceTicks[actorId] = 0;
-        _purposeCodes[actorId] = 0;
-        _workDeltas[actorId] = 0;
-        TotalExpired++;
-        _sourceActiveCounts[SourceRuleIndex(sourceEntityId, sourceRuleId)]--;
+        ClearActor(actorId);
+        var maximum = (global::System.Int32.MaxValue - actorId) / ActorCapacity;
+        if (_generations[actorId] >= maximum)
+        {
+            throw new global::System.InvalidOperationException();
+        }
 
+        _generations[actorId]++;
         _freeActorIds[_freeActorCount++] = actorId;
+        TotalRetired++;
         return true;
     }
 
-    public void DeactivateSource(int sourceEntityId)
+    public void SetAssignment(
+        int actorId,
+        int targetQ,
+        int targetR,
+        int targetingCode,
+        int nextReplanTick,
+        int commitmentUntilTick)
     {
-        EnsureSourceEntity(sourceEntityId);
-        for (var position = 0; position < ActiveCount;)
+        EnsureActive(actorId);
+        if (targetingCode is not (
+                MinorActorTargetingCodes.ExtendBorder or
+                MinorActorTargetingCodes.BridgeGap or
+                MinorActorTargetingCodes.ContestCulture or
+                MinorActorTargetingCodes.MaintainRoad or
+                MinorActorTargetingCodes.AdvanceCampaign))
         {
-            var actorId = _activeActorIds[position];
-            if (_sourceEntityIds[actorId] == sourceEntityId)
-            {
-                Deactivate(actorId);
-                continue;
-            }
-
-            position++;
+            throw new global::System.ArgumentOutOfRangeException(nameof(targetingCode));
         }
 
-        global::System.Array.Clear(
-            _nextEmissionTicks,
-            sourceEntityId * _sourceRuleStride,
-            _sourceRuleStride);
+        NumericGuard.ThrowIfNegative(nextReplanTick);
+        NumericGuard.ThrowIfNegative(commitmentUntilTick);
+        _targetQ[actorId] = targetQ;
+        _targetR[actorId] = targetR;
+        _targetingCodes[actorId] = targetingCode;
+        _nextReplanTicks[actorId] = nextReplanTick;
+        _commitmentUntilTicks[actorId] = commitmentUntilTick;
+        _postureCodes[actorId] = _q[actorId] == targetQ && _r[actorId] == targetR
+            ? MinorActorPostureCodes.Working
+            : MinorActorPostureCodes.Traveling;
     }
 
-    public void SetPosition(int actorId, int q, int r)
+    public void ClearAssignment(int actorId, int nextReplanTick)
     {
-        EnsureActorId(actorId);
+        EnsureActive(actorId);
+        NumericGuard.ThrowIfNegative(nextReplanTick);
+        _targetQ[actorId] = 0;
+        _targetR[actorId] = 0;
+        _targetingCodes[actorId] = 0;
+        _nextReplanTicks[actorId] = nextReplanTick;
+        _commitmentUntilTicks[actorId] = 0;
+        _postureCodes[actorId] = MinorActorPostureCodes.Unassigned;
+    }
+
+    public void SetPosition(int actorId, int q, int r, int cellId)
+    {
+        EnsureActive(actorId);
+        if (_cellIds[actorId] != cellId)
+        {
+            UnlinkFromCell(actorId);
+            LinkToCell(actorId, cellId);
+        }
+
+        _previousQ[actorId] = _q[actorId];
+        _previousR[actorId] = _r[actorId];
         _q[actorId] = q;
         _r[actorId] = r;
+        _postureCodes[actorId] = q == _targetQ[actorId] && r == _targetR[actorId]
+            ? MinorActorPostureCodes.Working
+            : MinorActorPostureCodes.Traveling;
     }
 
-    public void SetNextActionTick(int actorId, int tick)
+    public void SetPosture(int actorId, int postureCode)
     {
-        EnsureActorId(actorId);
-        NumericGuard.ThrowIfNegative(tick);
-        _nextActionTicks[actorId] = tick;
+        EnsureActive(actorId);
+        if (postureCode is < MinorActorPostureCodes.Unassigned or > MinorActorPostureCodes.Disrupted)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(postureCode));
+        }
+
+        _postureCodes[actorId] = postureCode;
     }
 
-    public bool TryTakeDueActor(int tick, out int actorId)
+    public void SetStrength(int actorId, FixedScalar strength)
     {
-        NumericGuard.ThrowIfNegative(tick);
-        if (_dueHeapCount == 0 || _dueHeapTicks[1] > tick)
-        {
-            actorId = 0;
-            return false;
-        }
-
-        actorId = _dueHeapActorIds[1];
-        RemoveDueActor(actorId);
-        return IsActive(actorId);
+        EnsureActive(actorId);
+        NumericGuard.ThrowIfNegative(strength);
+        _strengths[actorId] = strength;
     }
 
-    public void Schedule(int actorId)
+    public void SetWorkCharge(int actorId, FixedScalar workCharge)
     {
-        EnsureActorId(actorId);
-        if (!IsActive(actorId))
-        {
-            return;
-        }
-
-        var dueTick = global::System.Math.Min(
-            _nextActionTicks[actorId],
-            _expiresAtTicks[actorId]);
-        var position = _dueHeapPositions[actorId];
-        if (position > 0)
-        {
-            _dueHeapTicks[position] = dueTick;
-            SiftUp(position);
-            SiftDown(_dueHeapPositions[actorId]);
-            return;
-        }
-
-        var added = ++_dueHeapCount;
-        _dueHeapActorIds[added] = actorId;
-        _dueHeapTicks[added] = dueTick;
-        _dueHeapPositions[actorId] = added;
-        SiftUp(added);
+        EnsureActive(actorId);
+        NumericGuard.ThrowIfNegative(workCharge);
+        _workCharges[actorId] = workCharge;
     }
 
     private void AddActiveActor(int actorId)
     {
-        _activeActorIds[ActiveCount] = actorId;
-        _activeActorPositions[actorId] = ActiveCount + 1;
+        var handle = OccurrenceHandle(actorId);
+        var position = ActiveCount;
+        while (position > 0 && OccurrenceHandle(_activeActorIds[position - 1]) > handle)
+        {
+            var moved = _activeActorIds[position - 1];
+            _activeActorIds[position] = moved;
+            _activeActorPositions[moved] = position + 1;
+            position--;
+        }
+
+        _activeActorIds[position] = actorId;
+        _activeActorPositions[actorId] = position + 1;
         ActiveCount++;
     }
 
     private void RemoveActiveActor(int actorId)
     {
         var position = _activeActorPositions[actorId] - 1;
-        var lastPosition = ActiveCount - 1;
-        var movedActorId = _activeActorIds[lastPosition];
-        _activeActorIds[position] = movedActorId;
-        _activeActorPositions[movedActorId] = position + 1;
-        _activeActorIds[lastPosition] = 0;
+        for (var index = position; index < ActiveCount - 1; index++)
+        {
+            var moved = _activeActorIds[index + 1];
+            _activeActorIds[index] = moved;
+            _activeActorPositions[moved] = index + 1;
+        }
+
+        _activeActorIds[ActiveCount - 1] = 0;
         _activeActorPositions[actorId] = 0;
         ActiveCount--;
     }
@@ -326,93 +471,86 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
             throw new global::System.InvalidOperationException();
         }
 
-        HighWatermark++;
-        return HighWatermark;
+        return ++HighWatermark;
     }
 
-    private void RemoveDueActor(int actorId)
+    private void LinkToCell(int actorId, int cellId)
     {
-        var position = _dueHeapPositions[actorId];
-        if (position == 0)
+        if ((uint)cellId == 0u || cellId >= _firstActorByCell.Length)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(cellId));
+        }
+
+        var first = _firstActorByCell[cellId];
+        _cellIds[actorId] = cellId;
+        _previousActorByCell[actorId] = 0;
+        _nextActorByCell[actorId] = first;
+        if (first > 0)
+        {
+            _previousActorByCell[first] = actorId;
+        }
+
+        _firstActorByCell[cellId] = actorId;
+    }
+
+    private void UnlinkFromCell(int actorId)
+    {
+        var cellId = _cellIds[actorId];
+        if (cellId == 0)
         {
             return;
         }
 
-        var lastActorId = _dueHeapActorIds[_dueHeapCount];
-        var lastTick = _dueHeapTicks[_dueHeapCount];
-        _dueHeapActorIds[position] = lastActorId;
-        _dueHeapTicks[position] = lastTick;
-        _dueHeapPositions[lastActorId] = position;
-        _dueHeapActorIds[_dueHeapCount] = 0;
-        _dueHeapTicks[_dueHeapCount] = 0;
-        _dueHeapPositions[actorId] = 0;
-        _dueHeapCount--;
-        if (position <= _dueHeapCount)
+        var previous = _previousActorByCell[actorId];
+        var next = _nextActorByCell[actorId];
+        if (previous > 0)
         {
-            SiftUp(position);
-            SiftDown(_dueHeapPositions[lastActorId]);
+            _nextActorByCell[previous] = next;
         }
-    }
-
-    private void SiftUp(int position)
-    {
-        while (position > 1)
+        else
         {
-            var parent = position / 2;
-            if (!EntryComesBefore(position, parent))
-            {
-                return;
-            }
-
-            SwapDueEntries(position, parent);
-            position = parent;
+            _firstActorByCell[cellId] = next;
         }
-    }
 
-    private void SiftDown(int position)
-    {
-        while (position > 0)
+        if (next > 0)
         {
-            var left = position * 2;
-            if (left > _dueHeapCount)
-            {
-                return;
-            }
-
-            var right = left + 1;
-            var selected = right <= _dueHeapCount && EntryComesBefore(right, left) ? right : left;
-            if (!EntryComesBefore(selected, position))
-            {
-                return;
-            }
-
-            SwapDueEntries(position, selected);
-            position = selected;
+            _previousActorByCell[next] = previous;
         }
+
+        _cellIds[actorId] = 0;
+        _previousActorByCell[actorId] = 0;
+        _nextActorByCell[actorId] = 0;
     }
 
-    private bool EntryComesBefore(int leftPosition, int rightPosition)
+    private void ClearActor(int actorId)
     {
-        var leftTick = _dueHeapTicks[leftPosition];
-        var rightTick = _dueHeapTicks[rightPosition];
-        return leftTick < rightTick ||
-            (leftTick == rightTick && _dueHeapActorIds[leftPosition] < _dueHeapActorIds[rightPosition]);
-    }
-
-    private void SwapDueEntries(int left, int right)
-    {
-        (_dueHeapActorIds[left], _dueHeapActorIds[right]) =
-            (_dueHeapActorIds[right], _dueHeapActorIds[left]);
-        (_dueHeapTicks[left], _dueHeapTicks[right]) =
-            (_dueHeapTicks[right], _dueHeapTicks[left]);
-        _dueHeapPositions[_dueHeapActorIds[left]] = left;
-        _dueHeapPositions[_dueHeapActorIds[right]] = right;
+        _cultureIds[actorId] = 0;
+        _sourceEntityIds[actorId] = 0;
+        _sourceEntityOccurrenceHandles[actorId] = 0;
+        _sourceRuleIds[actorId] = 0;
+        _bindingRelationshipIds[actorId] = 0;
+        _bindingRelationshipOccurrenceHandles[actorId] = 0;
+        _roleCodes[actorId] = 0;
+        _planeCodes[actorId] = 0;
+        _q[actorId] = 0;
+        _r[actorId] = 0;
+        _previousQ[actorId] = 0;
+        _previousR[actorId] = 0;
+        _targetQ[actorId] = 0;
+        _targetR[actorId] = 0;
+        _targetingCodes[actorId] = 0;
+        _postureCodes[actorId] = 0;
+        _createdAtTicks[actorId] = 0;
+        _nextReplanTicks[actorId] = 0;
+        _commitmentUntilTicks[actorId] = 0;
+        _strengths[actorId] = 0;
+        _workCharges[actorId] = 0;
     }
 
     private int SourceRuleIndex(int sourceEntityId, int sourceRuleId)
     {
-        EnsureSourceEntity(sourceEntityId);
-        if ((uint)sourceRuleId >= (uint)_sourceRuleStride)
+        EnsureSourceEntityId(sourceEntityId);
+        if ((uint)sourceRuleId == 0u || sourceRuleId >= _sourceRuleStride)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(sourceRuleId));
         }
@@ -420,12 +558,27 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         return checked((sourceEntityId * _sourceRuleStride) + sourceRuleId);
     }
 
-    private void EnsureSourceEntity(int sourceEntityId)
+    private void EnsureSourceEntityId(int sourceEntityId)
     {
-        if ((uint)sourceEntityId == 0u ||
-            sourceEntityId >= _sourceActiveCounts.Length / _sourceRuleStride)
+        if ((uint)sourceEntityId == 0u || sourceEntityId > EntityCapacity)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(sourceEntityId));
+        }
+    }
+
+    private void EnsureRelationshipId(int relationshipId)
+    {
+        if ((uint)relationshipId == 0u || relationshipId > RelationshipCapacity)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(relationshipId));
+        }
+    }
+
+    private void EnsureActive(int actorId)
+    {
+        if (!IsActive(actorId))
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(actorId));
         }
     }
 
@@ -439,46 +592,67 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         return values[actorId];
     }
 
-    private void EnsureActorId(int actorId)
-    {
-        if ((uint)actorId == 0u || actorId >= _active.Length)
-        {
-            throw new global::System.ArgumentOutOfRangeException(nameof(actorId));
-        }
-    }
-
-    private static void ValidateSpawn(
+    private void ValidateCreate(
         int cultureId,
         int sourceEntityId,
+        int sourceEntityOccurrenceHandle,
         int sourceRuleId,
-        int purposeCode,
-        int actorKindCode,
+        int bindingRelationshipId,
+        int bindingRelationshipOccurrenceHandle,
+        int roleCode,
         int planeCode,
-        int ttlTicks,
-        int actionCadenceTicks,
-        FixedScalar workDelta,
+        int cellId,
+        FixedScalar strength,
         int tick)
     {
         NumericGuard.ThrowIfNegativeOrZero(cultureId);
-        NumericGuard.ThrowIfNegativeOrZero(sourceEntityId);
-        NumericGuard.ThrowIfNegativeOrZero(sourceRuleId);
-        if (purposeCode is not (
-                MinorActorPurposeCodes.CulturalLabor or
-                MinorActorPurposeCodes.RoadLabor or
-                MinorActorPurposeCodes.CampaignLabor))
+        EnsureSourceEntityId(sourceEntityId);
+        NumericGuard.ThrowIfNegativeOrZero(sourceEntityOccurrenceHandle);
+        if ((uint)sourceRuleId == 0u || sourceRuleId >= _sourceRuleStride)
         {
-            throw new global::System.ArgumentOutOfRangeException(nameof(purposeCode));
+            throw new global::System.ArgumentOutOfRangeException(nameof(sourceRuleId));
         }
 
-        NumericGuard.ThrowIfNegativeOrZero(actorKindCode);
-        if (planeCode is not (Engine.Constants.PlaneCodes.Physical or Engine.Constants.PlaneCodes.Semantic))
+        ValidateCreateRole(roleCode, bindingRelationshipId, bindingRelationshipOccurrenceHandle);
+        ValidateCreateLocation(planeCode, cellId);
+        NumericGuard.ThrowIfNegativeOrZero(strength);
+        NumericGuard.ThrowIfNegative(tick);
+    }
+
+    private void ValidateCreateRole(
+        int roleCode,
+        int bindingRelationshipId,
+        int bindingRelationshipOccurrenceHandle)
+    {
+        if (roleCode is not (
+                MinorActorRoleCodes.CulturalFront or
+                MinorActorRoleCodes.RoadCrew or
+                MinorActorRoleCodes.CampaignColumn))
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(roleCode));
+        }
+
+        if (roleCode == MinorActorRoleCodes.CampaignColumn)
+        {
+            EnsureRelationshipId(bindingRelationshipId);
+            NumericGuard.ThrowIfNegativeOrZero(bindingRelationshipOccurrenceHandle);
+        }
+        else if (bindingRelationshipId != 0 || bindingRelationshipOccurrenceHandle != 0)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(bindingRelationshipId));
+        }
+    }
+
+    private void ValidateCreateLocation(int planeCode, int cellId)
+    {
+        if (planeCode is not (PlaneCodes.Physical or PlaneCodes.Semantic))
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(planeCode));
         }
 
-        NumericGuard.ThrowIfNegativeOrZero(ttlTicks);
-        NumericGuard.ThrowIfNegativeOrZero(actionCadenceTicks);
-        NumericGuard.ThrowIfNegative(workDelta);
-        NumericGuard.ThrowIfNegative(tick);
+        if ((uint)cellId == 0u || cellId >= _firstActorByCell.Length)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(cellId));
+        }
     }
 }

@@ -186,8 +186,8 @@ internal sealed partial class GambitProgramRuntime : IKernelProgramRuntime<Gambi
         var slot = _gambitCount;
         _gambitKindIds[slot] = kindId;
         _gambitIds[slot] = gambitId;
-        _gambitCooldownTicks[slot] = Tuning.ScaleMainProgramDuration(cooldownTicks);
-        _gambitEntityCooldownTicks[slot] = Tuning.ScaleMainProgramDuration(entityCooldownTicks);
+        _gambitCooldownTicks[slot] = cooldownTicks;
+        _gambitEntityCooldownTicks[slot] = entityCooldownTicks;
         _gambitSuccessChances[slot] = compiledSuccessChance;
         _gambitTargetModes[slot] = targetMode;
         _gambitTargetKindIds[slot] = targetKindId;

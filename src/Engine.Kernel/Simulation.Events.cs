@@ -286,50 +286,214 @@ internal sealed partial class Simulation
             currentScore.Units)));
     }
 
-    internal void EmitMinorActorVerbExecuted(
+    internal void EmitMinorActorCreated(
         int tick,
-        int actorId,
-        int sourceEntityId,
+        int actorOccurrence,
+        int sourceEntityOccurrence,
+        int sourceRuleId,
+        int bindingRelationshipOccurrence,
+        int cultureId,
+        int roleCode,
+        int planeCode,
+        int q,
+        int r,
+        int postureCode,
+        FixedScalar strength)
+    {
+        WriteKernelEvent(KernelEvent.From(new MinorActorCreatedKernelEvent(
+            tick,
+            WorldVersion,
+            actorOccurrence,
+            sourceEntityOccurrence,
+            sourceRuleId,
+            bindingRelationshipOccurrence,
+            cultureId,
+            roleCode,
+            planeCode,
+            q,
+            r,
+            postureCode,
+            strength.Units)));
+    }
+
+    internal void EmitMinorActorAssigned(
+        int tick,
+        int actorOccurrence,
+        int sourceEntityOccurrence,
+        int roleCode,
+        int planeCode,
+        int previousTargetQ,
+        int previousTargetR,
+        int targetQ,
+        int targetR,
+        int targetingCode,
+        int postureCode,
+        int nextReplanTick,
+        int commitmentUntilTick,
+        FixedScalar strength)
+    {
+        WriteKernelEvent(KernelEvent.From(new MinorActorAssignedKernelEvent(
+            tick,
+            WorldVersion,
+            actorOccurrence,
+            sourceEntityOccurrence,
+            roleCode,
+            planeCode,
+            previousTargetQ,
+            previousTargetR,
+            targetQ,
+            targetR,
+            targetingCode,
+            postureCode,
+            nextReplanTick,
+            commitmentUntilTick,
+            strength.Units)));
+    }
+
+    internal void EmitMinorActorMoved(
+        int tick,
+        int actorOccurrence,
+        int sourceEntityOccurrence,
+        int cultureId,
+        int roleCode,
+        int planeCode,
+        int fromQ,
+        int fromR,
+        int toQ,
+        int toR,
+        int targetQ,
+        int targetR,
+        int postureCode,
+        FixedScalar strength)
+    {
+        WriteKernelEvent(KernelEvent.From(new MinorActorMovedKernelEvent(
+            tick,
+            WorldVersion,
+            actorOccurrence,
+            sourceEntityOccurrence,
+            cultureId,
+            roleCode,
+            planeCode,
+            fromQ,
+            fromR,
+            toQ,
+            toR,
+            targetQ,
+            targetR,
+            postureCode,
+            strength.Units)));
+    }
+
+    internal void EmitMinorActorWorked(
+        int tick,
+        int actorOccurrence,
+        int sourceEntityOccurrence,
         int sourceRuleId,
         int sourceWorkTier,
         int effectiveRadius,
         int cultureId,
-        int verbId,
-        int purposeCode,
+        int roleCode,
         int actionCode,
         int targetingCode,
         int planeCode,
         int q,
         int r,
-        int statusCode,
         int cellKindCode,
         FixedScalar localRawMass,
         FixedScalar connectedRawMass,
-        FixedScalar score,
+        FixedScalar strength,
         FixedScalar delta)
     {
-        WriteKernelEvent(KernelEvent.From(new MinorActorVerbExecutedKernelEvent(
+        WriteKernelEvent(KernelEvent.From(new MinorActorWorkedKernelEvent(
             tick,
             WorldVersion,
-            actorId,
-            World.EntityOccurrenceHandle(sourceEntityId),
+            actorOccurrence,
+            sourceEntityOccurrence,
             sourceRuleId,
             sourceWorkTier,
             effectiveRadius,
             cultureId,
-            verbId,
-            purposeCode,
+            roleCode,
             actionCode,
             targetingCode,
             planeCode,
             q,
             r,
-            statusCode,
             cellKindCode,
             localRawMass.Units,
             connectedRawMass.Units,
-            score.Units,
+            strength.Units,
             delta.Units)));
+    }
+
+    internal void EmitMinorActorEncountered(
+        int tick,
+        int actorOccurrence,
+        int otherActorOccurrence,
+        int actorCultureId,
+        int otherCultureId,
+        int actorRoleCode,
+        int otherRoleCode,
+        int planeCode,
+        int q,
+        int r,
+        int encounterCode,
+        int actorPostureCode,
+        int otherPostureCode,
+        FixedScalar actorStrength,
+        FixedScalar otherStrength,
+        FixedScalar effect)
+    {
+        WriteKernelEvent(KernelEvent.From(new MinorActorEncounteredKernelEvent(
+            tick,
+            WorldVersion,
+            actorOccurrence,
+            otherActorOccurrence,
+            actorCultureId,
+            otherCultureId,
+            actorRoleCode,
+            otherRoleCode,
+            planeCode,
+            q,
+            r,
+            encounterCode,
+            actorPostureCode,
+            otherPostureCode,
+            actorStrength.Units,
+            otherStrength.Units,
+            effect.Units)));
+    }
+
+    internal void EmitMinorActorRetired(
+        int tick,
+        int actorOccurrence,
+        int sourceEntityOccurrence,
+        int sourceRuleId,
+        int bindingRelationshipOccurrence,
+        int cultureId,
+        int roleCode,
+        int planeCode,
+        int q,
+        int r,
+        int reasonCode,
+        int postureCode,
+        FixedScalar strength)
+    {
+        WriteKernelEvent(KernelEvent.From(new MinorActorRetiredKernelEvent(
+            tick,
+            WorldVersion,
+            actorOccurrence,
+            sourceEntityOccurrence,
+            sourceRuleId,
+            bindingRelationshipOccurrence,
+            cultureId,
+            roleCode,
+            planeCode,
+            q,
+            r,
+            reasonCode,
+            postureCode,
+            strength.Units)));
     }
 
     internal bool TraceEnabled() => Options.TraceEnabled;

@@ -27,9 +27,9 @@ public partial class ChroniclePanel : PanelContainer
     private const int StateSucceededFilterId = 1;
     private const int StateFailedFilterId = 2;
     private const int TickWindowAllFilterId = 0;
+    private const int TickWindow10FilterId = 10;
+    private const int TickWindow20FilterId = 20;
     private const int TickWindow50FilterId = 50;
-    private const int TickWindow100FilterId = 100;
-    private const int TickWindow250FilterId = 250;
     private const int MaxVisibleEntries = 160;
     private const string HeaderColor = "B8B5A6";
 
@@ -368,9 +368,9 @@ public partial class ChroniclePanel : PanelContainer
         var options = new List<OptionData>
         {
             new(TickWindowAllFilterId, "All ticks"),
+            new(TickWindow10FilterId, "Last 10t"),
+            new(TickWindow20FilterId, "Last 20t"),
             new(TickWindow50FilterId, "Last 50t"),
-            new(TickWindow100FilterId, "Last 100t"),
-            new(TickWindow250FilterId, "Last 250t"),
         };
         _selectedTickWindowFilterId = RebuildOption(
             _tickFilterOption,

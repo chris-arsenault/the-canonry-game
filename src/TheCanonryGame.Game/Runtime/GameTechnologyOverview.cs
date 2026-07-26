@@ -181,7 +181,7 @@ internal sealed class GameTechnologyOverviewReadModel
 
         if (modifier.Domain == KnowledgeGrantDomain.MinorActorWork)
         {
-            return MinorActorPurposeLabel(modifier.AuthoredTargetCode);
+            return MinorActorRoleLabel(modifier.AuthoredTargetCode);
         }
 
         return PlaneTargetLabel(modifier.AuthoredTargetCode, modifier.TargetId);
@@ -216,12 +216,12 @@ internal sealed class GameTechnologyOverviewReadModel
         _ => "All",
     };
 
-    private static string MinorActorPurposeLabel(int purposeCode) => purposeCode switch
+    private static string MinorActorRoleLabel(int roleCode) => roleCode switch
     {
-        MinorActorPurposeCodes.CulturalLabor => "Cultural",
-        MinorActorPurposeCodes.RoadLabor => "Road",
-        MinorActorPurposeCodes.CampaignLabor => "Campaign",
-        _ => $"Purpose {purposeCode}",
+        MinorActorRoleCodes.CulturalFront => "Cultural front",
+        MinorActorRoleCodes.RoadCrew => "Road crew",
+        MinorActorRoleCodes.CampaignColumn => "Campaign column",
+        _ => $"Role {roleCode}",
     };
 
     private static string PlaneTargetLabel(int planeCode, int targetId) => planeCode switch

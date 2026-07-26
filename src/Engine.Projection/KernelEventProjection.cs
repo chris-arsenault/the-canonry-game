@@ -46,9 +46,13 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     private static bool IsWorldEvent(KernelEventType eventType) =>
-        eventType == KernelEventType.MinorActorVerbExecuted ||
+        IsMinorActorEvent(eventType) ||
         eventType == KernelEventType.PhaseCompleted ||
         eventType is >= KernelEventType.TickCompleted and <= KernelEventType.CultureSlotOccupancyChanged and not KernelEventType.GambitEvaluated;
+
+    private static bool IsMinorActorEvent(KernelEventType eventType) =>
+        eventType == KernelEventType.MinorActorCreated ||
+        eventType is >= KernelEventType.MinorActorAssigned and <= KernelEventType.MinorActorRetired;
 
     private void ProjectEntityEvent(in SequencedKernelEvent kernelEvent)
     {
@@ -129,9 +133,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
             return;
         }
 
-        if (eventType == KernelEventType.MinorActorVerbExecuted)
+        if (IsMinorActorEvent(eventType))
         {
-            OnMinorActorVerbExecuted(kernelEvent.Sequence, kernelEvent.Event.AsMinorActorVerbExecuted());
+            ProjectMinorActorEvent(kernelEvent);
             return;
         }
 
@@ -142,6 +146,32 @@ public abstract class KernelEventProjector : IKernelEventProjection
         }
 
         ProjectWorldMapEvent(kernelEvent);
+    }
+
+    private void ProjectMinorActorEvent(in SequencedKernelEvent kernelEvent)
+    {
+        var evt = kernelEvent.Event;
+        switch (evt.EventType)
+        {
+            case KernelEventType.MinorActorCreated:
+                OnMinorActorCreated(kernelEvent.Sequence, evt.AsMinorActorCreated());
+                break;
+            case KernelEventType.MinorActorAssigned:
+                OnMinorActorAssigned(kernelEvent.Sequence, evt.AsMinorActorAssigned());
+                break;
+            case KernelEventType.MinorActorMoved:
+                OnMinorActorMoved(kernelEvent.Sequence, evt.AsMinorActorMoved());
+                break;
+            case KernelEventType.MinorActorWorked:
+                OnMinorActorWorked(kernelEvent.Sequence, evt.AsMinorActorWorked());
+                break;
+            case KernelEventType.MinorActorEncountered:
+                OnMinorActorEncountered(kernelEvent.Sequence, evt.AsMinorActorEncountered());
+                break;
+            case KernelEventType.MinorActorRetired:
+                OnMinorActorRetired(kernelEvent.Sequence, evt.AsMinorActorRetired());
+                break;
+        }
     }
 
     private void ProjectWorldControlEvent(in SequencedKernelEvent kernelEvent)
@@ -298,7 +328,27 @@ public abstract class KernelEventProjector : IKernelEventProjection
     {
     }
 
-    protected virtual void OnMinorActorVerbExecuted(long sequence, in MinorActorVerbExecutedKernelEvent evt)
+    protected virtual void OnMinorActorCreated(long sequence, in MinorActorCreatedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnMinorActorAssigned(long sequence, in MinorActorAssignedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnMinorActorMoved(long sequence, in MinorActorMovedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnMinorActorWorked(long sequence, in MinorActorWorkedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnMinorActorEncountered(long sequence, in MinorActorEncounteredKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnMinorActorRetired(long sequence, in MinorActorRetiredKernelEvent evt)
     {
     }
 

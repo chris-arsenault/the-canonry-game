@@ -66,7 +66,7 @@ public sealed class PlayerInterventionCommandTests
             KernelCommand.From(new FavorEntityKernelCommand(
                 IssueVersion: (int)simulation.WorldVersion,
                 entity,
-                DurationTicks: 10,
+                DurationTicks: 2,
                 MultiplierDelta: FixedScalar.FromSingle(1f))),
             out _));
 
@@ -75,7 +75,7 @@ public sealed class PlayerInterventionCommandTests
         _ = simulation.ModifyCellCultureInfluenceRawFromEntity(entity, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(10f), simulation.CurrentTick);
         Assert.Equal(FixedScalar.FromSingle(20f), simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0));
 
-        simulation.AdvanceTicks(15);
+        simulation.AdvanceTicks(3);
 
         _ = simulation.ModifyCellCultureInfluenceRawFromEntity(entity, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(10f), simulation.CurrentTick);
         Assert.Equal(FixedScalar.FromSingle(30f), simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0));
