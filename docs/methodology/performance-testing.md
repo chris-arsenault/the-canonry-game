@@ -141,3 +141,81 @@ making the one-writer kernel slower.
 When evaluating the budget, profile the same workload the user cares about:
 simulation-only, simulation with trace events, simulation with Monte Carlo
 export, or the interactive app. Do not mix those numbers.
+
+## Batch A Owner-Ready Storage Baseline
+
+The Batch A regression screen uses seed 4200, the versioned pre-rendered world,
+5,000 ticks, Release mode, and `--simulation-only`. World loading occurs before
+the runner starts its elapsed-time stopwatch.
+
+Two registered before runs,
+`parallel-batch-a-before-1x5000-20260726a` and
+`parallel-batch-a-before-repeat-1x5000-20260726a`, averaged
+`15.620 ms/tick`. Two exact-final after runs,
+`parallel-batch-a-after-final-1x5000-20260726c` and
+`parallel-batch-a-after-final-repeat-1x5000-20260726a`, measured
+`15.742` and `14.956 ms/tick`, averaging `15.349 ms/tick`. This is a `1.73%`
+improvement (`1.018x`) across paired means.
+
+The after-run spread is larger than the mean improvement, so this evidence
+supports a no-regression conclusion, not a material speedup claim. Report the
+individual range with the paired mean when using these runs as the Batch B
+one-worker baseline. Command traces
+`parallel-batch-a-command-before-1x1000-20260726a` and
+`parallel-batch-a-command-after-1x1000-20260726a` show the empty locked command
+read moving from `1.68%` of sampled CPU to no named `TryRead` samples.
+
+## Batch B Worker-One Regression Gate
+
+Batch B uses the same seed-4200, pre-rendered-world, 5,000-tick, Release,
+simulation-only contract as Batch A. Compare worker-one paired means before
+measuring any multi-worker speedup: persistent-worker infrastructure is not
+acceptable if its disabled/default topology slows the reference simulation.
+
+The first implementation failed that gate. Registered runs
+`parallel-batch-b-after-1x5000-20260726a` and
+`parallel-batch-b-after-repeat-1x5000-20260726a` measured `15.909` and
+`18.541 ms/tick`, averaging `17.225 ms/tick`. That was `12.2%` slower than
+Batch A's exact-final `15.349 ms/tick` mean. Investigation found worker one
+paying thread-local execution-context and scratch lookup plus block-arena
+bookkeeping on hot operations.
+
+Those runs are rejected implementation evidence, not the Batch B result. The
+worker-zero fast lane stays inside the common range and append infrastructure;
+it does not restore separate serial gameplay code. Exact-final registered runs
+`parallel-batch-b-after-fastpath-1x5000-20260726a` and
+`parallel-batch-b-after-fastpath-repeat-1x5000-20260726a` measured `14.887`
+and `15.110 ms/tick`, averaging `14.999 ms/tick`. That is `2.28%` faster
+(`1.023x`) than the Batch A mean. Use the exact-final pair as the Batch C
+worker-one baseline.
+
+## Batch C Typed-Owner Gate
+
+Batch C uses the same seed-4200, pre-rendered-world, 5,000-tick, Release,
+simulation-only contract. Preserve failed measurements in the registry; do not
+rename a slower run into a successful result after implementation changes.
+
+The first owner-reduction pair,
+`parallel-batch-c-after-owner-reduction-1x5000-20260726a` and
+`parallel-batch-c-after-owner-reduction-repeat-1x5000-20260726a`, measured
+`18.851` and `18.934 ms/tick`. Their `18.892 ms/tick` mean was `25.96%` slower
+than the Batch B mean and is rejected. A trace showed all delta resolution at
+only `2.41%` inclusive, which redirected the investigation toward unnecessary
+multi-pass orchestration and concurrency guards in read-heavy world queries.
+
+After direct one-worker resolution and direct culture-revision reads, registered
+run `parallel-batch-c-revision-read-fastpath-1x5000-20260726a` measured
+`15.531 ms/tick` (`64.388 ticks/sec`). This is inside Batch A's previously
+observed `14.956`-to-`15.742 ms/tick` host spread, but remains `3.55%` above the
+Batch B paired mean. Do not claim the worker-one gate has passed from this single
+clean run. Registered repeats
+`parallel-batch-c-revision-read-fastpath-repeat-1x5000-20260726a` and
+`parallel-batch-c-revision-read-fastpath-clean-repeat-1x5000-20260726a` are
+rejected because competing Roslyn/MSBuild processes appeared after launch.
+
+The internal four-worker run
+`parallel-batch-c-owner-reduction-4w-1x5000-20260726a` measured
+`23.908 ms/tick`, slower than worker one. It is negative architecture evidence:
+public worker wiring must remain closed until dispatch regions are coalesced and
+the complete worker-count matrix passes. Compare process-wide throughput, not
+worker-loop time, and record host-load rejection causes with `append-stats`.

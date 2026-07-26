@@ -1,7 +1,17 @@
 namespace Engine.Kernel;
 
-internal sealed class TickDeltaBuffer
+internal sealed partial class TickDeltaBuffer : IKernelOwnerWork
 {
+    private const int NoOwnerStage = 0;
+    private const int AttributeOwnerStage = 1;
+    private const int RelationshipOwnerStage = 2;
+    private const int TagOwnerStage = 3;
+    private const int MovementOwnerStage = 4;
+    private const int CellOwnerStage = 5;
+    private const int CultureOwnerStage = 6;
+    private const int CultureReductionOwnerStage = 7;
+    private const int InfluenceCreditOwnerStage = 8;
+
     private readonly MovementDelta[] _movements;
     private readonly AttributeDelta[] _attributes;
     private readonly CultureDelta[] _culture;
@@ -11,6 +21,28 @@ internal sealed class TickDeltaBuffer
     private readonly TagDelta[] _tags;
     private readonly CellStateDelta[] _cellStates;
     private readonly LifecycleDelta[] _lifecycles;
+    private readonly ResolvedMovement[] _resolvedMovements;
+    private readonly ResolvedCellState[] _resolvedCellStates;
+    private readonly int[] _resolvedCellPreviousOwners;
+    private readonly bool[] _resolvedCellChanged;
+    private readonly bool[] _resolvedCellTerrainChanged;
+    private readonly ResolvedCultureGroup[] _resolvedCultureGroups;
+    private readonly ResolvedCultureReductionGroup[] _resolvedCultureReductionGroups;
+    private readonly int[] _cultureAppliedUnits;
+    private readonly bool[] _cultureReductionChanged;
+    private readonly InfluenceCreditDelta[] _influenceCredits;
+    private readonly DeltaAppendArena<CultureStorageKey> _cultureStorageArena;
+    private readonly CultureStorageKey[] _cultureStorageKeys;
+    private readonly DeltaAppendArena<MovementDelta> _movementArena;
+    private readonly DeltaAppendArena<AttributeDelta> _attributeArena;
+    private readonly DeltaAppendArena<CultureDelta> _cultureArena;
+    private readonly DeltaAppendArena<CultureReductionDelta> _cultureReductionArena;
+    private readonly DeltaAppendArena<RelationshipDelta> _relationshipArena;
+    private readonly DeltaAppendArena<RelationshipEndDelta> _relationshipEndArena;
+    private readonly DeltaAppendArena<TagDelta> _tagArena;
+    private readonly DeltaAppendArena<CellStateDelta> _cellStateArena;
+    private readonly DeltaAppendArena<LifecycleDelta> _lifecycleArena;
+    private readonly bool _singleWorker;
     private int _movementCount;
     private int _attributeCount;
     private int _cultureCount;
@@ -20,33 +52,94 @@ internal sealed class TickDeltaBuffer
     private int _tagCount;
     private int _cellStateCount;
     private int _lifecycleCount;
+    private int _resolvedMovementCount;
+    private int _resolvedCellStateCount;
+    private int _resolvedCultureGroupCount;
+    private int _resolvedCultureReductionGroupCount;
+    private int _influenceCreditCount;
+    private int _ownerStage;
 
     public TickDeltaBuffer(SimulationOptions options)
     {
-        _movements = new MovementDelta[checked(options.EntityCapacity * 2)];
-        _attributes = new AttributeDelta[options.AttributeCapacity];
-        _culture = new CultureDelta[options.MapInfluenceCapacity];
-        _cultureReductions = new CultureReductionDelta[options.MapInfluenceCapacity];
-        _relationships = new RelationshipDelta[options.RelationshipCapacity];
-        _relationshipEnds = new RelationshipEndDelta[options.RelationshipCapacity];
-        _tags = new TagDelta[options.AttributeCapacity];
-        _cellStates = new CellStateDelta[options.MapCellCapacity];
-        _lifecycles = new LifecycleDelta[options.EntityCapacity];
+        _singleWorker = options.Execution.WorkerCount == 1;
+        _movementArena = new DeltaAppendArena<MovementDelta>(
+            checked(options.EntityCapacity * 2),
+            options.Execution.WorkerCount);
+        _attributeArena = new DeltaAppendArena<AttributeDelta>(
+            options.AttributeCapacity,
+            options.Execution.WorkerCount);
+        _cultureArena = new DeltaAppendArena<CultureDelta>(
+            options.MapInfluenceCapacity,
+            options.Execution.WorkerCount);
+        _cultureReductionArena = new DeltaAppendArena<CultureReductionDelta>(
+            options.MapInfluenceCapacity,
+            options.Execution.WorkerCount);
+        _relationshipArena = new DeltaAppendArena<RelationshipDelta>(
+            options.RelationshipCapacity,
+            options.Execution.WorkerCount);
+        _relationshipEndArena = new DeltaAppendArena<RelationshipEndDelta>(
+            options.RelationshipCapacity,
+            options.Execution.WorkerCount);
+        _tagArena = new DeltaAppendArena<TagDelta>(
+            options.AttributeCapacity,
+            options.Execution.WorkerCount);
+        _cellStateArena = new DeltaAppendArena<CellStateDelta>(
+            options.MapCellCapacity,
+            options.Execution.WorkerCount);
+        _lifecycleArena = new DeltaAppendArena<LifecycleDelta>(
+            options.EntityCapacity,
+            options.Execution.WorkerCount);
+        _movements = _movementArena.Values;
+        _attributes = _attributeArena.Values;
+        _culture = _cultureArena.Values;
+        _cultureReductions = _cultureReductionArena.Values;
+        _relationships = _relationshipArena.Values;
+        _relationshipEnds = _relationshipEndArena.Values;
+        _tags = _tagArena.Values;
+        _cellStates = _cellStateArena.Values;
+        _lifecycles = _lifecycleArena.Values;
+        _resolvedMovements = new ResolvedMovement[checked(options.EntityCapacity * 2)];
+        _resolvedCellStates = new ResolvedCellState[options.MapCellCapacity];
+        _resolvedCellPreviousOwners = new int[options.MapCellCapacity];
+        _resolvedCellChanged = new bool[options.MapCellCapacity];
+        _resolvedCellTerrainChanged = new bool[options.MapCellCapacity];
+        _resolvedCultureGroups =
+            new ResolvedCultureGroup[options.MapInfluenceCapacity];
+        _resolvedCultureReductionGroups =
+            new ResolvedCultureReductionGroup[options.MapInfluenceCapacity];
+        _cultureAppliedUnits = new int[options.MapInfluenceCapacity];
+        _cultureReductionChanged = new bool[options.MapInfluenceCapacity];
+        _influenceCredits =
+            new InfluenceCreditDelta[options.MapInfluenceCapacity];
+        _cultureStorageArena = new DeltaAppendArena<CultureStorageKey>(
+            checked(options.MapInfluenceCapacity * 2),
+            options.Execution.WorkerCount);
+        _cultureStorageKeys = _cultureStorageArena.Values;
     }
 
     public int Count =>
-        _movementCount +
-        _attributeCount +
-        _cultureCount +
-        _cultureReductionCount +
-        _relationshipCount +
-        _relationshipEndCount +
-        _tagCount +
-        _cellStateCount +
-        _lifecycleCount;
+        _movementArena.Count +
+        _attributeArena.Count +
+        _cultureArena.Count +
+        _cultureReductionArena.Count +
+        _relationshipArena.Count +
+        _relationshipEndArena.Count +
+        _tagArena.Count +
+        _cellStateArena.Count +
+        _lifecycleArena.Count;
 
     public void Clear()
     {
+        _movementArena.Clear();
+        _attributeArena.Clear();
+        _cultureArena.Clear();
+        _cultureReductionArena.Clear();
+        _relationshipArena.Clear();
+        _relationshipEndArena.Clear();
+        _tagArena.Clear();
+        _cellStateArena.Clear();
+        _lifecycleArena.Clear();
+        _cultureStorageArena.Clear();
         _movementCount = 0;
         _attributeCount = 0;
         _cultureCount = 0;
@@ -56,26 +149,48 @@ internal sealed class TickDeltaBuffer
         _tagCount = 0;
         _cellStateCount = 0;
         _lifecycleCount = 0;
+        _resolvedMovementCount = 0;
+        _resolvedCellStateCount = 0;
+        _resolvedCultureGroupCount = 0;
+        _resolvedCultureReductionGroupCount = 0;
+        _influenceCreditCount = 0;
     }
 
-    public void AddMovement(in MovementDelta delta) => Add(_movements, ref _movementCount, delta);
-    public void AddAttribute(in AttributeDelta delta) => Add(_attributes, ref _attributeCount, delta);
-    public void AddCulture(in CultureDelta delta) => Add(_culture, ref _cultureCount, delta);
+    public void AddMovement(in MovementDelta delta) =>
+        _movementArena.Add(AppendWorkerIndex, delta);
+    public void AddAttribute(in AttributeDelta delta) =>
+        _attributeArena.Add(AppendWorkerIndex, delta);
+    public void AddCulture(in CultureDelta delta) =>
+        _cultureArena.Add(AppendWorkerIndex, delta);
     public void AddCultureReduction(in CultureReductionDelta delta) =>
-        Add(_cultureReductions, ref _cultureReductionCount, delta);
+        _cultureReductionArena.Add(AppendWorkerIndex, delta);
     public void AddRelationship(in RelationshipDelta delta) =>
-        Add(_relationships, ref _relationshipCount, delta);
+        _relationshipArena.Add(AppendWorkerIndex, delta);
     public void AddRelationshipEnd(in RelationshipEndDelta delta) =>
-        Add(_relationshipEnds, ref _relationshipEndCount, delta);
-    public void AddTag(in TagDelta delta) => Add(_tags, ref _tagCount, delta);
+        _relationshipEndArena.Add(AppendWorkerIndex, delta);
+    public void AddTag(in TagDelta delta) =>
+        _tagArena.Add(AppendWorkerIndex, delta);
     public void AddCellState(in CellStateDelta delta) =>
-        Add(_cellStates, ref _cellStateCount, delta);
+        _cellStateArena.Add(AppendWorkerIndex, delta);
     public void AddLifecycle(in LifecycleDelta delta) =>
-        Add(_lifecycles, ref _lifecycleCount, delta);
+        _lifecycleArena.Add(AppendWorkerIndex, delta);
+
+    private int AppendWorkerIndex =>
+        _singleWorker ? 0 : KernelWorkerThread.WorkerIndex;
 
     public void Resolve(Simulation simulation, bool reverseInsertionOrder, int logicalShardCount)
     {
         global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(logicalShardCount);
+
+        _movementCount = _movementArena.Compact();
+        _attributeCount = _attributeArena.Compact();
+        _cultureCount = _cultureArena.Compact();
+        _cultureReductionCount = _cultureReductionArena.Compact();
+        _relationshipCount = _relationshipArena.Compact();
+        _relationshipEndCount = _relationshipEndArena.Compact();
+        _tagCount = _tagArena.Compact();
+        _cellStateCount = _cellStateArena.Compact();
+        _lifecycleCount = _lifecycleArena.Compact();
 
         Prepare(_movements, _movementCount, reverseInsertionOrder);
         Prepare(_cellStates, _cellStateCount, reverseInsertionOrder);
@@ -87,353 +202,634 @@ internal sealed class TickDeltaBuffer
         Prepare(_tags, _tagCount, reverseInsertionOrder);
         Prepare(_lifecycles, _lifecycleCount, reverseInsertionOrder);
 
-        ResolveMovements(simulation, logicalShardCount);
-        ResolveCellStates(simulation, logicalShardCount);
-        ResolveAttributes(simulation, logicalShardCount);
-        ResolveCulture(simulation, logicalShardCount);
-        ResolveCultureReductions(simulation, logicalShardCount);
-        ResolveRelationships(simulation, logicalShardCount);
-        ResolveRelationshipEnds(simulation, logicalShardCount);
-        ResolveTags(simulation, logicalShardCount);
-        ResolveLifecycles(simulation, logicalShardCount);
+        ResolveMovements(simulation);
+        ResolveCellStates(simulation);
+        ExecuteOwnerStage(simulation, AttributeOwnerStage, _attributeCount);
+        ResolveCulture(simulation);
+        ResolveCultureReductions(simulation);
+        ExecuteOwnerStage(simulation, RelationshipOwnerStage, _relationshipCount);
+        ResolveRelationshipEnds(simulation);
+        ExecuteOwnerStage(simulation, TagOwnerStage, _tagCount);
+        ResolveLifecycles(simulation);
     }
 
-    private void ResolveMovements(Simulation simulation, int shardCount)
-    {
-        for (var shard = 0; shard < shardCount; shard++)
-        {
-            var index = 0;
-            while (index < _movementCount)
-            {
-                var first = _movements[index];
-                var end = index + 1;
-                while (end < _movementCount &&
-                       _movements[end].EntityOccurrenceHandle == first.EntityOccurrenceHandle &&
-                       _movements[end].PlaneCode == first.PlaneCode)
-                {
-                    end++;
-                }
-
-                if (Shard(first.EntityOccurrenceHandle, first.PlaneCode, 0, 0, shardCount) == shard &&
-                    simulation.World.TryResolveEntityOccurrence(first.EntityOccurrenceHandle, out var entityId))
-                {
-                    var winner = _movements[end - 1];
-                    simulation.Movement.ApplyResolvedMove(
-                        simulation,
-                        entityId,
-                        winner.PlaneCode,
-                        winner.Q,
-                        winner.R,
-                        winner.Z,
-                        simulation.CurrentTick,
-                        winner.CauseCode,
-                        winner.Context);
-                }
-
-                index = end;
-            }
-        }
-    }
-
-    private void ResolveCellStates(Simulation simulation, int shardCount)
-    {
-        for (var shard = 0; shard < shardCount; shard++)
-        {
-            var index = 0;
-            while (index < _cellStateCount)
-            {
-                var first = _cellStates[index];
-                var end = index + 1;
-                while (end < _cellStateCount && first.SameDestination(_cellStates[end]))
-                {
-                    end++;
-                }
-
-                if (Shard(first.PlaneCode, first.Q, first.R, 0, shardCount) == shard)
-                {
-                    var winner = _cellStates[end - 1];
-                    using var scope = simulation.EnterExecutionContext(winner.Context);
-                    simulation.SetCellState(
-                        winner.PlaneCode,
-                        winner.Q,
-                        winner.R,
-                        winner.TerrainId,
-                        winner.OwnerEntityId,
-                        simulation.CurrentTick);
-                }
-
-                index = end;
-            }
-        }
-    }
-
-    private void ResolveAttributes(Simulation simulation, int shardCount)
-    {
-        for (var shard = 0; shard < shardCount; shard++)
-        {
-            var index = 0;
-            while (index < _attributeCount)
-            {
-                var first = _attributes[index];
-                var end = index + 1;
-                long sum = first.DeltaUnits;
-                while (end < _attributeCount && first.SameDestination(_attributes[end]))
-                {
-                    sum = checked(sum + _attributes[end].DeltaUnits);
-                    end++;
-                }
-
-                if (Shard(first.EntityOccurrenceHandle, first.AttributeId, 0, 0, shardCount) == shard &&
-                    simulation.World.TryResolveEntityOccurrence(first.EntityOccurrenceHandle, out var entityId))
-                {
-                    using var scope = simulation.EnterExecutionContext(first.Context);
-                    simulation.ModifyAttributeUnits(
-                        entityId,
-                        first.AttributeId,
-                        ClampToInt(sum),
-                        simulation.CurrentTick);
-                }
-
-                index = end;
-            }
-        }
-    }
-
-    private void ResolveCulture(Simulation simulation, int shardCount)
-    {
-        for (var shard = 0; shard < shardCount; shard++)
-        {
-            var index = 0;
-            while (index < _cultureCount)
-            {
-                var first = _culture[index];
-                var end = index + 1;
-                long sum = first.DeltaUnits;
-                while (end < _cultureCount && first.SameDestination(_culture[end]))
-                {
-                    sum = checked(sum + _culture[end].DeltaUnits);
-                    end++;
-                }
-
-                ResolveCultureGroup(simulation, shardCount, shard, index, end, sum);
-
-                index = end;
-            }
-        }
-    }
-
-    private void ResolveCultureGroup(
+    void IKernelOwnerWork.ExecuteOwner(
         Simulation simulation,
-        int shardCount,
-        int shard,
-        int start,
-        int end,
-        long sum)
+        int ownerIndex,
+        int ownerCount)
     {
-        var first = _culture[start];
-        if (Shard(first.CultureId, first.PlaneCode, first.Q, first.R, shardCount) != shard)
+        switch (_ownerStage)
+        {
+            case AttributeOwnerStage:
+                ResolveAttributeOwner(simulation, ownerIndex, ownerCount);
+                return;
+            case RelationshipOwnerStage:
+                ResolveRelationshipOwner(simulation, ownerIndex, ownerCount);
+                return;
+            case TagOwnerStage:
+                ResolveTagOwner(simulation, ownerIndex, ownerCount);
+                return;
+            case MovementOwnerStage:
+                ResolveMovementOwner(simulation, ownerIndex, ownerCount);
+                return;
+            case CellOwnerStage:
+                ResolveCellOwner(simulation, ownerIndex, ownerCount);
+                return;
+            case CultureOwnerStage:
+                ResolveCultureOwner(simulation, ownerIndex, ownerCount);
+                return;
+            case CultureReductionOwnerStage:
+                ResolveCultureReductionOwner(simulation, ownerIndex, ownerCount);
+                return;
+            case InfluenceCreditOwnerStage:
+                ResolveInfluenceCreditOwner(simulation, ownerIndex, ownerCount);
+                return;
+            default:
+                throw new global::System.InvalidOperationException();
+        }
+    }
+
+    private void ExecuteOwnerStage(Simulation simulation, int ownerStage, int count)
+    {
+        if (count == 0)
         {
             return;
         }
 
-        using var scope = simulation.EnterExecutionContext(first.Context);
-        var applied = simulation.ApplyResolvedCultureDelta(
-            first.CultureId,
-            first.PlaneCode,
-            first.Q,
-            first.R,
-            first.Z,
-            ClampToInt(sum),
-            simulation.CurrentTick);
-        if (applied > 0)
+        if (_ownerStage != NoOwnerStage)
         {
-            CreditCultureSources(simulation, start, end, first.PlaneCode, applied);
+            throw new global::System.InvalidOperationException();
+        }
+
+        _ownerStage = ownerStage;
+        try
+        {
+            simulation.ExecuteOwnerWork(this, count);
+        }
+        finally
+        {
+            _ownerStage = NoOwnerStage;
         }
     }
 
-    private void CreditCultureSources(
-        Simulation simulation,
-        int start,
-        int end,
-        int planeCode,
-        int applied)
+    private void ResolveMovements(Simulation simulation)
     {
-        var remaining = applied;
-        for (var contribution = start; contribution < end && remaining > 0; contribution++)
+        if (_singleWorker)
         {
-            var source = _culture[contribution];
-            if (source.SourceEntityOccurrenceHandle <= 0 ||
-                source.DeltaUnits <= 0 ||
-                !simulation.World.TryResolveEntityOccurrence(
-                    source.SourceEntityOccurrenceHandle,
-                    out var sourceEntityId))
+            ResolveMovementsSingleWorker(simulation);
+            return;
+        }
+
+        PrepareResolvedMovements(simulation.World);
+        DetachResolvedMovements(simulation.World);
+        ExecuteOwnerStage(
+            simulation,
+            MovementOwnerStage,
+            _resolvedMovementCount);
+        AttachResolvedMovements(simulation.World);
+        ApplyResolvedMovementConsequences(simulation);
+    }
+
+    private void ResolveMovementsSingleWorker(Simulation simulation)
+    {
+        _resolvedMovementCount = 0;
+        var index = 0;
+        while (index < _movementCount)
+        {
+            var end = MovementGroupEnd(index);
+            var previousCount = _resolvedMovementCount;
+            TryPrepareResolvedMovement(simulation.World, index, end);
+            if (_resolvedMovementCount > previousCount)
+            {
+                ApplySingleResolvedMovement(
+                    simulation,
+                    _resolvedMovements[previousCount]);
+            }
+
+            index = end;
+        }
+    }
+
+    private static void ApplySingleResolvedMovement(
+        Simulation simulation,
+        in ResolvedMovement movement)
+    {
+        var world = simulation.World;
+        world.DetachEntityForResolvedMove(
+            movement.EntityId,
+            movement.PlaneCode,
+            movement.FromQ,
+            movement.FromR,
+            movement.FromZ);
+        using (simulation.EnterExecutionContext(movement.Context))
+        {
+            world.ApplyEntityResolvedMove(
+                movement.EntityId,
+                movement.PlaneCode,
+                movement.FromQ,
+                movement.FromR,
+                movement.FromZ,
+                movement.ToQ,
+                movement.ToR,
+                movement.ToZ,
+                simulation.CurrentTick,
+                movement.Context);
+        }
+
+        world.AttachEntityForResolvedMove(
+            movement.EntityId,
+            movement.PlaneCode,
+            movement.ToQ,
+            movement.ToR,
+            movement.ToZ);
+        if (movement.ToZ == 0)
+        {
+            using var scope =
+                simulation.EnterExecutionContext(movement.Context);
+            simulation.Movement.ApplyResolvedMoveSurfaceConsequences(
+                simulation,
+                movement.EntityId,
+                movement.PlaneCode,
+                movement.ToQ,
+                movement.ToR,
+                simulation.CurrentTick,
+                movement.CauseCode);
+        }
+    }
+
+    private void PrepareResolvedMovements(WorldState world)
+    {
+        _resolvedMovementCount = 0;
+        var index = 0;
+        while (index < _movementCount)
+        {
+            var end = MovementGroupEnd(index);
+            TryPrepareResolvedMovement(world, index, end);
+            index = end;
+        }
+    }
+
+    private int MovementGroupEnd(int start)
+    {
+        var first = _movements[start];
+        var end = start + 1;
+        while (end < _movementCount &&
+               _movements[end].EntityOccurrenceHandle == first.EntityOccurrenceHandle &&
+               _movements[end].PlaneCode == first.PlaneCode)
+        {
+            end++;
+        }
+
+        return end;
+    }
+
+    private void TryPrepareResolvedMovement(
+        WorldState world,
+        int start,
+        int end)
+    {
+        var first = _movements[start];
+        if (!world.TryResolveEntityOccurrence(
+                first.EntityOccurrenceHandle,
+                out var entityId))
+        {
+            return;
+        }
+
+        var winner = _movements[end - 1];
+        var semantic = winner.PlaneCode == PlaneCodes.Semantic;
+        var fromQ = semantic
+            ? world.EntitySemanticQ(entityId)
+            : world.EntityPhysicalQ(entityId);
+        var fromR = semantic
+            ? world.EntitySemanticR(entityId)
+            : world.EntityPhysicalR(entityId);
+        var fromZ = semantic ? 0 : world.EntityPhysicalZ(entityId);
+        if (fromQ == winner.Q && fromR == winner.R && fromZ == winner.Z)
+        {
+            return;
+        }
+
+        _resolvedMovements[_resolvedMovementCount++] = new ResolvedMovement(
+            entityId,
+            winner.PlaneCode,
+            fromQ,
+            fromR,
+            fromZ,
+            winner.Q,
+            winner.R,
+            winner.Z,
+            winner.CauseCode,
+            winner.Context);
+    }
+
+    private void DetachResolvedMovements(WorldState world)
+    {
+        for (var index = 0; index < _resolvedMovementCount; index++)
+        {
+            var movement = _resolvedMovements[index];
+            world.DetachEntityForResolvedMove(
+                movement.EntityId,
+                movement.PlaneCode,
+                movement.FromQ,
+                movement.FromR,
+                movement.FromZ);
+        }
+    }
+
+    private void AttachResolvedMovements(WorldState world)
+    {
+        for (var index = 0; index < _resolvedMovementCount; index++)
+        {
+            var movement = _resolvedMovements[index];
+            world.AttachEntityForResolvedMove(
+                movement.EntityId,
+                movement.PlaneCode,
+                movement.ToQ,
+                movement.ToR,
+                movement.ToZ);
+        }
+    }
+
+    private void ApplyResolvedMovementConsequences(Simulation simulation)
+    {
+        for (var index = 0; index < _resolvedMovementCount; index++)
+        {
+            var movement = _resolvedMovements[index];
+            if (movement.ToZ != 0)
             {
                 continue;
             }
 
-            var credited = global::System.Math.Min(remaining, source.DeltaUnits);
-            simulation.World.NoteEntityInfluenceProduction(sourceEntityId, planeCode, credited);
-            remaining -= credited;
+            using var scope = simulation.EnterExecutionContext(movement.Context);
+            simulation.Movement.ApplyResolvedMoveSurfaceConsequences(
+                simulation,
+                movement.EntityId,
+                movement.PlaneCode,
+                movement.ToQ,
+                movement.ToR,
+                simulation.CurrentTick,
+                movement.CauseCode);
         }
     }
 
-    private void ResolveCultureReductions(Simulation simulation, int shardCount)
+    private void ResolveMovementOwner(
+        Simulation simulation,
+        int ownerIndex,
+        int ownerCount)
     {
-        for (var shard = 0; shard < shardCount; shard++)
+        var index = OwnerStart(
+            ownerIndex,
+            ownerCount,
+            _resolvedMovementCount,
+            MovementOwnerStage);
+        var limit = OwnerStart(
+            ownerIndex + 1,
+            ownerCount,
+            _resolvedMovementCount,
+            MovementOwnerStage);
+        while (index < limit)
         {
-            var index = 0;
-            while (index < _cultureReductionCount)
+            var movement = _resolvedMovements[index++];
+            using var scope = simulation.EnterExecutionContext(movement.Context);
+            simulation.World.ApplyEntityResolvedMove(
+                movement.EntityId,
+                movement.PlaneCode,
+                movement.FromQ,
+                movement.FromR,
+                movement.FromZ,
+                movement.ToQ,
+                movement.ToR,
+                movement.ToZ,
+                simulation.CurrentTick,
+                movement.Context);
+        }
+    }
+
+    private void ResolveCellStates(Simulation simulation)
+    {
+        if (_singleWorker)
+        {
+            ResolveCellStatesSingleWorker(simulation);
+            return;
+        }
+
+        PrepareResolvedCellStates(simulation.World);
+        ExecuteOwnerStage(
+            simulation,
+            CellOwnerStage,
+            _resolvedCellStateCount);
+        ReconcileResolvedCellStates(simulation);
+    }
+
+    private void ResolveCellStatesSingleWorker(Simulation simulation)
+    {
+        var index = 0;
+        while (index < _cellStateCount)
+        {
+            var first = _cellStates[index];
+            var end = index + 1;
+            while (end < _cellStateCount &&
+                   first.SameDestination(_cellStates[end]))
             {
-                var first = _cultureReductions[index];
-                var end = index + 1;
-                long sum = first.DeltaUnits;
-                while (end < _cultureReductionCount && first.SameDestination(_cultureReductions[end]))
-                {
-                    sum = checked(sum + _cultureReductions[end].DeltaUnits);
-                    end++;
-                }
+                end++;
+            }
 
-                if (Shard(first.OwnCultureId, first.PlaneCode, first.Q, first.R, shardCount) == shard)
-                {
-                    using var scope = simulation.EnterExecutionContext(first.Context);
-                    simulation.ApplyResolvedCultureReduction(
-                        first.OwnCultureId,
-                        first.PlaneCode,
-                        first.Q,
-                        first.R,
-                        ClampToInt(sum),
-                        simulation.CurrentTick);
-                }
+            ApplySingleCellState(
+                simulation,
+                _cellStates[end - 1]);
+            index = end;
+        }
+    }
 
-                index = end;
+    private static void ApplySingleCellState(
+        Simulation simulation,
+        in CellStateDelta delta)
+    {
+        var world = simulation.World;
+        var cellId = world.PrepareOwnedCellState(
+            delta.PlaneCode,
+            delta.Q,
+            delta.R);
+        using var scope = simulation.EnterExecutionContext(delta.Context);
+        var changed = world.ApplyOwnedCellState(
+            cellId,
+            delta.PlaneCode,
+            delta.Q,
+            delta.R,
+            delta.TerrainId,
+            delta.OwnerEntityId,
+            simulation.CurrentTick,
+            delta.Context,
+            out var previousOwner,
+            out var terrainChanged);
+        if (!changed)
+        {
+            return;
+        }
+
+        world.ReconcileOwnedCellState(
+            cellId,
+            delta.PlaneCode,
+            delta.Q,
+            delta.R,
+            previousOwner,
+            delta.OwnerEntityId);
+        if (terrainChanged)
+        {
+            simulation.Movement.RecordTopologyChanged();
+        }
+    }
+
+    private void PrepareResolvedCellStates(WorldState world)
+    {
+        _resolvedCellStateCount = 0;
+        var index = 0;
+        while (index < _cellStateCount)
+        {
+            var first = _cellStates[index];
+            var end = index + 1;
+            while (end < _cellStateCount && first.SameDestination(_cellStates[end]))
+            {
+                end++;
+            }
+
+            var winner = _cellStates[end - 1];
+            var cellId = world.PrepareOwnedCellState(
+                winner.PlaneCode,
+                winner.Q,
+                winner.R);
+            _resolvedCellStates[_resolvedCellStateCount++] =
+                new ResolvedCellState(cellId, winner);
+
+            index = end;
+        }
+    }
+
+    private void ResolveCellOwner(
+        Simulation simulation,
+        int ownerIndex,
+        int ownerCount)
+    {
+        var index = (int)((long)_resolvedCellStateCount * ownerIndex / ownerCount);
+        var limit = (int)((long)_resolvedCellStateCount * (ownerIndex + 1) / ownerCount);
+        while (index < limit)
+        {
+            var resolved = _resolvedCellStates[index];
+            var winner = resolved.Delta;
+            using var scope = simulation.EnterExecutionContext(winner.Context);
+            _resolvedCellChanged[index] = simulation.World.ApplyOwnedCellState(
+                resolved.CellId,
+                winner.PlaneCode,
+                winner.Q,
+                winner.R,
+                winner.TerrainId,
+                winner.OwnerEntityId,
+                simulation.CurrentTick,
+                winner.Context,
+                out _resolvedCellPreviousOwners[index],
+                out _resolvedCellTerrainChanged[index]);
+            index++;
+        }
+    }
+
+    private void ReconcileResolvedCellStates(Simulation simulation)
+    {
+        for (var index = 0; index < _resolvedCellStateCount; index++)
+        {
+            if (!_resolvedCellChanged[index])
+            {
+                continue;
+            }
+
+            var resolved = _resolvedCellStates[index];
+            var delta = resolved.Delta;
+            simulation.World.ReconcileOwnedCellState(
+                resolved.CellId,
+                delta.PlaneCode,
+                delta.Q,
+                delta.R,
+                _resolvedCellPreviousOwners[index],
+                delta.OwnerEntityId);
+            if (_resolvedCellTerrainChanged[index])
+            {
+                simulation.Movement.RecordTopologyChanged();
             }
         }
     }
 
-    private void ResolveRelationships(Simulation simulation, int shardCount)
+    private void ResolveAttributeOwner(
+        Simulation simulation,
+        int ownerIndex,
+        int ownerCount)
     {
-        for (var shard = 0; shard < shardCount; shard++)
+        var index = OwnerStart(
+            ownerIndex,
+            ownerCount,
+            _attributeCount,
+            AttributeOwnerStage);
+        var limit = OwnerStart(
+            ownerIndex + 1,
+            ownerCount,
+            _attributeCount,
+            AttributeOwnerStage);
+        while (index < limit)
         {
-            var index = 0;
-            while (index < _relationshipCount)
+            var first = _attributes[index];
+            var end = index + 1;
+            long sum = first.DeltaUnits;
+            while (end < limit && first.SameDestination(_attributes[end]))
             {
-                var first = _relationships[index];
-                var end = index + 1;
-                long sum = first.DeltaUnits;
-                while (end < _relationshipCount && first.SameDestination(_relationships[end]))
-                {
-                    sum = checked(sum + _relationships[end].DeltaUnits);
-                    end++;
-                }
-
-                if (Shard(first.RelationshipOccurrenceHandle, 0, 0, 0, shardCount) == shard &&
-                    simulation.World.TryResolveRelationshipOccurrence(
-                        first.RelationshipOccurrenceHandle,
-                        out var relationshipId))
-                {
-                    using var scope = simulation.EnterExecutionContext(first.Context);
-                    simulation.ModifyRelationshipStrengthUnits(
-                        relationshipId,
-                        ClampToInt(sum),
-                        simulation.CurrentTick);
-                }
-
-                index = end;
+                sum = checked(sum + _attributes[end].DeltaUnits);
+                end++;
             }
+
+            if (simulation.World.TryResolveEntityOccurrence(first.EntityOccurrenceHandle, out var entityId))
+            {
+                using var scope = simulation.EnterExecutionContext(first.Context);
+                simulation.ModifyAttributeUnits(
+                    entityId,
+                    first.AttributeId,
+                    ClampToInt(sum),
+                    simulation.CurrentTick);
+            }
+
+            index = end;
         }
     }
 
-    private void ResolveRelationshipEnds(Simulation simulation, int shardCount)
+    private void ResolveRelationshipOwner(
+        Simulation simulation,
+        int ownerIndex,
+        int ownerCount)
     {
-        for (var shard = 0; shard < shardCount; shard++)
+        var index = OwnerStart(
+            ownerIndex,
+            ownerCount,
+            _relationshipCount,
+            RelationshipOwnerStage);
+        var limit = OwnerStart(
+            ownerIndex + 1,
+            ownerCount,
+            _relationshipCount,
+            RelationshipOwnerStage);
+        while (index < limit)
         {
-            var index = 0;
-            while (index < _relationshipEndCount)
+            var first = _relationships[index];
+            var end = index + 1;
+            long sum = first.DeltaUnits;
+            while (end < limit && first.SameDestination(_relationships[end]))
             {
-                var first = _relationshipEnds[index];
-                var end = index + 1;
-                var unconditional = first.Unconditional;
-                var thresholdUnits = first.ThresholdUnits;
-                while (end < _relationshipEndCount && first.SameDestination(_relationshipEnds[end]))
-                {
-                    unconditional |= _relationshipEnds[end].Unconditional;
-                    thresholdUnits = global::System.Math.Max(
-                        thresholdUnits,
-                        _relationshipEnds[end].ThresholdUnits);
-                    end++;
-                }
-
-                if (Shard(first.RelationshipOccurrenceHandle, 0, 0, 0, shardCount) == shard &&
-                    simulation.World.TryResolveRelationshipOccurrence(
-                        first.RelationshipOccurrenceHandle,
-                        out var relationshipId) &&
-                    (unconditional ||
-                     KernelFixedPoint.RelationshipStrengthUnits(
-                         simulation.World.RelationshipStrength(relationshipId)) <= thresholdUnits))
-                {
-                    using var scope = simulation.EnterExecutionContext(first.Context);
-                    simulation.CullRelationship(relationshipId, simulation.CurrentTick);
-                }
-
-                index = end;
+                sum = checked(sum + _relationships[end].DeltaUnits);
+                end++;
             }
+
+            if (simulation.World.TryResolveRelationshipOccurrence(
+                    first.RelationshipOccurrenceHandle,
+                    out var relationshipId))
+            {
+                using var scope = simulation.EnterExecutionContext(first.Context);
+                simulation.ModifyRelationshipStrengthUnits(
+                    relationshipId,
+                    ClampToInt(sum),
+                    simulation.CurrentTick);
+            }
+
+            index = end;
         }
     }
 
-    private void ResolveTags(Simulation simulation, int shardCount)
+    private void ResolveRelationshipEnds(Simulation simulation)
     {
-        for (var shard = 0; shard < shardCount; shard++)
+        var index = 0;
+        while (index < _relationshipEndCount)
         {
-            var index = 0;
-            while (index < _tagCount)
+            var first = _relationshipEnds[index];
+            var end = index + 1;
+            var unconditional = first.Unconditional;
+            var thresholdUnits = first.ThresholdUnits;
+            while (end < _relationshipEndCount && first.SameDestination(_relationshipEnds[end]))
             {
-                var first = _tags[index];
-                var end = index + 1;
-                while (end < _tagCount && first.SameDestination(_tags[end]))
-                {
-                    end++;
-                }
-
-                if (Shard(first.EntityOccurrenceHandle, first.TagId, 0, 0, shardCount) == shard &&
-                    simulation.World.TryResolveEntityOccurrence(first.EntityOccurrenceHandle, out var entityId))
-                {
-                    var winner = _tags[end - 1];
-                    using var scope = simulation.EnterExecutionContext(winner.Context);
-                    _ = simulation.SetEntityTag(
-                        entityId,
-                        winner.TagId,
-                        winner.Assigned,
-                        simulation.CurrentTick);
-                }
-
-                index = end;
+                unconditional |= _relationshipEnds[end].Unconditional;
+                thresholdUnits = global::System.Math.Max(
+                    thresholdUnits,
+                    _relationshipEnds[end].ThresholdUnits);
+                end++;
             }
+
+            if (simulation.World.TryResolveRelationshipOccurrence(
+                    first.RelationshipOccurrenceHandle,
+                    out var relationshipId) &&
+                (unconditional ||
+                 KernelFixedPoint.RelationshipStrengthUnits(
+                     simulation.World.RelationshipStrength(relationshipId)) <= thresholdUnits))
+            {
+                using var scope = simulation.EnterExecutionContext(first.Context);
+                simulation.CullRelationship(relationshipId, simulation.CurrentTick);
+            }
+
+            index = end;
         }
     }
 
-    private void ResolveLifecycles(Simulation simulation, int shardCount)
+    private void ResolveTagOwner(
+        Simulation simulation,
+        int ownerIndex,
+        int ownerCount)
     {
-        for (var shard = 0; shard < shardCount; shard++)
+        var index = OwnerStart(
+            ownerIndex,
+            ownerCount,
+            _tagCount,
+            TagOwnerStage);
+        var limit = OwnerStart(
+            ownerIndex + 1,
+            ownerCount,
+            _tagCount,
+            TagOwnerStage);
+        while (index < limit)
         {
-            var index = 0;
-            while (index < _lifecycleCount)
+            var first = _tags[index];
+            var end = index + 1;
+            while (end < limit && first.SameDestination(_tags[end]))
             {
-                var first = _lifecycles[index];
-                var end = index + 1;
-                while (end < _lifecycleCount &&
-                       _lifecycles[end].EntityOccurrenceHandle == first.EntityOccurrenceHandle)
-                {
-                    end++;
-                }
-
-                if (Shard(first.EntityOccurrenceHandle, 0, 0, 0, shardCount) == shard &&
-                    simulation.World.TryResolveEntityOccurrence(first.EntityOccurrenceHandle, out var entityId))
-                {
-                    ResolveLifecycleGroup(simulation, entityId, index, end);
-                }
-
-                index = end;
+                end++;
             }
+
+            if (simulation.World.TryResolveEntityOccurrence(first.EntityOccurrenceHandle, out var entityId))
+            {
+                var winner = _tags[end - 1];
+                using var scope = simulation.EnterExecutionContext(winner.Context);
+                _ = simulation.SetEntityTag(
+                    entityId,
+                    winner.TagId,
+                    winner.Assigned,
+                    simulation.CurrentTick);
+            }
+
+            index = end;
+        }
+    }
+
+    private void ResolveLifecycles(Simulation simulation)
+    {
+        var index = 0;
+        while (index < _lifecycleCount)
+        {
+            var first = _lifecycles[index];
+            var end = index + 1;
+            while (end < _lifecycleCount &&
+                   _lifecycles[end].EntityOccurrenceHandle == first.EntityOccurrenceHandle)
+            {
+                end++;
+            }
+
+            if (simulation.World.TryResolveEntityOccurrence(first.EntityOccurrenceHandle, out var entityId))
+            {
+                ResolveLifecycleGroup(simulation, entityId, index, end);
+            }
+
+            index = end;
         }
     }
 
@@ -486,16 +882,6 @@ internal sealed class TickDeltaBuffer
         DeterministicSort.Sort(values, count);
     }
 
-    private static void Add<T>(T[] values, ref int count, in T value)
-    {
-        if (count >= values.Length)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        values[count++] = value;
-    }
-
     private static int ClampToInt(long value)
     {
         if (value > int.MaxValue)
@@ -506,248 +892,77 @@ internal sealed class TickDeltaBuffer
         return value < int.MinValue ? int.MinValue : (int)value;
     }
 
-    private static int Shard(int a, int b, int c, int d, int shardCount)
+    private int OwnerStart(
+        int ownerIndex,
+        int ownerCount,
+        int count,
+        int ownerStage)
     {
-        unchecked
+        if (ownerIndex <= 0)
         {
-            var hash = (uint)a * 2654435761u;
-            hash ^= (uint)b * 2246822519u;
-            hash ^= (uint)c * 3266489917u;
-            hash ^= (uint)d * 668265263u;
-            hash ^= hash >> 16;
-            return (int)(hash % (uint)shardCount);
+            return 0;
         }
+
+        if (ownerIndex >= ownerCount)
+        {
+            return count;
+        }
+
+        var start = (int)((long)count * ownerIndex / ownerCount);
+        while (start < count && SameOwnerAtBoundary(start, ownerStage))
+        {
+            start++;
+        }
+
+        return start;
     }
-}
 
-internal readonly record struct MovementDelta(
-    int EntityOccurrenceHandle,
-    int PlaneCode,
-    int Q,
-    int R,
-    int Z,
-    int CauseCode,
-    int Priority,
-    long SourceKey,
-    KernelExecutionContext Context) : IDeterministicOrder<MovementDelta>
-{
-    public int CompareTo(MovementDelta other) =>
-        Compare(
-            EntityOccurrenceHandle, other.EntityOccurrenceHandle,
-            PlaneCode, other.PlaneCode,
-            Priority, other.Priority,
-            SourceKey, other.SourceKey,
-            Q, other.Q,
-            R, other.R,
-            Z, other.Z);
-
-    private static int Compare(
-        int a0, int b0,
-        int a1, int b1,
-        int a2, int b2,
-        long a3, long b3,
-        int a4, int b4,
-        int a5, int b5,
-        int a6, int b6)
+    private bool SameOwnerAtBoundary(
+        int index,
+        int ownerStage)
     {
-        var comparison = a0.CompareTo(b0);
-        if (comparison != 0) return comparison;
-        comparison = a1.CompareTo(b1);
-        if (comparison != 0) return comparison;
-        comparison = a2.CompareTo(b2);
-        if (comparison != 0) return comparison;
-        comparison = a3.CompareTo(b3);
-        if (comparison != 0) return comparison;
-        comparison = a4.CompareTo(b4);
-        if (comparison != 0) return comparison;
-        comparison = a5.CompareTo(b5);
-        return comparison != 0 ? comparison : a6.CompareTo(b6);
-    }
-}
+        if (ownerStage == AttributeOwnerStage)
+        {
+            return _attributes[index - 1].EntityOccurrenceHandle ==
+                _attributes[index].EntityOccurrenceHandle;
+        }
 
-internal readonly record struct AttributeDelta(
-    int EntityOccurrenceHandle,
-    int AttributeId,
-    int DeltaUnits,
-    long SourceKey,
-    KernelExecutionContext Context) : IDeterministicOrder<AttributeDelta>
-{
-    public bool SameDestination(AttributeDelta other) =>
-        EntityOccurrenceHandle == other.EntityOccurrenceHandle &&
-        AttributeId == other.AttributeId;
+        if (ownerStage == RelationshipOwnerStage)
+        {
+            return _relationships[index - 1].RelationshipOccurrenceHandle ==
+                _relationships[index].RelationshipOccurrenceHandle;
+        }
 
-    public int CompareTo(AttributeDelta other)
-    {
-        var comparison = EntityOccurrenceHandle.CompareTo(other.EntityOccurrenceHandle);
-        if (comparison != 0) return comparison;
-        comparison = AttributeId.CompareTo(other.AttributeId);
-        return comparison != 0 ? comparison : SourceKey.CompareTo(other.SourceKey);
-    }
-}
+        if (ownerStage == TagOwnerStage)
+        {
+            return _tags[index - 1].EntityOccurrenceHandle ==
+                _tags[index].EntityOccurrenceHandle;
+        }
 
-internal readonly record struct CultureDelta(
-    int CultureId,
-    int PlaneCode,
-    int Q,
-    int R,
-    int Z,
-    int SourceEntityOccurrenceHandle,
-    int DeltaUnits,
-    long SourceKey,
-    KernelExecutionContext Context) : IDeterministicOrder<CultureDelta>
-{
-    public bool SameDestination(CultureDelta other) =>
-        CultureId == other.CultureId &&
-        PlaneCode == other.PlaneCode &&
-        Q == other.Q &&
-        R == other.R &&
-        Z == other.Z;
+        if (ownerStage == MovementOwnerStage)
+        {
+            return _resolvedMovements[index - 1].EntityId ==
+                _resolvedMovements[index].EntityId;
+        }
 
-    public int CompareTo(CultureDelta other)
-    {
-        var comparison = CultureId.CompareTo(other.CultureId);
-        if (comparison != 0) return comparison;
-        comparison = PlaneCode.CompareTo(other.PlaneCode);
-        if (comparison != 0) return comparison;
-        comparison = Q.CompareTo(other.Q);
-        if (comparison != 0) return comparison;
-        comparison = R.CompareTo(other.R);
-        if (comparison != 0) return comparison;
-        comparison = Z.CompareTo(other.Z);
-        if (comparison != 0) return comparison;
-        comparison = SourceEntityOccurrenceHandle.CompareTo(other.SourceEntityOccurrenceHandle);
-        return comparison != 0 ? comparison : SourceKey.CompareTo(other.SourceKey);
-    }
-}
+        if (ownerStage == CultureOwnerStage)
+        {
+            return _resolvedCultureGroups[index - 1].SameCell(
+                _resolvedCultureGroups[index]);
+        }
 
-internal readonly record struct CultureReductionDelta(
-    int OwnCultureId,
-    int PlaneCode,
-    int Q,
-    int R,
-    int DeltaUnits,
-    long SourceKey,
-    KernelExecutionContext Context) : IDeterministicOrder<CultureReductionDelta>
-{
-    public bool SameDestination(CultureReductionDelta other) =>
-        OwnCultureId == other.OwnCultureId &&
-        PlaneCode == other.PlaneCode &&
-        Q == other.Q &&
-        R == other.R;
+        if (ownerStage == CultureReductionOwnerStage)
+        {
+            return _resolvedCultureReductionGroups[index - 1].SameCell(
+                _resolvedCultureReductionGroups[index]);
+        }
 
-    public int CompareTo(CultureReductionDelta other)
-    {
-        var comparison = OwnCultureId.CompareTo(other.OwnCultureId);
-        if (comparison != 0) return comparison;
-        comparison = PlaneCode.CompareTo(other.PlaneCode);
-        if (comparison != 0) return comparison;
-        comparison = Q.CompareTo(other.Q);
-        if (comparison != 0) return comparison;
-        comparison = R.CompareTo(other.R);
-        return comparison != 0 ? comparison : SourceKey.CompareTo(other.SourceKey);
-    }
-}
+        if (ownerStage == InfluenceCreditOwnerStage)
+        {
+            return _influenceCredits[index - 1].EntityId ==
+                _influenceCredits[index].EntityId;
+        }
 
-internal readonly record struct RelationshipDelta(
-    int RelationshipOccurrenceHandle,
-    int DeltaUnits,
-    long SourceKey,
-    KernelExecutionContext Context) : IDeterministicOrder<RelationshipDelta>
-{
-    public bool SameDestination(RelationshipDelta other) =>
-        RelationshipOccurrenceHandle == other.RelationshipOccurrenceHandle;
-
-    public int CompareTo(RelationshipDelta other)
-    {
-        var comparison = RelationshipOccurrenceHandle.CompareTo(other.RelationshipOccurrenceHandle);
-        return comparison != 0 ? comparison : SourceKey.CompareTo(other.SourceKey);
-    }
-}
-
-internal readonly record struct RelationshipEndDelta(
-    int RelationshipOccurrenceHandle,
-    int ThresholdUnits,
-    bool Unconditional,
-    long SourceKey,
-    KernelExecutionContext Context) : IDeterministicOrder<RelationshipEndDelta>
-{
-    public bool SameDestination(RelationshipEndDelta other) =>
-        RelationshipOccurrenceHandle == other.RelationshipOccurrenceHandle;
-
-    public int CompareTo(RelationshipEndDelta other)
-    {
-        var comparison = RelationshipOccurrenceHandle.CompareTo(other.RelationshipOccurrenceHandle);
-        return comparison != 0 ? comparison : SourceKey.CompareTo(other.SourceKey);
-    }
-}
-
-internal readonly record struct TagDelta(
-    int EntityOccurrenceHandle,
-    int TagId,
-    bool Assigned,
-    int Priority,
-    long SourceKey,
-    KernelExecutionContext Context) : IDeterministicOrder<TagDelta>
-{
-    public bool SameDestination(TagDelta other) =>
-        EntityOccurrenceHandle == other.EntityOccurrenceHandle &&
-        TagId == other.TagId;
-
-    public int CompareTo(TagDelta other)
-    {
-        var comparison = EntityOccurrenceHandle.CompareTo(other.EntityOccurrenceHandle);
-        if (comparison != 0) return comparison;
-        comparison = TagId.CompareTo(other.TagId);
-        if (comparison != 0) return comparison;
-        comparison = Priority.CompareTo(other.Priority);
-        if (comparison != 0) return comparison;
-        comparison = SourceKey.CompareTo(other.SourceKey);
-        return comparison != 0 ? comparison : Assigned.CompareTo(other.Assigned);
-    }
-}
-
-internal readonly record struct CellStateDelta(
-    int PlaneCode,
-    int Q,
-    int R,
-    int TerrainId,
-    int OwnerEntityId,
-    int Priority,
-    long SourceKey,
-    KernelExecutionContext Context) : IDeterministicOrder<CellStateDelta>
-{
-    public bool SameDestination(CellStateDelta other) =>
-        PlaneCode == other.PlaneCode && Q == other.Q && R == other.R;
-
-    public int CompareTo(CellStateDelta other)
-    {
-        var comparison = PlaneCode.CompareTo(other.PlaneCode);
-        if (comparison != 0) return comparison;
-        comparison = Q.CompareTo(other.Q);
-        if (comparison != 0) return comparison;
-        comparison = R.CompareTo(other.R);
-        if (comparison != 0) return comparison;
-        comparison = Priority.CompareTo(other.Priority);
-        if (comparison != 0) return comparison;
-        comparison = SourceKey.CompareTo(other.SourceKey);
-        if (comparison != 0) return comparison;
-        comparison = TerrainId.CompareTo(other.TerrainId);
-        return comparison != 0 ? comparison : OwnerEntityId.CompareTo(other.OwnerEntityId);
-    }
-}
-
-internal readonly record struct LifecycleDelta(
-    int EntityOccurrenceHandle,
-    int AttributeId,
-    long ThresholdUnits,
-    long SourceKey,
-    KernelExecutionContext Context) : IDeterministicOrder<LifecycleDelta>
-{
-    public int CompareTo(LifecycleDelta other)
-    {
-        var comparison = EntityOccurrenceHandle.CompareTo(other.EntityOccurrenceHandle);
-        if (comparison != 0) return comparison;
-        comparison = AttributeId.CompareTo(other.AttributeId);
-        return comparison != 0 ? comparison : SourceKey.CompareTo(other.SourceKey);
+        throw new global::System.InvalidOperationException();
     }
 }

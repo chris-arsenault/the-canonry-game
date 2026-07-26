@@ -97,6 +97,30 @@ internal sealed class MapUniqueEntityLayer
         _values.SetValue(cellId, value == 0 ? 0 : checked((value << 2) | planeCode));
     }
 
+    internal int SetDirectValue(int cellId, int value)
+    {
+        var planeCode = _cells.PlaneCode(cellId);
+        return _values.SetDirectValue(
+            cellId,
+            value == 0 ? 0 : checked((value << 2) | planeCode)) >> 2;
+    }
+
+    internal void ReconcileValueChange(
+        int cellId,
+        int previousValue,
+        int value)
+    {
+        var planeCode = _cells.PlaneCode(cellId);
+        _values.ReconcileValueChange(
+            cellId,
+            previousValue == 0
+                ? 0
+                : checked((previousValue << 2) | planeCode),
+            value == 0
+                ? 0
+                : checked((value << 2) | planeCode));
+    }
+
     internal int ValueCellCount(int value, int planeCode)
     {
         return _values.ValueCellCount(checked((value << 2) | planeCode));
@@ -203,6 +227,48 @@ internal sealed class MapFixedScalarEntityLayer
         }
 
         _values[row] = value;
+    }
+
+    internal void EnsureRowForOwnedWrite(int cultureId, int cellId)
+    {
+        var directIndex = CultureCellIndex(cultureId, cellId);
+        if (_rowByCultureCell[directIndex] != 0)
+        {
+            return;
+        }
+
+        var row = AllocateRow();
+        _rowByCultureCell[directIndex] = row;
+        _cultureIds[row] = cultureId;
+        _cellIds[row] = cellId;
+        LinkRow(row, CulturePlaneKey(cultureId, _cells.PlaneCode(cellId)));
+        _count++;
+    }
+
+    internal void SetOwnedValue(int cultureId, int cellId, int value)
+    {
+        var row = _rowByCultureCell[CultureCellIndex(cultureId, cellId)];
+        if (row == 0)
+        {
+            if (value > 0)
+            {
+                throw new global::System.InvalidOperationException();
+            }
+
+            return;
+        }
+
+        _values[row] = value > 0 ? value : 0;
+    }
+
+    internal void ReconcileOwnedValue(int cultureId, int cellId)
+    {
+        var directIndex = CultureCellIndex(cultureId, cellId);
+        var row = _rowByCultureCell[directIndex];
+        if (row > 0 && _values[row] <= 0)
+        {
+            ReleaseRow(row, directIndex);
+        }
     }
 
     internal int ValueCellCount(int cultureId, int planeCode)

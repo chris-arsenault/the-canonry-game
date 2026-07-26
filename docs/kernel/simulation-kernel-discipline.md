@@ -4,8 +4,9 @@ This document is a critical architecture reference for future engine work.
 
 The simulation kernel is the code executed by `Simulation.AdvanceTicks()` (in
 `Engine.Kernel/Simulation.cs`) and every program/system it invokes on the sim
-thread. It should be treated like an audio callback: deterministic, bounded,
-allocation-aware, and isolated from presentation work.
+coordinator or its fixed evaluation workers. It should be treated like an audio
+callback: deterministic, bounded, allocation-aware, and isolated from
+presentation work.
 
 The kernel split is in place — `Engine.Kernel`, `Engine.Domain`,
 `Engine.Eventing`, `Engine.Eventing.Schema`, `Engine.Host`,
@@ -18,11 +19,15 @@ engine toward these rules and must not introduce avoidable new violations.
 
 ## Core Rule
 
-The sim thread owns simulation mutation.
+Every mutable destination has one exclusive owner for a published phase.
 
-No other thread may mutate engine state. Off-thread systems may consume primitive
-snapshots or primitive event records, compute suggestions, and return primitive
-intent records for the sim thread to validate and apply.
+The coordinator owns admission, owner preparation, structural reconciliation,
+strategic mutation, and publication. Fixed workers may mutate only the disjoint
+program-local or world-state destinations assigned to their evaluation range or
+owner range, and may append only through their bounded worker arena. Effects
+that cross those owners remain primitive deltas until their typed owner reduces
+them at a barrier. Uncoordinated threads may consume primitive snapshots or
+event records, but may not read or mutate live kernel state.
 
 ## Architectural Enforcement Direction
 
@@ -221,10 +226,10 @@ independently.
 
 ## Thread Discipline
 
-The current scheduler is a bulk-synchronous model executed on one thread. A
-tick admits commands, prepares local inputs, freezes the active entity and
-relationship views, evaluates local programs into fixed-capacity typed deltas,
-resolves those deltas by destination, runs strategic programs, and publishes
+The current scheduler is bulk-synchronous. A coordinator admits commands,
+prepares local inputs, freezes the active entity and relationship views,
+dispatches eligible local programs over fixed worker ranges, joins all workers,
+resolves typed deltas by destination, runs strategic programs, and publishes
 the tick. Local semantic events are phase-buffered and deterministically sorted
 before they enter the event log.
 
@@ -239,12 +244,17 @@ tick, phase, program, occurrence/logical key, rule, purpose, and attempt.
 Evaluation order, rejected unrelated work, and logical shard count therefore do
 not consume or shift a shared random stream.
 
-This one-thread execution is the reference contract, not a permanent
-one-writer architecture rule.
+Worker count one is the reference contract. It uses the same range evaluator as
+larger worker counts while taking direct worker-zero context, scratch, and
+append paths so scheduler plumbing does not make the reference runtime slower.
 
-Phase 9 measurement selected a typed-owner bulk-synchronous scheduler as the
-next implementation candidate. The selection does not change the current
-single-threaded runtime. Its ownership topology is:
+Execution topology is host state. `WorkerCount` and `LogicalShardCount` are
+selected when a simulation is constructed or loaded and are not persisted in
+kernel snapshots. Changing topology may alter work partitioning only; it may
+not add another simulation clock or change published state.
+
+Phase 9 measurement selected a typed-owner bulk-synchronous scheduler. Its
+ownership topology is:
 
 - stable-ID ranges or bounded dynamic chunks for read-only evaluation;
 - entity owners for entity slots and entity-program state;
@@ -252,23 +262,71 @@ single-threaded runtime. Its ownership topology is:
 - cell owners for terrain, culture, and other map-cell destinations; and
 - bounded typed messages whenever one operation affects more than one owner.
 
-The ownership decision does not authorize parallelizing accidental work. The
-measured all-pairs gambit target scan and per-candidate terrain-integrated reach
-query must be removed, then the reduced serial phase profile must be measured
-again before worker implementation. Persistent geographic actors remain
-rejected; this serial gate does not reopen that strategy.
+The owner-ready storage batch established two concrete mutation boundaries:
+
+- entity slots own coordinates; the bounded spatial-membership index owns
+  cell-to-entity chains; and
+- relationship slots own edge facts; the bounded relationship endpoint index
+  owns incident adjacency, CSR rows, delta chains, and compaction.
+
+The persistent-worker batch established immutable entity/relationship ranges,
+worker-local scratch and execution contexts, and bounded append arenas. Effects
+and relationship maintenance can evaluate ranges concurrently. Low-altitude
+verbs can do so when trace capture is disabled. Minor actors use the same range
+contract but remain one-range while actor indexes and encounters have shared
+ownership.
+
+The typed-owner batch routes the resulting deltas without a coordinator apply
+queue:
+
+- entity ranges own attributes, tags, movement coordinates, and influence
+  production credits;
+- relationship ranges own relationship strength;
+- cell ranges own direct terrain, coverage, culture influence, and culture
+  reduction values; and
+- worker event arenas publish only after deterministic compaction and sort.
+
+Coordinator barriers prepare storage that cannot be allocated concurrently and
+reconcile cross-owner structures afterward. Movement detaches and reattaches
+spatial membership around entity-owned coordinate writes. Coverage reverse
+indexes, map extents, path topology, culture row release, locality invalidation,
+relationship culling, and lifecycle retirement remain explicit ordered
+reconciliation stages.
+
+Hot queries may directly read arrays published by an owner while the phase
+barrier guarantees they are immutable; they must not mutate through those read
+views. New cross-owner work must use the existing bounded typed routing and
+barriers, not locks, a global apply queue, or duplicate compatibility indexes.
+
+The ownership decision does not authorize parallelizing accidental work.
+Remaining terrain-integrated reach work must be removed through its separately
+approved gameplay design rather than preserved inside workers. Persistent
+geographic actors remain rejected; evaluation workers do not reopen that
+strategy.
 
 Geography is not the universal ownership key. It applies to cell/map storage
 only. Relationship and gambit interactions are too nonlocal, and geographic
 entity load is too skewed, for persistent spatial actors to be the primary
-scheduler. A future implementation must use the same range/owner paths at one
-worker; it may not retain separate serial and parallel simulation models.
+scheduler. The implementation must use the same range/owner paths at one worker;
+the current implementation does so and may not grow separate serial and
+parallel simulation models.
 
-Any future parallel phase must give each mutable slot, relationship, or cell one
+Every parallel phase must give each mutable slot, relationship, or cell one
 exclusive owner for that phase. Cross-owner effects travel as bounded primitive
 deltas and become visible only after deterministic reduction at a published
 phase boundary. A phase may not read a field while another owner is mutating
 the version it sees.
+
+Allowed inside the synchronous kernel worker set:
+
+- reading the frozen active-ID view and world version published for the phase;
+- reading immutable world/program data while the coordinator holds the phase
+  barrier;
+- mutating only program-local slots exclusively assigned by the worker range;
+- reducing only entity, relationship, or cell destinations exclusively assigned
+  to the worker owner range;
+- using worker-local fixed-capacity scratch; and
+- appending primitive deltas and events through bounded worker segments.
 
 Allowed off-thread work:
 
@@ -284,13 +342,16 @@ Disallowed off-thread work:
 
 - concurrent mutation without explicit phase ownership
 - reading unpublished or concurrently mutating kernel state
-- retaining live engine object references from the sim thread
+- retaining live engine object references beyond a synchronous worker phase
 - applying worker results without deterministic validation and reduction
 
-Cross-thread data must be primitive, immutable, and versioned. In the current
-scheduler, the sim thread validates and applies returned intents. A future
-parallel scheduler may instead route them to the owning phase or shard, but
-must preserve the same explicit version, legality, and reduction contract.
+The fixed kernel workers may receive live kernel references only while the
+coordinator has frozen the phase and will join those workers before mutation
+advances. All data that escapes that synchronous phase must be primitive,
+immutable, and versioned. Typed world deltas route to an exclusive owner inside
+that synchronous phase; structural reconciliation and strategic mutation occur
+only after the owner barrier while preserving the same version, legality, and
+reduction contract.
 
 Async work belongs on the consumer side of the primitive event boundary. UI,
 logs, telemetry, profiler analysis, Monte Carlo export, debug trace building,
@@ -356,7 +417,8 @@ For any engine change, ask:
 - Does it create or compare strings after domain registration?
 - Does it emit presentation text instead of primitive facts?
 - Does it pass live engine objects across threads?
-- Does it make the sim thread anything other than the only state mutator?
+- Does every live mutation have one exclusive phase owner?
+- Are live references confined to a joined synchronous worker phase?
 - Does it belong in `Engine.Kernel`, or should it be a domain, eventing,
   projection, host, or plugin concern?
 - Does it require one consumer to keep pace with another consumer?

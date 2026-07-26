@@ -7,10 +7,11 @@ internal sealed partial class Simulation
 {
     private void WriteKernelEvent(in KernelEvent kernelEvent)
     {
+        var context = ExecutionContext;
         var contextualEvent = kernelEvent.WithExecutionContext(
-            _executionContext.ProgramId,
-            _executionContext.SourceCodeId,
-            _executionContext.ProvenanceInvocationId);
+            context.ProgramId,
+            context.SourceCodeId,
+            context.ProvenanceInvocationId);
         if (!_eventPublisher.TryWrite(contextualEvent))
         {
             throw new global::System.InvalidOperationException();
@@ -238,7 +239,7 @@ internal sealed partial class Simulation
             planeCode,
             q,
             r,
-            _executionContext.SourceCodeId,
+            ExecutionContext.SourceCodeId,
             travelCount,
                 KernelFixedPoint.RoadQualityUnits(previousQuality),
                 KernelFixedPoint.RoadQualityUnits(currentQuality))));
@@ -258,7 +259,7 @@ internal sealed partial class Simulation
             planeCode,
             q,
             r,
-            _executionContext.SourceCodeId,
+            ExecutionContext.SourceCodeId,
             previousTravelStructureId,
             currentTravelStructureId)));
     }
@@ -276,7 +277,7 @@ internal sealed partial class Simulation
         WriteKernelEvent(KernelEvent.From(new CultureSlotOccupancyChangedKernelEvent(
             tick,
             WorldVersion,
-            _executionContext.SourceCodeId,
+            ExecutionContext.SourceCodeId,
             cultureId,
             slotId,
             polarityCode,

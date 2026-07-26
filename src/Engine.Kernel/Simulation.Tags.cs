@@ -15,11 +15,11 @@ internal sealed partial class Simulation
                 assigned,
                 Priority: 1,
                 DeltaSourceKey(occurrence, tagId),
-                _executionContext));
+                ExecutionContext));
             return World.EntityHasTag(entityId, tagId) != assigned;
         }
 
-        if (!World.SetEntityTagBit(entityId, tagId, assigned, tick, _executionContext))
+        if (!World.SetEntityTagBit(entityId, tagId, assigned, tick, ExecutionContext))
         {
             return false;
         }
@@ -30,7 +30,7 @@ internal sealed partial class Simulation
             World.EntityOccurrenceHandle(entityId),
             tagId,
             assigned ? 1 : 0,
-            _executionContext.SourceCodeId)));
+            ExecutionContext.SourceCodeId)));
         return true;
     }
 }

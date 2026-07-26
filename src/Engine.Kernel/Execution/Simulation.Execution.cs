@@ -47,7 +47,7 @@ internal sealed partial class Simulation
             causeCode,
             MovementPriority(causeCode),
             DeltaSourceKey(occurrence, planeCode),
-            _executionContext));
+            ExecutionContext));
         return true;
     }
 
@@ -65,7 +65,7 @@ internal sealed partial class Simulation
             0,
             0,
             DeltaSourceKey(occurrence, 0),
-            _executionContext));
+            ExecutionContext));
     }
 
     internal void QueueLifecycleRetirementWhenAttributeAtMost(
@@ -89,7 +89,7 @@ internal sealed partial class Simulation
             attributeId,
             threshold.Units,
             DeltaSourceKey(occurrence, attributeId),
-            _executionContext));
+            ExecutionContext));
     }
 
     internal void QueueRelationshipEndWhenAtMost(
@@ -112,68 +112,23 @@ internal sealed partial class Simulation
             KernelFixedPoint.RelationshipStrengthUnits(threshold),
             Unconditional: false,
             DeltaSourceKey(occurrence, 0),
-            _executionContext));
+            ExecutionContext));
     }
 
-    internal int ApplyResolvedCultureDelta(
-        int cultureId,
-        int planeCode,
-        int q,
-        int r,
-        int z,
-        int deltaUnits,
-        int tick)
-    {
-        var applied = World.ModifyCellCultureInfluenceRawUnits(
-            cultureId,
-            planeCode,
-            q,
-            r,
-            z,
-            deltaUnits,
-            tick,
-            _executionContext);
-        if (applied != 0 && z == 0)
-        {
-            CultureLocality.MarkDirty(World, planeCode, q, r);
-        }
-
-        return applied;
-    }
-
-    internal void ApplyResolvedCultureReduction(
-        int ownCultureId,
-        int planeCode,
-        int q,
-        int r,
-        int deltaUnits,
-        int tick)
-    {
-        _ = World.ReduceOtherCultureSourcesAtCell(
-            ownCultureId,
-            planeCode,
-            q,
-            r,
-            KernelFixedPoint.CultureMassScalar(deltaUnits),
-            tick,
-            _executionContext,
-            _dirtyCultureScratch,
-            out var changedCultureCount);
-        if (changedCultureCount > 0)
-        {
-            CultureLocality.MarkDirty(World, planeCode, q, r);
-        }
-    }
+    internal global::System.Span<int> DirtyCultureScratch =>
+        _dirtyCultureScratchByWorker[
+            _singleEvaluationWorker ? 0 : KernelWorkerThread.WorkerIndex];
 
     internal long DeltaSourceKey(int occurrenceHandle, int discriminator)
     {
+        var context = ExecutionContext;
         unchecked
         {
             var high = (uint)occurrenceHandle;
-            var low = (uint)_executionContext.ProgramId * 2654435761u;
-            low ^= (uint)_executionContext.SourceCodeId * 2246822519u;
-            low ^= (uint)_executionContext.ActionId * 3266489917u;
-            low ^= (uint)_executionContext.ProvenanceInvocationId * 668265263u;
+            var low = (uint)context.ProgramId * 2654435761u;
+            low ^= (uint)context.SourceCodeId * 2246822519u;
+            low ^= (uint)context.ActionId * 3266489917u;
+            low ^= (uint)context.ProvenanceInvocationId * 668265263u;
             low ^= (uint)discriminator * 374761393u;
             low ^= low >> 16;
             return ((long)high << 32) | low;
@@ -266,7 +221,7 @@ internal sealed partial class Simulation
             exclusiveMaximum,
             CurrentTick,
             _currentPhaseCode,
-            _executionContext.ProgramId,
+            ExecutionContext.ProgramId,
             logicalKey,
             ruleId,
             purposeCode,
@@ -284,7 +239,7 @@ internal sealed partial class Simulation
             maximum,
             CurrentTick,
             _currentPhaseCode,
-            _executionContext.ProgramId,
+            ExecutionContext.ProgramId,
             logicalKey,
             ruleId,
             purposeCode,
@@ -298,7 +253,7 @@ internal sealed partial class Simulation
         _random.Scalar(
             CurrentTick,
             _currentPhaseCode,
-            _executionContext.ProgramId,
+            ExecutionContext.ProgramId,
             logicalKey,
             ruleId,
             purposeCode,
@@ -325,14 +280,41 @@ internal sealed partial class Simulation
             throw new global::System.InvalidOperationException();
         if (_systemSourceCodeIds[systemIndex] <= 0)
         {
-            system.Tick(this, CurrentTick);
+            TickSystemRuntime(system);
             return;
         }
 
         using var scope = EnterExecutionContext(
             _systemSourceCodeIds[systemIndex],
             _systemProgramIds[systemIndex]);
+        TickSystemRuntime(system);
+    }
+
+    private void TickSystemRuntime(ISimulationSystem system)
+    {
+        if (_collectingDeltas &&
+            system is ILocalEvaluationRangeProgram rangeProgram)
+        {
+            _workers.Execute(
+                this,
+                rangeProgram,
+                _frozenTick,
+                CurrentTick,
+                Options.Execution.ReverseEvaluationOrder,
+                ExecutionContext);
+            return;
+        }
+
         system.Tick(this, CurrentTick);
+    }
+
+    internal void ExecuteOwnerWork(IKernelOwnerWork work, int workItemCount)
+    {
+        _workers.ExecuteOwners(
+            this,
+            work,
+            workItemCount,
+            ExecutionContext);
     }
 
     private void BeginPublishedPhase(int phaseCode)
@@ -363,6 +345,7 @@ internal sealed partial class Simulation
     private static void ValidateExecutionOptions(KernelExecutionOptions options)
     {
         global::System.ArgumentNullException.ThrowIfNull(options);
+        NumericGuard.ThrowIfNegativeOrZero(options.WorkerCount);
         NumericGuard.ThrowIfNegativeOrZero(options.LogicalShardCount);
     }
 }

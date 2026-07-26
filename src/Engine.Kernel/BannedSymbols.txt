@@ -19,12 +19,12 @@ T:System.Collections.Generic.IReadOnlyList`1;Kernel runtime code must use fixed 
 T:System.Collections.Generic.IReadOnlyCollection`1;Kernel runtime code must use fixed buffers/spans with explicit ownership.
 T:System.Collections.IEnumerable;Kernel runtime code must not expose enumerable traversal.
 
-# Async/threading primitives belong outside the synchronous kernel
+# Async and channel primitives belong outside the synchronous kernel.
+# Managed threads are centralized in KernelWorkerSet.
 T:System.Threading.Tasks.Task;Kernel runtime code must stay synchronous and deterministic.
 T:System.Threading.Tasks.Task`1;Kernel runtime code must stay synchronous and deterministic.
 T:System.Threading.Tasks.ValueTask;Kernel runtime code must stay synchronous and deterministic.
 T:System.Threading.Tasks.ValueTask`1;Kernel runtime code must stay synchronous and deterministic.
-T:System.Threading.Thread;Kernel runtime code must not create or manage threads.
 T:System.Threading.Channels.Channel;Kernel runtime code must not own async channels.
 T:System.Threading.Channels.Channel`1;Kernel runtime code must not own async channels.
 

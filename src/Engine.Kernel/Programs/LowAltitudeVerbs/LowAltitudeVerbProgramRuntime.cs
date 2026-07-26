@@ -1,10 +1,11 @@
 namespace Engine.Kernel;
 
 internal sealed partial class LowAltitudeVerbProgramRuntime :
-    IKernelProgramRuntime<LowAltitudeVerbProgramData, LowAltitudeVerbProgramState>
+    IKernelProgramRuntime<LowAltitudeVerbProgramData, LowAltitudeVerbProgramState>,
+    ILocalEvaluationRangeProgram
 {
-    private readonly VerbTargetCandidate[] _verbCandidateScratch;
-    private readonly FixedScalar[] _verbAffordanceSumScratch;
+    private readonly VerbTargetCandidate[][] _verbCandidateScratchByWorker;
+    private readonly FixedScalar[][] _verbAffordanceSumScratchByWorker;
 
     public LowAltitudeVerbProgramRuntime(LowAltitudeVerbProgramData data, LowAltitudeVerbProgramState state)
         : this(data, state, new KernelProgramTuningOptions())
@@ -15,16 +16,45 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         LowAltitudeVerbProgramData data,
         LowAltitudeVerbProgramState state,
         KernelProgramTuningOptions tuning)
+        : this(data, state, tuning, workerCount: 1)
+    {
+    }
+
+    internal LowAltitudeVerbProgramRuntime(
+        LowAltitudeVerbProgramData data,
+        LowAltitudeVerbProgramState state,
+        KernelProgramTuningOptions tuning,
+        int workerCount)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
         global::System.ArgumentNullException.ThrowIfNull(tuning);
+        NumericGuard.ThrowIfNegativeOrZero(workerCount);
         Data = data;
         State = state;
         Tuning = tuning;
-        _verbCandidateScratch = new VerbTargetCandidate[data.RuleCapacity];
-        _verbAffordanceSumScratch = new FixedScalar[data.RuleCapacity];
+        _verbCandidateScratchByWorker = new VerbTargetCandidate[workerCount][];
+        _verbAffordanceSumScratchByWorker = new FixedScalar[workerCount][];
+        for (var workerIndex = 0; workerIndex < workerCount; workerIndex++)
+        {
+            _verbCandidateScratchByWorker[workerIndex] =
+                new VerbTargetCandidate[data.RuleCapacity];
+            _verbAffordanceSumScratchByWorker[workerIndex] =
+                new FixedScalar[data.RuleCapacity];
+        }
     }
+
+    private VerbTargetCandidate[] VerbCandidateScratch =>
+        _verbCandidateScratchByWorker[
+            _verbCandidateScratchByWorker.Length == 1
+                ? 0
+                : KernelWorkerThread.WorkerIndex];
+
+    private FixedScalar[] VerbAffordanceSumScratch =>
+        _verbAffordanceSumScratchByWorker[
+            _verbAffordanceSumScratchByWorker.Length == 1
+                ? 0
+                : KernelWorkerThread.WorkerIndex];
 
     public LowAltitudeVerbProgramData Data { get; }
 
@@ -35,6 +65,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     public LowAltitudeVerbProgramState State { get; }
 
     public KernelProgramTuningOptions Tuning { get; }
+
+    public int RangeKindCode => LocalEvaluationRangeKindCodes.Entities;
+
+    public bool SupportsConcurrentRanges(Simulation simulation) =>
+        !simulation.TraceEnabled();
 
     public int RegisterVerb(
         int kindId,
@@ -170,24 +205,45 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         for (var index = 0; index < simulation.FrozenEntityCount; index++)
         {
-            var entityId = simulation.FrozenEntityAt(index);
-            ApplyRelationshipFollowMovementIntent(simulation, entityId, tick);
+            EvaluateEntity(simulation, simulation.FrozenEntityAt(index), tick);
+        }
+    }
 
-            if (ApplyInitialInfluenceIfNeeded(simulation, entityId, tick))
-            {
-                continue;
-            }
+    public void EvaluateRange(
+        Simulation simulation,
+        int tick,
+        in FrozenTickRange range)
+    {
+        for (var index = 0; index < range.Count; index++)
+        {
+            EvaluateEntity(simulation, range.At(index), tick);
+        }
+    }
 
-            if (ShouldChooseIntent(simulation, entityId, tick))
-            {
-                ChooseIntent(simulation, entityId, tick);
-            }
+    public void CompleteRanges(Simulation simulation, int tick)
+    {
+        _ = simulation;
+        _ = tick;
+    }
 
-            var slot = State.ActiveVerbSlot(entityId);
-            if (slot != 0)
-            {
-                ApplyIntent(simulation, entityId, slot, tick);
-            }
+    private void EvaluateEntity(Simulation simulation, int entityId, int tick)
+    {
+        ApplyRelationshipFollowMovementIntent(simulation, entityId, tick);
+
+        if (ApplyInitialInfluenceIfNeeded(simulation, entityId, tick))
+        {
+            return;
+        }
+
+        if (ShouldChooseIntent(simulation, entityId, tick))
+        {
+            ChooseIntent(simulation, entityId, tick);
+        }
+
+        var slot = State.ActiveVerbSlot(entityId);
+        if (slot != 0)
+        {
+            ApplyIntent(simulation, entityId, slot, tick);
         }
     }
 
@@ -377,14 +433,19 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             return;
         }
 
-        CommitSelectedIntent(simulation, entityId, tick, _verbCandidateScratch[selectedIndex], selectionBucketCode);
+        CommitSelectedIntent(
+            simulation,
+            entityId,
+            tick,
+            VerbCandidateScratch[selectedIndex],
+            selectionBucketCode);
     }
 
     private VerbBucket BuildVerbBucket(Simulation simulation, int entityId, int tick)
     {
         var bucket = default(VerbBucket);
-        var candidates = _verbCandidateScratch;
-        var sumAffordanceScores = _verbAffordanceSumScratch;
+        var candidates = VerbCandidateScratch;
+        var sumAffordanceScores = VerbAffordanceSumScratch;
         var kindId = simulation.World.EntityKindId(entityId);
         var traceIntentId = State.NextIntentId(entityId, tick);
         for (var rule = Data.FirstRuleForKind(kindId);
@@ -438,8 +499,20 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             ? LowAltitudeVerbSelectionBucketCodes.Opportunity
             : LowAltitudeVerbSelectionBucketCodes.Routine;
         return pickFromOpportunity
-            ? PickOpportunityIndex(simulation, entityId, tick, _verbAffordanceSumScratch, bucket.TotalOpportunityWeight, bucket.VerbCount)
-            : PickRoutineIndex(simulation, entityId, tick, _verbCandidateScratch, bucket.TotalRoutineWeight, bucket.VerbCount);
+            ? PickOpportunityIndex(
+                simulation,
+                entityId,
+                tick,
+                VerbAffordanceSumScratch,
+                bucket.TotalOpportunityWeight,
+                bucket.VerbCount)
+            : PickRoutineIndex(
+                simulation,
+                entityId,
+                tick,
+                VerbCandidateScratch,
+                bucket.TotalRoutineWeight,
+                bucket.VerbCount);
     }
 
     private void CommitSelectedIntent(

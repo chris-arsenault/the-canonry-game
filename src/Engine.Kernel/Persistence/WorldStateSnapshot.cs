@@ -271,12 +271,20 @@ internal sealed partial class WorldState
         InsertEntityKindIndex(entityId, _entityKindId[entityId]);
         InsertEntityCultureIndex(entityId, _entityCultureId[entityId]);
         InsertActiveEntity(entityId);
-        InsertPhysicalOccupant(
+        _entitySpatialMembership.AttachPhysical(
             entityId,
-            _entityPhysicalQ[entityId],
-            _entityPhysicalR[entityId],
-            _entityPhysicalZ[entityId]);
-        InsertSemanticOccupant(entityId, _entitySemanticQ[entityId], _entitySemanticR[entityId]);
+            _cells.Require(
+                PlaneCodes.Physical,
+                _entityPhysicalQ[entityId],
+                _entityPhysicalR[entityId],
+                _entityPhysicalZ[entityId]));
+        _entitySpatialMembership.AttachSemantic(
+            entityId,
+            _cells.Require(
+                PlaneCodes.Semantic,
+                _entitySemanticQ[entityId],
+                _entitySemanticR[entityId],
+                z: 0));
     }
 
     private void ReadSnapshotEntityAttributes(global::System.IO.BinaryReader reader, int entityId)
@@ -373,7 +381,7 @@ internal sealed partial class WorldState
             _relationshipCreatedByInvocationId[relationshipId] = reader.ReadInt32();
             _relationshipLastChangedByInvocationId[relationshipId] = reader.ReadInt32();
             InsertActiveRelationship(relationshipId);
-            InsertIncidentRelationship(relationshipId);
+            _relationshipEndpoints.Attach(this, relationshipId);
         }
 
         RebuildRelationshipFreeSlots();

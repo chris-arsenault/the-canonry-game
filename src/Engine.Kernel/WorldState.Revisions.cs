@@ -4,12 +4,12 @@ internal sealed partial class WorldState
 {
     internal long CultureFieldRevision(int cultureId) =>
         (uint)cultureId < (uint)_cultureFieldRevisions.Length
-            ? _cultureFieldRevisions[cultureId]
+            ? ReadPublishedRevision(ref _cultureFieldRevisions[cultureId])
             : 0;
 
     internal long CultureWorkRevision(int cultureId) =>
         (uint)cultureId < (uint)_cultureWorkRevisions.Length
-            ? _cultureWorkRevisions[cultureId]
+            ? ReadPublishedRevision(ref _cultureWorkRevisions[cultureId])
             : 0;
 
     private void MarkCultureFieldDirty(int cultureId)
@@ -19,9 +19,16 @@ internal sealed partial class WorldState
             return;
         }
 
-        if (_cultureFieldRevisions[cultureId] < long.MaxValue)
+        if (_singleWorker)
         {
-            _cultureFieldRevisions[cultureId]++;
+            if (_cultureFieldRevisions[cultureId] < long.MaxValue)
+            {
+                _cultureFieldRevisions[cultureId]++;
+            }
+        }
+        else
+        {
+            IncrementSaturating(ref _cultureFieldRevisions[cultureId]);
         }
 
         MarkCultureWorkDirty(cultureId);
@@ -34,10 +41,17 @@ internal sealed partial class WorldState
             return;
         }
 
-        if (_cultureWorkRevisions[cultureId] < long.MaxValue)
+        if (_singleWorker)
         {
-            _cultureWorkRevisions[cultureId]++;
+            if (_cultureWorkRevisions[cultureId] < long.MaxValue)
+            {
+                _cultureWorkRevisions[cultureId]++;
+            }
+
+            return;
         }
+
+        IncrementSaturating(ref _cultureWorkRevisions[cultureId]);
     }
 
     private void MarkEntityCultureWorkDirty(int entityId)
@@ -49,4 +63,27 @@ internal sealed partial class WorldState
 
         MarkCultureWorkDirty(_entityCultureId[entityId]);
     }
+
+    private static void IncrementSaturating(ref long value)
+    {
+        var current = global::System.Threading.Volatile.Read(ref value);
+        while (current < long.MaxValue)
+        {
+            var observed = global::System.Threading.Interlocked.CompareExchange(
+                ref value,
+                current + 1,
+                current);
+            if (observed == current)
+            {
+                return;
+            }
+
+            current = observed;
+        }
+    }
+
+    private long ReadPublishedRevision(ref long value) =>
+        _singleWorker
+            ? value
+            : global::System.Threading.Volatile.Read(ref value);
 }

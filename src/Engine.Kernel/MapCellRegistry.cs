@@ -77,6 +77,16 @@ internal sealed class MapCellRegistry
         return cellId;
     }
 
+    internal int Require(int planeCode, int q, int r, int z)
+    {
+        if (!TryGet(planeCode, q, r, z, out var cellId))
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        return cellId;
+    }
+
     internal int PlaneCode(int cellId)
     {
         EnsureCell(cellId);

@@ -18,6 +18,13 @@ internal sealed class FrozenTickView
     public int EntityCount => _entityCount;
     public int RelationshipCount => _relationshipCount;
 
+    public int CountFor(int rangeKindCode) => rangeKindCode switch
+    {
+        LocalEvaluationRangeKindCodes.Entities => _entityCount,
+        LocalEvaluationRangeKindCodes.Relationships => _relationshipCount,
+        _ => throw new global::System.ArgumentOutOfRangeException(nameof(rangeKindCode)),
+    };
+
     public void Capture(WorldState world, int tick)
     {
         Tick = tick;
@@ -42,4 +49,23 @@ internal sealed class FrozenTickView
 
     public int RelationshipAt(int index, bool reverse) =>
         _relationshipIds[reverse ? _relationshipCount - index - 1 : index];
+
+    public FrozenTickRange Range(
+        int rangeKindCode,
+        int start,
+        int count,
+        bool reverse) =>
+        rangeKindCode switch
+        {
+            LocalEvaluationRangeKindCodes.Entities =>
+                new FrozenTickRange(_entityIds, _entityCount, start, count, reverse),
+            LocalEvaluationRangeKindCodes.Relationships =>
+                new FrozenTickRange(
+                    _relationshipIds,
+                    _relationshipCount,
+                    start,
+                    count,
+                    reverse),
+            _ => throw new global::System.ArgumentOutOfRangeException(nameof(rangeKindCode)),
+        };
 }

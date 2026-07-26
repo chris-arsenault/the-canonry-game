@@ -11,7 +11,7 @@ internal sealed partial class Simulation : IKernel
     private readonly int[] _systemPhaseCodes;
     private readonly ISimulationSystem?[] _systems;
     private readonly bool[] _systemActive;
-    private readonly int[] _dirtyCultureScratch;
+    private readonly int[][] _dirtyCultureScratchByWorker;
     private readonly KernelProgramRegistry _programs;
     private int _systemCount;
 #if DEBUG
@@ -21,6 +21,8 @@ internal sealed partial class Simulation : IKernel
     private readonly KeyedRandom _random;
     private readonly FrozenTickView _frozenTick;
     private readonly TickDeltaBuffer _tickDeltas;
+    private readonly KernelWorkerSet _workers;
+    private readonly bool _singleEvaluationWorker;
     private readonly KernelEventPublisher _eventPublisher;
     private KernelExecutionContext _executionContext;
     private int _executionContextDepth;
@@ -33,8 +35,12 @@ internal sealed partial class Simulation : IKernel
         options ??= new SimulationOptions();
         ValidateOptions(options);
         Options = options;
+        _singleEvaluationWorker = options.Execution.WorkerCount == 1;
         Events = CreateEventLog(options);
-        _eventPublisher = new KernelEventPublisher(Events, options.EventCapacity);
+        _eventPublisher = new KernelEventPublisher(
+            Events,
+            options.EventCapacity,
+            options.Execution.WorkerCount);
         Commands = new KernelCommandRing(options.CommandCapacity);
         KernelData = CreateKernelData(options);
         World = new WorldState(_eventPublisher, options, KernelData);
@@ -69,15 +75,31 @@ internal sealed partial class Simulation : IKernel
         _random = new KeyedRandom(options.Seed);
         _frozenTick = new FrozenTickView(options.EntityCapacity, options.RelationshipCapacity);
         _tickDeltas = new TickDeltaBuffer(options);
+        _workers = new KernelWorkerSet(options.Execution.WorkerCount);
         _systemCadences = new int[options.SystemCapacity];
         _systemProgramIds = new int[options.SystemCapacity];
         _systemSourceCodeIds = new int[options.SystemCapacity];
         _systemPhaseCodes = new int[options.SystemCapacity];
         _systems = new ISimulationSystem[options.SystemCapacity];
         _systemActive = new bool[options.SystemCapacity];
-        _dirtyCultureScratch = new int[options.CultureIdCapacity + 1];
+        _dirtyCultureScratchByWorker = CreateDirtyCultureScratch(options);
         _programs = new KernelProgramRegistry(options.SystemCapacity);
         RegisterDefaultPrograms();
+    }
+
+    private static int[][] CreateDirtyCultureScratch(
+        SimulationOptions options)
+    {
+        var scratchByWorker = new int[options.Execution.WorkerCount][];
+        for (var workerIndex = 0;
+             workerIndex < scratchByWorker.Length;
+             workerIndex++)
+        {
+            scratchByWorker[workerIndex] =
+                new int[options.CultureIdCapacity + 1];
+        }
+
+        return scratchByWorker;
     }
 
     private static KernelEventLog CreateEventLog(SimulationOptions options) =>
@@ -127,7 +149,8 @@ internal sealed partial class Simulation : IKernel
             new LowAltitudeVerbProgramState(
                 options.EntityCapacity,
                 options.KernelTuning.Programs.LowAltitudeVerbs.RecentTargetRingSize),
-            options.KernelTuning.Programs);
+            options.KernelTuning.Programs,
+            options.Execution.WorkerCount);
 
     private MovementProgramRuntime CreateMovementRuntime(SimulationOptions options) =>
         new(
@@ -137,7 +160,8 @@ internal sealed partial class Simulation : IKernel
             new MovementProgramState(options.MovementCellCapacity),
             new MovementProgramScratch(options.MapCellCapacity),
             World,
-            options.KernelTuning.Programs);
+            options.KernelTuning.Programs,
+            options.Execution.WorkerCount);
 
     private static EffectsProgramRuntime CreateEffectsRuntime(SimulationOptions options) =>
         new(
@@ -146,7 +170,8 @@ internal sealed partial class Simulation : IKernel
                 options.LifecycleRuleCapacity,
                 options.KindIdCapacity),
             new EffectsProgramState(),
-            options.KernelTuning.Programs);
+            options.KernelTuning.Programs,
+            options.Execution.WorkerCount);
 
     private static CultureSlotProgramRuntime CreateCultureSlotRuntime(SimulationOptions options) =>
         new(
@@ -356,7 +381,10 @@ internal sealed partial class Simulation : IKernel
     internal int LowAltitudeVerbSourceCodeId { get; private set; }
     internal int EffectsSourceCodeId { get; private set; }
     internal int PlayerSourceCodeId { get; private set; }
-    internal KernelExecutionContext ExecutionContext => _executionContext;
+    internal KernelExecutionContext ExecutionContext =>
+        _singleEvaluationWorker
+            ? _executionContext
+            : CurrentKernelWorker()?.ExecutionContext ?? _executionContext;
     public int CurrentTick { get; private set; }
     public long CurrentVersion => WorldVersion;
     public long WorldVersion => World.WorldVersion;
@@ -559,7 +587,7 @@ internal sealed partial class Simulation : IKernel
             semanticR,
             semanticS,
             tick,
-            _executionContext);
+            ExecutionContext);
         var physicalLocality = CultureLocality.CellAt(
             World,
             cultureId,
@@ -576,7 +604,7 @@ internal sealed partial class Simulation : IKernel
             tick,
             WorldVersion,
             World.EntityOccurrenceHandle(createdEntityId),
-            _executionContext.SourceCodeId,
+            ExecutionContext.SourceCodeId,
             kindId,
             subtypeId,
             cultureId,
@@ -638,7 +666,7 @@ internal sealed partial class Simulation : IKernel
         FixedScalar value,
         int tick)
     {
-        World.SetAttribute(entityId, attributeId, value, tick, _executionContext);
+        World.SetAttribute(entityId, attributeId, value, tick, ExecutionContext);
     }
 
     internal void ModifyAttribute(
@@ -655,11 +683,11 @@ internal sealed partial class Simulation : IKernel
                 attributeId,
                 KernelFixedPoint.AttributeUnits(delta),
                 DeltaSourceKey(occurrence, attributeId),
-                _executionContext));
+                ExecutionContext));
             return;
         }
 
-        World.ModifyAttribute(entityId, attributeId, delta, tick, _executionContext);
+        World.ModifyAttribute(entityId, attributeId, delta, tick, ExecutionContext);
     }
 
     internal void ModifyAttributeUnits(
@@ -676,11 +704,11 @@ internal sealed partial class Simulation : IKernel
                 attributeId,
                 deltaUnits,
                 DeltaSourceKey(occurrence, attributeId),
-                _executionContext));
+                ExecutionContext));
             return;
         }
 
-        World.ModifyAttributeUnits(entityId, attributeId, deltaUnits, tick, _executionContext);
+        World.ModifyAttributeUnits(entityId, attributeId, deltaUnits, tick, ExecutionContext);
     }
 
     internal void SetEntityStatus(int entityId, int statusCode, int tick)
@@ -697,12 +725,12 @@ internal sealed partial class Simulation : IKernel
             return;
         }
 
-        World.SetEntityStatus(entityId, statusCode, tick, _executionContext);
+        World.SetEntityStatus(entityId, statusCode, tick, ExecutionContext);
     }
 
     internal void SetEntityCulture(int entityId, int cultureId, int tick)
     {
-        World.SetEntityCulture(entityId, cultureId, tick, _executionContext);
+        World.SetEntityCulture(entityId, cultureId, tick, ExecutionContext);
     }
 
     internal void MoveEntityPhysical(int entityId, int q, int r, int tick)
@@ -723,7 +751,7 @@ internal sealed partial class Simulation : IKernel
 
     internal void MoveEntitySemanticUnchecked(int entityId, int q, int r, int s, int tick)
     {
-        World.MoveEntitySemantic(entityId, q, r, s, tick, _executionContext);
+        World.MoveEntitySemantic(entityId, q, r, s, tick, ExecutionContext);
     }
 
     internal int CreateRelationship(
@@ -741,7 +769,7 @@ internal sealed partial class Simulation : IKernel
             targetEntityId,
             strength,
             tick,
-            _executionContext);
+            ExecutionContext);
         if (relationshipId > 0)
         {
             Relationships.NoteRelationshipCreated(World, relationshipId);
@@ -762,7 +790,7 @@ internal sealed partial class Simulation : IKernel
 
     internal void SetRelationshipStrength(int relationshipId, FixedScalar strength, int tick)
     {
-        World.SetRelationshipStrength(relationshipId, strength, tick, _executionContext);
+        World.SetRelationshipStrength(relationshipId, strength, tick, ExecutionContext);
     }
 
     internal void ModifyRelationshipStrengthUnits(int relationshipId, int deltaUnits, int tick)
@@ -774,11 +802,11 @@ internal sealed partial class Simulation : IKernel
                 occurrence,
                 deltaUnits,
                 DeltaSourceKey(occurrence, 0),
-                _executionContext));
+                ExecutionContext));
             return;
         }
 
-        World.ModifyRelationshipStrengthUnits(relationshipId, deltaUnits, tick, _executionContext);
+        World.ModifyRelationshipStrengthUnits(relationshipId, deltaUnits, tick, ExecutionContext);
     }
 
     internal void CullRelationship(int relationshipId, int tick)
@@ -796,13 +824,13 @@ internal sealed partial class Simulation : IKernel
                 0,
                 Unconditional: true,
                 DeltaSourceKey(occurrence, 0),
-                _executionContext));
+                ExecutionContext));
             return;
         }
 
         var relationshipKindId = World.RelationshipKindId(relationshipId);
         Relationships.NoteRelationshipCulled(World, relationshipId);
-        World.CullRelationship(relationshipId, tick, _executionContext);
+        World.CullRelationship(relationshipId, tick, ExecutionContext);
         WorldBeats.NoteRelationshipEnded(relationshipKindId);
     }
 
@@ -889,11 +917,13 @@ internal sealed partial class Simulation : IKernel
 
     private void AssertExecutionSource()
     {
-        if (_executionContext.SourceCodeId <= 0)
+        if (ExecutionContext.SourceCodeId <= 0)
         {
             throw new global::System.InvalidOperationException();
         }
     }
+
+    internal void ShutdownWorkers() => _workers.Shutdown();
 
     private void EnterWriterThread()
     {

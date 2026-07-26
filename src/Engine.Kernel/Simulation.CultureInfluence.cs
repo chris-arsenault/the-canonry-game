@@ -21,11 +21,19 @@ internal sealed partial class Simulation
                 0,
                 deltaUnits,
                 DeltaSourceKey(0, CellDiscriminator(planeCode, q, r, z)),
-                _executionContext));
+                ExecutionContext));
             return KernelFixedPoint.CultureMassScalar(deltaUnits);
         }
 
-        var applied = World.ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, z, delta, tick, _executionContext);
+        var applied = World.ModifyCellCultureInfluenceRaw(
+            cultureId,
+            planeCode,
+            q,
+            r,
+            z,
+            delta,
+            tick,
+            ExecutionContext);
         // Culture locality is a surface model: forged-cell mass at z != 0
         // feeds the culture power ledgers directly and must not perturb
         // surface facts.
@@ -57,7 +65,7 @@ internal sealed partial class Simulation
                 0,
                 deltaUnits,
                 DeltaSourceKey(0, CellDiscriminator(planeCode, q, r, z)),
-                _executionContext));
+                ExecutionContext));
             return deltaUnits;
         }
 
@@ -69,7 +77,7 @@ internal sealed partial class Simulation
             z,
             deltaUnits,
             tick,
-            _executionContext);
+            ExecutionContext);
         if (appliedUnits != 0 && z == 0)
         {
             CultureLocality.MarkDirty(World, planeCode, q, r);
@@ -130,11 +138,19 @@ internal sealed partial class Simulation
                 occurrence,
                 weightedUnits,
                 DeltaSourceKey(occurrence, CellDiscriminator(planeCode, q, r, z)),
-                _executionContext));
+                ExecutionContext));
             return KernelFixedPoint.CultureMassScalar(weightedUnits);
         }
 
-        var applied = World.ModifyCellCultureInfluenceRawFromEntity(entityId, planeCode, q, r, z, delta, tick, _executionContext);
+        var applied = World.ModifyCellCultureInfluenceRawFromEntity(
+            entityId,
+            planeCode,
+            q,
+            r,
+            z,
+            delta,
+            tick,
+            ExecutionContext);
         if (cultureId > 0 && applied != 0 && z == 0)
         {
             CultureLocality.MarkDirty(World, planeCode, q, r);
@@ -155,7 +171,7 @@ internal sealed partial class Simulation
                 r,
                 deltaUnits,
                 DeltaSourceKey(0, CellDiscriminator(planeCode, q, r, 0)),
-                _executionContext));
+                ExecutionContext));
             return KernelFixedPoint.CultureMassScalar(deltaUnits);
         }
 
@@ -166,8 +182,8 @@ internal sealed partial class Simulation
             r,
             delta,
             tick,
-            _executionContext,
-            _dirtyCultureScratch,
+            ExecutionContext,
+            DirtyCultureScratch,
             out var changedCultureCount);
         if (changedCultureCount > 0)
         {

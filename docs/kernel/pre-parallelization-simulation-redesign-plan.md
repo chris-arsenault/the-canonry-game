@@ -2547,53 +2547,152 @@ a mapper.
 
 **Batch A: owner-ready storage and coordinator budget**
 
-- Introduce the host-only worker-count option in
+- **Complete:** introduce the host-only worker-count option in
   `src/Engine.Kernel/SimulationOptions.cs`; execution topology is not gameplay
   state and must not become a second clock.
-- Remove `LogicalShardCount` as a persisted pseudo-simulation property from
+- **Complete:** remove `LogicalShardCount` as a persisted pseudo-simulation
+  property from
   `src/Engine.Kernel/Persistence/KernelSnapshot.cs` once worker-count
   invariance replaces its serial traversal use.
-- Measure and then remove or amortize the empty command-admission cost in
+- **Complete:** measure and remove the empty command-admission cost in
   `src/Engine.Kernel/Simulation.Commands.cs`; do not optimize it from trace
   attribution alone.
-- Separate coupled entity-position/spatial-membership ownership in
+- **Complete:** separate coupled entity-position/spatial-membership ownership in
   `src/Engine.Kernel/WorldState.EntityPosition.cs`,
   `src/Engine.Kernel/SpatialLayerIndex.cs`, and
   `src/Engine.Kernel/MapCellRegistry.cs`.
-- Separate relationship-slot and endpoint-adjacency ownership in
+- **Complete:** separate relationship-slot and endpoint-adjacency ownership in
   `src/Engine.Kernel/WorldState.RelationshipIndexes.cs`.
-- Preserve bounded capacities and occurrence validation. Do not add locks
+- **Complete:** preserve bounded capacities and occurrence validation. Do not
+  add locks
   around existing multi-owner indexes as the final storage design.
+
+Batch A landed without worker threads or gameplay changes. Entity position
+remains entity-slot state while cell membership has a bounded dedicated owner.
+Relationship slots remain direct relationship state while incident adjacency,
+frozen CSR, delta chains, and graph compaction have a dedicated endpoint-index
+owner. Hot graph queries read the endpoint-owned arrays directly; the discarded
+facade version regressed the 5,000-tick screen and was not retained. Snapshot
+format `55` omits both logical shard and worker topology and resolves them from
+the loading host. The command ring retains serialized multi-producer admission
+but uses the simulation thread as its single lock-free reader.
+
+Registered Release, pre-rendered-world evidence used seed 4200 for 5,000
+simulation-only ticks. Baseline runs
+`parallel-batch-a-before-1x5000-20260726a` and
+`parallel-batch-a-before-repeat-1x5000-20260726a` averaged `15.620 ms/tick`.
+Exact-final runs `parallel-batch-a-after-final-1x5000-20260726c` and
+`parallel-batch-a-after-final-repeat-1x5000-20260726a` ranged from `15.742` to
+`14.956 ms/tick` and averaged `15.349 ms/tick`, a `1.73%` improvement
+(`1.018x`). The range shows meaningful host noise, so Batch A is accepted as
+no-regression groundwork rather than claimed as a material speedup. The
+registered traces `parallel-batch-a-command-before-1x1000-20260726a` and
+`parallel-batch-a-command-after-1x1000-20260726a` respectively attributed
+`1.68%` of sampled CPU to the locked empty command read and no named samples to
+`KernelCommandRing.TryRead` after the single-reader change.
 
 **Batch B: persistent evaluation workers**
 
-- Add the fixed-lifetime worker set and owner/chunk descriptors under
+- **Complete:** add the fixed-lifetime worker set and owner/chunk descriptors under
   `src/Engine.Kernel/Execution/`.
-- Change `src/Engine.Kernel/Execution/FrozenTickView.cs` to publish immutable
+- **Complete:** change `src/Engine.Kernel/Execution/FrozenTickView.cs` to publish immutable
   range views.
-- Replace the single shared append cursor in
+- **Complete:** replace the single shared append cursor in
   `src/Engine.Kernel/Execution/TickDeltaBuffer.cs` with preallocated bounded
   worker append segments or block arenas whose total capacity remains explicit.
   Full-capacity buffer duplication per worker is prohibited.
-- Add range evaluation to:
+- **Complete:** add range evaluation to:
   `Programs/LowAltitudeVerbs/LowAltitudeVerbProgramRuntime.cs`,
   `Programs/MinorActors/MinorActorProgramRuntime.cs`,
   `Programs/Effects/EffectsProgramRuntime.cs`, and
   `Programs/Relationships/RelationshipProgramRuntime.cs`.
-- Keep the current single-thread entry through the same range path at worker
+- **Complete:** keep the current single-thread entry through the same range path at worker
   count one; do not retain separate serial gameplay implementations.
+
+Batch B adds one fixed worker set per simulation. Background workers start
+lazily, persist for the host lifetime, and synchronize only at program
+boundaries. Every worker receives an immutable contiguous range from the frozen
+entity or relationship view plus worker-local scratch and execution context.
+Effects and relationship maintenance may evaluate concurrent ranges.
+Low-altitude verbs may do so when trace capture is disabled; trace event
+partitioning remains Batch C. Minor actors use the same range contract at worker
+count one, but concurrent actor creation, active/cell indexes, encounters, and
+event mutation also remain Batch C. The coordinator still performs delta
+reduction and all cross-owner world mutation.
+
+Delta append arenas reserve 64-record blocks without contending on a shared
+cursor per record. They retain the original logical capacity and add only
+bounded physical tail room for partially filled concurrent blocks; compaction
+rejects actual output above the declared capacity. Worker count one uses direct
+worker-zero scratch, context, range dispatch, and delta append storage inside
+the same infrastructure. This fast lane is not a separate gameplay evaluator.
+
+The first Batch B timing pair exposed exactly why the worker-one gate is
+mandatory. Registered runs `parallel-batch-b-after-1x5000-20260726a` and
+`parallel-batch-b-after-repeat-1x5000-20260726a` averaged
+`17.225 ms/tick`, a `12.2%` regression from the Batch A exact-final mean,
+because worker one still paid thread-local and block-arena bookkeeping in hot
+paths. Those runs are rejected evidence. After direct worker-zero plumbing,
+registered exact-final runs
+`parallel-batch-b-after-fastpath-1x5000-20260726a` and
+`parallel-batch-b-after-fastpath-repeat-1x5000-20260726a` measured `14.887`
+and `15.110 ms/tick`, averaging `14.999 ms/tick`. That is a `2.28%`
+improvement (`1.023x`) over Batch A's `15.349 ms/tick` mean. Temporary
+four-worker behavioral scaffolds passed for effects/relationships and
+low-altitude movement and were removed; Batch E still owns the durable
+worker-count invariance matrix and public host/tool wiring.
 
 **Batch C: typed-owner reduction and publication**
 
-- Replace the serial shard loops in
+- **Complete:** replace the serial shard loops in
   `src/Engine.Kernel/Execution/TickDeltaBuffer.cs` with destination-key routing
   and disjoint owner reductions.
-- Drive the barriers and phase visibility from
+- **Complete:** drive the barriers and phase visibility from
   `src/Engine.Kernel/Execution/Simulation.Execution.cs`.
-- Partition event appends and deterministically merge them in
+- **Complete:** partition event appends and deterministically merge them in
   `src/Engine.Kernel/Execution/KernelEventPublisher.cs`.
-- Route entity, relationship, and cell mutations through the owner-ready
+- **Complete:** route entity, relationship, and cell mutations through the owner-ready
   `WorldState` and index files from Batch A. No global apply queue is accepted.
+
+Batch C generalizes the persistent evaluation worker set into one kernel worker
+set that also executes owner ranges. Attribute, tag, movement-coordinate, and
+influence-credit groups route to entity owners; strength groups route to
+relationship owners; terrain/coverage values and all cultures at a cell route
+to cell owners. The coordinator retains only explicit structural stages:
+spatial detach/attach, coverage reverse-index and topology reconciliation,
+culture-row and locality reconciliation, relationship culling, and lifecycle
+retirement. Event writers use bounded worker arenas and publish a deterministic
+sorted merge after the phase barrier.
+
+Worker count one uses the same typed records and owner-ready storage APIs with
+direct coordinator execution. It does not retain the removed gameplay mutators
+as adapters. A first implementation nevertheless regressed badly because the
+owner preparation/reconciliation passes and multi-worker revision publication
+leaked into topology one. The direct one-worker orchestration removed the extra
+movement, cell, and culture passes. Direct revision reads at worker one removed
+the remaining read-heavy locality penalty while multi-worker revisions remain
+atomically published.
+
+Registered seed-4200, pre-rendered-world, 5,000-tick measurements preserve the
+failed evidence. The initial pair
+`parallel-batch-c-after-owner-reduction-1x5000-20260726a` and
+`parallel-batch-c-after-owner-reduction-repeat-1x5000-20260726a` averaged
+`18.892 ms/tick`, a rejected `25.96%` regression from Batch B. The first clean
+exact-final run,
+`parallel-batch-c-revision-read-fastpath-1x5000-20260726a`, measured
+`15.531 ms/tick`. That is within the earlier Batch A host spread but is `3.55%`
+slower than Batch B's `14.999 ms/tick` paired mean, so it is not evidence that
+the one-worker performance gate has passed. Two attempted repeats are registered
+as rejected because competing Roslyn/MSBuild work appeared after launch.
+
+The internal four-worker screen
+`parallel-batch-c-owner-reduction-4w-1x5000-20260726a` measured
+`23.908 ms/tick` and is rejected. Fine-grained owner dispatch, multi-worker
+arena bookkeeping, atomic revision publication, and barrier frequency still
+outweigh the available concurrent work. Batch C's ownership conversion is
+implemented and behavior-validated; Batch E must not expose worker selection
+until it has coalesced those regions and passed both the worker-one regression
+gate and the required end-to-end scaling gates.
 
 **Batch D: strategic ownership**
 
@@ -2611,6 +2710,10 @@ a mapper.
 
 **Batch E: host/tool wiring and evidence**
 
+- Coalesce evaluation and owner-reduction regions so configured multi-worker
+  execution no longer pays one dispatch/barrier per small destination family.
+  Reprofile partition arenas, atomic revision publication, event merge, and
+  coordinator reconciliation before exposing worker selection.
 - Wire worker count through
   `src/Engine.Host/KernelConfigurationContext.cs`,
   `src/Engine.Host/KernelRuntimeFactory.cs`,

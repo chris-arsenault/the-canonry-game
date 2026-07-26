@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 54;
+    private const int FormatVersion = 55;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -59,7 +59,6 @@ internal static class KernelSnapshotOptions
         WriteKernelTuning(writer, options.KernelTuning);
         writer.Write(options.Execution.ReverseEvaluationOrder);
         writer.Write(options.Execution.ReverseDeltaInsertionOrder);
-        writer.Write(options.Execution.LogicalShardCount);
         writer.Write(options.Seed);
         writer.Write(eventCount);
     }
@@ -225,7 +224,6 @@ internal static class KernelSnapshotOptions
         ReadKernelTuningValues(reader, ref values);
         values.ReverseEvaluationOrder = reader.ReadBoolean();
         values.ReverseDeltaInsertionOrder = reader.ReadBoolean();
-        values.LogicalShardCount = reader.ReadInt32();
         values.Seed = reader.ReadInt32();
         return values;
     }
@@ -407,9 +405,10 @@ internal static class KernelSnapshotOptions
             KernelTuning = CreateKernelTuning(values),
             Execution = new KernelExecutionOptions
             {
+                WorkerCount = options?.Execution.WorkerCount ?? 1,
                 ReverseEvaluationOrder = values.ReverseEvaluationOrder,
                 ReverseDeltaInsertionOrder = values.ReverseDeltaInsertionOrder,
-                LogicalShardCount = values.LogicalShardCount,
+                LogicalShardCount = options?.Execution.LogicalShardCount ?? 1,
             },
             Seed = values.Seed,
         };
@@ -603,7 +602,6 @@ internal static class KernelSnapshotOptions
         public int CultureFieldRemittanceMinimumDistance;
         public bool ReverseEvaluationOrder;
         public bool ReverseDeltaInsertionOrder;
-        public int LogicalShardCount;
         public int Seed;
     }
 }

@@ -20,13 +20,7 @@ internal sealed class KernelCommandRing
 
     public int Count
     {
-        get
-        {
-            lock (_gate)
-            {
-                return _count;
-            }
-        }
+        get => global::System.Threading.Volatile.Read(ref _count);
     }
 
     public long RejectedWriteCount => global::System.Threading.Volatile.Read(ref _rejectedWriteCount);
@@ -35,7 +29,7 @@ internal sealed class KernelCommandRing
     {
         lock (_gate)
         {
-            if (_count == _commands.Length)
+            if (global::System.Threading.Volatile.Read(ref _count) == _commands.Length)
             {
                 _rejectedWriteCount++;
                 commandId = 0;
@@ -50,31 +44,28 @@ internal sealed class KernelCommandRing
                 _tail = 0;
             }
 
-            _count++;
+            global::System.Threading.Interlocked.Increment(ref _count);
             return true;
         }
     }
 
     public bool TryRead(out KernelCommand command)
     {
-        lock (_gate)
+        if (global::System.Threading.Volatile.Read(ref _count) == 0)
         {
-            if (_count == 0)
-            {
-                command = default;
-                return false;
-            }
-
-            command = _commands[_head];
-            _commands[_head] = default;
-            _head++;
-            if (_head == _commands.Length)
-            {
-                _head = 0;
-            }
-
-            _count--;
-            return true;
+            command = default;
+            return false;
         }
+
+        command = _commands[_head];
+        _commands[_head] = default;
+        _head++;
+        if (_head == _commands.Length)
+        {
+            _head = 0;
+        }
+
+        global::System.Threading.Interlocked.Decrement(ref _count);
+        return true;
     }
 }

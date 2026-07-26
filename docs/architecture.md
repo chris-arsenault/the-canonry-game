@@ -1,25 +1,49 @@
 # System Architecture
 
 The engine is a deterministic microkernel hosted by the Godot game runtime.
-Kernel phases own mutation explicitly. The current scheduler runs those phases
-on one thread; future phase or shard owners may run concurrently only across
-published boundaries with deterministic reduction. UI, projections, run logs,
-telemetry, exports, and Monte Carlo analysis consume primitive records outside
-kernel state.
+Kernel phases own mutation explicitly. The coordinator runs admission,
+structural reconciliation, strategic work, and publication. A fixed-lifetime
+worker set evaluates eligible frozen ranges and reduces entity-, relationship-,
+and cell-owned destinations concurrently. Workers join at every published
+boundary before coordinator reconciliation or later phases. UI, projections,
+run logs, telemetry, exports, and Monte Carlo analysis consume primitive records
+outside kernel state.
 
 The controlling kernel rules live in
 [simulation-kernel-discipline.md](./kernel/simulation-kernel-discipline.md).
 
-The measured next parallel candidate is a typed-owner bulk-synchronous
-scheduler, not a persistent geographic-actor model. Evaluation partitions by
-stable IDs or bounded work chunks; mutation partitions independently by entity,
+The selected parallel architecture is a typed-owner bulk-synchronous scheduler,
+not a persistent geographic-actor model. Evaluation partitions by stable IDs
+or bounded work chunks; mutation partitions independently by entity,
 relationship, or cell storage owner. Geography is useful for cell/map state but
 is not the universal shard key: measured relationship and gambit traffic is too
-nonlocal and current geographic load is too skewed. This is an approved
-architecture direction only; the current scheduler remains single-threaded
-until the candidate's separately gated implementation lands. Its implementation
-is also gated on removing the measured all-pairs gambit/travel-reach work:
-workers must not be used to preserve accidental superlinear candidate scans.
+nonlocal and current geographic load is too skewed. The persistent evaluation
+workers, frozen range contract, typed-owner reduction, and partitioned event
+publication are implemented. Strategic ownership and public worker-count wiring
+remain separately gated work. Workers must not be used to preserve accidental
+superlinear candidate scans.
+
+The first owner-ready storage batch is complete. Entity coordinates remain
+entity-owned while physical and semantic cell-membership chains have a bounded
+spatial-index owner. Relationship slots remain relationship-owned while
+incident adjacency, frozen CSR, delta chains, and graph compaction have a
+bounded endpoint-index owner. Typed deltas now route to those destinations
+without locks or duplicate compatibility state. Spatial membership, coverage
+reverse indexes, culture-row storage, relationship culling, and lifecycle
+retirement still reconcile on the coordinator where structural mutation crosses
+owners.
+
+The evaluation-worker batch is also complete. Each simulation owns a bounded
+worker set that starts background threads lazily and reuses them until the host
+shuts down. Effects and relationship maintenance can evaluate disjoint frozen
+ranges concurrently. Low-altitude verbs can do so when trace capture is off.
+Minor actors already use the common range interface but remain one-range until
+their shared actor indexes and encounters receive typed ownership. Worker-local
+append arenas feed destination-owner reducers. Entity slots own attributes,
+tags, movement coordinates, and influence credits; relationship slots own
+strength; cells own terrain, coverage values, culture writes, and culture
+reductions. Primitive events use the same worker partitioning and are compacted,
+sorted, and published only after the phase barrier.
 
 ## Project Topology
 
@@ -243,7 +267,9 @@ independent gameplay fact.
 Relationship endpoint adjacency uses sorted frozen CSR rows plus bounded
 per-row delta chains. Edge mutation is local to the source and target rows;
 deterministic queries merge frozen and delta order, and periodic compaction
-rebuilds the disposable CSR from active edges. Culture-locality descriptors
+rebuilds the disposable CSR from active edges. The endpoint index owns these
+mutable arrays, while the hot read path uses direct read-only aliases to avoid
+per-edge facade overhead. Culture-locality descriptors
 similarly retain per-cell dependency revisions so a culture write invalidates
 only the radius-two cells whose derived facts can change.
 
@@ -264,12 +290,14 @@ status transition. Ended relationships and consumed districts release their
 active slots; durable history belongs to the primitive event stream and its
 consumer projections, not to parallel historical tables in the kernel.
 
-Kernel snapshot format `53` persists active state, generation metadata, and the
+Kernel snapshot format `55` persists active state, generation metadata, and the
 phase revision, then rebuilds free lists, indexes, due queues,
 and disposable caches on load. It does not serialize retired entity rows, ended
 edges, expired cooldowns, completed provenance tables, route-cache contents, or
-sequential RNG state, and it intentionally has no reader for the replaced
-binary layout.
+sequential RNG state. Worker count and logical shard count are host execution
+topology, not simulation state, so a loading host supplies them rather than
+reading them from the snapshot. The format intentionally has no reader for the
+replaced binary layout.
 
 The kernel does not store the physical microtriangle field or the generation
 process that produced it. Those immutable startup facts remain outside the

@@ -104,6 +104,39 @@ public sealed class KernelSnapshotTests
         Assert.Equal(invocationId, loaded.World.RelationshipCreatedByInvocationId(relationship));
     }
 
+    [Fact]
+    public void SnapshotLoadUsesHostExecutionTopologyInsteadOfPersistingIt()
+    {
+        var simulation = CreateSimulation(new KernelExecutionOptions
+        {
+            WorkerCount = 7,
+            LogicalShardCount = 5,
+        });
+        using var stream = new MemoryStream();
+        KernelSnapshot.SaveKernelState(simulation, stream);
+
+        stream.Position = 0;
+        var defaultTopology = KernelSnapshot.LoadKernelState(stream);
+
+        Assert.Equal(1, defaultTopology.Options.Execution.WorkerCount);
+        Assert.Equal(1, defaultTopology.Options.Execution.LogicalShardCount);
+
+        stream.Position = 0;
+        var requestedTopology = KernelSnapshot.LoadKernelState(
+            stream,
+            new SimulationOptions
+            {
+                Execution = new KernelExecutionOptions
+                {
+                    WorkerCount = 3,
+                    LogicalShardCount = 2,
+                },
+            });
+
+        Assert.Equal(3, requestedTopology.Options.Execution.WorkerCount);
+        Assert.Equal(2, requestedTopology.Options.Execution.LogicalShardCount);
+    }
+
     private static void SeedSnapshotMap(Simulation simulation)
     {
         simulation.World.SetMapRadius(1);
@@ -155,7 +188,7 @@ public sealed class KernelSnapshotTests
             replaceExistingOutgoing: 0);
     }
 
-    private static Simulation CreateSimulation() =>
+    private static Simulation CreateSimulation(KernelExecutionOptions? execution = null) =>
         new(new SimulationOptions
         {
             EntityCapacity = 16,
@@ -179,6 +212,7 @@ public sealed class KernelSnapshotTests
             RelationshipRuleCapacity = 4,
             RelationshipKindIdCapacity = 16,
             KernelTuning = SnapshotKernelTuning(),
+            Execution = execution ?? new KernelExecutionOptions(),
             Seed = 123,
         });
 

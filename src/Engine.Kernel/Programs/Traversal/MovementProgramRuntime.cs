@@ -4,6 +4,7 @@ internal sealed partial class MovementProgramRuntime :
     IKernelProgramRuntime<MovementProgramData, MovementProgramState>
 {
     private readonly WorldState _world;
+    private readonly MovementProgramScratch[] _scratchByWorker;
 
     public MovementProgramRuntime(
         MovementProgramData data,
@@ -20,15 +21,34 @@ internal sealed partial class MovementProgramRuntime :
         MovementProgramScratch scratch,
         WorldState world,
         KernelProgramTuningOptions tuning)
+        : this(data, state, scratch, world, tuning, workerCount: 1)
+    {
+    }
+
+    internal MovementProgramRuntime(
+        MovementProgramData data,
+        MovementProgramState state,
+        MovementProgramScratch scratch,
+        WorldState world,
+        KernelProgramTuningOptions tuning,
+        int workerCount)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
         global::System.ArgumentNullException.ThrowIfNull(scratch);
         global::System.ArgumentNullException.ThrowIfNull(world);
         global::System.ArgumentNullException.ThrowIfNull(tuning);
+        NumericGuard.ThrowIfNegativeOrZero(workerCount);
         Data = data;
         State = state;
-        Scratch = scratch;
+        _scratchByWorker = new MovementProgramScratch[workerCount];
+        _scratchByWorker[0] = scratch;
+        for (var workerIndex = 1; workerIndex < workerCount; workerIndex++)
+        {
+            _scratchByWorker[workerIndex] =
+                new MovementProgramScratch(scratch.PathCapacity);
+        }
+
         _world = world;
         Tuning = tuning;
     }
@@ -37,7 +57,11 @@ internal sealed partial class MovementProgramRuntime :
 
     public MovementProgramState State { get; }
 
-    public MovementProgramScratch Scratch { get; }
+    public MovementProgramScratch Scratch =>
+        _scratchByWorker[
+            _scratchByWorker.Length == 1
+                ? 0
+                : KernelWorkerThread.WorkerIndex];
 
     public KernelProgramTuningOptions Tuning { get; }
 
@@ -596,40 +620,6 @@ internal sealed partial class MovementProgramRuntime :
         return moved;
     }
 
-    internal void ApplyResolvedMove(
-        Simulation simulation,
-        int entityId,
-        int planeCode,
-        int q,
-        int r,
-        int z,
-        int tick,
-        int causeCode,
-        in KernelExecutionContext context)
-    {
-        var world = simulation.World;
-        var fromQ = CurrentQ(world, entityId, planeCode);
-        var fromR = CurrentR(world, entityId, planeCode);
-        var fromZ = CurrentZ(world, entityId, planeCode);
-        var fromS = planeCode == PlaneCodes.Semantic ? -fromQ - fromR : 0;
-        var toS = planeCode == PlaneCodes.Semantic ? -q - r : 0;
-        using var scope = simulation.EnterExecutionContext(context);
-        _ = ApplyMove(
-            simulation,
-            entityId,
-            planeCode,
-            fromQ,
-            fromR,
-            fromZ,
-            fromS,
-            q,
-            r,
-            z,
-            toS,
-            tick,
-            causeCode);
-    }
-
     private void ApplyMoveSurfaceConsequences(
         Simulation simulation,
         int entityId,
@@ -652,6 +642,23 @@ internal sealed partial class MovementProgramRuntime :
             simulation.MapFrontier.RevealOnArrival(simulation, entityId, tick);
         }
     }
+
+    internal void ApplyResolvedMoveSurfaceConsequences(
+        Simulation simulation,
+        int entityId,
+        int planeCode,
+        int q,
+        int r,
+        int tick,
+        int causeCode) =>
+        ApplyMoveSurfaceConsequences(
+            simulation,
+            entityId,
+            planeCode,
+            q,
+            r,
+            tick,
+            causeCode);
 
     private static readonly FixedScalar CarrierRoadSpeedFloor = FixedScalar.FromUnits(500000L);
     private static readonly FixedScalar CarrierRoadQualityThreshold = 40;

@@ -52,29 +52,30 @@ internal sealed partial class Simulation
         NumericGuard.ThrowIfNegative(sourceCodeId);
         NumericGuard.ThrowIfNegative(programId);
         NumericGuard.ThrowIfNegative(actionId);
-        var previous = _executionContext;
-        var previousDepth = _executionContextDepth;
-        _executionContext = new KernelExecutionContext(programId, sourceCodeId, actionId);
-        _executionContextDepth = previousDepth + 1;
+        var previous = ExecutionContext;
+        var previousDepth = ExecutionContextDepth();
+        SetExecutionContext(
+            new KernelExecutionContext(programId, sourceCodeId, actionId),
+            previousDepth + 1);
         return new KernelExecutionScope(this, previous, previousDepth);
     }
 
     internal KernelExecutionScope EnterExecutionContext(in KernelExecutionContext context)
     {
-        var previous = _executionContext;
-        var previousDepth = _executionContextDepth;
-        _executionContext = context;
-        _executionContextDepth = previousDepth + 1;
+        var previous = ExecutionContext;
+        var previousDepth = ExecutionContextDepth();
+        SetExecutionContext(context, previousDepth + 1);
         return new KernelExecutionScope(this, previous, previousDepth);
     }
 
     internal KernelExecutionScope EnterActionExecutionContext(int actionId)
     {
         NumericGuard.ThrowIfNegativeOrZero(actionId);
-        var previous = _executionContext;
-        var previousDepth = _executionContextDepth;
-        _executionContext = previous with { ActionId = actionId };
-        _executionContextDepth = previousDepth + 1;
+        var previous = ExecutionContext;
+        var previousDepth = ExecutionContextDepth();
+        SetExecutionContext(
+            previous with { ActionId = actionId },
+            previousDepth + 1);
         return new KernelExecutionScope(this, previous, previousDepth);
     }
 
@@ -127,8 +128,39 @@ internal sealed partial class Simulation
 
     internal void RestoreExecutionContext(in KernelExecutionContext context, int depth)
     {
+        SetExecutionContext(context, depth);
+    }
+
+    private int ExecutionContextDepth() =>
+        CurrentKernelWorker()?.ExecutionContextDepth ?? _executionContextDepth;
+
+    private void SetExecutionContext(
+        in KernelExecutionContext context,
+        int depth)
+    {
+        var worker = CurrentKernelWorker();
+        if (worker is not null)
+        {
+            worker.ExecutionContext = context;
+            worker.ExecutionContextDepth = depth;
+            return;
+        }
+
         _executionContext = context;
         _executionContextDepth = depth;
+    }
+
+    private KernelWorker? CurrentKernelWorker()
+    {
+        if (_singleEvaluationWorker)
+        {
+            return null;
+        }
+
+        var worker = KernelWorkerThread.Current;
+        return global::System.Object.ReferenceEquals(worker?.Simulation, this)
+            ? worker
+            : null;
     }
 
     internal void SetSystemActive(int handle, bool active)

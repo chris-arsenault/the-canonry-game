@@ -47,9 +47,32 @@ internal sealed partial class SpatialLayerIndex
 
     internal void SetValue(int cellId, int value)
     {
+        var previousValue = SetDirectValue(cellId, value);
+        if (previousValue == value)
+        {
+            return;
+        }
+
+        ReconcileValueChange(cellId, previousValue, value);
+    }
+
+    internal int SetDirectValue(int cellId, int value)
+    {
         ValidateCellId(cellId);
         ValidateValue(value);
         var previousValue = _valuesByCell[cellId];
+        _valuesByCell[cellId] = value;
+        return previousValue;
+    }
+
+    internal void ReconcileValueChange(
+        int cellId,
+        int previousValue,
+        int value)
+    {
+        ValidateCellId(cellId);
+        ValidateValue(previousValue);
+        ValidateValue(value);
         if (previousValue == value)
         {
             return;
@@ -60,7 +83,6 @@ internal sealed partial class SpatialLayerIndex
             RemoveCellFromValue(cellId, previousValue);
         }
 
-        _valuesByCell[cellId] = value;
         if (value > 0)
         {
             AddCellToValue(cellId, value);
@@ -275,6 +297,131 @@ internal sealed partial class SpatialLayerIndex
     private void ValidateCellId(int cellId)
     {
         if ((uint)cellId == 0u || cellId >= _valuesByCell.Length)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(cellId));
+        }
+    }
+}
+
+internal readonly struct EntitySpatialMembershipIndex
+{
+    private readonly int[] _firstPhysicalEntityByCell;
+    private readonly int[] _firstSemanticEntityByCell;
+    private readonly int[] _nextPhysicalEntity;
+    private readonly int[] _nextSemanticEntity;
+
+    internal EntitySpatialMembershipIndex(int entityCapacity, int cellCapacity)
+    {
+        NumericGuard.ThrowIfNegativeOrZero(entityCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(cellCapacity);
+        _firstPhysicalEntityByCell = new int[cellCapacity + 1];
+        _firstSemanticEntityByCell = new int[cellCapacity + 1];
+        _nextPhysicalEntity = new int[entityCapacity + 1];
+        _nextSemanticEntity = new int[entityCapacity + 1];
+    }
+
+    internal void AttachPhysical(int entityId, int cellId) =>
+        Attach(
+            entityId,
+            cellId,
+            _firstPhysicalEntityByCell,
+            _nextPhysicalEntity);
+
+    internal void AttachSemantic(int entityId, int cellId) =>
+        Attach(
+            entityId,
+            cellId,
+            _firstSemanticEntityByCell,
+            _nextSemanticEntity);
+
+    internal void DetachPhysical(int entityId, int cellId) =>
+        Detach(
+            entityId,
+            cellId,
+            _firstPhysicalEntityByCell,
+            _nextPhysicalEntity);
+
+    internal void DetachSemantic(int entityId, int cellId) =>
+        Detach(
+            entityId,
+            cellId,
+            _firstSemanticEntityByCell,
+            _nextSemanticEntity);
+
+    internal void MovePhysical(int entityId, int fromCellId, int toCellId)
+    {
+        DetachPhysical(entityId, fromCellId);
+        AttachPhysical(entityId, toCellId);
+    }
+
+    internal void MoveSemantic(int entityId, int fromCellId, int toCellId)
+    {
+        DetachSemantic(entityId, fromCellId);
+        AttachSemantic(entityId, toCellId);
+    }
+
+    internal int FirstPhysicalEntity(int cellId) => _firstPhysicalEntityByCell[cellId];
+
+    internal int FirstSemanticEntity(int cellId) => _firstSemanticEntityByCell[cellId];
+
+    internal int NextPhysicalEntity(int entityId) => _nextPhysicalEntity[entityId];
+
+    internal int NextSemanticEntity(int entityId) => _nextSemanticEntity[entityId];
+
+    private static void Attach(
+        int entityId,
+        int cellId,
+        int[] firstEntityByCell,
+        int[] nextEntity)
+    {
+        ValidateIds(entityId, cellId, firstEntityByCell, nextEntity);
+        nextEntity[entityId] = firstEntityByCell[cellId];
+        firstEntityByCell[cellId] = entityId;
+    }
+
+    private static void Detach(
+        int entityId,
+        int cellId,
+        int[] firstEntityByCell,
+        int[] nextEntity)
+    {
+        ValidateIds(entityId, cellId, firstEntityByCell, nextEntity);
+        var current = firstEntityByCell[cellId];
+        if (current == entityId)
+        {
+            firstEntityByCell[cellId] = nextEntity[entityId];
+            nextEntity[entityId] = 0;
+            return;
+        }
+
+        while (current > 0)
+        {
+            var next = nextEntity[current];
+            if (next == entityId)
+            {
+                nextEntity[current] = nextEntity[entityId];
+                nextEntity[entityId] = 0;
+                return;
+            }
+
+            current = next;
+        }
+
+        throw new global::System.InvalidOperationException();
+    }
+
+    private static void ValidateIds(
+        int entityId,
+        int cellId,
+        int[] firstEntityByCell,
+        int[] nextEntity)
+    {
+        if ((uint)entityId == 0u || entityId >= nextEntity.Length)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(entityId));
+        }
+
+        if ((uint)cellId == 0u || cellId >= firstEntityByCell.Length)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(cellId));
         }

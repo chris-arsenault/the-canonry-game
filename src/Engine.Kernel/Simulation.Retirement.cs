@@ -13,7 +13,7 @@ internal sealed partial class Simulation
         CultureSlots.NoteEntityRetired(this, entityId, tick);
         MinorActors.NoteEntityRetired(this, entityId, tick);
         Chronicles.NoteEntityRetired(entityId);
-        World.ReleaseCoverageOwner(entityId, tick, _executionContext);
+        World.ReleaseCoverageOwner(entityId, tick, ExecutionContext);
         for (var relationshipId = World.FirstIncidentRelationship(entityId); relationshipId > 0;)
         {
             var nextRelationshipId = World.NextIncidentRelationship(entityId, relationshipId);
@@ -23,6 +23,6 @@ internal sealed partial class Simulation
 
         World.RemoveDistrictsOfHost(entityId);
         Gambits.NoteEntityRetired(entityId);
-        World.SetEntityStatus(entityId, EntityStatusCodes.Historical, tick, _executionContext);
+        World.SetEntityStatus(entityId, EntityStatusCodes.Historical, tick, ExecutionContext);
     }
 }

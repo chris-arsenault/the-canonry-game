@@ -2,7 +2,9 @@ namespace Engine.Kernel;
 
 using Engine.Constants;
 
-internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgramData, EffectsProgramState>
+internal sealed class EffectsProgramRuntime :
+    IKernelProgramRuntime<EffectsProgramData, EffectsProgramState>,
+    ILocalEvaluationRangeProgram
 {
     private int[] _attributeDeltaKindIds => Data.AttributeDeltaKindIds;
     private int[] _attributeDeltaAttributeIds => Data.AttributeDeltaAttributeIds;
@@ -33,8 +35,8 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     private FixedScalar[] _tagRuleSetThresholds => Data.TagRuleSetThresholds;
     private FixedScalar[] _tagRuleClearThresholds => Data.TagRuleClearThresholds;
     private ref int _tagRuleCount => ref Data.TagRuleCount;
-    private readonly int[] _attributeDeltaScratchIds;
-    private readonly long[] _attributeDeltaScratchValues;
+    private readonly int[][] _attributeDeltaScratchIdsByWorker;
+    private readonly long[][] _attributeDeltaScratchValuesByWorker;
 
     public EffectsProgramRuntime(EffectsProgramData data, EffectsProgramState state)
         : this(data, state, new KernelProgramTuningOptions())
@@ -45,24 +47,62 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         EffectsProgramData data,
         EffectsProgramState state,
         KernelProgramTuningOptions tuning)
+        : this(data, state, tuning, workerCount: 1)
+    {
+    }
+
+    internal EffectsProgramRuntime(
+        EffectsProgramData data,
+        EffectsProgramState state,
+        KernelProgramTuningOptions tuning,
+        int workerCount)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
         global::System.ArgumentNullException.ThrowIfNull(tuning);
+        NumericGuard.ThrowIfNegativeOrZero(workerCount);
         Data = data;
         State = state;
         Tuning = tuning;
-        _attributeDeltaScratchIds = new int[
+        var scratchCapacity =
             data.AttributeDeltaAttributeIds.Length +
-            data.LifecycleAttributeIds.Length];
-        _attributeDeltaScratchValues = new long[_attributeDeltaScratchIds.Length];
+            data.LifecycleAttributeIds.Length;
+        _attributeDeltaScratchIdsByWorker = new int[workerCount][];
+        _attributeDeltaScratchValuesByWorker = new long[workerCount][];
+        for (var workerIndex = 0; workerIndex < workerCount; workerIndex++)
+        {
+            _attributeDeltaScratchIdsByWorker[workerIndex] =
+                new int[scratchCapacity];
+            _attributeDeltaScratchValuesByWorker[workerIndex] =
+                new long[scratchCapacity];
+        }
     }
+
+    private int[] AttributeDeltaScratchIds =>
+        _attributeDeltaScratchIdsByWorker[
+            _attributeDeltaScratchIdsByWorker.Length == 1
+                ? 0
+                : KernelWorkerThread.WorkerIndex];
+
+    private long[] AttributeDeltaScratchValues =>
+        _attributeDeltaScratchValuesByWorker[
+            _attributeDeltaScratchValuesByWorker.Length == 1
+                ? 0
+                : KernelWorkerThread.WorkerIndex];
 
     public EffectsProgramData Data { get; }
 
     public EffectsProgramState State { get; }
 
     public KernelProgramTuningOptions Tuning { get; }
+
+    public int RangeKindCode => LocalEvaluationRangeKindCodes.Entities;
+
+    public bool SupportsConcurrentRanges(Simulation simulation)
+    {
+        _ = simulation;
+        return true;
+    }
 
     public int AttributeDeltaRuleCount => _attributeDeltaRuleCount;
 
@@ -230,6 +270,23 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         }
 
         ApplyDistrictCultureModifiers(simulation, world, tick);
+    }
+
+    public void EvaluateRange(
+        Simulation simulation,
+        int tick,
+        in FrozenTickRange range)
+    {
+        var world = simulation.World;
+        for (var index = 0; index < range.Count; index++)
+        {
+            ResolveEntity(simulation, world, range.At(index), tick);
+        }
+    }
+
+    public void CompleteRanges(Simulation simulation, int tick)
+    {
+        ApplyDistrictCultureModifiers(simulation, simulation.World, tick);
     }
 
     private void ResolveEntity(Simulation simulation, WorldState world, int entityId, int tick)
@@ -734,40 +791,44 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
             return;
         }
 
+        var scratchIds = AttributeDeltaScratchIds;
+        var scratchValues = AttributeDeltaScratchValues;
         for (var index = 0; index < count; index++)
         {
-            if (_attributeDeltaScratchIds[index] == attributeId)
+            if (scratchIds[index] == attributeId)
             {
-                _attributeDeltaScratchValues[index] = checked(
-                    _attributeDeltaScratchValues[index] + deltaUnits);
+                scratchValues[index] = checked(
+                    scratchValues[index] + deltaUnits);
                 return;
             }
         }
 
-        if (count >= _attributeDeltaScratchIds.Length)
+        if (count >= scratchIds.Length)
         {
             throw new global::System.InvalidOperationException();
         }
 
-        _attributeDeltaScratchIds[count] = attributeId;
-        _attributeDeltaScratchValues[count] = deltaUnits;
+        scratchIds[count] = attributeId;
+        scratchValues[count] = deltaUnits;
         count++;
     }
 
     private void ApplyAccumulatedAttributeDeltas(Simulation simulation, int entityId, int count)
     {
+        var scratchIds = AttributeDeltaScratchIds;
+        var scratchValues = AttributeDeltaScratchValues;
         for (var index = 0; index < count; index++)
         {
             KernelEffectExecutor.ModifyAttributeUnits(
                 simulation,
                 entityId,
-                _attributeDeltaScratchIds[index],
+                scratchIds[index],
                 KernelFixedPoint.ClampToInt(
-                    _attributeDeltaScratchValues[index],
+                    scratchValues[index],
                     KernelFixedPoint.AttributeMinimumUnits,
                     KernelFixedPoint.AttributeMaximumUnits));
-            _attributeDeltaScratchIds[index] = 0;
-            _attributeDeltaScratchValues[index] = 0;
+            scratchIds[index] = 0;
+            scratchValues[index] = 0;
         }
     }
 

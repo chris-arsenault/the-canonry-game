@@ -92,5 +92,6 @@ public sealed partial class KernelHost : IDisposable
         Time.Dispose();
         _commandCompletions.Dispose();
         Consumers.Dispose();
+        _kernel.ShutdownWorkers();
     }
 }

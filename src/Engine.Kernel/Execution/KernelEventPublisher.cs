@@ -5,18 +5,21 @@ using Engine.Eventing;
 internal sealed class KernelEventPublisher : IKernelEventWriter
 {
     private readonly KernelEventLog _log;
+    private readonly DeltaAppendArena<BufferedKernelEvent> _arena;
     private readonly BufferedKernelEvent[] _buffer;
-    private int _count;
+    private readonly bool _singleWorker;
     private int _phaseCode;
     private bool _buffering;
 
-    public KernelEventPublisher(KernelEventLog log, int capacity)
+    public KernelEventPublisher(KernelEventLog log, int capacity, int workerCount)
     {
         _log = log;
-        _buffer = new BufferedKernelEvent[capacity];
+        _arena = new DeltaAppendArena<BufferedKernelEvent>(capacity, workerCount);
+        _buffer = _arena.Values;
+        _singleWorker = workerCount == 1;
     }
 
-    public int BufferedCount => _count;
+    public int BufferedCount => _arena.Count;
 
     public void BeginPhase(int phaseCode)
     {
@@ -26,7 +29,7 @@ internal sealed class KernelEventPublisher : IKernelEventWriter
         }
 
         _phaseCode = phaseCode;
-        _count = 0;
+        _arena.Clear();
         _buffering = true;
     }
 
@@ -37,8 +40,9 @@ internal sealed class KernelEventPublisher : IKernelEventWriter
             throw new global::System.InvalidOperationException();
         }
 
-        DeterministicSort.Sort(_buffer, _count);
-        for (var i = 0; i < _count; i++)
+        var count = _arena.Compact();
+        DeterministicSort.Sort(_buffer, count);
+        for (var i = 0; i < count; i++)
         {
             if (!_log.TryWrite(_buffer[i].Event))
             {
@@ -46,7 +50,7 @@ internal sealed class KernelEventPublisher : IKernelEventWriter
             }
         }
 
-        _count = 0;
+        _arena.Clear();
         _buffering = false;
     }
 
@@ -57,12 +61,8 @@ internal sealed class KernelEventPublisher : IKernelEventWriter
             return _log.TryWrite(kernelEvent);
         }
 
-        if (_count >= _buffer.Length)
-        {
-            return false;
-        }
-
-        _buffer[_count++] = new BufferedKernelEvent(_phaseCode, kernelEvent);
+        var workerIndex = _singleWorker ? 0 : KernelWorkerThread.WorkerIndex;
+        _arena.Add(workerIndex, new BufferedKernelEvent(_phaseCode, kernelEvent));
         return true;
     }
 

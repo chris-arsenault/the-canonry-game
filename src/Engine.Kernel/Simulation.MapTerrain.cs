@@ -177,7 +177,7 @@ internal sealed partial class Simulation
             planeCode,
             q,
             r,
-            _executionContext.SourceCodeId,
+            ExecutionContext.SourceCodeId,
             0,
             terrainId,
             0,
@@ -268,7 +268,7 @@ internal sealed partial class Simulation
             PlaneCodes.Physical,
             q,
             r,
-            _executionContext.SourceCodeId,
+            ExecutionContext.SourceCodeId,
             0,
             terrainId,
             0,
@@ -329,13 +329,20 @@ internal sealed partial class Simulation
                 DeltaSourceKey(
                     ownerEntityId > 0 ? World.EntityOccurrenceHandle(ownerEntityId) : 0,
                     CellDiscriminator(planeCode, q, r, 0)),
-                _executionContext));
+                ExecutionContext));
             return;
         }
 
         var wasKnown = World.CellIsKnown(planeCode, q, r);
         var previousTerrainId = wasKnown ? World.CellTerrainId(planeCode, q, r) : 0;
-        World.SetCellState(planeCode, q, r, terrainId, ownerEntityId, tick, _executionContext);
+        World.SetCellState(
+            planeCode,
+            q,
+            r,
+            terrainId,
+            ownerEntityId,
+            tick,
+            ExecutionContext);
         if (!wasKnown || previousTerrainId != World.CellTerrainId(planeCode, q, r))
         {
             Movement.RecordTopologyChanged();
@@ -349,7 +356,13 @@ internal sealed partial class Simulation
 
     internal void SetCoverageOwner(int planeCode, int q, int r, int ownerEntityId, int tick)
     {
-        World.SetCoverageOwner(planeCode, q, r, ownerEntityId, tick, _executionContext);
+        World.SetCoverageOwner(
+            planeCode,
+            q,
+            r,
+            ownerEntityId,
+            tick,
+            ExecutionContext);
     }
 
     internal void SetCellTerrain(int q, int r, int terrainId, int tick)
@@ -361,7 +374,7 @@ internal sealed partial class Simulation
     {
         var wasKnown = World.CellIsKnown(planeCode, q, r);
         var previousTerrainId = wasKnown ? World.CellTerrainId(planeCode, q, r) : 0;
-        World.SetCellTerrain(planeCode, q, r, terrainId, tick, _executionContext);
+        World.SetCellTerrain(planeCode, q, r, terrainId, tick, ExecutionContext);
         if (!wasKnown || previousTerrainId != World.CellTerrainId(planeCode, q, r))
         {
             Movement.RecordTopologyChanged();
@@ -371,7 +384,7 @@ internal sealed partial class Simulation
     internal void SetTerrainCover(int q, int r, int coverTerrainId, int tick)
     {
         var previousTerrainId = World.CellTerrainId(PlaneCodes.Physical, q, r);
-        World.SetTerrainCover(q, r, coverTerrainId, tick, _executionContext);
+        World.SetTerrainCover(q, r, coverTerrainId, tick, ExecutionContext);
         if (previousTerrainId != World.CellTerrainId(PlaneCodes.Physical, q, r))
         {
             Movement.RecordTopologyChanged();
@@ -381,7 +394,7 @@ internal sealed partial class Simulation
     internal void ClearTerrainCover(int q, int r, int tick)
     {
         var previousTerrainId = World.CellTerrainId(PlaneCodes.Physical, q, r);
-        World.ClearTerrainCover(q, r, tick, _executionContext);
+        World.ClearTerrainCover(q, r, tick, ExecutionContext);
         if (previousTerrainId != World.CellTerrainId(PlaneCodes.Physical, q, r))
         {
             Movement.RecordTopologyChanged();

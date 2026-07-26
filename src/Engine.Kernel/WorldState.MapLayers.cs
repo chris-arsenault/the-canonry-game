@@ -449,6 +449,87 @@ internal sealed partial class WorldState
             context);
     }
 
+    internal int PrepareOwnedCellState(int planeCode, int q, int r)
+    {
+        ValidateInfluencePlaneCode(planeCode);
+        return _cells.GetOrAdd(planeCode, q, r, z: 0);
+    }
+
+    internal bool ApplyOwnedCellState(
+        int cellId,
+        int planeCode,
+        int q,
+        int r,
+        int terrainId,
+        int ownerEntityId,
+        int tick,
+        in KernelExecutionContext context,
+        out int previousOwnerEntityId,
+        out bool terrainChanged)
+    {
+        ValidatePositive(context.SourceCodeId);
+        ValidateInfluencePlaneCode(planeCode);
+        ValidatePositive(terrainId);
+        NumericGuard.ThrowIfNegative(ownerEntityId);
+        var previousTerrainId = CellTerrainId(planeCode, q, r);
+        var previousBaseTerrainId =
+            _mapCellTerrainIds[cellId] > 0 ? _mapCellTerrainIds[cellId] : 1;
+        previousOwnerEntityId = _mapLayers.Coverage.ValueAt(cellId);
+        terrainChanged = previousTerrainId != terrainId;
+        if (previousBaseTerrainId == terrainId &&
+            previousOwnerEntityId == ownerEntityId)
+        {
+            return false;
+        }
+
+        var superregionId = _mapCellSuperregionIds[cellId];
+        var continentId = _mapCellContinentIds[cellId];
+        _mapCellKnown[cellId] = true;
+        _mapCellTerrainIds[cellId] = terrainId;
+        _ = _mapLayers.Coverage.SetDirectValue(cellId, ownerEntityId);
+        if (previousOwnerEntityId > 0)
+        {
+            MarkEntityCultureWorkDirty(previousOwnerEntityId);
+        }
+        if (ownerEntityId > 0)
+        {
+            MarkEntityCultureWorkDirty(ownerEntityId);
+        }
+
+        var nextTerrainId = CellTerrainId(planeCode, q, r);
+        terrainChanged = previousTerrainId != nextTerrainId;
+        AdvanceWorldVersion();
+        WriteCellStateEvents(
+            planeCode,
+            q,
+            r,
+            z: 0,
+            tick,
+            previousTerrainId,
+            nextTerrainId,
+            previousOwnerEntityId,
+            ownerEntityId,
+            superregionId,
+            continentId,
+            context);
+        return true;
+    }
+
+    internal void ReconcileOwnedCellState(
+        int cellId,
+        int planeCode,
+        int q,
+        int r,
+        int previousOwnerEntityId,
+        int ownerEntityId)
+    {
+        _mapLayers.Coverage.ReconcileValueChange(
+            cellId,
+            previousOwnerEntityId,
+            ownerEntityId);
+        AdvanceMapExtent(planeCode, q, r);
+    }
+
     internal int CoverageOwnerCellCount(int ownerEntityId) => CoverageOwnerCellCount(ownerEntityId, PlaneCodes.Physical);
 
     internal int CoverageOwnerCellCount(int ownerEntityId, int planeCode)
@@ -930,12 +1011,8 @@ internal sealed partial class WorldState
 
     internal int RequireCellId(int planeCode, int q, int r, int z)
     {
-        if (!TryGetCellId(planeCode, q, r, z, out var cellId))
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        return cellId;
+        ValidateInfluencePlaneCode(planeCode);
+        return _cells.Require(planeCode, q, r, z);
     }
 
     internal int CellPlaneCode(int cellId) => _cells.PlaneCode(cellId);

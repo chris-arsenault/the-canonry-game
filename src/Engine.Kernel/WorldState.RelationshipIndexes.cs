@@ -7,13 +7,45 @@ internal sealed partial class WorldState
 {
     public void AdvanceWorldVersion()
     {
-        if (_worldVersionTick == CurrentTick)
+        if (_singleWorker)
+        {
+            if (_worldVersionTick != CurrentTick)
+            {
+                WorldVersion++;
+                _worldVersionTick = CurrentTick;
+            }
+
+            return;
+        }
+
+        if (global::System.Threading.Volatile.Read(ref _worldVersionTick) == CurrentTick)
         {
             return;
         }
 
-        WorldVersion++;
-        _worldVersionTick = CurrentTick;
+        var spin = new global::System.Threading.SpinWait();
+        while (global::System.Threading.Interlocked.CompareExchange(
+                   ref _worldVersionGate,
+                   1,
+                   0) != 0)
+        {
+            spin.SpinOnce();
+        }
+
+        try
+        {
+            if (_worldVersionTick != CurrentTick)
+            {
+                WorldVersion++;
+                global::System.Threading.Volatile.Write(
+                    ref _worldVersionTick,
+                    CurrentTick);
+            }
+        }
+        finally
+        {
+            global::System.Threading.Volatile.Write(ref _worldVersionGate, 0);
+        }
     }
 
     private int FindEntitySlot()
@@ -277,194 +309,6 @@ internal sealed partial class WorldState
         _activeRelationshipPositions[relationshipId] = 0;
     }
 
-    private void InsertIncidentRelationship(int relationshipId)
-    {
-        var sourceEntityId = _relationshipSourceId[relationshipId];
-        var targetEntityId = _relationshipTargetId[relationshipId];
-        InsertIncidentEndpoint(sourceEntityId, relationshipId);
-        if (targetEntityId != sourceEntityId)
-        {
-            InsertIncidentEndpoint(targetEntityId, relationshipId);
-        }
-    }
-
-    private void InsertIncidentEndpoint(int entityId, int relationshipId)
-    {
-        var current = _firstIncidentRelationship[entityId];
-        SetIncidentPrevious(entityId, relationshipId, 0);
-        SetIncidentNext(entityId, relationshipId, current);
-        if (current > 0)
-        {
-            SetIncidentPrevious(entityId, current, relationshipId);
-        }
-
-        _firstIncidentRelationship[entityId] = relationshipId;
-    }
-
-    private void RemoveIncidentRelationship(int relationshipId)
-    {
-        var sourceEntityId = _relationshipSourceId[relationshipId];
-        var targetEntityId = _relationshipTargetId[relationshipId];
-        RemoveIncidentEndpoint(sourceEntityId, relationshipId);
-        if (targetEntityId != sourceEntityId)
-        {
-            RemoveIncidentEndpoint(targetEntityId, relationshipId);
-        }
-    }
-
-    private void RemoveIncidentEndpoint(int entityId, int relationshipId)
-    {
-        var previous = IncidentPrevious(entityId, relationshipId);
-        var next = IncidentNext(entityId, relationshipId);
-        if (previous > 0)
-        {
-            SetIncidentNext(entityId, previous, next);
-        }
-        else
-        {
-            _firstIncidentRelationship[entityId] = next;
-        }
-
-        if (next > 0)
-        {
-            SetIncidentPrevious(entityId, next, previous);
-        }
-
-        SetIncidentPrevious(entityId, relationshipId, 0);
-        SetIncidentNext(entityId, relationshipId, 0);
-    }
-
-    private int IncidentNext(int entityId, int relationshipId)
-    {
-        if (_relationshipSourceId[relationshipId] == entityId)
-        {
-            return _nextIncidentRelationshipFromSource[relationshipId];
-        }
-
-        if (_relationshipTargetId[relationshipId] == entityId)
-        {
-            return _nextIncidentRelationshipFromTarget[relationshipId];
-        }
-
-        throw new global::System.InvalidOperationException();
-    }
-
-    private int IncidentPrevious(int entityId, int relationshipId)
-    {
-        if (_relationshipSourceId[relationshipId] == entityId)
-        {
-            return _previousIncidentRelationshipFromSource[relationshipId];
-        }
-
-        if (_relationshipTargetId[relationshipId] == entityId)
-        {
-            return _previousIncidentRelationshipFromTarget[relationshipId];
-        }
-
-        throw new global::System.InvalidOperationException();
-    }
-
-    private void SetIncidentNext(int entityId, int relationshipId, int nextRelationshipId)
-    {
-        if (_relationshipSourceId[relationshipId] == entityId)
-        {
-            _nextIncidentRelationshipFromSource[relationshipId] = nextRelationshipId;
-            return;
-        }
-
-        if (_relationshipTargetId[relationshipId] == entityId)
-        {
-            _nextIncidentRelationshipFromTarget[relationshipId] = nextRelationshipId;
-            return;
-        }
-
-        throw new global::System.InvalidOperationException();
-    }
-
-    private void SetIncidentPrevious(int entityId, int relationshipId, int previousRelationshipId)
-    {
-        if (_relationshipSourceId[relationshipId] == entityId)
-        {
-            _previousIncidentRelationshipFromSource[relationshipId] = previousRelationshipId;
-            return;
-        }
-
-        if (_relationshipTargetId[relationshipId] == entityId)
-        {
-            _previousIncidentRelationshipFromTarget[relationshipId] = previousRelationshipId;
-            return;
-        }
-
-        throw new global::System.InvalidOperationException();
-    }
-
-    private void InsertPhysicalOccupant(int entityId, int q, int r) =>
-        InsertPhysicalOccupant(entityId, q, r, z: 0);
-
-    private void InsertPhysicalOccupant(int entityId, int q, int r, int z)
-    {
-        var cellId = _cells.GetOrAdd(PlaneCodes.Physical, q, r, z);
-        _nextPhysicalEntityAtCell[entityId] = _firstPhysicalEntityAtCell[cellId];
-        _firstPhysicalEntityAtCell[cellId] = entityId;
-    }
-
-    private void RemovePhysicalOccupant(int entityId, int q, int r, int z)
-    {
-        var cellId = RequireCellId(PlaneCodes.Physical, q, r, z);
-        var current = _firstPhysicalEntityAtCell[cellId];
-        if (current == entityId)
-        {
-            _firstPhysicalEntityAtCell[cellId] = _nextPhysicalEntityAtCell[entityId];
-            _nextPhysicalEntityAtCell[entityId] = 0;
-            return;
-        }
-
-        while (current > 0)
-        {
-            var next = _nextPhysicalEntityAtCell[current];
-            if (next == entityId)
-            {
-                _nextPhysicalEntityAtCell[current] = _nextPhysicalEntityAtCell[entityId];
-                _nextPhysicalEntityAtCell[entityId] = 0;
-                return;
-            }
-
-            current = next;
-        }
-    }
-
-    private void InsertSemanticOccupant(int entityId, int q, int r)
-    {
-        var cellId = _cells.GetOrAdd(PlaneCodes.Semantic, q, r, z: 0);
-        _nextSemanticEntityAtCell[entityId] = _firstSemanticEntityAtCell[cellId];
-        _firstSemanticEntityAtCell[cellId] = entityId;
-    }
-
-    private void RemoveSemanticOccupant(int entityId, int q, int r)
-    {
-        var cellId = RequireCellId(PlaneCodes.Semantic, q, r, z: 0);
-        var current = _firstSemanticEntityAtCell[cellId];
-        if (current == entityId)
-        {
-            _firstSemanticEntityAtCell[cellId] = _nextSemanticEntityAtCell[entityId];
-            _nextSemanticEntityAtCell[entityId] = 0;
-            return;
-        }
-
-        while (current > 0)
-        {
-            var next = _nextSemanticEntityAtCell[current];
-            if (next == entityId)
-            {
-                _nextSemanticEntityAtCell[current] = _nextSemanticEntityAtCell[entityId];
-                _nextSemanticEntityAtCell[entityId] = 0;
-                return;
-            }
-
-            current = next;
-        }
-    }
-
     private int TraverseRelationshipsOfKind<TVisitor>(
         int startEntityId,
         int kindId,
@@ -575,200 +419,31 @@ internal sealed partial class WorldState
         }
     }
 
-    private void AddRelationshipToGraphDelta(int relationshipId)
+    private int RelationshipRowIndex(int entityId, int kindId)
     {
-        if (!RelationshipIsHotActive(relationshipId))
-        {
-            return;
-        }
-
-        RemoveRelationshipFromGraphDelta(relationshipId);
-        if (_relationshipGraphDeltaCount >= _nextOutgoingDeltaRelationship.Length - 1)
-        {
-            CompactRelationshipGraph();
-        }
-
-        InsertDeltaRelationship(
-            _firstOutgoingDeltaRelationshipByRow,
-            _nextOutgoingDeltaRelationship,
-            RelationshipRowIndexRaw(_relationshipSourceId[relationshipId], _relationshipKindId[relationshipId]),
-            relationshipId);
-        InsertDeltaRelationship(
-            _firstIncomingDeltaRelationshipByRow,
-            _nextIncomingDeltaRelationship,
-            RelationshipRowIndexRaw(_relationshipTargetId[relationshipId], _relationshipKindId[relationshipId]),
-            relationshipId);
-        _relationshipInDeltaGraph[relationshipId] = true;
-        _relationshipGraphDeltaCount++;
-        if (_relationshipGraphDeltaMergeThreshold > 0 &&
-            _relationshipGraphDeltaCount >= _relationshipGraphDeltaMergeThreshold)
-        {
-            CompactRelationshipGraph();
-        }
-    }
-
-    private void RemoveRelationshipFromGraphDelta(int relationshipId)
-    {
-        if (!_relationshipInDeltaGraph[relationshipId])
-        {
-            return;
-        }
-
-        RemoveDeltaRelationship(
-            _firstOutgoingDeltaRelationshipByRow,
-            _nextOutgoingDeltaRelationship,
-            RelationshipRowIndexRaw(_relationshipSourceId[relationshipId], _relationshipKindId[relationshipId]),
-            relationshipId);
-        RemoveDeltaRelationship(
-            _firstIncomingDeltaRelationshipByRow,
-            _nextIncomingDeltaRelationship,
-            RelationshipRowIndexRaw(_relationshipTargetId[relationshipId], _relationshipKindId[relationshipId]),
-            relationshipId);
-        _relationshipInDeltaGraph[relationshipId] = false;
-        _relationshipGraphDeltaCount--;
-    }
-
-    private void InsertDeltaRelationship(
-        int[] firstRelationshipByRow,
-        int[] nextRelationship,
-        int row,
-        int relationshipId)
-    {
-        var first = firstRelationshipByRow[row];
-        if (first == 0 || RelationshipComesBefore(relationshipId, first))
-        {
-            nextRelationship[relationshipId] = first;
-            firstRelationshipByRow[row] = relationshipId;
-            return;
-        }
-
-        var previous = first;
-        var current = nextRelationship[previous];
-        while (current > 0 && RelationshipComesBefore(current, relationshipId))
-        {
-            previous = current;
-            current = nextRelationship[current];
-        }
-
-        nextRelationship[relationshipId] = current;
-        nextRelationship[previous] = relationshipId;
-    }
-
-    private static void RemoveDeltaRelationship(
-        int[] firstRelationshipByRow,
-        int[] nextRelationship,
-        int row,
-        int relationshipId)
-    {
-        var current = firstRelationshipByRow[row];
-        if (current == relationshipId)
-        {
-            firstRelationshipByRow[row] = nextRelationship[relationshipId];
-            nextRelationship[relationshipId] = 0;
-            return;
-        }
-
-        while (current > 0)
-        {
-            var next = nextRelationship[current];
-            if (next == relationshipId)
-            {
-                nextRelationship[current] = nextRelationship[relationshipId];
-                nextRelationship[relationshipId] = 0;
-                return;
-            }
-
-            current = next;
-        }
-    }
-
-    private void BuildRelationshipCsr(int[] offsets, int[] relationships, bool outgoing)
-    {
-        global::System.Array.Clear(offsets);
-        global::System.Array.Clear(relationships);
-        for (var index = 0; index < _activeRelationshipCount; index++)
-        {
-            var relationshipId = _activeRelationshipSlots[index];
-            var entityId = outgoing ? _relationshipSourceId[relationshipId] : _relationshipTargetId[relationshipId];
-            var row = RelationshipRowIndexRaw(entityId, _relationshipKindId[relationshipId]);
-            offsets[row + 1]++;
-        }
-
-        for (var i = 1; i < offsets.Length; i++)
-        {
-            offsets[i] += offsets[i - 1];
-        }
-
-        global::System.Array.Copy(offsets, _relationshipBuildCursors, offsets.Length);
-        for (var index = 0; index < _activeRelationshipCount; index++)
-        {
-            var relationshipId = _activeRelationshipSlots[index];
-            var entityId = outgoing ? _relationshipSourceId[relationshipId] : _relationshipTargetId[relationshipId];
-            var row = RelationshipRowIndexRaw(entityId, _relationshipKindId[relationshipId]);
-            var slot = _relationshipBuildCursors[row];
-            relationships[slot] = RelationshipOccurrenceHandle(relationshipId);
-            _relationshipBuildCursors[row]++;
-        }
-
-        SortRelationshipCsrRows(offsets, relationships);
-    }
-
-    private void SortRelationshipCsrRows(int[] offsets, int[] relationships)
-    {
-        for (var row = 0; row < offsets.Length - 1; row++)
-        {
-            var start = offsets[row];
-            var end = offsets[row + 1];
-            for (var i = start + 1; i < end; i++)
-            {
-                var relationshipOccurrence = relationships[i];
-                var j = i - 1;
-                while (j >= start && FrozenOccurrenceComesBefore(relationshipOccurrence, relationships[j]))
-                {
-                    relationships[j + 1] = relationships[j];
-                    j--;
-                }
-
-                relationships[j + 1] = relationshipOccurrence;
-            }
-        }
+        EnsureEntity(entityId);
+        ValidateRelationshipKindIndex(kindId);
+        return (kindId - 1) * (_entityAllocated.Length - 1) + entityId - 1;
     }
 
     private int FrozenCursorRelationshipId(RelationshipGraphCursor cursor)
     {
         var occurrenceHandle = cursor.DirectionCode == OutgoingRelationshipDirectionCode
-            ? _outgoingFrozenRelationships[cursor.FrozenIndex]
-            : _incomingFrozenRelationships[cursor.FrozenIndex];
+            ? _endpointOutgoingFrozenRelationships[cursor.FrozenIndex]
+            : _endpointIncomingFrozenRelationships[cursor.FrozenIndex];
         return TryResolveRelationshipOccurrence(occurrenceHandle, out var relationshipId)
             ? relationshipId
             : 0;
     }
 
-    private int DeltaCursorRelationshipId(RelationshipGraphCursor cursor)
-    {
-        return cursor.DeltaRelationshipId;
-    }
-
     private int NextDeltaRelationship(RelationshipGraphCursor cursor)
     {
         return cursor.DirectionCode == OutgoingRelationshipDirectionCode
-            ? _nextOutgoingDeltaRelationship[cursor.DeltaRelationshipId]
-            : _nextIncomingDeltaRelationship[cursor.DeltaRelationshipId];
+            ? _endpointNextOutgoingDeltaRelationship[cursor.DeltaRelationshipId]
+            : _endpointNextIncomingDeltaRelationship[cursor.DeltaRelationshipId];
     }
 
-    private bool RelationshipComesBefore(int leftRelationshipId, int rightRelationshipId)
-    {
-        return leftRelationshipId < rightRelationshipId;
-    }
-
-    private bool FrozenOccurrenceComesBefore(int leftOccurrenceHandle, int rightOccurrenceHandle)
-    {
-        var leftRelationshipId = ((leftOccurrenceHandle - 1) % RelationshipCapacity) + 1;
-        var rightRelationshipId = ((rightOccurrenceHandle - 1) % RelationshipCapacity) + 1;
-        return leftRelationshipId < rightRelationshipId;
-    }
-
-    private bool RelationshipIsHotActive(int relationshipId)
+    internal bool RelationshipIsHotActive(int relationshipId)
     {
         return (uint)relationshipId < (uint)_relationshipActive.Length &&
             _relationshipActive[relationshipId] &&
@@ -781,18 +456,6 @@ internal sealed partial class WorldState
         return (uint)entityId < (uint)_entityAllocated.Length &&
             _entityAllocated[entityId] &&
             _entityStatus[entityId] == EntityStatusCodes.Active;
-    }
-
-    private int RelationshipRowIndex(int entityId, int kindId)
-    {
-        EnsureEntity(entityId);
-        ValidateRelationshipKindIndex(kindId);
-        return RelationshipRowIndexRaw(entityId, kindId);
-    }
-
-    private int RelationshipRowIndexRaw(int entityId, int kindId)
-    {
-        return (kindId - 1) * _relationshipEntityCapacity + entityId - 1;
     }
 
     private void EnsureEntity(int entityId)
@@ -915,4 +578,361 @@ internal sealed partial class WorldState
     {
         return _kernelData.Entities.ClampAttribute(attributeId, value);
     }
+}
+
+internal partial struct RelationshipEndpointIndex
+{
+    internal void Attach(WorldState world, int relationshipId)
+    {
+        InsertIncidentRelationship(relationshipId);
+        AddRelationshipToGraphDelta(world, relationshipId);
+    }
+
+    internal void Detach(WorldState world, int relationshipId)
+    {
+        RemoveIncidentRelationship(relationshipId);
+        RemoveRelationshipFromGraphDelta(world, relationshipId);
+    }
+
+    internal int FirstIncidentRelationship(int entityId) =>
+        _firstIncidentRelationship[entityId];
+
+    internal int NextIncidentRelationship(int entityId, int relationshipId) =>
+        IncidentNext(entityId, relationshipId);
+
+    internal void Compact(WorldState world)
+    {
+        BuildRelationshipCsr(
+            world,
+            _outgoingFrozenOffsets,
+            _outgoingFrozenRelationships,
+            outgoing: true);
+        BuildRelationshipCsr(
+            world,
+            _incomingFrozenOffsets,
+            _incomingFrozenRelationships,
+            outgoing: false);
+        global::System.Array.Clear(_firstOutgoingDeltaRelationshipByRow);
+        global::System.Array.Clear(_firstIncomingDeltaRelationshipByRow);
+        global::System.Array.Clear(_nextOutgoingDeltaRelationship);
+        global::System.Array.Clear(_nextIncomingDeltaRelationship);
+        global::System.Array.Clear(_relationshipInDeltaGraph);
+        _graphDeltaCount = 0;
+    }
+
+    private void InsertIncidentRelationship(int relationshipId)
+    {
+        var sourceEntityId = _relationshipSourceId[relationshipId];
+        var targetEntityId = _relationshipTargetId[relationshipId];
+        InsertIncidentEndpoint(sourceEntityId, relationshipId);
+        if (targetEntityId != sourceEntityId)
+        {
+            InsertIncidentEndpoint(targetEntityId, relationshipId);
+        }
+
+    }
+
+    private void InsertIncidentEndpoint(int entityId, int relationshipId)
+    {
+        var current = _firstIncidentRelationship[entityId];
+        SetIncidentPrevious(entityId, relationshipId, 0);
+        SetIncidentNext(entityId, relationshipId, current);
+        if (current > 0)
+        {
+            SetIncidentPrevious(entityId, current, relationshipId);
+        }
+
+        _firstIncidentRelationship[entityId] = relationshipId;
+    }
+
+    private void RemoveIncidentRelationship(int relationshipId)
+    {
+        var sourceEntityId = _relationshipSourceId[relationshipId];
+        var targetEntityId = _relationshipTargetId[relationshipId];
+        RemoveIncidentEndpoint(sourceEntityId, relationshipId);
+        if (targetEntityId != sourceEntityId)
+        {
+            RemoveIncidentEndpoint(targetEntityId, relationshipId);
+        }
+
+    }
+
+    private void RemoveIncidentEndpoint(int entityId, int relationshipId)
+    {
+        var previous = IncidentPrevious(entityId, relationshipId);
+        var next = IncidentNext(entityId, relationshipId);
+        if (previous > 0)
+        {
+            SetIncidentNext(entityId, previous, next);
+        }
+        else
+        {
+            _firstIncidentRelationship[entityId] = next;
+        }
+
+        if (next > 0)
+        {
+            SetIncidentPrevious(entityId, next, previous);
+        }
+
+        SetIncidentPrevious(entityId, relationshipId, 0);
+        SetIncidentNext(entityId, relationshipId, 0);
+    }
+
+    private int IncidentNext(int entityId, int relationshipId)
+    {
+        if (_relationshipSourceId[relationshipId] == entityId)
+        {
+            return _nextIncidentRelationshipFromSource[relationshipId];
+        }
+
+        if (_relationshipTargetId[relationshipId] == entityId)
+        {
+            return _nextIncidentRelationshipFromTarget[relationshipId];
+        }
+
+        throw new global::System.InvalidOperationException();
+    }
+
+    private int IncidentPrevious(int entityId, int relationshipId)
+    {
+        if (_relationshipSourceId[relationshipId] == entityId)
+        {
+            return _previousIncidentRelationshipFromSource[relationshipId];
+        }
+
+        if (_relationshipTargetId[relationshipId] == entityId)
+        {
+            return _previousIncidentRelationshipFromTarget[relationshipId];
+        }
+
+        throw new global::System.InvalidOperationException();
+    }
+
+    private void SetIncidentNext(
+        int entityId,
+        int relationshipId,
+        int nextRelationshipId)
+    {
+        if (_relationshipSourceId[relationshipId] == entityId)
+        {
+            _nextIncidentRelationshipFromSource[relationshipId] = nextRelationshipId;
+            return;
+        }
+
+        if (_relationshipTargetId[relationshipId] == entityId)
+        {
+            _nextIncidentRelationshipFromTarget[relationshipId] = nextRelationshipId;
+            return;
+        }
+
+        throw new global::System.InvalidOperationException();
+    }
+
+    private void SetIncidentPrevious(
+        int entityId,
+        int relationshipId,
+        int previousRelationshipId)
+    {
+        if (_relationshipSourceId[relationshipId] == entityId)
+        {
+            _previousIncidentRelationshipFromSource[relationshipId] = previousRelationshipId;
+            return;
+        }
+
+        if (_relationshipTargetId[relationshipId] == entityId)
+        {
+            _previousIncidentRelationshipFromTarget[relationshipId] = previousRelationshipId;
+            return;
+        }
+
+        throw new global::System.InvalidOperationException();
+    }
+
+    private void AddRelationshipToGraphDelta(WorldState world, int relationshipId)
+    {
+        if (!RelationshipIsHotActive(relationshipId))
+        {
+            return;
+        }
+
+        RemoveRelationshipFromGraphDelta(world, relationshipId);
+        if (_graphDeltaCount >= _nextOutgoingDeltaRelationship.Length - 1)
+        {
+            Compact(world);
+        }
+
+        InsertDeltaRelationship(
+            _firstOutgoingDeltaRelationshipByRow,
+            _nextOutgoingDeltaRelationship,
+            RelationshipRowIndex(
+                _relationshipSourceId[relationshipId],
+                _relationshipKindId[relationshipId]),
+            relationshipId);
+        InsertDeltaRelationship(
+            _firstIncomingDeltaRelationshipByRow,
+            _nextIncomingDeltaRelationship,
+            RelationshipRowIndex(
+                _relationshipTargetId[relationshipId],
+                _relationshipKindId[relationshipId]),
+            relationshipId);
+        _relationshipInDeltaGraph[relationshipId] = true;
+        _graphDeltaCount++;
+        if (_graphDeltaMergeThreshold > 0 &&
+            _graphDeltaCount >= _graphDeltaMergeThreshold)
+        {
+            Compact(world);
+        }
+    }
+
+    private void RemoveRelationshipFromGraphDelta(WorldState world, int relationshipId)
+    {
+        if (!_relationshipInDeltaGraph[relationshipId])
+        {
+            return;
+        }
+
+        RemoveDeltaRelationship(
+            _firstOutgoingDeltaRelationshipByRow,
+            _nextOutgoingDeltaRelationship,
+            RelationshipRowIndex(
+                _relationshipSourceId[relationshipId],
+                _relationshipKindId[relationshipId]),
+            relationshipId);
+        RemoveDeltaRelationship(
+            _firstIncomingDeltaRelationshipByRow,
+            _nextIncomingDeltaRelationship,
+            RelationshipRowIndex(
+                _relationshipTargetId[relationshipId],
+                _relationshipKindId[relationshipId]),
+            relationshipId);
+        _relationshipInDeltaGraph[relationshipId] = false;
+        _graphDeltaCount--;
+    }
+
+    private static void InsertDeltaRelationship(
+        int[] firstRelationshipByRow,
+        int[] nextRelationship,
+        int row,
+        int relationshipId)
+    {
+        var first = firstRelationshipByRow[row];
+        if (first == 0 || relationshipId < first)
+        {
+            nextRelationship[relationshipId] = first;
+            firstRelationshipByRow[row] = relationshipId;
+            return;
+        }
+
+        var previous = first;
+        var current = nextRelationship[previous];
+        while (current > 0 && current < relationshipId)
+        {
+            previous = current;
+            current = nextRelationship[current];
+        }
+
+        nextRelationship[relationshipId] = current;
+        nextRelationship[previous] = relationshipId;
+    }
+
+    private static void RemoveDeltaRelationship(
+        int[] firstRelationshipByRow,
+        int[] nextRelationship,
+        int row,
+        int relationshipId)
+    {
+        var current = firstRelationshipByRow[row];
+        if (current == relationshipId)
+        {
+            firstRelationshipByRow[row] = nextRelationship[relationshipId];
+            nextRelationship[relationshipId] = 0;
+            return;
+        }
+
+        while (current > 0)
+        {
+            var next = nextRelationship[current];
+            if (next == relationshipId)
+            {
+                nextRelationship[current] = nextRelationship[relationshipId];
+                nextRelationship[relationshipId] = 0;
+                return;
+            }
+
+            current = next;
+        }
+    }
+
+    private void BuildRelationshipCsr(
+        WorldState world,
+        int[] offsets,
+        int[] relationships,
+        bool outgoing)
+    {
+        global::System.Array.Clear(offsets);
+        global::System.Array.Clear(relationships);
+        for (var index = 0; index < world.ActiveRelationshipCount; index++)
+        {
+            var relationshipId = world.ActiveRelationshipAt(index);
+            var entityId = outgoing
+                ? _relationshipSourceId[relationshipId]
+                : _relationshipTargetId[relationshipId];
+            var row = RelationshipRowIndex(
+                entityId,
+                _relationshipKindId[relationshipId]);
+            offsets[row + 1]++;
+        }
+
+        for (var index = 1; index < offsets.Length; index++)
+        {
+            offsets[index] += offsets[index - 1];
+        }
+
+        global::System.Array.Copy(offsets, _relationshipBuildCursors, offsets.Length);
+        for (var index = 0; index < world.ActiveRelationshipCount; index++)
+        {
+            var relationshipId = world.ActiveRelationshipAt(index);
+            var entityId = outgoing
+                ? _relationshipSourceId[relationshipId]
+                : _relationshipTargetId[relationshipId];
+            var row = RelationshipRowIndex(
+                entityId,
+                _relationshipKindId[relationshipId]);
+            var slot = _relationshipBuildCursors[row];
+            relationships[slot] = RelationshipOccurrenceHandle(relationshipId);
+            _relationshipBuildCursors[row]++;
+        }
+
+        SortRelationshipCsrRows(_relationshipCapacity, offsets, relationships);
+    }
+
+    private static void SortRelationshipCsrRows(
+        int relationshipCapacity,
+        int[] offsets,
+        int[] relationships)
+    {
+        for (var row = 0; row < offsets.Length - 1; row++)
+        {
+            var start = offsets[row];
+            var end = offsets[row + 1];
+            for (var index = start + 1; index < end; index++)
+            {
+                var relationshipOccurrence = relationships[index];
+                var cursor = index - 1;
+                while (cursor >= start &&
+                       FrozenOccurrenceComesBefore(
+                           relationshipCapacity,
+                           relationshipOccurrence,
+                           relationships[cursor]))
+                {
+                    relationships[cursor + 1] = relationships[cursor];
+                    cursor--;
+                }
+
+                relationships[cursor + 1] = relationshipOccurrence;
+            }
+        }
+    }
+
 }

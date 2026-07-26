@@ -3,7 +3,8 @@ namespace Engine.Kernel;
 using Engine.Constants;
 
 internal sealed class RelationshipProgramRuntime :
-    IKernelProgramRuntime<RelationshipProgramData, RelationshipProgramState>
+    IKernelProgramRuntime<RelationshipProgramData, RelationshipProgramState>,
+    ILocalEvaluationRangeProgram
 {
     public RelationshipProgramRuntime(RelationshipProgramData data, RelationshipProgramState state)
         : this(data, state, new KernelProgramTuningOptions())
@@ -30,6 +31,14 @@ internal sealed class RelationshipProgramRuntime :
     public KernelProgramTuningOptions Tuning { get; }
 
     public int Count => Data.Count;
+
+    public int RangeKindCode => LocalEvaluationRangeKindCodes.Relationships;
+
+    public bool SupportsConcurrentRanges(Simulation simulation)
+    {
+        _ = simulation;
+        return true;
+    }
 
     public int RegisterRelationshipKind(
         int kindId,
@@ -61,6 +70,24 @@ internal sealed class RelationshipProgramRuntime :
             var relationshipId = simulation.FrozenRelationshipAt(index);
             TickRelationship(simulation, world, relationshipId, tick);
         }
+    }
+
+    public void EvaluateRange(
+        Simulation simulation,
+        int tick,
+        in FrozenTickRange range)
+    {
+        var world = simulation.World;
+        for (var index = 0; index < range.Count; index++)
+        {
+            TickRelationship(simulation, world, range.At(index), tick);
+        }
+    }
+
+    public void CompleteRanges(Simulation simulation, int tick)
+    {
+        _ = simulation;
+        _ = tick;
     }
 
     public void NoteRelationshipCreated(WorldState world, int relationshipId)

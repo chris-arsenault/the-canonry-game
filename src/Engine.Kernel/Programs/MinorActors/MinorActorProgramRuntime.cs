@@ -3,7 +3,8 @@ namespace Engine.Kernel;
 using Engine.Constants;
 
 internal sealed partial class MinorActorProgramRuntime :
-    IKernelProgramRuntime<MinorActorProgramData, MinorActorProgramState>
+    IKernelProgramRuntime<MinorActorProgramData, MinorActorProgramState>,
+    ILocalEvaluationRangeProgram
 {
     private static readonly int[] NeighborDQ = [1, 1, 0, -1, -1, 0];
     private static readonly int[] NeighborDR = [0, -1, -1, 0, 1, 1];
@@ -27,6 +28,14 @@ internal sealed partial class MinorActorProgramRuntime :
     public MinorActorProgramData Data { get; }
 
     public MinorActorProgramState State { get; }
+
+    public int RangeKindCode => LocalEvaluationRangeKindCodes.Entities;
+
+    public bool SupportsConcurrentRanges(Simulation simulation)
+    {
+        _ = simulation;
+        return false;
+    }
 
     internal void NoteEntityRetired(Simulation simulation, int entityId, int tick)
     {
@@ -77,44 +86,73 @@ internal sealed partial class MinorActorProgramRuntime :
 
     private void EnsureSourceActors(Simulation simulation, int tick)
     {
-        var world = simulation.World;
         for (var index = 0; index < simulation.FrozenEntityCount; index++)
         {
-            var sourceEntityId = simulation.FrozenEntityAt(index);
-            var sourceKindId = world.EntityKindId(sourceEntityId);
-            for (var rule = Data.FirstRuleForSourceKind(sourceKindId);
-                 rule > 0;
-                 rule = Data.NextRuleForSourceKind(rule))
+            EnsureSourceActor(
+                simulation,
+                simulation.FrozenEntityAt(index),
+                tick);
+        }
+    }
+
+    public void EvaluateRange(
+        Simulation simulation,
+        int tick,
+        in FrozenTickRange range)
+    {
+        for (var index = 0; index < range.Count; index++)
+        {
+            EnsureSourceActor(simulation, range.At(index), tick);
+        }
+    }
+
+    public void CompleteRanges(Simulation simulation, int tick)
+    {
+        TickActiveActors(simulation, tick);
+    }
+
+    private void EnsureSourceActor(
+        Simulation simulation,
+        int sourceEntityId,
+        int tick)
+    {
+        var world = simulation.World;
+        var sourceKindId = world.EntityKindId(sourceEntityId);
+        for (var rule = Data.FirstRuleForSourceKind(sourceKindId);
+             rule > 0;
+             rule = Data.NextRuleForSourceKind(rule))
+        {
+            if (!Data.RuleMatches(world, sourceEntityId, rule))
             {
-                if (!Data.RuleMatches(world, sourceEntityId, rule))
-                {
-                    continue;
-                }
+                continue;
+            }
 
-                if (Data.RoleCodes[rule] == MinorActorRoleCodes.CampaignColumn)
-                {
-                    EnsureCampaignColumnsForSource(
-                        simulation,
-                        sourceEntityId,
-                        rule,
-                        tick);
-                    continue;
-                }
-
-                if (
-                    State.ActorForSourceRule(sourceEntityId, rule) > 0 ||
-                    !SourceProbeIsDue(sourceEntityId, rule, Data.ReplanTicks[rule], tick))
-                {
-                    continue;
-                }
-
-                CreateActorIfAssignable(
+            if (Data.RoleCodes[rule] == MinorActorRoleCodes.CampaignColumn)
+            {
+                EnsureCampaignColumnsForSource(
                     simulation,
                     sourceEntityId,
                     rule,
-                    bindingRelationshipId: 0,
                     tick);
+                continue;
             }
+
+            if (State.ActorForSourceRule(sourceEntityId, rule) > 0 ||
+                !SourceProbeIsDue(
+                    sourceEntityId,
+                    rule,
+                    Data.ReplanTicks[rule],
+                    tick))
+            {
+                continue;
+            }
+
+            CreateActorIfAssignable(
+                simulation,
+                sourceEntityId,
+                rule,
+                bindingRelationshipId: 0,
+                tick);
         }
     }
 
