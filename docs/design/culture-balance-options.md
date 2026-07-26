@@ -31,7 +31,7 @@ generators are the same homeostat in miniature).
   inheriting the target's.
 - **Timeline generators (cadence-based).** A per-generator cadence (every
   ~N ticks, jittered, world-state preconditions) outside the
-  population-proportional pulse pool. Guarantees each culture a minimum
+  population-proportional fire-window pool. Guarantees each culture a minimum
   authored drumbeat without equalizing outcomes. First instance: the
   Nightshelf Deep Conclave. Cadence, not scarcity gating.
 - **Per-culture plane bias.** Culture-authored per-plane influence
@@ -103,8 +103,8 @@ exists (relic consignment vs custody). Sketched next: A<-WS (martyrs,
 memorials, and wardens rise where predation bites — Aurora converts
 suffering into Witness). A<-NS and NS<-WS wait for a diagnosed imbalance.
 Do not fill the matrix on principle: every generator dilutes the shared
-pulse pool (observed), and each channel is a tuning surface. Watch
-FiresPerPulse/pulse width as the roster grows.
+fire-window pool (observed), and each channel is a tuning surface. Watch
+`FiresPerWindow` and fire-window width as the roster grows.
 
 ## Mandated pass: de-agency-centrify the new systems
 

@@ -206,9 +206,9 @@ public sealed class ChronicleProgramRuntimeTests
 
         // Decay the heat well below the fade threshold, then step past the
         // grace and quiet windows with no strikes. The tale fades mid-loop.
-        for (var pulse = 0; pulse < 400; pulse++)
+        for (var run = 0; run < 400; run++)
         {
-            simulation.Chronicles.Tick(simulation, tick: 25 + (pulse * 5));
+            simulation.Chronicles.Tick(simulation, tick: 25 + (run * 5));
         }
 
         Assert.False(simulation.Chronicles.State.Active[1]);

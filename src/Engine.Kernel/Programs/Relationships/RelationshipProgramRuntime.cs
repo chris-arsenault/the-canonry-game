@@ -56,11 +56,10 @@ internal sealed class RelationshipProgramRuntime :
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         var world = simulation.World;
-        for (var relationshipId = world.FirstActiveRelationship(); relationshipId > 0;)
+        for (var index = 0; index < simulation.FrozenRelationshipCount; index++)
         {
-            var nextRelationshipId = world.NextActiveRelationship(relationshipId);
+            var relationshipId = simulation.FrozenRelationshipAt(index);
             TickRelationship(simulation, world, relationshipId, tick);
-            relationshipId = nextRelationshipId;
         }
     }
 
@@ -148,10 +147,9 @@ internal sealed class RelationshipProgramRuntime :
                 tick);
         }
 
-        if (world.RelationshipStrength(relationshipId) <= Data.CullThreshold(world.RelationshipKindId(relationshipId)))
-        {
-            simulation.CullRelationship(relationshipId, tick);
-        }
+        simulation.QueueRelationshipEndWhenAtMost(
+            relationshipId,
+            Data.CullThreshold(world.RelationshipKindId(relationshipId)));
     }
 
     /// <summary>

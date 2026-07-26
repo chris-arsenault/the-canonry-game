@@ -76,11 +76,11 @@ internal static partial class KernelProgramInstaller
                 rule.PurposeCode,
                 rule.ActorKindCode,
                 rule.PlaneCode,
-                rule.TtlPulses,
-                rule.EmitCadencePulses,
+                rule.TtlTicks,
+                rule.EmitCadenceTicks,
                 rule.MaxActivePerSource,
                 rule.SpawnRadius,
-                rule.ActionCadencePulses,
+                rule.ActionCadenceTicks,
                 rule.WorkDelta);
 
             foreach (var verb in rule.Verbs)
@@ -135,8 +135,9 @@ internal static partial class KernelProgramInstaller
             context.RegisterLifecycle(
                 lifecycle.KindId,
                 new AttributeRuntimeId(lifecycle.HealthAttributeId),
-                lifecycle.BaseRate,
-                lifecycle.AgeCoefficient,
+                lifecycle.TargetTicks,
+                lifecycle.NominalHealthUnits,
+                lifecycle.FlatDrainShare,
                 lifecycle.Variance);
         }
     }
@@ -204,14 +205,6 @@ internal static partial class KernelProgramInstaller
         InstallGambitExpressions(context, gambitSlot, gambit);
         InstallGambitProviderSelectors(context, gambitSlot, gambit);
         InstallGambitSteps(context, gambitSlot, gambit);
-    }
-
-    private static void InstallGambitPreconditions(KernelConfigurationContext context, int gambitSlot, CompiledGambitRule gambit)
-    {
-        foreach (var precondition in gambit.Preconditions)
-        {
-            context.AddGambitPrecondition(gambitSlot, PreconditionCode(precondition.Code), precondition.A, precondition.B, precondition.C, precondition.D, precondition.X, precondition.Y);
-        }
     }
 
     private static void InstallGambitExpressions(KernelConfigurationContext context, int gambitSlot, CompiledGambitRule gambit)
@@ -363,7 +356,7 @@ internal static partial class KernelProgramInstaller
         var generatorSlot = context.RegisterGenerator(
             generator.GeneratorId,
             generator.TargetKindId,
-            generator.PulseWeight,
+            generator.FireWeight,
             generator.MaxRuns,
             generator.CadenceTicks,
             generator.CadenceJitterTicks,
@@ -868,7 +861,6 @@ internal static partial class KernelProgramInstaller
     {
         if (TryAttributePreconditionCode(precondition, out var code) ||
             TryRelationshipPreconditionCode(precondition, out code) ||
-            TryCompositionPreconditionCode(precondition, out code) ||
             TryContextPreconditionCode(precondition, out code) ||
             TrySpatialPreconditionCode(precondition, out code) ||
             TryKernelStatePreconditionCode(precondition, out code))
@@ -904,18 +896,6 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramPrecondition.EndpointRelationshipCountBelow => BehaviorPreconditionCodes.EndpointRelationshipCountBelow,
             BehaviorProgramPrecondition.RelatedEntityMatchesTarget => BehaviorPreconditionCodes.RelatedEntityMatchesTarget,
             BehaviorProgramPrecondition.RelationshipExists => BehaviorPreconditionCodes.RelationshipExists,
-            _ => -1,
-        };
-        return code >= 0;
-    }
-
-    private static bool TryCompositionPreconditionCode(BehaviorProgramPrecondition precondition, out int code)
-    {
-        code = precondition switch
-        {
-            BehaviorProgramPrecondition.And => BehaviorPreconditionCodes.And,
-            BehaviorProgramPrecondition.Or => BehaviorPreconditionCodes.Or,
-            BehaviorProgramPrecondition.Not => BehaviorPreconditionCodes.Not,
             _ => -1,
         };
         return code >= 0;

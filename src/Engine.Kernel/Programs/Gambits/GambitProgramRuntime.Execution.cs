@@ -704,9 +704,18 @@ internal sealed partial class GambitProgramRuntime
         variableCount++;
     }
 
-    private static int CooldownWithJitter(Simulation simulation, int cooldown)
+    private static int CooldownWithJitter(
+        Simulation simulation,
+        int entityOccurrenceHandle,
+        int gambitId,
+        int cooldown,
+        int attempt)
     {
-        var jitter = 1 + ((simulation.NextScalar() * FixedScalar.FromUnits(500000L)) - FixedScalar.FromUnits(250000L));
+        var jitter = 1 + ((simulation.RandomScalar(
+            entityOccurrenceHandle,
+            gambitId,
+            KernelRandomPurposeCodes.GambitCooldown,
+            attempt) * FixedScalar.FromUnits(500000L)) - FixedScalar.FromUnits(250000L));
         var ticks = (int)(cooldown * jitter);
         return ticks < 1 ? 1 : ticks;
     }

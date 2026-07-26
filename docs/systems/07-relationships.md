@@ -82,10 +82,27 @@ Culling emits the relationship-ended change and immediately releases the
 relationship slot for active reuse. The kernel has no ended-edge query.
 Relationship history is reconstructed from the event/provenance projections.
 
+Relationship occurrence identity is the reusable slot plus its generation.
+Events, frozen adjacency, and other state that can outlive the cull mutation
+carry that occurrence handle rather than the slot. Stale handles fail after
+reuse. Active adjacency and the dense relationship vector are updated before a
+slot returns to the free pool.
+
+Creating a relationship deduplicates the directed source/target/kind topology.
+A repeated create request returns the existing active edge rather than
+allocating a parallel duplicate.
+
 Every relationship query therefore operates on active edges whose endpoints
 are active entities. Retiring either endpoint ends the edge through the same
 cull path. World-beat facts that need cumulative endings are maintained as
 explicit counters at mutation time rather than by scanning old edge rows.
+
+Endpoint adjacency is a frozen sorted CSR plus a bounded sorted delta chain per
+entity/kind row. New or changed edges touch only their two endpoint rows; they
+do not shift a global CSR suffix. Queries merge the frozen row with its delta
+chain in relationship-slot order, skip stale frozen occurrences, and retain
+the same deterministic traversal before and after compaction. Snapshot load
+and the bounded delta threshold rebuild the frozen CSR from active edges.
 
 ## Interactions
 

@@ -197,7 +197,16 @@ internal sealed partial class GeneratorProgramRuntime
             return 0;
         }
 
-        var selectedOrdinal = selectRandom && simulation is not null ? simulation.NextInt(count) : 0;
+        var selectedOrdinal = 0;
+        if (selectRandom && simulation is not null)
+        {
+            selectedOrdinal = simulation.RandomInt(
+                count,
+                targetId > 0 ? world.EntityOccurrenceHandle(targetId) : kindId,
+                kindId,
+                KernelRandomPurposeCodes.GeneratorSharedQuery,
+                attempt: subtypeStart);
+        }
         return EvaluateSharedEntityQuery(
             world,
             simulation,
@@ -291,7 +300,7 @@ internal sealed partial class GeneratorProgramRuntime
     {
         for (var slot = 1; slot <= _generatorCount; slot++)
         {
-            if (_pulseStatusCodes[slot] != GeneratorStatusCodes.NotEvaluated)
+            if (_fireStatusCodes[slot] != GeneratorStatusCodes.NotEvaluated)
             {
                 WriteGeneratorEvaluated(simulation, tick, slot);
             }
@@ -303,17 +312,17 @@ internal sealed partial class GeneratorProgramRuntime
         simulation.EmitGeneratorEvaluated(
             tick,
             simulation.Generators._generatorIds[slot],
-            simulation.Generators._pulseStatusCodes[slot],
-            simulation.Generators._pulseSelectedTargetIds[slot],
-            simulation.Generators._pulseCandidateCounts[slot],
-            simulation.Generators._pulseFailedFireCounts[slot]);
+            simulation.Generators._fireStatusCodes[slot],
+            simulation.Generators._fireSelectedTargetOccurrenceHandles[slot],
+            simulation.Generators._fireCandidateCounts[slot],
+            simulation.Generators._fireFailedCounts[slot]);
     }
 
     private static void WriteGeneratorFired(
         Simulation simulation,
         int tick,
         int slot,
-        int selectedTargetEntityId,
+        int selectedTargetOccurrenceHandle,
         int createdEntityCount,
         int createdRelationshipCount,
         int relationshipSpendCount)
@@ -321,14 +330,16 @@ internal sealed partial class GeneratorProgramRuntime
         simulation.EmitGeneratorFired(
             tick,
             simulation.Generators._generatorIds[slot],
-            selectedTargetEntityId,
+            selectedTargetOccurrenceHandle,
             createdEntityCount,
             createdRelationshipCount,
             relationshipSpendCount,
             createdRelationshipCount);
-        if (selectedTargetEntityId > 0)
+        if (selectedTargetOccurrenceHandle > 0)
         {
-            simulation.Chronicles.NoteGeneratorFire(selectedTargetEntityId, simulation.Generators._generatorIds[slot]);
+            simulation.Chronicles.NoteGeneratorFire(
+                selectedTargetOccurrenceHandle,
+                simulation.Generators._generatorIds[slot]);
         }
     }
 

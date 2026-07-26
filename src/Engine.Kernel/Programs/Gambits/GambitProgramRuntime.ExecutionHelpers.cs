@@ -7,7 +7,7 @@ internal sealed partial class GambitProgramRuntime
     private static void WriteGambitEvaluated(
         Simulation simulation,
         int tick,
-        int entityId,
+        int entityOccurrenceHandle,
         int kindId,
         int gambitId,
         int candidateCount,
@@ -15,7 +15,7 @@ internal sealed partial class GambitProgramRuntime
     {
         simulation.EmitGambitEvaluated(
             tick,
-            entityId,
+            entityOccurrenceHandle,
             kindId,
             gambitId,
             candidateCount,
@@ -25,16 +25,16 @@ internal sealed partial class GambitProgramRuntime
     private static void WriteGambitExecuted(
         Simulation simulation,
         int tick,
-        int entityId,
-        int targetId,
+        int entityOccurrenceHandle,
+        int targetOccurrenceHandle,
         int kindId,
         int gambitId,
         KernelEventState state)
     {
         simulation.EmitGambitExecuted(
             tick,
-            entityId,
-            targetId,
+            entityOccurrenceHandle,
+            targetOccurrenceHandle,
             kindId,
             gambitId,
             state);
@@ -110,28 +110,6 @@ internal sealed partial class GambitProgramRuntime
         }
 
         Push(stack, ref stackCount, value);
-    }
-
-    private static void PushBool(global::System.Span<bool> stack, ref int stackCount, bool value)
-    {
-        if (stackCount >= stack.Length)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        stack[stackCount] = value;
-        stackCount++;
-    }
-
-    private static bool PopBool(global::System.Span<bool> stack, ref int stackCount)
-    {
-        if (stackCount <= 0)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        stackCount--;
-        return stack[stackCount];
     }
 
     private static FixedScalar Abs(FixedScalar value)

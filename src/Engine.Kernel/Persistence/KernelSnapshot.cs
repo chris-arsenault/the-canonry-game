@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 50;
+    private const int FormatVersion = 53;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
@@ -57,6 +57,9 @@ internal static class KernelSnapshotOptions
         WriteWorldCapacities(writer, options);
         WriteRuntimeCodes(writer, options.RuntimeCodes);
         WriteKernelTuning(writer, options.KernelTuning);
+        writer.Write(options.Execution.ReverseEvaluationOrder);
+        writer.Write(options.Execution.ReverseDeltaInsertionOrder);
+        writer.Write(options.Execution.LogicalShardCount);
         writer.Write(options.Seed);
         writer.Write(eventCount);
     }
@@ -141,14 +144,14 @@ internal static class KernelSnapshotOptions
         KernelTuningOptions kernelTuning)
     {
         WriteProgramEnabledOverrides(writer, kernelTuning.Programs.Enabled);
-        writer.Write(kernelTuning.Programs.MinorActorSubstepsPerPulse);
+        writer.Write(kernelTuning.Programs.MainProgramCadenceTicks);
         writer.Write(kernelTuning.Programs.CultureInfluenceActionScale.Units);
         writer.Write(kernelTuning.Programs.Lifecycle.AgingModelCode);
         writer.Write(kernelTuning.Programs.Generators.RetryFireTargets);
-        writer.Write(kernelTuning.Programs.Generators.PulseWidthTicks);
-        writer.Write(kernelTuning.Programs.Generators.FiresPerPulse);
-        writer.Write(kernelTuning.Programs.Generators.FrontierPulseWidthMultiplier);
-        writer.Write(kernelTuning.Programs.Generators.SettledPulseWidthMultiplier);
+        writer.Write(kernelTuning.Programs.Generators.FireWindowTicks);
+        writer.Write(kernelTuning.Programs.Generators.FiresPerWindow);
+        writer.Write(kernelTuning.Programs.Generators.FrontierFireWindowMultiplier);
+        writer.Write(kernelTuning.Programs.Generators.SettledFireWindowMultiplier);
         writer.Write(kernelTuning.Programs.Generators.SettledCoveredCellThreshold);
         writer.Write(kernelTuning.Programs.Generators.HeartlandCoveredCellThreshold);
         writer.Write(kernelTuning.Programs.Generators.ProvinceBandRefreshTicks);
@@ -165,10 +168,10 @@ internal static class KernelSnapshotOptions
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ForeignInfluenceDistanceScale.Units);
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.InfluenceShortfallSamplingFactor.Units);
         writer.Write(kernelTuning.Programs.LowAltitudeVerbs.ForeignInfluencePresenceSamplingFactor.Units);
-        writer.Write(kernelTuning.Programs.CultureField.DecayPerPulse.Units);
-        writer.Write(kernelTuning.Programs.CultureField.MinimumDecayPerPulse.Units);
+        writer.Write(kernelTuning.Programs.CultureField.DecayPerRun.Units);
+        writer.Write(kernelTuning.Programs.CultureField.MinimumDecayPerRun.Units);
         writer.Write(kernelTuning.Programs.CultureField.CullFloorRawMass.Units);
-        writer.Write(kernelTuning.Programs.CultureField.DecayCadencePulses);
+        writer.Write(kernelTuning.Programs.CultureField.DecayCadenceTicks);
         writer.Write(kernelTuning.Programs.CultureField.RemittanceShare.Units);
         writer.Write(kernelTuning.Programs.CultureField.RemittanceMinimumDistance);
         writer.Write(kernelTuning.Programs.CultureField.ContestDecayMultiplier.Units);
@@ -221,6 +224,9 @@ internal static class KernelSnapshotOptions
         ReadWorldValues(reader, ref values);
         ReadRuntimeCodeValues(reader, ref values);
         ReadKernelTuningValues(reader, ref values);
+        values.ReverseEvaluationOrder = reader.ReadBoolean();
+        values.ReverseDeltaInsertionOrder = reader.ReadBoolean();
+        values.LogicalShardCount = reader.ReadInt32();
         values.Seed = reader.ReadInt32();
         return values;
     }
@@ -295,7 +301,7 @@ internal static class KernelSnapshotOptions
         values.RelationshipsProgramEnabled = reader.ReadInt32();
         values.GeneratorsProgramEnabled = reader.ReadInt32();
         values.MinorActorsProgramEnabled = reader.ReadInt32();
-        values.MinorActorSubstepsPerPulse = reader.ReadInt32();
+        values.MainProgramCadenceTicks = reader.ReadInt32();
         values.CultureInfluenceActionScale = FixedScalar.FromUnits(reader.ReadInt64());
         values.LifecycleAgingModelCode = reader.ReadInt32();
         ReadGeneratorTuningValues(reader, ref values);
@@ -312,10 +318,10 @@ internal static class KernelSnapshotOptions
         values.LowAltitudeForeignInfluenceDistanceScale = FixedScalar.FromUnits(reader.ReadInt64());
         values.LowAltitudeInfluenceShortfallSamplingFactor = FixedScalar.FromUnits(reader.ReadInt64());
         values.LowAltitudeForeignInfluencePresenceSamplingFactor = FixedScalar.FromUnits(reader.ReadInt64());
-        values.CultureFieldDecayPerPulse = FixedScalar.FromUnits(reader.ReadInt64());
-        values.CultureFieldMinimumDecayPerPulse = FixedScalar.FromUnits(reader.ReadInt64());
+        values.CultureFieldDecayPerRun = FixedScalar.FromUnits(reader.ReadInt64());
+        values.CultureFieldMinimumDecayPerRun = FixedScalar.FromUnits(reader.ReadInt64());
         values.CultureFieldCullFloorRawMass = FixedScalar.FromUnits(reader.ReadInt64());
-        values.CultureFieldDecayCadencePulses = reader.ReadInt32();
+        values.CultureFieldDecayCadenceTicks = reader.ReadInt32();
         values.CultureFieldRemittanceShare = FixedScalar.FromUnits(reader.ReadInt64());
         values.CultureFieldRemittanceMinimumDistance = reader.ReadInt32();
         values.CultureFieldContestDecayMultiplier = FixedScalar.FromUnits(reader.ReadInt64());
@@ -401,6 +407,12 @@ internal static class KernelSnapshotOptions
             MapFrontierCandidateCapacity = values.MapFrontierCandidateCapacity,
             RuntimeCodes = CreateRuntimeCodes(values),
             KernelTuning = CreateKernelTuning(values),
+            Execution = new KernelExecutionOptions
+            {
+                ReverseEvaluationOrder = values.ReverseEvaluationOrder,
+                ReverseDeltaInsertionOrder = values.ReverseDeltaInsertionOrder,
+                LogicalShardCount = values.LogicalShardCount,
+            },
             Seed = values.Seed,
         };
     }
@@ -425,10 +437,10 @@ internal static class KernelSnapshotOptions
         ref SnapshotOptionValues values)
     {
         values.GeneratorRetryFireTargets = reader.ReadBoolean();
-        values.GeneratorPulseWidthTicks = reader.ReadInt32();
-        values.GeneratorFiresPerPulse = reader.ReadInt32();
-        values.GeneratorFrontierPulseWidthMultiplier = reader.ReadInt32();
-        values.GeneratorSettledPulseWidthMultiplier = reader.ReadInt32();
+        values.GeneratorFireWindowTicks = reader.ReadInt32();
+        values.GeneratorFiresPerWindow = reader.ReadInt32();
+        values.GeneratorFrontierFireWindowMultiplier = reader.ReadInt32();
+        values.GeneratorSettledFireWindowMultiplier = reader.ReadInt32();
         values.GeneratorSettledCoveredCellThreshold = reader.ReadInt32();
         values.GeneratorHeartlandCoveredCellThreshold = reader.ReadInt32();
         values.GeneratorProvinceBandRefreshTicks = reader.ReadInt32();
@@ -438,10 +450,10 @@ internal static class KernelSnapshotOptions
         new()
         {
             RetryFireTargets = values.GeneratorRetryFireTargets,
-            PulseWidthTicks = values.GeneratorPulseWidthTicks,
-            FiresPerPulse = values.GeneratorFiresPerPulse,
-            FrontierPulseWidthMultiplier = values.GeneratorFrontierPulseWidthMultiplier,
-            SettledPulseWidthMultiplier = values.GeneratorSettledPulseWidthMultiplier,
+            FireWindowTicks = values.GeneratorFireWindowTicks,
+            FiresPerWindow = values.GeneratorFiresPerWindow,
+            FrontierFireWindowMultiplier = values.GeneratorFrontierFireWindowMultiplier,
+            SettledFireWindowMultiplier = values.GeneratorSettledFireWindowMultiplier,
             SettledCoveredCellThreshold = values.GeneratorSettledCoveredCellThreshold,
             HeartlandCoveredCellThreshold = values.GeneratorHeartlandCoveredCellThreshold,
             ProvinceBandRefreshTicks = values.GeneratorProvinceBandRefreshTicks,
@@ -463,7 +475,7 @@ internal static class KernelSnapshotOptions
                     Generators = values.GeneratorsProgramEnabled,
                     MinorActors = values.MinorActorsProgramEnabled,
                 },
-                MinorActorSubstepsPerPulse = values.MinorActorSubstepsPerPulse,
+                MainProgramCadenceTicks = values.MainProgramCadenceTicks,
                 CultureInfluenceActionScale = values.CultureInfluenceActionScale,
                 Lifecycle = new LifecycleTuningOptions
                 {
@@ -488,12 +500,12 @@ internal static class KernelSnapshotOptions
                 },
                 CultureField = new CultureFieldTuningOptions
                 {
-                    DecayPerPulse = values.CultureFieldDecayPerPulse,
+                    DecayPerRun = values.CultureFieldDecayPerRun,
                     ContestDecayMultiplier = values.CultureFieldContestDecayMultiplier,
                     ContestFloorRawMass = values.CultureFieldContestFloorRawMass,
-                    MinimumDecayPerPulse = values.CultureFieldMinimumDecayPerPulse,
+                    MinimumDecayPerRun = values.CultureFieldMinimumDecayPerRun,
                     CullFloorRawMass = values.CultureFieldCullFloorRawMass,
-                    DecayCadencePulses = values.CultureFieldDecayCadencePulses,
+                    DecayCadenceTicks = values.CultureFieldDecayCadenceTicks,
                     RemittanceShare = values.CultureFieldRemittanceShare,
                     RemittanceMinimumDistance = values.CultureFieldRemittanceMinimumDistance,
                 },
@@ -561,14 +573,14 @@ internal static class KernelSnapshotOptions
         public int RelationshipsProgramEnabled;
         public int GeneratorsProgramEnabled;
         public int MinorActorsProgramEnabled;
-        public int MinorActorSubstepsPerPulse;
+        public int MainProgramCadenceTicks;
         public FixedScalar CultureInfluenceActionScale;
         public int LifecycleAgingModelCode;
         public bool GeneratorRetryFireTargets;
-        public int GeneratorPulseWidthTicks;
-        public int GeneratorFiresPerPulse;
-        public int GeneratorFrontierPulseWidthMultiplier;
-        public int GeneratorSettledPulseWidthMultiplier;
+        public int GeneratorFireWindowTicks;
+        public int GeneratorFiresPerWindow;
+        public int GeneratorFrontierFireWindowMultiplier;
+        public int GeneratorSettledFireWindowMultiplier;
         public int GeneratorSettledCoveredCellThreshold;
         public int GeneratorHeartlandCoveredCellThreshold;
         public int GeneratorProvinceBandRefreshTicks;
@@ -585,14 +597,17 @@ internal static class KernelSnapshotOptions
         public FixedScalar LowAltitudeForeignInfluenceDistanceScale;
         public FixedScalar LowAltitudeInfluenceShortfallSamplingFactor;
         public FixedScalar LowAltitudeForeignInfluencePresenceSamplingFactor;
-        public FixedScalar CultureFieldDecayPerPulse;
+        public FixedScalar CultureFieldDecayPerRun;
         public FixedScalar CultureFieldContestDecayMultiplier;
         public FixedScalar CultureFieldContestFloorRawMass;
-        public FixedScalar CultureFieldMinimumDecayPerPulse;
+        public FixedScalar CultureFieldMinimumDecayPerRun;
         public FixedScalar CultureFieldCullFloorRawMass;
-        public int CultureFieldDecayCadencePulses;
+        public int CultureFieldDecayCadenceTicks;
         public FixedScalar CultureFieldRemittanceShare;
         public int CultureFieldRemittanceMinimumDistance;
+        public bool ReverseEvaluationOrder;
+        public bool ReverseDeltaInsertionOrder;
+        public int LogicalShardCount;
         public int Seed;
     }
 }

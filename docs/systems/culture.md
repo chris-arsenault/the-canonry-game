@@ -74,6 +74,13 @@ slots query this descriptor. UI overlays use bounded dirty-cell refreshes.
 Monte Carlo may compute global topology at its sampling boundary; global
 component identity is not a runtime gameplay fact.
 
+The runtime cache is invalidated by locality, not by one global map-wide
+stamp. A changed surface culture cell invalidates cached descriptors in its
+radius-two dependency neighborhood for every culture; descriptors outside
+that neighborhood remain valid across ticks. Full snapshot replacement clears
+the disposable cache. This matches the radius-two formula without recomputing
+unchanged territory after unrelated culture work.
+
 The current strength thresholds are:
 
 | Band | Raw mass |
@@ -96,7 +103,7 @@ evidence, especially for culture slots. It is not the durable territorial layer.
 ### Decay, Remittances, And Concentration
 
 Raw culture mass decays. The `CultureFieldDecay` kernel program applies a
-multiplicative decay per pulse (default `0.5%` every 5 world pulses) with a
+multiplicative decay on its scheduled run (default `0.5%` every 25 ticks) with a
 minimum decay floor and a cull threshold that removes near-zero cells. The
 field therefore reflects the balance of current production against loss:
 unsustained wander-trails and satellites fade, while cells near sustained

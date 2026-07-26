@@ -174,7 +174,7 @@ public static class IceRemembersKnowledge
         new(GrantDomain.VerbWeight, multiplier, verb.ToVerbId());
 
     private static KnowledgeGrantConfig Generator(string generator, float multiplier) =>
-        new(GrantDomain.GeneratorPulseWeight, multiplier, generator);
+        new(GrantDomain.GeneratorFireWeight, multiplier, generator);
 
     private static KnowledgeGrantConfig GambitScore(IceRemembersGambitId gambit, float multiplier) =>
         new(GrantDomain.GambitScore, multiplier, gambit.ToGambitId());

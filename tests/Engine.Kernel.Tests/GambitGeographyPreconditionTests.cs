@@ -29,12 +29,13 @@ public sealed class GambitGeographyPreconditionTests
             gambitId: 100,
             targetMode: BehaviorTargetModeCodes.Self,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(
+        simulation.Gambits.SetConjunctivePreconditions(
             gambit,
-            BehaviorPreconditionCodes.SelfHexFactRange,
-            a: PhysicalHexFactCodes.Geothermal,
-            b: 100,
-            c: 255);
+            new(
+                BehaviorPreconditionCodes.SelfHexFactRange,
+                A: PhysicalHexFactCodes.Geothermal,
+                B: 100,
+                C: 255));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, AttributeId, x: FixedScalar.FromSingle(20f));
 
@@ -61,13 +62,14 @@ public sealed class GambitGeographyPreconditionTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
-        simulation.Gambits.AddPrecondition(
+        simulation.Gambits.SetConjunctivePreconditions(
             gambit,
-            BehaviorPreconditionCodes.TargetHexFactRange,
-            a: PhysicalHexFactCodes.Geothermal,
-            b: 100,
-            c: 255);
+            new(BehaviorPreconditionCodes.TargetIsNotSelf),
+            new(
+                BehaviorPreconditionCodes.TargetHexFactRange,
+                A: PhysicalHexFactCodes.Geothermal,
+                B: 100,
+                C: 255));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, AttributeId, x: FixedScalar.FromSingle(20f));
 
@@ -94,8 +96,9 @@ public sealed class GambitGeographyPreconditionTests
             gambitId: 102,
             targetMode: BehaviorTargetModeCodes.Self,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(
-            wantsWarm, BehaviorPreconditionCodes.SelfOnTerrainGroup, a: WarmGroup);
+        simulation.Gambits.SetConjunctivePreconditions(
+            wantsWarm,
+            new(BehaviorPreconditionCodes.SelfOnTerrainGroup, A: WarmGroup));
         simulation.Gambits.AddExpressionOp(wantsWarm, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(wantsWarm, BehaviorOperationCodes.AddAttribute, AttributeId, x: FixedScalar.FromSingle(20f));
 
@@ -104,8 +107,9 @@ public sealed class GambitGeographyPreconditionTests
             gambitId: 103,
             targetMode: BehaviorTargetModeCodes.Self,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(
-            wantsOpen, BehaviorPreconditionCodes.SelfOnTerrainGroup, a: OpenGroup);
+        simulation.Gambits.SetConjunctivePreconditions(
+            wantsOpen,
+            new(BehaviorPreconditionCodes.SelfOnTerrainGroup, A: OpenGroup));
         simulation.Gambits.AddExpressionOp(wantsOpen, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(wantsOpen, BehaviorOperationCodes.AddAttribute, AttributeId, x: FixedScalar.FromSingle(20f));
 

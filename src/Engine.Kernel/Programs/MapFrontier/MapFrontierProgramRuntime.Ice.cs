@@ -17,7 +17,7 @@ internal sealed partial class MapFrontierProgramRuntime
     private void AdvanceIce(Simulation simulation, int tick)
     {
         var world = simulation.World;
-        var budget = global::System.Math.Min(Data.IceAdvanceBudgetPerPulse, _candidateQ.Length);
+        var budget = global::System.Math.Min(Data.IceAdvanceBudgetPerRun, _candidateQ.Length);
         var count = 0;
         var visited = 0;
         while (visited < State.ThawedCount && count < budget)
@@ -54,7 +54,7 @@ internal sealed partial class MapFrontierProgramRuntime
     private void RetreatIce(Simulation simulation, int tick)
     {
         var world = simulation.World;
-        var budget = global::System.Math.Min(Data.IceRetreatBudgetPerPulse, _candidateQ.Length);
+        var budget = global::System.Math.Min(Data.IceRetreatBudgetPerRun, _candidateQ.Length);
         var count = 0;
         var visited = 0;
         while (visited < State.ThawedCount && count < budget)
@@ -165,8 +165,8 @@ internal sealed partial class MapFrontierProgramRuntime
         int refreezeAgeId,
         int frozenTerrainId,
         int maxRadius,
-        int iceAdvanceBudgetPerPulse,
-        int iceRetreatBudgetPerPulse)
+        int iceAdvanceBudgetPerRun,
+        int iceRetreatBudgetPerRun)
     {
         if (maxRadius <= 0 ||
             (Data.GenerationRadiusCapacity > 0 && maxRadius > Data.GenerationRadiusCapacity))
@@ -174,18 +174,18 @@ internal sealed partial class MapFrontierProgramRuntime
             throw new global::System.ArgumentOutOfRangeException(nameof(maxRadius));
         }
 
-        if (iceAdvanceBudgetPerPulse <= 0 || iceAdvanceBudgetPerPulse > _candidateQ.Length ||
-            iceRetreatBudgetPerPulse <= 0 || iceRetreatBudgetPerPulse > _candidateQ.Length)
+        if (iceAdvanceBudgetPerRun <= 0 || iceAdvanceBudgetPerRun > _candidateQ.Length ||
+            iceRetreatBudgetPerRun <= 0 || iceRetreatBudgetPerRun > _candidateQ.Length)
         {
-            throw new global::System.ArgumentOutOfRangeException(nameof(iceAdvanceBudgetPerPulse));
+            throw new global::System.ArgumentOutOfRangeException(nameof(iceAdvanceBudgetPerRun));
         }
 
         Data.ThawAgeIds[0] = thawAgeId;
         Data.RefreezeAgeIds[0] = refreezeAgeId;
         Data.FrozenTerrainId = frozenTerrainId;
         Data.MaxRadius = maxRadius;
-        Data.IceAdvanceBudgetPerPulse = iceAdvanceBudgetPerPulse;
-        Data.IceRetreatBudgetPerPulse = iceRetreatBudgetPerPulse;
+        Data.IceAdvanceBudgetPerRun = iceAdvanceBudgetPerRun;
+        Data.IceRetreatBudgetPerRun = iceRetreatBudgetPerRun;
     }
 
     public void SetIcePressureConfiguration(

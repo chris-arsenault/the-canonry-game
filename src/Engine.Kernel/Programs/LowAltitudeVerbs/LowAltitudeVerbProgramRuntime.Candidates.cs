@@ -60,14 +60,24 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var actorR = CurrentR(world, entityId, planeCode);
         var searchRadius = global::System.Math.Max(TrekMinDistance + 2, CellTargetSearchRadius(world, rule, TargetSelectorCodes.AttractorTrek));
         var samples = global::System.Math.Max(4, Data.CandidateSampleCount(rule));
-        var totalWeight = FixedScalar.Zero;
         var selected = default(VerbTargetCandidate);
         for (var i = 0; i < samples; i++)
         {
-            var dq = simulation.NextInclusive(-searchRadius, searchRadius);
-            var dr = simulation.NextInclusive(
+            var logicalKey = world.EntityOccurrenceHandle(entityId);
+            var dq = simulation.RandomInclusive(
+                -searchRadius,
+                searchRadius,
+                logicalKey,
+                rule,
+                KernelRandomPurposeCodes.VerbAttractorQ,
+                i);
+            var dr = simulation.RandomInclusive(
                 global::System.Math.Max(-searchRadius, -dq - searchRadius),
-                global::System.Math.Min(searchRadius, -dq + searchRadius));
+                global::System.Math.Min(searchRadius, -dq + searchRadius),
+                logicalKey,
+                rule,
+                KernelRandomPurposeCodes.VerbAttractorR,
+                i);
             var q = actorQ + dq;
             var r = actorR + dr;
             var distance = (global::System.Math.Abs(dq) + global::System.Math.Abs(dr) + global::System.Math.Abs(dq + dr)) / 2;
@@ -86,7 +96,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
             var weight = scalars.Weight * pull * DistancePref(rule, TargetSelectorCodes.AttractorTrek, actorQ, actorR, q, r);
             var candidate = Candidate(rule, planeCode, 0, world.EntityKindId(entityId), q, r, TargetS(planeCode, q, r), weight, default, scalars.OpportunityBonus);
-            ConsiderCandidate(simulation, candidate, ref totalWeight, ref selected);
+            ConsiderCandidate(simulation, entityId, candidate, ref selected);
         }
 
         return new CandidateBuildResult(selected, 0);
@@ -164,7 +174,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var actorQ = CurrentQ(simulation.World, entityId, planeCode);
         var actorR = CurrentR(simulation.World, entityId, planeCode);
         var searchRadius = CellTargetSearchRadius(simulation.World, rule, TargetSelectorCodes.Explore);
-        var totalWeight = FixedScalar.Zero;
         var sumAffordanceScore = FixedScalar.Zero;
         var selected = default(VerbTargetCandidate);
         for (var dq = -searchRadius; dq <= searchRadius; dq++)
@@ -192,7 +201,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 var baseWeight = scalars.Weight * distance * saturationDivisor * recency * routeDrive * leash;
                 var affordance = default(AffordanceContribution);
                 var candidate = Candidate(rule, planeCode, 0, 0, q, r, TargetS(planeCode, q, r), baseWeight, affordance, scalars.OpportunityBonus);
-                ConsiderCandidate(simulation, candidate, ref totalWeight, ref selected);
+                ConsiderCandidate(simulation, entityId, candidate, ref selected);
             }
         }
 
@@ -210,7 +219,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var actorQ = CurrentQ(simulation.World, entityId, planeCode);
         var actorR = CurrentR(simulation.World, entityId, planeCode);
         var searchRadius = CellTargetSearchRadius(simulation.World, rule, TargetSelectorCodes.Terrain);
-        var totalWeight = FixedScalar.Zero;
         var sumAffordanceScore = FixedScalar.Zero;
         var selected = default(VerbTargetCandidate);
         for (var dq = -searchRadius; dq <= searchRadius; dq++)
@@ -244,7 +252,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 var baseWeight = scalars.Weight * distance * saturationDivisor * recency * routeDrive * leash;
                 var affordance = default(AffordanceContribution);
                 var candidate = Candidate(rule, planeCode, 0, 0, q, r, TargetS(planeCode, q, r), baseWeight, affordance, scalars.OpportunityBonus);
-                ConsiderCandidate(simulation, candidate, ref totalWeight, ref selected);
+                ConsiderCandidate(simulation, entityId, candidate, ref selected);
             }
         }
 
@@ -269,7 +277,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var scalars = EffectiveScalars(simulation, entityId, rule);
         var actorQ = CurrentQ(world, entityId, planeCode);
         var actorR = CurrentR(world, entityId, planeCode);
-        var totalWeight = FixedScalar.Zero;
         var sumAffordanceScore = FixedScalar.Zero;
         var selected = default(VerbTargetCandidate);
         if (!ActorCanBuildOwnedInfluence(world, entityId, rule))
@@ -307,7 +314,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 targetEntityId,
                 targetQ,
                 targetR,
-                ref totalWeight,
                 ref sumAffordanceScore,
                 ref selected);
         }
@@ -345,7 +351,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int targetEntityId,
         int targetQ,
         int targetR,
-        ref FixedScalar totalWeight,
         ref FixedScalar sumAffordanceScore,
         ref VerbTargetCandidate selected)
     {
@@ -354,7 +359,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var distance = DistancePref(rule, TargetSelectorCodes.EntityKind, actorQ, actorR, targetQ, targetR);
         var fitness = RelationshipFitness(world, entityId, targetEntityId, rule, scalars);
         var saturationDivisor = CellSaturationDivisor(simulation, planeCode, targetQ, targetR);
-        var recencyKey = LowAltitudeVerbProgramState.PackEntityTargetKey(targetEntityId);
+        var recencyKey = LowAltitudeVerbProgramState.PackEntityTargetKey(
+            world.EntityOccurrenceHandle(targetEntityId));
         var recency = ComputeRecencyMultiplier(entityId, tick, recencyKey);
         var routeDrive = TravelCultureRouteMultiplier(simulation, entityId, rule, planeCode, targetQ, targetR);
         var baseWeight = scalars.Weight * distance * fitness * saturationDivisor * recency * routeDrive;
@@ -366,7 +372,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var affordance = CombineAffordancesForEntityTarget(actorKindId, planeCode, targetKindId);
         sumAffordanceScore += affordance.Score;
         var candidate = Candidate(rule, planeCode, targetEntityId, targetKindId, targetQ, targetR, targetS, baseWeight, affordance, scalars.OpportunityBonus);
-        ConsiderCandidate(simulation, candidate, ref totalWeight, ref selected);
+        ConsiderCandidate(simulation, entityId, candidate, ref selected);
     }
 
     private bool TryApplyEntityKindCultureExpansionDrive(
@@ -411,19 +417,18 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             return CandidateBuildResult.Empty;
         }
 
-        var totalWeight = FixedScalar.Zero;
         var sumAffordanceScore = FixedScalar.Zero;
         var selected = default(VerbTargetCandidate);
         if (Data.RelationshipDirectionCode(rule) is LowAltitudeVerbRelationshipDirectionCodes.Outgoing
             or LowAltitudeVerbRelationshipDirectionCodes.Either)
         {
-            AddRelationshipCandidates(simulation, entityId, rule, tick, outgoing: true, ref totalWeight, ref sumAffordanceScore, ref selected);
+            AddRelationshipCandidates(simulation, entityId, rule, tick, outgoing: true, ref sumAffordanceScore, ref selected);
         }
 
         if (Data.RelationshipDirectionCode(rule) is LowAltitudeVerbRelationshipDirectionCodes.Incoming
             or LowAltitudeVerbRelationshipDirectionCodes.Either)
         {
-            AddRelationshipCandidates(simulation, entityId, rule, tick, outgoing: false, ref totalWeight, ref sumAffordanceScore, ref selected);
+            AddRelationshipCandidates(simulation, entityId, rule, tick, outgoing: false, ref sumAffordanceScore, ref selected);
         }
 
         return new CandidateBuildResult(selected, sumAffordanceScore);
@@ -435,7 +440,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int rule,
         int tick,
         bool outgoing,
-        ref FixedScalar totalWeight,
         ref FixedScalar sumAffordanceScore,
         ref VerbTargetCandidate selected)
     {
@@ -470,7 +474,8 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
             var targetS = planeCode == PlaneCodes.Semantic ? world.EntitySemanticS(targetEntityId) : 0;
             var fitness = RelationshipFitness(world, entityId, targetEntityId, rule, scalars);
-            var recencyKey = LowAltitudeVerbProgramState.PackEntityTargetKey(targetEntityId);
+            var recencyKey = LowAltitudeVerbProgramState.PackEntityTargetKey(
+                world.EntityOccurrenceHandle(targetEntityId));
             var recency = ComputeRecencyMultiplier(entityId, tick, recencyKey);
             var routeDrive = TravelCultureRouteMultiplier(simulation, entityId, rule, planeCode, targetQ, targetR);
             var baseWeight = scalars.Weight * fitness * recency * routeDrive;
@@ -485,7 +490,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 strengthDelta);
             sumAffordanceScore += affordance.Score;
             var candidate = Candidate(rule, planeCode, targetEntityId, targetKindId, targetQ, targetR, targetS, baseWeight, affordance, scalars.OpportunityBonus);
-            ConsiderCandidate(simulation, candidate, ref totalWeight, ref selected);
+            ConsiderCandidate(simulation, entityId, candidate, ref selected);
         }
     }
 
@@ -507,7 +512,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         var actorQ = CurrentQ(world, entityId, planeCode);
         var actorR = CurrentR(world, entityId, planeCode);
         var searchRadius = CellTargetSearchRadius(world, rule, TargetSelectorCodes.SelfMapValue);
-        var totalWeight = FixedScalar.Zero;
         var sumAffordanceScore = FixedScalar.Zero;
         var selected = default(VerbTargetCandidate);
         for (var dq = -searchRadius; dq <= searchRadius; dq++)
@@ -538,7 +542,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                     q,
                     r,
                     scalars,
-                    ref totalWeight,
                     ref sumAffordanceScore,
                     ref selected);
             }
@@ -557,7 +560,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int q,
         int r,
         EffectiveVerbScalars scalars,
-        ref FixedScalar totalWeight,
         ref FixedScalar sumAffordanceScore,
         ref VerbTargetCandidate selected)
     {
@@ -592,7 +594,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         }
 
         sumAffordanceScore += affordanceScore;
-        ConsiderCandidate(simulation, candidate, ref totalWeight, ref selected);
+        ConsiderCandidate(simulation, entityId, candidate, ref selected);
     }
 
     private bool MovementTargetReachable(
@@ -712,7 +714,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int actorR,
         int searchRadius)
     {
-        var totalWeight = FixedScalar.Zero;
         var sumAffordanceScore = FixedScalar.Zero;
         var selected = default(VerbTargetCandidate);
         for (var dq = -searchRadius; dq <= searchRadius; dq++)
@@ -746,7 +747,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                     actorR,
                     q,
                     r,
-                    ref totalWeight,
                     ref sumAffordanceScore,
                     ref selected);
             }
@@ -768,7 +768,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int actorR,
         int q,
         int r,
-        ref FixedScalar totalWeight,
         ref FixedScalar sumAffordanceScore,
         ref VerbTargetCandidate selected)
     {
@@ -800,21 +799,53 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             0,
             influence,
             tick,
-            ref totalWeight,
             ref sumAffordanceScore,
             ref selected);
     }
 
     private static void ConsiderCandidate(
         Simulation simulation,
+        int entityId,
         VerbTargetCandidate candidate,
-        ref FixedScalar totalWeight,
         ref VerbTargetCandidate selected)
     {
-        totalWeight += candidate.Weight;
-        if (totalWeight > 0 && simulation.NextScalar() * totalWeight <= candidate.Weight)
+        if (candidate.Weight <= 0)
+        {
+            return;
+        }
+
+        var logicalKey = simulation.World.EntityOccurrenceHandle(entityId);
+        var candidateKey = CandidateRandomKey(candidate);
+        var candidatePriority = simulation.RandomScalar(
+            logicalKey,
+            candidate.RuleSlot,
+            KernelRandomPurposeCodes.VerbCandidateSelection,
+            candidateKey) * candidate.Weight;
+        var selectedPriority = selected.Weight <= 0
+            ? FixedScalar.Zero
+            : simulation.RandomScalar(
+                logicalKey,
+                selected.RuleSlot,
+                KernelRandomPurposeCodes.VerbCandidateSelection,
+                CandidateRandomKey(selected)) * selected.Weight;
+        if (selected.Weight <= 0 ||
+            candidatePriority > selectedPriority ||
+            (candidatePriority == selectedPriority && candidateKey < CandidateRandomKey(selected)))
         {
             selected = candidate;
+        }
+    }
+
+    private static int CandidateRandomKey(in VerbTargetCandidate candidate)
+    {
+        unchecked
+        {
+            var hash = (uint)candidate.TargetEntityId * 2654435761u;
+            hash ^= (uint)candidate.PlaneCode * 2246822519u;
+            hash ^= (uint)candidate.Q * 3266489917u;
+            hash ^= (uint)candidate.R * 668265263u;
+            hash ^= (uint)candidate.S * 374761393u;
+            return (int)(hash ^ (hash >> 16));
         }
     }
 

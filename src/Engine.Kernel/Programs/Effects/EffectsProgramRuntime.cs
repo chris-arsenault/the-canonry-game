@@ -179,13 +179,21 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     public int RegisterLifecycle(
         int kindId,
         int healthAttributeId,
-        FixedScalar baseRate,
-        FixedScalar ageCoefficient,
+        int targetTicks,
+        int nominalHealthUnits,
+        FixedScalar flatDrainShare,
         FixedScalar? variance = null)
     {
         var compiledVariance = variance ?? FixedScalar.FromUnits(200_000L);
         ValidatePositive(kindId);
         ValidatePositive(healthAttributeId);
+        ValidatePositive(targetTicks);
+        ValidatePositive(nominalHealthUnits);
+        if (flatDrainShare < 0 || flatDrainShare > 1)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(flatDrainShare));
+        }
+
         NumericGuard.ThrowIfNegative(compiledVariance);
         if ((uint)kindId >= (uint)Data.LifecycleRuleByKind.Length ||
             Data.LifecycleRuleByKind[kindId] != 0 ||
@@ -197,8 +205,9 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         var slot = ++Data.LifecycleRuleCount;
         Data.LifecycleKindIds[slot] = kindId;
         Data.LifecycleAttributeIds[slot] = healthAttributeId;
-        Data.LifecycleBaseRates[slot] = baseRate;
-        Data.LifecycleAgeCoefficients[slot] = ageCoefficient;
+        Data.LifecycleTargetTicks[slot] = targetTicks;
+        Data.LifecycleNominalHealthUnits[slot] = nominalHealthUnits;
+        Data.LifecycleFlatDrainShares[slot] = flatDrainShare;
         Data.LifecycleVariances[slot] = compiledVariance;
         Data.LifecycleRuleByKind[kindId] = slot;
         return slot;
@@ -236,7 +245,12 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
 
         attributeId = Data.LifecycleAttributeIds[rule];
         var age = global::System.Math.Max(0, tick - world.EntityCreatedAt(entityId));
-        ageDrainComponent = LifecycleAgeDrainComponent(rule, age);
+        var multiplier = StageLifespanMultiplier(simulation, entityId, world.EntityKindId(entityId));
+        ageDrainComponent = LifecycleDrainComponent(
+            rule,
+            age,
+            multiplier,
+            includeFlatDrain: false);
         var maximum = simulation.KernelData.Entities.AttributeMaximum(attributeId);
         if (maximum > 0)
         {
@@ -251,11 +265,10 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         var world = simulation.World;
-        for (var entityId = world.FirstActiveEntity(); entityId > 0;)
+        for (var index = 0; index < simulation.FrozenEntityCount; index++)
         {
-            var nextEntityId = world.NextActiveEntity(entityId);
+            var entityId = simulation.FrozenEntityAt(index);
             ResolveEntity(simulation, world, entityId, tick);
-            entityId = nextEntityId;
         }
 
         ApplyDistrictCultureModifiers(simulation, world, tick);
@@ -284,10 +297,12 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         }
 
         ApplyAccumulatedAttributeDeltas(simulation, entityId, deltaCount);
-        if (lifecycleRule > 0 &&
-            world.GetAttribute(entityId, Data.LifecycleAttributeIds[lifecycleRule]) <= 0)
+        if (lifecycleRule > 0)
         {
-            simulation.SetEntityStatus(entityId, EntityStatusCodes.Historical, tick);
+            simulation.QueueLifecycleRetirementWhenAttributeAtMost(
+                entityId,
+                Data.LifecycleAttributeIds[lifecycleRule],
+                threshold: 0);
         }
     }
 
@@ -807,11 +822,19 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
     {
         var age = global::System.Math.Max(0, tick - simulation.World.EntityCreatedAt(entityId));
         var multiplier = StageLifespanMultiplier(simulation, entityId, kindId);
-        var drain = LifecycleBaseDrain(rule, (int)(age / multiplier)) / multiplier;
+        var drain = LifecycleDrainComponent(
+            rule,
+            age,
+            multiplier,
+            includeFlatDrain: true);
         var variance = Data.LifecycleVariances[rule];
         if (variance > 0)
         {
-            var factor = 1 + (((simulation.NextScalar() * 2) - 1) * variance);
+            var factor = 1 + (((simulation.RandomScalar(
+                simulation.World.EntityOccurrenceHandle(entityId),
+                rule,
+                KernelRandomPurposeCodes.LifecycleVariance,
+                attempt: tick) * 2) - 1) * variance);
             drain *= FixedScalar.Max(0, factor);
         }
 
@@ -826,25 +849,68 @@ internal sealed class EffectsProgramRuntime : IKernelProgramRuntime<EffectsProgr
         return multiplier <= 0 ? 1 : multiplier;
     }
 
-    private FixedScalar LifecycleBaseDrain(int rule, int age)
+    private FixedScalar LifecycleDrainComponent(
+        int rule,
+        int age,
+        FixedScalar lifespanMultiplier,
+        bool includeFlatDrain)
     {
-        if (Tuning.Lifecycle.AgingModelCode != LifecycleAgingModelCodes.LateLife)
-        {
-            return Data.LifecycleBaseRates[rule] + LifecycleAgeDrainComponent(rule, age);
-        }
-
-        return (Data.LifecycleBaseRates[rule] * FixedScalar.FromUnits(500000L)) + LifecycleAgeDrainComponent(rule, age);
+        var previousAge = global::System.Math.Max(
+            0,
+            age - Tuning.MainProgramCadenceTicks);
+        var current = LifecycleCumulativeDrain(
+            rule,
+            age,
+            lifespanMultiplier,
+            includeFlatDrain);
+        var previous = LifecycleCumulativeDrain(
+            rule,
+            previousAge,
+            lifespanMultiplier,
+            includeFlatDrain);
+        return FixedScalar.Max(0, current - previous);
     }
 
-    private FixedScalar LifecycleAgeDrainComponent(int rule, int age)
+    private FixedScalar LifecycleCumulativeDrain(
+        int rule,
+        int age,
+        FixedScalar lifespanMultiplier,
+        bool includeFlatDrain)
     {
-        if (Tuning.Lifecycle.AgingModelCode != LifecycleAgingModelCodes.LateLife)
+        if (age <= 0)
         {
-            return age * Data.LifecycleAgeCoefficients[rule];
+            return 0;
         }
 
-        var scaledAge = (age * age) / 500;
-        return scaledAge * Data.LifecycleAgeCoefficients[rule];
+        var effectiveTargetTicks =
+            FixedScalar.FromInt(Data.LifecycleTargetTicks[rule]) *
+            lifespanMultiplier;
+        if (effectiveTargetTicks <= 0)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        var progress = FixedScalar.FromInt(age) / effectiveTargetTicks;
+        var flatShare = Data.LifecycleFlatDrainShares[rule];
+        FixedScalar curve;
+        if (Tuning.Lifecycle.AgingModelCode == LifecycleAgingModelCodes.LateLife)
+        {
+            var reducedFlatShare = flatShare / 2;
+            var ageShare = 1 - reducedFlatShare;
+            curve =
+                (includeFlatDrain ? reducedFlatShare * progress : 0) +
+                (ageShare * progress * progress * progress);
+        }
+        else
+        {
+            var ageShare = 1 - flatShare;
+            curve =
+                (includeFlatDrain ? flatShare * progress : 0) +
+                (ageShare * progress * progress);
+        }
+
+        return KernelFixedPoint.AttributeScalar(
+            Data.LifecycleNominalHealthUnits[rule]) * curve;
     }
 
     private int LifecycleRuleForKind(int kindId) =>

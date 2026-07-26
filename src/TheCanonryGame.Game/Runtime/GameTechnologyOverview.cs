@@ -40,7 +40,7 @@ internal sealed class GameTechnologyOverviewReadModel
         [KnowledgeGrantDomain.CultureProduction] = "culture production",
         [KnowledgeGrantDomain.CulturePersistence] = "culture decay",
         [KnowledgeGrantDomain.VerbWeight] = "activity weight",
-        [KnowledgeGrantDomain.GeneratorPulseWeight] = "event weight",
+        [KnowledgeGrantDomain.GeneratorFireWeight] = "event weight",
         [KnowledgeGrantDomain.GambitScore] = "score",
         [KnowledgeGrantDomain.GambitSuccess] = "success chance",
         [KnowledgeGrantDomain.MinorActorWork] = "labour effectiveness",
@@ -202,7 +202,7 @@ internal sealed class GameTechnologyOverviewReadModel
     private static ProjectionSymbolKind TargetSymbolKind(KnowledgeGrantDomain domain) => domain switch
     {
         KnowledgeGrantDomain.VerbWeight => ProjectionSymbolKind.Verb,
-        KnowledgeGrantDomain.GeneratorPulseWeight => ProjectionSymbolKind.Generator,
+        KnowledgeGrantDomain.GeneratorFireWeight => ProjectionSymbolKind.Generator,
         KnowledgeGrantDomain.GambitScore or KnowledgeGrantDomain.GambitSuccess => ProjectionSymbolKind.Gambit,
         KnowledgeGrantDomain.RelationshipMaintenance => ProjectionSymbolKind.RelationshipKind,
         KnowledgeGrantDomain.MovementStepRate or KnowledgeGrantDomain.RoadWork => ProjectionSymbolKind.Kind,

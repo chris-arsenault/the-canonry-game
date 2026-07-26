@@ -14,7 +14,7 @@ internal sealed partial class MinorActorProgramRuntime
     }
 
     private static FixedScalar Saturating(FixedScalar value, FixedScalar scale) =>
-        value <= 0 ? 0 : 1 - FixedScalar.Exp(-value / scale);
+        value <= 0 ? 0 : value / (value + scale);
 
     private static FixedScalar Clamp01(FixedScalar value)
     {
@@ -37,6 +37,13 @@ internal sealed partial class MinorActorProgramRuntime
         FixedScalar ConnectedRawMass,
         int AdjacentSupportedCount,
         FixedScalar StrongCenterSupport);
+
+    private struct MinorActorLifecycleNeed
+    {
+        internal bool Resolved;
+        internal FixedScalar AgeLoad;
+        internal FixedScalar MaintenanceNeed;
+    }
 
     private readonly record struct MinorActorCellTarget(
         int Q,

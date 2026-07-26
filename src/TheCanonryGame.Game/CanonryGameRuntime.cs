@@ -46,7 +46,7 @@ internal readonly record struct GameSeedPolicy
 
 internal sealed record GameSeedIdentity(int BaseSeed, int Attempt);
 
-internal readonly record struct GameRuntimePulse(int PreviousTick, int CurrentTick)
+internal readonly record struct GameRuntimeAdvance(int PreviousTick, int CurrentTick)
 {
     public int TicksProcessed => Math.Max(0, CurrentTick - PreviousTick);
 }
@@ -119,12 +119,12 @@ internal sealed class CanonryGameRuntime : IDisposable
 
     public string? RunLogPath => _runtime.RunLogPath;
 
-    public GameRuntimePulse Update()
+    public GameRuntimeAdvance Update()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
-        var pulse = _runtime.Pump();
-        return new GameRuntimePulse(pulse.PreviousTick, pulse.CurrentTick);
+        var advance = _runtime.Pump();
+        return new GameRuntimeAdvance(advance.PreviousTick, advance.CurrentTick);
     }
 
     public void Dispose()

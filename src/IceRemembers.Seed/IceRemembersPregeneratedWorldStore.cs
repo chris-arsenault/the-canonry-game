@@ -54,6 +54,16 @@ internal static class IceRemembersPregeneratedWorldStore
         }
     }
 
+    public static DomainStartupSeedResult Read(string path)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(path);
+        var fullPath = Path.GetFullPath(path);
+        var world = ReadInfo(fullPath) ??
+            throw new InvalidDataException(
+                $"World file '{fullPath}' does not use the current Ice Remembers world-generation version.");
+        return Read(world);
+    }
+
     public static void Write(string path, DomainStartupSeedResult startupSeed)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);

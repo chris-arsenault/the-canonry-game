@@ -24,16 +24,20 @@ internal sealed class CultureLocality
     private readonly long[] _drainLookupKeys;
     private readonly int[] _drainLookupIndexes;
     private readonly int[] _drainUsedBuckets;
+    private readonly CultureLocalityCacheEntry[] _cellCache;
+    private readonly long[] _cellRevisions;
     private readonly int _dirtyLookupMask;
     private readonly int _drainLookupMask;
+    private readonly int _cellCacheMask;
     private int _dirtySourceCount;
     private int _dirtyUsedBucketCount;
     private int _drainUsedBucketCount;
     private long _revision;
 
-    public CultureLocality(int cellCapacity)
+    public CultureLocality(int cellCapacity, int mapCellCapacity)
     {
         NumericGuard.ThrowIfNegativeOrZero(cellCapacity);
+        NumericGuard.ThrowIfNegativeOrZero(mapCellCapacity);
         _dirtySources = new CultureLocalityDirtyCell[cellCapacity];
         var lookupCapacity = NextPowerOfTwo(cellCapacity * 2);
         _dirtyLookupKeys = new long[lookupCapacity];
@@ -42,8 +46,12 @@ internal sealed class CultureLocality
         _drainLookupKeys = new long[lookupCapacity];
         _drainLookupIndexes = new int[lookupCapacity];
         _drainUsedBuckets = new int[lookupCapacity];
+        var cellCacheCapacity = NextPowerOfTwo(cellCapacity);
+        _cellCache = new CultureLocalityCacheEntry[cellCacheCapacity];
+        _cellRevisions = new long[mapCellCapacity + 1];
         _dirtyLookupMask = lookupCapacity - 1;
         _drainLookupMask = lookupCapacity - 1;
+        _cellCacheMask = cellCacheCapacity - 1;
     }
 
     internal long Revision => _revision;
@@ -51,13 +59,17 @@ internal sealed class CultureLocality
     internal void Invalidate()
     {
         _revision++;
+        global::System.Array.Clear(_cellCache);
+        global::System.Array.Clear(_cellRevisions);
         ResetDirtySources();
     }
 
-    internal void MarkDirty(int planeCode, int q, int r)
+    internal void MarkDirty(WorldState world, int planeCode, int q, int r)
     {
+        global::System.ArgumentNullException.ThrowIfNull(world);
         ValidatePlane(planeCode);
         _revision++;
+        InvalidateRadiusTwo(world, planeCode, q, r);
         var key = Pack(planeCode, q, r);
         if (!TryAdd(key, _dirtyLookupKeys, _dirtyLookupIndexes, _dirtyUsedBuckets, _dirtyLookupMask, ref _dirtyUsedBucketCount))
         {
@@ -115,6 +127,65 @@ internal sealed class CultureLocality
         global::System.ArgumentNullException.ThrowIfNull(world);
         NumericGuard.ThrowIfNegativeOrZero(cultureId);
         ValidatePlane(planeCode);
+        var revision = LocalityRevision(world, planeCode, q, r);
+        var cacheBucket = CellCacheBucket(cultureId, planeCode, q, r);
+        ref var cacheEntry = ref _cellCache[cacheBucket];
+        if (cacheEntry.Revision == revision &&
+            cacheEntry.CultureId == cultureId &&
+            cacheEntry.PlaneCode == planeCode &&
+            cacheEntry.Q == q &&
+            cacheEntry.R == r)
+        {
+            return cacheEntry.Cell;
+        }
+
+        var cell = ComputeCell(world, cultureId, planeCode, q, r);
+        cacheEntry = new CultureLocalityCacheEntry(
+            revision,
+            cultureId,
+            planeCode,
+            q,
+            r,
+            cell);
+        return cell;
+    }
+
+    private long LocalityRevision(WorldState world, int planeCode, int q, int r)
+    {
+        return world.TryGetCellId(planeCode, q, r, z: 0, out var cellId)
+            ? _cellRevisions[cellId]
+            : _revision;
+    }
+
+    private void InvalidateRadiusTwo(WorldState world, int planeCode, int sourceQ, int sourceR)
+    {
+        const int radius = 2;
+        for (var dq = -radius; dq <= radius; dq++)
+        {
+            var minDr = global::System.Math.Max(-radius, -dq - radius);
+            var maxDr = global::System.Math.Min(radius, -dq + radius);
+            for (var dr = minDr; dr <= maxDr; dr++)
+            {
+                if (world.TryGetCellId(
+                        planeCode,
+                        sourceQ + dq,
+                        sourceR + dr,
+                        z: 0,
+                        out var cellId))
+                {
+                    _cellRevisions[cellId] = _revision;
+                }
+            }
+        }
+    }
+
+    private static CultureLocalityCell ComputeCell(
+        WorldState world,
+        int cultureId,
+        int planeCode,
+        int q,
+        int r)
+    {
         CultureMassAt(
             world,
             cultureId,
@@ -411,6 +482,16 @@ internal sealed class CultureLocality
         return (int)(hash & (uint)mask);
     }
 
+    private int CellCacheBucket(int cultureId, int planeCode, int q, int r)
+    {
+        var hash = (ulong)Pack(planeCode, q, r);
+        hash ^= unchecked((uint)cultureId * 0x9E3779B9U);
+        hash ^= hash >> 33;
+        hash *= 0xff51afd7ed558ccdUL;
+        hash ^= hash >> 33;
+        return (int)(hash & (uint)_cellCacheMask);
+    }
+
     private static int NextPowerOfTwo(int value)
     {
         var result = 1;
@@ -429,4 +510,12 @@ internal sealed class CultureLocality
             throw new global::System.ArgumentOutOfRangeException(nameof(planeCode));
         }
     }
+
+    private readonly record struct CultureLocalityCacheEntry(
+        long Revision,
+        int CultureId,
+        int PlaneCode,
+        int Q,
+        int R,
+        CultureLocalityCell Cell);
 }

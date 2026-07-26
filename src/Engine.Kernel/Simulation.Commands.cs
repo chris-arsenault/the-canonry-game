@@ -105,8 +105,7 @@ internal sealed partial class Simulation
     private KernelCommandApplyResult ApplyFavorEntity(in FavorEntityKernelCommand payload)
     {
         if (payload.EntityId <= 0 ||
-            payload.EntityId > World.EntityHighWatermark ||
-            !World.EntityExists(payload.EntityId) ||
+            !World.TryResolveEntityOccurrence(payload.EntityId, out var entityId) ||
             payload.MultiplierDelta <= 0 ||
             payload.MultiplierDelta > FavorEntityMaxMultiplierDelta ||
             payload.DurationTicks <= 0 ||
@@ -116,7 +115,7 @@ internal sealed partial class Simulation
         }
 
         World.SetEntityFavor(
-            payload.EntityId,
+            entityId,
             payload.MultiplierDelta,
             CurrentTick + payload.DurationTicks);
         return KernelCommandApplyResult.Success;

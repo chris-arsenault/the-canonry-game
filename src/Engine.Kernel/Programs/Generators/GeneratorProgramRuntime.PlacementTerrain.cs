@@ -412,6 +412,7 @@ internal sealed partial class GeneratorProgramRuntime
             originR);
         SelectPlacementCandidate(
             simulation,
+            producedSlot,
             candidateQ,
             candidateR,
             score,
@@ -885,6 +886,7 @@ internal sealed partial class GeneratorProgramRuntime
 
     private static void SelectPlacementCandidate(
         Simulation simulation,
+        int producedSlot,
         int candidateQ,
         int candidateR,
         int score,
@@ -910,11 +912,34 @@ internal sealed partial class GeneratorProgramRuntime
         }
 
         equalBestCount++;
-        if (simulation.NextInt(equalBestCount) == 0)
+        var candidateKey = PlacementCandidateKey(candidateQ, candidateR);
+        var selectedKey = PlacementCandidateKey(selectedQ, selectedR);
+        var candidatePriority = simulation.RandomScalar(
+            producedSlot,
+            producedSlot,
+            KernelRandomPurposeCodes.GeneratorPlacementTie,
+            candidateKey);
+        var selectedPriority = simulation.RandomScalar(
+            producedSlot,
+            producedSlot,
+            KernelRandomPurposeCodes.GeneratorPlacementTie,
+            selectedKey);
+        if (candidatePriority > selectedPriority ||
+            (candidatePriority == selectedPriority && candidateKey < selectedKey))
         {
             selectedQ = candidateQ;
             selectedR = candidateR;
             found = true;
+        }
+    }
+
+    private static int PlacementCandidateKey(int q, int r)
+    {
+        unchecked
+        {
+            var hash = (uint)q * 2654435761u;
+            hash ^= (uint)r * 2246822519u;
+            return (int)(hash ^ (hash >> 16));
         }
     }
 

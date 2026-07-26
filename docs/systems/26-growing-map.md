@@ -25,10 +25,11 @@ refuse it.
 Exploration is untied from both culture and ice:
 
 - **Reveal is entity-driven and one-way.** Fog of war is simply the set of
-  unknown cells; there is no pulse, no cursor, nothing to miss. When an
-  entity arrives on a physical cell (movement surface consequences) or is
-  materialized there, `MapFrontier.RevealOnArrival` opens the latent cells
-  in its per-kind reveal radius through `Simulation.CreateCell`. Terrain,
+  unknown cells; there is no scheduled scan or cursor to miss. Runtime
+  movement and runtime entity creation call `MapFrontier.RevealOnArrival`,
+  which opens the latent cells in the arriving kind's reveal radius through
+  `Simulation.CreateCell`. Startup seed placement does not reveal additional
+  cells: the seed's explicit cell set defines the initial live map. Terrain,
   superregion, and continent come from the coordinate's installed per-hex
   physical geography. Growth is bounded by `MaxRadius` (128). The world
   opens where bodies actually go: fog-adjacent exploration verbs, frontier
@@ -52,7 +53,7 @@ generators place into them. The world tracks physical and semantic live extents
 independently, and every map consumer and snapshot uses the appropriate extent.
 Candidate scratch capacity is an explicit kernel option, authored budgets are
 validated against it, and the culture scan rotates so low culture ids do not
-monopolize a shared pulse budget.
+monopolize a shared per-run budget.
 
 Re-freezing does not delete a cell or replace its terrain. Physical cells hold
 durable base terrain separately from transient cover. Deep Ice is the effective
@@ -109,7 +110,7 @@ semantic cell a culture holds with raw idea-mass at or above
 `SemanticFrontierMassThreshold` opens unknown neighbors from the installed
 semantic blueprint. Each new cell reveals its coordinate's terrain,
 superregion, and continent rather than becoming `open_field`.
-`SemanticMaxRadius` (128) and its explicit per-pulse budget bound growth;
+`SemanticMaxRadius` (128) and its explicit per-run budget bound growth;
 `SemanticGrowthEnabled` disables it when false.
 
 ## Travel-cost reach

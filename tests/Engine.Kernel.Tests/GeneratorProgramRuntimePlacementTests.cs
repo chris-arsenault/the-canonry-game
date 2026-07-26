@@ -62,9 +62,9 @@ public sealed class GeneratorProgramRuntimePlacementTests
     }
 
     [Fact]
-    public void Fire_WithNoAllowedPlacementCandidate_FailsWithoutConsumingPulseBudget()
+    public void Fire_WithNoAllowedPlacementCandidate_FailsWithoutConsumingWindowBudget()
     {
-        var simulation = CreateSimulation(pulseWidthTicks: 25, firesPerPulse: 1);
+        var simulation = CreateSimulation(fireWindowTicks: 25, firesPerWindow: 1);
         SeedMap(simulation);
         simulation.RegisterTerrain(2, boundaryGroupId: 1);
         CreateTarget(simulation);
@@ -454,7 +454,7 @@ public sealed class GeneratorProgramRuntimePlacementTests
         var slot = simulation.Generators.RegisterGenerator(
             GeneratorId,
             TargetKindId,
-            pulseWeight: 1,
+            fireWeight: 1,
             maxRuns: 0);
         simulation.Generators.AddTrigger(slot, TargetKindId);
         if (includeProduced)
@@ -559,8 +559,8 @@ public sealed class GeneratorProgramRuntimePlacementTests
 
     private static Simulation CreateSimulation(
         int seed = 1,
-        int pulseWidthTicks = GeneratorProgramConstants.DefaultPulseWidthTicks,
-        int firesPerPulse = GeneratorProgramConstants.DefaultFiresPerPulse) => KernelTestSimulation.Create(new SimulationOptions
+        int fireWindowTicks = GeneratorProgramConstants.DefaultFireWindowTicks,
+        int firesPerWindow = GeneratorProgramConstants.DefaultFiresPerWindow) => KernelTestSimulation.Create(new SimulationOptions
         {
             EntityCapacity = 16,
             RelationshipCapacity = 16,
@@ -578,8 +578,8 @@ public sealed class GeneratorProgramRuntimePlacementTests
                 {
                     Generators = new GeneratorProgramTuningOptions
                     {
-                        PulseWidthTicks = pulseWidthTicks,
-                        FiresPerPulse = firesPerPulse,
+                        FireWindowTicks = fireWindowTicks,
+                        FiresPerWindow = firesPerWindow,
                     },
                 },
             },

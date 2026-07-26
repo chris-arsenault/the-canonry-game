@@ -130,7 +130,7 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
 
         Assert.Contains(report.GeneratorBalance, row =>
             row.GeneratorId == "analysis_test_generator_alpha" &&
-            row.Pulses == 0 &&
+            row.Evaluations == 0 &&
             row.FiredCount == 0);
         Assert.Contains(report.GeneratorBalance, row =>
             row.GeneratorId == "analysis_test_generator_beta" &&
@@ -234,6 +234,32 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         ]);
 
         Assert.Equal("kernel-tuning.toml", options.ConfigFilePath);
+    }
+
+    [Fact]
+    public void Options_WorldFlagSetsPregeneratedWorldPathForSingleRun()
+    {
+        var options = MonteCarloOptions.Parse([
+            "run",
+            "--run-id", "world-test",
+            "--runs", "1",
+            "--world", "worlds/ice-remembers-seed-4200.world",
+        ]);
+
+        Assert.Equal("worlds/ice-remembers-seed-4200.world", options.WorldFilePath);
+    }
+
+    [Fact]
+    public void Options_WorldFlagRejectsMultipleRuns()
+    {
+        var error = Assert.Throws<ArgumentException>(() => MonteCarloOptions.Parse([
+            "run",
+            "--run-id", "world-multi-test",
+            "--runs", "2",
+            "--world", "worlds/ice-remembers-seed-4200.world",
+        ]));
+
+        Assert.Contains("--runs 1", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]

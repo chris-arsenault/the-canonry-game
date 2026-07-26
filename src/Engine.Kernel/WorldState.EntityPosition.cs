@@ -33,7 +33,7 @@ internal sealed partial class WorldState
         Write(KernelEvent.From(new EntityMovedKernelEvent(
             tick,
             WorldVersion,
-            entityId,
+            EntityOccurrenceHandle(entityId),
             context.SourceCodeId,
             PlaneCodes.Physical,
             fromQ,
@@ -73,7 +73,7 @@ internal sealed partial class WorldState
         Write(KernelEvent.From(new EntityMovedKernelEvent(
             tick,
             WorldVersion,
-            entityId,
+            EntityOccurrenceHandle(entityId),
             context.SourceCodeId,
             PlaneCodes.Semantic,
             fromQ,

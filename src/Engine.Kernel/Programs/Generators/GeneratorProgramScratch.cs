@@ -2,11 +2,11 @@ namespace Engine.Kernel;
 
 internal sealed class GeneratorProgramScratch
 {
-    internal readonly int[] PulseStatusCodes;
-    internal readonly int[] PulseCandidateCounts;
-    internal readonly int[] PulseSelectionWeights;
-    internal readonly int[] PulseSelectedTargetIds;
-    internal readonly int[] PulseFailedFireCounts;
+    internal readonly int[] FireStatusCodes;
+    internal readonly int[] FireCandidateCounts;
+    internal readonly int[] FireSelectionWeights;
+    internal readonly int[] FireSelectedTargetOccurrenceHandles;
+    internal readonly int[] FireFailedCounts;
     internal readonly int[] Q;
     internal readonly int[] R;
     internal readonly int[] Score;
@@ -46,11 +46,11 @@ internal sealed class GeneratorProgramScratch
         NumericGuard.ThrowIfNegativeOrZero(scratchCellCapacity);
         NumericGuard.ThrowIfNegativeOrZero(resolvedReferenceCapacity);
         NumericGuard.ThrowIfNegativeOrZero(retryTargetCapacity);
-        PulseStatusCodes = new int[generatorCapacity + 1];
-        PulseCandidateCounts = new int[generatorCapacity + 1];
-        PulseSelectionWeights = new int[generatorCapacity + 1];
-        PulseSelectedTargetIds = new int[generatorCapacity + 1];
-        PulseFailedFireCounts = new int[generatorCapacity + 1];
+        FireStatusCodes = new int[generatorCapacity + 1];
+        FireCandidateCounts = new int[generatorCapacity + 1];
+        FireSelectionWeights = new int[generatorCapacity + 1];
+        FireSelectedTargetOccurrenceHandles = new int[generatorCapacity + 1];
+        FireFailedCounts = new int[generatorCapacity + 1];
         Q = new int[scratchCellCapacity];
         R = new int[scratchCellCapacity];
         Score = new int[scratchCellCapacity];

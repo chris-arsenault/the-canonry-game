@@ -31,10 +31,10 @@ public sealed class GeneratorCadenceAndFixedCultureTests
     }
 
     [Fact]
-    public void CadenceGenerator_FiresOnItsOwnTimelineOutsidePulseBudget()
+    public void CadenceGenerator_FiresOnItsOwnTimelineOutsideWindowBudget()
     {
         // Pool budget of zero fires: only the cadence timeline can create.
-        var simulation = CreateSimulation(firesPerPulse: 0);
+        var simulation = CreateSimulation(firesPerWindow: 0);
         SeedMap(simulation);
         CreateTarget(simulation);
         RegisterGenerator(simulation, cadenceTicks: 10);
@@ -46,12 +46,12 @@ public sealed class GeneratorCadenceAndFixedCultureTests
     }
 
     [Fact]
-    public void CadenceGenerator_DoesNotCompeteInTheSharedPulsePool()
+    public void CadenceGenerator_DoesNotCompeteInTheSharedFireWindowPool()
     {
-        var simulation = CreateSimulation(firesPerPulse: 1);
+        var simulation = CreateSimulation(firesPerWindow: 1);
         SeedMap(simulation);
         CreateTarget(simulation);
-        // In the pool (width 25, 1 fire/pulse) this generator would fire twice
+        // In the pool (width 25, 1 fire/window) this generator would fire twice
         // over 40 ticks. On its own sparse timeline it fires at most the one
         // desynchronized initial time.
         RegisterGenerator(simulation, cadenceTicks: 5000);
@@ -72,7 +72,7 @@ public sealed class GeneratorCadenceAndFixedCultureTests
         var slot = simulation.Generators.RegisterGenerator(
             GeneratorId,
             TargetKindId,
-            pulseWeight: 1,
+            fireWeight: 1,
             maxRuns: 0,
             cadenceTicks,
             cadenceJitterTicks: 0);
@@ -117,7 +117,7 @@ public sealed class GeneratorCadenceAndFixedCultureTests
         }
     }
 
-    private static Simulation CreateSimulation(int firesPerPulse = GeneratorProgramConstants.DefaultFiresPerPulse) =>
+    private static Simulation CreateSimulation(int firesPerWindow = GeneratorProgramConstants.DefaultFiresPerWindow) =>
         KernelTestSimulation.Create(new SimulationOptions
         {
             EntityCapacity = 16,
@@ -136,7 +136,7 @@ public sealed class GeneratorCadenceAndFixedCultureTests
                 {
                     Generators = new GeneratorProgramTuningOptions
                     {
-                        FiresPerPulse = firesPerPulse,
+                        FiresPerWindow = firesPerWindow,
                     },
                 },
             },

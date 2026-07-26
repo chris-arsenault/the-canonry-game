@@ -25,19 +25,23 @@ Minor actors are not:
 
 ## Cadence and Storage
 
-The simulation advances one world pulse at a time. `MinorActors` alone runs
-`MinorActorSubstepsPerPulse`, currently `5`, inside that pulse, so workers can
-provide frequent low-impact labor without repeating generator, gambit,
-relationship, or entity-resolution work.
+The simulation advances one tick at a time. `MinorActors` runs once per tick.
+Main graph, relationship, effect, gambit, and generator programs run every five
+ticks by default, so worker labor remains frequent without a second clock or
+repeating the more expensive passes on every tick.
 
 Emitter and action cadence are authored per source rule. Current Ice Remembers
-workers act every minor-actor pulse while alive; source emission cadence,
+workers act every tick while alive; source emission cadence,
 worker TTL, work delta, and active-worker cap are configured by the domain.
 
 Workers remain individual. Their fields live in direct slot arrays, active
 slots are dense and reusable, and a deterministic due heap visits only workers
 whose next action or expiration is due. Per-source counts, emission deadlines,
 and work tiers use direct source/rule slots rather than hash tables.
+Retiring a named source immediately deactivates its cohorts and clears its
+emission rows before that entity slot can be reused. Active-state snapshots
+persist live cohorts and sparse emission deadlines, then rebuild free slots,
+per-source counts, and the due heap on load.
 
 ## Source Rules
 
@@ -80,6 +84,12 @@ Current targeting modes:
 The selection is weighted random over positive-scoring candidates. Scores use
 kernel culture-boundary fields such as raw mass, connected mass, supported
 adjacency, component attachment, foreign pressure, and headroom.
+
+Lifecycle-maintenance need is a source/tick fact. Candidate scoring resolves
+the source entity's age load and health shortfall at most once per worker
+selection, then combines that unchanged need with each candidate cell's local
+culture support. The hoist changes neither the maintenance formula nor the
+weighted candidate order.
 
 ## Telemetry
 

@@ -13,8 +13,8 @@ content is in `src/IceRemembers/IceRemembersGeneratorDefinition.cs`.
 ## What generators are
 
 A generator is a **world event that spawns a pre-wired package of entities
-inside a pulse-window budget**. The runtime evaluates generators on the main
-graph cadence and fires an applicable generator while the current pulse window
+inside a fire-window budget**. The runtime evaluates generators on the main
+program cadence and fires an applicable generator while the current window
 still has fire budget. Generators are the mechanism by which the simulation
 introduces new actors, factions, settlements, and artifacts over time, rather
 than starting with a fixed census and only losing pieces.
@@ -53,8 +53,8 @@ intentionally not part of the active model.
 optional create-chance.
 * **A relationship list** — how produced entities wire to each other and
 to the target (and optionally to a secondary existing target).
-* **A pulse weight** — relative likelihood this generator wins the pulse
-lottery.
+* **A fire weight** — relative likelihood this generator wins selection within
+the current window.
 * **(Optional) Non-creation consequences** — additional effects on existing
 entities or world state when those effects are part of the event's
 meaning.
@@ -69,21 +69,22 @@ preferred and allowed terrain. Allowed terrain is a hard filter; preferred
 terrain biases scored candidates after locality, radius, occupancy, semantic
 bounds, and coverage constraints pass.
 
-## Pulse model
+## Fire-window model
 
-* The generator runtime evaluates every world pulse.
-* A pulse window resets fire budget. Default tuning is
-`PulseWidthTicks = 25` world pulses and `FiresPerPulse = 1`.
-* A generator may fire on any eligible generator tick inside the current pulse
+* The generator runtime evaluates on the main-program cadence.
+* A provincial fire window resets fire budget. Default tuning is
+`FireWindowTicks = 50` and `FiresPerWindow = 1`; runtime deadlines use the
+single global tick clock.
+* A generator may fire on any eligible scheduled tick inside the current
 window while fire budget remains.
 * Applicable = on the tableau AND has at least one target entity whose
 gates pass.
 * Within available fire budget, one eligible generator candidate is selected
-weighted-random by `PulseWeight` — NOT by how many targets it has. Otherwise a
+weighted-random by `FireWeight` — NOT by how many targets it has. Otherwise a
 generator targeting settlements would crowd out one targeting factions just
 because there are more settlements.
 * If a selected generator cannot legally place its produced entities, that fire
-fails cleanly and does not consume the pulse window's fire budget.
+fails cleanly and does not consume the fire window's budget.
 * Tableau-gating is the whole point: remove the generator's card → it
 stops being applicable, even if world state would otherwise trigger it.
 This is "your deck defines the world's nature" in action.

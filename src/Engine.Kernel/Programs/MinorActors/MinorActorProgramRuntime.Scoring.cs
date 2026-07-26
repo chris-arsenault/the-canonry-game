@@ -17,7 +17,8 @@ internal sealed partial class MinorActorProgramRuntime
         FixedScalar foreignRaw,
         in MinorActorCultureField neighborhood,
         in MinorActorCultureAttachment attachment,
-        int tick)
+        int tick,
+        ref MinorActorLifecycleNeed lifecycleNeed)
     {
         if (Data.VerbActionCodes[verb] == MinorActorActionCodes.RoadMaintenance)
         {
@@ -44,7 +45,8 @@ internal sealed partial class MinorActorProgramRuntime
                 ownRaw,
                 neighborhood,
                 attachment,
-                tick);
+                tick,
+                ref lifecycleNeed);
         }
 
         return Data.VerbActionCodes[verb] == MinorActorActionCodes.CultureCleanup
@@ -123,15 +125,15 @@ internal sealed partial class MinorActorProgramRuntime
         FixedScalar ownRaw,
         in MinorActorCultureField neighborhood,
         in MinorActorCultureAttachment attachment,
-        int tick)
+        int tick,
+        ref MinorActorLifecycleNeed lifecycleNeed)
     {
-        if (!simulation.Effects.TryGetLifecycleMaintenanceNeed(
-                simulation,
-                sourceEntityId,
-                tick,
-                out _,
-                out var ageDrainComponent,
-                out var healthShortfall))
+        ResolveLifecycleMaintenanceNeed(
+            simulation,
+            sourceEntityId,
+            tick,
+            ref lifecycleNeed);
+        if (lifecycleNeed.MaintenanceNeed <= 0)
         {
             return 0;
         }
@@ -147,13 +149,42 @@ internal sealed partial class MinorActorProgramRuntime
         var ownPresence = FixedScalar.Max(
             Clamp01(ownShare / 100),
             Saturating(ownRaw, CultureSupportedRawInfluence));
-        var ageLoad = Saturating(ageDrainComponent, FixedScalar.FromUnits(200000L));
-        var maintenanceNeed = Clamp01(healthShortfall + (LifecycleMaintenanceEarlyNeedScale * ageLoad));
-        return maintenanceNeed *
-            (FixedScalar.FromUnits(500000L) + ageLoad) *
+        return lifecycleNeed.MaintenanceNeed *
+            (FixedScalar.FromUnits(500000L) + lifecycleNeed.AgeLoad) *
             connectedSupport *
             (FixedScalar.FromUnits(500000L) + ownPresence) *
             LifecycleMaintenanceScoreScale;
+    }
+
+    private static void ResolveLifecycleMaintenanceNeed(
+        Simulation simulation,
+        int sourceEntityId,
+        int tick,
+        ref MinorActorLifecycleNeed lifecycleNeed)
+    {
+        if (lifecycleNeed.Resolved)
+        {
+            return;
+        }
+
+        lifecycleNeed.Resolved = true;
+        if (!simulation.Effects.TryGetLifecycleMaintenanceNeed(
+                simulation,
+                sourceEntityId,
+                tick,
+                out _,
+                out var ageDrainComponent,
+                out var healthShortfall))
+        {
+            return;
+        }
+
+        lifecycleNeed.AgeLoad = Saturating(
+            ageDrainComponent,
+            FixedScalar.FromUnits(200000L));
+        lifecycleNeed.MaintenanceNeed = Clamp01(
+            healthShortfall +
+            (LifecycleMaintenanceEarlyNeedScale * lifecycleNeed.AgeLoad));
     }
 
     private static FixedScalar ReinforceCoreScore(

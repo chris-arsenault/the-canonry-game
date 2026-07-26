@@ -16,13 +16,13 @@ public sealed class SemanticGeneratorConfig
     public IReadOnlyList<SemanticGeneratorRelationship> Relationships { get; init; } = [];
     public IReadOnlyList<ISemanticGeneratorEffect> Effects { get; init; } = [];
     public required IReadOnlyList<SemanticGeneratorTrigger> Triggers { get; init; }
-    public int PulseWeight { get; init; } = 1;
+    public int FireWeight { get; init; } = 1;
     public int? MaxRunsPerSim { get; init; }
 
     /// <summary>
     /// When positive, this is a timeline generator: it fires on its own
     /// cadence (roughly every CadenceTicks, offset by CadenceJitterTicks)
-    /// outside the shared population-proportional pulse pool. Target
+    /// outside the shared population-proportional fire-window pool. Target
     /// eligibility still applies; a cadence firing with no eligible target
     /// passes quietly.
     /// </summary>

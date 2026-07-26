@@ -17,7 +17,12 @@ internal sealed partial class GeneratorProgramRuntime
             return 0;
         }
 
-        var selected = simulation.NextInt(count);
+        var selected = simulation.RandomInt(
+            count,
+            producedSlot,
+            _producedKindIds[producedSlot],
+            KernelRandomPurposeCodes.GeneratorSubtype,
+            attempt: _producedRefCodes[producedSlot]);
         return _subtypeIds[_producedSubtypeChoiceStarts[producedSlot] + selected];
     }
 

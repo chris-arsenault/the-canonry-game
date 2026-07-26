@@ -46,29 +46,32 @@ Important dependency notes:
   moves dead entities to historical status.
 - `Gambits` and `Generators` see the low-altitude state created before them in
   the same tick.
-- `MinorActors` stores unnamed individual workers and runs bounded actor-only
-  substeps inside the world pulse.
+- `MinorActors` stores unnamed individual workers and advances once at the end
+  of every tick.
 
 ## Cadence
 
-Every registered program has a cadence in world pulses. A program with cadence
-`1` runs every pulse. A program with cadence `5` keeps its registration order
-but only runs on eligible pulses.
+Every registered program has a cadence in ticks. A program with cadence `1`
+runs every tick. A program with cadence `5` keeps its registration order but
+only runs on eligible ticks.
 
 Cadence is a performance and pacing tool, not a separate simulation phase.
 
 Current default cadence:
 
 - ordinary movement, low-altitude verbs, relationships, effects/lifecycle,
-  gambits, chronicles, and generators: every world pulse;
-- culture-field decay: every five world pulses;
-- `CultureSlots` and `Knowledge`: every ten world pulses;
-- world beats and map frontier: every twenty-five world pulses;
-- `MinorActors`: five actor-only substeps per world pulse.
+  gambits, chronicles, and generators: every five ticks;
+- culture-field decay: every twenty-five ticks;
+- `CultureSlots` and `Knowledge`: every fifty ticks;
+- world beats and map frontier: every one hundred twenty-five ticks;
+- `MinorActors`: every tick.
 
-There is no raw/main conversion. A configured generator pulse width of `25`
-spans exactly `25` world pulses. Changing minor-actor substeps changes labor
-resolution only; it does not retune graph pacing or the calendar.
+There is no raw/main clock conversion and there are no sub-ticks. The
+`MainProgramCadenceTicks` setting is an ordinary program cadence. Authored
+durations owned by main-cadence systems are normalized once into global tick
+deadlines when installed; runtime state and snapshot data store those global
+tick deadlines. Minor-actor TTL, emission, and action cadence are already
+global tick values and are never scaled through the main cadence.
 
 ## Calendar Mapping
 

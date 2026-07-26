@@ -114,12 +114,12 @@ internal sealed partial class MonteCarloBatchAnalyzer
     private static readonly string GeneratorBalanceSql = $$"""
         SELECT
             generator_id,
-            COUNT(*) AS pulses,
-            SUM(CASE WHEN status_code IN ({{GeneratorStatusCodes.Eligible}}, {{GeneratorStatusCodes.Fired}}) THEN 1 ELSE 0 END) AS eligible_pulses,
-            SUM(CASE WHEN status_code = {{GeneratorStatusCodes.Blocked}} THEN 1 ELSE 0 END) AS blocked_pulses,
-            SUM(CASE WHEN status_code = {{GeneratorStatusCodes.EligibleNotSelected}} THEN 1 ELSE 0 END) AS eligible_not_selected_pulses,
+            COUNT(*) AS evaluations,
+            SUM(CASE WHEN status_code IN ({{GeneratorStatusCodes.Eligible}}, {{GeneratorStatusCodes.Fired}}) THEN 1 ELSE 0 END) AS eligible_evaluations,
+            SUM(CASE WHEN status_code = {{GeneratorStatusCodes.Blocked}} THEN 1 ELSE 0 END) AS blocked_evaluations,
+            SUM(CASE WHEN status_code = {{GeneratorStatusCodes.EligibleNotSelected}} THEN 1 ELSE 0 END) AS eligible_not_selected_evaluations,
             SUM(CASE WHEN event_type_code = {{(int)Engine.Eventing.KernelEventType.GeneratorFired}} THEN 1 ELSE 0 END) AS fired_count,
-            SUM(CASE WHEN status_code = {{GeneratorStatusCodes.FireFailed}} THEN 1 ELSE 0 END) AS fire_failed_pulses,
+            SUM(CASE WHEN status_code = {{GeneratorStatusCodes.FireFailed}} THEN 1 ELSE 0 END) AS fire_failed_evaluations,
             CASE
                 WHEN SUM(CASE WHEN status_code IN ({{GeneratorStatusCodes.Eligible}}, {{GeneratorStatusCodes.Fired}}) THEN 1 ELSE 0 END) = 0 THEN 0.0
                 ELSE SUM(CASE WHEN event_type_code = {{(int)Engine.Eventing.KernelEventType.GeneratorFired}} THEN 1 ELSE 0 END)::DOUBLE /

@@ -6,15 +6,15 @@ internal sealed partial class WorldBeatsProgramRuntime
 {
     /// <summary>
     /// Pushes the open ages' rate charges into the target programs. The push
-    /// is idempotent and runs every pulse: targets are reset to neutral, then
+    /// is idempotent and runs on every scheduled invocation: targets are reset to neutral, then
     /// every open age's charges apply multiplicatively. Target programs own
     /// their own modulation arrays, so hot-path reads stay O(1) and a
-    /// snapshot reload self-heals on the next pulse.
+    /// snapshot reload self-heals on the next run.
     /// </summary>
     private void PushCharges(Simulation simulation)
     {
         simulation.LowAltitudeVerbs.ResetAgeWeightMultipliers();
-        simulation.Generators.ResetAgePulseWeightMultipliers();
+        simulation.Generators.ResetAgeFireWeightMultipliers();
         simulation.Gambits.ResetAgeScoreMultipliers();
         simulation.Gambits.ResetAgeSuccessMultipliers();
         simulation.CultureFieldDecay.SetContestTide(1);
@@ -43,8 +43,8 @@ internal sealed partial class WorldBeatsProgramRuntime
             var multiplier = Data.ChargeMultiplier(charge);
             switch (Data.ChargeDomainCode(charge))
             {
-                case WorldBeatChargeDomainCodes.GeneratorPulseWeight:
-                    simulation.Generators.ApplyAgePulseWeightMultiplier(targetId, multiplier);
+                case WorldBeatChargeDomainCodes.GeneratorFireWeight:
+                    simulation.Generators.ApplyAgeFireWeightMultiplier(targetId, multiplier);
                     break;
                 case WorldBeatChargeDomainCodes.VerbWeight:
                     simulation.LowAltitudeVerbs.ApplyAgeWeightMultiplier(targetId, multiplier);

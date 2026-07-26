@@ -7,8 +7,12 @@ internal sealed partial class ChronicleProgramRuntime
         for (var pending = 0; pending < State.PendingCount; pending++)
         {
             var kind = State.PendingKinds[pending];
-            var actorId = State.PendingActorIds[pending];
-            var targetId = State.PendingTargetIds[pending];
+            _ = world.TryResolveEntityOccurrence(
+                State.PendingActorOccurrenceHandles[pending],
+                out var actorId);
+            _ = world.TryResolveEntityOccurrence(
+                State.PendingTargetOccurrenceHandles[pending],
+                out var targetId);
             var producerId = State.PendingProducerIds[pending];
             var succeeded = State.PendingSucceeded[pending] != 0;
             for (var chronicle = 1; chronicle <= State.HighWatermark; chronicle++)
@@ -151,7 +155,7 @@ internal sealed partial class ChronicleProgramRuntime
 
     /// <summary>
     /// Evaluates openings for a freshly cast chronicle so Always-open beats
-    /// charge the world and accept strikes from the very first pulse.
+    /// charge the world and accept strikes from the very first run.
     /// </summary>
     internal void OpenEligibleBeats(WorldState world, int chronicle)
     {
@@ -293,7 +297,7 @@ internal sealed partial class ChronicleProgramRuntime
             State.LegendaryResolutionCount++;
         }
 
-        RememberCast(chronicle, tick);
+        RememberCast(simulation.World, chronicle, tick);
         State.Active[chronicle] = false;
         State.ArchetypeActiveCounts[State.ArchetypeSlots[chronicle]]--;
     }
@@ -302,7 +306,7 @@ internal sealed partial class ChronicleProgramRuntime
     /// Resolved cast members enter the suppression ring so the same entities
     /// are not immediately recast as primaries of a fresh tale.
     /// </summary>
-    private void RememberCast(int chronicle, int tick)
+    private void RememberCast(WorldState world, int chronicle, int tick)
     {
         for (var role = 0; role < ChronicleProgramData.MaxRolesPerArchetype; role++)
         {
@@ -312,18 +316,20 @@ internal sealed partial class ChronicleProgramRuntime
                 continue;
             }
 
-            State.RecentCastEntityIds[State.RecentCastNext] = entityId;
+            State.RecentCastEntityOccurrenceHandles[State.RecentCastNext] =
+                world.EntityOccurrenceHandle(entityId);
             State.RecentCastTicks[State.RecentCastNext] = tick;
             State.RecentCastHeat[State.RecentCastNext] = State.Heat[chronicle];
             State.RecentCastNext = (State.RecentCastNext + 1) % ChronicleProgramState.SuppressionRingCapacity;
         }
     }
 
-    private bool RecentlyChronicled(int entityId, int tick)
+    private bool RecentlyChronicled(WorldState world, int entityId, int tick)
     {
+        var occurrenceHandle = world.EntityOccurrenceHandle(entityId);
         for (var slot = 0; slot < ChronicleProgramState.SuppressionRingCapacity; slot++)
         {
-            if (State.RecentCastEntityIds[slot] == entityId &&
+            if (State.RecentCastEntityOccurrenceHandles[slot] == occurrenceHandle &&
                 tick - State.RecentCastTicks[slot] < SuppressionTicks)
             {
                 return true;

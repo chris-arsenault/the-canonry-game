@@ -88,10 +88,10 @@ internal sealed class GameRuntimeChronicle : IGameChronicleFeed
         {
             // Events carry heat as of the last strike; decay it to now with
             // the director's own cooling rate so the display never overstates.
-            var pulses = (_baseChronicle.CurrentTick - tale.LastEventTick) / 5f;
-            if (pulses > 0f)
+            var elapsedIntervals = (_baseChronicle.CurrentTick - tale.LastEventTick) / 5f;
+            if (elapsedIntervals > 0f)
             {
-                tale = tale with { Heat = tale.Heat * MathF.Pow(0.99f, pulses) };
+                tale = tale with { Heat = tale.Heat * MathF.Pow(0.99f, elapsedIntervals) };
             }
         }
 

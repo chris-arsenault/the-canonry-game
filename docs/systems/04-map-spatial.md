@@ -18,6 +18,14 @@ coverage, superregion, and continent surfaces, but its coordinates locate a
 conceptual position rather than a physical one. Physical `(6, 5)` and semantic
 `(6, 5)` have no direct implied relationship.
 
+Runtime coordinates are assigned stable dense cell IDs by a bounded,
+collision-safe coordinate registry. Cell registration and map reveal are
+separate: occupancy or influence may establish storage identity without
+revealing a cell to gameplay. Terrain, cover, subdivision identity, occupancy,
+coverage, roads, travel memory, culture totals, and culture influence are
+direct cell-backed arrays. Dense active and dirty indexes schedule only
+currently present coverage, road, travel, and nonzero culture rows.
+
 Its two free axes (`q`, `r`; `s = -q - r` is the derived cube coordinate) are
 **neutral directions** — like compass bearings, they carry no meaning of their
 own and impose no scale or good/evil polarity. Meaning lives in the terrain at a
@@ -320,6 +328,10 @@ Current culture influence sources:
 Cleanup reduces all non-own cultures' raw mass at the targeted cell. It does
 not mutate the dominance-share cache directly.
 
+The `(culture, cell)` row is active only while its raw mass is nonzero. Returning
+to zero removes the row from its culture/plane active list and makes its bounded
+storage reusable; it does not remove the durable cell or forget terrain.
+
 Entity-level influence production is retained as attribution and scoring
 evidence for systems such as culture slots. It is not the durable territorial
 influence layer.
@@ -383,7 +395,7 @@ constraints are applied. Normal or wilderness placement should not drop a new
 entity into another culture's entrenched/nexus field; hostile-intrusion
 placement is the explicit escape hatch for content that means to do that.
 Generator placement failure rejects the fire instead of consuming generator
-pulse budget.
+fire-window budget.
 
 ## Quality Metrics
 

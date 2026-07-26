@@ -4,7 +4,7 @@ using Engine.Constants;
 using Engine.Domain;
 using Engine.Kernel;
 
-internal sealed class KernelConfigurationContext
+internal sealed partial class KernelConfigurationContext
 {
     private readonly Simulation _kernel;
 
@@ -233,10 +233,17 @@ internal sealed class KernelConfigurationContext
     public int RegisterLifecycle(
         int kindId,
         AttributeRuntimeId attributeId,
-        FixedScalar baseRate,
-        FixedScalar ageCoefficient,
+        int targetTicks,
+        int nominalHealthUnits,
+        FixedScalar flatDrainShare,
         FixedScalar variance) =>
-        _kernel.Effects.RegisterLifecycle(kindId, attributeId.Value, baseRate, ageCoefficient, variance);
+        _kernel.Effects.RegisterLifecycle(
+            kindId,
+            attributeId.Value,
+            targetTicks,
+            nominalHealthUnits,
+            flatDrainShare,
+            variance);
 
     public int RegisterAttributeDeltaEffect(
         int kindId,
@@ -336,11 +343,11 @@ internal sealed class KernelConfigurationContext
         int purposeCode,
         int actorKindCode,
         int planeCode,
-        int ttlPulses,
-        int emitCadencePulses,
+        int ttlTicks,
+        int emitCadenceTicks,
         int maxActivePerSource,
         int spawnRadius,
-        int actionCadencePulses,
+        int actionCadenceTicks,
         FixedScalar workDelta) =>
         _kernel.MinorActors.RegisterEmitterRule(
             sourceKindId,
@@ -348,11 +355,11 @@ internal sealed class KernelConfigurationContext
             purposeCode,
             actorKindCode,
             planeCode,
-            ttlPulses,
-            emitCadencePulses,
+            ttlTicks,
+            emitCadenceTicks,
             maxActivePerSource,
             spawnRadius,
-            actionCadencePulses,
+            actionCadenceTicks,
             workDelta);
 
     public int RegisterMinorActorVerb(
@@ -586,89 +593,10 @@ internal sealed class KernelConfigurationContext
             supportEmission,
             threatEmission);
 
-    public int RegisterGambit(
-        int kindId,
-        int gambitId,
-        int cooldownTicks,
-        int entityCooldownTicks,
-        int targetMode,
-        int targetKindId,
-        FixedScalar successChance) =>
-        _kernel.Gambits.RegisterGambit(
-            kindId,
-            gambitId,
-            cooldownTicks,
-            entityCooldownTicks,
-            targetMode,
-            targetKindId,
-            successChance);
-
-    public void MarkGambitChronicleGranted(int gambitSlot) =>
-        _kernel.Gambits.MarkChronicleGranted(gambitSlot);
-
-    public void AddGambitPrecondition(
-        int gambitSlot,
-        int preconditionCode,
-        int a = 0,
-        int b = 0,
-        int c = 0,
-        int d = 0,
-        FixedScalar x = default,
-        FixedScalar y = default) =>
-        _kernel.Gambits.AddPrecondition(gambitSlot, preconditionCode, a, b, c, d, x, y);
-
-    public void AddGambitScoreExpressionOp(
-        int gambitSlot,
-        int expressionCode,
-        int a = 0,
-        FixedScalar x = default) =>
-        _kernel.Gambits.AddExpressionOp(gambitSlot, expressionCode, a, x);
-
-    public void AddGambitProviderSelector(
-        int gambitSlot,
-        int selectorCode,
-        int kindId = 0,
-        int valueId = 0,
-        int relationshipKindId = 0,
-        FixedScalar minimumStrength = default) =>
-        _kernel.Gambits.AddProviderSelector(
-            gambitSlot,
-            selectorCode,
-            kindId,
-            valueId,
-            relationshipKindId,
-            minimumStrength);
-
-    public int AddGambitStep(
-        int gambitSlot,
-        int operationCode,
-        int a = 0,
-        int b = 0,
-        int c = 0,
-        int d = 0,
-        FixedScalar x = default,
-        FixedScalar y = default) =>
-        _kernel.Gambits.AddStep(gambitSlot, operationCode, a, b, c, d, x, y);
-
-    public void AddGambitStepExpressionOp(
-        int stepSlot,
-        int expressionCode,
-        int a = 0,
-        FixedScalar x = default) =>
-        _kernel.Gambits.AddStepExpressionOp(stepSlot, expressionCode, a, x);
-
-    public int RegisterTraitGambitModifier(
-        int gambitId,
-        int traitId,
-        int bearerCode,
-        FixedScalar scoreDelta,
-        FixedScalar successChanceDelta) =>
-        _kernel.Gambits.RegisterTraitModifier(gambitId, traitId, bearerCode, scoreDelta, successChanceDelta);
-
     public int RegisterGenerator(
         int generatorId,
         int targetKindId,
-        int pulseWeight,
+        int fireWeight,
         int maxRuns,
         int cadenceTicks = 0,
         int cadenceJitterTicks = 0,
@@ -677,7 +605,7 @@ internal sealed class KernelConfigurationContext
         _kernel.Generators.RegisterGenerator(
             generatorId,
             targetKindId,
-            pulseWeight,
+            fireWeight,
             maxRuns,
             cadenceTicks,
             cadenceJitterTicks,
@@ -855,15 +783,15 @@ internal sealed class KernelConfigurationContext
         int refreezeAgeId,
         int frozenTerrainId,
         int maxRadius,
-        int iceAdvanceBudgetPerPulse,
-        int iceRetreatBudgetPerPulse) =>
+        int iceAdvanceBudgetPerRun,
+        int iceRetreatBudgetPerRun) =>
         _kernel.MapFrontier.SetAgeConfiguration(
             thawAgeId,
             refreezeAgeId,
             frozenTerrainId,
             maxRadius,
-            iceAdvanceBudgetPerPulse,
-            iceRetreatBudgetPerPulse);
+            iceAdvanceBudgetPerRun,
+            iceRetreatBudgetPerRun);
 
     public void SetMapFrontierIcePressureConfiguration(
         int frostTemperatureCeiling,
@@ -898,9 +826,9 @@ internal sealed class KernelConfigurationContext
 
     public void SetMapFrontierSeaIceConfiguration(
         int coverTerrainId,
-        int freezeBudgetPerPulse,
-        int meltBudgetPerPulse) =>
-        _kernel.MapFrontier.SetSeaIceConfiguration(coverTerrainId, freezeBudgetPerPulse, meltBudgetPerPulse);
+        int freezeBudgetPerRun,
+        int meltBudgetPerRun) =>
+        _kernel.MapFrontier.SetSeaIceConfiguration(coverTerrainId, freezeBudgetPerRun, meltBudgetPerRun);
 
     public void AddMapFrontierSeaIceEligibleTerrain(int terrainId) =>
         _kernel.MapFrontier.AddSeaIceEligibleTerrain(terrainId);
@@ -915,8 +843,8 @@ internal sealed class KernelConfigurationContext
         bool enabled,
         int maxRadius,
         FixedScalar frontierMassThreshold,
-        int budgetPerPulse) =>
-        _kernel.MapFrontier.SetSemanticConfiguration(enabled, maxRadius, frontierMassThreshold, budgetPerPulse);
+        int budgetPerRun) =>
+        _kernel.MapFrontier.SetSemanticConfiguration(enabled, maxRadius, frontierMassThreshold, budgetPerRun);
 
     public int AddChronicleArchetype(int archetypeId, int maxActive, int castingCadenceTicks, int primaryKindId, int primaryRequiredRelKindId, FixedScalar primaryRequiredRelMinStrength, int fadeOutcomeCodeId, int fadeGraceTicks, int fadeQuietTicks) =>
         _kernel.Chronicles.AddArchetype(archetypeId, maxActive, castingCadenceTicks, primaryKindId, primaryRequiredRelKindId, primaryRequiredRelMinStrength, fadeOutcomeCodeId, fadeGraceTicks, fadeQuietTicks);

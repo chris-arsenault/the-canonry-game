@@ -147,7 +147,7 @@ internal static class DomainStartupSeedInstaller
         grant.Domain switch
         {
             KnowledgeGrantDomain.VerbWeight => ids.VerbIdOf(RequiredTarget(grant)).Value,
-            KnowledgeGrantDomain.GeneratorPulseWeight => ids.GeneratorIdOf(RequiredTarget(grant)).Value,
+            KnowledgeGrantDomain.GeneratorFireWeight => ids.GeneratorIdOf(RequiredTarget(grant)).Value,
             KnowledgeGrantDomain.GambitScore or KnowledgeGrantDomain.GambitSuccess =>
                 ids.GambitIdOf(RequiredTarget(grant)).Value,
             KnowledgeGrantDomain.RelationshipMaintenance =>

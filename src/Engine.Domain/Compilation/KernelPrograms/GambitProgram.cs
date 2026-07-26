@@ -24,6 +24,6 @@ public sealed record CompiledGambitRule(
     FixedScalar SuccessChance,
     bool ChronicleGranted,
     IReadOnlyList<BehaviorProgramProviderSelectorRule> ProviderSelectors,
-    IReadOnlyList<BehaviorProgramPreconditionOp> Preconditions,
+    BehaviorProgramPreconditionPlan PreconditionPlan,
     IReadOnlyList<BehaviorProgramExpressionOp> ScoreExpression,
     IReadOnlyList<BehaviorProgramStepRule> Steps);

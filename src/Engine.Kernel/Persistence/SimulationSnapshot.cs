@@ -7,7 +7,7 @@ internal sealed partial class Simulation
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
     {
         writer.Write(CurrentTick);
-        _random.WriteSnapshot(writer);
+        writer.Write(_phaseRevision);
         KernelData.WriteSnapshot(writer);
         World.WriteSnapshot(writer);
         _programs.WriteSnapshot(writer);
@@ -30,7 +30,7 @@ internal sealed partial class Simulation
     internal void ReadSnapshot(global::System.IO.BinaryReader reader)
     {
         CurrentTick = reader.ReadInt32();
-        _random.ReadSnapshot(reader);
+        _phaseRevision = reader.ReadInt64();
         KernelData.ReadSnapshot(reader);
         World.ReadSnapshot(reader);
         _programs.ReadSnapshot(this, reader);

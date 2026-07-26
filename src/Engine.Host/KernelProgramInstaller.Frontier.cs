@@ -16,8 +16,8 @@ internal static partial class KernelProgramInstaller
             program.RefreezeAgeId,
             program.FrozenTerrainId,
             program.MaxRadius,
-            program.IceAdvanceBudgetPerPulse,
-            program.IceRetreatBudgetPerPulse);
+            program.IceAdvanceBudgetPerRun,
+            program.IceRetreatBudgetPerRun);
         context.SetMapFrontierIcePressureConfiguration(
             program.FrostTemperatureCeiling,
             program.IceThicknessPressureWeight,
@@ -36,11 +36,11 @@ internal static partial class KernelProgramInstaller
             program.SemanticGrowthEnabled,
             program.SemanticMaxRadius,
             program.SemanticFrontierMassThreshold,
-            program.SemanticBudgetPerPulse);
+            program.SemanticBudgetPerRun);
         context.SetMapFrontierSeaIceConfiguration(
             program.SeaIceCoverTerrainId,
-            program.SeaIceFreezeBudgetPerPulse,
-            program.SeaIceMeltBudgetPerPulse);
+            program.SeaIceFreezeBudgetPerRun,
+            program.SeaIceMeltBudgetPerRun);
         foreach (var terrainId in program.SeaIceEligibleTerrainIds)
         {
             context.AddMapFrontierSeaIceEligibleTerrain(terrainId);

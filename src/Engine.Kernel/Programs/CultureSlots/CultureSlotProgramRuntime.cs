@@ -53,7 +53,7 @@ internal sealed class CultureSlotProgramRuntime :
             slotId,
             polarityCode,
             minimumScore,
-            minimumTenureTicks,
+            Tuning.ScaleMainProgramDuration(minimumTenureTicks),
             displacementMargin,
             entityInfluenceMultiplierDelta,
             cultureInfluenceMultiplierDelta);
@@ -260,6 +260,26 @@ internal sealed class CultureSlotProgramRuntime :
                 currentEntityId: occupant,
                 previousScore: 0,
                 currentScore: State.OccupantScore(slot));
+        }
+    }
+
+    internal void NoteEntityRetired(Simulation simulation, int entityId, int tick)
+    {
+        for (var slot = 1; slot <= Data.SlotCount; slot++)
+        {
+            if (State.OccupantEntityId(slot) != entityId)
+            {
+                continue;
+            }
+
+            ChangeOccupant(
+                simulation,
+                slot,
+                entityId,
+                currentEntityId: 0,
+                State.OccupantScore(slot),
+                currentScore: 0,
+                tick);
         }
     }
 

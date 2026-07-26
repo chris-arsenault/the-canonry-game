@@ -14,7 +14,7 @@ define run-tests
 	@mkdir -p "$(TEST_LOG_DIR)"
 	@log="$(TEST_LOG_DIR)/$(2).log"; \
 	echo "Writing full test output to $$log"; \
-	dotnet test -c Release --no-build --verbosity normal \
+	dotnet test -c Release --verbosity normal \
 		--settings test.runsettings --maxcpucount:1 $(1) >"$$log" 2>&1; \
 	status=$$?; \
 	if (( status != 0 )); then \
@@ -84,10 +84,21 @@ MC_TICKS ?= 1000
 MC_SEED ?= 1000
 MC_EXTRA ?=
 RUN_ID ?= dev-$(shell date +%Y%m%d-%H%M%S)
+MC_STATS ?=
 SEED ?= 42
 DIAG_FLAGS ?= --hex-contract
+PROFILE_RUN_ID ?= preparallel-profile-$(shell date +%Y%m%d-%H%M%S)
+PROFILE_TICKS ?= 5000
+PROFILE_SEED ?= 4200
+PROFILE_WORLD ?= worlds/ice-remembers-seed-$(PROFILE_SEED).world
+PROFILE_BASE ?= .artifacts/profiles/$(PROFILE_RUN_ID)
+DOTNET_TRACE ?= $(HOME)/.dotnet/tools/dotnet-trace
+MONTE_CARLO_DLL ?= .artifacts/bin/MonteCarlo/Release/net8.0/MonteCarlo.dll
+MC_SMOKE_TICKS ?= 5000
+MC_SMOKE_SEED ?= 4200
+MC_SMOKE_WORLD ?= worlds/ice-remembers-seed-$(MC_SMOKE_SEED).world
 
-.PHONY: mc world capture diagnose test-kernel test-domain test-seed test-gameplay
+.PHONY: mc mc-smoke mc-show mc-append-stats mc-delete profile-kernel world capture diagnose test-kernel test-domain test-eventing test-seed test-gameplay
 
 # Monte Carlo batch. Sizing guide: quick "did the number move" check =
 # MC_RUNS=2; calibration report = MC_RUNS=6+ at the horizon you are judging.
@@ -97,6 +108,48 @@ mc:
 		--runs $(MC_RUNS) --ticks $(MC_TICKS) --seed $(MC_SEED) \
 		--run-id $(RUN_ID) --artifact-root .artifacts/monte-carlo $(MC_EXTRA)
 
+# Fast one-world feedback path. The versioned Release-generated world must
+# already exist; use `make world SEED=$(MC_SMOKE_SEED)` to replace it explicitly.
+mc-smoke:
+	dotnet run --project tools/MonteCarlo/MonteCarlo.csproj -c Release -- \
+		--runs 1 --ticks $(MC_SMOKE_TICKS) --seed $(MC_SMOKE_SEED) \
+		--world $(MC_SMOKE_WORLD) \
+		--run-id $(RUN_ID) --artifact-root .artifacts/monte-carlo \
+		--simulation-only --no-analysis
+
+mc-show:
+	dotnet run --project tools/MonteCarlo/MonteCarlo.csproj -c Release -- \
+		show --run-id $(RUN_ID) --artifact-root .artifacts/monte-carlo
+
+mc-append-stats:
+	dotnet run --project tools/MonteCarlo/MonteCarlo.csproj -c Release -- \
+		append-stats --run-id $(RUN_ID) --artifact-root .artifacts/monte-carlo \
+		$(MC_STATS)
+
+mc-delete:
+	dotnet run --project tools/MonteCarlo/MonteCarlo.csproj -c Release -- \
+		delete-run --run-id $(RUN_ID) --artifact-root .artifacts/monte-carlo
+
+# Bounded one-seed simulation-only CPU profile for scheduler/phase work.
+# The registry run and trace share PROFILE_RUN_ID so the evidence remains
+# attributable without adding profiler concerns to the kernel.
+profile-kernel:
+	mkdir -p .artifacts/profiles
+	dotnet build tools/MonteCarlo/MonteCarlo.csproj -c Release
+	$(DOTNET_TRACE) collect \
+		--profile dotnet-sampled-thread-time \
+		--output "$(PROFILE_BASE).nettrace" \
+		--show-child-io \
+		-- dotnet "$(MONTE_CARLO_DLL)" \
+			--runs 1 --ticks $(PROFILE_TICKS) --seed $(PROFILE_SEED) \
+			--world $(PROFILE_WORLD) \
+			--run-id $(PROFILE_RUN_ID) --artifact-root .artifacts/monte-carlo \
+			--simulation-only --no-analysis \
+		2>&1 | tee "$(PROFILE_BASE).run.log"
+	$(DOTNET_TRACE) report "$(PROFILE_BASE).nettrace" topN -n 120 -v \
+		> "$(PROFILE_BASE).exclusive120.txt"
+	$(DOTNET_TRACE) report "$(PROFILE_BASE).nettrace" topN --inclusive -n 180 -v \
+		> "$(PROFILE_BASE).inclusive180.txt"
 # Fan a batch across one process per seed so wall time is the slowest seed,
 # not the sum, and each seed's data lands as soon as it finishes. Streams
 # core scorecard tables to <run-id>-s<seed>/stream/ every MC_STREAM_EVERY
@@ -136,6 +189,10 @@ test-kernel:
 
 test-domain:
 	dotnet test tests/Engine.Domain.Tests --nologo \
+		--settings test.runsettings --maxcpucount:1 --filter "$(FAST_FILTER)"
+
+test-eventing:
+	dotnet test tests/Engine.Eventing.Tests --nologo \
 		--settings test.runsettings --maxcpucount:1 --filter "$(FAST_FILTER)"
 
 test-seed:

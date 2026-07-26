@@ -32,7 +32,7 @@ A stage is an authored object with a stable name, a display name, and an
 - **District capacity** — installed-artifact cores the entity may hold.
 
 The set is designed to grow: future properties (gambit grants, map-signal
-scaling, movement rights, pulse weighting) attach to the same catalog entry
+scaling, movement rights, fire weighting) attach to the same catalog entry
 without new axes. Kinds without a catalog have a single implicit base stage
 and behave exactly as today.
 
@@ -97,4 +97,4 @@ Mortal churn must be re-verified within its healthy band.
 ## Not changed
 
 Decay model (rate tweak only), minor-actor emission machinery, provincial
-pulses, the district model, band enum values, mortal death mechanics.
+fire windows, the district model, band enum values, mortal death mechanics.

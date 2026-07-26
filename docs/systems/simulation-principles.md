@@ -21,6 +21,19 @@ These goals are coupled. A map can look busy while the graph is poor; a graph
 can be diverse while every entity sits in one cluster. Tuning should measure all
 three before declaring success.
 
+## Long-Horizon State
+
+Capacity limits concurrent world complexity, not elapsed history. Retired
+entities, ended relationships, expired cooldowns, consumed districts, completed
+provenance, and zero influence rows must leave active kernel storage. Reusable
+slots use generation-safe occurrence handles wherever identity can survive a
+mutation, and stale handles must never alias a later occurrence.
+
+Hot work should scale with live, due, dirty, or directly addressed state.
+Keeping a historical row or scanning a high-water range requires a current
+simulation query that cannot be expressed through the event/projection
+boundary; preserving legacy behavior or snapshot compatibility is not enough.
+
 ## Numeric Determinism
 
 Durable additive simulation state is field-specific fixed point. Contributions
@@ -37,14 +50,30 @@ the query/event boundary. Every runtime field still owns an explicit range,
 scale, rounding, intermediate-width, overflow, clamp, serialization, and
 projection contract.
 
+## Published Tick Contract
+
+Ordinary local behavior evaluates against one frozen tick view and publishes
+only after deterministic destination-owned reduction. Local programs may not
+depend on another local evaluator's same-pass mutation. Additive contributions
+merge before clamping; movement and other competing writes use explicit
+priority plus stable logical source keys; relationship end and lifecycle
+retirement resolve after strength and health changes.
+
+Random choices are keyed by stable logical identity rather than by consumption
+order. Reversing active iteration, reversing delta insertion, or changing the
+number of logical shards must produce the same published state on the
+one-thread scheduler. Each completed command, preparation, evaluation,
+resolution, strategic, and publication phase emits the tick and phase revision
+so projections can distinguish published state from in-progress work.
+
 ## Time Calibration
 
-The canonical time mapping is **50 world pulses ≈ 1 in-world year**. Authored
-durations—lifecycle bands, gambit cooldowns, verb commitments, and tenure—are
-world pulses with no raw/main conversion. Minor actors currently take five
-labor substeps inside each world pulse, but those substeps do not advance the
-calendar. A full simulation is on the order of 10,000 years (~500k world
-pulses); a 25k-pulse evidence run is roughly 500 years.
+The canonical time mapping is **250 ticks ≈ 1 in-world year**. Minor actors run
+once per tick; main programs run every five ticks by default. Lifecycle targets
+are stored directly in ticks. Main-program cooldowns, commitments, windows, and
+tenure are converted once to tick deadlines when installed, then use the same
+clock. A full simulation is on the order of 10,000 years (~2.5M ticks); a
+125k-tick evidence run is roughly 500 years.
 
 The lifespan feel target is a strong divide: ordinary mortals live decades,
 legendary entities reach centuries through active in-universe renewal (never

@@ -150,7 +150,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$peace", "$target", Rel.ClaimedBy, 0.50f),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 10,
+        FireWeight = 10,
     };
 
     private static SemanticGeneratorConfig WhatTheSpringRemembers() => new()
@@ -215,7 +215,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$compact", "$target", Rel.RivalOf, 0.75f),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 18,
+        FireWeight = 18,
     };
 
     private static SemanticGeneratorConfig RoutesDrawReaders() => new()
@@ -301,7 +301,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$scout", "$target", Rel.ConduitOf, 0.70f),
         ],
         Triggers = TriggerOn(K.PointOfInterest),
-        PulseWeight = 2,
+        FireWeight = 2,
     };
 
     private static SemanticGeneratorConfig PracticedFormsFindTomes() => new()
@@ -324,7 +324,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$tome", "$target", Rel.PartOf, 0.80f),
         ],
         Triggers = TriggerOn(K.Ability),
-        PulseWeight = 2,
+        FireWeight = 2,
     };
 
     private static SemanticGeneratorConfig ChartersFindHarbors() => new()
@@ -348,7 +348,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$instrument", "$harbor", Rel.Anchored, 0.80f),
         ],
         Triggers = TriggerOn(K.Transport),
-        PulseWeight = 2,
+        FireWeight = 2,
     };
 
     private static SemanticGeneratorConfig VigilsLeaveRelics() => new()
@@ -370,7 +370,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$witness", "$relic", Rel.Holds, 1f),
         ],
         Triggers = TriggerOn(K.Occurrence),
-        PulseWeight = 2,
+        FireWeight = 2,
     };
 
     private static SemanticGeneratorConfig CorruptionWakesMonsters() => new()
@@ -408,7 +408,7 @@ public static partial class IceRemembersGeneratorDefinition
                 GeneratorRelationshipInstanceSelection.TriggerRelationship),
         ],
         Triggers = TriggerOn(K.Region),
-        PulseWeight = 12,
+        FireWeight = 12,
     };
 
     private static SemanticGeneratorConfig WarsGetNames() => new()
@@ -441,7 +441,7 @@ public static partial class IceRemembersGeneratorDefinition
                 includeReciprocal: true),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 18,
+        FireWeight = 18,
     };
 
     private static SemanticGeneratorConfig TradeRoutesConveneNegotiation() => new()
@@ -593,7 +593,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$plague", "$leviathan", Rel.CorruptedBy, 0.78f),
         ],
         Triggers = TriggerOn(K.PointOfInterest),
-        PulseWeight = 8,
+        FireWeight = 8,
     };
 
     private static SemanticGeneratorConfig OverclaimedBloomsDrawBeasts() => new()
@@ -618,7 +618,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$beast", "$target", Rel.HomeBase, 1f),
         ],
         Triggers = TriggerOn(K.PointOfInterest),
-        PulseWeight = 8,
+        FireWeight = 8,
     };
 
     private static SemanticGeneratorConfig CorruptedMonstersRaiseRevenants() => new()
@@ -676,7 +676,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$citadel", "$target", Rel.Memorializes, 0.82f),
         ],
         Triggers = TriggerOn(K.Occurrence),
-        PulseWeight = 6,
+        FireWeight = 6,
     };
 
     private static SemanticGeneratorConfig ConferencesBecomeFestivals() => new()

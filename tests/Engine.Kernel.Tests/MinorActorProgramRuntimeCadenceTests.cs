@@ -6,7 +6,7 @@ using Engine.Kernel;
 public sealed partial class MinorActorProgramRuntimeTests
 {
     [Fact]
-    public void ConfiguredSubstepsRunInsideOneWorldPulse()
+    public void MainProgramCadenceStillRunsMinorActorsOncePerTick()
     {
         var simulation = new Simulation(new SimulationOptions
         {
@@ -15,7 +15,7 @@ public sealed partial class MinorActorProgramRuntimeTests
             {
                 Programs = new KernelProgramTuningOptions
                 {
-                    MinorActorSubstepsPerPulse = 3,
+                    MainProgramCadenceTicks = 3,
                 },
             },
         });
@@ -29,20 +29,24 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 3,
-            actionCadencePulses: 1,
+            ttlTicks: 3,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(0f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(1);
 
-        Assert.Equal(3, simulation.MinorActors.State.Pulse);
         Assert.Equal(1, simulation.CurrentTick);
+        Assert.Equal(1, simulation.MinorActors.State.ActiveCount);
+
+        _ = simulation.AdvanceTicks(1);
+
+        Assert.Equal(2, simulation.CurrentTick);
         Assert.Equal(0, simulation.MinorActors.State.ActiveCount);
     }
 
     [Fact]
-    public void DefaultCadenceRunsMinorActorsAsHighFrequencyLabor()
+    public void MinorActorsRunOncePerTick()
     {
         var simulation = new Simulation(new SimulationOptions
         {
@@ -72,14 +76,14 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 10,
-            actionCadencePulses: 1,
+            ttlTicks: 10,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(1f),
             tick: 0);
 
         _ = simulation.AdvanceTicks(1);
 
-        Assert.Equal(5, simulation.MinorActors.State.Pulse);
-        Assert.Equal(before + FixedScalar.FromSingle(5f), simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
+        Assert.Equal(1, simulation.CurrentTick);
+        Assert.Equal(before + FixedScalar.One, simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
     }
 }

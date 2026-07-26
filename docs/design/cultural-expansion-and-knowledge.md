@@ -63,12 +63,12 @@ at the midpoint of its tier band along its discipline spoke. A culture claims a
 site when any known semantic cell within radius 2 holds at least claimed-band
 raw culture mass.
 
-`KnowledgeProgramRuntime` recomputes claims every ten world pulses. Claims and
+`KnowledgeProgramRuntime` recomputes claims every fifty ticks. Claims and
 modifiers are derived state over the serialized culture field:
 
 - current claims are recalculated rather than serialized;
-- all modifiers are cleared and rebuilt each pulse;
-- losing a claim removes its grants on that pulse;
+- all modifiers are cleared and rebuilt on each scheduled run;
+- losing a claim removes its grants on that run;
 - multiple held grants multiply;
 - a target-specific query multiplies the culture-global and target-specific
   entries for that domain.

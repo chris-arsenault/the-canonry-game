@@ -6,9 +6,9 @@ items and the verification debts owed before the next formal evidence run.
 
 ## Deferred by explicit decision
 
-- **Per-kind creation shares as per-band pulse weights** (owner decision,
+- **Per-kind creation shares as per-band fire weights** (owner decision,
   2026-07-24). When provincial throughput grows, which kinds fill the new
-  slots. Natural home: per-band generator pulse weights (frontier skews
+  slots. Natural home: per-band generator fire weights (frontier skews
   discovery/founding, heartland skews wars/politics). The owner has ideas on
   the broader budget design; do not implement without them.
 - **Typed installed-legacy component** (owner decision, 2026-07-24; full
@@ -52,7 +52,7 @@ items and the verification debts owed before the next formal evidence run.
 - **Relationship history recycler** (`HANDOFF-lifetime-capacity.md`).
   Relationship slots are lifetime totals; culled edges never recycle. R5
   (2026-07-13) established eviction is safe. Now urgent-adjacent: provincial
-  pulses raised creation ~2.6×, so 100k+ runs may approach the 65,536 cap.
+  fire windows raised creation ~2.6×, so 100k+ runs may approach the 65,536 cap.
   Recycler deferred by owner decision (2026-07-24); lifetime totals are
   measured as part of each formal run's scorecard, observation only.
   Same shape, new instance (2026-07-24): gambit cooldown entries are
@@ -70,7 +70,7 @@ items and the verification debts owed before the next formal evidence run.
 From the demography stack (slices 1–3, uncommitted as of 2026-07-24):
 
 1. Density plateau 0.3–0.5 active/covered at horizon.
-2. Mortal share ≥20% of active population (the provincial-pulse headline).
+2. Mortal share ≥20% of active population (the provincial-window headline).
 3. Artifact/POI net convergence toward zero post-bootstrap.
 4. Settlement demography: bimodal survival, count tracking covered cells,
    razing fires attributed (not just solitude).
@@ -86,7 +86,7 @@ From the demography stack (slices 1–3, uncommitted as of 2026-07-24):
    starving the population that keeps settlements alive.
 9. Semantic plane: occupancy ≤15%, stacking low, travel-influence verbs not
    distorting culture shape.
-10. Provincial pulses: fires scale with settledness across the run, band
+10. Provincial fire windows: fires scale with settledness across the run, band
     promotions occur, dormant provinces wake on reveal, world tempo lands
     ~2–3× the pre-provincial rate at bootstrap settledness.
 11. POI rediscovery loop actually closes at least once.

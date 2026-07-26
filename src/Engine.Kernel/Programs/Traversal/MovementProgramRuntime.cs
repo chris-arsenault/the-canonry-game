@@ -3,11 +3,14 @@ namespace Engine.Kernel;
 internal sealed partial class MovementProgramRuntime :
     IKernelProgramRuntime<MovementProgramData, MovementProgramState>
 {
+    private readonly WorldState _world;
+
     public MovementProgramRuntime(
         MovementProgramData data,
         MovementProgramState state,
-        MovementProgramScratch scratch)
-        : this(data, state, scratch, new KernelProgramTuningOptions())
+        MovementProgramScratch scratch,
+        WorldState world)
+        : this(data, state, scratch, world, new KernelProgramTuningOptions())
     {
     }
 
@@ -15,15 +18,18 @@ internal sealed partial class MovementProgramRuntime :
         MovementProgramData data,
         MovementProgramState state,
         MovementProgramScratch scratch,
+        WorldState world,
         KernelProgramTuningOptions tuning)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
         global::System.ArgumentNullException.ThrowIfNull(scratch);
+        global::System.ArgumentNullException.ThrowIfNull(world);
         global::System.ArgumentNullException.ThrowIfNull(tuning);
         Data = data;
         State = state;
         Scratch = scratch;
+        _world = world;
         Tuning = tuning;
     }
 
@@ -145,11 +151,23 @@ internal sealed partial class MovementProgramRuntime :
     }
 
     public FixedScalar RoadQuality(int planeCode, int q, int r, int tick) =>
-        State.RoadQuality(planeCode, q, r, tick, Data.RoadDecayPerTick);
+        _world.TryGetCellId(planeCode, q, r, z: 0, out var cellId)
+            ? State.RoadQuality(
+                cellId,
+                tick,
+                Data.RoadDecayPerTick,
+                Tuning.MainProgramCadenceTicks)
+            : 0;
 
-    public int RoadTravelCount(int planeCode, int q, int r) => State.RoadTravelCount(planeCode, q, r);
+    public int RoadTravelCount(int planeCode, int q, int r) =>
+        _world.TryGetCellId(planeCode, q, r, z: 0, out var cellId)
+            ? State.RoadTravelCount(cellId)
+            : 0;
 
-    public int TravelStructureId(int planeCode, int q, int r) => State.TravelStructureId(planeCode, q, r);
+    public int TravelStructureId(int planeCode, int q, int r) =>
+        _world.TryGetCellId(planeCode, q, r, z: 0, out var cellId)
+            ? State.TravelStructureId(cellId)
+            : 0;
 
     internal bool ReinforceRoad(
         Simulation simulation,
@@ -171,12 +189,11 @@ internal sealed partial class MovementProgramRuntime :
         var terrainId = simulation.World.CellTerrainId(planeCode, q, r);
         var previousQuality = RoadQuality(planeCode, q, r, tick);
         State.RecordTravel(
-            planeCode,
-            q,
-            r,
+            simulation.World.RequireCellId(planeCode, q, r, z: 0),
             tick,
             amount * simulation.KernelData.Terrain.RoadBuildMultiplier(terrainId),
-            Data.RoadDecayPerTick);
+            Data.RoadDecayPerTick,
+            Tuning.MainProgramCadenceTicks);
         var currentQuality = RoadQuality(planeCode, q, r, tick);
         if (FixedScalar.Abs(currentQuality - previousQuality) <= FixedScalar.FromUnits(100L))
         {
@@ -212,8 +229,9 @@ internal sealed partial class MovementProgramRuntime :
             return false;
         }
 
-        var previousStructureId = State.TravelStructureId(planeCode, q, r);
-        if (!State.SetTravelStructure(planeCode, q, r, travelStructureId))
+        var cellId = simulation.World.RequireCellId(planeCode, q, r, z: 0);
+        var previousStructureId = State.TravelStructureId(cellId);
+        if (!State.SetTravelStructure(cellId, travelStructureId))
         {
             return false;
         }
@@ -262,19 +280,13 @@ internal sealed partial class MovementProgramRuntime :
     public void EmitSnapshotEvents(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        State.ForEachRoadCell((planeCode, coordinateKey, quality, lastTick, travelCount) =>
+        State.ForEachRoadCell((cellId, quality, lastTick, travelCount) =>
         {
             _ = quality;
             _ = lastTick;
-            if (!simulation.World.TryResolveCoordinateKey(
-                    planeCode,
-                    coordinateKey,
-                    planeCode == PlaneCodes.Semantic ? 4 : 0,
-                    out var q,
-                    out var r))
-            {
-                return;
-            }
+            var planeCode = simulation.World.CellPlaneCode(cellId);
+            var q = simulation.World.CellQ(cellId);
+            var r = simulation.World.CellR(cellId);
 
             simulation.EmitCellRoadChanged(
                 tick,
@@ -285,17 +297,11 @@ internal sealed partial class MovementProgramRuntime :
                 RoadQuality(planeCode, q, r, tick),
                 travelCount);
         });
-        State.ForEachTravelStructureCell((planeCode, coordinateKey, travelStructureId) =>
+        State.ForEachTravelStructureCell((cellId, travelStructureId) =>
         {
-            if (!simulation.World.TryResolveCoordinateKey(
-                    planeCode,
-                    coordinateKey,
-                    planeCode == PlaneCodes.Semantic ? 4 : 0,
-                    out var q,
-                    out var r))
-            {
-                return;
-            }
+            var planeCode = simulation.World.CellPlaneCode(cellId);
+            var q = simulation.World.CellQ(cellId);
+            var r = simulation.World.CellR(cellId);
 
             simulation.EmitCellTravelStructureChanged(
                 tick,
@@ -440,7 +446,11 @@ internal sealed partial class MovementProgramRuntime :
             }
 
             candidateCount++;
-            if (simulation.NextScalar() * candidateCount < 1)
+            if (simulation.RandomScalar(
+                    simulation.World.EntityOccurrenceHandle(entityId),
+                    planeCode,
+                    KernelRandomPurposeCodes.MovementDirection,
+                    attempt: direction) * candidateCount < 1)
             {
                 selectedDirection = direction;
             }
@@ -557,6 +567,18 @@ internal sealed partial class MovementProgramRuntime :
         int tick,
         int causeCode)
     {
+        var moved = fromQ != q || fromR != r || fromZ != z ||
+            (planeCode == PlaneCodes.Semantic && fromS != toS);
+        if (simulation.IsCollectingDeltas)
+        {
+            if (moved)
+            {
+                _ = simulation.TryQueueMovement(entityId, planeCode, q, r, z, causeCode);
+            }
+
+            return moved;
+        }
+
         if (planeCode == PlaneCodes.Physical)
         {
             simulation.MoveEntityPhysicalUnchecked(entityId, q, r, z, tick);
@@ -566,13 +588,46 @@ internal sealed partial class MovementProgramRuntime :
             simulation.MoveEntitySemanticUnchecked(entityId, q, r, toS, tick);
         }
 
-        var moved = fromQ != q || fromR != r || fromZ != z || (planeCode == PlaneCodes.Semantic && fromS != toS);
         if (moved && z == 0)
         {
             ApplyMoveSurfaceConsequences(simulation, entityId, planeCode, q, r, tick, causeCode);
         }
 
         return moved;
+    }
+
+    internal void ApplyResolvedMove(
+        Simulation simulation,
+        int entityId,
+        int planeCode,
+        int q,
+        int r,
+        int z,
+        int tick,
+        int causeCode,
+        in KernelExecutionContext context)
+    {
+        var world = simulation.World;
+        var fromQ = CurrentQ(world, entityId, planeCode);
+        var fromR = CurrentR(world, entityId, planeCode);
+        var fromZ = CurrentZ(world, entityId, planeCode);
+        var fromS = planeCode == PlaneCodes.Semantic ? -fromQ - fromR : 0;
+        var toS = planeCode == PlaneCodes.Semantic ? -q - r : 0;
+        using var scope = simulation.EnterExecutionContext(context);
+        _ = ApplyMove(
+            simulation,
+            entityId,
+            planeCode,
+            fromQ,
+            fromR,
+            fromZ,
+            fromS,
+            q,
+            r,
+            z,
+            toS,
+            tick,
+            causeCode);
     }
 
     private void ApplyMoveSurfaceConsequences(
@@ -591,7 +646,7 @@ internal sealed partial class MovementProgramRuntime :
 
         // Arrival is the reveal moment: a traveller stepping onto new ground
         // opens the latent world around it, so exploration counts every
-        // trip instead of the slow pulse's samples.
+        // trip instead of the slower scheduled samples.
         if (planeCode == PlaneCodes.Physical)
         {
             simulation.MapFrontier.RevealOnArrival(simulation, entityId, tick);
@@ -607,7 +662,7 @@ internal sealed partial class MovementProgramRuntime :
 
     /// <summary>
     /// Age charge: the world-beat program scales movement pace per open age
-    /// each pulse (below 1 = faster, so a Thaw or Wandering quickens travel).
+    /// each scheduled run (below 1 = faster, so a Thaw or Wandering quickens travel).
     /// Applied to travel step cost, so it reads as more ground per tick.
     /// </summary>
     public void SetAgeStepRateMultiplier(FixedScalar multiplier) => _ageStepRateMultiplier = multiplier;
@@ -815,12 +870,11 @@ internal sealed partial class MovementProgramRuntime :
             simulation.World.EntityKindId(entityId));
         var previousQuality = RoadQuality(planeCode, q, r, tick);
         State.RecordTravel(
-            planeCode,
-            q,
-            r,
+            simulation.World.RequireCellId(planeCode, q, r, z: 0),
             tick,
             Data.RoadBuildPerTravel * simulation.KernelData.Terrain.RoadBuildMultiplier(terrainId) * roadWork,
-            Data.RoadDecayPerTick);
+            Data.RoadDecayPerTick,
+            Tuning.MainProgramCadenceTicks);
         var currentQuality = RoadQuality(planeCode, q, r, tick);
         simulation.EmitCellRoadChanged(
             tick,
@@ -907,7 +961,7 @@ internal sealed partial class MovementProgramRuntime :
         }
 
         var structureCost = Data.TravelStructureCost(
-            State.TravelStructureId(planeCode, q, r),
+            TravelStructureId(planeCode, q, r),
             planeCode,
             movementProfileId);
         baseCost = SelectSurfaceBaseCost(terrainCost, structureCost);

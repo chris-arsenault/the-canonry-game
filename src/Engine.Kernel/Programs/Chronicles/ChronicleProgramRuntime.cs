@@ -66,19 +66,38 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
 
     /// <summary>
     /// Recorded by the gambit program after every execution; consumed on the
-    /// director's next pulse for ambient heat and strike detection.
+    /// director's next run for ambient heat and strike detection.
     /// </summary>
-    public void NoteExecution(int actorId, int targetId, int gambitId, bool succeeded) =>
-        NotePending(ChroniclePendingKindCodes.GambitExecution, actorId, targetId, gambitId, succeeded);
+    public void NoteExecution(
+        int actorOccurrenceHandle,
+        int targetOccurrenceHandle,
+        int gambitId,
+        bool succeeded) =>
+        NotePending(
+            ChroniclePendingKindCodes.GambitExecution,
+            actorOccurrenceHandle,
+            targetOccurrenceHandle,
+            gambitId,
+            succeeded);
 
     /// <summary>
     /// Recorded by the generator program after every fire with a selected
     /// target; the world turning its weight on a cast member is a beat.
     /// </summary>
-    public void NoteGeneratorFire(int targetId, int generatorId) =>
-        NotePending(ChroniclePendingKindCodes.GeneratorFire, 0, targetId, generatorId, succeeded: true);
+    public void NoteGeneratorFire(int targetOccurrenceHandle, int generatorId) =>
+        NotePending(
+            ChroniclePendingKindCodes.GeneratorFire,
+            0,
+            targetOccurrenceHandle,
+            generatorId,
+            succeeded: true);
 
-    private void NotePending(int kind, int actorId, int targetId, int producerId, bool succeeded)
+    private void NotePending(
+        int kind,
+        int actorOccurrenceHandle,
+        int targetOccurrenceHandle,
+        int producerId,
+        bool succeeded)
     {
         if (State.PendingCount >= State.PendingKinds.Length)
         {
@@ -86,8 +105,8 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
         }
 
         State.PendingKinds[State.PendingCount] = kind;
-        State.PendingActorIds[State.PendingCount] = actorId;
-        State.PendingTargetIds[State.PendingCount] = targetId;
+        State.PendingActorOccurrenceHandles[State.PendingCount] = actorOccurrenceHandle;
+        State.PendingTargetOccurrenceHandles[State.PendingCount] = targetOccurrenceHandle;
         State.PendingProducerIds[State.PendingCount] = producerId;
         State.PendingSucceeded[State.PendingCount] = succeeded ? 1 : 0;
         State.PendingCount++;
@@ -235,11 +254,16 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
     /// <summary>Cumulative count of tales that resolved at legendary heat - the world's macro memory fact.</summary>
     public int LegendaryResolutionCount => State.LegendaryResolutionCount;
 
-    public bool LegendaryResolvedWithin(int entityId, int currentTick, int windowTicks)
+    public bool LegendaryResolvedWithin(
+        WorldState world,
+        int entityId,
+        int currentTick,
+        int windowTicks)
     {
+        var occurrenceHandle = world.EntityOccurrenceHandle(entityId);
         for (var slot = 0; slot < ChronicleProgramState.SuppressionRingCapacity; slot++)
         {
-            if (State.RecentCastEntityIds[slot] == entityId &&
+            if (State.RecentCastEntityOccurrenceHandles[slot] == occurrenceHandle &&
                 currentTick - State.RecentCastTicks[slot] <= windowTicks &&
                 State.RecentCastHeat[slot] >= LegendaryHeatThreshold)
             {
@@ -394,6 +418,7 @@ internal sealed partial class ChronicleProgramRuntime : IKernelProgramRuntime<Ch
                 if (RoleEntity(chronicle, role) == entityId)
                 {
                     State.RetiredRoleMasks[chronicle] |= 1L << role;
+                    SetRoleEntity(chronicle, role, 0);
                 }
             }
         }

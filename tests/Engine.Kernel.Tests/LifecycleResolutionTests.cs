@@ -1,5 +1,6 @@
 namespace Engine.Kernel.Tests;
 
+using Engine.Constants;
 using Engine.Kernel;
 
 public sealed class LifecycleResolutionTests
@@ -9,7 +10,7 @@ public sealed class LifecycleResolutionTests
     {
         const int kindId = 1;
         const int healthAttributeId = 1;
-        var simulation = CreateSimulation(new KernelTuningOptions
+        var lateLife = CreateSimulation(new KernelTuningOptions
         {
             Programs = new KernelProgramTuningOptions
             {
@@ -19,13 +20,46 @@ public sealed class LifecycleResolutionTests
                 },
             },
         });
-        simulation.RegisterAttribute(kindId, healthAttributeId, minimum: FixedScalar.FromSingle(0f), maximum: FixedScalar.FromSingle(100f), defaultValue: FixedScalar.FromSingle(100f));
-        simulation.Effects.RegisterLifecycle(kindId, healthAttributeId, baseRate: FixedScalar.FromSingle(1f), ageCoefficient: FixedScalar.FromSingle(1f), variance: FixedScalar.FromSingle(0f));
-        var entity = simulation.CreateEntity(kindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
+        var linear = CreateSimulation();
+        var lateLifeEntity = RegisterLifecycleEntity(lateLife, kindId, healthAttributeId);
+        var linearEntity = RegisterLifecycleEntity(linear, kindId, healthAttributeId);
 
-        simulation.AdvanceTicks(1);
+        lateLife.AdvanceTicks(1);
+        linear.AdvanceTicks(1);
 
-        Assert.InRange(simulation.World.GetAttribute(entity, healthAttributeId), FixedScalar.FromSingle(99.49f), FixedScalar.FromSingle(99.50f));
+        Assert.True(
+            lateLife.World.GetAttribute(lateLifeEntity, healthAttributeId) >
+            linear.World.GetAttribute(linearEntity, healthAttributeId));
+    }
+
+    private static int RegisterLifecycleEntity(
+        Simulation simulation,
+        int kindId,
+        int healthAttributeId)
+    {
+        simulation.RegisterAttribute(
+            kindId,
+            healthAttributeId,
+            minimum: 0,
+            maximum: 100,
+            defaultValue: 100);
+        simulation.Effects.RegisterLifecycle(
+            kindId,
+            healthAttributeId,
+            targetTicks: 100,
+            nominalHealthUnits: KernelFixedPoint.AttributeUnits(100f),
+            flatDrainShare: FixedScalar.FromSingle(0.2f),
+            variance: 0);
+        return simulation.CreateEntity(
+            kindId,
+            subtypeId: 1,
+            cultureId: 1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            tick: 0);
     }
 
     private static Simulation CreateSimulation(KernelTuningOptions? tuning = null) =>

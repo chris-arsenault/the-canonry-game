@@ -43,10 +43,10 @@ public sealed class GameSeedPolicyTests
     [InlineData(2, 5, 3)]
     [InlineData(5, 5, 0)]
     [InlineData(7, 3, 0)]
-    public void GameRuntimePulse_ReportsOnlyForwardProgress(int previousTick, int currentTick, int expectedProcessed)
+    public void GameRuntimeAdvance_ReportsOnlyForwardProgress(int previousTick, int currentTick, int expectedProcessed)
     {
-        var pulse = new GameRuntimePulse(previousTick, currentTick);
+        var advance = new GameRuntimeAdvance(previousTick, currentTick);
 
-        Assert.Equal(expectedProcessed, pulse.TicksProcessed);
+        Assert.Equal(expectedProcessed, advance.TicksProcessed);
     }
 }

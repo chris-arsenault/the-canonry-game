@@ -111,7 +111,7 @@ public sealed class WorldBeatsProgramRuntimeTests
         var simulation = CreateSimulation();
         var striving = DefineStrivingAge(simulation, minOpenTicks: 0, cooldownTicks: 0);
         simulation.WorldBeats.AddCharge(striving, WorldBeatChargeDomainCodes.GambitScore, targetId: 7, multiplier: FixedScalar.FromSingle(3f));
-        simulation.WorldBeats.AddCharge(striving, WorldBeatChargeDomainCodes.GeneratorPulseWeight, WarGeneratorId, FixedScalar.FromSingle(2f));
+        simulation.WorldBeats.AddCharge(striving, WorldBeatChargeDomainCodes.GeneratorFireWeight, WarGeneratorId, FixedScalar.FromSingle(2f));
         var gambitSlot = RegisterGambit(simulation, gambitId: 7);
         var (a, b) = SeedFactions(simulation);
         var war1 = simulation.CreateRelationship(WarRel, RelationshipPolarityCodes.Negative, a, b, FixedScalar.FromSingle(0.8f), tick: 0);

@@ -24,7 +24,6 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
     private readonly int[] _recentTargetTicks;
     private readonly int[] _recentTargetCounts;
     private readonly int _recentTargetRingSize;
-    private int _nextIntentId;
 
     public LowAltitudeVerbProgramState(int entityCapacity)
         : this(entityCapacity, recentTargetRingSize: 3)
@@ -96,7 +95,18 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
 
     public bool InitialInfluenceApplied(int entityId) => _initialInfluenceApplied[entityId];
 
-    public int NextIntentId() => _nextIntentId + 1;
+    public int NextIntentId(int entityId, int tick)
+    {
+        EnsureEntity(entityId);
+        NumericGuard.ThrowIfNegative(tick);
+        unchecked
+        {
+            var hash = (uint)entityId * 2654435761u;
+            hash ^= (uint)tick * 2246822519u;
+            hash ^= hash >> 16;
+            return (int)(hash % int.MaxValue) + 1;
+        }
+    }
 
     public int RecentTargetCount(int entityId) => _recentTargetCounts[entityId];
 
@@ -132,6 +142,21 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
         _pathLoosenessPermille[entityId] = 0;
     }
 
+    public void ClearEntitySlot(int entityId)
+    {
+        ClearIntent(entityId);
+        _initialInfluenceApplied[entityId] = false;
+        _recentTargetCounts[entityId] = 0;
+        global::System.Array.Clear(
+            _recentTargetKeys,
+            entityId * _recentTargetRingSize,
+            _recentTargetRingSize);
+        global::System.Array.Clear(
+            _recentTargetTicks,
+            entityId * _recentTargetRingSize,
+            _recentTargetRingSize);
+    }
+
     public int SetIntent(
         int entityId,
         int verbSlot,
@@ -147,9 +172,8 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
         int pathLoosenessPermille)
     {
         EnsureEntity(entityId);
-        _nextIntentId++;
         _activeVerbSlots[entityId] = verbSlot;
-        _intentIds[entityId] = _nextIntentId;
+        _intentIds[entityId] = NextIntentId(entityId, startedTick);
         _targetPlaneCodes[entityId] = targetPlaneCode;
         _targetEntityIds[entityId] = targetEntityId;
         _targetQ[entityId] = q;
@@ -163,7 +187,7 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
         _nextStepTicks[entityId] = startedTick;
         _stepIntervalTicks[entityId] = stepIntervalTicks;
         _pathLoosenessPermille[entityId] = pathLoosenessPermille;
-        return _nextIntentId;
+        return _intentIds[entityId];
     }
 
     public void MarkReached(int entityId, int tick, int dwellUntilTick)
@@ -237,15 +261,15 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
         }
     }
 
-    public static long PackEntityTargetKey(int targetEntityId)
+    public static long PackEntityTargetKey(int targetOccurrenceHandle)
     {
-        if (targetEntityId <= 0)
+        if (targetOccurrenceHandle <= 0)
         {
             return 0L;
         }
 
-        // Bit 62 marks an entity-target key; lower bits hold the entity id.
-        return unchecked(0x4000_0000_0000_0000L | (long)(uint)targetEntityId);
+        // Bit 62 marks an entity-target key; lower bits hold the occurrence handle.
+        return unchecked(0x4000_0000_0000_0000L | (long)(uint)targetOccurrenceHandle);
     }
 
     public static long PackCellTargetKey(int planeCode, int q, int r)

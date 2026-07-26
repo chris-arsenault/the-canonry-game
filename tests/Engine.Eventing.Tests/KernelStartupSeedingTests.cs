@@ -56,6 +56,26 @@ public sealed class KernelStartupSeedingTests
     {
         var created = CreateSimulationWithTerrain();
         var seeded = CreateSimulationWithTerrain();
+        created.SeedEntity(
+            entityId: 3,
+            kindId: 1,
+            subtypeId: 1,
+            cultureId: 1,
+            physicalQ: 0,
+            physicalR: 0,
+            semanticQ: 0,
+            semanticR: 0,
+            semanticS: 0);
+        seeded.SeedEntity(
+            entityId: 3,
+            kindId: 1,
+            subtypeId: 1,
+            cultureId: 1,
+            physicalQ: 0,
+            physicalR: 0,
+            semanticQ: 0,
+            semanticR: 0,
+            semanticS: 0);
 
         using var createdCursor = created.Events.CreateCursor(KernelEventCursorStart.Latest);
         using var seededCursor = seeded.Events.CreateCursor(KernelEventCursorStart.Latest);

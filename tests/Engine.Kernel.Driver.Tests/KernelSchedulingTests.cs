@@ -179,7 +179,7 @@ public sealed class KernelSchedulingTests
     }
 
     [Fact]
-    public void DefaultProgramsUseWorldPulsesWithMinorActorSubsteps()
+    public void DefaultProgramsUseOneTickClockWithSlowerMainProgramCadence()
     {
         var simulation = new Simulation(new SimulationOptions { MinorActorCapacity = 8 });
         simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
@@ -203,27 +203,26 @@ public sealed class KernelSchedulingTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 10,
-            actionCadencePulses: 1,
+            ttlTicks: 10,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(0f),
             tick: 0);
 
-        _ = simulation.AdvanceTicks(4);
+        _ = simulation.AdvanceTicks(24);
 
-        Assert.Equal(20, simulation.MinorActors.State.Pulse);
-        Assert.Equal(4, simulation.CurrentTick);
+        Assert.Equal(24, simulation.CurrentTick);
         Assert.Equal(FixedScalar.FromSingle(10f), simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
 
         _ = simulation.AdvanceTicks(1);
 
-        Assert.Equal(25, simulation.MinorActors.State.Pulse);
+        Assert.Equal(25, simulation.CurrentTick);
         Assert.Equal(
             FixedScalar.FromSingle(9.4f),
             simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
     }
 
     [Fact]
-    public void GeneratorPulseWidthUsesWorldPulses()
+    public void GeneratorFireWindowUsesTickClock()
     {
         var simulation = new Simulation(new SimulationOptions
         {
@@ -231,21 +230,21 @@ public sealed class KernelSchedulingTests
             {
                 Programs = new KernelProgramTuningOptions
                 {
-                    MinorActorSubstepsPerPulse = 5,
+                    MainProgramCadenceTicks = 5,
                     Generators = new GeneratorProgramTuningOptions
                     {
-                        PulseWidthTicks = 2,
-                        FrontierPulseWidthMultiplier = 1,
-                        SettledPulseWidthMultiplier = 1,
+                        FireWindowTicks = 2,
+                        FrontierFireWindowMultiplier = 1,
+                        SettledFireWindowMultiplier = 1,
                     },
                 },
             },
         });
         simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
 
-        _ = simulation.AdvanceTicks(3);
+        _ = simulation.AdvanceTicks(15);
 
-        Assert.Equal(1, simulation.Generators.State.ProvincePulseIndices[1]);
+        Assert.Equal(1, simulation.Generators.State.ProvinceWindowIndices[1]);
     }
 
     private static int RegisterCultureLaborRule(Simulation simulation)
@@ -256,11 +255,11 @@ public sealed class KernelSchedulingTests
             purposeCode: MinorActorPurposeCodes.CulturalLabor,
             actorKindCode: MinorActorKindCodes.Worker,
             planeCode: PlaneCodes.Physical,
-            ttlPulses: 10,
-            emitCadencePulses: 20,
+            ttlTicks: 10,
+            emitCadenceTicks: 20,
             maxActivePerSource: 1,
             spawnRadius: 0,
-            actionCadencePulses: 1,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.Zero);
         _ = simulation.MinorActors.RegisterVerb(
             rule,

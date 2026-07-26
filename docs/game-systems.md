@@ -111,6 +111,34 @@ range. Candidate scoring, probabilities, heat, ratios, and path costs use the
 generic signed `FixedScalar` representation. Authored values may remain
 ordinary floats before compilation, while presentation may convert after the
 query/event boundary; compiled records and kernel execution are integer-backed.
+Hot scoring shapes use bounded fixed-point rational or polynomial operations.
+The kernel does not retain generic exponential, logarithm, or power
+compatibility functions for those shapes.
+
+Named entities and relationships use reusable internal slots. Any identity that
+crosses an event, command, provenance, chronicle, gambit, district, or snapshot
+boundary is a generation-safe occurrence handle, so retiring and later reusing
+a slot cannot reconnect old behavior to a new occurrence. Active vectors and
+incremental graph/spatial indexes drive iteration; retirement clears the
+occurrence-owned direct rows.
+
+Runtime map coordinates have stable dense cell IDs. Terrain, occupancy,
+coverage, roads, travel memory, culture totals, and culture influence use direct
+cell-backed storage with active/dirty indexes. Culture influence rows disappear
+from active work when their mass reaches zero. Snapshot format `53` stores only
+live state, handle-generation metadata, and the phase revision. It
+rebuilds derived indexes, free lists, due queues, and route caches after load
+and does not retain sequential RNG state.
+
+Each tick has explicit command-admission, local-view preparation,
+frozen local evaluation, deterministic local resolution, strategic, and
+publication phases. Low-altitude verbs, relationship maintenance, effects,
+culture decay, and minor actors observe the frozen active set and contribute
+typed movement, attribute, culture, relationship, tag, cell, and lifecycle
+deltas. Destination-owned reduction makes their result independent of
+evaluation order and logical shard count. Gambits, generators, chronicles,
+world beats, culture slots, knowledge, and map frontier remain strategic
+programs on the same one-thread scheduler.
 
 ## Runtime Altitudes
 
@@ -130,6 +158,12 @@ success criteria, and effects such as creating or changing relationships. A
 gambit may use shared behavior bytecode, shared query predicates, and shared
 effect execution, but it is not the removed low-altitude process system or the
 removed generic planning program.
+
+The authored boolean precondition tree compiles to one bounded short-circuit
+branch plan. Candidate-independent actor values are computed once, and a
+relationship predicate required on every successful branch supplies a direct
+relationship-index target cursor. This changes evaluation order, not authored
+eligibility, scoring, or weighted selection probability.
 
 Gambit repetition is controlled by the actor's current per-gambit and
 whole-actor expiry ticks. The runtime does not retain lifetime action history or
@@ -201,10 +235,12 @@ programs:
 - `Locality`: direct current terrain capacity, occupancy, crowding, support,
   threat, and attractor queries at the bounded point of use.
 - `CultureLocality`: direct radius-two culture mass, share, foreign pressure,
-  local connection, cell-kind, hole, and strength facts.
+  local connection, cell-kind, hole, and strength facts, cached with exact
+  radius-two invalidation when source culture mass changes.
 - `CultureFieldDecay`: slow global decay of raw culture mass so territory
   reflects current production against loss instead of accumulated history.
-- `Relationships`: existing relationship strength drift and culling.
+- `Relationships`: existing relationship strength drift and culling over
+  frozen sorted adjacency plus bounded sorted per-row live deltas.
 - `Effects`: one per-entity resolution stage for relationship and locality
   effects, district healing, lifecycle drain, and retirement.
 - `MinorActors`: unnamed individual workers that execute source-authored verbs
@@ -236,10 +272,10 @@ there is no map-activity or map-signal tick phase. Culture classification is
 also local and read-only. Only scheduled mutating programs participate in tick
 ordering.
 
-Every `AdvanceTicks` step advances one world pulse. Authored durations and
-generator windows use that clock directly. Minor actors alone run
-`MinorActorSubstepsPerPulse` bounded labor substeps inside each world pulse,
-currently `5`.
+Every `AdvanceTicks` iteration advances one tick. Minor actors run once on every
+tick. Main programs run every five ticks by default, and program-specific
+durations are normalized into deadlines on that same tick clock. There are no
+sub-ticks or secondary calendar counters.
 
 ## High-Altitude Systems
 
@@ -256,7 +292,7 @@ nothing. Generators can also create relationships and apply secondary effects.
 
 Both systems are data-defined through the domain and compiled into primitive
 kernel program data. Their gates and mutations use shared kernel query and
-effect primitives; pulse budgeting, target selection, scoring, and production
+effect primitives; fire-window budgeting, target selection, scoring, and production
 order remain caller policy.
 
 ## Observability

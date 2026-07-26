@@ -34,20 +34,20 @@ public static partial class DomainCompiler
             BaseIceResistance = FixedScalar.FromSingle(frontier.BaseIceResistance),
             CultureMassResistanceScale = FixedScalar.FromSingle(frontier.CultureMassResistanceScale),
             RoadIceResistance = FixedScalar.FromSingle(frontier.RoadIceResistance),
-            IceAdvanceBudgetPerPulse = frontier.IceAdvanceBudgetPerPulse,
-            IceRetreatBudgetPerPulse = frontier.IceRetreatBudgetPerPulse,
+            IceAdvanceBudgetPerRun = frontier.IceAdvanceBudgetPerRun,
+            IceRetreatBudgetPerRun = frontier.IceRetreatBudgetPerRun,
             SemanticGrowthEnabled = frontier.SemanticGrowthEnabled,
             SemanticMaxRadius = frontier.SemanticMaxRadius,
             SemanticFrontierMassThreshold = KernelFixedPoint.CultureMassScalar(
                 KernelFixedPoint.CultureMassUnits(frontier.SemanticFrontierMassThreshold)),
-            SemanticBudgetPerPulse = frontier.SemanticBudgetPerPulse,
+            SemanticBudgetPerRun = frontier.SemanticBudgetPerRun,
             SeaIceCoverTerrainId = frontier.SeaIceCoverTerrain is null
                 ? 0
                 : ids.TerrainIdOf(frontier.SeaIceCoverTerrain).Value,
             SeaIceEligibleTerrainIds =
                 [.. frontier.SeaIceEligibleTerrains.Select(terrain => ids.TerrainIdOf(terrain).Value)],
-            SeaIceFreezeBudgetPerPulse = frontier.SeaIceFreezeBudgetPerPulse,
-            SeaIceMeltBudgetPerPulse = frontier.SeaIceMeltBudgetPerPulse,
+            SeaIceFreezeBudgetPerRun = frontier.SeaIceFreezeBudgetPerRun,
+            SeaIceMeltBudgetPerRun = frontier.SeaIceMeltBudgetPerRun,
         };
     }
 }

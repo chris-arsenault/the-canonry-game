@@ -74,7 +74,7 @@ public static partial class DomainCompiler
     private static int ResolveChargeTarget(WorldBeatAgeConfig age, WorldBeatChargeConfig charge, DomainIdRegistry ids) =>
         charge.Domain switch
         {
-            WorldBeatChargeDomain.GeneratorPulseWeight => ids.GeneratorIdOf(charge.Target!).Value,
+            WorldBeatChargeDomain.GeneratorFireWeight => ids.GeneratorIdOf(charge.Target!).Value,
             WorldBeatChargeDomain.VerbWeight => ids.VerbIdOf(charge.Target!).Value,
             WorldBeatChargeDomain.GambitScore => ids.GambitIdOf(charge.Target!).Value,
             WorldBeatChargeDomain.GambitSuccess => ids.GambitIdOf(charge.Target!).Value,
@@ -96,7 +96,7 @@ public static partial class DomainCompiler
 
     private static int WorldBeatChargeDomainCode(WorldBeatChargeDomain domain) => domain switch
     {
-        WorldBeatChargeDomain.GeneratorPulseWeight => WorldBeatChargeDomainCodes.GeneratorPulseWeight,
+        WorldBeatChargeDomain.GeneratorFireWeight => WorldBeatChargeDomainCodes.GeneratorFireWeight,
         WorldBeatChargeDomain.VerbWeight => WorldBeatChargeDomainCodes.VerbWeight,
         WorldBeatChargeDomain.GambitScore => WorldBeatChargeDomainCodes.GambitScore,
         WorldBeatChargeDomain.ContestDecayTide => WorldBeatChargeDomainCodes.ContestDecayTide,

@@ -67,7 +67,9 @@ internal sealed partial class WorldState
             // Idea-space grows like the physical map: a semantic cell is known
             // only once it has been materialized (seeded heart or opened by the
             // frontier). Un-opened idea-space is genuine fog.
-            return z == 0 && _mapCellTerrainIds.TryGet(CoordinateKey(q, r, z), PlaneCodes.Semantic, out _);
+            return z == 0 &&
+                TryGetCellId(planeCode, q, r, z, out var semanticCellId) &&
+                _mapCellKnown[semanticCellId];
         }
 
         if (z is < MinCellZ or > MaxCellZ)
@@ -75,7 +77,8 @@ internal sealed partial class WorldState
             return false;
         }
 
-        return _mapCellTerrainIds.TryGet(CoordinateKey(q, r, z), PlaneCodes.Physical, out _);
+        return TryGetCellId(planeCode, q, r, z, out var physicalCellId) &&
+            _mapCellKnown[physicalCellId];
     }
 
     public int CellTerrainId(int q, int r) => CellTerrainId(PlaneCodes.Physical, q, r);
@@ -85,27 +88,41 @@ internal sealed partial class WorldState
     public int CellTerrainId(int planeCode, int q, int r, int z)
     {
         ValidateInfluencePlaneCode(planeCode);
-        var key = CoordinateKey(q, r, z);
+        if (!TryGetCellId(planeCode, q, r, z, out var cellId))
+        {
+            return 1;
+        }
+
         if (planeCode == PlaneCodes.Physical && z == 0)
         {
-            var coverTerrainId = _mapCellTerrainCoverIds.GetOrDefault(key, planeCode);
+            var coverTerrainId = _mapCellTerrainCoverIds[cellId];
             if (coverTerrainId > 0)
             {
                 return coverTerrainId;
             }
         }
 
-        return _mapCellTerrainIds.TryGet(key, planeCode, out var terrainId) ? terrainId : 1;
+        var terrainId = _mapCellTerrainIds[cellId];
+        return terrainId > 0 ? terrainId : 1;
     }
 
-    internal int CellBaseTerrainId(int planeCode, int q, int r) =>
-        _mapCellTerrainIds.TryGet(CoordinateKey(q, r), planeCode, out var terrainId) ? terrainId : 1;
+    internal int CellBaseTerrainId(int planeCode, int q, int r)
+    {
+        if (!TryGetCellId(planeCode, q, r, z: 0, out var cellId))
+        {
+            return 1;
+        }
+
+        var terrainId = _mapCellTerrainIds[cellId];
+        return terrainId > 0 ? terrainId : 1;
+    }
 
     internal int CellTerrainCoverId(int planeCode, int q, int r)
     {
         ValidateInfluencePlaneCode(planeCode);
-        return planeCode == PlaneCodes.Physical
-            ? _mapCellTerrainCoverIds.GetOrDefault(CoordinateKey(q, r), planeCode)
+        return planeCode == PlaneCodes.Physical &&
+            TryGetCellId(planeCode, q, r, z: 0, out var cellId)
+            ? _mapCellTerrainCoverIds[cellId]
             : 0;
     }
 
@@ -181,11 +198,12 @@ internal sealed partial class WorldState
     {
         ValidateInfluencePlaneCode(planeCode);
         ValidateCellZ(z);
-        var key = CoordinateKey(q, r, z);
-        _mapCellTerrainIds.Set(key, planeCode, terrainId);
-        _mapCellSuperregionIds.Set(key, planeCode, superregionId);
-        _mapCellContinentIds.Set(key, planeCode, continentId);
-        _mapLayers.Coverage.SetValue(planeCode, key, q, r, z, ownerEntityId);
+        var cellId = _cells.GetOrAdd(planeCode, q, r, z);
+        _mapCellKnown[cellId] = true;
+        _mapCellTerrainIds[cellId] = terrainId;
+        _mapCellSuperregionIds[cellId] = superregionId;
+        _mapCellContinentIds[cellId] = continentId;
+        _mapLayers.Coverage.SetValue(cellId, ownerEntityId);
         if (z == 0)
         {
             AdvanceMapExtent(planeCode, q, r);
@@ -228,7 +246,9 @@ internal sealed partial class WorldState
     internal int CellSuperregionId(int planeCode, int q, int r)
     {
         ValidateInfluencePlaneCode(planeCode);
-        return _mapCellSuperregionIds.GetOrDefault(CoordinateKey(q, r), planeCode);
+        return TryGetCellId(planeCode, q, r, z: 0, out var cellId)
+            ? _mapCellSuperregionIds[cellId]
+            : 0;
     }
 
     internal int CellContinentId(int q, int r) => CellContinentId(PlaneCodes.Physical, q, r);
@@ -236,7 +256,9 @@ internal sealed partial class WorldState
     internal int CellContinentId(int planeCode, int q, int r)
     {
         ValidateInfluencePlaneCode(planeCode);
-        return _mapCellContinentIds.GetOrDefault(CoordinateKey(q, r), planeCode);
+        return TryGetCellId(planeCode, q, r, z: 0, out var cellId)
+            ? _mapCellContinentIds[cellId]
+            : 0;
     }
 
     public int TerrainBoundaryGroupId(int terrainId)
@@ -256,7 +278,9 @@ internal sealed partial class WorldState
     internal int CoverageOwnerAt(int planeCode, int q, int r)
     {
         ValidateInfluencePlaneCode(planeCode);
-        return _mapLayers.Coverage.ValueAt(planeCode, CoordinateKey(q, r));
+        return TryGetCellId(planeCode, q, r, z: 0, out var cellId)
+            ? _mapLayers.Coverage.ValueAt(cellId)
+            : 0;
     }
 
     internal void SetCoverageOwner(int q, int r, int ownerEntityId)
@@ -268,7 +292,7 @@ internal sealed partial class WorldState
     {
         ValidateInfluencePlaneCode(planeCode);
         NumericGuard.ThrowIfNegative(ownerEntityId);
-        _mapLayers.Coverage.SetValue(planeCode, CoordinateKey(q, r), q, r, ownerEntityId);
+        _mapLayers.Coverage.SetValue(RequireCellId(planeCode, q, r, z: 0), ownerEntityId);
     }
 
     internal void SetCoverageOwner(int q, int r, int ownerEntityId, int tick, in KernelExecutionContext context)
@@ -317,14 +341,12 @@ internal sealed partial class WorldState
         ValidatePositive(terrainId);
         NumericGuard.ThrowIfNegative(ownerEntityId);
 
-        var key = CoordinateKey(q, r, z);
+        var cellId = _cells.GetOrAdd(planeCode, q, r, z);
         var previousTerrainId = CellTerrainId(planeCode, q, r, z);
-        var previousBaseTerrainId = _mapCellTerrainIds.TryGet(key, planeCode, out var baseTerrainId)
-            ? baseTerrainId
-            : 1;
-        var previousOwnerEntityId = _mapLayers.Coverage.ValueAt(planeCode, CoordinateKey(q, r, z));
-        var superregionId = _mapCellSuperregionIds.GetOrDefault(key, planeCode);
-        var continentId = _mapCellContinentIds.GetOrDefault(key, planeCode);
+        var previousBaseTerrainId = _mapCellTerrainIds[cellId] > 0 ? _mapCellTerrainIds[cellId] : 1;
+        var previousOwnerEntityId = _mapLayers.Coverage.ValueAt(cellId);
+        var superregionId = _mapCellSuperregionIds[cellId];
+        var continentId = _mapCellContinentIds[cellId];
         if (previousBaseTerrainId == terrainId && previousOwnerEntityId == ownerEntityId)
         {
             return;
@@ -385,18 +407,18 @@ internal sealed partial class WorldState
         int tick,
         in KernelExecutionContext context)
     {
-        var key = CoordinateKey(q, r);
-        var previousCoverTerrainId = _mapCellTerrainCoverIds.GetOrDefault(key, PlaneCodes.Physical);
+        var cellId = RequireCellId(PlaneCodes.Physical, q, r, z: 0);
+        var previousCoverTerrainId = _mapCellTerrainCoverIds[cellId];
         if (previousCoverTerrainId == coverTerrainId)
         {
             return;
         }
 
         var previousTerrainId = CellTerrainId(PlaneCodes.Physical, q, r);
-        var ownerEntityId = _mapLayers.Coverage.ValueAt(PlaneCodes.Physical, key);
-        var superregionId = _mapCellSuperregionIds.GetOrDefault(key, PlaneCodes.Physical);
-        var continentId = _mapCellContinentIds.GetOrDefault(key, PlaneCodes.Physical);
-        _mapCellTerrainCoverIds.Set(key, PlaneCodes.Physical, coverTerrainId);
+        var ownerEntityId = _mapLayers.Coverage.ValueAt(cellId);
+        var superregionId = _mapCellSuperregionIds[cellId];
+        var continentId = _mapCellContinentIds[cellId];
+        _mapCellTerrainCoverIds[cellId] = coverTerrainId;
         var nextTerrainId = CellTerrainId(PlaneCodes.Physical, q, r);
         AdvanceWorldVersion();
         WriteCellStateEvents(
@@ -420,7 +442,9 @@ internal sealed partial class WorldState
     {
         Write(KernelEvent.From(new MapCellStateChangedKernelEvent(
             tick, WorldVersion, planeCode, q, r, context.SourceCodeId,
-            previousTerrainId, nextTerrainId, previousOwnerEntityId, ownerEntityId,
+            previousTerrainId, nextTerrainId,
+            EntityOccurrenceHandleOrZero(previousOwnerEntityId),
+            EntityOccurrenceHandleOrZero(ownerEntityId),
             superregionId, continentId, z)),
             context);
     }
@@ -441,6 +465,40 @@ internal sealed partial class WorldState
         EnsureEntity(ownerEntityId);
         ValidateInfluencePlaneCode(planeCode);
         return _mapLayers.Coverage.ValueCellCount(ownerEntityId, planeCode) > 0;
+    }
+
+    internal void ReleaseCoverageOwner(
+        int ownerEntityId,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        ReleaseCoverageOwner(ownerEntityId, PlaneCodes.Physical, tick, context);
+        ReleaseCoverageOwner(ownerEntityId, PlaneCodes.Semantic, tick, context);
+    }
+
+    private void ReleaseCoverageOwner(
+        int ownerEntityId,
+        int planeCode,
+        int tick,
+        in KernelExecutionContext context)
+    {
+        while (_mapLayers.Coverage.ValueCellCount(ownerEntityId, planeCode) > 0)
+        {
+            var cursor = _mapLayers.Coverage.CellsOfValue(ownerEntityId, planeCode);
+            if (!_mapLayers.Coverage.MoveNextCell(ref cursor, out var q, out var r))
+            {
+                throw new global::System.InvalidOperationException();
+            }
+
+            SetCellState(
+                planeCode,
+                q,
+                r,
+                CellBaseTerrainId(planeCode, q, r),
+                ownerEntityId: 0,
+                tick,
+                context);
+        }
     }
 
     internal SpatialLayerCellCursor CoverageCells(int ownerEntityId) => CoverageCells(ownerEntityId, PlaneCodes.Physical);
@@ -480,9 +538,10 @@ internal sealed partial class WorldState
         }
 
         var planeCode = cursor.Value & 3;
+        var cellId = RequireCellId(planeCode, q, r, z: 0);
         value = CultureDominanceShare(
             rawUnits,
-            _mapLayers.TotalRawCultureInfluenceAt(planeCode, CoordinateKey(q, r)));
+            _mapLayers.TotalRawCultureInfluenceAt(cellId));
         return true;
     }
 
@@ -493,10 +552,14 @@ internal sealed partial class WorldState
     {
         ValidatePositive(cultureId);
         ValidateInfluencePlaneCode(planeCode);
-        var key = CoordinateKey(q, r, z);
+        if (!TryGetCellId(planeCode, q, r, z, out var cellId))
+        {
+            return 0;
+        }
+
         return CultureDominanceShare(
-            PositiveCultureInfluenceRawUnits(cultureId, planeCode, key),
-            _mapLayers.TotalRawCultureInfluenceAt(planeCode, key));
+            PositiveCultureInfluenceRawUnits(cultureId, cellId),
+            _mapLayers.TotalRawCultureInfluenceAt(cellId));
     }
 
     internal FixedScalar GetCellCultureInfluenceRaw(int cultureId, int planeCode, int q, int r) =>
@@ -506,20 +569,26 @@ internal sealed partial class WorldState
     {
         ValidatePositive(cultureId);
         ValidateInfluencePlaneCode(planeCode);
-        return PositiveCultureInfluenceRaw(cultureId, planeCode, CoordinateKey(q, r, z));
+        return TryGetCellId(planeCode, q, r, z, out var cellId)
+            ? PositiveCultureInfluenceRaw(cultureId, cellId)
+            : 0;
     }
 
     internal int GetCellCultureInfluenceRawUnits(int cultureId, int planeCode, int q, int r, int z)
     {
         ValidatePositive(cultureId);
         ValidateInfluencePlaneCode(planeCode);
-        return PositiveCultureInfluenceRawUnits(cultureId, planeCode, CoordinateKey(q, r, z));
+        return TryGetCellId(planeCode, q, r, z, out var cellId)
+            ? PositiveCultureInfluenceRawUnits(cultureId, cellId)
+            : 0;
     }
 
     internal long GetCellTotalCultureInfluenceRawUnits(int planeCode, int q, int r, int z)
     {
         ValidateInfluencePlaneCode(planeCode);
-        return _mapLayers.TotalRawCultureInfluenceAt(planeCode, CoordinateKey(q, r, z));
+        return TryGetCellId(planeCode, q, r, z, out var cellId)
+            ? _mapLayers.TotalRawCultureInfluenceAt(cellId)
+            : 0;
     }
 
     internal FixedScalar GetCellCultureMaturity(int cultureId, int planeCode, int q, int r)
@@ -623,8 +692,8 @@ internal sealed partial class WorldState
             return 0;
         }
 
-        var key = CoordinateKey(q, r, z);
-        var previous = PositiveCultureInfluenceRawUnits(cultureId, planeCode, key);
+        var cellId = _cells.GetOrAdd(planeCode, q, r, z);
+        var previous = PositiveCultureInfluenceRawUnits(cultureId, cellId);
         var current = KernelFixedPoint.SaturatingAdd(
             previous,
             deltaUnits,
@@ -636,8 +705,8 @@ internal sealed partial class WorldState
         }
 
         _cultureHighWatermark = global::System.Math.Max(_cultureHighWatermark, cultureId);
-        _mapLayers.RawCultureInfluence.SetValue(cultureId, planeCode, key, q, r, z, current);
-        _mapLayers.AddTotalRawCultureInfluence(planeCode, key, current - previous);
+        _mapLayers.RawCultureInfluence.SetValue(cultureId, cellId, current);
+        _mapLayers.AddTotalRawCultureInfluence(cellId, current - previous);
         if (planeCode == PlaneCodes.Physical)
         {
             _totalPhysicalCultureRawMass = checked(
@@ -689,7 +758,7 @@ internal sealed partial class WorldState
             context);
         if (applied > 0)
         {
-            AddEntityInfluenceProduction(
+            NoteEntityInfluenceProduction(
                 entityId,
                 planeCode,
                 KernelFixedPoint.CultureMassUnits(applied));
@@ -820,7 +889,7 @@ internal sealed partial class WorldState
         _ = context;
     }
 
-    private void AddEntityInfluenceProduction(int entityId, int planeCode, int deltaUnits)
+    internal void NoteEntityInfluenceProduction(int entityId, int planeCode, int deltaUnits)
     {
         if (planeCode == PlaneCodes.Semantic)
         {
@@ -841,17 +910,41 @@ internal sealed partial class WorldState
         MarkEntityCultureWorkDirty(entityId);
     }
 
-    private FixedScalar PositiveCultureInfluenceRaw(int cultureId, int planeCode, int key)
+    private FixedScalar PositiveCultureInfluenceRaw(int cultureId, int cellId)
     {
         return KernelFixedPoint.CultureMassScalar(
-            PositiveCultureInfluenceRawUnits(cultureId, planeCode, key));
+            PositiveCultureInfluenceRawUnits(cultureId, cellId));
     }
 
-    private int PositiveCultureInfluenceRawUnits(int cultureId, int planeCode, int key)
+    private int PositiveCultureInfluenceRawUnits(int cultureId, int cellId)
     {
-        var raw = _mapLayers.RawCultureInfluence.ValueAt(cultureId, planeCode, key);
+        var raw = _mapLayers.RawCultureInfluence.ValueAt(cultureId, cellId);
         return raw > 0 ? raw : 0;
     }
+
+    internal bool TryGetCellId(int planeCode, int q, int r, int z, out int cellId)
+    {
+        ValidateInfluencePlaneCode(planeCode);
+        return _cells.TryGet(planeCode, q, r, z, out cellId);
+    }
+
+    internal int RequireCellId(int planeCode, int q, int r, int z)
+    {
+        if (!TryGetCellId(planeCode, q, r, z, out var cellId))
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        return cellId;
+    }
+
+    internal int CellPlaneCode(int cellId) => _cells.PlaneCode(cellId);
+
+    internal int CellQ(int cellId) => _cells.Q(cellId);
+
+    internal int CellR(int cellId) => _cells.R(cellId);
+
+    internal int CellZ(int cellId) => _cells.Z(cellId);
 
     private static FixedScalar CultureDominanceShare(int rawUnits, long totalUnits)
     {
@@ -866,7 +959,7 @@ internal sealed partial class WorldState
     private static FixedScalar CultureMaturity(FixedScalar raw) =>
         raw <= 0 ? 0 : FixedScalar.Min(100, raw * 100 / CultureFullRawMass);
 
-    private FixedScalar EffectiveCultureInfluenceMultiplier(int entityId)
+    internal FixedScalar EffectiveCultureInfluenceMultiplier(int entityId)
     {
         var cultureId = _entityCultureId[entityId];
         var favorDelta = CurrentTick < _entityFavorExpiresAtTick[entityId]

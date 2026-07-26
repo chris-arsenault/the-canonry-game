@@ -27,6 +27,7 @@ internal sealed partial record MonteCarloOptions(
     bool SimulationOnly,
     bool TraceEnabled,
     string? ConfigFilePath,
+    string? WorldFilePath,
     int ProgressEveryTicks,
     int StreamCoreEveryTicks,
     int SaveStateEveryTicks,
@@ -64,6 +65,13 @@ internal sealed partial record MonteCarloOptions(
             throw new ArgumentException("--simulation-only cannot be combined with --trace.", nameof(args));
         }
 
+        var runs = ReadInt(optionArgs, "--runs", 10);
+        var worldFilePath = ReadString(optionArgs, "--world", null);
+        if (worldFilePath is not null && runs != 1)
+        {
+            throw new ArgumentException("--world requires --runs 1.", nameof(args));
+        }
+
         if (RequiresRunId(command) && runId is null)
         {
             throw new ArgumentException($"{CommandName(command)} requires --run-id.", nameof(args));
@@ -72,7 +80,7 @@ internal sealed partial record MonteCarloOptions(
         return new MonteCarloOptions(
             Command: command,
             RunId: runId,
-            Runs: ReadInt(optionArgs, "--runs", 10),
+            Runs: runs,
             Ticks: ReadInt(optionArgs, "--ticks", 500),
             Seed: ReadInt(optionArgs, "--seed", 1000),
             EntitySnapshotCadence: ReadInt(optionArgs, "--entity-snapshot-cadence", 25),
@@ -82,6 +90,7 @@ internal sealed partial record MonteCarloOptions(
             SimulationOnly: simulationOnly,
             TraceEnabled: traceEnabled,
             ConfigFilePath: ReadString(optionArgs, "--config-file", null),
+            WorldFilePath: worldFilePath,
             ProgressEveryTicks: ReadInt(optionArgs, "--progress-every", 5000),
             StreamCoreEveryTicks: ReadInt(optionArgs, "--stream-core-every", 0),
             SaveStateEveryTicks: ReadInt(optionArgs, "--save-state-every", 0),

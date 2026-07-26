@@ -256,7 +256,7 @@ public static partial class DomainCompiler
                 ids.KindIdOf(generator.Target.Kind).Value,
                 CompileGeneratorSubtypeIds(generator.Target.Subtypes, ids),
                 CompileGeneratorTargetRelationshipRequirements(generator.Target, terrainByName, ids),
-                Math.Max(generator.PulseWeight, 0),
+                Math.Max(generator.FireWeight, 0),
                 generator.MaxRunsPerSim ?? 0,
                 Math.Max(generator.CadenceTicks, 0),
                 Math.Max(generator.CadenceJitterTicks, 0),

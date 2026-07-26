@@ -56,7 +56,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$scar", "$target", Rel.CorruptedBy, 0.80f),
         ],
         Triggers = TriggerOn(K.Occurrence),
-        PulseWeight = 8,
+        FireWeight = 8,
     };
 
     // The Frozen Sea's one mercy: water that stays open through the dark.
@@ -84,7 +84,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$polynya", "$target", Rel.ClaimedBy, 0.55f),
         ],
         Triggers = TriggerOn(K.Orca),
-        PulseWeight = 4,
+        FireWeight = 4,
     };
 
     // Canons do not walk; they are carried. A held saga or accord takes a
@@ -112,6 +112,6 @@ public static partial class IceRemembersGeneratorDefinition
             R("$carrier", "$target", Rel.Holds, 0.60f),
         ],
         Triggers = TriggerOn(K.Canon),
-        PulseWeight = 4,
+        FireWeight = 4,
     };
 }

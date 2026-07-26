@@ -41,8 +41,9 @@ internal sealed partial class EffectsProgramData : IKernelProgramData
     internal int TagRuleCount;
     internal readonly int[] LifecycleKindIds;
     internal readonly int[] LifecycleAttributeIds;
-    internal readonly FixedScalar[] LifecycleBaseRates;
-    internal readonly FixedScalar[] LifecycleAgeCoefficients;
+    internal readonly int[] LifecycleTargetTicks;
+    internal readonly int[] LifecycleNominalHealthUnits;
+    internal readonly FixedScalar[] LifecycleFlatDrainShares;
     internal readonly FixedScalar[] LifecycleVariances;
     internal readonly int[] LifecycleRuleByKind;
     internal int LifecycleRuleCount;
@@ -91,8 +92,9 @@ internal sealed partial class EffectsProgramData : IKernelProgramData
         NextTagRuleByKind = new int[effectRuleCapacity + 1];
         LifecycleKindIds = new int[lifecycleRuleCapacity + 1];
         LifecycleAttributeIds = new int[lifecycleRuleCapacity + 1];
-        LifecycleBaseRates = new FixedScalar[lifecycleRuleCapacity + 1];
-        LifecycleAgeCoefficients = new FixedScalar[lifecycleRuleCapacity + 1];
+        LifecycleTargetTicks = new int[lifecycleRuleCapacity + 1];
+        LifecycleNominalHealthUnits = new int[lifecycleRuleCapacity + 1];
+        LifecycleFlatDrainShares = new FixedScalar[lifecycleRuleCapacity + 1];
         LifecycleVariances = new FixedScalar[lifecycleRuleCapacity + 1];
         LifecycleRuleByKind = new int[kindCapacity + 1];
     }
@@ -100,5 +102,5 @@ internal sealed partial class EffectsProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.Effects;
 
-    public int SchemaVersion => 6;
+    public int SchemaVersion => 7;
 }

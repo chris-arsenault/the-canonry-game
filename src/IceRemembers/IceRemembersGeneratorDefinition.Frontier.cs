@@ -51,7 +51,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$target", "$find", Rel.Holds, 0.6f),
         ],
         Triggers = TriggerOn(K.Penguin),
-        PulseWeight = 3,
+        FireWeight = 3,
     };
 
     private static SemanticGeneratorConfig TheStoneRemembersTheWalk() => new()
@@ -77,7 +77,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$waystone", "$target", Rel.Memorializes, 0.85f),
         ],
         Triggers = TriggerOn(K.Penguin),
-        PulseWeight = 4,
+        FireWeight = 4,
     };
 
     // Discovery: the retreating sheets reveal "new waters rich with krill
@@ -99,7 +99,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$namedwater", "$target", Rel.ClaimedBy, 0.5f),
         ],
         Triggers = TriggerOn(K.Settlement),
-        PulseWeight = 2,
+        FireWeight = 2,
     };
 
     private static SemanticGeneratorConfig TheStillWaterIsSounded() => new()
@@ -118,7 +118,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$sounding", "$target", Rel.ConduitOf, 0.6f),
         ],
         Triggers = TriggerOn(K.Transport),
-        PulseWeight = 2,
+        FireWeight = 2,
     };
 
     // A discovery lands on the revealed anchor hex of a geological feature
@@ -189,7 +189,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$charter", "$target", Rel.Anchored, 0.9f),
         ],
         Triggers = TriggerOn(K.Settlement),
-        PulseWeight = 6,
+        FireWeight = 6,
     };
 
     private static SemanticGeneratorConfig BullsRangeTheFarCurrents() => new()
@@ -215,7 +215,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$farbull", "$target", Rel.HomeBase, 0.7f),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 3,
+        FireWeight = 3,
     };
 
     private static SemanticGeneratorConfig TheWhiteHasTeeth() => new()
@@ -238,7 +238,7 @@ public static partial class IceRemembersGeneratorDefinition
             new SetBindingTagEffect("$target", "hunted"),
         ],
         Triggers = TriggerOn(K.Settlement),
-        PulseWeight = 3,
+        FireWeight = 3,
     };
 
     // A wilderness thing of the far ring: placed well away from its target

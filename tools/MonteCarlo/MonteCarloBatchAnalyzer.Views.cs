@@ -121,7 +121,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
             $"""
             SELECT runs.run_id, ge.tick,
                    CASE
-                     WHEN ge.event_type_code = {(int)Engine.Eventing.KernelEventType.GeneratorEvaluated} THEN 'pulse'
+                     WHEN ge.event_type_code = {(int)Engine.Eventing.KernelEventType.GeneratorEvaluated} THEN 'evaluated'
                      WHEN ge.event_type_code = {(int)Engine.Eventing.KernelEventType.GeneratorFired} THEN 'fired'
                      ELSE COALESCE(event_symbol.stable_name, CAST(ge.event_type_code AS VARCHAR))
                    END AS event_type,

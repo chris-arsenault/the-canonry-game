@@ -1,5 +1,6 @@
 namespace Engine.Kernel;
 
+using Engine.Constants;
 using Engine.Eventing;
 
 internal sealed partial class WorldState
@@ -17,180 +18,263 @@ internal sealed partial class WorldState
 
     private int FindEntitySlot()
     {
-        for (var i = 1; i < _entityAllocated.Length; i++)
+        if (_freeEntitySlotCount > 0)
         {
-            if (!_entityAllocated[i])
-            {
-                return i;
-            }
+            return _freeEntitySlots[--_freeEntitySlotCount];
         }
 
-        throw new global::System.InvalidOperationException();
+        if (_entityHighWatermark >= EntityCapacity)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _entityHighWatermark++;
+        return _entityHighWatermark;
     }
 
     private int FindRelationshipSlot()
     {
-        for (var i = 1; i < _relationshipAllocated.Length; i++)
+        if (_freeRelationshipSlotCount > 0)
         {
-            if (!_relationshipAllocated[i])
-            {
-                return i;
-            }
+            return _freeRelationshipSlots[--_freeRelationshipSlotCount];
         }
 
-        throw new global::System.InvalidOperationException();
+        if (_relationshipHighWatermark >= RelationshipCapacity)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _relationshipHighWatermark++;
+        return _relationshipHighWatermark;
+    }
+
+    private void ReleaseEntitySlot(int entityId)
+    {
+        ClearEntitySlot(entityId);
+        AdvanceEntityGeneration(entityId);
+        _freeEntitySlots[_freeEntitySlotCount++] = entityId;
+    }
+
+    private void ClearEntitySlot(int entityId)
+    {
+        _entityAllocated[entityId] = false;
+        _entityStatus[entityId] = 0;
+        _entityTagBits[entityId] = 0;
+        _entityKindId[entityId] = 0;
+        _entitySubtypeId[entityId] = 0;
+        _entityCultureId[entityId] = 0;
+        _entityCultureInfluenceMultiplierDeltas[entityId] = 0;
+        _entityPhysicalInfluenceProduction[entityId] = 0;
+        _entitySemanticInfluenceProduction[entityId] = 0;
+        _entityPhysicalQ[entityId] = 0;
+        _entityPhysicalR[entityId] = 0;
+        _entityPhysicalZ[entityId] = 0;
+        _entitySemanticQ[entityId] = 0;
+        _entitySemanticR[entityId] = 0;
+        _entitySemanticS[entityId] = 0;
+        _entityAnchorPhysicalQ[entityId] = 0;
+        _entityAnchorPhysicalR[entityId] = 0;
+        _entityAnchorSemanticQ[entityId] = 0;
+        _entityAnchorSemanticR[entityId] = 0;
+        _entityFavorMultiplierDelta[entityId] = 0;
+        _entityFavorExpiresAtTick[entityId] = 0;
+        _entityWorkTiers[entityId] = 0;
+        _entityCreatedAt[entityId] = 0;
+        _entityUpdatedAt[entityId] = 0;
+        _entityCreatedByInvocationId[entityId] = 0;
+        global::System.Array.Clear(_attributes, entityId * _attributeStride, _attributeStride);
+        global::System.Array.Clear(_attributeAssigned, entityId * _attributeStride, _attributeStride);
+        global::System.Array.Clear(_traits, entityId * _traitStride, _traitStride);
+    }
+
+    private void AdvanceEntityGeneration(int entityId)
+    {
+        var maximum = (global::System.Int32.MaxValue - entityId) / EntityCapacity;
+        if (_entityGenerations[entityId] >= maximum)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _entityGenerations[entityId]++;
+    }
+
+    private void ReleaseRelationshipSlot(int relationshipId)
+    {
+        _relationshipAllocated[relationshipId] = false;
+        _relationshipActive[relationshipId] = false;
+        _relationshipKindId[relationshipId] = 0;
+        _relationshipPolarityCode[relationshipId] = 0;
+        _relationshipSourceId[relationshipId] = 0;
+        _relationshipTargetId[relationshipId] = 0;
+        _relationshipStartTick[relationshipId] = 0;
+        _relationshipEndTick[relationshipId] = 0;
+        _relationshipStrength[relationshipId] = 0;
+        _relationshipCreatedByInvocationId[relationshipId] = 0;
+        _relationshipLastChangedByInvocationId[relationshipId] = 0;
+        var maximum = (global::System.Int32.MaxValue - relationshipId) / RelationshipCapacity;
+        if (_relationshipGenerations[relationshipId] >= maximum)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _relationshipGenerations[relationshipId]++;
+        _freeRelationshipSlots[_freeRelationshipSlotCount++] = relationshipId;
+    }
+
+    internal int EntityOccurrenceHandle(int entityId)
+    {
+        EnsureEntity(entityId);
+        return checked((_entityGenerations[entityId] * EntityCapacity) + entityId);
+    }
+
+    internal int RelationshipOccurrenceHandle(int relationshipId)
+    {
+        EnsureRelationship(relationshipId);
+        return checked((_relationshipGenerations[relationshipId] * RelationshipCapacity) + relationshipId);
+    }
+
+    internal bool TryResolveRelationshipOccurrence(int occurrenceHandle, out int relationshipId)
+    {
+        if (occurrenceHandle <= 0)
+        {
+            relationshipId = 0;
+            return false;
+        }
+
+        relationshipId = ((occurrenceHandle - 1) % RelationshipCapacity) + 1;
+        var generation = (occurrenceHandle - relationshipId) / RelationshipCapacity;
+        return _relationshipAllocated[relationshipId] &&
+            _relationshipActive[relationshipId] &&
+            _relationshipGenerations[relationshipId] == generation;
+    }
+
+    internal bool TryResolveEntityOccurrence(int occurrenceHandle, out int entityId)
+    {
+        if (occurrenceHandle <= 0)
+        {
+            entityId = 0;
+            return false;
+        }
+
+        entityId = ((occurrenceHandle - 1) % EntityCapacity) + 1;
+        var generation = (occurrenceHandle - entityId) / EntityCapacity;
+        return _entityAllocated[entityId] &&
+            _entityStatus[entityId] == EntityStatusCodes.Active &&
+            _entityGenerations[entityId] == generation;
     }
 
     private void InsertEntityKindIndex(int entityId, int kindId)
     {
         EnsureKindIndex(kindId);
-        _nextEntityByKind[entityId] = _firstEntityByKind[kindId];
+        var current = _firstEntityByKind[kindId];
+        _nextEntityByKind[entityId] = current;
+        _previousEntityByKind[entityId] = 0;
+        if (current > 0)
+        {
+            _previousEntityByKind[current] = entityId;
+        }
+
         _firstEntityByKind[kindId] = entityId;
     }
 
     private void RemoveEntityKindIndex(int entityId, int kindId)
     {
         EnsureKindIndex(kindId);
-        var current = _firstEntityByKind[kindId];
-        if (current == entityId)
+        var previous = _previousEntityByKind[entityId];
+        var next = _nextEntityByKind[entityId];
+        if (previous > 0)
         {
-            _firstEntityByKind[kindId] = _nextEntityByKind[entityId];
-            _nextEntityByKind[entityId] = 0;
-            return;
+            _nextEntityByKind[previous] = next;
+        }
+        else
+        {
+            _firstEntityByKind[kindId] = next;
         }
 
-        while (current > 0)
+        if (next > 0)
         {
-            var next = _nextEntityByKind[current];
-            if (next == entityId)
-            {
-                _nextEntityByKind[current] = _nextEntityByKind[entityId];
-                _nextEntityByKind[entityId] = 0;
-                return;
-            }
-
-            current = next;
+            _previousEntityByKind[next] = previous;
         }
+
+        _previousEntityByKind[entityId] = 0;
+        _nextEntityByKind[entityId] = 0;
     }
 
     private void InsertEntityCultureIndex(int entityId, int cultureId)
     {
         EnsureCultureIndex(cultureId);
-        _nextEntityByCulture[entityId] = _firstEntityByCulture[cultureId];
+        var current = _firstEntityByCulture[cultureId];
+        _nextEntityByCulture[entityId] = current;
+        _previousEntityByCulture[entityId] = 0;
+        if (current > 0)
+        {
+            _previousEntityByCulture[current] = entityId;
+        }
+
         _firstEntityByCulture[cultureId] = entityId;
     }
 
     private void RemoveEntityCultureIndex(int entityId, int cultureId)
     {
         EnsureCultureIndex(cultureId);
-        var current = _firstEntityByCulture[cultureId];
-        if (current == entityId)
+        var previous = _previousEntityByCulture[entityId];
+        var next = _nextEntityByCulture[entityId];
+        if (previous > 0)
         {
-            _firstEntityByCulture[cultureId] = _nextEntityByCulture[entityId];
-            _nextEntityByCulture[entityId] = 0;
-            return;
+            _nextEntityByCulture[previous] = next;
+        }
+        else
+        {
+            _firstEntityByCulture[cultureId] = next;
         }
 
-        while (current > 0)
+        if (next > 0)
         {
-            var next = _nextEntityByCulture[current];
-            if (next == entityId)
-            {
-                _nextEntityByCulture[current] = _nextEntityByCulture[entityId];
-                _nextEntityByCulture[entityId] = 0;
-                return;
-            }
-
-            current = next;
+            _previousEntityByCulture[next] = previous;
         }
+
+        _previousEntityByCulture[entityId] = 0;
+        _nextEntityByCulture[entityId] = 0;
     }
 
     private void InsertActiveEntity(int entityId)
     {
-        _previousActiveEntity[entityId] = _lastActiveEntity;
-        _nextActiveEntity[entityId] = 0;
-        if (_lastActiveEntity > 0)
-        {
-            _nextActiveEntity[_lastActiveEntity] = entityId;
-        }
-        else
-        {
-            _firstActiveEntity = entityId;
-        }
-
-        _lastActiveEntity = entityId;
+        _activeEntitySlots[_activeEntityCount] = entityId;
+        _activeEntityPositions[entityId] = _activeEntityCount + 1;
         _activeEntityCount++;
     }
 
     private void RemoveActiveEntity(int entityId)
     {
-        var previous = _previousActiveEntity[entityId];
-        var next = _nextActiveEntity[entityId];
-        if (previous > 0)
+        var position = _activeEntityPositions[entityId] - 1;
+        for (var index = position + 1; index < _activeEntityCount; index++)
         {
-            _nextActiveEntity[previous] = next;
-        }
-        else
-        {
-            _firstActiveEntity = next;
+            var movedEntityId = _activeEntitySlots[index];
+            _activeEntitySlots[index - 1] = movedEntityId;
+            _activeEntityPositions[movedEntityId] = index;
         }
 
-        if (next > 0)
-        {
-            _previousActiveEntity[next] = previous;
-        }
-        else
-        {
-            _lastActiveEntity = previous;
-        }
-
-        _previousActiveEntity[entityId] = 0;
-        _nextActiveEntity[entityId] = 0;
         _activeEntityCount--;
+        _activeEntitySlots[_activeEntityCount] = 0;
+        _activeEntityPositions[entityId] = 0;
     }
 
     private void InsertActiveRelationship(int relationshipId)
     {
-        _previousActiveRelationship[relationshipId] = _lastActiveRelationship;
-        _nextActiveRelationship[relationshipId] = 0;
-        if (_lastActiveRelationship > 0)
-        {
-            _nextActiveRelationship[_lastActiveRelationship] = relationshipId;
-        }
-        else
-        {
-            _firstActiveRelationship = relationshipId;
-        }
-
-        _lastActiveRelationship = relationshipId;
+        _activeRelationshipSlots[_activeRelationshipCount] = relationshipId;
+        _activeRelationshipPositions[relationshipId] = _activeRelationshipCount + 1;
         _activeRelationshipCount++;
     }
 
     private void RemoveActiveRelationship(int relationshipId)
     {
-        var previous = _previousActiveRelationship[relationshipId];
-        var next = _nextActiveRelationship[relationshipId];
-        if (previous > 0)
-        {
-            _nextActiveRelationship[previous] = next;
-        }
-        else
-        {
-            _firstActiveRelationship = next;
-        }
-
-        if (next > 0)
-        {
-            _previousActiveRelationship[next] = previous;
-        }
-        else
-        {
-            _lastActiveRelationship = previous;
-        }
-
-        _previousActiveRelationship[relationshipId] = 0;
-        _nextActiveRelationship[relationshipId] = 0;
-        _activeRelationshipCount--;
+        var position = _activeRelationshipPositions[relationshipId] - 1;
+        var lastPosition = --_activeRelationshipCount;
+        var movedRelationshipId = _activeRelationshipSlots[lastPosition];
+        _activeRelationshipSlots[position] = movedRelationshipId;
+        _activeRelationshipPositions[movedRelationshipId] = position + 1;
+        _activeRelationshipSlots[lastPosition] = 0;
+        _activeRelationshipPositions[relationshipId] = 0;
     }
 
     private void InsertIncidentRelationship(int relationshipId)
@@ -319,18 +403,18 @@ internal sealed partial class WorldState
 
     private void InsertPhysicalOccupant(int entityId, int q, int r, int z)
     {
-        var key = CoordinateKey(q, r, z);
-        _nextPhysicalEntityAtCell[entityId] = _firstPhysicalEntityAtCell.GetOrDefault(key, 1);
-        _firstPhysicalEntityAtCell.Set(key, 1, entityId);
+        var cellId = _cells.GetOrAdd(PlaneCodes.Physical, q, r, z);
+        _nextPhysicalEntityAtCell[entityId] = _firstPhysicalEntityAtCell[cellId];
+        _firstPhysicalEntityAtCell[cellId] = entityId;
     }
 
     private void RemovePhysicalOccupant(int entityId, int q, int r, int z)
     {
-        var key = CoordinateKey(q, r, z);
-        var current = _firstPhysicalEntityAtCell.GetOrDefault(key, 1);
+        var cellId = RequireCellId(PlaneCodes.Physical, q, r, z);
+        var current = _firstPhysicalEntityAtCell[cellId];
         if (current == entityId)
         {
-            _firstPhysicalEntityAtCell.Set(key, 1, _nextPhysicalEntityAtCell[entityId]);
+            _firstPhysicalEntityAtCell[cellId] = _nextPhysicalEntityAtCell[entityId];
             _nextPhysicalEntityAtCell[entityId] = 0;
             return;
         }
@@ -351,18 +435,18 @@ internal sealed partial class WorldState
 
     private void InsertSemanticOccupant(int entityId, int q, int r)
     {
-        var key = CoordinateKey(q, r);
-        _nextSemanticEntityAtCell[entityId] = _firstSemanticEntityAtCell.GetOrDefault(key, 1);
-        _firstSemanticEntityAtCell.Set(key, 1, entityId);
+        var cellId = _cells.GetOrAdd(PlaneCodes.Semantic, q, r, z: 0);
+        _nextSemanticEntityAtCell[entityId] = _firstSemanticEntityAtCell[cellId];
+        _firstSemanticEntityAtCell[cellId] = entityId;
     }
 
     private void RemoveSemanticOccupant(int entityId, int q, int r)
     {
-        var key = CoordinateKey(q, r);
-        var current = _firstSemanticEntityAtCell.GetOrDefault(key, 1);
+        var cellId = RequireCellId(PlaneCodes.Semantic, q, r, z: 0);
+        var current = _firstSemanticEntityAtCell[cellId];
         if (current == entityId)
         {
-            _firstSemanticEntityAtCell.Set(key, 1, _nextSemanticEntityAtCell[entityId]);
+            _firstSemanticEntityAtCell[cellId] = _nextSemanticEntityAtCell[entityId];
             _nextSemanticEntityAtCell[entityId] = 0;
             return;
         }
@@ -499,19 +583,19 @@ internal sealed partial class WorldState
         }
 
         RemoveRelationshipFromGraphDelta(relationshipId);
-        if (_relationshipGraphDeltaCount >= _outgoingDeltaRelationships.Length)
+        if (_relationshipGraphDeltaCount >= _nextOutgoingDeltaRelationship.Length - 1)
         {
             CompactRelationshipGraph();
         }
 
         InsertDeltaRelationship(
-            _outgoingDeltaOffsets,
-            _outgoingDeltaRelationships,
+            _firstOutgoingDeltaRelationshipByRow,
+            _nextOutgoingDeltaRelationship,
             RelationshipRowIndexRaw(_relationshipSourceId[relationshipId], _relationshipKindId[relationshipId]),
             relationshipId);
         InsertDeltaRelationship(
-            _incomingDeltaOffsets,
-            _incomingDeltaRelationships,
+            _firstIncomingDeltaRelationshipByRow,
+            _nextIncomingDeltaRelationship,
             RelationshipRowIndexRaw(_relationshipTargetId[relationshipId], _relationshipKindId[relationshipId]),
             relationshipId);
         _relationshipInDeltaGraph[relationshipId] = true;
@@ -531,70 +615,70 @@ internal sealed partial class WorldState
         }
 
         RemoveDeltaRelationship(
-            _outgoingDeltaOffsets,
-            _outgoingDeltaRelationships,
+            _firstOutgoingDeltaRelationshipByRow,
+            _nextOutgoingDeltaRelationship,
             RelationshipRowIndexRaw(_relationshipSourceId[relationshipId], _relationshipKindId[relationshipId]),
             relationshipId);
         RemoveDeltaRelationship(
-            _incomingDeltaOffsets,
-            _incomingDeltaRelationships,
+            _firstIncomingDeltaRelationshipByRow,
+            _nextIncomingDeltaRelationship,
             RelationshipRowIndexRaw(_relationshipTargetId[relationshipId], _relationshipKindId[relationshipId]),
             relationshipId);
         _relationshipInDeltaGraph[relationshipId] = false;
         _relationshipGraphDeltaCount--;
     }
 
-    private void InsertDeltaRelationship(int[] offsets, int[] relationships, int row, int relationshipId)
+    private void InsertDeltaRelationship(
+        int[] firstRelationshipByRow,
+        int[] nextRelationship,
+        int row,
+        int relationshipId)
     {
-        var end = offsets[^1];
-        if (end >= relationships.Length)
+        var first = firstRelationshipByRow[row];
+        if (first == 0 || RelationshipComesBefore(relationshipId, first))
         {
-            throw new global::System.InvalidOperationException();
+            nextRelationship[relationshipId] = first;
+            firstRelationshipByRow[row] = relationshipId;
+            return;
         }
 
-        var start = offsets[row];
-        var insert = offsets[row + 1];
-        for (var i = end; i > insert; i--)
+        var previous = first;
+        var current = nextRelationship[previous];
+        while (current > 0 && RelationshipComesBefore(current, relationshipId))
         {
-            relationships[i] = relationships[i - 1];
+            previous = current;
+            current = nextRelationship[current];
         }
 
-        while (insert > start && RelationshipComesBefore(relationshipId, relationships[insert - 1]))
-        {
-            relationships[insert] = relationships[insert - 1];
-            insert--;
-        }
-
-        relationships[insert] = relationshipId;
-        for (var i = row + 1; i < offsets.Length; i++)
-        {
-            offsets[i]++;
-        }
+        nextRelationship[relationshipId] = current;
+        nextRelationship[previous] = relationshipId;
     }
 
-    private void RemoveDeltaRelationship(int[] offsets, int[] relationships, int row, int relationshipId)
+    private static void RemoveDeltaRelationship(
+        int[] firstRelationshipByRow,
+        int[] nextRelationship,
+        int row,
+        int relationshipId)
     {
-        var start = offsets[row];
-        var end = offsets[row + 1];
-        for (var slot = start; slot < end; slot++)
+        var current = firstRelationshipByRow[row];
+        if (current == relationshipId)
         {
-            if (relationships[slot] != relationshipId)
-            {
-                continue;
-            }
-
-            for (var i = slot; i < offsets[^1] - 1; i++)
-            {
-                relationships[i] = relationships[i + 1];
-            }
-
-            relationships[offsets[^1] - 1] = 0;
-            for (var i = row + 1; i < offsets.Length; i++)
-            {
-                offsets[i]--;
-            }
-
+            firstRelationshipByRow[row] = nextRelationship[relationshipId];
+            nextRelationship[relationshipId] = 0;
             return;
+        }
+
+        while (current > 0)
+        {
+            var next = nextRelationship[current];
+            if (next == relationshipId)
+            {
+                nextRelationship[current] = nextRelationship[relationshipId];
+                nextRelationship[relationshipId] = 0;
+                return;
+            }
+
+            current = next;
         }
     }
 
@@ -602,10 +686,9 @@ internal sealed partial class WorldState
     {
         global::System.Array.Clear(offsets);
         global::System.Array.Clear(relationships);
-        for (var relationshipId = _firstActiveRelationship;
-             relationshipId > 0;
-             relationshipId = _nextActiveRelationship[relationshipId])
+        for (var index = 0; index < _activeRelationshipCount; index++)
         {
+            var relationshipId = _activeRelationshipSlots[index];
             var entityId = outgoing ? _relationshipSourceId[relationshipId] : _relationshipTargetId[relationshipId];
             var row = RelationshipRowIndexRaw(entityId, _relationshipKindId[relationshipId]);
             offsets[row + 1]++;
@@ -617,14 +700,13 @@ internal sealed partial class WorldState
         }
 
         global::System.Array.Copy(offsets, _relationshipBuildCursors, offsets.Length);
-        for (var relationshipId = _firstActiveRelationship;
-             relationshipId > 0;
-             relationshipId = _nextActiveRelationship[relationshipId])
+        for (var index = 0; index < _activeRelationshipCount; index++)
         {
+            var relationshipId = _activeRelationshipSlots[index];
             var entityId = outgoing ? _relationshipSourceId[relationshipId] : _relationshipTargetId[relationshipId];
             var row = RelationshipRowIndexRaw(entityId, _relationshipKindId[relationshipId]);
             var slot = _relationshipBuildCursors[row];
-            relationships[slot] = relationshipId;
+            relationships[slot] = RelationshipOccurrenceHandle(relationshipId);
             _relationshipBuildCursors[row]++;
         }
 
@@ -639,35 +721,50 @@ internal sealed partial class WorldState
             var end = offsets[row + 1];
             for (var i = start + 1; i < end; i++)
             {
-                var relationshipId = relationships[i];
+                var relationshipOccurrence = relationships[i];
                 var j = i - 1;
-                while (j >= start && RelationshipComesBefore(relationshipId, relationships[j]))
+                while (j >= start && FrozenOccurrenceComesBefore(relationshipOccurrence, relationships[j]))
                 {
                     relationships[j + 1] = relationships[j];
                     j--;
                 }
 
-                relationships[j + 1] = relationshipId;
+                relationships[j + 1] = relationshipOccurrence;
             }
         }
     }
 
     private int FrozenCursorRelationshipId(RelationshipGraphCursor cursor)
     {
-        return cursor.DirectionCode == OutgoingRelationshipDirectionCode
+        var occurrenceHandle = cursor.DirectionCode == OutgoingRelationshipDirectionCode
             ? _outgoingFrozenRelationships[cursor.FrozenIndex]
             : _incomingFrozenRelationships[cursor.FrozenIndex];
+        return TryResolveRelationshipOccurrence(occurrenceHandle, out var relationshipId)
+            ? relationshipId
+            : 0;
     }
 
     private int DeltaCursorRelationshipId(RelationshipGraphCursor cursor)
     {
+        return cursor.DeltaRelationshipId;
+    }
+
+    private int NextDeltaRelationship(RelationshipGraphCursor cursor)
+    {
         return cursor.DirectionCode == OutgoingRelationshipDirectionCode
-            ? _outgoingDeltaRelationships[cursor.DeltaIndex]
-            : _incomingDeltaRelationships[cursor.DeltaIndex];
+            ? _nextOutgoingDeltaRelationship[cursor.DeltaRelationshipId]
+            : _nextIncomingDeltaRelationship[cursor.DeltaRelationshipId];
     }
 
     private bool RelationshipComesBefore(int leftRelationshipId, int rightRelationshipId)
     {
+        return leftRelationshipId < rightRelationshipId;
+    }
+
+    private bool FrozenOccurrenceComesBefore(int leftOccurrenceHandle, int rightOccurrenceHandle)
+    {
+        var leftRelationshipId = ((leftOccurrenceHandle - 1) % RelationshipCapacity) + 1;
+        var rightRelationshipId = ((rightOccurrenceHandle - 1) % RelationshipCapacity) + 1;
         return leftRelationshipId < rightRelationshipId;
     }
 
@@ -756,9 +853,9 @@ internal sealed partial class WorldState
             context.SourceCodeId,
             _relationshipKindId[relationshipId],
             _relationshipPolarityCode[relationshipId],
-            _relationshipSourceId[relationshipId],
-            _relationshipTargetId[relationshipId],
-            relationshipId,
+            EntityOccurrenceHandle(_relationshipSourceId[relationshipId]),
+            EntityOccurrenceHandle(_relationshipTargetId[relationshipId]),
+            RelationshipOccurrenceHandle(relationshipId),
             previousStrengthUnits,
             newStrengthUnits,
             context.ActionId,
@@ -778,20 +875,9 @@ internal sealed partial class WorldState
         }
     }
 
-    private static int CoordinateKey(int q, int r) => CoordinateKey(q, r, z: 0);
-
-    private static int CoordinateKey(int q, int r, int z)
+    internal int EntityOccurrenceHandleOrZero(int entityId)
     {
-        unchecked
-        {
-            // z == 0 contributes nothing, so surface keys stay identical to the
-            // historical two-argument hash.
-            var hash = (uint)q * 2654435761u;
-            hash ^= (uint)r * 2246822519u;
-            hash ^= (uint)z * 3266489917u;
-            var value = (int)(hash & 2147483647u);
-            return value == 0 ? 1 : value;
-        }
+        return entityId == 0 ? 0 : EntityOccurrenceHandle(entityId);
     }
 
     private static void ValidatePositive(int value)

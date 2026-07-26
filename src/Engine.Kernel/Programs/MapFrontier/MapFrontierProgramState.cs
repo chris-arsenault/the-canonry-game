@@ -8,7 +8,7 @@ using Engine.Constants;
 /// earned frontier ground. A persistent cursor rotates reclaim work across
 /// the full history without rescanning the map or favoring one direction.
 /// </summary>
-internal sealed class MapFrontierProgramState : IKernelProgramState
+internal sealed partial class MapFrontierProgramState : IKernelProgramState
 {
     internal readonly int[] ThawedQ;
     internal readonly int[] ThawedR;

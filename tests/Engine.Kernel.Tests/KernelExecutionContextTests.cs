@@ -40,7 +40,7 @@ public sealed class KernelExecutionContextTests
                 simulation.ExecutionContext);
         }
 
-        Assert.True(simulation.Events.TryRead(cursor, out var read));
+        var read = ReadNextAttributeChanged(simulation, cursor);
         Assert.Equal(KernelProgramCodes.Effects, read.Event.ProgramId);
         Assert.Equal(activeSourceCodeId, read.Event.SourceCodeId);
         var changed = read.Event.AsAttributeChanged();
@@ -166,6 +166,7 @@ public sealed class KernelExecutionContextTests
             EntityCapacity = 4,
             EventCapacity = 64,
         });
+        var entityId = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, tick: 0);
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
 
         using (simulation.EnterExecutionContext(
@@ -174,7 +175,7 @@ public sealed class KernelExecutionContextTests
         {
             simulation.EmitGambitEvaluated(
                 tick: 0,
-                entityId: 1,
+                entityOccurrenceHandle: simulation.World.EntityOccurrenceHandle(entityId),
                 kindId: 1,
                 gambitId: 3,
                 candidateCount: 4,
@@ -219,7 +220,7 @@ public sealed class KernelExecutionContextTests
             simulation.AdvanceTicks(1);
         }
 
-        Assert.True(simulation.Events.TryRead(cursor, out var read));
+        var read = ReadNextAttributeChanged(simulation, cursor);
         Assert.Equal(KernelProgramCodes.LowAltitudeVerbs, read.Event.ProgramId);
         Assert.Equal(sourceCodeId, read.Event.SourceCodeId);
         var changed = read.Event.AsAttributeChanged();
@@ -285,7 +286,7 @@ public sealed class KernelExecutionContextTests
 
         Assert.Equal(
         [
-            "src/Engine.Kernel/Simulation.Events.cs",
+            "src/Engine.Kernel/Execution/KernelEventPublisher.cs",
             "src/Engine.Kernel/WorldState.RelationshipIndexes.cs",
         ], rawWriteOwners);
     }
@@ -438,6 +439,21 @@ public sealed class KernelExecutionContextTests
             ObservedContext = simulation.ExecutionContext;
             simulation.SetAttribute(_entityId, AttributeId, _value, tick);
         }
+    }
+
+    private static SequencedKernelEvent ReadNextAttributeChanged(
+        Simulation simulation,
+        KernelEventCursor cursor)
+    {
+        while (simulation.Events.TryRead(cursor, out var candidate))
+        {
+            if (candidate.Event.EventType == KernelEventType.AttributeChanged)
+            {
+                return candidate;
+            }
+        }
+
+        throw new Xunit.Sdk.XunitException("No attribute change event was published.");
     }
 
     private sealed class ThrowingSystem : ISimulationSystem

@@ -80,7 +80,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
             rows.Take(8),
             ("generator", row => row.GeneratorId),
             ("fires", row => row.FiredCount.ToString(CultureInfo.InvariantCulture)),
-            ("eligible", row => row.EligiblePulses.ToString(CultureInfo.InvariantCulture)),
+            ("eligible", row => row.EligibleEvaluations.ToString(CultureInfo.InvariantCulture)),
             ("select_rate", row => FormatPercent(row.SelectionRateWhenEligible)),
             ("blocker", row => row.PrimaryBlocker));
     }

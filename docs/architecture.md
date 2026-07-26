@@ -10,6 +10,17 @@ kernel state.
 The controlling kernel rules live in
 [simulation-kernel-discipline.md](./kernel/simulation-kernel-discipline.md).
 
+The measured next parallel candidate is a typed-owner bulk-synchronous
+scheduler, not a persistent geographic-actor model. Evaluation partitions by
+stable IDs or bounded work chunks; mutation partitions independently by entity,
+relationship, or cell storage owner. Geography is useful for cell/map state but
+is not the universal shard key: measured relationship and gambit traffic is too
+nonlocal and current geographic load is too skewed. This is an approved
+architecture direction only; the current scheduler remains single-threaded
+until the candidate's separately gated implementation lands. Its implementation
+is also gated on removing the measured all-pairs gambit/travel-reach work:
+workers must not be used to preserve accidental superlinear candidate scans.
+
 ## Project Topology
 
 ```text
@@ -124,9 +135,39 @@ writes deterministic offscreen PNG evidence.
 
 ## Kernel Tick
 
-`Simulation.AdvanceTicks` is the single mutation entrypoint. Each tick drains
-commands, runs registered programs in order, emits primitive events, and
-advances the world version.
+`Simulation.AdvanceTicks` is the single mutation entrypoint. Each tick
+publishes six explicit phases:
+
+1. command admission;
+2. local-view preparation;
+3. local evaluation against a frozen active-entity and active-relationship
+   view;
+4. deterministic local-delta resolution;
+5. strategic programs; and
+6. tick publication.
+
+Programs retain registration order inside their assigned phase, but local
+programs no longer depend on mutation becoming visible during their own
+evaluation pass. They emit fixed-capacity typed deltas for movement,
+attributes, culture, culture reduction, relationship strength/end, tags, cell
+state, and lifecycle. Resolution sorts by destination and stable logical source,
+merges additive values before clamping, chooses competing writes explicitly,
+and applies retirement only after accepted local state changes.
+
+Semantic events are buffered and sorted within the publishing phase rather than
+leaking evaluator order. `PhaseCompleted` records the tick, phase revision,
+work count, and mutation count; projections expose the latest published
+boundary. Random choices use stable keys derived from seed, tick,
+phase, program, logical occurrence, rule, purpose, and attempt. There is no
+mutable sequential random stream whose consumption can shift when evaluation
+order changes.
+
+Gambit preconditions compile into one bounded branch-plan representation.
+Actor-only values are prepared once per actor and gambit; candidate branches
+short-circuit through explicit true/false destinations. When every successful
+branch requires the same relationship to the target, the compiled plan
+publishes that source and the kernel walks the relationship index directly
+rather than scanning all entities.
 
 Current default program order:
 
@@ -150,15 +191,18 @@ The program dependency metadata makes load-bearing ordering explicit.
 Locality and culture-locality facts are direct bounded queries over current
 world state, not scheduled programs or materialized fields. `LowAltitudeVerbs`,
 `Effects`, generators, culture slots, and minor actors read those facts only
-where they act.
+where they act. Culture-locality queries use fixed-capacity, revision-stamped
+memoization for repeated reads of the same culture and cell; culture mutation
+invalidates entries by advancing the revision, without maintaining connected
+components or another source of truth.
 
-The kernel has one world-pulse clock. Authored durations, cooldowns, generator
-windows, and scheduled program cadences are expressed directly in world
-pulses. `MinorActors` alone may run multiple bounded substeps inside one world
-pulse (`MinorActorSubstepsPerPulse`, currently `5`) so frequent worker labor
-does not force duplicate graph, effects, or relationship passes. `CultureSlots`
-and `Knowledge` retain their ordinary schedule, but their work is revision- and
-due-driven: unchanged slots and cultures are not globally rebuilt.
+The kernel has one tick clock. Minor actors run once per tick. The main
+movement, verb, relationship, effect, gambit, chronicle, and generator programs
+run every five ticks by default; slower programs retain explicit tick cadences.
+Authored durations owned by those main programs are normalized once into tick
+deadlines when installed. There is no sub-tick counter or second calendar.
+`CultureSlots` and `Knowledge` retain their slower schedule, but their work is
+revision- and due-driven: unchanged slots and cultures are not globally rebuilt.
 
 ## Runtime State
 
@@ -176,6 +220,26 @@ The kernel world contains:
   on active entities and relationships;
 - program data/state/scratch for each registered kernel program.
 
+Entities and relationships occupy reusable internal slots with generation-safe
+occurrence handles at every boundary where identity can survive a mutation.
+Dense active vectors and incrementally maintained kind, culture, adjacency, and
+occupancy indexes keep ordinary iteration proportional to live state. Retiring
+an occurrence clears its direct attribute, trait, cooldown, intent, cohort,
+district, and graph-owned rows before the slot generation advances.
+
+Map coordinates have stable dense cell IDs. Terrain and other per-cell facts
+are direct arrays; coverage, roads, travel memory, and culture influence add
+dense active/dirty indexes so zero or absent rows do not remain scheduled work.
+The coordinate registry is durable map identity, while reveal state remains an
+independent gameplay fact.
+
+Relationship endpoint adjacency uses sorted frozen CSR rows plus bounded
+per-row delta chains. Edge mutation is local to the source and target rows;
+deterministic queries merge frozen and delta order, and periodic compaction
+rebuilds the disposable CSR from active edges. Culture-locality descriptors
+similarly retain per-cell dependency revisions so a culture write invalidates
+only the radius-two cells whose derived facts can change.
+
 Durable additive state uses field-specific fixed-point integers: culture mass,
 relationship strength, persistent attributes and health, road quality/work, and
 persistent local modifiers. Each field owns its scale, bounds, and clamp rule;
@@ -183,13 +247,22 @@ there is no universal simulation scale. Other runtime values—candidate scores,
 probabilities, ratios, heat, and path costs—use the signed `FixedScalar` type.
 Authored rules may remain readable floats before the domain/gameplay compiler
 boundary. `Engine.Kernel` and compiled runtime records contain no floating-point
-members.
+members. Common bounded arithmetic stays in signed 64-bit operations and falls
+back to `Int128` only on overflow; gameplay scoring uses explicit bounded
+rational or polynomial curves instead of generic runtime transcendental math.
 
 Retirement is final for an entity occurrence. It ends every incident
 relationship and removes hosted districts before publishing the historical
 status transition. Ended relationships and consumed districts release their
 active slots; durable history belongs to the primitive event stream and its
 consumer projections, not to parallel historical tables in the kernel.
+
+Kernel snapshot format `53` persists active state, generation metadata, and the
+phase revision, then rebuilds free lists, indexes, due queues,
+and disposable caches on load. It does not serialize retired entity rows, ended
+edges, expired cooldowns, completed provenance tables, route-cache contents, or
+sequential RNG state, and it intentionally has no reader for the replaced
+binary layout.
 
 The kernel does not store the physical microtriangle field or the generation
 process that produced it. Those immutable startup facts remain outside the

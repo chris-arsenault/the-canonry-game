@@ -107,7 +107,7 @@ public sealed partial class KernelHost
     /// <summary>
     /// Records, per culture, how many authored technologies it has claimed and
     /// the highest tier it has reached. The kernel's knowledge program is the
-    /// single source of truth: it computes claims each pulse from the semantic
+    /// single source of truth: it computes claims on each scheduled run from the semantic
     /// culture field against the installed knowledge-site hexes and this reads
     /// those tallies.
     /// </summary>

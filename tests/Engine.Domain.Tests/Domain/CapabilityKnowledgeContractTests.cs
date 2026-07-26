@@ -68,14 +68,14 @@ public sealed class CapabilityKnowledgeContractTests
             selector.Scope == RefScope.Structural &&
             selector.Kind == IceRemembersKinds.Region);
 
-        Assert.Contains(compiledRule.Preconditions, precondition =>
+        Assert.Contains(compiledRule.PreconditionPlan.CandidateInstructions, precondition =>
             precondition.Code == BehaviorProgramPrecondition.SelfAttributeRange &&
             precondition.A == conditionId);
-        Assert.Contains(compiledRule.Preconditions, precondition =>
+        Assert.Contains(compiledRule.PreconditionPlan.CandidateInstructions, precondition =>
             precondition.Code == BehaviorProgramPrecondition.EndpointSubtypeIs &&
             precondition.A == (int)BehaviorProgramEndpoint.Target &&
             precondition.B == scarSubtypeId);
-        Assert.Contains(compiledRule.Preconditions, precondition =>
+        Assert.Contains(compiledRule.PreconditionPlan.CandidateInstructions, precondition =>
             precondition.Code == BehaviorProgramPrecondition.EndpointRelationshipCountBelow &&
             precondition.A == corruptedById &&
             precondition.B == (int)BehaviorProgramEndpoint.Target &&

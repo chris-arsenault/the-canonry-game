@@ -211,7 +211,7 @@ public sealed class IceRemembersGambitDefinitionTests
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
         var trade = Gambit(compiled, IceRemembersGambitId.SettlementOpensTradeRoute);
 
-        Assert.Contains(trade.Preconditions, precondition =>
+        Assert.Contains(trade.PreconditionPlan.CandidateInstructions, precondition =>
             precondition.Code == BehaviorProgramPrecondition.PlaneDistance &&
             precondition.A == 12 &&
             precondition.B == PlaneCodes.Semantic);
@@ -272,16 +272,16 @@ public sealed class IceRemembersGambitDefinitionTests
         var artifact = Gambit(compiled, IceRemembersGambitId.ArtifactDeepensTheHolding);
 
         Assert.Equal(BehaviorProgramTargetMode.Self, settlement.TargetMode);
-        Assert.Contains(settlement.Preconditions, precondition =>
+        Assert.Contains(settlement.PreconditionPlan.CandidateInstructions, precondition =>
             precondition.Code == BehaviorProgramPrecondition.SelfCultureMass &&
             precondition.A == PlaneCodes.Physical);
         // Promotion is stage-capped: the ladder ends, and capped entities
         // leave the eligibility pool entirely.
-        Assert.Contains(settlement.Preconditions, precondition =>
+        Assert.Contains(settlement.PreconditionPlan.CandidateInstructions, precondition =>
             precondition.Code == BehaviorProgramPrecondition.SelfWorkTierBelow);
         Assert.Contains(settlement.Steps, step =>
             step.Operation == BehaviorProgramOperation.IncreaseWorkTier);
-        Assert.Contains(artifact.Preconditions, precondition =>
+        Assert.Contains(artifact.PreconditionPlan.CandidateInstructions, precondition =>
             precondition.Code == BehaviorProgramPrecondition.SelfCultureMass &&
             precondition.A == PlaneCodes.Semantic);
     }
@@ -344,7 +344,7 @@ public sealed class IceRemembersGambitDefinitionTests
         var compiled = DomainCompiler.Compile(IceRemembersDefinition.Create());
         var war = Gambit(compiled, IceRemembersGambitId.FactionDeclaresTerritorialWar);
 
-        Assert.Contains(war.Preconditions, precondition =>
+        Assert.Contains(war.PreconditionPlan.CandidateInstructions, precondition =>
             precondition.Code == BehaviorProgramPrecondition.ContestedInfluence);
     }
 
@@ -355,12 +355,12 @@ public sealed class IceRemembersGambitDefinitionTests
         var wield = Gambit(compiled, IceRemembersGambitId.PenguinWieldsArtifact);
         var holdsId = compiled.Ids.RelationshipKindIdOf(IceRemembersRelationship.Holds.ToDomainName()).Value;
 
-        Assert.Contains(wield.Preconditions, precondition =>
+        Assert.Contains(wield.PreconditionPlan.CandidateInstructions, precondition =>
             precondition.Code == BehaviorProgramPrecondition.EndpointRelationshipCountBelow &&
             precondition.A == holdsId &&
             precondition.B == (int)BehaviorProgramEndpoint.Self &&
             precondition.C == 1);
-        Assert.Contains(wield.Preconditions, precondition =>
+        Assert.Contains(wield.PreconditionPlan.CandidateInstructions, precondition =>
             precondition.Code == BehaviorProgramPrecondition.EndpointRelationshipCountBelow &&
             precondition.A == holdsId &&
             precondition.B == (int)BehaviorProgramEndpoint.Target &&

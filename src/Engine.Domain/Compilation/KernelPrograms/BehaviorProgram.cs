@@ -1,5 +1,7 @@
 namespace Engine.Domain.Compilation.KernelPrograms;
 
+using Engine.Constants;
+
 public enum BehaviorProgramTargetMode
 {
     Self,
@@ -73,9 +75,6 @@ public enum BehaviorProgramPrecondition
     SelfHasOutgoingRelationship,
     RelatedEntityMatchesTarget,
     RelationshipExists,
-    And,
-    Or,
-    Not,
     EntityCountAtLeast,
     HasColocatedEntity,
     ContestedInfluence,
@@ -126,14 +125,37 @@ public sealed record BehaviorProgramProviderSelectorRule(
     int RelationshipKindId,
     FixedScalar MinimumStrength);
 
-public sealed record BehaviorProgramPreconditionOp(
+public sealed record BehaviorProgramPreconditionInstruction(
     BehaviorProgramPrecondition Code,
     int A = 0,
     int B = 0,
     int C = 0,
     int D = 0,
     FixedScalar X = default,
-    FixedScalar Y = default);
+    FixedScalar Y = default,
+    int ActorValueSlot = 0,
+    bool RelationshipTargetSource = false,
+    int TrueDestination = GambitPreconditionDestinationCodes.Passed,
+    int FalseDestination = GambitPreconditionDestinationCodes.Failed);
+
+public sealed record BehaviorProgramActorPreconditionInstruction(
+    int ActorValueSlot,
+    int TrueDestination = GambitPreconditionDestinationCodes.Passed,
+    int FalseDestination = GambitPreconditionDestinationCodes.Failed);
+
+public sealed record BehaviorProgramRelationshipTargetSource(
+    int DirectionCode,
+    int RelationshipKindId,
+    bool HasMinimumStrength,
+    FixedScalar MinimumStrength);
+
+public sealed record BehaviorProgramPreconditionPlan(
+    IReadOnlyList<BehaviorProgramPreconditionInstruction> CandidateInstructions,
+    int CandidateEntry,
+    IReadOnlyList<BehaviorProgramActorPreconditionInstruction> ActorInstructions,
+    int ActorEntry,
+    int ActorValueCount,
+    BehaviorProgramRelationshipTargetSource? RelationshipTargetSource);
 
 public sealed record BehaviorProgramExpressionOp(
     BehaviorProgramExpression Code,

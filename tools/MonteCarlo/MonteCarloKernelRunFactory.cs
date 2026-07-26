@@ -11,14 +11,19 @@ internal static class MonteCarloKernelRunFactory
     public static MonteCarloKernelRun Create(
         int seed,
         bool traceEnabled = false,
-        string? configFilePath = null)
+        string? configFilePath = null,
+        string? worldFilePath = null)
     {
+        var startupSeed = worldFilePath is null
+            ? null
+            : IceRemembersPregeneratedWorldStore.Read(worldFilePath);
         var runtime = RuntimeFactory.Start(new KernelStartRequest(
             IceRemembersRuntime.DomainName,
             StartupSeedPolicy.Requested(seed),
             KernelFunctionProfile.Batch,
             traceEnabled,
-            configFilePath));
+            configFilePath,
+            startupSeed));
 
         return new MonteCarloKernelRun(
             runtime,

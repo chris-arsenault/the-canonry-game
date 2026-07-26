@@ -27,6 +27,12 @@ a second historical archive.
   or gambits. Narrative and analysis consumers reconstruct history from events.
 - Snapshot materialization publishes active entities, their active attributes
   and traits, and active relationships only.
+- Entities and relationships occupy reusable internal slots. Identity outside
+  an immediate mutation is a slot-plus-generation occurrence handle; a stale
+  handle cannot resolve to a replacement that later reuses the slot.
+- Dense active vectors and incrementally maintained kind, culture, adjacency,
+  and spatial indexes are the iteration boundary. Retirement removes the
+  occurrence from every index and clears its direct per-slot state before reuse.
 
 ## Boundaries
 

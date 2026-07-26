@@ -81,9 +81,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             TargetKindId = targetKindId,
             RelationshipKindId = relationshipKindId,
             RelationshipDirectionCode = relationshipDirectionCode,
-            MinTicks = minCommitmentTicks,
-            MaxTicks = maxCommitmentTicks,
-            DwellTicks = dwellTicks,
+            MinTicks = Tuning.ScaleMainProgramDuration(minCommitmentTicks),
+            MaxTicks = Tuning.ScaleMainProgramDuration(maxCommitmentTicks),
+            DwellTicks = Tuning.ScaleMainProgramDuration(dwellTicks),
             TargetRadius = targetRadius,
             CandidateSampleCount = candidateSampleCount,
             Weight = weight,
@@ -168,11 +168,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        var world = simulation.World;
-        for (var entityId = world.FirstActiveEntity();
-             entityId > 0;
-             entityId = world.NextActiveEntity(entityId))
+        for (var index = 0; index < simulation.FrozenEntityCount; index++)
         {
+            var entityId = simulation.FrozenEntityAt(index);
             ApplyRelationshipFollowMovementIntent(simulation, entityId, tick);
 
             if (ApplyInitialInfluenceIfNeeded(simulation, entityId, tick))
@@ -241,7 +239,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
         if (IntentInvalidated(simulation, entityId, slot, tick))
         {
-            ClearIntentAndPushRecent(entityId, tick);
+            ClearIntentAndPushRecent(simulation, entityId, tick);
             return true;
         }
 
@@ -253,7 +251,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
         if (tick >= State.DwellUntilTick(entityId))
         {
-            ClearIntentAndPushRecent(entityId, tick);
+            ClearIntentAndPushRecent(simulation, entityId, tick);
             return true;
         }
 
@@ -283,9 +281,9 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         return tick >= State.ExpiresTick(entityId);
     }
 
-    private void ClearIntentAndPushRecent(int entityId, int tick)
+    private void ClearIntentAndPushRecent(Simulation simulation, int entityId, int tick)
     {
-        var key = ResolveActiveTargetKey(entityId);
+        var key = ResolveActiveTargetKey(simulation.World, entityId);
         if (key != 0L)
         {
             State.PushRecentTarget(entityId, key, tick);
@@ -294,7 +292,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         State.ClearIntent(entityId);
     }
 
-    private long ResolveActiveTargetKey(int entityId)
+    private long ResolveActiveTargetKey(WorldState world, int entityId)
     {
         var slot = State.ActiveVerbSlot(entityId);
         if (slot == 0)
@@ -305,11 +303,27 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         var targetEntityId = State.TargetEntityId(entityId);
         if (targetEntityId != 0)
         {
-            return LowAltitudeVerbProgramState.PackEntityTargetKey(targetEntityId);
+            return LowAltitudeVerbProgramState.PackEntityTargetKey(
+                world.EntityOccurrenceHandle(targetEntityId));
         }
 
         var planeCode = State.TargetPlaneCode(entityId);
         return LowAltitudeVerbProgramState.PackCellTargetKey(planeCode, State.TargetQ(entityId), State.TargetR(entityId));
+    }
+
+    internal void NoteEntityRetired(WorldState world, int entityId)
+    {
+        for (var activeEntityId = world.FirstActiveEntity();
+             activeEntityId > 0;
+             activeEntityId = world.NextActiveEntity(activeEntityId))
+        {
+            if (activeEntityId != entityId && State.TargetEntityId(activeEntityId) == entityId)
+            {
+                State.ClearIntent(activeEntityId);
+            }
+        }
+
+        State.ClearEntitySlot(entityId);
     }
 
     // A carried entity's position belongs to its carrier: while an incoming
@@ -352,7 +366,12 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             return;
         }
 
-        var selectedIndex = PickVerbFromBucket(simulation, bucket, out var selectionBucketCode);
+        var selectedIndex = PickVerbFromBucket(
+            simulation,
+            entityId,
+            tick,
+            bucket,
+            out var selectionBucketCode);
         if (selectedIndex < 0)
         {
             return;
@@ -367,7 +386,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         var candidates = _verbCandidateScratch;
         var sumAffordanceScores = _verbAffordanceSumScratch;
         var kindId = simulation.World.EntityKindId(entityId);
-        var traceIntentId = State.NextIntentId();
+        var traceIntentId = State.NextIntentId(entityId, tick);
         for (var rule = Data.FirstRuleForKind(kindId);
              rule > 0;
              rule = Data.NextRuleForKind(rule))
@@ -400,18 +419,27 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         return bucket;
     }
 
-    private int PickVerbFromBucket(Simulation simulation, VerbBucket bucket, out int selectionBucketCode)
+    private int PickVerbFromBucket(
+        Simulation simulation,
+        int entityId,
+        int tick,
+        VerbBucket bucket,
+        out int selectionBucketCode)
     {
         var opportunityRate = Tuning.LowAltitudeVerbs.OpportunityRate;
         var pickFromOpportunity = bucket.HasOpportunity &&
             opportunityRate > 0 &&
-            simulation.NextScalar() < opportunityRate;
+            simulation.RandomScalar(
+                simulation.World.EntityOccurrenceHandle(entityId),
+                0,
+                KernelRandomPurposeCodes.VerbOpportunityBucket,
+                attempt: State.NextIntentId(entityId, tick)) < opportunityRate;
         selectionBucketCode = pickFromOpportunity
             ? LowAltitudeVerbSelectionBucketCodes.Opportunity
             : LowAltitudeVerbSelectionBucketCodes.Routine;
         return pickFromOpportunity
-            ? PickOpportunityIndex(simulation, _verbAffordanceSumScratch, bucket.TotalOpportunityWeight, bucket.VerbCount)
-            : PickRoutineIndex(simulation, _verbCandidateScratch, bucket.TotalRoutineWeight, bucket.VerbCount);
+            ? PickOpportunityIndex(simulation, entityId, tick, _verbAffordanceSumScratch, bucket.TotalOpportunityWeight, bucket.VerbCount)
+            : PickRoutineIndex(simulation, entityId, tick, _verbCandidateScratch, bucket.TotalRoutineWeight, bucket.VerbCount);
     }
 
     private void CommitSelectedIntent(
@@ -421,11 +449,15 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         VerbTargetCandidate selected,
         int selectionBucketCode)
     {
-        var intentIdSeed = State.NextIntentId();
+        var intentIdSeed = State.NextIntentId(entityId, tick);
         selected = ScatterDestination(simulation, entityId, selected, tick);
-        var duration = simulation.NextInclusive(
+        var duration = simulation.RandomInclusive(
             Data.MinCommitmentTicks(selected.RuleSlot),
-            Data.MaxCommitmentTicks(selected.RuleSlot));
+            Data.MaxCommitmentTicks(selected.RuleSlot),
+            simulation.World.EntityOccurrenceHandle(entityId),
+            selected.RuleSlot,
+            KernelRandomPurposeCodes.VerbDuration,
+            attempt: intentIdSeed);
         var intentId = State.SetIntent(
             entityId,
             selected.RuleSlot,
@@ -450,8 +482,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         public bool HasOpportunity;
     }
 
-    private static int PickRoutineIndex(
+    private int PickRoutineIndex(
         Simulation simulation,
+        int entityId,
+        int tick,
         VerbTargetCandidate[] candidates,
         FixedScalar totalWeight,
         int count)
@@ -461,7 +495,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             return -1;
         }
 
-        var threshold = simulation.NextScalar() * totalWeight;
+        var threshold = simulation.RandomScalar(
+            simulation.World.EntityOccurrenceHandle(entityId),
+            0,
+            KernelRandomPurposeCodes.VerbRoutineSelection,
+            attempt: State.NextIntentId(entityId, tick)) * totalWeight;
         var running = FixedScalar.Zero;
         for (var i = 0; i < count; i++)
         {
@@ -475,8 +513,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         return count - 1;
     }
 
-    private static int PickOpportunityIndex(
+    private int PickOpportunityIndex(
         Simulation simulation,
+        int entityId,
+        int tick,
         FixedScalar[] opportunityWeights,
         FixedScalar totalWeight,
         int count)
@@ -486,7 +526,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             return -1;
         }
 
-        var threshold = simulation.NextScalar() * totalWeight;
+        var threshold = simulation.RandomScalar(
+            simulation.World.EntityOccurrenceHandle(entityId),
+            0,
+            KernelRandomPurposeCodes.VerbOpportunitySelection,
+            attempt: State.NextIntentId(entityId, tick)) * totalWeight;
         var running = FixedScalar.Zero;
         for (var i = 0; i < count; i++)
         {
@@ -711,7 +755,11 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         var actorKindId = simulation.World.EntityKindId(entityId);
         var claimChance = Data.CoverageGrowthChance(rule) * simulation.TerrainClaimChanceMultiplier(planeCode, actorKindId, q, r);
         var requiredInfluence = Data.RequiredInfluence(rule) * simulation.TerrainClaimCostMultiplier(planeCode, actorKindId, q, r);
-        if (simulation.NextScalar() > claimChance ||
+        if (simulation.RandomScalar(
+                simulation.World.EntityOccurrenceHandle(entityId),
+                rule,
+                KernelRandomPurposeCodes.VerbCoverageClaim,
+                attempt: CellRandomAttempt(q, r)) > claimChance ||
             OwnCultureRawAt(simulation.World, entityId, planeCode, q, r) < requiredInfluence ||
             !CellCanBeClaimedFromEntity(simulation.World, planeCode, entityId, q, r) ||
             simulation.World.CoverageOwnerAt(planeCode, q, r) == entityId)
@@ -758,13 +806,27 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         int r,
         int tick)
     {
-        if (simulation.NextScalar() > Data.HeadquartersMoveChance(rule) ||
+        if (simulation.RandomScalar(
+                simulation.World.EntityOccurrenceHandle(entityId),
+                rule,
+                KernelRandomPurposeCodes.VerbHeadquartersMove,
+                attempt: CellRandomAttempt(q, r)) > Data.HeadquartersMoveChance(rule) ||
             OwnCultureRawAt(simulation.World, entityId, PlaneCodes.Physical, q, r) < Data.RequiredInfluence(rule))
         {
             return;
         }
 
         simulation.Movement.Place(simulation, entityId, PlaneCodes.Physical, q, r, tick, MovementCauseCodes.Relocation);
+    }
+
+    private static int CellRandomAttempt(int q, int r)
+    {
+        unchecked
+        {
+            var hash = (uint)q * 2654435761u;
+            hash ^= (uint)r * 2246822519u;
+            return (int)(hash ^ (hash >> 16));
+        }
     }
 
     private bool CellCanBeClaimedFromEntity(WorldState world, int planeCode, int entityId, int q, int r)

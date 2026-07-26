@@ -254,97 +254,6 @@ public static partial class DomainCompiler
         throw new InvalidOperationException($"Unknown movement profile '{profile}'.");
     }
 
-    private static LifecycleProgram BuildLifecycleProgram(
-        DomainConfig config,
-        DomainIdRegistry ids)
-    {
-        var lifecycleRules = new List<LifecycleRule>();
-
-        foreach (var (kind, lifecycle) in config.Lifecycles)
-        {
-            var kindId = ids.KindIdOf(kind).Value;
-            var healthAttributeId = ids.AttributeIdOf(lifecycle.Health).Value;
-            lifecycleRules.Add(new LifecycleRule(
-                kindId,
-                healthAttributeId,
-                KernelFixedPoint.AttributeScalar(KernelFixedPoint.AttributeUnits(lifecycle.BaseRate)),
-                KernelFixedPoint.AttributeScalar(KernelFixedPoint.AttributeUnits(lifecycle.AgeCoefficient)),
-                FixedScalar.FromUnits(200_000L)));
-        }
-
-        return new LifecycleProgram
-        {
-            Rules = lifecycleRules,
-        };
-    }
-
-    private static GambitProgram BuildGambitProgram(
-        DomainConfig config,
-        DomainIdRegistry ids)
-    {
-        var gambits = new List<CompiledGambitRule>();
-        foreach (var gambit in config.Gambits)
-        {
-            var targetKindId = ResolveTargetKindId(gambit, ids);
-            gambits.Add(new CompiledGambitRule(
-                ids.KindIdOf(gambit.TargetKind).Value,
-                ids.GambitIdOf(gambit.Id).Value,
-                gambit.Cooldown,
-                gambit.EntityCooldown,
-                ResolveTargetMode(gambit, targetKindId),
-                targetKindId,
-                FixedScalar.FromSingle(gambit.SuccessChance),
-                gambit.ChronicleGranted,
-                CompileProviderSelectors(gambit, ids),
-                CompilePreconditions(gambit.Precondition, ids),
-                CompileExpression(gambit.ScoreExpression, ids),
-                CompileSteps(gambit, ids)));
-        }
-
-        return new GambitProgram
-        {
-            EnabledByDefault = gambits.Count > 0,
-            Gambits = gambits,
-            TraitModifiers = CompileTraitGambitModifiers(config, ids),
-        };
-    }
-
-    private static List<CompiledTraitGambitModifierRule> CompileTraitGambitModifiers(
-        DomainConfig config,
-        DomainIdRegistry ids)
-    {
-        var modifiers = new List<CompiledTraitGambitModifierRule>();
-        foreach (var (_, kindConfig) in config.Kinds)
-        {
-            foreach (var trait in kindConfig.Traits)
-            {
-                foreach (var operation in trait.Operations)
-                {
-                    if (operation is not TraitGambitModifierOperationConfig modifier)
-                    {
-                        continue;
-                    }
-
-                    modifiers.Add(new CompiledTraitGambitModifierRule(
-                        ids.GambitIdOf(modifier.Gambit).Value,
-                        ids.TraitIdOf(trait.Name).Value,
-                        TraitEffectBearerCode(modifier.TraitBearer),
-                        FixedScalar.FromSingle(modifier.ScoreDelta),
-                        FixedScalar.FromSingle(modifier.SuccessChanceDelta)));
-                }
-            }
-        }
-
-        return modifiers;
-    }
-
-    private static int TraitEffectBearerCode(TraitEffectBearer bearer) => bearer switch
-    {
-        TraitEffectBearer.Actor => TraitEffectBearerCodes.Actor,
-        TraitEffectBearer.GambitTarget => TraitEffectBearerCodes.GambitTarget,
-        _ => throw new ArgumentOutOfRangeException(nameof(bearer), bearer, "Unsupported gambit trait bearer."),
-    };
-
     private static int ResolveTargetKindId(BehaviorDefinition behavior, DomainIdRegistry ids)
     {
         foreach (var selector in behavior.ProviderSelectors)
@@ -414,54 +323,90 @@ public static partial class DomainCompiler
             ? ids.RelationshipKindIdOf(selector.RelationshipKind ?? selector.Name).Value
             : 0;
 
-    private static List<BehaviorProgramPreconditionOp> CompilePreconditions(
+    private sealed record BehaviorProgramPreconditionOp(
+        BehaviorProgramPrecondition Code,
+        int A = 0,
+        int B = 0,
+        int C = 0,
+        int D = 0,
+        FixedScalar X = default,
+        FixedScalar Y = default);
+
+    private static BehaviorProgramPreconditionPlan CompilePreconditions(
         IPrecondition precondition,
         DomainIdRegistry ids)
     {
-        var ops = new List<BehaviorProgramPreconditionOp>();
-        CompilePreconditionExpression(ops, precondition, ids);
-        return ops;
+        var sourceOrder = 0;
+        var node = CompilePreconditionNode(precondition, ids, ref sourceOrder, negated: false);
+        return CompileGambitPreconditionPlan(node);
     }
 
-    private static void CompilePreconditionExpression(
-        List<BehaviorProgramPreconditionOp> ops,
+    private static IGambitPreconditionNode CompilePreconditionNode(
         IPrecondition precondition,
-        DomainIdRegistry ids)
+        DomainIdRegistry ids,
+        ref int sourceOrder,
+        bool negated)
     {
-        if (TryCompileCompositePrecondition(ops, precondition, ids) ||
-            TryCompileSimplePrecondition(ops, precondition) ||
+        switch (precondition)
+        {
+            case AndPrecondition and:
+                return CompileCompositePreconditionNode(
+                    and.Children,
+                    ids,
+                    ref sourceOrder,
+                    negated ? GambitPreconditionComposition.Or : GambitPreconditionComposition.And,
+                    negated);
+            case OrPrecondition or:
+                return CompileCompositePreconditionNode(
+                    or.Children,
+                    ids,
+                    ref sourceOrder,
+                    negated ? GambitPreconditionComposition.And : GambitPreconditionComposition.Or,
+                    negated);
+            case NotPrecondition not:
+                return CompilePreconditionNode(not.Inner, ids, ref sourceOrder, !negated);
+        }
+
+        var ops = new List<BehaviorProgramPreconditionOp>(1);
+        if (TryCompileSimplePrecondition(ops, precondition) ||
             TryCompileRangePrecondition(ops, precondition, ids) ||
             TryCompileRelationshipPrecondition(ops, precondition, ids) ||
             TryCompileCulturePrecondition(ops, precondition, ids) ||
             TryCompileGeographyPrecondition(ops, precondition, ids) ||
             TryCompileKernelStatePrecondition(ops, precondition))
         {
-            return;
+            if (ops.Count != 1)
+            {
+                throw new InvalidOperationException(
+                    $"Kernel behavior precondition '{precondition.GetType().Name}' compiled to {ops.Count} leaves.");
+            }
+
+            return new GambitPreconditionLeafNode(ops[0], negated, sourceOrder++);
         }
 
         throw new InvalidOperationException($"Unsupported kernel behavior precondition '{precondition.GetType().Name}'.");
     }
 
-    private static bool TryCompileCompositePrecondition(
-        List<BehaviorProgramPreconditionOp> ops,
-        IPrecondition precondition,
-        DomainIdRegistry ids)
+    private static IGambitPreconditionNode CompileCompositePreconditionNode(
+        IReadOnlyList<IPrecondition> children,
+        DomainIdRegistry ids,
+        ref int sourceOrder,
+        GambitPreconditionComposition composition,
+        bool negateChildren)
     {
-        switch (precondition)
+        if (children.Count == 0)
         {
-            case AndPrecondition and:
-                CompilePreconditionChildren(ops, and.Children, ids, BehaviorProgramPrecondition.And);
-                return true;
-            case OrPrecondition or:
-                CompilePreconditionChildren(ops, or.Children, ids, BehaviorProgramPrecondition.Or);
-                return true;
-            case NotPrecondition not:
-                CompilePreconditionExpression(ops, not.Inner, ids);
-                ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.Not));
-                return true;
-            default:
-                return false;
+            var always = new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.Always);
+            return new GambitPreconditionLeafNode(always, negateChildren, sourceOrder++);
         }
+
+        var nodes = new List<IGambitPreconditionNode>(children.Count);
+        foreach (var child in children)
+        {
+            nodes.Add(CompilePreconditionNode(child, ids, ref sourceOrder, negateChildren));
+        }
+
+        return new GambitPreconditionCompositeNode(composition, nodes);
     }
 
     private static bool TryCompileSimplePrecondition(
@@ -603,26 +548,6 @@ public static partial class DomainCompiler
                 return true;
             default:
                 return false;
-        }
-    }
-
-    private static void CompilePreconditionChildren(
-        List<BehaviorProgramPreconditionOp> ops,
-        IReadOnlyList<IPrecondition> children,
-        DomainIdRegistry ids,
-        BehaviorProgramPrecondition operatorCode)
-    {
-        if (children.Count == 0)
-        {
-            ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.Always));
-            return;
-        }
-
-        CompilePreconditionExpression(ops, children[0], ids);
-        for (var i = 1; i < children.Count; i++)
-        {
-            CompilePreconditionExpression(ops, children[i], ids);
-            ops.Add(new BehaviorProgramPreconditionOp(operatorCode));
         }
     }
 

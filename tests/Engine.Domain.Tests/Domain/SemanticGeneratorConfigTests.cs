@@ -44,7 +44,7 @@ public class SemanticGeneratorConfigTests
             ],
         };
 
-        Assert.Equal(1, config.PulseWeight);
+        Assert.Equal(1, config.FireWeight);
         Assert.Null(config.MaxRunsPerSim);
         Assert.Empty(config.Relationships);
         Assert.Equal(1f, config.Produces[0].CreateChance);

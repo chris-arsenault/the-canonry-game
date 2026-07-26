@@ -18,7 +18,7 @@ public readonly struct FixedScalar :
     public static readonly FixedScalar PositiveInfinity = new(long.MaxValue);
     public static readonly FixedScalar MaxValue = new(long.MaxValue - 1);
     public static readonly FixedScalar MinValue = new(long.MinValue + 1);
-    private static readonly FixedScalar Ln2 = new(693_147L);
+    private const ulong SafeMultiplyMagnitude = 3_037_000_499UL;
 
     private FixedScalar(long units)
     {
@@ -36,6 +36,12 @@ public readonly struct FixedScalar :
         if (denominator == 0)
         {
             throw new global::System.DivideByZeroException();
+        }
+
+        if (TryMultiply(numerator, Scale, out var scaled) &&
+            TryDivideAwayFromZero(scaled, denominator, out var units))
+        {
+            return FromNarrow(units);
         }
 
         return FromWide(DivideAwayFromZero((global::System.Int128)numerator * Scale, denominator));
@@ -159,50 +165,6 @@ public readonly struct FixedScalar :
         return FromWide((global::System.Int128)quotient * Scale);
     }
 
-    public static FixedScalar Exp(FixedScalar value)
-    {
-        if (value <= FromInt(-20))
-        {
-            return Zero;
-        }
-
-        if (value >= FromInt(20))
-        {
-            return MaxValue;
-        }
-
-        var exponent = Floor(value / Ln2).TruncateToInt32();
-        var remainder = value - (Ln2 * exponent);
-        var term = One;
-        var sum = One;
-        for (var divisor = 1; divisor <= 14; divisor++)
-        {
-            term = (term * remainder) / divisor;
-            sum += term;
-        }
-
-        if (exponent >= 0)
-        {
-            return exponent >= 62
-                ? MaxValue
-                : FromWide((global::System.Int128)sum.Units << exponent);
-        }
-
-        return new FixedScalar(sum.Units >> -exponent);
-    }
-
-    public static FixedScalar Pow(FixedScalar value, FixedScalar exponent)
-    {
-        global::System.ArgumentOutOfRangeException.ThrowIfLessThan(value, Zero);
-
-        if (value == Zero)
-        {
-            return exponent == Zero ? One : Zero;
-        }
-
-        return Exp(Log(value) * exponent);
-    }
-
     public static bool IsInfinity(FixedScalar value) => value == PositiveInfinity;
 
     public static bool IsPositiveInfinity(FixedScalar value) => value == PositiveInfinity;
@@ -271,18 +233,40 @@ public readonly struct FixedScalar :
     public static FixedScalar operator -(FixedScalar value) =>
         new(SaturatingNegate(value.Units));
 
-    public static FixedScalar operator *(FixedScalar left, FixedScalar right) =>
-        FromWide(DivideAwayFromZero(
+    public static FixedScalar operator *(FixedScalar left, FixedScalar right)
+    {
+        if (TryMultiply(left.Units, right.Units, out var product) &&
+            TryDivideAwayFromZero(product, Scale, out var units))
+        {
+            return FromNarrow(units);
+        }
+
+        return FromWide(DivideAwayFromZero(
             (global::System.Int128)left.Units * right.Units,
             Scale));
+    }
 
-    public static FixedScalar operator *(FixedScalar left, int right) =>
-        FromWide((global::System.Int128)left.Units * right);
+    public static FixedScalar operator *(FixedScalar left, int right)
+    {
+        if (TryMultiply(left.Units, right, out var product))
+        {
+            return FromNarrow(product);
+        }
+
+        return FromWide((global::System.Int128)left.Units * right);
+    }
 
     public static FixedScalar operator *(int left, FixedScalar right) => right * left;
 
-    public static FixedScalar operator *(FixedScalar left, long right) =>
-        FromWide((global::System.Int128)left.Units * right);
+    public static FixedScalar operator *(FixedScalar left, long right)
+    {
+        if (TryMultiply(left.Units, right, out var product))
+        {
+            return FromNarrow(product);
+        }
+
+        return FromWide((global::System.Int128)left.Units * right);
+    }
 
     public static FixedScalar operator *(long left, FixedScalar right) => right * left;
 
@@ -291,6 +275,12 @@ public readonly struct FixedScalar :
         if (right.Units == 0)
         {
             throw new global::System.DivideByZeroException();
+        }
+
+        if (TryMultiply(left.Units, Scale, out var numerator) &&
+            TryDivideAwayFromZero(numerator, right.Units, out var units))
+        {
+            return FromNarrow(units);
         }
 
         return FromWide(DivideAwayFromZero(
@@ -305,7 +295,9 @@ public readonly struct FixedScalar :
             throw new global::System.DivideByZeroException();
         }
 
-        return FromWide(DivideAwayFromZero(left.Units, right));
+        return TryDivideAwayFromZero(left.Units, right, out var units)
+            ? FromNarrow(units)
+            : FromWide(DivideAwayFromZero(left.Units, right));
     }
 
     public static FixedScalar operator /(FixedScalar left, long right)
@@ -315,7 +307,9 @@ public readonly struct FixedScalar :
             throw new global::System.DivideByZeroException();
         }
 
-        return FromWide(DivideAwayFromZero(left.Units, right));
+        return TryDivideAwayFromZero(left.Units, right, out var units)
+            ? FromNarrow(units)
+            : FromWide(DivideAwayFromZero(left.Units, right));
     }
 
     public static FixedScalar operator %(FixedScalar left, FixedScalar right)
@@ -346,36 +340,6 @@ public readonly struct FixedScalar :
     public static bool operator >=(FixedScalar left, FixedScalar right) =>
         left.Units >= right.Units;
 
-    private static FixedScalar Log(FixedScalar value)
-    {
-        var units = value.Units;
-        var exponent = 0;
-        while (units >= 2 * Scale)
-        {
-            units >>= 1;
-            exponent++;
-        }
-
-        while (units < Scale)
-        {
-            units <<= 1;
-            exponent--;
-        }
-
-        var normalized = new FixedScalar(units);
-        var z = (normalized - One) / (normalized + One);
-        var zSquared = z * z;
-        var power = z;
-        var sum = z;
-        for (var divisor = 3; divisor <= 29; divisor += 2)
-        {
-            power *= zSquared;
-            sum += power / divisor;
-        }
-
-        return (sum * 2) + (Ln2 * exponent);
-    }
-
     private static FixedScalar FromWide(global::System.Int128 units)
     {
         if (units >= long.MaxValue)
@@ -386,19 +350,90 @@ public readonly struct FixedScalar :
         return units <= long.MinValue ? MinValue : new FixedScalar((long)units);
     }
 
+    private static FixedScalar FromNarrow(long units)
+    {
+        if (units == long.MaxValue)
+        {
+            return MaxValue;
+        }
+
+        return units == long.MinValue ? MinValue : new FixedScalar(units);
+    }
+
     private static long SaturatingAdd(long left, long right)
     {
-        var sum = (global::System.Int128)left + right;
-        if (sum >= long.MaxValue)
+        if (right > 0 && left > MaxValue.Units - right)
         {
             return MaxValue.Units;
         }
 
-        return sum <= long.MinValue ? MinValue.Units : (long)sum;
+        if (right < 0 && left < MinValue.Units - right)
+        {
+            return MinValue.Units;
+        }
+
+        return left + right;
     }
 
     private static long SaturatingNegate(long value) =>
         value == long.MinValue ? MaxValue.Units : -value;
+
+    private static bool TryMultiply(long left, long right, out long product)
+    {
+        if (left == 0 || right == 0)
+        {
+            product = 0;
+            return true;
+        }
+
+        var leftMagnitude = Magnitude(left);
+        var rightMagnitude = Magnitude(right);
+        if (leftMagnitude <= SafeMultiplyMagnitude &&
+            rightMagnitude <= SafeMultiplyMagnitude)
+        {
+            product = left * right;
+            return true;
+        }
+
+        var negative = (left < 0) != (right < 0);
+        var limit = negative ? 1UL << 63 : (ulong)long.MaxValue;
+        if (leftMagnitude > limit / rightMagnitude)
+        {
+            product = 0;
+            return false;
+        }
+
+        product = unchecked(left * right);
+        return true;
+    }
+
+    private static bool TryDivideAwayFromZero(
+        long numerator,
+        long denominator,
+        out long result)
+    {
+        if (numerator == long.MinValue && denominator == -1)
+        {
+            result = 0;
+            return false;
+        }
+
+        var quotient = numerator / denominator;
+        var remainder = numerator % denominator;
+        if (remainder != 0 &&
+            Magnitude(remainder) * 2 >= Magnitude(denominator))
+        {
+            quotient += (numerator < 0) == (denominator < 0) ? 1 : -1;
+        }
+
+        result = quotient;
+        return true;
+    }
+
+    private static ulong Magnitude(long value) =>
+        value >= 0
+            ? (ulong)value
+            : (ulong)(-(value + 1)) + 1;
 
     private static global::System.Int128 DivideAwayFromZero(
         global::System.Int128 numerator,

@@ -17,7 +17,7 @@ public sealed class GeneratorProgramRuntimeTests
     private const int CreatedRef = 2;
 
     [Fact]
-    public void PulseWindow_FiresWhenGeneratorBecomesEligibleAfterWindowStart()
+    public void FireWindow_FiresWhenGeneratorBecomesEligibleAfterWindowStart()
     {
         var simulation = CreateSimulation();
         SeedMap(simulation);
@@ -40,9 +40,9 @@ public sealed class GeneratorProgramRuntimeTests
     }
 
     [Fact]
-    public void PulseBudget_BlocksSecondFireUntilNextPulse()
+    public void FireWindowBudget_BlocksSecondFireUntilNextWindow()
     {
-        var simulation = CreateSimulation(pulseWidthTicks: 2, firesPerPulse: 1);
+        var simulation = CreateSimulation(fireWindowTicks: 2, firesPerWindow: 1);
         SeedMap(simulation);
         CreateTarget(simulation);
         RegisterGenerator(simulation);
@@ -57,9 +57,9 @@ public sealed class GeneratorProgramRuntimeTests
     }
 
     [Fact]
-    public void FiresPerPulse_AllowsConfiguredFiresWithinPulse()
+    public void FiresPerWindow_AllowsConfiguredFiresWithinWindow()
     {
-        var simulation = CreateSimulation(pulseWidthTicks: 25, firesPerPulse: 2);
+        var simulation = CreateSimulation(fireWindowTicks: 25, firesPerWindow: 2);
         SeedMap(simulation);
         CreateTarget(simulation);
         RegisterGenerator(simulation);
@@ -70,7 +70,7 @@ public sealed class GeneratorProgramRuntimeTests
     }
 
     [Fact]
-    public void SlotFillingGeneratorsReceivePulseSelectionWeightBonus()
+    public void SlotFillingGeneratorsReceiveFireSelectionWeightBonus()
     {
         const int slotFillingKindId = 3;
         const int slotFillingSubtypeId = 12;
@@ -83,13 +83,13 @@ public sealed class GeneratorProgramRuntimeTests
             generatorId: 101,
             createdKindId: CreatedKindId,
             createdSubtypeId: CreatedSubtypeId,
-            pulseWeight: 5);
+            fireWeight: 5);
         RegisterGeneratorWithProduced(
             simulation,
             generatorId: 102,
             createdKindId: slotFillingKindId,
             createdSubtypeId: slotFillingSubtypeId,
-            pulseWeight: 1);
+            fireWeight: 1);
         var slot = simulation.CultureSlots.RegisterSlot(
             CultureId,
             slotId: 1,
@@ -112,9 +112,9 @@ public sealed class GeneratorProgramRuntimeTests
     }
 
     [Fact]
-    public void Snapshot_RestoresPulseBudget()
+    public void Snapshot_RestoresFireWindowBudget()
     {
-        var simulation = CreateSimulation(pulseWidthTicks: 3, firesPerPulse: 1);
+        var simulation = CreateSimulation(fireWindowTicks: 3, firesPerWindow: 1);
         SeedMap(simulation);
         CreateTarget(simulation);
         RegisterGenerator(simulation);
@@ -470,6 +470,31 @@ public sealed class GeneratorProgramRuntimeTests
     }
 
     [Fact]
+    public void SetBindingHistoricalEffectPublishesCapturedTargetOccurrence()
+    {
+        var simulation = CreateSimulation();
+        SeedMap(simulation);
+        var target = CreateTarget(simulation);
+        var slot = RegisterGenerator(simulation, includeProduced: false);
+        simulation.Generators.AddEffect(
+            slot,
+            GeneratorEffectTypeCodes.SetBindingHistorical,
+            GeneratorProgramConstants.TargetReferenceCode);
+        using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
+
+        simulation.AdvanceTicks(1);
+
+        var events = ReadAvailableEvents(simulation, cursor);
+        Assert.False(simulation.World.EntityExists(target));
+        Assert.Contains(events, evt =>
+            evt.EventType == KernelEventType.GeneratorFired &&
+            evt.AsGeneratorFired().TargetEntityId == target);
+        Assert.Contains(events, evt =>
+            evt.EventType == KernelEventType.GeneratorEvaluated &&
+            evt.AsGeneratorEvaluated().SelectedTargetEntityId == target);
+    }
+
+    [Fact]
     public void AdjustTargetRelationshipStrengthEffect_CanSpendSelectedTriggerAndReciprocalOnly()
     {
         var simulation = CreateSimulation();
@@ -576,7 +601,7 @@ public sealed class GeneratorProgramRuntimeTests
     [Fact]
     public void RetryFireTargets_WhenEnabled_TriesAnotherTargetAfterFireFailure()
     {
-        var simulation = CreateSimulation(seed: 1, retryFireTargets: true);
+        var simulation = CreateSimulation(seed: 2, retryFireTargets: true);
         var firstTarget = CreateSparseCoverageTarget(simulation);
         var secondTarget = CreateViableCoverageTarget(simulation);
         RegisterCoverageGenerator(simulation);
@@ -608,7 +633,7 @@ public sealed class GeneratorProgramRuntimeTests
     [Fact]
     public void RetryFireTargets_WhenDisabled_StopsAfterFirstFireFailure()
     {
-        var simulation = CreateSimulation(seed: 1, retryFireTargets: false);
+        var simulation = CreateSimulation(seed: 2, retryFireTargets: false);
         CreateSparseCoverageTarget(simulation);
         CreateViableCoverageTarget(simulation);
         RegisterCoverageGenerator(simulation);
@@ -796,7 +821,7 @@ public sealed class GeneratorProgramRuntimeTests
         var slot = simulation.Generators.RegisterGenerator(
             GeneratorId,
             TargetKindId,
-            pulseWeight: 1,
+            fireWeight: 1,
             maxRuns);
         simulation.Generators.AddTrigger(slot, TargetKindId);
         if (includeProduced)
@@ -812,12 +837,12 @@ public sealed class GeneratorProgramRuntimeTests
         int generatorId,
         int createdKindId,
         int createdSubtypeId,
-        int pulseWeight)
+        int fireWeight)
     {
         var slot = simulation.Generators.RegisterGenerator(
             generatorId,
             TargetKindId,
-            pulseWeight,
+            fireWeight,
             maxRuns: 0);
         simulation.Generators.AddTrigger(slot, TargetKindId);
         simulation.Generators.AddProduced(
@@ -1005,8 +1030,8 @@ public sealed class GeneratorProgramRuntimeTests
     private static Simulation CreateSimulation(
         int seed = 1,
         bool retryFireTargets = true,
-        int pulseWidthTicks = GeneratorProgramConstants.DefaultPulseWidthTicks,
-        int firesPerPulse = GeneratorProgramConstants.DefaultFiresPerPulse) => KernelTestSimulation.Create(new SimulationOptions
+        int fireWindowTicks = GeneratorProgramConstants.DefaultFireWindowTicks,
+        int firesPerWindow = GeneratorProgramConstants.DefaultFiresPerWindow) => KernelTestSimulation.Create(new SimulationOptions
         {
             EntityCapacity = 16,
             RelationshipCapacity = 16,
@@ -1024,11 +1049,11 @@ public sealed class GeneratorProgramRuntimeTests
                 {
                     Generators = new GeneratorProgramTuningOptions
                     {
-                        FrontierPulseWidthMultiplier = 1,
-                        SettledPulseWidthMultiplier = 1,
+                        FrontierFireWindowMultiplier = 1,
+                        SettledFireWindowMultiplier = 1,
                         RetryFireTargets = retryFireTargets,
-                        PulseWidthTicks = pulseWidthTicks,
-                        FiresPerPulse = firesPerPulse,
+                        FireWindowTicks = fireWindowTicks,
+                        FiresPerWindow = firesPerWindow,
                     },
                 },
             },

@@ -14,7 +14,7 @@ internal static class KernelTestSimulation
             {
                 Programs = options.KernelTuning.Programs with
                 {
-                    MinorActorSubstepsPerPulse = mainTickRatio,
+                    MainProgramCadenceTicks = mainTickRatio,
                 },
             },
         });

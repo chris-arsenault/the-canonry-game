@@ -18,6 +18,8 @@ analysis remains in parquet telemetry.
   and historical transitions.
 - Gambits: declarations, betrayals, wielding, killing, relationship inversions.
 - Generators: created entity and relationship bundles, plus provenance links.
+- Scheduler: phase completion records carrying tick/phase revisions, bounded
+  work counts, and resolved mutation counts.
 
 ## Entry Structure
 
@@ -26,7 +28,7 @@ Each entry should include:
 - tick
 - event type
 - source program
-- involved entity IDs
+- involved generation-safe entity and relationship occurrence handles
 - short text generated outside the kernel from symbol tables
 - optional map focus position
 
@@ -34,6 +36,17 @@ Each entry should include:
 
 Kernel events are primitive and no-string. Human-readable event text is produced
 by projection code after joining against symbol tables.
+
+Events produced inside a kernel phase are buffered in fixed-capacity storage
+and sorted by semantic identity before publication. Their sequence therefore
+reflects published phase/result order rather than evaluator traversal order.
+`PhaseCompleted` is the consumer visibility boundary; UI projection retains the
+latest published phase revision. `TickCompleted` remains the
+calendar/tick marker.
+
+Occurrence handles are durable event identity, not reusable kernel slot
+addresses. Consumers may retain a handle as history, but resolving it against
+current state succeeds only while that exact occurrence remains active.
 
 Provenance is streamed rather than retained as completed kernel tables.
 Mutation events carry their invocation token; the completion event carries the

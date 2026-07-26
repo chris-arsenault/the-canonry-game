@@ -8,7 +8,6 @@ internal sealed partial class GambitProgramRuntime
     private sealed class TargetSelectionState(int candidateCount)
     {
         public int CandidateCount = candidateCount;
-        public int SelectedTargetId;
     }
 
     private bool ProviderSelectorRequiresAttribute(int selector)
@@ -317,11 +316,13 @@ internal sealed partial class GambitProgramRuntime
         int gambitSlot,
         int entityId,
         int tick,
-        ref int candidateCount,
-        FixedScalar selectRoll,
-        out int selectedTargetId)
+        ref int candidateCount)
     {
-        selectedTargetId = 0;
+        if (!ActorPreconditionsPass(simulation, gambitSlot, entityId, tick))
+        {
+            return 0;
+        }
+
         var targetMode = _gambitTargetModes[gambitSlot];
         if (targetMode == BehaviorTargetModeCodes.Self)
         {
@@ -330,11 +331,35 @@ internal sealed partial class GambitProgramRuntime
                 gambitSlot,
                 entityId,
                 tick,
-                ref candidateCount,
-                selectRoll,
-                out selectedTargetId);
+                ref candidateCount);
         }
 
+        return EvaluateOtherTargets(
+            simulation,
+            gambitSlot,
+            entityId,
+            tick,
+            ref candidateCount);
+    }
+
+    private FixedScalar EvaluateOtherTargets(
+        Simulation simulation,
+        int gambitSlot,
+        int entityId,
+        int tick,
+        ref int candidateCount)
+    {
+        if (_gambitRelationshipTargetDirectionCodes[gambitSlot] != 0)
+        {
+            return EvaluateRelationshipTargets(
+                simulation,
+                gambitSlot,
+                entityId,
+                tick,
+                ref candidateCount);
+        }
+
+        var targetMode = _gambitTargetModes[gambitSlot];
         if (targetMode == BehaviorTargetModeCodes.KindOther && _gambitTargetKindIds[gambitSlot] > 0)
         {
             return EvaluateKindTargets(
@@ -342,9 +367,7 @@ internal sealed partial class GambitProgramRuntime
                 gambitSlot,
                 entityId,
                 tick,
-                ref candidateCount,
-                selectRoll,
-                out selectedTargetId);
+                ref candidateCount);
         }
 
         return EvaluateAllTargets(
@@ -352,9 +375,7 @@ internal sealed partial class GambitProgramRuntime
             gambitSlot,
             entityId,
             tick,
-            ref candidateCount,
-            selectRoll,
-            out selectedTargetId);
+            ref candidateCount);
     }
 
     private FixedScalar EvaluateSelfTarget(
@@ -362,9 +383,7 @@ internal sealed partial class GambitProgramRuntime
         int gambitSlot,
         int entityId,
         int tick,
-        ref int candidateCount,
-        FixedScalar selectRoll,
-        out int selectedTargetId)
+        ref int candidateCount)
     {
         candidateCount++;
         return EvaluateCandidate(
@@ -372,9 +391,7 @@ internal sealed partial class GambitProgramRuntime
             gambitSlot,
             entityId,
             entityId,
-            tick,
-            selectRoll,
-            out selectedTargetId);
+            tick);
     }
 
     private FixedScalar EvaluateKindTargets(
@@ -382,11 +399,8 @@ internal sealed partial class GambitProgramRuntime
         int gambitSlot,
         int entityId,
         int tick,
-        ref int candidateCount,
-        FixedScalar selectRoll,
-        out int selectedTargetId)
+        ref int candidateCount)
     {
-        selectedTargetId = 0;
         var total = FixedScalar.Zero;
         var world = simulation.World;
         var state = new TargetSelectionState(candidateCount);
@@ -401,14 +415,11 @@ internal sealed partial class GambitProgramRuntime
                     entityId,
                     targetId,
                     tick,
-                    state,
-                    selectRoll,
-                    total);
-                return state.SelectedTargetId == 0;
+                    state);
+                return true;
             });
 
         candidateCount = state.CandidateCount;
-        selectedTargetId = state.SelectedTargetId;
         return total;
     }
 
@@ -417,11 +428,8 @@ internal sealed partial class GambitProgramRuntime
         int gambitSlot,
         int entityId,
         int tick,
-        ref int candidateCount,
-        FixedScalar selectRoll,
-        out int selectedTargetId)
+        ref int candidateCount)
     {
-        selectedTargetId = 0;
         var total = FixedScalar.Zero;
         var world = simulation.World;
         var state = new TargetSelectionState(candidateCount);
@@ -435,14 +443,11 @@ internal sealed partial class GambitProgramRuntime
                     entityId,
                     targetId,
                     tick,
-                    state,
-                    selectRoll,
-                    total);
-                return state.SelectedTargetId == 0;
+                    state);
+                return true;
             });
 
         candidateCount = state.CandidateCount;
-        selectedTargetId = state.SelectedTargetId;
         return total;
     }
 
@@ -453,8 +458,7 @@ internal sealed partial class GambitProgramRuntime
         int targetId,
         int tick,
         TargetSelectionState state,
-        FixedScalar selectRoll,
-        FixedScalar total)
+        bool relationshipTargetSourceSatisfied = false)
     {
         var world = simulation.World;
         if (!world.EntityIsActive(targetId) ||
@@ -465,20 +469,13 @@ internal sealed partial class GambitProgramRuntime
         }
 
         state.CandidateCount++;
-        var score = EvaluateCandidate(
+        return EvaluateCandidate(
             simulation,
             gambitSlot,
             entityId,
             targetId,
             tick,
-            selectRoll < 0 ? -1 : selectRoll - total,
-            out var selectedTargetId);
-        if (selectedTargetId > 0)
-        {
-            state.SelectedTargetId = selectedTargetId;
-        }
-
-        return score;
+            relationshipTargetSourceSatisfied);
     }
 
     private FixedScalar EvaluateCandidate(
@@ -487,12 +484,15 @@ internal sealed partial class GambitProgramRuntime
         int entityId,
         int targetId,
         int tick,
-        FixedScalar selectRoll,
-        out int selectedTargetId)
+        bool relationshipTargetSourceSatisfied = false)
     {
-        selectedTargetId = 0;
-        var preconditionResult = PreconditionsResult(simulation, gambitSlot, entityId, targetId, tick);
-        if (preconditionResult == PreconditionFailed)
+        if (!CandidatePreconditionsPass(
+                simulation,
+                gambitSlot,
+                entityId,
+                targetId,
+                tick,
+                relationshipTargetSourceSatisfied))
         {
             return 0;
         }
@@ -510,147 +510,8 @@ internal sealed partial class GambitProgramRuntime
             return 0;
         }
 
-        if (selectRoll >= 0 && selectRoll <= score)
-        {
-            selectedTargetId = targetId;
-        }
-
+        _scratch.AddCandidate(gambitSlot, targetId, score);
         return score;
-    }
-
-    private int PreconditionsResult(Simulation simulation, int gambitSlot, int entityId, int targetId, int tick)
-    {
-        return PreconditionsResult(
-            simulation,
-            gambitSlot,
-            entityId,
-            targetId,
-            tick,
-            out _,
-            out _,
-            out _,
-            out _);
-    }
-
-    private int PreconditionsResult(
-        Simulation simulation,
-        int gambitSlot,
-        int entityId,
-        int targetId,
-        int tick,
-        out int blockerScopeCode,
-        out int blockerValueId,
-        out int blockerKindId,
-        out int blockerTargetId)
-    {
-        var world = simulation.World;
-        blockerScopeCode = 0;
-        blockerValueId = 0;
-        blockerKindId = 0;
-        blockerTargetId = 0;
-        var first = _gambitPreconditionStarts[gambitSlot];
-        var end = first + _gambitPreconditionCounts[gambitSlot];
-        for (var pre = first; pre < end; pre++)
-        {
-            if (KernelQuery.QueryPredicateIsComposition(_preconditionCodes[pre]))
-            {
-                return ComposedPreconditionsResult(
-                    simulation,
-                    gambitSlot,
-                    entityId,
-                    targetId,
-                    tick,
-                    first,
-                    end,
-                    out blockerScopeCode,
-                    out blockerValueId,
-                    out blockerKindId,
-                    out blockerTargetId);
-            }
-        }
-
-        for (var pre = first; pre < end; pre++)
-        {
-            if (!EvaluateGambitPredicate(simulation, gambitSlot, pre, entityId, targetId, tick))
-            {
-                ResolvePreconditionBlocker(
-                    world,
-                    pre,
-                    entityId,
-                    targetId,
-                    out blockerScopeCode,
-                    out blockerValueId,
-                    out blockerKindId,
-                    out blockerTargetId);
-                return PreconditionFailed;
-            }
-        }
-
-        return PreconditionPassed;
-    }
-
-    private int ComposedPreconditionsResult(
-        Simulation simulation,
-        int gambitSlot,
-        int entityId,
-        int targetId,
-        int tick,
-        int first,
-        int end,
-        out int blockerScopeCode,
-        out int blockerValueId,
-        out int blockerKindId,
-        out int blockerTargetId)
-    {
-        blockerScopeCode = 0;
-        blockerValueId = 0;
-        blockerKindId = 0;
-        blockerTargetId = 0;
-        global::System.Span<bool> stack = _preconditionStack;
-        var stackCount = 0;
-        var failedBlockerPre = 0;
-        for (var pre = first; pre < end; pre++)
-        {
-            if (KernelQuery.TryApplyCompositionPredicate(_preconditionCodes[pre], stack, ref stackCount))
-            {
-                continue;
-            }
-
-            var passes = EvaluateGambitPredicate(simulation, gambitSlot, pre, entityId, targetId, tick);
-            if (!passes && failedBlockerPre == 0)
-            {
-                failedBlockerPre = pre;
-            }
-
-            PushBool(stack, ref stackCount, passes);
-        }
-
-        var final = true;
-        while (stackCount > 0)
-        {
-            final = PopBool(stack, ref stackCount) && final;
-        }
-
-        if (final)
-        {
-            return PreconditionPassed;
-        }
-
-        if (failedBlockerPre != 0)
-        {
-            ResolvePreconditionBlocker(
-                simulation.World,
-                failedBlockerPre,
-                entityId,
-                targetId,
-                out blockerScopeCode,
-                out blockerValueId,
-                out blockerKindId,
-                out blockerTargetId);
-            return PreconditionFailed;
-        }
-
-        return PreconditionFailed;
     }
 
     private bool EvaluateGambitPredicate(Simulation simulation, int gambitSlot, int pre, int entityId, int targetId, int tick)
@@ -671,126 +532,6 @@ internal sealed partial class GambitProgramRuntime
             entityWorkTierReader: simulation.World.EntityWorkTier,
             travelCostReader: simulation.TravelReachCost);
         return KernelQuery.EvaluatePredicate(simulation.World, predicate, binding);
-    }
-
-    private void ResolvePreconditionBlocker(
-        WorldState world,
-        int pre,
-        int entityId,
-        int targetId,
-        out int blockerScopeCode,
-        out int blockerValueId,
-        out int blockerKindId,
-        out int blockerTargetId)
-    {
-        blockerScopeCode = 0;
-        blockerValueId = 0;
-        blockerKindId = 0;
-        blockerTargetId = 0;
-        var code = _preconditionCodes[pre];
-        _ = TryResolveAttributeBlocker(world, code, pre, entityId, targetId, ref blockerScopeCode, ref blockerValueId, ref blockerKindId, ref blockerTargetId) ||
-            TryResolveContextBlocker(world, code, pre, entityId, targetId, ref blockerScopeCode, ref blockerValueId, ref blockerKindId, ref blockerTargetId);
-    }
-
-    private bool TryResolveAttributeBlocker(
-        WorldState world,
-        int code,
-        int pre,
-        int entityId,
-        int targetId,
-        ref int blockerScopeCode,
-        ref int blockerValueId,
-        ref int blockerKindId,
-        ref int blockerTargetId)
-    {
-        if (code == BehaviorPreconditionCodes.SelfAttributeRange)
-        {
-            blockerScopeCode = BehaviorEffectScopeCodes.SelfAttribute;
-            blockerValueId = _preA[pre];
-            blockerKindId = world.EntityKindId(entityId);
-            blockerTargetId = entityId;
-            return true;
-        }
-
-        if (code != BehaviorPreconditionCodes.TargetAttributeRange)
-        {
-            return false;
-        }
-
-        blockerScopeCode = BehaviorEffectScopeCodes.TargetAttribute;
-        blockerValueId = _preA[pre];
-        blockerKindId = world.EntityKindId(targetId);
-        blockerTargetId = targetId;
-        return true;
-    }
-
-    private bool TryResolveContextBlocker(
-        WorldState world,
-        int code,
-        int pre,
-        int entityId,
-        int targetId,
-        ref int blockerScopeCode,
-        ref int blockerValueId,
-        ref int blockerKindId,
-        ref int blockerTargetId)
-    {
-        if (code == BehaviorPreconditionCodes.PlaneDistance)
-        {
-            blockerScopeCode = BehaviorEffectScopeCodes.Structural;
-            blockerValueId = _preC[pre];
-            blockerKindId = world.EntityKindId(entityId);
-            blockerTargetId = targetId != entityId ? targetId : entityId;
-            return true;
-        }
-
-        if (code == BehaviorPreconditionCodes.ContestedInfluence)
-        {
-            blockerScopeCode = BehaviorEffectScopeCodes.Structural;
-            blockerValueId = _preA[pre];
-            blockerKindId = world.EntityKindId(targetId);
-            blockerTargetId = targetId;
-            return true;
-        }
-
-        if (code == BehaviorPreconditionCodes.SharedInfluence)
-        {
-            blockerScopeCode = BehaviorEffectScopeCodes.Structural;
-            blockerValueId = _preA[pre];
-            blockerKindId = world.EntityKindId(targetId);
-            blockerTargetId = targetId;
-            return true;
-        }
-
-        return TryResolveRelationshipBlocker(world, code, pre, targetId, ref blockerScopeCode, ref blockerValueId, ref blockerKindId, ref blockerTargetId);
-    }
-
-    private bool TryResolveRelationshipBlocker(
-        WorldState world,
-        int code,
-        int pre,
-        int targetId,
-        ref int blockerScopeCode,
-        ref int blockerValueId,
-        ref int blockerKindId,
-        ref int blockerTargetId)
-    {
-        if (code != BehaviorPreconditionCodes.SelfHasRelationshipToTarget &&
-            code != BehaviorPreconditionCodes.TargetHasRelationshipToSelf &&
-            code != BehaviorPreconditionCodes.SelfHasOutgoingRelationship &&
-            code != BehaviorPreconditionCodes.SelfHasOutgoingRelationshipToKind &&
-            code != BehaviorPreconditionCodes.EndpointRelationshipCountBelow &&
-            code != BehaviorPreconditionCodes.RelatedEntityMatchesTarget &&
-            code != BehaviorPreconditionCodes.RelationshipExists)
-        {
-            return false;
-        }
-
-        blockerScopeCode = BehaviorEffectScopeCodes.Relational;
-        blockerValueId = _preA[pre];
-        blockerKindId = world.EntityKindId(targetId);
-        blockerTargetId = targetId;
-        return true;
     }
 
 }

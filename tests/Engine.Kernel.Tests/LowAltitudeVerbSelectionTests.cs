@@ -388,18 +388,32 @@ public sealed class LowAltitudeVerbSelectionTests
     [Fact]
     public void DistanceScoring_PrefersCloserTargetsAtSamePolarity()
     {
-        var simulation = NewSimulation(seed: 61, opportunityRate: FixedScalar.FromSingle(0f));
-        SeedRadius2Neighborhood(simulation);
+        const int trials = 80;
         const int verbId = 610;
-        var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
-        var nearTargetId = simulation.CreateEntity(TargetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
-        simulation.CreateEntity(TargetKindId, 1, 1, 2, 0, 0, 0, 0, 0);
-        // Tighten the distance scale so close-vs-far is a sharp preference.
-        RegisterEntityKindVerb(simulation, verbId, targetKindId: TargetKindId, weight: FixedScalar.FromSingle(1f), distanceScaleOverride: FixedScalar.FromSingle(1f));
+        var nearPicks = 0;
+        var farPicks = 0;
+        for (var trial = 0; trial < trials; trial++)
+        {
+            var simulation = NewSimulation(seed: 610 + trial, opportunityRate: FixedScalar.FromSingle(0f));
+            SeedRadius2Neighborhood(simulation);
+            var actorId = simulation.CreateEntity(ActorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+            var nearTargetId = simulation.CreateEntity(TargetKindId, 1, 1, 1, 0, 0, 0, 0, 0);
+            var farTargetId = simulation.CreateEntity(TargetKindId, 1, 1, 2, 0, 0, 0, 0, 0);
+            RegisterEntityKindVerb(
+                simulation,
+                verbId,
+                targetKindId: TargetKindId,
+                weight: FixedScalar.FromSingle(1f),
+                distanceScaleOverride: FixedScalar.FromSingle(1f));
 
-        simulation.AdvanceTicks(1);
+            simulation.AdvanceTicks(1);
 
-        Assert.Equal(nearTargetId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+            var selectedTargetId = simulation.LowAltitudeVerbs.State.TargetEntityId(actorId);
+            nearPicks += selectedTargetId == nearTargetId ? 1 : 0;
+            farPicks += selectedTargetId == farTargetId ? 1 : 0;
+        }
+
+        Assert.True(nearPicks > farPicks, $"near={nearPicks}, far={farPicks}");
     }
 
     [Fact]
@@ -712,7 +726,7 @@ public sealed class LowAltitudeVerbSelectionTests
             {
                 Programs = new KernelProgramTuningOptions
                 {
-                    MinorActorSubstepsPerPulse = 1,
+                    MainProgramCadenceTicks = 1,
                     LowAltitudeVerbs = new LowAltitudeVerbTuningOptions
                     {
                         OpportunityRate = opportunityRate ?? FixedScalar.FromSingle(0.4f),

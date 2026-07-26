@@ -28,12 +28,12 @@ public sealed class GeographyPreconditionCompileTests
         var compiledId = compiled.Ids.GambitIdOf("penguin_raises_the_waymark").Value;
         var rule = Assert.Single(compiled.Programs.Gambits.Gambits, g => g.GambitId == compiledId);
 
-        Assert.Contains(rule.Preconditions, op =>
+        Assert.Contains(rule.PreconditionPlan.CandidateInstructions, op =>
             op.Code == BehaviorProgramPrecondition.SelfHexFactRange &&
             op.A == PhysicalHexFactCodes.Geothermal &&
             op.B == PhysicalHexFactCodes.FromIntensity(400) &&
             op.C == 255);
-        Assert.Contains(rule.Preconditions, op =>
+        Assert.Contains(rule.PreconditionPlan.CandidateInstructions, op =>
             op.Code == BehaviorProgramPrecondition.TargetHexFactRange &&
             op.A == PhysicalHexFactCodes.Elevation &&
             op.B == PhysicalHexFactCodes.FromElevation(100) &&
@@ -57,7 +57,7 @@ public sealed class GeographyPreconditionCompileTests
 
         var groupId = compiled.Ids.TerrainBoundaryGroupIdOf("warm_land").Value;
         Assert.True(groupId > 0);
-        Assert.Contains(rule.Preconditions, op =>
+        Assert.Contains(rule.PreconditionPlan.CandidateInstructions, op =>
             op.Code == BehaviorProgramPrecondition.SelfOnTerrainGroup &&
             op.A == groupId);
 

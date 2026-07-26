@@ -59,7 +59,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$enemy", "$ally", Rel.AtWarWith, 0.7f),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 10,
+        FireWeight = 10,
     };
 
     private static SemanticGeneratorConfig WarTakesItsToll() => new()
@@ -102,7 +102,7 @@ public static partial class IceRemembersGeneratorDefinition
                 includeReciprocal: true),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 14,
+        FireWeight = 14,
     };
 
     private static SemanticGeneratorConfig TheColumnHolds() => new()
@@ -121,6 +121,6 @@ public static partial class IceRemembersGeneratorDefinition
                 GeneratorRelationshipInstanceSelection.TriggerRelationship),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 8,
+        FireWeight = 8,
     };
 }

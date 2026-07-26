@@ -20,14 +20,14 @@ public sealed class MapFrontierProgram
     public FixedScalar BaseIceResistance { get; init; }
     public FixedScalar CultureMassResistanceScale { get; init; }
     public FixedScalar RoadIceResistance { get; init; }
-    public int IceAdvanceBudgetPerPulse { get; init; }
-    public int IceRetreatBudgetPerPulse { get; init; }
+    public int IceAdvanceBudgetPerRun { get; init; }
+    public int IceRetreatBudgetPerRun { get; init; }
     public bool SemanticGrowthEnabled { get; init; }
     public int SemanticMaxRadius { get; init; }
     public FixedScalar SemanticFrontierMassThreshold { get; init; }
-    public int SemanticBudgetPerPulse { get; init; }
+    public int SemanticBudgetPerRun { get; init; }
     public int SeaIceCoverTerrainId { get; init; }
     public IReadOnlyList<int> SeaIceEligibleTerrainIds { get; init; } = [];
-    public int SeaIceFreezeBudgetPerPulse { get; init; }
-    public int SeaIceMeltBudgetPerPulse { get; init; }
+    public int SeaIceFreezeBudgetPerRun { get; init; }
+    public int SeaIceMeltBudgetPerRun { get; init; }
 }

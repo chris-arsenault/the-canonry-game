@@ -52,7 +52,7 @@ public sealed class MapFrontierProgramRuntimeTests
         simulation.MapFrontier.SetAgeConfiguration(
             ThawAgeId, ReclaimAgeId, DeepIceTerrain,
             maxRadius: 40,
-            iceAdvanceBudgetPerPulse: 24, iceRetreatBudgetPerPulse: 24);
+            iceAdvanceBudgetPerRun: 24, iceRetreatBudgetPerRun: 24);
         simulation.MapFrontier.RegisterKindRevealRadius(RangingKindId, 3);
         _ = simulation.CreateEntity(RangingKindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
 
@@ -72,7 +72,7 @@ public sealed class MapFrontierProgramRuntimeTests
         simulation.MapFrontier.SetAgeConfiguration(
             ThawAgeId, ReclaimAgeId, DeepIceTerrain,
             maxRadius: 1,
-            iceAdvanceBudgetPerPulse: 24, iceRetreatBudgetPerPulse: 24);
+            iceAdvanceBudgetPerRun: 24, iceRetreatBudgetPerRun: 24);
         _ = simulation.CreateEntity(KindId, 1, 1, 1, 0, 0, 0, 0, tick: 0);
 
         simulation.MapFrontier.Tick(simulation, tick: 10);
@@ -82,7 +82,7 @@ public sealed class MapFrontierProgramRuntimeTests
     }
 
     [Fact]
-    public void Reveal_FiresOnArrival_NotJustOnThePulse()
+    public void Reveal_FiresOnArrival_NotJustOnTheScheduledRun()
     {
         var simulation = CreateSimulation();
         RegisterTerrains(simulation);
@@ -92,7 +92,7 @@ public sealed class MapFrontierProgramRuntimeTests
         ConfigureFrontier(simulation, ThawAgeId, ReclaimAgeId);
         var walker = simulation.CreateEntity(KindId, 1, 1, 0, 0, 0, 0, 0, tick: 0);
 
-        // No frontier pulse runs; arrival alone opens the surroundings.
+        // No frontier run occurs; arrival alone opens the surroundings.
         simulation.MapFrontier.RevealOnArrival(simulation, walker, tick: 1);
 
         Assert.True(simulation.World.CellIsKnown(PlaneCodes.Physical, 1, 0));
@@ -177,7 +177,7 @@ public sealed class MapFrontierProgramRuntimeTests
             enabled: true,
             maxRadius: 64,
             frontierMassThreshold: FixedScalar.FromSingle(10f),
-            budgetPerPulse: 48);
+            budgetPerRun: 48);
         _ = simulation.ModifyCellCultureInfluenceRaw(1, PlaneCodes.Semantic, 0, 0, FixedScalar.FromSingle(40f), tick: 11);
 
         simulation.MapFrontier.Tick(simulation, tick: 12);
@@ -227,7 +227,7 @@ public sealed class MapFrontierProgramRuntimeTests
 
         // Reveal materializes the base terrain and applies the declared
         // initial cover, so the cell plays as frozen sea from its first
-        // tick, and later reveal pulses leave the known cell alone.
+        // tick, and later reveal runs leave the known cell alone.
         Assert.True(simulation.World.CellIsKnown(PlaneCodes.Physical, 1, 0));
         Assert.Equal(SeaIceTerrain, simulation.World.CellTerrainCoverId(PlaneCodes.Physical, 1, 0));
         simulation.MapFrontier.Tick(simulation, tick: 14);
@@ -262,7 +262,7 @@ public sealed class MapFrontierProgramRuntimeTests
         simulation.SeedCell(2, 0, MountainTerrain, ownerEntityId: 0);
         ConfigureFrontier(simulation, ThawAgeId, ReclaimAgeId);
         simulation.MapFrontier.SetSeaIceConfiguration(
-            SeaIceTerrain, freezeBudgetPerPulse: 1, meltBudgetPerPulse: 8);
+            SeaIceTerrain, freezeBudgetPerRun: 1, meltBudgetPerRun: 8);
         simulation.MapFrontier.AddSeaIceEligibleTerrain(MountainTerrain);
 
         // A freeze age: the shore-adjacent water freezes first.
@@ -270,7 +270,7 @@ public sealed class MapFrontierProgramRuntimeTests
         simulation.MapFrontier.Tick(simulation, tick: 2);
         Assert.Equal(SeaIceTerrain, simulation.World.CellTerrainCoverId(PlaneCodes.Physical, 1, 0));
 
-        // The next freeze pulse spreads the cover along the frozen edge.
+        // The next freeze run spreads the cover along the frozen edge.
         simulation.MapFrontier.Tick(simulation, tick: 3);
         Assert.Equal(SeaIceTerrain, simulation.World.CellTerrainCoverId(PlaneCodes.Physical, 2, 0));
 
@@ -330,7 +330,7 @@ public sealed class MapFrontierProgramRuntimeTests
         simulation.MapFrontier.SetAgeConfiguration(
             thawAgeId, reclaimAgeId, DeepIceTerrain,
             maxRadius: 40,
-            iceAdvanceBudgetPerPulse: 24, iceRetreatBudgetPerPulse: 24);
+            iceAdvanceBudgetPerRun: 24, iceRetreatBudgetPerRun: 24);
 
     private static Simulation CreateSimulation(int candidateCapacity = 128) => KernelTestSimulation.Create(new SimulationOptions
     {

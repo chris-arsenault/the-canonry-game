@@ -26,7 +26,12 @@ internal sealed partial class GeneratorProgramRuntime
         if (_nextCadenceFireTicks[slot] == 0)
         {
             // First sighting: desynchronize timelines across generators.
-            _nextCadenceFireTicks[slot] = tick + 1 + simulation.NextInt(cadence);
+            _nextCadenceFireTicks[slot] = tick + 1 + simulation.RandomInt(
+                cadence,
+                slot,
+                _generatorIds[slot],
+                KernelRandomPurposeCodes.GeneratorCadenceStart,
+                attempt: tick);
             return;
         }
 
@@ -38,11 +43,11 @@ internal sealed partial class GeneratorProgramRuntime
         _nextCadenceFireTicks[slot] = tick + global::System.Math.Max(1, cadence + CadenceJitter(simulation, slot));
         for (var other = 1; other <= _generatorCount; other++)
         {
-            ResetPulseScratch(other);
+            ResetFireScratch(other);
         }
 
         EvaluateGenerator(simulation, slot);
-        if (_pulseStatusCodes[slot] == GeneratorStatusCodes.Eligible)
+        if (_fireStatusCodes[slot] == GeneratorStatusCodes.Eligible)
         {
             _ = TryFireEligibleGenerator(simulation, slot, tick);
         }
@@ -51,15 +56,22 @@ internal sealed partial class GeneratorProgramRuntime
     private int CadenceJitter(Simulation simulation, int slot)
     {
         var jitter = _cadenceJitterTicks[slot];
-        return jitter <= 0 ? 0 : simulation.NextInt((2 * jitter) + 1) - jitter;
+        return jitter <= 0
+            ? 0
+            : simulation.RandomInt(
+                (2 * jitter) + 1,
+                slot,
+                _generatorIds[slot],
+                KernelRandomPurposeCodes.GeneratorCadenceJitter,
+                attempt: _nextCadenceFireTicks[slot]) - jitter;
     }
 
-    private void ResetPulseScratch(int slot)
+    private void ResetFireScratch(int slot)
     {
-        _pulseStatusCodes[slot] = GeneratorStatusCodes.NotEvaluated;
-        _pulseCandidateCounts[slot] = 0;
-        _pulseSelectionWeights[slot] = 0;
-        _pulseSelectedTargetIds[slot] = 0;
-        _pulseFailedFireCounts[slot] = 0;
+        _fireStatusCodes[slot] = GeneratorStatusCodes.NotEvaluated;
+        _fireCandidateCounts[slot] = 0;
+        _fireSelectionWeights[slot] = 0;
+        _fireSelectedTargetOccurrenceHandles[slot] = 0;
+        _fireFailedCounts[slot] = 0;
     }
 }

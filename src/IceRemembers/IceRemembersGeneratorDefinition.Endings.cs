@@ -75,7 +75,7 @@ public static partial class IceRemembersGeneratorDefinition
             new DemoteBindingStageEffect("$target"),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 6,
+        FireWeight = 6,
         CadenceTicks = 2000,
         CadenceJitterTicks = 500,
     };
@@ -110,7 +110,7 @@ public static partial class IceRemembersGeneratorDefinition
             new SetBindingHistoricalEffect("$elder"),
         ],
         Triggers = TriggerOn(K.Canon),
-        PulseWeight = 4,
+        FireWeight = 4,
         CadenceTicks = 3000,
         CadenceJitterTicks = 800,
     };
@@ -154,7 +154,7 @@ public static partial class IceRemembersGeneratorDefinition
             new SetBindingHistoricalEffect("$second"),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 5,
+        FireWeight = 5,
         CadenceTicks = 1200,
         CadenceJitterTicks = 300,
     };
@@ -193,7 +193,7 @@ public static partial class IceRemembersGeneratorDefinition
             new SetBindingHistoricalEffect("$tome"),
         ],
         Triggers = TriggerOn(K.Penguin),
-        PulseWeight = 6,
+        FireWeight = 6,
         CadenceTicks = 1600,
         CadenceJitterTicks = 400,
     };
@@ -224,7 +224,7 @@ public static partial class IceRemembersGeneratorDefinition
             new SetBindingHistoricalEffect("$instrument"),
         ],
         Triggers = TriggerOn(K.PointOfInterest),
-        PulseWeight = 5,
+        FireWeight = 5,
         // Requires a wandering instrument to stand beside the chosen
         // devoted site on the attempt tick - a rare alignment. At cadence
         // 2000 that gave ~10 attempts and ~0.3 fires per 100k; the shorter

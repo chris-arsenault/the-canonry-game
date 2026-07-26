@@ -6,6 +6,10 @@ internal sealed partial class GambitProgramData : IKernelProgramData
 {
     internal int[] GambitKindIds = [];
     internal int[] GambitIds = [];
+    internal int[] GambitActorKindIds = [];
+    internal int[] GambitFirstSlotsByActorKind = [];
+    internal int[] GambitLastSlotsByActorKind = [];
+    internal int[] NextGambitSlotsByActorKind = [];
     internal int[] GambitCooldownTicks = [];
     internal int[] GambitEntityCooldownTicks = [];
     internal FixedScalar[] GambitSuccessChances = [];
@@ -13,6 +17,15 @@ internal sealed partial class GambitProgramData : IKernelProgramData
     internal int[] GambitTargetModes = [];
     internal int[] GambitPreconditionStarts = [];
     internal int[] GambitPreconditionCounts = [];
+    internal int[] GambitPreconditionEntries = [];
+    internal int[] GambitActorPreconditionStarts = [];
+    internal int[] GambitActorPreconditionCounts = [];
+    internal int[] GambitActorPreconditionEntries = [];
+    internal int[] GambitActorValueCounts = [];
+    internal int[] GambitRelationshipTargetDirectionCodes = [];
+    internal int[] GambitRelationshipTargetKindIds = [];
+    internal int[] GambitRelationshipTargetHasMinimumStrength = [];
+    internal FixedScalar[] GambitRelationshipTargetMinimumStrengths = [];
     internal int[] GambitExpressionStarts = [];
     internal int[] GambitExpressionCounts = [];
     internal int[] GambitStepStarts = [];
@@ -27,6 +40,14 @@ internal sealed partial class GambitProgramData : IKernelProgramData
     internal int[] PreD = [];
     internal FixedScalar[] PreX = [];
     internal FixedScalar[] PreY = [];
+    internal int[] PreActorValueSlots = [];
+    internal int[] PreRelationshipTargetSources = [];
+    internal int[] PreTrueDestinations = [];
+    internal int[] PreFalseDestinations = [];
+    internal int[] ActorValuePreconditionIndexes = [];
+    internal int[] ActorPreValueSlots = [];
+    internal int[] ActorPreTrueDestinations = [];
+    internal int[] ActorPreFalseDestinations = [];
     internal int[] ExpressionCodes = [];
     internal int[] ExpressionA = [];
     internal FixedScalar[] ExpressionX = [];
@@ -62,6 +83,8 @@ internal sealed partial class GambitProgramData : IKernelProgramData
     internal int ProviderSelectorCount;
     internal int TraitModifierCount;
     internal int OpenGambitSlot;
+    internal int GambitActorKindCount;
+    internal int ActorPreconditionCount;
 
     public GambitProgramData(
         int gambitCapacity,
@@ -80,6 +103,10 @@ internal sealed partial class GambitProgramData : IKernelProgramData
     {
         GambitKindIds = new int[gambitCapacity + 1];
         GambitIds = new int[gambitCapacity + 1];
+        GambitActorKindIds = new int[gambitCapacity + 1];
+        GambitFirstSlotsByActorKind = new int[gambitCapacity + 1];
+        GambitLastSlotsByActorKind = new int[gambitCapacity + 1];
+        NextGambitSlotsByActorKind = new int[gambitCapacity + 1];
         AgeScoreMultipliers = new FixedScalar[gambitCapacity + 1];
         global::System.Array.Fill(AgeScoreMultipliers, 1);
         GambitCooldownTicks = new int[gambitCapacity + 1];
@@ -91,6 +118,15 @@ internal sealed partial class GambitProgramData : IKernelProgramData
         GambitTargetModes = new int[gambitCapacity + 1];
         GambitPreconditionStarts = new int[gambitCapacity + 1];
         GambitPreconditionCounts = new int[gambitCapacity + 1];
+        GambitPreconditionEntries = new int[gambitCapacity + 1];
+        GambitActorPreconditionStarts = new int[gambitCapacity + 1];
+        GambitActorPreconditionCounts = new int[gambitCapacity + 1];
+        GambitActorPreconditionEntries = new int[gambitCapacity + 1];
+        GambitActorValueCounts = new int[gambitCapacity + 1];
+        GambitRelationshipTargetDirectionCodes = new int[gambitCapacity + 1];
+        GambitRelationshipTargetKindIds = new int[gambitCapacity + 1];
+        GambitRelationshipTargetHasMinimumStrength = new int[gambitCapacity + 1];
+        GambitRelationshipTargetMinimumStrengths = new FixedScalar[gambitCapacity + 1];
         GambitExpressionStarts = new int[gambitCapacity + 1];
         GambitExpressionCounts = new int[gambitCapacity + 1];
         GambitStepStarts = new int[gambitCapacity + 1];
@@ -109,6 +145,14 @@ internal sealed partial class GambitProgramData : IKernelProgramData
         PreD = new int[stepCapacity + 1];
         PreX = new FixedScalar[stepCapacity + 1];
         PreY = new FixedScalar[stepCapacity + 1];
+        PreActorValueSlots = new int[stepCapacity + 1];
+        PreRelationshipTargetSources = new int[stepCapacity + 1];
+        PreTrueDestinations = new int[stepCapacity + 1];
+        PreFalseDestinations = new int[stepCapacity + 1];
+        ActorValuePreconditionIndexes = new int[stepCapacity + 1];
+        ActorPreValueSlots = new int[stepCapacity + 1];
+        ActorPreTrueDestinations = new int[stepCapacity + 1];
+        ActorPreFalseDestinations = new int[stepCapacity + 1];
         ExpressionCodes = new int[stepCapacity + 1];
         ExpressionA = new int[stepCapacity + 1];
         ExpressionX = new FixedScalar[stepCapacity + 1];
@@ -142,7 +186,7 @@ internal sealed partial class GambitProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.Gambits;
 
-    public int SchemaVersion => 3;
+    public int SchemaVersion => 4;
 
     internal DecisionModifier ReadDecisionModifier(int modifier) =>
         new(

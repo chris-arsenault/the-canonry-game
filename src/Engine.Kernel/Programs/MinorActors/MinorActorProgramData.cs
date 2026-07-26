@@ -9,11 +9,11 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
     internal readonly int[] PurposeCodes;
     internal readonly int[] ActorKindCodes;
     internal readonly int[] PlaneCodes;
-    internal readonly int[] TtlPulses;
-    internal readonly int[] EmitCadencePulses;
+    internal readonly int[] TtlTicks;
+    internal readonly int[] EmitCadenceTicks;
     internal readonly int[] MaxActivePerSource;
     internal readonly int[] SpawnRadii;
-    internal readonly int[] ActionCadencePulses;
+    internal readonly int[] ActionCadenceTicks;
     internal readonly FixedScalar[] WorkDeltas;
     internal readonly int[] RuleMaxVerbRadii;
     internal readonly int[] VerbSourceRuleIds;
@@ -42,11 +42,11 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         PurposeCodes = new int[ruleCapacity + 1];
         ActorKindCodes = new int[ruleCapacity + 1];
         PlaneCodes = new int[ruleCapacity + 1];
-        TtlPulses = new int[ruleCapacity + 1];
-        EmitCadencePulses = new int[ruleCapacity + 1];
+        TtlTicks = new int[ruleCapacity + 1];
+        EmitCadenceTicks = new int[ruleCapacity + 1];
         MaxActivePerSource = new int[ruleCapacity + 1];
         SpawnRadii = new int[ruleCapacity + 1];
-        ActionCadencePulses = new int[ruleCapacity + 1];
+        ActionCadenceTicks = new int[ruleCapacity + 1];
         WorkDeltas = new FixedScalar[ruleCapacity + 1];
         RuleMaxVerbRadii = new int[ruleCapacity + 1];
         VerbSourceRuleIds = new int[verbCapacity + 1];
@@ -68,7 +68,7 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
 
     public int ProgramId => KernelProgramCodes.MinorActors;
 
-    public int SchemaVersion => 4;
+    public int SchemaVersion => 5;
 
     public int RuleCapacity => SourceKindIds.Length - 1;
 
@@ -84,11 +84,11 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         int purposeCode,
         int actorKindCode,
         int planeCode,
-        int ttlPulses,
-        int emitCadencePulses,
+        int ttlTicks,
+        int emitCadenceTicks,
         int maxActivePerSource,
         int spawnRadius,
-        int actionCadencePulses,
+        int actionCadenceTicks,
         FixedScalar workDelta)
     {
         ValidateRule(
@@ -97,11 +97,11 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
             purposeCode,
             actorKindCode,
             planeCode,
-            ttlPulses,
-            emitCadencePulses,
+            ttlTicks,
+            emitCadenceTicks,
             maxActivePerSource,
             spawnRadius,
-            actionCadencePulses,
+            actionCadenceTicks,
             workDelta);
 
         if (RuleCount >= RuleCapacity)
@@ -115,11 +115,11 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         PurposeCodes[rule] = purposeCode;
         ActorKindCodes[rule] = actorKindCode;
         PlaneCodes[rule] = planeCode;
-        TtlPulses[rule] = ttlPulses;
-        EmitCadencePulses[rule] = emitCadencePulses;
+        TtlTicks[rule] = ttlTicks;
+        EmitCadenceTicks[rule] = emitCadenceTicks;
         MaxActivePerSource[rule] = maxActivePerSource;
         SpawnRadii[rule] = spawnRadius;
-        ActionCadencePulses[rule] = actionCadencePulses;
+        ActionCadenceTicks[rule] = actionCadenceTicks;
         WorkDeltas[rule] = workDelta;
         AppendIndex(
             sourceKindId,
@@ -210,11 +210,11 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         int purposeCode,
         int actorKindCode,
         int planeCode,
-        int ttlPulses,
-        int emitCadencePulses,
+        int ttlTicks,
+        int emitCadenceTicks,
         int maxActivePerSource,
         int spawnRadius,
-        int actionCadencePulses,
+        int actionCadenceTicks,
         FixedScalar workDelta)
     {
         NumericGuard.ThrowIfNegativeOrZero(sourceKindId);
@@ -222,11 +222,11 @@ internal sealed partial class MinorActorProgramData : IKernelProgramData
         ValidatePurposeCode(purposeCode);
         NumericGuard.ThrowIfNegativeOrZero(actorKindCode);
         ValidatePlaneCode(planeCode);
-        NumericGuard.ThrowIfNegativeOrZero(ttlPulses);
-        NumericGuard.ThrowIfNegativeOrZero(emitCadencePulses);
+        NumericGuard.ThrowIfNegativeOrZero(ttlTicks);
+        NumericGuard.ThrowIfNegativeOrZero(emitCadenceTicks);
         NumericGuard.ThrowIfNegativeOrZero(maxActivePerSource);
         NumericGuard.ThrowIfNegative(spawnRadius);
-        NumericGuard.ThrowIfNegativeOrZero(actionCadencePulses);
+        NumericGuard.ThrowIfNegativeOrZero(actionCadenceTicks);
         NumericGuard.ThrowIfNegative(workDelta);
     }
 

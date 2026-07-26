@@ -4,14 +4,9 @@ internal sealed partial class SpatialLayerIndex
 {
     private const int PageSize = 16;
 
-    private readonly PrimitiveIntTable _entryByCell;
-    private readonly int[] _entryCellKeys;
-    private readonly int[] _entryQ;
-    private readonly int[] _entryR;
-    private readonly int[] _entryZ;
-    private readonly int[] _entryValues;
-    private readonly int[] _entryPages;
-    private readonly int[] _entryOffsets;
+    private readonly int[] _valuesByCell;
+    private readonly int[] _cellPages;
+    private readonly int[] _cellOffsets;
     private readonly int[] _valueCounts;
     private readonly int[] _firstPageByValue;
     private readonly int[] _lastPageByValue;
@@ -19,23 +14,17 @@ internal sealed partial class SpatialLayerIndex
     private readonly int[] _pageCounts;
     private readonly int[] _nextPage;
     private readonly int[] _previousPage;
-    private readonly int[] _pageEntries;
-    private int _entryCount;
-    private int _pageCount;
+    private readonly int[] _pageCells;
+    private int _pageHighWatermark;
     private int _freePage;
 
     internal SpatialLayerIndex(int valueCapacity, int cellCapacity)
     {
         NumericGuard.ThrowIfNegativeOrZero(valueCapacity);
         NumericGuard.ThrowIfNegativeOrZero(cellCapacity);
-        _entryByCell = new PrimitiveIntTable(cellCapacity);
-        _entryCellKeys = new int[cellCapacity + 1];
-        _entryQ = new int[cellCapacity + 1];
-        _entryR = new int[cellCapacity + 1];
-        _entryZ = new int[cellCapacity + 1];
-        _entryValues = new int[cellCapacity + 1];
-        _entryPages = new int[cellCapacity + 1];
-        _entryOffsets = new int[cellCapacity + 1];
+        _valuesByCell = new int[cellCapacity + 1];
+        _cellPages = new int[cellCapacity + 1];
+        _cellOffsets = new int[cellCapacity + 1];
         _valueCounts = new int[valueCapacity + 1];
         _firstPageByValue = new int[valueCapacity + 1];
         _lastPageByValue = new int[valueCapacity + 1];
@@ -43,56 +32,24 @@ internal sealed partial class SpatialLayerIndex
         _pageCounts = new int[cellCapacity + 1];
         _nextPage = new int[cellCapacity + 1];
         _previousPage = new int[cellCapacity + 1];
-        _pageEntries = new int[(cellCapacity + 1) * PageSize];
+        _pageCells = new int[checked((cellCapacity + 1) * PageSize)];
     }
 
     internal int ValueCapacity => _valueCounts.Length - 1;
 
-    internal int CellCapacity => _entryCellKeys.Length - 1;
+    internal int CellCapacity => _valuesByCell.Length - 1;
 
-    internal int ValueAt(int cellKey)
+    internal int ValueAt(int cellId)
     {
-        ValidateCellKey(cellKey);
-        return _entryByCell.TryGet(cellKey, 1, out var entry) && entry > 0
-            ? _entryValues[entry]
-            : 0;
+        ValidateCellId(cellId);
+        return _valuesByCell[cellId];
     }
 
-    internal void SetValue(int cellKey, int q, int r, int value) =>
-        SetValue(cellKey, q, r, z: 0, value);
-
-    internal void SetValue(int cellKey, int q, int r, int z, int value)
+    internal void SetValue(int cellId, int value)
     {
-        ValidateCellKey(cellKey);
+        ValidateCellId(cellId);
         ValidateValue(value);
-        if (!_entryByCell.TryGet(cellKey, 1, out var entry) || entry == 0)
-        {
-            if (value == 0)
-            {
-                return;
-            }
-
-            if (_entryCount + 1 >= _entryCellKeys.Length)
-            {
-                throw new global::System.InvalidOperationException();
-            }
-
-            _entryCount++;
-            entry = _entryCount;
-            _entryCellKeys[entry] = cellKey;
-            _entryQ[entry] = q;
-            _entryR[entry] = r;
-            _entryZ[entry] = z;
-            _entryByCell.Set(cellKey, 1, entry);
-            _entryValues[entry] = value;
-            AddEntryToValue(entry, value);
-            return;
-        }
-
-        _entryQ[entry] = q;
-        _entryR[entry] = r;
-        _entryZ[entry] = z;
-        var previousValue = _entryValues[entry];
+        var previousValue = _valuesByCell[cellId];
         if (previousValue == value)
         {
             return;
@@ -100,13 +57,13 @@ internal sealed partial class SpatialLayerIndex
 
         if (previousValue > 0)
         {
-            RemoveEntryFromValue(entry, previousValue);
+            RemoveCellFromValue(cellId, previousValue);
         }
 
-        _entryValues[entry] = value;
+        _valuesByCell[cellId] = value;
         if (value > 0)
         {
-            AddEntryToValue(entry, value);
+            AddCellToValue(cellId, value);
         }
     }
 
@@ -122,33 +79,18 @@ internal sealed partial class SpatialLayerIndex
         return new SpatialLayerCellCursor
         {
             Page = _firstPageByValue[value],
-            Offset = 0,
             Value = value,
         };
     }
 
-    internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int q, out int r)
-    {
-        return MoveNextCell(ref cursor, out _, out q, out r, out _);
-    }
-
-    internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int cellKey, out int q, out int r)
-    {
-        return MoveNextCell(ref cursor, out cellKey, out q, out r, out _);
-    }
-
-    internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int cellKey, out int q, out int r, out int z)
+    internal bool MoveNextCell(ref SpatialLayerCellCursor cursor, out int cellId)
     {
         while (cursor.Page > 0)
         {
             if (cursor.Offset < _pageCounts[cursor.Page])
             {
-                var entry = _pageEntries[PageEntryIndex(cursor.Page, cursor.Offset)];
+                cellId = _pageCells[PageCellIndex(cursor.Page, cursor.Offset)];
                 cursor.Offset++;
-                cellKey = _entryCellKeys[entry];
-                q = _entryQ[entry];
-                r = _entryR[entry];
-                z = _entryZ[entry];
                 return true;
             }
 
@@ -156,73 +98,49 @@ internal sealed partial class SpatialLayerIndex
             cursor.Offset = 0;
         }
 
-        cellKey = 0;
-        q = 0;
-        r = 0;
-        z = 0;
+        cellId = 0;
         return false;
     }
 
     internal void WriteSnapshot(global::System.IO.BinaryWriter writer)
     {
-        writer.Write(ValueCapacity);
-        writer.Write(CellCapacity);
         var count = 0;
-        for (var entry = 1; entry <= _entryCount; entry++)
+        for (var cellId = 1; cellId < _valuesByCell.Length; cellId++)
         {
-            if (_entryValues[entry] > 0)
+            if (_valuesByCell[cellId] > 0)
             {
                 count++;
             }
         }
 
         writer.Write(count);
-        for (var entry = 1; entry <= _entryCount; entry++)
+        for (var cellId = 1; cellId < _valuesByCell.Length; cellId++)
         {
-            if (_entryValues[entry] == 0)
+            if (_valuesByCell[cellId] <= 0)
             {
                 continue;
             }
 
-            writer.Write(_entryCellKeys[entry]);
-            writer.Write(_entryQ[entry]);
-            writer.Write(_entryR[entry]);
-            writer.Write(_entryZ[entry]);
-            writer.Write(_entryValues[entry]);
+            writer.Write(cellId);
+            writer.Write(_valuesByCell[cellId]);
         }
     }
 
     internal void ReadSnapshot(global::System.IO.BinaryReader reader)
     {
-        if (reader.ReadInt32() != ValueCapacity ||
-            reader.ReadInt32() != CellCapacity)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
         Clear();
         var count = reader.ReadInt32();
-        for (var i = 0; i < count; i++)
+        for (var index = 0; index < count; index++)
         {
-            var cellKey = reader.ReadInt32();
-            var q = reader.ReadInt32();
-            var r = reader.ReadInt32();
-            var z = reader.ReadInt32();
-            var value = reader.ReadInt32();
-            SetValue(cellKey, q, r, z, value);
+            SetValue(reader.ReadInt32(), reader.ReadInt32());
         }
     }
 
     private void Clear()
     {
-        _entryByCell.Clear();
-        global::System.Array.Clear(_entryCellKeys);
-        global::System.Array.Clear(_entryQ);
-        global::System.Array.Clear(_entryR);
-        global::System.Array.Clear(_entryZ);
-        global::System.Array.Clear(_entryValues);
-        global::System.Array.Clear(_entryPages);
-        global::System.Array.Clear(_entryOffsets);
+        global::System.Array.Clear(_valuesByCell);
+        global::System.Array.Clear(_cellPages);
+        global::System.Array.Clear(_cellOffsets);
         global::System.Array.Clear(_valueCounts);
         global::System.Array.Clear(_firstPageByValue);
         global::System.Array.Clear(_lastPageByValue);
@@ -230,13 +148,12 @@ internal sealed partial class SpatialLayerIndex
         global::System.Array.Clear(_pageCounts);
         global::System.Array.Clear(_nextPage);
         global::System.Array.Clear(_previousPage);
-        global::System.Array.Clear(_pageEntries);
-        _entryCount = 0;
-        _pageCount = 0;
+        global::System.Array.Clear(_pageCells);
+        _pageHighWatermark = 0;
         _freePage = 0;
     }
 
-    private void AddEntryToValue(int entry, int value)
+    private void AddCellToValue(int cellId, int value)
     {
         var page = _lastPageByValue[value];
         if (page == 0 || _pageCounts[page] == PageSize)
@@ -245,33 +162,32 @@ internal sealed partial class SpatialLayerIndex
             LinkPage(value, page);
         }
 
-        var offset = _pageCounts[page];
-        _pageEntries[PageEntryIndex(page, offset)] = entry;
-        _pageCounts[page]++;
-        _entryPages[entry] = page;
-        _entryOffsets[entry] = offset;
+        var offset = _pageCounts[page]++;
+        _pageCells[PageCellIndex(page, offset)] = cellId;
+        _cellPages[cellId] = page;
+        _cellOffsets[cellId] = offset;
         _valueCounts[value]++;
     }
 
-    private void RemoveEntryFromValue(int entry, int value)
+    private void RemoveCellFromValue(int cellId, int value)
     {
-        var page = _entryPages[entry];
-        var offset = _entryOffsets[entry];
+        var page = _cellPages[cellId];
+        var offset = _cellOffsets[cellId];
         var lastPage = _lastPageByValue[value];
         var lastOffset = _pageCounts[lastPage] - 1;
-        var lastEntry = _pageEntries[PageEntryIndex(lastPage, lastOffset)];
-        if (lastEntry != entry)
+        var movedCellId = _pageCells[PageCellIndex(lastPage, lastOffset)];
+        if (movedCellId != cellId)
         {
-            _pageEntries[PageEntryIndex(page, offset)] = lastEntry;
-            _entryPages[lastEntry] = page;
-            _entryOffsets[lastEntry] = offset;
+            _pageCells[PageCellIndex(page, offset)] = movedCellId;
+            _cellPages[movedCellId] = page;
+            _cellOffsets[movedCellId] = offset;
         }
 
-        _pageEntries[PageEntryIndex(lastPage, lastOffset)] = 0;
+        _pageCells[PageCellIndex(lastPage, lastOffset)] = 0;
         _pageCounts[lastPage]--;
         _valueCounts[value]--;
-        _entryPages[entry] = 0;
-        _entryOffsets[entry] = 0;
+        _cellPages[cellId] = 0;
+        _cellOffsets[cellId] = 0;
         if (_pageCounts[lastPage] == 0)
         {
             ReleasePage(value, lastPage);
@@ -288,13 +204,12 @@ internal sealed partial class SpatialLayerIndex
         }
         else
         {
-            if (_pageCount + 1 >= _pageCounts.Length)
+            if (_pageHighWatermark >= CellCapacity)
             {
                 throw new global::System.InvalidOperationException();
             }
 
-            _pageCount++;
-            page = _pageCount;
+            page = ++_pageHighWatermark;
         }
 
         _pageValues[page] = value;
@@ -349,7 +264,7 @@ internal sealed partial class SpatialLayerIndex
         _freePage = page;
     }
 
-    private static int PageEntryIndex(int page, int offset) => (page * PageSize) + offset;
+    private static int PageCellIndex(int page, int offset) => (page * PageSize) + offset;
 
     private void ValidateValue(int value)
     {
@@ -357,8 +272,11 @@ internal sealed partial class SpatialLayerIndex
         NumericGuard.ThrowIfGreaterThanOrEqual(value, _valueCounts.Length);
     }
 
-    private static void ValidateCellKey(int cellKey)
+    private void ValidateCellId(int cellId)
     {
-        NumericGuard.ThrowIfNegativeOrZero(cellKey);
+        if ((uint)cellId == 0u || cellId >= _valuesByCell.Length)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(cellId));
+        }
     }
 }

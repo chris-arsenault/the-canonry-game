@@ -53,10 +53,10 @@ public sealed class CanonryGameRuntimeTests
         {
             runtime.Controls.Pause();
 
-            var pulse = runtime.Update();
+            var advance = runtime.Update();
 
-            Assert.True(pulse.CurrentTick >= pulse.PreviousTick);
-            Assert.Equal(Math.Max(0, pulse.CurrentTick - pulse.PreviousTick), pulse.TicksProcessed);
+            Assert.True(advance.CurrentTick >= advance.PreviousTick);
+            Assert.Equal(Math.Max(0, advance.CurrentTick - advance.PreviousTick), advance.TicksProcessed);
 
             runtime.Dispose();
             runtime.Dispose();

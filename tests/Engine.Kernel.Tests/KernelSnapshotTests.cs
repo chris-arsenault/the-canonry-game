@@ -59,14 +59,19 @@ public sealed class KernelSnapshotTests
         simulation.Generators.RegisterGenerator(
             generatorId: 50,
             targetKindId: 1,
-            pulseWeight: 1,
+            fireWeight: 1,
             maxRuns: 3);
         Assert.True(simulation.Generators.TrySetGeneratorEnabledById(50, enabled: false));
         simulation.SetProgramEnabled(KernelProgramCodes.Generators, enabled: false);
 
         using var stream = new MemoryStream();
         KernelSnapshot.SaveKernelState(simulation, stream);
-        var expectedRandom = simulation.NextInt(10000);
+        var expectedRandom = simulation.RandomInt(
+            10000,
+            actor,
+            ruleId: 99,
+            purposeCode: KernelRandomPurposeCodes.GeneratorSharedQuery,
+            attempt: 7);
 
         stream.Position = 0;
         var loaded = KernelSnapshot.LoadKernelState(stream);
@@ -182,7 +187,7 @@ public sealed class KernelSnapshotTests
         {
             Programs = new KernelProgramTuningOptions
             {
-                MinorActorSubstepsPerPulse = 7,
+                MainProgramCadenceTicks = 7,
                 CultureInfluenceActionScale = FixedScalar.FromSingle(0.25f),
                 Lifecycle = new LifecycleTuningOptions
                 {
@@ -191,8 +196,8 @@ public sealed class KernelSnapshotTests
                 Generators = new GeneratorProgramTuningOptions
                 {
                     RetryFireTargets = false,
-                    PulseWidthTicks = 17,
-                    FiresPerPulse = 2,
+                    FireWindowTicks = 17,
+                    FiresPerWindow = 2,
                 },
                 LowAltitudeVerbs = new LowAltitudeVerbTuningOptions
                 {
@@ -210,10 +215,10 @@ public sealed class KernelSnapshotTests
                 },
                 CultureField = new CultureFieldTuningOptions
                 {
-                    DecayPerPulse = FixedScalar.FromSingle(0.01f),
-                    MinimumDecayPerPulse = FixedScalar.FromSingle(0.9f),
+                    DecayPerRun = FixedScalar.FromSingle(0.01f),
+                    MinimumDecayPerRun = FixedScalar.FromSingle(0.9f),
                     CullFloorRawMass = FixedScalar.FromSingle(2f),
-                    DecayCadencePulses = 3,
+                    DecayCadenceTicks = 3,
                 },
             },
         };
@@ -229,7 +234,7 @@ public sealed class KernelSnapshotTests
         Assert.Equal(simulation.CurrentTick, loaded.CurrentTick);
         Assert.Equal(simulation.WorldVersion, loaded.WorldVersion);
         Assert.Equal(actor, loaded.World.EntityHighWatermark - 1);
-        Assert.Equal(EntityStatusCodes.Historical, loaded.World.EntityStatus(target));
+        Assert.False(loaded.World.EntityExists(target));
         Assert.Equal(FixedScalar.FromSingle(42f), loaded.World.GetAttribute(actor, 10));
         Assert.Equal(FixedScalar.FromSingle(55f), loaded.World.GetCellInfluence(actor, PlaneCodes.Physical, 0, 0));
         Assert.Equal(1, loaded.World.CellTerrainId(0, 0));
@@ -240,12 +245,12 @@ public sealed class KernelSnapshotTests
         Assert.False(loaded.ProgramIsEnabled(KernelProgramCodes.Generators));
         Assert.True(loaded.Generators.TryGetGeneratorEnabledById(50, out var generatorEnabled));
         Assert.False(generatorEnabled);
-        Assert.Equal(7, loaded.Options.KernelTuning.Programs.MinorActorSubstepsPerPulse);
+        Assert.Equal(7, loaded.Options.KernelTuning.Programs.MainProgramCadenceTicks);
         Assert.Equal(FixedScalar.FromSingle(0.25f), loaded.Options.KernelTuning.Programs.CultureInfluenceActionScale);
         Assert.Equal(LifecycleAgingModelCodes.LateLife, loaded.Options.KernelTuning.Programs.Lifecycle.AgingModelCode);
         Assert.False(loaded.Options.KernelTuning.Programs.Generators.RetryFireTargets);
-        Assert.Equal(17, loaded.Options.KernelTuning.Programs.Generators.PulseWidthTicks);
-        Assert.Equal(2, loaded.Options.KernelTuning.Programs.Generators.FiresPerPulse);
+        Assert.Equal(17, loaded.Options.KernelTuning.Programs.Generators.FireWindowTicks);
+        Assert.Equal(2, loaded.Options.KernelTuning.Programs.Generators.FiresPerWindow);
         Assert.Equal(FixedScalar.FromSingle(0.35f), loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.OpportunityRate);
         Assert.Equal(FixedScalar.FromSingle(1.75f), loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.OpportunityBonus);
         Assert.Equal(77, loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.RecentTargetCooldownTicks);
@@ -257,11 +262,18 @@ public sealed class KernelSnapshotTests
         Assert.Equal(FixedScalar.FromSingle(7.5f), loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.RelationshipTargetDistanceScale);
         Assert.Equal(FixedScalar.FromSingle(8.5f), loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.OwnInfluenceDistanceScale);
         Assert.Equal(FixedScalar.FromSingle(9.5f), loaded.Options.KernelTuning.Programs.LowAltitudeVerbs.ForeignInfluenceDistanceScale);
-        Assert.Equal(FixedScalar.FromSingle(0.01f), loaded.Options.KernelTuning.Programs.CultureField.DecayPerPulse);
-        Assert.Equal(FixedScalar.FromSingle(0.9f), loaded.Options.KernelTuning.Programs.CultureField.MinimumDecayPerPulse);
+        Assert.Equal(FixedScalar.FromSingle(0.01f), loaded.Options.KernelTuning.Programs.CultureField.DecayPerRun);
+        Assert.Equal(FixedScalar.FromSingle(0.9f), loaded.Options.KernelTuning.Programs.CultureField.MinimumDecayPerRun);
         Assert.Equal(FixedScalar.FromSingle(2f), loaded.Options.KernelTuning.Programs.CultureField.CullFloorRawMass);
-        Assert.Equal(3, loaded.Options.KernelTuning.Programs.CultureField.DecayCadencePulses);
-        Assert.Equal(expectedRandom, loaded.NextInt(10000));
+        Assert.Equal(3, loaded.Options.KernelTuning.Programs.CultureField.DecayCadenceTicks);
+        Assert.Equal(
+            expectedRandom,
+            loaded.RandomInt(
+                10000,
+                actor,
+                ruleId: 99,
+                purposeCode: KernelRandomPurposeCodes.GeneratorSharedQuery,
+                attempt: 7));
     }
 
     private static void AssertMaterializationEvents(Simulation loaded)

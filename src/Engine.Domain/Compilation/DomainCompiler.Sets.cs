@@ -56,11 +56,11 @@ public static partial class DomainCompiler
                 rule.PurposeCode,
                 rule.ActorKindCode,
                 planeCode,
-                rule.TtlPulses,
-                rule.EmitCadencePulses,
+                rule.TtlTicks,
+                rule.EmitCadenceTicks,
                 rule.MaxActivePerSource,
                 rule.SpawnRadius,
-                rule.ActionCadencePulses,
+                rule.ActionCadenceTicks,
                 FixedScalar.FromSingle(rule.WorkDelta),
                 rule.Verbs
                     .Select(verb => new MinorActorVerbRule(

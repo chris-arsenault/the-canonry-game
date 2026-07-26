@@ -9,13 +9,29 @@ internal sealed partial class Simulation
 
     internal FixedScalar ModifyCellCultureInfluenceRaw(int cultureId, int planeCode, int q, int r, int z, FixedScalar delta, int tick)
     {
+        if (_collectingDeltas)
+        {
+            var deltaUnits = KernelFixedPoint.CultureMassUnits(delta);
+            _tickDeltas.AddCulture(new CultureDelta(
+                cultureId,
+                planeCode,
+                q,
+                r,
+                z,
+                0,
+                deltaUnits,
+                DeltaSourceKey(0, CellDiscriminator(planeCode, q, r, z)),
+                _executionContext));
+            return KernelFixedPoint.CultureMassScalar(deltaUnits);
+        }
+
         var applied = World.ModifyCellCultureInfluenceRaw(cultureId, planeCode, q, r, z, delta, tick, _executionContext);
         // Culture locality is a surface model: forged-cell mass at z != 0
         // feeds the culture power ledgers directly and must not perturb
         // surface facts.
         if (applied != 0 && z == 0)
         {
-            CultureLocality.MarkDirty(planeCode, q, r);
+            CultureLocality.MarkDirty(World, planeCode, q, r);
         }
 
         return applied;
@@ -30,6 +46,21 @@ internal sealed partial class Simulation
         int deltaUnits,
         int tick)
     {
+        if (_collectingDeltas)
+        {
+            _tickDeltas.AddCulture(new CultureDelta(
+                cultureId,
+                planeCode,
+                q,
+                r,
+                z,
+                0,
+                deltaUnits,
+                DeltaSourceKey(0, CellDiscriminator(planeCode, q, r, z)),
+                _executionContext));
+            return deltaUnits;
+        }
+
         var appliedUnits = World.ModifyCellCultureInfluenceRawUnits(
             cultureId,
             planeCode,
@@ -41,7 +72,7 @@ internal sealed partial class Simulation
             _executionContext);
         if (appliedUnits != 0 && z == 0)
         {
-            CultureLocality.MarkDirty(planeCode, q, r);
+            CultureLocality.MarkDirty(World, planeCode, q, r);
         }
 
         return appliedUnits;
@@ -85,10 +116,28 @@ internal sealed partial class Simulation
             delta *= CultureGrowthMultiplier(cultureId, q, r);
         }
 
+        if (_collectingDeltas)
+        {
+            var occurrence = World.EntityOccurrenceHandle(entityId);
+            var weightedUnits = KernelFixedPoint.CultureMassUnits(
+                delta * World.EffectiveCultureInfluenceMultiplier(entityId));
+            _tickDeltas.AddCulture(new CultureDelta(
+                cultureId,
+                planeCode,
+                q,
+                r,
+                z,
+                occurrence,
+                weightedUnits,
+                DeltaSourceKey(occurrence, CellDiscriminator(planeCode, q, r, z)),
+                _executionContext));
+            return KernelFixedPoint.CultureMassScalar(weightedUnits);
+        }
+
         var applied = World.ModifyCellCultureInfluenceRawFromEntity(entityId, planeCode, q, r, z, delta, tick, _executionContext);
         if (cultureId > 0 && applied != 0 && z == 0)
         {
-            CultureLocality.MarkDirty(planeCode, q, r);
+            CultureLocality.MarkDirty(World, planeCode, q, r);
         }
 
         return applied;
@@ -96,6 +145,20 @@ internal sealed partial class Simulation
 
     internal FixedScalar ReduceOtherCultureSourcesAtCell(int ownCultureId, int planeCode, int q, int r, FixedScalar delta, int tick)
     {
+        if (_collectingDeltas)
+        {
+            var deltaUnits = KernelFixedPoint.CultureMassUnits(delta);
+            _tickDeltas.AddCultureReduction(new CultureReductionDelta(
+                ownCultureId,
+                planeCode,
+                q,
+                r,
+                deltaUnits,
+                DeltaSourceKey(0, CellDiscriminator(planeCode, q, r, 0)),
+                _executionContext));
+            return KernelFixedPoint.CultureMassScalar(deltaUnits);
+        }
+
         var removed = World.ReduceOtherCultureSourcesAtCell(
             ownCultureId,
             planeCode,
@@ -108,7 +171,7 @@ internal sealed partial class Simulation
             out var changedCultureCount);
         if (changedCultureCount > 0)
         {
-            CultureLocality.MarkDirty(planeCode, q, r);
+            CultureLocality.MarkDirty(World, planeCode, q, r);
         }
 
         return removed;
@@ -125,5 +188,17 @@ internal sealed partial class Simulation
                 KernelData.Cultures.ProductionMultiplier(cultureId, planeCode) *
                 Knowledge.Modifier(cultureId, KnowledgeGrantDomainCodes.CultureProduction, planeCode)
             : delta;
+
+    private static int CellDiscriminator(int planeCode, int q, int r, int z)
+    {
+        unchecked
+        {
+            var hash = (uint)planeCode * 2654435761u;
+            hash ^= (uint)q * 2246822519u;
+            hash ^= (uint)r * 3266489917u;
+            hash ^= (uint)z * 668265263u;
+            return (int)(hash ^ (hash >> 16));
+        }
+    }
 
 }

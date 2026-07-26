@@ -108,7 +108,7 @@ public sealed class GeneratorPlacementGeographyTests
         Assert.Throws<global::System.InvalidOperationException>(() => FindCreated(simulation));
 
         // An explorer arriving beside the anchor reveals it (the
-        // materialization hook), and the next pulse names the river.
+        // materialization hook), and the next scheduled run names the river.
         _ = simulation.CreateEntity(TargetKindId, 1, 1, 1, 0, 0, 0, 0, tick: 1);
         Assert.True(simulation.World.CellIsKnown(PlaneCodes.Physical, 2, 0));
         simulation.AdvanceTicks(1);
@@ -153,7 +153,7 @@ public sealed class GeneratorPlacementGeographyTests
         var slot = simulation.Generators.RegisterGenerator(
             GeneratorId,
             TargetKindId,
-            pulseWeight: 1,
+            fireWeight: 1,
             maxRuns: 0);
         simulation.Generators.AddTrigger(slot, TargetKindId);
         return simulation.Generators.AddProduced(
@@ -200,7 +200,7 @@ public sealed class GeneratorPlacementGeographyTests
         var slot = simulation.Generators.RegisterGenerator(
             GeneratorId,
             TargetKindId,
-            pulseWeight: 1,
+            fireWeight: 1,
             maxRuns: 0);
         simulation.Generators.AddTrigger(slot, TargetKindId);
         var producedSlot = simulation.Generators.AddProduced(

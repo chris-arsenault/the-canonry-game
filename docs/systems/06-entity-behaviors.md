@@ -164,6 +164,14 @@ shared decision-modifier path. Gambit-specific code owns direct target choice,
 score/reward evaluation, cooldowns, success rolls, and ordered operation
 sequencing.
 
+The compiler lowers `And`, `Or`, and `Not` into leaf instructions with explicit
+true and false destinations; the kernel has no composition opcodes or fallback
+boolean stack. Actor-scoped values are indexed and prepared once per actor and
+gambit. A positive relationship-to-target predicate required on every success
+path becomes the candidate source, so the runtime walks matching relationship
+endpoints in ascending relationship-ID order and applies the remaining gates
+inline.
+
 Low-altitude verbs and gambits do not yet share one activity lane or action
 budget. The same entity can perform ordinary low-altitude work and a gambit in
 the same tick, and multiple movement sources can request movement through the

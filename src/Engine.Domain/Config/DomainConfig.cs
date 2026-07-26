@@ -255,8 +255,8 @@ public sealed class RelationshipConfig
 public sealed class LifecycleConfig
 {
     public required string Health { get; init; }
-    public required float BaseRate { get; init; }
-    public required float AgeCoefficient { get; init; }
+    public required int TargetTicks { get; init; }
+    public float FlatDrainShare { get; init; } = 0.2f;
 }
 
 /// <summary>One signed placement taste weight on a named geography axis.</summary>
@@ -443,11 +443,11 @@ public sealed class MapFrontierConfig
     /// <summary>Resistance per road crossing the cell.</summary>
     public float RoadIceResistance { get; init; } = 40f;
 
-    /// <summary>Maximum cells the ice covers per advance pulse.</summary>
-    public int IceAdvanceBudgetPerPulse { get; init; } = 24;
+    /// <summary>Maximum cells the ice covers per advance run.</summary>
+    public int IceAdvanceBudgetPerRun { get; init; } = 24;
 
-    /// <summary>Maximum covered cells melted per retreat pulse.</summary>
-    public int IceRetreatBudgetPerPulse { get; init; } = 24;
+    /// <summary>Maximum covered cells melted per retreat run.</summary>
+    public int IceRetreatBudgetPerRun { get; init; } = 24;
 
     /// <summary>
     /// Sea-ice cover breathing with the same ages: freeze ages extend this
@@ -456,8 +456,8 @@ public sealed class MapFrontierConfig
     /// </summary>
     public string? SeaIceCoverTerrain { get; init; }
     public IReadOnlyList<string> SeaIceEligibleTerrains { get; init; } = [];
-    public int SeaIceFreezeBudgetPerPulse { get; init; } = 12;
-    public int SeaIceMeltBudgetPerPulse { get; init; } = 12;
+    public int SeaIceFreezeBudgetPerRun { get; init; } = 12;
+    public int SeaIceMeltBudgetPerRun { get; init; } = 12;
 
     /// <summary>
     /// Enables continuous semantic growth from the installed latent terrain
@@ -467,7 +467,7 @@ public sealed class MapFrontierConfig
     public bool SemanticGrowthEnabled { get; init; }
     public int SemanticMaxRadius { get; init; } = 40;
     public float SemanticFrontierMassThreshold { get; init; } = 30f;
-    public int SemanticBudgetPerPulse { get; init; } = 24;
+    public int SemanticBudgetPerRun { get; init; } = 24;
 }
 
 public sealed class KindRevealRadiusConfig
@@ -483,11 +483,11 @@ public sealed class MinorActorRuleConfig
     public int PurposeCode { get; init; } = MinorActorPurposeCodes.CulturalLabor;
     public int ActorKindCode { get; init; } = MinorActorKindCodes.Worker;
     public int PlaneCode { get; init; } = PlaneCodes.Physical;
-    public int TtlPulses { get; init; } = 80;
-    public int EmitCadencePulses { get; init; } = 60;
+    public int TtlTicks { get; init; } = 80;
+    public int EmitCadenceTicks { get; init; } = 60;
     public int MaxActivePerSource { get; init; } = 1;
     public int SpawnRadius { get; init; } = 1;
-    public int ActionCadencePulses { get; init; } = 8;
+    public int ActionCadenceTicks { get; init; } = 8;
     public float WorkDelta { get; init; } = 0.25f;
     public required IReadOnlyList<MinorActorVerbConfig> Verbs { get; init; }
 }

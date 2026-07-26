@@ -4,15 +4,18 @@ internal static partial class KernelQuery
 {
     public static void ForEachActiveEntity(WorldState world, global::System.Func<int, bool> visit)
     {
-        for (var entityId = world.FirstActiveEntity(); entityId > 0;)
+        for (var index = 0; index < world.ActiveEntityCount;)
         {
-            var nextEntityId = world.NextActiveEntity(entityId);
+            var entityId = world.ActiveEntityAt(index);
             if (!visit(entityId))
             {
                 return;
             }
 
-            entityId = nextEntityId;
+            if (world.EntityIsActive(entityId))
+            {
+                index++;
+            }
         }
     }
 
@@ -218,41 +221,6 @@ internal static partial class KernelQuery
             TryEvaluateRelationshipPredicate(world, predicate, binding, out result)
             ? result
             : throw new global::System.InvalidOperationException();
-    }
-
-    public static bool QueryPredicateIsComposition(int code) =>
-        code is BehaviorPreconditionCodes.And or
-            BehaviorPreconditionCodes.Or or
-            BehaviorPreconditionCodes.Not;
-
-    public static bool TryApplyCompositionPredicate(
-        int code,
-        global::System.Span<bool> stack,
-        ref int stackCount)
-    {
-        if (code == BehaviorPreconditionCodes.And)
-        {
-            var right = PopBool(stack, ref stackCount);
-            var left = PopBool(stack, ref stackCount);
-            PushBool(stack, ref stackCount, left && right);
-            return true;
-        }
-
-        if (code == BehaviorPreconditionCodes.Or)
-        {
-            var right = PopBool(stack, ref stackCount);
-            var left = PopBool(stack, ref stackCount);
-            PushBool(stack, ref stackCount, left || right);
-            return true;
-        }
-
-        if (code != BehaviorPreconditionCodes.Not)
-        {
-            return false;
-        }
-
-        PushBool(stack, ref stackCount, !PopBool(stack, ref stackCount));
-        return true;
     }
 
     private static bool TryEvaluateSimplePredicate(
@@ -1057,28 +1025,6 @@ internal static partial class KernelQuery
         var endpointId = predicate.B == BehaviorEndpointCodes.Target ? binding.TargetId : binding.ActorId;
         var count = DistinctRelationshipEndpointCount(world, endpointId, predicate.A, predicate.D, predicate.X);
         return count < predicate.C;
-    }
-
-    private static void PushBool(global::System.Span<bool> stack, ref int stackCount, bool value)
-    {
-        if (stackCount >= stack.Length)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        stack[stackCount] = value;
-        stackCount++;
-    }
-
-    private static bool PopBool(global::System.Span<bool> stack, ref int stackCount)
-    {
-        if (stackCount <= 0)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        stackCount--;
-        return stack[stackCount];
     }
 
     private static int Abs(int value) => value < 0 ? -value : value;

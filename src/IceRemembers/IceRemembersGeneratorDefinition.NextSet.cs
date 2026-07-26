@@ -50,7 +50,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$rite", "$choir", Rel.PracticedBy, 0.78f),
         ],
         Triggers = TriggerOn(K.Region),
-        PulseWeight = 8,
+        FireWeight = 8,
     };
 
     private static SemanticGeneratorConfig SanctuariesAnchorColonies() => new()
@@ -120,7 +120,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$broker", "$instrument", Rel.Holds, 1f),
         ],
         Triggers = TriggerOn(K.PointOfInterest),
-        PulseWeight = 3,
+        FireWeight = 3,
     };
 
     private static SemanticGeneratorConfig DeepConduitsNameDepths() => new()
@@ -155,7 +155,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$depths", "$target", Rel.Memorializes, 0.78f),
         ],
         Triggers = TriggerOn(K.PointOfInterest),
-        PulseWeight = 6,
+        FireWeight = 6,
     };
 
     private static SemanticGeneratorConfig WardedMonstersFoundOrders() => new()

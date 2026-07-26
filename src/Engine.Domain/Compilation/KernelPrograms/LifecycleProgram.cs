@@ -9,6 +9,7 @@ public sealed class LifecycleProgram
 public sealed record LifecycleRule(
     int KindId,
     int HealthAttributeId,
-    FixedScalar BaseRate,
-    FixedScalar AgeCoefficient,
+    int TargetTicks,
+    int NominalHealthUnits,
+    FixedScalar FlatDrainShare,
     FixedScalar Variance);

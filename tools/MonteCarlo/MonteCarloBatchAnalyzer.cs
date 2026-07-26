@@ -444,12 +444,12 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
     {
         return Query(connection, GeneratorRowsSql, reader => new ObservedGeneratorRow(
             GeneratorId: ReadString(reader, "generator_id"),
-            Pulses: ReadInt(reader, "pulses"),
-            EligiblePulses: ReadInt(reader, "eligible_pulses"),
-            BlockedPulses: ReadInt(reader, "blocked_pulses"),
-            EligibleNotSelectedPulses: ReadInt(reader, "eligible_not_selected_pulses"),
+            Evaluations: ReadInt(reader, "evaluations"),
+            EligibleEvaluations: ReadInt(reader, "eligible_evaluations"),
+            BlockedEvaluations: ReadInt(reader, "blocked_evaluations"),
+            EligibleNotSelectedEvaluations: ReadInt(reader, "eligible_not_selected_evaluations"),
             FiredCount: ReadInt(reader, "fired_count"),
-            FireFailedPulses: ReadInt(reader, "fire_failed_pulses"),
+            FireFailedEvaluations: ReadInt(reader, "fire_failed_evaluations"),
             AverageTargetPool: ReadDouble(reader, "average_target_pool"),
             AverageCandidateCount: ReadDouble(reader, "average_candidate_count"),
             InactiveRejected: ReadInt(reader, "inactive_rejected"),
@@ -469,21 +469,21 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         var rows = configured.Select(generator =>
         {
             var observedRow = observed.GetValueOrDefault(generator.Id) ?? ObservedGeneratorRow.Empty(generator.Id);
-            var selectionRate = observedRow.EligiblePulses == 0
+            var selectionRate = observedRow.EligibleEvaluations == 0
                 ? 0d
-                : observedRow.FiredCount / (double)observedRow.EligiblePulses;
+                : observedRow.FiredCount / (double)observedRow.EligibleEvaluations;
             var primaryBlocker = PrimaryBlocker(observedRow);
 
             return new GeneratorAnalysisRow(
                 GeneratorId: generator.Id,
                 GeneratorName: generator.Name,
                 TargetKind: generator.Target.Kind.Value,
-                Pulses: observedRow.Pulses,
-                EligiblePulses: observedRow.EligiblePulses,
-                BlockedPulses: observedRow.BlockedPulses,
-                EligibleNotSelectedPulses: observedRow.EligibleNotSelectedPulses,
+                Evaluations: observedRow.Evaluations,
+                EligibleEvaluations: observedRow.EligibleEvaluations,
+                BlockedEvaluations: observedRow.BlockedEvaluations,
+                EligibleNotSelectedEvaluations: observedRow.EligibleNotSelectedEvaluations,
                 FiredCount: observedRow.FiredCount,
-                FireFailedPulses: observedRow.FireFailedPulses,
+                FireFailedEvaluations: observedRow.FireFailedEvaluations,
                 FireRatePerRun: runCount == 0 ? 0d : observedRow.FiredCount / (double)runCount,
                 SelectionRateWhenEligible: selectionRate,
                 AverageTargetPool: observedRow.AverageTargetPool,
@@ -499,7 +499,7 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
 
         return rows
             .OrderByDescending(row => row.FiredCount)
-            .ThenByDescending(row => row.EligiblePulses)
+            .ThenByDescending(row => row.EligibleEvaluations)
             .ThenBy(row => row.GeneratorId, StringComparer.Ordinal)
             .ToList();
     }

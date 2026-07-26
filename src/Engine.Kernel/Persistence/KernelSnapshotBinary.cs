@@ -16,6 +16,7 @@ internal static class KernelSnapshotBinary
     private const int TypeMapLayerSet = 12;
     private const int TypeLongArray = 13;
     private const int TypeLongTable = 14;
+    private const int TypeMapCellRegistry = 15;
 
     public static void WriteObject(global::System.IO.BinaryWriter writer, object target)
     {
@@ -143,6 +144,12 @@ internal static class KernelSnapshotBinary
         if (code == TypeMapLayerSet)
         {
             ((MapLayerSet)value).WriteSnapshot(writer);
+            return true;
+        }
+
+        if (code == TypeMapCellRegistry)
+        {
+            ((MapCellRegistry)value).WriteSnapshot(writer);
             return true;
         }
 
@@ -293,6 +300,12 @@ internal static class KernelSnapshotBinary
         if (code == TypeMapLayerSet)
         {
             ((MapLayerSet)field.GetValue(target)!).ReadSnapshot(reader);
+            return true;
+        }
+
+        if (code == TypeMapCellRegistry)
+        {
+            ((MapCellRegistry)field.GetValue(target)!).ReadSnapshot(reader);
             return true;
         }
 
@@ -529,6 +542,11 @@ internal static class KernelSnapshotBinary
         if (type == typeof(MapLayerSet))
         {
             return TypeMapLayerSet;
+        }
+
+        if (type == typeof(MapCellRegistry))
+        {
+            return TypeMapCellRegistry;
         }
 
         return 0;

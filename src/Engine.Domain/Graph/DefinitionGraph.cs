@@ -154,7 +154,7 @@ public sealed class DefinitionGeneratorNode
     public required IReadOnlyList<DefinitionGeneratorRelationship> Relationships { get; init; }
     public IReadOnlyList<IDefinitionGeneratorEffect> Effects { get; init; } = [];
     public required IReadOnlyList<DefinitionGeneratorTrigger> Triggers { get; init; }
-    public int PulseWeight { get; init; }
+    public int FireWeight { get; init; }
     public int? MaxRunsPerSim { get; init; }
     public int CadenceTicks { get; init; }
     public int CadenceJitterTicks { get; init; }

@@ -54,8 +54,8 @@ public sealed class CultureProductionBiasTests
                 {
                     CultureField = new CultureFieldTuningOptions
                     {
-                        DecayPerPulse = FixedScalar.FromSingle(0f),
-                        MinimumDecayPerPulse = FixedScalar.FromSingle(0f),
+                        DecayPerRun = FixedScalar.FromSingle(0f),
+                        MinimumDecayPerRun = FixedScalar.FromSingle(0f),
                         RemittanceShare = FixedScalar.FromSingle(0f),
                     },
                 },

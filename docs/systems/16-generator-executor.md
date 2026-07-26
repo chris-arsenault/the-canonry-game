@@ -66,20 +66,20 @@ coverage rules. For semantic placement, entities are placed within the bounded
 semantic plane against semantic terrain.
 
 If no legal placement candidate exists, the generator fire fails cleanly and
-does not consume pulse budget. This keeps invalid placement from suppressing
-later valid fires inside the same pulse window.
+does not consume fire-window budget. This keeps invalid placement from
+suppressing later valid fires inside the same window.
 
-Pulse scheduling is provincial. Every revealed physical superregion
-registers as a province with its own pulse clock; the tempo comes from the
-province's settledness band, derived from covered cells within it (dormant
-ground has no clock, frontier runs slow, settled faster, heartland at full
-tempo — width multipliers and thresholds are tuning options). While a
-province's pulse selects and fires, only targets standing inside that
-superregion are eligible; secondary bindings stay unrestricted, so
-cross-province relationships still form. Cadence generators keep their own
-world-wide clocks outside the provincial pool. World creation throughput is
-therefore the sum of awake provincial clocks and grows as territory is
-revealed and settles.
+Fire-window scheduling is provincial. Every revealed physical superregion
+registers as a province with its own next-window tick; the tempo comes from
+the province's settledness band, derived from covered cells within it (dormant
+ground has no schedule, frontier runs slow, settled faster, heartland at full
+tempo — window multipliers and thresholds are tuning options). When a
+province is evaluated, only targets standing inside that superregion are
+eligible; secondary bindings stay unrestricted, so cross-province
+relationships still form. Cadence generators keep their own world-wide tick
+deadlines outside the provincial pool. World creation throughput is therefore
+the sum of awake provincial schedules and grows as territory is revealed and
+settles.
 
 A fire is atomic over its produced bundle. The executor first plans every
 produced entity — chance roll, query binding, subtype, culture, placement
@@ -112,21 +112,22 @@ coverage rules, but supported same-culture cells are preferred and foreign
 entrenched fields are rejected unless the produced entity explicitly uses
 hostile intrusion.
 
-## Pulse Budget
+## Fire-Window Budget
 
-Generators run every world pulse, independently of minor-actor substeps. Fire
-budget is reset by pulse windows. The default tuning is `PulseWidthTicks = 25`
-world pulses and `FiresPerPulse = 1`. A generator can fire on any eligible
-generator tick inside the current
-pulse window while budget remains, instead of only on an exact modulo boundary.
+Generators are evaluated on the main-program cadence. Fire budget is reset by
+provincial fire windows. The default tuning is `FireWindowTicks = 50` and
+`FiresPerWindow = 1`; the window is normalized to the global tick clock using
+the main-program cadence. A generator can fire on any eligible scheduled tick
+inside the current window while budget remains, instead of only on an exact
+modulo boundary.
 
-When multiple generators are eligible, selection is weighted by authored pulse
+When multiple generators are eligible, selection is weighted by authored fire
 weight. Fire budget limits how many successful fires can occur in one window;
 it does not increase the low-altitude tick frequency.
 
 Generators with `CadenceTicks > 0` are timeline generators: they leave the
-shared pulse pool entirely and fire on their own jittered cadence
-(`CadenceTicks ± CadenceJitterTicks`), outside the pulse budget. Target
+shared fire-window pool entirely and fire on their own jittered cadence
+(`CadenceTicks ± CadenceJitterTicks`), outside the window budget. Target
 eligibility still applies — a cadence firing with no eligible target passes
 quietly. Timelines give each culture an authored drumbeat that does not scale
 with its population, without steering outcomes toward equality.
@@ -151,7 +152,7 @@ map state, semantic position, or regional containment is the real gate.
 
 Generator target gates, relationship gates, terrain gates, and produced entity
 binding queries use the shared kernel query path.
-Generator-specific code still owns pulse budgeting, target choice, production
+Generator-specific code still owns fire-window budgeting, target choice, production
 orchestration, placement, and reference binding order.
 
 Secondary binding queries may require the candidate to be in the same physical

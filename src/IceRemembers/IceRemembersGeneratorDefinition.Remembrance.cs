@@ -49,8 +49,8 @@ public static partial class IceRemembersGeneratorDefinition
         Triggers = TriggerOn(K.Penguin),
         // Remembrance-stones are rare by gate (chronicle heat), not by lottery:
         // the eligibility windows are brief blazing-story moments, so when
-        // one arrives the ice must not lose the pulse to routine growth.
-        PulseWeight = 50,
+        // one arrives the ice must not lose the fire slot to routine growth.
+        FireWeight = 50,
     };
 
     private static SemanticGeneratorConfig LegendEntersTheCanon() => new()
@@ -79,6 +79,6 @@ public static partial class IceRemembersGeneratorDefinition
             R("$saga", "$target", Rel.ClaimedBy, 0.70f),
         ],
         Triggers = TriggerOn(K.Penguin),
-        PulseWeight = 6,
+        FireWeight = 6,
     };
 }

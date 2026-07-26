@@ -74,7 +74,7 @@ internal static class KernelStartupConfigLoader
         tuning = ApplyJsonLifecycleTuning(programs, tuning);
         tuning = ApplyJsonGeneratorTuning(programs, tuning);
         tuning = ApplyJsonLowAltitudeVerbTuning(programs, tuning);
-        tuning = ApplyJsonMinorActorSubstepTuning(programs, tuning);
+        tuning = ApplyJsonMainProgramCadenceTuning(programs, tuning);
         tuning = ApplyJsonCultureInfluenceActionScaleTuning(programs, tuning);
         tuning = ApplyJsonCultureFieldTuning(programs, tuning);
         return ApplyJsonProgramEnabledTuning(programs, tuning);
@@ -118,14 +118,14 @@ internal static class KernelStartupConfigLoader
             tuning = WithRetryFireTargets(tuning, retry);
         }
 
-        if (TryGetInt(generators, out var pulseWidthTicks, "pulseWidthTicks", "pulse_width_ticks"))
+        if (TryGetInt(generators, out var fireWindowTicks, "fireWindowTicks", "fire_window_ticks"))
         {
-            tuning = WithGeneratorPulseWidth(tuning, pulseWidthTicks);
+            tuning = WithGeneratorFireWindow(tuning, fireWindowTicks);
         }
 
-        if (TryGetInt(generators, out var firesPerPulse, "firesPerPulse", "fires_per_pulse"))
+        if (TryGetInt(generators, out var firesPerWindow, "firesPerWindow", "fires_per_window"))
         {
-            tuning = WithGeneratorFiresPerPulse(tuning, firesPerPulse);
+            tuning = WithGeneratorFiresPerWindow(tuning, firesPerWindow);
         }
 
         return tuning;
@@ -225,20 +225,11 @@ internal static class KernelStartupConfigLoader
         return WithAgingModel(tuning, agingModelCode);
     }
 
-    private static KernelTuningOptions ApplyJsonMinorActorSubstepTuning(JsonElement programs, KernelTuningOptions tuning)
+    private static KernelTuningOptions ApplyJsonMainProgramCadenceTuning(JsonElement programs, KernelTuningOptions tuning)
     {
-        if (TryGetInt(programs, out var substeps, "minorActorSubstepsPerPulse", "minor_actor_substeps_per_pulse"))
-        {
-            return WithMinorActorSubstepsPerPulse(tuning, substeps);
-        }
-
-        if (!TryGetObject(programs, out var minorActors, "minorActors", "minor_actors") ||
-            !TryGetInt(minorActors, out substeps, "substepsPerPulse", "substeps_per_pulse"))
-        {
-            return tuning;
-        }
-
-        return WithMinorActorSubstepsPerPulse(tuning, substeps);
+        return TryGetInt(programs, out var cadence, "mainProgramCadenceTicks", "main_program_cadence_ticks")
+            ? WithMainProgramCadenceTicks(tuning, cadence)
+            : tuning;
     }
 
     private static KernelTuningOptions ApplyJsonCultureInfluenceActionScaleTuning(JsonElement programs, KernelTuningOptions tuning)
@@ -255,18 +246,18 @@ internal static class KernelStartupConfigLoader
             return tuning;
         }
 
-        if (TryGetFloat(cultureField, out var decayPerPulse, "decayPerPulse", "decay_per_pulse"))
+        if (TryGetFloat(cultureField, out var decayPerRun, "decayPerRun", "decay_per_run"))
         {
             tuning = WithCultureField(
                 tuning,
-                tuning.Programs.CultureField with { DecayPerPulse = FixedScalar.FromSingle(decayPerPulse) });
+                tuning.Programs.CultureField with { DecayPerRun = FixedScalar.FromSingle(decayPerRun) });
         }
 
-        if (TryGetFloat(cultureField, out var minimumDecay, "minimumDecayPerPulse", "minimum_decay_per_pulse"))
+        if (TryGetFloat(cultureField, out var minimumDecay, "minimumDecayPerRun", "minimum_decay_per_run"))
         {
             tuning = WithCultureField(
                 tuning,
-                tuning.Programs.CultureField with { MinimumDecayPerPulse = FixedScalar.FromSingle(minimumDecay) });
+                tuning.Programs.CultureField with { MinimumDecayPerRun = FixedScalar.FromSingle(minimumDecay) });
         }
 
         if (TryGetFloat(cultureField, out var cullFloor, "cullFloorRawMass", "cull_floor_raw_mass"))
@@ -276,9 +267,9 @@ internal static class KernelStartupConfigLoader
                 tuning.Programs.CultureField with { CullFloorRawMass = FixedScalar.FromSingle(cullFloor) });
         }
 
-        if (TryGetInt(cultureField, out var cadence, "decayCadencePulses", "decay_cadence_pulses"))
+        if (TryGetInt(cultureField, out var cadence, "decayCadenceTicks", "decay_cadence_ticks"))
         {
-            tuning = WithCultureField(tuning, tuning.Programs.CultureField with { DecayCadencePulses = cadence });
+            tuning = WithCultureField(tuning, tuning.Programs.CultureField with { DecayCadenceTicks = cadence });
         }
 
         if (TryGetFloat(cultureField, out var remittanceShare, "remittanceShare", "remittance_share"))
@@ -362,7 +353,7 @@ internal static class KernelStartupConfigLoader
 
         if (string.Equals(section, "KERNELTUNING.PROGRAMS.MINORACTORS", StringComparison.Ordinal))
         {
-            return ApplyTomlProgramEnabledValue(section, key, value, ApplyTomlMinorActorValue(key, value, tuning));
+            return ApplyTomlProgramEnabledValue(section, key, value, tuning);
         }
 
         if (string.Equals(section, "KERNELTUNING.PROGRAMS.CULTUREFIELD", StringComparison.Ordinal))
@@ -391,10 +382,10 @@ internal static class KernelStartupConfigLoader
         KernelTuningOptions tuning)
     {
         var scalar = ReadBareTomlValue(value);
-        if (string.Equals(key, "MINORACTORSUBSTEPSPERPULSE", StringComparison.Ordinal) &&
-            int.TryParse(scalar, CultureInfo.InvariantCulture, out var substeps))
+        if (string.Equals(key, "MAINPROGRAMCADENCETICKS", StringComparison.Ordinal) &&
+            int.TryParse(scalar, CultureInfo.InvariantCulture, out var cadence))
         {
-            return WithMinorActorSubstepsPerPulse(tuning, substeps);
+            return WithMainProgramCadenceTicks(tuning, cadence);
         }
 
         return string.Equals(key, "CULTUREINFLUENCEACTIONSCALE", StringComparison.Ordinal) &&
@@ -429,13 +420,13 @@ internal static class KernelStartupConfigLoader
     {
         var cultureField = key switch
         {
-            "DECAYPERPULSE" => tuning.Programs.CultureField with
+            "DECAYPERRUN" => tuning.Programs.CultureField with
             {
-                DecayPerPulse = FixedScalar.FromSingle(value),
+                DecayPerRun = FixedScalar.FromSingle(value),
             },
-            "MINIMUMDECAYPERPULSE" => tuning.Programs.CultureField with
+            "MINIMUMDECAYPERRUN" => tuning.Programs.CultureField with
             {
-                MinimumDecayPerPulse = FixedScalar.FromSingle(value),
+                MinimumDecayPerRun = FixedScalar.FromSingle(value),
             },
             "CULLFLOORRAWMASS" => tuning.Programs.CultureField with
             {
@@ -457,7 +448,7 @@ internal static class KernelStartupConfigLoader
     {
         var cultureField = key switch
         {
-            "DECAYCADENCEPULSES" => tuning.Programs.CultureField with { DecayCadencePulses = value },
+            "DECAYCADENCETICKS" => tuning.Programs.CultureField with { DecayCadenceTicks = value },
             "REMITTANCEMINIMUMDISTANCE" => tuning.Programs.CultureField with { RemittanceMinimumDistance = value },
             _ => tuning.Programs.CultureField,
         };
@@ -550,31 +541,16 @@ internal static class KernelStartupConfigLoader
             return WithRetryFireTargets(tuning, retry);
         }
 
-        if (string.Equals(key, "PULSEWIDTHTICKS", StringComparison.Ordinal) &&
-            int.TryParse(scalar, CultureInfo.InvariantCulture, out var pulseWidthTicks))
+        if (string.Equals(key, "FIREWINDOWTICKS", StringComparison.Ordinal) &&
+            int.TryParse(scalar, CultureInfo.InvariantCulture, out var fireWindowTicks))
         {
-            return WithGeneratorPulseWidth(tuning, pulseWidthTicks);
+            return WithGeneratorFireWindow(tuning, fireWindowTicks);
         }
 
-        if (string.Equals(key, "FIRESPERPULSE", StringComparison.Ordinal) &&
-            int.TryParse(scalar, CultureInfo.InvariantCulture, out var firesPerPulse))
+        if (string.Equals(key, "FIRESPERWINDOW", StringComparison.Ordinal) &&
+            int.TryParse(scalar, CultureInfo.InvariantCulture, out var firesPerWindow))
         {
-            return WithGeneratorFiresPerPulse(tuning, firesPerPulse);
-        }
-
-        return tuning;
-    }
-
-    private static KernelTuningOptions ApplyTomlMinorActorValue(
-        string key,
-        string value,
-        KernelTuningOptions tuning)
-    {
-        var scalar = ReadBareTomlValue(value);
-        if (string.Equals(key, "SUBSTEPSPERPULSE", StringComparison.Ordinal) &&
-            int.TryParse(scalar, CultureInfo.InvariantCulture, out var substeps))
-        {
-            return WithMinorActorSubstepsPerPulse(tuning, substeps);
+            return WithGeneratorFiresPerWindow(tuning, firesPerWindow);
         }
 
         return tuning;
@@ -690,7 +666,7 @@ internal static class KernelStartupConfigLoader
         };
     }
 
-    private static KernelTuningOptions WithGeneratorPulseWidth(KernelTuningOptions tuning, int pulseWidthTicks)
+    private static KernelTuningOptions WithGeneratorFireWindow(KernelTuningOptions tuning, int fireWindowTicks)
     {
         return tuning with
         {
@@ -698,13 +674,13 @@ internal static class KernelStartupConfigLoader
             {
                 Generators = tuning.Programs.Generators with
                 {
-                    PulseWidthTicks = pulseWidthTicks,
+                    FireWindowTicks = fireWindowTicks,
                 },
             },
         };
     }
 
-    private static KernelTuningOptions WithGeneratorFiresPerPulse(KernelTuningOptions tuning, int firesPerPulse)
+    private static KernelTuningOptions WithGeneratorFiresPerWindow(KernelTuningOptions tuning, int firesPerWindow)
     {
         return tuning with
         {
@@ -712,7 +688,7 @@ internal static class KernelStartupConfigLoader
             {
                 Generators = tuning.Programs.Generators with
                 {
-                    FiresPerPulse = firesPerPulse,
+                    FiresPerWindow = firesPerWindow,
                 },
             },
         };
@@ -844,12 +820,12 @@ internal static class KernelStartupConfigLoader
             },
         };
 
-    private static KernelTuningOptions WithMinorActorSubstepsPerPulse(KernelTuningOptions tuning, int value) =>
+    private static KernelTuningOptions WithMainProgramCadenceTicks(KernelTuningOptions tuning, int value) =>
         tuning with
         {
             Programs = tuning.Programs with
             {
-                MinorActorSubstepsPerPulse = value,
+                MainProgramCadenceTicks = value,
             },
         };
 

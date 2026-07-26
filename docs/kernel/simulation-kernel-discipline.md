@@ -125,7 +125,27 @@ Preferred patterns:
 Overflow must be explicit. Dropping an event, truncating a candidate list,
 or expanding a buffer are design choices and should be visible in tests/telemetry.
 
-## Invariant 4: Deterministic Durable Numeric State
+## Invariant 4: Active State And Occurrence Identity
+
+Fixed capacity bounds concurrent simulation state, not the number of
+occurrences that have ever existed. Entities, relationships, districts,
+cohorts, cooldown rows, and other lifetime-shaped records must release their
+active slots when they end.
+
+Reusable entity and relationship slots are internal addresses. A reference
+that can survive the current mutation boundary must carry a generation-safe
+occurrence handle, including primitive events and commands, frozen adjacency,
+provenance, chronicles, gambits, hosted state, and snapshots. Resolving a stale
+handle must fail; it must never name the later occupant of the same slot.
+
+Hot iteration uses dense active, due, dirty, or owner-local indexes. High-water
+scans are acceptable only for cold validation or reconstruction where the cost
+is explicitly outside the tick path. Snapshot persistence contains active state
+and the minimum generation metadata required for identity safety, then rebuilds
+free lists and derived indexes on load. It does not preserve retired rows or
+ended edges for compatibility.
+
+## Invariant 5: Deterministic Durable Numeric State
 
 Durable additive simulation fields must use a field-specific integer
 representation before their values can be reduced across work items or shards.
@@ -168,7 +188,7 @@ the kernel's perspective, with explicit overflow counters and policies.
 Events should carry:
 
 - tick
-- entity IDs
+- generation-safe entity and relationship occurrence handles
 - stable kind/process/attribute/reason IDs
 - numeric values
 - enum codes
@@ -201,8 +221,48 @@ independently.
 
 ## Thread Discipline
 
-The current scheduler runs kernel phases on one thread. That is the simplest
-present execution strategy, not a permanent one-writer architecture rule.
+The current scheduler is a bulk-synchronous model executed on one thread. A
+tick admits commands, prepares local inputs, freezes the active entity and
+relationship views, evaluates local programs into fixed-capacity typed deltas,
+resolves those deltas by destination, runs strategic programs, and publishes
+the tick. Local semantic events are phase-buffered and deterministically sorted
+before they enter the event log.
+
+Additive deltas sum in a wide intermediate before the destination clamp.
+Competing absolute writes use an explicit priority and stable logical source
+key. Relationship end and lifecycle retirement resolve after their accepted
+strength and attribute changes. Logical shard count changes traversal only; it
+does not change destination ownership or convergence state.
+
+Runtime randomness is stateless and keyed by stable logical inputs: seed,
+tick, phase, program, occurrence/logical key, rule, purpose, and attempt.
+Evaluation order, rejected unrelated work, and logical shard count therefore do
+not consume or shift a shared random stream.
+
+This one-thread execution is the reference contract, not a permanent
+one-writer architecture rule.
+
+Phase 9 measurement selected a typed-owner bulk-synchronous scheduler as the
+next implementation candidate. The selection does not change the current
+single-threaded runtime. Its ownership topology is:
+
+- stable-ID ranges or bounded dynamic chunks for read-only evaluation;
+- entity owners for entity slots and entity-program state;
+- relationship owners for relationship slots and relationship state;
+- cell owners for terrain, culture, and other map-cell destinations; and
+- bounded typed messages whenever one operation affects more than one owner.
+
+The ownership decision does not authorize parallelizing accidental work. The
+measured all-pairs gambit target scan and per-candidate terrain-integrated reach
+query must be removed, then the reduced serial phase profile must be measured
+again before worker implementation. Persistent geographic actors remain
+rejected; this serial gate does not reopen that strategy.
+
+Geography is not the universal ownership key. It applies to cell/map storage
+only. Relationship and gambit interactions are too nonlocal, and geographic
+entity load is too skewed, for persistent spatial actors to be the primary
+scheduler. A future implementation must use the same range/owner paths at one
+worker; it may not retain separate serial and parallel simulation models.
 
 Any future parallel phase must give each mutable slot, relationship, or cell one
 exclusive owner for that phase. Cross-owner effects travel as bounded primitive
@@ -282,8 +342,9 @@ Current tuning keys:
 
 - `programs.lifecycle.aging_model`: `linear` or `late_life`.
 - `programs.generators.retry_fire_targets`: `true` or `false`.
-- `programs.generators.pulse_width_ticks`: positive integer.
-- `programs.generators.fires_per_pulse`: non-negative integer.
+- `programs.main_program_cadence_ticks`: positive integer.
+- `programs.generators.fire_window_ticks`: positive integer.
+- `programs.generators.fires_per_window`: non-negative integer.
 
 ## Review Checklist
 

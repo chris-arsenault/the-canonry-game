@@ -2,22 +2,22 @@ namespace Engine.Kernel;
 
 internal sealed partial class MapFrontierProgramRuntime
 {
-    // Cells examined per pulse while hunting freeze/melt work. Bounds the
-    // scan so a large live map costs the same per pulse as a small one.
+    // Cells examined per run while hunting freeze/melt work. Bounds the
+    // scan so a large live map costs the same per run as a small one.
     private const int SeaIceScanVisitBudget = 512;
 
     /// <summary>
     /// The frozen sea breathes with the Ice-track ages. Re-freeze ages
     /// extend sea-ice cover over eligible water from coasts and existing
     /// ice; thaw ages melt the cover back from its fringe. A persistent
-    /// rotating cursor over the live disk keeps each pulse bounded and free
+    /// rotating cursor over the live disk keeps each run bounded and free
     /// of directional bias.
     /// </summary>
-    private void PulseSeaIce(Simulation simulation, int tick, bool freeze)
+    private void UpdateSeaIce(Simulation simulation, int tick, bool freeze)
     {
         var world = simulation.World;
         var radius = world.PhysicalMapRadius;
-        var budget = freeze ? Data.SeaIceFreezeBudgetPerPulse : Data.SeaIceMeltBudgetPerPulse;
+        var budget = freeze ? Data.SeaIceFreezeBudgetPerRun : Data.SeaIceMeltBudgetPerRun;
         if (Data.SeaIceCoverTerrainId <= 0 || budget <= 0 || radius <= 0)
         {
             return;
@@ -49,10 +49,10 @@ internal sealed partial class MapFrontierProgramRuntime
             visited++;
             var q = (index / diameter) - radius;
             var r = (index % diameter) - radius;
-            var pulsed = freeze
+            var updated = freeze
                 ? TryFreezeSeaIce(simulation, world, q, r, tick)
                 : TryMeltSeaIce(simulation, world, q, r, tick);
-            changed += pulsed ? 1 : 0;
+            changed += updated ? 1 : 0;
         }
     }
 
@@ -122,15 +122,15 @@ internal sealed partial class MapFrontierProgramRuntime
 
     public void SetSeaIceConfiguration(
         int coverTerrainId,
-        int freezeBudgetPerPulse,
-        int meltBudgetPerPulse)
+        int freezeBudgetPerRun,
+        int meltBudgetPerRun)
     {
         NumericGuard.ThrowIfNegative(coverTerrainId);
-        NumericGuard.ThrowIfNegative(freezeBudgetPerPulse);
-        NumericGuard.ThrowIfNegative(meltBudgetPerPulse);
+        NumericGuard.ThrowIfNegative(freezeBudgetPerRun);
+        NumericGuard.ThrowIfNegative(meltBudgetPerRun);
         Data.SeaIceCoverTerrainId = coverTerrainId;
-        Data.SeaIceFreezeBudgetPerPulse = freezeBudgetPerPulse;
-        Data.SeaIceMeltBudgetPerPulse = meltBudgetPerPulse;
+        Data.SeaIceFreezeBudgetPerRun = freezeBudgetPerRun;
+        Data.SeaIceMeltBudgetPerRun = meltBudgetPerRun;
     }
 
     public void AddSeaIceEligibleTerrain(int terrainId) =>

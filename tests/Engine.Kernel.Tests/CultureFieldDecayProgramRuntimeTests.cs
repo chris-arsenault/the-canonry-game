@@ -8,12 +8,12 @@ public sealed class CultureFieldDecayProgramRuntimeTests
     private const int CultureId = 1;
 
     [Fact]
-    public void Decay_ReducesLargeMassMultiplicativelyAtPulseCadence()
+    public void Decay_ReducesLargeMassMultiplicativelyAtConfiguredCadence()
     {
-        var simulation = CreateSimulation(decayPerPulse: FixedScalar.FromSingle(0.01f), minimumDecayPerPulse: FixedScalar.FromSingle(0.5f), cadencePulses: 1);
+        var simulation = CreateSimulation(decayPerRun: FixedScalar.FromSingle(0.01f), minimumDecayPerRun: FixedScalar.FromSingle(0.5f), cadenceTicks: 1);
         simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(1000f), tick: 0);
 
-        AdvanceOnePulse(simulation);
+        AdvanceOneDecayRun(simulation);
 
         var raw = simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0);
         Assert.Equal(FixedScalar.FromSingle(990f), raw);
@@ -22,15 +22,15 @@ public sealed class CultureFieldDecayProgramRuntimeTests
     [Fact]
     public void Decay_AppliesMinimumDecayToSmallMassAndCullsAtFloor()
     {
-        var simulation = CreateSimulation(decayPerPulse: FixedScalar.FromSingle(0.005f), minimumDecayPerPulse: FixedScalar.FromSingle(1f), cadencePulses: 1);
+        var simulation = CreateSimulation(decayPerRun: FixedScalar.FromSingle(0.005f), minimumDecayPerRun: FixedScalar.FromSingle(1f), cadenceTicks: 1);
         simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(5f), tick: 0);
 
-        AdvanceOnePulse(simulation);
+        AdvanceOneDecayRun(simulation);
         Assert.Equal(FixedScalar.FromSingle(4f), simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0));
 
-        for (var pulse = 0; pulse < 5; pulse++)
+        for (var run = 0; run < 5; run++)
         {
-            AdvanceOnePulse(simulation);
+            AdvanceOneDecayRun(simulation);
         }
 
         Assert.Equal(FixedScalar.FromSingle(0f), simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0));
@@ -40,12 +40,12 @@ public sealed class CultureFieldDecayProgramRuntimeTests
     [Fact]
     public void Decay_SustainedProductionOutpacesLoss()
     {
-        var simulation = CreateSimulation(decayPerPulse: FixedScalar.FromSingle(0.01f), minimumDecayPerPulse: FixedScalar.FromSingle(0.5f), cadencePulses: 1);
+        var simulation = CreateSimulation(decayPerRun: FixedScalar.FromSingle(0.01f), minimumDecayPerRun: FixedScalar.FromSingle(0.5f), cadenceTicks: 1);
         simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(100f), tick: 0);
 
-        for (var pulse = 0; pulse < 4; pulse++)
+        for (var run = 0; run < 4; run++)
         {
-            AdvanceOnePulse(simulation);
+            AdvanceOneDecayRun(simulation);
             simulation.ModifyCellCultureInfluenceRaw(
                 CultureId,
                 PlaneCodes.Physical,
@@ -62,11 +62,11 @@ public sealed class CultureFieldDecayProgramRuntimeTests
     [Fact]
     public void Decay_ZeroRatesLeaveFieldUntouched()
     {
-        var simulation = CreateSimulation(decayPerPulse: FixedScalar.FromSingle(0f), minimumDecayPerPulse: FixedScalar.FromSingle(0f), cadencePulses: 1);
+        var simulation = CreateSimulation(decayPerRun: FixedScalar.FromSingle(0f), minimumDecayPerRun: FixedScalar.FromSingle(0f), cadenceTicks: 1);
         simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0, FixedScalar.FromSingle(250f), tick: 0);
 
-        AdvanceOnePulse(simulation);
-        AdvanceOnePulse(simulation);
+        AdvanceOneDecayRun(simulation);
+        AdvanceOneDecayRun(simulation);
 
         Assert.Equal(FixedScalar.FromSingle(250f), simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0));
     }
@@ -74,7 +74,7 @@ public sealed class CultureFieldDecayProgramRuntimeTests
     [Fact]
     public void Decay_DowngradesLocalityStrengthBandWhenSupportThresholdCrossed()
     {
-        var simulation = CreateSimulation(decayPerPulse: FixedScalar.FromSingle(0.005f), minimumDecayPerPulse: FixedScalar.FromSingle(2f), cadencePulses: 1);
+        var simulation = CreateSimulation(decayPerRun: FixedScalar.FromSingle(0.005f), minimumDecayPerRun: FixedScalar.FromSingle(2f), cadenceTicks: 1);
         simulation.ModifyCellCultureInfluenceRaw(
             CultureId,
             PlaneCodes.Physical,
@@ -85,7 +85,7 @@ public sealed class CultureFieldDecayProgramRuntimeTests
         var before = simulation.CultureLocality.CellAt(simulation.World, CultureId, PlaneCodes.Physical, 0, 0);
         Assert.Equal(CultureFieldStrengthBandCodes.Claimed, before.StrengthBandCode);
 
-        AdvanceOnePulse(simulation);
+        AdvanceOneDecayRun(simulation);
 
         Assert.True(
             simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0) <
@@ -94,12 +94,12 @@ public sealed class CultureFieldDecayProgramRuntimeTests
         Assert.Equal(CultureFieldStrengthBandCodes.Trace, after.StrengthBandCode);
     }
 
-    private static void AdvanceOnePulse(Simulation simulation)
+    private static void AdvanceOneDecayRun(Simulation simulation)
     {
-        var cadence = simulation.Options.KernelTuning.Programs.CultureField.DecayCadencePulses;
+        var cadence = simulation.Options.KernelTuning.Programs.CultureField.DecayCadenceTicks;
         var currentTick = simulation.CurrentTick;
-        var nextPulseTick = ((currentTick / cadence) + 1) * cadence;
-        simulation.AdvanceTicks(nextPulseTick - currentTick);
+        var nextRunTick = ((currentTick / cadence) + 1) * cadence;
+        simulation.AdvanceTicks(nextRunTick - currentTick);
     }
 
     private static int CellCount(Simulation simulation)
@@ -118,9 +118,9 @@ public sealed class CultureFieldDecayProgramRuntimeTests
     }
 
     private static Simulation CreateSimulation(
-        FixedScalar decayPerPulse,
-        FixedScalar minimumDecayPerPulse,
-        int cadencePulses) =>
+        FixedScalar decayPerRun,
+        FixedScalar minimumDecayPerRun,
+        int cadenceTicks) =>
         new(new SimulationOptions
         {
             EntityCapacity = 16,
@@ -134,10 +134,10 @@ public sealed class CultureFieldDecayProgramRuntimeTests
                 {
                     CultureField = new CultureFieldTuningOptions
                     {
-                        DecayPerPulse = decayPerPulse,
-                        MinimumDecayPerPulse = minimumDecayPerPulse,
+                        DecayPerRun = decayPerRun,
+                        MinimumDecayPerRun = minimumDecayPerRun,
                         CullFloorRawMass = FixedScalar.FromSingle(1f),
-                        DecayCadencePulses = cadencePulses,
+                        DecayCadenceTicks = cadenceTicks,
                     },
                 },
             },

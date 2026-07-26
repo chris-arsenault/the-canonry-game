@@ -59,7 +59,7 @@ public sealed class ForgeCellVerticalTests
     [Fact]
     public void ForgedTunnelsAreWalkableViaVerticalWander()
     {
-        var simulation = CreateSimulation();
+        var simulation = CreateSimulation(includeSurfaceNeighbors: false);
         var entity = simulation.CreateEntity(KindId, 1, CultureId, 0, 0, 0, 0, 0, tick: 0);
         _ = simulation.TryForgeCellVertical(entity, direction: -1, TunnelTerrainId, tick: 0);
 
@@ -93,7 +93,7 @@ public sealed class ForgeCellVerticalTests
         _ => 1,
     };
 
-    private static Simulation CreateSimulation()
+    private static Simulation CreateSimulation(bool includeSurfaceNeighbors = true)
     {
         var simulation = new Simulation(new SimulationOptions
         {
@@ -108,8 +108,8 @@ public sealed class ForgeCellVerticalTests
                 {
                     CultureField = new CultureFieldTuningOptions
                     {
-                        DecayPerPulse = FixedScalar.FromSingle(0f),
-                        MinimumDecayPerPulse = FixedScalar.FromSingle(0f),
+                        DecayPerRun = FixedScalar.FromSingle(0f),
+                        MinimumDecayPerRun = FixedScalar.FromSingle(0f),
                     },
                 },
             },
@@ -118,6 +118,12 @@ public sealed class ForgeCellVerticalTests
         simulation.RegisterTerrain(1, boundaryGroupId: 1);
         simulation.RegisterTerrain(SpireTerrainId, boundaryGroupId: 2);
         simulation.RegisterTerrain(TunnelTerrainId, boundaryGroupId: 3);
+        if (!includeSurfaceNeighbors)
+        {
+            simulation.World.SetCell(PlaneCodes.Physical, 0, 0, terrainId: 1);
+            return simulation;
+        }
+
         for (var q = -2; q <= 2; q++)
         {
             var minR = global::System.Math.Max(-2, -q - 2);

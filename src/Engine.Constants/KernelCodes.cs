@@ -282,6 +282,18 @@ public static class BehaviorEndpointCodes
     public const int Target = 2;
 }
 
+public static class GambitPreconditionDestinationCodes
+{
+    public const int Failed = 0;
+    public const int Passed = -1;
+}
+
+public static class GambitRelationshipTargetDirectionCodes
+{
+    public const int Outgoing = 1;
+    public const int Incoming = 2;
+}
+
 public static class BehaviorPreconditionCodes
 {
     public const int TargetIsSelf = 1;
@@ -294,24 +306,21 @@ public static class BehaviorPreconditionCodes
     public const int TargetHasRelationshipToSelf = 9;
     public const int RelatedEntityMatchesTarget = 10;
     public const int RelationshipExists = 11;
-    public const int And = 14;
-    public const int Or = 15;
-    public const int Not = 16;
-    public const int EntityCountAtLeast = 17;
-    public const int HasColocatedEntity = 18;
-    public const int ContestedInfluence = 19;
-    public const int SelfHasOutgoingRelationship = 20;
-    public const int SharedInfluence = 21;
-    public const int EndpointRelationshipCountBelow = 22;
-    public const int EndpointCultureIs = 23;
-    public const int SelfCultureMass = 24;
-    public const int SelfWorkTierBelow = 25;
-    public const int SelfHasOutgoingRelationshipToKind = 26;
-    public const int EndpointSubtypeIs = 27;
-    public const int WithinTravelReach = 28;
-    public const int SelfHexFactRange = 29;
-    public const int TargetHexFactRange = 30;
-    public const int SelfOnTerrainGroup = 31;
+    public const int EntityCountAtLeast = 12;
+    public const int HasColocatedEntity = 13;
+    public const int ContestedInfluence = 14;
+    public const int SelfHasOutgoingRelationship = 15;
+    public const int SharedInfluence = 16;
+    public const int EndpointRelationshipCountBelow = 17;
+    public const int EndpointCultureIs = 18;
+    public const int SelfCultureMass = 19;
+    public const int SelfWorkTierBelow = 20;
+    public const int SelfHasOutgoingRelationshipToKind = 21;
+    public const int EndpointSubtypeIs = 22;
+    public const int WithinTravelReach = 23;
+    public const int SelfHexFactRange = 24;
+    public const int TargetHexFactRange = 25;
+    public const int SelfOnTerrainGroup = 26;
 }
 
 public static class BehaviorExpressionCodes
@@ -534,7 +543,7 @@ public static class KnowledgeGrantDomainCodes
     public const int CultureProduction = 1;
     public const int CulturePersistence = 2;
     public const int VerbWeight = 3;
-    public const int GeneratorPulseWeight = 4;
+    public const int GeneratorFireWeight = 4;
     public const int GambitScore = 5;
     public const int GambitSuccess = 6;
     public const int MinorActorWork = 7;
@@ -575,7 +584,7 @@ public static class WorldBeatComparatorCodes
 
 public static class WorldBeatChargeDomainCodes
 {
-    public const int GeneratorPulseWeight = 1;
+    public const int GeneratorFireWeight = 1;
     public const int VerbWeight = 2;
     public const int GambitScore = 3;
     public const int ContestDecayTide = 4;
@@ -823,12 +832,12 @@ public static class KernelCommandRejectReasonCodes
 public static class GeneratorProgramConstants
 {
     public const int TargetReferenceCode = 1;
-    // Per-province pulse width. The old single global clock ran saturated at
+    // Per-province fire-window width. The old single global scheduler ran saturated at
     // width 25; with every settled superregion running its own clock, the
     // per-province tempo is halved so world throughput lands near twice the
     // old rate at bootstrap settledness and grows with settled provinces.
-    public const int DefaultPulseWidthTicks = 50;
-    public const int DefaultFiresPerPulse = 1;
+    public const int DefaultFireWindowTicks = 50;
+    public const int DefaultFiresPerWindow = 1;
     public const int DefaultPlacementMinRadius = 0;
     public const int DefaultPlacementMaxRadius = 5;
     public const int FarPlacementMinRadius = 20;

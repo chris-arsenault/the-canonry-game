@@ -16,7 +16,7 @@ public partial class MinorActorFlowLayer : Node2D
     private const int FadeTicks = 60;
     private const int MaximumVisibleMotes = 192;
 
-    private readonly MinorActorPulse[] _buffer = new MinorActorPulse[768];
+    private readonly MinorActorActivityPoint[] _buffer = new MinorActorActivityPoint[768];
     private readonly HashSet<long> _drawnCells = [];
     private MinorActorFlowProjection? _flow;
     private EntityLayer? _entities;
@@ -64,26 +64,26 @@ public partial class MinorActorFlowLayer : Node2D
         var visibleMotes = 0;
         for (var i = 0; i < count && visibleMotes < MaximumVisibleMotes; i++)
         {
-            var pulse = _buffer[i];
-            var age = currentTick - pulse.Tick;
+            var activity = _buffer[i];
+            var age = currentTick - activity.Tick;
             if (age < 0 || age > FadeTicks)
             {
                 continue;
             }
 
-            var cellKey = ((long)(uint)pulse.Q << 32) | (uint)pulse.R;
+            var cellKey = ((long)(uint)activity.Q << 32) | (uint)activity.R;
             if (!_drawnCells.Add(cellKey))
             {
                 continue;
             }
 
             var fade = 1f - (age / (float)FadeTicks);
-            var color = _cultureColor?.Invoke(pulse.CultureId) ?? new Color(0.85f, 0.85f, 0.8f);
+            var color = _cultureColor?.Invoke(activity.CultureId) ?? new Color(0.85f, 0.85f, 0.8f);
             color.A = 0.35f * fade;
-            var center = _entities.HexCenter(new HexCoord(pulse.Q, pulse.R));
+            var center = _entities.HexCenter(new HexCoord(activity.Q, activity.R));
             var drift = new Vector2(
-                6f * Mathf.Sin((pulse.Tick * 0.7f) + i),
-                6f * Mathf.Cos((pulse.Tick * 1.1f) + i));
+                6f * Mathf.Sin((activity.Tick * 0.7f) + i),
+                6f * Mathf.Cos((activity.Tick * 1.1f) + i));
             DrawCircle(center + drift, 2.2f + (2f * fade), color);
             visibleMotes++;
         }

@@ -9,7 +9,11 @@ internal sealed partial class Simulation
             return;
         }
 
+        LowAltitudeVerbs.NoteEntityRetired(World, entityId);
+        CultureSlots.NoteEntityRetired(this, entityId, tick);
+        MinorActors.NoteEntityRetired(entityId);
         Chronicles.NoteEntityRetired(entityId);
+        World.ReleaseCoverageOwner(entityId, tick, _executionContext);
         for (var relationshipId = World.FirstIncidentRelationship(entityId); relationshipId > 0;)
         {
             var nextRelationshipId = World.NextIncidentRelationship(entityId, relationshipId);

@@ -205,8 +205,8 @@ public static partial class IceRemembersDefinition
         BaseIceResistance = 8f,
         CultureMassResistanceScale = 4f,
         RoadIceResistance = 40f,
-        IceAdvanceBudgetPerPulse = 16,
-        IceRetreatBudgetPerPulse = 48,
+        IceAdvanceBudgetPerRun = 16,
+        IceRetreatBudgetPerRun = 48,
         // The frozen sea breathes with the same ages: a Long Dark closes
         // harbors and sea lanes while opening slow walking routes over the
         // ice; a Thaw reopens the water from its fringes.
@@ -219,14 +219,14 @@ public static partial class IceRemembersDefinition
             Terrain.Fjord.ToDomainName(),
             Terrain.Lake.ToDomainName(),
         ],
-        SeaIceFreezeBudgetPerPulse = 12,
-        SeaIceMeltBudgetPerPulse = 12,
+        SeaIceFreezeBudgetPerRun = 12,
+        SeaIceMeltBudgetPerRun = 12,
         // Idea-space is born as a heart and reveals the varied latent semantic
         // field wherever culture's idea-mass presses its frontier.
         SemanticGrowthEnabled = true,
         SemanticMaxRadius = 128,
         SemanticFrontierMassThreshold = 25f,
-        SemanticBudgetPerPulse = 48,
+        SemanticBudgetPerRun = 48,
     };
 
     private static List<RelationshipConfig> CreateRelationships()

@@ -22,7 +22,7 @@ internal sealed record SimulationOptions
     public int GambitProviderSelectorCapacity { get; init; } = 512;
     public int GeneratorCapacity { get; init; } = 256;
 
-    /// <summary>Maximum distinct physical superregions the provincial pulse
+    /// <summary>Maximum distinct physical superregions the provincial fire-window
     /// system can register over a run.</summary>
     public int GeneratorProvinceCapacity { get; init; } = 64;
 
@@ -66,8 +66,16 @@ internal sealed record SimulationOptions
     public int RelationshipGraphDeltaMergeThreshold { get; init; } = 1024;
     public KernelRuntimeCodes RuntimeCodes { get; init; } = KernelRuntimeCodes.Default;
     public KernelTuningOptions KernelTuning { get; init; } = new();
+    public KernelExecutionOptions Execution { get; init; } = new();
     public bool TraceEnabled { get; init; }
     public int Seed { get; init; } = 1;
+}
+
+internal sealed record KernelExecutionOptions
+{
+    public bool ReverseEvaluationOrder { get; init; }
+    public bool ReverseDeltaInsertionOrder { get; init; }
+    public int LogicalShardCount { get; init; } = 1;
 }
 
 internal sealed record KernelTuningOptions
@@ -77,7 +85,7 @@ internal sealed record KernelTuningOptions
 
 internal sealed record KernelProgramTuningOptions
 {
-    public int MinorActorSubstepsPerPulse { get; init; } = 5;
+    public int MainProgramCadenceTicks { get; init; } = 5;
     public FixedScalar CultureInfluenceActionScale { get; init; } = FixedScalar.FromUnits(150000L);
     public ProgramEnabledTuningOptions Enabled { get; init; } = new();
     public LifecycleTuningOptions Lifecycle { get; init; } = new();
@@ -87,6 +95,12 @@ internal sealed record KernelProgramTuningOptions
     public WorldBeatsTuningOptions WorldBeats { get; init; } = new();
     public MapFrontierTuningOptions MapFrontier { get; init; } = new();
 
+    public int ScaleMainProgramDuration(int duration)
+    {
+        global::System.ArgumentOutOfRangeException.ThrowIfNegative(duration);
+        NumericGuard.ThrowIfNegativeOrZero(MainProgramCadenceTicks);
+        return duration == 0 ? 0 : checked(duration * MainProgramCadenceTicks);
+    }
 }
 
 internal sealed record ProgramEnabledTuningOptions
@@ -111,10 +125,10 @@ internal sealed record CultureFieldTuningOptions
     // Eased from 0.005 with the stage rework: the worker treadmill that
     // paid this decay bill is retired, and interior holding now comes from
     // stage emission and districts (docs/design/entity-stages.md).
-    public FixedScalar DecayPerPulse { get; init; } = FixedScalar.FromUnits(4000L);
-    public FixedScalar MinimumDecayPerPulse { get; init; } = FixedScalar.FromUnits(600000L);
+    public FixedScalar DecayPerRun { get; init; } = FixedScalar.FromUnits(4000L);
+    public FixedScalar MinimumDecayPerRun { get; init; } = FixedScalar.FromUnits(600000L);
     public FixedScalar CullFloorRawMass { get; init; } = 1;
-    public int DecayCadencePulses { get; init; } = 5;
+    public int DecayCadenceTicks { get; init; } = 25;
     public FixedScalar RemittanceShare { get; init; } = FixedScalar.FromUnits(500000L);
     public int RemittanceMinimumDistance { get; init; } = 6;
 
@@ -131,28 +145,28 @@ internal sealed record CultureFieldTuningOptions
 
 internal sealed record WorldBeatsTuningOptions
 {
-    public int CadencePulses { get; init; } = 25;
+    public int CadenceTicks { get; init; } = 125;
 }
 
 internal sealed record MapFrontierTuningOptions
 {
-    public int CadencePulses { get; init; } = 25;
+    public int CadenceTicks { get; init; } = 125;
 }
 
 internal sealed record GeneratorProgramTuningOptions
 {
     public bool RetryFireTargets { get; init; } = true;
-    public int PulseWidthTicks { get; init; } = GeneratorProgramConstants.DefaultPulseWidthTicks;
-    public int FiresPerPulse { get; init; } = GeneratorProgramConstants.DefaultFiresPerPulse;
+    public int FireWindowTicks { get; init; } = GeneratorProgramConstants.DefaultFireWindowTicks;
+    public int FiresPerWindow { get; init; } = GeneratorProgramConstants.DefaultFiresPerWindow;
 
-    // Provincial pulses: each physical-map superregion runs its own pulse
-    // clock at a tempo set by its settledness band, so throughput grows as
+    // Provincial fire windows: each physical-map superregion has a tempo set
+    // by its settledness band, so throughput grows as
     // territory settles and each place generates its own stories. Bands are
     // derived from covered cells inside the superregion; multipliers stretch
-    // PulseWidthTicks for less settled ground. Multipliers of 1 collapse the
+    // FireWindowTicks for less settled ground. Multipliers of 1 collapse the
     // system back to uniform provincial tempo.
-    public int FrontierPulseWidthMultiplier { get; init; } = 8;
-    public int SettledPulseWidthMultiplier { get; init; } = 3;
+    public int FrontierFireWindowMultiplier { get; init; } = 8;
+    public int SettledFireWindowMultiplier { get; init; } = 3;
     public int SettledCoveredCellThreshold { get; init; } = 15;
     public int HeartlandCoveredCellThreshold { get; init; } = 100;
     public int ProvinceBandRefreshTicks { get; init; } = 200;

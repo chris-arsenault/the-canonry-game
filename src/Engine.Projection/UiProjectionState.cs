@@ -56,6 +56,8 @@ public sealed partial class UiProjectionState : KernelEventProjector
 
     public long WorldVersion { get; private set; }
 
+    public long PublishedPhaseRevision { get; private set; }
+
     public int ActiveEntityCount { get; private set; }
 
     public long TopBarVersion { get; private set; }
@@ -614,6 +616,12 @@ public sealed partial class UiProjectionState : KernelEventProjector
     protected override void OnTickCompleted(long sequence, in TickCompletedKernelEvent evt)
     {
         TopBarVersion++;
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
+    }
+
+    protected override void OnPhaseCompleted(long sequence, in PhaseCompletedKernelEvent evt)
+    {
+        PublishedPhaseRevision = evt.PhaseRevision;
         MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 

@@ -19,7 +19,7 @@ technology names or gameplay prose.
 
 Configuration is reinstalled on fresh and snapshot-loaded kernels. Claims and
 modifiers are not serialized because they are derived from the serialized
-culture field and are rebuilt on the next knowledge pulse.
+culture field and are rebuilt on the next scheduled knowledge run.
 
 ## Claim and combination rules
 
@@ -35,7 +35,7 @@ culture field and are rebuilt on the next knowledge pulse.
 
 - Culture production and persistence are per plane.
 - Verb, gambit, movement, road, and minor-actor grants use the acting culture.
-- Generator pulse selection averages the eligible target cultures' modifiers;
+- Generator fire selection averages the eligible target cultures' modifiers;
   target selection applies each candidate target culture's modifier.
 - Relationship maintenance takes the stronger qualifying endpoint modifier.
   Positive maintenance is multiplied; negative passive drift is divided. An

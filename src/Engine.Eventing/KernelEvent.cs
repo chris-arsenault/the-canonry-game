@@ -32,6 +32,7 @@ public enum KernelEventType
     EntityTagChanged = 33,
     ChronicleChanged = 34,
     WorldBeatChanged = 35,
+    PhaseCompleted = 36,
     Trace = 120,
 }
 
@@ -406,6 +407,19 @@ public readonly record struct CommandRejectedKernelEvent(
 public readonly record struct TickCompletedKernelEvent(
     int Tick,
     long WorldVersion);
+
+[KernelEventLayout(KernelEventType.PhaseCompleted, schemaMinor: 1)]
+public readonly record struct PhaseCompletedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "phase_code", KernelEventSemanticKind.RawScalar)]
+    int PhaseCode,
+    [KernelEventIntSlot(1, "work_item_count", KernelEventSemanticKind.Count)]
+    int WorkItemCount,
+    [KernelEventLongSlot(0, "phase_revision", KernelEventSemanticKind.RawScalar)]
+    long PhaseRevision,
+    [KernelEventLongSlot(1, "mutation_count", KernelEventSemanticKind.Count)]
+    long MutationCount);
 
 [KernelEventLayout(KernelEventType.GeneratorEnabledChanged, schemaMinor: 0)]
 public readonly record struct GeneratorEnabledChangedKernelEvent(

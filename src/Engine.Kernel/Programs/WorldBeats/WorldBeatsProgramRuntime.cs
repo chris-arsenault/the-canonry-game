@@ -3,7 +3,7 @@ namespace Engine.Kernel;
 using Engine.Constants;
 
 /// <summary>
-/// The macro-chronicle recognizer: each pulse it reads macro facts from world
+/// The macro-chronicle recognizer: each scheduled run reads macro facts from world
 /// state (population, culture mass and its growth, wars living and ended,
 /// legendary resolutions), closes ages whose closing conditions hold, opens
 /// the highest-priority eligible age on each blank track, and pushes the open

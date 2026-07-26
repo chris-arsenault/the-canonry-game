@@ -270,7 +270,7 @@ internal sealed partial class LowAltitudeVerbProgramData : IKernelProgramData
 
     public FixedScalar AgeWeightMultiplier(int rule) => _ageWeightMultipliers[rule];
 
-    /// <summary>Age charges: neutralize, then apply per open age each world-beat pulse.</summary>
+    /// <summary>Age charges: neutralize, then apply per open age each world-beat run.</summary>
     public void ResetAgeWeightMultipliers()
     {
         for (var rule = 1; rule <= _ruleCount; rule++)

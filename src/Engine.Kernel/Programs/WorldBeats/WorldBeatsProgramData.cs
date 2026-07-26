@@ -6,7 +6,7 @@ using Engine.Constants;
 /// The authored pool of Ages: the beat treatment applied to the world itself.
 /// Each age lives on one of three regime tracks (Ice, Peoples, Memory), opens
 /// and closes on recognized macro facts - never timers - and, while open,
-/// charges existing authored rates (generator pulse weights, verb weights,
+/// charges existing authored rates (generator fire weights, verb weights,
 /// gambit scores, the contest decay tide). The framework only modulates what
 /// authored content already does; it writes no world state of its own.
 /// </summary>

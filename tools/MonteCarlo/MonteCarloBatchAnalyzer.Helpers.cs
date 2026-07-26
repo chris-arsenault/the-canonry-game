@@ -177,12 +177,12 @@ internal sealed partial class MonteCarloBatchAnalyzer
 
     private sealed record ObservedGeneratorRow(
         string GeneratorId,
-        int Pulses,
-        int EligiblePulses,
-        int BlockedPulses,
-        int EligibleNotSelectedPulses,
+        int Evaluations,
+        int EligibleEvaluations,
+        int BlockedEvaluations,
+        int EligibleNotSelectedEvaluations,
         int FiredCount,
-        int FireFailedPulses,
+        int FireFailedEvaluations,
         double AverageTargetPool,
         double AverageCandidateCount,
         int InactiveRejected,

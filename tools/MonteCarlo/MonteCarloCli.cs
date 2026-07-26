@@ -155,7 +155,11 @@ internal static class MonteCarloCli
         {
             var seed = options.Seed + runIndex;
             var runId = $"seed-{seed}";
-            using var run = MonteCarloKernelRunFactory.Create(seed, options.TraceEnabled, options.ConfigFilePath);
+            using var run = MonteCarloKernelRunFactory.Create(
+                seed,
+                options.TraceEnabled,
+                options.ConfigFilePath,
+                options.WorldFilePath);
             var result = ExecuteKernelRun(run, options, runId, seed, stateStore);
             PrintRunSummary(options, runIndex, seed, result);
         }
@@ -166,7 +170,11 @@ internal static class MonteCarloCli
         for (var runIndex = 0; runIndex < options.Runs; runIndex++)
         {
             var seed = options.Seed + runIndex;
-            using var run = MonteCarloKernelRunFactory.Create(seed, traceEnabled: false, options.ConfigFilePath);
+            using var run = MonteCarloKernelRunFactory.Create(
+                seed,
+                traceEnabled: false,
+                options.ConfigFilePath,
+                options.WorldFilePath);
             var elapsed = Stopwatch.StartNew();
             var processedTicks = AdvanceSimulationOnlyTicks(run, options, seed);
             elapsed.Stop();
@@ -242,9 +250,20 @@ internal static class MonteCarloCli
         var stopwatch = Stopwatch.StartNew();
         var lastElapsedSeconds = 0.0;
         var lastTick = 0;
-        for (var tickIndex = 0; tickIndex < options.Ticks; tickIndex++)
+        while (processedTicks < options.Ticks)
         {
-            var advanced = run.Host.Time.AdvanceSingleStep(1);
+            var remainingTicks = options.Ticks - processedTicks;
+            var batchTicks = remainingTicks;
+            if (options.ProgressEveryTicks > 0)
+            {
+                var ticksIntoWindow = run.Host.CurrentTick % options.ProgressEveryTicks;
+                var ticksToBoundary = ticksIntoWindow == 0
+                    ? options.ProgressEveryTicks
+                    : options.ProgressEveryTicks - ticksIntoWindow;
+                batchTicks = Math.Min(batchTicks, ticksToBoundary);
+            }
+
+            var advanced = run.Host.Time.AdvanceSingleStep(batchTicks);
             if (advanced == 0)
             {
                 break;

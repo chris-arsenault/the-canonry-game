@@ -11,7 +11,7 @@ public enum KnowledgeGrantDomain
     CultureProduction = 1,
     CulturePersistence = 2,
     VerbWeight = 3,
-    GeneratorPulseWeight = 4,
+    GeneratorFireWeight = 4,
     GambitScore = 5,
     GambitSuccess = 6,
     MinorActorWork = 7,

@@ -14,6 +14,7 @@ internal sealed partial class GeneratorProgramRuntime
     {
         failureReasonCode = GeneratorTargetRejectionReasonCodes.None;
         var world = simulation.World;
+        var targetOccurrenceHandle = world.EntityOccurrenceHandle(targetId);
         var targetOriginQ = world.EntityPhysicalQ(targetId);
         var targetOriginR = world.EntityPhysicalR(targetId);
 
@@ -68,7 +69,7 @@ internal sealed partial class GeneratorProgramRuntime
         var createdRelationshipCount = CreateRelationships(simulation, world, generatorSlot, refCodes, refEntityIds, refCount, tick);
         var relationshipSpendCount = ExecuteEffects(simulation, world, generatorSlot, targetId, refCodes, refEntityIds, refCount, tick, triggerKindCode, triggerId);
         _runCounts[generatorSlot]++;
-        WriteGeneratorFired(simulation, tick, generatorSlot, targetId, createdEntityCount, createdRelationshipCount, relationshipSpendCount);
+        WriteGeneratorFired(simulation, tick, generatorSlot, targetOccurrenceHandle, createdEntityCount, createdRelationshipCount, relationshipSpendCount);
         return true;
     }
 
@@ -253,7 +254,11 @@ internal sealed partial class GeneratorProgramRuntime
     {
         failureReasonCode = GeneratorTargetRejectionReasonCodes.None;
         if (_producedCreateChances[produced] < 1 &&
-            simulation.NextScalar() > _producedCreateChances[produced])
+            simulation.RandomScalar(
+                targetId > 0 ? world.EntityOccurrenceHandle(targetId) : 0,
+                produced,
+                KernelRandomPurposeCodes.GeneratorCreateChance,
+                attempt: _producedRefCodes[produced]) > _producedCreateChances[produced])
         {
             SetRef(refCodes, refEntityIds, ref refCount, _producedRefCodes[produced], 0);
             return true;

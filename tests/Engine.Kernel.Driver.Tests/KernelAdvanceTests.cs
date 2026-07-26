@@ -68,8 +68,21 @@ public sealed class KernelAdvanceTests
         _ = simulation.AdvanceTicks(1);
 
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.EarliestAvailable);
-        Assert.True(simulation.Events.TryRead(cursor, out var sequenced));
-        Assert.Equal(KernelEventType.TickCompleted, sequenced.Event.EventType);
+        var found = false;
+        var sequenced = default(SequencedKernelEvent);
+        while (simulation.Events.TryRead(cursor, out var candidate))
+        {
+            if (candidate.Event.EventType != KernelEventType.TickCompleted)
+            {
+                continue;
+            }
+
+            found = true;
+            sequenced = candidate;
+            break;
+        }
+
+        Assert.True(found);
         var tick = sequenced.Event.AsTickCompleted();
         Assert.Equal(1, tick.Tick);
         Assert.Equal(simulation.WorldVersion, tick.WorldVersion);

@@ -89,7 +89,7 @@ public sealed class KernelRuntimeFactoryTests
             {
               "kernelTuning": {
                 "programs": {
-                  "minorActorSubstepsPerPulse": 7,
+                  "mainProgramCadenceTicks": 7,
                   "cultureInfluenceActionScale": 0.25,
                   "lowAltitudeVerbs": {
                     "enabled": false,
@@ -107,8 +107,8 @@ public sealed class KernelRuntimeFactoryTests
                   },
                   "generators": {
                     "retryFireTargets": false,
-                    "pulseWidthTicks": 17,
-                    "firesPerPulse": 2
+                    "fireWindowTicks": 17,
+                    "firesPerWindow": 2
                   },
                   "gambits": {
                     "enabled": true
@@ -141,11 +141,11 @@ public sealed class KernelRuntimeFactoryTests
             """
             [kernel_tuning.programs.generators]
             retry_fire_targets = false
-            pulse_width_ticks = 17
-            fires_per_pulse = 2
+            fire_window_ticks = 17
+            fires_per_window = 2
 
             [kernel_tuning.programs]
-            minor_actor_main_tick_ratio = 7
+            main_program_cadence_ticks = 7
             culture_influence_action_scale = 0.25
 
             [kernel_tuning.programs.movement]
@@ -254,10 +254,10 @@ public sealed class KernelRuntimeFactoryTests
     private static void AssertConfiguredTuningOptions(SimulationOptions options)
     {
         Assert.False(options.KernelTuning.Programs.Generators.RetryFireTargets);
-        Assert.Equal(7, options.KernelTuning.Programs.MinorActorSubstepsPerPulse);
+        Assert.Equal(7, options.KernelTuning.Programs.MainProgramCadenceTicks);
         Assert.Equal(FixedScalar.FromSingle(0.25f), options.KernelTuning.Programs.CultureInfluenceActionScale);
-        Assert.Equal(17, options.KernelTuning.Programs.Generators.PulseWidthTicks);
-        Assert.Equal(2, options.KernelTuning.Programs.Generators.FiresPerPulse);
+        Assert.Equal(17, options.KernelTuning.Programs.Generators.FireWindowTicks);
+        Assert.Equal(2, options.KernelTuning.Programs.Generators.FiresPerWindow);
         Assert.Equal(ProgramEnabledOverrideCodes.Disabled, options.KernelTuning.Programs.Enabled.LowAltitudeVerbs);
         Assert.Equal(ProgramEnabledOverrideCodes.Enabled, options.KernelTuning.Programs.Enabled.Gambits);
         Assert.Equal(LifecycleAgingModelCodes.LateLife, options.KernelTuning.Programs.Lifecycle.AgingModelCode);

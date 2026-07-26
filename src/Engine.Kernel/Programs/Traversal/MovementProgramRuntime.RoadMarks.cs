@@ -18,11 +18,11 @@ internal sealed partial class MovementProgramRuntime
         State.BeginRoadMarkReconciliation(segmentSize);
         for (var index = 0; index < State.RoadCellCount; index++)
         {
-            State.GetRoadCell(index, out var planeCode, out var coordinateKey, out var quality, out var lastTick, out var travelCount);
+            State.GetRoadCell(index, out var cellId, out var quality, out var lastTick, out var travelCount);
             _ = quality;
             _ = lastTick;
             _ = travelCount;
-            ReconcileRoadMarkCell(world, planeCode, coordinateKey, tick, segmentSize);
+            ReconcileRoadMarkCell(world, cellId, tick, segmentSize);
         }
 
         State.CommitRoadMarkReconciliation(segmentSize);
@@ -31,20 +31,13 @@ internal sealed partial class MovementProgramRuntime
 
     private void ReconcileRoadMarkCell(
         WorldState world,
-        int planeCode,
-        int coordinateKey,
+        int cellId,
         int tick,
         int segmentSize)
     {
-        if (!world.TryResolveCoordinateKey(
-                planeCode,
-                coordinateKey,
-                planeCode == PlaneCodes.Semantic ? 4 : 0,
-                out var q,
-                out var r))
-        {
-            return;
-        }
+        var planeCode = world.CellPlaneCode(cellId);
+        var q = world.CellQ(cellId);
+        var r = world.CellR(cellId);
 
         var mark = MovementProgramState.RoadMarkForQuality(RoadQuality(planeCode, q, r, tick));
         if (mark == MovementProgramState.RoadMarkNone)

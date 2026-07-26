@@ -42,13 +42,13 @@ internal sealed partial class MapFrontierProgramRuntime :
         if (Data.IsThawAge(worldAge))
         {
             RetreatIce(simulation, tick);
-            PulseSeaIce(simulation, tick, freeze: false);
+            UpdateSeaIce(simulation, tick, freeze: false);
         }
 
         if (Data.IsRefreezeAge(worldAge))
         {
             AdvanceIce(simulation, tick);
-            PulseSeaIce(simulation, tick, freeze: true);
+            UpdateSeaIce(simulation, tick, freeze: true);
         }
 
         // Idea-space grows every tick where culture presses it - no age gate.
@@ -65,7 +65,7 @@ internal sealed partial class MapFrontierProgramRuntime :
     /// The one reveal driver: an entity standing on new ground - by travel
     /// or by coming into the world - materializes the latent cells within
     /// its kind's reveal radius. Fog of war is simply the set of unknown
-    /// cells; no pulse, no cursor, nothing to miss.
+    /// cells; no scheduled scan and no cursor can miss the arrival.
     /// </summary>
     public void RevealOnArrival(Simulation simulation, int entityId, int tick)
     {
@@ -138,7 +138,7 @@ internal sealed partial class MapFrontierProgramRuntime :
         return false;
     }
 
-    private void ValidateRadiusAndBudget(int radius, int budgetPerPulse)
+    private void ValidateRadiusAndBudget(int radius, int budgetPerRun)
     {
         if (radius <= 0 ||
             (Data.GenerationRadiusCapacity > 0 && radius > Data.GenerationRadiusCapacity))
@@ -146,9 +146,9 @@ internal sealed partial class MapFrontierProgramRuntime :
             throw new global::System.ArgumentOutOfRangeException(nameof(radius));
         }
 
-        if (budgetPerPulse <= 0 || budgetPerPulse > _candidateQ.Length)
+        if (budgetPerRun <= 0 || budgetPerRun > _candidateQ.Length)
         {
-            throw new global::System.ArgumentOutOfRangeException(nameof(budgetPerPulse));
+            throw new global::System.ArgumentOutOfRangeException(nameof(budgetPerRun));
         }
     }
 

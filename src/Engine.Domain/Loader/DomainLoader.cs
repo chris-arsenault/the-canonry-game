@@ -5,7 +5,6 @@ using Engine.Domain.Compilation;
 using Engine.Domain.Config;
 using Engine.Domain.Graph;
 using Engine.Kinds;
-using Engine.Lifecycle;
 using Engine.Wiring;
 
 /// <summary>
@@ -60,22 +59,6 @@ public static class DomainLoader
         }
 
         return registry;
-    }
-
-    /// <summary>Build a LifecycleConfig from domain config.</summary>
-    public static Engine.Lifecycle.LifecycleConfig LoadLifecycleConfig(DomainConfig config)
-    {
-        ArgumentNullException.ThrowIfNull(config);
-
-        var lifecycleConfig = new Engine.Lifecycle.LifecycleConfig();
-
-        foreach (var (kind, lc) in config.Lifecycles)
-        {
-            lifecycleConfig.Register(kind, lc.Health,
-                new LinearAging { BaseRate = lc.BaseRate, AgeCoefficient = lc.AgeCoefficient });
-        }
-
-        return lifecycleConfig;
     }
 
     /// <summary>Extract wiring contracts from behavior definitions and validate.</summary>

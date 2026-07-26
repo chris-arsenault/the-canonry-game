@@ -34,7 +34,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$memorial", "$target", Rel.Memorializes, 0.90f),
         ],
         Triggers = TriggerOn(K.Settlement),
-        PulseWeight = 5,
+        FireWeight = 5,
     };
 
     private static SemanticGeneratorConfig WardensRiseWhereTheHuntBites() => new()
@@ -60,7 +60,7 @@ public static partial class IceRemembersGeneratorDefinition
                 GeneratorRelationshipInstanceSelection.AllTargetRelationships),
         ],
         Triggers = TriggerOn(K.Settlement),
-        PulseWeight = 4,
+        FireWeight = 4,
     };
 
     private static SemanticGeneratorConfig MonstersStalkTheMarches() => new()
@@ -88,7 +88,7 @@ public static partial class IceRemembersGeneratorDefinition
             new SetBindingTagEffect("$prey", "hunted"),
         ],
         Triggers = TriggerOn(K.Monster),
-        PulseWeight = 3,
+        FireWeight = 3,
     };
 
     private static SemanticGeneratorConfig PodsHuntTheConvoys() => new()
@@ -116,7 +116,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$target", "$prey", Rel.PreysOn, 0.55f, replaceExisting: true),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 4,
+        FireWeight = 4,
     };
 
     private static SemanticGeneratorConfig TheDreadSongBreaksTheWatch() => new()
@@ -157,7 +157,7 @@ public static partial class IceRemembersGeneratorDefinition
             new SetBindingHistoricalEffect("$target"),
         ],
         Triggers = TriggerOn(K.Penguin),
-        PulseWeight = 3,
+        FireWeight = 3,
     };
 
     private static SemanticGeneratorConfig WardensTakeUpTheOldForms() => new()
@@ -182,7 +182,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$form", "$target", Rel.PracticedBy, 0.70f),
         ],
         Triggers = TriggerOn(K.Penguin),
-        PulseWeight = 3,
+        FireWeight = 3,
     };
 
     private static SemanticGeneratorTarget TargetSubtype(EntityKind kind, string subtype) =>

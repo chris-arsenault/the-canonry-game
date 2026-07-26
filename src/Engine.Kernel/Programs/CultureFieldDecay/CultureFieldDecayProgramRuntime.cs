@@ -9,8 +9,8 @@ using Engine.Constants;
 /// </summary>
 internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
 {
-    private readonly int _decayPerPulseUnits;
-    private readonly int _minimumDecayPerPulseUnits;
+    private readonly int _decayPerRunUnits;
+    private readonly int _minimumDecayPerRunUnits;
     private readonly int _cullFloorRawMassUnits;
     private readonly int _contestDecayMultiplierUnits;
     private readonly int _contestFloorRawMassUnits;
@@ -25,8 +25,8 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
     {
         global::System.ArgumentNullException.ThrowIfNull(tuning);
         NumericGuard.ThrowIfNegativeOrZero(cellCapacity);
-        _decayPerPulseUnits = KernelFixedPoint.RatioUnits(tuning.DecayPerPulse);
-        _minimumDecayPerPulseUnits = KernelFixedPoint.CultureMassUnits(tuning.MinimumDecayPerPulse);
+        _decayPerRunUnits = KernelFixedPoint.RatioUnits(tuning.DecayPerRun);
+        _minimumDecayPerRunUnits = KernelFixedPoint.CultureMassUnits(tuning.MinimumDecayPerRun);
         _cullFloorRawMassUnits = KernelFixedPoint.CultureMassUnits(tuning.CullFloorRawMass);
         _contestDecayMultiplierUnits = KernelFixedPoint.RatioUnits(tuning.ContestDecayMultiplier);
         _contestFloorRawMassUnits = KernelFixedPoint.CultureMassUnits(tuning.ContestFloorRawMass);
@@ -39,7 +39,7 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        if (_decayPerPulseUnits <= 0 && _minimumDecayPerPulseUnits <= 0)
+        if (_decayPerRunUnits <= 0 && _minimumDecayPerRunUnits <= 0)
         {
             return;
         }
@@ -86,7 +86,7 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
     {
         // Two-phase: snapshot cells first because applying decay mutates the
         // spatial index the cursor walks. Cells beyond scratch capacity skip
-        // this pulse and decay on a later one.
+        // this run and decay on a later one.
         var count = 0;
         var cursor = world.RawCultureInfluenceCellsOf(cultureId, planeCode);
         while (count < _scratchQ.Length &&
@@ -163,10 +163,10 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
         var decay = global::System.Math.Max(
             KernelFixedPoint.MultiplyByRatio(
                 raw,
-                _decayPerPulseUnits,
+                _decayPerRunUnits,
                 0,
                 WorldState.CultureFullRawMassUnits),
-            _minimumDecayPerPulseUnits);
+            _minimumDecayPerRunUnits);
         decay = KernelFixedPoint.MultiplyByRatio(
             decay,
             contestUnits,
@@ -189,7 +189,7 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
     /// cell, the locally weaker side decays faster - fronts form where
     /// cultures touch, and boundaries can visibly move.
     /// </summary>
-    /// <summary>Age charges: the world-beat program scales the tides per open age each pulse.</summary>
+    /// <summary>Age charges: the world-beat program scales the tides per open age each run.</summary>
     public void SetContestTide(FixedScalar tide) => _contestTideUnits = KernelFixedPoint.RatioUnits(tide);
 
     public void ScaleContestTide(FixedScalar multiplier) =>

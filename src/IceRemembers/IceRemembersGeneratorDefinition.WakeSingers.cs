@@ -67,7 +67,7 @@ public static partial class IceRemembersGeneratorDefinition
                 GeneratorRelationshipInstanceSelection.TriggerRelationship),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 8,
+        FireWeight = 8,
     };
 
     private static SemanticGeneratorConfig EldersDescendToTheGod() => new()
@@ -104,7 +104,7 @@ public static partial class IceRemembersGeneratorDefinition
             new SetBindingHistoricalEffect("$elder"),
         ],
         Triggers = TriggerOn(K.PointOfInterest),
-        PulseWeight = 1,
+        FireWeight = 1,
         CadenceTicks = DescentCadenceTicks,
         CadenceJitterTicks = DescentCadenceJitterTicks,
     };
@@ -131,7 +131,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$target", "$site", Rel.ConsignedTo, 0.80f),
         ],
         Triggers = TriggerOn(K.Artifact),
-        PulseWeight = 4,
+        FireWeight = 4,
     };
 
     private static SemanticGeneratorConfig VigilsAtTheCurrent() => new()
@@ -156,7 +156,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$singer", "$target", Rel.OfferedTo, 0.55f, replaceExisting: true),
         ],
         Triggers = TriggerOn(K.PointOfInterest),
-        PulseWeight = 1,
+        FireWeight = 1,
         CadenceTicks = VigilCadenceTicks,
         CadenceJitterTicks = VigilCadenceJitterTicks,
     };
@@ -190,7 +190,7 @@ public static partial class IceRemembersGeneratorDefinition
                 GeneratorRelationshipInstanceSelection.AllTargetRelationships),
         ],
         Triggers = TriggerOn(K.PointOfInterest),
-        PulseWeight = 10,
+        FireWeight = 10,
     };
 
     private static SemanticGeneratorConfig PilgrimsFoundNewCurrents() => new()
@@ -234,7 +234,7 @@ public static partial class IceRemembersGeneratorDefinition
                 GeneratorRelationshipInstanceSelection.AllTargetRelationships),
         ],
         Triggers = TriggerOn(K.PointOfInterest),
-        PulseWeight = 3,
+        FireWeight = 3,
     };
 
     private static SemanticGeneratorConfig PodsMarkTheirPrey() => new()
@@ -266,7 +266,7 @@ public static partial class IceRemembersGeneratorDefinition
             new SetBindingTagEffect("$prey", "hunted"),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 6,
+        FireWeight = 6,
     };
 
     private static SemanticGeneratorConfig AHeroFallsToTheDeep() => new()
@@ -293,7 +293,7 @@ public static partial class IceRemembersGeneratorDefinition
             new SetBindingTagEffect("$target", "bereaved"),
         ],
         Triggers = TriggerOn(K.Settlement),
-        PulseWeight = 2,
+        FireWeight = 2,
     };
 
     private static SemanticGeneratorConfig GloryToTheDeadGod() => new()
@@ -332,7 +332,7 @@ public static partial class IceRemembersGeneratorDefinition
                 GeneratorRelationshipInstanceSelection.TriggerRelationship),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 4,
+        FireWeight = 4,
     };
 
     private static SemanticGeneratorConfig CounterOffensive() => new()
@@ -371,7 +371,7 @@ public static partial class IceRemembersGeneratorDefinition
             new ClearBindingTagEffect("$target", "bereaved"),
         ],
         Triggers = TriggerOn(K.Settlement),
-        PulseWeight = 5,
+        FireWeight = 5,
     };
 
     private static SemanticGeneratorConfig TheAccordConvenes() => new()
@@ -399,7 +399,7 @@ public static partial class IceRemembersGeneratorDefinition
                 GeneratorRelationshipInstanceSelection.AllTargetRelationships),
         ],
         Triggers = TriggerOn(K.Settlement),
-        PulseWeight = 1,
+        FireWeight = 1,
         CadenceTicks = AccordCadenceTicks,
         CadenceJitterTicks = AccordCadenceJitterTicks,
     };
@@ -418,7 +418,7 @@ public static partial class IceRemembersGeneratorDefinition
             new SetBindingTagEffect("$target", "terrified"),
         ],
         Triggers = TriggerOn(K.Settlement),
-        PulseWeight = 6,
+        FireWeight = 6,
     };
 
     private static SemanticGeneratorConfig TheFearFades() => new()
@@ -436,7 +436,7 @@ public static partial class IceRemembersGeneratorDefinition
             new ClearBindingTagEffect("$target", "hunted"),
         ],
         Triggers = TriggerOn(K.Settlement),
-        PulseWeight = 3,
+        FireWeight = 3,
     };
 
     private static SemanticGeneratorTarget TargetWithIncomingTagged(

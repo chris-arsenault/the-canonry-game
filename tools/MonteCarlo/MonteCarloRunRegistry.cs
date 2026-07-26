@@ -436,6 +436,7 @@ internal sealed class MonteCarloRunRegistry : IDisposable
             simulationOnly = options.SimulationOnly,
             traceEnabled = options.TraceEnabled,
             configFilePath = options.ConfigFilePath,
+            worldFilePath = options.WorldFilePath,
         };
 
     private static string? FormatTime(long? utcMilliseconds) =>

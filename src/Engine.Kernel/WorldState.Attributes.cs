@@ -8,15 +8,13 @@ internal sealed partial class WorldState
     public FixedScalar GetAttribute(int entityId, int attributeId)
     {
         EnsureEntity(entityId);
-        ValidatePositive(attributeId);
-        return KernelFixedPoint.AttributeScalar(_attributes.GetOrDefault(entityId, attributeId));
+        return KernelFixedPoint.AttributeScalar(_attributes[AttributeIndex(entityId, attributeId)]);
     }
 
     public bool HasAttribute(int entityId, int attributeId)
     {
         EnsureEntity(entityId);
-        ValidatePositive(attributeId);
-        return _attributes.TryGet(entityId, attributeId, out _);
+        return _attributeAssigned[AttributeIndex(entityId, attributeId)];
     }
 
     public void SetAttribute(
@@ -46,20 +44,22 @@ internal sealed partial class WorldState
     {
         var clamped = KernelFixedPoint.AttributeUnits(
             ClampAttribute(attributeId, KernelFixedPoint.AttributeScalar(valueUnits)));
-        var previous = _attributes.GetOrDefault(entityId, attributeId);
-        if (clamped == previous)
+        var index = AttributeIndex(entityId, attributeId);
+        var previous = _attributes[index];
+        if (_attributeAssigned[index] && clamped == previous)
         {
             return;
         }
 
-        _attributes.Set(entityId, attributeId, clamped);
+        _attributes[index] = clamped;
+        _attributeAssigned[index] = true;
         _entityUpdatedAt[entityId] = tick;
         MarkEntityCultureWorkDirty(entityId);
         AdvanceWorldVersion();
         Write(KernelEvent.From(new AttributeChangedKernelEvent(
             tick,
             WorldVersion,
-            entityId,
+            EntityOccurrenceHandle(entityId),
             attributeId,
             context.SourceCodeId,
             previous,
@@ -92,12 +92,22 @@ internal sealed partial class WorldState
         EnsureEntity(entityId);
         ValidatePositive(attributeId);
         ValidatePositive(context.SourceCodeId);
-        var previous = _attributes.GetOrDefault(entityId, attributeId);
+        var previous = _attributes[AttributeIndex(entityId, attributeId)];
         var next = KernelFixedPoint.SaturatingAdd(
             previous,
             deltaUnits,
             KernelFixedPoint.AttributeMinimumUnits,
             KernelFixedPoint.AttributeMaximumUnits);
         SetAttributeUnits(entityId, attributeId, next, tick, context);
+    }
+
+    private int AttributeIndex(int entityId, int attributeId)
+    {
+        if ((uint)attributeId >= (uint)_attributeStride || attributeId == 0)
+        {
+            throw new global::System.ArgumentOutOfRangeException(nameof(attributeId));
+        }
+
+        return checked((entityId * _attributeStride) + attributeId);
     }
 }

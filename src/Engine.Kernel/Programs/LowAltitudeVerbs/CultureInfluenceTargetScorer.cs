@@ -75,7 +75,7 @@ internal static class CultureInfluenceTargetScorer
 
         var rawShortfall = Clamp01((ControlledRawInfluence - input.OwnRaw) / ControlledRawInfluence);
         return InteriorHoleBoost(input) *
-            FixedScalar.Pow(headroom, FixedScalar.FromUnits(1250000L)) *
+            PowerFiveFourths(headroom) *
             (FixedScalar.FromRatio(7, 20) + (FixedScalar.FromRatio(13, 20) * rawShortfall)) *
             ExpansionForeignDrag(input);
     }
@@ -181,7 +181,10 @@ internal static class CultureInfluenceTargetScorer
     }
 
     private static FixedScalar Saturating(FixedScalar value, FixedScalar scale) =>
-        value <= 0 ? 0 : 1 - FixedScalar.Exp(-value / scale);
+        value <= 0 ? 0 : value / (value + scale);
+
+    private static FixedScalar PowerFiveFourths(FixedScalar value) =>
+        value * (3 + value) / 4;
 
     private static FixedScalar Clamp01(FixedScalar value)
     {

@@ -48,7 +48,7 @@ public sealed class EntityTagTests
         var slot = simulation.Generators.RegisterGenerator(
             100,
             SettlementKindId,
-            pulseWeight: 1,
+            fireWeight: 1,
             maxRuns: 0,
             cadenceTicks: 0,
             cadenceJitterTicks: 0,

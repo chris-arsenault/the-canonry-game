@@ -381,7 +381,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int influencerId,
         FixedScalar influence,
         int tick,
-        ref FixedScalar totalWeight,
         ref FixedScalar sumAffordanceScore,
         ref VerbTargetCandidate selected)
     {
@@ -421,6 +420,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             influenceSignal);
         sumAffordanceScore += affordance.Score + (FixedScalar.FromUnits(750000L) * contestSupport);
         var candidate = Candidate(rule, planeCode, 0, influencerKindId, q, r, TargetS(planeCode, q, r), baseWeight, affordance, scalars.OpportunityBonus);
-        ConsiderCandidate(simulation, candidate, ref totalWeight, ref selected);
+        ConsiderCandidate(simulation, entityId, candidate, ref selected);
     }
 }

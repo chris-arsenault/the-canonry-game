@@ -10,11 +10,15 @@ internal sealed partial class MovementProgramState : IKernelProgramState
     internal static readonly FixedScalar LowRoadQualityCheckpoint = 25;
     internal static readonly FixedScalar HighRoadQualityCheckpoint = 75;
 
-    private readonly PrimitiveIntTable _roadQuality;
-    private readonly PrimitiveIntTable _roadQualityFloors;
-    private readonly PrimitiveIntTable _roadTravelCounts;
-    private readonly PrimitiveIntTable _lastRoadTicks;
-    private readonly PrimitiveIntTable _travelStructureIds;
+    private readonly int[] _roadQuality;
+    private readonly int[] _roadQualityFloors;
+    private readonly int[] _roadTravelCounts;
+    private readonly int[] _lastRoadTicks;
+    private readonly int[] _travelStructureIds;
+    private readonly int[] _roadCellIds;
+    private readonly int[] _roadCellPositions;
+    private readonly int[] _travelStructureCellIds;
+    private readonly int[] _travelStructureCellPositions;
     private readonly PrimitiveIntTable _localRoadMarks;
     private readonly PrimitiveIntTable _regionalRoadMarks;
     private readonly PrimitiveIntTable _localRoadMarkScratch;
@@ -32,6 +36,8 @@ internal sealed partial class MovementProgramState : IKernelProgramState
     private readonly bool[] _routeCacheOccupied;
     private int _pathingTopologyEpoch = 1;
     private int _roadMarkEpoch = 1;
+    private int _roadCellCount;
+    private int _travelStructureCellCount;
     private int _routeCacheCount;
     private bool _localRoadMarksDirty;
     private bool _regionalRoadMarksDirty;
@@ -39,11 +45,15 @@ internal sealed partial class MovementProgramState : IKernelProgramState
     public MovementProgramState(int cellCapacity)
     {
         NumericGuard.ThrowIfNegativeOrZero(cellCapacity);
-        _roadQuality = new PrimitiveIntTable(cellCapacity);
-        _roadQualityFloors = new PrimitiveIntTable(cellCapacity);
-        _roadTravelCounts = new PrimitiveIntTable(cellCapacity);
-        _lastRoadTicks = new PrimitiveIntTable(cellCapacity);
-        _travelStructureIds = new PrimitiveIntTable(cellCapacity);
+        _roadQuality = new int[cellCapacity + 1];
+        _roadQualityFloors = new int[cellCapacity + 1];
+        _roadTravelCounts = new int[cellCapacity + 1];
+        _lastRoadTicks = new int[cellCapacity + 1];
+        _travelStructureIds = new int[cellCapacity + 1];
+        _roadCellIds = new int[cellCapacity];
+        _roadCellPositions = new int[cellCapacity + 1];
+        _travelStructureCellIds = new int[cellCapacity];
+        _travelStructureCellPositions = new int[cellCapacity + 1];
         _localRoadMarks = new PrimitiveIntTable(cellCapacity);
         _regionalRoadMarks = new PrimitiveIntTable(cellCapacity);
         _localRoadMarkScratch = new PrimitiveIntTable(cellCapacity);
@@ -65,9 +75,9 @@ internal sealed partial class MovementProgramState : IKernelProgramState
 
     public int SchemaVersion => 7;
 
-    internal int RoadCellCount => _roadQuality.Count;
+    internal int RoadCellCount => _roadCellCount;
 
-    internal int TravelStructureCellCount => _travelStructureIds.Count;
+    internal int TravelStructureCellCount => _travelStructureCellCount;
 
     internal int PathingTopologyEpoch => _pathingTopologyEpoch;
 
@@ -75,39 +85,60 @@ internal sealed partial class MovementProgramState : IKernelProgramState
 
     internal int RouteCacheCount => _routeCacheCount;
 
-    public FixedScalar RoadQuality(int planeCode, int q, int r, int tick, FixedScalar roadDecayPerTick) =>
+    public FixedScalar RoadQuality(
+        int cellId,
+        int tick,
+        FixedScalar roadDecayPerTick,
+        int decayCadenceTicks) =>
         KernelFixedPoint.RoadQualityScalar(
-            DecayedRoadQualityUnits(planeCode, CoordinateKey(q, r), tick, roadDecayPerTick));
+            DecayedRoadQualityUnits(cellId, tick, roadDecayPerTick, decayCadenceTicks));
 
-    public int RoadTravelCount(int planeCode, int q, int r) =>
-        _roadTravelCounts.GetOrDefault(planeCode, CoordinateKey(q, r));
+    public int RoadTravelCount(int cellId) => _roadTravelCounts[cellId];
 
-    public int TravelStructureId(int planeCode, int q, int r) =>
-        _travelStructureIds.GetOrDefault(planeCode, CoordinateKey(q, r));
+    public int TravelStructureId(int cellId) => _travelStructureIds[cellId];
 
-    internal bool SetTravelStructure(int planeCode, int q, int r, int travelStructureId)
+    internal bool SetTravelStructure(int cellId, int travelStructureId)
     {
-        var key = CoordinateKey(q, r);
-        if (_travelStructureIds.GetOrDefault(planeCode, key) == travelStructureId)
+        var previous = _travelStructureIds[cellId];
+        if (previous == travelStructureId)
         {
             return false;
         }
 
-        _travelStructureIds.Set(planeCode, key, travelStructureId);
+        _travelStructureIds[cellId] = travelStructureId;
+        if (previous == 0 && travelStructureId > 0)
+        {
+            AddActiveCell(
+                _travelStructureCellIds,
+                _travelStructureCellPositions,
+                ref _travelStructureCellCount,
+                cellId);
+        }
+        else if (previous > 0 && travelStructureId == 0)
+        {
+            RemoveActiveCell(
+                _travelStructureCellIds,
+                _travelStructureCellPositions,
+                ref _travelStructureCellCount,
+                cellId);
+        }
+
         RecordTopologyChanged();
         return true;
     }
 
     internal void RecordTravel(
-        int planeCode,
-        int q,
-        int r,
+        int cellId,
         int tick,
         FixedScalar roadBuild,
-        FixedScalar roadDecayPerTick)
+        FixedScalar roadDecayPerTick,
+        int decayCadenceTicks)
     {
-        var key = CoordinateKey(q, r);
-        var decayedQuality = DecayedRoadQualityUnits(planeCode, key, tick, roadDecayPerTick);
+        var decayedQuality = DecayedRoadQualityUnits(
+            cellId,
+            tick,
+            roadDecayPerTick,
+            decayCadenceTicks);
         var nextQuality = KernelFixedPoint.SaturatingAdd(
             decayedQuality,
             KernelFixedPoint.RoadWorkUnits(roadBuild),
@@ -116,14 +147,19 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         var previousMark = RoadMarkForQualityUnits(decayedQuality);
         var nextMark = RoadMarkForQualityUnits(nextQuality);
         var nextFloor = QualityFloorUnits(nextQuality);
-        if (nextFloor > _roadQualityFloors.GetOrDefault(planeCode, key))
+        if (nextFloor > _roadQualityFloors[cellId])
         {
-            _roadQualityFloors.Set(planeCode, key, nextFloor);
+            _roadQualityFloors[cellId] = nextFloor;
         }
 
-        _roadQuality.Set(planeCode, key, nextQuality);
-        _roadTravelCounts.Add(planeCode, key, 1);
-        _lastRoadTicks.Set(planeCode, key, tick);
+        if (_roadQuality[cellId] == 0)
+        {
+            AddActiveCell(_roadCellIds, _roadCellPositions, ref _roadCellCount, cellId);
+        }
+
+        _roadQuality[cellId] = nextQuality;
+        _roadTravelCounts[cellId]++;
+        _lastRoadTicks[cellId] = tick;
         if (nextMark > previousMark)
         {
             _localRoadMarksDirty = true;
@@ -270,43 +306,37 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         _routeCachePortalR[slot] = portalR;
     }
 
-    internal void ForEachRoadCell(global::System.Action<int, int, FixedScalar, int, int> visitor)
+    internal void ForEachRoadCell(global::System.Action<int, FixedScalar, int, int> visitor)
     {
         global::System.ArgumentNullException.ThrowIfNull(visitor);
-        for (var index = 0; index < _roadQuality.Count; index++)
+        for (var index = 0; index < _roadCellCount; index++)
         {
-            GetRoadCell(index, out var planeCode, out var coordinateKey, out var quality, out var lastTick, out var travelCount);
-            visitor(
-                planeCode,
-                coordinateKey,
-                quality,
-                lastTick,
-                travelCount);
+            GetRoadCell(index, out var cellId, out var quality, out var lastTick, out var travelCount);
+            visitor(cellId, quality, lastTick, travelCount);
         }
     }
 
-    internal void ForEachTravelStructureCell(global::System.Action<int, int, int> visitor)
+    internal void ForEachTravelStructureCell(global::System.Action<int, int> visitor)
     {
         global::System.ArgumentNullException.ThrowIfNull(visitor);
-        for (var index = 0; index < _travelStructureIds.Count; index++)
+        for (var index = 0; index < _travelStructureCellCount; index++)
         {
-            _travelStructureIds.GetEntry(index, out var planeCode, out var coordinateKey, out var travelStructureId);
-            visitor(planeCode, coordinateKey, travelStructureId);
+            var cellId = _travelStructureCellIds[index];
+            visitor(cellId, _travelStructureIds[cellId]);
         }
     }
 
     internal void GetRoadCell(
         int index,
-        out int planeCode,
-        out int coordinateKey,
+        out int cellId,
         out FixedScalar quality,
         out int lastTick,
         out int travelCount)
     {
-        _roadQuality.GetEntry(index, out planeCode, out coordinateKey, out var qualityUnits);
-        quality = KernelFixedPoint.RoadQualityScalar(qualityUnits);
-        lastTick = _lastRoadTicks.GetOrDefault(planeCode, coordinateKey);
-        travelCount = _roadTravelCounts.GetOrDefault(planeCode, coordinateKey);
+        cellId = _roadCellIds[index];
+        quality = KernelFixedPoint.RoadQualityScalar(_roadQuality[cellId]);
+        lastTick = _lastRoadTicks[cellId];
+        travelCount = _roadTravelCounts[cellId];
     }
 
     private void ClearRouteCache()
@@ -403,28 +433,36 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         }
     }
 
-    private int DecayedRoadQualityUnits(int planeCode, int key, int tick, FixedScalar roadDecayPerTick)
+    private int DecayedRoadQualityUnits(
+        int cellId,
+        int tick,
+        FixedScalar roadDecayPerTick,
+        int decayCadenceTicks)
     {
-        if (!_roadQuality.TryGet(planeCode, key, out var roadQuality))
+        NumericGuard.ThrowIfNegativeOrZero(decayCadenceTicks);
+        var roadQuality = _roadQuality[cellId];
+        if (roadQuality == 0)
         {
             return 0;
         }
 
-        var floor = _roadQualityFloors.GetOrDefault(planeCode, key);
+        var floor = _roadQualityFloors[cellId];
         if (roadQuality <= 0)
         {
             return floor > roadQuality ? floor : roadQuality;
         }
 
-        var startedTick = _lastRoadTicks.GetOrDefault(planeCode, key);
-        var elapsedTicks = tick <= startedTick ? 0 : tick - startedTick;
-        if (elapsedTicks <= 0)
+        var startedTick = _lastRoadTicks[cellId];
+        var elapsedCadences = tick <= startedTick
+            ? 0
+            : (tick - startedTick) / decayCadenceTicks;
+        if (elapsedCadences <= 0)
         {
             return floor > roadQuality ? floor : roadQuality;
         }
 
         var decayRatio = KernelFixedPoint.RatioUnits(Clamp(roadDecayPerTick, 0, 1));
-        var compoundedRatio = PowRatio(decayRatio, elapsedTicks);
+        var compoundedRatio = PowRatio(decayRatio, elapsedCadences);
         var decayed = KernelFixedPoint.MultiplyByRatio(
             roadQuality,
             compoundedRatio,
@@ -509,14 +547,29 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         return value > maximum ? maximum : value;
     }
 
-    private static int CoordinateKey(int q, int r)
+    private static void AddActiveCell(
+        int[] activeCellIds,
+        int[] activePositions,
+        ref int activeCount,
+        int cellId)
     {
-        unchecked
-        {
-            var hash = (uint)q * 2654435761u;
-            hash ^= (uint)r * 2246822519u;
-            var value = (int)(hash & 2147483647u);
-            return value == 0 ? 1 : value;
-        }
+        activeCellIds[activeCount] = cellId;
+        activePositions[cellId] = activeCount + 1;
+        activeCount++;
+    }
+
+    private static void RemoveActiveCell(
+        int[] activeCellIds,
+        int[] activePositions,
+        ref int activeCount,
+        int cellId)
+    {
+        var position = activePositions[cellId] - 1;
+        var lastPosition = --activeCount;
+        var movedCellId = activeCellIds[lastPosition];
+        activeCellIds[position] = movedCellId;
+        activePositions[movedCellId] = position + 1;
+        activeCellIds[lastPosition] = 0;
+        activePositions[cellId] = 0;
     }
 }

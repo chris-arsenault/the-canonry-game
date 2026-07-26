@@ -67,7 +67,7 @@ public sealed class ChronicleArchetypeConfig
     /// <summary>Maximum concurrently active chronicles of this archetype.</summary>
     public int MaxActive { get; init; } = 4;
 
-    /// <summary>Director pulses between casting attempts.</summary>
+    /// <summary>Director runs between casting attempts.</summary>
     public int CastingCadenceTicks { get; init; } = 40;
 }
 
@@ -160,7 +160,7 @@ public enum ChronicleStrikeKind
     /// <summary>A gambit executed by a non-cast entity against a role.</summary>
     OutsiderGambitOnRole,
 
-    /// <summary>A recognized world/heat fact, evaluated on the director pulse.</summary>
+    /// <summary>A recognized world/heat fact, evaluated on the director run.</summary>
     StateFact,
 
     /// <summary>The role executes the named gambit against any target.</summary>

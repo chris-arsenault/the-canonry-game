@@ -288,7 +288,7 @@ public sealed class KernelRuntime : IDisposable
     }
 }
 
-public readonly record struct KernelRuntimePulse(
+public readonly record struct KernelRuntimeAdvance(
     int PreviousTick,
     int CurrentTick)
 {
@@ -367,7 +367,7 @@ public sealed class KernelUiRuntime : IDisposable
 
     public string? RunLogPath => _runLogger?.LogPath;
 
-    public KernelRuntimePulse Pump()
+    public KernelRuntimeAdvance Pump()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
 
@@ -385,7 +385,7 @@ public sealed class KernelUiRuntime : IDisposable
             }
         }
 
-        return new KernelRuntimePulse(previousTick, currentTick);
+        return new KernelRuntimeAdvance(previousTick, currentTick);
     }
 
     public IReadOnlyList<CulturePowerSummary> CulturePowers()

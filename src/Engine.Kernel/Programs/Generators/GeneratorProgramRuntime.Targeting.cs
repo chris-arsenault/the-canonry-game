@@ -112,7 +112,11 @@ internal sealed partial class GeneratorProgramRuntime
 
         var legendaryWithin = Data.TargetChronicleLegendaryWithinTicks[generatorSlot];
         return legendaryWithin <= 0 ||
-            simulation.Chronicles.LegendaryResolvedWithin(targetId, simulation.World.CurrentTick, legendaryWithin);
+            simulation.Chronicles.LegendaryResolvedWithin(
+                simulation.World,
+                targetId,
+                simulation.World.CurrentTick,
+                legendaryWithin);
     }
 
     private bool TargetSubtypePasses(WorldState world, int generatorSlot, int targetId) =>

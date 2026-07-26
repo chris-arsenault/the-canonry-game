@@ -36,7 +36,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$shoal", "$scout", Rel.ClaimedBy, 0.70f),
         ],
         Triggers = TriggerOn(K.Orca),
-        PulseWeight = 4,
+        FireWeight = 4,
     };
 
     private static SemanticGeneratorConfig OrcaRouteWarsGetNames() => new()
@@ -81,7 +81,7 @@ public static partial class IceRemembersGeneratorDefinition
                 includeReciprocal: true),
         ],
         Triggers = TriggerOn(K.Orca),
-        PulseWeight = 4,
+        FireWeight = 4,
     };
 
     private static SemanticGeneratorConfig StolenArtifactsDrawHunters() => new()
@@ -101,7 +101,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$target", "$hunter", Rel.AtWarWith, 0.76f),
         ],
         Triggers = TriggerOn(K.Monster),
-        PulseWeight = 6,
+        FireWeight = 6,
     };
 
     private static SemanticGeneratorConfig MonsterSlayingsBecomeFestivals() => new()
@@ -129,7 +129,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$convoy", "$rite", Rel.ConduitOf, 0.68f),
         ],
         Triggers = TriggerOn(K.Penguin),
-        PulseWeight = 12,
+        FireWeight = 12,
     };
 
     private static SemanticGeneratorConfig HauntedTransportsSpreadPlague() => new()
@@ -162,7 +162,7 @@ public static partial class IceRemembersGeneratorDefinition
                 GeneratorRelationshipInstanceSelection.TriggerRelationship),
         ],
         Triggers = TriggerOn(K.Transport),
-        PulseWeight = 3,
+        FireWeight = 3,
     };
 
     private static SemanticGeneratorTarget TargetWithStrongOutgoingAndWithoutOutgoing(

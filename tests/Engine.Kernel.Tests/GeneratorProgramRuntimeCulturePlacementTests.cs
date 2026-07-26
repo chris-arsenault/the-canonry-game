@@ -175,7 +175,7 @@ public sealed class GeneratorProgramRuntimeCulturePlacementTests
         var slot = simulation.Generators.RegisterGenerator(
             GeneratorId,
             TargetKindId,
-            pulseWeight: 1,
+            fireWeight: 1,
             maxRuns: 1);
         simulation.Generators.AddTrigger(slot, TargetKindId);
         return slot;

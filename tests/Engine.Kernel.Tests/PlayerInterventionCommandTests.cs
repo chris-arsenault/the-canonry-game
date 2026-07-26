@@ -110,8 +110,8 @@ public sealed class PlayerInterventionCommandTests
                     // noise would smear them.
                     CultureField = new CultureFieldTuningOptions
                     {
-                        DecayPerPulse = FixedScalar.FromSingle(0f),
-                        MinimumDecayPerPulse = FixedScalar.FromSingle(0f),
+                        DecayPerRun = FixedScalar.FromSingle(0f),
+                        MinimumDecayPerRun = FixedScalar.FromSingle(0f),
                     },
                 },
             },

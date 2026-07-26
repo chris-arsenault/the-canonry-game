@@ -108,11 +108,142 @@ public sealed class WorldStateIndexTests
         simulation.SetEntityStatus(historicalTarget, EntityStatusCodes.Historical, 1);
 
         Assert.False(simulation.World.RelationshipIsActive(ended));
-        Assert.Equal(0, simulation.World.FindRelationship(source, historicalTarget, 9));
+        Assert.False(simulation.World.EntityExists(historicalTarget));
         Assert.Equal([kept], OutgoingRelationshipsOfKind(simulation.World, source, 9));
 
         var replacement = simulation.CreateRelationship(9, 0, activeTarget, source, FixedScalar.FromSingle(0.8f), 2);
         Assert.Equal(ended, replacement);
+    }
+
+    [Fact]
+    public void RecycledEntitySlotsRejectStaleOccurrenceHandlesAcrossSnapshotReload()
+    {
+        var simulation = CreateSimulation();
+        var first = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        var firstOccurrence = simulation.World.EntityOccurrenceHandle(first);
+
+        simulation.SetEntityStatus(first, EntityStatusCodes.Historical, tick: 1);
+        var replacement = simulation.CreateEntity(2, 1, 1, 1, 0, 0, 0, 0, tick: 2);
+        var replacementOccurrence = simulation.World.EntityOccurrenceHandle(replacement);
+
+        Assert.Equal(first, replacement);
+        Assert.NotEqual(firstOccurrence, replacementOccurrence);
+        Assert.False(simulation.World.TryResolveEntityOccurrence(firstOccurrence, out _));
+        Assert.True(simulation.World.TryResolveEntityOccurrence(replacementOccurrence, out var resolved));
+        Assert.Equal(replacement, resolved);
+
+        using var stream = new MemoryStream();
+        KernelSnapshot.SaveKernelState(simulation, stream);
+        stream.Position = 0;
+        var loaded = KernelSnapshot.LoadKernelState(stream);
+
+        Assert.False(loaded.World.TryResolveEntityOccurrence(firstOccurrence, out _));
+        Assert.True(loaded.World.TryResolveEntityOccurrence(replacementOccurrence, out resolved));
+        Assert.Equal(replacement, resolved);
+    }
+
+    [Fact]
+    public void RecycledRelationshipSlotsCannotLeakThroughFrozenAdjacency()
+    {
+        var simulation = CreateSimulation();
+        var oldSource = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        var oldTarget = simulation.CreateEntity(2, 1, 1, 1, 0, 0, 0, 0, 0);
+        var newSource = simulation.CreateEntity(1, 1, 1, 2, 0, 0, 0, 0, 0);
+        var newTarget = simulation.CreateEntity(2, 1, 1, 3, 0, 0, 0, 0, 0);
+        var oldRelationship = simulation.CreateRelationship(
+            9,
+            0,
+            oldSource,
+            oldTarget,
+            FixedScalar.FromSingle(0.8f),
+            tick: 0);
+        var oldOccurrence = simulation.World.RelationshipOccurrenceHandle(oldRelationship);
+        simulation.World.CompactRelationshipGraph();
+
+        simulation.CullRelationship(oldRelationship, tick: 1);
+        var replacement = simulation.CreateRelationship(
+            9,
+            0,
+            newSource,
+            newTarget,
+            FixedScalar.FromSingle(0.7f),
+            tick: 2);
+        var replacementOccurrence = simulation.World.RelationshipOccurrenceHandle(replacement);
+
+        Assert.Equal(oldRelationship, replacement);
+        Assert.NotEqual(oldOccurrence, replacementOccurrence);
+        Assert.False(simulation.World.TryResolveRelationshipOccurrence(oldOccurrence, out _));
+        Assert.True(simulation.World.TryResolveRelationshipOccurrence(replacementOccurrence, out var resolved));
+        Assert.Equal(replacement, resolved);
+        Assert.Empty(OutgoingRelationshipsOfKind(simulation.World, oldSource, 9));
+        Assert.Equal([replacement], OutgoingRelationshipsOfKind(simulation.World, newSource, 9));
+    }
+
+    [Fact]
+    public void RelationshipCreationDeduplicatesEndpointAndKind()
+    {
+        var simulation = CreateSimulation();
+        var source = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
+        var target = simulation.CreateEntity(2, 1, 1, 1, 0, 0, 0, 0, 0);
+
+        var first = simulation.CreateRelationship(9, 0, source, target, FixedScalar.FromSingle(0.4f), tick: 0);
+        var duplicate = simulation.CreateRelationship(9, 1, source, target, FixedScalar.FromSingle(0.9f), tick: 1);
+
+        Assert.Equal(first, duplicate);
+        Assert.Equal([first], OutgoingRelationshipsOfKind(simulation.World, source, 9));
+        Assert.Equal(FixedScalar.FromSingle(0.4f), simulation.World.RelationshipStrength(first));
+    }
+
+    [Fact]
+    public void CultureInfluenceCapacityTracksLiveRowsInsteadOfLifetimeCells()
+    {
+        var simulation = KernelTestSimulation.Create(new SimulationOptions
+        {
+            EntityCapacity = 4,
+            RelationshipCapacity = 4,
+            MapCellCapacity = 8,
+            MapInfluenceCapacity = 2,
+            KindIdCapacity = 4,
+            CultureIdCapacity = 4,
+            RelationshipKindIdCapacity = 4,
+        });
+        simulation.ModifyCellCultureInfluenceRaw(
+            1,
+            PlaneCodes.Physical,
+            0,
+            0,
+            FixedScalar.FromSingle(10f),
+            tick: 0);
+        simulation.CultureLocality.Invalidate();
+        simulation.ModifyCellCultureInfluenceRaw(
+            1,
+            PlaneCodes.Physical,
+            1,
+            0,
+            FixedScalar.FromSingle(20f),
+            tick: 0);
+        simulation.CultureLocality.Invalidate();
+        simulation.ModifyCellCultureInfluenceRaw(
+            1,
+            PlaneCodes.Physical,
+            0,
+            0,
+            FixedScalar.FromSingle(-10f),
+            tick: 1);
+        simulation.CultureLocality.Invalidate();
+
+        simulation.ModifyCellCultureInfluenceRaw(
+            1,
+            PlaneCodes.Physical,
+            2,
+            0,
+            FixedScalar.FromSingle(30f),
+            tick: 2);
+
+        Assert.Equal(2, simulation.World.CultureInfluenceCellCount(1, PlaneCodes.Physical));
+        Assert.Equal(
+            [(1, 0, 100f), (2, 0, 100f)],
+            CultureInfluenceCellsOf(simulation.World, 1, PlaneCodes.Physical));
     }
 
     [Fact]
@@ -204,52 +335,47 @@ public sealed class WorldStateIndexTests
     [Fact]
     public void MapLayerSetStoresExclusiveCoverageAndOverlappingCultureInfluence()
     {
-        var layers = new MapLayerSet(entityCapacity: 4, cultureIdCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
-        const int cellKey = 1;
+        var cells = new MapCellRegistry(capacity: 16);
+        var layers = new MapLayerSet(cells, entityCapacity: 4, cultureIdCapacity: 4, mapInfluenceCapacity: 16);
+        var cellId = cells.GetOrAdd(PlaneCodes.Physical, q: 0, r: 0, z: 0);
 
-        layers.Coverage.SetValue(PlaneCodes.Physical, cellKey, 0, 0, value: 1);
+        layers.Coverage.SetValue(cellId, value: 1);
         layers.RawCultureInfluence.SetValue(
-            entityId: 1,
-            PlaneCodes.Physical,
-            cellKey,
-            q: 0,
-            r: 0,
+            cultureId: 1,
+            cellId,
             value: KernelFixedPoint.CultureMassUnits(40f));
         layers.RawCultureInfluence.SetValue(
-            entityId: 2,
-            PlaneCodes.Physical,
-            cellKey,
-            q: 0,
-            r: 0,
+            cultureId: 2,
+            cellId,
             value: KernelFixedPoint.CultureMassUnits(60f));
 
-        Assert.Equal(1, layers.Coverage.ValueAt(PlaneCodes.Physical, cellKey));
-        Assert.Equal(KernelFixedPoint.CultureMassUnits(40f), layers.RawCultureInfluence.ValueAt(entityId: 1, PlaneCodes.Physical, cellKey));
-        Assert.Equal(KernelFixedPoint.CultureMassUnits(60f), layers.RawCultureInfluence.ValueAt(entityId: 2, PlaneCodes.Physical, cellKey));
-        Assert.Equal(0, layers.RawCultureInfluence.ValueAt(entityId: 1, PlaneCodes.Semantic, cellKey));
+        Assert.Equal(1, layers.Coverage.ValueAt(cellId));
+        Assert.Equal(KernelFixedPoint.CultureMassUnits(40f), layers.RawCultureInfluence.ValueAt(cultureId: 1, cellId));
+        Assert.Equal(KernelFixedPoint.CultureMassUnits(60f), layers.RawCultureInfluence.ValueAt(cultureId: 2, cellId));
 
-        layers.Coverage.SetValue(PlaneCodes.Physical, cellKey, 0, 0, value: 2);
+        layers.Coverage.SetValue(cellId, value: 2);
 
-        Assert.Equal(2, layers.Coverage.ValueAt(PlaneCodes.Physical, cellKey));
+        Assert.Equal(2, layers.Coverage.ValueAt(cellId));
         Assert.Equal(0, layers.Coverage.ValueCellCount(1, PlaneCodes.Physical));
         Assert.Equal(1, layers.Coverage.ValueCellCount(2, PlaneCodes.Physical));
-        Assert.Equal(KernelFixedPoint.CultureMassUnits(40f), layers.RawCultureInfluence.ValueAt(entityId: 1, PlaneCodes.Physical, cellKey));
-        Assert.Equal(KernelFixedPoint.CultureMassUnits(60f), layers.RawCultureInfluence.ValueAt(entityId: 2, PlaneCodes.Physical, cellKey));
+        Assert.Equal(KernelFixedPoint.CultureMassUnits(40f), layers.RawCultureInfluence.ValueAt(cultureId: 1, cellId));
+        Assert.Equal(KernelFixedPoint.CultureMassUnits(60f), layers.RawCultureInfluence.ValueAt(cultureId: 2, cellId));
     }
 
     [Fact]
     public void MapLayerSetSnapshotRestoresCoverageAndCultureInfluenceTogether()
     {
-        var layers = new MapLayerSet(entityCapacity: 4, cultureIdCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
-        var loaded = new MapLayerSet(entityCapacity: 4, cultureIdCapacity: 4, mapCellCapacity: 16, mapInfluenceCapacity: 16);
-        const int cellKey = 2;
-        layers.Coverage.SetValue(PlaneCodes.Semantic, cellKey, 1, -1, value: 3);
+        var cells = new MapCellRegistry(capacity: 16);
+        var loadedCells = new MapCellRegistry(capacity: 16);
+        var layers = new MapLayerSet(cells, entityCapacity: 4, cultureIdCapacity: 4, mapInfluenceCapacity: 16);
+        var loaded = new MapLayerSet(loadedCells, entityCapacity: 4, cultureIdCapacity: 4, mapInfluenceCapacity: 16);
+        var cellId = cells.GetOrAdd(PlaneCodes.Semantic, q: 1, r: -1, z: 0);
+        var loadedCellId = loadedCells.GetOrAdd(PlaneCodes.Semantic, q: 1, r: -1, z: 0);
+        Assert.Equal(cellId, loadedCellId);
+        layers.Coverage.SetValue(cellId, value: 3);
         layers.RawCultureInfluence.SetValue(
-            entityId: 3,
-            PlaneCodes.Semantic,
-            cellKey,
-            q: 1,
-            r: -1,
+            cultureId: 3,
+            cellId,
             value: KernelFixedPoint.CultureMassUnits(75f));
 
         using var stream = new MemoryStream();
@@ -264,8 +390,8 @@ public sealed class WorldStateIndexTests
             loaded.ReadSnapshot(reader);
         }
 
-        Assert.Equal(3, loaded.Coverage.ValueAt(PlaneCodes.Semantic, cellKey));
-        Assert.Equal(KernelFixedPoint.CultureMassUnits(75f), loaded.RawCultureInfluence.ValueAt(entityId: 3, PlaneCodes.Semantic, cellKey));
+        Assert.Equal(3, loaded.Coverage.ValueAt(loadedCellId));
+        Assert.Equal(KernelFixedPoint.CultureMassUnits(75f), loaded.RawCultureInfluence.ValueAt(cultureId: 3, loadedCellId));
         Assert.Equal([(1, -1, 75f)], InfluenceCellsOf(loaded.RawCultureInfluence, entityId: 3, PlaneCodes.Semantic));
     }
 

@@ -8,11 +8,11 @@ internal sealed partial class GeneratorProgramState : IKernelProgramState
     internal readonly bool[] Enabled;
     internal readonly int[] NextCadenceFireTicks;
 
-    // Provincial pulses: one clock per registered physical superregion.
+    // Provincial fire windows: one schedule per registered physical superregion.
     // Slot 0 is unused; provinces occupy 1..ProvinceCount.
     internal readonly int[] ProvinceSrIds;
-    internal readonly int[] ProvincePulseIndices;
-    internal readonly int[] ProvinceFires;
+    internal readonly int[] ProvinceWindowIndices;
+    internal readonly int[] FiresInCurrentWindow;
     internal int ProvinceCount;
 
     public GeneratorProgramState(int generatorCapacity, int provinceCapacity = 64)
@@ -23,8 +23,8 @@ internal sealed partial class GeneratorProgramState : IKernelProgramState
         Enabled = new bool[generatorCapacity + 1];
         NextCadenceFireTicks = new int[generatorCapacity + 1];
         ProvinceSrIds = new int[provinceCapacity + 1];
-        ProvincePulseIndices = new int[provinceCapacity + 1];
-        ProvinceFires = new int[provinceCapacity + 1];
+        ProvinceWindowIndices = new int[provinceCapacity + 1];
+        FiresInCurrentWindow = new int[provinceCapacity + 1];
     }
 
     public int ProgramId => KernelProgramCodes.Generators;

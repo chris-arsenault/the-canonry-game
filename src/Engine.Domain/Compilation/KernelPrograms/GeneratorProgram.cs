@@ -13,7 +13,7 @@ public sealed record CompiledGeneratorRule(
     int TargetKindId,
     IReadOnlyList<int> TargetSubtypeIds,
     GeneratorTargetRelationshipRequirements TargetRelationshipRequirements,
-    int PulseWeight,
+    int FireWeight,
     int MaxRuns,
     int CadenceTicks,
     int CadenceJitterTicks,

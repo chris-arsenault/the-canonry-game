@@ -11,7 +11,7 @@ internal sealed partial class Simulation
             _executionContext.ProgramId,
             _executionContext.SourceCodeId,
             _executionContext.ProvenanceInvocationId);
-        if (!Events.TryWrite(contextualEvent))
+        if (!_eventPublisher.TryWrite(contextualEvent))
         {
             throw new global::System.InvalidOperationException();
         }
@@ -37,7 +37,7 @@ internal sealed partial class Simulation
 
     internal void EmitGambitEvaluated(
         int tick,
-        int entityId,
+        int entityOccurrenceHandle,
         int kindId,
         int gambitId,
         int candidateCount,
@@ -46,7 +46,7 @@ internal sealed partial class Simulation
         WriteKernelEvent(KernelEvent.From(new GambitEvaluatedKernelEvent(
             tick,
             WorldVersion,
-            entityId,
+            entityOccurrenceHandle,
             kindId,
             gambitId,
             candidateCount,
@@ -55,8 +55,8 @@ internal sealed partial class Simulation
 
     internal void EmitGambitExecuted(
         int tick,
-        int entityId,
-        int targetId,
+        int entityOccurrenceHandle,
+        int targetOccurrenceHandle,
         int kindId,
         int gambitId,
         KernelEventState state)
@@ -64,12 +64,12 @@ internal sealed partial class Simulation
         WriteKernelEvent(KernelEvent.From(new GambitExecutedKernelEvent(
             tick,
             WorldVersion,
-            entityId,
+            entityOccurrenceHandle,
             kindId,
             gambitId,
-            entityId,
-            targetId == entityId ? 0 : targetId,
-            targetId == entityId ? 1 : 2,
+            entityOccurrenceHandle,
+            targetOccurrenceHandle == entityOccurrenceHandle ? 0 : targetOccurrenceHandle,
+            targetOccurrenceHandle == entityOccurrenceHandle ? 1 : 2,
             state)));
     }
 
@@ -77,7 +77,7 @@ internal sealed partial class Simulation
         int tick,
         int generatorId,
         int statusCode,
-        int selectedTargetEntityId,
+        int selectedTargetOccurrenceHandle,
         int candidateCount,
         int failedFireCount)
     {
@@ -86,7 +86,7 @@ internal sealed partial class Simulation
             WorldVersion,
             generatorId,
             statusCode,
-            selectedTargetEntityId,
+            selectedTargetOccurrenceHandle,
             candidateCount,
             failedFireCount)));
     }
@@ -94,7 +94,7 @@ internal sealed partial class Simulation
     internal void EmitGeneratorFired(
         int tick,
         int generatorId,
-        int selectedTargetEntityId,
+        int selectedTargetOccurrenceHandle,
         int createdEntityCount,
         int createdRelationshipCount,
         int relationshipSpendCount,
@@ -104,7 +104,7 @@ internal sealed partial class Simulation
             tick,
             WorldVersion,
             generatorId,
-            selectedTargetEntityId,
+            selectedTargetOccurrenceHandle,
             createdEntityCount,
             createdRelationshipCount,
             relationshipSpendCount,
@@ -142,10 +142,10 @@ internal sealed partial class Simulation
             eventTypeCode,
             actIndex,
             outcomeCodeId,
-            roleEntityId0,
-            roleEntityId1,
-            roleEntityId2,
-            roleEntityId3,
+            World.EntityOccurrenceHandleOrZero(roleEntityId0),
+            World.EntityOccurrenceHandleOrZero(roleEntityId1),
+            World.EntityOccurrenceHandleOrZero(roleEntityId2),
+            World.EntityOccurrenceHandleOrZero(roleEntityId3),
             heat.Units)));
     }
 
@@ -176,7 +176,7 @@ internal sealed partial class Simulation
             tick,
             WorldVersion,
             generatorId,
-            targetEntityId,
+            World.EntityOccurrenceHandle(targetEntityId),
             targetKindId,
             targetSubtypeId,
             targetCultureId,
@@ -280,8 +280,8 @@ internal sealed partial class Simulation
             cultureId,
             slotId,
             polarityCode,
-            previousEntityId,
-            currentEntityId,
+            World.EntityOccurrenceHandleOrZero(previousEntityId),
+            World.EntityOccurrenceHandleOrZero(currentEntityId),
             previousScore.Units,
             currentScore.Units)));
     }
@@ -312,7 +312,7 @@ internal sealed partial class Simulation
             tick,
             WorldVersion,
             actorId,
-            sourceEntityId,
+            World.EntityOccurrenceHandle(sourceEntityId),
             sourceRuleId,
             sourceWorkTier,
             effectiveRadius,
@@ -374,7 +374,7 @@ internal sealed partial class Simulation
             tick,
             WorldVersion,
             intentId,
-            entityId,
+            World.EntityOccurrenceHandle(entityId),
             traceSubjectCode,
             candidateIndex,
             parentCandidateIndex,
@@ -383,7 +383,7 @@ internal sealed partial class Simulation
             effectScopeCode,
             effectValueId,
             effectKindId,
-            targetEntityId,
+            World.EntityOccurrenceHandleOrZero(targetEntityId),
             statusCode,
             affordanceSourceKindCode,
             affordanceSourceId,
@@ -408,6 +408,21 @@ internal sealed partial class Simulation
         WriteKernelEvent(KernelEvent.From(new TickCompletedKernelEvent(
             CurrentTick,
             WorldVersion)));
+    }
+
+    private void WritePhaseCompleted(
+        int phaseCode,
+        int workItemCount,
+        long mutationCount,
+        long phaseRevision)
+    {
+        WriteKernelEvent(KernelEvent.From(new PhaseCompletedKernelEvent(
+            CurrentTick,
+            WorldVersion,
+            phaseCode,
+            workItemCount,
+            phaseRevision,
+            mutationCount)));
     }
 
     private void WriteCommandApplied(in KernelCommand command)

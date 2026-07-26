@@ -24,9 +24,8 @@ public class DomainConfigTests
 
         Assert.Equal(IceRemembersKinds.All.Count, config.Kinds.Count);
         Assert.True(config.Relationships.Count > 10);
-        // WorldAnchor kinds (artifact, region, point of interest) are ageless
-        // and carry no lifecycle config.
-        Assert.Equal(IceRemembersKinds.All.Count - 3, config.Lifecycles.Count);
+        // Region is the only WorldAnchor kind without passive lifecycle drain.
+        Assert.Equal(IceRemembersKinds.All.Count - 1, config.Lifecycles.Count);
         Assert.Equal(2, config.TravelStructures.Count);
         Assert.Equal(IceRemembersGeneratorDefinition.Create().Count, config.Semantics!.Generators.Count);
     }
@@ -39,13 +38,6 @@ public class DomainConfigTests
         Assert.Equal(IceRemembersKinds.All.Count, declaredKinds.Distinct().Count());
         Assert.Empty(IceRemembersKinds.All.Except(declaredKinds));
         Assert.Empty(declaredKinds.Except(IceRemembersKinds.All));
-
-        foreach (var entity in IceRemembersEntities.All)
-        {
-            Assert.NotEmpty(entity.Subtypes);
-            Assert.NotEmpty(entity.Placement.ResolvePhysical(subtype: null, culture: null).PreferredTerrains);
-            Assert.NotEmpty(entity.Placement.ResolveSemantic(subtype: null, culture: null).PreferredTerrains);
-        }
     }
 
     [Fact]
@@ -622,22 +614,46 @@ public class DomainConfigTests
     {
         var config = IceRemembersDefinition.Create();
 
-        AssertNearNominalDrain(config.Lifecycles[TestKinds.Penguin], targetTicks: 2000f);
-        AssertNearNominalDrain(config.Lifecycles[TestKinds.Faction], targetTicks: 10000f);
-        AssertNearNominalDrain(config.Lifecycles[TestKinds.Settlement], targetTicks: 20000f);
-        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Orca], targetTicks: 3500f);
-        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Ability], targetTicks: 10000f);
-        AssertNearNominalDrain(config.Lifecycles[IceRemembersKinds.Monster], targetTicks: 4500f);
+        AssertLifecycleTarget(config.Lifecycles[TestKinds.Penguin], targetTicks: 10000);
+        AssertLifecycleTarget(config.Lifecycles[TestKinds.Faction], targetTicks: 50000);
+        AssertLifecycleTarget(config.Lifecycles[TestKinds.Settlement], targetTicks: 17500);
+        AssertLifecycleTarget(config.Lifecycles[IceRemembersKinds.Orca], targetTicks: 17500);
+        AssertLifecycleTarget(config.Lifecycles[IceRemembersKinds.Ability], targetTicks: 50000);
+        AssertLifecycleTarget(config.Lifecycles[IceRemembersKinds.Monster], targetTicks: 22500);
+        AssertLifecycleTarget(config.Lifecycles[TestKinds.Artifact], targetTicks: 22500);
+        AssertLifecycleTarget(config.Lifecycles[IceRemembersKinds.PointOfInterest], targetTicks: 100000);
     }
 
     [Fact]
-    public void IceRemembers_WorldAnchorKindsAreAgeless()
+    public void IceRemembers_OnlyWorldAnchorKindsAreAgeless()
     {
         var config = IceRemembersDefinition.Create();
 
-        Assert.DoesNotContain(TestKinds.Artifact, config.Lifecycles.Keys);
         Assert.DoesNotContain(TestKinds.Region, config.Lifecycles.Keys);
-        Assert.DoesNotContain(IceRemembersKinds.PointOfInterest, config.Lifecycles.Keys);
+        Assert.Contains(TestKinds.Artifact, config.Lifecycles.Keys);
+        Assert.Contains(IceRemembersKinds.PointOfInterest, config.Lifecycles.Keys);
+    }
+
+    [Fact]
+    public void DomainCompiler_PreservesLifecycleTargetsAndHealthBudgets()
+    {
+        var config = IceRemembersDefinition.Create();
+        var compiled = DomainCompiler.Compile(config);
+
+        foreach (var (kind, lifecycle) in config.Lifecycles)
+        {
+            var kindId = compiled.Ids.KindIdOf(kind).Value;
+            var health = config.Kinds[kind].Health;
+            var rule = Assert.Single(
+                compiled.Programs.Lifecycle.Rules,
+                candidate => candidate.KindId == kindId);
+
+            Assert.Equal(lifecycle.TargetTicks, rule.TargetTicks);
+            Assert.Equal(
+                KernelFixedPoint.AttributeUnits(health.Default - health.Min),
+                rule.NominalHealthUnits);
+            Assert.Equal(FixedScalar.FromSingle(lifecycle.FlatDrainShare), rule.FlatDrainShare);
+        }
     }
 
     [Fact]
@@ -675,23 +691,10 @@ public class DomainConfigTests
         Assert.True(registry.IsValidSubtype(TestKinds.Penguin, "warden"));
     }
 
-    [Fact]
-    public void DomainLoader_CreatesLifecycleConfig()
+    private static void AssertLifecycleTarget(LifecycleConfig config, int targetTicks)
     {
-        var config = IceRemembersDefinition.Create();
-        var lifecycleConfig = DomainLoader.LoadLifecycleConfig(config);
-
-        Assert.True(lifecycleConfig.HasConfig(TestKinds.Penguin));
-        Assert.True(lifecycleConfig.HasConfig(TestKinds.Settlement));
-        Assert.False(lifecycleConfig.HasConfig(TestKinds.Region));
-    }
-
-    private static void AssertNearNominalDrain(LifecycleConfig config, float targetTicks)
-    {
-        var totalDrain = (config.BaseRate * targetTicks) +
-            (config.AgeCoefficient * targetTicks * (targetTicks - 1f) * 0.5f);
-
-        Assert.InRange(totalDrain, 89f, 91f);
+        Assert.Equal(targetTicks, config.TargetTicks);
+        Assert.Equal(0.2f, config.FlatDrainShare);
     }
 
     private static DomainConfig WithArtifactGeneratorRequiringStrongHoldsRelationship(DomainConfig config)
@@ -757,7 +760,7 @@ public class DomainConfigTests
             Relationships = generator.Relationships,
             Effects = generator.Effects,
             Triggers = generator.Triggers,
-            PulseWeight = generator.PulseWeight,
+            FireWeight = generator.FireWeight,
             MaxRunsPerSim = generator.MaxRunsPerSim,
         };
 

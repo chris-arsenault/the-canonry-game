@@ -54,7 +54,7 @@ public sealed class EffectsProgramTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.True(simulation.Events.TryRead(cursor, out var read));
+        var read = ReadNextAttributeChanged(simulation, cursor);
         var changed = read.Event.AsAttributeChanged();
         Assert.Equal(entityId, changed.EntityId);
         Assert.Equal(attributeId, changed.AttributeId);
@@ -384,4 +384,19 @@ public sealed class EffectsProgramTests
             EffectRuleCapacity = 4,
             Seed = 1,
         });
+
+    private static SequencedKernelEvent ReadNextAttributeChanged(
+        Simulation simulation,
+        KernelEventCursor cursor)
+    {
+        while (simulation.Events.TryRead(cursor, out var candidate))
+        {
+            if (candidate.Event.EventType == KernelEventType.AttributeChanged)
+            {
+                return candidate;
+            }
+        }
+
+        throw new Xunit.Sdk.XunitException("No attribute change event was published.");
+    }
 }

@@ -33,21 +33,21 @@ sixteen beats are named from the lore bible; see `IceRemembersAges`.
 
 ## Recognition, never scheduling
 
-Each pulse (tuning `programs.world_beats.cadence_main_ticks`, default 25 main
-ticks) the program samples macro facts from world state:
+On each scheduled run (`WorldBeats.CadenceTicks` in kernel tuning, default 125
+global ticks) the program samples macro facts from world state:
 
 - ticks since start,
 - active entities of a kind (settlements, canons, abilities, ...),
 - living and culled relationships of a kind (wars, campaigns),
-- total physical culture raw mass and its growth per pulse window,
+- total physical culture raw mass and its growth since the previous run,
 - cumulative legendary chronicle resolutions (from the Chronicle Director).
 
 Living and ended relationship counts are updated explicitly when relationships
-are created or culled. The pulse does not scan relationship storage, and ended
+are created or culled. The run does not scan relationship storage, and ended
 edges do not remain resident merely to support age recognition.
 
 An open age closes when **any** closing condition holds, after its authored
-minimum span. Each pulse the highest-priority age whose opening conditions
+minimum span. On each run the highest-priority age whose opening conditions
 **all** hold (and whose post-close cooldown has passed) takes each track: it
 fills a blank track, and it **preempts** a lower-priority incumbent that has
 met its minimum span - so a low-priority fallback like the Still Ice never
@@ -58,10 +58,10 @@ primitive events (track, age id, opened/closed) into telemetry
 ## Charges
 
 While open, an age's charges multiply existing authored rates. The push is
-idempotent, re-applied every pulse (so a snapshot reload self-heals), and each
+idempotent, re-applied every scheduled run (so a snapshot reload self-heals), and each
 target program owns its own O(1) modulation array:
 
-- generator pulse weights (`AgePulseWeightMultipliers`),
+- generator fire weights (`AgeFireWeightMultipliers`),
 - low-altitude verb weights (`AgeWeightMultiplier` per rule),
 - gambit scores (`AgeScoreMultipliers`),
 - the contest decay tide (`CultureFieldDecay.ScaleContestTide`), contested cells only,
@@ -85,7 +85,7 @@ campaign loop is that projection:
 2. While that edge lives, the minor-actor program's `CampaignLabor` emitter
    spawns worker cohorts anchored at the campaign *target's* position instead
    of home - a labor column at the front, pressing the attacker's culture in
-   and clearing the defender's (continuous mass, not event pulses).
+   and clearing the defender's (continuous mass, not discrete event bursts).
 3. The campaign edge decays (a committed push, not a standing hatred); the
    `the_column_holds` generator and the `faction_feed_the_column` verb re-press
    it while the war justifies it. War's end starves the column.

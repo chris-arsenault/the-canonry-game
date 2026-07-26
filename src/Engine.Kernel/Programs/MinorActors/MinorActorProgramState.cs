@@ -12,20 +12,20 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
     private readonly int[] _planeCodes;
     private readonly int[] _q;
     private readonly int[] _r;
-    private readonly int[] _expiresAtPulses;
+    private readonly int[] _expiresAtTicks;
     private readonly int[] _createdAtTicks;
-    private readonly int[] _nextActionPulses;
-    private readonly int[] _actionCadencePulses;
+    private readonly int[] _nextActionTicks;
+    private readonly int[] _actionCadenceTicks;
     private readonly int[] _purposeCodes;
     private readonly FixedScalar[] _workDeltas;
     private readonly int[] _activeActorIds;
     private readonly int[] _activeActorPositions;
     private readonly int[] _freeActorIds;
     private readonly int[] _dueHeapActorIds;
-    private readonly int[] _dueHeapPulses;
+    private readonly int[] _dueHeapTicks;
     private readonly int[] _dueHeapPositions;
     private readonly int[] _sourceActiveCounts;
-    private readonly int[] _nextEmissionPulses;
+    private readonly int[] _nextEmissionTicks;
     private readonly int _sourceRuleStride;
     private int _freeActorCount;
     private int _dueHeapCount;
@@ -47,27 +47,27 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         _planeCodes = new int[actorCapacity + 1];
         _q = new int[actorCapacity + 1];
         _r = new int[actorCapacity + 1];
-        _expiresAtPulses = new int[actorCapacity + 1];
+        _expiresAtTicks = new int[actorCapacity + 1];
         _createdAtTicks = new int[actorCapacity + 1];
-        _nextActionPulses = new int[actorCapacity + 1];
-        _actionCadencePulses = new int[actorCapacity + 1];
+        _nextActionTicks = new int[actorCapacity + 1];
+        _actionCadenceTicks = new int[actorCapacity + 1];
         _purposeCodes = new int[actorCapacity + 1];
         _workDeltas = new FixedScalar[actorCapacity + 1];
         _activeActorIds = new int[actorCapacity];
         _activeActorPositions = new int[actorCapacity + 1];
         _freeActorIds = new int[actorCapacity];
         _dueHeapActorIds = new int[actorCapacity + 1];
-        _dueHeapPulses = new int[actorCapacity + 1];
+        _dueHeapTicks = new int[actorCapacity + 1];
         _dueHeapPositions = new int[actorCapacity + 1];
         _sourceRuleStride = sourceRuleCapacity + 1;
         var sourceStateLength = checked((sourceEntityCapacity + 1) * _sourceRuleStride);
         _sourceActiveCounts = new int[sourceStateLength];
-        _nextEmissionPulses = new int[sourceStateLength];
+        _nextEmissionTicks = new int[sourceStateLength];
     }
 
     public int ProgramId => KernelProgramCodes.MinorActors;
 
-    public int SchemaVersion => 5;
+    public int SchemaVersion => 6;
 
     public int ActorCapacity { get; }
 
@@ -75,17 +75,9 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
 
     public int ActiveCount { get; private set; }
 
-    public int Pulse { get; private set; }
-
     public int TotalSpawned { get; private set; }
 
     public int TotalExpired { get; private set; }
-
-    public int AdvancePulse()
-    {
-        Pulse++;
-        return Pulse;
-    }
 
     public bool IsActive(int actorId) =>
         (uint)actorId < (uint)_active.Length && _active[actorId];
@@ -104,16 +96,13 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
 
     public int R(int actorId) => ValueAt(_r, actorId);
 
-    public int RemainingPulses(int actorId) =>
-        global::System.Math.Max(0, ValueAt(_expiresAtPulses, actorId) - Pulse + 1);
-
-    public int ExpiresAtPulse(int actorId) => ValueAt(_expiresAtPulses, actorId);
+    public int ExpiresAtTick(int actorId) => ValueAt(_expiresAtTicks, actorId);
 
     public int CreatedAtTick(int actorId) => ValueAt(_createdAtTicks, actorId);
 
-    public int NextActionPulse(int actorId) => ValueAt(_nextActionPulses, actorId);
+    public int NextActionTick(int actorId) => ValueAt(_nextActionTicks, actorId);
 
-    public int ActionCadencePulses(int actorId) => ValueAt(_actionCadencePulses, actorId);
+    public int ActionCadenceTicks(int actorId) => ValueAt(_actionCadenceTicks, actorId);
 
     public int PurposeCode(int actorId) => ValueAt(_purposeCodes, actorId);
 
@@ -133,20 +122,20 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         return _sourceActiveCounts[SourceRuleIndex(sourceEntityId, sourceRuleId)];
     }
 
-    public int NextEmissionPulse(int sourceEntityId, int sourceRuleId)
+    public int NextEmissionTick(int sourceEntityId, int sourceRuleId)
     {
         if (sourceEntityId <= 0 || sourceRuleId <= 0)
         {
             return 0;
         }
 
-        return _nextEmissionPulses[SourceRuleIndex(sourceEntityId, sourceRuleId)];
+        return _nextEmissionTicks[SourceRuleIndex(sourceEntityId, sourceRuleId)];
     }
 
-    public void SetNextEmissionPulse(int sourceEntityId, int sourceRuleId, int pulse)
+    public void SetNextEmissionTick(int sourceEntityId, int sourceRuleId, int tick)
     {
-        NumericGuard.ThrowIfNegative(pulse);
-        _nextEmissionPulses[SourceRuleIndex(sourceEntityId, sourceRuleId)] = pulse;
+        NumericGuard.ThrowIfNegative(tick);
+        _nextEmissionTicks[SourceRuleIndex(sourceEntityId, sourceRuleId)] = tick;
     }
 
     public int Spawn(
@@ -157,11 +146,10 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         int planeCode,
         int q,
         int r,
-        int ttlPulses,
-        int actionCadencePulses,
+        int ttlTicks,
+        int actionCadenceTicks,
         FixedScalar workDelta,
         int tick,
-        int pulse,
         int purposeCode = MinorActorPurposeCodes.CulturalLabor)
     {
         ValidateSpawn(
@@ -171,11 +159,10 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
             purposeCode,
             actorKindCode,
             planeCode,
-            ttlPulses,
-            actionCadencePulses,
+            ttlTicks,
+            actionCadenceTicks,
             workDelta,
-            tick,
-            pulse);
+            tick);
 
         var actorId = FindFreeActorSlot();
         _active[actorId] = true;
@@ -186,10 +173,10 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         _planeCodes[actorId] = planeCode;
         _q[actorId] = q;
         _r[actorId] = r;
-        _expiresAtPulses[actorId] = checked(pulse + ttlPulses - 1);
+        _expiresAtTicks[actorId] = checked(tick + ttlTicks - 1);
         _createdAtTicks[actorId] = tick;
-        _nextActionPulses[actorId] = pulse;
-        _actionCadencePulses[actorId] = actionCadencePulses;
+        _nextActionTicks[actorId] = tick;
+        _actionCadenceTicks[actorId] = actionCadenceTicks;
         _purposeCodes[actorId] = purposeCode;
         _workDeltas[actorId] = workDelta;
         AddActiveActor(actorId);
@@ -212,12 +199,45 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         RemoveDueActor(actorId);
         RemoveActiveActor(actorId);
         _active[actorId] = false;
-        _expiresAtPulses[actorId] = 0;
+        _actorKindCodes[actorId] = 0;
+        _cultureIds[actorId] = 0;
+        _sourceEntityIds[actorId] = 0;
+        _sourceRuleIds[actorId] = 0;
+        _planeCodes[actorId] = 0;
+        _q[actorId] = 0;
+        _r[actorId] = 0;
+        _expiresAtTicks[actorId] = 0;
+        _createdAtTicks[actorId] = 0;
+        _nextActionTicks[actorId] = 0;
+        _actionCadenceTicks[actorId] = 0;
+        _purposeCodes[actorId] = 0;
+        _workDeltas[actorId] = 0;
         TotalExpired++;
         _sourceActiveCounts[SourceRuleIndex(sourceEntityId, sourceRuleId)]--;
 
         _freeActorIds[_freeActorCount++] = actorId;
         return true;
+    }
+
+    public void DeactivateSource(int sourceEntityId)
+    {
+        EnsureSourceEntity(sourceEntityId);
+        for (var position = 0; position < ActiveCount;)
+        {
+            var actorId = _activeActorIds[position];
+            if (_sourceEntityIds[actorId] == sourceEntityId)
+            {
+                Deactivate(actorId);
+                continue;
+            }
+
+            position++;
+        }
+
+        global::System.Array.Clear(
+            _nextEmissionTicks,
+            sourceEntityId * _sourceRuleStride,
+            _sourceRuleStride);
     }
 
     public void SetPosition(int actorId, int q, int r)
@@ -227,17 +247,17 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         _r[actorId] = r;
     }
 
-    public void SetNextActionPulse(int actorId, int pulse)
+    public void SetNextActionTick(int actorId, int tick)
     {
         EnsureActorId(actorId);
-        NumericGuard.ThrowIfNegative(pulse);
-        _nextActionPulses[actorId] = pulse;
+        NumericGuard.ThrowIfNegative(tick);
+        _nextActionTicks[actorId] = tick;
     }
 
-    public bool TryTakeDueActor(int pulse, out int actorId)
+    public bool TryTakeDueActor(int tick, out int actorId)
     {
-        NumericGuard.ThrowIfNegative(pulse);
-        if (_dueHeapCount == 0 || _dueHeapPulses[1] > pulse)
+        NumericGuard.ThrowIfNegative(tick);
+        if (_dueHeapCount == 0 || _dueHeapTicks[1] > tick)
         {
             actorId = 0;
             return false;
@@ -256,13 +276,13 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
             return;
         }
 
-        var duePulse = global::System.Math.Min(
-            _nextActionPulses[actorId],
-            _expiresAtPulses[actorId]);
+        var dueTick = global::System.Math.Min(
+            _nextActionTicks[actorId],
+            _expiresAtTicks[actorId]);
         var position = _dueHeapPositions[actorId];
         if (position > 0)
         {
-            _dueHeapPulses[position] = duePulse;
+            _dueHeapTicks[position] = dueTick;
             SiftUp(position);
             SiftDown(_dueHeapPositions[actorId]);
             return;
@@ -270,7 +290,7 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
 
         var added = ++_dueHeapCount;
         _dueHeapActorIds[added] = actorId;
-        _dueHeapPulses[added] = duePulse;
+        _dueHeapTicks[added] = dueTick;
         _dueHeapPositions[actorId] = added;
         SiftUp(added);
     }
@@ -319,12 +339,12 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         }
 
         var lastActorId = _dueHeapActorIds[_dueHeapCount];
-        var lastPulse = _dueHeapPulses[_dueHeapCount];
+        var lastTick = _dueHeapTicks[_dueHeapCount];
         _dueHeapActorIds[position] = lastActorId;
-        _dueHeapPulses[position] = lastPulse;
+        _dueHeapTicks[position] = lastTick;
         _dueHeapPositions[lastActorId] = position;
         _dueHeapActorIds[_dueHeapCount] = 0;
-        _dueHeapPulses[_dueHeapCount] = 0;
+        _dueHeapTicks[_dueHeapCount] = 0;
         _dueHeapPositions[actorId] = 0;
         _dueHeapCount--;
         if (position <= _dueHeapCount)
@@ -373,18 +393,18 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
 
     private bool EntryComesBefore(int leftPosition, int rightPosition)
     {
-        var leftPulse = _dueHeapPulses[leftPosition];
-        var rightPulse = _dueHeapPulses[rightPosition];
-        return leftPulse < rightPulse ||
-            (leftPulse == rightPulse && _dueHeapActorIds[leftPosition] < _dueHeapActorIds[rightPosition]);
+        var leftTick = _dueHeapTicks[leftPosition];
+        var rightTick = _dueHeapTicks[rightPosition];
+        return leftTick < rightTick ||
+            (leftTick == rightTick && _dueHeapActorIds[leftPosition] < _dueHeapActorIds[rightPosition]);
     }
 
     private void SwapDueEntries(int left, int right)
     {
         (_dueHeapActorIds[left], _dueHeapActorIds[right]) =
             (_dueHeapActorIds[right], _dueHeapActorIds[left]);
-        (_dueHeapPulses[left], _dueHeapPulses[right]) =
-            (_dueHeapPulses[right], _dueHeapPulses[left]);
+        (_dueHeapTicks[left], _dueHeapTicks[right]) =
+            (_dueHeapTicks[right], _dueHeapTicks[left]);
         _dueHeapPositions[_dueHeapActorIds[left]] = left;
         _dueHeapPositions[_dueHeapActorIds[right]] = right;
     }
@@ -434,11 +454,10 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
         int purposeCode,
         int actorKindCode,
         int planeCode,
-        int ttlPulses,
-        int actionCadencePulses,
+        int ttlTicks,
+        int actionCadenceTicks,
         FixedScalar workDelta,
-        int tick,
-        int pulse)
+        int tick)
     {
         NumericGuard.ThrowIfNegativeOrZero(cultureId);
         NumericGuard.ThrowIfNegativeOrZero(sourceEntityId);
@@ -457,10 +476,9 @@ internal sealed partial class MinorActorProgramState : IKernelProgramState
             throw new global::System.ArgumentOutOfRangeException(nameof(planeCode));
         }
 
-        NumericGuard.ThrowIfNegativeOrZero(ttlPulses);
-        NumericGuard.ThrowIfNegativeOrZero(actionCadencePulses);
+        NumericGuard.ThrowIfNegativeOrZero(ttlTicks);
+        NumericGuard.ThrowIfNegativeOrZero(actionCadenceTicks);
         NumericGuard.ThrowIfNegative(workDelta);
         NumericGuard.ThrowIfNegative(tick);
-        NumericGuard.ThrowIfNegative(pulse);
     }
 }

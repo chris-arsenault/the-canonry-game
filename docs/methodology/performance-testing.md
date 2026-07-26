@@ -19,37 +19,47 @@ dotnet tool install --global dotnet-trace
 dotnet tool update --global dotnet-trace
 ```
 
-Build the workload in Release mode before profiling:
+Use the repository targets so Release mode, registry provenance, and the direct
+workload process stay consistent:
 
 ```bash
-dotnet build -c Release
+make mc-smoke RUN_ID=kernel-smoke-20260725
+make profile-kernel PROFILE_RUN_ID=kernel-profile-20260725
 ```
 
-Keep traces under `.artifacts/profiles/`.
+Both targets load the versioned pregenerated world selected by
+`MC_SMOKE_WORLD` or `PROFILE_WORLD`. They fail when that artifact is absent or
+stale instead of silently spending the smoke/profile run generating another
+world. Generate or replace it explicitly with `make world SEED=<seed>`.
+Calibration batches that need distinct starting worlds continue to use
+`make mc`; pass a pregenerated world through `MC_EXTRA` only for a single-run
+batch whose seed matches that world.
+
+The simulation-only runner advances the kernel in progress-window batches.
+This preserves exact tick totals and progress boundaries without stopping the
+driver and constructing a stepped driver once per tick. Its reported throughput
+therefore measures the requested kernel work rather than a tooling loop whose
+overhead changes when the tick unit changes.
+
+Traces stay under `.artifacts/profiles/`.
 
 ## Collect A CPU Trace
 
-Wrap the real command with `dotnet-trace collect`. Keep the run parameters fixed
-before and after an optimization pass.
-
-For batch simulation plus Monte Carlo telemetry/export:
+Keep the registered run parameters and pregenerated world fixed before and
+after an optimization pass:
 
 ```bash
-mkdir -p .artifacts/profiles
-PROFILE=.artifacts/profiles/mc-trace-$(date -u +%Y%m%dT%H%M%SZ)
-
-~/.dotnet/tools/dotnet-trace collect \
-  --profile dotnet-sampled-thread-time \
-  --output "${PROFILE}.nettrace" \
-  --show-child-io \
-  -- dotnet run -c Release --project tools/MonteCarlo/MonteCarlo.csproj -- \
-    run \
-    --run-id perf-trace-1x10000 \
-    --runs 1 \
-    --ticks 10000 \
-    --seed 9000 \
-    --trace
+make profile-kernel \
+  PROFILE_RUN_ID=perf-trace-1x10000 \
+  PROFILE_TICKS=10000 \
+  PROFILE_SEED=4200 \
+  PROFILE_WORLD=worlds/ice-remembers-seed-4200.world
 ```
+
+The target builds the Release Monte Carlo binary, traces that binary directly,
+and writes exclusive and inclusive reports beside the trace. Do not wrap
+`dotnet run`; that profiles the SDK/build host and can miss the simulation
+process.
 
 For UI/app work, start the app scenario and attach to the running .NET process:
 
@@ -98,6 +108,12 @@ Do not infer throughput from sampled stack reports. Use the profiled workload's
 own completed-run output for elapsed time, processed ticks, row counts, and
 artifact paths.
 
+When throughput changes with world growth, report fixed tick-window rates as
+well as the whole-run average. A 25,000-tick average can remain above a target
+after the final 5,000-tick window has fallen below it. Parallel before/after
+evidence must compare the same windows and must include the final window; an
+early fast world or whole-run average may not hide midgame degradation.
+
 Inspect operating-system thread CPU alongside the managed trace. A large thread
 count does not imply useful parallelism: identify which threads consume CPU and
 whether they overlap. In the Monte Carlo pipeline, a simulation-only run should
@@ -114,7 +130,14 @@ capacity conclusion that the long trace established.
 
 ## Tick Budget
 
-The current kernel performance budget is at least 10 ticks/sec for deterministic
-batch simulation. When evaluating the tick budget, profile the same workload the
-user cares about: simulation-only, simulation with trace events, simulation with
-Monte Carlo export, or the interactive app. Do not mix those numbers.
+For short pre-parallelization regression checks, the current kernel budget is at
+least 312.5 ticks/sec on the seed-9100, 5,000-tick, Release, simulation-only
+workload loaded from its pre-rendered world. Five current ticks perform the
+work formerly bundled into one measured advance: five minor-actor runs and one
+main-program run. Keep the separate accepted long-horizon target and memory
+gate from the master plan; this short gate prevents groundwork from quietly
+making the one-writer kernel slower.
+
+When evaluating the budget, profile the same workload the user cares about:
+simulation-only, simulation with trace events, simulation with Monte Carlo
+export, or the interactive app. Do not mix those numbers.

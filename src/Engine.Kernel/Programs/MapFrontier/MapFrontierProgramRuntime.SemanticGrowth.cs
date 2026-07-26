@@ -10,12 +10,12 @@ internal sealed partial class MapFrontierProgramRuntime
     /// culture holds with idea-mass at or above the threshold opens its unknown
     /// semantic neighbours from the latent idea-space terrain field. Growth is
     /// continuous and ungated by any age because ideas have no ice to wait on.
-    /// It is bounded by the semantic max radius and authored per-pulse budget.
+    /// It is bounded by the semantic max radius and authored per-run budget.
     /// </summary>
     private void GrowSemanticFrontier(Simulation simulation)
     {
         var world = simulation.World;
-        var budget = global::System.Math.Min(Data.SemanticBudgetPerPulse, _candidateQ.Length);
+        var budget = global::System.Math.Min(Data.SemanticBudgetPerRun, _candidateQ.Length);
         var count = 0;
         var cultureCount = world.CultureHighWatermark;
         var startCultureId = FirstCultureId(State.NextSemanticCultureId, cultureCount);
@@ -95,12 +95,12 @@ internal sealed partial class MapFrontierProgramRuntime
         bool enabled,
         int maxRadius,
         FixedScalar frontierMassThreshold,
-        int budgetPerPulse)
+        int budgetPerRun)
     {
-        ValidateRadiusAndBudget(maxRadius, budgetPerPulse);
+        ValidateRadiusAndBudget(maxRadius, budgetPerRun);
         Data.SemanticGrowthEnabled = enabled;
         Data.SemanticMaxRadius = maxRadius;
         Data.SemanticFrontierMassThreshold = frontierMassThreshold;
-        Data.SemanticBudgetPerPulse = budgetPerPulse;
+        Data.SemanticBudgetPerRun = budgetPerRun;
     }
 }

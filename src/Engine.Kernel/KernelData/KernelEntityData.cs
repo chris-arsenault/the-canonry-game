@@ -141,7 +141,11 @@ internal sealed partial class KernelEntityData
             var variance = _defaultVariances[slot];
             if (variance > 0)
             {
-                value *= 1 + (((simulation.NextScalar() * 2) - 1) * variance);
+                value *= 1 + (((simulation.RandomScalar(
+                    world.EntityOccurrenceHandle(entityId),
+                    _attributeIds[slot],
+                    KernelRandomPurposeCodes.EntityAttributeDefault,
+                    attempt: slot) * 2) - 1) * variance);
             }
 
             simulation.SetAttribute(entityId, _attributeIds[slot], value, tick);
@@ -155,7 +159,11 @@ internal sealed partial class KernelEntityData
             }
 
             var chance = _traitAssignmentChances[slot];
-            if (chance >= 1 || simulation.NextScalar() < chance)
+            if (chance >= 1 || simulation.RandomScalar(
+                    world.EntityOccurrenceHandle(entityId),
+                    _traitIds[slot],
+                    KernelRandomPurposeCodes.EntityTraitAssignment,
+                    attempt: slot) < chance)
             {
                 world.AddTrait(entityId, _traitIds[slot], tick);
             }

@@ -16,12 +16,20 @@ internal sealed partial class Simulation
 internal sealed partial class WorldState
 {
     private int _districtCount;
+    private int _districtHighWatermark;
+    private bool[] _districtActive = [];
+    private int[] _activeDistrictSlots = [];
+    private int[] _activeDistrictPositions = [];
+    private int[] _freeDistrictSlots = [];
+    private int _freeDistrictSlotCount;
     private int[] _districtArtifactKindIds = [];
     private int[] _districtArtifactSubtypeIds = [];
     private int[] _districtArtifactCultureIds = [];
-    private int[] _districtHostIds = [];
-    private int[] _districtQ = [];
-    private int[] _districtR = [];
+    private int[] _districtHostOccurrenceHandles = [];
+    private int[] _districtCellIds = [];
+    private int[] _firstDistrictByHost = [];
+    private int[] _nextDistrictByHost = [];
+    private int[] _previousDistrictByHost = [];
     private int[] _districtBonusKindCodes = [];
     private int[] _districtMagnitudes = [];
     private int[] _districtRelationshipKindIds = [];
@@ -30,8 +38,7 @@ internal sealed partial class WorldState
     private int[] _districtHealingMagnitudesByHost = [];
     private int _districtCultureModifierCount;
     private int[] _districtCultureModifierCultureIds = [];
-    private int[] _districtCultureModifierQ = [];
-    private int[] _districtCultureModifierR = [];
+    private int[] _districtCultureModifierCellIds = [];
     private int[] _districtCultureModifierMagnitudes = [];
 
     private int _districtBonusRuleCount;
@@ -71,11 +78,19 @@ internal sealed partial class WorldState
         return false;
     }
 
-    internal int DistrictHostId(int district) => _districtHostIds[district];
+    internal int DistrictHostId(int district)
+    {
+        if (!TryResolveEntityOccurrence(_districtHostOccurrenceHandles[district], out var hostId))
+        {
+            throw new global::System.InvalidOperationException();
+        }
 
-    internal int DistrictQ(int district) => _districtQ[district];
+        return hostId;
+    }
 
-    internal int DistrictR(int district) => _districtR[district];
+    internal int DistrictQ(int district) => _cells.Q(_districtCellIds[district]);
+
+    internal int DistrictR(int district) => _cells.R(_districtCellIds[district]);
 
     internal int DistrictBonusKindCode(int district) => _districtBonusKindCodes[district];
 
@@ -97,9 +112,11 @@ internal sealed partial class WorldState
     internal int DistrictCultureModifierCultureId(int modifier) =>
         _districtCultureModifierCultureIds[modifier];
 
-    internal int DistrictCultureModifierQ(int modifier) => _districtCultureModifierQ[modifier];
+    internal int DistrictCultureModifierQ(int modifier) =>
+        _cells.Q(_districtCultureModifierCellIds[modifier]);
 
-    internal int DistrictCultureModifierR(int modifier) => _districtCultureModifierR[modifier];
+    internal int DistrictCultureModifierR(int modifier) =>
+        _cells.R(_districtCultureModifierCellIds[modifier]);
 
     internal FixedScalar DistrictCultureModifierMagnitude(int modifier) =>
         KernelFixedPoint.CultureMassScalar(_districtCultureModifierMagnitudes[modifier]);
@@ -112,12 +129,18 @@ internal sealed partial class WorldState
         _districtBonusSubtypeIds = new int[65];
         _districtBonusKindRuleCodes = new int[65];
         _districtBonusRuleMagnitudes = new FixedScalar[65];
+        _districtActive = new bool[options.DistrictCapacity + 1];
+        _activeDistrictSlots = new int[options.DistrictCapacity];
+        _activeDistrictPositions = new int[options.DistrictCapacity + 1];
+        _freeDistrictSlots = new int[options.DistrictCapacity];
         _districtArtifactKindIds = new int[options.DistrictCapacity + 1];
         _districtArtifactSubtypeIds = new int[options.DistrictCapacity + 1];
         _districtArtifactCultureIds = new int[options.DistrictCapacity + 1];
-        _districtHostIds = new int[options.DistrictCapacity + 1];
-        _districtQ = new int[options.DistrictCapacity + 1];
-        _districtR = new int[options.DistrictCapacity + 1];
+        _districtHostOccurrenceHandles = new int[options.DistrictCapacity + 1];
+        _districtCellIds = new int[options.DistrictCapacity + 1];
+        _firstDistrictByHost = new int[options.EntityCapacity + 1];
+        _nextDistrictByHost = new int[options.DistrictCapacity + 1];
+        _previousDistrictByHost = new int[options.DistrictCapacity + 1];
         _districtBonusKindCodes = new int[options.DistrictCapacity + 1];
         _districtMagnitudes = new int[options.DistrictCapacity + 1];
         _districtRelationshipKindIds = new int[options.DistrictCapacity + 1];
@@ -125,8 +148,7 @@ internal sealed partial class WorldState
         _districtRelationshipStrengths = new int[options.DistrictCapacity + 1];
         _districtHealingMagnitudesByHost = new int[options.EntityCapacity + 1];
         _districtCultureModifierCultureIds = new int[options.DistrictCapacity + 1];
-        _districtCultureModifierQ = new int[options.DistrictCapacity + 1];
-        _districtCultureModifierR = new int[options.DistrictCapacity + 1];
+        _districtCultureModifierCellIds = new int[options.DistrictCapacity + 1];
         _districtCultureModifierMagnitudes = new int[options.DistrictCapacity + 1];
     }
 
@@ -143,47 +165,42 @@ internal sealed partial class WorldState
         int relationshipPolarityCode,
         FixedScalar relationshipStrength)
     {
-        if (_districtCount + 1 >= _districtHostIds.Length)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _districtCount++;
-        var district = _districtCount;
+        EnsureEntity(hostId);
+        var district = AllocateDistrictSlot();
+        _districtActive[district] = true;
         _districtArtifactKindIds[district] = artifactKindId;
         _districtArtifactSubtypeIds[district] = artifactSubtypeId;
         _districtArtifactCultureIds[district] = artifactCultureId;
-        _districtHostIds[district] = hostId;
-        _districtQ[district] = q;
-        _districtR[district] = r;
+        _districtHostOccurrenceHandles[district] = EntityOccurrenceHandle(hostId);
+        _districtCellIds[district] = RequireCellId(PlaneCodes.Physical, q, r, z: 0);
         _districtBonusKindCodes[district] = bonusKindCode;
         _districtMagnitudes[district] = DistrictMagnitudeUnits(bonusKindCode, magnitude);
         _districtRelationshipKindIds[district] = relationshipKindId;
         _districtRelationshipPolarityCodes[district] = relationshipPolarityCode;
         _districtRelationshipStrengths[district] =
             KernelFixedPoint.RelationshipStrengthUnits(relationshipStrength);
+        InsertActiveDistrict(district);
+        InsertDistrictHostIndex(district, hostId);
         AddDistrictModifier(district);
         return district;
     }
 
     internal bool TryRemoveNewestDistrictOf(int hostId, out DistrictReawakening template)
     {
-        for (var district = _districtCount; district >= 1; district--)
+        var district = _firstDistrictByHost[hostId];
+        if (district > 0)
         {
-            if (_districtHostIds[district] == hostId)
-            {
-                template = new DistrictReawakening(
-                    _districtArtifactKindIds[district],
-                    _districtArtifactSubtypeIds[district],
-                    _districtArtifactCultureIds[district],
-                    _districtQ[district],
-                    _districtR[district],
-                    _districtRelationshipKindIds[district],
-                    _districtRelationshipPolarityCodes[district],
-                    KernelFixedPoint.RelationshipStrengthScalar(_districtRelationshipStrengths[district]));
-                RemoveDistrictAt(district);
-                return true;
-            }
+            template = new DistrictReawakening(
+                _districtArtifactKindIds[district],
+                _districtArtifactSubtypeIds[district],
+                _districtArtifactCultureIds[district],
+                DistrictQ(district),
+                DistrictR(district),
+                _districtRelationshipKindIds[district],
+                _districtRelationshipPolarityCodes[district],
+                KernelFixedPoint.RelationshipStrengthScalar(_districtRelationshipStrengths[district]));
+            RemoveDistrictAt(district, hostId);
+            return true;
         }
 
         template = default;
@@ -193,12 +210,9 @@ internal sealed partial class WorldState
     internal int ActiveDistrictCount(int hostId)
     {
         var count = 0;
-        for (var district = 1; district <= _districtCount; district++)
+        for (var district = _firstDistrictByHost[hostId]; district > 0; district = _nextDistrictByHost[district])
         {
-            if (_districtHostIds[district] == hostId)
-            {
-                count++;
-            }
+            count++;
         }
 
         return count;
@@ -206,58 +220,106 @@ internal sealed partial class WorldState
 
     internal bool HasActiveDistrict(int hostId)
     {
-        for (var district = 1; district <= _districtCount; district++)
-        {
-            if (_districtHostIds[district] == hostId)
-            {
-                return true;
-            }
-        }
-
-        return false;
+        return _firstDistrictByHost[hostId] > 0;
     }
 
     internal void RemoveDistrictsOfHost(int hostId)
     {
-        for (var district = _districtCount; district >= 1; district--)
+        while (_firstDistrictByHost[hostId] > 0)
         {
-            if (_districtHostIds[district] == hostId)
-            {
-                RemoveDistrictAt(district);
-            }
+            RemoveDistrictAt(_firstDistrictByHost[hostId], hostId);
         }
     }
 
-    private void RemoveDistrictAt(int district)
+    private void RemoveDistrictAt(int district, int hostId)
     {
         RemoveDistrictModifier(district);
-        for (var row = district; row < _districtCount; row++)
+        RemoveDistrictHostIndex(district, hostId);
+        RemoveActiveDistrict(district);
+        ClearDistrictSlot(district);
+        _freeDistrictSlots[_freeDistrictSlotCount++] = district;
+    }
+
+    private int AllocateDistrictSlot()
+    {
+        if (_freeDistrictSlotCount > 0)
         {
-            _districtArtifactKindIds[row] = _districtArtifactKindIds[row + 1];
-            _districtArtifactSubtypeIds[row] = _districtArtifactSubtypeIds[row + 1];
-            _districtArtifactCultureIds[row] = _districtArtifactCultureIds[row + 1];
-            _districtHostIds[row] = _districtHostIds[row + 1];
-            _districtQ[row] = _districtQ[row + 1];
-            _districtR[row] = _districtR[row + 1];
-            _districtBonusKindCodes[row] = _districtBonusKindCodes[row + 1];
-            _districtMagnitudes[row] = _districtMagnitudes[row + 1];
-            _districtRelationshipKindIds[row] = _districtRelationshipKindIds[row + 1];
-            _districtRelationshipPolarityCodes[row] = _districtRelationshipPolarityCodes[row + 1];
-            _districtRelationshipStrengths[row] = _districtRelationshipStrengths[row + 1];
+            return _freeDistrictSlots[--_freeDistrictSlotCount];
         }
 
-        _districtArtifactKindIds[_districtCount] = 0;
-        _districtArtifactSubtypeIds[_districtCount] = 0;
-        _districtArtifactCultureIds[_districtCount] = 0;
-        _districtHostIds[_districtCount] = 0;
-        _districtQ[_districtCount] = 0;
-        _districtR[_districtCount] = 0;
-        _districtBonusKindCodes[_districtCount] = 0;
-        _districtMagnitudes[_districtCount] = 0;
-        _districtRelationshipKindIds[_districtCount] = 0;
-        _districtRelationshipPolarityCodes[_districtCount] = 0;
-        _districtRelationshipStrengths[_districtCount] = 0;
-        _districtCount--;
+        if (_districtHighWatermark >= _districtActive.Length - 1)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        return ++_districtHighWatermark;
+    }
+
+    private void InsertActiveDistrict(int district)
+    {
+        _activeDistrictSlots[_districtCount] = district;
+        _activeDistrictPositions[district] = _districtCount + 1;
+        _districtCount++;
+    }
+
+    private void RemoveActiveDistrict(int district)
+    {
+        var position = _activeDistrictPositions[district] - 1;
+        var lastPosition = --_districtCount;
+        var movedDistrict = _activeDistrictSlots[lastPosition];
+        _activeDistrictSlots[position] = movedDistrict;
+        _activeDistrictPositions[movedDistrict] = position + 1;
+        _activeDistrictSlots[lastPosition] = 0;
+        _activeDistrictPositions[district] = 0;
+        _districtActive[district] = false;
+    }
+
+    private void InsertDistrictHostIndex(int district, int hostId)
+    {
+        var current = _firstDistrictByHost[hostId];
+        _nextDistrictByHost[district] = current;
+        if (current > 0)
+        {
+            _previousDistrictByHost[current] = district;
+        }
+
+        _firstDistrictByHost[hostId] = district;
+    }
+
+    private void RemoveDistrictHostIndex(int district, int hostId)
+    {
+        var previous = _previousDistrictByHost[district];
+        var next = _nextDistrictByHost[district];
+        if (previous > 0)
+        {
+            _nextDistrictByHost[previous] = next;
+        }
+        else
+        {
+            _firstDistrictByHost[hostId] = next;
+        }
+
+        if (next > 0)
+        {
+            _previousDistrictByHost[next] = previous;
+        }
+
+        _previousDistrictByHost[district] = 0;
+        _nextDistrictByHost[district] = 0;
+    }
+
+    private void ClearDistrictSlot(int district)
+    {
+        _districtArtifactKindIds[district] = 0;
+        _districtArtifactSubtypeIds[district] = 0;
+        _districtArtifactCultureIds[district] = 0;
+        _districtHostOccurrenceHandles[district] = 0;
+        _districtCellIds[district] = 0;
+        _districtBonusKindCodes[district] = 0;
+        _districtMagnitudes[district] = 0;
+        _districtRelationshipKindIds[district] = 0;
+        _districtRelationshipPolarityCodes[district] = 0;
+        _districtRelationshipStrengths[district] = 0;
     }
 
     private void AddDistrictModifier(int district)
@@ -266,7 +328,7 @@ internal sealed partial class WorldState
         switch (_districtBonusKindCodes[district])
         {
             case DistrictBonusKindCodes.Healing:
-                var hostId = _districtHostIds[district];
+                var hostId = DistrictHostId(district);
                 _districtHealingMagnitudesByHost[hostId] = KernelFixedPoint.SaturatingAdd(
                     _districtHealingMagnitudesByHost[hostId],
                     magnitude,
@@ -276,8 +338,7 @@ internal sealed partial class WorldState
             case DistrictBonusKindCodes.Culture:
                 AddCultureDistrictModifier(
                     _districtArtifactCultureIds[district],
-                    _districtQ[district],
-                    _districtR[district],
+                    _districtCellIds[district],
                     magnitude);
                 break;
         }
@@ -289,7 +350,7 @@ internal sealed partial class WorldState
         switch (_districtBonusKindCodes[district])
         {
             case DistrictBonusKindCodes.Healing:
-                var hostId = _districtHostIds[district];
+                var hostId = DistrictHostId(district);
                 _districtHealingMagnitudesByHost[hostId] = global::System.Math.Max(
                     0,
                     _districtHealingMagnitudesByHost[hostId] - magnitude);
@@ -297,20 +358,18 @@ internal sealed partial class WorldState
             case DistrictBonusKindCodes.Culture:
                 RemoveCultureDistrictModifier(
                     _districtArtifactCultureIds[district],
-                    _districtQ[district],
-                    _districtR[district],
+                    _districtCellIds[district],
                     magnitude);
                 break;
         }
     }
 
-    private void AddCultureDistrictModifier(int cultureId, int q, int r, int magnitude)
+    private void AddCultureDistrictModifier(int cultureId, int cellId, int magnitude)
     {
         for (var modifier = 1; modifier <= _districtCultureModifierCount; modifier++)
         {
             if (_districtCultureModifierCultureIds[modifier] == cultureId &&
-                _districtCultureModifierQ[modifier] == q &&
-                _districtCultureModifierR[modifier] == r)
+                _districtCultureModifierCellIds[modifier] == cellId)
             {
                 _districtCultureModifierMagnitudes[modifier] = KernelFixedPoint.SaturatingAdd(
                     _districtCultureModifierMagnitudes[modifier],
@@ -328,18 +387,16 @@ internal sealed partial class WorldState
 
         var added = ++_districtCultureModifierCount;
         _districtCultureModifierCultureIds[added] = cultureId;
-        _districtCultureModifierQ[added] = q;
-        _districtCultureModifierR[added] = r;
+        _districtCultureModifierCellIds[added] = cellId;
         _districtCultureModifierMagnitudes[added] = magnitude;
     }
 
-    private void RemoveCultureDistrictModifier(int cultureId, int q, int r, int magnitude)
+    private void RemoveCultureDistrictModifier(int cultureId, int cellId, int magnitude)
     {
         for (var modifier = 1; modifier <= _districtCultureModifierCount; modifier++)
         {
             if (_districtCultureModifierCultureIds[modifier] != cultureId ||
-                _districtCultureModifierQ[modifier] != q ||
-                _districtCultureModifierR[modifier] != r)
+                _districtCultureModifierCellIds[modifier] != cellId)
             {
                 continue;
             }
@@ -355,12 +412,10 @@ internal sealed partial class WorldState
 
             var last = _districtCultureModifierCount;
             _districtCultureModifierCultureIds[modifier] = _districtCultureModifierCultureIds[last];
-            _districtCultureModifierQ[modifier] = _districtCultureModifierQ[last];
-            _districtCultureModifierR[modifier] = _districtCultureModifierR[last];
+            _districtCultureModifierCellIds[modifier] = _districtCultureModifierCellIds[last];
             _districtCultureModifierMagnitudes[modifier] = _districtCultureModifierMagnitudes[last];
             _districtCultureModifierCultureIds[last] = 0;
-            _districtCultureModifierQ[last] = 0;
-            _districtCultureModifierR[last] = 0;
+            _districtCultureModifierCellIds[last] = 0;
             _districtCultureModifierMagnitudes[last] = 0;
             _districtCultureModifierCount--;
             return;

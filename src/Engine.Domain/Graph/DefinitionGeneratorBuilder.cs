@@ -62,7 +62,7 @@ public static class DefinitionGeneratorBuilder
             Relationships = relationships,
             Effects = effects,
             Triggers = triggers,
-            PulseWeight = config.PulseWeight,
+            FireWeight = config.FireWeight,
             MaxRunsPerSim = config.MaxRunsPerSim,
             CadenceTicks = ValidatedCadenceTicks(config),
             CadenceJitterTicks = config.CadenceJitterTicks,

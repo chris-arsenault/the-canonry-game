@@ -47,6 +47,7 @@ public abstract class KernelEventProjector : IKernelEventProjection
 
     private static bool IsWorldEvent(KernelEventType eventType) =>
         eventType == KernelEventType.MinorActorVerbExecuted ||
+        eventType == KernelEventType.PhaseCompleted ||
         eventType is >= KernelEventType.TickCompleted and <= KernelEventType.CultureSlotOccupancyChanged and not KernelEventType.GambitEvaluated;
 
     private void ProjectEntityEvent(in SequencedKernelEvent kernelEvent)
@@ -114,6 +115,7 @@ public abstract class KernelEventProjector : IKernelEventProjection
     {
         var eventType = kernelEvent.Event.EventType;
         if (eventType is KernelEventType.TickCompleted or
+            KernelEventType.PhaseCompleted or
             KernelEventType.GeneratorEnabledChanged or
             KernelEventType.GambitEnabledChanged)
         {
@@ -149,6 +151,9 @@ public abstract class KernelEventProjector : IKernelEventProjection
         {
             case KernelEventType.TickCompleted:
                 OnTickCompleted(kernelEvent.Sequence, evt.AsTickCompleted());
+                break;
+            case KernelEventType.PhaseCompleted:
+                OnPhaseCompleted(kernelEvent.Sequence, evt.AsPhaseCompleted());
                 break;
             case KernelEventType.GeneratorEnabledChanged:
                 OnGeneratorEnabledChanged(kernelEvent.Sequence, evt.AsGeneratorEnabledChanged());
@@ -266,6 +271,10 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnTickCompleted(long sequence, in TickCompletedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnPhaseCompleted(long sequence, in PhaseCompletedKernelEvent evt)
     {
     }
 

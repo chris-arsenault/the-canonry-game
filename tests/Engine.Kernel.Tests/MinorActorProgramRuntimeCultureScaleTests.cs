@@ -18,8 +18,8 @@ public sealed partial class MinorActorProgramRuntimeTests
                     CultureInfluenceActionScale = FixedScalar.FromSingle(0.25f),
                     CultureField = new CultureFieldTuningOptions
                     {
-                        DecayPerPulse = FixedScalar.Zero,
-                        MinimumDecayPerPulse = FixedScalar.Zero,
+                        DecayPerRun = FixedScalar.Zero,
+                        MinimumDecayPerRun = FixedScalar.Zero,
                     },
                 },
             },
@@ -47,8 +47,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 10,
-            actionCadencePulses: 10,
+            ttlTicks: 10,
+            actionCadenceTicks: 10,
             workDelta: FixedScalar.FromSingle(2f),
             tick: 0);
 
@@ -72,8 +72,8 @@ public sealed partial class MinorActorProgramRuntimeTests
                     CultureInfluenceActionScale = FixedScalar.FromSingle(0.25f),
                     CultureField = new CultureFieldTuningOptions
                     {
-                        DecayPerPulse = FixedScalar.Zero,
-                        MinimumDecayPerPulse = FixedScalar.Zero,
+                        DecayPerRun = FixedScalar.Zero,
+                        MinimumDecayPerRun = FixedScalar.Zero,
                     },
                 },
             },
@@ -107,8 +107,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 10,
-            actionCadencePulses: 10,
+            ttlTicks: 10,
+            actionCadenceTicks: 10,
             workDelta: FixedScalar.FromSingle(4f),
             tick: 0);
 

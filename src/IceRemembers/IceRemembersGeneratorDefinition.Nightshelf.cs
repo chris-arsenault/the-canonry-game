@@ -13,7 +13,7 @@ using Rel = IceRemembers.IceRemembersRelationship;
 /// records cast redacted shadows. The bigger the surface world grows, the more
 /// underworld it hosts — balance that emerges from theme, not from a
 /// scoreboard controller. The Deep Conclave is Nightshelf's authored timeline:
-/// it convenes on its own cadence, outside the population-proportional pulse
+/// it convenes on its own cadence, outside the population-proportional fire-window
 /// pool.
 /// </summary>
 public static partial class IceRemembersGeneratorDefinition
@@ -52,7 +52,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$ledger", "$undermarket", Rel.Anchored, 0.85f),
         ],
         Triggers = TriggerOn(K.Settlement),
-        PulseWeight = 8,
+        FireWeight = 8,
     };
 
     private static SemanticGeneratorConfig WarsFeedShadowBrokers() => new()
@@ -81,7 +81,7 @@ public static partial class IceRemembersGeneratorDefinition
                 includeReciprocal: true),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 6,
+        FireWeight = 6,
     };
 
     private static SemanticGeneratorConfig RecordsCastShadows() => new()
@@ -106,7 +106,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$counterfeit", "$target", Rel.Memorializes, 0.80f),
         ],
         Triggers = TriggerOn(K.Artifact),
-        PulseWeight = 5,
+        FireWeight = 5,
     };
 
     private static SemanticGeneratorConfig TheDeepConclave() => new()
@@ -133,7 +133,7 @@ public static partial class IceRemembersGeneratorDefinition
             new ClaimSemanticJurisdictionEffect("$decree", CanonJurisdictionRadius),
         ],
         Triggers = TriggerOn(K.Penguin),
-        PulseWeight = 1,
+        FireWeight = 1,
         CadenceTicks = DeepConclaveCadenceTicks,
         CadenceJitterTicks = DeepConclaveCadenceJitterTicks,
     };

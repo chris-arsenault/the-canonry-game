@@ -7,9 +7,9 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
 {
     private const int MaxResolvedReferences = 32;
     private const int MaxScratchCells = 4096;
-    private const int SlotFillBasePulseWeightBonus = 8;
-    private const int SlotFillAdditionalPulseWeightBonus = 2;
-    private const int SlotFillMaxPulseWeightBonus = 16;
+    private const int SlotFillBaseFireWeightBonus = 8;
+    private const int SlotFillAdditionalFireWeightBonus = 2;
+    private const int SlotFillMaxFireWeightBonus = 16;
     private readonly GeneratorProgramScratch _scratch;
 
     // Fire-scoped plan state: produced entities resolved but not yet committed.
@@ -19,8 +19,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int _plannedCoverageCellCount;
     private int[] _generatorIds => Data.GeneratorIds;
     private int[] _targetKindIds => Data.TargetKindIds;
-    private int[] _pulseWeights => Data.PulseWeights;
-    private FixedScalar[] _agePulseWeightMultipliers => Data.AgePulseWeightMultipliers;
+    private int[] _fireWeights => Data.FireWeights;
+    private FixedScalar[] _ageFireWeightMultipliers => Data.AgeFireWeightMultipliers;
     private int[] _cadenceTicks => Data.CadenceTicks;
     private int[] _cadenceJitterTicks => Data.CadenceJitterTicks;
     private int[] _targetRequiredTagBits => Data.TargetRequiredTagBits;
@@ -46,10 +46,10 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private const int ProvinceBandSettled = 2;
     private const int ProvinceBandHeartland = 3;
 
-    // Fire-scoped province filter: while a province's pulse selects and
+    // Fire-scoped province filter: while a province's window selects and
     // fires, only targets standing inside that superregion are eligible.
     // -1 means unrestricted (cadence generators stay world-wide).
-    private int _pulseProvinceSrId = -1;
+    private int _fireProvinceSrId = -1;
     private int _lastProvinceRefreshTick = -1;
     private readonly int[] _provinceBandCodes;
     private readonly int[] _provinceCoveredCounts;
@@ -78,11 +78,12 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int[] _relationshipCounts => Data.RelationshipCounts;
     private int[] _effectStarts => Data.EffectStarts;
     private int[] _effectCounts => Data.EffectCounts;
-    private int[] _pulseStatusCodes => _scratch.PulseStatusCodes;
-    private int[] _pulseCandidateCounts => _scratch.PulseCandidateCounts;
-    private int[] _pulseSelectionWeights => _scratch.PulseSelectionWeights;
-    private int[] _pulseSelectedTargetIds => _scratch.PulseSelectedTargetIds;
-    private int[] _pulseFailedFireCounts => _scratch.PulseFailedFireCounts;
+    private int[] _fireStatusCodes => _scratch.FireStatusCodes;
+    private int[] _fireCandidateCounts => _scratch.FireCandidateCounts;
+    private int[] _fireSelectionWeights => _scratch.FireSelectionWeights;
+    private int[] _fireSelectedTargetOccurrenceHandles =>
+        _scratch.FireSelectedTargetOccurrenceHandles;
+    private int[] _fireFailedCounts => _scratch.FireFailedCounts;
     private int[] _subtypeIds => Data.SubtypeIds;
     private int[] _relationshipKindFilterIds => Data.RelationshipKindFilterIds;
     private FixedScalar[] _relationshipKindFilterMinimumStrengths => Data.RelationshipKindFilterMinimumStrengths;
@@ -232,7 +233,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         global::System.ArgumentNullException.ThrowIfNull(state);
         global::System.ArgumentNullException.ThrowIfNull(scratch);
         global::System.ArgumentNullException.ThrowIfNull(tuning);
-        if (tuning.Generators.PulseWidthTicks <= 0 || tuning.Generators.FiresPerPulse < 0)
+        if (tuning.Generators.FireWindowTicks <= 0 || tuning.Generators.FiresPerWindow < 0)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(tuning));
         }
@@ -267,7 +268,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     public int RegisterGenerator(
         int generatorId,
         int targetKindId,
-        int pulseWeight,
+        int fireWeight,
         int maxRuns,
         int cadenceTicks = 0,
         int cadenceJitterTicks = 0,
@@ -276,7 +277,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     {
         ValidatePositive(generatorId);
         ValidatePositive(targetKindId);
-        NumericGuard.ThrowIfNegative(pulseWeight);
+        NumericGuard.ThrowIfNegative(fireWeight);
         NumericGuard.ThrowIfNegative(maxRuns);
         NumericGuard.ThrowIfNegative(cadenceTicks);
         if (cadenceJitterTicks < 0 || (cadenceTicks > 0 && cadenceJitterTicks >= cadenceTicks))
@@ -292,10 +293,10 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         var slot = _generatorCount;
         _generatorIds[slot] = generatorId;
         _targetKindIds[slot] = targetKindId;
-        _pulseWeights[slot] = pulseWeight;
+        _fireWeights[slot] = fireWeight;
         _maxRuns[slot] = maxRuns;
-        _cadenceTicks[slot] = cadenceTicks;
-        _cadenceJitterTicks[slot] = cadenceJitterTicks;
+        _cadenceTicks[slot] = Tuning.ScaleMainProgramDuration(cadenceTicks);
+        _cadenceJitterTicks[slot] = Tuning.ScaleMainProgramDuration(cadenceJitterTicks);
         _targetRequiredTagBits[slot] = targetRequiredTagBits;
         _targetWithoutTagBits[slot] = targetWithoutTagBits;
         _targetSubtypeStarts[slot] = _subtypeCount + 1;
@@ -533,16 +534,16 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         RefreshProvincesIfDue(simulation, tick);
         for (var province = 1; province <= State.ProvinceCount; province++)
         {
-            TickProvincePulse(simulation, tick, province);
+            TickProvinceWindow(simulation, tick, province);
         }
     }
 
-    // One pulse clock per settled place: the province's band stretches the
-    // base pulse width, so heartlands run at full story tempo, frontiers get
+    // One fire window per settled place: the province's band stretches the
+    // base window, so heartlands run at full story tempo, frontiers get
     // sparse events, and dormant ground stays silent. Target selection is
     // scoped to the province, so a crowded heartland can no longer starve
     // frontier events of the fire slot.
-    private void TickProvincePulse(Simulation simulation, int tick, int province)
+    private void TickProvinceWindow(Simulation simulation, int tick, int province)
     {
         var band = _provinceBandCodes[province];
         if (band == ProvinceBandDormant)
@@ -550,35 +551,36 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             return;
         }
 
-        var width = Tuning.Generators.PulseWidthTicks * ProvinceWidthMultiplier(band);
-        var pulseIndex = (tick - 1) / width;
-        if (State.ProvincePulseIndices[province] != pulseIndex)
+        var width = Tuning.ScaleMainProgramDuration(
+            Tuning.Generators.FireWindowTicks * ProvinceWidthMultiplier(band));
+        var windowIndex = (tick - 1) / width;
+        if (State.ProvinceWindowIndices[province] != windowIndex)
         {
-            State.ProvincePulseIndices[province] = pulseIndex;
-            State.ProvinceFires[province] = 0;
+            State.ProvinceWindowIndices[province] = windowIndex;
+            State.FiresInCurrentWindow[province] = 0;
         }
 
-        if (State.ProvinceFires[province] >= Tuning.Generators.FiresPerPulse)
+        if (State.FiresInCurrentWindow[province] >= Tuning.Generators.FiresPerWindow)
         {
             return;
         }
 
-        _pulseProvinceSrId = State.ProvinceSrIds[province];
+        _fireProvinceSrId = State.ProvinceSrIds[province];
         if (EvaluateGenerators(simulation, tick))
         {
-            FireProvincePulse(simulation, tick, province);
+            FireProvinceWindow(simulation, tick, province);
         }
 
-        _pulseProvinceSrId = -1;
+        _fireProvinceSrId = -1;
     }
 
-    private void FireProvincePulse(Simulation simulation, int tick, int province)
+    private void FireProvinceWindow(Simulation simulation, int tick, int province)
     {
-        while (TryChooseEligibleGenerator(simulation, out var selectedGeneratorSlot))
+        while (TryChooseEligibleGenerator(simulation, province, out var selectedGeneratorSlot))
         {
             if (TryFireEligibleGenerator(simulation, selectedGeneratorSlot, tick))
             {
-                State.ProvinceFires[province]++;
+                State.FiresInCurrentWindow[province]++;
                 return;
             }
         }
@@ -589,8 +591,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     private int ProvinceWidthMultiplier(int band) =>
         band switch
         {
-            ProvinceBandFrontier => Tuning.Generators.FrontierPulseWidthMultiplier,
-            ProvinceBandSettled => Tuning.Generators.SettledPulseWidthMultiplier,
+            ProvinceBandFrontier => Tuning.Generators.FrontierFireWindowMultiplier,
+            ProvinceBandSettled => Tuning.Generators.SettledFireWindowMultiplier,
             _ => 1,
         };
 
@@ -600,7 +602,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     // keeps them out of the snapshot.
     private void RefreshProvincesIfDue(Simulation simulation, int tick)
     {
-        var refreshTicks = Tuning.Generators.ProvinceBandRefreshTicks;
+        var refreshTicks = Tuning.ScaleMainProgramDuration(
+            Tuning.Generators.ProvinceBandRefreshTicks);
         if (_lastProvinceRefreshTick >= 0 && tick - _lastProvinceRefreshTick < refreshTicks)
         {
             return;
@@ -677,21 +680,21 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
 
         State.ProvinceCount++;
         State.ProvinceSrIds[State.ProvinceCount] = superregionId;
-        State.ProvincePulseIndices[State.ProvinceCount] = -1;
-        State.ProvinceFires[State.ProvinceCount] = 0;
+        State.ProvinceWindowIndices[State.ProvinceCount] = -1;
+        State.FiresInCurrentWindow[State.ProvinceCount] = 0;
         return State.ProvinceCount;
     }
 
     private bool TargetInsideActiveProvince(WorldState world, int entityId)
     {
-        if (_pulseProvinceSrId < 0)
+        if (_fireProvinceSrId < 0)
         {
             return true;
         }
 
         return world.CellSuperregionId(
             world.EntityPhysicalQ(entityId),
-            world.EntityPhysicalR(entityId)) == _pulseProvinceSrId;
+            world.EntityPhysicalR(entityId)) == _fireProvinceSrId;
     }
 
     private bool EvaluateGenerators(Simulation simulation, int tick)
@@ -699,7 +702,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         var anyEvaluated = false;
         for (var slot = 1; slot <= _generatorCount; slot++)
         {
-            ResetPulseScratch(slot);
+            ResetFireScratch(slot);
             if (!_enabled[slot] || tick <= 0 || _cadenceTicks[slot] > 0)
             {
                 continue;
@@ -724,14 +727,15 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         var targetId = SelectEligibleTarget(simulation, selectedGeneratorSlot);
         if (targetId == 0)
         {
-            _pulseStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.FireFailed;
+            _fireStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.FireFailed;
             return false;
         }
 
-        _pulseSelectedTargetIds[selectedGeneratorSlot] = targetId;
+        _fireSelectedTargetOccurrenceHandles[selectedGeneratorSlot] =
+            simulation.World.EntityOccurrenceHandle(targetId);
         if (Fire(simulation, selectedGeneratorSlot, targetId, tick, out var failureReasonCode))
         {
-            _pulseStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.Fired;
+            _fireStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.Fired;
             MarkEligibleGeneratorsNotSelected();
             PublishGeneratorEvaluationStats(simulation, tick);
             return true;
@@ -743,8 +747,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             targetId,
             GeneratorStatusCodes.FireFailed,
             failureReasonCode);
-        _pulseFailedFireCounts[selectedGeneratorSlot]++;
-        _pulseStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.FireFailed;
+        _fireFailedCounts[selectedGeneratorSlot]++;
+        _fireStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.FireFailed;
         return false;
     }
 
@@ -760,14 +764,15 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
                 rejectedTargetCount);
             if (targetId == 0)
             {
-                _pulseStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.FireFailed;
+                _fireStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.FireFailed;
                 return false;
             }
 
-            _pulseSelectedTargetIds[selectedGeneratorSlot] = targetId;
+            _fireSelectedTargetOccurrenceHandles[selectedGeneratorSlot] =
+                simulation.World.EntityOccurrenceHandle(targetId);
             if (Fire(simulation, selectedGeneratorSlot, targetId, tick, out var failureReasonCode))
             {
-                _pulseStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.Fired;
+                _fireStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.Fired;
                 MarkEligibleGeneratorsNotSelected();
                 PublishGeneratorEvaluationStats(simulation, tick);
                 return true;
@@ -779,10 +784,10 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
                 targetId,
                 GeneratorStatusCodes.FireFailed,
                 failureReasonCode);
-            _pulseFailedFireCounts[selectedGeneratorSlot]++;
+            _fireFailedCounts[selectedGeneratorSlot]++;
             if (rejectedTargetCount >= _retryRejectedTargetIds.Length)
             {
-                _pulseStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.FireFailed;
+                _fireStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.FireFailed;
                 return false;
             }
 
@@ -795,9 +800,9 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     {
         for (var slot = 1; slot <= _generatorCount; slot++)
         {
-            if (_pulseStatusCodes[slot] == GeneratorStatusCodes.Eligible)
+            if (_fireStatusCodes[slot] == GeneratorStatusCodes.Eligible)
             {
-                _pulseStatusCodes[slot] = GeneratorStatusCodes.EligibleNotSelected;
+                _fireStatusCodes[slot] = GeneratorStatusCodes.EligibleNotSelected;
             }
         }
     }
@@ -806,56 +811,59 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     {
         if (_maxRuns[slot] > 0 && _runCounts[slot] >= _maxRuns[slot])
         {
-            _pulseStatusCodes[slot] = GeneratorStatusCodes.MaxRuns;
+            _fireStatusCodes[slot] = GeneratorStatusCodes.MaxRuns;
             return;
         }
 
-        if (_pulseWeights[slot] == 0)
+        if (_fireWeights[slot] == 0)
         {
-            _pulseStatusCodes[slot] = GeneratorStatusCodes.ZeroWeight;
+            _fireStatusCodes[slot] = GeneratorStatusCodes.ZeroWeight;
             return;
         }
 
         var (candidateCount, slotFillBonus, knowledgeWeight) = CountEligibleTargetsAndSlotFillBonus(simulation, slot);
-        _pulseCandidateCounts[slot] = candidateCount;
-        var agedWeight = (int)FixedScalar.Max(0, _pulseWeights[slot] * _agePulseWeightMultipliers[slot]);
-        _pulseSelectionWeights[slot] = candidateCount == 0
+        _fireCandidateCounts[slot] = candidateCount;
+        var agedWeight = (int)FixedScalar.Max(0, _fireWeights[slot] * _ageFireWeightMultipliers[slot]);
+        _fireSelectionWeights[slot] = candidateCount == 0
             ? 0
             : (int)FixedScalar.Max(1, (agedWeight + slotFillBonus) * (knowledgeWeight / candidateCount));
-        _pulseStatusCodes[slot] = candidateCount == 0
+        _fireStatusCodes[slot] = candidateCount == 0
             ? GeneratorStatusCodes.Blocked
             : GeneratorStatusCodes.Eligible;
     }
 
-    /// <summary>Age charges: neutralize, then apply per open age each world-beat pulse.</summary>
-    public void ResetAgePulseWeightMultipliers()
+    /// <summary>Age charges: neutralize, then apply once per world-beat run.</summary>
+    public void ResetAgeFireWeightMultipliers()
     {
         for (var slot = 1; slot <= _generatorCount; slot++)
         {
-            _agePulseWeightMultipliers[slot] = 1;
+            _ageFireWeightMultipliers[slot] = 1;
         }
     }
 
-    public void ApplyAgePulseWeightMultiplier(int generatorId, FixedScalar multiplier)
+    public void ApplyAgeFireWeightMultiplier(int generatorId, FixedScalar multiplier)
     {
         for (var slot = 1; slot <= _generatorCount; slot++)
         {
             if (generatorId == 0 || _generatorIds[slot] == generatorId)
             {
-                _agePulseWeightMultipliers[slot] *= multiplier;
+                _ageFireWeightMultipliers[slot] *= multiplier;
             }
         }
     }
 
-    private bool TryChooseEligibleGenerator(Simulation simulation, out int selectedGeneratorSlot)
+    private bool TryChooseEligibleGenerator(
+        Simulation simulation,
+        int province,
+        out int selectedGeneratorSlot)
     {
         selectedGeneratorSlot = 0;
         var totalWeight = 0;
         for (var slot = 1; slot <= _generatorCount; slot++)
         {
-            if (_pulseStatusCodes[slot] == GeneratorStatusCodes.Eligible)
+            if (_fireStatusCodes[slot] == GeneratorStatusCodes.Eligible)
             {
-                totalWeight += _pulseSelectionWeights[slot];
+                totalWeight += _fireSelectionWeights[slot];
             }
         }
 
@@ -864,21 +872,26 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             return false;
         }
 
-        var roll = simulation.NextInt(totalWeight);
+        var roll = simulation.RandomInt(
+            totalWeight,
+            simulation.CurrentTick,
+            _fireProvinceSrId,
+            KernelRandomPurposeCodes.GeneratorFireSelection,
+            attempt: State.ProvinceWindowIndices[province]);
         for (var slot = 1; slot <= _generatorCount; slot++)
         {
-            if (_pulseStatusCodes[slot] != GeneratorStatusCodes.Eligible)
+            if (_fireStatusCodes[slot] != GeneratorStatusCodes.Eligible)
             {
                 continue;
             }
 
-            if (roll < _pulseSelectionWeights[slot])
+            if (roll < _fireSelectionWeights[slot])
             {
                 selectedGeneratorSlot = slot;
                 return true;
             }
 
-            roll -= _pulseSelectionWeights[slot];
+            roll -= _fireSelectionWeights[slot];
         }
 
         return false;
@@ -918,7 +931,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
                     count++;
                     knowledgeWeight += simulation.Knowledge.Modifier(
                         world.EntityCultureId(entityId),
-                        KnowledgeGrantDomainCodes.GeneratorPulseWeight,
+                        KnowledgeGrantDomainCodes.GeneratorFireWeight,
                         _generatorIds[generatorSlot]);
                     var slotFitCount = ProducedUnoccupiedSlotFitCount(
                         simulation,
@@ -935,7 +948,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
                 return true;
             });
 
-        return (count, SlotFillPulseWeightBonus(maxSlotFitCount), knowledgeWeight);
+        return (count, SlotFillFireWeightBonus(maxSlotFitCount), knowledgeWeight);
     }
 
     private int ProducedUnoccupiedSlotFitCount(
@@ -970,7 +983,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         return count;
     }
 
-    private static int SlotFillPulseWeightBonus(int slotFitCount)
+    private static int SlotFillFireWeightBonus(int slotFitCount)
     {
         if (slotFitCount <= 0)
         {
@@ -978,8 +991,8 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         }
 
         return global::System.Math.Min(
-            SlotFillMaxPulseWeightBonus,
-            SlotFillBasePulseWeightBonus + ((slotFitCount - 1) * SlotFillAdditionalPulseWeightBonus));
+            SlotFillMaxFireWeightBonus,
+            SlotFillBaseFireWeightBonus + ((slotFitCount - 1) * SlotFillAdditionalFireWeightBonus));
     }
 
     private int SelectEligibleTarget(Simulation simulation, int generatorSlot)
@@ -988,7 +1001,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
         var selectedTargetId = 0;
-        var totalWeight = 0;
+        var selectedPriority = FixedScalar.Zero;
         KernelQuery.ForEachActiveEntityOfKind(
             world,
             _targetKindIds[generatorSlot],
@@ -1000,9 +1013,15 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
                 }
 
                 var targetWeight = TargetSelectionWeight(simulation, generatorSlot, entityId, refCodes, refEntityIds, refCount);
-                totalWeight += targetWeight;
-                if (simulation.NextInt(totalWeight) < targetWeight)
+                var priority = simulation.RandomScalar(
+                    generatorSlot,
+                    _generatorIds[generatorSlot],
+                    KernelRandomPurposeCodes.GeneratorTargetSelection,
+                    world.EntityOccurrenceHandle(entityId)) * targetWeight;
+                if (selectedTargetId == 0 || priority > selectedPriority ||
+                    (priority == selectedPriority && entityId < selectedTargetId))
                 {
+                    selectedPriority = priority;
                     selectedTargetId = entityId;
                 }
 
@@ -1037,7 +1056,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
         var selectedTargetId = 0;
-        var totalWeight = 0;
+        var selectedPriority = FixedScalar.Zero;
         KernelQuery.ForEachActiveEntityOfKind(
             world,
             _targetKindIds[generatorSlot],
@@ -1050,9 +1069,15 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
                 }
 
                 var targetWeight = TargetSelectionWeight(simulation, generatorSlot, entityId, refCodes, refEntityIds, refCount);
-                totalWeight += targetWeight;
-                if (simulation.NextInt(totalWeight) < targetWeight)
+                var priority = simulation.RandomScalar(
+                    generatorSlot,
+                    _generatorIds[generatorSlot],
+                    KernelRandomPurposeCodes.GeneratorTargetSelection,
+                    world.EntityOccurrenceHandle(entityId)) * targetWeight;
+                if (selectedTargetId == 0 || priority > selectedPriority ||
+                    (priority == selectedPriority && entityId < selectedTargetId))
                 {
+                    selectedPriority = priority;
                     selectedTargetId = entityId;
                 }
 

@@ -13,7 +13,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
             return candidate;
         }
 
-        var radius = DestinationScatterRadius(entityId, State.NextIntentId(), candidate.RuleSlot);
+        var radius = DestinationScatterRadius(
+            entityId,
+            State.NextIntentId(entityId, tick),
+            candidate.RuleSlot);
         if (radius == 0)
         {
             return candidate;
@@ -21,18 +24,25 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
         var selected = candidate;
         var totalWeight = FixedScalar.Zero;
+        var bestPriority = FixedScalar.Zero;
         var attempts = Data.CandidateSampleCount(candidate.RuleSlot);
         for (var i = 0; i < attempts; i++)
         {
-            if (!TryScatteredDestination(simulation, entityId, candidate, radius, tick, out var q, out var r))
+            if (!TryScatteredDestination(simulation, entityId, candidate, radius, tick, i, out var q, out var r))
             {
                 continue;
             }
 
             var weight = MovementShapeCellWeight(simulation, candidate.RuleSlot, candidate.PlaneCode, q, r);
             totalWeight += weight;
-            if (simulation.NextScalar() * totalWeight <= weight)
+            var priority = simulation.RandomScalar(
+                simulation.World.EntityOccurrenceHandle(entityId),
+                candidate.RuleSlot,
+                KernelRandomPurposeCodes.VerbScatterSelection,
+                i) * weight;
+            if (priority > bestPriority)
             {
+                bestPriority = priority;
                 selected = candidate with { Q = q, R = r, S = -q - r };
             }
         }
@@ -46,13 +56,27 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         VerbTargetCandidate candidate,
         int radius,
         int tick,
+        int attempt,
         out int q,
         out int r)
     {
-        var dq = simulation.NextInclusive(-radius, radius);
+        var logicalKey = simulation.World.EntityOccurrenceHandle(entityId);
+        var dq = simulation.RandomInclusive(
+            -radius,
+            radius,
+            logicalKey,
+            candidate.RuleSlot,
+            KernelRandomPurposeCodes.VerbScatterQ,
+            attempt);
         var minDr = global::System.Math.Max(-radius, -dq - radius);
         var maxDr = global::System.Math.Min(radius, -dq + radius);
-        var dr = simulation.NextInclusive(minDr, maxDr);
+        var dr = simulation.RandomInclusive(
+            minDr,
+            maxDr,
+            logicalKey,
+            candidate.RuleSlot,
+            KernelRandomPurposeCodes.VerbScatterR,
+            attempt);
         q = candidate.Q + dq;
         r = candidate.R + dr;
         return CoordinateAllowed(simulation, entityId, candidate.RuleSlot, candidate.PlaneCode, q, r, tick);
@@ -139,7 +163,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
 
         if (FixedScalar.IsInfinity(result.StepCost))
         {
-            ClearIntentAndPushRecent(entityId, tick);
+            ClearIntentAndPushRecent(simulation, entityId, tick);
         }
     }
 

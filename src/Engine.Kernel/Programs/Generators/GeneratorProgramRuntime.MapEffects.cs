@@ -10,14 +10,19 @@ internal sealed partial class GeneratorProgramRuntime
         int[] refEntityIds,
         int refCount)
     {
-        if (_effectValues[effectSlot] < 1 && simulation.NextScalar() > _effectValues[effectSlot])
+        var centerEntityId = ResolveRef(refCodes, refEntityIds, refCount, _effectRefOrKindIds[effectSlot]);
+        var terrainId = _effectOptionCodes[effectSlot];
+        if (centerEntityId == 0 || terrainId == 0)
         {
             return;
         }
 
-        var centerEntityId = ResolveRef(refCodes, refEntityIds, refCount, _effectRefOrKindIds[effectSlot]);
-        var terrainId = _effectOptionCodes[effectSlot];
-        if (centerEntityId == 0 || terrainId == 0)
+        if (_effectValues[effectSlot] < 1 &&
+            simulation.RandomScalar(
+                world.EntityOccurrenceHandle(centerEntityId),
+                effectSlot,
+                KernelRandomPurposeCodes.GeneratorMapEffect,
+                attempt: terrainId) > _effectValues[effectSlot])
         {
             return;
         }

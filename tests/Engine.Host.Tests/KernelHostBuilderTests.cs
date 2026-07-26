@@ -202,8 +202,8 @@ public sealed class KernelHostBuilderTests
         var cultureId = startup.DomainIds.CultureIdOf("test_culture").Value;
         var relationshipKindId = startup.DomainIds.RelationshipKindIdOf("test_relationship").Value;
 
-        startup.SeedCell(0, 0, terrainId, ownerEntityId: 1);
         startup.SeedEntity(1, kindId, subtypeId, cultureId, physicalQ: 0, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0);
+        startup.SeedCell(0, 0, terrainId, ownerEntityId: 1);
         startup.SeedAttribute(1, startup.DomainIds.AttributeIdOf("test_attribute").Value, value: 25f);
         startup.SeedRelationship(
             relationshipKindId,

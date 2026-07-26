@@ -20,7 +20,7 @@ public sealed class GambitProgramRuntimeTests
             gambitId: 100,
             targetMode: BehaviorTargetModeCodes.Self,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsSelf);
+        simulation.Gambits.SetConjunctivePreconditions(gambit, new(BehaviorPreconditionCodes.TargetIsSelf));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: FixedScalar.FromSingle(20f));
 
@@ -49,7 +49,7 @@ public sealed class GambitProgramRuntimeTests
             gambitId: 100,
             targetMode: BehaviorTargetModeCodes.Self,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsSelf);
+        simulation.Gambits.SetConjunctivePreconditions(gambit, new(BehaviorPreconditionCodes.TargetIsSelf));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: FixedScalar.FromSingle(20f));
 
@@ -81,7 +81,7 @@ public sealed class GambitProgramRuntimeTests
             gambitId,
             targetMode: BehaviorTargetModeCodes.Self,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsSelf);
+        simulation.Gambits.SetConjunctivePreconditions(gambit, new(BehaviorPreconditionCodes.TargetIsSelf));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: FixedScalar.FromSingle(20f));
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
@@ -149,7 +149,7 @@ public sealed class GambitProgramRuntimeTests
             kindId: targetKindId,
             relationshipKindId: relationshipKindId,
             minimumStrength: FixedScalar.FromSingle(0.5f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.SetConjunctivePreconditions(gambit, new(BehaviorPreconditionCodes.TargetIsNotSelf));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: FixedScalar.FromSingle(20f));
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
@@ -192,7 +192,7 @@ public sealed class GambitProgramRuntimeTests
             BehaviorProviderSelectorCodes.TargetAttribute,
             kindId: targetKindId,
             valueId: providerAttributeId);
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.SetConjunctivePreconditions(gambit, new(BehaviorPreconditionCodes.TargetIsNotSelf));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, actorAttributeId, x: FixedScalar.FromSingle(20f));
         using var cursor = simulation.Events.CreateCursor(KernelEventCursorStart.Latest);
@@ -225,7 +225,7 @@ public sealed class GambitProgramRuntimeTests
             gambitId: 101,
             targetMode: BehaviorTargetModeCodes.Self,
             successChance: FixedScalar.FromSingle(0f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsSelf);
+        simulation.Gambits.SetConjunctivePreconditions(gambit, new(BehaviorPreconditionCodes.TargetIsSelf));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: FixedScalar.FromSingle(20f));
 
@@ -256,7 +256,7 @@ public sealed class GambitProgramRuntimeTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.SetConjunctivePreconditions(gambit, new(BehaviorPreconditionCodes.TargetIsNotSelf));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(
             gambit,
@@ -298,7 +298,7 @@ public sealed class GambitProgramRuntimeTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.SetConjunctivePreconditions(gambit, new(BehaviorPreconditionCodes.TargetIsNotSelf));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(
             gambit,
@@ -328,7 +328,7 @@ public sealed class GambitProgramRuntimeTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.SetConjunctivePreconditions(gambit, new(BehaviorPreconditionCodes.TargetIsNotSelf));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(
             gambit,
@@ -338,7 +338,36 @@ public sealed class GambitProgramRuntimeTests
         simulation.AdvanceTicks(1);
 
         Assert.Equal(EntityStatusCodes.Active, simulation.World.EntityStatus(actor));
-        Assert.Equal(EntityStatusCodes.Historical, simulation.World.EntityStatus(target));
+        Assert.False(simulation.World.EntityExists(target));
+    }
+
+    [Fact]
+    public void SuccessfulSelfGambitCanRetireActorWithCooldown()
+    {
+        var simulation = CreateSimulation(seed: 1);
+        const int actorKindId = 1;
+        var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
+
+        var gambit = simulation.Gambits.RegisterGambit(
+            actorKindId,
+            gambitId: 104,
+            cooldownTicks: 10,
+            entityCooldownTicks: 10,
+            targetMode: BehaviorTargetModeCodes.Self,
+            successChance: FixedScalar.FromSingle(1f));
+        simulation.Gambits.SetConjunctivePreconditions(gambit, new(BehaviorPreconditionCodes.TargetIsSelf));
+        simulation.Gambits.AddExpressionOp(
+            gambit,
+            BehaviorExpressionCodes.Literal,
+            x: FixedScalar.FromSingle(1f));
+        simulation.Gambits.AddStep(
+            gambit,
+            BehaviorOperationCodes.SetHistorical,
+            b: BehaviorEndpointCodes.Target);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.False(simulation.World.EntityExists(actor));
     }
 
     [Fact]
@@ -373,7 +402,12 @@ public sealed class GambitProgramRuntimeTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.EndpointCultureIs, BehaviorEndpointCodes.Target, iceCultureId);
+        simulation.Gambits.SetConjunctivePreconditions(
+            gambit,
+            new(
+                BehaviorPreconditionCodes.EndpointCultureIs,
+                A: BehaviorEndpointCodes.Target,
+                B: iceCultureId));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.SetTargetCultureFromSelf);
 
@@ -403,7 +437,12 @@ public sealed class GambitProgramRuntimeTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.EndpointCultureIs, BehaviorEndpointCodes.Target, iceCultureId);
+        simulation.Gambits.SetConjunctivePreconditions(
+            gambit,
+            new(
+                BehaviorPreconditionCodes.EndpointCultureIs,
+                A: BehaviorEndpointCodes.Target,
+                B: iceCultureId));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.SetTargetCultureFromSelf);
 
@@ -436,12 +475,13 @@ public sealed class GambitProgramRuntimeTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(
+        simulation.Gambits.SetConjunctivePreconditions(
             gambit,
-            BehaviorPreconditionCodes.ContestedInfluence,
-            PlaneCodes.Physical,
-            x: FixedScalar.FromSingle(12f),
-            y: FixedScalar.FromSingle(55f));
+            new(
+                BehaviorPreconditionCodes.ContestedInfluence,
+                A: PlaneCodes.Physical,
+                X: FixedScalar.FromSingle(12f),
+                Y: FixedScalar.FromSingle(55f)));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: FixedScalar.FromSingle(20f));
 
@@ -472,12 +512,13 @@ public sealed class GambitProgramRuntimeTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(
+        simulation.Gambits.SetConjunctivePreconditions(
             gambit,
-            BehaviorPreconditionCodes.ContestedInfluence,
-            PlaneCodes.Physical,
-            x: FixedScalar.FromSingle(12f),
-            y: FixedScalar.FromSingle(55f));
+            new(
+                BehaviorPreconditionCodes.ContestedInfluence,
+                A: PlaneCodes.Physical,
+                X: FixedScalar.FromSingle(12f),
+                Y: FixedScalar.FromSingle(55f)));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: FixedScalar.FromSingle(20f));
 
@@ -501,7 +542,7 @@ public sealed class GambitProgramRuntimeTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.SetConjunctivePreconditions(gambit, new(BehaviorPreconditionCodes.TargetIsNotSelf));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.MoveTargetToSelfPhysical);
 
@@ -533,7 +574,7 @@ public sealed class GambitProgramRuntimeTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.SetConjunctivePreconditions(gambit, new(BehaviorPreconditionCodes.TargetIsNotSelf));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.SetTargetCoverageTerrain, transformedTerrainId);
 
@@ -567,7 +608,7 @@ public sealed class GambitProgramRuntimeTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.SetConjunctivePreconditions(gambit, new(BehaviorPreconditionCodes.TargetIsNotSelf));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(
             gambit,
@@ -610,8 +651,12 @@ public sealed class GambitProgramRuntimeTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.SelfHasOutgoingRelationship, relationshipKindId);
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.Not);
+        simulation.Gambits.SetConjunctivePreconditions(
+            gambit,
+            new(
+                BehaviorPreconditionCodes.SelfHasOutgoingRelationship,
+                A: relationshipKindId,
+                Negated: true));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: FixedScalar.FromSingle(20f));
 
@@ -641,7 +686,13 @@ public sealed class GambitProgramRuntimeTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.EndpointRelationshipCountBelow, relationshipKindId, BehaviorEndpointCodes.Self, 2);
+        simulation.Gambits.SetConjunctivePreconditions(
+            gambit,
+            new(
+                BehaviorPreconditionCodes.EndpointRelationshipCountBelow,
+                A: relationshipKindId,
+                B: BehaviorEndpointCodes.Self,
+                C: 2));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: FixedScalar.FromSingle(20f));
 
@@ -670,7 +721,13 @@ public sealed class GambitProgramRuntimeTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.EndpointRelationshipCountBelow, relationshipKindId, BehaviorEndpointCodes.Target, 1);
+        simulation.Gambits.SetConjunctivePreconditions(
+            gambit,
+            new(
+                BehaviorPreconditionCodes.EndpointRelationshipCountBelow,
+                A: relationshipKindId,
+                B: BehaviorEndpointCodes.Target,
+                C: 1));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: FixedScalar.FromSingle(20f));
 
@@ -700,12 +757,13 @@ public sealed class GambitProgramRuntimeTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(
+        simulation.Gambits.SetConjunctivePreconditions(
             gambit,
-            BehaviorPreconditionCodes.SharedInfluence,
-            PlaneCodes.Physical,
-            x: FixedScalar.FromSingle(20f),
-            y: FixedScalar.FromSingle(20f));
+            new(
+                BehaviorPreconditionCodes.SharedInfluence,
+                A: PlaneCodes.Physical,
+                X: FixedScalar.FromSingle(20f),
+                Y: FixedScalar.FromSingle(20f)));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: FixedScalar.FromSingle(20f));
 
@@ -733,14 +791,15 @@ public sealed class GambitProgramRuntimeTests
             gambitId,
             targetMode: BehaviorTargetModeCodes.Self,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsSelf);
-        simulation.Gambits.AddPrecondition(
+        simulation.Gambits.SetConjunctivePreconditions(
             gambit,
-            BehaviorPreconditionCodes.SelfCultureMass,
-            PlaneCodes.Physical,
-            x: FixedScalar.FromSingle(12f),
-            y: FixedScalar.FromSingle(90f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.SelfWorkTierBelow, 1);
+            new(BehaviorPreconditionCodes.TargetIsSelf),
+            new(
+                BehaviorPreconditionCodes.SelfCultureMass,
+                A: PlaneCodes.Physical,
+                X: FixedScalar.FromSingle(12f),
+                Y: FixedScalar.FromSingle(90f)),
+            new(BehaviorPreconditionCodes.SelfWorkTierBelow, A: 1));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.IncreaseWorkTier, 1);
 
@@ -765,14 +824,15 @@ public sealed class GambitProgramRuntimeTests
             gambitId,
             targetMode: BehaviorTargetModeCodes.Self,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsSelf);
-        simulation.Gambits.AddPrecondition(
+        simulation.Gambits.SetConjunctivePreconditions(
             gambit,
-            BehaviorPreconditionCodes.SelfCultureMass,
-            PlaneCodes.Physical,
-            x: FixedScalar.FromSingle(12f),
-            y: FixedScalar.FromSingle(90f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.SelfWorkTierBelow, 1);
+            new(BehaviorPreconditionCodes.TargetIsSelf),
+            new(
+                BehaviorPreconditionCodes.SelfCultureMass,
+                A: PlaneCodes.Physical,
+                X: FixedScalar.FromSingle(12f),
+                Y: FixedScalar.FromSingle(90f)),
+            new(BehaviorPreconditionCodes.SelfWorkTierBelow, A: 1));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.IncreaseWorkTier, 1);
 
@@ -798,7 +858,7 @@ public sealed class GambitProgramRuntimeTests
             gambitId,
             targetMode: BehaviorTargetModeCodes.Self,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsSelf);
+        simulation.Gambits.SetConjunctivePreconditions(gambit, new(BehaviorPreconditionCodes.TargetIsSelf));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(0f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: FixedScalar.FromSingle(5f));
         simulation.Gambits.RegisterTraitModifier(
@@ -833,7 +893,7 @@ public sealed class GambitProgramRuntimeTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: targetKindId,
             successChance: FixedScalar.FromSingle(0f));
-        simulation.Gambits.AddPrecondition(gambit, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.SetConjunctivePreconditions(gambit, new(BehaviorPreconditionCodes.TargetIsNotSelf));
         simulation.Gambits.AddExpressionOp(gambit, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(gambit, BehaviorOperationCodes.AddAttribute, attributeId, x: FixedScalar.FromSingle(5f));
         simulation.Gambits.RegisterTraitModifier(
@@ -904,7 +964,9 @@ public sealed class GambitProgramRuntimeTests
             targetMode: BehaviorTargetModeCodes.KindOther,
             targetKindId: 2,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(install, BehaviorPreconditionCodes.TargetIsNotSelf);
+        simulation.Gambits.SetConjunctivePreconditions(
+            install,
+            new(BehaviorPreconditionCodes.TargetIsNotSelf));
         simulation.Gambits.AddExpressionOp(install, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(
             install,
@@ -915,8 +977,7 @@ public sealed class GambitProgramRuntimeTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(EntityStatusCodes.Historical, simulation.World.EntityStatus(artifact));
-        Assert.Equal(0, simulation.World.FindRelationship(artifact, settlement, kindId: 4));
+        Assert.False(simulation.World.EntityExists(artifact));
         Assert.Equal(1, simulation.World.ActiveDistrictCount(settlement));
         Assert.Equal(settlement, simulation.World.CoverageOwnerAt(2, 0));
         return simulation;
@@ -929,7 +990,9 @@ public sealed class GambitProgramRuntimeTests
             gambitId: 105,
             targetMode: BehaviorTargetModeCodes.Self,
             successChance: FixedScalar.FromSingle(1f));
-        simulation.Gambits.AddPrecondition(reawaken, BehaviorPreconditionCodes.TargetIsSelf);
+        simulation.Gambits.SetConjunctivePreconditions(
+            reawaken,
+            new(BehaviorPreconditionCodes.TargetIsSelf));
         simulation.Gambits.AddExpressionOp(reawaken, BehaviorExpressionCodes.Literal, x: FixedScalar.FromSingle(1f));
         simulation.Gambits.AddStep(reawaken, BehaviorOperationCodes.ReawakenDistrict);
     }
@@ -950,8 +1013,12 @@ public sealed class GambitProgramRuntimeTests
         Assert.Equal(-2, created.SemanticR);
         Assert.Equal(-4, created.SemanticS);
         Assert.Equal(0, simulation.World.ActiveDistrictCount(settlement));
+        Assert.True(
+            simulation.World.TryResolveEntityOccurrence(
+                created.EntityId,
+                out var freshArtifact));
 
-        var freshRelationship = simulation.World.FindRelationship(created.EntityId, settlement, kindId: 5);
+        var freshRelationship = simulation.World.FindRelationship(freshArtifact, settlement, kindId: 5);
         Assert.True(freshRelationship > 0);
         Assert.Equal(FixedScalar.FromSingle(0.6f), simulation.World.RelationshipStrength(freshRelationship));
     }

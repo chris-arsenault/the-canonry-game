@@ -44,7 +44,7 @@ internal sealed partial class GeneratorProgramRuntime
             1,
             weight * simulation.Knowledge.Modifier(
                 simulation.World.EntityCultureId(targetEntityId),
-                KnowledgeGrantDomainCodes.GeneratorPulseWeight,
+                KnowledgeGrantDomainCodes.GeneratorFireWeight,
                 _generatorIds[generatorSlot]));
 
     private int ProducedTargetCultureBonus(

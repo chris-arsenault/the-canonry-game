@@ -28,10 +28,10 @@ chronicle makes real:
   instrument is brought to bear"), a role executing a named gambit against
   anyone (deeds in the world, not just against the cast), a generator firing
   with a role as its selected target ("the war is named"), or a recognized
-  state fact evaluated on the director pulse — including heat falling (lull
+  state fact evaluated on a scheduled director run — including heat falling (lull
   beats) and attributes recovering (second-wind beats). Charge-only beats
   never strike. Openings are evaluated at cast time, so Always-open beats
-  charge and accept strikes from the first pulse. Execution strikes require
+  charge and accept strikes from the first scheduled run. Execution strikes require
   the gambit to succeed unless the beat is authored `AcceptFailure`, which is
   reserved for outcome-neutral narratives ("blow answers blow") — a beat's
   sentence must never claim a deed the world refused.
@@ -44,7 +44,7 @@ chronicle makes real:
 ## Heat, convergence, fade
 
 Each chronicle carries a heat scalar: strikes add authored heat, any cast-pair
-gambit execution adds ambient heat, and heat decays each director pulse.
+gambit execution adds ambient heat, and heat decays each scheduled director run.
 Heat-scaled charges grow with heat — convergence pushes stories toward their
 endings without decreeing them. A chronicle whose heat stays below the fade
 threshold past the grace window, with no strikes inside the quiet window,
@@ -101,7 +101,7 @@ suppression ring so resolved cast members are not immediately recast as
 primaries. The gambit program reports every execution through
 `Chronicles.NoteExecution`, the generator program reports every targeted fire
 through `Chronicles.NoteGeneratorFire` (both land in a pending ring consumed
-on the next director pulse), and the gambit program reads
+on the next director run), and the gambit program reads
 `ScoreBias`/`GrantsGambit` during candidate evaluation.
 Casting uses generator-grade queries, active relationship start ticks for
 causal recency, and global/per-archetype concurrency caps. A historical-role

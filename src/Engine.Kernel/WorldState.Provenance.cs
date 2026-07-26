@@ -70,8 +70,8 @@ internal sealed partial class WorldState
         _provenanceFrameTicks[frame] = tick;
         _provenanceFrameProducerKindCodes[frame] = producerKindCode;
         _provenanceFrameProducerIds[frame] = producerId;
-        _provenanceFramePrimaryEntityIds[frame] = primaryEntityId;
-        _provenanceFrameSecondaryEntityIds[frame] = secondaryEntityId;
+        _provenanceFramePrimaryEntityIds[frame] = EntityOccurrenceHandleOrZero(primaryEntityId);
+        _provenanceFrameSecondaryEntityIds[frame] = EntityOccurrenceHandleOrZero(secondaryEntityId);
         _provenanceFrameParentInvocationIds[frame] = parentInvocationId;
         _provenanceFrameTriggerKindCodes[frame] = triggerKindCode;
         _provenanceFrameTriggerIds[frame] = triggerId;

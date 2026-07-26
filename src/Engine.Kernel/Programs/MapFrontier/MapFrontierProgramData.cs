@@ -102,11 +102,11 @@ internal sealed partial class MapFrontierProgramData : IKernelProgramData
     /// <summary>Resistance per road crossing the cell.</summary>
     public FixedScalar RoadIceResistance = 40;
 
-    /// <summary>Maximum cells the ice covers per advance pulse.</summary>
-    public int IceAdvanceBudgetPerPulse = 24;
+    /// <summary>Maximum cells the ice covers per advance run.</summary>
+    public int IceAdvanceBudgetPerRun = 24;
 
-    /// <summary>Maximum covered cells melted per retreat pulse.</summary>
-    public int IceRetreatBudgetPerPulse = 24;
+    /// <summary>Maximum covered cells melted per retreat run.</summary>
+    public int IceRetreatBudgetPerRun = 24;
 
     // --- Sea ice: the frozen sea breathes with the Ice-track ages ---
     // Freeze ages extend the cover from coasts and existing ice over
@@ -117,11 +117,11 @@ internal sealed partial class MapFrontierProgramData : IKernelProgramData
     /// <summary>Cover terrain frozen sea wears; 0 disables sea-ice modulation.</summary>
     public int SeaIceCoverTerrainId;
 
-    /// <summary>Maximum eligible water cells frozen per re-freeze pulse.</summary>
-    public int SeaIceFreezeBudgetPerPulse = 12;
+    /// <summary>Maximum eligible water cells frozen per re-freeze run.</summary>
+    public int SeaIceFreezeBudgetPerRun = 12;
 
-    /// <summary>Maximum covered cells melted per thaw pulse.</summary>
-    public int SeaIceMeltBudgetPerPulse = 12;
+    /// <summary>Maximum covered cells melted per thaw run.</summary>
+    public int SeaIceMeltBudgetPerRun = 12;
 
     internal const int MaxSeaIceEligibleTerrains = 8;
 
@@ -168,8 +168,8 @@ internal sealed partial class MapFrontierProgramData : IKernelProgramData
     /// <summary>A semantic frontier cell must hold at least this raw idea-mass to open new ground.</summary>
     public FixedScalar SemanticFrontierMassThreshold = 30;
 
-    /// <summary>Maximum semantic cells opened per pulse.</summary>
-    public int SemanticBudgetPerPulse = 24;
+    /// <summary>Maximum semantic cells opened per run.</summary>
+    public int SemanticBudgetPerRun = 24;
 
     public int GenerationRadiusCapacity => _semanticBlueprintRadiusCapacity;
 }

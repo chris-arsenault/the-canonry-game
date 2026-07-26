@@ -181,7 +181,7 @@ internal sealed partial class Simulation
             0,
             terrainId,
             0,
-            ownerEntityId,
+            World.EntityOccurrenceHandleOrZero(ownerEntityId),
             superregionId,
             continentId,
             0)));
@@ -234,7 +234,12 @@ internal sealed partial class Simulation
         // first forged layer into an adjacent known column so galleries and
         // spire clusters spread instead of stalling.
         var world = World;
-        var start = NextInt(6);
+        var start = RandomInt(
+            6,
+            World.EntityOccurrenceHandle(entityId),
+            terrainId,
+            KernelRandomPurposeCodes.ForgeDirection,
+            direction);
         for (var i = 0; i < 6; i++)
         {
             var directionIndex = (start + i) % 6;
@@ -312,6 +317,22 @@ internal sealed partial class Simulation
 
     internal void SetCellState(int planeCode, int q, int r, int terrainId, int ownerEntityId, int tick)
     {
+        if (_collectingDeltas)
+        {
+            _tickDeltas.AddCellState(new CellStateDelta(
+                planeCode,
+                q,
+                r,
+                terrainId,
+                ownerEntityId,
+                Priority: 1,
+                DeltaSourceKey(
+                    ownerEntityId > 0 ? World.EntityOccurrenceHandle(ownerEntityId) : 0,
+                    CellDiscriminator(planeCode, q, r, 0)),
+                _executionContext));
+            return;
+        }
+
         var wasKnown = World.CellIsKnown(planeCode, q, r);
         var previousTerrainId = wasKnown ? World.CellTerrainId(planeCode, q, r) : 0;
         World.SetCellState(planeCode, q, r, terrainId, ownerEntityId, tick, _executionContext);

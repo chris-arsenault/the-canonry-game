@@ -312,7 +312,7 @@ public sealed class TerrainAwareMapTests
     }
 
     [Fact]
-    public void HierarchicalRouteCacheRoundTripsThroughSnapshot()
+    public void HierarchicalRouteCacheRebuildsAfterSnapshot()
     {
         var (simulation, entityId) = CreateLargePathingSimulation(roadBuildPerTravel: 1f);
         simulation.Movement.Navigate(
@@ -329,7 +329,7 @@ public sealed class TerrainAwareMapTests
         stream.Position = 0;
         var loaded = KernelSnapshot.LoadKernelState(stream);
 
-        Assert.Equal(simulation.Movement.State.RouteCacheCount, loaded.Movement.State.RouteCacheCount);
+        Assert.Equal(0, loaded.Movement.State.RouteCacheCount);
         var result = loaded.Movement.Navigate(
             loaded,
             entityId,
@@ -338,6 +338,7 @@ public sealed class TerrainAwareMapTests
             targetR: 0,
             tick: loaded.CurrentTick);
         Assert.True(result.Moved);
+        Assert.True(loaded.Movement.State.RouteCacheCount >= 2);
     }
 
     [Fact]
@@ -606,7 +607,7 @@ public sealed class TerrainAwareMapTests
         var slot = simulation.Generators.RegisterGenerator(
             generatorId,
             targetKindId,
-            pulseWeight: 1,
+            fireWeight: 1,
             maxRuns: 1);
         simulation.Generators.AddTrigger(slot, targetKindId);
         simulation.Generators.AddEffect(
@@ -643,7 +644,7 @@ public sealed class TerrainAwareMapTests
         var slot = simulation.Generators.RegisterGenerator(
             generatorId,
             targetKindId,
-            pulseWeight: 1,
+            fireWeight: 1,
             maxRuns: 1);
         simulation.Generators.AddTrigger(slot, targetKindId);
         simulation.Generators.AddEffect(

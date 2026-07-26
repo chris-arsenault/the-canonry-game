@@ -60,8 +60,8 @@ public static class IceRemembersAges
         CooldownTicks = 0,
         Charges =
         [
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.3f, "charters_find_harbors"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.3f, "sanctuaries_anchor_colonies"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.3f, "charters_find_harbors"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.3f, "sanctuaries_anchor_colonies"),
             new(WorldBeatChargeDomain.VerbWeight, 1.2f, "penguin_wandering_season"),
         ],
     };
@@ -122,15 +122,15 @@ public static class IceRemembersAges
         [
             new(WorldBeatChargeDomain.GlobalDecayTide, 4f),
             new(WorldBeatChargeDomain.ContestDecayTide, 1.5f),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.4f, "the_ice_takes_notice"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.4f, "records_cast_shadows"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.4f, "the_ice_takes_notice"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.4f, "records_cast_shadows"),
             new(WorldBeatChargeDomain.MovementStepRate, 1.2f),
             // Nobody sets out into the white while the sun is gone: the
             // scouting pushes and founding chains ebb until the Thaw.
             new(WorldBeatChargeDomain.VerbWeight, 0.5f, "penguin_scout_the_white"),
             new(WorldBeatChargeDomain.VerbWeight, 0.6f, "transport_voyage_beyond_the_charts"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 0.5f, "the_thaw_calls_the_bold"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 0.5f, "sanctuaries_anchor_colonies"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 0.5f, "the_thaw_calls_the_bold"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 0.5f, "sanctuaries_anchor_colonies"),
         ],
     };
 
@@ -151,10 +151,10 @@ public static class IceRemembersAges
         CloseWhen = [Kind(WorldBeatComparator.Below, 6f, "monster")],
         Charges =
         [
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.6f, "corruption_wakes_monsters"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.6f, "monsters_stalk_the_marches"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.5f, "kills_sung_to_the_deep"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.5f, "glory_to_the_dead_god"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.6f, "corruption_wakes_monsters"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.6f, "monsters_stalk_the_marches"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.5f, "kills_sung_to_the_deep"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.5f, "glory_to_the_dead_god"),
             new(WorldBeatChargeDomain.GambitScore, 1.5f, "artifact_binds_monster"),
         ],
     };
@@ -172,9 +172,9 @@ public static class IceRemembersAges
         CloseWhen = [Kind(WorldBeatComparator.Below, 50f, "artifact")],
         Charges =
         [
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.6f, "what_the_artifact_knows"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.6f, "stolen_artifacts_draw_hunters"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.4f, "vigils_leave_relics"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.6f, "what_the_artifact_knows"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.6f, "stolen_artifacts_draw_hunters"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.4f, "vigils_leave_relics"),
             new(WorldBeatChargeDomain.GambitScore, 1.4f, "artifact_binds_monster"),
         ],
     };
@@ -199,8 +199,8 @@ public static class IceRemembersAges
             new(WorldBeatChargeDomain.VerbWeight, 1.8f, "penguin_wandering_season"),
             new(WorldBeatChargeDomain.VerbWeight, 1.8f, "penguin_pilgrimage"),
             new(WorldBeatChargeDomain.GambitScore, 2f, "faction_charters_settlement"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.6f, "charters_find_harbors"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.6f, "pilgrims_found_new_currents"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.6f, "charters_find_harbors"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.6f, "pilgrims_found_new_currents"),
             new(WorldBeatChargeDomain.MovementStepRate, 0.8f),
         ],
     };
@@ -243,9 +243,9 @@ public static class IceRemembersAges
         CooldownTicks = 0,
         Charges =
         [
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.3f, "the_ice_takes_notice"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.3f, "legend_enters_the_canon"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.2f, "monster_slayings_become_festivals"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.3f, "the_ice_takes_notice"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.3f, "legend_enters_the_canon"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.2f, "monster_slayings_become_festivals"),
         ],
     };
 
@@ -265,11 +265,11 @@ public static class IceRemembersAges
             new(WorldBeatChargeDomain.VerbWeight, 1.8f, "penguin_scout_the_white"),
             new(WorldBeatChargeDomain.VerbWeight, 1.8f, "orca_sound_the_far_water"),
             new(WorldBeatChargeDomain.VerbWeight, 2f, "transport_voyage_beyond_the_charts"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.6f, "the_thaw_calls_the_bold"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.6f, "sanctuaries_anchor_colonies"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.5f, "charters_find_harbors"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.5f, "the_river_earns_its_name"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.5f, "the_still_water_is_sounded"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.6f, "the_thaw_calls_the_bold"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.6f, "sanctuaries_anchor_colonies"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.5f, "charters_find_harbors"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.5f, "the_river_earns_its_name"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.5f, "the_still_water_is_sounded"),
             new(WorldBeatChargeDomain.MovementStepRate, 0.9f),
         ],
     };
@@ -293,8 +293,8 @@ public static class IceRemembersAges
         [
             new(WorldBeatChargeDomain.VerbWeight, 2.5f, "transport_voyage_beyond_the_charts"),
             new(WorldBeatChargeDomain.VerbWeight, 2.2f, "orca_sound_the_far_water"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 2f, "bulls_range_the_far_currents"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.8f, "conduit_points_found_reefholds"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 2f, "bulls_range_the_far_currents"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.8f, "conduit_points_found_reefholds"),
             new(WorldBeatChargeDomain.MovementStepRate, 0.85f),
         ],
     };
@@ -316,7 +316,7 @@ public static class IceRemembersAges
             new(WorldBeatChargeDomain.GambitScore, 1.6f, "penguin_corners_the_beast"),
             new(WorldBeatChargeDomain.GambitSuccess, 1.4f, "penguin_slays_monster"),
             new(WorldBeatChargeDomain.GambitSuccess, 1.4f, "penguin_corners_the_beast"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.5f, "wardens_rise_where_the_hunt_bites"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.5f, "wardens_rise_where_the_hunt_bites"),
         ],
     };
 
@@ -340,7 +340,7 @@ public static class IceRemembersAges
             new(WorldBeatChargeDomain.GambitScore, 1.6f, "settlement_opens_trade_route"),
             new(WorldBeatChargeDomain.GambitScore, 1.5f, "transport_opens_conduit"),
             new(WorldBeatChargeDomain.GambitScore, 1.5f, "transport_takes_up_the_passenger"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.4f, "trade_routes_convene_negotiation"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.4f, "trade_routes_convene_negotiation"),
         ],
     };
 
@@ -359,8 +359,8 @@ public static class IceRemembersAges
         [
             new(WorldBeatChargeDomain.GambitScore, 1.6f, "ability_shares_practice"),
             new(WorldBeatChargeDomain.GambitSuccess, 1.4f, "ability_shares_practice"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.5f, "mapped_peaks_birth_techniques"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.5f, "practiced_forms_find_tomes"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.5f, "mapped_peaks_birth_techniques"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.5f, "practiced_forms_find_tomes"),
         ],
     };
 
@@ -384,9 +384,9 @@ public static class IceRemembersAges
             new(WorldBeatChargeDomain.GambitScore, 4f, "faction_marches_the_banners"),
             new(WorldBeatChargeDomain.GambitScore, 1.6f, "faction_declares_territorial_war"),
             new(WorldBeatChargeDomain.GambitSuccess, 1.5f, "faction_marches_the_banners"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 2.4f, "war_takes_its_toll"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.6f, "wars_get_names"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.4f, "the_column_holds"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 2.4f, "war_takes_its_toll"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.6f, "wars_get_names"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.4f, "the_column_holds"),
             new(WorldBeatChargeDomain.ContestDecayTide, 2f),
         ],
     };
@@ -406,8 +406,8 @@ public static class IceRemembersAges
         [
             new(WorldBeatChargeDomain.GambitScore, 2f, "orca_raids_trade_route"),
             new(WorldBeatChargeDomain.GambitSuccess, 1.5f, "orca_raids_trade_route"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.6f, "pods_hunt_the_convoys"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.6f, "claimed_waters_draw_bulls"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.6f, "pods_hunt_the_convoys"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.6f, "claimed_waters_draw_bulls"),
             new(WorldBeatChargeDomain.GambitScore, 1.5f, "faction_swears_cold_accord"),
         ],
     };
@@ -432,8 +432,8 @@ public static class IceRemembersAges
             new(WorldBeatChargeDomain.GambitScore, 2f, "faction_sues_for_peace"),
             new(WorldBeatChargeDomain.GambitScore, 2f, "faction_swears_cold_accord"),
             new(WorldBeatChargeDomain.GambitScore, 0.5f, "faction_declares_territorial_war"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.5f, "the_accord_convenes"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.4f, "conferences_become_festivals"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.5f, "the_accord_convenes"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.4f, "conferences_become_festivals"),
         ],
     };
 
@@ -450,9 +450,9 @@ public static class IceRemembersAges
         CloseWhen = [Kind(WorldBeatComparator.Below, 7f, "ability")],
         Charges =
         [
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.8f, "mapped_peaks_birth_techniques"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.8f, "practiced_forms_find_tomes"),
-            new(WorldBeatChargeDomain.GeneratorPulseWeight, 1.5f, "wardens_take_up_the_old_forms"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.8f, "mapped_peaks_birth_techniques"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.8f, "practiced_forms_find_tomes"),
+            new(WorldBeatChargeDomain.GeneratorFireWeight, 1.5f, "wardens_take_up_the_old_forms"),
             new(WorldBeatChargeDomain.GambitScore, 1.6f, "ability_shares_practice"),
             new(WorldBeatChargeDomain.GambitScore, 0.6f, "faction_declares_territorial_war"),
         ],

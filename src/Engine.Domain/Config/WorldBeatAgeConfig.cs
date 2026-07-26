@@ -29,7 +29,7 @@ public enum WorldBeatComparator
 
 public enum WorldBeatChargeDomain
 {
-    GeneratorPulseWeight,
+    GeneratorFireWeight,
     VerbWeight,
     GambitScore,
     ContestDecayTide,
@@ -69,10 +69,10 @@ public sealed class WorldBeatAgeConfig
     /// <summary>When several ages of a track are eligible, the highest priority opens.</summary>
     public int Priority { get; init; }
 
-    /// <summary>Minimum span before closing conditions are consulted (world pulses).</summary>
+    /// <summary>Minimum tick span before closing conditions are consulted.</summary>
     public int MinOpenTicks { get; init; } = 2000;
 
-    /// <summary>Span after closing during which this age cannot reopen (world pulses).</summary>
+    /// <summary>Tick span after closing during which this age cannot reopen.</summary>
     public int CooldownTicks { get; init; } = 2000;
 
     /// <summary>All must hold to open. Empty means always eligible (the track's fallback).</summary>

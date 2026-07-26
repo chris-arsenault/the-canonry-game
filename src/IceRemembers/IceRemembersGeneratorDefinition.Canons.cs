@@ -42,7 +42,7 @@ public static partial class IceRemembersGeneratorDefinition
                 GeneratorRelationshipInstanceSelection.AllTargetRelationships),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 5,
+        FireWeight = 5,
     };
 
     private static SemanticGeneratorConfig TheSilenceAnswers() => new()
@@ -62,7 +62,7 @@ public static partial class IceRemembersGeneratorDefinition
                 GeneratorRelationshipInstanceSelection.AllTargetRelationships),
         ],
         Triggers = TriggerOn(K.Faction),
-        PulseWeight = 4,
+        FireWeight = 4,
     };
 
     /// <summary>A canon produced by a generator, claiming jurisdiction on creation.</summary>

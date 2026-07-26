@@ -26,8 +26,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 10,
-            actionCadencePulses: 1,
+            ttlTicks: 10,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(0f),
             tick: 0);
 
@@ -67,8 +67,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 10,
-            actionCadencePulses: 10,
+            ttlTicks: 10,
+            actionCadenceTicks: 10,
             workDelta: FixedScalar.FromSingle(2f),
             tick: 0);
 
@@ -101,11 +101,11 @@ public sealed partial class MinorActorProgramRuntimeTests
             purposeCode: MinorActorPurposeCodes.CulturalLabor,
             actorKindCode: MinorActorKindCodes.Worker,
             planeCode: PlaneCodes.Physical,
-            ttlPulses: 4,
-            emitCadencePulses: 1,
+            ttlTicks: 4,
+            emitCadenceTicks: 1,
             maxActivePerSource: 1,
             spawnRadius: 0,
-            actionCadencePulses: 1,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(0f));
         _ = simulation.MinorActors.RegisterVerb(
             rule,
@@ -136,11 +136,11 @@ public sealed partial class MinorActorProgramRuntimeTests
             purposeCode: MinorActorPurposeCodes.CulturalLabor,
             actorKindCode: MinorActorKindCodes.Worker,
             planeCode: PlaneCodes.Physical,
-            ttlPulses: 6,
-            emitCadencePulses: 1,
+            ttlTicks: 6,
+            emitCadenceTicks: 1,
             maxActivePerSource: 1,
             spawnRadius: 0,
-            actionCadencePulses: 1,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(0f));
         _ = simulation.MinorActors.RegisterVerb(
             rule,
@@ -203,8 +203,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 1,
             r: 0,
-            ttlPulses: 4,
-            actionCadencePulses: 1,
+            ttlTicks: 4,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
 
@@ -229,11 +229,11 @@ public sealed partial class MinorActorProgramRuntimeTests
             purposeCode: MinorActorPurposeCodes.CulturalLabor,
             actorKindCode: MinorActorKindCodes.Worker,
             planeCode: PlaneCodes.Physical,
-            ttlPulses: 4,
-            emitCadencePulses: 1,
+            ttlTicks: 4,
+            emitCadenceTicks: 1,
             maxActivePerSource: 1,
             spawnRadius: 0,
-            actionCadencePulses: 1,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(0f));
         _ = simulation.MinorActors.RegisterVerb(
             rule,
@@ -254,8 +254,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 2,
             r: -1,
-            ttlPulses: 3,
-            actionCadencePulses: 1,
+            ttlTicks: 3,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(0f),
             tick: 0);
         _ = simulation.World.IncreaseEntityWorkTier(1, maxTier: 3);
@@ -338,8 +338,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 4,
-            actionCadencePulses: 1,
+            ttlTicks: 4,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
         var before = simulation.World.GetCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, 0, 0);
@@ -388,8 +388,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 4,
-            actionCadencePulses: 1,
+            ttlTicks: 4,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
 
@@ -434,8 +434,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 4,
-            actionCadencePulses: 1,
+            ttlTicks: 4,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
 
@@ -484,8 +484,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 40,
-            actionCadencePulses: 1,
+            ttlTicks: 40,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
 
@@ -534,8 +534,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 4,
-            actionCadencePulses: 1,
+            ttlTicks: 4,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
 
@@ -588,8 +588,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 4,
-            actionCadencePulses: 1,
+            ttlTicks: 4,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
 
@@ -633,8 +633,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 4,
-            actionCadencePulses: 1,
+            ttlTicks: 4,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
 
@@ -643,56 +643,6 @@ public sealed partial class MinorActorProgramRuntimeTests
         var evt = Assert.Single(ReadMinorActorVerbEvents(simulation));
         Assert.Equal(TraceStatusCodes.NoTarget, evt.StatusCode);
         Assert.Equal(foreignBefore, simulation.World.GetCellCultureInfluenceRaw(2, PlaneCodes.Physical, 0, 0));
-    }
-
-    [Fact]
-    public void LifecycleMaintenanceVerbRepairsSourceFromAgeLoadInsideSupportedMass()
-    {
-        var simulation = CreateVerbSimulation(mainTickRatio: 1);
-        const int healthAttributeId = 10;
-        simulation.RegisterAttribute(SourceKindId, healthAttributeId, minimum: FixedScalar.FromSingle(0f), maximum: FixedScalar.FromSingle(100f), defaultValue: FixedScalar.FromSingle(50f));
-        simulation.Effects.RegisterLifecycle(SourceKindId, healthAttributeId, baseRate: FixedScalar.FromSingle(0f), ageCoefficient: FixedScalar.FromSingle(1f), variance: FixedScalar.FromSingle(0f));
-        SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 2);
-        var source = simulation.CreateEntity(SourceKindId, subtypeId: 1, cultureId: CultureId, 0, 0, 0, 0, 0, tick: 0);
-        Assert.Equal(SourceEntityId, source);
-        var rule = RegisterCultureEmitter(simulation);
-        _ = simulation.MinorActors.RegisterVerb(
-            rule,
-            CultureVerbId,
-            MinorActorActionCodes.LifecycleMaintenance,
-            MinorActorVerbTargetingCodes.MaintainSourceLifecycle,
-            PlaneCodes.Physical,
-            radius: 2,
-            sampleCount: 64,
-            weight: FixedScalar.FromSingle(1f),
-            workDeltaMultiplier: FixedScalar.FromSingle(1f));
-        foreach (var cell in new[] { (0, 0), (1, 0), (0, -1), (1, -1) })
-        {
-            simulation.ModifyCellCultureInfluenceRaw(CultureId, PlaneCodes.Physical, cell.Item1, cell.Item2, FixedScalar.FromSingle(30f), tick: 0);
-        }
-
-        _ = simulation.MinorActors.Spawn(
-            cultureId: CultureId,
-            sourceEntityId: SourceEntityId,
-            sourceRuleId: rule,
-            actorKindCode: MinorActorKindCodes.Worker,
-            planeCode: PlaneCodes.Physical,
-            q: 0,
-            r: 0,
-            ttlPulses: 4,
-            actionCadencePulses: 1,
-            workDelta: FixedScalar.FromSingle(100f),
-            tick: 0);
-        var before = simulation.World.GetAttribute(SourceEntityId, healthAttributeId);
-
-        _ = simulation.AdvanceTicks(1);
-
-        var evt = Assert.Single(ReadMinorActorVerbEvents(simulation));
-        Assert.Equal(MinorActorActionCodes.LifecycleMaintenance, evt.ActionCode);
-        Assert.Equal(MinorActorVerbTargetingCodes.MaintainSourceLifecycle, evt.TargetingCode);
-        Assert.Equal(TraceStatusCodes.Selected, evt.StatusCode);
-        Assert.True(evt.DeltaUnits > FixedScalar.Zero.Units);
-        Assert.True(simulation.World.GetAttribute(SourceEntityId, healthAttributeId) > before);
     }
 
     [Fact]
@@ -736,8 +686,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 60,
-            actionCadencePulses: 1,
+            ttlTicks: 60,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0);
 
@@ -749,48 +699,6 @@ public sealed partial class MinorActorProgramRuntimeTests
             .ToHashSet();
         Assert.Contains(MinorActorActionCodes.CultureExpansion, selectedActions);
         Assert.Contains(MinorActorActionCodes.CultureCleanup, selectedActions);
-    }
-
-    [Fact]
-    public void LifecycleMaintenanceVerbRequiresSupportedCultureMass()
-    {
-        var simulation = CreateVerbSimulation(mainTickRatio: 1);
-        const int healthAttributeId = 10;
-        simulation.RegisterAttribute(SourceKindId, healthAttributeId, minimum: FixedScalar.FromSingle(0f), maximum: FixedScalar.FromSingle(100f), defaultValue: FixedScalar.FromSingle(50f));
-        simulation.Effects.RegisterLifecycle(SourceKindId, healthAttributeId, baseRate: FixedScalar.FromSingle(0f), ageCoefficient: FixedScalar.FromSingle(1f), variance: FixedScalar.FromSingle(0f));
-        SetKnownDisc(simulation, PlaneCodes.Physical, 0, 0, 2);
-        var source = simulation.CreateEntity(SourceKindId, subtypeId: 1, cultureId: CultureId, 0, 0, 0, 0, 0, tick: 0);
-        Assert.Equal(SourceEntityId, source);
-        var rule = RegisterCultureEmitter(simulation);
-        _ = simulation.MinorActors.RegisterVerb(
-            rule,
-            CultureVerbId,
-            MinorActorActionCodes.LifecycleMaintenance,
-            MinorActorVerbTargetingCodes.MaintainSourceLifecycle,
-            PlaneCodes.Physical,
-            radius: 2,
-            sampleCount: 64,
-            weight: FixedScalar.FromSingle(1f),
-            workDeltaMultiplier: FixedScalar.FromSingle(1f));
-        _ = simulation.MinorActors.Spawn(
-            cultureId: CultureId,
-            sourceEntityId: SourceEntityId,
-            sourceRuleId: rule,
-            actorKindCode: MinorActorKindCodes.Worker,
-            planeCode: PlaneCodes.Physical,
-            q: 0,
-            r: 0,
-            ttlPulses: 4,
-            actionCadencePulses: 1,
-            workDelta: FixedScalar.FromSingle(100f),
-            tick: 0);
-        var before = simulation.World.GetAttribute(SourceEntityId, healthAttributeId);
-
-        _ = simulation.AdvanceTicks(1);
-
-        var evt = Assert.Single(ReadMinorActorVerbEvents(simulation));
-        Assert.Equal(TraceStatusCodes.NoTarget, evt.StatusCode);
-        Assert.True(simulation.World.GetAttribute(SourceEntityId, healthAttributeId) < before);
     }
 
     [Fact]
@@ -901,8 +809,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 4,
-            actionCadencePulses: 1,
+            ttlTicks: 4,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(0f),
             tick: 0);
 
@@ -931,13 +839,13 @@ public sealed partial class MinorActorProgramRuntimeTests
             {
                 Programs = new KernelProgramTuningOptions
                 {
-                    MinorActorSubstepsPerPulse = mainTickRatio,
+                    MainProgramCadenceTicks = mainTickRatio,
                     // These tests verify verb targeting; field decay would
                     // erode the small synthetic deltas they assert on.
                     CultureField = new CultureFieldTuningOptions
                     {
-                        DecayPerPulse = FixedScalar.FromSingle(0f),
-                        MinimumDecayPerPulse = FixedScalar.FromSingle(0f),
+                        DecayPerRun = FixedScalar.FromSingle(0f),
+                        MinimumDecayPerRun = FixedScalar.FromSingle(0f),
                     },
                 },
             },
@@ -951,8 +859,8 @@ public sealed partial class MinorActorProgramRuntimeTests
                 CultureInfluenceActionScale = FixedScalar.FromSingle(scale),
                 CultureField = new CultureFieldTuningOptions
                 {
-                    DecayPerPulse = FixedScalar.Zero,
-                    MinimumDecayPerPulse = FixedScalar.Zero,
+                    DecayPerRun = FixedScalar.Zero,
+                    MinimumDecayPerRun = FixedScalar.Zero,
                 },
             },
         };
@@ -976,11 +884,11 @@ public sealed partial class MinorActorProgramRuntimeTests
             purposeCode: MinorActorPurposeCodes.CulturalLabor,
             actorKindCode: MinorActorKindCodes.Worker,
             planeCode: PlaneCodes.Physical,
-            ttlPulses: 4,
-            emitCadencePulses: 10,
+            ttlTicks: 4,
+            emitCadenceTicks: 10,
             maxActivePerSource: 1,
             spawnRadius: 0,
-            actionCadencePulses: 1,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(5f));
 
     private static int RegisterCultureExpansionEmitter(Simulation simulation)
@@ -1006,11 +914,11 @@ public sealed partial class MinorActorProgramRuntimeTests
             purposeCode: MinorActorPurposeCodes.RoadLabor,
             actorKindCode: MinorActorKindCodes.Worker,
             planeCode: PlaneCodes.Physical,
-            ttlPulses: 4,
-            emitCadencePulses: 10,
+            ttlTicks: 4,
+            emitCadenceTicks: 10,
             maxActivePerSource: 1,
             spawnRadius: 0,
-            actionCadencePulses: 1,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(5f));
 
     private static void SpawnRouteWorker(Simulation simulation, int rule) =>
@@ -1022,8 +930,8 @@ public sealed partial class MinorActorProgramRuntimeTests
             planeCode: PlaneCodes.Physical,
             q: 0,
             r: 0,
-            ttlPulses: 4,
-            actionCadencePulses: 1,
+            ttlTicks: 4,
+            actionCadenceTicks: 1,
             workDelta: FixedScalar.FromSingle(5f),
             tick: 0,
             purposeCode: MinorActorPurposeCodes.RoadLabor);

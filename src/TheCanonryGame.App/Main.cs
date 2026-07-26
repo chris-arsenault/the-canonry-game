@@ -122,8 +122,8 @@ public partial class Main : Node2D
             return;
         }
 
-        var pulse = _runtime.Update();
-        var currentTick = pulse.CurrentTick;
+        var advance = _runtime.Update();
+        var currentTick = advance.CurrentTick;
 
         _renderTree?.Present(currentTick, FormatKernelTimeState());
         HandleCameraMovement((float)delta);

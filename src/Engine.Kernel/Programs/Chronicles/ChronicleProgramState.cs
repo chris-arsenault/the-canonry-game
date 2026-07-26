@@ -4,10 +4,10 @@ namespace Engine.Kernel;
 /// Live chronicle table: which archetypes are running, which entities hold
 /// each role, per-chronicle heat and beat open/struck masks, a suppression
 /// ring of recently chronicled cast, and the pending queue of gambit
-/// executions and generator fires the director consumes each pulse for
+/// executions and generator fires the director consumes each run for
 /// strike detection.
 /// </summary>
-internal sealed class ChronicleProgramState : IKernelProgramState
+internal sealed partial class ChronicleProgramState : IKernelProgramState
 {
     internal const int SuppressionRingCapacity = 64;
 
@@ -24,13 +24,13 @@ internal sealed class ChronicleProgramState : IKernelProgramState
     internal int NextChronicleSequence;
     internal readonly int[] ArchetypeActiveCounts;
     internal readonly int[] NextCastTicks;
-    internal readonly int[] RecentCastEntityIds;
+    internal readonly int[] RecentCastEntityOccurrenceHandles;
     internal readonly int[] RecentCastTicks;
     internal readonly FixedScalar[] RecentCastHeat;
     internal int RecentCastNext;
     internal readonly int[] PendingKinds;
-    internal readonly int[] PendingActorIds;
-    internal readonly int[] PendingTargetIds;
+    internal readonly int[] PendingActorOccurrenceHandles;
+    internal readonly int[] PendingTargetOccurrenceHandles;
     internal readonly int[] PendingProducerIds;
     internal readonly int[] PendingSucceeded;
     internal int PendingCount;
@@ -54,12 +54,12 @@ internal sealed class ChronicleProgramState : IKernelProgramState
         ChronicleSequences = new int[chronicleCapacity + 1];
         ArchetypeActiveCounts = new int[archetypeCapacity + 1];
         NextCastTicks = new int[archetypeCapacity + 1];
-        RecentCastEntityIds = new int[SuppressionRingCapacity];
+        RecentCastEntityOccurrenceHandles = new int[SuppressionRingCapacity];
         RecentCastTicks = new int[SuppressionRingCapacity];
         RecentCastHeat = new FixedScalar[SuppressionRingCapacity];
         PendingKinds = new int[pendingExecutionCapacity];
-        PendingActorIds = new int[pendingExecutionCapacity];
-        PendingTargetIds = new int[pendingExecutionCapacity];
+        PendingActorOccurrenceHandles = new int[pendingExecutionCapacity];
+        PendingTargetOccurrenceHandles = new int[pendingExecutionCapacity];
         PendingProducerIds = new int[pendingExecutionCapacity];
         PendingSucceeded = new int[pendingExecutionCapacity];
     }

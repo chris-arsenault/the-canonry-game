@@ -73,7 +73,7 @@ internal sealed partial class ChronicleProgramRuntime
         {
             if (world.EntityKindId(entityId) != kindId ||
                 RoleIsCastInArchetype(archetype, entityId) ||
-                RecentlyChronicled(entityId, tick))
+                RecentlyChronicled(world, entityId, tick))
             {
                 continue;
             }
@@ -181,7 +181,12 @@ internal sealed partial class ChronicleProgramRuntime
             return 0;
         }
 
-        var ordinal = simulation.NextInt(count);
+        var ordinal = simulation.RandomInt(
+            count,
+            world.EntityOccurrenceHandle(primaryId),
+            role,
+            KernelRandomPurposeCodes.ChronicleCasting,
+            attempt: world.EntityCreatedAt(primaryId));
         return KernelQuery.EvaluateSharedQuery(world, query, binding, ordinal).SelectedEntityId;
     }
 
