@@ -3,212 +3,21 @@ namespace Engine.Kernel;
 using Engine.Constants;
 using Engine.Eventing;
 
-internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<GeneratorProgramData, GeneratorProgramState>
+internal sealed partial class GeneratorProgramRuntime :
+    IKernelProgramRuntime<GeneratorProgramData, GeneratorProgramState>,
+    IStrategicIntentProgram,
+    IKernelOwnerWork
 {
     private const int MaxResolvedReferences = 32;
     private const int MaxScratchCells = 4096;
     private const int SlotFillBaseFireWeightBonus = 8;
     private const int SlotFillAdditionalFireWeightBonus = 2;
     private const int SlotFillMaxFireWeightBonus = 16;
-    private readonly GeneratorProgramScratch _scratch;
-
-    // Fire-scoped plan state: produced entities resolved but not yet committed.
-    // Valid only between PlanProducedEntities and CommitPlannedEntities within
-    // one Fire call; pending refs are encoded as -(planIndex + 1).
-    private int _plannedCreateCount;
-    private int _plannedCoverageCellCount;
-    private int[] _generatorIds => Data.GeneratorIds;
-    private int[] _targetKindIds => Data.TargetKindIds;
-    private int[] _fireWeights => Data.FireWeights;
-    private FixedScalar[] _ageFireWeightMultipliers => Data.AgeFireWeightMultipliers;
-    private int[] _cadenceTicks => Data.CadenceTicks;
-    private int[] _cadenceJitterTicks => Data.CadenceJitterTicks;
-    private int[] _targetRequiredTagBits => Data.TargetRequiredTagBits;
-    private int[] _targetWithoutTagBits => Data.TargetWithoutTagBits;
-    private int[] _bindingRequiredTagBits => Data.BindingRequiredTagBits;
-    private int[] _bindingWithoutTagBits => Data.BindingWithoutTagBits;
-    private int[] _bindingCultureIds => Data.BindingCultureIds;
-    private int[] _bindingRelatedToTargetKindIds => Data.BindingRelatedToTargetKindIds;
-    private int[] _bindingRelatedToTargetIncoming => Data.BindingRelatedToTargetIncoming;
-    private FixedScalar[] _bindingRelatedToTargetMinStrengths => Data.BindingRelatedToTargetMinStrengths;
-    private int[] _producedQueryRequiredTagBits => Data.ProducedQueryRequiredTagBits;
-    private int[] _producedQueryWithoutTagBits => Data.ProducedQueryWithoutTagBits;
-    private int[] _producedQueryCultureIds => Data.ProducedQueryCultureIds;
-    private int[] _producedQueryRelatedToTargetKindIds => Data.ProducedQueryRelatedToTargetKindIds;
-    private int[] _producedQueryRelatedToTargetIncoming => Data.ProducedQueryRelatedToTargetIncoming;
-    private FixedScalar[] _producedQueryRelatedToTargetMinStrengths => Data.ProducedQueryRelatedToTargetMinStrengths;
-    private int[] _nextCadenceFireTicks => State.NextCadenceFireTicks;
-    private int[] _maxRuns => Data.MaxRuns;
-    private int[] _runCounts => State.RunCounts;
-    private bool[] _enabled => State.Enabled;
-    private const int ProvinceBandDormant = 0;
-    private const int ProvinceBandFrontier = 1;
-    private const int ProvinceBandSettled = 2;
-    private const int ProvinceBandHeartland = 3;
-
-    // Fire-scoped province filter: while a province's window selects and
-    // fires, only targets standing inside that superregion are eligible.
-    // -1 means unrestricted (cadence generators stay world-wide).
-    private int _fireProvinceSrId = -1;
-    private int _lastProvinceRefreshTick = -1;
-    private readonly int[] _provinceBandCodes;
-    private readonly int[] _provinceCoveredCounts;
-    private readonly int[] _provinceKnownCounts;
-    private int[] _targetSubtypeStarts => Data.TargetSubtypeStarts;
-    private int[] _targetSubtypeCounts => Data.TargetSubtypeCounts;
-    private int[] _targetRequiredOutgoingStarts => Data.TargetRequiredOutgoingStarts;
-    private int[] _targetRequiredOutgoingCounts => Data.TargetRequiredOutgoingCounts;
-    private int[] _targetRequiredIncomingStarts => Data.TargetRequiredIncomingStarts;
-    private int[] _targetRequiredIncomingCounts => Data.TargetRequiredIncomingCounts;
-    private int[] _targetRequiredAnyStarts => Data.TargetRequiredAnyStarts;
-    private int[] _targetRequiredAnyCounts => Data.TargetRequiredAnyCounts;
-    private int[] _targetWithoutOutgoingStarts => Data.TargetWithoutOutgoingStarts;
-    private int[] _targetWithoutOutgoingCounts => Data.TargetWithoutOutgoingCounts;
-    private int[] _targetWithoutIncomingStarts => Data.TargetWithoutIncomingStarts;
-    private int[] _targetWithoutIncomingCounts => Data.TargetWithoutIncomingCounts;
-    private int[] _targetTerrainRequirementStarts => Data.TargetTerrainRequirementStarts;
-    private int[] _targetTerrainRequirementCounts => Data.TargetTerrainRequirementCounts;
-    private int[] _triggerStarts => Data.TriggerStarts;
-    private int[] _triggerCounts => Data.TriggerCounts;
-    private int[] _bindingStarts => Data.BindingStarts;
-    private int[] _bindingCounts => Data.BindingCounts;
-    private int[] _producedStarts => Data.ProducedStarts;
-    private int[] _producedCounts => Data.ProducedCounts;
-    private int[] _relationshipStarts => Data.RelationshipStarts;
-    private int[] _relationshipCounts => Data.RelationshipCounts;
-    private int[] _effectStarts => Data.EffectStarts;
-    private int[] _effectCounts => Data.EffectCounts;
-    private int[] _fireStatusCodes => _scratch.FireStatusCodes;
-    private int[] _fireCandidateCounts => _scratch.FireCandidateCounts;
-    private int[] _fireSelectionWeights => _scratch.FireSelectionWeights;
-    private int[] _fireSelectedTargetOccurrenceHandles =>
-        _scratch.FireSelectedTargetOccurrenceHandles;
-    private int[] _fireFailedCounts => _scratch.FireFailedCounts;
-    private int[] _subtypeIds => Data.SubtypeIds;
-    private int[] _relationshipKindFilterIds => Data.RelationshipKindFilterIds;
-    private FixedScalar[] _relationshipKindFilterMinimumStrengths => Data.RelationshipKindFilterMinimumStrengths;
-    private int[] _relationshipKindFilterAllowsSlotCausalLimitMultiplier => Data.RelationshipKindFilterAllowsSlotCausalLimitMultiplier;
-    private int[] _terrainFilterIds => Data.TerrainFilterIds;
-    private int[] _targetTerrainRequirementTerrainIds => Data.TargetTerrainRequirementTerrainIds;
-    private int[] _targetTerrainRequirementRadii => Data.TargetTerrainRequirementRadii;
-    private int[] _targetTerrainRequirementMaximumExclusive => Data.TargetTerrainRequirementMaximumExclusive;
-    private int[] _triggerKindIds => Data.TriggerKindIds;
-    private int[] _bindingRefCodes => Data.BindingRefCodes;
-    private int[] _bindingKindIds => Data.BindingKindIds;
-    private int[] _bindingAdjacentToTarget => Data.BindingAdjacentToTarget;
-    private int[] _bindingCultureMatchCodes => Data.BindingCultureMatchCodes;
-    private int[] _bindingRequireTargetCultureRoute => Data.BindingRequireTargetCultureRoute;
-    private int[] _bindingSubtypeStarts => Data.BindingSubtypeStarts;
-    private int[] _bindingSubtypeCounts => Data.BindingSubtypeCounts;
-    private int[] _bindingWithoutOutgoingStarts => Data.BindingWithoutOutgoingStarts;
-    private int[] _bindingWithoutOutgoingCounts => Data.BindingWithoutOutgoingCounts;
-    private int[] _bindingWithoutIncomingStarts => Data.BindingWithoutIncomingStarts;
-    private int[] _bindingWithoutIncomingCounts => Data.BindingWithoutIncomingCounts;
-    private int[] _producedRefCodes => Data.ProducedRefCodes;
-    private int[] _producedKindIds => Data.ProducedKindIds;
-    private int[] _producedSubtypeIds => Data.ProducedSubtypeIds;
-    private int[] _producedCreateIfMissing => Data.ProducedCreateIfMissing;
-    private int[] _producedHasQuery => Data.ProducedHasQuery;
-    private int[] _producedPhysicalPlacementCodes => Data.ProducedPhysicalPlacementCodes;
-    private int[] _producedSemanticPlacementCodes => Data.ProducedSemanticPlacementCodes;
-    private int[] _producedPhysicalPlacementMinRadii => Data.ProducedPhysicalPlacementMinRadii;
-    private int[] _producedPhysicalPlacementMaxRadii => Data.ProducedPhysicalPlacementMaxRadii;
-    private int[] _producedSemanticPlacementMinRadii => Data.ProducedSemanticPlacementMinRadii;
-    private int[] _producedSemanticPlacementMaxRadii => Data.ProducedSemanticPlacementMaxRadii;
-    private int[] _producedPlacementPreferredTerrainStarts => Data.ProducedPlacementPreferredTerrainStarts;
-    private int[] _producedPlacementPreferredTerrainCounts => Data.ProducedPlacementPreferredTerrainCounts;
-    private int[] _producedPlacementAllowedTerrainStarts => Data.ProducedPlacementAllowedTerrainStarts;
-    private int[] _producedPlacementAllowedTerrainCounts => Data.ProducedPlacementAllowedTerrainCounts;
-    private int[] _producedPlacementAvoidedTerrainStarts => Data.ProducedPlacementAvoidedTerrainStarts;
-    private int[] _producedPlacementAvoidedTerrainCounts => Data.ProducedPlacementAvoidedTerrainCounts;
-    private int[] _producedPlacementFallbackTerrainIds => Data.ProducedPlacementFallbackTerrainIds;
-    private int[] _producedPlacementRefCodes => Data.ProducedPlacementRefCodes;
-    private int[] _producedCultureRefCodes => Data.ProducedCultureRefCodes;
-    private int[] _producedFixedCultureIds => Data.ProducedFixedCultureIds;
-    private int[] _producedCulturePlacementCodes => Data.ProducedCulturePlacementCodes;
-    private int[] _producedFeatureKinds => Data.ProducedFeatureKinds;
-    private FixedScalar[] _producedCreateChances => Data.ProducedCreateChances;
-    private int[] _producedSubtypeChoiceStarts => Data.ProducedSubtypeChoiceStarts;
-    private int[] _producedSubtypeChoiceCounts => Data.ProducedSubtypeChoiceCounts;
-    private int[] _producedQuerySubtypeStarts => Data.ProducedQuerySubtypeStarts;
-    private int[] _producedQuerySubtypeCounts => Data.ProducedQuerySubtypeCounts;
-    private int[] _producedQueryAdjacentToTarget => Data.ProducedQueryAdjacentToTarget;
-    private int[] _producedQueryCultureMatchCodes => Data.ProducedQueryCultureMatchCodes;
-    private int[] _producedQueryRequireTargetCultureRoute => Data.ProducedQueryRequireTargetCultureRoute;
-    private int[] _producedQueryWithoutOutgoingStarts => Data.ProducedQueryWithoutOutgoingStarts;
-    private int[] _producedQueryWithoutOutgoingCounts => Data.ProducedQueryWithoutOutgoingCounts;
-    private int[] _producedQueryWithoutIncomingStarts => Data.ProducedQueryWithoutIncomingStarts;
-    private int[] _producedQueryWithoutIncomingCounts => Data.ProducedQueryWithoutIncomingCounts;
-    private int[] _producedCoverageModeCodes => Data.ProducedCoverageModeCodes;
-    private int[] _producedCoverageSourceRefCodes => Data.ProducedCoverageSourceRefCodes;
-    private int[] _producedCoverageDesiredCellCounts => Data.ProducedCoverageDesiredCellCounts;
-    private int[] _producedCoverageMinimumCellCounts => Data.ProducedCoverageMinimumCellCounts;
-    private int[] _producedCoverageMinimumSourceRemainingCellCounts => Data.ProducedCoverageMinimumSourceRemainingCellCounts;
-    private int[] _producedCoverageRespectTerrainBoundaries => Data.ProducedCoverageRespectTerrainBoundaries;
-    private int[] _producedCoverageTransformTerrainIds => Data.ProducedCoverageTransformTerrainIds;
-    private int[] _producedCoveragePreferredTerrainStarts => Data.ProducedCoveragePreferredTerrainStarts;
-    private int[] _producedCoveragePreferredTerrainCounts => Data.ProducedCoveragePreferredTerrainCounts;
-    private int[] _producedCoverageAllowedTerrainStarts => Data.ProducedCoverageAllowedTerrainStarts;
-    private int[] _producedCoverageAllowedTerrainCounts => Data.ProducedCoverageAllowedTerrainCounts;
-    private int[] _relationshipSourceRefCodes => Data.RelationshipSourceRefCodes;
-    private int[] _relationshipDestinationRefCodes => Data.RelationshipDestinationRefCodes;
-    private int[] _relationshipKindIds => Data.RelationshipKindIds;
-    private int[] _relationshipReplaceExistingOutgoing => Data.RelationshipReplaceExistingOutgoing;
-    private FixedScalar[] _relationshipStrengths => Data.RelationshipStrengths;
-    private int[] _effectTypeCodes => Data.EffectTypeCodes;
-    private int[] _effectRefOrKindIds => Data.EffectRefOrKindIds;
-    private int[] _effectInstanceSelectionCodes => Data.EffectInstanceSelectionCodes;
-    private int[] _effectOptionCodes => Data.EffectOptionCodes;
-    private int[] _effectPlaneCodes => Data.EffectPlaneCodes;
-    private int[] _effectRadii => Data.EffectRadii;
-    private int[] _effectMaxCellCounts => Data.EffectMaxCellCounts;
-    private int[] _effectPreferredTerrainStarts => Data.EffectPreferredTerrainStarts;
-    private int[] _effectPreferredTerrainCounts => Data.EffectPreferredTerrainCounts;
-    private int[] _effectAllowedTerrainStarts => Data.EffectAllowedTerrainStarts;
-    private int[] _effectAllowedTerrainCounts => Data.EffectAllowedTerrainCounts;
-    private FixedScalar[] _effectValues => Data.EffectValues;
-    private int[] _scratchQ => _scratch.Q;
-    private int[] _scratchR => _scratch.R;
-    private int[] _scratchScore => _scratch.Score;
-    private int[] _scratchVisitedQ => _scratch.VisitedQ;
-    private int[] _scratchVisitedR => _scratch.VisitedR;
-    private int[] _scratchClaimedQ => _scratch.ClaimedQ;
-    private int[] _scratchClaimedR => _scratch.ClaimedR;
-    private int[] _scratchConnectivityQ => _scratch.ConnectivityQ;
-    private int[] _scratchConnectivityR => _scratch.ConnectivityR;
-    private int[] _scratchConnectivityQueueQ => _scratch.ConnectivityQueueQ;
-    private int[] _scratchConnectivityQueueR => _scratch.ConnectivityQueueR;
-    private int[] _refCodes => _scratch.RefCodes;
-    private int[] _refEntityIds => _scratch.RefEntityIds;
-    private int[] _createdEntityIds => _scratch.CreatedEntityIds;
-    private int[] _retryRejectedTargetIds => _scratch.RetryRejectedTargetIds;
-    private int[] _plannedProducedSlots => _scratch.PlannedProducedSlots;
-    private int[] _plannedSubtypeIds => _scratch.PlannedSubtypeIds;
-    private int[] _plannedCultureIds => _scratch.PlannedCultureIds;
-    private int[] _plannedSpawnPhysicalQ => _scratch.PlannedSpawnPhysicalQ;
-    private int[] _plannedSpawnPhysicalR => _scratch.PlannedSpawnPhysicalR;
-    private int[] _plannedFinalPhysicalQ => _scratch.PlannedFinalPhysicalQ;
-    private int[] _plannedFinalPhysicalR => _scratch.PlannedFinalPhysicalR;
-    private int[] _plannedSemanticQ => _scratch.PlannedSemanticQ;
-    private int[] _plannedSemanticR => _scratch.PlannedSemanticR;
-    private int[] _plannedCoverageStarts => _scratch.PlannedCoverageStarts;
-    private int[] _plannedCoverageCounts => _scratch.PlannedCoverageCounts;
-    private int[] _plannedCoverageCellQ => _scratch.PlannedCoverageCellQ;
-    private int[] _plannedCoverageCellR => _scratch.PlannedCoverageCellR;
-    private ref int _generatorCount => ref Data.GeneratorCount;
-    private ref int _subtypeCount => ref Data.SubtypeCount;
-    private ref int _relationshipKindFilterCount => ref Data.RelationshipKindFilterCount;
-    private ref int _terrainFilterCount => ref Data.TerrainFilterCount;
-    private ref int _targetTerrainRequirementCount => ref Data.TargetTerrainRequirementCount;
-    private ref int _triggerCount => ref Data.TriggerCount;
-    private ref int _bindingCount => ref Data.BindingCount;
-    private ref int _producedCount => ref Data.ProducedCount;
-    private ref int _relationshipCount => ref Data.RelationshipCount;
-    private ref int _effectCount => ref Data.EffectCount;
-    private ref int _openGeneratorSlot => ref Data.OpenGeneratorSlot;
-    private ref int _openBindingSlot => ref Data.OpenBindingSlot;
-    private ref int _openProducedSlot => ref Data.OpenProducedSlot;
-    private ref int _openEffectSlot => ref Data.OpenEffectSlot;
+    private readonly GeneratorProgramScratch[] _scratchByWorker;
+    private GeneratorProgramScratch _scratch =>
+        _scratchByWorker[KernelWorkerThread.WorkerIndex];
+    private GeneratorProgramScratch SharedScratch => _scratchByWorker[0];
+    private bool _evaluatingGeneratorSlots;
 
     public GeneratorProgramRuntime(GeneratorProgramData data, GeneratorProgramState state)
         : this(data, state, CreateScratch(data), new KernelProgramTuningOptions())
@@ -219,7 +28,7 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         GeneratorProgramData data,
         GeneratorProgramState state,
         GeneratorProgramScratch scratch)
-        : this(data, state, scratch, new KernelProgramTuningOptions())
+        : this(data, state, scratch, new KernelProgramTuningOptions(), workerCount: 1)
     {
     }
 
@@ -228,11 +37,22 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         GeneratorProgramState state,
         GeneratorProgramScratch scratch,
         KernelProgramTuningOptions tuning)
+        : this(data, state, scratch, tuning, workerCount: 1)
+    {
+    }
+
+    internal GeneratorProgramRuntime(
+        GeneratorProgramData data,
+        GeneratorProgramState state,
+        GeneratorProgramScratch scratch,
+        KernelProgramTuningOptions tuning,
+        int workerCount)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
         global::System.ArgumentNullException.ThrowIfNull(scratch);
         global::System.ArgumentNullException.ThrowIfNull(tuning);
+        NumericGuard.ThrowIfNegativeOrZero(workerCount);
         if (tuning.Generators.FireWindowTicks <= 0 || tuning.Generators.FiresPerWindow < 0)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(tuning));
@@ -243,7 +63,13 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
         _provinceCoveredCounts = new int[state.ProvinceSrIds.Length];
         _provinceKnownCounts = new int[state.ProvinceSrIds.Length];
         State = state;
-        _scratch = scratch;
+        _scratchByWorker = new GeneratorProgramScratch[workerCount];
+        _scratchByWorker[0] = scratch;
+        for (var workerIndex = 1; workerIndex < workerCount; workerIndex++)
+        {
+            _scratchByWorker[workerIndex] = scratch.CreatePeer();
+        }
+
         Tuning = tuning;
     }
 
@@ -525,6 +351,11 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
+        if (!simulation.IsCollectingStrategicIntents)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
         TickCadenceGenerators(simulation, tick);
         if (tick <= 0)
         {
@@ -708,10 +539,47 @@ internal sealed partial class GeneratorProgramRuntime : IKernelProgramRuntime<Ge
             }
 
             anyEvaluated = true;
-            EvaluateGenerator(simulation, slot);
+        }
+
+        if (!anyEvaluated)
+        {
+            return false;
+        }
+
+        _evaluatingGeneratorSlots = true;
+        try
+        {
+            simulation.ExecuteOwnerWork(this, _generatorCount);
+        }
+        finally
+        {
+            _evaluatingGeneratorSlots = false;
         }
 
         return anyEvaluated;
+    }
+
+    void IKernelOwnerWork.ExecuteOwner(
+        Simulation simulation,
+        int ownerIndex,
+        int ownerCount)
+    {
+        if (!_evaluatingGeneratorSlots)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        var start = 1 + (int)((long)_generatorCount * ownerIndex / ownerCount);
+        var end = 1 + (int)((long)_generatorCount * (ownerIndex + 1) / ownerCount);
+        for (var slot = start; slot < end; slot++)
+        {
+            if (_enabled[slot] &&
+                simulation.CurrentTick > 0 &&
+                _cadenceTicks[slot] == 0)
+            {
+                EvaluateGenerator(simulation, slot);
+            }
+        }
     }
 
     private bool TryFireEligibleGenerator(Simulation simulation, int selectedGeneratorSlot, int tick)

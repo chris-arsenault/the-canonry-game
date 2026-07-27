@@ -76,7 +76,7 @@ internal sealed partial class WorldState
         _mapLayers.AddTotalRawCultureInfluence(cellId, applied);
         if (planeCode == PlaneCodes.Physical)
         {
-            AddCheckedAtomic(ref _totalPhysicalCultureRawMass, applied);
+            AccumulatePhysicalCultureRawMass(applied);
         }
 
         MarkCultureFieldDirty(cultureId);
@@ -157,29 +157,25 @@ internal sealed partial class WorldState
             cellId);
     }
 
-    private void AddCheckedAtomic(ref long target, int delta)
+    private void AccumulatePhysicalCultureRawMass(int delta)
     {
         if (_singleWorker)
         {
-            target = checked(target + delta);
+            _totalPhysicalCultureRawMass = checked(
+                _totalPhysicalCultureRawMass + delta);
             return;
         }
 
-        var current = global::System.Threading.Volatile.Read(ref target);
-        while (true)
+        var worker = KernelWorkerThread.Current;
+        if (worker is null)
         {
-            var next = checked(current + delta);
-            var observed =
-                global::System.Threading.Interlocked.CompareExchange(
-                    ref target,
-                    next,
-                    current);
-            if (observed == current)
-            {
-                return;
-            }
-
-            current = observed;
+            _totalPhysicalCultureRawMass = checked(
+                _totalPhysicalCultureRawMass + delta);
+            return;
         }
+
+        var workerIndex = worker.WorkerIndex;
+        _ownedPhysicalCultureMassDeltas[workerIndex] = checked(
+            _ownedPhysicalCultureMassDeltas[workerIndex] + delta);
     }
 }

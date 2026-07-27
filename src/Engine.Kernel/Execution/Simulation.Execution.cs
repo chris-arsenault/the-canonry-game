@@ -8,6 +8,8 @@ internal sealed partial class Simulation
     internal long PhaseRevision => _phaseRevision;
     internal int CurrentPhaseCode => _currentPhaseCode;
     internal bool IsCollectingDeltas => _collectingDeltas;
+    internal bool IsCollectingStrategicIntents =>
+        _collectingStrategicIntents;
 
     internal int FrozenEntityCount =>
         _collectingDeltas ? _frozenTick.EntityCount : World.ActiveEntityCount;
@@ -37,7 +39,7 @@ internal sealed partial class Simulation
             return false;
         }
 
-        var occurrence = World.EntityOccurrenceHandle(entityId);
+        var occurrence = World.EntityOccurrenceHandleForIntent(entityId);
         _tickDeltas.AddMovement(new MovementDelta(
             occurrence,
             planeCode,
@@ -46,7 +48,9 @@ internal sealed partial class Simulation
             z,
             causeCode,
             MovementPriority(causeCode),
-            DeltaSourceKey(occurrence, planeCode),
+            StrategicIntentOrderOrSourceKey(
+                occurrence,
+                planeCode),
             ExecutionContext));
         return true;
     }
@@ -59,7 +63,7 @@ internal sealed partial class Simulation
             return;
         }
 
-        var occurrence = World.EntityOccurrenceHandle(entityId);
+        var occurrence = World.EntityOccurrenceHandleForIntent(entityId);
         _tickDeltas.AddLifecycle(new LifecycleDelta(
             occurrence,
             0,
@@ -83,7 +87,7 @@ internal sealed partial class Simulation
             return;
         }
 
-        var occurrence = World.EntityOccurrenceHandle(entityId);
+        var occurrence = World.EntityOccurrenceHandleForIntent(entityId);
         _tickDeltas.AddLifecycle(new LifecycleDelta(
             occurrence,
             attributeId,
@@ -135,6 +139,23 @@ internal sealed partial class Simulation
         }
     }
 
+    internal long StrategicIntentOrderOrSourceKey(
+        int occurrenceHandle,
+        int discriminator) =>
+        _collectingStrategicIntents
+            ? NextStrategicIntentOrder()
+            : DeltaSourceKey(occurrenceHandle, discriminator);
+
+    internal long NextStrategicIntentOrder()
+    {
+        if (!_collectingStrategicIntents)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        return ++_strategicIntentOrder;
+    }
+
     private static int MovementPriority(int causeCode) => causeCode switch
     {
         MovementCauseCodes.Forced or MovementCauseCodes.Relocation => 3,
@@ -172,7 +193,15 @@ internal sealed partial class Simulation
         _tickDeltas.Clear();
         _collectingDeltas = true;
         _eventPublisher.BeginPhase(TickPhaseCodes.EvaluateLocal);
-        TickSystems(TickPhaseCodes.EvaluateLocal);
+        if (_workers.WorkerCount == 1)
+        {
+            TickSystems(TickPhaseCodes.EvaluateLocal);
+        }
+        else
+        {
+            ExecuteLocalEvaluationBatch();
+        }
+
         _collectingDeltas = false;
         if (WorldVersion != _frozenTick.WorldVersion)
         {
@@ -203,12 +232,60 @@ internal sealed partial class Simulation
     private void RunStrategicAndPublishPhases()
     {
         BeginPublishedPhase(TickPhaseCodes.Strategic);
-        TickSystems(TickPhaseCodes.Strategic);
+        TickStrategicSystems();
         CompletePublishedPhase(TickPhaseCodes.Strategic);
 
         BeginPublishedPhase(TickPhaseCodes.Publish);
         WriteTickCompleted();
         CompletePublishedPhase(TickPhaseCodes.Publish);
+    }
+
+    private void TickStrategicSystems()
+    {
+        for (var systemIndex = 0; systemIndex < _systemCount; systemIndex++)
+        {
+            if (!_systemActive[systemIndex] ||
+                _systemPhaseCodes[systemIndex] != TickPhaseCodes.Strategic ||
+                CurrentTick % _systemCadences[systemIndex] != 0)
+            {
+                continue;
+            }
+
+            if (_systems[systemIndex] is IStrategicIntentProgram)
+            {
+                RunStrategicIntentEpoch(systemIndex);
+                continue;
+            }
+
+            TickSystem(systemIndex);
+        }
+    }
+
+    private void RunStrategicIntentEpoch(int systemIndex)
+    {
+        _frozenTick.Capture(World, CurrentTick);
+        _tickDeltas.Clear();
+        _strategicIntentOrder = 0;
+        _collectingStrategicIntents = true;
+        _collectingDeltas = true;
+        try
+        {
+            TickSystem(systemIndex);
+        }
+        finally
+        {
+            _collectingDeltas = false;
+            _collectingStrategicIntents = false;
+        }
+        if (WorldVersion != _frozenTick.WorldVersion)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _tickDeltas.Resolve(
+            this,
+            Options.Execution.ReverseDeltaInsertionOrder,
+            Options.Execution.LogicalShardCount);
     }
 
     internal int RandomInt(
@@ -273,6 +350,179 @@ internal sealed partial class Simulation
             TickSystem(i);
         }
     }
+
+    private void ExecuteLocalEvaluationBatch()
+    {
+        var activeWorkerCount = PrepareLocalEvaluationBatch();
+        _workers.ExecuteWorkerWork(
+            this,
+            this,
+            activeWorkerCount,
+            ExecutionContext);
+        CompleteLocalEvaluationBatch();
+    }
+
+    private int PrepareLocalEvaluationBatch()
+    {
+        var activeWorkerCount = 1;
+        global::System.Array.Clear(
+            _systemRangeWorkerCounts,
+            0,
+            _systemCount);
+        for (var systemIndex = 0;
+             systemIndex < _systemCount;
+             systemIndex++)
+        {
+            if (!SystemIsDue(systemIndex, TickPhaseCodes.EvaluateLocal) ||
+                _systems[systemIndex] is not
+                    ILocalEvaluationRangeProgram rangeProgram)
+            {
+                continue;
+            }
+
+            var totalCount = _frozenTick.CountFor(
+                rangeProgram.RangeKindCode);
+            if (totalCount == 0)
+            {
+                continue;
+            }
+
+            var rangeWorkerCount =
+                rangeProgram.SupportsConcurrentRanges(this)
+                    ? global::System.Math.Min(
+                        _workers.WorkerCount,
+                        totalCount)
+                    : 1;
+            _systemRangeWorkerCounts[systemIndex] =
+                rangeWorkerCount;
+            activeWorkerCount = global::System.Math.Max(
+                activeWorkerCount,
+                rangeWorkerCount);
+        }
+
+        return activeWorkerCount;
+    }
+
+    void IKernelWorkerWork.ExecuteWorker(
+        Simulation simulation,
+        int workerIndex,
+        int workerCount)
+    {
+        if (!global::System.Object.ReferenceEquals(simulation, this))
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        for (var systemIndex = 0;
+             systemIndex < _systemCount;
+             systemIndex++)
+        {
+            if (!SystemIsDue(
+                    systemIndex,
+                    TickPhaseCodes.EvaluateLocal))
+            {
+                continue;
+            }
+
+            var system = _systems[systemIndex] ??
+                throw new global::System.InvalidOperationException();
+            if (system is not
+                ILocalEvaluationRangeProgram rangeProgram)
+            {
+                if (workerIndex == 0)
+                {
+                    TickSystem(systemIndex);
+                }
+
+                continue;
+            }
+
+            var rangeWorkerCount =
+                _systemRangeWorkerCounts[systemIndex];
+            if (rangeWorkerCount == 0 ||
+                workerIndex >= rangeWorkerCount)
+            {
+                continue;
+            }
+
+            EvaluateLocalRange(
+                systemIndex,
+                rangeProgram,
+                workerIndex,
+                rangeWorkerCount);
+        }
+    }
+
+    private void EvaluateLocalRange(
+        int systemIndex,
+        ILocalEvaluationRangeProgram rangeProgram,
+        int workerIndex,
+        int workerCount)
+    {
+        var totalCount = _frozenTick.CountFor(
+            rangeProgram.RangeKindCode);
+        var start = (int)((long)totalCount *
+            workerIndex / workerCount);
+        var end = (int)((long)totalCount *
+            (workerIndex + 1) / workerCount);
+        if (_systemSourceCodeIds[systemIndex] <= 0)
+        {
+            rangeProgram.EvaluateRange(
+                this,
+                CurrentTick,
+                _frozenTick.Range(
+                    rangeProgram.RangeKindCode,
+                    start,
+                    end - start,
+                    Options.Execution.ReverseEvaluationOrder));
+            return;
+        }
+
+        using var scope = EnterExecutionContext(
+            _systemSourceCodeIds[systemIndex],
+            _systemProgramIds[systemIndex]);
+        rangeProgram.EvaluateRange(
+            this,
+            CurrentTick,
+            _frozenTick.Range(
+                rangeProgram.RangeKindCode,
+                start,
+                end - start,
+                Options.Execution.ReverseEvaluationOrder));
+    }
+
+    private void CompleteLocalEvaluationBatch()
+    {
+        for (var systemIndex = 0;
+             systemIndex < _systemCount;
+             systemIndex++)
+        {
+            if (!SystemIsDue(
+                    systemIndex,
+                    TickPhaseCodes.EvaluateLocal) ||
+                _systems[systemIndex] is not
+                    ILocalEvaluationRangeProgram rangeProgram)
+            {
+                continue;
+            }
+
+            if (_systemSourceCodeIds[systemIndex] <= 0)
+            {
+                rangeProgram.CompleteRanges(this, CurrentTick);
+                continue;
+            }
+
+            using var scope = EnterExecutionContext(
+                _systemSourceCodeIds[systemIndex],
+                _systemProgramIds[systemIndex]);
+            rangeProgram.CompleteRanges(this, CurrentTick);
+        }
+    }
+
+    private bool SystemIsDue(int systemIndex, int phaseCode) =>
+        _systemActive[systemIndex] &&
+        _systemPhaseCodes[systemIndex] == phaseCode &&
+        CurrentTick % _systemCadences[systemIndex] == 0;
 
     private void TickSystem(int systemIndex)
     {

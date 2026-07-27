@@ -143,6 +143,26 @@ internal sealed partial class WorldState
         _entityCreatedByInvocationId[entityId] = context.ProvenanceInvocationId;
     }
 
+    internal void ReserveProvenanceOutput(
+        in KernelExecutionContext context)
+    {
+        if (context.ProvenanceInvocationId > 0)
+        {
+            NoteProvenanceOutput(context.ProvenanceInvocationId);
+        }
+    }
+
+    private void RecordReservedProvenanceEntityCreated(
+        int entityId,
+        in KernelExecutionContext context)
+    {
+        if (context.ProvenanceInvocationId > 0)
+        {
+            _entityCreatedByInvocationId[entityId] =
+                context.ProvenanceInvocationId;
+        }
+    }
+
     private void RecordProvenanceRelationshipCreated(
         int relationshipId,
         in KernelExecutionContext context)
@@ -156,6 +176,21 @@ internal sealed partial class WorldState
         NoteProvenanceOutput(context.ProvenanceInvocationId);
         _relationshipCreatedByInvocationId[relationshipId] = context.ProvenanceInvocationId;
         _relationshipLastChangedByInvocationId[relationshipId] = context.ProvenanceInvocationId;
+    }
+
+    private void RecordReservedProvenanceRelationshipCreated(
+        int relationshipId,
+        in KernelExecutionContext context)
+    {
+        if (context.ProvenanceInvocationId == 0)
+        {
+            return;
+        }
+
+        _relationshipCreatedByInvocationId[relationshipId] =
+            context.ProvenanceInvocationId;
+        _relationshipLastChangedByInvocationId[relationshipId] =
+            context.ProvenanceInvocationId;
     }
 
     private void NoteProvenanceOutput(int invocationId)

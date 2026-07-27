@@ -21,13 +21,14 @@ engine toward these rules and must not introduce avoidable new violations.
 
 Every mutable destination has one exclusive owner for a published phase.
 
-The coordinator owns admission, owner preparation, structural reconciliation,
-strategic mutation, and publication. Fixed workers may mutate only the disjoint
-program-local or world-state destinations assigned to their evaluation range or
-owner range, and may append only through their bounded worker arena. Effects
-that cross those owners remain primitive deltas until their typed owner reduces
-them at a barrier. Uncoordinated threads may consume primitive snapshots or
-event records, but may not read or mutate live kernel state.
+The coordinator owns admission, owner preparation, strategic selection,
+cross-owner structural reconciliation, and publication. Fixed workers may
+mutate only the disjoint program-local or world-state destinations assigned to
+their evaluation range or owner range, and may append only through their
+bounded worker arena. Effects that cross those owners remain primitive deltas
+until their typed owner reduces them at a barrier. Uncoordinated threads may
+consume primitive snapshots or event records, but may not read or mutate live
+kernel state.
 
 ## Architectural Enforcement Direction
 
@@ -230,8 +231,19 @@ The current scheduler is bulk-synchronous. A coordinator admits commands,
 prepares local inputs, freezes the active entity and relationship views,
 dispatches eligible local programs over fixed worker ranges, joins all workers,
 resolves typed deltas by destination, runs strategic programs, and publishes
-the tick. Local semantic events are phase-buffered and deterministically sorted
-before they enter the event log.
+the tick. Gambits and generators use the same frozen evaluate, typed route,
+owner apply, and coordinator reconciliation contract inside their strategic
+registration positions. Semantic events are phase-buffered and
+deterministically sorted before they enter the event log.
+
+Configured multi-worker evaluation coalesces the due local range programs into
+one dispatch. Destination application coalesces only mutually compatible owner
+families. Entity creation, spatial state, primary state, dependent secondary
+state, and final relationship/tag/entity state remain separate batches because
+coordinator reconciliation or ordered writes connect them. This is deliberate
+dependency structure, not permission to restore one barrier per small family.
+Worker-local revision and aggregate counters publish after an owner batch; hot
+owner loops must not contend on shared change-notification atomics.
 
 Additive deltas sum in a wide intermediate before the destination clamp.
 Competing absolute writes use an explicit priority and stable logical source
@@ -286,6 +298,19 @@ queue:
   reduction values; and
 - worker event arenas publish only after deterministic compaction and sort.
 
+The strategic-owner batch extends that topology without creating a second
+mutation model:
+
+- gambit actors evaluate over frozen entity ranges with worker-local scratch;
+- generator definitions score over disjoint worker ranges;
+- entity and relationship slots are reserved in deterministic coordinator
+  blocks before structural intents are published;
+- absolute entity and relationship writes, cell terrain/coverage, travel
+  structures, structural slot records, and their primitive events route to
+  typed owners; and
+- active vectors, graph endpoints, spatial membership, districts, and other
+  cross-owner indexes reconcile on the coordinator after the owner barrier.
+
 Coordinator barriers prepare storage that cannot be allocated concurrently and
 reconcile cross-owner structures afterward. Movement detaches and reattaches
 spatial membership around entity-owned coordinate writes. Coverage reverse
@@ -309,7 +334,9 @@ only. Relationship and gambit interactions are too nonlocal, and geographic
 entity load is too skewed, for persistent spatial actors to be the primary
 scheduler. The implementation must use the same range/owner paths at one worker;
 the current implementation does so and may not grow separate serial and
-parallel simulation models.
+parallel simulation models. Worker one may bypass thread dispatch and preserve
+registration-order `CompleteRanges` timing as a fast lane around those same
+program and reduction implementations.
 
 Every parallel phase must give each mutable slot, relationship, or cell one
 exclusive owner for that phase. Cross-owner effects travel as bounded primitive
@@ -348,10 +375,10 @@ Disallowed off-thread work:
 The fixed kernel workers may receive live kernel references only while the
 coordinator has frozen the phase and will join those workers before mutation
 advances. All data that escapes that synchronous phase must be primitive,
-immutable, and versioned. Typed world deltas route to an exclusive owner inside
-that synchronous phase; structural reconciliation and strategic mutation occur
-only after the owner barrier while preserving the same version, legality, and
-reduction contract.
+immutable, and versioned. Typed world deltas and strategic intents route to an
+exclusive owner inside that synchronous phase; cross-owner structural
+reconciliation occurs only after the owner barrier while preserving the same
+version, legality, and reduction contract.
 
 Async work belongs on the consumer side of the primitive event boundary. UI,
 logs, telemetry, profiler analysis, Monte Carlo export, debug trace building,

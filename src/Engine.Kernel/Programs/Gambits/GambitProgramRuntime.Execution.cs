@@ -100,7 +100,7 @@ internal sealed partial class GambitProgramRuntime
             return false;
         }
 
-        _ = simulation.World.IncreaseEntityWorkTier(entityId, _stepA[step]);
+        _ = simulation.IncreaseEntityWorkTier(entityId, _stepA[step]);
         return true;
     }
 
@@ -221,33 +221,98 @@ internal sealed partial class GambitProgramRuntime
         int step,
         int operationCode)
     {
-        return operationCode switch
+        if (!simulation.IsCollectingDeltas)
         {
-            BehaviorOperationCodes.InstallDistrict =>
-                InstallDistrict(simulation, world, entityId, targetId, step),
-            BehaviorOperationCodes.ReawakenDistrict =>
-                ReawakenDistrict(simulation, world, entityId),
-            _ => false,
-        };
+            throw new global::System.InvalidOperationException();
+        }
+
+        var reservedEntityId = 0;
+        var reservedRelationshipId = 0;
+        if (operationCode == BehaviorOperationCodes.ReawakenDistrict &&
+            world.TryPeekNewestDistrictOf(entityId, out _))
+        {
+            reservedEntityId = simulation.ReserveStrategicEntityId();
+            reservedRelationshipId =
+                simulation.ReserveStrategicRelationshipId();
+            simulation.ReserveStrategicProvenanceOutputs(2);
+        }
+
+        var intent = new DistrictIntent(
+            operationCode == BehaviorOperationCodes.InstallDistrict
+                ? DistrictIntentCodes.Install
+                : DistrictIntentCodes.Reawaken,
+            world.EntityOccurrenceHandleForIntent(entityId),
+            world.EntityOccurrenceHandleForIntent(targetId),
+            _stepA[step],
+            _stepC[step],
+            _stepX[step].Units,
+            reservedEntityId,
+            reservedRelationshipId,
+            simulation.NextStrategicIntentOrder(),
+            simulation.ExecutionContext);
+        simulation.QueueDistrictIntent(intent);
+        return true;
     }
 
-    private bool InstallDistrict(Simulation simulation, WorldState world, int entityId, int targetId, int step)
+    internal DistrictResolution ResolveDistrictIntent(
+        Simulation simulation,
+        in DistrictIntent intent)
     {
-        if (!world.TryGetDistrictBonus(world.EntitySubtypeId(entityId), out var bonusKindCode, out var magnitude))
+        var world = simulation.World;
+        if (!world.TryResolveEntityOccurrence(
+                intent.EntityOccurrenceHandle,
+                out var entityId))
         {
-            return true;
+            ReleaseUnusedDistrictReservations(world, intent);
+            return default;
+        }
+
+        if (intent.OperationCode == DistrictIntentCodes.Reawaken)
+        {
+            return ResolveDistrictReawakening(
+                simulation,
+                world,
+                entityId,
+                intent);
+        }
+
+        return ResolveDistrictInstallation(
+            world,
+            entityId,
+            intent);
+    }
+
+    private static DistrictResolution ResolveDistrictInstallation(
+        WorldState world,
+        int entityId,
+        in DistrictIntent intent)
+    {
+        if (!world.TryResolveEntityOccurrence(
+                intent.TargetOccurrenceHandle,
+                out var targetId))
+        {
+            return default;
+        }
+
+        if (!world.TryGetDistrictBonus(
+                world.EntitySubtypeId(entityId),
+                out var bonusKindCode,
+                out var magnitude))
+        {
+            return default;
         }
 
         var capacity = world.StageDistrictCapacity(
-            world.StageRuleFor(world.EntityKindId(targetId), world.EntityWorkTier(targetId)));
+            world.StageRuleFor(
+                world.EntityKindId(targetId),
+                world.EntityWorkTier(targetId)));
         if (capacity > 0 && world.ActiveDistrictCount(targetId) >= capacity)
         {
-            return true;
+            return default;
         }
 
         var q = world.EntityPhysicalQ(entityId);
         var r = world.EntityPhysicalR(entityId);
-        KernelEffectExecutor.SetCoverageOwner(simulation, q, r, targetId);
         _ = world.InstallDistrict(
             world.EntityKindId(entityId),
             world.EntitySubtypeId(entityId),
@@ -257,37 +322,91 @@ internal sealed partial class GambitProgramRuntime
             r,
             bonusKindCode,
             magnitude,
-            _stepA[step],
-            _stepC[step],
-            _stepX[step]);
-        KernelEffectExecutor.SetEntityStatus(simulation, entityId, EntityStatusCodes.Historical);
-        return true;
+            intent.A,
+            intent.C,
+            FixedScalar.FromUnits(intent.XUnits));
+        return new DistrictResolution(
+            new StrategicCellStateIntent(
+                PlaneCodes.Physical,
+                q,
+                r,
+                TerrainId: 0,
+                OwnerEntityId: targetId,
+                intent.SourceKey,
+                intent.Context),
+            new EntityStateIntent(
+                intent.EntityOccurrenceHandle,
+                EntityStateIntentCodes.SetStatus,
+                EntityStatusCodes.Historical,
+                intent.SourceKey,
+                intent.Context),
+            default,
+            default);
     }
 
-    private static bool ReawakenDistrict(Simulation simulation, WorldState world, int entityId)
+    private static DistrictResolution ResolveDistrictReawakening(
+        Simulation simulation,
+        WorldState world,
+        int entityId,
+        in DistrictIntent intent)
     {
-        if (world.TryRemoveNewestDistrictOf(entityId, out var template))
+        if (!world.TryRemoveNewestDistrictOf(entityId, out var template))
         {
-            var artifactId = KernelEffectExecutor.CreateEntity(
-                simulation,
-                template.ArtifactKindId,
-                template.ArtifactSubtypeId,
-                template.ArtifactCultureId,
-                template.Q,
-                template.R,
-                world.EntitySemanticQ(entityId),
-                world.EntitySemanticR(entityId),
-                world.EntitySemanticS(entityId));
-            _ = KernelEffectExecutor.CreateRelationship(
-                simulation,
-                template.RelationshipKindId,
-                template.RelationshipPolarityCode,
-                artifactId,
-                entityId,
-                template.RelationshipStrength);
+            ReleaseUnusedDistrictReservations(world, intent);
+            return default;
         }
 
-        return true;
+        if (intent.ReservedEntityId <= 0 ||
+            intent.ReservedRelationshipId <= 0)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        var entityCreation = new EntityCreationIntent(
+            intent.ReservedEntityId,
+            template.ArtifactKindId,
+            template.ArtifactSubtypeId,
+            template.ArtifactCultureId,
+            template.Q,
+            template.R,
+            world.EntitySemanticQ(entityId),
+            world.EntitySemanticR(entityId),
+            world.EntitySemanticS(entityId),
+            intent.SourceKey,
+            intent.Context);
+        var relationshipCreation = new RelationshipCreationIntent(
+            intent.ReservedRelationshipId,
+            template.RelationshipKindId,
+            template.RelationshipPolarityCode,
+            intent.ReservedEntityId,
+            entityId,
+            KernelFixedPoint.RelationshipStrengthUnits(
+                template.RelationshipStrength),
+            intent.SourceKey,
+            intent.Context);
+        _ = simulation;
+        return new DistrictResolution(
+            default,
+            default,
+            entityCreation,
+            relationshipCreation);
+    }
+
+    private static void ReleaseUnusedDistrictReservations(
+        WorldState world,
+        in DistrictIntent intent)
+    {
+        if (intent.ReservedEntityId > 0)
+        {
+            world.ReleaseUnusedReservedEntitySlot(
+                intent.ReservedEntityId);
+        }
+
+        if (intent.ReservedRelationshipId > 0)
+        {
+            world.ReleaseUnusedReservedRelationshipSlot(
+                intent.ReservedRelationshipId);
+        }
     }
 
     private bool ExecuteEntityStep(Simulation simulation, WorldState world, int entityId, int targetId, int tick, int step, int operationCode)
@@ -298,7 +417,7 @@ internal sealed partial class GambitProgramRuntime
             case BehaviorOperationCodes.ReawakenDistrict:
                 return ExecuteDistrictStep(simulation, world, entityId, targetId, step, operationCode);
             case BehaviorOperationCodes.DemoteStage:
-                _ = world.DecreaseEntityWorkTier(
+                _ = simulation.DecreaseEntityWorkTier(
                     EndpointEntityId(entityId, targetId, _stepB[step]));
                 return true;
             case BehaviorOperationCodes.SetStatus:
@@ -388,8 +507,7 @@ internal sealed partial class GambitProgramRuntime
 
         if (distance == 0)
         {
-            simulation.Movement.SetTravelStructure(
-                simulation,
+            simulation.SetTravelStructure(
                 planeCode,
                 startQ,
                 startR,
@@ -401,8 +519,7 @@ internal sealed partial class GambitProgramRuntime
         for (var index = 0; index <= distance; index++)
         {
             CubeLineCoordinate(startQ, startR, targetQ, targetR, index, distance, out var q, out var r);
-            simulation.Movement.SetTravelStructure(
-                simulation,
+            simulation.SetTravelStructure(
                 planeCode,
                 q,
                 r,

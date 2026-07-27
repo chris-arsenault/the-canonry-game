@@ -219,3 +219,50 @@ The internal four-worker run
 public worker wiring must remain closed until dispatch regions are coalesced and
 the complete worker-count matrix passes. Compare process-wide throughput, not
 worker-loop time, and record host-load rejection causes with `append-stats`.
+
+## Batch E Worker-Count Gate
+
+Batch E wired `MC_WORKERS` through every canonical Monte Carlo and kernel-profile
+target and used the seed-4200 pre-rendered world. Full kernel snapshots are
+byte-identical at 1, 2, 4, 8, and 16 workers in the durable epoch invariance
+test. This establishes determinism, not speed.
+
+The first 1,000-tick screen measured `7.849`, `11.555`, `13.105`, and
+`14.744 ms/tick` at 1, 2, 4, and 8 workers respectively. The corresponding
+registered run ids are:
+
+- `parallel-batch-e-screen-1w-1x1000-20260726a`;
+- `parallel-batch-e-screen-2w-1x1000-20260726a`;
+- `parallel-batch-e-screen-4w-1x1000-20260726a`; and
+- `parallel-batch-e-screen-8w-1x1000-20260726a`.
+
+Coalescing owner families into dependency-preserving batches and replacing
+shared culture revision/mass atomics with worker-local reduction improved the
+eight-worker short result to `13.071 ms/tick` in
+`parallel-batch-e-atomic-free-screen-8w-1x1000-20260726a`. It still delivered
+only `0.60x` the initial worker-one throughput instead of the required `4.5x`.
+An arena-padding experiment did not help and was reverted; its negative run is
+`parallel-batch-e-padded-arena-screen-8w-1x1000-20260726a`.
+
+The post-coalescing trace
+`parallel-batch-e-coalesced-profile-8w-1x1000-20260726a` puts owner batches at
+`0.70%` inclusive sampled thread time, delta resolution at `0.81%`,
+deterministic sorting at `0.39%`, and event publication at `1.05%`. Worker
+sleep/wake and joins dominate: `KernelWorker.Run` is `41.66%` exclusive, the
+two `Monitor.Wait` forms are `10.14%` and `5.28%` exclusive,
+`WaitForWorkers` is `3.95%` inclusive, and `KernelWorker.Start` is `1.17%`
+exclusive. Observed RSS was about `460 MB`.
+
+Cross-program local coalescing also failed the worker-one gate. Its registered
+5,000-tick pair averaged `15.260 ms/tick`, versus Batch D's
+`13.409 ms/tick` mean. Direct registration-order worker-one dispatch was
+restored through the same evaluators and reducers; the next registered run,
+`parallel-batch-e-worker1-restored-1x5000-20260726a`, measured
+`14.770 ms/tick` on a busier host and still did not establish a passing paired
+gate.
+
+The Batch E candidate is therefore rejected. Do not quote a 16-worker result:
+none was run. The 10,000-, 25,000-, and 100,000-tick escalations were also
+stopped as required. Any next parallel design must first reduce dispatch/join
+frequency or move a materially larger independent unit of work behind each
+boundary; adding workers to the current synchronous tick is not evidence-backed.

@@ -11,6 +11,19 @@ internal sealed partial class TickDeltaBuffer : IKernelOwnerWork
     private const int CultureOwnerStage = 6;
     private const int CultureReductionOwnerStage = 7;
     private const int InfluenceCreditOwnerStage = 8;
+    private const int AttributeSetOwnerStage = 9;
+    private const int RelationshipSetOwnerStage = 10;
+    private const int StrategicCellOwnerStage = 11;
+    private const int EntityWorkTierOwnerStage = 12;
+    private const int EntityCreationOwnerStage = 13;
+    private const int RelationshipCreationOwnerStage = 14;
+    private const int TravelStructureOwnerStage = 15;
+    private const int NoOwnerBatch = 0;
+    private const int EntityCreationOwnerBatch = 1;
+    private const int SpatialOwnerBatch = 2;
+    private const int PrimaryStateOwnerBatch = 3;
+    private const int SecondaryStateOwnerBatch = 4;
+    private const int FinalStateOwnerBatch = 5;
 
     private readonly MovementDelta[] _movements;
     private readonly AttributeDelta[] _attributes;
@@ -58,6 +71,7 @@ internal sealed partial class TickDeltaBuffer : IKernelOwnerWork
     private int _resolvedCultureReductionGroupCount;
     private int _influenceCreditCount;
     private int _ownerStage;
+    private int _ownerBatch;
 
     public TickDeltaBuffer(SimulationOptions options)
     {
@@ -89,6 +103,7 @@ internal sealed partial class TickDeltaBuffer : IKernelOwnerWork
         _lifecycleArena = new DeltaAppendArena<LifecycleDelta>(
             options.EntityCapacity,
             options.Execution.WorkerCount);
+        InitializeStrategicStorage(options);
         _movements = _movementArena.Values;
         _attributes = _attributeArena.Values;
         _culture = _cultureArena.Values;
@@ -126,7 +141,8 @@ internal sealed partial class TickDeltaBuffer : IKernelOwnerWork
         _relationshipEndArena.Count +
         _tagArena.Count +
         _cellStateArena.Count +
-        _lifecycleArena.Count;
+        _lifecycleArena.Count +
+        StrategicCount;
 
     public void Clear()
     {
@@ -139,6 +155,7 @@ internal sealed partial class TickDeltaBuffer : IKernelOwnerWork
         _tagArena.Clear();
         _cellStateArena.Clear();
         _lifecycleArena.Clear();
+        ClearStrategicStorage();
         _cultureStorageArena.Clear();
         _movementCount = 0;
         _attributeCount = 0;
@@ -191,6 +208,7 @@ internal sealed partial class TickDeltaBuffer : IKernelOwnerWork
         _tagCount = _tagArena.Compact();
         _cellStateCount = _cellStateArena.Compact();
         _lifecycleCount = _lifecycleArena.Compact();
+        CompactStrategicStorage();
 
         Prepare(_movements, _movementCount, reverseInsertionOrder);
         Prepare(_cellStates, _cellStateCount, reverseInsertionOrder);
@@ -201,52 +219,9 @@ internal sealed partial class TickDeltaBuffer : IKernelOwnerWork
         Prepare(_relationshipEnds, _relationshipEndCount, reverseInsertionOrder);
         Prepare(_tags, _tagCount, reverseInsertionOrder);
         Prepare(_lifecycles, _lifecycleCount, reverseInsertionOrder);
+        PrepareStrategicStorage(reverseInsertionOrder);
 
-        ResolveMovements(simulation);
-        ResolveCellStates(simulation);
-        ExecuteOwnerStage(simulation, AttributeOwnerStage, _attributeCount);
-        ResolveCulture(simulation);
-        ResolveCultureReductions(simulation);
-        ExecuteOwnerStage(simulation, RelationshipOwnerStage, _relationshipCount);
-        ResolveRelationshipEnds(simulation);
-        ExecuteOwnerStage(simulation, TagOwnerStage, _tagCount);
-        ResolveLifecycles(simulation);
-    }
-
-    void IKernelOwnerWork.ExecuteOwner(
-        Simulation simulation,
-        int ownerIndex,
-        int ownerCount)
-    {
-        switch (_ownerStage)
-        {
-            case AttributeOwnerStage:
-                ResolveAttributeOwner(simulation, ownerIndex, ownerCount);
-                return;
-            case RelationshipOwnerStage:
-                ResolveRelationshipOwner(simulation, ownerIndex, ownerCount);
-                return;
-            case TagOwnerStage:
-                ResolveTagOwner(simulation, ownerIndex, ownerCount);
-                return;
-            case MovementOwnerStage:
-                ResolveMovementOwner(simulation, ownerIndex, ownerCount);
-                return;
-            case CellOwnerStage:
-                ResolveCellOwner(simulation, ownerIndex, ownerCount);
-                return;
-            case CultureOwnerStage:
-                ResolveCultureOwner(simulation, ownerIndex, ownerCount);
-                return;
-            case CultureReductionOwnerStage:
-                ResolveCultureReductionOwner(simulation, ownerIndex, ownerCount);
-                return;
-            case InfluenceCreditOwnerStage:
-                ResolveInfluenceCreditOwner(simulation, ownerIndex, ownerCount);
-                return;
-            default:
-                throw new global::System.InvalidOperationException();
-        }
+        ResolvePrepared(simulation);
     }
 
     private void ExecuteOwnerStage(Simulation simulation, int ownerStage, int count)
@@ -963,6 +938,6 @@ internal sealed partial class TickDeltaBuffer : IKernelOwnerWork
                 _influenceCredits[index].EntityId;
         }
 
-        throw new global::System.InvalidOperationException();
+        return SameStrategicOwnerAtBoundary(index, ownerStage);
     }
 }

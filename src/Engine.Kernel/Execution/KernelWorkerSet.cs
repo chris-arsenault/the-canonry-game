@@ -5,6 +5,11 @@ internal interface IKernelOwnerWork
     void ExecuteOwner(Simulation simulation, int ownerIndex, int ownerCount);
 }
 
+internal interface IKernelWorkerWork
+{
+    void ExecuteWorker(Simulation simulation, int workerIndex, int workerCount);
+}
+
 internal sealed class KernelWorkerSet
 {
     private readonly KernelWorker[] _workers;
@@ -24,6 +29,7 @@ internal sealed class KernelWorkerSet
                 workerIndex,
                 background: workerIndex > 0);
         }
+
     }
 
     internal int WorkerCount => _workers.Length;
@@ -96,7 +102,7 @@ internal sealed class KernelWorkerSet
         var activeWorkerCount = global::System.Math.Min(
             WorkerCount,
             workItemCount);
-        if (WorkerCount == 1)
+        if (activeWorkerCount == 1)
         {
             work.ExecuteOwner(simulation, ownerIndex: 0, ownerCount: 1);
             return;
@@ -109,6 +115,49 @@ internal sealed class KernelWorkerSet
         for (var workerIndex = 0; workerIndex < activeWorkerCount; workerIndex++)
         {
             _workers[workerIndex].ConfigureOwner(
+                simulation,
+                work,
+                workerIndex,
+                activeWorkerCount,
+                context);
+        }
+
+        ExecuteWorkers(activeWorkerCount);
+    }
+
+    internal void ExecuteWorkerWork(
+        Simulation simulation,
+        IKernelWorkerWork work,
+        int activeWorkerCount,
+        in KernelExecutionContext context)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        global::System.ArgumentNullException.ThrowIfNull(work);
+        global::System.ObjectDisposedException.ThrowIf(_shutdown, this);
+        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(
+            activeWorkerCount);
+        global::System.ArgumentOutOfRangeException.ThrowIfGreaterThan(
+            activeWorkerCount,
+            WorkerCount);
+
+        if (activeWorkerCount == 1)
+        {
+            work.ExecuteWorker(
+                simulation,
+                workerIndex: 0,
+                workerCount: 1);
+            return;
+        }
+
+        EnsureStarted(activeWorkerCount);
+        global::System.Threading.Volatile.Write(
+            ref _remaining,
+            activeWorkerCount - 1);
+        for (var workerIndex = 0;
+             workerIndex < activeWorkerCount;
+             workerIndex++)
+        {
+            _workers[workerIndex].ConfigureWorkerWork(
                 simulation,
                 work,
                 workerIndex,
@@ -264,6 +313,7 @@ internal sealed class KernelWorker
     private Simulation? _simulation;
     private ILocalEvaluationRangeProgram? _program;
     private IKernelOwnerWork? _ownerWork;
+    private IKernelWorkerWork? _workerWork;
     private FrozenTickRange _range;
     private int _ownerIndex;
     private int _ownerCount;
@@ -306,6 +356,7 @@ internal sealed class KernelWorker
         _simulation = simulation;
         _program = program;
         _ownerWork = null;
+        _workerWork = null;
         _range = range;
         _ownerIndex = 0;
         _ownerCount = 0;
@@ -325,9 +376,30 @@ internal sealed class KernelWorker
         _simulation = simulation;
         _program = null;
         _ownerWork = work;
+        _workerWork = null;
         _range = default;
         _ownerIndex = ownerIndex;
         _ownerCount = ownerCount;
+        _tick = 0;
+        ExecutionContext = context;
+        ExecutionContextDepth = 0;
+        _failure = null;
+    }
+
+    internal void ConfigureWorkerWork(
+        Simulation simulation,
+        IKernelWorkerWork work,
+        int workerIndex,
+        int workerCount,
+        in KernelExecutionContext context)
+    {
+        _simulation = simulation;
+        _program = null;
+        _ownerWork = null;
+        _workerWork = work;
+        _range = default;
+        _ownerIndex = workerIndex;
+        _ownerCount = workerCount;
         _tick = 0;
         ExecutionContext = context;
         ExecutionContextDepth = 0;
@@ -360,6 +432,13 @@ internal sealed class KernelWorker
             {
                 _ownerWork.ExecuteOwner(simulation, _ownerIndex, _ownerCount);
             }
+            else if (_workerWork is not null)
+            {
+                _workerWork.ExecuteWorker(
+                    simulation,
+                    _ownerIndex,
+                    _ownerCount);
+            }
             else
             {
                 throw new global::System.InvalidOperationException();
@@ -388,6 +467,7 @@ internal sealed class KernelWorker
         _simulation = null;
         _program = null;
         _ownerWork = null;
+        _workerWork = null;
         _range = default;
         _tick = 0;
         _ownerIndex = 0;

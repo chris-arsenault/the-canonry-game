@@ -55,9 +55,11 @@ public sealed record KernelStartRequest
         KernelFunctionProfile functionProfile,
         bool traceEnabled = false,
         string? configFilePath = null,
-        DomainStartupSeedResult? startupSeed = null)
+        DomainStartupSeedResult? startupSeed = null,
+        int workerCount = 1)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(domainName);
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(workerCount);
         if (configFilePath is not null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(configFilePath);
@@ -69,6 +71,7 @@ public sealed record KernelStartRequest
         TraceEnabled = traceEnabled;
         ConfigFilePath = configFilePath;
         StartupSeed = startupSeed;
+        WorkerCount = workerCount;
     }
 
     public string DomainName { get; }
@@ -87,6 +90,8 @@ public sealed record KernelStartRequest
     /// deterministic kernel runtime.
     /// </summary>
     public DomainStartupSeedResult? StartupSeed { get; }
+
+    public int WorkerCount { get; }
 }
 
 public readonly record struct DomainStartupSeedRequest

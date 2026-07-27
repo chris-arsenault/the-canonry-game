@@ -99,13 +99,35 @@ internal sealed partial class MovementProgramState : IKernelProgramState
 
     internal bool SetTravelStructure(int cellId, int travelStructureId)
     {
-        var previous = _travelStructureIds[cellId];
+        var previous = SetTravelStructureOwned(
+            cellId,
+            travelStructureId);
         if (previous == travelStructureId)
         {
             return false;
         }
 
+        ReconcileTravelStructureOwned(
+            cellId,
+            previous,
+            travelStructureId);
+        return true;
+    }
+
+    internal int SetTravelStructureOwned(
+        int cellId,
+        int travelStructureId)
+    {
+        var previous = _travelStructureIds[cellId];
         _travelStructureIds[cellId] = travelStructureId;
+        return previous;
+    }
+
+    internal void ReconcileTravelStructureOwned(
+        int cellId,
+        int previous,
+        int travelStructureId)
+    {
         if (previous == 0 && travelStructureId > 0)
         {
             AddActiveCell(
@@ -124,7 +146,6 @@ internal sealed partial class MovementProgramState : IKernelProgramState
         }
 
         RecordTopologyChanged();
-        return true;
     }
 
     internal void RecordTravel(

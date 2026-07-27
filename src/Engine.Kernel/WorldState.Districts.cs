@@ -188,23 +188,43 @@ internal sealed partial class WorldState
     internal bool TryRemoveNewestDistrictOf(int hostId, out DistrictReawakening template)
     {
         var district = _firstDistrictByHost[hostId];
-        if (district > 0)
+        if (TryReadDistrictReawakening(district, out template))
         {
-            template = new DistrictReawakening(
-                _districtArtifactKindIds[district],
-                _districtArtifactSubtypeIds[district],
-                _districtArtifactCultureIds[district],
-                DistrictQ(district),
-                DistrictR(district),
-                _districtRelationshipKindIds[district],
-                _districtRelationshipPolarityCodes[district],
-                KernelFixedPoint.RelationshipStrengthScalar(_districtRelationshipStrengths[district]));
             RemoveDistrictAt(district, hostId);
             return true;
         }
 
-        template = default;
         return false;
+    }
+
+    internal bool TryPeekNewestDistrictOf(
+        int hostId,
+        out DistrictReawakening template) =>
+        TryReadDistrictReawakening(
+            _firstDistrictByHost[hostId],
+            out template);
+
+    private bool TryReadDistrictReawakening(
+        int district,
+        out DistrictReawakening template)
+    {
+        if (district <= 0)
+        {
+            template = default;
+            return false;
+        }
+
+        template = new DistrictReawakening(
+            _districtArtifactKindIds[district],
+            _districtArtifactSubtypeIds[district],
+            _districtArtifactCultureIds[district],
+            DistrictQ(district),
+            DistrictR(district),
+            _districtRelationshipKindIds[district],
+            _districtRelationshipPolarityCodes[district],
+            KernelFixedPoint.RelationshipStrengthScalar(
+                _districtRelationshipStrengths[district]));
+        return true;
     }
 
     internal int ActiveDistrictCount(int hostId)

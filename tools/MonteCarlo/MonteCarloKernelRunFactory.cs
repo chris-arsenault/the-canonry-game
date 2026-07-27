@@ -12,7 +12,8 @@ internal static class MonteCarloKernelRunFactory
         int seed,
         bool traceEnabled = false,
         string? configFilePath = null,
-        string? worldFilePath = null)
+        string? worldFilePath = null,
+        int workerCount = 1)
     {
         var startupSeed = worldFilePath is null
             ? null
@@ -23,7 +24,8 @@ internal static class MonteCarloKernelRunFactory
             KernelFunctionProfile.Batch,
             traceEnabled,
             configFilePath,
-            startupSeed));
+            startupSeed,
+            workerCount));
 
         return new MonteCarloKernelRun(
             runtime,

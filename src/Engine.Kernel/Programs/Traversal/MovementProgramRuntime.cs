@@ -270,6 +270,68 @@ internal sealed partial class MovementProgramRuntime :
         return true;
     }
 
+    internal bool TryPrepareOwnedTravelStructure(
+        Simulation simulation,
+        int planeCode,
+        int q,
+        int r,
+        int travelStructureId,
+        out int cellId)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        ValidatePlane(planeCode);
+        if (!simulation.ProgramIsEnabled(KernelProgramCodes.Movement) ||
+            !simulation.World.CellIsKnown(planeCode, q, r) ||
+            !Data.TravelStructureRegistered(travelStructureId) ||
+            Data.TravelStructurePlaneCode(travelStructureId) != planeCode)
+        {
+            cellId = 0;
+            return false;
+        }
+
+        cellId = simulation.World.RequireCellId(
+            planeCode,
+            q,
+            r,
+            z: 0);
+        return true;
+    }
+
+    internal bool ApplyOwnedTravelStructure(
+        Simulation simulation,
+        in ResolvedTravelStructure resolved,
+        int tick,
+        out int previousStructureId)
+    {
+        var intent = resolved.Intent;
+        previousStructureId = State.SetTravelStructureOwned(
+            resolved.CellId,
+            intent.TravelStructureId);
+        if (previousStructureId == intent.TravelStructureId)
+        {
+            return false;
+        }
+
+        simulation.EmitCellTravelStructureChanged(
+            tick,
+            intent.PlaneCode,
+            intent.Q,
+            intent.R,
+            previousStructureId,
+            intent.TravelStructureId);
+        return true;
+    }
+
+    internal void ReconcileOwnedTravelStructure(
+        in ResolvedTravelStructure resolved,
+        int previousStructureId)
+    {
+        State.ReconcileTravelStructureOwned(
+            resolved.CellId,
+            previousStructureId,
+            resolved.Intent.TravelStructureId);
+    }
+
     internal void RecordTopologyChanged() => State.RecordTopologyChanged();
 
     public bool CanReach(

@@ -194,6 +194,21 @@ internal sealed partial class Simulation
             return false;
         }
 
+        if (_collectingDeltas)
+        {
+            var occurrence =
+                World.EntityOccurrenceHandleForIntent(entityId);
+            _tickDeltas.AddForgeCell(new ForgeCellIntent(
+                occurrence,
+                direction,
+                terrainId,
+                StrategicIntentOrderOrSourceKey(
+                    occurrence,
+                    direction ^ terrainId),
+                ExecutionContext));
+            return true;
+        }
+
         var world = World;
         var q = world.EntityPhysicalQ(entityId);
         var r = world.EntityPhysicalR(entityId);
@@ -326,8 +341,10 @@ internal sealed partial class Simulation
                 terrainId,
                 ownerEntityId,
                 Priority: 1,
-                DeltaSourceKey(
-                    ownerEntityId > 0 ? World.EntityOccurrenceHandle(ownerEntityId) : 0,
+                StrategicIntentOrderOrSourceKey(
+                    ownerEntityId > 0
+                        ? World.EntityOccurrenceHandleForIntent(ownerEntityId)
+                        : 0,
                     CellDiscriminator(planeCode, q, r, 0)),
                 ExecutionContext));
             return;
@@ -356,6 +373,24 @@ internal sealed partial class Simulation
 
     internal void SetCoverageOwner(int planeCode, int q, int r, int ownerEntityId, int tick)
     {
+        if (_collectingDeltas)
+        {
+            _tickDeltas.AddStrategicCellState(
+                new StrategicCellStateIntent(
+                planeCode,
+                q,
+                r,
+                TerrainId: 0,
+                ownerEntityId,
+                StrategicIntentOrderOrSourceKey(
+                    ownerEntityId > 0
+                        ? World.EntityOccurrenceHandleForIntent(ownerEntityId)
+                        : 0,
+                    CellDiscriminator(planeCode, q, r, 0)),
+                ExecutionContext));
+            return;
+        }
+
         World.SetCoverageOwner(
             planeCode,
             q,
@@ -372,6 +407,22 @@ internal sealed partial class Simulation
 
     internal void SetCellTerrain(int planeCode, int q, int r, int terrainId, int tick)
     {
+        if (_collectingDeltas)
+        {
+            _tickDeltas.AddStrategicCellState(
+                new StrategicCellStateIntent(
+                planeCode,
+                q,
+                r,
+                terrainId,
+                OwnerEntityId: -1,
+                StrategicIntentOrderOrSourceKey(
+                    occurrenceHandle: 0,
+                    CellDiscriminator(planeCode, q, r, 0)),
+                ExecutionContext));
+            return;
+        }
+
         var wasKnown = World.CellIsKnown(planeCode, q, r);
         var previousTerrainId = wasKnown ? World.CellTerrainId(planeCode, q, r) : 0;
         World.SetCellTerrain(planeCode, q, r, terrainId, tick, ExecutionContext);
@@ -379,6 +430,36 @@ internal sealed partial class Simulation
         {
             Movement.RecordTopologyChanged();
         }
+    }
+
+    internal bool SetTravelStructure(
+        int planeCode,
+        int q,
+        int r,
+        int travelStructureId,
+        int tick)
+    {
+        if (!_collectingDeltas)
+        {
+            return Movement.SetTravelStructure(
+                this,
+                planeCode,
+                q,
+                r,
+                travelStructureId,
+                tick);
+        }
+
+        _tickDeltas.AddTravelStructure(new TravelStructureIntent(
+            planeCode,
+            q,
+            r,
+            travelStructureId,
+            StrategicIntentOrderOrSourceKey(
+                occurrenceHandle: 0,
+                CellDiscriminator(planeCode, q, r, travelStructureId)),
+            ExecutionContext));
+        return true;
     }
 
     internal void SetTerrainCover(int q, int r, int coverTerrainId, int tick)

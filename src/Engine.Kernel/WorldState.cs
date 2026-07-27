@@ -45,6 +45,10 @@ internal sealed partial class WorldState
     private int[] _cultureInfluenceMultiplierDeltas = [];
     private long[] _cultureFieldRevisions = [];
     private long[] _cultureWorkRevisions = [];
+    private long[] _cultureFieldRevisionDeltas = [];
+    private long[] _cultureWorkRevisionDeltas = [];
+    private long[] _ownedPhysicalCultureMassDeltas = [];
+    private int _cultureRevisionStride;
     private int[] _entityPhysicalQ = [];
     private int[] _entityPhysicalR = [];
     private int[] _entityPhysicalZ = [];
@@ -178,6 +182,13 @@ internal sealed partial class WorldState
         _cultureInfluenceMultiplierDeltas = new int[options.CultureIdCapacity + 1];
         _cultureFieldRevisions = new long[options.CultureIdCapacity + 1];
         _cultureWorkRevisions = new long[options.CultureIdCapacity + 1];
+        _cultureRevisionStride = options.CultureIdCapacity + 1;
+        var revisionDeltaCapacity = checked(
+            options.Execution.WorkerCount * _cultureRevisionStride);
+        _cultureFieldRevisionDeltas = new long[revisionDeltaCapacity];
+        _cultureWorkRevisionDeltas = new long[revisionDeltaCapacity];
+        _ownedPhysicalCultureMassDeltas =
+            new long[options.Execution.WorkerCount];
         _entityPhysicalQ = new int[options.EntityCapacity + 1];
         _entityPhysicalR = new int[options.EntityCapacity + 1];
         _entityPhysicalZ = new int[options.EntityCapacity + 1];
@@ -261,70 +272,6 @@ internal sealed partial class WorldState
     {
         NumericGuard.ThrowIfNegative(tick);
         CurrentTick = tick;
-    }
-
-    public int MaterializeEntity(
-        int entityId,
-        int kindId,
-        int subtypeId,
-        int cultureId,
-        int physicalQ,
-        int physicalR,
-        int semanticQ,
-        int semanticR,
-        int semanticS,
-        int tick,
-        in KernelExecutionContext context)
-    {
-        ValidateRelationshipKindIndex(kindId);
-        ValidatePositive(subtypeId);
-        EnsureCultureIndex(cultureId);
-        if (entityId == 0)
-        {
-            entityId = FindEntitySlot();
-        }
-        else if ((uint)entityId >= (uint)_entityAllocated.Length || _entityAllocated[entityId])
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _entityAllocated[entityId] = true;
-        _entityStatus[entityId] = EntityStatusCodes.Active;
-        _entityKindId[entityId] = kindId;
-        _entitySubtypeId[entityId] = subtypeId;
-        _entityCultureId[entityId] = cultureId;
-        _cultureHighWatermark = global::System.Math.Max(_cultureHighWatermark, cultureId);
-        _entityPhysicalQ[entityId] = physicalQ;
-        _entityPhysicalR[entityId] = physicalR;
-        _entityPhysicalZ[entityId] = 0;
-        _entitySemanticQ[entityId] = semanticQ;
-        _entitySemanticR[entityId] = semanticR;
-        _entitySemanticS[entityId] = semanticS;
-        _entityAnchorPhysicalQ[entityId] = physicalQ;
-        _entityAnchorPhysicalR[entityId] = physicalR;
-        _entityAnchorSemanticQ[entityId] = semanticQ;
-        _entityAnchorSemanticR[entityId] = semanticR;
-        _entityWorkTiers[entityId] = 0;
-        _entityCreatedAt[entityId] = tick;
-        _entityUpdatedAt[entityId] = tick;
-        InsertEntityKindIndex(entityId, kindId);
-        InsertEntityCultureIndex(entityId, cultureId);
-        InsertActiveEntity(entityId);
-        _entitySpatialMembership.AttachPhysical(
-            entityId,
-            _cells.GetOrAdd(PlaneCodes.Physical, physicalQ, physicalR, z: 0));
-        _entitySpatialMembership.AttachSemantic(
-            entityId,
-            _cells.GetOrAdd(PlaneCodes.Semantic, semanticQ, semanticR, z: 0));
-        if (entityId > _entityHighWatermark)
-        {
-            _entityHighWatermark = entityId;
-        }
-
-        MarkCultureWorkDirty(cultureId);
-        AdvanceWorldVersion();
-        RecordProvenanceEntityCreated(entityId, kindId, context);
-        return entityId;
     }
 
     public void SetEntityStatus(int entityId, int statusCode, int tick) =>
@@ -467,72 +414,6 @@ internal sealed partial class WorldState
         }
 
         return checked((entityId * _traitStride) + traitId);
-    }
-
-    public int CreateRelationship(
-        int kindId,
-        int polarityCode,
-        int sourceEntityId,
-        int targetEntityId,
-        FixedScalar strength,
-        int tick)
-    {
-        return CreateRelationship(
-            kindId,
-            polarityCode,
-            sourceEntityId,
-            targetEntityId,
-            strength,
-            tick,
-            new KernelExecutionContext(0, _defaultSourceCodeId));
-    }
-
-    public int CreateRelationship(
-        int kindId,
-        int polarityCode,
-        int sourceEntityId,
-        int targetEntityId,
-        FixedScalar strength,
-        int tick,
-        in KernelExecutionContext context)
-    {
-        ValidatePositive(context.SourceCodeId);
-        ValidatePositive(kindId);
-        EnsureEntity(sourceEntityId);
-        EnsureEntity(targetEntityId);
-        var existingRelationshipId = FindRelationship(
-            sourceEntityId,
-            targetEntityId,
-            kindId);
-        if (existingRelationshipId > 0)
-        {
-            return existingRelationshipId;
-        }
-
-        var relationshipId = FindRelationshipSlot();
-        _relationshipAllocated[relationshipId] = true;
-        _relationshipActive[relationshipId] = true;
-        _relationshipKindId[relationshipId] = kindId;
-        _relationshipPolarityCode[relationshipId] = polarityCode;
-        _relationshipSourceId[relationshipId] = sourceEntityId;
-        _relationshipTargetId[relationshipId] = targetEntityId;
-        _relationshipStrength[relationshipId] = KernelFixedPoint.RelationshipStrengthUnits(Clamp01(strength));
-        _relationshipStartTick[relationshipId] = tick;
-        _relationshipEndTick[relationshipId] = 0;
-        InsertActiveRelationship(relationshipId);
-        _relationshipEndpoints.Attach(this, relationshipId);
-        MarkEntityCultureWorkDirty(sourceEntityId);
-        MarkEntityCultureWorkDirty(targetEntityId);
-        AdvanceWorldVersion();
-        RecordProvenanceRelationshipCreated(relationshipId, context);
-        WriteRelationshipChanged(
-            relationshipId,
-            tick,
-            _relationshipCreatedCodeId,
-            context,
-            0,
-            _relationshipStrength[relationshipId]);
-        return relationshipId;
     }
 
     public void CullRelationship(int relationshipId, int tick) =>

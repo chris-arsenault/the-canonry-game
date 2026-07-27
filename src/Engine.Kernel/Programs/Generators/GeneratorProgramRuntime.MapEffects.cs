@@ -19,7 +19,7 @@ internal sealed partial class GeneratorProgramRuntime
 
         if (_effectValues[effectSlot] < 1 &&
             simulation.RandomScalar(
-                world.EntityOccurrenceHandle(centerEntityId),
+                PlannedOrWorldOccurrenceHandle(world, centerEntityId),
                 effectSlot,
                 KernelRandomPurposeCodes.GeneratorMapEffect,
                 attempt: terrainId) > _effectValues[effectSlot])
@@ -28,8 +28,8 @@ internal sealed partial class GeneratorProgramRuntime
         }
 
         var planeCode = _effectPlaneCodes[effectSlot];
-        var centerQ = CurrentQ(world, centerEntityId, planeCode);
-        var centerR = CurrentR(world, centerEntityId, planeCode);
+        var centerQ = PlannedOrWorldQ(world, centerEntityId, planeCode);
+        var centerR = PlannedOrWorldR(world, centerEntityId, planeCode);
         if (!world.CellIsKnown(planeCode, centerQ, centerR))
         {
             return;

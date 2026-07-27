@@ -20,6 +20,16 @@ internal interface ILocalEvaluationRangeProgram : ISimulationSystem
     void CompleteRanges(Simulation simulation, int tick);
 }
 
+/// <summary>
+/// Marks a strategic program whose evaluation produces bounded intents.
+/// The scheduler freezes the published world for the program, collects its
+/// outputs, and resolves them through destination owners before the next
+/// strategic program observes the world.
+/// </summary>
+internal interface IStrategicIntentProgram : ISimulationSystem
+{
+}
+
 internal readonly struct FrozenTickRange
 {
     private readonly int[] _ids;

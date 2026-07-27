@@ -84,6 +84,18 @@ public sealed class SerialEpochInvarianceTests
     }
 
     [Fact]
+    public void WorkerCountsPublishIdenticalStateAndEvents()
+    {
+        var expected = RunPublishedSnapshot(workerCount: 1);
+        foreach (var workerCount in new[] { 2, 4, 8, 16 })
+        {
+            Assert.Equal(
+                expected,
+                RunPublishedSnapshot(workerCount));
+        }
+    }
+
+    [Fact]
     public void TickPublishesMonotonicPhaseBoundaries()
     {
         var simulation = CreateSimulation(new KernelExecutionOptions());
@@ -119,13 +131,13 @@ public sealed class SerialEpochInvarianceTests
     private static Simulation CreateSimulation(KernelExecutionOptions execution) =>
         KernelTestSimulation.Create(new SimulationOptions
         {
-            EntityCapacity = 8,
-            RelationshipCapacity = 8,
-            AttributeCapacity = 16,
+            EntityCapacity = 32,
+            RelationshipCapacity = 32,
+            AttributeCapacity = 128,
             TraitCapacity = 8,
             MapCellCapacity = 32,
             MapInfluenceCapacity = 64,
-            EventCapacity = 256,
+            EventCapacity = 4096,
             CommandCapacity = 8,
             GambitCapacity = 4,
             GambitStepCapacity = 16,
@@ -151,7 +163,7 @@ public sealed class SerialEpochInvarianceTests
             KnowledgeGrantCapacity = 8,
             KnowledgeModifierCapacity = 16,
             MinorActorRuleCapacity = 4,
-            EntityAttributeCapacity = 16,
+            EntityAttributeCapacity = 32,
             EntityTraitCapacity = 16,
             AttributeIdCapacity = 16,
             TraitIdCapacity = 16,
@@ -163,6 +175,26 @@ public sealed class SerialEpochInvarianceTests
             Execution = execution,
             Seed = 73,
         });
+
+    private static byte[] RunPublishedSnapshot(int workerCount)
+    {
+        var simulation = CreateSimulation(new KernelExecutionOptions
+        {
+            WorkerCount = workerCount,
+        });
+        try
+        {
+            _ = ConfigureParallelEpochScenario(simulation);
+            simulation.AdvanceTicks(4);
+            using var stream = new MemoryStream();
+            KernelSnapshot.SaveKernelState(simulation, stream);
+            return stream.ToArray();
+        }
+        finally
+        {
+            simulation.ShutdownWorkers();
+        }
+    }
 
     private static int CreateAttributeEntity(Simulation simulation, float defaultValue)
     {
@@ -203,6 +235,44 @@ public sealed class SerialEpochInvarianceTests
     {
         var first = CreateAttributeEntity(simulation, defaultValue: 50f);
         var second = simulation.CreateEntity(EntityKindId, 1, 1, 1, 0, 0, 0, 0, tick: 0);
+        var relationship = CreateMaintainedRelationship(
+            simulation,
+            first,
+            second);
+        return new ScenarioState(first, second, relationship);
+    }
+
+    private static ScenarioState ConfigureParallelEpochScenario(
+        Simulation simulation)
+    {
+        var scenario = ConfigureLocalEpochScenario(simulation);
+        CreateAdditionalEntities(simulation);
+        ConfigureAlwaysSuccessfulGambit(simulation);
+        return scenario;
+    }
+
+    private static void CreateAdditionalEntities(Simulation simulation)
+    {
+        for (var index = 2; index < 16; index++)
+        {
+            _ = simulation.CreateEntity(
+                EntityKindId,
+                subtypeId: 1,
+                cultureId: 1,
+                physicalQ: index,
+                physicalR: 0,
+                semanticQ: 0,
+                semanticR: 0,
+                semanticS: 0,
+                tick: 0);
+        }
+    }
+
+    private static int CreateMaintainedRelationship(
+        Simulation simulation,
+        int first,
+        int second)
+    {
         simulation.Relationships.RegisterRelationshipKind(
             RelationshipKindId,
             cullThreshold: FixedScalar.FromSingle(0.05f));
@@ -231,7 +301,29 @@ public sealed class SerialEpochInvarianceTests
             threshold: FixedScalar.FromSingle(0f),
             minimumRelationshipStrength: FixedScalar.FromSingle(0.1f),
             deltaPerTick: FixedScalar.FromSingle(-1f));
-        return new ScenarioState(first, second, relationship);
+        return relationship;
+    }
+
+    private static void ConfigureAlwaysSuccessfulGambit(
+        Simulation simulation)
+    {
+        var gambit = simulation.Gambits.RegisterGambit(
+            EntityKindId,
+            gambitId: 100,
+            targetMode: BehaviorTargetModeCodes.Self,
+            successChance: FixedScalar.FromSingle(1f));
+        simulation.Gambits.SetConjunctivePreconditions(
+            gambit,
+            new(BehaviorPreconditionCodes.TargetIsSelf));
+        simulation.Gambits.AddExpressionOp(
+            gambit,
+            BehaviorExpressionCodes.Literal,
+            x: FixedScalar.FromSingle(1f));
+        simulation.Gambits.AddStep(
+            gambit,
+            BehaviorOperationCodes.AddAttribute,
+            AttributeId,
+            x: FixedScalar.FromSingle(1f));
     }
 
     private static void AssertEntityStateEqual(

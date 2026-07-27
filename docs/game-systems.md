@@ -138,7 +138,13 @@ typed movement, attribute, culture, relationship, tag, cell, and lifecycle
 deltas. Destination-owned reduction makes their result independent of
 evaluation order and logical shard count. Gambits, generators, chronicles,
 world beats, culture slots, knowledge, and map frontier remain strategic
-programs on the same one-thread scheduler.
+programs on the same tick scheduler. Gambits and generators evaluate through
+program-scoped frozen intent epochs: gambit actors and generator definitions
+can be evaluated by the fixed worker set, and their entity, relationship, cell,
+travel-structure, and event outputs resolve through typed destination owners.
+The coordinator reserves structural IDs deterministically and reconciles
+cross-owner graph, spatial, active-index, and district structures. The other
+strategic programs remain coordinator-owned.
 
 ## Runtime Altitudes
 

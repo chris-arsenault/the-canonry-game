@@ -80,6 +80,51 @@ internal sealed partial class WorldState
         return _relationshipHighWatermark;
     }
 
+    internal void ReserveEntitySlots(global::System.Span<int> entityIds)
+    {
+        for (var index = 0; index < entityIds.Length; index++)
+        {
+            entityIds[index] = FindEntitySlot();
+        }
+    }
+
+    internal int ReserveEntitySlot() => FindEntitySlot();
+
+    internal void ReleaseUnusedReservedEntitySlot(int entityId)
+    {
+        if ((uint)entityId == 0u ||
+            entityId > EntityCapacity ||
+            _entityAllocated[entityId])
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _freeEntitySlots[_freeEntitySlotCount++] = entityId;
+    }
+
+    internal void ReserveRelationshipSlots(
+        global::System.Span<int> relationshipIds)
+    {
+        for (var index = 0; index < relationshipIds.Length; index++)
+        {
+            relationshipIds[index] = FindRelationshipSlot();
+        }
+    }
+
+    internal int ReserveRelationshipSlot() => FindRelationshipSlot();
+
+    internal void ReleaseUnusedReservedRelationshipSlot(int relationshipId)
+    {
+        if ((uint)relationshipId == 0u ||
+            relationshipId > RelationshipCapacity ||
+            _relationshipAllocated[relationshipId])
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _freeRelationshipSlots[_freeRelationshipSlotCount++] = relationshipId;
+    }
+
     private void ReleaseEntitySlot(int entityId)
     {
         ClearEntitySlot(entityId);
@@ -159,10 +204,37 @@ internal sealed partial class WorldState
         return checked((_entityGenerations[entityId] * EntityCapacity) + entityId);
     }
 
+    internal int EntityOccurrenceHandleForIntent(int entityId)
+    {
+        if ((uint)entityId == 0u || entityId > EntityCapacity)
+        {
+            throw new global::System.ArgumentOutOfRangeException(
+                nameof(entityId));
+        }
+
+        return checked(
+            (_entityGenerations[entityId] * EntityCapacity) + entityId);
+    }
+
     internal int RelationshipOccurrenceHandle(int relationshipId)
     {
         EnsureRelationship(relationshipId);
         return checked((_relationshipGenerations[relationshipId] * RelationshipCapacity) + relationshipId);
+    }
+
+    internal int RelationshipOccurrenceHandleForIntent(int relationshipId)
+    {
+        if ((uint)relationshipId == 0u ||
+            relationshipId > RelationshipCapacity)
+        {
+            throw new global::System.ArgumentOutOfRangeException(
+                nameof(relationshipId));
+        }
+
+        return checked(
+            (_relationshipGenerations[relationshipId] *
+                RelationshipCapacity) +
+            relationshipId);
     }
 
     internal bool TryResolveRelationshipOccurrence(int occurrenceHandle, out int relationshipId)

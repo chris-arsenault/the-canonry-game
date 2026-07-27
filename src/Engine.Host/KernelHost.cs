@@ -65,6 +65,9 @@ public sealed partial class KernelHost : IDisposable
 
     public long CurrentVersion => _kernel.CurrentVersion;
 
+    public int WorkerCount =>
+        _kernel.Options.Execution.WorkerCount;
+
     public bool ProgramIsEnabled(int programId) =>
         _kernel.ProgramIsEnabled(programId);
 

@@ -224,6 +224,29 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
     }
 
     [Fact]
+    public void Options_WorkersFlagSetsKernelWorkerCount()
+    {
+        var options = MonteCarloOptions.Parse([
+            "run",
+            "--run-id", "workers-test",
+            "--workers", "8",
+        ]);
+
+        Assert.Equal(8, options.WorkerCount);
+    }
+
+    [Fact]
+    public void Options_WorkersFlagRejectsNonPositiveCount()
+    {
+        Assert.Throws<ArgumentOutOfRangeException>(() =>
+            MonteCarloOptions.Parse([
+                "run",
+                "--run-id", "workers-invalid-test",
+                "--workers", "0",
+            ]));
+    }
+
+    [Fact]
     public void Options_ConfigFileFlagSetsKernelConfigPath()
     {
         var options = MonteCarloOptions.Parse([

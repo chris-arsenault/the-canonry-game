@@ -29,6 +29,22 @@ internal sealed class GambitProgramScratch
         VariableValues = new FixedScalar[32];
     }
 
+    private GambitProgramScratch(
+        int actorPreconditionCapacity,
+        int candidateCapacity)
+    {
+        ActorPreconditionValues = new bool[actorPreconditionCapacity];
+        ExpressionStack = new FixedScalar[32];
+        CandidateGambitSlots = new int[candidateCapacity];
+        CandidateTargetIds = new int[candidateCapacity];
+        CandidateWeights = new FixedScalar[candidateCapacity];
+        VariableIds = new int[32];
+        VariableValues = new FixedScalar[32];
+    }
+
+    internal GambitProgramScratch CreatePeer() =>
+        new(ActorPreconditionValues.Length, CandidateWeights.Length);
+
     internal void ResetCandidates()
     {
         CandidateCount = 0;

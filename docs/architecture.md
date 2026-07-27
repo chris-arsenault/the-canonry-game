@@ -2,11 +2,11 @@
 
 The engine is a deterministic microkernel hosted by the Godot game runtime.
 Kernel phases own mutation explicitly. The coordinator runs admission,
-structural reconciliation, strategic work, and publication. A fixed-lifetime
-worker set evaluates eligible frozen ranges and reduces entity-, relationship-,
-and cell-owned destinations concurrently. Workers join at every published
-boundary before coordinator reconciliation or later phases. UI, projections,
-run logs, telemetry, exports, and Monte Carlo analysis consume primitive records
+strategic selection, cross-owner structural reconciliation, and publication. A
+fixed-lifetime worker set evaluates eligible frozen ranges and reduces entity-,
+relationship-, and cell-owned destinations concurrently. Workers join before
+coordinator reconciliation or later work becomes visible. UI, projections, run
+logs, telemetry, exports, and Monte Carlo analysis consume primitive records
 outside kernel state.
 
 The controlling kernel rules live in
@@ -19,9 +19,13 @@ relationship, or cell storage owner. Geography is useful for cell/map state but
 is not the universal shard key: measured relationship and gambit traffic is too
 nonlocal and current geographic load is too skewed. The persistent evaluation
 workers, frozen range contract, typed-owner reduction, and partitioned event
-publication are implemented. Strategic ownership and public worker-count wiring
-remain separately gated work. Workers must not be used to preserve accidental
-superlinear candidate scans.
+publication are implemented. Gambit and generator strategic ownership is also
+implemented. Multi-worker local evaluation and destination-owner application
+are coalesced, and worker count is wired through the host and Monte Carlo tools.
+One worker remains the default because the Batch E end-to-end scaling candidate
+failed its acceptance gate; nondefault worker counts are an evidence surface,
+not a production performance claim. Workers must not be used to preserve
+accidental superlinear candidate scans.
 
 The first owner-ready storage batch is complete. Entity coordinates remain
 entity-owned while physical and semantic cell-membership chains have a bounded
@@ -44,6 +48,27 @@ tags, movement coordinates, and influence credits; relationship slots own
 strength; cells own terrain, coverage values, culture writes, and culture
 reductions. Primitive events use the same worker partitioning and are compacted,
 sorted, and published only after the phase barrier.
+
+Due multi-worker local range programs share one evaluation dispatch. Owner
+application groups compatible destinations into dependency-preserving batches:
+entity creation, spatial state, primary state, dependent secondary state, and
+final relationship/tag/entity state. Coordinator preparation and reconciliation
+remain between batches where later work depends on newly published structure.
+Worker-local culture revision and aggregate-mass counters publish after each
+owner batch. Worker one uses direct registration-order dispatch through the same
+range and owner implementations, preserving its lower-overhead reference path.
+
+Gambits and generators use program-scoped strategic intent epochs. Gambit
+actors evaluate over frozen entity ranges with worker-local scratch, while
+generator definitions score over disjoint worker ranges. Selected work emits
+bounded typed intents instead of mutating live world state. The coordinator
+reserves entity and relationship IDs in deterministic blocks and prepares
+cross-owner storage; entity, relationship, cell, travel-structure, and event
+records then route to their typed owners. Spatial, graph, active-index,
+district, and other cross-owner structures reconcile after the owner barrier.
+Chronicles, world beats, map frontier, culture slots, and knowledge remain
+coordinator strategic programs because the measured Batch D scope did not
+identify them as material strategic mutation costs.
 
 ## Project Topology
 
@@ -177,6 +202,14 @@ attributes, culture, culture reduction, relationship strength/end, tags, cell
 state, and lifecycle. Resolution sorts by destination and stable logical source,
 merges additive values before clamping, chooses competing writes explicitly,
 and applies retirement only after accepted local state changes.
+
+Gambits and generators retain their registration position but execute a frozen
+intent epoch inside the strategic phase. Each converted program observes the
+world published by earlier programs, evaluates without live mutation, then
+resolves its bounded intents before the next strategic program begins.
+Deterministic structural reservation keeps created entity and relationship IDs
+stable across worker completion order. This is an ownership boundary on the
+same tick, not a sub-tick or a second simulation clock.
 
 Semantic events are buffered and sorted within the publishing phase rather than
 leaking evaluator order. `PhaseCompleted` records the tick, phase revision,

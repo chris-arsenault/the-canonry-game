@@ -82,6 +82,7 @@ mutation:
 MC_RUNS ?= 6
 MC_TICKS ?= 200
 MC_SEED ?= 1000
+MC_WORKERS ?= 1
 MC_EXTRA ?=
 RUN_ID ?= dev-$(shell date +%Y%m%d-%H%M%S)
 MC_STATS ?=
@@ -106,6 +107,7 @@ MC_SMOKE_WORLD ?= worlds/ice-remembers-seed-$(MC_SMOKE_SEED).world
 mc:
 	dotnet run --project tools/MonteCarlo/MonteCarlo.csproj -c Release -- \
 		--runs $(MC_RUNS) --ticks $(MC_TICKS) --seed $(MC_SEED) \
+		--workers $(MC_WORKERS) \
 		--run-id $(RUN_ID) --artifact-root .artifacts/monte-carlo $(MC_EXTRA)
 
 # Fast one-world feedback path. The versioned Release-generated world must
@@ -113,6 +115,7 @@ mc:
 mc-smoke:
 	dotnet run --project tools/MonteCarlo/MonteCarlo.csproj -c Release -- \
 		--runs 1 --ticks $(MC_SMOKE_TICKS) --seed $(MC_SMOKE_SEED) \
+		--workers $(MC_WORKERS) \
 		--world $(MC_SMOKE_WORLD) \
 		--run-id $(RUN_ID) --artifact-root .artifacts/monte-carlo \
 		--simulation-only --no-analysis
@@ -142,6 +145,7 @@ profile-kernel:
 		--show-child-io \
 		-- dotnet "$(MONTE_CARLO_DLL)" \
 			--runs 1 --ticks $(PROFILE_TICKS) --seed $(PROFILE_SEED) \
+			--workers $(MC_WORKERS) \
 			--world $(PROFILE_WORLD) \
 			--run-id $(PROFILE_RUN_ID) --artifact-root .artifacts/monte-carlo \
 			--simulation-only --no-analysis \
@@ -162,6 +166,7 @@ mc-fan:
 	for seed in $(MC_SEEDS); do \
 		dotnet run --no-build --project tools/MonteCarlo/MonteCarlo.csproj -c Release -- \
 			--runs 1 --ticks $(MC_TICKS) --seed $$seed \
+			--workers $(MC_WORKERS) \
 			--run-id $(RUN_ID)-s$$seed --artifact-root .artifacts/monte-carlo \
 			--no-analysis --stream-core-every $(MC_STREAM_EVERY) $(MC_EXTRA) & \
 	done; wait

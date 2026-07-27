@@ -19,7 +19,7 @@ internal sealed partial class WorldState
             return;
         }
 
-        if (_singleWorker)
+        if (_singleWorker || KernelWorkerThread.Current is null)
         {
             if (_cultureFieldRevisions[cultureId] < long.MaxValue)
             {
@@ -28,7 +28,9 @@ internal sealed partial class WorldState
         }
         else
         {
-            IncrementSaturating(ref _cultureFieldRevisions[cultureId]);
+            var index = RevisionDeltaIndex(cultureId);
+            _cultureFieldRevisionDeltas[index] = checked(
+                _cultureFieldRevisionDeltas[index] + 1);
         }
 
         MarkCultureWorkDirty(cultureId);
@@ -41,7 +43,7 @@ internal sealed partial class WorldState
             return;
         }
 
-        if (_singleWorker)
+        if (_singleWorker || KernelWorkerThread.Current is null)
         {
             if (_cultureWorkRevisions[cultureId] < long.MaxValue)
             {
@@ -51,7 +53,9 @@ internal sealed partial class WorldState
             return;
         }
 
-        IncrementSaturating(ref _cultureWorkRevisions[cultureId]);
+        var index = RevisionDeltaIndex(cultureId);
+        _cultureWorkRevisionDeltas[index] = checked(
+            _cultureWorkRevisionDeltas[index] + 1);
     }
 
     private void MarkEntityCultureWorkDirty(int entityId)
@@ -64,23 +68,72 @@ internal sealed partial class WorldState
         MarkCultureWorkDirty(_entityCultureId[entityId]);
     }
 
-    private static void IncrementSaturating(ref long value)
+    internal void PublishOwnedRevisionChanges()
     {
-        var current = global::System.Threading.Volatile.Read(ref value);
-        while (current < long.MaxValue)
+        if (_singleWorker)
         {
-            var observed = global::System.Threading.Interlocked.CompareExchange(
-                ref value,
-                current + 1,
-                current);
-            if (observed == current)
+            return;
+        }
+
+        for (var cultureId = 1;
+             cultureId < _cultureFieldRevisions.Length;
+             cultureId++)
+        {
+            long fieldDelta = 0;
+            long workDelta = 0;
+            for (var workerIndex = 0;
+                 workerIndex < _ownedPhysicalCultureMassDeltas.Length;
+                 workerIndex++)
             {
-                return;
+                var index = checked(
+                    workerIndex * _cultureRevisionStride + cultureId);
+                fieldDelta = checked(
+                    fieldDelta + _cultureFieldRevisionDeltas[index]);
+                workDelta = checked(
+                    workDelta + _cultureWorkRevisionDeltas[index]);
+                _cultureFieldRevisionDeltas[index] = 0;
+                _cultureWorkRevisionDeltas[index] = 0;
             }
 
-            current = observed;
+            _cultureFieldRevisions[cultureId] = SaturatingRevisionAdd(
+                _cultureFieldRevisions[cultureId],
+                fieldDelta);
+            _cultureWorkRevisions[cultureId] = SaturatingRevisionAdd(
+                _cultureWorkRevisions[cultureId],
+                workDelta);
+        }
+
+        long physicalCultureMassDelta = 0;
+        for (var workerIndex = 0;
+             workerIndex < _ownedPhysicalCultureMassDeltas.Length;
+             workerIndex++)
+        {
+            physicalCultureMassDelta = checked(
+                physicalCultureMassDelta +
+                _ownedPhysicalCultureMassDeltas[workerIndex]);
+            _ownedPhysicalCultureMassDeltas[workerIndex] = 0;
+        }
+
+        if (physicalCultureMassDelta != 0)
+        {
+            _totalPhysicalCultureRawMass = checked(
+                _totalPhysicalCultureRawMass +
+                physicalCultureMassDelta);
         }
     }
+
+    private int RevisionDeltaIndex(int cultureId)
+    {
+        var worker = KernelWorkerThread.Current ??
+            throw new global::System.InvalidOperationException();
+        return checked(
+            worker.WorkerIndex * _cultureRevisionStride + cultureId);
+    }
+
+    private static long SaturatingRevisionAdd(long current, long delta) =>
+        delta >= long.MaxValue - current
+            ? long.MaxValue
+            : current + delta;
 
     private long ReadPublishedRevision(ref long value) =>
         _singleWorker

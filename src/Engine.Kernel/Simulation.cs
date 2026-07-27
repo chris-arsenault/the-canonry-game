@@ -3,12 +3,15 @@ namespace Engine.Kernel;
 using Engine.Eventing;
 using Engine.Kernel.Programs;
 
-internal sealed partial class Simulation : IKernel
+internal sealed partial class Simulation :
+    IKernel,
+    IKernelWorkerWork
 {
     private readonly int[] _systemCadences;
     private readonly int[] _systemProgramIds;
     private readonly int[] _systemSourceCodeIds;
     private readonly int[] _systemPhaseCodes;
+    private readonly int[] _systemRangeWorkerCounts;
     private readonly ISimulationSystem?[] _systems;
     private readonly bool[] _systemActive;
     private readonly int[][] _dirtyCultureScratchByWorker;
@@ -28,6 +31,8 @@ internal sealed partial class Simulation : IKernel
     private int _executionContextDepth;
     private int _currentPhaseCode;
     private bool _collectingDeltas;
+    private bool _collectingStrategicIntents;
+    private long _strategicIntentOrder;
     private long _phaseRevision;
 
     public Simulation(SimulationOptions? options = null)
@@ -82,14 +87,18 @@ internal sealed partial class Simulation : IKernel
         _systemPhaseCodes = new int[options.SystemCapacity];
         _systems = new ISimulationSystem[options.SystemCapacity];
         _systemActive = new bool[options.SystemCapacity];
-        _dirtyCultureScratchByWorker = CreateDirtyCultureScratch(options);
+        _dirtyCultureScratchByWorker = CreateDirtyCultureScratch(
+            options,
+            out _systemRangeWorkerCounts);
         _programs = new KernelProgramRegistry(options.SystemCapacity);
         RegisterDefaultPrograms();
     }
 
     private static int[][] CreateDirtyCultureScratch(
-        SimulationOptions options)
+        SimulationOptions options,
+        out int[] systemRangeWorkerCounts)
     {
+        systemRangeWorkerCounts = new int[options.SystemCapacity];
         var scratchByWorker = new int[options.Execution.WorkerCount][];
         for (var workerIndex = 0;
              workerIndex < scratchByWorker.Length;
@@ -205,7 +214,8 @@ internal sealed partial class Simulation : IKernel
                 options.EntityCapacity,
                 options.GambitCapacity,
                 options.GambitStepCapacity),
-            options.KernelTuning.Programs);
+            options.KernelTuning.Programs,
+            options.Execution.WorkerCount);
 
     private static GeneratorProgramRuntime CreateGeneratorRuntime(SimulationOptions options)
     {
@@ -218,7 +228,8 @@ internal sealed partial class Simulation : IKernel
                 options.MapCellCapacity,
                 options.GeneratorItemCapacity,
                 options.EntityCapacity),
-            options.KernelTuning.Programs);
+            options.KernelTuning.Programs,
+            options.Execution.WorkerCount);
     }
 
     private static CultureFieldDecayProgramRuntime CreateCultureFieldDecayRuntime(SimulationOptions options) =>
@@ -511,31 +522,6 @@ internal sealed partial class Simulation : IKernel
             claimChanceMultiplier);
     }
 
-    internal int CreateEntity(
-        int kindId,
-        int subtypeId,
-        int cultureId,
-        int physicalQ,
-        int physicalR,
-        int semanticQ,
-        int semanticR,
-        int semanticS,
-        int tick)
-    {
-        return MaterializeEntity(
-            0,
-            kindId,
-            subtypeId,
-            cultureId,
-            physicalQ,
-            physicalR,
-            semanticQ,
-            semanticR,
-            semanticS,
-            tick,
-            revealOnArrival: true);
-    }
-
     internal void SeedEntity(
         int entityId,
         int kindId,
@@ -560,78 +546,6 @@ internal sealed partial class Simulation : IKernel
             semanticS,
             CurrentTick,
             revealOnArrival: false);
-    }
-
-    private int MaterializeEntity(
-        int entityId,
-        int kindId,
-        int subtypeId,
-        int cultureId,
-        int physicalQ,
-        int physicalR,
-        int semanticQ,
-        int semanticR,
-        int semanticS,
-        int tick,
-        bool revealOnArrival)
-    {
-        AssertExecutionSource();
-        var createdEntityId = World.MaterializeEntity(
-            entityId,
-            kindId,
-            subtypeId,
-            cultureId,
-            physicalQ,
-            physicalR,
-            semanticQ,
-            semanticR,
-            semanticS,
-            tick,
-            ExecutionContext);
-        var physicalLocality = CultureLocality.CellAt(
-            World,
-            cultureId,
-            PlaneCodes.Physical,
-            physicalQ,
-            physicalR);
-        var semanticLocality = CultureLocality.CellAt(
-            World,
-            cultureId,
-            PlaneCodes.Semantic,
-            semanticQ,
-            semanticR);
-        WriteKernelEvent(KernelEvent.From(new EntityCreatedKernelEvent(
-            tick,
-            WorldVersion,
-            World.EntityOccurrenceHandle(createdEntityId),
-            ExecutionContext.SourceCodeId,
-            kindId,
-            subtypeId,
-            cultureId,
-            physicalQ,
-            physicalR,
-            semanticQ,
-            semanticR,
-            semanticS,
-            World.EntityOccurrenceHandle(createdEntityId),
-            physicalLocality.StrengthBandCode,
-            physicalLocality.CellKindCode,
-            semanticLocality.StrengthBandCode,
-            semanticLocality.CellKindCode,
-            physicalLocality.LocalRawMass.Units,
-            physicalLocality.ConnectedRawMass.Units,
-            semanticLocality.LocalRawMass.Units,
-            semanticLocality.ConnectedRawMass.Units)));
-        KernelData.Entities.InitializeEntity(this, createdEntityId, tick);
-        if (revealOnArrival)
-        {
-            // An entity coming into the running world lights the ground around
-            // it the same way a traveller's arrival does. Startup cells are
-            // installed separately and define the initial live map exactly.
-            MapFrontier.RevealOnArrival(this, createdEntityId, tick);
-        }
-
-        return createdEntityId;
     }
 
     internal void SeedAttribute(
@@ -666,6 +580,20 @@ internal sealed partial class Simulation : IKernel
         FixedScalar value,
         int tick)
     {
+        if (_collectingDeltas)
+        {
+            var occurrence = World.EntityOccurrenceHandleForIntent(entityId);
+            _tickDeltas.AddAttributeSet(new AttributeSetIntent(
+                occurrence,
+                attributeId,
+                KernelFixedPoint.AttributeUnits(value),
+                StrategicIntentOrderOrSourceKey(
+                    occurrence,
+                    attributeId),
+                ExecutionContext));
+            return;
+        }
+
         World.SetAttribute(entityId, attributeId, value, tick, ExecutionContext);
     }
 
@@ -677,7 +605,7 @@ internal sealed partial class Simulation : IKernel
     {
         if (_collectingDeltas)
         {
-            var occurrence = World.EntityOccurrenceHandle(entityId);
+            var occurrence = World.EntityOccurrenceHandleForIntent(entityId);
             _tickDeltas.AddAttribute(new AttributeDelta(
                 occurrence,
                 attributeId,
@@ -698,7 +626,7 @@ internal sealed partial class Simulation : IKernel
     {
         if (_collectingDeltas)
         {
-            var occurrence = World.EntityOccurrenceHandle(entityId);
+            var occurrence = World.EntityOccurrenceHandleForIntent(entityId);
             _tickDeltas.AddAttribute(new AttributeDelta(
                 occurrence,
                 attributeId,
@@ -725,11 +653,39 @@ internal sealed partial class Simulation : IKernel
             return;
         }
 
+        if (_collectingDeltas)
+        {
+            var occurrence = World.EntityOccurrenceHandleForIntent(entityId);
+            _tickDeltas.AddEntityState(new EntityStateIntent(
+                occurrence,
+                EntityStateIntentCodes.SetStatus,
+                statusCode,
+                StrategicIntentOrderOrSourceKey(
+                    occurrence,
+                    statusCode),
+                ExecutionContext));
+            return;
+        }
+
         World.SetEntityStatus(entityId, statusCode, tick, ExecutionContext);
     }
 
     internal void SetEntityCulture(int entityId, int cultureId, int tick)
     {
+        if (_collectingDeltas)
+        {
+            var occurrence = World.EntityOccurrenceHandleForIntent(entityId);
+            _tickDeltas.AddEntityState(new EntityStateIntent(
+                occurrence,
+                EntityStateIntentCodes.SetCulture,
+                cultureId,
+                StrategicIntentOrderOrSourceKey(
+                    occurrence,
+                    cultureId),
+                ExecutionContext));
+            return;
+        }
+
         World.SetEntityCulture(entityId, cultureId, tick, ExecutionContext);
     }
 
@@ -754,42 +710,22 @@ internal sealed partial class Simulation : IKernel
         World.MoveEntitySemantic(entityId, q, r, s, tick, ExecutionContext);
     }
 
-    internal int CreateRelationship(
-        int relationshipKindId,
-        int polarityCode,
-        int sourceEntityId,
-        int targetEntityId,
-        FixedScalar strength,
-        int tick)
-    {
-        var relationshipId = World.CreateRelationship(
-            relationshipKindId,
-            polarityCode,
-            sourceEntityId,
-            targetEntityId,
-            strength,
-            tick,
-            ExecutionContext);
-        if (relationshipId > 0)
-        {
-            Relationships.NoteRelationshipCreated(World, relationshipId);
-        }
-
-        if (relationshipId > 0 && Relationships.KindIsCultureAnchor(relationshipKindId))
-        {
-            World.SetEntityCultureAnchorToEntity(sourceEntityId, targetEntityId);
-        }
-
-        if (relationshipId > 0)
-        {
-            WorldBeats.NoteRelationshipCreated(relationshipKindId);
-        }
-
-        return relationshipId;
-    }
-
     internal void SetRelationshipStrength(int relationshipId, FixedScalar strength, int tick)
     {
+        if (_collectingDeltas)
+        {
+            var occurrence =
+                World.RelationshipOccurrenceHandleForIntent(relationshipId);
+            _tickDeltas.AddRelationshipSet(new RelationshipSetIntent(
+                occurrence,
+                KernelFixedPoint.RelationshipStrengthUnits(strength),
+                StrategicIntentOrderOrSourceKey(
+                    occurrence,
+                    0),
+                ExecutionContext));
+            return;
+        }
+
         World.SetRelationshipStrength(relationshipId, strength, tick, ExecutionContext);
     }
 
@@ -797,7 +733,8 @@ internal sealed partial class Simulation : IKernel
     {
         if (_collectingDeltas)
         {
-            var occurrence = World.RelationshipOccurrenceHandle(relationshipId);
+            var occurrence =
+                World.RelationshipOccurrenceHandleForIntent(relationshipId);
             _tickDeltas.AddRelationship(new RelationshipDelta(
                 occurrence,
                 deltaUnits,
@@ -818,7 +755,8 @@ internal sealed partial class Simulation : IKernel
 
         if (_collectingDeltas)
         {
-            var occurrence = World.RelationshipOccurrenceHandle(relationshipId);
+            var occurrence =
+                World.RelationshipOccurrenceHandleForIntent(relationshipId);
             _tickDeltas.AddRelationshipEnd(new RelationshipEndDelta(
                 occurrence,
                 0,
@@ -836,6 +774,21 @@ internal sealed partial class Simulation : IKernel
 
     internal void CullIncomingRelationshipsOfKind(int targetEntityId, int kindId, int tick)
     {
+        if (_collectingDeltas)
+        {
+            var cursor = World.IncomingRelationshipsOfKind(
+                targetEntityId,
+                kindId);
+            while (World.MoveNextRelationship(
+                       ref cursor,
+                       out var relationshipId))
+            {
+                CullRelationship(relationshipId, tick);
+            }
+
+            return;
+        }
+
         while (true)
         {
             var cursor = World.IncomingRelationshipsOfKind(targetEntityId, kindId);
@@ -850,6 +803,21 @@ internal sealed partial class Simulation : IKernel
 
     internal void CullOutgoingRelationshipsOfKind(int sourceEntityId, int kindId, int tick)
     {
+        if (_collectingDeltas)
+        {
+            var cursor = World.OutgoingRelationshipsOfKind(
+                sourceEntityId,
+                kindId);
+            while (World.MoveNextRelationship(
+                       ref cursor,
+                       out var relationshipId))
+            {
+                CullRelationship(relationshipId, tick);
+            }
+
+            return;
+        }
+
         while (true)
         {
             var cursor = World.OutgoingRelationshipsOfKind(sourceEntityId, kindId);

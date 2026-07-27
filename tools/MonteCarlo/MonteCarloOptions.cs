@@ -20,6 +20,7 @@ internal sealed partial record MonteCarloOptions(
     int Runs,
     int Ticks,
     int Seed,
+    int WorkerCount,
     int EntitySnapshotCadence,
     string ArtifactRoot,
     bool SkipAnalysis,
@@ -77,12 +78,14 @@ internal sealed partial record MonteCarloOptions(
             throw new ArgumentException($"{CommandName(command)} requires --run-id.", nameof(args));
         }
 
+        var workerCount = ReadWorkerCount(optionArgs);
         return new MonteCarloOptions(
             Command: command,
             RunId: runId,
             Runs: runs,
             Ticks: ReadInt(optionArgs, "--ticks", 100),
             Seed: ReadInt(optionArgs, "--seed", 1000),
+            WorkerCount: workerCount,
             EntitySnapshotCadence: ReadInt(optionArgs, "--entity-snapshot-cadence", 5),
             ArtifactRoot: artifactRoot,
             SkipAnalysis: HasFlag(optionArgs, "--no-analysis"),
@@ -95,6 +98,19 @@ internal sealed partial record MonteCarloOptions(
             StreamCoreEveryTicks: ReadInt(optionArgs, "--stream-core-every", 0),
             SaveStateEveryTicks: ReadInt(optionArgs, "--save-state-every", 0),
             Stats: stats);
+    }
+
+    private static int ReadWorkerCount(string[] args)
+    {
+        var workerCount = ReadInt(args, "--workers", 1);
+        if (workerCount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(args),
+                "Worker count must be positive.");
+        }
+
+        return workerCount;
     }
 
     private static MonteCarloCommandKind ParseCommand(string[] args, out string[] optionArgs)

@@ -63,11 +63,11 @@ internal sealed partial class GeneratorProgramRuntime
         }
 
         createdEntityCount = CommitPlannedEntities(simulation, refCodes, refEntityIds, ref refCount, createdEntityIds);
-        _plannedCreateCount = 0;
-        _plannedCoverageCellCount = 0;
 
         var createdRelationshipCount = CreateRelationships(simulation, world, generatorSlot, refCodes, refEntityIds, refCount, tick);
         var relationshipSpendCount = ExecuteEffects(simulation, world, generatorSlot, targetId, refCodes, refEntityIds, refCount, tick, triggerKindCode, triggerId);
+        _plannedCreateCount = 0;
+        _plannedCoverageCellCount = 0;
         _runCounts[generatorSlot]++;
         WriteGeneratorFired(simulation, tick, generatorSlot, targetOccurrenceHandle, createdEntityCount, createdRelationshipCount, relationshipSpendCount);
         return true;
@@ -429,112 +429,6 @@ internal sealed partial class GeneratorProgramRuntime
         return planIndex;
     }
 
-    private int CommitPlannedEntities(
-        Simulation simulation,
-        int[] refCodes,
-        int[] refEntityIds,
-        ref int refCount,
-        int[] createdEntityIds)
-    {
-        var plannedCount = _plannedCreateCount;
-        for (var planIndex = 0; planIndex < plannedCount; planIndex++)
-        {
-            var produced = _plannedProducedSlots[planIndex];
-            var createdEntityId = CreateProducedEntity(
-                simulation,
-                produced,
-                _plannedSubtypeIds[planIndex],
-                _plannedCultureIds[planIndex],
-                _plannedSpawnPhysicalQ[planIndex],
-                _plannedSpawnPhysicalR[planIndex],
-                _plannedSemanticQ[planIndex],
-                _plannedSemanticR[planIndex]);
-            createdEntityIds[planIndex] = createdEntityId;
-            SetRef(refCodes, refEntityIds, ref refCount, _producedRefCodes[produced], createdEntityId);
-            CommitPlannedCoverage(simulation, planIndex, createdEntityId);
-            if (_plannedFinalPhysicalQ[planIndex] != _plannedSpawnPhysicalQ[planIndex] ||
-                _plannedFinalPhysicalR[planIndex] != _plannedSpawnPhysicalR[planIndex])
-            {
-                KernelEffectExecutor.MovePhysical(
-                    simulation,
-                    createdEntityId,
-                    _plannedFinalPhysicalQ[planIndex],
-                    _plannedFinalPhysicalR[planIndex]);
-            }
-        }
-
-        return plannedCount;
-    }
-
-    private bool TryResolveMissingProducedPlacement(
-        Simulation simulation,
-        WorldState world,
-        int produced,
-        int targetId,
-        int[] refCodes,
-        int[] refEntityIds,
-        int refCount,
-        out int subtypeId,
-        out int producedCultureId,
-        out int physicalQ,
-        out int physicalR,
-        out int semanticQ,
-        out int semanticR,
-        out int failureReasonCode)
-    {
-        if (!TryResolveProducedCreationInputs(
-                simulation,
-                world,
-                produced,
-                targetId,
-                refCodes,
-                refEntityIds,
-                refCount,
-                out subtypeId,
-                out producedCultureId,
-                out var placementAnchorId))
-        {
-            physicalQ = 0;
-            physicalR = 0;
-            semanticQ = 0;
-            semanticR = 0;
-            failureReasonCode = GeneratorTargetRejectionReasonCodes.SecondaryBinding;
-            return false;
-        }
-
-        failureReasonCode = GeneratorTargetRejectionReasonCodes.Placement;
-        return ResolveProducedPlacement(
-            simulation,
-            placementAnchorId,
-            producedCultureId,
-            produced,
-            subtypeId,
-            out physicalQ,
-            out physicalR,
-            out semanticQ,
-            out semanticR);
-    }
-
-    private int CreateProducedEntity(
-        Simulation simulation,
-        int produced,
-        int subtypeId,
-        int producedCultureId,
-        int physicalQ,
-        int physicalR,
-        int semanticQ,
-        int semanticR) =>
-        KernelEffectExecutor.CreateEntity(
-            simulation,
-            _producedKindIds[produced],
-            subtypeId,
-            producedCultureId,
-            physicalQ,
-            physicalR,
-            semanticQ,
-            semanticR,
-            -semanticQ - semanticR);
-
     private bool TryResolveProducedCreationInputs(
         Simulation simulation,
         WorldState world,
@@ -556,45 +450,6 @@ internal sealed partial class GeneratorProgramRuntime
         }
 
         return subtypeId > 0 && producedCultureId > 0;
-    }
-
-    private int CreateRelationships(
-        Simulation simulation,
-        WorldState world,
-        int generatorSlot,
-        int[] refCodes,
-        int[] refEntityIds,
-        int refCount,
-        int tick)
-    {
-        var created = 0;
-        var first = _relationshipStarts[generatorSlot];
-        var end = first + _relationshipCounts[generatorSlot];
-        for (var relationship = first; relationship < end; relationship++)
-        {
-            var sourceId = ResolveRef(refCodes, refEntityIds, refCount, _relationshipSourceRefCodes[relationship]);
-            var destinationId = ResolveRef(refCodes, refEntityIds, refCount, _relationshipDestinationRefCodes[relationship]);
-            if (sourceId == 0 || destinationId == 0)
-            {
-                continue;
-            }
-
-            if (_relationshipReplaceExistingOutgoing[relationship] != 0)
-            {
-                KernelEffectExecutor.CullOutgoingRelationshipsOfKind(simulation, sourceId, _relationshipKindIds[relationship]);
-            }
-
-            KernelEffectExecutor.CreateRelationship(
-                simulation,
-                _relationshipKindIds[relationship],
-                0,
-                sourceId,
-                destinationId,
-                _relationshipStrengths[relationship]);
-            created++;
-        }
-
-        return created;
     }
 
     private int ExecuteEffects(
@@ -677,7 +532,7 @@ internal sealed partial class GeneratorProgramRuntime
             return;
         }
 
-        _ = simulation.World.DecreaseEntityWorkTier(bindingEntityId);
+        _ = simulation.DecreaseEntityWorkTier(bindingEntityId);
     }
 
     private void ApplyMapEffect(
@@ -723,12 +578,14 @@ internal sealed partial class GeneratorProgramRuntime
         int tick)
     {
         var entityId = ResolveRef(refCodes, refEntityIds, refCount, refOrKindId);
-        if (entityId <= 0 || !world.EntityIsActive(entityId))
+        if (entityId <= 0 ||
+            (!TryPlannedEntity(entityId, out _) &&
+             !world.EntityIsActive(entityId)))
         {
             return;
         }
 
-        var cultureId = world.EntityCultureId(entityId);
+        var cultureId = PlannedOrWorldCultureId(world, entityId);
         if (cultureId <= 0)
         {
             return;
@@ -736,8 +593,14 @@ internal sealed partial class GeneratorProgramRuntime
 
         var radius = _effectRadii[effectSlot];
         var amount = _effectValues[effectSlot];
-        var centerQ = world.EntityPhysicalQ(entityId);
-        var centerR = world.EntityPhysicalR(entityId);
+        var centerQ = PlannedOrWorldQ(
+            world,
+            entityId,
+            PlaneCodes.Physical);
+        var centerR = PlannedOrWorldR(
+            world,
+            entityId,
+            PlaneCodes.Physical);
         for (var dq = -radius; dq <= radius; dq++)
         {
             for (var dr = global::System.Math.Max(-radius, -dq - radius); dr <= global::System.Math.Min(radius, -dq + radius); dr++)
@@ -773,8 +636,14 @@ internal sealed partial class GeneratorProgramRuntime
 
         var world = simulation.World;
         var radius = _effectInstanceSelectionCodes[effectSlot];
-        var centerQ = world.EntitySemanticQ(ownerId);
-        var centerR = world.EntitySemanticR(ownerId);
+        var centerQ = PlannedOrWorldQ(
+            world,
+            ownerId,
+            PlaneCodes.Semantic);
+        var centerR = PlannedOrWorldR(
+            world,
+            ownerId,
+            PlaneCodes.Semantic);
         for (var dq = -radius; dq <= radius; dq++)
         {
             for (var dr = global::System.Math.Max(-radius, -dq - radius); dr <= global::System.Math.Min(radius, -dq + radius); dr++)
@@ -875,32 +744,35 @@ internal sealed partial class GeneratorProgramRuntime
         int targetId,
         int relationshipKindId)
     {
-        var removed = 0;
-        while (KernelQuery.TryFirstRelationshipOfKind(
-                   world,
-                   targetId,
-                   relationshipKindId,
-                   outgoing: true,
-                   minimumStrength: 0,
+        var collected = 0;
+        var outgoing = world.OutgoingRelationshipsOfKind(
+            targetId,
+            relationshipKindId);
+        while (world.MoveNextRelationship(
+                   ref outgoing,
                    out var relationshipId))
         {
             KernelEffectExecutor.CullRelationship(simulation, relationshipId);
-            removed++;
+            collected++;
         }
 
-        while (KernelQuery.TryFirstRelationshipOfKind(
-                   world,
-                   targetId,
-                   relationshipKindId,
-                   outgoing: false,
-                   minimumStrength: 0,
+        var incoming = world.IncomingRelationshipsOfKind(
+            targetId,
+            relationshipKindId);
+        while (world.MoveNextRelationship(
+                   ref incoming,
                    out var relationshipId))
         {
+            if (world.RelationshipSourceId(relationshipId) == targetId)
+            {
+                continue;
+            }
+
             KernelEffectExecutor.CullRelationship(simulation, relationshipId);
-            removed++;
+            collected++;
         }
 
-        return removed;
+        return collected;
     }
 
     private static int AdjustTargetRelationshipStrength(

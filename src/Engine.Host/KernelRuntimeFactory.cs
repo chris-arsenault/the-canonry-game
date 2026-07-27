@@ -158,6 +158,10 @@ public sealed class KernelRuntimeFactory
                 EventSchemaValidator = KernelEventSchemaRegistry.Validator,
                 TraceEnabled = request.TraceEnabled,
                 KernelTuning = kernelTuning,
+                Execution = new KernelExecutionOptions
+                {
+                    WorkerCount = request.WorkerCount,
+                },
             })
             .WithDriverConfig(DriverConfigFor(request.FunctionProfile))
             .ConfigureSymbols(domain.ConfigureProjectionSymbols)

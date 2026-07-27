@@ -159,7 +159,8 @@ internal static class MonteCarloCli
                 seed,
                 options.TraceEnabled,
                 options.ConfigFilePath,
-                options.WorldFilePath);
+                options.WorldFilePath,
+                options.WorkerCount);
             var result = ExecuteKernelRun(run, options, runId, seed, stateStore);
             PrintRunSummary(options, runIndex, seed, result);
         }
@@ -174,7 +175,8 @@ internal static class MonteCarloCli
                 seed,
                 traceEnabled: false,
                 options.ConfigFilePath,
-                options.WorldFilePath);
+                options.WorldFilePath,
+                options.WorkerCount);
             var elapsed = Stopwatch.StartNew();
             var processedTicks = AdvanceSimulationOnlyTicks(run, options, seed);
             elapsed.Stop();

@@ -8,7 +8,7 @@ internal sealed partial class Simulation
     {
         if (_collectingDeltas)
         {
-            var occurrence = World.EntityOccurrenceHandle(entityId);
+            var occurrence = World.EntityOccurrenceHandleForIntent(entityId);
             _tickDeltas.AddTag(new TagDelta(
                 occurrence,
                 tagId,

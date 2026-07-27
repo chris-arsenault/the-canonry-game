@@ -2696,37 +2696,122 @@ gate and the required end-to-end scaling gates.
 
 **Batch D: strategic ownership**
 
-- Convert gambit evaluation/application in
+- **Complete:** convert gambit evaluation/application in
   `Programs/Gambits/GambitProgramRuntime.cs` and its execution partials to
   bounded typed intents.
-- Convert generator scoring, placement, and structural application in
+- **Complete:** convert generator scoring, placement, and structural application in
   `Programs/Generators/GeneratorProgramRuntime*.cs` to the same ownership
   boundary.
-- Allocate structural IDs in deterministic owner blocks, then route graph,
+- **Complete:** allocate structural IDs in deterministic owner blocks, then route graph,
   position, relationship, and event records to their typed owners.
-- Apply the same pattern to any other measured strategic program that still
+- **Complete:** apply the same pattern to any other measured strategic program that still
   mutates shared state directly. Do not leave a direct-mutation compatibility
   lane merely because it is less frequent.
 
+Batch D gives each converted strategic program a program-scoped frozen intent
+epoch while preserving strategic registration order. Gambit actors evaluate in
+frozen entity ranges with worker-local scratch. Generator definitions score in
+disjoint worker ranges; selected fires plan produced entities, placement,
+relationships, and effects without live world mutation.
+
+Strategic application uses bounded typed arenas for absolute and additive
+entity state, relationship state, movement, cell terrain/coverage,
+travel structures, forge requests, lifecycle/status changes, districts, and
+structural creation. The coordinator reserves entity and relationship slots in
+deterministic blocks and prepares cells. Owners write disjoint entity,
+relationship, cell, travel-structure, provenance, and primitive event records.
+The coordinator then reconciles active vectors, kind/culture indexes, spatial
+membership, endpoint adjacency, coverage reverse indexes, map topology,
+district pools, and lifecycle retirement.
+
+District reawakening no longer bypasses the structural path: consuming the
+district produces reserved entity and relationship records that enter the same
+owner stages as generator and ordinary gambit creation. Generator and gambit
+runtime entrypoints require their strategic intent epoch, so no less-frequent
+direct application path remains. The full repository `make test` pass is green.
+
 **Batch E: host/tool wiring and evidence**
 
-- Coalesce evaluation and owner-reduction regions so configured multi-worker
+- **Complete:** coalesce evaluation and owner-reduction regions so configured multi-worker
   execution no longer pays one dispatch/barrier per small destination family.
   Reprofile partition arenas, atomic revision publication, event merge, and
   coordinator reconciliation before exposing worker selection.
-- Wire worker count through
-  `src/Engine.Host/KernelConfigurationContext.cs`,
+- **Complete:** wire worker count through
+  `src/Engine.Host/KernelStartRequest.cs`,
   `src/Engine.Host/KernelRuntimeFactory.cs`,
   `tools/MonteCarlo/MonteCarloOptions.cs`, and
   `tools/MonteCarlo/MonteCarloCli.cs`.
-- Add canonical Makefile arguments for registered worker-count comparisons.
-- Extend the durable epoch invariance tests in
+- **Complete:** add canonical Makefile arguments for registered worker-count
+  comparisons.
+- **Complete:** extend the durable epoch invariance tests in
   `tests/Engine.Kernel.Tests/SerialEpochInvarianceTests.cs` to compare worker
   counts rather than adding source-text or implementation-shape tests.
-- Update `docs/architecture.md`,
+- **Complete:** update `docs/architecture.md`,
   `docs/kernel/simulation-kernel-discipline.md`, and
   `docs/methodology/performance-testing.md` with the implemented topology and
   measured evidence.
+
+Batch E is mechanically complete, but its performance candidate is rejected.
+Configured multi-worker local evaluation uses one dispatch for the due range
+programs. Owner application uses five dependency-preserving batches—entity
+creation, spatial state, primary state, dependent secondary state, and final
+relationship/tag/entity state—instead of one dispatch per destination family.
+Culture revisions and aggregate physical culture mass reduce through
+worker-local counters and publish on the coordinator rather than contending on
+shared atomics. Worker one retains direct registration-order dispatch through
+the same range and owner implementations because cross-program coalescing made
+the 5,000-tick reference workload slower and changed the timing of
+`CompleteRanges`.
+
+`KernelStartRequest`, the host factory, Monte Carlo options/CLI, and the
+canonical Makefile targets now carry an explicit positive worker count. One
+remains the default. `WorkerCountsPublishIdenticalStateAndEvents` compares full
+kernel snapshots, including primitive events, at 1, 2, 4, 8, and 16 workers.
+
+The first registered 1,000-tick pre-rendered-world screen measured:
+
+- `parallel-batch-e-screen-1w-1x1000-20260726a`: `7.849 ms/tick`;
+- `parallel-batch-e-screen-2w-1x1000-20260726a`: `11.555 ms/tick`,
+  `0.679x` worker-one throughput;
+- `parallel-batch-e-screen-4w-1x1000-20260726a`: `13.105 ms/tick`,
+  `0.599x`; and
+- `parallel-batch-e-screen-8w-1x1000-20260726a`: `14.744 ms/tick`,
+  `0.532x`.
+
+Owner batching and worker-local revision/mass publication improved the
+eight-worker result to `13.071 ms/tick` in
+`parallel-batch-e-atomic-free-screen-8w-1x1000-20260726a`, but that is still
+only about `0.60x` the initial worker-one throughput. The final direct
+worker-one short screen,
+`parallel-batch-e-worker1-final-screen-1x1000-20260726a`, measured
+`8.304 ms/tick`; the difference is inside neither an accepted paired 5,000-tick
+gate nor a basis for claiming a regression fix. The attempted multi-worker
+arena-padding experiment measured `13.783 ms/tick` and was removed rather than
+retained as speculative complexity.
+
+The post-coalescing eight-worker trace
+`parallel-batch-e-coalesced-profile-8w-1x1000-20260726a` attributed only
+`0.70%` inclusive sampled thread time to owner batches, `0.81%` to delta
+resolution, `0.39%` to deterministic sorting, and `1.05%` to event publication.
+Worker sleeping/waking and coordinator joins dominated instead:
+`KernelWorker.Run` was `41.66%` exclusive, the two `Monitor.Wait` forms were
+`10.14%` and `5.28%` exclusive, `WaitForWorkers` was `3.95%` inclusive, and
+`KernelWorker.Start` was `1.17%` exclusive. Observed eight-worker RSS was about
+`460 MB`, far below the 8 GB ceiling.
+
+The initial coalesced worker-one 5,000-tick pair averaged `15.260 ms/tick`,
+`13.8%` slower than the Batch D `13.409 ms/tick` mean. Restoring direct
+worker-one registration-order dispatch improved the next run to
+`14.770 ms/tick`, but that single run still missed the prior mean by `10.1%`
+under a busier host. The worker-one acceptance gate therefore remains failed,
+not waived or reclassified as noise.
+
+Per the stop rule, no 16-worker, 10,000-tick, 25,000-tick, or 100,000-tick
+escalation was run. The typed-owner/hybrid groundwork remains useful and
+deterministic, but the current fine-grained synchronous worker scheduler is not
+an accepted performance strategy. The next performance design must reopen
+dispatch granularity and the measured serial/coordinator fraction before adding
+workers.
 
 After Batch 0, the parallel scheduler manifest deliberately excludes further
 Ice Remembers tuning, projection semantics, public tick units, and the

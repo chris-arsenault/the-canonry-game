@@ -21,6 +21,8 @@ internal sealed class GeneratorProgramScratch
     internal readonly int[] RefCodes;
     internal readonly int[] RefEntityIds;
     internal readonly int[] CreatedEntityIds;
+    internal readonly int[] ReservedEntityIds;
+    internal readonly int[] ReservedRelationshipIds;
     internal readonly int[] RetryRejectedTargetIds;
     internal readonly int[] PlannedProducedSlots;
     internal readonly int[] PlannedSubtypeIds;
@@ -65,6 +67,8 @@ internal sealed class GeneratorProgramScratch
         RefCodes = new int[resolvedReferenceCapacity];
         RefEntityIds = new int[resolvedReferenceCapacity];
         CreatedEntityIds = new int[resolvedReferenceCapacity];
+        ReservedEntityIds = new int[resolvedReferenceCapacity];
+        ReservedRelationshipIds = new int[resolvedReferenceCapacity];
         RetryRejectedTargetIds = new int[retryTargetCapacity];
         PlannedProducedSlots = new int[resolvedReferenceCapacity];
         PlannedSubtypeIds = new int[resolvedReferenceCapacity];
@@ -80,4 +84,56 @@ internal sealed class GeneratorProgramScratch
         PlannedCoverageCellQ = new int[scratchCellCapacity];
         PlannedCoverageCellR = new int[scratchCellCapacity];
     }
+
+    private GeneratorProgramScratch(
+        int fireCapacity,
+        int scratchCellCapacity,
+        int resolvedReferenceCapacity,
+        int retryTargetCapacity,
+        bool _)
+    {
+        FireStatusCodes = new int[fireCapacity];
+        FireCandidateCounts = new int[fireCapacity];
+        FireSelectionWeights = new int[fireCapacity];
+        FireSelectedTargetOccurrenceHandles = new int[fireCapacity];
+        FireFailedCounts = new int[fireCapacity];
+        Q = new int[scratchCellCapacity];
+        R = new int[scratchCellCapacity];
+        Score = new int[scratchCellCapacity];
+        VisitedQ = new int[scratchCellCapacity];
+        VisitedR = new int[scratchCellCapacity];
+        ClaimedQ = new int[scratchCellCapacity];
+        ClaimedR = new int[scratchCellCapacity];
+        ConnectivityQ = new int[scratchCellCapacity];
+        ConnectivityR = new int[scratchCellCapacity];
+        ConnectivityQueueQ = new int[scratchCellCapacity];
+        ConnectivityQueueR = new int[scratchCellCapacity];
+        RefCodes = new int[resolvedReferenceCapacity];
+        RefEntityIds = new int[resolvedReferenceCapacity];
+        CreatedEntityIds = new int[resolvedReferenceCapacity];
+        ReservedEntityIds = new int[resolvedReferenceCapacity];
+        ReservedRelationshipIds = new int[resolvedReferenceCapacity];
+        RetryRejectedTargetIds = new int[retryTargetCapacity];
+        PlannedProducedSlots = new int[resolvedReferenceCapacity];
+        PlannedSubtypeIds = new int[resolvedReferenceCapacity];
+        PlannedCultureIds = new int[resolvedReferenceCapacity];
+        PlannedSpawnPhysicalQ = new int[resolvedReferenceCapacity];
+        PlannedSpawnPhysicalR = new int[resolvedReferenceCapacity];
+        PlannedFinalPhysicalQ = new int[resolvedReferenceCapacity];
+        PlannedFinalPhysicalR = new int[resolvedReferenceCapacity];
+        PlannedSemanticQ = new int[resolvedReferenceCapacity];
+        PlannedSemanticR = new int[resolvedReferenceCapacity];
+        PlannedCoverageStarts = new int[resolvedReferenceCapacity];
+        PlannedCoverageCounts = new int[resolvedReferenceCapacity];
+        PlannedCoverageCellQ = new int[scratchCellCapacity];
+        PlannedCoverageCellR = new int[scratchCellCapacity];
+    }
+
+    internal GeneratorProgramScratch CreatePeer() =>
+        new(
+            FireStatusCodes.Length,
+            Q.Length,
+            RefCodes.Length,
+            RetryRejectedTargetIds.Length,
+            true);
 }

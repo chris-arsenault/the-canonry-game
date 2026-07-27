@@ -10,6 +10,20 @@ internal sealed partial class TickDeltaBuffer
             return;
         }
 
+        PrepareCulture(simulation);
+        ExecuteOwnerStage(
+            simulation,
+            CultureOwnerStage,
+            _resolvedCultureGroupCount);
+        CompleteCulture(simulation);
+        ExecuteOwnerStage(
+            simulation,
+            InfluenceCreditOwnerStage,
+            _influenceCreditCount);
+    }
+
+    private void PrepareCulture(Simulation simulation)
+    {
         global::System.Array.Clear(
             _cultureAppliedUnits,
             0,
@@ -19,19 +33,15 @@ internal sealed partial class TickDeltaBuffer
         DeterministicSort.Sort(
             _resolvedCultureGroups,
             _resolvedCultureGroupCount);
-        ExecuteOwnerStage(
-            simulation,
-            CultureOwnerStage,
-            _resolvedCultureGroupCount);
+    }
+
+    private void CompleteCulture(Simulation simulation)
+    {
         BuildInfluenceCreditsAndDirtyLocality(simulation);
         if (_influenceCreditCount > 0)
         {
             DeterministicSort.Sort(
                 _influenceCredits,
-                _influenceCreditCount);
-            ExecuteOwnerStage(
-                simulation,
-                InfluenceCreditOwnerStage,
                 _influenceCreditCount);
         }
     }
@@ -358,6 +368,16 @@ internal sealed partial class TickDeltaBuffer
             return;
         }
 
+        PrepareCultureReductions(simulation);
+        ExecuteOwnerStage(
+            simulation,
+            CultureReductionOwnerStage,
+            _resolvedCultureReductionGroupCount);
+        CompleteCultureReductions(simulation);
+    }
+
+    private void PrepareCultureReductions(Simulation simulation)
+    {
         global::System.Array.Clear(
             _cultureReductionChanged,
             0,
@@ -366,10 +386,10 @@ internal sealed partial class TickDeltaBuffer
         DeterministicSort.Sort(
             _resolvedCultureReductionGroups,
             _resolvedCultureReductionGroupCount);
-        ExecuteOwnerStage(
-            simulation,
-            CultureReductionOwnerStage,
-            _resolvedCultureReductionGroupCount);
+    }
+
+    private void CompleteCultureReductions(Simulation simulation)
+    {
         MarkCultureReductionLocalityDirty(simulation);
         ReconcileCultureStorage(simulation.World);
     }

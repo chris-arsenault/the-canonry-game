@@ -16,6 +16,10 @@ internal readonly record struct ResolvedCellState(
     int CellId,
     CellStateDelta Delta);
 
+internal readonly record struct ResolvedTravelStructure(
+    int CellId,
+    TravelStructureIntent Intent);
+
 internal readonly record struct ResolvedCultureGroup(
     int OriginalStart,
     int SumUnits,
@@ -351,3 +355,208 @@ internal readonly record struct LifecycleDelta(
         return comparison != 0 ? comparison : SourceKey.CompareTo(other.SourceKey);
     }
 }
+
+internal static class EntityStateIntentCodes
+{
+    internal const int SetCulture = 1;
+    internal const int SetStatus = 2;
+    internal const int IncreaseWorkTier = 3;
+    internal const int DecreaseWorkTier = 4;
+}
+
+internal readonly record struct AttributeSetIntent(
+    int EntityOccurrenceHandle,
+    int AttributeId,
+    int ValueUnits,
+    long SourceKey,
+    KernelExecutionContext Context) : IDeterministicOrder<AttributeSetIntent>
+{
+    public int CompareTo(AttributeSetIntent other)
+    {
+        var comparison =
+            EntityOccurrenceHandle.CompareTo(other.EntityOccurrenceHandle);
+        if (comparison != 0) return comparison;
+        comparison = AttributeId.CompareTo(other.AttributeId);
+        return comparison != 0
+            ? comparison
+            : SourceKey.CompareTo(other.SourceKey);
+    }
+}
+
+internal readonly record struct EntityStateIntent(
+    int EntityOccurrenceHandle,
+    int OperationCode,
+    int Value,
+    long SourceKey,
+    KernelExecutionContext Context) : IDeterministicOrder<EntityStateIntent>
+{
+    public int CompareTo(EntityStateIntent other)
+    {
+        var comparison =
+            EntityOccurrenceHandle.CompareTo(other.EntityOccurrenceHandle);
+        return comparison != 0
+            ? comparison
+            : SourceKey.CompareTo(other.SourceKey);
+    }
+}
+
+internal readonly record struct EntityCreationIntent(
+    int EntityId,
+    int KindId,
+    int SubtypeId,
+    int CultureId,
+    int PhysicalQ,
+    int PhysicalR,
+    int SemanticQ,
+    int SemanticR,
+    int SemanticS,
+    long SourceKey,
+    KernelExecutionContext Context) : IDeterministicOrder<EntityCreationIntent>
+{
+    public int CompareTo(EntityCreationIntent other)
+    {
+        var comparison = EntityId.CompareTo(other.EntityId);
+        return comparison != 0
+            ? comparison
+            : SourceKey.CompareTo(other.SourceKey);
+    }
+}
+
+internal readonly record struct RelationshipCreationIntent(
+    int RelationshipId,
+    int KindId,
+    int PolarityCode,
+    int SourceEntityId,
+    int TargetEntityId,
+    int StrengthUnits,
+    long SourceKey,
+    KernelExecutionContext Context) : IDeterministicOrder<RelationshipCreationIntent>
+{
+    public int CompareTo(RelationshipCreationIntent other)
+    {
+        var comparison = SourceEntityId.CompareTo(other.SourceEntityId);
+        if (comparison != 0) return comparison;
+        comparison = TargetEntityId.CompareTo(other.TargetEntityId);
+        if (comparison != 0) return comparison;
+        comparison = KindId.CompareTo(other.KindId);
+        return comparison != 0
+            ? comparison
+            : SourceKey.CompareTo(other.SourceKey);
+    }
+}
+
+internal readonly record struct RelationshipSetIntent(
+    int RelationshipOccurrenceHandle,
+    int StrengthUnits,
+    long SourceKey,
+    KernelExecutionContext Context) : IDeterministicOrder<RelationshipSetIntent>
+{
+    public int CompareTo(RelationshipSetIntent other)
+    {
+        var comparison = RelationshipOccurrenceHandle.CompareTo(
+            other.RelationshipOccurrenceHandle);
+        return comparison != 0
+            ? comparison
+            : SourceKey.CompareTo(other.SourceKey);
+    }
+}
+
+internal readonly record struct StrategicCellStateIntent(
+    int PlaneCode,
+    int Q,
+    int R,
+    int TerrainId,
+    int OwnerEntityId,
+    long SourceKey,
+    KernelExecutionContext Context) :
+    IDeterministicOrder<StrategicCellStateIntent>
+{
+    internal bool SameDestination(StrategicCellStateIntent other) =>
+        PlaneCode == other.PlaneCode &&
+        Q == other.Q &&
+        R == other.R;
+
+    public int CompareTo(StrategicCellStateIntent other)
+    {
+        var comparison = PlaneCode.CompareTo(other.PlaneCode);
+        if (comparison != 0) return comparison;
+        comparison = Q.CompareTo(other.Q);
+        if (comparison != 0) return comparison;
+        comparison = R.CompareTo(other.R);
+        return comparison != 0
+            ? comparison
+            : SourceKey.CompareTo(other.SourceKey);
+    }
+}
+
+internal readonly record struct TravelStructureIntent(
+    int PlaneCode,
+    int Q,
+    int R,
+    int TravelStructureId,
+    long SourceKey,
+    KernelExecutionContext Context) : IDeterministicOrder<TravelStructureIntent>
+{
+    public int CompareTo(TravelStructureIntent other)
+    {
+        var comparison = PlaneCode.CompareTo(other.PlaneCode);
+        if (comparison != 0) return comparison;
+        comparison = Q.CompareTo(other.Q);
+        if (comparison != 0) return comparison;
+        comparison = R.CompareTo(other.R);
+        return comparison != 0
+            ? comparison
+            : SourceKey.CompareTo(other.SourceKey);
+    }
+}
+
+internal readonly record struct ForgeCellIntent(
+    int EntityOccurrenceHandle,
+    int Direction,
+    int TerrainId,
+    long SourceKey,
+    KernelExecutionContext Context) : IDeterministicOrder<ForgeCellIntent>
+{
+    public int CompareTo(ForgeCellIntent other)
+    {
+        var comparison =
+            EntityOccurrenceHandle.CompareTo(other.EntityOccurrenceHandle);
+        return comparison != 0
+            ? comparison
+            : SourceKey.CompareTo(other.SourceKey);
+    }
+}
+
+internal static class DistrictIntentCodes
+{
+    internal const int Install = 1;
+    internal const int Reawaken = 2;
+}
+
+internal readonly record struct DistrictIntent(
+    int OperationCode,
+    int EntityOccurrenceHandle,
+    int TargetOccurrenceHandle,
+    int A,
+    int C,
+    long XUnits,
+    int ReservedEntityId,
+    int ReservedRelationshipId,
+    long SourceKey,
+    KernelExecutionContext Context) : IDeterministicOrder<DistrictIntent>
+{
+    public int CompareTo(DistrictIntent other)
+    {
+        var comparison =
+            EntityOccurrenceHandle.CompareTo(other.EntityOccurrenceHandle);
+        return comparison != 0
+            ? comparison
+            : SourceKey.CompareTo(other.SourceKey);
+    }
+}
+
+internal readonly record struct DistrictResolution(
+    StrategicCellStateIntent CellState,
+    EntityStateIntent EntityState,
+    EntityCreationIntent EntityCreation,
+    RelationshipCreationIntent RelationshipCreation);

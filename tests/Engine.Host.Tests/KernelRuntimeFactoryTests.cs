@@ -46,6 +46,25 @@ public sealed class KernelRuntimeFactoryTests
     }
 
     [Fact]
+    public void Start_AppliesRequestedKernelWorkerCount()
+    {
+        var domain = new CountingDomainModule();
+        var factory = KernelRuntimeFactory.ForDomains(domain);
+        var prebuilt = new DomainStartupSeedResult(
+            DomainStartupSeed.Empty(mapRadius: 1),
+            new StartupSeedIdentity(baseSeed: 100, attempt: 0));
+
+        using var runtime = factory.Start(new KernelStartRequest(
+            domain.Name,
+            StartupSeedPolicy.Requested(100),
+            KernelFunctionProfile.Batch,
+            startupSeed: prebuilt,
+            workerCount: 4));
+
+        Assert.Equal(4, runtime.Host.WorkerCount);
+    }
+
+    [Fact]
     public void Start_RejectsPrebuiltStartupSeedForDifferentBaseSeed()
     {
         var domain = new CountingDomainModule();
