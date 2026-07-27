@@ -7,38 +7,76 @@ internal sealed partial class Simulation
     private static readonly FixedScalar FavorEntityMaxMultiplierDelta = 4;
     private const int FavorEntityMaxDurationTicks = 10000;
 
-    private void DrainCommands()
+    private void RouteCommandsToOwners()
     {
         while (Commands.TryRead(out var command))
         {
-            if (command.IssueVersion != CurrentVersion && !CommandIsVersionTolerant(command.CommandType))
-            {
-                WriteCommandRejected(command, KernelCommandRejectReasonCodes.StaleVersion);
-                continue;
-            }
-
-            var result = ApplyCommand(in command);
-            if (result.Applied)
-            {
-                WriteCommandApplied(command);
-            }
-            else
-            {
-                WriteCommandRejected(command, result.ReasonCode);
-            }
+            _continuousOwners.EnqueueCommand(
+                CommandOwner(command),
+                command);
         }
     }
 
-    private KernelCommandApplyResult ApplyCommand(in KernelCommand command) =>
+    internal KernelCommandApplyResult ApplyOwnedCommand(
+        in KernelCommand command,
+        int ownerTick,
+        long admissionVersion)
+    {
+        if (command.IssueVersion != admissionVersion &&
+            !CommandIsVersionTolerant(command.CommandType))
+        {
+            return new KernelCommandApplyResult(
+                false,
+                KernelCommandRejectReasonCodes.StaleVersion);
+        }
+
+        return ApplyCommand(command, ownerTick);
+    }
+
+    private KernelCommandApplyResult ApplyCommand(
+        in KernelCommand command,
+        int ownerTick) =>
         command.CommandType switch
         {
             KernelCommandTypeCodes.NoOp => KernelCommandApplyResult.Success,
             KernelCommandTypeCodes.SetGeneratorEnabled => ApplySetGeneratorEnabled(command.AsSetGeneratorEnabled()),
             KernelCommandTypeCodes.SetGambitEnabled => ApplySetGambitEnabled(command.AsSetGambitEnabled()),
-            KernelCommandTypeCodes.BlessCellCulture => ApplyBlessCellCulture(command.AsBlessCellCulture()),
-            KernelCommandTypeCodes.FavorEntity => ApplyFavorEntity(command.AsFavorEntity()),
+            KernelCommandTypeCodes.BlessCellCulture => ApplyBlessCellCulture(command.AsBlessCellCulture(), ownerTick),
+            KernelCommandTypeCodes.FavorEntity => ApplyFavorEntity(command.AsFavorEntity(), ownerTick),
             _ => new KernelCommandApplyResult(false, KernelCommandRejectReasonCodes.UnsupportedCommand),
         };
+
+    private int CommandOwner(in KernelCommand command) =>
+        command.CommandType switch
+        {
+            KernelCommandTypeCodes.SetGeneratorEnabled =>
+                _ownerTopology.ProgramOwner(
+                    KernelProgramCodes.Generators),
+            KernelCommandTypeCodes.SetGambitEnabled =>
+                _ownerTopology.ProgramOwner(
+                    KernelProgramCodes.Gambits),
+            KernelCommandTypeCodes.BlessCellCulture =>
+                BlessCommandOwner(command.AsBlessCellCulture()),
+            KernelCommandTypeCodes.FavorEntity =>
+                EntityCommandOwner(
+                    command.AsFavorEntity().EntityId,
+                    command.CommandType),
+            _ => _ownerTopology.ProgramOwner(
+                global::System.Math.Max(1, command.CommandType)),
+        };
+
+    private int EntityCommandOwner(int entityOccurrence, int fallbackId) =>
+        entityOccurrence > 0
+            ? _ownerTopology.EntityOccurrenceOwner(entityOccurrence)
+            : _ownerTopology.ProgramOwner(
+                global::System.Math.Max(1, fallbackId));
+
+    private int BlessCommandOwner(
+        in BlessCellCultureKernelCommand payload) =>
+        _ownerTopology.CellOwner(
+            payload.PlaneCode,
+            payload.Q,
+            payload.R);
 
     private KernelCommandApplyResult ApplySetGeneratorEnabled(in SetGeneratorEnabledKernelCommand payload)
     {
@@ -66,7 +104,9 @@ internal sealed partial class Simulation
         return KernelCommandApplyResult.Success;
     }
 
-    private KernelCommandApplyResult ApplyBlessCellCulture(in BlessCellCultureKernelCommand payload)
+    private KernelCommandApplyResult ApplyBlessCellCulture(
+        in BlessCellCultureKernelCommand payload,
+        int ownerTick)
     {
         if (payload.CultureId <= 0 ||
             (payload.PlaneCode != PlaneCodes.Physical && payload.PlaneCode != PlaneCodes.Semantic) ||
@@ -95,14 +135,16 @@ internal sealed partial class Simulation
                     payload.Q + dq,
                     payload.R + dr,
                     payload.Amount,
-                    CurrentTick);
+                    ownerTick);
             }
         }
 
         return KernelCommandApplyResult.Success;
     }
 
-    private KernelCommandApplyResult ApplyFavorEntity(in FavorEntityKernelCommand payload)
+    private KernelCommandApplyResult ApplyFavorEntity(
+        in FavorEntityKernelCommand payload,
+        int ownerTick)
     {
         if (payload.EntityId <= 0 ||
             !World.TryResolveEntityOccurrence(payload.EntityId, out var entityId) ||
@@ -117,7 +159,7 @@ internal sealed partial class Simulation
         World.SetEntityFavor(
             entityId,
             payload.MultiplierDelta,
-            CurrentTick + payload.DurationTicks);
+            ownerTick + payload.DurationTicks);
         return KernelCommandApplyResult.Success;
     }
 
@@ -129,7 +171,9 @@ internal sealed partial class Simulation
             or KernelCommandTypeCodes.FavorEntity;
     }
 
-    private readonly record struct KernelCommandApplyResult(bool Applied, int ReasonCode)
+    internal readonly record struct KernelCommandApplyResult(
+        bool Applied,
+        int ReasonCode)
     {
         public static KernelCommandApplyResult Success => new(true, KernelCommandRejectReasonCodes.None);
     }

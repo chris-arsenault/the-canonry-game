@@ -7,6 +7,21 @@ internal sealed partial class WorldState
 {
     public void AdvanceWorldVersion()
     {
+        var ownerIndex = KernelWorkerThread.OwnerIndex;
+        if (ownerIndex >= 0)
+        {
+            var ownerTick = KernelWorkerThread.OwnerTick;
+            if (global::System.Threading.Interlocked.Exchange(
+                    ref _ownerVersionTicks[ownerIndex],
+                    ownerTick) != ownerTick)
+            {
+                global::System.Threading.Interlocked.Increment(
+                    ref _worldVersion);
+            }
+
+            return;
+        }
+
         if (_singleWorker)
         {
             if (_worldVersionTick != CurrentTick)
@@ -46,156 +61,6 @@ internal sealed partial class WorldState
         {
             global::System.Threading.Volatile.Write(ref _worldVersionGate, 0);
         }
-    }
-
-    private int FindEntitySlot()
-    {
-        if (_freeEntitySlotCount > 0)
-        {
-            return _freeEntitySlots[--_freeEntitySlotCount];
-        }
-
-        if (_entityHighWatermark >= EntityCapacity)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _entityHighWatermark++;
-        return _entityHighWatermark;
-    }
-
-    private int FindRelationshipSlot()
-    {
-        if (_freeRelationshipSlotCount > 0)
-        {
-            return _freeRelationshipSlots[--_freeRelationshipSlotCount];
-        }
-
-        if (_relationshipHighWatermark >= RelationshipCapacity)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _relationshipHighWatermark++;
-        return _relationshipHighWatermark;
-    }
-
-    internal void ReserveEntitySlots(global::System.Span<int> entityIds)
-    {
-        for (var index = 0; index < entityIds.Length; index++)
-        {
-            entityIds[index] = FindEntitySlot();
-        }
-    }
-
-    internal int ReserveEntitySlot() => FindEntitySlot();
-
-    internal void ReleaseUnusedReservedEntitySlot(int entityId)
-    {
-        if ((uint)entityId == 0u ||
-            entityId > EntityCapacity ||
-            _entityAllocated[entityId])
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _freeEntitySlots[_freeEntitySlotCount++] = entityId;
-    }
-
-    internal void ReserveRelationshipSlots(
-        global::System.Span<int> relationshipIds)
-    {
-        for (var index = 0; index < relationshipIds.Length; index++)
-        {
-            relationshipIds[index] = FindRelationshipSlot();
-        }
-    }
-
-    internal int ReserveRelationshipSlot() => FindRelationshipSlot();
-
-    internal void ReleaseUnusedReservedRelationshipSlot(int relationshipId)
-    {
-        if ((uint)relationshipId == 0u ||
-            relationshipId > RelationshipCapacity ||
-            _relationshipAllocated[relationshipId])
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _freeRelationshipSlots[_freeRelationshipSlotCount++] = relationshipId;
-    }
-
-    private void ReleaseEntitySlot(int entityId)
-    {
-        ClearEntitySlot(entityId);
-        AdvanceEntityGeneration(entityId);
-        _freeEntitySlots[_freeEntitySlotCount++] = entityId;
-    }
-
-    private void ClearEntitySlot(int entityId)
-    {
-        _entityAllocated[entityId] = false;
-        _entityStatus[entityId] = 0;
-        _entityTagBits[entityId] = 0;
-        _entityKindId[entityId] = 0;
-        _entitySubtypeId[entityId] = 0;
-        _entityCultureId[entityId] = 0;
-        _entityCultureInfluenceMultiplierDeltas[entityId] = 0;
-        _entityPhysicalInfluenceProduction[entityId] = 0;
-        _entitySemanticInfluenceProduction[entityId] = 0;
-        _entityPhysicalQ[entityId] = 0;
-        _entityPhysicalR[entityId] = 0;
-        _entityPhysicalZ[entityId] = 0;
-        _entitySemanticQ[entityId] = 0;
-        _entitySemanticR[entityId] = 0;
-        _entitySemanticS[entityId] = 0;
-        _entityAnchorPhysicalQ[entityId] = 0;
-        _entityAnchorPhysicalR[entityId] = 0;
-        _entityAnchorSemanticQ[entityId] = 0;
-        _entityAnchorSemanticR[entityId] = 0;
-        _entityFavorMultiplierDelta[entityId] = 0;
-        _entityFavorExpiresAtTick[entityId] = 0;
-        _entityWorkTiers[entityId] = 0;
-        _entityCreatedAt[entityId] = 0;
-        _entityUpdatedAt[entityId] = 0;
-        _entityCreatedByInvocationId[entityId] = 0;
-        global::System.Array.Clear(_attributes, entityId * _attributeStride, _attributeStride);
-        global::System.Array.Clear(_attributeAssigned, entityId * _attributeStride, _attributeStride);
-        global::System.Array.Clear(_traits, entityId * _traitStride, _traitStride);
-    }
-
-    private void AdvanceEntityGeneration(int entityId)
-    {
-        var maximum = (global::System.Int32.MaxValue - entityId) / EntityCapacity;
-        if (_entityGenerations[entityId] >= maximum)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _entityGenerations[entityId]++;
-    }
-
-    private void ReleaseRelationshipSlot(int relationshipId)
-    {
-        _relationshipAllocated[relationshipId] = false;
-        _relationshipActive[relationshipId] = false;
-        _relationshipKindId[relationshipId] = 0;
-        _relationshipPolarityCode[relationshipId] = 0;
-        _relationshipSourceId[relationshipId] = 0;
-        _relationshipTargetId[relationshipId] = 0;
-        _relationshipStartTick[relationshipId] = 0;
-        _relationshipEndTick[relationshipId] = 0;
-        _relationshipStrength[relationshipId] = 0;
-        _relationshipCreatedByInvocationId[relationshipId] = 0;
-        _relationshipLastChangedByInvocationId[relationshipId] = 0;
-        var maximum = (global::System.Int32.MaxValue - relationshipId) / RelationshipCapacity;
-        if (_relationshipGenerations[relationshipId] >= maximum)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _relationshipGenerations[relationshipId]++;
-        _freeRelationshipSlots[_freeRelationshipSlotCount++] = relationshipId;
     }
 
     internal int EntityOccurrenceHandle(int entityId)
@@ -265,6 +130,43 @@ internal sealed partial class WorldState
         return _entityAllocated[entityId] &&
             _entityStatus[entityId] == EntityStatusCodes.Active &&
             _entityGenerations[entityId] == generation;
+    }
+
+    internal bool TryResolveRetiringEntityOccurrence(
+        int occurrenceHandle,
+        out int entityId)
+    {
+        if (occurrenceHandle <= 0)
+        {
+            entityId = 0;
+            return false;
+        }
+
+        entityId = ((occurrenceHandle - 1) % EntityCapacity) + 1;
+        var generation = (occurrenceHandle - entityId) / EntityCapacity;
+        return _entityAllocated[entityId] &&
+            _entityStatus[entityId] == EntityStatusCodes.Historical &&
+            _entityGenerations[entityId] == generation;
+    }
+
+    internal bool TryResolveRetiringRelationshipOccurrence(
+        int occurrenceHandle,
+        out int relationshipId)
+    {
+        if (occurrenceHandle <= 0)
+        {
+            relationshipId = 0;
+            return false;
+        }
+
+        relationshipId =
+            ((occurrenceHandle - 1) % RelationshipCapacity) + 1;
+        var generation =
+            (occurrenceHandle - relationshipId) /
+            RelationshipCapacity;
+        return _relationshipAllocated[relationshipId] &&
+            !_relationshipActive[relationshipId] &&
+            _relationshipGenerations[relationshipId] == generation;
     }
 
     private void InsertEntityKindIndex(int entityId, int kindId)
@@ -588,8 +490,10 @@ internal sealed partial class WorldState
             context.SourceCodeId,
             _relationshipKindId[relationshipId],
             _relationshipPolarityCode[relationshipId],
-            EntityOccurrenceHandle(_relationshipSourceId[relationshipId]),
-            EntityOccurrenceHandle(_relationshipTargetId[relationshipId]),
+            EntityOccurrenceHandleForIntent(
+                _relationshipSourceId[relationshipId]),
+            EntityOccurrenceHandleForIntent(
+                _relationshipTargetId[relationshipId]),
             RelationshipOccurrenceHandle(relationshipId),
             previousStrengthUnits,
             newStrengthUnits,
@@ -612,7 +516,9 @@ internal sealed partial class WorldState
 
     internal int EntityOccurrenceHandleOrZero(int entityId)
     {
-        return entityId == 0 ? 0 : EntityOccurrenceHandle(entityId);
+        return entityId == 0 || !EntityExists(entityId)
+            ? 0
+            : EntityOccurrenceHandle(entityId);
     }
 
     private static void ValidatePositive(int value)
@@ -674,6 +580,11 @@ internal partial struct RelationshipEndpointIndex
 
     internal void Compact(WorldState world)
     {
+        if (_graphDeltaCount == 0)
+        {
+            return;
+        }
+
         BuildRelationshipCsr(
             world,
             _outgoingFrozenOffsets,
@@ -831,6 +742,11 @@ internal partial struct RelationshipEndpointIndex
         RemoveRelationshipFromGraphDelta(world, relationshipId);
         if (_graphDeltaCount >= _nextOutgoingDeltaRelationship.Length - 1)
         {
+            if (world.PublishedRelationshipViewActive)
+            {
+                throw new global::System.InvalidOperationException();
+            }
+
             Compact(world);
         }
 
@@ -851,7 +767,8 @@ internal partial struct RelationshipEndpointIndex
         _relationshipInDeltaGraph[relationshipId] = true;
         _graphDeltaCount++;
         if (_graphDeltaMergeThreshold > 0 &&
-            _graphDeltaCount >= _graphDeltaMergeThreshold)
+            _graphDeltaCount >= _graphDeltaMergeThreshold &&
+            !world.PublishedRelationshipViewActive)
         {
             Compact(world);
         }

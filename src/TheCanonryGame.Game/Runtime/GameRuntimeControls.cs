@@ -16,7 +16,7 @@ internal sealed class GameRuntimeControls
 
     public double TicksPerSecond => _time.TicksPerSecond;
 
-    public int CurrentTick => _time.CurrentTick;
+    public int CurrentTick => _time.PublishedLowWatermark;
 
     public void Pause() => _time.RequestPause();
 

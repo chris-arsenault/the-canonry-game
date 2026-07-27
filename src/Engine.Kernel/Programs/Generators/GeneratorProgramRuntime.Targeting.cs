@@ -115,7 +115,7 @@ internal sealed partial class GeneratorProgramRuntime
             simulation.Chronicles.LegendaryResolvedWithin(
                 simulation.World,
                 targetId,
-                simulation.World.CurrentTick,
+                simulation.ExecutionTick,
                 legendaryWithin);
     }
 

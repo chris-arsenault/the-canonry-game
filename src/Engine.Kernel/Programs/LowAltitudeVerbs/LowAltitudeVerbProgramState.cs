@@ -7,7 +7,7 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
     private readonly int[] _activeVerbSlots;
     private readonly int[] _intentIds;
     private readonly int[] _targetPlaneCodes;
-    private readonly int[] _targetEntityIds;
+    private readonly int[] _targetEntityOccurrenceHandles;
     private readonly int[] _targetQ;
     private readonly int[] _targetR;
     private readonly int[] _targetS;
@@ -39,7 +39,7 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
         _activeVerbSlots = new int[length];
         _intentIds = new int[length];
         _targetPlaneCodes = new int[length];
-        _targetEntityIds = new int[length];
+        _targetEntityOccurrenceHandles = new int[length];
         _targetQ = new int[length];
         _targetR = new int[length];
         _targetS = new int[length];
@@ -69,7 +69,8 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
 
     public int TargetPlaneCode(int entityId) => _targetPlaneCodes[entityId];
 
-    public int TargetEntityId(int entityId) => _targetEntityIds[entityId];
+    public int TargetEntityOccurrenceHandle(int entityId) =>
+        _targetEntityOccurrenceHandles[entityId];
 
     public int TargetQ(int entityId) => _targetQ[entityId];
 
@@ -128,7 +129,7 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
         _activeVerbSlots[entityId] = 0;
         _intentIds[entityId] = 0;
         _targetPlaneCodes[entityId] = 0;
-        _targetEntityIds[entityId] = 0;
+        _targetEntityOccurrenceHandles[entityId] = 0;
         _targetQ[entityId] = 0;
         _targetR[entityId] = 0;
         _targetS[entityId] = 0;
@@ -161,7 +162,7 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
         int entityId,
         int verbSlot,
         int targetPlaneCode,
-        int targetEntityId,
+        int targetEntityOccurrenceHandle,
         int q,
         int r,
         int s,
@@ -175,7 +176,8 @@ internal sealed partial class LowAltitudeVerbProgramState : IKernelProgramState
         _activeVerbSlots[entityId] = verbSlot;
         _intentIds[entityId] = NextIntentId(entityId, startedTick);
         _targetPlaneCodes[entityId] = targetPlaneCode;
-        _targetEntityIds[entityId] = targetEntityId;
+        _targetEntityOccurrenceHandles[entityId] =
+            targetEntityOccurrenceHandle;
         _targetQ[entityId] = q;
         _targetR[entityId] = r;
         _targetS[entityId] = s;

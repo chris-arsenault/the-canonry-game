@@ -590,24 +590,45 @@ internal sealed partial class Simulation
             mutationCount)));
     }
 
-    private void WriteCommandApplied(in KernelCommand command)
+    internal void WriteCommandApplied(
+        in KernelCommand command,
+        int tick)
     {
         WriteKernelEvent(KernelEvent.From(new CommandAppliedKernelEvent(
-            CurrentTick,
+            tick,
             WorldVersion,
             command.CommandId,
             command.CommandType,
             command.IssueVersion)));
     }
 
-    private void WriteCommandRejected(in KernelCommand command, int reasonCodeId)
+    internal void WriteCommandRejected(
+        in KernelCommand command,
+        int reasonCodeId,
+        int tick)
     {
         WriteKernelEvent(KernelEvent.From(new CommandRejectedKernelEvent(
-            CurrentTick,
+            tick,
             WorldVersion,
             command.CommandId,
             command.CommandType,
             command.IssueVersion,
             reasonCodeId)));
+    }
+
+    private void WriteWatermarkAdvanced(
+        int lowWatermark,
+        int highWatermark,
+        int ownerCount,
+        long publicationRevision)
+    {
+        WriteKernelEvent(KernelEvent.From(
+            new WatermarkAdvancedKernelEvent(
+                lowWatermark,
+                WorldVersion,
+                lowWatermark,
+                highWatermark,
+                ownerCount,
+                publicationRevision)));
     }
 }

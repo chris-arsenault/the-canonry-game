@@ -9,9 +9,10 @@ instead of adding profiling telemetry to the Monte Carlo batch.
 
 ## Execution Model
 
-Runs within one `--runs` batch execute sequentially. The kernel remains a
-single-writer simulation: tick systems must not mutate `WorldState` from worker
-threads.
+Runs within one `--runs` batch execute sequentially. Each simulation uses its
+configured long-lived kernel workers. Logical entity, relationship, cell, and
+program owners mutate only their authoritative destinations; cross-owner
+effects use bounded typed inboxes.
 
 Full telemetry runs can use a second core for export. At each flush boundary,
 the simulation detaches ownership of the completed `TelemetryBatch` and
@@ -21,12 +22,11 @@ an unbounded memory queue. The worker owns the DuckDB connection, the reported
 run elapsed time includes the final writer drain, and Parquet export begins only
 after all batches have been appended.
 
-Safe ways to use more cores are therefore isolated work outside the mutable
-tick transaction: the bounded telemetry writer and, when independently
-orchestrated, separate Monte Carlo processes. Parallelizing entity or system
-loops inside a tick is not safe without a snapshot/intent/ordered-commit design
-because same-tick reads, RNG order, and shared state mutations are observable
-simulation behavior.
+The kernel's physical worker count is an execution-topology input. Runs with
+different worker counts need not produce byte-identical histories because
+bounded remote visibility and message arrival may differ; compare structural
+invariants and registered statistical envelopes. The telemetry writer remains
+a separate bounded consumer and never mutates kernel state.
 
 ## Registered Runs
 

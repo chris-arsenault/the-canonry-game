@@ -8,6 +8,7 @@ internal sealed partial class Simulation
     {
         writer.Write(CurrentTick);
         writer.Write(_phaseRevision);
+        Commands.WriteSnapshot(writer);
         KernelData.WriteSnapshot(writer);
         World.WriteSnapshot(writer);
         _programs.WriteSnapshot(writer);
@@ -31,6 +32,8 @@ internal sealed partial class Simulation
     {
         CurrentTick = reader.ReadInt32();
         _phaseRevision = reader.ReadInt64();
+        Commands.ReadSnapshot(reader);
+        RestorePublishedWatermark();
         KernelData.ReadSnapshot(reader);
         World.ReadSnapshot(reader);
         _programs.ReadSnapshot(this, reader);

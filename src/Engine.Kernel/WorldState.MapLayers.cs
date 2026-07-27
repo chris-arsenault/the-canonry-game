@@ -927,15 +927,28 @@ internal sealed partial class WorldState
         int tick,
         in KernelExecutionContext context)
     {
+        ModifyEntityCultureInfluenceMultiplierDeltaUnits(
+            entityId,
+            KernelFixedPoint.ModifierUnits(delta),
+            tick,
+            context);
+    }
+
+    internal void ModifyEntityCultureInfluenceMultiplierDeltaUnits(
+        int entityId,
+        int deltaUnits,
+        int tick,
+        in KernelExecutionContext context)
+    {
         EnsureEntity(entityId);
-        if (delta == 0)
+        if (deltaUnits == 0)
         {
             return;
         }
 
         _entityCultureInfluenceMultiplierDeltas[entityId] = KernelFixedPoint.SaturatingAdd(
             _entityCultureInfluenceMultiplierDeltas[entityId],
-            KernelFixedPoint.ModifierUnits(delta),
+            deltaUnits,
             KernelFixedPoint.ModifierMinimumUnits,
             KernelFixedPoint.ModifierMaximumUnits);
         MarkEntityCultureWorkDirty(entityId);
@@ -949,20 +962,33 @@ internal sealed partial class WorldState
         int tick,
         in KernelExecutionContext context)
     {
+        ModifyCultureInfluenceMultiplierDeltaUnits(
+            cultureId,
+            KernelFixedPoint.ModifierUnits(delta),
+            tick,
+            context);
+    }
+
+    internal void ModifyCultureInfluenceMultiplierDeltaUnits(
+        int cultureId,
+        int deltaUnits,
+        int tick,
+        in KernelExecutionContext context)
+    {
         ValidatePositive(cultureId);
         if ((uint)cultureId >= (uint)_cultureInfluenceMultiplierDeltas.Length)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(cultureId));
         }
 
-        if (delta == 0)
+        if (deltaUnits == 0)
         {
             return;
         }
 
         _cultureInfluenceMultiplierDeltas[cultureId] = KernelFixedPoint.SaturatingAdd(
             _cultureInfluenceMultiplierDeltas[cultureId],
-            KernelFixedPoint.ModifierUnits(delta),
+            deltaUnits,
             KernelFixedPoint.ModifierMinimumUnits,
             KernelFixedPoint.ModifierMaximumUnits);
         MarkCultureWorkDirty(cultureId);
@@ -997,7 +1023,7 @@ internal sealed partial class WorldState
             PositiveCultureInfluenceRawUnits(cultureId, cellId));
     }
 
-    private int PositiveCultureInfluenceRawUnits(int cultureId, int cellId)
+    internal int PositiveCultureInfluenceRawUnits(int cultureId, int cellId)
     {
         var raw = _mapLayers.RawCultureInfluence.ValueAt(cultureId, cellId);
         return raw > 0 ? raw : 0;

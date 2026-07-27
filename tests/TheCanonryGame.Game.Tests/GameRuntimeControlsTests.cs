@@ -66,7 +66,9 @@ public sealed class GameRuntimeControlsTests
 
         public bool IsPaused => IsPausedValue;
 
-        public int CurrentTick => CurrentTickValue;
+        public int PublishedLowWatermark => CurrentTickValue;
+
+        public int PublishedHighWatermark => CurrentTickValue;
 
         public bool IsPausedValue { get; init; }
 
@@ -91,6 +93,11 @@ public sealed class GameRuntimeControlsTests
         public void RequestSingleStep(int tickCount) => SingleStepRequests.Add(tickCount);
 
         public int AdvanceSingleStep(int tickCount, CancellationToken cancellationToken = default) => tickCount;
+
+        public int ConvergeAt(
+            int tick,
+            CancellationToken cancellationToken = default) =>
+            tick;
 
         public void Dispose()
         {

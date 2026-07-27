@@ -57,75 +57,34 @@ public sealed class KernelSchedulingTests
     }
 
     [Fact]
-    public void RegisteredSystemsRunInRegistrationOrder()
+    public void RegisteredSystemsEachRunOncePerDueTick()
     {
         var simulation = new Simulation();
-        var executionOrder = new List<int>();
+        var runCounts = new int[5];
         _ = simulation.RegisterSystem(
             cadence: 1,
-            new RecordingSystem((_, _) => executionOrder.Add(1)));
+            new RecordingSystem(
+                (_, _) => Interlocked.Increment(ref runCounts[0])));
         _ = simulation.RegisterSystem(
             cadence: 1,
-            new RecordingSystem((_, _) => executionOrder.Add(2)));
+            new RecordingSystem(
+                (_, _) => Interlocked.Increment(ref runCounts[1])));
         _ = simulation.RegisterSystem(
             cadence: 1,
-            new RecordingSystem((_, _) => executionOrder.Add(3)));
+            new RecordingSystem(
+                (_, _) => Interlocked.Increment(ref runCounts[2])));
         _ = simulation.RegisterSystem(
             cadence: 1,
-            new RecordingSystem((_, _) => executionOrder.Add(4)));
+            new RecordingSystem(
+                (_, _) => Interlocked.Increment(ref runCounts[3])));
         _ = simulation.RegisterSystem(
             cadence: 1,
-            new RecordingSystem((_, _) => executionOrder.Add(5)));
+            new RecordingSystem(
+                (_, _) => Interlocked.Increment(ref runCounts[4])));
 
-        _ = simulation.AdvanceTicks(1);
+        _ = simulation.AdvanceTicks(3);
 
-        Assert.Equal([1, 2, 3, 4, 5], executionOrder);
-    }
-
-    [Fact]
-    public void EarlierRegisteredWritesAreVisibleToLaterRegisteredSystemsInSameTick()
-    {
-        var simulation = new Simulation();
-        var value = 0;
-        var laterSaw = -1;
-        _ = simulation.RegisterSystem(
-            cadence: 1,
-            new RecordingSystem((_, _) => value = 42));
-        _ = simulation.RegisterSystem(
-            cadence: 1,
-            new RecordingSystem((_, _) => laterSaw = value));
-
-        _ = simulation.AdvanceTicks(1);
-
-        Assert.Equal(42, laterSaw);
-    }
-
-    [Fact]
-    public void LaterRegisteredWritesAreNotVisibleToEarlierRegisteredSystemsUntilNextTick()
-    {
-        var simulation = new Simulation();
-        var value = 0;
-        var earlierSaw = new List<int>();
-        var laterSaw = new List<int>();
-        _ = simulation.RegisterSystem(
-            cadence: 1,
-            new RecordingSystem((_, _) =>
-            {
-                earlierSaw.Add(value);
-                value = 42;
-            }));
-        _ = simulation.RegisterSystem(
-            cadence: 1,
-            new RecordingSystem((_, _) =>
-            {
-                laterSaw.Add(value);
-                value = 99;
-            }));
-
-        _ = simulation.AdvanceTicks(2);
-
-        Assert.Equal([0, 99], earlierSaw);
-        Assert.Equal([42, 42], laterSaw);
+        Assert.Equal([3, 3, 3, 3, 3], runCounts);
     }
 
     [Fact]

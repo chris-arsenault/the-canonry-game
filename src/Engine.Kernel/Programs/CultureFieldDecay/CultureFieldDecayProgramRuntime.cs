@@ -7,7 +7,8 @@ using Engine.Constants;
 /// balance of current production against loss instead of the integral of all
 /// history. Unsustained trails and satellites fade; sustained centers persist.
 /// </summary>
-internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
+internal sealed class CultureFieldDecayProgramRuntime :
+    IContinuousCellProgram
 {
     private readonly int _decayPerRunUnits;
     private readonly int _minimumDecayPerRunUnits;
@@ -50,6 +51,102 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
             DecayPlane(simulation, cultureId, PlaneCodes.Physical, tick);
             DecayPlane(simulation, cultureId, PlaneCodes.Semantic, tick);
         }
+    }
+
+    public void EvaluateOwner(
+        Simulation simulation,
+        int tick,
+        in FrozenCultureInfluenceRange range)
+    {
+        global::System.ArgumentNullException.ThrowIfNull(simulation);
+        if (_decayPerRunUnits <= 0 && _minimumDecayPerRunUnits <= 0)
+        {
+            return;
+        }
+
+        for (var index = 0; index < range.Count; index++)
+        {
+            range.At(
+                index,
+                out var cultureId,
+                out var planeCode,
+                out var q,
+                out var r,
+                out var z);
+            ApplyOwnedCellDecay(
+                simulation,
+                cultureId,
+                planeCode,
+                q,
+                r,
+                z,
+                tick);
+        }
+    }
+
+    private void ApplyOwnedCellDecay(
+        Simulation simulation,
+        int cultureId,
+        int planeCode,
+        int q,
+        int r,
+        int z,
+        int tick)
+    {
+        var world = simulation.World;
+        var raw = world.PositiveCultureInfluenceRawUnits(
+            cultureId,
+            world.RequireCellId(planeCode, q, r, z));
+        if (raw <= 0)
+        {
+            return;
+        }
+
+        var persistenceUnits = KernelFixedPoint.RatioUnits(
+            simulation.Knowledge.Modifier(
+                cultureId,
+                KnowledgeGrantDomainCodes.CulturePersistence,
+                planeCode));
+        var tideResistanceUnits = KernelFixedPoint.RatioUnits(
+            simulation.Knowledge.Modifier(
+                cultureId,
+                KnowledgeGrantDomainCodes.DecayTideResistance,
+                planeCode));
+        var effectiveGlobalTideUnits =
+            _globalTideUnits > KernelFixedPoint.RatioScale
+                ? KernelFixedPoint.RatioScale +
+                  KernelFixedPoint.MultiplyByRatio(
+                      _globalTideUnits - KernelFixedPoint.RatioScale,
+                      tideResistanceUnits,
+                      0,
+                      KernelFixedPoint.RatioMaximumUnits)
+                : _globalTideUnits;
+        var contestUnits = ContestMultiplierUnits(
+            world,
+            cultureId,
+            planeCode,
+            q,
+            r,
+            z,
+            raw);
+        var decay = DecayUnits(
+            raw,
+            contestUnits,
+            effectiveGlobalTideUnits,
+            persistenceUnits);
+        if (raw - decay < _cullFloorRawMassUnits)
+        {
+            decay = raw;
+        }
+
+        _ = simulation.ModifyCellCultureInfluenceRawUnits(
+            cultureId,
+            planeCode,
+            q,
+            r,
+            z,
+            -decay,
+            tick);
     }
 
     private void DecayPlane(Simulation simulation, int cultureId, int planeCode, int tick)

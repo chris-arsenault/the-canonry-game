@@ -73,10 +73,13 @@ internal sealed record SimulationOptions
 
 internal sealed record KernelExecutionOptions
 {
+    internal const int DefaultOwnerLeadTicks = 8;
+
     public int WorkerCount { get; init; } = 1;
     public bool ReverseEvaluationOrder { get; init; }
-    public bool ReverseDeltaInsertionOrder { get; init; }
-    public int LogicalShardCount { get; init; } = 1;
+    public int OwnerPartitionCount { get; init; } =
+        KernelOwnerTopology.DefaultPartitionCount;
+    public int OwnerLeadTicks { get; init; } = DefaultOwnerLeadTicks;
 }
 
 internal sealed record KernelTuningOptions

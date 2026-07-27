@@ -20,9 +20,14 @@ public sealed class UiProjectionKernelEventTests
             WorldVersion: 7,
             GeneratorId: 91,
             Enabled: 1))));
-        Assert.True(log.TryWrite(KernelEvent.From(new TickCompletedKernelEvent(
+        Assert.True(log.TryWrite(KernelEvent.From(
+            new WatermarkAdvancedKernelEvent(
             Tick: 3,
-            WorldVersion: 11))));
+            WorldVersion: 11,
+            LowWatermark: 3,
+            HighWatermark: 4,
+            OwnerCount: 64,
+            PublicationRevision: 5))));
         Assert.True(log.TryWrite(KernelEvent.From(new GeneratorEnabledChangedKernelEvent(
             Tick: 4,
             WorldVersion: 12,
@@ -31,7 +36,7 @@ public sealed class UiProjectionKernelEventTests
 
         pump.DrainAvailable();
 
-        Assert.Equal(4, projection.CurrentTick);
+        Assert.Equal(3, projection.CurrentTick);
         Assert.Equal(12, projection.WorldVersion);
         Assert.False(projection.Generators[91].IsEnabled);
         Assert.Equal(4, projection.Generators[91].LastEnabledChanged?.Tick);

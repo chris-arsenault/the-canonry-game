@@ -38,6 +38,7 @@ public enum KernelEventType
     MinorActorWorked = 39,
     MinorActorEncountered = 40,
     MinorActorRetired = 41,
+    WatermarkAdvanced = 42,
     Trace = 120,
 }
 
@@ -412,6 +413,19 @@ public readonly record struct CommandRejectedKernelEvent(
 public readonly record struct TickCompletedKernelEvent(
     int Tick,
     long WorldVersion);
+
+[KernelEventLayout(KernelEventType.WatermarkAdvanced, schemaMinor: 0)]
+public readonly record struct WatermarkAdvancedKernelEvent(
+    int Tick,
+    long WorldVersion,
+    [KernelEventIntSlot(0, "low_watermark", KernelEventSemanticKind.Count)]
+    int LowWatermark,
+    [KernelEventIntSlot(1, "high_watermark", KernelEventSemanticKind.Count)]
+    int HighWatermark,
+    [KernelEventIntSlot(2, "owner_count", KernelEventSemanticKind.Count)]
+    int OwnerCount,
+    [KernelEventLongSlot(0, "publication_revision", KernelEventSemanticKind.RawScalar)]
+    long PublicationRevision);
 
 [KernelEventLayout(KernelEventType.PhaseCompleted, schemaMinor: 1)]
 public readonly record struct PhaseCompletedKernelEvent(

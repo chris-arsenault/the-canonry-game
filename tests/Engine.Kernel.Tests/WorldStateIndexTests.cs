@@ -98,7 +98,7 @@ public sealed class WorldStateIndexTests
     [Fact]
     public void RetirementEndsIncidentRelationshipsAndReusesTheirSlots()
     {
-        var simulation = CreateSimulation();
+        var simulation = CreateSimulation(singleAllocationOwner: true);
         var source = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
         var activeTarget = simulation.CreateEntity(2, 1, 1, 1, 0, 0, 0, 0, 0);
         var historicalTarget = simulation.CreateEntity(2, 1, 1, 2, 0, 0, 0, 0, 0);
@@ -118,7 +118,7 @@ public sealed class WorldStateIndexTests
     [Fact]
     public void RecycledEntitySlotsRejectStaleOccurrenceHandlesAcrossSnapshotReload()
     {
-        var simulation = CreateSimulation();
+        var simulation = CreateSimulation(singleAllocationOwner: true);
         var first = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
         var firstOccurrence = simulation.World.EntityOccurrenceHandle(first);
 
@@ -145,7 +145,7 @@ public sealed class WorldStateIndexTests
     [Fact]
     public void RecycledRelationshipSlotsCannotLeakThroughFrozenAdjacency()
     {
-        var simulation = CreateSimulation();
+        var simulation = CreateSimulation(singleAllocationOwner: true);
         var oldSource = simulation.CreateEntity(1, 1, 1, 0, 0, 0, 0, 0, 0);
         var oldTarget = simulation.CreateEntity(2, 1, 1, 1, 0, 0, 0, 0, 0);
         var newSource = simulation.CreateEntity(1, 1, 1, 2, 0, 0, 0, 0, 0);
@@ -710,7 +710,8 @@ public sealed class WorldStateIndexTests
         Assert.Equal(1, simulation.World.CultureInfluenceCellCount(1, PlaneCodes.Physical));
     }
 
-    private static Simulation CreateSimulation()
+    private static Simulation CreateSimulation(
+        bool singleAllocationOwner = false)
     {
         return KernelTestSimulation.Create(new SimulationOptions
         {
@@ -730,6 +731,10 @@ public sealed class WorldStateIndexTests
             KindIdCapacity = 8,
             TerrainIdCapacity = 8,
             RelationshipKindIdCapacity = 16,
+            Execution = new KernelExecutionOptions
+            {
+                OwnerPartitionCount = singleAllocationOwner ? 1 : 64,
+            },
             Seed = 1,
         });
     }

@@ -70,6 +70,9 @@ internal sealed class KernelTelemetryRecorder : IDisposable
 
     public long DroppedEvents => _pump.DroppedEvents;
 
+    public int PublishedLowWatermark =>
+        EventProjection.PublishedLowWatermark;
+
     public void DrainAvailable()
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
@@ -108,6 +111,14 @@ internal sealed class KernelTelemetryRecorder : IDisposable
         {
             EventProjection.RecordEntitySnapshots(tick);
         }
+    }
+
+    public int RecordPublishedSnapshots(bool includeEntities = true)
+    {
+        DrainAvailable();
+        var tick = EventProjection.PublishedLowWatermark;
+        RecordSnapshots(tick, includeEntities);
+        return tick;
     }
 
     public TelemetryBatch DetachBatch()

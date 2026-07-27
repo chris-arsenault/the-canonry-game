@@ -370,6 +370,12 @@ public sealed class EffectsProgramTests
 
         simulation.AdvanceTicks(11);
 
+        // The strategic slot owner publishes at the tick-10 convergence cut.
+        // Local entity owners consume that published occupancy on their next
+        // bounded window rather than retroactively changing tick 10.
+        Assert.Equal(FixedScalar.FromSingle(50f), simulation.World.GetAttribute(entity, healthAttributeId));
+        simulation.AdvanceTicks(1);
+
         Assert.Equal(FixedScalar.FromSingle(52f), simulation.World.GetAttribute(entity, healthAttributeId));
     }
 

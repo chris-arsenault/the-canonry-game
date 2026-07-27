@@ -13,7 +13,7 @@ internal sealed partial class Simulation
         _systemCadences[slot] = cadence;
         _systemProgramIds[slot] = 0;
         _systemSourceCodeIds[slot] = 0;
-        _systemPhaseCodes[slot] = TickPhaseCodes.Strategic;
+        _systemPhaseCodes[slot] = TickPhaseCodes.EvaluateLocal;
         _systems[slot] = system;
         _systemActive[slot] = true;
         if (slot >= _systemCount)
@@ -90,13 +90,13 @@ internal sealed partial class Simulation
     {
         NumericGuard.ThrowIfLessThan(parentInvocationId, -1);
 
-        var previous = _executionContext;
-        var previousDepth = _executionContextDepth;
+        var previous = ExecutionContext;
+        var previousDepth = ExecutionContextDepth();
         var resolvedParentInvocationId = parentInvocationId >= 0
             ? parentInvocationId
             : previous.ProvenanceInvocationId;
         var invocationId = World.BeginProvenanceInvocation(
-            CurrentTick,
+            ExecutionTick,
             producerKindCode,
             producerId,
             primaryEntityId,
@@ -105,8 +105,9 @@ internal sealed partial class Simulation
             triggerId,
             resolvedParentInvocationId,
             previous);
-        _executionContext = previous with { ProvenanceInvocationId = invocationId };
-        _executionContextDepth = previousDepth + 1;
+        SetExecutionContext(
+            previous with { ProvenanceInvocationId = invocationId },
+            previousDepth + 1);
         return new KernelProvenanceScope(this, previous, previousDepth, invocationId);
     }
 

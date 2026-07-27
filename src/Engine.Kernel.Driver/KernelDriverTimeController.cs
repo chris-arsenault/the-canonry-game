@@ -52,7 +52,9 @@ internal sealed class KernelDriverTimeController : IKernelDriverTimeControl
         }
     }
 
-    public int CurrentTick => _kernel.CurrentTick;
+    public int PublishedLowWatermark => _kernel.PublishedLowWatermark;
+
+    public int PublishedHighWatermark => _kernel.PublishedHighWatermark;
 
     public void SetTickRate(double ticksPerSecond)
     {
@@ -116,6 +118,15 @@ internal sealed class KernelDriverTimeController : IKernelDriverTimeControl
         StopRealtimeDriver();
         using var steppedDriver = new SteppedKernelDriver(_kernel);
         return steppedDriver.Step(tickCount, cancellationToken);
+    }
+
+    public int ConvergeAt(
+        int tick,
+        CancellationToken cancellationToken = default)
+    {
+        ThrowIfDisposed();
+        StopRealtimeDriver();
+        return _kernel.ConvergeAt(tick, cancellationToken);
     }
 
     public void Dispose()
@@ -185,6 +196,11 @@ internal sealed class KernelDriverTimeController : IKernelDriverTimeControl
         }
 
         driver?.Dispose();
+        if (driver is not null)
+        {
+            _ = _kernel.ConvergeAt(
+                _kernel.PublishedHighWatermark);
+        }
     }
 
     private void ThrowIfDisposed(bool allowDuringDispose = false)

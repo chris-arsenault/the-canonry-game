@@ -73,8 +73,11 @@ internal sealed partial class WorldState
     private int[] _activeEntitySlots = [];
     private int[] _activeEntityPositions = [];
     private int[] _entityGenerations = [];
+    private bool[] _entityReserved = [];
     private int[] _freeEntitySlots = [];
-    private int _freeEntitySlotCount;
+    private int[] _freeEntitySlotCounts = [];
+    private int[] _nextEntitySlotsByOwner = [];
+    private int[] _entityAllocationOffsetsByOwner = [];
     private int _activeEntityCount;
     private bool[] _relationshipAllocated = [];
     private bool[] _relationshipActive = [];
@@ -88,8 +91,11 @@ internal sealed partial class WorldState
     private int[] _activeRelationshipSlots = [];
     private int[] _activeRelationshipPositions = [];
     private int[] _relationshipGenerations = [];
+    private bool[] _relationshipReserved = [];
     private int[] _freeRelationshipSlots = [];
-    private int _freeRelationshipSlotCount;
+    private int[] _freeRelationshipSlotCounts = [];
+    private int[] _nextRelationshipSlotsByOwner = [];
+    private int[] _relationshipAllocationOffsetsByOwner = [];
     private int _activeRelationshipCount;
     private int[] _entityCreatedByInvocationId = [];
     private int[] _relationshipCreatedByInvocationId = [];
@@ -107,17 +113,33 @@ internal sealed partial class WorldState
     private int[] _entityTagBits = [];
     private int _relationshipHighWatermark;
     private long _totalPhysicalCultureRawMass;
+    private long _worldVersion;
     private int _physicalMapRadius;
     private int _semanticMapRadius;
     private int _physicalMapSegmentOriginRadius;
     private int _semanticMapSegmentOriginRadius;
     private readonly bool _singleWorker;
+    private readonly int[] _ownerVersionTicks;
+    private readonly object[] _slotOwnerGates;
+    private readonly int _slotOwnerCount;
+    private readonly int _entityFreeStride;
+    private readonly int _relationshipFreeStride;
+    private int _unownedEntityAllocationCursor;
+    private int _unownedRelationshipAllocationCursor;
+    private bool _publishedRelationshipViewActive;
 
     public WorldState(IKernelEventWriter events, SimulationOptions options, KernelDataSet kernelData)
     {
         global::System.ArgumentNullException.ThrowIfNull(events); global::System.ArgumentNullException.ThrowIfNull(options);
         global::System.ArgumentNullException.ThrowIfNull(kernelData); _events = events; _kernelData = kernelData;
         _singleWorker = options.Execution.WorkerCount == 1;
+        (_slotOwnerCount,
+         _entityFreeStride,
+         _relationshipFreeStride,
+         _slotOwnerGates) = CreateSlotOwnership(options);
+        _ownerVersionTicks =
+            new int[options.Execution.OwnerPartitionCount];
+        global::System.Array.Fill(_ownerVersionTicks, -1);
         _attributeStride = checked(options.AttributeIdCapacity + 1);
         _traitStride = checked(options.TraitIdCapacity + 1);
         _attributes = new int[checked((options.EntityCapacity + 1) * _attributeStride)];
@@ -166,6 +188,27 @@ internal sealed partial class WorldState
             _relationshipEndpoints.NextIncomingDeltaRelationship;
         InitializeProvenanceStorage(options);
         InitializeRelationshipRuntimeCodes(options);
+    }
+
+    private static (
+        int OwnerCount,
+        int EntityFreeStride,
+        int RelationshipFreeStride,
+        object[] Gates)
+        CreateSlotOwnership(SimulationOptions options)
+    {
+        var ownerCount = options.Execution.OwnerPartitionCount;
+        var entityStride = checked(
+            (options.EntityCapacity + ownerCount - 1) / ownerCount);
+        var relationshipStride = checked(
+            (options.RelationshipCapacity + ownerCount - 1) / ownerCount);
+        var gates = new object[ownerCount];
+        for (var owner = 0; owner < ownerCount; owner++)
+        {
+            gates[owner] = new object();
+        }
+
+        return (ownerCount, entityStride, relationshipStride, gates);
     }
 
     private void InitializeEntityStorage(SimulationOptions options)
@@ -218,7 +261,16 @@ internal sealed partial class WorldState
         _activeEntitySlots = new int[options.EntityCapacity];
         _activeEntityPositions = new int[options.EntityCapacity + 1];
         _entityGenerations = new int[options.EntityCapacity + 1];
-        _freeEntitySlots = new int[options.EntityCapacity];
+        _entityReserved = new bool[options.EntityCapacity + 1];
+        _freeEntitySlots = new int[checked(
+            _slotOwnerCount * _entityFreeStride)];
+        _freeEntitySlotCounts = new int[_slotOwnerCount];
+        _nextEntitySlotsByOwner = new int[_slotOwnerCount];
+        _entityAllocationOffsetsByOwner = new int[_slotOwnerCount];
+        for (var owner = 0; owner < _slotOwnerCount; owner++)
+        {
+            _nextEntitySlotsByOwner[owner] = owner + 1;
+        }
     }
 
     private void InitializeRelationshipStorage(SimulationOptions options)
@@ -235,7 +287,18 @@ internal sealed partial class WorldState
         _activeRelationshipSlots = new int[options.RelationshipCapacity];
         _activeRelationshipPositions = new int[options.RelationshipCapacity + 1];
         _relationshipGenerations = new int[options.RelationshipCapacity + 1];
-        _freeRelationshipSlots = new int[options.RelationshipCapacity];
+        _relationshipReserved =
+            new bool[options.RelationshipCapacity + 1];
+        _freeRelationshipSlots = new int[checked(
+            _slotOwnerCount * _relationshipFreeStride)];
+        _freeRelationshipSlotCounts = new int[_slotOwnerCount];
+        _nextRelationshipSlotsByOwner = new int[_slotOwnerCount];
+        _relationshipAllocationOffsetsByOwner =
+            new int[_slotOwnerCount];
+        for (var owner = 0; owner < _slotOwnerCount; owner++)
+        {
+            _nextRelationshipSlotsByOwner[owner] = owner + 1;
+        }
         _relationshipKindCapacity = options.RelationshipKindIdCapacity;
         _graphVisited = new EpochStampSet(options.EntityCapacity + 1);
         _graphFrontierA = new int[options.EntityCapacity + 1];
@@ -254,7 +317,14 @@ internal sealed partial class WorldState
     private int _worldVersionGate;
 
     public int CurrentTick { get; private set; }
-    public long WorldVersion { get; private set; }
+    public long WorldVersion
+    {
+        get => global::System.Threading.Volatile.Read(
+            ref _worldVersion);
+        private set => global::System.Threading.Volatile.Write(
+            ref _worldVersion,
+            value);
+    }
     public int EntityCapacity => _entityAllocated.Length - 1;
     public int RelationshipCapacity => _relationshipAllocated.Length - 1;
     internal FixedScalar TotalPhysicalCultureRawMass =>
@@ -272,104 +342,6 @@ internal sealed partial class WorldState
     {
         NumericGuard.ThrowIfNegative(tick);
         CurrentTick = tick;
-    }
-
-    public void SetEntityStatus(int entityId, int statusCode, int tick) =>
-        SetEntityStatus(entityId, statusCode, tick, new KernelExecutionContext(0, _defaultSourceCodeId));
-
-    public void SetEntityStatus(int entityId, int statusCode, int tick, in KernelExecutionContext context)
-    {
-        ValidatePositive(context.SourceCodeId);
-        EnsureEntity(entityId);
-        ValidatePositive(statusCode);
-        var previous = _entityStatus[entityId];
-        if (previous == statusCode)
-        {
-            return;
-        }
-
-        if (previous == EntityStatusCodes.Active)
-        {
-            RemoveActiveEntity(entityId);
-            RemoveEntityKindIndex(entityId, _entityKindId[entityId]);
-            RemoveEntityCultureIndex(entityId, _entityCultureId[entityId]);
-            _entitySpatialMembership.DetachPhysical(
-                entityId,
-                _cells.Require(
-                    PlaneCodes.Physical,
-                    _entityPhysicalQ[entityId],
-                    _entityPhysicalR[entityId],
-                    _entityPhysicalZ[entityId]));
-            _entitySpatialMembership.DetachSemantic(
-                entityId,
-                _cells.Require(
-                    PlaneCodes.Semantic,
-                    _entitySemanticQ[entityId],
-                    _entitySemanticR[entityId],
-                    z: 0));
-        }
-        else if (statusCode == EntityStatusCodes.Active)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        _entityStatus[entityId] = statusCode;
-        _entityUpdatedAt[entityId] = tick;
-        MarkCultureWorkDirty(_entityCultureId[entityId]);
-        AdvanceWorldVersion();
-        Write(KernelEvent.From(new EntityStatusChangedKernelEvent(
-            tick,
-            WorldVersion,
-            EntityOccurrenceHandle(entityId),
-            context.SourceCodeId,
-            _entityKindId[entityId],
-            _entitySubtypeId[entityId],
-            previous,
-            statusCode)),
-            context);
-        ReleaseEntitySlot(entityId);
-    }
-
-    public void SetEntityCulture(int entityId, int cultureId, int tick) =>
-        SetEntityCulture(entityId, cultureId, tick, new KernelExecutionContext(0, _defaultSourceCodeId));
-
-    public void SetEntityCulture(int entityId, int cultureId, int tick, in KernelExecutionContext context)
-    {
-        ValidatePositive(context.SourceCodeId);
-        EnsureEntity(entityId);
-        EnsureCultureIndex(cultureId);
-        var previous = _entityCultureId[entityId];
-        if (previous == cultureId)
-        {
-            return;
-        }
-
-        var isActive = EntityIsActiveRaw(entityId);
-        if (isActive)
-        {
-            RemoveEntityCultureIndex(entityId, previous);
-        }
-
-        _entityCultureId[entityId] = cultureId;
-        _cultureHighWatermark = global::System.Math.Max(_cultureHighWatermark, cultureId);
-        if (isActive)
-        {
-            InsertEntityCultureIndex(entityId, cultureId);
-        }
-        _entityUpdatedAt[entityId] = tick;
-        MarkCultureWorkDirty(previous);
-        MarkCultureWorkDirty(cultureId);
-        AdvanceWorldVersion();
-        Write(KernelEvent.From(new EntityCultureChangedKernelEvent(
-            tick,
-            WorldVersion,
-            EntityOccurrenceHandle(entityId),
-            context.SourceCodeId,
-            _entityKindId[entityId],
-            _entitySubtypeId[entityId],
-            previous,
-            cultureId)),
-            context);
     }
 
     public bool HasTrait(int entityId, int traitId)
@@ -414,34 +386,6 @@ internal sealed partial class WorldState
         }
 
         return checked((entityId * _traitStride) + traitId);
-    }
-
-    public void CullRelationship(int relationshipId, int tick) =>
-        CullRelationship(relationshipId, tick, new KernelExecutionContext(0, _defaultSourceCodeId));
-
-    public void CullRelationship(int relationshipId, int tick, in KernelExecutionContext context)
-    {
-        ValidatePositive(context.SourceCodeId);
-        EnsureRelationship(relationshipId);
-        if (!_relationshipActive[relationshipId])
-        {
-            return;
-        }
-
-        var previous = _relationshipStrength[relationshipId];
-        _relationshipActive[relationshipId] = false;
-        _relationshipEndTick[relationshipId] = tick;
-        RemoveActiveRelationship(relationshipId);
-        _relationshipEndpoints.Detach(this, relationshipId);
-        MarkEntityCultureWorkDirty(_relationshipSourceId[relationshipId]);
-        MarkEntityCultureWorkDirty(_relationshipTargetId[relationshipId]);
-        AdvanceWorldVersion();
-        if (context.ProvenanceInvocationId > 0)
-        {
-            _relationshipLastChangedByInvocationId[relationshipId] = context.ProvenanceInvocationId;
-        }
-        WriteRelationshipChanged(relationshipId, tick, _relationshipCulledCodeId, context, previous, 0);
-        ReleaseRelationshipSlot(relationshipId);
     }
 
     public void SetRelationshipStrength(int relationshipId, FixedScalar strength, int tick) =>
@@ -658,8 +602,11 @@ internal sealed partial class WorldState
             DirectionCode = OutgoingRelationshipDirectionCode,
             FrozenIndex = _endpointOutgoingFrozenOffsets[row],
             FrozenEnd = _endpointOutgoingFrozenOffsets[row + 1],
-            DeltaRelationshipId = _endpointFirstOutgoingDeltaRelationshipByRow[row],
+            DeltaRelationshipId = _publishedRelationshipViewActive
+                ? 0
+                : _endpointFirstOutgoingDeltaRelationshipByRow[row],
             MinimumStrengthUnits = KernelFixedPoint.RelationshipStrengthUnits(minimumStrength),
+            PublishedOnly = _publishedRelationshipViewActive,
         };
     }
 
@@ -675,8 +622,11 @@ internal sealed partial class WorldState
             DirectionCode = IncomingRelationshipDirectionCode,
             FrozenIndex = _endpointIncomingFrozenOffsets[row],
             FrozenEnd = _endpointIncomingFrozenOffsets[row + 1],
-            DeltaRelationshipId = _endpointFirstIncomingDeltaRelationshipByRow[row],
+            DeltaRelationshipId = _publishedRelationshipViewActive
+                ? 0
+                : _endpointFirstIncomingDeltaRelationshipByRow[row],
             MinimumStrengthUnits = KernelFixedPoint.RelationshipStrengthUnits(minimumStrength),
+            PublishedOnly = _publishedRelationshipViewActive,
         };
     }
 
@@ -695,7 +645,9 @@ internal sealed partial class WorldState
             var frozenRelationshipId = FrozenCursorRelationshipId(cursor);
             if (frozenRelationshipId > 0 &&
                 RelationshipIsHotActive(frozenRelationshipId) &&
-                !_endpointRelationshipInDeltaGraph[frozenRelationshipId] &&
+                (cursor.PublishedOnly ||
+                 !_endpointRelationshipInDeltaGraph[
+                     frozenRelationshipId]) &&
                 _relationshipStrength[frozenRelationshipId] >=
                     cursor.MinimumStrengthUnits)
             {
@@ -839,7 +791,36 @@ internal sealed partial class WorldState
 
     public void CompactRelationshipGraph()
     {
+        if (_publishedRelationshipViewActive)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
         _relationshipEndpoints.Compact(this);
+    }
+
+    internal bool PublishedRelationshipViewActive =>
+        _publishedRelationshipViewActive;
+
+    internal void BeginPublishedRelationshipView()
+    {
+        if (_publishedRelationshipViewActive)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _relationshipEndpoints.Compact(this);
+        _publishedRelationshipViewActive = true;
+    }
+
+    internal void EndPublishedRelationshipView()
+    {
+        if (!_publishedRelationshipViewActive)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _publishedRelationshipViewActive = false;
     }
 
     public bool EntityExists(int entityId)
@@ -851,6 +832,11 @@ internal sealed partial class WorldState
     {
         return EntityExists(entityId) && _entityStatus[entityId] == EntityStatusCodes.Active;
     }
+
+    internal bool EntityIsReserved(int entityId) =>
+        (uint)entityId > 0u &&
+        entityId <= EntityCapacity &&
+        _entityReserved[entityId];
 
     public int EntityStatus(int entityId)
     {

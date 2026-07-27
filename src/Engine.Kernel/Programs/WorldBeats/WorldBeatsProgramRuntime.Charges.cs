@@ -13,13 +13,7 @@ internal sealed partial class WorldBeatsProgramRuntime
     /// </summary>
     private void PushCharges(Simulation simulation)
     {
-        simulation.LowAltitudeVerbs.ResetAgeWeightMultipliers();
-        simulation.Generators.ResetAgeFireWeightMultipliers();
-        simulation.Gambits.ResetAgeScoreMultipliers();
-        simulation.Gambits.ResetAgeSuccessMultipliers();
-        simulation.CultureFieldDecay.SetContestTide(1);
-        simulation.CultureFieldDecay.SetGlobalTide(1);
-        simulation.Movement.SetAgeStepRateMultiplier(1);
+        simulation.ResetWorldBeatCharges();
 
         for (var track = 0; track < WorldBeatTrackCodes.Count; track++)
         {
@@ -41,32 +35,10 @@ internal sealed partial class WorldBeatsProgramRuntime
         {
             var targetId = Data.ChargeTargetId(charge);
             var multiplier = Data.ChargeMultiplier(charge);
-            switch (Data.ChargeDomainCode(charge))
-            {
-                case WorldBeatChargeDomainCodes.GeneratorFireWeight:
-                    simulation.Generators.ApplyAgeFireWeightMultiplier(targetId, multiplier);
-                    break;
-                case WorldBeatChargeDomainCodes.VerbWeight:
-                    simulation.LowAltitudeVerbs.ApplyAgeWeightMultiplier(targetId, multiplier);
-                    break;
-                case WorldBeatChargeDomainCodes.GambitScore:
-                    simulation.Gambits.ApplyAgeScoreMultiplier(targetId, multiplier);
-                    break;
-                case WorldBeatChargeDomainCodes.ContestDecayTide:
-                    simulation.CultureFieldDecay.ScaleContestTide(multiplier);
-                    break;
-                case WorldBeatChargeDomainCodes.GlobalDecayTide:
-                    simulation.CultureFieldDecay.ScaleGlobalTide(multiplier);
-                    break;
-                case WorldBeatChargeDomainCodes.GambitSuccess:
-                    simulation.Gambits.ApplyAgeSuccessMultiplier(targetId, multiplier);
-                    break;
-                case WorldBeatChargeDomainCodes.MovementStepRate:
-                    simulation.Movement.ScaleAgeStepRateMultiplier(multiplier);
-                    break;
-                default:
-                    break;
-            }
+            simulation.ApplyWorldBeatCharge(
+                Data.ChargeDomainCode(charge),
+                targetId,
+                multiplier);
         }
     }
 }

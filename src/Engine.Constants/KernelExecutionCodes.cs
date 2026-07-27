@@ -7,8 +7,7 @@ public static class TickPhaseCodes
     public const int PrepareLocalView = 2;
     public const int EvaluateLocal = 3;
     public const int ResolveLocal = 4;
-    public const int Strategic = 5;
-    public const int Publish = 6;
+    public const int Publish = 5;
 }
 
 public static class KernelRandomPurposeCodes

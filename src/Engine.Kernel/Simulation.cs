@@ -5,13 +5,12 @@ using Engine.Kernel.Programs;
 
 internal sealed partial class Simulation :
     IKernel,
-    IKernelWorkerWork
+    IKernelContinuousOwnerWork
 {
     private readonly int[] _systemCadences;
     private readonly int[] _systemProgramIds;
     private readonly int[] _systemSourceCodeIds;
     private readonly int[] _systemPhaseCodes;
-    private readonly int[] _systemRangeWorkerCounts;
     private readonly ISimulationSystem?[] _systems;
     private readonly bool[] _systemActive;
     private readonly int[][] _dirtyCultureScratchByWorker;
@@ -22,18 +21,17 @@ internal sealed partial class Simulation :
     private int _writerActive;
 #endif
     private readonly KeyedRandom _random;
+    private readonly KernelOwnerTopology _ownerTopology;
     private readonly FrozenTickView _frozenTick;
-    private readonly TickDeltaBuffer _tickDeltas;
     private readonly KernelWorkerSet _workers;
+    private readonly ContinuousOwnerRuntime _continuousOwners;
     private readonly bool _singleEvaluationWorker;
     private readonly KernelEventPublisher _eventPublisher;
     private KernelExecutionContext _executionContext;
     private int _executionContextDepth;
     private int _currentPhaseCode;
-    private bool _collectingDeltas;
-    private bool _collectingStrategicIntents;
-    private long _strategicIntentOrder;
     private long _phaseRevision;
+    private int _publishedLowWatermark;
 
     public Simulation(SimulationOptions? options = null)
     {
@@ -44,8 +42,11 @@ internal sealed partial class Simulation :
         Events = CreateEventLog(options);
         _eventPublisher = new KernelEventPublisher(
             Events,
-            options.EventCapacity,
-            options.Execution.WorkerCount);
+            checked(
+                options.EventCapacity *
+                options.Execution.OwnerLeadTicks),
+            options.Execution.WorkerCount,
+            options.Execution.OwnerPartitionCount);
         Commands = new KernelCommandRing(options.CommandCapacity);
         KernelData = CreateKernelData(options);
         World = new WorldState(_eventPublisher, options, KernelData);
@@ -78,27 +79,53 @@ internal sealed partial class Simulation :
         AssignRuntimeCodes(options.RuntimeCodes);
         _executionContext = new KernelExecutionContext(0, StartupSourceCodeId);
         _random = new KeyedRandom(options.Seed);
-        _frozenTick = new FrozenTickView(options.EntityCapacity, options.RelationshipCapacity);
-        _tickDeltas = new TickDeltaBuffer(options);
-        _workers = new KernelWorkerSet(options.Execution.WorkerCount);
+        _frozenTick = CreateFrozenTickView(options, out _ownerTopology);
+        (_workers, _continuousOwners) =
+            CreateOwnerExecution(this, options, _ownerTopology);
         _systemCadences = new int[options.SystemCapacity];
         _systemProgramIds = new int[options.SystemCapacity];
         _systemSourceCodeIds = new int[options.SystemCapacity];
         _systemPhaseCodes = new int[options.SystemCapacity];
         _systems = new ISimulationSystem[options.SystemCapacity];
         _systemActive = new bool[options.SystemCapacity];
-        _dirtyCultureScratchByWorker = CreateDirtyCultureScratch(
-            options,
-            out _systemRangeWorkerCounts);
+        _dirtyCultureScratchByWorker =
+            CreateDirtyCultureScratch(options);
         _programs = new KernelProgramRegistry(options.SystemCapacity);
         RegisterDefaultPrograms();
     }
 
-    private static int[][] CreateDirtyCultureScratch(
+    private static FrozenTickView CreateFrozenTickView(
         SimulationOptions options,
-        out int[] systemRangeWorkerCounts)
+        out KernelOwnerTopology topology)
     {
-        systemRangeWorkerCounts = new int[options.SystemCapacity];
+        topology = new KernelOwnerTopology(options);
+        return new FrozenTickView(
+            options.EntityCapacity,
+            options.RelationshipCapacity,
+            options.MapInfluenceCapacity,
+            options.MapCellCapacity,
+            options.KindIdCapacity,
+            topology);
+    }
+
+    private static (
+        KernelWorkerSet Workers,
+        ContinuousOwnerRuntime ContinuousOwners)
+        CreateOwnerExecution(
+            Simulation simulation,
+            SimulationOptions options,
+            KernelOwnerTopology topology) =>
+        (
+            new KernelWorkerSet(options.Execution.WorkerCount),
+            new ContinuousOwnerRuntime(
+                simulation,
+                options,
+                topology)
+        );
+
+    private static int[][] CreateDirtyCultureScratch(
+        SimulationOptions options)
+    {
         var scratchByWorker = new int[options.Execution.WorkerCount][];
         for (var workerIndex = 0;
              workerIndex < scratchByWorker.Length;
@@ -228,8 +255,7 @@ internal sealed partial class Simulation :
                 options.MapCellCapacity,
                 options.GeneratorItemCapacity,
                 options.EntityCapacity),
-            options.KernelTuning.Programs,
-            options.Execution.WorkerCount);
+            options.KernelTuning.Programs);
     }
 
     private static CultureFieldDecayProgramRuntime CreateCultureFieldDecayRuntime(SimulationOptions options) =>
@@ -580,17 +606,15 @@ internal sealed partial class Simulation :
         FixedScalar value,
         int tick)
     {
-        if (_collectingDeltas)
+        if (IsCollectingDeltas)
         {
             var occurrence = World.EntityOccurrenceHandleForIntent(entityId);
-            _tickDeltas.AddAttributeSet(new AttributeSetIntent(
+            var intent = new AttributeSetIntent(
                 occurrence,
                 attributeId,
                 KernelFixedPoint.AttributeUnits(value),
-                StrategicIntentOrderOrSourceKey(
-                    occurrence,
-                    attributeId),
-                ExecutionContext));
+                ExecutionContext);
+            _continuousOwners.Enqueue(intent);
             return;
         }
 
@@ -603,15 +627,15 @@ internal sealed partial class Simulation :
         FixedScalar delta,
         int tick)
     {
-        if (_collectingDeltas)
+        if (IsCollectingDeltas)
         {
             var occurrence = World.EntityOccurrenceHandleForIntent(entityId);
-            _tickDeltas.AddAttribute(new AttributeDelta(
+            var attributeDelta = new AttributeDelta(
                 occurrence,
                 attributeId,
                 KernelFixedPoint.AttributeUnits(delta),
-                DeltaSourceKey(occurrence, attributeId),
-                ExecutionContext));
+                ExecutionContext);
+            _continuousOwners.Enqueue(attributeDelta);
             return;
         }
 
@@ -624,15 +648,15 @@ internal sealed partial class Simulation :
         int deltaUnits,
         int tick)
     {
-        if (_collectingDeltas)
+        if (IsCollectingDeltas)
         {
             var occurrence = World.EntityOccurrenceHandleForIntent(entityId);
-            _tickDeltas.AddAttribute(new AttributeDelta(
+            var attributeDelta = new AttributeDelta(
                 occurrence,
                 attributeId,
                 deltaUnits,
-                DeltaSourceKey(occurrence, attributeId),
-                ExecutionContext));
+                ExecutionContext);
+            _continuousOwners.Enqueue(attributeDelta);
             return;
         }
 
@@ -643,7 +667,7 @@ internal sealed partial class Simulation :
     {
         if (statusCode == EntityStatusCodes.Historical)
         {
-            if (_collectingDeltas)
+            if (IsCollectingDeltas)
             {
                 QueueLifecycleRetirement(entityId);
                 return;
@@ -653,17 +677,15 @@ internal sealed partial class Simulation :
             return;
         }
 
-        if (_collectingDeltas)
+        if (IsCollectingDeltas)
         {
             var occurrence = World.EntityOccurrenceHandleForIntent(entityId);
-            _tickDeltas.AddEntityState(new EntityStateIntent(
+            var intent = new EntityStateIntent(
                 occurrence,
                 EntityStateIntentCodes.SetStatus,
                 statusCode,
-                StrategicIntentOrderOrSourceKey(
-                    occurrence,
-                    statusCode),
-                ExecutionContext));
+                ExecutionContext);
+            _continuousOwners.Enqueue(intent);
             return;
         }
 
@@ -672,17 +694,15 @@ internal sealed partial class Simulation :
 
     internal void SetEntityCulture(int entityId, int cultureId, int tick)
     {
-        if (_collectingDeltas)
+        if (IsCollectingDeltas)
         {
             var occurrence = World.EntityOccurrenceHandleForIntent(entityId);
-            _tickDeltas.AddEntityState(new EntityStateIntent(
+            var intent = new EntityStateIntent(
                 occurrence,
                 EntityStateIntentCodes.SetCulture,
                 cultureId,
-                StrategicIntentOrderOrSourceKey(
-                    occurrence,
-                    cultureId),
-                ExecutionContext));
+                ExecutionContext);
+            _continuousOwners.Enqueue(intent);
             return;
         }
 
@@ -712,17 +732,15 @@ internal sealed partial class Simulation :
 
     internal void SetRelationshipStrength(int relationshipId, FixedScalar strength, int tick)
     {
-        if (_collectingDeltas)
+        if (IsCollectingDeltas)
         {
             var occurrence =
                 World.RelationshipOccurrenceHandleForIntent(relationshipId);
-            _tickDeltas.AddRelationshipSet(new RelationshipSetIntent(
+            var intent = new RelationshipSetIntent(
                 occurrence,
                 KernelFixedPoint.RelationshipStrengthUnits(strength),
-                StrategicIntentOrderOrSourceKey(
-                    occurrence,
-                    0),
-                ExecutionContext));
+                ExecutionContext);
+            _continuousOwners.Enqueue(intent);
             return;
         }
 
@@ -731,15 +749,15 @@ internal sealed partial class Simulation :
 
     internal void ModifyRelationshipStrengthUnits(int relationshipId, int deltaUnits, int tick)
     {
-        if (_collectingDeltas)
+        if (IsCollectingDeltas)
         {
             var occurrence =
                 World.RelationshipOccurrenceHandleForIntent(relationshipId);
-            _tickDeltas.AddRelationship(new RelationshipDelta(
+            var relationshipDelta = new RelationshipDelta(
                 occurrence,
                 deltaUnits,
-                DeltaSourceKey(occurrence, 0),
-                ExecutionContext));
+                ExecutionContext);
+            _continuousOwners.Enqueue(relationshipDelta);
             return;
         }
 
@@ -753,28 +771,35 @@ internal sealed partial class Simulation :
             return;
         }
 
-        if (_collectingDeltas)
+        if (IsCollectingDeltas)
         {
             var occurrence =
                 World.RelationshipOccurrenceHandleForIntent(relationshipId);
-            _tickDeltas.AddRelationshipEnd(new RelationshipEndDelta(
+            var relationshipEnd = new RelationshipEndDelta(
                 occurrence,
                 0,
                 Unconditional: true,
-                DeltaSourceKey(occurrence, 0),
-                ExecutionContext));
+                ExecutionContext);
+            _continuousOwners.Enqueue(relationshipEnd);
             return;
         }
 
+        CullRelationshipOwned(relationshipId, tick);
+    }
+
+    internal void CullRelationshipOwned(int relationshipId, int tick)
+    {
         var relationshipKindId = World.RelationshipKindId(relationshipId);
-        Relationships.NoteRelationshipCulled(World, relationshipId);
+        var targetEntityId = World.RelationshipTargetId(relationshipId);
+        Relationships.NoteRelationshipRecordRetired(relationshipId);
         World.CullRelationship(relationshipId, tick, ExecutionContext);
-        WorldBeats.NoteRelationshipEnded(relationshipKindId);
+        RefreshFollowProjectionDirect(targetEntityId);
+        QueueWorldBeatRelationshipEnded(relationshipKindId);
     }
 
     internal void CullIncomingRelationshipsOfKind(int targetEntityId, int kindId, int tick)
     {
-        if (_collectingDeltas)
+        if (IsCollectingDeltas)
         {
             var cursor = World.IncomingRelationshipsOfKind(
                 targetEntityId,
@@ -803,7 +828,7 @@ internal sealed partial class Simulation :
 
     internal void CullOutgoingRelationshipsOfKind(int sourceEntityId, int kindId, int tick)
     {
-        if (_collectingDeltas)
+        if (IsCollectingDeltas)
         {
             var cursor = World.OutgoingRelationshipsOfKind(
                 sourceEntityId,
@@ -850,8 +875,13 @@ internal sealed partial class Simulation :
                     break;
                 }
 
-                AdvanceOneTick();
-                advanced++;
+                var windowTicks = options.StopAt is null
+                    ? global::System.Math.Min(
+                        Options.Execution.OwnerLeadTicks,
+                        count - advanced)
+                    : 1;
+                AdvanceContinuousWindow(windowTicks);
+                advanced += windowTicks;
             }
 
             return advanced;
@@ -861,6 +891,41 @@ internal sealed partial class Simulation :
             ExitWriterThread();
         }
     }
+
+    public int PublishedLowWatermark =>
+        global::System.Threading.Volatile.Read(
+            ref _publishedLowWatermark);
+
+    public int PublishedHighWatermark =>
+        global::System.Math.Max(
+            PublishedLowWatermark,
+            _continuousOwners.PublishedHighWatermark);
+
+    public int ConvergeAt(
+        int tick,
+        global::System.Threading.CancellationToken cancellationToken = default)
+    {
+        NumericGuard.ThrowIfNegative(tick);
+        var lowWatermark = PublishedLowWatermark;
+        if (tick <= lowWatermark)
+        {
+            return lowWatermark;
+        }
+
+        var options = new AdvanceOptions(Cancel: cancellationToken);
+        _ = AdvanceTicks(tick - lowWatermark, in options);
+        return PublishedLowWatermark;
+    }
+
+    internal bool IsConvergedForSnapshot =>
+        !_continuousOwners.WindowActive &&
+        _continuousOwners.PendingMessageCount == 0 &&
+        CurrentTick == PublishedLowWatermark;
+
+    internal void RestorePublishedWatermark() =>
+        global::System.Threading.Volatile.Write(
+            ref _publishedLowWatermark,
+            CurrentTick);
 
     private int FindSystemSlot()
     {

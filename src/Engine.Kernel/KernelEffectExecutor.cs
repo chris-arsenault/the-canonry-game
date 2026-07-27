@@ -3,13 +3,13 @@ namespace Engine.Kernel;
 internal static class KernelEffectExecutor
 {
     public static void ModifyAttribute(Simulation simulation, int entityId, int attributeId, FixedScalar delta) =>
-        simulation.ModifyAttribute(entityId, attributeId, delta, simulation.CurrentTick);
+        simulation.ModifyAttribute(entityId, attributeId, delta, simulation.ExecutionTick);
 
     public static void ModifyAttributeUnits(Simulation simulation, int entityId, int attributeId, int deltaUnits) =>
-        simulation.ModifyAttributeUnits(entityId, attributeId, deltaUnits, simulation.CurrentTick);
+        simulation.ModifyAttributeUnits(entityId, attributeId, deltaUnits, simulation.ExecutionTick);
 
     public static void SetAttribute(Simulation simulation, int entityId, int attributeId, FixedScalar value) =>
-        simulation.SetAttribute(entityId, attributeId, value, simulation.CurrentTick);
+        simulation.SetAttribute(entityId, attributeId, value, simulation.ExecutionTick);
 
     public static void TransferAttribute(
         Simulation simulation,
@@ -29,10 +29,10 @@ internal static class KernelEffectExecutor
     }
 
     public static void SetEntityStatus(Simulation simulation, int entityId, int statusCode) =>
-        simulation.SetEntityStatus(entityId, statusCode, simulation.CurrentTick);
+        simulation.SetEntityStatus(entityId, statusCode, simulation.ExecutionTick);
 
     public static void SetEntityCulture(Simulation simulation, int entityId, int cultureId) =>
-        simulation.SetEntityCulture(entityId, cultureId, simulation.CurrentTick);
+        simulation.SetEntityCulture(entityId, cultureId, simulation.ExecutionTick);
 
     public static void MovePhysical(
         Simulation simulation,
@@ -43,11 +43,11 @@ internal static class KernelEffectExecutor
     {
         if (causeCode == MovementCauseCodes.Travel)
         {
-            simulation.Movement.Navigate(simulation, entityId, PlaneCodes.Physical, q, r, simulation.CurrentTick);
+            simulation.Movement.Navigate(simulation, entityId, PlaneCodes.Physical, q, r, simulation.ExecutionTick);
             return;
         }
 
-        simulation.Movement.Place(simulation, entityId, PlaneCodes.Physical, q, r, simulation.CurrentTick, causeCode);
+        simulation.Movement.Place(simulation, entityId, PlaneCodes.Physical, q, r, simulation.ExecutionTick, causeCode);
     }
 
     public static void MoveSemantic(
@@ -61,15 +61,15 @@ internal static class KernelEffectExecutor
         _ = s;
         if (causeCode == MovementCauseCodes.Travel)
         {
-            simulation.Movement.Navigate(simulation, entityId, PlaneCodes.Semantic, q, r, simulation.CurrentTick);
+            simulation.Movement.Navigate(simulation, entityId, PlaneCodes.Semantic, q, r, simulation.ExecutionTick);
             return;
         }
 
-        simulation.Movement.Place(simulation, entityId, PlaneCodes.Semantic, q, r, simulation.CurrentTick, causeCode);
+        simulation.Movement.Place(simulation, entityId, PlaneCodes.Semantic, q, r, simulation.ExecutionTick, causeCode);
     }
 
     public static void SetCellState(Simulation simulation, int q, int r, int terrainId, int ownerEntityId) =>
-        simulation.SetCellState(q, r, terrainId, ownerEntityId, simulation.CurrentTick);
+        simulation.SetCellState(q, r, terrainId, ownerEntityId, simulation.ExecutionTick);
 
     public static void SetCellState(
         Simulation simulation,
@@ -78,7 +78,7 @@ internal static class KernelEffectExecutor
         int r,
         int terrainId,
         int ownerEntityId) =>
-        simulation.SetCellState(planeCode, q, r, terrainId, ownerEntityId, simulation.CurrentTick);
+        simulation.SetCellState(planeCode, q, r, terrainId, ownerEntityId, simulation.ExecutionTick);
 
     public static void SetCellTerrain(Simulation simulation, int q, int r, int terrainId) =>
         SetCellTerrain(simulation, PlaneCodes.Physical, q, r, terrainId);
@@ -96,14 +96,14 @@ internal static class KernelEffectExecutor
             return;
         }
 
-        simulation.SetCellTerrain(planeCode, q, r, terrainId, simulation.CurrentTick);
+        simulation.SetCellTerrain(planeCode, q, r, terrainId, simulation.ExecutionTick);
     }
 
     public static void SetCoverageOwner(Simulation simulation, int q, int r, int ownerEntityId) =>
-        simulation.SetCoverageOwner(q, r, ownerEntityId, simulation.CurrentTick);
+        simulation.SetCoverageOwner(q, r, ownerEntityId, simulation.ExecutionTick);
 
     public static void SetCoverageOwner(Simulation simulation, int planeCode, int q, int r, int ownerEntityId) =>
-        simulation.SetCoverageOwner(planeCode, q, r, ownerEntityId, simulation.CurrentTick);
+        simulation.SetCoverageOwner(planeCode, q, r, ownerEntityId, simulation.ExecutionTick);
 
     public static int CreateEntity(
         Simulation simulation,
@@ -124,7 +124,7 @@ internal static class KernelEffectExecutor
             semanticQ,
             semanticR,
             semanticS,
-            simulation.CurrentTick);
+            simulation.ExecutionTick);
 
     public static int CreateRelationship(
         Simulation simulation,
@@ -139,10 +139,10 @@ internal static class KernelEffectExecutor
             sourceEntityId,
             targetEntityId,
             strength,
-            simulation.CurrentTick);
+            simulation.ExecutionTick);
 
     public static void SetRelationshipStrength(Simulation simulation, int relationshipId, FixedScalar strength) =>
-        simulation.SetRelationshipStrength(relationshipId, strength, simulation.CurrentTick);
+        simulation.SetRelationshipStrength(relationshipId, strength, simulation.ExecutionTick);
 
     public static void ModifyRelationshipStrengthUnits(
         Simulation simulation,
@@ -151,16 +151,16 @@ internal static class KernelEffectExecutor
         simulation.ModifyRelationshipStrengthUnits(
             relationshipId,
             deltaUnits,
-            simulation.CurrentTick);
+            simulation.ExecutionTick);
 
     public static void CullRelationship(Simulation simulation, int relationshipId) =>
-        simulation.CullRelationship(relationshipId, simulation.CurrentTick);
+        simulation.CullRelationship(relationshipId, simulation.ExecutionTick);
 
     public static void CullIncomingRelationshipsOfKind(Simulation simulation, int targetEntityId, int relationshipKindId) =>
-        simulation.CullIncomingRelationshipsOfKind(targetEntityId, relationshipKindId, simulation.CurrentTick);
+        simulation.CullIncomingRelationshipsOfKind(targetEntityId, relationshipKindId, simulation.ExecutionTick);
 
     public static void CullOutgoingRelationshipsOfKind(Simulation simulation, int sourceEntityId, int relationshipKindId) =>
-        simulation.CullOutgoingRelationshipsOfKind(sourceEntityId, relationshipKindId, simulation.CurrentTick);
+        simulation.CullOutgoingRelationshipsOfKind(sourceEntityId, relationshipKindId, simulation.ExecutionTick);
 
     public static void CullAllRelationshipsOfKind(
         Simulation simulation,

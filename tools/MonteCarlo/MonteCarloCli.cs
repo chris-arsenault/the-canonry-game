@@ -222,7 +222,11 @@ internal static class MonteCarloCli
 
         using var summaryRecorder = new MonteCarloRunSummaryRecorder(run);
         using var stateRecorder = CreateStateRecorder(run, options, runId, seed);
-        RecordStateSnapshots(run, stateRecorder, run.Host.CurrentTick, options);
+        RecordStateSnapshots(
+            run,
+            stateRecorder,
+            run.Host.PublishedLowWatermark,
+            options);
 
         var rowsWritten = 0L;
         var elapsed = Stopwatch.StartNew();
@@ -258,7 +262,9 @@ internal static class MonteCarloCli
             var batchTicks = remainingTicks;
             if (options.ProgressEveryTicks > 0)
             {
-                var ticksIntoWindow = run.Host.CurrentTick % options.ProgressEveryTicks;
+                var ticksIntoWindow =
+                    run.Host.PublishedLowWatermark %
+                    options.ProgressEveryTicks;
                 var ticksToBoundary = ticksIntoWindow == 0
                     ? options.ProgressEveryTicks
                     : options.ProgressEveryTicks - ticksIntoWindow;
@@ -272,7 +278,7 @@ internal static class MonteCarloCli
             }
 
             processedTicks += advanced;
-            var currentTick = run.Host.CurrentTick;
+            var currentTick = run.Host.PublishedLowWatermark;
             if (AtWindowBoundary(currentTick, options.ProgressEveryTicks))
             {
                 var elapsedSeconds = stopwatch.Elapsed.TotalSeconds;
@@ -316,26 +322,93 @@ internal static class MonteCarloCli
         int seed,
         ref long rowsWritten)
     {
-        var processedTicks = 0;
+        var startTick = run.Host.PublishedLowWatermark;
+        var targetTick = checked(startTick + options.Ticks);
         var progress = new ProgressReporter(options, seed);
-        for (var tickIndex = 0; tickIndex < options.Ticks; tickIndex++)
+        while (run.Host.PublishedLowWatermark < targetTick)
         {
-            var advanced = run.Host.Time.AdvanceSingleStep(1);
+            var current = run.Host.PublishedLowWatermark;
+            var nextCut = NextConsumerCut(
+                current,
+                targetTick,
+                options);
+            var advanced = run.Host.Time.AdvanceSingleStep(
+                nextCut - current);
             if (advanced == 0)
             {
                 break;
             }
 
-            processedTicks += advanced;
-            var currentTick = run.Host.CurrentTick;
+            var currentTick = run.Host.PublishedLowWatermark;
             summaryRecorder.DrainAvailable();
-            RecordStateSnapshots(run, stateRecorder, currentTick, options);
+            if (ShouldCaptureState(
+                    currentTick,
+                    targetTick,
+                    options.EntitySnapshotCadence))
+            {
+                RecordStateSnapshots(
+                    run,
+                    stateRecorder,
+                    currentTick,
+                    options);
+            }
+
             rowsWritten += FlushStateTelemetryIfNeeded(stateRecorder, stateStore);
             rowsWritten += RunWindowActions(run, options, stateRecorder, stateStore, progress, seed, currentTick);
         }
 
-        return processedTicks;
+        return run.Host.PublishedLowWatermark - startTick;
     }
+
+    private static int NextConsumerCut(
+        int currentTick,
+        int targetTick,
+        MonteCarloOptions options)
+    {
+        var next = targetTick;
+        next = EarlierBoundary(
+            currentTick,
+            next,
+            options.EntitySnapshotCadence);
+        next = EarlierBoundary(
+            currentTick,
+            next,
+            options.ProgressEveryTicks);
+        next = EarlierBoundary(
+            currentTick,
+            next,
+            options.StreamCoreEveryTicks);
+        return EarlierBoundary(
+            currentTick,
+            next,
+            options.SaveStateEveryTicks);
+    }
+
+    private static int EarlierBoundary(
+        int currentTick,
+        int currentCut,
+        int cadence)
+    {
+        if (cadence <= 0)
+        {
+            return currentCut;
+        }
+
+        var remainder = currentTick % cadence;
+        var distance = remainder == 0
+            ? cadence
+            : cadence - remainder;
+        return Math.Min(
+            currentCut,
+            checked(currentTick + distance));
+    }
+
+    private static bool ShouldCaptureState(
+        int tick,
+        int targetTick,
+        int cadence) =>
+        tick == targetTick ||
+        AtWindowBoundary(tick, cadence);
 
     private static long RunWindowActions(
         MonteCarloKernelRun run,
@@ -434,6 +507,15 @@ internal static class MonteCarloCli
         int tick,
         MonteCarloOptions options)
     {
+        recorder.DrainAvailable();
+        if (recorder.PublishedLowWatermark != tick)
+        {
+            throw new InvalidOperationException(
+                string.Create(
+                    CultureInfo.InvariantCulture,
+                    $"Telemetry watermark {recorder.PublishedLowWatermark} does not match converged kernel tick {tick}."));
+        }
+
         var includeEntities = IncludeEntitySnapshot(options, tick);
         recorder.RecordSnapshots(tick, includeEntities);
         if (ShouldRecordSnapshot(tick, options.EntitySnapshotCadence))

@@ -1,74 +1,50 @@
 # System Architecture
 
-The engine is a deterministic microkernel hosted by the Godot game runtime.
-Kernel phases own mutation explicitly. The coordinator runs admission,
-strategic selection, cross-owner structural reconciliation, and publication. A
-fixed-lifetime worker set evaluates eligible frozen ranges and reduces entity-,
-relationship-, and cell-owned destinations concurrently. Workers join before
-coordinator reconciliation or later work becomes visible. UI, projections, run
-logs, telemetry, exports, and Monte Carlo analysis consume primitive records
-outside kernel state.
+The engine is a fixed-capacity simulation microkernel hosted by the Godot game
+runtime. Logical owners mutate entity, relationship, cell, and program state
+explicitly on long-lived workers. Ordinary low-altitude ticks advance without a
+global barrier inside a bounded lead window. The caller opens a window and
+admits commands to stable logical-owner inboxes; strategic programs and
+structural projections use those same owners and inboxes. Window quiescence is
+required only to publish a consumer cut, refresh frozen membership, and reclaim
+retired slots safely. UI, projections, run logs, telemetry, exports, and Monte
+Carlo analysis consume primitive records outside kernel state.
 
 The controlling kernel rules live in
 [simulation-kernel-discipline.md](./kernel/simulation-kernel-discipline.md).
 
-The selected parallel architecture is a typed-owner bulk-synchronous scheduler,
-not a persistent geographic-actor model. Evaluation partitions by stable IDs
-or bounded work chunks; mutation partitions independently by entity,
-relationship, or cell storage owner. Geography is useful for cell/map state but
-is not the universal shard key: measured relationship and gambit traffic is too
-nonlocal and current geographic load is too skewed. The persistent evaluation
-workers, frozen range contract, typed-owner reduction, and partitioned event
-publication are implemented. Gambit and generator strategic ownership is also
-implemented. Multi-worker local evaluation and destination-owner application
-are coalesced, and worker count is wired through the host and Monte Carlo tools.
-One worker remains the default because the Batch E end-to-end scaling candidate
-failed its acceptance gate; nondefault worker counts are an evidence surface,
-not a production performance claim. Workers must not be used to preserve
-accidental superlinear candidate scans.
+The selected parallel architecture is a bounded asynchronous typed-owner
+scheduler, not a persistent geographic-actor model. Evaluation and mutation
+partition by stable entity slots, relationship slots, coordinate-derived cell
+owners, and program-state identity. Geography is useful for cell/map state but
+is not the universal shard key: relationship and gambit traffic is nonlocal and
+geographic entity load is skewed. Physical worker count changes assignment, not
+logical ownership or the mutation protocol. One worker and many workers use the
+same owner state machines and fixed-capacity inboxes.
 
-The first owner-ready storage batch is complete. Entity coordinates remain
-entity-owned while physical and semantic cell-membership chains have a bounded
-spatial-index owner. Relationship slots remain relationship-owned while
-incident adjacency, frozen CSR, delta chains, and graph compaction have a
-bounded endpoint-index owner. Typed deltas now route to those destinations
-without locks or duplicate compatibility state. Spatial membership, coverage
-reverse indexes, culture-row storage, relationship culling, and lifecycle
-retirement still reconcile on the coordinator where structural mutation crosses
-owners.
+Each simulation owns a bounded worker set that starts background threads lazily
+and reuses them until the host shuts down. Frozen entity, relationship, and
+culture-row membership is grouped into 64 logical-owner ranges at the opening
+cut. Effects, relationship maintenance, low-altitude verbs, movement, culture
+decay, and minor cohorts advance through owner-local ticks. Minor cohorts
+currently remain on one program-state owner until their active and encounter
+indexes receive structural ownership.
 
-The evaluation-worker batch is also complete. Each simulation owns a bounded
-worker set that starts background threads lazily and reuses them until the host
-shuts down. Effects and relationship maintenance can evaluate disjoint frozen
-ranges concurrently. Low-altitude verbs can do so when trace capture is off.
-Minor actors already use the common range interface but remain one-range until
-their shared actor indexes and encounters receive typed ownership. Worker-local
-append arenas feed destination-owner reducers. Entity slots own attributes,
-tags, movement coordinates, and influence credits; relationship slots own
-strength; cells own terrain, coverage values, culture writes, and culture
-reductions. Primitive events use the same worker partitioning and are compacted,
-sorted, and published only after the phase barrier.
+Entity owners apply coordinates, attributes, tags, and influence credit;
+relationship owners apply strength; cell owners apply terrain, coverage values,
+culture mass, and reductions. A structural owner maintains movement
+membership, coverage reverse indexes, culture-row membership, endpoint
+adjacency, and other indexes from typed projections. Entity and relationship
+retirement first changes authoritative owner state, then updates structural and
+program projections. Reusable slots remain quarantined until window quiescence
+so frozen raw membership cannot alias a later generation.
 
-Due multi-worker local range programs share one evaluation dispatch. Owner
-application groups compatible destinations into dependency-preserving batches:
-entity creation, spatial state, primary state, dependent secondary state, and
-final relationship/tag/entity state. Coordinator preparation and reconciliation
-remain between batches where later work depends on newly published structure.
-Worker-local culture revision and aggregate-mass counters publish after each
-owner batch. Worker one uses direct registration-order dispatch through the same
-range and owner implementations, preserving its lower-overhead reference path.
-
-Gambits and generators use program-scoped strategic intent epochs. Gambit
-actors evaluate over frozen entity ranges with worker-local scratch, while
-generator definitions score over disjoint worker ranges. Selected work emits
-bounded typed intents instead of mutating live world state. The coordinator
-reserves entity and relationship IDs in deterministic blocks and prepares
-cross-owner storage; entity, relationship, cell, travel-structure, and event
-records then route to their typed owners. Spatial, graph, active-index,
-district, and other cross-owner structures reconcile after the owner barrier.
-Chronicles, world beats, map frontier, culture slots, and knowledge remain
-coordinator strategic programs because the measured Batch D scope did not
-identify them as material strategic mutation costs.
+Gambits, generators, chronicles, world beats, map frontier, culture slots,
+knowledge, and minor actors run on stable program owners. Their work reads
+published remote state and emits bounded typed intents. Entity and relationship
+allocation uses partitioned free lists; creation records apply at their slot
+owner and structural membership follows as an owner message. No program relies
+on registration-order visibility or invokes a nested worker phase.
 
 ## Project Topology
 
@@ -91,7 +67,7 @@ Engine.Gameplay
   domains; compiles authored gameplay into primitive kernel program data
 
 Engine.Kernel
-  deterministic state mutation, fixed-capacity program data/state/scratch,
+  owner-safe state mutation, fixed-capacity program data/state/scratch,
   no domain strings, no allocation-heavy runtime policy
 
 Engine.Eventing
@@ -184,40 +160,43 @@ writes deterministic offscreen PNG evidence.
 
 ## Kernel Tick
 
-`Simulation.AdvanceTicks` is the single mutation entrypoint. Each tick
-publishes six explicit phases:
+`Simulation.AdvanceTicks` is the single mutation entrypoint. It batches the
+requested horizon into bounded local windows:
 
-1. command admission;
-2. local-view preparation;
-3. local evaluation against a frozen active-entity and active-relationship
-   view;
-4. deterministic local-delta resolution;
-5. strategic programs; and
-6. tick publication.
+1. admit commands and prepare local views;
+2. freeze owner-contiguous entity, relationship, and culture-row membership;
+3. let logical owners drain inboxes and advance local ticks within the lead
+   bound;
+4. publish owner ticks, revisions, and destination-owned primitive values;
+5. let structural and program owners consume their typed projections and
+   strategic work;
+6. reach quiescence for the requested window, reclaim generation-safe retired
+   slots, and refresh frozen membership;
+7. publish the corresponding logical phase and tick records; and
+8. advance the consumer low watermark for the complete frame.
 
-Programs retain registration order inside their assigned phase, but local
-programs no longer depend on mutation becoming visible during their own
-evaluation pass. They emit fixed-capacity typed deltas for movement,
-attributes, culture, culture reduction, relationship strength/end, tags, cell
-state, and lifecycle. Resolution sorts by destination and stable logical source,
-merges additive values before clamping, chooses competing writes explicitly,
-and applies retirement only after accepted local state changes.
+Local programs emit fixed-capacity typed messages for movement, attributes,
+culture, culture reduction, relationship strength and end, tags, cell state,
+and lifecycle. Destination owners consume them before or after their next local
+evaluation. Remote visibility is eventually consistent inside the lead bound;
+structural membership becomes visible at the next opening cut.
 
-Gambits and generators retain their registration position but execute a frozen
-intent epoch inside the strategic phase. Each converted program observes the
-world published by earlier programs, evaluates without live mutation, then
-resolves its bounded intents before the next strategic program begins.
-Deterministic structural reservation keeps created entity and relationship IDs
-stable across worker completion order. This is an ownership boundary on the
-same tick, not a sub-tick or a second simulation clock.
+Gambits and generators are program-owner state machines. They evaluate
+published remote values and emit entity-, relationship-, cell-, or
+structural-owner messages. Generator selection is serial within its one
+authoritative program owner; it does not fan back into the physical worker set.
+This is an ownership boundary across ordinary ticks, not a sub-tick or a second
+simulation clock.
 
-Semantic events are buffered and sorted within the publishing phase rather than
-leaking evaluator order. `PhaseCompleted` records the tick, phase revision,
-work count, and mutation count; projections expose the latest published
-boundary. Random choices use stable keys derived from seed, tick,
-phase, program, logical occurrence, rule, purpose, and attempt. There is no
-mutable sequential random stream whose consumption can shift when evaluation
-order changes.
+`WatermarkAdvanced` records the low watermark, owner high watermark, and
+publication revision after the complete window. Projection time advances only from
+that record; ordinary mutations and the temporary `TickCompleted` record may
+refer to a later owner tick without declaring a consumer-ready frame.
+`PhaseCompleted` remains phase diagnostics. Random choices use
+stable keys derived from seed, owner-local tick, program, logical occurrence,
+rule, purpose, and attempt. There is no mutable sequential random stream,
+although bounded remote visibility means schedules may legitimately produce
+different individual histories.
 
 Gambit preconditions compile into one bounded branch-plan representation.
 Actor-only values are prepared once per actor and gambit; candidate branches
@@ -226,7 +205,7 @@ branch requires the same relationship to the target, the compiled plan
 publishes that source and the kernel walks the relationship index directly
 rather than scanning all entities.
 
-Current default program order:
+Current default program registrations:
 
 ```text
 Movement
@@ -244,9 +223,10 @@ Knowledge
 MinorActors
 ```
 
-The program dependency metadata makes load-bearing ordering explicit.
+This list is not a same-tick execution order. Program dependency metadata
+declares allowed lag where a program requires another owner's published value.
 Locality and culture-locality facts are direct bounded queries over current
-world state, not scheduled programs or materialized fields. `LowAltitudeVerbs`,
+published world state, not scheduled programs or materialized fields. `LowAltitudeVerbs`,
 `Effects`, generators, culture slots, and minor actors read those facts only
 where they act. Culture-locality queries use fixed-capacity, revision-stamped
 memoization for repeated reads of the same culture and cell; culture mutation
@@ -323,14 +303,38 @@ status transition. Ended relationships and consumed districts release their
 active slots; durable history belongs to the primitive event stream and its
 consumer projections, not to parallel historical tables in the kernel.
 
-Kernel snapshot format `55` persists active state, generation metadata, and the
-phase revision, then rebuilds free lists, indexes, due queues,
+Kernel snapshot format `56` persists active state, generation metadata, the
+phase revision, and FIFO commands waiting for owner admission, then rebuilds
+free lists, indexes, due queues,
 and disposable caches on load. It does not serialize retired entity rows, ended
 edges, expired cooldowns, completed provenance tables, route-cache contents, or
-sequential RNG state. Worker count and logical shard count are host execution
-topology, not simulation state, so a loading host supplies them rather than
-reading them from the snapshot. The format intentionally has no reader for the
-replaced binary layout.
+sequential RNG state. Worker count and logical owner-partition count are host
+execution topology, not simulation state, so a loading host supplies them
+rather than reading them from the snapshot. Logical owner identity derives from
+the destination slot and does not change with physical worker count. The format
+intentionally has no reader for the replaced binary layout.
+
+Snapshots are legal only at a published convergence cut. Pausing joins the
+active driver window and converges any owner lead before serialization. Owner
+local ticks and typed inboxes are empty and reconstructible at that cut, so
+they are not duplicated in persistence; not-yet-admitted external commands are
+future work and are serialized rather than silently discarded.
+
+Ordinary low-altitude execution advances fixed logical owners continuously
+through bounded local-tick windows. Long-lived physical workers drain
+fixed-capacity destination inboxes and run entity, relationship, cell, and
+minor-cohort work without a coordinator barrier between local ticks. Entity and
+relationship occurrence handles protect reused slots, coordinate hashes own
+cell traffic, and one physical worker uses the same owner state machines as
+many workers.
+
+Frozen entity, relationship, and culture-row membership remains stable inside
+the window. Destination-owned primitive values publish as their owners advance;
+cross-owner readers may therefore see boundedly stale or ahead values.
+Structural projections and strategic programs run on stable owners inside the
+same message graph. The window cut does not replay programs or apply a global
+mutation queue; it waits for owner quiescence, publishes the consumer watermark,
+and makes the next frozen membership view safe.
 
 The kernel does not store the physical microtriangle field or the generation
 process that produced it. Those immutable startup facts remain outside the

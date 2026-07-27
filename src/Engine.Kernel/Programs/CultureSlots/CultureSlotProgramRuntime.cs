@@ -10,6 +10,8 @@ internal sealed class CultureSlotProgramRuntime :
     private static readonly FixedScalar InfluenceProductionScoreScale = 100;
     private readonly long[] _seenCultureWorkRevisions;
     private readonly int[] _nextDueTicks;
+    private readonly int[] _publishedOccupantEntityIds;
+    private readonly FixedScalar[] _publishedOccupantScores;
 
     public CultureSlotProgramRuntime(CultureSlotProgramData data, CultureSlotProgramState state)
         : this(data, state, new KernelProgramTuningOptions())
@@ -29,6 +31,10 @@ internal sealed class CultureSlotProgramRuntime :
         Tuning = tuning;
         _seenCultureWorkRevisions = new long[data.SlotCapacity + 1];
         _nextDueTicks = new int[data.SlotCapacity + 1];
+        _publishedOccupantEntityIds =
+            new int[data.SlotCapacity + 1];
+        _publishedOccupantScores =
+            new FixedScalar[data.SlotCapacity + 1];
         global::System.Array.Fill(_seenCultureWorkRevisions, -1);
         global::System.Array.Fill(_nextDueTicks, int.MaxValue);
     }
@@ -66,7 +72,18 @@ internal sealed class CultureSlotProgramRuntime :
     public int OccupantEntityId(int cultureId, int slotId)
     {
         var slot = FindSlot(cultureId, slotId);
-        return slot > 0 ? State.OccupantEntityId(slot) : 0;
+        return slot > 0 ? ObservedOccupantEntityId(slot) : 0;
+    }
+
+    internal void CapturePublishedView()
+    {
+        for (var slot = 1; slot <= Data.SlotCount; slot++)
+        {
+            _publishedOccupantEntityIds[slot] =
+                State.OccupantEntityId(slot);
+            _publishedOccupantScores[slot] =
+                State.OccupantScore(slot);
+        }
     }
 
     public FixedScalar OccupancyEvidence(
@@ -89,7 +106,9 @@ internal sealed class CultureSlotProgramRuntime :
                 continue;
             }
 
-            var evidence = KernelQuery.ThresholdEvidence(State.OccupantScore(slot), threshold);
+            var evidence = KernelQuery.ThresholdEvidence(
+                ObservedOccupantScore(slot),
+                threshold);
             if (evidence >= 1)
             {
                 return 1;
@@ -127,7 +146,9 @@ internal sealed class CultureSlotProgramRuntime :
                 continue;
             }
 
-            var evidence = KernelQuery.ThresholdEvidence(State.OccupantScore(slot), threshold);
+            var evidence = KernelQuery.ThresholdEvidence(
+                ObservedOccupantScore(slot),
+                threshold);
             switch (Data.PolarityCode(slot))
             {
                 case RelationshipPolarityCodes.Positive:
@@ -154,7 +175,7 @@ internal sealed class CultureSlotProgramRuntime :
         for (var slot = 1; slot <= Data.SlotCount; slot++)
         {
             if (Data.CultureId(slot) == cultureId &&
-                State.OccupantEntityId(slot) == 0 &&
+                ObservedOccupantEntityId(slot) == 0 &&
                 Data.KindAllowed(slot, kindId))
             {
                 count++;
@@ -173,7 +194,7 @@ internal sealed class CultureSlotProgramRuntime :
 
         for (var slot = 1; slot <= Data.SlotCount; slot++)
         {
-            if (State.OccupantEntityId(slot) == entityId)
+            if (ObservedOccupantEntityId(slot) == entityId)
             {
                 return 2;
             }
@@ -189,7 +210,7 @@ internal sealed class CultureSlotProgramRuntime :
         int slotId,
         int polarityCode)
     {
-        if (State.OccupantEntityId(slot) != entityId)
+        if (ObservedOccupantEntityId(slot) != entityId)
         {
             return false;
         }
@@ -206,6 +227,16 @@ internal sealed class CultureSlotProgramRuntime :
 
         return polarityCode < 0 || Data.PolarityCode(slot) == polarityCode;
     }
+
+    private int ObservedOccupantEntityId(int slot) =>
+        KernelWorkerThread.OwnerIndex >= 0
+            ? _publishedOccupantEntityIds[slot]
+            : State.OccupantEntityId(slot);
+
+    private FixedScalar ObservedOccupantScore(int slot) =>
+        KernelWorkerThread.OwnerIndex >= 0
+            ? _publishedOccupantScores[slot]
+            : State.OccupantScore(slot);
 
     public void Tick(Simulation simulation, int tick)
     {
@@ -535,20 +566,18 @@ internal sealed class CultureSlotProgramRuntime :
         var entityDelta = Data.EntityInfluenceMultiplierDelta(slot);
         if (previousEntityId > 0)
         {
-            simulation.World.ModifyEntityCultureInfluenceMultiplierDelta(
+            simulation.ModifyEntityCultureInfluenceMultiplier(
                 previousEntityId,
                 -entityDelta,
-                tick,
-                simulation.ExecutionContext);
+                tick);
         }
 
         if (currentEntityId > 0)
         {
-            simulation.World.ModifyEntityCultureInfluenceMultiplierDelta(
+            simulation.ModifyEntityCultureInfluenceMultiplier(
                 currentEntityId,
                 entityDelta,
-                tick,
-                simulation.ExecutionContext);
+                tick);
         }
 
         var wasOccupied = previousEntityId > 0;
@@ -561,11 +590,10 @@ internal sealed class CultureSlotProgramRuntime :
         var cultureDelta = Data.CultureInfluenceMultiplierDelta(slot) * (isOccupied ? 1 : -1);
         if (cultureDelta != 0)
         {
-            simulation.World.ModifyCultureInfluenceMultiplierDelta(
+            simulation.ModifyCultureInfluenceMultiplier(
                 Data.CultureId(slot),
                 cultureDelta,
-                tick,
-                simulation.ExecutionContext);
+                tick);
         }
     }
 

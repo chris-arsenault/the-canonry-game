@@ -133,6 +133,12 @@ public sealed class KernelEventPayloadTests
         var tickCompleted = new TickCompletedKernelEvent(16, 17);
         Assert.Equal(tickCompleted, KernelEvent.From(tickCompleted).AsTickCompleted());
 
+        var watermarkAdvanced =
+            new WatermarkAdvancedKernelEvent(16, 17, 16, 18, 64, 19);
+        Assert.Equal(
+            watermarkAdvanced,
+            KernelEvent.From(watermarkAdvanced).AsWatermarkAdvanced());
+
         var generatorEnabledChanged = new GeneratorEnabledChangedKernelEvent(17, 18, 19, 1);
         Assert.Equal(generatorEnabledChanged, KernelEvent.From(generatorEnabledChanged).AsGeneratorEnabledChanged());
 

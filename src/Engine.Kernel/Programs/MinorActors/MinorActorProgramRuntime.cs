@@ -117,6 +117,11 @@ internal sealed partial class MinorActorProgramRuntime :
         int tick)
     {
         var world = simulation.World;
+        if (!world.EntityIsActive(sourceEntityId))
+        {
+            return;
+        }
+
         var sourceKindId = world.EntityKindId(sourceEntityId);
         for (var rule = Data.FirstRuleForSourceKind(sourceKindId);
              rule > 0;
@@ -380,7 +385,7 @@ internal sealed partial class MinorActorProgramRuntime :
                     State.PlaneCode(actorId),
                     State.TargetQ(actorId),
                     State.TargetR(actorId),
-                    simulation.CurrentTick) < 95,
+                    simulation.ExecutionTick) < 95,
             MinorActorRoleCodes.CampaignColumn => true,
             _ => false,
         };
@@ -594,7 +599,7 @@ internal sealed partial class MinorActorProgramRuntime :
                     planeCode,
                     q,
                     r,
-                    simulation.CurrentTick);
+                    simulation.ExecutionTick);
                 if (quality >= 95)
                 {
                     continue;

@@ -90,55 +90,76 @@ internal sealed class RelationshipProgramRuntime :
         _ = tick;
     }
 
-    public void NoteRelationshipCreated(WorldState world, int relationshipId)
+    internal void NoteRelationshipRecordCreated(int relationshipId)
     {
         State.Reset(relationshipId);
-        var kindId = world.RelationshipKindId(relationshipId);
-        if (!Data.TargetFollowsSourcePhysical(kindId))
-        {
-            return;
-        }
-
-        var targetId = world.RelationshipTargetId(relationshipId);
-        var existingRelationshipId = State.FollowRelationshipId(targetId);
-        if (existingRelationshipId == 0 || relationshipId < existingRelationshipId)
-        {
-            State.SetFollow(targetId, relationshipId, world.RelationshipSourceId(relationshipId));
-        }
     }
 
-    public void NoteRelationshipCulled(WorldState world, int relationshipId)
+    internal void NoteRelationshipRecordRetired(int relationshipId)
     {
         State.Reset(relationshipId);
-        var targetId = world.RelationshipTargetId(relationshipId);
-        if (State.FollowRelationshipId(targetId) != relationshipId)
+    }
+
+    internal void NoteEntityRetired(int entityId) =>
+        State.ClearFollow(entityId);
+
+    internal void ApplyFollowProjection(
+        int targetEntityId,
+        int relationshipId,
+        int sourceEntityId)
+    {
+        if (relationshipId > 0)
         {
+            State.SetFollow(
+                targetEntityId,
+                relationshipId,
+                sourceEntityId);
             return;
         }
 
-        State.ClearFollow(targetId);
+        State.ClearFollow(targetEntityId);
+    }
+
+    internal void ResolveFollowProjection(
+        WorldState world,
+        int targetId,
+        out int relationshipId,
+        out int sourceEntityId)
+    {
+        relationshipId = 0;
+        sourceEntityId = 0;
         for (var index = 1; index <= Data.FollowKindCount; index++)
         {
-            var cursor = world.IncomingRelationshipsOfKind(targetId, Data.FollowKindId(index));
-            while (world.MoveNextRelationship(ref cursor, out var candidateRelationshipId))
+            var cursor = world.IncomingRelationshipsOfKind(
+                targetId,
+                Data.FollowKindId(index));
+            while (world.MoveNextRelationship(
+                       ref cursor,
+                       out var candidateRelationshipId))
             {
-                if (candidateRelationshipId == relationshipId)
+                var candidateSourceId =
+                    world.RelationshipSourceId(
+                        candidateRelationshipId);
+                if (!world.EntityIsActive(candidateSourceId) ||
+                    (relationshipId > 0 &&
+                     candidateRelationshipId >= relationshipId))
                 {
                     continue;
                 }
 
-                var sourceId = world.RelationshipSourceId(candidateRelationshipId);
-                if (world.EntityIsActive(sourceId))
-                {
-                    State.SetFollow(targetId, candidateRelationshipId, sourceId);
-                    return;
-                }
+                relationshipId = candidateRelationshipId;
+                sourceEntityId = candidateSourceId;
             }
         }
     }
 
     private void TickRelationship(Simulation simulation, WorldState world, int relationshipId, int tick)
     {
+        if (!world.RelationshipIsActive(relationshipId))
+        {
+            return;
+        }
+
         var relationshipKindId = world.RelationshipKindId(relationshipId);
         UpdateContactMemory(world, relationshipId, relationshipKindId, tick);
         var sourceId = world.RelationshipSourceId(relationshipId);

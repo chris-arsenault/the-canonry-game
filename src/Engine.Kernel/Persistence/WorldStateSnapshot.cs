@@ -322,12 +322,14 @@ internal sealed partial class WorldState
 
     private void RebuildEntityFreeSlots()
     {
-        _freeEntitySlotCount = 0;
+        global::System.Array.Clear(_freeEntitySlotCounts);
+        global::System.Array.Clear(_entityReserved);
         for (var entityId = 1; entityId <= _entityHighWatermark; entityId++)
         {
             if (!_entityAllocated[entityId])
             {
-                _freeEntitySlots[_freeEntitySlotCount++] = entityId;
+                var owner = SlotOwner(entityId);
+                PushEntityFreeSlot(owner, entityId);
             }
         }
     }
@@ -389,12 +391,14 @@ internal sealed partial class WorldState
 
     private void RebuildRelationshipFreeSlots()
     {
-        _freeRelationshipSlotCount = 0;
+        global::System.Array.Clear(_freeRelationshipSlotCounts);
+        global::System.Array.Clear(_relationshipReserved);
         for (var relationshipId = 1; relationshipId <= _relationshipHighWatermark; relationshipId++)
         {
             if (!_relationshipAllocated[relationshipId])
             {
-                _freeRelationshipSlots[_freeRelationshipSlotCount++] = relationshipId;
+                var owner = SlotOwner(relationshipId);
+                PushRelationshipFreeSlot(owner, relationshipId);
             }
         }
     }

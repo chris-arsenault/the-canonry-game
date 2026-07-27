@@ -16,7 +16,7 @@ internal sealed partial class Simulation
         int semanticS,
         int tick)
     {
-        if (_collectingDeltas)
+        if (IsCollectingDeltas)
         {
             var entityId = World.ReserveEntitySlot();
             QueueStrategicEntityCreation(
@@ -49,7 +49,7 @@ internal sealed partial class Simulation
     internal void ReserveStrategicEntityBlock(
         global::System.Span<int> entityIds)
     {
-        if (!_collectingDeltas)
+        if (!IsCollectingDeltas)
         {
             throw new global::System.InvalidOperationException();
         }
@@ -59,7 +59,7 @@ internal sealed partial class Simulation
 
     internal int ReserveStrategicEntityId()
     {
-        if (!_collectingDeltas)
+        if (!IsCollectingDeltas)
         {
             throw new global::System.InvalidOperationException();
         }
@@ -78,14 +78,14 @@ internal sealed partial class Simulation
         int semanticR,
         int semanticS)
     {
-        if (!_collectingDeltas)
+        if (!IsCollectingDeltas)
         {
             throw new global::System.InvalidOperationException();
         }
 
         var context = ExecutionContext;
         World.ReserveProvenanceOutput(context);
-        _tickDeltas.AddEntityCreation(new EntityCreationIntent(
+        var intent = new EntityCreationIntent(
             entityId,
             kindId,
             subtypeId,
@@ -95,8 +95,8 @@ internal sealed partial class Simulation
             semanticQ,
             semanticR,
             semanticS,
-            NextStrategicIntentOrder(),
-            context));
+            context);
+        _continuousOwners.Enqueue(intent);
     }
 
     private int MaterializeEntity(
@@ -236,46 +236,46 @@ internal sealed partial class Simulation
 
     internal int IncreaseEntityWorkTier(int entityId, int maxTier)
     {
-        if (!_collectingDeltas)
+        if (!IsCollectingDeltas)
         {
             return World.IncreaseEntityWorkTier(entityId, maxTier);
         }
 
         var occurrence = World.EntityOccurrenceHandleForIntent(entityId);
-        _tickDeltas.AddEntityState(new EntityStateIntent(
+        var intent = new EntityStateIntent(
             occurrence,
             EntityStateIntentCodes.IncreaseWorkTier,
             maxTier,
-            StrategicIntentOrderOrSourceKey(occurrence, maxTier),
-            ExecutionContext));
+            ExecutionContext);
+        _continuousOwners.Enqueue(intent);
         return 0;
     }
 
     internal int DecreaseEntityWorkTier(int entityId)
     {
-        if (!_collectingDeltas)
+        if (!IsCollectingDeltas)
         {
             return World.DecreaseEntityWorkTier(entityId);
         }
 
         var occurrence = World.EntityOccurrenceHandleForIntent(entityId);
-        _tickDeltas.AddEntityState(new EntityStateIntent(
+        var intent = new EntityStateIntent(
             occurrence,
             EntityStateIntentCodes.DecreaseWorkTier,
             0,
-            StrategicIntentOrderOrSourceKey(occurrence, 0),
-            ExecutionContext));
+            ExecutionContext);
+        _continuousOwners.Enqueue(intent);
         return 0;
     }
 
     internal void QueueDistrictIntent(in DistrictIntent intent)
     {
-        if (!_collectingDeltas)
+        if (!IsCollectingDeltas)
         {
             throw new global::System.InvalidOperationException();
         }
 
-        _tickDeltas.AddDistrict(intent);
+        _continuousOwners.Enqueue(intent);
     }
 
     internal void ReserveStrategicProvenanceOutputs(int count)
@@ -290,7 +290,7 @@ internal sealed partial class Simulation
     internal void ReserveStrategicRelationshipBlock(
         global::System.Span<int> relationshipIds)
     {
-        if (!_collectingDeltas)
+        if (!IsCollectingDeltas)
         {
             throw new global::System.InvalidOperationException();
         }
@@ -300,7 +300,7 @@ internal sealed partial class Simulation
 
     internal int ReserveStrategicRelationshipId()
     {
-        if (!_collectingDeltas)
+        if (!IsCollectingDeltas)
         {
             throw new global::System.InvalidOperationException();
         }
@@ -316,23 +316,22 @@ internal sealed partial class Simulation
         int targetEntityId,
         FixedScalar strength)
     {
-        if (!_collectingDeltas)
+        if (!IsCollectingDeltas)
         {
             throw new global::System.InvalidOperationException();
         }
 
         var context = ExecutionContext;
         World.ReserveProvenanceOutput(context);
-        _tickDeltas.AddRelationshipCreation(
-            new RelationshipCreationIntent(
-                relationshipId,
-                relationshipKindId,
-                polarityCode,
-                sourceEntityId,
-                targetEntityId,
-                KernelFixedPoint.RelationshipStrengthUnits(strength),
-                NextStrategicIntentOrder(),
-                context));
+        var intent = new RelationshipCreationIntent(
+            relationshipId,
+            relationshipKindId,
+            polarityCode,
+            sourceEntityId,
+            targetEntityId,
+            KernelFixedPoint.RelationshipStrengthUnits(strength),
+            context);
+        _continuousOwners.Enqueue(intent);
     }
 
     internal int CreateRelationship(
@@ -343,7 +342,7 @@ internal sealed partial class Simulation
         FixedScalar strength,
         int tick)
     {
-        if (_collectingDeltas)
+        if (IsCollectingDeltas)
         {
             var queuedRelationshipId = World.ReserveRelationshipSlot();
             QueueStrategicRelationshipCreation(
@@ -400,13 +399,14 @@ internal sealed partial class Simulation
             return;
         }
 
-        Relationships.NoteRelationshipCreated(World, relationshipId);
+        Relationships.NoteRelationshipRecordCreated(relationshipId);
+        RefreshFollowProjectionDirect(targetEntityId);
         if (Relationships.KindIsCultureAnchor(relationshipKindId))
         {
             World.SetEntityCultureAnchorToEntity(sourceEntityId, targetEntityId);
         }
 
-        WorldBeats.NoteRelationshipCreated(relationshipKindId);
+        QueueWorldBeatRelationshipCreated(relationshipKindId);
     }
 
     internal void PrepareStrategicEntity(
@@ -446,7 +446,7 @@ internal sealed partial class Simulation
             intent.SemanticQ,
             intent.SemanticR,
             intent.SemanticS,
-            CurrentTick,
+            ExecutionTick,
             intent.Context,
             provenanceOutputReserved: true);
         PublishEntityCreated(
@@ -459,11 +459,11 @@ internal sealed partial class Simulation
             intent.SemanticQ,
             intent.SemanticR,
             intent.SemanticS,
-            CurrentTick);
+            ExecutionTick);
         KernelData.Entities.InitializeEntity(
             this,
             intent.EntityId,
-            CurrentTick);
+            ExecutionTick);
     }
 
     internal void ReconcileStrategicEntity(
@@ -481,7 +481,7 @@ internal sealed partial class Simulation
         MapFrontier.RevealOnArrival(
             this,
             intent.EntityId,
-            CurrentTick);
+            ExecutionTick);
     }
 
     internal bool TryPrepareStrategicRelationship(
@@ -514,9 +514,11 @@ internal sealed partial class Simulation
             intent.SourceEntityId,
             intent.TargetEntityId,
             KernelFixedPoint.RelationshipStrengthScalar(intent.StrengthUnits),
-            CurrentTick,
+            ExecutionTick,
             intent.Context,
             provenanceOutputReserved: true);
+        Relationships.NoteRelationshipRecordCreated(
+            intent.RelationshipId);
     }
 
     internal void ReconcileStrategicRelationship(
@@ -524,7 +526,6 @@ internal sealed partial class Simulation
     {
         var relationshipId = intent.RelationshipId;
         World.ReconcileReservedRelationshipCreation(relationshipId);
-        Relationships.NoteRelationshipCreated(World, relationshipId);
         if (Relationships.KindIsCultureAnchor(intent.KindId))
         {
             World.SetEntityCultureAnchorToEntity(
@@ -532,6 +533,19 @@ internal sealed partial class Simulation
                 intent.TargetEntityId);
         }
 
-        WorldBeats.NoteRelationshipCreated(intent.KindId);
+        QueueWorldBeatRelationshipCreated(intent.KindId);
+    }
+
+    private void RefreshFollowProjectionDirect(int targetEntityId)
+    {
+        Relationships.ResolveFollowProjection(
+            World,
+            targetEntityId,
+            out var relationshipId,
+            out var sourceEntityId);
+        Relationships.ApplyFollowProjection(
+            targetEntityId,
+            relationshipId,
+            sourceEntityId);
     }
 }

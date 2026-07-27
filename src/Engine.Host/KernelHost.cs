@@ -61,7 +61,11 @@ public sealed partial class KernelHost : IDisposable
 
     public bool BootstrapCompleted { get; } = true;
 
-    public int CurrentTick => _kernel.CurrentTick;
+    public int PublishedLowWatermark =>
+        _kernel.PublishedLowWatermark;
+
+    public int PublishedHighWatermark =>
+        _kernel.PublishedHighWatermark;
 
     public long CurrentVersion => _kernel.CurrentVersion;
 
@@ -74,7 +78,17 @@ public sealed partial class KernelHost : IDisposable
     public void SaveKernelState(Stream destination)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        Time.RequestPause();
+        _ = Time.ConvergeAt(PublishedHighWatermark);
         KernelSnapshot.SaveKernelState(_kernel, destination);
+    }
+
+    public int ConvergeAt(
+        int tick,
+        CancellationToken cancellationToken = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return Time.ConvergeAt(tick, cancellationToken);
     }
 
     public void DrainConsumers()

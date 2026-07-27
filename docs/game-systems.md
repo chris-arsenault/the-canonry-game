@@ -1,9 +1,10 @@
 # Game Systems
 
-The Canonry Game is a deterministic simulation about named entities, their
-relationships, and the map they inhabit. Systems are grouped by what they own:
-runtime state, low-altitude physics, high-altitude events, player-facing cards,
-and observability.
+The Canonry Game is a bounded, owner-partitioned simulation about named
+entities, their relationships, and the map they inhabit. Mutation is exact
+inside each authoritative logical owner and eventually consistent across
+owners. Systems are grouped by what they own: runtime state, low-altitude
+physics, high-altitude events, player-facing cards, and observability.
 
 ## Core Runtime State
 
@@ -125,26 +126,34 @@ occurrence-owned direct rows.
 Runtime map coordinates have stable dense cell IDs. Terrain, occupancy,
 coverage, roads, travel memory, culture totals, and culture influence use direct
 cell-backed storage with active/dirty indexes. Culture influence rows disappear
-from active work when their mass reaches zero. Snapshot format `53` stores only
-live state, handle-generation metadata, and the phase revision. It
+from active work when their mass reaches zero. Snapshot format `56` stores only
+live state, handle-generation metadata, the phase revision, and FIFO commands
+waiting for owner admission. It
 rebuilds derived indexes, free lists, due queues, and route caches after load
 and does not retain sequential RNG state.
 
-Each tick has explicit command-admission, local-view preparation,
-frozen local evaluation, deterministic local resolution, strategic, and
-publication phases. Low-altitude verbs, relationship maintenance, effects,
-culture decay, and minor actors observe the frozen active set and contribute
+Command admission and local-view preparation open a bounded local-tick window.
+Long-lived workers then advance fixed logical owners independently, draining
 typed movement, attribute, culture, relationship, tag, cell, and lifecycle
-deltas. Destination-owned reduction makes their result independent of
-evaluation order and logical shard count. Gambits, generators, chronicles,
-world beats, culture slots, knowledge, and map frontier remain strategic
-programs on the same tick scheduler. Gambits and generators evaluate through
-program-scoped frozen intent epochs: gambit actors and generator definitions
-can be evaluated by the fixed worker set, and their entity, relationship, cell,
-travel-structure, and event outputs resolve through typed destination owners.
-The coordinator reserves structural IDs deterministically and reconciles
-cross-owner graph, spatial, active-index, and district structures. The other
-strategic programs remain coordinator-owned.
+inboxes before and after each owner tick. Low-altitude verbs, relationship
+maintenance, effects, culture decay, and minor actors therefore do not enter a
+global barrier between ordinary ticks. Frozen entity, relationship, and
+culture-row membership stays stable for the window, while destination-owned
+primitive values publish with owner watermarks and may be read with bounded
+lag.
+
+Commands admitted at the opening cut route to stable entity, cell, or program
+owners. Their gameplay mutations use the ordinary typed destination inboxes,
+and command completion is emitted only after the window reaches quiescence. A
+command submitted after admission waits for the next bounded window.
+
+Movement membership, coverage and culture reverse indexes, retirement, road
+reconciliation, and other structural projections belong to a structural owner
+inside the same message graph. Gambits, generators, chronicles, world beats,
+culture slots, knowledge, and map frontier run on stable program owners and
+emit typed destination messages. The bounded window cut publishes a complete
+consumer view, refreshes frozen membership, and reclaims retired slots; it does
+not replay programs.
 
 ## Runtime Altitudes
 
@@ -310,6 +319,12 @@ run logs, UI state, Monte Carlo telemetry, and parquet exports are consumers of
 that event stream. The kernel is not allowed to call UI, file I/O, console I/O,
 or string-heavy observability directly.
 
+`WatermarkAdvanced` is the consumer progress boundary. UI and telemetry may
+already have received owner-local mutations for later ticks, but displayed time
+and state capture advance only when the reconciled low watermark arrives.
+`TickCompleted` is retained temporarily for event compatibility and is not a
+frame clock.
+
 Culture power is measured on three asymmetric ledgers (Witness, Shadow,
 Wake) computed host-side from world state. Balance is kept by theme-emergent
 mechanisms — parasitic cross-cultural generators, devotion and predation
@@ -331,6 +346,9 @@ combined bonuses; it does not infer effects from telemetry counts.
 Monte Carlo analysis should be performed against parquet output with SQL,
 DuckDB, or Python. The stable simulation-quality metrics are described in
 [simulation-principles.md](./systems/simulation-principles.md).
+Kernel runs advance directly to the next requested snapshot, progress, stream,
+checkpoint, or final boundary, then capture only after convergence; telemetry
+cadence must not reinstall a barrier on every authored tick.
 
 ## Presentation
 

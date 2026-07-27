@@ -1,21 +1,25 @@
 # System 5: Tick Clock
 
-The tick clock is the deterministic heartbeat of the simulation. All world
-mutation happens inside `Simulation.AdvanceTicks`.
+The tick clock is the authored heartbeat of the simulation. All world mutation
+happens inside `Simulation.AdvanceTicks`.
 
 ## Core Rules
 
-There is one simulation clock. Systems do not own separate clocks; they register
-a cadence and run when the current tick matches that cadence.
+There is one gameplay clock. Ticks do not contain pulses, subticks, or
+worker-specific time scales. Systems register a cadence and receive one
+opportunity when an owning partition reaches an eligible local tick.
 
-Within a tick, program order is strict. Earlier same-tick writes are visible to
-later programs. Direct locality queries read current bounded world state and
-are not separate scheduled phases.
+Logical owners may be at different ticks inside the configured lead window.
+Local authoritative writes are exact. Cross-owner writes travel as bounded
+typed messages and may become visible before or after the receiver's next local
+evaluation. Registration order and same-tick cross-program visibility are not
+gameplay contracts.
 
 Speed control changes how quickly ticks are requested by the host or driver. It
-does not change the deterministic tick sequence.
+does not change authored durations or cadences. Physical worker count changes
+owner assignment, not logical ownership.
 
-## Current Program Order
+## Current Program Set
 
 ```text
 Movement
@@ -33,27 +37,24 @@ Knowledge
 MinorActors
 ```
 
-Important dependency notes:
+Important ownership notes:
 
-- `Movement` owns route execution and road/travel-surface state.
-- `LowAltitudeVerbs` reads direct current locality and culture-locality facts at
-  each candidate it evaluates.
-- `CultureFieldDecay` changes durable culture mass on its slower cadence.
-- `Relationships` can use same-tick position, culture influence, contact
-  memory, and relationship maintenance config.
-- `Effects` reads direct current locality and relationship/culture evidence,
-  combines all attribute deltas with district healing and lifecycle drain, then
-  moves dead entities to historical status.
-- `Gambits` and `Generators` see the low-altitude state created before them in
-  the same tick.
-- `MinorActors` stores unnamed individual workers and advances once at the end
-  of every tick.
+- entity owners hold position, attributes, tags, lifecycle state, and
+  entity-keyed program rows;
+- relationship owners hold edge facts, strength, and relationship-keyed program
+  rows;
+- cell owners hold terrain, coverage values, culture mass, and road work;
+- structural indexes are projections maintained by their structural owner;
+- gambits, generators, chronicles, world beats, map frontier, culture slots,
+  knowledge, and minor actors run on stable program owners; and
+- program owners read published remote values and emit ordinary typed owner
+  messages rather than relying on registration order.
 
 ## Cadence
 
 Every registered program has a cadence in ticks. A program with cadence `1`
-runs every tick. A program with cadence `5` keeps its registration order but
-only runs on eligible ticks.
+runs on every local tick. A program with cadence `5` runs when its owning
+partition reaches a tick divisible by five.
 
 Cadence is a performance and pacing tool, not a separate simulation phase.
 

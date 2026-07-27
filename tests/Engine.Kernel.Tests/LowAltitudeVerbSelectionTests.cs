@@ -47,7 +47,10 @@ public sealed class LowAltitudeVerbSelectionTests
         RegisterEntityKindVerb(simulation, verbId: 201, targetKindId: TargetKindId, weight: FixedScalar.FromSingle(1f));
 
         simulation.AdvanceTicks(1);
-        Assert.Equal(targetEntityId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        Assert.Equal(
+            simulation.World.EntityOccurrenceHandle(targetEntityId),
+            simulation.LowAltitudeVerbs.State.TargetEntityOccurrenceHandle(
+                actorId));
         simulation.AdvanceTicks(40);
 
         var firstSlotKey = simulation.LowAltitudeVerbs.State.RecentTargetKey(actorId, 0);
@@ -116,7 +119,10 @@ public sealed class LowAltitudeVerbSelectionTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(freshTargetId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        Assert.Equal(
+            simulation.World.EntityOccurrenceHandle(freshTargetId),
+            simulation.LowAltitudeVerbs.State.TargetEntityOccurrenceHandle(
+                actorId));
     }
 
     [Fact]
@@ -150,7 +156,10 @@ public sealed class LowAltitudeVerbSelectionTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(hotTargetId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        Assert.Equal(
+            simulation.World.EntityOccurrenceHandle(hotTargetId),
+            simulation.LowAltitudeVerbs.State.TargetEntityOccurrenceHandle(
+                actorId));
     }
 
     [Fact]
@@ -205,7 +214,10 @@ public sealed class LowAltitudeVerbSelectionTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(hotEntityId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        Assert.Equal(
+            simulation.World.EntityOccurrenceHandle(hotEntityId),
+            simulation.LowAltitudeVerbs.State.TargetEntityOccurrenceHandle(
+                actorId));
     }
 
     [Fact]
@@ -236,7 +248,10 @@ public sealed class LowAltitudeVerbSelectionTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(lowStrengthTargetId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        Assert.Equal(
+            simulation.World.EntityOccurrenceHandle(lowStrengthTargetId),
+            simulation.LowAltitudeVerbs.State.TargetEntityOccurrenceHandle(
+                actorId));
     }
 
     [Fact]
@@ -265,7 +280,10 @@ public sealed class LowAltitudeVerbSelectionTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(highStrengthTargetId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        Assert.Equal(
+            simulation.World.EntityOccurrenceHandle(highStrengthTargetId),
+            simulation.LowAltitudeVerbs.State.TargetEntityOccurrenceHandle(
+                actorId));
     }
 
     [Fact]
@@ -294,8 +312,14 @@ public sealed class LowAltitudeVerbSelectionTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(allyTargetId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
-        Assert.NotEqual(unrelatedTargetId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        Assert.Equal(
+            simulation.World.EntityOccurrenceHandle(allyTargetId),
+            simulation.LowAltitudeVerbs.State.TargetEntityOccurrenceHandle(
+                actorId));
+        Assert.NotEqual(
+            simulation.World.EntityOccurrenceHandle(unrelatedTargetId),
+            simulation.LowAltitudeVerbs.State.TargetEntityOccurrenceHandle(
+                actorId));
     }
 
     [Fact]
@@ -327,7 +351,10 @@ public sealed class LowAltitudeVerbSelectionTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(wildernessTargetId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        Assert.Equal(
+            simulation.World.EntityOccurrenceHandle(wildernessTargetId),
+            simulation.LowAltitudeVerbs.State.TargetEntityOccurrenceHandle(
+                actorId));
     }
 
     [Fact]
@@ -382,7 +409,10 @@ public sealed class LowAltitudeVerbSelectionTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(hotTargetId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        Assert.Equal(
+            simulation.World.EntityOccurrenceHandle(hotTargetId),
+            simulation.LowAltitudeVerbs.State.TargetEntityOccurrenceHandle(
+                actorId));
     }
 
     [Fact]
@@ -408,9 +438,17 @@ public sealed class LowAltitudeVerbSelectionTests
 
             simulation.AdvanceTicks(1);
 
-            var selectedTargetId = simulation.LowAltitudeVerbs.State.TargetEntityId(actorId);
-            nearPicks += selectedTargetId == nearTargetId ? 1 : 0;
-            farPicks += selectedTargetId == farTargetId ? 1 : 0;
+            var selectedTargetOccurrenceHandle =
+                simulation.LowAltitudeVerbs.State
+                    .TargetEntityOccurrenceHandle(actorId);
+            nearPicks += selectedTargetOccurrenceHandle ==
+                simulation.World.EntityOccurrenceHandle(nearTargetId)
+                ? 1
+                : 0;
+            farPicks += selectedTargetOccurrenceHandle ==
+                simulation.World.EntityOccurrenceHandle(farTargetId)
+                ? 1
+                : 0;
         }
 
         Assert.True(nearPicks > farPicks, $"near={nearPicks}, far={farPicks}");
@@ -626,7 +664,10 @@ public sealed class LowAltitudeVerbSelectionTests
         simulation.AdvanceTicks(1);
 
         _ = influencerId;
-        Assert.Equal(0, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        Assert.Equal(
+            0,
+            simulation.LowAltitudeVerbs.State.TargetEntityOccurrenceHandle(
+                actorId));
         Assert.Equal((3, 0), (simulation.LowAltitudeVerbs.State.TargetQ(actorId), simulation.LowAltitudeVerbs.State.TargetR(actorId)));
     }
 

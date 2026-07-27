@@ -2,150 +2,80 @@ namespace Engine.Kernel;
 
 using Engine.Eventing;
 
+/// <summary>
+/// Publishes one append-only event segment per logical owner. The hot path
+/// never takes a global event-log lock or sorts events across owners.
+/// </summary>
 internal sealed class KernelEventPublisher : IKernelEventWriter
 {
     private readonly KernelEventLog _log;
-    private readonly DeltaAppendArena<BufferedKernelEvent> _arena;
-    private readonly BufferedKernelEvent[] _buffer;
+    private readonly OwnerInboxArena<KernelEvent> _ownerSegments;
     private readonly bool _singleWorker;
-    private int _phaseCode;
-    private bool _buffering;
+    private bool _continuous;
 
-    public KernelEventPublisher(KernelEventLog log, int capacity, int workerCount)
+    public KernelEventPublisher(
+        KernelEventLog log,
+        int capacity,
+        int workerCount,
+        int ownerCount)
     {
         _log = log;
-        _arena = new DeltaAppendArena<BufferedKernelEvent>(capacity, workerCount);
-        _buffer = _arena.Values;
+        _ownerSegments = new OwnerInboxArena<KernelEvent>(
+            capacity,
+            workerCount,
+            ownerCount);
         _singleWorker = workerCount == 1;
     }
 
-    public int BufferedCount => _arena.Count;
-
-    public void BeginPhase(int phaseCode)
+    internal void BeginContinuous()
     {
-        if (_buffering)
+        if (_continuous)
         {
             throw new global::System.InvalidOperationException();
         }
 
-        _phaseCode = phaseCode;
-        _arena.Clear();
-        _buffering = true;
+        _ownerSegments.Clear();
+        global::System.Threading.Volatile.Write(ref _continuous, true);
     }
 
-    public void PublishPhase()
+    internal void EndContinuous()
     {
-        if (!_buffering)
+        if (!_continuous)
         {
             throw new global::System.InvalidOperationException();
         }
 
-        var count = _arena.Compact();
-        DeterministicSort.Sort(_buffer, count);
-        for (var i = 0; i < count; i++)
+        var count = _ownerSegments.Seal();
+        var values = _ownerSegments.Values;
+        for (var index = 0; index < count; index++)
         {
-            if (!_log.TryWrite(_buffer[i].Event))
+            if (!_log.TryWrite(values[index]))
             {
                 throw new global::System.InvalidOperationException();
             }
         }
 
-        _arena.Clear();
-        _buffering = false;
+        _ownerSegments.Clear();
+        global::System.Threading.Volatile.Write(ref _continuous, false);
     }
 
     public bool TryWrite(in KernelEvent kernelEvent)
     {
-        if (!_buffering)
+        if (!global::System.Threading.Volatile.Read(ref _continuous))
         {
             return _log.TryWrite(kernelEvent);
         }
 
-        var workerIndex = _singleWorker ? 0 : KernelWorkerThread.WorkerIndex;
-        _arena.Add(workerIndex, new BufferedKernelEvent(_phaseCode, kernelEvent));
+        var ownerIndex = KernelWorkerThread.OwnerIndex;
+        if (ownerIndex < 0)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _ownerSegments.Add(
+            _singleWorker ? 0 : KernelWorkerThread.WorkerIndex,
+            ownerIndex,
+            kernelEvent);
         return true;
-    }
-
-    private readonly record struct BufferedKernelEvent(int PhaseCode, KernelEvent Event)
-        : IDeterministicOrder<BufferedKernelEvent>
-    {
-        public int CompareTo(BufferedKernelEvent other)
-        {
-            var comparison = CompareHeader(other);
-            if (comparison != 0)
-            {
-                return comparison;
-            }
-
-            comparison = CompareIntSlots(other);
-            if (comparison != 0)
-            {
-                return comparison;
-            }
-
-            comparison = CompareLongSlots(other);
-            if (comparison != 0)
-            {
-                return comparison;
-            }
-
-            comparison = Event.Tick.CompareTo(other.Event.Tick);
-            return comparison != 0
-                ? comparison
-                : Event.WorldVersion.CompareTo(other.Event.WorldVersion);
-        }
-
-        private int CompareHeader(BufferedKernelEvent other)
-        {
-            var comparison = PhaseCode.CompareTo(other.PhaseCode);
-            if (comparison != 0)
-            {
-                return comparison;
-            }
-
-            comparison = Event.EventType.CompareTo(other.Event.EventType);
-            if (comparison != 0)
-            {
-                return comparison;
-            }
-
-            comparison = Event.ProgramId.CompareTo(other.Event.ProgramId);
-            if (comparison != 0)
-            {
-                return comparison;
-            }
-
-            comparison = Event.SourceCodeId.CompareTo(other.Event.SourceCodeId);
-            return comparison != 0
-                ? comparison
-                : Event.ProvenanceInvocationId.CompareTo(other.Event.ProvenanceInvocationId);
-        }
-
-        private int CompareIntSlots(BufferedKernelEvent other)
-        {
-            for (var slot = 0; slot < KernelEvent.IntSlotCount; slot++)
-            {
-                var comparison = Event.GetIntSlot(slot).CompareTo(other.Event.GetIntSlot(slot));
-                if (comparison != 0)
-                {
-                    return comparison;
-                }
-            }
-
-            return 0;
-        }
-
-        private int CompareLongSlots(BufferedKernelEvent other)
-        {
-            for (var slot = 0; slot < KernelEvent.LongSlotCount; slot++)
-            {
-                var comparison = Event.GetLongSlot(slot).CompareTo(other.Event.GetLongSlot(slot));
-                if (comparison != 0)
-                {
-                    return comparison;
-                }
-            }
-            return 0;
-        }
     }
 }

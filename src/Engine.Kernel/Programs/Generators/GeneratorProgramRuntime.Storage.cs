@@ -70,12 +70,12 @@ internal sealed partial class GeneratorProgramRuntime
     private int[] _relationshipCounts => Data.RelationshipCounts;
     private int[] _effectStarts => Data.EffectStarts;
     private int[] _effectCounts => Data.EffectCounts;
-    private int[] _fireStatusCodes => SharedScratch.FireStatusCodes;
-    private int[] _fireCandidateCounts => SharedScratch.FireCandidateCounts;
-    private int[] _fireSelectionWeights => SharedScratch.FireSelectionWeights;
+    private int[] _fireStatusCodes => _scratch.FireStatusCodes;
+    private int[] _fireCandidateCounts => _scratch.FireCandidateCounts;
+    private int[] _fireSelectionWeights => _scratch.FireSelectionWeights;
     private int[] _fireSelectedTargetOccurrenceHandles =>
-        SharedScratch.FireSelectedTargetOccurrenceHandles;
-    private int[] _fireFailedCounts => SharedScratch.FireFailedCounts;
+        _scratch.FireSelectedTargetOccurrenceHandles;
+    private int[] _fireFailedCounts => _scratch.FireFailedCounts;
     private int[] _subtypeIds => Data.SubtypeIds;
     private int[] _relationshipKindFilterIds => Data.RelationshipKindFilterIds;
     private FixedScalar[] _relationshipKindFilterMinimumStrengths => Data.RelationshipKindFilterMinimumStrengths;

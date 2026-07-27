@@ -62,14 +62,18 @@ public sealed partial class KernelHost
                 continue;
             }
 
-            influences.Add(ToHexCultureInfluence(locality, CurrentTick, CurrentVersion));
+            influences.Add(
+                ToHexCultureInfluence(
+                    locality,
+                    PublishedLowWatermark,
+                    CurrentVersion));
         }
 
         map.SetCultureInfluencesFromLocality(
             planeCode,
             new HexCoord(q, r),
             influences,
-            CurrentTick,
+            PublishedLowWatermark,
             CurrentVersion);
     }
 

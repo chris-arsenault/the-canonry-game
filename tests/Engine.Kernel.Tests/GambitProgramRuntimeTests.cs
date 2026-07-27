@@ -62,9 +62,15 @@ public sealed class GambitProgramRuntimeTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(FixedScalar.FromSingle(10f), simulation.World.GetAttribute(entityId, attributeId));
+        // Program controls publish at a window boundary. Owner ranges that
+        // already captured this window may perform one final attempt.
+        Assert.Equal(FixedScalar.FromSingle(30f), simulation.World.GetAttribute(entityId, attributeId));
         Assert.True(simulation.Gambits.TryGetGambitEnabledById(100, out var enabled));
         Assert.False(enabled);
+
+        simulation.AdvanceTicks(1);
+
+        Assert.Equal(FixedScalar.FromSingle(30f), simulation.World.GetAttribute(entityId, attributeId));
     }
 
     [Fact]

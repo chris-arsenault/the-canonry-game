@@ -3,12 +3,16 @@ namespace Engine.Kernel;
 internal static class KernelSnapshot
 {
     private const int FormatCode = 1263747121;
-    private const int FormatVersion = 55;
+    private const int FormatVersion = 56;
 
     public static void SaveKernelState(Simulation simulation, global::System.IO.Stream destination)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         global::System.ArgumentNullException.ThrowIfNull(destination);
+        if (!simulation.IsConvergedForSnapshot)
+        {
+            throw new global::System.InvalidOperationException();
+        }
         using var writer = new global::System.IO.BinaryWriter(
             destination,
             global::System.Text.Encoding.UTF8,
@@ -58,7 +62,6 @@ internal static class KernelSnapshotOptions
         WriteRuntimeCodes(writer, options.RuntimeCodes);
         WriteKernelTuning(writer, options.KernelTuning);
         writer.Write(options.Execution.ReverseEvaluationOrder);
-        writer.Write(options.Execution.ReverseDeltaInsertionOrder);
         writer.Write(options.Seed);
         writer.Write(eventCount);
     }
@@ -223,7 +226,6 @@ internal static class KernelSnapshotOptions
         ReadRuntimeCodeValues(reader, ref values);
         ReadKernelTuningValues(reader, ref values);
         values.ReverseEvaluationOrder = reader.ReadBoolean();
-        values.ReverseDeltaInsertionOrder = reader.ReadBoolean();
         values.Seed = reader.ReadInt32();
         return values;
     }
@@ -407,8 +409,12 @@ internal static class KernelSnapshotOptions
             {
                 WorkerCount = options?.Execution.WorkerCount ?? 1,
                 ReverseEvaluationOrder = values.ReverseEvaluationOrder,
-                ReverseDeltaInsertionOrder = values.ReverseDeltaInsertionOrder,
-                LogicalShardCount = options?.Execution.LogicalShardCount ?? 1,
+                OwnerPartitionCount =
+                    options?.Execution.OwnerPartitionCount ??
+                    KernelOwnerTopology.DefaultPartitionCount,
+                OwnerLeadTicks =
+                    options?.Execution.OwnerLeadTicks ??
+                    KernelExecutionOptions.DefaultOwnerLeadTicks,
             },
             Seed = values.Seed,
         };
@@ -601,7 +607,6 @@ internal static class KernelSnapshotOptions
         public FixedScalar CultureFieldRemittanceShare;
         public int CultureFieldRemittanceMinimumDistance;
         public bool ReverseEvaluationOrder;
-        public bool ReverseDeltaInsertionOrder;
         public int Seed;
     }
 }

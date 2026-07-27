@@ -10,6 +10,12 @@ Phase 10 removed the differential minor-actor cadence and replaced emitted
 short-lived workers with persistent discrete task cohorts before parallel
 execution begins.
 
+The deterministic bulk-synchronous implementation is preserved at
+`pre-async-deterministic-kernel-20260727`. Its scheduler decision is superseded
+by the active
+`docs/kernel/bounded-asynchronous-kernel-plan.md`; the completed reduction and
+storage findings in this document remain the basis for that work.
+
 Phase 1 code basis: `main` at `7344037` on 2026-07-24.
 
 Durable plan: `7a9bf1a1-5633-4ee9-884b-411fc7db7758`.

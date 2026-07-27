@@ -118,8 +118,10 @@ public sealed class UiChronicleProjection : KernelEventProjector
     /// <summary>Latest completed tick; lets consumers decay displayed heat honestly.</summary>
     public int CurrentTick { get; private set; }
 
-    protected override void OnTickCompleted(long sequence, in TickCompletedKernelEvent evt) =>
-        CurrentTick = evt.Tick;
+    protected override void OnWatermarkAdvanced(
+        long sequence,
+        in WatermarkAdvancedKernelEvent evt) =>
+        CurrentTick = evt.LowWatermark;
 
     protected override void OnEntityCreated(long sequence, in EntityCreatedKernelEvent evt)
     {

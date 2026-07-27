@@ -25,7 +25,7 @@ internal sealed partial class LowAltitudeVerbProgramState : IActiveKernelProgram
             writer.Write(_activeVerbSlots[entityId]);
             writer.Write(_intentIds[entityId]);
             writer.Write(_targetPlaneCodes[entityId]);
-            writer.Write(_targetEntityIds[entityId]);
+            writer.Write(_targetEntityOccurrenceHandles[entityId]);
             writer.Write(_targetQ[entityId]);
             writer.Write(_targetR[entityId]);
             writer.Write(_targetS[entityId]);
@@ -70,7 +70,8 @@ internal sealed partial class LowAltitudeVerbProgramState : IActiveKernelProgram
             _activeVerbSlots[entityId] = reader.ReadInt32();
             _intentIds[entityId] = reader.ReadInt32();
             _targetPlaneCodes[entityId] = reader.ReadInt32();
-            _targetEntityIds[entityId] = reader.ReadInt32();
+            _targetEntityOccurrenceHandles[entityId] =
+                reader.ReadInt32();
             _targetQ[entityId] = reader.ReadInt32();
             _targetR[entityId] = reader.ReadInt32();
             _targetS[entityId] = reader.ReadInt32();
@@ -135,7 +136,7 @@ internal sealed partial class LowAltitudeVerbProgramState : IActiveKernelProgram
     {
         return _intentIds[entityId] != 0 ||
             _targetPlaneCodes[entityId] != 0 ||
-            _targetEntityIds[entityId] != 0 ||
+            _targetEntityOccurrenceHandles[entityId] != 0 ||
             _startedTicks[entityId] != 0 ||
             _expiresTicks[entityId] != 0;
     }

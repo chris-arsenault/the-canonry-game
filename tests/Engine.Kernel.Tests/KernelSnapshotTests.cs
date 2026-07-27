@@ -110,7 +110,8 @@ public sealed class KernelSnapshotTests
         var simulation = CreateSimulation(new KernelExecutionOptions
         {
             WorkerCount = 7,
-            LogicalShardCount = 5,
+            OwnerPartitionCount = 5,
+            OwnerLeadTicks = 11,
         });
         using var stream = new MemoryStream();
         KernelSnapshot.SaveKernelState(simulation, stream);
@@ -119,7 +120,12 @@ public sealed class KernelSnapshotTests
         var defaultTopology = KernelSnapshot.LoadKernelState(stream);
 
         Assert.Equal(1, defaultTopology.Options.Execution.WorkerCount);
-        Assert.Equal(1, defaultTopology.Options.Execution.LogicalShardCount);
+        Assert.Equal(
+            KernelOwnerTopology.DefaultPartitionCount,
+            defaultTopology.Options.Execution.OwnerPartitionCount);
+        Assert.Equal(
+            KernelExecutionOptions.DefaultOwnerLeadTicks,
+            defaultTopology.Options.Execution.OwnerLeadTicks);
 
         stream.Position = 0;
         var requestedTopology = KernelSnapshot.LoadKernelState(
@@ -129,12 +135,50 @@ public sealed class KernelSnapshotTests
                 Execution = new KernelExecutionOptions
                 {
                     WorkerCount = 3,
-                    LogicalShardCount = 2,
+                    OwnerPartitionCount = 2,
+                    OwnerLeadTicks = 4,
                 },
             });
 
         Assert.Equal(3, requestedTopology.Options.Execution.WorkerCount);
-        Assert.Equal(2, requestedTopology.Options.Execution.LogicalShardCount);
+        Assert.Equal(2, requestedTopology.Options.Execution.OwnerPartitionCount);
+        Assert.Equal(4, requestedTopology.Options.Execution.OwnerLeadTicks);
+    }
+
+    [Fact]
+    public void SnapshotPreservesCommandsWaitingForOwnerAdmission()
+    {
+        var simulation = CreateSimulation(eventCapacity: 64);
+        var command = KernelCommand.From(
+            new NoOpKernelCommand(
+                IssueVersion: (int)simulation.CurrentVersion));
+        Assert.True(
+            simulation.Commands.TryEnqueue(
+                command,
+                out var commandId));
+
+        using var stream = new MemoryStream();
+        KernelSnapshot.SaveKernelState(simulation, stream);
+        stream.Position = 0;
+        var loaded = KernelSnapshot.LoadKernelState(stream);
+
+        Assert.Equal(1, loaded.Commands.Count);
+        Assert.Equal(1, loaded.ConvergeAt(1));
+        Assert.Equal(0, loaded.Commands.Count);
+
+        using var cursor = loaded.Events.CreateCursor(
+            KernelEventCursorStart.EarliestAvailable);
+        CommandAppliedKernelEvent? applied = null;
+        while (loaded.Events.TryRead(cursor, out var sequenced))
+        {
+            if (sequenced.Event.EventType ==
+                KernelEventType.CommandApplied)
+            {
+                applied = sequenced.Event.AsCommandApplied();
+            }
+        }
+
+        Assert.Equal(commandId, Assert.NotNull(applied).CommandId);
     }
 
     private static void SeedSnapshotMap(Simulation simulation)
@@ -188,14 +232,16 @@ public sealed class KernelSnapshotTests
             replaceExistingOutgoing: 0);
     }
 
-    private static Simulation CreateSimulation(KernelExecutionOptions? execution = null) =>
+    private static Simulation CreateSimulation(
+        KernelExecutionOptions? execution = null,
+        int eventCapacity = 8) =>
         new(new SimulationOptions
         {
             EntityCapacity = 16,
             RelationshipCapacity = 16,
             AttributeCapacity = 64,
             MapCellCapacity = 32,
-            EventCapacity = 8,
+            EventCapacity = eventCapacity,
             EventCursorCapacity = 8,
             CommandCapacity = 16,
             GambitCapacity = 4,

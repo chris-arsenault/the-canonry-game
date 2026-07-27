@@ -227,7 +227,10 @@ public sealed partial class LowAltitudePhysicsProgramTests
 
         simulation.AdvanceTicks(1);
 
-        Assert.Equal(relatedTargetId, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        Assert.Equal(
+            simulation.World.EntityOccurrenceHandle(relatedTargetId),
+            simulation.LowAltitudeVerbs.State.TargetEntityOccurrenceHandle(
+                actorId));
     }
 
     [Fact]
@@ -262,7 +265,10 @@ public sealed partial class LowAltitudePhysicsProgramTests
         simulation.AdvanceTicks(1);
 
         _ = unrelatedInfluencerId;
-        Assert.Equal(0, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        Assert.Equal(
+            0,
+            simulation.LowAltitudeVerbs.State.TargetEntityOccurrenceHandle(
+                actorId));
         AssertSelectedForeignCultureCellReduced(
             simulation,
             actorId,
@@ -352,7 +358,10 @@ public sealed partial class LowAltitudePhysicsProgramTests
 
         _ = alliedInfluencerId;
         _ = overextendedInfluencerId;
-        Assert.Equal(0, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        Assert.Equal(
+            0,
+            simulation.LowAltitudeVerbs.State.TargetEntityOccurrenceHandle(
+                actorId));
         AssertSelectedForeignCultureCellReduced(
             simulation,
             actorId,
@@ -401,7 +410,10 @@ public sealed partial class LowAltitudePhysicsProgramTests
 
         _ = mixedInfluencerId;
         _ = overextendedInfluencerId;
-        Assert.Equal(0, simulation.LowAltitudeVerbs.State.TargetEntityId(actorId));
+        Assert.Equal(
+            0,
+            simulation.LowAltitudeVerbs.State.TargetEntityOccurrenceHandle(
+                actorId));
         AssertSelectedForeignCultureCellReduced(
             simulation,
             actorId,
@@ -536,7 +548,7 @@ public sealed partial class LowAltitudePhysicsProgramTests
             influenceRadius: 0,
             planeCode: PlaneCodes.Semantic);
 
-        simulation.AdvanceTicks(2);
+        simulation.AdvanceTicks(3);
 
         var targetQ = simulation.LowAltitudeVerbs.State.TargetQ(entityId);
         var targetR = simulation.LowAltitudeVerbs.State.TargetR(entityId);
@@ -674,12 +686,16 @@ public sealed partial class LowAltitudePhysicsProgramTests
             influenceRadius: 1,
             coverageGrowthChance: FixedScalar.FromSingle(1f),
             requiredInfluence: FixedScalar.FromSingle(50f));
-
-        simulation.AdvanceTicks(3);
+        // The initial culture row publishes at the first owner cut. The
+        // entity can then add influence and claim on consecutive local ticks.
+        simulation.AdvanceTicks(
+            simulation.Options.Execution.OwnerLeadTicks + 2);
 
         var targetQ = simulation.LowAltitudeVerbs.State.TargetQ(settlementId);
         var targetR = simulation.LowAltitudeVerbs.State.TargetR(settlementId);
-        Assert.Equal(settlementId, simulation.World.CoverageOwnerAt(targetQ, targetR));
+        Assert.Equal(
+            settlementId,
+            simulation.World.CoverageOwnerAt(targetQ, targetR));
     }
 
     [Fact]

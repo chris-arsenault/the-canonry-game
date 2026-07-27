@@ -202,6 +202,9 @@ internal sealed class MapFixedScalarEntityLayer
         return row == 0 ? 0 : _values[row];
     }
 
+    internal bool HasRow(int cultureId, int cellId) =>
+        _rowByCultureCell[CultureCellIndex(cultureId, cellId)] != 0;
+
     internal void SetValue(int cultureId, int cellId, int value)
     {
         var directIndex = CultureCellIndex(cultureId, cellId);

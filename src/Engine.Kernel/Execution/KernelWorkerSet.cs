@@ -1,13 +1,15 @@
 namespace Engine.Kernel;
 
-internal interface IKernelOwnerWork
+internal interface IKernelContinuousOwnerWork
 {
-    void ExecuteOwner(Simulation simulation, int ownerIndex, int ownerCount);
-}
+    bool ExecuteOwner(Simulation simulation, int ownerIndex);
 
-internal interface IKernelWorkerWork
-{
-    void ExecuteWorker(Simulation simulation, int workerIndex, int workerCount);
+    bool WindowQuiescent(Simulation simulation);
+
+    bool HasRunnableWork(
+        Simulation simulation,
+        int firstOwner,
+        int ownerLimit);
 }
 
 internal sealed class KernelWorkerSet
@@ -15,6 +17,7 @@ internal sealed class KernelWorkerSet
     private readonly KernelWorker[] _workers;
     private readonly object _completionGate = new();
     private int _remaining;
+    private int _continuousStop;
     private bool _started;
     private bool _shutdown;
 
@@ -34,169 +37,96 @@ internal sealed class KernelWorkerSet
 
     internal int WorkerCount => _workers.Length;
 
-    internal void Execute(
+    internal void ExecuteContinuousOwners(
         Simulation simulation,
-        ILocalEvaluationRangeProgram program,
-        FrozenTickView frozenTick,
-        int tick,
-        bool reverse,
-        in KernelExecutionContext context)
-    {
-        global::System.ArgumentNullException.ThrowIfNull(simulation);
-        global::System.ArgumentNullException.ThrowIfNull(program);
-        global::System.ArgumentNullException.ThrowIfNull(frozenTick);
-        global::System.ObjectDisposedException.ThrowIf(_shutdown, this);
-
-        var totalCount = frozenTick.CountFor(program.RangeKindCode);
-        if (totalCount == 0)
-        {
-            program.CompleteRanges(simulation, tick);
-            return;
-        }
-
-        if (WorkerCount == 1)
-        {
-            program.EvaluateRange(
-                simulation,
-                tick,
-                frozenTick.Range(
-                    program.RangeKindCode,
-                    start: 0,
-                    totalCount,
-                    reverse));
-            program.CompleteRanges(simulation, tick);
-            return;
-        }
-
-        var activeWorkerCount = program.SupportsConcurrentRanges(simulation)
-            ? global::System.Math.Min(WorkerCount, totalCount)
-            : 1;
-        EnsureStarted(activeWorkerCount);
-        ConfigureWorkers(
-            simulation,
-            program,
-            frozenTick,
-            tick,
-            reverse,
-            context,
-            totalCount,
-            activeWorkerCount);
-        ExecuteWorkers(activeWorkerCount);
-        program.CompleteRanges(simulation, tick);
-    }
-
-    internal void ExecuteOwners(
-        Simulation simulation,
-        IKernelOwnerWork work,
-        int workItemCount,
+        IKernelContinuousOwnerWork work,
+        int logicalOwnerCount,
         in KernelExecutionContext context)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
         global::System.ArgumentNullException.ThrowIfNull(work);
         global::System.ObjectDisposedException.ThrowIf(_shutdown, this);
-        if (workItemCount <= 0)
-        {
-            return;
-        }
+        NumericGuard.ThrowIfNegativeOrZero(logicalOwnerCount);
 
         var activeWorkerCount = global::System.Math.Min(
             WorkerCount,
-            workItemCount);
+            logicalOwnerCount);
         if (activeWorkerCount == 1)
         {
-            work.ExecuteOwner(simulation, ownerIndex: 0, ownerCount: 1);
+            global::System.Threading.Volatile.Write(
+                ref _continuousStop,
+                0);
+            _workers[0].ConfigureContinuousOwners(
+                simulation,
+                work,
+                firstOwner: 0,
+                ownerLimit: logicalOwnerCount,
+                context);
+            try
+            {
+                _workers[0].ExecuteConfigured();
+            }
+            finally
+            {
+                _workers[0].ReleaseConfigured();
+            }
+
             return;
         }
 
         EnsureStarted(activeWorkerCount);
-        global::System.Threading.Volatile.Write(
-            ref _remaining,
-            activeWorkerCount - 1);
-        for (var workerIndex = 0; workerIndex < activeWorkerCount; workerIndex++)
+        while (true)
         {
-            _workers[workerIndex].ConfigureOwner(
+            global::System.Threading.Volatile.Write(
+                ref _continuousStop,
+                0);
+            global::System.Threading.Volatile.Write(
+                ref _remaining,
+                activeWorkerCount - 1);
+            ConfigureContinuousWorkers(
                 simulation,
                 work,
-                workerIndex,
+                logicalOwnerCount,
                 activeWorkerCount,
                 context);
+            ExecuteWorkers(activeWorkerCount);
+            if (work.WindowQuiescent(simulation))
+            {
+                return;
+            }
         }
-
-        ExecuteWorkers(activeWorkerCount);
     }
 
-    internal void ExecuteWorkerWork(
+    private void ConfigureContinuousWorkers(
         Simulation simulation,
-        IKernelWorkerWork work,
+        IKernelContinuousOwnerWork work,
+        int logicalOwnerCount,
         int activeWorkerCount,
         in KernelExecutionContext context)
     {
-        global::System.ArgumentNullException.ThrowIfNull(simulation);
-        global::System.ArgumentNullException.ThrowIfNull(work);
-        global::System.ObjectDisposedException.ThrowIf(_shutdown, this);
-        global::System.ArgumentOutOfRangeException.ThrowIfNegativeOrZero(
-            activeWorkerCount);
-        global::System.ArgumentOutOfRangeException.ThrowIfGreaterThan(
-            activeWorkerCount,
-            WorkerCount);
-
-        if (activeWorkerCount == 1)
-        {
-            work.ExecuteWorker(
-                simulation,
-                workerIndex: 0,
-                workerCount: 1);
-            return;
-        }
-
-        EnsureStarted(activeWorkerCount);
-        global::System.Threading.Volatile.Write(
-            ref _remaining,
-            activeWorkerCount - 1);
         for (var workerIndex = 0;
              workerIndex < activeWorkerCount;
              workerIndex++)
         {
-            _workers[workerIndex].ConfigureWorkerWork(
+            _workers[workerIndex].ConfigureContinuousOwners(
                 simulation,
                 work,
-                workerIndex,
-                activeWorkerCount,
+                (int)((long)logicalOwnerCount *
+                    workerIndex / activeWorkerCount),
+                (int)((long)logicalOwnerCount *
+                    (workerIndex + 1) / activeWorkerCount),
                 context);
         }
-
-        ExecuteWorkers(activeWorkerCount);
     }
 
-    private void ConfigureWorkers(
-        Simulation simulation,
-        ILocalEvaluationRangeProgram program,
-        FrozenTickView frozenTick,
-        int tick,
-        bool reverse,
-        in KernelExecutionContext context,
-        int totalCount,
-        int activeWorkerCount)
-    {
+    internal bool ContinuousStop =>
+        global::System.Threading.Volatile.Read(
+            ref _continuousStop) != 0;
+
+    internal void RequestContinuousStop() =>
         global::System.Threading.Volatile.Write(
-            ref _remaining,
-            activeWorkerCount - 1);
-        for (var workerIndex = 0; workerIndex < activeWorkerCount; workerIndex++)
-        {
-            var start = (int)((long)totalCount * workerIndex / activeWorkerCount);
-            var end = (int)((long)totalCount * (workerIndex + 1) / activeWorkerCount);
-            _workers[workerIndex].Configure(
-                simulation,
-                program,
-                frozenTick.Range(
-                    program.RangeKindCode,
-                    start,
-                    end - start,
-                    reverse),
-                tick,
-                context);
-        }
-    }
+            ref _continuousStop,
+            1);
 
     private void ExecuteWorkers(int activeWorkerCount)
     {
@@ -311,13 +241,9 @@ internal sealed class KernelWorker
     private readonly object _startGate = new();
     private readonly global::System.Threading.Thread? _thread;
     private Simulation? _simulation;
-    private ILocalEvaluationRangeProgram? _program;
-    private IKernelOwnerWork? _ownerWork;
-    private IKernelWorkerWork? _workerWork;
-    private FrozenTickRange _range;
+    private IKernelContinuousOwnerWork? _continuousOwnerWork;
     private int _ownerIndex;
-    private int _ownerCount;
-    private int _tick;
+    private int _ownerLimit;
     private global::System.Exception? _failure;
     private bool _hasWork;
     private bool _stop;
@@ -344,65 +270,30 @@ internal sealed class KernelWorker
 
     internal int ExecutionContextDepth { get; set; }
 
+    internal int OwnerIndex { get; set; } = -1;
+
+    internal int OwnerTick { get; set; }
+
+    internal bool IsContinuousOwnerEvaluation { get; set; }
+
     internal Simulation? Simulation => _simulation;
 
-    internal void Configure(
+    internal void ConfigureContinuousOwners(
         Simulation simulation,
-        ILocalEvaluationRangeProgram program,
-        in FrozenTickRange range,
-        int tick,
+        IKernelContinuousOwnerWork work,
+        int firstOwner,
+        int ownerLimit,
         in KernelExecutionContext context)
     {
         _simulation = simulation;
-        _program = program;
-        _ownerWork = null;
-        _workerWork = null;
-        _range = range;
-        _ownerIndex = 0;
-        _ownerCount = 0;
-        _tick = tick;
+        _continuousOwnerWork = work;
+        _ownerIndex = firstOwner;
+        _ownerLimit = ownerLimit;
         ExecutionContext = context;
         ExecutionContextDepth = 0;
-        _failure = null;
-    }
-
-    internal void ConfigureOwner(
-        Simulation simulation,
-        IKernelOwnerWork work,
-        int ownerIndex,
-        int ownerCount,
-        in KernelExecutionContext context)
-    {
-        _simulation = simulation;
-        _program = null;
-        _ownerWork = work;
-        _workerWork = null;
-        _range = default;
-        _ownerIndex = ownerIndex;
-        _ownerCount = ownerCount;
-        _tick = 0;
-        ExecutionContext = context;
-        ExecutionContextDepth = 0;
-        _failure = null;
-    }
-
-    internal void ConfigureWorkerWork(
-        Simulation simulation,
-        IKernelWorkerWork work,
-        int workerIndex,
-        int workerCount,
-        in KernelExecutionContext context)
-    {
-        _simulation = simulation;
-        _program = null;
-        _ownerWork = null;
-        _workerWork = work;
-        _range = default;
-        _ownerIndex = workerIndex;
-        _ownerCount = workerCount;
-        _tick = 0;
-        ExecutionContext = context;
-        ExecutionContextDepth = 0;
+        OwnerIndex = -1;
+        OwnerTick = 0;
+        IsContinuousOwnerEvaluation = false;
         _failure = null;
     }
 
@@ -424,20 +315,11 @@ internal sealed class KernelWorker
         var previousWorker = KernelWorkerThread.Enter(this);
         try
         {
-            if (_program is not null)
+            if (_continuousOwnerWork is not null)
             {
-                _program.EvaluateRange(simulation, _tick, _range);
-            }
-            else if (_ownerWork is not null)
-            {
-                _ownerWork.ExecuteOwner(simulation, _ownerIndex, _ownerCount);
-            }
-            else if (_workerWork is not null)
-            {
-                _workerWork.ExecuteWorker(
+                ExecuteContinuousOwners(
                     simulation,
-                    _ownerIndex,
-                    _ownerCount);
+                    _continuousOwnerWork);
             }
             else
             {
@@ -447,6 +329,69 @@ internal sealed class KernelWorker
         finally
         {
             KernelWorkerThread.Restore(previousWorker);
+        }
+    }
+
+    private void ExecuteContinuousOwners(
+        Simulation simulation,
+        IKernelContinuousOwnerWork work)
+    {
+        var spin = new global::System.Threading.SpinWait();
+        while (true)
+        {
+            if (_owner.ContinuousStop)
+            {
+                return;
+            }
+
+            if (work.WindowQuiescent(simulation))
+            {
+                _owner.RequestContinuousStop();
+                return;
+            }
+
+            var progressed = false;
+            for (var owner = _ownerIndex;
+                 owner < _ownerLimit;
+                 owner++)
+            {
+                progressed |= work.ExecuteOwner(
+                    simulation,
+                    owner);
+            }
+
+            if (progressed)
+            {
+                spin.Reset();
+            }
+            else
+            {
+                WaitForRunnableOwnerWork(
+                    simulation,
+                    work,
+                    ref spin);
+            }
+        }
+    }
+
+    private void WaitForRunnableOwnerWork(
+        Simulation simulation,
+        IKernelContinuousOwnerWork work,
+        ref global::System.Threading.SpinWait spin)
+    {
+        while (!work.WindowQuiescent(simulation) &&
+               !_owner.ContinuousStop &&
+               !work.HasRunnableWork(
+                   simulation,
+                   _ownerIndex,
+                   _ownerLimit))
+        {
+            spin.SpinOnce();
+        }
+
+        if (work.WindowQuiescent(simulation))
+        {
+            _owner.RequestContinuousStop();
         }
     }
 
@@ -465,15 +410,14 @@ internal sealed class KernelWorker
     internal void ReleaseConfigured()
     {
         _simulation = null;
-        _program = null;
-        _ownerWork = null;
-        _workerWork = null;
-        _range = default;
-        _tick = 0;
+        _continuousOwnerWork = null;
         _ownerIndex = 0;
-        _ownerCount = 0;
+        _ownerLimit = 0;
         ExecutionContext = default;
         ExecutionContextDepth = 0;
+        OwnerIndex = -1;
+        OwnerTick = 0;
+        IsContinuousOwnerEvaluation = false;
     }
 
     internal void Stop()
@@ -514,6 +458,7 @@ internal sealed class KernelWorker
             catch (global::System.Exception exception)
             {
                 _failure = exception;
+                _owner.RequestContinuousStop();
             }
 #pragma warning restore CA1031
             finally
@@ -532,6 +477,18 @@ internal static class KernelWorkerThread
     internal static KernelWorker? Current => _current;
 
     internal static int WorkerIndex => _current?.WorkerIndex ?? 0;
+
+    internal static int OwnerIndex => _current?.OwnerIndex ?? -1;
+
+    internal static int OwnerTick => _current?.OwnerTick ?? 0;
+
+    internal static void SetOwnerContext(int ownerIndex, int tick)
+    {
+        var worker = _current ??
+            throw new global::System.InvalidOperationException();
+        worker.OwnerIndex = ownerIndex;
+        worker.OwnerTick = tick;
+    }
 
     internal static KernelWorker? Enter(KernelWorker worker)
     {

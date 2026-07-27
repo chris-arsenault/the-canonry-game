@@ -34,13 +34,15 @@ Keeping a historical row or scanning a high-water range requires a current
 simulation query that cannot be expressed through the event/projection
 boundary; preserving legacy behavior or snapshot compatibility is not enough.
 
-## Numeric Determinism
+## Numeric Integrity
 
 Durable additive simulation state is field-specific fixed point. Contributions
 are quantized before they enter a shared reduction, merged with explicit
 overflow behavior, and clamped once at the owning field's semantic boundary.
-Changing work partitioning must not change the result of culture, relationship,
-attribute, road, or persistent-modifier reductions.
+An authoritative owner must apply each accepted contribution exactly once.
+Cross-owner arrival order may change an individual history; fixed point remains
+the range, overflow, persistence, and projection contract rather than a promise
+of global schedule-independent outcomes.
 
 The kernel boundary is a blanket ban on floating point. Local probabilities,
 candidate scores, heat, ratios, and path costs use `FixedScalar` even when they
@@ -50,21 +52,35 @@ the query/event boundary. Every runtime field still owns an explicit range,
 scale, rounding, intermediate-width, overflow, clamp, serialization, and
 projection contract.
 
-## Published Tick Contract
+## Published Progress Contract
 
-Ordinary local behavior evaluates against one frozen tick view and publishes
-only after deterministic destination-owned reduction. Local programs may not
-depend on another local evaluator's same-pass mutation. Additive contributions
-merge before clamping; movement and other competing writes use explicit
-priority plus stable logical source keys; relationship end and lifecycle
-retirement resolve after strength and health changes.
+Ticks remain the authored unit of time, but logical owners do not have to enter
+or finish a tick simultaneously. Each entity, relationship, cell, index, and
+program-state partition has one authoritative logical owner. Remote reads may
+use a boundedly stale published owner view, and cross-owner effects become
+visible on a receiver-owned tick through bounded primitive messages.
 
-Random choices are keyed by stable logical identity rather than by consumption
-order. Reversing active iteration, reversing delta insertion, or changing the
-number of logical shards must produce the same published state on the
-one-thread scheduler. Each completed command, preparation, evaluation,
-resolution, strategic, and publication phase emits the tick and phase revision
-so projections can distinguish published state from in-progress work.
+Random choices remain keyed by stable logical identity rather than consumption
+order because that isolates unrelated changes and makes histories diagnosable.
+Exact state equality across schedules and physical worker counts is not a
+simulation-quality requirement. Consumers read owner watermarks and published
+views; saving, deterministic debugging, and final evidence capture explicitly
+converge owners when they need one coherent cut.
+
+The displayed or captured tick is the consumer-published low watermark, which
+advances only after local owner traffic, deferred structural work, and the
+current strategic boundary are all published. Individual mutation events may
+carry later owner ticks and must not advance a UI frame by themselves. Pause,
+manual step, save, and final Monte Carlo capture request convergence at their
+actual horizon rather than synchronizing every authored tick along the way.
+
+The current local runtime advances at most eight ticks per window by default.
+Entity, relationship, and culture-row membership is fixed at the opening cut;
+destination-owned primitive values publish during the window, and structural
+indexes consume typed projections on their structural owner. Strategic
+programs run on stable program owners and emit ordinary owner messages.
+Window quiescence publishes a complete consumer cut and permits safe slot
+reclamation; it is not a program replay phase.
 
 ## Time Calibration
 

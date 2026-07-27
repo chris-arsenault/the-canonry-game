@@ -210,6 +210,33 @@ internal sealed partial class MovementProgramRuntime :
             return false;
         }
 
+        if (simulation.TryQueueContinuousRoadWork(
+                planeCode,
+                q,
+                r,
+                amount,
+                tick))
+        {
+            return true;
+        }
+
+        return ReinforceRoadOwned(
+            simulation,
+            planeCode,
+            q,
+            r,
+            amount,
+            tick);
+    }
+
+    internal bool ReinforceRoadOwned(
+        Simulation simulation,
+        int planeCode,
+        int q,
+        int r,
+        FixedScalar amount,
+        int tick)
+    {
         var terrainId = simulation.World.CellTerrainId(planeCode, q, r);
         var previousQuality = RoadQuality(planeCode, q, r, tick);
         State.RecordTravel(

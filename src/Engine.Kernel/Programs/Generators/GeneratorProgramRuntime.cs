@@ -4,20 +4,14 @@ using Engine.Constants;
 using Engine.Eventing;
 
 internal sealed partial class GeneratorProgramRuntime :
-    IKernelProgramRuntime<GeneratorProgramData, GeneratorProgramState>,
-    IStrategicIntentProgram,
-    IKernelOwnerWork
+    IKernelProgramRuntime<GeneratorProgramData, GeneratorProgramState>
 {
     private const int MaxResolvedReferences = 32;
     private const int MaxScratchCells = 4096;
     private const int SlotFillBaseFireWeightBonus = 8;
     private const int SlotFillAdditionalFireWeightBonus = 2;
     private const int SlotFillMaxFireWeightBonus = 16;
-    private readonly GeneratorProgramScratch[] _scratchByWorker;
-    private GeneratorProgramScratch _scratch =>
-        _scratchByWorker[KernelWorkerThread.WorkerIndex];
-    private GeneratorProgramScratch SharedScratch => _scratchByWorker[0];
-    private bool _evaluatingGeneratorSlots;
+    private readonly GeneratorProgramScratch _scratch;
 
     public GeneratorProgramRuntime(GeneratorProgramData data, GeneratorProgramState state)
         : this(data, state, CreateScratch(data), new KernelProgramTuningOptions())
@@ -28,7 +22,11 @@ internal sealed partial class GeneratorProgramRuntime :
         GeneratorProgramData data,
         GeneratorProgramState state,
         GeneratorProgramScratch scratch)
-        : this(data, state, scratch, new KernelProgramTuningOptions(), workerCount: 1)
+        : this(
+            data,
+            state,
+            scratch,
+            new KernelProgramTuningOptions())
     {
     }
 
@@ -37,22 +35,11 @@ internal sealed partial class GeneratorProgramRuntime :
         GeneratorProgramState state,
         GeneratorProgramScratch scratch,
         KernelProgramTuningOptions tuning)
-        : this(data, state, scratch, tuning, workerCount: 1)
-    {
-    }
-
-    internal GeneratorProgramRuntime(
-        GeneratorProgramData data,
-        GeneratorProgramState state,
-        GeneratorProgramScratch scratch,
-        KernelProgramTuningOptions tuning,
-        int workerCount)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
         global::System.ArgumentNullException.ThrowIfNull(state);
         global::System.ArgumentNullException.ThrowIfNull(scratch);
         global::System.ArgumentNullException.ThrowIfNull(tuning);
-        NumericGuard.ThrowIfNegativeOrZero(workerCount);
         if (tuning.Generators.FireWindowTicks <= 0 || tuning.Generators.FiresPerWindow < 0)
         {
             throw new global::System.ArgumentOutOfRangeException(nameof(tuning));
@@ -63,13 +50,7 @@ internal sealed partial class GeneratorProgramRuntime :
         _provinceCoveredCounts = new int[state.ProvinceSrIds.Length];
         _provinceKnownCounts = new int[state.ProvinceSrIds.Length];
         State = state;
-        _scratchByWorker = new GeneratorProgramScratch[workerCount];
-        _scratchByWorker[0] = scratch;
-        for (var workerIndex = 1; workerIndex < workerCount; workerIndex++)
-        {
-            _scratchByWorker[workerIndex] = scratch.CreatePeer();
-        }
-
+        _scratch = scratch;
         Tuning = tuning;
     }
 
@@ -351,11 +332,6 @@ internal sealed partial class GeneratorProgramRuntime :
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        if (!simulation.IsCollectingStrategicIntents)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
         TickCadenceGenerators(simulation, tick);
         if (tick <= 0)
         {
@@ -546,40 +522,17 @@ internal sealed partial class GeneratorProgramRuntime :
             return false;
         }
 
-        _evaluatingGeneratorSlots = true;
-        try
-        {
-            simulation.ExecuteOwnerWork(this, _generatorCount);
-        }
-        finally
-        {
-            _evaluatingGeneratorSlots = false;
-        }
-
-        return anyEvaluated;
-    }
-
-    void IKernelOwnerWork.ExecuteOwner(
-        Simulation simulation,
-        int ownerIndex,
-        int ownerCount)
-    {
-        if (!_evaluatingGeneratorSlots)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
-        var start = 1 + (int)((long)_generatorCount * ownerIndex / ownerCount);
-        var end = 1 + (int)((long)_generatorCount * (ownerIndex + 1) / ownerCount);
-        for (var slot = start; slot < end; slot++)
+        for (var slot = 1; slot <= _generatorCount; slot++)
         {
             if (_enabled[slot] &&
-                simulation.CurrentTick > 0 &&
+                simulation.ExecutionTick > 0 &&
                 _cadenceTicks[slot] == 0)
             {
                 EvaluateGenerator(simulation, slot);
             }
         }
+
+        return anyEvaluated;
     }
 
     private bool TryFireEligibleGenerator(Simulation simulation, int selectedGeneratorSlot, int tick)
@@ -741,7 +694,7 @@ internal sealed partial class GeneratorProgramRuntime :
 
         var roll = simulation.RandomInt(
             totalWeight,
-            simulation.CurrentTick,
+            simulation.ExecutionTick,
             _fireProvinceSrId,
             KernelRandomPurposeCodes.GeneratorFireSelection,
             attempt: State.ProvinceWindowIndices[province]);
@@ -774,49 +727,71 @@ internal sealed partial class GeneratorProgramRuntime :
         var world = simulation.World;
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
-        KernelQuery.ForEachActiveEntityOfKind(
-            world,
-            _targetKindIds[generatorSlot],
-            entityId =>
+        for (var entityId = FirstTargetCandidate(
+                 simulation,
+                 generatorSlot);
+             entityId > 0;
+             entityId = NextTargetCandidate(
+                 simulation,
+                 generatorSlot,
+                 entityId))
+        {
+            var passes = TargetPasses(
+                simulation,
+                generatorSlot,
+                entityId,
+                refCodes,
+                refEntityIds,
+                out var refCount,
+                out var rejectionReasonCode);
+            PublishGeneratorTargetEvaluation(
+                simulation,
+                generatorSlot,
+                entityId,
+                passes
+                    ? GeneratorStatusCodes.Eligible
+                    : GeneratorStatusCodes.Blocked,
+                rejectionReasonCode);
+            if (passes)
             {
-                var passes = TargetPasses(
+                count++;
+                knowledgeWeight += simulation.Knowledge.Modifier(
+                    world.EntityCultureId(entityId),
+                    KnowledgeGrantDomainCodes.GeneratorFireWeight,
+                    _generatorIds[generatorSlot]);
+                var slotFitCount = ProducedUnoccupiedSlotFitCount(
                     simulation,
                     generatorSlot,
-                    entityId,
                     refCodes,
                     refEntityIds,
-                    out var refCount,
-                    out var rejectionReasonCode);
-                PublishGeneratorTargetEvaluation(
-                    simulation,
-                    generatorSlot,
-                    entityId,
-                    passes ? GeneratorStatusCodes.Eligible : GeneratorStatusCodes.Blocked,
-                    rejectionReasonCode);
-                if (passes)
+                    refCount);
+                if (slotFitCount > maxSlotFitCount)
                 {
-                    count++;
-                    knowledgeWeight += simulation.Knowledge.Modifier(
-                        world.EntityCultureId(entityId),
-                        KnowledgeGrantDomainCodes.GeneratorFireWeight,
-                        _generatorIds[generatorSlot]);
-                    var slotFitCount = ProducedUnoccupiedSlotFitCount(
-                        simulation,
-                        generatorSlot,
-                        refCodes,
-                        refEntityIds,
-                        refCount);
-                    if (slotFitCount > maxSlotFitCount)
-                    {
-                        maxSlotFitCount = slotFitCount;
-                    }
+                    maxSlotFitCount = slotFitCount;
                 }
-
-                return true;
-            });
+            }
+        }
 
         return (count, SlotFillFireWeightBonus(maxSlotFitCount), knowledgeWeight);
     }
+
+    private int FirstTargetCandidate(
+        Simulation simulation,
+        int generatorSlot) =>
+        _fireProvinceSrId >= 0
+            ? simulation.FirstPublishedEntityInPhysicalSuperregion(
+                _fireProvinceSrId)
+            : simulation.FirstPublishedEntityOfKind(
+                _targetKindIds[generatorSlot]);
+
+    private int NextTargetCandidate(
+        Simulation simulation,
+        int generatorSlot,
+        int entityId) =>
+        _fireProvinceSrId >= 0
+            ? simulation.NextPublishedEntityInPhysicalSuperregion(
+                entityId)
+            : simulation.NextPublishedEntityOfKind(entityId);
 
     private int ProducedUnoccupiedSlotFitCount(
         Simulation simulation,
@@ -869,31 +844,47 @@ internal sealed partial class GeneratorProgramRuntime :
         var refEntityIds = _refEntityIds;
         var selectedTargetId = 0;
         var selectedPriority = FixedScalar.Zero;
-        KernelQuery.ForEachActiveEntityOfKind(
-            world,
-            _targetKindIds[generatorSlot],
-            entityId =>
-            {
-                if (!TargetPasses(simulation, generatorSlot, entityId, refCodes, refEntityIds, out var refCount))
-                {
-                    return true;
-                }
-
-                var targetWeight = TargetSelectionWeight(simulation, generatorSlot, entityId, refCodes, refEntityIds, refCount);
-                var priority = simulation.RandomScalar(
+        for (var entityId = FirstTargetCandidate(
+                 simulation,
+                 generatorSlot);
+             entityId > 0;
+             entityId = NextTargetCandidate(
+                 simulation,
+                 generatorSlot,
+                 entityId))
+        {
+            if (!TargetPasses(
+                    simulation,
                     generatorSlot,
-                    _generatorIds[generatorSlot],
-                    KernelRandomPurposeCodes.GeneratorTargetSelection,
-                    world.EntityOccurrenceHandle(entityId)) * targetWeight;
-                if (selectedTargetId == 0 || priority > selectedPriority ||
-                    (priority == selectedPriority && entityId < selectedTargetId))
-                {
-                    selectedPriority = priority;
-                    selectedTargetId = entityId;
-                }
+                    entityId,
+                    refCodes,
+                    refEntityIds,
+                    out var refCount))
+            {
+                continue;
+            }
 
-                return true;
-            });
+            var targetWeight = TargetSelectionWeight(
+                simulation,
+                generatorSlot,
+                entityId,
+                refCodes,
+                refEntityIds,
+                refCount);
+            var priority = simulation.RandomScalar(
+                generatorSlot,
+                _generatorIds[generatorSlot],
+                KernelRandomPurposeCodes.GeneratorTargetSelection,
+                world.EntityOccurrenceHandle(entityId)) * targetWeight;
+            if (selectedTargetId == 0 ||
+                priority > selectedPriority ||
+                (priority == selectedPriority &&
+                 entityId < selectedTargetId))
+            {
+                selectedPriority = priority;
+                selectedTargetId = entityId;
+            }
+        }
 
         return selectedTargetId;
     }
@@ -919,39 +910,85 @@ internal sealed partial class GeneratorProgramRuntime :
             return 0;
         }
 
-        var world = simulation.World;
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
         var selectedTargetId = 0;
         var selectedPriority = FixedScalar.Zero;
-        KernelQuery.ForEachActiveEntityOfKind(
-            world,
-            _targetKindIds[generatorSlot],
-            entityId =>
-            {
-                if (RejectedTargetContains(entityId, rejectedTargetIds, rejectedTargetCount) ||
-                    !TargetPasses(simulation, generatorSlot, entityId, refCodes, refEntityIds, out var refCount))
-                {
-                    return true;
-                }
-
-                var targetWeight = TargetSelectionWeight(simulation, generatorSlot, entityId, refCodes, refEntityIds, refCount);
-                var priority = simulation.RandomScalar(
+        for (var entityId = FirstTargetCandidate(
+                 simulation,
+                 generatorSlot);
+             entityId > 0;
+             entityId = NextTargetCandidate(
+                 simulation,
+                 generatorSlot,
+                 entityId))
+        {
+            if (!TryTargetPriority(
+                    simulation,
                     generatorSlot,
-                    _generatorIds[generatorSlot],
-                    KernelRandomPurposeCodes.GeneratorTargetSelection,
-                    world.EntityOccurrenceHandle(entityId)) * targetWeight;
-                if (selectedTargetId == 0 || priority > selectedPriority ||
-                    (priority == selectedPriority && entityId < selectedTargetId))
-                {
-                    selectedPriority = priority;
-                    selectedTargetId = entityId;
-                }
+                    entityId,
+                    rejectedTargetIds,
+                    rejectedTargetCount,
+                    refCodes,
+                    refEntityIds,
+                    out var priority))
+            {
+                continue;
+            }
 
-                return true;
-            });
+            if (selectedTargetId == 0 ||
+                priority > selectedPriority ||
+                (priority == selectedPriority &&
+                 entityId < selectedTargetId))
+            {
+                selectedPriority = priority;
+                selectedTargetId = entityId;
+            }
+        }
 
         return selectedTargetId;
+    }
+
+    private bool TryTargetPriority(
+        Simulation simulation,
+        int generatorSlot,
+        int entityId,
+        int[] rejectedTargetIds,
+        int rejectedTargetCount,
+        int[] refCodes,
+        int[] refEntityIds,
+        out FixedScalar priority)
+    {
+        if (RejectedTargetContains(
+                entityId,
+                rejectedTargetIds,
+                rejectedTargetCount) ||
+            !TargetPasses(
+                simulation,
+                generatorSlot,
+                entityId,
+                refCodes,
+                refEntityIds,
+                out var refCount))
+        {
+            priority = 0;
+            return false;
+        }
+
+        var targetWeight = TargetSelectionWeight(
+            simulation,
+            generatorSlot,
+            entityId,
+            refCodes,
+            refEntityIds,
+            refCount);
+        priority = simulation.RandomScalar(
+            generatorSlot,
+            _generatorIds[generatorSlot],
+            KernelRandomPurposeCodes.GeneratorTargetSelection,
+            simulation.World.EntityOccurrenceHandle(entityId)) *
+            targetWeight;
+        return true;
     }
 
     private int CountEligibleTargetsExcluding(
@@ -961,22 +998,32 @@ internal sealed partial class GeneratorProgramRuntime :
         int rejectedTargetCount)
     {
         var count = 0;
-        var world = simulation.World;
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
-        KernelQuery.ForEachActiveEntityOfKind(
-            world,
-            _targetKindIds[generatorSlot],
-            entityId =>
+        for (var entityId = FirstTargetCandidate(
+                 simulation,
+                 generatorSlot);
+             entityId > 0;
+             entityId = NextTargetCandidate(
+                 simulation,
+                 generatorSlot,
+                 entityId))
+        {
+            if (!RejectedTargetContains(
+                    entityId,
+                    rejectedTargetIds,
+                    rejectedTargetCount) &&
+                TargetPasses(
+                    simulation,
+                    generatorSlot,
+                    entityId,
+                    refCodes,
+                    refEntityIds,
+                    out _))
             {
-                if (!RejectedTargetContains(entityId, rejectedTargetIds, rejectedTargetCount) &&
-                    TargetPasses(simulation, generatorSlot, entityId, refCodes, refEntityIds, out _))
-                {
-                    count++;
-                }
-
-                return true;
-            });
+                count++;
+            }
+        }
 
         return count;
     }

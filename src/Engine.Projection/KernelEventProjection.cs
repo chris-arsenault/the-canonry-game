@@ -47,6 +47,7 @@ public abstract class KernelEventProjector : IKernelEventProjection
 
     private static bool IsWorldEvent(KernelEventType eventType) =>
         IsMinorActorEvent(eventType) ||
+        eventType == KernelEventType.WatermarkAdvanced ||
         eventType == KernelEventType.PhaseCompleted ||
         eventType is >= KernelEventType.TickCompleted and <= KernelEventType.CultureSlotOccupancyChanged and not KernelEventType.GambitEvaluated;
 
@@ -119,6 +120,7 @@ public abstract class KernelEventProjector : IKernelEventProjection
     {
         var eventType = kernelEvent.Event.EventType;
         if (eventType is KernelEventType.TickCompleted or
+            KernelEventType.WatermarkAdvanced or
             KernelEventType.PhaseCompleted or
             KernelEventType.GeneratorEnabledChanged or
             KernelEventType.GambitEnabledChanged)
@@ -181,6 +183,11 @@ public abstract class KernelEventProjector : IKernelEventProjection
         {
             case KernelEventType.TickCompleted:
                 OnTickCompleted(kernelEvent.Sequence, evt.AsTickCompleted());
+                break;
+            case KernelEventType.WatermarkAdvanced:
+                OnWatermarkAdvanced(
+                    kernelEvent.Sequence,
+                    evt.AsWatermarkAdvanced());
                 break;
             case KernelEventType.PhaseCompleted:
                 OnPhaseCompleted(kernelEvent.Sequence, evt.AsPhaseCompleted());
@@ -301,6 +308,12 @@ public abstract class KernelEventProjector : IKernelEventProjection
     }
 
     protected virtual void OnTickCompleted(long sequence, in TickCompletedKernelEvent evt)
+    {
+    }
+
+    protected virtual void OnWatermarkAdvanced(
+        long sequence,
+        in WatermarkAdvancedKernelEvent evt)
     {
     }
 

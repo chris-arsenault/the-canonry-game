@@ -2,6 +2,26 @@ namespace Engine.Kernel;
 
 internal sealed partial class WorldState
 {
+    internal bool CultureInfluenceStorageIsPrepared(
+        int cultureId,
+        int planeCode,
+        int q,
+        int r,
+        int z,
+        int deltaUnits)
+    {
+        EnsureCultureIndex(cultureId);
+        ValidateInfluencePlaneCode(planeCode);
+        ValidateCellZ(z);
+        if (!_cells.TryGet(planeCode, q, r, z, out var cellId))
+        {
+            return false;
+        }
+
+        return deltaUnits <= 0 ||
+            _mapLayers.RawCultureInfluence.HasRow(cultureId, cellId);
+    }
+
     internal void PrepareOwnedCultureInfluence(
         int cultureId,
         int planeCode,

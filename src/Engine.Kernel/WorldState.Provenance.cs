@@ -19,21 +19,27 @@ internal sealed partial class WorldState
     private int[] _provenanceFrameTriggerKindCodes = [];
     private int[] _provenanceFrameTriggerIds = [];
     private int[] _provenanceFrameOutputCounts = [];
-    private int _provenanceFrameDepth;
+    private int[] _provenanceFrameDepths = [];
+    private int _provenanceFrameStride;
     private int _nextProvenanceInvocationId;
 
     private void InitializeProvenanceStorage(SimulationOptions options)
     {
-        _provenanceFrameInvocationIds = new int[ProvenanceFrameCapacity + 1];
-        _provenanceFrameTicks = new int[ProvenanceFrameCapacity + 1];
-        _provenanceFrameProducerKindCodes = new int[ProvenanceFrameCapacity + 1];
-        _provenanceFrameProducerIds = new int[ProvenanceFrameCapacity + 1];
-        _provenanceFramePrimaryEntityIds = new int[ProvenanceFrameCapacity + 1];
-        _provenanceFrameSecondaryEntityIds = new int[ProvenanceFrameCapacity + 1];
-        _provenanceFrameParentInvocationIds = new int[ProvenanceFrameCapacity + 1];
-        _provenanceFrameTriggerKindCodes = new int[ProvenanceFrameCapacity + 1];
-        _provenanceFrameTriggerIds = new int[ProvenanceFrameCapacity + 1];
-        _provenanceFrameOutputCounts = new int[ProvenanceFrameCapacity + 1];
+        _provenanceFrameStride = ProvenanceFrameCapacity + 1;
+        var capacity = checked(
+            options.Execution.WorkerCount * _provenanceFrameStride);
+        _provenanceFrameInvocationIds = new int[capacity];
+        _provenanceFrameTicks = new int[capacity];
+        _provenanceFrameProducerKindCodes = new int[capacity];
+        _provenanceFrameProducerIds = new int[capacity];
+        _provenanceFramePrimaryEntityIds = new int[capacity];
+        _provenanceFrameSecondaryEntityIds = new int[capacity];
+        _provenanceFrameParentInvocationIds = new int[capacity];
+        _provenanceFrameTriggerKindCodes = new int[capacity];
+        _provenanceFrameTriggerIds = new int[capacity];
+        _provenanceFrameOutputCounts = new int[capacity];
+        _provenanceFrameDepths =
+            new int[options.Execution.WorkerCount];
         _entityCreatedByInvocationId = new int[options.EntityCapacity + 1];
         _relationshipCreatedByInvocationId = new int[options.RelationshipCapacity + 1];
         _relationshipLastChangedByInvocationId = new int[options.RelationshipCapacity + 1];
@@ -58,14 +64,24 @@ internal sealed partial class WorldState
         NumericGuard.ThrowIfNegative(triggerId);
         NumericGuard.ThrowIfNegative(parentInvocationId);
         ValidatePositive(context.SourceCodeId);
-        if (_provenanceFrameDepth >= ProvenanceFrameCapacity ||
-            _nextProvenanceInvocationId == int.MaxValue)
+        var workerIndex = KernelWorkerThread.WorkerIndex;
+        var depth = _provenanceFrameDepths[workerIndex];
+        if (depth >= ProvenanceFrameCapacity)
         {
             throw new global::System.InvalidOperationException();
         }
 
-        var frame = ++_provenanceFrameDepth;
-        var invocationId = ++_nextProvenanceInvocationId;
+        depth++;
+        _provenanceFrameDepths[workerIndex] = depth;
+        var frame = checked(
+            (workerIndex * _provenanceFrameStride) + depth);
+        var invocationId =
+            global::System.Threading.Interlocked.Increment(
+                ref _nextProvenanceInvocationId);
+        if (invocationId <= 0)
+        {
+            throw new global::System.InvalidOperationException();
+        }
         _provenanceFrameInvocationIds[frame] = invocationId;
         _provenanceFrameTicks[frame] = tick;
         _provenanceFrameProducerKindCodes[frame] = producerKindCode;
@@ -81,8 +97,12 @@ internal sealed partial class WorldState
 
     internal ProvenanceInvocationRecord CompleteProvenanceInvocation(int invocationId)
     {
-        var frame = _provenanceFrameDepth;
-        if (frame == 0 || _provenanceFrameInvocationIds[frame] != invocationId)
+        var workerIndex = KernelWorkerThread.WorkerIndex;
+        var depth = _provenanceFrameDepths[workerIndex];
+        var frame = checked(
+            (workerIndex * _provenanceFrameStride) + depth);
+        if (depth == 0 ||
+            _provenanceFrameInvocationIds[frame] != invocationId)
         {
             throw new global::System.InvalidOperationException();
         }
@@ -109,7 +129,7 @@ internal sealed partial class WorldState
         _provenanceFrameTriggerKindCodes[frame] = 0;
         _provenanceFrameTriggerIds[frame] = 0;
         _provenanceFrameOutputCounts[frame] = 0;
-        _provenanceFrameDepth--;
+        _provenanceFrameDepths[workerIndex] = depth - 1;
         return record;
     }
 
@@ -195,8 +215,13 @@ internal sealed partial class WorldState
 
     private void NoteProvenanceOutput(int invocationId)
     {
-        for (var frame = _provenanceFrameDepth; frame > 0; frame--)
+        var workerIndex = KernelWorkerThread.WorkerIndex;
+        var baseIndex = workerIndex * _provenanceFrameStride;
+        for (var depth = _provenanceFrameDepths[workerIndex];
+             depth > 0;
+             depth--)
         {
+            var frame = baseIndex + depth;
             if (_provenanceFrameInvocationIds[frame] == invocationId)
             {
                 _provenanceFrameOutputCounts[frame]++;

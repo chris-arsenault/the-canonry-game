@@ -10,20 +10,4 @@ internal readonly record struct GambitExecutionIntent(
     int GambitSlot,
     int KindId,
     int CandidateCount,
-    KernelEventState State) : IDeterministicOrder<GambitExecutionIntent>
-{
-    public int CompareTo(GambitExecutionIntent other)
-    {
-        var comparison =
-            EntityOccurrenceHandle.CompareTo(other.EntityOccurrenceHandle);
-        if (comparison != 0)
-        {
-            return comparison;
-        }
-
-        comparison = GambitSlot.CompareTo(other.GambitSlot);
-        return comparison != 0
-            ? comparison
-            : TargetOccurrenceHandle.CompareTo(other.TargetOccurrenceHandle);
-    }
-}
+    KernelEventState State);

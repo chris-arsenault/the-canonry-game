@@ -60,6 +60,8 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
     public long DroppedEvents { get; private set; }
 
+    public int PublishedLowWatermark { get; private set; }
+
     internal void ReplaceBatch(TelemetryBatch batch)
     {
         ArgumentNullException.ThrowIfNull(batch);
@@ -76,6 +78,14 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     protected override void OnProjectingEvent(in SequencedKernelEvent kernelEvent)
     {
         _currentProvenanceInvocationId = kernelEvent.Event.ProvenanceInvocationId;
+    }
+
+    protected override void OnWatermarkAdvanced(
+        long sequence,
+        in WatermarkAdvancedKernelEvent evt)
+    {
+        PublishedLowWatermark = evt.LowWatermark;
+        MarkProjected(sequence);
     }
 
     public void RecordKindSnapshots(int tick)

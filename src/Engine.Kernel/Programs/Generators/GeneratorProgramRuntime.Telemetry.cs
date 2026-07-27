@@ -23,7 +23,7 @@ internal sealed partial class GeneratorProgramRuntime
             ? default
             : simulation.CultureLocality.CellAt(world, cultureId, PlaneCodes.Semantic, semanticQ, semanticR);
         simulation.EmitGeneratorTargetEvaluated(
-            simulation.CurrentTick,
+            simulation.ExecutionTick,
             _generatorIds[generatorSlot],
             targetId,
             world.EntityKindId(targetId),

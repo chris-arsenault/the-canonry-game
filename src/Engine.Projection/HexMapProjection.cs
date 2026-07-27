@@ -924,8 +924,15 @@ public sealed class HexMapProjection : KernelEventProjector, IHexSurfaceIndex
     private void MarkProjected(long sequence, int tick, long worldVersion)
     {
         LastProjectedSequence = sequence;
-        CurrentTick = Math.Max(CurrentTick, tick);
         WorldVersion = Math.Max(WorldVersion, worldVersion);
+    }
+
+    protected override void OnWatermarkAdvanced(
+        long sequence,
+        in WatermarkAdvancedKernelEvent evt)
+    {
+        CurrentTick = evt.LowWatermark;
+        MarkProjected(sequence, evt.Tick, evt.WorldVersion);
     }
 
     private sealed class HexSurfaceProjection

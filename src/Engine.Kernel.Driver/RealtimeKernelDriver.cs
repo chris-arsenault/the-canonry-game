@@ -130,8 +130,11 @@ internal sealed class RealtimeKernelDriver : IKernelDriver, IDriverControl
                 var ticks = _tickAccumulator.ConsumeTicks(elapsed, config.TicksPerSecond);
                 if (ticks > 0)
                 {
-                    var options = new AdvanceOptions(Cancel: cancellationToken);
-                    _ = _kernel.AdvanceTicks(ticks, in options);
+                    _ = _kernel.ConvergeAt(
+                        checked(
+                            _kernel.PublishedLowWatermark +
+                            ticks),
+                        cancellationToken);
                 }
 
                 Thread.Sleep(config.SliceInterval);

@@ -248,7 +248,6 @@ internal sealed partial class GambitProgramRuntime
             _stepX[step].Units,
             reservedEntityId,
             reservedRelationshipId,
-            simulation.NextStrategicIntentOrder(),
             simulation.ExecutionContext);
         simulation.QueueDistrictIntent(intent);
         return true;
@@ -332,13 +331,11 @@ internal sealed partial class GambitProgramRuntime
                 r,
                 TerrainId: 0,
                 OwnerEntityId: targetId,
-                intent.SourceKey,
                 intent.Context),
             new EntityStateIntent(
                 intent.EntityOccurrenceHandle,
                 EntityStateIntentCodes.SetStatus,
                 EntityStatusCodes.Historical,
-                intent.SourceKey,
                 intent.Context),
             default,
             default);
@@ -372,7 +369,6 @@ internal sealed partial class GambitProgramRuntime
             world.EntitySemanticQ(entityId),
             world.EntitySemanticR(entityId),
             world.EntitySemanticS(entityId),
-            intent.SourceKey,
             intent.Context);
         var relationshipCreation = new RelationshipCreationIntent(
             intent.ReservedRelationshipId,
@@ -382,7 +378,6 @@ internal sealed partial class GambitProgramRuntime
             entityId,
             KernelFixedPoint.RelationshipStrengthUnits(
                 template.RelationshipStrength),
-            intent.SourceKey,
             intent.Context);
         _ = simulation;
         return new DistrictResolution(
@@ -748,14 +743,14 @@ internal sealed partial class GambitProgramRuntime
         _ = tick;
         var targetQ = world.EntityPhysicalQ(targetId);
         var targetR = world.EntityPhysicalR(targetId);
-        simulation.Movement.Navigate(simulation, entityId, PlaneCodes.Physical, targetQ, targetR, simulation.CurrentTick);
+        simulation.Movement.Navigate(simulation, entityId, PlaneCodes.Physical, targetQ, targetR, simulation.ExecutionTick);
     }
 
     private static void WanderPhysical(Simulation simulation, WorldState world, int entityId, int tick)
     {
         _ = world;
         _ = tick;
-        simulation.Movement.Wander(simulation, entityId, PlaneCodes.Physical, simulation.CurrentTick);
+        simulation.Movement.Wander(simulation, entityId, PlaneCodes.Physical, simulation.ExecutionTick);
     }
 
     private static void MoveTowardTargetSemantic(Simulation simulation, WorldState world, int entityId, int targetId, int tick)
@@ -763,14 +758,14 @@ internal sealed partial class GambitProgramRuntime
         _ = tick;
         var targetQ = world.EntitySemanticQ(targetId);
         var targetR = world.EntitySemanticR(targetId);
-        simulation.Movement.Navigate(simulation, entityId, PlaneCodes.Semantic, targetQ, targetR, simulation.CurrentTick);
+        simulation.Movement.Navigate(simulation, entityId, PlaneCodes.Semantic, targetQ, targetR, simulation.ExecutionTick);
     }
 
     private static void WanderSemantic(Simulation simulation, WorldState world, int entityId, int tick)
     {
         _ = world;
         _ = tick;
-        simulation.Movement.Wander(simulation, entityId, PlaneCodes.Semantic, simulation.CurrentTick);
+        simulation.Movement.Wander(simulation, entityId, PlaneCodes.Semantic, simulation.ExecutionTick);
     }
 
     private static int EndpointEntityId(int entityId, int targetId, int endpointCode)

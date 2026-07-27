@@ -60,15 +60,25 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
         int rule,
         int tick)
     {
-        var targetEntityId = State.TargetEntityId(entityId);
+        var targetOccurrenceHandle =
+            State.TargetEntityOccurrenceHandle(entityId);
         var relationshipKindId = Data.RelationshipKindId(rule);
         var delta = Data.RelationshipStrengthDelta(rule);
-        if (targetEntityId == 0 || relationshipKindId == 0 || delta == 0)
+        if (targetOccurrenceHandle == 0 ||
+            relationshipKindId == 0 ||
+            delta == 0)
         {
             return;
         }
 
         var world = simulation.World;
+        if (!world.TryResolveEntityOccurrence(
+                targetOccurrenceHandle,
+                out var targetEntityId))
+        {
+            return;
+        }
+
         if (Data.RelationshipDirectionCode(rule) is LowAltitudeVerbRelationshipDirectionCodes.Outgoing
             or LowAltitudeVerbRelationshipDirectionCodes.Either)
         {

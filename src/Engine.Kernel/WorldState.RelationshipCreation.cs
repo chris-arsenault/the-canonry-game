@@ -151,7 +151,11 @@ internal sealed partial class WorldState
         in KernelExecutionContext context,
         bool provenanceOutputReserved)
     {
-        _relationshipAllocated[relationshipId] = true;
+        lock (_slotOwnerGates[SlotOwner(relationshipId)])
+        {
+            _relationshipAllocated[relationshipId] = true;
+            _relationshipReserved[relationshipId] = false;
+        }
         _relationshipActive[relationshipId] = true;
         _relationshipKindId[relationshipId] = kindId;
         _relationshipPolarityCode[relationshipId] = polarityCode;

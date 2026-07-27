@@ -5,12 +5,10 @@ using Engine.Eventing;
 
 internal sealed partial class GambitProgramRuntime :
     IKernelProgramRuntime<GambitProgramData, GambitProgramState>,
-    ILocalEvaluationRangeProgram,
-    IStrategicIntentProgram
+    ILocalEvaluationRangeProgram
 {
     private readonly GambitProgramScratch[] _scratchByWorker;
-    private readonly DeltaAppendArena<GambitExecutionIntent> _executionIntents;
-    private readonly GambitExecutionIntent[] _executionIntentValues;
+    private readonly bool[] _publishedGambitEnabled;
     private GambitProgramScratch _scratch =>
         _scratchByWorker[KernelWorkerThread.WorkerIndex];
     private int[] _gambitKindIds => Data.GambitKindIds;
@@ -163,6 +161,8 @@ internal sealed partial class GambitProgramRuntime :
         NumericGuard.ThrowIfNegativeOrZero(workerCount);
         Data = data;
         State = state;
+        _publishedGambitEnabled =
+            new bool[state.GambitEnabled.Length];
         _scratchByWorker = new GambitProgramScratch[workerCount];
         _scratchByWorker[0] = scratch;
         for (var workerIndex = 1; workerIndex < workerCount; workerIndex++)
@@ -170,10 +170,6 @@ internal sealed partial class GambitProgramRuntime :
             _scratchByWorker[workerIndex] = scratch.CreatePeer();
         }
 
-        _executionIntents = new DeltaAppendArena<GambitExecutionIntent>(
-            state.EntityCooldownExpiresAtTicks.Length - 1,
-            workerCount);
-        _executionIntentValues = _executionIntents.Values;
         Tuning = tuning;
     }
 
@@ -186,6 +182,14 @@ internal sealed partial class GambitProgramRuntime :
     public int Count => _gambitCount;
 
     public int RangeKindCode => LocalEvaluationRangeKindCodes.Entities;
+
+    internal void CapturePublishedView()
+    {
+        global::System.Array.Copy(
+            _gambitEnabled,
+            _publishedGambitEnabled,
+            _gambitEnabled.Length);
+    }
 
     public int RegisterGambit(
         int kindId,
@@ -634,11 +638,6 @@ internal sealed partial class GambitProgramRuntime :
     public void Tick(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        if (!simulation.IsCollectingStrategicIntents)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-
         var world = simulation.World;
         KernelQuery.ForEachActiveEntity(
             world,
@@ -671,14 +670,7 @@ internal sealed partial class GambitProgramRuntime :
     public void CompleteRanges(Simulation simulation, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        var count = _executionIntents.Compact();
-        DeterministicSort.Sort(_executionIntentValues, count);
-        for (var index = 0; index < count; index++)
-        {
-            RunSelectedGambit(simulation, _executionIntentValues[index], tick);
-        }
-
-        _executionIntents.Clear();
+        _ = tick;
     }
 
     private void TickEntity(Simulation simulation, int entityId, int tick)
@@ -727,8 +719,8 @@ internal sealed partial class GambitProgramRuntime :
             selectedGambitSlot,
             entityId,
             selectedTargetId);
-        _executionIntents.Add(
-            KernelWorkerThread.WorkerIndex,
+        RunSelectedGambit(
+            simulation,
             new GambitExecutionIntent(
                 world.EntityOccurrenceHandle(entityId),
                 world.EntityOccurrenceHandle(selectedTargetId),
@@ -737,7 +729,8 @@ internal sealed partial class GambitProgramRuntime :
                 selectedGambitSlot,
                 kindId,
                 candidateCount,
-                state));
+                state),
+            tick);
     }
 
     private FixedScalar EvaluateGambitWeights(
@@ -838,7 +831,7 @@ internal sealed partial class GambitProgramRuntime :
             kindId,
             gambitId,
             state);
-        simulation.Chronicles.NoteExecution(
+        simulation.QueueChronicleGambitExecution(
             entityOccurrenceHandle,
             targetOccurrenceHandle,
             gambitId,
@@ -904,7 +897,7 @@ internal sealed partial class GambitProgramRuntime :
 
     private bool GambitCanRunForEntity(Simulation simulation, int gambitSlot, int kindId, int entityId, int tick)
     {
-        return _gambitEnabled[gambitSlot] &&
+        return _publishedGambitEnabled[gambitSlot] &&
                _gambitKindIds[gambitSlot] == kindId &&
                tick >= _cooldownExpiresAtTicks[CooldownIndex(entityId, gambitSlot)] &&
                (Data.GambitChronicleGranted[gambitSlot] == 0 ||

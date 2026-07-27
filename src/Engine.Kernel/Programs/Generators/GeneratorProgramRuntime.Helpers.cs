@@ -4,9 +4,16 @@ using Engine.Eventing;
 
 internal sealed partial class GeneratorProgramRuntime
 {
-    private static bool IsFreePhysical(WorldState world, int q, int r)
+    private static bool IsFreePhysical(
+        Simulation simulation,
+        int q,
+        int r)
     {
-        return world.CellIsKnown(q, r) && !KernelQuery.PhysicalCellIsOccupied(world, q, r);
+        return simulation.World.CellIsKnown(q, r) &&
+            !simulation.PublishedCellIsOccupied(
+                PlaneCodes.Physical,
+                q,
+                r);
     }
 
     private static int DirectionQ(int direction)
@@ -224,38 +231,51 @@ internal sealed partial class GeneratorProgramRuntime
         int requireTargetCultureRoute,
         int selectedOrdinal)
     {
-        if (requireTargetCultureRoute == 0)
-        {
-            return KernelQuery.EvaluateSharedQuery(world, query, binding, selectedOrdinal);
-        }
-
         if (simulation is null)
         {
-            return new QueryEvaluation(0, 0);
+            return requireTargetCultureRoute == 0
+                ? KernelQuery.EvaluateSharedQuery(
+                    world,
+                    query,
+                    binding,
+                    selectedOrdinal)
+                : new QueryEvaluation(0, 0);
         }
 
-        var queryValue = query;
-        var bindingValue = binding;
         var count = 0;
         var selectedEntityId = 0;
-        KernelQuery.ForEachActiveEntity(
-            world,
-            entityId =>
+        for (var entityId =
+                 simulation.FirstPublishedEntityOfKind(query.KindId);
+             entityId > 0;
+             entityId =
+                 simulation.NextPublishedEntityOfKind(entityId))
+        {
+            if (!KernelQuery.SharedQueryMatchesCandidate(
+                    world,
+                    query,
+                    binding,
+                    entityId) ||
+                (requireTargetCultureRoute != 0 &&
+                 !SharedEntityMatchesTargetCultureRoute(
+                     simulation,
+                     binding.TargetId,
+                     entityId)))
             {
-                if (!KernelQuery.SharedQueryMatchesCandidate(world, queryValue, bindingValue, entityId) ||
-                    !SharedEntityMatchesTargetCultureRoute(simulation, bindingValue.TargetId, entityId))
-                {
-                    return true;
-                }
+                continue;
+            }
 
-                if (count == selectedOrdinal)
-                {
-                    selectedEntityId = entityId;
-                }
+            if (count == selectedOrdinal)
+            {
+                selectedEntityId = entityId;
+            }
 
-                count++;
-                return selectedEntityId == 0;
-            });
+            count++;
+            if (selectedEntityId > 0)
+            {
+                break;
+            }
+        }
+
         return new QueryEvaluation(count, selectedEntityId);
     }
 
@@ -337,7 +357,7 @@ internal sealed partial class GeneratorProgramRuntime
             createdRelationshipCount);
         if (selectedTargetOccurrenceHandle > 0)
         {
-            simulation.Chronicles.NoteGeneratorFire(
+            simulation.QueueChronicleGeneratorFire(
                 selectedTargetOccurrenceHandle,
                 simulation.Generators._generatorIds[slot]);
         }

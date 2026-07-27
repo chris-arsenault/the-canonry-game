@@ -124,7 +124,11 @@ internal sealed partial class GeneratorProgramRuntime
             var anchorQ = features.AnchorQ(index);
             var anchorR = features.AnchorR(index);
             if (!world.CellIsKnown(PlaneCodes.Physical, anchorQ, anchorR) ||
-                !PlacementCellIsFree(world, PlaneCodes.Physical, anchorQ, anchorR) ||
+                !PlacementCellIsFree(
+                    simulation,
+                    PlaneCodes.Physical,
+                    anchorQ,
+                    anchorR) ||
                 !PlacementTerrainIsAllowed(simulation, PlaneCodes.Physical, producedSlot, movementProfileId, anchorQ, anchorR))
             {
                 continue;

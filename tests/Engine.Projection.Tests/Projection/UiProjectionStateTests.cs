@@ -222,6 +222,7 @@ public sealed class UiProjectionStateTests
         Assert.True(log.TryWrite(MinorActorAssignedEvent()));
         Assert.True(log.TryWrite(MinorActorMovedEvent()));
         Assert.True(log.TryWrite(MinorActorWorkedEvent()));
+        WriteWatermarkAdvanced(log, tick: 7, worldVersion: 7);
 
         pump.DrainAvailable();
 
@@ -477,7 +478,7 @@ public sealed class UiProjectionStateTests
         AssertBrowserInvalidation(projection, browserStructureVersion, browserRowVersion, 10);
         Assert.Equal(4, projection.EntityDetailVersion);
 
-        WriteVersionTestTickCompleted(log);
+        WriteVersionTestWatermarkAdvanced(log);
         pump.DrainAvailable();
 
         Assert.Equal(browserVersion, projection.EntityBrowserVersion);
@@ -619,11 +620,25 @@ public sealed class UiProjectionStateTests
             State: KernelEventState.Succeeded))));
     }
 
-    private static void WriteVersionTestTickCompleted(KernelEventLog log)
+    private static void WriteVersionTestWatermarkAdvanced(
+        KernelEventLog log)
     {
-        Assert.True(log.TryWrite(KernelEvent.From(new TickCompletedKernelEvent(
-            Tick: 5,
-            WorldVersion: 5))));
+        WriteWatermarkAdvanced(log, tick: 5, worldVersion: 5);
+    }
+
+    private static void WriteWatermarkAdvanced(
+        KernelEventLog log,
+        int tick,
+        long worldVersion)
+    {
+        Assert.True(log.TryWrite(KernelEvent.From(
+            new WatermarkAdvancedKernelEvent(
+            Tick: tick,
+            WorldVersion: worldVersion,
+            LowWatermark: tick,
+            HighWatermark: tick,
+            OwnerCount: 64,
+            PublicationRevision: tick))));
     }
 
     private static void WriteEntityCreated(

@@ -316,8 +316,13 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
     private bool IntentInvalidated(Simulation simulation, int entityId, int slot, int tick)
     {
-        var targetEntityId = State.TargetEntityId(entityId);
-        if (targetEntityId != 0 && !simulation.World.EntityIsActive(targetEntityId))
+        var targetOccurrenceHandle =
+            State.TargetEntityOccurrenceHandle(entityId);
+        var targetEntityId = 0;
+        if (targetOccurrenceHandle != 0 &&
+            !simulation.World.TryResolveEntityOccurrence(
+                targetOccurrenceHandle,
+                out targetEntityId))
         {
             return true;
         }
@@ -327,7 +332,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             return true;
         }
 
-        if (targetEntityId != 0 &&
+        if (targetOccurrenceHandle != 0 &&
             Data.TargetModeCode(slot) == TargetSelectorCodes.RelationshipTarget &&
             !HasTargetRelationship(simulation.World, entityId, targetEntityId, slot))
         {
@@ -339,7 +344,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
     private void ClearIntentAndPushRecent(Simulation simulation, int entityId, int tick)
     {
-        var key = ResolveActiveTargetKey(simulation.World, entityId);
+        var key = ResolveActiveTargetKey(entityId);
         if (key != 0L)
         {
             State.PushRecentTarget(entityId, key, tick);
@@ -348,7 +353,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
         State.ClearIntent(entityId);
     }
 
-    private long ResolveActiveTargetKey(WorldState world, int entityId)
+    private long ResolveActiveTargetKey(int entityId)
     {
         var slot = State.ActiveVerbSlot(entityId);
         if (slot == 0)
@@ -356,29 +361,20 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             return 0L;
         }
 
-        var targetEntityId = State.TargetEntityId(entityId);
-        if (targetEntityId != 0)
+        var targetOccurrenceHandle =
+            State.TargetEntityOccurrenceHandle(entityId);
+        if (targetOccurrenceHandle != 0)
         {
             return LowAltitudeVerbProgramState.PackEntityTargetKey(
-                world.EntityOccurrenceHandle(targetEntityId));
+                targetOccurrenceHandle);
         }
 
         var planeCode = State.TargetPlaneCode(entityId);
         return LowAltitudeVerbProgramState.PackCellTargetKey(planeCode, State.TargetQ(entityId), State.TargetR(entityId));
     }
 
-    internal void NoteEntityRetired(WorldState world, int entityId)
+    internal void NoteEntityRetired(int entityId)
     {
-        for (var activeEntityId = world.FirstActiveEntity();
-             activeEntityId > 0;
-             activeEntityId = world.NextActiveEntity(activeEntityId))
-        {
-            if (activeEntityId != entityId && State.TargetEntityId(activeEntityId) == entityId)
-            {
-                State.ClearIntent(activeEntityId);
-            }
-        }
-
         State.ClearEntitySlot(entityId);
     }
 
@@ -535,7 +531,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             entityId,
             selected.RuleSlot,
             selected.PlaneCode,
-            selected.TargetEntityId,
+            selected.TargetEntityId > 0
+                ? simulation.World.EntityOccurrenceHandle(
+                    selected.TargetEntityId)
+                : 0,
             selected.Q,
             selected.R,
             selected.S,

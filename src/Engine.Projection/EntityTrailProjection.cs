@@ -77,6 +77,8 @@ public sealed class EntityTrailProjection : KernelEventProjector
         Version++;
     }
 
-    protected override void OnTickCompleted(long sequence, in TickCompletedKernelEvent evt) =>
-        CurrentTick = evt.Tick;
+    protected override void OnWatermarkAdvanced(
+        long sequence,
+        in WatermarkAdvancedKernelEvent evt) =>
+        CurrentTick = evt.LowWatermark;
 }

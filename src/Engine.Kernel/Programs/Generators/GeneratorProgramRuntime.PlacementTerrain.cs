@@ -107,7 +107,7 @@ internal sealed partial class GeneratorProgramRuntime
         var world = simulation.World;
         return world.CellIsKnown(planeCode, q, r) &&
             world.GetCellCultureInfluenceRaw(producedCultureId, planeCode, q, r) < WorldState.CultureTraceRawMass &&
-            PlacementCellIsFree(world, planeCode, q, r) &&
+            PlacementCellIsFree(simulation, planeCode, q, r) &&
             PlacementCellAllowsCulture(simulation, planeCode, producedSlot, producedCultureId, q, r) &&
             PlacementTerrainIsAllowed(simulation, planeCode, producedSlot, movementProfileId, q, r);
     }
@@ -442,7 +442,7 @@ internal sealed partial class GeneratorProgramRuntime
         return distance == searchRadius &&
             distance >= minRadius &&
             distance <= maxRadius &&
-            PlacementCellIsFree(simulation.World, planeCode, q, r) &&
+            PlacementCellIsFree(simulation, planeCode, q, r) &&
             PlacementCellAllowsCulture(simulation, planeCode, producedSlot, producedCultureId, q, r) &&
             PlacementTerrainIsAllowed(simulation, planeCode, producedSlot, movementProfileId, q, r);
     }
@@ -515,16 +515,25 @@ internal sealed partial class GeneratorProgramRuntime
         return true;
     }
 
-    private bool PlacementCellIsFree(WorldState world, int planeCode, int q, int r)
+    private bool PlacementCellIsFree(
+        Simulation simulation,
+        int planeCode,
+        int q,
+        int r)
     {
         if (PendingPlacementOccupies(planeCode, q, r))
         {
             return false;
         }
 
+        var world = simulation.World;
         return planeCode == PlaneCodes.Physical
-            ? IsFreePhysical(world, q, r)
-            : SemanticCoordinateAllowed(world, q, r) && !KernelQuery.SemanticCellIsOccupied(world, q, r);
+            ? IsFreePhysical(simulation, q, r)
+            : SemanticCoordinateAllowed(world, q, r) &&
+                !simulation.PublishedCellIsOccupied(
+                    PlaneCodes.Semantic,
+                    q,
+                    r);
     }
 
     private bool PlacementTerrainIsAllowed(

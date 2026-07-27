@@ -70,8 +70,12 @@ internal sealed class UnpacedKernelDriver : IKernelDriver
         {
             while (!cancellationToken.IsCancellationRequested && Volatile.Read(ref _stopRequested) == 0)
             {
-                var options = new AdvanceOptions(_stopAt, cancellationToken);
-                var advanced = _kernel.AdvanceTicks(_batchSize, in options);
+                var start = _kernel.PublishedLowWatermark;
+                var advanced = _stopAt is null
+                    ? _kernel.ConvergeAt(
+                        checked(start + _batchSize),
+                        cancellationToken) - start
+                    : AdvanceWithStopPredicate(cancellationToken);
                 if (advanced < _batchSize)
                 {
                     break;
@@ -88,5 +92,16 @@ internal sealed class UnpacedKernelDriver : IKernelDriver
             Volatile.Write(ref _state, (int)DriverState.Stopped);
             completion.SetException(ex);
         }
+    }
+
+    private int AdvanceWithStopPredicate(
+        CancellationToken cancellationToken)
+    {
+        var options = new AdvanceOptions(
+            _stopAt,
+            cancellationToken);
+        var start = _kernel.PublishedLowWatermark;
+        _ = _kernel.AdvanceTicks(_batchSize, in options);
+        return _kernel.PublishedLowWatermark - start;
     }
 }

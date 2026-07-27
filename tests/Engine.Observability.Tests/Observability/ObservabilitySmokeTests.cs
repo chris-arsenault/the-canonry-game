@@ -27,7 +27,7 @@ public sealed class ObservabilitySmokeTests
             {
                 var advanced = host.Time.AdvanceSingleStep(1);
                 Assert.Equal(1, advanced);
-                logger.OnTickEnded(host.CurrentTick);
+                logger.OnTickEnded(host.PublishedLowWatermark);
             }
 
             var lines = File.ReadAllLines(logPath);
@@ -130,12 +130,15 @@ public sealed class ObservabilitySmokeTests
             host.Symbols,
             seed: 7100);
 
-        recorder.RecordSnapshots(host.CurrentTick);
+        recorder.RecordSnapshots(host.PublishedLowWatermark);
         for (var i = 0; i < 10; i++)
         {
             var advanced = host.Time.AdvanceSingleStep(1);
             Assert.Equal(1, advanced);
-            recorder.RecordSnapshots(host.CurrentTick, includeEntities: host.CurrentTick % 2 == 0);
+            recorder.RecordSnapshots(
+                host.PublishedLowWatermark,
+                includeEntities:
+                    host.PublishedLowWatermark % 2 == 0);
         }
 
         recorder.DrainAvailable();

@@ -166,7 +166,11 @@ internal sealed partial class WorldState
         in KernelExecutionContext context,
         bool provenanceOutputReserved)
     {
-        _entityAllocated[entityId] = true;
+        lock (_slotOwnerGates[SlotOwner(entityId)])
+        {
+            _entityAllocated[entityId] = true;
+            _entityReserved[entityId] = false;
+        }
         _entityStatus[entityId] = EntityStatusCodes.Active;
         _entityKindId[entityId] = kindId;
         _entitySubtypeId[entityId] = subtypeId;

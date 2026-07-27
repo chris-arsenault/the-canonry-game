@@ -21,8 +21,12 @@ internal sealed class SteppedKernelDriver : IKernelDriver, IDriverControl
         Volatile.Write(ref _state, (int)DriverState.Running);
         try
         {
-            var options = new AdvanceOptions(Cancel: cancellationToken);
-            return _kernel.AdvanceTicks(tickCount, in options);
+            var start = _kernel.PublishedLowWatermark;
+            var target = checked(start + tickCount);
+            var converged = _kernel.ConvergeAt(
+                target,
+                cancellationToken);
+            return Math.Max(0, converged - start);
         }
         finally
         {

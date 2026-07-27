@@ -8,7 +8,9 @@ public interface IKernelDriverTimeControl : IDisposable
 
     bool IsPaused { get; }
 
-    int CurrentTick { get; }
+    int PublishedLowWatermark { get; }
+
+    int PublishedHighWatermark { get; }
 
     void SetTickRate(double ticksPerSecond);
 
@@ -19,4 +21,6 @@ public interface IKernelDriverTimeControl : IDisposable
     void RequestSingleStep(int tickCount);
 
     int AdvanceSingleStep(int tickCount, CancellationToken cancellationToken = default);
+
+    int ConvergeAt(int tick, CancellationToken cancellationToken = default);
 }

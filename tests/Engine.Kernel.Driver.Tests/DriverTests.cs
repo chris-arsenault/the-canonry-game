@@ -170,6 +170,10 @@ public sealed class DriverTests
 
         public int CurrentTick => Volatile.Read(ref _currentTick);
 
+        public int PublishedLowWatermark => CurrentTick;
+
+        public int PublishedHighWatermark => CurrentTick;
+
         public long CurrentVersion => CurrentTick;
 
         public int AdvanceTicks(int count, in AdvanceOptions options = default)
@@ -189,6 +193,22 @@ public sealed class DriverTests
             }
 
             return advanced;
+        }
+
+        public int ConvergeAt(
+            int tick,
+            CancellationToken cancellationToken = default)
+        {
+            var current = CurrentTick;
+            if (tick <= current)
+            {
+                return current;
+            }
+
+            var options = new AdvanceOptions(
+                Cancel: cancellationToken);
+            _ = AdvanceTicks(tick - current, in options);
+            return CurrentTick;
         }
     }
 }

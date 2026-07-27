@@ -29,6 +29,40 @@ public sealed class KernelAdvanceTests
     }
 
     [Fact]
+    public void ConvergeAtPublishesAReconciledLowWatermark()
+    {
+        var simulation = new Simulation();
+
+        var converged = simulation.ConvergeAt(13);
+
+        Assert.Equal(13, converged);
+        Assert.Equal(13, simulation.PublishedLowWatermark);
+        Assert.Equal(13, simulation.PublishedHighWatermark);
+        Assert.Equal(13, simulation.CurrentTick);
+
+        using var cursor = simulation.Events.CreateCursor(
+            KernelEventCursorStart.EarliestAvailable);
+        var watermarks = new List<WatermarkAdvancedKernelEvent>();
+        while (simulation.Events.TryRead(cursor, out var sequenced))
+        {
+            if (sequenced.Event.EventType ==
+                KernelEventType.WatermarkAdvanced)
+            {
+                watermarks.Add(
+                    sequenced.Event.AsWatermarkAdvanced());
+            }
+        }
+
+        Assert.Equal([8, 13], watermarks.Select(
+            watermark => watermark.LowWatermark));
+        Assert.All(
+            watermarks,
+            watermark => Assert.Equal(
+                watermark.LowWatermark,
+                watermark.HighWatermark));
+    }
+
+    [Fact]
     public void AdvanceTicksRejectsNegativeCount()
     {
         var simulation = new Simulation();
