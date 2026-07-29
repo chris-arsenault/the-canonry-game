@@ -340,9 +340,14 @@ internal sealed class CultureLocality
         totalRaw = 0;
         foreignCultureId = 0;
         foreignRaw = 0;
+        if (!world.TryGetCellId(planeCode, q, r, z: 0, out var cellId))
+        {
+            return;
+        }
+
         for (var otherCultureId = 1; otherCultureId <= world.CultureHighWatermark; otherCultureId++)
         {
-            var raw = world.GetCellCultureInfluenceRaw(otherCultureId, planeCode, q, r);
+            var raw = world.GetCellCultureInfluenceRawAtCell(otherCultureId, cellId);
             totalRaw += raw;
             if (otherCultureId == cultureId)
             {

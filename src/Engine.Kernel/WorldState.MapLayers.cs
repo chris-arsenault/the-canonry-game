@@ -61,24 +61,31 @@ internal sealed partial class WorldState
 
     public bool CellIsKnown(int planeCode, int q, int r, int z)
     {
+        return TryGetKnownCellId(planeCode, q, r, z, out _);
+    }
+
+    internal bool TryGetKnownCellId(int planeCode, int q, int r, int z, out int cellId)
+    {
         ValidateInfluencePlaneCode(planeCode);
+        cellId = 0;
         if (planeCode == PlaneCodes.Semantic)
         {
             // Idea-space grows like the physical map: a semantic cell is known
             // only once it has been materialized (seeded heart or opened by the
             // frontier). Un-opened idea-space is genuine fog.
             return z == 0 &&
-                TryGetCellId(planeCode, q, r, z, out var semanticCellId) &&
-                _mapCellKnown[semanticCellId];
+                TryGetCellId(planeCode, q, r, z, out cellId) &&
+                _mapCellKnown[cellId];
         }
 
         if (z is < MinCellZ or > MaxCellZ)
         {
+            cellId = 0;
             return false;
         }
 
-        return TryGetCellId(planeCode, q, r, z, out var physicalCellId) &&
-            _mapCellKnown[physicalCellId];
+        return TryGetCellId(planeCode, q, r, z, out cellId) &&
+            _mapCellKnown[cellId];
     }
 
     public int CellTerrainId(int q, int r) => CellTerrainId(PlaneCodes.Physical, q, r);
@@ -93,6 +100,12 @@ internal sealed partial class WorldState
             return 1;
         }
 
+        return TerrainIdAtCell(planeCode, cellId, z);
+    }
+
+    internal int TerrainIdAtCell(int planeCode, int cellId, int z)
+    {
+        ValidateInfluencePlaneCode(planeCode);
         if (planeCode == PlaneCodes.Physical && z == 0)
         {
             var coverTerrainId = _mapCellTerrainCoverIds[cellId];
@@ -653,6 +666,12 @@ internal sealed partial class WorldState
         return TryGetCellId(planeCode, q, r, z, out var cellId)
             ? PositiveCultureInfluenceRaw(cultureId, cellId)
             : 0;
+    }
+
+    internal FixedScalar GetCellCultureInfluenceRawAtCell(int cultureId, int cellId)
+    {
+        ValidatePositive(cultureId);
+        return PositiveCultureInfluenceRaw(cultureId, cellId);
     }
 
     internal int GetCellCultureInfluenceRawUnits(int cultureId, int planeCode, int q, int r, int z)

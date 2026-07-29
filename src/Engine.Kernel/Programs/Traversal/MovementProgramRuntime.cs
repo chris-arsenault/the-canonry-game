@@ -147,6 +147,7 @@ internal sealed partial class MovementProgramRuntime :
                 q,
                 r,
                 out _,
+                out _,
                 out _);
     }
 
@@ -439,7 +440,15 @@ internal sealed partial class MovementProgramRuntime :
                 false, FixedScalar.PositiveInfinity, planeCode, fromQ, fromR, fromS, fromQ, fromR, fromS, MovementCauseCodes.Travel);
         }
 
-        return StepUnchecked(simulation, entityId, planeCode, nextQ, nextR, tick, MovementCauseCodes.Travel);
+        return StepUnchecked(
+            simulation,
+            entityId,
+            planeCode,
+            nextQ,
+            nextR,
+            CurrentZ(world, entityId, planeCode),
+            tick,
+            MovementCauseCodes.Travel);
     }
 
     public MovementMoveResult Wander(
@@ -551,6 +560,7 @@ internal sealed partial class MovementProgramRuntime :
         int planeCode,
         int q,
         int r,
+        int z,
         int tick,
         int causeCode)
     {
@@ -562,7 +572,15 @@ internal sealed partial class MovementProgramRuntime :
         }
 
         ValidateCauseCode(causeCode);
-        return StepUnchecked(simulation, entityId, planeCode, q, r, tick, causeCode);
+        return StepUnchecked(
+            simulation,
+            entityId,
+            planeCode,
+            q,
+            r,
+            z,
+            tick,
+            causeCode);
     }
 
     private MovementMoveResult StepUnchecked(
@@ -571,6 +589,7 @@ internal sealed partial class MovementProgramRuntime :
         int planeCode,
         int q,
         int r,
+        int z,
         int tick,
         int causeCode)
     {
@@ -581,28 +600,17 @@ internal sealed partial class MovementProgramRuntime :
             stepCost *= _ageStepRateMultiplier;
         }
 
-        return StepUnchecked(simulation, entityId, planeCode, q, r, tick, causeCode, stepCost);
-    }
-
-    private MovementMoveResult StepUnchecked(
-        Simulation simulation,
-        int entityId,
-        int planeCode,
-        int q,
-        int r,
-        int tick,
-        int causeCode,
-        FixedScalar stepCost) =>
-        StepUnchecked(
+        return StepUnchecked(
             simulation,
             entityId,
             planeCode,
             q,
             r,
-            CurrentZ(simulation.World, entityId, planeCode),
+            z,
             tick,
             causeCode,
             stepCost);
+    }
 
     private MovementMoveResult StepUnchecked(
         Simulation simulation,
@@ -657,12 +665,14 @@ internal sealed partial class MovementProgramRuntime :
             (planeCode == PlaneCodes.Semantic && fromS != toS);
         if (simulation.IsCollectingDeltas)
         {
-            if (moved)
-            {
-                _ = simulation.TryQueueMovement(entityId, planeCode, q, r, z, causeCode);
-            }
-
-            return moved;
+            return moved &&
+                simulation.TryQueueMovement(
+                    entityId,
+                    planeCode,
+                    q,
+                    r,
+                    z,
+                    causeCode);
         }
 
         if (planeCode == PlaneCodes.Physical)
@@ -915,6 +925,11 @@ internal sealed partial class MovementProgramRuntime :
             return false;
         }
 
+        if (!simulation.World.CellIsKnown(planeCode, q, r, z))
+        {
+            return false;
+        }
+
         if (causeCode != MovementCauseCodes.Travel)
         {
             return true;
@@ -971,12 +986,18 @@ internal sealed partial class MovementProgramRuntime :
                 q,
                 r,
                 out var baseCost,
-                out var terrainId))
+                out var terrainId,
+                out var cellId))
         {
             return FixedScalar.PositiveInfinity;
         }
 
-        var normalizedRoadQuality = Clamp01(RoadQuality(planeCode, q, r, tick) / 100);
+        var normalizedRoadQuality = Clamp01(
+            State.RoadQuality(
+                cellId,
+                tick,
+                Data.RoadDecayPerTick,
+                decayCadenceTicks: 1) / 100);
         var roadSpeed = 1 + ((simulation.KernelData.Terrain.RoadSpeedMultiplier(terrainId) - 1) * normalizedRoadQuality);
         return baseCost / roadSpeed;
     }
@@ -996,6 +1017,7 @@ internal sealed partial class MovementProgramRuntime :
             q,
             r,
             out var baseCost,
+            out _,
             out _)
             ? baseCost
             : 0;
@@ -1009,16 +1031,17 @@ internal sealed partial class MovementProgramRuntime :
         int q,
         int r,
         out FixedScalar baseCost,
-        out int terrainId)
+        out int terrainId,
+        out int cellId)
     {
         baseCost = 0;
         terrainId = 0;
-        if (!world.CellIsKnown(planeCode, q, r))
+        if (!world.TryGetKnownCellId(planeCode, q, r, z: 0, out cellId))
         {
             return false;
         }
 
-        terrainId = world.CellTerrainId(planeCode, q, r);
+        terrainId = world.TerrainIdAtCell(planeCode, cellId, z: 0);
         var terrainCost = simulation.KernelData.Terrain.TravelCost(terrainId, movementProfileId);
         if (terrainCost > 0 && planeCode == PlaneCodes.Physical && Data.RoughnessCostWeight > 0)
         {
@@ -1030,7 +1053,7 @@ internal sealed partial class MovementProgramRuntime :
         }
 
         var structureCost = Data.TravelStructureCost(
-            TravelStructureId(planeCode, q, r),
+            State.TravelStructureId(cellId),
             planeCode,
             movementProfileId);
         baseCost = SelectSurfaceBaseCost(terrainCost, structureCost);

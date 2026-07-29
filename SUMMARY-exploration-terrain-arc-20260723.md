@@ -118,8 +118,7 @@ Completed working plans deleted (CULTURE-THAW-PLAN, EXPLORATION-CONTENT-PLAN;
 TERRAIN-CONTENT-PLAN moved to docs/analysis as the audit record). Superseded
 HANDOFF-knowledge-system removed. Point-in-time notes moved to docs/analysis
 with dates: road-problem findings, gambit-frequency tuning notes, cultural
-cohesion audit, content-design thesis. Left in place as live/other-stream:
-HANDOFF-lifetime-capacity, TRACKING-authored-content-prep-cleanup (fog UI
-presentation still open), TRACKING-culture-identity, TRACKING-hpa-architecture,
-TRACKING-name-forge-subkind-coverage, TRACKING-narrative-quality,
-TRACKING-nexus-and-agency.
+cohesion audit, content-design thesis. At the time, live/other-stream tracking
+included authored-content prep, culture identity, HPA routing, Name Forge
+coverage, narrative quality, and nexus/agency. Later performance and
+fixed-capacity work superseded the lifetime-capacity and HPA trackers.

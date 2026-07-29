@@ -125,7 +125,7 @@ occurrence-owned direct rows.
 Runtime map coordinates have stable dense cell IDs. Terrain, occupancy,
 coverage, roads, travel memory, culture totals, and culture influence use direct
 cell-backed storage with active/dirty indexes. Culture influence rows disappear
-from active work when their mass reaches zero. Snapshot format `53` stores only
+from active work when their mass reaches zero. Snapshot format `55` stores only
 live state, handle-generation metadata, and the phase revision. It
 rebuilds derived indexes, free lists, due queues, and route caches after load
 and does not retain sequential RNG state.
@@ -239,7 +239,9 @@ programs:
 - `Movement`: route planning, movement execution, road quality, and travel
   structures.
 - `Locality`: direct current terrain capacity, occupancy, crowding, support,
-  threat, and attractor queries at the bounded point of use.
+  threat, and attractor queries at the bounded point of use. One last-entity
+  result per worker may be reused only while phase revision, world version,
+  entity slot, and occurrence handle still match.
 - `CultureLocality`: direct radius-two culture mass, share, foreign pressure,
   local connection, cell-kind, hole, and strength facts, cached with exact
   radius-two invalidation when source culture mass changes.

@@ -401,7 +401,10 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
 
         var sourceQ = world.EntityPhysicalQ(sourceId);
         var sourceR = world.EntityPhysicalR(sourceId);
-        if (world.EntityPhysicalQ(entityId) != sourceQ || world.EntityPhysicalR(entityId) != sourceR)
+        var sourceZ = world.EntityPhysicalZ(sourceId);
+        if (world.EntityPhysicalQ(entityId) != sourceQ ||
+            world.EntityPhysicalR(entityId) != sourceR ||
+            world.EntityPhysicalZ(entityId) != sourceZ)
         {
             simulation.Movement.Place(
                 simulation,
@@ -409,6 +412,7 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
                 PlaneCodes.Physical,
                 sourceQ,
                 sourceR,
+                sourceZ,
                 tick,
                 MovementCauseCodes.Follow);
         }
@@ -889,7 +893,15 @@ internal sealed partial class LowAltitudeVerbProgramRuntime :
             return;
         }
 
-        simulation.Movement.Place(simulation, entityId, PlaneCodes.Physical, q, r, tick, MovementCauseCodes.Relocation);
+        simulation.Movement.Place(
+            simulation,
+            entityId,
+            PlaneCodes.Physical,
+            q,
+            r,
+            z: 0,
+            tick,
+            MovementCauseCodes.Relocation);
     }
 
     private static int CellRandomAttempt(int q, int r)

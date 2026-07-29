@@ -39,6 +39,7 @@ internal static class KernelEffectExecutor
         int entityId,
         int q,
         int r,
+        int z,
         int causeCode = MovementCauseCodes.Placement)
     {
         if (causeCode == MovementCauseCodes.Travel)
@@ -47,7 +48,15 @@ internal static class KernelEffectExecutor
             return;
         }
 
-        simulation.Movement.Place(simulation, entityId, PlaneCodes.Physical, q, r, simulation.CurrentTick, causeCode);
+        simulation.Movement.Place(
+            simulation,
+            entityId,
+            PlaneCodes.Physical,
+            q,
+            r,
+            z,
+            simulation.CurrentTick,
+            causeCode);
     }
 
     public static void MoveSemantic(
@@ -65,7 +74,15 @@ internal static class KernelEffectExecutor
             return;
         }
 
-        simulation.Movement.Place(simulation, entityId, PlaneCodes.Semantic, q, r, simulation.CurrentTick, causeCode);
+        simulation.Movement.Place(
+            simulation,
+            entityId,
+            PlaneCodes.Semantic,
+            q,
+            r,
+            z: 0,
+            simulation.CurrentTick,
+            causeCode);
     }
 
     public static void SetCellState(Simulation simulation, int q, int r, int terrainId, int ownerEntityId) =>

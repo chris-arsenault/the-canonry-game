@@ -185,7 +185,6 @@ internal sealed partial class LowAltitudeVerbProgramRuntime
                 var q = actorQ + dq;
                 var r = actorR + dr;
                 if ((q == actorQ && r == actorR) ||
-                    !CellTargetCoordinateAllowed(simulation.World, planeCode, q, r) ||
                     !simulation.Movement.CanEnter(simulation, planeCode, entityId, q, r) ||
                     !MovementTargetReachable(simulation, entityId, rule, planeCode, q, r, tick))
                 {

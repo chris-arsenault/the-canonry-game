@@ -533,8 +533,17 @@ public sealed class GambitProgramRuntimeTests
         var simulation = CreateSimulation(seed: 1);
         const int actorKindId = 1;
         const int targetKindId = 2;
+        simulation.World.SetMapRadius(2);
+        simulation.World.SetCell(0, 0, terrainId: 1);
         var actor = simulation.CreateEntity(actorKindId, 1, 1, 0, 0, 0, 0, 0, 0);
         var target = simulation.CreateEntity(targetKindId, 1, 1, 2, 0, 0, 0, 0, 0);
+        simulation.World.WriteForgedCell(
+            PlaneCodes.Physical,
+            q: 2,
+            r: 0,
+            z: 1,
+            terrainId: 1);
+        simulation.MoveEntityPhysicalUnchecked(target, q: 2, r: 0, z: 1, tick: 0);
 
         var gambit = simulation.Gambits.RegisterGambit(
             actorKindId,
@@ -550,6 +559,7 @@ public sealed class GambitProgramRuntimeTests
 
         Assert.Equal(simulation.World.EntityPhysicalQ(actor), simulation.World.EntityPhysicalQ(target));
         Assert.Equal(simulation.World.EntityPhysicalR(actor), simulation.World.EntityPhysicalR(target));
+        Assert.Equal(simulation.World.EntityPhysicalZ(actor), simulation.World.EntityPhysicalZ(target));
     }
 
     [Fact]

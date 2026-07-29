@@ -114,6 +114,7 @@ internal sealed partial class GambitProgramRuntime
                     entityId,
                     world.EntityPhysicalQ(entityId) + _stepA[step],
                     world.EntityPhysicalR(entityId) + _stepB[step],
+                    world.EntityPhysicalZ(entityId),
                     MovementCauseCodes.Travel);
                 return true;
             case BehaviorOperationCodes.MoveSemantic:
@@ -143,6 +144,7 @@ internal sealed partial class GambitProgramRuntime
                     targetId,
                     world.EntityPhysicalQ(entityId),
                     world.EntityPhysicalR(entityId),
+                    world.EntityPhysicalZ(entityId),
                     MovementCauseCodes.Forced);
                 return true;
             default:

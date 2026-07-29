@@ -2,9 +2,9 @@
 
 Status: remaining cleanup before the second wave of authored content.
 
-Note: long-term HPA routing architecture is tracked separately in
-`TRACKING-hpa-architecture.md`. This file only tracks pre-authoring cleanup
-items that remain independent of that movement architecture design.
+Long-term movement routing and its performance evidence are recorded in
+`docs/performance.md`. This file only tracks pre-authoring cleanup items that
+remain independent of that movement architecture design.
 
 ## Remaining Items
 

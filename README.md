@@ -38,21 +38,25 @@ See [docs/architecture.md](docs/architecture.md) and
 ## Current Tick Programs
 
 ```text
+Movement
 LowAltitudeVerbs
-MapActivity
-MapSignals
+CultureFieldDecay
 Relationships
 Effects
-Upkeep
 Gambits
+ChronicleDirector
 Generators
+WorldBeats
+MapFrontier
+CultureSlots
+Knowledge
+MinorActors
 ```
 
 The removed low-altitude process deck and macro aggregate layer are not part of
-the current runtime. Gambits now execute opportunistically from shared
-query/effect/decision primitives instead of routing through planner
-infrastructure, and those primitives are also used by generators, traits, and
-low-altitude trait modifiers.
+the current runtime. Direct locality and culture-locality queries replace
+scheduled map activity/signal phases. The kernel has one tick clock; program
+cadences do not create sub-ticks or a second calendar.
 
 ## Commands
 
@@ -62,25 +66,13 @@ make build      # restore + release build
 make test       # run xunit tests
 make lint       # analyzer lint + format verification
 make clean      # remove .artifacts/
+make world      # generate a Release seed world
+make mc         # create a registered Monte Carlo evidence run
+make capture    # render a world through the canonical capture path
 ```
 
 `make test` runs the already-built Release test outputs. Use `make build`
 first after a clean checkout or after package cache cleanup.
-
-For targeted observability and Monte Carlo changes:
-
-```bash
-dotnet test tests/Engine.Observability.Tests/Engine.Observability.Tests.csproj -c Release
-dotnet test tests/MonteCarlo.Tests/MonteCarlo.Tests.csproj -c Release
-```
-
-The default test suite excludes the long Monte Carlo output-gap acceptance
-ledger. Run it explicitly when changing Monte Carlo parquet output contracts,
-including raw event tables or derived analysis parquet:
-
-```bash
-CANONRY_RUN_MONTE_CARLO_ACCEPTANCE=1 dotnet test tests/MonteCarlo.Tests/MonteCarlo.Tests.csproj -c Release
-```
 
 The output-gap ledger in
 `tests/MonteCarlo.Tests/Observability/MonteCarloOutputGapTests.cs` is the
@@ -106,6 +98,10 @@ To play in Godot:
 - [docs/game-systems.md](docs/game-systems.md): current system overview.
 - [docs/systems/simulation-principles.md](docs/systems/simulation-principles.md):
   durable simulation quality goals and analysis criteria.
+- [docs/performance.md](docs/performance.md): current performance baseline,
+  experiment outcomes, rejected strategies, and next evidence.
+- [docs/methodology/performance-testing.md](docs/methodology/performance-testing.md):
+  repeatable profiling and comparison procedure.
 - [docs/systems/06-entity-behaviors.md](docs/systems/06-entity-behaviors.md):
   current low-altitude verbs and gambits boundary.
 - [docs/systems/culture.md](docs/systems/culture.md): culture identity,

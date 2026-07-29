@@ -826,6 +826,7 @@ internal sealed partial class MovementProgramRuntime
             q,
             r,
             out terrainCost,
+            out _,
             out _);
     }
 

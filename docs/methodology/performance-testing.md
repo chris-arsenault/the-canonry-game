@@ -128,141 +128,19 @@ solely as a confidence ritual: use shorter exact-output comparisons and rerun
 100k only when a subsequent change affects the hotspot, memory-growth, or
 capacity conclusion that the long trace established.
 
-## Tick Budget
+## Recording Results
 
-For short pre-parallelization regression checks, the current kernel budget is at
-least 312.5 ticks/sec on the seed-9100, 5,000-tick, Release, simulation-only
-workload loaded from its pre-rendered world. Five current ticks perform the
-work formerly bundled into one measured advance: five minor-actor runs and one
-main-program run. Keep the separate accepted long-horizon target and memory
-gate from the master plan; this short gate prevents groundwork from quietly
-making the one-writer kernel slower.
+Every Monte Carlo evidence run must have a unique human-readable run id and be
+created through the registry workflow. Record important ad hoc findings with
+`append-stats`. Preserve rejected and host-contaminated runs with their
+rejection reason; never rename or silently substitute them.
 
-When evaluating the budget, profile the same workload the user cares about:
-simulation-only, simulation with trace events, simulation with Monte Carlo
-export, or the interactive app. Do not mix those numbers.
+Before comparing two results, confirm that seed, world artifact, source state,
+tick count, worker count, simulation count, telemetry/export mode, and profiler
+attachment match. Report individual measurements as well as paired means when
+host spread is material.
 
-## Batch A Owner-Ready Storage Baseline
-
-The Batch A regression screen uses seed 4200, the versioned pre-rendered world,
-5,000 ticks, Release mode, and `--simulation-only`. World loading occurs before
-the runner starts its elapsed-time stopwatch.
-
-Two registered before runs,
-`parallel-batch-a-before-1x5000-20260726a` and
-`parallel-batch-a-before-repeat-1x5000-20260726a`, averaged
-`15.620 ms/tick`. Two exact-final after runs,
-`parallel-batch-a-after-final-1x5000-20260726c` and
-`parallel-batch-a-after-final-repeat-1x5000-20260726a`, measured
-`15.742` and `14.956 ms/tick`, averaging `15.349 ms/tick`. This is a `1.73%`
-improvement (`1.018x`) across paired means.
-
-The after-run spread is larger than the mean improvement, so this evidence
-supports a no-regression conclusion, not a material speedup claim. Report the
-individual range with the paired mean when using these runs as the Batch B
-one-worker baseline. Command traces
-`parallel-batch-a-command-before-1x1000-20260726a` and
-`parallel-batch-a-command-after-1x1000-20260726a` show the empty locked command
-read moving from `1.68%` of sampled CPU to no named `TryRead` samples.
-
-## Batch B Worker-One Regression Gate
-
-Batch B uses the same seed-4200, pre-rendered-world, 5,000-tick, Release,
-simulation-only contract as Batch A. Compare worker-one paired means before
-measuring any multi-worker speedup: persistent-worker infrastructure is not
-acceptable if its disabled/default topology slows the reference simulation.
-
-The first implementation failed that gate. Registered runs
-`parallel-batch-b-after-1x5000-20260726a` and
-`parallel-batch-b-after-repeat-1x5000-20260726a` measured `15.909` and
-`18.541 ms/tick`, averaging `17.225 ms/tick`. That was `12.2%` slower than
-Batch A's exact-final `15.349 ms/tick` mean. Investigation found worker one
-paying thread-local execution-context and scratch lookup plus block-arena
-bookkeeping on hot operations.
-
-Those runs are rejected implementation evidence, not the Batch B result. The
-worker-zero fast lane stays inside the common range and append infrastructure;
-it does not restore separate serial gameplay code. Exact-final registered runs
-`parallel-batch-b-after-fastpath-1x5000-20260726a` and
-`parallel-batch-b-after-fastpath-repeat-1x5000-20260726a` measured `14.887`
-and `15.110 ms/tick`, averaging `14.999 ms/tick`. That is `2.28%` faster
-(`1.023x`) than the Batch A mean. Use the exact-final pair as the Batch C
-worker-one baseline.
-
-## Batch C Typed-Owner Gate
-
-Batch C uses the same seed-4200, pre-rendered-world, 5,000-tick, Release,
-simulation-only contract. Preserve failed measurements in the registry; do not
-rename a slower run into a successful result after implementation changes.
-
-The first owner-reduction pair,
-`parallel-batch-c-after-owner-reduction-1x5000-20260726a` and
-`parallel-batch-c-after-owner-reduction-repeat-1x5000-20260726a`, measured
-`18.851` and `18.934 ms/tick`. Their `18.892 ms/tick` mean was `25.96%` slower
-than the Batch B mean and is rejected. A trace showed all delta resolution at
-only `2.41%` inclusive, which redirected the investigation toward unnecessary
-multi-pass orchestration and concurrency guards in read-heavy world queries.
-
-After direct one-worker resolution and direct culture-revision reads, registered
-run `parallel-batch-c-revision-read-fastpath-1x5000-20260726a` measured
-`15.531 ms/tick` (`64.388 ticks/sec`). This is inside Batch A's previously
-observed `14.956`-to-`15.742 ms/tick` host spread, but remains `3.55%` above the
-Batch B paired mean. Do not claim the worker-one gate has passed from this single
-clean run. Registered repeats
-`parallel-batch-c-revision-read-fastpath-repeat-1x5000-20260726a` and
-`parallel-batch-c-revision-read-fastpath-clean-repeat-1x5000-20260726a` are
-rejected because competing Roslyn/MSBuild processes appeared after launch.
-
-The internal four-worker run
-`parallel-batch-c-owner-reduction-4w-1x5000-20260726a` measured
-`23.908 ms/tick`, slower than worker one. It is negative architecture evidence:
-public worker wiring must remain closed until dispatch regions are coalesced and
-the complete worker-count matrix passes. Compare process-wide throughput, not
-worker-loop time, and record host-load rejection causes with `append-stats`.
-
-## Batch E Worker-Count Gate
-
-Batch E wired `MC_WORKERS` through every canonical Monte Carlo and kernel-profile
-target and used the seed-4200 pre-rendered world. Full kernel snapshots are
-byte-identical at 1, 2, 4, 8, and 16 workers in the durable epoch invariance
-test. This establishes determinism, not speed.
-
-The first 1,000-tick screen measured `7.849`, `11.555`, `13.105`, and
-`14.744 ms/tick` at 1, 2, 4, and 8 workers respectively. The corresponding
-registered run ids are:
-
-- `parallel-batch-e-screen-1w-1x1000-20260726a`;
-- `parallel-batch-e-screen-2w-1x1000-20260726a`;
-- `parallel-batch-e-screen-4w-1x1000-20260726a`; and
-- `parallel-batch-e-screen-8w-1x1000-20260726a`.
-
-Coalescing owner families into dependency-preserving batches and replacing
-shared culture revision/mass atomics with worker-local reduction improved the
-eight-worker short result to `13.071 ms/tick` in
-`parallel-batch-e-atomic-free-screen-8w-1x1000-20260726a`. It still delivered
-only `0.60x` the initial worker-one throughput instead of the required `4.5x`.
-An arena-padding experiment did not help and was reverted; its negative run is
-`parallel-batch-e-padded-arena-screen-8w-1x1000-20260726a`.
-
-The post-coalescing trace
-`parallel-batch-e-coalesced-profile-8w-1x1000-20260726a` puts owner batches at
-`0.70%` inclusive sampled thread time, delta resolution at `0.81%`,
-deterministic sorting at `0.39%`, and event publication at `1.05%`. Worker
-sleep/wake and joins dominate: `KernelWorker.Run` is `41.66%` exclusive, the
-two `Monitor.Wait` forms are `10.14%` and `5.28%` exclusive,
-`WaitForWorkers` is `3.95%` inclusive, and `KernelWorker.Start` is `1.17%`
-exclusive. Observed RSS was about `460 MB`.
-
-Cross-program local coalescing also failed the worker-one gate. Its registered
-5,000-tick pair averaged `15.260 ms/tick`, versus Batch D's
-`13.409 ms/tick` mean. Direct registration-order worker-one dispatch was
-restored through the same evaluators and reducers; the next registered run,
-`parallel-batch-e-worker1-restored-1x5000-20260726a`, measured
-`14.770 ms/tick` on a busier host and still did not establish a passing paired
-gate.
-
-The Batch E candidate is therefore rejected. Do not quote a 16-worker result:
-none was run. The 10,000-, 25,000-, and 100,000-tick escalations were also
-stopped as required. Any next parallel design must first reduce dispatch/join
-frequency or move a materially larger independent unit of work behind each
-boundary; adding workers to the current synchronous tick is not evidence-backed.
+The durable result and strategy ledger is
+[performance.md](../performance.md). Update that document when an experiment
+changes the accepted baseline, rejects an architecture, or changes the next
+strategy. Do not accumulate dated batch narratives in this methodology.

@@ -347,6 +347,12 @@ through a small set of definitive movement profiles rather than arbitrary
 per-kind pathing rules. A kind can define a default profile, and subtype or
 trait rules can refine it; culture does not override movement.
 
+Every admitted destination is an explicit `(plane, q, r, z)` known cell.
+Deferred movement returns success only when its typed movement delta is
+accepted, so admission and later application cannot disagree about a missing
+cell. Physical follow and forced placement preserve the intended vertical
+coordinate; semantic movement remains on `z = 0`.
+
 The movement planner uses hierarchical route planning over deterministic hex
 segments. It routes through 10-hex and 5-hex segment structure before refining
 to local cell steps near the actor and destination. Segment route cache entries
@@ -358,6 +364,8 @@ Roads are derived from travel. For route-cache purposes, road quality is
 reconciled on cadence into coarse marks such as none, low, and high. Small
 quality changes inside the same mark do not invalidate cached segment routes;
 only topology changes or reconciled road-mark changes advance route epochs.
+Hot traversal resolves a known cell once and reuses its dense ID for terrain,
+travel-structure, and road-quality reads.
 
 Travel structures are a separate map surface from terrain and roads. They are
 not entities and do not convert the underlying cell terrain. Domains declare

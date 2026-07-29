@@ -59,7 +59,8 @@ internal sealed partial class Simulation :
             new LocalityData(
                 options.TerrainIdCapacity,
                 options.KindIdCapacity,
-                options.RelationshipKindIdCapacity));
+                options.RelationshipKindIdCapacity),
+            options.Execution.WorkerCount);
         Effects = CreateEffectsRuntime(options);
         CultureSlots = CreateCultureSlotRuntime(options);
         Gambits = CreateGambitRuntime(options);
@@ -691,7 +692,15 @@ internal sealed partial class Simulation :
 
     internal void MoveEntityPhysical(int entityId, int q, int r, int tick)
     {
-        _ = Movement.Place(this, entityId, PlaneCodes.Physical, q, r, tick, MovementCauseCodes.Forced);
+        _ = Movement.Place(
+            this,
+            entityId,
+            PlaneCodes.Physical,
+            q,
+            r,
+            World.EntityPhysicalZ(entityId),
+            tick,
+            MovementCauseCodes.Forced);
     }
 
     internal MovementMoveResult MoveEntityPhysical(int entityId, int q, int r, int tick, int causeCode)
@@ -701,7 +710,15 @@ internal sealed partial class Simulation :
             return Movement.Navigate(this, entityId, PlaneCodes.Physical, q, r, tick);
         }
 
-        return Movement.Place(this, entityId, PlaneCodes.Physical, q, r, tick, causeCode);
+        return Movement.Place(
+            this,
+            entityId,
+            PlaneCodes.Physical,
+            q,
+            r,
+            World.EntityPhysicalZ(entityId),
+            tick,
+            causeCode);
     }
 
 

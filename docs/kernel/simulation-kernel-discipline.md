@@ -265,8 +265,8 @@ selected when a simulation is constructed or loaded and are not persisted in
 kernel snapshots. Changing topology may alter work partitioning only; it may
 not add another simulation clock or change published state.
 
-Phase 9 measurement selected a typed-owner bulk-synchronous scheduler. Its
-ownership topology is:
+The implemented typed-owner bulk-synchronous scheduler has this ownership
+topology:
 
 - stable-ID ranges or bounded dynamic chunks for read-only evaluation;
 - entity owners for entity slots and entity-program state;
@@ -274,22 +274,21 @@ ownership topology is:
 - cell owners for terrain, culture, and other map-cell destinations; and
 - bounded typed messages whenever one operation affects more than one owner.
 
-The owner-ready storage batch established two concrete mutation boundaries:
+Two concrete storage mutation boundaries are:
 
 - entity slots own coordinates; the bounded spatial-membership index owns
   cell-to-entity chains; and
 - relationship slots own edge facts; the bounded relationship endpoint index
   owns incident adjacency, CSR rows, delta chains, and compaction.
 
-The persistent-worker batch established immutable entity/relationship ranges,
+The fixed-lifetime worker set uses immutable entity/relationship ranges,
 worker-local scratch and execution contexts, and bounded append arenas. Effects
 and relationship maintenance can evaluate ranges concurrently. Low-altitude
 verbs can do so when trace capture is disabled. Minor actors use the same range
-contract but remain one-range while actor indexes and encounters have shared
+contract but remain one range while actor indexes and encounters have shared
 ownership.
 
-The typed-owner batch routes the resulting deltas without a coordinator apply
-queue:
+Typed owners route the resulting deltas without a coordinator apply queue:
 
 - entity ranges own attributes, tags, movement coordinates, and influence
   production credits;
@@ -298,8 +297,8 @@ queue:
   reduction values; and
 - worker event arenas publish only after deterministic compaction and sort.
 
-The strategic-owner batch extends that topology without creating a second
-mutation model:
+Strategic intent epochs extend that topology without creating a second mutation
+model:
 
 - gambit actors evaluate over frozen entity ranges with worker-local scratch;
 - generator definitions score over disjoint worker ranges;
@@ -323,11 +322,10 @@ barrier guarantees they are immutable; they must not mutate through those read
 views. New cross-owner work must use the existing bounded typed routing and
 barriers, not locks, a global apply queue, or duplicate compatibility indexes.
 
-The ownership decision does not authorize parallelizing accidental work.
-Remaining terrain-integrated reach work must be removed through its separately
-approved gameplay design rather than preserved inside workers. Persistent
-geographic actors remain rejected; evaluation workers do not reopen that
-strategy.
+The ownership model does not authorize preserving accidental work merely to
+parallelize it. Remove redundant scans and queries before widening execution.
+Persistent geographic actors remain rejected as the universal scheduler;
+evaluation workers do not reopen that strategy.
 
 Geography is not the universal ownership key. It applies to cell/map storage
 only. Relationship and gambit interactions are too nonlocal, and geographic

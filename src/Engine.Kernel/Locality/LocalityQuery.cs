@@ -11,11 +11,16 @@ internal sealed class LocalityQuery
     private static readonly FixedScalar CultureMaturityCapacityScale = FixedScalar.FromUnits(400000L);
     private static readonly FixedScalar CultureSignalRawScale = WorldState.CultureClaimedRawMass;
     private static readonly FixedScalar ChronicleAttractorScale = 2;
+    private readonly EntityLocalityCache[] _entityCachesByWorker;
+    private readonly bool _singleWorker;
 
-    public LocalityQuery(LocalityData data)
+    public LocalityQuery(LocalityData data, int workerCount = 1)
     {
         global::System.ArgumentNullException.ThrowIfNull(data);
+        NumericGuard.ThrowIfNegativeOrZero(workerCount);
         Data = data;
+        _singleWorker = workerCount == 1;
+        _entityCachesByWorker = new EntityLocalityCache[workerCount];
     }
 
     public LocalityData Data { get; }
@@ -78,6 +83,17 @@ internal sealed class LocalityQuery
 
     public LocalityPressure EntityPressure(Simulation simulation, int entityId, int planeCode)
     {
+        ref var cache = ref EntityCacheFor(simulation, entityId);
+        if (planeCode == PlaneCodes.Physical && cache.HasPhysicalPressure)
+        {
+            return cache.PhysicalPressure;
+        }
+
+        if (planeCode == PlaneCodes.Semantic && cache.HasSemanticPressure)
+        {
+            return cache.SemanticPressure;
+        }
+
         var world = simulation.World;
         var q = CurrentQ(world, entityId, planeCode);
         var r = CurrentR(world, entityId, planeCode);
@@ -96,9 +112,21 @@ internal sealed class LocalityQuery
         }
 
         RelationshipLocalityFor(world, entityId, out var relationshipSupport, out var relationshipThreat);
-        return new LocalityPressure(
+        var pressure = new LocalityPressure(
             support + relationshipSupport,
             threat + relationshipThreat);
+        if (planeCode == PlaneCodes.Physical)
+        {
+            cache.PhysicalPressure = pressure;
+            cache.HasPhysicalPressure = true;
+        }
+        else
+        {
+            cache.SemanticPressure = pressure;
+            cache.HasSemanticPressure = true;
+        }
+
+        return pressure;
     }
 
     public FixedScalar EntitySupport(Simulation simulation, int entityId, int planeCode) =>
@@ -109,14 +137,37 @@ internal sealed class LocalityQuery
 
     public LocalityCrowding EntityCrowding(Simulation simulation, int entityId, int planeCode)
     {
+        ref var cache = ref EntityCacheFor(simulation, entityId);
+        if (planeCode == PlaneCodes.Physical && cache.HasPhysicalCrowding)
+        {
+            return cache.PhysicalCrowding;
+        }
+
+        if (planeCode == PlaneCodes.Semantic && cache.HasSemanticCrowding)
+        {
+            return cache.SemanticCrowding;
+        }
+
         var world = simulation.World;
         var q = CurrentQ(world, entityId, planeCode);
         var r = CurrentR(world, entityId, planeCode);
         var occupancy = LocalOccupancy(world, planeCode, q, r, Data.CrowdingRadius);
         var capacity = EntityCapacity(simulation, entityId, planeCode);
-        return new LocalityCrowding(
+        var crowding = new LocalityCrowding(
             CrowdingLoad(occupancy, capacity),
             CrowdingComfort(occupancy, capacity));
+        if (planeCode == PlaneCodes.Physical)
+        {
+            cache.PhysicalCrowding = crowding;
+            cache.HasPhysicalCrowding = true;
+        }
+        else
+        {
+            cache.SemanticCrowding = crowding;
+            cache.HasSemanticCrowding = true;
+        }
+
+        return crowding;
     }
 
     public FixedScalar EntityCrowdingLoad(Simulation simulation, int entityId, int planeCode) =>
@@ -412,6 +463,44 @@ internal sealed class LocalityQuery
         }
 
         return value > 1 ? 1 : value;
+    }
+
+    private ref EntityLocalityCache EntityCacheFor(Simulation simulation, int entityId)
+    {
+        var workerIndex = _singleWorker ? 0 : KernelWorkerThread.WorkerIndex;
+        ref var cache = ref _entityCachesByWorker[workerIndex];
+        var occurrenceHandle = simulation.World.EntityOccurrenceHandle(entityId);
+        if (cache.PhaseRevision != simulation.PhaseRevision ||
+            cache.WorldVersion != simulation.WorldVersion ||
+            cache.EntityId != entityId ||
+            cache.OccurrenceHandle != occurrenceHandle)
+        {
+            cache = new EntityLocalityCache
+            {
+                PhaseRevision = simulation.PhaseRevision,
+                WorldVersion = simulation.WorldVersion,
+                EntityId = entityId,
+                OccurrenceHandle = occurrenceHandle,
+            };
+        }
+
+        return ref cache;
+    }
+
+    private struct EntityLocalityCache
+    {
+        internal long PhaseRevision;
+        internal long WorldVersion;
+        internal int EntityId;
+        internal int OccurrenceHandle;
+        internal bool HasPhysicalPressure;
+        internal bool HasSemanticPressure;
+        internal bool HasPhysicalCrowding;
+        internal bool HasSemanticCrowding;
+        internal LocalityPressure PhysicalPressure;
+        internal LocalityPressure SemanticPressure;
+        internal LocalityCrowding PhysicalCrowding;
+        internal LocalityCrowding SemanticCrowding;
     }
 }
 

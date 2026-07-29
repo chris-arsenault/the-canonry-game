@@ -78,6 +78,13 @@ public sealed class RelationshipProgramRuntimeTests
         var simulation = CreateSimulation();
         var source = simulation.CreateEntity(1, 1, cultureId: 1, physicalQ: -1, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
         var target = simulation.CreateEntity(2, 1, cultureId: 1, physicalQ: 2, physicalR: 0, semanticQ: 0, semanticR: 0, semanticS: 0, tick: 0);
+        simulation.World.WriteForgedCell(
+            PlaneCodes.Physical,
+            q: -1,
+            r: 0,
+            z: 1,
+            terrainId: 1);
+        simulation.MoveEntityPhysicalUnchecked(source, q: -1, r: 0, z: 1, tick: 0);
         simulation.Relationships.RegisterRelationshipKind(9, cullThreshold: FixedScalar.FromSingle(0.05f), targetFollowsSourcePhysical: true);
         simulation.CreateRelationship(9, (int)RelationshipPolarity.Neutral, source, target, FixedScalar.FromSingle(0.5f), tick: 0);
 
@@ -85,6 +92,7 @@ public sealed class RelationshipProgramRuntimeTests
 
         Assert.Equal(simulation.World.EntityPhysicalQ(source), simulation.World.EntityPhysicalQ(target));
         Assert.Equal(simulation.World.EntityPhysicalR(source), simulation.World.EntityPhysicalR(target));
+        Assert.Equal(simulation.World.EntityPhysicalZ(source), simulation.World.EntityPhysicalZ(target));
     }
 
     [Fact]

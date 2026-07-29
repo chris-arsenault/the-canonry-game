@@ -34,7 +34,8 @@ internal sealed partial class Simulation
         int z,
         int causeCode)
     {
-        if (!_collectingDeltas)
+        if (!_collectingDeltas ||
+            !World.CellIsKnown(planeCode, q, r, z))
         {
             return false;
         }

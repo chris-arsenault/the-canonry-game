@@ -8,9 +8,12 @@ mutation happens inside `Simulation.AdvanceTicks`.
 There is one simulation clock. Systems do not own separate clocks; they register
 a cadence and run when the current tick matches that cadence.
 
-Within a tick, program order is strict. Earlier same-tick writes are visible to
-later programs. Direct locality queries read current bounded world state and
-are not separate scheduled phases.
+Within a tick, program order is strict. Local programs evaluate against the
+same frozen tick view and publish through deterministic reduction; one local
+evaluator cannot observe another evaluator's in-progress delta. Strategic
+programs run afterward in registration order and can observe the state already
+published by earlier phases or strategic programs. Direct locality queries read
+the current bounded view and are not separate scheduled phases.
 
 Speed control changes how quickly ticks are requested by the host or driver. It
 does not change the deterministic tick sequence.

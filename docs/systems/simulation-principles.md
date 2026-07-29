@@ -66,6 +66,27 @@ one-thread scheduler. Each completed command, preparation, evaluation,
 resolution, strategic, and publication phase emits the tick and phase revision
 so projections can distinguish published state from in-progress work.
 
+## Performance Discipline
+
+Performance work starts from a fixed real workload and a current CPU trace.
+Reduce repeated queries, scans, stale history, and unnecessary simulation work
+before adding execution machinery. Hot work should scale with live, due, dirty,
+or directly addressed state, and bounded memoization must be invalidated by the
+same publication or occurrence boundary as the facts it reuses.
+
+One worker is the production reference. Multi-worker determinism is a
+correctness property, not a throughput claim; a parallel strategy is accepted
+only when end-to-end elapsed time improves without slowing the reference path.
+Report fixed tick-window rates as well as aggregate throughput because
+later-world decline may be the actual constraint.
+
+Mechanical optimizations preserve the published simulation contract. A change
+to gameplay shape may trade exact behavior for broad or statistical
+equivalence, but it requires an explicit design and behavioral evidence rather
+than being hidden inside a performance refactor. Current measurements,
+rejected experiments, and strategy decisions live in
+[performance.md](../performance.md).
+
 ## Time Calibration
 
 The canonical time mapping is **50 ticks ≈ 1 in-world year**. Movement,

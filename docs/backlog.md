@@ -47,24 +47,6 @@ items and the verification debts owed before the next formal evidence run.
   semantic occupancy ≤15%, mortal share ≥20%) are provisional; re-judge
   against the next formal 3×100k.
 
-## Standing engine items
-
-- **Relationship history recycler** (`HANDOFF-lifetime-capacity.md`).
-  Relationship slots are lifetime totals; culled edges never recycle. R5
-  (2026-07-13) established eviction is safe. Now urgent-adjacent: provincial
-  fire windows raised creation ~2.6×, so 100k+ runs may approach the 65,536 cap.
-  Recycler deferred by owner decision (2026-07-24); lifetime totals are
-  measured as part of each formal run's scorecard, observation only.
-  Same shape, new instance (2026-07-24): gambit cooldown entries are
-  lifetime (entityId, gambitId) pairs with no eviction; 8192 overflowed at
-  tick ~80,883 in the first post-growth-stack 100k run (hard crash, not
-  degradation). Capacity raised to 65,536 as the stopgap; the eventual
-  recycler design should cover both stores. Cooldown occupancy joins the
-  scorecard's measured lifetime totals.
-- **Archival policy for the historical graph** (plan): active-population
-  work never deletes history; a separate design owns eventual archival at
-  the 2.5M-tick horizon.
-
 ## Verification debts (bundle into the next formal 3×100k, do not run it early)
 
 From the demography stack (slices 1–3, uncommitted as of 2026-07-24):

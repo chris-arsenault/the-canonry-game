@@ -12,63 +12,49 @@ outside kernel state.
 The controlling kernel rules live in
 [simulation-kernel-discipline.md](./kernel/simulation-kernel-discipline.md).
 
-The selected parallel architecture is a typed-owner bulk-synchronous scheduler,
-not a persistent geographic-actor model. Evaluation partitions by stable IDs
-or bounded work chunks; mutation partitions independently by entity,
-relationship, or cell storage owner. Geography is useful for cell/map state but
-is not the universal shard key: measured relationship and gambit traffic is too
-nonlocal and current geographic load is too skewed. The persistent evaluation
-workers, frozen range contract, typed-owner reduction, and partitioned event
-publication are implemented. Gambit and generator strategic ownership is also
-implemented. Multi-worker local evaluation and destination-owner application
-are coalesced, and worker count is wired through the host and Monte Carlo tools.
-One worker remains the default because the Batch E end-to-end scaling candidate
-failed its acceptance gate; nondefault worker counts are an evidence surface,
-not a production performance claim. Workers must not be used to preserve
-accidental superlinear candidate scans.
+The implemented ownership architecture is a typed-owner bulk-synchronous
+scheduler, not a persistent geographic-actor model. Read-only evaluation
+partitions by stable IDs or bounded work chunks; mutation partitions
+independently by entity, relationship, or cell storage owner. Geography owns
+cell/map state but is not a universal shard key because relationship and gambit
+traffic is nonlocal and geographic load is skewed.
 
-The first owner-ready storage batch is complete. Entity coordinates remain
-entity-owned while physical and semantic cell-membership chains have a bounded
-spatial-index owner. Relationship slots remain relationship-owned while
-incident adjacency, frozen CSR, delta chains, and graph compaction have a
-bounded endpoint-index owner. Typed deltas now route to those destinations
-without locks or duplicate compatibility state. Spatial membership, coverage
-reverse indexes, culture-row storage, relationship culling, and lifecycle
-retirement still reconcile on the coordinator where structural mutation crosses
-owners.
+Each simulation owns a bounded, fixed-lifetime worker set. Effects,
+relationship maintenance, and low-altitude verbs can evaluate disjoint frozen
+ranges into worker-local append arenas. Entity destinations own attributes,
+tags, movement coordinates, and influence credits; relationship destinations
+own strength; cell destinations own terrain, coverage, culture writes, and
+culture reductions. Primitive events are compacted, deterministically sorted,
+and published after the phase barrier.
 
-The evaluation-worker batch is also complete. Each simulation owns a bounded
-worker set that starts background threads lazily and reuses them until the host
-shuts down. Effects and relationship maintenance can evaluate disjoint frozen
-ranges concurrently. Low-altitude verbs can do so when trace capture is off.
-Minor actors already use the common range interface but remain one-range until
-their shared actor indexes and encounters receive typed ownership. Worker-local
-append arenas feed destination-owner reducers. Entity slots own attributes,
-tags, movement coordinates, and influence credits; relationship slots own
-strength; cells own terrain, coverage values, culture writes, and culture
-reductions. Primitive events use the same worker partitioning and are compacted,
-sorted, and published only after the phase barrier.
-
-Due multi-worker local range programs share one evaluation dispatch. Owner
-application groups compatible destinations into dependency-preserving batches:
-entity creation, spatial state, primary state, dependent secondary state, and
-final relationship/tag/entity state. Coordinator preparation and reconciliation
-remain between batches where later work depends on newly published structure.
-Worker-local culture revision and aggregate-mass counters publish after each
-owner batch. Worker one uses direct registration-order dispatch through the same
-range and owner implementations, preserving its lower-overhead reference path.
+Owner application groups compatible destinations into
+dependency-preserving batches: entity creation, spatial state, primary state,
+dependent secondary state, and final relationship/tag/entity state.
+Coordinator preparation and reconciliation remain where later work depends on
+newly published structure. Entity coordinates remain entity-owned while
+physical and semantic membership chains belong to the bounded spatial index.
+Relationship slots remain relationship-owned while endpoint adjacency, frozen
+CSR, delta chains, and compaction belong to the bounded graph index. Coverage
+reverse indexes, map extents, path topology, culture-row release, relationship
+culling, and lifecycle retirement reconcile explicitly when they cross owners.
 
 Gambits and generators use program-scoped strategic intent epochs. Gambit
-actors evaluate over frozen entity ranges with worker-local scratch, while
-generator definitions score over disjoint worker ranges. Selected work emits
-bounded typed intents instead of mutating live world state. The coordinator
-reserves entity and relationship IDs in deterministic blocks and prepares
-cross-owner storage; entity, relationship, cell, travel-structure, and event
-records then route to their typed owners. Spatial, graph, active-index,
-district, and other cross-owner structures reconcile after the owner barrier.
-Chronicles, world beats, map frontier, culture slots, and knowledge remain
-coordinator strategic programs because the measured Batch D scope did not
-identify them as material strategic mutation costs.
+actors evaluate over frozen entity ranges and generator definitions score over
+disjoint definition ranges. Selected work emits bounded typed intents instead
+of mutating live world state. The coordinator reserves entity and relationship
+IDs in deterministic blocks and prepares cross-owner storage; entity,
+relationship, cell, travel-structure, and event records then route to their
+typed owners. Spatial, graph, active-index, district, and other cross-owner
+structures reconcile after the owner barrier. Chronicles, world beats, map
+frontier, culture slots, and knowledge remain coordinator-owned strategic
+programs.
+
+One worker is the production reference. It uses direct registration-order
+dispatch through the same evaluators and reducers, avoiding thread wake/join
+and arena overhead. Nondefault worker counts remain a correctness and
+measurement surface because the current fine-grained multi-worker topology was
+slower end to end. The measurements and strategy decision are recorded in
+[performance.md](./performance.md).
 
 ## Project Topology
 
@@ -251,7 +237,10 @@ world state, not scheduled programs or materialized fields. `LowAltitudeVerbs`,
 where they act. Culture-locality queries use fixed-capacity, revision-stamped
 memoization for repeated reads of the same culture and cell; culture mutation
 invalidates entries by advancing the revision, without maintaining connected
-components or another source of truth.
+components or another source of truth. General locality additionally keeps one
+last-entity entry per worker for pressure and crowding. Its phase revision,
+world version, entity slot, and occurrence handle must all match, so reuse
+cannot cross a published mutation or slot lifetime.
 
 The kernel has one tick clock. Movement, verbs, relationships, effects,
 gambits, chronicles, generators, and minor actors each receive one opportunity

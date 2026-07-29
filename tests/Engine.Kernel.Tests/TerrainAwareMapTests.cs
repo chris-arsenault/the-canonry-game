@@ -98,6 +98,39 @@ public sealed class TerrainAwareMapTests
     }
 
     [Fact]
+    public void PlacementMovementRejectsUnknownDestinationWithoutMutation()
+    {
+        var simulation = KernelTestSimulation.Create();
+        const int terrainId = 1;
+        const int kindId = 1;
+        simulation.RegisterTerrain(terrainId, boundaryGroupId: 1);
+        simulation.World.SetMapRadius(1);
+        simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
+        var entityId = simulation.CreateEntity(
+            kindId,
+            subtypeId: 1,
+            cultureId: 1,
+            physicalQ: 0,
+            physicalR: 0,
+            semanticQ: 0,
+            semanticR: 0,
+            semanticS: 0,
+            tick: 0);
+
+        var result = simulation.MoveEntityPhysical(
+            entityId,
+            q: 2,
+            r: 0,
+            tick: 0,
+            MovementCauseCodes.Placement);
+
+        Assert.False(result.Moved);
+        Assert.Equal(0, simulation.World.EntityPhysicalQ(entityId));
+        Assert.Equal(0, simulation.World.EntityPhysicalR(entityId));
+        Assert.Equal(0, simulation.World.EntityPhysicalZ(entityId));
+    }
+
+    [Fact]
     public void WanderUsesEnterableNeighborsWithoutRoadAdjustedPacing()
     {
         var simulation = KernelTestSimulation.Create(new SimulationOptions { Seed = 11 });

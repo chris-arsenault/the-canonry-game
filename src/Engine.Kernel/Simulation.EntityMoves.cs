@@ -16,7 +16,15 @@ internal sealed partial class Simulation
 
     internal void MoveEntitySemantic(int entityId, int q, int r, int s, int tick)
     {
-        _ = Movement.Place(this, entityId, PlaneCodes.Semantic, q, r, tick, MovementCauseCodes.Forced);
+        _ = Movement.Place(
+            this,
+            entityId,
+            PlaneCodes.Semantic,
+            q,
+            r,
+            z: 0,
+            tick,
+            MovementCauseCodes.Forced);
         _ = s;
     }
 
@@ -28,6 +36,14 @@ internal sealed partial class Simulation
             return Movement.Navigate(this, entityId, PlaneCodes.Semantic, q, r, tick);
         }
 
-        return Movement.Place(this, entityId, PlaneCodes.Semantic, q, r, tick, causeCode);
+        return Movement.Place(
+            this,
+            entityId,
+            PlaneCodes.Semantic,
+            q,
+            r,
+            z: 0,
+            tick,
+            causeCode);
     }
 }
