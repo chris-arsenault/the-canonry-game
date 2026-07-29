@@ -114,6 +114,11 @@ watch items, carried until judged at 50k+):
 15. Late-window generators (`the_thaw_calls_the_bold`,
     `conduits_map_hidden_peaks`, `sanctuaries_anchor_colonies`) — first
     fires 32k–40k; zero at 25k is normal variance.
-16. Pre-existing slow-suite failure:
-    `IceRemembers_EntityCatalogCoversCanonicalKinds` fails on clean HEAD
-    (belongs to the in-flight worldgen rework, not this stack).
+16. Pre-existing slow-suite failures on clean HEAD (all belong to the
+    in-flight worldgen rework, not this stack):
+    `IceRemembers_EntityCatalogCoversCanonicalKinds`, and three
+    `IceRemembersSeedBuilderTests` terrain tests
+    (`Grid_UsesIceRemembersTerrainCatalog`,
+    `TerrainGeneration_DoesNotCollapseTheStartupHeartToOneTerrain`,
+    `SeedSubdivisions_GiveEveryContinentLandAndSeedTheHeartWithPlayableRegions`)
+    — verified identical on clean `18f7bfe4`, 2026-07-29.

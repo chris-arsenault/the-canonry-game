@@ -38,6 +38,23 @@ public static partial class IceRemembersDefinition
         [K.Canon] = GambitId.CanonCrownsTheHolding,
     };
 
+    // Local-mass gate scale per kind, anchored at each kind's measured
+    // late-run mass distribution (round-5 scorecard, seeds 9100-9102):
+    // deepen lands near p35 and crown near p50-p65, so the last rung binds
+    // on mass rather than cooldown pacing alone while staying reachable for
+    // a flourishing holding in its lifetime. Canon lives in a low-mass
+    // semantic niche where the base gate already shapes a healthy pyramid.
+    // The connected-mass gate stays an unscaled network floor.
+    private static float WorkTierGateScale(EntityKind kind)
+    {
+        if (kind == K.Settlement || kind == K.Faction || kind == K.Artifact)
+        {
+            return 15f;
+        }
+
+        return 1f;
+    }
+
     private static IEnumerable<GambitDefinition> CreateWorkTierGambits()
     {
         foreach (var entity in IceRemembersEntities.All)
@@ -109,7 +126,7 @@ public static partial class IceRemembersDefinition
                 tierGate,
                 new SelfCultureMassPrecondition(
                     NonMobilePrimaryPlane(entity.PrimaryPlane),
-                    CulturalWorkTierMinimumRawMass * massMultiplier,
+                    CulturalWorkTierMinimumRawMass * massMultiplier * WorkTierGateScale(entity.Kind),
                     CulturalWorkTierMinimumConnectedRawMass * connectedMultiplier),
                 new SelfAttributeThreshold(health, min: healthMinimum, max: null, behaviorRelevant: false)),
             scoreExpression: GambitScore(

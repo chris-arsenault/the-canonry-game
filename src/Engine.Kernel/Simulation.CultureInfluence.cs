@@ -161,6 +161,22 @@ internal sealed partial class Simulation
 
     internal FixedScalar ReduceOtherCultureSourcesAtCell(int ownCultureId, int planeCode, int q, int r, FixedScalar delta, int tick)
     {
+        // Contest is mass projection, not erosion: scrubbing is capped by the
+        // reducer's own connected presence at the cell, so fronts backed by
+        // real adjacent holdings contest at full strength while deep raids
+        // without local backing damp toward zero.
+        var projectionCap = CultureLocality.CellAt(World, ownCultureId, planeCode, q, r).ConnectedRawMass *
+            Options.KernelTuning.Programs.CultureField.ContestProjectionShare;
+        if (delta > projectionCap)
+        {
+            delta = projectionCap;
+        }
+
+        if (delta <= 0)
+        {
+            return 0;
+        }
+
         if (_collectingDeltas)
         {
             var deltaUnits = KernelFixedPoint.CultureMassUnits(delta);

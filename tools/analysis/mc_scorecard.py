@@ -5,6 +5,11 @@ Usage: python3 scorecard.py <run-dir> [<run-dir> ...]
 Each run-dir may be a completed run or a mid-run stream/ directory; tables
 are unioned across dirs. Sections whose tables are absent everywhere are
 skipped (streamed dirs lack the heavyweight event tables).
+
+Fixed window sizes (2500/5000 ticks) are sized for the post-unification
+20k-tick horizon: 8 fine / 4 coarse windows per run, stable numbering
+across mid-run scoring. Pre-unification runs (100k raw ticks) used
+12500/25000; divide old-record tick figures by 5 when comparing.
 """
 import os
 import sys
@@ -21,7 +26,7 @@ TABLES = {
     "ge": "gambit_events",
     "gen": "generator_events",
     "sym": "symbols",
-    "cci": "cell_culture_influence_events",
+    "cfs": "culture_field_cell_snapshots",
     "rel": "relationship_events",
     "move": "movement_events",
 }
@@ -92,8 +97,8 @@ GROUP BY 1, 2 ORDER BY 1, 2
 """)
 
 # --- 3. Artifact/POI net convergence ---------------------------------------
-q("3. Net creation-retirement per 12.5k window (artifact/POI)", f"""
-SELECT s.stable_name AS kind, e.run_id, (e.tick / 12500)::INT AS win,
+q("3. Net creation-retirement per 2.5k window (artifact/POI)", f"""
+SELECT s.stable_name AS kind, e.run_id, (e.tick / 2500)::INT AS win,
        SUM(CASE WHEN e.event_type_code = 1 THEN 1 ELSE 0 END) AS created,
        SUM(CASE WHEN e.event_type_code = 2 THEN 1 ELSE 0 END) AS retired
 FROM ee e JOIN sym s ON s.id = e.kind_id AND s.symbol_kind = 1
@@ -164,8 +169,8 @@ GROUP BY run_id ORDER BY run_id
 """)
 
 # --- 10. Provincial pulse tempo --------------------------------------------
-q("10. Generator fires per 12.5k window", """
-SELECT run_id, (tick / 12500)::INT AS win, count(*) AS fires
+q("10. Generator fires per 2.5k window", """
+SELECT run_id, (tick / 2500)::INT AS win, count(*) AS fires
 FROM gen WHERE event_type_code = 12 GROUP BY 1, 2 ORDER BY 1, 2
 """)
 
@@ -179,19 +184,31 @@ SELECT run_id, count(DISTINCT (actor_id, gambit_id)) AS cooldown_pairs
 FROM ge GROUP BY 1 ORDER BY 1
 """)
 
-# --- 17. Cultural mass income statement ------------------------------------
-q("17. Culture influence by source lane per 25k window (physical plane)", """
-SELECT s.stable_name AS source, (c.tick / 25000)::INT AS win,
-       ROUND(SUM(CASE WHEN c.delta > 0 THEN c.delta ELSE 0 END)) AS gains,
-       ROUND(SUM(CASE WHEN c.delta < 0 THEN c.delta ELSE 0 END)) AS losses,
-       ROUND(SUM(c.delta)) AS net
-FROM cci c JOIN sym s ON s.id = c.source_code_id AND s.symbol_kind = 6
-WHERE c.plane_code = 1
-GROUP BY 1, 2 ORDER BY 2, 1
+# --- 17. Cultural mass headline --------------------------------------------
+# Post-parallelization telemetry replaced per-event influence deltas with
+# periodic field snapshots; the per-source-lane income statement is no longer
+# recorded. The headline is judged from the snapshot mass trajectory instead.
+q("17. Total physical raw mass trajectory (field snapshots)", """
+SELECT run_id, tick, ROUND(SUM(raw_influence)) AS total_mass,
+       count(DISTINCT (q, r)) AS cells_with_mass
+FROM cfs WHERE plane_code = 1 AND tick % 2500 = 0
+GROUP BY 1, 2 ORDER BY 1, 2
 """)
-q("17b. Total physical raw mass trajectory", f"""
-SELECT run_id, (tick / 12500)::INT AS win, ROUND(SUM(delta)) AS net_mass_delta
-FROM cci WHERE plane_code = 1 GROUP BY 1, 2 ORDER BY 1, 2
+q("17b. Physical mass by culture at horizon", f"""
+SELECT run_id, culture_id, ROUND(SUM(raw_influence)) AS mass
+FROM cfs WHERE plane_code = 1 AND tick = {HORIZON}
+GROUP BY 1, 2 ORDER BY 1, 3 DESC
+""")
+q("17c. Culture concentration (top-culture mass share) per plane per 2.5k window", """
+WITH m AS (
+  SELECT run_id, plane_code, (tick / 2500)::INT AS win, culture_id,
+         SUM(raw_influence) AS mass
+  FROM cfs WHERE tick % 2500 = 0
+  GROUP BY 1, 2, 3, 4)
+SELECT run_id, plane_code, win,
+       ROUND(MAX(mass) / NULLIF(SUM(mass), 0), 2) AS top_share,
+       arg_max(culture_id, mass) AS top_culture
+FROM m GROUP BY 1, 2, 3 ORDER BY 1, 2, 3
 """)
 
 # --- 18. Stage pyramid (reconstructed from promotion/demotion ledger) ------
@@ -240,10 +257,10 @@ GROUP BY 1 ORDER BY execs DESC LIMIT 20
 """)
 
 # --- 7. Movement volume by kind --------------------------------------------
-q("7. Movement events per kind per 25k window", f"""
+q("7. Movement events per kind per 5k window", f"""
 WITH kinds AS (SELECT run_id, entity_id, min(kind_id) AS kind_id
                FROM ee WHERE event_type_code = 1 GROUP BY 1, 2)
-SELECT s.stable_name AS kind, (m.tick / 25000)::INT AS win, count(*) AS moves
+SELECT s.stable_name AS kind, (m.tick / 5000)::INT AS win, count(*) AS moves
 FROM move m
 JOIN kinds k ON k.run_id = m.run_id AND k.entity_id = m.entity_id
 JOIN sym s ON s.id = k.kind_id AND s.symbol_kind = 1

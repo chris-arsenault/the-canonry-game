@@ -119,7 +119,12 @@ internal sealed record CultureFieldTuningOptions
     // paid this decay bill is retired, and interior holding now comes from
     // stage emission and districts (docs/design/entity-stages.md).
     public FixedScalar DecayPerRun { get; init; } = FixedScalar.FromUnits(4000L);
-    public FixedScalar MinimumDecayPerRun { get; init; } = FixedScalar.FromUnits(600000L);
+    // The floor must sit below a base-stage settlement's ambient emission
+    // per decay run (town: 0.05/tick x 5 = 0.25), or survival itself is
+    // stage-gated and minority interiors evaporate into monoculture. 0.2
+    // lets a lone town hold its tile tenuously while unsustained trails
+    // still cull in bounded time.
+    public FixedScalar MinimumDecayPerRun { get; init; } = FixedScalar.FromUnits(200000L);
     public FixedScalar CullFloorRawMass { get; init; } = 1;
     public int DecayCadenceTicks { get; init; } = 5;
     public FixedScalar RemittanceShare { get; init; } = FixedScalar.FromUnits(500000L);
@@ -134,6 +139,14 @@ internal sealed record CultureFieldTuningOptions
 
     /// <summary>A rival needs at least this raw mass (and more than the local side) for a cell to count as contested.</summary>
     public FixedScalar ContestFloorRawMass { get; init; } = 4;
+
+    /// <summary>
+    /// Contest is mass projection, not erosion: per reduction, a culture can
+    /// scrub foreign influence only up to this share of its own connected
+    /// mass at the cell. Fronts with real adjacent holdings contest at full
+    /// strength; deep raids without local backing damp toward zero.
+    /// </summary>
+    public FixedScalar ContestProjectionShare { get; init; } = FixedScalar.FromUnits(10000L);
 }
 
 internal sealed record WorldBeatsTuningOptions

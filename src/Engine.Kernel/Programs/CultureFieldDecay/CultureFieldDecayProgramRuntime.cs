@@ -160,21 +160,27 @@ internal sealed class CultureFieldDecayProgramRuntime : ISimulationSystem
         int effectiveGlobalTideUnits,
         int persistenceUnits)
     {
-        var decay = global::System.Math.Max(
+        // The tide is climate pressure on held mass and scales only the
+        // proportional term; the flat floor is the cleanup clock for
+        // unsustained cells and must stay below base-stage ambient emission
+        // even in harsh ages, or every sub-apex holding evaporates and ages
+        // ratchet the world toward monoculture. Contest still amplifies the
+        // floor so fronts keep sharpening.
+        var proportional = KernelFixedPoint.MultiplyByRatio(
             KernelFixedPoint.MultiplyByRatio(
                 raw,
                 _decayPerRunUnits,
                 0,
                 WorldState.CultureFullRawMassUnits),
+            effectiveGlobalTideUnits,
+            0,
+            WorldState.CultureFullRawMassUnits);
+        var decay = global::System.Math.Max(
+            proportional,
             _minimumDecayPerRunUnits);
         decay = KernelFixedPoint.MultiplyByRatio(
             decay,
             contestUnits,
-            0,
-            WorldState.CultureFullRawMassUnits);
-        decay = KernelFixedPoint.MultiplyByRatio(
-            decay,
-            effectiveGlobalTideUnits,
             0,
             WorldState.CultureFullRawMassUnits);
         return KernelFixedPoint.MultiplyByRatio(
