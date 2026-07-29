@@ -43,9 +43,11 @@ items and the verification debts owed before the next formal evidence run.
 - **Arrival-time repulsion**: resting entities refusing already-occupied
   hexes — only if the 100k stacking tail stays fat after the beacon
   removal, saturation 0.6, and cadence endings.
-- **Density band re-ratification**: proposed bands (active/covered 0.3–0.5,
-  semantic occupancy ≤15%, mortal share ≥20%) are provisional; re-judge
-  against the next formal 3×100k.
+- **Density band: ratified 0.3–0.5** (2026-07-29, round 6): horizon family
+  0.417/0.450/0.527 with flat-or-falling curves — plateau at the band's top
+  edge passes per the standing criteria. Semantic occupancy ≤15% and mortal
+  share ≥20% remain provisional; mortal share is the active gap (10–13%
+  through round 6).
 
 ## Verification debts (bundle into the next formal 3×100k, do not run it early)
 

@@ -23,20 +23,35 @@ public static partial class IceRemembersGeneratorDefinition
         Produces =
         [
             Required("$scout", K.Orca, "scout", "$target", "$target"),
+            Required("$scoutmate", K.Orca, "scout", "$target", "$target"),
             Required("$skiff", K.Transport, "scout", "$target", "$target"),
             Required("$shoal", K.PointOfInterest, "shoal", "$target", "$target", frontier: true),
         ],
         Relationships =
         [
             R("$scout", "$target", Rel.MemberOf, 0.78f),
+            R("$scoutmate", "$target", Rel.MemberOf, 0.74f),
             R("$target", "$scout", Rel.AlliedWith, 0.72f),
             R("$scout", "$skiff", Rel.Holds, 1f),
+            // The launch seeds a pod, not a lone scout: both successors home
+            // at the shoal their own launch names, so each generation can
+            // later qualify as a parent. One successor per parent starves
+            // the line below replacement under event attrition (measured
+            // ~half of orcas die before their succession fires); the pair
+            // holds the chain near replacement while the member-of lock and
+            // fire-slot competition keep it from multiplying.
+            R("$scout", "$shoal", Rel.HomeBase, 0.8f),
+            R("$scoutmate", "$shoal", Rel.HomeBase, 0.8f),
+            R("$scout", "$scoutmate", Rel.AlliedWith, 0.76f),
             R("$skiff", "$shoal", Rel.NativeTo, 0.84f),
             R("$skiff", "$shoal", Rel.ConduitOf, 0.74f),
             R("$shoal", "$scout", Rel.ClaimedBy, 0.70f),
         ],
         Triggers = TriggerOn(K.Orca),
-        FireWeight = 4,
+        // Succession is the pod's only reproduction channel; at weight 4 it
+        // won a few percent of fire slots and the kind starved mid-run even
+        // with eligible parents standing by (round-6 diagnosis).
+        FireWeight = 12,
     };
 
     private static SemanticGeneratorConfig OrcaRouteWarsGetNames() => new()

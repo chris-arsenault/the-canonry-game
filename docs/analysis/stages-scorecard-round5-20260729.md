@@ -1,4 +1,4 @@
-# Entity-stages scorecard, rounds 5–6 (stages-r5/r6-20k-20260729)
+# Entity-stages scorecard, rounds 5–7 (stages-r5/r6/r7-20k-20260729)
 
 The culture-pluralism round. Round 4 flagged near-monoculture on two of
 three seeds as its top finding; the owner set it as the priority. This
@@ -136,3 +136,43 @@ for this judgment — the round-6 fan is the instrument.
 - Standing watches: orcas near-extinct (1–3), transports thin on
   9102 (2), mortal share still below the ≥20% target — untouched by
   this arc, next in the queue.
+
+## Round 7: orca extinction diagnosed and fixed (stages-r7-20k-20260729)
+
+The oldest standing watch (near-extinction every round since round 1)
+is a **birth collapse**, not a death problem: creations fell
+45→41→15→6→2 per 5k window while deaths followed the lifespan clock.
+Three stacked causes, uncovered one beneath the next:
+
+1. **Homeless successors.** `pod_currents_launch_scouts` — the pod's
+   reproduction channel — required an outgoing HomeBase edge on the
+   parent but bore its scout with none, so no successor ever qualified
+   as a parent: one generation per lineage, then extinction. Fixed by
+   homing the scout at the shoal its own launch names.
+2. **Sub-replacement branching.** One successor per parent × measured
+   ~50% event mortality before the succession fire = R0 ≈ 0.5 —
+   extinction on every seed (10→5→0 observed). Fixed: each launch
+   seeds a scout pair sharing the shoal; the member-of lock still caps
+   one fire per parent.
+3. **Fire-lottery starvation.** With topology fixed, eligible parents
+   stood by all run (22/18/5 at 5k/10k/15k) while fires stopped:
+   weight 4 won a few percent of slots against a 6–12-weight pool.
+   Raised to 12 (the memorial/tome-rite weight).
+
+Also found on the way: `the_current_provides` — the only other
+sustaining orca source — runs on site-devotion (OfferedTo strength),
+the same declining economy behind the offering-spent dryness. Two
+watches, one root; devotion-economy revival is the follow-up if pods
+thin again.
+
+**Round-7 verdict:** orcas 22/21/1 at horizon (was 1–3 on every seed,
+every round). Two seeds hold stable pods with created:retired near
+parity; 9102 — the smallest, harshest world this round — still lost
+its chain (its transports sit at 4 too; seed variance, watch).
+Generator tempo shape unchanged (the weight bump displaced nothing
+visible). Pyramid reproduces (settlement 84/100/57, artifact
+190/117/14, faction dynasties now exist: 5). Density 0.436/0.546/0.566.
+Culture concentration horizon 0.67/0.82/0.99 with the pinned seed
+rotating (9102 this round, 9101 last) — the ~1-in-3 pin rate is the
+stable signature of the reserved generator-budget amplifier and waits
+on that design.
