@@ -1,4 +1,4 @@
-# Entity-stages scorecard, rounds 5–7 (stages-r5/r6/r7-20k-20260729)
+# Entity-stages scorecard, rounds 5–9 (stages-r5..r9-20k-20260729)
 
 The culture-pluralism round. Round 4 flagged near-monoculture on two of
 three seeds as its top finding; the owner set it as the priority. This
@@ -173,6 +173,63 @@ Generator tempo shape unchanged (the weight bump displaced nothing
 visible). Pyramid reproduces (settlement 84/100/57, artifact
 190/117/14, faction dynasties now exist: 5). Density 0.436/0.546/0.566.
 Culture concentration horizon 0.67/0.82/0.99 with the pinned seed
-rotating (9102 this round, 9101 last) — the ~1-in-3 pin rate is the
-stable signature of the reserved generator-budget amplifier and waits
-on that design.
+rotating (9102 this round, 9101 last).
+
+## Rounds 8–9: the fire-allocation cap and the matriarch model
+
+The creation budget (provincial fire windows + per-generator weights +
+target scoring) was already implemented — an owner correction: the
+backlog's deferred line covers only the per-kind-per-band refinement,
+not the layer. That unfenced the concentration amplifier's real home.
+
+**Fire-allocation cap** (`TargetScoring`): the target-selection culture
+bonus ran 0 → 32 (adjacent) → 77 (present) → dominance + connected
+mass up to 512, against base weight 16 — a dominant culture's targets
+took up to a 33:1 fire-selection edge, the superlinear term measured
+in bootstrap (1.5:1 entity edge → 3.6:1 births by tick 1000). Capped
+at the "present" tier: an established foothold earns the full ~6:1
+allocation edge; dominance and depth add nothing. Placement keeps the
+full curve — the cap shapes who wins the fire, not where it lands.
+Round-8 result: first round with no seed above 0.9 (0.55/0.86/0.88),
+9100 flat at 0.55 with semantic lead changes. Round 9 drew
+0.66/0.85/0.97 — across both rounds the ≥0.95 pin rate fell from
+~half of seed-runs to one in six. The attractor is weakened, not
+gone; the residual tail is the standing watch.
+
+**Orca succession, final form.** Rounds 8–9 exposed two more layers
+under round 7's three: age deaths on a Standard band (44 of 73 deaths
+on 9101 were lifecycle) gave only ~2.4 succession windows per life,
+and the one-launch-per-parent lock capped lifetime fecundity at
+2 × P(survive-to-launch) — R0 < 1 on harsh seeds regardless of fire
+supply. Final model: orcas are Enduring (~100y — the Oldest Voice
+fiction says whales carry the long song), succession is a **calving
+cadence** (600 ± 150 ticks, a timeline generator outside the fire
+lottery), and the member-of lock is lineage record rather than gate —
+a matriarch launches scout pairs across her whole life. Steady pod
+size ≈ cadence × lifespan (~15–20), extinction impossible while any
+homed parent lives, explosion impossible by cadence construction.
+Round 9: orcas 17/3/11 — first round in the loop's history with pods
+alive on every seed.
+
+**Mortal share, re-derived.** The ≥20% criterion was written against
+the pre-stages anchor-leak world (zero artifact/settlement/region/POI
+retirements). Post-stages everything churns at parity, so the modern
+reading is animate mortal actors (penguin, orca, monster, transport):
+rounds 8–9 land 16–28% by seed, tracking world harshness, family at
+target. No knob needed; definition recorded here.
+
+**Round-9 card otherwise:** density 0.461/0.470/0.575 (in the ratified
+0.3–0.5 family's range), pyramid healthy (settlement oscillates
+between base-mode and mid-mode round to round), tempo and mass
+non-regressing, kernel tests green throughout.
+
+## Standing watches after round 9
+
+- Concentration residual: ~1-in-6 seed-runs still pin ≥0.95; next
+  lever if pursued is the per-kind-per-band weight refinement or an
+  early-era contest damping age.
+- Seed 9101/9102 late-game ecosystem harshness (orcas 3, transports
+  5–11 there; 9100 carries 17/61).
+- Devotion economy declines over a run (offering-spent dry rounds 6–9
+  except one fire; `the_current_provides` starves with it).
+- Faction dynasties rare (3–5); watch, likely fine.

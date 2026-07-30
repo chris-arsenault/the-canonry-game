@@ -96,6 +96,16 @@ internal sealed partial class GeneratorProgramRuntime
             ? simulation.World.EntityPhysicalR(anchorId)
             : simulation.World.EntitySemanticR(anchorId);
         var score = CulturePlacementScore(simulation, planeCode, produced, cultureId, q, r);
+        // Fire allocation rewards an established foothold and nothing more:
+        // dominance and connected-mass depth score no higher than presence,
+        // or the leading culture's targets win fires superlinearly and the
+        // birth loop compounds toward monoculture. Placement keeps the full
+        // curve - this cap shapes who wins the fire, not where it lands.
+        if (score > PlacementCulturePresentScore)
+        {
+            score = PlacementCulturePresentScore;
+        }
+
         return score <= 0 ? 0 : score / TargetSelectionCultureScoreDivisor;
     }
 

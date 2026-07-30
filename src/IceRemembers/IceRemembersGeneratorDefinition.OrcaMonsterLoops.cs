@@ -17,9 +17,9 @@ public static partial class IceRemembersGeneratorDefinition
     {
         Id = "pod_currents_launch_scouts",
         Name = "Pod Currents Launch Scouts",
-        Description = "An orca with a settled hunting ground can launch a successor scout, a carried skiff, and a newly named shoal. The current creates a replacement path through claimed waters instead of free-floating orca bodies.",
-        CausalLimit = "Depends on an orca home-base edge and no incoming member-of edge on the orca; creates a successor membership lock on the parent orca.",
-        Target = TargetWithOutgoingAndWithoutIncoming(K.Orca, Rel.HomeBase, Rel.MemberOf),
+        Description = "An orca with a settled hunting ground launches a scout pair, a carried skiff, and a newly named shoal. The current creates a replacement path through claimed waters instead of free-floating orca bodies.",
+        CausalLimit = "Depends on an orca home-base edge; the calving cadence and the supply of homed parents pace the launches, and member-of edges record the lineage.",
+        Target = TargetWithOutgoing(K.Orca, Rel.HomeBase),
         Produces =
         [
             Required("$scout", K.Orca, "scout", "$target", "$target"),
@@ -35,11 +35,10 @@ public static partial class IceRemembersGeneratorDefinition
             R("$scout", "$skiff", Rel.Holds, 1f),
             // The launch seeds a pod, not a lone scout: both successors home
             // at the shoal their own launch names, so each generation can
-            // later qualify as a parent. One successor per parent starves
-            // the line below replacement under event attrition (measured
-            // ~half of orcas die before their succession fires); the pair
-            // holds the chain near replacement while the member-of lock and
-            // fire-slot competition keep it from multiplying.
+            // later qualify as a parent. A long-lived matriarch launches
+            // repeatedly across her life - the calving cadence caps world
+            // birth tempo, so steady pod size is cadence x lifespan (~15-20)
+            // and the line cannot die while any homed parent lives.
             R("$scout", "$shoal", Rel.HomeBase, 0.8f),
             R("$scoutmate", "$shoal", Rel.HomeBase, 0.8f),
             R("$scout", "$scoutmate", Rel.AlliedWith, 0.76f),
@@ -48,10 +47,15 @@ public static partial class IceRemembersGeneratorDefinition
             R("$shoal", "$scout", Rel.ClaimedBy, 0.70f),
         ],
         Triggers = TriggerOn(K.Orca),
-        // Succession is the pod's only reproduction channel; at weight 4 it
-        // won a few percent of fire slots and the kind starved mid-run even
-        // with eligible parents standing by (round-6 diagnosis).
+        // Reproduction is a calving season, not a story beat: as a
+        // slot-competed generator (weight 4, then 12) succession starved on
+        // small harsh worlds even with eligible parents standing by, and
+        // pods slid to extinction on the fire lottery. The cadence clock
+        // runs outside the shared pool; eligible parents (one launch each,
+        // ever) remain the cap on both tempo and total.
         FireWeight = 12,
+        CadenceTicks = 600,
+        CadenceJitterTicks = 150,
     };
 
     private static SemanticGeneratorConfig OrcaRouteWarsGetNames() => new()

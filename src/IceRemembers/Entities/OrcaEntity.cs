@@ -25,7 +25,12 @@ internal static class OrcaEntity
         HealthAttribute = Attr.Endurance,
         HealthDisplayName = "Endurance",
         PrimaryPlane = PrimaryPlane.Physical,
-        LifecycleBand = IceRemembersLifecycleBand.Standard,
+        // The Wake-Singers' identity rests on orca memory (the Oldest Voice
+        // slot); whales carry the long song. At Standard (~80y) an orca got
+        // ~2.4 succession windows per life and pods lost the replacement
+        // coin-flip on harsh seeds; Enduring (~100y) keeps elders singing
+        // long enough for the line to hold.
+        LifecycleBand = IceRemembersLifecycleBand.Enduring,
         Description = "A named orca, member of a matriarchal pod. Mobile actor on the physical plane, primarily aligned with the Wake-Singers but capable of independent allegiance.",
         Traits =
         [
