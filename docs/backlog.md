@@ -49,7 +49,27 @@ items and the verification debts owed before the next formal evidence run.
   share ≥20% remain provisional; mortal share is the active gap (10–13%
   through round 6).
 
-## Verification debts (bundle into the next formal 3×100k, do not run it early)
+## Verification debts — CLOSED 2026-07-30
+
+The bundled verification ran as rounds 4–9 on the unified 20k-tick
+horizon (records: `docs/analysis/stages-scorecard-round4-20260729.md`
+and `-round5-…md`, which covers rounds 5–9). Final bookkeeping pass
+against the round-9 runs signed off every item below except where
+noted. Findings that survived as open work:
+
+- **Two dead generators** — `faction_claims_the_warm_ground` and
+  `penguin_shelters_at_the_vent`: zero attempts across all seeds at
+  the full horizon. Fix or retire the authored content.
+- **Devotion economy declines over a run** (offering-spent nearly dry,
+  `the_current_provides` starves with it) — top open finding.
+- Semantic occupancy fraction needs a proper plane-size denominator
+  (stacking itself is healthy at ~1 per cell); interior-vs-frontier
+  mass share (item 21) needs a metric definition before it can be
+  judged. Both parked.
+- Movement bounce-back cured: artifact immediate-reversal 67% → 14%.
+- Performance measurement belongs to the perf workstream.
+
+Original items, kept for reference:
 
 From the demography stack (slices 1–3, uncommitted as of 2026-07-24):
 
