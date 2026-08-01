@@ -1,5 +1,17 @@
 # Culture balance problem register (2026-08-01)
 
+Parity-config update (2026-08-01, 4 draws — seeds 9100/9101/9102/9103
+under the actor-parity build, runs parity-r18-*): census shares
+(Aurora/Nightshelf/Wake-Singers/world) = 19/17/55/9, 20/19/53/8,
+18/21/50/10, 33/39/17/10 — every draw inside or near the 60/20/20
+envelope, Wake-Singers never above 55% and smallest on one draw with no
+runaway by anyone. Death rates: Aurora 0.43-0.60, Nightshelf 0.63-0.78,
+Wake-Singers 0.32-0.38 — the gap narrowed from ~3:1 to ~1.7:1.
+Physical mass top share 0.37/0.81/0.85/0.86 (baseline mean 0.84).
+Births on unheld cells, Nightshelf: 0.58-0.84 (baseline 0.76) — little
+movement; the occupation placement-ref sweep remains the open lever.
+Baselines below are the pre-parity 9-run values.
+
 Basis: 9 runs of the current configuration, 20k ticks, seeds 9100/9102/9103
 (stages-r16g) and 9101/9104/9106/9107/9108/9109 (stages-r17c/r17d).
 Telemetry culture ids: 1 = Aurora, 2 = Nightshelf, 3 = Wake-Singers,

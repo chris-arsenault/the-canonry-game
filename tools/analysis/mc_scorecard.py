@@ -421,7 +421,7 @@ SELECT e.run_id, s.stable_name AS source,
   count(*) FILTER (WHERE e.culture_id = 2) AS nightshelf,
   count(*) FILTER (WHERE e.culture_id = 3) AS wakesingers,
   count(*) FILTER (WHERE e.culture_id = 4) AS world
-FROM ee e JOIN sym s ON s.id = e.source_code_id AND s.symbol_kind = 16
+FROM ee e JOIN sym s ON s.id = e.source_code_id AND s.symbol_kind = 6
 WHERE e.event_type_code = 2 GROUP BY 1, 2 ORDER BY 1, 2
 """)
 
