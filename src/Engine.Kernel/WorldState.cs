@@ -68,6 +68,7 @@ internal sealed partial class WorldState
     private int[] _nextEntityByKind = [];
     private int[] _previousEntityByKind = [];
     private int[] _firstEntityByCulture = [];
+    private int[] _activeEntityCountByCulture = [];
     private int[] _nextEntityByCulture = [];
     private int[] _previousEntityByCulture = [];
     private int[] _activeEntitySlots = [];
@@ -213,6 +214,7 @@ internal sealed partial class WorldState
         _nextEntityByKind = new int[options.EntityCapacity + 1];
         _previousEntityByKind = new int[options.EntityCapacity + 1];
         _firstEntityByCulture = new int[options.CultureIdCapacity + 1];
+        _activeEntityCountByCulture = new int[options.CultureIdCapacity + 1];
         _nextEntityByCulture = new int[options.EntityCapacity + 1];
         _previousEntityByCulture = new int[options.EntityCapacity + 1];
         _activeEntitySlots = new int[options.EntityCapacity];
@@ -874,6 +876,30 @@ internal sealed partial class WorldState
     {
         EnsureEntity(entityId);
         return _entityCultureId[entityId];
+    }
+
+    internal int ActiveEntityCountOfCulture(int cultureId)
+    {
+        EnsureCultureIndex(cultureId);
+        return _activeEntityCountByCulture[cultureId];
+    }
+
+    /// <summary>The culture with the most active entities; ties resolve to
+    /// the lower culture id. Zero when no cultured entity is active.</summary>
+    internal int LeaderCultureId()
+    {
+        var leader = 0;
+        var best = 0;
+        for (var cultureId = 1; cultureId <= _cultureHighWatermark; cultureId++)
+        {
+            if (_activeEntityCountByCulture[cultureId] > best)
+            {
+                best = _activeEntityCountByCulture[cultureId];
+                leader = cultureId;
+            }
+        }
+
+        return leader;
     }
 
     public bool EntityHasTag(int entityId, int tagId)

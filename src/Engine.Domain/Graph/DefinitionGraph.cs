@@ -13,6 +13,7 @@ public sealed class DefinitionGraph
 {
     public required IReadOnlyDictionary<EntityKind, DefinitionKindNode> Kinds { get; init; }
     public required IReadOnlyDictionary<string, DefinitionCultureNode> Cultures { get; init; }
+    public string? WorldCulture { get; init; }
     public required IReadOnlyDictionary<string, DefinitionGambitNode> Gambits { get; init; }
     public required IReadOnlyList<DefinitionGameplayNode> GameplayNodes { get; init; }
     public required IReadOnlyDictionary<string, DefinitionGeneratorNode> Generators { get; init; }
@@ -156,8 +157,7 @@ public sealed class DefinitionGeneratorNode
     public required IReadOnlyList<DefinitionGeneratorTrigger> Triggers { get; init; }
     public int FireWeight { get; init; }
     public int? MaxRunsPerSim { get; init; }
-    public int CadenceTicks { get; init; }
-    public int CadenceJitterTicks { get; init; }
+    public float DesperationRatio { get; init; }
     public required SemanticGeneratorConfig SourceConfig { get; init; }
 }
 
@@ -331,6 +331,7 @@ public sealed class DefinitionProducedEntity
     public string PlacementRef { get; init; } = "$target";
     public string? InheritCultureFrom { get; init; }
     public string? Culture { get; init; }
+    public ProducedCultureSource CultureSource { get; init; }
     public GeneratorCulturePlacement CulturePlacement { get; init; } = GeneratorCulturePlacement.PreferInheritedCulture;
     public DefinitionEntityQuery? Query { get; init; }
     public DefinitionRegionCoverage? Coverage { get; init; }
@@ -354,6 +355,7 @@ public sealed class DefinitionEntityQuery
     public IReadOnlySet<string>? RequiredTags { get; init; }
     public IReadOnlySet<string>? WithoutTags { get; init; }
     public string? Culture { get; init; }
+    public bool LeaderCultureOnly { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
     public bool AdjacentToTarget { get; init; }
     public bool RequireTargetCultureRoute { get; init; }

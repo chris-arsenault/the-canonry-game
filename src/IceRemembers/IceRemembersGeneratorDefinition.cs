@@ -15,7 +15,9 @@ public static partial class IceRemembersGeneratorDefinition
     private const float CorruptionWakesMonstersMinimumCorruptionStrength = 0.64f;
     private const float CorruptionWakesMonstersCorruptionStrengthSpend = -0.32f;
     private const float WarsGetNamesMinimumWarStrength = 0.65f;
-    private const float WarsGetNamesWarStrengthSpend = -0.24f;
+    // Halved so a named war burns roughly twice as long before exhaustion:
+    // fewer wars, each a longer arc.
+    private const float WarsGetNamesWarStrengthSpend = -0.12f;
     private const float TradeRoutesConveneNegotiationMinimumTradeRouteStrength = 0.72f;
     private const float TradeRoutesConveneNegotiationTradeRouteStrengthSpend = -0.28f;
     private const float ClaimedWatersDrawBullsMinimumClaimStrength = 0.70f;
@@ -33,6 +35,7 @@ public static partial class IceRemembersGeneratorDefinition
         TradeRoutesConveneNegotiation(),
         ClaimedWatersDrawBulls(),
         PodCurrentsLaunchScouts(),
+        RookeryTerracesRaiseFledglings(),
         OrcaRouteWarsGetNames(),
         ConduitsMapHiddenPeaks(),
         MappedPeaksBirthTechniques(),
@@ -51,12 +54,7 @@ public static partial class IceRemembersGeneratorDefinition
         DeepConduitsNameDepths(),
         WardedMonstersFoundOrders(),
         ..RemembranceGenerators(),
-        TheAccordHolds(),
-        TheSilenceAnswers(),
-        RichHubsGrowUndermarkets(),
-        WarsFeedShadowBrokers(),
-        RecordsCastShadows(),
-        TheDeepConclave(),
+        ..SocietyGenerators(),
         KillsSungToTheDeep(),
         EldersDescendToTheGod(),
         RelicsAreGivenToTheDeep(),
@@ -76,6 +74,25 @@ public static partial class IceRemembersGeneratorDefinition
         PodsHuntTheConvoys(),
         TheDreadSongBreaksTheWatch(),
         WardensTakeUpTheOldForms(),
+    ];
+
+    private static IReadOnlyList<SemanticGeneratorConfig> SocietyGenerators() =>
+    [
+        TheAccordHolds(),
+        TheSilenceAnswers(),
+        RichHubsGrowUndermarkets(),
+        WarsFeedShadowBrokers(),
+        RecordsCastShadows(),
+        TheDeepConclave(),
+        DebtorsFleeToTheOpenCourt(),
+        TheWatchAnswersTheSong(),
+        TheBeaconHostsTheDispossessed(),
+        EveryDebtComesDue(),
+        TheDeepSingsTheDrownedSong(),
+        TheAccordIsSealed(),
+        EnvoysCrossTheIce(),
+        TheSkyRendersJudgment(),
+        TheDeadKeepTheirSecrets(),
     ];
 
     private static string L(Rel relationship) => relationship.ToDomainName();
@@ -128,7 +145,7 @@ public static partial class IceRemembersGeneratorDefinition
         Produces =
         [
             Required("$seal", K.Artifact, "seal", "$target", "$target"),
-            Required("$witness", K.Penguin, "witness", "$target", "$target"),
+            Optional("$witness", K.Penguin, "witness", "$target", "$target", chance: 0.5f),
             Optional("$exile", K.Penguin, "exile", "$target", "$target", chance: 0.40f),
             ProducedCanon("$peace", "accord", "$target", culture: C(IceRemembersCulture.TheIce), inheritCultureFrom: null, chance: 0.50f),
         ],
@@ -204,8 +221,8 @@ public static partial class IceRemembersGeneratorDefinition
         Produces =
         [
             ScarRegion("$scar", "$target"),
-            Optional("$weapon", K.Artifact, "weapon", "$scar", "$target", chance: 0.35f),
-            Optional("$compact", K.Faction, "compact", "$scar", "$target", chance: 0.40f),
+            Optional("$weapon", K.Artifact, "weapon", "$scar", "$target", chance: 0.35f, cultureSource: ProducedCultureSource.World),
+            Optional("$compact", K.Faction, "compact", "$scar", "$target", chance: 0.25f, cultureSource: ProducedCultureSource.AnyParticipant),
         ],
         Relationships =
         [
@@ -418,18 +435,39 @@ public static partial class IceRemembersGeneratorDefinition
         Description = "A war that stays strong long enough becomes a named occurrence. Witnesses enter the record, weapons circulate, and the active war force is partly spent into the event.",
         CausalLimit = "Depends on a strong outgoing at-war relationship and reduces the selected at-war relationship, including its reciprocal.",
         Target = TargetWithStrongOutgoing(K.Faction, Rel.AtWarWith, WarsGetNamesMinimumWarStrength),
+        SecondaryTargets =
+        [
+            // The other side of the war stands in the record too, so the
+            // witness steps out of either belligerent.
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$foe",
+                Kind = K.Faction,
+                Query = new SemanticEntityQuery
+                {
+                    RelatedToTargetRelationship = L(Rel.AtWarWith),
+                    RelatedToTargetIncoming = true,
+                    RelatedToTargetMinStrength = 0.2f,
+                },
+            },
+        ],
         Produces =
         [
-            Required("$war", K.Occurrence, "war", "$target", "$target"),
-            Required("$witness", K.Penguin, "witness", "$target", "$target"),
-            Optional("$weapon", K.Artifact, "weapon", "$target", "$target", chance: 0.55f),
+            // The record of a war belongs to the ice; the witness steps out
+            // of either side of it. The named war stops waging war itself -
+            // memory does not fight, and war no longer mechanically begets
+            // more war edges.
+            Required("$war", K.Occurrence, "war", "$target", "$target", cultureSource: ProducedCultureSource.World),
+            // Yield trim (track fidelity pass): war took a third of all
+            // entities from a tenth of the content; a named war always gets
+            // its record but only sometimes a person and a relic.
+            Optional("$witness", K.Penguin, "witness", "$target", "$target", chance: 0.5f, cultureSource: ProducedCultureSource.AnyParticipant),
+            Optional("$weapon", K.Artifact, "weapon", "$target", "$target", chance: 0.25f, cultureSource: ProducedCultureSource.World),
         ],
         Relationships =
         [
-            R("$war", "$target", Rel.AtWarWith, 0.62f),
             R("$witness", "$war", Rel.MemberOf, 0.78f),
             R("$witness", "$target", Rel.MemberOf, 0.72f),
-            R("$witness", "$weapon", Rel.Holds, 1f),
             R("$weapon", "$war", Rel.Memorializes, 0.80f),
         ],
         Effects =
@@ -646,7 +684,10 @@ public static partial class IceRemembersGeneratorDefinition
         Name = "War Occurrences Launch Scouts",
         Description = "Once a war has a name, it needs eyes. A scout becomes part of the occurrence rather than an anonymous errand.",
         CausalLimit = "Depends on a named war occurrence with no held transport; creates the held scout as the repeat lock.",
-        Target = TargetSubtypeWithOutgoingAndWithoutOutgoing(K.Occurrence, "war", Rel.AtWarWith, Rel.Holds),
+        // War records no longer wage war themselves, so the old
+        // outgoing-at-war requirement can never be met; a named war with no
+        // eyes is the whole condition.
+        Target = TargetSubtypeWithoutOutgoing(K.Occurrence, "war", Rel.Holds),
         Produces =
         [
             Required("$scout", K.Transport, "scout", "$target", "$target"),
@@ -845,6 +886,17 @@ public static partial class IceRemembersGeneratorDefinition
             WithoutOutgoingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(without) },
         };
 
+    private static SemanticGeneratorTarget TargetSubtypeWithoutOutgoing(
+        EntityKind kind,
+        string subtype,
+        Rel without) =>
+        new()
+        {
+            Kind = kind,
+            Subtypes = new HashSet<string>(StringComparer.Ordinal) { subtype },
+            WithoutOutgoingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(without) },
+        };
+
     private static SemanticGeneratorTarget TargetSubtypeWithIncomingAndWithoutOutgoing(
         EntityKind kind,
         string subtype,
@@ -918,7 +970,8 @@ public static partial class IceRemembersGeneratorDefinition
         string cultureRef,
         bool on = false,
         bool frontier = false,
-        bool physicalFrontier = false)
+        bool physicalFrontier = false,
+        ProducedCultureSource cultureSource = ProducedCultureSource.Default)
     {
         var physicalProfile = IceRemembersPlacementTerrainProfiles.Physical(kind, subtype);
         var semanticProfile = IceRemembersPlacementTerrainProfiles.Semantic(kind, subtype);
@@ -951,7 +1004,8 @@ public static partial class IceRemembersGeneratorDefinition
             SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
             PlacementRef = placementRef,
-            InheritCultureFrom = cultureRef,
+            InheritCultureFrom = cultureSource == ProducedCultureSource.Default ? cultureRef : null,
+            CultureSource = cultureSource,
             CulturePlacement = physicalFrontier
                 ? GeneratorCulturePlacement.CultureFrontier
                 : CulturePlacementFor(kind),
@@ -965,7 +1019,8 @@ public static partial class IceRemembersGeneratorDefinition
         string placementRef,
         string cultureRef,
         float chance,
-        bool on = false)
+        bool on = false,
+        ProducedCultureSource cultureSource = ProducedCultureSource.Default)
     {
         var physicalProfile = IceRemembersPlacementTerrainProfiles.Physical(kind, subtype);
         var semanticProfile = IceRemembersPlacementTerrainProfiles.Semantic(kind, subtype);
@@ -990,7 +1045,8 @@ public static partial class IceRemembersGeneratorDefinition
             SemanticPlacementAvoidedTerrains = semanticProfile.AvoidedTerrains,
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
             PlacementRef = placementRef,
-            InheritCultureFrom = cultureRef,
+            InheritCultureFrom = cultureSource == ProducedCultureSource.Default ? cultureRef : null,
+            CultureSource = cultureSource,
             CulturePlacement = CulturePlacementFor(kind),
         };
     }

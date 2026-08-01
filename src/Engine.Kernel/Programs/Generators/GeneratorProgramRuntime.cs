@@ -96,20 +96,15 @@ internal sealed partial class GeneratorProgramRuntime :
         int targetKindId,
         int fireWeight,
         int maxRuns,
-        int cadenceTicks = 0,
-        int cadenceJitterTicks = 0,
         int targetRequiredTagBits = 0,
-        int targetWithoutTagBits = 0)
+        int targetWithoutTagBits = 0,
+        FixedScalar desperationRatio = default,
+        int desperationCultureId = 0)
     {
         ValidatePositive(generatorId);
         ValidatePositive(targetKindId);
         NumericGuard.ThrowIfNegative(fireWeight);
         NumericGuard.ThrowIfNegative(maxRuns);
-        NumericGuard.ThrowIfNegative(cadenceTicks);
-        if (cadenceJitterTicks < 0 || (cadenceTicks > 0 && cadenceJitterTicks >= cadenceTicks))
-        {
-            throw new global::System.InvalidOperationException();
-        }
         if (_generatorCount + 1 >= _generatorIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -121,8 +116,8 @@ internal sealed partial class GeneratorProgramRuntime :
         _targetKindIds[slot] = targetKindId;
         _fireWeights[slot] = fireWeight;
         _maxRuns[slot] = maxRuns;
-        _cadenceTicks[slot] = cadenceTicks;
-        _cadenceJitterTicks[slot] = cadenceJitterTicks;
+        _desperationRatioUnits[slot] = KernelFixedPoint.RatioUnits(desperationRatio);
+        _desperationCultureIds[slot] = desperationCultureId;
         _targetRequiredTagBits[slot] = targetRequiredTagBits;
         _targetWithoutTagBits[slot] = targetWithoutTagBits;
         _targetSubtypeStarts[slot] = _subtypeCount + 1;
@@ -356,7 +351,6 @@ internal sealed partial class GeneratorProgramRuntime :
             throw new global::System.InvalidOperationException();
         }
 
-        TickCadenceGenerators(simulation, tick);
         if (tick <= 0)
         {
             return;
@@ -527,13 +521,22 @@ internal sealed partial class GeneratorProgramRuntime :
             world.EntityPhysicalR(entityId)) == _fireProvinceSrId;
     }
 
+    private void ResetFireScratch(int slot)
+    {
+        _fireStatusCodes[slot] = GeneratorStatusCodes.NotEvaluated;
+        _fireCandidateCounts[slot] = 0;
+        _fireSelectionWeights[slot] = 0;
+        _fireSelectedTargetOccurrenceHandles[slot] = 0;
+        _fireFailedCounts[slot] = 0;
+    }
+
     private bool EvaluateGenerators(Simulation simulation, int tick)
     {
         var anyEvaluated = false;
         for (var slot = 1; slot <= _generatorCount; slot++)
         {
             ResetFireScratch(slot);
-            if (!_enabled[slot] || tick <= 0 || _cadenceTicks[slot] > 0)
+            if (!_enabled[slot] || tick <= 0)
             {
                 continue;
             }
@@ -573,9 +576,7 @@ internal sealed partial class GeneratorProgramRuntime :
         var end = 1 + (int)((long)_generatorCount * (ownerIndex + 1) / ownerCount);
         for (var slot = start; slot < end; slot++)
         {
-            if (_enabled[slot] &&
-                simulation.CurrentTick > 0 &&
-                _cadenceTicks[slot] == 0)
+            if (_enabled[slot] && simulation.CurrentTick > 0)
             {
                 EvaluateGenerator(simulation, slot);
             }
@@ -688,6 +689,12 @@ internal sealed partial class GeneratorProgramRuntime :
             return;
         }
 
+        if (!DesperationGateOpen(simulation, slot))
+        {
+            _fireStatusCodes[slot] = GeneratorStatusCodes.Blocked;
+            return;
+        }
+
         var (candidateCount, slotFillBonus, knowledgeWeight) = CountEligibleTargetsAndSlotFillBonus(simulation, slot);
         _fireCandidateCounts[slot] = candidateCount;
         var agedWeight = (int)FixedScalar.Max(0, _fireWeights[slot] * _ageFireWeightMultipliers[slot]);
@@ -697,6 +704,32 @@ internal sealed partial class GeneratorProgramRuntime :
         _fireStatusCodes[slot] = candidateCount == 0
             ? GeneratorStatusCodes.Blocked
             : GeneratorStatusCodes.Eligible;
+    }
+
+    // Desperation recoveries are eligible only while the leading culture
+    // outnumbers the generator's own culture beyond the authored ratio.
+    // Firing restores the ratio, which closes the gate - the precondition
+    // is the causal limit, with no per-run cap.
+    private bool DesperationGateOpen(Simulation simulation, int slot)
+    {
+        var ratioUnits = _desperationRatioUnits[slot];
+        if (ratioUnits <= 0)
+        {
+            return true;
+        }
+
+        var world = simulation.World;
+        var ownCultureId = _desperationCultureIds[slot];
+        var leaderCultureId = world.LeaderCultureId();
+        if (leaderCultureId == 0 || leaderCultureId == ownCultureId)
+        {
+            return false;
+        }
+
+        var ownCount = world.ActiveEntityCountOfCulture(ownCultureId);
+        var leaderCount = world.ActiveEntityCountOfCulture(leaderCultureId);
+        return (long)leaderCount * KernelFixedPoint.RatioScale >
+            (long)ratioUnits * global::System.Math.Max(1, ownCount);
     }
 
     /// <summary>Age charges: neutralize, then apply once per world-beat run.</summary>

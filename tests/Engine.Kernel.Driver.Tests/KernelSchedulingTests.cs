@@ -202,8 +202,10 @@ public sealed class KernelSchedulingTests
         _ = simulation.AdvanceTicks(1);
 
         Assert.Equal(5, simulation.CurrentTick);
+
+        // One decay run on 10 mass: max(10 x 0.004 proportional, 0.2 floor) = 0.2.
         Assert.Equal(
-            FixedScalar.FromSingle(9.4f),
+            FixedScalar.FromSingle(9.8f),
             simulation.World.GetCellCultureInfluenceRaw(1, PlaneCodes.Physical, 0, 0));
     }
 

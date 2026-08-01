@@ -258,15 +258,17 @@ public static partial class DomainCompiler
                 CompileGeneratorTargetRelationshipRequirements(generator.Target, terrainByName, ids),
                 Math.Max(generator.FireWeight, 0),
                 generator.MaxRunsPerSim ?? 0,
-                Math.Max(generator.CadenceTicks, 0),
-                Math.Max(generator.CadenceJitterTicks, 0),
+                FixedScalar.FromSingle(generator.DesperationRatio),
+                generator.DesperationRatio > 0
+                    ? ids.CultureIdOf(generator.Produces[0].Culture!).Value
+                    : 0,
                 CompileTagBits(generator.Target.RequiredTags, ids),
                 CompileTagBits(generator.Target.WithoutTags, ids),
                 FixedScalar.FromSingle(generator.Target.ChronicleHeatMin),
                 generator.Target.ChronicleLegendaryWithinTicks,
                 CompileGeneratorTriggers(generator.Triggers, ids),
                 CompileGeneratorBindings(generator.SecondaryTargets, ids, refCodes),
-                CompileGeneratorProducedEntities(generator.Produces, ids, terrainByName, refCodes),
+                CompileGeneratorProducedEntities(generator.Produces, ids, terrainByName, refCodes, graph.WorldCulture),
                 CompileGeneratorRelationships(generator.Relationships, graph, refCodes),
                 CompileGeneratorEffects(generator.Effects, terrainByName, ids, refCodes)));
         }
@@ -382,11 +384,35 @@ public static partial class DomainCompiler
         return compiled;
     }
 
+    private static int CompileQueryCultureId(DefinitionEntityQuery query, DomainIdRegistry ids)
+    {
+        if (query.LeaderCultureOnly)
+        {
+            return GeneratorProgramConstants.LeaderCultureFilter;
+        }
+
+        return query.Culture is null ? 0 : ids.CultureIdOf(query.Culture).Value;
+    }
+
+    private static int CompileProducedFixedCultureId(
+        DefinitionProducedEntity produced,
+        DomainIdRegistry ids,
+        string? worldCulture)
+    {
+        if (produced.CultureSource == ProducedCultureSource.World)
+        {
+            return ids.CultureIdOf(worldCulture!).Value;
+        }
+
+        return produced.Culture is null ? 0 : ids.CultureIdOf(produced.Culture).Value;
+    }
+
     private static List<GeneratorProducedEntityRule> CompileGeneratorProducedEntities(
         IReadOnlyList<DefinitionProducedEntity> producedEntities,
         DomainIdRegistry ids,
         Dictionary<string, TerrainConfig> terrainByName,
-        Dictionary<string, int> refCodes)
+        Dictionary<string, int> refCodes,
+        string? worldCulture)
     {
         var compiled = new List<GeneratorProducedEntityRule>();
         foreach (var produced in producedEntities)
@@ -421,7 +447,7 @@ public static partial class DomainCompiler
                 CompileOptionalTerrainId(produced.SemanticPlacementFallbackTerrain, terrainByName, ids),
                 refCodes[produced.PlacementRef],
                 produced.InheritCultureFrom is null ? 0 : refCodes[produced.InheritCultureFrom],
-                produced.Culture is null ? 0 : ids.CultureIdOf(produced.Culture).Value,
+                CompileProducedFixedCultureId(produced, ids, worldCulture),
                 ToGeneratorCulturePlacement(produced.CulturePlacement),
                 FixedScalar.FromSingle(produced.CreateChance),
                 CompileGeneratorCoverage(produced.Coverage, terrainByName, refCodes, ids),
@@ -430,7 +456,10 @@ public static partial class DomainCompiler
                 PhysicalPlacementWarmthAffinity: ClampAffinity(produced.PhysicalPlacementWarmthAffinity),
                 PhysicalPlacementFireAffinity: ClampAffinity(produced.PhysicalPlacementFireAffinity),
                 PhysicalPlacementAuroraAffinity: ClampAffinity(produced.PhysicalPlacementAuroraAffinity),
-                PhysicalPlacementPressureAffinity: ClampAffinity(produced.PhysicalPlacementPressureAffinity)));
+                PhysicalPlacementPressureAffinity: ClampAffinity(produced.PhysicalPlacementPressureAffinity),
+                CultureModeCode: produced.CultureSource == ProducedCultureSource.AnyParticipant
+                    ? GeneratorProducedCultureModeCodes.AnyParticipant
+                    : GeneratorProducedCultureModeCodes.Default));
         }
 
         return compiled;
@@ -482,7 +511,7 @@ public static partial class DomainCompiler
             CompileRelationshipKindIds(query.WithoutIncomingRelationships, ids),
             CompileTagBits(query.RequiredTags, ids),
             CompileTagBits(query.WithoutTags, ids),
-            query.Culture is null ? 0 : ids.CultureIdOf(query.Culture).Value,
+            CompileQueryCultureId(query, ids),
             query.RelatedToTargetRelationship is null ? 0 : ids.RelationshipKindIdOf(query.RelatedToTargetRelationship).Value,
             query.RelatedToTargetIncoming,
             KernelFixedPoint.RelationshipStrengthScalar(

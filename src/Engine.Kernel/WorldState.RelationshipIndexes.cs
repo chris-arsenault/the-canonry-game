@@ -307,6 +307,7 @@ internal sealed partial class WorldState
     private void InsertEntityCultureIndex(int entityId, int cultureId)
     {
         EnsureCultureIndex(cultureId);
+        _activeEntityCountByCulture[cultureId]++;
         var current = _firstEntityByCulture[cultureId];
         _nextEntityByCulture[entityId] = current;
         _previousEntityByCulture[entityId] = 0;
@@ -321,6 +322,7 @@ internal sealed partial class WorldState
     private void RemoveEntityCultureIndex(int entityId, int cultureId)
     {
         EnsureCultureIndex(cultureId);
+        _activeEntityCountByCulture[cultureId]--;
         var previous = _previousEntityByCulture[entityId];
         var next = _nextEntityByCulture[entityId];
         if (previous > 0)

@@ -6,11 +6,14 @@ items and the verification debts owed before the next formal evidence run.
 
 ## Deferred by explicit decision
 
-- **Per-kind creation shares as per-band fire weights** (owner decision,
-  2026-07-24). When provincial throughput grows, which kinds fill the new
-  slots. Natural home: per-band generator fire weights (frontier skews
-  discovery/founding, heartland skews wars/politics). The owner has ideas on
-  the broader budget design; do not implement without them.
+- **Creation design: landed as the provincial fire windows** (owner
+  confirmation, 2026-07-30). The regional-tracks system — one fire track
+  per populated superregion, tempo by settledness band, per-generator fire
+  weights — is the creation design that came out of the 2026-07 design
+  work. This entry previously carried a "per-kind creation shares" note as
+  a pending owner design; that note was stale documentation, not open
+  work. Fire-weight changes remain owner-approved changes, not free
+  tuning.
 - **Typed installed-legacy component** (owner decision, 2026-07-24; full
   design: `ordered-emergence-population-plan-20260718.md` §Legacy Retirement
   Gambits). Chosen representation for now is fungible legacy (option a):

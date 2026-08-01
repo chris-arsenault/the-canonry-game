@@ -63,6 +63,11 @@ internal sealed partial class GeneratorProgramRuntime
         int refCount,
         int produced)
     {
+        if (_producedCultureModeCodes[produced] == GeneratorProducedCultureModeCodes.AnyParticipant)
+        {
+            return DrawParticipantCultureId(world, refCodes, refEntityIds, refCount, produced);
+        }
+
         var fixedCultureId = _producedFixedCultureIds[produced];
         if (fixedCultureId > 0)
         {
@@ -78,6 +83,130 @@ internal sealed partial class GeneratorProgramRuntime
         return IsPendingRef(cultureSourceId)
             ? _plannedCultureIds[PendingPlanIndex(cultureSourceId)]
             : world.EntityCultureId(cultureSourceId);
+    }
+
+    // The draw is a pure function of the bound entities and the produced
+    // slot, so every evaluation of the same firing resolves the same
+    // culture without consuming the simulation's random stream. Distinct
+    // cultures are walked in bound order twice (count, then select) - ref
+    // counts are single digits, so the quadratic distinct check is free.
+    private int DrawParticipantCultureId(
+        WorldState world,
+        int[] refCodes,
+        int[] refEntityIds,
+        int refCount,
+        int produced)
+    {
+        var distinctCount = 0;
+        var hash = 2166136261u;
+        for (var i = 0; i < refCount; i++)
+        {
+            var cultureId = ParticipantCultureId(world, refCodes, refEntityIds, i, produced);
+            if (cultureId <= 0)
+            {
+                continue;
+            }
+
+            unchecked
+            {
+                hash = (hash ^ (uint)refEntityIds[i]) * 16777619u;
+            }
+
+            if (IsFirstOccurrence(world, refCodes, refEntityIds, i, cultureId, produced))
+            {
+                distinctCount++;
+            }
+        }
+
+        if (distinctCount == 0)
+        {
+            return 0;
+        }
+
+        unchecked
+        {
+            hash = (hash ^ (uint)produced) * 16777619u;
+        }
+
+        var pick = (int)(hash % (uint)distinctCount);
+        for (var i = 0; i < refCount; i++)
+        {
+            var cultureId = ParticipantCultureId(world, refCodes, refEntityIds, i, produced);
+            if (cultureId <= 0 || !IsFirstOccurrence(world, refCodes, refEntityIds, i, cultureId, produced))
+            {
+                continue;
+            }
+
+            if (pick == 0)
+            {
+                return cultureId;
+            }
+
+            pick--;
+        }
+
+        return 0;
+    }
+
+    // Participants are the entities that came to the event. The event's own
+    // products - pending or already created earlier in the same firing -
+    // are outputs, not participants, and must not pollute the draw pool.
+    // The leader-culture sentinel resolves at query time: bindings that
+    // hunt the current leading culture follow whoever leads now.
+    private static int ResolveQueryCultureId(WorldState world, int queryCultureId) =>
+        queryCultureId == GeneratorProgramConstants.LeaderCultureFilter
+            ? world.LeaderCultureId()
+            : queryCultureId;
+
+    private int ParticipantCultureId(
+        WorldState world,
+        int[] refCodes,
+        int[] refEntityIds,
+        int index,
+        int produced)
+    {
+        var entityId = refEntityIds[index];
+        if (entityId == 0 || IsPendingRef(entityId) || IsCoProductRef(refCodes[index], produced))
+        {
+            return 0;
+        }
+
+        return world.EntityCultureId(entityId);
+    }
+
+    private bool IsCoProductRef(int refCode, int produced)
+    {
+        var owner = _producedOwnerSlots[produced];
+        var start = _producedStarts[owner];
+        var end = start + _producedCounts[owner];
+        for (var q = start; q < end; q++)
+        {
+            if (_producedRefCodes[q] == refCode)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool IsFirstOccurrence(
+        WorldState world,
+        int[] refCodes,
+        int[] refEntityIds,
+        int index,
+        int cultureId,
+        int produced)
+    {
+        for (var earlier = 0; earlier < index; earlier++)
+        {
+            if (ParticipantCultureId(world, refCodes, refEntityIds, earlier, produced) == cultureId)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static int PendingRefId(int planIndex) => -(planIndex + 1);
@@ -174,7 +303,7 @@ internal sealed partial class GeneratorProgramRuntime
             withoutIncomingCount,
             requiredTagBits,
             withoutTagBits,
-            queryCultureId,
+            ResolveQueryCultureId(world, queryCultureId),
             relatedToTargetKindId,
             relatedToTargetIncoming,
             relatedToTargetMinStrength);

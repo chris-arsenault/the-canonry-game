@@ -6,7 +6,6 @@ internal sealed partial class GeneratorProgramState : IKernelProgramState
 {
     internal readonly int[] RunCounts;
     internal readonly bool[] Enabled;
-    internal readonly int[] NextCadenceFireTicks;
 
     // Provincial fire windows: one schedule per registered physical superregion.
     // Slot 0 is unused; provinces occupy 1..ProvinceCount.
@@ -21,7 +20,6 @@ internal sealed partial class GeneratorProgramState : IKernelProgramState
         NumericGuard.ThrowIfNegativeOrZero(provinceCapacity);
         RunCounts = new int[generatorCapacity + 1];
         Enabled = new bool[generatorCapacity + 1];
-        NextCadenceFireTicks = new int[generatorCapacity + 1];
         ProvinceSrIds = new int[provinceCapacity + 1];
         ProvinceWindowIndices = new int[provinceCapacity + 1];
         FiresInCurrentWindow = new int[provinceCapacity + 1];

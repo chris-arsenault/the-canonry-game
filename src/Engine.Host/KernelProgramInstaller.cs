@@ -342,10 +342,10 @@ internal static partial class KernelProgramInstaller
             generator.TargetKindId,
             generator.FireWeight,
             generator.MaxRuns,
-            generator.CadenceTicks,
-            generator.CadenceJitterTicks,
             generator.TargetRequiredTagBits,
-            generator.TargetWithoutTagBits);
+            generator.TargetWithoutTagBits,
+            generator.DesperationRatio,
+            generator.DesperationCultureId);
         if (generator.TargetChronicleHeatMin > FixedScalar.Zero ||
             generator.TargetChronicleLegendaryWithinTicks > 0)
         {
@@ -549,7 +549,8 @@ internal static partial class KernelProgramInstaller
             resolvedQuery.CultureId,
             resolvedQuery.RelatedToTargetKindId,
             resolvedQuery.RelatedToTargetIncoming,
-            resolvedQuery.RelatedToTargetMinStrength);
+            resolvedQuery.RelatedToTargetMinStrength,
+            produced.CultureModeCode);
         InstallGeneratorProducedSubtypeChoices(context, producedSlot, produced);
         InstallGeneratorProducedPlacementTerrains(context, producedSlot, produced);
         if (query is not null)

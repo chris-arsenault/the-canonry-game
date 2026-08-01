@@ -28,6 +28,7 @@ public static class DefinitionGraphBuilder
         {
             Kinds = kindNodes,
             Cultures = cultureNodes,
+            WorldCulture = config.WorldCulture,
             Gambits = gambitNodes,
             GameplayNodes = gameplayNodes,
             Generators = generatorNodes,

@@ -438,6 +438,13 @@ internal static class IceRemembersEntityDsl
     public static IReadOnlySet<string> Subtypes(params string[] subtypes) =>
         new HashSet<string>(subtypes, StringComparer.Ordinal);
 
+    // One locality for both actor kinds (authorship parity, actor-parity
+    // audit 2026-08-01): midpoint of the former orca and penguin profiles.
+    public static IceRemembersKindLocalityProfile ActorLocality() =>
+        Locality(radius: 2, capacity: 0.3f, support: 0.25f, threat: 0.3f,
+            baseMass: 3.5f, coverageScale: 0f, influenceScale: 0.025f,
+            healthScale: 0.03f, attractorRadius: 2);
+
     public static IceRemembersKindLocalityProfile Locality(
         int radius,
         float capacity,
@@ -562,6 +569,31 @@ internal static class IceRemembersEntityDsl
         string culture,
         IceRemembersTerrainProfile profile) =>
         new(null, culture, profile);
+
+    // The actor bond pair, authored once for every actor kind (authorship
+    // parity, actor-parity audit 2026-08-01): supportive ties restore the
+    // kind's health attribute, conflict ties burn it. Same numbers for all
+    // kinds; only names and the health attribute differ.
+    public static TraitConfig[] ActorBondTraits(
+        EntityKind kind,
+        Attr healthAttribute,
+        Trait sure,
+        string sureName,
+        Trait brittle,
+        string brittleName,
+        string healthNoun) =>
+    [
+        PositiveTrait(
+            sure,
+            sureName,
+            $"Supportive relationships restore {healthNoun} more efficiently.",
+            TraitRelationshipDelta(kind, healthAttribute, Rel.AlliedWith, EffectRelationshipDirection.Either, 0.03f, 2, PrimaryPlane.Physical)),
+        NegativeTrait(
+            brittle,
+            brittleName,
+            $"Conflict stress burns {healthNoun} faster.",
+            TraitRelationshipDelta(kind, healthAttribute, Rel.RivalOf, EffectRelationshipDirection.Either, -0.035f, 2, PrimaryPlane.Physical)),
+    ];
 
     public static TraitConfig PositiveTrait(
         Trait trait,

@@ -15,8 +15,8 @@ public sealed record CompiledGeneratorRule(
     GeneratorTargetRelationshipRequirements TargetRelationshipRequirements,
     int FireWeight,
     int MaxRuns,
-    int CadenceTicks,
-    int CadenceJitterTicks,
+    FixedScalar DesperationRatio,
+    int DesperationCultureId,
     int TargetRequiredTagBits,
     int TargetWithoutTagBits,
     FixedScalar TargetChronicleHeatMin,
@@ -91,7 +91,8 @@ public sealed record GeneratorProducedEntityRule(
     FixedScalar PhysicalPlacementFireAffinity = default,
     FixedScalar PhysicalPlacementAuroraAffinity = default,
     FixedScalar PhysicalPlacementPressureAffinity = default,
-    int PhysicalPlacementFeatureKind = -1);
+    int PhysicalPlacementFeatureKind = -1,
+    int CultureModeCode = 0);
 
 public sealed record GeneratorEntityQueryRule(
     IReadOnlyList<int> SubtypeIds,

@@ -29,6 +29,8 @@ TABLES = {
     "cfs": "culture_field_cell_snapshots",
     "rel": "relationship_events",
     "move": "movement_events",
+    "go": "generator_outputs",
+    "bf": "culture_entity_birth_field_events",
 }
 
 for view, table in TABLES.items():
@@ -194,11 +196,230 @@ SELECT run_id, tick, ROUND(SUM(raw_influence)) AS total_mass,
 FROM cfs WHERE plane_code = 1 AND tick % 2500 = 0
 GROUP BY 1, 2 ORDER BY 1, 2
 """)
-q("17b. Physical mass by culture at horizon", f"""
-SELECT run_id, culture_id, ROUND(SUM(raw_influence)) AS mass
-FROM cfs WHERE plane_code = 1 AND tick = {HORIZON}
+q("17b. Mass by culture per plane at horizon", f"""
+SELECT run_id, plane_code, culture_id, ROUND(SUM(raw_influence)) AS mass
+FROM cfs WHERE tick = {HORIZON}
+GROUP BY 1, 2, 3 ORDER BY 1, 2, 4 DESC
+""")
+q("17d. Living entities by culture at horizon", f"""
+SELECT run_id, culture_id, count(*) AS actives
+FROM ents WHERE tick = {HORIZON} AND status_code = 1
 GROUP BY 1, 2 ORDER BY 1, 3 DESC
 """)
+# Track taxonomy for the fidelity pass: every generator assigned to the
+# progression track its causal loop serves. Maintained here as the
+# development tool of record until the taxonomy stabilizes enough to
+# promote into the authored config.
+GENERATOR_TRACKS = {
+    "war": [
+        "allies_answer_the_call", "counter_offensive", "orca_route_wars_get_names",
+        "war_breaks_the_land", "war_occurrences_launch_scouts", "war_takes_its_toll",
+        "wars_get_names", "the_column_holds", "ice_settles_accounts",
+    ],
+    "wilds": [
+        "controlled_depths_wake_leviathans", "corrupted_monsters_raise_revenants",
+        "corruption_wakes_monsters", "haunted_transports_spread_plague",
+        "monster_slayings_become_festivals", "monsters_stalk_the_marches",
+        "overclaimed_blooms_draw_beasts", "stolen_artifacts_draw_hunters",
+        "the_dread_song_breaks_the_watch", "the_fear_fades", "the_hunt_settles_in",
+        "the_white_has_teeth", "pods_hunt_the_convoys", "pods_mark_their_prey",
+        "wardens_rise_where_the_hunt_bites", "wardens_take_up_the_old_forms",
+        "warded_monsters_found_orders", "the_silence_answers",
+        "the_watch_answers_the_song",
+    ],
+    "devotion": [
+        "elders_descend_to_the_god", "glory_to_the_dead_god", "kills_sung_to_the_deep",
+        "martyrs_are_witnessed", "pilgrims_found_new_currents", "relics_are_given_to_the_deep",
+        "the_current_provides", "the_offering_is_spent", "vigils_at_the_current",
+        "vigils_leave_relics", "a_hero_falls_to_the_deep", "what_the_spring_remembers",
+        "the_sky_renders_judgment", "the_dead_keep_their_secrets",
+    ],
+    "trade": [
+        "charters_find_harbors", "conferences_become_festivals", "rich_hubs_grow_undermarkets",
+        "routes_draw_readers", "trade_conferences_raise_citadels",
+        "trade_routes_convene_negotiation", "wars_feed_shadow_brokers",
+        "records_cast_shadows", "the_deep_conclave",
+        "debtors_flee_to_the_open_court",
+    ],
+    "diplomacy": [
+        "the_accord_convenes", "the_accord_holds",
+        "the_accord_is_sealed", "envoys_cross_the_ice",
+    ],
+    "knowledge": [
+        "conduits_map_hidden_peaks", "deep_conduits_name_depths",
+        "mapped_peaks_birth_techniques", "practiced_forms_find_tomes",
+        "the_tome_is_read", "what_the_artifact_knows", "the_still_water_is_sounded",
+    ],
+    "memory": [
+        "legend_enters_the_canon", "memorials_join_the_wall", "one_word_yields",
+        "the_canon_is_carried", "the_crater_keeps_its_count", "the_ice_takes_notice",
+        "the_polynya_never_closes", "the_river_earns_its_name", "the_seal_shatters",
+        "the_stone_remembers_the_walk", "the_war_leaves_its_mark",
+    ],
+    "frontier": [
+        "bulls_range_the_far_currents", "claimed_waters_draw_bulls",
+        "cleansed_springs_found_sanctuaries", "conduit_points_found_reefholds",
+        "sanctuaries_anchor_colonies", "the_thaw_calls_the_bold",
+        "unclaimed_places_draw_wardens",
+    ],
+    "lifecycle": ["pod_currents_launch_scouts"],
+    "desperation": [
+        "the_beacon_hosts_the_dispossessed", "every_debt_comes_due",
+        "the_deep_sings_the_drowned_song",
+    ],
+}
+# Gambits classified into the same tracks by the causal loop each serves.
+# Stage-ladder, custody, and care gambits sit in lifecycle/memory; the
+# split of judgment calls is revisable - this table is the dev tool.
+GAMBIT_TRACKS = {
+    "war": [
+        "faction_declares_rivalry", "faction_declares_territorial_war",
+        "faction_marches_the_banners", "faction_joins_occurrence",
+        "orca_raids_trade_route", "penguin_turns_the_battle",
+    ],
+    "diplomacy": [
+        "faction_swears_cold_accord", "faction_sues_for_peace",
+        "faction_parleys_with_the_pod",
+    ],
+    "wilds": [
+        "artifact_binds_monster", "monster_draws_on_the_vessel",
+        "monster_haunts_transport", "monster_steals_artifact",
+        "penguin_binds_what_was_loosed", "penguin_corners_the_beast",
+        "penguin_forsakes_the_hunt", "penguin_slays_monster",
+        "penguin_slays_orca", "penguin_unmakes_the_binding",
+        "transport_wards_monster", "orca_claims_hunting_ground",
+    ],
+    "trade": [
+        "settlement_opens_trade_route", "settlement_hires_the_hull",
+        "transport_takes_up_the_passenger", "transport_sets_down_the_passenger",
+        "transport_opens_conduit", "faction_charters_settlement",
+        "settlement_raises_causeway",
+    ],
+    "devotion": [
+        "penguin_calls_the_deep_current", "penguin_stills_the_waters",
+        "orca_draws_on_the_vessel", "penguin_draws_on_the_vessel",
+        "orca_lays_deep_current",
+    ],
+    "knowledge": [
+        "ability_shares_practice", "penguin_passes_the_teaching",
+        "penguin_reads_the_ice", "transport_surveys_region",
+        "orca_sounds_the_far_passage",
+    ],
+    "frontier": [
+        "faction_claims_the_warm_ground", "faction_claims_point_of_interest",
+        "penguin_finds_the_pass", "penguin_raises_the_waymark",
+        "region_breathes_the_thaw", "penguin_shelters_at_the_vent",
+        "faction_digs_the_gallery", "settlement_digs_the_gallery",
+        "settlement_raises_the_spire",
+    ],
+    "lifecycle": [
+        "settlement_deepens_the_holding", "settlement_crowns_the_holding",
+        "faction_deepens_the_holding", "faction_crowns_the_holding",
+        "artifact_deepens_the_holding", "artifact_crowns_the_holding",
+        "canon_deepens_the_holding", "canon_crowns_the_holding",
+        "settlement_the_hold_withers", "settlement_wakes_the_sleeper",
+        "faction_razes_the_hollow_hold", "penguin_mends_another",
+        "penguin_keeps_winters_patience", "artifact_cleanses_scar",
+    ],
+    "memory": [
+        "artifact_enshrines_itself", "artifact_slips_the_grasp",
+        "penguin_wields_artifact", "penguin_wrests_artifact",
+    ],
+}
+GAMBIT_TRACK_CASE = "CASE " + " ".join(
+    f"WHEN s.stable_name IN ({', '.join(chr(39) + g + chr(39) for g in gens)}) THEN '{track}'"
+    for track, gens in GAMBIT_TRACKS.items()) + " ELSE 'untagged' END"
+
+TRACK_CASE = "CASE " + " ".join(
+    f"WHEN s.stable_name IN ({', '.join(chr(39) + g + chr(39) for g in gens)}) THEN '{track}'"
+    for track, gens in GENERATOR_TRACKS.items()) + " ELSE 'untagged' END"
+
+print("\n### 23. Track portfolio: authorship share (authored items per track)")
+_all_tracks = sorted(set(GENERATOR_TRACKS) | set(GAMBIT_TRACKS))
+_gen_total = sum(len(v) for v in GENERATOR_TRACKS.values())
+_gam_total = sum(len(v) for v in GAMBIT_TRACKS.values())
+print(f"{'track':<12} {'generators':>10} {'gambits':>8} {'combined':>9} {'share':>6}")
+for _t in sorted(_all_tracks, key=lambda t: -(len(GENERATOR_TRACKS.get(t, [])) + len(GAMBIT_TRACKS.get(t, [])))):
+    _g = len(GENERATOR_TRACKS.get(_t, []))
+    _b = len(GAMBIT_TRACKS.get(_t, []))
+    print(f"{_t:<12} {_g:>10} {_b:>8} {_g + _b:>9} {100.0 * (_g + _b) / (_gen_total + _gam_total):>5.1f}%")
+
+q("23b. Track execution share (generator fires + gambit successes)", f"""
+WITH gf AS (
+  SELECT {TRACK_CASE} AS track, count(*) AS n
+  FROM gen g JOIN sym s ON s.id = g.generator_id AND s.symbol_kind = 4
+  WHERE g.event_type_code = 12 GROUP BY 1),
+gx AS (
+  SELECT {GAMBIT_TRACK_CASE} AS track, count(*) AS n
+  FROM ge g JOIN sym s ON s.id = g.gambit_id AND s.symbol_kind = 3
+  WHERE g.succeeded GROUP BY 1),
+u AS (SELECT track, SUM(n) AS n FROM (SELECT * FROM gf UNION ALL SELECT * FROM gx) GROUP BY 1)
+SELECT track, n AS executions, ROUND(n * 100.0 / SUM(n) OVER (), 1) AS pct
+FROM u ORDER BY n DESC
+""")
+
+q("22. Track fidelity: fires and births per track", f"""
+WITH fires AS (
+  SELECT {TRACK_CASE} AS track, count(*) AS fires
+  FROM gen g JOIN sym s ON s.id = g.generator_id AND s.symbol_kind = 4
+  WHERE g.event_type_code = 12 GROUP BY 1)
+SELECT track, fires, ROUND(fires * 100.0 / SUM(fires) OVER (), 1) AS fire_pct
+FROM fires ORDER BY fires DESC
+""")
+
+q("22b. Track births by culture", f"""
+WITH born AS (SELECT e.run_id, e.entity_id, e.tick FROM ee e WHERE e.event_type_code = 1)
+SELECT {TRACK_CASE} AS track, count(*) AS births,
+  count(*) FILTER (WHERE bf.culture_id = 1) AS aurora,
+  count(*) FILTER (WHERE bf.culture_id = 2) AS nightshelf,
+  count(*) FILTER (WHERE bf.culture_id = 3) AS wakesingers,
+  count(*) FILTER (WHERE bf.culture_id = 4) AS world
+FROM born b
+JOIN go g ON g.run_id = b.run_id AND g.output_entity_id = b.entity_id AND g.tick = b.tick
+JOIN sym s ON s.id = g.generator_id AND s.symbol_kind = 4
+LEFT JOIN bf ON bf.run_id = b.run_id AND bf.entity_id = b.entity_id AND bf.tick = b.tick
+GROUP BY 1 ORDER BY births DESC
+""")
+
+q("22c. Desperation valve status (evaluations by outcome)", """
+SELECT g.run_id, s.stable_name AS generator,
+  count(*) FILTER (WHERE g.status_code = 4) AS blocked,
+  count(*) FILTER (WHERE g.status_code = 3) AS not_selected,
+  count(*) FILTER (WHERE g.status_code = 2) AS fired,
+  count(*) FILTER (WHERE g.status_code = 5) AS fire_failed
+FROM gen g JOIN sym s ON s.id = g.generator_id AND s.symbol_kind = 4
+WHERE g.event_type_code = 11 AND s.stable_name IN (
+  'the_beacon_hosts_the_dispossessed', 'every_debt_comes_due',
+  'the_deep_sings_the_drowned_song')
+GROUP BY 1, 2 ORDER BY 1, 2
+""")
+
+q("24. Per-culture per-capita birth/death rates per 2.5k window", """
+WITH pop AS (
+  SELECT run_id, (tick / 2500)::INT AS win, culture_id, count(*) AS pop
+  FROM ents WHERE status_code = 1 AND tick % 2500 = 0 GROUP BY 1, 2, 3),
+flows AS (
+  SELECT run_id, (tick / 2500)::INT AS win, culture_id,
+    count(*) FILTER (WHERE event_type_code = 1) AS births,
+    count(*) FILTER (WHERE event_type_code = 2) AS deaths
+  FROM ee GROUP BY 1, 2, 3)
+SELECT f.run_id, f.win, f.culture_id, p.pop, f.births, f.deaths,
+  ROUND(f.births * 1.0 / NULLIF(p.pop, 0), 3) AS birth_rate,
+  ROUND(f.deaths * 1.0 / NULLIF(p.pop, 0), 3) AS death_rate
+FROM flows f JOIN pop p ON p.run_id = f.run_id AND p.win = f.win AND p.culture_id = f.culture_id
+WHERE f.culture_id > 0 ORDER BY f.run_id, f.win, f.culture_id
+""")
+
+q("24b. Retirements by source and culture", """
+SELECT e.run_id, s.stable_name AS source,
+  count(*) FILTER (WHERE e.culture_id = 1) AS aurora,
+  count(*) FILTER (WHERE e.culture_id = 2) AS nightshelf,
+  count(*) FILTER (WHERE e.culture_id = 3) AS wakesingers,
+  count(*) FILTER (WHERE e.culture_id = 4) AS world
+FROM ee e JOIN sym s ON s.id = e.source_code_id AND s.symbol_kind = 16
+WHERE e.event_type_code = 2 GROUP BY 1, 2 ORDER BY 1, 2
+""")
+
 q("17c. Culture concentration (top-culture mass share) per plane per 2.5k window", """
 WITH m AS (
   SELECT run_id, plane_code, (tick / 2500)::INT AS win, culture_id,

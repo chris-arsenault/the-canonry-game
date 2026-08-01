@@ -503,6 +503,16 @@ public static class GeneratorCultureMatchCodes
     public const int DifferentFromTarget = 3;
 }
 
+/// <summary>How a produced entity's culture is decided at fire time.
+/// Default resolves the authored fixed culture or the culture ref;
+/// AnyParticipant draws deterministically among the distinct cultures of
+/// the entities bound in the firing.</summary>
+public static class GeneratorProducedCultureModeCodes
+{
+    public const int Default = 0;
+    public const int AnyParticipant = 1;
+}
+
 public static class GeneratorCulturePlacementCodes
 {
     public const int Ignore = 1;
@@ -857,6 +867,10 @@ public static class GeneratorProgramConstants
     public const int DefaultPlacementMaxRadius = 5;
     public const int FarPlacementMinRadius = 20;
     public const int UnboundedPlacementMaxRadius = int.MaxValue;
+
+    /// <summary>Sentinel for binding culture filters that resolve to the
+    /// current leading culture (by active entity count) at query time.</summary>
+    public const int LeaderCultureFilter = -1;
 }
 
 public static class GeneratorEffectTypeCodes

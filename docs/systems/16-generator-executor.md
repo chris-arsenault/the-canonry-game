@@ -76,8 +76,7 @@ ground has no schedule, frontier runs slow, settled faster, heartland at full
 tempo — window multipliers and thresholds are tuning options). When a
 province is evaluated, only targets standing inside that superregion are
 eligible; secondary bindings stay unrestricted, so cross-province
-relationships still form. Cadence generators keep their own world-wide tick
-deadlines outside the provincial pool. World creation throughput is therefore
+relationships still form. World creation throughput is therefore
 the sum of awake provincial schedules and grows as territory is revealed and
 settles.
 
@@ -125,12 +124,9 @@ When multiple generators are eligible, selection is weighted by authored fire
 weight. Fire budget limits how many successful fires can occur in one window;
 it does not increase the low-altitude tick frequency.
 
-Generators with `CadenceTicks > 0` are timeline generators: they leave the
-shared fire-window pool entirely and fire on their own jittered cadence
-(`CadenceTicks ± CadenceJitterTicks`), outside the window budget. Target
-eligibility still applies — a cadence firing with no eligible target passes
-quietly. Timelines give each culture an authored drumbeat that does not scale
-with its population, without steering outcomes toward equality.
+Every generator schedules through the provincial fire windows; there is no
+second scheduling class. Rare rites are shaped by their eligibility gates and
+fire weights, not by private clocks.
 
 ## Preconditions
 

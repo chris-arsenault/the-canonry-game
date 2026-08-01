@@ -25,9 +25,16 @@ internal static class PenguinEntity
         HealthAttribute = Attr.Vitality,
         HealthDisplayName = "Vitality",
         PrimaryPlane = PrimaryPlane.Physical,
-        LifecycleBand = IceRemembersLifecycleBand.Brief,
+        // Actor kinds share one band (authorship parity, actor-parity
+        // audit 2026-08-01).
+        LifecycleBand = IceRemembersLifecycleBand.Standard,
         Traits =
         [
+            .. ActorBondTraits(
+                K.Penguin, Attr.Vitality,
+                Trait.PenguinSureHuddle, "Sure Huddle",
+                Trait.PenguinBrittlePride, "Brittle Pride",
+                "vitality"),
             PositiveTrait(
                 Trait.PenguinRangingHeart,
                 "Ranging Heart",
@@ -46,9 +53,7 @@ internal static class PenguinEntity
                 TraitVerbWeight(Verb.PenguinExplore, weightDelta: -0.7f),
                 TraitVerbWeight(Verb.PenguinVisitRookery, weightDelta: 0.6f, fitnessWeightDelta: 0.4f)),
         ],
-        Locality = Locality(radius: 1, capacity: 0.2f, support: 0.2f, threat: 0f,
-            baseMass: 2f, coverageScale: 0f, influenceScale: 0.02f,
-            healthScale: 0.02f, attractorRadius: 1),
+        Locality = ActorLocality(),
         MovementProfiles = MovementProfiles(
             physicalDefault: Profile.Trail,
             semanticDefault: Profile.Commons,

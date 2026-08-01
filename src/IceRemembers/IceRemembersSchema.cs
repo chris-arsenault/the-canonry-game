@@ -70,6 +70,8 @@ public enum IceRemembersTraitId
     OccurrenceGrindingAttrition,
     CanonDeepRooted,
     CanonHollowLetter,
+    PenguinSureHuddle,
+    PenguinBrittlePride,
 }
 
 public static class IceRemembersTraitIdExtensions
@@ -101,6 +103,8 @@ public static class IceRemembersTraitIdExtensions
         "occurrence_grinding_attrition",
         "canon_deep_rooted",
         "canon_hollow_letter",
+        "penguin_sure_huddle",
+        "penguin_brittle_pride",
     ];
 
     public static string ToDomainName(this IceRemembersTraitId trait)
@@ -661,6 +665,8 @@ public enum IceRemembersGambitId
     FactionCrownsTheHolding,
     ArtifactCrownsTheHolding,
     CanonCrownsTheHolding,
+    PenguinMakesOffering,
+    OrcaMakesOffering,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -740,6 +746,8 @@ public static class IceRemembersGambitIdExtensions
         "faction_crowns_the_holding",
         "artifact_crowns_the_holding",
         "canon_crowns_the_holding",
+        "penguin_makes_offering",
+        "orca_makes_offering",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)

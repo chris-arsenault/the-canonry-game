@@ -25,29 +25,21 @@ internal static class OrcaEntity
         HealthAttribute = Attr.Endurance,
         HealthDisplayName = "Endurance",
         PrimaryPlane = PrimaryPlane.Physical,
-        // The Wake-Singers' identity rests on orca memory (the Oldest Voice
-        // slot); whales carry the long song. At Standard (~80y) an orca got
-        // ~2.4 succession windows per life and pods lost the replacement
-        // coin-flip on harsh seeds; Enduring (~100y) keeps elders singing
-        // long enough for the line to hold.
-        LifecycleBand = IceRemembersLifecycleBand.Enduring,
+        // Actor kinds share one band (authorship parity, actor-parity
+        // audit 2026-08-01). The Enduring promotion was one of five stacked
+        // orca-extinction fixes; the homing and succession machinery that
+        // actually carries pod survival stays.
+        LifecycleBand = IceRemembersLifecycleBand.Standard,
         Description = "A named orca, member of a matriarchal pod. Mobile actor on the physical plane, primarily aligned with the Wake-Singers but capable of independent allegiance.",
         Traits =
         [
-            PositiveTrait(
-                Trait.OrcaSureWake,
-                "Sure Wake",
-                "Supportive relationships restore endurance more efficiently.",
-                TraitRelationshipDelta(K.Orca, Attr.Endurance, Rel.AlliedWith, EffectRelationshipDirection.Either, 0.03f, 2, PrimaryPlane.Physical)),
-            NegativeTrait(
-                Trait.OrcaBloodFrenzy,
-                "Blood Frenzy",
-                "Conflict stress burns endurance faster.",
-                TraitRelationshipDelta(K.Orca, Attr.Endurance, Rel.RivalOf, EffectRelationshipDirection.Either, -0.035f, 2, PrimaryPlane.Physical)),
+            .. ActorBondTraits(
+                K.Orca, Attr.Endurance,
+                Trait.OrcaSureWake, "Sure Wake",
+                Trait.OrcaBloodFrenzy, "Blood Frenzy",
+                "endurance"),
         ],
-        Locality = Locality(radius: 2, capacity: 0.4f, support: 0.3f, threat: 0.6f,
-            baseMass: 5f, coverageScale: 0f, influenceScale: 0.03f,
-            healthScale: 0.04f, attractorRadius: 2),
+        Locality = ActorLocality(),
         MovementProfiles = MovementProfiles(
             physicalDefault: Profile.Wake,
             semanticDefault: Profile.Commons),

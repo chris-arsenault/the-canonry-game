@@ -3,7 +3,7 @@ namespace Engine.Kernel.Tests;
 using Engine.Kernel;
 using Engine.Kernel.Programs;
 
-public sealed class GeneratorCadenceAndFixedCultureTests
+public sealed class GeneratorFixedCultureTests
 {
     private const int TargetKindId = 1;
     private const int CreatedKindId = 2;
@@ -30,52 +30,18 @@ public sealed class GeneratorCadenceAndFixedCultureTests
         Assert.Equal(FixedCultureId, simulation.World.EntityCultureId(created));
     }
 
-    [Fact]
-    public void CadenceGenerator_FiresOnItsOwnTimelineOutsideWindowBudget()
-    {
-        // Pool budget of zero fires: only the cadence timeline can create.
-        var simulation = CreateSimulation(firesPerWindow: 0);
-        SeedMap(simulation);
-        CreateTarget(simulation);
-        RegisterGenerator(simulation, cadenceTicks: 10);
-
-        simulation.AdvanceTicks(60);
-
-        var created = simulation.World.EntityHighWatermark - 1;
-        Assert.InRange(created, 3, 7);
-    }
-
-    [Fact]
-    public void CadenceGenerator_DoesNotCompeteInTheSharedFireWindowPool()
-    {
-        var simulation = CreateSimulation(firesPerWindow: 1);
-        SeedMap(simulation);
-        CreateTarget(simulation);
-        // In the pool (width 25, 1 fire/window) this generator would fire twice
-        // over 40 ticks. On its own sparse timeline it fires at most the one
-        // desynchronized initial time.
-        RegisterGenerator(simulation, cadenceTicks: 5000);
-
-        simulation.AdvanceTicks(40);
-
-        Assert.InRange(simulation.World.EntityHighWatermark - 1, 0, 1);
-    }
-
     private static int CreateTarget(Simulation simulation) =>
         simulation.CreateEntity(TargetKindId, TargetSubtypeId, TargetCultureId, 0, 0, 0, 0, 0, tick: 0);
 
     private static void RegisterGenerator(
         Simulation simulation,
-        int cadenceTicks = 0,
         int fixedCultureId = 0)
     {
         var slot = simulation.Generators.RegisterGenerator(
             GeneratorId,
             TargetKindId,
             fireWeight: 1,
-            maxRuns: 0,
-            cadenceTicks,
-            cadenceJitterTicks: 0);
+            maxRuns: 0);
         simulation.Generators.AddTrigger(slot, TargetKindId);
         simulation.Generators.AddProduced(
             slot,
@@ -117,7 +83,7 @@ public sealed class GeneratorCadenceAndFixedCultureTests
         }
     }
 
-    private static Simulation CreateSimulation(int firesPerWindow = GeneratorProgramConstants.DefaultFiresPerWindow) =>
+    private static Simulation CreateSimulation() =>
         KernelTestSimulation.Create(new SimulationOptions
         {
             EntityCapacity = 16,
@@ -130,16 +96,6 @@ public sealed class GeneratorCadenceAndFixedCultureTests
             RelationshipKindIdCapacity = 64,
             TerrainIdCapacity = 8,
             SystemCapacity = 24,
-            KernelTuning = new KernelTuningOptions
-            {
-                Programs = new KernelProgramTuningOptions
-                {
-                    Generators = new GeneratorProgramTuningOptions
-                    {
-                        FiresPerWindow = firesPerWindow,
-                    },
-                },
-            },
             Seed = 1,
         });
 }

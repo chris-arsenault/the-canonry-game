@@ -64,8 +64,7 @@ public static class DefinitionGeneratorBuilder
             Triggers = triggers,
             FireWeight = config.FireWeight,
             MaxRunsPerSim = config.MaxRunsPerSim,
-            CadenceTicks = ValidatedCadenceTicks(config),
-            CadenceJitterTicks = config.CadenceJitterTicks,
+            DesperationRatio = ValidatedDesperationRatio(config),
             SourceConfig = config,
         };
     }
@@ -183,27 +182,23 @@ public static class DefinitionGeneratorBuilder
         ValidateQuery(graph, produced.Kind, produced.Query, $"{context} query");
     }
 
-    private static int ValidatedCadenceTicks(SemanticGeneratorConfig config)
+    private static float ValidatedDesperationRatio(SemanticGeneratorConfig config)
     {
-        if (config.CadenceTicks < 0 || config.CadenceJitterTicks < 0)
+        if (config.DesperationRatio < 0)
         {
             throw new DefinitionGraphException(
-                $"Generator '{config.Id}' cadence values must be non-negative.");
+                $"Generator '{config.Id}' DesperationRatio must be non-negative.");
         }
 
-        if (config.CadenceTicks == 0 && config.CadenceJitterTicks > 0)
+        if (config.DesperationRatio > 0 &&
+            config.Produces.Count > 0 &&
+            config.Produces.Any(produced => string.IsNullOrWhiteSpace(produced.Culture)))
         {
             throw new DefinitionGraphException(
-                $"Generator '{config.Id}' declares CadenceJitterTicks without CadenceTicks.");
+                $"Generator '{config.Id}' declares DesperationRatio and must give every product an authored fixed Culture.");
         }
 
-        if (config.CadenceTicks > 0 && config.CadenceJitterTicks >= config.CadenceTicks)
-        {
-            throw new DefinitionGraphException(
-                $"Generator '{config.Id}' CadenceJitterTicks must be smaller than CadenceTicks.");
-        }
-
-        return config.CadenceTicks;
+        return config.DesperationRatio;
     }
 
     private static void ValidateProducedCultureSource(
@@ -213,6 +208,24 @@ public static class DefinitionGeneratorBuilder
     {
         var hasRef = !string.IsNullOrWhiteSpace(produced.InheritCultureFrom);
         var hasFixed = !string.IsNullOrWhiteSpace(produced.Culture);
+        if (produced.CultureSource != ProducedCultureSource.Default)
+        {
+            if (hasRef || hasFixed)
+            {
+                throw new DefinitionGraphException(
+                    $"Generator '{generatorId}' produce '{produced.Ref}' sets CultureSource.{produced.CultureSource} and must not also declare InheritCultureFrom or Culture.");
+            }
+
+            if (produced.CultureSource == ProducedCultureSource.World &&
+                string.IsNullOrWhiteSpace(graph.WorldCulture))
+            {
+                throw new DefinitionGraphException(
+                    $"Generator '{generatorId}' produce '{produced.Ref}' uses CultureSource.World but the domain declares no WorldCulture.");
+            }
+
+            return;
+        }
+
         if (hasRef == hasFixed)
         {
             throw new DefinitionGraphException(
@@ -259,6 +272,7 @@ public static class DefinitionGeneratorBuilder
             PlacementRef = produced.PlacementRef,
             InheritCultureFrom = produced.InheritCultureFrom,
             Culture = produced.Culture,
+            CultureSource = produced.CultureSource,
             CulturePlacement = produced.CulturePlacement,
             Query = BuildQuery(graph, produced.Kind, produced.Query),
             Coverage = BuildCoverage(produced.Coverage),
@@ -860,6 +874,7 @@ public static class DefinitionGeneratorBuilder
             RequiredTags = CopyRelationshipSet(query.RequiredTags),
             WithoutTags = CopyRelationshipSet(query.WithoutTags),
             Culture = query.Culture,
+            LeaderCultureOnly = query.LeaderCultureOnly,
             AdjacentToTarget = query.AdjacentToTarget,
             RequireTargetCultureRoute = query.RequireTargetCultureRoute,
             WithoutOutgoingRelationships = query.WithoutOutgoingRelationships is null

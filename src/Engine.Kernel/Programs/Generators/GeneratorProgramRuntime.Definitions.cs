@@ -173,10 +173,11 @@ internal sealed partial class GeneratorProgramRuntime
         int queryCultureId = 0,
         int queryRelatedToTargetKindId = 0,
         int queryRelatedToTargetIncoming = 0,
-        FixedScalar queryRelatedToTargetMinStrength = default)
+        FixedScalar queryRelatedToTargetMinStrength = default,
+        int cultureModeCode = GeneratorProducedCultureModeCodes.Default)
     {
         EnsureOpenGenerator(generatorSlot);
-        ValidateProducedIdentity(refCode, kindId, subtypeId, queryCultureMatchCode);
+        ValidateProducedIdentity(refCode, kindId, subtypeId, queryCultureMatchCode, cultureRefCode, fixedCultureId, cultureModeCode);
         ValidateProducedPlacement(
             physicalPlacementCode,
             semanticPlacementCode,
@@ -186,7 +187,6 @@ internal sealed partial class GeneratorProgramRuntime
             physicalPlacementMaxRadius,
             semanticPlacementMinRadius,
             semanticPlacementMaxRadius);
-        ValidateProducedCultureSource(cultureRefCode, fixedCultureId);
         ValidateProducedCreateChance(createChance);
         if (_producedCount + 1 >= _producedRefCodes.Length)
         {
@@ -196,6 +196,7 @@ internal sealed partial class GeneratorProgramRuntime
         _producedCount++;
         StoreProducedDefinition(
             _producedCount,
+            generatorSlot,
             refCode,
             kindId,
             subtypeId,
@@ -221,7 +222,8 @@ internal sealed partial class GeneratorProgramRuntime
             semanticPlacementMinRadius,
             semanticPlacementMaxRadius,
             culturePlacementCode,
-            queryRequireTargetCultureRoute);
+            queryRequireTargetCultureRoute,
+            cultureModeCode);
         StoreProducedQueryFilters(
             _producedCount,
             queryRequiredTagBits,
@@ -252,12 +254,20 @@ internal sealed partial class GeneratorProgramRuntime
         _producedQueryRelatedToTargetMinStrengths[producedSlot] = queryRelatedToTargetMinStrength;
     }
 
-    private static void ValidateProducedIdentity(int refCode, int kindId, int subtypeId, int queryCultureMatchCode)
+    private static void ValidateProducedIdentity(
+        int refCode,
+        int kindId,
+        int subtypeId,
+        int queryCultureMatchCode,
+        int cultureRefCode,
+        int fixedCultureId,
+        int cultureModeCode)
     {
         ValidatePositive(refCode);
         ValidatePositive(kindId);
         NumericGuard.ThrowIfNegative(subtypeId);
         ValidatePositive(queryCultureMatchCode);
+        ValidateProducedCultureSource(cultureRefCode, fixedCultureId, cultureModeCode);
     }
 
     private static void ValidateProducedPlacement(
@@ -289,8 +299,21 @@ internal sealed partial class GeneratorProgramRuntime
         }
     }
 
-    private static void ValidateProducedCultureSource(int cultureRefCode, int fixedCultureId)
+    private static void ValidateProducedCultureSource(
+        int cultureRefCode,
+        int fixedCultureId,
+        int cultureModeCode)
     {
+        if (cultureModeCode == GeneratorProducedCultureModeCodes.AnyParticipant)
+        {
+            if (cultureRefCode > 0 || fixedCultureId > 0)
+            {
+                throw new global::System.InvalidOperationException();
+            }
+
+            return;
+        }
+
         if (cultureRefCode <= 0 && fixedCultureId <= 0)
         {
             throw new global::System.InvalidOperationException();
@@ -316,6 +339,7 @@ internal sealed partial class GeneratorProgramRuntime
 
     private void StoreProducedDefinition(
         int producedSlot,
+        int generatorSlot,
         int refCode,
         int kindId,
         int subtypeId,
@@ -341,8 +365,10 @@ internal sealed partial class GeneratorProgramRuntime
         int semanticPlacementMinRadius,
         int semanticPlacementMaxRadius,
         int culturePlacementCode,
-        int queryRequireTargetCultureRoute)
+        int queryRequireTargetCultureRoute,
+        int cultureModeCode)
     {
+        _producedOwnerSlots[producedSlot] = generatorSlot;
         _producedRefCodes[producedSlot] = refCode;
         _producedKindIds[producedSlot] = kindId;
         _producedSubtypeIds[producedSlot] = subtypeId;
@@ -357,6 +383,7 @@ internal sealed partial class GeneratorProgramRuntime
         _producedPlacementRefCodes[producedSlot] = placementRefCode;
         _producedCultureRefCodes[producedSlot] = cultureRefCode;
         _producedFixedCultureIds[producedSlot] = fixedCultureId;
+        _producedCultureModeCodes[producedSlot] = cultureModeCode;
         _producedCulturePlacementCodes[producedSlot] = culturePlacementCode;
         _producedCreateChances[producedSlot] = createChance;
         _producedQueryAdjacentToTarget[producedSlot] = queryAdjacentToTarget;

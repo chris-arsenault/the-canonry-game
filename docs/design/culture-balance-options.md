@@ -9,16 +9,19 @@ rich-get-richer loop. This document records the mechanisms considered for
 breaking that loop, which were adopted, and which are deferred with enough
 design detail to pick up later.
 
-## Rejected: inverse-population generator weighting
+## Rejected: continuous inverse-population weighting outside the tick cadence
 
 Weight generator target scoring by the inverse of the target culture's share
-of living population. Rejected because it is a controller on the outcome
-variable itself: it watches the scoreboard and steers toward equality
-regardless of world events. Player disruptions get silently compensated
-away, all cultures share one hidden mechanic under different skins, and the
-ledgers become cosmetic because the system resists divergence. Do not
-reintroduce this, including in disguised forms (scarcity-gated revival
-generators are the same homeostat in miniature).
+of living population. Rejected because it is a hidden continuous controller
+operating outside the normal tick cadence: it silently reweights every
+selection everywhere, player disruptions get compensated away, and the
+ledgers become cosmetic. (Correction, 2026-07-31: an earlier revision of
+this note overstated the rejection as covering scarcity-gated revival
+generators. It does not. Discrete, authored, preconditioned events that
+fire through the normal fire-window cadence — including desperation
+recoveries gated on population ratios — are legitimate; what is rejected
+is balancing forces that bypass the ordinary scheduling and causal-limit
+discipline.)
 
 ## Adopted (Nightshelf round, 2026-07)
 
@@ -29,11 +32,15 @@ generators are the same homeostat in miniature).
   negative feedback that emerges from theme rather than a controller.
   Requires produced entities to take an authored culture rather than
   inheriting the target's.
-- **Timeline generators (cadence-based).** A per-generator cadence (every
-  ~N ticks, jittered, world-state preconditions) outside the
-  population-proportional fire-window pool. Guarantees each culture a minimum
-  authored drumbeat without equalizing outcomes. First instance: the
-  Nightshelf Deep Conclave. Cadence, not scarcity gating.
+- **Timeline generators (cadence-based) — RETIRED 2026-07-30.** A
+  per-generator cadence outside the population-proportional fire-window
+  pool. Retired by owner decision: only one scheduling class exists, and
+  the starvation this worked around was later solved properly by the
+  provincial fire windows (one track per populated superregion). The
+  former timeline generators (the ending rites, the Deep Conclave, the
+  Wake-Singer rites, orca pod launches) now compete in the pool with
+  weights sized to their intended rarity. The adopted fixes from this
+  round remain: cross-cultural authorship and per-culture plane bias.
 - **Per-culture plane bias.** Culture-authored per-plane influence
   production multipliers (Nightshelf semantic-heavy, Aurora mildly
   physical-heavy) so a small culture can produce outsized output on its own

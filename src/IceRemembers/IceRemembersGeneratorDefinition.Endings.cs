@@ -76,8 +76,6 @@ public static partial class IceRemembersGeneratorDefinition
         ],
         Triggers = TriggerOn(K.Faction),
         FireWeight = 6,
-        CadenceTicks = 2000,
-        CadenceJitterTicks = 500,
     };
 
     private static SemanticGeneratorConfig OneWordYields() => new()
@@ -111,8 +109,6 @@ public static partial class IceRemembersGeneratorDefinition
         ],
         Triggers = TriggerOn(K.Canon),
         FireWeight = 4,
-        CadenceTicks = 3000,
-        CadenceJitterTicks = 800,
     };
 
     private static SemanticGeneratorConfig MemorialsJoinTheWall() => new()
@@ -155,8 +151,6 @@ public static partial class IceRemembersGeneratorDefinition
         ],
         Triggers = TriggerOn(K.Faction),
         FireWeight = 5,
-        CadenceTicks = 1200,
-        CadenceJitterTicks = 300,
     };
 
     private static SemanticGeneratorConfig TheTomeIsRead() => new()
@@ -194,8 +188,6 @@ public static partial class IceRemembersGeneratorDefinition
         ],
         Triggers = TriggerOn(K.Penguin),
         FireWeight = 6,
-        CadenceTicks = 1600,
-        CadenceJitterTicks = 400,
     };
 
     private static SemanticGeneratorConfig TheOfferingIsSpent() => new()
@@ -224,13 +216,9 @@ public static partial class IceRemembersGeneratorDefinition
             new SetBindingHistoricalEffect("$instrument"),
         ],
         Triggers = TriggerOn(K.PointOfInterest),
-        FireWeight = 5,
         // Requires a wandering instrument to stand beside the chosen
-        // devoted site on the attempt tick - a rare alignment. At cadence
-        // 2000 that gave ~10 attempts and ~0.3 fires per 100k; the shorter
-        // clock buys the rare geometry more chances while the rite stays
-        // an uncommon ending.
-        CadenceTicks = 800,
-        CadenceJitterTicks = 200,
+        // devoted site on the attempt tick - a rare alignment, so the
+        // eligibility gate keeps the rite uncommon regardless of weight.
+        FireWeight = 8,
     };
 }

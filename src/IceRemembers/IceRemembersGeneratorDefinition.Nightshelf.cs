@@ -12,17 +12,14 @@ using Rel = IceRemembers.IceRemembersRelationship;
 /// Nightshelf. Rich hubs breed undermarkets, wars breed profiteers, public
 /// records cast redacted shadows. The bigger the surface world grows, the more
 /// underworld it hosts — balance that emerges from theme, not from a
-/// scoreboard controller. The Deep Conclave is Nightshelf's authored timeline:
-/// it convenes on its own cadence, outside the population-proportional fire-window
-/// pool.
+/// scoreboard controller. The Deep Conclave convenes whenever the fire
+/// windows grant it a slot and a custody-keeper stands ready.
 /// </summary>
 public static partial class IceRemembersGeneratorDefinition
 {
     private const float RichHubMinimumTradeStrength = 0.60f;
     private const float ShadowBrokersMinimumWarStrength = 0.55f;
     private const float ShadowBrokersWarStrengthSpend = -0.06f;
-    private const int DeepConclaveCadenceTicks = 1200;
-    private const int DeepConclaveCadenceJitterTicks = 240;
 
     private static SemanticGeneratorConfig RichHubsGrowUndermarkets() => new()
     {
@@ -114,7 +111,7 @@ public static partial class IceRemembersGeneratorDefinition
         Id = "the_deep_conclave",
         Name = "The Deep Conclave",
         Description = "On its own calendar, wherever secrets pool, the Conclave convenes. A keeper of things brings an initiate into the practice, and one more sealed secret enters Nightshelf custody.",
-        CausalLimit = "Fires on an authored cadence against any custody-keeper; each convening adds one initiate and one sealed secret.",
+        CausalLimit = "Targets any custody-keeper; each convening adds one initiate and one sealed secret.",
         Target = TargetWithOutgoing(K.Penguin, Rel.Holds),
         Produces =
         [
@@ -133,9 +130,7 @@ public static partial class IceRemembersGeneratorDefinition
             new ClaimSemanticJurisdictionEffect("$decree", CanonJurisdictionRadius),
         ],
         Triggers = TriggerOn(K.Penguin),
-        FireWeight = 1,
-        CadenceTicks = DeepConclaveCadenceTicks,
-        CadenceJitterTicks = DeepConclaveCadenceJitterTicks,
+        FireWeight = 3,
     };
 
     /// <summary>
@@ -147,7 +142,9 @@ public static partial class IceRemembersGeneratorDefinition
         string @ref,
         EntityKind kind,
         string subtype,
-        string placementRef)
+        string placementRef,
+        GeneratorCulturePlacement culturePlacement = GeneratorCulturePlacement.HostileIntrusion,
+        bool physicalFrontier = false)
     {
         var physicalProfile = IceRemembersPlacementTerrainProfiles.Physical(kind, subtype);
         var semanticProfile = IceRemembersPlacementTerrainProfiles.Semantic(kind, subtype);
@@ -157,7 +154,7 @@ public static partial class IceRemembersGeneratorDefinition
             Kind = kind,
             Subtype = subtype,
             Role = subtype,
-            PhysicalPlacement = SemanticPlacement.Near,
+            PhysicalPlacement = physicalFrontier ? SemanticPlacement.Frontier : SemanticPlacement.Near,
             PhysicalPlacementPreferredTerrains = physicalProfile.PreferredTerrains,
             PhysicalPlacementAvoidedTerrains = physicalProfile.AvoidedTerrains,
             PhysicalPlacementFallbackTerrain = physicalProfile.FallbackTerrain,
@@ -172,7 +169,7 @@ public static partial class IceRemembersGeneratorDefinition
             SemanticPlacementFallbackTerrain = semanticProfile.FallbackTerrain,
             PlacementRef = placementRef,
             Culture = IceRemembersCulture.Nightshelf.ToDomainName(),
-            CulturePlacement = GeneratorCulturePlacement.HostileIntrusion,
+            CulturePlacement = culturePlacement,
         };
     }
 }

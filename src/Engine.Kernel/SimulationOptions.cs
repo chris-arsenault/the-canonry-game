@@ -118,6 +118,9 @@ internal sealed record CultureFieldTuningOptions
     // Eased from 0.005 with the stage rework: the worker treadmill that
     // paid this decay bill is retired, and interior holding now comes from
     // stage emission and districts (docs/design/entity-stages.md).
+    // Raising this is a refuted concentration lever (r16e smoke, 2026-07-31):
+    // global decay pressure starves the smallest cultures' territory first
+    // and pinned the leader at 0.96 while population halved.
     public FixedScalar DecayPerRun { get; init; } = FixedScalar.FromUnits(4000L);
     // The floor must sit below a base-stage settlement's ambient emission
     // per decay run (town: 0.05/tick x 5 = 0.25), or survival itself is

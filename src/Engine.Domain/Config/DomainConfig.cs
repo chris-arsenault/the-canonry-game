@@ -63,6 +63,14 @@ public sealed class DomainConfig
     /// <summary>Culture definitions.</summary>
     public required IReadOnlyList<CultureConfig> Cultures { get; init; }
 
+    /// <summary>
+    /// Stable name of the neutral world culture. Produced entities with
+    /// <see cref="ProducedCultureSource.World"/> belong to it: they
+    /// participate in the simulation without extending any contending
+    /// culture's footprint. Required when any generator uses World.
+    /// </summary>
+    public string? WorldCulture { get; init; }
+
     /// <summary>Domain vocabulary feeding the culture power ledgers.</summary>
     public CulturePowerConfig CulturePower { get; init; } = new();
 

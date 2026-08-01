@@ -26,12 +26,6 @@ public static partial class IceRemembersGeneratorDefinition
     private const float ProvidesOfferingSpend = -0.30f;
     private const float NewSiteMinimumOfferingStrength = 0.75f;
     private const float NewSiteOfferingSpend = -0.40f;
-    private const int VigilCadenceTicks = 600;
-    private const int VigilCadenceJitterTicks = 120;
-    private const int DescentCadenceTicks = 2000;
-    private const int DescentCadenceJitterTicks = 400;
-    private const int AccordCadenceTicks = 1500;
-    private const int AccordCadenceJitterTicks = 300;
     private const float AccordPredationDamp = -0.15f;
 
     private static SemanticGeneratorConfig KillsSungToTheDeep() => new()
@@ -75,7 +69,7 @@ public static partial class IceRemembersGeneratorDefinition
         Id = "elders_descend_to_the_god",
         Name = "Elders Descend To The God",
         Description = "On the old rhythm, an elder who can no longer hunt makes the Deep Descent. This is completion, not tragedy: a relic of the descent joins the deep, and the pod's devotion is renewed.",
-        CausalLimit = "Fires on an authored cadence against a worshipped site with a living same-culture elder; marks the elder historical.",
+        CausalLimit = "Targets a worshipped site with a living same-culture elder; marks the elder historical.",
         Target = TargetWithIncomingAndWithoutIncoming(K.PointOfInterest, Rel.OfferedTo, Rel.CleansedBy),
         SecondaryTargets =
         [
@@ -104,9 +98,7 @@ public static partial class IceRemembersGeneratorDefinition
             new SetBindingHistoricalEffect("$elder"),
         ],
         Triggers = TriggerOn(K.PointOfInterest),
-        FireWeight = 1,
-        CadenceTicks = DescentCadenceTicks,
-        CadenceJitterTicks = DescentCadenceJitterTicks,
+        FireWeight = 2,
     };
 
     private static SemanticGeneratorConfig RelicsAreGivenToTheDeep() => new()
@@ -139,7 +131,7 @@ public static partial class IceRemembersGeneratorDefinition
         Id = "vigils_at_the_current",
         Name = "Vigils At The Current",
         Description = "The songs never fully stop. On the vigil rhythm a singer returns to the sacred waters and offers the long harmonics, and something below answers just enough.",
-        CausalLimit = "Fires on an authored cadence against a worshipped site with a living same-culture singer; renews offering strength.",
+        CausalLimit = "Targets a worshipped site with a living same-culture singer; renews offering strength.",
         Target = TargetWithIncomingAndWithoutIncoming(K.PointOfInterest, Rel.OfferedTo, Rel.CleansedBy),
         SecondaryTargets =
         [
@@ -156,9 +148,7 @@ public static partial class IceRemembersGeneratorDefinition
             R("$singer", "$target", Rel.OfferedTo, 0.55f, replaceExisting: true),
         ],
         Triggers = TriggerOn(K.PointOfInterest),
-        FireWeight = 1,
-        CadenceTicks = VigilCadenceTicks,
-        CadenceJitterTicks = VigilCadenceJitterTicks,
+        FireWeight = 5,
     };
 
     private static SemanticGeneratorConfig TheCurrentProvides() => new()
@@ -379,7 +369,7 @@ public static partial class IceRemembersGeneratorDefinition
         Id = "the_accord_convenes",
         Name = "The Accord Convenes",
         Description = "On the civic calendar the Flipper Accord tribunal takes up the worst of the grievances. A terrified settlement is heard, the raiders are named and warned, and the hunt is pressed back for a season.",
-        CausalLimit = "Fires on an authored cadence against a terrified settlement; clears the terrified tag and damps its incoming predation edges.",
+        CausalLimit = "Targets a terrified settlement; clears the terrified tag and damps its incoming predation edges.",
         Target = TargetWithTags(K.Settlement, new HashSet<string>(StringComparer.Ordinal) { "terrified" }),
         Relationships =
         [
@@ -399,9 +389,7 @@ public static partial class IceRemembersGeneratorDefinition
                 GeneratorRelationshipInstanceSelection.AllTargetRelationships),
         ],
         Triggers = TriggerOn(K.Settlement),
-        FireWeight = 1,
-        CadenceTicks = AccordCadenceTicks,
-        CadenceJitterTicks = AccordCadenceJitterTicks,
+        FireWeight = 2,
     };
 
     private static SemanticGeneratorConfig TheHuntSettlesIn() => new()

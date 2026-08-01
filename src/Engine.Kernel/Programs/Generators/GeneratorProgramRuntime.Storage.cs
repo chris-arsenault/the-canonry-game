@@ -13,8 +13,6 @@ internal sealed partial class GeneratorProgramRuntime
     private int[] _targetKindIds => Data.TargetKindIds;
     private int[] _fireWeights => Data.FireWeights;
     private FixedScalar[] _ageFireWeightMultipliers => Data.AgeFireWeightMultipliers;
-    private int[] _cadenceTicks => Data.CadenceTicks;
-    private int[] _cadenceJitterTicks => Data.CadenceJitterTicks;
     private int[] _targetRequiredTagBits => Data.TargetRequiredTagBits;
     private int[] _targetWithoutTagBits => Data.TargetWithoutTagBits;
     private int[] _bindingRequiredTagBits => Data.BindingRequiredTagBits;
@@ -29,8 +27,9 @@ internal sealed partial class GeneratorProgramRuntime
     private int[] _producedQueryRelatedToTargetKindIds => Data.ProducedQueryRelatedToTargetKindIds;
     private int[] _producedQueryRelatedToTargetIncoming => Data.ProducedQueryRelatedToTargetIncoming;
     private FixedScalar[] _producedQueryRelatedToTargetMinStrengths => Data.ProducedQueryRelatedToTargetMinStrengths;
-    private int[] _nextCadenceFireTicks => State.NextCadenceFireTicks;
     private int[] _maxRuns => Data.MaxRuns;
+    private int[] _desperationRatioUnits => Data.DesperationRatioUnits;
+    private int[] _desperationCultureIds => Data.DesperationCultureIds;
     private int[] _runCounts => State.RunCounts;
     private bool[] _enabled => State.Enabled;
     private const int ProvinceBandDormant = 0;
@@ -116,6 +115,8 @@ internal sealed partial class GeneratorProgramRuntime
     private int[] _producedPlacementFallbackTerrainIds => Data.ProducedPlacementFallbackTerrainIds;
     private int[] _producedPlacementRefCodes => Data.ProducedPlacementRefCodes;
     private int[] _producedCultureRefCodes => Data.ProducedCultureRefCodes;
+    private int[] _producedCultureModeCodes => Data.ProducedCultureModeCodes;
+    private int[] _producedOwnerSlots => Data.ProducedOwnerSlots;
     private int[] _producedFixedCultureIds => Data.ProducedFixedCultureIds;
     private int[] _producedCulturePlacementCodes => Data.ProducedCulturePlacementCodes;
     private int[] _producedFeatureKinds => Data.ProducedFeatureKinds;

@@ -196,10 +196,13 @@ public class DomainConfigTests
         Assert.Contains(namedWar.Produces, produce =>
             produce.Kind == IceRemembersKinds.Occurrence &&
             produce.Subtype == "war");
-        Assert.Contains(namedWar.Relationships, relationship =>
+        // The named war is world-owned memory: it wages no war of its own,
+        // so naming a war never mechanically begets more war edges.
+        Assert.DoesNotContain(namedWar.Relationships, relationship =>
             relationship.SourceRef == "$war" &&
-            relationship.DestinationRef == "$target" &&
             relationship.Kind == Rel.AtWarWith.ToDomainName());
+        Assert.Contains(namedWar.Produces, produce =>
+            produce.CultureSource == ProducedCultureSource.World);
 
         var conference = Assert.Single(generators, generator => generator.Id == "trade_routes_convene_negotiation");
         Assert.Equal(IceRemembersKinds.Settlement, conference.Target.Kind);
@@ -393,10 +396,14 @@ public class DomainConfigTests
     }
 
     [Fact]
-    public void IceRemembers_OrcaMonsterTransportLoopsUseCausalLocksAndSpend()
+    public void IceRemembers_PodLaunchesAreGenerationalSuccession()
     {
         var generators = IceRemembersDefinition.Create().Semantics!.Generators;
 
+        // Each homed parent launches once - the successors' member-of edges
+        // are the lock - and the desperation surge guards the extinction
+        // edge. Unlimited launches per matriarch grew the pods into the
+        // world's dominant war machine.
         var orcas = Assert.Single(generators, generator => generator.Id == "pod_currents_launch_scouts");
         Assert.Equal(IceRemembersKinds.Orca, orcas.Target.Kind);
         Assert.Contains(Rel.HomeBase.ToDomainName(), orcas.Target.RequiredOutgoingRelationships!);
@@ -407,12 +414,22 @@ public class DomainConfigTests
             relationship.Kind == Rel.MemberOf.ToDomainName());
         Assert.Contains(orcas.Relationships, relationship =>
             relationship.SourceRef == "$scout" &&
+            relationship.DestinationRef == "$shoal" &&
+            relationship.Kind == Rel.HomeBase.ToDomainName());
+        Assert.Contains(orcas.Relationships, relationship =>
+            relationship.SourceRef == "$scout" &&
             relationship.DestinationRef == "$skiff" &&
             relationship.Kind == Rel.Holds.ToDomainName());
         Assert.Contains(orcas.Relationships, relationship =>
             relationship.SourceRef == "$skiff" &&
             relationship.DestinationRef == "$shoal" &&
             relationship.Kind == Rel.ConduitOf.ToDomainName());
+    }
+
+    [Fact]
+    public void IceRemembers_OrcaMonsterTransportLoopsUseCausalLocksAndSpend()
+    {
+        var generators = IceRemembersDefinition.Create().Semantics!.Generators;
 
         var routeWar = Assert.Single(generators, generator => generator.Id == "orca_route_wars_get_names");
         Assert.Equal(IceRemembersKinds.Orca, routeWar.Target.Kind);
@@ -617,7 +634,9 @@ public class DomainConfigTests
         AssertLifecycleTarget(config.Lifecycles[TestKinds.Penguin], targetTicks: 2000);
         AssertLifecycleTarget(config.Lifecycles[TestKinds.Faction], targetTicks: 10000);
         AssertLifecycleTarget(config.Lifecycles[TestKinds.Settlement], targetTicks: 3500);
-        AssertLifecycleTarget(config.Lifecycles[IceRemembersKinds.Orca], targetTicks: 3500);
+        // Orcas are Enduring: the Wake-Singers' identity rests on long-lived
+        // matriarchs carrying the song.
+        AssertLifecycleTarget(config.Lifecycles[IceRemembersKinds.Orca], targetTicks: 4500);
         AssertLifecycleTarget(config.Lifecycles[IceRemembersKinds.Ability], targetTicks: 10000);
         AssertLifecycleTarget(config.Lifecycles[IceRemembersKinds.Monster], targetTicks: 4500);
         AssertLifecycleTarget(config.Lifecycles[TestKinds.Artifact], targetTicks: 4500);
@@ -730,6 +749,7 @@ public class DomainConfigTests
             TravelStructures = config.TravelStructures,
             MovementProfiles = config.MovementProfiles,
             Cultures = config.Cultures,
+            WorldCulture = config.WorldCulture,
             CulturePower = config.CulturePower,
             Tags = config.Tags,
             Gameplay = config.Gameplay,

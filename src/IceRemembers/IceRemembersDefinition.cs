@@ -44,6 +44,9 @@ public static partial class IceRemembersDefinition
             MapFrontier = CreateMapFrontier(),
             MovementProfiles = IceRemembersMovementProfiles.DomainProfiles,
             Cultures = CreateCultures(),
+            // Shared consequences - named wars, relics, broken lands - belong
+            // to the ice itself, not to a contending culture.
+            WorldCulture = C(Culture.TheIce),
             CulturePower = CreateCulturePowerDefinition(),
             Tags = ["hunted", "terrified", "bereaved", "fervent", "oathbreaker", "profaner"],
             Gameplay = CreateGameplayDefinition(),
@@ -337,8 +340,15 @@ public static partial class IceRemembersDefinition
 
     private static IReadOnlyList<RelationshipMaintenanceRuleConfig> OfferingMaintenance() =>
     [
+        // Renewal above decay: a devotee who keeps returning to the site
+        // deepens the offering (+0.0006 net in contact), a third of the
+        // growth rate tended friendships get; abandoned offerings fade at
+        // the full decay. Previously renewal exactly equaled decay, so
+        // worship could never climb and everything downstream of offering
+        // strength starved (the track fidelity pass: devotion at 11.6% of
+        // authorship, 1.8% of entities).
         AlwaysDecay(0.0010f),
-        ContactMemory(10f, 0.0010f),
+        ContactMemory(10f, 0.0016f),
     ];
 
     private static IReadOnlyList<RelationshipMaintenanceRuleConfig> SemanticBondMaintenance() =>
@@ -888,8 +898,14 @@ public static partial class IceRemembersDefinition
         CultureDefinition(
             Culture.Nightshelf,
             "Nightshelf",
-            physicalProduction: 0.75f,
-            semanticProduction: 2.5f,
+            // 1.0 keeps base-stage emission (0.25/run) above the 0.2 decay
+            // floor; at the old 0.75 a lone Nightshelf holding was net
+            // negative everywhere and the culture could never hold ground.
+            // Semantic eased from 2.5: that multiplier was balanced for a
+            // ~60-entity culture, and once the count engines were fixed it
+            // pinned the semantic plane at 0.84-0.92 (r16f fan).
+            physicalProduction: 1f,
+            semanticProduction: 1.8f,
             slots:
             [
                 Slot("ledger_seat", "Ledger Seat", CultureSlotPolarity.Positive, [K.Faction], [

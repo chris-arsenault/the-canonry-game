@@ -31,6 +31,8 @@ public static partial class IceRemembersDefinition
         GambitId.MonsterDrawsOnTheVessel,
         GambitId.PenguinUnmakesTheBinding,
         GambitId.PenguinCallsTheDeepCurrent,
+        GambitId.PenguinMakesOffering,
+        GambitId.OrcaMakesOffering,
         GambitId.PenguinTurnsTheBattle,
         GambitId.PenguinBindsWhatWasLoosed,
         GambitId.PenguinKeepsWintersPatience,
@@ -47,6 +49,8 @@ public static partial class IceRemembersDefinition
         yield return MonsterDrawsOnTheVessel();
         yield return PenguinUnmakesTheBinding();
         yield return PenguinCallsTheDeepCurrent();
+        yield return PenguinMakesOffering();
+        yield return OrcaMakesOffering();
         yield return PenguinTurnsTheBattle();
         yield return PenguinBindsWhatWasLoosed();
         yield return PenguinKeepsWintersPatience();
@@ -182,6 +186,40 @@ public static partial class IceRemembersDefinition
         gambit.Mutations.Add(new RemoveContextRelationshipMutation(TransferEndpoint.Target, TransferEndpoint.Self, L(Rel.AtWarWith)));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.WardAgainst, RelationshipPolarity.Negative, 0.6f));
         gambit.Description = "A seal-bearer severs the binding between themselves and a monster — corruption lifted, war unmade — and lays a ward in its place.";
+        return gambit;
+    }
+
+    // The base act of worship. Rites renew offerings and rites spend them,
+    // but until these two nothing common ever MADE one - the whole devotion
+    // economy hung on ~15 generator-created edges per world (track fidelity
+    // pass: devotion at 11.6% of authorship, 1.8% of entities).
+    private static GambitDefinition PenguinMakesOffering() =>
+        MakesOffering(GambitId.PenguinMakesOffering, K.Penguin, Attr.Vitality);
+
+    private static GambitDefinition OrcaMakesOffering() =>
+        MakesOffering(GambitId.OrcaMakesOffering, K.Orca, Attr.Endurance);
+
+    private static GambitDefinition MakesOffering(GambitId id, EntityKind actor, Attr health)
+    {
+        var gambit = NewGambit(
+            id,
+            "Make an Offering",
+            actor,
+            K.PointOfInterest,
+            All(
+                new TargetIsNotSelf(),
+                new WithinPlaneDistancePrecondition(3, PrimaryPlane.Physical)),
+            scoreExpression: GambitScore(
+                baseline: 0.8f,
+                dynamicRange: 3f,
+                Normalized(Expr.Self(A(health)))),
+            success: 0.5f,
+            cooldown: 60,
+            entityCooldown: 250);
+        gambit.Reads.Add(AttributeRef.Self(A(health), actor));
+        AddRelationshipWrite(gambit, Rel.OfferedTo, K.PointOfInterest);
+        gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.OfferedTo, RelationshipPolarity.Positive, 0.45f));
+        gambit.Description = "A traveler pauses at a marked place and leaves something of themselves - a stone, a song, a silence. Devotion is made of many small returns.";
         return gambit;
     }
 

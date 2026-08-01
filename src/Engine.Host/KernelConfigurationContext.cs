@@ -573,19 +573,19 @@ internal sealed partial class KernelConfigurationContext
         int targetKindId,
         int fireWeight,
         int maxRuns,
-        int cadenceTicks = 0,
-        int cadenceJitterTicks = 0,
         int targetRequiredTagBits = 0,
-        int targetWithoutTagBits = 0) =>
+        int targetWithoutTagBits = 0,
+        FixedScalar desperationRatio = default,
+        int desperationCultureId = 0) =>
         _kernel.Generators.RegisterGenerator(
             generatorId,
             targetKindId,
             fireWeight,
             maxRuns,
-            cadenceTicks,
-            cadenceJitterTicks,
             targetRequiredTagBits,
-            targetWithoutTagBits);
+            targetWithoutTagBits,
+            desperationRatio,
+            desperationCultureId);
 
     public void AddGeneratorTargetSubtype(int generatorSlot, int subtypeId) =>
         _kernel.Generators.AddTargetSubtype(generatorSlot, subtypeId);
@@ -693,7 +693,8 @@ internal sealed partial class KernelConfigurationContext
         int queryCultureId = 0,
         int queryRelatedToTargetKindId = 0,
         bool queryRelatedToTargetIncoming = false,
-        FixedScalar queryRelatedToTargetMinStrength = default) =>
+        FixedScalar queryRelatedToTargetMinStrength = default,
+        int cultureModeCode = 0) =>
         _kernel.Generators.AddProduced(
             generatorSlot,
             refCode,
@@ -727,7 +728,8 @@ internal sealed partial class KernelConfigurationContext
             queryCultureId,
             queryRelatedToTargetKindId,
             queryRelatedToTargetIncoming ? 1 : 0,
-            queryRelatedToTargetMinStrength);
+            queryRelatedToTargetMinStrength,
+            cultureModeCode);
 
     public void SetGeneratorTargetChronicleGates(int generatorSlot, FixedScalar heatMin, int legendaryWithinTicks) =>
         _kernel.Generators.SetTargetChronicleGates(generatorSlot, heatMin, legendaryWithinTicks);

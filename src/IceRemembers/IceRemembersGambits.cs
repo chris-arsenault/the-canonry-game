@@ -243,7 +243,7 @@ public static partial class IceRemembersDefinition
                 // first: it requires a pressed rivalry, not just contested
                 // ground. Peace clears the rivalry, so re-declaration needs
                 // full re-escalation.
-                new SelfHasRelationshipToTarget(L(Rel.RivalOf), minStrength: 0.35f),
+                new SelfHasRelationshipToTarget(L(Rel.RivalOf), minStrength: 0.45f),
                 Not(new SelfHasRelationshipToTarget(L(Rel.AtWarWith))),
                 Not(new TargetHasRelationshipToSelf(L(Rel.AtWarWith))),
                 new SelfAttributeThreshold(A(Attr.Cohesion), min: 34f, max: null, behaviorRelevant: false)),
@@ -252,8 +252,11 @@ public static partial class IceRemembersDefinition
                 dynamicRange: 4f,
                 Normalized(Expr.Self(A(Attr.Cohesion)))),
             success: InitialGambitSuccessChance,
-            cooldown: 200,
-            entityCooldown: 100);
+            // Wars are generational undertakings, not a biennial habit: a
+            // faction that has gone to war carries that war for years before
+            // it can open another front.
+            cooldown: 300,
+            entityCooldown: 600);
         AddRelationshipWrite(gambit, Rel.AtWarWith, K.Faction);
         gambit.Reads.Add(AttributeRef.Self(A(Attr.Cohesion), K.Faction));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.AtWarWith, RelationshipPolarity.Negative, 0.88f));
@@ -772,8 +775,12 @@ public static partial class IceRemembersDefinition
                     (Normalized(Expr.Self(A(Attr.Endurance))), 0.30f),
                     (Normalized(Expr.Target(A(Attr.Vitality))), 0.20f))),
             success: InitialGambitSuccessChance,
-            cooldown: 150,
-            entityCooldown: 40);
+            // A raid marks the start of a lasting feud, not a weekly habit -
+            // the pod carries each war it starts for a generation. Measured:
+            // orca raids were the world's dominant war source (503 of ~650
+            // declarations at feud pacing 300).
+            cooldown: 400,
+            entityCooldown: 900);
         AddRelationshipWrite(gambit, Rel.AtWarWith, K.Penguin);
         gambit.Reads.Add(AttributeRef.Self(A(Attr.Endurance), K.Orca));
         gambit.Reads.Add(AttributeRef.Target(A(Attr.Vitality), K.Penguin));

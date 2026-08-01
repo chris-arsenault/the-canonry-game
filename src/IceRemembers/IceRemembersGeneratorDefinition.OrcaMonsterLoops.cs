@@ -9,54 +9,9 @@ using Rel = IceRemembers.IceRemembersRelationship;
 public static partial class IceRemembersGeneratorDefinition
 {
     private const float OrcaRouteWarsGetNamesMinimumWarStrength = 0.68f;
-    private const float OrcaRouteWarsGetNamesWarStrengthSpend = -0.22f;
+    private const float OrcaRouteWarsGetNamesWarStrengthSpend = -0.12f;
     private const float HauntedTransportsSpreadPlagueMinimumCorruptionStrength = 0.68f;
     private const float HauntedTransportsSpreadPlagueCorruptionStrengthSpend = -0.24f;
-
-    private static SemanticGeneratorConfig PodCurrentsLaunchScouts() => new()
-    {
-        Id = "pod_currents_launch_scouts",
-        Name = "Pod Currents Launch Scouts",
-        Description = "An orca with a settled hunting ground launches a scout pair, a carried skiff, and a newly named shoal. The current creates a replacement path through claimed waters instead of free-floating orca bodies.",
-        CausalLimit = "Depends on an orca home-base edge; the calving cadence and the supply of homed parents pace the launches, and member-of edges record the lineage.",
-        Target = TargetWithOutgoing(K.Orca, Rel.HomeBase),
-        Produces =
-        [
-            Required("$scout", K.Orca, "scout", "$target", "$target"),
-            Required("$scoutmate", K.Orca, "scout", "$target", "$target"),
-            Required("$skiff", K.Transport, "scout", "$target", "$target"),
-            Required("$shoal", K.PointOfInterest, "shoal", "$target", "$target", frontier: true),
-        ],
-        Relationships =
-        [
-            R("$scout", "$target", Rel.MemberOf, 0.78f),
-            R("$scoutmate", "$target", Rel.MemberOf, 0.74f),
-            R("$target", "$scout", Rel.AlliedWith, 0.72f),
-            R("$scout", "$skiff", Rel.Holds, 1f),
-            // The launch seeds a pod, not a lone scout: both successors home
-            // at the shoal their own launch names, so each generation can
-            // later qualify as a parent. A long-lived matriarch launches
-            // repeatedly across her life - the calving cadence caps world
-            // birth tempo, so steady pod size is cadence x lifespan (~15-20)
-            // and the line cannot die while any homed parent lives.
-            R("$scout", "$shoal", Rel.HomeBase, 0.8f),
-            R("$scoutmate", "$shoal", Rel.HomeBase, 0.8f),
-            R("$scout", "$scoutmate", Rel.AlliedWith, 0.76f),
-            R("$skiff", "$shoal", Rel.NativeTo, 0.84f),
-            R("$skiff", "$shoal", Rel.ConduitOf, 0.74f),
-            R("$shoal", "$scout", Rel.ClaimedBy, 0.70f),
-        ],
-        Triggers = TriggerOn(K.Orca),
-        // Reproduction is a calving season, not a story beat: as a
-        // slot-competed generator (weight 4, then 12) succession starved on
-        // small harsh worlds even with eligible parents standing by, and
-        // pods slid to extinction on the fire lottery. The cadence clock
-        // runs outside the shared pool; eligible parents (one launch each,
-        // ever) remain the cap on both tempo and total.
-        FireWeight = 12,
-        CadenceTicks = 600,
-        CadenceJitterTicks = 150,
-    };
 
     private static SemanticGeneratorConfig OrcaRouteWarsGetNames() => new()
     {
@@ -69,25 +24,42 @@ public static partial class IceRemembersGeneratorDefinition
             Rel.AtWarWith,
             OrcaRouteWarsGetNamesMinimumWarStrength,
             Rel.Memorializes),
+        SecondaryTargets =
+        [
+            // The raided side stands in the record, so defender and convoy
+            // step out of either belligerent.
+            new SemanticGeneratorBindingTarget
+            {
+                Ref = "$foe",
+                Kind = K.Penguin,
+                Query = new SemanticEntityQuery
+                {
+                    RelatedToTargetRelationship = L(Rel.AtWarWith),
+                    RelatedToTargetIncoming = true,
+                    RelatedToTargetMinStrength = 0.2f,
+                },
+            },
+        ],
         Produces =
         [
-            Required("$war", K.Occurrence, "war", "$target", "$target"),
-            Required("$defender", K.Penguin, "warden", "$target", "$target"),
-            Required("$convoy", K.Transport, "trade", "$target", "$target"),
-            Optional("$escort", K.Transport, "battleship", "$target", "$target", chance: 0.45f),
+            // The war record belongs to the ice, and those it pulls in come
+            // from any side of it. The record itself wages no war - only the
+            // defender's front is a real new belligerence.
+            Required("$war", K.Occurrence, "war", "$target", "$target", cultureSource: ProducedCultureSource.World),
+            Required("$defender", K.Penguin, "warden", "$target", "$target", cultureSource: ProducedCultureSource.AnyParticipant),
+            Optional("$convoy", K.Transport, "trade", "$target", "$target", chance: 0.5f, cultureSource: ProducedCultureSource.AnyParticipant),
+            Optional("$escort", K.Transport, "battleship", "$target", "$target", chance: 0.45f, cultureSource: ProducedCultureSource.AnyParticipant),
         ],
         Relationships =
         [
             R("$target", "$war", Rel.MemberOf, 0.74f),
             R("$defender", "$war", Rel.MemberOf, 0.78f),
-            R("$war", "$target", Rel.AtWarWith, 0.64f),
-            R("$war", "$defender", Rel.AtWarWith, 0.62f),
             R("$target", "$defender", Rel.AtWarWith, 0.72f),
             R("$defender", "$target", Rel.AtWarWith, 0.72f),
+            // The always-created record carries the repeat lock.
+            R("$war", "$target", Rel.Memorializes, 0.84f),
             R("$defender", "$convoy", Rel.Holds, 1f),
-            R("$convoy", "$target", Rel.Memorializes, 0.84f),
             R("$convoy", "$war", Rel.Memorializes, 0.84f),
-            R("$convoy", "$target", Rel.WardAgainst, 0.66f),
             R("$defender", "$escort", Rel.Holds, 1f),
             R("$escort", "$target", Rel.WardAgainst, 0.70f),
         ],

@@ -20,7 +20,7 @@ internal static class PointOfInterestEntity
         Kind = K.PointOfInterest,
         Category = EntityCategory.Spatial,
         Tier = EntityTier.Place,
-        Subtypes = Subtypes("vent", "peak", "bloom", "shoal", "ruin"),
+        Subtypes = Subtypes("vent", "peak", "bloom", "shoal", "ruin", "rookery"),
         HealthAttribute = Attr.Presence,
         HealthDisplayName = "Presence",
         PrimaryPlane = PrimaryPlane.Semantic,
@@ -28,7 +28,7 @@ internal static class PointOfInterestEntity
         // named place fades to historical, its feature anchor frees up and
         // FeatureAnchor discovery generators can name it again.
         LifecycleBand = IceRemembersLifecycleBand.Monumental,
-        Description = "A named natural feature with localized significance - a thermal vent, a peak, a krill bloom, a shoal. Smaller than a region, distinct from a settlement, never built.",
+        Description = "A named natural feature with localized significance - a thermal vent, a peak, a krill bloom, a shoal, a rookery ground. Smaller than a region, distinct from a settlement, never built.",
         Traits =
         [
             PositiveTrait(
@@ -53,6 +53,7 @@ internal static class PointOfInterestEntity
                 MovementSubtypeRule("vent", physical: Profile.Shore),
                 MovementSubtypeRule("peak", physical: Profile.Shore),
                 MovementSubtypeRule("shoal", physical: Profile.Shore),
+                MovementSubtypeRule("rookery", physical: Profile.Shore),
                 MovementSubtypeRule("bloom", physical: Profile.Shore, semantic: Profile.Rift),
             ]),
         Placement = Placement(
@@ -74,6 +75,9 @@ internal static class PointOfInterestEntity
                 {
                     PreferredSites = Sites(IceRemembersPlacementSites.Polynya),
                 }),
+                // The land mirror of the shoal: the shore ground a colony
+                // breeds on (actor succession anchors, parity with shoal).
+                SubtypeRule("rookery", Land()),
                 SubtypeRule("bloom", Maritime() with
                 {
                     PreferredSites = Sites(IceRemembersPlacementSites.Polynya),
@@ -90,6 +94,7 @@ internal static class PointOfInterestEntity
                 SubtypeRule("vent", Semantic(Terrain.BeaconSpire, Terrain.Witness, Terrain.OpenField)),
                 SubtypeRule("bloom", Semantic(Terrain.Severance, Terrain.Silence, Terrain.TabooRidge)),
                 SubtypeRule("shoal", Semantic(Terrain.Breakaway, Terrain.OpenField, Terrain.Witness)),
+                SubtypeRule("rookery", Semantic(Terrain.Lineage, Terrain.Witness, Terrain.OpenField)),
                 SubtypeRule("ruin", Semantic(Terrain.Severance, Terrain.TabooRidge, Terrain.Silence)),
             ]),
     };

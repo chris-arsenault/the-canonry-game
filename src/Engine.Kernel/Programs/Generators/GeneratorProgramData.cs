@@ -8,8 +8,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] TargetKindIds = [];
     internal int[] FireWeights = [];
     internal FixedScalar[] AgeFireWeightMultipliers = [];
-    internal int[] CadenceTicks = [];
-    internal int[] CadenceJitterTicks = [];
     internal int[] TargetRequiredTagBits = [];
     internal int[] TargetWithoutTagBits = [];
     internal FixedScalar[] TargetChronicleHeatMin = [];
@@ -94,6 +92,10 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] ProducedPlacementRefCodes = [];
     internal int[] ProducedCultureRefCodes = [];
     internal int[] ProducedFixedCultureIds = [];
+    internal int[] ProducedCultureModeCodes = [];
+    internal int[] ProducedOwnerSlots = [];
+    internal int[] DesperationRatioUnits = [];
+    internal int[] DesperationCultureIds = [];
     internal int[] ProducedCulturePlacementCodes = [];
     internal int[] ProducedFeatureKinds = [];
 
@@ -176,10 +178,9 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         GeneratorIds = new int[generatorCapacity + 1];
         TargetKindIds = new int[generatorCapacity + 1];
         FireWeights = new int[generatorCapacity + 1];
+        InitializeDesperationArrays(generatorCapacity);
         AgeFireWeightMultipliers = new FixedScalar[generatorCapacity + 1];
         global::System.Array.Fill(AgeFireWeightMultipliers, 1);
-        CadenceTicks = new int[generatorCapacity + 1];
-        CadenceJitterTicks = new int[generatorCapacity + 1];
         TargetRequiredTagBits = new int[generatorCapacity + 1];
         TargetWithoutTagBits = new int[generatorCapacity + 1];
         TargetChronicleHeatMin = new FixedScalar[generatorCapacity + 1];
@@ -259,6 +260,20 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         BindingWithoutIncomingCounts = new int[itemCapacity + 1];
     }
 
+    private void InitializeProducedCultureModeArrays(int itemCapacity)
+    {
+        ProducedCultureRefCodes = new int[itemCapacity + 1];
+        ProducedFixedCultureIds = new int[itemCapacity + 1];
+        ProducedCultureModeCodes = new int[itemCapacity + 1];
+        ProducedOwnerSlots = new int[itemCapacity + 1];
+    }
+
+    internal void InitializeDesperationArrays(int generatorCapacity)
+    {
+        DesperationRatioUnits = new int[generatorCapacity + 1];
+        DesperationCultureIds = new int[generatorCapacity + 1];
+    }
+
     private void InitializeProducedArrays(int itemCapacity)
     {
         ProducedRefCodes = new int[itemCapacity + 1];
@@ -274,8 +289,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         ProducedSemanticPlacementMaxRadii = new int[itemCapacity + 1];
         InitializeProducedPlacementTerrainArrays(itemCapacity);
         ProducedPlacementRefCodes = new int[itemCapacity + 1];
-        ProducedCultureRefCodes = new int[itemCapacity + 1];
-        ProducedFixedCultureIds = new int[itemCapacity + 1];
+        InitializeProducedCultureModeArrays(itemCapacity);
         AllocateTagFilters(itemCapacity);
 
         AllocateProducedPlacementArrays(itemCapacity);

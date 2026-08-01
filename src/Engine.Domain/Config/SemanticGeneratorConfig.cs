@@ -20,16 +20,13 @@ public sealed class SemanticGeneratorConfig
     public int? MaxRunsPerSim { get; init; }
 
     /// <summary>
-    /// When positive, this is a timeline generator: it fires on its own
-    /// cadence (roughly every CadenceTicks, offset by CadenceJitterTicks)
-    /// outside the shared population-proportional fire-window pool. Target
-    /// eligibility still applies; a cadence firing with no eligible target
-    /// passes quietly.
+    /// Desperation gate: when positive, the generator is eligible only while
+    /// the leading culture's active entity count exceeds this ratio times
+    /// the generator's own product culture's count. Recovery events gated
+    /// this way are self-limiting - firing restores the ratio, which
+    /// switches them back off. Requires fixed-culture products.
     /// </summary>
-    public int CadenceTicks { get; init; }
-
-    /// <summary>Uniform jitter applied to each cadence interval.</summary>
-    public int CadenceJitterTicks { get; init; }
+    public float DesperationRatio { get; init; }
 }
 
 public sealed class SemanticGeneratorTarget
@@ -112,7 +109,8 @@ public sealed class SemanticProducedEntity
     public string PlacementRef { get; init; } = "$target";
     /// <summary>
     /// Ref of the bound entity whose culture the produced entity inherits.
-    /// Exactly one of this or <see cref="Culture"/> must be set.
+    /// With <see cref="ProducedCultureSource.Default"/>, exactly one of this
+    /// or <see cref="Culture"/> must be set.
     /// </summary>
     public string? InheritCultureFrom { get; init; }
 
@@ -122,6 +120,17 @@ public sealed class SemanticProducedEntity
     /// creates another culture's entities.
     /// </summary>
     public string? Culture { get; init; }
+
+    /// <summary>
+    /// How the produced entity's culture is decided. Default keeps the
+    /// inherit/authored pair above. World assigns the domain's neutral world
+    /// culture - shared consequences (named wars, relics, broken lands)
+    /// belong to the world, not to a contender. AnyParticipant draws
+    /// deterministically among the distinct cultures of the entities bound
+    /// in the firing - people born of multi-culture events come from any
+    /// side of them.
+    /// </summary>
+    public ProducedCultureSource CultureSource { get; init; } = ProducedCultureSource.Default;
     public GeneratorCulturePlacement CulturePlacement { get; init; } = GeneratorCulturePlacement.PreferInheritedCulture;
 
     /// <summary>
@@ -156,6 +165,11 @@ public sealed class SemanticEntityQuery
     /// <summary>Restrict matches to an authored culture (stable name).</summary>
     public string? Culture { get; init; }
 
+    /// <summary>Restrict matches to whichever culture currently leads by
+    /// active entity count, resolved at query time. Mutually exclusive with
+    /// <see cref="Culture"/>.</summary>
+    public bool LeaderCultureOnly { get; init; }
+
     public bool AdjacentToTarget { get; init; }
     public bool RequireTargetCultureRoute { get; init; }
     public IReadOnlySet<string>? WithoutOutgoingRelationships { get; init; }
@@ -189,6 +203,13 @@ public enum QueryTargetCultureMatch
     Any,
     SameAsTarget,
     DifferentFromTarget,
+}
+
+public enum ProducedCultureSource
+{
+    Default,
+    World,
+    AnyParticipant,
 }
 
 public enum GeneratorCulturePlacement
