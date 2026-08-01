@@ -36,6 +36,7 @@ public static partial class IceRemembersGeneratorDefinition
         ClaimedWatersDrawBulls(),
         PodCurrentsLaunchScouts(),
         RookeryTerracesRaiseFledglings(),
+        ..ActorParityGenerators(),
         OrcaRouteWarsGetNames(),
         ConduitsMapHiddenPeaks(),
         MappedPeaksBirthTechniques(),
@@ -74,6 +75,22 @@ public static partial class IceRemembersGeneratorDefinition
         PodsHuntTheConvoys(),
         TheDreadSongBreaksTheWatch(),
         WardensTakeUpTheOldForms(),
+    ];
+
+    // The orca emissions of kind-paired builders (authorship parity,
+    // actor-parity audit 2026-08-01). Each shares its authoring site with
+    // the penguin emission that keeps the original id.
+    private static IReadOnlyList<SemanticGeneratorConfig> ActorParityGenerators() =>
+    [
+        WarTakesItsTollOrca(),
+        IceSettlesAccountsOrca(),
+        TheIceTakesNoticeOrca(),
+        LegendEntersTheCanonOrca(),
+        TheCraterKeepsItsCountOrca(),
+        TheStoneRemembersTheWalkOrca(),
+        AHeroFallsToTheDeepOrca(),
+        TheTomeIsReadOrca(),
+        WhatTheArtifactKnowsOrca(),
     ];
 
     private static IReadOnlyList<SemanticGeneratorConfig> SocietyGenerators() =>
@@ -126,27 +143,41 @@ public static partial class IceRemembersGeneratorDefinition
         TheColumnHolds(),
     ];
 
-    private static SemanticGeneratorConfig IceSettlesAccounts() => new()
+    // The reckoning claims from every actor kind the faction fields
+    // (authorship parity, actor-parity audit 2026-08-01): one settlement of
+    // accounts authored once, emitted per kind with role subtypes mapped to
+    // each kind's vocabulary. The penguin emission keeps the original id.
+    private static SemanticGeneratorConfig IceSettlesAccounts() =>
+        IceSettlesAccountsFor("ice_settles_accounts", K.Penguin, "witness", "exile");
+
+    private static SemanticGeneratorConfig IceSettlesAccountsOrca() =>
+        IceSettlesAccountsFor("ice_settles_accounts_orca", K.Orca, "elder", "bull");
+
+    private static SemanticGeneratorConfig IceSettlesAccountsFor(
+        string id,
+        EntityKind actorKind,
+        string witnessSubtype,
+        string exileSubtype) => new()
     {
-        Id = "ice_settles_accounts",
+        Id = id,
         Name = "Ice Settles Accounts",
-        Description = "The reckoning. The ice calls a price for the war: a penguin of the faction's culture does not return, a memorial seal closes the account, and the war ends.",
-        CausalLimit = "Depends on an at-war relationship and an offered penguin; marks the penguin historical and removes the selected at-war relationship.",
+        Description = "The reckoning. The ice calls a price for the war: one of the faction's own does not return, a memorial seal closes the account, and the war ends.",
+        CausalLimit = "Depends on an at-war relationship and an offered member; marks the member historical and removes the selected at-war relationship.",
         Target = TargetWithOutgoing(K.Faction, Rel.AtWarWith),
         SecondaryTargets =
         [
             new SemanticGeneratorBindingTarget
             {
                 Ref = "$offered",
-                Kind = K.Penguin,
+                Kind = actorKind,
                 Query = new SemanticEntityQuery { TargetCultureMatch = QueryTargetCultureMatch.SameAsTarget },
             },
         ],
         Produces =
         [
             Required("$seal", K.Artifact, "seal", "$target", "$target"),
-            Optional("$witness", K.Penguin, "witness", "$target", "$target", chance: 0.5f),
-            Optional("$exile", K.Penguin, "exile", "$target", "$target", chance: 0.40f),
+            Optional("$witness", actorKind, witnessSubtype, "$target", "$target", chance: 0.5f),
+            Optional("$exile", actorKind, exileSubtype, "$target", "$target", chance: 0.40f),
             ProducedCanon("$peace", "accord", "$target", culture: C(IceRemembersCulture.TheIce), inheritCultureFrom: null, chance: 0.50f),
         ],
         Effects =
@@ -267,29 +298,6 @@ public static partial class IceRemembersGeneratorDefinition
                 includeReciprocal: true),
         ],
         Triggers = TriggerOn(K.Settlement),
-    };
-
-    private static SemanticGeneratorConfig WhatTheArtifactKnows() => new()
-    {
-        Id = "what_the_artifact_knows",
-        Name = "What the Artifact Knows",
-        Description = "A penguin who has carried an artifact long enough recognises a place to stop. They put down a rookery, seal the artifact into the ground, and a small cell may form around them.",
-        CausalLimit = "Depends on a held artifact and absence of a home base; creates a home-base relationship for the penguin.",
-        Target = TargetWithOutgoingAndWithoutOutgoing(K.Penguin, Rel.Holds, Rel.HomeBase),
-        Produces =
-        [
-            Required("$rookery", K.Settlement, "rookery", "$target", "$target", frontier: true),
-            Required("$seal", K.Artifact, "seal", "$rookery", "$target"),
-            Optional("$cell", K.Faction, "cell", "$target", "$target", chance: 0.45f),
-        ],
-        Relationships =
-        [
-            R("$target", "$rookery", Rel.HomeBase, 1f),
-            R("$seal", "$rookery", Rel.Anchored, 0.88f),
-            R("$rookery", "$cell", Rel.ControlledBy, 0.82f),
-            R("$cell", "$target", Rel.LedBy, 0.85f),
-        ],
-        Triggers = TriggerOn(K.Penguin),
     };
 
     private static SemanticGeneratorConfig UnclaimedPlacesDrawWardens() => new()

@@ -62,9 +62,18 @@ public static partial class IceRemembersGeneratorDefinition
         FireWeight = 10,
     };
 
-    private static SemanticGeneratorConfig WarTakesItsToll() => new()
+    // War claims casualties from every actor kind the faction fields
+    // (authorship parity, actor-parity audit 2026-08-01): one toll authored
+    // once, emitted per kind. The penguin emission keeps the original id.
+    private static SemanticGeneratorConfig WarTakesItsToll() =>
+        WarToll("war_takes_its_toll", K.Penguin);
+
+    private static SemanticGeneratorConfig WarTakesItsTollOrca() =>
+        WarToll("war_takes_its_toll_orca", K.Orca);
+
+    private static SemanticGeneratorConfig WarToll(string id, EntityKind casualtyKind) => new()
     {
-        Id = "war_takes_its_toll",
+        Id = id,
         Name = "War Takes Its Toll",
         Description = "A hot war claims a named member of the warring faction. The fallen are memorialized by a relic, and the war burns lower for the loss — exhausted wars can finally be peaced.",
         CausalLimit = "Requires a strong outgoing at-war relationship and a named member bound to the target; retires only that member and spends the trigger war strength.",
@@ -74,7 +83,7 @@ public static partial class IceRemembersGeneratorDefinition
             new SemanticGeneratorBindingTarget
             {
                 Ref = "$casualty",
-                Kind = K.Penguin,
+                Kind = casualtyKind,
                 Query = new SemanticEntityQuery
                 {
                     RelatedToTargetRelationship = L(Rel.MemberOf),

@@ -1,5 +1,14 @@
 # Actor authorship parity audit (2026-08-01)
 
+Status (same day): physics parity landed (Standard band both kinds,
+shared ActorLocality, shared ActorBondTraits); succession is a shared
+builder emitted per kind (pod_currents_launch_scouts,
+rookery_terraces_raise_fledglings; new "rookery" POI subtype); the nine
+kind-arbitrary generators below are paired builders with orca emissions
+(_orca id suffix). Deferred: grant-gambit parity (8 of 12 grants are
+penguin-only), placement-ref sweep of the remaining occupation produce
+sites (re-audit after the verification fan).
+
 Scope: every place content treats K.Orca and K.Penguin differently.
 Companion to docs/analysis/culture-balance-problems-20260801.md.
 Engine constraint: a generator target and a produce each name one

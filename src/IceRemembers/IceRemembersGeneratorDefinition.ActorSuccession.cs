@@ -36,6 +36,38 @@ public static partial class IceRemembersGeneratorDefinition
             successorSubtype: "witness",
             anchorSubtype: "rookery");
 
+    // Carriers of every actor kind recognise a place to stop (authorship
+    // parity, actor-parity audit 2026-08-01): authored once, emitted per
+    // kind. The penguin emission keeps the original id.
+    private static SemanticGeneratorConfig WhatTheArtifactKnows() =>
+        WhatTheArtifactKnowsFor("what_the_artifact_knows", K.Penguin);
+
+    private static SemanticGeneratorConfig WhatTheArtifactKnowsOrca() =>
+        WhatTheArtifactKnowsFor("what_the_artifact_knows_orca", K.Orca);
+
+    private static SemanticGeneratorConfig WhatTheArtifactKnowsFor(string id, EntityKind carrierKind) => new()
+    {
+        Id = id,
+        Name = "What the Artifact Knows",
+        Description = "A carrier who has held an artifact long enough recognises a place to stop. They put down a home, seal the artifact into the ground, and a small cell may form around them.",
+        CausalLimit = "Depends on a held artifact and absence of a home base; creates a home-base relationship for the carrier.",
+        Target = TargetWithOutgoingAndWithoutOutgoing(carrierKind, Rel.Holds, Rel.HomeBase),
+        Produces =
+        [
+            Required("$rookery", K.Settlement, "rookery", "$target", "$target", frontier: true),
+            Required("$seal", K.Artifact, "seal", "$rookery", "$target"),
+            Optional("$cell", K.Faction, "cell", "$target", "$target", chance: 0.45f),
+        ],
+        Relationships =
+        [
+            R("$target", "$rookery", Rel.HomeBase, 1f),
+            R("$seal", "$rookery", Rel.Anchored, 0.88f),
+            R("$rookery", "$cell", Rel.ControlledBy, 0.82f),
+            R("$cell", "$target", Rel.LedBy, 0.85f),
+        ],
+        Triggers = TriggerOn(carrierKind),
+    };
+
     private static SemanticGeneratorConfig ActorSuccession(
         string id,
         string name,

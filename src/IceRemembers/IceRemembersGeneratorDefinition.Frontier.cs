@@ -29,15 +29,24 @@ public static partial class IceRemembersGeneratorDefinition
     // touched the ground; what walkers find there bears serial numbers in
     // no known language, and the ice around it recoils. Six are known.
     // The serial numbers imply a series; a series implies a count.
-    private static SemanticGeneratorConfig TheCraterKeepsItsCount() => new()
+    // Walkers of every actor kind reach the scars (authorship parity,
+    // actor-parity audit 2026-08-01): authored once, emitted per kind.
+    // Penguin emissions keep the original ids.
+    private static SemanticGeneratorConfig TheCraterKeepsItsCount() =>
+        CraterKeepsItsCountFor("the_crater_keeps_its_count", K.Penguin);
+
+    private static SemanticGeneratorConfig TheCraterKeepsItsCountOrca() =>
+        CraterKeepsItsCountFor("the_crater_keeps_its_count_orca", K.Orca);
+
+    private static SemanticGeneratorConfig CraterKeepsItsCountFor(string id, EntityKind actorKind) => new()
     {
-        Id = "the_crater_keeps_its_count",
+        Id = id,
         Name = "The Crater Keeps Its Count",
         Description = "A walker reaches the old scar and finds what fell there: broken roadstone, a megalith face, numbers etched in a hand no living people writes. The ruin enters the charts as a place to be watched, not settled. Sometimes the digging finds more than stone, and the ice near it goes quiet.",
         CausalLimit = "Depends on a revealed, unclaimed crater feature; the ruin's occupancy of the anchor is the repeat lock.",
         Target = new SemanticGeneratorTarget
         {
-            Kind = K.Penguin,
+            Kind = actorKind,
         },
         Produces =
         [
@@ -50,19 +59,25 @@ public static partial class IceRemembersGeneratorDefinition
             R("$find", "$ruin", Rel.Anchored, 0.85f),
             R("$target", "$find", Rel.Holds, 0.6f),
         ],
-        Triggers = TriggerOn(K.Penguin),
+        Triggers = TriggerOn(actorKind),
         FireWeight = 3,
     };
 
-    private static SemanticGeneratorConfig TheStoneRemembersTheWalk() => new()
+    private static SemanticGeneratorConfig TheStoneRemembersTheWalk() =>
+        StoneRemembersTheWalkFor("the_stone_remembers_the_walk", K.Penguin);
+
+    private static SemanticGeneratorConfig TheStoneRemembersTheWalkOrca() =>
+        StoneRemembersTheWalkFor("the_stone_remembers_the_walk_orca", K.Orca);
+
+    private static SemanticGeneratorConfig StoneRemembersTheWalkFor(string id, EntityKind actorKind) => new()
     {
-        Id = "the_stone_remembers_the_walk",
+        Id = id,
         Name = "The Stone Remembers the Walk",
         Description = "A walker offered a far walk to the ice, and the ice answers: a remembrance-stone rises where they stand, holding the deed where the frost can keep it. Around such stones the far trails stay warm a little longer.",
         CausalLimit = "Depends on a walker who committed a waymark deed and has no stone yet; the stone's memorializes edge is the repeat lock.",
         Target = new SemanticGeneratorTarget
         {
-            Kind = K.Penguin,
+            Kind = actorKind,
             RequiredOutgoingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(Rel.Memorializes) },
             WithoutIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(Rel.Memorializes) },
         },
@@ -76,7 +91,7 @@ public static partial class IceRemembersGeneratorDefinition
         [
             R("$waystone", "$target", Rel.Memorializes, 0.85f),
         ],
-        Triggers = TriggerOn(K.Penguin),
+        Triggers = TriggerOn(actorKind),
         FireWeight = 4,
     };
 

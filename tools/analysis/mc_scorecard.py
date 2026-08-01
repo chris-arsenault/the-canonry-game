@@ -215,6 +215,7 @@ GENERATOR_TRACKS = {
         "allies_answer_the_call", "counter_offensive", "orca_route_wars_get_names",
         "war_breaks_the_land", "war_occurrences_launch_scouts", "war_takes_its_toll",
         "wars_get_names", "the_column_holds", "ice_settles_accounts",
+        "war_takes_its_toll_orca", "ice_settles_accounts_orca",
     ],
     "wilds": [
         "controlled_depths_wake_leviathans", "corrupted_monsters_raise_revenants",
@@ -232,6 +233,7 @@ GENERATOR_TRACKS = {
         "martyrs_are_witnessed", "pilgrims_found_new_currents", "relics_are_given_to_the_deep",
         "the_current_provides", "the_offering_is_spent", "vigils_at_the_current",
         "vigils_leave_relics", "a_hero_falls_to_the_deep", "what_the_spring_remembers",
+        "a_hero_falls_to_the_deep_orca",
         "the_sky_renders_judgment", "the_dead_keep_their_secrets",
     ],
     "trade": [
@@ -249,12 +251,15 @@ GENERATOR_TRACKS = {
         "conduits_map_hidden_peaks", "deep_conduits_name_depths",
         "mapped_peaks_birth_techniques", "practiced_forms_find_tomes",
         "the_tome_is_read", "what_the_artifact_knows", "the_still_water_is_sounded",
+        "the_tome_is_read_orca", "what_the_artifact_knows_orca",
     ],
     "memory": [
         "legend_enters_the_canon", "memorials_join_the_wall", "one_word_yields",
         "the_canon_is_carried", "the_crater_keeps_its_count", "the_ice_takes_notice",
         "the_polynya_never_closes", "the_river_earns_its_name", "the_seal_shatters",
         "the_stone_remembers_the_walk", "the_war_leaves_its_mark",
+        "legend_enters_the_canon_orca", "the_crater_keeps_its_count_orca",
+        "the_ice_takes_notice_orca", "the_stone_remembers_the_walk_orca",
     ],
     "frontier": [
         "bulls_range_the_far_currents", "claimed_waters_draw_bulls",
@@ -262,7 +267,7 @@ GENERATOR_TRACKS = {
         "sanctuaries_anchor_colonies", "the_thaw_calls_the_bold",
         "unclaimed_places_draw_wardens",
     ],
-    "lifecycle": ["pod_currents_launch_scouts"],
+    "lifecycle": ["pod_currents_launch_scouts", "rookery_terraces_raise_fledglings"],
     "desperation": [
         "the_beacon_hosts_the_dispossessed", "every_debt_comes_due",
         "the_deep_sings_the_drowned_song",

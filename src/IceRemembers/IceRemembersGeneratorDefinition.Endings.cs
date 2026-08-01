@@ -153,13 +153,22 @@ public static partial class IceRemembersGeneratorDefinition
         FireWeight = 5,
     };
 
-    private static SemanticGeneratorConfig TheTomeIsRead() => new()
+    // Holders of every actor kind read what they carry (authorship parity,
+    // actor-parity audit 2026-08-01): authored once, emitted per kind.
+    // The penguin emission keeps the original id.
+    private static SemanticGeneratorConfig TheTomeIsRead() =>
+        TomeIsReadFor("the_tome_is_read", K.Penguin);
+
+    private static SemanticGeneratorConfig TheTomeIsReadOrca() =>
+        TomeIsReadFor("the_tome_is_read_orca", K.Orca);
+
+    private static SemanticGeneratorConfig TomeIsReadFor(string id, EntityKind readerKind) => new()
     {
-        Id = "the_tome_is_read",
+        Id = id,
         Name = "The Tome Is Read",
         Description = "A held tome gives up what it knows. The reading becomes a living practice; the pages, having said everything, pass into the record.",
-        CausalLimit = "Depends on a penguin holding a tome; marks the tome historical, which removes the binding from the pool.",
-        Target = TargetWithOutgoing(K.Penguin, Rel.Holds),
+        CausalLimit = "Depends on a holder with a tome; marks the tome historical, which removes the binding from the pool.",
+        Target = TargetWithOutgoing(readerKind, Rel.Holds),
         SecondaryTargets =
         [
             new SemanticGeneratorBindingTarget
@@ -186,7 +195,7 @@ public static partial class IceRemembersGeneratorDefinition
         [
             new SetBindingHistoricalEffect("$tome"),
         ],
-        Triggers = TriggerOn(K.Penguin),
+        Triggers = TriggerOn(readerKind),
         FireWeight = 6,
     };
 
