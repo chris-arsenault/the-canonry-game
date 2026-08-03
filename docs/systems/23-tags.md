@@ -35,8 +35,8 @@ the only continuous numeric; every state machine is built from tags.
 
 ## Telemetry
 
-`EntityTagChanged` is a primitive kernel event, replayed on snapshot, and
-exported as `entity_tag_events` (run, tick, entity, tag, assigned, source).
+`EntityTagChanged` is a primitive kernel event, replayed on snapshot. The
+`entity_tag_events` telemetry export was deleted 2026-08-03 (no reader).
 
 ## Design rules
 

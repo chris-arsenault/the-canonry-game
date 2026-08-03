@@ -19,8 +19,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     private readonly HashSet<int> _exportedEntityNameSymbols = [];
     private readonly Dictionary<KindSnapshotKey, KindSnapshotAccumulator> _kindSnapshotAccumulators = [];
     private readonly List<KindSnapshotKey> _kindSnapshotKeys = [];
-    private readonly Dictionary<int, RelationshipSnapshotAccumulator> _relationshipSnapshotAccumulators = [];
-    private readonly List<int> _relationshipSnapshotKeys = [];
     private readonly Dictionary<ObservedMapCellKey, int> _activeEntitiesByCell = [];
     private readonly Dictionary<MapSnapshotKey, MapSnapshotAccumulator> _mapSnapshotAccumulators = [];
     private readonly List<MapSnapshotKey> _mapSnapshotKeys = [];
@@ -153,42 +151,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
                     attributeId,
                     entity.Attributes[attributeId]));
             }
-        }
-    }
-
-    public void RecordRelationshipSnapshots(int tick)
-    {
-        _relationshipSnapshotAccumulators.Clear();
-        _relationshipSnapshotKeys.Clear();
-        foreach (var relationship in _relationships.Values)
-        {
-            if (!RelationshipIsHotActive(relationship))
-            {
-                continue;
-            }
-
-            var key = relationship.RelationshipKindId;
-            if (!_relationshipSnapshotAccumulators.TryGetValue(key, out var aggregate))
-            {
-                _relationshipSnapshotKeys.Add(key);
-            }
-
-            aggregate.Add(relationship.Strength);
-            _relationshipSnapshotAccumulators[key] = aggregate;
-        }
-
-        for (var i = 0; i < _relationshipSnapshotKeys.Count; i++)
-        {
-            var key = _relationshipSnapshotKeys[i];
-            var aggregate = _relationshipSnapshotAccumulators[key];
-            _batch.RelationshipSnapshots.Add(new RelationshipSnapshotRow(
-                _runId,
-                tick,
-                key,
-                aggregate.Count,
-                aggregate.Average,
-                aggregate.Minimum,
-                aggregate.Maximum));
         }
     }
 
@@ -335,13 +297,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
                 evt.EntityId,
                 entity.KindId,
                 evt.CurrentStatusCode));
-            _batch.LifecycleReasonEvents.Add(new LifecycleReasonEventRow(
-                _runId,
-                evt.Tick,
-                evt.EntityId,
-                ReasonCodeId: evt.SourceCodeId,
-                CauseId: evt.SourceCodeId,
-                SourceCodeId: evt.SourceCodeId));
         }
 
         MarkProjected(sequence);
@@ -383,64 +338,12 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         MarkProjected(sequence);
     }
 
-    protected override void OnChronicleChanged(long sequence, in ChronicleChangedKernelEvent evt)
-    {
-        _batch.ChronicleEvents.Add(new ChronicleEventRow(
-            _runId,
-            evt.Tick,
-            evt.ChronicleSequence,
-            evt.ArchetypeId,
-            evt.EventTypeCode,
-            evt.ActIndex,
-            evt.OutcomeCodeId,
-            evt.RoleEntityId0,
-            evt.RoleEntityId1,
-            evt.RoleEntityId2,
-            evt.RoleEntityId3));
-        MarkProjected(sequence);
-    }
-
-    protected override void OnWorldBeatChanged(long sequence, in WorldBeatChangedKernelEvent evt)
-    {
-        _batch.WorldBeatEvents.Add(new WorldBeatEventRow(
-            _runId,
-            evt.Tick,
-            evt.TrackCode,
-            evt.AgeId,
-            evt.PhaseCode));
-        MarkProjected(sequence);
-    }
-
-    protected override void OnEntityTagChanged(long sequence, in EntityTagChangedKernelEvent evt)
-    {
-        _batch.EntityTagEvents.Add(new EntityTagEventRow(
-            _runId,
-            evt.Tick,
-            evt.EntityId,
-            evt.TagId,
-            evt.Assigned != 0,
-            evt.SourceCodeId));
-        MarkProjected(sequence);
-    }
-
     protected override void OnAttributeChanged(long sequence, in AttributeChangedKernelEvent evt)
     {
         var entity = GetOrCreateEntity(evt.EntityId);
-        var oldValue = KernelFixedPoint.AttributeValue(evt.OldValueUnits);
-        var newValue = KernelFixedPoint.AttributeValue(evt.NewValueUnits);
-        entity.Attributes[evt.AttributeId] = newValue;
+        entity.Attributes[evt.AttributeId] = KernelFixedPoint.AttributeValue(evt.NewValueUnits);
         entity.LastUpdatedTick = evt.Tick;
         entity.WorldVersion = evt.WorldVersion;
-
-        _batch.AttributeEvents.Add(new AttributeEventRow(
-            _runId,
-            evt.Tick,
-            evt.EntityId,
-            evt.AttributeId,
-            oldValue,
-            newValue,
-            newValue - oldValue,
-            evt.SourceCodeId));
         MarkProjected(sequence);
     }
 
@@ -491,22 +394,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
             evt.PreviousOwnerEntityId,
             evt.CurrentOwnerEntityId,
             evt.Z);
-        MarkProjected(sequence);
-    }
-
-    protected override void OnCultureSlotOccupancyChanged(long sequence, in CultureSlotOccupancyChangedKernelEvent evt)
-    {
-        _batch.CultureSlotOccupancyEvents.Add(new CultureSlotOccupancyEventRow(
-            _runId,
-            evt.Tick,
-            evt.SourceCodeId,
-            evt.CultureId,
-            evt.SlotId,
-            evt.PolarityCode,
-            evt.PreviousEntityId,
-            evt.CurrentEntityId,
-            FixedScalar.FromUnits(evt.PreviousScoreUnits).ToSingle(),
-            FixedScalar.FromUnits(evt.CurrentScoreUnits).ToSingle()));
         MarkProjected(sequence);
     }
 
@@ -644,34 +531,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
                 PlacementEventId: 0));
         }
 
-        MarkProjected(sequence);
-    }
-
-    protected override void OnGeneratorTargetEvaluated(long sequence, in GeneratorTargetEvaluatedKernelEvent evt)
-    {
-        _batch.GeneratorTargetEvaluations.Add(new GeneratorTargetEvaluationRow(
-            _runId,
-            evt.Tick,
-            evt.GeneratorId,
-            evt.TargetEntityId,
-            evt.TargetKindId,
-            evt.TargetSubtypeId,
-            evt.TargetCultureId,
-            evt.PhysicalQ,
-            evt.PhysicalR,
-            evt.SemanticQ,
-            evt.SemanticR,
-            evt.SemanticS,
-            evt.StatusCode,
-            evt.RejectionReasonCode,
-            evt.PhysicalFieldBandCode,
-            evt.PhysicalCellKindCode,
-            FixedScalar.FromUnits(evt.PhysicalLocalRawMassUnits).ToSingle(),
-            FixedScalar.FromUnits(evt.PhysicalConnectedRawMassUnits).ToSingle(),
-            evt.SemanticFieldBandCode,
-            evt.SemanticCellKindCode,
-            FixedScalar.FromUnits(evt.SemanticLocalRawMassUnits).ToSingle(),
-            FixedScalar.FromUnits(evt.SemanticConnectedRawMassUnits).ToSingle()));
         MarkProjected(sequence);
     }
 

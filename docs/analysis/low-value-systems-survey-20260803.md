@@ -10,7 +10,15 @@ Evidence: full consumer trace of every exported telemetry table, kernel-level
 trace of the z-dimension culture field and the knowledge modifier sites, and
 row counts from the latest 30k-tick run (`kindgen-r20-30k-20260803-s9100`).
 
-## 1. Culture power ledgers — tracks nothing consults (owner-confirmed deletable)
+> **Outcomes (2026-08-03):** owner selected items 1, 4, 5, 6, and 7 for
+> deletion; all five are DELETED. Item 2 (sparse-z culture field) and item 3
+> (knowledge/tech system) remain as described, undecided. The generator
+> target evaluation kernel publish was removed with item 5, so the
+> evaluation-lane pressure on the telemetry publisher is gone. The
+> MonteCarlo.Tests output-gap acceptance ledger (env-gated, analyzer-era
+> contract) was deleted with item 4.
+
+## 1. Culture power ledgers — tracks nothing consults — DELETED
 
 Built 2026-07-11/12 as the per-culture win-definition system (Witness /
 Shadow / Wake axes). Components:
@@ -95,7 +103,7 @@ snapshot, telemetry, UI panel, 27 authored techs), or keep only if a later
 pass makes tech claims a real decision with macro-scale effects. As
 implemented it is the largest single ignored system in the program.
 
-## 4. Monte Carlo batch analyzer — bypassed by the active workflow
+## 4. Monte Carlo batch analyzer — bypassed by the active workflow — DELETED
 
 `make mc-fan` — the standard batch path — passes `--no-analysis`; scoring is
 done externally by `mc_scorecard.py`, which reads 11 tables. The analyzer
@@ -112,7 +120,7 @@ Options: fold the few sections with proven value (exploration flags caught
 the 2026-07-22 measurement traps) into the scorecard and retire the rest, or
 keep it and accept that the fan path never runs it.
 
-## 5. Telemetry lanes consumed by nothing
+## 5. Telemetry lanes consumed by nothing — DELETED
 
 Row counts from seed 9100, 30k ticks (~119M rows total). "Count-only" means
 the analyzer's readiness roll-up counts rows but derives no metric.
@@ -142,7 +150,7 @@ known contributor to the telemetry publisher saturation that crashed seed
 lanes are live (simulation- or UI-consumed); only their telemetry is dead
 weight.
 
-## 6. Monte Carlo state checkpoints — writer with no reader
+## 6. Monte Carlo state checkpoints — writer with no reader — DELETED
 
 `--save-state-every` writes `seed-N-tick-T.kstate` files (used in recent fans
 via `MC_EXTRA`). No code anywhere loads a `.kstate` file: the only
@@ -150,7 +158,7 @@ via `MC_EXTRA`). No code anywhere loads a `.kstate` file: the only
 `KernelHostBuilder`. The checkpoints written during the 9×30k net were
 insurance that could never have been redeemed.
 
-## 7. Experiment variant machinery — an A/B scaffold that never grew
+## 7. Experiment variant machinery — an A/B scaffold that never grew — DELETED
 
 Every run writes one hardcoded `experiment_variants` row
 (`ExperimentId: 1, VariantId: 1` — `KernelTelemetryRecorder.cs:40`). There is

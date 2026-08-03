@@ -82,13 +82,6 @@ dotnet run -c Release --project tools/MonteCarlo/MonteCarlo.csproj -- \
   semantic_road_moves=28 placement_coord_diffs=6818
 ```
 
-Rerun analysis for a registered batch:
-
-```bash
-dotnet run -c Release --project tools/MonteCarlo/MonteCarlo.csproj -- \
-  analyze --run-id placement-kernel-area-locality-10x500
-```
-
 Inspect registered evidence:
 
 ```bash

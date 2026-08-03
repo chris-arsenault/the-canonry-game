@@ -20,9 +20,7 @@ internal static class MonteCarloCli
         try
         {
             var options = MonteCarloOptions.Parse(args);
-            var domain = IceRemembersRuntime.CreateDomainConfig();
-            var analyzer = new MonteCarloBatchAnalyzer(domain);
-            return RunCommand(args, options, analyzer);
+            return RunCommand(args, options);
         }
         catch (ArgumentException ex)
         {
@@ -43,18 +41,15 @@ internal static class MonteCarloCli
         }
     }
 
-    private static int RunCommand(string[] args, MonteCarloOptions options, MonteCarloBatchAnalyzer analyzer)
+    private static int RunCommand(string[] args, MonteCarloOptions options)
     {
         using var registry = new MonteCarloRunRegistry(options.ArtifactRoot);
         switch (options.Command)
         {
             case MonteCarloCommandKind.Run:
-                return RunRegisteredBatch(args, options, analyzer, registry);
+                return RunRegisteredBatch(args, options, registry);
             case MonteCarloCommandKind.Register:
                 RegisterOnly(args, options, registry);
-                return 0;
-            case MonteCarloCommandKind.Analyze:
-                AnalyzeRegistered(options, analyzer, registry);
                 return 0;
             case MonteCarloCommandKind.AppendStats:
                 registry.AppendManualStats(options.RunId!, options.Stats);
@@ -78,7 +73,6 @@ internal static class MonteCarloCli
     private static int RunRegisteredBatch(
         string[] args,
         MonteCarloOptions options,
-        MonteCarloBatchAnalyzer analyzer,
         MonteCarloRunRegistry registry)
     {
         var provenance = MonteCarloProvenance.Capture(args);
@@ -86,8 +80,8 @@ internal static class MonteCarloCli
         registry.Register(options, provenance, status: "running");
         try
         {
-            var report = RunBatch(options, analyzer);
-            registry.MarkCompleted(options.RunId!, StandardStats(report));
+            RunBatch(options);
+            registry.MarkCompleted(options.RunId!, []);
             return 0;
         }
         catch
@@ -105,16 +99,6 @@ internal static class MonteCarloCli
         Console.WriteLine($"artifact directory: {Path.GetFullPath(options.OutputDirectory)}");
     }
 
-    private static void AnalyzeRegistered(
-        MonteCarloOptions options,
-        MonteCarloBatchAnalyzer analyzer,
-        MonteCarloRunRegistry registry)
-    {
-        var report = analyzer.AnalyzeToFiles(options.OutputDirectory);
-        registry.MarkAnalyzed(options.RunId!, StandardStats(report));
-        Console.WriteLine($"wrote Monte Carlo analysis: {Path.GetFullPath(Path.Combine(options.OutputDirectory, "analysis"))}");
-    }
-
     private static void PrintRunList(MonteCarloRunRegistry registry)
     {
         foreach (var run in registry.ListRuns())
@@ -123,14 +107,14 @@ internal static class MonteCarloCli
         }
     }
 
-    private static MonteCarloAnalysisReport? RunBatch(MonteCarloOptions options, MonteCarloBatchAnalyzer analyzer)
+    private static void RunBatch(MonteCarloOptions options)
     {
         ResetOutputDirectory(options.OutputDirectory);
         if (options.SimulationOnly)
         {
             ExecuteSimulationOnlyRuns(options);
             Console.WriteLine("simulation-only Monte Carlo run complete; telemetry export skipped.");
-            return null;
+            return;
         }
 
         using var stateStore = new BufferedDuckDbTelemetryWriter(options.OutputDirectory);
@@ -138,15 +122,6 @@ internal static class MonteCarloCli
         ExecuteRuns(options, stateStore);
         stateStore.CompleteAndExport();
         Console.WriteLine($"wrote Monte Carlo telemetry: {Path.GetFullPath(options.OutputDirectory)}");
-
-        if (!options.ShouldAnalyze)
-        {
-            return null;
-        }
-
-        var report = analyzer.AnalyzeToFiles(options.OutputDirectory);
-        Console.WriteLine($"wrote Monte Carlo analysis: {Path.GetFullPath(Path.Combine(options.OutputDirectory, "analysis"))}");
-        return report;
     }
 
     private static void ExecuteRuns(MonteCarloOptions options, BufferedDuckDbTelemetryWriter stateStore)
@@ -299,8 +274,6 @@ internal static class MonteCarloCli
             runId,
             run.Symbols,
             seed,
-            traceEnabled: options.TraceEnabled,
-            entitySnapshotCadence: options.EntitySnapshotCadence,
             mapSnapshotCadence: options.EntitySnapshotCadence);
         RecordMapGenerationAccepted(recorder.Batch, recorder.RunId, run.WorldSeed);
         return recorder;
@@ -357,31 +330,11 @@ internal static class MonteCarloCli
             stateStore.StreamCoreTables();
         }
 
-        if (AtWindowBoundary(currentTick, options.SaveStateEveryTicks))
-        {
-            SaveKernelStateCheckpoint(run, options, seed, currentTick);
-        }
-
         return streamedRows;
     }
 
     private static bool AtWindowBoundary(int tick, int cadence) =>
         cadence > 0 && tick > 0 && tick % cadence == 0;
-
-    private static void SaveKernelStateCheckpoint(
-        MonteCarloKernelRun run,
-        MonteCarloOptions options,
-        int seed,
-        int tick)
-    {
-        var stateDirectory = Path.Combine(options.OutputDirectory, "state");
-        Directory.CreateDirectory(stateDirectory);
-        var statePath = Path.Combine(
-            stateDirectory,
-            string.Create(CultureInfo.InvariantCulture, $"seed-{seed}-tick-{tick}.kstate"));
-        using var stream = File.Create(statePath);
-        run.Host.SaveKernelState(stream);
-    }
 
     // One stdout line per progress window so a doomed run is visible (and
     // killable) hours before it finishes: rolling throughput, population,
@@ -437,9 +390,7 @@ internal static class MonteCarloCli
         recorder.RecordSnapshots(tick, includeEntities);
         if (ShouldRecordSnapshot(tick, options.EntitySnapshotCadence))
         {
-            run.Host.RecordCultureLocalityTelemetry(recorder.Batch, recorder.RunId, tick, includeEntities);
-            run.Host.RecordCulturePowerTelemetry(recorder.Batch, recorder.RunId, tick);
-            run.Host.RecordKnowledgeTelemetry(recorder.Batch, recorder.RunId, tick);
+            run.Host.RecordCultureLocalityTelemetry(recorder.Batch, recorder.RunId, tick);
         }
     }
 
@@ -487,77 +438,23 @@ internal static class MonteCarloCli
         batch.EntitySnapshots.Count +
         batch.EntityAttributeSnapshots.Count +
         batch.EntityEvents.Count +
-        batch.ExperimentVariants.Count +
         batch.TraceEvents.Count +
-        batch.AttributeEvents.Count +
         batch.MovementEvents.Count +
         batch.RelationshipEvents.Count +
-        batch.RelationshipSnapshots.Count +
         batch.GeneratorEvents.Count +
-        batch.GeneratorTargetEvaluations.Count +
         batch.GeneratorOutputs.Count +
         batch.GeneratedEntities.Count +
         batch.LifecycleEvents.Count +
-        batch.LifecycleReasonEvents.Count +
         batch.MapGenerationEvents.Count +
         batch.MapCellEvents.Count +
         batch.CultureFieldCellSnapshots.Count +
-        batch.CultureSlotOccupancyEvents.Count +
-        batch.MinorActorLifecycleEvents.Count +
         batch.MinorActorWorkEvents.Count +
-        batch.MinorActorEncounterEvents.Count +
-        batch.CulturePowerSnapshots.Count +
-        batch.EntityTagEvents.Count +
-        batch.CultureEntityFieldSnapshots.Count +
         batch.CultureEntityBirthFieldEvents.Count +
         batch.CellRoadEvents.Count +
         batch.MapSnapshots.Count +
         batch.CoverageSnapshots.Count +
         batch.CoverageTerrainSnapshots.Count +
         batch.PlacementEvents.Count;
-
-    private static List<MonteCarloStatInput> StandardStats(MonteCarloAnalysisReport? report)
-    {
-        if (report is null)
-        {
-            return [];
-        }
-
-        var stats = new List<MonteCarloStatInput>
-        {
-            Stat("run_count", report.Overview.RunCount),
-            Stat("max_tick", report.Overview.MaxTick),
-            Stat("generator_fires_total", report.Overview.TotalGeneratorFires),
-            Stat("generator_fires_average_per_run", report.Overview.AverageFiresPerRun),
-            Stat("final_active_entities_average", report.Overview.AverageFinalActiveEntities),
-            Stat("final_historical_entities_average", report.Overview.AverageFinalHistoricalEntities),
-            Stat("final_physical_spread_average", report.Overview.AverageFinalPhysicalSpread),
-            Stat("final_semantic_spread_average", report.Overview.AverageFinalSemanticSpread),
-            Stat("gambit_attempts_total", report.GambitSuccess.Sum(row => row.AttemptCount)),
-            Stat("gambit_successes_total", report.GambitSuccess.Sum(row => row.SuccessCount)),
-            Stat("low_altitude_offered_total", report.LowAltitudeVerbUtilization.Sum(row => row.OfferedCount)),
-            Stat("low_altitude_selected_total", report.LowAltitudeVerbUtilization.Sum(row => row.SelectedCount)),
-        };
-
-        foreach (var row in report.GeneratorBalance)
-        {
-            stats.Add(Stat($"generator.{row.GeneratorId}.fires", row.FiredCount));
-        }
-
-        foreach (var row in report.GambitSuccess)
-        {
-            stats.Add(Stat($"gambit.{row.GambitId}.attempts", row.AttemptCount));
-            stats.Add(Stat($"gambit.{row.GambitId}.successes", row.SuccessCount));
-        }
-
-        return stats;
-    }
-
-    private static MonteCarloStatInput Stat(string name, int value) =>
-        new(name, value.ToString(CultureInfo.InvariantCulture));
-
-    private static MonteCarloStatInput Stat(string name, double value) =>
-        new(name, value.ToString("G17", CultureInfo.InvariantCulture));
 
     private static string FormatUnixMilliseconds(long utcMilliseconds) =>
         DateTimeOffset

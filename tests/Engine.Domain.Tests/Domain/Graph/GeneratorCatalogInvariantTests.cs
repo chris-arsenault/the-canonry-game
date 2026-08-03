@@ -535,7 +535,6 @@ public class GeneratorCatalogInvariantTests
             Relationships = config.Relationships,
             Lifecycles = config.Lifecycles,
             Cultures = config.Cultures,
-            CulturePower = config.CulturePower,
             Tags = config.Tags,
             MovementProfiles = config.MovementProfiles,
             Gameplay = config.Gameplay,

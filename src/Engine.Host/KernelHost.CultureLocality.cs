@@ -76,17 +76,12 @@ public sealed partial class KernelHost
     public void RecordCultureLocalityTelemetry(
         TelemetryBatch batch,
         int runId,
-        int tick,
-        bool includeEntitySnapshots)
+        int tick)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(batch);
         ArgumentOutOfRangeException.ThrowIfNegativeOrZero(runId);
         RecordCultureFieldCellSnapshots(batch, runId, tick);
-        if (includeEntitySnapshots)
-        {
-            RecordCultureEntityLocalitySnapshots(batch, runId, tick);
-        }
     }
 
     private void RecordCultureFieldCellSnapshots(TelemetryBatch batch, int runId, int tick)
@@ -130,59 +125,6 @@ public sealed partial class KernelHost
                 total.ToSingle(),
                 z));
         }
-    }
-
-    private void RecordCultureEntityLocalitySnapshots(TelemetryBatch batch, int runId, int tick)
-    {
-        var world = _kernel.World;
-        for (var entityId = world.FirstActiveEntity();
-             entityId > 0;
-             entityId = world.NextActiveEntity(entityId))
-        {
-            var cultureId = world.EntityCultureId(entityId);
-            if (cultureId <= 0)
-            {
-                continue;
-            }
-
-            RecordCultureEntityLocalitySnapshot(batch, runId, tick, entityId, cultureId, PlaneCodes.Physical);
-            RecordCultureEntityLocalitySnapshot(batch, runId, tick, entityId, cultureId, PlaneCodes.Semantic);
-        }
-    }
-
-    private void RecordCultureEntityLocalitySnapshot(
-        TelemetryBatch batch,
-        int runId,
-        int tick,
-        int entityId,
-        int cultureId,
-        int planeCode)
-    {
-        var world = _kernel.World;
-        var q = planeCode == PlaneCodes.Physical
-            ? world.EntityPhysicalQ(entityId)
-            : world.EntitySemanticQ(entityId);
-        var r = planeCode == PlaneCodes.Physical
-            ? world.EntityPhysicalR(entityId)
-            : world.EntitySemanticR(entityId);
-        var locality = _kernel.CultureLocality.CellAt(world, cultureId, planeCode, q, r);
-        batch.CultureEntityFieldSnapshots.Add(new CultureEntityFieldSnapshotRow(
-            runId,
-            tick,
-            entityId,
-            cultureId,
-            planeCode,
-            locality.CellKindCode,
-            _kernel.CultureSlots.CausalSpendLimitMultiplier(entityId) > 1,
-            locality.LocalRawMass.ToSingle(),
-            locality.ConnectedRawMass.ToSingle(),
-            world.EntityInfluenceProduction(entityId, planeCode).ToSingle(),
-            locality.StrengthBandCode,
-            locality.RawMass.ToSingle(),
-            locality.TotalRawMass.ToSingle(),
-            locality.ForeignCultureId,
-            locality.ForeignShare.ToSingle(),
-            locality.ForeignRawMass.ToSingle()));
     }
 
     private static HexCultureInfluenceProjection ToHexCultureInfluence(

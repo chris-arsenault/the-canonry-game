@@ -144,7 +144,6 @@ public sealed class ObservabilitySmokeTests
         Assert.NotEmpty(recorder.Batch.TickSnapshots);
         Assert.NotEmpty(recorder.Batch.KindSnapshots);
         Assert.NotEmpty(recorder.Batch.EntitySnapshots);
-        Assert.NotEmpty(recorder.Batch.AttributeEvents);
         Assert.NotEmpty(recorder.Batch.MovementEvents);
         Assert.NotEmpty(recorder.Batch.RelationshipEvents);
     }

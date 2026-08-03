@@ -105,11 +105,8 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         "gambit_events",
         "generator_events",
         "lifecycle_events",
-        "lifecycle_reason_events",
         "movement_events",
         "coverage_snapshots",
-        "world_beat_events",
-        "chronicle_events",
     ];
 
     public void ExportCoreParquet()
@@ -128,47 +125,31 @@ internal sealed class DuckDbTelemetryStore : IDisposable
     {
         ExportTable("symbols");
         ExportTable("entity_name_symbols");
-        ExportTable("knowledge_site_symbols");
         ExportTable("runs");
         ExportTable("tick_snapshots");
         ExportTable("kind_snapshots");
         ExportTable("entity_snapshots");
         ExportTable("entity_attribute_snapshots");
         ExportTable("entity_events");
-        ExportTable("experiment_variants");
     }
 
     private void ExportProcessTables()
     {
         ExportTable("trace_events");
-        ExportTable("attribute_events");
         ExportTable("movement_events");
     }
 
     private void ExportWorldTables()
     {
         ExportTable("relationship_events");
-        ExportTable("relationship_snapshots");
         ExportTable("gambit_events");
         ExportTable("generator_events");
-        ExportTable("generator_target_evaluations");
         ExportTable("generator_outputs");
         ExportTable("lifecycle_events");
-        ExportTable("lifecycle_reason_events");
         ExportTable("map_generation_events");
         ExportTable("map_cell_events");
         ExportTable("culture_field_cell_snapshots");
-        ExportTable("culture_slot_occupancy_events");
-        ExportTable("minor_actor_lifecycle_events");
         ExportTable("minor_actor_work_events");
-        ExportTable("minor_actor_encounter_events");
-        ExportTable("culture_power_snapshots");
-        ExportTable("knowledge_snapshots");
-        ExportTable("knowledge_claim_snapshots");
-        ExportTable("entity_tag_events");
-        ExportTable("chronicle_events");
-        ExportTable("world_beat_events");
-        ExportTable("culture_entity_field_snapshots");
         ExportTable("culture_entity_birth_field_events");
         ExportTable("cell_road_events");
         ExportTable("map_snapshots");
@@ -196,48 +177,32 @@ internal sealed class DuckDbTelemetryStore : IDisposable
     {
         EnsureTable("symbols", typeof(SymbolRow));
         EnsureTable("entity_name_symbols", typeof(EntityNameSymbolRow));
-        EnsureTable("knowledge_site_symbols", typeof(KnowledgeSiteSymbolRow));
         EnsureTable("runs", typeof(RunRow));
         EnsureTable("tick_snapshots", typeof(TickSnapshotRow));
         EnsureTable("kind_snapshots", typeof(KindSnapshotRow));
         EnsureTable("entity_snapshots", typeof(EntitySnapshotRow));
         EnsureTable("entity_attribute_snapshots", typeof(EntityAttributeSnapshotRow));
         EnsureTable("entity_events", typeof(EntityEventRow));
-        EnsureTable("experiment_variants", typeof(ExperimentVariantRow));
     }
 
     private void EnsureProcessSchema()
     {
         EnsureTable("trace_events", typeof(TraceRow));
-        EnsureTable("attribute_events", typeof(AttributeEventRow));
         EnsureTable("movement_events", typeof(MovementEventRow));
     }
 
     private void EnsureWorldSchema()
     {
         EnsureTable("relationship_events", typeof(RelationshipEventRow));
-        EnsureTable("relationship_snapshots", typeof(RelationshipSnapshotRow));
         EnsureTable("gambit_events", typeof(GambitEventRow));
         EnsureTable("generator_events", typeof(GeneratorEventRow));
-        EnsureTable("generator_target_evaluations", typeof(GeneratorTargetEvaluationRow));
         EnsureTable("generator_outputs", typeof(GeneratorOutputRow));
         EnsureTable("generated_entities", typeof(GeneratedEntityRow));
         EnsureTable("lifecycle_events", typeof(LifecycleEventRow));
-        EnsureTable("lifecycle_reason_events", typeof(LifecycleReasonEventRow));
         EnsureTable("map_generation_events", typeof(MapGenerationEventRow));
         EnsureTable("map_cell_events", typeof(MapCellEventRow));
         EnsureTable("culture_field_cell_snapshots", typeof(CultureFieldCellSnapshotRow));
-        EnsureTable("culture_slot_occupancy_events", typeof(CultureSlotOccupancyEventRow));
-        EnsureTable("minor_actor_lifecycle_events", typeof(MinorActorLifecycleEventRow));
         EnsureTable("minor_actor_work_events", typeof(MinorActorWorkEventRow));
-        EnsureTable("minor_actor_encounter_events", typeof(MinorActorEncounterEventRow));
-        EnsureTable("culture_power_snapshots", typeof(CulturePowerSnapshotRow));
-        EnsureTable("knowledge_snapshots", typeof(KnowledgeSnapshotRow));
-        EnsureTable("knowledge_claim_snapshots", typeof(KnowledgeClaimSnapshotRow));
-        EnsureTable("entity_tag_events", typeof(EntityTagEventRow));
-        EnsureTable("chronicle_events", typeof(ChronicleEventRow));
-        EnsureTable("world_beat_events", typeof(WorldBeatEventRow));
-        EnsureTable("culture_entity_field_snapshots", typeof(CultureEntityFieldSnapshotRow));
         EnsureTable("culture_entity_birth_field_events", typeof(CultureEntityBirthFieldEventRow));
         EnsureTable("cell_road_events", typeof(CellRoadEventRow));
         EnsureTable("map_snapshots", typeof(MapSnapshotRow));
@@ -268,48 +233,32 @@ internal sealed class DuckDbTelemetryStore : IDisposable
     {
         AppendTable("symbols", batch.Symbols);
         AppendTable("entity_name_symbols", batch.EntityNameSymbols);
-        AppendTable("knowledge_site_symbols", batch.KnowledgeSiteSymbols);
         AppendTable("runs", batch.Runs);
         AppendTable("tick_snapshots", batch.TickSnapshots);
         AppendTable("kind_snapshots", batch.KindSnapshots);
         AppendTable("entity_snapshots", batch.EntitySnapshots);
         AppendTable("entity_attribute_snapshots", batch.EntityAttributeSnapshots);
         AppendTable("entity_events", batch.EntityEvents);
-        AppendTable("experiment_variants", batch.ExperimentVariants);
     }
 
     private void AppendProcessTables(TelemetryBatch batch)
     {
         AppendTable("trace_events", batch.TraceEvents);
-        AppendTable("attribute_events", batch.AttributeEvents);
         AppendTable("movement_events", batch.MovementEvents);
     }
 
     private void AppendWorldTables(TelemetryBatch batch)
     {
         AppendTable("relationship_events", batch.RelationshipEvents);
-        AppendTable("relationship_snapshots", batch.RelationshipSnapshots);
         AppendTable("gambit_events", batch.GambitEvents);
         AppendTable("generator_events", batch.GeneratorEvents);
-        AppendTable("generator_target_evaluations", batch.GeneratorTargetEvaluations);
         AppendTable("generator_outputs", batch.GeneratorOutputs);
         AppendTable("generated_entities", batch.GeneratedEntities);
         AppendTable("lifecycle_events", batch.LifecycleEvents);
-        AppendTable("lifecycle_reason_events", batch.LifecycleReasonEvents);
         AppendTable("map_generation_events", batch.MapGenerationEvents);
         AppendTable("map_cell_events", batch.MapCellEvents);
         AppendTable("culture_field_cell_snapshots", batch.CultureFieldCellSnapshots);
-        AppendTable("culture_slot_occupancy_events", batch.CultureSlotOccupancyEvents);
-        AppendTable("minor_actor_lifecycle_events", batch.MinorActorLifecycleEvents);
         AppendTable("minor_actor_work_events", batch.MinorActorWorkEvents);
-        AppendTable("minor_actor_encounter_events", batch.MinorActorEncounterEvents);
-        AppendTable("culture_power_snapshots", batch.CulturePowerSnapshots);
-        AppendTable("knowledge_snapshots", batch.KnowledgeSnapshots);
-        AppendTable("knowledge_claim_snapshots", batch.KnowledgeClaimSnapshots);
-        AppendTable("entity_tag_events", batch.EntityTagEvents);
-        AppendTable("chronicle_events", batch.ChronicleEvents);
-        AppendTable("world_beat_events", batch.WorldBeatEvents);
-        AppendTable("culture_entity_field_snapshots", batch.CultureEntityFieldSnapshots);
         AppendTable("culture_entity_birth_field_events", batch.CultureEntityBirthFieldEvents);
         AppendTable("cell_road_events", batch.CellRoadEvents);
         AppendTable("map_snapshots", batch.MapSnapshots);
@@ -547,42 +496,28 @@ internal static class TelemetryBatchExtensions
     private static long CountIdentityRows(TelemetryBatch batch) =>
         batch.Symbols.Count +
         batch.EntityNameSymbols.Count +
-        batch.KnowledgeSiteSymbols.Count +
         batch.Runs.Count +
         batch.TickSnapshots.Count +
         batch.KindSnapshots.Count +
         batch.EntitySnapshots.Count +
         batch.EntityAttributeSnapshots.Count +
-        batch.EntityEvents.Count +
-        batch.ExperimentVariants.Count;
+        batch.EntityEvents.Count;
 
     private static long CountProcessRows(TelemetryBatch batch) =>
         batch.TraceEvents.Count +
-        batch.AttributeEvents.Count +
         batch.MovementEvents.Count;
 
     private static long CountWorldRows(TelemetryBatch batch) =>
         batch.RelationshipEvents.Count +
-        batch.RelationshipSnapshots.Count +
         batch.GambitEvents.Count +
         batch.GeneratorEvents.Count +
-        batch.GeneratorTargetEvaluations.Count +
         batch.GeneratorOutputs.Count +
         batch.GeneratedEntities.Count +
         batch.LifecycleEvents.Count +
-        batch.LifecycleReasonEvents.Count +
         batch.MapGenerationEvents.Count +
         batch.MapCellEvents.Count +
         batch.CultureFieldCellSnapshots.Count +
-        batch.CultureSlotOccupancyEvents.Count +
-        batch.MinorActorLifecycleEvents.Count +
         batch.MinorActorWorkEvents.Count +
-        batch.MinorActorEncounterEvents.Count +
-        batch.CulturePowerSnapshots.Count +
-        batch.KnowledgeSnapshots.Count +
-        batch.KnowledgeClaimSnapshots.Count +
-        batch.EntityTagEvents.Count +
-        batch.CultureEntityFieldSnapshots.Count +
         batch.CultureEntityBirthFieldEvents.Count +
         batch.CellRoadEvents.Count +
         batch.MapSnapshots.Count +
@@ -603,46 +538,32 @@ internal static class TelemetryBatchExtensions
     {
         AppendRows(destination.Symbols, source.Symbols);
         AppendRows(destination.EntityNameSymbols, source.EntityNameSymbols);
-        AppendRows(destination.KnowledgeSiteSymbols, source.KnowledgeSiteSymbols);
         AppendRows(destination.Runs, source.Runs);
         AppendRows(destination.TickSnapshots, source.TickSnapshots);
         AppendRows(destination.KindSnapshots, source.KindSnapshots);
         AppendRows(destination.EntitySnapshots, source.EntitySnapshots);
         AppendRows(destination.EntityAttributeSnapshots, source.EntityAttributeSnapshots);
         AppendRows(destination.EntityEvents, source.EntityEvents);
-        AppendRows(destination.ExperimentVariants, source.ExperimentVariants);
     }
 
     private static void AppendProcessRows(TelemetryBatch destination, TelemetryBatch source)
     {
         AppendRows(destination.TraceEvents, source.TraceEvents);
-        AppendRows(destination.AttributeEvents, source.AttributeEvents);
         AppendRows(destination.MovementEvents, source.MovementEvents);
     }
 
     private static void AppendWorldRows(TelemetryBatch destination, TelemetryBatch source)
     {
         AppendRows(destination.RelationshipEvents, source.RelationshipEvents);
-        AppendRows(destination.RelationshipSnapshots, source.RelationshipSnapshots);
         AppendRows(destination.GambitEvents, source.GambitEvents);
         AppendRows(destination.GeneratorEvents, source.GeneratorEvents);
-        AppendRows(destination.GeneratorTargetEvaluations, source.GeneratorTargetEvaluations);
         AppendRows(destination.GeneratorOutputs, source.GeneratorOutputs);
         AppendRows(destination.GeneratedEntities, source.GeneratedEntities);
         AppendRows(destination.LifecycleEvents, source.LifecycleEvents);
-        AppendRows(destination.LifecycleReasonEvents, source.LifecycleReasonEvents);
         AppendRows(destination.MapGenerationEvents, source.MapGenerationEvents);
         AppendRows(destination.MapCellEvents, source.MapCellEvents);
         AppendRows(destination.CultureFieldCellSnapshots, source.CultureFieldCellSnapshots);
-        AppendRows(destination.CultureSlotOccupancyEvents, source.CultureSlotOccupancyEvents);
-        AppendRows(destination.MinorActorLifecycleEvents, source.MinorActorLifecycleEvents);
         AppendRows(destination.MinorActorWorkEvents, source.MinorActorWorkEvents);
-        AppendRows(destination.MinorActorEncounterEvents, source.MinorActorEncounterEvents);
-        AppendRows(destination.CulturePowerSnapshots, source.CulturePowerSnapshots);
-        AppendRows(destination.KnowledgeSnapshots, source.KnowledgeSnapshots);
-        AppendRows(destination.KnowledgeClaimSnapshots, source.KnowledgeClaimSnapshots);
-        AppendRows(destination.EntityTagEvents, source.EntityTagEvents);
-        AppendRows(destination.CultureEntityFieldSnapshots, source.CultureEntityFieldSnapshots);
         AppendRows(destination.CultureEntityBirthFieldEvents, source.CultureEntityBirthFieldEvents);
         AppendRows(destination.CellRoadEvents, source.CellRoadEvents);
         AppendRows(destination.MapSnapshots, source.MapSnapshots);

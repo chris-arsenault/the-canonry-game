@@ -276,8 +276,9 @@ Forged cells are real cells: they hold terrain (`spire_tier`,
 `tunnel_gallery`), accept culture mass, and are enterable through vertical
 wander steps. Deliberate surface simplifications: roads, travel structures,
 culture locality facts, and route planning operate on the `z = 0`
-surface only, and forged-cell culture mass feeds the culture power ledgers
-directly rather than surface locality. The semantic plane has no
+surface only. Forged-cell culture mass at `z != 0` is firewalled from
+surface locality facts; since the culture power ledgers were deleted
+(2026-08-03) it has no remaining consumer. The semantic plane has no
 vertical axis yet.
 
 ## Coverage

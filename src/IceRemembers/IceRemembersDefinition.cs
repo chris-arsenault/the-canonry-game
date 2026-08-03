@@ -47,7 +47,6 @@ public static partial class IceRemembersDefinition
             // Shared consequences - named wars, relics, broken lands - belong
             // to the ice itself, not to a contending culture.
             WorldCulture = C(Culture.TheIce),
-            CulturePower = CreateCulturePowerDefinition(),
             Tags = ["hunted", "terrified", "bereaved", "fervent", "oathbreaker", "profaner"],
             Gameplay = CreateGameplayDefinition(),
             Semantics = semantics,
@@ -61,22 +60,6 @@ public static partial class IceRemembersDefinition
     private static string V(Verb verb) => verb.ToVerbId();
     private static string G(GambitId gambit) => gambit.ToGambitId();
     private static string TerrainName(Terrain terrain) => terrain.ToDomainName();
-
-    private static CulturePowerConfig CreateCulturePowerDefinition() =>
-        new()
-        {
-            CustodyKinds = [K.Artifact.Value, K.Ability.Value],
-            CustodyRelationships =
-            [
-                L(Rel.Holds),
-                L(Rel.Anchored),
-                L(Rel.PracticedBy),
-                L(Rel.ConduitOf),
-            ],
-            ClaimRelationship = L(Rel.ClaimedBy),
-            WarRelationship = L(Rel.AtWarWith),
-            OfferingRelationships = [L(Rel.OfferedTo), L(Rel.ConsignedTo)],
-        };
 
     private static ChronicleConfig CreateChronicleDefinition() =>
         new()

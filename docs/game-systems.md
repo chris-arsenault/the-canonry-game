@@ -312,21 +312,15 @@ run logs, UI state, Monte Carlo telemetry, and parquet exports are consumers of
 that event stream. The kernel is not allowed to call UI, file I/O, console I/O,
 or string-heavy observability directly.
 
-Culture power is measured on three asymmetric ledgers (Witness, Shadow,
-Wake) computed host-side from world state. Balance is kept by theme-emergent
-mechanisms — parasitic cross-cultural generators, devotion and predation
-economies, prey-side responses, local carrying capacity (crowding strain
-discounted by own-culture territory) — never by scoreboard controllers.
-Ledgers are exported as
-`culture_power_snapshots`, and shown in the nations rows; see
-[culture.md](./systems/culture.md).
+Culture balance is kept by theme-emergent mechanisms — parasitic
+cross-cultural generators, devotion and predation economies, prey-side
+responses, local carrying capacity (crowding strain discounted by own-culture
+territory) — never by scoreboard controllers; see
+[culture.md](./systems/culture.md). The culture power ledgers (Witness,
+Shadow, Wake) were deleted 2026-08-03 as tracking no decision loop consulted
+(`docs/analysis/low-value-systems-survey-20260803.md`).
 
-Knowledge telemetry has two levels: `knowledge_snapshots` reports aggregate
-claim count and maximum tier, while `knowledge_claim_snapshots` identifies the
-site index each culture actually holds. `knowledge_site_symbols` resolves those
-indices to stable technology names.
-
-The in-game **Technology (K)** overview uses the same live kernel claim state
+The in-game **Technology (K)** overview uses the live kernel claim state
 and derived modifier totals to show each culture's controlled technologies and
 combined bonuses; it does not infer effects from telemetry counts.
 

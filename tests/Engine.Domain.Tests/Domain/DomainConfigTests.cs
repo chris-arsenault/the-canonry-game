@@ -750,7 +750,6 @@ public class DomainConfigTests
             MovementProfiles = config.MovementProfiles,
             Cultures = config.Cultures,
             WorldCulture = config.WorldCulture,
-            CulturePower = config.CulturePower,
             Tags = config.Tags,
             Gameplay = config.Gameplay,
             Semantics = new SemanticDomainConfig

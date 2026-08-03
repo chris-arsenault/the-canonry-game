@@ -128,10 +128,10 @@ Carried from the previous backlog; origins as noted there.
 - **Telemetry publisher hard-faults under load** (9x30k net,
   2026-08-03) — KernelEventPublisher.TryWrite throws when the event
   channel saturates instead of degrading; seed 9100 crashed at ~tick
-  22.5k after a dropped-rows warning phase. Related: the kind-general
-  target iteration publishes an evaluation event per candidate of both
-  kinds, roughly doubling evaluation-event volume for actor-targeting
-  generators; deserves sampling or a cheaper encoding.
+  22.5k after a dropped-rows warning phase. Pressure dropped sharply on
+  2026-08-03: the kernel no longer publishes per-candidate generator
+  target evaluation events (the largest lane, ~16M events per 30k
+  world) — the fail-hard behavior itself is still the owner's call.
 
 ## Open design questions
 

@@ -309,7 +309,7 @@ internal sealed partial class GameRenderTree
             return;
         }
 
-        _mapArea.BindCultureOverview(_map, ui, _symbols, plane, _runtime?.ReadModels.CulturePowers());
+        _mapArea.BindCultureOverview(_map, ui, _symbols, plane);
         _lastCultureOverviewPlane = plane;
         _lastCultureOverviewMap = _map;
         _lastCultureOverviewCellVersion = _map?.CellVersion ?? -1;
@@ -472,7 +472,7 @@ internal sealed partial class GameRenderTree
         _tableauVisible = _tableauPanel.Visible;
         _mapArea.SetPlane(_mapRenderer.CurrentPlane);
         ApplyMapLens();
-        _mapArea.BindCultureOverview(_map, _ui, _symbols, _mapRenderer.CurrentPlane, _runtime?.ReadModels.CulturePowers());
+        _mapArea.BindCultureOverview(_map, _ui, _symbols, _mapRenderer.CurrentPlane);
         _bottomBar.SetTableauVisible(_tableauVisible);
         _bottomBar.SetReadingsVisible(_attributeGraph is not null);
         BindWorldBeatsStrip();

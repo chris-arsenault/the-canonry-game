@@ -106,12 +106,13 @@ thresholds.
 
 ## Telemetry
 
-`knowledge_snapshots` records aggregate claimed count and maximum tier per
-culture. `knowledge_claim_snapshots` records culture, site index, and tier for
-every held site at a snapshot tick. `knowledge_site_symbols` resolves each
-run/site index to its stable technology id. The joined claim rows are the
-evidence source for which real technologies were active; aggregate counts alone
-cannot establish which mechanics were modified.
+The knowledge telemetry lanes (`knowledge_snapshots`,
+`knowledge_claim_snapshots`, `knowledge_site_symbols`) were deleted
+2026-08-03: no tool read them
+(`docs/analysis/low-value-systems-survey-20260803.md`). The kernel claim
+state and the Technology (K) overview remain; any future measurement of
+grant effects should be built as a scorecard section joining claims to
+outcomes, not as an unread export.
 
 Registered integration evidence `knowledge-real-grants-postrepair` exported all
 27 site symbols and 14,193 claim rows across 41 distinct culture/site pairs. At

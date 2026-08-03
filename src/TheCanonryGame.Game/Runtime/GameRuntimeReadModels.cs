@@ -26,12 +26,9 @@ internal interface IGameChronicleFeed
 
 internal sealed class GameRuntimeReadModels
 {
-    private readonly KernelUiRuntime _runtime;
-
     internal GameRuntimeReadModels(KernelUiRuntime runtime)
     {
         ArgumentNullException.ThrowIfNull(runtime);
-        _runtime = runtime;
         Map = runtime.Map;
         PhysicalGeography = runtime.PhysicalGeography;
         Entities = runtime.Ui;
@@ -63,8 +60,6 @@ internal sealed class GameRuntimeReadModels
     public GameDomainKnowledge Knowledge { get; }
 
     public GameTechnologyOverviewReadModel Technologies { get; }
-
-    public IReadOnlyList<CulturePowerSummary> CulturePowers() => _runtime.CulturePowers();
 
     private void ConfigureHierarchyTags(KernelUiRuntime runtime)
     {

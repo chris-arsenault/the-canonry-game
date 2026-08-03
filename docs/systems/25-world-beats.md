@@ -52,8 +52,9 @@ minimum span. On each run the highest-priority age whose opening conditions
 fills a blank track, and it **preempts** a lower-priority incumbent that has
 met its minimum span - so a low-priority fallback like the Still Ice never
 traps the track and blocks a real age. Transitions emit `WorldBeatChanged`
-primitive events (track, age id, opened/closed) into telemetry
-(`world_beat_events`), the UI top bar, and the ages strip/panel.
+primitive events (track, age id, opened/closed) consumed by the UI top bar
+and the ages strip/panel; the `world_beat_events` telemetry export was
+deleted 2026-08-03 (no reader).
 
 ## Charges
 

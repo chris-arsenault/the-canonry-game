@@ -301,13 +301,9 @@ public readonly record struct KernelRuntimeAdvance(
 
 public sealed class KernelUiRuntime : IDisposable
 {
-    private const int CulturePowerRefreshTicks = 100;
-
     private readonly KernelRuntime _runtime;
     private readonly RunLogger? _runLogger;
     private long _lastCultureLocalityRevision = -1;
-    private IReadOnlyList<CulturePowerSummary> _culturePowers = [];
-    private int _culturePowersTick = -1;
     private KnowledgeOverviewSnapshot? _knowledgeOverview;
     private bool _disposed;
 
@@ -390,20 +386,6 @@ public sealed class KernelUiRuntime : IDisposable
         }
 
         return new KernelRuntimeAdvance(previousTick, currentTick);
-    }
-
-    public IReadOnlyList<CulturePowerSummary> CulturePowers()
-    {
-        ObjectDisposedException.ThrowIf(_disposed, this);
-
-        var tick = Ui.CurrentTick;
-        if (_culturePowersTick < 0 || tick - _culturePowersTick >= CulturePowerRefreshTicks)
-        {
-            _culturePowers = _runtime.Host.ComputeCulturePower();
-            _culturePowersTick = tick;
-        }
-
-        return _culturePowers;
     }
 
     public KnowledgeOverviewSnapshot KnowledgeOverview()

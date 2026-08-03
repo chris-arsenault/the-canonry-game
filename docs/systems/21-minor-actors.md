@@ -113,15 +113,10 @@ handle and a separate bounded trail of recent work. Cultural fronts, road
 crews, and campaign columns use distinct map markers; recent work remains a
 short visual effect rather than the source of actor identity.
 
-Monte Carlo output separates:
+Monte Carlo output exports `minor_actor_work_events` (role, targeting,
+boundary kind, strength, applied delta). The lifecycle and encounter
+telemetry lanes were deleted 2026-08-03 (no reader); the kernel events
+remain for UI projections.
 
-- `minor_actor_lifecycle_events` for creation, assignment, movement, and
-  retirement;
-- `minor_actor_work_events` for role, targeting, boundary kind, strength, and
-  applied delta; and
-- `minor_actor_encounter_events` for local support, clashes, disruption, and
-  resulting strengths.
-
-Analysis should lead with active counts, assignment and replan mix, work by
-role and boundary kind, local encounter rates, cultural shape, and road and
-campaign outcomes.
+Analysis should lead with work by role and boundary kind, cultural shape,
+and road and campaign outcomes.

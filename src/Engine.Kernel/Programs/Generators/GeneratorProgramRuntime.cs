@@ -600,7 +600,7 @@ internal sealed partial class GeneratorProgramRuntime :
 
         _fireSelectedTargetOccurrenceHandles[selectedGeneratorSlot] =
             simulation.World.EntityOccurrenceHandle(targetId);
-        if (Fire(simulation, selectedGeneratorSlot, targetId, tick, out var failureReasonCode))
+        if (Fire(simulation, selectedGeneratorSlot, targetId, tick, out _))
         {
             _fireStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.Fired;
             MarkEligibleGeneratorsNotSelected();
@@ -608,12 +608,6 @@ internal sealed partial class GeneratorProgramRuntime :
             return true;
         }
 
-        PublishGeneratorTargetEvaluation(
-            simulation,
-            selectedGeneratorSlot,
-            targetId,
-            GeneratorStatusCodes.FireFailed,
-            failureReasonCode);
         _fireFailedCounts[selectedGeneratorSlot]++;
         _fireStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.FireFailed;
         return false;
@@ -637,7 +631,7 @@ internal sealed partial class GeneratorProgramRuntime :
 
             _fireSelectedTargetOccurrenceHandles[selectedGeneratorSlot] =
                 simulation.World.EntityOccurrenceHandle(targetId);
-            if (Fire(simulation, selectedGeneratorSlot, targetId, tick, out var failureReasonCode))
+            if (Fire(simulation, selectedGeneratorSlot, targetId, tick, out _))
             {
                 _fireStatusCodes[selectedGeneratorSlot] = GeneratorStatusCodes.Fired;
                 MarkEligibleGeneratorsNotSelected();
@@ -645,12 +639,6 @@ internal sealed partial class GeneratorProgramRuntime :
                 return true;
             }
 
-            PublishGeneratorTargetEvaluation(
-                simulation,
-                selectedGeneratorSlot,
-                targetId,
-                GeneratorStatusCodes.FireFailed,
-                failureReasonCode);
             _fireFailedCounts[selectedGeneratorSlot]++;
             if (rejectedTargetCount >= _retryRejectedTargetIds.Length)
             {
@@ -828,13 +816,7 @@ internal sealed partial class GeneratorProgramRuntime :
                     refCodes,
                     refEntityIds,
                     out var refCount,
-                    out var rejectionReasonCode);
-                PublishGeneratorTargetEvaluation(
-                    simulation,
-                    generatorSlot,
-                    entityId,
-                    passes ? GeneratorStatusCodes.Eligible : GeneratorStatusCodes.Blocked,
-                    rejectionReasonCode);
+                    out _);
                 if (passes)
                 {
                     count++;

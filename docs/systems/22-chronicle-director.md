@@ -109,8 +109,9 @@ beat reads the retained role-retired bit rather than dereferencing a retired
 entity.
 
 Telemetry: `ChronicleChanged` events carry Cast / BeatStruck / Resolved, with
-beat and outcome codes in reason-code space and the chronicle's heat
-(`chronicle_events` table). Heat is the player-facing interest measure: the
+beat and outcome codes in reason-code space and the chronicle's heat (the
+`chronicle_events` telemetry export was deleted 2026-08-03 — the UI
+projection is the consumer). Heat is the player-facing interest measure: the
 journal names it in bands (cold embers to legendary) and sorts by it, and a
 map aura layer rings every cast member of an unfolding tale, tinted and
 pulsed by heat. The

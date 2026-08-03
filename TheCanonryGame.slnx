@@ -33,7 +33,6 @@
     <Project Path="tests/Engine.Projection.Tests/Engine.Projection.Tests.csproj" />
     <Project Path="tests/Engine.WorldGen.Tests/Engine.WorldGen.Tests.csproj" />
     <Project Path="tests/IceRemembers.Seed.Tests/IceRemembers.Seed.Tests.csproj" />
-    <Project Path="tests/MonteCarlo.Tests/MonteCarlo.Tests.csproj" />
     <Project Path="tests/NameForge.Runtime.Tests/NameForge.Runtime.Tests.csproj" />
     <Project Path="tests/TheCanonryGame.Game.Tests/TheCanonryGame.Game.Tests.csproj" />
     <Project Path="tests/TheCanonryGame.UI.Tests/TheCanonryGame.UI.Tests.csproj" />

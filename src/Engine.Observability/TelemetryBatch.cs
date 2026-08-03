@@ -10,41 +10,24 @@ public sealed class TelemetryBatch
 {
     public Collection<SymbolRow> Symbols { get; } = Rows<SymbolRow>();
     public Collection<EntityNameSymbolRow> EntityNameSymbols { get; } = Rows<EntityNameSymbolRow>();
-    public Collection<KnowledgeSiteSymbolRow> KnowledgeSiteSymbols { get; } = Rows<KnowledgeSiteSymbolRow>();
     public Collection<RunRow> Runs { get; } = Rows<RunRow>();
     public Collection<TickSnapshotRow> TickSnapshots { get; } = Rows<TickSnapshotRow>();
     public Collection<KindSnapshotRow> KindSnapshots { get; } = Rows<KindSnapshotRow>();
     public Collection<EntitySnapshotRow> EntitySnapshots { get; } = Rows<EntitySnapshotRow>();
     public Collection<EntityAttributeSnapshotRow> EntityAttributeSnapshots { get; } = Rows<EntityAttributeSnapshotRow>();
     public Collection<EntityEventRow> EntityEvents { get; } = Rows<EntityEventRow>();
-    public Collection<ExperimentVariantRow> ExperimentVariants { get; } = Rows<ExperimentVariantRow>();
     public Collection<TraceRow> TraceEvents { get; } = Rows<TraceRow>();
-    public Collection<AttributeEventRow> AttributeEvents { get; } = Rows<AttributeEventRow>();
     public Collection<MovementEventRow> MovementEvents { get; } = Rows<MovementEventRow>();
     public Collection<RelationshipEventRow> RelationshipEvents { get; } = Rows<RelationshipEventRow>();
-    public Collection<RelationshipSnapshotRow> RelationshipSnapshots { get; } = Rows<RelationshipSnapshotRow>();
     public Collection<GambitEventRow> GambitEvents { get; } = Rows<GambitEventRow>();
     public Collection<GeneratorEventRow> GeneratorEvents { get; } = Rows<GeneratorEventRow>();
-    public Collection<GeneratorTargetEvaluationRow> GeneratorTargetEvaluations { get; } = Rows<GeneratorTargetEvaluationRow>();
     public Collection<GeneratorOutputRow> GeneratorOutputs { get; } = Rows<GeneratorOutputRow>();
     public Collection<GeneratedEntityRow> GeneratedEntities { get; } = Rows<GeneratedEntityRow>();
     public Collection<LifecycleEventRow> LifecycleEvents { get; } = Rows<LifecycleEventRow>();
-    public Collection<LifecycleReasonEventRow> LifecycleReasonEvents { get; } = Rows<LifecycleReasonEventRow>();
     public Collection<MapGenerationEventRow> MapGenerationEvents { get; } = Rows<MapGenerationEventRow>();
     public Collection<MapCellEventRow> MapCellEvents { get; } = Rows<MapCellEventRow>();
     public Collection<CultureFieldCellSnapshotRow> CultureFieldCellSnapshots { get; } = Rows<CultureFieldCellSnapshotRow>();
-    public Collection<CultureSlotOccupancyEventRow> CultureSlotOccupancyEvents { get; } = Rows<CultureSlotOccupancyEventRow>();
-    public Collection<MinorActorLifecycleEventRow> MinorActorLifecycleEvents { get; } = Rows<MinorActorLifecycleEventRow>();
     public Collection<MinorActorWorkEventRow> MinorActorWorkEvents { get; } = Rows<MinorActorWorkEventRow>();
-    public Collection<MinorActorEncounterEventRow> MinorActorEncounterEvents { get; } = Rows<MinorActorEncounterEventRow>();
-    public Collection<CulturePowerSnapshotRow> CulturePowerSnapshots { get; } = Rows<CulturePowerSnapshotRow>();
-    public Collection<KnowledgeSnapshotRow> KnowledgeSnapshots { get; } = Rows<KnowledgeSnapshotRow>();
-    public Collection<KnowledgeClaimSnapshotRow> KnowledgeClaimSnapshots { get; } = Rows<KnowledgeClaimSnapshotRow>();
-    public Collection<EntityTagEventRow> EntityTagEvents { get; } = Rows<EntityTagEventRow>();
-    public Collection<ChronicleEventRow> ChronicleEvents { get; } = Rows<ChronicleEventRow>();
-
-    public Collection<WorldBeatEventRow> WorldBeatEvents { get; } = Rows<WorldBeatEventRow>();
-    public Collection<CultureEntityFieldSnapshotRow> CultureEntityFieldSnapshots { get; } = Rows<CultureEntityFieldSnapshotRow>();
     public Collection<CultureEntityBirthFieldEventRow> CultureEntityBirthFieldEvents { get; } = Rows<CultureEntityBirthFieldEventRow>();
     public Collection<CellRoadEventRow> CellRoadEvents { get; } = Rows<CellRoadEventRow>();
     public Collection<MapSnapshotRow> MapSnapshots { get; } = Rows<MapSnapshotRow>();
@@ -56,45 +39,24 @@ public sealed class TelemetryBatch
     {
         Symbols.Clear();
         EntityNameSymbols.Clear();
-        KnowledgeSiteSymbols.Clear();
         Runs.Clear();
         TickSnapshots.Clear();
         KindSnapshots.Clear();
         EntitySnapshots.Clear();
         EntityAttributeSnapshots.Clear();
         EntityEvents.Clear();
-        ExperimentVariants.Clear();
         TraceEvents.Clear();
-        AttributeEvents.Clear();
         MovementEvents.Clear();
         RelationshipEvents.Clear();
-        RelationshipSnapshots.Clear();
         GambitEvents.Clear();
         GeneratorEvents.Clear();
-        GeneratorTargetEvaluations.Clear();
         GeneratorOutputs.Clear();
         GeneratedEntities.Clear();
         LifecycleEvents.Clear();
-        LifecycleReasonEvents.Clear();
         MapGenerationEvents.Clear();
         MapCellEvents.Clear();
         CultureFieldCellSnapshots.Clear();
-        CultureSlotOccupancyEvents.Clear();
-        MinorActorLifecycleEvents.Clear();
         MinorActorWorkEvents.Clear();
-        MinorActorEncounterEvents.Clear();
-        ClearCultureAndNarrativeRows();
-    }
-
-    private void ClearCultureAndNarrativeRows()
-    {
-        CulturePowerSnapshots.Clear();
-        KnowledgeSnapshots.Clear();
-        KnowledgeClaimSnapshots.Clear();
-        EntityTagEvents.Clear();
-        ChronicleEvents.Clear();
-        WorldBeatEvents.Clear();
-        CultureEntityFieldSnapshots.Clear();
         CultureEntityBirthFieldEvents.Clear();
         CellRoadEvents.Clear();
         MapSnapshots.Clear();
@@ -156,27 +118,11 @@ public sealed record EntityNameSymbolRow(
     string DisplayName,
     string ReferenceName);
 
-public sealed record KnowledgeSiteSymbolRow(
-    int RunId,
-    int SiteIndex,
-    string StableName,
-    int Tier);
-
 public sealed record RunRow(
     int RunId,
     int? Seed,
     int DomainId,
     long StartedUnixMilliseconds);
-
-public sealed record ExperimentVariantRow(
-    int RunId,
-    int ExperimentId,
-    int VariantId,
-    int ConfigHashId,
-    int GitShaId,
-    bool TraceEnabled,
-    int EntitySnapshotCadence,
-    int MapSnapshotCadence);
 
 public sealed record TickSnapshotRow(
     int RunId,
@@ -272,16 +218,6 @@ public sealed record TraceRow(
     float AffordanceScore,
     float AffordanceBonus);
 
-public sealed record AttributeEventRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int AttributeId,
-    float OldValue,
-    float NewValue,
-    float Delta,
-    int SourceCodeId);
-
 public sealed record MovementEventRow(
     int RunId,
     int Tick,
@@ -311,15 +247,6 @@ public sealed record RelationshipEventRow(
     float NewStrength,
     int ActionId = 0,
     int CauseId = 0);
-
-public sealed record RelationshipSnapshotRow(
-    int RunId,
-    int Tick,
-    int RelationshipKindId,
-    int ActiveCount,
-    float AverageStrength,
-    float MinimumStrength,
-    float MaximumStrength);
 
 public sealed record GambitEventRow(
     int RunId,
@@ -353,30 +280,6 @@ public sealed record GeneratorEventRow(
     int CreatedMapCellCount = 0,
     int RelationshipSpendCount = 0,
     int OutputLockRelationshipCreatedCount = 0);
-
-public sealed record GeneratorTargetEvaluationRow(
-    int RunId,
-    int Tick,
-    int GeneratorId,
-    int TargetEntityId,
-    int TargetKindId,
-    int TargetSubtypeId,
-    int TargetCultureId,
-    int PhysicalQ,
-    int PhysicalR,
-    int SemanticQ,
-    int SemanticR,
-    int SemanticS,
-    int StatusCode,
-    int RejectionReasonCode,
-    int PhysicalFieldBandCode,
-    int PhysicalCellKindCode,
-    float PhysicalLocalRawMass,
-    float PhysicalConnectedRawMass,
-    int SemanticFieldBandCode,
-    int SemanticCellKindCode,
-    float SemanticLocalRawMass,
-    float SemanticConnectedRawMass);
 
 public sealed record GeneratorOutputRow(
     int RunId,
@@ -414,14 +317,6 @@ public sealed record LifecycleEventRow(
     int EntityId,
     int KindId,
     int StatusCode);
-
-public sealed record LifecycleReasonEventRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int ReasonCodeId,
-    int CauseId,
-    int SourceCodeId);
 
 public sealed record MapGenerationEventRow(
     int RunId,
@@ -464,42 +359,6 @@ public sealed record CultureFieldCellSnapshotRow(
     float TotalRawInfluence,
     int Z = 0);
 
-public sealed record CultureSlotOccupancyEventRow(
-    int RunId,
-    int Tick,
-    int SourceCodeId,
-    int CultureId,
-    int SlotId,
-    int PolarityCode,
-    int PreviousEntityId,
-    int CurrentEntityId,
-    float PreviousScore,
-    float CurrentScore);
-
-public sealed record MinorActorLifecycleEventRow(
-    int RunId,
-    int Tick,
-    int EventCode,
-    int ActorOccurrence,
-    int SourceEntityId,
-    int SourceRuleId,
-    int BindingRelationshipId,
-    int CultureId,
-    int RoleCode,
-    int PlaneCode,
-    int FromQ,
-    int FromR,
-    int Q,
-    int R,
-    int TargetQ,
-    int TargetR,
-    int TargetingCode,
-    int PostureCode,
-    int ReasonCode,
-    int NextReplanTick,
-    int CommitmentUntilTick,
-    float Strength);
-
 public sealed record MinorActorWorkEventRow(
     int RunId,
     int Tick,
@@ -520,105 +379,6 @@ public sealed record MinorActorWorkEventRow(
     float ConnectedRawMass,
     float Strength,
     float Delta);
-
-public sealed record MinorActorEncounterEventRow(
-    int RunId,
-    int Tick,
-    int ActorOccurrence,
-    int OtherActorOccurrence,
-    int ActorCultureId,
-    int OtherCultureId,
-    int ActorRoleCode,
-    int OtherRoleCode,
-    int PlaneCode,
-    int Q,
-    int R,
-    int EncounterCode,
-    int ActorPostureCode,
-    int OtherPostureCode,
-    float ActorStrength,
-    float OtherStrength,
-    float Effect);
-
-public sealed record WorldBeatEventRow(
-    int RunId,
-    int Tick,
-    int TrackCode,
-    int AgeId,
-    int PhaseCode);
-
-public sealed record ChronicleEventRow(
-    int RunId,
-    int Tick,
-    int ChronicleSequence,
-    int ArchetypeId,
-    int EventTypeCode,
-    int ActIndex,
-    int OutcomeCodeId,
-    int RoleEntityId0,
-    int RoleEntityId1,
-    int RoleEntityId2,
-    int RoleEntityId3);
-
-public sealed record EntityTagEventRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int TagId,
-    bool Assigned,
-    int SourceCodeId);
-
-public sealed record CulturePowerSnapshotRow(
-    int RunId,
-    int Tick,
-    int CultureId,
-    float WitnessShare,
-    float ShadowShare,
-    float WakeShare,
-    float WitnessMass,
-    float HiddenMass,
-    float SemanticMass,
-    float CustodyStrength,
-    float ClaimStrength,
-    float WarStrength,
-    float OfferingStrength);
-
-/// <summary>
-/// Per-culture knowledge state at a snapshot tick: how many of the authored
-/// technologies the culture has claimed (its idea-mass holds the tech's hex) and
-/// the highest tier it has reached.
-/// </summary>
-public sealed record KnowledgeSnapshotRow(
-    int RunId,
-    int Tick,
-    int CultureId,
-    int ClaimedTechs,
-    int MaxTier);
-
-public sealed record KnowledgeClaimSnapshotRow(
-    int RunId,
-    int Tick,
-    int CultureId,
-    int SiteIndex,
-    int Tier);
-
-public sealed record CultureEntityFieldSnapshotRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int CultureId,
-    int PlaneCode,
-    int CellKindCode,
-    bool SlotOccupied,
-    float LocalRawMass,
-    float ConnectedRawMass,
-    float InfluenceProduction,
-    int StrengthBandCode = 0,
-    float RawMass = 0f,
-    float TotalRawMass = 0f,
-    int ForeignCultureId = 0,
-    float ForeignShare = 0f,
-    float ForeignRawMass = 0f);
 
 public sealed record CultureEntityBirthFieldEventRow(
     int RunId,

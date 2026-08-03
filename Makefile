@@ -118,7 +118,7 @@ mc-smoke:
 		--workers $(MC_WORKERS) \
 		--world $(MC_SMOKE_WORLD) \
 		--run-id $(RUN_ID) --artifact-root .artifacts/monte-carlo \
-		--simulation-only --no-analysis
+		--simulation-only
 
 mc-show:
 	dotnet run --project tools/MonteCarlo/MonteCarlo.csproj -c Release -- \
@@ -148,7 +148,7 @@ profile-kernel:
 			--workers $(MC_WORKERS) \
 			--world $(PROFILE_WORLD) \
 			--run-id $(PROFILE_RUN_ID) --artifact-root .artifacts/monte-carlo \
-			--simulation-only --no-analysis \
+			--simulation-only \
 		2>&1 | tee "$(PROFILE_BASE).run.log"
 	$(DOTNET_TRACE) report "$(PROFILE_BASE).nettrace" topN -n 120 -v \
 		> "$(PROFILE_BASE).exclusive120.txt"
@@ -157,7 +157,7 @@ profile-kernel:
 # Fan a batch across one process per seed so wall time is the slowest seed,
 # not the sum, and each seed's data lands as soon as it finishes. Streams
 # core scorecard tables to <run-id>-s<seed>/stream/ every MC_STREAM_EVERY
-# ticks for mid-run analysis. Skips the per-run analyzer (score externally).
+# ticks for mid-run analysis. Score with tools/analysis/mc_scorecard.py.
 # Example: make mc-fan MC_TICKS=20000 MC_SEEDS="9100 9101 9102" RUN_ID=my-question
 MC_SEEDS ?= 9100 9101 9102
 MC_STREAM_EVERY ?= 2500
@@ -168,7 +168,7 @@ mc-fan:
 			--runs 1 --ticks $(MC_TICKS) --seed $$seed \
 			--workers $(MC_WORKERS) \
 			--run-id $(RUN_ID)-s$$seed --artifact-root .artifacts/monte-carlo \
-			--no-analysis --stream-core-every $(MC_STREAM_EVERY) $(MC_EXTRA) & \
+			--stream-core-every $(MC_STREAM_EVERY) $(MC_EXTRA) & \
 	done; wait
 
 # Generate one pregenerated world: make world SEED=4200

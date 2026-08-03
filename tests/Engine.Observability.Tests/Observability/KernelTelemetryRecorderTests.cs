@@ -76,7 +76,6 @@ public sealed class KernelTelemetryRecorderTests
 
         recorder.RecordSnapshots(tick: 3);
 
-        Assert.Empty(recorder.Batch.CultureEntityFieldSnapshots);
         var birth = Assert.Single(recorder.Batch.CultureEntityBirthFieldEvents);
         Assert.Equal(CultureFieldStrengthBandCodes.Strong, birth.PhysicalFieldBandCode);
         Assert.Equal(CultureFieldCellKindCodes.Interior, birth.PhysicalCellKindCode);
@@ -457,11 +456,6 @@ public sealed class KernelTelemetryRecorderTests
 
     private static void AssertPrimitiveEventRows(TelemetryBatch batch)
     {
-        var attribute = Assert.Single(batch.AttributeEvents);
-        Assert.Equal(4, attribute.AttributeId);
-        Assert.Equal(2f, attribute.Delta);
-        Assert.Equal(5, attribute.SourceCodeId);
-
         var movement = Assert.Single(batch.MovementEvents);
         Assert.Equal(5, movement.SourceCodeId);
         Assert.Equal(PlaneCodes.Physical, movement.PlaneCode);
@@ -474,8 +468,6 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(30f, road.PreviousQuality);
         Assert.Equal(45f, road.CurrentQuality);
         Assert.Equal(15f, road.Delta);
-
-        AssertCultureSlotOccupancyRows(batch);
 
         AssertMapCellRows(batch);
 
@@ -541,17 +533,6 @@ public sealed class KernelTelemetryRecorderTests
             row.R == -2);
     }
 
-    private static void AssertCultureSlotOccupancyRows(TelemetryBatch batch)
-    {
-        var cultureSlot = Assert.Single(batch.CultureSlotOccupancyEvents);
-        Assert.Equal(3, cultureSlot.CultureId);
-        Assert.Equal(9, cultureSlot.SlotId);
-        Assert.Equal(RelationshipPolarityCodes.Positive, cultureSlot.PolarityCode);
-        Assert.Equal(0, cultureSlot.PreviousEntityId);
-        Assert.Equal(100, cultureSlot.CurrentEntityId);
-        Assert.Equal(4.25f, cultureSlot.CurrentScore);
-    }
-
     private static void AssertGeneratedAndTickRows(TelemetryBatch batch)
     {
         var generator = Assert.Single(batch.GeneratorEvents);
@@ -559,13 +540,6 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(1, generator.CreatedEntityCount);
         Assert.Equal(1, generator.RelationshipSpendCount);
         Assert.Equal(2, generator.OutputLockRelationshipCreatedCount);
-
-        var targetEvaluation = Assert.Single(batch.GeneratorTargetEvaluations);
-        Assert.Equal(10, targetEvaluation.GeneratorId);
-        Assert.Equal(200, targetEvaluation.TargetEntityId);
-        Assert.Equal(GeneratorTargetRejectionReasonCodes.RelationshipAbsence, targetEvaluation.RejectionReasonCode);
-        Assert.Equal(CultureFieldCellKindCodes.Interior, targetEvaluation.PhysicalCellKindCode);
-        Assert.Equal(90f, targetEvaluation.PhysicalConnectedRawMass);
 
         var generated = Assert.Single(batch.GeneratedEntities);
         Assert.Equal(101, generated.EntityId);

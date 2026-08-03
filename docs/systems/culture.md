@@ -124,54 +124,29 @@ Generator outputs using `CultureInterior` or `CultureRoute` placement require
 existing local own-culture support at the candidate cell and are rejected in
 unsupported void, which prevents unanchored satellite founding.
 
-## Culture Power Ledgers
+## Culture Balance
 
-Landmass is not the only definition of cultural power. The host computes three
-asymmetric power ledgers per culture; each is a 0-100% share of a world total,
-and each culture is designed to lead its own axis in a healthy run:
-
-- **Witness (Aurora's axis)** — share of world physical-plane raw culture
-  mass at `z >= 0`, with each cell weighted `1 + 0.25 * z`. Tunnel mass
-  (`z < 0`) is excluded: unwitnessed presence does not count.
-- **Shadow (Nightshelf's axis)** — mean of three component shares: world
-  semantic-plane raw mass; hidden physical mass at `z < 0`; and custody, the
-  summed strength of custody relationships (`holds`, `anchored`,
-  `practiced_by`, `conduit_of`) touching living custody-kind entities
-  (artifacts, abilities) of the culture.
-- **Wake (Wake-Singers' axis)** — mean of three component shares: claims
-  (summed `claimed_by` strength by claimant culture), war presence (summed
-  `at_war_with` strength with either endpoint in the culture), and devotion
-  flow (summed strength of offering relationships — `offered_to`,
-  `consigned_to` — attributed to the culture of the receiving sacred site).
-  Blood is one offering channel among several: wars feed the deep, but so do
-  elder descents, consigned relics, and sung vigils, so a player-guided
-  peaceful run keeps the axis alive. Worship is carried entirely in
-  relationship strength and the spatial field — offerings accrue on sites,
-  drift down under maintenance, and are spent by generators that calve pods
-  along the corridor and found daughter sites.
-
-Each culture also declares per-plane influence production multipliers
+Each culture declares per-plane influence production multipliers
 (`CultureConfig.PhysicalInfluenceProductionMultiplier` /
 `SemanticInfluenceProductionMultiplier`), applied to positive entity-driven
-deposits so a small culture can produce outsized output on its own axis.
+deposits so a small culture can produce outsized output in its favored plane.
 Nightshelf runs semantic-heavy (2.5x semantic, 0.75x physical), Aurora mildly
 physical-heavy. Decay, cleanup, forge deposits, and player commands are not
 production and stay unscaled.
 
-Balance between the axes is not enforced by any controller that measures the
-scoreboard: cultures stay viable through theme-emergent mechanisms — the
-Nightshelf shadow economy (cross-cultural generators feeding on surface
-prosperity), authored timeline generators, seeded custody parity, and the
-plane bias above. Rejected and deferred alternatives are recorded in
+Balance is not enforced by any controller that measures a scoreboard:
+cultures stay viable through theme-emergent mechanisms — the Nightshelf
+shadow economy (cross-cultural generators feeding on surface prosperity),
+authored timeline generators, seeded custody parity, and the plane bias
+above. Rejected and deferred alternatives are recorded in
 `docs/design/culture-balance-options.md`.
 
-Components whose world total is zero are dropped from their axis mean. The
-domain declares the vocabulary in `DomainConfig.CulturePower` (custody kinds,
-custody relationships, claim and war relationship names); the host resolves
-names to runtime ids through the compiled domain, so the engine stays
-domain-agnostic. Ledgers are exported to the `culture_power_snapshots`
-telemetry table on the Monte Carlo snapshot cadence and rendered per culture
-in the nations rows of the in-game legend panel.
+The culture power ledgers (Witness/Shadow/Wake per-culture win axes,
+2026-07-11) were deleted on 2026-08-03: nothing read the computation, the
+telemetry, or the legend rows, and the one retrospective check showed the
+"each culture leads its own axis" promise failing unnoticed. See
+`docs/analysis/low-value-systems-survey-20260803.md`. Forged-cell culture
+mass at `z != 0` remains in the field but has no remaining consumer.
 
 ### Carrying Capacity And Predation
 

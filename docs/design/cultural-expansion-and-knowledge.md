@@ -87,10 +87,11 @@ without map degeneration and produced 130 generator fires. Final claims were
 Production/Persistence implementation and is retained only as a comparison
 baseline.
 
-Post-repair evidence must use the registry-owned MC workflow and report both
+Post-repair evidence used the registry-owned MC workflow and reported both
 aggregate claim progression and the named rows obtained by joining
-`knowledge_claim_snapshots` to `knowledge_site_symbols` on run and site index.
-Grant effects should be evaluated on their owning mechanics rather than inferred
+`knowledge_claim_snapshots` to `knowledge_site_symbols` on run and site index
+(those telemetry lanes were deleted 2026-08-03 — no tool read them). Grant
+effects should be evaluated on their owning mechanics rather than inferred
 from claim count alone.
 
 The matching post-repair run is `knowledge-real-grants-postrepair` (same seed,

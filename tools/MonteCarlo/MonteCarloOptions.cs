@@ -7,7 +7,6 @@ internal enum MonteCarloCommandKind
 {
     Run,
     Register,
-    Analyze,
     AppendStats,
     List,
     Show,
@@ -23,7 +22,6 @@ internal sealed partial record MonteCarloOptions(
     int WorkerCount,
     int EntitySnapshotCadence,
     string ArtifactRoot,
-    bool SkipAnalysis,
     bool DisableEntitySnapshots,
     bool SimulationOnly,
     bool TraceEnabled,
@@ -31,7 +29,6 @@ internal sealed partial record MonteCarloOptions(
     string? WorldFilePath,
     int ProgressEveryTicks,
     int StreamCoreEveryTicks,
-    int SaveStateEveryTicks,
     IReadOnlyList<MonteCarloStatInput> Stats)
 {
     public string OutputDirectory => RunId is null
@@ -39,7 +36,6 @@ internal sealed partial record MonteCarloOptions(
         : Path.Combine(ArtifactRoot, RunId);
 
     public string RegistryPath => Path.Combine(ArtifactRoot, "registry.duckdb");
-    public bool ShouldAnalyze => Command == MonteCarloCommandKind.Run && !SkipAnalysis && !SimulationOnly;
 
     public static MonteCarloOptions Parse(string[] args)
     {
@@ -88,7 +84,6 @@ internal sealed partial record MonteCarloOptions(
             WorkerCount: workerCount,
             EntitySnapshotCadence: ReadInt(optionArgs, "--entity-snapshot-cadence", 5),
             ArtifactRoot: artifactRoot,
-            SkipAnalysis: HasFlag(optionArgs, "--no-analysis"),
             DisableEntitySnapshots: HasFlag(optionArgs, "--disable-entity-snapshots"),
             SimulationOnly: simulationOnly,
             TraceEnabled: traceEnabled,
@@ -96,7 +91,6 @@ internal sealed partial record MonteCarloOptions(
             WorldFilePath: worldFilePath,
             ProgressEveryTicks: ReadInt(optionArgs, "--progress-every", 1000),
             StreamCoreEveryTicks: ReadInt(optionArgs, "--stream-core-every", 0),
-            SaveStateEveryTicks: ReadInt(optionArgs, "--save-state-every", 0),
             Stats: stats);
     }
 
@@ -153,7 +147,6 @@ internal sealed partial record MonteCarloOptions(
         {
             "run" => MonteCarloCommandKind.Run,
             "register" => MonteCarloCommandKind.Register,
-            "analyze" => MonteCarloCommandKind.Analyze,
             "append-stats" => MonteCarloCommandKind.AppendStats,
             "list" => MonteCarloCommandKind.List,
             "show" => MonteCarloCommandKind.Show,
@@ -169,9 +162,19 @@ internal sealed partial record MonteCarloOptions(
             throw new ArgumentException("Use --run-id and --artifact-root instead of --out.", nameof(args));
         }
 
-        if (ReadString(args, "--analyze", null) is not null)
+        if (ReadString(args, "--analyze", null) is not null ||
+            HasFlag(args, "--no-analysis"))
         {
-            throw new ArgumentException("Use 'analyze --run-id <id>' instead of --analyze.", nameof(args));
+            throw new ArgumentException(
+                "Per-run analysis has been removed. Score runs with tools/analysis/mc_scorecard.py.",
+                nameof(args));
+        }
+
+        if (ReadString(args, "--save-state-every", null) is not null)
+        {
+            throw new ArgumentException(
+                "Kernel state checkpoints have been removed; nothing could load them.",
+                nameof(args));
         }
 
         if (HasFlag(args, "--perf") ||
@@ -189,7 +192,6 @@ internal sealed partial record MonteCarloOptions(
         command is
             MonteCarloCommandKind.Run or
             MonteCarloCommandKind.Register or
-            MonteCarloCommandKind.Analyze or
             MonteCarloCommandKind.AppendStats or
             MonteCarloCommandKind.Show or
             MonteCarloCommandKind.DeleteRun;
@@ -199,7 +201,6 @@ internal sealed partial record MonteCarloOptions(
         {
             MonteCarloCommandKind.Run => "run",
             MonteCarloCommandKind.Register => "register",
-            MonteCarloCommandKind.Analyze => "analyze",
             MonteCarloCommandKind.AppendStats => "append-stats",
             MonteCarloCommandKind.List => "list",
             MonteCarloCommandKind.Show => "show",

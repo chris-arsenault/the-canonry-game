@@ -199,36 +199,6 @@ internal sealed partial class TelemetryEventProjection
         }
     }
 
-    private struct RelationshipSnapshotAccumulator
-    {
-        private double _total;
-
-        public int Count { get; private set; }
-
-        public float Minimum { get; private set; }
-
-        public float Maximum { get; private set; }
-
-        public float Average => Count == 0 ? 0f : (float)(_total / Count);
-
-        public void Add(float strength)
-        {
-            if (Count == 0)
-            {
-                Minimum = strength;
-                Maximum = strength;
-            }
-            else
-            {
-                Minimum = Math.Min(Minimum, strength);
-                Maximum = Math.Max(Maximum, strength);
-            }
-
-            Count++;
-            _total += strength;
-        }
-    }
-
     private struct MapSnapshotAccumulator
     {
         public int CellCount { get; private set; }

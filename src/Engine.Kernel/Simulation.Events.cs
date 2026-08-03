@@ -150,54 +150,6 @@ internal sealed partial class Simulation
             heat.Units)));
     }
 
-    internal void EmitGeneratorTargetEvaluated(
-        int tick,
-        int generatorId,
-        int targetEntityId,
-        int targetKindId,
-        int targetSubtypeId,
-        int targetCultureId,
-        int physicalQ,
-        int physicalR,
-        int semanticQ,
-        int semanticR,
-        int semanticS,
-        int statusCode,
-        int rejectionReasonCode,
-        int physicalFieldBandCode,
-        int physicalCellKindCode,
-        int semanticFieldBandCode,
-        int semanticCellKindCode,
-        FixedScalar physicalLocalRawMass,
-        FixedScalar physicalConnectedRawMass,
-        FixedScalar semanticLocalRawMass,
-        FixedScalar semanticConnectedRawMass)
-    {
-        WriteKernelEvent(KernelEvent.From(new GeneratorTargetEvaluatedKernelEvent(
-            tick,
-            WorldVersion,
-            generatorId,
-            World.EntityOccurrenceHandle(targetEntityId),
-            targetKindId,
-            targetSubtypeId,
-            targetCultureId,
-            physicalQ,
-            physicalR,
-            semanticQ,
-            semanticR,
-            semanticS,
-            statusCode,
-            rejectionReasonCode,
-            physicalFieldBandCode,
-            physicalCellKindCode,
-            semanticFieldBandCode,
-            semanticCellKindCode,
-            physicalLocalRawMass.Units,
-            physicalConnectedRawMass.Units,
-            semanticLocalRawMass.Units,
-            semanticConnectedRawMass.Units)));
-    }
-
     internal void EmitProvenanceInvocationRecorded(
         int tick,
         int invocationId,

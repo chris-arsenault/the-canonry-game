@@ -140,15 +140,6 @@ internal sealed class MonteCarloRunRegistry : IDisposable
         });
     }
 
-    public void MarkAnalyzed(string runId, IEnumerable<MonteCarloStatInput> stats)
-    {
-        WithRegistry(connection =>
-        {
-            RequireExistingRun(connection, runId);
-            AppendStats(connection, runId, stats, source: "analysis");
-            WriteManifest(connection, runId);
-        });
-    }
 
     public IReadOnlyList<MonteCarloRegisteredRun> ListRuns() =>
         WithRegistry(connection => QueryRuns(

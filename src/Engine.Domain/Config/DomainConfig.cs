@@ -71,9 +71,6 @@ public sealed class DomainConfig
     /// </summary>
     public string? WorldCulture { get; init; }
 
-    /// <summary>Domain vocabulary feeding the culture power ledgers.</summary>
-    public CulturePowerConfig CulturePower { get; init; } = new();
-
     /// <summary>
     /// Global tag catalog. Tags are discrete per-entity status bits (max 31)
     /// used for authored state machines: set/cleared by effect rules and
@@ -204,26 +201,6 @@ public sealed class TraitConfig
 
     /// <summary>Independent 0..1 chance that a newly created entity of this kind receives the trait.</summary>
     public float AssignmentChance { get; init; }
-}
-
-/// <summary>
-/// Declares which domain vocabulary feeds the culture power ledgers: custody
-/// kinds and relationships for the Shadow axis, claim and war relationships
-/// for the Blood axis. Empty lists drop the corresponding ledger component.
-/// </summary>
-public sealed class CulturePowerConfig
-{
-    public IReadOnlyList<string> CustodyKinds { get; init; } = [];
-    public IReadOnlyList<string> CustodyRelationships { get; init; } = [];
-    public string? ClaimRelationship { get; init; }
-    public string? WarRelationship { get; init; }
-
-    /// <summary>
-    /// Relationship kinds whose strength counts as devotion flow for the Wake
-    /// axis. Offering strength is attributed to the culture of the receiving
-    /// site (the relationship target).
-    /// </summary>
-    public IReadOnlyList<string> OfferingRelationships { get; init; } = [];
 }
 
 /// <summary>Relationship kind configuration.</summary>
