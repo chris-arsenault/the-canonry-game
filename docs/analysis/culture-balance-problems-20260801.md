@@ -12,6 +12,19 @@ Births on unheld cells, Nightshelf: 0.58-0.84 (baseline 0.76) — little
 movement; the occupation placement-ref sweep remains the open lever.
 Baselines below are the pre-parity 9-run values.
 
+Kind-general update (2026-08-03, 4 draws — seeds 9100/9101/9102/9103,
+runs parity-r19-*): the paired per-kind emissions were replaced by
+kind-general generators (target either actor kind, produce the
+target's kind, casualties drawn from the joint pool). Census =
+56/20/19/5, 15/18/51/17, 19/48/29/3, 33/47/16/4 — every draw within or
+near the envelope, maximum culture share 56%, and the leading culture
+ROTATES (Aurora tops 9100, Nightshelf 9102/9103, Wake-Singers 9101) —
+first build where the winner is not fixed by authorship. Physical top
+share 0.57/0.61/0.67/0.88. Death rates: Wake-Singers 0.33-0.43,
+Aurora 0.44-0.72, Nightshelf 0.51-0.84. Orca births 45-120 per world
+with births/deaths near parity - the kind persists on presence without
+dedicated machinery.
+
 Basis: 9 runs of the current configuration, 20k ticks, seeds 9100/9102/9103
 (stages-r16g) and 9101/9104/9106/9107/9108/9109 (stages-r17c/r17d).
 Telemetry culture ids: 1 = Aurora, 2 = Nightshelf, 3 = Wake-Singers,
