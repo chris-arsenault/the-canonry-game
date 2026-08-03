@@ -1,149 +1,121 @@
 # Backlog
 
-Deferred work with its origin. Point-in-time findings stay in
-`docs/analysis/`; this file is the durable list of decided-but-not-scheduled
-items and the verification debts owed before the next formal evidence run.
+Unified work backlog, consolidated 2026-08-03 from the actor-parity
+audit, the culture balance problem register
+(`docs/analysis/culture-balance-problems-20260801.md`), prior plans,
+and the previous version of this file. Point-in-time findings stay in
+`docs/analysis/`. Verification-only and hardening-only items are
+excluded by charter; completed verification history lives in the
+analysis records.
+
+## Actor authorship parity (continuation)
+
+Origin: `docs/analysis/actor-parity-audit-20260801.md`. The first
+parity slice landed 2026-08-01 (shared band/locality/traits, shared
+succession, nine paired generators) and brought the census inside the
+60/20/20 envelope. Remaining, in leverage order against the open
+register problems (Nightshelf death rate ~1.7x Wake-Singers; Nightshelf
+births 58-84% on unheld cells):
+
+- **Occupation produce parity and homing** — the ~40 event-placed
+  penguin produce sites (witness/broker/warden at war sites, offering
+  sites, rich hubs). Two decisions per site: pair an orca emission, and
+  home the occupation at an own-culture anchor instead of the event.
+  Homing bindings must handle the no-anchor-exists case or they
+  reproduce the desperation-surge fire-failure defect.
+- **Grant-gambit parity** — 9 of 13 grant gambits are penguin-only
+  (UnmakesTheBinding, CallsTheDeepCurrent, TurnsTheBattle,
+  BindsWhatWasLoosed, KeepsWintersPatience, MendsAnother,
+  PassesTheTeaching, ReadsTheIce, StillsTheWaters). The shared-builder
+  pattern exists in the same file (DrawOnTheVessel, MakesOffering).
+  GambitId enum ids append at the end (positional name mapping).
+- **Endings and rites by kind** — orcas have authored passage content
+  (elders_descend_to_the_god, kills_sung_to_the_deep,
+  vigils_at_the_current); penguins die more often and have none. Audit
+  whether that is culture flavor or a kind gap; penguin deaths
+  currently feed no memory/devotion economy.
+- **Non-grant gambit pairing** — penguins hold ~29 gambit actor roles,
+  orcas 8. Needs the classify-then-pair pass the generators got.
+- **Orca behavior traits** — after the bond-pair fix, penguins have
+  five traits to orcas' two; orcas have no verb-weight behavior traits.
+- **Subtype vocabulary** — penguin subtypes are all occupations, so
+  fledglings are born as "witness". Decide: subtypes stay per-kind
+  flavor, or actor kinds share a life-stage/role vocabulary.
+
+## Culture balance
+
+Origin: problem register, round-16 arc.
+
+- **World-culture shelter** — world-culture entities hold zero
+  shelter-grade cells on every measured world by construction (no
+  territory by design) and die at the highest rates. Design fix
+  candidate: world entities shelter under any culture's influence.
+- **Aurora desperation beacon placement failures** — the surge still
+  fails at fire time (placement, rejection code 8) on worlds where
+  Aurora is already collapsed; the frontier fallback is insufficient
+  when the culture has no viable ground.
+- **Dead generators** — `faction_claims_the_warm_ground` and
+  `penguin_shelters_at_the_vent`: zero attempts across all seeds at the
+  full horizon (rounds 4-9 sign-off). Fix or retire the authored
+  content.
+
+## Track economies
+
+Origin: track portfolio rebalance (2026-07-31), register.
+
+- **Cross-culture trade routes** — they do not exist, which blocks
+  `envoys_cross_the_ice` (authored, soil-blocked) and caps the trade
+  and diplomacy tracks. Needs a mechanism for routes to cross culture
+  lines (border markets, corridor brokering, or similar).
+- **Rivalry pacing** — accords cool wars and now spend rivalry, but the
+  rivalry mill that re-declares wars has had no pass of its own; war
+  prevalence is acceptable, war cadence is untuned.
 
 ## Deferred by explicit decision
 
-- **Creation design: landed as the provincial fire windows** (owner
-  confirmation, 2026-07-30). The regional-tracks system — one fire track
-  per populated superregion, tempo by settledness band, per-generator fire
-  weights — is the creation design that came out of the 2026-07 design
-  work. This entry previously carried a "per-kind creation shares" note as
-  a pending owner design; that note was stale documentation, not open
-  work. Fire-weight changes remain owner-approved changes, not free
-  tuning.
-- **Typed installed-legacy component** (owner decision, 2026-07-24; full
-  design: `ordered-emergence-population-plan-20260718.md` §Legacy Retirement
-  Gambits). Chosen representation for now is fungible legacy (option a):
-  explicit durable host-owned state with the artifact-host relationship
-  retained for history. The typed alternative is a fixed-capacity
-  installed-legacy attachment recording historical source entity id, host
-  entity id or landscape coordinate/coverage owner, registered legacy kind
-  id, magnitude/authored parameters, installation tick, and active/removed
-  state — the future shape for map-placed objects in the Civ-6-districts
-  direction. Binding constraint EITHER WAY: the installed benefit must be
-  attributable and reversible so a history-facing reactivation mechanic
-  stays possible. Do not add the typed component until districts need it.
+Carried from the previous backlog; origins as noted there.
+
+- **Typed installed-legacy component** (owner decision, 2026-07-24;
+  design in `ordered-emergence-population-plan-20260718.md`). Fungible
+  legacy is the chosen representation until districts need the typed
+  fixed-capacity attachment. Binding constraint either way: installed
+  benefits stay attributable and reversible.
 - **Artifact resurrection / return from the zeitgeist** (owner note,
-  2026-07-18: durable things "come back" as a follow-up mechanic; design
-  sketch in the superseded proposal + plan). A history-facing mechanic
-  reactivates a historical artifact: rediscovery by expedition/generator
-  (e.g. `records_cast_shadows` targeting historical relics *instead of
-  minting new ones* — creation-pressure relief), or un-installation of an
-  enshrined legacy (reverse the durable benefit, restore active status).
-  Requires the legacy data shape above; not separately approved yet. POIs
-  already have their loop (faded POI frees its FeatureAnchor for
-  re-naming) — verify it closes.
-- **Dynamic meta-entities** (explicitly not a requirement). Settlement +
-  faction + leader + held artifacts as one game/UI entity. Superseded by
-  legacy retirement gambits + carry-to-holds unless clutter persists after
-  the current stack is judged.
+  2026-07-18). Rediscovery of historical relics instead of minting new
+  ones, or un-installation of an enshrined legacy. Requires the legacy
+  data shape above; not separately approved yet.
+- **Dynamic meta-entities** — explicitly not a requirement; superseded
+  unless clutter persists.
+- **Arrival-time repulsion** — resting entities refusing occupied
+  hexes; fire only if the stacking tail stays fat at horizon.
 
-## Held in reserve (fire only on evidence)
+## Future systems
 
-- **Arrival-time repulsion**: resting entities refusing already-occupied
-  hexes — only if the 100k stacking tail stays fat after the beacon
-  removal, saturation 0.6, and cadence endings.
-- **Density band: ratified 0.3–0.5** (2026-07-29, round 6): horizon family
-  0.417/0.450/0.527 with flat-or-falling curves — plateau at the band's top
-  edge passes per the standing criteria. Semantic occupancy ≤15% and mortal
-  share ≥20% remain provisional; mortal share is the active gap (10–13%
-  through round 6).
+- **Knowledge / tech system** — parked design
+  (`docs/design/cultural-expansion-and-knowledge.md`; Civ model,
+  current state, and open questions recorded there). Read that doc
+  first when resuming.
 
-## Verification debts — CLOSED 2026-07-30
+## Kernel (owner lane)
 
-The bundled verification ran as rounds 4–9 on the unified 20k-tick
-horizon (records: `docs/analysis/stages-scorecard-round4-20260729.md`
-and `-round5-…md`, which covers rounds 5–9). Final bookkeeping pass
-against the round-9 runs signed off every item below except where
-noted. Findings that survived as open work:
+- **Movement-array crash, seed 9105** — growing map minted more cellIds
+  than the fixed movement arrays hold (131072);
+  MovementProgramState.RecordTravel index-out-of-bounds ~tick 14k.
+  Routed to the owner's kernel/movement workstream.
 
-- **Two dead generators** — `faction_claims_the_warm_ground` and
-  `penguin_shelters_at_the_vent`: zero attempts across all seeds at
-  the full horizon. Fix or retire the authored content.
-- **Devotion economy declines over a run** (offering-spent nearly dry,
-  `the_current_provides` starves with it) — top open finding.
-- Semantic occupancy fraction needs a proper plane-size denominator
-  (stacking itself is healthy at ~1 per cell); interior-vs-frontier
-  mass share (item 21) needs a metric definition before it can be
-  judged. Both parked.
-- Movement bounce-back cured: artifact immediate-reversal 67% → 14%.
-- Performance measurement belongs to the perf workstream.
+## Open design questions
 
-Original items, kept for reference:
+Undecided directions surfaced by the balance arc; no commitment
+implied.
 
-From the demography stack (slices 1–3, uncommitted as of 2026-07-24):
-
-1. Density plateau 0.3–0.5 active/covered at horizon.
-2. Mortal share ≥20% of active population (the provincial-window headline).
-3. Artifact/POI net convergence toward zero post-bootstrap.
-4. Settlement demography: bimodal survival, count tracking covered cells,
-   razing fires attributed (not just solitude).
-5. Every new ending firing with attribution — seal-shatter, one-word-yields,
-   memorial wall, tome-read, offering-spent, slips-the-grasp, enshrinement
-   (durable host stat verified applied) — without gutting war-saga or
-   world-beat cadence.
-6. Wild-vs-held artifact split improving; no carried-forever deadlock from
-   the movement-suspension rule.
-7. Movement at horizon: artifact/transport reversal and volume; artifact
-   rest-at-destination holding; penguin health unchanged.
-8. Departure loop vs settlement lifeline: crowded hubs shed excess without
-   starving the population that keeps settlements alive.
-9. Semantic plane: occupancy ≤15%, stacking low, travel-influence verbs not
-   distorting culture shape.
-10. Provincial fire windows: fires scale with settledness across the run, band
-    promotions occur, dormant provinces wake on reveal, world tempo lands
-    ~2–3× the pre-provincial rate at bootstrap settledness.
-11. POI rediscovery loop actually closes at least once.
-12. Performance ≥ ~50 ticks/s at 100k; relationship lifetime totals leave
-    headroom (see recycler above).
-
-From artifact districts (`docs/design/artifact-districts.md`):
-
-12a. Installs and reawakenings both attributed at horizon; tile bonuses
-    verifiably applying (host health deltas, district-tile influence);
-    settlement footprint growth from installs visible in coverage; no
-    install-rate runaway (installed share of artifact retirement sane).
-
-From entity stages (`docs/design/entity-stages.md`) — NOTE: this change
-reshapes the culture economy; expect rebalancing iterations at smoke scale
-before this run is worth spending, and treat these lines as the acceptance
-gates for that rebalancing:
-
-17. **Cultural mass over time** — the headline: per-lane income statement
-    (map_control vs gameplay vs effects/emission gains and losses) at
-    25k/50k/100k; total physical raw mass trajectory; cells above
-    trace/claimed/controlled thresholds; covered-cell growth — all
-    non-regressing vs the pre-stage baseline despite grind removal.
-18. Stage pyramid: many base-stage, few apex entities per catalog kind;
-    promotion/demotion rates; deaths only at base stage; demotion events
-    attributed to their causes (generator side-effects vs hard times); no
-    demotion spirals (repeat-demotion frequency bounded).
-19. Deepen family (promotion gambits) < 10% of gambit executions; freed
-    pool share flowing to context gambits, not evaporating.
-20. Mortal-kind lifespans within their healthy bands despite the
-    maintenance-labor shift (78% of maintenance was tier-carried).
-21. Per-stage ambient emission + district tiles + decay relief carrying
-    interior holding: interior (non-frontier) mass share stable; thaw and
-    reclaim cadence unaffected.
-
-From the exploration/terrain arc (`SUMMARY-exploration-terrain-arc-20260723.md`
-watch items, carried until judged at 50k+):
-
-13. `faction_claims_the_warm_ground` — zero attempts at 25k; re-check at
-    50k+ scale.
-14. `penguin_shelters_at_the_vent` — rare by design; confirm it matters at
-    longer horizons before tuning.
-15. Late-window generators (`the_thaw_calls_the_bold`,
-    `conduits_map_hidden_peaks`, `sanctuaries_anchor_colonies`) — first
-    fires 32k–40k; zero at 25k is normal variance.
-16. Pre-existing slow-suite failures on clean HEAD (all belong to the
-    in-flight worldgen rework, not this stack):
-    `IceRemembers_EntityCatalogCoversCanonicalKinds`, and three
-    `IceRemembersSeedBuilderTests` terrain tests
-    (`Grid_UsesIceRemembersTerrainCatalog`,
-    `TerrainGeneration_DoesNotCollapseTheStartupHeartToOneTerrain`,
-    `SeedSubdivisions_GiveEveryContinentLandAndSeedTheHeartWithPlayableRegions`)
-    — verified identical on clean `18f7bfe4`, 2026-07-29.
+- **Nightshelf semantic lead fades** — they lead the semantic plane in
+  window 1 on 8/9 baseline runs and hold it at horizon on 1/9. Problem
+  or intended asymmetry?
+- **OfferedTo net-positive growth** — the devotion economy rests on
+  contact renewal slightly above decay (+0.0006 tended); owner is
+  lukewarm on positive relationship growth as a pattern.
+- **Mass faucets beyond entity emission** — deeds depositing influence
+  at sites and relationships emitting along corridors (the ice
+  remembers what happened, not only who stands there). Would also give
+  world culture a footprint. Candidate only; the authorship-parity
+  direction was chosen first.
