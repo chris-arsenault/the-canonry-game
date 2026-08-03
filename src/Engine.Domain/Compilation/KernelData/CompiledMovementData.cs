@@ -5,6 +5,7 @@ public sealed class CompiledMovementData
     public IReadOnlyList<CompiledMovementProfileDefault> Defaults { get; init; } = [];
     public IReadOnlyList<CompiledMovementProfileSubtypeRule> SubtypeRules { get; init; } = [];
     public IReadOnlyList<CompiledMovementProfileTraitRule> TraitRules { get; init; } = [];
+    public IReadOnlyList<CompiledMovementProfileTechRule> TechRules { get; init; } = [];
     public IReadOnlyList<CompiledTravelStructureDefinition> TravelStructures { get; init; } = [];
 
     public FixedScalar RoughnessCostWeight { get; init; }
@@ -24,6 +25,12 @@ public sealed record CompiledMovementProfileSubtypeRule(
 public sealed record CompiledMovementProfileTraitRule(
     int KindId,
     int TraitId,
+    int PlaneCode,
+    int MovementProfileId);
+
+public sealed record CompiledMovementProfileTechRule(
+    int KindId,
+    int TechId,
     int PlaneCode,
     int MovementProfileId);
 

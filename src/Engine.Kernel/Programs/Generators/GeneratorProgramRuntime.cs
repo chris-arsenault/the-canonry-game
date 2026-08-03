@@ -179,6 +179,19 @@ internal sealed partial class GeneratorProgramRuntime :
         Data.TargetChronicleLegendaryWithinTicks[generatorSlot] = legendaryWithinTicks;
     }
 
+    /// <summary>
+    /// Knowledge enablement gates by 1-based tech id (0 = ungated). Required:
+    /// targets pass only while their culture claims the tech. Widen: while
+    /// the target's culture claims the tech, the subtype filter is bypassed
+    /// (one subkind opens to all subkinds of the kind).
+    /// </summary>
+    public void SetTargetKnowledgeGates(int generatorSlot, int requiredTechId, int subtypeWidenTechId)
+    {
+        EnsureGenerator(generatorSlot);
+        Data.TargetRequiredTechIds[generatorSlot] = requiredTechId;
+        Data.TargetSubtypeWidenTechIds[generatorSlot] = subtypeWidenTechId;
+    }
+
     public void AddTargetRequiredRelationship(int generatorSlot, int relationshipKindId, FixedScalar minimumStrength = default)
     {
         EnsureOpenGenerator(generatorSlot);

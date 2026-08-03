@@ -13,6 +13,7 @@ public static partial class DomainCompiler
         RegisterWorldCatalog(config, state);
         RegisterCultureCatalog(config, state);
         RegisterTagCatalog(config, state);
+        RegisterKnowledgeTechCatalog(config, state);
         RegisterGeneratorCatalog(config, state);
         RegisterBehaviorCatalog(config, state);
         RegisterRuntimeCatalog(state);
@@ -104,6 +105,21 @@ public static partial class DomainCompiler
         foreach (var tag in config.Tags)
         {
             _ = state.Registry.RegisterTag(tag);
+        }
+    }
+
+    // Catalog order is the kernel's knowledge site index order (id - 1); the
+    // startup seed installer validates its site list against this ordering.
+    private static void RegisterKnowledgeTechCatalog(DomainConfig config, CatalogRegistrationState state)
+    {
+        if (config.Gameplay is null)
+        {
+            return;
+        }
+
+        foreach (var techId in config.Gameplay.KnowledgeTechIds)
+        {
+            _ = state.Registry.RegisterKnowledgeTech(techId);
         }
     }
 

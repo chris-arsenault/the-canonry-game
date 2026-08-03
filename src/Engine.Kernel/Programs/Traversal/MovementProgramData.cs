@@ -15,9 +15,20 @@ internal sealed partial class MovementProgramData : IKernelProgramData
     private readonly int[] _firstTraitProfileByKind;
     private readonly int[] _lastTraitProfileByKind;
     private readonly int[] _nextTraitProfileByKind;
+    // Knowledge enablement gates: a tech rule switches the kind's effective
+    // movement profile while the entity's culture claims the tech (1-based
+    // tech ids). Applied after trait rules - an earned capability wins.
+    private readonly int[] _techProfileKindIds;
+    private readonly int[] _techProfileTechIds;
+    private readonly int[] _techProfilePlaneCodes;
+    private readonly int[] _techProfileIds;
+    private readonly int[] _firstTechProfileByKind;
+    private readonly int[] _lastTechProfileByKind;
+    private readonly int[] _nextTechProfileByKind;
     private readonly PrimitiveIntTable _travelStructurePlaneCodes;
     private readonly PrimitiveScalarTable _travelStructureProfileCosts;
     private int _traitProfileRuleCount;
+    private int _techProfileRuleCount;
 
     public MovementProgramData(
         int profileRuleCapacity = 256,
@@ -36,6 +47,13 @@ internal sealed partial class MovementProgramData : IKernelProgramData
         _firstTraitProfileByKind = new int[kindCapacity + 1];
         _lastTraitProfileByKind = new int[kindCapacity + 1];
         _nextTraitProfileByKind = new int[profileRuleCapacity + 1];
+        _techProfileKindIds = new int[profileRuleCapacity + 1];
+        _techProfileTechIds = new int[profileRuleCapacity + 1];
+        _techProfilePlaneCodes = new int[profileRuleCapacity + 1];
+        _techProfileIds = new int[profileRuleCapacity + 1];
+        _firstTechProfileByKind = new int[kindCapacity + 1];
+        _lastTechProfileByKind = new int[kindCapacity + 1];
+        _nextTechProfileByKind = new int[profileRuleCapacity + 1];
         _travelStructurePlaneCodes = new PrimitiveIntTable(profileRuleCapacity);
         _travelStructureProfileCosts = new PrimitiveScalarTable(profileRuleCapacity);
         RoadBuildPerTravel = roadBuildPerTravel ?? FixedScalar.One;
@@ -94,6 +112,27 @@ internal sealed partial class MovementProgramData : IKernelProgramData
         AppendTraitProfileIndex(kindId, _traitProfileRuleCount);
     }
 
+    public void RegisterTechMovementProfile(
+        int kindId,
+        int techId,
+        int planeCode,
+        int movementProfileId)
+    {
+        ValidateMovementProfileRule(kindId, planeCode, movementProfileId);
+        NumericGuard.ThrowIfNegativeOrZero(techId);
+        if (_techProfileRuleCount + 1 >= _techProfileKindIds.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        _techProfileRuleCount++;
+        _techProfileKindIds[_techProfileRuleCount] = kindId;
+        _techProfileTechIds[_techProfileRuleCount] = techId;
+        _techProfilePlaneCodes[_techProfileRuleCount] = planeCode;
+        _techProfileIds[_techProfileRuleCount] = movementProfileId;
+        AppendTechProfileIndex(kindId, _techProfileRuleCount);
+    }
+
     public void RegisterTravelStructure(
         int travelStructureId,
         int planeCode)
@@ -143,9 +182,14 @@ internal sealed partial class MovementProgramData : IKernelProgramData
         return _travelStructureProfileCosts.GetOrDefault(travelStructureId, movementProfileId);
     }
 
-    public int MovementProfileFor(WorldState world, int entityId, int planeCode)
+    public int MovementProfileFor(
+        WorldState world,
+        KnowledgeProgramRuntime knowledge,
+        int entityId,
+        int planeCode)
     {
         global::System.ArgumentNullException.ThrowIfNull(world);
+        global::System.ArgumentNullException.ThrowIfNull(knowledge);
         ValidatePlaneCode(planeCode);
         var kindId = world.EntityKindId(entityId);
         var profileId = MovementProfileFor(kindId, world.EntitySubtypeId(entityId), planeCode);
@@ -158,6 +202,19 @@ internal sealed partial class MovementProgramData : IKernelProgramData
                 world.HasTrait(entityId, _traitProfileTraitIds[rule]))
             {
                 profileId = _traitProfileIds[rule];
+            }
+        }
+
+        var cultureId = _techProfileRuleCount > 0 ? world.EntityCultureId(entityId) : 0;
+        for (var rule = FirstTechProfileForKind(kindId);
+             rule > 0;
+             rule = _nextTechProfileByKind[rule])
+        {
+            if (_techProfileKindIds[rule] == kindId &&
+                _techProfilePlaneCodes[rule] == planeCode &&
+                knowledge.CultureClaimsTech(cultureId, _techProfileTechIds[rule]))
+            {
+                profileId = _techProfileIds[rule];
             }
         }
 
@@ -199,6 +256,31 @@ internal sealed partial class MovementProgramData : IKernelProgramData
         (uint)kindId < (uint)_firstTraitProfileByKind.Length
             ? _firstTraitProfileByKind[kindId]
             : 0;
+
+    private int FirstTechProfileForKind(int kindId) =>
+        (uint)kindId < (uint)_firstTechProfileByKind.Length
+            ? _firstTechProfileByKind[kindId]
+            : 0;
+
+    private void AppendTechProfileIndex(int kindId, int rule)
+    {
+        if ((uint)kindId >= (uint)_firstTechProfileByKind.Length)
+        {
+            throw new global::System.InvalidOperationException();
+        }
+
+        var previous = _lastTechProfileByKind[kindId];
+        if (previous > 0)
+        {
+            _nextTechProfileByKind[previous] = rule;
+        }
+        else
+        {
+            _firstTechProfileByKind[kindId] = rule;
+        }
+
+        _lastTechProfileByKind[kindId] = rule;
+    }
 
     private void AppendTraitProfileIndex(int kindId, int rule)
     {

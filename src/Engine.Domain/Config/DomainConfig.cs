@@ -330,6 +330,15 @@ public sealed class MovementProfileAssignmentConfig
     public string? SemanticDefault { get; init; }
     public IReadOnlyList<MovementProfileSubtypeRuleConfig> SubtypeRules { get; init; } = [];
     public IReadOnlyList<MovementProfileTraitRuleConfig> TraitRules { get; init; } = [];
+
+    /// <summary>
+    /// Knowledge enablement gates: while the entity's culture claims the
+    /// tech, the kind's effective movement profile switches to the rule's
+    /// profile. Applied after trait rules - an earned capability wins.
+    /// Terrain-class access and new movement modes are both authored as
+    /// profiles behind these rules.
+    /// </summary>
+    public IReadOnlyList<MovementProfileTechRuleConfig> TechRules { get; init; } = [];
 }
 
 public sealed class MovementProfileSubtypeRuleConfig
@@ -342,6 +351,13 @@ public sealed class MovementProfileSubtypeRuleConfig
 public sealed class MovementProfileTraitRuleConfig
 {
     public required string Trait { get; init; }
+    public string? PhysicalProfile { get; init; }
+    public string? SemanticProfile { get; init; }
+}
+
+public sealed class MovementProfileTechRuleConfig
+{
+    public required string Tech { get; init; }
     public string? PhysicalProfile { get; init; }
     public string? SemanticProfile { get; init; }
 }

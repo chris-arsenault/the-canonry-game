@@ -89,6 +89,7 @@ public enum BehaviorProgramPrecondition
     SelfHexFactRange,
     TargetHexFactRange,
     SelfOnTerrainGroup,
+    CultureHoldsTech,
 }
 
 public enum BehaviorProgramExpression

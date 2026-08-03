@@ -181,6 +181,20 @@ public sealed class EndpointCultureIs(TransferEndpoint endpoint, string culture)
 }
 
 /// <summary>
+/// Enablement gate: passes only while the endpoint entity's culture claims
+/// the named technology's knowledge site. Gated behavior is default-absent -
+/// the same shape as artifact grant gambits, keyed on culture claims instead
+/// of entity custody, and revoked when the claim lapses.
+/// </summary>
+public sealed class CultureHoldsTech(string techId, TransferEndpoint endpoint = TransferEndpoint.Self) : IPrecondition
+{
+    public string TechId { get; } = techId;
+    public TransferEndpoint Endpoint { get; } = endpoint;
+
+    public string Describe() => $"{Endpoint}_culture_holds_tech({TechId})";
+}
+
+/// <summary>
 /// Checks whether the entity reached the resolved target through a named relationship.
 /// </summary>
 public sealed class RelatedEntityMatchesTarget(string relationshipKind, bool behaviorRelevant = true) : IPrecondition

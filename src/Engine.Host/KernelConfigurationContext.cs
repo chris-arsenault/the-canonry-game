@@ -170,6 +170,13 @@ internal sealed partial class KernelConfigurationContext
         int movementProfileId) =>
         _kernel.Movement.RegisterTraitMovementProfile(kindId, traitId, planeCode, movementProfileId);
 
+    public void RegisterTechMovementProfile(
+        int kindId,
+        int techId,
+        int planeCode,
+        int movementProfileId) =>
+        _kernel.Movement.RegisterTechMovementProfile(kindId, techId, planeCode, movementProfileId);
+
     public void RegisterTravelStructure(
         int travelStructureId,
         int planeCode) =>
@@ -737,6 +744,9 @@ internal sealed partial class KernelConfigurationContext
 
     public void SetGeneratorTargetChronicleGates(int generatorSlot, FixedScalar heatMin, int legendaryWithinTicks) =>
         _kernel.Generators.SetTargetChronicleGates(generatorSlot, heatMin, legendaryWithinTicks);
+
+    public void SetGeneratorTargetKnowledgeGates(int generatorSlot, int requiredTechId, int subtypeWidenTechId) =>
+        _kernel.Generators.SetTargetKnowledgeGates(generatorSlot, requiredTechId, subtypeWidenTechId);
 
     public int AddWorldBeatAge(int ageId, int trackCode, int priority, int minOpenTicks, int cooldownTicks) =>
         _kernel.WorldBeats.AddAge(ageId, trackCode, priority, minOpenTicks, cooldownTicks);

@@ -25,7 +25,9 @@ public sealed record CompiledGeneratorRule(
     IReadOnlyList<GeneratorProducedEntityRule> ProducedEntities,
     IReadOnlyList<GeneratorRelationshipRule> Relationships,
     IReadOnlyList<GeneratorEffectRule> Effects,
-    int TargetKindIdB = 0);
+    int TargetKindIdB = 0,
+    int TargetRequiredTechId = 0,
+    int TargetSubtypeWidenTechId = 0);
 
 public sealed record GeneratorEffectRule(
     int EffectTypeCode,

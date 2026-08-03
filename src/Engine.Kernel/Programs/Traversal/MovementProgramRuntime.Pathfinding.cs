@@ -24,7 +24,7 @@ internal sealed partial class MovementProgramRuntime
             return false;
         }
 
-        var movementProfileId = Data.MovementProfileFor(world, entityId, planeCode);
+        var movementProfileId = Data.MovementProfileFor(world, simulation.Knowledge, entityId, planeCode);
         return TryPlanHierarchicalNextStep(
             simulation,
             world,

@@ -142,6 +142,15 @@ internal static class KernelDataInstaller
                 profile.MovementProfileId);
         }
 
+        foreach (var profile in data.TechRules)
+        {
+            context.RegisterTechMovementProfile(
+                profile.KindId,
+                profile.TechId,
+                profile.PlaneCode,
+                profile.MovementProfileId);
+        }
+
         foreach (var structure in data.TravelStructures)
         {
             context.RegisterTravelStructure(

@@ -97,6 +97,7 @@ public static partial class IceRemembersDefinition
                 new GameplayModule("map_signals"),
                 new GameplayModule("attribute_effects"),
             ],
+            KnowledgeTechIds = [.. IceRemembersKnowledge.Techs.Select(tech => tech.Id)],
             LowAltitudeVerbs = CreateLowAltitudeVerbs(),
             InitialInfluence = CreateInitialInfluenceRules(),
             // What each artifact subtype becomes when it installs as a

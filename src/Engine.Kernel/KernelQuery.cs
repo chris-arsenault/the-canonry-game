@@ -341,11 +341,25 @@ internal static partial class KernelQuery
             BehaviorPreconditionCodes.EndpointCultureIs => EndpointCulturePasses(world, binding, predicate.A, predicate.B),
             BehaviorPreconditionCodes.EndpointSubtypeIs => EndpointSubtypePasses(world, binding, predicate.A, predicate.B),
             BehaviorPreconditionCodes.SelfCultureMass => SelfCultureMassPasses(world, binding.ActorId, predicate.A, predicate.X, predicate.Y),
+            BehaviorPreconditionCodes.CultureHoldsTech => EndpointCultureHoldsTech(world, binding, predicate.A, predicate.B),
             _ => false,
         };
         return predicate.Code is BehaviorPreconditionCodes.EndpointCultureIs or
             BehaviorPreconditionCodes.EndpointSubtypeIs or
-            BehaviorPreconditionCodes.SelfCultureMass;
+            BehaviorPreconditionCodes.SelfCultureMass or
+            BehaviorPreconditionCodes.CultureHoldsTech;
+    }
+
+    private static bool EndpointCultureHoldsTech(
+        WorldState world,
+        in QueryBinding binding,
+        int endpointCode,
+        int techId)
+    {
+        var entityId = endpointCode == BehaviorEndpointCodes.Target
+            ? binding.TargetId
+            : binding.ActorId;
+        return binding.CultureHoldsTech(world.EntityCultureId(entityId), techId);
     }
 
     private static bool EndpointCulturePasses(

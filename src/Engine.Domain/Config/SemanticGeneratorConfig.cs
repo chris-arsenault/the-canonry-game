@@ -59,6 +59,20 @@ public sealed class SemanticGeneratorTarget
     /// resolved at legendary heat within this many ticks. 0 disables.
     /// </summary>
     public int ChronicleLegendaryWithinTicks { get; init; }
+
+    /// <summary>
+    /// Knowledge enablement gate: targets pass only while their culture
+    /// claims this technology. The generator is default-absent for cultures
+    /// without the claim.
+    /// </summary>
+    public string? RequiredTech { get; init; }
+
+    /// <summary>
+    /// Knowledge enablement gate: while the target's culture claims this
+    /// technology, the Subtypes filter is bypassed - one subkind opens to
+    /// all subkinds of the kind.
+    /// </summary>
+    public string? TechWidensSubtypes { get; init; }
 }
 
 public sealed class SemanticGeneratorRelationshipRequirement

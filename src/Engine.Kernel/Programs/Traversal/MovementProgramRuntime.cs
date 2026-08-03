@@ -99,7 +99,7 @@ internal sealed partial class MovementProgramRuntime :
     public int MovementProfileFor(Simulation simulation, int entityId, int planeCode)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        return Data.MovementProfileFor(simulation.World, entityId, planeCode);
+        return Data.MovementProfileFor(simulation.World, simulation.Knowledge, entityId, planeCode);
     }
 
     public int MovementProfileFor(int kindId, int subtypeId, int planeCode) =>
@@ -116,7 +116,7 @@ internal sealed partial class MovementProgramRuntime :
     public bool CanEnter(Simulation simulation, int planeCode, int entityId, int q, int r, int z)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        var movementProfileId = Data.MovementProfileFor(simulation.World, entityId, planeCode);
+        var movementProfileId = Data.MovementProfileFor(simulation.World, simulation.Knowledge, entityId, planeCode);
         return z == 0
             ? CanEnterProfile(simulation, planeCode, movementProfileId, q, r)
             : CanEnterForgedCell(simulation, planeCode, movementProfileId, q, r, z);
@@ -159,7 +159,7 @@ internal sealed partial class MovementProgramRuntime :
     public FixedScalar TravelCost(Simulation simulation, int planeCode, int entityId, int q, int r, int tick)
     {
         global::System.ArgumentNullException.ThrowIfNull(simulation);
-        var movementProfileId = Data.MovementProfileFor(simulation.World, entityId, planeCode);
+        var movementProfileId = Data.MovementProfileFor(simulation.World, simulation.Knowledge, entityId, planeCode);
         return TravelCostProfile(simulation, planeCode, movementProfileId, q, r, tick);
     }
 
@@ -499,7 +499,7 @@ internal sealed partial class MovementProgramRuntime :
                 DirectedEdgeFactor(
                     simulation,
                     planeCode,
-                    Data.MovementProfileFor(world, entityId, planeCode),
+                    Data.MovementProfileFor(world, simulation.Knowledge, entityId, planeCode),
                     fromQ,
                     fromR,
                     toQ,
@@ -792,7 +792,7 @@ internal sealed partial class MovementProgramRuntime :
             DirectedEdgeFactor(
                 simulation,
                 planeCode,
-                Data.MovementProfileFor(world, entityId, planeCode),
+                Data.MovementProfileFor(world, simulation.Knowledge, entityId, planeCode),
                 CurrentQ(world, entityId, planeCode),
                 CurrentR(world, entityId, planeCode),
                 q,
@@ -827,7 +827,7 @@ internal sealed partial class MovementProgramRuntime :
             DirectedEdgeFactor(
                 simulation,
                 planeCode,
-                Data.MovementProfileFor(simulation.World, entityId, planeCode),
+                Data.MovementProfileFor(simulation.World, simulation.Knowledge, entityId, planeCode),
                 fromQ,
                 fromR,
                 toQ,
@@ -906,7 +906,7 @@ internal sealed partial class MovementProgramRuntime :
         int q,
         int r)
     {
-        var movementProfileId = Data.MovementProfileFor(simulation.World, entityId, planeCode);
+        var movementProfileId = Data.MovementProfileFor(simulation.World, simulation.Knowledge, entityId, planeCode);
         return SurfaceBaseTravelCost(simulation, planeCode, movementProfileId, q, r);
     }
 

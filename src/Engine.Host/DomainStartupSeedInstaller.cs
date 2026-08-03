@@ -51,6 +51,7 @@ internal static class DomainStartupSeedInstaller
         foreach (var site in seed.KnowledgeSites)
         {
             var siteIndex = context.RegisterKnowledgeSite(site.Q, site.R, site.Tier);
+            ValidateKnowledgeSiteOrder(context.DomainIds, site.TechId, siteIndex);
             foreach (var grant in site.Grants)
             {
                 ValidateKnowledgeGrant(grant);
@@ -60,6 +61,27 @@ internal static class DomainStartupSeedInstaller
                     ResolveKnowledgeGrantTarget(context.DomainIds, grant),
                     FixedScalar.FromSingle(grant.Multiplier));
             }
+        }
+    }
+
+    // Content gates resolve tech ids through the compiled catalog, whose order
+    // defines the kernel site index (id - 1). A seed listing sites in a
+    // different order would silently point every gate at the wrong tech.
+    private static void ValidateKnowledgeSiteOrder(
+        DomainIdRegistry ids,
+        string techId,
+        int siteIndex)
+    {
+        if (ids.KnowledgeTechCount == 0)
+        {
+            return;
+        }
+
+        var catalogId = ids.KnowledgeTechIdOf(techId).Value;
+        if (catalogId != siteIndex + 1)
+        {
+            throw new InvalidOperationException(
+                $"Knowledge site '{techId}' installs at site index {siteIndex} but the compiled catalog places it at {catalogId - 1}.");
         }
     }
 

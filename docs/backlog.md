@@ -126,11 +126,14 @@ Carried from the previous backlog; origins as noted there.
   recorded in `docs/design/cultural-expansion-and-knowledge.md`, Grant
   philosophy section — read it first when resuming). Most techs become
   gates (movement through terrain classes, air movement mode, gambit
-  unlocks, generator unlocks, subkind-to-all-subkinds target
-  widening); multipliers survive only at ~2x / ~0.5x scale. Work
-  shape: kernel gate seams (gambit-evaluation unlock check, generator
-  target-gate checks, culture-aware CanEnter, per-culture movement
-  profile override), then recut the 27-tech catalog onto them, then a
+  unlocks, generator unlocks, subkind-to-all-subkinds target widening
+  — examples of the kind, not a list; see the gate design space in the
+  doc); multipliers survive only at ~2x / ~0.5x scale. Kernel
+  primitives landed 2026-08-03: CultureHoldsTech gambit precondition,
+  generator RequiredTech / TechWidensSubtypes target gates, and
+  tech-gated movement profile rules, all resolving the
+  GameplayDefinition.KnowledgeTechIds catalog. Remaining: recut the
+  27-tech catalog onto the gates (after the generator review), then a
   scorecard section joining claims to gated-content usage so effect is
   finally measurable.
 - **Natural wonders (physical parallel to tech sites)** — future

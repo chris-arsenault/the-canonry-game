@@ -121,6 +121,14 @@ internal sealed class KnowledgeProgramRuntime : ISimulationSystem
         (uint)site < (uint)_siteCount &&
         _claimedSites[(cultureId * _siteCapacity) + site] != 0;
 
+    /// <summary>
+    /// Gate check by 1-based tech id (catalog order; 0 means none and never
+    /// passes). Enablement gates consult this: a gated capability exists only
+    /// while the culture's claim holds.
+    /// </summary>
+    internal bool CultureClaimsTech(int cultureId, int techId) =>
+        techId > 0 && CultureClaimsSite(cultureId, techId - 1);
+
     internal FixedScalar Modifier(int cultureId, int domain, int target = 0)
     {
         if (cultureId <= 0 || domain <= 0 || target < 0 || target > TargetMask)

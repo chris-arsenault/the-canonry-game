@@ -55,6 +55,15 @@ public readonly record struct GeneratorRuntimeId(int Value)
     public static GeneratorRuntimeId None => default;
 }
 
+/// <summary>
+/// 1-based knowledge tech id in catalog order; 0 means none. The kernel's
+/// knowledge site index for a tech is its id minus one.
+/// </summary>
+public readonly record struct KnowledgeTechRuntimeId(int Value)
+{
+    public static KnowledgeTechRuntimeId None => default;
+}
+
 public readonly record struct VerbRuntimeId(int Value)
 {
     public static VerbRuntimeId None => default;

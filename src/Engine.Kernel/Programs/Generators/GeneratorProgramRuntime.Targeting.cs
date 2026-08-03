@@ -80,7 +80,15 @@ internal sealed partial class GeneratorProgramRuntime
             return false;
         }
 
-        if (!TargetSubtypePasses(world, generatorSlot, targetId))
+        var requiredTechId = Data.TargetRequiredTechIds[generatorSlot];
+        if (requiredTechId != 0 &&
+            !simulation.Knowledge.CultureClaimsTech(world.EntityCultureId(targetId), requiredTechId))
+        {
+            rejectionReasonCode = GeneratorTargetRejectionReasonCodes.Trigger;
+            return false;
+        }
+
+        if (!TargetSubtypePasses(simulation, generatorSlot, targetId))
         {
             rejectionReasonCode = GeneratorTargetRejectionReasonCodes.Subtype;
             return false;
@@ -121,12 +129,22 @@ internal sealed partial class GeneratorProgramRuntime
                 legendaryWithin);
     }
 
-    private bool TargetSubtypePasses(WorldState world, int generatorSlot, int targetId) =>
-        KernelQuery.SubtypeAllowed(
-            _subtypeIds,
-            _targetSubtypeStarts[generatorSlot],
-            _targetSubtypeCounts[generatorSlot],
-            world.EntitySubtypeId(targetId));
+    private bool TargetSubtypePasses(Simulation simulation, int generatorSlot, int targetId)
+    {
+        var world = simulation.World;
+        if (KernelQuery.SubtypeAllowed(
+                _subtypeIds,
+                _targetSubtypeStarts[generatorSlot],
+                _targetSubtypeCounts[generatorSlot],
+                world.EntitySubtypeId(targetId)))
+        {
+            return true;
+        }
+
+        var widenTechId = Data.TargetSubtypeWidenTechIds[generatorSlot];
+        return widenTechId != 0 &&
+            simulation.Knowledge.CultureClaimsTech(world.EntityCultureId(targetId), widenTechId);
+    }
 
     private bool TargetRelationshipAndMapGatesPass(
         Simulation simulation,

@@ -321,6 +321,7 @@ public static class BehaviorPreconditionCodes
     public const int SelfHexFactRange = 24;
     public const int TargetHexFactRange = 25;
     public const int SelfOnTerrainGroup = 26;
+    public const int CultureHoldsTech = 27;
 }
 
 public static class BehaviorExpressionCodes

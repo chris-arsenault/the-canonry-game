@@ -4,6 +4,15 @@ public sealed class GameplayDefinition
 {
     public IReadOnlyList<GameplayModule> Modules { get; init; } = [];
 
+    /// <summary>
+    /// Ordered stable ids of the domain's authored technologies. The order is
+    /// the kernel knowledge site index order; the startup seed's knowledge
+    /// sites must list the same techs in the same order. Content gates
+    /// (preconditions, generator gates, movement gates) reference techs by
+    /// these ids.
+    /// </summary>
+    public IReadOnlyList<string> KnowledgeTechIds { get; init; } = [];
+
     public IReadOnlyList<LowAltitudeVerbConfig> LowAltitudeVerbs { get; init; } = [];
 
     public LocalityConfig Locality { get; init; } = new();

@@ -259,6 +259,11 @@ public sealed class DefinitionGeneratorTarget
     public IReadOnlySet<string>? WithoutIncomingRelationships { get; init; }
     public float ChronicleHeatMin { get; init; }
     public int ChronicleLegendaryWithinTicks { get; init; }
+    // Knowledge enablement gates. RequiredTech: targets pass only while
+    // their culture claims the tech. TechWidensSubtypes: while the target's
+    // culture claims the tech, the subtype filter is bypassed.
+    public string? RequiredTech { get; init; }
+    public string? TechWidensSubtypes { get; init; }
 }
 
 public sealed class DefinitionTargetRelationshipRequirement

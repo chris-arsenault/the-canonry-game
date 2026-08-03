@@ -270,7 +270,9 @@ public static partial class DomainCompiler
                 CompileGeneratorProducedEntities(generator.Produces, ids, terrainByName, refCodes, graph.WorldCulture),
                 CompileGeneratorRelationships(generator.Relationships, graph, refCodes),
                 CompileGeneratorEffects(generator.Effects, terrainByName, ids, refCodes),
-                generator.Target.SecondKind is null ? 0 : ids.KindIdOf(generator.Target.SecondKind.Value).Value));
+                generator.Target.SecondKind is null ? 0 : ids.KindIdOf(generator.Target.SecondKind.Value).Value,
+                generator.Target.RequiredTech is null ? 0 : ids.KnowledgeTechIdOf(generator.Target.RequiredTech).Value,
+                generator.Target.TechWidensSubtypes is null ? 0 : ids.KnowledgeTechIdOf(generator.Target.TechWidensSubtypes).Value));
         }
 
         return new GeneratorProgram { Generators = generators };

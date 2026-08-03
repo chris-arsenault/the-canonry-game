@@ -4,6 +4,8 @@ internal delegate int QueryEntityWorkTierReader(int entityId);
 
 internal delegate FixedScalar QueryTravelCostReader(int fromEntityId, int toEntityId, int planeCode, int tick);
 
+internal delegate bool QueryKnowledgeClaimReader(int cultureId, int techId);
+
 internal readonly struct QueryBinding
 {
     public QueryBinding(
@@ -16,7 +18,8 @@ internal readonly struct QueryBinding
         int[]? refEntityIds = null,
         int refCount = 0,
         QueryEntityWorkTierReader? entityWorkTierReader = null,
-        QueryTravelCostReader? travelCostReader = null)
+        QueryTravelCostReader? travelCostReader = null,
+        QueryKnowledgeClaimReader? knowledgeClaimReader = null)
     {
         ActorId = actorId;
         TargetId = targetId;
@@ -28,6 +31,7 @@ internal readonly struct QueryBinding
         RefCount = refCount;
         EntityWorkTierReader = entityWorkTierReader;
         TravelCostReader = travelCostReader;
+        KnowledgeClaimReader = knowledgeClaimReader;
     }
 
     public int ActorId { get; }
@@ -49,6 +53,8 @@ internal readonly struct QueryBinding
     public QueryEntityWorkTierReader? EntityWorkTierReader { get; }
 
     public QueryTravelCostReader? TravelCostReader { get; }
+
+    public QueryKnowledgeClaimReader? KnowledgeClaimReader { get; }
 
     public bool ReferenceAlreadyBound(int entityId)
     {
@@ -77,6 +83,11 @@ internal readonly struct QueryBinding
         TravelCostReader is null
             ? FixedScalar.PositiveInfinity
             : TravelCostReader(fromEntityId, toEntityId, planeCode, tick);
+
+    // No reader means claims cannot be evaluated here; an enablement gate
+    // conservatively stays locked rather than opening unverified.
+    public bool CultureHoldsTech(int cultureId, int techId) =>
+        KnowledgeClaimReader is not null && KnowledgeClaimReader(cultureId, techId);
 }
 
 internal readonly struct QueryPredicate

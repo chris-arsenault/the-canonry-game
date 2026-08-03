@@ -93,29 +93,36 @@ The six discipline spokes should map to gate families so a culture's
 expansion direction shapes what kind of civilization it becomes.
 Every authored gate passes the beneficiary check.
 
-Mechanics mapping (owning seams, smallest first). The unlock pattern
-already exists once: grant gambits
-(`IceRemembersGambits.Grants.cs`) are default-absent gambits gated by a
-relationship precondition (holds-artifact / practices-ability at
-minimum strength), revoked when the relationship lapses. Knowledge
-gates generalize that pattern from entity custody to culture claims:
+Kernel primitives (implemented 2026-08-03). The unlock pattern already
+existed once: grant gambits (`IceRemembersGambits.Grants.cs`) are
+default-absent gambits gated by a relationship precondition
+(holds-artifact / practices-ability at minimum strength), revoked when
+the relationship lapses. Knowledge gates generalize that pattern from
+entity custody to culture claims. Techs are referenced by stable id:
+`GameplayDefinition.KnowledgeTechIds` declares the ordered catalog
+(order = kernel site index; the startup seed installer validates its
+site list against it), and the compiler resolves ids through
+`DomainIdRegistry.KnowledgeTechIdOf`.
 
-- **Gambit unlock** — a new precondition kind, culture-holds-tech,
-  evaluated against the knowledge runtime for the actor's culture; same
-  authoring vocabulary as artifact grants, and composable with them
-  (a rite can require both the knowledge and the relic).
-- **Generator unlock / target widening** — the same condition at the
-  generator target gates (`TargetPrimaryGatesPass` already consults
-  knowledge per target for fire weight); fixed-culture generators gate
-  on the fixed culture's claim. Widening relaxes the subtype filter
-  when the relevant culture holds the tech.
-- **Terrain-class movement gate** — movement's `CanEnter` gains a
-  (culture, terrain-class) permission consulting knowledge; today
-  enterability is per-kind movement profile with no culture term.
-- **Air movement mode** — the largest piece: a per-culture movement
-  profile override (tech held switches the entity's effective profile),
-  consistent with roads-as-speed / transports-as-carriers; no per-unit
-  speed creep.
+- **Gambit unlock** — `CultureHoldsTech(techId, endpoint)` precondition
+  (`Preconditions.cs`); evaluated against the knowledge runtime's claim
+  bits for the endpoint entity's culture; composable with artifact
+  grants (a rite can require both the knowledge and the relic).
+- **Generator unlock / target widening** —
+  `SemanticGeneratorTarget.RequiredTech` (targets pass only while their
+  culture claims the tech) and `.TechWidensSubtypes` (claim bypasses
+  the subtype filter: one subkind opens to all).
+- **Movement gates** — one primitive covers both examples:
+  `MovementProfileAssignmentConfig.TechRules` switches a kind's
+  effective movement profile while the entity's culture holds the tech
+  (applied after trait rules — an earned capability wins). Mountain
+  access is an override profile that prices mountains finite; air mode
+  is a profile that prices terrain flat. Consistent with
+  roads-as-speed / transports-as-carriers; no per-unit speed creep.
+
+All gates share `KnowledgeProgramRuntime.CultureClaimsTech` (1-based
+tech id, 0 never passes); claims recompute from the culture field every
+scheduled run, so gate revocation on lost ground comes free.
 
 Tier reach today (kindgen-r20 seed 9100, 30k ticks): Aurora holds 3
 tier-3 sites, Nightshelf 5, Wake-Singers top out at tier 2, tier 4

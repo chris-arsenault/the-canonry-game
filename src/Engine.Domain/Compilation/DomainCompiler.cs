@@ -94,6 +94,7 @@ public static partial class DomainCompiler
         var defaults = new List<CompiledMovementProfileDefault>();
         var subtypeRules = new List<CompiledMovementProfileSubtypeRule>();
         var traitRules = new List<CompiledMovementProfileTraitRule>();
+        var techRules = new List<CompiledMovementProfileTechRule>();
         foreach (var (kind, kindConfig) in config.Kinds)
         {
             var kindId = ids.KindIdOf(kind).Value;
@@ -101,6 +102,7 @@ public static partial class DomainCompiler
             AddMovementProfileDefault(defaults, kindId, PlaneCodes.Semantic, kindConfig.MovementProfiles.SemanticDefault, movementProfileIds);
             AddMovementProfileSubtypeRules(subtypeRules, kindId, kindConfig.MovementProfiles.SubtypeRules, ids, movementProfileIds);
             AddMovementProfileTraitRules(traitRules, kindId, kindConfig.MovementProfiles.TraitRules, ids, movementProfileIds);
+            AddMovementProfileTechRules(techRules, kindId, kindConfig.MovementProfiles.TechRules, ids, movementProfileIds);
         }
 
         return new CompiledMovementData
@@ -108,6 +110,7 @@ public static partial class DomainCompiler
             Defaults = defaults,
             SubtypeRules = subtypeRules,
             TraitRules = traitRules,
+            TechRules = techRules,
             TravelStructures = BuildTravelStructureData(config, ids, movementProfileIds),
             RoughnessCostWeight = FixedScalar.FromSingle(
                 config.MovementRoughnessCostWeight < 0f
@@ -240,6 +243,41 @@ public static partial class DomainCompiler
         rules.Add(new CompiledMovementProfileTraitRule(
             kindId,
             traitId,
+            planeCode,
+            ResolveMovementProfileId(profile, movementProfileIds)));
+    }
+
+    private static void AddMovementProfileTechRules(
+        List<CompiledMovementProfileTechRule> rules,
+        int kindId,
+        IReadOnlyList<MovementProfileTechRuleConfig> source,
+        DomainIdRegistry ids,
+        Dictionary<string, int> movementProfileIds)
+    {
+        foreach (var rule in source)
+        {
+            var techId = ids.KnowledgeTechIdOf(rule.Tech).Value;
+            AddMovementProfileTechRule(rules, kindId, techId, PlaneCodes.Physical, rule.PhysicalProfile, movementProfileIds);
+            AddMovementProfileTechRule(rules, kindId, techId, PlaneCodes.Semantic, rule.SemanticProfile, movementProfileIds);
+        }
+    }
+
+    private static void AddMovementProfileTechRule(
+        List<CompiledMovementProfileTechRule> rules,
+        int kindId,
+        int techId,
+        int planeCode,
+        string? profile,
+        Dictionary<string, int> movementProfileIds)
+    {
+        if (string.IsNullOrWhiteSpace(profile))
+        {
+            return;
+        }
+
+        rules.Add(new CompiledMovementProfileTechRule(
+            kindId,
+            techId,
             planeCode,
             ResolveMovementProfileId(profile, movementProfileIds)));
     }
@@ -545,6 +583,9 @@ public static partial class DomainCompiler
                 return true;
             case EndpointSubtypeIs subtype:
                 ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.EndpointSubtypeIs, (int)EndpointCode(subtype.Endpoint), ids.SubtypeIdOf(subtype.Subtype).Value));
+                return true;
+            case CultureHoldsTech tech:
+                ops.Add(new BehaviorProgramPreconditionOp(BehaviorProgramPrecondition.CultureHoldsTech, (int)EndpointCode(tech.Endpoint), ids.KnowledgeTechIdOf(tech.TechId).Value));
                 return true;
             default:
                 return false;

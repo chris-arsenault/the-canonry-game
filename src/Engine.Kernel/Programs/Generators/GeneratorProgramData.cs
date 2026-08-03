@@ -16,6 +16,11 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] TargetWithoutTagBits = [];
     internal FixedScalar[] TargetChronicleHeatMin = [];
     internal int[] TargetChronicleLegendaryWithinTicks = [];
+    // Knowledge enablement gates, 1-based tech ids (0 = ungated). Required:
+    // the target's culture must claim the tech. Widen: while the target's
+    // culture claims the tech, the subtype filter is bypassed.
+    internal int[] TargetRequiredTechIds = [];
+    internal int[] TargetSubtypeWidenTechIds = [];
     internal int[] BindingRequiredTagBits = [];
     internal int[] BindingWithoutTagBits = [];
     internal int[] BindingCultureIds = [];
@@ -189,6 +194,8 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         TargetWithoutTagBits = new int[generatorCapacity + 1];
         TargetChronicleHeatMin = new FixedScalar[generatorCapacity + 1];
         TargetChronicleLegendaryWithinTicks = new int[generatorCapacity + 1];
+        TargetRequiredTechIds = new int[generatorCapacity + 1];
+        TargetSubtypeWidenTechIds = new int[generatorCapacity + 1];
         TargetSubtypeStarts = new int[generatorCapacity + 1];
         TargetSubtypeCounts = new int[generatorCapacity + 1];
         TargetRequiredOutgoingStarts = new int[generatorCapacity + 1];

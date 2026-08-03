@@ -119,6 +119,8 @@ public static class DefinitionGeneratorBuilder
             WithoutIncomingRelationships = CopyRelationshipSet(config.Target.WithoutIncomingRelationships),
             ChronicleHeatMin = config.Target.ChronicleHeatMin,
             ChronicleLegendaryWithinTicks = config.Target.ChronicleLegendaryWithinTicks,
+            RequiredTech = config.Target.RequiredTech,
+            TechWidensSubtypes = config.Target.TechWidensSubtypes,
         };
     }
 

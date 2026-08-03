@@ -355,6 +355,14 @@ internal static partial class KernelProgramInstaller
                 generator.TargetChronicleLegendaryWithinTicks);
         }
 
+        if (generator.TargetRequiredTechId > 0 || generator.TargetSubtypeWidenTechId > 0)
+        {
+            context.SetGeneratorTargetKnowledgeGates(
+                generatorSlot,
+                generator.TargetRequiredTechId,
+                generator.TargetSubtypeWidenTechId);
+        }
+
         InstallGeneratorTarget(context, generatorSlot, generator);
         InstallGeneratorBindings(context, generatorSlot, generator);
         InstallGeneratorProducedEntities(context, generatorSlot, generator);
@@ -890,6 +898,7 @@ internal static partial class KernelProgramInstaller
             BehaviorProgramPrecondition.SharedInfluence => BehaviorPreconditionCodes.SharedInfluence,
             BehaviorProgramPrecondition.EndpointCultureIs => BehaviorPreconditionCodes.EndpointCultureIs,
             BehaviorProgramPrecondition.EndpointSubtypeIs => BehaviorPreconditionCodes.EndpointSubtypeIs,
+            BehaviorProgramPrecondition.CultureHoldsTech => BehaviorPreconditionCodes.CultureHoldsTech,
             _ => -1,
         };
         return code >= 0;

@@ -21,6 +21,7 @@ public enum DomainIdCategory
     ReasonCode,
     SourceCode,
     Tag,
+    KnowledgeTech,
 }
 
 public readonly record struct DomainIdEntry(
@@ -64,6 +65,8 @@ public sealed class DomainIdRegistry
         new(static value => new SourceCodeId(value), static id => id.Value, "source code");
     private readonly StableNameRegistry<TagRuntimeId> _tags =
         new(static value => new TagRuntimeId(value), static id => id.Value, "tag");
+    private readonly StableNameRegistry<KnowledgeTechRuntimeId> _knowledgeTechs =
+        new(static value => new KnowledgeTechRuntimeId(value), static id => id.Value, "knowledge tech");
 
     public KindRuntimeId RegisterKind(string stableName) => _kinds.Register(stableName);
     public KindRuntimeId RegisterKind(KindId kind) => RegisterKind(kind.Value);
@@ -143,6 +146,11 @@ public sealed class DomainIdRegistry
     public TagRuntimeId TagIdOf(string stableName) => _tags.Resolve(stableName);
     public string TagNameOf(TagRuntimeId id) => _tags.NameOf(id);
 
+    public KnowledgeTechRuntimeId RegisterKnowledgeTech(string stableName) => _knowledgeTechs.Register(stableName);
+    public KnowledgeTechRuntimeId KnowledgeTechIdOf(string stableName) => _knowledgeTechs.Resolve(stableName);
+    public string KnowledgeTechNameOf(KnowledgeTechRuntimeId id) => _knowledgeTechs.NameOf(id);
+    public int KnowledgeTechCount => _knowledgeTechs.Count;
+
     public IEnumerable<DomainIdEntry> Entries()
     {
         foreach (var entry in PrimaryEntries()) yield return entry;
@@ -176,6 +184,7 @@ public sealed class DomainIdRegistry
     private IEnumerable<DomainIdEntry> TertiaryEntries()
     {
         foreach (var entry in _tags.Entries(DomainIdCategory.Tag)) yield return entry;
+        foreach (var entry in _knowledgeTechs.Entries(DomainIdCategory.KnowledgeTech)) yield return entry;
     }
 
     public DomainIdRegistry Clone()
@@ -204,6 +213,12 @@ public sealed class DomainIdRegistry
         if (entry.Category == DomainIdCategory.Tag)
         {
             clone.RegisterTag(entry.StableName);
+            return;
+        }
+
+        if (entry.Category == DomainIdCategory.KnowledgeTech)
+        {
+            clone.RegisterKnowledgeTech(entry.StableName);
             return;
         }
 
@@ -281,6 +296,8 @@ public sealed class DomainIdRegistry
     {
         private readonly Dictionary<string, TId> _idsByName = new(StringComparer.Ordinal);
         private readonly List<string> _namesById = [string.Empty];
+
+        public int Count => _namesById.Count - 1;
 
         public TId Register(string stableName)
         {
