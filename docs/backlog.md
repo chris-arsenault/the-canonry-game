@@ -30,12 +30,15 @@ and closed the balance goal. Remaining:
   measurement (2026-08-03) showed birth location is nearly irrelevant —
   actors travel ~500 hexes over a life and survival tracks the
   culture's territorial coverage, not placement.
-- **Grant-gambit parity** — 9 of 13 grant gambits are penguin-only
-  (UnmakesTheBinding, CallsTheDeepCurrent, TurnsTheBattle,
-  BindsWhatWasLoosed, KeepsWintersPatience, MendsAnother,
-  PassesTheTeaching, ReadsTheIce, StillsTheWaters). The shared-builder
-  pattern exists in the same file (DrawOnTheVessel, MakesOffering).
-  GambitId enum ids append at the end (positional name mapping).
+- **Grant-gambit parity** — DONE 2026-08-03: the nine penguin-only
+  rites are shared builders emitted per kind, plus the upstream
+  acquisition links (Wield/Wrest artifact, AbilitySharesPractice with
+  orca practitioners). Verification world (seed 9200, 10k): orca
+  wrests 201, wields 18; artifact-gated orca rites fire (vessel 2,
+  tome-binding 19, deep current 2); ability-gated orca rites now have
+  a practice path to open them. unmakes_the_binding and
+  turns_the_battle fired for neither kind at 10k (seal/weapon custody
+  plus war context is rare that early) - recheck at 20k.
 - **Endings and rites by kind** — orcas have authored passage content
   (elders_descend_to_the_god, kills_sung_to_the_deep,
   vigils_at_the_current); penguins die more often and have none. Audit
