@@ -8,14 +8,19 @@ and the previous version of this file. Point-in-time findings stay in
 excluded by charter; completed verification history lives in the
 analysis records.
 
-## Actor authorship parity (continuation)
+**Culture balance status (owner call, 2026-08-03): mostly solved.**
+The kind-general build holds the census inside the 60/20/20 envelope
+with rotating leaders across worlds and genuine within-world contests
+(9x30k evidence: `docs/analysis/kindgen-30k-overtime-20260803.md`).
+Remaining balance-adjacent items below are polish, defects, and
+long-horizon observations - not an open balance problem.
 
-Origin: `docs/analysis/actor-parity-audit-20260801.md`. The first
-parity slice landed 2026-08-01 (shared band/locality/traits, shared
-succession, nine paired generators) and brought the census inside the
-60/20/20 envelope. Remaining, in leverage order against the open
-register problems (Nightshelf death rate ~1.7x Wake-Singers; Nightshelf
-births 58-84% on unheld cells):
+## Actor authorship parity (continuation - polish, not balance-critical)
+
+Origin: `docs/analysis/actor-parity-audit-20260801.md`. The parity
+slices landed 2026-08-01/03 (shared band/locality/traits, kind-general
+generators with target-kind production, joint-pool casualty bindings)
+and closed the balance goal. Remaining:
 
 - **Occupation produce sites: kind-general conversion** — the ~40
   event-placed penguin produce sites (witness/broker/warden at war
@@ -60,6 +65,22 @@ Origin: problem register, round-16 arc.
   `penguin_shelters_at_the_vent`: zero attempts across all seeds at the
   full horizon (rounds 4-9 sign-off). Fix or retire the authored
   content.
+
+## Long-horizon lifecycle (new from the 9x30k net, 2026-08-03)
+
+Origin: `docs/analysis/kindgen-30k-overtime-20260803.md`.
+
+- **Succession-anchor accretion** — every the_line_continues launch
+  founds a Monumental-band (20k-tick) point of interest; anchors
+  outlive their founders and accumulate (204 POIs on the crashed world,
+  ~2.7x the 20k norm), driving population re-growth in the final third
+  on 6 of 9 worlds and densities above the 0.3-0.5 band on heavy
+  worlds. Candidate shapes: shorter anchor band, anchor reuse before
+  founding, or founding gated on local anchor count.
+- **World-culture accumulation** — world-culture populations grow
+  monotonically on every world (e.g. 11 -> 93 over a run): accords and
+  monuments have no retirement pressure. Decide whether the world's
+  own should also pass into history.
 
 ## Track economies
 
@@ -128,3 +149,12 @@ implied.
   remembers what happened, not only who stands there). Would also give
   world culture a footprint. Candidate only; the authorship-parity
   direction was chosen first.
+- **Are 60%+ excursions acceptable?** (9x30k) — census balance is
+  durable but not bounded: one world ran Nightshelf to 77% for four
+  windows before receding to 62%. Dramatic temporary hegemony may be
+  desirable fiction; decide before any bounding mechanism is
+  considered.
+- **Wake-Singer long-horizon fade** — smallest culture at the 30k
+  horizon on 3 of 9 worlds plus a tie, leading only one; horizon means
+  ~31/35/24 (A/N/W). Watch whether rotation stays healthy or becomes a
+  slow slide against the orca culture.
