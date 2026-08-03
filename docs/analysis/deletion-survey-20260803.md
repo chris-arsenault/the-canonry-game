@@ -111,28 +111,51 @@ and penguin_shelters_at_the_vent is a live gambit (549 successes).
   claim/settle pair is superseded by kind-general succession and the
   settle question was answered differently.
 
-## D. Kernel-side vestiges and measure-first flags
+## D. Kernel programs and features: the investigated verdicts
 
-- **Dead telemetry lanes**: cell_influence_events and
-  culture_influence_action_field_events record 0 rows on every world —
-  replaced by field snapshots in the perf rework; the recording
-  plumbing is pure vestige.
-- **generator_state_snapshots**: 510k rows/world = every generator's
-  cooldown state every 5 ticks; the data is nearly static. Cheap to
-  thin or drop.
-- **generator_target_evaluations**: 9M rows/world and doubled by the
-  kind-general dual-pool iteration; it exists for diagnosis (it found
-  the surge placement defect) but is the single largest event lane and
-  contributed to the 9100 publisher crash. Sampling candidate (already
-  in the kernel-lane backlog).
-- **Minor-actor encounters**: minor actors themselves are load-bearing
-  (fronts, road crews, campaign columns), but the encounter subsystem
-  emits ~0.9M events/world; measure what encounters change before
-  keeping them at that volume.
-- **Knowledge runtime grants**: claims are being made (136k claim
-  snapshot rows/world) and modifiers feed fire weights and persistence,
-  but whether any modifier deviates enough from 1.0 to matter has never
-  been measured. Measure before the parked tech design builds on it.
+Dead kernel surface (never used by any authored content; full plumbing
+exists end to end):
+
+- **Programs/Degeneracy/** — an empty directory; the program it held
+  was deleted and the husk remains.
+- **Generator MaxRuns** (MaxRunsPerSim) — arrays, validation, a status
+  code, and a per-evaluation check in the kernel; zero content uses.
+- **Coverage terrain transform** (coverageTransformTerrainId) — plumbed
+  through config, compiler, installer, and kernel; zero content uses.
+- **SetTerrainPatchEffect** — a complete generator effect type; zero
+  content uses.
+- **Dead telemetry recorders**: cell_influence_events and
+  culture_influence_action_field_events write 0 rows on every world
+  (replaced by field snapshots in the perf rework).
+- **generator_state_snapshots** — 510k near-static rows/world (every
+  generator's cooldown every 5 ticks). Thin or drop.
+- **generator_target_evaluations** — 9M rows/world, doubled by the
+  kind-general dual-pool iteration; kept for diagnosis but the largest
+  event lane and a contributor to the 9100 publisher crash. Sampling
+  candidate (kernel-lane backlog).
+
+Investigated and cleared (live, load-bearing):
+
+- **Knowledge** — not a stub: cultures independently claim 3-11 techs
+  at tiers 1-3 per world, and grants carry real magnitudes (0.92-1.25x
+  on culture persistence, minor-actor work, carrying capacity, verb
+  weights). A quiet live system the parked tech design can build on.
+- **Minor-actor encounters** — friendly encounters transfer work
+  charge between same-culture actors, feeding front/road/campaign
+  work; the mechanic is real, only its telemetry volume (~0.9M
+  rows/world) is heavy.
+- **Chronicles** — thin volume, but beat charges modify gambit success
+  during story arcs and two generators gate on heat; kept per the
+  named-entity-heroics fiction (see section B for the surface-to-yield
+  question).
+- CultureSlots, WorldBeats (age fire-weight multipliers), MapFrontier
+  (thaw, sea ice, semantic growth), Traversal with road marks,
+  relationship maintenance, LowAltitudeVerbs, and the attribute
+  effects engine: all consumed and active.
+- **Tags**: all six actor tags have both a setter and a consumer —
+  note fervent and profaner become orphaned rules if their sole
+  consumers (glory_to_the_dead_god, the_silence_answers) are deleted;
+  cut them together.
 
 ## E. Explicitly not candidates (checked and earning their keep)
 
