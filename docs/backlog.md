@@ -118,6 +118,26 @@ Carried from the previous backlog; origins as noted there.
   (`docs/design/cultural-expansion-and-knowledge.md`; Civ model,
   current state, and open questions recorded there). Read that doc
   first when resuming.
+- **Vertical axis overhaul: make subsurface culture real** (2026-08-03).
+  The lore intent is Nightshelf pockets of concentrated culture beneath
+  Aurora surface territory. Measured (seed 9100, tick 30k) that never
+  materialized: Nightshelf held 19 mass in 2 tunnel cells vs 27k on the
+  surface, while Aurora's spires held 1.1k — forging deposits one fixed
+  dose, per-layer decay eats it, and no reinforcement, placement, or
+  emission loop feeds z != 0. Since the culture power ledgers were
+  deleted, z-layer culture mass has zero consumers; it leaks into the
+  sim only through two missing z-filters (frontier placement seeding,
+  world-beat mass total), which are defects under any design. Overhaul
+  shape discussed: own-culture support and shelter at a column read
+  surface plus own subsurface mass (tunnels shelter Nightshelf without
+  contesting Aurora's surface ownership), plus a feed loop — tunnel
+  dwellers' local emission becoming visible, or the shadow economy
+  depositing into galleries. Beneficiary: Nightshelf, currently
+  mid-pack. Alternative if the identity is judged already carried by
+  the semantic plane (215k semantic vs 27k physical, 8:1): collapse
+  culture storage to z = 0, which also removes both leaks. Spires,
+  tunnels, and vertical movement are a separate live feature either
+  way.
 
 ## Kernel (owner lane)
 
