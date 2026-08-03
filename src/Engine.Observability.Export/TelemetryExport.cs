@@ -153,12 +153,10 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("generator_events");
         ExportTable("generator_target_evaluations");
         ExportTable("generator_outputs");
-        ExportTable("generator_state_snapshots");
         ExportTable("lifecycle_events");
         ExportTable("lifecycle_reason_events");
         ExportTable("map_generation_events");
         ExportTable("map_cell_events");
-        ExportTable("cell_influence_events");
         ExportTable("culture_field_cell_snapshots");
         ExportTable("culture_slot_occupancy_events");
         ExportTable("minor_actor_lifecycle_events");
@@ -172,7 +170,6 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         ExportTable("world_beat_events");
         ExportTable("culture_entity_field_snapshots");
         ExportTable("culture_entity_birth_field_events");
-        ExportTable("culture_influence_action_field_events");
         ExportTable("cell_road_events");
         ExportTable("map_snapshots");
         ExportTable("coverage_snapshots");
@@ -224,13 +221,11 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("generator_events", typeof(GeneratorEventRow));
         EnsureTable("generator_target_evaluations", typeof(GeneratorTargetEvaluationRow));
         EnsureTable("generator_outputs", typeof(GeneratorOutputRow));
-        EnsureTable("generator_state_snapshots", typeof(GeneratorStateSnapshotRow));
         EnsureTable("generated_entities", typeof(GeneratedEntityRow));
         EnsureTable("lifecycle_events", typeof(LifecycleEventRow));
         EnsureTable("lifecycle_reason_events", typeof(LifecycleReasonEventRow));
         EnsureTable("map_generation_events", typeof(MapGenerationEventRow));
         EnsureTable("map_cell_events", typeof(MapCellEventRow));
-        EnsureTable("cell_influence_events", typeof(CellInfluenceEventRow));
         EnsureTable("culture_field_cell_snapshots", typeof(CultureFieldCellSnapshotRow));
         EnsureTable("culture_slot_occupancy_events", typeof(CultureSlotOccupancyEventRow));
         EnsureTable("minor_actor_lifecycle_events", typeof(MinorActorLifecycleEventRow));
@@ -244,7 +239,6 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         EnsureTable("world_beat_events", typeof(WorldBeatEventRow));
         EnsureTable("culture_entity_field_snapshots", typeof(CultureEntityFieldSnapshotRow));
         EnsureTable("culture_entity_birth_field_events", typeof(CultureEntityBirthFieldEventRow));
-        EnsureTable("culture_influence_action_field_events", typeof(CultureInfluenceActionFieldEventRow));
         EnsureTable("cell_road_events", typeof(CellRoadEventRow));
         EnsureTable("map_snapshots", typeof(MapSnapshotRow));
         EnsureTable("coverage_snapshots", typeof(CoverageSnapshotRow));
@@ -299,13 +293,11 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("generator_events", batch.GeneratorEvents);
         AppendTable("generator_target_evaluations", batch.GeneratorTargetEvaluations);
         AppendTable("generator_outputs", batch.GeneratorOutputs);
-        AppendTable("generator_state_snapshots", batch.GeneratorStateSnapshots);
         AppendTable("generated_entities", batch.GeneratedEntities);
         AppendTable("lifecycle_events", batch.LifecycleEvents);
         AppendTable("lifecycle_reason_events", batch.LifecycleReasonEvents);
         AppendTable("map_generation_events", batch.MapGenerationEvents);
         AppendTable("map_cell_events", batch.MapCellEvents);
-        AppendTable("cell_influence_events", batch.CellInfluenceEvents);
         AppendTable("culture_field_cell_snapshots", batch.CultureFieldCellSnapshots);
         AppendTable("culture_slot_occupancy_events", batch.CultureSlotOccupancyEvents);
         AppendTable("minor_actor_lifecycle_events", batch.MinorActorLifecycleEvents);
@@ -319,7 +311,6 @@ internal sealed class DuckDbTelemetryStore : IDisposable
         AppendTable("world_beat_events", batch.WorldBeatEvents);
         AppendTable("culture_entity_field_snapshots", batch.CultureEntityFieldSnapshots);
         AppendTable("culture_entity_birth_field_events", batch.CultureEntityBirthFieldEvents);
-        AppendTable("culture_influence_action_field_events", batch.CultureInfluenceActionFieldEvents);
         AppendTable("cell_road_events", batch.CellRoadEvents);
         AppendTable("map_snapshots", batch.MapSnapshots);
         AppendTable("coverage_snapshots", batch.CoverageSnapshots);
@@ -577,13 +568,11 @@ internal static class TelemetryBatchExtensions
         batch.GeneratorEvents.Count +
         batch.GeneratorTargetEvaluations.Count +
         batch.GeneratorOutputs.Count +
-        batch.GeneratorStateSnapshots.Count +
         batch.GeneratedEntities.Count +
         batch.LifecycleEvents.Count +
         batch.LifecycleReasonEvents.Count +
         batch.MapGenerationEvents.Count +
         batch.MapCellEvents.Count +
-        batch.CellInfluenceEvents.Count +
         batch.CultureFieldCellSnapshots.Count +
         batch.CultureSlotOccupancyEvents.Count +
         batch.MinorActorLifecycleEvents.Count +
@@ -595,7 +584,6 @@ internal static class TelemetryBatchExtensions
         batch.EntityTagEvents.Count +
         batch.CultureEntityFieldSnapshots.Count +
         batch.CultureEntityBirthFieldEvents.Count +
-        batch.CultureInfluenceActionFieldEvents.Count +
         batch.CellRoadEvents.Count +
         batch.MapSnapshots.Count +
         batch.CoverageSnapshots.Count +
@@ -640,13 +628,11 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.GeneratorEvents, source.GeneratorEvents);
         AppendRows(destination.GeneratorTargetEvaluations, source.GeneratorTargetEvaluations);
         AppendRows(destination.GeneratorOutputs, source.GeneratorOutputs);
-        AppendRows(destination.GeneratorStateSnapshots, source.GeneratorStateSnapshots);
         AppendRows(destination.GeneratedEntities, source.GeneratedEntities);
         AppendRows(destination.LifecycleEvents, source.LifecycleEvents);
         AppendRows(destination.LifecycleReasonEvents, source.LifecycleReasonEvents);
         AppendRows(destination.MapGenerationEvents, source.MapGenerationEvents);
         AppendRows(destination.MapCellEvents, source.MapCellEvents);
-        AppendRows(destination.CellInfluenceEvents, source.CellInfluenceEvents);
         AppendRows(destination.CultureFieldCellSnapshots, source.CultureFieldCellSnapshots);
         AppendRows(destination.CultureSlotOccupancyEvents, source.CultureSlotOccupancyEvents);
         AppendRows(destination.MinorActorLifecycleEvents, source.MinorActorLifecycleEvents);
@@ -658,7 +644,6 @@ internal static class TelemetryBatchExtensions
         AppendRows(destination.EntityTagEvents, source.EntityTagEvents);
         AppendRows(destination.CultureEntityFieldSnapshots, source.CultureEntityFieldSnapshots);
         AppendRows(destination.CultureEntityBirthFieldEvents, source.CultureEntityBirthFieldEvents);
-        AppendRows(destination.CultureInfluenceActionFieldEvents, source.CultureInfluenceActionFieldEvents);
         AppendRows(destination.CellRoadEvents, source.CellRoadEvents);
         AppendRows(destination.MapSnapshots, source.MapSnapshots);
         AppendRows(destination.CoverageSnapshots, source.CoverageSnapshots);

@@ -97,8 +97,7 @@ public sealed class KernelCommandTests
         _ = simulation.Generators.RegisterGenerator(
             generatorId: 91,
             targetKindId: 1,
-            fireWeight: 1,
-            maxRuns: 0);
+            fireWeight: 1);
         var command = KernelCommand.From(new SetGeneratorEnabledKernelCommand(
             IssueVersion: 999,
             GeneratorId: 91,

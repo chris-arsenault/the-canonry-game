@@ -112,7 +112,6 @@ internal static class TelemetrySymbolIds
         symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.Blocked, "blocked", "Blocked"));
         symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.FireFailed, "fire_failed", "Fire Failed"));
         symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.MissingDefinition, "missing_definition", "Missing Definition"));
-        symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.MaxRuns, "max_runs", "Max Runs"));
         symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.ZeroWeight, "zero_weight", "Zero Weight"));
         symbols.Add(CreateWithId(TelemetrySymbolKinds.GeneratorStatus, GeneratorStatusCodes.NotEvaluated, "not_evaluated", "Not Evaluated"));
 

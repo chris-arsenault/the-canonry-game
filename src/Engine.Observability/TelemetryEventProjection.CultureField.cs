@@ -106,24 +106,4 @@ internal sealed partial class TelemetryEventProjection
         _activeEntitiesByCell[key] = count + 1;
     }
 
-    public void RecordGeneratorStateSnapshots(int tick)
-    {
-        if (!_recordedGeneratorSnapshotTicks.Add(tick))
-        {
-            return;
-        }
-
-        foreach (var state in _generatorStates.Values)
-        {
-            _batch.GeneratorStateSnapshots.Add(new GeneratorStateSnapshotRow(
-                _runId,
-                tick,
-                state.GeneratorId,
-                state.Enabled,
-                Cadence: 0,
-                CooldownRemaining: 0,
-                state.RunCount,
-                state.LastRunTick));
-        }
-    }
 }

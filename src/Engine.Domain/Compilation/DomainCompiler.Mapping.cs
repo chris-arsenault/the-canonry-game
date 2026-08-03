@@ -257,7 +257,6 @@ public static partial class DomainCompiler
                 CompileGeneratorSubtypeIds(generator.Target.Subtypes, ids),
                 CompileGeneratorTargetRelationshipRequirements(generator.Target, terrainByName, ids),
                 Math.Max(generator.FireWeight, 0),
-                generator.MaxRunsPerSim ?? 0,
                 FixedScalar.FromSingle(generator.DesperationRatio),
                 generator.DesperationRatio > 0
                     ? ids.CultureIdOf(generator.Produces[0].Culture!).Value
@@ -636,9 +635,6 @@ public static partial class DomainCompiler
                         ids.TagIdOf(setTag.Tag).Value,
                         setTag.Assigned ? 1 : 0));
                     break;
-                case DefinitionSetTerrainPatchEffect setTerrainPatch:
-                    compiled.Add(CompileTerrainPatchEffect(setTerrainPatch, terrainByName, ids, refCodes));
-                    break;
                 default:
                     throw new InvalidOperationException($"Unsupported generator effect type '{effect.GetType().Name}'.");
             }
@@ -656,26 +652,6 @@ public static partial class DomainCompiler
         }
 
         return bits;
-    }
-
-    private static GeneratorEffectRule CompileTerrainPatchEffect(
-        DefinitionSetTerrainPatchEffect setTerrainPatch,
-        Dictionary<string, TerrainConfig> terrainByName,
-        DomainIdRegistry ids,
-        Dictionary<string, int> refCodes)
-    {
-        var terrain = ResolveTerrain(terrainByName, setTerrainPatch.Terrain);
-        return new GeneratorEffectRule(
-            GeneratorEffectTypeCodes.SetTerrainPatch,
-            refCodes[setTerrainPatch.CenterRef],
-            setTerrainPatch.RespectTerrainBoundaries ? 1 : 0,
-            ids.TerrainIdOf(terrain.Name).Value,
-            FixedScalar.FromSingle(setTerrainPatch.Chance),
-            setTerrainPatch.Radius,
-            setTerrainPatch.MaxCellCount,
-            CompileTerrainIds(setTerrainPatch.PreferredTerrains, terrainByName, ids),
-            CompileTerrainIds(setTerrainPatch.AllowedTerrains, terrainByName, ids),
-            setTerrainPatch.PlaneCode);
     }
 
     private static List<int> CompileGeneratorSubtypeIds(

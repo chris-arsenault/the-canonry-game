@@ -49,7 +49,6 @@ public sealed class EntityTagTests
             100,
             SettlementKindId,
             fireWeight: 1,
-            maxRuns: 0,
             targetRequiredTagBits: 1 << TerrifiedTagId);
         simulation.Generators.AddTrigger(slot, SettlementKindId);
         AddProducedEntity(simulation, slot);

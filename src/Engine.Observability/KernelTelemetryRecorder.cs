@@ -8,7 +8,6 @@ internal sealed class KernelTelemetryRecorder : IDisposable
 {
     private readonly KernelEventProjectionPump _pump;
     private readonly int _mapSnapshotCadence;
-    private readonly int _generatorSnapshotCadence;
     private bool _disposed;
 
     public KernelTelemetryRecorder(
@@ -20,7 +19,6 @@ internal sealed class KernelTelemetryRecorder : IDisposable
         bool traceEnabled = false,
         int entitySnapshotCadence = 0,
         int mapSnapshotCadence = 0,
-        int generatorSnapshotCadence = 0,
         KernelEventCursorStart cursorStart = KernelEventCursorStart.EarliestAvailable,
         int batchSize = 512)
     {
@@ -47,11 +45,9 @@ internal sealed class KernelTelemetryRecorder : IDisposable
             GitShaId: 0,
             traceEnabled,
             entitySnapshotCadence,
-            mapSnapshotCadence,
-            generatorSnapshotCadence));
+            mapSnapshotCadence));
 
         _mapSnapshotCadence = mapSnapshotCadence;
-        _generatorSnapshotCadence = generatorSnapshotCadence;
         EventProjection = new TelemetryEventProjection(RunId, Batch, symbols);
         _pump = new KernelEventProjectionPump(
             eventLog,
@@ -94,14 +90,9 @@ internal sealed class KernelTelemetryRecorder : IDisposable
         EventProjection.RecordTickSnapshot(tick);
         EventProjection.RecordKindSnapshots(tick);
         EventProjection.RecordRelationshipSnapshots(tick);
-        var includeGeneratorSnapshot = ShouldRecordSnapshot(tick, _generatorSnapshotCadence);
         if (ShouldRecordSnapshot(tick, _mapSnapshotCadence))
         {
-            EventProjection.RecordMapSnapshots(tick, includeGeneratorSnapshot);
-        }
-        else if (includeGeneratorSnapshot)
-        {
-            EventProjection.RecordGeneratorStateSnapshots(tick);
+            EventProjection.RecordMapSnapshots(tick);
         }
 
         if (includeEntities)

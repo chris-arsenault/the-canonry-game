@@ -59,8 +59,7 @@ public sealed class KernelSnapshotTests
         simulation.Generators.RegisterGenerator(
             generatorId: 50,
             targetKindId: 1,
-            fireWeight: 1,
-            maxRuns: 3);
+            fireWeight: 1);
         Assert.True(simulation.Generators.TrySetGeneratorEnabledById(50, enabled: false));
         simulation.SetProgramEnabled(KernelProgramCodes.Generators, enabled: false);
 
@@ -156,7 +155,7 @@ public sealed class KernelSnapshotTests
 
     private static void RegisterProvenanceSnapshotGenerator(Simulation simulation)
     {
-        var generator = simulation.Generators.RegisterGenerator(50, 1, 1, 1);
+        var generator = simulation.Generators.RegisterGenerator(50, 1, 1);
         simulation.Generators.AddTrigger(generator, 1);
         simulation.Generators.AddProduced(
             generator,

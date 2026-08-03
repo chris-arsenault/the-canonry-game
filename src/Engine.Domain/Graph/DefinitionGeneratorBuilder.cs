@@ -63,7 +63,6 @@ public static class DefinitionGeneratorBuilder
             Effects = effects,
             Triggers = triggers,
             FireWeight = config.FireWeight,
-            MaxRunsPerSim = config.MaxRunsPerSim,
             DesperationRatio = ValidatedDesperationRatio(config),
             SourceConfig = config,
         };
@@ -403,7 +402,6 @@ public static class DefinitionGeneratorBuilder
             SetBindingTagEffect setTag => BuildBindingTagEffect(generatorId, setTag.BindingRef, setTag.Tag, assigned: true, graph, declaredRefs),
             ClearBindingTagEffect clearTag => BuildBindingTagEffect(generatorId, clearTag.BindingRef, clearTag.Tag, assigned: false, graph, declaredRefs),
             ClaimSemanticJurisdictionEffect claim => BuildClaimJurisdictionEffect(generatorId, claim, declaredRefs),
-            SetTerrainPatchEffect setTerrainPatch => BuildSetTerrainPatchEffect(generatorId, setTerrainPatch, declaredRefs),
             _ => null,
         };
 
@@ -547,31 +545,6 @@ public static class DefinitionGeneratorBuilder
             adjustRelationship.IncludeReciprocal);
     }
 
-    private static DefinitionSetTerrainPatchEffect BuildSetTerrainPatchEffect(
-        string generatorId,
-        SetTerrainPatchEffect setTerrainPatch,
-        HashSet<string> declaredRefs)
-    {
-        EnsureDeclaredRef(generatorId, setTerrainPatch.CenterRef, declaredRefs, "CenterRef");
-        ValidateSetTerrainPatchEffect(generatorId, setTerrainPatch);
-
-        return new DefinitionSetTerrainPatchEffect(
-            setTerrainPatch.CenterRef,
-            setTerrainPatch.Terrain,
-            setTerrainPatch.Radius,
-            setTerrainPatch.MaxCellCount,
-            setTerrainPatch.RespectTerrainBoundaries,
-            setTerrainPatch.Chance,
-            setTerrainPatch.PlaneCode)
-        {
-            PreferredTerrains = setTerrainPatch.PreferredTerrains is null
-                ? null
-                : new HashSet<string>(setTerrainPatch.PreferredTerrains, StringComparer.Ordinal),
-            AllowedTerrains = setTerrainPatch.AllowedTerrains is null
-                ? null
-                : new HashSet<string>(setTerrainPatch.AllowedTerrains, StringComparer.Ordinal),
-        };
-    }
 
     private static void EnsureTriggerInstanceMatchesSoleGate(
         string generatorId,
@@ -588,38 +561,6 @@ public static class DefinitionGeneratorBuilder
         }
     }
 
-    private static void ValidateSetTerrainPatchEffect(string generatorId, SetTerrainPatchEffect setTerrainPatch)
-    {
-        if (string.IsNullOrWhiteSpace(setTerrainPatch.Terrain))
-        {
-            throw new DefinitionGraphException(
-                $"Generator '{generatorId}' SetTerrainPatch effect must name a terrain.");
-        }
-
-        if (setTerrainPatch.Radius < 0)
-        {
-            throw new DefinitionGraphException(
-                $"Generator '{generatorId}' SetTerrainPatch effect radius must be non-negative.");
-        }
-
-        if (setTerrainPatch.MaxCellCount < 0)
-        {
-            throw new DefinitionGraphException(
-                $"Generator '{generatorId}' SetTerrainPatch effect max cell count must be non-negative.");
-        }
-
-        if (setTerrainPatch.Chance is < 0f or > 1f)
-        {
-            throw new DefinitionGraphException(
-                $"Generator '{generatorId}' SetTerrainPatch effect chance must be between 0 and 1.");
-        }
-
-        if (setTerrainPatch.PlaneCode is not PlaneCodes.Physical and not PlaneCodes.Semantic)
-        {
-            throw new DefinitionGraphException(
-                $"Generator '{generatorId}' SetTerrainPatch effect plane code must be physical or semantic.");
-        }
-    }
 
     private static bool TargetHasOnlyRelationshipGate(SemanticGeneratorTarget target, string relationshipKind)
     {

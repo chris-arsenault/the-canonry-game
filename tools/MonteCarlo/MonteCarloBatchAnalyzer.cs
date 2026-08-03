@@ -578,14 +578,12 @@ internal sealed partial class MonteCarloBatchAnalyzer(DomainConfig domainConfig)
         var sql = $"""
             SELECT
                 (SELECT COUNT(*) FROM raw_map_snapshots) AS map_snapshot_rows,
-                (SELECT COUNT(*) FROM raw_trace_events WHERE action_family_code = {ActionFamilyCodes.LowAltitudeVerb}) AS low_altitude_trace_rows,
-                (SELECT COUNT(*) FROM raw_cell_influence_events) AS cell_influence_rows;
+                (SELECT COUNT(*) FROM raw_trace_events WHERE action_family_code = {ActionFamilyCodes.LowAltitudeVerb}) AS low_altitude_trace_rows;
             """;
 
         return QuerySingle(connection, sql, reader => new TelemetryCoverage(
             MapSnapshotRows: ReadInt(reader, "map_snapshot_rows"),
-            LowAltitudeTraceRows: ReadInt(reader, "low_altitude_trace_rows"),
-            CellInfluenceRows: ReadInt(reader, "cell_influence_rows")));
+            LowAltitudeTraceRows: ReadInt(reader, "low_altitude_trace_rows")));
     }
 
     private List<ActionUtilizationRow> LoadActionUtilizationRows(DuckDBConnection connection)

@@ -624,89 +624,6 @@ public sealed class TerrainAwareMapTests
         Assert.Equal(0, loaded.World.CoverageOwnerAt(PlaneCodes.Physical, 0, 0));
     }
 
-    [Fact]
-    public void GeneratorSetTerrainPatchEffectTransformsBoundedLocalPatch()
-    {
-        var simulation = KernelTestSimulation.Create();
-        const int originalTerrainId = 1;
-        const int transformedTerrainId = 2;
-        const int targetKindId = 1;
-        const int generatorId = 100;
-        simulation.RegisterTerrain(originalTerrainId, boundaryGroupId: 1);
-        simulation.RegisterTerrain(transformedTerrainId, boundaryGroupId: 1);
-        simulation.World.SetMapRadius(1);
-        SeedRadiusOne(simulation, originalTerrainId);
-        simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 0, 0, 0, tick: 0);
-        var slot = simulation.Generators.RegisterGenerator(
-            generatorId,
-            targetKindId,
-            fireWeight: 1,
-            maxRuns: 1);
-        simulation.Generators.AddTrigger(slot, targetKindId);
-        simulation.Generators.AddEffect(
-            slot,
-            GeneratorEffectTypeCodes.SetTerrainPatch,
-            GeneratorProgramConstants.TargetReferenceCode,
-            instanceSelectionCode: 1,
-            optionCode: transformedTerrainId,
-            value: FixedScalar.FromSingle(1f),
-            radius: 1,
-            maxCellCount: 2);
-
-        simulation.AdvanceTicks(1);
-
-        var transformedCount = CountTerrain(simulation, transformedTerrainId);
-        Assert.Equal(2, transformedCount);
-        Assert.Equal(transformedTerrainId, simulation.World.CellTerrainId(0, 0));
-    }
-
-    [Fact]
-    public void GeneratorSetTerrainPatchEffectCanTransformSemanticPatchWithoutChangingPhysicalCells()
-    {
-        var simulation = KernelTestSimulation.Create();
-        const int originalTerrainId = 1;
-        const int transformedTerrainId = 2;
-        const int targetKindId = 1;
-        const int generatorId = 101;
-        simulation.RegisterTerrain(originalTerrainId, boundaryGroupId: 1);
-        simulation.RegisterTerrain(transformedTerrainId, boundaryGroupId: 1);
-        simulation.World.SetMapRadius(1);
-        SeedRadiusOne(simulation, originalTerrainId);
-        KernelTestSimulation.SeedSemanticCells(simulation, 1);
-        simulation.CreateEntity(targetKindId, subtypeId: 1, cultureId: 1, 0, 0, 1, -1, 0, tick: 0);
-        var slot = simulation.Generators.RegisterGenerator(
-            generatorId,
-            targetKindId,
-            fireWeight: 1,
-            maxRuns: 1);
-        simulation.Generators.AddTrigger(slot, targetKindId);
-        simulation.Generators.AddEffect(
-            slot,
-            GeneratorEffectTypeCodes.SetTerrainPatch,
-            GeneratorProgramConstants.TargetReferenceCode,
-            instanceSelectionCode: 1,
-            optionCode: transformedTerrainId,
-            value: FixedScalar.FromSingle(1f),
-            radius: 0,
-            maxCellCount: 1,
-            planeCode: PlaneCodes.Semantic);
-
-        simulation.AdvanceTicks(1);
-
-        Assert.Equal(transformedTerrainId, simulation.World.CellTerrainId(PlaneCodes.Semantic, 1, -1));
-        Assert.Equal(originalTerrainId, simulation.World.CellTerrainId(PlaneCodes.Physical, 1, -1));
-    }
-
-    private static void SeedRadiusOne(Simulation simulation, int terrainId)
-    {
-        for (var direction = 0; direction < 6; direction++)
-        {
-            simulation.SeedCell(DirectionQ(direction), DirectionR(direction), terrainId, ownerEntityId: 0);
-        }
-
-        simulation.SeedCell(0, 0, terrainId, ownerEntityId: 0);
-    }
-
     private static (Simulation Simulation, int EntityId) CreateLargePathingSimulation(float roadBuildPerTravel)
     {
         var simulation = KernelTestSimulation.Create(new SimulationOptions
@@ -796,29 +713,6 @@ public sealed class TerrainAwareMapTests
                 simulation.SeedCell(q, r, terrainId, ownerEntityId: 0);
             }
         }
-    }
-
-    private static int CountTerrain(Simulation simulation, int terrainId)
-    {
-        var count = 0;
-        for (var q = -1; q <= 1; q++)
-        {
-            for (var r = -1; r <= 1; r++)
-            {
-                var s = -q - r;
-                if (global::System.Math.Max(global::System.Math.Abs(q), global::System.Math.Max(global::System.Math.Abs(r), global::System.Math.Abs(s))) > 1)
-                {
-                    continue;
-                }
-
-                if (simulation.World.CellTerrainId(q, r) == terrainId)
-                {
-                    count++;
-                }
-            }
-        }
-
-        return count;
     }
 
     private static int DirectionQ(int direction) => direction switch

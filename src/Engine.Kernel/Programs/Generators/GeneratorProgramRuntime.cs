@@ -95,7 +95,6 @@ internal sealed partial class GeneratorProgramRuntime :
         int generatorId,
         int targetKindId,
         int fireWeight,
-        int maxRuns,
         int targetRequiredTagBits = 0,
         int targetWithoutTagBits = 0,
         FixedScalar desperationRatio = default,
@@ -105,7 +104,6 @@ internal sealed partial class GeneratorProgramRuntime :
         ValidatePositive(generatorId);
         ValidatePositive(targetKindId);
         NumericGuard.ThrowIfNegative(fireWeight);
-        NumericGuard.ThrowIfNegative(maxRuns);
         if (_generatorCount + 1 >= _generatorIds.Length)
         {
             throw new global::System.InvalidOperationException();
@@ -117,7 +115,6 @@ internal sealed partial class GeneratorProgramRuntime :
         _targetKindIds[slot] = targetKindId;
         _targetKindIdsB[slot] = targetKindIdB;
         _fireWeights[slot] = fireWeight;
-        _maxRuns[slot] = maxRuns;
         _desperationRatioUnits[slot] = KernelFixedPoint.RatioUnits(desperationRatio);
         _desperationCultureIds[slot] = desperationCultureId;
         _targetRequiredTagBits[slot] = targetRequiredTagBits;
@@ -679,12 +676,6 @@ internal sealed partial class GeneratorProgramRuntime :
 
     private void EvaluateGenerator(Simulation simulation, int slot)
     {
-        if (_maxRuns[slot] > 0 && _runCounts[slot] >= _maxRuns[slot])
-        {
-            _fireStatusCodes[slot] = GeneratorStatusCodes.MaxRuns;
-            return;
-        }
-
         if (_fireWeights[slot] == 0)
         {
             _fireStatusCodes[slot] = GeneratorStatusCodes.ZeroWeight;

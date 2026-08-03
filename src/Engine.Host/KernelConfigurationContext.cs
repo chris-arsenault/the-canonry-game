@@ -572,7 +572,6 @@ internal sealed partial class KernelConfigurationContext
         int generatorId,
         int targetKindId,
         int fireWeight,
-        int maxRuns,
         int targetRequiredTagBits = 0,
         int targetWithoutTagBits = 0,
         FixedScalar desperationRatio = default,
@@ -582,7 +581,6 @@ internal sealed partial class KernelConfigurationContext
             generatorId,
             targetKindId,
             fireWeight,
-            maxRuns,
             targetRequiredTagBits,
             targetWithoutTagBits,
             desperationRatio,
@@ -965,12 +963,6 @@ internal sealed partial class KernelConfigurationContext
             radius,
             maxCellCount,
             planeCode);
-
-    public void AddGeneratorEffectPreferredTerrain(int effectSlot, int terrainId) =>
-        _kernel.Generators.AddEffectPreferredTerrain(effectSlot, terrainId);
-
-    public void AddGeneratorEffectAllowedTerrain(int effectSlot, int terrainId) =>
-        _kernel.Generators.AddEffectAllowedTerrain(effectSlot, terrainId);
 
     public void SetProgramEnabled(int programId, bool enabled) =>
         _kernel.SetProgramEnabled(programId, enabled);

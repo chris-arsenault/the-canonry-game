@@ -14,7 +14,6 @@ public sealed record CompiledGeneratorRule(
     IReadOnlyList<int> TargetSubtypeIds,
     GeneratorTargetRelationshipRequirements TargetRelationshipRequirements,
     int FireWeight,
-    int MaxRuns,
     FixedScalar DesperationRatio,
     int DesperationCultureId,
     int TargetRequiredTagBits,
@@ -36,8 +35,6 @@ public sealed record GeneratorEffectRule(
     FixedScalar Value = default,
     int Radius = 0,
     int MaxCellCount = 0,
-    IReadOnlyList<int>? PreferredTerrainIds = null,
-    IReadOnlyList<int>? AllowedTerrainIds = null,
     int PlaneCode = PlaneCodes.Physical);
 
 public sealed record GeneratorTargetRelationshipRequirements(

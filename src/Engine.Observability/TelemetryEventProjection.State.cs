@@ -2,18 +2,6 @@ namespace Engine.Observability;
 
 internal sealed partial class TelemetryEventProjection
 {
-    private GeneratorStateProjection GetGeneratorState(int generatorId)
-    {
-        if (_generatorStates.TryGetValue(generatorId, out var state))
-        {
-            return state;
-        }
-
-        state = new GeneratorStateProjection(generatorId);
-        _generatorStates.Add(generatorId, state);
-        return state;
-    }
-
     private static float ObservedHealth(ObservedEntityProjection entity)
     {
         if (entity.Attributes.Count == 0)
@@ -48,17 +36,6 @@ internal readonly record struct ObservedRelationshipKey(
     int RelationshipKindId);
 
 internal readonly record struct ObservedMapCellKey(int PlaneCode, int Q, int R, int Z = 0);
-
-internal sealed class GeneratorStateProjection(int generatorId)
-{
-    public int GeneratorId { get; } = generatorId;
-
-    public bool Enabled { get; set; } = true;
-
-    public int RunCount { get; set; }
-
-    public int LastRunTick { get; set; }
-}
 
 internal sealed class ObservedMapCellProjection(
     ObservedMapCellKey key,

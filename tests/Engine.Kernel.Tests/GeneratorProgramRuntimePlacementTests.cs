@@ -454,8 +454,7 @@ public sealed class GeneratorProgramRuntimePlacementTests
         var slot = simulation.Generators.RegisterGenerator(
             GeneratorId,
             TargetKindId,
-            fireWeight: 1,
-            maxRuns: 0);
+            fireWeight: 1);
         simulation.Generators.AddTrigger(slot, TargetKindId);
         if (includeProduced)
         {

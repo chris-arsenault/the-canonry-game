@@ -82,7 +82,6 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(CultureFieldCellKindCodes.Interior, birth.PhysicalCellKindCode);
         Assert.Equal(60f, birth.PhysicalLocalRawMass);
         Assert.Equal(90f, birth.PhysicalConnectedRawMass);
-        Assert.Empty(recorder.Batch.CultureInfluenceActionFieldEvents);
         Assert.Empty(recorder.Batch.CultureFieldCellSnapshots);
     }
 
@@ -475,11 +474,6 @@ public sealed class KernelTelemetryRecorderTests
         Assert.Equal(30f, road.PreviousQuality);
         Assert.Equal(45f, road.CurrentQuality);
         Assert.Equal(15f, road.Delta);
-
-        var influence = Assert.Single(batch.CellInfluenceEvents);
-        Assert.Equal(100, influence.EntityId);
-        Assert.Equal(11, influence.ActionId);
-        Assert.Equal(20f, influence.Delta);
 
         AssertCultureSlotOccupancyRows(batch);
 

@@ -153,8 +153,7 @@ public sealed class GeneratorPlacementGeographyTests
         var slot = simulation.Generators.RegisterGenerator(
             GeneratorId,
             TargetKindId,
-            fireWeight: 1,
-            maxRuns: 0);
+            fireWeight: 1);
         simulation.Generators.AddTrigger(slot, TargetKindId);
         return simulation.Generators.AddProduced(
             slot,
@@ -200,8 +199,7 @@ public sealed class GeneratorPlacementGeographyTests
         var slot = simulation.Generators.RegisterGenerator(
             GeneratorId,
             TargetKindId,
-            fireWeight: 1,
-            maxRuns: 0);
+            fireWeight: 1);
         simulation.Generators.AddTrigger(slot, TargetKindId);
         var producedSlot = simulation.Generators.AddProduced(
             slot,

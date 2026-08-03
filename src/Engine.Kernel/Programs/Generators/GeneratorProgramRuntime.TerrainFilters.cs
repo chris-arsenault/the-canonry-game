@@ -107,26 +107,6 @@ internal sealed partial class GeneratorProgramRuntime
             producedSlot);
     }
 
-    public void AddEffectPreferredTerrain(int effectSlot, int terrainId)
-    {
-        EnsureOpenEffect(effectSlot);
-        AddTerrainFilterId(
-            terrainId,
-            _effectPreferredTerrainStarts,
-            _effectPreferredTerrainCounts,
-            effectSlot);
-    }
-
-    public void AddEffectAllowedTerrain(int effectSlot, int terrainId)
-    {
-        EnsureOpenEffect(effectSlot);
-        AddTerrainFilterId(
-            terrainId,
-            _effectAllowedTerrainStarts,
-            _effectAllowedTerrainCounts,
-            effectSlot);
-    }
-
     private void InitializeProducedPlacementTerrainFilters(int producedSlot)
     {
         InitializeProducedPlanePlacementTerrainFilters(producedSlot, PlaneCodes.Physical);

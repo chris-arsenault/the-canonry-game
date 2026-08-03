@@ -28,7 +28,6 @@ internal sealed partial class GeneratorProgramRuntime
     private int[] _producedQueryRelatedToTargetKindIds => Data.ProducedQueryRelatedToTargetKindIds;
     private int[] _producedQueryRelatedToTargetIncoming => Data.ProducedQueryRelatedToTargetIncoming;
     private FixedScalar[] _producedQueryRelatedToTargetMinStrengths => Data.ProducedQueryRelatedToTargetMinStrengths;
-    private int[] _maxRuns => Data.MaxRuns;
     private int[] _desperationRatioUnits => Data.DesperationRatioUnits;
     private int[] _desperationCultureIds => Data.DesperationCultureIds;
     private int[] _runCounts => State.RunCounts;
@@ -158,10 +157,6 @@ internal sealed partial class GeneratorProgramRuntime
     private int[] _effectPlaneCodes => Data.EffectPlaneCodes;
     private int[] _effectRadii => Data.EffectRadii;
     private int[] _effectMaxCellCounts => Data.EffectMaxCellCounts;
-    private int[] _effectPreferredTerrainStarts => Data.EffectPreferredTerrainStarts;
-    private int[] _effectPreferredTerrainCounts => Data.EffectPreferredTerrainCounts;
-    private int[] _effectAllowedTerrainStarts => Data.EffectAllowedTerrainStarts;
-    private int[] _effectAllowedTerrainCounts => Data.EffectAllowedTerrainCounts;
     private FixedScalar[] _effectValues => Data.EffectValues;
     private int[] _scratchQ => _scratch.Q;
     private int[] _scratchR => _scratch.R;

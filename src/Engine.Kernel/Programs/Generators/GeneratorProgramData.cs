@@ -28,7 +28,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] ProducedQueryRelatedToTargetKindIds = [];
     internal int[] ProducedQueryRelatedToTargetIncoming = [];
     internal FixedScalar[] ProducedQueryRelatedToTargetMinStrengths = [];
-    internal int[] MaxRuns = [];
     internal int[] TargetSubtypeStarts = [];
     internal int[] TargetSubtypeCounts = [];
     internal int[] TargetRequiredOutgoingStarts = [];
@@ -148,10 +147,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] EffectPlaneCodes = [];
     internal int[] EffectRadii = [];
     internal int[] EffectMaxCellCounts = [];
-    internal int[] EffectPreferredTerrainStarts = [];
-    internal int[] EffectPreferredTerrainCounts = [];
-    internal int[] EffectAllowedTerrainStarts = [];
-    internal int[] EffectAllowedTerrainCounts = [];
     internal FixedScalar[] EffectValues = [];
     internal int GeneratorCount;
     internal int SubtypeCount;
@@ -194,7 +189,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         TargetWithoutTagBits = new int[generatorCapacity + 1];
         TargetChronicleHeatMin = new FixedScalar[generatorCapacity + 1];
         TargetChronicleLegendaryWithinTicks = new int[generatorCapacity + 1];
-        MaxRuns = new int[generatorCapacity + 1];
         TargetSubtypeStarts = new int[generatorCapacity + 1];
         TargetSubtypeCounts = new int[generatorCapacity + 1];
         TargetRequiredOutgoingStarts = new int[generatorCapacity + 1];
@@ -230,10 +224,6 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
         EffectPlaneCodes = new int[itemCapacity + 1];
         EffectRadii = new int[itemCapacity + 1];
         EffectMaxCellCounts = new int[itemCapacity + 1];
-        EffectPreferredTerrainStarts = new int[itemCapacity + 1];
-        EffectPreferredTerrainCounts = new int[itemCapacity + 1];
-        EffectAllowedTerrainStarts = new int[itemCapacity + 1];
-        EffectAllowedTerrainCounts = new int[itemCapacity + 1];
         EffectValues = new FixedScalar[itemCapacity + 1];
     }
 

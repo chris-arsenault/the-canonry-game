@@ -106,8 +106,6 @@ internal sealed partial class GeneratorProgramRuntime
         _effectValues[_effectCount] = value;
         _effectRadii[_effectCount] = radius;
         _effectMaxCellCounts[_effectCount] = maxCellCount;
-        _effectPreferredTerrainStarts[_effectCount] = _terrainFilterCount + 1;
-        _effectAllowedTerrainStarts[_effectCount] = _terrainFilterCount + 1;
         _effectCounts[generatorSlot]++;
         _openEffectSlot = _effectCount;
         return _effectCount;

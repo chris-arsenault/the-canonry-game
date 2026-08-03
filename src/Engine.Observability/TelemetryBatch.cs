@@ -27,13 +27,11 @@ public sealed class TelemetryBatch
     public Collection<GeneratorEventRow> GeneratorEvents { get; } = Rows<GeneratorEventRow>();
     public Collection<GeneratorTargetEvaluationRow> GeneratorTargetEvaluations { get; } = Rows<GeneratorTargetEvaluationRow>();
     public Collection<GeneratorOutputRow> GeneratorOutputs { get; } = Rows<GeneratorOutputRow>();
-    public Collection<GeneratorStateSnapshotRow> GeneratorStateSnapshots { get; } = Rows<GeneratorStateSnapshotRow>();
     public Collection<GeneratedEntityRow> GeneratedEntities { get; } = Rows<GeneratedEntityRow>();
     public Collection<LifecycleEventRow> LifecycleEvents { get; } = Rows<LifecycleEventRow>();
     public Collection<LifecycleReasonEventRow> LifecycleReasonEvents { get; } = Rows<LifecycleReasonEventRow>();
     public Collection<MapGenerationEventRow> MapGenerationEvents { get; } = Rows<MapGenerationEventRow>();
     public Collection<MapCellEventRow> MapCellEvents { get; } = Rows<MapCellEventRow>();
-    public Collection<CellInfluenceEventRow> CellInfluenceEvents { get; } = Rows<CellInfluenceEventRow>();
     public Collection<CultureFieldCellSnapshotRow> CultureFieldCellSnapshots { get; } = Rows<CultureFieldCellSnapshotRow>();
     public Collection<CultureSlotOccupancyEventRow> CultureSlotOccupancyEvents { get; } = Rows<CultureSlotOccupancyEventRow>();
     public Collection<MinorActorLifecycleEventRow> MinorActorLifecycleEvents { get; } = Rows<MinorActorLifecycleEventRow>();
@@ -48,7 +46,6 @@ public sealed class TelemetryBatch
     public Collection<WorldBeatEventRow> WorldBeatEvents { get; } = Rows<WorldBeatEventRow>();
     public Collection<CultureEntityFieldSnapshotRow> CultureEntityFieldSnapshots { get; } = Rows<CultureEntityFieldSnapshotRow>();
     public Collection<CultureEntityBirthFieldEventRow> CultureEntityBirthFieldEvents { get; } = Rows<CultureEntityBirthFieldEventRow>();
-    public Collection<CultureInfluenceActionFieldEventRow> CultureInfluenceActionFieldEvents { get; } = Rows<CultureInfluenceActionFieldEventRow>();
     public Collection<CellRoadEventRow> CellRoadEvents { get; } = Rows<CellRoadEventRow>();
     public Collection<MapSnapshotRow> MapSnapshots { get; } = Rows<MapSnapshotRow>();
     public Collection<CoverageSnapshotRow> CoverageSnapshots { get; } = Rows<CoverageSnapshotRow>();
@@ -76,13 +73,11 @@ public sealed class TelemetryBatch
         GeneratorEvents.Clear();
         GeneratorTargetEvaluations.Clear();
         GeneratorOutputs.Clear();
-        GeneratorStateSnapshots.Clear();
         GeneratedEntities.Clear();
         LifecycleEvents.Clear();
         LifecycleReasonEvents.Clear();
         MapGenerationEvents.Clear();
         MapCellEvents.Clear();
-        CellInfluenceEvents.Clear();
         CultureFieldCellSnapshots.Clear();
         CultureSlotOccupancyEvents.Clear();
         MinorActorLifecycleEvents.Clear();
@@ -101,7 +96,6 @@ public sealed class TelemetryBatch
         WorldBeatEvents.Clear();
         CultureEntityFieldSnapshots.Clear();
         CultureEntityBirthFieldEvents.Clear();
-        CultureInfluenceActionFieldEvents.Clear();
         CellRoadEvents.Clear();
         MapSnapshots.Clear();
         CoverageSnapshots.Clear();
@@ -182,8 +176,7 @@ public sealed record ExperimentVariantRow(
     int GitShaId,
     bool TraceEnabled,
     int EntitySnapshotCadence,
-    int MapSnapshotCadence,
-    int GeneratorSnapshotCadence);
+    int MapSnapshotCadence);
 
 public sealed record TickSnapshotRow(
     int RunId,
@@ -400,16 +393,6 @@ public sealed record GeneratorOutputRow(
     int OutputS,
     int PlacementEventId);
 
-public sealed record GeneratorStateSnapshotRow(
-    int RunId,
-    int Tick,
-    int GeneratorId,
-    bool Enabled,
-    int Cadence,
-    int CooldownRemaining,
-    int RunCount,
-    int LastRunTick);
-
 public sealed record GeneratedEntityRow(
     int RunId,
     int Tick,
@@ -468,19 +451,6 @@ public sealed record MapCellEventRow(
     int CurrentOwnerEntityId,
     int CauseId = 0,
     int Z = 0);
-
-public sealed record CellInfluenceEventRow(
-    int RunId,
-    int Tick,
-    int SourceCodeId,
-    int ActionId,
-    int EntityId,
-    int PlaneCode,
-    int Q,
-    int R,
-    float PreviousInfluence,
-    float CurrentInfluence,
-    float Delta);
 
 public sealed record CultureFieldCellSnapshotRow(
     int RunId,
@@ -663,21 +633,6 @@ public sealed record CultureEntityBirthFieldEventRow(
     int SemanticCellKindCode,
     float SemanticLocalRawMass,
     float SemanticConnectedRawMass);
-
-public sealed record CultureInfluenceActionFieldEventRow(
-    int RunId,
-    int Tick,
-    int EntityId,
-    int CultureId,
-    int ActionId,
-    int PlaneCode,
-    int CellKindCode,
-    bool SlotOccupied,
-    float LocalRawMass,
-    float ConnectedRawMass,
-    float PreviousInfluence,
-    float CurrentInfluence,
-    float Delta);
 
 public sealed record CellRoadEventRow(
     int RunId,

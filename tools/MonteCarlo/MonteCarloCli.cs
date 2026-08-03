@@ -301,8 +301,7 @@ internal static class MonteCarloCli
             seed,
             traceEnabled: options.TraceEnabled,
             entitySnapshotCadence: options.EntitySnapshotCadence,
-            mapSnapshotCadence: options.EntitySnapshotCadence,
-            generatorSnapshotCadence: options.EntitySnapshotCadence);
+            mapSnapshotCadence: options.EntitySnapshotCadence);
         RecordMapGenerationAccepted(recorder.Batch, recorder.RunId, run.WorldSeed);
         return recorder;
     }
@@ -497,13 +496,11 @@ internal static class MonteCarloCli
         batch.GeneratorEvents.Count +
         batch.GeneratorTargetEvaluations.Count +
         batch.GeneratorOutputs.Count +
-        batch.GeneratorStateSnapshots.Count +
         batch.GeneratedEntities.Count +
         batch.LifecycleEvents.Count +
         batch.LifecycleReasonEvents.Count +
         batch.MapGenerationEvents.Count +
         batch.MapCellEvents.Count +
-        batch.CellInfluenceEvents.Count +
         batch.CultureFieldCellSnapshots.Count +
         batch.CultureSlotOccupancyEvents.Count +
         batch.MinorActorLifecycleEvents.Count +
@@ -513,7 +510,6 @@ internal static class MonteCarloCli
         batch.EntityTagEvents.Count +
         batch.CultureEntityFieldSnapshots.Count +
         batch.CultureEntityBirthFieldEvents.Count +
-        batch.CultureInfluenceActionFieldEvents.Count +
         batch.CellRoadEvents.Count +
         batch.MapSnapshots.Count +
         batch.CoverageSnapshots.Count +

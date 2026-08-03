@@ -117,18 +117,25 @@ Dead kernel surface (never used by any authored content; full plumbing
 exists end to end):
 
 - **Programs/Degeneracy/** — an empty directory; the program it held
-  was deleted and the husk remains.
+  was deleted and the husk remains. DELETED 2026-08-03.
 - **Generator MaxRuns** (MaxRunsPerSim) — arrays, validation, a status
   code, and a per-evaluation check in the kernel; zero content uses.
-- **Coverage terrain transform** (coverageTransformTerrainId) — plumbed
-  through config, compiler, installer, and kernel; zero content uses.
+  DELETED 2026-08-03.
+- **Coverage terrain transform** — CORRECTION 2026-08-03: originally
+  listed here as dead on a bad grep; it is LIVE — ScarRegion sets
+  TransformTerrain to wastes and war_breaks_the_land fires it 577
+  times per 9 worlds. Kept.
 - **SetTerrainPatchEffect** — a complete generator effect type; zero
-  content uses.
+  content uses. DELETED 2026-08-03 (including its effect-only terrain
+  filter plumbing; the eventing schema is untouched).
 - **Dead telemetry recorders**: cell_influence_events and
   culture_influence_action_field_events write 0 rows on every world
-  (replaced by field snapshots in the perf rework).
+  (replaced by field snapshots in the perf rework). Recording surface
+  DELETED 2026-08-03; the CellInfluenceChanged kernel event type stays
+  in the eventing schema (it is part of the event ABI and a test
+  fixture, and emits nothing).
 - **generator_state_snapshots** — 510k near-static rows/world (every
-  generator's cooldown every 5 ticks). Thin or drop.
+  generator's cooldown every 5 ticks). Recorder DELETED 2026-08-03.
 - **generator_target_evaluations** — 9M rows/world, doubled by the
   kind-general dual-pool iteration; kept for diagnosis but the largest
   event lane and a contributor to the 9100 publisher crash. Sampling

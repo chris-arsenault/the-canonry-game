@@ -556,9 +556,6 @@ internal sealed partial class GeneratorProgramRuntime
     {
         switch (effectType)
         {
-            case GeneratorEffectTypeCodes.SetTerrainPatch:
-                ExecuteSetTerrainPatch(simulation, world, effectSlot, refCodes, refEntityIds, refCount);
-                break;
             case GeneratorEffectTypeCodes.SetBindingTag:
                 ExecuteSetBindingTag(simulation, effectSlot, refOrKindId, refCodes, refEntityIds, refCount, tick);
                 break;

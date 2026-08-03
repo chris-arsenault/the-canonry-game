@@ -199,10 +199,4 @@ internal sealed partial class GeneratorProgramRuntime
             : _plannedFinalPhysicalR[planIndex];
     }
 
-    private int PlannedOrWorldOccurrenceHandle(
-        WorldState world,
-        int entityId) =>
-        TryPlannedEntity(entityId, out _)
-            ? world.EntityOccurrenceHandleForIntent(entityId)
-            : world.EntityOccurrenceHandle(entityId);
 }

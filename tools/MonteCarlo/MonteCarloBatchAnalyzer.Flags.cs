@@ -65,13 +65,6 @@ internal sealed partial class MonteCarloBatchAnalyzer
                 Message: "Low-altitude trace rows are unavailable; verb utilization cannot be judged. Run Monte Carlo with --trace for the active tuning pass."));
         }
 
-        if (telemetryCoverage.CellInfluenceRows == 0)
-        {
-            flags.Add(new AnalysisFlagRow(
-                Category: "telemetry",
-                Severity: "warning",
-                Message: "Cell influence rows are unavailable; settlement/faction influence shape cannot be judged."));
-        }
     }
 
     private const int ExplorationGrowthFloorCells = 100;

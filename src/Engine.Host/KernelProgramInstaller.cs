@@ -341,7 +341,6 @@ internal static partial class KernelProgramInstaller
             generator.GeneratorId,
             generator.TargetKindId,
             generator.FireWeight,
-            generator.MaxRuns,
             generator.TargetRequiredTagBits,
             generator.TargetWithoutTagBits,
             generator.DesperationRatio,
@@ -367,7 +366,7 @@ internal static partial class KernelProgramInstaller
     {
         foreach (var effect in generator.Effects)
         {
-            var effectSlot = context.AddGeneratorEffect(
+            _ = context.AddGeneratorEffect(
                 generatorSlot,
                 effect.EffectTypeCode,
                 effect.RefOrKindId,
@@ -377,15 +376,6 @@ internal static partial class KernelProgramInstaller
                 effect.Radius,
                 effect.MaxCellCount,
                 effect.PlaneCode);
-            foreach (var terrainId in effect.PreferredTerrainIds ?? [])
-            {
-                context.AddGeneratorEffectPreferredTerrain(effectSlot, terrainId);
-            }
-
-            foreach (var terrainId in effect.AllowedTerrainIds ?? [])
-            {
-                context.AddGeneratorEffectAllowedTerrain(effectSlot, terrainId);
-            }
         }
     }
 

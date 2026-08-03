@@ -231,8 +231,7 @@ internal sealed partial class MonteCarloBatchAnalyzer
 
     private sealed record TelemetryCoverage(
         int MapSnapshotRows,
-        int LowAltitudeTraceRows,
-        int CellInfluenceRows);
+        int LowAltitudeTraceRows);
 
     private sealed record OptionalRawTableDefinition(string TableName, string EmptySelectSql);
 

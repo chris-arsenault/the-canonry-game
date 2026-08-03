@@ -152,19 +152,6 @@ public sealed class GeneratorProgramRuntimeTests
     }
 
     [Fact]
-    public void MaxRuns_IsRespected()
-    {
-        var simulation = CreateSimulation();
-        SeedMap(simulation);
-        CreateTarget(simulation);
-        RegisterGenerator(simulation, maxRuns: 1);
-
-        simulation.AdvanceTicks(3);
-
-        Assert.Equal(2, simulation.World.EntityHighWatermark);
-    }
-
-    [Fact]
     public void TargetRequiredIncomingRelationship_BlocksGeneratorUntilRelationshipExists()
     {
         var simulation = CreateSimulation();
@@ -815,14 +802,12 @@ public sealed class GeneratorProgramRuntimeTests
 
     private static int RegisterGenerator(
         Simulation simulation,
-        int maxRuns = 0,
         bool includeProduced = true)
     {
         var slot = simulation.Generators.RegisterGenerator(
             GeneratorId,
             TargetKindId,
-            fireWeight: 1,
-            maxRuns);
+            fireWeight: 1);
         simulation.Generators.AddTrigger(slot, TargetKindId);
         if (includeProduced)
         {
@@ -842,8 +827,7 @@ public sealed class GeneratorProgramRuntimeTests
         var slot = simulation.Generators.RegisterGenerator(
             generatorId,
             TargetKindId,
-            fireWeight,
-            maxRuns: 0);
+            fireWeight);
         simulation.Generators.AddTrigger(slot, TargetKindId);
         simulation.Generators.AddProduced(
             slot,

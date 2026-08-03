@@ -17,7 +17,6 @@ public sealed class SemanticGeneratorConfig
     public IReadOnlyList<ISemanticGeneratorEffect> Effects { get; init; } = [];
     public required IReadOnlyList<SemanticGeneratorTrigger> Triggers { get; init; }
     public int FireWeight { get; init; } = 1;
-    public int? MaxRunsPerSim { get; init; }
 
     /// <summary>
     /// Desperation gate: when positive, the generator is eligible only while
@@ -343,38 +342,6 @@ public sealed class AdjustTargetRelationshipStrengthEffect(
 
     public string Describe() =>
         $"adjust_target_relationship_strength({RelationshipKind}, delta={Delta}, instance={InstanceSelection}, reciprocal={IncludeReciprocal})";
-}
-
-/// <summary>Transforms a bounded map patch around a resolved generator binding.</summary>
-public sealed class SetTerrainPatchEffect(
-    string centerRef,
-    string terrain,
-    int radius,
-    int maxCellCount = 0,
-    bool respectTerrainBoundaries = true,
-    float chance = 1f,
-    int planeCode = PlaneCodes.Physical) : ISemanticGeneratorEffect
-{
-    public string CenterRef { get; } = centerRef;
-
-    public string Terrain { get; } = terrain;
-
-    public int Radius { get; } = radius;
-
-    public int MaxCellCount { get; } = maxCellCount;
-
-    public bool RespectTerrainBoundaries { get; } = respectTerrainBoundaries;
-
-    public float Chance { get; } = chance;
-
-    public int PlaneCode { get; } = planeCode;
-
-    public IReadOnlySet<string>? PreferredTerrains { get; init; }
-
-    public IReadOnlySet<string>? AllowedTerrains { get; init; }
-
-    public string Describe() =>
-        $"set_terrain_patch(center={CenterRef}, terrain={Terrain}, radius={Radius}, max={MaxCellCount}, chance={Chance}, plane={PlaneCode})";
 }
 
 public sealed class SemanticGeneratorRelationship

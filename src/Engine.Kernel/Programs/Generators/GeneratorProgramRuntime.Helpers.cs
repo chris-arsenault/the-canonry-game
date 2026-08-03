@@ -589,14 +589,6 @@ internal sealed partial class GeneratorProgramRuntime
         }
     }
 
-    private void EnsureOpenEffect(int effectSlot)
-    {
-        if ((uint)effectSlot == 0u || effectSlot > _effectCount || effectSlot != _openEffectSlot)
-        {
-            throw new global::System.InvalidOperationException();
-        }
-    }
-
     private void EnsureGenerator(int generatorSlot)
     {
         if ((uint)generatorSlot == 0u || generatorSlot > _generatorCount)

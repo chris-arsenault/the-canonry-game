@@ -14,9 +14,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
     private readonly Dictionary<int, ObservedEntityProjection> _entities = [];
     private readonly Dictionary<ObservedRelationshipKey, ObservedRelationshipProjection> _relationships = [];
     private readonly Dictionary<ObservedMapCellKey, ObservedMapCellProjection> _mapCells = [];
-    private readonly Dictionary<int, GeneratorStateProjection> _generatorStates = [];
     private readonly HashSet<int> _recordedMapSnapshotTicks = [];
-    private readonly HashSet<int> _recordedGeneratorSnapshotTicks = [];
     private readonly Dictionary<int, List<PendingCreatedEntity>> _createdEntitiesByInvocation = [];
     private readonly HashSet<int> _exportedEntityNameSymbols = [];
     private readonly Dictionary<KindSnapshotKey, KindSnapshotAccumulator> _kindSnapshotAccumulators = [];
@@ -194,7 +192,7 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         }
     }
 
-    public void RecordMapSnapshots(int tick, bool includeGeneratorState = true)
+    public void RecordMapSnapshots(int tick)
     {
         if (!_recordedMapSnapshotTicks.Add(tick))
         {
@@ -236,10 +234,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         }
 
         RecordCoverageSnapshots(tick, activeEntitiesByCell);
-        if (includeGeneratorState)
-        {
-            RecordGeneratorStateSnapshots(tick);
-        }
     }
 
     private bool RelationshipIsHotActive(ObservedRelationshipProjection relationship) =>
@@ -500,25 +494,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         MarkProjected(sequence);
     }
 
-    protected override void OnCellInfluenceChanged(long sequence, in CellInfluenceChangedKernelEvent evt)
-    {
-        var previousInfluence = FixedScalar.FromUnits(evt.PreviousInfluenceUnits).ToSingle();
-        var currentInfluence = FixedScalar.FromUnits(evt.CurrentInfluenceUnits).ToSingle();
-        _batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(
-            _runId,
-            evt.Tick,
-            evt.SourceCodeId,
-            evt.ActionId,
-            evt.EntityId,
-            evt.PlaneCode,
-            evt.Q,
-            evt.R,
-            previousInfluence,
-            currentInfluence,
-            currentInfluence - previousInfluence));
-        MarkProjected(sequence);
-    }
-
     protected override void OnCultureSlotOccupancyChanged(long sequence, in CultureSlotOccupancyChangedKernelEvent evt)
     {
         _batch.CultureSlotOccupancyEvents.Add(new CultureSlotOccupancyEventRow(
@@ -605,7 +580,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
 
     protected override void OnGeneratorEvaluated(long sequence, in GeneratorEvaluatedKernelEvent evt)
     {
-        _ = GetGeneratorState(evt.GeneratorId);
         _batch.GeneratorEvents.Add(new GeneratorEventRow(
             _runId,
             evt.Tick,
@@ -631,9 +605,6 @@ internal sealed partial class TelemetryEventProjection : KernelEventProjector
         var causeId = _currentProvenanceInvocationId == 0
             ? (int)Math.Min(sequence + 1, int.MaxValue)
             : _currentProvenanceInvocationId;
-        var state = GetGeneratorState(evt.GeneratorId);
-        state.RunCount++;
-        state.LastRunTick = evt.Tick;
         _batch.GeneratorEvents.Add(new GeneratorEventRow(
             _runId,
             evt.Tick,

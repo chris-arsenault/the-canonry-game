@@ -650,8 +650,6 @@ public sealed class MonteCarloBatchAnalyzerTests : IDisposable
         batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, PlaneCodes.Physical, seed.OceanTerrainId, 40, 18, 1));
         batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, PlaneCodes.Semantic, seed.ShelfTerrainId, 12, 4, 1));
         batch.MapSnapshots.Add(new MapSnapshotRow(seed.RunId, 25, PlaneCodes.Semantic, seed.OceanTerrainId, 8, 0, 0));
-        batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 12, 0, 0, 2, PlaneCodes.Physical, 2, 0, 0f, 18f, 18f));
-        batch.CellInfluenceEvents.Add(new CellInfluenceEventRow(seed.RunId, 13, 0, 0, 2, PlaneCodes.Physical, 3, 0, 0f, 12f, 12f));
         batch.CultureFieldCellSnapshots.Add(new CultureFieldCellSnapshotRow(
             seed.RunId,
             12,

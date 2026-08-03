@@ -781,7 +781,6 @@ public class DomainConfigTests
             Effects = generator.Effects,
             Triggers = generator.Triggers,
             FireWeight = generator.FireWeight,
-            MaxRunsPerSim = generator.MaxRunsPerSim,
         };
 
     private static Dictionary<string, bool> RelationshipStrengthMeaningByName() =>
