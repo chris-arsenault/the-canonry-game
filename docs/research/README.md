@@ -54,5 +54,5 @@ principles 6 (contemplative tempo) and 7 (degenerate states).
 ## Modes
 
 - [`modes/favored-nation-mode.md`](modes/favored-nation-mode.md) — patron
-  god mode. Post-MVP per
-  [`docs/design/post-mvp-backlog.md`](../design/post-mvp-backlog.md).
+  god mode. Deferred; see the deferred-ideas section of
+  [`docs/backlog.md`](../backlog.md).

@@ -591,8 +591,8 @@ This replacement does not change frontier radius or pacing, entity density,
 semantic world generation, simulation behavior, movement, placement, map
 signals, runtime terrain mutation, or the gameplay hex-terrain catalog.
 
-Deferred map work is recorded only in the
-[post-MVP backlog](./post-mvp-backlog.md). It is not part of the closed current
+Deferred map work is recorded only in the deferred-ideas section of
+[the backlog](../backlog.md). It is not part of the closed current
 scope.
 
 Standing directive:

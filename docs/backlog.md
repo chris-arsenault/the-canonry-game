@@ -48,6 +48,13 @@ and closed the balance goal. Remaining:
 - **Subtype vocabulary** — penguin subtypes are all occupations, so
   fledglings are born as "witness". Decide: subtypes stay per-kind
   flavor, or actor kinds share a life-stage/role vocabulary.
+- **Name Forge subtype naming coverage** (absorbed from the name-forge
+  tracker, tail open since May): split Nightshelf places, transports,
+  and monsters with per-subtype incomplete-name markers; split Aurora
+  settlement/region/point-of-interest naming by function and terrain;
+  give artifact, occurrence, penguin, orca, and faction subtype
+  families focused route sets; re-run 100-name samples per kind/subkind
+  after each culture pass.
 
 ## Culture balance
 
@@ -152,6 +159,88 @@ Carried from the previous backlog; origins as noted there.
   culture storage to z = 0, which also removes both leaks. Spires,
   tunnels, and vertical movement are a separate live feature either
   way.
+
+## Deferred ideas (post-MVP, absorbed 2026-08-03)
+
+Absorbed from `docs/design/post-mvp-backlog.md` and the root round
+trackers, both now deleted. These are deferred ideas, not commitments.
+
+### Card system and player agency
+
+- Deck/hand/tableau loop with draw cadence, hand limits, costs, and
+  discard; Balatro-style layered card modifications; archetypes that
+  select a starting theory of the world.
+- Hidden-trigger cards visible in the tableau but obscuring exact
+  timing; one-shot intervention cards that break the indirect-control
+  rule at a visible cost.
+
+### World-shaping systems
+
+- Macro system cards that change broad conditions without becoming
+  hidden low-altitude planners; weather, seasons, and terrain-changing
+  events; religious or ideological systems if representable without
+  hidden director logic.
+
+### Entity kind follow-ons
+
+- **Monster status mechanic** — sealed/unbound/risen as a status field
+  or containment-topology relationship, not a subtype (subtypes stay
+  types: leviathan, wraith, beast, revenant).
+- **Ability transmission attribution** — richer ability-level
+  attribution on `practiced_by`/`taught_by` if gambits ever need to
+  distinguish which ability passed through which teacher.
+
+### Simulation depth
+
+- Richer history-aware relationship maintenance; occurrence entities
+  tying long-running wars, plagues, crusades, or booms together.
+- Multi-resource economy only if resources produce decisions rather
+  than inert telemetry; culture innovation and spread.
+- Culture-specific medium-term goals — authored, visible strategic
+  priorities beyond static slot occupation, eventually readable by
+  generators/gambits.
+- Deeper cultural cohesion and front behavior on top of boundary,
+  slot, low-altitude influence, and minor-actor systems; better
+  procedural map/seed diversity.
+- Longevity-grant sources beyond artifacts and abilities: canons,
+  settlements, occurrences (post-R5 note from the narrative-quality
+  rounds).
+
+### World generation and geography
+
+- Vegetation and cover classification (forest, marsh, scrub,
+  climate-derived aridity) as a later domain layer that does not
+  replace landform, substrate, rivers, or magic features.
+- Pre-Collapse archaeology seeding (roads, settlements, megaliths,
+  weapon sites) into the mature temperate landscape before the Deep
+  Freeze overprint; must not compensate for defective natural
+  geography.
+- Stable named geological feature ids beyond rivers/lakes (ranges,
+  peaks, plains, basins, waterfalls, craters); kernel accessor only
+  when a gameplay consumer exists.
+- Higher-fidelity plate/terrane model only when a concrete gameplay or
+  visual need warrants it; physical-frontier growth pacing as runtime
+  balance work, separate from latent map capacity.
+
+### Map and UI
+
+- **Fog of war / unrevealed water-glass presentation** (was the last
+  open item gating "the second wave of authored content"): both planes
+  start partially unrevealed; unrevealed cells use the stained-glass
+  pane art, revealed terrain takes precedence; needs reveal-state
+  design in projection/UI and possibly kernel events; keep separate
+  from semantic terrain readability fixes.
+- Stronger overlays for culture influence, activity, relationship
+  networks, and generator/gambit affordances; post-run summaries;
+  entity search and bookmarks; replay and branch comparison; improved
+  art and animation.
+
+### Tooling
+
+- Faster Monte Carlo runs; automated simulation-quality reports; card
+  balance sweeps; replay from seed/config. (The old "save-state
+  diffing" idea presumed the checkpoint writer deleted 2026-08-03; a
+  future version would need to reintroduce state saves deliberately.)
 
 ## Audit follow-ups (2026-08-03 deletions)
 
