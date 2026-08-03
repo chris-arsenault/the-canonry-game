@@ -54,21 +54,44 @@ keep the system, replace the grant model.
 
 1. **Most technologies are enablement gates**, not modifiers. A gate turns
    something on for the claiming culture that simply does not exist for
-   others:
-   - **Movement gates** — travel through a terrain class (mountains), or a
-     new movement mode (air).
-   - **Gambit unlocks** — a gambit exists only for cultures holding the
-     tech.
-   - **Generator unlocks** — a generator fires only for/on the holding
-     culture.
-   - **Target widening** — a generator's target narrows from one subkind
-     to all subkinds of the kind when the tech is held.
+   others. The owner's examples — terrain-class travel, air movement,
+   gambit/generator unlocks, subkind target widening — illustrate the
+   kind, not a defined list.
 2. **Multipliers survive only when substantial** — roughly 2x (or the
    reduction equivalent, roughly 0.5x, like the existing storm-prediction
    reclaim-threshold grant). Everything in the x1.1-1.3 band is cut or
    promoted.
 3. Tier placement remains reach-only (invariant 5): a gate's power comes
    from what it enables, not from its tier.
+
+### Gate design space
+
+A good gate does one of two things: it **opens a loop that did not
+exist**, or it **answers a measured register problem for whoever earns
+it**. Families grounded in mechanics that already exist:
+
+- **Opening space** — terrain-class access; founding on wastes/war-scar
+  terrain (reclamation: land -> births -> mass, and a reason to want
+  wars to end); beyond-startup-rim operation (colonization; the
+  exploration flags already measure rim confinement); forging
+  depth/height limits as earned tiers (ties to the subsurface culture
+  overhaul); travel-structure types and road-building on new terrain
+  classes.
+- **Opening structure** — relationship kinds per culture (teaching
+  lineages via taught_by, devotion channels via consigned_to, new
+  culture-anchor kinds that change where a culture banks influence);
+  additional culture slots as governance forms; subtype creation
+  unlocks (the production-side mirror of target widening).
+- **Opening survival modes** — shelter via relationship support where
+  territorial mass is absent (a direct answer to the
+  life-spent-on-foreign-ground death-rate problem, natural for
+  minorities); substantial carrying-capacity steps.
+- **Opening pressure** — attacker mass projection for moving fronts as
+  an earned war capability rather than a global mechanic.
+
+The six discipline spokes should map to gate families so a culture's
+expansion direction shapes what kind of civilization it becomes.
+Every authored gate passes the beneficiary check.
 
 Mechanics mapping (owning seams, smallest first). The unlock pattern
 already exists once: grant gambits
