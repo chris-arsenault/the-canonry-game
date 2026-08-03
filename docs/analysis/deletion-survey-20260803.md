@@ -4,6 +4,65 @@ Evidence base: the nine 30k-tick worlds (kindgen-r20*), pooled — about
 262,000 world-ticks total. Fires/attempts below are 9-world totals.
 Survey only; nothing deleted.
 
+## Causality web of the candidates
+
+Red nodes are deletion candidates; counts are 9-world totals.
+
+```mermaid
+flowchart LR
+  classDef cand fill:#8b1a1a,stroke:#5c0f0f,color:#fff
+  classDef hub fill:#1f4e6b,stroke:#123246,color:#fff
+
+  subgraph WAR["war cluster"]
+    rivalry["faction_declares_rivalry 2729"] --> declare["faction_declares_territorial_war 1303"]
+    fervent["tag: fervent (offerings >= 0.75)"] --> glory["glory_to_the_dead_god 1"]:::cand
+    tags2["settlement terrified AND bereaved"] --> counter["counter_offensive 5"]:::cand
+    declare --> war(("named war")):::hub
+    glory --> war
+    counter --> war
+    war --> names["wars_get_names 1242"]
+    war --> toll["war_takes_its_toll 807"]
+    war --> accounts["ice_settles_accounts 650"]
+    war --> breaks["war_breaks_the_land 577"]
+    war --> mark["the_war_leaves_its_mark 0"]:::cand
+    breaks -. "same niche, always wins" .- mark
+  end
+
+  subgraph TAGS["devotion-tag periphery"]
+    taboo["offerings inside taboo canon"] --> profaner["tag: profaner"]
+    profaner --> silence["the_silence_answers 2"]:::cand
+  end
+
+  subgraph WILDS["monster spawners"]
+    blooms["overclaimed_blooms_draw_beasts 344"] --> monsters(("monsters")):::hub
+    corrupt["corruption_wakes_monsters 216"] --> monsters
+    depths["controlled_depths_wake_leviathans 5"]:::cand --> monsters
+    monsters --> hunts["hunts, wardens, festivals"]
+  end
+
+  subgraph SINKS["artifact sinks"]
+    given["relics_are_given_to_the_deep 759"] --> gone(("artifacts retire")):::hub
+    wall["memorials_join_the_wall 8"]:::cand --> gone
+  end
+
+  subgraph ORCA["orca homing: prototype vs replacement"]
+    claimg["orca_claims_hunting_ground 16"]:::cand --> laycur["orca_lays_deep_current 5"]:::cand
+    bulls["claimed_waters_draw_bulls 11"]:::cand --> homes(("orca homes")):::hub
+    laycur --> homes
+    line["the_line_continues 1014"] --> homes
+  end
+
+  subgraph TRADE["trade to diplomacy"]
+    routes["settlement_opens_trade_route 1466 (same culture)"] -.->|"cross-culture routes: none exist"| envoys["envoys_cross_the_ice 2"]:::cand
+    envoys --> embassy["embassy stones (world)"]
+  end
+
+  subgraph STAGES["stage rungs"]
+    deepen["faction_deepens_the_holding 127"] --> crown["faction_crowns_the_holding 1"]:::cand
+    withers["settlement_the_hold_withers 5"]:::cand
+  end
+```
+
 ## A. Dead or near-dead authored content (delete or retire candidates)
 
 | item | kind | evidence (9-world total) |
