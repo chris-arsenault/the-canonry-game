@@ -667,6 +667,15 @@ public enum IceRemembersGambitId
     CanonCrownsTheHolding,
     PenguinMakesOffering,
     OrcaMakesOffering,
+    OrcaUnmakesTheBinding,
+    OrcaCallsTheDeepCurrent,
+    OrcaTurnsTheBattle,
+    OrcaBindsWhatWasLoosed,
+    OrcaKeepsWintersPatience,
+    OrcaMendsAnother,
+    OrcaPassesTheTeaching,
+    OrcaReadsTheIce,
+    OrcaStillsTheWaters,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -748,6 +757,15 @@ public static class IceRemembersGambitIdExtensions
         "canon_crowns_the_holding",
         "penguin_makes_offering",
         "orca_makes_offering",
+        "orca_unmakes_the_binding",
+        "orca_calls_the_deep_current",
+        "orca_turns_the_battle",
+        "orca_binds_what_was_loosed",
+        "orca_keeps_winters_patience",
+        "orca_mends_another",
+        "orca_passes_the_teaching",
+        "orca_reads_the_ice",
+        "orca_stills_the_waters",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)

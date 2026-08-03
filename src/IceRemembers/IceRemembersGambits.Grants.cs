@@ -30,16 +30,25 @@ public static partial class IceRemembersDefinition
         GambitId.OrcaDrawsOnTheVessel,
         GambitId.MonsterDrawsOnTheVessel,
         GambitId.PenguinUnmakesTheBinding,
+        GambitId.OrcaUnmakesTheBinding,
         GambitId.PenguinCallsTheDeepCurrent,
+        GambitId.OrcaCallsTheDeepCurrent,
         GambitId.PenguinMakesOffering,
         GambitId.OrcaMakesOffering,
         GambitId.PenguinTurnsTheBattle,
+        GambitId.OrcaTurnsTheBattle,
         GambitId.PenguinBindsWhatWasLoosed,
+        GambitId.OrcaBindsWhatWasLoosed,
         GambitId.PenguinKeepsWintersPatience,
+        GambitId.OrcaKeepsWintersPatience,
         GambitId.PenguinMendsAnother,
+        GambitId.OrcaMendsAnother,
         GambitId.PenguinPassesTheTeaching,
+        GambitId.OrcaPassesTheTeaching,
         GambitId.PenguinReadsTheIce,
+        GambitId.OrcaReadsTheIce,
         GambitId.PenguinStillsTheWaters,
+        GambitId.OrcaStillsTheWaters,
     ];
 
     private static IEnumerable<GambitDefinition> CreateGrantGambits()
@@ -47,17 +56,26 @@ public static partial class IceRemembersDefinition
         yield return DrawOnTheVessel(GambitId.PenguinDrawsOnTheVessel, K.Penguin, Attr.Vitality);
         yield return DrawOnTheVessel(GambitId.OrcaDrawsOnTheVessel, K.Orca, Attr.Endurance);
         yield return MonsterDrawsOnTheVessel();
-        yield return PenguinUnmakesTheBinding();
-        yield return PenguinCallsTheDeepCurrent();
-        yield return PenguinMakesOffering();
-        yield return OrcaMakesOffering();
-        yield return PenguinTurnsTheBattle();
-        yield return PenguinBindsWhatWasLoosed();
-        yield return PenguinKeepsWintersPatience();
-        yield return PenguinMendsAnother();
-        yield return PenguinPassesTheTeaching();
-        yield return PenguinReadsTheIce();
-        yield return PenguinStillsTheWaters();
+        yield return UnmakesTheBinding(GambitId.PenguinUnmakesTheBinding, K.Penguin, Attr.Vitality);
+        yield return UnmakesTheBinding(GambitId.OrcaUnmakesTheBinding, K.Orca, Attr.Endurance);
+        yield return CallsTheDeepCurrent(GambitId.PenguinCallsTheDeepCurrent, K.Penguin, Attr.Vitality);
+        yield return CallsTheDeepCurrent(GambitId.OrcaCallsTheDeepCurrent, K.Orca, Attr.Endurance);
+        yield return MakesOffering(GambitId.PenguinMakesOffering, K.Penguin, Attr.Vitality);
+        yield return MakesOffering(GambitId.OrcaMakesOffering, K.Orca, Attr.Endurance);
+        yield return TurnsTheBattle(GambitId.PenguinTurnsTheBattle, K.Penguin, Attr.Vitality);
+        yield return TurnsTheBattle(GambitId.OrcaTurnsTheBattle, K.Orca, Attr.Endurance);
+        yield return BindsWhatWasLoosed(GambitId.PenguinBindsWhatWasLoosed, K.Penguin, Attr.Vitality);
+        yield return BindsWhatWasLoosed(GambitId.OrcaBindsWhatWasLoosed, K.Orca, Attr.Endurance);
+        yield return KeepsWintersPatience(GambitId.PenguinKeepsWintersPatience, K.Penguin, Attr.Vitality);
+        yield return KeepsWintersPatience(GambitId.OrcaKeepsWintersPatience, K.Orca, Attr.Endurance);
+        yield return MendsAnother(GambitId.PenguinMendsAnother, K.Penguin, Attr.Vitality);
+        yield return MendsAnother(GambitId.OrcaMendsAnother, K.Orca, Attr.Endurance);
+        yield return PassesTheTeaching(GambitId.PenguinPassesTheTeaching, K.Penguin, Attr.Vitality);
+        yield return PassesTheTeaching(GambitId.OrcaPassesTheTeaching, K.Orca, Attr.Endurance);
+        yield return ReadsTheIce(GambitId.PenguinReadsTheIce, K.Penguin);
+        yield return ReadsTheIce(GambitId.OrcaReadsTheIce, K.Orca);
+        yield return StillsTheWaters(GambitId.PenguinStillsTheWaters, K.Penguin);
+        yield return StillsTheWaters(GambitId.OrcaStillsTheWaters, K.Orca);
     }
 
     private static SelfHasRelationshipToEntityOfSubtype HeldArtifactGrant(string subtype) =>
@@ -157,12 +175,12 @@ public static partial class IceRemembersDefinition
         return gambit;
     }
 
-    private static GambitDefinition PenguinUnmakesTheBinding()
+    private static GambitDefinition UnmakesTheBinding(GambitId id, EntityKind actor, Attr health)
     {
         var gambit = NewGambit(
-            GambitId.PenguinUnmakesTheBinding,
+            id,
             "Unmake the Binding",
-            K.Penguin,
+            actor,
             K.Monster,
             All(
                 new TargetIsNotSelf(),
@@ -175,11 +193,11 @@ public static partial class IceRemembersDefinition
             scoreExpression: GambitScore(
                 baseline: 1.5f,
                 dynamicRange: 6f,
-                Mean2(DistanceFalloff(6f), Normalized(Expr.Self(A(Attr.Vitality))))),
+                Mean2(DistanceFalloff(6f), Normalized(Expr.Self(A(health))))),
             success: 0.5f,
             cooldown: 60,
             entityCooldown: 40);
-        gambit.Reads.Add(AttributeRef.Self(A(Attr.Vitality), K.Penguin));
+        gambit.Reads.Add(AttributeRef.Self(A(health), actor));
         AddRelationshipWrite(gambit, Rel.WardAgainst, K.Monster);
         gambit.Mutations.Add(new RemoveContextRelationshipMutation(TransferEndpoint.Self, TransferEndpoint.Target, L(Rel.CorruptedBy)));
         gambit.Mutations.Add(new RemoveContextRelationshipMutation(TransferEndpoint.Self, TransferEndpoint.Target, L(Rel.AtWarWith)));
@@ -193,12 +211,6 @@ public static partial class IceRemembersDefinition
     // but until these two nothing common ever MADE one - the whole devotion
     // economy hung on ~15 generator-created edges per world (track fidelity
     // pass: devotion at 11.6% of authorship, 1.8% of entities).
-    private static GambitDefinition PenguinMakesOffering() =>
-        MakesOffering(GambitId.PenguinMakesOffering, K.Penguin, Attr.Vitality);
-
-    private static GambitDefinition OrcaMakesOffering() =>
-        MakesOffering(GambitId.OrcaMakesOffering, K.Orca, Attr.Endurance);
-
     private static GambitDefinition MakesOffering(GambitId id, EntityKind actor, Attr health)
     {
         var gambit = NewGambit(
@@ -223,12 +235,12 @@ public static partial class IceRemembersDefinition
         return gambit;
     }
 
-    private static GambitDefinition PenguinCallsTheDeepCurrent()
+    private static GambitDefinition CallsTheDeepCurrent(GambitId id, EntityKind actor, Attr health)
     {
         var gambit = NewGambit(
-            GambitId.PenguinCallsTheDeepCurrent,
+            id,
             "Call the Deep Current",
-            K.Penguin,
+            actor,
             K.Settlement,
             All(
                 new TargetIsNotSelf(),
@@ -240,22 +252,22 @@ public static partial class IceRemembersDefinition
                 dynamicRange: 5f,
                 Mean2(
                     Expr.Score(Expr.Div(Expr.Distance(), Expr.Lit(40f))),
-                    Normalized(Expr.Self(A(Attr.Vitality))))),
+                    Normalized(Expr.Self(A(health))))),
             success: 0.6f,
             cooldown: 45,
             entityCooldown: 90);
-        gambit.Reads.Add(AttributeRef.Self(A(Attr.Vitality), K.Penguin));
+        gambit.Reads.Add(AttributeRef.Self(A(health), actor));
         gambit.Mutations.Add(new MoveTowardTargetMutation());
         gambit.Description = "An instrument-bearer sounds the deep current and is carried far across the ice toward a distant settlement. Legends travel; their stories cross the map.";
         return gambit;
     }
 
-    private static GambitDefinition PenguinTurnsTheBattle()
+    private static GambitDefinition TurnsTheBattle(GambitId id, EntityKind actor, Attr health)
     {
         var gambit = NewGambit(
-            GambitId.PenguinTurnsTheBattle,
+            id,
             "Turn the Battle",
-            K.Penguin,
+            actor,
             K.Faction,
             All(
                 new TargetIsNotSelf(),
@@ -270,19 +282,19 @@ public static partial class IceRemembersDefinition
             cooldown: 30,
             entityCooldown: 60);
         gambit.Reads.Add(AttributeRef.Target(A(Attr.Cohesion), K.Faction));
-        gambit.Reads.Add(AttributeRef.Self(A(Attr.Vitality), K.Penguin));
+        gambit.Reads.Add(AttributeRef.Self(A(health), actor));
         gambit.Mutations.Add(new ModifyTargetAttributeMutation(A(Attr.Cohesion), 15f, variance: 0.2f));
-        gambit.Mutations.Add(new ModifySelfAttributeMutation(A(Attr.Vitality), -5f, variance: 0.2f));
+        gambit.Mutations.Add(new ModifySelfAttributeMutation(A(health), -5f, variance: 0.2f));
         gambit.Description = "A weapon-bearer stands where their faction's war is breaking and turns it. The faction's cohesion rallies; the bearer pays in blood. Named heroes now appear inside wars.";
         return gambit;
     }
 
-    private static GambitDefinition PenguinBindsWhatWasLoosed()
+    private static GambitDefinition BindsWhatWasLoosed(GambitId id, EntityKind actor, Attr health)
     {
         var gambit = NewGambit(
-            GambitId.PenguinBindsWhatWasLoosed,
+            id,
             "Bind What Was Loosed",
-            K.Penguin,
+            actor,
             K.Monster,
             All(
                 new TargetIsNotSelf(),
@@ -296,12 +308,12 @@ public static partial class IceRemembersDefinition
                 Weighted3(
                     (DistanceFalloff(5f), 0.35f),
                     (InverseNormalized(Expr.Target(A(Attr.Containment))), 0.45f),
-                    (Normalized(Expr.Self(A(Attr.Vitality))), 0.20f))),
+                    (Normalized(Expr.Self(A(health))), 0.20f))),
             success: 0.55f,
             cooldown: 60,
             entityCooldown: 35);
         AddRelationshipWrite(gambit, Rel.WardAgainst, K.Monster);
-        gambit.Reads.Add(AttributeRef.Self(A(Attr.Vitality), K.Penguin));
+        gambit.Reads.Add(AttributeRef.Self(A(health), actor));
         gambit.Reads.Add(AttributeRef.Target(A(Attr.Containment), K.Monster));
         gambit.Mutations.Add(new ModifyTargetAttributeMutation(A(Attr.Containment), 18f, variance: 0.15f));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.WardAgainst, RelationshipPolarity.Negative, 0.72f));
@@ -309,66 +321,66 @@ public static partial class IceRemembersDefinition
         return gambit;
     }
 
-    private static GambitDefinition PenguinKeepsWintersPatience()
+    private static GambitDefinition KeepsWintersPatience(GambitId id, EntityKind actor, Attr health)
     {
         var gambit = NewGambit(
-            GambitId.PenguinKeepsWintersPatience,
+            id,
             "Keep Winter's Patience",
-            K.Penguin,
-            K.Penguin,
+            actor,
+            actor,
             All(
                 new TargetIsSelf(),
                 PracticedAbilityGrant("rite"),
-                new SelfAttributeThreshold(A(Attr.Vitality), min: null, max: 65f, behaviorRelevant: false)),
+                new SelfAttributeThreshold(A(health), min: null, max: 65f, behaviorRelevant: false)),
             scoreExpression: GambitScore(
                 baseline: 2f,
                 dynamicRange: 6f,
-                InverseNormalized(Expr.Self(A(Attr.Vitality)))),
+                InverseNormalized(Expr.Self(A(health)))),
             success: 0.85f,
             cooldown: 20,
             entityCooldown: 150);
-        gambit.Reads.Add(AttributeRef.Self(A(Attr.Vitality), K.Penguin));
-        gambit.Mutations.Add(new ModifySelfAttributeMutation(A(Attr.Vitality), 20f, variance: 0.15f));
+        gambit.Reads.Add(AttributeRef.Self(A(health), actor));
+        gambit.Mutations.Add(new ModifySelfAttributeMutation(A(health), 20f, variance: 0.15f));
         gambit.Description = "A practitioner of the rites sits out a turning of the dark and lets the ice hold them still. Practice sustains; the discipline lapses if the practice edge decays.";
         return gambit;
     }
 
-    private static GambitDefinition PenguinMendsAnother()
+    private static GambitDefinition MendsAnother(GambitId id, EntityKind actor, Attr health)
     {
         var gambit = NewGambit(
-            GambitId.PenguinMendsAnother,
+            id,
             "Mend Another",
-            K.Penguin,
-            K.Penguin,
+            actor,
+            actor,
             All(
                 new TargetIsNotSelf(),
                 PracticedAbilityGrant("craft"),
                 new WithinPlaneDistancePrecondition(4, PrimaryPlane.Physical),
-                new TargetAttributeThreshold(A(Attr.Vitality), min: null, max: 50f, behaviorRelevant: false)),
+                new TargetAttributeThreshold(A(health), min: null, max: 50f, behaviorRelevant: false)),
             scoreExpression: GambitScore(
                 baseline: 1.5f,
                 dynamicRange: 6f,
                 Weighted3(
-                    (InverseNormalized(Expr.Target(A(Attr.Vitality))), 0.55f),
+                    (InverseNormalized(Expr.Target(A(health))), 0.55f),
                     (DistanceFalloff(3f), 0.25f),
-                    (Normalized(Expr.Self(A(Attr.Vitality))), 0.20f))),
+                    (Normalized(Expr.Self(A(health))), 0.20f))),
             success: 0.7f,
             cooldown: 25,
             entityCooldown: 45);
-        gambit.Reads.Add(AttributeRef.Self(A(Attr.Vitality), K.Penguin));
-        gambit.Reads.Add(AttributeRef.Target(A(Attr.Vitality), K.Penguin));
-        gambit.Mutations.Add(new ModifyTargetAttributeMutation(A(Attr.Vitality), 22f, variance: 0.15f));
-        gambit.Description = "A practitioner of the crafts mends a failing penguin. Healers extend other lives, seek out the failing, and become recurring cast in other characters' stories.";
+        gambit.Reads.Add(AttributeRef.Self(A(health), actor));
+        gambit.Reads.Add(AttributeRef.Target(A(health), actor));
+        gambit.Mutations.Add(new ModifyTargetAttributeMutation(A(health), 22f, variance: 0.15f));
+        gambit.Description = "A practitioner of the crafts mends a failing kinmate. Healers extend other lives, seek out the failing, and become recurring cast in other characters' stories.";
         return gambit;
     }
 
-    private static GambitDefinition PenguinPassesTheTeaching()
+    private static GambitDefinition PassesTheTeaching(GambitId id, EntityKind actor, Attr health)
     {
         var gambit = NewGambit(
-            GambitId.PenguinPassesTheTeaching,
+            id,
             "Pass the Teaching",
-            K.Penguin,
-            K.Penguin,
+            actor,
+            actor,
             All(
                 new TargetIsNotSelf(),
                 PracticedAbilityGrant("technique"),
@@ -378,23 +390,23 @@ public static partial class IceRemembersDefinition
             scoreExpression: GambitScore(
                 baseline: 1f,
                 dynamicRange: 5f,
-                Mean2(DistanceFalloff(4f), Normalized(Expr.Self(A(Attr.Vitality))))),
+                Mean2(DistanceFalloff(4f), Normalized(Expr.Self(A(health))))),
             success: 0.5f,
             cooldown: 70,
             entityCooldown: 90);
-        gambit.Reads.Add(AttributeRef.Self(A(Attr.Vitality), K.Penguin));
-        AddRelationshipWrite(gambit, Rel.TaughtBy, K.Penguin);
+        gambit.Reads.Add(AttributeRef.Self(A(health), actor));
+        AddRelationshipWrite(gambit, Rel.TaughtBy, actor);
         gambit.Mutations.Add(Relationship(TransferEndpoint.Target, TransferEndpoint.Self, Rel.TaughtBy, RelationshipPolarity.Positive, 0.7f));
         gambit.Description = "A practitioner takes a student. The teaching edge is lineage topology: masters accumulate students, and generators can read schools grown from a single long life.";
         return gambit;
     }
 
-    private static GambitDefinition PenguinReadsTheIce()
+    private static GambitDefinition ReadsTheIce(GambitId id, EntityKind actor)
     {
         var gambit = NewGambit(
-            GambitId.PenguinReadsTheIce,
+            id,
             "Read the Ice",
-            K.Penguin,
+            actor,
             K.Canon,
             All(
                 new TargetIsNotSelf(),
@@ -414,12 +426,12 @@ public static partial class IceRemembersDefinition
         return gambit;
     }
 
-    private static GambitDefinition PenguinStillsTheWaters()
+    private static GambitDefinition StillsTheWaters(GambitId id, EntityKind actor)
     {
         var gambit = NewGambit(
-            GambitId.PenguinStillsTheWaters,
+            id,
             "Still the Waters",
-            K.Penguin,
+            actor,
             K.Occurrence,
             All(
                 new TargetIsNotSelf(),
