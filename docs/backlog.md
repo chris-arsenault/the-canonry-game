@@ -121,24 +121,24 @@ Carried from the previous backlog; origins as noted there.
 
 ## Future systems
 
-- **Knowledge / tech system: delete or make it matter** — parked
-  design (`docs/design/cultural-expansion-and-knowledge.md`; Civ
-  model, current state, and open questions recorded there; read it
-  first when resuming). Audit verdict (2026-08-03,
-  `docs/analysis/low-value-systems-survey-20260803.md` item 3): the
-  wiring is complete — 27 techs, 92 grants, 15 kernel application
-  sites — but multipliers cluster at x1.12-1.30 on top of larger
-  stacked modifiers, generator fire weight averages the modifier
-  across eligible targets, coverage is ~13% of generators / gambits /
-  verbs, claiming is automatic semantic-mass sweep with no decision
-  (8-11 techs held by tick 2,500), tiers 3-4 never activated in the
-  evidence run, and that run's generator fires matched the no-grants
-  baseline exactly. Its telemetry was deleted with the dead lanes; the
-  kernel program and Technology (K) panel remain. The open decision is
-  binary: delete end to end, or resume the parked design so claims
-  become real decisions with macro-scale effects (the x0.50
-  frontier-reclaim grant is the only current grant with visible
-  leverage — a model for what "matters" looks like).
+- **Knowledge grant model redesign: enablement gates** — decided
+  2026-08-03: the system stays and the grant model is replaced (design
+  recorded in `docs/design/cultural-expansion-and-knowledge.md`, Grant
+  philosophy section — read it first when resuming). Most techs become
+  gates (movement through terrain classes, air movement mode, gambit
+  unlocks, generator unlocks, subkind-to-all-subkinds target
+  widening); multipliers survive only at ~2x / ~0.5x scale. Work
+  shape: kernel gate seams (gambit-evaluation unlock check, generator
+  target-gate checks, culture-aware CanEnter, per-culture movement
+  profile override), then recut the 27-tech catalog onto them, then a
+  scorecard section joining claims to gated-content usage so effect is
+  finally measurable.
+- **Natural wonders (physical parallel to tech sites)** — future
+  system, same grant engine: static wonder sites on the physical
+  plane, owned while the culture's physical field holds them (same
+  radius/band claim test, plane switched); discovery via exploration
+  and the growing map, loss via retreat. Candidate anchors: the
+  deferred stable named geological feature ids.
 - **Vertical axis overhaul: make subsurface culture real** (2026-08-03).
   The lore intent is Nightshelf pockets of concentrated culture beneath
   Aurora surface territory. Measured (seed 9100, tick 30k) that never

@@ -1,7 +1,9 @@
 # Cultural Expansion and Knowledge
 
-**Status:** implemented through authored claims and mechanical grants. Player
-selection, procedural technologies, and knowledge stockpiles remain out of scope.
+**Status:** implemented through authored claims and mechanical grants; the
+grant model is being redesigned (owner decision 2026-08-03, see Grant
+philosophy below). The system stays. Player selection, procedural
+technologies, and knowledge stockpiles remain out of scope.
 
 ## Goal
 
@@ -40,6 +42,70 @@ in [Knowledge and Technology](../systems/27-knowledge.md).
    exceptional rather than constant churn.
 9. Claims are co-holdable. One culture claiming a site does not exclude another.
 10. Player agency over knowledge is deferred; the current system is emergent.
+
+## Grant philosophy (owner decision, 2026-08-03)
+
+The 2026-08-03 audit found the original grant model unimpactful: 80 of 92
+grants were multipliers in the x1.12-1.30 band stacked on mechanics that
+already carry age, trait, and chronicle modifiers; generator fire weight
+additionally averaged the modifier across eligible targets; the evidence
+run's generator fires matched the no-grants baseline exactly. Decision:
+keep the system, replace the grant model.
+
+1. **Most technologies are enablement gates**, not modifiers. A gate turns
+   something on for the claiming culture that simply does not exist for
+   others:
+   - **Movement gates** — travel through a terrain class (mountains), or a
+     new movement mode (air).
+   - **Gambit unlocks** — a gambit exists only for cultures holding the
+     tech.
+   - **Generator unlocks** — a generator fires only for/on the holding
+     culture.
+   - **Target widening** — a generator's target narrows from one subkind
+     to all subkinds of the kind when the tech is held.
+2. **Multipliers survive only when substantial** — roughly 2x (or the
+   reduction equivalent, roughly 0.5x, like the existing storm-prediction
+   reclaim-threshold grant). Everything in the x1.1-1.3 band is cut or
+   promoted.
+3. Tier placement remains reach-only (invariant 5): a gate's power comes
+   from what it enables, not from its tier.
+
+Mechanics mapping (owning seams, smallest first):
+
+- **Gambit unlock** — a knowledge precondition in gambit evaluation; the
+  evaluation path already consults the knowledge runtime for score
+  multipliers, so a binary has-unlock check on the same lookup is the
+  cheapest gate. Locked gambits skip evaluation entirely.
+- **Generator unlock / target widening** — per-target checks in the
+  generator target gates (`TargetPrimaryGatesPass` already consults
+  knowledge per target for fire weight); fixed-culture generators gate on
+  the fixed culture's claim. Widening relaxes the subtype filter when the
+  target's (or fixed) culture holds the tech.
+- **Terrain-class movement gate** — movement's `CanEnter` gains a
+  (culture, terrain-class) permission consulting knowledge; today
+  enterability is per-kind movement profile with no culture term.
+- **Air movement mode** — the largest piece: a per-culture movement
+  profile override (tech held switches the entity's effective profile),
+  consistent with roads-as-speed / transports-as-carriers; no per-unit
+  speed creep.
+
+Tier reach today (kindgen-r20 seed 9100, 30k ticks): Aurora holds 3
+tier-3 sites, Nightshelf 5, Wake-Singers top out at tier 2, tier 4
+unreached. Gates at tiers 0-3 activate within a standard horizon; tier 4
+is endgame content on real play lengths (4x-50x the 30k bootstrap).
+
+## Natural wonders (planned physical parallel)
+
+A future parallel system on the physical plane: natural wonders are
+discovered and owned, granting benefits through the same grant engine.
+The symmetric shape: wonder sites are static authored/worldgen-placed
+physical entities; a culture owns a wonder while its physical culture
+field holds the site (same radius/band claim test as tech sites, plane
+switched) — discovery falls out of exploration and the growing map,
+ownership out of territorial mass, and loss out of retreat, exactly as
+with semantic tech sites. Candidate tie-in: the deferred stable named
+geological feature ids (ranges, peaks, craters) as wonder anchors. One
+grant engine, two planes; wonders prefer the same gate-style benefits.
 
 ## Expansion substrate
 
@@ -114,6 +180,8 @@ longer or broader evidence horizon.
 - player-facing selection or intervention;
 - procedural technologies or dynamically authored sites;
 - knowledge resources, costs, or stockpiles;
-- physical-frontier retuning and tier-reach tuning;
+- physical-frontier retuning and tier-reach tuning (tier 4 activation is
+  an endgame-length question, not a 30k one);
 - additional grant domains without a diagnosed existing mechanic to consume
-  them.
+  them — gates consume existing mechanics (movement, gambits, generators)
+  and stay inside this rule.
