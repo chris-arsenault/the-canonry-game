@@ -57,16 +57,24 @@ IceRemembersDefinition.cs); cells at >= 35: Wake-Singers hold 950–2000
 per run, Aurora and Nightshelf 16–200, world 0.
 Target: unset.
 
-## Births on unheld cells
+## Life spent on foreign ground
 
-Metric: fraction of births where own-culture raw_influence at the birth
-cell is < 1 (bf lane, physical_local_raw_mass).
-Current (6-run pool, replicated on the 3-run pool): Aurora 41%,
-Nightshelf 76%, Wake-Singers 9%, world 100%. Present from window 0
-(Wake-Singers 55% unheld, Nightshelf 82% unheld) — precedes any
-territory difference, so it is a property of generator placement refs,
-not an effect of holding territory.
-Births on contested or border cells are ~1% for all cultures.
+Metric: share of a living actor's sampled positions (every 250 ticks)
+whose cell carries own-culture raw_influence >= 35 (shelter grade).
+Measured 2026-08-03 on the kind-general build, seed 9101: penguins
+spend 49% of life on shelter-grade own ground (Wake-Singers), 11%
+(Aurora), 2% (Nightshelf). Movement is culture-blind wandering
+(median 492 movement events per penguin life, death a median 19 hexes
+from the birth cell), so this share tracks the culture's territorial
+coverage, not birth location.
+Corrections recorded 2026-08-03: the earlier "births on unheld cells"
+metric (Aurora 41% / Nightshelf 76% / Wake-Singers 9% born on bare
+ground) is a weak proxy — birth location is nearly irrelevant given
+the movement volume. The narrative "event-born actors stay where they
+were born" was asserted without measurement and is refuted.
+Home-base edges raise penguin lifespan +80% for Wake-Singers but only
++5-10% for Aurora/Nightshelf: a home shelters only when its cell
+carries strong own-culture influence.
 Target: unset.
 
 ## Smallest-culture population
@@ -128,8 +136,13 @@ Consequence: Wake-Singers are the orca culture, so the kind asymmetry
 surfaces as a culture asymmetry in the death-rate gap and physical
 mass share.
 
-## Non-problems (previously reported, not reproduced in these 9 runs)
+## Non-problems (previously reported, refuted by measurement)
 
-- Physical lead changing hands mid-run: 0 occurrences after window 1.
+- Physical lead changing hands mid-run: 0 occurrences after window 1
+  (pre-parity 9-run set; the kind-general build rotates winners).
 - Wake-Singers population collapse: never the smallest culture.
 - Births on contested cells ("front pressure" on newborns): ~1%.
+- Event-born actors loitering at their birth site: refuted 2026-08-03 —
+  median 492 movement events per penguin life, ~500 hexes cumulative
+  travel, death a median 19 hexes from birth. Movement and the verb
+  layer work as designed.

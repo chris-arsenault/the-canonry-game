@@ -17,12 +17,14 @@ succession, nine paired generators) and brought the census inside the
 register problems (Nightshelf death rate ~1.7x Wake-Singers; Nightshelf
 births 58-84% on unheld cells):
 
-- **Occupation produce parity and homing** — the ~40 event-placed
-  penguin produce sites (witness/broker/warden at war sites, offering
-  sites, rich hubs). Two decisions per site: pair an orca emission, and
-  home the occupation at an own-culture anchor instead of the event.
-  Homing bindings must handle the no-anchor-exists case or they
-  reproduce the desperation-surge fire-failure defect.
+- **Occupation produce sites: kind-general conversion** — the ~40
+  event-placed penguin produce sites (witness/broker/warden at war
+  sites, offering sites, rich hubs) can use the kind-general machinery
+  (second target kind, gated produce slots) where the fiction is
+  kind-arbitrary. The former "homing" half of this item is withdrawn:
+  measurement (2026-08-03) showed birth location is nearly irrelevant —
+  actors travel ~500 hexes over a life and survival tracks the
+  culture's territorial coverage, not placement.
 - **Grant-gambit parity** — 9 of 13 grant gambits are penguin-only
   (UnmakesTheBinding, CallsTheDeepCurrent, TurnsTheBattle,
   BindsWhatWasLoosed, KeepsWintersPatience, MendsAnother,
