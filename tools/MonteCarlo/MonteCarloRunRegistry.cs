@@ -422,7 +422,6 @@ internal sealed class MonteCarloRunRegistry : IDisposable
             ticks = options.Ticks,
             seed = options.Seed,
             entitySnapshotCadence = options.EntitySnapshotCadence,
-            skipAnalysis = options.SkipAnalysis,
             disableEntitySnapshots = options.DisableEntitySnapshots,
             simulationOnly = options.SimulationOnly,
             traceEnabled = options.TraceEnabled,
