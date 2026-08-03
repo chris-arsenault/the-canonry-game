@@ -64,15 +64,15 @@ to 690; 9108 grows to ~910; 9109 plateaus ~560. Horizon densities
    9100 held 57-60% steadily. At the 30k horizon, 8 of 9 worlds sit at
    or under ~62% max share; the envelope is typical, not guaranteed.
 2. **Leadership rotates across worlds and, newly, within them.** At
-   horizon: Nightshelf leads 5 worlds, Aurora 3, Wake-Singers 1. Two
+   horizon: Aurora leads 4 worlds, Nightshelf 4, Wake-Singers 1. Two
    worlds (9103, 9107) changed census leaders mid-run and one (9106)
    had an excursion-and-retreat. The 20k-scale finding (rotation across
    worlds) extends to genuine within-world contests at 30k.
 3. **Wake-Singers fade at long horizons.** The former fixed hegemon is
-   the smallest culture at horizon on 5 of 9 worlds (13-16% on four of
-   them) and leads only one. Horizon means are roughly Aurora 33%,
-   Nightshelf 42%, Wake-Singers 24%. A mild Nightshelf lean is visible
-   at 30k that the 20k fans did not show.
+   the smallest culture at horizon on 3 of 9 worlds (14% on each) plus
+   one tie, and leads only one. Horizon means are roughly Aurora 31%,
+   Nightshelf 35%, Wake-Singers 24%. A mild Nightshelf-and-Aurora lean
+   over Wake-Singers is visible at 30k that the 20k fans did not show.
 4. **Populations resume growing in the final third** on 6 of 9 worlds
    after plateauing mid-run. Candidate driver: succession-anchor
    accretion - every the_line_continues launch founds a Monumental-band
