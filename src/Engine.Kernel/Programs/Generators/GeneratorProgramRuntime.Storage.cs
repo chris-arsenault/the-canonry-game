@@ -11,6 +11,7 @@ internal sealed partial class GeneratorProgramRuntime
     private int _plannedCoverageCellCount;
     private int[] _generatorIds => Data.GeneratorIds;
     private int[] _targetKindIds => Data.TargetKindIds;
+    private int[] _targetKindIdsB => Data.TargetKindIdsB;
     private int[] _fireWeights => Data.FireWeights;
     private FixedScalar[] _ageFireWeightMultipliers => Data.AgeFireWeightMultipliers;
     private int[] _targetRequiredTagBits => Data.TargetRequiredTagBits;
@@ -86,6 +87,7 @@ internal sealed partial class GeneratorProgramRuntime
     private int[] _triggerKindIds => Data.TriggerKindIds;
     private int[] _bindingRefCodes => Data.BindingRefCodes;
     private int[] _bindingKindIds => Data.BindingKindIds;
+    private int[] _bindingKindIdsB => Data.BindingKindIdsB;
     private int[] _bindingAdjacentToTarget => Data.BindingAdjacentToTarget;
     private int[] _bindingCultureMatchCodes => Data.BindingCultureMatchCodes;
     private int[] _bindingRequireTargetCultureRoute => Data.BindingRequireTargetCultureRoute;
@@ -97,6 +99,7 @@ internal sealed partial class GeneratorProgramRuntime
     private int[] _bindingWithoutIncomingCounts => Data.BindingWithoutIncomingCounts;
     private int[] _producedRefCodes => Data.ProducedRefCodes;
     private int[] _producedKindIds => Data.ProducedKindIds;
+    private int[] _producedOnlyWhenTargetKindIds => Data.ProducedOnlyWhenTargetKindIds;
     private int[] _producedSubtypeIds => Data.ProducedSubtypeIds;
     private int[] _producedCreateIfMissing => Data.ProducedCreateIfMissing;
     private int[] _producedHasQuery => Data.ProducedHasQuery;

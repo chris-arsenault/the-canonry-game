@@ -270,7 +270,8 @@ public static partial class DomainCompiler
                 CompileGeneratorBindings(generator.SecondaryTargets, ids, refCodes),
                 CompileGeneratorProducedEntities(generator.Produces, ids, terrainByName, refCodes, graph.WorldCulture),
                 CompileGeneratorRelationships(generator.Relationships, graph, refCodes),
-                CompileGeneratorEffects(generator.Effects, terrainByName, ids, refCodes)));
+                CompileGeneratorEffects(generator.Effects, terrainByName, ids, refCodes),
+                generator.Target.SecondKind is null ? 0 : ids.KindIdOf(generator.Target.SecondKind.Value).Value));
         }
 
         return new GeneratorProgram { Generators = generators };
@@ -378,7 +379,8 @@ public static partial class DomainCompiler
             compiled.Add(new GeneratorBindingRule(
                 refCodes[binding.Ref],
                 ids.KindIdOf(binding.Kind).Value,
-                CompileGeneratorQuery(binding.Query, ids)));
+                CompileGeneratorQuery(binding.Query, ids),
+                binding.SecondKind is null ? 0 : ids.KindIdOf(binding.SecondKind.Value).Value));
         }
 
         return compiled;
@@ -459,7 +461,10 @@ public static partial class DomainCompiler
                 PhysicalPlacementPressureAffinity: ClampAffinity(produced.PhysicalPlacementPressureAffinity),
                 CultureModeCode: produced.CultureSource == ProducedCultureSource.AnyParticipant
                     ? GeneratorProducedCultureModeCodes.AnyParticipant
-                    : GeneratorProducedCultureModeCodes.Default));
+                    : GeneratorProducedCultureModeCodes.Default,
+                OnlyWhenTargetKindId: produced.OnlyWhenTargetKind is null
+                    ? 0
+                    : ids.KindIdOf(produced.OnlyWhenTargetKind.Value).Value));
         }
 
         return compiled;

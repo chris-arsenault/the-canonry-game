@@ -32,6 +32,10 @@ public sealed class SemanticGeneratorConfig
 public sealed class SemanticGeneratorTarget
 {
     public required EntityKind Kind { get; init; }
+    /// <summary>Second permitted target kind: the generator targets either
+    /// kind, and produce slots gated with OnlyWhenTargetKind resolve
+    /// against the kind actually targeted.</summary>
+    public EntityKind? SecondKind { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
     public IReadOnlySet<string>? RequiredTags { get; init; }
     public IReadOnlySet<string>? WithoutTags { get; init; }
@@ -75,6 +79,10 @@ public sealed class SemanticProducedEntity
 {
     public required string Ref { get; init; }
     public required EntityKind Kind { get; init; }
+    /// <summary>When set, this produce fires only if the resolved target is
+    /// of this kind; kind-general generators carry one gated slot per
+    /// kind.</summary>
+    public EntityKind? OnlyWhenTargetKind { get; init; }
     public string? Subtype { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
     public required string Role { get; init; }
@@ -195,6 +203,9 @@ public sealed class SemanticGeneratorBindingTarget
 {
     public required string Ref { get; init; }
     public required EntityKind Kind { get; init; }
+    /// <summary>Second permitted binding kind: selection samples uniformly
+    /// across the joint pool of both kinds.</summary>
+    public EntityKind? SecondKind { get; init; }
     public SemanticEntityQuery? Query { get; init; }
 }
 

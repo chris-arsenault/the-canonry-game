@@ -576,7 +576,8 @@ internal sealed partial class KernelConfigurationContext
         int targetRequiredTagBits = 0,
         int targetWithoutTagBits = 0,
         FixedScalar desperationRatio = default,
-        int desperationCultureId = 0) =>
+        int desperationCultureId = 0,
+        int targetKindIdB = 0) =>
         _kernel.Generators.RegisterGenerator(
             generatorId,
             targetKindId,
@@ -585,7 +586,8 @@ internal sealed partial class KernelConfigurationContext
             targetRequiredTagBits,
             targetWithoutTagBits,
             desperationRatio,
-            desperationCultureId);
+            desperationCultureId,
+            targetKindIdB);
 
     public void AddGeneratorTargetSubtype(int generatorSlot, int subtypeId) =>
         _kernel.Generators.AddTargetSubtype(generatorSlot, subtypeId);
@@ -636,7 +638,8 @@ internal sealed partial class KernelConfigurationContext
         int cultureId = 0,
         int relatedToTargetKindId = 0,
         bool relatedToTargetIncoming = false,
-        FixedScalar relatedToTargetMinStrength = default) =>
+        FixedScalar relatedToTargetMinStrength = default,
+        int kindIdB = 0) =>
         _kernel.Generators.AddSecondaryBinding(
             generatorSlot,
             refCode,
@@ -649,7 +652,8 @@ internal sealed partial class KernelConfigurationContext
             cultureId,
             relatedToTargetKindId,
             relatedToTargetIncoming ? 1 : 0,
-            relatedToTargetMinStrength);
+            relatedToTargetMinStrength,
+            kindIdB);
 
     public void AddGeneratorBindingSubtype(int bindingSlot, int subtypeId) =>
         _kernel.Generators.AddBindingSubtype(bindingSlot, subtypeId);
@@ -694,7 +698,8 @@ internal sealed partial class KernelConfigurationContext
         int queryRelatedToTargetKindId = 0,
         bool queryRelatedToTargetIncoming = false,
         FixedScalar queryRelatedToTargetMinStrength = default,
-        int cultureModeCode = 0) =>
+        int cultureModeCode = 0,
+        int onlyWhenTargetKindId = 0) =>
         _kernel.Generators.AddProduced(
             generatorSlot,
             refCode,
@@ -729,7 +734,8 @@ internal sealed partial class KernelConfigurationContext
             queryRelatedToTargetKindId,
             queryRelatedToTargetIncoming ? 1 : 0,
             queryRelatedToTargetMinStrength,
-            cultureModeCode);
+            cultureModeCode,
+            onlyWhenTargetKindId);
 
     public void SetGeneratorTargetChronicleGates(int generatorSlot, FixedScalar heatMin, int legendaryWithinTicks) =>
         _kernel.Generators.SetTargetChronicleGates(generatorSlot, heatMin, legendaryWithinTicks);

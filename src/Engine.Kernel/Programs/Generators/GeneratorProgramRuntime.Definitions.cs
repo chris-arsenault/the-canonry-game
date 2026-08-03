@@ -40,7 +40,8 @@ internal sealed partial class GeneratorProgramRuntime
         int cultureId = 0,
         int relatedToTargetKindId = 0,
         int relatedToTargetIncoming = 0,
-        FixedScalar relatedToTargetMinStrength = default)
+        FixedScalar relatedToTargetMinStrength = default,
+        int kindIdB = 0)
     {
         EnsureOpenGenerator(generatorSlot);
         ValidatePositive(refCode);
@@ -54,6 +55,7 @@ internal sealed partial class GeneratorProgramRuntime
         _bindingCount++;
         _bindingRefCodes[_bindingCount] = refCode;
         _bindingKindIds[_bindingCount] = kindId;
+        _bindingKindIdsB[_bindingCount] = kindIdB;
         _bindingAdjacentToTarget[_bindingCount] = adjacentToTarget;
         _bindingCultureMatchCodes[_bindingCount] = cultureMatchCode;
         _bindingRequireTargetCultureRoute[_bindingCount] = requireTargetCultureRoute;
@@ -174,7 +176,8 @@ internal sealed partial class GeneratorProgramRuntime
         int queryRelatedToTargetKindId = 0,
         int queryRelatedToTargetIncoming = 0,
         FixedScalar queryRelatedToTargetMinStrength = default,
-        int cultureModeCode = GeneratorProducedCultureModeCodes.Default)
+        int cultureModeCode = GeneratorProducedCultureModeCodes.Default,
+        int onlyWhenTargetKindId = 0)
     {
         EnsureOpenGenerator(generatorSlot);
         ValidateProducedIdentity(refCode, kindId, subtypeId, queryCultureMatchCode, cultureRefCode, fixedCultureId, cultureModeCode);
@@ -232,6 +235,12 @@ internal sealed partial class GeneratorProgramRuntime
             queryRelatedToTargetKindId,
             queryRelatedToTargetIncoming,
             queryRelatedToTargetMinStrength);
+        return FinalizeProduced(generatorSlot, onlyWhenTargetKindId);
+    }
+
+    private int FinalizeProduced(int generatorSlot, int onlyWhenTargetKindId)
+    {
+        _producedOnlyWhenTargetKindIds[_producedCount] = onlyWhenTargetKindId;
         _producedCounts[generatorSlot]++;
         _openProducedSlot = _producedCount;
         return _producedCount;

@@ -91,6 +91,7 @@ public static class DefinitionGeneratorBuilder
         return new DefinitionGeneratorTarget
         {
             Kind = config.Target.Kind,
+            SecondKind = config.Target.SecondKind,
             Subtypes = config.Target.Subtypes is null
                 ? null
                 : new HashSet<string>(config.Target.Subtypes, StringComparer.Ordinal),
@@ -136,6 +137,7 @@ public static class DefinitionGeneratorBuilder
             {
                 Ref = binding.Ref,
                 Kind = binding.Kind,
+                SecondKind = binding.SecondKind,
                 Query = BuildQuery(graph, binding.Kind, binding.Query),
             });
         }
@@ -246,6 +248,7 @@ public static class DefinitionGeneratorBuilder
         {
             Ref = produced.Ref,
             Kind = produced.Kind,
+            OnlyWhenTargetKind = produced.OnlyWhenTargetKind,
             Subtype = produced.Subtype,
             Subtypes = produced.Subtypes is null
                 ? null

@@ -345,7 +345,8 @@ internal static partial class KernelProgramInstaller
             generator.TargetRequiredTagBits,
             generator.TargetWithoutTagBits,
             generator.DesperationRatio,
-            generator.DesperationCultureId);
+            generator.DesperationCultureId,
+            generator.TargetKindIdB);
         if (generator.TargetChronicleHeatMin > FixedScalar.Zero ||
             generator.TargetChronicleLegendaryWithinTicks > 0)
         {
@@ -500,7 +501,8 @@ internal static partial class KernelProgramInstaller
             resolved.CultureId,
             resolved.RelatedToTargetKindId,
             resolved.RelatedToTargetIncoming,
-            resolved.RelatedToTargetMinStrength);
+            resolved.RelatedToTargetMinStrength,
+            binding.KindIdB);
     }
 
     private static void InstallGeneratorProducedEntities(KernelConfigurationContext context, int generatorSlot, CompiledGeneratorRule generator)
@@ -550,7 +552,8 @@ internal static partial class KernelProgramInstaller
             resolvedQuery.RelatedToTargetKindId,
             resolvedQuery.RelatedToTargetIncoming,
             resolvedQuery.RelatedToTargetMinStrength,
-            produced.CultureModeCode);
+            produced.CultureModeCode,
+            produced.OnlyWhenTargetKindId);
         InstallGeneratorProducedSubtypeChoices(context, producedSlot, produced);
         InstallGeneratorProducedPlacementTerrains(context, producedSlot, produced);
         if (query is not null)

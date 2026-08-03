@@ -287,9 +287,76 @@ internal sealed partial class GeneratorProgramRuntime
         int queryCultureId = 0,
         int relatedToTargetKindId = 0,
         int relatedToTargetIncoming = 0,
-        FixedScalar relatedToTargetMinStrength = default)
+        FixedScalar relatedToTargetMinStrength = default,
+        int kindIdB = 0)
     {
-        var query = new SharedQuery(
+        var query = BuildSharedQuery(
+            world, kindId, subtypeStart, subtypeCount, adjacentToTarget,
+            cultureMatchCode, withoutOutgoingStart, withoutOutgoingCount,
+            withoutIncomingStart, withoutIncomingCount, requiredTagBits,
+            withoutTagBits, queryCultureId, relatedToTargetKindId,
+            relatedToTargetIncoming, relatedToTargetMinStrength);
+        var binding = new QueryBinding(
+            actorId: 0,
+            targetId,
+            targetOriginQ: targetOriginQ,
+            targetOriginR: targetOriginR,
+            refEntityIds: refEntityIds,
+            refCount: refCount);
+        // Dual-kind bindings sample uniformly across the joint pool: count
+        // both kinds, draw one ordinal over the total, pick from whichever
+        // pool it lands in.
+        var queryB = kindIdB == 0
+            ? query
+            : BuildSharedQuery(
+                world, kindIdB, subtypeStart, subtypeCount, adjacentToTarget,
+                cultureMatchCode, withoutOutgoingStart, withoutOutgoingCount,
+                withoutIncomingStart, withoutIncomingCount, requiredTagBits,
+                withoutTagBits, queryCultureId, relatedToTargetKindId,
+                relatedToTargetIncoming, relatedToTargetMinStrength);
+        var count = EvaluateSharedEntityQuery(world, simulation, query, binding, requireTargetCultureRoute, selectedOrdinal: -1).Count;
+        var countB = kindIdB == 0
+            ? 0
+            : EvaluateSharedEntityQuery(world, simulation, queryB, binding, requireTargetCultureRoute, selectedOrdinal: -1).Count;
+        if (count + countB == 0)
+        {
+            return 0;
+        }
+
+        var selectedOrdinal = 0;
+        if (selectRandom && simulation is not null)
+        {
+            selectedOrdinal = simulation.RandomInt(
+                count + countB,
+                targetId > 0 ? world.EntityOccurrenceHandle(targetId) : kindId,
+                kindId,
+                KernelRandomPurposeCodes.GeneratorSharedQuery,
+                attempt: subtypeStart);
+        }
+
+        var pool = selectedOrdinal >= count ? queryB : query;
+        var poolOrdinal = selectedOrdinal >= count ? selectedOrdinal - count : selectedOrdinal;
+        return EvaluateSharedEntityQuery(world, simulation, pool, binding, requireTargetCultureRoute, poolOrdinal).SelectedEntityId;
+    }
+
+    private SharedQuery BuildSharedQuery(
+        WorldState world,
+        int kindId,
+        int subtypeStart,
+        int subtypeCount,
+        int adjacentToTarget,
+        int cultureMatchCode,
+        int withoutOutgoingStart,
+        int withoutOutgoingCount,
+        int withoutIncomingStart,
+        int withoutIncomingCount,
+        int requiredTagBits,
+        int withoutTagBits,
+        int queryCultureId,
+        int relatedToTargetKindId,
+        int relatedToTargetIncoming,
+        FixedScalar relatedToTargetMinStrength) =>
+        new(
             kindId,
             _subtypeIds,
             subtypeStart,
@@ -307,43 +374,6 @@ internal sealed partial class GeneratorProgramRuntime
             relatedToTargetKindId,
             relatedToTargetIncoming,
             relatedToTargetMinStrength);
-        var binding = new QueryBinding(
-            actorId: 0,
-            targetId,
-            targetOriginQ: targetOriginQ,
-            targetOriginR: targetOriginR,
-            refEntityIds: refEntityIds,
-            refCount: refCount);
-        var count = EvaluateSharedEntityQuery(
-            world,
-            simulation,
-            query,
-            binding,
-            requireTargetCultureRoute,
-            selectedOrdinal: -1).Count;
-        if (count == 0)
-        {
-            return 0;
-        }
-
-        var selectedOrdinal = 0;
-        if (selectRandom && simulation is not null)
-        {
-            selectedOrdinal = simulation.RandomInt(
-                count,
-                targetId > 0 ? world.EntityOccurrenceHandle(targetId) : kindId,
-                kindId,
-                KernelRandomPurposeCodes.GeneratorSharedQuery,
-                attempt: subtypeStart);
-        }
-        return EvaluateSharedEntityQuery(
-            world,
-            simulation,
-            query,
-            binding,
-            requireTargetCultureRoute,
-            selectedOrdinal).SelectedEntityId;
-    }
 
     private QueryEvaluation EvaluateSharedEntityQuery(
         WorldState world,

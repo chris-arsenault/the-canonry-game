@@ -99,7 +99,8 @@ internal sealed partial class GeneratorProgramRuntime :
         int targetRequiredTagBits = 0,
         int targetWithoutTagBits = 0,
         FixedScalar desperationRatio = default,
-        int desperationCultureId = 0)
+        int desperationCultureId = 0,
+        int targetKindIdB = 0)
     {
         ValidatePositive(generatorId);
         ValidatePositive(targetKindId);
@@ -114,6 +115,7 @@ internal sealed partial class GeneratorProgramRuntime :
         var slot = _generatorCount;
         _generatorIds[slot] = generatorId;
         _targetKindIds[slot] = targetKindId;
+        _targetKindIdsB[slot] = targetKindIdB;
         _fireWeights[slot] = fireWeight;
         _maxRuns[slot] = maxRuns;
         _desperationRatioUnits[slot] = KernelFixedPoint.RatioUnits(desperationRatio);
@@ -797,6 +799,22 @@ internal sealed partial class GeneratorProgramRuntime :
         return false;
     }
 
+    // Iterates the generator's target candidates across both permitted
+    // kinds. Selection callbacks stay uniform and deterministic because
+    // every site either accumulates counts or keeps a running priority
+    // maximum, both order-independent.
+    private void ForEachTargetCandidate(
+        WorldState world,
+        int generatorSlot,
+        global::System.Func<int, bool> callback)
+    {
+        KernelQuery.ForEachActiveEntityOfKind(world, _targetKindIds[generatorSlot], callback);
+        if (_targetKindIdsB[generatorSlot] != 0)
+        {
+            KernelQuery.ForEachActiveEntityOfKind(world, _targetKindIdsB[generatorSlot], callback);
+        }
+    }
+
     private (int CandidateCount, int SlotFillBonus, FixedScalar KnowledgeWeight) CountEligibleTargetsAndSlotFillBonus(
         Simulation simulation,
         int generatorSlot)
@@ -807,9 +825,9 @@ internal sealed partial class GeneratorProgramRuntime :
         var world = simulation.World;
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
-        KernelQuery.ForEachActiveEntityOfKind(
+        ForEachTargetCandidate(
             world,
-            _targetKindIds[generatorSlot],
+            generatorSlot,
             entityId =>
             {
                 var passes = TargetPasses(
@@ -869,6 +887,16 @@ internal sealed partial class GeneratorProgramRuntime :
                 continue;
             }
 
+            if (_producedOnlyWhenTargetKindIds[produced] != 0)
+            {
+                var gateTargetId = ResolveRef(refCodes, refEntityIds, refCount, GeneratorProgramConstants.TargetReferenceCode);
+                if (gateTargetId <= 0 ||
+                    world.EntityKindId(gateTargetId) != _producedOnlyWhenTargetKindIds[produced])
+                {
+                    continue;
+                }
+            }
+
             var producedCultureId = ResolveProducedCultureId(world, refCodes, refEntityIds, refCount, produced);
             if (producedCultureId <= 0)
             {
@@ -902,9 +930,9 @@ internal sealed partial class GeneratorProgramRuntime :
         var refEntityIds = _refEntityIds;
         var selectedTargetId = 0;
         var selectedPriority = FixedScalar.Zero;
-        KernelQuery.ForEachActiveEntityOfKind(
+        ForEachTargetCandidate(
             world,
-            _targetKindIds[generatorSlot],
+            generatorSlot,
             entityId =>
             {
                 if (!TargetPasses(simulation, generatorSlot, entityId, refCodes, refEntityIds, out var refCount))
@@ -957,9 +985,9 @@ internal sealed partial class GeneratorProgramRuntime :
         var refEntityIds = _refEntityIds;
         var selectedTargetId = 0;
         var selectedPriority = FixedScalar.Zero;
-        KernelQuery.ForEachActiveEntityOfKind(
+        ForEachTargetCandidate(
             world,
-            _targetKindIds[generatorSlot],
+            generatorSlot,
             entityId =>
             {
                 if (RejectedTargetContains(entityId, rejectedTargetIds, rejectedTargetCount) ||
@@ -997,9 +1025,9 @@ internal sealed partial class GeneratorProgramRuntime :
         var world = simulation.World;
         var refCodes = _refCodes;
         var refEntityIds = _refEntityIds;
-        KernelQuery.ForEachActiveEntityOfKind(
+        ForEachTargetCandidate(
             world,
-            _targetKindIds[generatorSlot],
+            generatorSlot,
             entityId =>
             {
                 if (!RejectedTargetContains(entityId, rejectedTargetIds, rejectedTargetCount) &&

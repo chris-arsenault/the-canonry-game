@@ -259,18 +259,11 @@ public static partial class IceRemembersGeneratorDefinition
         FireWeight = 6,
     };
 
-    // The hunt takes heroes of every actor kind (authorship parity,
-    // actor-parity audit 2026-08-01): authored once, emitted per kind.
-    // The penguin emission keeps the original id.
-    private static SemanticGeneratorConfig AHeroFallsToTheDeep() =>
-        AHeroFallsToTheDeepFor("a_hero_falls_to_the_deep", K.Penguin);
-
-    private static SemanticGeneratorConfig AHeroFallsToTheDeepOrca() =>
-        AHeroFallsToTheDeepFor("a_hero_falls_to_the_deep_orca", K.Orca);
-
-    private static SemanticGeneratorConfig AHeroFallsToTheDeepFor(string id, EntityKind victimKind) => new()
+    // The hunt takes heroes of whichever actor kind is there (authorship
+    // parity): the victim binding samples across the joint pools.
+    private static SemanticGeneratorConfig AHeroFallsToTheDeep() => new()
     {
-        Id = id,
+        Id = "a_hero_falls_to_the_deep",
         Name = "A Hero Falls To The Deep",
         Description = "Rarely, the hunt takes someone whose name mattered. The settlement is bereaved, the predation deepens, and the grievance is the kind wars are made of.",
         CausalLimit = "Depends on strong predation against a settlement with a living named member of its culture; marks the victim historical and sets the bereaved tag.",
@@ -280,7 +273,8 @@ public static partial class IceRemembersGeneratorDefinition
             new SemanticGeneratorBindingTarget
             {
                 Ref = "$victim",
-                Kind = victimKind,
+                Kind = K.Penguin,
+                SecondKind = K.Orca,
                 Query = SameCultureAsTarget(),
             },
         ],

@@ -173,7 +173,8 @@ public static partial class DefinitionGraphValidator
 
         foreach (var trigger in generator.Triggers)
         {
-            if (trigger.OnKind != generator.Target.Kind)
+            if (trigger.OnKind != generator.Target.Kind &&
+                trigger.OnKind != generator.Target.SecondKind)
             {
                 errors.Add(
                     $"Generator '{generator.Id}' target kind '{generator.Target.Kind}' does not match trigger kind '{trigger.OnKind}'.");

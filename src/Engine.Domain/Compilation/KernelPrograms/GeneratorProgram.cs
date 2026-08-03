@@ -25,7 +25,8 @@ public sealed record CompiledGeneratorRule(
     IReadOnlyList<GeneratorBindingRule> SecondaryBindings,
     IReadOnlyList<GeneratorProducedEntityRule> ProducedEntities,
     IReadOnlyList<GeneratorRelationshipRule> Relationships,
-    IReadOnlyList<GeneratorEffectRule> Effects);
+    IReadOnlyList<GeneratorEffectRule> Effects,
+    int TargetKindIdB = 0);
 
 public sealed record GeneratorEffectRule(
     int EffectTypeCode,
@@ -56,7 +57,8 @@ public sealed record GeneratorTriggerRule(int KindId);
 public sealed record GeneratorBindingRule(
     int RefCode,
     int KindId,
-    GeneratorEntityQueryRule? Query);
+    GeneratorEntityQueryRule? Query,
+    int KindIdB = 0);
 
 public sealed record GeneratorProducedEntityRule(
     int RefCode,
@@ -92,7 +94,8 @@ public sealed record GeneratorProducedEntityRule(
     FixedScalar PhysicalPlacementAuroraAffinity = default,
     FixedScalar PhysicalPlacementPressureAffinity = default,
     int PhysicalPlacementFeatureKind = -1,
-    int CultureModeCode = 0);
+    int CultureModeCode = 0,
+    int OnlyWhenTargetKindId = 0);
 
 public sealed record GeneratorEntityQueryRule(
     IReadOnlyList<int> SubtypeIds,

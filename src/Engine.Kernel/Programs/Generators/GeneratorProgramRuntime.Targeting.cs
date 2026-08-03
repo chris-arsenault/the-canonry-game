@@ -72,7 +72,9 @@ internal sealed partial class GeneratorProgramRuntime
         out int rejectionReasonCode)
     {
         var world = simulation.World;
-        if (!KernelQuery.EntityIsActiveKind(world, targetId, _targetKindIds[generatorSlot]))
+        if (!KernelQuery.EntityIsActiveKind(world, targetId, _targetKindIds[generatorSlot]) &&
+            (_targetKindIdsB[generatorSlot] == 0 ||
+                !KernelQuery.EntityIsActiveKind(world, targetId, _targetKindIdsB[generatorSlot])))
         {
             rejectionReasonCode = GeneratorTargetRejectionReasonCodes.InactiveOrKind;
             return false;
@@ -316,7 +318,8 @@ internal sealed partial class GeneratorProgramRuntime
                 _bindingCultureIds[binding],
                 _bindingRelatedToTargetKindIds[binding],
                 _bindingRelatedToTargetIncoming[binding],
-                _bindingRelatedToTargetMinStrengths[binding]);
+                _bindingRelatedToTargetMinStrengths[binding],
+                _bindingKindIdsB[binding]);
             if (entityId == 0)
             {
                 return false;

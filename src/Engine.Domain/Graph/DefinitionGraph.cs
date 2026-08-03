@@ -273,6 +273,9 @@ public sealed class DefinitionSetTerrainPatchEffect(
 public sealed class DefinitionGeneratorTarget
 {
     public required EntityKind Kind { get; init; }
+    // Second permitted target kind: the generator targets either kind and
+    // gated produce slots resolve against the kind actually targeted.
+    public EntityKind? SecondKind { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
     public IReadOnlySet<string>? RequiredTags { get; init; }
     public IReadOnlySet<string>? WithoutTags { get; init; }
@@ -307,6 +310,9 @@ public sealed class DefinitionProducedEntity
 {
     public required string Ref { get; init; }
     public required EntityKind Kind { get; init; }
+    // When set, this produce slot fires only if the resolved target is of
+    // this kind (kind-general generators carry one gated slot per kind).
+    public EntityKind? OnlyWhenTargetKind { get; init; }
     public string? Subtype { get; init; }
     public IReadOnlySet<string>? Subtypes { get; init; }
     public required string Role { get; init; }
@@ -371,6 +377,7 @@ public sealed class DefinitionGeneratorBindingTarget
 {
     public required string Ref { get; init; }
     public required EntityKind Kind { get; init; }
+    public EntityKind? SecondKind { get; init; }
     public DefinitionEntityQuery? Query { get; init; }
 }
 

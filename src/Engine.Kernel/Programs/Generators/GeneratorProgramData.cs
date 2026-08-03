@@ -6,6 +6,10 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
 {
     internal int[] GeneratorIds = [];
     internal int[] TargetKindIds = [];
+    // Second permitted target kind (0 = none): a generator may target
+    // either of two kinds, and produce slots/bindings resolve against the
+    // kind that was actually targeted.
+    internal int[] TargetKindIdsB = [];
     internal int[] FireWeights = [];
     internal FixedScalar[] AgeFireWeightMultipliers = [];
     internal int[] TargetRequiredTagBits = [];
@@ -60,6 +64,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] TriggerKindIds = [];
     internal int[] BindingRefCodes = [];
     internal int[] BindingKindIds = [];
+    internal int[] BindingKindIdsB = [];
     internal int[] BindingAdjacentToTarget = [];
     internal int[] BindingCultureMatchCodes = [];
     internal int[] BindingRequireTargetCultureRoute = [];
@@ -71,6 +76,9 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     internal int[] BindingWithoutIncomingCounts = [];
     internal int[] ProducedRefCodes = [];
     internal int[] ProducedKindIds = [];
+    // Produce slot fires only when the resolved target's kind matches
+    // (0 = always): kind-general generators carry one gated slot per kind.
+    internal int[] ProducedOnlyWhenTargetKindIds = [];
     internal int[] ProducedSubtypeIds = [];
     internal int[] ProducedCreateIfMissing = [];
     internal int[] ProducedHasQuery = [];
@@ -177,6 +185,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     {
         GeneratorIds = new int[generatorCapacity + 1];
         TargetKindIds = new int[generatorCapacity + 1];
+        TargetKindIdsB = new int[generatorCapacity + 1];
         FireWeights = new int[generatorCapacity + 1];
         InitializeDesperationArrays(generatorCapacity);
         AgeFireWeightMultipliers = new FixedScalar[generatorCapacity + 1];
@@ -249,6 +258,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     {
         BindingRefCodes = new int[itemCapacity + 1];
         BindingKindIds = new int[itemCapacity + 1];
+        BindingKindIdsB = new int[itemCapacity + 1];
         BindingAdjacentToTarget = new int[itemCapacity + 1];
         BindingCultureMatchCodes = new int[itemCapacity + 1];
         BindingRequireTargetCultureRoute = new int[itemCapacity + 1];
@@ -278,6 +288,7 @@ internal sealed partial class GeneratorProgramData : IKernelProgramData
     {
         ProducedRefCodes = new int[itemCapacity + 1];
         ProducedKindIds = new int[itemCapacity + 1];
+        ProducedOnlyWhenTargetKindIds = new int[itemCapacity + 1];
         ProducedSubtypeIds = new int[itemCapacity + 1];
         ProducedCreateIfMissing = new int[itemCapacity + 1];
         ProducedHasQuery = new int[itemCapacity + 1];

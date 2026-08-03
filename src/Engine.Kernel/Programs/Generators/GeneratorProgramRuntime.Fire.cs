@@ -253,6 +253,14 @@ internal sealed partial class GeneratorProgramRuntime
         out int failureReasonCode)
     {
         failureReasonCode = GeneratorTargetRejectionReasonCodes.None;
+        // Kind-general generators carry one gated produce slot per actor
+        // kind; only the slot matching the resolved target's kind fires.
+        if (_producedOnlyWhenTargetKindIds[produced] != 0 &&
+            (targetId <= 0 || world.EntityKindId(targetId) != _producedOnlyWhenTargetKindIds[produced]))
+        {
+            return true;
+        }
+
         if (_producedCreateChances[produced] < 1 &&
             simulation.RandomScalar(
                 targetId > 0 ? world.EntityOccurrenceHandle(targetId) : 0,
