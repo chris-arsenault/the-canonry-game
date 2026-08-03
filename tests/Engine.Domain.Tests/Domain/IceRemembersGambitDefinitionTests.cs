@@ -14,15 +14,16 @@ public sealed class IceRemembersGambitDefinitionTests
         var config = IceRemembersDefinition.Create();
         var gambitIds = config.Gambits.Select(gambit => gambit.Id).ToHashSet(StringComparer.Ordinal);
 
-        // 45 strategic gambits (incl. the hunt-chronicle pair, the campaign
+        // 47 strategic gambits (incl. the hunt-chronicle pair, the campaign
         // march, the two carrier gambits, the two expedition gambits, the
         // four terrain-gated gambits, the two palette gambits, the two
-        // willful-artifact gambits, the razing, and the withering) + 23
-        // grant gambits (kind-general builders emitted per actor kind:
+        // willful-artifact gambits, the razing, the withering, and the
+        // wield/wrest artifact-acquisition pairs emitted per actor kind) +
+        // 23 grant gambits (kind-general builders emitted per actor kind:
         // eleven penguin/orca pairs plus the monster hoard-feeder) + two
         // stage-promotion rungs per catalog kind (deepen to the middle
         // stage, crown to the last).
-        Assert.Equal(45 + 23 + (IceRemembersDefinition.StageCatalogKinds.Count * 2), gambitIds.Count);
+        Assert.Equal(47 + 23 + (IceRemembersDefinition.StageCatalogKinds.Count * 2), gambitIds.Count);
         Assert.Contains(IceRemembersGambitId.AbilitySharesPractice.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactBindsMonster.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactCleansesScar.ToGambitId(), gambitIds);

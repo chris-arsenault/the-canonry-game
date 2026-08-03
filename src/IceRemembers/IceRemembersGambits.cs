@@ -25,7 +25,8 @@ public static partial class IceRemembersDefinition
     {
         var gambits = new List<GambitDefinition>
         {
-            PenguinWieldsArtifact(),
+            WieldsArtifact(GambitId.PenguinWieldsArtifact, K.Penguin),
+            WieldsArtifact(GambitId.OrcaWieldsArtifact, K.Orca),
             FactionDeclaresRivalry(),
             FactionDeclaresTerritorialWar(),
             FactionSwearsColdAccord(),
@@ -53,7 +54,8 @@ public static partial class IceRemembersDefinition
             MonsterHauntsTransport(),
             OrcaRaidsTradeRoute(),
             MonsterStealsArtifact(),
-            PenguinWrestsArtifact(),
+            WrestsArtifact(GambitId.PenguinWrestsArtifact, K.Penguin, Attr.Vitality),
+            WrestsArtifact(GambitId.OrcaWrestsArtifact, K.Orca, Attr.Endurance),
             PenguinSlaysMonster(),
             PenguinSlaysOrca(),
             PenguinForsakesTheHunt(),
@@ -142,12 +144,12 @@ public static partial class IceRemembersDefinition
         return gambit;
     }
 
-    private static GambitDefinition PenguinWieldsArtifact()
+    private static GambitDefinition WieldsArtifact(GambitId id, EntityKind actor)
     {
         var gambit = NewGambit(
-            GambitId.PenguinWieldsArtifact,
+            id,
             "Wield an Artifact",
-            K.Penguin,
+            actor,
             K.Artifact,
             All(
                 new TargetIsNotSelf(),
@@ -165,7 +167,7 @@ public static partial class IceRemembersDefinition
         gambit.Reads.Add(AttributeRef.Target(A(Attr.Condition), K.Artifact));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.Holds, RelationshipPolarity.Neutral, 1f));
         gambit.Mutations.Add(new MoveTargetToSelfPhysicalMutation());
-        gambit.Description = "A penguin within reach of an unclaimed artifact picks it up. The bond binds them physically — the artifact follows.";
+        gambit.Description = "One within reach of an unclaimed artifact takes it up. The bond binds them physically — the artifact follows.";
         return gambit;
     }
 

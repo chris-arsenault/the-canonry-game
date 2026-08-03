@@ -676,6 +676,8 @@ public enum IceRemembersGambitId
     OrcaPassesTheTeaching,
     OrcaReadsTheIce,
     OrcaStillsTheWaters,
+    OrcaWieldsArtifact,
+    OrcaWrestsArtifact,
 }
 
 public static class IceRemembersGambitIdExtensions
@@ -766,6 +768,8 @@ public static class IceRemembersGambitIdExtensions
         "orca_passes_the_teaching",
         "orca_reads_the_ice",
         "orca_stills_the_waters",
+        "orca_wields_artifact",
+        "orca_wrests_artifact",
     ];
 
     public static string ToGambitId(this IceRemembersGambitId gambitId)
