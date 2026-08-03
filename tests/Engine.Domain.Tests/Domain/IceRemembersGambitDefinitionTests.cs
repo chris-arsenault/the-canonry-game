@@ -23,7 +23,7 @@ public sealed class IceRemembersGambitDefinitionTests
         // eleven penguin/orca pairs plus the monster hoard-feeder) + two
         // stage-promotion rungs per catalog kind (deepen to the middle
         // stage, crown to the last).
-        Assert.Equal(47 + 23 + (IceRemembersDefinition.StageCatalogKinds.Count * 2), gambitIds.Count);
+        Assert.Equal(48 + 23 + (IceRemembersDefinition.StageCatalogKinds.Count * 2), gambitIds.Count);
         Assert.Contains(IceRemembersGambitId.AbilitySharesPractice.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactBindsMonster.ToGambitId(), gambitIds);
         Assert.Contains(IceRemembersGambitId.ArtifactCleansesScar.ToGambitId(), gambitIds);

@@ -41,7 +41,8 @@ public static partial class IceRemembersDefinition
             FactionSuesForPeace(),
             FactionClaimsPointOfInterest(),
             OrcaClaimsHuntingGround(),
-            AbilitySharesPractice(),
+            AbilitySharesPractice(GambitId.AbilitySharesPractice, K.Penguin, Attr.Vitality),
+            AbilitySharesPractice(GambitId.AbilitySharesPracticeWithOrca, K.Orca, Attr.Endurance),
             TransportOpensConduit(),
             FactionJoinsOccurrence(),
             ArtifactBindsMonster(),
@@ -485,33 +486,33 @@ public static partial class IceRemembersDefinition
         return gambit;
     }
 
-    private static GambitDefinition AbilitySharesPractice()
+    private static GambitDefinition AbilitySharesPractice(GambitId id, EntityKind practitioner, Attr health)
     {
         var gambit = NewGambit(
-            GambitId.AbilitySharesPractice,
+            id,
             "Share a Practice",
             K.Ability,
-            K.Penguin,
+            practitioner,
             All(
                 new TargetIsNotSelf(),
                 new WithinPlaneDistancePrecondition(6, PrimaryPlane.Semantic),
                 new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.PracticedBy), maximumExclusive: 4),
                 Not(new SelfHasRelationshipToTarget(L(Rel.PracticedBy))),
                 new SelfAttributeThreshold(A(Attr.Clarity), min: 35f, max: null, behaviorRelevant: false),
-                new TargetAttributeThreshold(A(Attr.Vitality), min: 30f, max: null, behaviorRelevant: false)),
+                new TargetAttributeThreshold(A(health), min: 30f, max: null, behaviorRelevant: false)),
             scoreExpression: GambitScore(
                 baseline: 1.5f,
                 dynamicRange: 6f,
                 Weighted3(
                     (DistanceFalloff(5f), 0.45f),
                     (Normalized(Expr.Self(A(Attr.Clarity))), 0.30f),
-                    (Normalized(Expr.Target(A(Attr.Vitality))), 0.25f))),
+                    (Normalized(Expr.Target(A(health))), 0.25f))),
             success: InitialGambitSuccessChance,
             cooldown: 115,
             entityCooldown: 28);
-        AddRelationshipWrite(gambit, Rel.PracticedBy, K.Penguin);
+        AddRelationshipWrite(gambit, Rel.PracticedBy, practitioner);
         gambit.Reads.Add(AttributeRef.Self(A(Attr.Clarity), K.Ability));
-        gambit.Reads.Add(AttributeRef.Target(A(Attr.Vitality), K.Penguin));
+        gambit.Reads.Add(AttributeRef.Target(A(health), practitioner));
         gambit.Mutations.Add(Relationship(TransferEndpoint.Self, TransferEndpoint.Target, Rel.PracticedBy, RelationshipPolarity.Positive, 0.70f));
         gambit.Description = "A clear technique, rite, or craft finds another practitioner. The practice edge is the topology later generators and low-altitude maintenance can read.";
         return gambit;
