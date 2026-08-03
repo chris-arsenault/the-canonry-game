@@ -70,17 +70,22 @@ keep the system, replace the grant model.
 3. Tier placement remains reach-only (invariant 5): a gate's power comes
    from what it enables, not from its tier.
 
-Mechanics mapping (owning seams, smallest first):
+Mechanics mapping (owning seams, smallest first). The unlock pattern
+already exists once: grant gambits
+(`IceRemembersGambits.Grants.cs`) are default-absent gambits gated by a
+relationship precondition (holds-artifact / practices-ability at
+minimum strength), revoked when the relationship lapses. Knowledge
+gates generalize that pattern from entity custody to culture claims:
 
-- **Gambit unlock** — a knowledge precondition in gambit evaluation; the
-  evaluation path already consults the knowledge runtime for score
-  multipliers, so a binary has-unlock check on the same lookup is the
-  cheapest gate. Locked gambits skip evaluation entirely.
-- **Generator unlock / target widening** — per-target checks in the
+- **Gambit unlock** — a new precondition kind, culture-holds-tech,
+  evaluated against the knowledge runtime for the actor's culture; same
+  authoring vocabulary as artifact grants, and composable with them
+  (a rite can require both the knowledge and the relic).
+- **Generator unlock / target widening** — the same condition at the
   generator target gates (`TargetPrimaryGatesPass` already consults
-  knowledge per target for fire weight); fixed-culture generators gate on
-  the fixed culture's claim. Widening relaxes the subtype filter when the
-  target's (or fixed) culture holds the tech.
+  knowledge per target for fire weight); fixed-culture generators gate
+  on the fixed culture's claim. Widening relaxes the subtype filter
+  when the relevant culture holds the tech.
 - **Terrain-class movement gate** — movement's `CanEnter` gains a
   (culture, terrain-class) permission consulting knowledge; today
   enterability is per-kind movement profile with no culture term.
