@@ -114,10 +114,24 @@ Carried from the previous backlog; origins as noted there.
 
 ## Future systems
 
-- **Knowledge / tech system** — parked design
-  (`docs/design/cultural-expansion-and-knowledge.md`; Civ model,
-  current state, and open questions recorded there). Read that doc
-  first when resuming.
+- **Knowledge / tech system: delete or make it matter** — parked
+  design (`docs/design/cultural-expansion-and-knowledge.md`; Civ
+  model, current state, and open questions recorded there; read it
+  first when resuming). Audit verdict (2026-08-03,
+  `docs/analysis/low-value-systems-survey-20260803.md` item 3): the
+  wiring is complete — 27 techs, 92 grants, 15 kernel application
+  sites — but multipliers cluster at x1.12-1.30 on top of larger
+  stacked modifiers, generator fire weight averages the modifier
+  across eligible targets, coverage is ~13% of generators / gambits /
+  verbs, claiming is automatic semantic-mass sweep with no decision
+  (8-11 techs held by tick 2,500), tiers 3-4 never activated in the
+  evidence run, and that run's generator fires matched the no-grants
+  baseline exactly. Its telemetry was deleted with the dead lanes; the
+  kernel program and Technology (K) panel remain. The open decision is
+  binary: delete end to end, or resume the parked design so claims
+  become real decisions with macro-scale effects (the x0.50
+  frontier-reclaim grant is the only current grant with visible
+  leverage — a model for what "matters" looks like).
 - **Vertical axis overhaul: make subsurface culture real** (2026-08-03).
   The lore intent is Nightshelf pockets of concentrated culture beneath
   Aurora surface territory. Measured (seed 9100, tick 30k) that never
@@ -138,6 +152,14 @@ Carried from the previous backlog; origins as noted there.
   culture storage to z = 0, which also removes both leaks. Spires,
   tunnels, and vertical movement are a separate live feature either
   way.
+
+## Audit follow-ups (2026-08-03 deletions)
+
+- **minor_actor_work_events lost its only reader** — the batch
+  analyzer was its sole codified consumer; the lane still writes ~14M
+  rows per 30k world. Decide: delete it like the other unread lanes,
+  or keep it as the one ad-hoc window into minor-actor work. It
+  survived the first cut only because it was not on the approved list.
 
 ## Kernel (owner lane)
 
