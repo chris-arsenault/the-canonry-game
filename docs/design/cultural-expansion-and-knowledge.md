@@ -95,6 +95,37 @@ Every authored gate passes the beneficiary check.
 
 ### Catalog recut plan (proposed 2026-08-06)
 
+The spine is the Three Fires (lore-bible section 7), not a neutral
+tech tree. Low tiers are mundane arts; from tier 2 upward each
+culture's spokes climb its own fire, and the tier-4 ideas are the
+fires at full cost:
+
+- **Aurora-Light** (Aurora; perception, preservation, pattern; costs
+  clarity of self) - carries the Remembrance and Cold spokes:
+  ice-reading gates (canon rites, testimony, speaking with the dead),
+  ice-seeing at distance, and at the top, crystallizing memory into
+  physical form. Answers questions, never solves problems - so its
+  gates unlock knowing content (chronicles, canons, wardings), not
+  force.
+- **Captured Fire** (Nightshelf; transformation, force, unmaking;
+  costs flesh) - carries the Craft and Deep spokes: core-cracking
+  gates forge work, gallery-delving (the vertical forging gambits),
+  heated weapons, and at the top, unmaking matter. Movement gates
+  here are what forge-masters cut: under-ice ways, tunnel networks.
+- **Pressure-Depth** (Orca; force, communion, blood; costs interior
+  distance; orca-only by physics, amplified near the Dreaming Tooth)
+  - carries the Song and Hunt spokes: subsonic calls at vast range,
+  pack coordination, communion with the Dead God (devotion content),
+  and at the top, force without contact. Its gates compose the tech
+  claim with the orca kind - the physics limit is the fiction's own
+  kind-gate.
+
+The fires do not combine; each culture can still claim another's
+sites (claims are co-holdable) but the gated content composes with
+kind and existing custody preconditions, so reach without the people
+to use it yields little - which is the lore's interference, expressed
+in gates.
+
 Grounding (lore-bible section 4): the world's central fact is the
 ice-memory - a medium that records everything done on or in the ice,
 read by trained readers, holding the testimony of the dead and, in the
