@@ -93,6 +93,53 @@ The six discipline spokes should map to gate families so a culture's
 expansion direction shapes what kind of civilization it becomes.
 Every authored gate passes the beneficiary check.
 
+### Catalog recut plan (proposed 2026-08-06)
+
+Each spoke becomes one coherent gate family; entries name the gate
+type against the implemented primitives. "Unlock" = CultureHoldsTech
+precondition on an existing gambit, or RequiredTech on an existing
+generator. Multiplier survivors are >= 2x or <= 0.5x.
+
+- **Deep — the under-ice family (movement profiles):**
+  breath_holding_dives t0 opens shallow under-ice crossings;
+  trench_charting t2 opens trench terrain; pressure_diving t3 prices
+  deep terrain near-flat (the "air travel" of this world);
+  abyssal_mapping t4 flattens everything beneath the ice. deep_netting
+  t1 unlocks the deep-forage generator.
+- **Craft — the built-world family:** bone_tools t0 keeps a x2 craft
+  verb-weight; ice_block_building t1 unlocks the settlement deepen
+  stage rung; sled_building t2 is a penguin overland movement profile;
+  ice_ship_hulls t3 unlocks the transport/carrier generator;
+  reinforced_hulls t4 is a transport profile crossing pressure ridges.
+- **Hunt — the provisioning family:** ice_fishing t0 keeps a x2 forage
+  multiplier; improved_ice_fishing t1 widens the hunt generator from
+  one subkind to all; krill_traps t2 is a x2 carrying-capacity step;
+  pack_hunting t3 unlocks the coordinated raid/hunt gambit (and is the
+  future seat of attacker mass projection).
+- **Song — the coordination family:** call_signals t0 widens a social
+  generator's target subkinds; echo_hunting t1 converts from score
+  multiplier to unlocking OrcaClaimsHuntingGround; long_distance_calls
+  t2 unlocks FactionParleysWithThePod at range; pod_coordination t3
+  unlocks the campaign march.
+- **Remembrance — the memory family:** record_carving t0 unlocks
+  ReadsTheIce; rookery_schools t1 unlocks PassesTheTeaching (teaching
+  lineages become an earned institution); lineage_charts t2 widens the
+  succession generator's subtypes; stone_libraries t3 unlocks the
+  canon-founding generator.
+- **Cold — the endurance family:** windbreaks t0 keeps a x2
+  decay-persistence multiplier; aurora_light_spectacles t1 unlocks the
+  festival/offering generator; thaw_forecasting t2 sharpens to x0.5
+  thaw threshold; ice_cellars t3 keeps decay-tide resistance promoted
+  to x0.5; storm_prediction t4 keeps its x0.5 reclaim threshold.
+
+All 92 existing x1.1-1.3 grants are deleted in the recut; the catalog
+above is each tech's entire effect. Follow-up primitive if wanted
+later: terrain-placement gates (founding on wastes/scar terrain) for a
+reclamation tech - not required for this recut. Gating existing
+content (ReadsTheIce, PassesTheTeaching, parley, march, stage rungs)
+makes those behaviors earned rather than universal - each needs a
+beneficiary check against current balance before authoring.
+
 Kernel primitives (implemented 2026-08-03). The unlock pattern already
 existed once: grant gambits (`IceRemembersGambits.Grants.cs`) are
 default-absent gambits gated by a relationship precondition
