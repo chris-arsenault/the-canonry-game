@@ -95,10 +95,37 @@ Every authored gate passes the beneficiary check.
 
 ### Catalog recut plan (proposed 2026-08-06)
 
+Grounding (lore-bible section 4): the world's central fact is the
+ice-memory - a medium that records everything done on or in the ice,
+read by trained readers, holding the testimony of the dead and, in the
+deep strata, impressions older than penguins. The three peoples relate
+to it oppositely: Aurora accumulate identity in it (ice-testimony is
+court evidence), Nightshelf treat it as surveillance to hide from
+(incomplete names, deeds done where the ice cannot see), Orca deny it
+outright (they live in water; the ice does not record them). Techs are
+ideas claimed on the semantic map - so the catalog should be arts of
+reading, hiding from, and defying the ice-memory, surviving the Long
+Dark, and touching the deep ice, not generic survival tools. Several
+current tech ids already fit (record_carving, echo_hunting,
+trench_charting); the generic ones (improved_ice_fishing, krill_traps,
+sled_building, reinforced_hulls) should be renamed into the world's
+own vocabulary during authoring - renames touch the seed catalog order
+validation, so they land with the recut, not after.
+
 Each spoke becomes one coherent gate family; entries name the gate
 type against the implemented primitives. "Unlock" = CultureHoldsTech
 precondition on an existing gambit, or RequiredTech on an existing
-generator. Multiplier survivors are >= 2x or <= 0.5x.
+generator. Multiplier survivors are >= 2x or <= 0.5x. Family framings,
+re-grounded: Remembrance is the reading arts (testimony, speaking with
+the dead, canon law kept alive by readers); Deep is the descent toward
+the oldest strata and what the Nightshelf build where the ice cannot
+see (galleries, under-ice ways); Song is the Orca's iceless
+coordination - water-borne calls that need no memory but their own;
+Craft is what is raised upon the ice (block, spire, hull); Hunt is
+provisioning through the Long Dark; Cold is enduring what the Berg
+does to the unprepared. The tier-4 techs should read as touching the
+Before Times or the deep ice's patient attention - endgame ideas the
+ice itself half-resists.
 
 - **Deep — the under-ice family (movement profiles):**
   breath_holding_dives t0 opens shallow under-ice crossings;
