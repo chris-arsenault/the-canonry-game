@@ -272,6 +272,14 @@ trackers, both now deleted. These are deferred ideas, not commitments.
 
 ## Open design questions
 
+- **Wake-Singer calving now sits behind Deep tier 3** (tech recut,
+  2026-08-08) — the_current_provides requires pressure_diving; in the
+  10k verification world (seed 9300) that gate stayed shut, so no pods
+  calved from devotion. If Wake-Singers do not reliably claim the Deep
+  spoke by mid-horizon on the standard 20k fan, their reproduction
+  path thins - watch census and the devotion economy on the next fan,
+  and consider dropping the gate to Deep tier 1-2 if it starves them.
+
 Undecided directions surfaced by the balance arc; no commitment
 implied.
 
