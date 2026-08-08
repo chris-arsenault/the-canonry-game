@@ -384,6 +384,7 @@ public static partial class IceRemembersDefinition
             All(
                 new TargetIsNotSelf(),
                 PracticedAbilityGrant("technique"),
+                new CultureHoldsTech("rookery_schools"),
                 Not(new TargetHasRelationshipToSelf(L(Rel.TaughtBy))),
                 new WithinPlaneDistancePrecondition(5, PrimaryPlane.Physical),
                 new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.TaughtBy), maximumExclusive: 4)),
@@ -411,6 +412,7 @@ public static partial class IceRemembersDefinition
             All(
                 new TargetIsNotSelf(),
                 PracticedAbilityGrant("rite"),
+                new CultureHoldsTech("record_carving"),
                 new WithinPlaneDistancePrecondition(8, PrimaryPlane.Semantic),
                 new TargetAttributeThreshold(A(Attr.Observance), min: null, max: 80f, behaviorRelevant: false)),
             scoreExpression: GambitScore(

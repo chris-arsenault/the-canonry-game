@@ -330,7 +330,7 @@ public static partial class IceRemembersGeneratorDefinition
         Name = "Charters Find Harbors",
         Description = "A held transport becomes more than cargo: its charter calls a harbor into the named world, and a broker settles where the route can be read.",
         CausalLimit = "Depends on a transport held by an agency and lacking a native-to port; creates that native-to port as the repeat lock.",
-        Target = TargetWithIncomingAndWithoutOutgoing(K.Transport, Rel.Holds, Rel.NativeTo),
+        Target = TargetWithIncomingAndWithoutOutgoing(K.Transport, Rel.Holds, Rel.NativeTo, requiredTech: "ice_ship_hulls"),
         Produces =
         [
             Required("$harbor", K.Settlement, "harbor", "$target", "$target", frontier: true, physicalFrontier: true),
@@ -551,7 +551,7 @@ public static partial class IceRemembersGeneratorDefinition
         Name = "Conduits Map Hidden Peaks",
         Description = "A transport with a native port begins to make its route legible. A peak enters the record as a navigational fact, not a decorative landmark.",
         CausalLimit = "Depends on a native-to transport and no incoming memorial lock on the transport; creates a memorial peak on that transport as the repeat lock.",
-        Target = TargetWithOutgoingAndWithoutIncoming(K.Transport, Rel.NativeTo, Rel.Memorializes),
+        Target = TargetWithOutgoingAndWithoutIncoming(K.Transport, Rel.NativeTo, Rel.Memorializes, requiredTech: "trench_charting"),
         Produces =
         [
             // The peak the record gains is a real one: the named point
@@ -740,7 +740,8 @@ public static partial class IceRemembersGeneratorDefinition
         EntityKind kind,
         Rel required,
         float minimumStrength,
-        Rel without) =>
+        Rel without,
+        string? requiredTech = null) =>
         new()
         {
             Kind = kind,
@@ -753,6 +754,7 @@ public static partial class IceRemembersGeneratorDefinition
                 },
             ],
             WithoutIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(without) },
+            RequiredTech = requiredTech,
         };
 
     private static SemanticGeneratorTarget TargetWithStrongOutgoingSubtypeAndWithoutIncoming(
@@ -845,12 +847,14 @@ public static partial class IceRemembersGeneratorDefinition
     private static SemanticGeneratorTarget TargetWithIncomingAndWithoutOutgoing(
         EntityKind kind,
         Rel required,
-        Rel without) =>
+        Rel without,
+        string? requiredTech = null) =>
         new()
         {
             Kind = kind,
             RequiredIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(required) },
             WithoutOutgoingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(without) },
+            RequiredTech = requiredTech,
         };
 
     private static SemanticGeneratorTarget TargetSubtypeWithOutgoingAndWithoutOutgoing(
@@ -893,23 +897,27 @@ public static partial class IceRemembersGeneratorDefinition
     private static SemanticGeneratorTarget TargetWithOutgoingAndWithoutIncoming(
         EntityKind kind,
         Rel required,
-        Rel without) =>
+        Rel without,
+        string? requiredTech = null) =>
         new()
         {
             Kind = kind,
             RequiredOutgoingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(required) },
             WithoutIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(without) },
+            RequiredTech = requiredTech,
         };
 
     private static SemanticGeneratorTarget TargetWithIncomingAndWithoutIncoming(
         EntityKind kind,
         Rel required,
-        Rel without) =>
+        Rel without,
+        string? requiredTech = null) =>
         new()
         {
             Kind = kind,
             RequiredIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(required) },
             WithoutIncomingRelationships = new HashSet<string>(StringComparer.Ordinal) { L(without) },
+            RequiredTech = requiredTech,
         };
 
     private static SemanticGeneratorTarget TargetWithIncomingSubtypeAndWithoutIncoming(

@@ -30,6 +30,7 @@ public static partial class IceRemembersDefinition
             K.PointOfInterest,
             All(
                 new TargetIsNotSelf(),
+                new CultureHoldsTech("pressure_diving"),
                 new TargetHasRelationshipToSelf(L(Rel.ClaimedBy)),
                 new WithinPlaneDistancePrecondition(16, PrimaryPlane.Physical),
                 new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.HomeBase), maximumExclusive: 1),

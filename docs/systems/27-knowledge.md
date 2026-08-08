@@ -53,40 +53,46 @@ culture field and are rebuilt on the next scheduled knowledge run.
 - Refreeze compares the strongest culture at a cell with the base reclaim
   ceiling times that culture's modifier. It does not assume culture ID 1.
 
-## Ice Remembers catalog
+## Ice Remembers catalog (recut 2026-08-08: enablement gates)
 
-| Technology | Explicit grants while claimed |
+Most technologies are enablement gates: the gated content carries a
+`CultureHoldsTech` precondition or generator `RequiredTech` and is
+default-absent for cultures without the claim. The few surviving
+multipliers are all >= x2 or <= x0.5. Tiers 0-1 are mundane arts;
+tiers 2-4 climb the Three Fires (lore-bible section 7).
+
+| Technology | Effect while claimed |
 |---|---|
-| Record-Carving | semantic decay ×0.94; `memorializes` maintenance ×1.25 |
-| Breath-Holding Dives | `penguin_go_fishing`, `artifact_sink_seaward` weight ×1.25 |
-| Bone Tools | all minor-actor work ×1.12 |
-| Ice Fishing | physical capacity ×1.10; `penguin_go_fishing` ×1.20 |
-| Call-Signals | `allied_with` maintenance ×1.25; pod-call and envoy verbs ×1.20 |
-| Windbreaks | physical culture decay ×0.92; hearth-banking ×1.25 |
-| Rookery Schools | artifact-knowledge and sanctuary-colony generators ×1.25 |
-| Deep Netting | physical capacity ×1.14; fishing ×1.15 |
-| Ice-Block Building | physical decay ×0.86; hearth-banking ×1.30 |
-| Improved Ice Fishing | physical capacity ×1.18; fishing ×1.25 |
-| Echo-Hunting | orca hunt ×1.35; hunting-ground gambit score ×1.20 and success ×1.12 |
-| Aurora Light Spectacles | physical attraction ×1.25; lamplight ×1.30 |
-| Lineage Charts | `member_of`, `led_by`, `taught_by` maintenance ×1.30; continuity verbs ×1.20 |
-| Trench Charting | three depth/conduit generators ×1.25; conduit charting ×1.25 |
-| Sled Building | penguin/faction physical travel cost ×0.90; road work ×1.25 |
-| Krill Traps | physical culture production ×1.12; bounty pulse ×1.20 |
-| Long-Distance Calls | semantic production ×1.12; gossip/news/deed-name verbs ×1.25 |
-| Thaw Forecasting | physical thaw threshold ×0.82 |
-| Stone Libraries | semantic decay ×0.72; memorial continuity ×1.35 |
-| Pressure Diving | `consigned_to`, `anchored`, `conduit_of` maintenance ×1.30; custody/conduit verbs ×1.20 |
-| Ice-Ship Hulls | transport travel cost ×0.85; sailing/port/trade ×1.25; harbor generator ×1.20 |
-| Pack Hunting | three hunt/slaying gambits: score ×1.25, success ×1.15 |
-| Pod Coordination | campaign labor ×1.25; pod/column verbs ×1.25; banner gambit score ×1.20 and success ×1.12 |
-| Ice Cellars | physical capacity ×1.22; excess physical decay tide ×0.70 |
-| Abyssal Mapping | deep-current/offering/leviathan generators ×1.30; deep-current gambits score ×1.25 and success ×1.15 |
-| Reinforced Hulls | transport travel cost ×0.75; sea/trade verbs ×1.30; transport/sea gambits score ×1.25 and success ×1.15 |
-| Storm Prediction | physical refreeze ceiling ×0.50; excess physical decay tide ×0.65 |
+| Record-Carving | gate: Read the Ice (canon observance rites) |
+| Breath-Holding Dives | sunken-relic recovery x2 |
+| Bone Tools | all minor-actor work x2 |
+| Ice Fishing | fishing and ordinary hunt verbs x2 |
+| Call-Signals | `allied_with` maintenance x2 |
+| Windbreaks | physical culture decay x0.5 |
+| Rookery Schools | gate: Pass the Teaching (lineages exist) |
+| Deep Netting | `offered_to` maintenance x2 |
+| Ice-Block Building | hearth-banking x2 |
+| The Breathing-Hole Watch | gate: Corner the Beast |
+| Echo-Hunting | gate: Claim the Hunting Ground |
+| Aurora Light Spectacles | physical attraction x2 |
+| Lineage Charts | `member_of`, `led_by`, `taught_by` maintenance x2 |
+| Trench Charting | gate: conduits_map_hidden_peaks generator |
+| Carved Ways | penguin/faction travel cost x0.5 |
+| Long-Dark Larders | physical carrying capacity x2 |
+| Long-Distance Calls | gate: Parley with the Pod |
+| Thaw Forecasting | thaw threshold x0.5 |
+| Stone Libraries | semantic culture decay x0.5 |
+| Pressure Diving | gate: Lay the Deep Current; the_current_provides generator |
+| Ice-Ship Hulls | transport travel cost x0.5; gate: charters_find_harbors |
+| Pack Hunting | gate: Slay the Monster, Drive Off an Orca, Raid the Trade Route |
+| Pod Coordination | gate: March the Banners; campaign-column work x2 |
+| Ice Cellars | physical decay tides x0.5 |
+| Abyssal Mapping | gate: elders_descend_to_the_god, relics_are_given_to_the_deep |
+| Plate of the Before Times | gate: Survey the Region, Open a Conduit |
+| Storm Prediction | refreeze threshold x0.5; decay tides x0.5 |
 
-The source catalog remains authoritative for the exact targeted verb, generator,
-and gambit sets.
+The source catalog (`IceRemembersKnowledge.cs`) and the gate
+annotations on the content remain authoritative.
 
 ## Player-facing overview
 

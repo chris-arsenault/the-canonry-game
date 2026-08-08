@@ -22,6 +22,7 @@ public static partial class IceRemembersDefinition
             K.Faction,
             All(
                 new TargetIsNotSelf(),
+                new CultureHoldsTech("pod_coordination"),
                 // A campaign is war made territorial: it needs a living war
                 // and a faction cohesive enough to keep a column in the field.
                 new SelfHasRelationshipToTarget(L(Rel.AtWarWith), minStrength: 0.30f),

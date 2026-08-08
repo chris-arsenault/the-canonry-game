@@ -70,7 +70,7 @@ public static partial class IceRemembersGeneratorDefinition
         Name = "Elders Descend To The God",
         Description = "On the old rhythm, an elder who can no longer hunt makes the Deep Descent. This is completion, not tragedy: a relic of the descent joins the deep, and the pod's devotion is renewed.",
         CausalLimit = "Targets a worshipped site with a living same-culture elder; marks the elder historical.",
-        Target = TargetWithIncomingAndWithoutIncoming(K.PointOfInterest, Rel.OfferedTo, Rel.CleansedBy),
+        Target = TargetWithIncomingAndWithoutIncoming(K.PointOfInterest, Rel.OfferedTo, Rel.CleansedBy, requiredTech: "abyssal_mapping"),
         SecondaryTargets =
         [
             new SemanticGeneratorBindingTarget
@@ -107,7 +107,7 @@ public static partial class IceRemembersGeneratorDefinition
         Name = "Relics Are Given To The Deep",
         Description = "A held relic is carried to the sacred waters and given away. The god's tools return to the god, and the holder's standing returns as devotion.",
         CausalLimit = "Depends on a held artifact without a consignment and a same-culture sacred site; the consigned_to edge is the repeat lock.",
-        Target = TargetWithIncomingAndWithoutOutgoing(K.Artifact, Rel.Holds, Rel.ConsignedTo),
+        Target = TargetWithIncomingAndWithoutOutgoing(K.Artifact, Rel.Holds, Rel.ConsignedTo, requiredTech: "abyssal_mapping"),
         SecondaryTargets =
         [
             new SemanticGeneratorBindingTarget
@@ -161,7 +161,8 @@ public static partial class IceRemembersGeneratorDefinition
             K.PointOfInterest,
             Rel.OfferedTo,
             ProvidesMinimumOfferingStrength,
-            Rel.CleansedBy),
+            Rel.CleansedBy,
+            requiredTech: "pressure_diving"),
         Produces =
         [
             RequiredWakeSingers("$calf", K.Orca, "scout", "$target", GeneratorCulturePlacement.CultureRoute),

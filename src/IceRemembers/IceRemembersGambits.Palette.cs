@@ -61,6 +61,7 @@ public static partial class IceRemembersDefinition
             K.Orca,
             All(
                 new TargetIsNotSelf(),
+                new CultureHoldsTech("long_distance_calls"),
                 new EndpointCultureIs(TransferEndpoint.Target, C(Culture.WakeSingers)),
                 Not(new EndpointCultureIs(TransferEndpoint.Self, C(Culture.WakeSingers))),
                 Not(new SelfHasRelationshipToTarget(L(Rel.AlliedWith))),

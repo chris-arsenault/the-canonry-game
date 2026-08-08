@@ -460,6 +460,7 @@ public static partial class IceRemembersDefinition
             K.PointOfInterest,
             All(
                 new TargetIsNotSelf(),
+                new CultureHoldsTech("echo_hunting"),
                 new EndpointCultureIs(TransferEndpoint.Target, C(Culture.TheIce)),
                 Not(new EndpointCultureIs(TransferEndpoint.Self, C(Culture.TheIce))),
                 new WithinPlaneDistancePrecondition(10, PrimaryPlane.Physical),
@@ -527,6 +528,7 @@ public static partial class IceRemembersDefinition
             K.PointOfInterest,
             All(
                 new TargetIsNotSelf(),
+                new CultureHoldsTech("before_times_plate"),
                 new SelfHasOutgoingRelationship(L(Rel.NativeTo)),
                 new WithinPlaneDistancePrecondition(12, PrimaryPlane.Physical),
                 new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.ConduitOf), maximumExclusive: 3),
@@ -655,6 +657,7 @@ public static partial class IceRemembersDefinition
             K.Region,
             All(
                 new TargetIsNotSelf(),
+                new CultureHoldsTech("before_times_plate"),
                 new EndpointCultureIs(TransferEndpoint.Target, C(Culture.TheIce)),
                 Not(new EndpointCultureIs(TransferEndpoint.Self, C(Culture.TheIce))),
                 new SelfHasOutgoingRelationship(L(Rel.NativeTo)),
@@ -755,6 +758,7 @@ public static partial class IceRemembersDefinition
             K.Penguin,
             All(
                 new TargetIsNotSelf(),
+                new CultureHoldsTech("pack_hunting"),
                 new SelfHasOutgoingRelationship(L(Rel.HomeBase)),
                 // Raiders have careers: an orca must hold an established
                 // hunting claim or be sworn into a pod before it raids. No
@@ -835,6 +839,7 @@ public static partial class IceRemembersDefinition
             K.Monster,
             All(
                 new TargetIsNotSelf(),
+                new CultureHoldsTech("pack_hunting"),
                 new SelfHasRelationshipToTarget(L(Rel.AtWarWith)),
                 new WithinTravelReachPrecondition(100f, PrimaryPlane.Physical),
                 new SelfAttributeThreshold(A(Attr.Vitality), min: 26f, max: null, behaviorRelevant: false),
@@ -870,6 +875,7 @@ public static partial class IceRemembersDefinition
             K.Orca,
             All(
                 new TargetIsNotSelf(),
+                new CultureHoldsTech("pack_hunting"),
                 new SelfHasRelationshipToTarget(L(Rel.AtWarWith)),
                 new TargetHasRelationshipToSelf(L(Rel.AtWarWith)),
                 Not(new EndpointRelationshipCountBelow(TransferEndpoint.Self, L(Rel.Holds), maximumExclusive: 1, minStrength: 0.7f)),

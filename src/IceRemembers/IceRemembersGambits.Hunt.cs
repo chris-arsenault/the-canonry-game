@@ -58,6 +58,7 @@ public static partial class IceRemembersDefinition
             K.Monster,
             All(
                 new TargetIsNotSelf(),
+                new CultureHoldsTech("breathing_hole_watch"),
                 new SelfHasRelationshipToTarget(L(Rel.AtWarWith)),
                 // The hunt must cross real ground: frozen frontier blocks the
                 // corner, a road-linked quarry is within reach further out.
