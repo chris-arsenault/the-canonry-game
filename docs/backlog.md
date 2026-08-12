@@ -3,7 +3,7 @@
 Unified work backlog, consolidated 2026-08-03 from the actor-parity
 audit, the culture balance problem register
 (`docs/analysis/culture-balance-problems-20260801.md`), prior plans,
-and the previous version of this file. Point-in-time findings stay in
+and the previous version of this file. Last swept 2026-08-12. Point-in-time findings stay in
 `docs/analysis/`. Verification-only and hardening-only items are
 excluded by charter; completed verification history lives in the
 analysis records.
@@ -135,10 +135,13 @@ Carried from the previous backlog; origins as noted there.
   primitives landed 2026-08-03: CultureHoldsTech gambit precondition,
   generator RequiredTech / TechWidensSubtypes target gates, and
   tech-gated movement profile rules, all resolving the
-  GameplayDefinition.KnowledgeTechIds catalog. Remaining: recut the
-  27-tech catalog onto the gates (after the generator review), then a
-  scorecard section joining claims to gated-content usage so effect is
-  finally measurable.
+  GameplayDefinition.KnowledgeTechIds catalog. Catalog authored
+  2026-08-08 (commit 9373bf68): eleven pure gates across twelve
+  gambits and five generators, eight survivors at x2/x0.5, four
+  lore-grounded renames; verification world seed 9300 showed gates
+  opening per claimed spoke. Remaining: a scorecard section joining
+  claims to gated-content usage, and judging the recut on a standard
+  20k fan (see the calving watch under Open design questions).
 - **Natural wonders (physical parallel to tech sites)** — future
   system, same grant engine: static wonder sites on the physical
   plane, owned while the culture's physical field holds them (same
